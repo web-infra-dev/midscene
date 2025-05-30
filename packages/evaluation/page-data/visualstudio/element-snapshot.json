@@ -1,449 +1,199 @@
 [
   {
-    "id": "ignkj",
+    "id": "fglbl",
     "indexId": 0,
-    "nodeHashId": "ignkj",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='ignkj']",
-    "attributes": {
-      "class": ".navbar-brand",
-      "href": "/",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "Visual Studio Code",
-    "rect": {
-      "left": 80,
-      "top": 0,
-      "width": 221,
-      "height": 58,
-      "zoom": 1,
-      "isVisible": true
-    },
-    "center": [
-      191,
-      29
-    ],
-    "zoom": 1,
-    "isVisible": true
-  },
-  {
-    "id": "ebaei",
-    "indexId": 1,
-    "nodeHashId": "ebaei",
+    "nodeHashId": "fglbl",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      201,
-      29
-    ],
+    "center": [201, 29],
     "content": "Visual Studio Code",
     "rect": {
       "left": 116,
       "top": 17,
       "width": 170,
       "height": 24,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 1280,
+    "screenHeight": 720
   },
   {
-    "id": "ejnci",
-    "indexId": 2,
-    "nodeHashId": "ejnci",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='ejnci']",
-    "attributes": {
-      "id": "nav-docs",
-      "href": "/docs",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "Docs",
-    "rect": {
-      "left": 301,
-      "top": 0,
-      "width": 62,
-      "height": 58,
-      "zoom": 1,
-      "isVisible": true
-    },
-    "center": [
-      332,
-      29
-    ],
-    "zoom": 1,
-    "isVisible": true
-  },
-  {
-    "id": "bcnmm",
-    "indexId": 3,
-    "nodeHashId": "bcnmm",
+    "id": "hbbjm",
+    "indexId": 1,
+    "nodeHashId": "hbbjm",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      332,
-      30
-    ],
+    "center": [332, 30],
     "content": "Docs",
     "rect": {
       "left": 313,
       "top": 20,
       "width": 38,
       "height": 19,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 1280,
+    "screenHeight": 720
   },
   {
-    "id": "fiaaf",
-    "indexId": 4,
-    "nodeHashId": "fiaaf",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='fiaaf']",
-    "attributes": {
-      "id": "nav-updates",
-      "href": "/updates",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "Updates",
-    "rect": {
-      "left": 363,
-      "top": 0,
-      "width": 87,
-      "height": 58,
-      "zoom": 1,
-      "isVisible": true
-    },
-    "center": [
-      407,
-      29
-    ],
-    "zoom": 1,
-    "isVisible": true
-  },
-  {
-    "id": "hlbpo",
-    "indexId": 5,
-    "nodeHashId": "hlbpo",
+    "id": "ldhod",
+    "indexId": 2,
+    "nodeHashId": "ldhod",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      407,
-      30
-    ],
+    "center": [407, 30],
     "content": "Updates",
     "rect": {
       "left": 375,
       "top": 20,
       "width": 63,
       "height": 19,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 1280,
+    "screenHeight": 720
   },
   {
-    "id": "bigdc",
-    "indexId": 6,
-    "nodeHashId": "bigdc",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='bigdc']",
-    "attributes": {
-      "id": "nav-blogs",
-      "href": "/blogs",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "Blog",
-    "rect": {
-      "left": 449,
-      "top": 0,
-      "width": 57,
-      "height": 58,
-      "zoom": 1,
-      "isVisible": true
-    },
-    "center": [
-      478,
-      29
-    ],
-    "zoom": 1,
-    "isVisible": true
-  },
-  {
-    "id": "lngkl",
-    "indexId": 7,
-    "nodeHashId": "lngkl",
+    "id": "njicg",
+    "indexId": 3,
+    "nodeHashId": "njicg",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      478,
-      30
-    ],
+    "center": [478, 30],
     "content": "Blog",
     "rect": {
       "left": 461,
       "top": 20,
       "width": 33,
       "height": 19,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 1280,
+    "screenHeight": 720
   },
   {
-    "id": "gbfgb",
-    "indexId": 8,
-    "nodeHashId": "gbfgb",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='gbfgb']",
-    "attributes": {
-      "id": "nav-extend",
-      "href": "/api",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "API",
-    "rect": {
-      "left": 507,
-      "top": 0,
-      "width": 49,
-      "height": 58,
-      "zoom": 1,
-      "isVisible": true
-    },
-    "center": [
-      532,
-      29
-    ],
-    "zoom": 1,
-    "isVisible": true
-  },
-  {
-    "id": "eopdb",
-    "indexId": 9,
-    "nodeHashId": "eopdb",
+    "id": "bpelm",
+    "indexId": 4,
+    "nodeHashId": "bpelm",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      532,
-      30
-    ],
+    "center": [532, 30],
     "content": "API",
     "rect": {
       "left": 519,
       "top": 20,
       "width": 25,
       "height": 19,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 1280,
+    "screenHeight": 720
   },
   {
-    "id": "eceik",
-    "indexId": 10,
-    "nodeHashId": "eceik",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='eceik']",
-    "attributes": {
-      "href": "https://marketplace.visualstudio.com/VSCode",
-      "target": "_blank",
-      "rel": "noopener",
-      "id": "nav-extensions",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "Extensions",
-    "rect": {
-      "left": 556,
-      "top": 0,
-      "width": 105,
-      "height": 58,
-      "zoom": 1,
-      "isVisible": true
-    },
-    "center": [
-      609,
-      29
-    ],
-    "zoom": 1,
-    "isVisible": true
-  },
-  {
-    "id": "gfihj",
-    "indexId": 11,
-    "nodeHashId": "gfihj",
+    "id": "jdhej",
+    "indexId": 5,
+    "nodeHashId": "jdhej",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      609,
-      30
-    ],
+    "center": [609, 30],
     "content": "Extensions",
     "rect": {
       "left": 568,
       "top": 20,
       "width": 81,
       "height": 19,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 1280,
+    "screenHeight": 720
   },
   {
-    "id": "cmgmj",
-    "indexId": 12,
-    "nodeHashId": "cmgmj",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='cmgmj']",
-    "attributes": {
-      "id": "nav-faqs",
-      "href": "/docs/supporting/faq",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "FAQ",
-    "rect": {
-      "left": 660,
-      "top": 0,
-      "width": 55,
-      "height": 58,
-      "zoom": 1,
-      "isVisible": true
-    },
-    "center": [
-      688,
-      29
-    ],
-    "zoom": 1,
-    "isVisible": true
-  },
-  {
-    "id": "cneeh",
-    "indexId": 13,
-    "nodeHashId": "cneeh",
+    "id": "jfnal",
+    "indexId": 6,
+    "nodeHashId": "jfnal",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      688,
-      30
-    ],
+    "center": [688, 30],
     "content": "FAQ",
     "rect": {
       "left": 672,
       "top": 20,
       "width": 31,
       "height": 19,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 1280,
+    "screenHeight": 720
   },
   {
-    "id": "ejlcf",
-    "indexId": 14,
-    "nodeHashId": "ejlcf",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='ejlcf']",
-    "attributes": {
-      "id": "nav-copilot",
-      "href": "/docs/copilot/overview",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "GitHub Copilot",
-    "rect": {
-      "left": 715,
-      "top": 0,
-      "width": 133,
-      "height": 58,
-      "zoom": 1,
-      "isVisible": true
-    },
-    "center": [
-      782,
-      29
-    ],
-    "zoom": 1,
-    "isVisible": true
-  },
-  {
-    "id": "ipccb",
-    "indexId": 15,
-    "nodeHashId": "ipccb",
+    "id": "pnpcb",
+    "indexId": 7,
+    "nodeHashId": "pnpcb",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      782,
-      30
-    ],
+    "center": [782, 30],
     "content": "GitHub Copilot",
     "rect": {
       "left": 727,
       "top": 20,
       "width": 109,
       "height": 19,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 1280,
+    "screenHeight": 720
   },
   {
-    "id": "lpblh",
-    "indexId": 16,
-    "nodeHashId": "lpblh",
+    "id": "copdb",
+    "indexId": 8,
+    "nodeHashId": "copdb",
     "nodeType": "BUTTON Node",
-    "locator": "[_midscene_retrieve_task_id='lpblh']",
+    "locator": "[_midscene_retrieve_task_id='copdb']",
     "attributes": {
       "type": "button",
       "class": ".theme-switch",
       "id": "theme-toggle",
-      "htmlTagName": "<button>",
+      "htmlTagName": "<li>",
       "nodeType": "BUTTON Node"
     },
     "content": "",
@@ -452,22 +202,19 @@
       "top": 13,
       "width": 32,
       "height": 32,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
-    "center": [
-      865,
-      29
-    ],
+    "center": [865, 29],
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 1280,
+    "screenHeight": 720
   },
   {
-    "id": "gbogj",
-    "nodeHashId": "gbogj",
-    "locator": "[_midscene_retrieve_task_id='gbogj']",
+    "id": "bminn",
+    "nodeHashId": "bminn",
+    "locator": "[_midscene_retrieve_task_id='bminn']",
     "nodeType": "FORM_ITEM Node",
-    "indexId": 17,
+    "indexId": 9,
     "attributes": {
       "type": "text",
       "name": "q",
@@ -483,28 +230,25 @@
       "top": 13,
       "width": 200,
       "height": 32,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
-    "center": [
-      985,
-      29
-    ],
+    "center": [985, 29],
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 1280,
+    "screenHeight": 720
   },
   {
-    "id": "pemik",
-    "indexId": 18,
-    "nodeHashId": "pemik",
+    "id": "cipnh",
+    "indexId": 10,
+    "nodeHashId": "cipnh",
     "nodeType": "BUTTON Node",
-    "locator": "[_midscene_retrieve_task_id='pemik']",
+    "locator": "[_midscene_retrieve_task_id='cipnh']",
     "attributes": {
       "tabindex": "0",
       "class": ".btn",
       "type": "submit",
       "aria-label": "Search",
-      "htmlTagName": "<button>",
+      "htmlTagName": "<span>",
       "nodeType": "BUTTON Node"
     },
     "content": "",
@@ -513,5248 +257,431 @@
       "top": 19,
       "width": 28,
       "height": 20,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
-    "center": [
-      906,
-      29
-    ],
+    "center": [906, 29],
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 1280,
+    "screenHeight": 720
   },
   {
-    "id": "aofic",
-    "indexId": 19,
-    "nodeHashId": "aofic",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='aofic']",
-    "attributes": {
-      "class": ".link-button",
-      "href": "/Download",
-      "id": "nav-download",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "Download",
-    "rect": {
-      "left": 1093,
-      "top": 13,
-      "width": 107,
-      "height": 32,
-      "zoom": 1,
-      "isVisible": true
-    },
-    "center": [
-      1147,
-      29
-    ],
-    "zoom": 1,
-    "isVisible": true
-  },
-  {
-    "id": "mkdkp",
-    "indexId": 20,
-    "nodeHashId": "mkdkp",
+    "id": "opjng",
+    "indexId": 11,
+    "nodeHashId": "opjng",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      1147,
-      30
-    ],
+    "center": [1147, 30],
     "content": "Download",
     "rect": {
       "left": 1109,
       "top": 20,
       "width": 75,
       "height": 19,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 1280,
+    "screenHeight": 720
   },
   {
-    "id": "ncgcj",
-    "indexId": 21,
-    "nodeHashId": "ncgcj",
+    "id": "befbo",
+    "indexId": 12,
+    "nodeHashId": "befbo",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<p>"
     },
-    "center": [
-      545,
-      79
-    ],
-    "content": "Try",
+    "center": [519, 86],
+    "content": "🚀 Get",
     "rect": {
-      "left": 532,
-      "top": 70,
-      "width": 25,
+      "left": 496,
+      "top": 77,
+      "width": 45,
       "height": 17,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 1280,
+    "screenHeight": 720
   },
   {
-    "id": "gpkbc",
-    "indexId": 22,
-    "nodeHashId": "gpkbc",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='gpkbc']",
-    "attributes": {
-      "class": ".copilot-deep-link",
-      "href": "vscode://GitHub.Copilot-Chat/chat?mode=agent&referrer=vscode-agentbanner",
-      "id": "banner-link-updates",
-      "rel": "noopener",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "agent mode",
-    "rect": {
-      "left": 557,
-      "top": 70,
-      "width": 79,
-      "height": 17,
-      "zoom": 1,
-      "isVisible": true
-    },
-    "center": [
-      597,
-      79
-    ],
-    "zoom": 1,
-    "isVisible": true
-  },
-  {
-    "id": "gpkbc",
-    "indexId": 23,
-    "nodeHashId": "gpkbc",
+    "id": "hcbca",
+    "indexId": 13,
+    "nodeHashId": "hcbca",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      597,
-      79
-    ],
-    "content": "agent mode",
+    "center": [606, 86],
+    "content": "GitHub Copilot Free",
     "rect": {
-      "left": 557,
-      "top": 70,
-      "width": 79,
+      "left": 541,
+      "top": 77,
+      "width": 130,
       "height": 17,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 1280,
+    "screenHeight": 720
   },
   {
-    "id": "jopoj",
-    "indexId": 24,
-    "nodeHashId": "jopoj",
+    "id": "bjijb",
+    "indexId": 14,
+    "nodeHashId": "bjijb",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<p>"
     },
-    "center": [
-      675,
-      79
-    ],
+    "center": [711, 86],
     "content": "in VS Code!",
     "rect": {
-      "left": 635,
-      "top": 70,
+      "left": 671,
+      "top": 77,
       "width": 80,
       "height": 17,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 1280,
+    "screenHeight": 720
   },
   {
-    "id": "hfaog",
-    "nodeHashId": "hfaog",
-    "indexId": 25,
+    "id": "jnkgi",
+    "nodeHashId": "jnkgi",
+    "indexId": 15,
     "nodeType": "CONTAINER Node",
-    "locator": "[_midscene_retrieve_task_id='hfaog']",
+    "locator": "[_midscene_retrieve_task_id='jnkgi']",
     "attributes": {
       "aria-hidden": "true",
       "class": ".glyph-icon",
       "nodeType": "CONTAINER Node",
-      "htmlTagName": "<span>"
+      "htmlTagName": "<div>"
     },
     "content": "",
     "rect": {
       "left": 1241,
-      "top": 66,
+      "top": 73,
       "width": 15,
       "height": 21,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
-    "center": [
-      1249,
-      77
-    ],
+    "center": [1249, 84],
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 1280,
+    "screenHeight": 720
   },
   {
-    "id": "cffkf",
-    "indexId": 26,
-    "nodeHashId": "cffkf",
+    "id": "cphhj",
+    "indexId": 16,
+    "nodeHashId": "cphhj",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<h1>"
     },
-    "center": [
-      641,
-      211
-    ],
+    "center": [641, 225],
     "content": "Your code editor. Redefined with AI.",
     "rect": {
       "left": 350,
-      "top": 125,
+      "top": 139,
       "width": 581,
       "height": 171,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 1280,
+    "screenHeight": 720
   },
   {
-    "id": "ioebn",
-    "indexId": 27,
-    "nodeHashId": "ioebn",
+    "id": "kacdo",
+    "indexId": 17,
+    "nodeHashId": "kacdo",
     "nodeType": "BUTTON Node",
-    "locator": "[_midscene_retrieve_task_id='ioebn']",
+    "locator": "[_midscene_retrieve_task_id='kacdo']",
     "attributes": {
       "type": "button",
       "class": ".link-button.dlink",
       "data-os": "osx",
       "id": "download-buttons-osx",
-      "htmlTagName": "<button>",
+      "htmlTagName": "<div>",
       "nodeType": "BUTTON Node"
     },
     "content": "Download for macOS",
     "rect": {
-      "left": 440,
-      "top": 322,
+      "left": 438,
+      "top": 336,
       "width": 219,
       "height": 48,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
-    "center": [
-      550,
-      346
-    ],
+    "center": [548, 360],
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 1280,
+    "screenHeight": 720
   },
   {
-    "id": "kmfgi",
-    "indexId": 28,
-    "nodeHashId": "kmfgi",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='kmfgi']",
-    "attributes": {
-      "class": ".link-button.secondary.copilot-deep-link",
-      "href": "vscode://GitHub.Copilot-Chat/chat?mode=agent&referrer=vscode-agentcta",
-      "rel": "noopener",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "Try agent mode",
-    "rect": {
-      "left": 669,
-      "top": 322,
-      "width": 171,
-      "height": 48,
-      "zoom": 1,
-      "isVisible": true
-    },
-    "center": [
-      755,
-      346
-    ],
-    "zoom": 1,
-    "isVisible": true
-  },
-  {
-    "id": "eofim",
-    "indexId": 29,
-    "nodeHashId": "eofim",
+    "id": "cjedj",
+    "indexId": 18,
+    "nodeHashId": "cjedj",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      755,
-      346
-    ],
-    "content": "Try agent mode",
+    "center": [755, 360],
+    "content": "Get Copilot Free",
     "rect": {
-      "left": 690,
-      "top": 335,
-      "width": 129,
+      "left": 688,
+      "top": 349,
+      "width": 133,
       "height": 22,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 1280,
+    "screenHeight": 720
   },
   {
-    "id": "mdlmm",
-    "indexId": 30,
-    "nodeHashId": "mdlmm",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='mdlmm']",
-    "attributes": {
-      "href": "https://vscode.dev/",
-      "target": "_blank",
-      "rel": "noopener",
-      "title": "For quick code edits locally or remotely on GitHub and Azure Repos.",
-      "id": "download-buttons-web",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "Web",
-    "rect": {
-      "left": 523,
-      "top": 380,
-      "width": 26,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": true
-    },
-    "center": [
-      536,
-      387
-    ],
-    "zoom": 1,
-    "isVisible": true
-  },
-  {
-    "id": "mdlmm",
-    "indexId": 31,
-    "nodeHashId": "mdlmm",
+    "id": "aolaj",
+    "indexId": 19,
+    "nodeHashId": "aolaj",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      536,
-      387
-    ],
+    "center": [536, 401],
     "content": "Web",
     "rect": {
       "left": 523,
-      "top": 380,
+      "top": 394,
       "width": 26,
       "height": 14,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 1280,
+    "screenHeight": 720
   },
   {
-    "id": "lecmc",
-    "indexId": 32,
-    "nodeHashId": "lecmc",
+    "id": "fjkhe",
+    "indexId": 20,
+    "nodeHashId": "fjkhe",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<p>"
     },
-    "center": [
-      553,
-      387
-    ],
+    "center": [553, 401],
     "content": ",",
     "rect": {
       "left": 549,
-      "top": 380,
+      "top": 394,
       "width": 7,
       "height": 14,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 1280,
+    "screenHeight": 720
   },
   {
-    "id": "ldeak",
-    "indexId": 33,
-    "nodeHashId": "ldeak",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='ldeak']",
-    "attributes": {
-      "href": "/insiders",
-      "id": "download-buttons-insiders",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "Insiders edition",
-    "rect": {
-      "left": 556,
-      "top": 380,
-      "width": 89,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": true
-    },
-    "center": [
-      601,
-      387
-    ],
-    "zoom": 1,
-    "isVisible": true
-  },
-  {
-    "id": "ldeak",
-    "indexId": 34,
-    "nodeHashId": "ldeak",
+    "id": "ighlp",
+    "indexId": 21,
+    "nodeHashId": "ighlp",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      601,
-      387
-    ],
+    "center": [601, 401],
     "content": "Insiders edition",
     "rect": {
       "left": 556,
-      "top": 380,
+      "top": 394,
       "width": 89,
       "height": 14,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 1280,
+    "screenHeight": 720
   },
   {
-    "id": "adedb",
-    "indexId": 35,
-    "nodeHashId": "adedb",
+    "id": "cfbdk",
+    "indexId": 22,
+    "nodeHashId": "cfbdk",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<p>"
     },
-    "center": [
-      656,
-      387
-    ],
+    "center": [656, 401],
     "content": ", or",
     "rect": {
       "left": 645,
-      "top": 380,
+      "top": 394,
       "width": 22,
       "height": 14,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 1280,
+    "screenHeight": 720
   },
   {
-    "id": "niicc",
-    "indexId": 36,
-    "nodeHashId": "niicc",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='niicc']",
-    "attributes": {
-      "href": "/Download",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "other platforms",
-    "rect": {
-      "left": 667,
-      "top": 380,
-      "width": 90,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": true
-    },
-    "center": [
-      712,
-      387
-    ],
-    "zoom": 1,
-    "isVisible": true
-  },
-  {
-    "id": "niicc",
-    "indexId": 37,
-    "nodeHashId": "niicc",
+    "id": "llkjk",
+    "indexId": 23,
+    "nodeHashId": "llkjk",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      712,
-      387
-    ],
+    "center": [712, 401],
     "content": "other platforms",
     "rect": {
       "left": 667,
-      "top": 380,
+      "top": 394,
       "width": 90,
       "height": 14,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 1280,
+    "screenHeight": 720
   },
   {
-    "id": "kbghl",
-    "indexId": 38,
-    "nodeHashId": "kbghl",
+    "id": "dglpo",
+    "indexId": 24,
+    "nodeHashId": "dglpo",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<p>"
     },
-    "center": [
-      558,
-      416
-    ],
+    "center": [558, 430],
     "content": "By using VS Code, you agree to its",
     "rect": {
       "left": 466,
-      "top": 409,
+      "top": 423,
       "width": 184,
       "height": 13,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 1280,
+    "screenHeight": 720
   },
   {
-    "id": "ooodk",
-    "indexId": 39,
-    "nodeHashId": "ooodk",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='ooodk']",
-    "attributes": {
-      "href": "https://code.visualstudio.com/license",
-      "target": "_blank",
-      "rel": "noopener",
-      "title": "View the Visual Studio Code license.",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "license",
-    "rect": {
-      "left": 650,
-      "top": 409,
-      "width": 38,
-      "height": 13,
-      "zoom": 1,
-      "isVisible": true
-    },
-    "center": [
-      669,
-      416
-    ],
-    "zoom": 1,
-    "isVisible": true
-  },
-  {
-    "id": "ooodk",
-    "indexId": 40,
-    "nodeHashId": "ooodk",
+    "id": "mknif",
+    "indexId": 25,
+    "nodeHashId": "mknif",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      669,
-      416
-    ],
+    "center": [669, 430],
     "content": "license",
     "rect": {
       "left": 650,
-      "top": 409,
+      "top": 423,
       "width": 38,
       "height": 13,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 1280,
+    "screenHeight": 720
   },
   {
-    "id": "cendn",
-    "indexId": 41,
-    "nodeHashId": "cendn",
+    "id": "lnfni",
+    "indexId": 26,
+    "nodeHashId": "lnfni",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      701,
-      416
-    ],
+    "center": [701, 430],
     "content": "and",
     "rect": {
       "left": 688,
-      "top": 409,
+      "top": 423,
       "width": 26,
       "height": 13,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 1280,
+    "screenHeight": 720
   },
   {
-    "id": "ipgfk",
-    "indexId": 42,
-    "nodeHashId": "ipgfk",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='ipgfk']",
-    "attributes": {
-      "href": "https://go.microsoft.com/fwlink/?LinkId=521839",
-      "target": "_blank",
-      "rel": "noopener",
-      "title": "View the Microsoft privacy statement.",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "privacy statement",
-    "rect": {
-      "left": 714,
-      "top": 409,
-      "width": 96,
-      "height": 13,
-      "zoom": 1,
-      "isVisible": true
-    },
-    "center": [
-      762,
-      416
-    ],
-    "zoom": 1,
-    "isVisible": true
-  },
-  {
-    "id": "ipgfk",
-    "indexId": 43,
-    "nodeHashId": "ipgfk",
+    "id": "ajndm",
+    "indexId": 27,
+    "nodeHashId": "ajndm",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<a>"
     },
-    "center": [
-      762,
-      416
-    ],
+    "center": [762, 430],
     "content": "privacy statement",
     "rect": {
       "left": 714,
-      "top": 409,
+      "top": 423,
       "width": 96,
       "height": 13,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 1280,
+    "screenHeight": 720
   },
   {
-    "id": "pmghi",
-    "indexId": 44,
-    "nodeHashId": "pmghi",
+    "id": "odkfd",
+    "indexId": 28,
+    "nodeHashId": "odkfd",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
       "nodeType": "TEXT Node",
       "htmlTagName": "<span>"
     },
-    "center": [
-      812,
-      416
-    ],
+    "center": [812, 430],
     "content": ".",
     "rect": {
       "left": 810,
-      "top": 409,
+      "top": 423,
       "width": 3,
       "height": 13,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
-  },
-  {
-    "id": "caiak",
-    "nodeHashId": "caiak",
-    "indexId": 45,
-    "nodeType": "CONTAINER Node",
-    "locator": "[_midscene_retrieve_task_id='caiak']",
-    "attributes": {
-      "width": "1008",
-      "height": "639",
-      "id": "hero-video-light",
-      "class": ".hero-video.light",
-      "poster": "/assets/home/hero-poster-light.webp",
-      "nodeType": "CONTAINER Node",
-      "htmlTagName": "<video>"
-    },
-    "content": "",
-    "rect": {
-      "left": 164,
-      "top": 503,
-      "width": 952,
-      "height": 594,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      640,
-      800
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "lbijo",
-    "indexId": 46,
-    "nodeHashId": "lbijo",
-    "locator": "[_midscene_retrieve_task_id='lbijo']",
-    "attributes": {
-      "width": "1240",
-      "height": "831",
-      "role": "presentation",
-      "src": "/assets/home/hero-background.webp",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 80,
-      "top": 451,
-      "width": 1120,
-      "height": 700,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      640,
-      801
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "clhnf",
-    "indexId": 47,
-    "nodeHashId": "clhnf",
-    "nodeType": "BUTTON Node",
-    "locator": "[_midscene_retrieve_task_id='clhnf']",
-    "attributes": {
-      "id": "hero-video-button",
-      "aria-pressed": "false",
-      "aria-label": "Hero animation is currently playing. Click to pause.",
-      "htmlTagName": "<button>",
-      "nodeType": "BUTTON Node"
-    },
-    "content": "Pause",
-    "rect": {
-      "left": 591,
-      "top": 1163,
-      "width": 99,
-      "height": 45,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      641,
-      1186
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "pkdbn",
-    "indexId": 48,
-    "nodeHashId": "pkdbn",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      200,
-      1331
-    ],
-    "content": "Any model for any team",
-    "rect": {
-      "left": 97,
-      "top": 1319,
-      "width": 205,
-      "height": 24,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "fpjdi",
-    "indexId": 49,
-    "nodeHashId": "fpjdi",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      238,
-      1420
-    ],
-    "content": "Use AI models like Claude Sonnet out of the box, or bring your own key to access models from                         Azure,                         Anthropic, Google, Ollama, OpenAI, and OpenRouter.",
-    "rect": {
-      "left": 97,
-      "top": 1359,
-      "width": 282,
-      "height": 121,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "olbhm",
-    "indexId": 50,
-    "nodeHashId": "olbhm",
-    "locator": "[_midscene_retrieve_task_id='olbhm']",
-    "attributes": {
-      "src": "/assets/home/choose-model-light.webp",
-      "class": ".swimlane-image.light",
-      "loading": "lazy",
-      "alt": "Dropdown menu in GitHub Copilot Chat displaying AI model options: 'Claude 3.7 Sonnet' selected, with other options like 'Claude 3.5 Sonnet', 'GPT 4.5', 'GPT 4o', and 'Manage Models...'",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 97,
-      "top": 1497,
-      "width": 295,
-      "height": 165,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      245,
-      1580
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "daock",
-    "indexId": 51,
-    "nodeHashId": "daock",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      596,
-      1331
-    ],
-    "content": "An expert on your codebase",
-    "rect": {
-      "left": 474,
-      "top": 1319,
-      "width": 244,
-      "height": 24,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "fldho",
-    "indexId": 52,
-    "nodeHashId": "fldho",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      633,
-      1407
-    ],
-    "content": "Your codebase is indexed locally and remotely (on GitHub) to understand what's relevant, enabling                         fast, context-aware interactions.",
-    "rect": {
-      "left": 474,
-      "top": 1359,
-      "width": 317,
-      "height": 96,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "binhd",
-    "indexId": 53,
-    "nodeHashId": "binhd",
-    "locator": "[_midscene_retrieve_task_id='binhd']",
-    "attributes": {
-      "src": "/assets/home/an-expert-on-your-codebase-light.webp",
-      "class": ".swimlane-image.light",
-      "loading": "lazy",
-      "alt": "A VS Code chat prompt. The prompt includes codebase and file context by writing #codebase and #file:HistoryView.swift in the message.",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 474,
-      "top": 1469,
-      "width": 332,
-      "height": 196,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      640,
-      1567
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "cagnh",
-    "indexId": 54,
-    "nodeHashId": "cagnh",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      1027,
-      1346
-    ],
-    "content": "AI that works the way your team does",
-    "rect": {
-      "left": 888,
-      "top": 1319,
-      "width": 278,
-      "height": 54,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "bphnd",
-    "indexId": 55,
-    "nodeHashId": "bphnd",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      1029,
-      1437
-    ],
-    "content": "Personalize interactions using custom instructions and reusable prompt files tailored to your                         workflows, tools, and projects.",
-    "rect": {
-      "left": 888,
-      "top": 1389,
-      "width": 281,
-      "height": 96,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "kffkm",
-    "indexId": 56,
-    "nodeHashId": "kffkm",
-    "locator": "[_midscene_retrieve_task_id='kffkm']",
-    "attributes": {
-      "src": "/assets/home/instructions-light.webp",
-      "class": ".swimlane-image.light",
-      "loading": "lazy",
-      "alt": "Settings JSON for copilot instructions, the first set to `use React functional components', then including another file for extra instructions 'code-style.md'.",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 888,
-      "top": 1503,
-      "width": 295,
-      "height": 158,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      1036,
-      1582
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "eccdk",
-    "indexId": 57,
-    "nodeHashId": "eccdk",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      346,
-      1793
-    ],
-    "content": "Use AI features in VS Code for free",
-    "rect": {
-      "left": 121,
-      "top": 1775,
-      "width": 449,
-      "height": 36,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "njgen",
-    "indexId": 58,
-    "nodeHashId": "njgen",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      898,
-      1799
-    ],
-    "content": "No trial. No credit card required. Just your GitHub account.",
-    "rect": {
-      "left": 680,
-      "top": 1789,
-      "width": 436,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "elpcf",
-    "indexId": 59,
-    "nodeHashId": "elpcf",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='elpcf']",
-    "attributes": {
-      "class": ".link-button.secondary.copilot-deep-link",
-      "href": "vscode://GitHub.Copilot-Chat/chat?mode=agent&referrer=vscode-agentmainbanner",
-      "rel": "noopener",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "Try free",
-    "rect": {
-      "left": 680,
-      "top": 1822,
-      "width": 83,
-      "height": 35,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      722,
-      1840
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "lfamd",
-    "indexId": 60,
-    "nodeHashId": "lfamd",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<a>"
-    },
-    "center": [
-      722,
-      1839
-    ],
-    "content": "Try free",
-    "rect": {
-      "left": 693,
-      "top": 1829,
-      "width": 57,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "lmejd",
-    "indexId": 61,
-    "nodeHashId": "lmejd",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      161,
-      2118
-    ],
-    "content": "Agent mode",
-    "rect": {
-      "left": 80,
-      "top": 2100,
-      "width": 161,
-      "height": 36,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "fklmg",
-    "indexId": 62,
-    "nodeHashId": "fklmg",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      239,
-      2253
-    ],
-    "content": "Tackle complex, multi-step tasks. Agent mode reads your codebase, suggests edits across files,                         runs terminal commands, and responds to compile or test failures — all in a loop until the job                         is done. Further refine agent mode to fit your team's workflows with VS Code extensions and                         Model Context Protocol (MCP) servers.",
-    "rect": {
-      "left": 80,
-      "top": 2154,
-      "width": 318,
-      "height": 198,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "pgble",
-    "indexId": 63,
-    "nodeHashId": "pgble",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='pgble']",
-    "attributes": {
-      "href": "https://code.visualstudio.com/docs/copilot/chat/chat-agent-mode",
-      "rel": "noopener",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "Build with agent mode",
-    "rect": {
-      "left": 80,
-      "top": 2367,
-      "width": 165,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      163,
-      2377
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "bmlph",
-    "indexId": 64,
-    "nodeHashId": "bmlph",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<a>"
-    },
-    "center": [
-      163,
-      2377
-    ],
-    "content": "Build with                         agent mode",
-    "rect": {
-      "left": 80,
-      "top": 2367,
-      "width": 165,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "gcfmj",
-    "indexId": 65,
-    "nodeHashId": "gcfmj",
-    "locator": "[_midscene_retrieve_task_id='gcfmj']",
-    "attributes": {
-      "src": "/assets/home/swimlane-chat-light.webp",
-      "class": ".swimlane-image.light",
-      "loading": "lazy",
-      "alt": "VS Code window showing a code editor with projects.tsx open, alongside a chat panel in Agent mode. The chat discusses an open issue from GitHub.",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 480,
-      "top": 1993,
-      "width": 720,
-      "height": 522,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      840,
-      2254
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "omnjn",
-    "indexId": 66,
-    "nodeHashId": "omnjn",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      223,
-      2753
-    ],
-    "content": "Next edit suggestions",
-    "rect": {
-      "left": 80,
-      "top": 2735,
-      "width": 286,
-      "height": 36,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "eoaln",
-    "indexId": 67,
-    "nodeHashId": "eoaln",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      239,
-      2863
-    ],
-    "content": "VS Code predicts your next move as you code. Use the Tab key to accept AI-powered                         suggestions right in your editor. It intelligently recommends what to change — and where — based                         on the edits you're already making.",
-    "rect": {
-      "left": 80,
-      "top": 2789,
-      "width": 317,
-      "height": 147,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ignfh",
-    "indexId": 68,
-    "nodeHashId": "ignfh",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='ignfh']",
-    "attributes": {
-      "href": "https://code.visualstudio.com/docs/copilot/ai-powered-suggestions#_next-edit-suggestions",
-      "rel": "noopener",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "Code with AI-powered suggestions",
-    "rect": {
-      "left": 80,
-      "top": 2951,
-      "width": 260,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      210,
-      2961
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ignfh",
-    "indexId": 69,
-    "nodeHashId": "ignfh",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<a>"
-    },
-    "center": [
-      210,
-      2961
-    ],
-    "content": "Code with AI-powered suggestions",
-    "rect": {
-      "left": 80,
-      "top": 2951,
-      "width": 260,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "domdp",
-    "indexId": 70,
-    "nodeHashId": "domdp",
-    "locator": "[_midscene_retrieve_task_id='domdp']",
-    "attributes": {
-      "src": "/assets/home/swimlane-nes-light.webp",
-      "class": ".swimlane-image.light",
-      "loading": "lazy",
-      "alt": "Code editor showing a JavaScript file post.js. It defines a render method that renders a social media post by calling an external API. Next edit suggestions is suggesting how to complete the implementation.",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 480,
-      "top": 2611,
-      "width": 720,
-      "height": 521,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      840,
-      2872
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "fnlbo",
-    "indexId": 71,
-    "nodeHashId": "fnlbo",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      222,
-      3383
-    ],
-    "content": "Code with extensions",
-    "rect": {
-      "left": 80,
-      "top": 3365,
-      "width": 283,
-      "height": 36,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "hipkh",
-    "indexId": 72,
-    "nodeHashId": "hipkh",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      240,
-      3454
-    ],
-    "content": "Customize VS Code with AI-powered functionality from extensions and Model Context Protocol servers to                     use in Chat. Or,",
-    "rect": {
-      "left": 80,
-      "top": 3419,
-      "width": 320,
-      "height": 70,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "hmopf",
-    "indexId": 73,
-    "nodeHashId": "hmopf",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='hmopf']",
-    "attributes": {
-      "href": "https://code.visualstudio.com/docs/copilot/copilot-extensibility-overview",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "build your own extension",
-    "rect": {
-      "left": 80,
-      "top": 3495,
-      "width": 184,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      172,
-      3505
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "pflcc",
-    "indexId": 74,
-    "nodeHashId": "pflcc",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<a>"
-    },
-    "center": [
-      172,
-      3505
-    ],
-    "content": "build your own                         extension",
-    "rect": {
-      "left": 80,
-      "top": 3495,
-      "width": 184,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "lpgkj",
-    "indexId": 75,
-    "nodeHashId": "lpgkj",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      225,
-      3518
-    ],
-    "content": "to power your team's unique scenarios.",
-    "rect": {
-      "left": 80,
-      "top": 3495,
-      "width": 290,
-      "height": 45,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "klldl",
-    "indexId": 76,
-    "nodeHashId": "klldl",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='klldl']",
-    "attributes": {
-      "href": "https://marketplace.visualstudio.com/items?itemName=ms-python.python",
-      "target": "_blank",
-      "rel": "noopener",
-      "class": ".extension-tile",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "Python\n\nAdds rich language support for Python",
-    "rect": {
-      "left": 480,
-      "top": 3228,
-      "width": 229,
-      "height": 124,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      595,
-      3290
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "kihbd",
-    "indexId": 77,
-    "nodeHashId": "kihbd",
-    "locator": "[_midscene_retrieve_task_id='kihbd']",
-    "attributes": {
-      "src": "/assets/images/python-extension.png",
-      "loading": "lazy",
-      "alt": "Python extension icon",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 497,
-      "top": 3245,
-      "width": 40,
-      "height": 40,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      517,
-      3265
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "hlacm",
-    "indexId": 78,
-    "nodeHashId": "hlacm",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h3>"
-    },
-    "center": [
-      576,
-      3260
-    ],
-    "content": "Python",
-    "rect": {
-      "left": 549,
-      "top": 3250,
-      "width": 54,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "dlabn",
-    "indexId": 79,
-    "nodeHashId": "dlabn",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      613,
-      3296
-    ],
-    "content": "Adds rich language support for Python",
-    "rect": {
-      "left": 549,
-      "top": 3278,
-      "width": 127,
-      "height": 36,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "nglmc",
-    "indexId": 80,
-    "nodeHashId": "nglmc",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='nglmc']",
-    "attributes": {
-      "href": "https://marketplace.visualstudio.com/items?itemName=Stripe.vscode-stripe",
-      "target": "_blank",
-      "rel": "noopener",
-      "class": ".extension-tile",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "Stripe\n\nBuild, test, and use Stripe inside your editor",
-    "rect": {
-      "left": 725,
-      "top": 3228,
-      "width": 229,
-      "height": 124,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      840,
-      3290
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "kliaa",
-    "indexId": 81,
-    "nodeHashId": "kliaa",
-    "locator": "[_midscene_retrieve_task_id='kliaa']",
-    "attributes": {
-      "src": "/assets/images/stripe-extension.png",
-      "loading": "lazy",
-      "alt": "Stripe extension icon",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 742,
-      "top": 3245,
-      "width": 40,
-      "height": 40,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      762,
-      3265
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "kkkcc",
-    "indexId": 82,
-    "nodeHashId": "kkkcc",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h3>"
-    },
-    "center": [
-      817,
-      3260
-    ],
-    "content": "Stripe",
-    "rect": {
-      "left": 794,
-      "top": 3250,
-      "width": 46,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "oicji",
-    "indexId": 83,
-    "nodeHashId": "oicji",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      857,
-      3306
-    ],
-    "content": "Build, test, and use Stripe inside your editor",
-    "rect": {
-      "left": 794,
-      "top": 3278,
-      "width": 126,
-      "height": 56,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "nekil",
-    "indexId": 84,
-    "nodeHashId": "nekil",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='nekil']",
-    "attributes": {
-      "href": "https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools",
-      "target": "_blank",
-      "rel": "noopener",
-      "class": ".extension-tile",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "C/C++\n\nAdds rich language support for C/C++",
-    "rect": {
-      "left": 971,
-      "top": 3228,
-      "width": 229,
-      "height": 124,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      1086,
-      3290
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "dkoeb",
-    "indexId": 85,
-    "nodeHashId": "dkoeb",
-    "locator": "[_midscene_retrieve_task_id='dkoeb']",
-    "attributes": {
-      "src": "/assets/images/c-extension.png",
-      "loading": "lazy",
-      "alt": "C/C extension icon",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 988,
-      "top": 3245,
-      "width": 40,
-      "height": 40,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      1008,
-      3265
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "abbjf",
-    "indexId": 86,
-    "nodeHashId": "abbjf",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h3>"
-    },
-    "center": [
-      1064,
-      3260
-    ],
-    "content": "C/C++",
-    "rect": {
-      "left": 1040,
-      "top": 3250,
-      "width": 48,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "kdpak",
-    "indexId": 87,
-    "nodeHashId": "kdpak",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      1104,
-      3296
-    ],
-    "content": "Adds rich language support for C/C++",
-    "rect": {
-      "left": 1040,
-      "top": 3278,
-      "width": 127,
-      "height": 36,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "kkmfg",
-    "indexId": 88,
-    "nodeHashId": "kkmfg",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='kkmfg']",
-    "attributes": {
-      "href": "https://marketplace.visualstudio.com/items?itemName=ms-toolsai.jupyter",
-      "target": "_blank",
-      "rel": "noopener",
-      "class": ".extension-tile",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "Jupyter\n\nLanguage support for Jupyter Notebooks",
-    "rect": {
-      "left": 480,
-      "top": 3369,
-      "width": 229,
-      "height": 105,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      595,
-      3422
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "beihk",
-    "indexId": 89,
-    "nodeHashId": "beihk",
-    "locator": "[_midscene_retrieve_task_id='beihk']",
-    "attributes": {
-      "src": "/assets/images/jupyter-extension.png",
-      "loading": "lazy",
-      "alt": "Jupyter extension icon",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 497,
-      "top": 3386,
-      "width": 40,
-      "height": 40,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      517,
-      3406
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "egajo",
-    "indexId": 90,
-    "nodeHashId": "egajo",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h3>"
-    },
-    "center": [
-      578,
-      3401
-    ],
-    "content": "Jupyter",
-    "rect": {
-      "left": 549,
-      "top": 3391,
-      "width": 58,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "oogaj",
-    "indexId": 91,
-    "nodeHashId": "oogaj",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      621,
-      3437
-    ],
-    "content": "Language support for Jupyter Notebooks",
-    "rect": {
-      "left": 549,
-      "top": 3419,
-      "width": 143,
-      "height": 36,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "lkojb",
-    "indexId": 92,
-    "nodeHashId": "lkojb",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='lkojb']",
-    "attributes": {
-      "href": "https://marketplace.visualstudio.com/items?itemName=eamodio.gitlens",
-      "target": "_blank",
-      "rel": "noopener",
-      "class": ".extension-tile",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "GitLens\n\nSupercharge your Git experience",
-    "rect": {
-      "left": 725,
-      "top": 3369,
-      "width": 229,
-      "height": 105,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      840,
-      3422
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "iccfo",
-    "indexId": 93,
-    "nodeHashId": "iccfo",
-    "locator": "[_midscene_retrieve_task_id='iccfo']",
-    "attributes": {
-      "src": "/assets/images/gitlens-extension.png",
-      "loading": "lazy",
-      "alt": "GitLens extension icon",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 742,
-      "top": 3386,
-      "width": 40,
-      "height": 40,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      762,
-      3406
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "jaman",
-    "indexId": 94,
-    "nodeHashId": "jaman",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h3>"
-    },
-    "center": [
-      823,
-      3401
-    ],
-    "content": "GitLens",
-    "rect": {
-      "left": 794,
-      "top": 3391,
-      "width": 58,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "giapk",
-    "indexId": 95,
-    "nodeHashId": "giapk",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      864,
-      3437
-    ],
-    "content": "Supercharge your Git experience",
-    "rect": {
-      "left": 794,
-      "top": 3419,
-      "width": 140,
-      "height": 36,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "kpkpa",
-    "indexId": 96,
-    "nodeHashId": "kpkpa",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='kpkpa']",
-    "attributes": {
-      "href": "https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit",
-      "target": "_blank",
-      "rel": "noopener",
-      "class": ".extension-tile",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "C# Dev Kit\n\nPowerful tools for your C# environment",
-    "rect": {
-      "left": 971,
-      "top": 3369,
-      "width": 229,
-      "height": 105,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      1086,
-      3422
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "djdde",
-    "indexId": 97,
-    "nodeHashId": "djdde",
-    "locator": "[_midscene_retrieve_task_id='djdde']",
-    "attributes": {
-      "src": "/assets/images/cs-dev-kit-extension.png",
-      "loading": "lazy",
-      "alt": "C# Dev Kit extension icon",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 988,
-      "top": 3386,
-      "width": 36,
-      "height": 40,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      1006,
-      3406
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "bcaan",
-    "indexId": 98,
-    "nodeHashId": "bcaan",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h3>"
-    },
-    "center": [
-      1076,
-      3401
-    ],
-    "content": "C# Dev Kit",
-    "rect": {
-      "left": 1036,
-      "top": 3391,
-      "width": 80,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "aeaii",
-    "indexId": 99,
-    "nodeHashId": "aeaii",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      1105,
-      3437
-    ],
-    "content": "Powerful tools for your C# environment",
-    "rect": {
-      "left": 1036,
-      "top": 3419,
-      "width": 138,
-      "height": 36,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "albpb",
-    "indexId": 100,
-    "nodeHashId": "albpb",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='albpb']",
-    "attributes": {
-      "href": "https://marketplace.visualstudio.com/items?itemName=mongodb.mongodb-vscode",
-      "target": "_blank",
-      "rel": "noopener",
-      "class": ".extension-tile",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "MongoDB\n\nExtension for the @MongoDB agent",
-    "rect": {
-      "left": 480,
-      "top": 3489,
-      "width": 229,
-      "height": 150,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      595,
-      3564
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "gpdkk",
-    "indexId": 101,
-    "nodeHashId": "gpdkk",
-    "locator": "[_midscene_retrieve_task_id='gpdkk']",
-    "attributes": {
-      "src": "/assets/images/mongodb-extension.png",
-      "loading": "lazy",
-      "alt": "MongoDB extension icon",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 497,
-      "top": 3506,
-      "width": 40,
-      "height": 40,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      517,
-      3526
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "nnjph",
-    "indexId": 102,
-    "nodeHashId": "nnjph",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h3>"
-    },
-    "center": [
-      586,
-      3521
-    ],
-    "content": "MongoDB",
-    "rect": {
-      "left": 549,
-      "top": 3511,
-      "width": 74,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "cpepk",
-    "indexId": 103,
-    "nodeHashId": "cpepk",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      609,
-      3557
-    ],
-    "content": "Extension for the @MongoDB agent",
-    "rect": {
-      "left": 549,
-      "top": 3539,
-      "width": 119,
-      "height": 36,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "lghlo",
-    "indexId": 104,
-    "nodeHashId": "lghlo",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='lghlo']",
-    "attributes": {
-      "href": "https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-azure-github-copilot",
-      "target": "_blank",
-      "rel": "noopener",
-      "class": ".extension-tile",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "GitHub Copilot for Azure\n\nStreamline the process of developing for Azure",
-    "rect": {
-      "left": 725,
-      "top": 3489,
-      "width": 229,
-      "height": 150,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      840,
-      3564
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ocgii",
-    "indexId": 105,
-    "nodeHashId": "ocgii",
-    "locator": "[_midscene_retrieve_task_id='ocgii']",
-    "attributes": {
-      "src": "/assets/images/azure.png",
-      "loading": "lazy",
-      "alt": "GitHub Copilot for Azure extension icon",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 742,
-      "top": 3506,
-      "width": 40,
-      "height": 40,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      762,
-      3526
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "alacb",
-    "indexId": 106,
-    "nodeHashId": "alacb",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h3>"
-    },
-    "center": [
-      863,
-      3534
-    ],
-    "content": "GitHub Copilot for Azure",
-    "rect": {
-      "left": 794,
-      "top": 3511,
-      "width": 137,
-      "height": 45,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "odjep",
-    "indexId": 107,
-    "nodeHashId": "odjep",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      863,
-      3593
-    ],
-    "content": "Streamline the process of developing for Azure",
-    "rect": {
-      "left": 794,
-      "top": 3565,
-      "width": 137,
-      "height": 56,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ihdgi",
-    "indexId": 108,
-    "nodeHashId": "ihdgi",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='ihdgi']",
-    "attributes": {
-      "href": "https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack",
-      "target": "_blank",
-      "rel": "noopener",
-      "class": ".extension-tile",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "Remote Development\n\nOpen folders in a container on a remote machine",
-    "rect": {
-      "left": 971,
-      "top": 3489,
-      "width": 229,
-      "height": 150,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      1086,
-      3564
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "bacao",
-    "indexId": 109,
-    "nodeHashId": "bacao",
-    "locator": "[_midscene_retrieve_task_id='bacao']",
-    "attributes": {
-      "src": "/assets/images/remote-extension.png",
-      "loading": "lazy",
-      "alt": "Remote Development extension icon",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 988,
-      "top": 3506,
-      "width": 40,
-      "height": 40,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      1008,
-      3526
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "phbkk",
-    "indexId": 110,
-    "nodeHashId": "phbkk",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h3>"
-    },
-    "center": [
-      1090,
-      3534
-    ],
-    "content": "Remote Development",
-    "rect": {
-      "left": 1040,
-      "top": 3511,
-      "width": 100,
-      "height": 45,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "faadm",
-    "indexId": 111,
-    "nodeHashId": "faadm",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      1096,
-      3593
-    ],
-    "content": "Open folders in a container on a remote machine",
-    "rect": {
-      "left": 1040,
-      "top": 3565,
-      "width": 112,
-      "height": 56,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "kjiie",
-    "indexId": 112,
-    "nodeHashId": "kjiie",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      770,
-      3666
-    ],
-    "content": "View 60k+ extensions in the",
-    "rect": {
-      "left": 681,
-      "top": 3658,
-      "width": 177,
-      "height": 15,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "cdnlb",
-    "indexId": 113,
-    "nodeHashId": "cdnlb",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='cdnlb']",
-    "attributes": {
-      "href": "https://marketplace.visualstudio.com/vscode",
-      "rel": "noopener",
-      "target": "_blank",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "Extension Marketplace",
-    "rect": {
-      "left": 858,
-      "top": 3658,
-      "width": 140,
-      "height": 15,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      928,
-      3666
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "cdnlb",
-    "indexId": 114,
-    "nodeHashId": "cdnlb",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<a>"
-    },
-    "center": [
-      928,
-      3666
-    ],
-    "content": "Extension Marketplace",
-    "rect": {
-      "left": 858,
-      "top": 3658,
-      "width": 140,
-      "height": 15,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "bigeo",
-    "indexId": 115,
-    "nodeHashId": "bigeo",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      222,
-      3805
-    ],
-    "content": "Code in any language",
-    "rect": {
-      "left": 80,
-      "top": 3787,
-      "width": 283,
-      "height": 36,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "pghab",
-    "indexId": 116,
-    "nodeHashId": "pghab",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      238,
-      3901
-    ],
-    "content": "VS Code supports almost every major programming language. Several ship in the box, like                         JavaScript,                         TypeScript, CSS, and HTML, but extensions for others can be found in the VS Code Marketplace.",
-    "rect": {
-      "left": 80,
-      "top": 3840,
-      "width": 316,
-      "height": 121,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ckhlj",
-    "indexId": 117,
-    "nodeHashId": "ckhlj",
-    "locator": "[_midscene_retrieve_task_id='ckhlj']",
-    "attributes": {
-      "src": "/assets/home/language-js.png",
-      "alt": "JavaScript icon",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 480,
-      "top": 3802,
-      "width": 40,
-      "height": 40,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      500,
-      3822
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "gidoa",
-    "indexId": 118,
-    "nodeHashId": "gidoa",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<code>"
-    },
-    "center": [
-      580,
-      3822
-    ],
-    "content": "JavaScript",
-    "rect": {
-      "left": 532,
-      "top": 3812,
-      "width": 96,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "phpij",
-    "indexId": 119,
-    "nodeHashId": "phpij",
-    "locator": "[_midscene_retrieve_task_id='phpij']",
-    "attributes": {
-      "src": "/assets/home/language-ts.png",
-      "alt": "TypeScript icon",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 733,
-      "top": 3802,
-      "width": 40,
-      "height": 40,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      753,
-      3822
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "oincp",
-    "indexId": 120,
-    "nodeHashId": "oincp",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<code>"
-    },
-    "center": [
-      833,
-      3822
-    ],
-    "content": "TypeScript",
-    "rect": {
-      "left": 785,
-      "top": 3812,
-      "width": 96,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "nklhe",
-    "indexId": 121,
-    "nodeHashId": "nklhe",
-    "locator": "[_midscene_retrieve_task_id='nklhe']",
-    "attributes": {
-      "src": "/assets/home/language-python.png",
-      "alt": "Python icon",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 986,
-      "top": 3802,
-      "width": 40,
-      "height": 40,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      1006,
-      3822
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "macjf",
-    "indexId": 122,
-    "nodeHashId": "macjf",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<code>"
-    },
-    "center": [
-      1067,
-      3822
-    ],
-    "content": "Python",
-    "rect": {
-      "left": 1038,
-      "top": 3812,
-      "width": 58,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "iinbm",
-    "indexId": 123,
-    "nodeHashId": "iinbm",
-    "locator": "[_midscene_retrieve_task_id='iinbm']",
-    "attributes": {
-      "src": "/assets/home/language-cs.png",
-      "alt": "C# icon",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 480,
-      "top": 3850,
-      "width": 40,
-      "height": 40,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      500,
-      3870
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ahicl",
-    "indexId": 124,
-    "nodeHashId": "ahicl",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<code>"
-    },
-    "center": [
-      542,
-      3870
-    ],
-    "content": "C#",
-    "rect": {
-      "left": 532,
-      "top": 3860,
-      "width": 19,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "dfhal",
-    "indexId": 125,
-    "nodeHashId": "dfhal",
-    "locator": "[_midscene_retrieve_task_id='dfhal']",
-    "attributes": {
-      "src": "/assets/home/language-cpp.png",
-      "alt": "C++ icon",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 733,
-      "top": 3850,
-      "width": 40,
-      "height": 40,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      753,
-      3870
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "dlfnk",
-    "indexId": 126,
-    "nodeHashId": "dlfnk",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<code>"
-    },
-    "center": [
-      800,
-      3870
-    ],
-    "content": "C++",
-    "rect": {
-      "left": 785,
-      "top": 3860,
-      "width": 29,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "eldll",
-    "indexId": 127,
-    "nodeHashId": "eldll",
-    "locator": "[_midscene_retrieve_task_id='eldll']",
-    "attributes": {
-      "src": "/assets/home/language-html.png",
-      "alt": "HTML icon",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 986,
-      "top": 3850,
-      "width": 40,
-      "height": 40,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      1006,
-      3870
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "eloml",
-    "indexId": 128,
-    "nodeHashId": "eloml",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<code>"
-    },
-    "center": [
-      1058,
-      3870
-    ],
-    "content": "HTML",
-    "rect": {
-      "left": 1038,
-      "top": 3860,
-      "width": 39,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "fbmhd",
-    "indexId": 129,
-    "nodeHashId": "fbmhd",
-    "locator": "[_midscene_retrieve_task_id='fbmhd']",
-    "attributes": {
-      "src": "/assets/home/language-java.png",
-      "alt": "Java icon",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 480,
-      "top": 3898,
-      "width": 40,
-      "height": 40,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      500,
-      3918
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "mkbak",
-    "indexId": 130,
-    "nodeHashId": "mkbak",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<code>"
-    },
-    "center": [
-      552,
-      3918
-    ],
-    "content": "Java",
-    "rect": {
-      "left": 532,
-      "top": 3908,
-      "width": 39,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "djblc",
-    "indexId": 131,
-    "nodeHashId": "djblc",
-    "locator": "[_midscene_retrieve_task_id='djblc']",
-    "attributes": {
-      "src": "/assets/home/language-json.png",
-      "alt": "JSON icon",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 733,
-      "top": 3898,
-      "width": 40,
-      "height": 40,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      753,
-      3918
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "hbdfa",
-    "indexId": 132,
-    "nodeHashId": "hbdfa",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<code>"
-    },
-    "center": [
-      805,
-      3918
-    ],
-    "content": "JSON",
-    "rect": {
-      "left": 785,
-      "top": 3908,
-      "width": 39,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "kfomn",
-    "indexId": 133,
-    "nodeHashId": "kfomn",
-    "locator": "[_midscene_retrieve_task_id='kfomn']",
-    "attributes": {
-      "src": "/assets/home/language-php.png",
-      "alt": "PHP icon",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 986,
-      "top": 3898,
-      "width": 40,
-      "height": 40,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      1006,
-      3918
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "idnff",
-    "indexId": 134,
-    "nodeHashId": "idnff",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<code>"
-    },
-    "center": [
-      1053,
-      3918
-    ],
-    "content": "PHP",
-    "rect": {
-      "left": 1038,
-      "top": 3908,
-      "width": 29,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "hcdlc",
-    "indexId": 135,
-    "nodeHashId": "hcdlc",
-    "locator": "[_midscene_retrieve_task_id='hcdlc']",
-    "attributes": {
-      "src": "/assets/home/language-markdown.png",
-      "alt": "Markdown icon",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 480,
-      "top": 3946,
-      "width": 40,
-      "height": 40,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      500,
-      3966
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "adkib",
-    "indexId": 136,
-    "nodeHashId": "adkib",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<code>"
-    },
-    "center": [
-      571,
-      3966
-    ],
-    "content": "Markdown",
-    "rect": {
-      "left": 532,
-      "top": 3956,
-      "width": 77,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "fhibo",
-    "indexId": 137,
-    "nodeHashId": "fhibo",
-    "locator": "[_midscene_retrieve_task_id='fhibo']",
-    "attributes": {
-      "src": "/assets/home/language-powershell.png",
-      "alt": "Powershell icon",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 733,
-      "top": 3946,
-      "width": 40,
-      "height": 40,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      753,
-      3966
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "geoln",
-    "indexId": 138,
-    "nodeHashId": "geoln",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<code>"
-    },
-    "center": [
-      833,
-      3966
-    ],
-    "content": "Powershell",
-    "rect": {
-      "left": 785,
-      "top": 3956,
-      "width": 96,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "bfhkf",
-    "indexId": 139,
-    "nodeHashId": "bfhkf",
-    "locator": "[_midscene_retrieve_task_id='bfhkf']",
-    "attributes": {
-      "src": "/assets/home/language-yaml.png",
-      "alt": "YAML icon",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 986,
-      "top": 3946,
-      "width": 40,
-      "height": 40,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      1006,
-      3966
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "dhbgb",
-    "indexId": 140,
-    "nodeHashId": "dhbgb",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<code>"
-    },
-    "center": [
-      1058,
-      3966
-    ],
-    "content": "YAML",
-    "rect": {
-      "left": 1038,
-      "top": 3956,
-      "width": 39,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "iahbc",
-    "indexId": 141,
-    "nodeHashId": "iahbc",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      202,
-      4124
-    ],
-    "content": "Fully customizable",
-    "rect": {
-      "left": 80,
-      "top": 4106,
-      "width": 244,
-      "height": 36,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "cfilh",
-    "indexId": 142,
-    "nodeHashId": "cfilh",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      233,
-      4182
-    ],
-    "content": "Customize your VS Code UI and layout so that it fits your coding style.",
-    "rect": {
-      "left": 80,
-      "top": 4159,
-      "width": 306,
-      "height": 45,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ckioh",
-    "indexId": 143,
-    "nodeHashId": "ckioh",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='ckioh']",
-    "attributes": {
-      "href": "https://code.visualstudio.com/docs/configure/themes",
-      "rel": "noopener",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "Color themes",
-    "rect": {
-      "left": 80,
-      "top": 4250,
-      "width": 99,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      130,
-      4260
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ckioh",
-    "indexId": 144,
-    "nodeHashId": "ckioh",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<a>"
-    },
-    "center": [
-      130,
-      4260
-    ],
-    "content": "Color themes",
-    "rect": {
-      "left": 80,
-      "top": 4250,
-      "width": 99,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "jdmbo",
-    "indexId": 145,
-    "nodeHashId": "jdmbo",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      232,
-      4285
-    ],
-    "content": "let you modify the colors in VS Code's user interface to suit your preferences and work                         environment.",
-    "rect": {
-      "left": 80,
-      "top": 4250,
-      "width": 303,
-      "height": 70,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "hkfmc",
-    "indexId": 146,
-    "nodeHashId": "hkfmc",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='hkfmc']",
-    "attributes": {
-      "href": "https://code.visualstudio.com/docs/configure/settings#_settings-sync",
-      "rel": "noopener",
-      "class": ".value-prop-bold",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "Settings Sync",
-    "rect": {
-      "left": 80,
-      "top": 4351,
-      "width": 103,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      132,
-      4361
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "hkfmc",
-    "indexId": 147,
-    "nodeHashId": "hkfmc",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<a>"
-    },
-    "center": [
-      132,
-      4361
-    ],
-    "content": "Settings Sync",
-    "rect": {
-      "left": 80,
-      "top": 4351,
-      "width": 103,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "cgklb",
-    "indexId": 148,
-    "nodeHashId": "cgklb",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      232,
-      4386
-    ],
-    "content": "enables you to share your user settings across                         your VS Code instances with the Settings Sync feature.",
-    "rect": {
-      "left": 80,
-      "top": 4351,
-      "width": 303,
-      "height": 70,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "oeopa",
-    "indexId": 149,
-    "nodeHashId": "oeopa",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='oeopa']",
-    "attributes": {
-      "href": "https://code.visualstudio.com/docs/configure/profiles",
-      "rel": "noopener",
-      "class": ".value-prop-bold",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "Profiles",
-    "rect": {
-      "left": 80,
-      "top": 4452,
-      "width": 56,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      108,
-      4462
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "oeopa",
-    "indexId": 150,
-    "nodeHashId": "oeopa",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<a>"
-    },
-    "center": [
-      108,
-      4462
-    ],
-    "content": "Profiles",
-    "rect": {
-      "left": 80,
-      "top": 4452,
-      "width": 56,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ngdbl",
-    "indexId": 151,
-    "nodeHashId": "ngdbl",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      233,
-      4487
-    ],
-    "content": "let you create sets of customizations and quickly                         switch between them or share them with others.",
-    "rect": {
-      "left": 80,
-      "top": 4452,
-      "width": 305,
-      "height": 70,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "dllom",
-    "indexId": 152,
-    "nodeHashId": "dllom",
-    "locator": "[_midscene_retrieve_task_id='dllom']",
-    "attributes": {
-      "src": "/assets/home/swimlane-customized-light.png",
-      "class": ".swimlane-image.light",
-      "loading": "lazy",
-      "alt": "Selecting the GitHub Dark theme with a quick pick",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 480,
-      "top": 4126,
-      "width": 720,
-      "height": 399,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      840,
-      4326
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ceeoh",
-    "indexId": 153,
-    "nodeHashId": "ceeoh",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      184,
-      4668
-    ],
-    "content": "Code anywhere",
-    "rect": {
-      "left": 80,
-      "top": 4650,
-      "width": 207,
-      "height": 36,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "mmddl",
-    "indexId": 154,
-    "nodeHashId": "mmddl",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      232,
-      4752
-    ],
-    "content": "Code wherever you're most productive, whether you're connected to the cloud, a remote repository,                         or in the browser with VS Code for the Web (vscode.dev).",
-    "rect": {
-      "left": 80,
-      "top": 4704,
-      "width": 304,
-      "height": 96,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "hneic",
-    "indexId": 155,
-    "nodeHashId": "hneic",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='hneic']",
-    "attributes": {
-      "href": "https://code.visualstudio.com/docs/sourcecontrol/overview",
-      "rel": "noopener",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "Built-in Source Control",
-    "rect": {
-      "left": 80,
-      "top": 4846,
-      "width": 168,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      164,
-      4856
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "hding",
-    "indexId": 156,
-    "nodeHashId": "hding",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<a>"
-    },
-    "center": [
-      164,
-      4856
-    ],
-    "content": "Built-in                             Source Control",
-    "rect": {
-      "left": 80,
-      "top": 4846,
-      "width": 168,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "kbegp",
-    "indexId": 157,
-    "nodeHashId": "kbegp",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      238,
-      4894
-    ],
-    "content": "empowers you with Git support out-of-the-box. Many other source control                         providers are available through extensions.",
-    "rect": {
-      "left": 80,
-      "top": 4846,
-      "width": 316,
-      "height": 96,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "nkhli",
-    "indexId": 158,
-    "nodeHashId": "nkhli",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='nkhli']",
-    "attributes": {
-      "href": "https://code.visualstudio.com/docs/remote/codespaces",
-      "rel": "noopener",
-      "class": ".value-prop-bold",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "GitHub Codespaces",
-    "rect": {
-      "left": 80,
-      "top": 4972,
-      "width": 148,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      154,
-      4982
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "nkhli",
-    "indexId": 159,
-    "nodeHashId": "nkhli",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<a>"
-    },
-    "center": [
-      154,
-      4982
-    ],
-    "content": "GitHub Codespaces",
-    "rect": {
-      "left": 80,
-      "top": 4972,
-      "width": 148,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "fojdg",
-    "indexId": 160,
-    "nodeHashId": "fojdg",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      237,
-      5033
-    ],
-    "content": "provides cloud-powered development                         environments for any activity - whether it's a long-term project, or a short-term task like                         reviewing a pull request.",
-    "rect": {
-      "left": 80,
-      "top": 4972,
-      "width": 314,
-      "height": 121,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "okmbe",
-    "indexId": 161,
-    "nodeHashId": "okmbe",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      640,
-      5240
-    ],
-    "content": "Code with rich features",
-    "rect": {
-      "left": 488,
-      "top": 5222,
-      "width": 303,
-      "height": 36,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "fmmkm",
-    "indexId": 162,
-    "nodeHashId": "fmmkm",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      640,
-      5300
-    ],
-    "content": "There's a lot more to an editor. Whether it's using built-in features or rich extensions, there's                 something for everyone.",
-    "rect": {
-      "left": 396,
-      "top": 5277,
-      "width": 487,
-      "height": 45,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ppkhh",
-    "indexId": 163,
-    "nodeHashId": "ppkhh",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='ppkhh']",
-    "attributes": {
-      "href": "https://code.visualstudio.com/docs/terminal/basics",
-      "class": ".feature-card",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "Integrated terminal\n\nUse your favorite shell whether it's zsh, pwsh, or git bash, all inside the editor.",
-    "rect": {
-      "left": 80,
-      "top": 5384,
-      "width": 268,
-      "height": 224,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      214,
-      5496
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "gjnpm",
-    "indexId": 164,
-    "nodeHashId": "gjnpm",
-    "locator": "[_midscene_retrieve_task_id='gjnpm']",
-    "attributes": {
-      "src": "/assets/icons/codicon-terminal.svg",
-      "alt": "terminal icon",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 105,
-      "top": 5409,
-      "width": 48,
-      "height": 48,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      129,
-      5433
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "mcnjp",
-    "indexId": 165,
-    "nodeHashId": "mcnjp",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h3>"
-    },
-    "center": [
-      178,
-      5490
-    ],
-    "content": "Integrated terminal",
-    "rect": {
-      "left": 105,
-      "top": 5480,
-      "width": 146,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "mgmde",
-    "indexId": 166,
-    "nodeHashId": "mgmde",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      208,
-      5547
-    ],
-    "content": "Use your favorite shell whether it's zsh, pwsh, or git bash, all inside the editor.",
-    "rect": {
-      "left": 105,
-      "top": 5514,
-      "width": 205,
-      "height": 65,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ijjoe",
-    "indexId": 167,
-    "nodeHashId": "ijjoe",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='ijjoe']",
-    "attributes": {
-      "href": "https://code.visualstudio.com/docs/debugtest/debugging",
-      "class": ".feature-card",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "Run code\n\nRun and debug your code without leaving your editor.",
-    "rect": {
-      "left": 364,
-      "top": 5384,
-      "width": 268,
-      "height": 224,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      498,
-      5496
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ninda",
-    "indexId": 168,
-    "nodeHashId": "ninda",
-    "locator": "[_midscene_retrieve_task_id='ninda']",
-    "attributes": {
-      "src": "/assets/icons/codicon-debug.svg",
-      "alt": "debug icon",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 389,
-      "top": 5409,
-      "width": 48,
-      "height": 48,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      413,
-      5433
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "egadk",
-    "indexId": 169,
-    "nodeHashId": "egadk",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h3>"
-    },
-    "center": [
-      425,
-      5490
-    ],
-    "content": "Run code",
-    "rect": {
-      "left": 389,
-      "top": 5480,
-      "width": 71,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "khhgh",
-    "indexId": 170,
-    "nodeHashId": "khhgh",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      479,
-      5535
-    ],
-    "content": "Run and debug your code without leaving your editor.",
-    "rect": {
-      "left": 389,
-      "top": 5514,
-      "width": 179,
-      "height": 41,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ninbm",
-    "indexId": 171,
-    "nodeHashId": "ninbm",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='ninbm']",
-    "attributes": {
-      "href": "https://code.visualstudio.com/docs/sourcecontrol/overview",
-      "class": ".feature-card",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "Version control\n\nBuilt-in support for git and many other source control providers.",
-    "rect": {
-      "left": 648,
-      "top": 5384,
-      "width": 268,
-      "height": 224,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      782,
-      5496
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "gjela",
-    "indexId": 172,
-    "nodeHashId": "gjela",
-    "locator": "[_midscene_retrieve_task_id='gjela']",
-    "attributes": {
-      "src": "/assets/icons/codicon-version-control.svg",
-      "alt": "branching icon",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 673,
-      "top": 5409,
-      "width": 48,
-      "height": 48,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      697,
-      5433
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "gheha",
-    "indexId": 173,
-    "nodeHashId": "gheha",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h3>"
-    },
-    "center": [
-      731,
-      5490
-    ],
-    "content": "Version control",
-    "rect": {
-      "left": 673,
-      "top": 5480,
-      "width": 115,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "epomo",
-    "indexId": 174,
-    "nodeHashId": "epomo",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      780,
-      5535
-    ],
-    "content": "Built-in support for git and many other source control providers.",
-    "rect": {
-      "left": 673,
-      "top": 5514,
-      "width": 214,
-      "height": 41,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ibfpm",
-    "indexId": 175,
-    "nodeHashId": "ibfpm",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='ibfpm']",
-    "attributes": {
-      "href": "https://code.visualstudio.com/docs/debugtest/tasks",
-      "class": ".feature-card",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "Build tasks\n\nRun tools and analyze their results from within VS Code.",
-    "rect": {
-      "left": 932,
-      "top": 5384,
-      "width": 268,
-      "height": 224,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      1066,
-      5496
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "njdfb",
-    "indexId": 176,
-    "nodeHashId": "njdfb",
-    "locator": "[_midscene_retrieve_task_id='njdfb']",
-    "attributes": {
-      "src": "/assets/icons/codicon-build-tasks.svg",
-      "alt": "tools icon",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 957,
-      "top": 5409,
-      "width": 48,
-      "height": 48,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      981,
-      5433
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "kgalb",
-    "indexId": 177,
-    "nodeHashId": "kgalb",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h3>"
-    },
-    "center": [
-      999,
-      5490
-    ],
-    "content": "Build tasks",
-    "rect": {
-      "left": 957,
-      "top": 5480,
-      "width": 83,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "elkcj",
-    "indexId": 178,
-    "nodeHashId": "elkcj",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      1051,
-      5535
-    ],
-    "content": "Run tools and analyze their results from within VS Code.",
-    "rect": {
-      "left": 957,
-      "top": 5514,
-      "width": 188,
-      "height": 41,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "cglbn",
-    "indexId": 179,
-    "nodeHashId": "cglbn",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='cglbn']",
-    "attributes": {
-      "href": "https://code.visualstudio.com/updates/v1_66#_local-history",
-      "class": ".feature-card",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "Local history\n\nNever lose your changes with automatically tracked local history.",
-    "rect": {
-      "left": 80,
-      "top": 5623,
-      "width": 268,
-      "height": 248,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      214,
-      5747
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "mcpdk",
-    "indexId": 180,
-    "nodeHashId": "mcpdk",
-    "locator": "[_midscene_retrieve_task_id='mcpdk']",
-    "attributes": {
-      "src": "/assets/icons/codicon-local-history.svg",
-      "alt": "history icon",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 105,
-      "top": 5648,
-      "width": 48,
-      "height": 48,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      129,
-      5672
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ncbbl",
-    "indexId": 181,
-    "nodeHashId": "ncbbl",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h3>"
-    },
-    "center": [
-      154,
-      5729
-    ],
-    "content": "Local history",
-    "rect": {
-      "left": 105,
-      "top": 5719,
-      "width": 97,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "nhocg",
-    "indexId": 182,
-    "nodeHashId": "nhocg",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      202,
-      5786
-    ],
-    "content": "Never lose your changes with automatically tracked local history.",
-    "rect": {
-      "left": 105,
-      "top": 5753,
-      "width": 194,
-      "height": 65,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "mbcal",
-    "indexId": 183,
-    "nodeHashId": "mbcal",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='mbcal']",
-    "attributes": {
-      "href": "https://code.visualstudio.com/docs/configure/themes",
-      "class": ".feature-card",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "Themes\n\nYour theme is an extension of your personality. Add some flair to your editor and add your touch.",
-    "rect": {
-      "left": 364,
-      "top": 5623,
-      "width": 268,
-      "height": 248,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      498,
-      5747
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "oeaoi",
-    "indexId": 184,
-    "nodeHashId": "oeaoi",
-    "locator": "[_midscene_retrieve_task_id='oeaoi']",
-    "attributes": {
-      "src": "/assets/icons/codicon-themes.svg",
-      "alt": "palette icon",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 389,
-      "top": 5648,
-      "width": 48,
-      "height": 48,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      413,
-      5672
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "efchg",
-    "indexId": 185,
-    "nodeHashId": "efchg",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h3>"
-    },
-    "center": [
-      420,
-      5729
-    ],
-    "content": "Themes",
-    "rect": {
-      "left": 389,
-      "top": 5719,
-      "width": 61,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "llnhe",
-    "indexId": 186,
-    "nodeHashId": "llnhe",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      493,
-      5798
-    ],
-    "content": "Your theme is an extension of your personality. Add some flair to your editor and add your touch.",
-    "rect": {
-      "left": 389,
-      "top": 5753,
-      "width": 208,
-      "height": 89,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ocacf",
-    "indexId": 187,
-    "nodeHashId": "ocacf",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='ocacf']",
-    "attributes": {
-      "href": "https://code.visualstudio.com/docs/configure/accessibility/accessibility",
-      "class": ".feature-card",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "Accessibility\n\nOptimized experience for screen readers, high contrast themes, and keyboard-only navigation.",
-    "rect": {
-      "left": 648,
-      "top": 5623,
-      "width": 268,
-      "height": 248,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      782,
-      5747
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "obdgc",
-    "indexId": 188,
-    "nodeHashId": "obdgc",
-    "locator": "[_midscene_retrieve_task_id='obdgc']",
-    "attributes": {
-      "src": "/assets/icons/codicon-accessibility.svg",
-      "alt": "keyboard icon",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 673,
-      "top": 5648,
-      "width": 48,
-      "height": 48,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      697,
-      5672
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "foklf",
-    "indexId": 189,
-    "nodeHashId": "foklf",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h3>"
-    },
-    "center": [
-      721,
-      5729
-    ],
-    "content": "Accessibility",
-    "rect": {
-      "left": 673,
-      "top": 5719,
-      "width": 96,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "aejkl",
-    "indexId": 190,
-    "nodeHashId": "aejkl",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      781,
-      5786
-    ],
-    "content": "Optimized experience for screen readers, high contrast themes, and keyboard-only navigation.",
-    "rect": {
-      "left": 673,
-      "top": 5753,
-      "width": 215,
-      "height": 65,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "loemj",
-    "indexId": 191,
-    "nodeHashId": "loemj",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='loemj']",
-    "attributes": {
-      "href": "https://code.visualstudio.com/docs/setup/vscode-web",
-      "class": ".feature-card",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "Web support\n\nWhether you are on your phone, tablet, or desktop, you can access your code from anywhere.",
-    "rect": {
-      "left": 932,
-      "top": 5623,
-      "width": 268,
-      "height": 248,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      1066,
-      5747
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "mlpmp",
-    "indexId": 192,
-    "nodeHashId": "mlpmp",
-    "locator": "[_midscene_retrieve_task_id='mlpmp']",
-    "attributes": {
-      "src": "/assets/icons/codicon-web.svg",
-      "alt": "globe icon",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 957,
-      "top": 5648,
-      "width": 48,
-      "height": 48,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      981,
-      5672
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "pkdkc",
-    "indexId": 193,
-    "nodeHashId": "pkdkc",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h3>"
-    },
-    "center": [
-      1006,
-      5729
-    ],
-    "content": "Web support",
-    "rect": {
-      "left": 957,
-      "top": 5719,
-      "width": 97,
-      "height": 19,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "nnppb",
-    "indexId": 194,
-    "nodeHashId": "nnppb",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      1063,
-      5798
-    ],
-    "content": "Whether you are on your phone, tablet, or desktop, you can access your code from anywhere.",
-    "rect": {
-      "left": 957,
-      "top": 5753,
-      "width": 211,
-      "height": 89,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "aoiki",
-    "indexId": 195,
-    "nodeHashId": "aoiki",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='aoiki']",
-    "attributes": {
-      "href": "https://go.microsoft.com/fwlink/?LinkID=533687",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "",
-    "rect": {
-      "left": 80,
-      "top": 5971,
-      "width": 18,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      89,
-      5978
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "hhghb",
-    "indexId": 196,
-    "nodeHashId": "hhghb",
-    "locator": "[_midscene_retrieve_task_id='hhghb']",
-    "attributes": {
-      "src": "/assets/icons/x-icon.svg",
-      "class": ".x-icon",
-      "alt": "Follow us on X",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 80,
-      "top": 5970,
-      "width": 18,
-      "height": 18,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      89,
-      5979
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "jdkap",
-    "indexId": 197,
-    "nodeHashId": "jdkap",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='jdkap']",
-    "attributes": {
-      "href": "https://github.com/microsoft/vscode",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "",
-    "rect": {
-      "left": 122,
-      "top": 5971,
-      "width": 24,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      134,
-      5978
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "bjbhn",
-    "indexId": 198,
-    "nodeHashId": "bjbhn",
-    "locator": "[_midscene_retrieve_task_id='bjbhn']",
-    "attributes": {
-      "src": "/assets/icons/github-icon.svg",
-      "alt": "VS Code on Github",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 122,
-      "top": 5967,
-      "width": 24,
-      "height": 25,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      134,
-      5980
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ngdlh",
-    "indexId": 199,
-    "nodeHashId": "ngdlh",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='ngdlh']",
-    "attributes": {
-      "href": "https://www.youtube.com/@code",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "",
-    "rect": {
-      "left": 169,
-      "top": 5971,
-      "width": 24,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      181,
-      5978
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "bnjbk",
-    "indexId": 200,
-    "nodeHashId": "bnjbk",
-    "locator": "[_midscene_retrieve_task_id='bnjbk']",
-    "attributes": {
-      "src": "/assets/icons/youtube-icon.svg",
-      "alt": "VS Code on YouTube",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 169,
-      "top": 5967,
-      "width": 24,
-      "height": 25,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      181,
-      5980
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "agcpa",
-    "indexId": 201,
-    "nodeHashId": "agcpa",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='agcpa']",
-    "attributes": {
-      "id": "footer-microsoft-link",
-      "class": ".microsoft-logo",
-      "href": "https://www.microsoft.com",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "",
-    "rect": {
-      "left": 1177,
-      "top": 5967,
-      "width": 23,
-      "height": 25,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      1189,
-      5980
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "pkkca",
-    "indexId": 202,
-    "nodeHashId": "pkkca",
-    "locator": "[_midscene_retrieve_task_id='pkkca']",
-    "attributes": {
-      "src": "/assets/icons/microsoft.svg",
-      "alt": "Microsoft homepage",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 1177,
-      "top": 5967,
-      "width": 23,
-      "height": 24,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      1189,
-      5979
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "elojl",
-    "indexId": 203,
-    "nodeHashId": "elojl",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='elojl']",
-    "attributes": {
-      "id": "footer-support-link",
-      "href": "https://support.serviceshub.microsoft.com/supportforbusiness/create?sapId=d66407ed-3967-b000-4cfb-2c318cad363d",
-      "target": "_blank",
-      "rel": "noopener",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "Support",
-    "rect": {
-      "left": 80,
-      "top": 6011,
-      "width": 47,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      104,
-      6018
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "elojl",
-    "indexId": 204,
-    "nodeHashId": "elojl",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<a>"
-    },
-    "center": [
-      104,
-      6018
-    ],
-    "content": "Support",
-    "rect": {
-      "left": 80,
-      "top": 6011,
-      "width": 47,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ohhbg",
-    "indexId": 205,
-    "nodeHashId": "ohhbg",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='ohhbg']",
-    "attributes": {
-      "id": "footer-privacy-link",
-      "href": "https://go.microsoft.com/fwlink/?LinkId=521839",
-      "target": "_blank",
-      "rel": "noopener",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "Privacy",
-    "rect": {
-      "left": 150,
-      "top": 6011,
-      "width": 42,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      171,
-      6018
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ohhbg",
-    "indexId": 206,
-    "nodeHashId": "ohhbg",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<a>"
-    },
-    "center": [
-      171,
-      6018
-    ],
-    "content": "Privacy",
-    "rect": {
-      "left": 150,
-      "top": 6011,
-      "width": 42,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "pbdec",
-    "indexId": 207,
-    "nodeHashId": "pbdec",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='pbdec']",
-    "attributes": {
-      "id": "footer-terms-link",
-      "href": "https://www.microsoft.com/legal/terms-of-use",
-      "target": "_blank",
-      "rel": "noopener",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "Terms of Use",
-    "rect": {
-      "left": 216,
-      "top": 6011,
-      "width": 76,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      254,
-      6018
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "pbdec",
-    "indexId": 208,
-    "nodeHashId": "pbdec",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<a>"
-    },
-    "center": [
-      254,
-      6018
-    ],
-    "content": "Terms of Use",
-    "rect": {
-      "left": 216,
-      "top": 6011,
-      "width": 76,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ibpgc",
-    "indexId": 209,
-    "nodeHashId": "ibpgc",
-    "nodeType": "Anchor Node",
-    "locator": "[_midscene_retrieve_task_id='ibpgc']",
-    "attributes": {
-      "id": "footer-license-link",
-      "href": "/License",
-      "target": "_blank",
-      "rel": "noopener",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node"
-    },
-    "content": "License",
-    "rect": {
-      "left": 316,
-      "top": 6011,
-      "width": 44,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      338,
-      6018
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ibpgc",
-    "indexId": 210,
-    "nodeHashId": "ibpgc",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<a>"
-    },
-    "center": [
-      338,
-      6018
-    ],
-    "content": "License",
-    "rect": {
-      "left": 316,
-      "top": 6011,
-      "width": 44,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
+    "screenWidth": 1280,
+    "screenHeight": 720
   }
 ]

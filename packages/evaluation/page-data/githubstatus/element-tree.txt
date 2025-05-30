@@ -1,231 +1,205 @@
-        <>
-          <a id="fpahg"  href="/" class=".text-gray-dark" aria-label="GitHub Octicon logo" left="944" top="20" width="32" height="32">
-            <a id="fpdib" markerId="1" svgContent="true" left="944" top="20" width="32" height="31">
-            </a>
-          </a>
           <>
-            <a id="blhce" markerId="2" class=".mr-3.mr-lg-4.py-2" href="https://help.github.com" left="24" top="19" width="34" height="35">
-              Help
-              <a id="fbcif" markerId="3"  left="24" top="27" width="34" height="19">
+            <a id="hcdge"  svgContent="true" left="944" top="20" width="32" height="31">
+            </a>
+          </>
+            <>
+              <a id="neica" markerId="1"  left="24" top="27" width="34" height="19">
                 Help
               </a>
-            </a>
-            <a id="oieac" markerId="4" class=".mr-3.mr-lg-4.py-2" href="https://github.community" left="86" top="19" width="83" height="35">
-              Community
-              <a id="hnpkd" markerId="5"  left="86" top="27" width="83" height="19">
+            </>
+            <>
+              <a id="glbjl" markerId="2"  left="86" top="27" width="83" height="19">
                 Community
               </a>
-            </a>
-            <a id="bocdm" markerId="6" class=".mr-3.py-2.text-gray." href="/" left="197" top="19" width="46" height="35">
-              Status
-              <a id="edpgj" markerId="7"  left="197" top="27" width="46" height="19">
+            </>
+            <>
+              <a id="mbikf" markerId="3"  left="197" top="27" width="46" height="19">
                 Status
               </a>
-            </a>
-          </>
-          <>
-            <a id="lbfkd" markerId="8" class=".py-2" href="https://github.com" left="1622" top="19" width="86" height="35">
-              GitHub.com
-              <a id="ogphm" markerId="9"  left="1622" top="27" width="86" height="19">
+            </>
+            <>
+              <a id="jdmek" markerId="4"  left="1622" top="27" width="86" height="19">
                 GitHub.com
               </a>
-            </a>
-              <>
-                <a id="bfebm" markerId="10" href="#" data-js-hook="show-updates-dropdown" id="show-updates-dropdown" class=".show-updates-dropdown" aria-label="Subscribe to updates" aria-expanded="false" aria-haspopup="dialog" role="button" left="1736" top="27" width="160" height="19">
-                  Subscribe To Updates
-                </a>
-              </>
-          </>
-        </>
-        <img id="ojjpk" markerId="11" src="https://user-images.githubusercontent.com/19292210/60553863-044dd200-9cea-11e9-987e-7db84449f215.png" class=".illo-desktop-header" alt="GitHub header" left="0" top="73" width="1920" height="422">
-        </img>
-            <>
-              <a id="bekie" markerId="12" class=".whitespace-pre-wrap.actual-title.with-ellipsis" href="/incidents/67vdd3b7d1zq" left="490" top="415" width="705" height="29">
-                Codespaces Scheduled Maintenance
-                <a id="hhcnf" markerId="13"  left="490" top="418" width="333" height="24">
-                  Codespaces Scheduled Maintenance
-                </a>
-              </a>
-              <a id="jhhka" markerId="14" data-toggle="modal" role="button" class=".subscribe" id="btn-subscribe-modal-67vdd3b7d1zq" href="#subscribe-modal-67vdd3b7d1zq" left="1363" top="413" width="67" height="29">
-                Subscribe
-                <a id="oohmc" markerId="15"  left="1363" top="419" width="67" height="17">
-                  Subscribe
-                </a>
-              </a>
             </>
-                <>
-                  <strong id="kipal" markerId="16"  left="491" top="479" width="85" height="19">
-                    In progress
-                  </strong>
-                </>
-                <div id="ndffb" markerId="17"  left="576" top="479" width="16" height="19">
-                  -
+              <>
+                <div id="inilf" markerId="5" href="#" data-js-hook="show-updates-dropdown" id="show-updates-dropdown" class=".show-updates-dropdown" aria-label="Subscribe to updates" aria-expanded="false" aria-haspopup="dialog" role="button" left="1736" top="27" width="160" height="19">
                 </div>
+              </>
+        <div id="eipfo" markerId="6" class=".illo-desktop-header" alt="GitHub header" left="0" top="73" width="1920" height="422">
+        </div>
+          <>
+            <span id="djonb" markerId="7"  left="522" top="415" width="219" height="24">
+              All Systems Operational
+            </span>
+          </>
                 <>
-                  <span id="hfmeg" markerId="18"  left="592" top="479" width="627" height="19">
-                    Scheduled maintenance is currently in progress. We will provide updates as necessary.
-                  </span>
-                </>
-                <>
-                  <small id="edike" markerId="19"  left="491" top="504" width="31" height="17">
-                    May
-                  </small>
-                  <>
-                    <var id="gllgb" markerId="20"  left="522" top="504" width="17" height="17">
-                      28
-                    </var>
-                  </>
-                  <small id="jfinf" markerId="21"  left="539" top="504" width="8" height="17">
-                    ,
-                  </small>
-                  <>
-                    <var id="ejbld" markerId="22"  left="547" top="504" width="35" height="17">
-                      2025
-                    </var>
-                  </>
-                  <small id="lmcmp" markerId="23"  left="582" top="504" width="14" height="17">
-                    -
-                  </small>
-                  <>
-                    <var id="jnicb" markerId="24"  left="596" top="504" width="37" height="17">
-                      16:30
-                    </var>
-                  </>
-                  <small id="chiol" markerId="25"  left="634" top="504" width="33" height="17">
-                    UTC
-                  </small>
-                </>
-                <>
-                  <strong id="pddfa" markerId="26"  left="491" top="547" width="81" height="19">
-                    Scheduled
-                  </strong>
-                </>
-                <div id="okaif" markerId="27"  left="572" top="547" width="16" height="19">
-                  -
-                </div>
-                <>
-                  <span id="ffpjn" markerId="28"  left="491" top="547" width="938" height="67">
-                    Codespaces will be undergoing global maintenance from 16:30 UTC on Wednesday, May 28 to 16:30 UTC on Thursday, May 29. Maintenance will begin in our E...
-                  </span>
-                  <span id="hljpe" markerId="29"  left="491" top="643" width="897" height="43">
-                    During this time period, users may experience intermittent connectivity issues when creating new Codespaces or accessing existing ones.
-                  </span>
-                  <span id="jcham" markerId="30"  left="491" top="715" width="860" height="43">
-                    To avoid disruptions, ensure that any uncommitted changes are committed and pushed before the maintenance starts. Codespaces with uncommitted changes ...
-                  </span>
-                </>
-                <>
-                  <small id="ikkpf" markerId="31"  left="491" top="764" width="31" height="17">
-                    May
-                  </small>
-                  <>
-                    <var id="cjepe" markerId="32"  left="522" top="764" width="17" height="17">
-                      28
-                    </var>
-                  </>
-                  <small id="oiinh" markerId="33"  left="539" top="764" width="8" height="17">
-                    ,
-                  </small>
-                  <>
-                    <var id="nifjd" markerId="34"  left="547" top="764" width="35" height="17">
-                      2025
-                    </var>
-                  </>
-                  <>
-                    <var id="fgklg" markerId="35"  left="586" top="764" width="37" height="17">
-                      16:30
-                    </var>
-                  </>
-                  <small id="clenm" markerId="36"  left="623" top="764" width="46" height="17">
-                    - May
-                  </small>
-                  <>
-                    <var id="paeed" markerId="37"  left="669" top="764" width="17" height="17">
-                      29
-                    </var>
-                  </>
-                  <small id="iohnl" markerId="38"  left="686" top="764" width="8" height="17">
-                    ,
-                  </small>
-                  <>
-                    <var id="nbhfp" markerId="39"  left="694" top="764" width="35" height="17">
-                      2025
-                    </var>
-                  </>
-                  <>
-                    <var id="embem" markerId="40"  left="732" top="764" width="37" height="17">
-                      16:30
-                    </var>
-                  </>
-                  <small id="gifdm" markerId="41"  left="769" top="764" width="33" height="17">
-                    UTC
-                  </small>
-                </>
-                <>
-                  <span id="anfij" markerId="42"  left="492" top="926" width="107" height="19">
+                  <span id="aabof" markerId="8"  left="492" top="583" width="107" height="19">
                     Git Operations
                   </span>
                 </>
                 <>
-                  <span id="egkop" markerId="43"  left="614" top="928" width="6" height="14">
+                  <span id="fmhia" markerId="9"  left="614" top="585" width="6" height="14">
                     ?
                   </span>
                 </>
-                <span id="iokel" markerId="44" class=".tool.icon-indicator.fa.fa-check.tooltipstered" left="916" top="926" width="24" height="24">
-                </span>
+                <div id="milim" markerId="10" class=".tool.icon-indicator.fa.fa-check.tooltipstered" left="916" top="583" width="24" height="24">
+                </div>
                 <>
-                  <span id="mjgbe" markerId="45"  left="492" top="953" width="47" height="17">
+                  <span id="jbanm" markerId="11"  left="492" top="610" width="47" height="17">
                     Normal
                   </span>
                 </>
                 <>
-                  <span id="oeaag" markerId="46"  left="981" top="926" width="78" height="19">
+                  <span id="njnjm" markerId="12"  left="981" top="583" width="78" height="19">
                     Webhooks
                   </span>
                 </>
                 <>
-                  <span id="mfeic" markerId="47"  left="1074" top="928" width="6" height="14">
+                  <span id="hjkdo" markerId="13"  left="1074" top="585" width="6" height="14">
                     ?
                   </span>
                 </>
-                <span id="gcmof" markerId="48" class=".tool.icon-indicator.fa.fa-check.tooltipstered" left="1405" top="926" width="24" height="24">
-                </span>
+                <div id="okkff" markerId="14" class=".tool.icon-indicator.fa.fa-check.tooltipstered" left="1405" top="583" width="24" height="24">
+                </div>
                 <>
-                  <span id="nkhmd" markerId="49"  left="981" top="953" width="47" height="17">
+                  <span id="cfjbb" markerId="15"  left="981" top="610" width="47" height="17">
                     Normal
                   </span>
                 </>
                 <>
-                  <span id="kpcno" markerId="50"  left="492" top="1015" width="98" height="19">
+                  <span id="ajong" markerId="16"  left="492" top="673" width="98" height="19">
                     API Requests
                   </span>
                 </>
                 <>
-                  <span id="eahfi" markerId="51"  left="605" top="1018" width="6" height="14">
+                  <span id="dkpfg" markerId="17"  left="605" top="675" width="6" height="14">
                     ?
                   </span>
                 </>
-                <span id="mkjpk" markerId="52" class=".tool.icon-indicator.fa.fa-check.tooltipstered" left="916" top="1015" width="24" height="24">
-                </span>
+                <div id="mnklg" markerId="18" class=".tool.icon-indicator.fa.fa-check.tooltipstered" left="916" top="672" width="24" height="24">
+                </div>
                 <>
-                  <span id="lchpj" markerId="53"  left="492" top="1042" width="47" height="17">
+                  <span id="clkmd" markerId="19"  left="492" top="700" width="47" height="17">
                     Normal
                   </span>
                 </>
                 <>
-                  <span id="gfohe" markerId="54"  left="981" top="1015" width="47" height="19">
+                  <span id="ighcb" markerId="20"  left="981" top="673" width="47" height="19">
                     Issues
                   </span>
                 </>
                 <>
-                  <span id="fiiag" markerId="55"  left="1043" top="1018" width="6" height="14">
+                  <span id="bmccf" markerId="21"  left="1043" top="675" width="6" height="14">
                     ?
                   </span>
                 </>
-                <span id="hcdjj" markerId="56" class=".tool.icon-indicator.fa.fa-check.tooltipstered" left="1405" top="1015" width="24" height="24">
-                </span>
+                <div id="ihlll" markerId="22" class=".tool.icon-indicator.fa.fa-check.tooltipstered" left="1405" top="672" width="24" height="24">
+                </div>
                 <>
-                  <span id="fkfio" markerId="57"  left="981" top="1042" width="47" height="17">
+                  <span id="hoaep" markerId="23"  left="981" top="700" width="47" height="17">
                     Normal
                   </span>
                 </>
+                <>
+                  <span id="mdffp" markerId="24"  left="492" top="762" width="100" height="19">
+                    Pull Requests
+                  </span>
+                </>
+                <>
+                  <span id="klnkf" markerId="25"  left="608" top="764" width="6" height="14">
+                    ?
+                  </span>
+                </>
+                <div id="pncmp" markerId="26" class=".tool.icon-indicator.fa.fa-check.tooltipstered" left="916" top="762" width="24" height="24">
+                </div>
+                <>
+                  <span id="aomom" markerId="27"  left="492" top="789" width="47" height="17">
+                    Normal
+                  </span>
+                </>
+                <>
+                  <span id="kljge" markerId="28"  left="981" top="762" width="56" height="19">
+                    Actions
+                  </span>
+                </>
+                <>
+                  <span id="gaego" markerId="29"  left="1052" top="764" width="6" height="14">
+                    ?
+                  </span>
+                </>
+                <div id="oeipj" markerId="30" class=".tool.icon-indicator.fa.fa-check.tooltipstered" left="1405" top="762" width="24" height="24">
+                </div>
+                <>
+                  <span id="mmkjc" markerId="31"  left="981" top="789" width="47" height="17">
+                    Normal
+                  </span>
+                </>
+                <>
+                  <span id="fmmdn" markerId="32"  left="492" top="851" width="71" height="19">
+                    Packages
+                  </span>
+                </>
+                <>
+                  <span id="bfnjb" markerId="33"  left="578" top="854" width="6" height="14">
+                    ?
+                  </span>
+                </>
+                <div id="jihpp" markerId="34" class=".tool.icon-indicator.fa.fa-check.tooltipstered" left="916" top="851" width="24" height="24">
+                </div>
+                <>
+                  <span id="bfcll" markerId="35"  left="492" top="878" width="47" height="17">
+                    Normal
+                  </span>
+                </>
+                <>
+                  <span id="dmpcj" markerId="36"  left="981" top="851" width="45" height="19">
+                    Pages
+                  </span>
+                </>
+                <>
+                  <span id="henbe" markerId="37"  left="1041" top="854" width="6" height="14">
+                    ?
+                  </span>
+                </>
+                <div id="fepci" markerId="38" class=".tool.icon-indicator.fa.fa-check.tooltipstered" left="1405" top="851" width="24" height="24">
+                </div>
+                <>
+                  <span id="ghdjg" markerId="39"  left="981" top="878" width="47" height="17">
+                    Normal
+                  </span>
+                </>
+                <>
+                  <span id="cnfmg" markerId="40"  left="492" top="941" width="92" height="19">
+                    Codespaces
+                  </span>
+                </>
+                <>
+                  <span id="alice" markerId="41"  left="599" top="943" width="6" height="14">
+                    ?
+                  </span>
+                </>
+                <div id="kakan" markerId="42" class=".tool.icon-indicator.fa.fa-check.tooltipstered" left="916" top="940" width="24" height="24">
+                </div>
+                <>
+                  <span id="bhhlk" markerId="43"  left="492" top="968" width="47" height="17">
+                    Normal
+                  </span>
+                </>
+                <>
+                  <span id="dfcol" markerId="44"  left="981" top="941" width="53" height="19">
+                    Copilot
+                  </span>
+                </>
+                <div id="djklc" markerId="45" class=".tool.icon-indicator.fa.fa-check.tooltipstered" left="1405" top="940" width="24" height="24">
+                </div>
+                <>
+                  <span id="mejbf" markerId="46"  left="981" top="968" width="47" height="17">
+                    Normal
+                  </span>
+                </>
+          <>
+            <a id="jkgap" markerId="47"  left="1326" top="1068" width="105" height="17">
+              Incident History
+            </a>
+          </>

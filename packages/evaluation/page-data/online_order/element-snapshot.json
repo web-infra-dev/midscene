@@ -1,14 +1,14 @@
 [
   {
-    "id": "eaadd",
+    "id": "amjle",
     "indexId": 0,
-    "nodeHashId": "eaadd",
-    "locator": "[_midscene_retrieve_task_id='eaadd']",
+    "nodeHashId": "amjle",
+    "locator": "[_midscene_retrieve_task_id='amjle']",
     "attributes": {
       "src": "image",
       "class": ".icon",
       "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
+      "htmlTagName": "<div>"
     },
     "nodeType": "IMG Node",
     "content": "",
@@ -17,20 +17,20 @@
       "top": 17,
       "width": 22,
       "height": 22,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "center": [
       26,
       28
     ],
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 400,
+    "screenHeight": 905
   },
   {
-    "id": "cnkcm",
+    "id": "kfmhg",
     "indexId": 1,
-    "nodeHashId": "cnkcm",
+    "nodeHashId": "kfmhg",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -47,49 +47,22 @@
       "top": 17,
       "width": 53,
       "height": 23,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 400,
+    "screenHeight": 905
   },
   {
-    "id": "mhbcl",
+    "id": "kiboe",
     "indexId": 2,
-    "nodeHashId": "mhbcl",
-    "locator": "",
-    "attributes": {
-      "svgContent": "true",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<i>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 248,
-      "top": 239,
-      "width": 633,
-      "height": 427,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      565,
-      453
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ebaop",
-    "indexId": 3,
-    "nodeHashId": "ebaop",
-    "locator": "[_midscene_retrieve_task_id='ebaop']",
+    "nodeHashId": "kiboe",
+    "locator": "[_midscene_retrieve_task_id='kiboe']",
     "attributes": {
       "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/rfkle/16509415998546650.jpg",
       "class": ".img",
       "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
+      "htmlTagName": "<div>"
     },
     "nodeType": "IMG Node",
     "content": "",
@@ -98,26 +71,26 @@
       "top": 8,
       "width": 44,
       "height": 44,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "center": [
       225,
       30
     ],
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 400,
+    "screenHeight": 905
   },
   {
-    "id": "bffne",
-    "indexId": 4,
-    "nodeHashId": "bffne",
-    "locator": "[_midscene_retrieve_task_id='bffne']",
+    "id": "podpa",
+    "indexId": 3,
+    "nodeHashId": "podpa",
+    "locator": "[_midscene_retrieve_task_id='podpa']",
     "attributes": {
       "src": "image",
       "class": ".icon",
       "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
+      "htmlTagName": "<div>"
     },
     "nodeType": "IMG Node",
     "content": "",
@@ -126,20 +99,20 @@
       "top": 16,
       "width": 25,
       "height": 25,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "center": [
       363,
       29
     ],
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 400,
+    "screenHeight": 905
   },
   {
-    "id": "ddkcl",
-    "indexId": 5,
-    "nodeHashId": "ddkcl",
+    "id": "mhedh",
+    "indexId": 4,
+    "nodeHashId": "mhedh",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -156,16 +129,16 @@
       "top": 69,
       "width": 250,
       "height": 20,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 400,
+    "screenHeight": 905
   },
   {
-    "id": "mienn",
-    "indexId": 6,
-    "nodeHashId": "mienn",
+    "id": "aadbo",
+    "indexId": 5,
+    "nodeHashId": "aadbo",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -182,21 +155,21 @@
       "top": 123,
       "width": 312,
       "height": 20,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 400,
+    "screenHeight": 905
   },
   {
-    "id": "naali",
-    "indexId": 7,
-    "nodeHashId": "naali",
-    "locator": "[_midscene_retrieve_task_id='naali']",
+    "id": "dbdoo",
+    "indexId": 6,
+    "nodeHashId": "dbdoo",
+    "locator": "[_midscene_retrieve_task_id='dbdoo']",
     "attributes": {
       "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/rfkle/16558697767831080.jpeg",
       "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
+      "htmlTagName": "<div>"
     },
     "nodeType": "IMG Node",
     "content": "",
@@ -205,20 +178,20 @@
       "top": 260,
       "width": 368,
       "height": 180,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "center": [
       200,
       350
     ],
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 400,
+    "screenHeight": 905
   },
   {
-    "id": "oaohf",
-    "indexId": 8,
-    "nodeHashId": "oaohf",
+    "id": "ppkeh",
+    "indexId": 7,
+    "nodeHashId": "ppkeh",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -235,16 +208,16 @@
       "top": 451,
       "width": 330,
       "height": 41,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 400,
+    "screenHeight": 905
   },
   {
-    "id": "jigdf",
-    "indexId": 9,
-    "nodeHashId": "jigdf",
+    "id": "agjnc",
+    "indexId": 8,
+    "nodeHashId": "agjnc",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -261,21 +234,21 @@
       "top": 536,
       "width": 41,
       "height": 23,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 400,
+    "screenHeight": 905
   },
   {
-    "id": "hhkmc",
-    "nodeHashId": "hhkmc",
-    "indexId": 10,
+    "id": "gbnmd",
+    "nodeHashId": "gbnmd",
+    "indexId": 9,
     "nodeType": "CONTAINER Node",
-    "locator": "[_midscene_retrieve_task_id='hhkmc']",
+    "locator": "[_midscene_retrieve_task_id='gbnmd']",
     "attributes": {
       "nodeType": "CONTAINER Node",
-      "htmlTagName": "<b>"
+      "htmlTagName": "<div>"
     },
     "content": "",
     "rect": {
@@ -283,20 +256,20 @@
       "top": 568,
       "width": 41,
       "height": 4,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "center": [
       95,
       570
     ],
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 400,
+    "screenHeight": 905
   },
   {
-    "id": "hbjgd",
-    "indexId": 11,
-    "nodeHashId": "hbjgd",
+    "id": "ajcdg",
+    "indexId": 10,
+    "nodeHashId": "ajcdg",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -313,16 +286,16 @@
       "top": 536,
       "width": 61,
       "height": 23,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 400,
+    "screenHeight": 905
   },
   {
-    "id": "cmhbj",
-    "indexId": 12,
-    "nodeHashId": "cmhbj",
+    "id": "pmdgk",
+    "indexId": 11,
+    "nodeHashId": "pmdgk",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -339,16 +312,16 @@
       "top": 536,
       "width": 70,
       "height": 23,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 400,
+    "screenHeight": 905
   },
   {
-    "id": "pogeh",
-    "indexId": 13,
-    "nodeHashId": "pogeh",
+    "id": "odbpp",
+    "indexId": 12,
+    "nodeHashId": "odbpp",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -365,16 +338,16 @@
       "top": 594,
       "width": 64,
       "height": 17,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 400,
+    "screenHeight": 905
   },
   {
-    "id": "ndmnc",
-    "indexId": 14,
-    "nodeHashId": "ndmnc",
+    "id": "eoobp",
+    "indexId": 13,
+    "nodeHashId": "eoobp",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -391,16 +364,16 @@
       "top": 645,
       "width": 75,
       "height": 35,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 400,
+    "screenHeight": 905
   },
   {
-    "id": "pclgp",
-    "indexId": 15,
-    "nodeHashId": "pclgp",
+    "id": "ocabo",
+    "indexId": 14,
+    "nodeHashId": "ocabo",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -417,16 +390,16 @@
       "top": 705,
       "width": 68,
       "height": 35,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 400,
+    "screenHeight": 905
   },
   {
-    "id": "ikbpe",
-    "indexId": 16,
-    "nodeHashId": "ikbpe",
+    "id": "pgadj",
+    "indexId": 15,
+    "nodeHashId": "pgadj",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -443,16 +416,16 @@
       "top": 765,
       "width": 60,
       "height": 35,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 400,
+    "screenHeight": 905
   },
   {
-    "id": "nolmh",
-    "indexId": 17,
-    "nodeHashId": "nolmh",
+    "id": "pfdef",
+    "indexId": 16,
+    "nodeHashId": "pfdef",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -469,68 +442,16 @@
       "top": 825,
       "width": 58,
       "height": 35,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 400,
+    "screenHeight": 905
   },
   {
-    "id": "mmdle",
-    "indexId": 18,
-    "nodeHashId": "mmdle",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      27,
-      903
-    ],
-    "content": "ICE CREAM DEIGHT",
-    "rect": {
-      "left": 5,
-      "top": 876,
-      "width": 44,
-      "height": 53,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "oiabp",
-    "indexId": 19,
-    "nodeHashId": "oiabp",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      35,
-      963
-    ],
-    "content": "TOPPINGS",
-    "rect": {
-      "left": 5,
-      "top": 954,
-      "width": 60,
-      "height": 17,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "opjgk",
-    "indexId": 20,
-    "nodeHashId": "opjgk",
+    "id": "hjlcp",
+    "indexId": 17,
+    "nodeHashId": "hjlcp",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -547,22 +468,22 @@
       "top": 602,
       "width": 96,
       "height": 20,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 400,
+    "screenHeight": 905
   },
   {
-    "id": "fabil",
-    "indexId": 21,
-    "nodeHashId": "fabil",
-    "locator": "[_midscene_retrieve_task_id='fabil']",
+    "id": "obhgh",
+    "indexId": 18,
+    "nodeHashId": "obhgh",
+    "locator": "[_midscene_retrieve_task_id='obhgh']",
     "attributes": {
       "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509428649460869.jpeg",
       "class": ".img",
       "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
+      "htmlTagName": "<div>"
     },
     "nodeType": "IMG Node",
     "content": "",
@@ -571,20 +492,20 @@
       "top": 638,
       "width": 90,
       "height": 90,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "center": [
       133,
       683
     ],
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 400,
+    "screenHeight": 905
   },
   {
-    "id": "mldgg",
-    "indexId": 22,
-    "nodeHashId": "mldgg",
+    "id": "millo",
+    "indexId": 19,
+    "nodeHashId": "millo",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -601,42 +522,16 @@
       "top": 639,
       "width": 139,
       "height": 41,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 400,
+    "screenHeight": 905
   },
   {
-    "id": "apkbe",
-    "indexId": 23,
-    "nodeHashId": "apkbe",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      853,
-      691
-    ],
-    "content": "Iced 650ml or hot 500ml heytea's original since 2020. juicy seasonal fresh harumi tangerine hand peeled daily steeped in refreshing regal aqua green tea, with smooth osmanthus pudding & crunchy bobo pops to deliver an inspirational, zesty taste experience.",
-    "rect": {
-      "left": 188,
-      "top": 683,
-      "width": 1330,
-      "height": 15,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "nlepl",
-    "indexId": 24,
-    "nodeHashId": "nlepl",
+    "id": "dmggl",
+    "indexId": 20,
+    "nodeHashId": "dmggl",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -644,51 +539,25 @@
       "htmlTagName": "<span>"
     },
     "center": [
-      194,
-      736
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 729,
-      "width": 12,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": true
-    },
-    "zoom": 1,
-    "isVisible": true
-  },
-  {
-    "id": "bhohd",
-    "indexId": 25,
-    "nodeHashId": "bhohd",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      223,
+      211,
       734
     ],
     "content": "6.82",
     "rect": {
-      "left": 204,
+      "left": 192,
       "top": 721,
       "width": 37,
       "height": 25,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 400,
+    "screenHeight": 905
   },
   {
-    "id": "medik",
-    "indexId": 26,
-    "nodeHashId": "medik",
+    "id": "jfdbe",
+    "indexId": 21,
+    "nodeHashId": "jfdbe",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -705,16 +574,16 @@
       "top": 721,
       "width": 76,
       "height": 17,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 400,
+    "screenHeight": 905
   },
   {
-    "id": "kidlb",
-    "indexId": 27,
-    "nodeHashId": "kidlb",
+    "id": "eabbl",
+    "indexId": 22,
+    "nodeHashId": "eabbl",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -731,22 +600,22 @@
       "top": 763,
       "width": 169,
       "height": 20,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 400,
+    "screenHeight": 905
   },
   {
-    "id": "ckljp",
-    "indexId": 28,
-    "nodeHashId": "ckljp",
-    "locator": "[_midscene_retrieve_task_id='ckljp']",
+    "id": "enebg",
+    "indexId": 23,
+    "nodeHashId": "enebg",
+    "locator": "[_midscene_retrieve_task_id='enebg']",
     "attributes": {
       "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509428062990437.jpeg",
       "class": ".img",
       "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
+      "htmlTagName": "<div>"
     },
     "nodeType": "IMG Node",
     "content": "",
@@ -755,20 +624,20 @@
       "top": 800,
       "width": 90,
       "height": 90,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "center": [
       133,
       845
     ],
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 400,
+    "screenHeight": 905
   },
   {
-    "id": "hpfgb",
-    "indexId": 29,
-    "nodeHashId": "hpfgb",
+    "id": "iihbj",
+    "indexId": 24,
+    "nodeHashId": "iihbj",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -785,42 +654,16 @@
       "top": 800,
       "width": 156,
       "height": 20,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 400,
+    "screenHeight": 905
   },
   {
-    "id": "dlfid",
-    "indexId": 30,
-    "nodeHashId": "dlfid",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      1073,
-      832
-    ],
-    "content": "The ultimate refreshing expression of our very mango grapefruit. Fresh seasonal mango, hand cut & prepared daily. Blended with refreshing regal aqua green jasmine tea with additional ruby grapefruit pulp & crunchy konnyaku bobo pops for that additional textured mouthfeel. A true concoction of taste & texture that is so poppingly refreshing.",
-    "rect": {
-      "left": 188,
-      "top": 824,
-      "width": 1769,
-      "height": 15,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "bfdjk",
-    "indexId": 31,
-    "nodeHashId": "bfdjk",
+    "id": "naibh",
+    "indexId": 25,
+    "nodeHashId": "naibh",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -828,51 +671,25 @@
       "htmlTagName": "<span>"
     },
     "center": [
-      194,
-      879
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 872,
-      "width": 12,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": true
-    },
-    "zoom": 1,
-    "isVisible": true
-  },
-  {
-    "id": "pfejh",
-    "indexId": 32,
-    "nodeHashId": "pfejh",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      223,
+      211,
       877
     ],
     "content": "6.54",
     "rect": {
-      "left": 204,
+      "left": 192,
       "top": 864,
       "width": 37,
       "height": 25,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 400,
+    "screenHeight": 905
   },
   {
-    "id": "dncll",
-    "indexId": 33,
-    "nodeHashId": "dncll",
+    "id": "cdmma",
+    "indexId": 26,
+    "nodeHashId": "cdmma",
     "nodeType": "TEXT Node",
     "locator": "",
     "attributes": {
@@ -889,4110 +706,21 @@
       "top": 864,
       "width": 76,
       "height": 17,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 400,
+    "screenHeight": 905
   },
   {
-    "id": "onced",
-    "indexId": 34,
-    "nodeHashId": "onced",
-    "locator": "[_midscene_retrieve_task_id='onced']",
-    "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509429737793457.jpeg",
-      "class": ".img",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 88,
-      "top": 906,
-      "width": 90,
-      "height": 90,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      133,
-      951
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "domhc",
-    "indexId": 35,
-    "nodeHashId": "domhc",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      243,
-      916
-    ],
-    "content": "Very Mango Tea",
-    "rect": {
-      "left": 188,
-      "top": 906,
-      "width": 109,
-      "height": 20,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "nclob",
-    "indexId": 36,
-    "nodeHashId": "nclob",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      637,
-      938
-    ],
-    "content": "Fresh seasonally selected juicy mango with refreshing regal aqua green jasmine tea delivering a sweet tropical taste experience. Available in 500ml standard & 650ml upsized.",
-    "rect": {
-      "left": 188,
-      "top": 930,
-      "width": 897,
-      "height": 15,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "efjhf",
-    "indexId": 37,
-    "nodeHashId": "efjhf",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      194,
-      985
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 978,
-      "width": 12,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "fhhgj",
-    "indexId": 38,
-    "nodeHashId": "fhhgj",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      223,
-      983
-    ],
-    "content": "7.98",
-    "rect": {
-      "left": 204,
-      "top": 970,
-      "width": 37,
-      "height": 25,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "pbbgd",
-    "indexId": 39,
-    "nodeHashId": "pbbgd",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<div>"
-    },
-    "center": [
-      344,
-      979
-    ],
-    "content": "Select Option",
-    "rect": {
-      "left": 306,
-      "top": 970,
-      "width": 76,
-      "height": 17,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "gclnj",
-    "indexId": 40,
-    "nodeHashId": "gclnj",
-    "locator": "[_midscene_retrieve_task_id='gclnj']",
-    "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509430179662650.jpeg",
-      "class": ".img",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 88,
-      "top": 1012,
-      "width": 90,
-      "height": 90,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      133,
-      1057
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "knnbe",
-    "indexId": 41,
-    "nodeHashId": "knnbe",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      261,
-      1022
-    ],
-    "content": "Very Grapefruit Boom",
-    "rect": {
-      "left": 188,
-      "top": 1012,
-      "width": 146,
-      "height": 20,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "cfolk",
-    "indexId": 42,
-    "nodeHashId": "cfolk",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      585,
-      1044
-    ],
-    "content": "A sip of grapefruit delight fresh pulpy blend infused with jasmine tea will make you never want to go back to any other & does not include cheezo topping.",
-    "rect": {
-      "left": 188,
-      "top": 1036,
-      "width": 794,
-      "height": 15,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "phaje",
-    "indexId": 43,
-    "nodeHashId": "phaje",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      194,
-      1091
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 1084,
-      "width": 12,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "fepjn",
-    "indexId": 44,
-    "nodeHashId": "fepjn",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      223,
-      1089
-    ],
-    "content": "5.03",
-    "rect": {
-      "left": 204,
-      "top": 1076,
-      "width": 37,
-      "height": 25,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "bdnkm",
-    "indexId": 45,
-    "nodeHashId": "bdnkm",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<div>"
-    },
-    "center": [
-      344,
-      1085
-    ],
-    "content": "Select Option",
-    "rect": {
-      "left": 306,
-      "top": 1076,
-      "width": 76,
-      "height": 17,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ckfhn",
-    "indexId": 46,
-    "nodeHashId": "ckfhn",
-    "locator": "[_midscene_retrieve_task_id='ckfhn']",
-    "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509431253142949.jpeg",
-      "class": ".img",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 88,
-      "top": 1118,
-      "width": 90,
-      "height": 90,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      133,
-      1163
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "nbcaf",
-    "indexId": 47,
-    "nodeHashId": "nbcaf",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      265,
-      1139
-    ],
-    "content": "Very Strawberry Peach Fusion",
-    "rect": {
-      "left": 188,
-      "top": 1118,
-      "width": 153,
-      "height": 41,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ckbkm",
-    "indexId": 48,
-    "nodeHashId": "ckbkm",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      928,
-      1171
-    ],
-    "content": "An inspirational, indulgent blend of our popular strawberry cheezo & peach cheezo. A harmony of the fruity sweetness from strawberries & peach juice, further amped up by the refreshing floral regal aqua green jasmine tea. Comes in the standard 500ml size available for upsize to 650ml.",
-    "rect": {
-      "left": 188,
-      "top": 1163,
-      "width": 1479,
-      "height": 15,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "bpmjn",
-    "indexId": 49,
-    "nodeHashId": "bpmjn",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      194,
-      1216
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 1209,
-      "width": 12,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "kegpd",
-    "indexId": 50,
-    "nodeHashId": "kegpd",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      223,
-      1213
-    ],
-    "content": "7.89",
-    "rect": {
-      "left": 204,
-      "top": 1200,
-      "width": 37,
-      "height": 25,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "pefeg",
-    "indexId": 51,
-    "nodeHashId": "pefeg",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<div>"
-    },
-    "center": [
-      344,
-      1209
-    ],
-    "content": "Select Option",
-    "rect": {
-      "left": 306,
-      "top": 1200,
-      "width": 76,
-      "height": 17,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ieilj",
-    "indexId": 52,
-    "nodeHashId": "ieilj",
-    "locator": "[_midscene_retrieve_task_id='ieilj']",
-    "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509431808616430.jpeg",
-      "class": ".img",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 88,
-      "top": 1242,
-      "width": 90,
-      "height": 90,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      133,
-      1287
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ehega",
-    "indexId": 53,
-    "nodeHashId": "ehega",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      281,
-      1253
-    ],
-    "content": "Emblic Superfruit Refresher",
-    "rect": {
-      "left": 188,
-      "top": 1243,
-      "width": 186,
-      "height": 20,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "idadn",
-    "indexId": 54,
-    "nodeHashId": "idadn",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      828,
-      1274
-    ],
-    "content": "A healthy flavourful drink born of a perfect union of EMBLIC SUPERFRUIT and DEYTEA's signature AQUA GREEN. This drink promises a refreshing sweet taste experience with a tinge of sourness. Here at HEYTEA, we call it 7 part sweet 3 part sour.",
-    "rect": {
-      "left": 188,
-      "top": 1266,
-      "width": 1280,
-      "height": 15,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "iidlo",
-    "indexId": 55,
-    "nodeHashId": "iidlo",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      194,
-      1322
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 1315,
-      "width": 12,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "pmfho",
-    "indexId": 56,
-    "nodeHashId": "pmfho",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      220,
-      1319
-    ],
-    "content": "7.71",
-    "rect": {
-      "left": 204,
-      "top": 1306,
-      "width": 32,
-      "height": 25,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "cjobg",
-    "indexId": 57,
-    "nodeHashId": "cjobg",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<div>"
-    },
-    "center": [
-      344,
-      1315
-    ],
-    "content": "Select Option",
-    "rect": {
-      "left": 306,
-      "top": 1306,
-      "width": 76,
-      "height": 17,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "fbfoj",
-    "indexId": 58,
-    "nodeHashId": "fbfoj",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      169,
-      1359
-    ],
-    "content": "SIGNATURE DRINKS (4)",
-    "rect": {
-      "left": 88,
-      "top": 1349,
-      "width": 161,
-      "height": 20,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "faipi",
-    "indexId": 59,
-    "nodeHashId": "faipi",
-    "locator": "[_midscene_retrieve_task_id='faipi']",
-    "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509432868609005.jpeg",
-      "class": ".img",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 88,
-      "top": 1385,
-      "width": 90,
-      "height": 90,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      133,
-      1430
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "mgaon",
-    "indexId": 60,
-    "nodeHashId": "mgaon",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      286,
-      1396
-    ],
-    "content": "Very Grape Cheezo (Original)",
-    "rect": {
-      "left": 188,
-      "top": 1386,
-      "width": 195,
-      "height": 20,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "nchkb",
-    "indexId": 61,
-    "nodeHashId": "nchkb",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      439,
-      1417
-    ],
-    "content": "HEYTEA ORIGINAL 2018. Fresh handpeeled Kyoho Grapes blended with premium Aqua Green tea.",
-    "rect": {
-      "left": 188,
-      "top": 1409,
-      "width": 502,
-      "height": 15,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "japng",
-    "indexId": 62,
-    "nodeHashId": "japng",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      194,
-      1465
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 1458,
-      "width": 12,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "baana",
-    "indexId": 63,
-    "nodeHashId": "baana",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      223,
-      1462
-    ],
-    "content": "9.32",
-    "rect": {
-      "left": 204,
-      "top": 1449,
-      "width": 37,
-      "height": 25,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "kofep",
-    "indexId": 64,
-    "nodeHashId": "kofep",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<div>"
-    },
-    "center": [
-      344,
-      1458
-    ],
-    "content": "Select Option",
-    "rect": {
-      "left": 306,
-      "top": 1449,
-      "width": 76,
-      "height": 17,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "jeoed",
-    "indexId": 65,
-    "nodeHashId": "jeoed",
-    "locator": "[_midscene_retrieve_task_id='jeoed']",
-    "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509434349096787.jpeg",
-      "class": ".img",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 88,
-      "top": 1491,
-      "width": 90,
-      "height": 90,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      133,
-      1536
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "jicfo",
-    "indexId": 66,
-    "nodeHashId": "jicfo",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      275,
-      1502
-    ],
-    "content": "Grapefruit Boom(Original)",
-    "rect": {
-      "left": 188,
-      "top": 1492,
-      "width": 173,
-      "height": 20,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ihifi",
-    "indexId": 67,
-    "nodeHashId": "ihifi",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      633,
-      1523
-    ],
-    "content": "HEYTEA's original since 2016. A sip of grapefruit delight - selected fresh pulpy blend infused with Aqua Green jasmine tea will make you never want to go back to any other.",
-    "rect": {
-      "left": 188,
-      "top": 1515,
-      "width": 890,
-      "height": 15,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "loglk",
-    "indexId": 68,
-    "nodeHashId": "loglk",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      194,
-      1571
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 1564,
-      "width": 12,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "jkloe",
-    "indexId": 69,
-    "nodeHashId": "jkloe",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      221,
-      1568
-    ],
-    "content": "6.19",
-    "rect": {
-      "left": 204,
-      "top": 1555,
-      "width": 34,
-      "height": 25,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "jjenm",
-    "indexId": 70,
-    "nodeHashId": "jjenm",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<div>"
-    },
-    "center": [
-      344,
-      1564
-    ],
-    "content": "Select Option",
-    "rect": {
-      "left": 306,
-      "top": 1555,
-      "width": 76,
-      "height": 17,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ihcja",
-    "indexId": 71,
-    "nodeHashId": "ihcja",
-    "locator": "[_midscene_retrieve_task_id='ihcja']",
-    "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509434864662214.jpeg",
-      "class": ".img",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 88,
-      "top": 1597,
-      "width": 90,
-      "height": 90,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      133,
-      1642
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "jpiig",
-    "indexId": 72,
-    "nodeHashId": "jpiig",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      264,
-      1619
-    ],
-    "content": "Very Mango Grapefruit Fusion",
-    "rect": {
-      "left": 188,
-      "top": 1598,
-      "width": 152,
-      "height": 41,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "gaepa",
-    "indexId": 73,
-    "nodeHashId": "gaepa",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      677,
-      1650
-    ],
-    "content": "Your new go-to refreshment this summer. Crafted with mango chuncks, marsh grapefruit pulp and coconut milk, blended with our premium Aqua Green tea, while bobo pops brings extra fun.",
-    "rect": {
-      "left": 188,
-      "top": 1642,
-      "width": 977,
-      "height": 15,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "mldek",
-    "indexId": 74,
-    "nodeHashId": "mldek",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      194,
-      1696
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 1689,
-      "width": 12,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ommjo",
-    "indexId": 75,
-    "nodeHashId": "ommjo",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      223,
-      1693
-    ],
-    "content": "8.33",
-    "rect": {
-      "left": 204,
-      "top": 1680,
-      "width": 37,
-      "height": 25,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "dbpce",
-    "indexId": 76,
-    "nodeHashId": "dbpce",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<div>"
-    },
-    "center": [
-      344,
-      1689
-    ],
-    "content": "Select Option",
-    "rect": {
-      "left": 306,
-      "top": 1680,
-      "width": 76,
-      "height": 17,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "fjhli",
-    "indexId": 77,
-    "nodeHashId": "fjhli",
-    "locator": "[_midscene_retrieve_task_id='fjhli']",
-    "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509435319588931.jpeg",
-      "class": ".img",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 88,
-      "top": 1722,
-      "width": 90,
-      "height": 90,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      133,
-      1767
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ibfpd",
-    "indexId": 78,
-    "nodeHashId": "ibfpd",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      269,
-      1733
-    ],
-    "content": "Mango Cheezo(Original)",
-    "rect": {
-      "left": 188,
-      "top": 1723,
-      "width": 161,
-      "height": 20,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "amloc",
-    "indexId": 79,
-    "nodeHashId": "amloc",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      607,
-      1754
-    ],
-    "content": "HEYTEA's original since 2017. Blend seasonally selected juicy mango with vibrant Aqua Green tea, the drink is refreshing ad dense with sweet tropical temptations.",
-    "rect": {
-      "left": 188,
-      "top": 1746,
-      "width": 838,
-      "height": 15,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "iflhk",
-    "indexId": 80,
-    "nodeHashId": "iflhk",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      194,
-      1802
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 1795,
-      "width": 12,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ffibo",
-    "indexId": 81,
-    "nodeHashId": "ffibo",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      223,
-      1799
-    ],
-    "content": "9.32",
-    "rect": {
-      "left": 204,
-      "top": 1786,
-      "width": 37,
-      "height": 25,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ioaab",
-    "indexId": 82,
-    "nodeHashId": "ioaab",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<div>"
-    },
-    "center": [
-      344,
-      1795
-    ],
-    "content": "Select Option",
-    "rect": {
-      "left": 306,
-      "top": 1786,
-      "width": 76,
-      "height": 17,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "iljdd",
-    "indexId": 83,
-    "nodeHashId": "iljdd",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      164,
-      1839
-    ],
-    "content": "COMFORT DRINKS (4)",
-    "rect": {
-      "left": 88,
-      "top": 1829,
-      "width": 151,
-      "height": 20,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "illip",
-    "indexId": 84,
-    "nodeHashId": "illip",
-    "locator": "[_midscene_retrieve_task_id='illip']",
-    "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509435913326476.jpeg",
-      "class": ".img",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 88,
-      "top": 1865,
-      "width": 90,
-      "height": 90,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      133,
-      1910
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ielfc",
-    "indexId": 85,
-    "nodeHashId": "ielfc",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      276,
-      1887
-    ],
-    "content": "Roasted Brown BoBo Milk with Cheezo (Original)",
-    "rect": {
-      "left": 188,
-      "top": 1866,
-      "width": 175,
-      "height": 41,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "eagfc",
-    "indexId": 86,
-    "nodeHashId": "eagfc",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      627,
-      1918
-    ],
-    "content": "HEYTEA's original since 2012. A combo of Brown Sugar Bobo with fresh milk topped with classic cheezo, presenting you rich and mellow mouthfeel, a fulfilling experience.",
-    "rect": {
-      "left": 188,
-      "top": 1910,
-      "width": 878,
-      "height": 15,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "miofh",
-    "indexId": 87,
-    "nodeHashId": "miofh",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      194,
-      1963
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 1956,
-      "width": 12,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "amfda",
-    "indexId": 88,
-    "nodeHashId": "amfda",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      223,
-      1961
-    ],
-    "content": "5.92",
-    "rect": {
-      "left": 204,
-      "top": 1948,
-      "width": 37,
-      "height": 25,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "bkhfo",
-    "indexId": 89,
-    "nodeHashId": "bkhfo",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<div>"
-    },
-    "center": [
-      344,
-      1957
-    ],
-    "content": "Select Option",
-    "rect": {
-      "left": 306,
-      "top": 1948,
-      "width": 76,
-      "height": 17,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "lelii",
-    "indexId": 90,
-    "nodeHashId": "lelii",
-    "locator": "[_midscene_retrieve_task_id='lelii']",
-    "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509436554602403.jpeg",
-      "class": ".img",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 88,
-      "top": 1990,
-      "width": 90,
-      "height": 90,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      133,
-      2035
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "pimbm",
-    "indexId": 91,
-    "nodeHashId": "pimbm",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      245,
-      2000
-    ],
-    "content": "Brown Bobo Milk",
-    "rect": {
-      "left": 188,
-      "top": 1990,
-      "width": 114,
-      "height": 20,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "dfmnk",
-    "indexId": 92,
-    "nodeHashId": "dfmnk",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      650,
-      2022
-    ],
-    "content": "A lite version of the Roasted Brown Bobo Milk (Original). featuring a delightful combination of Brown Sugar Bobo and Premium fresh milk; delivering a rich velvety taste experience.",
-    "rect": {
-      "left": 188,
-      "top": 2014,
-      "width": 924,
-      "height": 15,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ahfhi",
-    "indexId": 93,
-    "nodeHashId": "ahfhi",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      194,
-      2069
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 2062,
-      "width": 12,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "cnmob",
-    "indexId": 94,
-    "nodeHashId": "cnmob",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      223,
-      2067
-    ],
-    "content": "4.04",
-    "rect": {
-      "left": 204,
-      "top": 2054,
-      "width": 37,
-      "height": 25,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "dincl",
-    "indexId": 95,
-    "nodeHashId": "dincl",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<div>"
-    },
-    "center": [
-      344,
-      2063
-    ],
-    "content": "Select Option",
-    "rect": {
-      "left": 306,
-      "top": 2054,
-      "width": 76,
-      "height": 17,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "pmece",
-    "indexId": 96,
-    "nodeHashId": "pmece",
-    "locator": "[_midscene_retrieve_task_id='pmece']",
-    "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509437187485848.jpeg",
-      "class": ".img",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 88,
-      "top": 2096,
-      "width": 90,
-      "height": 90,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      133,
-      2141
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "admaa",
-    "indexId": 97,
-    "nodeHashId": "admaa",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      275,
-      2117
-    ],
-    "content": "Roasted Brown Bobo Milk Tea With Cheezo",
-    "rect": {
-      "left": 188,
-      "top": 2096,
-      "width": 174,
-      "height": 41,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "joihp",
-    "indexId": 98,
-    "nodeHashId": "joihp",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      765,
-      2149
-    ],
-    "content": "Premium Red Blossom black tea, mixed with creamy and rich milk. A taste-bud-tingling blend with floral aroma lingering in your mouth. Extra sweetness added with chewy Brown Bobo at the bottom and Classic Cheezo atop.",
-    "rect": {
-      "left": 188,
-      "top": 2141,
-      "width": 1154,
-      "height": 15,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "moken",
-    "indexId": 99,
-    "nodeHashId": "moken",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      194,
-      2194
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 2187,
-      "width": 12,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "njgmf",
-    "indexId": 100,
-    "nodeHashId": "njgmf",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      223,
-      2191
-    ],
-    "content": "6.47",
-    "rect": {
-      "left": 204,
-      "top": 2178,
-      "width": 37,
-      "height": 25,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "efomj",
-    "indexId": 101,
-    "nodeHashId": "efomj",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<div>"
-    },
-    "center": [
-      344,
-      2187
-    ],
-    "content": "Select Option",
-    "rect": {
-      "left": 306,
-      "top": 2178,
-      "width": 76,
-      "height": 17,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "hnoif",
-    "indexId": 102,
-    "nodeHashId": "hnoif",
-    "locator": "[_midscene_retrieve_task_id='hnoif']",
-    "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509437617881442.jpeg",
-      "class": ".img",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 88,
-      "top": 2220,
-      "width": 90,
-      "height": 90,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      133,
-      2265
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "fekkb",
-    "indexId": 103,
-    "nodeHashId": "fekkb",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      254,
-      2231
-    ],
-    "content": "Taro Bobo Milk Tea",
-    "rect": {
-      "left": 188,
-      "top": 2221,
-      "width": 131,
-      "height": 20,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ncphf",
-    "indexId": 104,
-    "nodeHashId": "ncphf",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      420,
-      2252
-    ],
-    "content": "A TARO inspiration, complete with taro paste (orh nee) and taro bobo. A pure taro delight.",
-    "rect": {
-      "left": 188,
-      "top": 2244,
-      "width": 463,
-      "height": 15,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "icfkh",
-    "indexId": 105,
-    "nodeHashId": "icfkh",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      194,
-      2300
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 2293,
-      "width": 12,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "mfnhn",
-    "indexId": 106,
-    "nodeHashId": "mfnhn",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      223,
-      2297
-    ],
-    "content": "4.22",
-    "rect": {
-      "left": 204,
-      "top": 2284,
-      "width": 37,
-      "height": 25,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "mflie",
-    "indexId": 107,
-    "nodeHashId": "mflie",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<div>"
-    },
-    "center": [
-      344,
-      2293
-    ],
-    "content": "Select Option",
-    "rect": {
-      "left": 306,
-      "top": 2284,
-      "width": 76,
-      "height": 17,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "keejc",
-    "indexId": 108,
-    "nodeHashId": "keejc",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      162,
-      2337
-    ],
-    "content": "SIMPLE CLASSICS (3)",
-    "rect": {
-      "left": 88,
-      "top": 2327,
-      "width": 148,
-      "height": 20,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "bebdd",
-    "indexId": 109,
-    "nodeHashId": "bebdd",
-    "locator": "[_midscene_retrieve_task_id='bebdd']",
-    "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509439373787633.jpeg",
-      "class": ".img",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 88,
-      "top": 2363,
-      "width": 90,
-      "height": 90,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      133,
-      2408
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "blkne",
-    "indexId": 110,
-    "nodeHashId": "blkne",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      275,
-      2385
-    ],
-    "content": "Pure Aqua Green Jasmine Milk Tea",
-    "rect": {
-      "left": 188,
-      "top": 2364,
-      "width": 174,
-      "height": 41,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "pkoeo",
-    "indexId": 111,
-    "nodeHashId": "pkoeo",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      562,
-      2416
-    ],
-    "content": "A harmonious blend of refreshing Regal Aqua Green Jasmine tea with real premium fresh milk, atop a layer of tender smooth osmanthus pudding.",
-    "rect": {
-      "left": 188,
-      "top": 2408,
-      "width": 748,
-      "height": 15,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "jljgd",
-    "indexId": 112,
-    "nodeHashId": "jljgd",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      194,
-      2462
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 2455,
-      "width": 12,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "okpbm",
-    "indexId": 113,
-    "nodeHashId": "okpbm",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      223,
-      2459
-    ],
-    "content": "3.23",
-    "rect": {
-      "left": 204,
-      "top": 2446,
-      "width": 37,
-      "height": 25,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "onkgf",
-    "indexId": 114,
-    "nodeHashId": "onkgf",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<div>"
-    },
-    "center": [
-      344,
-      2455
-    ],
-    "content": "Select Option",
-    "rect": {
-      "left": 306,
-      "top": 2446,
-      "width": 76,
-      "height": 17,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "nnlld",
-    "indexId": 115,
-    "nodeHashId": "nnlld",
-    "locator": "[_midscene_retrieve_task_id='nnlld']",
-    "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509439855858736.jpeg",
-      "class": ".img",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 88,
-      "top": 2488,
-      "width": 90,
-      "height": 90,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      133,
-      2533
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "efppi",
-    "indexId": 116,
-    "nodeHashId": "efppi",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      279,
-      2510
-    ],
-    "content": "Regal Aqua Green Jasmine Cheezo (Original)",
-    "rect": {
-      "left": 188,
-      "top": 2489,
-      "width": 181,
-      "height": 41,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "cldic",
-    "indexId": 117,
-    "nodeHashId": "cldic",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      578,
-      2541
-    ],
-    "content": "The original cheezo tea since 2012. A unique blend of fresh tea leaves sourced from all over the world for a brisk and clean flavor. Topped with Cheezo.",
-    "rect": {
-      "left": 188,
-      "top": 2533,
-      "width": 780,
-      "height": 15,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "iceco",
-    "indexId": 118,
-    "nodeHashId": "iceco",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      194,
-      2586
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 2579,
-      "width": 12,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "efife",
-    "indexId": 119,
-    "nodeHashId": "efife",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      223,
-      2584
-    ],
-    "content": "3.85",
-    "rect": {
-      "left": 204,
-      "top": 2571,
-      "width": 37,
-      "height": 25,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "nfphk",
-    "indexId": 120,
-    "nodeHashId": "nfphk",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<div>"
-    },
-    "center": [
-      344,
-      2580
-    ],
-    "content": "Select Option",
-    "rect": {
-      "left": 306,
-      "top": 2571,
-      "width": 76,
-      "height": 17,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "jdnop",
-    "indexId": 121,
-    "nodeHashId": "jdnop",
-    "locator": "[_midscene_retrieve_task_id='jdnop']",
-    "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509440378586941.jpeg",
-      "class": ".img",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 88,
-      "top": 2613,
-      "width": 90,
-      "height": 90,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      133,
-      2658
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "lhphf",
-    "indexId": 122,
-    "nodeHashId": "lhphf",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      266,
-      2634
-    ],
-    "content": "Pure Regal Aqua Green Jasmine Tea",
-    "rect": {
-      "left": 188,
-      "top": 2613,
-      "width": 156,
-      "height": 41,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "jmdec",
-    "indexId": 123,
-    "nodeHashId": "jmdec",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      409,
-      2666
-    ],
-    "content": "Brewed with premium green tea, it tastes brisk and clear with a hit of Jasmine aroma.",
-    "rect": {
-      "left": 188,
-      "top": 2658,
-      "width": 441,
-      "height": 15,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "mhlim",
-    "indexId": 124,
-    "nodeHashId": "mhlim",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      194,
-      2711
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 2704,
-      "width": 12,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "obpjj",
-    "indexId": 125,
-    "nodeHashId": "obpjj",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      223,
-      2709
-    ],
-    "content": "2.96",
-    "rect": {
-      "left": 204,
-      "top": 2696,
-      "width": 37,
-      "height": 25,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "heiie",
-    "indexId": 126,
-    "nodeHashId": "heiie",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<div>"
-    },
-    "center": [
-      344,
-      2705
-    ],
-    "content": "Select Option",
-    "rect": {
-      "left": 306,
-      "top": 2696,
-      "width": 76,
-      "height": 17,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ofnoa",
-    "indexId": 127,
-    "nodeHashId": "ofnoa",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      166,
-      2748
-    ],
-    "content": "ICE CREAM DEIGHT (1)",
-    "rect": {
-      "left": 88,
-      "top": 2738,
-      "width": 155,
-      "height": 20,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "oghap",
-    "indexId": 128,
-    "nodeHashId": "oghap",
-    "locator": "[_midscene_retrieve_task_id='oghap']",
-    "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509443981723190.jpeg",
-      "class": ".img",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 88,
-      "top": 2775,
-      "width": 90,
-      "height": 90,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      133,
-      2820
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "abmem",
-    "indexId": 129,
-    "nodeHashId": "abmem",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      240,
-      2785
-    ],
-    "content": "BOBO SUNDAE",
-    "rect": {
-      "left": 188,
-      "top": 2775,
-      "width": 104,
-      "height": 20,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "pdhno",
-    "indexId": 130,
-    "nodeHashId": "pdhno",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      501,
-      2807
-    ],
-    "content": "Fresh, crisp tea is swirled into hyper-rich milk ice cream, then topped with a handful of sweet , gooey Brown Sugar Bobo.",
-    "rect": {
-      "left": 188,
-      "top": 2799,
-      "width": 626,
-      "height": 15,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "lpflk",
-    "indexId": 131,
-    "nodeHashId": "lpflk",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      194,
-      2854
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 2847,
-      "width": 12,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "boiji",
-    "indexId": 132,
-    "nodeHashId": "boiji",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      218,
-      2852
-    ],
-    "content": "4.3",
-    "rect": {
-      "left": 204,
-      "top": 2839,
-      "width": 27,
-      "height": 25,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "lmdhp",
-    "indexId": 133,
-    "nodeHashId": "lmdhp",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<div>"
-    },
-    "center": [
-      344,
-      2848
-    ],
-    "content": "Select Option",
-    "rect": {
-      "left": 306,
-      "top": 2839,
-      "width": 76,
-      "height": 17,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ncjmd",
-    "indexId": 134,
-    "nodeHashId": "ncjmd",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      135,
-      2891
-    ],
-    "content": "TOPPINGS (9)",
-    "rect": {
-      "left": 88,
-      "top": 2881,
-      "width": 94,
-      "height": 20,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "jpglh",
-    "indexId": 135,
-    "nodeHashId": "jpglh",
-    "locator": "[_midscene_retrieve_task_id='jpglh']",
-    "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509444557660397.jpeg",
-      "class": ".img",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 88,
-      "top": 2918,
-      "width": 90,
-      "height": 90,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      133,
-      2963
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "dpjfe",
-    "indexId": 136,
-    "nodeHashId": "dpjfe",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      241,
-      2928
-    ],
-    "content": "Crystal Pudding",
-    "rect": {
-      "left": 188,
-      "top": 2918,
-      "width": 106,
-      "height": 20,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ldfoh",
-    "indexId": 137,
-    "nodeHashId": "ldfoh",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      434,
-      2950
-    ],
-    "content": "Lucent Crystal Pudding made from Natural rock sugar, mildly sweet with a soft crunchy texture.",
-    "rect": {
-      "left": 188,
-      "top": 2942,
-      "width": 491,
-      "height": 15,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "bjccf",
-    "indexId": 138,
-    "nodeHashId": "bjccf",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      194,
-      2997
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 2990,
-      "width": 12,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "fljen",
-    "indexId": 139,
-    "nodeHashId": "fljen",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      223,
-      2995
-    ],
-    "content": "0.72",
-    "rect": {
-      "left": 204,
-      "top": 2982,
-      "width": 37,
-      "height": 25,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "alfmk",
-    "indexId": 140,
-    "nodeHashId": "alfmk",
-    "locator": "",
-    "attributes": {
-      "svgContent": "true",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<i>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 350,
-      "top": 2990,
-      "width": 9,
-      "height": 10,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      355,
-      2995
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "jdkfn",
-    "indexId": 141,
-    "nodeHashId": "jdkfn",
-    "locator": "[_midscene_retrieve_task_id='jdkfn']",
-    "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509445003060651.jpeg",
-      "class": ".img",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 88,
-      "top": 3024,
-      "width": 90,
-      "height": 90,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      133,
-      3069
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "clakm",
-    "indexId": 142,
-    "nodeHashId": "clakm",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      260,
-      3034
-    ],
-    "content": "Konnyaku Bobo Pops",
-    "rect": {
-      "left": 188,
-      "top": 3024,
-      "width": 143,
-      "height": 20,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "lledm",
-    "indexId": 143,
-    "nodeHashId": "lledm",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      327,
-      3056
-    ],
-    "content": "Bouncy and chewy experience inspired by Bobo Pops.",
-    "rect": {
-      "left": 188,
-      "top": 3048,
-      "width": 277,
-      "height": 15,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "jhknn",
-    "indexId": 144,
-    "nodeHashId": "jhknn",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      194,
-      3103
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 3096,
-      "width": 12,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "lmfph",
-    "indexId": 145,
-    "nodeHashId": "lmfph",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      219,
-      3101
-    ],
-    "content": "1.17",
-    "rect": {
-      "left": 204,
-      "top": 3088,
-      "width": 30,
-      "height": 25,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "pbijf",
-    "indexId": 146,
-    "nodeHashId": "pbijf",
-    "locator": "",
-    "attributes": {
-      "svgContent": "true",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<i>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 350,
-      "top": 3096,
-      "width": 9,
-      "height": 10,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      355,
-      3101
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "kpnma",
-    "indexId": 147,
-    "nodeHashId": "kpnma",
-    "locator": "[_midscene_retrieve_task_id='kpnma']",
-    "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509445480154627.jpeg",
-      "class": ".img",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 88,
-      "top": 3130,
-      "width": 90,
-      "height": 90,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      133,
-      3175
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "jipff",
-    "indexId": 148,
-    "nodeHashId": "jipff",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      251,
-      3140
-    ],
-    "content": "Brown Sugar Bobo",
-    "rect": {
-      "left": 188,
-      "top": 3130,
-      "width": 125,
-      "height": 20,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "lbgif",
-    "indexId": 149,
-    "nodeHashId": "lbgif",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      275,
-      3162
-    ],
-    "content": "Freshly made chewy Brown Bobo.",
-    "rect": {
-      "left": 188,
-      "top": 3154,
-      "width": 173,
-      "height": 15,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "komda",
-    "indexId": 150,
-    "nodeHashId": "komda",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      194,
-      3209
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 3202,
-      "width": 12,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "gjlan",
-    "indexId": 151,
-    "nodeHashId": "gjlan",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      221,
-      3207
-    ],
-    "content": "1.08",
-    "rect": {
-      "left": 204,
-      "top": 3194,
-      "width": 34,
-      "height": 25,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "gmimo",
-    "indexId": 152,
-    "nodeHashId": "gmimo",
-    "locator": "",
-    "attributes": {
-      "svgContent": "true",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<i>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 350,
-      "top": 3202,
-      "width": 9,
-      "height": 10,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      355,
-      3207
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "hcdkh",
-    "indexId": 153,
-    "nodeHashId": "hcdkh",
-    "locator": "[_midscene_retrieve_task_id='hcdkh']",
-    "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509445897385928.jpeg",
-      "class": ".img",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 88,
-      "top": 3236,
-      "width": 90,
-      "height": 90,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      133,
-      3281
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "fllni",
-    "indexId": 154,
-    "nodeHashId": "fllni",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      223,
-      3246
-    ],
-    "content": "Taro Bobo",
-    "rect": {
-      "left": 188,
-      "top": 3236,
-      "width": 70,
-      "height": 20,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "lpoga",
-    "indexId": 155,
-    "nodeHashId": "lpoga",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      312,
-      3268
-    ],
-    "content": "Chewy experience inspired by gooey Taro Bobo.",
-    "rect": {
-      "left": 188,
-      "top": 3260,
-      "width": 248,
-      "height": 15,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ldaop",
-    "indexId": 156,
-    "nodeHashId": "ldaop",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      194,
-      3315
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 3308,
-      "width": 12,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "dmppb",
-    "indexId": 157,
-    "nodeHashId": "dmppb",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      221,
-      3313
-    ],
-    "content": "1.08",
-    "rect": {
-      "left": 204,
-      "top": 3300,
-      "width": 34,
-      "height": 25,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ikcgf",
-    "indexId": 158,
-    "nodeHashId": "ikcgf",
-    "locator": "",
-    "attributes": {
-      "svgContent": "true",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<i>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 350,
-      "top": 3308,
-      "width": 9,
-      "height": 10,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      355,
-      3313
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "kanme",
-    "indexId": 159,
-    "nodeHashId": "kanme",
-    "locator": "[_midscene_retrieve_task_id='kanme']",
-    "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509446368432803.jpeg",
-      "class": ".img",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 88,
-      "top": 3342,
-      "width": 90,
-      "height": 90,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      133,
-      3387
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "kbopa",
-    "indexId": 160,
-    "nodeHashId": "kbopa",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      259,
-      3352
-    ],
-    "content": "Taro Paste (Orh Nee)",
-    "rect": {
-      "left": 188,
-      "top": 3342,
-      "width": 141,
-      "height": 20,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "jmebp",
-    "indexId": 161,
-    "nodeHashId": "jmebp",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      444,
-      3374
-    ],
-    "content": "Steamed and handmade daily using natural taro; to deliver a rich and smooth taro taste experience.",
-    "rect": {
-      "left": 188,
-      "top": 3366,
-      "width": 511,
-      "height": 15,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "okpef",
-    "indexId": 162,
-    "nodeHashId": "okpef",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      194,
-      3421
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 3414,
-      "width": 12,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "iecno",
-    "indexId": 163,
-    "nodeHashId": "iecno",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      221,
-      3419
-    ],
-    "content": "1.08",
-    "rect": {
-      "left": 204,
-      "top": 3406,
-      "width": 34,
-      "height": 25,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "hnejp",
-    "indexId": 164,
-    "nodeHashId": "hnejp",
-    "locator": "",
-    "attributes": {
-      "svgContent": "true",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<i>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 350,
-      "top": 3414,
-      "width": 9,
-      "height": 10,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      355,
-      3419
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "chafp",
-    "indexId": 165,
-    "nodeHashId": "chafp",
-    "locator": "[_midscene_retrieve_task_id='chafp']",
-    "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509446818845743.jpeg",
-      "class": ".img",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 88,
-      "top": 3448,
-      "width": 90,
-      "height": 90,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      133,
-      3493
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "kggoo",
-    "indexId": 166,
-    "nodeHashId": "kggoo",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      256,
-      3458
-    ],
-    "content": "Osmanthus Pudding",
-    "rect": {
-      "left": 188,
-      "top": 3448,
-      "width": 135,
-      "height": 20,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "aemdi",
-    "indexId": 167,
-    "nodeHashId": "aemdi",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      457,
-      3480
-    ],
-    "content": "Osmanthus Oolong Pudding is tender and smooth in texture. Present you refreshing and rich floral smell.",
-    "rect": {
-      "left": 188,
-      "top": 3472,
-      "width": 537,
-      "height": 15,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "anhhe",
-    "indexId": 168,
-    "nodeHashId": "anhhe",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      194,
-      3527
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 3520,
-      "width": 12,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "fmefk",
-    "indexId": 169,
-    "nodeHashId": "fmefk",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      223,
-      3525
-    ],
-    "content": "0.72",
-    "rect": {
-      "left": 204,
-      "top": 3512,
-      "width": 37,
-      "height": 25,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "nobaj",
-    "indexId": 170,
-    "nodeHashId": "nobaj",
-    "locator": "",
-    "attributes": {
-      "svgContent": "true",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<i>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 350,
-      "top": 3520,
-      "width": 9,
-      "height": 10,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      355,
-      3525
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "elcfo",
-    "indexId": 171,
-    "nodeHashId": "elcfo",
-    "locator": "[_midscene_retrieve_task_id='elcfo']",
-    "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509447391647561.jpeg",
-      "class": ".img",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 88,
-      "top": 3554,
-      "width": 90,
-      "height": 90,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      133,
-      3599
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "jnbjd",
-    "indexId": 172,
-    "nodeHashId": "jnbjd",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      258,
-      3564
-    ],
-    "content": "Ruby Grapefruit Pulp",
-    "rect": {
-      "left": 188,
-      "top": 3554,
-      "width": 140,
-      "height": 20,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "dgiei",
-    "indexId": 173,
-    "nodeHashId": "dgiei",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      342,
-      3586
-    ],
-    "content": "Inspirational toppings with full-bodied fresh grapefruit pulp.",
-    "rect": {
-      "left": 188,
-      "top": 3578,
-      "width": 307,
-      "height": 15,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "imjdl",
-    "indexId": 174,
-    "nodeHashId": "imjdl",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      194,
-      3633
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 3626,
-      "width": 12,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "phjob",
-    "indexId": 175,
-    "nodeHashId": "phjob",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      221,
-      3631
-    ],
-    "content": "1.08",
-    "rect": {
-      "left": 204,
-      "top": 3618,
-      "width": 34,
-      "height": 25,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "koacn",
-    "indexId": 176,
-    "nodeHashId": "koacn",
-    "locator": "",
-    "attributes": {
-      "svgContent": "true",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<i>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 350,
-      "top": 3626,
-      "width": 9,
-      "height": 10,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      355,
-      3631
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "mkcdp",
-    "indexId": 177,
-    "nodeHashId": "mkcdp",
-    "locator": "[_midscene_retrieve_task_id='mkcdp']",
-    "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509448212563058.jpeg",
-      "class": ".img",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 88,
-      "top": 3660,
-      "width": 90,
-      "height": 90,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      133,
-      3705
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ocmli",
-    "indexId": 178,
-    "nodeHashId": "ocmli",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      213,
-      3670
-    ],
-    "content": "Cheezo",
-    "rect": {
-      "left": 188,
-      "top": 3660,
-      "width": 50,
-      "height": 20,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "hdnnl",
-    "indexId": 179,
-    "nodeHashId": "hdnnl",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      353,
-      3692
-    ],
-    "content": "HEYTEA ORIGINAL & classical Cheezo made of whipped cream.",
-    "rect": {
-      "left": 188,
-      "top": 3684,
-      "width": 329,
-      "height": 15,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "plnek",
-    "indexId": 180,
-    "nodeHashId": "plnek",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      194,
-      3739
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 3732,
-      "width": 12,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "lldba",
-    "indexId": 181,
-    "nodeHashId": "lldba",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      223,
-      3737
-    ],
-    "content": "2.08",
-    "rect": {
-      "left": 204,
-      "top": 3724,
-      "width": 37,
-      "height": 25,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "ppfpe",
-    "indexId": 182,
-    "nodeHashId": "ppfpe",
-    "locator": "",
-    "attributes": {
-      "svgContent": "true",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<i>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 350,
-      "top": 3732,
-      "width": 9,
-      "height": 10,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      355,
-      3737
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "pjikf",
-    "indexId": 183,
-    "nodeHashId": "pjikf",
-    "locator": "[_midscene_retrieve_task_id='pjikf']",
-    "attributes": {
-      "src": "https://dec-pub-img.obs.ap-southeast-3.myhuaweicloud.com/djlxq/16509448712432473.jpeg",
-      "class": ".img",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 88,
-      "top": 3766,
-      "width": 90,
-      "height": 90,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      133,
-      3811
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "geapo",
-    "indexId": 184,
-    "nodeHashId": "geapo",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<h2>"
-    },
-    "center": [
-      284,
-      3776
-    ],
-    "content": "Toppings-Cheezo Ice Cream",
-    "rect": {
-      "left": 188,
-      "top": 3766,
-      "width": 192,
-      "height": 20,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "oamgh",
-    "indexId": 185,
-    "nodeHashId": "oamgh",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<p>"
-    },
-    "center": [
-      323,
-      3798
-    ],
-    "content": "Cool experience inspired by creamy and milky flavor.",
-    "rect": {
-      "left": 188,
-      "top": 3790,
-      "width": 270,
-      "height": 15,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "kdmgk",
-    "indexId": 186,
-    "nodeHashId": "kdmgk",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      194,
-      3845
-    ],
-    "content": "S$",
-    "rect": {
-      "left": 188,
-      "top": 3838,
-      "width": 12,
-      "height": 14,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "mkdjf",
-    "indexId": 187,
-    "nodeHashId": "mkdjf",
-    "nodeType": "TEXT Node",
-    "locator": "",
-    "attributes": {
-      "nodeType": "TEXT Node",
-      "htmlTagName": "<span>"
-    },
-    "center": [
-      223,
-      3843
-    ],
-    "content": "2.34",
-    "rect": {
-      "left": 204,
-      "top": 3830,
-      "width": 37,
-      "height": 25,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "cjdie",
-    "indexId": 188,
-    "nodeHashId": "cjdie",
-    "locator": "",
-    "attributes": {
-      "svgContent": "true",
-      "nodeType": "IMG Node",
-      "htmlTagName": "<i>"
-    },
-    "nodeType": "IMG Node",
-    "content": "",
-    "rect": {
-      "left": 350,
-      "top": 3838,
-      "width": 9,
-      "height": 10,
-      "zoom": 1,
-      "isVisible": false
-    },
-    "center": [
-      355,
-      3843
-    ],
-    "zoom": 1,
-    "isVisible": false
-  },
-  {
-    "id": "agdbo",
-    "indexId": 189,
-    "nodeHashId": "agdbo",
-    "locator": "[_midscene_retrieve_task_id='agdbo']",
+    "id": "ddeal",
+    "indexId": 27,
+    "nodeHashId": "ddeal",
+    "locator": "[_midscene_retrieve_task_id='ddeal']",
     "attributes": {
       "src": "/img/customer.8a8d9dc9.png",
       "nodeType": "IMG Node",
-      "htmlTagName": "<img>"
+      "htmlTagName": "<div>"
     },
     "nodeType": "IMG Node",
     "content": "",
@@ -5001,14 +729,14 @@
       "top": 813,
       "width": 42,
       "height": 42,
-      "zoom": 1,
-      "isVisible": true
+      "zoom": 1
     },
     "center": [
       379,
       834
     ],
     "zoom": 1,
-    "isVisible": true
+    "screenWidth": 400,
+    "screenHeight": 905
   }
 ]
