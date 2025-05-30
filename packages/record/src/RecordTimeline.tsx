@@ -24,6 +24,7 @@ interface RecordedEvent {
     url?: string;
     title?: string;
     screenshot?: string;
+    screenshotWithBox?: string;
     screenshotBefore?: string;
     screenshotAfter?: string;
     //点击点
@@ -37,6 +38,8 @@ interface RecordedEvent {
     // 页面尺寸信息
     pageWidth: number;
     pageHeight: number;
+    //元素描述
+    elementDescription?: string;
 }
 
 interface RecordTimelineProps {
@@ -45,93 +48,93 @@ interface RecordTimelineProps {
 }
 
 // 缓存带框图片的 Map
-const boxedImageCache = new Map<string, string>();
+// const boxedImageCache = new Map<string, string>();
 
 export const RecordTimeline = ({ events, onEventClick }: RecordTimelineProps) => {
-    const [boxedImages, setBoxedImages] = useState<Map<number, string>>(new Map());
+    // const [boxedImages, setBoxedImages] = useState<Map<number, string>>(new Map());
 
     // 生成带框图片
-    const generateBoxedImage = async (event: RecordedEvent, index: number): Promise<string | null> => {
-        const screenshot = event.screenshotBefore || event.screenshot;
-        if (!screenshot) return null;
+    // const generateBoxedImage = async (event: RecordedEvent, index: number): Promise<string | null> => {
+    //     const screenshot = event.screenshotBefore || event.screenshot;
+    //     if (!screenshot) return null;
 
-        // 检查缓存
-        const cacheKey = `${index}-${event.timestamp}`;
-        if (boxedImageCache.has(cacheKey)) {
-            return boxedImageCache.get(cacheKey)!;
-        }
+    //     // 检查缓存
+    //     const cacheKey = `${index}-${event.timestamp}`;
+    //     if (boxedImageCache.has(cacheKey)) {
+    //         return boxedImageCache.get(cacheKey)!;
+    //     }
 
-        // 检查是否有元素位置信息
-        if (event.viewportX === undefined || event.viewportY === undefined ||
-            event.width === undefined || event.height === undefined) {
-            return screenshot; // 返回原图
-        }
+    //     // 检查是否有元素位置信息
+    //     if (event.viewportX === undefined || event.viewportY === undefined ||
+    //         event.width === undefined || event.height === undefined) {
+    //         return screenshot; // 返回原图
+    //     }
 
-        try {
-            // 构造元素位置信息，符合 compositeElementInfoImg 的要求
-            const elementsPositionInfo: Parameters<typeof compositeElementInfoImg>[0]['elementsPositionInfo'] = [{
-                rect: {
-                    left: event.viewportX,
-                    top: event.viewportY,
-                    width: event.width,
-                    height: event.height
-                },
-                indexId: 1 // 给元素一个ID用于显示标签
-            }];
+    //     try {
+    //         // 构造元素位置信息，符合 compositeElementInfoImg 的要求
+    //         const elementsPositionInfo: Parameters<typeof compositeElementInfoImg>[0]['elementsPositionInfo'] = [{
+    //             rect: {
+    //                 left: event.viewportX,
+    //                 top: event.viewportY,
+    //                 width: event.width,
+    //                 height: event.height
+    //             },
+    //             indexId: 1 // 给元素一个ID用于显示标签
+    //         }];
 
-            if (event.x && event.y) {
-                elementsPositionInfo.push({
-                    rect: {
-                        left: event.x,
-                        top: event.y,
-                        width: 2,
-                        height: 2
-                    },
-                });
-            }
+    //         if (event.x && event.y) {
+    //             elementsPositionInfo.push({
+    //                 rect: {
+    //                     left: event.x,
+    //                     top: event.y,
+    //                     width: 2,
+    //                     height: 2
+    //                 },
+    //             });
+    //         }
 
-            // 使用 compositeElementInfoImg 绘制框
-            const boxedImageData = await compositeElementInfoImg({
-                size: {
-                    width: event.pageWidth,
-                    height: event.pageHeight
-                },
-                inputImgBase64: screenshot,
-                elementsPositionInfo,
-                annotationPadding: 3,
-                borderThickness: 2
-            });
+    //         // 使用 compositeElementInfoImg 绘制框
+    //         const boxedImageData = await compositeElementInfoImg({
+    //             size: {
+    //                 width: event.pageWidth,
+    //                 height: event.pageHeight
+    //             },
+    //             inputImgBase64: screenshot,
+    //             elementsPositionInfo,
+    //             annotationPadding: 3,
+    //             borderThickness: 2
+    //         });
 
-            // 缓存结果
-            boxedImageCache.set(cacheKey, boxedImageData);
-            return boxedImageData;
+    //         // 缓存结果
+    //         boxedImageCache.set(cacheKey, boxedImageData);
+    //         return boxedImageData;
 
-        } catch (error) {
-            console.warn('Failed to draw box on image:', error);
-            return screenshot; // 失败时返回原图
-        }
-    };
+    //     } catch (error) {
+    //         console.warn('Failed to draw box on image:', error);
+    //         return screenshot; // 失败时返回原图
+    //     }
+    // };
 
     // 预加载带框图片
-    useEffect(() => {
-        const loadBoxedImages = async () => {
-            const newBoxedImages = new Map<number, string>();
+    // useEffect(() => {
+    //     const loadBoxedImages = async () => {
+    //         const newBoxedImages = new Map<number, string>();
 
-            for (let i = 0; i < events.length; i++) {
-                const event = events[i];
-                if (event.screenshotBefore || event.screenshot) {
-                    const boxedImage = await generateBoxedImage(event, i);
-                    if (boxedImage) {
-                        newBoxedImages.set(i, boxedImage);
-                    }
-                }
-            }
+    //         for (let i = 0; i < events.length; i++) {
+    //             const event = events[i];
+    //             if (event.screenshotBefore || event.screenshot) {
+    //                 const boxedImage = await generateBoxedImage(event, i);
+    //                 if (boxedImage) {
+    //                     newBoxedImages.set(i, boxedImage);
+    //                 }
+    //             }
+    //         }
 
-            setBoxedImages(newBoxedImages);
-        };
+    //         setBoxedImages(newBoxedImages);
+    //     };
 
-        loadBoxedImages();
-    }, [events]);
+    //     loadBoxedImages();
+    // }, [events]);
 
     const getEventIcon = (type: string) => {
         switch (type) {
@@ -216,6 +219,9 @@ export const RecordTimeline = ({ events, onEventClick }: RecordTimelineProps) =>
                         {event.viewportX !== undefined && event.viewportY !== undefined && (
                             <Text type="secondary">Position: ({event.viewportX}, {event.viewportY})</Text>
                         )}
+                        {event.elementDescription !== undefined && (
+                            <Text type="secondary">Description: {event.elementDescription}</Text>
+                        )}
                     </Space>
                 );
             case 'input':
@@ -256,7 +262,7 @@ export const RecordTimeline = ({ events, onEventClick }: RecordTimelineProps) =>
 
     const timelineItems = events.map((event, index) => {
         const originalImage = event.screenshotBefore || event.screenshot || '';
-        const boxedImage = boxedImages.get(index) || originalImage;
+        const boxedImage = event.screenshotWithBox;
         const hasElementInfo = event.viewportX !== undefined && event.viewportY !== undefined;
 
         return {

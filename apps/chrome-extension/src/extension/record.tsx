@@ -1,6 +1,10 @@
 /// <reference types="chrome" />
 import { ArrowLeftOutlined, DeleteOutlined, DownloadOutlined, EditOutlined, PlayCircleOutlined, PlusOutlined, StopOutlined } from '@ant-design/icons';
 import { RecordTimeline } from '@midscene/record';
+import Insight from '@midscene/core';
+import type { UIContext, BaseElement, ElementTreeNode } from '@midscene/core';
+import { NodeType } from '@midscene/shared/constants';
+import { compositeElementInfoImg } from '@midscene/shared/img';
 import { Alert, Button, Card, Divider, Empty, Form, Input, List, Modal, Popconfirm, Space, Tag, Typography, message } from 'antd';
 import type React from 'react';
 import { useEffect, useState } from 'react';
@@ -8,6 +12,108 @@ import { type RecordedEvent, type RecordingSession, useRecordStore, useRecording
 import './record.less';
 
 const { Title, Text } = Typography;
+
+// Function to generate element description using AI with boxed image
+const optimizeEvent = async (event: RecordedEvent): Promise<RecordedEvent> => {
+    try {
+        // Only process events with screenshots and element position
+        if (!event.screenshotBefore) return event;
+        if (event.viewportX === undefined || event.viewportY === undefined) return event;
+        if (event.width === undefined || event.height === undefined) return event;
+
+        // Create the target rect for the element
+        const targetRect = {
+            left: event.viewportX,
+            top: event.viewportY,
+            width: event.width,
+            height: event.height
+        };
+
+        console.log('Generating boxed image for element at:', targetRect);
+
+        // Generate the boxed image using compositeElementInfoImg
+        const boxedImageBase64 = await compositeElementInfoImg({
+            inputImgBase64: event.screenshotBefore,
+            size: {
+                width: event.pageWidth,
+                height: event.pageHeight
+            },
+            elementsPositionInfo: [
+                {
+                    rect: targetRect,
+                    indexId: 1 // 给元素一个ID用于显示标签
+                }
+            ],
+            borderThickness: 3,
+            annotationPadding: 2
+        });
+
+        console.log('Boxed image generated successfully');
+
+        // Create a simplified UI context for Insight
+        const mockContext: UIContext<BaseElement> = {
+            screenshotBase64: boxedImageBase64, // 使用框选后的图片
+            size: {
+                width: event.pageWidth,
+                height: event.pageHeight
+            },
+            content: [], // 不需要元素列表，因为图片已经有框选了
+            tree: {
+                node: null,
+                children: []
+            }
+        };
+
+        // Use Insight's describe method with the boxed image
+        const insight = new Insight(mockContext);
+
+        console.log('Calling Insight describe with center point:', [event.x, event.y]);
+        let description = '';
+        if (event.x && event.y) {
+            let { description: desc } = await insight.describe([event.x, event.y]);
+            description = desc;
+        } else {
+            description = 'No description available';
+        }
+
+        console.log('Generated description:', description);
+        return {
+            ...event,
+            screenshotWithBox: boxedImageBase64,
+            elementDescription: description
+        } as RecordedEvent;
+    } catch (error) {
+        console.error('Failed to generate element description:', error);
+        // 如果AI描述失败，返回一个基于事件的简单描述
+        const elementType = event.targetTagName?.toLowerCase() || 'element';
+        let fallbackDescription = '';
+
+        switch (event.type) {
+            case 'click':
+                fallbackDescription = `Click on ${elementType}`;
+                if (event.value) {
+                    fallbackDescription += ` with text "${event.value}"`;
+                }
+                break;
+            case 'input':
+                fallbackDescription = `Input "${event.value || ''}" into ${elementType}`;
+                break;
+            case 'scroll':
+                fallbackDescription = `Scroll to position (${event.viewportX || 0}, ${event.viewportY || 0})`;
+                break;
+            case 'navigation':
+                fallbackDescription = `Navigate to ${event.url || 'new page'}`;
+                break;
+            default:
+                fallbackDescription = `${event.type} on ${elementType}`;
+        }
+
+        return {
+            ...event,
+            elementDescription: fallbackDescription
+        } as RecordedEvent;
+    }
+};
 
 // Check if running in Chrome extension environment
 const isChromeExtension = (): boolean => {
@@ -528,54 +634,37 @@ export default function Record() {
         // Connect to service worker for receiving events
         const port = safeChromeAPI.runtime.connect({ name: 'record-events' });
 
-        const handleMessage = (message: RecordMessage) => {
+        const handleMessage = async (message: RecordMessage) => {
             console.log('Received message:', message);
 
             if (message.action === 'events' && message.data) {
                 if (Array.isArray(message.data)) {
                     // Handle batch events update
-                    const eventsData = message.data.map(event => {
+                    const eventsData = await Promise.all(message.data.map(async event => {
                         const { element, ...eventData } = event;
-                        return eventData as RecordedEvent;
-                    });
+                        // Generate element description if possible
+                        const optimizedEvent = await optimizeEvent(eventData as RecordedEvent);
+                        return optimizedEvent;
+                    }));
                     setEvents(eventsData);
                 }
             } else if (message.action === 'event' && message.data && !Array.isArray(message.data)) {
                 // Filter out the element property as it can't be serialized
                 const { element, ...eventData } = message.data;
-                addEvent(eventData as RecordedEvent);
+                // Generate element description if possible
+                const optimizedEvent = await optimizeEvent(eventData as RecordedEvent);
+                addEvent(optimizedEvent);
             }
         };
 
         // Listen to messages via port
         port.onMessage.addListener(handleMessage);
 
-        // Also keep the original listener for other messages
-        const messageListener = (
-            message: RecordMessage,
-            _sender: chrome.runtime.MessageSender,
-            _sendResponse: (response?: any) => void
-        ) => {
-            console.log('Received message:', message);
-            if (message.action === 'event' && message.data && !Array.isArray(message.data)) {
-                // Filter out the element property as it can't be serialized
-                const { element, ...eventData } = message.data;
-                addEvent(eventData as RecordedEvent);
-            } else if (message.action === 'events' && message.data && Array.isArray(message.data)) {
-                // Handle batch events update
-                const eventsData = message.data.map(event => {
-                    const { element, ...eventData } = event;
-                    return eventData as RecordedEvent;
-                });
-                setEvents(eventsData);
-            }
-        };
-
-        safeChromeAPI.runtime.onMessage.addListener(messageListener);
+        // safeChromeAPI.runtime.onMessage.addListener(handleMessage);
 
         return () => {
             port.disconnect();
-            safeChromeAPI.runtime.onMessage.removeListener(messageListener);
+            // safeChromeAPI.runtime.onMessage.removeListener(handleMessage);
         };
     }, [addEvent, setEvents]);
 

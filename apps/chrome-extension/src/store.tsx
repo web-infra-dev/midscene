@@ -20,7 +20,7 @@ export const useBlackboardPreference = create<{
 
 // Record related types and store
 export interface RecordedEvent {
-  type: 'click' | 'scroll' | 'input' | 'navigation';
+  type: 'click' | 'scroll' | 'input' | 'navigation' | 'setViewport' | 'keydown';
   timestamp: number;
   x?: number;
   y?: number;
@@ -41,12 +41,16 @@ export interface RecordedEvent {
   detail?: number;
   inputType?: string;
   url?: string;
+  title?: string;
   viewportX?: number;
   viewportY?: number;
   width?: number;
   height?: number;
-  screenshotBefore?: string; // Base64 encoded screenshot before the event
-  screenshotAfter?: string; // Base64 encoded screenshot after the event
+  // Page size information - required by RecordTimeline
+  pageWidth: number;
+  pageHeight: number;
+  // Natural language description of the element
+  elementDescription?: string;
 }
 
 // Recording session interface
