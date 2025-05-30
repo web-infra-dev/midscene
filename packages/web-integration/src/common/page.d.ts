@@ -8,6 +8,8 @@ import type { StaticPage } from '../playground';
 import type { PlaywrightWebPage } from '../playwright';
 import type { PuppeteerWebPage } from '../puppeteer';
 
+export type { KeyboardTypeOptions } from '../chrome-extension/cdpInput';
+
 export interface AndroidDevicePage extends AbstractPage {
   pageType: PageType;
   connect(): Promise<any>;

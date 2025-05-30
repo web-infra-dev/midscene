@@ -35,7 +35,16 @@ export interface KeyDownOptions {
  * @public
  */
 export interface KeyboardTypeOptions {
+  /**
+   * Time to wait between key presses in milliseconds
+   * @default undefined
+   */
   delay?: number;
+  /**
+   * Whether to hide the keyboard after typing is completed
+   * @default true
+   */
+  hide?: boolean;
 }
 
 /**
