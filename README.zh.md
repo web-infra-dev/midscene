@@ -50,7 +50,7 @@
 
 ### 三种类型的 API
   - [**交互 API 🔗**](https://midscenejs.com/zh/api.html#interaction-methods): 与用户界面交互。
-  - [**数据提取 API 🔗**](https://midscenejs.com/zh/api.html#data-extraction): 从用户界面提取数据。
+  - [**数据提取 API 🔗**](https://midscenejs.com/zh/api.html#data-extraction): 从用户界面和 DOM 中提取数据。
   - [**实用 API 🔗**](https://midscenejs.com/zh/api.html#more-apis): 实用函数，如 `aiAssert()` （断言）, `aiLocate()` （定位）, `aiWaitFor()` （等待）。
 
 ## 👉 无需代码，快速体验

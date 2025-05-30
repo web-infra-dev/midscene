@@ -50,7 +50,7 @@ English | [简体中文](./README.zh.md)
 
 ### Three kinds of APIs
 - [Interaction API 🔗](https://midscenejs.com/api.html#interaction-methods): interact with the user interface.
-- [Data Extraction API 🔗](https://midscenejs.com/api.html#data-extraction): extract data from the user interface.
+- [Data Extraction API 🔗](https://midscenejs.com/api.html#data-extraction): extract data from the user interface and dom.
 - [Utility API 🔗](https://midscenejs.com/api.html#more-apis): utility functions like `aiAssert()`, `aiLocate()`, `aiWaitFor()`.
 
 ## 👉 Zero-code Quick Experience
