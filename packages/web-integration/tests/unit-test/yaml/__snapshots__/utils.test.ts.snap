@@ -7,6 +7,31 @@ tasks: []
 "
 `;
 
+exports[`utils > parseYamlScript > aiRightClick 1`] = `
+{
+  "target": {
+    "url": "sample_url",
+  },
+  "tasks": [
+    {
+      "sleep": 1000,
+    },
+    {
+      "aiTap": "sample_button",
+    },
+    {
+      "aiRightClick": "context menu trigger",
+    },
+    {
+      "aiInput": {
+        "aiInput": "test@example.com",
+        "locate": "email input",
+      },
+    },
+  ],
+}
+`;
+
 exports[`utils > parseYamlScript > interpolates environment variables 1`] = `
 {
   "target": {

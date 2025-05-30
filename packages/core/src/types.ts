@@ -265,8 +265,9 @@ export interface PlanningAction<ParamType = any> {
   type:
     | 'Locate'
     | 'Tap'
-    | 'Drag'
+    | 'RightClick'
     | 'Hover'
+    | 'Drag'
     | 'Input'
     | 'KeyboardPress'
     | 'Scroll'
@@ -279,7 +280,6 @@ export interface PlanningAction<ParamType = any> {
     | 'AndroidBackButton'
     | 'AndroidHomeButton'
     | 'AndroidRecentAppsButton';
-
   param: ParamType;
   locate?: PlanningLocateParam | null;
 }
@@ -305,6 +305,7 @@ export interface PlanningAIResponse {
 
 export type PlanningActionParamTap = null;
 export type PlanningActionParamHover = null;
+export type PlanningActionParamRightClick = null;
 export interface PlanningActionParamInputOrKeyPress {
   value: string;
 }

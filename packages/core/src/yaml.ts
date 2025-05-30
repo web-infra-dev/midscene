@@ -128,6 +128,10 @@ export interface MidsceneYamlFlowItemAITap extends LocateOption {
   aiTap: string;
 }
 
+export interface MidsceneYamlFlowItemAIRightClick extends LocateOption {
+  aiRightClick: string;
+}
+
 export interface MidsceneYamlFlowItemAIHover extends LocateOption {
   aiHover: string;
 }
@@ -164,6 +168,7 @@ export type MidsceneYamlFlowItem =
   | MidsceneYamlFlowItemAIQuery
   | MidsceneYamlFlowItemAIWaitFor
   | MidsceneYamlFlowItemAITap
+  | MidsceneYamlFlowItemAIRightClick
   | MidsceneYamlFlowItemAIHover
   | MidsceneYamlFlowItemAIInput
   | MidsceneYamlFlowItemAIKeyboardPress

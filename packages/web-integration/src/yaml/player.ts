@@ -15,6 +15,7 @@ import type {
   MidsceneYamlFlowItemAINString,
   MidsceneYamlFlowItemAINumber,
   MidsceneYamlFlowItemAIQuery,
+  MidsceneYamlFlowItemAIRightClick,
   MidsceneYamlFlowItemAIScroll,
   MidsceneYamlFlowItemAITap,
   MidsceneYamlFlowItemAIWaitFor,
@@ -246,6 +247,11 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       } else if ('aiTap' in (flowItem as MidsceneYamlFlowItemAITap)) {
         const tapTask = flowItem as MidsceneYamlFlowItemAITap;
         await agent.aiTap(tapTask.aiTap, tapTask);
+      } else if (
+        'aiRightClick' in (flowItem as MidsceneYamlFlowItemAIRightClick)
+      ) {
+        const rightClickTask = flowItem as MidsceneYamlFlowItemAIRightClick;
+        await agent.aiRightClick(rightClickTask.aiRightClick, rightClickTask);
       } else if ('aiHover' in (flowItem as MidsceneYamlFlowItemAIHover)) {
         const hoverTask = flowItem as MidsceneYamlFlowItemAIHover;
         await agent.aiHover(hoverTask.aiHover, hoverTask);

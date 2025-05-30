@@ -62,6 +62,7 @@ export function taskTitleStr(
     | 'Tap'
     | 'Hover'
     | 'Input'
+    | 'RightClick'
     | 'KeyboardPress'
     | 'Scroll'
     | 'Action'

@@ -30,7 +30,7 @@ export function buildPlans(
         thought: '',
       }
     : null;
-  if (type === 'Tap' || type === 'Hover') {
+  if (type === 'Tap' || type === 'Hover' || type === 'RightClick') {
     assert(locateParam, `missing locate info for action "${type}"`);
     assert(locatePlan, `missing locate info for action "${type}"`);
     const tapPlan: PlanningAction<PlanningActionParamTap> = {
