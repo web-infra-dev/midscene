@@ -53,7 +53,8 @@ export async function parseContextFromWebPage(
   ]);
 
   const webTree = traverseTree(tree!, (elementInfo) => {
-    const { rect, id, content, attributes, locator, indexId } = elementInfo;
+    const { rect, id, content, attributes, locator, indexId, isVisible } =
+      elementInfo;
     return new WebElementInfo({
       rect,
       locator,
@@ -61,6 +62,7 @@ export async function parseContextFromWebPage(
       content,
       attributes,
       indexId,
+      isVisible,
     });
   });
 

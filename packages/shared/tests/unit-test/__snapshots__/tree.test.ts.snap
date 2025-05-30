@@ -6,13 +6,18 @@ exports[`utils > should be able to describe tree 1`] = `
   <text id="2" markerId="999" ariaLabel="image description, it could be a long text, very loooooooooooooooooooooooooooooooooooooooooong" left="0" top="0" width="100" height="100">
     world
   </text>
-  <img id="3" markerId="20" ariaLabel="image description" storyContent="Legend had it that the Whispering Woods held an ancient secret, one that connected the world of man and magic, of reality and dream. Each leaf, every ..." left="0" top="0" width="100" height="100">
+  <img id="3" markerId="20" src="https://example.com/image.jpg" ariaLabel="image description" storyContent="Legend had it that the Whispering Woods held an ancient secret, one that connected the world of man and magic, of reality and dream. Each leaf, every ..." left="0" top="0" width="100" height="100">
     world 2345
-    <img id="3" markerId="20" ariaLabel="image description" storyContent="Legend had it that the Whispering Woods held an ancient secret, one that connected the world of man and magic, of reality and dream. Each leaf, every ..." left="0" top="0" width="100" height="100">
+    <img id="3" markerId="20" src="https://example.com/image.jpg" ariaLabel="image description" storyContent="Legend had it that the Whispering Woods held an ancient secret, one that connected the world of man and magic, of reality and dream. Each leaf, every ..." left="0" top="0" width="100" height="100">
     </img>
       <>
-        <img id="3222" markerId="20" ariaLabel="image description" storyContent="Legend had it that the Whispering Woods held an ancient secret, one that connected the world of man and magic, of reality and dream. Each leaf, every ..." left="0" top="0" width="100" height="100">
+        <img id="3222" markerId="20" src="https://example.com/image.jpg" ariaLabel="image description" storyContent="Legend had it that the Whispering Woods held an ancient secret, one that connected the world of man and magic, of reality and dream. Each leaf, every ..." left="0" top="0" width="100" height="100">
           world 2345
+        </img>
+      </>
+      <>
+        <img id="3222" markerId="20" src="https://example.com/image.jpg" ariaLabel="image description" storyContent="Legend had it that the Whispering Woods held an ancient secret, one that connected the world of man and magic, of reality and dream. Each leaf, every ..." left="0" top="0" width="100" height="100">
+          I am visible
         </img>
       </>
   </img>
@@ -25,11 +30,63 @@ exports[`utils > should be able to describe tree, filterNonTextContent = true 1`
   <text id="2" markerId="999" ariaLabel="image description, i..." left="0" top="0" width="100" height="100">
     world
   </text>
-  <img id="3" markerId="20" ariaLabel="image description" storyContent="Legend had it that t..." left="0" top="0" width="100" height="100">
+  <img id="3" markerId="20" src="https://example.com/..." ariaLabel="image description" storyContent="Legend had it that t..." left="0" top="0" width="100" height="100">
     world 2345
-        <img id="3222" markerId="20" ariaLabel="image description" storyContent="Legend had it that t..." left="0" top="0" width="100" height="100">
+        <img id="3222" markerId="20" src="https://example.com/..." ariaLabel="image description" storyContent="Legend had it that t..." left="0" top="0" width="100" height="100">
           world 2345
         </img>
+        <img id="3222" markerId="20" src="https://example.com/..." ariaLabel="image description" storyContent="Legend had it that t..." left="0" top="0" width="100" height="100">
+          I am visible
+        </img>
+  </img>
+</container>"
+`;
+
+exports[`utils > should be able to describe tree, visibleOnly = false 1`] = `
+"<container id="1" markerId="19"  left="0" top="0" width="100" height="100">
+  Legend had it that the Whispering Woods held an ancient secret, one that connected the world of man and magic, of reality and dream. Each leaf, every ...
+  <text id="2" markerId="999" ariaLabel="image description, it could be a long text, very loooooooooooooooooooooooooooooooooooooooooong" left="0" top="0" width="100" height="100">
+    world
+  </text>
+  <img id="3" markerId="20" src="https://example.com/image.jpg" ariaLabel="image description" storyContent="Legend had it that the Whispering Woods held an ancient secret, one that connected the world of man and magic, of reality and dream. Each leaf, every ..." left="0" top="0" width="100" height="100">
+    world 2345
+    <img id="3" markerId="20" src="https://example.com/image.jpg" ariaLabel="image description" storyContent="Legend had it that the Whispering Woods held an ancient secret, one that connected the world of man and magic, of reality and dream. Each leaf, every ..." left="0" top="0" width="100" height="100">
+    </img>
+      <>
+        <img id="3222" markerId="20" src="https://example.com/image.jpg" ariaLabel="image description" storyContent="Legend had it that the Whispering Woods held an ancient secret, one that connected the world of man and magic, of reality and dream. Each leaf, every ..." left="0" top="0" width="100" height="100">
+          world 2345
+        </img>
+      </>
+      <img id="3" markerId="20"  left="0" top="0" width="100" height="100">
+        I am invisible
+        <img id="3222" markerId="20" src="https://example.com/image.jpg" ariaLabel="image description" storyContent="Legend had it that the Whispering Woods held an ancient secret, one that connected the world of man and magic, of reality and dream. Each leaf, every ..." left="0" top="0" width="100" height="100">
+          I am visible
+        </img>
+      </img>
+  </img>
+</container>"
+`;
+
+exports[`utils > should be able to describe tree, visibleOnly = true 1`] = `
+"<container id="1" markerId="19"  left="0" top="0" width="100" height="100">
+  Legend had it that the Whispering Woods held an ancient secret, one that connected the world of man and magic, of reality and dream. Each leaf, every ...
+  <text id="2" markerId="999" ariaLabel="image description, it could be a long text, very loooooooooooooooooooooooooooooooooooooooooong" left="0" top="0" width="100" height="100">
+    world
+  </text>
+  <img id="3" markerId="20" src="https://example.com/image.jpg" ariaLabel="image description" storyContent="Legend had it that the Whispering Woods held an ancient secret, one that connected the world of man and magic, of reality and dream. Each leaf, every ..." left="0" top="0" width="100" height="100">
+    world 2345
+    <img id="3" markerId="20" src="https://example.com/image.jpg" ariaLabel="image description" storyContent="Legend had it that the Whispering Woods held an ancient secret, one that connected the world of man and magic, of reality and dream. Each leaf, every ..." left="0" top="0" width="100" height="100">
+    </img>
+      <>
+        <img id="3222" markerId="20" src="https://example.com/image.jpg" ariaLabel="image description" storyContent="Legend had it that the Whispering Woods held an ancient secret, one that connected the world of man and magic, of reality and dream. Each leaf, every ..." left="0" top="0" width="100" height="100">
+          world 2345
+        </img>
+      </>
+      <>
+        <img id="3222" markerId="20" src="https://example.com/image.jpg" ariaLabel="image description" storyContent="Legend had it that the Whispering Woods held an ancient secret, one that connected the world of man and magic, of reality and dream. Each leaf, every ..." left="0" top="0" width="100" height="100">
+          I am visible
+        </img>
+      </>
   </img>
 </container>"
 `;

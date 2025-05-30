@@ -133,15 +133,8 @@ export function getElementInfoByXpath(xpath: string): ElementInfo | null {
     }
   }
 
-  return collectElementInfo(
-    node,
-    window,
-    document,
-    1,
-    {
-      left: 0,
-      top: 0,
-    },
-    false,
-  );
+  return collectElementInfo(node, window, document, 1, {
+    left: 0,
+    top: 0,
+  });
 }

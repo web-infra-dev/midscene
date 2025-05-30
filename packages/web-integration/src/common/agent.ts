@@ -10,6 +10,8 @@ import {
   type GroupedActionDump,
   Insight,
   type InsightAction,
+  type InsightExtractOption,
+  type InsightExtractParam,
   type LocateOption,
   type LocateResultElement,
   type LocateValidatorResult,
@@ -63,6 +65,11 @@ const includedInRect = (point: [number, number], rect: Rect) => {
   const [x, y] = point;
   const { left, top, width, height } = rect;
   return x >= left && x <= left + width && y >= top && y <= top + height;
+};
+
+const defaultInsightExtractOption: InsightExtractOption = {
+  domIncluded: false,
+  screenshotIncluded: true,
 };
 
 export interface PageAgentOpt {
@@ -403,26 +410,38 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     return output;
   }
 
-  async aiQuery(demand: any) {
-    const { output, executor } = await this.taskExecutor.query(demand);
+  async aiQuery(
+    demand: InsightExtractParam,
+    opt: InsightExtractOption = defaultInsightExtractOption,
+  ) {
+    const { output, executor } = await this.taskExecutor.query(demand, opt);
     this.afterTaskRunning(executor);
     return output;
   }
 
-  async aiBoolean(prompt: string) {
-    const { output, executor } = await this.taskExecutor.boolean(prompt);
+  async aiBoolean(
+    prompt: string,
+    opt: InsightExtractOption = defaultInsightExtractOption,
+  ) {
+    const { output, executor } = await this.taskExecutor.boolean(prompt, opt);
     this.afterTaskRunning(executor);
     return output;
   }
 
-  async aiNumber(prompt: string) {
-    const { output, executor } = await this.taskExecutor.number(prompt);
+  async aiNumber(
+    prompt: string,
+    opt: InsightExtractOption = defaultInsightExtractOption,
+  ) {
+    const { output, executor } = await this.taskExecutor.number(prompt, opt);
     this.afterTaskRunning(executor);
     return output;
   }
 
-  async aiString(prompt: string) {
-    const { output, executor } = await this.taskExecutor.string(prompt);
+  async aiString(
+    prompt: string,
+    opt: InsightExtractOption = defaultInsightExtractOption,
+  ) {
+    const { output, executor } = await this.taskExecutor.string(prompt, opt);
     this.afterTaskRunning(executor);
     return output;
   }

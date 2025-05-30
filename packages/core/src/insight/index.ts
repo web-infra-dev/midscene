@@ -20,6 +20,7 @@ import type {
   DumpSubscriber,
   InsightAction,
   InsightAssertionResponse,
+  InsightExtractOption,
   InsightExtractParam,
   InsightOptions,
   InsightTaskInfo,
@@ -228,13 +229,20 @@ export default class Insight<
     };
   }
 
-  async extract<T = any>(input: string): Promise<T>;
+  async extract<T = any>(input: string, opt?: InsightExtractOption): Promise<T>;
   async extract<T extends Record<string, string>>(
     input: T,
+    opt?: InsightExtractOption,
   ): Promise<Record<keyof T, any>>;
-  async extract<T extends object>(input: Record<keyof T, string>): Promise<T>;
+  async extract<T extends object>(
+    input: Record<keyof T, string>,
+    opt?: InsightExtractOption,
+  ): Promise<T>;
 
-  async extract<T>(dataDemand: InsightExtractParam): Promise<any> {
+  async extract<T>(
+    dataDemand: InsightExtractParam,
+    opt?: InsightExtractOption,
+  ): Promise<any> {
     assert(
       typeof dataDemand === 'object' || typeof dataDemand === 'string',
       `dataDemand should be object or string, but get ${typeof dataDemand}`,
@@ -248,6 +256,7 @@ export default class Insight<
     const { parseResult, usage } = await AiExtractElementInfo<T>({
       context,
       dataQuery: dataDemand,
+      extractOption: opt,
     });
 
     const timeCost = Date.now() - startTime;
