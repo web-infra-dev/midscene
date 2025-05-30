@@ -33,11 +33,24 @@ export class AndroidDevice implements AndroidDevicePage {
   private connectingAdb: Promise<ADB> | null = null;
   pageType: PageType = 'android';
   uri: string | undefined;
+  options?: {
+    androidAdbPath?: string;
+    remoteAdbHost?: string;
+    remoteAdbPort?: number;
+  };
 
-  constructor(deviceId: string) {
+  constructor(
+    deviceId: string,
+    options?: {
+      androidAdbPath?: string;
+      remoteAdbHost?: string;
+      remoteAdbPort?: number;
+    },
+  ) {
     assert(deviceId, 'deviceId is required for AndroidDevice');
 
     this.deviceId = deviceId;
+    this.options = options;
   }
 
   public async connect(): Promise<ADB> {
@@ -61,11 +74,13 @@ export class AndroidDevice implements AndroidDevicePage {
       debugPage(`Initializing ADB with device ID: ${this.deviceId}`);
 
       try {
-        const androidAdbPath = getAIConfig(MIDSCENE_ADB_PATH);
-        const remoteAdbHost = getAIConfig(MIDSCENE_ADB_REMOTE_HOST);
-        const remoteAdbPort = getAIConfig(MIDSCENE_ADB_REMOTE_PORT);
+        const androidAdbPath =
+          this.options?.androidAdbPath || getAIConfig(MIDSCENE_ADB_PATH);
+        const remoteAdbHost =
+          this.options?.remoteAdbHost || getAIConfig(MIDSCENE_ADB_REMOTE_HOST);
+        const remoteAdbPort =
+          this.options?.remoteAdbPort || getAIConfig(MIDSCENE_ADB_REMOTE_PORT);
 
-        // 统一使用 new ADB
         this.adb = await new ADB({
           udid: this.deviceId,
           adbExecTimeout: 60000,
