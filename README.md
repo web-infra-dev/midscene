@@ -106,6 +106,7 @@ There are so many UI automation tools out there, and each one seems to be all-po
 ## 📄 Resources 
 
 * Home Page and Documentation: [https://midscenejs.com](https://midscenejs.com/)
+* API Reference: [https://midscenejs.com/api.html](https://midscenejs.com/api.html)
 * GitHub: [https://github.com/web-infra-dev/midscene](https://github.com/web-infra-dev/midscene)
 
 ## 🤝 Community

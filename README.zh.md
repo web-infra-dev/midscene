@@ -105,6 +105,7 @@ for (const record of recordList) {
 ## 📄 资源
 
 * 官网和文档: [https://midscenejs.com](https://midscenejs.com/zh)
+* API 文档: [https://midscenejs.com/zh/api.html](https://midscenejs.com/zh/api.html)
 * GitHub: [https://github.com/web-infra-dev/midscene](https://github.com/web-infra-dev/midscene)
 
 ## 🤝 社区
