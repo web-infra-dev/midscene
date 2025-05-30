@@ -29,30 +29,29 @@ English | [简体中文](./README.zh.md)
 
 | Instruction  | Video |
 | :---:  | :---: |
-| Post a Tweet (By UI-TARS model)      |    <video src="https://github.com/user-attachments/assets/bb3d695a-fbff-4af1-b6cc-5e967c07ccee" height="300" />    |
 | Use JS code to drive task orchestration, collect information about Jay Chou's concert, and write it into Google Docs (By UI-TARS model)   | <video src="https://github.com/user-attachments/assets/75474138-f51f-4c54-b3cf-46d61d059999" height="300" />        |
 | Control Maps App on Android (By Qwen-2.5-VL model)   | <video src="https://github.com/user-attachments/assets/1f5bab0e-4c28-44e1-b378-a38809b05a00" height="300" />        |
 | Using midscene mcp to browse the page (https://www.saucedemo.com/), perform login, add products, place orders, and finally generate test cases based on mcp execution steps and playwright example | <video src="https://github.com/user-attachments/assets/5cab578d-feb3-4250-8c7e-6793fe38a5be" height="300" />        |
 
 ## 💡 Features
-- Automation Script with Natural Language 👆
+- Write Automation with Natural Language
   - Describe your goals and steps, and Midscene will plan and operate the user interface for you.
   - Use Javascript SDK or YAML to write your automation script.
-- Web & Mobile App 🤖
+- Web & Mobile App
   - **Web Automation 🖥️**: Either integrate with [Puppeteer](https://midscenejs.com/integrate-with-puppeteer.html), [Playwright](https://midscenejs.com/integrate-with-playwright.html) or use [Bridge Mode](https://midscenejs.com/bridge-mode-by-chrome-extension.html) to control your desktop browser.
-  - **Android Automation 📱**: Use [the Android playground](https://midscenejs.com/quick-experience-with-android.html) to start experience immediately, or integrate javascript SDK with [adb](https://midscenejs.com/integrate-with-android.html).
-- Tools 🔧
-  - [**MCP 🔗**](https://midscenejs.com/zh/mcp.html): Allows other MCP Clients to directly use Midscene's capabilities.
-  - [**Visual Reports for Debugging 🎞️**](https://midscenejs.com/zh/mcp.html): Through our test reports and Playground, you can easily understand, replay and debug the entire process.
-  - [**Caching for efficiency 🔄**](https://midscenejs.com/zh/mcp.html): Replay your script with cache and get the result faster.
-- Three kinds of APIs 🔗
-  - [Interaction API](https://midscenejs.com/api.html#interaction-methods): interact with the user interface.
-  - [Data Extraction API](https://midscenejs.com/api.html#data-extraction): extract data from the user interface.
-  - [Utility API](https://midscenejs.com/api.html#more-apis): utility functions like `aiAssert()`, `aiLocate()`, `aiWaitFor()`.
+  - **Android Automation 📱**: Use javascript SDK with [adb](https://midscenejs.com/integrate-with-android.html) to control your local Android device.
+- Tools
+  - **Visual Reports for Debugging 🎞️**: Through our test reports and Playground, you can easily understand, replay and debug the entire process.
+  - [**Caching for Efficiency 🔄**](https://midscenejs.com/caching.html): Replay your script with cache and get the result faster.
+  - [**MCP 🔗**](https://midscenejs.com/mcp.html): Allows other MCP Clients to directly use Midscene's capabilities.
+- Three kinds of APIs
+  - [Interaction API 🔗](https://midscenejs.com/api.html#interaction-methods): interact with the user interface.
+  - [Data Extraction API 🔗](https://midscenejs.com/api.html#data-extraction): extract data from the user interface.
+  - [Utility API 🔗](https://midscenejs.com/api.html#more-apis): utility functions like `aiAssert()`, `aiLocate()`, `aiWaitFor()`.
 
 ## Zero-code Quick Experience
 
-- **[Chrome Extension](https://midscenejs.com/quick-experience.html)**: Start in-browser experience immediately through [the Chrome extension](https://midscenejs.com/quick-experience.html), without writing any code.
+- **[Chrome Extension](https://midscenejs.com/quick-experience.html)**: Start in-browser experience immediately through [the Chrome Extension](https://midscenejs.com/quick-experience.html), without writing any code.
 - **[Android Playground](https://midscenejs.com/quick-experience-with-android.html)**: There is also a built-in Android playground to control your local Android device.
 
 ## ✨ Model Choices
@@ -75,8 +74,8 @@ There are so many UI automation tools out there, and each one seems to be all-po
 
 ## 📄 Resources 
 
-* [Home Page: https://midscenejs.com](https://midscenejs.com/)
-* [GitHub: https://github.com/web-infra-dev/midscene](https://github.com/web-infra-dev/midscene)
+* Home Page and Documentation: [https://midscenejs.com](https://midscenejs.com/)
+* GitHub: [https://github.com/web-infra-dev/midscene](https://github.com/web-infra-dev/midscene)
 
 ## 🤝 Community
 
