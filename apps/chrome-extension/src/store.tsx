@@ -51,6 +51,10 @@ export interface RecordedEvent {
   pageHeight: number;
   // Natural language description of the element
   elementDescription?: string;
+  // Loading state for AI description generation
+  descriptionLoading?: boolean;
+  // Boxed screenshot with element highlighted
+  screenshotWithBox?: string;
 }
 
 // Recording session interface

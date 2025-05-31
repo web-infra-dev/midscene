@@ -1,160 +1,14 @@
 /// <reference types="chrome" />
 import { ArrowLeftOutlined, DeleteOutlined, DownloadOutlined, EditOutlined, PlayCircleOutlined, PlusOutlined, StopOutlined } from '@ant-design/icons';
 import { RecordTimeline } from '@midscene/record';
-import Insight from '@midscene/core';
-import type { UIContext, BaseElement, ElementTreeNode } from '@midscene/core';
-import { NodeType } from '@midscene/shared/constants';
-import { compositeElementInfoImg } from '@midscene/shared/img';
 import { Alert, Button, Card, Divider, Empty, Form, Input, List, Modal, Popconfirm, Space, Tag, Typography, message } from 'antd';
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { type RecordedEvent, type RecordingSession, useRecordStore, useRecordingSessionStore } from '../store';
+import { optimizeEvent } from '../utils/eventOptimizer';
 import './record.less';
 
 const { Title, Text } = Typography;
-
-// Function to generate element description using AI with boxed image
-const optimizeEvent = async (event: RecordedEvent, updateCallback?: (updatedEvent: RecordedEvent) => void): Promise<RecordedEvent> => {
-    try {
-        // Only process events with screenshots and element position
-        if (!event.screenshotBefore) return event;
-        if (event.viewportX === undefined || event.viewportY === undefined) return event;
-        if (event.width === undefined || event.height === undefined) return event;
-
-        // Create the target rect for the element
-        const targetRect = {
-            left: event.viewportX,
-            top: event.viewportY,
-            width: event.width,
-            height: event.height
-        };
-
-        console.log('Generating boxed image for element at:', targetRect);
-
-        // Generate the boxed image using compositeElementInfoImg (this is fast, keep it synchronous)
-        const boxedImageBase64 = await compositeElementInfoImg({
-            inputImgBase64: event.screenshotBefore,
-            size: {
-                width: event.pageWidth,
-                height: event.pageHeight
-            },
-            elementsPositionInfo: [
-                {
-                    rect: targetRect,
-                    indexId: 1 // 给元素一个ID用于显示标签
-                },
-                ...(event.x !== undefined && event.y !== undefined ? [{
-                    rect: {
-                        left: event.x,
-                        top: event.y,
-                        width: 2,
-                        height: 2
-                    }
-                }] : [])
-            ],
-            borderThickness: 3,
-            annotationPadding: 2
-        });
-
-        console.log('Boxed image generated successfully');
-
-        // 立即返回带有框选图片和 loading 状态的事件
-        const eventWithBoxedImage = {
-            ...event,
-            screenshotWithBox: boxedImageBase64,
-            elementDescription: 'AI 正在分析元素...',
-            descriptionLoading: true
-        } as RecordedEvent;
-
-        // 异步生成 AI 描述，不阻塞渲染
-        if (event.x !== undefined && event.y !== undefined && updateCallback) {
-            // 使用 setTimeout 确保渲染不被阻塞
-            setTimeout(async () => {
-                try {
-                    // Create a simplified UI context for Insight
-                    const mockContext: UIContext<BaseElement> = {
-                        screenshotBase64: boxedImageBase64, // 使用框选后的图片
-                        size: {
-                            width: event.pageWidth,
-                            height: event.pageHeight
-                        },
-                        content: [], // 不需要元素列表，因为图片已经有框选了
-                        tree: {
-                            node: null,
-                            children: []
-                        }
-                    };
-
-                    // Use Insight's describe method with the boxed image
-                    const insight = new Insight(mockContext);
-
-                    console.log('Calling Insight describe with center point:', [event.x!, event.y!]);
-                    const { description } = await insight.describe([event.x!, event.y!]);
-
-                    console.log('Generated description:', description);
-
-                    // 更新事件描述
-                    const updatedEvent = {
-                        ...eventWithBoxedImage,
-                        elementDescription: description,
-                        descriptionLoading: false
-                    };
-
-                    updateCallback(updatedEvent);
-                } catch (aiError) {
-                    console.error('Failed to generate AI description:', aiError);
-
-                    // AI 失败时使用简单描述
-                    const elementType = event.targetTagName?.toLowerCase() || 'element';
-                    let fallbackDescription = '';
-
-                    switch (event.type) {
-                        case 'click':
-                            fallbackDescription = `Click on ${elementType}`;
-                            if (event.value) {
-                                fallbackDescription += ` with text "${event.value}"`;
-                            }
-                            break;
-                        case 'input':
-                            fallbackDescription = `Input "${event.value || ''}" into ${elementType}`;
-                            break;
-                        case 'scroll':
-                            fallbackDescription = `Scroll to position (${event.viewportX || 0}, ${event.viewportY || 0})`;
-                            break;
-                        case 'navigation':
-                            fallbackDescription = `Navigate to ${event.url || 'new page'}`;
-                            break;
-                        default:
-                            fallbackDescription = `${event.type} on ${elementType}`;
-                    }
-
-                    const fallbackEvent = {
-                        ...eventWithBoxedImage,
-                        elementDescription: fallbackDescription,
-                        descriptionLoading: false
-                    };
-
-                    updateCallback(fallbackEvent);
-                }
-            }, 0);
-        } else {
-            // 如果没有点击坐标，设置为无描述
-            (eventWithBoxedImage as any).elementDescription = 'No description available';
-            (eventWithBoxedImage as any).descriptionLoading = false;
-        }
-
-        return eventWithBoxedImage;
-    } catch (error) {
-        console.error('Failed to generate boxed image:', error);
-
-        // 如果连框选图片都生成失败，返回原事件
-        return {
-            ...event,
-            elementDescription: 'Failed to generate description',
-            descriptionLoading: false
-        } as RecordedEvent;
-    }
-};
 
 // Check if running in Chrome extension environment
 const isChromeExtension = (): boolean => {
@@ -599,6 +453,7 @@ const RecordDetail: React.FC<{
 
 export default function Record() {
     const { isRecording, events, setIsRecording, addEvent, updateEvent, clearEvents, setEvents } = useRecordStore();
+    const recordContainerRef = useRef<HTMLDivElement>(null);
     const {
         sessions,
         currentSessionId,
@@ -622,6 +477,36 @@ export default function Record() {
 
     // Check if we're in extension environment
     const isExtensionMode = isChromeExtension();
+
+    // Auto-scroll to bottom when new events are added during recording
+    useEffect(() => {
+        if (isRecording && recordContainerRef.current && events.length > 0) {
+            const container = recordContainerRef.current;
+            
+            // Use requestAnimationFrame for smoother animation
+            const smoothScrollToBottom = () => {
+                const targetScrollTop = container.scrollHeight - container.clientHeight;
+                const currentScrollTop = container.scrollTop;
+                const distance = targetScrollTop - currentScrollTop;
+                
+                if (Math.abs(distance) < 1) {
+                    container.scrollTop = targetScrollTop;
+                    return;
+                }
+                
+                // Smooth scroll animation
+                container.scrollTo({
+                    top: targetScrollTop,
+                    behavior: 'smooth'
+                });
+            };
+            
+            // Use multiple RAF to ensure DOM is fully updated
+            requestAnimationFrame(() => {
+                requestAnimationFrame(smoothScrollToBottom);
+            });
+        }
+    }, [events.length, isRecording]);
 
     // Generate default session name with current time
     const generateDefaultSessionName = () => {
@@ -675,46 +560,19 @@ export default function Record() {
         // Connect to service worker for receiving events
         const port = safeChromeAPI.runtime.connect({ name: 'record-events' });
 
+        const processEventData = async (eventData: any) => {
+            const { element, ...cleanEventData } = eventData;
+            return await optimizeEvent(cleanEventData as RecordedEvent, updateEvent);
+        };
+
         const handleMessage = async (message: RecordMessage) => {
             console.log('Received message:', message);
 
-            if (message.action === 'events' && message.data) {
-                if (Array.isArray(message.data)) {
-                    // Handle batch events update
-                    const eventsData = await Promise.all(message.data.map(async event => {
-                        const { element, ...eventData } = event;
-                        // Generate element description if possible
-                        const optimizedEvent = await optimizeEvent(eventData as RecordedEvent, (updatedEvent) => {
-                            // 更新特定事件的描述
-                            //@ts-ignore
-                            updateEvent(updatedEvent);
-                            // setEvents(prevEvents =>
-                            //     //@ts-ignore
-                            //     prevEvents.map(e =>
-                            //         e.timestamp === updatedEvent.timestamp ? updatedEvent : e
-                            //     ) as RecordedEvent[]
-                            // );
-                        });
-                        return optimizedEvent;
-                    }));
-                    setEvents(eventsData);
-                }
+            if (message.action === 'events' && Array.isArray(message.data)) {
+                const eventsData = await Promise.all(message.data.map(processEventData));
+                setEvents(eventsData);
             } else if (message.action === 'event' && message.data && !Array.isArray(message.data)) {
-                // Filter out the element property as it can't be serialized
-                const { element, ...eventData } = message.data;
-                // Generate element description if possible
-                const optimizedEvent = await optimizeEvent(eventData as RecordedEvent, (updatedEvent) => {
-                    // 更新特定事件的描述
-                    //@ts-ignore
-
-                    updateEvent(updatedEvent);
-                    // setEvents(prevEvents =>
-                    //     //@ts-ignore
-                    //     prevEvents.map(e =>
-                    //         e.timestamp === updatedEvent.timestamp ? updatedEvent : e
-                    //     ) as RecordedEvent[]
-                    // );
-                });
+                const optimizedEvent = await processEventData(message.data);
                 addEvent(optimizedEvent);
             }
         };
@@ -722,11 +580,8 @@ export default function Record() {
         // Listen to messages via port
         port.onMessage.addListener(handleMessage);
 
-        // safeChromeAPI.runtime.onMessage.addListener(handleMessage);
-
         return () => {
             port.disconnect();
-            // safeChromeAPI.runtime.onMessage.removeListener(handleMessage);
         };
     }, [addEvent, setEvents]);
 
@@ -1065,7 +920,7 @@ export default function Record() {
     };
 
     return (
-        <div className="popup-record-container">
+        <div ref={recordContainerRef} className="popup-record-container">
             {viewMode === 'list' ? (
                 <RecordList
                     sessions={sessions}

@@ -7,6 +7,11 @@
   box-sizing: border-box;
   width: 100%;
   
+  // 丝滑滚动优化
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch; // iOS Safari 滚动优化
+  overscroll-behavior: contain; // 防止滚动传播
+  
   // 统一滚动条样式
   &::-webkit-scrollbar {
     width: 6px;
@@ -20,6 +25,7 @@
   &::-webkit-scrollbar-thumb {
     background: #c1c1c1;
     border-radius: 3px;
+    transition: background-color 0.2s ease;
     
     &:hover {
       background: #a1a1a1;
@@ -47,13 +53,14 @@
         max-width: 100%;
         
         .ant-card {
-          transition: all 0.2s ease;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           width: 100%;
           max-width: 100%;
+          will-change: transform, box-shadow;
           
           &:hover {
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            transform: translateY(-1px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+            transform: translateY(-2px) scale(1.01);
           }
           
           &.selected-session {
@@ -119,6 +126,7 @@
   .record-detail-view {
     width: 100%;
     max-width: 100%;
+    scroll-behavior: smooth;
     
     // Header section
     .detail-header {
@@ -269,6 +277,10 @@
     overflow: visible;
     box-sizing: border-box;
     
+    // 丝滑动画优化
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform; // 优化GPU加速
+    
     // 确保内部组件也不产生滚动条并充分利用宽度
     .ant-timeline {
       width: 100%;
@@ -278,6 +290,13 @@
       .ant-timeline-item {
         width: 100%;
         max-width: 100%;
+        
+        // 丝滑入场动画
+        animation: slideInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        
+        &:last-child {
+          animation: slideInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
         
         .ant-timeline-item-content {
           width: 100%;
@@ -315,13 +334,14 @@
   }
   
   .record-event {
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     width: 100%;
     max-width: 100%;
+    will-change: transform, box-shadow;
     
     &:hover {
-      transform: translateX(2px);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      transform: translateX(4px) scale(1.01);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
     }
   }
   
@@ -390,6 +410,30 @@
     50% {
       opacity: 0.5;
       transform: scale(1.2);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  // 丝滑滑入动画
+  @keyframes slideInUp {
+    0% {
+      opacity: 0;
+      transform: translateY(20px) scale(0.95);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  // 更丝滑的淡入动画
+  @keyframes fadeInScale {
+    0% {
+      opacity: 0;
+      transform: scale(0.9);
     }
     100% {
       opacity: 1;
