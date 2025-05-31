@@ -32,7 +32,7 @@ export function timeCostStrElement(timeCost?: number) {
   );
 }
 
-export const iconForStatus = (status: string): JSX.Element => {
+export const iconForStatus = (status: string) => {
   switch (status) {
     case 'finished':
     case 'passed':

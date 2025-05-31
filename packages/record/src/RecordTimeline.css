@@ -1,0 +1,21 @@
+.record-timeline-screenshot-thumbnail {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.record-timeline-screenshot-thumbnail:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.record-timeline-screenshot-popover {
+  max-width: 600px;
+}
+
+.record-timeline-screenshot-popover .ant-popover-inner {
+  padding: 8px;
+}
+
+.record-timeline-screenshot-full {
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}

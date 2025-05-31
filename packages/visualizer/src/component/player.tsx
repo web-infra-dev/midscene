@@ -120,7 +120,7 @@ export function Player(props?: {
   imageHeight?: number;
   reportFileContent?: string | null;
   key?: string | number;
-}): JSX.Element {
+}) {
   const [titleText, setTitleText] = useState('');
   const [subTitleText, setSubTitleText] = useState('');
 
@@ -724,7 +724,7 @@ export function Player(props?: {
   }, [canReplayNow]);
 
   let statusIconElement;
-  let statusOnClick: () => void = () => {};
+  let statusOnClick: () => void = () => { };
   if (animationProgress < 1) {
     statusIconElement = (
       <Spin indicator={<LoadingOutlined spin color="#333" />} size="default" />

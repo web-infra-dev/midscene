@@ -11,7 +11,11 @@
   ],
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",
-  "files": ["bin", "dist", "README.md"],
+  "files": [
+    "bin",
+    "dist",
+    "README.md"
+  ],
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
@@ -36,7 +40,7 @@
     "@modern-js/module-tools": "2.60.6",
     "@types/node": "^18.0.0",
     "dotenv": "16.4.5",
-    "typescript": "^5.8.2",
+    "typescript": "^5.8.3",
     "vitest": "3.0.5"
   },
   "license": "MIT"

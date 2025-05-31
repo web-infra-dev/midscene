@@ -1,17 +1,18 @@
 /// <reference types="chrome" />
-import { ApiOutlined, HomeOutlined, SendOutlined } from '@ant-design/icons';
+import { ApiOutlined, HomeOutlined, SendOutlined, VideoCameraOutlined } from '@ant-design/icons';
 import {
   EnvConfig,
   GithubStar,
   Logo,
   globalThemeConfig,
-  useEnvConfig,
 } from '@midscene/visualizer';
 import '@midscene/visualizer/index.css';
 import { ConfigProvider, Tabs } from 'antd';
 import { BrowserExtensionPlayground } from '../component/playground';
+import { useEnvConfig } from '../store';
 import { getExtensionVersion } from '../utils';
 import Bridge from './bridge';
+import Record from './record';
 import './popup.less';
 import {
   ChromeExtensionProxyPage,
@@ -44,6 +45,14 @@ export function PlaygroundPopup() {
             showContextPreview={false}
           />
         </div>
+      ),
+    },
+    {
+      key: 'record',
+      label: 'Record',
+      icon: <VideoCameraOutlined />,
+      children: (
+        <Record />
       ),
     },
     {
@@ -102,7 +111,7 @@ export function PlaygroundPopup() {
             defaultActiveKey="playground"
             activeKey={popupTab}
             items={items}
-            onChange={(key) => setPopupTab(key as 'playground' | 'bridge')}
+            onChange={(key) => setPopupTab(key as 'playground' | 'bridge' | 'record')}
           />
         </div>
 

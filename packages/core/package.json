@@ -7,7 +7,10 @@
   "jsnext:source": "./src/index.ts",
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "exports": {
     ".": "./dist/lib/index.js",
     "./utils": "./dist/lib/utils.js",
@@ -16,10 +19,18 @@
   },
   "typesVersions": {
     "*": {
-      ".": ["./dist/types/index.d.ts"],
-      "utils": ["./dist/types/utils.d.ts"],
-      "ai-model": ["./dist/types/ai-model.d.ts"],
-      "tree": ["./dist/types/tree.d.ts"]
+      ".": [
+        "./dist/types/index.d.ts"
+      ],
+      "utils": [
+        "./dist/types/utils.d.ts"
+      ],
+      "ai-model": [
+        "./dist/types/ai-model.d.ts"
+      ],
+      "tree": [
+        "./dist/types/tree.d.ts"
+      ]
     }
   },
   "scripts": {
@@ -52,7 +63,7 @@
     "@modern-js/module-tools": "2.60.6",
     "@types/node": "^18.0.0",
     "@types/node-fetch": "2.6.11",
-    "typescript": "^5.8.2",
+    "typescript": "^5.8.3",
     "vitest": "3.0.5"
   },
   "engines": {
