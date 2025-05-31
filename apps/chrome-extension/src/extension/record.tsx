@@ -8,6 +8,18 @@ import { type RecordedEvent, type RecordingSession, useRecordStore, useRecording
 import { optimizeEvent } from '../utils/eventOptimizer';
 import './record.less';
 
+// Generate default session name with current time
+const generateDefaultSessionName = () => {
+    return new Date().toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    }).replace(/\//g, '-');
+};
 const { Title, Text } = Typography;
 
 // Check if running in Chrome extension environment
@@ -130,23 +142,36 @@ type ViewMode = 'list' | 'detail';
 const RecordList: React.FC<{
     sessions: RecordingSession[];
     currentSessionId: string | null;
-    onCreateSession: () => void;
+    onCreateSession?: () => void; // Made optional since we'll handle directly
     onEditSession: (session: RecordingSession) => void;
     onDeleteSession: (sessionId: string) => void;
     onSelectSession: (session: RecordingSession) => void;
     onExportSession: (session: RecordingSession) => void;
     onViewDetail: (session: RecordingSession) => void;
     isExtensionMode: boolean;
+    addSession: (session: RecordingSession) => void;
+    setCurrentSession: (sessionId: string) => void;
+    clearEvents: () => void;
+    setSelectedSession: (session: RecordingSession) => void;
+    setViewMode: (mode: ViewMode) => void;
+    currentTab?: chrome.tabs.Tab | null;
+    startRecording: () => void;
 }> = ({
     sessions,
     currentSessionId,
-    onCreateSession,
     onEditSession,
     onDeleteSession,
     onSelectSession,
     onExportSession,
     onViewDetail,
-    isExtensionMode
+    isExtensionMode,
+    addSession,
+    setCurrentSession,
+    clearEvents,
+    setSelectedSession,
+    setViewMode,
+    currentTab,
+    startRecording
 }) => {
         return (
             <div className="record-list-view">
@@ -165,7 +190,35 @@ const RecordList: React.FC<{
                     <Button
                         type="primary"
                         icon={<PlusOutlined />}
-                        onClick={onCreateSession}
+                        onClick={() => {
+                            // Create session with default name and start recording immediately
+                            const sessionName = generateDefaultSessionName();
+                            const newSession: RecordingSession = {
+                                id: `session-${Date.now()}`,
+                                name: sessionName,
+                                createdAt: Date.now(),
+                                updatedAt: Date.now(),
+                                events: [],
+                                status: 'idle',
+                                url: currentTab?.url
+                            };
+
+                            addSession(newSession);
+                            setCurrentSession(newSession.id);
+                            clearEvents();
+                            message.success(`Session "${sessionName}" created successfully`);
+
+                            // Switch to detail view for the new session
+                            setSelectedSession(newSession);
+                            setViewMode('detail');
+
+                            // Automatically start recording if in extension mode
+                            if (isExtensionMode && currentTab?.id) {
+                                setTimeout(() => {
+                                    startRecording();
+                                }, 100);
+                            }
+                        }}
                     >
                         New Session
                     </Button>
@@ -180,7 +233,35 @@ const RecordList: React.FC<{
                             <Button
                                 type="primary"
                                 icon={<PlusOutlined />}
-                                onClick={onCreateSession}
+                                onClick={() => {
+                                    // Create session with default name and start recording immediately
+                                    const sessionName = generateDefaultSessionName();
+                                    const newSession: RecordingSession = {
+                                        id: `session-${Date.now()}`,
+                                        name: sessionName,
+                                        createdAt: Date.now(),
+                                        updatedAt: Date.now(),
+                                        events: [],
+                                        status: 'idle',
+                                        url: currentTab?.url
+                                    };
+
+                                    addSession(newSession);
+                                    setCurrentSession(newSession.id);
+                                    clearEvents();
+                                    message.success(`Session "${sessionName}" created successfully`);
+
+                                    // Switch to detail view for the new session
+                                    setSelectedSession(newSession);
+                                    setViewMode('detail');
+
+                                    // Automatically start recording if in extension mode
+                                    if (isExtensionMode && currentTab?.id) {
+                                        setTimeout(() => {
+                                            startRecording();
+                                        }, 100);
+                                    }
+                                }}
                             >
                                 Create First Session
                             </Button>
@@ -482,25 +563,25 @@ export default function Record() {
     useEffect(() => {
         if (isRecording && recordContainerRef.current && events.length > 0) {
             const container = recordContainerRef.current;
-            
+
             // Use requestAnimationFrame for smoother animation
             const smoothScrollToBottom = () => {
                 const targetScrollTop = container.scrollHeight - container.clientHeight;
                 const currentScrollTop = container.scrollTop;
                 const distance = targetScrollTop - currentScrollTop;
-                
+
                 if (Math.abs(distance) < 1) {
                     container.scrollTop = targetScrollTop;
                     return;
                 }
-                
+
                 // Smooth scroll animation
                 container.scrollTo({
                     top: targetScrollTop,
                     behavior: 'smooth'
                 });
             };
-            
+
             // Use multiple RAF to ensure DOM is fully updated
             requestAnimationFrame(() => {
                 requestAnimationFrame(smoothScrollToBottom);
@@ -508,18 +589,6 @@ export default function Record() {
         }
     }, [events.length, isRecording]);
 
-    // Generate default session name with current time
-    const generateDefaultSessionName = () => {
-        return new Date().toLocaleString('zh-CN', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false
-        }).replace(/\//g, '-');
-    };
 
     // Get current active tab
     useEffect(() => {
@@ -672,6 +741,14 @@ export default function Record() {
         // Switch to detail view for the new session
         setSelectedSession(newSession);
         setViewMode('detail');
+
+        // Automatically start recording if in extension mode
+        if (isExtensionMode && currentTab?.id) {
+            // Small delay to ensure UI updates first
+            setTimeout(() => {
+                startRecording();
+            }, 100);
+        }
     };
 
     // Edit session
@@ -925,18 +1002,19 @@ export default function Record() {
                 <RecordList
                     sessions={sessions}
                     currentSessionId={currentSessionId}
-                    onCreateSession={() => {
-                        form.setFieldsValue({
-                            name: generateDefaultSessionName()
-                        });
-                        setIsCreateModalVisible(true);
-                    }}
                     onEditSession={handleEditSession}
                     onDeleteSession={handleDeleteSession}
                     onSelectSession={handleSelectSession}
                     onExportSession={exportSessionEvents}
                     onViewDetail={handleViewDetail}
                     isExtensionMode={isExtensionMode}
+                    addSession={addSession}
+                    setCurrentSession={setCurrentSession}
+                    clearEvents={clearEvents}
+                    setSelectedSession={setSelectedSession}
+                    setViewMode={setViewMode}
+                    currentTab={currentTab}
+                    startRecording={startRecording}
                 />
             ) : (
                 selectedSession && (
