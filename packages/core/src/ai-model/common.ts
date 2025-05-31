@@ -4,7 +4,8 @@ import type {
   ElementTreeNode,
   MidsceneYamlFlowItem,
   PlanningAction,
-  PlanningActionParamInputOrKeyPress,
+  PlanningActionParamInput,
+  PlanningActionParamKeyPress,
   PlanningActionParamScroll,
   PlanningActionParamSleep,
   Rect,
@@ -348,13 +349,13 @@ export function buildYamlFlowFromPlans(
         aiHover: locate!,
       });
     } else if (type === 'Input') {
-      const param = plan.param as PlanningActionParamInputOrKeyPress;
+      const param = plan.param as PlanningActionParamInput;
       flow.push({
         aiInput: param.value,
         locate,
       });
     } else if (type === 'KeyboardPress') {
-      const param = plan.param as PlanningActionParamInputOrKeyPress;
+      const param = plan.param as PlanningActionParamKeyPress;
       flow.push({
         aiKeyboardPress: param.value,
         locate,

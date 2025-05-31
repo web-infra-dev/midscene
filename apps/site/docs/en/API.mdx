@@ -162,16 +162,16 @@ await agent.aiInput('Hello World', 'The search input box');
 
 ### `agent.aiKeyboardPress()`
 
-Press a keyboard key.
+Press a keyboard key or key combination.
 
 * Type
 
 ```typescript
-function aiKeyboardPress(key: string, locate?: string, options?: Object): Promise<void>;
+function aiKeyboardPress(key: string | string[], locate?: string, options?: Object): Promise<void>;
 ```
 
 * Parameters:
-  * `key: string` - The web key to press, e.g. 'Enter', 'Tab', 'Escape', etc. Key Combination is not supported. 
+  * `key: string | string[]` - The web key(s) to press. Can be a single key like 'Enter', 'Tab', 'Escape', or an array of keys for combinations like ['Ctrl', 'Shift'] or ['Meta', 'a']. 
   * `locate?: string` - Optional, a natural language description of the element to press the key on.
   * `options?: Object` - Optional, a configuration object containing:
     * `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. 
@@ -183,7 +183,12 @@ function aiKeyboardPress(key: string, locate?: string, options?: Object): Promis
 * Examples:
 
 ```typescript
+// Single key press
 await agent.aiKeyboardPress('Enter', 'The search input box');
+
+// Key combinations
+await agent.aiKeyboardPress(['Ctrl', 'a']); // Select all
+await agent.aiKeyboardPress(['Ctrl', 'Shift', 'I']); // Open developer tools
 ```
 
 ### `agent.aiScroll()`

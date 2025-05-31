@@ -306,8 +306,12 @@ export interface PlanningAIResponse {
 export type PlanningActionParamTap = null;
 export type PlanningActionParamHover = null;
 export type PlanningActionParamRightClick = null;
-export interface PlanningActionParamInputOrKeyPress {
+export interface PlanningActionParamInput {
   value: string;
+}
+
+export interface PlanningActionParamKeyPress {
+  value: string | string[];
 }
 
 export type PlanningActionParamScroll = scrollParam;

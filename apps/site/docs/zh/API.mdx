@@ -159,16 +159,16 @@ await agent.aiInput('Hello World', '搜索框');
 
 ### `agent.aiKeyboardPress()`
 
-按下键盘上的某个键。
+按下键盘上的某个键或组合键。
 
 * 类型
 
 ```typescript
-function aiKeyboardPress(key: string, locate?: string, options?: Object): Promise<void>;
+function aiKeyboardPress(key: string | string[], locate?: string, options?: Object): Promise<void>;
 ```
 
 * 参数：
-  * `key: string` - 要按下的键，如 `Enter`、`Tab`、`Escape` 等。不支持组合键。
+  * `key: string | string[]` - 要按下的键，可以是单个键如 `Enter`、`Tab`、`Escape` 等，或者是组合键数组如 `['Ctrl', 'Shift']`。
   * `locate?: string` - 用自然语言描述的元素定位。
   * `options?: Object` - 可选，一个配置对象，包含：
     * `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
@@ -180,7 +180,12 @@ function aiKeyboardPress(key: string, locate?: string, options?: Object): Promis
 * 示例：
 
 ```typescript
+// 单个按键
 await agent.aiKeyboardPress('Enter', '搜索框');
+
+// 组合键
+await agent.aiKeyboardPress(['Ctrl', 'a']); // 全选
+await agent.aiKeyboardPress(['Ctrl', 'Shift', 'I']); // 打开开发者工具
 ```
 
 ### `agent.aiScroll()`

@@ -241,9 +241,9 @@ export class MidsceneManager {
       tools.midscene_aiKeyboardPress.description,
       {
         key: z
-          .string()
+          .union([z.string(), z.array(z.string())])
           .describe(
-            "The web key to press, e.g. 'Enter', 'Tab', 'Escape', etc.",
+            "The web key(s) to press. Can be a single key like 'Enter', 'Tab', 'Escape', or an array of keys for combinations like ['Ctrl', 'Shift'] or ['Meta', 'a'].",
           ),
         locate: z
           .string()
@@ -264,11 +264,12 @@ export class MidsceneManager {
         const options = deepThink ? { deepThink } : undefined;
         await agent.aiKeyboardPress(key, locate, options);
 
+        const keyDesc = Array.isArray(key) ? key.join('+') : key;
         const targetDesc = locate ? ` on element "${locate}"` : '';
 
         return {
           content: [
-            { type: 'text', text: `Pressed key '${key}'${targetDesc}` },
+            { type: 'text', text: `Pressed key(s) '${keyDesc}'${targetDesc}` },
             { type: 'text', text: `report file: ${agent.reportFile}` },
           ],
           isError: false,

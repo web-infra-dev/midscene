@@ -68,4 +68,27 @@ describe('getKeyCommands', () => {
       { key: 'V', command: 'Paste' },
     ]);
   });
+
+  it('should handle combination keys like Ctrl+Shift', () => {
+    const result = getKeyCommands(['Control', 'Shift']);
+    expect(result).toEqual([{ key: 'Control' }, { key: 'Shift' }]);
+  });
+
+  it('should handle complex combinations like Ctrl+Shift+A', () => {
+    const result = getKeyCommands(['Control', 'Shift', 'A']);
+    expect(result).toEqual([
+      { key: 'Control' },
+      { key: 'Shift' },
+      { key: 'A', command: 'SelectAll' },
+    ]);
+  });
+
+  it('should handle Meta+Shift+V combination', () => {
+    const result = getKeyCommands(['Meta', 'Shift', 'V']);
+    expect(result).toEqual([
+      { key: 'Meta' },
+      { key: 'Shift' },
+      { key: 'V', command: 'Paste' },
+    ]);
+  });
 });
