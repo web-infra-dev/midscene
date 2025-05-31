@@ -150,6 +150,7 @@ export const useRecordStore = create<{
   isRecording: boolean;
   events: RecordedEvent[];
   setIsRecording: (recording: boolean) => void;
+  updateEvent: (event: RecordedEvent) => void;
   addEvent: (event: RecordedEvent) => void;
   setEvents: (events: RecordedEvent[]) => void;
   clearEvents: () => void;
@@ -162,6 +163,11 @@ export const useRecordStore = create<{
   addEvent: (event: RecordedEvent) => {
     set((state) => ({
       events: [...state.events, event],
+    }));
+  },
+  updateEvent: (event: RecordedEvent) => {
+    set((state) => ({
+      events: state.events.map((e) => (e.timestamp === event.timestamp ? event : e)),
     }));
   },
   setEvents: (events: RecordedEvent[]) => {

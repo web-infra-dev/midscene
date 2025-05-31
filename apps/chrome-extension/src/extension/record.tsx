@@ -14,7 +14,7 @@ import './record.less';
 const { Title, Text } = Typography;
 
 // Function to generate element description using AI with boxed image
-const optimizeEvent = async (event: RecordedEvent): Promise<RecordedEvent> => {
+const optimizeEvent = async (event: RecordedEvent, updateCallback?: (updatedEvent: RecordedEvent) => void): Promise<RecordedEvent> => {
     try {
         // Only process events with screenshots and element position
         if (!event.screenshotBefore) return event;
@@ -31,7 +31,7 @@ const optimizeEvent = async (event: RecordedEvent): Promise<RecordedEvent> => {
 
         console.log('Generating boxed image for element at:', targetRect);
 
-        // Generate the boxed image using compositeElementInfoImg
+        // Generate the boxed image using compositeElementInfoImg (this is fast, keep it synchronous)
         const boxedImageBase64 = await compositeElementInfoImg({
             inputImgBase64: event.screenshotBefore,
             size: {
@@ -42,7 +42,15 @@ const optimizeEvent = async (event: RecordedEvent): Promise<RecordedEvent> => {
                 {
                     rect: targetRect,
                     indexId: 1 // 给元素一个ID用于显示标签
-                }
+                },
+                ...(event.x !== undefined && event.y !== undefined ? [{
+                    rect: {
+                        left: event.x,
+                        top: event.y,
+                        width: 2,
+                        height: 2
+                    }
+                }] : [])
             ],
             borderThickness: 3,
             annotationPadding: 2
@@ -50,67 +58,100 @@ const optimizeEvent = async (event: RecordedEvent): Promise<RecordedEvent> => {
 
         console.log('Boxed image generated successfully');
 
-        // Create a simplified UI context for Insight
-        const mockContext: UIContext<BaseElement> = {
-            screenshotBase64: boxedImageBase64, // 使用框选后的图片
-            size: {
-                width: event.pageWidth,
-                height: event.pageHeight
-            },
-            content: [], // 不需要元素列表，因为图片已经有框选了
-            tree: {
-                node: null,
-                children: []
-            }
-        };
-
-        // Use Insight's describe method with the boxed image
-        const insight = new Insight(mockContext);
-
-        console.log('Calling Insight describe with center point:', [event.x, event.y]);
-        let description = '';
-        if (event.x && event.y) {
-            let { description: desc } = await insight.describe([event.x, event.y]);
-            description = desc;
-        } else {
-            description = 'No description available';
-        }
-
-        console.log('Generated description:', description);
-        return {
+        // 立即返回带有框选图片和 loading 状态的事件
+        const eventWithBoxedImage = {
             ...event,
             screenshotWithBox: boxedImageBase64,
-            elementDescription: description
+            elementDescription: 'AI 正在分析元素...',
+            descriptionLoading: true
         } as RecordedEvent;
-    } catch (error) {
-        console.error('Failed to generate element description:', error);
-        // 如果AI描述失败，返回一个基于事件的简单描述
-        const elementType = event.targetTagName?.toLowerCase() || 'element';
-        let fallbackDescription = '';
 
-        switch (event.type) {
-            case 'click':
-                fallbackDescription = `Click on ${elementType}`;
-                if (event.value) {
-                    fallbackDescription += ` with text "${event.value}"`;
+        // 异步生成 AI 描述，不阻塞渲染
+        if (event.x !== undefined && event.y !== undefined && updateCallback) {
+            // 使用 setTimeout 确保渲染不被阻塞
+            setTimeout(async () => {
+                try {
+                    // Create a simplified UI context for Insight
+                    const mockContext: UIContext<BaseElement> = {
+                        screenshotBase64: boxedImageBase64, // 使用框选后的图片
+                        size: {
+                            width: event.pageWidth,
+                            height: event.pageHeight
+                        },
+                        content: [], // 不需要元素列表，因为图片已经有框选了
+                        tree: {
+                            node: null,
+                            children: []
+                        }
+                    };
+
+                    // Use Insight's describe method with the boxed image
+                    const insight = new Insight(mockContext);
+
+                    console.log('Calling Insight describe with center point:', [event.x!, event.y!]);
+                    const { description } = await insight.describe([event.x!, event.y!]);
+
+                    console.log('Generated description:', description);
+
+                    // 更新事件描述
+                    const updatedEvent = {
+                        ...eventWithBoxedImage,
+                        elementDescription: description,
+                        descriptionLoading: false
+                    };
+
+                    updateCallback(updatedEvent);
+                } catch (aiError) {
+                    console.error('Failed to generate AI description:', aiError);
+
+                    // AI 失败时使用简单描述
+                    const elementType = event.targetTagName?.toLowerCase() || 'element';
+                    let fallbackDescription = '';
+
+                    switch (event.type) {
+                        case 'click':
+                            fallbackDescription = `Click on ${elementType}`;
+                            if (event.value) {
+                                fallbackDescription += ` with text "${event.value}"`;
+                            }
+                            break;
+                        case 'input':
+                            fallbackDescription = `Input "${event.value || ''}" into ${elementType}`;
+                            break;
+                        case 'scroll':
+                            fallbackDescription = `Scroll to position (${event.viewportX || 0}, ${event.viewportY || 0})`;
+                            break;
+                        case 'navigation':
+                            fallbackDescription = `Navigate to ${event.url || 'new page'}`;
+                            break;
+                        default:
+                            fallbackDescription = `${event.type} on ${elementType}`;
+                    }
+
+                    const fallbackEvent = {
+                        ...eventWithBoxedImage,
+                        elementDescription: fallbackDescription,
+                        descriptionLoading: false
+                    };
+
+                    updateCallback(fallbackEvent);
                 }
-                break;
-            case 'input':
-                fallbackDescription = `Input "${event.value || ''}" into ${elementType}`;
-                break;
-            case 'scroll':
-                fallbackDescription = `Scroll to position (${event.viewportX || 0}, ${event.viewportY || 0})`;
-                break;
-            case 'navigation':
-                fallbackDescription = `Navigate to ${event.url || 'new page'}`;
-                break;
-            default:
-                fallbackDescription = `${event.type} on ${elementType}`;
+            }, 0);
+        } else {
+            // 如果没有点击坐标，设置为无描述
+            (eventWithBoxedImage as any).elementDescription = 'No description available';
+            (eventWithBoxedImage as any).descriptionLoading = false;
         }
 
+        return eventWithBoxedImage;
+    } catch (error) {
+        console.error('Failed to generate boxed image:', error);
+
+        // 如果连框选图片都生成失败，返回原事件
         return {
             ...event,
-            elementDescription: fallbackDescription
+            elementDescription: 'Failed to generate description',
+            descriptionLoading: false
         } as RecordedEvent;
     }
 };
@@ -557,7 +598,7 @@ const RecordDetail: React.FC<{
     };
 
 export default function Record() {
-    const { isRecording, events, setIsRecording, addEvent, clearEvents, setEvents } = useRecordStore();
+    const { isRecording, events, setIsRecording, addEvent, updateEvent, clearEvents, setEvents } = useRecordStore();
     const {
         sessions,
         currentSessionId,
@@ -643,7 +684,17 @@ export default function Record() {
                     const eventsData = await Promise.all(message.data.map(async event => {
                         const { element, ...eventData } = event;
                         // Generate element description if possible
-                        const optimizedEvent = await optimizeEvent(eventData as RecordedEvent);
+                        const optimizedEvent = await optimizeEvent(eventData as RecordedEvent, (updatedEvent) => {
+                            // 更新特定事件的描述
+                            //@ts-ignore
+                            updateEvent(updatedEvent);
+                            // setEvents(prevEvents =>
+                            //     //@ts-ignore
+                            //     prevEvents.map(e =>
+                            //         e.timestamp === updatedEvent.timestamp ? updatedEvent : e
+                            //     ) as RecordedEvent[]
+                            // );
+                        });
                         return optimizedEvent;
                     }));
                     setEvents(eventsData);
@@ -652,7 +703,18 @@ export default function Record() {
                 // Filter out the element property as it can't be serialized
                 const { element, ...eventData } = message.data;
                 // Generate element description if possible
-                const optimizedEvent = await optimizeEvent(eventData as RecordedEvent);
+                const optimizedEvent = await optimizeEvent(eventData as RecordedEvent, (updatedEvent) => {
+                    // 更新特定事件的描述
+                    //@ts-ignore
+
+                    updateEvent(updatedEvent);
+                    // setEvents(prevEvents =>
+                    //     //@ts-ignore
+                    //     prevEvents.map(e =>
+                    //         e.timestamp === updatedEvent.timestamp ? updatedEvent : e
+                    //     ) as RecordedEvent[]
+                    // );
+                });
                 addEvent(optimizedEvent);
             }
         };
