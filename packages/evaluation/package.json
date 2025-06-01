@@ -19,10 +19,7 @@
     "evaluate:section-locator": "npx vitest --run tests/llm-section-locator.test.ts",
     "format": "cd ../.. && npm run lint"
   },
-  "files": [
-    "dist",
-    "README.md"
-  ],
+  "files": ["dist", "README.md"],
   "type": "module",
   "dependencies": {
     "@midscene/core": "workspace:*",

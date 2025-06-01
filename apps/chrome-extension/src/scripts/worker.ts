@@ -27,7 +27,7 @@ const connectedPorts = new Set<chrome.runtime.Port>();
 chrome.runtime.onConnect.addListener((port) => {
   if (port.name === 'record-events') {
     connectedPorts.add(port);
-    
+
     port.onDisconnect.addListener(() => {
       connectedPorts.delete(port);
     });
@@ -40,30 +40,37 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // Handle screenshot capture request
   if (request.action === 'captureScreenshot') {
     if (sender.tab && sender.tab.id !== undefined) {
-      chrome.tabs.captureVisibleTab(sender.tab.windowId, { format: 'png' }, (dataUrl) => {
-        if (chrome.runtime.lastError) {
-          console.error('Failed to capture screenshot:', chrome.runtime.lastError);
-          sendResponse(null);
-        } else {
-          sendResponse(dataUrl);
-        }
-      });
+      chrome.tabs.captureVisibleTab(
+        sender.tab.windowId,
+        { format: 'png' },
+        (dataUrl) => {
+          if (chrome.runtime.lastError) {
+            console.error(
+              'Failed to capture screenshot:',
+              chrome.runtime.lastError,
+            );
+            sendResponse(null);
+          } else {
+            sendResponse(dataUrl);
+          }
+        },
+      );
       return true; // Keep the message channel open for async response
     } else {
       sendResponse(null);
       return true;
     }
   }
-  
+
   // Forward recording events to connected extension pages
   if (request.action === 'events' || request.action === 'event') {
-    connectedPorts.forEach(port => {
+    connectedPorts.forEach((port) => {
       port.postMessage(request);
     });
     sendResponse({ success: true });
     return true;
   }
-  
+
   switch (request.type) {
     case workerMessageTypes.SAVE_CONTEXT: {
       const payload: WorkerRequestSaveContext = request.payload;
@@ -89,9 +96,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sendResponse({ error: 'Unknown message type' });
       break;
   }
-  
+
   // Return true to indicate we will send a response asynchronously
   return true;
 });
-
-

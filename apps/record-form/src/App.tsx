@@ -7,11 +7,15 @@ import {
   Input,
   Select,
   Typography,
-  message
+  message,
 } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import './App.css';
-import { EventRecorder, RecordTimeline, type RecordedEvent } from '@midscene/record';
+import {
+  EventRecorder,
+  RecordTimeline,
+  type RecordedEvent,
+} from '@midscene/record';
 import CanvasSelector from './components/CanvasSelector';
 
 const { Title } = Typography;
@@ -45,13 +49,15 @@ const IS_DEBUG_MODE = window.location.search.includes('debug');
 
 const App: React.FC = () => {
   const [form] = Form.useForm();
-  const [optimizedEvents, setOptimizedEvents] = useState<RecordedEvent[]>([{
-    type: 'navigation',
-    url: window.location.href,
-    timestamp: Date.now(),
-    pageWidth: window.innerWidth,
-    pageHeight: window.innerHeight,
-  }]);
+  const [optimizedEvents, setOptimizedEvents] = useState<RecordedEvent[]>([
+    {
+      type: 'navigation',
+      url: window.location.href,
+      timestamp: Date.now(),
+      pageWidth: window.innerWidth,
+      pageHeight: window.innerHeight,
+    },
+  ]);
   const [rawEventsCount, setRawEventsCount] = useState(0);
   const [mergedEventsCount, setMergedEventsCount] = useState(0);
 
@@ -62,8 +68,11 @@ const App: React.FC = () => {
       eventRecorderRef.current = new EventRecorder((event: RecordedEvent) => {
         setRawEventsCount((prev) => prev + 1);
         setOptimizedEvents((prev) => {
-          const optimized = eventRecorderRef.current?.optimizeEvent(event, prev);
-          console.log('record', optimized)
+          const optimized = eventRecorderRef.current?.optimizeEvent(
+            event,
+            prev,
+          );
+          console.log('record', optimized);
           return optimized || prev;
         });
         setMergedEventsCount(optimizedEvents.length);
@@ -115,7 +124,7 @@ const App: React.FC = () => {
             name="username"
             rules={[
               { required: true, message: '请输入用户名!' },
-              { min: 3, message: '用户名至少3个字符!' }
+              { min: 3, message: '用户名至少3个字符!' },
             ]}
           >
             <Input placeholder="请输入用户名" />
@@ -126,7 +135,7 @@ const App: React.FC = () => {
             name="password"
             rules={[
               { required: true, message: '请输入密码!' },
-              { min: 6, message: '密码至少6个字符!' }
+              { min: 6, message: '密码至少6个字符!' },
             ]}
           >
             <Input.Password placeholder="请输入密码" />
@@ -135,9 +144,7 @@ const App: React.FC = () => {
           <Form.Item
             label="确认密码"
             name="confirmPassword"
-            rules={[
-              { required: true, message: '请确认密码!' }
-            ]}
+            rules={[{ required: true, message: '请确认密码!' }]}
           >
             <Input.Password placeholder="请再次输入密码" />
           </Form.Item>
@@ -147,7 +154,7 @@ const App: React.FC = () => {
             name="email"
             rules={[
               { required: true, message: '请输入电子邮箱!' },
-              { type: 'email', message: '请输入有效的邮箱地址!' }
+              { type: 'email', message: '请输入有效的邮箱地址!' },
             ]}
           >
             <Input placeholder="请输入电子邮箱" />
@@ -157,16 +164,13 @@ const App: React.FC = () => {
             label="手机号码"
             name="phone"
             rules={[
-              { pattern: /^1[3-9]\d{9}$/, message: '请输入有效的手机号码!' }
+              { pattern: /^1[3-9]\d{9}$/, message: '请输入有效的手机号码!' },
             ]}
           >
             <Input placeholder="请输入手机号码" />
           </Form.Item>
 
-          <Form.Item
-            label="性别"
-            name="gender"
-          >
+          <Form.Item label="性别" name="gender">
             <Select placeholder="请选择性别" allowClear>
               <Option value="male">男</Option>
               <Option value="female">女</Option>
@@ -174,10 +178,7 @@ const App: React.FC = () => {
             </Select>
           </Form.Item>
 
-          <Form.Item
-            label="出生日期"
-            name="birthday"
-          >
+          <Form.Item label="出生日期" name="birthday">
             <DatePicker
               placeholder="请选择出生日期"
               style={{ width: '100%' }}
@@ -185,10 +186,7 @@ const App: React.FC = () => {
             />
           </Form.Item>
 
-          <Form.Item
-            label="地址"
-            name="address"
-          >
+          <Form.Item label="地址" name="address">
             <TextArea
               rows={3}
               placeholder="请输入详细地址"
@@ -225,15 +223,17 @@ const App: React.FC = () => {
           <Form.Item
             name="agreement"
             valuePropName="checked"
-            rules={[
-              { required: true, message: '请同意用户协议!' }
-            ]}
+            rules={[{ required: true, message: '请同意用户协议!' }]}
           >
             <Checkbox>
               我已阅读并同意
-              <a href="#" style={{ marginLeft: 4 }}>用户协议</a>
+              <a href="#" style={{ marginLeft: 4 }}>
+                用户协议
+              </a>
               和
-              <a href="#" style={{ marginLeft: 4 }}>隐私政策</a>
+              <a href="#" style={{ marginLeft: 4 }}>
+                隐私政策
+              </a>
             </Checkbox>
           </Form.Item>
 
@@ -244,12 +244,26 @@ const App: React.FC = () => {
           </Form.Item>
         </Form>
 
-        <div className="rr-ignore" style={{ marginTop: 20, fontSize: 12, color: '#666', padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
+        <div
+          className="rr-ignore"
+          style={{
+            marginTop: 20,
+            fontSize: 12,
+            color: '#666',
+            padding: '10px',
+            backgroundColor: '#f5f5f5',
+            borderRadius: '4px',
+          }}
+        >
           <p style={{ margin: '4px 0' }}>📊 录制统计</p>
           <p style={{ margin: '4px 0' }}>原始事件: {rawEventsCount}</p>
           <p style={{ margin: '4px 0' }}>优化后事件: {mergedEventsCount}</p>
           <p style={{ margin: '4px 0', fontSize: '10px', color: '#999' }}>
-            优化率: {rawEventsCount > 0 ? Math.round((1 - mergedEventsCount / rawEventsCount) * 100) : 0}%
+            优化率:{' '}
+            {rawEventsCount > 0
+              ? Math.round((1 - mergedEventsCount / rawEventsCount) * 100)
+              : 0}
+            %
           </p>
         </div>
       </Card>

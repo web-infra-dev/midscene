@@ -22,49 +22,21 @@
   },
   "typesVersions": {
     "*": {
-      ".": [
-        "./dist/types/index.d.ts"
-      ],
-      "constants": [
-        "./dist/types/constants.d.ts"
-      ],
-      "img": [
-        "./dist/types/img.d.ts"
-      ],
-      "fs": [
-        "./dist/types/fs.d.ts"
-      ],
-      "utils": [
-        "./dist/types/utils.d.ts"
-      ],
-      "extractor": [
-        "./dist/types/extractor.d.ts"
-      ],
-      "extractor-debug": [
-        "./dist/types/extractor-debug.d.ts"
-      ],
-      "keyboard-layout": [
-        "./dist/types/us-keyboard-layout.d.ts"
-      ],
-      "logger": [
-        "./dist/types/logger.d.ts"
-      ],
-      "common": [
-        "./dist/types/common.d.ts"
-      ],
-      "env": [
-        "./dist/types/env.d.ts"
-      ],
-      "types": [
-        "./dist/types/types.d.ts"
-      ]
+      ".": ["./dist/types/index.d.ts"],
+      "constants": ["./dist/types/constants.d.ts"],
+      "img": ["./dist/types/img.d.ts"],
+      "fs": ["./dist/types/fs.d.ts"],
+      "utils": ["./dist/types/utils.d.ts"],
+      "extractor": ["./dist/types/extractor.d.ts"],
+      "extractor-debug": ["./dist/types/extractor-debug.d.ts"],
+      "keyboard-layout": ["./dist/types/us-keyboard-layout.d.ts"],
+      "logger": ["./dist/types/logger.d.ts"],
+      "common": ["./dist/types/common.d.ts"],
+      "env": ["./dist/types/env.d.ts"],
+      "types": ["./dist/types/types.d.ts"]
     }
   },
-  "files": [
-    "dist",
-    "src",
-    "README.md"
-  ],
+  "files": ["dist", "src", "README.md"],
   "scripts": {
     "dev": "modern dev",
     "build": "npm run build:pkg && npm run build:script",

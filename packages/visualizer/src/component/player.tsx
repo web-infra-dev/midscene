@@ -724,7 +724,7 @@ export function Player(props?: {
   }, [canReplayNow]);
 
   let statusIconElement;
-  let statusOnClick: () => void = () => { };
+  let statusOnClick: () => void = () => {};
   if (animationProgress < 1) {
     statusIconElement = (
       <Spin indicator={<LoadingOutlined spin color="#333" />} size="default" />

@@ -15,16 +15,10 @@
       "default": "./dist/index.css"
     }
   },
-  "files": [
-    "dist",
-    "html",
-    "README.md"
-  ],
+  "files": ["dist", "html", "README.md"],
   "watch": {
     "build": {
-      "patterns": [
-        "src"
-      ],
+      "patterns": ["src"],
       "extensions": "tsx,less,scss,css,js,jsx,ts",
       "quiet": false
     }
@@ -65,12 +59,7 @@
     "typescript": "^5.8.3",
     "zustand": "4.5.2"
   },
-  "sideEffects": [
-    "**/*.css",
-    "**/*.less",
-    "**/*.sass",
-    "**/*.scss"
-  ],
+  "sideEffects": ["**/*.css", "**/*.less", "**/*.sass", "**/*.scss"],
   "publishConfig": {
     "access": "public"
   },

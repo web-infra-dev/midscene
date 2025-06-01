@@ -8,7 +8,7 @@ function getSubdirectories(dir) {
 
   return fs
     .readdirSync(dir, {
-      withFileTypes: true
+      withFileTypes: true,
     })
     .filter((dirent) => dirent.isDirectory())
     .map((dirent) => dirent.name);

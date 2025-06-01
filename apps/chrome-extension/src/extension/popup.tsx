@@ -1,5 +1,10 @@
 /// <reference types="chrome" />
-import { ApiOutlined, HomeOutlined, SendOutlined, VideoCameraOutlined } from '@ant-design/icons';
+import {
+  ApiOutlined,
+  HomeOutlined,
+  SendOutlined,
+  VideoCameraOutlined,
+} from '@ant-design/icons';
 import {
   EnvConfig,
   GithubStar,
@@ -51,9 +56,7 @@ export function PlaygroundPopup() {
       key: 'record',
       label: 'Record',
       icon: <VideoCameraOutlined />,
-      children: (
-        <Record />
-      ),
+      children: <Record />,
     },
     {
       key: 'bridge',
@@ -111,7 +114,9 @@ export function PlaygroundPopup() {
             defaultActiveKey="playground"
             activeKey={popupTab}
             items={items}
-            onChange={(key) => setPopupTab(key as 'playground' | 'bridge' | 'record')}
+            onChange={(key) =>
+              setPopupTab(key as 'playground' | 'bridge' | 'record')
+            }
           />
         </div>
 

@@ -118,36 +118,44 @@ export const useRecordingSessionStore = create<{
   sessions: RecordingSession[];
   currentSessionId: string | null;
   addSession: (session: RecordingSession) => void;
-  updateSession: (sessionId: string, updates: Partial<RecordingSession>) => void;
+  updateSession: (
+    sessionId: string,
+    updates: Partial<RecordingSession>,
+  ) => void;
   deleteSession: (sessionId: string) => void;
   setCurrentSession: (sessionId: string | null) => void;
   getCurrentSession: () => RecordingSession | null;
 }>((set, get) => ({
   sessions: loadSessionsFromStorage(),
   currentSessionId: loadCurrentSessionIdFromStorage(),
-  addSession: (session) => set((state) => {
-    const newSessions = [...state.sessions, session];
-    saveSessionsToStorage(newSessions);
-    return { sessions: newSessions };
-  }),
-  updateSession: (sessionId, updates) => set((state) => {
-    const newSessions = state.sessions.map(s => s.id === sessionId ? { ...s, ...updates } : s);
-    saveSessionsToStorage(newSessions);
-    return { sessions: newSessions };
-  }),
-  deleteSession: (sessionId) => set((state) => {
-    const newSessions = state.sessions.filter(s => s.id !== sessionId);
-    saveSessionsToStorage(newSessions);
-    return { sessions: newSessions };
-  }),
+  addSession: (session) =>
+    set((state) => {
+      const newSessions = [...state.sessions, session];
+      saveSessionsToStorage(newSessions);
+      return { sessions: newSessions };
+    }),
+  updateSession: (sessionId, updates) =>
+    set((state) => {
+      const newSessions = state.sessions.map((s) =>
+        s.id === sessionId ? { ...s, ...updates } : s,
+      );
+      saveSessionsToStorage(newSessions);
+      return { sessions: newSessions };
+    }),
+  deleteSession: (sessionId) =>
+    set((state) => {
+      const newSessions = state.sessions.filter((s) => s.id !== sessionId);
+      saveSessionsToStorage(newSessions);
+      return { sessions: newSessions };
+    }),
   setCurrentSession: (sessionId) => {
     saveCurrentSessionIdToStorage(sessionId);
     set({ currentSessionId: sessionId });
   },
   getCurrentSession: () => {
     const state = get();
-    return state.sessions.find(s => s.id === state.currentSessionId) || null;
-  }
+    return state.sessions.find((s) => s.id === state.currentSessionId) || null;
+  },
 }));
 
 export const useRecordStore = create<{
@@ -171,7 +179,9 @@ export const useRecordStore = create<{
   },
   updateEvent: (event: RecordedEvent) => {
     set((state) => ({
-      events: state.events.map((e) => (e.timestamp === event.timestamp ? event : e)),
+      events: state.events.map((e) =>
+        e.timestamp === event.timestamp ? event : e,
+      ),
     }));
   },
   setEvents: (events: RecordedEvent[]) => {
