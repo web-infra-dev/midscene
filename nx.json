@@ -20,5 +20,6 @@
       "dependsOn": ["^build"]
     }
   },
-  "defaultBase": "main"
+  "defaultBase": "main",
+  "nxCloudId": "683c52f96ac2ea619b350be9"
 }
