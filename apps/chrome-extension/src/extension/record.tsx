@@ -695,6 +695,9 @@ export default function Record() {
       message.error('No active tab found');
       return;
     }
+    
+    // Set isRecording to false immediately to prevent UI from showing recording state
+    setIsRecording(false);
 
     try {
       // Check if content script is still available before sending message
@@ -714,8 +717,7 @@ export default function Record() {
         }
       }
 
-      // Always set recording to false regardless of content script status
-      setIsRecording(false);
+      // Recording state was already set to false at the beginning
 
       // Update session with final events and status
       if (currentSessionId) {
@@ -815,8 +817,9 @@ export default function Record() {
         isRecording
       ) {
         // Page is being refreshed or navigating away
-        setIsRecording(false);
-        message.warning('Recording stopped due to page refresh/navigation');
+        stopRecording().then(() => {
+          message.warning('Recording stopped due to page refresh/navigation');
+        });
       }
     };
 
@@ -832,8 +835,9 @@ export default function Record() {
     // Handle when user navigates away from extension popup
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden' && isRecording) {
-        stopRecording();
-        message.warning('Recording stopped - left extension popup');
+        stopRecording().then(() => {
+          message.warning('Recording stopped - left extension popup');
+        });
       }
     };
 
@@ -842,7 +846,17 @@ export default function Record() {
     // Handle potential popup window close
     const handleBeforeUnload = () => {
       if (isRecording) {
-        stopRecording();
+        // For unload events, we need to stop synchronously
+        setIsRecording(false);
+        if (currentSessionId) {
+          const session = getCurrentSession();
+          if (session) {
+            updateSession(currentSessionId, {
+              status: 'completed',
+              updatedAt: Date.now(),
+            });
+          }
+        }
       }
     };
 
@@ -1090,12 +1104,15 @@ export default function Record() {
   const handleBackToList = () => {
     // Auto-stop recording when leaving detail view
     if (isRecording) {
-      stopRecording();
-      message.info('Recording stopped - left detail view');
+      stopRecording().then(() => {
+        message.info('Recording stopped - left detail view');
+        setViewMode('list');
+        setSelectedSession(null);
+      });
+    } else {
+      setViewMode('list');
+      setSelectedSession(null);
     }
-
-    setViewMode('list');
-    setSelectedSession(null);
   };
 
   // Start recording
