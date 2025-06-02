@@ -1,6 +1,6 @@
 import assert from 'node:assert';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { join, dirname } from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { getDebug } from '@midscene/shared/logger';
 import { ifInBrowser } from '@midscene/shared/utils';
@@ -61,7 +61,6 @@ export class TaskCache {
       ? undefined
       : cacheFilePath ||
         join(getMidsceneRunSubDir('cache'), `${this.cacheId}${cacheFileExt}`);
-
     this.isCacheResultUsed = isCacheResultUsed;
 
     let cacheContent;
@@ -209,8 +208,14 @@ export class TaskCache {
     }
 
     try {
+      const dir = dirname(this.cacheFilePath);
+      if (!existsSync(dir)) {
+        mkdirSync(dir, { recursive: true });
+        debug('created cache directory: %s', dir);
+      }
       const yamlData = yaml.dump(this.cache);
       writeFileSync(this.cacheFilePath, yamlData);
+      debug('cache flushed to file: %s', this.cacheFilePath);
     } catch (err) {
       debug(
         'write cache to file failed, path: %s, error: %s',
