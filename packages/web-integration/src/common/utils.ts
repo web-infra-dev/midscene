@@ -158,7 +158,8 @@ export const ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED =
   'NOT_IMPLEMENTED_AS_DESIGNED';
 
 export function replaceIllegalPathCharsAndSpace(str: string) {
-  return str.replace(/[/\\:*?"<>| ]/g, '-');
+  // Only replace characters that are illegal in filenames, but preserve path separators
+  return str.replace(/[:*?"<>| ]/g, '-');
 }
 
 export function forceClosePopup(
