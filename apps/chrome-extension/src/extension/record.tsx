@@ -1088,6 +1088,12 @@ export default function Record() {
 
   // Go back to list view
   const handleBackToList = () => {
+    // Auto-stop recording when leaving detail view
+    if (isRecording) {
+      stopRecording();
+      message.info('Recording stopped - left detail view');
+    }
+
     setViewMode('list');
     setSelectedSession(null);
   };
