@@ -26,7 +26,7 @@ import {
   message,
 } from 'antd';
 import type React from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   type RecordedEvent,
   type RecordingSession,
@@ -667,6 +667,9 @@ export default function Record() {
     getCurrentSession,
   } = useRecordingSessionStore();
 
+  // Check if we're in extension environment
+  const isExtensionMode = isChromeExtension();
+
   // View state management
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedSession, setSelectedSession] =
@@ -681,8 +684,75 @@ export default function Record() {
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
 
-  // Check if we're in extension environment
-  const isExtensionMode = isChromeExtension();
+  // Define stopRecording early using useCallback
+  const stopRecording = useCallback(async () => {
+    if (!isExtensionMode) {
+      setIsRecording(false);
+      return;
+    }
+
+    if (!currentTab?.id) {
+      message.error('No active tab found');
+      return;
+    }
+
+    try {
+      // Check if content script is still available before sending message
+      try {
+        // Send message to content script to stop recording
+        await safeChromeAPI.tabs.sendMessage(currentTab.id, { action: 'stop' });
+        message.success('Recording stopped');
+      } catch (error: any) {
+        // If content script is not available, just stop recording on our side
+        if (error.message?.includes('Receiving end does not exist')) {
+          console.warn(
+            'Content script not available, stopping recording locally',
+          );
+          message.warning('Recording stopped (page may have been refreshed)');
+        } else {
+          throw error;
+        }
+      }
+
+      // Always set recording to false regardless of content script status
+      setIsRecording(false);
+
+      // Update session with final events and status
+      if (currentSessionId) {
+        const session = getCurrentSession();
+        if (session) {
+          const duration =
+            events.length > 0
+              ? events[events.length - 1].timestamp - events[0].timestamp
+              : 0;
+          updateSession(currentSessionId, {
+            status: 'completed',
+            events: [...events],
+            duration,
+            updatedAt: Date.now(),
+          });
+
+          // Update selectedSession if it's the current one
+          if (selectedSession?.id === currentSessionId) {
+            setSelectedSession({
+              ...selectedSession,
+              status: 'completed',
+              events: [...events],
+              duration,
+              updatedAt: Date.now(),
+            });
+          }
+
+          message.success(`Recording saved to session "${session.name}"`);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to stop recording:', error);
+      message.error(`Failed to stop recording: ${error}`);
+      // Still stop recording on our side even if there was an error
+      setIsRecording(false);
+    }
+  }, [isExtensionMode, currentTab, setIsRecording, currentSessionId, getCurrentSession, events, selectedSession, updateSession]);
 
   // Auto-scroll to bottom when new events are added during recording
   useEffect(() => {
@@ -754,6 +824,35 @@ export default function Record() {
 
     return () => safeChromeAPI.tabs.onUpdated.removeListener(handleTabUpdate);
   }, [currentTab, isRecording, setIsRecording]);
+
+  // Monitor visibility changes for the extension popup
+  useEffect(() => {
+    if (!isRecording) return;
+
+    // Handle when user navigates away from extension popup
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && isRecording) {
+        stopRecording();
+        message.warning('Recording stopped - left extension popup');
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Handle potential popup window close
+    const handleBeforeUnload = () => {
+      if (isRecording) {
+        stopRecording();
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isRecording, stopRecording]);
 
   // Set up message listener for content script
   useEffect(() => {
@@ -1069,75 +1168,6 @@ export default function Record() {
     }
   };
 
-  // Stop recording
-  const stopRecording = async () => {
-    if (!isExtensionMode) {
-      setIsRecording(false);
-      return;
-    }
-
-    if (!currentTab?.id) {
-      message.error('No active tab found');
-      return;
-    }
-
-    try {
-      // Check if content script is still available before sending message
-      try {
-        // Send message to content script to stop recording
-        await safeChromeAPI.tabs.sendMessage(currentTab.id, { action: 'stop' });
-        message.success('Recording stopped');
-      } catch (error: any) {
-        // If content script is not available, just stop recording on our side
-        if (error.message?.includes('Receiving end does not exist')) {
-          console.warn(
-            'Content script not available, stopping recording locally',
-          );
-          message.warning('Recording stopped (page may have been refreshed)');
-        } else {
-          throw error;
-        }
-      }
-
-      // Always set recording to false regardless of content script status
-      setIsRecording(false);
-
-      // Update session with final events and status
-      if (currentSessionId) {
-        const session = getCurrentSession();
-        if (session) {
-          const duration =
-            events.length > 0
-              ? events[events.length - 1].timestamp - events[0].timestamp
-              : 0;
-          updateSession(currentSessionId, {
-            status: 'completed',
-            events: [...events],
-            duration,
-            updatedAt: Date.now(),
-          });
-
-          // Update selectedSession if it's the current one
-          if (selectedSession?.id === currentSessionId) {
-            setSelectedSession({
-              ...selectedSession,
-              status: 'completed',
-              events: [...events],
-              duration,
-              updatedAt: Date.now(),
-            });
-          }
-
-          message.success(`Recording saved to session "${session.name}"`);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to stop recording:', error);
-      message.error(`Failed to stop recording: ${error}`);
-      // Still stop recording on our side even if there was an error
-      setIsRecording(false);
-    }
-  };
 
   // Export session events
   const exportSessionEvents = (session: RecordingSession) => {
