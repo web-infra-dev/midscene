@@ -560,7 +560,7 @@ ${Object.keys(size)
       await this.execYadb(text);
     }
 
-    if (options.hide === true) {
+    if (options.autoDismissKeyboard === true) {
       await adb.hideKeyboard();
     }
   }
