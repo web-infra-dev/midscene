@@ -35,7 +35,7 @@ export type CacheFileContent = {
 };
 
 const lowestSupportedMidsceneVersion = '0.16.10';
-const cacheFileExt = '.cache.yaml';
+export const cacheFileExt = '.cache.yaml';
 
 export class TaskCache {
   cacheId: string;
