@@ -210,9 +210,7 @@ const RecordList: React.FC<{
   onExportSession: (session: RecordingSession) => void;
   onViewDetail: (session: RecordingSession) => void;
   isExtensionMode: boolean;
-  addSession: (session: RecordingSession) => void;
-  setCurrentSession: (sessionId: string) => void;
-  clearEvents: () => void;
+  createNewSession: (sessionName?: string) => RecordingSession;
   setSelectedSession: (session: RecordingSession) => void;
   setViewMode: (mode: ViewMode) => void;
   currentTab?: chrome.tabs.Tab | null;
@@ -226,14 +224,29 @@ const RecordList: React.FC<{
   onExportSession,
   onViewDetail,
   isExtensionMode,
-  addSession,
-  setCurrentSession,
-  clearEvents,
+  createNewSession,
   setSelectedSession,
   setViewMode,
   currentTab,
   startRecording,
 }) => {
+    const handleCreateNewSession = () => {
+      const sessionName = generateDefaultSessionName();
+      const newSession = createNewSession(sessionName);
+      message.success(`Session "${sessionName}" created successfully`);
+
+      // Switch to detail view for the new session
+      setSelectedSession(newSession);
+      setViewMode('detail');
+
+      // Automatically start recording if in extension mode
+      if (isExtensionMode && currentTab?.id) {
+        setTimeout(() => {
+          startRecording();
+        }, 100);
+      }
+    };
+
     return (
       <div className="record-list-view">
         {!isExtensionMode && (
@@ -260,35 +273,7 @@ const RecordList: React.FC<{
           <Button
             type="primary"
             icon={<PlusOutlined />}
-            onClick={() => {
-              // Create session with default name and start recording immediately
-              const sessionName = generateDefaultSessionName();
-              const newSession: RecordingSession = {
-                id: `session-${Date.now()}`,
-                name: sessionName,
-                createdAt: Date.now(),
-                updatedAt: Date.now(),
-                events: [],
-                status: 'idle',
-                url: currentTab?.url,
-              };
-
-              addSession(newSession);
-              setCurrentSession(newSession.id);
-              clearEvents();
-              message.success(`Session "${sessionName}" created successfully`);
-
-              // Switch to detail view for the new session
-              setSelectedSession(newSession);
-              setViewMode('detail');
-
-              // Automatically start recording if in extension mode
-              if (isExtensionMode && currentTab?.id) {
-                setTimeout(() => {
-                  startRecording();
-                }, 100);
-              }
-            }}
+            onClick={handleCreateNewSession}
           >
             New Session
           </Button>
@@ -303,37 +288,7 @@ const RecordList: React.FC<{
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
-                onClick={() => {
-                  // Create session with default name and start recording immediately
-                  const sessionName = generateDefaultSessionName();
-                  const newSession: RecordingSession = {
-                    id: `session-${Date.now()}`,
-                    name: sessionName,
-                    createdAt: Date.now(),
-                    updatedAt: Date.now(),
-                    events: [],
-                    status: 'idle',
-                    url: currentTab?.url,
-                  };
-
-                  addSession(newSession);
-                  setCurrentSession(newSession.id);
-                  clearEvents();
-                  message.success(
-                    `Session "${sessionName}" created successfully`,
-                  );
-
-                  // Switch to detail view for the new session
-                  setSelectedSession(newSession);
-                  setViewMode('detail');
-
-                  // Automatically start recording if in extension mode
-                  if (isExtensionMode && currentTab?.id) {
-                    setTimeout(() => {
-                      startRecording();
-                    }, 100);
-                  }
-                }}
+                onClick={handleCreateNewSession}
               >
                 Create First Session
               </Button>
@@ -695,7 +650,7 @@ export default function Record() {
       message.error('No active tab found');
       return;
     }
-    
+
     // Set isRecording to false immediately to prevent UI from showing recording state
     setIsRecording(false);
 
@@ -717,8 +672,6 @@ export default function Record() {
         }
       }
 
-      // Recording state was already set to false at the beginning
-
       // Update session with final events and status
       if (currentSessionId) {
         const session = getCurrentSession();
@@ -734,17 +687,6 @@ export default function Record() {
             updatedAt: Date.now(),
           });
 
-          // Update selectedSession if it's the current one
-          if (selectedSession?.id === currentSessionId) {
-            setSelectedSession({
-              ...selectedSession,
-              status: 'completed',
-              events: [...events],
-              duration,
-              updatedAt: Date.now(),
-            });
-          }
-
           message.success(`Recording saved to session "${session.name}"`);
         }
       }
@@ -754,7 +696,7 @@ export default function Record() {
       // Still stop recording on our side even if there was an error
       setIsRecording(false);
     }
-  }, [isExtensionMode, currentTab, setIsRecording, currentSessionId, getCurrentSession, events, selectedSession, updateSession]);
+  }, [isExtensionMode, currentTab, setIsRecording, currentSessionId, getCurrentSession, events, updateSession]);
 
   // Auto-scroll to bottom when new events are added during recording
   useEffect(() => {
@@ -866,7 +808,26 @@ export default function Record() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [isRecording, stopRecording]);
+  }, [isRecording, stopRecording, setIsRecording, currentSessionId, getCurrentSession, updateSession]);
+
+  // Cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      // Clean up any ongoing recording when component unmounts
+      if (isRecording) {
+        setIsRecording(false);
+        if (currentSessionId) {
+          const session = getCurrentSession();
+          if (session) {
+            updateSession(currentSessionId, {
+              status: 'completed',
+              updatedAt: Date.now(),
+            });
+          }
+        }
+      }
+    };
+  }, []); // Empty dependency array means this runs only on unmount
 
   // Set up message listener for content script
   useEffect(() => {
@@ -1073,24 +1034,19 @@ export default function Record() {
   };
 
   // Select session (set as current)
-  const handleSelectSession = (session: RecordingSession) => {
-    // Stop current recording if any
+  const handleSelectSession = useCallback(async (session: RecordingSession) => {
+    // Stop current recording if any - wait for completion
     if (isRecording) {
-      stopRecording();
+      await stopRecording();
     }
 
     setCurrentSession(session.id);
-    // Load session events
-    if (session.events.length > 0) {
-      setEvents(session.events);
-    } else {
-      clearEvents();
-    }
+    // Events will be loaded by the useEffect above
     message.success(`Switched to session "${session.name}"`);
-  };
+  }, [isRecording, stopRecording, setCurrentSession]);
 
   // View session detail
-  const handleViewDetail = (session: RecordingSession) => {
+  const handleViewDetail = useCallback((session: RecordingSession) => {
     setSelectedSession(session);
     setViewMode('detail');
 
@@ -1098,22 +1054,19 @@ export default function Record() {
     if (currentSessionId !== session.id) {
       handleSelectSession(session);
     }
-  };
+  }, [currentSessionId, handleSelectSession]);
 
   // Go back to list view
-  const handleBackToList = () => {
+  const handleBackToList = useCallback(async () => {
     // Auto-stop recording when leaving detail view
     if (isRecording) {
-      stopRecording().then(() => {
-        message.info('Recording stopped - left detail view');
-        setViewMode('list');
-        setSelectedSession(null);
-      });
-    } else {
-      setViewMode('list');
-      setSelectedSession(null);
+      await stopRecording();
+      message.info('Recording stopped - left detail view');
     }
-  };
+
+    setViewMode('list');
+    setSelectedSession(null);
+  }, [isRecording, stopRecording]);
 
   // Start recording
   const startRecording = async () => {
@@ -1125,46 +1078,27 @@ export default function Record() {
     }
 
     // Check if there's a current session
-    if (!currentSessionId) {
+    let sessionToUse = getCurrentSession();
+    if (!sessionToUse) {
       // Auto-create session with timestamp name
       const sessionName = generateDefaultSessionName();
-      const newSession: RecordingSession = {
-        id: `session-${Date.now()}`,
-        name: sessionName,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        events: [],
-        status: 'idle',
-        url: currentTab?.url,
-      };
-
-      addSession(newSession);
-      setCurrentSession(newSession.id);
-      clearEvents();
+      sessionToUse = createNewSession(sessionName);
       message.success(`Session "${sessionName}" created automatically`);
 
       // Set the newly created session as selected and update view
-      setSelectedSession(newSession);
+      setSelectedSession(sessionToUse);
       setViewMode('detail');
 
       // Small delay to ensure state updates before continuing
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
-    const currentSession = getCurrentSession();
-    if (!currentSession) {
-      message.error('Session not found');
-      return;
-    }
-
     // Update session status to recording
-    if (currentSessionId) {
-      updateSession(currentSessionId, {
-        status: 'recording',
-        url: currentTab?.url,
-        updatedAt: Date.now(),
-      });
-    }
+    updateSession(sessionToUse.id, {
+      status: 'recording',
+      url: currentTab?.url,
+      updatedAt: Date.now(),
+    });
 
     if (!currentTab?.id) {
       message.error('No active tab found');
@@ -1191,6 +1125,25 @@ export default function Record() {
     }
   };
 
+  // Create session utility function
+  const createNewSession = useCallback((sessionName?: string) => {
+    const name = sessionName || generateDefaultSessionName();
+    const newSession: RecordingSession = {
+      id: `session-${Date.now()}`,
+      name,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      events: [],
+      status: 'idle',
+      url: currentTab?.url,
+    };
+
+    addSession(newSession);
+    setCurrentSession(newSession.id);
+    clearEvents();
+
+    return newSession;
+  }, [currentTab, addSession, setCurrentSession, clearEvents]);
 
   // Export session events
   const exportSessionEvents = (session: RecordingSession) => {
@@ -1237,6 +1190,16 @@ export default function Record() {
     message.success('Events exported successfully');
   };
 
+  // Sync selectedSession with currentSession
+  useEffect(() => {
+    if (viewMode === 'detail' && currentSessionId) {
+      const currentSession = getCurrentSession();
+      if (currentSession && (!selectedSession || selectedSession.id !== currentSessionId)) {
+        setSelectedSession(currentSession);
+      }
+    }
+  }, [currentSessionId, getCurrentSession, selectedSession, viewMode]);
+
   return (
     <div ref={recordContainerRef} className="popup-record-container">
       {viewMode === 'list' ? (
@@ -1249,9 +1212,7 @@ export default function Record() {
           onExportSession={exportSessionEvents}
           onViewDetail={handleViewDetail}
           isExtensionMode={isExtensionMode}
-          addSession={addSession}
-          setCurrentSession={setCurrentSession}
-          clearEvents={clearEvents}
+          createNewSession={createNewSession}
           setSelectedSession={setSelectedSession}
           setViewMode={setViewMode}
           currentTab={currentTab}

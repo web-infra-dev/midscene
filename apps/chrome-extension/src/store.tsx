@@ -73,6 +73,7 @@ export interface RecordingSession {
 // Storage keys
 const RECORDING_SESSIONS_KEY = 'midscene-recording-sessions';
 const CURRENT_SESSION_ID_KEY = 'midscene-current-session-id';
+const RECORDING_STATE_KEY = 'midscene-recording-state';
 
 // Helper functions for persistence
 const loadSessionsFromStorage = (): RecordingSession[] => {
@@ -111,6 +112,25 @@ const saveCurrentSessionIdToStorage = (sessionId: string | null) => {
     }
   } catch (error) {
     console.error('Failed to save current session ID to storage:', error);
+  }
+};
+
+// Helper functions for recording state persistence
+const loadRecordingStateFromStorage = (): boolean => {
+  try {
+    const stored = localStorage.getItem(RECORDING_STATE_KEY);
+    return stored === 'true';
+  } catch (error) {
+    console.error('Failed to load recording state from storage:', error);
+    return false;
+  }
+};
+
+const saveRecordingStateToStorage = (isRecording: boolean) => {
+  try {
+    localStorage.setItem(RECORDING_STATE_KEY, isRecording.toString());
+  } catch (error) {
+    console.error('Failed to save recording state to storage:', error);
   }
 };
 
@@ -167,9 +187,10 @@ export const useRecordStore = create<{
   setEvents: (events: RecordedEvent[]) => void;
   clearEvents: () => void;
 }>((set) => ({
-  isRecording: false,
+  isRecording: loadRecordingStateFromStorage(),
   events: [],
   setIsRecording: (recording: boolean) => {
+    saveRecordingStateToStorage(recording);
     set({ isRecording: recording });
   },
   addEvent: (event: RecordedEvent) => {
