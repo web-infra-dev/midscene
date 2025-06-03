@@ -1,87 +1,119 @@
 # Midscene.js - AI 驱动，带来愉悦的 UI 自动化体验
 
-Your AI Operator for Web, Android, Automation & Testing
+开源的 AI 操作助手，适用于 Web、移动端、自动化和测试
 
+## 功能特性
 
-<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/ozpmyhn_lm_hymuPild/ljhwZthlaukjlkulzlp/midscene/Midscene.mp4" controls/>
+### 用自然语言编写自动化脚本
+- 描述你的目标和步骤，Midscene 会为你规划和操作用户界面。
+- 使用 Javascript SDK 或 YAML 格式编写自动化脚本。
 
-## 通过 AI 执行交互、提取数据和断言
+### 网页或移动应用
+- **网页自动化**：可以[与 Puppeteer 集成](https://midscenejs.com/integrate-with-puppeteer.html)，[与 Playwright 集成](https://midscenejs.com/integrate-with-playwright.html)或使用[桥接模式](https://midscenejs.com/bridge-mode-by-chrome-extension.html)来控制桌面浏览器。
+- **Android 自动化**：使用 [Javascript SDK](https://midscenejs.com/integrate-with-android.html) 配合 adb 来控制本地 Android 设备。
 
-Midscene 提供了三种关键方法：交互（`.ai`, `.aiAction`), 提取 (`.aiQuery`), 断言 (`.aiAssert`)。
+### 工具
+- **用于调试的可视化报告**: 通过我们的测试报告和 Playground，你可以轻松理解、回放和调试整个过程。
+- [**使用缓存，提高执行效率**](https://midscenejs.com/zh/caching.html): 使用缓存能力重放脚本，提高执行效率。
+- [**MCP**](https://midscenejs.com/zh/mcp.html): 允许其他 MCP Client 直接使用 Midscene 的能力。
 
-* 交互 - 用 `.ai` 方法描述步骤并执行交互
-* 提取 - 用 `.aiQuery` 从 UI 中“理解”并提取数据，返回值是 JSON 格式，你可以尽情描述想要的数据结构
-* 断言 - 用 `.aiAssert` 来执行断言
+### 三种 API 类型
 
-## 从 Chrome 插件开始快速体验
+- [**交互 API**](https://midscenejs.com/zh/api.html#interaction-methods): 与用户界面交互。
+- [**数据提取 API**](https://midscenejs.com/zh/api.html#data-extraction): 从用户界面和 DOM 中提取数据。
+- [**实用 API**](https://midscenejs.com/zh/api.html#more-apis): 实用函数，如 `aiAssert()` （断言）, `aiLocate()` （定位）, `aiWaitFor()` （等待）。
 
-通过使用 Midscene.js Chrome 插件，你可以快速在任意网页上体验 Midscene 的主要功能，而无需编写任何代码。
+## 演示案例
 
-点击 [这里](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief) 从 Chrome Web Store 安装 Midscene 插件。
+我们准备了一些演示案例供你学习 Midscene.js 的使用。
 
-请参照文档 [通过 Chrome 插件快速体验](./quick-experience) 进行安装和配置。
+1. 使用 JS 代码驱动任务编排，收集周杰伦演唱会信息，并写入 Google Docs（使用 UI-TARS 模型）
 
-## 多种代码集成形式
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/showcase-1-ui-tars.mp4" height="400" />
 
-维护 Midscene 自动化脚本是一种全新的编码体验。例如，在网页上搜索耳机，你可以这样做：
+2. 控制 Android 上的地图应用（使用 Qwen-2.5-VL 模型）
 
-```typescript
-// 👀 输入关键字，执行搜索
-await ai('在搜索框输入 "Headphones" ，敲回车');
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/showcase-2-android.mp4" height="400" />
 
-// 👀 找到列表里耳机相关的信息
-const items = await aiQuery(
-  '{itemTitle: string, price: Number}[], 找到列表里的商品标题和价格'
-);
+3. 使用 midscene mcp 浏览页面 (https://www.saucedemo.com/)，执行登录、添加产品、下订单，最后基于 mcp 执行步骤和 playwright 示例生成测试用例
 
-console.log("headphones in stock", items);
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/showcase-3-mcp.mp4" height="400" />
+
+## 零代码快速体验
+
+- **[Chrome 插件](https://midscenejs.com/quick-experience.html)**：通过 [Chrome 插件](https://midscenejs.com/quick-experience.html) 立即开始浏览器内体验，无需编写任何代码。
+- **[Android Playground](https://midscenejs.com/quick-experience-with-android.html)**：使用 Android playground 来控制你的本地 Android 设备。
+
+## 模型选择
+
+Midscene.js 支持多模态 LLM 模型，如 `gpt-4o`，以及视觉语言模型，如 `Qwen2.5-VL`、`Doubao-1.5-thinking-vision-pro`、`gemini-2.5-pro` 和 `UI-TARS`。
+
+推荐使用视觉语言模型进行 UI 自动化。
+
+了解更多关于[选择 AI 模型](https://midscenejs.com/choose-a-model)
+
+## 两种自动化风格
+
+### 自动规划
+
+Midscene 将自动规划步骤并执行。这可能会比较慢，并且严重依赖 AI 模型的质量。
+
+```javascript
+await aiAction('逐一点击所有记录。如果某个记录包含文本"completed"，则跳过它');
 ```
 
-有多种形式可以将 Midscene 集成到代码项目中：
+### 工作流风格
 
-* [使用 YAML 格式的自动化脚本](./automate-with-scripts-in-yaml)，如果你更喜欢写 YAML 文件而不是 Javascript 代码
-* [使用 Chrome 插件的桥接模式](./bridge-mode-by-chrome-extension)，用它来通过脚本控制桌面 Chrome
-* [与 Puppeteer 集成](./integrate-with-puppeteer)
-* [与 Playwright 集成](./integrate-with-playwright)
-* [与 Android 集成](./integrate-with-android)
+将复杂逻辑拆分为多个步骤，以提高自动化代码的稳定性。
 
-## 可视化报告
+```javascript
+const recordList = await agent.aiQuery('string[], the record list')
+for (const record of recordList) {
+  const hasCompleted = await agent.aiBoolean(`check if the record contains the text "completed"`)
+  if (!hasCompleted) {
+    await agent.aiTap(record)
+  }
+}
+```
 
-Midscene 希望让自动化脚本变得更稳定、更易于调试，因此我们提供了一个可视化报告。通过这个报告，你可以回顾动画回放，并查看每个步骤的详细信息。
-
-此外，Midscene 报告里还集成了一个 Playground，用以在报告中重新运行 Prompt 并进行调优。
-
-<p align="center">
-  <img src="/report.gif" alt="visualized report" loading="lazy" />
-</p>
-
-
-## ✨ 选择 AI 模型 
-
-你可以使用多模态 LLM 模型，如 `gpt-4o`，或者视觉语言模型，如 `Qwen2.5-VL`，`gemini-2.5-pro` 和 `UI-TARS`。其中 `UI-TARS` 是一个专为 UI 自动化设计的大模型。
-
-更多信息请查看 [选择 AI 模型](https://midscenejs.com/zh/choose-a-model)。
+> 有关工作流风格的更多详细信息，请参阅 [Blog - 使用 JavaScript 优化 AI 自动化代码
+](https://midscenejs.com/zh/blog-programming-practice-using-structured-api.html)
 
 
 ## 与其他工具比较
 
-业界的 UI 自动化工具层出不穷，每个 Demo 都看起来很科幻。Midscene.js 有什么特别之处？
+* **调试体验**: 你很快就会发现，调试和维护自动化脚本才是真正的痛点。无论模型多么强大，你仍然需要调试过程以确保其保持长期稳定。Midscene.js 提供了可视化报告、内置的 Playground 和 Chrome 插件，以调试整个运行过程。这是大多数开发者真正需要的特性，我们也在持续努力改进调试体验。
 
-* 调试体验：你很快就会发现，调试和维护自动化脚本才是真正的痛点。无论模型多么强大，你仍然需要调试过程以确保其保持长期稳定。Midscene.js 提供了可视化报告、内置的 Playground 和 Chrome 插件，以调试整个运行过程。这是大多数开发者真正需要的特性，我们也在持续努力改进调试体验。
+* **开源、免费、部署灵活**: Midscene.js 是一个开源项目。它与云服务和模型提供商解耦，你可以选择公共或私有部署。总会有一个适合你的方案。
 
-* 开源、免费、部署灵活：Midscene.js 是一个开源项目。它与云服务和模型提供商解耦，你可以选择公共或私有部署。总会有一个适合你的计划。
+* **与 Javascript 集成**: 你可以永远相信 Javascript 😎
 
-* 与 Javascript 集成：你可以永远相信 Javascript 😎
+## 资源
 
-## 直连模型端，无需三方服务
+* 主页和文档：[https://midscenejs.com](https://midscenejs.com/)
+* 示例项目：[https://github.com/web-infra-dev/midscene-example](https://github.com/web-infra-dev/midscene-example)
+* API 参考：[https://midscenejs.com/api.html](https://midscenejs.com/api.html)
+* GitHub：[https://github.com/web-infra-dev/midscene](https://github.com/web-infra-dev/midscene)
 
-Midscene 运行在用户的自有环境中，所有从页面收集的数据会依照用户的配置，直接传送到 OpenAI 或指定的自定义模型。因此，任何第三方平台均无法获取这些数据。
+## 社区
 
-更多详情请参考 [数据隐私](./data-privacy)。
-
-## 关注我们
-
-* [GitHub - 如果喜欢，请给我们点个 star](https://github.com/web-infra-dev/midscene)
-* [Twitter](https://x.com/midscene_ai)
 * [Discord](https://discord.gg/2JyBHxszE4)
+* [在 X 上关注我们](https://x.com/midscene_ai)
 * [飞书交流群](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=291q2b25-e913-411a-8c51-191e59aab14d)
+
+## 致谢
+
+我们要感谢以下项目：
+
+- [Rsbuild](https://github.com/web-infra-dev/rsbuild) 提供构建工具。
+- [UI-TARS](https://github.com/bytedance/ui-tars) 提供开源智能体模型 UI-TARS。
+- [Qwen2.5-VL](https://github.com/QwenLM/Qwen2.5-VL) 提供开源 VL 模型 Qwen2.5-VL。
+- [scrcpy](https://github.com/Genymobile/scrcpy) 和 [yume-chan](https://github.com/yume-chan) 让我们能够用浏览器控制 Android 设备。
+- [appium-adb](https://github.com/appium/appium-adb) 提供 adb 的 javascript 桥接。
+- [YADB](https://github.com/ysbing/YADB) 提供 yadb 工具，提升文本输入性能。
+- [Puppeteer](https://github.com/puppeteer/puppeteer) 提供浏览器自动化和控制。
+- [Playwright](https://github.com/microsoft/playwright) 提供浏览器自动化、控制和测试。
+
+## License
+
+Midscene.js 使用 [MIT 许可协议](https://github.com/web-infra-dev/midscene/blob/main/LICENSE)。

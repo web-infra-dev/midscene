@@ -10,7 +10,7 @@
 </div>
 
 <p align="center">
-  你的 AI 操作助手，适用于 Web、Android、自动化和测试
+  开源的 AI 操作助手，适用于 Web、移动端、自动化和测试
 </p>
 
 <p align="center">
@@ -40,8 +40,8 @@
 - 使用 Javascript SDK 或 YAML 格式编写自动化脚本。
 
 ### Web & Mobile App
-- **Web 自动化 🖥️**: 使用 [Puppeteer](https://midscenejs.com/zh/integrate-with-puppeteer.html) 或 [Playwright](https://midscenejs.com/zh/integrate-with-playwright.html) 与 Midscene.js 集成，或者使用 [Chrome 插件桥接模式](https://midscenejs.com/zh/bridge-mode-by-chrome-extension.html) 来控制你的桌面浏览器。
-- **Android 自动化 📱**: 使用 [Javascript SDK](https://midscenejs.com/zh/integrate-with-android.html) 与 [adb](https://midscenejs.com/zh/integrate-with-android.html) 控制你的本地 Android 设备。
+- **Web 自动化 🖥️**: 可以[与 Puppeteer 集成](https://midscenejs.com/integrate-with-puppeteer.html)，[与 Playwright 集成](https://midscenejs.com/integrate-with-playwright.html)或使用[桥接模式](https://midscenejs.com/bridge-mode-by-chrome-extension.html)来控制桌面浏览器。
+- **Android 自动化 📱**: 使用 [Javascript SDK](https://midscenejs.com/integrate-with-android.html) 配合 adb 来控制本地 Android 设备。
 
 ### 工具
 - **用于调试的可视化报告 🎞️**: 通过我们的测试报告和 Playground，你可以轻松理解、回放和调试整个过程。
@@ -94,7 +94,7 @@ for (const record of recordList) {
 ](https://midscenejs.com/zh/blog-programming-practice-using-structured-api.html)
 
 
-## 👀 与其它工具的比较
+## 👀 与其它工具比较
 
 * **调试体验**: 你很快就会发现，调试和维护自动化脚本才是真正的痛点。无论模型多么强大，你仍然需要调试过程以确保其保持长期稳定。Midscene.js 提供了可视化报告、内置的 Playground 和 Chrome 插件，以调试整个运行过程。这是大多数开发者真正需要的特性，我们也在持续努力改进调试体验。
 
