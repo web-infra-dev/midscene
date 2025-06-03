@@ -1,14 +1,14 @@
 import { existsSync, readFileSync } from 'node:fs';
+import path, { join } from 'node:path';
 import {
   type LocateCache,
   type PlanningCache,
   TaskCache,
 } from '@/common/task-cache';
+import { cacheFileExt } from '@/common/task-cache';
+import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { uuid } from '@midscene/shared/utils';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import path, { join } from 'node:path';
-import { getMidsceneRunSubDir } from '@midscene/shared/common';
-import { cacheFileExt } from '@/common/task-cache';
 
 vi.mock('../../package.json', () => {
   return {
@@ -228,32 +228,35 @@ describe(
     });
 
     it('should sanitize cache ID for file path', () => {
-      const cacheIdWithIllegalChars = 'test:cache*with?illegal"chars<>|and spaces';
+      const cacheIdWithIllegalChars =
+        'test:cache*with?illegal"chars<>|and spaces';
       const cache = new TaskCache(cacheIdWithIllegalChars, true);
-      
+
       // Cache ID should be sanitized
       expect(cache.cacheId).toBe('test-cache-with-illegal-chars---and-spaces');
-      
+
       // File path should contain sanitized cache ID
-      expect(cache.cacheFilePath).toContain('test-cache-with-illegal-chars---and-spaces.cache.yaml');
-      
+      expect(cache.cacheFilePath).toContain(
+        'test-cache-with-illegal-chars---and-spaces.cache.yaml',
+      );
+
       // Should be able to create cache file with sanitized name
       cache.appendCache({
         type: 'plan',
         prompt: 'test',
         yamlWorkflow: 'test-workflow',
       });
-      
+
       expect(existsSync(cache.cacheFilePath!)).toBe(true);
     });
 
     it('should handle cache ID with path separators', () => {
       const cacheIdWithPaths = '/path/to/cache\\with\\separators';
       const cache = new TaskCache(cacheIdWithPaths, true);
-      
+
       // Path separators should be preserved in cache ID
       expect(cache.cacheId).toBe('/path/to/cache\\with\\separators');
-      
+
       // File path should be valid
       expect(cache.cacheFilePath).toBeDefined();
       expect(cache.cacheFilePath).toContain('.cache.yaml');
@@ -261,22 +264,27 @@ describe(
 
     it('should create cache directory if it does not exist', () => {
       const cacheId = uuid();
-      const uniqueDir = path.join(process.cwd(), 'midscene_run', 'cache', `test-cache-dir-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`);
+      const uniqueDir = path.join(
+        process.cwd(),
+        'midscene_run',
+        'cache',
+        `test-cache-dir-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      );
       const customCacheDir = join(process.cwd(), uniqueDir, 'nested', 'deep');
       const customCacheFilePath = join(customCacheDir, `${cacheId}.cache.yaml`);
-      
+
       const cache = new TaskCache(cacheId, true, customCacheFilePath);
-      
+
       // Directory should not exist initially
       expect(existsSync(customCacheDir)).toBe(false);
-      
+
       // Adding cache should create the directory
       cache.appendCache({
         type: 'plan',
         prompt: 'test',
         yamlWorkflow: 'test-workflow',
       });
-      
+
       // Directory and file should now exist
       expect(existsSync(customCacheDir)).toBe(true);
       expect(existsSync(customCacheFilePath)).toBe(true);
@@ -284,19 +292,21 @@ describe(
 
     it('should handle custom cache file path', () => {
       const customPath = 'custom-cache.yaml';
-      
+
       const cache = new TaskCache(customPath, true);
-      
-      expect(cache.cacheFilePath).toBe(join(getMidsceneRunSubDir('cache'), `${customPath}${cacheFileExt}`));
-      
+
+      expect(cache.cacheFilePath).toBe(
+        join(getMidsceneRunSubDir('cache'), `${customPath}${cacheFileExt}`),
+      );
+
       cache.appendCache({
         type: 'locate',
         prompt: 'test-locate',
         xpaths: ['test-xpath'],
       });
-      
+
       expect(existsSync(cache.cacheFilePath!)).toBe(true);
-      
+
       // Verify content
       const content = readFileSync(cache.cacheFilePath!, 'utf-8');
       expect(content).toContain('test-locate');
@@ -310,35 +320,37 @@ describe(
 
     it('should handle minimal cache ID', () => {
       const cache = new TaskCache('a', true);
-      
+
       // Minimal cache ID should work
       expect(cache.cacheId).toBe('a');
       expect(cache.cacheFilePath).toContain('a.cache.yaml');
-      
+
       // Should be able to create cache file
       cache.appendCache({
         type: 'plan',
         prompt: 'test',
         yamlWorkflow: 'test-workflow',
       });
-      
+
       expect(existsSync(cache.cacheFilePath!)).toBe(true);
     });
 
     it('should preserve cache file path structure', () => {
       const cacheId = 'test-cache-id';
       const cache = new TaskCache(cacheId, true);
-      
+
       // Should use default cache directory structure
-      expect(cache.cacheFilePath).toMatch(/.*\/cache\/test-cache-id\.cache\.yaml$/);
-      
+      expect(cache.cacheFilePath).toMatch(
+        /.*\/cache\/test-cache-id\.cache\.yaml$/,
+      );
+
       // Should be able to write to the path
       cache.appendCache({
         type: 'plan',
         prompt: 'test',
         yamlWorkflow: 'test-workflow',
       });
-      
+
       expect(existsSync(cache.cacheFilePath!)).toBe(true);
     });
   },

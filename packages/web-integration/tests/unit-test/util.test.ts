@@ -1,5 +1,8 @@
 import { getKeyCommands } from '@/common/ui-utils';
-import { getCurrentExecutionFile, replaceIllegalPathCharsAndSpace } from '@/common/utils';
+import {
+  getCurrentExecutionFile,
+  replaceIllegalPathCharsAndSpace,
+} from '@/common/utils';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('TaskCache', () => {
@@ -104,7 +107,9 @@ describe('replaceIllegalPathCharsAndSpace', () => {
   it('should handle Windows path with illegal characters', () => {
     const input = 'C:\\Users\\Documents\\file:name*with?illegal"chars<>|.txt';
     const result = replaceIllegalPathCharsAndSpace(input);
-    expect(result).toBe('C-\\Users\\Documents\\file-name-with-illegal-chars---.txt');
+    expect(result).toBe(
+      'C-\\Users\\Documents\\file-name-with-illegal-chars---.txt',
+    );
   });
 
   it('should handle empty string', () => {
@@ -126,9 +131,12 @@ describe('replaceIllegalPathCharsAndSpace', () => {
   });
 
   it('should handle complex real-world scenario', () => {
-    const input = '/Users/test/Documents/My Project: "Important File" <2024>|backup*.txt';
+    const input =
+      '/Users/test/Documents/My Project: "Important File" <2024>|backup*.txt';
     const result = replaceIllegalPathCharsAndSpace(input);
-    expect(result).toBe('/Users/test/Documents/My-Project---Important-File---2024--backup-.txt');
+    expect(result).toBe(
+      '/Users/test/Documents/My-Project---Important-File---2024--backup-.txt',
+    );
   });
 
   it('should handle task title with illegal characters', () => {
