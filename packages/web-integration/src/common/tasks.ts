@@ -182,7 +182,7 @@ export class PageTaskExecutor {
 
   public async convertPlanToExecutable(
     plans: PlanningAction[],
-    opts?: { cacheable?: boolean },
+    opts?: { cacheable?: boolean; deepThink?: boolean },
   ) {
     const tasks: ExecutionTaskApply[] = [];
     plans.forEach((plan) => {
@@ -352,6 +352,9 @@ export class PageTaskExecutor {
             this.insight.onceDumpUpdatedFn = dumpCollector;
             const assertion = await this.insight.assert(
               assertPlan.param.assertion,
+              {
+                deepThink: opts?.deepThink,
+              },
             );
 
             if (!assertion.pass) {
@@ -1175,6 +1178,9 @@ export class PageTaskExecutor {
 
   async assert(
     assertion: string,
+    opt?: {
+      deepThink?: boolean;
+    },
   ): Promise<ExecutionResult<InsightAssertionResponse>> {
     const description = `assert: ${assertion}`;
     const taskExecutor = new Executor(taskTitleStr('Assert', description), {
@@ -1187,7 +1193,9 @@ export class PageTaskExecutor {
       },
       locate: null,
     };
-    const { tasks } = await this.convertPlanToExecutable([assertionPlan]);
+    const { tasks } = await this.convertPlanToExecutable([assertionPlan], {
+      deepThink: opt?.deepThink,
+    });
 
     await taskExecutor.append(this.prependExecutorWithScreenshot(tasks[0]));
     const output: InsightAssertionResponse = await taskExecutor.flush();

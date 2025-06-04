@@ -32,4 +32,26 @@ describe('assert', () => {
     });
     expect(pass).toBe(false);
   });
+
+  it('todo deep think', async () => {
+    const { context } = await getContextFromFixture('todo');
+
+    const {
+      content: { pass, thought },
+    } = await AiAssert({
+      assertion: 'Three tasks have been added',
+      context,
+      deepThink: false,
+    });
+    const {
+      content: { pass: passWithDeepThink, thought: thoughtWithDeepThink },
+    } = await AiAssert({
+      assertion: 'Three tasks have been added',
+      context,
+      deepThink: true,
+    });
+    expect(pass).toBe(false);
+    expect(passWithDeepThink).toBe(true);
+    expect(thoughtWithDeepThink.length).toBeGreaterThan(thought.length);
+  });
 });

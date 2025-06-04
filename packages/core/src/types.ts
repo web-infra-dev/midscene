@@ -248,6 +248,7 @@ export interface AgentWaitForOpt {
 
 export interface AgentAssertOpt {
   keepRawResponse?: boolean;
+  deepThink?: boolean;
 }
 
 /**

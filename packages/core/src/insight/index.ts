@@ -303,7 +303,10 @@ export default class Insight<
     };
   }
 
-  async assert(assertion: string): Promise<InsightAssertionResponse> {
+  async assert(
+    assertion: string,
+    opt?: { deepThink?: boolean },
+  ): Promise<InsightAssertionResponse> {
     if (typeof assertion !== 'string') {
       throw new Error(
         'This is the assert method for Midscene, the first argument should be a string. If you want to use the assert method from Node.js, please import it from the Node.js assert module.',
@@ -318,6 +321,7 @@ export default class Insight<
     const assertResult = await AiAssert({
       assertion,
       context,
+      deepThink: opt?.deepThink,
     });
 
     const timeCost = Date.now() - startTime;

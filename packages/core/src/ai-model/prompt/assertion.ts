@@ -4,17 +4,19 @@ import type { ResponseFormatJSONSchema } from 'openai/resources';
 const defaultAssertionPrompt =
   'You are a senior testing engineer. User will give an assertion and a screenshot of a page. By carefully viewing the screenshot, please tell whether the assertion is truthy.';
 
-const defaultAssertionResponseJsonFormat = `Return in the following JSON format:
+const getDefaultAssertionResponseJsonFormat = (
+  deepThink: boolean,
+) => `Return in the following JSON format:
 {
+  thought: string, // string, ${deepThink ? 'ALWAYS provide the reasoning process that led to the pass/fail conclusion. This should detail the step-by-step thinking.' : 'if the result is falsy, give the reason why it is falsy. Otherwise, put null.'}
   pass: boolean, // whether the assertion is truthy
-  thought: string | null, // string, if the result is falsy, give the reason why it is falsy. Otherwise, put null.
 }`;
 
 const getUiTarsAssertionResponseJsonFormat = () => `## Output Json String Format
 \`\`\`
 "{
-  "pass": <<is a boolean value from the enum [true, false], true means the assertion is truthy>>, 
   "thought": "<<is a string, give the reason why the assertion is falsy or truthy. Otherwise.>>"
+  "pass": <<is a boolean value from the enum [true, false], true means the assertion is truthy>>, 
 }"
 \`\`\`
 
@@ -23,10 +25,13 @@ const getUiTarsAssertionResponseJsonFormat = () => `## Output Json String Format
 - Use ${getPreferredLanguage()} in \`thought\` part.
 - You **MUST** strictly follow up the **Output Json String Format**.`;
 
-export function systemPromptToAssert(model: { isUITars: boolean }) {
+export function systemPromptToAssert(model: {
+  isUITars: boolean;
+  deepThink: boolean;
+}) {
   return `${defaultAssertionPrompt}
 
-${model.isUITars ? getUiTarsAssertionResponseJsonFormat() : defaultAssertionResponseJsonFormat}`;
+${model.isUITars ? getUiTarsAssertionResponseJsonFormat() : getDefaultAssertionResponseJsonFormat(model.deepThink)}`;
 }
 
 export const assertSchema: ResponseFormatJSONSchema = {

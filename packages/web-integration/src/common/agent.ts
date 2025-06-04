@@ -562,7 +562,9 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   async aiAssert(assertion: string, msg?: string, opt?: AgentAssertOpt) {
-    const { output, executor } = await this.taskExecutor.assert(assertion);
+    const { output, executor } = await this.taskExecutor.assert(assertion, {
+      deepThink: opt?.deepThink,
+    });
     this.afterTaskRunning(executor, true);
 
     if (output && opt?.keepRawResponse) {

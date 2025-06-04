@@ -230,7 +230,9 @@ export const PromptInput: React.FC<PromptInputProps> = ({
           >
             <ConfigSelector
               enableTracking={serviceMode === 'In-Browser-Extension'}
-              showDeepThinkOption={selectedType === 'aiTap'}
+              showDeepThinkOption={
+                selectedType === 'aiTap' || selectedType === 'aiAssert'
+              }
             />
           </div>
           {renderActionButton()}

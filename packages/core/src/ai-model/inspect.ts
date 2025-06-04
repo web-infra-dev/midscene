@@ -363,8 +363,12 @@ export async function AiExtractElementInfo<
 
 export async function AiAssert<
   ElementType extends BaseElement = BaseElement,
->(options: { assertion: string; context: UIContext<ElementType> }) {
-  const { assertion, context } = options;
+>(options: {
+  assertion: string;
+  context: UIContext<ElementType>;
+  deepThink?: boolean;
+}) {
+  const { assertion, context, deepThink } = options;
 
   assert(assertion, 'assertion should be a string');
 
@@ -372,6 +376,7 @@ export async function AiAssert<
 
   const systemPrompt = systemPromptToAssert({
     isUITars: getAIConfigInBoolean(MIDSCENE_USE_VLM_UI_TARS),
+    deepThink: deepThink ?? false,
   });
 
   const msgs: AIArgs = [

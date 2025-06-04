@@ -199,6 +199,7 @@ export default class PlaygroundServer {
           } else if (type === 'aiAssert') {
             response.result = await agent.aiAssert(prompt, undefined, {
               keepRawResponse: true,
+              deepThink,
             });
           } else if (type === 'aiTap') {
             response.result = await agent.aiTap(prompt, {

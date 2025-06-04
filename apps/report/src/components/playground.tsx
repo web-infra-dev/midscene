@@ -165,6 +165,7 @@ export function StandardPlayground({
         } else if (actionType === 'aiAssert') {
           result.result = await activeAgent?.aiAssert(value.prompt, undefined, {
             keepRawResponse: true,
+            deepThink,
           });
         } else if (actionType === 'aiTap') {
           result.result = await activeAgent?.aiTap(value.prompt, {
