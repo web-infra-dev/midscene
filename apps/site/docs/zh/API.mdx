@@ -386,12 +386,18 @@ const stringB = await agent.aiString('当前列表的第一条记录的跳转链
 * 类型
 
 ```typescript
-function aiAssert(assertion: string, errorMsg?: string): Promise<void>;
+function aiAssert(assertion: string, errorMsg?: string, options?: {
+  deepThink?: boolean;
+  keepRawResponse?: boolean;
+}): Promise<void>;
 ```
 
 * 参数：
   * assertion: string - 用自然语言描述的断言条件。
   * errorMsg?: string - 当断言失败时附加的可选错误提示信息。
+  * options?: Object - 可选的配置对象，包含：
+    * `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 启用 AI 模型的 [COT](https://www.wikiwand.com/en/articles/Chain_of_thought) 模式，使 AI 在断言时进行更深入的思考。默认值为 False。
+    * `keepRawResponse?: boolean` - 是否保留 AI 的原始响应。如果为 true，Midscene 会保留 AI 的原始响应而不格式化。默认值为 False。
 
 * 返回值：
   * 返回一个 Promise。当断言成功时解析为 void；若断言失败，则抛出一个错误，错误信息包含 `errorMsg` 以及 AI 生成的原因。

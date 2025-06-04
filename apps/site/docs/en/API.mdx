@@ -383,12 +383,18 @@ Specify an assertion in natural language, and the AI determines whether the cond
 * Type
 
 ```typescript
-function aiAssert(assertion: string, errorMsg?: string): Promise<void>;
+function aiAssert(assertion: string, errorMsg?: string, options?: {
+  deepThink?: boolean;
+  keepRawResponse?: boolean;
+}): Promise<void>;
 ```
 
 * Parameters:
   * `assertion: string` - The assertion described in natural language.
   * `errorMsg?: string` - An optional error message to append if the assertion fails.
+  * `options?: Object` - Optional, a configuration object containing:
+    * `deepThink?: boolean` - If true, Midscene will enable AI model's [COT](https://www.wikiwand.com/en/articles/Chain_of_thought) mode, which makes AI model to think more deeply when asserting. Default: False.
+    * `keepRawResponse?: boolean` - If true, Midscene will keep the raw response from the AI model. Default: False.
 
 * Return Value:
   * Returns a Promise that resolves to void if the assertion passes; if it fails, an error is thrown with `errorMsg` and additional AI-provided information.
