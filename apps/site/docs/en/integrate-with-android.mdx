@@ -208,10 +208,22 @@ Please check if the device is unlocked in the developer options of the system se
 </p>
 
 
-### How to use a custom adb path?
+### How to use a custom adb path, remote adb host and port?
 
-You can use the `MIDSCENE_ADB_PATH` environment variable to specify the path to the adb executable.
+You can use the `MIDSCENE_ADB_PATH` environment variable to specify the path to the adb executable, `MIDSCENE_ADB_REMOTE_HOST` environment variable to specify the remote adb host, `MIDSCENE_ADB_REMOTE_PORT` environment variable to specify the remote adb port.
 
 ```bash
 export MIDSCENE_ADB_PATH=/path/to/adb
+export MIDSCENE_ADB_REMOTE_HOST=192.168.1.100
+export MIDSCENE_ADB_REMOTE_PORT=5037
+```
+
+Additionally, you can also specify the adb path, remote adb host and port through the AndroidDevice constructor.
+
+```typescript
+const device = new AndroidDevice('s4ey59', {
+  androidAdbPath: '/path/to/adb',
+  remoteAdbHost: '192.168.1.100',
+  remoteAdbPort: 5037,
+});
 ```

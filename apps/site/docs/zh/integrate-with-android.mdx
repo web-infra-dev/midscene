@@ -207,10 +207,22 @@ const agent = await agentFromAdbDevice(devices[0].udid);
   <img src="/android-usb-debug.png" alt="android usb debug" width="400"/>
 </p>
 
-### 如何使用自定义的 adb 路径？
+### 如何使用自定义的 adb 路径、远程 adb 主机和端口？
 
-你可以使用 `MIDSCENE_ADB_PATH` 环境变量来指定 adb 可执行文件的路径。
+你可以使用 `MIDSCENE_ADB_PATH` 环境变量来指定 adb 可执行文件的路径，`MIDSCENE_ADB_REMOTE_HOST` 环境变量来指定远程 adb 主机，`MIDSCENE_ADB_REMOTE_PORT` 环境变量来指定远程 adb 端口。
 
 ```bash
 export MIDSCENE_ADB_PATH=/path/to/adb
+export MIDSCENE_ADB_REMOTE_HOST=192.168.1.100
+export MIDSCENE_ADB_REMOTE_PORT=5037
+```
+
+此外，也可以通过 AndroidDevice 的构造函数来指定 adb 可执行文件的路径、远程 adb 主机和端口。
+
+```typescript
+const device = new AndroidDevice('s4ey59', {
+  androidAdbPath: '/path/to/adb',
+  remoteAdbHost: '192.168.1.100',
+  remoteAdbPort: 5037,
+});
 ```
