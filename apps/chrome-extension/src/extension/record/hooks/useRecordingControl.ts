@@ -12,7 +12,7 @@ import {
   isChromeExtension,
   type RecordMessage
 } from '../types';
-import { ensureScriptInjected, exportEventsToFile } from '../utils';
+import { ensureScriptInjected, exportEventsToFile, generateRecordTitle } from '../utils';
 
 export const useRecordingControl = (
   currentTab: chrome.tabs.Tab | null,
@@ -75,14 +75,33 @@ export const useRecordingControl = (
             events.length > 0
               ? events[events.length - 1].timestamp - events[0].timestamp
               : 0;
-          updateSession(currentSessionId, {
+          
+          // Generate title and description if we have events
+          let updateData: Partial<RecordingSession> = {
             status: 'completed',
             events: [...events],
             duration,
             updatedAt: Date.now(),
-          });
-
-          message.success(`Recording saved to session "${session.name}"`);
+          };
+          
+          // Generate AI title and description if we have events
+          if (events.length > 0) {
+            message.loading('Generating recording title and description...', 1);
+            try {
+              const { title, description } = await generateRecordTitle(events);
+              if (title) {
+                updateData.name = title;
+              }
+              if (description) {
+                updateData.description = description;
+              }
+            } catch (error) {
+              console.error('Failed to generate title/description:', error);
+            }
+          }
+          
+          updateSession(currentSessionId, updateData);
+          message.success(`Recording saved to session "${updateData.name || session.name}"`);
         }
       }
     } catch (error) {
