@@ -1,14 +1,6 @@
 import { message } from 'antd';
-import { callToGetJSONObject } from '@midscene/core/ai-model';
+import { callToGetJSONObject, AIActionType } from '@midscene/core/ai-model';
 
-// Import AIActionType enum locally since it's not exported from the module
-enum AIActionType {
-  ASSERT = 0,
-  INSPECT_ELEMENT = 1,
-  EXTRACT_DATA = 2,
-  PLAN = 3,
-  DESCRIBE_ELEMENT = 4,
-}
 import { type RecordedEvent } from '../../store';
 import { safeChromeAPI, isChromeExtension } from './types';
 
@@ -125,6 +117,51 @@ export const exportEventsToFile = (
   message.success(`Events from "${sessionName}" exported successfully`);
 };
 
+export const generateSessionName = () => {
+
+  // Auto-create session with timestamp name
+  const sessionName = new Date().toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).replace(/\//g, '-');
+  return sessionName;
+};
+
+// Function to get screenshots from events
+const getScreenshotsForLLM = (events: RecordedEvent[], maxScreenshots: number = 1): string[] => {
+  // Find events with screenshots, prioritizing navigation and click events
+  const eventsWithScreenshots = events.filter(event => 
+    event.screenshot || event.screenshotBefore || event.screenshotAfter || event.screenshotWithBox
+  );
+  
+  // Sort them by priority (navigation first, then clicks, then others)
+  const sortedEvents = [...eventsWithScreenshots].sort((a, b) => {
+    if (a.type === 'navigation' && b.type !== 'navigation') return -1;
+    if (a.type !== 'navigation' && b.type === 'navigation') return 1;
+    if (a.type === 'click' && b.type !== 'click') return -1;
+    if (a.type !== 'click' && b.type === 'click') return 1;
+    return 0;
+  });
+
+  // Extract up to maxScreenshots screenshots
+  const screenshots: string[] = [];
+  for (const event of sortedEvents) {
+    // Prefer the most informative screenshot
+    const screenshot = event.screenshotWithBox || event.screenshot || event.screenshotAfter || event.screenshotBefore;
+    if (screenshot && !screenshots.includes(screenshot)) {
+      screenshots.push(screenshot);
+      if (screenshots.length >= maxScreenshots) break;
+    }
+  }
+
+  return screenshots;
+};
+
 // Generate a title and description for recording using AI based on events
 export const generateRecordTitle = async (
   events: RecordedEvent[],
@@ -138,10 +175,13 @@ export const generateRecordTitle = async (
       return {};
     }
 
-    // If there's very little data, use the simple method
-    if (events.length < 5) {
-      return generateSimpleRecordTitle(events);
-    }
+    // If there's very little data, use simple fallback
+    // if (events.length < 5) {
+    //   return {
+    //     title: generateSessionName(),
+    //     description: `Recording with ${events.length} action${events.length === 1 ? '' : 's'}`,
+    //   };
+    // }
 
     // Prepare data for LLM
     const navigationEvents = events.filter(
@@ -180,6 +220,34 @@ export const generateRecordTitle = async (
     };
 
     try {
+      // Get screenshots for visual context
+      const screenshots = getScreenshotsForLLM(events);
+      
+      // Create the message content
+      const messageContent: Array<string | Record<string, any>> = [
+        {
+          type: 'text',
+          text: `Generate a concise title (5-7 words) and brief description (1-2 sentences) for a browser recording session with the following events:\n\n${JSON.stringify(summary, null, 2)}\n\nRespond with a JSON object containing "title" and "description" fields. The title should be action-oriented and highlight the main task accomplished. The description should provide slightly more detail about what was done.`
+        }
+      ];
+      
+      // Add screenshots if available
+      if (screenshots.length > 0) {
+        messageContent.unshift({
+          type: 'text',
+          text: "Here are screenshots from the recording session to help you understand the context:"
+        });
+        
+        screenshots.forEach(screenshot => {
+          messageContent.unshift({
+            type: "image_url",
+            image_url: {
+              url: screenshot
+            }
+          });
+        });
+      }
+
       // Use LLM to generate title and description
       const prompt = [
         {
@@ -189,11 +257,7 @@ export const generateRecordTitle = async (
         },
         {
           role: 'user',
-          content: `Generate a concise title (5-7 words) and brief description (1-2 sentences) for a browser recording session with the following events:
-
-${JSON.stringify(summary, null, 2)}
-
-Respond with a JSON object containing "title" and "description" fields. The title should be action-oriented and highlight the main task accomplished. The description should provide slightly more detail about what was done.`,
+          content: messageContent,
         },
       ];
 
@@ -209,93 +273,18 @@ Respond with a JSON object containing "title" and "description" fields. The titl
       }
     } catch (llmError) {
       console.error('Error using LLM for title generation:', llmError);
-      // Fall back to simple title generation
-      return generateSimpleRecordTitle(events);
     }
 
-    // If LLM fails, fall back to simple method
-    return generateSimpleRecordTitle(events);
+    // Fallback return if LLM fails
+    return {
+      title: generateSessionName(),
+      description: '',
+    };
   } catch (error) {
     console.error('Error generating recording title:', error);
-    return {};
+    return {
+      title: generateSessionName(),
+      description: '',
+    };
   }
-};
-
-// Fallback method to generate a simple title and description without LLM
-const generateSimpleRecordTitle = (
-  events: RecordedEvent[],
-): {
-  title?: string;
-  description?: string;
-} => {
-  // Collect useful event information to summarize
-  const navigationEvents = events.filter(
-    (event) => event.type === 'navigation',
-  );
-  const clickEvents = events.filter((event) => event.type === 'click');
-  const inputEvents = events.filter((event) => event.type === 'input');
-
-  // Extract page titles and URLs from navigation events
-  const pageTitles = navigationEvents
-    .map((event) => event.title)
-    .filter(Boolean);
-  const urls = navigationEvents.map((event) => event.url).filter(Boolean);
-
-  // Extract element descriptions from click and input events
-  const clickDescriptions = clickEvents
-    .map((event) => event.elementDescription)
-    .filter(Boolean);
-
-  // If there's very little data, we can't generate a good title
-  if (
-    clickEvents.length < 2 &&
-    inputEvents.length < 2 &&
-    navigationEvents.length < 2
-  ) {
-    return {};
-  }
-
-  // Generate a title from the summary
-  let title = '';
-
-  // Try to use the first page title if it exists
-  if (pageTitles.length > 0 && pageTitles[0]) {
-    // Extract domain from URL for context
-    const domain = urls[0] ? new URL(urls[0]).hostname.replace('www.', '') : '';
-
-    if (clickEvents.length > 0 || inputEvents.length > 0) {
-      // Create a task-based title
-      const action =
-        inputEvents.length > clickEvents.length
-          ? 'Form Filling on'
-          : 'Navigation on';
-      title = `${action} ${domain || pageTitles[0]}`;
-    } else {
-      // Just use the page title
-      title = `Visit to ${domain || pageTitles[0]}`;
-    }
-  } else {
-    // Fallback if no page title
-    const actionCount = clickEvents.length + inputEvents.length;
-    title = `Recording with ${actionCount} actions`;
-  }
-
-  // Generate a brief description
-  let description = '';
-  if (navigationEvents.length > 1) {
-    description = `Visited ${navigationEvents.length} pages`;
-  } else if (navigationEvents.length === 1) {
-    description = `Visited ${pageTitles[0] || 'a page'}`;
-  }
-
-  if (clickEvents.length > 0 || inputEvents.length > 0) {
-    description += description ? ', ' : '';
-    description += `performed ${clickEvents.length} clicks and ${inputEvents.length} inputs`;
-  }
-
-  if (clickDescriptions.length > 0) {
-    description += `. Example actions: ${clickDescriptions[0]}`;
-  }
-
-  return { title, description };
 };

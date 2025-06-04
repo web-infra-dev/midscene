@@ -62,7 +62,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
             )}
 
             {/* Header with back button and session info */}
-            <div className="detail-header">
+            <div className="detail-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Button
                     type="text"
                     icon={<ArrowLeftOutlined />}
@@ -71,9 +71,10 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
                 >
                     Back to Sessions
                 </Button>
-                <div className="session-title">
+                <div className="session-title" style={{ textAlign: 'center', flex: 1 }}>
                     <Title level={4}>{session.name}</Title>
                 </div>
+                <div style={{ width: '120px' }}></div> {/* Spacer to balance the layout */}
             </div>
 
             {/* Recording Status Indicator */}

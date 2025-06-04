@@ -4,7 +4,6 @@ import {
   type RecordedEvent,
   type RecordingSession,
   useRecordStore,
-  useRecordingSessionStore,
 } from '../../../store';
 import { clearDescriptionCache, optimizeEvent } from '../../../utils/eventOptimizer';
 import { 
@@ -12,7 +11,7 @@ import {
   isChromeExtension,
   type RecordMessage
 } from '../types';
-import { ensureScriptInjected, exportEventsToFile, generateRecordTitle } from '../utils';
+import { ensureScriptInjected, exportEventsToFile, generateRecordTitle, generateSessionName } from '../utils';
 
 export const useRecordingControl = (
   currentTab: chrome.tabs.Tab | null,
@@ -86,7 +85,7 @@ export const useRecordingControl = (
           
           // Generate AI title and description if we have events
           if (events.length > 0) {
-            message.loading('Generating recording title and description...', 1);
+            const hideLoadingMessage = message.loading('Generating recording title and description...', 0);
             try {
               const { title, description } = await generateRecordTitle(events);
               if (title) {
@@ -97,6 +96,8 @@ export const useRecordingControl = (
               }
             } catch (error) {
               console.error('Failed to generate title/description:', error);
+            } finally {
+              hideLoadingMessage();
             }
           }
           
@@ -150,15 +151,7 @@ export const useRecordingControl = (
     let sessionToUse = getCurrentSession();
     if (!sessionToUse) {
       // Auto-create session with timestamp name
-      const sessionName = new Date().toLocaleString('zh-CN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false,
-      }).replace(/\//g, '-');
+      const sessionName = generateSessionName();
       
       sessionToUse = createNewSession(sessionName);
       message.success(`Session "${sessionName}" created automatically`);
