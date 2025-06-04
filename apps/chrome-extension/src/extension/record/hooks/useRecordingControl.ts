@@ -13,12 +13,16 @@ import {
 } from '../types';
 import { ensureScriptInjected, exportEventsToFile, generateRecordTitle, generateSessionName } from '../utils';
 
+/**
+ * Hook to manage recording controls and handle recording events
+ */
 export const useRecordingControl = (
   currentTab: chrome.tabs.Tab | null,
   currentSessionId: string | null,
   getCurrentSession: () => RecordingSession | null,
   updateSession: (sessionId: string, updates: Partial<RecordingSession>) => void,
-  createNewSession: (sessionName?: string) => RecordingSession
+  createNewSession: (sessionName?: string) => RecordingSession,
+  onSessionUpdated?: (session: RecordingSession) => void
 ) => {
   const {
     isRecording,
@@ -103,6 +107,16 @@ export const useRecordingControl = (
           
           updateSession(currentSessionId, updateData);
           message.success(`Recording saved to session "${updateData.name || session.name}"`);
+          
+          // If this session is currently selected and displayed in the UI,
+          // we need to manually update the UI to reflect the changes
+          if (getCurrentSession()?.id === currentSessionId) {
+            const updatedSession = getCurrentSession();
+            // Notify any parent components about the session update via callback or ref
+            if (updatedSession && onSessionUpdated) {
+              onSessionUpdated(updatedSession);
+            }
+          }
         }
       }
     } catch (error) {

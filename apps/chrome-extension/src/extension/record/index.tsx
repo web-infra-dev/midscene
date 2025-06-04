@@ -44,7 +44,7 @@ export default function Record() {
         handleExportSession,
     } = sessionHooks;
 
-    // Initialize recording control with currentTab
+    // Initialize recording control with currentTab and add type assertion
     const controlHooks = useRecordingControl(
         currentTab,
         currentSessionId,
@@ -52,7 +52,11 @@ export default function Record() {
         (sessionId: string, updates: Partial<RecordingSession>) => {
             sessionHooks.handleUpdateSession(sessionId, updates);
         },
-        createNewSession
+        createNewSession,
+        // Add callback to handle session updates from AI title generation
+        (updatedSession: RecordingSession) => {
+            setSelectedSession(updatedSession);
+        }
     );
     const {
         isRecording,
