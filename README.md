@@ -31,9 +31,7 @@ English | [简体中文](./README.zh.md)
 | :---:  | :---: |
 | Use JS code to drive task orchestration, collect information about Jay Chou's concert, and write it into Google Docs (By UI-TARS model)   | <video src="https://github.com/user-attachments/assets/75474138-f51f-4c54-b3cf-46d61d059999" height="300" />        |
 | Control Maps App on Android (By Qwen-2.5-VL model)   | <video src="https://github.com/user-attachments/assets/1f5bab0e-4c28-44e1-b378-a38809b05a00" height="300" />        |
-| Using midscene mcp to browse the page (https://www.saucedemo.com/), perform login, add products, place orders, and finally generate test cases based on mcp execution steps and playwright example |    
-
-<video src="https://github.com/user-attachments/assets/a95ca353-e50c-4091-85ba-e542f576b6be" height="300" />   |
+| Using midscene mcp to browse the page (https://www.saucedemo.com/), perform login, add products, place orders, and finally generate test cases based on mcp execution steps and playwright example | <video src="https://github.com/user-attachments/assets/a95ca353-e50c-4091-85ba-e542f576b6be" height="300" />   |
 
 ## 💡 Features
 
