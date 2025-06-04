@@ -5,10 +5,11 @@ exports[`Assertion prompt > return UI-Tars specific when it is UI-Tars 1`] = `
 
 ## Output Json String Format
 \`\`\`
-"{
-  "thought": "<<is a string, give the reason why the assertion is falsy or truthy. Otherwise.>>"
+{
   "pass": <<is a boolean value from the enum [true, false], true means the assertion is truthy>>, 
-}"
+  "thought": "<<is a string, give the reason why the assertion is falsy or truthy. Otherwise.>>"
+
+}
 \`\`\`
 
 ## Rules **MUST** follow
@@ -22,10 +23,10 @@ exports[`Assertion prompt > return UI-Tars specific when it is UI-Tars and deepT
 
 ## Output Json String Format
 \`\`\`
-"{
-  "thought": "<<is a string, give the reason why the assertion is falsy or truthy. Otherwise.>>"
+{
+  "thought": "<<is a string, ALWAYS provide the reasoning process that led to the pass/fail conclusion. This should detail the step-by-step thinking.>>", 
   "pass": <<is a boolean value from the enum [true, false], true means the assertion is truthy>>, 
-}"
+}
 \`\`\`
 
 ## Rules **MUST** follow
@@ -39,7 +40,8 @@ exports[`Assertion prompt > return default when it is not UI-Tars 1`] = `
 
 Return in the following JSON format:
 {
-  thought: string, // string, if the result is falsy, give the reason why it is falsy. Otherwise, put null.
   pass: boolean, // whether the assertion is truthy
-}"
+  thought: string, // string, if the result is falsy, give the reason why it is falsy. Otherwise, put null.
+  }
+"
 `;

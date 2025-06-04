@@ -7,17 +7,35 @@ const defaultAssertionPrompt =
 const getDefaultAssertionResponseJsonFormat = (
   deepThink: boolean,
 ) => `Return in the following JSON format:
-{
-  thought: string, // string, ${deepThink ? 'ALWAYS provide the reasoning process that led to the pass/fail conclusion. This should detail the step-by-step thinking.' : 'if the result is falsy, give the reason why it is falsy. Otherwise, put null.'}
+${
+  deepThink
+    ? `{
+  thought: string, // string, ALWAYS provide the reasoning process that led to the pass/fail conclusion. This should detail the step-by-step thinking.
   pass: boolean, // whether the assertion is truthy
-}`;
+}`
+    : `{
+  pass: boolean, // whether the assertion is truthy
+  thought: string, // string, if the result is falsy, give the reason why it is falsy. Otherwise, put null.
+  }`
+}
+`;
 
-const getUiTarsAssertionResponseJsonFormat = () => `## Output Json String Format
+const getUiTarsAssertionResponseJsonFormat = (
+  deepThink: boolean,
+) => `## Output Json String Format
 \`\`\`
-"{
-  "thought": "<<is a string, give the reason why the assertion is falsy or truthy. Otherwise.>>"
+${
+  deepThink
+    ? `{
+  "thought": "<<is a string, ALWAYS provide the reasoning process that led to the pass/fail conclusion. This should detail the step-by-step thinking.>>", 
   "pass": <<is a boolean value from the enum [true, false], true means the assertion is truthy>>, 
-}"
+}`
+    : `{
+  "pass": <<is a boolean value from the enum [true, false], true means the assertion is truthy>>, 
+  "thought": "<<is a string, give the reason why the assertion is falsy or truthy. Otherwise.>>"
+
+}`
+}
 \`\`\`
 
 ## Rules **MUST** follow
@@ -31,7 +49,7 @@ export function systemPromptToAssert(model: {
 }) {
   return `${defaultAssertionPrompt}
 
-${model.isUITars ? getUiTarsAssertionResponseJsonFormat() : getDefaultAssertionResponseJsonFormat(model.deepThink)}`;
+${model.isUITars ? getUiTarsAssertionResponseJsonFormat(model.deepThink) : getDefaultAssertionResponseJsonFormat(model.deepThink)}`;
 }
 
 export const assertSchema: ResponseFormatJSONSchema = {
