@@ -17,4 +17,4 @@ export const useTabMonitoring = () => {
     currentTab,
     setCurrentTab,
   };
-}; 
+};

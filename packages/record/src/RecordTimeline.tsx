@@ -17,8 +17,7 @@ import {
   Timeline,
   Typography,
 } from 'antd';
-// biome-ignore lint/style/useImportType: <explanation>
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 
 const { Text, Title } = Typography;
 

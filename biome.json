@@ -43,7 +43,8 @@
       },
       "style": {
         "noParameterAssign": "off",
-        "noNonNullAssertion": "off"
+        "noNonNullAssertion": "off",
+        "noUselessElse": "off"
       },
       "correctness": {
         "useExhaustiveDependencies": "off"

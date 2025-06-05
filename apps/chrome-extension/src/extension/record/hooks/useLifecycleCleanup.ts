@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
 import { message } from 'antd';
+import { useEffect } from 'react';
 import type { RecordingSession } from '../../../store';
 
 export const useLifecycleCleanup = (
@@ -8,7 +8,10 @@ export const useLifecycleCleanup = (
   setIsRecording: (recording: boolean) => void,
   currentSessionId: string | null,
   getCurrentSession: () => RecordingSession | null,
-  updateSession: (sessionId: string, updates: Partial<RecordingSession>) => void
+  updateSession: (
+    sessionId: string,
+    updates: Partial<RecordingSession>,
+  ) => void,
 ) => {
   // Monitor visibility changes for the extension popup
   useEffect(() => {
@@ -48,7 +51,14 @@ export const useLifecycleCleanup = (
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [isRecording, stopRecording, setIsRecording, currentSessionId, getCurrentSession, updateSession]);
+  }, [
+    isRecording,
+    stopRecording,
+    setIsRecording,
+    currentSessionId,
+    getCurrentSession,
+    updateSession,
+  ]);
 
   // Cleanup on component unmount
   useEffect(() => {
@@ -68,4 +78,4 @@ export const useLifecycleCleanup = (
       }
     };
   }, []); // Empty dependency array means this runs only on unmount
-}; 
+};

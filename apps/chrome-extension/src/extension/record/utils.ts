@@ -1,8 +1,8 @@
+import { AIActionType, callToGetJSONObject } from '@midscene/core/ai-model';
 import { message } from 'antd';
-import { callToGetJSONObject, AIActionType } from '@midscene/core/ai-model';
 
-import { type RecordedEvent } from '../../store';
-import { safeChromeAPI, isChromeExtension } from './types';
+import type { RecordedEvent } from '../../store';
+import { isChromeExtension, safeChromeAPI } from './types';
 
 // Generate default session name with current time
 export const generateDefaultSessionName = () => {
@@ -118,27 +118,35 @@ export const exportEventsToFile = (
 };
 
 export const generateSessionName = () => {
-
   // Auto-create session with timestamp name
-  const sessionName = new Date().toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  }).replace(/\//g, '-');
+  const sessionName = new Date()
+    .toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    })
+    .replace(/\//g, '-');
   return sessionName;
 };
 
 // Function to get screenshots from events
-const getScreenshotsForLLM = (events: RecordedEvent[], maxScreenshots: number = 1): string[] => {
+const getScreenshotsForLLM = (
+  events: RecordedEvent[],
+  maxScreenshots = 1,
+): string[] => {
   // Find events with screenshots, prioritizing navigation and click events
-  const eventsWithScreenshots = events.filter(event => 
-    event.screenshot || event.screenshotBefore || event.screenshotAfter || event.screenshotWithBox
+  const eventsWithScreenshots = events.filter(
+    (event) =>
+      event.screenshot ||
+      event.screenshotBefore ||
+      event.screenshotAfter ||
+      event.screenshotWithBox,
   );
-  
+
   // Sort them by priority (navigation first, then clicks, then others)
   const sortedEvents = [...eventsWithScreenshots].sort((a, b) => {
     if (a.type === 'navigation' && b.type !== 'navigation') return -1;
@@ -152,7 +160,11 @@ const getScreenshotsForLLM = (events: RecordedEvent[], maxScreenshots: number = 
   const screenshots: string[] = [];
   for (const event of sortedEvents) {
     // Prefer the most informative screenshot
-    const screenshot = event.screenshotWithBox || event.screenshot || event.screenshotAfter || event.screenshotBefore;
+    const screenshot =
+      event.screenshotWithBox ||
+      event.screenshot ||
+      event.screenshotAfter ||
+      event.screenshotBefore;
     if (screenshot && !screenshots.includes(screenshot)) {
       screenshots.push(screenshot);
       if (screenshots.length >= maxScreenshots) break;
@@ -222,28 +234,28 @@ export const generateRecordTitle = async (
     try {
       // Get screenshots for visual context
       const screenshots = getScreenshotsForLLM(events);
-      
+
       // Create the message content
       const messageContent: Array<string | Record<string, any>> = [
         {
           type: 'text',
-          text: `Generate a concise title (5-7 words) and brief description (1-2 sentences) for a browser recording session with the following events:\n\n${JSON.stringify(summary, null, 2)}\n\nRespond with a JSON object containing "title" and "description" fields. The title should be action-oriented and highlight the main task accomplished. The description should provide slightly more detail about what was done.`
-        }
+          text: `Generate a concise title (5-7 words) and brief description (1-2 sentences) for a browser recording session with the following events:\n\n${JSON.stringify(summary, null, 2)}\n\nRespond with a JSON object containing "title" and "description" fields. The title should be action-oriented and highlight the main task accomplished. The description should provide slightly more detail about what was done.`,
+        },
       ];
-      
+
       // Add screenshots if available
       if (screenshots.length > 0) {
         messageContent.unshift({
           type: 'text',
-          text: "Here are screenshots from the recording session to help you understand the context:"
+          text: 'Here are screenshots from the recording session to help you understand the context:',
         });
-        
-        screenshots.forEach(screenshot => {
+
+        screenshots.forEach((screenshot) => {
           messageContent.unshift({
-            type: "image_url",
+            type: 'image_url',
             image_url: {
-              url: screenshot
-            }
+              url: screenshot,
+            },
           });
         });
       }

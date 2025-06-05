@@ -1,17 +1,21 @@
-import { useCallback, useEffect, useRef } from 'react';
 import { message } from 'antd';
+import { useCallback, useEffect, useRef } from 'react';
 import {
   type RecordedEvent,
   type RecordingSession,
   useRecordStore,
 } from '../../../store';
-import { clearDescriptionCache, optimizeEvent } from '../../../utils/eventOptimizer';
-import { 
-  safeChromeAPI, 
-  isChromeExtension,
-  type RecordMessage
-} from '../types';
-import { ensureScriptInjected, exportEventsToFile, generateRecordTitle, generateSessionName } from '../utils';
+import {
+  clearDescriptionCache,
+  optimizeEvent,
+} from '../../../utils/eventOptimizer';
+import { type RecordMessage, isChromeExtension, safeChromeAPI } from '../types';
+import {
+  ensureScriptInjected,
+  exportEventsToFile,
+  generateRecordTitle,
+  generateSessionName,
+} from '../utils';
 
 /**
  * Hook to manage recording controls and handle recording events
@@ -20,9 +24,12 @@ export const useRecordingControl = (
   currentTab: chrome.tabs.Tab | null,
   currentSessionId: string | null,
   getCurrentSession: () => RecordingSession | null,
-  updateSession: (sessionId: string, updates: Partial<RecordingSession>) => void,
+  updateSession: (
+    sessionId: string,
+    updates: Partial<RecordingSession>,
+  ) => void,
   createNewSession: (sessionName?: string) => RecordingSession,
-  onSessionUpdated?: (session: RecordingSession) => void
+  onSessionUpdated?: (session: RecordingSession) => void,
 ) => {
   const {
     isRecording,
@@ -78,18 +85,21 @@ export const useRecordingControl = (
             events.length > 0
               ? events[events.length - 1].timestamp - events[0].timestamp
               : 0;
-          
+
           // Generate title and description if we have events
-          let updateData: Partial<RecordingSession> = {
+          const updateData: Partial<RecordingSession> = {
             status: 'completed',
             events: [...events],
             duration,
             updatedAt: Date.now(),
           };
-          
+
           // Generate AI title and description if we have events
           if (events.length > 0) {
-            const hideLoadingMessage = message.loading('Generating recording title and description...', 0);
+            const hideLoadingMessage = message.loading(
+              'Generating recording title and description...',
+              0,
+            );
             try {
               const { title, description } = await generateRecordTitle(events);
               if (title) {
@@ -104,10 +114,12 @@ export const useRecordingControl = (
               hideLoadingMessage();
             }
           }
-          
+
           updateSession(currentSessionId, updateData);
-          message.success(`Recording saved to session "${updateData.name || session.name}"`);
-          
+          message.success(
+            `Recording saved to session "${updateData.name || session.name}"`,
+          );
+
           // If this session is currently selected and displayed in the UI,
           // we need to manually update the UI to reflect the changes
           if (getCurrentSession()?.id === currentSessionId) {
@@ -125,7 +137,15 @@ export const useRecordingControl = (
       // Still stop recording on our side even if there was an error
       setIsRecording(false);
     }
-  }, [isExtensionMode, currentTab, setIsRecording, currentSessionId, getCurrentSession, events, updateSession]);
+  }, [
+    isExtensionMode,
+    currentTab,
+    setIsRecording,
+    currentSessionId,
+    getCurrentSession,
+    events,
+    updateSession,
+  ]);
 
   // Monitor tab updates for page refresh/navigation detection
   useEffect(() => {
@@ -166,7 +186,7 @@ export const useRecordingControl = (
     if (!sessionToUse) {
       // Auto-create session with timestamp name
       const sessionName = generateSessionName();
-      
+
       sessionToUse = createNewSession(sessionName);
       message.success(`Session "${sessionName}" created automatically`);
 
@@ -211,7 +231,7 @@ export const useRecordingControl = (
     updateSession,
     currentTab,
     setIsRecording,
-    clearEvents
+    clearEvents,
   ]);
 
   // Export current events
@@ -301,7 +321,7 @@ export const useRecordingControl = (
     events,
     isExtensionMode,
     recordContainerRef,
-    
+
     // Actions
     startRecording,
     stopRecording,
@@ -310,4 +330,4 @@ export const useRecordingControl = (
     setIsRecording,
     setEvents,
   };
-}; 
+};
