@@ -1,18 +1,18 @@
-# v0.17.4 Changelog: Let AI See the DOM of the Page!
+# v0.17.4 Changelog - Let AI See the DOM of the Page!
 
 ## Data Query API Enhanced
 
-To meet more frontend automation and data extraction scenarios, the following APIs have been enhanced with the `options` parameter, supporting more flexible DOM information and screenshots:
+To meet more automation and data extraction scenarios, the following APIs have been enhanced with the `options` parameter, supporting more flexible DOM information and screenshots:
 
-- `agent.aiQuery`
-- `agent.aiBoolean`
-- `agent.aiNumber`
-- `agent.aiString`
+- `agent.aiQuery(dataDemand, options)`
+- `agent.aiBoolean(prompt, options)`
+- `agent.aiNumber(prompt, options)`
+- `agent.aiString(prompt, options)`
 
-### New options parameter
+### New `options` parameter
 
-- `domIncluded`: Whether to pass the simplified DOM information (suitable for extracting hidden attributes, such as image links), default is off.
-- `screenshotIncluded`: Whether to pass the screenshot, default is on.
+- `domIncluded`: Whether to pass the simplified DOM information to AI model, default is off. This is useful for extracting attributes that are not visible on the page, like image links.
+- `screenshotIncluded`: Whether to pass the screenshot to AI model, default is on.
 
 ### Code Example
 
@@ -43,121 +43,32 @@ const avatarUrl = await agent.aiString(
 
 Have you ever encountered a scenario where you need to automate a right-click operation? Now, Midscene supports a new `agent.aiRightClick()` method!
 
-- **Function**: Automatically right-click on page elements, suitable for scenarios where right-click events are customized (note: cannot interact with the browser's native menu).
-- **Real Scenario Example**:
-  ```typescript
-  // Right-click on a contact in the contacts application, triggering a custom context menu
-  await agent.aiRightClick("Alice Johnson", { deepThink: true });
-  
-  // Then you can click on the options in the menu
-  await agent.aiTap("Copy Info"); // Copy contact information to the clipboard
-  ```
-- **Parameter Description**:
-  - `locate`: Describe the element you want to operate in natural language
-  - `options`: Optional, supports `deepThink` (AI fine-grained positioning) and `cacheable` (result caching)
+### Function
 
-## Example and Report
+Perform a right-click operation on the specified element, suitable for scenarios where right-click events are customized on web pages. Please note that Midscene cannot interact with the browser's native context menu after right-click.
 
-### Example Page
+### Parameter Description
 
-<iframe src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/contacts3.html" width="100%" height="800"></iframe>
+- `locate`: Describe the element you want to operate in natural language
+- `options`: Optional, supports `deepThink` (AI fine-grained positioning) and `cacheable` (result caching)
 
-### Example Report
-
-<iframe src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/puppeteer-2025-06-04_20-34-48-zyh4ry4e.html" width="100%" height="800"></iframe>
-
-### Example Code
+### Example
 
 ```typescript
-import puppeteer from "puppeteer";
-import os from "node:os";
-import { PuppeteerAgent } from "@midscene/web/puppeteer";
-import "dotenv/config"; // read environment variables from .env file
+// Right-click on a contact in the contacts application, triggering a custom context menu
+await agent.aiRightClick("Alice Johnson");
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-Promise.resolve(
-  (async () => {
-    const browser = await puppeteer.launch({
-      headless: false, // set to 'false' to see the browser window for demo
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    });
-
-    const page = await browser.newPage();
-    await page.setViewport({
-      width: 1280,
-      height: 768,
-      deviceScaleFactor: os.platform() === "darwin" ? 2 : 1,
-    });
-
-    // Load the contacts demo page (replace with your actual file path or URL)
-    await page.goto("https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/contacts3.html");
-    
-    // await sleep(2000);
-
-    // 🤖 Initialize Midscene agent
-    const agent = new PuppeteerAgent(page);
-
-    console.log("🚀 Starting Smart Contacts Demo with Midscene AI");
-    console.log("================================================");
-
-    // ✨ NEW FEATURE DEMO 1: aiRightClick - Right-click on a contact
-    console.log("\n1. 🖱️ Testing aiRightClick feature...");
-    await agent.aiRightClick("Alice Johnson", { deepThink: true });
-    await sleep(1000);
-    console.log("✅ Successfully right-clicked on Alice Johnson's contact card");
-    
-    // Click on "Copy Info" option in context menu
-    await agent.aiTap("Copy Info");
-    await sleep(1000);
-    console.log("✅ Successfully triggered 'Copy Info' action from context menu");
-
-    // ✨ NEW FEATURE DEMO 2: aiQuery with domIncluded - Extract contact data including hidden attributes
-    console.log("\n2. 📊 Testing aiQuery with domIncluded feature...");
-    const contactsData = await agent.aiQuery(
-      "{name: string, id: number, company: string, department: string, avatarUrl: string}[], extract all contact information including hidden avatarUrl attributes",
-      { domIncluded: true }
-    );
-    console.log("✅ Successfully extracted contact data with hidden attributes:");
-    console.log(JSON.stringify(contactsData, null, 2));
-
-    // ✨ NEW FEATURE DEMO 3: aiBoolean with domIncluded - Check for ID fields
-    console.log("\n3. ❓ Testing aiBoolean with domIncluded feature...");
-    const isId1 = await agent.aiBoolean(
-      "is First contact's id is 1?",
-      { domIncluded: true }
-    );
-    console.log("✅ Is First contact's id is 1?", isId1);
-
-    // ✨ NEW FEATURE DEMO 4: aiNumber - with domIncluded - Count contacts
-    console.log("\n4. 🔢 Testing aiNumber with domIncluded feature...");
-    const contactCount = await agent.aiNumber("First contact's id?", { domIncluded: true });
-    console.log("✅ First contact's id:", contactCount);
-
-    // ✨ NEW FEATURE DEMO 5: aiString with domIncluded - Get first contact's ID
-    console.log("\n5. 🆔 Testing aiString with domIncluded feature...");
-    const firstContactId = await agent.aiString(
-      "What is the Avatar URL of the first contact?",
-      { domIncluded: true }
-    );
-    console.log("✅ First contact's Avatar URL:", firstContactId);
-
-    console.log("\n🎉 Smart Contacts Demo completed!");
-    console.log("================================================");
-    console.log("✨ New Midscene features demonstrated:");
-    console.log("   • aiRightClick() with deepThink - Custom context menus");
-    console.log("   • aiQuery() with domIncluded - Extract hidden ID attributes");
-    console.log("   • aiBoolean() with domIncluded - DOM-based boolean checks");
-    console.log("   • aiNumber() - with domIncluded - Hidden ID attributes");
-    console.log("   • aiString() with domIncluded - Extract hidden Avatar URL values");
-
-    // Keep browser open for a few seconds to see the results
-    await sleep(3000);
-    await browser.close();
-  })()
-);
+// Then you can click on the options in the menu
+await agent.aiTap("Copy Info"); // Copy contact information to the clipboard
 ```
 
-**Welcome to experience the new Midscene API, more automation possibilities await you!**
+## A Complete Example
 
-If you have any suggestions, please submit an issue on [GitHub](https://github.com/web-infra-dev/midscene/issues).
+In this report file, we show a complete example of using the new `aiRightClick` API and new query parameters to extract contact data including hidden attributes.
+
+Report file: [puppeteer-2025-06-04_20-34-48-zyh4ry4e.html](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/puppeteer-2025-06-04_20-34-48-zyh4ry4e.html)
+
+The corresponding code can be found in our example repository: [puppeteer-demo/extract-data.ts](https://github.com/web-infra-dev/midscene-example/blob/main/puppeteer-demo/extract-data.ts)
+
+
+

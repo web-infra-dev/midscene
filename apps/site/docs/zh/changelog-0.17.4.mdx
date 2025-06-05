@@ -2,17 +2,17 @@
 
 ## 数据查询 API 全面增强
 
-为满足更多前端自动化和数据提取场景，以下 API 新增了 options 参数，支持更灵活的 DOM 信息和截图传递：
+为满足更多自动化和数据提取场景，以下 API 新增了 options 参数，支持更灵活的 DOM 信息和截图传递：
 
-- `agent.aiQuery`
-- `agent.aiBoolean`
-- `agent.aiNumber`
-- `agent.aiString`
+- `agent.aiQuery(dataDemand, options)`
+- `agent.aiBoolean(prompt, options)`
+- `agent.aiNumber(prompt, options)`
+- `agent.aiString(prompt, options)`
 
-### 新增 options 参数
+### 新增 `options` 参数
 
-- `domIncluded`：是否传递精简后的 DOM 信息（适用于提取隐藏属性，如图片链接等），默认关闭。
-- `screenshotIncluded`：是否传递截图，默认开启。
+- `domIncluded`：是否向模型发送精简后的 DOM 信息，默认值为 false。一般用于提取 UI 中不可见的属性，比如图片的链接。
+- `screenshotIncluded`：是否向模型发送截图。默认值为 true。
 
 ### 代码示例
 
@@ -43,18 +43,25 @@ const avatarUrl = await agent.aiString(
 
 你有没有遇到过需要自动化右键操作的场景？现在，Midscene 支持了全新的 `agent.aiRightClick()` 方法！
 
-- **功能**：自动右键点击页面元素，适用于那些自定义了右键事件的场景（注意：无法与浏览器原生菜单交互）。
-- **真实场景示例**：
-  ```typescript
-  // 在通讯录应用中右键点击联系人，触发自定义上下文菜单
-  await agent.aiRightClick("Alice Johnson", { deepThink: true });
-  
-  // 然后可以点击菜单中的选项
-  await agent.aiTap("Copy Info"); // 复制联系人信息到剪贴板
-  ```
-- **参数说明**：
-  - `locate`: 用自然语言描述你要操作的元素
-  - `options`: 可选，支持 `deepThink`（AI精细定位）、`cacheable`（结果缓存）
+### 功能
+
+使用右键点击页面元素，适用于那些自定义了右键事件的场景。注意：Midscene 无法与浏览器原生菜单交互。
+
+### 参数说明
+
+- `locate`: 用自然语言描述你要操作的元素
+- `options`: 可选，支持 `deepThink`（AI精细定位）、`cacheable`（结果缓存）
+
+### 示例
+
+```typescript
+// 在通讯录应用中右键点击联系人，触发自定义上下文菜单
+await agent.aiRightClick("Alice Johnson", { deepThink: true });
+
+// 然后可以点击菜单中的选项
+await agent.aiTap("Copy Info"); // 复制联系人信息到剪贴板
+```
+
 
 ## 示例及其报告
 
@@ -66,98 +73,11 @@ const avatarUrl = await agent.aiString(
 
 <iframe src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/puppeteer-2025-06-04_20-41-45-be8ibktz.html" width="100%" height="800"></iframe>
 
-### 示例代码
 
-```typescript
-import puppeteer from "puppeteer";
-import os from "node:os";
-import { PuppeteerAgent } from "@midscene/web/puppeteer";
-import "dotenv/config"; // read environment variables from .env file
+## 一个完整示例
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+在下面的报告文件中，我们展示了一个完整的示例，展示了如何使用新的 `aiRightClick` API 和新的查询参数来提取包含隐藏属性的联系人数据。
 
-Promise.resolve(
-  (async () => {
-    const browser = await puppeteer.launch({
-      headless: false, // set to 'false' to see the browser window for demo
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    });
+报告文件：[puppeteer-2025-06-04_20-41-45-be8ibktz.html](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/puppeteer-2025-06-04_20-41-45-be8ibktz.html)
 
-    const page = await browser.newPage();
-    await page.setViewport({
-      width: 1280,
-      height: 768,
-      deviceScaleFactor: os.platform() === "darwin" ? 2 : 1,
-    });
-
-    // Load the contacts demo page (replace with your actual file path or URL)
-    await page.goto("https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/contacts3.html");
-    
-    // await sleep(2000);
-
-    // 🤖 Initialize Midscene agent
-    const agent = new PuppeteerAgent(page);
-
-    console.log("🚀 Starting Smart Contacts Demo with Midscene AI");
-    console.log("================================================");
-
-    // ✨ 新特性示例 1: aiRightClick - 右键点击联系人
-    console.log("\n1. 🖱️ 测试 aiRightClick 功能...");
-    await agent.aiRightClick("Alice Johnson", { deepThink: true });
-    await sleep(1000);
-    console.log("✅ 成功右键点击 Alice Johnson 的联系人卡片");
-    
-    // Click on "Copy Info" option in context menu
-    await agent.aiTap("Copy Info");
-    await sleep(1000);
-    console.log("✅ 成功触发 'Copy Info' 操作");
-
-    // ✨ 新特性示例 2: aiQuery with domIncluded - 提取包含隐藏属性的联系人数据
-    console.log("\n2. 📊 测试 aiQuery with domIncluded 功能...");
-    const contactsData = await agent.aiQuery(
-      "{name: string, id: number, company: string, department: string, avatarUrl: string}[], 提取所有联系人信息，包括隐藏的 avatarUrl 属性",
-      { domIncluded: true }
-    );
-    console.log("✅ 成功提取包含隐藏属性的联系人数据:");
-    console.log(JSON.stringify(contactsData, null, 2));
-
-    // ✨ 新特性示例 3: aiBoolean with domIncluded - 检查 ID 字段
-    console.log("\n3. ❓ 测试 aiBoolean with domIncluded 功能...");
-    const isId1 = await agent.aiBoolean(
-      "第一个联系人的 id 是否为 1?",
-      { domIncluded: true }
-    );
-    console.log("✅ 第一个联系人的 id 是否为 1?", isId1);
-
-    // ✨ 新特性示例 4: aiNumber - with domIncluded - 统计联系人数量
-    console.log("\n4. 🔢 测试 aiNumber with domIncluded 功能...");
-    const contactCount = await agent.aiNumber("第一个联系人的 id?", { domIncluded: true });
-    console.log("✅ 第一个联系人的 id:", contactCount);
-
-    // ✨ 新特性示例 5: aiString with domIncluded - 获取第一个联系人的 ID
-      console.log("\n5. 🆔 测试 aiString with domIncluded 功能...");
-    const firstContactId = await agent.aiString(
-      "第一个联系人的头像 URL 是什么?",
-      { domIncluded: true }
-    );
-    console.log("✅ 第一个联系人的头像 URL:", firstContactId);
-
-    console.log("\n🎉 智能通讯录演示完成!");
-    console.log("================================================");
-    console.log("✨ 新 Midscene 特性示例:");
-    console.log("   • aiRightClick() with deepThink - 自定义上下文菜单");
-    console.log("   • aiQuery() with domIncluded - 提取隐藏 ID 属性");
-    console.log("   • aiBoolean() with domIncluded - DOM 基于布尔检查");
-    console.log("   • aiNumber() - with domIncluded - 隐藏 ID 属性");
-    console.log("   • aiString() with domIncluded - 提取隐藏头像 URL 值");
-
-    // 保持浏览器打开几秒钟以查看结果
-    await sleep(3000);
-    await browser.close();
-  })()
-);
-```
-
-**欢迎体验新版 Midscene API，更多自动化可能等你来发现！**
-
-如有建议，欢迎在 [GitHub](https://github.com/web-infra-dev/midscene/issues) 提交 Issue。
+对应代码可以参考我们的示例仓库：[puppeteer-demo/extract-data.ts](https://github.com/web-infra-dev/midscene-example/blob/main/puppeteer-demo/extract-data.ts)

@@ -259,11 +259,11 @@ This method allows you to extract data directly from the UI using multimodal AI 
 * Type
 
 ```typescript
-function aiQuery<T>(dataShape: string | Object, options?: Object): Promise<T>;
+function aiQuery<T>(dataDemand: string | Object, options?: Object): Promise<T>;
 ```
 
 * Parameters:
-  * `dataShape: T`: A description of the expected return format.
+  * `dataDemand: T`: A description of the expected data and its return format.
   * `options?: Object` - Optional, a configuration object containing:
     * `domIncluded?: boolean` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. Default: False
     * `screenshotIncluded?: boolean` - Whether to send screenshot to the model. Default: True.

@@ -76,8 +76,8 @@ export type AIElementResponse =
   | AIElementLocatorResponse
   | AIElementCoordinatesResponse;
 
-export interface AIDataExtractionResponse<DataShape> {
-  data: DataShape;
+export interface AIDataExtractionResponse<DataDemand> {
+  data: DataDemand;
   errors?: string[];
 }
 

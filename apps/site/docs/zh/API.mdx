@@ -251,16 +251,16 @@ await agent.aiRightClick('页面顶部的文件名称', { deepThink: true });
 
 ### `agent.aiQuery()`
 
-使用此方法，你可以直接从 UI 提取数据，并借助多模态 AI 的推理能力，实现智能提取。只需在 `dataDemand` 中定义期望格式（如字符串、数字、JSON、数组等），Midscene 即返回相应结果。
+使用此方法，你可以直接从 UI 提取数据，并借助多模态 AI 的推理能力，实现智能提取。只需在 `dataDemand` 中描述期望的数据格式（如字符串、数字、JSON、数组等），Midscene 即返回相应结果。
 
 * 类型
 
 ```typescript
-function aiQuery<T>(dataShape: string | Object, options?: Object): Promise<T>;
+function aiQuery<T>(dataDemand: string | Object, options?: Object): Promise<T>;
 ```
 
 * 参数：
-  * `dataShape: T`: 描述预期的返回值格式。
+  * `dataDemand: T`: 描述预期的返回值和格式。
   * `options?: Object` - 可选，一个配置对象，包含：
     * `domIncluded?: boolean` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。默认值为 False
     * `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 True。
