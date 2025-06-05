@@ -18,6 +18,7 @@ import {
 } from 'antd';
 import type React from 'react';
 import type { RecordedEvent, RecordingSession } from '../../../store';
+import { PlaywrightExportControls } from '../PlaywrightExportControls';
 
 const { Title, Text } = Typography;
 
@@ -145,42 +146,55 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
           {currentTab?.title || 'No tab selected'}
           {!isExtensionMode && <Text type="secondary"> (Mock)</Text>}
         </div>
-        <Space className="record-controls">
-          {!isRecording ? (
-            <Button
-              type="primary"
-              icon={<PlayCircleOutlined />}
-              onClick={onStartRecording}
-              disabled={!currentTab || !isExtensionMode}
-            >
-              Start Recording
-            </Button>
-          ) : (
-            <Button
-              danger
-              icon={<StopOutlined />}
-              onClick={onStopRecording}
-              disabled={!isExtensionMode}
-            >
-              Stop Recording
-            </Button>
-          )}
+        <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+          <Space className="record-controls">
+            {!isRecording ? (
+              <Button
+                type="primary"
+                icon={<PlayCircleOutlined />}
+                onClick={onStartRecording}
+                disabled={!currentTab || !isExtensionMode}
+              >
+                Start Recording
+              </Button>
+            ) : (
+              <Button
+                danger
+                icon={<StopOutlined />}
+                onClick={onStopRecording}
+                disabled={!isExtensionMode}
+              >
+                Stop Recording
+              </Button>
+            )}
 
-          <Button
-            icon={<DeleteOutlined />}
-            onClick={onClearEvents}
-            disabled={events.length === 0 || isRecording}
-          >
-            Clear Events
-          </Button>
+            <Button
+              icon={<DeleteOutlined />}
+              onClick={onClearEvents}
+              disabled={events.length === 0 || isRecording}
+            >
+              Clear Events
+            </Button>
 
-          <Button
-            icon={<DownloadOutlined />}
-            onClick={onExportEvents}
-            disabled={events.length === 0}
-          >
-            Export Events
-          </Button>
+            <Button
+              icon={<DownloadOutlined />}
+              onClick={onExportEvents}
+              disabled={events.length === 0}
+            >
+              Export Events
+            </Button>
+          </Space>
+
+          {/* AI Playwright Export Controls */}
+          <div>
+            <Text strong style={{ marginBottom: '8px', display: 'block' }}>
+              AI-Powered Test Generation:
+            </Text>
+            <PlaywrightExportControls
+              sessionName={session.name}
+              events={events}
+            />
+          </div>
         </Space>
       </div>
 

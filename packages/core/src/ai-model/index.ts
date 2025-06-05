@@ -1,4 +1,4 @@
-export { callToGetJSONObject } from './service-caller/index';
+export { callToGetJSONObject, call as callAi } from './service-caller/index';
 export { systemPromptToLocateElement } from './prompt/llm-locator';
 export {
   describeUserPage,
