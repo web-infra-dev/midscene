@@ -13,7 +13,7 @@ import type { ElementInfo } from '@midscene/shared/extractor';
 import { isValidPNGImageBuffer, resizeImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { repeat } from '@midscene/shared/utils';
-import type { AndroidDevicePage } from '@midscene/web';
+import type { AndroidDevicePage, KeyboardTypeOptions } from '@midscene/web';
 import { ADB } from 'appium-adb';
 
 const androidScreenshotPath = '/data/local/tmp/midscene_screenshot.png';
@@ -387,7 +387,8 @@ ${Object.keys(size)
 
   get keyboard() {
     return {
-      type: (text: string) => this.keyboardType(text),
+      type: (text: string, options?: KeyboardTypeOptions) =>
+        this.keyboardType(text, options),
       press: (
         action:
           | { key: string; command?: string }
@@ -563,7 +564,10 @@ ${Object.keys(size)
     }
   }
 
-  private async keyboardType(text: string): Promise<void> {
+  private async keyboardType(
+    text: string,
+    options: KeyboardTypeOptions = {},
+  ): Promise<void> {
     if (!text) return;
     const adb = await this.getAdb();
     const isChinese = /[\p{Script=Han}\p{sc=Hani}]/u.test(text);
@@ -571,13 +575,14 @@ ${Object.keys(size)
     // for pure ASCII characters, directly use inputText
     if (!isChinese) {
       await adb.inputText(text);
-      await adb.hideKeyboard();
-      return;
+    } else {
+      // for non-ASCII characters, use yadb
+      await this.execYadb(text);
     }
 
-    // for non-ASCII characters, use yadb
-    await this.execYadb(text);
-    await adb.hideKeyboard();
+    if (options.autoDismissKeyboard === true) {
+      await adb.hideKeyboard();
+    }
   }
 
   private async keyboardPress(key: string): Promise<void> {
