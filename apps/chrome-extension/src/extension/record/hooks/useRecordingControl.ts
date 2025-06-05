@@ -46,33 +46,39 @@ export const useRecordingControl = (
 
   // Define stopRecording early using useCallback
   const stopRecording = useCallback(async () => {
+    console.log('[RecordingControl] Stopping recording');
+    
     if (!isExtensionMode) {
+      console.log('[RecordingControl] Not in extension mode, stopping locally');
       setIsRecording(false);
       return;
     }
 
     if (!currentTab?.id) {
+      console.error('[RecordingControl] No active tab found for stopping recording');
       message.error('No active tab found');
       return;
     }
 
     // Set isRecording to false immediately to prevent UI from showing recording state
     setIsRecording(false);
+    console.log('[RecordingControl] Set recording state to false');
 
     try {
       // Check if content script is still available before sending message
       try {
         // Send message to content script to stop recording
+        console.log('[RecordingControl] Sending stop message to content script');
         await safeChromeAPI.tabs.sendMessage(currentTab.id, { action: 'stop' });
+        console.log('[RecordingControl] Stop message sent successfully');
         message.success('Recording stopped');
       } catch (error: any) {
         // If content script is not available, just stop recording on our side
         if (error.message?.includes('Receiving end does not exist')) {
-          console.warn(
-            'Content script not available, stopping recording locally',
-          );
+          console.warn('[RecordingControl] Content script not available, stopping recording locally');
           message.warning('Recording stopped (page may have been refreshed)');
         } else {
+          console.error('[RecordingControl] Error sending stop message:', error);
           throw error;
         }
       }
@@ -96,6 +102,7 @@ export const useRecordingControl = (
 
           // Generate AI title and description if we have events
           if (events.length > 0) {
+            console.log('[RecordingControl] Generating AI title and description for', events.length, 'events');
             const hideLoadingMessage = message.loading(
               'Generating recording title and description...',
               0,
@@ -103,13 +110,15 @@ export const useRecordingControl = (
             try {
               const { title, description } = await generateRecordTitle(events);
               if (title) {
+                console.log('[RecordingControl] Generated AI title:', title);
                 updateData.name = title;
               }
               if (description) {
+                console.log('[RecordingControl] Generated AI description length:', description.length);
                 updateData.description = description;
               }
             } catch (error) {
-              console.error('Failed to generate title/description:', error);
+              console.error('[RecordingControl] Failed to generate title/description:', error);
             } finally {
               hideLoadingMessage();
             }
@@ -174,7 +183,10 @@ export const useRecordingControl = (
 
   // Start recording
   const startRecording = useCallback(async () => {
+    console.log('[RecordingControl] Starting recording');
+    
     if (!isExtensionMode) {
+      console.error('[RecordingControl] Not in extension environment');
       message.error(
         'Recording is only available in Chrome extension environment',
       );
@@ -186,12 +198,15 @@ export const useRecordingControl = (
     if (!sessionToUse) {
       // Auto-create session with timestamp name
       const sessionName = generateSessionName();
+      console.log('[RecordingControl] Auto-creating session:', sessionName);
 
       sessionToUse = createNewSession(sessionName);
       message.success(`Session "${sessionName}" created automatically`);
 
       // Small delay to ensure state updates before continuing
       await new Promise((resolve) => setTimeout(resolve, 100));
+    } else {
+      console.log('[RecordingControl] Using existing session:', { sessionId: sessionToUse.id, sessionName: sessionToUse.name });
     }
 
     // Update session status to recording
@@ -202,24 +217,29 @@ export const useRecordingControl = (
     });
 
     if (!currentTab?.id) {
+      console.error('[RecordingControl] No active tab found for starting recording');
       message.error('No active tab found');
       return;
     }
 
+    console.log('[RecordingControl] Injecting recording script');
     // Always ensure script is injected before starting
     await ensureScriptInjected(currentTab);
 
     try {
       // Clear the AI description cache to avoid using old descriptions
+      console.log('[RecordingControl] Clearing AI description cache');
       clearDescriptionCache();
 
       // Send message to content script to start recording
+      console.log('[RecordingControl] Sending start message to content script');
       await safeChromeAPI.tabs.sendMessage(currentTab.id, { action: 'start' });
       setIsRecording(true);
       clearEvents(); // Clear previous events for new recording
+      console.log('[RecordingControl] Recording started successfully');
       message.success('Recording started');
     } catch (error) {
-      console.error('Failed to start recording:', error);
+      console.error('[RecordingControl] Failed to start recording:', error);
       message.error(
         'Failed to start recording. Please ensure you are on a regular web page (not Chrome internal pages) and try again.',
       );
@@ -290,9 +310,14 @@ export const useRecordingControl = (
     };
 
     const handleMessage = async (message: RecordMessage) => {
-      console.log('Received message:', message);
+      console.log('[RecordingControl] Received message from content script:', { 
+        action: message.action, 
+        dataType: Array.isArray(message.data) ? 'array' : typeof message.data,
+        dataLength: Array.isArray(message.data) ? message.data.length : 1
+      });
 
       if (message.action === 'events' && Array.isArray(message.data)) {
+        console.log('[RecordingControl] Processing bulk events:', message.data.length);
         const eventsData = await Promise.all(
           message.data.map(processEventData),
         );
@@ -302,6 +327,7 @@ export const useRecordingControl = (
         message.data &&
         !Array.isArray(message.data)
       ) {
+        console.log('[RecordingControl] Processing single event:', message.data.type);
         const optimizedEvent = await processEventData(message.data);
         addEvent(optimizedEvent);
       }

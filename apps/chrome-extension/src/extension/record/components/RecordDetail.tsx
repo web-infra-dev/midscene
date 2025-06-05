@@ -45,7 +45,6 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
   onStartRecording,
   onStopRecording,
   onClearEvents,
-  onExportEvents,
   isExtensionMode,
 }) => {
   return (
@@ -177,13 +176,6 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
               Clear Events
             </Button>
 
-            <Button
-              icon={<DownloadOutlined />}
-              onClick={onExportEvents}
-              disabled={events.length === 0}
-            >
-              Export Events
-            </Button>
           </Space>
 
           {/* AI Playwright Export Controls */}

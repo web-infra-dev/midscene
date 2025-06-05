@@ -200,7 +200,7 @@ export const optimizeEvent = async (
     // Create the target rect for the element
     const targetRect = {
       left: event.elementRect?.left,
-      top: event.elementRect?.y,
+      top: event.elementRect?.top,
       width: event.elementRect?.width,
       height: event.elementRect?.height,
     };

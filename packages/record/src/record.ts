@@ -3,7 +3,7 @@ const DEBUG = localStorage.getItem('DEBUG') === 'true'; // Based on process.env.
 function debugLog(...args: any[]) {
   if (DEBUG) {
     // eslint-disable-next-line no-console
-    console.log(...args);
+    console.log('[EventRecorder]', ...args);
   }
 }
 
@@ -119,8 +119,13 @@ export class EventRecorder {
 
   // Start recording
   start(): void {
-    if (this.isRecording) return;
+    if (this.isRecording) {
+      debugLog('Recording already active, ignoring start request');
+      return;
+    }
+    
     this.isRecording = true;
+    debugLog('Starting event recording');
 
     // Handle scroll targets
     this.scrollTargets = [];
@@ -130,6 +135,8 @@ export class EventRecorder {
       // Also listen to page scrolling if page is scrollable
       this.scrollTargets.push(document.body);
     }
+
+    debugLog('Added event listeners for', this.scrollTargets.length, 'scroll targets');
 
     // Add event listeners
     document.addEventListener('click', this.handleClick);
@@ -142,8 +149,14 @@ export class EventRecorder {
 
   // Stop recording
   stop(): void {
-    if (!this.isRecording) return;
+    if (!this.isRecording) {
+      debugLog('Recording not active, ignoring stop request');
+      return;
+    }
+    
     this.isRecording = false;
+    debugLog('Stopping event recording');
+    
     if (this.scrollThrottleTimer) {
       clearTimeout(this.scrollThrottleTimer);
       this.scrollThrottleTimer = null;
@@ -153,6 +166,8 @@ export class EventRecorder {
     this.scrollTargets.forEach((target) => {
       target.removeEventListener('scroll', this.handleScroll);
     });
+    
+    debugLog('Removed all event listeners');
   }
 
   // Click event handler

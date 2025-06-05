@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button, Space, Modal, message, Typography } from 'antd';
 import { PlayCircleOutlined, DownloadOutlined, CopyOutlined, CodeOutlined } from '@ant-design/icons';
-import type { RecordedEvent } from '../../store';
+import type { ChromeRecordedEvent } from '@midscene/record';
 import { exportEventsToFile } from './utils';
 import { generatePlaywrightTest } from './generatePlaywrightTest';
 
@@ -12,7 +12,7 @@ const { Text } = Typography;
  */
 export const PlaywrightExportControls: React.FC<{
   sessionName: string;
-  events: RecordedEvent[];
+  events: ChromeRecordedEvent[];
 }> = ({ sessionName, events }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showTestModal, setShowTestModal] = useState(false);

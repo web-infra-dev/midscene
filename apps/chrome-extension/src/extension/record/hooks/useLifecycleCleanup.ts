@@ -20,6 +20,7 @@ export const useLifecycleCleanup = (
     // Handle when user navigates away from extension popup
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden' && isRecording) {
+        console.log('[LifecycleCleanup] Extension popup hidden, stopping recording');
         stopRecording().then(() => {
           message.warning('Recording stopped - left extension popup');
         });
@@ -31,11 +32,13 @@ export const useLifecycleCleanup = (
     // Handle potential popup window close
     const handleBeforeUnload = () => {
       if (isRecording) {
+        console.log('[LifecycleCleanup] Extension popup closing, stopping recording synchronously');
         // For unload events, we need to stop synchronously
         setIsRecording(false);
         if (currentSessionId) {
           const session = getCurrentSession();
           if (session) {
+            console.log('[LifecycleCleanup] Updating session status to completed on unload');
             updateSession(currentSessionId, {
               status: 'completed',
               updatedAt: Date.now(),
@@ -65,10 +68,12 @@ export const useLifecycleCleanup = (
     return () => {
       // Clean up any ongoing recording when component unmounts
       if (isRecording) {
+        console.log('[LifecycleCleanup] Component unmounting, cleaning up recording');
         setIsRecording(false);
         if (currentSessionId) {
           const session = getCurrentSession();
           if (session) {
+            console.log('[LifecycleCleanup] Updating session status to completed on unmount');
             updateSession(currentSessionId, {
               status: 'completed',
               updatedAt: Date.now(),
