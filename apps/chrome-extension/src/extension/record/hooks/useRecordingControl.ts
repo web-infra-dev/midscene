@@ -1,7 +1,6 @@
 import { message } from 'antd';
 import { useCallback, useEffect, useRef } from 'react';
 import {
-  type RecordedEvent,
   type RecordingSession,
   useRecordStore,
 } from '../../../store';
@@ -16,6 +15,7 @@ import {
   generateRecordTitle,
   generateSessionName,
 } from '../utils';
+import { ChromeRecordedEvent } from '@midscene/record';
 
 /**
  * Hook to manage recording controls and handle recording events
@@ -286,7 +286,7 @@ export const useRecordingControl = (
 
     const processEventData = async (eventData: any) => {
       const { element, ...cleanEventData } = eventData;
-      return await optimizeEvent(cleanEventData as RecordedEvent, updateEvent);
+      return await optimizeEvent(cleanEventData as ChromeRecordedEvent, updateEvent);
     };
 
     const handleMessage = async (message: RecordMessage) => {

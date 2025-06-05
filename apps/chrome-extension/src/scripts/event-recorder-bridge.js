@@ -7,8 +7,11 @@ if (typeof window.EventRecorder === 'undefined') {
     'EventRecorder not found. Make sure record-iife.js is injected first.',
   );
 }
+if (window.recorder && window.recorder.isActive()) {
+  recorder.stop();
+}
 
-let recorder = null;
+window.recorder = null;
 let events = [];
 
 // Helper function to capture screenshot
@@ -18,7 +21,7 @@ async function captureScreenshot() {
       action: 'captureScreenshot',
     });
   } catch (error) {
-    console.error('Failed to capture screenshot:', error);
+    // console.error('Failed to capture screenshot:', error);
     return null;
   }
 }
@@ -30,7 +33,7 @@ async function initializeRecorder() {
     return;
   }
 
-  recorder = new window.EventRecorder(async (event) => {
+  window.recorder = new window.EventRecorder(async (event) => {
     // Capture screenshot before processing the event
     const screenshotBefore = await captureScreenshot();
 
@@ -39,8 +42,8 @@ async function initializeRecorder() {
     events = optimizedEvent;
 
     // Add screenshots to the latest event
-    if (events.length > 0) {
-      const latestEvent = events[events.length - 1];
+    if (optimizedEvent.length > 0) {
+      const latestEvent = optimizedEvent[optimizedEvent.length - 1];
       if (screenshotBefore) {
         latestEvent.screenshotBefore = screenshotBefore;
       }
@@ -53,35 +56,43 @@ async function initializeRecorder() {
         }
 
         // Send updated events array to extension popup
-        sendEventsToExtension();
+        sendEventsToExtension(optimizedEvent);
       }, 100);
     } else {
       // Send events array to extension popup
-      sendEventsToExtension();
+      sendEventsToExtension(optimizedEvent);
     }
   });
 }
 
-function sendEventsToExtension() {
+function sendEventsToExtension(optimizedEvent) {
   // Send events array to extension popup
   console.log('sending events to extension', events);
   chrome.runtime
     .sendMessage({
       action: 'events',
-      data: events.map((event) => ({
+      data: optimizedEvent.map((event) => ({
         type: event.type,
         timestamp: event.timestamp,
-        x: event.x,
-        y: event.y,
-        viewportX: event.viewportX,
-        viewportY: event.viewportY,
-        width: event.width,
-        height: event.height,
-        pageWidth: event.pageWidth,
-        pageHeight: event.pageHeight,
-        value: event.value,
+        // Element position and click coordinates
+        elementRect: event.elementRect ? {
+          left: event.elementRect.left,
+          top: event.elementRect.top,
+          width: event.elementRect.width,
+          height: event.elementRect.height,
+          x: event.elementRect.x,
+          y: event.elementRect.y,
+        } : undefined,
+        // Page information and screenshots
+        pageInfo: event.pageInfo ? {
+          width: event.pageInfo.width,
+          height: event.pageInfo.height,
+        } : undefined,
         screenshotBefore: event.screenshotBefore,
         screenshotAfter: event.screenshotAfter,
+
+        // Other event properties
+        value: event.value,
       })),
     })
     .catch((error) => {
@@ -100,11 +111,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.action === 'start') {
-    if (!recorder) {
+    if (!window.recorder) {
       initializeRecorder();
     }
 
-    if (recorder) {
+    if (window.recorder) {
       recorder.start();
       events = []; // Clear previous events
       console.log('Event recording started');
@@ -120,9 +131,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
   } else if (message.action === 'stop') {
     // biome-ignore lint/complexity/useOptionalChain: <explanation>
-    if (recorder && recorder.isActive()) {
-      recorder.stop();
-      recorder = null;
+    if (window.recorder && window.recorder.isActive()) {
+      window.recorder.stop();
+      window.recorder = null;
       console.log('Event recording stopped');
       sendResponse({
         success: true,
@@ -156,7 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Clean up on page unload
 window.addEventListener('beforeunload', () => {
   // biome-ignore lint/complexity/useOptionalChain: <explanation>
-  if (recorder && recorder.isActive()) {
+  if (window.recorder && window.recorder.isActive()) {
     recorder.stop();
   }
 });

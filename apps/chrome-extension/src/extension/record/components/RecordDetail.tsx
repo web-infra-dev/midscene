@@ -5,7 +5,7 @@ import {
   PlayCircleOutlined,
   StopOutlined,
 } from '@ant-design/icons';
-import { RecordTimeline } from '@midscene/record';
+import { RecordTimeline, ChromeRecordedEvent } from '@midscene/record';
 import {
   Alert,
   Button,
@@ -17,14 +17,15 @@ import {
   Typography,
 } from 'antd';
 import type React from 'react';
-import type { RecordedEvent, RecordingSession } from '../../../store';
+import type { RecordingSession } from '../../../store';
+
 import { PlaywrightExportControls } from '../PlaywrightExportControls';
 
 const { Title, Text } = Typography;
 
 interface RecordDetailProps {
   session: RecordingSession;
-  events: RecordedEvent[];
+  events: ChromeRecordedEvent[];
   isRecording: boolean;
   currentTab: chrome.tabs.Tab | null;
   onBack: () => void;

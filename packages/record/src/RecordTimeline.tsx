@@ -18,37 +18,38 @@ import {
   Typography,
 } from 'antd';
 import React from 'react';
+import { RecordedEvent } from './record';
 
 const { Text, Title } = Typography;
 
-interface RecordedEvent {
-  type: 'click' | 'scroll' | 'input' | 'navigation' | 'setViewport' | 'keydown';
-  timestamp: number;
-  value?: string;
-  element?: HTMLElement;
-  targetTagName?: string;
-  targetId?: string;
-  targetClassName?: string;
-  url?: string;
-  title?: string;
-  screenshot?: string;
-  screenshotWithBox?: string;
-  screenshotBefore?: string;
-  screenshotAfter?: string;
-  //点击点
-  x?: number;
-  y?: number;
-  // 元素位置信息
-  viewportX?: number;
-  viewportY?: number;
-  width?: number;
-  height?: number;
-  // 页面尺寸信息
-  pageWidth: number;
-  pageHeight: number;
-  //元素描述
-  elementDescription?: string;
-}
+// interface RecordedEvent {
+//   type: 'click' | 'scroll' | 'input' | 'navigation' | 'setViewport' | 'keydown';
+//   timestamp: number;
+//   value?: string;
+//   element?: HTMLElement;
+//   targetTagName?: string;
+//   targetId?: string;
+//   targetClassName?: string;
+//   url?: string;
+//   title?: string;
+//   screenshot?: string;
+//   screenshotWithBox?: string;
+//   screenshotBefore?: string;
+//   screenshotAfter?: string;
+//   //点击点
+//   x?: number;
+//   y?: number;
+//   // 元素位置信息
+//   viewportX?: number;
+//   viewportY?: number;
+//   width?: number;
+//   height?: number;
+//   // 页面尺寸信息
+//   pageWidth: number;
+//   pageHeight: number;
+//   //元素描述
+//   elementDescription?: string;
+// }
 
 interface RecordTimelineProps {
   events: RecordedEvent[];
@@ -139,9 +140,9 @@ export const RecordTimeline = ({
             {event.targetTagName && (
               <Text type="secondary">Element "{event.targetTagName}"</Text>
             )}
-            {event.viewportX !== undefined && event.viewportY !== undefined && (
+            {event.elementRect?.left !== undefined && event.elementRect?.top !== undefined && (
               <Text type="secondary">
-                Position: ({event.viewportX}, {event.viewportY})
+                Position: ({event.elementRect?.left}, {event.elementRect?.top})
               </Text>
             )}
             {event.elementDescription !== undefined && (
@@ -163,7 +164,7 @@ export const RecordTimeline = ({
       case 'scroll':
         return (
           <Text type="secondary">
-            Position: ({event.viewportX || 0}, {event.viewportY || 0})
+            Position: ({event.elementRect?.left || 0}, {event.elementRect?.top || 0})
           </Text>
         );
       case 'navigation':
@@ -182,10 +183,10 @@ export const RecordTimeline = ({
   };
 
   const timelineItems = events.map((event, index) => {
-    const originalImage = event.screenshotBefore || event.screenshot || '';
+    const originalImage = event.screenshotBefore || '';
     const boxedImage = event.screenshotWithBox;
     const hasElementInfo =
-      event.viewportX !== undefined && event.viewportY !== undefined;
+      event.elementRect?.left !== undefined && event.elementRect?.top !== undefined;
 
     return {
       dot: getEventIcon(event.type),
@@ -318,14 +319,14 @@ export const RecordTimeline = ({
                                 }}
                               >
                                 <Text type="secondary">
-                                  元素位置: ({event.viewportX},{' '}
-                                  {event.viewportY}) | 尺寸: {event.width} ×{' '}
-                                  {event.height}px
-                                  {event.pageWidth && event.pageHeight && (
+                                  元素位置: ({event.elementRect?.left},{' '}
+                                  {event.elementRect?.top}) | 尺寸: {event.elementRect?.width} ×{' '}
+                                  {event.elementRect?.height}px
+                                  {event.pageInfo.width && event.pageInfo.height && (
                                     <>
                                       {' '}
-                                      | 页面: {event.pageWidth} ×{' '}
-                                      {event.pageHeight}px
+                                      | 页面: {event.pageInfo.width} ×{' '}
+                                      {event.pageInfo.height}px
                                     </>
                                   )}
                                 </Text>
@@ -424,17 +425,17 @@ export const RecordTimeline = ({
                                 <Text strong>操作:</Text> {event.type}
                               </div>
                               <div>
-                                <Text strong>位置:</Text> ({event.viewportX},{' '}
-                                {event.viewportY})
+                                <Text strong>位置:</Text> ({event.elementRect?.left},{' '}
+                                {event.elementRect?.top})
                               </div>
                               <div>
-                                <Text strong>尺寸:</Text> {event.width} ×{' '}
-                                {event.height}px
+                                <Text strong>尺寸:</Text> {event.elementRect?.width} ×{' '}
+                                {event.elementRect?.height}px
                               </div>
-                              {event.pageWidth && event.pageHeight && (
+                              {event.pageInfo.width && event.pageInfo.height && (
                                 <div>
                                   <Text strong>页面尺寸:</Text>{' '}
-                                  {event.pageWidth} × {event.pageHeight}px
+                                  {event.pageInfo.width} × {event.pageInfo.height}px
                                 </div>
                               )}
                               {event.value && (
@@ -529,7 +530,7 @@ export const RecordTimeline = ({
           <Space>
             <Text type="secondary">{events.length} events recorded</Text>
             <Text type="secondary" style={{ fontSize: '12px' }}>
-              ({events.filter((e) => e.viewportX !== undefined).length}{' '}
+              ({events.filter((e) => e.elementRect?.left !== undefined).length}{' '}
               个事件已标注元素)
             </Text>
           </Space>

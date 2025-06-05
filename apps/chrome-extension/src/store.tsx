@@ -1,5 +1,6 @@
 // import { createStore } from 'zustand/vanilla';
 import * as Z from 'zustand';
+import { ChromeRecordedEvent } from '@midscene/record';
 
 const { create } = Z;
 export const useBlackboardPreference = create<{
@@ -18,44 +19,6 @@ export const useBlackboardPreference = create<{
   },
 }));
 
-// Record related types and store
-export interface RecordedEvent {
-  type: 'click' | 'scroll' | 'input' | 'navigation' | 'setViewport' | 'keydown';
-  timestamp: number;
-  x?: number;
-  y?: number;
-  value?: string;
-  element?: HTMLElement;
-  targetTagName?: string;
-  targetId?: string;
-  targetClassName?: string;
-  isLabelClick?: boolean;
-  labelInfo?: {
-    htmlFor?: string;
-    textContent?: string;
-  };
-  isTrusted?: boolean;
-  screenshotBefore?: string;
-  screenshotAfter?: string;
-  screenshot?: string;
-  detail?: number;
-  inputType?: string;
-  url?: string;
-  title?: string;
-  viewportX?: number;
-  viewportY?: number;
-  width?: number;
-  height?: number;
-  // Page size information - required by RecordTimeline
-  pageWidth: number;
-  pageHeight: number;
-  // Natural language description of the element
-  elementDescription?: string;
-  // Loading state for AI description generation
-  descriptionLoading?: boolean;
-  // Boxed screenshot with element highlighted
-  screenshotWithBox?: string;
-}
 
 // Recording session interface
 export interface RecordingSession {
@@ -64,7 +27,7 @@ export interface RecordingSession {
   description?: string;
   createdAt: number;
   updatedAt: number;
-  events: RecordedEvent[];
+  events: ChromeRecordedEvent[];
   status: 'idle' | 'recording' | 'completed';
   duration?: number; // in milliseconds
   url?: string; // The URL where recording started
@@ -180,11 +143,11 @@ export const useRecordingSessionStore = create<{
 
 export const useRecordStore = create<{
   isRecording: boolean;
-  events: RecordedEvent[];
+  events: ChromeRecordedEvent[];
   setIsRecording: (recording: boolean) => void;
-  updateEvent: (event: RecordedEvent) => void;
-  addEvent: (event: RecordedEvent) => void;
-  setEvents: (events: RecordedEvent[]) => void;
+  updateEvent: (event: ChromeRecordedEvent) => void;
+  addEvent: (event: ChromeRecordedEvent) => void;
+  setEvents: (events: ChromeRecordedEvent[]) => void;
   clearEvents: () => void;
 }>((set) => ({
   isRecording: loadRecordingStateFromStorage(),
@@ -193,19 +156,19 @@ export const useRecordStore = create<{
     saveRecordingStateToStorage(recording);
     set({ isRecording: recording });
   },
-  addEvent: (event: RecordedEvent) => {
+  addEvent: (event: ChromeRecordedEvent) => {
     set((state) => ({
       events: [...state.events, event],
     }));
   },
-  updateEvent: (event: RecordedEvent) => {
+  updateEvent: (event: ChromeRecordedEvent) => {
     set((state) => ({
       events: state.events.map((e) =>
         e.timestamp === event.timestamp ? event : e,
       ),
     }));
   },
-  setEvents: (events: RecordedEvent[]) => {
+  setEvents: (events: ChromeRecordedEvent[]) => {
     set({ events });
   },
   clearEvents: () => {

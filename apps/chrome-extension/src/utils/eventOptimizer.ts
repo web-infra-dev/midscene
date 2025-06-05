@@ -1,7 +1,7 @@
 import Insight from '@midscene/core';
 import type { BaseElement, UIContext } from '@midscene/core';
 import { compositeElementInfoImg } from '@midscene/shared/img';
-import type { RecordedEvent } from '../store';
+import type { RecordedEvent } from '@midscene/record';
 
 // Caches for element descriptions and boxed screenshots to improve performance
 // Using LRU-like behavior by tracking keys in insertion order and limiting size
@@ -47,11 +47,11 @@ const generateElementCacheKey = (event: RecordedEvent): string => {
     event.targetTagName || '',
     event.targetId || '',
     event.targetClassName || '',
-    event.viewportX || 0,
-    event.viewportY || 0,
-    event.width || 0,
-    event.height || 0,
-  ];
+    event.elementRect?.left || 0,
+    event.elementRect?.top || 0,
+    event.elementRect?.width || 0,
+    event.elementRect?.height || 0,
+  ];  
 
   return elementProps.join('|');
 };
@@ -79,7 +79,7 @@ export const generateFallbackDescription = (event: RecordedEvent): string => {
     case 'input':
       return `Input "${event.value || ''}" into ${elementType}`;
     case 'scroll':
-      return `Scroll to position (${event.viewportX || 0}, ${event.viewportY || 0})`;
+      return `Scroll to position (${event.elementRect?.left || 0}, ${event.elementRect?.top || 0})`;
     case 'navigation':
       return `Navigate to ${event.url || 'new page'}`;
     default:
@@ -122,13 +122,13 @@ const generateAIDescription = async (
       try {
         const mockContext: UIContext<BaseElement> = {
           screenshotBase64: boxedImageBase64,
-          size: { width: event.pageWidth, height: event.pageHeight },
+          size: { width: event.pageInfo.width, height: event.pageInfo.height },
           content: [],
           tree: { node: null, children: [] },
         };
 
         const insight = new Insight(mockContext);
-        const { description } = await insight.describe([event.x!, event.y!]);
+        const { description } = await insight.describe([event.elementRect?.x!, event.elementRect?.y!]);
         
         // Cache the generated description
         addToCache(descriptionCache, cacheKey, description);
@@ -189,20 +189,20 @@ export const optimizeEvent = async (
     // Only process events with screenshots and element position
     if (
       !event.screenshotBefore ||
-      event.viewportX === undefined ||
-      event.viewportY === undefined ||
-      event.width === undefined ||
-      event.height === undefined
+      event.elementRect?.x === undefined ||
+      event.elementRect?.y === undefined ||
+      event.elementRect?.width === undefined ||
+      event.elementRect?.height === undefined
     ) {
       return event;
     }
 
     // Create the target rect for the element
     const targetRect = {
-      left: event.viewportX,
-      top: event.viewportY,
-      width: event.width,
-      height: event.height,
+      left: event.elementRect?.left,
+      top: event.elementRect?.y,
+      width: event.elementRect?.width,
+      height: event.elementRect?.height,
     };
 
     const elementsPositionInfo = [
@@ -213,9 +213,9 @@ export const optimizeEvent = async (
     ];
 
     // Add click coordinates if available
-    if (event.x !== undefined && event.y !== undefined) {
+    if (event.elementRect?.x !== undefined && event.elementRect?.y !== undefined) {
       elementsPositionInfo.push({
-        rect: { left: event.x, top: event.y, width: 2, height: 2 },
+        rect: { left: event.elementRect?.x, top: event.elementRect?.y, width: 2, height: 2 },
       } as any);
     }
 
@@ -231,14 +231,14 @@ export const optimizeEvent = async (
       // Generate the boxed image and cache it
       boxedImageBase64 = await compositeElementInfoImg({
         inputImgBase64: event.screenshotBefore,
-        size: { width: event.pageWidth, height: event.pageHeight },
+        size: { width: event.pageInfo.width, height: event.pageInfo.height },
         elementsPositionInfo,
         borderThickness: 3,
         annotationPadding: 2,
       });
 
       // Only cache the boxed image if it's for a significant element (with dimensions)
-      if (event.width && event.height && event.width > 0 && event.height > 0) {
+      if (event.elementRect?.width && event.elementRect?.height && event.elementRect?.width > 0 && event.elementRect?.height > 0) {
         addToCache(boxedScreenshotCache, cacheKey, boxedImageBase64);
       }
     }
@@ -250,7 +250,7 @@ export const optimizeEvent = async (
     };
 
     // Handle description generation
-    if (event.x !== undefined && event.y !== undefined && updateCallback && boxedImageBase64) {
+    if (event.elementRect?.x !== undefined && event.elementRect?.y !== undefined && updateCallback && boxedImageBase64) {
       // Set loading state
       eventWithBoxedImage.elementDescription = 'AI 正在分析元素...';
       eventWithBoxedImage.descriptionLoading = true;

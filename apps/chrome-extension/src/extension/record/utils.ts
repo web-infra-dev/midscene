@@ -1,7 +1,7 @@
 import { AIActionType, callToGetJSONObject } from '@midscene/core/ai-model';
 import { message } from 'antd';
 
-import type { RecordedEvent } from '../../store';
+import type { ChromeRecordedEvent } from '@midscene/record';
 import { isChromeExtension, safeChromeAPI } from './types';
 
 // Generate default session name with current time
@@ -96,7 +96,7 @@ export const injectScript = async (currentTab: chrome.tabs.Tab | null) => {
 
 // Export session events to file
 export const exportEventsToFile = (
-  events: RecordedEvent[],
+  events: ChromeRecordedEvent[],
   sessionName: string,
 ) => {
   if (events.length === 0) {
@@ -135,13 +135,12 @@ export const generateSessionName = () => {
 
 // Function to get screenshots from events
 const getScreenshotsForLLM = (
-  events: RecordedEvent[],
+  events: ChromeRecordedEvent[],
   maxScreenshots = 1,
 ): string[] => {
   // Find events with screenshots, prioritizing navigation and click events
   const eventsWithScreenshots = events.filter(
     (event) =>
-      event.screenshot ||
       event.screenshotBefore ||
       event.screenshotAfter ||
       event.screenshotWithBox,
@@ -162,7 +161,6 @@ const getScreenshotsForLLM = (
     // Prefer the most informative screenshot
     const screenshot =
       event.screenshotWithBox ||
-      event.screenshot ||
       event.screenshotAfter ||
       event.screenshotBefore;
     if (screenshot && !screenshots.includes(screenshot)) {
@@ -176,7 +174,7 @@ const getScreenshotsForLLM = (
 
 // Generate a title and description for recording using AI based on events
 export const generateRecordTitle = async (
-  events: RecordedEvent[],
+  events: ChromeRecordedEvent[],
 ): Promise<{
   title?: string;
   description?: string;

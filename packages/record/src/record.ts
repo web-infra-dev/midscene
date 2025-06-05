@@ -7,13 +7,36 @@ function debugLog(...args: any[]) {
   }
 }
 
-// Event type definition
-export interface RecordedEvent {
-  type: 'click' | 'scroll' | 'input' | 'navigation';
-  timestamp: number;
-  x?: number;
-  y?: number;
+export interface ChromeRecordedEvent {
+  type: 'click' | 'scroll' | 'input' | 'navigation' | 'setViewport' | 'keydown';
+  url?: string;
+  title?: string;
   value?: string;
+  elementRect?: {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+    x?: number;
+    y?: number;
+  };
+  pageInfo: {
+    width: number;
+    height: number;
+  };
+  screenshotBefore?: string;
+  screenshotAfter?: string;
+  elementDescription?: string;
+  // Loading state for AI description generation
+  descriptionLoading?: boolean;
+  // Boxed screenshot with element highlighted
+  screenshotWithBox?: string;
+  timestamp: number;
+
+}
+
+// Event type definition
+export interface RecordedEvent extends ChromeRecordedEvent {
   element?: HTMLElement;
   targetTagName?: string;
   targetId?: string;
@@ -26,13 +49,6 @@ export interface RecordedEvent {
   isTrusted?: boolean;
   detail?: number;
   inputType?: string;
-  url?: string;
-  viewportX?: number;
-  viewportY?: number;
-  width?: number; // Element width
-  height?: number; // Element height
-  pageWidth: number; // Page width
-  pageHeight: number; // Page height
 }
 
 // Event callback function type
@@ -149,8 +165,18 @@ export class EventRecorder {
 
     const clickEvent: RecordedEvent = {
       type: 'click',
-      x: event.clientX,
-      y: event.clientY,
+      elementRect: {
+        left: rect.left,
+        top: rect.top,
+        width: rect.width, // Add width
+        height: rect.height, // Add height,
+        x: event.clientX,
+        y: event.clientY,
+      },
+      pageInfo: {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      },
       value: '',
       timestamp: Date.now(),
       element: target,
@@ -158,12 +184,8 @@ export class EventRecorder {
       labelInfo,
       isTrusted: event.isTrusted,
       detail: event.detail,
-      viewportX: rect.left,
-      viewportY: rect.top,
-      width: rect.width, // Add width
-      height: rect.height, // Add height
-      pageWidth: window.innerWidth,
-      pageHeight: window.innerHeight,
+      // pageWidth: window.innerWidth,
+      // pageHeight: window.innerHeight,
     };
 
     this.eventCallback(clickEvent);
@@ -195,15 +217,21 @@ export class EventRecorder {
       if (this.isRecording) {
         const scrollEvent: RecordedEvent = {
           type: 'scroll',
-          x: scrollXTarget,
-          y: scrollYTarget,
+          elementRect: {
+            left: scrollXTarget,
+            top: scrollYTarget,
+            width: 0,
+            height: 0,
+          },
+          pageInfo: {
+            width: window.innerWidth,
+            height: window.innerHeight,
+          },
           value: `${scrollXTarget},${scrollYTarget}`,
-          viewportX: rect.left,
-          viewportY: rect.top,
           timestamp: Date.now(),
           element: target,
-          pageWidth: window.innerWidth,
-          pageHeight: window.innerHeight,
+          // pageWidth: window.innerWidth,
+          // pageHeight: window.innerHeight,
         };
         this.eventCallback(scrollEvent);
       }
@@ -224,12 +252,16 @@ export class EventRecorder {
       timestamp: Date.now(),
       element: target,
       inputType: target.type || 'text',
-      viewportX: rect.left,
-      viewportY: rect.top,
-      width: rect.width, // Add width
-      height: rect.height, // Add height
-      pageWidth: window.innerWidth,
-      pageHeight: window.innerHeight,
+      elementRect: {
+        left: rect.left,
+        top: rect.top,
+        width: rect.width, // Add width
+        height: rect.height, // Add height
+      },
+      pageInfo: {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      },
     };
 
     this.eventCallback(inputEvent);
@@ -348,8 +380,8 @@ export class EventRecorder {
         const newEvents = [...events];
         newEvents[events.length - 1] = event;
         debugLog('Replacing last scroll event with new scroll event:', {
-          oldPosition: `${oldScrollEvent.x},${oldScrollEvent.y}`,
-          newPosition: `${event.x},${event.y}`,
+          oldPosition: `${oldScrollEvent.elementRect?.left},${oldScrollEvent.elementRect?.top}`,
+          newPosition: `${event.elementRect?.left},${event.elementRect?.top}`,
           oldTimestamp: oldScrollEvent.timestamp,
           newTimestamp: event.timestamp,
           target: event.targetTagName,

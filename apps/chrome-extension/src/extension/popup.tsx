@@ -99,7 +99,7 @@ export function PlaygroundPopup() {
               />
             </a>
             <GithubStar />
-            <EnvConfig showTooltipWhenEmpty={popupTab === 'playground'} />
+            <EnvConfig showTooltipWhenEmpty={popupTab !== 'bridge'} />
           </div>
           <p>
             AI-Driven Browser Automation with Chrome Extensions, JavaScript, and

@@ -1,5 +1,5 @@
 import { callAi, AIActionType } from '@midscene/core/ai-model';
-import type { RecordedEvent } from '../../store';
+import type { ChromeRecordedEvent } from '@midscene/record';
 
 /**
  * Generates Playwright test code from recorded events
@@ -9,7 +9,7 @@ import type { RecordedEvent } from '../../store';
  * @returns Generated Playwright test code as string
  */
 export const generatePlaywrightTest = async (
-  events: RecordedEvent[],
+  events: ChromeRecordedEvent[],
   options: {
     testName?: string;
     viewportSize?: { width: number; height: number };
@@ -27,8 +27,8 @@ export const generatePlaywrightTest = async (
     const clickEvents = events.filter(event => event.type === 'click');
     const inputEvents = events.filter(event => event.type === 'input');
     const scrollEvents = events.filter(event => event.type === 'scroll');
-    const viewportEvents = events.filter(event => event.type === 'setViewport');
-    const keydownEvents = events.filter(event => event.type === 'keydown');
+    // const viewportEvents = events.filter(event => event.type === 'setViewport');
+    // const keydownEvents = events.filter(event => event.type === 'keydown');
 
     // Get screenshots for visual context if available
     const screenshots = getScreenshotsForLLM(events, 3); // Get up to 3 screenshots
@@ -51,10 +51,10 @@ export const generatePlaywrightTest = async (
       .filter(item => item.description && item.value);
 
     // Default viewport size
-    const viewportSize = options.viewportSize || 
-      (viewportEvents.length > 0 
-        ? { width: viewportEvents[0].pageWidth || 1280, height: viewportEvents[0].pageHeight || 800 }
-        : { width: 1280, height: 800 });
+    // const viewportSize = options.viewportSize || 
+    //   (viewportEvents.length > 0 
+    //     ? { width: viewportEvents[0].pageWidth || 1280, height: viewportEvents[0].pageHeight || 800 }
+    //     : { width: 1280, height: 800 });
 
     // Default test name
     const testName = options.testName || 'Automated test from recorded events';
@@ -63,14 +63,14 @@ export const generatePlaywrightTest = async (
     const summary = {
       testName,
       startUrl,
-      viewportSize,
+      // viewportSize,
       eventCounts: {
         navigation: navigationEvents.length,
         click: clickEvents.length,
         input: inputEvents.length,
         scroll: scrollEvents.length,
-        viewport: viewportEvents.length,
-        keydown: keydownEvents.length,
+        // viewport: viewportEvents.length,
+        // keydown: keydownEvents.length,
         total: events.length
       },
       pageTitles: pageTitles.slice(0, 5),
@@ -85,18 +85,9 @@ export const generatePlaywrightTest = async (
         url: event.url,
         title: event.title,
         elementDescription: event.elementDescription,
-        targetTagName: event.targetTagName,
-        targetId: event.targetId,
-        targetClassName: event.targetClassName,
         value: event.value,
-        x: event.x,
-        y: event.y,
-        viewportX: event.viewportX,
-        viewportY: event.viewportY,
-        width: event.width,
-        height: event.height,
-        pageWidth: event.pageWidth,
-        pageHeight: event.pageHeight,
+        pageInfo: event.pageInfo,
+        elementRect: event.elementRect,
       }))
     };
 
@@ -139,7 +130,6 @@ Respond ONLY with the complete Playwright test code, no explanations.`
 Your task is to generate a complete, executable Playwright test using @midscene/web/playwright that reproduces a recorded browser session.
 Always follow the structure of the example below:
 
-\`\`\`typescript
 import { test as base } from '@playwright/test';
  import type { PlayWrightAiFixtureType } from '@midscene/web/playwright';
  import { PlaywrightAiFixture } from '@midscene/web/playwright';
@@ -176,7 +166,6 @@ import { test as base } from '@playwright/test';
    
    console.log(\`Logged in as: \${data.userInfo.name}\`);
  });
-\`\`\`
 
 `,
       },
@@ -203,10 +192,10 @@ import { test as base } from '@playwright/test';
 };
 
 // Helper function to get screenshots from events (same as in utils.ts)
-const getScreenshotsForLLM = (events: RecordedEvent[], maxScreenshots: number = 1): string[] => {
+const getScreenshotsForLLM = (events: ChromeRecordedEvent[], maxScreenshots: number = 1): string[] => {
   // Find events with screenshots, prioritizing navigation and click events
   const eventsWithScreenshots = events.filter(event => 
-    event.screenshot || event.screenshotBefore || event.screenshotAfter || event.screenshotWithBox
+    event.screenshotBefore || event.screenshotAfter || event.screenshotWithBox
   );
   
   // Sort them by priority (navigation first, then clicks, then others)
@@ -222,7 +211,7 @@ const getScreenshotsForLLM = (events: RecordedEvent[], maxScreenshots: number = 
   const screenshots: string[] = [];
   for (const event of sortedEvents) {
     // Prefer the most informative screenshot
-    const screenshot = event.screenshotWithBox || event.screenshot || event.screenshotAfter || event.screenshotBefore;
+    const screenshot = event.screenshotWithBox || event.screenshotAfter || event.screenshotBefore;
     if (screenshot && !screenshots.includes(screenshot)) {
       screenshots.push(screenshot);
       if (screenshots.length >= maxScreenshots) break;
