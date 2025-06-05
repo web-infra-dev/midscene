@@ -10,6 +10,10 @@ const descriptionCache = new Map<string, string>();
 const boxedScreenshotCache = new Map<string, string>();
 const cacheKeyOrder: string[] = []; // Track keys in order of insertion for LRU behavior
 
+// Track ongoing AI description generation requests to prevent duplicates
+const ongoingDescriptionRequests = new Map<string, Promise<string>>();
+const pendingCallbacks = new Map<string, (description: string) => void>();
+
 // Add an item to cache with size limiting
 const addToCache = (
   cache: Map<string, string>,
@@ -52,28 +56,17 @@ const generateElementCacheKey = (event: RecordedEvent): string => {
   return elementProps.join('|');
 };
 
-// Check if two events reference the same DOM element
-const isSameElement = (
-  event1: RecordedEvent,
-  event2: RecordedEvent,
-): boolean => {
-  return (
-    event1.targetId === event2.targetId &&
-    event1.targetTagName === event2.targetTagName &&
-    event1.targetClassName === event2.targetClassName &&
-    Math.abs((event1.viewportX || 0) - (event2.viewportX || 0)) < 5 &&
-    Math.abs((event1.viewportY || 0) - (event2.viewportY || 0)) < 5 &&
-    Math.abs((event1.width || 0) - (event2.width || 0)) < 5 &&
-    Math.abs((event1.height || 0) - (event2.height || 0)) < 5
-  );
-};
-
 // Clear all caches
 export const clearDescriptionCache = (): void => {
   descriptionCache.clear();
   boxedScreenshotCache.clear();
   cacheKeyOrder.length = 0; // Clear the key order array
-  console.log('Description and screenshot caches cleared');
+  
+  // Clear ongoing requests and callbacks
+  ongoingDescriptionRequests.clear();
+  pendingCallbacks.clear();
+  
+  console.log('Description and screenshot caches cleared, ongoing requests cancelled');
 };
 
 // Generate fallback description for events when AI fails
@@ -94,57 +87,96 @@ export const generateFallbackDescription = (event: RecordedEvent): string => {
   }
 };
 
-// Generate AI description asynchronously with caching
+// Generate AI description asynchronously with complete caching logic
 const generateAIDescription = async (
   event: RecordedEvent,
   boxedImageBase64: string,
-  eventWithBoxedImage: RecordedEvent,
-  updateCallback: (updatedEvent: RecordedEvent) => void,
-) => {
+  cacheKey: string,
+  updateCallback?: (description: string) => void,
+): Promise<string> => {
   try {
-    // Generate a cache key for this element
-    const cacheKey = generateElementCacheKey(event);
-
-    // Check if we have a cached description for this element
+    // Check cache first
     if (descriptionCache.has(cacheKey)) {
-      const cachedDescription = descriptionCache.get(cacheKey);
-      console.log('Using cached description for element');
-
-      updateCallback({
-        ...eventWithBoxedImage,
-        elementDescription: cachedDescription,
-        descriptionLoading: false,
-      });
-      return;
+      const cachedDescription = descriptionCache.get(cacheKey)!;
+      console.log('Using cached description for element:', cacheKey);
+      return cachedDescription;
     }
 
-    // No cached description, generate a new one
-    const mockContext: UIContext<BaseElement> = {
-      screenshotBase64: boxedImageBase64,
-      size: { width: event.pageWidth, height: event.pageHeight },
-      content: [],
-      tree: { node: null, children: [] },
-    };
+    // Check if there's already an ongoing request for this element
+    if (ongoingDescriptionRequests.has(cacheKey)) {
+      console.log('AI description generation already in progress for element:', cacheKey);
+      
+      // Replace the existing callback with the new one (only one callback per element)
+      if (updateCallback) {
+        pendingCallbacks.set(cacheKey, updateCallback);
+      }
+      
+      // Return the existing promise
+      return ongoingDescriptionRequests.get(cacheKey)!;
+    }
 
-    const insight = new Insight(mockContext);
-    const { description } = await insight.describe([event.x!, event.y!]);
+    console.log('Starting AI description generation for element:', cacheKey);
+    
+    // Create and track the promise
+    const descriptionPromise = (async () => {
+      try {
+        const mockContext: UIContext<BaseElement> = {
+          screenshotBase64: boxedImageBase64,
+          size: { width: event.pageWidth, height: event.pageHeight },
+          content: [],
+          tree: { node: null, children: [] },
+        };
 
-    // Cache the description for future use
-    addToCache(descriptionCache, cacheKey, description);
-
-    updateCallback({
-      ...eventWithBoxedImage,
-      elementDescription: description,
-      descriptionLoading: false,
-    });
-  } catch (aiError) {
-    console.error('Failed to generate AI description:', aiError);
-
-    updateCallback({
-      ...eventWithBoxedImage,
-      elementDescription: generateFallbackDescription(event),
-      descriptionLoading: false,
-    });
+        const insight = new Insight(mockContext);
+        const { description } = await insight.describe([event.x!, event.y!]);
+        
+        // Cache the generated description
+        addToCache(descriptionCache, cacheKey, description);
+        
+                 // Update the pending callback for this element
+         const callback = pendingCallbacks.get(cacheKey);
+         if (callback) {
+           callback(description);
+         }
+        
+        return description;
+      } catch (aiError) {
+        console.error('Failed to generate AI description:', aiError);
+        const fallbackDescription = generateFallbackDescription(event);
+        
+        // Cache the fallback description to avoid retrying failed requests
+        addToCache(descriptionCache, cacheKey, fallbackDescription);
+        
+                 // Update the pending callback with fallback
+         const callback = pendingCallbacks.get(cacheKey);
+         if (callback) {
+           callback(fallbackDescription);
+         }
+        
+        return fallbackDescription;
+      } finally {
+        // Clean up tracking data
+        ongoingDescriptionRequests.delete(cacheKey);
+        pendingCallbacks.delete(cacheKey);
+      }
+    })();
+    
+    ongoingDescriptionRequests.set(cacheKey, descriptionPromise);
+    
+         // Set current callback as the pending callback if provided
+     if (updateCallback) {
+       pendingCallbacks.set(cacheKey, updateCallback);
+     }
+    
+    return descriptionPromise;
+  } catch (error) {
+    console.error('Error in generateAIDescription:', error);
+    const fallbackDescription = generateFallbackDescription(event);
+    
+    // Cache the fallback description
+    addToCache(descriptionCache, cacheKey, fallbackDescription);
+    
+    return fallbackDescription;
   }
 };
 
@@ -187,9 +219,8 @@ export const optimizeEvent = async (
       } as any);
     }
 
-    // Check for cached description and boxed screenshot by element properties
+    // Generate cache key for this element
     const cacheKey = generateElementCacheKey(event);
-    const cachedDescription = descriptionCache.get(cacheKey);
     let boxedImageBase64;
 
     // Check if we have a cached boxed screenshot
@@ -212,26 +243,36 @@ export const optimizeEvent = async (
       }
     }
 
-    // Return event with boxed image and loading state or cached description
+    // Create base event with boxed image
     const eventWithBoxedImage: RecordedEvent = {
       ...event,
       screenshotWithBox: boxedImageBase64,
-      elementDescription: cachedDescription || 'AI 正在分析元素...',
-      descriptionLoading: !cachedDescription,
     };
 
-    // Generate AI description asynchronously if coordinates are available and no cached description
-    if (event.x !== undefined && event.y !== undefined && updateCallback) {
-      // Skip AI description generation if we already have a cached description
-      if (!cachedDescription && boxedImageBase64) {
-        generateAIDescription(
-          event,
-          boxedImageBase64,
-          eventWithBoxedImage,
-          updateCallback,
-        );
-      }
+    // Handle description generation
+    if (event.x !== undefined && event.y !== undefined && updateCallback && boxedImageBase64) {
+      // Set loading state
+      eventWithBoxedImage.elementDescription = 'AI 正在分析元素...';
+      eventWithBoxedImage.descriptionLoading = true;
+      
+      // Generate AI description with callback handling
+      generateAIDescription(event, boxedImageBase64, cacheKey, (description: string) => {
+        updateCallback({
+          ...eventWithBoxedImage,
+          elementDescription: description,
+          descriptionLoading: false,
+        });
+      }).catch((error) => {
+        console.error('Error in AI description generation:', error);
+        // Fallback is handled inside generateAIDescription, but we still update the callback
+        updateCallback({
+          ...eventWithBoxedImage,
+          elementDescription: generateFallbackDescription(event),
+          descriptionLoading: false,
+        });
+      });
     } else {
+      // No coordinates available, no callback provided, or no boxed image
       eventWithBoxedImage.elementDescription = 'No description available';
       eventWithBoxedImage.descriptionLoading = false;
     }
