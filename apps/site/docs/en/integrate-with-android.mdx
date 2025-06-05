@@ -98,6 +98,19 @@ After a while, you will see the following output:
 
 After the above command executes successfully, the console will output: `Midscene - report file updated: /path/to/report/some_id.html`. You can open this file in a browser to view the report.
 
+
+## `AndroidDevice` constructor
+
+The AndroidDevice constructor supports the following parameters:
+
+* `deviceId: string` - The device id
+* `opts?: AndroidDeviceOpt` - Optional, the options for the AndroidDevice
+  * `autoDismissKeyboard?: boolean` - If true, the keyboard will be dismissed after inputting. (Default: true)
+  * `androidAdbPath?: string` - Optional, the path to the adb executable.
+  * `remoteAdbHost?: string` - Optional, the remote adb host.
+  * `remoteAdbPort?: number` - Optional, the remote adb port.
+
+
 ## More interfaces in AndroidAgent 
 
 Except the common agent interfaces in [API Reference](./API), AndroidAgent also provides some other interfaces:
@@ -143,7 +156,7 @@ function agentFromAdbDevice(deviceId?: string, opts?: PageAgentOpt): Promise<And
 
 * Parameters:
   * `deviceId?: string` - Optional, the adb device id to connect. If not provided, the first connected device will be used.
-  * `opts?: PageAgentOpt` - Optional, the options for the AndroidAgent, refer to [constructor](./API).
+  * `opts?: PageAgentOpt & AndroidDeviceOpt` - Optional, the options for the AndroidAgent, PageAgentOpt refer to [constructor](./API), AndroidDeviceOpt refer to [AndroidDevice constructor](./integrate-with-android#androiddevice-constructor).
 
 * Return Value:
   * `Promise<AndroidAgent>` Returns a Promise that resolves to an AndroidAgent.
