@@ -91,12 +91,12 @@ function sendEventsToExtension(optimizedEvent) {
         timestamp: event.timestamp,
         // Element position and click coordinates
         elementRect: event.elementRect ? {
-          left: event.elementRect.left,
-          top: event.elementRect.top,
-          width: event.elementRect.width,
-          height: event.elementRect.height,
-          x: event.elementRect.x,
-          y: event.elementRect.y,
+          left: Number(event.elementRect.left.toFixed(2)),
+          top: Number(event.elementRect.top.toFixed(2)),
+          width: Number(event.elementRect.width.toFixed(2)),
+          height: Number(event.elementRect.height.toFixed(2)),
+          x: event.elementRect.x ? Number(event.elementRect.x.toFixed(2)) : undefined,
+          y: event.elementRect.y ? Number(event.elementRect.y.toFixed(2)) : undefined,
         } : undefined,
         // Page information and screenshots
         pageInfo: event.pageInfo ? {

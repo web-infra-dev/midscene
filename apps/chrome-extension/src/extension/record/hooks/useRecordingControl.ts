@@ -301,8 +301,23 @@ export const useRecordingControl = (
 
   // Set up message listener for content script
   useEffect(() => {
+    console.log('[RecordingControl] Setting up message listener for recording events');
+    
     // Connect to service worker for receiving events
     const port = safeChromeAPI.runtime.connect({ name: 'record-events' });
+    console.log('[RecordingControl] Connected to service worker port');
+
+    // Note: onConnect is not available on Port objects, only on runtime
+    // We can check port connection status indirectly
+
+    if ('onDisconnect' in port && typeof port.onDisconnect?.addListener === 'function') {
+      port.onDisconnect.addListener(() => {
+        console.log('[RecordingControl] Port disconnected');
+        if (chrome.runtime.lastError) {
+          console.error('[RecordingControl] Port disconnect error:', chrome.runtime.lastError);
+        }
+      });
+    }
 
     const processEventData = async (eventData: any) => {
       const { element, ...cleanEventData } = eventData;
@@ -310,7 +325,7 @@ export const useRecordingControl = (
     };
 
     const handleMessage = async (message: RecordMessage) => {
-      console.log('[RecordingControl] Received message from content script:', { 
+      console.log('[RecordingControl] Received message from service worker:', { 
         action: message.action, 
         dataType: Array.isArray(message.data) ? 'array' : typeof message.data,
         dataLength: Array.isArray(message.data) ? message.data.length : 1
@@ -330,13 +345,17 @@ export const useRecordingControl = (
         console.log('[RecordingControl] Processing single event:', message.data.type);
         const optimizedEvent = await processEventData(message.data);
         addEvent(optimizedEvent);
+      } else {
+        console.warn('[RecordingControl] Unhandled message format:', message);
       }
     };
 
     // Listen to messages via port
     port.onMessage.addListener(handleMessage);
+    console.log('[RecordingControl] Message listener attached to port');
 
     return () => {
+      console.log('[RecordingControl] Cleaning up message listener and disconnecting port');
       port.disconnect();
     };
   }, [addEvent, setEvents, updateEvent]);

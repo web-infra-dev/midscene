@@ -26,11 +26,15 @@ export const checkContentScriptInjected = async (
   if (!isChromeExtension()) return false;
 
   try {
+    console.log('[RecordUtils] Checking if content script is injected for tab:', tabId);
     const response = await safeChromeAPI.tabs.sendMessage(tabId, {
       action: 'ping',
     });
-    return response?.success === true;
+    const isInjected = response?.success === true;
+    console.log('[RecordUtils] Content script injection check result:', isInjected);
+    return isInjected;
   } catch (error) {
+    console.log('[RecordUtils] Content script not injected, error:', error);
     return false;
   }
 };
@@ -39,11 +43,19 @@ export const checkContentScriptInjected = async (
 export const ensureScriptInjected = async (
   currentTab: chrome.tabs.Tab | null,
 ) => {
-  if (!isChromeExtension() || !currentTab?.id) return false;
+  if (!isChromeExtension() || !currentTab?.id) {
+    console.error('[RecordUtils] Cannot ensure script injection - invalid environment or tab');
+    return false;
+  }
 
+  console.log('[RecordUtils] Ensuring script is injected for tab:', { tabId: currentTab.id, url: currentTab.url });
   const isInjected = await checkContentScriptInjected(currentTab.id);
+  
   if (!isInjected) {
+    console.log('[RecordUtils] Script not injected, injecting now');
     await injectScript(currentTab);
+  } else {
+    console.log('[RecordUtils] Script already injected, skipping injection');
   }
   return true;
 };
@@ -61,22 +73,27 @@ export const injectScript = async (currentTab: chrome.tabs.Tab | null) => {
   }
 
   try {
-    console.log('injecting record script');
+    console.log('[RecordUtils] Injecting record script for tab:', { tabId: currentTab.id, url: currentTab.url });
+    
     // Inject the record script first
+    console.log('[RecordUtils] Injecting record-iife.js');
     await safeChromeAPI.scripting.executeScript({
       target: { tabId: currentTab.id },
       files: ['scripts/record-iife.js'],
     });
+    console.log('[RecordUtils] record-iife.js injected successfully');
 
     // Then inject the content script wrapper
+    console.log('[RecordUtils] Injecting event-recorder-bridge.js');
     await safeChromeAPI.scripting.executeScript({
       target: { tabId: currentTab.id },
       files: ['scripts/event-recorder-bridge.js'],
     });
+    console.log('[RecordUtils] event-recorder-bridge.js injected successfully');
 
     message.success('Recording script injected successfully');
   } catch (error) {
-    console.error('Failed to inject script:', error);
+    console.error('[RecordUtils] Failed to inject script:', error);
     if (error instanceof Error && error.message.includes('Cannot access')) {
       message.error(
         'Cannot inject script on this page (Chrome internal pages are restricted)',
@@ -297,4 +314,113 @@ export const generateRecordTitle = async (
       description: '',
     };
   }
+};
+
+// Diagnostic function to check the complete recording chain
+export const diagnoseRecordingChain = async (currentTab: chrome.tabs.Tab | null) => {
+  console.log('[RecordDiagnosis] Starting recording chain diagnosis');
+  
+  const issues: string[] = [];
+  const info: string[] = [];
+  
+  // Check 1: Extension environment
+  if (!isChromeExtension()) {
+    issues.push('Not in Chrome extension environment');
+    return { issues, info };
+  }
+  info.push('✓ Chrome extension environment detected');
+  
+  // Check 2: Current tab
+  if (!currentTab || !currentTab.id) {
+    issues.push('No active tab or invalid tab ID');
+    return { issues, info };
+  }
+  info.push(`✓ Active tab found: ${currentTab.url} (ID: ${currentTab.id})`);
+  
+  // Check 3: Tab URL validity
+  if (currentTab.url?.startsWith('chrome://') || 
+      currentTab.url?.startsWith('chrome-extension://') ||
+      currentTab.url?.startsWith('moz-extension://')) {
+    issues.push('Cannot record on browser internal pages');
+    return { issues, info };
+  }
+  info.push('✓ Tab URL is recordable');
+  
+  // Check 4: Content script injection
+  try {
+    const isInjected = await checkContentScriptInjected(currentTab.id);
+    if (isInjected) {
+      info.push('✓ Content script is injected and responding');
+    } else {
+      issues.push('Content script not injected or not responding');
+      
+      // Try to inject
+      try {
+        await injectScript(currentTab);
+        info.push('✓ Content script injection attempted');
+        
+        // Check again after injection
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+        const isInjectedAfter = await checkContentScriptInjected(currentTab.id);
+        if (isInjectedAfter) {
+          info.push('✓ Content script injection successful');
+        } else {
+          issues.push('Content script injection failed or not responding after injection');
+        }
+      } catch (error) {
+        issues.push(`Content script injection failed: ${error}`);
+      }
+    }
+  } catch (error) {
+    issues.push(`Error checking content script: ${error}`);
+  }
+  
+  // Check 5: Service worker connection
+  try {
+    const port = chrome.runtime.connect({ name: 'record-events' });
+    info.push('✓ Service worker port connection successful');
+    
+    // Test message sending
+    const testPromise = new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Service worker message test timeout'));
+      }, 3000);
+      
+      port.onMessage.addListener((message) => {
+        if (message.action === 'test-response') {
+          clearTimeout(timeout);
+          resolve(message);
+        }
+      });
+      
+      // Send test message to service worker
+      chrome.runtime.sendMessage({ action: 'test', data: 'ping' }, (response) => {
+        if (chrome.runtime.lastError) {
+          clearTimeout(timeout);
+          reject(chrome.runtime.lastError);
+        } else {
+          clearTimeout(timeout);
+          resolve(response);
+        }
+      });
+    });
+    
+    try {
+      await testPromise;
+      info.push('✓ Service worker message test successful');
+    } catch (error) {
+      issues.push(`Service worker message test failed: ${error}`);
+    }
+    
+    port.disconnect();
+  } catch (error) {
+    issues.push(`Service worker connection failed: ${error}`);
+  }
+  
+  // Summary
+  console.log('[RecordDiagnosis] Diagnosis complete');
+  console.log('[RecordDiagnosis] Issues found:', issues);
+  console.log('[RecordDiagnosis] Info:', info);
+  
+  return { issues, info };
 };

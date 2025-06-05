@@ -158,6 +158,11 @@ export const RecordTimeline = ({
             <Text type="secondary">
               Element "{event.targetTagName || 'Input'}"
             </Text>
+            {event.elementDescription !== undefined && (
+              <Text type="secondary">
+                Description: {event.elementDescription}
+              </Text>
+            )}
             {event.value && <Text code>"{event.value}"</Text>}
           </Space>
         );

@@ -25,38 +25,50 @@ const connectedPorts = new Set<chrome.runtime.Port>();
 
 // Listen for connections from extension pages
 chrome.runtime.onConnect.addListener((port) => {
+  console.log('[ServiceWorker] Port connection attempt:', port.name);
+  
   if (port.name === 'record-events') {
     connectedPorts.add(port);
+    console.log('[ServiceWorker] Record events port connected, total ports:', connectedPorts.size);
 
     port.onDisconnect.addListener(() => {
       connectedPorts.delete(port);
+      console.log('[ServiceWorker] Record events port disconnected, remaining ports:', connectedPorts.size);
     });
+  } else {
+    console.log('[ServiceWorker] Unknown port name:', port.name);
   }
 });
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log('Message received in service worker:', request);
+  console.log('[ServiceWorker] Message received:', {
+    action: request.action,
+    type: request.type,
+    senderTabId: sender.tab?.id,
+    senderUrl: sender.tab?.url,
+    hasData: !!request.data
+  });
 
   // Handle screenshot capture request
   if (request.action === 'captureScreenshot') {
+    console.log('[ServiceWorker] Processing screenshot capture request');
     if (sender.tab && sender.tab.id !== undefined) {
       chrome.tabs.captureVisibleTab(
         sender.tab.windowId,
         { format: 'png' },
         (dataUrl) => {
           if (chrome.runtime.lastError) {
-            console.error(
-              'Failed to capture screenshot:',
-              chrome.runtime.lastError,
-            );
+            console.error('[ServiceWorker] Failed to capture screenshot:', chrome.runtime.lastError);
             sendResponse(null);
           } else {
+            console.log('[ServiceWorker] Screenshot captured successfully, size:', dataUrl ? dataUrl.length : 0);
             sendResponse(dataUrl);
           }
         },
       );
       return true; // Keep the message channel open for async response
     } else {
+      console.error('[ServiceWorker] No valid tab for screenshot capture');
       sendResponse(null);
       return true;
     }
@@ -64,8 +76,24 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   // Forward recording events to connected extension pages
   if (request.action === 'events' || request.action === 'event') {
+    console.log('[ServiceWorker] Forwarding recording message to', connectedPorts.size, 'connected ports:', {
+      action: request.action,
+      dataLength: Array.isArray(request.data) ? request.data.length : 1,
+      eventTypes: Array.isArray(request.data) ? request.data.map((e: any) => e.type) : [request.data?.type]
+    });
+    
+    if (connectedPorts.size === 0) {
+      console.warn('[ServiceWorker] No connected ports to forward recording events to');
+    }
+    
     connectedPorts.forEach((port) => {
-      port.postMessage(request);
+      try {
+        port.postMessage(request);
+        console.log('[ServiceWorker] Message forwarded to port successfully');
+      } catch (error) {
+        console.error('[ServiceWorker] Failed to forward message to port:', error);
+        connectedPorts.delete(port); // Remove invalid port
+      }
     });
     sendResponse({ success: true });
     return true;

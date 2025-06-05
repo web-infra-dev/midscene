@@ -4,6 +4,7 @@ import {
   DownloadOutlined,
   PlayCircleOutlined,
   StopOutlined,
+  BugOutlined,
 } from '@ant-design/icons';
 import { RecordTimeline, ChromeRecordedEvent } from '@midscene/record';
 import {
@@ -20,6 +21,7 @@ import type React from 'react';
 import type { RecordingSession } from '../../../store';
 
 import { PlaywrightExportControls } from '../PlaywrightExportControls';
+import { diagnoseRecordingChain } from '../utils';
 
 const { Title, Text } = Typography;
 
@@ -47,6 +49,22 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
   onClearEvents,
   isExtensionMode,
 }) => {
+  // Handle diagnostic check
+  const handleDiagnose = async () => {
+    console.log('[RecordDetail] Starting diagnosis...');
+    const result = await diagnoseRecordingChain(currentTab);
+
+    // Show results in console and alert
+    const issuesText = result.issues.length > 0
+      ? `Issues found:\n${result.issues.join('\n')}`
+      : 'No issues found!';
+
+    const infoText = result.info.length > 0
+      ? `\nChecks passed:\n${result.info.join('\n')}`
+      : '';
+
+    alert(`Recording Chain Diagnosis:\n\n${issuesText}${infoText}\n\nSee console for detailed logs.`);
+  };
   return (
     <div className="record-detail-view">
       {!isExtensionMode && (
@@ -174,6 +192,14 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
               disabled={events.length === 0 || isRecording}
             >
               Clear Events
+            </Button>
+
+            <Button
+              icon={<BugOutlined />}
+              onClick={handleDiagnose}
+              title="Diagnose recording chain issues"
+            >
+              Diagnose
             </Button>
 
           </Space>

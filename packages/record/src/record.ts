@@ -181,12 +181,12 @@ export class EventRecorder {
     const clickEvent: RecordedEvent = {
       type: 'click',
       elementRect: {
-        left: rect.left,
-        top: rect.top,
-        width: rect.width, // Add width
-        height: rect.height, // Add height,
-        x: event.clientX,
-        y: event.clientY,
+        left: Number(rect.left.toFixed(2)),
+        top: Number(rect.top.toFixed(2)),
+        width: Number(rect.width.toFixed(2)),
+        height: Number(rect.height.toFixed(2)),
+        x: Number(event.clientX.toFixed(2)),
+        y: Number(event.clientY.toFixed(2)),
       },
       pageInfo: {
         width: window.innerWidth,
@@ -233,8 +233,8 @@ export class EventRecorder {
         const scrollEvent: RecordedEvent = {
           type: 'scroll',
           elementRect: {
-            left: scrollXTarget,
-            top: scrollYTarget,
+            left: Number(scrollXTarget.toFixed(2)),
+            top: Number(scrollYTarget.toFixed(2)),
             width: 0,
             height: 0,
           },
@@ -242,7 +242,7 @@ export class EventRecorder {
             width: window.innerWidth,
             height: window.innerHeight,
           },
-          value: `${scrollXTarget},${scrollYTarget}`,
+          value: `${scrollXTarget.toFixed(2)},${scrollYTarget.toFixed(2)}`,
           timestamp: Date.now(),
           element: target,
           // pageWidth: window.innerWidth,
@@ -268,10 +268,10 @@ export class EventRecorder {
       element: target,
       inputType: target.type || 'text',
       elementRect: {
-        left: rect.left,
-        top: rect.top,
-        width: rect.width, // Add width
-        height: rect.height, // Add height
+        left: Number(rect.left.toFixed(2)),
+        top: Number(rect.top.toFixed(2)),
+        width: Number(rect.width.toFixed(2)),
+        height: Number(rect.height.toFixed(2)),
       },
       pageInfo: {
         width: window.innerWidth,

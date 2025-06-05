@@ -189,8 +189,6 @@ export const optimizeEvent = async (
     // Only process events with screenshots and element position
     if (
       !event.screenshotBefore ||
-      event.elementRect?.x === undefined ||
-      event.elementRect?.y === undefined ||
       event.elementRect?.width === undefined ||
       event.elementRect?.height === undefined
     ) {
