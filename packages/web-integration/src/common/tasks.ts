@@ -1,4 +1,8 @@
-import type { AndroidDevicePage, WebPage } from '@/common/page';
+import type {
+  AndroidDeviceInputOpt,
+  AndroidDevicePage,
+  WebPage,
+} from '@/common/page';
 import type { PuppeteerWebPage } from '@/puppeteer';
 import {
   type AIUsageInfo,
@@ -182,7 +186,10 @@ export class PageTaskExecutor {
 
   public async convertPlanToExecutable(
     plans: PlanningAction[],
-    opts?: { cacheable?: boolean },
+    opts?: {
+      cacheable?: boolean;
+      autoDismissKeyboard?: boolean;
+    },
   ) {
     const tasks: ExecutionTaskApply[] = [];
     plans.forEach((plan) => {
@@ -394,9 +401,13 @@ export class PageTaskExecutor {
                   return;
                 }
 
-                await this.page.keyboard.type(taskParam.value);
+                await this.page.keyboard.type(taskParam.value, {
+                  autoDismissKeyboard: opts?.autoDismissKeyboard,
+                });
               } else {
-                await this.page.keyboard.type(taskParam.value);
+                await this.page.keyboard.type(taskParam.value, {
+                  autoDismissKeyboard: opts?.autoDismissKeyboard,
+                });
               }
             },
           };
@@ -908,7 +919,9 @@ export class PageTaskExecutor {
   async runPlans(
     title: string,
     plans: PlanningAction[],
-    opts?: { cacheable?: boolean },
+    opts?: AndroidDeviceInputOpt & {
+      cacheable?: boolean;
+    },
   ): Promise<ExecutionResult> {
     const taskExecutor = new Executor(title, {
       onTaskStart: this.onTaskStartCallback,

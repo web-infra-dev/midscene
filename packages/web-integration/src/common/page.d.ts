@@ -8,8 +8,6 @@ import type { StaticPage } from '../playground';
 import type { PlaywrightWebPage } from '../playwright';
 import type { PuppeteerWebPage } from '../puppeteer';
 
-export type { KeyboardTypeOptions } from '../chrome-extension/cdpInput';
-
 export interface AndroidDevicePage extends AbstractPage {
   pageType: PageType;
   connect(): Promise<any>;
@@ -36,6 +34,10 @@ export interface AndroidDevicePage extends AbstractPage {
   home(): Promise<void>;
   recentApps(): Promise<void>;
 }
+
+export type AndroidDeviceInputOpt = {
+  autoDismissKeyboard?: boolean;
+};
 
 export type WebPage =
   | PlaywrightWebPage

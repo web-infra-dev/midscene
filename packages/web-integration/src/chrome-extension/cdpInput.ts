@@ -40,11 +40,6 @@ export interface KeyboardTypeOptions {
    * @default undefined
    */
   delay?: number;
-  /**
-   * Whether to hide the keyboard after typing is completed
-   * @default undefined
-   */
-  autoDismissKeyboard?: boolean;
 }
 
 /**

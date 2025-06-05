@@ -3,7 +3,7 @@ export type { PlayWrightAiFixtureType } from './playwright';
 export type {
   WebPage,
   AndroidDevicePage,
-  KeyboardTypeOptions,
+  AndroidDeviceInputOpt,
 } from './common/page';
 export type { AbstractPage } from './page';
 
