@@ -7,6 +7,7 @@ import { mouseLoading, mousePointer } from '@/utils';
 import {
   CaretRightOutlined,
   DownloadOutlined,
+  ExportOutlined,
   LoadingOutlined,
 } from '@ant-design/icons';
 import type { BaseElement, LocateResultElement, Rect } from '@midscene/core';
@@ -114,6 +115,55 @@ const downloadReport = (content: string): void => {
   a.click();
 };
 
+class RecordingSession {
+  canvas: HTMLCanvasElement;
+  mediaRecorder: MediaRecorder | null = null;
+  chunks: BlobPart[];
+  recording = false;
+
+  constructor(canvas: HTMLCanvasElement) {
+    this.canvas = canvas;
+    this.chunks = [];
+  }
+
+  start() {
+    const stream = this.canvas.captureStream(60); // 60fps
+    const mediaRecorder = new MediaRecorder(stream, {
+      mimeType: 'video/webm',
+    });
+
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        this.chunks.push(event.data);
+      }
+    };
+
+    this.mediaRecorder = mediaRecorder;
+    this.recording = true;
+    return this.mediaRecorder.start();
+  }
+
+  stop() {
+    if (!this.recording || !this.mediaRecorder) {
+      console.warn('not recording');
+      return;
+    }
+
+    this.mediaRecorder.onstop = () => {
+      const blob = new Blob(this.chunks, { type: 'video/webm' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'midscene_replay.webm';
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+    this.mediaRecorder?.stop();
+    this.recording = false;
+    this.mediaRecorder = null;
+  }
+}
+
 export function Player(props?: {
   replayScripts?: AnimationScript[];
   imageWidth?: number;
@@ -136,6 +186,9 @@ export function Player(props?: {
   const spinningPointerSprite = useRef<PIXI.Sprite | null>(null);
 
   const [replayMark, setReplayMark] = useState(0);
+  const triggerReplay = () => {
+    setReplayMark(Date.now());
+  };
 
   const windowContentContainer = useMemo(() => {
     const container = new PIXI.Container();
@@ -339,6 +392,7 @@ export function Player(props?: {
     const pointerMoveDuration = shouldMovePointer ? duration * 0.375 : 0;
     const cameraMoveStart = pointerMoveDuration;
     const cameraMoveDuration = duration - pointerMoveDuration;
+
     await new Promise<void>((resolve) => {
       const animate = (currentTime: number) => {
         const nextState: CameraState = { ...cameraState.current };
@@ -556,6 +610,25 @@ export function Player(props?: {
     windowContentContainer.addChild(insightMarkContainer);
   };
 
+  const [isRecording, setIsRecording] = useState(false);
+  const recorderSessionRef = useRef<RecordingSession | null>(null);
+
+  const handleExport = () => {
+    if (recorderSessionRef.current) {
+      console.warn('recorderSession exists');
+      return;
+    }
+
+    if (!app.canvas) {
+      console.warn('canvas is not initialized');
+      return;
+    }
+
+    recorderSessionRef.current = new RecordingSession(app.canvas);
+    setIsRecording(true);
+    triggerReplay();
+  };
+
   const play = (): (() => void) => {
     let cancelFn: () => void;
     Promise.resolve(
@@ -566,11 +639,8 @@ export function Player(props?: {
         if (!scripts) {
           throw new Error('scripts is required');
         }
-
         const { frame, cancel, timeout } = frameKit();
-
         cancelFn = cancel;
-
         const allImages: string[] = scripts
           .filter((item) => !!item.img)
           .map((item) => item.img!);
@@ -585,11 +655,15 @@ export function Player(props?: {
         await updatePointer(mousePointer, imageWidth / 2, imageHeight / 2);
         await repaintImage();
         await updateCamera({ ...basicCameraState });
-
         const totalDuration = scripts.reduce((acc, item) => {
-          return acc + item.duration + (item.insightCameraDuration || 0);
+          return (
+            acc +
+            item.duration +
+            (item.camera && item.insightCameraDuration
+              ? item.insightCameraDuration
+              : 0)
+          );
         }, 0);
-
         // progress bar
         const progressUpdateInterval = 200;
         const startTime = performance.now();
@@ -599,19 +673,22 @@ export function Player(props?: {
             (performance.now() - startTime) / totalDuration,
             1,
           );
-
           setAnimationProgress(progress);
           if (progress < 1) {
             return timeout(updateProgress, progressUpdateInterval);
           }
         };
         frame(updateProgress);
+        if (recorderSessionRef.current) {
+          recorderSessionRef.current.start();
+        }
 
         // play animation
         for (const index in scripts) {
           const item = scripts[index];
           setTitleText(item.title || '');
           setSubTitleText(item.subTitle || '');
+
           if (item.type === 'sleep') {
             await sleep(item.duration);
           } else if (item.type === 'insight') {
@@ -620,7 +697,6 @@ export function Player(props?: {
             }
             currentImg.current = item.img;
             await repaintImage();
-
             const elements = item.context?.content || [];
             const highlightElements = item.highlightElement
               ? [item.highlightElement]
@@ -642,8 +718,6 @@ export function Player(props?: {
                 frame,
               );
             }
-            // const insightMark = insightMarkForItem(item);
-            // insightMarkContainer.addChild(insightMark);
           } else if (item.type === 'clear-insight') {
             await fadeOutItem(insightMarkContainer, item.duration, frame);
             insightMarkContainer.removeChildren();
@@ -669,11 +743,16 @@ export function Player(props?: {
             stop();
           }
         }
+
+        if (recorderSessionRef.current) {
+          recorderSessionRef.current.stop();
+          recorderSessionRef.current = null;
+          setIsRecording(false);
+        }
       })().catch((e) => {
         console.error('player error', e);
       }),
     );
-
     // Cleanup function
     return () => {
       cancelFn?.();
@@ -684,7 +763,7 @@ export function Player(props?: {
     Promise.resolve(
       (async () => {
         await init();
-        setReplayMark(Date.now());
+        triggerReplay();
       })(),
     );
 
@@ -707,13 +786,13 @@ export function Player(props?: {
   const progressString = Math.round(animationProgress * 100);
   const transitionStyle = animationProgress === 0 ? 'none' : '0.3s';
 
-  // if the animation can be replay now, listen to the ""
+  // press space to replay
   const canReplayNow = animationProgress === 1;
   useEffect(() => {
     if (canReplayNow) {
       const listener = (event: KeyboardEvent) => {
         if (event.key === ' ') {
-          setReplayMark(Date.now());
+          triggerReplay();
         }
       };
       window.addEventListener('keydown', listener);
@@ -733,7 +812,7 @@ export function Player(props?: {
     statusIconElement = (
       <Spin indicator={<CaretRightOutlined color="#333" />} size="default" />
     );
-    statusOnClick = () => setReplayMark(Date.now());
+    statusOnClick = () => triggerReplay();
   } else {
     statusIconElement = (
       // <Spin indicator={<CheckCircleOutlined />} size="default" />
@@ -764,14 +843,17 @@ export function Player(props?: {
                 <div className="subtitle">{subTitleText}</div>
               </Tooltip>
             </div>
-            <div
-              className="status-icon"
-              onMouseEnter={() => setMouseOverStatusIcon(true)}
-              onMouseLeave={() => setMouseOverStatusIcon(false)}
-              onClick={statusOnClick}
-            >
-              {statusIconElement}
-            </div>
+            {isRecording ? null : (
+              <div
+                className="status-icon"
+                onMouseEnter={() => setMouseOverStatusIcon(true)}
+                onMouseLeave={() => setMouseOverStatusIcon(false)}
+                onClick={statusOnClick}
+              >
+                {statusIconElement}
+              </div>
+            )}
+
             {props?.reportFileContent ? (
               <div
                 className="status-icon"
@@ -782,6 +864,22 @@ export function Player(props?: {
                 <DownloadOutlined color="#333" />
               </div>
             ) : null}
+            <Tooltip title={isRecording ? 'Generating...' : 'Export Video'}>
+              <div
+                className="status-icon"
+                onClick={isRecording ? undefined : handleExport}
+                style={{
+                  opacity: isRecording ? 0.5 : 1,
+                  cursor: isRecording ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {isRecording ? (
+                  <Spin size="default" percent={progressString} />
+                ) : (
+                  <ExportOutlined />
+                )}
+              </div>
+            </Tooltip>
           </div>
         </div>
       </div>
