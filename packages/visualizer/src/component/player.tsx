@@ -7,6 +7,7 @@ import { mouseLoading, mousePointer } from '@/utils';
 import {
   CaretRightOutlined,
   DownloadOutlined,
+  ExportOutlined,
   LoadingOutlined,
 } from '@ant-design/icons';
 import type { BaseElement, LocateResultElement, Rect } from '@midscene/core';
@@ -114,6 +115,55 @@ const downloadReport = (content: string): void => {
   a.click();
 };
 
+class RecordingSession {
+  canvas: HTMLCanvasElement;
+  mediaRecorder: MediaRecorder | null = null;
+  chunks: BlobPart[];
+  recording = false;
+
+  constructor(canvas: HTMLCanvasElement) {
+    this.canvas = canvas;
+    this.chunks = [];
+  }
+
+  start() {
+    const stream = this.canvas.captureStream(60); // 60fps
+    const mediaRecorder = new MediaRecorder(stream, {
+      mimeType: 'video/webm',
+    });
+
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        this.chunks.push(event.data);
+      }
+    };
+
+    this.mediaRecorder = mediaRecorder;
+    this.recording = true;
+    return this.mediaRecorder.start();
+  }
+
+  stop() {
+    if (!this.recording || !this.mediaRecorder) {
+      console.warn('not recording');
+      return;
+    }
+
+    this.mediaRecorder.onstop = () => {
+      const blob = new Blob(this.chunks, { type: 'video/webm' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'midscene_replay.webm';
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+    this.mediaRecorder?.stop();
+    this.recording = false;
+    this.mediaRecorder = null;
+  }
+}
+
 export function Player(props?: {
   replayScripts?: AnimationScript[];
   imageWidth?: number;
@@ -136,6 +186,9 @@ export function Player(props?: {
   const spinningPointerSprite = useRef<PIXI.Sprite | null>(null);
 
   const [replayMark, setReplayMark] = useState(0);
+  const triggerReplay = () => {
+    setReplayMark(Date.now());
+  };
 
   const windowContentContainer = useMemo(() => {
     const container = new PIXI.Container();
@@ -339,6 +392,7 @@ export function Player(props?: {
     const pointerMoveDuration = shouldMovePointer ? duration * 0.375 : 0;
     const cameraMoveStart = pointerMoveDuration;
     const cameraMoveDuration = duration - pointerMoveDuration;
+
     await new Promise<void>((resolve) => {
       const animate = (currentTime: number) => {
         const nextState: CameraState = { ...cameraState.current };
@@ -557,54 +611,22 @@ export function Player(props?: {
   };
 
   const [isRecording, setIsRecording] = useState(false);
-  const isRecordingRef = useRef(false);
-  const shouldAutoDownloadRef = useRef(false);
-  const [downloading, setDownloading] = useState(false);
+  const recorderSessionRef = useRef<RecordingSession | null>(null);
 
-  useEffect(() => {
-    isRecordingRef.current = isRecording;
-  }, [isRecording]);
+  const handleExport = () => {
+    if (recorderSessionRef.current) {
+      console.warn('recorderSession exists');
+      return;
+    }
 
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const recordedChunksRef = useRef<Blob[]>([]);
+    if (!app.canvas) {
+      console.warn('canvas is not initialized');
+      return;
+    }
 
-  const startRecording = () => {
-    if (!app.canvas) return;
-    const stream = (app.canvas as HTMLCanvasElement).captureStream(60); // 60fps
-    const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
-    recordedChunksRef.current = [];
-    mediaRecorder.ondataavailable = (event) => {
-      if (event.data.size > 0) {
-        recordedChunksRef.current.push(event.data);
-      }
-    };
-    mediaRecorder.onstop = () => {
-      const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'midscene_player.webm';
-      a.click();
-      URL.revokeObjectURL(url);
-      setDownloading(false);
-    };
-    mediaRecorder.start();
-    mediaRecorderRef.current = mediaRecorder;
+    recorderSessionRef.current = new RecordingSession(app.canvas);
     setIsRecording(true);
-    isRecordingRef.current = true;
-  };
-
-  const stopRecording = () => {
-    mediaRecorderRef.current?.stop();
-    setIsRecording(false);
-    isRecordingRef.current = false;
-  };
-
-  const handleDownload = () => {
-    if (downloading) return;
-    shouldAutoDownloadRef.current = true;
-    setDownloading(true);
-    setReplayMark(Date.now());
+    triggerReplay();
   };
 
   const play = (): (() => void) => {
@@ -634,7 +656,13 @@ export function Player(props?: {
         await repaintImage();
         await updateCamera({ ...basicCameraState });
         const totalDuration = scripts.reduce((acc, item) => {
-          return acc + item.duration + (item.insightCameraDuration || 0);
+          return (
+            acc +
+            item.duration +
+            (item.camera && item.insightCameraDuration
+              ? item.insightCameraDuration
+              : 0)
+          );
         }, 0);
         // progress bar
         const progressUpdateInterval = 200;
@@ -651,8 +679,8 @@ export function Player(props?: {
           }
         };
         frame(updateProgress);
-        if (shouldAutoDownloadRef.current && !isRecordingRef.current) {
-          startRecording();
+        if (recorderSessionRef.current) {
+          recorderSessionRef.current.start();
         }
 
         // play animation
@@ -660,6 +688,7 @@ export function Player(props?: {
           const item = scripts[index];
           setTitleText(item.title || '');
           setSubTitleText(item.subTitle || '');
+
           if (item.type === 'sleep') {
             await sleep(item.duration);
           } else if (item.type === 'insight') {
@@ -714,9 +743,11 @@ export function Player(props?: {
             stop();
           }
         }
-        if (shouldAutoDownloadRef.current && isRecordingRef.current) {
-          stopRecording();
-          shouldAutoDownloadRef.current = false;
+
+        if (recorderSessionRef.current) {
+          recorderSessionRef.current.stop();
+          recorderSessionRef.current = null;
+          setIsRecording(false);
         }
       })().catch((e) => {
         console.error('player error', e);
@@ -732,7 +763,7 @@ export function Player(props?: {
     Promise.resolve(
       (async () => {
         await init();
-        setReplayMark(Date.now());
+        triggerReplay();
       })(),
     );
 
@@ -755,13 +786,13 @@ export function Player(props?: {
   const progressString = Math.round(animationProgress * 100);
   const transitionStyle = animationProgress === 0 ? 'none' : '0.3s';
 
-  // if the animation can be replay now, listen to the ""
+  // press space to replay
   const canReplayNow = animationProgress === 1;
   useEffect(() => {
     if (canReplayNow) {
       const listener = (event: KeyboardEvent) => {
         if (event.key === ' ') {
-          setReplayMark(Date.now());
+          triggerReplay();
         }
       };
       window.addEventListener('keydown', listener);
@@ -781,7 +812,7 @@ export function Player(props?: {
     statusIconElement = (
       <Spin indicator={<CaretRightOutlined color="#333" />} size="default" />
     );
-    statusOnClick = () => setReplayMark(Date.now());
+    statusOnClick = () => triggerReplay();
   } else {
     statusIconElement = (
       // <Spin indicator={<CheckCircleOutlined />} size="default" />
@@ -812,14 +843,17 @@ export function Player(props?: {
                 <div className="subtitle">{subTitleText}</div>
               </Tooltip>
             </div>
-            <div
-              className="status-icon"
-              onMouseEnter={() => setMouseOverStatusIcon(true)}
-              onMouseLeave={() => setMouseOverStatusIcon(false)}
-              onClick={statusOnClick}
-            >
-              {statusIconElement}
-            </div>
+            {isRecording ? null : (
+              <div
+                className="status-icon"
+                onMouseEnter={() => setMouseOverStatusIcon(true)}
+                onMouseLeave={() => setMouseOverStatusIcon(false)}
+                onClick={statusOnClick}
+              >
+                {statusIconElement}
+              </div>
+            )}
+
             {props?.reportFileContent ? (
               <div
                 className="status-icon"
@@ -830,16 +864,20 @@ export function Player(props?: {
                 <DownloadOutlined color="#333" />
               </div>
             ) : null}
-            <Tooltip title={downloading ? 'Downloading...' : 'Download Video'}>
+            <Tooltip title={isRecording ? 'Generating...' : 'Export Video'}>
               <div
                 className="status-icon"
-                onClick={downloading ? undefined : handleDownload}
+                onClick={isRecording ? undefined : handleExport}
                 style={{
-                  opacity: downloading ? 0.5 : 1,
-                  cursor: downloading ? 'not-allowed' : 'pointer',
+                  opacity: isRecording ? 0.5 : 1,
+                  cursor: isRecording ? 'not-allowed' : 'pointer',
                 }}
               >
-                <DownloadOutlined />
+                {isRecording ? (
+                  <Spin size="default" percent={progressString} />
+                ) : (
+                  <ExportOutlined />
+                )}
               </div>
             </Tooltip>
           </div>
