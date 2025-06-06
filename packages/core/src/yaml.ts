@@ -162,6 +162,11 @@ export interface MidsceneYamlFlowItemSleep {
   sleep: number;
 }
 
+export interface MidsceneYamlFlowItemLogScreenshot {
+  logScreenshot?: string; // optional, the title of the screenshot
+  content?: string;
+}
+
 export type MidsceneYamlFlowItem =
   | MidsceneYamlFlowItemAIAction
   | MidsceneYamlFlowItemAIAssert
@@ -173,7 +178,8 @@ export type MidsceneYamlFlowItem =
   | MidsceneYamlFlowItemAIInput
   | MidsceneYamlFlowItemAIKeyboardPress
   | MidsceneYamlFlowItemAIScroll
-  | MidsceneYamlFlowItemSleep;
+  | MidsceneYamlFlowItemSleep
+  | MidsceneYamlFlowItemLogScreenshot;
 
 export interface FreeFn {
   name: string;

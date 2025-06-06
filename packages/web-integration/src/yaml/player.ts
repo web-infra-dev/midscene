@@ -20,6 +20,7 @@ import type {
   MidsceneYamlFlowItemAITap,
   MidsceneYamlFlowItemAIWaitFor,
   MidsceneYamlFlowItemEvaluateJavaScript,
+  MidsceneYamlFlowItemLogScreenshot,
   MidsceneYamlFlowItemSleep,
   MidsceneYamlScript,
   MidsceneYamlScriptEnv,
@@ -282,6 +283,13 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           evaluateJavaScriptTask.javascript,
         );
         this.setResult(evaluateJavaScriptTask.name, result);
+      } else if (
+        'logScreenshot' in (flowItem as MidsceneYamlFlowItemLogScreenshot)
+      ) {
+        const logScreenshotTask = flowItem as MidsceneYamlFlowItemLogScreenshot;
+        await agent.logScreenshot(logScreenshotTask.logScreenshot, {
+          content: logScreenshotTask.content || '',
+        });
       } else {
         throw new Error(`unknown flowItem: ${JSON.stringify(flowItem)}`);
       }
