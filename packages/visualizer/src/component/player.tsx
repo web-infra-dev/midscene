@@ -855,14 +855,16 @@ export function Player(props?: {
             )}
 
             {props?.reportFileContent ? (
-              <div
-                className="status-icon"
-                onMouseEnter={() => setMouseOverStatusIcon(true)}
-                onMouseLeave={() => setMouseOverStatusIcon(false)}
-                onClick={() => downloadReport(props.reportFileContent!)}
-              >
-                <DownloadOutlined color="#333" />
-              </div>
+              <Tooltip title="Download Report">
+                <div
+                  className="status-icon"
+                  onMouseEnter={() => setMouseOverStatusIcon(true)}
+                  onMouseLeave={() => setMouseOverStatusIcon(false)}
+                  onClick={() => downloadReport(props.reportFileContent!)}
+                >
+                  <DownloadOutlined color="#333" />
+                </div>
+              </Tooltip>
             ) : null}
             <Tooltip title={isRecording ? 'Generating...' : 'Export Video'}>
               <div
