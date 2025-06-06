@@ -332,7 +332,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   async aiKeyboardPress(
-    keyName: string,
+    keyName: string | string[],
     locatePrompt?: string,
     opt?: LocateOption,
   ) {

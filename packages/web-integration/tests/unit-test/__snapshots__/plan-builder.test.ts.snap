@@ -61,6 +61,23 @@ exports[`build plans > keyboardPress 1`] = `
 ]
 `;
 
+exports[`build plans > keyboardPress with combination keys 1`] = `
+[
+  {
+    "locate": undefined,
+    "param": {
+      "value": [
+        "Ctrl",
+        "Shift",
+        "I",
+      ],
+    },
+    "thought": "",
+    "type": "KeyboardPress",
+  },
+]
+`;
+
 exports[`build plans > rightClick 1`] = `
 [
   {
