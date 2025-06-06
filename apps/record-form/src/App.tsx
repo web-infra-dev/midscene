@@ -54,8 +54,10 @@ const App: React.FC = () => {
       type: 'navigation',
       url: window.location.href,
       timestamp: Date.now(),
-      pageWidth: window.innerWidth,
-      pageHeight: window.innerHeight,
+      pageInfo: {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      },
     },
   ]);
   const [rawEventsCount, setRawEventsCount] = useState(0);
@@ -76,7 +78,7 @@ const App: React.FC = () => {
           return optimized || prev;
         });
         setMergedEventsCount(optimizedEvents.length);
-      });
+      }, 'test');
       eventRecorderRef.current.start();
     }
     return () => {

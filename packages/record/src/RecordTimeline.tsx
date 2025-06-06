@@ -140,9 +140,9 @@ export const RecordTimeline = ({
             {event.targetTagName && (
               <Text type="secondary">Element "{event.targetTagName}"</Text>
             )}
-            {event.elementRect?.left !== undefined && event.elementRect?.top !== undefined && (
+            {event.elementRect?.x !== undefined && event.elementRect?.y !== undefined && (
               <Text type="secondary">
-                Position: ({event.elementRect?.left}, {event.elementRect?.top})
+                Position: ({event.elementRect?.x}, {event.elementRect?.y})
               </Text>
             )}
             {event.elementDescription !== undefined && (
@@ -169,7 +169,7 @@ export const RecordTimeline = ({
       case 'scroll':
         return (
           <Text type="secondary">
-            Position: ({event.elementRect?.left || 0}, {event.elementRect?.top || 0})
+            Position: ({event.elementRect?.x || 0}, {event.elementRect?.y || 0})
           </Text>
         );
       case 'navigation':

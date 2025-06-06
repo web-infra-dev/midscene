@@ -173,7 +173,7 @@ export default function Record() {
   // View session detail handler
   const handleViewDetail = useCallback(
     (session: RecordingSession) => {
-      console.log('[Record] Viewing session detail:', { sessionId: session.id, sessionName: session.name });
+      console.log('[Record] Viewing session detail:', { sessionId: session.id, sessionName: session.name, events: session.events });
 
       setSelectedSession(session);
       setViewMode('detail');
@@ -257,7 +257,6 @@ export default function Record() {
             onStartRecording={startRecording}
             onStopRecording={stopRecording}
             onClearEvents={clearEvents}
-            onExportEvents={exportEvents}
             isExtensionMode={isExtensionMode}
           />
         )

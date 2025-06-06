@@ -43,17 +43,17 @@ const addToCache = (
 
 // Generate a cache key based on element properties
 const generateElementCacheKey = (event: RecordedEvent): string => {
-  const elementProps = [
-    event.targetTagName || '',
-    event.targetId || '',
-    event.targetClassName || '',
-    event.elementRect?.left || 0,
-    event.elementRect?.top || 0,
-    event.elementRect?.width || 0,
-    event.elementRect?.height || 0,
-  ];  
+  // const elementProps = [
+  //   event.targetTagName || '',
+  //   event.targetId || '',
+  //   event.targetClassName || '',
+  //   event.elementRect?.left || 0,
+  //   event.elementRect?.top || 0,
+  //   event.elementRect?.width || 0,
+  //   event.elementRect?.height || 0,
+  // ];  
 
-  return elementProps.join('|');
+  return event.timestamp.toString();
 };
 
 // Clear all caches
@@ -90,7 +90,7 @@ export const generateFallbackDescription = (event: RecordedEvent): string => {
 // Generate AI description asynchronously with complete caching logic
 const generateAIDescription = async (
   event: RecordedEvent,
-  boxedImageBase64: string,
+  imageBase64: string,
   cacheKey: string,
   updateCallback?: (description: string) => void,
 ): Promise<string> => {
@@ -121,7 +121,7 @@ const generateAIDescription = async (
     const descriptionPromise = (async () => {
       try {
         const mockContext: UIContext<BaseElement> = {
-          screenshotBase64: boxedImageBase64,
+          screenshotBase64: imageBase64,
           size: { width: event.pageInfo.width, height: event.pageInfo.height },
           content: [],
           tree: { node: null, children: [] },
@@ -129,7 +129,7 @@ const generateAIDescription = async (
 
         const insight = new Insight(mockContext);
         let rect: [number, number] | { left: number; top: number; width: number; height: number };
-        if (event.elementRect?.x !== undefined && event.elementRect?.y !== undefined) {
+        if (event.elementRect?.x && event.elementRect?.y) {
           rect = [event.elementRect.x, event.elementRect.y] as [number, number];
         } else {
           rect = {
@@ -199,9 +199,7 @@ export const optimizeEvent = async (
   try {
     // Only process events with screenshots and element position
     if (
-      !event.screenshotBefore ||
-      event.elementRect?.width === undefined ||
-      event.elementRect?.height === undefined
+      !event.screenshotBefore || (event.elementRect?.width  &&  event.elementRect?.height && event.elementRect?.x && event.elementRect?.y)
     ) {
       return event;
     }
@@ -214,15 +212,19 @@ export const optimizeEvent = async (
       height: event.elementRect?.height,
     };
 
-    const elementsPositionInfo = [
-      {
-        rect: targetRect,
-        indexId: 1,
-      },
-    ];
+    const elementsPositionInfo = [];
+
+    if (event.elementRect?.left && event.elementRect?.top && event.elementRect?.width && event.elementRect?.height) {
+      elementsPositionInfo.push(
+        {
+          rect: targetRect,
+          indexId: 1,
+        },
+      );
+    }
 
     // Add click coordinates if available
-    if (event.elementRect?.x !== undefined && event.elementRect?.y !== undefined) {
+    if (event.elementRect?.x && event.elementRect?.y) {
       elementsPositionInfo.push({
         rect: { left: event.elementRect?.x, top: event.elementRect?.y, width: 2, height: 2 },
       } as any);
@@ -259,13 +261,13 @@ export const optimizeEvent = async (
     };
 
     // Handle description generation
-    if (updateCallback && boxedImageBase64) {
+    if (updateCallback && event.screenshotBefore) {
       // Set loading state
       eventWithBoxedImage.elementDescription = 'AI 正在分析元素...';
       eventWithBoxedImage.descriptionLoading = true;
       
       // Generate AI description with callback handling
-      generateAIDescription(event, boxedImageBase64, cacheKey, (description: string) => {
+      generateAIDescription(event, event.screenshotBefore, cacheKey, (description: string) => {
         updateCallback({
           ...eventWithBoxedImage,
           elementDescription: description,

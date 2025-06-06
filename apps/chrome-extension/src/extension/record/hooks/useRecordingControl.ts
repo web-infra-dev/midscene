@@ -105,7 +105,7 @@ export const useRecordingControl = (
           };
 
           // Generate AI title and description if we have events
-          if (events.length > 0) {
+          if (events.length > 3 && session.name && session.description) {
             console.log('[RecordingControl] Generating AI title and description for', events.length, 'events');
             const hideLoadingMessage = message.loading(
               'Generating recording title and description...',
@@ -113,12 +113,12 @@ export const useRecordingControl = (
             );
             try {
               const { title, description } = await generateRecordTitle(events);
+
+              console.log('[RecordingControl] Generated AI:', { title, description });
               if (title) {
-                console.log('[RecordingControl] Generated AI title:', title);
                 updateData.name = title;
               }
               if (description) {
-                console.log('[RecordingControl] Generated AI description length:', description.length);
                 updateData.description = description;
               }
             } catch (error) {
@@ -339,6 +339,7 @@ export const useRecordingControl = (
     const handleMessage = async (message: RecordMessage) => {
       console.log('[RecordingControl] Received message from service worker:', { 
         action: message.action, 
+        data: message.data,
         dataType: Array.isArray(message.data) ? 'array' : typeof message.data,
         dataLength: Array.isArray(message.data) ? message.data.length : 1,
         sessionId: message.sessionId
