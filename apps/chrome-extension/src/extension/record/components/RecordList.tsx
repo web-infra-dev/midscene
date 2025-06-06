@@ -122,7 +122,7 @@ export const RecordList: React.FC<RecordListProps> = ({
         <List
           className="session-list"
           grid={{ gutter: 16, column: 1 }}
-          dataSource={sessions}
+          dataSource={[...sessions].sort((a, b) => b.updatedAt - a.updatedAt)}
           renderItem={(session) => (
             <List.Item>
               <Card
