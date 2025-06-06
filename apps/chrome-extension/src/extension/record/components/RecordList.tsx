@@ -77,7 +77,7 @@ export const RecordList: React.FC<RecordListProps> = ({
         <Alert
           message="Limited Functionality"
           description="Recording features require Chrome extension environment. Only session management and event viewing are available."
-          type="warning"
+          type="info"
           showIcon
           style={{ marginBottom: '16px' }}
         />

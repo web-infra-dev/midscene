@@ -317,7 +317,9 @@ export const generateRecordTitle = async (
 };
 
 // Diagnostic function to check the complete recording chain
-export const diagnoseRecordingChain = async (currentTab: chrome.tabs.Tab | null) => {
+export const diagnoseRecordingChain = async (
+  currentTab: chrome.tabs.Tab | null,
+): Promise<{ issues: string[]; info: string[] }> => {
   console.log('[RecordDiagnosis] Starting recording chain diagnosis');
   
   const issues: string[] = [];
@@ -354,22 +356,22 @@ export const diagnoseRecordingChain = async (currentTab: chrome.tabs.Tab | null)
     } else {
       issues.push('Content script not injected or not responding');
       
-      // Try to inject
-      try {
-        await injectScript(currentTab);
-        info.push('✓ Content script injection attempted');
-        
-        // Check again after injection
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
-        const isInjectedAfter = await checkContentScriptInjected(currentTab.id);
-        if (isInjectedAfter) {
-          info.push('✓ Content script injection successful');
-        } else {
-          issues.push('Content script injection failed or not responding after injection');
-        }
-      } catch (error) {
-        issues.push(`Content script injection failed: ${error}`);
+    // Try to inject
+    try {
+      await injectScript(currentTab);
+      info.push('✓ Content script injection attempted');
+      
+      // Check again after injection
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second
+      const isInjectedAfter = await checkContentScriptInjected(currentTab.id);
+      if (isInjectedAfter) {
+        info.push('✓ Content script injection successful');
+      } else {
+        issues.push('Content script injection failed or not responding after injection');
       }
+    } catch (error) {
+      issues.push(`Content script injection failed: ${error}`);
+    }
     }
   } catch (error) {
     issues.push(`Error checking content script: ${error}`);

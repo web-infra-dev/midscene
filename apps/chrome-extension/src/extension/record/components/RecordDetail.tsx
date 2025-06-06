@@ -1,12 +1,12 @@
 import {
   ArrowLeftOutlined,
+  BugOutlined,
   DeleteOutlined,
-  DownloadOutlined,
   PlayCircleOutlined,
   StopOutlined,
-  BugOutlined,
 } from '@ant-design/icons';
-import { RecordTimeline, ChromeRecordedEvent } from '@midscene/record';
+import type { ChromeRecordedEvent } from '@midscene/record';
+import { RecordTimeline } from '@midscene/record';
 import {
   Alert,
   Button,
@@ -34,7 +34,6 @@ interface RecordDetailProps {
   onStartRecording: () => void;
   onStopRecording: () => void;
   onClearEvents: () => void;
-  onExportEvents: () => void;
   isExtensionMode: boolean;
 }
 

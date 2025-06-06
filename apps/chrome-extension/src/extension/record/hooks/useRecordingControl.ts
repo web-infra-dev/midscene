@@ -15,7 +15,7 @@ import {
   generateRecordTitle,
   generateSessionName,
 } from '../utils';
-import { ChromeRecordedEvent } from '@midscene/record';
+import type { ChromeRecordedEvent } from '@midscene/record';
 
 /**
  * Hook to manage recording controls and handle recording events
@@ -154,6 +154,7 @@ export const useRecordingControl = (
     getCurrentSession,
     events,
     updateSession,
+    onSessionUpdated,
   ]);
 
   // Monitor tab updates for page refresh/navigation detection
