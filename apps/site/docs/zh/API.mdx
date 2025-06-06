@@ -260,11 +260,11 @@ await agent.aiRightClick('页面顶部的文件名称', { deepThink: true });
 * 类型
 
 ```typescript
-function logScreenshot(title: string, options?: Object): Promise<void>;
+function logScreenshot(title?: string, options?: Object): Promise<void>;
 ```
 
 * 参数：
-  * `title: string` - 截图的标题。
+  * `title?: string` - 可选，截图的标题，如果未提供，则标题为 'untitled'。
   * `options?: Object` - 可选，一个配置对象，包含：
     * `content?: string` - 截图的描述。
 

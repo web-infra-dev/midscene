@@ -163,7 +163,7 @@ export interface MidsceneYamlFlowItemSleep {
 }
 
 export interface MidsceneYamlFlowItemLogScreenshot {
-  logScreenshot: string;
+  logScreenshot?: string; // optional, the title of the screenshot
   content?: string;
 }
 

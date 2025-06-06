@@ -260,11 +260,11 @@ Log the current screenshot with a description in the report file.
 * Type
 
 ```typescript
-function logScreenshot(locate: string, options?: Object): Promise<void>;
+function logScreenshot(title?: string, options?: Object): Promise<void>;
 ```
 
 * Parameters:
-  * `title: string` - The title of the screenshot.
+  * `title?: string` - Optional, the title of the screenshot, if not provided, the title will be 'untitled'.
   * `options?: Object` - Optional, a configuration object containing:
     * `content?: string` - The description of the screenshot.
 

@@ -663,7 +663,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   async logScreenshot(
-    title: string,
+    title?: string,
     opt?: {
       content: string;
     },
@@ -701,7 +701,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       logTime: now,
       model_name: '',
       model_description: '',
-      name: `Log - ${title}`,
+      name: `Log - ${title || 'untitled'}`,
       description: opt?.content || '',
       tasks: [task],
     };
