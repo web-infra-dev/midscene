@@ -1,8 +1,4 @@
-import type {
-  AndroidDeviceInputOpt,
-  AndroidDevicePage,
-  WebPage,
-} from '@/common/page';
+import type { AndroidDevicePage, WebPage } from '@/common/page';
 import type { PuppeteerWebPage } from '@/puppeteer';
 import {
   type AIUsageInfo,
@@ -398,15 +394,11 @@ export class PageTaskExecutor {
                 if (!taskParam || !taskParam.value) {
                   return;
                 }
-
-                await this.page.keyboard.type(taskParam.value, {
-                  autoDismissKeyboard: taskParam.autoDismissKeyboard,
-                });
-              } else {
-                await this.page.keyboard.type(taskParam.value, {
-                  autoDismissKeyboard: taskParam.autoDismissKeyboard,
-                });
               }
+
+              await this.page.keyboard.type(taskParam.value, {
+                autoDismissKeyboard: taskParam.autoDismissKeyboard,
+              });
             },
           };
         tasks.push(taskActionInput);
