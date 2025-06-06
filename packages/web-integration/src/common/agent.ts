@@ -318,13 +318,13 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     );
     const plans = buildPlans('Input', detailedLocateParam, {
       value,
+      autoDismissKeyboard: opt?.autoDismissKeyboard,
     });
     const { executor, output } = await this.taskExecutor.runPlans(
       taskTitleStr('Input', locateParamStr(detailedLocateParam)),
       plans,
       {
         cacheable: opt?.cacheable,
-        autoDismissKeyboard: opt?.autoDismissKeyboard,
       },
     );
     this.afterTaskRunning(executor);

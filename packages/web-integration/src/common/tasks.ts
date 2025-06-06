@@ -46,7 +46,6 @@ import {
 import { sleep } from '@midscene/core/utils';
 import { NodeType } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
-import { getElementInfosScriptContent } from '@midscene/shared/fs';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { WebElementInfo } from '../web-element';
@@ -188,7 +187,6 @@ export class PageTaskExecutor {
     plans: PlanningAction[],
     opts?: {
       cacheable?: boolean;
-      autoDismissKeyboard?: boolean;
     },
   ) {
     const tasks: ExecutionTaskApply[] = [];
@@ -402,11 +400,11 @@ export class PageTaskExecutor {
                 }
 
                 await this.page.keyboard.type(taskParam.value, {
-                  autoDismissKeyboard: opts?.autoDismissKeyboard,
+                  autoDismissKeyboard: taskParam.autoDismissKeyboard,
                 });
               } else {
                 await this.page.keyboard.type(taskParam.value, {
-                  autoDismissKeyboard: opts?.autoDismissKeyboard,
+                  autoDismissKeyboard: taskParam.autoDismissKeyboard,
                 });
               }
             },
@@ -919,7 +917,7 @@ export class PageTaskExecutor {
   async runPlans(
     title: string,
     plans: PlanningAction[],
-    opts?: AndroidDeviceInputOpt & {
+    opts?: {
       cacheable?: boolean;
     },
   ): Promise<ExecutionResult> {
