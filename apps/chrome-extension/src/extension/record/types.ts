@@ -17,6 +17,7 @@ export const isChromeExtension = (): boolean => {
       chrome.runtime &&
       chrome.runtime.id &&
       chrome.tabs &&
+      chrome.windows &&
       chrome.scripting
     );
   } catch (error) {
@@ -91,6 +92,40 @@ export const safeChromeAPI = {
       ) => {
         if (isChromeExtension()) {
           chrome.tabs.onUpdated.removeListener(callback);
+        }
+      },
+    },
+    onActivated: {
+      addListener: (
+        callback: (activeInfo: chrome.tabs.TabActiveInfo) => void,
+      ) => {
+        if (isChromeExtension()) {
+          chrome.tabs.onActivated.addListener(callback);
+        }
+      },
+      removeListener: (
+        callback: (activeInfo: chrome.tabs.TabActiveInfo) => void,
+      ) => {
+        if (isChromeExtension()) {
+          chrome.tabs.onActivated.removeListener(callback);
+        }
+      },
+    },
+  },
+  windows: {
+    onFocusChanged: {
+      addListener: (
+        callback: (windowId: number) => void,
+      ) => {
+        if (isChromeExtension()) {
+          chrome.windows.onFocusChanged.addListener(callback);
+        }
+      },
+      removeListener: (
+        callback: (windowId: number) => void,
+      ) => {
+        if (isChromeExtension()) {
+          chrome.windows.onFocusChanged.removeListener(callback);
         }
       },
     },
