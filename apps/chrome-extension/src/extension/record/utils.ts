@@ -316,7 +316,42 @@ export const generateRecordTitle = async (
   }
 };
 
-// Diagnostic function to check the complete recording chain
+// Cleanup previous recording sessions by sending stop messages to all tabs
+export const cleanupPreviousRecordings = async () => {
+  if (!isChromeExtension()) {
+    console.log('[RecordUtils] Not in extension environment, skipping cleanup');
+    return;
+  }
+
+  try {
+    console.log('[RecordUtils] Cleaning up previous recording sessions');
+    
+    // Get all tabs
+    const tabs = await new Promise<chrome.tabs.Tab[]>((resolve) => {
+      safeChromeAPI.tabs.query({}, resolve);
+    });
+
+    // Send cleanup message to all tabs
+    const cleanupPromises = tabs.map(async (tab) => {
+      if (!tab.id) return;
+      
+      try {
+        await safeChromeAPI.tabs.sendMessage(tab.id, { 
+          action: 'stop',
+        });
+        console.log('[RecordUtils] Cleanup message sent to tab:', tab.id, tab.url, tab.title);
+      } catch (error) {
+        // Ignore errors for tabs that don't have our content script
+        console.log('[RecordUtils] Cleanup message failed for tab:', tab.id, error);
+      }
+    });
+
+    await Promise.allSettled(cleanupPromises);
+    console.log('[RecordUtils] Previous recording cleanup completed');
+  } catch (error) {
+    console.error('[RecordUtils] Error during recording cleanup:', error);
+  }
+};
 export const diagnoseRecordingChain = async (
   currentTab: chrome.tabs.Tab | null,
 ): Promise<{ issues: string[]; info: string[] }> => {

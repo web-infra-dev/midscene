@@ -7,6 +7,7 @@ export type ViewMode = 'list' | 'detail';
 export interface RecordMessage {
   action: 'start' | 'stop' | 'event' | 'events';
   data?: any;
+  sessionId?: string;
 }
 
 // Chrome API safety check

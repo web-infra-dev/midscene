@@ -112,9 +112,11 @@ export class EventRecorder {
   private scrollThrottleDelay = 200; // 200ms throttle
   private lastViewportScroll: { x: number; y: number } | null = null;
   private scrollTargets: HTMLElement[] = [];
+  private sessionId: string;
 
-  constructor(eventCallback: EventCallback) {
+  constructor(eventCallback: EventCallback, sessionId: string) {
     this.eventCallback = eventCallback;
+    this.sessionId = sessionId;
   }
 
   // Start recording

@@ -53,7 +53,7 @@ const saveSessionsToStorage = (sessions: RecordingSession[]) => {
   try {
     localStorage.setItem(RECORDING_SESSIONS_KEY, JSON.stringify(sessions));
   } catch (error) {
-    console.error('Failed to save sessions to storage:', error);
+    // console.error('Failed to save sessions to storage:', error);
   }
 };
 

@@ -8,7 +8,7 @@ if (typeof window.EventRecorder === 'undefined') {
   );
 }
 if (window.recorder && window.recorder.isActive()) {
-  recorder.stop();
+  window.recorder.stop();
 }
 
 window.recorder = null;
@@ -31,7 +31,7 @@ async function captureScreenshot() {
 }
 
 // Initialize recorder with callback to send events to extension
-async function initializeRecorder() {
+async function initializeRecorder(sessionId) {
   if (!window.EventRecorder) {
     console.error('[EventRecorder Bridge] EventRecorder class not available during initialization');
     return;
@@ -73,7 +73,7 @@ async function initializeRecorder() {
       // Send events array to extension popup
       sendEventsToExtension(optimizedEvent);
     }
-  });
+  }, sessionId);
 }
 
 function sendEventsToExtension(optimizedEvent) {
@@ -127,18 +127,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.action === 'start') {
     if (!window.recorder) {
-      initializeRecorder();
+      initializeRecorder(message.sessionId);
     }
 
     if (window.recorder) {
       window.recorder.start();
       events = []; // Clear previous events
-      console.log('[EventRecorder Bridge] Recording started successfully');
+      console.log('[EventRecorder Bridge] Recording started successfully with session ID:', message.sessionId);
       sendResponse({
         success: true,
       });
     } else {
-      console.error('[EventRecorder Bridge] Failed to start recording - recorder not initialized');
+      console.error('[EventRecorder Bridge] Failed to start recording - recorder not initialized with session ID:', message.sessionId);
       sendResponse({
         success: false,
         error: 'Failed to initialize recorder',
@@ -150,13 +150,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       window.recorder.stop();
       const finalEventsCount = events.length;
       window.recorder = null;
-      console.log('[EventRecorder Bridge] Recording stopped successfully with', finalEventsCount, 'events');
+      console.log('[EventRecorder Bridge] Recording stopped successfully with session ID:', message.sessionId, 'with', finalEventsCount, 'events');
       sendResponse({
         success: true,
         eventsCount: finalEventsCount,
       });
     } else {
-      console.warn('[EventRecorder Bridge] Stop requested but recorder not active');
+      console.log('[EventRecorder Bridge] Stop requested but recorder not active with session ID:', message.sessionId);
       sendResponse({
         success: false,
         error: 'Recorder not active',

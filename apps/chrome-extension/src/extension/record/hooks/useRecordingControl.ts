@@ -14,6 +14,7 @@ import {
   exportEventsToFile,
   generateRecordTitle,
   generateSessionName,
+  cleanupPreviousRecordings,
 } from '../utils';
 import type { ChromeRecordedEvent } from '@midscene/record';
 
@@ -69,16 +70,19 @@ export const useRecordingControl = (
       try {
         // Send message to content script to stop recording
         console.log('[RecordingControl] Sending stop message to content script');
-        await safeChromeAPI.tabs.sendMessage(currentTab.id, { action: 'stop' });
+        await safeChromeAPI.tabs.sendMessage(currentTab.id, { 
+          action: 'stop', 
+          sessionId: currentSessionId 
+        });
         console.log('[RecordingControl] Stop message sent successfully');
         message.success('Recording stopped');
       } catch (error: any) {
         // If content script is not available, just stop recording on our side
         if (error.message?.includes('Receiving end does not exist')) {
-          console.warn('[RecordingControl] Content script not available, stopping recording locally');
+          console.log('[RecordingControl] Content script not available, stopping recording locally');
           message.warning('Recording stopped (page may have been refreshed)');
         } else {
-          console.error('[RecordingControl] Error sending stop message:', error);
+          console.log('[RecordingControl] Error sending stop message:', error);
           throw error;
         }
       }
@@ -228,16 +232,23 @@ export const useRecordingControl = (
     await ensureScriptInjected(currentTab);
 
     try {
+      // Clean up any previous recording instances first
+      console.log('[RecordingControl] Cleaning up previous recording instances');
+      await cleanupPreviousRecordings();
+
       // Clear the AI description cache to avoid using old descriptions
       console.log('[RecordingControl] Clearing AI description cache');
       clearDescriptionCache();
 
       // Send message to content script to start recording
       console.log('[RecordingControl] Sending start message to content script');
-      await safeChromeAPI.tabs.sendMessage(currentTab.id, { action: 'start' });
+      await safeChromeAPI.tabs.sendMessage(currentTab.id, { 
+        action: 'start', 
+        sessionId: sessionToUse.id 
+      });
       setIsRecording(true);
       clearEvents(); // Clear previous events for new recording
-      console.log('[RecordingControl] Recording started successfully');
+      console.log('[RecordingControl] Recording started successfully with session ID:', sessionToUse.id);
       message.success('Recording started');
     } catch (error) {
       console.error('[RecordingControl] Failed to start recording:', error);
@@ -329,8 +340,18 @@ export const useRecordingControl = (
       console.log('[RecordingControl] Received message from service worker:', { 
         action: message.action, 
         dataType: Array.isArray(message.data) ? 'array' : typeof message.data,
-        dataLength: Array.isArray(message.data) ? message.data.length : 1
+        dataLength: Array.isArray(message.data) ? message.data.length : 1,
+        sessionId: message.sessionId
       });
+
+      // Validate session ID - only process events from current recording session
+      if (message.sessionId && currentSessionId && message.sessionId !== currentSessionId) {
+        console.log('[RecordingControl] Ignoring event from previous session:', {
+          messageSessionId: message.sessionId,
+          currentSessionId: currentSessionId
+        });
+        return;
+      }
 
       if (message.action === 'events' && Array.isArray(message.data)) {
         console.log('[RecordingControl] Processing bulk events:', message.data.length);
