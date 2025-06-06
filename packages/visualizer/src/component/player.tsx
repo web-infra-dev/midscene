@@ -556,6 +556,57 @@ export function Player(props?: {
     windowContentContainer.addChild(insightMarkContainer);
   };
 
+  const [isRecording, setIsRecording] = useState(false);
+  const isRecordingRef = useRef(false);
+  const shouldAutoDownloadRef = useRef(false);
+  const [downloading, setDownloading] = useState(false);
+
+  useEffect(() => {
+    isRecordingRef.current = isRecording;
+  }, [isRecording]);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+
+  const startRecording = () => {
+    if (!app.canvas) return;
+    const stream = (app.canvas as HTMLCanvasElement).captureStream(60); // 60fps
+    const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+    recordedChunksRef.current = [];
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        recordedChunksRef.current.push(event.data);
+      }
+    };
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'midscene_player.webm';
+      a.click();
+      URL.revokeObjectURL(url);
+      setDownloading(false);
+    };
+    mediaRecorder.start();
+    mediaRecorderRef.current = mediaRecorder;
+    setIsRecording(true);
+    isRecordingRef.current = true;
+  };
+
+  const stopRecording = () => {
+    mediaRecorderRef.current?.stop();
+    setIsRecording(false);
+    isRecordingRef.current = false;
+  };
+
+  const handleDownload = () => {
+    if (downloading) return;
+    shouldAutoDownloadRef.current = true;
+    setDownloading(true);
+    setReplayMark(Date.now());
+  };
+
   const play = (): (() => void) => {
     let cancelFn: () => void;
     Promise.resolve(
@@ -566,11 +617,8 @@ export function Player(props?: {
         if (!scripts) {
           throw new Error('scripts is required');
         }
-
         const { frame, cancel, timeout } = frameKit();
-
         cancelFn = cancel;
-
         const allImages: string[] = scripts
           .filter((item) => !!item.img)
           .map((item) => item.img!);
@@ -585,11 +633,9 @@ export function Player(props?: {
         await updatePointer(mousePointer, imageWidth / 2, imageHeight / 2);
         await repaintImage();
         await updateCamera({ ...basicCameraState });
-
         const totalDuration = scripts.reduce((acc, item) => {
           return acc + item.duration + (item.insightCameraDuration || 0);
         }, 0);
-
         // progress bar
         const progressUpdateInterval = 200;
         const startTime = performance.now();
@@ -599,13 +645,15 @@ export function Player(props?: {
             (performance.now() - startTime) / totalDuration,
             1,
           );
-
           setAnimationProgress(progress);
           if (progress < 1) {
             return timeout(updateProgress, progressUpdateInterval);
           }
         };
         frame(updateProgress);
+        if (shouldAutoDownloadRef.current && !isRecordingRef.current) {
+          startRecording();
+        }
 
         // play animation
         for (const index in scripts) {
@@ -620,7 +668,6 @@ export function Player(props?: {
             }
             currentImg.current = item.img;
             await repaintImage();
-
             const elements = item.context?.content || [];
             const highlightElements = item.highlightElement
               ? [item.highlightElement]
@@ -642,8 +689,6 @@ export function Player(props?: {
                 frame,
               );
             }
-            // const insightMark = insightMarkForItem(item);
-            // insightMarkContainer.addChild(insightMark);
           } else if (item.type === 'clear-insight') {
             await fadeOutItem(insightMarkContainer, item.duration, frame);
             insightMarkContainer.removeChildren();
@@ -669,11 +714,14 @@ export function Player(props?: {
             stop();
           }
         }
+        if (shouldAutoDownloadRef.current && isRecordingRef.current) {
+          stopRecording();
+          shouldAutoDownloadRef.current = false;
+        }
       })().catch((e) => {
         console.error('player error', e);
       }),
     );
-
     // Cleanup function
     return () => {
       cancelFn?.();
@@ -782,6 +830,18 @@ export function Player(props?: {
                 <DownloadOutlined color="#333" />
               </div>
             ) : null}
+            <Tooltip title={downloading ? 'Downloading...' : 'Download Video'}>
+              <div
+                className="status-icon"
+                onClick={downloading ? undefined : handleDownload}
+                style={{
+                  opacity: downloading ? 0.5 : 1,
+                  cursor: downloading ? 'not-allowed' : 'pointer',
+                }}
+              >
+                <DownloadOutlined />
+              </div>
+            </Tooltip>
           </div>
         </div>
       </div>
