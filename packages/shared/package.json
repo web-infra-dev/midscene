@@ -67,7 +67,7 @@
     "@ui-tars/shared": "1.2.0",
     "dotenv": "16.4.5",
     "rimraf": "~3.0.2",
-    "typescript": "^5.8.2",
+    "typescript": "^5.8.3",
     "vitest": "3.0.5"
   },
   "sideEffects": [],

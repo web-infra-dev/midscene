@@ -32,8 +32,8 @@
     "upgrade": "modern upgrade"
   },
   "peerDependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react": "18.3.1",
+    "react-dom": ">=19.1.0"
   },
   "devDependencies": {
     "@modern-js/module-tools": "2.60.6",
@@ -43,20 +43,20 @@
     "@pixi/unsafe-eval": "7.4.2",
     "@types/chrome": "0.0.279",
     "@types/node": "^18.0.0",
-    "@types/react": "^18.3.18",
-    "@types/react-dom": "^18.3.5",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.1",
     "execa": "9.3.0",
     "http-server": "14.1.1",
     "npm-watch": "0.13.0",
     "pixi-filters": "6.0.5",
     "pixi.js": "8.1.1",
     "query-string": "9.1.1",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
     "react-resizable-panels": "2.0.22",
     "rimraf": "~3.0.2",
     "tsx": "4.19.2",
-    "typescript": "^5.8.2",
+    "typescript": "^5.8.3",
     "zustand": "4.5.2"
   },
   "sideEffects": ["**/*.css", "**/*.less", "**/*.sass", "**/*.scss"],
@@ -70,6 +70,6 @@
     "@midscene/shared": "workspace:*",
     "@midscene/web": "workspace:*",
     "antd": "^5.21.6",
-    "dayjs": "1.11.11"
+    "dayjs": "^1.11.11"
   }
 }

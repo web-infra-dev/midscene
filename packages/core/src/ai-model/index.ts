@@ -1,4 +1,4 @@
-export { callToGetJSONObject } from './service-caller/index';
+export { callToGetJSONObject, call as callAi } from './service-caller/index';
 export { systemPromptToLocateElement } from './prompt/llm-locator';
 export {
   describeUserPage,
@@ -17,3 +17,5 @@ export {
 export { plan } from './llm-planning';
 export { callAiFn, adaptBboxToRect } from './common';
 export { vlmPlanning, resizeImageForUiTars } from './ui-tars-planning';
+
+export { AIActionType } from './common';

@@ -131,7 +131,7 @@
     "@midscene/shared": "workspace:*",
     "@xmldom/xmldom": "0.8.10",
     "cors": "2.8.5",
-    "dayjs": "1.11.11",
+    "dayjs": "^1.11.11",
     "devtools-protocol": "0.0.1380148",
     "dotenv": "16.4.5",
     "express": "^4.21.2",
@@ -157,7 +157,7 @@
     "@types/semver": "7.7.0",
     "playwright": "1.44.1",
     "puppeteer": "24.2.0",
-    "typescript": "^5.8.2",
+    "typescript": "^5.8.3",
     "vitest": "3.0.5"
   },
   "peerDependencies": {

@@ -170,7 +170,7 @@ export function Player(props?: {
   imageHeight?: number;
   reportFileContent?: string | null;
   key?: string | number;
-}): JSX.Element {
+}) {
   const [titleText, setTitleText] = useState('');
   const [subTitleText, setSubTitleText] = useState('');
 
