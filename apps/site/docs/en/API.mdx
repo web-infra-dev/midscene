@@ -253,6 +253,32 @@ The `deepThink` feature is a powerful feature that allows Midscene to call AI mo
 
 :::
 
+## Log Screenshot
+
+Log a screenshot of the current page.
+
+* Type
+
+```typescript
+function logScreenshot(locate: string, options?: Object): Promise<void>;
+```
+
+* Parameters:
+  * `locate: string` - A natural language description of the element to log the screenshot of.
+  * `options?: Object` - Optional, a configuration object containing:
+    * `content?: string` - The content to log.
+
+* Return Value:
+  * Returns a `Promise<void>`
+
+* Examples:
+
+```typescript
+await agent.logScreenshot('Login page', {
+  content: 'User A',
+});
+```
+
 ## Data Extraction
 
 ### `agent.aiQuery()`

@@ -5,7 +5,9 @@ import {
   type AgentWaitForOpt,
   type DetailedLocateParam,
   type ExecutionDump,
+  type ExecutionRecorderItem,
   type ExecutionTask,
+  type ExecutionTaskLog,
   type Executor,
   type GroupedActionDump,
   Insight,
@@ -658,5 +660,53 @@ export class PageAgent<PageType extends WebPage = WebPage> {
 
   async destroy() {
     await this.page.destroy();
+  }
+
+  async logScreenshot(
+    title: string,
+    opt?: {
+      content: string;
+    },
+  ) {
+    // 1. screenshot
+    const base64 = await this.page.screenshotBase64();
+    const now = Date.now();
+    // 2. build recorder
+    const recorder: ExecutionRecorderItem[] = [
+      {
+        type: 'screenshot',
+        ts: now,
+        screenshot: base64,
+      },
+    ];
+    // 3. build ExecutionTaskLog
+    const task: ExecutionTaskLog = {
+      type: 'Log',
+      subType: 'Screenshot',
+      status: 'finished',
+      recorder,
+      timing: {
+        start: now,
+        end: now,
+        cost: 0,
+      },
+      param: {
+        content: opt?.content || '',
+      },
+      executor: async () => {},
+    };
+    // 4. build ExecutionDump
+    const executionDump: ExecutionDump = {
+      sdkVersion: '',
+      logTime: now,
+      model_name: '',
+      model_description: '',
+      name: `Log - ${title}`,
+      description: opt?.content || '',
+      tasks: [task],
+    };
+    // 5. append to execution dump
+    this.appendExecutionDump(executionDump);
+    this.writeOutActionDumps();
   }
 }

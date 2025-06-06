@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 'use client';
 import './detail-side.less';
-import { timeStr } from '@/utils';
+import { timeStr } from '@midscene/visualizer';
 import { paramStr, typeStr } from '@midscene/web/ui-utils';
 
 import { RadiusSettingOutlined } from '@ant-design/icons';
@@ -221,11 +221,11 @@ const DetailSide = (): JSX.Element => {
     ],
   });
 
-  let taskParam: JSX.Element | null = null;
+  let taskInput: JSX.Element | null = null;
   if (task?.type === 'Planning') {
     const planningTask = task as ExecutionTaskPlanning;
     if (planningTask.param?.userInstruction) {
-      taskParam = MetaKV({
+      taskInput = MetaKV({
         data: [
           { key: 'type', content: (task && typeStr(task)) || '' },
           {
@@ -239,7 +239,7 @@ const DetailSide = (): JSX.Element => {
         ],
       });
     } else {
-      taskParam = MetaKV({
+      taskInput = MetaKV({
         data: [
           { key: 'type', content: (task && typeStr(task)) || '' },
           {
@@ -250,7 +250,7 @@ const DetailSide = (): JSX.Element => {
       });
     }
   } else if (task?.type === 'Insight') {
-    taskParam = MetaKV({
+    taskInput = MetaKV({
       data: [
         { key: 'type', content: (task && typeStr(task)) || '' },
         ...(paramStr(task)
@@ -280,7 +280,7 @@ const DetailSide = (): JSX.Element => {
       ],
     });
   } else if (task?.type === 'Action') {
-    taskParam = MetaKV({
+    taskInput = MetaKV({
       data: [
         { key: 'type', content: (task && typeStr(task)) || '' },
         {
@@ -289,6 +289,10 @@ const DetailSide = (): JSX.Element => {
         },
       ],
     });
+  } else if (task?.type === 'Log') {
+    taskInput = task.param?.content ? (
+      <pre className="log-content">{task.param.content}</pre>
+    ) : null;
   }
 
   let outputDataContent = null;
@@ -467,9 +471,9 @@ const DetailSide = (): JSX.Element => {
       {/* Meta */}
       <PanelTitle title="Task Meta" />
       {metaKVElement}
-      {/* Param  */}
-      <PanelTitle title="Param" />
-      {taskParam}
+      {/* Input: Param/Content  */}
+      <PanelTitle title={task?.type === 'Log' ? 'Content' : 'Param'} />
+      {taskInput}
       {/* Response */}
       <PanelTitle title={task?.subType === 'Locate' ? 'Element' : 'Output'} />
       <div className="item-list item-list-space-up">{outputDataContent}</div>

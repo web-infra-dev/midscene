@@ -251,6 +251,35 @@ await agent.aiRightClick('页面顶部的文件名称', { deepThink: true });
 
 :::
 
+## 记录截图
+
+### `agent.logScreenshot()`
+
+记录截图。
+
+* 类型
+
+```typescript
+function logScreenshot(title: string, options?: Object): Promise<void>;
+```
+
+* 参数：
+  * `title: string` - 截图的标题。
+  * `options?: Object` - 可选，一个配置对象，包含：
+    * `content?: string` - 截图的描述。
+
+
+* 返回值：
+  * `Promise<void>`
+
+* 示例：
+
+```typescript
+await agent.logScreenshot('登录页面', {
+  content: '用户 A',
+});
+```
+
 ## 数据提取
 
 ### `agent.aiQuery()`

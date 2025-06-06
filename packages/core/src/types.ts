@@ -361,7 +361,12 @@ export interface ExecutionRecorderItem {
   timing?: string;
 }
 
-export type ExecutionTaskType = 'Planning' | 'Insight' | 'Action' | 'Assertion';
+export type ExecutionTaskType =
+  | 'Planning'
+  | 'Insight'
+  | 'Action'
+  | 'Assertion'
+  | 'Log';
 
 export interface ExecutorContext {
   task: ExecutionTask;
@@ -505,6 +510,18 @@ export type ExecutionTaskActionApply<ActionParam = any> = ExecutionTaskApply<
 >;
 
 export type ExecutionTaskAction = ExecutionTask<ExecutionTaskActionApply>;
+
+/*
+task - Log
+*/
+
+export type ExecutionTaskLogApply<
+  LogParam = {
+    content: string;
+  },
+> = ExecutionTaskApply<'Log', LogParam, void, void>;
+
+export type ExecutionTaskLog = ExecutionTask<ExecutionTaskLogApply>;
 
 /*
 task - planning
