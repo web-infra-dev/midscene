@@ -2,7 +2,7 @@ import './App.less';
 import './index.less';
 
 import { CaretRightOutlined } from '@ant-design/icons';
-import { Button, ConfigProvider, Empty, Spin } from 'antd';
+import { Button, ConfigProvider, Empty } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
