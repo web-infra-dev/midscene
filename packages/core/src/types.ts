@@ -308,6 +308,7 @@ export type PlanningActionParamHover = null;
 export type PlanningActionParamRightClick = null;
 export interface PlanningActionParamInputOrKeyPress {
   value: string;
+  autoDismissKeyboard?: boolean;
 }
 
 export type PlanningActionParamScroll = scrollParam;

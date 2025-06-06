@@ -13,7 +13,7 @@ import type { ElementInfo } from '@midscene/shared/extractor';
 import { isValidPNGImageBuffer, resizeImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { repeat } from '@midscene/shared/utils';
-import type { AndroidDevicePage } from '@midscene/web';
+import type { AndroidDeviceInputOpt, AndroidDevicePage } from '@midscene/web';
 import { ADB } from 'appium-adb';
 
 const androidScreenshotPath = '/data/local/tmp/midscene_screenshot.png';
@@ -23,6 +23,11 @@ const defaultFastScrollDuration = 100;
 const defaultNormalScrollDuration = 1000;
 
 export const debugPage = getDebug('android:device');
+export type AndroidDeviceOpt = {
+  androidAdbPath?: string;
+  remoteAdbHost?: string;
+  remoteAdbPort?: number;
+} & AndroidDeviceInputOpt;
 
 export class AndroidDevice implements AndroidDevicePage {
   private deviceId: string;
@@ -33,20 +38,9 @@ export class AndroidDevice implements AndroidDevicePage {
   private connectingAdb: Promise<ADB> | null = null;
   pageType: PageType = 'android';
   uri: string | undefined;
-  options?: {
-    androidAdbPath?: string;
-    remoteAdbHost?: string;
-    remoteAdbPort?: number;
-  };
+  options?: AndroidDeviceOpt;
 
-  constructor(
-    deviceId: string,
-    options?: {
-      androidAdbPath?: string;
-      remoteAdbHost?: string;
-      remoteAdbPort?: number;
-    },
-  ) {
+  constructor(deviceId: string, options?: AndroidDeviceOpt) {
     assert(deviceId, 'deviceId is required for AndroidDevice');
 
     this.deviceId = deviceId;
@@ -387,7 +381,8 @@ ${Object.keys(size)
 
   get keyboard() {
     return {
-      type: (text: string) => this.keyboardType(text),
+      type: (text: string, options?: AndroidDeviceInputOpt) =>
+        this.keyboardType(text, options),
       press: (
         action:
           | { key: string; command?: string }
@@ -563,21 +558,27 @@ ${Object.keys(size)
     }
   }
 
-  private async keyboardType(text: string): Promise<void> {
+  private async keyboardType(
+    text: string,
+    options?: AndroidDeviceInputOpt,
+  ): Promise<void> {
     if (!text) return;
     const adb = await this.getAdb();
     const isChinese = /[\p{Script=Han}\p{sc=Hani}]/u.test(text);
+    const isAutoDismissKeyboard =
+      options?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard ?? true;
 
     // for pure ASCII characters, directly use inputText
     if (!isChinese) {
       await adb.inputText(text);
-      await adb.hideKeyboard();
-      return;
+    } else {
+      // for non-ASCII characters, use yadb
+      await this.execYadb(text);
     }
 
-    // for non-ASCII characters, use yadb
-    await this.execYadb(text);
-    await adb.hideKeyboard();
+    if (isAutoDismissKeyboard === true) {
+      await adb.hideKeyboard();
+    }
   }
 
   private async keyboardPress(key: string): Promise<void> {

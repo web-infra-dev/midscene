@@ -39,8 +39,9 @@ import { getAIConfigInBoolean, vlLocateMode } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { PageTaskExecutor } from '../common/tasks';
-import type { PuppeteerWebPage } from '../puppeteer';
+import type { PuppeteerAgentOpt, PuppeteerWebPage } from '../puppeteer';
 import type { WebElementInfo } from '../web-element';
+import type { AndroidDeviceInputOpt } from './page';
 import { buildPlans } from './plan-builder';
 import { TaskCache } from './task-cache';
 import {
@@ -84,8 +85,6 @@ export interface PageAgentOpt {
   autoPrintReportMsg?: boolean;
   onTaskStartTip?: OnTaskStartTip;
   aiActionContext?: string;
-  waitForNavigationTimeout?: number;
-  waitForNetworkIdleTimeout?: number;
 }
 
 export class PageAgent<PageType extends WebPage = WebPage> {
@@ -129,10 +128,10 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       this.page.pageType === 'playwright'
     ) {
       (this.page as PuppeteerWebPage).waitForNavigationTimeout =
-        this.opts.waitForNavigationTimeout ||
+        (this.opts as PuppeteerAgentOpt).waitForNavigationTimeout ||
         DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT;
       (this.page as PuppeteerWebPage).waitForNetworkIdleTimeout =
-        this.opts.waitForNetworkIdleTimeout ||
+        (this.opts as PuppeteerAgentOpt).waitForNetworkIdleTimeout ||
         DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT;
     }
 
@@ -303,7 +302,11 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     return output;
   }
 
-  async aiInput(value: string, locatePrompt: string, opt?: LocateOption) {
+  async aiInput(
+    value: string,
+    locatePrompt: string,
+    opt?: AndroidDeviceInputOpt & LocateOption,
+  ) {
     assert(
       typeof value === 'string',
       'input value must be a string, use empty string if you want to clear the input',
@@ -315,11 +318,14 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     );
     const plans = buildPlans('Input', detailedLocateParam, {
       value,
+      autoDismissKeyboard: opt?.autoDismissKeyboard,
     });
     const { executor, output } = await this.taskExecutor.runPlans(
       taskTitleStr('Input', locateParamStr(detailedLocateParam)),
       plans,
-      { cacheable: opt?.cacheable },
+      {
+        cacheable: opt?.cacheable,
+      },
     );
     this.afterTaskRunning(executor);
     return output;

@@ -1,6 +1,5 @@
 # API Reference
 
-
 > In the documentation below, you might see function calls prefixed with `agent.`. If you utilize destructuring in Playwright (e.g., `async ({ ai, aiQuery }) => { /* ... */ }`), you can call these functions without the `agent.` prefix. This is merely a syntactical difference.
 
 ## Constructors
@@ -18,9 +17,12 @@ These Agents share some common constructor parameters:
 * `cacheId: string | undefined`: If provided, this cacheId will be used to save or match the cache. (Default: undefined, means cache feature is disabled)
 * `actionContext: string`: Some background knowledge that should be sent to the AI model when calling `agent.aiAction()`, like 'close the cookie consent dialog first if it exists' (Default: undefined)
 
-In Puppeteer, there are 3 additional parameters:
+In Playwright and Puppeteer, there is an additional parameter:
 
 * `forceSameTabNavigation: boolean`: If true, page navigation is restricted to the current tab. (Default: true)
+
+In Puppeteer, there are 2 additional parameters:
+
 * `waitForNetworkIdleTimeout: number`: The timeout for waiting for network idle between each action. (Default: 2000ms, set to 0 to disable the timeout)
 * `waitForNavigationTimeout: number`: The timeout for waiting for navigation finished. (Default: 5000ms, set to 0 to disable the timeout)
 
@@ -151,6 +153,7 @@ function aiInput(text: string, locate: string, options?: Object): Promise<void>;
   * `options?: Object` - Optional, a configuration object containing:
     * `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. 
     * `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+    * `autoDismissKeyboard?: boolean` - If true, the keyboard will be dismissed after input text, only available in Android. (Default: true)
 
 * Return Value:
   * Returns a `Promise<void>`

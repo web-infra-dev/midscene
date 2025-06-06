@@ -17,9 +17,12 @@ Midscene 中每个 Agent 都有自己的构造函数。
 * `cacheId: string | undefined`: 如果配置，则使用此 cacheId 保存或匹配缓存。默认值为 undefined，也就是不启用缓存。
 * `actionContext: string`: 调用 `agent.aiAction()` 时，发送给 AI 模型的背景知识，比如 '有 cookie 对话框时先关闭它'，默认值为空。
 
-在 puppeteer 中，还有三个额外的参数：
+在 Playwright 和 Puppeteer 中，有一个共同的参数：
 
 * `forceSameTabNavigation: boolean`: 如果为 true，则限制页面在当前 tab 打开。默认值为 true。
+
+在 Puppeteer 中，还有两个额外的参数：
+
 * `waitForNetworkIdleTimeout: number`: 在执行每个操作后等待网络空闲的超时时间，默认值为 2000ms，设置为 0 则禁用超时。
 * `waitForNavigationTimeout: number`: 在页面跳转后等待页面加载完成的超时时间，默认值为 5000ms，设置为 0 则禁用超时。
 
@@ -148,6 +151,7 @@ function aiInput(text: string, locate: string, options?: Object): Promise<void>;
   * `options?: Object` - 可选，一个配置对象，包含：
     * `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
     * `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
+    * `autoDismissKeyboard?: boolean` - 如果为 true，则键盘会在输入文本后自动关闭，仅在 Android 中有效。默认值为 true。
 
 * 返回值：
   * `Promise<void>`
