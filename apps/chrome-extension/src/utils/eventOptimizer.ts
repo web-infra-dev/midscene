@@ -128,16 +128,27 @@ const generateAIDescription = async (
         };
 
         const insight = new Insight(mockContext);
-        const { description } = await insight.describe([event.elementRect?.x!, event.elementRect?.y!]);
+        let rect: [number, number] | { left: number; top: number; width: number; height: number };
+        if (event.elementRect?.x !== undefined && event.elementRect?.y !== undefined) {
+          rect = [event.elementRect.x, event.elementRect.y] as [number, number];
+        } else {
+          rect = {
+            left: event.elementRect?.left!,
+            top: event.elementRect?.top!,
+            width: event.elementRect?.width!,
+            height: event.elementRect?.height!,
+          };
+        }
+        const { description } = await insight.describe(rect);
         
         // Cache the generated description
         addToCache(descriptionCache, cacheKey, description);
         
-                 // Update the pending callback for this element
-         const callback = pendingCallbacks.get(cacheKey);
-         if (callback) {
-           callback(description);
-         }
+        // Update the pending callback for this element
+        const callback = pendingCallbacks.get(cacheKey);
+        if (callback) {
+          callback(description);
+        }
         
         return description;
       } catch (aiError) {
@@ -147,11 +158,11 @@ const generateAIDescription = async (
         // Cache the fallback description to avoid retrying failed requests
         addToCache(descriptionCache, cacheKey, fallbackDescription);
         
-                 // Update the pending callback with fallback
-         const callback = pendingCallbacks.get(cacheKey);
-         if (callback) {
-           callback(fallbackDescription);
-         }
+        // Update the pending callback with fallback
+        const callback = pendingCallbacks.get(cacheKey);
+        if (callback) {
+          callback(fallbackDescription);
+        }
         
         return fallbackDescription;
       } finally {
@@ -163,10 +174,10 @@ const generateAIDescription = async (
     
     ongoingDescriptionRequests.set(cacheKey, descriptionPromise);
     
-         // Set current callback as the pending callback if provided
-     if (updateCallback) {
-       pendingCallbacks.set(cacheKey, updateCallback);
-     }
+    // Set current callback as the pending callback if provided
+    if (updateCallback) {
+      pendingCallbacks.set(cacheKey, updateCallback);
+    }
     
     return descriptionPromise;
   } catch (error) {
@@ -248,7 +259,7 @@ export const optimizeEvent = async (
     };
 
     // Handle description generation
-    if (event.elementRect?.x !== undefined && event.elementRect?.y !== undefined && updateCallback && boxedImageBase64) {
+    if (updateCallback && boxedImageBase64) {
       // Set loading state
       eventWithBoxedImage.elementDescription = 'AI 正在分析元素...';
       eventWithBoxedImage.descriptionLoading = true;
