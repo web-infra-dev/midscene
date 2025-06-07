@@ -47,8 +47,10 @@ const addToCache = (
 
 // Generate a cache key based on element properties
 const generateElementCacheKey = (event: RecordedEvent): string => {
-  if (event.elementRect){
-    return event.elementRect.toString();
+  if (event.elementRect) {
+    // For better caching, use position and size instead of timestamp
+    const rect = event.elementRect;
+    return `${rect.left || rect.x || 0}-${rect.top || rect.y || 0}-${rect.width || 0}-${rect.height || 0}`;
   } 
 
   return event.timestamp.toString();
@@ -90,36 +92,36 @@ export const generateFallbackDescription = (event: RecordedEvent): string => {
 };
 
 // Debounced AI description generation function
-// const debouncedGenerateAIDescription = (
-//   event: RecordedEvent,
-//   imageBase64: string,
-//   cacheKey: string,
-//   updateCallback?: (description: string) => void,
-// ): Promise<string> => {
-//   return new Promise((resolve, reject) => {
-//     // Clear any existing timeout for this cacheKey (debounce behavior)
-//     const existingTimeout = debounceTimeouts.get(cacheKey);
-//     if (existingTimeout) {
-//       clearTimeout(existingTimeout);
-//       console.log(`[Debounce] Clearing existing timeout for ${cacheKey}`);
-//     }
+const debouncedGenerateAIDescription = (
+  event: RecordedEvent,
+  imageBase64: string,
+  cacheKey: string,
+  updateCallback?: (description: string) => void,
+): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    // Clear any existing timeout for this cacheKey (debounce behavior)
+    const existingTimeout = debounceTimeouts.get(cacheKey);
+    if (existingTimeout) {
+      clearTimeout(existingTimeout);
+      console.log(`[Debounce] Clearing existing timeout for ${cacheKey}`);
+    }
     
-//     // Set new timeout - this will be the only execution if no more calls come in
-//     console.log(`[Debounce] Scheduling AI description generation for ${cacheKey} in ${DEBOUNCE_DELAY}ms`);
-//     const timeout = setTimeout(() => {
-//       console.log(`[Debounce] Executing AI description generation for ${cacheKey}`);
-//       debounceTimeouts.delete(cacheKey);
-//       generateAIDescriptionInternal(event, imageBase64, cacheKey, updateCallback)
-//         .then(resolve)
-//         .catch(reject);
-//     }, DEBOUNCE_DELAY);
+    // Set new timeout - this will be the only execution if no more calls come in
+    console.log(`[Debounce] Scheduling AI description generation for ${cacheKey} in ${DEBOUNCE_DELAY}ms`);
+    const timeout = setTimeout(() => {
+      console.log(`[Debounce] Executing AI description generation for ${cacheKey}`);
+      debounceTimeouts.delete(cacheKey);
+      generateAIDescriptionInternal(event, imageBase64, cacheKey, updateCallback)
+        .then(resolve)
+        .catch(reject);
+    }, DEBOUNCE_DELAY);
     
-//     debounceTimeouts.set(cacheKey, timeout);
-//   });
-// };
+    debounceTimeouts.set(cacheKey, timeout);
+  });
+};
 
-// Generate AI description asynchronously with complete caching logic
-const generateAIDescription = async (
+// Generate AI description asynchronously with complete caching logic (internal function)
+const generateAIDescriptionInternal = async (
   event: RecordedEvent,
   imageBase64: string,
   cacheKey: string,
@@ -222,6 +224,41 @@ const generateAIDescription = async (
   }
 };
 
+// Main AI description generation function with debouncing
+const generateAIDescription = async (
+  event: RecordedEvent,
+  imageBase64: string,
+  cacheKey: string,
+  updateCallback?: (description: string) => void,
+): Promise<string> => {
+  // Check cache first - if cached, return immediately without debouncing
+  if (descriptionCache.has(cacheKey)) {
+    const cachedDescription = descriptionCache.get(cacheKey)!;
+    console.log('Using cached description for element (no debounce needed):', cacheKey);
+    if (updateCallback) {
+      updateCallback(cachedDescription);
+    }
+    return cachedDescription;
+  }
+
+  // Check if there's already an ongoing request for this element
+  if (ongoingDescriptionRequests.has(cacheKey)) {
+    console.log('AI description generation already in progress (no debounce needed):', cacheKey);
+    
+    // Replace the existing callback with the new one (only one callback per element)
+    if (updateCallback) {
+      pendingCallbacks.set(cacheKey, updateCallback);
+    }
+    
+    // Return the existing promise
+    return ongoingDescriptionRequests.get(cacheKey)!;
+  }
+
+  // Use debounced version for new requests
+  console.log('Using debounced AI description generation for:', cacheKey);
+  return debouncedGenerateAIDescription(event, imageBase64, cacheKey, updateCallback);
+};
+
 function existsRect(event: RecordedEvent): boolean {
   return Boolean(event.elementRect?.left && event.elementRect?.top && event.elementRect?.width && event.elementRect?.height || event.elementRect?.x && event.elementRect?.y);
 }
@@ -232,10 +269,19 @@ export const optimizeEvent = async (
   updateCallback?: (updatedEvent: RecordedEvent) => void,
 ): Promise<RecordedEvent> => {
   try {
+    console.log('[optimizeEvent] Processing event:', {
+      type: event.type,
+      hasScreenshot: !!event.screenshotBefore,
+      hasRect: existsRect(event),
+      elementRect: event.elementRect,
+      hasCallback: !!updateCallback
+    });
+
     // Only process events with screenshots and element position
     if (
       !event.screenshotBefore || !existsRect(event)
     ) {
+      console.log('[optimizeEvent] Skipping AI description - missing screenshot or rect');
       return event;
     }
 
@@ -297,27 +343,42 @@ export const optimizeEvent = async (
 
     // Handle description generation
     if (updateCallback && event.screenshotBefore) {
-      // Set loading state
-      eventWithBoxedImage.elementDescription = 'AI 正在分析元素...';
-      eventWithBoxedImage.descriptionLoading = true;
+      console.log('[optimizeEvent] Starting AI description generation for cache key:', cacheKey);
+      
+      // Check if already cached to provide immediate response
+      if (descriptionCache.has(cacheKey)) {
+        const cachedDescription = descriptionCache.get(cacheKey)!;
+        console.log('[optimizeEvent] Using cached description immediately:', cachedDescription);
+        eventWithBoxedImage.elementDescription = cachedDescription;
+        eventWithBoxedImage.descriptionLoading = false;
+      } else {
+        // Set loading state
+        eventWithBoxedImage.elementDescription = 'AI 正在分析元素...';
+        eventWithBoxedImage.descriptionLoading = true;
 
-      // Generate AI description with callback handling
-      generateAIDescription(event, event.screenshotBefore, cacheKey, (description: string) => {
-        updateCallback({
-          ...eventWithBoxedImage,
-          elementDescription: description,
-          descriptionLoading: false,
+        // Generate AI description with debouncing and callback handling
+        generateAIDescription(event, event.screenshotBefore, cacheKey, (description: string) => {
+          console.log('[optimizeEvent] AI description completed:', description);
+          updateCallback({
+            ...eventWithBoxedImage,
+            elementDescription: description,
+            descriptionLoading: false,
+          });
+        }).catch((error: any) => {
+          console.error('Error in AI description generation:', error);
+          // Fallback is handled inside generateAIDescription, but we still update the callback
+          updateCallback({
+            ...eventWithBoxedImage,
+            elementDescription: generateFallbackDescription(event),
+            descriptionLoading: false,
+          });
         });
-      }).catch((error: any) => {
-        console.error('Error in AI description generation:', error);
-        // Fallback is handled inside generateAIDescription, but we still update the callback
-        updateCallback({
-          ...eventWithBoxedImage,
-          elementDescription: generateFallbackDescription(event),
-          descriptionLoading: false,
-        });
-      });
+      }
     } else {
+      console.log('[optimizeEvent] Skipping AI description generation - no callback or screenshot:', {
+        hasCallback: !!updateCallback,
+        hasScreenshot: !!event.screenshotBefore
+      });
       // No coordinates available, no callback provided, or no boxed image
       eventWithBoxedImage.elementDescription = 'No description available';
       eventWithBoxedImage.descriptionLoading = false;

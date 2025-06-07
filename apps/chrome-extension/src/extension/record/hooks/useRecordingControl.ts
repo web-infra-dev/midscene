@@ -381,7 +381,7 @@ export const useRecordingControl = (
       console.log('[RecordingControl] Cleaning up message listener and disconnecting port');
       port.disconnect();
     };
-  }, [addEvent, setEvents, updateEvent]);
+  }, [addEvent, setEvents, updateEvent, currentSessionId]);
 
   return {
     // State
