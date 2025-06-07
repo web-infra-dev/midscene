@@ -14,6 +14,10 @@ const cacheKeyOrder: string[] = []; // Track keys in order of insertion for LRU 
 const ongoingDescriptionRequests = new Map<string, Promise<string>>();
 const pendingCallbacks = new Map<string, (description: string) => void>();
 
+// Debounce mechanism for AI description generation by cacheKey
+const DEBOUNCE_DELAY = 1000; // 1 second debounce delay
+const debounceTimeouts = new Map<string, NodeJS.Timeout>();
+
 // Add an item to cache with size limiting
 const addToCache = (
   cache: Map<string, string>,
@@ -43,15 +47,9 @@ const addToCache = (
 
 // Generate a cache key based on element properties
 const generateElementCacheKey = (event: RecordedEvent): string => {
-  // const elementProps = [
-  //   event.targetTagName || '',
-  //   event.targetId || '',
-  //   event.targetClassName || '',
-  //   event.elementRect?.left || 0,
-  //   event.elementRect?.top || 0,
-  //   event.elementRect?.width || 0,
-  //   event.elementRect?.height || 0,
-  // ];  
+  if (event.elementRect){
+    return event.elementRect.toString();
+  } 
 
   return event.timestamp.toString();
 };
@@ -66,7 +64,11 @@ export const clearDescriptionCache = (): void => {
   ongoingDescriptionRequests.clear();
   pendingCallbacks.clear();
   
-  console.log('Description and screenshot caches cleared, ongoing requests cancelled');
+  // Clear debounce data
+  debounceTimeouts.forEach((timeout: NodeJS.Timeout) => clearTimeout(timeout));
+  debounceTimeouts.clear();
+  
+  console.log('Description and screenshot caches cleared, ongoing requests cancelled, debounce data cleared');
 };
 
 // Generate fallback description for events when AI fails
@@ -86,6 +88,35 @@ export const generateFallbackDescription = (event: RecordedEvent): string => {
       return `${event.type} on ${elementType}`;
   }
 };
+
+// Debounced AI description generation function
+// const debouncedGenerateAIDescription = (
+//   event: RecordedEvent,
+//   imageBase64: string,
+//   cacheKey: string,
+//   updateCallback?: (description: string) => void,
+// ): Promise<string> => {
+//   return new Promise((resolve, reject) => {
+//     // Clear any existing timeout for this cacheKey (debounce behavior)
+//     const existingTimeout = debounceTimeouts.get(cacheKey);
+//     if (existingTimeout) {
+//       clearTimeout(existingTimeout);
+//       console.log(`[Debounce] Clearing existing timeout for ${cacheKey}`);
+//     }
+    
+//     // Set new timeout - this will be the only execution if no more calls come in
+//     console.log(`[Debounce] Scheduling AI description generation for ${cacheKey} in ${DEBOUNCE_DELAY}ms`);
+//     const timeout = setTimeout(() => {
+//       console.log(`[Debounce] Executing AI description generation for ${cacheKey}`);
+//       debounceTimeouts.delete(cacheKey);
+//       generateAIDescriptionInternal(event, imageBase64, cacheKey, updateCallback)
+//         .then(resolve)
+//         .catch(reject);
+//     }, DEBOUNCE_DELAY);
+    
+//     debounceTimeouts.set(cacheKey, timeout);
+//   });
+// };
 
 // Generate AI description asynchronously with complete caching logic
 const generateAIDescription = async (
@@ -191,6 +222,10 @@ const generateAIDescription = async (
   }
 };
 
+function existsRect(event: RecordedEvent): boolean {
+  return Boolean(event.elementRect?.left && event.elementRect?.top && event.elementRect?.width && event.elementRect?.height || event.elementRect?.x && event.elementRect?.y);
+}
+
 // Function to generate element description using AI with boxed image
 export const optimizeEvent = async (
   event: RecordedEvent,
@@ -199,7 +234,7 @@ export const optimizeEvent = async (
   try {
     // Only process events with screenshots and element position
     if (
-      !event.screenshotBefore || (event.elementRect?.width  &&  event.elementRect?.height && event.elementRect?.x && event.elementRect?.y)
+      !event.screenshotBefore || !existsRect(event)
     ) {
       return event;
     }
@@ -265,7 +300,7 @@ export const optimizeEvent = async (
       // Set loading state
       eventWithBoxedImage.elementDescription = 'AI 正在分析元素...';
       eventWithBoxedImage.descriptionLoading = true;
-      
+
       // Generate AI description with callback handling
       generateAIDescription(event, event.screenshotBefore, cacheKey, (description: string) => {
         updateCallback({
@@ -273,7 +308,7 @@ export const optimizeEvent = async (
           elementDescription: description,
           descriptionLoading: false,
         });
-      }).catch((error) => {
+      }).catch((error: any) => {
         console.error('Error in AI description generation:', error);
         // Fallback is handled inside generateAIDescription, but we still update the callback
         updateCallback({
@@ -298,3 +333,4 @@ export const optimizeEvent = async (
     };
   }
 };
+
