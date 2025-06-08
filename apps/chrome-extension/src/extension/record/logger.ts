@@ -3,9 +3,12 @@
  * Only logs critical information to reduce noise
  */
 
+import { ChromeRecordedEvent } from "@midscene/record";
+
 interface LogContext {
   sessionId?: string;
   tabId?: number;
+  events?: ChromeRecordedEvent[];
   eventsCount?: number;
   action?: string;
 }

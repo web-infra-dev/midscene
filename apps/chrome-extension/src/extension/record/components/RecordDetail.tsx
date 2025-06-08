@@ -214,6 +214,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
               sessionName={session.name}
               events={events}
               sessionId={session.id}
+              onStopRecording={onStopRecording}
             />
           </div>
         </Space>

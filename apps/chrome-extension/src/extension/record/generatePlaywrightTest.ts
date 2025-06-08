@@ -22,27 +22,9 @@ export const generatePlaywrightTest = async (
     throw new Error('No events provided for test generation');
   }
 
-  // Check if all required element descriptions are available
-  const eventsNeedingDescriptions = events.filter(
-    (event) =>
-      event.type === 'click' ||
-      event.type === 'input' ||
-      event.type === 'scroll',
-  );
-
-  const missingDescriptions = eventsNeedingDescriptions.filter(
-    (event) =>
-      !event.elementDescription ||
-      event.elementDescription === 'AI is analyzing element...' ||
-      event.descriptionLoading,
-  );
-
-  if (missingDescriptions.length > 0) {
-    recordLogger.warn('Some events missing element descriptions', {
-      eventsCount: missingDescriptions.length,
-    });
-    // We'll proceed anyway, as the caller should have waited for descriptions
-  }
+  recordLogger.info('Starting Playwright test generation', {
+    eventsCount: events.length,
+  });
 
   try {
     // Prepare data for the LLM

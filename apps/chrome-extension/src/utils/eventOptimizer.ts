@@ -417,6 +417,9 @@ export const optimizeEvent = async (
             descriptionLoading: false,
           });
         });
+        
+        // Set fallback description immediately
+        // eventWithBoxedImage.elementDescription = generateFallbackDescription(event);
       }
     } else {
       console.log(
@@ -427,8 +430,7 @@ export const optimizeEvent = async (
         },
       );
       // No coordinates available, no callback provided, or no boxed image
-      eventWithBoxedImage.elementDescription = 'No description available';
-      eventWithBoxedImage.descriptionLoading = false;
+      eventWithBoxedImage.elementDescription = generateFallbackDescription(event);
     }
 
     return eventWithBoxedImage;
@@ -436,8 +438,7 @@ export const optimizeEvent = async (
     console.error('Failed to generate boxed image:', error);
     return {
       ...event,
-      elementDescription: 'Failed to generate description',
-      descriptionLoading: false,
+      elementDescription: generateFallbackDescription(event),
     };
   }
 };
