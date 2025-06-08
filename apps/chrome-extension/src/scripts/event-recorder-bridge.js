@@ -35,6 +35,7 @@ async function captureScreenshot() {
   }
 }
 
+let initialScreenshot = null;
 // Initialize recorder with callback to send events to extension
 async function initializeRecorder(sessionId) {
   if (!window.EventRecorder) {
@@ -48,40 +49,37 @@ async function initializeRecorder(sessionId) {
     '[EventRecorder Bridge] Initializing EventRecorder with callback',
   );
   window.recorder = new window.EventRecorder(async (event) => {
-    // Capture screenshot before processing the event
-    const screenshotBefore = await captureScreenshot();
 
     const optimizedEvent = window.recorder.optimizeEvent(event, events);
+
+
     // Add event to local array
     events = optimizedEvent;
 
     console.log('[EventRecorder Bridge] Event processed:', {
       type: event.type,
-      eventsCount: optimizedEvent.length,
-      hasScreenshot: !!screenshotBefore,
+      event,
+      optimizedEvent: optimizedEvent,
     });
 
     // Add screenshots to the latest event
-    if (optimizedEvent.length > 0) {
+    setTimeout(async () => {
       const latestEvent = optimizedEvent[optimizedEvent.length - 1];
-      if (screenshotBefore) {
-        latestEvent.screenshotBefore = screenshotBefore;
+      const previousEvent = optimizedEvent[optimizedEvent.length - 2];
+      const screenshotAfter = await captureScreenshot();
+      let screenshotBefore;
+
+      if (optimizedEvent.length > 1) {
+        screenshotBefore = previousEvent.screenshotAfter;
+      } else {
+        screenshotBefore = await initialScreenshot;
       }
-
-      // Capture screenshot after the event (with a small delay to let the UI update)
-      setTimeout(async () => {
-        const screenshotAfter = await captureScreenshot();
-        if (screenshotAfter) {
-          latestEvent.screenshotAfter = screenshotAfter;
-        }
-
-        // Send updated events array to extension popup
-        sendEventsToExtension(optimizedEvent);
-      }, 100);
-    } else {
-      // Send events array to extension popup
+      // Capture screenshot before processing the event
+      latestEvent.screenshotAfter = screenshotAfter;
+      latestEvent.screenshotBefore = screenshotBefore;
+      // Send updated events array to extension popup
       sendEventsToExtension(optimizedEvent);
-    }
+    }, 100);
   }, sessionId);
 }
 
@@ -129,6 +127,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.action === 'start') {
+    initialScreenshot = captureScreenshot()
     if (!window.recorder) {
       initializeRecorder(message.sessionId);
     }

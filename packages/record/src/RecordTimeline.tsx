@@ -206,6 +206,7 @@ export const RecordTimeline = ({
   const timelineItems = events.map((event, index) => {
     const originalImage = event.screenshotBefore || '';
     const boxedImage = event.screenshotWithBox;
+    const afterImage = event.screenshotAfter;
     const hasElementInfo =
       event.elementRect?.left !== undefined &&
       event.elementRect?.top !== undefined;
@@ -290,7 +291,7 @@ export const RecordTimeline = ({
               </Space>
             </Space>
             {getEventDescription(event)}
-            {originalImage && (
+            {(originalImage || boxedImage || afterImage) && (
               <div
                 style={{
                   display: 'flex',
@@ -298,8 +299,8 @@ export const RecordTimeline = ({
                   alignItems: 'flex-start',
                 }}
               >
-                {/* 缩略图预览 */}
-                {!hasElementInfo && (
+                {/* Before screenshot */}
+                {originalImage && !hasElementInfo && (
                   <div style={{ flexShrink: 0 }}>
                     <div
                       style={{
@@ -309,7 +310,7 @@ export const RecordTimeline = ({
                         textAlign: 'center',
                       }}
                     >
-                      Original Image
+                      Before
                     </div>
                     <Popover
                       content={
@@ -449,8 +450,8 @@ export const RecordTimeline = ({
                   </div>
                 )}
 
-                {/* 如果有元素位置信息，显示选中元素的放大图 */}
-                {hasElementInfo && (
+                {/* Screenshot with highlighted element */}
+                {boxedImage && (
                   <div style={{ flexShrink: 0 }}>
                     <div
                       style={{
@@ -460,7 +461,7 @@ export const RecordTimeline = ({
                         textAlign: 'center',
                       }}
                     >
-                      Selected Element
+                      With Highlight
                     </div>
                     <Popover
                       content={
@@ -573,6 +574,117 @@ export const RecordTimeline = ({
                           }}
                         >
                           {event.type.toUpperCase()}
+                        </div>
+                      </div>
+                    </Popover>
+                  </div>
+                )}
+
+                {/* After screenshot */}
+                {afterImage && (
+                  <div style={{ flexShrink: 0 }}>
+                    <div
+                      style={{
+                        marginBottom: '4px',
+                        fontSize: '11px',
+                        color: '#8c8c8c',
+                        textAlign: 'center',
+                      }}
+                    >
+                      After
+                    </div>
+                    <Popover
+                      content={
+                        <div style={{ maxWidth: '400px' }}>
+                          <Space
+                            direction="vertical"
+                            size="small"
+                            style={{ width: '100%' }}
+                          >
+                            <Text strong>After Action Screenshot</Text>
+                            <Image
+                              src={afterImage}
+                              style={{
+                                width: '100%',
+                                maxHeight: '300px',
+                                objectFit: 'contain',
+                              }}
+                              preview={true}
+                            />
+                            <div
+                              style={{
+                                padding: '6px 10px',
+                                backgroundColor: '#f0fff0',
+                                borderRadius: '4px',
+                                fontSize: '12px',
+                              }}
+                            >
+                              <div>
+                                <Text strong>Action:</Text> {event.type}
+                              </div>
+                              <div>
+                                <Text strong>Timestamp:</Text> {formatTime(event.timestamp)}
+                              </div>
+                              {event.value && (
+                                <div>
+                                  <Text strong>Value:</Text> "{event.value}"
+                                </div>
+                              )}
+                            </div>
+                          </Space>
+                        </div>
+                      }
+                      title="After Action"
+                      trigger="hover"
+                      placement="right"
+                    >
+                      <div
+                        style={{
+                          width: '80px',
+                          height: '50px',
+                          borderRadius: '6px',
+                          overflow: 'hidden',
+                          border: `2px solid #52c41a`,
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease-in-out',
+                          background: '#f6ffed',
+                        }}
+                        onMouseEnter={(e) => {
+                          const target = e.currentTarget as HTMLElement;
+                          target.style.transform = 'scale(1.05)';
+                          target.style.boxShadow = `0 4px 12px #52c41a60`;
+                        }}
+                        onMouseLeave={(e) => {
+                          const target = e.currentTarget as HTMLElement;
+                          target.style.transform = 'scale(1)';
+                          target.style.boxShadow = 'none';
+                        }}
+                      >
+                        <Image
+                          src={afterImage}
+                          width="100%"
+                          height="100%"
+                          style={{
+                            objectFit: 'cover',
+                            display: 'block',
+                          }}
+                          preview={false}
+                        />
+                        {/* After action label */}
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: '2px',
+                            right: '2px',
+                            background: '#52c41a',
+                            color: 'white',
+                            fontSize: '8px',
+                            padding: '1px 3px',
+                            borderRadius: '2px',
+                            lineHeight: 1,
+                          }}
+                        >
+                          AFTER
                         </div>
                       </div>
                     </Popover>
