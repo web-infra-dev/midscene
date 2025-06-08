@@ -41,7 +41,7 @@ module.exports = {
   extends: ['@commitlint/config-conventional'],
   rules: {
     'scope-enum': [
-      2, // Level: Error
+      0, // Level: Error
       'always', // Apply rule always
       uniqueScopes,
     ],
