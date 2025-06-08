@@ -25,6 +25,7 @@ export default defineConfig({
           worker: './src/scripts/worker.ts',
           'stop-water-flow': './src/scripts/stop-water-flow.ts',
           'water-flow': './src/scripts/water-flow.ts',
+          'event-recorder-bridge': './src/scripts/event-recorder-bridge.ts',
         },
       },
       output: {
@@ -56,10 +57,6 @@ export default defineConfig({
           __dirname,
           '../../packages/record/dist/record-iife.js',
         ),
-        to: 'scripts',
-      },
-      {
-        from: './src/scripts/event-recorder-bridge.js',
         to: 'scripts',
       },
     ],
