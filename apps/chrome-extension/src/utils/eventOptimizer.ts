@@ -48,9 +48,10 @@ const addToCache = (
 // Generate a cache key based on element properties
 const generateElementCacheKey = (event: RecordedEvent): string => {
   if (event.elementRect) {
-    // For better caching, use position and size instead of timestamp
-    const rect = event.elementRect;
-    return `${rect.left || rect.x || 0}-${rect.top || rect.y || 0}-${rect.width || 0}-${rect.height || 0}`;
+    return JSON.stringify({
+      type: event.type,
+      elementRect: event.elementRect,
+    });
   }
 
   return event.timestamp.toString();

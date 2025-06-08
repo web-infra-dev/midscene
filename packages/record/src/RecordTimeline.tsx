@@ -5,6 +5,8 @@ import {
   KeyOutlined,
   MoreOutlined,
   VerticalAlignTopOutlined,
+  InfoCircleOutlined,
+  CopyOutlined,
 } from '@ant-design/icons';
 import { compositeElementInfoImg } from '@midscene/shared/img';
 import {
@@ -16,6 +18,7 @@ import {
   Tag,
   Timeline,
   Typography,
+  message,
 } from 'antd';
 import React from 'react';
 import type { RecordedEvent } from './record';
@@ -192,12 +195,22 @@ export const RecordTimeline = ({
     }
   };
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      message.success('JSON copied to clipboard');
+    }).catch(() => {
+      message.error('Copy failed');
+    });
+  };
+
   const timelineItems = events.map((event, index) => {
     const originalImage = event.screenshotBefore || '';
     const boxedImage = event.screenshotWithBox;
     const hasElementInfo =
       event.elementRect?.left !== undefined &&
       event.elementRect?.top !== undefined;
+
+    const eventJsonString = JSON.stringify(event, null, 2);
 
     return {
       dot: getEventIcon(event.type),
@@ -217,19 +230,65 @@ export const RecordTimeline = ({
                 <Tag color={getEventColor(event.type)}>{event.type}</Tag>
                 {hasElementInfo && (
                   <Tag color="orange" style={{ fontSize: '10px' }}>
-                    元素已定位
+                    Element Located
                   </Tag>
                 )}
               </Space>
-              <Button
-                type="text"
-                size="small"
-                icon={<MoreOutlined />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  // Handle more actions
-                }}
-              />
+              <Space>
+                <Popover
+                  content={
+                    <div style={{ maxWidth: '500px', maxHeight: '400px' }}>
+                      <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text strong>Event Details</Text>
+                        <Button
+                          type="primary"
+                          size="small"
+                          icon={<CopyOutlined />}
+                          onClick={() => copyToClipboard(eventJsonString)}
+                        >
+                          Copy JSON
+                        </Button>
+                      </div>
+                      <div style={{ overflow: 'auto', maxHeight: '350px' }}>
+                        <pre style={{
+                          fontSize: '12px',
+                          margin: 0,
+                          whiteSpace: 'pre-wrap',
+                          backgroundColor: '#f5f5f5',
+                          padding: '12px',
+                          borderRadius: '4px',
+                          border: '1px solid #d9d9d9'
+                        }}>
+                          {eventJsonString}
+                        </pre>
+                      </div>
+                    </div>
+                  }
+                  title="Event Data"
+                  trigger="click"
+                  placement="right"
+                  overlayStyle={{ maxWidth: '550px' }}
+                >
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<InfoCircleOutlined />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                    title="View Event Details"
+                  />
+                </Popover>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<MoreOutlined />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Handle more actions
+                  }}
+                />
+              </Space>
             </Space>
             {getEventDescription(event)}
             {originalImage && (
@@ -251,7 +310,7 @@ export const RecordTimeline = ({
                         textAlign: 'center',
                       }}
                     >
-                      原始图片
+                      Original Image
                     </div>
                     <Popover
                       content={
@@ -270,7 +329,7 @@ export const RecordTimeline = ({
                                   marginBottom: '8px',
                                 }}
                               >
-                                元素高亮预览
+                                Element Highlight Preview
                               </Text>
                               <Image
                                 src={boxedImage}
@@ -289,7 +348,7 @@ export const RecordTimeline = ({
                               >
                                 <Text type="secondary">
                                   {hasElementInfo
-                                    ? `${event.type} 事件元素已标注`
+                                    ? `${event.type} event element highlighted`
                                     : `Screenshot before ${event.type}`}
                                 </Text>
                               </div>
@@ -305,7 +364,7 @@ export const RecordTimeline = ({
                                     marginBottom: '8px',
                                   }}
                                 >
-                                  原始截图
+                                  Original Screenshot
                                 </Text>
                                 <Image
                                   src={originalImage}
@@ -330,15 +389,15 @@ export const RecordTimeline = ({
                                 }}
                               >
                                 <Text type="secondary">
-                                  元素位置: ({event.elementRect?.left},{' '}
-                                  {event.elementRect?.top}) | 尺寸:{' '}
+                                  Element Position: ({event.elementRect?.left},{' '}
+                                  {event.elementRect?.top}) | Size:{' '}
                                   {event.elementRect?.width} ×{' '}
                                   {event.elementRect?.height}px
                                   {event.pageInfo.width &&
                                     event.pageInfo.height && (
                                       <>
                                         {' '}
-                                        | 页面: {event.pageInfo.width} ×{' '}
+                                        | Page: {event.pageInfo.width} ×{' '}
                                         {event.pageInfo.height}px
                                       </>
                                     )}
@@ -351,7 +410,7 @@ export const RecordTimeline = ({
                       title={
                         <div style={{ textAlign: 'center' }}>
                           <Text strong>
-                            {hasElementInfo ? '元素交互预览' : '截图预览'}
+                            {hasElementInfo ? 'Element Interaction Preview' : 'Screenshot Preview'}
                           </Text>
                         </div>
                       }
@@ -402,7 +461,7 @@ export const RecordTimeline = ({
                         textAlign: 'center',
                       }}
                     >
-                      选中元素
+                      Selected Element
                     </div>
                     <Popover
                       content={
@@ -412,7 +471,7 @@ export const RecordTimeline = ({
                             size="small"
                             style={{ width: '100%' }}
                           >
-                            <Text strong>选中元素详情</Text>
+                            <Text strong>Selected Element Details</Text>
                             <Image
                               src={boxedImage}
                               style={{
@@ -431,40 +490,40 @@ export const RecordTimeline = ({
                               }}
                             >
                               <div>
-                                <Text strong>元素类型:</Text>{' '}
+                                <Text strong>Element Type:</Text>{' '}
                                 {event.targetTagName || 'Unknown'}
                               </div>
                               <div>
-                                <Text strong>操作:</Text> {event.type}
+                                <Text strong>Action:</Text> {event.type}
                               </div>
                               <div>
-                                <Text strong>位置:</Text> (
+                                <Text strong>Position:</Text> (
                                 {event.elementRect?.left},{' '}
                                 {event.elementRect?.top})
                               </div>
                               <div>
-                                <Text strong>尺寸:</Text>{' '}
+                                <Text strong>Size:</Text>{' '}
                                 {event.elementRect?.width} ×{' '}
                                 {event.elementRect?.height}px
                               </div>
                               {event.pageInfo.width &&
                                 event.pageInfo.height && (
                                   <div>
-                                    <Text strong>页面尺寸:</Text>{' '}
+                                    <Text strong>Page Size:</Text>{' '}
                                     {event.pageInfo.width} ×{' '}
                                     {event.pageInfo.height}px
                                   </div>
                                 )}
                               {event.value && (
                                 <div>
-                                  <Text strong>内容:</Text> "{event.value}"
+                                  <Text strong>Content:</Text> "{event.value}"
                                 </div>
                               )}
                             </div>
                           </Space>
                         </div>
                       }
-                      title="元素详情"
+                      title="Element Details"
                       trigger="hover"
                       placement="right"
                     >
@@ -548,7 +607,7 @@ export const RecordTimeline = ({
             <Text type="secondary">{events.length} events recorded</Text>
             <Text type="secondary" style={{ fontSize: '12px' }}>
               ({events.filter((e) => e.elementRect?.left !== undefined).length}{' '}
-              个事件已标注元素)
+              events with located elements)
             </Text>
           </Space>
         </div>
