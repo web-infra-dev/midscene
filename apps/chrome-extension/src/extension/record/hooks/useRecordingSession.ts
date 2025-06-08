@@ -27,6 +27,14 @@ export const useRecordingSession = (currentTab: chrome.tabs.Tab | null) => {
       const name = sessionName || generateDefaultSessionName();
       recordLogger.info('Creating new session', { action: 'create' });
 
+      // Pause other active sessions
+      sessions.forEach((session) => {
+        if (session.status === 'recording') {
+          updateSession(session.id, { status: 'idle' });
+          recordLogger.info('Paused session', { sessionId: session.id });
+        }
+      });
+
       const newSession: RecordingSession = {
         id: `session-${Date.now()}`,
         name,
@@ -44,7 +52,7 @@ export const useRecordingSession = (currentTab: chrome.tabs.Tab | null) => {
       recordLogger.success('Session created', { sessionId: newSession.id });
       return newSession;
     },
-    [currentTab, addSession, setCurrentSession, clearEvents],
+    [currentTab, addSession, setCurrentSession, clearEvents, sessions, updateSession],
   );
 
   // Create new session with form data
@@ -55,6 +63,14 @@ export const useRecordingSession = (currentTab: chrome.tabs.Tab | null) => {
     }) => {
       recordLogger.info('Creating session with form data', {
         action: 'create',
+      });
+
+      // Pause other active sessions
+      sessions.forEach((session) => {
+        if (session.status === 'recording') {
+          updateSession(session.id, { status: 'idle' });
+          recordLogger.info('Paused session', { sessionId: session.id });
+        }
       });
 
       const newSession: RecordingSession = {
@@ -78,7 +94,7 @@ export const useRecordingSession = (currentTab: chrome.tabs.Tab | null) => {
 
       return newSession;
     },
-    [currentTab, addSession, setCurrentSession, clearEvents],
+    [currentTab, addSession, setCurrentSession, clearEvents, sessions, updateSession],
   );
 
   // Update session

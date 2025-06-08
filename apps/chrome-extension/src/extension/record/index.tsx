@@ -57,7 +57,11 @@ export default function Record() {
     createNewSession,
     // Add callback to handle session updates from AI title generation
     (updatedSession: RecordingSession) => {
-      setSelectedSession(updatedSession);
+      // Get the fresh session data from store instead of using the passed parameter
+      const freshSession = getCurrentSession();
+      if (freshSession && freshSession.id === updatedSession.id) {
+        setSelectedSession(freshSession);
+      }
     },
   );
   const {
