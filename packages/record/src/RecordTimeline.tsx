@@ -291,7 +291,7 @@ export const RecordTimeline = ({
               </Space>
             </Space>
             {getEventDescription(event)}
-            {(originalImage || boxedImage || afterImage) && (
+            {(boxedImage || afterImage) && (
               <div
                 style={{
                   display: 'flex',
@@ -299,156 +299,6 @@ export const RecordTimeline = ({
                   alignItems: 'flex-start',
                 }}
               >
-                {/* Before screenshot */}
-                {originalImage && !hasElementInfo && (
-                  <div style={{ flexShrink: 0 }}>
-                    <div
-                      style={{
-                        marginBottom: '4px',
-                        fontSize: '11px',
-                        color: '#8c8c8c',
-                        textAlign: 'center',
-                      }}
-                    >
-                      Before
-                    </div>
-                    <Popover
-                      content={
-                        <div style={{ maxWidth: '600px' }}>
-                          <Space
-                            direction="vertical"
-                            size="middle"
-                            style={{ width: '100%' }}
-                          >
-                            {/* 显示带框的图片 */}
-                            <div>
-                              <Text
-                                strong
-                                style={{
-                                  display: 'block',
-                                  marginBottom: '8px',
-                                }}
-                              >
-                                Element Highlight Preview
-                              </Text>
-                              <Image
-                                src={boxedImage}
-                                style={{
-                                  width: '100%',
-                                  maxHeight: '400px',
-                                  objectFit: 'contain',
-                                }}
-                                preview={true}
-                              />
-                              <div
-                                style={{
-                                  marginTop: '8px',
-                                  textAlign: 'center',
-                                }}
-                              >
-                                <Text type="secondary">
-                                  {hasElementInfo
-                                    ? `${event.type} event element highlighted`
-                                    : `Screenshot before ${event.type}`}
-                                </Text>
-                              </div>
-                            </div>
-
-                            {/* 如果有带框图片且与原图不同，也显示原图 */}
-                            {!hasElementInfo && (
-                              <div>
-                                <Text
-                                  strong
-                                  style={{
-                                    display: 'block',
-                                    marginBottom: '8px',
-                                  }}
-                                >
-                                  Original Screenshot
-                                </Text>
-                                <Image
-                                  src={originalImage}
-                                  style={{
-                                    width: '100%',
-                                    maxHeight: '300px',
-                                    objectFit: 'contain',
-                                  }}
-                                  preview={true}
-                                />
-                              </div>
-                            )}
-
-                            {/* 显示元素位置信息 */}
-                            {hasElementInfo && (
-                              <div
-                                style={{
-                                  padding: '8px 12px',
-                                  backgroundColor: '#f8f9fa',
-                                  borderRadius: '4px',
-                                  fontSize: '12px',
-                                }}
-                              >
-                                <Text type="secondary">
-                                  Element Position: ({event.elementRect?.left},{' '}
-                                  {event.elementRect?.top}) | Size:{' '}
-                                  {event.elementRect?.width} ×{' '}
-                                  {event.elementRect?.height}px
-                                  {event.pageInfo.width &&
-                                    event.pageInfo.height && (
-                                      <>
-                                        {' '}
-                                        | Page: {event.pageInfo.width} ×{' '}
-                                        {event.pageInfo.height}px
-                                      </>
-                                    )}
-                                </Text>
-                              </div>
-                            )}
-                          </Space>
-                        </div>
-                      }
-                      title={
-                        <div style={{ textAlign: 'center' }}>
-                          <Text strong>
-                            {hasElementInfo ? 'Element Interaction Preview' : 'Screenshot Preview'}
-                          </Text>
-                        </div>
-                      }
-                      trigger="hover"
-                      placement="left"
-                      overlayStyle={{ maxWidth: '650px' }}
-                    >
-                      <Image
-                        src={originalImage}
-                        width={60}
-                        height={40}
-                        style={{
-                          objectFit: 'cover',
-                          borderRadius: 4,
-                          cursor: 'pointer',
-                          transition:
-                            'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
-                          border: hasElementInfo
-                            ? `2px solid ${getEventColor(event.type)}`
-                            : '1px solid #f0f0f0',
-                        }}
-                        preview={false}
-                        onMouseEnter={(e) => {
-                          const target = e.currentTarget as HTMLElement;
-                          target.style.transform = 'scale(1.05)';
-                          target.style.boxShadow = hasElementInfo
-                            ? `0 4px 12px ${getEventColor(event.type)}40`
-                            : '0 4px 12px rgba(0, 0, 0, 0.15)';
-                        }}
-                        onMouseLeave={(e) => {
-                          const target = e.currentTarget as HTMLElement;
-                          target.style.transform = 'scale(1)';
-                          target.style.boxShadow = 'none';
-                        }}
-                      />
-                    </Popover>
-                  </div>
-                )}
 
                 {/* Screenshot with highlighted element */}
                 {boxedImage && (
@@ -461,7 +311,7 @@ export const RecordTimeline = ({
                         textAlign: 'center',
                       }}
                     >
-                      With Highlight
+                      Highlighted
                     </div>
                     <Popover
                       content={
