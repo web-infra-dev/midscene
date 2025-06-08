@@ -96,30 +96,13 @@ function sendEventsToExtension(optimizedEvent) {
     .sendMessage({
       action: 'events',
       data: optimizedEvent.map((event) => ({
+        hashId: event.hashId,
         type: event.type,
         timestamp: event.timestamp,
         // Element position and click coordinates
-        elementRect: event.elementRect
-          ? {
-              left: Number(event.elementRect.left.toFixed(2)),
-              top: Number(event.elementRect.top.toFixed(2)),
-              width: Number(event.elementRect.width.toFixed(2)),
-              height: Number(event.elementRect.height.toFixed(2)),
-              x: event.elementRect.x
-                ? Number(event.elementRect.x.toFixed(2))
-                : undefined,
-              y: event.elementRect.y
-                ? Number(event.elementRect.y.toFixed(2))
-                : undefined,
-            }
-          : undefined,
+        elementRect: event.elementRect,
         // Page information and screenshots
-        pageInfo: event.pageInfo
-          ? {
-              width: event.pageInfo.width,
-              height: event.pageInfo.height,
-            }
-          : undefined,
+        pageInfo: event.pageInfo,
         screenshotBefore: event.screenshotBefore,
         screenshotAfter: event.screenshotAfter,
 

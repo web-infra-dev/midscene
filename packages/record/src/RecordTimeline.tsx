@@ -264,7 +264,6 @@ export const RecordTimeline = ({
                       </div>
                     </div>
                   }
-                  title="Event Data"
                   trigger="click"
                   placement="right"
                   overlayStyle={{ maxWidth: '550px' }}

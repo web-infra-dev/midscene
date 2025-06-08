@@ -7,6 +7,23 @@ function debugLog(...args: any[]) {
   }
 }
 
+// Generate a hash ID based on elementRect and type
+function generateHashId(type: string, elementRect?: { left: number; top: number; width: number; height: number; x?: number; y?: number }): string {
+  const rectStr = elementRect 
+    ? `${elementRect.left}_${elementRect.top}_${elementRect.width}_${elementRect.height}${elementRect.x !== undefined ? `_${elementRect.x}` : ''}${elementRect.y !== undefined ? `_${elementRect.y}` : ''}`
+    : 'no_rect';
+  const combined = `${type}_${rectStr}`;
+  
+  // Simple hash function
+  let hash = 0;
+  for (let i = 0; i < combined.length; i++) {
+    const char = combined.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash).toString(36);
+}
+
 export interface ChromeRecordedEvent {
   type: 'click' | 'scroll' | 'input' | 'navigation' | 'setViewport' | 'keydown';
   url?: string;
@@ -32,6 +49,7 @@ export interface ChromeRecordedEvent {
   // Boxed screenshot with element highlighted
   screenshotWithBox?: string;
   timestamp: number;
+  hashId: string;
 }
 
 // Event type definition
@@ -182,23 +200,26 @@ export class EventRecorder {
     const target = event.target as HTMLElement;
     const { isLabelClick, labelInfo } = this.checkLabelClick(target);
     const rect = target.getBoundingClientRect();
-
+    const elementRect = {
+      left: Number(rect.left.toFixed(2)),
+      top: Number(rect.top.toFixed(2)),
+      width: Number(rect.width.toFixed(2)),
+      height: Number(rect.height.toFixed(2)),
+      x: Number(event.clientX.toFixed(2)),
+      y: Number(event.clientY.toFixed(2)),
+    };
     const clickEvent: RecordedEvent = {
       type: 'click',
-      elementRect: {
-        left: Number(rect.left.toFixed(2)),
-        top: Number(rect.top.toFixed(2)),
-        width: Number(rect.width.toFixed(2)),
-        height: Number(rect.height.toFixed(2)),
-        x: Number(event.clientX.toFixed(2)),
-        y: Number(event.clientY.toFixed(2)),
-      },
+      elementRect,
       pageInfo: {
         width: window.innerWidth,
         height: window.innerHeight,
       },
       value: '',
       timestamp: Date.now(),
+      hashId: generateHashId('click', {
+        ...elementRect,
+      }),
       element: target,
       isLabelClick,
       labelInfo,
@@ -240,24 +261,24 @@ export class EventRecorder {
     }
     this.scrollThrottleTimer = window.setTimeout(() => {
       if (this.isRecording) {
+        const elementRect = {
+          left: isDocument(target) ? 0 : Number(rect.left.toFixed(2)),
+          top: isDocument(target) ? 0 : Number(rect.top.toFixed(2)),
+          width: isDocument(target) ? window.innerWidth : Number(rect.width.toFixed(2)),
+          height: isDocument(target) ? window.innerHeight : Number(rect.height.toFixed(2)),
+        };
         const scrollEvent: RecordedEvent = {
           type: 'scroll',
-          elementRect: {
-            left: isDocument(target) ? 0 : Number(rect.left.toFixed(2)),
-            top: isDocument(target) ? 0 : Number(rect.top.toFixed(2)),
-            width: isDocument(target)
-              ? window.innerWidth
-              : Number(rect.width.toFixed(2)),
-            height: isDocument(target)
-              ? window.innerHeight
-              : Number(rect.height.toFixed(2)),
-          },
+          elementRect,
           pageInfo: {
             width: window.innerWidth,
             height: window.innerHeight,
           },
           value: `${scrollXTarget.toFixed(2)},${scrollYTarget.toFixed(2)}`,
           timestamp: Date.now(),
+          hashId: generateHashId('scroll', {
+            ...elementRect,
+          }),
           element: target,
           // pageWidth: window.innerWidth,
           // pageHeight: window.innerHeight,
@@ -274,19 +295,22 @@ export class EventRecorder {
 
     const target = event.target as HTMLInputElement | HTMLTextAreaElement;
     const rect = target.getBoundingClientRect();
-
+    const elementRect = {
+      left: Number(rect.left.toFixed(2)),
+      top: Number(rect.top.toFixed(2)),
+      width: Number(rect.width.toFixed(2)),
+      height: Number(rect.height.toFixed(2)),
+    };
     const inputEvent: RecordedEvent = {
       type: 'input',
       value: target.value,
       timestamp: Date.now(),
+      hashId: generateHashId('input', {
+        ...elementRect,
+      }),
       element: target,
       inputType: target.type || 'text',
-      elementRect: {
-        left: Number(rect.left.toFixed(2)),
-        top: Number(rect.top.toFixed(2)),
-        width: Number(rect.width.toFixed(2)),
-        height: Number(rect.height.toFixed(2)),
-      },
+      elementRect,
       pageInfo: {
         width: window.innerWidth,
         height: window.innerHeight,

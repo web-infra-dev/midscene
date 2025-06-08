@@ -14,7 +14,7 @@ const cacheKeyOrder: string[] = []; // Track keys in order of insertion for LRU 
 const ongoingDescriptionRequests = new Map<string, Promise<string>>();
 const pendingCallbacks = new Map<string, (description: string) => void>();
 
-// Debounce mechanism for AI description generation by cacheKey
+// Debounce mechanism for AI description generation by hashId
 const DEBOUNCE_DELAY = 1000; // 1 second debounce delay
 const debounceTimeouts = new Map<string, NodeJS.Timeout>();
 
@@ -45,17 +45,6 @@ const addToCache = (
   cacheKeyOrder.push(key);
 };
 
-// Generate a cache key based on element properties
-const generateElementCacheKey = (event: RecordedEvent): string => {
-  if (event.elementRect) {
-    return JSON.stringify({
-      type: event.type,
-      elementRect: event.elementRect,
-    });
-  }
-
-  return event.timestamp.toString();
-};
 
 // Clear all caches
 export const clearDescriptionCache = (): void => {
@@ -98,37 +87,37 @@ export const generateFallbackDescription = (event: RecordedEvent): string => {
 const debouncedGenerateAIDescription = (
   event: RecordedEvent,
   imageBase64: string,
-  cacheKey: string,
+  hashId: string,
   updateCallback?: (description: string) => void,
 ): Promise<string> => {
   return new Promise((resolve, reject) => {
-    // Clear any existing timeout for this cacheKey (debounce behavior)
-    const existingTimeout = debounceTimeouts.get(cacheKey);
+    // Clear any existing timeout for this hashId (debounce behavior)
+    const existingTimeout = debounceTimeouts.get(hashId);
     if (existingTimeout) {
       clearTimeout(existingTimeout);
-      console.log(`[Debounce] Clearing existing timeout for ${cacheKey}`);
+      console.log(`[Debounce] Clearing existing timeout for ${hashId}`);
     }
 
     // Set new timeout - this will be the only execution if no more calls come in
     console.log(
-      `[Debounce] Scheduling AI description generation for ${cacheKey} in ${DEBOUNCE_DELAY}ms`,
+      `[Debounce] Scheduling AI description generation for ${hashId} in ${DEBOUNCE_DELAY}ms`,
     );
     const timeout = setTimeout(() => {
       console.log(
-        `[Debounce] Executing AI description generation for ${cacheKey}`,
+        `[Debounce] Executing AI description generation for ${hashId}`,
       );
-      debounceTimeouts.delete(cacheKey);
+      debounceTimeouts.delete(hashId);
       generateAIDescriptionInternal(
         event,
         imageBase64,
-        cacheKey,
+        hashId,
         updateCallback,
       )
         .then(resolve)
         .catch(reject);
     }, DEBOUNCE_DELAY);
 
-    debounceTimeouts.set(cacheKey, timeout);
+    debounceTimeouts.set(hashId, timeout);
   });
 };
 
@@ -136,34 +125,34 @@ const debouncedGenerateAIDescription = (
 const generateAIDescriptionInternal = async (
   event: RecordedEvent,
   imageBase64: string,
-  cacheKey: string,
+  hashId: string,
   updateCallback?: (description: string) => void,
 ): Promise<string> => {
   try {
     // Check cache first
-    if (descriptionCache.has(cacheKey)) {
-      const cachedDescription = descriptionCache.get(cacheKey)!;
-      console.log('Using cached description for element:', cacheKey);
+    if (descriptionCache.has(hashId)) {
+      const cachedDescription = descriptionCache.get(hashId)!;
+      console.log('Using cached description for element:', hashId);
       return cachedDescription;
     }
 
     // Check if there's already an ongoing request for this element
-    if (ongoingDescriptionRequests.has(cacheKey)) {
+    if (ongoingDescriptionRequests.has(hashId)) {
       console.log(
         'AI description generation already in progress for element:',
-        cacheKey,
+        hashId,
       );
 
       // Replace the existing callback with the new one (only one callback per element)
       if (updateCallback) {
-        pendingCallbacks.set(cacheKey, updateCallback);
+        pendingCallbacks.set(hashId, updateCallback);
       }
 
       // Return the existing promise
-      return ongoingDescriptionRequests.get(cacheKey)!;
+      return ongoingDescriptionRequests.get(hashId)!;
     }
 
-    console.log('Starting AI description generation for element:', cacheKey);
+    console.log('Starting AI description generation for element:', hashId);
 
     // Create and track the promise
     const descriptionPromise = (async () => {
@@ -192,10 +181,10 @@ const generateAIDescriptionInternal = async (
         const { description } = await insight.describe(rect);
 
         // Cache the generated description
-        addToCache(descriptionCache, cacheKey, description);
+        addToCache(descriptionCache, hashId, description);
 
         // Update the pending callback for this element
-        const callback = pendingCallbacks.get(cacheKey);
+        const callback = pendingCallbacks.get(hashId);
         if (callback) {
           callback(description);
         }
@@ -206,10 +195,10 @@ const generateAIDescriptionInternal = async (
         const fallbackDescription = generateFallbackDescription(event);
 
         // Cache the fallback description to avoid retrying failed requests
-        addToCache(descriptionCache, cacheKey, fallbackDescription);
+        addToCache(descriptionCache, hashId, fallbackDescription);
 
         // Update the pending callback with fallback
-        const callback = pendingCallbacks.get(cacheKey);
+        const callback = pendingCallbacks.get(hashId);
         if (callback) {
           callback(fallbackDescription);
         }
@@ -217,16 +206,16 @@ const generateAIDescriptionInternal = async (
         return fallbackDescription;
       } finally {
         // Clean up tracking data
-        ongoingDescriptionRequests.delete(cacheKey);
-        pendingCallbacks.delete(cacheKey);
+        ongoingDescriptionRequests.delete(hashId);
+        pendingCallbacks.delete(hashId);
       }
     })();
 
-    ongoingDescriptionRequests.set(cacheKey, descriptionPromise);
+    ongoingDescriptionRequests.set(hashId, descriptionPromise);
 
     // Set current callback as the pending callback if provided
     if (updateCallback) {
-      pendingCallbacks.set(cacheKey, updateCallback);
+      pendingCallbacks.set(hashId, updateCallback);
     }
 
     return descriptionPromise;
@@ -235,7 +224,7 @@ const generateAIDescriptionInternal = async (
     const fallbackDescription = generateFallbackDescription(event);
 
     // Cache the fallback description
-    addToCache(descriptionCache, cacheKey, fallbackDescription);
+    addToCache(descriptionCache, hashId, fallbackDescription);
 
     return fallbackDescription;
   }
@@ -245,15 +234,15 @@ const generateAIDescriptionInternal = async (
 const generateAIDescription = async (
   event: RecordedEvent,
   imageBase64: string,
-  cacheKey: string,
+  hashId: string,
   updateCallback?: (description: string) => void,
 ): Promise<string> => {
   // Check cache first - if cached, return immediately without debouncing
-  if (descriptionCache.has(cacheKey)) {
-    const cachedDescription = descriptionCache.get(cacheKey)!;
+  if (descriptionCache.has(hashId)) {
+    const cachedDescription = descriptionCache.get(hashId)!;
     console.log(
       'Using cached description for element (no debounce needed):',
-      cacheKey,
+      hashId,
     );
     if (updateCallback) {
       updateCallback(cachedDescription);
@@ -262,27 +251,27 @@ const generateAIDescription = async (
   }
 
   // Check if there's already an ongoing request for this element
-  if (ongoingDescriptionRequests.has(cacheKey)) {
+  if (ongoingDescriptionRequests.has(hashId)) {
     console.log(
       'AI description generation already in progress (no debounce needed):',
-      cacheKey,
+      hashId,
     );
 
     // Replace the existing callback with the new one (only one callback per element)
     if (updateCallback) {
-      pendingCallbacks.set(cacheKey, updateCallback);
+      pendingCallbacks.set(hashId, updateCallback);
     }
 
     // Return the existing promise
-    return ongoingDescriptionRequests.get(cacheKey)!;
+    return ongoingDescriptionRequests.get(hashId)!;
   }
 
   // Use debounced version for new requests
-  console.log('Using debounced AI description generation for:', cacheKey);
+  console.log('Using debounced AI description generation for:', hashId);
   return debouncedGenerateAIDescription(
     event,
     imageBase64,
-    cacheKey,
+    hashId,
     updateCallback,
   );
 };
@@ -353,13 +342,13 @@ export const optimizeEvent = async (
       } as any);
     }
 
-    // Generate cache key for this element
-    const cacheKey = generateElementCacheKey(event);
+    // Use hashId from the event instead of generating a cache key
+    const hashId = event.hashId;
     let boxedImageBase64;
 
     // Check if we have a cached boxed screenshot
-    if (boxedScreenshotCache.has(cacheKey)) {
-      boxedImageBase64 = boxedScreenshotCache.get(cacheKey);
+    if (boxedScreenshotCache.has(hashId)) {
+      boxedImageBase64 = boxedScreenshotCache.get(hashId);
       console.log('Using cached boxed screenshot for element');
     } else {
       // Generate the boxed image and cache it
@@ -378,7 +367,7 @@ export const optimizeEvent = async (
         event.elementRect?.width > 0 &&
         event.elementRect?.height > 0
       ) {
-        addToCache(boxedScreenshotCache, cacheKey, boxedImageBase64);
+        addToCache(boxedScreenshotCache, hashId, boxedImageBase64);
       }
     }
 
@@ -391,13 +380,13 @@ export const optimizeEvent = async (
     // Handle description generation
     if (updateCallback && event.screenshotBefore && existsRect(event)) {
       console.log(
-        '[optimizeEvent] Starting AI description generation for cache key:',
-        cacheKey,
+        '[optimizeEvent] Starting AI description generation for hash ID:',
+        hashId,
       );
 
       // Check if already cached to provide immediate response
-      if (descriptionCache.has(cacheKey)) {
-        const cachedDescription = descriptionCache.get(cacheKey)!;
+      if (descriptionCache.has(hashId)) {
+        const cachedDescription = descriptionCache.get(hashId)!;
         console.log(
           '[optimizeEvent] Using cached description immediately:',
           cachedDescription,
@@ -413,7 +402,7 @@ export const optimizeEvent = async (
         generateAIDescription(
           event,
           event.screenshotBefore,
-          cacheKey,
+          hashId,
           (description: string) => {
             console.log(
               '[optimizeEvent] AI description completed:',
