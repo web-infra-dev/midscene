@@ -91,72 +91,50 @@ export const generateYamlTest = async (
     const messageContent: Array<string | Record<string, any>> = [
       {
         type: 'text',
-        text: `Generate a comprehensive YAML test configuration for Midscene.js automation that represents this recorded browser session. The YAML should follow Midscene.js conventions and be structured for AI-powered browser automation.
+        text: `Generate YAML test for Midscene.js automation from recorded browser events.
 
 Event Summary:
 ${JSON.stringify(summary, null, 2)}
 
-IMPORTANT: Generate YAML that follows Midscene.js automation format with these requirements:
+Use this exact YAML format:
 
-1. Use Midscene.js action types: aiAction, aiQuery, aiAssert, sleep
-2. Use natural language descriptions for element targeting (not CSS selectors)
-3. Include proper test metadata and configuration
-4. Follow Midscene.js YAML schema conventions
-5. Use descriptive step names that reflect user intent
-6. Include viewport configuration and timeouts
-7. Map browser events to meaningful AI actions
-
-Example Midscene.js YAML structure:
 \`\`\`yaml
-name: "Login and Navigation Test"
-description: "Automated test generated from recorded user session"
-url: "https://example.com/login"
-config:
-  viewport:
-    width: 1280
-    height: 800
-  timeout: 30000
-  waitForNetworkIdle: true
-steps:
-  - name: "Fill in username"
-    aiAction:
-      type: "input"
-      locator: "the username input field"
-      value: "user@example.com"
-    
-  - name: "Fill in password"  
-    aiAction:
-      type: "input"
-      locator: "the password field"
-      value: "password123"
-    
-  - name: "Click login button"
-    aiAction:
-      type: "click"
-      locator: "the login button"
-    
-  - name: "Verify successful login"
-    aiAssert:
-      expect: "user dashboard or welcome message is visible"
-    
-  - name: "Wait for page load"
-    sleep: 2000
+target:
+  url: https://example.com
+
+tasks:
+  - name: task description
+    flow:
+      - aiInput: 'user@example.com'
+        locate: 'the username input field'
+      - aiInput: 'password123'
+        locate: 'the password field'
+      - aiTap: 'the login button'
+      - aiAssert: Verify successful login
+      - sleep: 2000
 \`\`\`
 
-Key guidelines for Midscene.js YAML:
-- Use 'aiAction' for interactions (click, input, navigate, scroll)
-- Use 'aiQuery' for data extraction
-- Use 'aiAssert' for validations and checks
-- Use 'sleep' for waiting periods
-- Use natural language for 'locator' fields (describe elements as humans would)
-- Include meaningful step names that describe user intent
-- Convert navigation events to navigate actions
-- Convert click events to click actions with descriptive locators
-- Convert input events to input actions with values
-- Add assertions for important state changes
-- Group related actions logically
+Rules:
+1. Use 'target.url' for starting URL
+2. Group actions into logical tasks with descriptive names
+3. Use these action types only:
+   - aiTap: for clicks (natural language targeting)
+   - aiInput: for text input with 'locate' field
+   - aiScroll: with direction and scrollType
+   - aiAssert: for validations
+   - sleep: for delays (milliseconds)
+4. Use natural language descriptions, not CSS selectors
+5. Keep task names concise but descriptive
+6. Add deepThink: true for complex interactions
 
-Respond ONLY with the complete YAML content, no explanations or markdown code blocks.`,
+Convert events:
+- navigation → target.url
+- click → aiTap with element description
+- input → aiInput with value and locate
+- scroll → aiScroll with appropriate direction
+- Add aiAssert for important state changes
+
+Respond with YAML only, no explanations.`,
       },
     ];
 
@@ -182,32 +160,32 @@ Respond ONLY with the complete YAML content, no explanations or markdown code bl
     const prompt = [
       {
         role: 'system',
-        content: `You are an expert in Midscene.js automation framework specializing in YAML-based test configurations. 
-Your task is to generate a complete, well-structured YAML test configuration that represents a recorded browser session using Midscene.js conventions.
+        content: `You are an expert in Midscene.js YAML test generation. Generate clean, accurate YAML following the exact format:
 
-The YAML should be:
-- Properly formatted and syntactically correct for Midscene.js
-- Using AI-powered automation patterns (aiAction, aiQuery, aiAssert)
-- Clear and descriptive with natural language element targeting
-- Suitable for Midscene.js automation framework
-- Following Midscene.js YAML best practices and conventions
+target:
+  url: "starting_url"
 
-Always map browser events to Midscene.js actions:
-- navigation → aiAction with type: "navigate" and url
-- click → aiAction with type: "click" and natural language locator
-- input → aiAction with type: "input" with locator and value
-- scroll → aiAction with type: "scroll" 
-- setViewport → config viewport settings
-- keydown → aiAction with type: "key" or keyboard interaction
+tasks:
+  - name: "descriptive task name"
+    flow:
+      - aiTap: "element description"
+      - aiInput: 'text value'
+        locate: 'input field description'
+      - aiScroll:
+        direction: down/up
+        scrollType: untilBottom/untilTop/page
+      - aiAssert: "expected state"
+      - sleep: milliseconds
 
-Use natural language descriptions for locators instead of CSS selectors:
-- "the login button" instead of "button[type='submit']"
-- "the username input field" instead of "#username"
-- "the navigation menu" instead of ".nav-menu"
-
-Include proper Midscene.js configuration settings like viewport size, timeouts, and waitForNetworkIdle.
-Add meaningful aiAssert steps for important state changes and validations.
-Group related actions logically and use descriptive step names that reflect user intent.`,
+Key rules:
+- Use aiTap for clicks with natural language targeting
+- Use aiInput with 'locate' field for text input
+- Use aiScroll with direction and scrollType
+- Use aiAssert for validations
+- Use sleep for delays
+- Group related actions into logical tasks
+- Use natural language, not CSS selectors
+- Add deepThink: true for complex interactions`,
       },
       {
         role: 'user',
