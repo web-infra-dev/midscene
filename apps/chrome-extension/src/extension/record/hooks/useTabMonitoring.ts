@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { recordLogger } from '../logger';
 import { safeChromeAPI } from '../types';
 
 export const useTabMonitoring = () => {
@@ -7,19 +8,14 @@ export const useTabMonitoring = () => {
   // Get current active tab and set up listeners for tab changes
   useEffect(() => {
     const updateCurrentTab = () => {
-      console.log('[TabMonitoring] Querying for current active tab');
       safeChromeAPI.tabs.query(
         { active: true, currentWindow: true },
         (tabs) => {
           if (tabs[0]) {
-            console.log('[TabMonitoring] Current tab found:', {
-              tabId: tabs[0].id,
-              url: tabs[0].url,
-              title: tabs[0].title,
-            });
+            recordLogger.info('Current tab found', { tabId: tabs[0].id });
             setCurrentTab(tabs[0]);
           } else {
-            console.warn('[TabMonitoring] No active tab found');
+            recordLogger.warn('No active tab found');
             setCurrentTab(null);
           }
         },
@@ -31,9 +27,7 @@ export const useTabMonitoring = () => {
 
     // Listen for tab activation changes
     const handleTabActivated = (activeInfo: chrome.tabs.TabActiveInfo) => {
-      console.log('[TabMonitoring] Tab activated:', {
-        tabId: activeInfo.tabId,
-      });
+      recordLogger.info('Tab activated', { tabId: activeInfo.tabId });
       updateCurrentTab();
     };
 
@@ -45,11 +39,7 @@ export const useTabMonitoring = () => {
     ) => {
       // Only update if it's the currently active tab and has completed loading
       if (tab.active && changeInfo.status === 'complete') {
-        console.log('[TabMonitoring] Active tab updated:', {
-          tabId,
-          url: tab.url,
-          changeInfo,
-        });
+        recordLogger.info('Active tab updated', { tabId });
         setCurrentTab(tab);
       }
     };
@@ -57,7 +47,6 @@ export const useTabMonitoring = () => {
     // Listen for window focus changes
     const handleWindowFocusChanged = (windowId: number) => {
       if (windowId !== chrome.windows.WINDOW_ID_NONE) {
-        console.log('[TabMonitoring] Window focus changed:', { windowId });
         updateCurrentTab();
       }
     };
@@ -69,7 +58,6 @@ export const useTabMonitoring = () => {
 
     // Cleanup listeners on unmount
     return () => {
-      console.log('[TabMonitoring] Cleaning up tab listeners');
       safeChromeAPI.tabs.onActivated.removeListener(handleTabActivated);
       safeChromeAPI.tabs.onUpdated.removeListener(handleTabUpdated);
       safeChromeAPI.windows.onFocusChanged.removeListener(

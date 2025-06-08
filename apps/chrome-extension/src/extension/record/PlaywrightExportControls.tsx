@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { useRecordingSessionStore } from '../../store';
 import { generatePlaywrightTest } from './generatePlaywrightTest';
 import { exportEventsToFile, generateRecordTitle } from './utils';
+import { recordLogger } from './logger';
 
 const { Text } = Typography;
 
@@ -81,9 +82,7 @@ export const PlaywrightExportControls: React.FC<{
           session &&
           (!session.name || session.name.includes('-') || !session.description)
         ) {
-          console.log(
-            'Generating session title and description before test generation',
-          );
+          recordLogger.info('Generating session title and description before test generation');
           const { title, description } = await generateRecordTitle(events);
 
           if (title || description) {
@@ -97,16 +96,16 @@ export const PlaywrightExportControls: React.FC<{
       }
 
       // Step 2: Wait for all element descriptions to be generated
-      console.log('Checking element descriptions before test generation');
+      recordLogger.info('Checking element descriptions before test generation');
       if (!checkElementDescriptions(events)) {
         message.loading('Waiting for element descriptions to complete...', 0);
         await waitForElementDescriptions(events);
         message.destroy();
-        console.log('Element descriptions ready for test generation');
+        recordLogger.success('Element descriptions ready for test generation');
       }
 
       // Step 3: Generate Playwright test
-      console.log('Generating Playwright test with complete descriptions');
+      recordLogger.info('Generating Playwright test with complete descriptions');
       const testCode = await generatePlaywrightTest(events, {
         testName: `Test: ${sessionName}`,
         waitForNetworkIdle: true,
@@ -117,7 +116,7 @@ export const PlaywrightExportControls: React.FC<{
       setShowTestModal(true);
       message.success('AI Playwright test generated successfully!');
     } catch (error) {
-      console.error('Failed to generate Playwright test:', error);
+      recordLogger.error('Failed to generate Playwright test', undefined, error);
       message.error(
         `Failed to generate test: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );

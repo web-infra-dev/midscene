@@ -50,7 +50,6 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
 }) => {
   // Handle diagnostic check
   const handleDiagnose = async () => {
-    console.log('[RecordDetail] Starting diagnosis...');
     const result = await diagnoseRecordingChain(currentTab);
 
     // Show results in console and alert

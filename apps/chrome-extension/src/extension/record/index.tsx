@@ -10,6 +10,7 @@ import { useLifecycleCleanup } from './hooks/useLifecycleCleanup';
 import { useRecordingControl } from './hooks/useRecordingControl';
 import { useRecordingSession } from './hooks/useRecordingSession';
 import { useTabMonitoring } from './hooks/useTabMonitoring';
+import { recordLogger } from './logger';
 import type { ViewMode } from './types';
 import './record.less';
 
@@ -157,16 +158,11 @@ export default function Record() {
   // Select session handler with async handling
   const handleSelectSessionWrapper = useCallback(
     async (session: RecordingSession) => {
-      console.log('[Record] Switching to session:', {
-        sessionId: session.id,
-        sessionName: session.name,
-      });
+      recordLogger.info('Switching to session', { sessionId: session.id });
 
       // Stop current recording if any - wait for completion
       if (isRecording) {
-        console.log(
-          '[Record] Stopping current recording before switching session',
-        );
+        recordLogger.info('Stopping current recording before switching session');
         await stopRecording();
       }
 
@@ -178,18 +174,14 @@ export default function Record() {
   // View session detail handler
   const handleViewDetail = useCallback(
     (session: RecordingSession) => {
-      console.log('[Record] Viewing session detail:', {
-        sessionId: session.id,
-        sessionName: session.name,
-        events: session.events,
-      });
+      recordLogger.info('Viewing session detail', { sessionId: session.id });
 
       setSelectedSession(session);
       setViewMode('detail');
 
       // If not already the current session, switch to it
       if (currentSessionId !== session.id) {
-        console.log('[Record] Session not current, switching sessions');
+        recordLogger.info('Session not current, switching sessions');
         handleSelectSessionWrapper(session);
       }
     },
@@ -198,11 +190,11 @@ export default function Record() {
 
   // Go back to list view handler
   const handleBackToList = useCallback(async () => {
-    console.log('[Record] Navigating back to list view');
+    recordLogger.info('Navigating back to list view');
 
     // Auto-stop recording when leaving detail view
     if (isRecording) {
-      console.log('[Record] Auto-stopping recording when leaving detail view');
+      recordLogger.info('Auto-stopping recording when leaving detail view');
       await stopRecording();
     }
 
@@ -215,16 +207,10 @@ export default function Record() {
     name: string;
     description?: string;
   }) => {
-    console.log('[Record] Creating new session:', {
-      name: values.name,
-      description: values.description,
-    });
+    recordLogger.info('Creating new session', { action: 'create' });
 
     const newSession = await handleCreateSession(values);
-    console.log('[Record] New session created:', {
-      sessionId: newSession.id,
-      sessionName: newSession.name,
-    });
+    recordLogger.success('New session created', { sessionId: newSession.id });
 
     setIsCreateModalVisible(false);
     form.resetFields();
@@ -235,9 +221,7 @@ export default function Record() {
 
     // Automatically start recording if in extension mode
     if (isExtensionMode && currentTab?.id) {
-      console.log(
-        '[Record] Auto-starting recording for new session in extension mode',
-      );
+      recordLogger.info('Auto-starting recording for new session in extension mode');
       // Small delay to ensure UI updates first
       setTimeout(() => {
         startRecording();

@@ -2,6 +2,7 @@ import { AIActionType, callToGetJSONObject } from '@midscene/core/ai-model';
 import { message } from 'antd';
 
 import type { ChromeRecordedEvent } from '@midscene/record';
+import { recordLogger } from './logger';
 import { isChromeExtension, safeChromeAPI } from './types';
 
 // Generate default session name with current time
@@ -26,21 +27,16 @@ export const checkContentScriptInjected = async (
   if (!isChromeExtension()) return false;
 
   try {
-    console.log(
-      '[RecordUtils] Checking if content script is injected for tab:',
-      tabId,
-    );
     const response = await safeChromeAPI.tabs.sendMessage(tabId, {
       action: 'ping',
     });
     const isInjected = response?.success === true;
-    console.log(
-      '[RecordUtils] Content script injection check result:',
-      isInjected,
-    );
+    if (!isInjected) {
+      recordLogger.warn('Content script not injected', { tabId });
+    }
     return isInjected;
   } catch (error) {
-    console.log('[RecordUtils] Content script not injected, error:', error);
+    recordLogger.warn('Content script check failed', { tabId });
     return false;
   }
 };
@@ -50,23 +46,15 @@ export const ensureScriptInjected = async (
   currentTab: chrome.tabs.Tab | null,
 ) => {
   if (!isChromeExtension() || !currentTab?.id) {
-    console.error(
-      '[RecordUtils] Cannot ensure script injection - invalid environment or tab',
-    );
+    recordLogger.error('Cannot ensure script injection - invalid environment or tab');
     return false;
   }
 
-  console.log('[RecordUtils] Ensuring script is injected for tab:', {
-    tabId: currentTab.id,
-    url: currentTab.url,
-  });
   const isInjected = await checkContentScriptInjected(currentTab.id);
 
   if (!isInjected) {
-    console.log('[RecordUtils] Script not injected, injecting now');
+    recordLogger.info('Injecting script', { tabId: currentTab.id });
     await injectScript(currentTab);
-  } else {
-    console.log('[RecordUtils] Script already injected, skipping injection');
   }
   return true;
 };
@@ -84,30 +72,22 @@ export const injectScript = async (currentTab: chrome.tabs.Tab | null) => {
   }
 
   try {
-    console.log('[RecordUtils] Injecting record script for tab:', {
-      tabId: currentTab.id,
-      url: currentTab.url,
-    });
-
     // Inject the record script first
-    console.log('[RecordUtils] Injecting record-iife.js');
     await safeChromeAPI.scripting.executeScript({
       target: { tabId: currentTab.id },
       files: ['scripts/record-iife.js'],
     });
-    console.log('[RecordUtils] record-iife.js injected successfully');
 
     // Then inject the content script wrapper
-    console.log('[RecordUtils] Injecting event-recorder-bridge.js');
     await safeChromeAPI.scripting.executeScript({
       target: { tabId: currentTab.id },
       files: ['scripts/event-recorder-bridge.js'],
     });
-    console.log('[RecordUtils] event-recorder-bridge.js injected successfully');
 
+    recordLogger.success('Script injected', { tabId: currentTab.id });
     message.success('Recording script injected successfully');
   } catch (error) {
-    console.error('[RecordUtils] Failed to inject script:', error);
+    recordLogger.error('Failed to inject script', { tabId: currentTab.id }, error);
     if (error instanceof Error && error.message.includes('Cannot access')) {
       message.error(
         'Cannot inject script on this page (Chrome internal pages are restricted)',
@@ -333,12 +313,11 @@ export const generateRecordTitle = async (
 // Cleanup previous recording sessions by sending stop messages to all tabs
 export const cleanupPreviousRecordings = async () => {
   if (!isChromeExtension()) {
-    console.log('[RecordUtils] Not in extension environment, skipping cleanup');
     return;
   }
 
   try {
-    console.log('[RecordUtils] Cleaning up previous recording sessions');
+    recordLogger.info('Cleaning up previous recordings');
 
     // Get all tabs
     const tabs = await new Promise<chrome.tabs.Tab[]>((resolve) => {
@@ -353,32 +332,21 @@ export const cleanupPreviousRecordings = async () => {
         await safeChromeAPI.tabs.sendMessage(tab.id, {
           action: 'stop',
         });
-        console.log(
-          '[RecordUtils] Cleanup message sent to tab:',
-          tab.id,
-          tab.url,
-          tab.title,
-        );
       } catch (error) {
         // Ignore errors for tabs that don't have our content script
-        console.log(
-          '[RecordUtils] Cleanup message failed for tab:',
-          tab.id,
-          error,
-        );
       }
     });
 
     await Promise.allSettled(cleanupPromises);
-    console.log('[RecordUtils] Previous recording cleanup completed');
+    recordLogger.success('Previous recordings cleaned up');
   } catch (error) {
-    console.error('[RecordUtils] Error during recording cleanup:', error);
+    recordLogger.error('Error during recording cleanup', undefined, error);
   }
 };
 export const diagnoseRecordingChain = async (
   currentTab: chrome.tabs.Tab | null,
 ): Promise<{ issues: string[]; info: string[] }> => {
-  console.log('[RecordDiagnosis] Starting recording chain diagnosis');
+  recordLogger.info('Starting recording chain diagnosis');
 
   const issues: string[] = [];
   const info: string[] = [];
@@ -439,55 +407,7 @@ export const diagnoseRecordingChain = async (
     issues.push(`Error checking content script: ${error}`);
   }
 
-  // Check 5: Service worker connection
-  try {
-    const port = chrome.runtime.connect({ name: 'record-events' });
-    info.push('✓ Service worker port connection successful');
-
-    // Test message sending
-    const testPromise = new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('Service worker message test timeout'));
-      }, 3000);
-
-      port.onMessage.addListener((message) => {
-        if (message.action === 'test-response') {
-          clearTimeout(timeout);
-          resolve(message);
-        }
-      });
-
-      // Send test message to service worker
-      chrome.runtime.sendMessage(
-        { action: 'test', data: 'ping' },
-        (response) => {
-          if (chrome.runtime.lastError) {
-            clearTimeout(timeout);
-            reject(chrome.runtime.lastError);
-          } else {
-            clearTimeout(timeout);
-            resolve(response);
-          }
-        },
-      );
-    });
-
-    try {
-      await testPromise;
-      info.push('✓ Service worker message test successful');
-    } catch (error) {
-      issues.push(`Service worker message test failed: ${error}`);
-    }
-
-    port.disconnect();
-  } catch (error) {
-    issues.push(`Service worker connection failed: ${error}`);
-  }
-
-  // Summary
-  console.log('[RecordDiagnosis] Diagnosis complete');
-  console.log('[RecordDiagnosis] Issues found:', issues);
-  console.log('[RecordDiagnosis] Info:', info);
+  recordLogger.info('Diagnosis complete');
 
   return { issues, info };
 };

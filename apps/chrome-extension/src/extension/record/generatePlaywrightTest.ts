@@ -1,5 +1,6 @@
 import { AIActionType, callAi } from '@midscene/core/ai-model';
 import type { ChromeRecordedEvent } from '@midscene/record';
+import { recordLogger } from './logger';
 
 /**
  * Generates Playwright test code from recorded events
@@ -37,10 +38,9 @@ export const generatePlaywrightTest = async (
   );
 
   if (missingDescriptions.length > 0) {
-    console.warn(
-      'Some events are missing element descriptions:',
-      missingDescriptions.length,
-    );
+    recordLogger.warn('Some events missing element descriptions', {
+      eventsCount: missingDescriptions.length,
+    });
     // We'll proceed anyway, as the caller should have waited for descriptions
   }
 
@@ -207,7 +207,7 @@ import { test as base } from '@playwright/test';
 
     throw new Error('Failed to generate Playwright test code');
   } catch (error) {
-    console.error('Error generating Playwright test:', error);
+    recordLogger.error('Error generating Playwright test', undefined, error);
     throw new Error(`Failed to generate Playwright test: ${error}`);
   }
 };
