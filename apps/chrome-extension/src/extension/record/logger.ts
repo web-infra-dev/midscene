@@ -3,7 +3,7 @@
  * Only logs critical information to reduce noise
  */
 
-import { ChromeRecordedEvent } from "@midscene/record";
+import type { ChromeRecordedEvent } from '@midscene/record';
 
 interface LogContext {
   sessionId?: string;

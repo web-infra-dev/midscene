@@ -7,13 +7,8 @@
     "build": {
       "dependsOn": ["^build"],
       "cache": true,
-      "inputs": [
-        "default",
-        "{workspaceRoot}/package.json"
-      ],
-      "outputs": [
-        "{projectRoot}/dist"
-      ]
+      "inputs": ["default", "{workspaceRoot}/package.json"],
+      "outputs": ["{projectRoot}/dist"]
     },
     "build:watch": {
       "dependsOn": ["^build"]

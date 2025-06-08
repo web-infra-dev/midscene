@@ -42,6 +42,10 @@ The Midscene Chrome Extension is a browser extension that provides tools for bro
    - Enhances events with AI-generated element descriptions
    - Organizes events into recording sessions
    - Supports exporting and replaying event sequences
+   - **AI-Powered Export Formats**:
+     - **Playwright Tests**: Uses AI to generate executable Playwright test code with @midscene/web/playwright
+     - **YAML Configuration**: Uses AI to generate structured YAML test configurations suitable for various automation frameworks
+     - **JSON Events**: Exports raw event data in JSON format
    - Implements advanced optimization strategies including caching, deduplication, and debouncing
    - Uses intelligent fallback mechanisms for AI service failures
 

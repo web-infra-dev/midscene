@@ -52,7 +52,14 @@ export const useRecordingSession = (currentTab: chrome.tabs.Tab | null) => {
       recordLogger.success('Session created', { sessionId: newSession.id });
       return newSession;
     },
-    [currentTab, addSession, setCurrentSession, clearEvents, sessions, updateSession],
+    [
+      currentTab,
+      addSession,
+      setCurrentSession,
+      clearEvents,
+      sessions,
+      updateSession,
+    ],
   );
 
   // Create new session with form data
@@ -94,7 +101,14 @@ export const useRecordingSession = (currentTab: chrome.tabs.Tab | null) => {
 
       return newSession;
     },
-    [currentTab, addSession, setCurrentSession, clearEvents, sessions, updateSession],
+    [
+      currentTab,
+      addSession,
+      setCurrentSession,
+      clearEvents,
+      sessions,
+      updateSession,
+    ],
   );
 
   // Update session

@@ -417,7 +417,7 @@ export const optimizeEvent = async (
             descriptionLoading: false,
           });
         });
-        
+
         // Set fallback description immediately
         // eventWithBoxedImage.elementDescription = generateFallbackDescription(event);
       }
@@ -430,7 +430,8 @@ export const optimizeEvent = async (
         },
       );
       // No coordinates available, no callback provided, or no boxed image
-      eventWithBoxedImage.elementDescription = generateFallbackDescription(event);
+      eventWithBoxedImage.elementDescription =
+        generateFallbackDescription(event);
     }
 
     return eventWithBoxedImage;
