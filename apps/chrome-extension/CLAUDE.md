@@ -42,6 +42,8 @@ The Midscene Chrome Extension is a browser extension that provides tools for bro
    - Enhances events with AI-generated element descriptions
    - Organizes events into recording sessions
    - Supports exporting and replaying event sequences
+   - Implements advanced optimization strategies including caching, deduplication, and debouncing
+   - Uses intelligent fallback mechanisms for AI service failures
 
 3. **Bridge Mode**: Allows external control of the browser from a local terminal via the Midscene SDK:
    - Creates a communication channel between external tools and the browser
@@ -105,6 +107,118 @@ The extension uses a service worker architecture:
    - Commands are executed in the browser
    - Results are sent back to the external tool
 
+## Record System Implementation Details
+
+### Architecture Overview
+
+The Record System follows a layered architecture:
+
+```
+Record System
+├── UI Layer
+│   ├── Record (Main Component)
+│   ├── RecordList (Session List)  
+│   ├── RecordDetail (Session Details)
+│   └── SessionModals (Session Modals)
+├── Hook Layer (Logic Layer)
+│   ├── useRecordingControl (Recording Control)
+│   ├── useRecordingSession (Session Management)
+│   ├── useTabMonitoring (Tab Monitoring)
+│   └── useLifecycleCleanup (Lifecycle Cleanup)
+├── Service Layer
+│   ├── eventOptimizer (Event Optimization)
+│   ├── Chrome APIs (Browser APIs)
+│   └── Content Scripts
+└── Storage Layer
+    ├── RecordStore (Recording State)
+    └── RecordingSessionStore (Session Storage)
+```
+
+### Core Recording Hooks
+
+**useRecordingControl** (`src/extension/record/hooks/useRecordingControl.ts`):
+- Manages start/stop recording lifecycle
+- Handles event reception and processing
+- Monitors tab changes and automatically stops recording
+- Manages script injection to web pages
+
+**useRecordingSession** (`src/extension/record/hooks/useRecordingSession.ts`):
+- Creates, updates, and deletes recording sessions
+- Handles session selection and switching
+- Exports events to different formats
+
+### Event Optimization System
+
+**eventOptimizer** (`src/utils/eventOptimizer.ts`) implements sophisticated optimization strategies:
+
+1. **Caching Strategy**:
+   - Description cache for AI-generated element descriptions
+   - Screenshot cache for element screenshots
+   - LRU eviction with max 100 items
+
+2. **Debouncing Mechanism**:
+   - 1-second debounce delay for AI description generation
+   - Prevents duplicate requests for the same element
+   - Improves performance during rapid user interactions
+
+3. **Deduplication**:
+   - Cache key generation based on element position and dimensions
+   - Ongoing request tracking to prevent duplicate AI calls
+   - Fallback descriptions when AI services fail
+
+### Recording Data Flow
+
+1. **Recording Start**:
+   - User clicks start → Check environment → Create/select session
+   - Inject content scripts → Send start message → Establish event listening
+   - Update UI to recording state
+
+2. **Event Capture**:
+   - User performs operations → Content script captures events
+   - Extract event data → Forward through service worker
+   - Apply optimization (cache check, screenshot generation, AI description)
+   - Update session and refresh UI
+
+3. **Recording Stop**:
+   - User stops or page refresh triggers stop
+   - Collect final events → Generate AI title/description
+   - Update session status → Clean up state and listeners
+
+### Session Data Structure
+
+```typescript
+interface RecordingSession {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: number;
+  updatedAt: number;
+  events: ChromeRecordedEvent[];
+  status: 'idle' | 'recording' | 'completed';
+  url?: string;
+}
+```
+
+### Performance Optimizations
+
+- **Asynchronous Processing**: Non-blocking UI with background AI processing
+- **Intelligent Caching**: Element-based caching reduces redundant AI calls
+- **Batch Updates**: Efficient state updates for multiple events
+- **Memory Management**: LRU cache prevents memory leaks
+
+### Error Handling
+
+- **Script Injection Failures**: Detects Chrome internal pages, provides retry mechanisms
+- **AI Service Failures**: Automatic fallback to basic descriptions
+- **Page Refresh Handling**: Auto-saves data and cleans up state
+
+### Security Considerations
+
+- Local data storage only
+- Secure message passing between extension components
+- Permission checks for tab access
+- Screenshot data handled securely
+
 ## Integration with Midscene Packages
 
 The extension integrates with several workspace packages:
@@ -120,3 +234,28 @@ The extension integrates with several workspace packages:
 - The version number in `package.json` is used for the extension package
 - The output file is named `midscene-extension-v{version}.zip`
 - When updating versions, ensure both `package.json` and relevant UI references are updated
+
+## Documentation Maintenance
+
+**IMPORTANT**: When making changes to key recording system logic, ensure this CLAUDE.md file is updated to reflect the changes:
+
+### Critical Areas Requiring Documentation Updates:
+
+1. **Recording Flow Changes**: Updates to start/stop recording logic in `useRecordingControl.ts`
+2. **Event Optimization**: Modifications to caching, debouncing, or AI description logic in `eventOptimizer.ts`
+3. **Session Management**: Changes to session data structure or persistence logic in `useRecordingSession.ts`
+4. **Performance Optimizations**: New caching strategies, memory management, or optimization algorithms
+5. **Error Handling**: New error handling patterns or fallback mechanisms
+6. **Security Updates**: Changes to permission handling, data protection, or message passing security
+
+### When to Update Documentation:
+
+- Changing debounce delays or cache sizes
+- Modifying AI description generation logic
+- Adding new event types or processing strategies  
+- Updating session data structures or storage format
+- Implementing new performance optimizations
+- Adding or changing error handling mechanisms
+- Modifying the recording lifecycle flow
+
+Always update both the high-level architecture description and specific implementation details when making significant changes to ensure Claude Code has accurate information about the current system state.
