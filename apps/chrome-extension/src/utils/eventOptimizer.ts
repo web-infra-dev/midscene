@@ -279,7 +279,7 @@ export const optimizeEvent = async (
 
     // Only process events with screenshots and element position
     if (
-      !event.screenshotBefore || !existsRect(event)
+      !event.screenshotBefore 
     ) {
       console.log('[optimizeEvent] Skipping AI description - missing screenshot or rect');
       return event;
@@ -342,7 +342,7 @@ export const optimizeEvent = async (
     };
 
     // Handle description generation
-    if (updateCallback && event.screenshotBefore) {
+    if (updateCallback && event.screenshotBefore && existsRect(event)) {
       console.log('[optimizeEvent] Starting AI description generation for cache key:', cacheKey);
       
       // Check if already cached to provide immediate response
@@ -353,7 +353,7 @@ export const optimizeEvent = async (
         eventWithBoxedImage.descriptionLoading = false;
       } else {
         // Set loading state
-        eventWithBoxedImage.elementDescription = 'AI 正在分析元素...';
+        eventWithBoxedImage.elementDescription = 'AI is analyzing element...';
         eventWithBoxedImage.descriptionLoading = true;
 
         // Generate AI description with debouncing and callback handling
@@ -375,11 +375,11 @@ export const optimizeEvent = async (
         });
       }
     } else {
-      console.log('[optimizeEvent] Skipping AI description generation - no callback or screenshot:', {
-        hasCallback: !!updateCallback,
-        hasScreenshot: !!event.screenshotBefore
-      });
-      // No coordinates available, no callback provided, or no boxed image
+              console.log('[optimizeEvent] Skipping AI description generation - no callback or screenshot:', {
+          hasCallback: !!updateCallback,
+          hasScreenshot: !!event.screenshotBefore
+        });
+        // No coordinates available, no callback provided, or no boxed image
       eventWithBoxedImage.elementDescription = 'No description available';
       eventWithBoxedImage.descriptionLoading = false;
     }

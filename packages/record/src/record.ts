@@ -212,13 +212,17 @@ export class EventRecorder {
   private handleScroll = (event: Event): void => {
     if (!this.isRecording) return;
 
+    function isDocument(target: EventTarget): target is Document {
+      return target instanceof Document;
+    }
+
     const target = event.target as HTMLElement;
     const scrollXTarget =
-      target instanceof Document ? window.scrollX : target.scrollLeft;
+      isDocument(target) ? window.scrollX : target.scrollLeft;
     const scrollYTarget =
-      target instanceof Document ? window.scrollY : target.scrollTop;
+      isDocument(target) ? window.scrollY : target.scrollTop;
     const rect =
-      target instanceof Document
+      isDocument(target)
         ? {
             left: 0,
             top: 0,
@@ -235,10 +239,10 @@ export class EventRecorder {
         const scrollEvent: RecordedEvent = {
           type: 'scroll',
           elementRect: {
-            left: Number(scrollXTarget.toFixed(2)),
-            top: Number(scrollYTarget.toFixed(2)),
-            width: 0,
-            height: 0,
+            left: isDocument(target) ? 0 : Number(rect.left.toFixed(2)),
+            top: isDocument(target) ? 0 : Number(rect.top.toFixed(2)),
+            width: isDocument(target) ? window.innerWidth : Number(rect.width.toFixed(2)),
+            height: isDocument(target) ? window.innerHeight : Number(rect.height.toFixed(2)),
           },
           pageInfo: {
             width: window.innerWidth,

@@ -105,7 +105,7 @@ export const useRecordingControl = (
           };
 
           // Generate AI title and description if we have events
-          if (events.length > 3 && session.name && session.description) {
+          if (events.length > 3 && !session.name && !session.description) {
             console.log('[RecordingControl] Generating AI title and description for', events.length, 'events');
             const hideLoadingMessage = message.loading(
               'Generating recording title and description...',
