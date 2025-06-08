@@ -9,8 +9,8 @@ import type React from 'react';
 import { useState } from 'react';
 import { useRecordingSessionStore } from '../../store';
 import { generatePlaywrightTest } from './generatePlaywrightTest';
-import { exportEventsToFile, generateRecordTitle } from './utils';
 import { recordLogger } from './logger';
+import { exportEventsToFile, generateRecordTitle } from './utils';
 
 const { Text } = Typography;
 
@@ -54,7 +54,7 @@ export const PlaywrightExportControls: React.FC<{
           clearInterval(checkInterval);
           resolve();
         }
-      }, 500); // Check every 500ms
+      }, 200); // Check every 500ms
 
       // Timeout after 30 seconds
       setTimeout(() => {
@@ -74,6 +74,7 @@ export const PlaywrightExportControls: React.FC<{
     setIsGenerating(true);
     try {
       // Step 1: Generate session title and description if not already generated
+      let currentSessionName = sessionName; // Default to the original prop
       if (sessionId) {
         const session = useRecordingSessionStore
           .getState()
@@ -82,7 +83,9 @@ export const PlaywrightExportControls: React.FC<{
           session &&
           (!session.name || session.name.includes('-') || !session.description)
         ) {
-          recordLogger.info('Generating session title and description before test generation');
+          recordLogger.info(
+            'Generating session title and description before test generation',
+          );
           const { title, description } = await generateRecordTitle(events);
 
           if (title || description) {
@@ -91,7 +94,13 @@ export const PlaywrightExportControls: React.FC<{
               description: description || session.description,
             });
             message.success('Session title and description generated');
+
+            // Update the session name to use for test generation
+            currentSessionName = title || session.name;
           }
+        } else if (session) {
+          // Use the current session name from the store in case it was updated elsewhere
+          currentSessionName = session.name;
         }
       }
 
@@ -105,9 +114,11 @@ export const PlaywrightExportControls: React.FC<{
       }
 
       // Step 3: Generate Playwright test
-      recordLogger.info('Generating Playwright test with complete descriptions');
+      recordLogger.info(
+        'Generating Playwright test with complete descriptions',
+      );
       const testCode = await generatePlaywrightTest(events, {
-        testName: `Test: ${sessionName}`,
+        testName: `Test: ${currentSessionName}`,
         waitForNetworkIdle: true,
         waitForNetworkIdleTimeout: 2000,
       });
@@ -116,7 +127,11 @@ export const PlaywrightExportControls: React.FC<{
       setShowTestModal(true);
       message.success('AI Playwright test generated successfully!');
     } catch (error) {
-      recordLogger.error('Failed to generate Playwright test', undefined, error);
+      recordLogger.error(
+        'Failed to generate Playwright test',
+        undefined,
+        error,
+      );
       message.error(
         `Failed to generate test: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
@@ -133,6 +148,17 @@ export const PlaywrightExportControls: React.FC<{
 
   // Download generated test as a TypeScript file
   const handleDownloadTest = () => {
+    // Get the current session name from store if available
+    let downloadSessionName = sessionName;
+    if (sessionId) {
+      const session = useRecordingSessionStore
+        .getState()
+        .sessions.find((s) => s.id === sessionId);
+      if (session) {
+        downloadSessionName = session.name;
+      }
+    }
+
     const dataBlob = new Blob([generatedTest], {
       type: 'application/typescript',
     });
@@ -140,18 +166,28 @@ export const PlaywrightExportControls: React.FC<{
 
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${sessionName}-playwright-test.ts`;
+    link.download = `${downloadSessionName}-playwright-test.ts`;
     link.click();
 
     URL.revokeObjectURL(url);
     message.success(
-      `Playwright test for "${sessionName}" downloaded successfully`,
+      `Playwright test for "${downloadSessionName}" downloaded successfully`,
     );
   };
 
   // Export original events as JSON
   const handleExportEvents = () => {
-    exportEventsToFile(events, sessionName);
+    // Get the current session name from store if available
+    let exportSessionName = sessionName;
+    if (sessionId) {
+      const session = useRecordingSessionStore
+        .getState()
+        .sessions.find((s) => s.id === sessionId);
+      if (session) {
+        exportSessionName = session.name;
+      }
+    }
+    exportEventsToFile(events, exportSessionName);
   };
 
   return (

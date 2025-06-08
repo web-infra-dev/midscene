@@ -45,7 +45,10 @@ export const useRecordingControl = (
 
   // Define stopRecording early using useCallback
   const stopRecording = useCallback(async () => {
-    recordLogger.info('Stopping recording', { sessionId: currentSessionId || undefined, tabId: currentTab?.id });
+    recordLogger.info('Stopping recording', {
+      sessionId: currentSessionId || undefined,
+      tabId: currentTab?.id,
+    });
 
     if (!isExtensionMode) {
       setIsRecording(false);
@@ -101,7 +104,9 @@ export const useRecordingControl = (
 
           // Generate AI title and description if we have events
           if (events.length > 3 && !session.name && !session.description) {
-            recordLogger.info('Generating AI title', { eventsCount: events.length });
+            recordLogger.info('Generating AI title', {
+              eventsCount: events.length,
+            });
             const hideLoadingMessage = message.loading(
               'Generating recording title and description...',
               0,
@@ -117,7 +122,11 @@ export const useRecordingControl = (
                 updateData.description = description;
               }
             } catch (error) {
-              recordLogger.error('Failed to generate title/description', undefined, error);
+              recordLogger.error(
+                'Failed to generate title/description',
+                undefined,
+                error,
+              );
             } finally {
               hideLoadingMessage();
             }
@@ -206,7 +215,9 @@ export const useRecordingControl = (
       // Small delay to ensure state updates before continuing
       await new Promise((resolve) => setTimeout(resolve, 100));
     } else {
-      recordLogger.info('Using existing session', { sessionId: sessionToUse.id });
+      recordLogger.info('Using existing session', {
+        sessionId: sessionToUse.id,
+      });
     }
 
     // Update session status to recording
@@ -318,7 +329,11 @@ export const useRecordingControl = (
     ) {
       port.onDisconnect.addListener(() => {
         if (chrome.runtime.lastError) {
-          recordLogger.error('Port disconnect error', undefined, chrome.runtime.lastError);
+          recordLogger.error(
+            'Port disconnect error',
+            undefined,
+            chrome.runtime.lastError,
+          );
         }
       });
     }
@@ -342,7 +357,9 @@ export const useRecordingControl = (
       }
 
       if (message.action === 'events' && Array.isArray(message.data)) {
-        recordLogger.info('Processing bulk events', { eventsCount: message.data.length });
+        recordLogger.info('Processing bulk events', {
+          eventsCount: message.data.length,
+        });
         const eventsData = await Promise.all(
           message.data.map(processEventData),
         );
@@ -355,7 +372,9 @@ export const useRecordingControl = (
         const optimizedEvent = await processEventData(message.data);
         addEvent(optimizedEvent);
       } else {
-        recordLogger.warn('Unhandled message format', { action: message.action });
+        recordLogger.warn('Unhandled message format', {
+          action: message.action,
+        });
       }
     };
 

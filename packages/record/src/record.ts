@@ -8,17 +8,27 @@ function debugLog(...args: any[]) {
 }
 
 // Generate a hash ID based on elementRect and type
-function generateHashId(type: string, elementRect?: { left: number; top: number; width: number; height: number; x?: number; y?: number }): string {
-  const rectStr = elementRect 
+function generateHashId(
+  type: string,
+  elementRect?: {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+    x?: number;
+    y?: number;
+  },
+): string {
+  const rectStr = elementRect
     ? `${elementRect.left}_${elementRect.top}_${elementRect.width}_${elementRect.height}${elementRect.x !== undefined ? `_${elementRect.x}` : ''}${elementRect.y !== undefined ? `_${elementRect.y}` : ''}`
     : 'no_rect';
   const combined = `${type}_${rectStr}`;
-  
+
   // Simple hash function
   let hash = 0;
   for (let i = 0; i < combined.length; i++) {
     const char = combined.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash; // Convert to 32bit integer
   }
   return Math.abs(hash).toString(36);
@@ -264,8 +274,12 @@ export class EventRecorder {
         const elementRect = {
           left: isDocument(target) ? 0 : Number(rect.left.toFixed(2)),
           top: isDocument(target) ? 0 : Number(rect.top.toFixed(2)),
-          width: isDocument(target) ? window.innerWidth : Number(rect.width.toFixed(2)),
-          height: isDocument(target) ? window.innerHeight : Number(rect.height.toFixed(2)),
+          width: isDocument(target)
+            ? window.innerWidth
+            : Number(rect.width.toFixed(2)),
+          height: isDocument(target)
+            ? window.innerHeight
+            : Number(rect.height.toFixed(2)),
         };
         const scrollEvent: RecordedEvent = {
           type: 'scroll',

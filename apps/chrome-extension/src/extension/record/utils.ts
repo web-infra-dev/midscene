@@ -46,7 +46,9 @@ export const ensureScriptInjected = async (
   currentTab: chrome.tabs.Tab | null,
 ) => {
   if (!isChromeExtension() || !currentTab?.id) {
-    recordLogger.error('Cannot ensure script injection - invalid environment or tab');
+    recordLogger.error(
+      'Cannot ensure script injection - invalid environment or tab',
+    );
     return false;
   }
 
@@ -87,7 +89,11 @@ export const injectScript = async (currentTab: chrome.tabs.Tab | null) => {
     recordLogger.success('Script injected', { tabId: currentTab.id });
     message.success('Recording script injected successfully');
   } catch (error) {
-    recordLogger.error('Failed to inject script', { tabId: currentTab.id }, error);
+    recordLogger.error(
+      'Failed to inject script',
+      { tabId: currentTab.id },
+      error,
+    );
     if (error instanceof Error && error.message.includes('Cannot access')) {
       message.error(
         'Cannot inject script on this page (Chrome internal pages are restricted)',

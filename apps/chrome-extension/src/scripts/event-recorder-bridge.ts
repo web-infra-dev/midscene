@@ -10,7 +10,10 @@ interface EventRecorder {
   start(): void;
   stop(): void;
   isActive(): boolean;
-  optimizeEvent(event: ChromeRecordedEvent, events: ChromeRecordedEvent[]): ChromeRecordedEvent[];
+  optimizeEvent(
+    event: ChromeRecordedEvent,
+    events: ChromeRecordedEvent[],
+  ): ChromeRecordedEvent[];
 }
 
 // Extend the global window interface to include EventRecorder
@@ -18,7 +21,7 @@ declare global {
   interface Window {
     EventRecorder?: new (
       callback: (event: ChromeRecordedEvent) => Promise<void>,
-      sessionId: string
+      sessionId: string,
     ) => EventRecorder;
     recorder: EventRecorder | null;
   }
@@ -26,7 +29,14 @@ declare global {
 
 // Define message types for Chrome extension communication
 interface ChromeMessage {
-  action: 'captureScreenshot' | 'events' | 'ping' | 'start' | 'stop' | 'getEvents' | 'clearEvents';
+  action:
+    | 'captureScreenshot'
+    | 'events'
+    | 'ping'
+    | 'start'
+    | 'stop'
+    | 'getEvents'
+    | 'clearEvents';
   data?: ChromeRecordedEvent[];
   sessionId?: string;
 }
@@ -87,40 +97,43 @@ async function initializeRecorder(sessionId: string): Promise<void> {
   console.log(
     '[EventRecorder Bridge] Initializing EventRecorder with callback',
   );
-  
-  window.recorder = new window.EventRecorder(async (event: ChromeRecordedEvent) => {
-    const optimizedEvent = window.recorder!.optimizeEvent(event, events);
 
-    // Add event to local array
-    events = optimizedEvent;
+  window.recorder = new window.EventRecorder(
+    async (event: ChromeRecordedEvent) => {
+      const optimizedEvent = window.recorder!.optimizeEvent(event, events);
 
-    console.log('[EventRecorder Bridge] Event processed:', {
-      type: event.type,
-      event,
-      optimizedEvent: optimizedEvent,
-    });
+      // Add event to local array
+      events = optimizedEvent;
 
-    // Add screenshots to the latest event
-    setTimeout(async () => {
-      const latestEvent = optimizedEvent[optimizedEvent.length - 1];
-      const previousEvent = optimizedEvent[optimizedEvent.length - 2];
-      const screenshotAfter = await captureScreenshot();
-      let screenshotBefore: string | void;
+      console.log('[EventRecorder Bridge] Event processed:', {
+        type: event.type,
+        event,
+        optimizedEvent: optimizedEvent,
+      });
 
-      if (optimizedEvent.length > 1) {
-        screenshotBefore = previousEvent.screenshotAfter;
-      } else {
-        screenshotBefore = await initialScreenshot;
-      }
-      
-      // Capture screenshot before processing the event
-      latestEvent.screenshotAfter = screenshotAfter!;
-      latestEvent.screenshotBefore = screenshotBefore!;
-      
-      // Send updated events array to extension popup
-      sendEventsToExtension(optimizedEvent);
-    }, 100);
-  }, sessionId);
+      // Add screenshots to the latest event
+      setTimeout(async () => {
+        const latestEvent = optimizedEvent[optimizedEvent.length - 1];
+        const previousEvent = optimizedEvent[optimizedEvent.length - 2];
+        const screenshotAfter = await captureScreenshot();
+        let screenshotBefore: string | void;
+
+        if (optimizedEvent.length > 1) {
+          screenshotBefore = previousEvent.screenshotAfter;
+        } else {
+          screenshotBefore = await initialScreenshot;
+        }
+
+        // Capture screenshot before processing the event
+        latestEvent.screenshotAfter = screenshotAfter!;
+        latestEvent.screenshotBefore = screenshotBefore!;
+
+        // Send updated events array to extension popup
+        sendEventsToExtension(optimizedEvent);
+      }, 100);
+    },
+    sessionId,
+  );
 }
 
 function sendEventsToExtension(optimizedEvent: ChromeRecordedEvent[]): void {
@@ -157,92 +170,94 @@ function sendEventsToExtension(optimizedEvent: ChromeRecordedEvent[]): void {
 }
 
 // Listen for messages from extension popup
-chrome.runtime.onMessage.addListener((
-  message: ChromeMessage, 
-  _sender: chrome.runtime.MessageSender, 
-  sendResponse: (response?: ChromeResponse) => void
-): boolean => {
-  if (message.action === 'ping') {
-    sendResponse({
-      success: true,
-    });
-    return true;
-  }
-
-  if (message.action === 'start') {
-    initialScreenshot = captureScreenshot();
-    if (!window.recorder) {
-      initializeRecorder(message.sessionId!);
-    }
-
-    if (window.recorder) {
-      window.recorder.start();
-      events = []; // Clear previous events
-      console.log(
-        '[EventRecorder Bridge] Recording started successfully with session ID:',
-        message.sessionId,
-      );
+chrome.runtime.onMessage.addListener(
+  (
+    message: ChromeMessage,
+    _sender: chrome.runtime.MessageSender,
+    sendResponse: (response?: ChromeResponse) => void,
+  ): boolean => {
+    if (message.action === 'ping') {
       sendResponse({
         success: true,
       });
-    } else {
-      console.error(
-        '[EventRecorder Bridge] Failed to start recording - recorder not initialized with session ID:',
-        message.sessionId,
-      );
-      sendResponse({
-        success: false,
-        error: 'Failed to initialize recorder',
-      });
+      return true;
     }
-  } else if (message.action === 'stop') {
-    // biome-ignore lint/complexity/useOptionalChain: Preserving original logic
-    if (window.recorder && window.recorder.isActive()) {
-      window.recorder.stop();
-      const finalEventsCount = events.length;
-      window.recorder = null;
+
+    if (message.action === 'start') {
+      initialScreenshot = captureScreenshot();
+      if (!window.recorder) {
+        initializeRecorder(message.sessionId!);
+      }
+
+      if (window.recorder) {
+        window.recorder.start();
+        events = []; // Clear previous events
+        console.log(
+          '[EventRecorder Bridge] Recording started successfully with session ID:',
+          message.sessionId,
+        );
+        sendResponse({
+          success: true,
+        });
+      } else {
+        console.error(
+          '[EventRecorder Bridge] Failed to start recording - recorder not initialized with session ID:',
+          message.sessionId,
+        );
+        sendResponse({
+          success: false,
+          error: 'Failed to initialize recorder',
+        });
+      }
+    } else if (message.action === 'stop') {
+      // biome-ignore lint/complexity/useOptionalChain: Preserving original logic
+      if (window.recorder && window.recorder.isActive()) {
+        window.recorder.stop();
+        const finalEventsCount = events.length;
+        window.recorder = null;
+        console.log(
+          '[EventRecorder Bridge] Recording stopped successfully with session ID:',
+          message.sessionId,
+          'with',
+          finalEventsCount,
+          'events',
+        );
+        sendResponse({
+          success: true,
+          eventsCount: finalEventsCount,
+        });
+      } else {
+        console.log(
+          '[EventRecorder Bridge] Stop requested but recorder not active with session ID:',
+          message.sessionId,
+        );
+        sendResponse({
+          success: false,
+          error: 'Recorder not active',
+        });
+      }
+    } else if (message.action === 'getEvents') {
       console.log(
-        '[EventRecorder Bridge] Recording stopped successfully with session ID:',
-        message.sessionId,
-        'with',
-        finalEventsCount,
+        '[EventRecorder Bridge] Events requested, returning',
+        events.length,
         'events',
       );
       sendResponse({
+        events: events,
         success: true,
-        eventsCount: finalEventsCount,
       });
-    } else {
-      console.log(
-        '[EventRecorder Bridge] Stop requested but recorder not active with session ID:',
-        message.sessionId,
-      );
+    } else if (message.action === 'clearEvents') {
+      const clearedCount = events.length;
+      events = [];
+      console.log('[EventRecorder Bridge] Cleared', clearedCount, 'events');
       sendResponse({
-        success: false,
-        error: 'Recorder not active',
+        success: true,
       });
     }
-  } else if (message.action === 'getEvents') {
-    console.log(
-      '[EventRecorder Bridge] Events requested, returning',
-      events.length,
-      'events',
-    );
-    sendResponse({
-      events: events,
-      success: true,
-    });
-  } else if (message.action === 'clearEvents') {
-    const clearedCount = events.length;
-    events = [];
-    console.log('[EventRecorder Bridge] Cleared', clearedCount, 'events');
-    sendResponse({
-      success: true,
-    });
-  }
 
-  return true; // Keep message channel open for async response
-});
+    return true; // Keep message channel open for async response
+  },
+);
 
 // Initialize when script loads
 document.addEventListener('DOMContentLoaded', () => {

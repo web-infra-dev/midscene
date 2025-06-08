@@ -45,7 +45,6 @@ const addToCache = (
   cacheKeyOrder.push(key);
 };
 
-
 // Clear all caches
 export const clearDescriptionCache = (): void => {
   descriptionCache.clear();
@@ -107,12 +106,7 @@ const debouncedGenerateAIDescription = (
         `[Debounce] Executing AI description generation for ${hashId}`,
       );
       debounceTimeouts.delete(hashId);
-      generateAIDescriptionInternal(
-        event,
-        imageBase64,
-        hashId,
-        updateCallback,
-      )
+      generateAIDescriptionInternal(event, imageBase64, hashId, updateCallback)
         .then(resolve)
         .catch(reject);
     }, DEBOUNCE_DELAY);

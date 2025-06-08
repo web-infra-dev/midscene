@@ -1,7 +1,7 @@
 import { message } from 'antd';
 import { useEffect } from 'react';
-import { recordLogger } from '../logger';
 import type { RecordingSession } from '../../../store';
+import { recordLogger } from '../logger';
 
 export const useLifecycleCleanup = (
   isRecording: boolean,
@@ -33,7 +33,9 @@ export const useLifecycleCleanup = (
     // Handle potential popup window close
     const handleBeforeUnload = () => {
       if (isRecording) {
-        recordLogger.info('Extension popup closing, stopping recording synchronously');
+        recordLogger.info(
+          'Extension popup closing, stopping recording synchronously',
+        );
         // For unload events, we need to stop synchronously
         setIsRecording(false);
         if (currentSessionId) {

@@ -53,7 +53,9 @@ export const useRecordingSession = (currentTab: chrome.tabs.Tab | null) => {
       name: string;
       description?: string;
     }) => {
-      recordLogger.info('Creating session with form data', { action: 'create' });
+      recordLogger.info('Creating session with form data', {
+        action: 'create',
+      });
 
       const newSession: RecordingSession = {
         id: `session-${Date.now()}`,
@@ -69,7 +71,9 @@ export const useRecordingSession = (currentTab: chrome.tabs.Tab | null) => {
       addSession(newSession);
       setCurrentSession(newSession.id);
       clearEvents();
-      recordLogger.success('Session created from form', { sessionId: newSession.id });
+      recordLogger.success('Session created from form', {
+        sessionId: newSession.id,
+      });
       message.success(`Session "${values.name}" created successfully`);
 
       return newSession;
@@ -80,9 +84,9 @@ export const useRecordingSession = (currentTab: chrome.tabs.Tab | null) => {
   // Update session
   const handleUpdateSession = useCallback(
     (sessionId: string, updates: Partial<RecordingSession>) => {
-      recordLogger.info('Updating session', { 
-        sessionId, 
-        eventsCount: updates.events?.length 
+      recordLogger.info('Updating session', {
+        sessionId,
+        eventsCount: updates.events?.length,
       });
 
       updateSession(sessionId, {
@@ -98,9 +102,9 @@ export const useRecordingSession = (currentTab: chrome.tabs.Tab | null) => {
   const handleDeleteSession = useCallback(
     (sessionId: string) => {
       const isCurrentSession = currentSessionId === sessionId;
-      recordLogger.info('Deleting session', { 
-        sessionId, 
-        action: isCurrentSession ? 'delete-current' : 'delete' 
+      recordLogger.info('Deleting session', {
+        sessionId,
+        action: isCurrentSession ? 'delete-current' : 'delete',
       });
 
       deleteSession(sessionId);
@@ -116,9 +120,9 @@ export const useRecordingSession = (currentTab: chrome.tabs.Tab | null) => {
   // Select session (set as current)
   const handleSelectSession = useCallback(
     (session: RecordingSession) => {
-      recordLogger.info('Selecting session', { 
-        sessionId: session.id, 
-        eventsCount: session.events.length 
+      recordLogger.info('Selecting session', {
+        sessionId: session.id,
+        eventsCount: session.events.length,
       });
 
       setCurrentSession(session.id);
@@ -134,10 +138,10 @@ export const useRecordingSession = (currentTab: chrome.tabs.Tab | null) => {
       message.warning('No events to export in this session');
       return;
     }
-    
-    recordLogger.info('Exporting session', { 
-      sessionId: session.id, 
-      eventsCount: session.events.length 
+
+    recordLogger.info('Exporting session', {
+      sessionId: session.id,
+      eventsCount: session.events.length,
     });
     exportEventsToFile(session.events, session.name);
   }, []);

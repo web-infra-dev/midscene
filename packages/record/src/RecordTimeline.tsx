@@ -1,12 +1,12 @@
 import {
   AimOutlined,
   CompassOutlined,
+  CopyOutlined,
   EditOutlined,
+  InfoCircleOutlined,
   KeyOutlined,
   MoreOutlined,
   VerticalAlignTopOutlined,
-  InfoCircleOutlined,
-  CopyOutlined,
 } from '@ant-design/icons';
 import { compositeElementInfoImg } from '@midscene/shared/img';
 import {
@@ -196,11 +196,14 @@ export const RecordTimeline = ({
   };
 
   const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      message.success('JSON copied to clipboard');
-    }).catch(() => {
-      message.error('Copy failed');
-    });
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        message.success('JSON copied to clipboard');
+      })
+      .catch(() => {
+        message.error('Copy failed');
+      });
   };
 
   const timelineItems = events.map((event, index) => {
@@ -239,7 +242,14 @@ export const RecordTimeline = ({
                 <Popover
                   content={
                     <div style={{ maxWidth: '500px', maxHeight: '400px' }}>
-                      <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div
+                        style={{
+                          marginBottom: '12px',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}
+                      >
                         <Text strong>Event Details</Text>
                         <Button
                           type="primary"
@@ -251,15 +261,17 @@ export const RecordTimeline = ({
                         </Button>
                       </div>
                       <div style={{ overflow: 'auto', maxHeight: '350px' }}>
-                        <pre style={{
-                          fontSize: '12px',
-                          margin: 0,
-                          whiteSpace: 'pre-wrap',
-                          backgroundColor: '#f5f5f5',
-                          padding: '12px',
-                          borderRadius: '4px',
-                          border: '1px solid #d9d9d9'
-                        }}>
+                        <pre
+                          style={{
+                            fontSize: '12px',
+                            margin: 0,
+                            whiteSpace: 'pre-wrap',
+                            backgroundColor: '#f5f5f5',
+                            padding: '12px',
+                            borderRadius: '4px',
+                            border: '1px solid #d9d9d9',
+                          }}
+                        >
                           {eventJsonString}
                         </pre>
                       </div>
@@ -299,7 +311,6 @@ export const RecordTimeline = ({
                   alignItems: 'flex-start',
                 }}
               >
-
                 {/* Screenshot with highlighted element */}
                 {boxedImage && (
                   <div style={{ flexShrink: 0 }}>
@@ -473,7 +484,8 @@ export const RecordTimeline = ({
                                 <Text strong>Action:</Text> {event.type}
                               </div>
                               <div>
-                                <Text strong>Timestamp:</Text> {formatTime(event.timestamp)}
+                                <Text strong>Timestamp:</Text>{' '}
+                                {formatTime(event.timestamp)}
                               </div>
                               {event.value && (
                                 <div>

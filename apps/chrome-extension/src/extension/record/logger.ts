@@ -27,7 +27,7 @@ class RecordLogger {
    */
   info(message: string, context?: LogContext) {
     if (!this.isDev) return;
-    
+
     const contextStr = context ? this.formatContext(context) : '';
     console.log(`${this.prefix} ${message}${contextStr}`);
   }
@@ -45,7 +45,7 @@ class RecordLogger {
    */
   success(message: string, context?: LogContext) {
     if (!this.isDev) return;
-    
+
     const contextStr = context ? this.formatContext(context) : '';
     console.log(`${this.prefix} ✓ ${message}${contextStr}`);
   }
@@ -54,9 +54,10 @@ class RecordLogger {
     const parts: string[] = [];
     if (context.sessionId) parts.push(`session:${context.sessionId.slice(-8)}`);
     if (context.tabId) parts.push(`tab:${context.tabId}`);
-    if (context.eventsCount !== undefined) parts.push(`events:${context.eventsCount}`);
+    if (context.eventsCount !== undefined)
+      parts.push(`events:${context.eventsCount}`);
     if (context.action) parts.push(`action:${context.action}`);
-    
+
     return parts.length > 0 ? ` [${parts.join(', ')}]` : '';
   }
 }

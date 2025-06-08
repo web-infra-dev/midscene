@@ -162,7 +162,9 @@ export default function Record() {
 
       // Stop current recording if any - wait for completion
       if (isRecording) {
-        recordLogger.info('Stopping current recording before switching session');
+        recordLogger.info(
+          'Stopping current recording before switching session',
+        );
         await stopRecording();
       }
 
@@ -221,7 +223,9 @@ export default function Record() {
 
     // Automatically start recording if in extension mode
     if (isExtensionMode && currentTab?.id) {
-      recordLogger.info('Auto-starting recording for new session in extension mode');
+      recordLogger.info(
+        'Auto-starting recording for new session in extension mode',
+      );
       // Small delay to ensure UI updates first
       setTimeout(() => {
         startRecording();
