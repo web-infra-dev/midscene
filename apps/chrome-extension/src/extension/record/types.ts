@@ -115,16 +115,12 @@ export const safeChromeAPI = {
   },
   windows: {
     onFocusChanged: {
-      addListener: (
-        callback: (windowId: number) => void,
-      ) => {
+      addListener: (callback: (windowId: number) => void) => {
         if (isChromeExtension()) {
           chrome.windows.onFocusChanged.addListener(callback);
         }
       },
-      removeListener: (
-        callback: (windowId: number) => void,
-      ) => {
+      removeListener: (callback: (windowId: number) => void) => {
         if (isChromeExtension()) {
           chrome.windows.onFocusChanged.removeListener(callback);
         }

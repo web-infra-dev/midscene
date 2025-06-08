@@ -54,15 +54,19 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
     const result = await diagnoseRecordingChain(currentTab);
 
     // Show results in console and alert
-    const issuesText = result.issues.length > 0
-      ? `Issues found:\n${result.issues.join('\n')}`
-      : 'No issues found!';
+    const issuesText =
+      result.issues.length > 0
+        ? `Issues found:\n${result.issues.join('\n')}`
+        : 'No issues found!';
 
-    const infoText = result.info.length > 0
-      ? `\nChecks passed:\n${result.info.join('\n')}`
-      : '';
+    const infoText =
+      result.info.length > 0
+        ? `\nChecks passed:\n${result.info.join('\n')}`
+        : '';
 
-    alert(`Recording Chain Diagnosis:\n\n${issuesText}${infoText}\n\nSee console for detailed logs.`);
+    alert(
+      `Recording Chain Diagnosis:\n\n${issuesText}${infoText}\n\nSee console for detailed logs.`,
+    );
   };
   return (
     <div className="record-detail-view">
@@ -200,7 +204,6 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
             >
               Diagnose
             </Button>
-
           </Space>
 
           {/* AI Playwright Export Controls */}
@@ -211,6 +214,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
             <PlaywrightExportControls
               sessionName={session.name}
               events={events}
+              sessionId={session.id}
             />
           </div>
         </Space>

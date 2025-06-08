@@ -1,7 +1,7 @@
 import Insight from '@midscene/core';
 import type { BaseElement, UIContext } from '@midscene/core';
-import { compositeElementInfoImg } from '@midscene/shared/img';
 import type { RecordedEvent } from '@midscene/record';
+import { compositeElementInfoImg } from '@midscene/shared/img';
 
 // Caches for element descriptions and boxed screenshots to improve performance
 // Using LRU-like behavior by tracking keys in insertion order and limiting size
@@ -51,7 +51,7 @@ const generateElementCacheKey = (event: RecordedEvent): string => {
     // For better caching, use position and size instead of timestamp
     const rect = event.elementRect;
     return `${rect.left || rect.x || 0}-${rect.top || rect.y || 0}-${rect.width || 0}-${rect.height || 0}`;
-  } 
+  }
 
   return event.timestamp.toString();
 };
@@ -61,16 +61,18 @@ export const clearDescriptionCache = (): void => {
   descriptionCache.clear();
   boxedScreenshotCache.clear();
   cacheKeyOrder.length = 0; // Clear the key order array
-  
+
   // Clear ongoing requests and callbacks
   ongoingDescriptionRequests.clear();
   pendingCallbacks.clear();
-  
+
   // Clear debounce data
   debounceTimeouts.forEach((timeout: NodeJS.Timeout) => clearTimeout(timeout));
   debounceTimeouts.clear();
-  
-  console.log('Description and screenshot caches cleared, ongoing requests cancelled, debounce data cleared');
+
+  console.log(
+    'Description and screenshot caches cleared, ongoing requests cancelled, debounce data cleared',
+  );
 };
 
 // Generate fallback description for events when AI fails
@@ -105,17 +107,26 @@ const debouncedGenerateAIDescription = (
       clearTimeout(existingTimeout);
       console.log(`[Debounce] Clearing existing timeout for ${cacheKey}`);
     }
-    
+
     // Set new timeout - this will be the only execution if no more calls come in
-    console.log(`[Debounce] Scheduling AI description generation for ${cacheKey} in ${DEBOUNCE_DELAY}ms`);
+    console.log(
+      `[Debounce] Scheduling AI description generation for ${cacheKey} in ${DEBOUNCE_DELAY}ms`,
+    );
     const timeout = setTimeout(() => {
-      console.log(`[Debounce] Executing AI description generation for ${cacheKey}`);
+      console.log(
+        `[Debounce] Executing AI description generation for ${cacheKey}`,
+      );
       debounceTimeouts.delete(cacheKey);
-      generateAIDescriptionInternal(event, imageBase64, cacheKey, updateCallback)
+      generateAIDescriptionInternal(
+        event,
+        imageBase64,
+        cacheKey,
+        updateCallback,
+      )
         .then(resolve)
         .catch(reject);
     }, DEBOUNCE_DELAY);
-    
+
     debounceTimeouts.set(cacheKey, timeout);
   });
 };
@@ -137,19 +148,22 @@ const generateAIDescriptionInternal = async (
 
     // Check if there's already an ongoing request for this element
     if (ongoingDescriptionRequests.has(cacheKey)) {
-      console.log('AI description generation already in progress for element:', cacheKey);
-      
+      console.log(
+        'AI description generation already in progress for element:',
+        cacheKey,
+      );
+
       // Replace the existing callback with the new one (only one callback per element)
       if (updateCallback) {
         pendingCallbacks.set(cacheKey, updateCallback);
       }
-      
+
       // Return the existing promise
       return ongoingDescriptionRequests.get(cacheKey)!;
     }
 
     console.log('Starting AI description generation for element:', cacheKey);
-    
+
     // Create and track the promise
     const descriptionPromise = (async () => {
       try {
@@ -161,7 +175,9 @@ const generateAIDescriptionInternal = async (
         };
 
         const insight = new Insight(mockContext);
-        let rect: [number, number] | { left: number; top: number; width: number; height: number };
+        let rect:
+          | [number, number]
+          | { left: number; top: number; width: number; height: number };
         if (event.elementRect?.x && event.elementRect?.y) {
           rect = [event.elementRect.x, event.elementRect.y] as [number, number];
         } else {
@@ -173,30 +189,30 @@ const generateAIDescriptionInternal = async (
           };
         }
         const { description } = await insight.describe(rect);
-        
+
         // Cache the generated description
         addToCache(descriptionCache, cacheKey, description);
-        
+
         // Update the pending callback for this element
         const callback = pendingCallbacks.get(cacheKey);
         if (callback) {
           callback(description);
         }
-        
+
         return description;
       } catch (aiError) {
         console.error('Failed to generate AI description:', aiError);
         const fallbackDescription = generateFallbackDescription(event);
-        
+
         // Cache the fallback description to avoid retrying failed requests
         addToCache(descriptionCache, cacheKey, fallbackDescription);
-        
+
         // Update the pending callback with fallback
         const callback = pendingCallbacks.get(cacheKey);
         if (callback) {
           callback(fallbackDescription);
         }
-        
+
         return fallbackDescription;
       } finally {
         // Clean up tracking data
@@ -204,22 +220,22 @@ const generateAIDescriptionInternal = async (
         pendingCallbacks.delete(cacheKey);
       }
     })();
-    
+
     ongoingDescriptionRequests.set(cacheKey, descriptionPromise);
-    
+
     // Set current callback as the pending callback if provided
     if (updateCallback) {
       pendingCallbacks.set(cacheKey, updateCallback);
     }
-    
+
     return descriptionPromise;
   } catch (error) {
     console.error('Error in generateAIDescription:', error);
     const fallbackDescription = generateFallbackDescription(event);
-    
+
     // Cache the fallback description
     addToCache(descriptionCache, cacheKey, fallbackDescription);
-    
+
     return fallbackDescription;
   }
 };
@@ -234,7 +250,10 @@ const generateAIDescription = async (
   // Check cache first - if cached, return immediately without debouncing
   if (descriptionCache.has(cacheKey)) {
     const cachedDescription = descriptionCache.get(cacheKey)!;
-    console.log('Using cached description for element (no debounce needed):', cacheKey);
+    console.log(
+      'Using cached description for element (no debounce needed):',
+      cacheKey,
+    );
     if (updateCallback) {
       updateCallback(cachedDescription);
     }
@@ -243,24 +262,38 @@ const generateAIDescription = async (
 
   // Check if there's already an ongoing request for this element
   if (ongoingDescriptionRequests.has(cacheKey)) {
-    console.log('AI description generation already in progress (no debounce needed):', cacheKey);
-    
+    console.log(
+      'AI description generation already in progress (no debounce needed):',
+      cacheKey,
+    );
+
     // Replace the existing callback with the new one (only one callback per element)
     if (updateCallback) {
       pendingCallbacks.set(cacheKey, updateCallback);
     }
-    
+
     // Return the existing promise
     return ongoingDescriptionRequests.get(cacheKey)!;
   }
 
   // Use debounced version for new requests
   console.log('Using debounced AI description generation for:', cacheKey);
-  return debouncedGenerateAIDescription(event, imageBase64, cacheKey, updateCallback);
+  return debouncedGenerateAIDescription(
+    event,
+    imageBase64,
+    cacheKey,
+    updateCallback,
+  );
 };
 
 function existsRect(event: RecordedEvent): boolean {
-  return Boolean(event.elementRect?.left && event.elementRect?.top && event.elementRect?.width && event.elementRect?.height || event.elementRect?.x && event.elementRect?.y);
+  return Boolean(
+    (event.elementRect?.left &&
+      event.elementRect?.top &&
+      event.elementRect?.width &&
+      event.elementRect?.height) ||
+      (event.elementRect?.x && event.elementRect?.y),
+  );
 }
 
 // Function to generate element description using AI with boxed image
@@ -274,14 +307,14 @@ export const optimizeEvent = async (
       hasScreenshot: !!event.screenshotBefore,
       hasRect: existsRect(event),
       elementRect: event.elementRect,
-      hasCallback: !!updateCallback
+      hasCallback: !!updateCallback,
     });
 
     // Only process events with screenshots and element position
-    if (
-      !event.screenshotBefore 
-    ) {
-      console.log('[optimizeEvent] Skipping AI description - missing screenshot or rect');
+    if (!event.screenshotBefore) {
+      console.log(
+        '[optimizeEvent] Skipping AI description - missing screenshot or rect',
+      );
       return event;
     }
 
@@ -295,19 +328,27 @@ export const optimizeEvent = async (
 
     const elementsPositionInfo = [];
 
-    if (event.elementRect?.left && event.elementRect?.top && event.elementRect?.width && event.elementRect?.height) {
-      elementsPositionInfo.push(
-        {
-          rect: targetRect,
-          indexId: 1,
-        },
-      );
+    if (
+      event.elementRect?.left &&
+      event.elementRect?.top &&
+      event.elementRect?.width &&
+      event.elementRect?.height
+    ) {
+      elementsPositionInfo.push({
+        rect: targetRect,
+        indexId: 1,
+      });
     }
 
     // Add click coordinates if available
     if (event.elementRect?.x && event.elementRect?.y) {
       elementsPositionInfo.push({
-        rect: { left: event.elementRect?.x, top: event.elementRect?.y, width: 2, height: 2 },
+        rect: {
+          left: event.elementRect?.x,
+          top: event.elementRect?.y,
+          width: 2,
+          height: 2,
+        },
       } as any);
     }
 
@@ -330,7 +371,12 @@ export const optimizeEvent = async (
       });
 
       // Only cache the boxed image if it's for a significant element (with dimensions)
-      if (event.elementRect?.width && event.elementRect?.height && event.elementRect?.width > 0 && event.elementRect?.height > 0) {
+      if (
+        event.elementRect?.width &&
+        event.elementRect?.height &&
+        event.elementRect?.width > 0 &&
+        event.elementRect?.height > 0
+      ) {
         addToCache(boxedScreenshotCache, cacheKey, boxedImageBase64);
       }
     }
@@ -343,12 +389,18 @@ export const optimizeEvent = async (
 
     // Handle description generation
     if (updateCallback && event.screenshotBefore && existsRect(event)) {
-      console.log('[optimizeEvent] Starting AI description generation for cache key:', cacheKey);
-      
+      console.log(
+        '[optimizeEvent] Starting AI description generation for cache key:',
+        cacheKey,
+      );
+
       // Check if already cached to provide immediate response
       if (descriptionCache.has(cacheKey)) {
         const cachedDescription = descriptionCache.get(cacheKey)!;
-        console.log('[optimizeEvent] Using cached description immediately:', cachedDescription);
+        console.log(
+          '[optimizeEvent] Using cached description immediately:',
+          cachedDescription,
+        );
         eventWithBoxedImage.elementDescription = cachedDescription;
         eventWithBoxedImage.descriptionLoading = false;
       } else {
@@ -357,14 +409,22 @@ export const optimizeEvent = async (
         eventWithBoxedImage.descriptionLoading = true;
 
         // Generate AI description with debouncing and callback handling
-        generateAIDescription(event, event.screenshotBefore, cacheKey, (description: string) => {
-          console.log('[optimizeEvent] AI description completed:', description);
-          updateCallback({
-            ...eventWithBoxedImage,
-            elementDescription: description,
-            descriptionLoading: false,
-          });
-        }).catch((error: any) => {
+        generateAIDescription(
+          event,
+          event.screenshotBefore,
+          cacheKey,
+          (description: string) => {
+            console.log(
+              '[optimizeEvent] AI description completed:',
+              description,
+            );
+            updateCallback({
+              ...eventWithBoxedImage,
+              elementDescription: description,
+              descriptionLoading: false,
+            });
+          },
+        ).catch((error: any) => {
           console.error('Error in AI description generation:', error);
           // Fallback is handled inside generateAIDescription, but we still update the callback
           updateCallback({
@@ -375,11 +435,14 @@ export const optimizeEvent = async (
         });
       }
     } else {
-              console.log('[optimizeEvent] Skipping AI description generation - no callback or screenshot:', {
+      console.log(
+        '[optimizeEvent] Skipping AI description generation - no callback or screenshot:',
+        {
           hasCallback: !!updateCallback,
-          hasScreenshot: !!event.screenshotBefore
-        });
-        // No coordinates available, no callback provided, or no boxed image
+          hasScreenshot: !!event.screenshotBefore,
+        },
+      );
+      // No coordinates available, no callback provided, or no boxed image
       eventWithBoxedImage.elementDescription = 'No description available';
       eventWithBoxedImage.descriptionLoading = false;
     }
@@ -394,4 +457,3 @@ export const optimizeEvent = async (
     };
   }
 };
-

@@ -32,7 +32,6 @@ export interface ChromeRecordedEvent {
   // Boxed screenshot with element highlighted
   screenshotWithBox?: string;
   timestamp: number;
-
 }
 
 // Event type definition
@@ -125,7 +124,7 @@ export class EventRecorder {
       debugLog('Recording already active, ignoring start request');
       return;
     }
-    
+
     this.isRecording = true;
     debugLog('Starting event recording');
 
@@ -138,7 +137,11 @@ export class EventRecorder {
       this.scrollTargets.push(document.body);
     }
 
-    debugLog('Added event listeners for', this.scrollTargets.length, 'scroll targets');
+    debugLog(
+      'Added event listeners for',
+      this.scrollTargets.length,
+      'scroll targets',
+    );
 
     // Add event listeners
     document.addEventListener('click', this.handleClick);
@@ -155,10 +158,10 @@ export class EventRecorder {
       debugLog('Recording not active, ignoring stop request');
       return;
     }
-    
+
     this.isRecording = false;
     debugLog('Stopping event recording');
-    
+
     if (this.scrollThrottleTimer) {
       clearTimeout(this.scrollThrottleTimer);
       this.scrollThrottleTimer = null;
@@ -168,7 +171,7 @@ export class EventRecorder {
     this.scrollTargets.forEach((target) => {
       target.removeEventListener('scroll', this.handleScroll);
     });
-    
+
     debugLog('Removed all event listeners');
   }
 
@@ -217,19 +220,20 @@ export class EventRecorder {
     }
 
     const target = event.target as HTMLElement;
-    const scrollXTarget =
-      isDocument(target) ? window.scrollX : target.scrollLeft;
-    const scrollYTarget =
-      isDocument(target) ? window.scrollY : target.scrollTop;
-    const rect =
-      isDocument(target)
-        ? {
-            left: 0,
-            top: 0,
-            width: window.innerWidth,
-            height: window.innerHeight,
-          }
-        : target.getBoundingClientRect();
+    const scrollXTarget = isDocument(target)
+      ? window.scrollX
+      : target.scrollLeft;
+    const scrollYTarget = isDocument(target)
+      ? window.scrollY
+      : target.scrollTop;
+    const rect = isDocument(target)
+      ? {
+          left: 0,
+          top: 0,
+          width: window.innerWidth,
+          height: window.innerHeight,
+        }
+      : target.getBoundingClientRect();
     // Throttle logic: throttle each target separately (can be extended to Map)
     if (this.scrollThrottleTimer) {
       clearTimeout(this.scrollThrottleTimer);
@@ -241,8 +245,12 @@ export class EventRecorder {
           elementRect: {
             left: isDocument(target) ? 0 : Number(rect.left.toFixed(2)),
             top: isDocument(target) ? 0 : Number(rect.top.toFixed(2)),
-            width: isDocument(target) ? window.innerWidth : Number(rect.width.toFixed(2)),
-            height: isDocument(target) ? window.innerHeight : Number(rect.height.toFixed(2)),
+            width: isDocument(target)
+              ? window.innerWidth
+              : Number(rect.width.toFixed(2)),
+            height: isDocument(target)
+              ? window.innerHeight
+              : Number(rect.height.toFixed(2)),
           },
           pageInfo: {
             width: window.innerWidth,

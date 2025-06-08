@@ -157,11 +157,16 @@ export default function Record() {
   // Select session handler with async handling
   const handleSelectSessionWrapper = useCallback(
     async (session: RecordingSession) => {
-      console.log('[Record] Switching to session:', { sessionId: session.id, sessionName: session.name });
+      console.log('[Record] Switching to session:', {
+        sessionId: session.id,
+        sessionName: session.name,
+      });
 
       // Stop current recording if any - wait for completion
       if (isRecording) {
-        console.log('[Record] Stopping current recording before switching session');
+        console.log(
+          '[Record] Stopping current recording before switching session',
+        );
         await stopRecording();
       }
 
@@ -173,7 +178,11 @@ export default function Record() {
   // View session detail handler
   const handleViewDetail = useCallback(
     (session: RecordingSession) => {
-      console.log('[Record] Viewing session detail:', { sessionId: session.id, sessionName: session.name, events: session.events });
+      console.log('[Record] Viewing session detail:', {
+        sessionId: session.id,
+        sessionName: session.name,
+        events: session.events,
+      });
 
       setSelectedSession(session);
       setViewMode('detail');
@@ -206,10 +215,16 @@ export default function Record() {
     name: string;
     description?: string;
   }) => {
-    console.log('[Record] Creating new session:', { name: values.name, description: values.description });
+    console.log('[Record] Creating new session:', {
+      name: values.name,
+      description: values.description,
+    });
 
     const newSession = await handleCreateSession(values);
-    console.log('[Record] New session created:', { sessionId: newSession.id, sessionName: newSession.name });
+    console.log('[Record] New session created:', {
+      sessionId: newSession.id,
+      sessionName: newSession.name,
+    });
 
     setIsCreateModalVisible(false);
     form.resetFields();
@@ -220,7 +235,9 @@ export default function Record() {
 
     // Automatically start recording if in extension mode
     if (isExtensionMode && currentTab?.id) {
-      console.log('[Record] Auto-starting recording for new session in extension mode');
+      console.log(
+        '[Record] Auto-starting recording for new session in extension mode',
+      );
       // Small delay to ensure UI updates first
       setTimeout(() => {
         startRecording();

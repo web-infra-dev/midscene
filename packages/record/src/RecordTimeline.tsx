@@ -18,7 +18,7 @@ import {
   Typography,
 } from 'antd';
 import React from 'react';
-import { RecordedEvent } from './record';
+import type { RecordedEvent } from './record';
 
 const { Text, Title } = Typography;
 
@@ -144,11 +144,12 @@ export const RecordTimeline = ({
             {event.targetTagName && (
               <Text type="secondary">Element "{event.targetTagName}"</Text>
             )}
-            {event.elementRect?.x !== undefined && event.elementRect?.y !== undefined && (
-              <Text type="secondary">
-                Position: ({event.elementRect?.x}, {event.elementRect?.y})
-              </Text>
-            )}
+            {event.elementRect?.x !== undefined &&
+              event.elementRect?.y !== undefined && (
+                <Text type="secondary">
+                  Position: ({event.elementRect?.x}, {event.elementRect?.y})
+                </Text>
+              )}
             {event.elementDescription !== undefined && (
               <Text type="secondary">
                 Description: {event.elementDescription}
@@ -195,7 +196,8 @@ export const RecordTimeline = ({
     const originalImage = event.screenshotBefore || '';
     const boxedImage = event.screenshotWithBox;
     const hasElementInfo =
-      event.elementRect?.left !== undefined && event.elementRect?.top !== undefined;
+      event.elementRect?.left !== undefined &&
+      event.elementRect?.top !== undefined;
 
     return {
       dot: getEventIcon(event.type),
@@ -329,15 +331,17 @@ export const RecordTimeline = ({
                               >
                                 <Text type="secondary">
                                   元素位置: ({event.elementRect?.left},{' '}
-                                  {event.elementRect?.top}) | 尺寸: {event.elementRect?.width} ×{' '}
+                                  {event.elementRect?.top}) | 尺寸:{' '}
+                                  {event.elementRect?.width} ×{' '}
                                   {event.elementRect?.height}px
-                                  {event.pageInfo.width && event.pageInfo.height && (
-                                    <>
-                                      {' '}
-                                      | 页面: {event.pageInfo.width} ×{' '}
-                                      {event.pageInfo.height}px
-                                    </>
-                                  )}
+                                  {event.pageInfo.width &&
+                                    event.pageInfo.height && (
+                                      <>
+                                        {' '}
+                                        | 页面: {event.pageInfo.width} ×{' '}
+                                        {event.pageInfo.height}px
+                                      </>
+                                    )}
                                 </Text>
                               </div>
                             )}
@@ -434,19 +438,23 @@ export const RecordTimeline = ({
                                 <Text strong>操作:</Text> {event.type}
                               </div>
                               <div>
-                                <Text strong>位置:</Text> ({event.elementRect?.left},{' '}
+                                <Text strong>位置:</Text> (
+                                {event.elementRect?.left},{' '}
                                 {event.elementRect?.top})
                               </div>
                               <div>
-                                <Text strong>尺寸:</Text> {event.elementRect?.width} ×{' '}
+                                <Text strong>尺寸:</Text>{' '}
+                                {event.elementRect?.width} ×{' '}
                                 {event.elementRect?.height}px
                               </div>
-                              {event.pageInfo.width && event.pageInfo.height && (
-                                <div>
-                                  <Text strong>页面尺寸:</Text>{' '}
-                                  {event.pageInfo.width} × {event.pageInfo.height}px
-                                </div>
-                              )}
+                              {event.pageInfo.width &&
+                                event.pageInfo.height && (
+                                  <div>
+                                    <Text strong>页面尺寸:</Text>{' '}
+                                    {event.pageInfo.width} ×{' '}
+                                    {event.pageInfo.height}px
+                                  </div>
+                                )}
                               {event.value && (
                                 <div>
                                   <Text strong>内容:</Text> "{event.value}"

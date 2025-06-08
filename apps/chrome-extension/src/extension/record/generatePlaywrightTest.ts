@@ -1,9 +1,9 @@
-import { callAi, AIActionType } from '@midscene/core/ai-model';
+import { AIActionType, callAi } from '@midscene/core/ai-model';
 import type { ChromeRecordedEvent } from '@midscene/record';
 
 /**
  * Generates Playwright test code from recorded events
- * 
+ *
  * @param events Array of RecordedEvent objects
  * @param options Configuration options for test generation
  * @returns Generated Playwright test code as string
@@ -15,18 +15,43 @@ export const generatePlaywrightTest = async (
     viewportSize?: { width: number; height: number };
     waitForNetworkIdle?: boolean;
     waitForNetworkIdleTimeout?: number;
-  } = {}
+  } = {},
 ): Promise<string> => {
   if (!events.length) {
     throw new Error('No events provided for test generation');
   }
 
+  // Check if all required element descriptions are available
+  const eventsNeedingDescriptions = events.filter(
+    (event) =>
+      event.type === 'click' ||
+      event.type === 'input' ||
+      event.type === 'scroll',
+  );
+
+  const missingDescriptions = eventsNeedingDescriptions.filter(
+    (event) =>
+      !event.elementDescription ||
+      event.elementDescription === 'AI is analyzing element...' ||
+      event.descriptionLoading,
+  );
+
+  if (missingDescriptions.length > 0) {
+    console.warn(
+      'Some events are missing element descriptions:',
+      missingDescriptions.length,
+    );
+    // We'll proceed anyway, as the caller should have waited for descriptions
+  }
+
   try {
     // Prepare data for the LLM
-    const navigationEvents = events.filter(event => event.type === 'navigation');
-    const clickEvents = events.filter(event => event.type === 'click');
-    const inputEvents = events.filter(event => event.type === 'input');
-    const scrollEvents = events.filter(event => event.type === 'scroll');
+    const navigationEvents = events.filter(
+      (event) => event.type === 'navigation',
+    );
+    const clickEvents = events.filter((event) => event.type === 'click');
+    const inputEvents = events.filter((event) => event.type === 'input');
+    const scrollEvents = events.filter((event) => event.type === 'scroll');
     // const viewportEvents = events.filter(event => event.type === 'setViewport');
     // const keydownEvents = events.filter(event => event.type === 'keydown');
 
@@ -36,23 +61,23 @@ export const generatePlaywrightTest = async (
     // Extract useful information from events
     const startUrl = navigationEvents.length > 0 ? navigationEvents[0].url : '';
     const pageTitles = navigationEvents
-      .map(event => event.title)
+      .map((event) => event.title)
       .filter(Boolean);
-    
+
     const clickDescriptions = clickEvents
-      .map(event => event.elementDescription)
+      .map((event) => event.elementDescription)
       .filter(Boolean);
-    
+
     const inputDescriptions = inputEvents
-      .map(event => ({
+      .map((event) => ({
         description: event.elementDescription,
-        value: event.value
+        value: event.value,
       }))
-      .filter(item => item.description && item.value);
+      .filter((item) => item.description && item.value);
 
     // Default viewport size
-    // const viewportSize = options.viewportSize || 
-    //   (viewportEvents.length > 0 
+    // const viewportSize = options.viewportSize ||
+    //   (viewportEvents.length > 0
     //     ? { width: viewportEvents[0].pageWidth || 1280, height: viewportEvents[0].pageHeight || 800 }
     //     : { width: 1280, height: 800 });
 
@@ -71,15 +96,15 @@ export const generatePlaywrightTest = async (
         scroll: scrollEvents.length,
         // viewport: viewportEvents.length,
         // keydown: keydownEvents.length,
-        total: events.length
+        total: events.length,
       },
       pageTitles: pageTitles.slice(0, 5),
-      urls: navigationEvents.map(e => e.url).slice(0, 5),
+      urls: navigationEvents.map((e) => e.url).slice(0, 5),
       clickDescriptions: clickDescriptions.slice(0, 10),
       inputDescriptions: inputDescriptions.slice(0, 10),
       waitForNetworkIdle: options.waitForNetworkIdle !== false,
       waitForNetworkIdleTimeout: options.waitForNetworkIdleTimeout || 2000,
-      events: events.map(event => ({
+      events: events.map((event) => ({
         type: event.type,
         timestamp: event.timestamp,
         url: event.url,
@@ -88,7 +113,7 @@ export const generatePlaywrightTest = async (
         value: event.value,
         pageInfo: event.pageInfo,
         elementRect: event.elementRect,
-      }))
+      })),
     };
 
     // Create message content for the LLM
@@ -109,17 +134,16 @@ Generated code should:
 6. Follow best practices for Playwright tests
 7. Be ready to execute without further modification
 
-Respond ONLY with the complete Playwright test code, no explanations.`
-      }
+Respond ONLY with the complete Playwright test code, no explanations.`,
+      },
     ];
 
     // Add screenshots if available
     if (screenshots.length > 0) {
       messageContent.unshift({
         type: 'text',
-        text: "Here are the recording session to help you understand the context:"
+        text: 'Here are the recording session to help you understand the context:',
       });
-      
     }
 
     // Use LLM to generate the Playwright test code
@@ -175,10 +199,7 @@ import { test as base } from '@playwright/test';
       },
     ];
 
-    const response = await callAi(
-      prompt,
-      AIActionType.EXTRACT_DATA,
-    );
+    const response = await callAi(prompt, AIActionType.EXTRACT_DATA);
 
     if (response?.content && typeof response.content === 'string') {
       return response.content;
@@ -192,12 +213,18 @@ import { test as base } from '@playwright/test';
 };
 
 // Helper function to get screenshots from events (same as in utils.ts)
-const getScreenshotsForLLM = (events: ChromeRecordedEvent[], maxScreenshots: number = 1): string[] => {
+const getScreenshotsForLLM = (
+  events: ChromeRecordedEvent[],
+  maxScreenshots = 1,
+): string[] => {
   // Find events with screenshots, prioritizing navigation and click events
-  const eventsWithScreenshots = events.filter(event => 
-    event.screenshotBefore || event.screenshotAfter || event.screenshotWithBox
+  const eventsWithScreenshots = events.filter(
+    (event) =>
+      event.screenshotBefore ||
+      event.screenshotAfter ||
+      event.screenshotWithBox,
   );
-  
+
   // Sort them by priority (navigation first, then clicks, then others)
   const sortedEvents = [...eventsWithScreenshots].sort((a, b) => {
     if (a.type === 'navigation' && b.type !== 'navigation') return -1;
@@ -211,7 +238,10 @@ const getScreenshotsForLLM = (events: ChromeRecordedEvent[], maxScreenshots: num
   const screenshots: string[] = [];
   for (const event of sortedEvents) {
     // Prefer the most informative screenshot
-    const screenshot = event.screenshotWithBox || event.screenshotAfter || event.screenshotBefore;
+    const screenshot =
+      event.screenshotWithBox ||
+      event.screenshotAfter ||
+      event.screenshotBefore;
     if (screenshot && !screenshots.includes(screenshot)) {
       screenshots.push(screenshot);
       if (screenshots.length >= maxScreenshots) break;

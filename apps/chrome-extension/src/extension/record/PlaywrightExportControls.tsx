@@ -1,9 +1,15 @@
-import React, { useState } from 'react';
-import { Button, Space, Modal, message, Typography } from 'antd';
-import { PlayCircleOutlined, DownloadOutlined, CopyOutlined, CodeOutlined } from '@ant-design/icons';
+import {
+  CodeOutlined,
+  CopyOutlined,
+  DownloadOutlined,
+} from '@ant-design/icons';
 import type { ChromeRecordedEvent } from '@midscene/record';
-import { exportEventsToFile } from './utils';
+import { Button, Modal, Space, Typography, message } from 'antd';
+import type React from 'react';
+import { useState } from 'react';
+import { useRecordingSessionStore } from '../../store';
 import { generatePlaywrightTest } from './generatePlaywrightTest';
+import { exportEventsToFile, generateRecordTitle } from './utils';
 
 const { Text } = Typography;
 
@@ -13,10 +19,49 @@ const { Text } = Typography;
 export const PlaywrightExportControls: React.FC<{
   sessionName: string;
   events: ChromeRecordedEvent[];
-}> = ({ sessionName, events }) => {
+  sessionId?: string;
+}> = ({ sessionName, events, sessionId }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showTestModal, setShowTestModal] = useState(false);
   const [generatedTest, setGeneratedTest] = useState('');
+  const { updateSession } = useRecordingSessionStore();
+
+  // Check if all elements have descriptions generated
+  const checkElementDescriptions = (events: ChromeRecordedEvent[]): boolean => {
+    const eventsNeedingDescriptions = events.filter(
+      (event) =>
+        event.type === 'click' ||
+        event.type === 'input' ||
+        event.type === 'scroll',
+    );
+
+    return eventsNeedingDescriptions.every(
+      (event) =>
+        event.elementDescription &&
+        event.elementDescription !== 'AI is analyzing element...' &&
+        !event.descriptionLoading,
+    );
+  };
+
+  // Wait for all element descriptions to be generated
+  const waitForElementDescriptions = (
+    events: ChromeRecordedEvent[],
+  ): Promise<void> => {
+    return new Promise((resolve) => {
+      const checkInterval = setInterval(() => {
+        if (checkElementDescriptions(events)) {
+          clearInterval(checkInterval);
+          resolve();
+        }
+      }, 500); // Check every 500ms
+
+      // Timeout after 30 seconds
+      setTimeout(() => {
+        clearInterval(checkInterval);
+        resolve();
+      }, 30000);
+    });
+  };
 
   // Generate Playwright test from recorded events
   const handleGenerateTest = async () => {
@@ -27,6 +72,41 @@ export const PlaywrightExportControls: React.FC<{
 
     setIsGenerating(true);
     try {
+      // Step 1: Generate session title and description if not already generated
+      if (sessionId) {
+        const session = useRecordingSessionStore
+          .getState()
+          .sessions.find((s) => s.id === sessionId);
+        if (
+          session &&
+          (!session.name || session.name.includes('-') || !session.description)
+        ) {
+          console.log(
+            'Generating session title and description before test generation',
+          );
+          const { title, description } = await generateRecordTitle(events);
+
+          if (title || description) {
+            updateSession(sessionId, {
+              name: title || session.name,
+              description: description || session.description,
+            });
+            message.success('Session title and description generated');
+          }
+        }
+      }
+
+      // Step 2: Wait for all element descriptions to be generated
+      console.log('Checking element descriptions before test generation');
+      if (!checkElementDescriptions(events)) {
+        message.loading('Waiting for element descriptions to complete...', 0);
+        await waitForElementDescriptions(events);
+        message.destroy();
+        console.log('Element descriptions ready for test generation');
+      }
+
+      // Step 3: Generate Playwright test
+      console.log('Generating Playwright test with complete descriptions');
       const testCode = await generatePlaywrightTest(events, {
         testName: `Test: ${sessionName}`,
         waitForNetworkIdle: true,
@@ -38,7 +118,9 @@ export const PlaywrightExportControls: React.FC<{
       message.success('AI Playwright test generated successfully!');
     } catch (error) {
       console.error('Failed to generate Playwright test:', error);
-      message.error(`Failed to generate test: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      message.error(
+        `Failed to generate test: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     } finally {
       setIsGenerating(false);
     }
@@ -52,7 +134,9 @@ export const PlaywrightExportControls: React.FC<{
 
   // Download generated test as a TypeScript file
   const handleDownloadTest = () => {
-    const dataBlob = new Blob([generatedTest], { type: 'application/typescript' });
+    const dataBlob = new Blob([generatedTest], {
+      type: 'application/typescript',
+    });
     const url = URL.createObjectURL(dataBlob);
 
     const link = document.createElement('a');
@@ -61,7 +145,9 @@ export const PlaywrightExportControls: React.FC<{
     link.click();
 
     URL.revokeObjectURL(url);
-    message.success(`Playwright test for "${sessionName}" downloaded successfully`);
+    message.success(
+      `Playwright test for "${sessionName}" downloaded successfully`,
+    );
   };
 
   // Export original events as JSON
@@ -108,11 +194,7 @@ export const PlaywrightExportControls: React.FC<{
           <Button key="close" onClick={() => setShowTestModal(false)}>
             Close
           </Button>,
-          <Button
-            key="copy"
-            icon={<CopyOutlined />}
-            onClick={handleCopyTest}
-          >
+          <Button key="copy" icon={<CopyOutlined />} onClick={handleCopyTest}>
             Copy to Clipboard
           </Button>,
           <Button
@@ -127,7 +209,8 @@ export const PlaywrightExportControls: React.FC<{
       >
         <div style={{ marginBottom: '12px' }}>
           <Text type="secondary">
-            This test uses <strong>@midscene/web/playwright</strong> for AI-powered web automation.
+            This test uses <strong>@midscene/web/playwright</strong> for
+            AI-powered web automation.
           </Text>
         </div>
 
@@ -139,7 +222,7 @@ export const PlaywrightExportControls: React.FC<{
             padding: '16px',
             borderRadius: '6px',
             border: '1px solid #d9d9d9',
-            fontFamily: '"Fira Code", "Consolas", "Monaco", monospace'
+            fontFamily: '"Fira Code", "Consolas", "Monaco", monospace',
           }}
         >
           <pre
@@ -149,7 +232,7 @@ export const PlaywrightExportControls: React.FC<{
               color: '#d4d4d4',
               fontSize: '13px',
               lineHeight: '1.5',
-              tabSize: 2
+              tabSize: 2,
             }}
           >
             {generatedTest || 'Generated test code will appear here...'}
@@ -159,7 +242,8 @@ export const PlaywrightExportControls: React.FC<{
         {generatedTest && (
           <div style={{ marginTop: '12px', textAlign: 'center' }}>
             <Text type="secondary" style={{ fontSize: '12px' }}>
-              💡 Tip: This test is ready to run with <code>npx playwright test</code>
+              💡 Tip: This test is ready to run with{' '}
+              <code>npx playwright test</code>
             </Text>
           </div>
         )}

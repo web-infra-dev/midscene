@@ -1,6 +1,6 @@
+import type { ChromeRecordedEvent } from '@midscene/record';
 // import { createStore } from 'zustand/vanilla';
 import * as Z from 'zustand';
-import { ChromeRecordedEvent } from '@midscene/record';
 
 const { create } = Z;
 export const useBlackboardPreference = create<{
@@ -18,7 +18,6 @@ export const useBlackboardPreference = create<{
     set({ elementsVisible: visible });
   },
 }));
-
 
 // Recording session interface
 export interface RecordingSession {

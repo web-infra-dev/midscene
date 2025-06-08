@@ -21,11 +21,16 @@ async function captureScreenshot() {
       action: 'captureScreenshot',
     });
     if (!screenshot) {
-      console.warn('[EventRecorder Bridge] Screenshot capture returned empty result');
+      console.warn(
+        '[EventRecorder Bridge] Screenshot capture returned empty result',
+      );
     }
     return screenshot;
   } catch (error) {
-    console.error('[EventRecorder Bridge] Failed to capture screenshot:', error.message);
+    console.error(
+      '[EventRecorder Bridge] Failed to capture screenshot:',
+      error.message,
+    );
     return null;
   }
 }
@@ -33,11 +38,15 @@ async function captureScreenshot() {
 // Initialize recorder with callback to send events to extension
 async function initializeRecorder(sessionId) {
   if (!window.EventRecorder) {
-    console.error('[EventRecorder Bridge] EventRecorder class not available during initialization');
+    console.error(
+      '[EventRecorder Bridge] EventRecorder class not available during initialization',
+    );
     return;
   }
 
-  console.log('[EventRecorder Bridge] Initializing EventRecorder with callback');
+  console.log(
+    '[EventRecorder Bridge] Initializing EventRecorder with callback',
+  );
   window.recorder = new window.EventRecorder(async (event) => {
     // Capture screenshot before processing the event
     const screenshotBefore = await captureScreenshot();
@@ -49,7 +58,7 @@ async function initializeRecorder(sessionId) {
     console.log('[EventRecorder Bridge] Event processed:', {
       type: event.type,
       eventsCount: optimizedEvent.length,
-      hasScreenshot: !!screenshotBefore
+      hasScreenshot: !!screenshotBefore,
     });
 
     // Add screenshots to the latest event
@@ -80,7 +89,7 @@ function sendEventsToExtension(optimizedEvent) {
   console.log('[EventRecorder Bridge] Sending events to extension:', {
     optimizedEvent,
     eventsCount: optimizedEvent.length,
-    eventTypes: optimizedEvent.map(e => e.type)
+    eventTypes: optimizedEvent.map((e) => e.type),
   });
 
   chrome.runtime
@@ -90,19 +99,27 @@ function sendEventsToExtension(optimizedEvent) {
         type: event.type,
         timestamp: event.timestamp,
         // Element position and click coordinates
-        elementRect: event.elementRect ? {
-          left: Number(event.elementRect.left.toFixed(2)),
-          top: Number(event.elementRect.top.toFixed(2)),
-          width: Number(event.elementRect.width.toFixed(2)),
-          height: Number(event.elementRect.height.toFixed(2)),
-          x: event.elementRect.x ? Number(event.elementRect.x.toFixed(2)) : undefined,
-          y: event.elementRect.y ? Number(event.elementRect.y.toFixed(2)) : undefined,
-        } : undefined,
+        elementRect: event.elementRect
+          ? {
+              left: Number(event.elementRect.left.toFixed(2)),
+              top: Number(event.elementRect.top.toFixed(2)),
+              width: Number(event.elementRect.width.toFixed(2)),
+              height: Number(event.elementRect.height.toFixed(2)),
+              x: event.elementRect.x
+                ? Number(event.elementRect.x.toFixed(2))
+                : undefined,
+              y: event.elementRect.y
+                ? Number(event.elementRect.y.toFixed(2))
+                : undefined,
+            }
+          : undefined,
         // Page information and screenshots
-        pageInfo: event.pageInfo ? {
-          width: event.pageInfo.width,
-          height: event.pageInfo.height,
-        } : undefined,
+        pageInfo: event.pageInfo
+          ? {
+              width: event.pageInfo.width,
+              height: event.pageInfo.height,
+            }
+          : undefined,
         screenshotBefore: event.screenshotBefore,
         screenshotAfter: event.screenshotAfter,
 
@@ -112,7 +129,10 @@ function sendEventsToExtension(optimizedEvent) {
     })
     .catch((error) => {
       // Extension popup might not be open
-      console.debug('[EventRecorder Bridge] Failed to send events to extension (popup may be closed):', error.message);
+      console.debug(
+        '[EventRecorder Bridge] Failed to send events to extension (popup may be closed):',
+        error.message,
+      );
     });
 }
 
@@ -133,12 +153,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (window.recorder) {
       window.recorder.start();
       events = []; // Clear previous events
-      console.log('[EventRecorder Bridge] Recording started successfully with session ID:', message.sessionId);
+      console.log(
+        '[EventRecorder Bridge] Recording started successfully with session ID:',
+        message.sessionId,
+      );
       sendResponse({
         success: true,
       });
     } else {
-      console.error('[EventRecorder Bridge] Failed to start recording - recorder not initialized with session ID:', message.sessionId);
+      console.error(
+        '[EventRecorder Bridge] Failed to start recording - recorder not initialized with session ID:',
+        message.sessionId,
+      );
       sendResponse({
         success: false,
         error: 'Failed to initialize recorder',
@@ -150,20 +176,33 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       window.recorder.stop();
       const finalEventsCount = events.length;
       window.recorder = null;
-      console.log('[EventRecorder Bridge] Recording stopped successfully with session ID:', message.sessionId, 'with', finalEventsCount, 'events');
+      console.log(
+        '[EventRecorder Bridge] Recording stopped successfully with session ID:',
+        message.sessionId,
+        'with',
+        finalEventsCount,
+        'events',
+      );
       sendResponse({
         success: true,
         eventsCount: finalEventsCount,
       });
     } else {
-      console.log('[EventRecorder Bridge] Stop requested but recorder not active with session ID:', message.sessionId);
+      console.log(
+        '[EventRecorder Bridge] Stop requested but recorder not active with session ID:',
+        message.sessionId,
+      );
       sendResponse({
         success: false,
         error: 'Recorder not active',
       });
     }
   } else if (message.action === 'getEvents') {
-    console.log('[EventRecorder Bridge] Events requested, returning', events.length, 'events');
+    console.log(
+      '[EventRecorder Bridge] Events requested, returning',
+      events.length,
+      'events',
+    );
     sendResponse({
       events: events,
     });
@@ -187,7 +226,9 @@ document.addEventListener('DOMContentLoaded', () => {
 // Clean up on page unload
 window.addEventListener('beforeunload', () => {
   if (window.recorder && window.recorder.isActive()) {
-    console.log('[EventRecorder Bridge] Page unloading, stopping active recorder');
+    console.log(
+      '[EventRecorder Bridge] Page unloading, stopping active recorder',
+    );
     window.recorder.stop();
   }
 });

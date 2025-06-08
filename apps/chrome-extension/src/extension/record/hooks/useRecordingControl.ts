@@ -1,22 +1,19 @@
+import type { ChromeRecordedEvent } from '@midscene/record';
 import { message } from 'antd';
 import { useCallback, useEffect, useRef } from 'react';
-import {
-  type RecordingSession,
-  useRecordStore,
-} from '../../../store';
+import { type RecordingSession, useRecordStore } from '../../../store';
 import {
   clearDescriptionCache,
   optimizeEvent,
 } from '../../../utils/eventOptimizer';
 import { type RecordMessage, isChromeExtension, safeChromeAPI } from '../types';
 import {
+  cleanupPreviousRecordings,
   ensureScriptInjected,
   exportEventsToFile,
   generateRecordTitle,
   generateSessionName,
-  cleanupPreviousRecordings,
 } from '../utils';
-import type { ChromeRecordedEvent } from '@midscene/record';
 
 /**
  * Hook to manage recording controls and handle recording events
@@ -48,7 +45,7 @@ export const useRecordingControl = (
   // Define stopRecording early using useCallback
   const stopRecording = useCallback(async () => {
     console.log('[RecordingControl] Stopping recording');
-    
+
     if (!isExtensionMode) {
       console.log('[RecordingControl] Not in extension mode, stopping locally');
       setIsRecording(false);
@@ -56,7 +53,9 @@ export const useRecordingControl = (
     }
 
     if (!currentTab?.id) {
-      console.error('[RecordingControl] No active tab found for stopping recording');
+      console.error(
+        '[RecordingControl] No active tab found for stopping recording',
+      );
       message.error('No active tab found');
       return;
     }
@@ -69,17 +68,21 @@ export const useRecordingControl = (
       // Check if content script is still available before sending message
       try {
         // Send message to content script to stop recording
-        console.log('[RecordingControl] Sending stop message to content script');
-        await safeChromeAPI.tabs.sendMessage(currentTab.id, { 
-          action: 'stop', 
-          sessionId: currentSessionId 
+        console.log(
+          '[RecordingControl] Sending stop message to content script',
+        );
+        await safeChromeAPI.tabs.sendMessage(currentTab.id, {
+          action: 'stop',
+          sessionId: currentSessionId,
         });
         console.log('[RecordingControl] Stop message sent successfully');
         message.success('Recording stopped');
       } catch (error: any) {
         // If content script is not available, just stop recording on our side
         if (error.message?.includes('Receiving end does not exist')) {
-          console.log('[RecordingControl] Content script not available, stopping recording locally');
+          console.log(
+            '[RecordingControl] Content script not available, stopping recording locally',
+          );
           message.warning('Recording stopped (page may have been refreshed)');
         } else {
           console.log('[RecordingControl] Error sending stop message:', error);
@@ -106,7 +109,11 @@ export const useRecordingControl = (
 
           // Generate AI title and description if we have events
           if (events.length > 3 && !session.name && !session.description) {
-            console.log('[RecordingControl] Generating AI title and description for', events.length, 'events');
+            console.log(
+              '[RecordingControl] Generating AI title and description for',
+              events.length,
+              'events',
+            );
             const hideLoadingMessage = message.loading(
               'Generating recording title and description...',
               0,
@@ -114,7 +121,10 @@ export const useRecordingControl = (
             try {
               const { title, description } = await generateRecordTitle(events);
 
-              console.log('[RecordingControl] Generated AI:', { title, description });
+              console.log('[RecordingControl] Generated AI:', {
+                title,
+                description,
+              });
               if (title) {
                 updateData.name = title;
               }
@@ -122,7 +132,10 @@ export const useRecordingControl = (
                 updateData.description = description;
               }
             } catch (error) {
-              console.error('[RecordingControl] Failed to generate title/description:', error);
+              console.error(
+                '[RecordingControl] Failed to generate title/description:',
+                error,
+              );
             } finally {
               hideLoadingMessage();
             }
@@ -189,7 +202,7 @@ export const useRecordingControl = (
   // Start recording
   const startRecording = useCallback(async () => {
     console.log('[RecordingControl] Starting recording');
-    
+
     if (!isExtensionMode) {
       console.error('[RecordingControl] Not in extension environment');
       message.error(
@@ -211,7 +224,10 @@ export const useRecordingControl = (
       // Small delay to ensure state updates before continuing
       await new Promise((resolve) => setTimeout(resolve, 100));
     } else {
-      console.log('[RecordingControl] Using existing session:', { sessionId: sessionToUse.id, sessionName: sessionToUse.name });
+      console.log('[RecordingControl] Using existing session:', {
+        sessionId: sessionToUse.id,
+        sessionName: sessionToUse.name,
+      });
     }
 
     // Update session status to recording
@@ -222,7 +238,9 @@ export const useRecordingControl = (
     });
 
     if (!currentTab?.id) {
-      console.error('[RecordingControl] No active tab found for starting recording');
+      console.error(
+        '[RecordingControl] No active tab found for starting recording',
+      );
       message.error('No active tab found');
       return;
     }
@@ -233,7 +251,9 @@ export const useRecordingControl = (
 
     try {
       // Clean up any previous recording instances first
-      console.log('[RecordingControl] Cleaning up previous recording instances');
+      console.log(
+        '[RecordingControl] Cleaning up previous recording instances',
+      );
       await cleanupPreviousRecordings();
 
       // Clear the AI description cache to avoid using old descriptions
@@ -242,13 +262,16 @@ export const useRecordingControl = (
 
       // Send message to content script to start recording
       console.log('[RecordingControl] Sending start message to content script');
-      await safeChromeAPI.tabs.sendMessage(currentTab.id, { 
-        action: 'start', 
-        sessionId: sessionToUse.id 
+      await safeChromeAPI.tabs.sendMessage(currentTab.id, {
+        action: 'start',
+        sessionId: sessionToUse.id,
       });
       setIsRecording(true);
       clearEvents(); // Clear previous events for new recording
-      console.log('[RecordingControl] Recording started successfully with session ID:', sessionToUse.id);
+      console.log(
+        '[RecordingControl] Recording started successfully with session ID:',
+        sessionToUse.id,
+      );
       message.success('Recording started');
     } catch (error) {
       console.error('[RecordingControl] Failed to start recording:', error);
@@ -313,8 +336,10 @@ export const useRecordingControl = (
 
   // Set up message listener for content script
   useEffect(() => {
-    console.log('[RecordingControl] Setting up message listener for recording events');
-    
+    console.log(
+      '[RecordingControl] Setting up message listener for recording events',
+    );
+
     // Connect to service worker for receiving events
     const port = safeChromeAPI.runtime.connect({ name: 'record-events' });
     console.log('[RecordingControl] Connected to service worker port');
@@ -322,40 +347,59 @@ export const useRecordingControl = (
     // Note: onConnect is not available on Port objects, only on runtime
     // We can check port connection status indirectly
 
-    if ('onDisconnect' in port && typeof port.onDisconnect?.addListener === 'function') {
+    if (
+      'onDisconnect' in port &&
+      typeof port.onDisconnect?.addListener === 'function'
+    ) {
       port.onDisconnect.addListener(() => {
         console.log('[RecordingControl] Port disconnected');
         if (chrome.runtime.lastError) {
-          console.error('[RecordingControl] Port disconnect error:', chrome.runtime.lastError);
+          console.error(
+            '[RecordingControl] Port disconnect error:',
+            chrome.runtime.lastError,
+          );
         }
       });
     }
 
     const processEventData = async (eventData: any) => {
       const { element, ...cleanEventData } = eventData;
-      return await optimizeEvent(cleanEventData as ChromeRecordedEvent, updateEvent);
+      return await optimizeEvent(
+        cleanEventData as ChromeRecordedEvent,
+        updateEvent,
+      );
     };
 
     const handleMessage = async (message: RecordMessage) => {
-      console.log('[RecordingControl] Received message from service worker:', { 
-        action: message.action, 
+      console.log('[RecordingControl] Received message from service worker:', {
+        action: message.action,
         data: message.data,
         dataType: Array.isArray(message.data) ? 'array' : typeof message.data,
         dataLength: Array.isArray(message.data) ? message.data.length : 1,
-        sessionId: message.sessionId
+        sessionId: message.sessionId,
       });
 
       // Validate session ID - only process events from current recording session
-      if (message.sessionId && currentSessionId && message.sessionId !== currentSessionId) {
-        console.log('[RecordingControl] Ignoring event from previous session:', {
-          messageSessionId: message.sessionId,
-          currentSessionId: currentSessionId
-        });
+      if (
+        message.sessionId &&
+        currentSessionId &&
+        message.sessionId !== currentSessionId
+      ) {
+        console.log(
+          '[RecordingControl] Ignoring event from previous session:',
+          {
+            messageSessionId: message.sessionId,
+            currentSessionId: currentSessionId,
+          },
+        );
         return;
       }
 
       if (message.action === 'events' && Array.isArray(message.data)) {
-        console.log('[RecordingControl] Processing bulk events:', message.data.length);
+        console.log(
+          '[RecordingControl] Processing bulk events:',
+          message.data.length,
+        );
         const eventsData = await Promise.all(
           message.data.map(processEventData),
         );
@@ -365,7 +409,10 @@ export const useRecordingControl = (
         message.data &&
         !Array.isArray(message.data)
       ) {
-        console.log('[RecordingControl] Processing single event:', message.data.type);
+        console.log(
+          '[RecordingControl] Processing single event:',
+          message.data.type,
+        );
         const optimizedEvent = await processEventData(message.data);
         addEvent(optimizedEvent);
       } else {
@@ -378,7 +425,9 @@ export const useRecordingControl = (
     console.log('[RecordingControl] Message listener attached to port');
 
     return () => {
-      console.log('[RecordingControl] Cleaning up message listener and disconnecting port');
+      console.log(
+        '[RecordingControl] Cleaning up message listener and disconnecting port',
+      );
       port.disconnect();
     };
   }, [addEvent, setEvents, updateEvent, currentSessionId]);
