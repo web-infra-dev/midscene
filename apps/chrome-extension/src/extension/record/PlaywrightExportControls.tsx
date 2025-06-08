@@ -26,6 +26,7 @@ export const PlaywrightExportControls: React.FC<{
   onStopRecording?: () => void | Promise<void>;
 }> = ({ sessionName, events, sessionId, onStopRecording }) => {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isExportingYaml, setIsExportingYaml] = useState(false);
   const [showTestModal, setShowTestModal] = useState(false);
   const [generatedTest, setGeneratedTest] = useState('');
   const { updateSession } = useRecordingSessionStore();
@@ -247,32 +248,75 @@ export const PlaywrightExportControls: React.FC<{
   };
 
   // Export original events as YAML
-  const handleExportYaml = () => {
+  const handleExportYaml = async () => {
     // Get the most current events
     const currentEvents =
       isRecording && liveEvents.length > 0 ? liveEvents : events;
 
-    // Get the current session name from store if available
-    let exportSessionName = sessionName;
-    if (sessionId) {
-      const session = useRecordingSessionStore
-        .getState()
-        .sessions.find((s) => s.id === sessionId);
-      if (session) {
-        exportSessionName = session.name;
-      }
+    if (currentEvents.length === 0) {
+      message.warning('No events to export as YAML');
+      return;
     }
 
+    setIsExportingYaml(true);
     try {
-      exportEventsToYaml(currentEvents, exportSessionName, {
+      // Step 0: Stop recording if currently recording
+      if (isRecording && onStopRecording) {
+        recordLogger.info('Stopping recording before YAML export');
+        message.loading('Stopping recording...', 0);
+        await Promise.resolve(onStopRecording());
+        message.destroy();
+        recordLogger.success('Recording stopped, proceeding with YAML export');
+
+        // Small delay to ensure events are fully saved to session
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+
+      // Step 1: Wait for all element descriptions to be generated
+      recordLogger.info('Checking element descriptions before YAML export');
+      if (!checkElementDescriptions()) {
+        message.loading('Waiting for element descriptions to complete...', 0);
+        await waitForElementDescriptions();
+        message.destroy();
+        recordLogger.success('Element descriptions ready for YAML export');
+      }
+
+      // After stopping recording and waiting for descriptions, get the latest events
+      const finalEvents = getLatestEvents();
+
+      // Get the current session name from store if available
+      let exportSessionName = sessionName;
+      if (sessionId) {
+        const session = useRecordingSessionStore
+          .getState()
+          .sessions.find((s) => s.id === sessionId);
+        if (session) {
+          exportSessionName = session.name;
+        }
+      }
+
+      recordLogger.info('Events ready for YAML export', {
+        events: finalEvents,
+        eventsCount: finalEvents.length,
+      });
+
+      message.loading('Generating AI-powered YAML test...', 0);
+      
+      await exportEventsToYaml(finalEvents, exportSessionName, {
         includeScreenshots: false, // Keep file size manageable
         includeTimestamps: true,
       });
+      
+      message.destroy();
       message.success(`YAML test exported for "${exportSessionName}"`);
     } catch (error) {
+      message.destroy();
+      recordLogger.error('Failed to export YAML', undefined, error);
       message.error(
         `Failed to export YAML: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
+    } finally {
+      setIsExportingYaml(false);
     }
   };
 
@@ -314,12 +358,13 @@ export const PlaywrightExportControls: React.FC<{
         <Button
           icon={<FileTextOutlined />}
           onClick={handleExportYaml}
+          loading={isExportingYaml}
           disabled={
             (isRecording && liveEvents.length === 0) ||
             (!isRecording && events.length === 0)
           }
         >
-          Export as YAML
+          {isExportingYaml ? 'Generating YAML...' : 'Export as YAML'}
         </Button>
 
         <Button
