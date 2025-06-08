@@ -91,55 +91,70 @@ export const generateYamlTest = async (
     const messageContent: Array<string | Record<string, any>> = [
       {
         type: 'text',
-        text: `Generate a comprehensive YAML test configuration that represents this recorded browser session. The YAML should be structured, readable, and suitable for test automation frameworks. Follow the structure and format of the example provided.
+        text: `Generate a comprehensive YAML test configuration for Midscene.js automation that represents this recorded browser session. The YAML should follow Midscene.js conventions and be structured for AI-powered browser automation.
 
 Event Summary:
 ${JSON.stringify(summary, null, 2)}
 
-Generated YAML should:
-1. Include test metadata (name, description, url)
-2. Define configuration settings (viewport, timeouts, options)
-3. List all steps with proper action mapping
-4. Use clear, descriptive naming for each step
-5. Include element descriptions where available
-6. Follow standard YAML syntax and formatting
-7. Be ready to use by automation tools
-8. Include timestamps and screenshots only if specified in options
+IMPORTANT: Generate YAML that follows Midscene.js automation format with these requirements:
 
-Example YAML structure:
+1. Use Midscene.js action types: aiAction, aiQuery, aiAssert, sleep
+2. Use natural language descriptions for element targeting (not CSS selectors)
+3. Include proper test metadata and configuration
+4. Follow Midscene.js YAML schema conventions
+5. Use descriptive step names that reflect user intent
+6. Include viewport configuration and timeouts
+7. Map browser events to meaningful AI actions
+
+Example Midscene.js YAML structure:
 \`\`\`yaml
-name: "Test: Login and Dashboard Navigation"
-description: "Test session recorded on 2024-01-08"
+name: "Login and Navigation Test"
+description: "Automated test generated from recorded user session"
 url: "https://example.com/login"
-configuration:
+config:
   viewport:
     width: 1280
     height: 800
-  waitForNetworkIdle: true
   timeout: 30000
-  retries: 2
+  waitForNetworkIdle: true
 steps:
-  - step: 1
-    type: navigation
-    action: navigate
-    url: "https://example.com/login"
-    pageTitle: "Login Page"
-    description: "Navigate to login page"
-  - step: 2
-    type: click
-    action: click
-    element: "Username input field in the login form"
-    coordinates:
-      x: 150
-      y: 200
-    description: "Click on username input"
-  - step: 3
-    type: input
-    action: input
-    element: "Username input field"
-    value: "testuser@example.com"
-    description: "Enter username"
+  - name: "Fill in username"
+    aiAction:
+      type: "input"
+      locator: "the username input field"
+      value: "user@example.com"
+    
+  - name: "Fill in password"  
+    aiAction:
+      type: "input"
+      locator: "the password field"
+      value: "password123"
+    
+  - name: "Click login button"
+    aiAction:
+      type: "click"
+      locator: "the login button"
+    
+  - name: "Verify successful login"
+    aiAssert:
+      expect: "user dashboard or welcome message is visible"
+    
+  - name: "Wait for page load"
+    sleep: 2000
 \`\`\`
+
+Key guidelines for Midscene.js YAML:
+- Use 'aiAction' for interactions (click, input, navigate, scroll)
+- Use 'aiQuery' for data extraction
+- Use 'aiAssert' for validations and checks
+- Use 'sleep' for waiting periods
+- Use natural language for 'locator' fields (describe elements as humans would)
+- Include meaningful step names that describe user intent
+- Convert navigation events to navigate actions
+- Convert click events to click actions with descriptive locators
+- Convert input events to input actions with values
+- Add assertions for important state changes
+- Group related actions logically
 
 Respond ONLY with the complete YAML content, no explanations or markdown code blocks.`,
       },
@@ -167,24 +182,32 @@ Respond ONLY with the complete YAML content, no explanations or markdown code bl
     const prompt = [
       {
         role: 'system',
-        content: `You are an expert test automation engineer specializing in YAML-based test configurations. 
-Your task is to generate a complete, well-structured YAML test configuration that represents a recorded browser session.
+        content: `You are an expert in Midscene.js automation framework specializing in YAML-based test configurations. 
+Your task is to generate a complete, well-structured YAML test configuration that represents a recorded browser session using Midscene.js conventions.
+
 The YAML should be:
-- Properly formatted and syntactically correct
-- Comprehensive with all necessary test metadata
-- Clear and descriptive in naming and descriptions
-- Suitable for use by various test automation frameworks
-- Following YAML best practices and conventions
+- Properly formatted and syntactically correct for Midscene.js
+- Using AI-powered automation patterns (aiAction, aiQuery, aiAssert)
+- Clear and descriptive with natural language element targeting
+- Suitable for Midscene.js automation framework
+- Following Midscene.js YAML best practices and conventions
 
-Always map browser events to meaningful test actions:
-- navigation → navigate action with URL and page title
-- click → click action with element description and coordinates
-- input → input action with element description and input value
-- scroll → scroll action with scroll coordinates
-- setViewport → viewport configuration
-- keydown → keyboard action with key information
+Always map browser events to Midscene.js actions:
+- navigation → aiAction with type: "navigate" and url
+- click → aiAction with type: "click" and natural language locator
+- input → aiAction with type: "input" with locator and value
+- scroll → aiAction with type: "scroll" 
+- setViewport → config viewport settings
+- keydown → aiAction with type: "key" or keyboard interaction
 
-Include proper configuration settings like viewport size, timeouts, and other relevant test parameters.`,
+Use natural language descriptions for locators instead of CSS selectors:
+- "the login button" instead of "button[type='submit']"
+- "the username input field" instead of "#username"
+- "the navigation menu" instead of ".nav-menu"
+
+Include proper Midscene.js configuration settings like viewport size, timeouts, and waitForNetworkIdle.
+Add meaningful aiAssert steps for important state changes and validations.
+Group related actions logically and use descriptive step names that reflect user intent.`,
       },
       {
         role: 'user',
