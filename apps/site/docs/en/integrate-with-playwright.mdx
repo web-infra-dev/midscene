@@ -30,6 +30,8 @@ export default defineConfig({
 });
 ```
 
+The `type` option of the `reporter` configuration can be `merged` or `separate`, the default value is `merged`, which means multiple test cases generate one report, the optional value is `separate`, which means one report for each test case.
+
 ## Step 2: extend the `test` instance
 
 Save the following code as `./e2e/fixture.ts`:
@@ -77,7 +79,7 @@ test('case demo', async ({ agentForPage, page }) => {
   const agent = await agentForPage(page);
 
   await agent.logScreenshot();
-  const logContent = agent._unstableLogContent();
+  const logContent = agent._();
   console.log(logContent);
 });
 
