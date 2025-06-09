@@ -23,9 +23,9 @@ import { exportEventsToFile, generateRecordTitle } from './utils';
 const { Text } = Typography;
 
 /**
- * Component that provides controls for exporting recorded events as Playwright tests
+ * Component that provides controls for exporting recorded events in various formats
  */
-export const PlaywrightExportControls: React.FC<{
+export const ExportControls: React.FC<{
   sessionName: string;
   events: ChromeRecordedEvent[];
   sessionId?: string;
@@ -41,6 +41,45 @@ export const PlaywrightExportControls: React.FC<{
   // Create a function to get the latest events with AI descriptions
   const getCurrentEvents = (): ChromeRecordedEvent[] => {
     return getLatestEvents(events, sessionId);
+  };
+
+  // Generate session title and description using AI
+  const generateSessionTitleAndDescription = async (
+    finalEvents: ChromeRecordedEvent[],
+  ): Promise<string> => {
+    let currentSessionName = sessionName; // Default to the original prop
+    
+    if (sessionId) {
+      const session = useRecordingSessionStore
+        .getState()
+        .sessions.find((s) => s.id === sessionId);
+      
+      if (
+        session &&
+        (!session.name || session.name.includes('-') || !session.description)
+      ) {
+        recordLogger.info(
+          'Generating session title and description before export',
+        );
+        const { title, description } = await generateRecordTitle(finalEvents);
+
+        if (title || description) {
+          updateSession(sessionId, {
+            name: title || session.name,
+            description: description || session.description,
+          });
+          message.success('Session title and description generated');
+
+          // Update the session name to use for export
+          currentSessionName = title || session.name;
+        }
+      } else if (session) {
+        // Use the current session name from the store in case it was updated elsewhere
+        currentSessionName = session.name;
+      }
+    }
+    
+    return currentSessionName;
   };
 
   // Generate Playwright test from recorded events
@@ -62,35 +101,7 @@ export const PlaywrightExportControls: React.FC<{
       const finalEvents = getCurrentEvents();
 
       // Step 1: Generate session title and description if not already generated
-      let currentSessionName = sessionName; // Default to the original prop
-      if (sessionId) {
-        const session = useRecordingSessionStore
-          .getState()
-          .sessions.find((s) => s.id === sessionId);
-        if (
-          session &&
-          (!session.name || session.name.includes('-') || !session.description)
-        ) {
-          recordLogger.info(
-            'Generating session title and description before test generation',
-          );
-          const { title, description } = await generateRecordTitle(finalEvents);
-
-          if (title || description) {
-            updateSession(sessionId, {
-              name: title || session.name,
-              description: description || session.description,
-            });
-            message.success('Session title and description generated');
-
-            // Update the session name to use for test generation
-            currentSessionName = title || session.name;
-          }
-        } else if (session) {
-          // Use the current session name from the store in case it was updated elsewhere
-          currentSessionName = session.name;
-        }
-      }
+      const currentSessionName = await generateSessionTitleAndDescription(finalEvents);
 
       // Step 2: Wait for all element descriptions to be generated
       recordLogger.info('Checking element descriptions before test generation');

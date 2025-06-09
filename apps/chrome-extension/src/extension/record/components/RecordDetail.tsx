@@ -20,7 +20,7 @@ import {
 import type React from 'react';
 import type { RecordingSession } from '../../../store';
 
-import { PlaywrightExportControls } from '../PlaywrightExportControls';
+import { ExportControls } from '../ExportControls';
 import { diagnoseRecordingChain } from '../utils';
 
 const { Title, Text } = Typography;
@@ -210,7 +210,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
             <Text strong style={{ marginBottom: '8px', display: 'block' }}>
               AI-Powered Test Generation:
             </Text>
-            <PlaywrightExportControls
+            <ExportControls
               sessionName={session.name}
               events={events}
               sessionId={session.id}
