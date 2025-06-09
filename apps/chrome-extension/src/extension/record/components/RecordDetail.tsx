@@ -1,6 +1,5 @@
 import {
   ArrowLeftOutlined,
-  BugOutlined,
   DeleteOutlined,
   PlayCircleOutlined,
   StopOutlined,
@@ -14,14 +13,12 @@ import {
   Divider,
   Empty,
   Space,
-  Tag,
   Typography,
 } from 'antd';
 import type React from 'react';
 import type { RecordingSession } from '../../../store';
 
 import { ExportControls } from '../ExportControls';
-import { diagnoseRecordingChain } from '../utils';
 
 const { Title, Text } = Typography;
 
@@ -48,25 +45,6 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
   onClearEvents,
   isExtensionMode,
 }) => {
-  // Handle diagnostic check
-  const handleDiagnose = async () => {
-    const result = await diagnoseRecordingChain(currentTab);
-
-    // Show results in console and alert
-    const issuesText =
-      result.issues.length > 0
-        ? `Issues found:\n${result.issues.join('\n')}`
-        : 'No issues found!';
-
-    const infoText =
-      result.info.length > 0
-        ? `\nChecks passed:\n${result.info.join('\n')}`
-        : '';
-
-    alert(
-      `Recording Chain Diagnosis:\n\n${issuesText}${infoText}\n\nSee console for detailed logs.`,
-    );
-  };
   return (
     <div className="record-detail-view">
       {!isExtensionMode && (
@@ -111,53 +89,6 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
         )}
       </div>
 
-      {/* Session Details */}
-      <Card size="small" className="session-info-card">
-        <div className="session-info">
-          <Space direction="vertical" size="small" style={{ width: '100%' }}>
-            <div>
-              <Text strong>Status: </Text>
-              <Tag
-                color={
-                  session.status === 'recording'
-                    ? 'red'
-                    : session.status === 'completed'
-                      ? 'green'
-                      : 'default'
-                }
-              >
-                {session.status}
-              </Tag>
-            </div>
-            <div>
-              <Text strong>Events: </Text>
-              <Text>{session.events.length}</Text>
-            </div>
-            <div>
-              <Text strong>Created: </Text>
-              <Text>{new Date(session.createdAt).toLocaleString()}</Text>
-            </div>
-            {session.duration && (
-              <div>
-                <Text strong>Duration: </Text>
-                <Text>{(session.duration / 1000).toFixed(1)}s</Text>
-              </div>
-            )}
-            {session.url && (
-              <div>
-                <Text strong>URL: </Text>
-                <Text>{session.url}</Text>
-              </div>
-            )}
-            {session.description && (
-              <div>
-                <Text strong>Description: </Text>
-                <Text>{session.description}</Text>
-              </div>
-            )}
-          </Space>
-        </div>
-      </Card>
 
       {/* Recording Controls */}
       <div className="controls-section">
@@ -166,8 +97,32 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
           {currentTab?.title || 'No tab selected'}
           {!isExtensionMode && <Text type="secondary"> (Mock)</Text>}
         </div>
+
+        {/* Session Details */}
+        <Card size="small" className="session-info-card">
+          <div className="session-info">
+            <Space direction="vertical" size="small" style={{ width: '100%' }}>
+              <div>
+                <Text strong>Created: </Text>
+                <Text>{new Date(session.createdAt).toLocaleString()}</Text>
+              </div>
+              {session.url && (
+                <div>
+                  <Text strong>URL: </Text>
+                  <Text>{session.url}</Text>
+                </div>
+              )}
+              {session.description && (
+                <div>
+                  <Text strong>Description: </Text>
+                  <Text>{session.description}</Text>
+                </div>
+              )}
+            </Space>
+          </div>
+        </Card>
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-          <Space className="record-controls">
+          <Space className="record-controls" wrap>
             {!isRecording ? (
               <Button
                 type="primary"
@@ -196,27 +151,14 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
               Clear Events
             </Button>
 
-            <Button
-              icon={<BugOutlined />}
-              onClick={handleDiagnose}
-              title="Diagnose recording chain issues"
-            >
-              Diagnose
-            </Button>
-          </Space>
-
-          {/* AI Playwright Export Controls */}
-          <div>
-            <Text strong style={{ marginBottom: '8px', display: 'block' }}>
-              AI-Powered Test Generation:
-            </Text>
+            {/* AI Playwright Export Controls */}
             <ExportControls
               sessionName={session.name}
               events={events}
               sessionId={session.id}
               onStopRecording={onStopRecording}
             />
-          </div>
+          </Space>
         </Space>
       </div>
 
@@ -224,9 +166,6 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
 
       {/* Events Display */}
       <div className="events-section">
-        <div className="events-header">
-          <Title level={5}>Recorded Events ({events.length})</Title>
-        </div>
         <div
           className={`events-container ${events.length === 0 ? 'empty' : ''}`}
         >

@@ -21,7 +21,7 @@ import {
   stopRecordingIfActive,
   waitForElementDescriptions,
 } from './shared/exportControlsUtils';
-import { exportEventsToFile, generateRecordTitle } from './utils';
+import { generateRecordTitle } from './utils';
 
 const { Text } = Typography;
 
@@ -476,15 +476,6 @@ export const ExportControls: React.FC<{
     );
   };
 
-  // Export original events as JSON
-  const handleExportEvents = () => {
-    // Get the most current events
-    const currentEvents = getCurrentEvents();
-
-    const exportSessionName = resolveSessionName(sessionName, sessionId);
-    exportEventsToFile(currentEvents, exportSessionName);
-  };
-
   // Generate code dropdown menu items
   const generateCodeMenuItems: MenuProps['items'] = [
     {
@@ -503,30 +494,20 @@ export const ExportControls: React.FC<{
 
   return (
     <>
-      <Space>
-        <Dropdown
-          menu={{ items: generateCodeMenuItems }}
-          disabled={getCurrentEvents().length === 0 || isGenerating}
-          placement="bottomLeft"
-        >
-          <Button
-            icon={<CodeOutlined />}
-            loading={isGenerating}
-            disabled={getCurrentEvents().length === 0}
-            type="primary"
-          >
-            {isGenerating ? 'Generating Code...' : 'Generate Code'}
-          </Button>
-        </Dropdown>
-
+      <Dropdown
+        menu={{ items: generateCodeMenuItems }}
+        disabled={getCurrentEvents().length === 0 || isGenerating}
+        placement="bottomLeft"
+      >
         <Button
-          icon={<DownloadOutlined />}
-          onClick={handleExportEvents}
+          icon={<CodeOutlined />}
+          loading={isGenerating}
           disabled={getCurrentEvents().length === 0}
+          type="primary"
         >
-          Export Events as JSON
+          {isGenerating ? 'Generating Code...' : 'Generate Code'}
         </Button>
-      </Space>
+      </Dropdown>
 
       {/* Progress Modal for AI Generation */}
       <ProgressModal
