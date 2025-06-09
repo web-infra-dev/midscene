@@ -249,7 +249,13 @@ export const useRecordingControl = (
         sessionId: sessionToUse.id,
       });
       setIsRecording(true);
-      clearEvents(); // Clear previous events for new recording
+      
+      // Only clear events if this is a new session or if the session has no existing events
+      // This allows resuming recording on existing sessions without losing previous events
+      if (sessionToUse.events.length === 0) {
+        clearEvents(); // Clear previous events for new recording
+      }
+      
       recordLogger.success('Recording started', { sessionId: sessionToUse.id });
       message.success('Recording started');
     } catch (error) {
