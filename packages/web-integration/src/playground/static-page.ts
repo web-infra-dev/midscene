@@ -65,6 +65,14 @@ export default class StaticPage implements AbstractPage {
     return base64;
   }
 
+  async screenshotBlob() {
+    const blob = this.uiContext.screenshotBlob;
+    if (!blob) {
+      throw new Error('screenshot blob is empty');
+    }
+    return blob;
+  }
+
   async url() {
     return this.uiContext.url;
   }

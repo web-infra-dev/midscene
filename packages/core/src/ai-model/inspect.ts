@@ -78,7 +78,7 @@ export async function AiLocateElement<
   usage?: AIUsageInfo;
 }> {
   const { context, targetElementDescription, callAI } = options;
-  const { screenshotBase64 } = context;
+  const { screenshotBase64, screenshotBlob } = context;
   const { description, elementById, insertElementByPosition } =
     await describeUserPage(context);
 
@@ -130,13 +130,13 @@ export async function AiLocateElement<
     {
       role: 'user',
       content: [
-        {
-          type: 'image_url',
-          image_url: {
-            url: imagePayload,
-            detail: 'high',
-          },
-        },
+        // {
+        //   type: 'image_url',
+        //   image_url: {
+        //     url: imagePayload,
+        //     detail: 'high',
+        //   },
+        // },
         {
           type: 'text',
           text: userInstructionPrompt,
@@ -148,7 +148,7 @@ export async function AiLocateElement<
   const callAIFn =
     callAI || callToGetJSONObject<AIElementResponse | [number, number]>;
 
-  const res = await callAIFn(msgs, AIActionType.INSPECT_ELEMENT);
+  const res = await callAIFn(msgs, AIActionType.INSPECT_ELEMENT,screenshotBlob);
 
   const rawResponse = JSON.stringify(res.content);
 
@@ -223,7 +223,7 @@ export async function AiLocateSection(options: {
   usage?: AIUsageInfo;
 }> {
   const { context, sectionDescription } = options;
-  const { screenshotBase64 } = context;
+  const { screenshotBase64 ,screenshotBlob} = context;
 
   const systemPrompt = systemPromptToLocateSection(vlLocateMode());
   const sectionLocatorInstructionText = await sectionLocatorInstruction.format({
@@ -234,13 +234,13 @@ export async function AiLocateSection(options: {
     {
       role: 'user',
       content: [
-        {
-          type: 'image_url',
-          image_url: {
-            url: screenshotBase64,
-            detail: 'high',
-          },
-        },
+        // {
+        //   type: 'image_url',
+        //   image_url: {
+        //     url: screenshotBase64,
+        //     detail: 'high',
+        //   },
+        // },
         {
           type: 'text',
           text: sectionLocatorInstructionText,
@@ -252,6 +252,7 @@ export async function AiLocateSection(options: {
   const result = await callAiFn<AISectionLocatorResponse>(
     msgs,
     AIActionType.EXTRACT_DATA,
+    screenshotBlob
   );
 
   let sectionRect: Rect | undefined;
@@ -312,7 +313,7 @@ export async function AiExtractElementInfo<
   const { dataQuery, context, extractOption } = options;
   const systemPrompt = systemPromptToExtract();
 
-  const { screenshotBase64 } = context;
+  const { screenshotBase64 ,screenshotBlob} = context;
   const { description, elementById } = await describeUserPage(context, {
     truncateTextLength: 200,
     filterNonTextContent: false,
@@ -353,6 +354,7 @@ export async function AiExtractElementInfo<
   const result = await callAiFn<AIDataExtractionResponse<T>>(
     msgs,
     AIActionType.EXTRACT_DATA,
+    screenshotBlob
   );
   return {
     parseResult: result.content,
@@ -368,7 +370,7 @@ export async function AiAssert<
 
   assert(assertion, 'assertion should be a string');
 
-  const { screenshotBase64 } = context;
+  const { screenshotBase64 ,screenshotBlob} = context;
 
   const systemPrompt = systemPromptToAssert({
     isUITars: getAIConfigInBoolean(MIDSCENE_USE_VLM_UI_TARS),
@@ -379,13 +381,13 @@ export async function AiAssert<
     {
       role: 'user',
       content: [
-        {
-          type: 'image_url',
-          image_url: {
-            url: screenshotBase64,
-            detail: 'high',
-          },
-        },
+        // {
+        //   type: 'image_url',
+        //   image_url: {
+        //     url: screenshotBase64,
+        //     detail: 'high',
+        //   },
+        // },
         {
           type: 'text',
           text: `
@@ -402,6 +404,7 @@ ${assertion}
   const { content: assertResult, usage } = await callAiFn<AIAssertionResponse>(
     msgs,
     AIActionType.ASSERT,
+    screenshotBlob
   );
   return {
     content: assertResult,

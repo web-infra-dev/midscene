@@ -114,12 +114,23 @@ export class Page<
   }
 
   async getElementsNodeTree() {
-    // ref: packages/web-integration/src/playwright/ai-fixture.ts popup logic
-    // During test execution, a new page might be opened through a connection, and the page remains confined to the same page instance.
-    // The page may go through opening, closing, and reopening; if the page is closed, evaluate may return undefined, which can lead to errors.
+    for (let i = 0; i < 3; i++) {
+      try {
+        await this.waitForNavigation();
+        const scripts = await getExtraReturnLogic(true);
+        assert(scripts, 'scripts should be set before writing report in browser');
+
+        const captureElementSnapshot = await this.evaluate(scripts);
+        return captureElementSnapshot as ElementTreeNode<ElementInfo>;
+      } catch (error) {
+        if (i === 3 - 1) throw error;
+        await sleep(1000); // 等待1秒后重试
+      }
+    }
     await this.waitForNavigation();
     const scripts = await getExtraReturnLogic(true);
     assert(scripts, 'scripts should be set before writing report in browser');
+
     const captureElementSnapshot = await this.evaluate(scripts);
     return captureElementSnapshot as ElementTreeNode<ElementInfo>;
   }
@@ -163,6 +174,34 @@ export class Page<
     }
     debugPage('screenshotBase64 end');
     return base64;
+  }
+
+  async screenshotBlob(): Promise<Blob> {
+    const imgType = 'jpeg';
+    const quality = 90;
+    await this.waitForNavigation();
+    debugPage('screenshotBlob begin');
+
+    let blob: Blob;
+    if (this.pageType === 'puppeteer') {
+      const result = await (this.underlyingPage as PuppeteerPage).screenshot({
+        type: imgType,
+        quality,
+        encoding: 'binary',
+      });
+      blob = new Blob([result], { type: 'image/jpeg' });
+    } else if (this.pageType === 'playwright') {
+      const buffer = await (this.underlyingPage as PlaywrightPage).screenshot({
+        type: imgType,
+        quality,
+        timeout: 10 * 1000,
+      });
+      blob = new Blob([buffer], { type: 'image/jpeg' });
+    } else {
+      throw new Error('Unsupported page type for screenshot');
+    }
+    debugPage('screenshotBlob end');
+    return blob;
   }
 
   async url(): Promise<string> {

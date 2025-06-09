@@ -14,6 +14,7 @@ export interface AndroidDevicePage extends AbstractPage {
   launch(uri: string): Promise<any>;
 
   screenshotBase64(): Promise<string>;
+  screenshotBlob(): Promise<Blob>;
   getElementsNodeTree(): Promise<ElementTreeNode<ElementInfo>>;
   url(): string | Promise<string>;
   size(): Promise<Size>;

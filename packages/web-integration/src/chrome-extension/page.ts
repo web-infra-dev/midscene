@@ -403,6 +403,22 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     return `data:image/jpeg;base64,${base64.data}`;
   }
 
+  async screenshotBlob() {
+    // screenshot by cdp
+    await this.hideMousePointer();
+    const blob = await this.sendCommandToDebugger('Page.captureScreenshot', {
+      format: 'jpeg',
+      quality: 90,
+    });
+    const byteCharacters = atob(blob.data); // 解码 base64
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    return new Blob([byteArray], { type: 'image/jpeg' });
+  }
+
   async url() {
     const tabId = await this.getTabIdOrConnectToCurrentTab();
     const url = await chrome.tabs.get(tabId).then((tab) => tab.url);

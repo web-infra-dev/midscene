@@ -397,13 +397,13 @@ export default class Insight<
       {
         role: 'user',
         content: [
-          {
-            type: 'image_url',
-            image_url: {
-              url: imagePayload,
-              detail: 'high',
-            },
-          },
+          // {
+          //   type: 'image_url',
+          //   image_url: {
+          //     url: imagePayload,
+          //     detail: 'high',
+          //   },
+          // },
         ],
       },
     ];

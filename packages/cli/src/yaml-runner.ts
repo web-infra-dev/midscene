@@ -12,7 +12,7 @@ import {
 import { TTYWindowRenderer } from './tty-renderer';
 
 import assert from 'node:assert';
-import { agentFromAdbDevice } from '@midscene/android';
+// import { agentFromAdbDevice } from '@midscene/android';
 import type { FreeFn } from '@midscene/core';
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
 import { puppeteerAgentForTarget } from '@midscene/web/puppeteer-agent-launcher';
@@ -139,21 +139,21 @@ export async function playYamlFiles(
       }
 
       // handle android
-      if (typeof script.android !== 'undefined') {
-        const androidTarget = script.android;
-        const agent = await agentFromAdbDevice(androidTarget?.deviceId);
-
-        if (androidTarget?.launch) {
-          await agent.launch(androidTarget.launch);
-        }
-
-        freeFn.push({
-          name: 'destroy_android_agent',
-          fn: () => agent.destroy(),
-        });
-
-        return { agent, freeFn };
-      }
+      // if (typeof script.android !== 'undefined') {
+      //   const androidTarget = script.android;
+      //   const agent = await agentFromAdbDevice(androidTarget?.deviceId);
+      //
+      //   if (androidTarget?.launch) {
+      //     await agent.launch(androidTarget.launch);
+      //   }
+      //
+      //   freeFn.push({
+      //     name: 'destroy_android_agent',
+      //     fn: () => agent.destroy(),
+      //   });
+      //
+      //   return { agent, freeFn };
+      // }
 
       throw new Error(
         'No valid target configuration found in the yaml script, should be either "web" or "android"',

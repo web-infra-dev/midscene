@@ -21,7 +21,6 @@
     "test:ai:temp": "AITEST=true BRIDGE_MODE=true vitest tests/bridge.test.ts"
   },
   "dependencies": {
-    "@midscene/android": "workspace:*",
     "@midscene/core": "workspace:*",
     "@midscene/web": "workspace:*",
     "puppeteer": "24.2.0",

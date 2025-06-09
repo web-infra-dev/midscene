@@ -1,5 +1,6 @@
 import { AIResponseFormat, type AIUsageInfo } from '@/types';
 import { Anthropic } from '@anthropic-ai/sdk';
+import axios from 'axios';
 import {
   DefaultAzureCredential,
   getBearerTokenProvider,
@@ -340,9 +341,81 @@ export async function call(
   return { content: content || '', usage };
 }
 
+export async function callInsureMo(
+  messages: ChatCompletionMessageParam[],
+  AIActionTypeValue: AIActionType,
+  file?: Blob,
+  responseFormat?:
+    | OpenAI.ChatCompletionCreateParams['response_format']
+    | OpenAI.ResponseFormatJSONObject,
+): Promise<{ content: string; usage?: AIUsageInfo }> {
+  const debugCall = getDebug('ai:call');
+  const debugProfileStats = getDebug('ai:profile:stats');
+  const debugProfileDetail = getDebug('ai:profile:detail');
+
+  const startTime = Date.now();
+
+  // 1. 构造请求数据（multipart/form-data）
+  const formData = new FormData();
+
+  // 2. 添加文本参数（requirements）
+  const requirements = JSON.stringify(messages); // 或按需构造
+  formData.append('requirements', requirements);
+
+  // 3. 添加文件参数（files）
+  if (file) {
+    formData.append('files', file, `file.png`);
+  }
+
+  // 4. 发送请求
+  debugCall(
+    `sending request to https://portal.insuremo.com/api/ai-qa-service/api/vl`,
+  );
+
+  try {
+    const response = await axios.post(
+      'https://portal.insuremo.com/api/ai-qa-service/api/vl',
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Authorization': 'Bearer MOATzqYEsxsgAUTxFkkL0zhzT3OMfU0e',
+        },
+      },
+    );
+
+    // 5. 解析响应
+    const content = response.data.data; // 假设返回格式为 { content: string, usage?: ... }
+    const usage: Record<string, any> & {
+      prompt_tokens: number;
+      completion_tokens: number;
+      total_tokens: number;
+    } = {
+      prompt_tokens: 2940,
+      completion_tokens: 38,
+      total_tokens: 2978,
+    };
+
+    debugProfileStats(
+      `cost-ms: ${Date.now() - startTime}, response: ${content}`,
+    );
+
+    debugProfileDetail(`response detail: ${JSON.stringify(response.data)}`);
+
+    return { content, usage };
+  } catch (e: any) {
+    const newError = new Error(
+      `failed to call AI model service: ${e.message}`,
+      { cause: e },
+    );
+    throw newError;
+  }
+}
+
 export async function callToGetJSONObject<T>(
   messages: ChatCompletionMessageParam[],
   AIActionTypeValue: AIActionType,
+  file?: Blob,
 ): Promise<{ content: T; usage?: AIUsageInfo }> {
   let responseFormat:
     | OpenAI.ChatCompletionCreateParams['response_format']
@@ -374,7 +447,12 @@ export async function callToGetJSONObject<T>(
     responseFormat = { type: AIResponseFormat.JSON };
   }
 
-  const response = await call(messages, AIActionTypeValue, responseFormat);
+  const response = await callInsureMo(
+    messages,
+    AIActionTypeValue,
+    file,
+    responseFormat,
+  );
   assert(response, 'empty response');
   const jsonContent = safeParseJson(response.content);
   return { content: jsonContent, usage: response.usage };

@@ -72,52 +72,57 @@ export function collectElementInfo(
     return null;
   }
 
-  if (isFormElement(node)) {
-    const attributes = getNodeAttributes(node, currentWindow);
-    let valueContent =
-      attributes.value || attributes.placeholder || node.textContent || '';
-    const nodeHashId = midsceneGenerateHash(node, valueContent, rect);
-    const selector = setDataForNode(node, nodeHashId, false, currentWindow);
-    const tagName = (node as HTMLElement).tagName.toLowerCase();
-    if ((node as HTMLElement).tagName.toLowerCase() === 'select') {
-      // Get the selected option using the selectedIndex property
-      const selectedOption = (node as HTMLSelectElement).options[
-        (node as HTMLSelectElement).selectedIndex
-      ];
+  try {
+    if (isFormElement(node)) {
+      const attributes = getNodeAttributes(node, currentWindow);
+      let valueContent =
+        attributes.value || attributes.placeholder || node.textContent || '';
+      const nodeHashId = midsceneGenerateHash(node, valueContent, rect);
+      const selector = setDataForNode(node, nodeHashId, false, currentWindow);
+      const tagName = (node as HTMLElement).tagName.toLowerCase();
+      if ((node as HTMLElement).tagName.toLowerCase() === 'select') {
+        // Get the selected option using the selectedIndex property
+        const selectedOption = (node as HTMLSelectElement).options[
+          (node as HTMLSelectElement).selectedIndex
+          ];
 
-      // Retrieve the text content of the selected option
-      valueContent = selectedOption.textContent || '';
-    }
+        // Retrieve the text content of the selected option
+        valueContent = selectedOption.textContent || '';
+      }
 
-    if (
-      ((node as HTMLElement).tagName.toLowerCase() === 'input' ||
-        (node as HTMLElement).tagName.toLowerCase() === 'textarea') &&
-      (node as HTMLInputElement).value
-    ) {
-      valueContent = (node as HTMLInputElement).value;
-    }
+      if (
+        ((node as HTMLElement).tagName.toLowerCase() === 'input' ||
+          (node as HTMLElement).tagName.toLowerCase() === 'textarea') &&
+        (node as HTMLInputElement).value
+      ) {
+        valueContent = (node as HTMLInputElement).value;
+      }
 
-    const elementInfo: WebElementInfo = {
-      id: nodeHashId,
-      nodeHashId,
-      locator: selector,
-      nodeType: NodeType.FORM_ITEM,
-      indexId: indexId++,
-      attributes: {
-        ...attributes,
-        htmlTagName: `<${tagName}>`,
+      const elementInfo: WebElementInfo = {
+        id: nodeHashId,
+        nodeHashId,
+        locator: selector,
         nodeType: NodeType.FORM_ITEM,
-      },
-      content: valueContent.trim(),
-      rect,
-      center: [
-        Math.round(rect.left + rect.width / 2),
-        Math.round(rect.top + rect.height / 2),
-      ],
-      zoom: rect.zoom,
-      isVisible: rect.isVisible,
-    };
-    return elementInfo;
+        indexId: indexId++,
+        attributes: {
+          ...attributes,
+          htmlTagName: `<${tagName}>`,
+          nodeType: NodeType.FORM_ITEM,
+        },
+        content: valueContent.trim(),
+        rect,
+        center: [
+          Math.round(rect.left + rect.width / 2),
+          Math.round(rect.top + rect.height / 2),
+        ],
+        zoom: rect.zoom,
+        isVisible: rect.isVisible,
+      };
+      return elementInfo;
+    }
+  } catch (error) {
+    console.error('get node error');
+    return null;
   }
 
   if (isButtonElement(node)) {

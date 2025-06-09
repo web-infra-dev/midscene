@@ -864,12 +864,12 @@ export class PageTaskExecutor {
         this.appendConversationHistory({
           role: 'user',
           content: [
-            {
-              type: 'image_url',
-              image_url: {
-                url: imagePayload,
-              },
-            },
+            // {
+            //   type: 'image_url',
+            //   image_url: {
+            //     url: imagePayload,
+            //   },
+            // },
           ],
         });
         const startTime = Date.now();

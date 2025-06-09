@@ -45,6 +45,7 @@ export enum AIActionType {
 export async function callAiFn<T>(
   msgs: AIArgs,
   AIActionTypeValue: AIActionType,
+  screenshotBlob:Blob
 ): Promise<{ content: T; usage?: AIUsageInfo }> {
   assert(
     checkAIConfig(),
@@ -54,6 +55,7 @@ export async function callAiFn<T>(
   const { content, usage } = await callToGetJSONObject<T>(
     msgs,
     AIActionTypeValue,
+    screenshotBlob
   );
   return { content, usage };
 }

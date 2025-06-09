@@ -121,6 +121,7 @@ export interface AgentDescribeElementAtPointResult {
 export abstract class UIContext<ElementType extends BaseElement = BaseElement> {
   abstract screenshotBase64: string;
 
+  abstract screenshotBlob: Blob;
   // @deprecated('use tree instead')
   abstract content: ElementType[];
 

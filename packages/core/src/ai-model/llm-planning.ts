@@ -29,7 +29,7 @@ export async function plan(
   },
 ): Promise<PlanningAIResponse> {
   const { callAI, context } = opts || {};
-  const { screenshotBase64, size } = context;
+  const { screenshotBase64, screenshotBlob, size } = context;
   const { description: pageDescription, elementById } =
     await describeUserPage(context);
 
@@ -67,13 +67,13 @@ export async function plan(
     {
       role: 'user',
       content: [
-        {
-          type: 'image_url',
-          image_url: {
-            url: imagePayload,
-            detail: 'high',
-          },
-        },
+        // {
+        //   type: 'image_url',
+        //   image_url: {
+        //     url: imagePayload,
+        //     detail: 'high',
+        //   },
+        // },
         {
           type: 'text',
           text: userInstructionPrompt,
@@ -83,7 +83,11 @@ export async function plan(
   ];
 
   const call = callAI || callAiFn;
-  const { content, usage } = await call(msgs, AIActionType.PLAN);
+  const { content, usage } = await call(
+    msgs,
+    AIActionType.PLAN,
+    screenshotBlob,
+  );
   const rawResponse = JSON.stringify(content, undefined, 2);
   const planFromAI = content;
 

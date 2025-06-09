@@ -39,6 +39,7 @@ export abstract class AbstractPage {
   abstract getElementsNodeTree(): Promise<ElementNode>;
   abstract url(): string | Promise<string>;
   abstract screenshotBase64?(): Promise<string>;
+  abstract screenshotBlob?(): Promise<Blob>;
   abstract size(): Promise<Size>;
 
   get mouse(): MouseAction {

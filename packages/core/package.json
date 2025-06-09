@@ -46,7 +46,8 @@
     "langsmith": "0.3.7",
     "openai": "4.81.0",
     "socks-proxy-agent": "8.0.4",
-    "xss": "1.0.15"
+    "xss": "1.0.15",
+    "axios": "1.9.0"
   },
   "devDependencies": {
     "@modern-js/module-tools": "2.60.6",

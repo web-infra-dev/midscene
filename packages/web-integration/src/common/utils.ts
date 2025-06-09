@@ -41,11 +41,15 @@ export async function parseContextFromWebPage(
   uploadTestInfoToServer({ testUrl: url });
 
   let screenshotBase64: string;
+  let screenshotBlob: Blob;
   let tree: ElementTreeNode<ElementInfo>;
 
   await Promise.all([
     page.screenshotBase64().then((base64) => {
       screenshotBase64 = base64;
+    }),
+    page.screenshotBlob().then((blob) => {
+      screenshotBlob = blob;
     }),
     page.getElementsNodeTree().then(async (treeRoot) => {
       tree = treeRoot;
@@ -85,6 +89,7 @@ export async function parseContextFromWebPage(
     tree: webTree,
     size,
     screenshotBase64: screenshotBase64!,
+    screenshotBlob: screenshotBlob!,
     url,
   };
 }
