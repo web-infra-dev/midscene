@@ -5,7 +5,8 @@ import {
   FileTextOutlined,
 } from '@ant-design/icons';
 import type { ChromeRecordedEvent } from '@midscene/record';
-import { Button, Modal, Space, Typography, message } from 'antd';
+import { Button, Dropdown, Modal, Space, Typography, message } from 'antd';
+import type { MenuProps } from 'antd';
 import type React from 'react';
 import { useState } from 'react';
 import { useRecordingSessionStore } from '../../store';
@@ -37,7 +38,6 @@ export const ExportControls: React.FC<{
 }> = ({ sessionName, events, sessionId, onStopRecording }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isExportingYaml, setIsExportingYaml] = useState(false);
-  const [isGeneratingYaml, setIsGeneratingYaml] = useState(false);
   const [showTestModal, setShowTestModal] = useState(false);
   const [showYamlModal, setShowYamlModal] = useState(false);
   const [generatedTest, setGeneratedTest] = useState('');
@@ -157,7 +157,7 @@ export const ExportControls: React.FC<{
       return;
     }
 
-    setIsGeneratingYaml(true);
+    setIsGenerating(true);
     try {
       // Step 0: Stop recording if currently recording
       await stopRecordingIfActive(onStopRecording);
@@ -202,7 +202,7 @@ export const ExportControls: React.FC<{
         `Failed to generate YAML: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     } finally {
-      setIsGeneratingYaml(false);
+      setIsGenerating(false);
     }
   };
 
@@ -323,27 +323,39 @@ export const ExportControls: React.FC<{
     exportEventsToFile(currentEvents, exportSessionName);
   };
 
+  // Generate code dropdown menu items
+  const generateCodeMenuItems: MenuProps['items'] = [
+    {
+      key: 'playwright',
+      label: 'Playwright Test',
+      icon: <CodeOutlined />,
+      onClick: handleGenerateTest,
+    },
+    {
+      key: 'yaml',
+      label: 'YAML Test',
+      icon: <FileTextOutlined />,
+      onClick: handleGenerateYaml,
+    },
+  ];
+
   return (
     <>
       <Space>
-        <Button
-          icon={<CodeOutlined />}
-          onClick={handleGenerateTest}
-          loading={isGenerating}
-          disabled={getCurrentEvents().length === 0}
-          type="primary"
+        <Dropdown
+          menu={{ items: generateCodeMenuItems }}
+          disabled={getCurrentEvents().length === 0 || isGenerating}
+          placement="bottomLeft"
         >
-          {isGenerating ? 'Generating AI Test...' : 'Generate Playwright Test'}
-        </Button>
-
-        <Button
-          icon={<FileTextOutlined />}
-          onClick={handleGenerateYaml}
-          loading={isGeneratingYaml}
-          disabled={getCurrentEvents().length === 0}
-        >
-          {isGeneratingYaml ? 'Generating YAML...' : 'Generate YAML Test'}
-        </Button>
+          <Button
+            icon={<CodeOutlined />}
+            loading={isGenerating}
+            disabled={getCurrentEvents().length === 0}
+            type="primary"
+          >
+            {isGenerating ? 'Generating Code...' : 'Generate Code'}
+          </Button>
+        </Dropdown>
 
         <Button
           icon={<DownloadOutlined />}
