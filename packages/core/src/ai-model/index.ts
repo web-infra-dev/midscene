@@ -5,6 +5,7 @@ export {
   elementByPositionWithElementInfo,
 } from './prompt/util';
 export { generatePlaywrightTest } from './prompt/playwright-generator';
+export { generateYamlTest } from './prompt/yaml-generator';
 
 export type { ChatCompletionMessageParam } from 'openai/resources';
 

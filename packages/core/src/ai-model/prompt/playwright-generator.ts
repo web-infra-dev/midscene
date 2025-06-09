@@ -310,6 +310,15 @@ Respond ONLY with the complete Playwright test code, no explanations.`;
   // Create system prompt
   const systemPrompt = `You are an expert test automation engineer specializing in Playwright and Midscene. 
 Your task is to generate a complete, executable Playwright test using @midscene/web/playwright that reproduces a recorded browser session.
+
+IMPORTANT: Follow these exact type signatures for AI functions:
+
+// Type signatures for AI functions:
+aiInput(value: string, locator: string): Promise<void>
+aiTap(locator: string): Promise<void>  
+aiAssert(assertion: string): Promise<void>
+aiQuery<T>(queryObject: Record<string, string>): Promise<T> // Extracts data from page based on descriptions
+
 Always follow the structure of the example below:
 
 import { test as base } from '@playwright/test';
@@ -335,19 +344,28 @@ test('Example test', async ({
   agentForPage,
   page,
 }) => {
+  // aiAssert: Takes a string describing what should be true on the page
   await aiAssert('The page shows the login interface');
-  // First parameter: input value, Second parameter: element description
+  
+  // aiInput: First parameter is the value to input, second is element description
   await aiInput('username', 'in user name input');
   await aiInput('password', 'in password input');
+  
+  // aiTap: Takes a string describing the element to click
   await aiTap('click login button');
   
   await aiAssert('The page shows that the user is logged in');
   
+  // aiQuery: Extracts specific data from the current page
+  // - Keys: property names for the returned object
+  // - Values: natural language descriptions of what data to extract
+  // - Returns: object with extracted data matching the specified structure
   const data = await aiQuery({
     userInfo: 'User information in the format {name: string}',
+    balance: 'Account balance as a number',
   });
   
-  console.log(\`Logged in as: \${data.userInfo.name}\`);
+  console.log(\`Logged in as: \${data.userInfo.name}, Balance: \${data.balance}\`);
 });`;
 
   // Use LLM to generate the Playwright test code
