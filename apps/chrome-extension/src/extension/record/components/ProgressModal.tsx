@@ -39,9 +39,21 @@ const ConfettiAnimation: React.FC = () => {
 
   useEffect(() => {
     const colors = [
-      '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b',
-      '#eb4d4b', '#6c5ce7', '#a55eea', '#26de81', '#fd79a8',
-      '#fdcb6e', '#e17055', '#74b9ff', '#00b894', '#e84393'
+      '#ff6b6b',
+      '#4ecdc4',
+      '#45b7d1',
+      '#f9ca24',
+      '#f0932b',
+      '#eb4d4b',
+      '#6c5ce7',
+      '#a55eea',
+      '#26de81',
+      '#fd79a8',
+      '#fdcb6e',
+      '#e17055',
+      '#74b9ff',
+      '#00b894',
+      '#e84393',
     ];
     const shapes = ['circle', 'square', 'triangle', 'star', 'heart'];
 
@@ -91,7 +103,8 @@ const ConfettiAnimation: React.FC = () => {
         return {
           ...baseStyle,
           background: particle.color,
-          clipPath: 'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)',
+          clipPath:
+            'polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)',
         };
       case 'heart':
         return {
@@ -122,7 +135,7 @@ const ConfettiAnimation: React.FC = () => {
             borderRadius: '50px 50px 0 0',
             transform: 'rotate(45deg)',
             transformOrigin: '100% 100%',
-          }
+          },
         };
       default:
         return {
@@ -147,19 +160,17 @@ const ConfettiAnimation: React.FC = () => {
       }}
     >
       {particles.map((particle) => (
-        <div
-          key={particle.id}
-          style={getShapeStyle(particle)}
-        />
+        <div key={particle.id} style={getShapeStyle(particle)} />
       ))}
       <style>
         {`
-          ${particles.map(particle => {
-          const radians = (particle.angle * Math.PI) / 180;
-          const finalX = Math.cos(radians) * particle.velocity;
-          const finalY = Math.sin(radians) * particle.velocity;
+          ${particles
+            .map((particle) => {
+              const radians = (particle.angle * Math.PI) / 180;
+              const finalX = Math.cos(radians) * particle.velocity;
+              const finalY = Math.sin(radians) * particle.velocity;
 
-          return `
+              return `
             @keyframes confetti-explode-${particle.id} {
               0% {
                 transform: translate(-50%, -50%) rotate(0deg) scale(0);
@@ -179,7 +190,8 @@ const ConfettiAnimation: React.FC = () => {
               }
             }
           `;
-        }).join('')}
+            })
+            .join('')}
           
           @keyframes glow-pulse {
             0% { box-shadow: 0 0 5px rgba(82, 196, 26, 0.3); }
@@ -203,7 +215,9 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
 
   useEffect(() => {
     // 只有在所有步骤都完成且showConfetti为true时才显示撒花特效
-    const allStepsCompleted = steps.every((step) => step.status === 'completed');
+    const allStepsCompleted = steps.every(
+      (step) => step.status === 'completed',
+    );
 
     if (showConfetti && allStepsCompleted && !confettiVisible) {
       setConfettiVisible(true);
@@ -274,7 +288,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
         maskClosable={false}
         zIndex={20}
         style={{
-          position: 'relative'
+          position: 'relative',
         }}
         className={confettiVisible ? 'celebrating' : ''}
       >
@@ -347,23 +361,30 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
           ))}
 
           {allCompleted && confettiVisible && (
-            <div style={{
-              textAlign: 'center',
-              marginTop: 20,
-            }}>
-              <Title level={4} style={{
-                color: '#52c41a',
-                margin: 0,
-                textShadow: '0 0 10px rgba(82, 196, 26, 0.5)'
-              }}>
+            <div
+              style={{
+                textAlign: 'center',
+                marginTop: 20,
+              }}
+            >
+              <Title
+                level={4}
+                style={{
+                  color: '#52c41a',
+                  margin: 0,
+                  textShadow: '0 0 10px rgba(82, 196, 26, 0.5)',
+                }}
+              >
                 🎉✨ Generation Complete! ✨🎉
               </Title>
-              <div style={{
-                fontSize: '14px',
-                color: '#666',
-                marginTop: 8,
-                opacity: 0.8
-              }}>
+              <div
+                style={{
+                  fontSize: '14px',
+                  color: '#666',
+                  marginTop: 8,
+                  opacity: 0.8,
+                }}
+              >
                 Your code has been successfully generated!
               </div>
             </div>

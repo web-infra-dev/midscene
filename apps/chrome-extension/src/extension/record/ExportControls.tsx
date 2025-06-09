@@ -3,12 +3,13 @@ import {
   CopyOutlined,
   DownloadOutlined,
   FileTextOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons';
 import type { ChromeRecordedEvent } from '@midscene/record';
 import { Button, Dropdown, Modal, Space, Typography, message } from 'antd';
 import type { MenuProps } from 'antd';
 import type React from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRecordingSessionStore } from '../../store';
 import { optimizeEvent } from '../../utils/eventOptimizer';
 import { ProgressModal, type ProgressStep } from './components/ProgressModal';
@@ -40,6 +41,29 @@ export const ExportControls: React.FC<{
   const [generatedTest, setGeneratedTest] = useState('');
   const [generatedYaml, setGeneratedYaml] = useState('');
   const { updateSession } = useRecordingSessionStore();
+
+  // Get current session helper
+  const getCurrentSession = () => {
+    if (!sessionId) return null;
+    return (
+      useRecordingSessionStore
+        .getState()
+        .sessions.find((s) => s.id === sessionId) || null
+    );
+  };
+
+  // Load existing generated code when component mounts or sessionId changes
+  useEffect(() => {
+    const session = getCurrentSession();
+    if (session?.generatedCode) {
+      if (session.generatedCode.playwright) {
+        setGeneratedTest(session.generatedCode.playwright);
+      }
+      if (session.generatedCode.yaml) {
+        setGeneratedYaml(session.generatedCode.yaml);
+      }
+    }
+  }, [sessionId]);
 
   // Progress modal state
   const [showProgressModal, setShowProgressModal] = useState(false);
@@ -272,6 +296,17 @@ export const ExportControls: React.FC<{
 
       setGeneratedTest(testCode);
 
+      // Save generated code to session if sessionId exists
+      if (sessionId) {
+        updateSession(sessionId, {
+          generatedCode: {
+            ...getCurrentSession()?.generatedCode,
+            playwright: testCode,
+            lastGenerated: Date.now(),
+          },
+        });
+      }
+
       // Show confetti and then close progress modal
       setShowConfetti(true);
 
@@ -388,6 +423,17 @@ export const ExportControls: React.FC<{
 
       setGeneratedYaml(yamlContent);
 
+      // Save generated code to session if sessionId exists
+      if (sessionId) {
+        updateSession(sessionId, {
+          generatedCode: {
+            ...getCurrentSession()?.generatedCode,
+            yaml: yamlContent,
+            lastGenerated: Date.now(),
+          },
+        });
+      }
+
       // Show confetti and then close progress modal
       setShowConfetti(true);
 
@@ -476,6 +522,16 @@ export const ExportControls: React.FC<{
     );
   };
 
+  // Regenerate Playwright test
+  const handleRegenerateTest = async () => {
+    await handleGenerateTest();
+  };
+
+  // Regenerate YAML test
+  const handleRegenerateYaml = async () => {
+    await handleGenerateYaml();
+  };
+
   // Generate code dropdown menu items
   const generateCodeMenuItems: MenuProps['items'] = [
     {
@@ -537,16 +593,25 @@ export const ExportControls: React.FC<{
         onCancel={() => setShowTestModal(false)}
         width={900}
         footer={
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
+          <div
+            style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}
+          >
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={handleRegenerateTest}
+              disabled={isGenerating}
+            >
+              Regenerate
+            </Button>
             <Button icon={<CopyOutlined />} onClick={handleCopyTest}>
-              Copy to Clipboard
+              Copy
             </Button>
             <Button
               type="primary"
               icon={<DownloadOutlined />}
               onClick={handleDownloadTest}
             >
-              Download Test File
+              Download
             </Button>
           </div>
         }
@@ -604,16 +669,25 @@ export const ExportControls: React.FC<{
         onCancel={() => setShowYamlModal(false)}
         width={900}
         footer={
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
+          <div
+            style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}
+          >
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={handleRegenerateYaml}
+              disabled={isGenerating}
+            >
+              Regenerate
+            </Button>
             <Button icon={<CopyOutlined />} onClick={handleCopyYaml}>
-              Copy to Clipboard
+              Copy
             </Button>
             <Button
               type="primary"
               icon={<DownloadOutlined />}
               onClick={handleDownloadYaml}
             >
-              Download YAML File
+              Download
             </Button>
           </div>
         }

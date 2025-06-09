@@ -38,13 +38,21 @@ export const checkContentScriptInjected = async (
   } catch (error: any) {
     // More specific error handling for common scenarios
     const errorMsg = error?.message || '';
-    
+
     if (errorMsg.includes('Receiving end does not exist')) {
-      recordLogger.debug('Content script not available - tab may be refreshing or on restricted page', { tabId });
+      recordLogger.debug(
+        'Content script not available - tab may be refreshing or on restricted page',
+        { tabId },
+      );
     } else if (errorMsg.includes('Cannot access')) {
-      recordLogger.debug('Cannot access tab - may be Chrome internal page', { tabId });
+      recordLogger.debug('Cannot access tab - may be Chrome internal page', {
+        tabId,
+      });
     } else {
-      recordLogger.warn('Content script check failed', { tabId, error: errorMsg });
+      recordLogger.warn('Content script check failed', {
+        tabId,
+        error: errorMsg,
+      });
     }
     return false;
   }
@@ -408,7 +416,9 @@ export const diagnoseRecordingChain = async (
 
   // Check 5: Content script injection
   try {
-    recordLogger.debug('Checking content script injection for tab', { tabId: currentTab.id });
+    recordLogger.debug('Checking content script injection for tab', {
+      tabId: currentTab.id,
+    });
     const isInjected = await checkContentScriptInjected(currentTab.id);
     if (isInjected) {
       info.push('✓ Content script is injected and responding');
@@ -434,7 +444,9 @@ export const diagnoseRecordingChain = async (
       } catch (error: any) {
         const errorMsg = error?.message || error;
         if (errorMsg.includes('Cannot access')) {
-          issues.push('Cannot inject script: Page access denied (may be protected page)');
+          issues.push(
+            'Cannot inject script: Page access denied (may be protected page)',
+          );
         } else if (errorMsg.includes('chrome-extension://')) {
           issues.push('Cannot inject script on extension pages');
         } else {

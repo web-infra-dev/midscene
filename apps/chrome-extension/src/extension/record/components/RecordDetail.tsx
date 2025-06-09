@@ -6,15 +6,7 @@ import {
 } from '@ant-design/icons';
 import type { ChromeRecordedEvent } from '@midscene/record';
 import { RecordTimeline } from '@midscene/record';
-import {
-  Alert,
-  Button,
-  Card,
-  Divider,
-  Empty,
-  Space,
-  Typography,
-} from 'antd';
+import { Alert, Button, Card, Divider, Empty, Space, Typography } from 'antd';
 import type React from 'react';
 import type { RecordingSession } from '../../../store';
 
@@ -80,22 +72,23 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
         <div style={{ width: '120px' }} /> {/* Spacer to balance the layout */}
       </div>
 
-      {/* Recording Status Indicator */}
-      <div className={`recording-status ${isRecording ? 'recording' : 'idle'}`}>
-        {isRecording ? (
-          <span>🔴 Recording in progress</span>
-        ) : (
-          <span>✅ Ready to record</span>
-        )}
-      </div>
-
-
       {/* Recording Controls */}
       <div className="controls-section">
         <div className="current-tab-info">
           <Text strong>Current Tab:</Text>{' '}
           {currentTab?.title || 'No tab selected'}
           {!isExtensionMode && <Text type="secondary"> (Mock)</Text>}
+        </div>
+
+        {/* Recording Status Indicator */}
+        <div
+          className={`recording-status ${isRecording ? 'recording' : 'idle'}`}
+        >
+          {isRecording ? (
+            <span>🔴 Recording in progress</span>
+          ) : (
+            <span>✅ Ready to record</span>
+          )}
         </div>
 
         {/* Session Details */}
@@ -121,6 +114,8 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
             </Space>
           </div>
         </Card>
+
+
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
           <Space className="record-controls" wrap>
             {!isRecording ? (
@@ -130,7 +125,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
                 onClick={onStartRecording}
                 disabled={!currentTab || !isExtensionMode}
               >
-                Start Recording
+                Start
               </Button>
             ) : (
               <Button
@@ -139,7 +134,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
                 onClick={onStopRecording}
                 disabled={!isExtensionMode}
               >
-                Stop Recording
+                Stop
               </Button>
             )}
 
@@ -148,7 +143,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
               onClick={onClearEvents}
               disabled={events.length === 0 || isRecording}
             >
-              Clear Events
+              Clear
             </Button>
 
             {/* AI Playwright Export Controls */}

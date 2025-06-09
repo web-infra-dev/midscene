@@ -30,6 +30,11 @@ export interface RecordingSession {
   status: 'idle' | 'recording' | 'completed';
   duration?: number; // in milliseconds
   url?: string; // The URL where recording started
+  generatedCode?: {
+    playwright?: string;
+    yaml?: string;
+    lastGenerated?: number; // timestamp of last generation
+  };
 }
 
 // Storage keys
@@ -275,7 +280,7 @@ export const useEnvConfig = create<{
   setForceSameTabNavigation: (forceSameTabNavigation: boolean) => void;
   popupTab: 'playground' | 'bridge' | 'record';
   setPopupTab: (tab: 'playground' | 'bridge' | 'record') => void;
-}>((set, get) => {
+}>((set) => {
   const configString = getConfigStringFromLocalStorage();
   const config = parseConfig(configString);
   const ifInExtension = window.location.href.startsWith('chrome-extension');
