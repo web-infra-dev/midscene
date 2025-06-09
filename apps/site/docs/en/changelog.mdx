@@ -1,0 +1,151 @@
+# Changelog
+
+> For the complete changelog, please refer to: [Midscene Releases](https://github.com/web-infra-dev/midscene/releases)
+
+## v0.18.0 - enhanced reporting features
+
+🚀 Midscene has another update! It makes your testing and automation processes even more powerful:
+
+### Custom Node in Report
+
+* Add the `logScreenshot` API to the agent. Take a screenshot of the current page as a report node, and support setting the node title and description to make the automated testing process more intuitive. Applicable for capturing screenshots of key steps, error status capture, UI validation, etc.
+
+![](/blog/logScreenshot-api.png)
+
+* Example:
+
+```javascript
+test('login github', async ({ ai, aiAssert, aiInput, logScreenshot }) => {
+  if (CACHE_TIME_OUT) {
+    test.setTimeout(200 * 1000);
+  }
+  await ai('Click the "Sign in" button');
+  await aiInput('quanru', 'username');
+  await aiInput('123456', 'password');
+
+  // log by your own
+  await logScreenshot('Login page', {
+    content: 'Username is quanru, password is 123456',
+  });
+
+  await ai('Click the "Sign in" button');
+  await aiAssert('Login success');
+});
+```
+
+### Support for Downloading Reports as Videos
+
+* Support direct video download from the report player, just by clicking the download button on the player interface.
+
+![](/blog/export-video.png)
+
+* Applicable scenarios: Share test results, archive reproduction steps, and demonstrate problem reproduction.
+
+### More Android Configurations Exposed
+
+* Optimize input interactions in Android apps and allow connecting to remote Android devices
+
+  * `autoDismissKeyboard?: boolean` - Optional parameter. Whether to automatically dismiss the keyboard after entering text. The default value is true.
+
+  * `androidAdbPath?: string` - Optional parameter. Used to specify the path of the adb executable file.
+
+  * `remoteAdbHost?: string` - Optional parameter. Used to specify the remote adb host.
+
+  * `remoteAdbPort?: number` - Optional parameter. Used to specify the remote adb port.
+
+* Examples:
+
+```typescript
+await agent.aiInput('Search Box', 'Test Content', { autoDismissKeyboard: true })
+```
+
+```typescript
+const agent = await agentFromAdbDevice('s4ey59', {
+    autoDismissKeyboard: false, // Optional parameter. Whether to automatically dismiss the keyboard after entering text. The default value is true.
+    androidAdbPath: '/usr/bin/adb', // Optional parameter. Used to specify the path of the adb executable file.
+    remoteAdbHost: '192.168.10.1', // Optional parameter. Used to specify the remote adb host.
+    remoteAdbPort: '5037' // Optional parameter. Used to specify the remote adb port.
+})
+```
+
+Upgrade now to experience these powerful new features! 
+
+* [Custom Report Node API documentation](/en/API.mdx#log-screenshot)
+
+* [API documentation for more Android configuration items](/en/integrate-with-android.mdx#androiddevice-constructor)
+
+
+## v0.17.4 - Let AI See the DOM of the Page
+
+### Data Query API Enhanced
+
+To meet more automation and data extraction scenarios, the following APIs have been enhanced with the `options` parameter, supporting more flexible DOM information and screenshots:
+
+- `agent.aiQuery(dataDemand, options)`
+- `agent.aiBoolean(prompt, options)`
+- `agent.aiNumber(prompt, options)`
+- `agent.aiString(prompt, options)`
+
+#### New `options` parameter
+
+- `domIncluded`: Whether to pass the simplified DOM information to AI model, default is off. This is useful for extracting attributes that are not visible on the page, like image links.
+- `screenshotIncluded`: Whether to pass the screenshot to AI model, default is on.
+
+#### Code Example
+
+```typescript
+// Extract all contact information (including hidden avatarUrl attributes)
+const contactsData = await agent.aiQuery(
+  "{name: string, id: number, company: string, department: string, avatarUrl: string}[], extract all contact information including hidden avatarUrl attributes",
+  { domIncluded: true }
+);
+
+// Check if the id attribute of the first contact is 1
+const isId1 = await agent.aiBoolean(
+  "Is the first contact's id is 1?",
+  { domIncluded: true }
+);
+
+// Get the ID of the first contact (hidden attribute)
+const firstContactId = await agent.aiNumber("First contact's id?", { domIncluded: true });
+
+// Get the avatar URL of the first contact (invisible attribute on the page)
+const avatarUrl = await agent.aiString(
+  "What is the Avatar URL of the first contact?",
+  { domIncluded: true }
+);
+```
+
+### New Right-Click Ability
+
+Have you ever encountered a scenario where you need to automate a right-click operation? Now, Midscene supports a new `agent.aiRightClick()` method!
+
+#### Function
+
+Perform a right-click operation on the specified element, suitable for scenarios where right-click events are customized on web pages. Please note that Midscene cannot interact with the browser's native context menu after right-click.
+
+#### Parameter Description
+
+- `locate`: Describe the element you want to operate in natural language
+- `options`: Optional, supports `deepThink` (AI fine-grained positioning) and `cacheable` (result caching)
+
+#### Example
+
+```typescript
+// Right-click on a contact in the contacts application, triggering a custom context menu
+await agent.aiRightClick("Alice Johnson");
+
+// Then you can click on the options in the menu
+await agent.aiTap("Copy Info"); // Copy contact information to the clipboard
+```
+
+### A Complete Example
+
+In this report file, we show a complete example of using the new `aiRightClick` API and new query parameters to extract contact data including hidden attributes.
+
+Report file: [puppeteer-2025-06-04_20-34-48-zyh4ry4e.html](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/puppeteer-2025-06-04_20-34-48-zyh4ry4e.html)
+
+The corresponding code can be found in our example repository: [puppeteer-demo/extract-data.ts](https://github.com/web-infra-dev/midscene-example/blob/main/puppeteer-demo/extract-data.ts)
+
+
+
