@@ -2,6 +2,7 @@ import { message } from 'antd';
 import { useEffect } from 'react';
 import type { RecordingSession } from '../../../store';
 import { recordLogger } from '../logger';
+import type { ChromeRecordedEvent} from '@midscene/record';
 
 export const useLifecycleCleanup = (
   isRecording: boolean,
@@ -13,6 +14,7 @@ export const useLifecycleCleanup = (
     sessionId: string,
     updates: Partial<RecordingSession>,
   ) => void,
+  events: ChromeRecordedEvent[], // Add events parameter to save current events
 ) => {
   // Monitor visibility changes for the extension popup
   useEffect(() => {
@@ -41,8 +43,10 @@ export const useLifecycleCleanup = (
         if (currentSessionId) {
           const session = getCurrentSession();
           if (session) {
+            // Save current events before closing
             updateSession(currentSessionId, {
               status: 'completed',
+              events: [...events], // Save current recording events
               updatedAt: Date.now(),
             });
           }
@@ -75,8 +79,10 @@ export const useLifecycleCleanup = (
         if (currentSessionId) {
           const session = getCurrentSession();
           if (session) {
+            // Save current events before unmounting
             updateSession(currentSessionId, {
               status: 'completed',
+              events: [...events], // Save current recording events
               updatedAt: Date.now(),
             });
           }

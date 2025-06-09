@@ -87,6 +87,7 @@ export default function Record() {
     (sessionId: string, updates: Partial<RecordingSession>) => {
       sessionHooks.handleUpdateSession(sessionId, updates);
     },
+    events, // Pass current events to save them during cleanup
   );
 
   // Load current session events when switching sessions

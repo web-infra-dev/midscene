@@ -364,6 +364,14 @@ export const useRecordingControl = (
           message.data.map(processEventData),
         );
         setEvents(eventsData);
+        
+        // Persist events to session during recording
+        if (currentSessionId && isRecording) {
+          updateSession(currentSessionId, {
+            events: eventsData,
+            updatedAt: Date.now(),
+          });
+        }
       } else if (
         message.action === 'event' &&
         message.data &&
@@ -371,6 +379,18 @@ export const useRecordingControl = (
       ) {
         const optimizedEvent = await processEventData(message.data);
         addEvent(optimizedEvent);
+        
+        // Persist event to session during recording
+        if (currentSessionId && isRecording) {
+          const currentSession = getCurrentSession();
+          if (currentSession) {
+            const updatedEvents = [...currentSession.events, optimizedEvent];
+            updateSession(currentSessionId, {
+              events: updatedEvents,
+              updatedAt: Date.now(),
+            });
+          }
+        }
       } else {
         recordLogger.warn('Unhandled message format', {
           action: message.action,

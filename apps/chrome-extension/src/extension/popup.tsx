@@ -54,7 +54,7 @@ export function PlaygroundPopup() {
     },
     {
       key: 'record',
-      label: 'Record(Beta)',
+      label: 'Record (Beta)',
       icon: <VideoCameraOutlined />,
       children: <Record />,
     },
