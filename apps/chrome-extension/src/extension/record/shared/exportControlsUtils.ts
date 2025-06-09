@@ -73,8 +73,6 @@ export const checkElementDescriptions = (
 
   return eventsNeedingDescriptions.every(
     (event: ChromeRecordedEvent) =>
-      event.elementDescription &&
-      event.elementDescription !== 'AI is analyzing element...' &&
       !event.descriptionLoading,
   );
 };

@@ -65,21 +65,9 @@ export const clearDescriptionCache = (): void => {
 };
 
 // Generate fallback description for events when AI fails
-export const generateFallbackDescription = (event: RecordedEvent): string => {
-  const elementType = event.targetTagName?.toLowerCase() || 'element';
+export const generateFallbackDescription = (): string => {
 
-  switch (event.type) {
-    case 'click':
-      return `Click on ${elementType}${event.value ? ` with text "${event.value}"` : ''}`;
-    case 'input':
-      return `Input "${event.value || ''}" into ${elementType}`;
-    case 'scroll':
-      return `Scroll to position (${event.elementRect?.left || 0}, ${event.elementRect?.top || 0})`;
-    case 'navigation':
-      return `Navigate to ${event.url || 'new page'}`;
-    default:
-      return `${event.type} on ${elementType}`;
-  }
+  return `failed to generate element description`;
 };
 
 // Debounced AI description generation function
@@ -186,7 +174,7 @@ const generateAIDescriptionInternal = async (
         return description;
       } catch (aiError) {
         console.error('Failed to generate AI description:', aiError);
-        const fallbackDescription = generateFallbackDescription(event);
+        const fallbackDescription = generateFallbackDescription();
 
         // Cache the fallback description to avoid retrying failed requests
         addToCache(descriptionCache, hashId, fallbackDescription);
@@ -215,7 +203,7 @@ const generateAIDescriptionInternal = async (
     return descriptionPromise;
   } catch (error) {
     console.error('Error in generateAIDescription:', error);
-    const fallbackDescription = generateFallbackDescription(event);
+    const fallbackDescription = generateFallbackDescription();
 
     // Cache the fallback description
     addToCache(descriptionCache, hashId, fallbackDescription);
@@ -413,7 +401,7 @@ export const optimizeEvent = async (
           // Fallback is handled inside generateAIDescription, but we still update the callback
           updateCallback({
             ...eventWithBoxedImage,
-            elementDescription: generateFallbackDescription(event),
+            elementDescription: generateFallbackDescription(),
             descriptionLoading: false,
           });
         });
@@ -431,7 +419,7 @@ export const optimizeEvent = async (
       );
       // No coordinates available, no callback provided, or no boxed image
       eventWithBoxedImage.elementDescription =
-        generateFallbackDescription(event);
+        generateFallbackDescription();
     }
 
     return eventWithBoxedImage;
@@ -439,7 +427,7 @@ export const optimizeEvent = async (
     console.error('Failed to generate boxed image:', error);
     return {
       ...event,
-      elementDescription: generateFallbackDescription(event),
+      elementDescription: generateFallbackDescription(),
     };
   }
 };

@@ -61,6 +61,8 @@ if (window?.recorder?.isActive()) {
 
 window.recorder = null;
 let events: ChromeRecordedEvent[] = [];
+let debounceTimer: NodeJS.Timeout | null = null;
+let pendingEvents: ChromeRecordedEvent[] | null = null;
 
 // Helper function to capture screenshot
 async function captureScreenshot(): Promise<string | undefined> {
@@ -134,7 +136,7 @@ async function initializeRecorder(sessionId: string): Promise<void> {
         latestEvent.screenshotAfter = screenshotAfter!;
         latestEvent.screenshotBefore = screenshotBefore!;
 
-        // Send updated events array to extension popup
+        // Send updated events array to extension
         sendEventsToExtension(optimizedEvent);
       }, 100);
     },
@@ -143,36 +145,52 @@ async function initializeRecorder(sessionId: string): Promise<void> {
 }
 
 function sendEventsToExtension(optimizedEvent: ChromeRecordedEvent[]): void {
-  console.log('[EventRecorder Bridge] Sending events to extension:', {
-    optimizedEvent,
-    eventsCount: optimizedEvent.length,
-    eventTypes: optimizedEvent.map((e) => e.type),
-  });
+  // Store the latest events
+  pendingEvents = optimizedEvent;
 
-  chrome.runtime
-    .sendMessage({
-      action: 'events',
-      data: optimizedEvent.map((event) => ({
-        hashId: event.hashId,
-        type: event.type,
-        timestamp: event.timestamp,
-        // Element position and click coordinates
-        elementRect: event.elementRect,
-        // Page information and screenshots
-        pageInfo: event.pageInfo,
-        screenshotBefore: event.screenshotBefore,
-        screenshotAfter: event.screenshotAfter,
-        // Other event properties
-        value: event.value,
-      })),
-    } as ChromeMessage)
-    .catch((error) => {
-      // Extension popup might not be open
-      console.debug(
-        '[EventRecorder Bridge] Failed to send events to extension (popup may be closed):',
-        (error as Error).message,
-      );
+  // Clear any existing timer
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+  }
+
+  // Set new timer
+  debounceTimer = setTimeout(() => {
+    if (!pendingEvents) return;
+
+    console.log('[EventRecorder Bridge] Sending events to extension:', {
+      optimizedEvent: pendingEvents,
+      eventsCount: pendingEvents.length,
+      eventTypes: pendingEvents.map((e) => e.type),
     });
+
+    chrome.runtime
+      .sendMessage({
+        action: 'events',
+        data: pendingEvents.map((event) => ({
+          hashId: event.hashId,
+          type: event.type,
+          timestamp: event.timestamp,
+          // Element position and click coordinates
+          elementRect: event.elementRect,
+          // Page information and screenshots
+          pageInfo: event.pageInfo,
+          screenshotBefore: event.screenshotBefore,
+          screenshotAfter: event.screenshotAfter,
+          // Other event properties
+          value: event.value,
+        })),
+      } as ChromeMessage)
+      .catch((error) => {
+        // Extension popup might not be open
+        console.debug(
+          '[EventRecorder Bridge] Failed to send events to extension (popup may be closed):',
+          (error as Error).message,
+        );
+      });
+
+    // Clear the pending events after sending
+    pendingEvents = null;
+  }, 300);
 }
 
 // Listen for messages from extension popup
