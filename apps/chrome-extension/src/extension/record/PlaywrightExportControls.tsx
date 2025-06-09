@@ -8,10 +8,16 @@ import type { ChromeRecordedEvent } from '@midscene/record';
 import { Button, Modal, Space, Typography, message } from 'antd';
 import type React from 'react';
 import { useState } from 'react';
-import { useRecordStore, useRecordingSessionStore } from '../../store';
-import { generatePlaywrightTest } from './generatePlaywrightTest';
-import { exportEventsToYaml } from './generateYamlTest';
+import { useRecordingSessionStore } from '../../store';
+import { exportEventsToYaml, generatePlaywrightTest } from './generators';
 import { recordLogger } from './logger';
+import {
+  checkElementDescriptions,
+  getLatestEvents,
+  resolveSessionName,
+  stopRecordingIfActive,
+  waitForElementDescriptions,
+} from './shared/exportControlsUtils';
 import { exportEventsToFile, generateRecordTitle } from './utils';
 
 const { Text } = Typography;
@@ -30,92 +36,17 @@ export const PlaywrightExportControls: React.FC<{
   const [showTestModal, setShowTestModal] = useState(false);
   const [generatedTest, setGeneratedTest] = useState('');
   const { updateSession } = useRecordingSessionStore();
-  const { events: liveEvents, isRecording } = useRecordStore();
+  // const { events: liveEvents, isRecording } = useRecordStore();
 
   // Create a function to get the latest events with AI descriptions
-  const getLatestEvents = (): ChromeRecordedEvent[] => {
-    const currentLiveEvents = useRecordStore.getState().events;
-
-    // If currently recording, always use live events as they have the most up-to-date AI descriptions
-    if (isRecording && currentLiveEvents.length > 0) {
-      recordLogger.info('Using live events during recording', {
-        eventsCount: currentLiveEvents.length,
-      });
-      return currentLiveEvents;
-    }
-
-    // If not recording, compare live events and session events to find the most complete data
-    if (sessionId) {
-      const session = useRecordingSessionStore
-        .getState()
-        .sessions.find((s) => s.id === sessionId);
-      const sessionEvents = session?.events || [];
-
-      // If we have live events, prefer them as they are more up-to-date
-      if (
-        currentLiveEvents.length > 0 &&
-        currentLiveEvents.length >= sessionEvents.length
-      ) {
-        recordLogger.info('Using live events (more recent)', {
-          eventsCount: currentLiveEvents.length,
-        });
-        return currentLiveEvents;
-      }
-
-      recordLogger.info('Using session events', {
-        eventsCount: sessionEvents.length,
-      });
-      return sessionEvents;
-    }
-
-    // Fallback to live events
-    recordLogger.info('Using fallback live events', {
-      eventsCount: currentLiveEvents.length,
-    });
-    return currentLiveEvents;
-  };
-
-  // Check if all elements have descriptions generated
-  const checkElementDescriptions = (): boolean => {
-    const currentEvents = getLatestEvents();
-    const eventsNeedingDescriptions = currentEvents.filter(
-      (event: ChromeRecordedEvent) =>
-        event.type === 'click' ||
-        event.type === 'input' ||
-        event.type === 'scroll',
-    );
-
-    return eventsNeedingDescriptions.every(
-      (event: ChromeRecordedEvent) =>
-        event.elementDescription &&
-        event.elementDescription !== 'AI is analyzing element...' &&
-        !event.descriptionLoading,
-    );
-  };
-
-  // Wait for all element descriptions to be generated
-  const waitForElementDescriptions = (): Promise<void> => {
-    return new Promise((resolve) => {
-      const checkInterval = setInterval(() => {
-        if (checkElementDescriptions()) {
-          clearInterval(checkInterval);
-          resolve();
-        }
-      }, 200); // Check every 200ms
-
-      // Timeout after 30 seconds
-      setTimeout(() => {
-        clearInterval(checkInterval);
-        resolve();
-      }, 30000);
-    });
+  const getCurrentEvents = (): ChromeRecordedEvent[] => {
+    return getLatestEvents(events, sessionId);
   };
 
   // Generate Playwright test from recorded events
   const handleGenerateTest = async () => {
     // Get the most current events
-    const currentEvents =
-      isRecording && liveEvents.length > 0 ? liveEvents : events;
+    const currentEvents = getCurrentEvents();
 
     if (currentEvents.length === 0) {
       message.warning('No events to generate test from');
@@ -125,21 +56,10 @@ export const PlaywrightExportControls: React.FC<{
     setIsGenerating(true);
     try {
       // Step 0: Stop recording if currently recording
-      if (isRecording && onStopRecording) {
-        recordLogger.info('Stopping recording before generating AI test');
-        message.loading('Stopping recording...', 0);
-        await Promise.resolve(onStopRecording());
-        message.destroy();
-        recordLogger.success(
-          'Recording stopped, proceeding with test generation',
-        );
-
-        // Small delay to ensure events are fully saved to session
-        await new Promise((resolve) => setTimeout(resolve, 500));
-      }
+      await stopRecordingIfActive(onStopRecording);
 
       // After stopping recording, get the latest events from session
-      const finalEvents = getLatestEvents();
+      const finalEvents = getCurrentEvents();
 
       // Step 1: Generate session title and description if not already generated
       let currentSessionName = sessionName; // Default to the original prop
@@ -174,15 +94,15 @@ export const PlaywrightExportControls: React.FC<{
 
       // Step 2: Wait for all element descriptions to be generated
       recordLogger.info('Checking element descriptions before test generation');
-      if (!checkElementDescriptions()) {
+      if (!checkElementDescriptions(finalEvents)) {
         message.loading('Waiting for element descriptions to complete...', 0);
-        await waitForElementDescriptions();
+        await waitForElementDescriptions(getCurrentEvents);
         message.destroy();
         recordLogger.success('Element descriptions ready for test generation');
       }
 
       // Step 3: Generate Playwright test
-      const latestEvents = getLatestEvents();
+      const latestEvents = getCurrentEvents();
 
       recordLogger.info('Events ready for test generation', {
         events: latestEvents,
@@ -220,16 +140,7 @@ export const PlaywrightExportControls: React.FC<{
 
   // Download generated test as a TypeScript file
   const handleDownloadTest = () => {
-    // Get the current session name from store if available
-    let downloadSessionName = sessionName;
-    if (sessionId) {
-      const session = useRecordingSessionStore
-        .getState()
-        .sessions.find((s) => s.id === sessionId);
-      if (session) {
-        downloadSessionName = session.name;
-      }
-    }
+    const downloadSessionName = resolveSessionName(sessionName, sessionId);
 
     const dataBlob = new Blob([generatedTest], {
       type: 'application/typescript',
@@ -250,8 +161,7 @@ export const PlaywrightExportControls: React.FC<{
   // Export original events as YAML
   const handleExportYaml = async () => {
     // Get the most current events
-    const currentEvents =
-      isRecording && liveEvents.length > 0 ? liveEvents : events;
+    const currentEvents = getCurrentEvents();
 
     if (currentEvents.length === 0) {
       message.warning('No events to export as YAML');
@@ -261,52 +171,36 @@ export const PlaywrightExportControls: React.FC<{
     setIsExportingYaml(true);
     try {
       // Step 0: Stop recording if currently recording
-      if (isRecording && onStopRecording) {
-        recordLogger.info('Stopping recording before YAML export');
-        message.loading('Stopping recording...', 0);
-        await Promise.resolve(onStopRecording());
-        message.destroy();
-        recordLogger.success('Recording stopped, proceeding with YAML export');
+      await stopRecordingIfActive(onStopRecording);
 
-        // Small delay to ensure events are fully saved to session
-        await new Promise((resolve) => setTimeout(resolve, 500));
-      }
+      // After stopping recording, get the latest events
+      const finalEvents = getCurrentEvents();
 
       // Step 1: Wait for all element descriptions to be generated
       recordLogger.info('Checking element descriptions before YAML export');
-      if (!checkElementDescriptions()) {
+      if (!checkElementDescriptions(finalEvents)) {
         message.loading('Waiting for element descriptions to complete...', 0);
-        await waitForElementDescriptions();
+        await waitForElementDescriptions(getCurrentEvents);
         message.destroy();
         recordLogger.success('Element descriptions ready for YAML export');
       }
 
-      // After stopping recording and waiting for descriptions, get the latest events
-      const finalEvents = getLatestEvents();
-
       // Get the current session name from store if available
-      let exportSessionName = sessionName;
-      if (sessionId) {
-        const session = useRecordingSessionStore
-          .getState()
-          .sessions.find((s) => s.id === sessionId);
-        if (session) {
-          exportSessionName = session.name;
-        }
-      }
+      const exportSessionName = resolveSessionName(sessionName, sessionId);
 
       recordLogger.info('Events ready for YAML export', {
         events: finalEvents,
         eventsCount: finalEvents.length,
       });
 
-      message.loading('Generating AI-powered YAML test...', 0);
-      
-      await exportEventsToYaml(finalEvents, exportSessionName, {
+      message.loading('Generating AI-powered YAML test...');
+
+      const exportEvents = getCurrentEvents();
+      await exportEventsToYaml(exportEvents, exportSessionName, {
         includeScreenshots: false, // Keep file size manageable
         includeTimestamps: true,
       });
-      
+
       message.destroy();
       message.success(`YAML test exported for "${exportSessionName}"`);
     } catch (error) {
@@ -323,19 +217,9 @@ export const PlaywrightExportControls: React.FC<{
   // Export original events as JSON
   const handleExportEvents = () => {
     // Get the most current events
-    const currentEvents =
-      isRecording && liveEvents.length > 0 ? liveEvents : events;
+    const currentEvents = getCurrentEvents();
 
-    // Get the current session name from store if available
-    let exportSessionName = sessionName;
-    if (sessionId) {
-      const session = useRecordingSessionStore
-        .getState()
-        .sessions.find((s) => s.id === sessionId);
-      if (session) {
-        exportSessionName = session.name;
-      }
-    }
+    const exportSessionName = resolveSessionName(sessionName, sessionId);
     exportEventsToFile(currentEvents, exportSessionName);
   };
 
@@ -346,10 +230,7 @@ export const PlaywrightExportControls: React.FC<{
           icon={<CodeOutlined />}
           onClick={handleGenerateTest}
           loading={isGenerating}
-          disabled={
-            (isRecording && liveEvents.length === 0) ||
-            (!isRecording && events.length === 0)
-          }
+          disabled={getCurrentEvents().length === 0}
           type="primary"
         >
           {isGenerating ? 'Generating AI Test...' : 'Generate Playwright Test'}
@@ -359,10 +240,7 @@ export const PlaywrightExportControls: React.FC<{
           icon={<FileTextOutlined />}
           onClick={handleExportYaml}
           loading={isExportingYaml}
-          disabled={
-            (isRecording && liveEvents.length === 0) ||
-            (!isRecording && events.length === 0)
-          }
+          disabled={getCurrentEvents().length === 0}
         >
           {isExportingYaml ? 'Generating YAML...' : 'Export as YAML'}
         </Button>
@@ -370,10 +248,7 @@ export const PlaywrightExportControls: React.FC<{
         <Button
           icon={<DownloadOutlined />}
           onClick={handleExportEvents}
-          disabled={
-            (isRecording && liveEvents.length === 0) ||
-            (!isRecording && events.length === 0)
-          }
+          disabled={getCurrentEvents().length === 0}
         >
           Export Events as JSON
         </Button>
