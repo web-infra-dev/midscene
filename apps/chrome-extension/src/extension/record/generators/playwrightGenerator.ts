@@ -6,14 +6,19 @@ import { handleTestGenerationError } from './shared/testGenerationUtils';
 /**
  * Extracts navigation and viewport information from events
  */
-export const extractNavigationAndViewportInfo = (events: ChromeRecordedEvent[]) => {
-  const navigationEvents = events.filter(event => event.type === 'navigation');
-  const allViewportSizes = events.map(event => event.pageInfo).filter(Boolean);
-  
+export const extractNavigationAndViewportInfo = (
+  events: ChromeRecordedEvent[],
+) => {
+  const navigationEvents = events.filter(
+    (event) => event.type === 'navigation',
+  );
+  const allViewportSizes = events
+    .map((event) => event.pageInfo)
+    .filter(Boolean);
 
   return {
-    urls: navigationEvents.map(event => event.url).filter(Boolean),
-    titles: navigationEvents.map(event => event.title).filter(Boolean),
+    urls: navigationEvents.map((event) => event.url).filter(Boolean),
+    titles: navigationEvents.map((event) => event.title).filter(Boolean),
     initialViewport: allViewportSizes[0],
   };
 };
@@ -32,7 +37,7 @@ export const generatePlaywrightTest = async (
 
     // Extract navigation and viewport information
     const navigationInfo = extractNavigationAndViewportInfo(events);
-    
+
     recordLogger.info('Navigation and viewport info extracted', {
       eventsCount: events.length,
     });

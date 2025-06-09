@@ -147,10 +147,7 @@ export class EventRecorder {
   }
 
   // Create initial navigation event with page dimensions
-  createNavigationEvent(
-    url: string,
-    title: string,
-  ): ChromeRecordedEvent {
+  createNavigationEvent(url: string, title: string): ChromeRecordedEvent {
     return {
       type: 'navigation',
       url,
@@ -191,9 +188,9 @@ export class EventRecorder {
 
     // Add final navigation event to capture the final page
     setTimeout(() => {
-    const navigationEvent = this.createNavigationEvent(
-      window.location.href,
-      document.title,
+      const navigationEvent = this.createNavigationEvent(
+        window.location.href,
+        document.title,
       );
       this.eventCallback(navigationEvent);
       debugLog('Added final navigation event', navigationEvent);
@@ -491,7 +488,9 @@ export class EventRecorder {
 }
 
 // Convert RecordedEvent to ChromeRecordedEvent
-export function convertToChromeEvent(event: RecordedEvent): ChromeRecordedEvent {
+export function convertToChromeEvent(
+  event: RecordedEvent,
+): ChromeRecordedEvent {
   return {
     type: event.type,
     url: event.url,
@@ -510,6 +509,8 @@ export function convertToChromeEvent(event: RecordedEvent): ChromeRecordedEvent 
 }
 
 // Convert array of RecordedEvent to array of ChromeRecordedEvent
-export function convertToChromeEvents(events: RecordedEvent[]): ChromeRecordedEvent[] {
+export function convertToChromeEvents(
+  events: RecordedEvent[],
+): ChromeRecordedEvent[] {
   return events.map(convertToChromeEvent);
 }

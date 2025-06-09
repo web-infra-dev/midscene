@@ -60,7 +60,7 @@ export default defineConfig({
         to: 'scripts',
       },
     ],
-    sourceMap: true
+    sourceMap: true,
   },
   source: {
     define: {

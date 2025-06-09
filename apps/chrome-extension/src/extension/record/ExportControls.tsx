@@ -9,7 +9,11 @@ import { Button, Modal, Space, Typography, message } from 'antd';
 import type React from 'react';
 import { useState } from 'react';
 import { useRecordingSessionStore } from '../../store';
-import { exportEventsToYaml, generatePlaywrightTest } from './generators';
+import {
+  exportEventsToYaml,
+  generatePlaywrightTest,
+  generateYamlTest,
+} from './generators';
 import { recordLogger } from './logger';
 import {
   checkElementDescriptions,
@@ -33,8 +37,11 @@ export const ExportControls: React.FC<{
 }> = ({ sessionName, events, sessionId, onStopRecording }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isExportingYaml, setIsExportingYaml] = useState(false);
+  const [isGeneratingYaml, setIsGeneratingYaml] = useState(false);
   const [showTestModal, setShowTestModal] = useState(false);
+  const [showYamlModal, setShowYamlModal] = useState(false);
   const [generatedTest, setGeneratedTest] = useState('');
+  const [generatedYaml, setGeneratedYaml] = useState('');
   const { updateSession } = useRecordingSessionStore();
   // const { events: liveEvents, isRecording } = useRecordStore();
 
@@ -121,11 +128,7 @@ export const ExportControls: React.FC<{
         eventsCount: latestEvents.length,
       });
 
-      const testCode = await generatePlaywrightTest(latestEvents, {
-        testName: `Test: ${currentSessionName}`,
-        waitForNetworkIdle: true,
-        waitForNetworkIdleTimeout: 2000,
-      });
+      const testCode = await generatePlaywrightTest(latestEvents);
 
       setGeneratedTest(testCode);
       setShowTestModal(true);
@@ -144,10 +147,75 @@ export const ExportControls: React.FC<{
     }
   };
 
+  // Generate YAML test from recorded events
+  const handleGenerateYaml = async () => {
+    // Get the most current events
+    const currentEvents = getCurrentEvents();
+
+    if (currentEvents.length === 0) {
+      message.warning('No events to generate YAML from');
+      return;
+    }
+
+    setIsGeneratingYaml(true);
+    try {
+      // Step 0: Stop recording if currently recording
+      await stopRecordingIfActive(onStopRecording);
+
+      // After stopping recording, get the latest events from session
+      const finalEvents = getCurrentEvents();
+
+      // Step 1: Generate session title and description if not already generated
+      const currentSessionName =
+        await generateSessionTitleAndDescription(finalEvents);
+
+      // Step 2: Wait for all element descriptions to be generated
+      recordLogger.info('Checking element descriptions before YAML generation');
+      if (!checkElementDescriptions(finalEvents)) {
+        message.loading('Waiting for element descriptions to complete...', 0);
+        await waitForElementDescriptions(getCurrentEvents);
+        message.destroy();
+        recordLogger.success('Element descriptions ready for YAML generation');
+      }
+
+      // Step 3: Generate YAML test
+      const latestEvents = getCurrentEvents();
+
+      recordLogger.info('Events ready for YAML generation', {
+        events: latestEvents,
+        eventsCount: latestEvents.length,
+      });
+
+      const yamlContent = await generateYamlTest(latestEvents, {
+        testName: `Test: ${currentSessionName}`,
+        description: `Test session recorded on ${new Date().toLocaleDateString()}`,
+        includeScreenshots: false,
+        includeTimestamps: true,
+      });
+
+      setGeneratedYaml(yamlContent);
+      setShowYamlModal(true);
+      message.success('AI YAML test generated successfully!');
+    } catch (error) {
+      recordLogger.error('Failed to generate YAML test', undefined, error);
+      message.error(
+        `Failed to generate YAML: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    } finally {
+      setIsGeneratingYaml(false);
+    }
+  };
+
   // Copy generated test to clipboard
   const handleCopyTest = () => {
     navigator.clipboard.writeText(generatedTest);
     message.success('Test copied to clipboard');
+  };
+
+  // Copy generated YAML to clipboard
+  const handleCopyYaml = () => {
+    navigator.clipboard.writeText(generatedYaml);
+    message.success('YAML copied to clipboard');
   };
 
   // Download generated test as a TypeScript file
@@ -167,6 +235,26 @@ export const ExportControls: React.FC<{
     URL.revokeObjectURL(url);
     message.success(
       `Playwright test for "${downloadSessionName}" downloaded successfully`,
+    );
+  };
+
+  // Download generated YAML as a YAML file
+  const handleDownloadYaml = () => {
+    const downloadSessionName = resolveSessionName(sessionName, sessionId);
+
+    const dataBlob = new Blob([generatedYaml], {
+      type: 'application/x-yaml',
+    });
+    const url = URL.createObjectURL(dataBlob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${downloadSessionName}-test.yaml`;
+    link.click();
+
+    URL.revokeObjectURL(url);
+    message.success(
+      `YAML test for "${downloadSessionName}" downloaded successfully`,
     );
   };
 
@@ -250,11 +338,20 @@ export const ExportControls: React.FC<{
 
         <Button
           icon={<FileTextOutlined />}
+          onClick={handleGenerateYaml}
+          loading={isGeneratingYaml}
+          disabled={getCurrentEvents().length === 0}
+        >
+          {isGeneratingYaml ? 'Generating YAML...' : 'Generate YAML Test'}
+        </Button>
+
+        <Button
+          icon={<DownloadOutlined />}
           onClick={handleExportYaml}
           loading={isExportingYaml}
           disabled={getCurrentEvents().length === 0}
         >
-          {isExportingYaml ? 'Generating YAML...' : 'Export as YAML'}
+          {isExportingYaml ? 'Exporting YAML...' : 'Export YAML (Direct)'}
         </Button>
 
         <Button
@@ -333,6 +430,79 @@ export const ExportControls: React.FC<{
             <Text type="secondary" style={{ fontSize: '12px' }}>
               💡 Tip: This test is ready to run with{' '}
               <code>npx playwright test</code>
+            </Text>
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        title={
+          <Space>
+            <FileTextOutlined />
+            <span>AI-Generated YAML Test</span>
+          </Space>
+        }
+        open={showYamlModal}
+        onCancel={() => setShowYamlModal(false)}
+        width={900}
+        footer={[
+          <Text key="info" type="secondary" style={{ marginRight: 'auto' }}>
+            Ready to use YAML test configuration
+          </Text>,
+          <Button key="close" onClick={() => setShowYamlModal(false)}>
+            Close
+          </Button>,
+          <Button key="copy" icon={<CopyOutlined />} onClick={handleCopyYaml}>
+            Copy to Clipboard
+          </Button>,
+          <Button
+            key="download"
+            type="primary"
+            icon={<DownloadOutlined />}
+            onClick={handleDownloadYaml}
+          >
+            Download YAML File
+          </Button>,
+        ]}
+      >
+        <div style={{ marginBottom: '12px' }}>
+          <Text type="secondary">
+            This YAML configuration can be used with various automation
+            frameworks that support <strong>@midscene/web</strong> integration.
+          </Text>
+        </div>
+
+        <div
+          style={{
+            maxHeight: '65vh',
+            overflow: 'auto',
+            background: '#1e1e1e',
+            padding: '16px',
+            borderRadius: '6px',
+            border: '1px solid #d9d9d9',
+            fontFamily: '"Fira Code", "Consolas", "Monaco", monospace',
+          }}
+        >
+          <pre
+            style={{
+              margin: 0,
+              whiteSpace: 'pre-wrap',
+              color: '#d4d4d4',
+              fontSize: '13px',
+              lineHeight: '1.5',
+              tabSize: 2,
+            }}
+          >
+            {generatedYaml ||
+              'Generated YAML configuration will appear here...'}
+          </pre>
+        </div>
+
+        {generatedYaml && (
+          <div style={{ marginTop: '12px', textAlign: 'center' }}>
+            <Text type="secondary" style={{ fontSize: '12px' }}>
+              💡 Tip: This YAML can be used with automation frameworks that
+              support @midscene/web
             </Text>
           </div>
         )}

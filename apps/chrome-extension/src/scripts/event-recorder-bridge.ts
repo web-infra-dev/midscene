@@ -1,6 +1,10 @@
 /// <reference types="chrome" />
 
-import { convertToChromeEvents, type ChromeRecordedEvent, type RecordedEvent } from '@midscene/record';
+import {
+  type ChromeRecordedEvent,
+  type RecordedEvent,
+  convertToChromeEvents,
+} from '@midscene/record';
 
 // Event Recorder Bridge
 // This script bridges the EventRecorder (injected via record-iife.js) with the Chrome Extension
@@ -78,13 +82,12 @@ async function captureScreenshot(): Promise<string | undefined> {
     return screenshot;
   } catch (error) {
     if (error instanceof Error) {
-      
       console.error(
         '[EventRecorder Bridge] Failed to capture screenshot:',
         error.message,
       );
       if (error.message.includes('Extension context invalidated')) {
-        window?.recorder?.stop();  
+        window?.recorder?.stop();
       }
     }
     return undefined;

@@ -66,7 +66,6 @@ export const clearDescriptionCache = (): void => {
 
 // Generate fallback description for events when AI fails
 export const generateFallbackDescription = (): string => {
-
   return `failed to generate element description`;
 };
 
@@ -418,8 +417,7 @@ export const optimizeEvent = async (
         },
       );
       // No coordinates available, no callback provided, or no boxed image
-      eventWithBoxedImage.elementDescription =
-        generateFallbackDescription();
+      eventWithBoxedImage.elementDescription = generateFallbackDescription();
     }
 
     return eventWithBoxedImage;

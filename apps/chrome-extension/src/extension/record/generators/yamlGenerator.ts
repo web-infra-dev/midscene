@@ -1,10 +1,9 @@
 import { generateYamlTest as generateYamlTestCore } from '@midscene/core/ai-model';
 import type { ChromeRecordedEvent } from '@midscene/record';
 import { recordLogger } from '../logger';
+import { extractNavigationAndViewportInfo } from './playwrightGenerator';
 import { handleTestGenerationError } from './shared/testGenerationUtils';
 import type { YamlGenerationOptions } from './shared/types';
-import { extractNavigationAndViewportInfo } from './playwrightGenerator';
-
 
 /**
  * Generates YAML test configuration from recorded events using AI
@@ -21,7 +20,7 @@ export const generateYamlTest = async (
 
     // Extract navigation and viewport information
     const navigationInfo = extractNavigationAndViewportInfo(events);
-    
+
     recordLogger.info('Navigation and viewport info extracted', {
       eventsCount: events.length,
     });

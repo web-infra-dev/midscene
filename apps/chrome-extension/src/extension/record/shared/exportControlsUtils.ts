@@ -72,8 +72,7 @@ export const checkElementDescriptions = (
   );
 
   return eventsNeedingDescriptions.every(
-    (event: ChromeRecordedEvent) =>
-      !event.descriptionLoading,
+    (event: ChromeRecordedEvent) => !event.descriptionLoading,
   );
 };
 
