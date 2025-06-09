@@ -179,7 +179,8 @@ export type MidsceneYamlFlowItem =
   | MidsceneYamlFlowItemAIKeyboardPress
   | MidsceneYamlFlowItemAIScroll
   | MidsceneYamlFlowItemSleep
-  | MidsceneYamlFlowItemLogScreenshot;
+  | MidsceneYamlFlowItemLogScreenshot
+  | MidsceneYamlFlowItemAILocate;
 
 export interface FreeFn {
   name: string;

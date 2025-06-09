@@ -339,7 +339,11 @@ export function buildYamlFlowFromPlans(
     const type = plan.type;
     const locate = plan.locate?.prompt!; // TODO: check if locate is null
 
-    if (type === 'Tap') {
+    if (type === 'Locate') {
+      flow.push({
+        aiLocate: locate!,
+      });
+    } else if (type === 'Tap') {
       flow.push({
         aiTap: locate!,
       });
