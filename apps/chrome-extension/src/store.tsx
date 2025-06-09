@@ -140,6 +140,33 @@ export const useRecordingSessionStore = create<{
   },
 }));
 
+// Helper functions for events persistence
+const loadEventsFromStorage = (): ChromeRecordedEvent[] => {
+  try {
+    const stored = localStorage.getItem('midscene-recording-events');
+    return stored ? JSON.parse(stored) : [];
+  } catch (error) {
+    console.error('Failed to load events from storage:', error);
+    return [];
+  }
+};
+
+const saveEventsToStorage = (events: ChromeRecordedEvent[]) => {
+  try {
+    localStorage.setItem('midscene-recording-events', JSON.stringify(events));
+  } catch (error) {
+    console.error('Failed to save events to storage:', error);
+  }
+};
+
+const clearEventsFromStorage = () => {
+  try {
+    localStorage.removeItem('midscene-recording-events');
+  } catch (error) {
+    console.error('Failed to clear events from storage:', error);
+  }
+};
+
 export const useRecordStore = create<{
   isRecording: boolean;
   events: ChromeRecordedEvent[];
@@ -148,29 +175,46 @@ export const useRecordStore = create<{
   addEvent: (event: ChromeRecordedEvent) => void;
   setEvents: (events: ChromeRecordedEvent[]) => void;
   clearEvents: () => void;
-}>((set) => ({
+}>((set, get) => ({
   isRecording: loadRecordingStateFromStorage(),
-  events: [],
+  events: loadRecordingStateFromStorage() ? loadEventsFromStorage() : [],
   setIsRecording: (recording: boolean) => {
     saveRecordingStateToStorage(recording);
     set({ isRecording: recording });
+    // Clear events from storage when stopping recording
+    if (!recording) {
+      clearEventsFromStorage();
+    }
   },
   addEvent: (event: ChromeRecordedEvent) => {
-    set((state) => ({
-      events: [...state.events, event],
-    }));
+    set((state) => {
+      const newEvents = [...state.events, event];
+      if (state.isRecording) {
+        saveEventsToStorage(newEvents);
+      }
+      return { events: newEvents };
+    });
   },
   updateEvent: (event: ChromeRecordedEvent) => {
-    set((state) => ({
-      events: state.events.map((e) =>
+    set((state) => {
+      const newEvents = state.events.map((e) =>
         e.timestamp === event.timestamp ? event : e,
-      ),
-    }));
+      );
+      if (state.isRecording) {
+        saveEventsToStorage(newEvents);
+      }
+      return { events: newEvents };
+    });
   },
   setEvents: (events: ChromeRecordedEvent[]) => {
+    const state = get();
+    if (state.isRecording) {
+      saveEventsToStorage(events);
+    }
     set({ events });
   },
   clearEvents: () => {
+    clearEventsFromStorage();
     set({ events: [] });
   },
 }));
