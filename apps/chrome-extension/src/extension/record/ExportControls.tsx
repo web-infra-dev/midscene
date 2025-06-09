@@ -48,12 +48,12 @@ export const ExportControls: React.FC<{
     finalEvents: ChromeRecordedEvent[],
   ): Promise<string> => {
     let currentSessionName = sessionName; // Default to the original prop
-    
+
     if (sessionId) {
       const session = useRecordingSessionStore
         .getState()
         .sessions.find((s) => s.id === sessionId);
-      
+
       if (
         session &&
         (!session.name || session.name.includes('-') || !session.description)
@@ -78,7 +78,7 @@ export const ExportControls: React.FC<{
         currentSessionName = session.name;
       }
     }
-    
+
     return currentSessionName;
   };
 
@@ -101,7 +101,8 @@ export const ExportControls: React.FC<{
       const finalEvents = getCurrentEvents();
 
       // Step 1: Generate session title and description if not already generated
-      const currentSessionName = await generateSessionTitleAndDescription(finalEvents);
+      const currentSessionName =
+        await generateSessionTitleAndDescription(finalEvents);
 
       // Step 2: Wait for all element descriptions to be generated
       recordLogger.info('Checking element descriptions before test generation');

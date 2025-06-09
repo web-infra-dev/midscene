@@ -1,7 +1,9 @@
-import { getLanguage } from './ui-tars-planning';
+import { getPreferredLanguage } from '@midscene/shared/env';
 
 // claude 3.5 sonnet computer The ability to understand the content of the image is better, Does not provide element snapshot effect
 export function systemPromptToLocateElementPosition() {
+  const preferredLanguage = getPreferredLanguage();
+
   return `
 You are a GUI agent. You are given a task and your action history, with screenshots. You need to perform the next action to complete the task. 
 
@@ -24,7 +26,7 @@ finished()
 call_user() # Submit the task and call the user when the task is unsolvable, or when you need the user's help.
 
 ## Note
-- Use ${getLanguage()} in \`Thought\` part.
+- Use ${preferredLanguage} in \`Thought\` part.
 - Write a small plan and finally summarize your next action (with its target element) in one sentence in \`Thought\` part.
 
 ## User Instruction

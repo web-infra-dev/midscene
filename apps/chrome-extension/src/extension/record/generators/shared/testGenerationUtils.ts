@@ -1,12 +1,12 @@
 import type { ChromeRecordedEvent } from '@midscene/record';
 import { recordLogger } from '../../logger';
 import type {
+  EventCounts,
   EventSummary,
   FilteredEvents,
-  TestGenerationOptions,
-  EventCounts,
   InputDescription,
   ProcessedEvent,
+  TestGenerationOptions,
 } from './types';
 
 /**
@@ -54,7 +54,9 @@ export const getScreenshotsForLLM = (
 /**
  * Filter events by type for easier processing
  */
-export const filterEventsByType = (events: ChromeRecordedEvent[]): FilteredEvents => {
+export const filterEventsByType = (
+  events: ChromeRecordedEvent[],
+): FilteredEvents => {
   return {
     navigationEvents: events.filter((event) => event.type === 'navigation'),
     clickEvents: events.filter((event) => event.type === 'click'),
@@ -66,7 +68,10 @@ export const filterEventsByType = (events: ChromeRecordedEvent[]): FilteredEvent
 /**
  * Create event counts summary
  */
-export const createEventCounts = (filteredEvents: FilteredEvents, totalEvents: number): EventCounts => {
+export const createEventCounts = (
+  filteredEvents: FilteredEvents,
+  totalEvents: number,
+): EventCounts => {
   return {
     navigation: filteredEvents.navigationEvents.length,
     click: filteredEvents.clickEvents.length,
@@ -79,7 +84,9 @@ export const createEventCounts = (filteredEvents: FilteredEvents, totalEvents: n
 /**
  * Extract input descriptions from input events
  */
-export const extractInputDescriptions = (inputEvents: ChromeRecordedEvent[]): InputDescription[] => {
+export const extractInputDescriptions = (
+  inputEvents: ChromeRecordedEvent[],
+): InputDescription[] => {
   return inputEvents
     .map((event) => ({
       description: event.elementDescription || '',
@@ -91,7 +98,9 @@ export const extractInputDescriptions = (inputEvents: ChromeRecordedEvent[]): In
 /**
  * Process events for LLM consumption
  */
-export const processEventsForLLM = (events: ChromeRecordedEvent[]): ProcessedEvent[] => {
+export const processEventsForLLM = (
+  events: ChromeRecordedEvent[],
+): ProcessedEvent[] => {
   return events.map((event) => ({
     type: event.type,
     timestamp: event.timestamp,
@@ -113,12 +122,13 @@ export const prepareEventSummary = (
 ): EventSummary => {
   const filteredEvents = filterEventsByType(events);
   const eventCounts = createEventCounts(filteredEvents, events.length);
-  
+
   // Extract useful information from events
-  const startUrl = filteredEvents.navigationEvents.length > 0 
-    ? filteredEvents.navigationEvents[0].url || '' 
-    : '';
-    
+  const startUrl =
+    filteredEvents.navigationEvents.length > 0
+      ? filteredEvents.navigationEvents[0].url || ''
+      : '';
+
   const pageTitles = filteredEvents.navigationEvents
     .map((event) => event.title)
     .filter((title): title is string => Boolean(title))
@@ -129,7 +139,9 @@ export const prepareEventSummary = (
     .filter((desc): desc is string => Boolean(desc))
     .slice(0, 10);
 
-  const inputDescriptions = extractInputDescriptions(filteredEvents.inputEvents).slice(0, 10);
+  const inputDescriptions = extractInputDescriptions(
+    filteredEvents.inputEvents,
+  ).slice(0, 10);
 
   const urls = filteredEvents.navigationEvents
     .map((e) => e.url)

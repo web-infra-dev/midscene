@@ -4,6 +4,7 @@ export {
   describeUserPage,
   elementByPositionWithElementInfo,
 } from './prompt/util';
+export { generatePlaywrightTest } from './prompt/playwright-generator';
 
 export type { ChatCompletionMessageParam } from 'openai/resources';
 
