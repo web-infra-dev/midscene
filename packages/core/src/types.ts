@@ -1,54 +1,27 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type { NodeType } from '@midscene/shared/constants';
+import type {
+  BaseElement,
+  ElementTreeNode,
+  Rect,
+  Size,
+} from '@midscene/shared/types';
 import type { ChatCompletionMessageParam } from 'openai/resources';
 import type {
   DetailedLocateParam,
   MidsceneYamlFlowItem,
   scrollParam,
 } from './yaml';
+
+export type {
+  ElementTreeNode,
+  BaseElement,
+  Rect,
+  Size,
+  Point,
+} from '@midscene/shared/types';
 export * from './yaml';
-
-export interface Point {
-  left: number;
-  top: number;
-}
-
-export interface Size {
-  width: number; // device independent window size
-  height: number;
-  dpr?: number; // the scale factor of the screenshots
-}
-
-export type Rect = Point & Size & { zoom?: number };
-
-export abstract class BaseElement {
-  abstract id: string;
-
-  abstract indexId?: number; // markerId for web
-
-  abstract attributes: {
-    nodeType: NodeType;
-    [key: string]: string;
-  };
-
-  abstract content: string;
-
-  abstract rect: Rect;
-
-  abstract center: [number, number];
-
-  abstract locator?: string;
-
-  abstract xpaths?: string[];
-}
-
-export interface ElementTreeNode<
-  ElementType extends BaseElement = BaseElement,
-> {
-  node: ElementType | null;
-  children: ElementTreeNode<ElementType>[];
-}
 
 export type AIUsageInfo = Record<string, any> & {
   prompt_tokens: number;
@@ -103,8 +76,8 @@ export type AIElementResponse =
   | AIElementLocatorResponse
   | AIElementCoordinatesResponse;
 
-export interface AIDataExtractionResponse<DataShape> {
-  data: DataShape;
+export interface AIDataExtractionResponse<DataDemand> {
+  data: DataDemand;
   errors?: string[];
 }
 
@@ -292,8 +265,9 @@ export interface PlanningAction<ParamType = any> {
   type:
     | 'Locate'
     | 'Tap'
-    | 'Drag'
+    | 'RightClick'
     | 'Hover'
+    | 'Drag'
     | 'Input'
     | 'KeyboardPress'
     | 'Scroll'
@@ -306,7 +280,6 @@ export interface PlanningAction<ParamType = any> {
     | 'AndroidBackButton'
     | 'AndroidHomeButton'
     | 'AndroidRecentAppsButton';
-
   param: ParamType;
   locate?: PlanningLocateParam | null;
 }
@@ -332,8 +305,10 @@ export interface PlanningAIResponse {
 
 export type PlanningActionParamTap = null;
 export type PlanningActionParamHover = null;
+export type PlanningActionParamRightClick = null;
 export interface PlanningActionParamInputOrKeyPress {
   value: string;
+  autoDismissKeyboard?: boolean;
 }
 
 export type PlanningActionParamScroll = scrollParam;
@@ -386,7 +361,12 @@ export interface ExecutionRecorderItem {
   timing?: string;
 }
 
-export type ExecutionTaskType = 'Planning' | 'Insight' | 'Action' | 'Assertion';
+export type ExecutionTaskType =
+  | 'Planning'
+  | 'Insight'
+  | 'Action'
+  | 'Assertion'
+  | 'Log';
 
 export interface ExecutorContext {
   task: ExecutionTask;
@@ -530,6 +510,18 @@ export type ExecutionTaskActionApply<ActionParam = any> = ExecutionTaskApply<
 >;
 
 export type ExecutionTaskAction = ExecutionTask<ExecutionTaskActionApply>;
+
+/*
+task - Log
+*/
+
+export type ExecutionTaskLogApply<
+  LogParam = {
+    content: string;
+  },
+> = ExecutionTaskApply<'Log', LogParam, void, void>;
+
+export type ExecutionTaskLog = ExecutionTask<ExecutionTaskLogApply>;
 
 /*
 task - planning

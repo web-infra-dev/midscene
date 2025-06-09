@@ -1,4 +1,4 @@
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { assert } from '@midscene/shared/utils';
 
 import { randomUUID } from 'node:crypto';
@@ -115,6 +115,36 @@ describe.skipIf(!shouldRunAITest)(
       }).rejects.toThrow();
 
       expect(existsSync(outputPath)).toBe(true);
+    });
+
+    test('set output path correctly', async () => {
+      const yamlString = `
+      target:
+        url: https://bing.com
+        output: ./midscene_run/output/abc.json
+      tasks:
+        - name: check content
+          flow:
+            - aiQuery: title of the page
+      `;
+      const { player } = await runYaml(yamlString);
+      expect(player.output).toBe(
+        resolve(process.cwd(), './midscene_run/output/abc.json'),
+      );
+
+      const yamlString2 = `
+      web:
+        url: https://bing.com
+        output: ./midscene_run/output/def.json
+      tasks:
+        - name: check content
+          flow:
+            - aiQuery: title of the page
+      `;
+      const { player: player2 } = await runYaml(yamlString2);
+      expect(player2.output).toBe(
+        resolve(process.cwd(), './midscene_run/output/def.json'),
+      );
     });
 
     test('cookie', async () => {

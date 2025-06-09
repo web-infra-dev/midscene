@@ -154,18 +154,6 @@ export const allScriptsFromDump = (
         width = insightTask.pageContext.size.width;
         height = insightTask.pageContext.size.height;
       }
-
-      if (insightTask.log?.dump?.sdkVersion && !sdkVersion) {
-        sdkVersion = insightTask.log.dump.sdkVersion;
-      }
-
-      if (insightTask.log?.dump?.model_name && !modelName) {
-        modelName = insightTask.log.dump.model_name;
-      }
-
-      if (insightTask.log?.dump?.model_description && !modelDescription) {
-        modelDescription = insightTask.log.dump.model_description;
-      }
     });
   });
 

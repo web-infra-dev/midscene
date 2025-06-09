@@ -8,6 +8,7 @@ Midscene 中每个 Agent 都有自己的构造函数。
 
 * 在 Puppeteer 中，使用 [PuppeteerAgent](./integrate-with-puppeteer)
 * 在桥接模式（Bridge Mode）中，使用 [AgentOverChromeBridge](./bridge-mode-by-chrome-extension#constructor)
+* 在 Android 中，使用 [AndroidAgent](./integrate-with-android)
 
 这些 Agent 有一些相同的构造参数：
 
@@ -16,9 +17,12 @@ Midscene 中每个 Agent 都有自己的构造函数。
 * `cacheId: string | undefined`: 如果配置，则使用此 cacheId 保存或匹配缓存。默认值为 undefined，也就是不启用缓存。
 * `actionContext: string`: 调用 `agent.aiAction()` 时，发送给 AI 模型的背景知识，比如 '有 cookie 对话框时先关闭它'，默认值为空。
 
-在 puppeteer 中，还有三个额外的参数：
+在 Playwright 和 Puppeteer 中，有一个共同的参数：
 
 * `forceSameTabNavigation: boolean`: 如果为 true，则限制页面在当前 tab 打开。默认值为 true。
+
+在 Puppeteer 中，还有两个额外的参数：
+
 * `waitForNetworkIdleTimeout: number`: 在执行每个操作后等待网络空闲的超时时间，默认值为 2000ms，设置为 0 则禁用超时。
 * `waitForNavigationTimeout: number`: 在页面跳转后等待页面加载完成的超时时间，默认值为 5000ms，设置为 0 则禁用超时。
 
@@ -31,7 +35,7 @@ Midscene 中每个 Agent 都有自己的构造函数。
 在 Midscene 中，你可以选择使用自动规划（Auto Planning）或即时操作（Instant Action）。
 
 * `agent.ai()` 是自动规划（Auto Planning）：Midscene 会自动规划操作步骤并执行。它更智能，更像流行的 AI Agent 风格，但可能较慢，且效果依赖于 AI 模型的质量。
-* `agent.aiTap()`, `agent.aiHover()`, `agent.aiInput()`, `agent.aiKeyboardPress()`, `agent.aiScroll()` 是即时操作（Instant Action）：Midscene 会直接执行指定的操作，而 AI 模型只负责底层任务，如定位元素等。这种接口形式更快、更可靠。当你完全确定自己想要执行的操作时，推荐使用这种接口形式。
+* `agent.aiTap()`, `agent.aiHover()`, `agent.aiInput()`, `agent.aiKeyboardPress()`, `agent.aiScroll()`, `agent.aiRightClick()` 是即时操作（Instant Action）：Midscene 会直接执行指定的操作，而 AI 模型只负责底层任务，如定位元素等。这种接口形式更快、更可靠。当你完全确定自己想要执行的操作时，推荐使用这种接口形式。
 
 :::
 
@@ -65,7 +69,7 @@ await agent.aiAction('在搜索框中输入 "JavaScript"，然后点击搜索按
 // 使用 .ai 简写形式
 await agent.ai('点击页面顶部的登录按钮，然后在用户名输入框中输入 "test@example.com"');
 
-// 使用 ui-tars 模型时，可以使用更高维度的提示词
+// 使用 ui-tars 模型时，可以使用更目标驱动的提示词
 await agent.aiAction('发布一条微博，内容为 "Hello World"');
 ```
 
@@ -147,6 +151,7 @@ function aiInput(text: string, locate: string, options?: Object): Promise<void>;
   * `options?: Object` - 可选，一个配置对象，包含：
     * `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
     * `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
+    * `autoDismissKeyboard?: boolean` - 如果为 true，则键盘会在输入文本后自动关闭，仅在 Android 中有效。默认值为 true。
 
 * 返回值：
   * `Promise<void>`
@@ -212,26 +217,86 @@ function aiScroll(scrollParam: PlanningActionParamScroll, locate?: string, optio
 await agent.aiScroll({ direction: 'up', distance: 100, scrollType: 'once' }, '表单区域');
 ```
 
+### `agent.aiRightClick()`
+
+右键点击某个元素。请注意，Midscene 在右键点击后无法与浏览器原生上下文菜单交互。这个接口通常用于已经监听了右键点击事件的元素。
+
+* 类型
+
+```typescript
+function aiRightClick(locate: string, options?: Object): Promise<void>;
+```
+
+* 参数：
+  * `locate: string` - 用自然语言描述的元素定位。
+  * `options?: Object` - 可选，一个配置对象，包含：
+    * `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
+    * `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
+
+* 返回值：
+  * `Promise<void>`
+
+* 示例：
+
+```typescript
+await agent.aiRightClick('页面顶部的文件名称');
+
+// 使用 deepThink 功能精确定位元素
+await agent.aiRightClick('页面顶部的文件名称', { deepThink: true });
+```
+
 :::tip 关于 `deepThink` （深度思考）特性
 
 `deepThink` 是一个强大的特性，它允许 Midscene 调用 AI 模型两次以精确定位元素。这在目标元素面积较小、难以和周围元素区分时非常有用。
 
 :::
 
-## 数据提取
+## 记录截图
 
-### `agent.aiQuery()`
+### `agent.logScreenshot()`
 
-使用此方法，你可以直接从 UI 提取数据，并借助多模态 AI 的推理能力，实现智能提取。只需在 `dataDemand` 中定义期望格式（如字符串、数字、JSON、数组等），Midscene 即返回相应结果。
+在报告文件中记录当前截图，并添加描述。
 
 * 类型
 
 ```typescript
-function aiQuery<T>(dataShape: string | Object): Promise<T>;
+function logScreenshot(title?: string, options?: Object): Promise<void>;
 ```
 
 * 参数：
-  * `dataShape: T`: 描述预期的返回值格式。
+  * `title?: string` - 可选，截图的标题，如果未提供，则标题为 'untitled'。
+  * `options?: Object` - 可选，一个配置对象，包含：
+    * `content?: string` - 截图的描述。
+
+
+* 返回值：
+  * `Promise<void>`
+
+* 示例：
+
+```typescript
+await agent.logScreenshot('登录页面', {
+  content: '用户 A',
+});
+```
+
+## 数据提取
+
+### `agent.aiQuery()`
+
+使用此方法，你可以直接从 UI 提取数据，并借助多模态 AI 的推理能力，实现智能提取。只需在 `dataDemand` 中描述期望的数据格式（如字符串、数字、JSON、数组等），Midscene 即返回相应结果。
+
+* 类型
+
+```typescript
+function aiQuery<T>(dataDemand: string | Object, options?: Object): Promise<T>;
+```
+
+* 参数：
+  * `dataDemand: T`: 描述预期的返回值和格式。
+  * `options?: Object` - 可选，一个配置对象，包含：
+    * `domIncluded?: boolean` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。默认值为 False
+    * `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 True。
 
 * 返回值：
   * 返回值可以是任何合法的基本类型，比如字符串、数字、JSON、数组等。
@@ -254,6 +319,9 @@ const dataB = await agent.aiQuery('string[]，列表中的任务名称');
 
 // dataC 将是一个包含对象的数组
 const dataC = await agent.aiQuery('{name: string, age: string}[], 表格中的数据记录');
+
+// 使用 domIncluded 功能提取 UI 中不可见的属性
+const dataD = await agent.aiQuery('{name: string, age: string, avatarUrl: string}[], 表格中的数据记录', { domIncluded: true });
 ```
 
 此外，我们还提供了 `aiBoolean()`, `aiNumber()`, `aiString()` 三个便捷方法，用于直接提取布尔值、数字和字符串。
@@ -266,11 +334,14 @@ const dataC = await agent.aiQuery('{name: string, age: string}[], 表格中的�
 * 类型
 
 ```typescript
-function aiBoolean(prompt: string): Promise<boolean>;
+function aiBoolean(prompt: string, options?: Object): Promise<boolean>;
 ```
 
 * 参数：
   * `prompt: string` - 用自然语言描述的期望值。
+  * `options?: Object` - 可选，一个配置对象，包含：
+    * `domIncluded?: boolean` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。默认值为 False
+    * `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 True。
 
 * 返回值：
   * 返回一个 Promise。当 AI 返回结果时解析为布尔值。
@@ -278,7 +349,10 @@ function aiBoolean(prompt: string): Promise<boolean>;
 * 示例：
 
 ```typescript
-const bool = await agent.aiBoolean('是否存在登录对话框');
+const boolA = await agent.aiBoolean('是否存在登录对话框');
+
+// 使用 domIncluded 功能提取 UI 中不可见的属性
+const boolB = await agent.aiBoolean('忘记密码按钮是否存在链接', { domIncluded: true });
 ```
 
 ### `agent.aiNumber()`
@@ -288,11 +362,14 @@ const bool = await agent.aiBoolean('是否存在登录对话框');
 * 类型
 
 ```typescript
-function aiNumber(prompt: string): Promise<number>;
+function aiNumber(prompt: string, options?: Object): Promise<number>;
 ```
 
 * 参数：
   * `prompt: string` - 用自然语言描述的期望值。
+  * `options?: Object` - 可选，一个配置对象，包含：
+    * `domIncluded?: boolean` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。默认值为 False
+    * `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 True。
 
 * 返回值：
   * 返回一个 Promise。当 AI 返回结果时解析为数字。
@@ -300,7 +377,10 @@ function aiNumber(prompt: string): Promise<number>;
 * 示例：
 
 ```typescript
-const number = await agent.aiNumber('账户剩余的积分');
+const numberA = await agent.aiNumber('账户剩余的积分');
+
+// 使用 domIncluded 功能提取 UI 中不可见的属性
+const numberB = await agent.aiNumber('账户剩余的积分元素的 value 值', { domIncluded: true });
 ```
 
 ### `agent.aiString()`
@@ -310,11 +390,14 @@ const number = await agent.aiNumber('账户剩余的积分');
 * 类型
 
 ```typescript
-function aiString(prompt: string): Promise<string>;
+function aiString(prompt: string, options?: Object): Promise<string>;
 ```
 
 * 参数：
   * `prompt: string` - 用自然语言描述的期望值。
+  * `options?: Object` - 可选，一个配置对象，包含：
+    * `domIncluded?: boolean` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。默认值为 False
+    * `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 True。
 
 * 返回值：
   * 返回一个 Promise。当 AI 返回结果时解析为字符串。
@@ -322,7 +405,10 @@ function aiString(prompt: string): Promise<string>;
 * 示例：
 
 ```typescript
-const string = await agent.aiString('当前列表的第一条记录的名称');
+const stringA = await agent.aiString('当前列表的第一条记录的名称');
+
+// 使用 domIncluded 功能提取 UI 中不可见的属性
+const stringB = await agent.aiString('当前列表的第一条记录的跳转链接', { domIncluded: true });
 ```
 
 ## 更多方法

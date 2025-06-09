@@ -268,7 +268,7 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "htmlTagName": "<div>",
+      "htmlTagName": "<button>",
       "nodeType": "BUTTON Node",
     },
     "content": "Click Me",
@@ -279,6 +279,38 @@ exports[`extractor > basic 1`] = `
       "nodeType": "TEXT Node",
     },
     "content": "Shape",
+  },
+  {
+    "attributes": {
+      "href": "https://www.google.com",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node",
+    },
+    "content": "Google",
+  },
+  {
+    "attributes": {
+      "htmlTagName": "<a>",
+      "nodeType": "TEXT Node",
+    },
+    "content": "Google",
+  },
+  {
+    "attributes": {
+      "href": "https://www.google.com",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node",
+      "style": "width: 100px; height: 20px; vertical-align: middle; display: inline-block; background: #ccc;",
+    },
+    "content": "",
+  },
+  {
+    "attributes": {
+      "href": "https://www.google.com",
+      "htmlTagName": "<a>",
+      "nodeType": "Anchor Node",
+    },
+    "content": " ",
   },
   {
     "attributes": {
@@ -350,7 +382,7 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "htmlTagName": "<body>",
+      "htmlTagName": "<div>",
       "id": "J_resize",
       "nodeType": "CONTAINER Node",
       "style": "width:30px;height:30px;background: #AC0",
@@ -402,7 +434,7 @@ exports[`extractor > basic 1`] = `
   {
     "attributes": {
       "class": ".life-core-checkbox-icon",
-      "htmlTagName": "<label>",
+      "htmlTagName": "<span>",
       "nodeType": "CONTAINER Node",
     },
     "content": "",
@@ -410,7 +442,7 @@ exports[`extractor > basic 1`] = `
   {
     "attributes": {
       "aria-label": "The phrase 'The quick brown fox jumps over the lazy dog' is a well-known English-language pangram, meaning it contains every letter of the alphabet at least once. This sentence has become a standard tool for various applications, particularly in typing practice, font display, and keyboard testing. T...",
-      "htmlTagName": "<body>",
+      "htmlTagName": "<div>",
       "nodeType": "CONTAINER Node",
       "style": "width: 100px; height: 100px; background-color: #ccc;",
     },
@@ -427,7 +459,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "aria-label": "Search",
       "class": ".btn",
-      "htmlTagName": "<body>",
+      "htmlTagName": "<button>",
       "nodeType": "BUTTON Node",
       "tabindex": "0",
       "type": "submit",
@@ -458,7 +490,7 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "htmlTagName": "<div>",
+      "htmlTagName": "<img>",
       "nodeType": "IMG Node",
       "src": "image",
     },
@@ -466,7 +498,7 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "htmlTagName": "<div>",
+      "htmlTagName": "<button>",
       "nodeType": "BUTTON Node",
       "very-long-attr": "width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color: #ccc;",
     },
@@ -483,7 +515,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "aria-controls": "semi-select-5yxiyng",
       "class": ".widget",
-      "htmlTagName": "<body>",
+      "htmlTagName": "<div>",
       "nodeType": "CONTAINER Node",
     },
     "content": "",
@@ -492,7 +524,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "aria-labelledby": "eval_object.object_type-label",
       "class": ".widget",
-      "htmlTagName": "<body>",
+      "htmlTagName": "<div>",
       "nodeType": "CONTAINER Node",
     },
     "content": "",
@@ -539,7 +571,7 @@ exports[`extractor > basic 1`] = `
   {
     "attributes": {
       "class": ".child-container-5",
-      "htmlTagName": "<body>",
+      "htmlTagName": "<span>",
       "nodeType": "IMG Node",
     },
     "content": "",
@@ -597,7 +629,7 @@ exports[`extractor > basic 1`] = `
   {
     "attributes": {
       "class": ".two-columns",
-      "htmlTagName": "<body>",
+      "htmlTagName": "<div>",
       "nodeType": "CONTAINER Node",
     },
     "content": "",
@@ -636,6 +668,13 @@ exports[`extractor > basic 1`] = `
       "nodeType": "TEXT Node",
     },
     "content": "Click me",
+  },
+  {
+    "attributes": {
+      "htmlTagName": "",
+      "nodeType": "TEXT Node",
+    },
+    "content": "Something beyong 200px",
   },
 ]
 `;
@@ -1511,7 +1550,7 @@ exports[`extractor > basic 2`] = `
               "children": [],
               "node": {
                 "attributes": {
-                  "htmlTagName": "<div>",
+                  "htmlTagName": "<button>",
                   "nodeType": "BUTTON Node",
                 },
                 "content": "Click Me",
@@ -1543,6 +1582,80 @@ exports[`extractor > basic 2`] = `
               "node": null,
             },
             {
+              "children": [
+                {
+                  "children": [],
+                  "node": {
+                    "attributes": {
+                      "htmlTagName": "<a>",
+                      "nodeType": "TEXT Node",
+                    },
+                    "content": "Google",
+                    "indexId": 40,
+                  },
+                },
+              ],
+              "node": {
+                "attributes": {
+                  "href": "https://www.google.com",
+                  "htmlTagName": "<a>",
+                  "nodeType": "Anchor Node",
+                },
+                "content": "Google",
+                "indexId": 39,
+              },
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": {
+                "attributes": {
+                  "href": "https://www.google.com",
+                  "htmlTagName": "<a>",
+                  "nodeType": "Anchor Node",
+                  "style": "width: 100px; height: 20px; vertical-align: middle; display: inline-block; background: #ccc;",
+                },
+                "content": "",
+                "indexId": 41,
+              },
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [
+                {
+                  "children": [],
+                  "node": null,
+                },
+                {
+                  "children": [],
+                  "node": null,
+                },
+                {
+                  "children": [],
+                  "node": null,
+                },
+              ],
+              "node": {
+                "attributes": {
+                  "href": "https://www.google.com",
+                  "htmlTagName": "<a>",
+                  "nodeType": "Anchor Node",
+                },
+                "content": " ",
+                "indexId": 42,
+              },
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+            {
               "children": [],
               "node": {
                 "attributes": {
@@ -1552,7 +1665,7 @@ exports[`extractor > basic 2`] = `
                   "value": "Rectangle",
                 },
                 "content": "Rectangle",
-                "indexId": 39,
+                "indexId": 43,
               },
             },
             {
@@ -1576,7 +1689,7 @@ exports[`extractor > basic 2`] = `
                   "placeholder": "this_is_a_textarea",
                 },
                 "content": "this_is_a_textarea",
-                "indexId": 40,
+                "indexId": 44,
               },
             },
             {
@@ -1642,7 +1755,7 @@ exports[`extractor > basic 2`] = `
                                       "nodeType": "TEXT Node",
                                     },
                                     "content": "English",
-                                    "indexId": 41,
+                                    "indexId": 45,
                                   },
                                 },
                               ],
@@ -1667,7 +1780,7 @@ exports[`extractor > basic 2`] = `
                                       "nodeType": "TEXT Node",
                                     },
                                     "content": "中文",
-                                    "indexId": 42,
+                                    "indexId": 46,
                                   },
                                 },
                               ],
@@ -1692,7 +1805,7 @@ exports[`extractor > basic 2`] = `
                                       "nodeType": "TEXT Node",
                                     },
                                     "content": "Tiếng Việt",
-                                    "indexId": 43,
+                                    "indexId": 47,
                                   },
                                 },
                               ],
@@ -1761,7 +1874,7 @@ exports[`extractor > basic 2`] = `
                       "nodeType": "TEXT Node",
                     },
                     "content": "Choose an option:",
-                    "indexId": 44,
+                    "indexId": 48,
                   },
                 },
               ],
@@ -1781,7 +1894,7 @@ exports[`extractor > basic 2`] = `
                   "nodeType": "FORM_ITEM Node",
                 },
                 "content": "Option 1",
-                "indexId": 45,
+                "indexId": 49,
               },
             },
             {
@@ -1827,7 +1940,7 @@ exports[`extractor > basic 2`] = `
                       "nodeType": "TEXT Node",
                     },
                     "content": "This is zoomed content",
-                    "indexId": 46,
+                    "indexId": 50,
                   },
                 },
               ],
@@ -1841,7 +1954,7 @@ exports[`extractor > basic 2`] = `
                   "nodeType": "TEXT Node",
                 },
                 "content": "Something Else",
-                "indexId": 47,
+                "indexId": 51,
               },
             },
           ],
@@ -1863,13 +1976,13 @@ exports[`extractor > basic 2`] = `
           "children": [],
           "node": {
             "attributes": {
-              "htmlTagName": "<body>",
+              "htmlTagName": "<div>",
               "id": "J_resize",
               "nodeType": "CONTAINER Node",
               "style": "width:30px;height:30px;background: #AC0",
             },
             "content": "",
-            "indexId": 48,
+            "indexId": 52,
           },
         },
         {
@@ -1913,7 +2026,7 @@ exports[`extractor > basic 2`] = `
                       "nodeType": "TEXT Node",
                     },
                     "content": "输入搜索关键词",
-                    "indexId": 49,
+                    "indexId": 53,
                   },
                 },
               ],
@@ -1948,7 +2061,7 @@ exports[`extractor > basic 2`] = `
                   "type": "text",
                 },
                 "content": "搜索任何物品",
-                "indexId": 50,
+                "indexId": 54,
               },
             },
             {
@@ -1996,7 +2109,7 @@ exports[`extractor > basic 2`] = `
                   "type": "text",
                 },
                 "content": "验证码",
-                "indexId": 51,
+                "indexId": 55,
               },
             },
             {
@@ -2056,11 +2169,11 @@ exports[`extractor > basic 2`] = `
                   "node": {
                     "attributes": {
                       "class": ".life-core-checkbox-icon",
-                      "htmlTagName": "<label>",
+                      "htmlTagName": "<span>",
                       "nodeType": "CONTAINER Node",
                     },
                     "content": "",
-                    "indexId": 52,
+                    "indexId": 56,
                   },
                 },
                 {
@@ -2107,12 +2220,12 @@ exports[`extractor > basic 2`] = `
           "node": {
             "attributes": {
               "aria-label": "The phrase 'The quick brown fox jumps over the lazy dog' is a well-known English-language pangram, meaning it contains every letter of the alphabet at least once. This sentence has become a standard tool for various applications, particularly in typing practice, font display, and keyboard testing. T...",
-              "htmlTagName": "<body>",
+              "htmlTagName": "<div>",
               "nodeType": "CONTAINER Node",
               "style": "width: 100px; height: 100px; background-color: #ccc;",
             },
             "content": "",
-            "indexId": 53,
+            "indexId": 57,
           },
         },
         {
@@ -2131,7 +2244,7 @@ exports[`extractor > basic 2`] = `
               "nodeType": "TEXT Node",
             },
             "content": "phrase "The quick brown fox jumps over the lazy dog" is a well-known English-language pangram, meaning it contains every letter of the alphabet at least once. This sentence has become a standard tool for various applications, particularly     in typing practice, font display, and keyboard testing. The phrase has permeated popular culture and is referenced in various media, including literature and film. Its simplicity and utility have made it a staple in educational contexts and beyond.     For instance, it was famously used as the first message sent over the Moscow–Washington hotline in 19634.",
-            "indexId": 54,
+            "indexId": 58,
           },
         },
         {
@@ -2148,13 +2261,13 @@ exports[`extractor > basic 2`] = `
             "attributes": {
               "aria-label": "Search",
               "class": ".btn",
-              "htmlTagName": "<body>",
+              "htmlTagName": "<button>",
               "nodeType": "BUTTON Node",
               "tabindex": "0",
               "type": "submit",
             },
             "content": " ",
-            "indexId": 55,
+            "indexId": 59,
           },
         },
         {
@@ -2198,7 +2311,7 @@ exports[`extractor > basic 2`] = `
                       "nodeType": "TEXT Node",
                     },
                     "content": "content 000",
-                    "indexId": 56,
+                    "indexId": 60,
                   },
                 },
               ],
@@ -2217,7 +2330,7 @@ exports[`extractor > basic 2`] = `
                   "style": "height: 30px;width: 100px;",
                 },
                 "content": "",
-                "indexId": 57,
+                "indexId": 61,
               },
             },
             {
@@ -2234,7 +2347,7 @@ exports[`extractor > basic 2`] = `
                       "nodeType": "TEXT Node",
                     },
                     "content": "content AAA",
-                    "indexId": 58,
+                    "indexId": 62,
                   },
                 },
               ],
@@ -2282,12 +2395,12 @@ exports[`extractor > basic 2`] = `
               "children": [],
               "node": {
                 "attributes": {
-                  "htmlTagName": "<div>",
+                  "htmlTagName": "<img>",
                   "nodeType": "IMG Node",
                   "src": "image",
                 },
                 "content": "",
-                "indexId": 59,
+                "indexId": 63,
               },
             },
             {
@@ -2298,12 +2411,12 @@ exports[`extractor > basic 2`] = `
               "children": [],
               "node": {
                 "attributes": {
-                  "htmlTagName": "<div>",
+                  "htmlTagName": "<button>",
                   "nodeType": "BUTTON Node",
                   "very-long-attr": "width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color: #ccc;",
                 },
                 "content": "long-style-content",
-                "indexId": 60,
+                "indexId": 64,
               },
             },
             {
@@ -2348,7 +2461,7 @@ exports[`extractor > basic 2`] = `
                   "nodeType": "TEXT Node",
                 },
                 "content": "Click me",
-                "indexId": 61,
+                "indexId": 65,
               },
             },
           ],
@@ -2364,11 +2477,11 @@ exports[`extractor > basic 2`] = `
             "attributes": {
               "aria-controls": "semi-select-5yxiyng",
               "class": ".widget",
-              "htmlTagName": "<body>",
+              "htmlTagName": "<div>",
               "nodeType": "CONTAINER Node",
             },
             "content": "",
-            "indexId": 62,
+            "indexId": 66,
           },
         },
         {
@@ -2381,11 +2494,11 @@ exports[`extractor > basic 2`] = `
             "attributes": {
               "aria-labelledby": "eval_object.object_type-label",
               "class": ".widget",
-              "htmlTagName": "<body>",
+              "htmlTagName": "<div>",
               "nodeType": "CONTAINER Node",
             },
             "content": "",
-            "indexId": 63,
+            "indexId": 67,
           },
         },
         {
@@ -2429,7 +2542,7 @@ exports[`extractor > basic 2`] = `
                       "nodeType": "TEXT Node",
                     },
                     "content": "Content 1",
-                    "indexId": 64,
+                    "indexId": 68,
                   },
                 },
               ],
@@ -2455,7 +2568,7 @@ exports[`extractor > basic 2`] = `
                       "style": "width: 100px; height: 100px; background-color: #ccc;",
                     },
                     "content": "",
-                    "indexId": 65,
+                    "indexId": 69,
                   },
                 },
                 {
@@ -2484,7 +2597,7 @@ exports[`extractor > basic 2`] = `
                                   "nodeType": "TEXT Node",
                                 },
                                 "content": "Content 2",
-                                "indexId": 66,
+                                "indexId": 70,
                               },
                             },
                           ],
@@ -2543,7 +2656,7 @@ exports[`extractor > basic 2`] = `
                                   "nodeType": "TEXT Node",
                                 },
                                 "content": "Nested Content 3",
-                                "indexId": 67,
+                                "indexId": 71,
                               },
                             },
                           ],
@@ -2584,7 +2697,7 @@ exports[`extractor > basic 2`] = `
                   "style": "width: 100px; height: 100px; background-color: #ccc;",
                 },
                 "content": "",
-                "indexId": 68,
+                "indexId": 72,
               },
             },
             {
@@ -2603,11 +2716,11 @@ exports[`extractor > basic 2`] = `
           "node": {
             "attributes": {
               "class": ".child-container-5",
-              "htmlTagName": "<body>",
+              "htmlTagName": "<span>",
               "nodeType": "IMG Node",
             },
             "content": "",
-            "indexId": 69,
+            "indexId": 73,
           },
         },
         {
@@ -2633,7 +2746,7 @@ exports[`extractor > basic 2`] = `
                   "svgContent": "true",
                 },
                 "content": "",
-                "indexId": 70,
+                "indexId": 74,
               },
             },
           ],
@@ -2680,7 +2793,7 @@ exports[`extractor > basic 2`] = `
                       "nodeType": "TEXT Node",
                     },
                     "content": "hidden label",
-                    "indexId": 71,
+                    "indexId": 75,
                   },
                 },
               ],
@@ -2727,7 +2840,7 @@ exports[`extractor > basic 2`] = `
                           "nodeType": "TEXT Node",
                         },
                         "content": "i am fixed child content",
-                        "indexId": 72,
+                        "indexId": 76,
                       },
                     },
                   ],
@@ -2783,7 +2896,7 @@ exports[`extractor > basic 2`] = `
                       "nodeType": "TEXT Node",
                     },
                     "content": "abcd efg",
-                    "indexId": 73,
+                    "indexId": 77,
                   },
                 },
               ],
@@ -2803,7 +2916,7 @@ exports[`extractor > basic 2`] = `
                       "nodeType": "TEXT Node",
                     },
                     "content": "content editable div content. We should collect the parent.",
-                    "indexId": 74,
+                    "indexId": 78,
                   },
                 },
               ],
@@ -2844,7 +2957,7 @@ exports[`extractor > basic 2`] = `
                       "nodeType": "TEXT Node",
                     },
                     "content": "absolute child content",
-                    "indexId": 75,
+                    "indexId": 79,
                   },
                 },
               ],
@@ -2898,7 +3011,7 @@ exports[`extractor > basic 2`] = `
                       "nodeType": "TEXT Node",
                     },
                     "content": "content Right",
-                    "indexId": 76,
+                    "indexId": 80,
                   },
                 },
               ],
@@ -2941,11 +3054,11 @@ exports[`extractor > basic 2`] = `
           "node": {
             "attributes": {
               "class": ".two-columns",
-              "htmlTagName": "<body>",
+              "htmlTagName": "<div>",
               "nodeType": "CONTAINER Node",
             },
             "content": "",
-            "indexId": 77,
+            "indexId": 81,
           },
         },
         {
@@ -2968,7 +3081,7 @@ exports[`extractor > basic 2`] = `
                       "nodeType": "TEXT Node",
                     },
                     "content": "AAA",
-                    "indexId": 78,
+                    "indexId": 82,
                   },
                 },
               ],
@@ -3001,7 +3114,7 @@ exports[`extractor > basic 2`] = `
                       "nodeType": "TEXT Node",
                     },
                     "content": "This should be collected",
-                    "indexId": 79,
+                    "indexId": 83,
                   },
                 },
               ],
@@ -3037,7 +3150,7 @@ exports[`extractor > basic 2`] = `
                   "nodeType": "TEXT Node",
                 },
                 "content": "Child Page",
-                "indexId": 81,
+                "indexId": 85,
               },
             },
           ],
@@ -3057,7 +3170,7 @@ exports[`extractor > basic 2`] = `
                   "nodeType": "TEXT Node",
                 },
                 "content": "This is a child page.",
-                "indexId": 82,
+                "indexId": 86,
               },
             },
           ],
@@ -3077,7 +3190,7 @@ exports[`extractor > basic 2`] = `
                   "nodeType": "TEXT Node",
                 },
                 "content": "Click me",
-                "indexId": 83,
+                "indexId": 87,
               },
             },
           ],
@@ -3099,7 +3212,14 @@ exports[`extractor > basic 2`] = `
           "children": [
             {
               "children": [],
-              "node": null,
+              "node": {
+                "attributes": {
+                  "htmlTagName": "",
+                  "nodeType": "TEXT Node",
+                },
+                "content": "Something beyong 200px",
+                "indexId": 88,
+              },
             },
           ],
           "node": null,
@@ -3114,6 +3234,408 @@ exports[`extractor > basic 2`] = `
   ],
   "node": null,
 }
+`;
+
+exports[`extractor > descriptionOfTree with visibleOnly false 1`] = `
+"        <>
+          <h1 id="mmkck"   left="20" top="22" width="189" height="36">
+            Data Record
+          </h1>
+        </>
+        <>
+          <h2 id="coloi" markerId="1"  left="20" top="80" width="226" height="27">
+            1970-01-01 19:25:01
+          </h2>
+        </>
+        <>
+          <h2 id="kfadl" markerId="2"  left="20" top="128" width="204" height="27">
+            User Name: Stella
+          </h2>
+        </>
+              <>
+                <th id="piifj" markerId="3"  left="38" top="184" width="16" height="18">
+                  ID
+                </th>
+              </>
+              <>
+                <th id="kmpoa" markerId="4"  left="110" top="184" width="51" height="18">
+                  Field 2
+                </th>
+              </>
+              <>
+                <th id="ecflg" markerId="5"  left="232" top="184" width="51" height="18">
+                  Field 3
+                </th>
+              </>
+              <>
+                <th id="fhhph" markerId="6"  left="347" top="184" width="51" height="18">
+                  Field 4
+                </th>
+              </>
+              <>
+                <th id="kkjlo" markerId="7"  left="460" top="184" width="51" height="18">
+                  Field 5
+                </th>
+              </>
+              <>
+                <td id="chmhh" markerId="8"  left="32" top="229" width="28" height="18">
+                  30S
+                </td>
+              </>
+              <>
+                <td id="gbfgh" markerId="9"  left="99" top="219" width="73" height="37">
+                  Kace Cervantes
+                </td>
+              </>
+              <>
+                <td id="ppbdi" markerId="10"  left="211" top="229" width="92" height="18">
+                  Aylin Sawyer
+                </td>
+              </>
+              <>
+                <td id="gmhfb" markerId="11"  left="340" top="219" width="66" height="37">
+                  Jefferson Kirby
+                </td>
+              </>
+              <>
+                <td id="aceff" markerId="12"  left="452" top="219" width="66" height="37">
+                  Skyla Jefferson
+                </td>
+              </>
+              <>
+                <td id="leibm" markerId="13"  left="31" top="283" width="29" height="18">
+                  70U
+                </td>
+              </>
+              <>
+                <td id="agdka" markerId="14"  left="99" top="273" width="74" height="37">
+                  Florence Davenport
+                </td>
+              </>
+              <>
+                <td id="ommpa" markerId="15"  left="226" top="273" width="62" height="37">
+                  Dariel Acevedo
+                </td>
+              </>
+              <>
+                <td id="lelmg" markerId="16"  left="341" top="273" width="63" height="37">
+                  Ashlynn Delacruz
+                </td>
+              </>
+              <>
+                <td id="onckm" markerId="17"  left="452" top="273" width="65" height="37">
+                  Memphis Leal
+                </td>
+              </>
+              <>
+                <td id="bgood" markerId="18"  left="31" top="337" width="29" height="18">
+                  3AY
+                </td>
+              </>
+              <>
+                <td id="cmalb" markerId="19"  left="104" top="327" width="63" height="37">
+                  Crystal Newman
+                </td>
+              </>
+              <>
+                <td id="cnnlj" markerId="20"  left="223" top="327" width="68" height="37">
+                  Anderson Brown
+                </td>
+              </>
+              <>
+                <td id="loakj" markerId="21"  left="340" top="327" width="65" height="37">
+                  Charlotte Griffith
+                </td>
+              </>
+              <>
+                <td id="bjkbo" markerId="22"  left="456" top="327" width="57" height="37">
+                  Franklin Everett
+                </td>
+              </>
+              <>
+                <td id="onaak" markerId="23"  left="29" top="391" width="34" height="18">
+                  YPG
+                </td>
+              </>
+              <>
+                <td id="kdomi" markerId="24"  left="97" top="391" width="78" height="18">
+                  Kori Payne
+                </td>
+              </>
+              <>
+                <td id="nfkch" markerId="25"  left="230" top="381" width="54" height="37">
+                  Edward Blevins
+                </td>
+              </>
+              <>
+                <td id="mjgpg" markerId="26"  left="345" top="391" width="54" height="18">
+                  Aila Gill
+                </td>
+              </>
+              <>
+                <td id="fimmd" markerId="27"  left="455" top="381" width="60" height="37">
+                  Matthias Reed
+                </td>
+              </>
+              <>
+                <td id="ngfkf" markerId="28"  left="30" top="445" width="32" height="18">
+                  ZEN
+                </td>
+              </>
+              <>
+                <td id="lodgi" markerId="29"  left="82" top="445" width="107" height="18">
+                  Magnolia Duke
+                </td>
+              </>
+              <>
+                <td id="hhcki" markerId="30"  left="214" top="445" width="87" height="18">
+                  Kalel Glover
+                </td>
+              </>
+              <>
+                <td id="odinm" markerId="31"  left="346" top="435" width="52" height="37">
+                  Alessia Barton
+                </td>
+              </>
+              <>
+                <td id="fpbal" markerId="32"  left="456" top="435" width="57" height="37">
+                  Cassius Peck
+                </td>
+              </>
+          <>
+            <h3 id="bfdji" markerId="33"  left="20" top="500" width="47" height="21">
+              Form
+            </h3>
+          </>
+          <>
+            <label id="kpkmc" markerId="34"  left="20" top="541" width="47" height="18">
+              Name:
+            </label>
+          </>
+          <input id="dmlaa" markerId="35" id="J_input" placeholder="Hello World This is Placeholder" left="72" top="540" width="147" height="22">
+            Hello World This is Placeholder
+          </input>
+          <input id="hmgni" markerId="36" id="J_input" placeholder="Hello World This is Placeholder" value="Now I am a value, instead of placeholder" left="223" top="540" width="147" height="22">
+            Now I am a value, instead of placeholder
+          </input>
+          <button id="glegh" markerId="37"  left="374" top="540" width="67" height="22">
+            Click Me
+          </button>
+          <>
+            <label id="logkb" markerId="38"  left="446" top="541" width="46" height="18">
+              Shape
+            </label>
+          </>
+          <a id="lkebf" markerId="39" href="https://www.google.com" left="497" top="541" width="52" height="18">
+            Google
+            <a id="lkebf" markerId="40"  left="497" top="541" width="52" height="18">
+              Google
+            </a>
+          </a>
+          <a id="jjaie" markerId="41" href="https://www.google.com" left="553" top="541" width="100" height="20">
+          </a>
+          <a id="ilhdl" markerId="42" href="https://www.google.com" left="657" top="541" width="6" height="18">
+          </a>
+          <input id="plggc" markerId="43" placeholder="You shouldn't see this placeholder." value="Rectangle" left="664" top="540" width="147" height="22">
+            Rectangle
+          </input>
+          <textarea id="cmkpf" markerId="44" placeholder="this_is_a_textarea" left="20" top="575" width="183" height="37">
+            this_is_a_textarea
+          </textarea>
+                  <>
+                    <span id="mhnaf" markerId="45"  left="540" top="16" width="52" height="18">
+                      English
+                    </span>
+                  </>
+                  <>
+                    <span id="jmabe" markerId="46"  left="540" top="37" width="32" height="18">
+                      中文
+                    </span>
+                  </>
+                  <>
+                    <span id="ndkjm" markerId="47"  left="540" top="57" width="71" height="18">
+                      Tiếng Việt
+                    </span>
+                  </>
+          <>
+            <label id="neokc" markerId="48"  left="20" top="616" width="130" height="18">
+              Choose an option:
+            </label>
+          </>
+          <select id="ifmpe" markerId="49" id="options" name="options" left="154" top="616" width="73" height="19">
+            Option 1
+          </select>
+          <>
+            <div id="dkfnl" markerId="50"  left="20" top="636" width="194" height="65">
+              This is zoomed content
+            </div>
+          </>
+          <div id="mamdb" markerId="51"  left="20" top="707" width="134" height="22">
+            Something Else
+          </div>
+        <div id="eafac" markerId="52" id="J_resize" left="20" top="803" width="30" height="30">
+        </div>
+          <>
+            <label id="plcio" markerId="53"  left="20" top="836" width="112" height="18">
+              输入搜索关键词
+            </label>
+          </>
+          <input id="jdmgg" markerId="54" type="text" class=".gh-tb.ui-autocomplete-input" aria-autocomplete="list" aria-expanded="false" size="50" maxlength="300" aria-label="搜索任何物品" placeholder="搜索任何物品" id="gh-ac" name="_nkw" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off" aria-haspopup="true" role="combobox" aria-owns="ui-id-1" left="136" top="835" width="347" height="22">
+            搜索任何物品
+          </input>
+        <>
+          <input id="dnfok" markerId="55" placeholder="验证码" tabindex="0" type="text" class=".life-core-input.life-core-input-size-md" undefined="" left="20" top="860" width="147" height="22">
+            验证码
+          </input>
+        </>
+          <>
+            <span id="libfk" markerId="56" class=".life-core-checkbox-icon" left="171" top="857" width="18" height="18">
+            </span>
+          </>
+        <div id="logja" markerId="57" aria-label="The phrase 'The quick brown fox jumps over the lazy dog' is a well-known English-language pangram, meaning it contains every letter of the alphabet at..." left="20" top="881" width="100" height="100">
+        </div>
+        <body id="mbmnf" markerId="58"  left="20" top="981" width="1031" height="281">
+          phrase "The quick brown fox jumps over the lazy dog" is a well-known English-language pangram, meaning it contains every letter of the alphabet at lea...
+        </body>
+        <button id="jmplk" markerId="59" tabindex="0" class=".btn" type="submit" aria-label="Search" left="73" top="1055" width="420" height="210">
+        </button>
+          <>
+            <div id="nkdbl" markerId="60"  left="20" top="1265" width="84" height="18">
+              content 000
+            </div>
+          </>
+          <div id="ockpk" markerId="61"  left="20" top="1295" width="100" height="30">
+          </div>
+          <>
+            <div id="jjobf" markerId="62"  left="20" top="1325" width="88" height="18">
+              content AAA
+            </div>
+          </>
+        <>
+          <img id="cjkhl" markerId="63" src="image" left="20" top="1373" width="10" height="7">
+          </img>
+          <button id="lppka" markerId="64" very-long-attr="width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color:..." left="34" top="1365" width="121" height="22">
+            long-style-content
+          </button>
+        </>
+        <>
+          <div id="jfkfj" markerId="65"  left="20" top="1396" width="61" height="18">
+            Click me
+          </div>
+        </>
+        <div id="lfdol" markerId="66" class=".widget" aria-controls="semi-select-5yxiyng" left="20" top="1506" width="100" height="100">
+        </div>
+        <div id="iobao" markerId="67" class=".widget" aria-labelledby="eval_object.object_type-label" left="20" top="1616" width="100" height="100">
+        </div>
+          <>
+            <div id="mcpgp" markerId="68"  left="20" top="1716" width="69" height="18">
+              Content 1
+            </div>
+          </>
+          <>
+            <div id="fmpnl" markerId="69" class=".child-container-without-content-2-1" left="20" top="1735" width="100" height="100">
+            </div>
+                <>
+                  <span id="lmgkd" markerId="70"  left="20" top="1835" width="69" height="18">
+                    Content 2
+                  </span>
+                </>
+          </>
+                <>
+                  <span id="bcppg" markerId="71"  left="20" top="1853" width="69" height="37">
+                    Nested Content 3
+                  </span>
+                </>
+          <div id="mjdjh" markerId="72" class=".child-container-4" left="20" top="1890" width="100" height="100">
+          </div>
+        <span id="npnim" markerId="73" class=".child-container-5" left="20" top="1990" width="8" height="23">
+        </span>
+        <>
+          <span id="fhabj" markerId="74" svgContent="true" left="33" top="1992" width="14" height="14">
+          </span>
+        </>
+          <>
+            <span id="lhnkn" markerId="75"  left="48" top="1989" width="86" height="18">
+              hidden label
+            </span>
+          </>
+            <>
+              <div id="aainp" markerId="76"  left="840" top="200" width="163" height="18">
+                i am fixed child content
+              </div>
+            </>
+          <>
+            <span id="eaooe" markerId="77"  left="20" top="2013" width="61" height="18">
+              abcd efg
+            </span>
+          </>
+          <>
+            <div id="nlkem" markerId="78"  left="20" top="2063" width="279" height="37">
+              content editable div content. We should collect the parent.
+            </div>
+          </>
+          <>
+            <div id="kmhak" markerId="79"  left="0" top="0" width="155" height="18">
+              absolute child content
+            </div>
+          </>
+          <>
+            <div id="hpfnc" markerId="80"  left="20" top="2113" width="84" height="18">
+              content Left
+            </div>
+          </>
+          <>
+            <div id="mfljc" markerId="81"  left="966" top="2113" width="94" height="18">
+              content Right
+            </div>
+          </>
+        <div id="hicdb" markerId="82" class=".two-columns" left="20" top="2213" width="1040" height="204">
+        </div>
+          <>
+            <div id="jojkm" markerId="83"  left="20" top="2417" width="32" height="18">
+              AAA
+            </div>
+          </>
+          <>
+            <div id="dmlig" markerId="84"  left="960" top="-220" width="104" height="37">
+              This should be collected
+            </div>
+          </>
+"
+`;
+
+exports[`extractor > descriptionOfTree with visibleOnly true 1`] = `
+"        <>
+          <h1 id="mmkck"   left="20" top="22" width="189" height="36">
+            Data Record
+          </h1>
+        </>
+        <>
+          <h2 id="coloi" markerId="1"  left="20" top="80" width="226" height="27">
+            1970-01-01 19:25:01
+          </h2>
+        </>
+                  <>
+                    <span id="mhnaf" markerId="45"  left="540" top="16" width="52" height="18">
+                      English
+                    </span>
+                  </>
+                  <>
+                    <span id="jmabe" markerId="46"  left="540" top="37" width="32" height="18">
+                      中文
+                    </span>
+                  </>
+                  <>
+                    <span id="ndkjm" markerId="47"  left="540" top="57" width="71" height="18">
+                      Tiếng Việt
+                    </span>
+                  </>
+          <>
+            <div id="kmhak" markerId="79"  left="0" top="0" width="155" height="18">
+              absolute child content
+            </div>
+          </>
+"
 `;
 
 exports[`extractor > getElementInfoByXpath by evaluateJavaScript 1`] = `
@@ -3147,7 +3669,7 @@ exports[`extractor > getElementInfoByXpath from button node by evaluateJavaScrip
 {
   "aria-label": "Search",
   "class": ".btn",
-  "htmlTagName": "<body>",
+  "htmlTagName": "<button>",
   "nodeType": "BUTTON Node",
   "tabindex": "0",
   "type": "submit",
@@ -3189,5 +3711,101 @@ exports[`extractor > getElementInfoByXpath from text node by evaluateJavaScript 
 {
   "htmlTagName": "<span>",
   "nodeType": "TEXT Node",
+}
+`;
+
+exports[`extractor > merge children rects of button 1`] = `
+[
+  {
+    "attributes": {
+      "htmlTagName": "<div>",
+      "nodeType": "BUTTON Node",
+      "style": "width: 20px; height: 20px",
+    },
+    "content": "Click Me(span)",
+  },
+  {
+    "attributes": {
+      "htmlTagName": "<div>",
+      "nodeType": "BUTTON Node",
+      "style": "width: 20px; height: 20px",
+    },
+    "content": "Click Me(text)",
+  },
+]
+`;
+
+exports[`extractor > merge children rects of button 2`] = `
+{
+  "children": [
+    {
+      "children": [
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": {
+                "attributes": {
+                  "htmlTagName": "<div>",
+                  "nodeType": "BUTTON Node",
+                  "style": "width: 20px; height: 20px",
+                },
+                "content": "Click Me(span)",
+                "indexId": 0,
+              },
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+        {
+          "children": [
+            {
+              "children": [],
+              "node": null,
+            },
+            {
+              "children": [],
+              "node": {
+                "attributes": {
+                  "htmlTagName": "<div>",
+                  "nodeType": "BUTTON Node",
+                  "style": "width: 20px; height: 20px",
+                },
+                "content": "Click Me(text)",
+                "indexId": 1,
+              },
+            },
+            {
+              "children": [],
+              "node": null,
+            },
+          ],
+          "node": null,
+        },
+        {
+          "children": [],
+          "node": null,
+        },
+      ],
+      "node": null,
+    },
+  ],
+  "node": null,
 }
 `;

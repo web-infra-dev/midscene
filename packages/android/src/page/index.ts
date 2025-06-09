@@ -4,12 +4,16 @@ import path from 'node:path';
 import { type Point, type Size, getAIConfig } from '@midscene/core';
 import type { PageType } from '@midscene/core';
 import { getTmpFile, sleep } from '@midscene/core/utils';
-import { MIDSCENE_ADB_PATH } from '@midscene/shared/env';
+import {
+  MIDSCENE_ADB_PATH,
+  MIDSCENE_ADB_REMOTE_HOST,
+  MIDSCENE_ADB_REMOTE_PORT,
+} from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { isValidPNGImageBuffer, resizeImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { repeat } from '@midscene/shared/utils';
-import type { AndroidDevicePage } from '@midscene/web';
+import type { AndroidDeviceInputOpt, AndroidDevicePage } from '@midscene/web';
 import { ADB } from 'appium-adb';
 
 const androidScreenshotPath = '/data/local/tmp/midscene_screenshot.png';
@@ -19,6 +23,11 @@ const defaultFastScrollDuration = 100;
 const defaultNormalScrollDuration = 1000;
 
 export const debugPage = getDebug('android:device');
+export type AndroidDeviceOpt = {
+  androidAdbPath?: string;
+  remoteAdbHost?: string;
+  remoteAdbPort?: number;
+} & AndroidDeviceInputOpt;
 
 export class AndroidDevice implements AndroidDevicePage {
   private deviceId: string;
@@ -29,11 +38,13 @@ export class AndroidDevice implements AndroidDevicePage {
   private connectingAdb: Promise<ADB> | null = null;
   pageType: PageType = 'android';
   uri: string | undefined;
+  options?: AndroidDeviceOpt;
 
-  constructor(deviceId: string) {
+  constructor(deviceId: string, options?: AndroidDeviceOpt) {
     assert(deviceId, 'deviceId is required for AndroidDevice');
 
     this.deviceId = deviceId;
+    this.options = options;
   }
 
   public async connect(): Promise<ADB> {
@@ -57,19 +68,22 @@ export class AndroidDevice implements AndroidDevicePage {
       debugPage(`Initializing ADB with device ID: ${this.deviceId}`);
 
       try {
-        const androidAdbPath = getAIConfig(MIDSCENE_ADB_PATH);
+        const androidAdbPath =
+          this.options?.androidAdbPath || getAIConfig(MIDSCENE_ADB_PATH);
+        const remoteAdbHost =
+          this.options?.remoteAdbHost || getAIConfig(MIDSCENE_ADB_REMOTE_HOST);
+        const remoteAdbPort =
+          this.options?.remoteAdbPort || getAIConfig(MIDSCENE_ADB_REMOTE_PORT);
 
-        // If `androidAdbPath` exists, use `newADB()`
-        this.adb = androidAdbPath
-          ? await new ADB({
-              udid: this.deviceId,
-              adbExecTimeout: 60000,
-              executable: { path: androidAdbPath, defaultArgs: [] },
-            })
-          : await ADB.createADB({
-              udid: this.deviceId,
-              adbExecTimeout: 60000,
-            });
+        this.adb = await new ADB({
+          udid: this.deviceId,
+          adbExecTimeout: 60000,
+          executable: androidAdbPath
+            ? { path: androidAdbPath, defaultArgs: [] }
+            : undefined,
+          remoteAdbHost: remoteAdbHost || undefined,
+          remoteAdbPort: remoteAdbPort ? Number(remoteAdbPort) : undefined,
+        });
 
         const size = await this.getScreenSize();
         console.log(`
@@ -197,6 +211,7 @@ ${Object.keys(size)
   private async getScreenSize(): Promise<{
     override: string;
     physical: string;
+    orientation: number; // 0=portrait, 1=landscape, 2=reverse portrait, 3=reverse landscape
   }> {
     const adb = await this.getAdb();
     const stdout = await adb.shell(['wm', 'size']);
@@ -223,8 +238,22 @@ ${Object.keys(size)
       size.physical = physicalSize[1].trim();
     }
 
+    let orientation = 0;
+    try {
+      const orientationStdout = await adb.shell(
+        'dumpsys input | grep SurfaceOrientation',
+      );
+      const orientationMatch = orientationStdout.match(
+        /SurfaceOrientation:\s*(\d)/,
+      );
+      orientation = orientationMatch ? Number(orientationMatch[1]) : 0;
+      debugPage(`Screen orientation: ${orientation}`);
+    } catch (e) {
+      debugPage('Failed to get orientation, default to 0');
+    }
+
     if (size.override || size.physical) {
-      return size;
+      return { ...size, orientation };
     }
 
     throw new Error(`Failed to get screen size, output: ${stdout}`);
@@ -248,8 +277,11 @@ ${Object.keys(size)
     if (!match || match.length < 3) {
       throw new Error(`Unable to parse screen size: ${screenSize}`);
     }
-    const width = Number.parseInt(match[1], 10);
-    const height = Number.parseInt(match[2], 10);
+
+    const isLandscape =
+      screenSize.orientation === 1 || screenSize.orientation === 3;
+    const width = Number.parseInt(match[isLandscape ? 2 : 1], 10);
+    const height = Number.parseInt(match[isLandscape ? 1 : 2], 10);
 
     // Get device display density
     const densityNum = await adb.getScreenDensity();
@@ -349,7 +381,8 @@ ${Object.keys(size)
 
   get keyboard() {
     return {
-      type: (text: string) => this.keyboardType(text),
+      type: (text: string, options?: AndroidDeviceInputOpt) =>
+        this.keyboardType(text, options),
       press: (
         action:
           | { key: string; command?: string }
@@ -525,21 +558,27 @@ ${Object.keys(size)
     }
   }
 
-  private async keyboardType(text: string): Promise<void> {
+  private async keyboardType(
+    text: string,
+    options?: AndroidDeviceInputOpt,
+  ): Promise<void> {
     if (!text) return;
     const adb = await this.getAdb();
     const isChinese = /[\p{Script=Han}\p{sc=Hani}]/u.test(text);
+    const isAutoDismissKeyboard =
+      options?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard ?? true;
 
     // for pure ASCII characters, directly use inputText
     if (!isChinese) {
       await adb.inputText(text);
-      await adb.hideKeyboard();
-      return;
+    } else {
+      // for non-ASCII characters, use yadb
+      await this.execYadb(text);
     }
 
-    // for non-ASCII characters, use yadb
-    await this.execYadb(text);
-    await adb.hideKeyboard();
+    if (isAutoDismissKeyboard === true) {
+      await adb.hideKeyboard();
+    }
   }
 
   private async keyboardPress(key: string): Promise<void> {
@@ -685,5 +724,13 @@ ${Object.keys(size)
   async recentApps(): Promise<void> {
     const adb = await this.getAdb();
     await adb.shell('input keyevent 82');
+  }
+
+  async getXpathsById(id: string): Promise<string[]> {
+    throw new Error('Not implemented');
+  }
+
+  async getElementInfoByXpath(xpath: string): Promise<ElementInfo> {
+    throw new Error('Not implemented');
   }
 }

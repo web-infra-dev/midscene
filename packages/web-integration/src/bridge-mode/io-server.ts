@@ -1,7 +1,7 @@
 import { sleep } from '@midscene/core/utils';
 import { logMsg } from '@midscene/shared/utils';
 import { Server, type Socket as ServerSocket } from 'socket.io';
-import { io as ClientIO, type Socket as ClientSocket } from 'socket.io-client';
+import { io as ClientIO } from 'socket.io-client';
 
 import {
   type BridgeCall,

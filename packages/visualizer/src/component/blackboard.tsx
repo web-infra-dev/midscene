@@ -13,9 +13,6 @@ import { useBlackboardPreference } from './store/store';
 const itemFillAlpha = 0.4;
 const highlightAlpha = 0.4;
 const pointRadius = 10;
-const noop = () => {
-  // noop
-};
 
 export const pointMarkForItem = (
   point: [number, number],

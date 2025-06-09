@@ -53,7 +53,8 @@ export async function parseContextFromWebPage(
   ]);
 
   const webTree = traverseTree(tree!, (elementInfo) => {
-    const { rect, id, content, attributes, locator, indexId } = elementInfo;
+    const { rect, id, content, attributes, locator, indexId, isVisible } =
+      elementInfo;
     return new WebElementInfo({
       rect,
       locator,
@@ -61,6 +62,7 @@ export async function parseContextFromWebPage(
       content,
       attributes,
       indexId,
+      isVisible,
     });
   });
 
@@ -156,7 +158,8 @@ export const ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED =
   'NOT_IMPLEMENTED_AS_DESIGNED';
 
 export function replaceIllegalPathCharsAndSpace(str: string) {
-  return str.replace(/[/\\:*?"<>| ]/g, '-');
+  // Only replace characters that are illegal in filenames, but preserve path separators
+  return str.replace(/[:*?"<>| ]/g, '-');
 }
 
 export function forceClosePopup(

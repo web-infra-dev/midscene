@@ -18,8 +18,6 @@ export class WebElementInfo implements BaseElement {
 
   center: [number, number];
 
-  // page: WebPage;
-
   id: string;
 
   indexId: number;
@@ -31,6 +29,8 @@ export class WebElementInfo implements BaseElement {
 
   xpaths?: string[];
 
+  isVisible: boolean;
+
   constructor({
     content,
     rect,
@@ -40,6 +40,7 @@ export class WebElementInfo implements BaseElement {
     attributes,
     indexId,
     xpaths,
+    isVisible,
   }: {
     content: string;
     rect: Rect;
@@ -52,6 +53,7 @@ export class WebElementInfo implements BaseElement {
     };
     indexId: number;
     xpaths?: string[];
+    isVisible: boolean;
   }) {
     this.content = content;
     this.rect = rect;
@@ -65,5 +67,6 @@ export class WebElementInfo implements BaseElement {
     this.attributes = attributes;
     this.indexId = indexId;
     this.xpaths = xpaths;
+    this.isVisible = isVisible;
   }
 }

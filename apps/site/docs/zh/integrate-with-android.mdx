@@ -98,6 +98,19 @@ npx tsx demo.ts
 
 当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: /path/to/report/some_id.html`， 通过浏览器打开该文件即可看到报告。
 
+
+## `AndroidDevice` 的构造函数
+
+AndroidDevice 的构造函数支持以下参数：
+
+* `deviceId: string` - 设备 id
+* `opts?: AndroidDeviceOpt` - 可选参数，用于初始化 AndroidDevice 的配置
+  * `autoDismissKeyboard?: boolean` - 可选参数，是否在输入文本后自动关闭键盘。默认值为 true。
+  * `androidAdbPath?: string` - 可选参数，用于指定 adb 可执行文件的路径。
+  * `remoteAdbHost?: string` - 可选参数，用于指定远程 adb 主机。
+  * `remoteAdbPort?: number` - 可选参数，用于指定远程 adb 端口。
+
+
 ## Android Agent 上的更多接口
 
 除了 [API 参考](./API) 中的通用 Agent 接口，AndroidAgent 还提供了一些其他接口：
@@ -143,7 +156,7 @@ function agentFromAdbDevice(deviceId?: string, opts?: PageAgentOpt): Promise<And
 
 * 参数：
   * `deviceId?: string` - 可选参数，要连接的 adb 设备 id，如果未传入，则使用第一个连接的设备
-  * `opts?: PageAgentOpt` - 可选参数，用于初始化 AndroidAgent 的配置，参考 [构造器](./API)
+  * `opts?: PageAgentOpt & AndroidDeviceOpt` - 可选参数，用于初始化 AndroidAgent 的配置，其中 PageAgentOpt 参考 [构造器](./API)，AndroidDeviceOpt 的配置值参考 [AndroidDevice 的构造函数](./integrate-with-android#androiddevice-%E7%9A%84%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0)
 
 * 返回值：
   * `Promise<AndroidAgent>` 返回一个 AndroidAgent 实例
@@ -207,10 +220,22 @@ const agent = await agentFromAdbDevice(devices[0].udid);
   <img src="/android-usb-debug.png" alt="android usb debug" width="400"/>
 </p>
 
-### 如何使用自定义的 adb 路径？
+### 如何使用自定义的 adb 路径、远程 adb 主机和端口？
 
-你可以使用 `MIDSCENE_ADB_PATH` 环境变量来指定 adb 可执行文件的路径。
+你可以使用 `MIDSCENE_ADB_PATH` 环境变量来指定 adb 可执行文件的路径，`MIDSCENE_ADB_REMOTE_HOST` 环境变量来指定远程 adb 主机，`MIDSCENE_ADB_REMOTE_PORT` 环境变量来指定远程 adb 端口。
 
 ```bash
 export MIDSCENE_ADB_PATH=/path/to/adb
+export MIDSCENE_ADB_REMOTE_HOST=192.168.1.100
+export MIDSCENE_ADB_REMOTE_PORT=5037
+```
+
+此外，也可以通过 AndroidDevice 的构造函数来指定 adb 可执行文件的路径、远程 adb 主机和端口。
+
+```typescript
+const device = new AndroidDevice('s4ey59', {
+  androidAdbPath: '/path/to/adb',
+  remoteAdbHost: '192.168.1.100',
+  remoteAdbPort: 5037,
+});
 ```

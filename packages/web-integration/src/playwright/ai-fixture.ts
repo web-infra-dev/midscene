@@ -81,13 +81,15 @@ export const PlaywrightAiFixture = (options?: {
       | 'aiKeyboardPress'
       | 'aiScroll'
       | 'aiTap'
+      | 'aiRightClick'
       | 'aiQuery'
       | 'aiAssert'
       | 'aiWaitFor'
       | 'aiLocate'
       | 'aiNumber'
       | 'aiString'
-      | 'aiBoolean';
+      | 'aiBoolean'
+      | 'logScreenshot';
   }) {
     const { page, testInfo, use, aiActionType } = options;
     const agent = createOrReuseAgentForPage(page, testInfo) as PlaywrightAgent;
@@ -192,6 +194,18 @@ export const PlaywrightAiFixture = (options?: {
         testInfo,
         use,
         aiActionType: 'aiTap',
+      });
+    },
+    aiRightClick: async (
+      { page }: { page: OriginPlaywrightPage },
+      use: any,
+      testInfo: TestInfo,
+    ) => {
+      await generateAiFunction({
+        page,
+        testInfo,
+        use,
+        aiActionType: 'aiRightClick',
       });
     },
     aiHover: async (
@@ -326,6 +340,18 @@ export const PlaywrightAiFixture = (options?: {
         aiActionType: 'aiBoolean',
       });
     },
+    logScreenshot: async (
+      { page }: { page: OriginPlaywrightPage },
+      use: any,
+      testInfo: TestInfo,
+    ) => {
+      await generateAiFunction({
+        page,
+        testInfo,
+        use,
+        aiActionType: 'logScreenshot',
+      });
+    },
   };
 };
 
@@ -336,6 +362,9 @@ export type PlayWrightAiFixtureType = {
   aiTap: (
     ...args: Parameters<PageAgent['aiTap']>
   ) => ReturnType<PageAgent['aiTap']>;
+  aiRightClick: (
+    ...args: Parameters<PageAgent['aiRightClick']>
+  ) => ReturnType<PageAgent['aiRightClick']>;
   aiHover: (
     ...args: Parameters<PageAgent['aiHover']>
   ) => ReturnType<PageAgent['aiHover']>;
@@ -367,4 +396,7 @@ export type PlayWrightAiFixtureType = {
   aiBoolean: (
     ...args: Parameters<PageAgent['aiBoolean']>
   ) => ReturnType<PageAgent['aiBoolean']>;
+  logScreenshot: (
+    ...args: Parameters<PageAgent['logScreenshot']>
+  ) => ReturnType<PageAgent['logScreenshot']>;
 };

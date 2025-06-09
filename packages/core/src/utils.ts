@@ -6,7 +6,6 @@ import { dirname } from 'node:path';
 import {
   defaultRunDirName,
   getMidsceneRunSubDir,
-  logDir,
 } from '@midscene/shared/common';
 import {
   MIDSCENE_DEBUG_MODE,
@@ -26,10 +25,6 @@ const xssOptions = {
   escapeHtml,
 };
 export const groupedActionDumpFileExt = 'web-dump.json';
-
-export function getLogDir() {
-  return logDir;
-}
 
 const reportTpl = 'REPLACE_ME_WITH_REPORT_HTML';
 
@@ -60,7 +55,9 @@ export function reportHTMLContent(
 
   // verify the template contains the placeholder
   if (!tpl.includes(dumpPlaceholder)) {
-    console.warn('Template does not contain {{dump}} placeholder');
+    console.warn(
+      'Failed to get the Midscene report template due to the lack of the {{dump}} placeholder. If you are building Midscene.js by yourself, please refer to the contribution guide for more information: https://github.com/web-infra-dev/midscene/blob/main/CONTRIBUTING.md#FAQ',
+    );
     return '';
   }
 

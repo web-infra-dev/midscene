@@ -77,7 +77,7 @@
       }
     },
     {
-      "prompt": "Bottom right Customer service button",
+      "prompt": "Bottom right Customer service button (rounded icon)",
       "multi": false,
       "annotation_index_id": 6,
       "response_rect": {

@@ -10,8 +10,8 @@ test('ai report', async ({ page, ai, aiAssert, aiQuery }, testInfo) => {
     path.join(process.cwd(), './midscene_run/report/'),
   );
 
-  expect(htmlFile).toBeDefined();
   console.log('using report file:', htmlFile);
+  expect(htmlFile).toBeTruthy();
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto(`file:${htmlFile}`);
   await ai(

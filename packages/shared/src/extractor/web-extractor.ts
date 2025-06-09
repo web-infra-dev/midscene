@@ -6,6 +6,7 @@ import {
 import type { WebElementInfo } from '../types';
 import type { Point } from '../types';
 import {
+  isAElement,
   isButtonElement,
   isContainerElement,
   isFormElement,
@@ -31,11 +32,11 @@ function tagNameOfNode(node: globalThis.Node): string {
   let tagName = '';
   if (node instanceof HTMLElement) {
     tagName = node.tagName.toLowerCase();
-  }
-
-  const parentElement = node.parentElement;
-  if (parentElement && parentElement instanceof HTMLElement) {
-    tagName = parentElement.tagName.toLowerCase();
+  } else {
+    const parentElement = node.parentElement;
+    if (parentElement && parentElement instanceof HTMLElement) {
+      tagName = parentElement.tagName.toLowerCase();
+    }
   }
 
   return tagName ? `<${tagName}>` : '';
@@ -47,23 +48,16 @@ export function collectElementInfo(
   currentDocument: typeof document,
   baseZoom = 1,
   basePoint: Point = { left: 0, top: 0 },
-  visibleOnly = true,
 ): WebElementInfo | null | any {
-  const rect = elementRect(
-    node,
-    currentWindow,
-    currentDocument,
-    baseZoom,
-    visibleOnly,
-  );
+  const rect = elementRect(node, currentWindow, currentDocument, baseZoom);
 
   if (!rect) {
     return null;
   }
 
   if (
-    visibleOnly &&
-    (rect.width < CONTAINER_MINI_WIDTH || rect.height < CONTAINER_MINI_HEIGHT)
+    rect.width < CONTAINER_MINI_WIDTH ||
+    rect.height < CONTAINER_MINI_HEIGHT
   ) {
     return null;
   }
@@ -121,11 +115,21 @@ export function collectElementInfo(
         Math.round(rect.top + rect.height / 2),
       ],
       zoom: rect.zoom,
+      isVisible: rect.isVisible,
     };
     return elementInfo;
   }
 
   if (isButtonElement(node)) {
+    const rect = mergeElementAndChildrenRects(
+      node,
+      currentWindow,
+      currentDocument,
+      baseZoom,
+    );
+    if (!rect) {
+      return null;
+    }
     const attributes = getNodeAttributes(node, currentWindow);
     const pseudo = getPseudoElementContent(node, currentWindow);
     const content = node.innerText || pseudo.before || pseudo.after || '';
@@ -149,6 +153,7 @@ export function collectElementInfo(
         Math.round(rect.top + rect.height / 2),
       ],
       zoom: rect.zoom,
+      isVisible: rect.isVisible,
     };
     return elementInfo;
   }
@@ -180,6 +185,7 @@ export function collectElementInfo(
         Math.round(rect.top + rect.height / 2),
       ],
       zoom: rect.zoom,
+      isVisible: rect.isVisible,
     };
     return elementInfo;
   }
@@ -214,6 +220,36 @@ export function collectElementInfo(
       content: text,
       rect,
       zoom: rect.zoom,
+      isVisible: rect.isVisible,
+    };
+    return elementInfo;
+  }
+
+  if (isAElement(node)) {
+    const attributes = getNodeAttributes(node, currentWindow);
+    const pseudo = getPseudoElementContent(node, currentWindow);
+    const content = node.innerText || pseudo.before || pseudo.after || '';
+    const nodeHashId = midsceneGenerateHash(node, content, rect);
+    const selector = setDataForNode(node, nodeHashId, false, currentWindow);
+    const elementInfo: WebElementInfo = {
+      id: nodeHashId,
+      indexId: indexId++,
+      nodeHashId,
+      nodeType: NodeType.A,
+      locator: selector,
+      attributes: {
+        ...attributes,
+        htmlTagName: tagNameOfNode(node),
+        nodeType: NodeType.A,
+      },
+      content,
+      rect,
+      center: [
+        Math.round(rect.left + rect.width / 2),
+        Math.round(rect.top + rect.height / 2),
+      ],
+      zoom: rect.zoom,
+      isVisible: rect.isVisible,
     };
     return elementInfo;
   }
@@ -241,6 +277,7 @@ export function collectElementInfo(
         Math.round(rect.top + rect.height / 2),
       ],
       zoom: rect.zoom,
+      isVisible: rect.isVisible,
     };
     return elementInfo;
   }
@@ -275,10 +312,11 @@ export function extractTextWithPosition(
 
 export function extractTreeNodeAsString(
   initNode: globalThis.Node,
+  visibleOnly = false,
   debugMode = false,
 ): string {
   const elementNode = extractTreeNode(initNode, debugMode);
-  return descriptionOfTree(elementNode);
+  return descriptionOfTree(elementNode, undefined, false, visibleOnly);
 }
 
 export function extractTreeNode(
@@ -335,7 +373,7 @@ export function extractTreeNode(
       elementInfo?.nodeType === NodeType.IMG ||
       elementInfo?.nodeType === NodeType.TEXT ||
       elementInfo?.nodeType === NodeType.FORM_ITEM ||
-      elementInfo?.nodeType === NodeType.CONTAINER
+      elementInfo?.nodeType === NodeType.CONTAINER // TODO: need return the container node?
     ) {
       return nodeInfo;
     }
@@ -395,5 +433,45 @@ export function extractTreeNode(
   return {
     node: null,
     children: topChildren,
+  };
+}
+
+export function mergeElementAndChildrenRects(
+  node: Node,
+  currentWindow: typeof window,
+  currentDocument: typeof document,
+  baseZoom = 1,
+) {
+  const selfRect = elementRect(node, currentWindow, currentDocument, baseZoom);
+  if (!selfRect) return null;
+
+  let minLeft = selfRect.left;
+  let minTop = selfRect.top;
+  let maxRight = selfRect.left + selfRect.width;
+  let maxBottom = selfRect.top + selfRect.height;
+
+  function traverse(child: Node) {
+    for (let i = 0; i < child.childNodes.length; i++) {
+      const sub = child.childNodes[i];
+      if (sub.nodeType === 1) {
+        const rect = elementRect(sub, currentWindow, currentDocument, baseZoom);
+        if (rect) {
+          minLeft = Math.min(minLeft, rect.left);
+          minTop = Math.min(minTop, rect.top);
+          maxRight = Math.max(maxRight, rect.left + rect.width);
+          maxBottom = Math.max(maxBottom, rect.top + rect.height);
+        }
+        traverse(sub);
+      }
+    }
+  }
+  traverse(node);
+
+  return {
+    ...selfRect,
+    left: minLeft,
+    top: minTop,
+    width: maxRight - minLeft,
+    height: maxBottom - minTop,
   };
 }

@@ -45,6 +45,14 @@ export default class StaticPage implements AbstractPage {
     return ThrowNotImplemented('getElementsNodeTree');
   }
 
+  async getXpathsById(id: string) {
+    return ThrowNotImplemented('getXpathsById');
+  }
+
+  async getElementInfoByXpath(xpath: string) {
+    return ThrowNotImplemented('getElementInfoByXpath');
+  }
+
   async size() {
     return this.uiContext.size;
   }

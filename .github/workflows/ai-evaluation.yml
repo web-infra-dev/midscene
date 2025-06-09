@@ -1,8 +1,5 @@
 name: AI evaluation
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
     inputs:
       branch:
@@ -22,9 +19,10 @@ jobs:
         node-version: [18.19.0]
 
     env:
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
-      MIDSCENE_MODEL_NAME: gpt-4o-2024-11-20
+      OPENAI_API_KEY: ${{ secrets.DOUBAO_TOKEN }}
+      OPENAI_BASE_URL: ${{ secrets.DOUBAO_BASE_URL }}
+      MIDSCENE_MODEL_NAME: 'doubao-1-5-thinking-vision-pro-250428'
+      MIDSCENE_USE_DOUBAO_VISION: 1
       CI: 1
 
     steps:
@@ -55,6 +53,7 @@ jobs:
         cd packages/evaluation
         pnpm run evaluate:locator
         pnpm run evaluate:planning
+        pnpm run evaluate:assertion
 
     - name: Upload Logs
       if: always()

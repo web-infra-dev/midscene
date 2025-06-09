@@ -7,17 +7,16 @@ import {
 import type { Page as PuppeteerPageType } from 'puppeteer';
 import { Page as BasePage } from './base-page';
 
+export type PuppeteerPageOpt = {
+  waitForNavigationTimeout?: number;
+  waitForNetworkIdleTimeout?: number;
+};
+
 export class WebPage extends BasePage<'puppeteer', PuppeteerPageType> {
   waitForNavigationTimeout: number;
   waitForNetworkIdleTimeout: number;
 
-  constructor(
-    page: PuppeteerPageType,
-    opts?: {
-      waitForNavigationTimeout?: number;
-      waitForNetworkIdleTimeout?: number;
-    },
-  ) {
+  constructor(page: PuppeteerPageType, opts?: PuppeteerPageOpt) {
     super(page, 'puppeteer');
     const {
       waitForNavigationTimeout = DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
@@ -33,10 +32,10 @@ export class WebPage extends BasePage<'puppeteer', PuppeteerPageType> {
     timeout?: number;
   }): Promise<void> {
     await this.underlyingPage.waitForNetworkIdle({
-      idleTime: options?.idleTime || DEFAULT_WAIT_FOR_NETWORK_IDLE_TIME,
+      idleTime: options?.idleTime ?? DEFAULT_WAIT_FOR_NETWORK_IDLE_TIME,
       concurrency:
-        options?.concurrency || DEFAULT_WAIT_FOR_NETWORK_IDLE_CONCURRENCY,
-      timeout: options?.timeout || this.waitForNetworkIdleTimeout,
+        options?.concurrency ?? DEFAULT_WAIT_FOR_NETWORK_IDLE_CONCURRENCY,
+      timeout: options?.timeout ?? this.waitForNetworkIdleTimeout,
     });
   }
 }

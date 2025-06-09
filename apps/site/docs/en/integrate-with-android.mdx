@@ -98,6 +98,19 @@ After a while, you will see the following output:
 
 After the above command executes successfully, the console will output: `Midscene - report file updated: /path/to/report/some_id.html`. You can open this file in a browser to view the report.
 
+
+## `AndroidDevice` constructor
+
+The AndroidDevice constructor supports the following parameters:
+
+* `deviceId: string` - The device id
+* `opts?: AndroidDeviceOpt` - Optional, the options for the AndroidDevice
+  * `autoDismissKeyboard?: boolean` - Optional, whether to dismiss the keyboard after inputting. (Default: true)
+  * `androidAdbPath?: string` - Optional, the path to the adb executable.
+  * `remoteAdbHost?: string` - Optional, the remote adb host.
+  * `remoteAdbPort?: number` - Optional, the remote adb port.
+
+
 ## More interfaces in AndroidAgent 
 
 Except the common agent interfaces in [API Reference](./API), AndroidAgent also provides some other interfaces:
@@ -143,7 +156,7 @@ function agentFromAdbDevice(deviceId?: string, opts?: PageAgentOpt): Promise<And
 
 * Parameters:
   * `deviceId?: string` - Optional, the adb device id to connect. If not provided, the first connected device will be used.
-  * `opts?: PageAgentOpt` - Optional, the options for the AndroidAgent, refer to [constructor](./API).
+  * `opts?: PageAgentOpt & AndroidDeviceOpt` - Optional, the options for the AndroidAgent, PageAgentOpt refer to [constructor](./API), AndroidDeviceOpt refer to [AndroidDevice constructor](./integrate-with-android#androiddevice-constructor).
 
 * Return Value:
   * `Promise<AndroidAgent>` Returns a Promise that resolves to an AndroidAgent.
@@ -208,10 +221,22 @@ Please check if the device is unlocked in the developer options of the system se
 </p>
 
 
-### How to use a custom adb path?
+### How to use a custom adb path, remote adb host and port?
 
-You can use the `MIDSCENE_ADB_PATH` environment variable to specify the path to the adb executable.
+You can use the `MIDSCENE_ADB_PATH` environment variable to specify the path to the adb executable, `MIDSCENE_ADB_REMOTE_HOST` environment variable to specify the remote adb host, `MIDSCENE_ADB_REMOTE_PORT` environment variable to specify the remote adb port.
 
 ```bash
 export MIDSCENE_ADB_PATH=/path/to/adb
+export MIDSCENE_ADB_REMOTE_HOST=192.168.1.100
+export MIDSCENE_ADB_REMOTE_PORT=5037
+```
+
+Additionally, you can also specify the adb path, remote adb host and port through the AndroidDevice constructor.
+
+```typescript
+const device = new AndroidDevice('s4ey59', {
+  androidAdbPath: '/path/to/adb',
+  remoteAdbHost: '192.168.1.100',
+  remoteAdbPort: 5037,
+});
 ```

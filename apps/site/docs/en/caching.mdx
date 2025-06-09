@@ -97,3 +97,12 @@ You can remove the cache file in the `cache` directory, or edit the contents in 
 You can use the `cacheable` option to disable the cache for a single API.
 
 Please refer to the documentation of the corresponding [API](./API.mdx) for details.
+
+### Limitations of XPath in caching element location
+
+Midscene uses [XPath](https://developer.mozilla.org/en-US/docs/Web/XML/XPath) to cache the element location. ⁠We are using a relatively strict strategy to prevent false matches. In these situations, the cache will not be accessed.
+
+1. The text content of the new element at the same XPath is different from the cached element.
+2. The DOM structure of the page is changed from the cached one.
+
+When the cache is not hit, the process will fall back to continue using AI services to find the element.

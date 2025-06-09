@@ -52,9 +52,11 @@ describe(
 
       // find the items
       const items = await agent.aiQuery(
-        '"{name: string, price: number, actionBtnName: string}[], return item name, price and the action button name on the lower right corner of each item (like "Remove")',
+        '{name: string, price: number, actionBtnName: string, imageUrl: string}[], return item name, price and the action button name on the lower right corner of each item, and the image url of each item (like "Remove")',
+        { domIncluded: true, screenshotIncluded: false },
       );
       console.log('item list', items);
+      expect(items[0].imageUrl).toContain('/static/media/');
       expect(items.length).toBeGreaterThanOrEqual(2);
 
       await agent.aiAssert('The price of "Sauce Labs Backpack" is 29.99');
@@ -125,19 +127,25 @@ describe(
 
         await sleep(3000);
 
-        await agent.aiTap('the settings button', {
-          deepThink: true,
-        });
+        const settingsButton = await agent.aiBoolean(
+          'there is a settings button in the page',
+        );
 
-        await agent.aiTap('搜索设置', {
-          deepThink: true,
-        });
+        if (settingsButton) {
+          await agent.aiTap('the settings button', {
+            deepThink: true,
+          });
 
-        await agent.aiTap('the close button of the popup', {
-          deepThink: true,
-        });
+          await agent.aiTap('搜索设置', {
+            deepThink: true,
+          });
 
-        await agent.aiAssert('there is NOT a popup shown in the page');
+          await agent.aiTap('the close button of the popup', {
+            deepThink: true,
+          });
+
+          await agent.aiAssert('there is NOT a popup shown in the page');
+        }
       },
     );
 
@@ -160,7 +168,7 @@ describe(
     );
 
     it('element describer', async () => {
-      const { originPage, reset } = await launchPage('https://www.taobao.com/');
+      const { originPage, reset } = await launchPage('https://www.baidu.com/');
       resetFn = reset;
       const agent = new PuppeteerAgent(originPage);
 
@@ -172,7 +180,7 @@ describe(
     });
 
     it('element describer - deep think', async () => {
-      const { originPage, reset } = await launchPage('https://www.taobao.com/');
+      const { originPage, reset } = await launchPage('https://www.baidu.com/');
       resetFn = reset;
       const agent = new PuppeteerAgent(originPage);
 

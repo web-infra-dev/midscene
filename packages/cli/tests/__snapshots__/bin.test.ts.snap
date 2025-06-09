@@ -1,8 +1,0 @@
-// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
-
-exports[`bin > local server - evaluateJavaScript 1`] = `
-{
-  "foo": "bar",
-  "promise": "hello",
-}
-`;

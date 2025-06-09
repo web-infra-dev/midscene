@@ -6,6 +6,11 @@ export interface LocateOption {
   cacheable?: boolean; // user can set this param to false to disable the cache for a single agent api
 }
 
+export interface InsightExtractOption {
+  domIncluded?: boolean;
+  screenshotIncluded?: boolean;
+}
+
 export interface ReferenceImage {
   base64: string;
   rect?: Rect;
@@ -23,6 +28,7 @@ export interface scrollParam {
 }
 
 export interface MidsceneYamlScript {
+  // @deprecated
   target?: MidsceneYamlScriptWebEnv;
   web?: MidsceneYamlScriptWebEnv;
   android?: MidsceneYamlScriptAndroidEnv;
@@ -80,28 +86,30 @@ export interface MidsceneYamlFlowItemAIAction {
   ai?: string; // this is the shortcut for aiAction
   aiAction?: string;
   aiActionProgressTips?: string[];
+  cacheable?: boolean;
 }
 
 export interface MidsceneYamlFlowItemAIAssert {
   aiAssert: string;
+  errorMessage?: string;
 }
 
-export interface MidsceneYamlFlowItemAIQuery {
+export interface MidsceneYamlFlowItemAIQuery extends InsightExtractOption {
   aiQuery: string;
   name?: string;
 }
 
-export interface MidsceneYamlFlowItemAINumber {
+export interface MidsceneYamlFlowItemAINumber extends InsightExtractOption {
   aiNumber: string;
   name?: string;
 }
 
-export interface MidsceneYamlFlowItemAINString {
+export interface MidsceneYamlFlowItemAINString extends InsightExtractOption {
   aiString: string;
   name?: string;
 }
 
-export interface MidsceneYamlFlowItemAIBoolean {
+export interface MidsceneYamlFlowItemAIBoolean extends InsightExtractOption {
   aiBoolean: string;
   name?: string;
 }
@@ -118,6 +126,10 @@ export interface MidsceneYamlFlowItemAIWaitFor {
 
 export interface MidsceneYamlFlowItemAITap extends LocateOption {
   aiTap: string;
+}
+
+export interface MidsceneYamlFlowItemAIRightClick extends LocateOption {
+  aiRightClick: string;
 }
 
 export interface MidsceneYamlFlowItemAIHover extends LocateOption {
@@ -150,17 +162,24 @@ export interface MidsceneYamlFlowItemSleep {
   sleep: number;
 }
 
+export interface MidsceneYamlFlowItemLogScreenshot {
+  logScreenshot?: string; // optional, the title of the screenshot
+  content?: string;
+}
+
 export type MidsceneYamlFlowItem =
   | MidsceneYamlFlowItemAIAction
   | MidsceneYamlFlowItemAIAssert
   | MidsceneYamlFlowItemAIQuery
   | MidsceneYamlFlowItemAIWaitFor
   | MidsceneYamlFlowItemAITap
+  | MidsceneYamlFlowItemAIRightClick
   | MidsceneYamlFlowItemAIHover
   | MidsceneYamlFlowItemAIInput
   | MidsceneYamlFlowItemAIKeyboardPress
   | MidsceneYamlFlowItemAIScroll
-  | MidsceneYamlFlowItemSleep;
+  | MidsceneYamlFlowItemSleep
+  | MidsceneYamlFlowItemLogScreenshot;
 
 export interface FreeFn {
   name: string;

@@ -1,8 +1,8 @@
 # 使用 JavaScript 优化 AI 自动化代码
 
-许多开发者喜欢使用 `aiAction` 接口来汇聚自动化任务，甚至将所有复杂逻辑描述在一个自然语言指令中。虽然这看起来很"智能"，但实际上会带来一系列问题，甚至困在 Prompt 反复调优的怪圈中。
+许多开发者喜欢使用 `aiAction` 接口来汇聚自动化任务，甚至将所有复杂逻辑描述在一个自然语言指令中。虽然这看起来很"智能"，但在实际使用中可能遇到一系列问题，甚至陷入 Prompt 反复调优的怪圈中。
 
-最常见的典型错误是编写大段逻辑风暴，如：
+最常见的典型场景是编写大段逻辑风暴，如：
 
 ```javascript
 aiAction(`
@@ -13,13 +13,13 @@ aiAction(`
 `)
 ```
 
-另一个常见错误是，企图使用 `aiAction` 方法做复杂的流程控制。和传统的 JavaScript 相比，这些复杂 Prompt 的可靠性可能非常差。例如：
+另一个常见场景是，企图使用 `aiAction` 方法做复杂的流程控制。和传统的 JavaScript 相比，这些复杂 Prompt 的可靠性可能非常差。例如：
 
 ```javascript
 aiAction('逐条点击所有记录，如果一个记录包含“已完成”，则跳过')
 ```
 
-## 使用 JavaScript 和结构化 API 编写自动化脚本
+## 优化路径：使用 JavaScript 和结构化 API 编写自动化脚本
 
 从 v0.16.10 开始，Midscene 提供了数据提取方法，如 `aiBoolean` `aiString` `aiNumber`，可以用于控制流程。
 
@@ -83,7 +83,10 @@ while (user.length > 0) {
   // 检查是否已经遍历了当前列表中的所有用户
   if (currentUserIndex >= user.length) {
     // 向下滚动一屏
-    await agent.aiScroll('向下滚动一屏')
+    await agent.aiScroll({
+      direction: 'down',
+      scrollType: 'once',
+    })
     
     // 获取更新后的用户列表
     user = await agent.aiQuery('string[], 列表中所有未关注用户')
@@ -172,13 +175,19 @@ Midscene 提供了一些即时操作方法，如 `aiTap` `aiInput` `aiScroll` `a
 
 ![](/blog/ai-ide-convert-prompt.png)
 
-然后奇迹就会发生。
-
 输入你的提示词后，AI IDE 会自动将你的提示词转换为结构化 javascript 代码：
 
 ![](/blog/ai-ide-convert-prompt-result.png)
 
 快去试试吧！
+
+## 选用 `aiAction` 与结构化代码，哪个才是最优解？
+
+没有标准答案。这取决于模型的能力、实际业务的复杂度。一般来说，如果出现了以下现象，你应该考虑放弃 `aiAction` 方法：
+
+- `aiAction` 在多次重放后，成功率不满足需求
+- 反复调优 `aiAction` 的 prompt 已经让你感到疲惫、耗费了太多时间
+- 需要对脚本进行单步调试
 
 ## 接下来做什么？
 

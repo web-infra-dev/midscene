@@ -42,3 +42,5 @@ export {
   getPlaceholderForType,
   blankResult,
 } from './component/playground/playground-utils';
+
+export { timeStr, filterBase64Value } from './utils';

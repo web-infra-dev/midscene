@@ -3,7 +3,10 @@ import { sleep } from '@midscene/core/utils';
 import { DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
-import { getExtraReturnLogic } from '@midscene/shared/fs';
+import {
+  getElementInfosScriptContent,
+  getExtraReturnLogic,
+} from '@midscene/shared/fs';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { Page as PlaywrightPage } from 'playwright';
@@ -56,7 +59,7 @@ export class Page<
     this.underlyingPage = underlyingPage;
     this.pageType = pageType;
     this.waitForNavigationTimeout =
-      opts?.waitForNavigationTimeout || DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT;
+      opts?.waitForNavigationTimeout ?? DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT;
   }
 
   async evaluateJavaScript<T = any>(script: string): Promise<T> {
@@ -92,6 +95,22 @@ export class Page<
     const tree = await this.getElementsNodeTree();
     debugPage('getElementsInfo end');
     return treeToList(tree);
+  }
+
+  async getXpathsById(id: string) {
+    const elementInfosScriptContent = getElementInfosScriptContent();
+
+    return this.evaluateJavaScript(
+      `${elementInfosScriptContent}midscene_element_inspector.getXpathsById('${id}')`,
+    );
+  }
+
+  async getElementInfoByXpath(xpath: string) {
+    const elementInfosScriptContent = getElementInfosScriptContent();
+
+    return this.evaluateJavaScript(
+      `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('${xpath}')`,
+    );
   }
 
   async getElementsNodeTree() {

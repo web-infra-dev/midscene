@@ -16,6 +16,7 @@ import {
   type Insight,
   type InsightAssertionResponse,
   type InsightDump,
+  type InsightExtractOption,
   type InsightExtractParam,
   type LocateResultElement,
   type MidsceneYamlFlowItem,
@@ -41,7 +42,6 @@ import {
 import { sleep } from '@midscene/core/utils';
 import { NodeType } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
-import { getElementInfosScriptContent } from '@midscene/shared/fs';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { WebElementInfo } from '../web-element';
@@ -121,6 +121,11 @@ export class PageTaskExecutor {
       );
       if (info?.id) {
         elementId = info.id;
+      } else {
+        debug(
+          'no element id found for position node, will not update cache',
+          element,
+        );
       }
     }
 
@@ -128,10 +133,7 @@ export class PageTaskExecutor {
       return undefined;
     }
     try {
-      const elementInfosScriptContent = getElementInfosScriptContent();
-      const result = await this.page.evaluateJavaScript?.(
-        `${elementInfosScriptContent}midscene_element_inspector.getXpathsById('${elementId}')`,
-      );
+      const result = await this.page.getXpathsById(elementId);
       return result;
     } catch (error) {
       debug('getXpathsById error: ', error);
@@ -177,7 +179,12 @@ export class PageTaskExecutor {
     return taskWithScreenshot;
   }
 
-  private async convertPlanToExecutable(plans: PlanningAction[]) {
+  public async convertPlanToExecutable(
+    plans: PlanningAction[],
+    opts?: {
+      cacheable?: boolean;
+    },
+  ) {
     const tasks: ExecutionTaskApply[] = [];
     plans.forEach((plan) => {
       if (plan.type === 'Locate') {
@@ -192,7 +199,12 @@ export class PageTaskExecutor {
         const taskFind: ExecutionTaskInsightLocateApply = {
           type: 'Insight',
           subType: 'Locate',
-          param: plan.locate || undefined,
+          param: plan.locate
+            ? {
+                ...plan.locate,
+                cacheable: opts?.cacheable,
+              }
+            : undefined,
           thought: plan.thought,
           locate: plan.locate,
           executor: async (param, taskContext) => {
@@ -240,21 +252,23 @@ export class PageTaskExecutor {
                 param?.cacheable !== false
               ) {
                 // hit cache, use new id
-                const elementInfosScriptContent =
-                  getElementInfosScriptContent();
-                const element = await this.page.evaluateJavaScript?.(
-                  `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('${xpaths[0]}')`,
-                );
 
-                if (element?.id) {
-                  elementFromCache = element;
-                  debug('cache hit, prompt: %s', cachePrompt);
-                  cacheHitFlag = true;
-                  debug(
-                    'found a new new element with same xpath, xpath: %s, id: %s',
-                    xpaths[0],
-                    element?.id,
+                for (let i = 0; i < xpaths.length; i++) {
+                  const element = await this.page.getElementInfoByXpath(
+                    xpaths[i],
                   );
+
+                  if (element?.id) {
+                    elementFromCache = element;
+                    debug('cache hit, prompt: %s', cachePrompt);
+                    cacheHitFlag = true;
+                    debug(
+                      'found a new new element with same xpath, xpath: %s, id: %s',
+                      xpaths[i],
+                      element?.id,
+                    );
+                    break;
+                  }
                 }
               }
             } catch (error) {
@@ -274,6 +288,7 @@ export class PageTaskExecutor {
             const aiCost = Date.now() - startTime;
 
             // update cache
+            let currentXpaths: string[] | undefined;
             if (
               element &&
               this.taskCache &&
@@ -284,7 +299,8 @@ export class PageTaskExecutor {
                 pageContext,
                 element,
               );
-              if (elementXpaths) {
+              if (elementXpaths?.length) {
+                currentXpaths = elementXpaths;
                 this.taskCache.updateOrAppendCacheRecord(
                   {
                     type: 'locate',
@@ -294,7 +310,11 @@ export class PageTaskExecutor {
                   locateCacheRecord,
                 );
               } else {
-                debug('no xpaths found, will not update cache', cachePrompt);
+                debug(
+                  'no xpaths found, will not update cache',
+                  cachePrompt,
+                  elementXpaths,
+                );
               }
             }
             if (!element) {
@@ -308,6 +328,8 @@ export class PageTaskExecutor {
               pageContext,
               cache: {
                 hit: cacheHitFlag,
+                originalXpaths: xpaths,
+                currentXpaths,
               },
               aiCost,
             };
@@ -372,11 +394,11 @@ export class PageTaskExecutor {
                 if (!taskParam || !taskParam.value) {
                   return;
                 }
-
-                await this.page.keyboard.type(taskParam.value);
-              } else {
-                await this.page.keyboard.type(taskParam.value);
               }
+
+              await this.page.keyboard.type(taskParam.value, {
+                autoDismissKeyboard: taskParam.autoDismissKeyboard,
+              });
             },
           };
         tasks.push(taskActionInput);
@@ -408,6 +430,23 @@ export class PageTaskExecutor {
             },
           };
         tasks.push(taskActionTap);
+      } else if (plan.type === 'RightClick') {
+        const taskActionRightClick: ExecutionTaskActionApply<PlanningActionParamTap> =
+          {
+            type: 'Action',
+            subType: 'RightClick',
+            thought: plan.thought,
+            locate: plan.locate,
+            executor: async (param, { element }) => {
+              assert(element, 'Element not found, cannot right click');
+              await this.page.mouse.click(
+                element.center[0],
+                element.center[1],
+                { button: 'right' },
+              );
+            },
+          };
+        tasks.push(taskActionRightClick);
       } else if (plan.type === 'Drag') {
         const taskActionDrag: ExecutionTaskActionApply<{
           start_box: { x: number; y: number };
@@ -719,6 +758,7 @@ export class PageTaskExecutor {
         } = planResult;
 
         executorContext.task.log = {
+          ...(executorContext.task.log || {}),
           rawResponse,
         };
         executorContext.task.usage = usage;
@@ -869,11 +909,14 @@ export class PageTaskExecutor {
   async runPlans(
     title: string,
     plans: PlanningAction[],
+    opts?: {
+      cacheable?: boolean;
+    },
   ): Promise<ExecutionResult> {
     const taskExecutor = new Executor(title, {
       onTaskStart: this.onTaskStartCallback,
     });
-    const { tasks } = await this.convertPlanToExecutable(plans);
+    const { tasks } = await this.convertPlanToExecutable(plans, opts);
     await taskExecutor.append(tasks);
     const result = await taskExecutor.flush();
     return {
@@ -885,6 +928,9 @@ export class PageTaskExecutor {
   async action(
     userPrompt: string,
     actionContext?: string,
+    opts?: {
+      cacheable?: boolean;
+    },
   ): Promise<
     ExecutionResult<
       | {
@@ -926,7 +972,7 @@ export class PageTaskExecutor {
 
       let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
       try {
-        executables = await this.convertPlanToExecutable(plans);
+        executables = await this.convertPlanToExecutable(plans, opts);
         taskExecutor.append(executables.tasks);
       } catch (error) {
         return this.appendErrorPlan(
@@ -968,7 +1014,12 @@ export class PageTaskExecutor {
     };
   }
 
-  async actionToGoal(userPrompt: string): Promise<
+  async actionToGoal(
+    userPrompt: string,
+    opts?: {
+      cacheable?: boolean;
+    },
+  ): Promise<
     ExecutionResult<
       | {
           yamlFlow?: MidsceneYamlFlowItem[]; // for cache use
@@ -1001,7 +1052,7 @@ export class PageTaskExecutor {
       yamlFlow.push(...(output.yamlFlow || []));
       let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
       try {
-        executables = await this.convertPlanToExecutable(plans);
+        executables = await this.convertPlanToExecutable(plans, opts);
         taskExecutor.append(executables.tasks);
       } catch (error) {
         return this.appendErrorPlan(
@@ -1036,6 +1087,7 @@ export class PageTaskExecutor {
   private async createTypeQueryTask<T>(
     type: 'Query' | 'Boolean' | 'Number' | 'String',
     demand: InsightExtractParam,
+    opt?: InsightExtractOption,
   ): Promise<ExecutionResult<T>> {
     const taskExecutor = new Executor(
       taskTitleStr(
@@ -1069,7 +1121,10 @@ export class PageTaskExecutor {
           };
         }
 
-        const { data, usage } = await this.insight.extract<any>(demandInput);
+        const { data, usage } = await this.insight.extract<any>(
+          demandInput,
+          opt,
+        );
 
         let outputResult = data;
         if (ifTypeRestricted) {
@@ -1093,20 +1148,32 @@ export class PageTaskExecutor {
     };
   }
 
-  async query(demand: InsightExtractParam): Promise<ExecutionResult> {
-    return this.createTypeQueryTask('Query', demand);
+  async query(
+    demand: InsightExtractParam,
+    opt?: InsightExtractOption,
+  ): Promise<ExecutionResult> {
+    return this.createTypeQueryTask('Query', demand, opt);
   }
 
-  async boolean(prompt: string): Promise<ExecutionResult<boolean>> {
-    return this.createTypeQueryTask<boolean>('Boolean', prompt);
+  async boolean(
+    prompt: string,
+    opt?: InsightExtractOption,
+  ): Promise<ExecutionResult<boolean>> {
+    return this.createTypeQueryTask<boolean>('Boolean', prompt, opt);
   }
 
-  async number(prompt: string): Promise<ExecutionResult<number>> {
-    return this.createTypeQueryTask<number>('Number', prompt);
+  async number(
+    prompt: string,
+    opt?: InsightExtractOption,
+  ): Promise<ExecutionResult<number>> {
+    return this.createTypeQueryTask<number>('Number', prompt, opt);
   }
 
-  async string(prompt: string): Promise<ExecutionResult<string>> {
-    return this.createTypeQueryTask<string>('String', prompt);
+  async string(
+    prompt: string,
+    opt?: InsightExtractOption,
+  ): Promise<ExecutionResult<string>> {
+    return this.createTypeQueryTask<string>('String', prompt, opt);
   }
 
   async assert(

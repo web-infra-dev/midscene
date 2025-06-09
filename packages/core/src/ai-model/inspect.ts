@@ -4,12 +4,10 @@ import type {
   AIElementLocatorResponse,
   AIElementResponse,
   AISectionLocatorResponse,
-  AISingleElementResponse,
-  AISingleElementResponseByPosition,
   AIUsageInfo,
   BaseElement,
   ElementById,
-  ElementTreeNode,
+  InsightExtractOption,
   Rect,
   ReferenceImage,
   UIContext,
@@ -60,11 +58,6 @@ export type AIArgs = [
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
 ];
-
-const liteContextConfig = {
-  filterNonTextContent: true,
-  truncateTextLength: 200,
-};
 
 const debugInspect = getDebug('ai:inspect');
 const debugSection = getDebug('ai:section');
@@ -314,38 +307,46 @@ export async function AiExtractElementInfo<
 >(options: {
   dataQuery: string | Record<string, string>;
   context: UIContext<ElementType>;
+  extractOption?: InsightExtractOption;
 }) {
-  const { dataQuery, context } = options;
+  const { dataQuery, context, extractOption } = options;
   const systemPrompt = systemPromptToExtract();
 
   const { screenshotBase64 } = context;
-  const { description, elementById } = await describeUserPage(
-    context,
-    liteContextConfig,
-  );
+  const { description, elementById } = await describeUserPage(context, {
+    truncateTextLength: 200,
+    filterNonTextContent: false,
+    visibleOnly: false,
+    domIncluded: extractOption?.domIncluded,
+  });
 
   const extractDataPromptText = await extractDataQueryPrompt(
     description,
     dataQuery,
   );
 
+  const userContent: ChatCompletionUserMessageParam['content'] = [];
+
+  if (extractOption?.screenshotIncluded !== false) {
+    userContent.push({
+      type: 'image_url',
+      image_url: {
+        url: screenshotBase64,
+        detail: 'high',
+      },
+    });
+  }
+
+  userContent.push({
+    type: 'text',
+    text: extractDataPromptText,
+  });
+
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
     {
       role: 'user',
-      content: [
-        {
-          type: 'image_url',
-          image_url: {
-            url: screenshotBase64,
-            detail: 'high',
-          },
-        },
-        {
-          type: 'text',
-          text: extractDataPromptText,
-        },
-      ],
+      content: userContent,
     },
   ];
 

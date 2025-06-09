@@ -1,7 +1,6 @@
 import { imageInfoOfBase64 } from '@/image/index';
 import type { BaseElement, ElementTreeNode, Size, UIContext } from '@/types';
 import { NodeType } from '@midscene/shared/constants';
-import { vlLocateMode } from '@midscene/shared/env';
 import {
   descriptionOfTree,
   generateElementByPosition,
@@ -133,6 +132,8 @@ export async function describeUserPage<
   opt?: {
     truncateTextLength?: number;
     filterNonTextContent?: boolean;
+    domIncluded?: boolean;
+    visibleOnly?: boolean;
   },
 ) {
   const { screenshotBase64 } = context;
@@ -157,17 +158,19 @@ export async function describeUserPage<
     }
   });
 
-  const contentTree = await descriptionOfTree(
-    treeRoot,
-    opt?.truncateTextLength,
-    opt?.filterNonTextContent,
-  );
+  let pageDescription = '';
+  if (opt?.domIncluded) {
+    const contentTree = await descriptionOfTree(
+      treeRoot,
+      opt?.truncateTextLength,
+      opt?.filterNonTextContent,
+      opt?.visibleOnly,
+    );
 
-  // if match by position, don't need to provide the page description
-  const sizeDescription = describeSize({ width, height });
-  const pageDescription = vlLocateMode()
-    ? ''
-    : `The size of the page: ${sizeDescription} \n Some of the elements are marked with a rectangle in the screenshot, some are not. \n The page elements tree:\n${contentTree}`;
+    // if match by position, don't need to provide the page description
+    const sizeDescription = describeSize({ width, height });
+    pageDescription = `The size of the page: ${sizeDescription} \n The page elements tree:\n${contentTree}`;
+  }
 
   return {
     description: pageDescription,

@@ -27,5 +27,8 @@
   ],
   "[jsonc]": {
     "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[plaintext]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
   }
 }

@@ -36,7 +36,6 @@ export function trimAttributes(
       const attributeVal = (attributes as any)[currentKey];
       if (
         currentKey === 'style' ||
-        currentKey === 'src' ||
         currentKey === 'htmlTagName' ||
         currentKey === 'nodeType'
       ) {
@@ -58,6 +57,7 @@ export function descriptionOfTree<
   tree: ElementTreeNode<ElementType>,
   truncateTextLength?: number,
   filterNonTextContent = false,
+  visibleOnly = true,
 ) {
   const attributesString = (kv: Record<string, any>) => {
     return Object.entries(kv)
@@ -70,6 +70,7 @@ export function descriptionOfTree<
   function buildContentTree(
     node: ElementTreeNode<ElementType>,
     indent = 0,
+    visibleOnly = true,
   ): string {
     let before = '';
     let contentWithIndent = '';
@@ -79,7 +80,11 @@ export function descriptionOfTree<
 
     let children = '';
     for (let i = 0; i < (node.children || []).length; i++) {
-      const childContent = buildContentTree(node.children[i], indent + 1);
+      const childContent = buildContentTree(
+        node.children[i],
+        indent + 1,
+        visibleOnly,
+      );
       if (childContent) {
         children += `\n${childContent}`;
       }
@@ -89,7 +94,8 @@ export function descriptionOfTree<
       node.node &&
       node.node.rect.width > nodeSizeThreshold &&
       node.node.rect.height > nodeSizeThreshold &&
-      (!filterNonTextContent || (filterNonTextContent && node.node.content))
+      (!filterNonTextContent || (filterNonTextContent && node.node.content)) &&
+      (!visibleOnly || (visibleOnly && node.node.isVisible))
     ) {
       emptyNode = false;
       let nodeTypeString: string;
@@ -133,7 +139,7 @@ export function descriptionOfTree<
     return '';
   }
 
-  const result = buildContentTree(tree);
+  const result = buildContentTree(tree, 0, visibleOnly);
   return result.replace(/^\s*\n/gm, '');
 }
 

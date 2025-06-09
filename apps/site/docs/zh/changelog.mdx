@@ -1,0 +1,163 @@
+# 更新日志
+
+> 完整更新日志请参考：[Midscene Releases](https://github.com/web-infra-dev/midscene/releases)
+
+## v0.18.0 - 回放报告功能增强
+
+🚀 Midscene 又有更新啦！为你带来高质量的 UI 自动化体验。
+
+### 在报告中增加自定义节点
+
+* 为 agent 添加 `logScreenshot` API，将当前页面的截图作为报告节点。支持设置节点标题和描述，使报告内容更加丰富。适用于关键步骤截图记录、错误状态捕获、UI 验证等。
+
+![](/blog/logScreenshot-api.png)
+
+* 示例：
+
+```typescript
+test('login github', async ({ ai, aiAssert, aiInput, logScreenshot }) => {
+  if (CACHE_TIME_OUT) {
+    test.setTimeout(200 * 1000);
+  }
+  await ai('Click the "Sign in" button');
+  await aiInput('quanru', 'username');
+  await aiInput('123456', 'password');
+
+  // 自定义记录
+  await logScreenshot('Login page', {
+    content: 'Username is quanru, password is 123456',
+  });
+
+  await ai('Click the "Sign in" button');
+  await aiAssert('Login success');
+});
+```
+
+
+
+### 支持将报告下载为视频
+
+* 支持从报告播放器直接导出视频，点击播放器界面的下载按钮即可保存。
+
+![](/blog/export-video.png)
+
+* 适用场景：分享测试结果、存档重现步骤、演示问题复现
+
+
+
+### Android 暴露更多配置
+
+* 支持使用远程 adb 主机，配置键盘策略
+
+  * `autoDismissKeyboard?: boolean` - 可选参数，是否在输入文本后自动关闭键盘
+
+  * `androidAdbPath?: string` - 可选参数，用于指定 adb 可执行文件的路径
+
+  * `remoteAdbHost?: string` - 可选参数，用于指定远程 adb 主机
+
+  * `remoteAdbPort?: number` - 可选参数，用于指定远程 adb 端口
+
+* 示例：
+
+```typescript
+await agent.aiInput('搜索框', '测试内容', { autoDismissKeyboard: true })
+```
+
+```typescript
+const agent = await agentFromAdbDevice('s4ey59', {
+    autoDismissKeyboard: false, // 可选参数，是否在输入文本后自动关闭键盘。默认值为 true。
+    androidAdbPath: '/usr/bin/adb', // 可选参数，用于指定 adb 可执行文件的路径
+    remoteAdbHost: '192.168.10.1', // 可选参数，用于指定远程 adb 主机
+    remoteAdbPort: '5037' // 可选参数，用于指定远程 adb 端口
+})
+```
+
+立即升级版本，体验这些强大新功能！
+
+* [自定义报告节点 API 文档](/zh/API.mdx#agentlogscreenshot)
+* [Android 更多配置项 API 文档](/zh/integrate-with-android.mdx#androiddevice-%E7%9A%84%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0)
+
+
+## v0.17.4 - 让 AI 看见页面 DOM
+
+### 数据查询 API 全面增强
+
+为满足更多自动化和数据提取场景，以下 API 新增了 options 参数，支持更灵活的 DOM 信息和截图传递：
+
+- `agent.aiQuery(dataDemand, options)`
+- `agent.aiBoolean(prompt, options)`
+- `agent.aiNumber(prompt, options)`
+- `agent.aiString(prompt, options)`
+
+#### 新增 `options` 参数
+
+- `domIncluded`：是否向模型发送精简后的 DOM 信息，默认值为 false。一般用于提取 UI 中不可见的属性，比如图片的链接。
+- `screenshotIncluded`：是否向模型发送截图。默认值为 true。
+
+#### 代码示例
+
+```typescript
+// 提取通讯录中所有联系人的完整信息（包含隐藏的头像链接）
+const contactsData = await agent.aiQuery(
+  "{name: string, id: number, company: string, department: string, avatarUrl: string}[], extract all contact information including hidden avatarUrl attributes",
+  { domIncluded: true }
+);
+
+// 检查通讯录中第一个联系人的 id 属性是否为 1
+const isId1 = await agent.aiBoolean(
+  "Is the first contact's id is 1?",
+  { domIncluded: true }
+);
+
+// 获取第一个联系人的 ID（隐藏属性）
+const firstContactId = await agent.aiNumber("First contact's id?", { domIncluded: true });
+
+// 获取第一个联系人的头像 URL（页面上不可见的属性）
+const avatarUrl = await agent.aiString(
+  "What is the Avatar URL of the first contact?",
+  { domIncluded: true }
+);
+```
+
+### 新增右键点击能力
+
+你有没有遇到过需要自动化右键操作的场景？现在，Midscene 支持了全新的 `agent.aiRightClick()` 方法！
+
+#### 功能
+
+使用右键点击页面元素，适用于那些自定义了右键事件的场景。注意：Midscene 无法与浏览器原生菜单交互。
+
+#### 参数说明
+
+- `locate`: 用自然语言描述你要操作的元素
+- `options`: 可选，支持 `deepThink`（AI精细定位）、`cacheable`（结果缓存）
+
+#### 示例
+
+```typescript
+// 在通讯录应用中右键点击联系人，触发自定义上下文菜单
+await agent.aiRightClick("Alice Johnson", { deepThink: true });
+
+// 然后可以点击菜单中的选项
+await agent.aiTap("Copy Info"); // 复制联系人信息到剪贴板
+```
+
+
+### 示例及其报告
+
+#### 示例页面
+
+<iframe src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/contacts3.html" width="100%" height="800"></iframe>
+
+#### 示例报告
+
+<iframe src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/puppeteer-2025-06-04_20-41-45-be8ibktz.html" width="100%" height="800"></iframe>
+
+
+### 一个完整示例
+
+在下面的报告文件中，我们展示了一个完整的示例，展示了如何使用新的 `aiRightClick` API 和新的查询参数来提取包含隐藏属性的联系人数据。
+
+报告文件：[puppeteer-2025-06-04_20-41-45-be8ibktz.html](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/puppeteer-2025-06-04_20-41-45-be8ibktz.html)
+
+对应代码可以参考我们的示例仓库：[puppeteer-demo/extract-data.ts](https://github.com/web-infra-dev/midscene-example/blob/main/puppeteer-demo/extract-data.ts)

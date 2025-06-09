@@ -1,7 +1,5 @@
 import { getPreferredLanguage } from '@midscene/shared/env';
 
-const preferredLanguage = getPreferredLanguage();
-
 export const elementDescriberInstruction = () => {
   return `Describe the element in the red rectangle for precise identification. Use ${preferredLanguage}.
 

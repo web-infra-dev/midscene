@@ -1,13 +1,15 @@
 import { PageAgent, type PageAgentOpt } from '@midscene/web/agent';
-import { AndroidDevice } from '../page';
+import { AndroidDevice, type AndroidDeviceOpt } from '../page';
 
 import { vlLocateMode } from '@midscene/shared/env';
 import { getConnectedDevices } from '../utils';
 
 import { debugPage } from '../page';
 
+type AndroidAgentOpt = PageAgentOpt;
+
 export class AndroidAgent extends PageAgent<AndroidDevice> {
-  constructor(page: AndroidDevice, opts?: PageAgentOpt) {
+  constructor(page: AndroidDevice, opts?: AndroidAgentOpt) {
     super(page, opts);
 
     if (!vlLocateMode()) {
@@ -25,7 +27,7 @@ export class AndroidAgent extends PageAgent<AndroidDevice> {
 
 export async function agentFromAdbDevice(
   deviceId?: string,
-  opts?: PageAgentOpt,
+  opts?: AndroidAgentOpt & AndroidDeviceOpt,
 ) {
   if (!deviceId) {
     const devices = await getConnectedDevices();
@@ -38,7 +40,12 @@ export async function agentFromAdbDevice(
     );
   }
 
-  const page = new AndroidDevice(deviceId);
+  const page = new AndroidDevice(deviceId, {
+    autoDismissKeyboard: opts?.autoDismissKeyboard,
+    androidAdbPath: opts?.androidAdbPath,
+    remoteAdbHost: opts?.remoteAdbHost,
+    remoteAdbPort: opts?.remoteAdbPort,
+  });
 
   await page.connect();
 

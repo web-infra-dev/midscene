@@ -5,11 +5,15 @@ import {
   type AgentWaitForOpt,
   type DetailedLocateParam,
   type ExecutionDump,
+  type ExecutionRecorderItem,
   type ExecutionTask,
+  type ExecutionTaskLog,
   type Executor,
   type GroupedActionDump,
   Insight,
   type InsightAction,
+  type InsightExtractOption,
+  type InsightExtractParam,
   type LocateOption,
   type LocateResultElement,
   type LocateValidatorResult,
@@ -37,8 +41,9 @@ import { getAIConfigInBoolean, vlLocateMode } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { PageTaskExecutor } from '../common/tasks';
-import type { PuppeteerWebPage } from '../puppeteer';
+import type { PuppeteerAgentOpt, PuppeteerWebPage } from '../puppeteer';
 import type { WebElementInfo } from '../web-element';
+import type { AndroidDeviceInputOpt } from './page';
 import { buildPlans } from './plan-builder';
 import { TaskCache } from './task-cache';
 import {
@@ -65,6 +70,11 @@ const includedInRect = (point: [number, number], rect: Rect) => {
   return x >= left && x <= left + width && y >= top && y <= top + height;
 };
 
+const defaultInsightExtractOption: InsightExtractOption = {
+  domIncluded: false,
+  screenshotIncluded: true,
+};
+
 export interface PageAgentOpt {
   forceSameTabNavigation?: boolean /* if limit the new tab to the current page, default true */;
   testId?: string;
@@ -77,8 +87,6 @@ export interface PageAgentOpt {
   autoPrintReportMsg?: boolean;
   onTaskStartTip?: OnTaskStartTip;
   aiActionContext?: string;
-  waitForNavigationTimeout?: number;
-  waitForNetworkIdleTimeout?: number;
 }
 
 export class PageAgent<PageType extends WebPage = WebPage> {
@@ -122,10 +130,10 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       this.page.pageType === 'playwright'
     ) {
       (this.page as PuppeteerWebPage).waitForNavigationTimeout =
-        this.opts.waitForNavigationTimeout ||
+        (this.opts as PuppeteerAgentOpt).waitForNavigationTimeout ||
         DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT;
       (this.page as PuppeteerWebPage).waitForNetworkIdleTimeout =
-        this.opts.waitForNetworkIdleTimeout ||
+        (this.opts as PuppeteerAgentOpt).waitForNetworkIdleTimeout ||
         DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT;
     }
 
@@ -237,9 +245,9 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   ): DetailedLocateParam {
     assert(locatePrompt, 'missing locate prompt');
     if (typeof opt === 'object') {
-      const prompt = opt.prompt || locatePrompt;
-      const deepThink = opt.deepThink || false;
-      const cacheable = opt.cacheable || true;
+      const prompt = opt.prompt ?? locatePrompt;
+      const deepThink = opt.deepThink ?? false;
+      const cacheable = opt.cacheable ?? true;
       return {
         prompt,
         deepThink,
@@ -260,6 +268,22 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     const { executor, output } = await this.taskExecutor.runPlans(
       taskTitleStr('Tap', locateParamStr(detailedLocateParam)),
       plans,
+      { cacheable: opt?.cacheable },
+    );
+    this.afterTaskRunning(executor);
+    return output;
+  }
+
+  async aiRightClick(locatePrompt: string, opt?: LocateOption) {
+    const detailedLocateParam = this.buildDetailedLocateParam(
+      locatePrompt,
+      opt,
+    );
+    const plans = buildPlans('RightClick', detailedLocateParam);
+    const { executor, output } = await this.taskExecutor.runPlans(
+      taskTitleStr('RightClick', locateParamStr(detailedLocateParam)),
+      plans,
+      { cacheable: opt?.cacheable },
     );
     this.afterTaskRunning(executor);
     return output;
@@ -274,12 +298,17 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     const { executor, output } = await this.taskExecutor.runPlans(
       taskTitleStr('Hover', locateParamStr(detailedLocateParam)),
       plans,
+      { cacheable: opt?.cacheable },
     );
     this.afterTaskRunning(executor);
     return output;
   }
 
-  async aiInput(value: string, locatePrompt: string, opt?: LocateOption) {
+  async aiInput(
+    value: string,
+    locatePrompt: string,
+    opt?: AndroidDeviceInputOpt & LocateOption,
+  ) {
     assert(
       typeof value === 'string',
       'input value must be a string, use empty string if you want to clear the input',
@@ -291,10 +320,14 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     );
     const plans = buildPlans('Input', detailedLocateParam, {
       value,
+      autoDismissKeyboard: opt?.autoDismissKeyboard,
     });
     const { executor, output } = await this.taskExecutor.runPlans(
       taskTitleStr('Input', locateParamStr(detailedLocateParam)),
       plans,
+      {
+        cacheable: opt?.cacheable,
+      },
     );
     this.afterTaskRunning(executor);
     return output;
@@ -315,6 +348,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     const { executor, output } = await this.taskExecutor.runPlans(
       taskTitleStr('KeyboardPress', locateParamStr(detailedLocateParam)),
       plans,
+      { cacheable: opt?.cacheable },
     );
     this.afterTaskRunning(executor);
     return output;
@@ -335,6 +369,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     const { executor, output } = await this.taskExecutor.runPlans(
       taskTitleStr('Scroll', paramInTitle),
       plans,
+      { cacheable: opt?.cacheable },
     );
     this.afterTaskRunning(executor);
     return output;
@@ -368,8 +403,10 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     }
 
     const { output, executor } = await (isVlmUiTars
-      ? this.taskExecutor.actionToGoal(taskPrompt)
-      : this.taskExecutor.action(taskPrompt, this.opts.aiActionContext));
+      ? this.taskExecutor.actionToGoal(taskPrompt, { cacheable })
+      : this.taskExecutor.action(taskPrompt, this.opts.aiActionContext, {
+          cacheable,
+        }));
 
     // update cache
     if (this.taskCache && output?.yamlFlow && cacheable !== false) {
@@ -396,26 +433,38 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     return output;
   }
 
-  async aiQuery(demand: any) {
-    const { output, executor } = await this.taskExecutor.query(demand);
+  async aiQuery(
+    demand: InsightExtractParam,
+    opt: InsightExtractOption = defaultInsightExtractOption,
+  ) {
+    const { output, executor } = await this.taskExecutor.query(demand, opt);
     this.afterTaskRunning(executor);
     return output;
   }
 
-  async aiBoolean(prompt: string) {
-    const { output, executor } = await this.taskExecutor.boolean(prompt);
+  async aiBoolean(
+    prompt: string,
+    opt: InsightExtractOption = defaultInsightExtractOption,
+  ) {
+    const { output, executor } = await this.taskExecutor.boolean(prompt, opt);
     this.afterTaskRunning(executor);
     return output;
   }
 
-  async aiNumber(prompt: string) {
-    const { output, executor } = await this.taskExecutor.number(prompt);
+  async aiNumber(
+    prompt: string,
+    opt: InsightExtractOption = defaultInsightExtractOption,
+  ) {
+    const { output, executor } = await this.taskExecutor.number(prompt, opt);
     this.afterTaskRunning(executor);
     return output;
   }
 
-  async aiString(prompt: string) {
-    const { output, executor } = await this.taskExecutor.string(prompt);
+  async aiString(
+    prompt: string,
+    opt: InsightExtractOption = defaultInsightExtractOption,
+  ) {
+    const { output, executor } = await this.taskExecutor.string(prompt, opt);
     this.afterTaskRunning(executor);
     return output;
   }
@@ -508,6 +557,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     const { executor, output } = await this.taskExecutor.runPlans(
       taskTitleStr('Locate', locateParamStr(detailedLocateParam)),
       plans,
+      { cacheable: opt?.cacheable },
     );
     this.afterTaskRunning(executor);
 
@@ -567,8 +617,12 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       return this.aiTap(taskPrompt);
     }
 
+    if (type === 'rightClick') {
+      return this.aiRightClick(taskPrompt);
+    }
+
     throw new Error(
-      `Unknown type: ${type}, only support 'action', 'query', 'assert', 'tap'`,
+      `Unknown type: ${type}, only support 'action', 'query', 'assert', 'tap', 'rightClick'`,
     );
   }
 
@@ -606,5 +660,53 @@ export class PageAgent<PageType extends WebPage = WebPage> {
 
   async destroy() {
     await this.page.destroy();
+  }
+
+  async logScreenshot(
+    title?: string,
+    opt?: {
+      content: string;
+    },
+  ) {
+    // 1. screenshot
+    const base64 = await this.page.screenshotBase64();
+    const now = Date.now();
+    // 2. build recorder
+    const recorder: ExecutionRecorderItem[] = [
+      {
+        type: 'screenshot',
+        ts: now,
+        screenshot: base64,
+      },
+    ];
+    // 3. build ExecutionTaskLog
+    const task: ExecutionTaskLog = {
+      type: 'Log',
+      subType: 'Screenshot',
+      status: 'finished',
+      recorder,
+      timing: {
+        start: now,
+        end: now,
+        cost: 0,
+      },
+      param: {
+        content: opt?.content || '',
+      },
+      executor: async () => {},
+    };
+    // 4. build ExecutionDump
+    const executionDump: ExecutionDump = {
+      sdkVersion: '',
+      logTime: now,
+      model_name: '',
+      model_description: '',
+      name: `Log - ${title || 'untitled'}`,
+      description: opt?.content || '',
+      tasks: [task],
+    };
+    // 5. append to execution dump
+    this.appendExecutionDump(executionDump);
+    this.writeOutActionDumps();
   }
 }

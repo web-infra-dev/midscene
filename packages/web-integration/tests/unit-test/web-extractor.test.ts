@@ -2,7 +2,6 @@ import { join } from 'node:path';
 import { parseContextFromWebPage } from '@/common/utils';
 import StaticPage from '@/playground/static-page';
 import type { WebElementInfo } from '@/web-element';
-import { sleep } from '@midscene/core/utils';
 import { traverseTree } from '@midscene/shared/extractor';
 import { getElementInfosScriptContent } from '@midscene/shared/fs';
 import {
@@ -82,6 +81,37 @@ describe(
       await reset();
     });
 
+    it('merge children rects of button', async () => {
+      const { page, reset } = await launchPage(
+        `http://127.0.0.1:${port}/merge-rects.html`,
+        {
+          viewport: {
+            width: 1080,
+            height: 3000,
+            deviceScaleFactor: 1,
+          },
+        },
+      );
+
+      const { content } = await parseContextFromWebPage(page);
+
+      // Merge children rects of html element
+      expect(content[0].rect.width).toBeGreaterThan(25);
+      expect(content[0].rect.height).toBeGreaterThan(25);
+
+      // Won't merge rects of text node
+      expect(content[1].rect).toEqual({
+        left: 8,
+        top: 108,
+        width: 20,
+        height: 20,
+        zoom: 1,
+        isVisible: true,
+      });
+
+      await reset();
+    });
+
     it.skip('keep same id after resize', async () => {
       const { page, reset } = await launchPage(
         `file://${pagePath}?resize-after-3s=1`,
@@ -149,30 +179,6 @@ describe(
       await reset();
     });
 
-    // it('scroll', async () => {
-    //   const { page, reset } = await launchPage(`file://${pagePath}`, {
-    //     viewport: {
-    //       width: 1080,
-    //       height: 200,
-    //       deviceScaleFactor: 1,
-    //     },
-    //   });
-    //   await page.scrollDown();
-    //   await new Promise((resolve) => setTimeout(resolve, 1000));
-    //   await generateExtractData(
-    //     page,
-    //     path.join(__dirname, 'fixtures/web-extractor/scroll'),
-    //     {
-    //       disableInputImage: false,
-    //       disableOutputImage: false,
-    //       disableOutputWithoutTextImg: true,
-    //       disableResizeOutputImg: true,
-    //       disableSnapshot: true,
-    //     },
-    //   );
-    //   await reset();
-    // });
-
     it('profiling', async () => {
       const { page, reset } = await launchPage('https://www.bytedance.com');
       await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -228,7 +234,7 @@ describe(
       await reset();
     });
 
-    it('getElementInfoByXpath from non form/button/image/text/container node by evaluateJavaScript', async () => {
+    it('getElementInfoByXpath from non form/button/image/text/a/container node by evaluateJavaScript', async () => {
       const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
         viewport: {
           width: 1080,
@@ -242,6 +248,42 @@ describe(
         `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('/html/body/div[3]/div')`,
       );
       expect(element).toBe(null);
+      await reset();
+    });
+
+    it('descriptionOfTree with visibleOnly true', async () => {
+      const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
+        viewport: {
+          width: 1080,
+          height: 100,
+          deviceScaleFactor: 1,
+        },
+      });
+
+      const elementInfosScriptContent = getElementInfosScriptContent();
+      const description = await page.evaluateJavaScript?.(
+        `${elementInfosScriptContent}midscene_element_inspector.webExtractNodeTreeAsString(document, true)`,
+      );
+      expect(description).not.toContain('This should be collected');
+      expect(description.split('\n').length).toBeLessThan(100);
+      await reset();
+    });
+
+    it('descriptionOfTree with visibleOnly false', async () => {
+      const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
+        viewport: {
+          width: 1080,
+          height: 100,
+          deviceScaleFactor: 1,
+        },
+      });
+
+      const elementInfosScriptContent = getElementInfosScriptContent();
+      const description = await page.evaluateJavaScript?.(
+        `${elementInfosScriptContent}midscene_element_inspector.webExtractNodeTreeAsString(document, false)`,
+      );
+      expect(description).toContain('This should be collected');
+      expect(description.split('\n').length).toBeGreaterThan(300);
       await reset();
     });
   },

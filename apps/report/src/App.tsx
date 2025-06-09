@@ -2,7 +2,7 @@ import './App.less';
 import './index.less';
 
 import { CaretRightOutlined } from '@ant-design/icons';
-import { Button, ConfigProvider, Empty, Spin } from 'antd';
+import { Button, ConfigProvider, Empty } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
@@ -30,9 +30,7 @@ export function Visualizer(props: VisualizerProps): JSX.Element {
   const executionDumpLoadId = useExecutionDump(
     (store: StoreState) => store._executionDumpLoadId,
   );
-  const replayAllMode = useExecutionDump(
-    (store: StoreState) => store.replayAllMode,
-  );
+
   const setReplayAllMode = useExecutionDump(
     (store: StoreState) => store.setReplayAllMode,
   );
@@ -45,6 +43,9 @@ export function Visualizer(props: VisualizerProps): JSX.Element {
   const insightHeight = useExecutionDump(
     (store: StoreState) => store.insightHeight,
   );
+  const replayAllMode = useExecutionDump(
+    (store: StoreState) => store.replayAllMode,
+  );
   const setGroupedDump = useExecutionDump(
     (store: StoreState) => store.setGroupedDump,
   );
@@ -52,8 +53,6 @@ export function Visualizer(props: VisualizerProps): JSX.Element {
   const [mainLayoutChangeFlag, setMainLayoutChangeFlag] = useState(0);
   const mainLayoutChangedRef = useRef(false);
   const dump = useExecutionDump((store: StoreState) => store.dump);
-
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (dumps) {
@@ -82,21 +81,6 @@ export function Visualizer(props: VisualizerProps): JSX.Element {
       window.removeEventListener('resize', onResize);
     };
   }, []);
-
-  if (loading) {
-    return (
-      <div
-        style={{
-          height: '100%',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}
-      >
-        <Spin size="large" tip="Loading visualizer components..." />
-      </div>
-    );
-  }
 
   let mainContent: JSX.Element;
   if (dump && dump.executions.length === 0) {
@@ -292,7 +276,7 @@ const App = () => {
         }
       });
 
-      const content = antiEscapeHtml(el.textContent);
+      const content = antiEscapeHtml(el.textContent || '');
       try {
         const jsonContent = JSON.parse(content);
         jsonContent.attributes = attributes;

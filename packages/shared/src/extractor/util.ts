@@ -261,9 +261,15 @@ export function elementRect(
   currentWindow: typeof globalThis.window,
   currentDocument: typeof globalThis.document,
   baseZoom = 1,
-  visibleOnly = true,
 ):
-  | { left: number; top: number; width: number; height: number; zoom: number }
+  | {
+      left: number;
+      top: number;
+      width: number;
+      height: number;
+      zoom: number;
+      isVisible: boolean;
+    }
   | false {
   if (!el) {
     logger(el, 'Element is not in the DOM hierarchy');
@@ -304,29 +310,11 @@ export function elementRect(
     return false;
   }
 
-  const scrollLeft =
-    currentWindow.pageXOffset || currentDocument.documentElement.scrollLeft;
-  const scrollTop =
-    currentWindow.pageYOffset || currentDocument.documentElement.scrollTop;
-  const viewportWidth =
-    currentWindow.innerWidth || currentDocument.documentElement.clientWidth;
-  const viewportHeight =
-    currentWindow.innerHeight || currentDocument.documentElement.clientHeight;
-
-  const isPartiallyInViewport = visibleOnly
-    ? isElementPartiallyInViewport(rect, currentWindow, currentDocument)
-    : true;
-
-  if (!isPartiallyInViewport) {
-    logger(el, 'Element is completely outside the viewport', {
-      rect,
-      viewportHeight,
-      viewportWidth,
-      scrollTop,
-      scrollLeft,
-    });
-    return false;
-  }
+  const isVisible = isElementPartiallyInViewport(
+    rect,
+    currentWindow,
+    currentDocument,
+  );
 
   // check if the element is hidden by an ancestor
   let parent: HTMLElement | Node | null = el;
@@ -384,6 +372,7 @@ export function elementRect(
     width: Math.round(rect.width),
     height: Math.round(rect.height),
     zoom: rect.zoom,
+    isVisible,
   };
 }
 

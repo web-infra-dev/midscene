@@ -31,8 +31,9 @@ Restriction:
 
 Supporting actions:
 - Tap: { type: "Tap", ${vlLocateParam} }
+- RightClick: { type: "RightClick", ${vlLocateParam} }
 - Hover: { type: "Hover", ${vlLocateParam} }
-- Input: { type: "Input", ${vlLocateParam}, param: { value: string } } // \`value\` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. 
+- Input: { type: "Input", ${vlLocateParam}, param: { value: string } } // Replace the input field with a new value. \`value\` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. Giving a blank string means clear the input field.
 - KeyboardPress: { type: "KeyboardPress", param: { value: string } }
 - Scroll: { type: "Scroll", ${vlLocateParam} | null, param: { direction: 'down'(default) | 'up' | 'right' | 'left', scrollType: 'once' (default) | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft', distance: null | number }} // locate is the element to scroll. If it's a page scroll, put \`null\` in the \`locate\` field.
 ${
@@ -119,6 +120,8 @@ type LocateParam = {{
 
 Each action has a \`type\` and corresponding \`param\`. To be detailed:
 - type: 'Tap'
+  * {{ ${llmLocateParam} }}
+- type: 'RightClick'
   * {{ ${llmLocateParam} }}
 - type: 'Hover'
   * {{ ${llmLocateParam} }}
@@ -275,7 +278,7 @@ export const planSchema: ResponseFormatJSONSchema = {
               type: {
                 type: 'string',
                 description:
-                  'Type of action, one of "Tap", "Hover" , "Input", "KeyboardPress", "Scroll", "ExpectedFalsyCondition", "Sleep", "AndroidBackButton", "AndroidHomeButton", "AndroidRecentAppsButton"',
+                  'Type of action, one of "Tap", "RightClick", "Hover" , "Input", "KeyboardPress", "Scroll", "ExpectedFalsyCondition", "Sleep", "AndroidBackButton", "AndroidHomeButton", "AndroidRecentAppsButton"',
               },
               param: {
                 anyOf: [
