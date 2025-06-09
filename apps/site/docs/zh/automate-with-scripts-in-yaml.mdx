@@ -145,7 +145,7 @@ web:
     # 是否在等待超时后继续，可选，默认 true
     continueOnNetworkIdleError: <boolean>
 
-  # 输出 aiQuery 结果的 JSON 文件路径，可选
+  # 输出 aiQuery/aiAssert 结果的 JSON 文件路径，可选
   output: <path-to-output-file>
 
   # 是否限制页面在当前 tab 打开，可选，默认 true
@@ -231,6 +231,10 @@ tasks:
         locate: <prompt> # 可选，执行滚动的元素
         deepThink: <boolean> # 可选，是否使用深度思考（deepThink）来精确定位元素
         cacheable: <boolean> # 可选，当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
+
+      # 在报告文件中记录当前截图，并添加描述
+      - logScreenshot: <title> # 可选，截图的标题，如果未提供，则标题为 'untitled'
+        content: <content> # 可选，截图的描述
 
       # 数据提取
       # ----------------

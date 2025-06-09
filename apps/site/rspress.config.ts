@@ -170,8 +170,8 @@ export default defineConfig({
               link: '/blog-programming-practice-using-structured-api',
             },
             {
-              text: 'V0.17.4 Changelog - Let AI See the DOM of the Page',
-              link: '/changelog-0.17.4',
+              text: 'Changelog',
+              link: '/changelog',
             },
           ],
         },
@@ -291,8 +291,8 @@ export default defineConfig({
               link: '/zh/blog-programming-practice-using-structured-api',
             },
             {
-              text: 'V0.17.4 更新日志：让 AI 看见页面 DOM',
-              link: '/zh/changelog-0.17.4',
+              text: '更新日志',
+              link: '/zh/changelog',
             },
           ],
         },

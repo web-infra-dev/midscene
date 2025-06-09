@@ -42,7 +42,6 @@ import {
 import { sleep } from '@midscene/core/utils';
 import { NodeType } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
-import { getElementInfosScriptContent } from '@midscene/shared/fs';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { WebElementInfo } from '../web-element';
@@ -182,7 +181,9 @@ export class PageTaskExecutor {
 
   public async convertPlanToExecutable(
     plans: PlanningAction[],
-    opts?: { cacheable?: boolean },
+    opts?: {
+      cacheable?: boolean;
+    },
   ) {
     const tasks: ExecutionTaskApply[] = [];
     plans.forEach((plan) => {
@@ -393,11 +394,11 @@ export class PageTaskExecutor {
                 if (!taskParam || !taskParam.value) {
                   return;
                 }
-
-                await this.page.keyboard.type(taskParam.value);
-              } else {
-                await this.page.keyboard.type(taskParam.value);
               }
+
+              await this.page.keyboard.type(taskParam.value, {
+                autoDismissKeyboard: taskParam.autoDismissKeyboard,
+              });
             },
           };
         tasks.push(taskActionInput);
@@ -908,7 +909,9 @@ export class PageTaskExecutor {
   async runPlans(
     title: string,
     plans: PlanningAction[],
-    opts?: { cacheable?: boolean },
+    opts?: {
+      cacheable?: boolean;
+    },
   ): Promise<ExecutionResult> {
     const taskExecutor = new Executor(title, {
       onTaskStart: this.onTaskStartCallback,

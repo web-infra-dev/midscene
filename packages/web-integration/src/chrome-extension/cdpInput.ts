@@ -35,6 +35,10 @@ export interface KeyDownOptions {
  * @public
  */
 export interface KeyboardTypeOptions {
+  /**
+   * Time to wait between key presses in milliseconds
+   * @default undefined
+   */
   delay?: number;
 }
 

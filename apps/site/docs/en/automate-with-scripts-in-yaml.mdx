@@ -145,7 +145,7 @@ web:
     # boolean, continue on network idle error, true for default
     continueOnNetworkIdleError: <boolean>
   
-  # string, the path to save the aiQuery result, optional
+  # string, the path to save the aiQuery/aiAssert result, optional
   output: <path-to-output-file>
 
   # boolean, if limit the popup to the current page, true for default in yaml script
@@ -231,6 +231,10 @@ tasks:
         locate: <prompt> # optional, the element to scroll on
         deepThink: <boolean> # optional, whether to use deepThink to precisely locate the element
         cacheable: <boolean> # optional, whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+
+      # log the current screenshot with a description in the report file
+      - logScreenshot: <title> # optional, the title of the screenshot, if not provided, the title will be 'untitled'
+        content: <content> # optional, the screenshot description
 
       # Data Extraction
       # ----------------

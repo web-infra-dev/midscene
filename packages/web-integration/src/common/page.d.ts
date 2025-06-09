@@ -35,6 +35,10 @@ export interface AndroidDevicePage extends AbstractPage {
   recentApps(): Promise<void>;
 }
 
+export type AndroidDeviceInputOpt = {
+  autoDismissKeyboard?: boolean;
+};
+
 export type WebPage =
   | PlaywrightWebPage
   | PuppeteerWebPage
