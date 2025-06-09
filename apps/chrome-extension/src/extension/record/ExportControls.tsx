@@ -555,25 +555,20 @@ export const ExportControls: React.FC<{
         open={showTestModal}
         onCancel={() => setShowTestModal(false)}
         width={900}
-        footer={[
-          <Text key="info" type="secondary" style={{ marginRight: 'auto' }}>
-            Ready to use TypeScript test file
-          </Text>,
-          <Button key="close" onClick={() => setShowTestModal(false)}>
-            Close
-          </Button>,
-          <Button key="copy" icon={<CopyOutlined />} onClick={handleCopyTest}>
-            Copy to Clipboard
-          </Button>,
-          <Button
-            key="download"
-            type="primary"
-            icon={<DownloadOutlined />}
-            onClick={handleDownloadTest}
-          >
-            Download Test File
-          </Button>,
-        ]}
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
+            <Button icon={<CopyOutlined />} onClick={handleCopyTest}>
+              Copy to Clipboard
+            </Button>
+            <Button
+              type="primary"
+              icon={<DownloadOutlined />}
+              onClick={handleDownloadTest}
+            >
+              Download Test File
+            </Button>
+          </div>
+        }
       >
         <div style={{ marginBottom: '12px' }}>
           <Text type="secondary">
@@ -627,25 +622,23 @@ export const ExportControls: React.FC<{
         open={showYamlModal}
         onCancel={() => setShowYamlModal(false)}
         width={900}
-        footer={[
-          <Text key="info" type="secondary" style={{ marginRight: 'auto' }}>
-            Ready to use YAML test configuration
-          </Text>,
-          <Button key="close" onClick={() => setShowYamlModal(false)}>
-            Close
-          </Button>,
-          <Button key="copy" icon={<CopyOutlined />} onClick={handleCopyYaml}>
-            Copy to Clipboard
-          </Button>,
-          <Button
-            key="download"
-            type="primary"
-            icon={<DownloadOutlined />}
-            onClick={handleDownloadYaml}
-          >
-            Download YAML File
-          </Button>,
-        ]}
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
+            <Button onClick={() => setShowYamlModal(false)}>
+              Close
+            </Button>
+            <Button icon={<CopyOutlined />} onClick={handleCopyYaml}>
+              Copy to Clipboard
+            </Button>
+            <Button
+              type="primary"
+              icon={<DownloadOutlined />}
+              onClick={handleDownloadYaml}
+            >
+              Download YAML File
+            </Button>
+          </div>
+        }
       >
         <div style={{ marginBottom: '12px' }}>
           <Text type="secondary">

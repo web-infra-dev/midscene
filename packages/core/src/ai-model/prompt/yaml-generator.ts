@@ -287,6 +287,8 @@ Use this exact YAML format:
 
 target:
   url: https://example.com
+  viewportWidth: 1280
+  viewportHeight: 960
 
 tasks:
   - name: task description
