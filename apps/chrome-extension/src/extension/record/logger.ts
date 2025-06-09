@@ -11,6 +11,7 @@ interface LogContext {
   events?: ChromeRecordedEvent[];
   eventsCount?: number;
   action?: string;
+  error?: string;
 }
 
 class RecordLogger {
@@ -51,6 +52,15 @@ class RecordLogger {
 
     const contextStr = context ? this.formatContext(context) : '';
     console.log(`${this.prefix} ✓ ${message}${contextStr}`);
+  }
+
+  /**
+   * Log debug information (only in development)
+   */
+  debug(message: string, context?: LogContext) {
+    if (!this.isDev) return;
+    const contextStr = context ? this.formatContext(context) : '';
+    console.debug(`${this.prefix} DEBUG: ${message}${contextStr}`);
   }
 
   private formatContext(context: LogContext): string {

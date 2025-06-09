@@ -605,9 +605,6 @@ export const ExportControls: React.FC<{
         width={900}
         footer={
           <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
-            <Button onClick={() => setShowYamlModal(false)}>
-              Close
-            </Button>
             <Button icon={<CopyOutlined />} onClick={handleCopyYaml}>
               Copy to Clipboard
             </Button>

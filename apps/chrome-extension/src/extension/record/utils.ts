@@ -35,8 +35,17 @@ export const checkContentScriptInjected = async (
       recordLogger.warn('Content script not injected', { tabId });
     }
     return isInjected;
-  } catch (error) {
-    recordLogger.warn('Content script check failed', { tabId });
+  } catch (error: any) {
+    // More specific error handling for common scenarios
+    const errorMsg = error?.message || '';
+    
+    if (errorMsg.includes('Receiving end does not exist')) {
+      recordLogger.debug('Content script not available - tab may be refreshing or on restricted page', { tabId });
+    } else if (errorMsg.includes('Cannot access')) {
+      recordLogger.debug('Cannot access tab - may be Chrome internal page', { tabId });
+    } else {
+      recordLogger.warn('Content script check failed', { tabId, error: errorMsg });
+    }
     return false;
   }
 };
@@ -371,19 +380,35 @@ export const diagnoseRecordingChain = async (
   }
   info.push(`✓ Active tab found: ${currentTab.url} (ID: ${currentTab.id})`);
 
-  // Check 3: Tab URL validity
-  if (
-    currentTab.url?.startsWith('chrome://') ||
-    currentTab.url?.startsWith('chrome-extension://') ||
-    currentTab.url?.startsWith('moz-extension://')
-  ) {
-    issues.push('Cannot record on browser internal pages');
+  // Check 3: Tab URL validity - more detailed checking
+  if (currentTab.url?.startsWith('chrome://')) {
+    issues.push('Cannot record on Chrome internal pages (chrome://)');
+    return { issues, info };
+  }
+  if (currentTab.url?.startsWith('chrome-extension://')) {
+    issues.push('Cannot record on Chrome extension pages');
+    return { issues, info };
+  }
+  if (currentTab.url?.startsWith('moz-extension://')) {
+    issues.push('Cannot record on Firefox extension pages');
+    return { issues, info };
+  }
+  if (!currentTab.url || currentTab.url === 'about:blank') {
+    issues.push('Tab has no URL or is blank page');
     return { issues, info };
   }
   info.push('✓ Tab URL is recordable');
 
-  // Check 4: Content script injection
+  // Check 4: Tab loading status
+  if (currentTab.status === 'loading') {
+    issues.push('Tab is still loading - wait for page to complete loading');
+    return { issues, info };
+  }
+  info.push('✓ Tab has finished loading');
+
+  // Check 5: Content script injection
   try {
+    recordLogger.debug('Checking content script injection for tab', { tabId: currentTab.id });
     const isInjected = await checkContentScriptInjected(currentTab.id);
     if (isInjected) {
       info.push('✓ Content script is injected and responding');
@@ -392,25 +417,33 @@ export const diagnoseRecordingChain = async (
 
       // Try to inject
       try {
+        recordLogger.debug('Attempting to inject content script');
         await injectScript(currentTab);
         info.push('✓ Content script injection attempted');
 
-        // Check again after injection
-        await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second
+        // Check again after injection with longer wait
+        await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2 seconds
         const isInjectedAfter = await checkContentScriptInjected(currentTab.id);
         if (isInjectedAfter) {
           info.push('✓ Content script injection successful');
         } else {
           issues.push(
-            'Content script injection failed or not responding after injection',
+            'Content script injection failed or not responding after injection. Try refreshing the page.',
           );
         }
-      } catch (error) {
-        issues.push(`Content script injection failed: ${error}`);
+      } catch (error: any) {
+        const errorMsg = error?.message || error;
+        if (errorMsg.includes('Cannot access')) {
+          issues.push('Cannot inject script: Page access denied (may be protected page)');
+        } else if (errorMsg.includes('chrome-extension://')) {
+          issues.push('Cannot inject script on extension pages');
+        } else {
+          issues.push(`Content script injection failed: ${errorMsg}`);
+        }
       }
     }
-  } catch (error) {
-    issues.push(`Error checking content script: ${error}`);
+  } catch (error: any) {
+    issues.push(`Error checking content script: ${error?.message || error}`);
   }
 
   recordLogger.info('Diagnosis complete');
