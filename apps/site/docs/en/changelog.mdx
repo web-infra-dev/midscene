@@ -75,7 +75,7 @@ Upgrade now to experience these powerful new features!
 * [API documentation for more Android configuration items](/en/integrate-with-android.mdx#androiddevice-constructor)
 
 
-## v0.17.4 - Let AI See the DOM of the Page
+## v0.17 - Let AI See the DOM of the Page
 
 ### Data Query API Enhanced
 
@@ -148,4 +148,272 @@ Report file: [puppeteer-2025-06-04_20-34-48-zyh4ry4e.html](https://lf3-static.by
 The corresponding code can be found in our example repository: [puppeteer-demo/extract-data.ts](https://github.com/web-infra-dev/midscene-example/blob/main/puppeteer-demo/extract-data.ts)
 
 
+### Refactor Cache
 
+Use xpath cache instead of coordinates, improve cache hit rate.
+
+Refactor cache file format from json to yaml, improve readability.
+
+## v0.11.0 - 2025-02-11
+
+### **✨ UI-TARS Model Support Caching**
+
+* Enable caching by document 👉 ： [Enable Caching](./caching.mdx)
+
+* Enable effect
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/antd-form-cache.mp4" controls/>
+
+![](/blog/0.11.0.png)
+
+### **✨ Optimize DOM Tree Extraction Strategy**
+
+* Optimize the information ability of the dom tree, accelerate the inference process of models like GPT 4o
+
+![](/blog/0.11.0-2.png)
+
+
+## v0.10.0 - UI-TARS Model Released
+
+UI-TARS is a Native GUI agent model released by the **Seed** team. It is named after the [TARS robot](https://interstellarfilm.fandom.com/wiki/TARS) in the movie [Star Trek](https://en.wikipedia.org/wiki/Star_Trek), which has high intelligence and autonomous thinking capabilities. UI-TARS **takes images and human instructions as input information**, can correctly perceive the next action, and gradually approach the goal of human instructions, leading to the best performance in various benchmark tests of GUI automation tasks compared to open-source and closed-source commercial models.
+
+![](/blog/0.10.0.png)
+
+UI-TARS: Pioneering Automated GUI Interaction with Native Agents - Figure 1
+
+![](/blog/0.10.0-2.png)
+
+UI-TARS: Pioneering Automated GUI Interaction with Native - Figure 4
+
+### **✨** Model Advantage
+
+UI-TARS has the following advantages in GUI tasks:
+
+* **Target-driven**
+
+* **Fast inference speed**
+
+* **Native GUI agent model**
+
+* **Private deployment without data security issues**
+
+
+## v0.9.0 - Midscene Bridge Mode Released
+
+With the Midscene browser extension, you can now use scripts to link with the desktop browser for automated operations!
+
+We call it "Bridge Mode".
+
+Compared to previous CI environment debugging, the advantages are:
+
+1. You can reuse the desktop browser, especially Cookie, login state, and front-end interface state, and start automation without worrying about environment setup.
+
+2. Support manual and script cooperation to improve the flexibility of automation tools.
+
+3. Simple business regression, just run it locally with Bridge Mode.
+
+![](/blog/0.9.0.png)
+
+Documentation: [Use Chrome Extension to Experience Midscene](./bridge-mode-by-chrome-extension.mdx)
+
+
+## v0.8.0 - 2024-11-11
+
+### **✨ New Chrome Extension, Run Midscene Anywhere**
+
+Through the Midscene browser extension, you can run Midscene on any page, without writing any code.
+
+Experience it now 👉：[Use Chrome Extension to Experience Midscene](./quick-experience.mdx)
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/Midscene_extension.mov" controls/>
+
+
+
+## v0.7.0 - 2024-10-22
+
+### **✨ Playground Ability, Debug Anytime**
+
+Now you don't have to keep re-running scripts to debug prompts!
+
+On the new test report page, you can debug the AI execution results at any time, including page operations, page information extraction, and page assertions.
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/midscene-playground.mov" controls/>
+
+
+## v0.6.0 - 2024-10-14
+
+### **✨ Doubao Model Support**
+
+* Support for calling Doubao models, reference the environment variables below to experience.
+
+```bash
+MIDSCENE_OPENAI_INIT_CONFIG_JSON='{"baseURL":"https://xxx.net/api/v3","apiKey":"xxx"}'
+MIDSCENE_MODEL_NAME='ep-20240925111815-mpfz8'
+MIDSCENE_MODEL_TEXT_ONLY='true'
+```
+
+Summarize the availability of Doubao models:
+
+* Currently, Doubao only has pure text models, which means "seeing" is not available. In scenarios where pure text is used for reasoning, it performs well.
+
+* If the use case requires combining UI analysis, it is completely unusable
+
+
+Example:
+
+✅ The price of a multi-meat grape (can be guessed from the order of the text on the interface)
+
+✅ The language switch text button (can be guessed from the text content on the interface: Chinese, English text)
+
+❌ The left-bottom play button (requires image understanding, failed)
+
+### **✨ Support for GPT-4o Structured Output, Cost Reduction**
+
+By using the gpt-4o-2024-08-06 model, Midscene now supports structured output (structured-output) features, ensuring enhanced stability and reduced costs by 40%+.
+
+Midscene now supports hitting GPT-4o prompt caching features, and the cost of AI calls will continue to decrease as the company's GPT platform is deployed.
+
+### **✨ Test Report: Support Animation Playback**
+
+Now you can view the animation playback of each step in the test report, quickly debug your running script 
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/midscene-play-all.mp4" controls/>
+
+### **✨ Speed Up: Merge Plan and Locate Operations, Response Speed Increased by 30%**
+
+In the new version, we have merged the Plan and Locate operations in the prompt execution to a certain extent, which increases the response speed of AI by 30%.
+
+> Before
+
+![](/blog/0.6.0.png)
+
+> after
+
+![](/blog/0.6.0-2.png)
+
+### **✨ Test Report: The Accuracy of Different Models**
+
+* GPT 4o series models, 100% correct rate
+
+* doubao-pro-4k pure text model, approaching usable state
+
+![](/blog/0.6.0-3.png)
+
+![](/blog/0.6.0-4.png)
+
+### **🐞** Problem Fix
+
+* Optimize the page information extraction to avoid collecting obscured elements, improving success rate, speed, and AI call cost 🚀
+
+> before
+
+![](/blog/0.6.0-5.png)
+
+> after
+
+![](/blog/0.6.0-6.png)
+
+
+## v0.5.0 - 2024-09-12
+
+### **✨ New Features**
+
+* Support for gpt-4o-2024-08-06 model to provide 100% JSON format limit, reducing Midscene task planning hallucination behavior
+
+![](/blog/0.5.0.png)
+
+* Support for Playwright AI behavior real-time visualization, improve the efficiency of troubleshooting
+
+![](/blog/0.5.0-2.png)
+
+* Cache generalization, cache capabilities are no longer limited to playwright, pagepass, puppeteer can also use cache
+
+```diff
+- playwright test --config=playwright.config.ts
+# Enable cache
++ MIDSCENE_CACHE=true playwright test --config=playwright.config.ts
+```
+
+* Support for azure openAI
+
+* Support for AI to add, delete, and modify the existing input
+
+### **🐞** Problem Fix
+
+* Optimize the page information extraction to avoid collecting obscured elements, improving success rate, speed, and AI call cost 🚀
+
+* During the AI interaction process, unnecessary attribute fields were trimmed, reducing token consumption.
+
+* Optimize the AI interaction process to reduce the likelihood of hallucination in KeyboardPress and Input events
+
+* For pagepass, provide an optimization solution for the flickering behavior that occurs during the execution of Midscene
+
+```javascript
+// Currently, pagepass relies on a too low version of puppeteer, which may cause the interface to flicker and the cursor to be lost. The following solution can be used to solve this problem
+const originScreenshot = puppeteerPage.screenshot;
+puppeteerPage.screenshot = async (options) => {
+  return await originScreenshot.call(puppeteerPage, {
+    ...options,
+    captureBeyondViewport: false
+  });
+};
+```
+
+## v0.4.0 - 2024-08-27
+
+### **✨ New Features**
+
+* Support for Cli usage, reducing the usage threshold of Midscene
+
+```bash
+# headed mode (visible browser) access baidu.com and search "weather"
+npx @midscene/cli --headed --url https://www.baidu.com --action "input 'weather', press enter" --sleep 3000
+
+# visit github status page and save the status to ./status.json
+npx @midscene/cli --url https://www.githubstatus.com/ \
+  --query-output status.json \
+  --query '{serviceName: string, status: string}[], github page status, return service name'
+```
+
+* Support for AI to wait for a certain time to continue the subsequent task execution
+
+* Playwright AI task report shows the overall time and aggregates AI tasks by test group
+
+### **🐞** Problem Fix
+
+* Optimize the AI interaction process to reduce the likelihood of hallucination in KeyboardPress and Input events
+
+
+## v0.3.0 - 2024-08-15
+
+### **✨ New Features**
+
+* Generate html format AI report, aggregate AI tasks by test group, facilitate test report distribution
+
+### **🐞** Problem Fix
+
+* Fix the problem of AI report scrolling preview
+
+## v0.2.0 - 2024-08-06
+
+### **✨ New Features**
+
+* Support for using natural language to control puppeteer to implement page automation 🗣️💻
+
+* Provide AI cache capabilities for playwright framework, improve stability and execution efficiency
+
+* AI report visualization, aggregate AI tasks by test group, facilitate test report distribution
+
+* Support for AI to assert the page, let AI judge whether the page meets certain conditions
+
+## v0.1.0 - 2024-07-26
+
+### **✨ New Features**
+
+* Support for using natural language to control puppeteer to implement page automation 🗣️💻
+
+* Support for using natural language to extract page information 🔍🗂️
+
+* AI report visualization, AI behavior, AI thinking visualization 🛠️👀
+
+* Direct use of GPT-4o model, no training required 🤖🔧
