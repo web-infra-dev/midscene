@@ -2,7 +2,7 @@
 
 > 完整更新日志请参考：[Midscene Releases](https://github.com/web-infra-dev/midscene/releases)
 
-## v0.18.0 - 回放报告功能增强
+## v0.18 - 回放报告功能增强
 
 🚀 Midscene 又有更新啦！为你带来高质量的 UI 自动化体验。
 
@@ -78,7 +78,7 @@ const agent = await agentFromAdbDevice('s4ey59', {
 * [Android 更多配置项 API 文档](/zh/integrate-with-android.mdx#androiddevice-%E7%9A%84%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0)
 
 
-## v0.17.4 - 让 AI 看见页面 DOM
+## v0.17 - 让 AI 看见页面 DOM
 
 ### 数据查询 API 全面增强
 
@@ -161,3 +161,358 @@ await agent.aiTap("Copy Info"); // 复制联系人信息到剪贴板
 报告文件：[puppeteer-2025-06-04_20-41-45-be8ibktz.html](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/puppeteer-2025-06-04_20-41-45-be8ibktz.html)
 
 对应代码可以参考我们的示例仓库：[puppeteer-demo/extract-data.ts](https://github.com/web-infra-dev/midscene-example/blob/main/puppeteer-demo/extract-data.ts)
+
+### 重构缓存能力
+
+使用 xpath 缓存，而不是基于坐标，提高缓存命中概率。
+
+缓存文件格式使用 yaml 替换 json，提高可读性。
+
+## v0.16 - 支持 MCP
+
+### Midscene MCP
+
+🤖 使用 Cursor / Trae 帮助编写测试用例。
+🕹️ 快速实现浏览器操作，媲美 Manus 平台。
+🔧 快速集成 Midscene 能力，融入你的平台和工具。
+
+了解详情: [MCP](./mcp.mdx)
+
+### 支持结构化 API 
+
+APIs: `aiBoolean`, `aiNumber`, `aiString`, `aiLocate`
+
+了解详情: [使用结构化 API 优化自动化代码](./blog-programming-practice-using-structured-api.md)
+
+## v0.15 - Android 自动化上线！
+
+### Android 自动化上线！
+
+🤖 AI 调试：自然语言调试
+📱 支持原生、Lynx 和 WebView 应用
+🔁 可回放运行
+🛠️ YAML 或 JS SDK
+⚡ 自动规划 & 即时操作 API
+
+### 更多功能
+
+* 支持自定义 midscene_run 目录
+* 增强报告文件名生成，支持唯一标识符和分段模式
+* 增强超时配置和日志记录，支持网络空闲和导航超时
+* 适配 gemini-2.5-pro
+
+了解详情: [支持 Android 自动化](./blog-support-android-automation.mdx)
+
+## v0.14 - 即时操作 API
+
+### 即时操作 API
+
+* 新增即时操作 API，增强 AI 操作的准确性
+
+了解详情: [即时操作 API](./blog-introducing-instant-actions-and-deep-think.md)
+
+## v0.13 - 深度思考模式
+
+### 原子 AI 交互方法
+
+* 支持 aiTap, aiInput, aiHover, aiScroll, aiKeyboardPress 等原子操作
+
+### 深度思考模式
+
+* 增强点击准确性，提供更深层次的上下文理解
+
+![](/blog/0.13.jpeg)
+
+## v0.12 - 集成 Qwen 2.5 VL
+
+### 集成 Qwen 2.5 VL 的本地能力
+
+* 保持输出准确性
+* 支持更多元素交互
+* 成本降低 80% 以上
+
+## v0.11.0 - UI-TARS 模型缓存
+
+### **✨ UI-TARS 模型支持缓存**
+
+* 通过文档开启缓存 👉 ： [开启缓存](./caching.mdx)
+
+* 开启效果
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/antd-form-cache.mp4" controls/>
+
+
+![](/blog/0.11.0.png)
+
+### **✨ 优化 DOM 树提取策略**
+
+* 优化了 dom 树的信息能力，加速了 GPT 4o 等模型的推理过程
+
+![](/blog/0.11.0-2.png)
+
+
+## v0.10.0 - UI-TARS 模型上线
+
+UI-TARS 是由 **Seed** 团队开源的 Native GUI agent 模型。UI-TARS 起名源之[星际穿越](https://zh.wikipedia.org/zh-cn/%E6%98%9F%E9%99%85%E7%A9%BF%E8%B6%8A)电影中的 [TARS 机器人](https://interstellarfilm.fandom.com/wiki/TARS)，它具备高度的智能和自主思考能力。 UI-TARS **将图片和人类指令作为输入信息**，可以正确的感知下一步的行动，从而逐渐接近人类指令的目标，在 GUI 自动化任务的各项基准测试中均领先于各类开源模型、闭源商业模型。
+
+![](/blog/0.10.0.png)
+
+UI-TARS:Pioneering Automated GUI Interaction with Native Agents - Figure 1
+
+![](/blog/0.10.0-2.png)
+
+UI-TARS:Pioneering Automated GUI Interaction with Native - Figure 4
+
+### **✨**模型优势
+
+UI-TARS 模型在 GUI 任务中有以下优势：
+
+
+* **目标驱动**
+
+* **推理速度快**
+
+* **Native GUI agent 模型**
+
+* **模型开源**
+
+* **公司内部私有化部署无数据安全问题**
+
+
+## v0.9.0 - 桥接模式上线！
+
+通过 Midscene 浏览器插件，你可以用脚本联动桌面浏览器进行自动化操作了！
+
+我们把它命名为“桥接模式”（Bridge Mode）。
+
+
+相比于之前各种 CI 环境调试，优势在于：
+
+1. 可以复用桌面浏览器，尤其是 Cookie、登录态、前置界面状态等 ，即刻开启自动化，而不用操心环境搭建
+
+2. 支持人工与脚本配合操作界面，提升自动化工具的灵活性
+
+3. 简单的业务回归，Bridge Mode 本地跑一下就行
+
+![](/blog/0.9.0.png)
+
+文档：[通过 Chrome 插件快速体验](./bridge-mode-by-chrome-extension.mdx)
+
+## v0.8.0 - Chrome 插件
+
+### **✨ 新增  Chrome 插件，任意页面随时运行 Midscene**
+
+通过 Chrome 插件，你可以零代码、任意页面随时运行 Midscene，体验它的 Action \ Query \ Assert 等能力。
+
+体验方式：[ 使用 Chrome 插件体验 Midscene](./quick-experience.mdx)
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/Midscene_extension.mov" controls/>
+
+
+## v0.7.0 - Playground 能力
+
+### **✨ 新增 Playground 能力，随时发起调试**
+
+再也不用频繁重跑脚本调试 Prompt 了！
+
+在全新的测试报告页上，你可以随时对 AI 执行结果进行调试，包括页面操作、页面信息提取、页面断言。
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/midscene-playground.mov" controls/>
+
+
+## v0.6.0 - 支持字节豆包模型
+
+### **✨ 模型：**支持字节豆包模型
+
+全新支持调用豆包模型调用，参考下方环境变量即可体验。
+
+```bash
+MIDSCENE_OPENAI_INIT_CONFIG_JSON='{"baseURL":"https://xxx.net/api/v3","apiKey":"xxx"}'
+MIDSCENE_MODEL_NAME='ep-20240925111815-mpfz8'
+MIDSCENE_MODEL_TEXT_ONLY='true'
+```
+
+总结目前豆包模型的可用性：
+
+* 目前豆包只有纯文本模型，也就是“看”不到图片。在纯粹通过界面文本进行推理的场景中表现尚可。
+
+* 如果用例需要结合分析界面 UI ，它完全不可用
+
+
+
+举例：
+
+✅ 多肉葡萄的价格 (可以通过界面文字的顺序猜出来)
+
+✅ 切换语言文本按钮(可以是:中文，英文文本) (可以通过界面文字内容猜出来)
+
+❌ 左下角播放按钮 (需要图像理解，失败)
+
+
+
+### ✨ 模型：支持 GPT-4o 结构化输出、成本继续下降
+
+通过使用 gpt-4o-2024-08-06 模型，Midscene 已支持结构化输出（structured-output）特性，确保了稳定性增强、成本下降了 40%+。
+
+Midscene 现已支持命中 GPT-4o prompt caching 特性，待公司 GPT 平台跟进部署后，AI 调用成本将继续下降。
+
+
+
+### ✨ 测试报告：支持动画回放
+
+现在你可以在测试报告中查看每个步骤的动画回放，快速调试自己的运行脚本
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/midscene-play-all.mp4" controls/>
+
+
+
+### ✨ 提速：合并执行流程， 响应提速 30%
+
+新版本中，我们将 Plan 和 Locate 操作在 prompt 执行上进行一定程度合并，使得 AI 响应速度提升  30%
+
+> Before
+
+![](/blog/0.6.0.png)
+
+> after
+
+![](/blog/0.6.0-2.png)
+
+
+
+### ✨ 测评报告：不同模型在 Midscene 场景下的表现
+
+* GPT 4o 系列模型，接近 100% 正确率
+
+* doubao-pro-4k 纯文本模型，接近可用状态
+
+![](/blog/0.6.0-3.png)
+
+![](/blog/0.6.0-4.png)
+
+
+
+### **🐞**问题修复
+
+优化了页面信息提取，避免遮挡元素被收集，以此优化成功率、速度、AI 调用成本 🚀
+
+> before
+
+![](/blog/0.6.0-5.png)
+
+> after
+
+![](/blog/0.6.0-6.png)
+
+
+## v0.5.0 - 支持 GPT-4o 结构化输出
+
+### 新功能 **✨**
+
+* 支持了 gpt-4o-2024-08-06 模型提供 100% JSON 格式限制，降低了 Midscene 任务规划时的幻觉行为
+
+![](/blog/0.5.0.png)
+
+* 支持了 Playwright AI 行为实时可视化，提升排查问题的效率
+
+![](/blog/0.5.0-2.png)
+
+* 缓存通用化，缓存能力不再仅仅局限于 playwright，pagepass、puppeteer 都可以使用缓存
+
+```diff
+- playwright test --config=playwright.config.ts
+# 开启缓存
++ MIDSCENE_CACHE=true playwright test --config=playwright.config.ts
+```
+
+* 支持了  azure openAI 的调用方式
+
+* 支持了 AI 对于 Input 现有基础之上的增删改行为
+
+### 问题修复 **🐞**
+
+* 优化了对于非文本、input、图片元素的识别，提升 AI 任务正确性
+
+* 在 AI 交互过程中裁剪了不必要的属性字段，降低了 token 消耗
+
+* 优化了 KeyboardPress、Input 事件在任务规划时容易出现幻觉的情况
+
+* 针对 pagepass 通过 Midscene 执行过程中出现的闪烁行为，提供了优化方案
+
+```javascript
+// 目前 pagepagepsss 依赖的 puppeteer 版本太低，截图可能会导致界面闪动、光标丢失，通过下面方式可以解决
+const originScreenshot = puppeteerPage.screenshot;
+puppeteerPage.screenshot = async (options) => {
+  return await originScreenshot.call(puppeteerPage, {
+    ...options,
+    captureBeyondViewport: false
+  });
+};
+```
+
+## v0.4.0 - 支持使用 Cli
+
+### 新功能 **✨**
+
+* Midscene 支持 Cli 的使用方式，降低 Midscene 使用门槛
+
+```bash
+# headed 模式（即可见浏览器）访问 baidu.com 并搜索“天气”
+npx @midscene/cli --headed --url https://www.baidu.com --action "输入 '天气', 敲回车" --sleep 3000
+
+# 访问 Github 状态页面并将状态保存到 ./status.json
+npx @midscene/cli --url https://www.githubstatus.com/ \
+  --query-output status.json \
+  --query '{serviceName: string, status: string}[], github 页面的服务状态，返回服务名称'
+```
+
+* 支持 AI 执行等待能力，让 AI 等到到某个时候继续后续任务执行
+
+* Playwright AI 任务报告展示整体耗时，并按测试组进行聚合 AI 任务
+
+### 问题修复 **🐞**
+
+* 修复 AI 在连续性任务时容易出现幻觉导致任务规划失败
+
+
+
+## v0.3.0 - 支持 AI HTML 报告
+
+### 新功能 **✨**
+
+* AI 报告 html 化，将测试报告按测试组聚合，方便测试报告分发
+
+### 问题修复 **🐞**
+
+* 修复 AI 报告滚动预览问题
+
+
+
+## v0.2.0 - 通过自然语言控制 puppeteer
+
+### 新功能 **✨**
+
+* 支持通过自然语言控制 puppeteer 实现页面操作自动化🗣️💻
+
+* 在 playwright 框架中提供 AI 缓存能力，提高稳定性和执行效率
+
+* AI 报告可视化按照测试组进行合并，优化聚合展示
+
+* 支持 AI 断言能力，让 AI 判断页面是否满足某种条件
+
+
+
+
+
+## v0.1.0 - 通过自然语言控制 playwright
+
+### 新功能 **✨**
+
+* 通过自然语言控制 playwright 实现页面操作自动化 🗣️💻
+
+* 通过自然语言提取页面信息 🔍🗂️
+
+* AI 报告，AI 行为、思考可视化 🛠️👀
+
+* 直接使用 GPT-4o 模型，无需任何训练 🤖🔧
+
