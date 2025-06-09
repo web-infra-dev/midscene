@@ -11,7 +11,6 @@ import type React from 'react';
 import { useState } from 'react';
 import { useRecordingSessionStore } from '../../store';
 import {
-  exportEventsToYaml,
   generatePlaywrightTest,
   generateYamlTest,
 } from './generators';
@@ -37,7 +36,6 @@ export const ExportControls: React.FC<{
   onStopRecording?: () => void | Promise<void>;
 }> = ({ sessionName, events, sessionId, onStopRecording }) => {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isExportingYaml, setIsExportingYaml] = useState(false);
   const [showTestModal, setShowTestModal] = useState(false);
   const [showYamlModal, setShowYamlModal] = useState(false);
   const [generatedTest, setGeneratedTest] = useState('');
@@ -258,62 +256,6 @@ export const ExportControls: React.FC<{
     );
   };
 
-  // Export original events as YAML
-  const handleExportYaml = async () => {
-    // Get the most current events
-    const currentEvents = getCurrentEvents();
-
-    if (currentEvents.length === 0) {
-      message.warning('No events to export as YAML');
-      return;
-    }
-
-    setIsExportingYaml(true);
-    try {
-      // Step 0: Stop recording if currently recording
-      await stopRecordingIfActive(onStopRecording);
-
-      // After stopping recording, get the latest events
-      const finalEvents = getCurrentEvents();
-
-      // Step 1: Wait for all element descriptions to be generated
-      recordLogger.info('Checking element descriptions before YAML export');
-      if (!checkElementDescriptions(finalEvents)) {
-        message.loading('Waiting for element descriptions to complete...', 0);
-        await waitForElementDescriptions(getCurrentEvents);
-        message.destroy();
-        recordLogger.success('Element descriptions ready for YAML export');
-      }
-
-      // Get the current session name from store if available
-      const exportSessionName = resolveSessionName(sessionName, sessionId);
-
-      recordLogger.info('Events ready for YAML export', {
-        events: finalEvents,
-        eventsCount: finalEvents.length,
-      });
-
-      message.loading('Generating AI-powered YAML test...');
-
-      const exportEvents = getCurrentEvents();
-      await exportEventsToYaml(exportEvents, exportSessionName, {
-        includeScreenshots: false, // Keep file size manageable
-        includeTimestamps: true,
-      });
-
-      message.destroy();
-      message.success(`YAML test exported for "${exportSessionName}"`);
-    } catch (error) {
-      message.destroy();
-      recordLogger.error('Failed to export YAML', undefined, error);
-      message.error(
-        `Failed to export YAML: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
-    } finally {
-      setIsExportingYaml(false);
-    }
-  };
-
   // Export original events as JSON
   const handleExportEvents = () => {
     // Get the most current events
@@ -356,15 +298,6 @@ export const ExportControls: React.FC<{
             {isGenerating ? 'Generating Code...' : 'Generate Code'}
           </Button>
         </Dropdown>
-
-        <Button
-          icon={<DownloadOutlined />}
-          onClick={handleExportYaml}
-          loading={isExportingYaml}
-          disabled={getCurrentEvents().length === 0}
-        >
-          {isExportingYaml ? 'Exporting YAML...' : 'Export YAML (Direct)'}
-        </Button>
 
         <Button
           icon={<DownloadOutlined />}

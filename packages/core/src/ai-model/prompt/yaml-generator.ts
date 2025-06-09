@@ -285,7 +285,6 @@ ${JSON.stringify(yamlSummary, null, 2)}
 
 Use this exact YAML format:
 
-\`\`\`yaml
 target:
   url: https://example.com
 
@@ -299,7 +298,6 @@ tasks:
       - aiTap: 'the login button'
       - aiAssert: Verify successful login
       - sleep: 2000
-\`\`\`
 
 Rules:
 1. Use 'target.url' for starting URL
