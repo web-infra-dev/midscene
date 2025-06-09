@@ -10,10 +10,9 @@ import type { MenuProps } from 'antd';
 import type React from 'react';
 import { useState } from 'react';
 import { useRecordingSessionStore } from '../../store';
-import {
-  generatePlaywrightTest,
-  generateYamlTest,
-} from './generators';
+import { optimizeEvent } from '../../utils/eventOptimizer';
+import { ProgressModal, type ProgressStep } from './components/ProgressModal';
+import { generatePlaywrightTest, generateYamlTest } from './generators';
 import { recordLogger } from './logger';
 import {
   checkElementDescriptions,
@@ -41,7 +40,14 @@ export const ExportControls: React.FC<{
   const [generatedTest, setGeneratedTest] = useState('');
   const [generatedYaml, setGeneratedYaml] = useState('');
   const { updateSession } = useRecordingSessionStore();
-  // const { events: liveEvents, isRecording } = useRecordStore();
+
+  // Progress modal state
+  const [showProgressModal, setShowProgressModal] = useState(false);
+  const [progressSteps, setProgressSteps] = useState<ProgressStep[]>([]);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [currentGenerationType, setCurrentGenerationType] = useState<
+    'playwright' | 'yaml' | null
+  >(null);
 
   // Create a function to get the latest events with AI descriptions
   const getCurrentEvents = (): ChromeRecordedEvent[] => {
@@ -51,6 +57,7 @@ export const ExportControls: React.FC<{
   // Generate session title and description using AI
   const generateSessionTitleAndDescription = async (
     finalEvents: ChromeRecordedEvent[],
+    stepIndex: number,
   ): Promise<string> => {
     let currentSessionName = sessionName; // Default to the original prop
 
@@ -66,6 +73,13 @@ export const ExportControls: React.FC<{
         recordLogger.info(
           'Generating session title and description before export',
         );
+
+        // Update progress: Step 1 in progress
+        updateProgressStep(stepIndex, {
+          status: 'loading',
+          details: 'Analyzing session content...',
+        });
+
         const { title, description } = await generateRecordTitle(finalEvents);
 
         if (title || description) {
@@ -73,18 +87,118 @@ export const ExportControls: React.FC<{
             name: title || session.name,
             description: description || session.description,
           });
-          message.success('Session title and description generated');
 
           // Update the session name to use for export
           currentSessionName = title || session.name;
         }
+
+        // Update progress: Step 1 completed
+        updateProgressStep(stepIndex, {
+          status: 'completed',
+          details: `Generated: "${currentSessionName}"`,
+        });
       } else if (session) {
         // Use the current session name from the store in case it was updated elsewhere
         currentSessionName = session.name;
+
+        // Update progress: Step 1 completed (skipped)
+        updateProgressStep(stepIndex, {
+          status: 'completed',
+          details: `Using existing: "${currentSessionName}"`,
+        });
       }
+    } else {
+      // Update progress: Step 1 completed (no session)
+      updateProgressStep(stepIndex, {
+        status: 'completed',
+        details: `Using provided: "${currentSessionName}"`,
+      });
     }
 
     return currentSessionName;
+  };
+
+  // Helper function to update progress step
+  const updateProgressStep = (
+    stepIndex: number,
+    updates: Partial<ProgressStep>,
+  ) => {
+    setProgressSteps((prevSteps) =>
+      prevSteps.map((step, index) =>
+        index === stepIndex ? { ...step, ...updates } : step,
+      ),
+    );
+  };
+
+  // Generate element descriptions for events that need them
+  const generateElementDescriptions = async (
+    events: ChromeRecordedEvent[],
+    stepIndex: number,
+  ): Promise<ChromeRecordedEvent[]> => {
+    const eventsNeedingDescriptions = events.filter(
+      (event: ChromeRecordedEvent) =>
+        (event.type === 'click' ||
+          event.type === 'input' ||
+          event.type === 'scroll') &&
+        event.descriptionLoading !== false &&
+        !event.elementDescription,
+    );
+
+    if (eventsNeedingDescriptions.length === 0) {
+      updateProgressStep(stepIndex, {
+        status: 'completed',
+        details: 'All elements already have descriptions',
+      });
+      return events;
+    }
+
+    updateProgressStep(stepIndex, {
+      status: 'loading',
+      progress: 0,
+      details: `Generating descriptions for ${eventsNeedingDescriptions.length} elements...`,
+    });
+
+    let completedCount = 0;
+    const updatedEvents = [...events];
+
+    // Process events in parallel with progress tracking
+    const optimizePromises = eventsNeedingDescriptions.map(
+      async (event, index) => {
+        const eventIndex = events.findIndex((e) => e.hashId === event.hashId);
+        if (eventIndex === -1) return;
+
+        try {
+          const optimizedEvent = await optimizeEvent(event, (updatedEvent) => {
+            updatedEvents[eventIndex] = updatedEvent;
+          });
+
+          updatedEvents[eventIndex] = optimizedEvent;
+          completedCount++;
+
+          const progress = Math.round(
+            (completedCount / eventsNeedingDescriptions.length) * 100,
+          );
+          updateProgressStep(stepIndex, {
+            status: 'loading',
+            progress,
+            details: `Generated ${completedCount}/${eventsNeedingDescriptions.length} element descriptions`,
+          });
+        } catch (error) {
+          console.error('Failed to optimize event:', error);
+          completedCount++;
+        }
+      },
+    );
+
+    await Promise.all(optimizePromises);
+
+    updateProgressStep(stepIndex, {
+      status: 'completed',
+      progress: 100,
+      details: `Generated descriptions for ${eventsNeedingDescriptions.length} elements`,
+    });
+
+    return updatedEvents;
   };
 
   // Generate Playwright test from recorded events
@@ -98,50 +212,103 @@ export const ExportControls: React.FC<{
     }
 
     setIsGenerating(true);
+    setCurrentGenerationType('playwright');
+
+    // Initialize progress steps
+    const steps: ProgressStep[] = [
+      {
+        id: 'title',
+        title: 'Generate Title & Description',
+        description: 'Creating session title and description using AI',
+        status: 'pending',
+      },
+      {
+        id: 'descriptions',
+        title: 'Generate Element Descriptions',
+        description: 'Analyzing UI elements and generating descriptions',
+        status: 'pending',
+      },
+      {
+        id: 'playwright',
+        title: 'Generate Playwright Code',
+        description: 'Creating executable Playwright test code',
+        status: 'pending',
+      },
+    ];
+
+    setProgressSteps(steps);
+    setShowProgressModal(true);
+
     try {
       // Step 0: Stop recording if currently recording
       await stopRecordingIfActive(onStopRecording);
 
       // After stopping recording, get the latest events from session
-      const finalEvents = getCurrentEvents();
+      let finalEvents = getCurrentEvents();
 
       // Step 1: Generate session title and description if not already generated
-      const currentSessionName =
-        await generateSessionTitleAndDescription(finalEvents);
+      updateProgressStep(0, { status: 'loading' });
+      const currentSessionName = await generateSessionTitleAndDescription(
+        finalEvents,
+        0,
+      );
 
-      // Step 2: Wait for all element descriptions to be generated
-      recordLogger.info('Checking element descriptions before test generation');
-      if (!checkElementDescriptions(finalEvents)) {
-        message.loading('Waiting for element descriptions to complete...', 0);
-        await waitForElementDescriptions(getCurrentEvents);
-        message.destroy();
-        recordLogger.success('Element descriptions ready for test generation');
-      }
+      // Step 2: Generate element descriptions
+      updateProgressStep(1, { status: 'loading' });
+      finalEvents = await generateElementDescriptions(finalEvents, 1);
 
       // Step 3: Generate Playwright test
-      const latestEvents = getCurrentEvents();
-
-      recordLogger.info('Events ready for test generation', {
-        events: latestEvents,
-        eventsCount: latestEvents.length,
+      updateProgressStep(2, {
+        status: 'loading',
+        details: 'Generating Playwright test code...',
       });
 
-      const testCode = await generatePlaywrightTest(latestEvents);
+      const testCode = await generatePlaywrightTest(finalEvents);
+
+      updateProgressStep(2, {
+        status: 'completed',
+        details: 'Playwright test code generated successfully',
+      });
 
       setGeneratedTest(testCode);
-      setShowTestModal(true);
-      message.success('AI Playwright test generated successfully!');
+
+      // Show confetti and then close progress modal
+      setShowConfetti(true);
+
+      // Close progress modal after confetti
+      setTimeout(() => {
+        setShowProgressModal(false);
+        setShowConfetti(false);
+        setShowTestModal(true);
+        message.success('AI Playwright test generated successfully!');
+      }, 3000);
     } catch (error) {
       recordLogger.error(
         'Failed to generate Playwright test',
         undefined,
         error,
       );
-      message.error(
-        `Failed to generate test: ${error instanceof Error ? error.message : 'Unknown error'}`,
+
+      // Update current step to error status
+      const currentStep = progressSteps.findIndex(
+        (step) => step.status === 'loading',
       );
+      if (currentStep >= 0) {
+        updateProgressStep(currentStep, {
+          status: 'error',
+          details: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        });
+      }
+
+      setTimeout(() => {
+        setShowProgressModal(false);
+        message.error(
+          `Failed to generate test: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
+      }, 2000);
     } finally {
       setIsGenerating(false);
+      setCurrentGenerationType(null);
     }
   };
 
@@ -156,51 +323,104 @@ export const ExportControls: React.FC<{
     }
 
     setIsGenerating(true);
+    setCurrentGenerationType('yaml');
+
+    // Initialize progress steps
+    const steps: ProgressStep[] = [
+      {
+        id: 'title',
+        title: 'Generate Title & Description',
+        description: 'Creating session title and description using AI',
+        status: 'pending',
+      },
+      {
+        id: 'descriptions',
+        title: 'Generate Element Descriptions',
+        description: 'Analyzing UI elements and generating descriptions',
+        status: 'pending',
+      },
+      {
+        id: 'yaml',
+        title: 'Generate YAML Configuration',
+        description: 'Creating structured YAML test configuration',
+        status: 'pending',
+      },
+    ];
+
+    setProgressSteps(steps);
+    setShowProgressModal(true);
+
     try {
       // Step 0: Stop recording if currently recording
       await stopRecordingIfActive(onStopRecording);
 
       // After stopping recording, get the latest events from session
-      const finalEvents = getCurrentEvents();
+      let finalEvents = getCurrentEvents();
 
       // Step 1: Generate session title and description if not already generated
-      const currentSessionName =
-        await generateSessionTitleAndDescription(finalEvents);
+      updateProgressStep(0, { status: 'loading' });
+      const currentSessionName = await generateSessionTitleAndDescription(
+        finalEvents,
+        0,
+      );
 
-      // Step 2: Wait for all element descriptions to be generated
-      recordLogger.info('Checking element descriptions before YAML generation');
-      if (!checkElementDescriptions(finalEvents)) {
-        message.loading('Waiting for element descriptions to complete...', 0);
-        await waitForElementDescriptions(getCurrentEvents);
-        message.destroy();
-        recordLogger.success('Element descriptions ready for YAML generation');
-      }
+      // Step 2: Generate element descriptions
+      updateProgressStep(1, { status: 'loading' });
+      finalEvents = await generateElementDescriptions(finalEvents, 1);
 
       // Step 3: Generate YAML test
-      const latestEvents = getCurrentEvents();
-
-      recordLogger.info('Events ready for YAML generation', {
-        events: latestEvents,
-        eventsCount: latestEvents.length,
+      updateProgressStep(2, {
+        status: 'loading',
+        details: 'Generating YAML configuration...',
       });
 
-      const yamlContent = await generateYamlTest(latestEvents, {
+      const yamlContent = await generateYamlTest(finalEvents, {
         testName: `Test: ${currentSessionName}`,
         description: `Test session recorded on ${new Date().toLocaleDateString()}`,
         includeScreenshots: false,
         includeTimestamps: true,
       });
 
+      updateProgressStep(2, {
+        status: 'completed',
+        details: 'YAML configuration generated successfully',
+      });
+
       setGeneratedYaml(yamlContent);
-      setShowYamlModal(true);
-      message.success('AI YAML test generated successfully!');
+
+      // Show confetti and then close progress modal
+      setShowConfetti(true);
+
+      // Close progress modal after confetti
+      setTimeout(() => {
+        setShowProgressModal(false);
+        setShowConfetti(false);
+        setShowYamlModal(true);
+        message.success('AI YAML test generated successfully!');
+      }, 3000);
     } catch (error) {
       recordLogger.error('Failed to generate YAML test', undefined, error);
-      message.error(
-        `Failed to generate YAML: ${error instanceof Error ? error.message : 'Unknown error'}`,
+
+      // Update current step to error status
+      const currentStep = progressSteps.findIndex(
+        (step) => step.status === 'loading',
       );
+      if (currentStep >= 0) {
+        updateProgressStep(currentStep, {
+          status: 'error',
+          details: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        });
+      }
+
+      setTimeout(() => {
+        setShowProgressModal(false);
+        message.error(
+          `Failed to generate YAML: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
+      }, 2000);
     } finally {
       setIsGenerating(false);
+      setCurrentGenerationType(null);
     }
   };
 
@@ -307,6 +527,23 @@ export const ExportControls: React.FC<{
           Export Events as JSON
         </Button>
       </Space>
+
+      {/* Progress Modal for AI Generation */}
+      <ProgressModal
+        open={showProgressModal}
+        title={`AI ${currentGenerationType === 'playwright' ? 'Playwright Test' : 'YAML Configuration'} Generation`}
+        steps={progressSteps}
+        showConfetti={showConfetti}
+        onComplete={() => {
+          setShowProgressModal(false);
+          setShowConfetti(false);
+          if (currentGenerationType === 'playwright') {
+            setShowTestModal(true);
+          } else if (currentGenerationType === 'yaml') {
+            setShowYamlModal(true);
+          }
+        }}
+      />
 
       <Modal
         title={

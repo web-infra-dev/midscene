@@ -66,7 +66,7 @@ export const clearDescriptionCache = (): void => {
 
 // Generate fallback description for events when AI fails
 export const generateFallbackDescription = (): string => {
-  return `failed to generate element description`;
+  return 'failed to generate element description';
 };
 
 // Debounced AI description generation function
