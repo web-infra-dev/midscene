@@ -1,8 +1,7 @@
-import { glob } from 'glob';
-import 'dotenv/config';
 import { statSync } from 'node:fs';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { glob } from 'glob';
 import { hideBin } from 'yargs/helpers';
 import yargs from 'yargs/yargs';
 
@@ -31,6 +30,12 @@ Usage: $0 [options] <path-to-yaml-script-file-or-directory>`,
         default: false,
         description:
           'Keep the browser window open after the script finishes. This is useful when debugging, but will consume more resources',
+      },
+      'dotenv-override': {
+        type: 'boolean',
+        default: true,
+        description:
+          'Whether the variables in the .env file override the global variables, the default is true.',
       },
     })
     .version('version', 'Show version number', __VERSION__)
