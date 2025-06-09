@@ -1,6 +1,6 @@
 /// <reference types="chrome" />
 
-import type { ChromeRecordedEvent } from '@midscene/record';
+import { convertToChromeEvents, type ChromeRecordedEvent, type RecordedEvent } from '@midscene/record';
 
 // Event Recorder Bridge
 // This script bridges the EventRecorder (injected via record-iife.js) with the Chrome Extension
@@ -166,19 +166,7 @@ function sendEventsToExtension(optimizedEvent: ChromeRecordedEvent[]): void {
     chrome.runtime
       .sendMessage({
         action: 'events',
-        data: pendingEvents.map((event) => ({
-          hashId: event.hashId,
-          type: event.type,
-          timestamp: event.timestamp,
-          // Element position and click coordinates
-          elementRect: event.elementRect,
-          // Page information and screenshots
-          pageInfo: event.pageInfo,
-          screenshotBefore: event.screenshotBefore,
-          screenshotAfter: event.screenshotAfter,
-          // Other event properties
-          value: event.value,
-        })),
+        data: convertToChromeEvents(pendingEvents),
       } as ChromeMessage)
       .catch((error) => {
         // Extension popup might not be open

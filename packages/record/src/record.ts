@@ -489,3 +489,27 @@ export class EventRecorder {
     return [...events, event];
   }
 }
+
+// Convert RecordedEvent to ChromeRecordedEvent
+export function convertToChromeEvent(event: RecordedEvent): ChromeRecordedEvent {
+  return {
+    type: event.type,
+    url: event.url,
+    title: event.title,
+    value: event.value,
+    elementRect: event.elementRect,
+    pageInfo: event.pageInfo,
+    screenshotBefore: event.screenshotBefore,
+    screenshotAfter: event.screenshotAfter,
+    elementDescription: event.elementDescription,
+    descriptionLoading: event.descriptionLoading,
+    screenshotWithBox: event.screenshotWithBox,
+    timestamp: event.timestamp,
+    hashId: event.hashId,
+  };
+}
+
+// Convert array of RecordedEvent to array of ChromeRecordedEvent
+export function convertToChromeEvents(events: RecordedEvent[]): ChromeRecordedEvent[] {
+  return events.map(convertToChromeEvent);
+}

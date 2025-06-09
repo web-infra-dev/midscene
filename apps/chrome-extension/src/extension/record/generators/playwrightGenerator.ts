@@ -2,7 +2,21 @@ import { generatePlaywrightTest as coreGeneratePlaywrightTest } from '@midscene/
 import type { ChromeRecordedEvent } from '@midscene/record';
 import { recordLogger } from '../logger';
 import { handleTestGenerationError } from './shared/testGenerationUtils';
-import type { PlaywrightGenerationOptions } from './shared/types';
+
+/**
+ * Extracts navigation and viewport information from events
+ */
+export const extractNavigationAndViewportInfo = (events: ChromeRecordedEvent[]) => {
+  const navigationEvents = events.filter(event => event.type === 'navigation');
+  const allViewportSizes = events.map(event => event.pageInfo).filter(Boolean);
+  
+
+  return {
+    urls: navigationEvents.map(event => event.url).filter(Boolean),
+    titles: navigationEvents.map(event => event.title).filter(Boolean),
+    initialViewport: allViewportSizes[0],
+  };
+};
 
 /**
  * Generates Playwright test code from recorded events
@@ -10,14 +24,27 @@ import type { PlaywrightGenerationOptions } from './shared/types';
  */
 export const generatePlaywrightTest = async (
   events: ChromeRecordedEvent[],
-  options: PlaywrightGenerationOptions = {},
 ): Promise<string> => {
   try {
     recordLogger.info('Starting Playwright test generation', {
       eventsCount: events.length,
     });
 
-    const result = await coreGeneratePlaywrightTest(events, options);
+    // Extract navigation and viewport information
+    const navigationInfo = extractNavigationAndViewportInfo(events);
+    
+    recordLogger.info('Navigation and viewport info extracted', {
+      eventsCount: events.length,
+    });
+
+    // Merge navigation and viewport info into options
+    const enhancedOptions = {
+      navigationInfo,
+      // Set initial viewport if not already specified
+      viewportSize: navigationInfo.initialViewport,
+    };
+
+    const result = await coreGeneratePlaywrightTest(events, enhancedOptions);
 
     recordLogger.success('Playwright test generated successfully', {
       eventsCount: events.length,
