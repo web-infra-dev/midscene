@@ -1,5 +1,9 @@
-import { AIActionType, callAi, ChatCompletionMessageParam } from '../index';
 import type { ChromeRecordedEvent } from '@midscene/record';
+import {
+  AIActionType,
+  type ChatCompletionMessageParam,
+  callAi,
+} from '../index';
 
 // Common interfaces for test generation
 export interface EventCounts {
@@ -241,8 +245,6 @@ export const generateYamlTest = async (
       options.maxScreenshots || 3,
     );
 
-    
-
     // Use LLM to generate the YAML test configuration
     const prompt: ChatCompletionMessageParam[] = [
       {
@@ -322,14 +324,15 @@ Convert events:
 Respond with YAML only, no explanations.`,
       },
     ];
-  
+
     // Add screenshots if available and requested
     if (screenshots.length > 0) {
       prompt.push({
         role: 'user',
-        content: 'Here are screenshots from the recording session to help you understand the context:',
+        content:
+          'Here are screenshots from the recording session to help you understand the context:',
       });
-  
+
       prompt.push({
         role: 'user',
         content: screenshots.map((screenshot) => ({

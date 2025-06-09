@@ -1,8 +1,8 @@
+import type { ChromeRecordedEvent } from '@midscene/record';
 import { message } from 'antd';
 import { useEffect } from 'react';
 import type { RecordingSession } from '../../../store';
 import { recordLogger } from '../logger';
-import type { ChromeRecordedEvent} from '@midscene/record';
 
 export const useLifecycleCleanup = (
   isRecording: boolean,

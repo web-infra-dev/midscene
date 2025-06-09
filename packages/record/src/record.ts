@@ -146,6 +146,24 @@ export class EventRecorder {
     this.sessionId = sessionId;
   }
 
+  // Create initial navigation event with page dimensions
+  createNavigationEvent(
+    url: string,
+    title: string,
+  ): ChromeRecordedEvent {
+    return {
+      type: 'navigation',
+      url,
+      title,
+      pageInfo: {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      },
+      timestamp: Date.now(),
+      hashId: 'navigation_0',
+    };
+  }
+
   // Start recording
   start(): void {
     if (this.isRecording) {
@@ -170,6 +188,16 @@ export class EventRecorder {
       this.scrollTargets.length,
       'scroll targets',
     );
+
+    // Add final navigation event to capture the final page
+    setTimeout(() => {
+    const navigationEvent = this.createNavigationEvent(
+      window.location.href,
+      document.title,
+      );
+      this.eventCallback(navigationEvent);
+      debugLog('Added final navigation event', navigationEvent);
+    }, 0);
 
     // Add event listeners
     document.addEventListener('click', this.handleClick);

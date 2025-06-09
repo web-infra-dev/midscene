@@ -55,7 +55,7 @@ if (typeof window.EventRecorder === 'undefined') {
   );
 }
 
-if (window.recorder && window.recorder.isActive()) {
+if (window?.recorder?.isActive()) {
   window.recorder.stop();
 }
 
@@ -75,10 +75,16 @@ async function captureScreenshot(): Promise<string | undefined> {
     }
     return screenshot;
   } catch (error) {
-    console.error(
-      '[EventRecorder Bridge] Failed to capture screenshot:',
-      (error as Error).message,
-    );
+    if (error instanceof Error) {
+      
+      console.error(
+        '[EventRecorder Bridge] Failed to capture screenshot:',
+        error.message,
+      );
+      if (error.message.includes('Extension context invalidated')) {
+        window?.recorder?.stop();  
+      }
+    }
     return undefined;
   }
 }
@@ -116,7 +122,7 @@ async function initializeRecorder(sessionId: string): Promise<void> {
         const latestEvent = optimizedEvent[optimizedEvent.length - 1];
         const previousEvent = optimizedEvent[optimizedEvent.length - 2];
         const screenshotAfter = await captureScreenshot();
-        let screenshotBefore: string | void;
+        let screenshotBefore: string | undefined;
 
         if (optimizedEvent.length > 1) {
           screenshotBefore = previousEvent.screenshotAfter;
@@ -266,7 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Clean up on page unload
 window.addEventListener('beforeunload', () => {
-  if (window.recorder && window.recorder.isActive()) {
+  if (window.recorder?.isActive()) {
     console.log(
       '[EventRecorder Bridge] Page unloading, stopping active recorder',
     );

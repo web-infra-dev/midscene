@@ -308,8 +308,8 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
 
       // Find the main prompt text (not the intro text about screenshots)
       const textMessages = messageContent.filter((msg) => msg.type === 'text');
-      const promptText = textMessages.find(
-        (msg) => msg.text?.includes('Event Summary:'),
+      const promptText = textMessages.find((msg) =>
+        msg.text?.includes('Event Summary:'),
       )?.text;
 
       expect(promptText).toBeDefined();

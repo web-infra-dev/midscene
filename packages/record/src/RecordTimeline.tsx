@@ -506,7 +506,7 @@ export const RecordTimeline = ({
                           height: '50px',
                           borderRadius: '6px',
                           overflow: 'hidden',
-                          border: `2px solid #52c41a`,
+                          border: '2px solid #52c41a',
                           cursor: 'pointer',
                           transition: 'all 0.2s ease-in-out',
                           background: '#f6ffed',
@@ -514,7 +514,7 @@ export const RecordTimeline = ({
                         onMouseEnter={(e) => {
                           const target = e.currentTarget as HTMLElement;
                           target.style.transform = 'scale(1.05)';
-                          target.style.boxShadow = `0 4px 12px #52c41a60`;
+                          target.style.boxShadow = '0 4px 12px #52c41a60';
                         }}
                         onMouseLeave={(e) => {
                           const target = e.currentTarget as HTMLElement;
