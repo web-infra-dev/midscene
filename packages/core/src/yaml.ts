@@ -142,7 +142,7 @@ export interface MidsceneYamlFlowItemAIInput extends LocateOption {
 }
 
 export interface MidsceneYamlFlowItemAIKeyboardPress extends LocateOption {
-  aiKeyboardPress: string;
+  aiKeyboardPress: string | string[];
   locate?: string; // where to press, optional
 }
 

@@ -51,6 +51,13 @@ describe('build plans', () => {
     expect(result).toMatchSnapshot();
   });
 
+  it('keyboardPress with combination keys', async () => {
+    const result = await buildPlans('KeyboardPress', undefined, {
+      value: ['Ctrl', 'Shift', 'I'],
+    });
+    expect(result).toMatchSnapshot();
+  });
+
   it('scroll', async () => {
     const result = await buildPlans('Scroll', undefined, {
       direction: 'down',

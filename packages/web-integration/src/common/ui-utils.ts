@@ -19,7 +19,7 @@ export function getKeyCommands(
   value: string | string[],
 ): Array<{ key: string; command?: string }> {
   // Ensure value is an array of keys
-  const keys = Array.isArray(value) ? value : [value];
+  const keys = Array.isArray(value) ? value : value.split('+'); // Compatible with input format 'Meta+A';
 
   // Process each key to attach a corresponding command if needed, based on the presence of 'Meta' or 'Control' in the keys array.
   // ref: https://github.com/puppeteer/puppeteer/pull/9357/files#diff-32cf475237b000f980eb214a0a823e45a902bddb7d2426d677cae96397aa0ae4R94

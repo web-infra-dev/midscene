@@ -26,7 +26,8 @@ import {
   type PlanningActionParamAssert,
   type PlanningActionParamError,
   type PlanningActionParamHover,
-  type PlanningActionParamInputOrKeyPress,
+  type PlanningActionParamInput,
+  type PlanningActionParamKeyPress,
   type PlanningActionParamScroll,
   type PlanningActionParamSleep,
   type PlanningActionParamTap,
@@ -380,7 +381,7 @@ export class PageTaskExecutor {
         };
         tasks.push(taskAssert);
       } else if (plan.type === 'Input') {
-        const taskActionInput: ExecutionTaskActionApply<PlanningActionParamInputOrKeyPress> =
+        const taskActionInput: ExecutionTaskActionApply<PlanningActionParamInput> =
           {
             type: 'Action',
             subType: 'Input',
@@ -403,7 +404,7 @@ export class PageTaskExecutor {
           };
         tasks.push(taskActionInput);
       } else if (plan.type === 'KeyboardPress') {
-        const taskActionKeyboardPress: ExecutionTaskActionApply<PlanningActionParamInputOrKeyPress> =
+        const taskActionKeyboardPress: ExecutionTaskActionApply<PlanningActionParamKeyPress> =
           {
             type: 'Action',
             subType: 'KeyboardPress',

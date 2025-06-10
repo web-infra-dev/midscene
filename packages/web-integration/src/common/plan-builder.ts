@@ -2,7 +2,8 @@ import type {
   DetailedLocateParam,
   MidsceneYamlFlowItem,
   PlanningAction,
-  PlanningActionParamInputOrKeyPress,
+  PlanningActionParamInput,
+  PlanningActionParamKeyPress,
   PlanningActionParamScroll,
   PlanningActionParamSleep,
   PlanningActionParamTap,
@@ -17,7 +18,8 @@ export function buildPlans(
   type: PlanningAction['type'],
   locateParam?: DetailedLocateParam,
   param?:
-    | PlanningActionParamInputOrKeyPress
+    | PlanningActionParamInput
+    | PlanningActionParamKeyPress
     | PlanningActionParamScroll
     | PlanningActionParamSleep,
 ): PlanningAction[] {
@@ -42,23 +44,33 @@ export function buildPlans(
 
     returnPlans = [locatePlan, tapPlan];
   }
-  if (type === 'Input' || type === 'KeyboardPress') {
-    if (type === 'Input') {
-      assert(locateParam, `missing locate info for action "${type}"`);
-    }
+  if (type === 'Input') {
+    assert(locateParam, `missing locate info for action "${type}"`);
     assert(param, `missing param for action "${type}"`);
 
-    const inputPlan: PlanningAction<PlanningActionParamInputOrKeyPress> = {
+    const inputPlan: PlanningAction<PlanningActionParamInput> = {
       type,
-      param: param as PlanningActionParamInputOrKeyPress,
+      param: param as PlanningActionParamInput,
       thought: '',
-      locate: locateParam!,
+      locate: locateParam,
+    };
+
+    returnPlans = [locatePlan!, inputPlan];
+  }
+  if (type === 'KeyboardPress') {
+    assert(param, `missing param for action "${type}"`);
+
+    const keyboardPressPlan: PlanningAction<PlanningActionParamKeyPress> = {
+      type,
+      param: param as PlanningActionParamKeyPress,
+      thought: '',
+      locate: locateParam,
     };
 
     if (locatePlan) {
-      returnPlans = [locatePlan, inputPlan];
+      returnPlans = [locatePlan, keyboardPressPlan];
     } else {
-      returnPlans = [inputPlan];
+      returnPlans = [keyboardPressPlan];
     }
   }
 
