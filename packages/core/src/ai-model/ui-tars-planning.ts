@@ -10,7 +10,7 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { actionParser } from '@ui-tars/action-parser';
 import type { ChatCompletionMessageParam } from 'openai/resources';
-import { AIActionType, buildYamlFlowFromPlans } from './common';
+import { AIActionType } from './common';
 import { getSummary, getUiTarsPlanningPrompt } from './prompt/ui-tars-planning';
 import { call } from './service-caller/index';
 type ActionType =
@@ -48,7 +48,7 @@ export async function vlmPlanning(options: {
   actions: PlanningAction<any>[];
   actionsFromModel: ReturnType<typeof actionParser>['parsed'];
   action_summary: string;
-  yamlFlow: MidsceneYamlFlowItem[];
+  yamlFlow?: MidsceneYamlFlowItem[];
 }> {
   const { conversationHistory, userInstruction, size } = options;
   const systemPrompt = getUiTarsPlanningPrompt() + userInstruction;
@@ -208,7 +208,6 @@ export async function vlmPlanning(options: {
     actions: transformActions,
     actionsFromModel: parsed,
     action_summary: getSummary(res.content),
-    yamlFlow: buildYamlFlowFromPlans(transformActions),
   };
 }
 
