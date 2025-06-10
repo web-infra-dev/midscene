@@ -47,7 +47,7 @@ export const clearDescriptionCache = (): void => {
   cacheKeyOrder.length = 0;
   ongoingDescriptionRequests.clear();
   pendingCallbacks.clear();
-  debounceTimeouts.forEach(timeout => clearTimeout(timeout));
+  debounceTimeouts.forEach((timeout) => clearTimeout(timeout));
   debounceTimeouts.clear();
   console.log('All caches and ongoing operations cleared');
 };
@@ -91,14 +91,15 @@ export const generateAIDescription = async (
       };
 
       const insight = new Insight(mockContext);
-      const rect = event.elementRect?.x && event.elementRect?.y
-        ? [event.elementRect.x, event.elementRect.y] as [number, number]
-        : {
-            left: event.elementRect?.left!,
-            top: event.elementRect?.top!,
-            width: event.elementRect?.width!,
-            height: event.elementRect?.height!,
-          };
+      const rect =
+        event.elementRect?.x && event.elementRect?.y
+          ? ([event.elementRect.x, event.elementRect.y] as [number, number])
+          : {
+              left: event.elementRect?.left!,
+              top: event.elementRect?.top!,
+              width: event.elementRect?.width!,
+              height: event.elementRect?.height!,
+            };
 
       const { description } = await insight.describe(rect);
       addToCache(descriptionCache, hashId, description);
@@ -164,14 +165,21 @@ export const generateBoxedImage = async (
       annotationPadding: 2,
     });
 
-    if (event.elementRect?.width && event.elementRect?.height && 
-        event.elementRect.width > 0 && event.elementRect.height > 0) {
+    if (
+      event.elementRect?.width &&
+      event.elementRect?.height &&
+      event.elementRect.width > 0 &&
+      event.elementRect.height > 0
+    ) {
       addToCache(boxedScreenshotCache, hashId, boxedImageBase64);
     }
 
     return boxedImageBase64;
   } catch (error) {
-    console.error('[generateBoxedImage] Failed to generate boxed image:', error);
+    console.error(
+      '[generateBoxedImage] Failed to generate boxed image:',
+      error,
+    );
     return undefined;
   }
 };
@@ -204,18 +212,20 @@ export const optimizeEvent = async (
       return eventWithDescription;
     }
 
-
     // Generate description with debouncing
     generateAIDescription(event, hashId)
-      .then(description => {
+      .then((description) => {
         updateCallback({
           ...event,
           elementDescription: description,
           descriptionLoading: false,
         });
       })
-      .catch(error => {
-        console.error('[optimizeEvent] Error in AI description generation:', error);
+      .catch((error) => {
+        console.error(
+          '[optimizeEvent] Error in AI description generation:',
+          error,
+        );
         updateCallback({
           ...event,
           elementDescription: generateFallbackDescription(),

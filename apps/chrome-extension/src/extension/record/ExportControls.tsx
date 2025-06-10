@@ -162,7 +162,7 @@ export const ExportControls: React.FC<{
         (event.type === 'click' ||
           event.type === 'input' ||
           event.type === 'scroll') &&
-        event.descriptionLoading !== false
+        event.descriptionLoading !== false,
     );
 
     if (eventsNeedingDescriptions.length === 0) {
@@ -185,7 +185,6 @@ export const ExportControls: React.FC<{
     // Process events in parallel with progress tracking
     const optimizePromises = eventsNeedingDescriptions.map(
       async (event, index) => {
-
         try {
           const description = await generateAIDescription(event, event.hashId);
 
@@ -269,8 +268,14 @@ export const ExportControls: React.FC<{
       },
       {
         id: type,
-        title: type === 'playwright' ? 'Generate Playwright Code' : 'Generate YAML Configuration',
-        description: type === 'playwright' ? 'Creating executable Playwright test code' : 'Creating YAML configuration',
+        title:
+          type === 'playwright'
+            ? 'Generate Playwright Code'
+            : 'Generate YAML Configuration',
+        description:
+          type === 'playwright'
+            ? 'Creating executable Playwright test code'
+            : 'Creating YAML configuration',
         status: 'pending',
       },
     ];
@@ -299,16 +304,20 @@ export const ExportControls: React.FC<{
       // Step 3: Generate code
       updateProgressStep(2, {
         status: 'loading',
-        details: type === 'playwright' ? 'Generating Playwright test code...' : 'Generating YAML configuration...',
+        details:
+          type === 'playwright'
+            ? 'Generating Playwright test code...'
+            : 'Generating YAML configuration...',
       });
 
-      const generatedCode = type === 'playwright'
-        ? await generatePlaywrightTest(finalEvents)
-        : await generateYamlTest(finalEvents, {
-          testName: currentSessionName,
-          description: `Test session recorded on ${new Date().toLocaleDateString()}`,
-          includeTimestamps: true,
-        });
+      const generatedCode =
+        type === 'playwright'
+          ? await generatePlaywrightTest(finalEvents)
+          : await generateYamlTest(finalEvents, {
+              testName: currentSessionName,
+              description: `Test session recorded on ${new Date().toLocaleDateString()}`,
+              includeTimestamps: true,
+            });
 
       // Update session with generated code if sessionId exists
       if (sessionId) {
@@ -343,14 +352,12 @@ export const ExportControls: React.FC<{
         } else {
           setShowYamlModal(true);
         }
-        message.success(`AI ${type === 'playwright' ? 'Playwright test' : 'YAML configuration'} generated successfully!`);
+        message.success(
+          `AI ${type === 'playwright' ? 'Playwright test' : 'YAML configuration'} generated successfully!`,
+        );
       }, 3000);
     } catch (error) {
-      recordLogger.error(
-        `Failed to generate ${type}`,
-        undefined,
-        error,
-      );
+      recordLogger.error(`Failed to generate ${type}`, undefined, error);
 
       // Update current step to error status
       const currentStep = progressSteps.findIndex(
