@@ -11,13 +11,14 @@
   },
   "dependencies": {
     "@ant-design/icons": "^5.3.1",
+    "@midscene/core": "workspace:*",
+    "@midscene/record": "workspace:*",
+    "@midscene/report": "workspace:*",
+    "@midscene/shared": "workspace:*",
     "@midscene/visualizer": "workspace:*",
     "@midscene/web": "workspace:*",
-    "@midscene/core": "workspace:*",
-    "@midscene/report": "workspace:*",
-    "@midscene/record": "workspace:*",
-    "@midscene/shared": "workspace:*",
     "antd": "^5.21.6",
+    "canvas-confetti": "1.9.3",
     "dayjs": "^1.11.11",
     "react": "18.3.1",
     "react-dom": "18.3.1",
@@ -31,8 +32,8 @@
     "@types/chrome": "0.0.279",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.1",
+    "archiver": "^6.0.0",
     "less": "^4.2.0",
-    "typescript": "^5.8.3",
-    "archiver": "^6.0.0"
+    "typescript": "^5.8.3"
   }
 }
