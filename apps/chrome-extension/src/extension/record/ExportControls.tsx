@@ -240,18 +240,18 @@ export const ExportControls: React.FC<{
     return updatedEvents;
   };
 
-  // Generate Playwright test from recorded events
-  const handleGenerateTest = async () => {
+  // Common function to handle code generation
+  const handleCodeGeneration = async (type: 'playwright' | 'yaml') => {
     // Get the most current events
     const currentEvents = getCurrentEvents();
 
     if (currentEvents.length === 0) {
-      message.warning('No events to generate test from');
+      message.warning(`No events to generate ${type} from`);
       return;
     }
 
     setIsGenerating(true);
-    setCurrentGenerationType('playwright');
+    setCurrentGenerationType(type);
 
     // Initialize progress steps
     const steps: ProgressStep[] = [
@@ -268,133 +268,9 @@ export const ExportControls: React.FC<{
         status: 'pending',
       },
       {
-        id: 'playwright',
-        title: 'Generate Playwright Code',
-        description: 'Creating executable Playwright test code',
-        status: 'pending',
-      },
-    ];
-
-    setProgressSteps(steps);
-    setShowProgressModal(true);
-
-    try {
-      // Step 0: Stop recording if currently recording
-      await stopRecordingIfActive(onStopRecording);
-
-      // After stopping recording, get the latest events from session
-      let finalEvents = getCurrentEvents();
-
-      // Step 1: Generate element descriptions
-      updateProgressStep(0, { status: 'loading' });
-      finalEvents = await generateElementDescriptions(finalEvents, 0);
-
-      // Step 2: Generate session title and description if not already generated
-      updateProgressStep(1, { status: 'loading' });
-      await generateSessionTitleAndDescription(
-        finalEvents,
-        1,
-      );
-
-      // Step 3: Generate Playwright test
-      updateProgressStep(2, {
-        status: 'loading',
-        details: 'Generating Playwright test code...',
-      });
-
-      finalEvents = getCurrentEvents();
-
-      const testCode = await generatePlaywrightTest(finalEvents);
-
-      updateProgressStep(2, {
-        status: 'completed',
-        details: 'Playwright test code generated successfully',
-      });
-
-      setGeneratedTest(testCode);
-
-      // Save generated code to session if sessionId exists
-      if (sessionId) {
-        updateSession(sessionId, {
-          generatedCode: {
-            ...getCurrentSession()?.generatedCode,
-            playwright: testCode,
-            lastGenerated: Date.now(),
-          },
-        });
-      }
-
-      // Show confetti and then close progress modal
-      setShowConfetti(true);
-
-      // Close progress modal after confetti
-      setTimeout(() => {
-        setShowProgressModal(false);
-        setShowConfetti(false);
-        setShowTestModal(true);
-        message.success('AI Playwright test generated successfully!');
-      }, 3000);
-    } catch (error) {
-      recordLogger.error(
-        'Failed to generate Playwright test',
-        undefined,
-        error,
-      );
-
-      // Update current step to error status
-      const currentStep = progressSteps.findIndex(
-        (step) => step.status === 'loading',
-      );
-      if (currentStep >= 0) {
-        updateProgressStep(currentStep, {
-          status: 'error',
-          details: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        });
-      }
-
-      setTimeout(() => {
-        setShowProgressModal(false);
-        message.error(
-          `Failed to generate test: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        );
-      }, 2000);
-    } finally {
-      setIsGenerating(false);
-      setCurrentGenerationType(null);
-    }
-  };
-
-  // Generate YAML test from recorded events
-  const handleGenerateYaml = async () => {
-    // Get the most current events
-    const currentEvents = getCurrentEvents();
-
-    if (currentEvents.length === 0) {
-      message.warning('No events to generate YAML from');
-      return;
-    }
-
-    setIsGenerating(true);
-    setCurrentGenerationType('yaml');
-
-    // Initialize progress steps
-    const steps: ProgressStep[] = [
-      {
-        id: 'descriptions',
-        title: 'Generate Element Descriptions',
-        description: 'Analyzing UI elements and generating descriptions',
-        status: 'pending',
-      },
-      {
-        id: 'title',
-        title: 'Generate Title & Description',
-        description: 'Creating session title and description using AI',
-        status: 'pending',
-      },
-      {
-        id: 'yaml',
-        title: 'Generate YAML Configuration',
-        description: 'Creating structured YAML test configuration',
+        id: type,
+        title: type === 'playwright' ? 'Generate Playwright Code' : 'Generate YAML Configuration',
+        description: type === 'playwright' ? 'Creating executable Playwright test code' : 'Creating YAML configuration',
         status: 'pending',
       },
     ];
@@ -420,49 +296,61 @@ export const ExportControls: React.FC<{
         1,
       );
 
-      // Step 3: Generate YAML test
+      // Step 3: Generate code
       updateProgressStep(2, {
         status: 'loading',
-        details: 'Generating YAML configuration...',
+        details: type === 'playwright' ? 'Generating Playwright test code...' : 'Generating YAML configuration...',
       });
 
-      const yamlContent = await generateYamlTest(finalEvents, {
-        testName: `Test: ${currentSessionName}`,
-        description: `Test session recorded on ${new Date().toLocaleDateString()}`,
-        includeScreenshots: false,
-        includeTimestamps: true,
-      });
+      const generatedCode = type === 'playwright'
+        ? await generatePlaywrightTest(finalEvents)
+        : await generateYamlTest(finalEvents, {
+          testName: currentSessionName,
+          description: `Test session recorded on ${new Date().toLocaleDateString()}`,
+          includeTimestamps: true,
+        });
 
-      updateProgressStep(2, {
-        status: 'completed',
-        details: 'YAML configuration generated successfully',
-      });
-
-      setGeneratedYaml(yamlContent);
-
-      // Save generated code to session if sessionId exists
+      // Update session with generated code if sessionId exists
       if (sessionId) {
         updateSession(sessionId, {
           generatedCode: {
             ...getCurrentSession()?.generatedCode,
-            yaml: yamlContent,
-            lastGenerated: Date.now(),
+            [type]: generatedCode,
           },
+          updatedAt: Date.now(),
         });
       }
 
-      // Show confetti and then close progress modal
-      setShowConfetti(true);
+      // Set the generated code in state
+      if (type === 'playwright') {
+        setGeneratedTest(generatedCode);
+      } else {
+        setGeneratedYaml(generatedCode);
+      }
 
-      // Close progress modal after confetti
+      // Mark all steps as completed
+      steps.forEach((_, index) => {
+        updateProgressStep(index, { status: 'completed' });
+      });
+
+      // Show success message and confetti
+      setShowConfetti(true);
       setTimeout(() => {
         setShowProgressModal(false);
         setShowConfetti(false);
-        setShowYamlModal(true);
-        message.success('AI YAML test generated successfully!');
+        if (type === 'playwright') {
+          setShowTestModal(true);
+        } else {
+          setShowYamlModal(true);
+        }
+        message.success(`AI ${type === 'playwright' ? 'Playwright test' : 'YAML configuration'} generated successfully!`);
       }, 3000);
     } catch (error) {
-      recordLogger.error('Failed to generate YAML test', undefined, error);
+      recordLogger.error(
+        `Failed to generate ${type}`,
+        undefined,
+        error,
+      );
 
       // Update current step to error status
       const currentStep = progressSteps.findIndex(
@@ -478,7 +366,7 @@ export const ExportControls: React.FC<{
       setTimeout(() => {
         setShowProgressModal(false);
         message.error(
-          `Failed to generate YAML: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          `Failed to generate ${type}: ${error instanceof Error ? error.message : 'Unknown error'}`,
         );
       }, 2000);
     } finally {
@@ -486,6 +374,12 @@ export const ExportControls: React.FC<{
       setCurrentGenerationType(null);
     }
   };
+
+  // Generate Playwright test from recorded events
+  const handleGenerateTest = () => handleCodeGeneration('playwright');
+
+  // Generate YAML test from recorded events
+  const handleGenerateYaml = () => handleCodeGeneration('yaml');
 
   // Copy generated test to clipboard
   const handleCopyTest = () => {
