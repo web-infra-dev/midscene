@@ -162,8 +162,7 @@ export const ExportControls: React.FC<{
         (event.type === 'click' ||
           event.type === 'input' ||
           event.type === 'scroll') &&
-        event.descriptionLoading !== false &&
-        !event.elementDescription,
+        event.descriptionLoading !== false
     );
 
     if (eventsNeedingDescriptions.length === 0) {
@@ -185,14 +184,12 @@ export const ExportControls: React.FC<{
 
     // Process events in parallel with progress tracking
     const optimizePromises = eventsNeedingDescriptions.map(
-      async (event) => {
-        const eventIndex = events.findIndex((e) => e.hashId === event.hashId);
-        if (eventIndex === -1) return;
+      async (event, index) => {
 
         try {
           const description = await generateAIDescription(event, event.hashId);
 
-          updatedEvents[eventIndex] = {
+          updatedEvents[index] = {
             ...event,
             elementDescription: description,
             descriptionLoading: false,
@@ -209,7 +206,7 @@ export const ExportControls: React.FC<{
           });
         } catch (error) {
           console.error('Failed to optimize event:', error);
-          updatedEvents[eventIndex] = {
+          updatedEvents[index] = {
             ...event,
             elementDescription: 'failed to generate element description',
             descriptionLoading: false,
@@ -259,15 +256,15 @@ export const ExportControls: React.FC<{
     // Initialize progress steps
     const steps: ProgressStep[] = [
       {
-        id: 'title',
-        title: 'Generate Title & Description',
-        description: 'Creating session title and description using AI',
-        status: 'pending',
-      },
-      {
         id: 'descriptions',
         title: 'Generate Element Descriptions',
         description: 'Analyzing UI elements and generating descriptions',
+        status: 'pending',
+      },
+      {
+        id: 'title',
+        title: 'Generate Title & Description',
+        description: 'Creating session title and description using AI',
         status: 'pending',
       },
       {
@@ -288,16 +285,16 @@ export const ExportControls: React.FC<{
       // After stopping recording, get the latest events from session
       let finalEvents = getCurrentEvents();
 
-      // Step 1: Generate session title and description if not already generated
+      // Step 1: Generate element descriptions
       updateProgressStep(0, { status: 'loading' });
+      finalEvents = await generateElementDescriptions(finalEvents, 0);
+
+      // Step 2: Generate session title and description if not already generated
+      updateProgressStep(1, { status: 'loading' });
       await generateSessionTitleAndDescription(
         finalEvents,
-        0,
+        1,
       );
-
-      // Step 2: Generate element descriptions
-      updateProgressStep(1, { status: 'loading' });
-      finalEvents = await generateElementDescriptions(finalEvents, 1);
 
       // Step 3: Generate Playwright test
       updateProgressStep(2, {
@@ -383,15 +380,15 @@ export const ExportControls: React.FC<{
     // Initialize progress steps
     const steps: ProgressStep[] = [
       {
-        id: 'title',
-        title: 'Generate Title & Description',
-        description: 'Creating session title and description using AI',
-        status: 'pending',
-      },
-      {
         id: 'descriptions',
         title: 'Generate Element Descriptions',
         description: 'Analyzing UI elements and generating descriptions',
+        status: 'pending',
+      },
+      {
+        id: 'title',
+        title: 'Generate Title & Description',
+        description: 'Creating session title and description using AI',
         status: 'pending',
       },
       {
@@ -412,16 +409,16 @@ export const ExportControls: React.FC<{
       // After stopping recording, get the latest events from session
       let finalEvents = getCurrentEvents();
 
-      // Step 1: Generate session title and description if not already generated
+      // Step 1: Generate element descriptions
       updateProgressStep(0, { status: 'loading' });
+      finalEvents = await generateElementDescriptions(finalEvents, 0);
+
+      // Step 2: Generate session title and description if not already generated
+      updateProgressStep(1, { status: 'loading' });
       const currentSessionName = await generateSessionTitleAndDescription(
         finalEvents,
-        0,
+        1,
       );
-
-      // Step 2: Generate element descriptions
-      updateProgressStep(1, { status: 'loading' });
-      finalEvents = await generateElementDescriptions(finalEvents, 1);
 
       // Step 3: Generate YAML test
       updateProgressStep(2, {
