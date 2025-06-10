@@ -8,14 +8,17 @@ import type { ChromeRecordedEvent } from '@midscene/record';
 import { RecordTimeline } from '@midscene/record';
 import { Alert, Button, Card, Divider, Empty, Space, Typography } from 'antd';
 import type React from 'react';
-import type { RecordingSession } from '../../../store';
+import {
+  type RecordingSession,
+  useRecordingSessionStore,
+} from '../../../store';
 
 import { ExportControls } from '../ExportControls';
 
 const { Title, Text } = Typography;
 
 interface RecordDetailProps {
-  session: RecordingSession;
+  sessionId: string;
   events: ChromeRecordedEvent[];
   isRecording: boolean;
   currentTab: chrome.tabs.Tab | null;
@@ -27,7 +30,7 @@ interface RecordDetailProps {
 }
 
 export const RecordDetail: React.FC<RecordDetailProps> = ({
-  session,
+  sessionId,
   events,
   isRecording,
   currentTab,
@@ -37,6 +40,32 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
   onClearEvents,
   isExtensionMode,
 }) => {
+  // Get the session directly from the store to ensure we always have the latest data
+  const { sessions } = useRecordingSessionStore();
+  const session = sessions.find((s) => s.id === sessionId);
+
+  // If session is not found, show error
+  if (!session) {
+    return (
+      <div className="record-detail-view">
+        <Alert
+          message="Session Not Found"
+          description="The requested session could not be found."
+          type="error"
+          showIcon
+          style={{ marginBottom: '16px' }}
+        />
+        <Button
+          type="text"
+          icon={<ArrowLeftOutlined />}
+          onClick={onBack}
+          className="back-button"
+        >
+          Back to Sessions
+        </Button>
+      </div>
+    );
+  }
   return (
     <div className="record-detail-view">
       {!isExtensionMode && (
@@ -114,7 +143,6 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
             </Space>
           </div>
         </Card>
-
 
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
           <Space className="record-controls" wrap>

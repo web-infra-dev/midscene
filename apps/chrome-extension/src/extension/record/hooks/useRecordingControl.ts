@@ -28,7 +28,6 @@ export const useRecordingControl = (
     updates: Partial<RecordingSession>,
   ) => void,
   createNewSession: (sessionName?: string) => RecordingSession,
-  onSessionUpdated?: (session: RecordingSession) => void,
 ) => {
   const {
     isRecording,
@@ -136,16 +135,6 @@ export const useRecordingControl = (
           message.success(
             `Recording saved to session "${updateData.name || session.name}"`,
           );
-
-          // If this session is currently selected and displayed in the UI,
-          // we need to manually update the UI to reflect the changes
-          if (getCurrentSession()?.id === currentSessionId) {
-            const updatedSession = getCurrentSession();
-            // Notify any parent components about the session update via callback or ref
-            if (updatedSession && onSessionUpdated) {
-              onSessionUpdated(updatedSession);
-            }
-          }
         }
       }
     } catch (error) {
@@ -162,7 +151,6 @@ export const useRecordingControl = (
     getCurrentSession,
     events,
     updateSession,
-    onSessionUpdated,
   ]);
 
   // Monitor tab updates for page refresh/navigation detection

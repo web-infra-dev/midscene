@@ -1,6 +1,5 @@
 /// <reference types="chrome" />
 import { Form } from 'antd';
-import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import type { RecordingSession } from '../../store';
 import { RecordDetail } from './components/RecordDetail';
@@ -46,7 +45,7 @@ export default function Record() {
     handleExportSession,
   } = sessionHooks;
 
-  // Initialize recording control with currentTab and add type assertion
+  // Initialize recording control with currentTab
   const controlHooks = useRecordingControl(
     currentTab,
     currentSessionId,
@@ -55,14 +54,6 @@ export default function Record() {
       sessionHooks.handleUpdateSession(sessionId, updates);
     },
     createNewSession,
-    // Add callback to handle session updates from AI title generation
-    (updatedSession: RecordingSession) => {
-      // Get the fresh session data from store instead of using the passed parameter
-      const freshSession = getCurrentSession();
-      if (freshSession && freshSession.id === updatedSession.id) {
-        setSelectedSession(freshSession);
-      }
-    },
   );
   const {
     isRecording,
@@ -72,7 +63,6 @@ export default function Record() {
     startRecording,
     stopRecording,
     clearEvents,
-    exportEvents,
     setIsRecording,
     setEvents,
   } = controlHooks;
@@ -100,7 +90,7 @@ export default function Record() {
     }
   }, [currentSessionId, getCurrentSession, setEvents, clearEvents]);
 
-  // Sync selectedSession with currentSession
+  // Sync selectedSession with currentSession for view management
   useEffect(() => {
     if (viewMode === 'detail' && currentSessionId) {
       const currentSession = getCurrentSession();
@@ -259,7 +249,7 @@ export default function Record() {
       ) : (
         selectedSession && (
           <RecordDetail
-            session={selectedSession}
+            sessionId={selectedSession.id}
             events={events}
             isRecording={isRecording}
             currentTab={currentTab}
