@@ -3,6 +3,7 @@ import { Modal, Progress, Typography } from 'antd';
 import confetti from 'canvas-confetti';
 import type React from 'react';
 import { useEffect, useState } from 'react';
+import ShinyText from '../../../component/shiny-text';
 
 const { Text, Title } = Typography;
 
@@ -171,15 +172,26 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
                   {getStepIcon(step)}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <Text
-                    strong
-                    style={{
-                      color:
-                        step.status === 'completed' ? '#52c41a' : undefined,
-                    }}
-                  >
-                    {step.title}
-                  </Text>
+                  {step.status === 'loading' ? (
+                    <div style={{ fontWeight: 600, fontSize: '14px' }}>
+                      <ShinyText
+                        text={step.title}
+                        disabled={false}
+                        speed={3}
+                        className="step-title-shiny"
+                      />
+                    </div>
+                  ) : (
+                    <Text
+                      strong
+                      style={{
+                        color:
+                          step.status === 'completed' ? '#52c41a' : undefined,
+                      }}
+                    >
+                      {step.title}
+                    </Text>
+                  )}
                   <br />
                   <Text type="secondary" style={{ fontSize: '12px' }}>
                     {step.description}
@@ -239,7 +251,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
                   textShadow: '0 0 10px rgba(82, 196, 26, 0.5)',
                 }}
               >
-                🎉✨ Generation Complete! ✨🎉
+                🎉✨ Generation Complete!
               </Title>
               <div
                 style={{
