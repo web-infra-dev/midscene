@@ -11,16 +11,14 @@ import type { MenuProps } from 'antd';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { useRecordingSessionStore } from '../../store';
-import { optimizeEvent } from '../../utils/eventOptimizer';
+import { generateAIDescription } from '../../utils/eventOptimizer';
 import { ProgressModal, type ProgressStep } from './components/ProgressModal';
 import { generatePlaywrightTest, generateYamlTest } from './generators';
 import { recordLogger } from './logger';
 import {
-  checkElementDescriptions,
   getLatestEvents,
   resolveSessionName,
   stopRecordingIfActive,
-  waitForElementDescriptions,
 } from './shared/exportControlsUtils';
 import { generateRecordTitle } from './utils';
 
@@ -187,16 +185,18 @@ export const ExportControls: React.FC<{
 
     // Process events in parallel with progress tracking
     const optimizePromises = eventsNeedingDescriptions.map(
-      async (event, index) => {
+      async (event) => {
         const eventIndex = events.findIndex((e) => e.hashId === event.hashId);
         if (eventIndex === -1) return;
 
         try {
-          const optimizedEvent = await optimizeEvent(event, (updatedEvent) => {
-            updatedEvents[eventIndex] = updatedEvent;
-          });
+          const description = await generateAIDescription(event, event.hashId);
 
-          updatedEvents[eventIndex] = optimizedEvent;
+          updatedEvents[eventIndex] = {
+            ...event,
+            elementDescription: description,
+            descriptionLoading: false,
+          };
           completedCount++;
 
           const progress = Math.round(
@@ -209,12 +209,30 @@ export const ExportControls: React.FC<{
           });
         } catch (error) {
           console.error('Failed to optimize event:', error);
+          updatedEvents[eventIndex] = {
+            ...event,
+            elementDescription: 'failed to generate element description',
+            descriptionLoading: false,
+          };
           completedCount++;
         }
       },
     );
 
     await Promise.all(optimizePromises);
+
+    // Update session with new event descriptions if sessionId exists
+    if (sessionId) {
+      updateSession(sessionId, {
+        events: updatedEvents,
+        updatedAt: Date.now(),
+      });
+      recordLogger.info('Updated session with AI descriptions', {
+        sessionId,
+        eventsCount: updatedEvents.length,
+        descriptionsGenerated: eventsNeedingDescriptions.length,
+      });
+    }
 
     updateProgressStep(stepIndex, {
       status: 'completed',
@@ -272,7 +290,7 @@ export const ExportControls: React.FC<{
 
       // Step 1: Generate session title and description if not already generated
       updateProgressStep(0, { status: 'loading' });
-      const currentSessionName = await generateSessionTitleAndDescription(
+      await generateSessionTitleAndDescription(
         finalEvents,
         0,
       );
@@ -286,6 +304,8 @@ export const ExportControls: React.FC<{
         status: 'loading',
         details: 'Generating Playwright test code...',
       });
+
+      finalEvents = getCurrentEvents();
 
       const testCode = await generatePlaywrightTest(finalEvents);
 

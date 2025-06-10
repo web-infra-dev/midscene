@@ -49,17 +49,7 @@ const IS_DEBUG_MODE = window.location.search.includes('debug');
 
 const App: React.FC = () => {
   const [form] = Form.useForm();
-  const [optimizedEvents, setOptimizedEvents] = useState<RecordedEvent[]>([
-    {
-      type: 'navigation',
-      url: window.location.href,
-      timestamp: Date.now(),
-      pageInfo: {
-        width: window.innerWidth,
-        height: window.innerHeight,
-      },
-    },
-  ]);
+  const [optimizedEvents, setOptimizedEvents] = useState<RecordedEvent[]>([]);
   const [rawEventsCount, setRawEventsCount] = useState(0);
   const [mergedEventsCount, setMergedEventsCount] = useState(0);
 

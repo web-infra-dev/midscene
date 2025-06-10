@@ -3,17 +3,6 @@
  * Only logs critical information to reduce noise
  */
 
-import type { ChromeRecordedEvent } from '@midscene/record';
-
-interface LogContext {
-  sessionId?: string;
-  tabId?: number;
-  events?: ChromeRecordedEvent[];
-  eventsCount?: number;
-  action?: string;
-  error?: string;
-}
-
 class RecordLogger {
   private readonly prefix = '[Record]';
   private readonly isDev = process.env.NODE_ENV === 'development';
@@ -21,57 +10,41 @@ class RecordLogger {
   /**
    * Log critical errors that affect functionality
    */
-  error(message: string, context?: LogContext, error?: any) {
-    const contextStr = context ? this.formatContext(context) : '';
-    console.error(`${this.prefix} ERROR: ${message}${contextStr}`, error);
+  error(message: string, context?: any, error?: any) {
+    console.error(`${this.prefix} ERROR: ${message}`, context, error);
   }
 
   /**
    * Log important state changes and operations
    */
-  info(message: string, context?: LogContext) {
+  info(message: string, context?: any) {
     if (!this.isDev) return;
 
-    const contextStr = context ? this.formatContext(context) : '';
-    console.log(`${this.prefix} ${message}${contextStr}`);
+    console.log(`${this.prefix} ${message}`, context);
   }
 
   /**
    * Log warnings for recoverable issues
    */
-  warn(message: string, context?: LogContext) {
-    const contextStr = context ? this.formatContext(context) : '';
-    console.warn(`${this.prefix} WARN: ${message}${contextStr}`);
+  warn(message: string, context?: any) {
+    console.warn(`${this.prefix} WARN: ${message}`, context);
   }
 
   /**
    * Log successful operations
    */
-  success(message: string, context?: LogContext) {
+  success(message: string, context?: any) {
     if (!this.isDev) return;
 
-    const contextStr = context ? this.formatContext(context) : '';
-    console.log(`${this.prefix} ✓ ${message}${contextStr}`);
+    console.log(`${this.prefix} ✓ ${message}`, context);
   }
 
   /**
    * Log debug information (only in development)
    */
-  debug(message: string, context?: LogContext) {
+  debug(message: string, context?: any) {
     if (!this.isDev) return;
-    const contextStr = context ? this.formatContext(context) : '';
-    console.debug(`${this.prefix} DEBUG: ${message}${contextStr}`);
-  }
-
-  private formatContext(context: LogContext): string {
-    const parts: string[] = [];
-    if (context.sessionId) parts.push(`session:${context.sessionId.slice(-8)}`);
-    if (context.tabId) parts.push(`tab:${context.tabId}`);
-    if (context.eventsCount !== undefined)
-      parts.push(`events:${context.eventsCount}`);
-    if (context.action) parts.push(`action:${context.action}`);
-
-    return parts.length > 0 ? ` [${parts.join(', ')}]` : '';
+    console.debug(`${this.prefix} DEBUG: ${message}`, context);
   }
 }
 
