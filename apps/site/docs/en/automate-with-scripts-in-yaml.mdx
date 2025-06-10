@@ -307,6 +307,22 @@ midscene /path/to/yaml --headed
 midscene /path/to/yaml --keep-window
 ```
 
+### Disable dotenv debug mode
+
+By default, Midscene will print the debug information of dotenv. If you don't want to see these information, you can use `--dotenv-debug` option.
+
+```bash
+midscene /path/to/yaml --dotenv-debug=false
+```
+
+### Use .env file to override global environment variables
+
+By default, Midscene will use the global environment variables first. If you want to use the environment variables in the `.env` file instead, you can use `--dotenv-override` option.
+
+```bash
+midscene /path/to/yaml --dotenv-override=true
+```
+
 ### Use bridge mode
 
 > `web` scenario only

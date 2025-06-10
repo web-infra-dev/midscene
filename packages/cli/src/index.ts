@@ -16,8 +16,8 @@ Promise.resolve(
       console.log(`loading .env file from ${dotEnvConfigFile}`);
       dotenv.config({
         path: dotEnvConfigFile,
-        debug: true,
-        override: options.dotenvOverride ?? true,
+        debug: options.dotenvDebug ?? true,
+        override: options.dotenvOverride ?? false,
       });
     }
 

@@ -306,6 +306,22 @@ midscene /path/to/yaml --headed
 midscene /path/to/yaml --keep-window
 ```
 
+### 关闭 dotenv 的 debug 模式
+
+默认情况下，Midscene 会打印 dotenv 的 debug 信息，如果你不想看到这些信息，你可以使用 `--dotenv-debug` 选项。
+
+```bash
+midscene /path/to/yaml --dotenv-debug=false
+```
+
+### 使用 .env 中的环境变量覆盖同名的全局环境变量
+
+默认情况下，Midscene 会优先使用全局的环境变量，如果你希望使用 .env 中的环境变量覆盖全局的环境变量，你可以使用 `--dotenv-override` 选项。
+
+```bash
+midscene /path/to/yaml --dotenv-override=true
+```
+
 ### 使用桥接模式
 
 > 仅 `web` 场景下支持

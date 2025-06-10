@@ -33,9 +33,15 @@ Usage: $0 [options] <path-to-yaml-script-file-or-directory>`,
       },
       'dotenv-override': {
         type: 'boolean',
+        default: false,
+        description:
+          'Whether the variables in the .env file override the global variables, the default is false',
+      },
+      'dotenv-debug': {
+        type: 'boolean',
         default: true,
         description:
-          'Whether the variables in the .env file override the global variables, the default is true.',
+          'Turn on logging to help debug why certain keys or values are not being set as you expect',
       },
     })
     .version('version', 'Show version number', __VERSION__)
