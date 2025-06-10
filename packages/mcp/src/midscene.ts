@@ -422,6 +422,25 @@ export class MidsceneManager {
         };
       },
     );
+
+    this.mcpServer.tool( 
+      tools.midscene_aiQuery.name,
+      tools.midscene_aiQuery.description,
+      {
+        locate: z
+          .string()
+          .describe('Use natural language describe the element to query'),
+      },
+      async ({ locate }) => {
+        const agent = await this.initAgent();
+        const result = await agent.aiQuery(locate);
+        return {
+          content: [
+            { type: 'text', text: `Query result: ${JSON.stringify(result)}` },
+          ],
+        };
+      },
+    );
   }
 
   public getConsoleLogs(): string {

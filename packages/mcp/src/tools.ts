@@ -58,4 +58,9 @@ export const tools = {
     description:
       'Moves the mouse cursor to hover over an element identified by a natural language selector.',
   },
+  midscene_aiQuery: {
+    name: 'midscene_aiQuery',
+    description:
+      'Allows you to extract data directly from the UI matching a natural language description and returns the results.',
+  },
 };
