@@ -89,11 +89,11 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
 
       const timer = setTimeout(() => {
         setConfettiVisible(false);
-        // 延迟1秒再调用onComplete,让撒花特效先展示一会
+        // 延迟500毫秒再调用onComplete,让撒花特效先展示一会
         setTimeout(() => {
           onComplete?.();
-        }, 1000);
-      }, 3000); // 撒花时间3秒
+        }, 500);
+      }, 1000); // 撒花时间1秒
       return () => clearTimeout(timer);
     }
   }, [showConfetti, confettiVisible, onComplete, steps]);

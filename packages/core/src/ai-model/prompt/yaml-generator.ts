@@ -251,7 +251,7 @@ export const generateYamlTest = async (
         role: 'system',
         content: `You are an expert in Midscene.js YAML test generation. Generate clean, accurate YAML following the exact format:
 
-target:
+web:
   url: "starting_url"
 
 tasks:
