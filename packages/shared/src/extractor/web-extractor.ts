@@ -336,7 +336,7 @@ export function extractTreeNode(
     currentDocument: typeof globalThis.document,
     baseZoom = 1,
     basePoint: Point = { left: 0, top: 0 },
-  ): WebElementNode | null {
+  ): WebElementNode | WebElementNode[] | null {
     if (!node) {
       return null;
     }
@@ -388,9 +388,21 @@ export function extractTreeNode(
         rect.zoom,
         basePoint,
       );
-      if (childNodeInfo) {
+      if (Array.isArray(childNodeInfo)) {
+        // if the recursive return is an array, expand and merge it into children
+        nodeInfo.children.push(...childNodeInfo);
+      } else if (childNodeInfo) {
         nodeInfo.children.push(childNodeInfo);
       }
+    }
+
+    // if nodeInfo.node is null
+    if (nodeInfo.node === null) {
+      if (nodeInfo.children.length === 0) {
+        return null;
+      }
+      // promote children to the upper layer
+      return nodeInfo.children;
     }
 
     return nodeInfo;
@@ -400,7 +412,9 @@ export function extractTreeNode(
     left: 0,
     top: 0,
   });
-  if (rootNodeInfo) {
+  if (Array.isArray(rootNodeInfo)) {
+    topChildren.push(...rootNodeInfo);
+  } else if (rootNodeInfo) {
     topChildren.push(rootNodeInfo);
   }
   if (startNode === topDocument) {
@@ -422,7 +436,9 @@ export function extractTreeNode(
               top: iframeInfo.rect.top,
             },
           );
-          if (iframeChildren) {
+          if (Array.isArray(iframeChildren)) {
+            topChildren.push(...iframeChildren);
+          } else if (iframeChildren) {
             topChildren.push(iframeChildren);
           }
         }

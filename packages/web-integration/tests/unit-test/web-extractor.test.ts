@@ -283,7 +283,7 @@ describe(
         `${elementInfosScriptContent}midscene_element_inspector.webExtractNodeTreeAsString(document, false)`,
       );
       expect(description).toContain('This should be collected');
-      expect(description.split('\n').length).toBeGreaterThan(300);
+      expect(description.split('\n').length).toBeGreaterThan(200);
       await reset();
     });
   },
