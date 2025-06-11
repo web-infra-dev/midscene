@@ -148,7 +148,7 @@ web:
   # 输出 aiQuery/aiAssert 结果的 JSON 文件路径，可选
   output: <path-to-output-file>
 
-  # 是否在报告文件中记录不稳定的结果日志，可选，默认 false。如果为 true，保存到 `unstableLogContent.json` 文件中。如果为字符串，则保存到该字符串指定的路径中
+  # 是否保存日志内容到 JSON 文件，可选，默认 false。如果为 true，保存到 `unstableLogContent.json` 文件中。如果为字符串，则保存到该字符串指定的路径中。日志内容的结构可能会在未来发生变化。
   unstableLogContent: <boolean | path-to-unstable-log-file>
 
   # 是否限制页面在当前 tab 打开，可选，默认 true

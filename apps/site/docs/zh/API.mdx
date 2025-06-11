@@ -251,35 +251,6 @@ await agent.aiRightClick('页面顶部的文件名称', { deepThink: true });
 
 :::
 
-## 记录截图
-
-### `agent.logScreenshot()`
-
-在报告文件中记录当前截图，并添加描述。
-
-* 类型
-
-```typescript
-function logScreenshot(title?: string, options?: Object): Promise<void>;
-```
-
-* 参数：
-  * `title?: string` - 可选，截图的标题，如果未提供，则标题为 'untitled'。
-  * `options?: Object` - 可选，一个配置对象，包含：
-    * `content?: string` - 截图的描述。
-
-
-* 返回值：
-  * `Promise<void>`
-
-* 示例：
-
-```typescript
-await agent.logScreenshot('登录页面', {
-  content: '用户 A',
-});
-```
-
 ## 数据提取
 
 ### `agent.aiQuery()`
@@ -606,6 +577,53 @@ function evaluateJavaScript(script: string): Promise<any>;
 ```typescript
 const result = await agent.evaluateJavaScript('document.title');
 console.log(result);
+```
+
+### `agent.logScreenshot()`
+
+在报告文件中记录当前截图，并添加描述。
+
+* 类型
+
+```typescript
+function logScreenshot(title?: string, options?: Object): Promise<void>;
+```
+
+* 参数：
+  * `title?: string` - 可选，截图的标题，如果未提供，则标题为 'untitled'。
+  * `options?: Object` - 可选，一个配置对象，包含：
+    * `content?: string` - 截图的描述。
+
+
+* 返回值：
+  * `Promise<void>`
+
+* 示例：
+
+```typescript
+await agent.logScreenshot('登录页面', {
+  content: '用户 A',
+});
+```
+
+### `agent.unstableLogContent()`
+
+从报告文件中获取日志内容。日志内容的结构可能会在未来发生变化。
+
+* 类型
+
+```typescript
+function unstableLogContent(): Object;
+```
+
+* 返回值：
+  * 返回一个对象，包含日志内容。
+
+* 示例：
+
+```typescript
+const logContent = agent.unstableLogContent();
+console.log(logContent);
 ```
 
 ## 属性
