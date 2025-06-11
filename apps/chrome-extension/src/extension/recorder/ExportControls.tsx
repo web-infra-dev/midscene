@@ -296,6 +296,8 @@ export const ExportControls: React.FC<{
 
       // Step 2: Generate session title and description if not already generated
       updateProgressStep(1, { status: 'loading' });
+
+      finalEvents = getCurrentEvents();
       const currentSessionName = await generateSessionTitleAndDescription(
         finalEvents,
         1,
@@ -310,6 +312,7 @@ export const ExportControls: React.FC<{
             : 'Generating YAML configuration...',
       });
 
+      finalEvents = getCurrentEvents();
       const generatedCode =
         type === 'playwright'
           ? await generatePlaywrightTest(finalEvents)
