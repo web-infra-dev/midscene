@@ -161,10 +161,7 @@ const DetailSide = (): JSX.Element => {
           <span key={index}>{elementEl(item)}</span>
         ));
       } else {
-        content =
-          typeof value === 'string'
-            ? value
-            : JSON.stringify(value, undefined, 2);
+        content = <pre>{JSON.stringify(value, undefined, 2)}</pre>;
       }
 
       return (
@@ -174,10 +171,6 @@ const DetailSide = (): JSX.Element => {
       );
     });
   };
-
-  const usageInfo = (task as ExecutionTask)?.usage
-    ? JSON.stringify((task as ExecutionTask)?.usage, undefined, 2)
-    : '';
 
   const metaKVElement = MetaKV({
     data: [
@@ -197,27 +190,38 @@ const DetailSide = (): JSX.Element => {
         key: 'total time',
         content: timeCostStrElement(task?.timing?.cost),
       },
-      ...(task?.timing?.aiCost
+      ...(task?.usage?.time_cost
         ? [
             {
               key: 'AI service time',
-              content: timeCostStrElement(task?.timing?.aiCost),
+              content: <pre>{timeCostStrElement(task?.usage?.time_cost)}</pre>,
             },
           ]
         : []),
       {
         key: 'cache',
-        content: task?.cache ? JSON.stringify(task?.cache) : 'false',
+        content: task?.cache ? (
+          <pre>{JSON.stringify(task?.cache, undefined, 2)}</pre>
+        ) : (
+          'false'
+        ),
       },
       ...(task?.locate
         ? [
             {
               key: 'locate',
-              content: JSON.stringify(task.locate),
+              content: <pre>{JSON.stringify(task.locate, undefined, 2)}</pre>,
             },
           ]
         : []),
-      ...(usageInfo ? [{ key: 'usage', content: usageInfo }] : []),
+      ...(task?.usage
+        ? [
+            {
+              key: 'usage',
+              content: <pre>{JSON.stringify(task.usage, undefined, 2)}</pre>,
+            },
+          ]
+        : []),
     ],
   });
 
@@ -383,7 +387,7 @@ const DetailSide = (): JSX.Element => {
 
           const locateStr =
             item.type === 'Locate' && item.locate
-              ? JSON.stringify(item.locate)
+              ? JSON.stringify(item.locate, undefined, 2)
               : null;
 
           return {
@@ -394,8 +398,12 @@ const DetailSide = (): JSX.Element => {
                   <b>{typeStr(item as any)}</b>
                 </p>
                 <p>{item.thought}</p>
-                <p>{paramStr}</p>
-                <p>{locateStr}</p>
+                <p>
+                  <pre>{paramStr}</pre>
+                </p>
+                <p>
+                  <pre>{locateStr}</pre>
+                </p>
               </>
             ),
           };

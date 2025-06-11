@@ -89,7 +89,8 @@ export const PlaywrightAiFixture = (options?: {
       | 'aiNumber'
       | 'aiString'
       | 'aiBoolean'
-      | 'logScreenshot';
+      | 'logScreenshot'
+      | '_unstableLogContent';
   }) {
     const { page, testInfo, use, aiActionType } = options;
     const agent = createOrReuseAgentForPage(page, testInfo) as PlaywrightAgent;
@@ -352,6 +353,18 @@ export const PlaywrightAiFixture = (options?: {
         aiActionType: 'logScreenshot',
       });
     },
+    _unstableLogContent: async (
+      { page }: { page: OriginPlaywrightPage },
+      use: any,
+      testInfo: TestInfo,
+    ) => {
+      await generateAiFunction({
+        page,
+        testInfo,
+        use,
+        aiActionType: '_unstableLogContent',
+      });
+    },
   };
 };
 
@@ -399,4 +412,7 @@ export type PlayWrightAiFixtureType = {
   logScreenshot: (
     ...args: Parameters<PageAgent['logScreenshot']>
   ) => ReturnType<PageAgent['logScreenshot']>;
+  _unstableLogContent: (
+    ...args: Parameters<PageAgent['_unstableLogContent']>
+  ) => ReturnType<PageAgent['_unstableLogContent']>;
 };

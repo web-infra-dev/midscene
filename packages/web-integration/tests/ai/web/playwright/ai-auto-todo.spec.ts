@@ -12,7 +12,7 @@ test.describe('ai todo describe', () => {
     await page.goto('https://todomvc.com/examples/react/dist/');
   });
 
-  test('ai todo', async ({ ai, aiQuery }) => {
+  test('ai todo', async ({ ai, aiQuery, aiAssert, _unstableLogContent }) => {
     if (CACHE_TIME_OUT) {
       test.setTimeout(1000 * 1000);
     }

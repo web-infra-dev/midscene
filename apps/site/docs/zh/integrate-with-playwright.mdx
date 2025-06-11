@@ -12,7 +12,6 @@ import { PackageManagerTabs } from '@theme';
 你可以在这里看到向 Playwright 集成的样例项目：[https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo)
 :::
 
-
 <SetupEnv />
 
 ## 第一步：新增依赖，更新配置文件
@@ -27,7 +26,7 @@ import { PackageManagerTabs } from '@theme';
 export default defineConfig({
   testDir: './e2e',
 + timeout: 90 * 1000,
-+ reporter: [["list"], ["@midscene/web/playwright-report", { type: "merged" }]], // type 可选, 默认值为 "merged"，表示多个测试用例生成一个报告，可选值为 "separate"，表示为每个测试用例一个报告
++ reporter: [["list"], ["@midscene/web/playwright-reporter", { type: "merged" }]], // type 可选, 默认值为 "merged"，表示多个测试用例生成一个报告，可选值为 "separate"，表示为每个测试用例一个报告
 });
 ```
 
@@ -40,82 +39,85 @@ import { test as base } from '@playwright/test';
 import type { PlayWrightAiFixtureType } from '@midscene/web/playwright';
 import { PlaywrightAiFixture } from '@midscene/web/playwright';
 
-export const test = base.extend<PlayWrightAiFixtureType>(PlaywrightAiFixture({
-  waitForNetworkIdleTimeout: 2000, // 可选, 交互过程中等待网络空闲的超时时间, 默认值为 2000ms, 设置为 0 则禁用超时
-}));
+export const test = base.extend<PlayWrightAiFixtureType>(
+  PlaywrightAiFixture({
+    waitForNetworkIdleTimeout: 2000, // 可选, 交互过程中等待网络空闲的超时时间, 默认值为 2000ms, 设置为 0 则禁用超时
+  }),
+);
 ```
 
 ## 第三步：编写测试用例
 
 ### 基础 AI 操作
 
-* `ai` 或 `aiAction` - 通用 AI 交互
-* `aiTap` - 点击操作
-* `aiHover` - 悬停操作
-* `aiInput` - 输入操作
-* `aiKeyboardPress` - 键盘操作
-* `aiScroll` - 滚动操作
+- `ai` 或 `aiAction` - 通用 AI 交互
+- `aiTap` - 点击操作
+- `aiHover` - 悬停操作
+- `aiInput` - 输入操作
+- `aiKeyboardPress` - 键盘操作
+- `aiScroll` - 滚动操作
 
 ### 查询
 
-* `aiQuery` - 数据查询
+- `aiQuery` - 数据查询
 
 ### 更多 API
 
-* `aiAssert` - 断言
-* `aiWaitFor` - 等待
+- `aiAssert` - 断言
+- `aiWaitFor` - 等待
 
 更多 API 请参考 [API 参考](./API)。
 
 ### 示例代码
 
 ```typescript title="./e2e/ebay-search.spec.ts"
-import { expect } from "@playwright/test";
-import { test } from "./fixture";
+import { expect } from '@playwright/test';
+import { test } from './fixture';
 
 test.beforeEach(async ({ page }) => {
   page.setViewportSize({ width: 400, height: 905 });
-  await page.goto("https://www.ebay.com");
-  await page.waitForLoadState("networkidle");
+  await page.goto('https://www.ebay.com');
+  await page.waitForLoadState('networkidle');
 });
 
-test("search headphone on ebay", async ({ 
-  ai, 
-  aiQuery, 
+test('search headphone on ebay', async ({
+  ai,
+  aiQuery,
   aiAssert,
   aiInput,
   aiTap,
   aiScroll,
-  aiWaitFor
+  aiWaitFor,
 }) => {
   // 使用 aiInput 输入搜索关键词
   await aiInput('Headphones', '搜索框');
-  
+
   // 使用 aiTap 点击搜索按钮
   await aiTap('搜索按钮');
-  
+
   // 等待搜索结果加载
   await aiWaitFor('搜索结果列表已加载', { timeoutMs: 5000 });
-  
+
   // 使用 aiScroll 滚动到页面底部
   await aiScroll(
-    { 
+    {
       direction: 'down',
-      scrollType: 'untilBottom'
+      scrollType: 'untilBottom',
     },
-    '搜索结果列表'
+    '搜索结果列表',
   );
-  
+
   // 使用 aiQuery 获取商品信息
-  const items = await aiQuery<Array<{title: string, price: number}>>(
-    '获取搜索结果中的商品标题和价格'
-  );
-  
-  console.log("headphones in stock", items);
+  const items =
+    await aiQuery<Array<{ title: string; price: number }>>(
+      '获取搜索结果中的商品标题和价格',
+    );
+
+  console.log('headphones in stock', items);
   expect(items?.length).toBeGreaterThan(0);
-  
+
   // 使用 aiAssert 验证筛选功能
-  await aiAssert("界面左侧有类目筛选功能");
+  await aiAssert('界面左侧有类目筛选功能');
 });
 ```
 
@@ -133,5 +135,5 @@ npx playwright test ./e2e/ebay-search.spec.ts
 
 ## 更多
 
-* 更多 Agent 上的 API 接口请参考 [API 参考](./API)。
-* 更多关于提示词的技巧请参考 [提示词技巧](./prompting-tips)
+- 更多 Agent 上的 API 接口请参考 [API 参考](./API)。
+- 更多关于提示词的技巧请参考 [提示词技巧](./prompting-tips)

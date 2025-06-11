@@ -43,6 +43,7 @@ export interface MidsceneYamlTask {
 
 export interface MidsceneYamlScriptEnvBase {
   output?: string;
+  unstableLogContent?: boolean | string;
   aiActionContext?: string;
 }
 

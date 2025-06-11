@@ -1,7 +1,9 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { PageAgent } from '@/common/agent';
 import type { WebPage } from '@/common/page';
 import { buildPlans } from '@/common/plan-builder';
-
+import type { GroupedActionDump } from '@midscene/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock the buildPlans function
@@ -178,5 +180,28 @@ describe('PageAgent RightClick', () => {
     await expect(agent.ai('some prompt', 'invalidType')).rejects.toThrow(
       "Unknown type: invalidType, only support 'action', 'query', 'assert', 'tap', 'rightClick'",
     );
+  });
+});
+
+describe('PageAgent logContent', () => {
+  let agent: PageAgent;
+
+  beforeEach(() => {
+    agent = new PageAgent(mockPage);
+    const dumpPath = path.join(__dirname, 'fixtures', 'dump.json');
+    agent.dump = JSON.parse(
+      fs.readFileSync(dumpPath, 'utf-8'),
+    ) as unknown as GroupedActionDump;
+  });
+
+  it('should return correct content', async () => {
+    expect(agent.dump.executions[0].tasks[0].pageContext).toBeDefined();
+    expect(agent.dump.executions[0].tasks[0].log).toBeDefined();
+    const content = (await agent._unstableLogContent()) as GroupedActionDump;
+    expect(content).matchSnapshot();
+    expect(content.executions[0].tasks[0].pageContext).toBeUndefined();
+    expect(content.executions[0].tasks[0].log).toBeUndefined();
+    expect(agent.dump.executions[0].tasks[0].pageContext).toBeDefined();
+    expect(agent.dump.executions[0].tasks[0].log).toBeDefined();
   });
 });

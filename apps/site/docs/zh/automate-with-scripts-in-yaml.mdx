@@ -26,6 +26,7 @@ tasks:
 :::info 样例项目
 
 你可以在这里找到使用 YAML 脚本做自动化的样例项目
+
 - [Web](https://github.com/web-infra-dev/midscene-example/tree/main/yaml-scripts-demo)
 - [Android](https://github.com/web-infra-dev/midscene-example/tree/main/android/yaml-scripts-demo)
 
@@ -41,7 +42,7 @@ OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 
 ## 安装命令行工具
 
-全局安装 `@midscene/cli` 
+全局安装 `@midscene/cli`
 
 ```bash
 npm i -g @midscene/cli
@@ -65,7 +66,7 @@ tasks:
 
 或者驱动安卓设备的自动化任务（需要使用 adb 连接安卓设备）
 
-```yaml 
+```yaml
 android:
   # launch: https://www.bing.com
   deviceId: s4ey59
@@ -114,7 +115,6 @@ midscene /dir/**/yaml/
 
 ### `web` 部分
 
-
 ```yaml
 web:
   # 访问的 URL，必填。如果提供了 `serve` 参数，则提供相对路径
@@ -147,6 +147,9 @@ web:
 
   # 输出 aiQuery/aiAssert 结果的 JSON 文件路径，可选
   output: <path-to-output-file>
+
+  # 是否在报告文件中记录不稳定的结果日志，可选，默认 false。如果为 true，保存到 `unstableLogContent.json` 文件中。如果为字符串，则保存到该字符串指定的路径中
+  unstableLogContent: <boolean | path-to-unstable-log-file>
 
   # 是否限制页面在当前 tab 打开，可选，默认 true
   forceSameTabNavigation: <boolean>
@@ -186,7 +189,6 @@ tasks:
   - name: <name>
     continueOnError: <boolean> # 可选，错误时是否继续执行下一个任务，默认 false
     flow:
-
       # 自动规划(Auto Planning, .ai)
       # ----------------
 
@@ -243,7 +245,6 @@ tasks:
       - aiQuery: <prompt> # 记得在提示词中描述输出结果的格式
         name: <name> # 查询结果在 JSON 输出中的 key
 
-
       # 更多 API
       # ----------------
 
@@ -283,11 +284,12 @@ topic=weather today
 
 ```yaml
 #...
- - ai: type ${topic} in input box
+- ai: type ${topic} in input box
 #...
 ```
 
 ### 运行在有界面(Headed)模式下
+
 > 仅 `web` 场景下支持
 
 'headed' 模式意味着浏览器窗口是可见的。默认情况下，脚本会在无界面模式下运行。
@@ -305,6 +307,7 @@ midscene /path/to/yaml --keep-window
 ```
 
 ### 使用桥接模式
+
 > 仅 `web` 场景下支持
 
 通过使用桥接模式，你可以利用 YAML 脚本在已有的桌面浏览器上执行自动化。这对于需要复用 Cookies、插件和页面状态，或者需要人工与自动化脚本交互的情况非常有用。
@@ -322,7 +325,6 @@ web:
 ### 使用 JavaScript 运行 YAML 脚本
 
 你也可以使用 JavaScript 运行 YAML 脚本，调用 Agent 上的 [`runYaml`](./api.html#runyaml) 方法即可。注意，这种方法只会执行 YAML 脚本中的 `tasks` 部分。
-
 
 ## FAQ
 

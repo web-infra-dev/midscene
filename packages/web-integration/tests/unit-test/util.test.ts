@@ -3,7 +3,7 @@ import {
   getCurrentExecutionFile,
   replaceIllegalPathCharsAndSpace,
 } from '@/common/utils';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 describe('TaskCache', () => {
   it('should return the current execution file', () => {

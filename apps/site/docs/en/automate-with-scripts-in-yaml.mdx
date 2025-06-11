@@ -27,6 +27,7 @@ tasks:
 
 You can find the demo project with YAML scripts
 [https://github.com/web-infra-dev/midscene-example/tree/main/yaml-scripts-demo](https://github.com/web-infra-dev/midscene-example/tree/main/yaml-scripts-demo)
+
 - [Web](https://github.com/web-infra-dev/midscene-example/tree/main/yaml-scripts-demo)
 - [Android](https://github.com/web-infra-dev/midscene-example/tree/main/android/yaml-scripts-demo)
 
@@ -137,16 +138,19 @@ web:
 
   # string, the path to the json format cookie file, optional
   cookie: <path-to-cookie-file>
-  
+
   # object, the strategy to wait for network idle, optional
   waitForNetworkIdle:
     # number, the timeout in milliseconds, 2000ms for default, optional
     timeout: <ms>
     # boolean, continue on network idle error, true for default
     continueOnNetworkIdleError: <boolean>
-  
+
   # string, the path to save the aiQuery/aiAssert result, optional
   output: <path-to-output-file>
+
+  # string, the path to save the unstable log content, optional. If true, save to `unstableLogContent.json` file. If a string, save to the specified path
+  unstableLogContent: <boolean | path-to-unstable-log-file>
 
   # boolean, if limit the popup to the current page, true for default in yaml script
   forceSameTabNavigation: <boolean>
@@ -222,7 +226,6 @@ tasks:
         deepThink: <boolean> # optional, whether to use deepThink to precisely locate the element
         cacheable: <boolean> # optional, whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
-
       # scroll globally or on an element located by prompt
       - aiScroll:
         direction: 'up' # or 'down' | 'left' | 'right'
@@ -282,11 +285,12 @@ You can use the environment variable in the `.yaml` file like this:
 
 ```yaml
 #...
- - ai: type ${topic} in input box
+- ai: type ${topic} in input box
 #...
 ```
 
 ### Debug in headed mode
+
 > `web` scenario only
 
 'headed mode' means the browser will be visible. The default behavior is to run in headless mode.
@@ -304,8 +308,9 @@ midscene /path/to/yaml --keep-window
 ```
 
 ### Use bridge mode
+
 > `web` scenario only
-By using bridge mode, you can utilize YAML scripts to automate the web browser on your desktop. This is particularly useful if you want to reuse cookies, plugins, and page states, or if you want to manually interact with automation scripts.
+> By using bridge mode, you can utilize YAML scripts to automate the web browser on your desktop. This is particularly useful if you want to reuse cookies, plugins, and page states, or if you want to manually interact with automation scripts.
 
 To use bridge mode, you should install the Chrome extension first, and use this configuration in the `target` section:
 
@@ -320,7 +325,6 @@ See [Bridge Mode by Chrome Extension](./bridge-mode-by-chrome-extension) for mor
 ### Run yaml script with javascript
 
 You can also run a yaml script with javascript by using the [`runYaml`](./api.html#runyaml) method of the Midscene agent. Only the `tasks` part of the yaml script will be executed.
-
 
 ## FAQ
 
