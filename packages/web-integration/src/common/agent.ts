@@ -710,7 +710,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     this.writeOutActionDumps();
   }
 
-  async _unstableLogContent() {
+  _unstableLogContent() {
     const { groupName, groupDescription, executions } = this.dump;
     const newExecutions = Array.isArray(executions)
       ? executions.map((execution: any) => {
