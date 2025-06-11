@@ -11,9 +11,9 @@ import { useRecordingSession } from './hooks/useRecordingSession';
 import { useTabMonitoring } from './hooks/useTabMonitoring';
 import { recordLogger } from './logger';
 import type { ViewMode } from './types';
-import './record.less';
+import './recorder.less';
 
-export default function Record() {
+export default function Recorder() {
   // View state management
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedSession, setSelectedSession] =

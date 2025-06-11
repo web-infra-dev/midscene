@@ -17,7 +17,7 @@ import { BrowserExtensionPlayground } from '../component/playground';
 import { useEnvConfig } from '../store';
 import { getExtensionVersion } from '../utils';
 import Bridge from './bridge';
-import Record from './record';
+import Recorder from './recorder';
 import './popup.less';
 import {
   ChromeExtensionProxyPage,
@@ -53,10 +53,10 @@ export function PlaygroundPopup() {
       ),
     },
     {
-      key: 'record',
-      label: 'Record (Beta)',
+      key: 'recorder',
+      label: 'Recorder (Beta)',
       icon: <VideoCameraOutlined />,
-      children: <Record />,
+      children: <Recorder />,
     },
     {
       key: 'bridge',
@@ -115,7 +115,7 @@ export function PlaygroundPopup() {
             activeKey={popupTab}
             items={items}
             onChange={(key) =>
-              setPopupTab(key as 'playground' | 'bridge' | 'record')
+              setPopupTab(key as 'playground' | 'bridge' | 'recorder')
             }
           />
         </div>

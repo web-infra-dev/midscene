@@ -1,5 +1,5 @@
 {
-  "name": "@midscene/record",
+  "name": "@midscene/recorder",
   "version": "0.0.0",
   "type": "module",
   "exports": {

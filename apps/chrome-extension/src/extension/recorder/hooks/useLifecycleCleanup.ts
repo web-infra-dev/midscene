@@ -1,4 +1,4 @@
-import type { ChromeRecordedEvent } from '@midscene/record';
+import type { ChromeRecordedEvent } from '@midscene/recorder';
 import { message } from 'antd';
 import { useEffect } from 'react';
 import type { RecordingSession } from '../../../store';

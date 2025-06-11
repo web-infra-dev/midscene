@@ -4,7 +4,7 @@ import {
   type ChromeRecordedEvent,
   type RecordedEvent,
   convertToChromeEvents,
-} from '@midscene/record';
+} from '@midscene/recorder';
 
 // Event Recorder Bridge
 // This script bridges the EventRecorder (injected via record-iife.js) with the Chrome Extension

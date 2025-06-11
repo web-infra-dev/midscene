@@ -55,7 +55,7 @@ export default defineConfig({
       {
         from: path.resolve(
           __dirname,
-          '../../packages/record/dist/record-iife.js',
+          '../../packages/recorder/dist/recorder-iife.js',
         ),
         to: 'scripts',
       },

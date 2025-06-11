@@ -1,4 +1,4 @@
-import type { ChromeRecordedEvent } from '@midscene/record';
+import type { ChromeRecordedEvent } from '@midscene/recorder';
 
 // Common interfaces for test generation
 export interface EventCounts {

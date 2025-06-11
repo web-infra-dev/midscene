@@ -21,7 +21,7 @@ import {
   message,
 } from 'antd';
 import React from 'react';
-import type { RecordedEvent } from './record';
+import type { RecordedEvent } from './recorder';
 
 const { Text, Title } = Typography;
 

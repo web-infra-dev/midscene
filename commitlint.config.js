@@ -28,7 +28,7 @@ const allScopes = [
   'mcp',
   'blog',
   'bridge',
-  'record',
+  'recorder',
   // automatically added scopes
   ...appsScopes,
   ...packagesScopes,

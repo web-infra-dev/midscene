@@ -1,5 +1,5 @@
 import { generateYamlTest as generateYamlTestCore } from '@midscene/core/ai-model';
-import type { ChromeRecordedEvent } from '@midscene/record';
+import type { ChromeRecordedEvent } from '@midscene/recorder';
 import { recordLogger } from '../logger';
 import { extractNavigationAndViewportInfo } from './playwrightGenerator';
 import { handleTestGenerationError } from './shared/testGenerationUtils';

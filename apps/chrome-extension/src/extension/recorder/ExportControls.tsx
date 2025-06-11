@@ -5,7 +5,7 @@ import {
   FileTextOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
-import type { ChromeRecordedEvent } from '@midscene/record';
+import type { ChromeRecordedEvent } from '@midscene/recorder';
 import { Button, Dropdown, Modal, Space, Typography, message } from 'antd';
 import type { MenuProps } from 'antd';
 import type React from 'react';
@@ -314,10 +314,10 @@ export const ExportControls: React.FC<{
         type === 'playwright'
           ? await generatePlaywrightTest(finalEvents)
           : await generateYamlTest(finalEvents, {
-              testName: currentSessionName,
-              description: `Test session recorded on ${new Date().toLocaleDateString()}`,
-              includeTimestamps: true,
-            });
+            testName: currentSessionName,
+            description: `Test session recorded on ${new Date().toLocaleDateString()}`,
+            includeTimestamps: true,
+          });
 
       // Update session with generated code if sessionId exists
       if (sessionId) {

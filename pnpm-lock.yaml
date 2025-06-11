@@ -147,9 +147,9 @@ importers:
       '@midscene/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@midscene/record':
+      '@midscene/recorder':
         specifier: workspace:*
-        version: link:../../packages/record
+        version: link:../../packages/recorder
       '@midscene/report':
         specifier: workspace:*
         version: link:../report
@@ -214,9 +214,9 @@ importers:
 
   apps/record-form:
     dependencies:
-      '@midscene/record':
+      '@midscene/recorder':
         specifier: workspace:*
-        version: link:../../packages/record
+        version: link:../../packages/recorder
       antd:
         specifier: ^5.21.6
         version: 5.21.6(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -511,9 +511,9 @@ importers:
       '@langchain/core':
         specifier: 0.3.26
         version: 0.3.26(openai@4.81.0(ws@8.18.1)(zod@3.24.3))
-      '@midscene/record':
+      '@midscene/recorder':
         specifier: workspace:*
-        version: link:../record
+        version: link:../recorder
       '@midscene/shared':
         specifier: workspace:*
         version: link:../shared
@@ -635,7 +635,7 @@ importers:
         specifier: 3.24.3
         version: 3.24.3
 
-  packages/record:
+  packages/recorder:
     dependencies:
       '@ant-design/icons':
         specifier: ^5.3.1

@@ -1,6 +1,6 @@
 import Insight from '@midscene/core';
 import type { BaseElement, UIContext } from '@midscene/core';
-import type { RecordedEvent } from '@midscene/record';
+import type { RecordedEvent } from '@midscene/recorder';
 import { compositeElementInfoImg } from '@midscene/shared/img';
 
 // Caches for element descriptions and boxed screenshots to improve performance

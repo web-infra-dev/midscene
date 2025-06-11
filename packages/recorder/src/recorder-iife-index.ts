@@ -1,4 +1,4 @@
-import { EventRecorder } from './record';
+import { EventRecorder } from './recorder';
 
 declare global {
   interface Window {

@@ -18,7 +18,7 @@ export default defineConfig({
       dts: false,
       source: {
         entry: {
-          'record-iife': './src/record-iife-index.ts',
+          'recorder-iife': './src/recorder-iife-index.ts',
         },
       },
     },

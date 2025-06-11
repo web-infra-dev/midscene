@@ -1,4 +1,4 @@
-import type { ChromeRecordedEvent } from '@midscene/record';
+import type { ChromeRecordedEvent } from '@midscene/recorder';
 // import { createStore } from 'zustand/vanilla';
 import * as Z from 'zustand';
 
@@ -278,8 +278,8 @@ export const useEnvConfig = create<{
   loadConfig: (configString: string) => void;
   forceSameTabNavigation: boolean;
   setForceSameTabNavigation: (forceSameTabNavigation: boolean) => void;
-  popupTab: 'playground' | 'bridge' | 'record';
-  setPopupTab: (tab: 'playground' | 'bridge' | 'record') => void;
+  popupTab: 'playground' | 'bridge' | 'recorder';
+  setPopupTab: (tab: 'playground' | 'bridge' | 'recorder') => void;
 }>((set) => {
   const configString = getConfigStringFromLocalStorage();
   const config = parseConfig(configString);
@@ -316,7 +316,7 @@ export const useEnvConfig = create<{
       );
     },
     popupTab: 'playground',
-    setPopupTab: (tab: 'playground' | 'bridge' | 'record') => {
+    setPopupTab: (tab: 'playground' | 'bridge' | 'recorder') => {
       set({ popupTab: tab });
     },
   };

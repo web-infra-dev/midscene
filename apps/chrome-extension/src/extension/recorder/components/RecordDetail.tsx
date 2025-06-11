@@ -4,8 +4,8 @@ import {
   PlayCircleOutlined,
   StopOutlined,
 } from '@ant-design/icons';
-import type { ChromeRecordedEvent } from '@midscene/record';
-import { RecordTimeline } from '@midscene/record';
+import type { ChromeRecordedEvent } from '@midscene/recorder';
+import { RecordTimeline } from '@midscene/recorder';
 import { Alert, Button, Card, Divider, Empty, Space, Typography } from 'antd';
 import type React from 'react';
 import {
