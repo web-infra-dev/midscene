@@ -174,7 +174,14 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
                 </div>
                 <div style={{ flex: 1 }}>
                   {step.status === 'loading' ? (
-                    <div style={{ fontWeight: 600, fontSize: '14px' }}>
+                    <div style={{
+                      fontWeight: 600,
+                      fontSize: '14px',
+                      lineHeight: '22px',
+                      minHeight: '22px',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}>
                       <ShinyText
                         text={step.title}
                         disabled={false}
@@ -183,17 +190,22 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
                       />
                     </div>
                   ) : (
-                    <Text
-                      strong
-                      style={{
-                        color:
-                          step.status === 'completed' ? '#52c41a' : undefined,
-                      }}
-                    >
-                      {step.title}
-                    </Text>
+                    <div>
+                      <Text
+                        strong
+                        style={{
+                          color:
+                            step.status === 'completed' ? '#52c41a' : undefined,
+                          lineHeight: '22px',
+                          minHeight: '22px',
+                          display: 'inline-flex',
+                          alignItems: 'center'
+                        }}
+                      >
+                        {step.title}
+                      </Text>
+                    </div>
                   )}
-                  <br />
                   <Text type="secondary" style={{ fontSize: '12px' }}>
                     {step.description}
                   </Text>
