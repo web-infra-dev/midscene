@@ -60,13 +60,26 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 ### 查询
 
 - `aiQuery` - 数据查询
+- `aiNumber` - 数字查询
+- `aiString` - 字符串查询
+- `aiBoolean` - 布尔值查询
 
 ### 更多 API
 
 - `aiAssert` - 断言
 - `aiWaitFor` - 等待
+- `aiLocate` - 定位元素
 
-更多 API 请参考 [API 参考](./API)。
+除了上述暴露的快捷方法之外，如果还需要调用其它 agent 提供的 [API](./API)，请使用 `agentForPage` 获取 `PageAgent` 实例，使用 `PageAgent` 调用 API 进行交互：
+
+````typescript
+test('case demo', async ({ agentForPage, page }) => {
+  const agent = await agentForPage(page);
+
+  await agent.logScreenshot();
+  const logContent = agent._unstableLogContent();
+  console.log(logContent);
+});
 
 ### 示例代码
 
@@ -119,7 +132,7 @@ test('search headphone on ebay', async ({
   // 使用 aiAssert 验证筛选功能
   await aiAssert('界面左侧有类目筛选功能');
 });
-```
+````
 
 更多 Agent 的 API 讲解请参考 [API 参考](./API)。
 

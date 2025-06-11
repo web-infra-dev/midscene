@@ -60,13 +60,27 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 ### Query
 
 - `aiQuery` - AI Query
+- `aiNumber` - Number Query
+- `aiString` - String Query
+- `aiBoolean` - Boolean Query
 
 ### More APIs
 
 - `aiAssert` - AI Assertion
 - `aiWaitFor` - AI Wait
+- `aiLocate` - Locate Element
 
-You can find more details in [API Reference](./API).
+Besides the exposed shortcut methods, if you need to call other [API](./API) provided by the agent, you can use `agentForPage` to get the `PageAgent` instance, and use `PageAgent` to call the API for interaction:
+
+````typescript
+test('case demo', async ({ agentForPage, page }) => {
+  const agent = await agentForPage(page);
+
+  await agent.logScreenshot();
+  const logContent = agent._unstableLogContent();
+  console.log(logContent);
+});
+
 
 ### Example Code
 
@@ -136,3 +150,4 @@ After the command executes successfully, it will output: `Midscene - report file
 
 - For all the methods on the Agent, please refer to [API Reference](./API).
 - For more details about prompting, please refer to [Prompting Tips](./prompting-tips)
+````

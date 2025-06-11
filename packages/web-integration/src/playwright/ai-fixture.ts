@@ -88,9 +88,7 @@ export const PlaywrightAiFixture = (options?: {
       | 'aiLocate'
       | 'aiNumber'
       | 'aiString'
-      | 'aiBoolean'
-      | 'logScreenshot'
-      | '_unstableLogContent';
+      | 'aiBoolean';
   }) {
     const { page, testInfo, use, aiActionType } = options;
     const agent = createOrReuseAgentForPage(page, testInfo) as PlaywrightAgent;
@@ -341,30 +339,6 @@ export const PlaywrightAiFixture = (options?: {
         aiActionType: 'aiBoolean',
       });
     },
-    logScreenshot: async (
-      { page }: { page: OriginPlaywrightPage },
-      use: any,
-      testInfo: TestInfo,
-    ) => {
-      await generateAiFunction({
-        page,
-        testInfo,
-        use,
-        aiActionType: 'logScreenshot',
-      });
-    },
-    _unstableLogContent: async (
-      { page }: { page: OriginPlaywrightPage },
-      use: any,
-      testInfo: TestInfo,
-    ) => {
-      await generateAiFunction({
-        page,
-        testInfo,
-        use,
-        aiActionType: '_unstableLogContent',
-      });
-    },
   };
 };
 
@@ -409,10 +383,4 @@ export type PlayWrightAiFixtureType = {
   aiBoolean: (
     ...args: Parameters<PageAgent['aiBoolean']>
   ) => ReturnType<PageAgent['aiBoolean']>;
-  logScreenshot: (
-    ...args: Parameters<PageAgent['logScreenshot']>
-  ) => ReturnType<PageAgent['logScreenshot']>;
-  _unstableLogContent: (
-    ...args: Parameters<PageAgent['_unstableLogContent']>
-  ) => ReturnType<PageAgent['_unstableLogContent']>;
 };
