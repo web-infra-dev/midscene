@@ -1,11 +1,11 @@
-# Record Module
+# Recorder Module
 
 This module contains the recording functionality for the Chrome extension, refactored for better readability and maintainability.
 
 ## File Structure
 
 ```
-record/
+recorder/
 ├── README.md              # This file
 ├── index.tsx              # Main component entry
 ├── types.ts               # Type definitions and Chrome API wrapper
