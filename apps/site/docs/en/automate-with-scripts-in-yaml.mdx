@@ -307,22 +307,6 @@ midscene /path/to/yaml --headed
 midscene /path/to/yaml --keep-window
 ```
 
-### Disable dotenv debug mode
-
-By default, Midscene will print the debug information of dotenv. If you don't want to see these information, you can use `--dotenv-debug` option.
-
-```bash
-midscene /path/to/yaml --dotenv-debug=false
-```
-
-### Use .env file to override global environment variables
-
-By default, Midscene will use the global environment variables first. If you want to use the environment variables in the `.env` file instead, you can use `--dotenv-override` option.
-
-```bash
-midscene /path/to/yaml --dotenv-override=true
-```
-
 ### Use bridge mode
 
 > `web` scenario only
@@ -341,6 +325,28 @@ See [Bridge Mode by Chrome Extension](./bridge-mode-by-chrome-extension) for mor
 ### Run yaml script with javascript
 
 You can also run a yaml script with javascript by using the [`runYaml`](./api.html#runyaml) method of the Midscene agent. Only the `tasks` part of the yaml script will be executed.
+
+## Config default behavior of dotenv
+
+Midscene uses [`dotenv`](https://github.com/motdotla/dotenv) to load environment variables from `.env` file to set the environment variables.
+
+### Debug log
+
+The debug log of `dotenv` will be printed by default. If you don't want to see these information, you can use `--dotenv-debug` option.
+
+```bash
+midscene /path/to/yaml --dotenv-debug=false
+```
+
+### Use .env file to override global environment variables
+
+By default, `dotenv` will NOT override the same name environment variable in the `.env` file if the global environment variable is already set.
+
+If you want to do this, you can use `--dotenv-override` option.
+
+```bash
+midscene /path/to/yaml --dotenv-override=true
+```
 
 ## FAQ
 
