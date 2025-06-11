@@ -212,7 +212,7 @@ importers:
         specifier: ^5.8.3
         version: 5.8.3
 
-  apps/record-form:
+  apps/recorder-form:
     dependencies:
       '@midscene/recorder':
         specifier: workspace:*
