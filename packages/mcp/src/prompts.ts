@@ -1,13 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { PLAYWRIGHT_EXAMPLE_CODE } from '@midscene/shared/constants';
 
 const apiText = fs.readFileSync(path.join(__dirname, 'API.mdx'), 'utf-8');
-const playwrightExample = fs.readFileSync(
-  path.join(__dirname, 'playwright-example.txt'),
-  'utf-8',
-);
 
 export const PROMPTS = {
-  PLAYWRIGHT_CODE_EXAMPLE: playwrightExample,
+  PLAYWRIGHT_CODE_EXAMPLE: PLAYWRIGHT_EXAMPLE_CODE,
   MIDSCENE_API_DOCS: apiText,
 };

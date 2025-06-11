@@ -356,7 +356,7 @@ export default class Insight<
   ): Promise<Pick<AIDescribeElementResponse, 'description'>> {
     assert(target, 'target is required for insight.describe');
     const context = await this.contextRetrieverFn('describe');
-    const { screenshotBase64 } = context;
+    const { screenshotBase64, size } = context;
     assert(screenshotBase64, 'screenshot is required for insight.describe');
 
     const systemPrompt = elementDescriberInstruction();
@@ -374,6 +374,7 @@ export default class Insight<
 
     let imagePayload = await compositeElementInfoImg({
       inputImgBase64: screenshotBase64,
+      size,
       elementsPositionInfo: [
         {
           rect: targetRect,

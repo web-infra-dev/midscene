@@ -1,3 +1,15 @@
+export const PLAYWRIGHT_EXAMPLE_CODE = `
+// Reference the following code to generate Midscene test cases
+// The following is test code for Midscene AI, for reference
+// The following is Playwright syntax, you can use Playwright to assist in test generation
+IMPORTANT: Follow these exact type signatures for AI functions:
+
+// Type signatures for AI functions:
+aiInput(value: string, locator: string): Promise<void>
+aiTap(locator: string): Promise<void>  
+aiAssert(assertion: string): Promise<void>
+aiQuery<T>(queryObject: Record<string, string>): Promise<T> // Extracts data from page based on descriptions
+
 // examples:
 // Reference the following code to generate Midscene test cases
 // The following is test code for Midscene AI, for reference
@@ -51,3 +63,38 @@ test('ai shop', async ({
   await aiTap('click right top cart icon');
   await aiAssert('The cart icon shows the number 1');
 });
+`;
+
+export const YAML_EXAMPLE_CODE = `
+1. Format:
+
+target:
+  url: "starting_url"
+  viewportWidth: 1280
+  viewportHeight: 960
+
+tasks:
+  - name: "descriptive task name"
+    flow:
+      - aiTap: "element description"
+      - aiInput: 'text value'
+        locate: 'input field description'
+      - aiScroll:
+        direction: down/up
+        scrollType: untilBottom/untilTop/page
+      - aiAssert: "expected state"
+      - sleep: milliseconds
+
+2. Action Types:
+- aiTap: for clicks (natural language targeting)
+- aiInput: for text input with 'locate' field
+- aiScroll: with direction and scrollType
+- aiAssert: for validations
+- sleep: for delays (milliseconds)
+
+3. Best Practices:
+- Group related actions into logical tasks
+- Use natural language descriptions
+- Add deepThink: true for complex interactions
+- Keep task names concise but descriptive
+`;

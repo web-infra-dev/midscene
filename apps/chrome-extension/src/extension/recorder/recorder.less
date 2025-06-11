@@ -1,0 +1,630 @@
+.popup-record-container {
+  min-height: 500px;
+  overflow-y: auto;
+  overflow-x: hidden; // 禁用横向滚动条
+  padding: 16px;
+  box-sizing: border-box;
+  width: 100%;
+  
+  // 丝滑滚动优化
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch; // iOS Safari 滚动优化
+  overscroll-behavior: contain; // 防止滚动传播
+  
+  // 统一滚动条样式
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+    transition: background-color 0.2s ease;
+    
+    &:hover {
+      background: #a1a1a1;
+    }
+  }
+  
+  // 防止所有子元素超出容器宽度
+  * {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  
+  // View-specific styles
+  .record-list-view {
+    width: 100%;
+    max-width: 100%;
+    
+    .session-list {
+      width: 100%;
+      max-width: 100%;
+      
+      .ant-list-item {
+        padding: 8px 0;
+        width: 100%;
+        max-width: 100%;
+        
+        .ant-card {
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          width: 100%;
+          max-width: 100%;
+          will-change: transform, box-shadow;
+          
+          &:hover {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+            transform: translateY(-2px) scale(1.01);
+          }
+          
+          &.selected-session {
+            box-shadow: 0 4px 12px rgba(24, 144, 255, 0.15);
+            
+            .ant-card-head {
+              background-color: #f0f7ff;
+            }
+          }
+          
+          .ant-card-actions {
+            background-color: #fafafa;
+            
+            .ant-btn {
+              border: none;
+              box-shadow: none;
+              
+              &:hover {
+                background-color: #e6f7ff;
+              }
+              
+              &.ant-btn-dangerous:hover {
+                background-color: #fff2f0;
+              }
+            }
+          }
+          
+          .session-meta {
+            width: 100%;
+            max-width: 100%;
+            
+            .session-status {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              margin-bottom: 4px;
+            }
+            
+            .session-details {
+              font-size: 12px;
+              color: #999;
+              line-height: 1.4;
+              word-break: break-all;
+              white-space: normal;
+            }
+          }
+        }
+      }
+    }
+    
+    .session-empty {
+      text-align: center;
+      padding: 40px 20px;
+      width: 100%;
+      max-width: 100%;
+      
+      .ant-empty-description {
+        color: #999;
+      }
+    }
+  }
+  
+  .record-detail-view {
+    width: 100%;
+    max-width: 100%;
+    scroll-behavior: smooth;
+    
+    // Header section
+    .detail-header {
+      width: 100%;
+      max-width: 100%;
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 16px;
+      
+      .back-button {
+        // margin-right: 12px;
+        flex-shrink: 0;
+        // margin-top: 4px; // 对齐标题
+      }
+      
+      .session-title {
+        flex: 1;
+        min-width: 0; // 允许文本截断
+        max-width: calc(100% - 120px); // 为返回按钮留出空间
+        
+        h4 {
+          margin: 0;
+          margin-bottom: 4px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          width: 100%;
+        }
+        
+        .ant-typography {
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          font-size: 14px;
+          width: 100%;
+        }
+      }
+    }
+    
+    // Recording status section
+    .recording-status {
+      width: 100%;
+      max-width: 100%;
+      margin-bottom: 16px;
+      word-wrap: break-word;
+    }
+    
+    // Session info card
+    .session-info-card {
+      width: 100%;
+      max-width: 100%;
+      margin-bottom: 16px;
+      
+      .ant-card-body {
+        padding: 16px;
+      }
+    }
+    
+    // Controls section
+    .controls-section {
+      width: 100%;
+      max-width: 100%;
+      margin-bottom: 16px;
+      
+      .current-tab-info {
+        width: 100%;
+        max-width: 100%;
+        margin-bottom: 12px;
+        word-break: break-all;
+        white-space: normal;
+      }
+      
+      .record-controls {
+        width: 100%;
+        max-width: 100%;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        
+        .ant-btn {
+          flex-shrink: 0;
+          max-width: 100%;
+        }
+      }
+    }
+    
+    // Events section
+    .events-section {
+      width: 100%;
+      max-width: 100%;
+      
+      .events-header {
+        width: 100%;
+        max-width: 100%;
+        margin-bottom: 12px;
+        
+        h5 {
+          margin: 0;
+          font-weight: 600;
+        }
+      }
+      
+      .events-container {
+        width: 100%;
+        max-width: 100%;
+        
+        &.empty {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #999;
+          font-style: italic;
+          min-height: 100px;
+        }
+      }
+    }
+    
+    .session-info {
+      .ant-space {
+        width: 100%;
+        max-width: 100%;
+        
+        > div {
+          display: flex;
+          align-items: flex-start;
+          width: 100%;
+          max-width: 100%;
+          
+          .ant-typography {
+            margin: 0;
+            word-break: break-all;
+            white-space: normal;
+            max-width: 100%;
+          }
+        }
+      }
+    }
+  }
+  
+  .record-timeline {
+    // 移除内部滚动条和固定高度，让内容自然展开
+    width: 100%;
+    max-width: 100%;
+    padding: 16px;
+    border: 1px solid #f0f0f0;
+    border-radius: 6px;
+    background-color: #fafafa;
+    overflow: visible;
+    box-sizing: border-box;
+    
+    // 丝滑动画优化
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform; // 优化GPU加速
+    
+    // 确保内部组件也不产生滚动条并充分利用宽度
+    .ant-timeline {
+      width: 100%;
+      max-width: 100%;
+      overflow: visible;
+      
+      .ant-timeline-item {
+        width: 100%;
+        max-width: 100%;
+        
+        // 丝滑入场动画
+        animation: slideInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        
+        &:last-child {
+          animation: slideInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .ant-timeline-item-content {
+          width: 100%;
+          max-width: 100%;
+          box-sizing: border-box;
+        }
+      }
+    }
+    
+    .ant-card {
+      width: 100%;
+      max-width: 100%;
+      overflow: visible;
+      box-sizing: border-box;
+      
+      .ant-card-body {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        padding: 12px 16px;
+        word-wrap: break-word;
+      }
+    }
+    
+    .ant-space {
+      width: 100%;
+      max-width: 100%;
+      
+      .ant-space-item {
+        width: 100%;
+        max-width: 100%;
+        word-wrap: break-word;
+      }
+    }
+  }
+  
+  .record-event {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 100%;
+    max-width: 100%;
+    will-change: transform, box-shadow;
+    
+    &:hover {
+      transform: translateX(4px) scale(1.01);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    }
+  }
+  
+  .record-controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    width: 100%;
+    max-width: 100%;
+    
+    .ant-btn {
+      flex-shrink: 0;
+      max-width: 100%;
+    }
+  }
+  
+  .current-tab-info {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 8px;
+    padding: 8px 12px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    border-left: 3px solid #1890ff;
+    word-break: break-all;
+    white-space: normal;
+  }
+
+  // Recording status indicator
+  .recording-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    margin-bottom: 12px;
+    
+    &.recording {
+      background-color: #fff2f0;
+      border: 1px solid #ffccc7;
+      color: #cf1322;
+      
+      &::before {
+        content: '';
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: #ff4d4f;
+        animation: recording-pulse 1.5s infinite;
+      }
+    }
+    
+    &.idle {
+      background-color: #f6ffed;
+      border: 1px solid #d9f7be;
+      color: #389e0d;
+    }
+  }
+
+  @keyframes recording-pulse {
+    0% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.5;
+      transform: scale(1.2);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  // 丝滑滑入动画
+  @keyframes slideInUp {
+    0% {
+      opacity: 0;
+      transform: translateY(20px) scale(0.95);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  // 更丝滑的淡入动画
+  @keyframes fadeInScale {
+    0% {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  // Modal styles
+  .session-modal {
+    .ant-modal-body {
+      padding: 24px;
+    }
+    
+    .ant-form-item-label {
+      font-weight: 500;
+    }
+    
+    .ant-btn-group {
+      display: flex;
+      gap: 8px;
+    }
+  }
+
+  // Section dividers
+  .section-divider {
+    margin: 24px 0;
+    border-color: #e8e8e8;
+  }
+  
+  // 全局禁用可能产生滚动条的 Ant Design 组件
+  .ant-list {
+    overflow: visible !important;
+    max-width: 100% !important;
+  }
+  
+  .ant-list-item {
+    overflow: visible !important;
+    max-width: 100% !important;
+  }
+  
+  .ant-card {
+    overflow: visible !important;
+    max-width: 100% !important;
+  }
+  
+  .ant-card-body {
+    overflow: visible !important;
+    max-width: 100% !important;
+  }
+  
+  .ant-timeline {
+    overflow: visible !important;
+    max-width: 100% !important;
+  }
+  
+  .ant-timeline-item {
+    overflow: visible !important;
+    max-width: 100% !important;
+  }
+  
+  .ant-space {
+    overflow: visible !important;
+    max-width: 100% !important;
+  }
+  
+  .ant-empty {
+    overflow: visible !important;
+    max-width: 100% !important;
+  }
+  
+  // 防止文本和 URL 导致横向滚动
+  .ant-typography {
+    word-break: break-all !important;
+    white-space: normal !important;
+    max-width: 100% !important;
+  }
+  
+  // 确保输入框和按钮不超出容器
+  .ant-input {
+    max-width: 100% !important;
+  }
+  
+  .ant-btn {
+    max-width: 100% !important;
+    word-break: break-all;
+  }
+  
+  // 特别针对 RecordTimeline 的样式优化
+  .record-timeline {
+    overflow: visible !important;
+    max-width: 100% !important;
+    
+    * {
+      overflow: visible !important;
+      box-sizing: border-box;
+      max-width: 100% !important;
+    }
+    
+    // 如果内容很长，确保可以完整显示
+    .ant-timeline-item-content {
+      overflow: visible !important;
+      word-break: break-word;
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+    
+    // 确保时间轴项目充分利用宽度
+    .ant-timeline-item {
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+    
+    // 卡片样式优化
+    .ant-card {
+      margin-bottom: 8px;
+      width: 100% !important;
+      max-width: 100% !important;
+      
+      .ant-card-body {
+        padding: 12px 16px;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+      }
+    }
+    
+    // 特别处理长文本和 URL
+    .ant-space-item {
+      word-break: break-all;
+      white-space: normal;
+      max-width: 100%;
+    }
+    
+    // Timeline 组件内部的 Space 组件优化
+    .ant-space {
+      width: 100% !important;
+      max-width: 100% !important;
+      
+      .ant-space-item {
+        max-width: 100% !important;
+        word-break: break-all !important;
+        white-space: normal !important;
+        overflow-wrap: break-word !important;
+      }
+    }
+    
+    // 处理 RecordTimeline 内部的 Typography 组件
+    .ant-typography {
+      word-break: break-all !important;
+      white-space: normal !important;
+      max-width: 100% !important;
+      overflow-wrap: break-word !important;
+    }
+    
+    // 特别处理可能的长 URL 显示
+    .ant-typography[type="secondary"] {
+      word-break: break-all !important;
+      white-space: normal !important;
+      max-width: 100% !important;
+      overflow-wrap: anywhere !important;
+    }
+    
+    // 处理 Tag 组件
+    .ant-tag {
+      max-width: 100% !important;
+      word-break: break-all !important;
+      white-space: normal !important;
+    }
+    
+    // 处理 Button 组件
+    .ant-btn {
+      max-width: 100% !important;
+      word-break: break-all !important;
+    }
+    
+    // 处理 Code 文本
+    code {
+      word-break: break-all !important;
+      white-space: normal !important;
+      max-width: 100% !important;
+      overflow-wrap: break-word !important;
+    }
+    
+    // 处理可能的固定宽度元素
+    img {
+      max-width: 100% !important;
+      height: auto !important;
+    }
+    
+    // 确保所有文本内容都能正确换行
+    * {
+      word-wrap: break-word !important;
+      overflow-wrap: break-word !important;
+    }
+  }
+} 

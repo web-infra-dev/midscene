@@ -13,7 +13,7 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { Blackboard } from './blackboard';
 import { PlaygroundResultView } from './playground/PlaygroundResult';
 
-export const Describer = (props: { uiContext: UIContext }): JSX.Element => {
+export const Describer = (props: { uiContext: UIContext }) => {
   const { uiContext } = props;
   const image = uiContext.screenshotBase64;
   const canvasRef = useRef<HTMLCanvasElement>(null);

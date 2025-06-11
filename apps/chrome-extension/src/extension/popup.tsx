@@ -1,17 +1,23 @@
 /// <reference types="chrome" />
-import { ApiOutlined, HomeOutlined, SendOutlined } from '@ant-design/icons';
+import {
+  ApiOutlined,
+  HomeOutlined,
+  SendOutlined,
+  VideoCameraOutlined,
+} from '@ant-design/icons';
 import {
   EnvConfig,
   GithubStar,
   Logo,
   globalThemeConfig,
-  useEnvConfig,
 } from '@midscene/visualizer';
 import '@midscene/visualizer/index.css';
 import { ConfigProvider, Tabs } from 'antd';
 import { BrowserExtensionPlayground } from '../component/playground';
+import { useEnvConfig } from '../store';
 import { getExtensionVersion } from '../utils';
 import Bridge from './bridge';
+import Recorder from './recorder';
 import './popup.less';
 import {
   ChromeExtensionProxyPage,
@@ -46,6 +52,12 @@ export function PlaygroundPopup() {
         </div>
       ),
     },
+    // {
+    //   key: 'recorder',
+    //   label: 'Recorder (Beta)',
+    //   icon: <VideoCameraOutlined />,
+    //   children: <Recorder />,
+    // },
     {
       key: 'bridge',
       label: 'Bridge Mode',
@@ -87,7 +99,7 @@ export function PlaygroundPopup() {
               />
             </a>
             <GithubStar />
-            <EnvConfig showTooltipWhenEmpty={popupTab === 'playground'} />
+            <EnvConfig showTooltipWhenEmpty={popupTab !== 'bridge'} />
           </div>
           <p>
             AI-Driven Browser Automation with Chrome Extensions, JavaScript, and
@@ -102,7 +114,9 @@ export function PlaygroundPopup() {
             defaultActiveKey="playground"
             activeKey={popupTab}
             items={items}
-            onChange={(key) => setPopupTab(key as 'playground' | 'bridge')}
+            onChange={(key) =>
+              setPopupTab(key as 'playground' | 'bridge' | 'recorder')
+            }
           />
         </div>
 

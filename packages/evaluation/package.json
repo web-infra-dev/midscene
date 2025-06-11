@@ -32,7 +32,7 @@
     "dotenv": "16.4.5",
     "playwright": "1.44.1",
     "sharp": "0.34.1",
-    "typescript": "^5.8.2",
+    "typescript": "^5.8.3",
     "vitest": "3.0.5"
   },
   "engines": {

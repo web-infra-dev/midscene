@@ -115,5 +115,9 @@ extension_output
 .cursor
 android-playground/static/
 .cursor
+CLAUDE.md
+.claude
+**/.claude
+**/CLAUDE.md
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.md

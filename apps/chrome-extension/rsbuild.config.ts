@@ -19,19 +19,20 @@ export default defineConfig({
         sourceMap: true,
       },
     },
-    node: {
+    iife: {
       source: {
         entry: {
           worker: './src/scripts/worker.ts',
           'stop-water-flow': './src/scripts/stop-water-flow.ts',
           'water-flow': './src/scripts/water-flow.ts',
+          'event-recorder-bridge': './src/scripts/event-recorder-bridge.ts',
         },
       },
       output: {
-        target: 'node',
+        target: 'web-worker',
         sourceMap: true,
         filename: {
-          js: 'scripts/[name].js',
+          js: '../../scripts/[name].js',
         },
       },
     },
@@ -51,7 +52,15 @@ export default defineConfig({
         ),
         to: 'scripts',
       },
+      {
+        from: path.resolve(
+          __dirname,
+          '../../packages/recorder/dist/recorder-iife.js',
+        ),
+        to: 'scripts',
+      },
     ],
+    sourceMap: true,
   },
   source: {
     define: {

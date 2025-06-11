@@ -1,3 +1,4 @@
+import type { ChromeRecordedEvent } from '@midscene/recorder';
 // import { createStore } from 'zustand/vanilla';
 import * as Z from 'zustand';
 
@@ -15,6 +16,211 @@ export const useBlackboardPreference = create<{
   },
   setTextsVisible: (visible: boolean) => {
     set({ elementsVisible: visible });
+  },
+}));
+
+// Recording session interface
+export interface RecordingSession {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: number;
+  updatedAt: number;
+  events: ChromeRecordedEvent[];
+  status: 'idle' | 'recording' | 'completed';
+  duration?: number; // in milliseconds
+  url?: string; // The URL where recording started
+  generatedCode?: {
+    playwright?: string;
+    yaml?: string;
+    lastGenerated?: number; // timestamp of last generation
+  };
+}
+
+// Storage keys
+const RECORDING_SESSIONS_KEY = 'midscene-recording-sessions';
+const CURRENT_SESSION_ID_KEY = 'midscene-current-session-id';
+const RECORDING_STATE_KEY = 'midscene-recording-state';
+
+// Helper functions for persistence
+const loadSessionsFromStorage = (): RecordingSession[] => {
+  try {
+    const stored = localStorage.getItem(RECORDING_SESSIONS_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch (error) {
+    console.error('Failed to load sessions from storage:', error);
+    return [];
+  }
+};
+
+const saveSessionsToStorage = (sessions: RecordingSession[]) => {
+  try {
+    localStorage.setItem(RECORDING_SESSIONS_KEY, JSON.stringify(sessions));
+  } catch (error) {
+    // console.error('Failed to save sessions to storage:', error);
+  }
+};
+
+const loadCurrentSessionIdFromStorage = (): string | null => {
+  try {
+    return localStorage.getItem(CURRENT_SESSION_ID_KEY);
+  } catch (error) {
+    console.error('Failed to load current session ID from storage:', error);
+    return null;
+  }
+};
+
+const saveCurrentSessionIdToStorage = (sessionId: string | null) => {
+  try {
+    if (sessionId) {
+      localStorage.setItem(CURRENT_SESSION_ID_KEY, sessionId);
+    } else {
+      localStorage.removeItem(CURRENT_SESSION_ID_KEY);
+    }
+  } catch (error) {
+    console.error('Failed to save current session ID to storage:', error);
+  }
+};
+
+// Helper functions for recording state persistence
+const loadRecordingStateFromStorage = (): boolean => {
+  try {
+    const stored = localStorage.getItem(RECORDING_STATE_KEY);
+    return stored === 'true';
+  } catch (error) {
+    console.error('Failed to load recording state from storage:', error);
+    return false;
+  }
+};
+
+const saveRecordingStateToStorage = (isRecording: boolean) => {
+  try {
+    localStorage.setItem(RECORDING_STATE_KEY, isRecording.toString());
+  } catch (error) {
+    console.error('Failed to save recording state to storage:', error);
+  }
+};
+
+export const useRecordingSessionStore = create<{
+  sessions: RecordingSession[];
+  currentSessionId: string | null;
+  addSession: (session: RecordingSession) => void;
+  updateSession: (
+    sessionId: string,
+    updates: Partial<RecordingSession>,
+  ) => void;
+  deleteSession: (sessionId: string) => void;
+  setCurrentSession: (sessionId: string | null) => void;
+  getCurrentSession: () => RecordingSession | null;
+}>((set, get) => ({
+  sessions: loadSessionsFromStorage(),
+  currentSessionId: loadCurrentSessionIdFromStorage(),
+  addSession: (session) =>
+    set((state) => {
+      const newSessions = [...state.sessions, session];
+      saveSessionsToStorage(newSessions);
+      return { sessions: newSessions };
+    }),
+  updateSession: (sessionId, updates) =>
+    set((state) => {
+      const newSessions = state.sessions.map((s) =>
+        s.id === sessionId ? { ...s, ...updates } : s,
+      );
+      saveSessionsToStorage(newSessions);
+      return { sessions: newSessions };
+    }),
+  deleteSession: (sessionId) =>
+    set((state) => {
+      const newSessions = state.sessions.filter((s) => s.id !== sessionId);
+      saveSessionsToStorage(newSessions);
+      return { sessions: newSessions };
+    }),
+  setCurrentSession: (sessionId) => {
+    saveCurrentSessionIdToStorage(sessionId);
+    set({ currentSessionId: sessionId });
+  },
+  getCurrentSession: () => {
+    const state = get();
+    return state.sessions.find((s) => s.id === state.currentSessionId) || null;
+  },
+}));
+
+// Helper functions for events persistence
+const loadEventsFromStorage = (): ChromeRecordedEvent[] => {
+  try {
+    const stored = localStorage.getItem('midscene-recording-events');
+    return stored ? JSON.parse(stored) : [];
+  } catch (error) {
+    console.error('Failed to load events from storage:', error);
+    return [];
+  }
+};
+
+const saveEventsToStorage = (events: ChromeRecordedEvent[]) => {
+  try {
+    localStorage.setItem('midscene-recording-events', JSON.stringify(events));
+  } catch (error) {
+    console.error('Failed to save events to storage:', error);
+  }
+};
+
+const clearEventsFromStorage = () => {
+  try {
+    localStorage.removeItem('midscene-recording-events');
+  } catch (error) {
+    console.error('Failed to clear events from storage:', error);
+  }
+};
+
+export const useRecordStore = create<{
+  isRecording: boolean;
+  events: ChromeRecordedEvent[];
+  setIsRecording: (recording: boolean) => void;
+  updateEvent: (event: ChromeRecordedEvent) => void;
+  addEvent: (event: ChromeRecordedEvent) => void;
+  setEvents: (events: ChromeRecordedEvent[]) => void;
+  clearEvents: () => void;
+}>((set, get) => ({
+  isRecording: loadRecordingStateFromStorage(),
+  events: loadRecordingStateFromStorage() ? loadEventsFromStorage() : [],
+  setIsRecording: (recording: boolean) => {
+    saveRecordingStateToStorage(recording);
+    set({ isRecording: recording });
+    // Clear events from storage when stopping recording
+    if (!recording) {
+      clearEventsFromStorage();
+    }
+  },
+  addEvent: (event: ChromeRecordedEvent) => {
+    set((state) => {
+      const newEvents = [...state.events, event];
+      if (state.isRecording) {
+        saveEventsToStorage(newEvents);
+      }
+      return { events: newEvents };
+    });
+  },
+  updateEvent: (event: ChromeRecordedEvent) => {
+    set((state) => {
+      const newEvents = state.events.map((e) =>
+        e.timestamp === event.timestamp ? event : e,
+      );
+      if (state.isRecording) {
+        saveEventsToStorage(newEvents);
+      }
+      return { events: newEvents };
+    });
+  },
+  setEvents: (events: ChromeRecordedEvent[]) => {
+    const state = get();
+    if (state.isRecording) {
+      saveEventsToStorage(events);
+    }
+    set({ events });
+  },
+  clearEvents: () => {
+    clearEventsFromStorage();
+    set({ events: [] });
   },
 }));
 
@@ -72,9 +278,9 @@ export const useEnvConfig = create<{
   loadConfig: (configString: string) => void;
   forceSameTabNavigation: boolean;
   setForceSameTabNavigation: (forceSameTabNavigation: boolean) => void;
-  popupTab: 'playground' | 'bridge';
-  setPopupTab: (tab: 'playground' | 'bridge') => void;
-}>((set, get) => {
+  popupTab: 'playground' | 'bridge' | 'recorder';
+  setPopupTab: (tab: 'playground' | 'bridge' | 'recorder') => void;
+}>((set) => {
   const configString = getConfigStringFromLocalStorage();
   const config = parseConfig(configString);
   const ifInExtension = window.location.href.startsWith('chrome-extension');
@@ -110,7 +316,7 @@ export const useEnvConfig = create<{
       );
     },
     popupTab: 'playground',
-    setPopupTab: (tab: 'playground' | 'bridge') => {
+    setPopupTab: (tab: 'playground' | 'bridge' | 'recorder') => {
       set({ popupTab: tab });
     },
   };
