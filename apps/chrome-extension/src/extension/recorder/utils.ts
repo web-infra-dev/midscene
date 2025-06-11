@@ -94,7 +94,7 @@ export const injectScript = async (currentTab: chrome.tabs.Tab | null) => {
     // Inject the record script first
     await safeChromeAPI.scripting.executeScript({
       target: { tabId: currentTab.id },
-      files: ['scripts/record-iife.js'],
+      files: ['scripts/recorder-iife.js'],
     });
 
     // Then inject the content script wrapper

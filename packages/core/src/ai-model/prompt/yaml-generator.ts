@@ -4,6 +4,7 @@ import {
   type ChatCompletionMessageParam,
   callAi,
 } from '../index';
+import { YAML_EXAMPLE_CODE } from '@midscene/shared/constants';
 
 // Common interfaces for test generation
 export interface EventCounts {
@@ -249,32 +250,7 @@ export const generateYamlTest = async (
     const prompt: ChatCompletionMessageParam[] = [
       {
         role: 'system',
-        content: `You are an expert in Midscene.js YAML test generation. Generate clean, accurate YAML following the exact format:
-
-web:
-  url: "starting_url"
-
-tasks:
-  - name: "descriptive task name"
-    flow:
-      - aiTap: "element description"
-      - aiInput: 'text value'
-        locate: 'input field description'
-      - aiScroll:
-        direction: down/up
-        scrollType: untilBottom/untilTop/page
-      - aiAssert: "expected state"
-      - sleep: milliseconds
-
-Key rules:
-- Use aiTap for clicks with natural language targeting
-- Use aiInput with 'locate' field for text input
-- Use aiScroll with direction and scrollType
-- Use aiAssert for validations
-- Use sleep for delays
-- Group related actions into logical tasks
-- Use natural language, not CSS selectors
-- Add deepThink: true for complex interactions`,
+        content: `You are an expert in Midscene.js YAML test generation. Generate clean, accurate YAML following these rules: ${YAML_EXAMPLE_CODE}`,
       },
       {
         role: 'user',
@@ -282,37 +258,6 @@ Key rules:
 
 Event Summary:
 ${JSON.stringify(yamlSummary, null, 2)}
-
-Use this exact YAML format:
-
-target:
-  url: https://example.com
-  viewportWidth: 1280
-  viewportHeight: 960
-
-tasks:
-  - name: task description
-    flow:
-      - aiInput: 'user@example.com'
-        locate: 'the username input field'
-      - aiInput: 'password123'
-        locate: 'the password field'
-      - aiTap: 'the login button'
-      - aiAssert: Verify successful login
-      - sleep: 2000
-
-Rules:
-1. Use 'target.url' for starting URL
-2. Group actions into logical tasks with descriptive names
-3. Use these action types only:
-   - aiTap: for clicks (natural language targeting)
-   - aiInput: for text input with 'locate' field
-   - aiScroll: with direction and scrollType
-   - aiAssert: for validations
-   - sleep: for delays (milliseconds)
-4. Use natural language descriptions, not CSS selectors
-5. Keep task names concise but descriptive
-6. Add deepThink: true for complex interactions
 
 Convert events:
 - navigation → target.url

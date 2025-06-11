@@ -1,5 +1,6 @@
 import type { ChatCompletionMessageParam } from 'openai/resources';
 import { AIActionType, callAi } from '../index';
+import { PLAYWRIGHT_EXAMPLE_CODE } from '@midscene/shared/constants';
 
 // Types and interfaces for Playwright test generation
 export interface EventCounts {
@@ -311,62 +312,7 @@ Respond ONLY with the complete Playwright test code, no explanations.`;
   const systemPrompt = `You are an expert test automation engineer specializing in Playwright and Midscene. 
 Your task is to generate a complete, executable Playwright test using @midscene/web/playwright that reproduces a recorded browser session.
 
-IMPORTANT: Follow these exact type signatures for AI functions:
-
-// Type signatures for AI functions:
-aiInput(value: string, locator: string): Promise<void>
-aiTap(locator: string): Promise<void>  
-aiAssert(assertion: string): Promise<void>
-aiQuery<T>(queryObject: Record<string, string>): Promise<T> // Extracts data from page based on descriptions
-
-Always follow the structure of the example below:
-
-import { test as base } from '@playwright/test';
-import type { PlayWrightAiFixtureType } from '@midscene/web/playwright';
-import { PlaywrightAiFixture } from '@midscene/web/playwright';
-
-export const test = base.extend<PlayWrightAiFixtureType>(PlaywrightAiFixture({
-  waitForNetworkIdleTimeout: 2000,
-}));
-
-test.beforeEach(async ({ page }) => {
-  await page.goto('https://www.example.com/');
-  await page.setViewportSize({ width: 1920, height: 1080 });
-});
-
-test('Example test', async ({
-  aiInput,
-  aiAssert,
-  aiQuery,
-  aiKeyboardPress,
-  aiHover,
-  aiTap,
-  agentForPage,
-  page,
-}) => {
-  // aiAssert: Takes a string describing what should be true on the page
-  await aiAssert('The page shows the login interface');
-  
-  // aiInput: First parameter is the value to input, second is element description
-  await aiInput('username', 'in user name input');
-  await aiInput('password', 'in password input');
-  
-  // aiTap: Takes a string describing the element to click
-  await aiTap('click login button');
-  
-  await aiAssert('The page shows that the user is logged in');
-  
-  // aiQuery: Extracts specific data from the current page
-  // - Keys: property names for the returned object
-  // - Values: natural language descriptions of what data to extract
-  // - Returns: object with extracted data matching the specified structure
-  const data = await aiQuery({
-    userInfo: 'User information in the format {name: string}',
-    balance: 'Account balance as a number',
-  });
-  
-  console.log(\`Logged in as: \${data.userInfo.name}, Balance: \${data.balance}\`);
-});`;
+${PLAYWRIGHT_EXAMPLE_CODE}`;
 
   // Use LLM to generate the Playwright test code
   const prompt: ChatCompletionMessageParam[] = [
