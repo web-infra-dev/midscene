@@ -30,6 +30,8 @@ export default defineConfig({
 });
 ```
 
+The `type` option of the `reporter` configuration can be `merged` or `separate`. The default value is `merged`, which indicates that one merged report for all test cases; the optional value is `separate`, indicating that the report is separated for each test case.
+
 ## Step 2: extend the `test` instance
 
 Save the following code as `./e2e/fixture.ts`:

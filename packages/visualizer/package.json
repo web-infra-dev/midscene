@@ -71,5 +71,6 @@
     "@midscene/web": "workspace:*",
     "antd": "^5.21.6",
     "dayjs": "^1.11.11"
-  }
+  },
+  "license": "MIT"
 }
