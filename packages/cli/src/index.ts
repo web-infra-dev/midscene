@@ -14,7 +14,11 @@ Promise.resolve(
     const dotEnvConfigFile = join(process.cwd(), '.env');
     if (existsSync(dotEnvConfigFile)) {
       console.log(`loading .env file from ${dotEnvConfigFile}`);
-      dotenv.config({ path: dotEnvConfigFile });
+      dotenv.config({
+        path: dotEnvConfigFile,
+        debug: options.dotenvDebug ?? true,
+        override: options.dotenvOverride ?? false,
+      });
     }
 
     if (options.url) {

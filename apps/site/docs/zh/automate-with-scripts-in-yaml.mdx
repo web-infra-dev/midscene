@@ -326,6 +326,26 @@ web:
 
 你也可以使用 JavaScript 运行 YAML 脚本，调用 Agent 上的 [`runYaml`](./api.html#runyaml) 方法即可。注意，这种方法只会执行 YAML 脚本中的 `tasks` 部分。
 
+## 配置 dotenv 的默认行为
+
+Midscene 使用 [`dotenv`](https://github.com/motdotla/dotenv) 加载 `.env` 文件中的环境变量。
+
+### 关闭 dotenv 的 debug 日志
+
+默认情况下，Midscene 会打印 dotenv 的 debug 信息，如果你不想看到这些信息，你可以使用 `--dotenv-debug` 选项关闭。
+
+```bash
+midscene /path/to/yaml --dotenv-debug=false
+```
+
+### 使用 .env 中的环境变量覆盖同名的全局环境变量
+
+默认情况下，`dotenv` 不会覆盖`.env` 文件中同名的全局环境变量。如果希望覆盖，你可以使用 `--dotenv-override` 选项。
+
+```bash
+midscene /path/to/yaml --dotenv-override=true
+```
+
 ## FAQ
 
 **如何从 Chrome 中获取 JSON 格式的 Cookies？**
