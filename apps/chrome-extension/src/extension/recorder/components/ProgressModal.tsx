@@ -1,9 +1,10 @@
 import { CheckCircleOutlined, LoadingOutlined } from '@ant-design/icons';
 import { Modal, Progress, Typography } from 'antd';
+// @ts-ignore
 import confetti from 'canvas-confetti';
 import type React from 'react';
 import { useEffect, useState } from 'react';
-import ShinyText from '../../../component/shiny-text';
+import { ShinyText } from '@midscene/visualizer';
 
 const { Text, Title } = Typography;
 
@@ -236,37 +237,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
             </div>
           ))}
 
-          {allCompleted && confettiVisible && (
-            <div
-              style={{
-                textAlign: 'center',
-                marginTop: 20,
-              }}
-            >
-              <Title
-                level={4}
-                style={{
-                  color: '#52c41a',
-                  margin: 0,
-                  textShadow: '0 0 10px rgba(82, 196, 26, 0.5)',
-                }}
-              >
-                🎉✨ Generation Complete!
-              </Title>
-              <div
-                style={{
-                  fontSize: '14px',
-                  color: '#666',
-                  marginTop: 8,
-                  opacity: 0.8,
-                }}
-              >
-                Your code has been successfully generated!
-              </div>
-            </div>
-          )}
-
-          {allCompleted && !confettiVisible && (
+          {allCompleted && (
             <div style={{ textAlign: 'center', marginTop: 20 }}>
               <Title level={4} style={{ color: '#52c41a', margin: 0 }}>
                 🎉 Generation Complete!
