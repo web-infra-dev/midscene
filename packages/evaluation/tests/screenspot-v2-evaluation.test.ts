@@ -154,7 +154,6 @@ async function processSample(
     };
 
     const prompt = sample.instruction;
-    const startTime = Date.now();
     const insight = new Insight(mockContext);
     const result = await insight.locate({ prompt });
     const { element, rect } = result;

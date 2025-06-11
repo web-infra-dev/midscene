@@ -48,7 +48,7 @@ export default defineConfig({
     MIDSCENE_REPORT
       ? {
           name: 'report',
-          testDir: './ai/web/playwright-report-test',
+          testDir: './ai/web/playwright-reporter-test',
           use: { ...devices['Desktop Chrome'] },
         }
       : {
@@ -61,9 +61,9 @@ export default defineConfig({
     [process.env.CI ? 'line' : 'list'],
     // [
     //   'json',
-    //   { outputFile: 'midscene_run/playwright-report/test-results.json' },
+    //   { outputFile: 'midscene_run/playwright-reporter/test-results.json' },
     // ],
-    // ['html', { outputFolder: 'midscene_run/playwright-report' }],
+    // ['html', { outputFolder: 'midscene_run/playwright-reporter' }],
     ['../src/playwright/reporter/index.ts'],
   ],
 });

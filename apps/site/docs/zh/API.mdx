@@ -6,25 +6,25 @@
 
 Midscene 中每个 Agent 都有自己的构造函数。
 
-* 在 Puppeteer 中，使用 [PuppeteerAgent](./integrate-with-puppeteer)
-* 在桥接模式（Bridge Mode）中，使用 [AgentOverChromeBridge](./bridge-mode-by-chrome-extension#constructor)
-* 在 Android 中，使用 [AndroidAgent](./integrate-with-android)
+- 在 Puppeteer 中，使用 [PuppeteerAgent](./integrate-with-puppeteer)
+- 在桥接模式（Bridge Mode）中，使用 [AgentOverChromeBridge](./bridge-mode-by-chrome-extension#constructor)
+- 在 Android 中，使用 [AndroidAgent](./integrate-with-android)
 
 这些 Agent 有一些相同的构造参数：
 
-* `generateReport: boolean`: 如果为 true，则生成报告文件。默认值为 true。
-* `autoPrintReportMsg: boolean`: 如果为 true，则打印报告消息。默认值为 true。
-* `cacheId: string | undefined`: 如果配置，则使用此 cacheId 保存或匹配缓存。默认值为 undefined，也就是不启用缓存。
-* `actionContext: string`: 调用 `agent.aiAction()` 时，发送给 AI 模型的背景知识，比如 '有 cookie 对话框时先关闭它'，默认值为空。
+- `generateReport: boolean`: 如果为 true，则生成报告文件。默认值为 true。
+- `autoPrintReportMsg: boolean`: 如果为 true，则打印报告消息。默认值为 true。
+- `cacheId: string | undefined`: 如果配置，则使用此 cacheId 保存或匹配缓存。默认值为 undefined，也就是不启用缓存。
+- `actionContext: string`: 调用 `agent.aiAction()` 时，发送给 AI 模型的背景知识，比如 '有 cookie 对话框时先关闭它'，默认值为空。
 
 在 Playwright 和 Puppeteer 中，有一个共同的参数：
 
-* `forceSameTabNavigation: boolean`: 如果为 true，则限制页面在当前 tab 打开。默认值为 true。
+- `forceSameTabNavigation: boolean`: 如果为 true，则限制页面在当前 tab 打开。默认值为 true。
 
 在 Puppeteer 中，还有两个额外的参数：
 
-* `waitForNetworkIdleTimeout: number`: 在执行每个操作后等待网络空闲的超时时间，默认值为 2000ms，设置为 0 则禁用超时。
-* `waitForNavigationTimeout: number`: 在页面跳转后等待页面加载完成的超时时间，默认值为 5000ms，设置为 0 则禁用超时。
+- `waitForNetworkIdleTimeout: number`: 在执行每个操作后等待网络空闲的超时时间，默认值为 2000ms，设置为 0 则禁用超时。
+- `waitForNavigationTimeout: number`: 在页面跳转后等待页面加载完成的超时时间，默认值为 5000ms，设置为 0 则禁用超时。
 
 ## 交互方法
 
@@ -34,8 +34,8 @@ Midscene 中每个 Agent 都有自己的构造函数。
 
 在 Midscene 中，你可以选择使用自动规划（Auto Planning）或即时操作（Instant Action）。
 
-* `agent.ai()` 是自动规划（Auto Planning）：Midscene 会自动规划操作步骤并执行。它更智能，更像流行的 AI Agent 风格，但可能较慢，且效果依赖于 AI 模型的质量。
-* `agent.aiTap()`, `agent.aiHover()`, `agent.aiInput()`, `agent.aiKeyboardPress()`, `agent.aiScroll()`, `agent.aiRightClick()` 是即时操作（Instant Action）：Midscene 会直接执行指定的操作，而 AI 模型只负责底层任务，如定位元素等。这种接口形式更快、更可靠。当你完全确定自己想要执行的操作时，推荐使用这种接口形式。
+- `agent.ai()` 是自动规划（Auto Planning）：Midscene 会自动规划操作步骤并执行。它更智能，更像流行的 AI Agent 风格，但可能较慢，且效果依赖于 AI 模型的质量。
+- `agent.aiTap()`, `agent.aiHover()`, `agent.aiInput()`, `agent.aiKeyboardPress()`, `agent.aiScroll()`, `agent.aiRightClick()` 是即时操作（Instant Action）：Midscene 会直接执行指定的操作，而 AI 模型只负责底层任务，如定位元素等。这种接口形式更快、更可靠。当你完全确定自己想要执行的操作时，推荐使用这种接口形式。
 
 :::
 
@@ -43,31 +43,38 @@ Midscene 中每个 Agent 都有自己的构造函数。
 
 这个方法允许你通过自然语言描述一系列 UI 操作步骤。Midscene 会自动规划这些步骤并执行。
 
-* 类型
+- 类型
 
 ```typescript
-function aiAction(prompt: string, opt?: {
-  cacheable?: boolean;
-}): Promise<void>;
+function aiAction(
+  prompt: string,
+  opt?: {
+    cacheable?: boolean;
+  },
+): Promise<void>;
 function ai(prompt: string): Promise<void>; // 简写形式
 ```
 
-* 参数：
-  * `prompt: string` - 用自然语言描述的操作内容
-  * `opt?: Object` - 可选，一个配置对象，包含：
-    * `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
+- 参数：
 
-* 返回值：
-  * 返回一个 Promise。当所有步骤执行完成时解析为 void；若执行失败，则抛出错误。
+  - `prompt: string` - 用自然语言描述的操作内容
+  - `opt?: Object` - 可选，一个配置对象，包含：
+    - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
 
-* 示例：
+- 返回值：
+
+  - 返回一个 Promise。当所有步骤执行完成时解析为 void；若执行失败，则抛出错误。
+
+- 示例：
 
 ```typescript
 // 基本用法
 await agent.aiAction('在搜索框中输入 "JavaScript"，然后点击搜索按钮');
 
 // 使用 .ai 简写形式
-await agent.ai('点击页面顶部的登录按钮，然后在用户名输入框中输入 "test@example.com"');
+await agent.ai(
+  '点击页面顶部的登录按钮，然后在用户名输入框中输入 "test@example.com"',
+);
 
 // 使用 ui-tars 模型时，可以使用更目标驱动的提示词
 await agent.aiAction('发布一条微博，内容为 "Hello World"');
@@ -80,7 +87,8 @@ await agent.aiAction('发布一条微博，内容为 "Hello World"');
 为了获得最佳效果，请尽可能提供清晰、详细的步骤描述。具体可以参考这篇文档：[编写提示词的技巧](./prompting-tips)
 
 关联文档：
-* [选择 AI 模型](./choose-a-model)
+
+- [选择 AI 模型](./choose-a-model)
 
 :::
 
@@ -88,21 +96,22 @@ await agent.aiAction('发布一条微博，内容为 "Hello World"');
 
 点击某个元素。
 
-* 类型
+- 类型
 
 ```typescript
 function aiTap(locate: string, options?: Object): Promise<void>;
 ```
 
-* 参数：
-  * `locate: string` - 用自然语言描述的元素定位。
-  * `options?: Object` - 可选，一个配置对象，包含：
-    * `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
-    * `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
-* 返回值：
-  * `Promise<void>`
+- 参数：
+  - `locate: string` - 用自然语言描述的元素定位。
+  - `options?: Object` - 可选，一个配置对象，包含：
+    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
+    - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
+- 返回值：
 
-* 示例：
+  - `Promise<void>`
+
+- 示例：
 
 ```typescript
 await agent.aiTap('页面顶部的登录按钮');
@@ -115,21 +124,22 @@ await agent.aiTap('页面顶部的登录按钮', { deepThink: true });
 
 鼠标悬停某个元素上。
 
-* 类型
+- 类型
 
 ```typescript
 function aiHover(locate: string, options?: Object): Promise<void>;
 ```
 
-* 参数：
-  * `locate: string` - 用自然语言描述的元素定位。
-  * `options?: Object` - 可选，一个配置对象，包含：
-    * `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
-    * `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
-* 返回值：
-  * `Promise<void>`
+- 参数：
+  - `locate: string` - 用自然语言描述的元素定位。
+  - `options?: Object` - 可选，一个配置对象，包含：
+    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
+    - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
+- 返回值：
 
-* 示例：
+  - `Promise<void>`
+
+- 示例：
 
 ```typescript
 await agent.aiHover('页面顶部的登录按钮');
@@ -139,24 +149,26 @@ await agent.aiHover('页面顶部的登录按钮');
 
 在某个元素中输入文本。
 
-* 类型
+- 类型
 
 ```typescript
 function aiInput(text: string, locate: string, options?: Object): Promise<void>;
 ```
 
-* 参数：
-  * `text: string` - 要输入的文本内容。使用空字符串可以清空输入框。
-  * `locate: string` - 用自然语言描述的元素定位。
-  * `options?: Object` - 可选，一个配置对象，包含：
-    * `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
-    * `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
-    * `autoDismissKeyboard?: boolean` - 如果为 true，则键盘会在输入文本后自动关闭，仅在 Android 中有效。默认值为 true。
+- 参数：
 
-* 返回值：
-  * `Promise<void>`
+  - `text: string` - 要输入的文本内容。使用空字符串可以清空输入框。
+  - `locate: string` - 用自然语言描述的元素定位。
+  - `options?: Object` - 可选，一个配置对象，包含：
+    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
+    - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
+    - `autoDismissKeyboard?: boolean` - 如果为 true，则键盘会在输入文本后自动关闭，仅在 Android 中有效。默认值为 true。
 
-* 示例：
+- 返回值：
+
+  - `Promise<void>`
+
+- 示例：
 
 ```typescript
 await agent.aiInput('Hello World', '搜索框');
@@ -166,23 +178,29 @@ await agent.aiInput('Hello World', '搜索框');
 
 按下键盘上的某个键。
 
-* 类型
+- 类型
 
 ```typescript
-function aiKeyboardPress(key: string, locate?: string, options?: Object): Promise<void>;
+function aiKeyboardPress(
+  key: string,
+  locate?: string,
+  options?: Object,
+): Promise<void>;
 ```
 
-* 参数：
-  * `key: string` - 要按下的键，如 `Enter`、`Tab`、`Escape` 等。不支持组合键。
-  * `locate?: string` - 用自然语言描述的元素定位。
-  * `options?: Object` - 可选，一个配置对象，包含：
-    * `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
-    * `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
+- 参数：
 
-* 返回值：
-  * `Promise<void>`
+  - `key: string` - 要按下的键，如 `Enter`、`Tab`、`Escape` 等。不支持组合键。
+  - `locate?: string` - 用自然语言描述的元素定位。
+  - `options?: Object` - 可选，一个配置对象，包含：
+    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
+    - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
 
-* 示例：
+- 返回值：
+
+  - `Promise<void>`
+
+- 示例：
 
 ```typescript
 await agent.aiKeyboardPress('Enter', '搜索框');
@@ -192,51 +210,62 @@ await agent.aiKeyboardPress('Enter', '搜索框');
 
 滚动页面或某个元素。
 
-* 类型
+- 类型
 
 ```typescript
-function aiScroll(scrollParam: PlanningActionParamScroll, locate?: string, options?: Object): Promise<void>;
+function aiScroll(
+  scrollParam: PlanningActionParamScroll,
+  locate?: string,
+  options?: Object,
+): Promise<void>;
 ```
 
-* 参数：
-  * `scrollParam: PlanningActionParamScroll` - 滚动参数
-    * `direction: 'up' | 'down' | 'left' | 'right'` - 滚动方向
-    * `scrollType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft'` - 滚动类型
-    * `distance: number` - 滚动距离，单位为像素。
-  * `locate?: string` - 用自然语言描述的元素定位。如果未传入，Midscene 会在当前鼠标位置滚动。
-  * `options?: Object` - 可选，一个配置对象，包含：
-    * `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
-    * `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
+- 参数：
 
-* 返回值：
-  * `Promise<void>`
+  - `scrollParam: PlanningActionParamScroll` - 滚动参数
+    - `direction: 'up' | 'down' | 'left' | 'right'` - 滚动方向
+    - `scrollType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft'` - 滚动类型
+    - `distance: number` - 滚动距离，单位为像素。
+  - `locate?: string` - 用自然语言描述的元素定位。如果未传入，Midscene 会在当前鼠标位置滚动。
+  - `options?: Object` - 可选，一个配置对象，包含：
+    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
+    - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
 
-* 示例：
+- 返回值：
+
+  - `Promise<void>`
+
+- 示例：
 
 ```typescript
-await agent.aiScroll({ direction: 'up', distance: 100, scrollType: 'once' }, '表单区域');
+await agent.aiScroll(
+  { direction: 'up', distance: 100, scrollType: 'once' },
+  '表单区域',
+);
 ```
 
 ### `agent.aiRightClick()`
 
 右键点击某个元素。请注意，Midscene 在右键点击后无法与浏览器原生上下文菜单交互。这个接口通常用于已经监听了右键点击事件的元素。
 
-* 类型
+- 类型
 
 ```typescript
 function aiRightClick(locate: string, options?: Object): Promise<void>;
 ```
 
-* 参数：
-  * `locate: string` - 用自然语言描述的元素定位。
-  * `options?: Object` - 可选，一个配置对象，包含：
-    * `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
-    * `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
+- 参数：
 
-* 返回值：
-  * `Promise<void>`
+  - `locate: string` - 用自然语言描述的元素定位。
+  - `options?: Object` - 可选，一个配置对象，包含：
+    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
+    - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
 
-* 示例：
+- 返回值：
+
+  - `Promise<void>`
+
+- 示例：
 
 ```typescript
 await agent.aiRightClick('页面顶部的文件名称');
@@ -251,58 +280,31 @@ await agent.aiRightClick('页面顶部的文件名称', { deepThink: true });
 
 :::
 
-## 记录截图
-
-### `agent.logScreenshot()`
-
-在报告文件中记录当前截图，并添加描述。
-
-* 类型
-
-```typescript
-function logScreenshot(title?: string, options?: Object): Promise<void>;
-```
-
-* 参数：
-  * `title?: string` - 可选，截图的标题，如果未提供，则标题为 'untitled'。
-  * `options?: Object` - 可选，一个配置对象，包含：
-    * `content?: string` - 截图的描述。
-
-
-* 返回值：
-  * `Promise<void>`
-
-* 示例：
-
-```typescript
-await agent.logScreenshot('登录页面', {
-  content: '用户 A',
-});
-```
-
 ## 数据提取
 
 ### `agent.aiQuery()`
 
 使用此方法，你可以直接从 UI 提取数据，并借助多模态 AI 的推理能力，实现智能提取。只需在 `dataDemand` 中描述期望的数据格式（如字符串、数字、JSON、数组等），Midscene 即返回相应结果。
 
-* 类型
+- 类型
 
 ```typescript
 function aiQuery<T>(dataDemand: string | Object, options?: Object): Promise<T>;
 ```
 
-* 参数：
-  * `dataDemand: T`: 描述预期的返回值和格式。
-  * `options?: Object` - 可选，一个配置对象，包含：
-    * `domIncluded?: boolean` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。默认值为 False
-    * `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 True。
+- 参数：
 
-* 返回值：
-  * 返回值可以是任何合法的基本类型，比如字符串、数字、JSON、数组等。
-  * 你只需在 `dataDemand` 中描述它，Midscene 就会给你满足格式的返回。
+  - `dataDemand: T`: 描述预期的返回值和格式。
+  - `options?: Object` - 可选，一个配置对象，包含：
+    - `domIncluded?: boolean` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。默认值为 False
+    - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 True。
 
-* 示例：
+- 返回值：
+
+  - 返回值可以是任何合法的基本类型，比如字符串、数字、JSON、数组等。
+  - 你只需在 `dataDemand` 中描述它，Midscene 就会给你满足格式的返回。
+
+- 示例：
 
 ```typescript
 const dataA = await agent.aiQuery({
@@ -318,97 +320,113 @@ const dataA = await agent.aiQuery({
 const dataB = await agent.aiQuery('string[]，列表中的任务名称');
 
 // dataC 将是一个包含对象的数组
-const dataC = await agent.aiQuery('{name: string, age: string}[], 表格中的数据记录');
+const dataC = await agent.aiQuery(
+  '{name: string, age: string}[], 表格中的数据记录',
+);
 
 // 使用 domIncluded 功能提取 UI 中不可见的属性
-const dataD = await agent.aiQuery('{name: string, age: string, avatarUrl: string}[], 表格中的数据记录', { domIncluded: true });
+const dataD = await agent.aiQuery(
+  '{name: string, age: string, avatarUrl: string}[], 表格中的数据记录',
+  { domIncluded: true },
+);
 ```
 
 此外，我们还提供了 `aiBoolean()`, `aiNumber()`, `aiString()` 三个便捷方法，用于直接提取布尔值、数字和字符串。
-
 
 ### `agent.aiBoolean()`
 
 从 UI 中提取一个布尔值。
 
-* 类型
+- 类型
 
 ```typescript
 function aiBoolean(prompt: string, options?: Object): Promise<boolean>;
 ```
 
-* 参数：
-  * `prompt: string` - 用自然语言描述的期望值。
-  * `options?: Object` - 可选，一个配置对象，包含：
-    * `domIncluded?: boolean` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。默认值为 False
-    * `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 True。
+- 参数：
 
-* 返回值：
-  * 返回一个 Promise。当 AI 返回结果时解析为布尔值。
+  - `prompt: string` - 用自然语言描述的期望值。
+  - `options?: Object` - 可选，一个配置对象，包含：
+    - `domIncluded?: boolean` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。默认值为 False
+    - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 True。
 
-* 示例：
+- 返回值：
+
+  - 返回一个 Promise。当 AI 返回结果时解析为布尔值。
+
+- 示例：
 
 ```typescript
 const boolA = await agent.aiBoolean('是否存在登录对话框');
 
 // 使用 domIncluded 功能提取 UI 中不可见的属性
-const boolB = await agent.aiBoolean('忘记密码按钮是否存在链接', { domIncluded: true });
+const boolB = await agent.aiBoolean('忘记密码按钮是否存在链接', {
+  domIncluded: true,
+});
 ```
 
 ### `agent.aiNumber()`
 
 从 UI 中提取一个数字。
 
-* 类型
+- 类型
 
 ```typescript
 function aiNumber(prompt: string, options?: Object): Promise<number>;
 ```
 
-* 参数：
-  * `prompt: string` - 用自然语言描述的期望值。
-  * `options?: Object` - 可选，一个配置对象，包含：
-    * `domIncluded?: boolean` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。默认值为 False
-    * `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 True。
+- 参数：
 
-* 返回值：
-  * 返回一个 Promise。当 AI 返回结果时解析为数字。
+  - `prompt: string` - 用自然语言描述的期望值。
+  - `options?: Object` - 可选，一个配置对象，包含：
+    - `domIncluded?: boolean` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。默认值为 False
+    - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 True。
 
-* 示例：
+- 返回值：
+
+  - 返回一个 Promise。当 AI 返回结果时解析为数字。
+
+- 示例：
 
 ```typescript
 const numberA = await agent.aiNumber('账户剩余的积分');
 
 // 使用 domIncluded 功能提取 UI 中不可见的属性
-const numberB = await agent.aiNumber('账户剩余的积分元素的 value 值', { domIncluded: true });
+const numberB = await agent.aiNumber('账户剩余的积分元素的 value 值', {
+  domIncluded: true,
+});
 ```
 
 ### `agent.aiString()`
 
 从 UI 中提取一个字符串。
 
-* 类型
+- 类型
 
 ```typescript
 function aiString(prompt: string, options?: Object): Promise<string>;
 ```
 
-* 参数：
-  * `prompt: string` - 用自然语言描述的期望值。
-  * `options?: Object` - 可选，一个配置对象，包含：
-    * `domIncluded?: boolean` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。默认值为 False
-    * `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 True。
+- 参数：
 
-* 返回值：
-  * 返回一个 Promise。当 AI 返回结果时解析为字符串。
+  - `prompt: string` - 用自然语言描述的期望值。
+  - `options?: Object` - 可选，一个配置对象，包含：
+    - `domIncluded?: boolean` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。默认值为 False
+    - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 True。
 
-* 示例：
+- 返回值：
+
+  - 返回一个 Promise。当 AI 返回结果时解析为字符串。
+
+- 示例：
 
 ```typescript
 const stringA = await agent.aiString('当前列表的第一条记录的名称');
 
 // 使用 domIncluded 功能提取 UI 中不可见的属性
-const stringB = await agent.aiString('当前列表的第一条记录的跳转链接', { domIncluded: true });
+const stringB = await agent.aiString('当前列表的第一条记录的跳转链接', {
+  domIncluded: true,
+});
 ```
 
 ## 更多方法
@@ -417,20 +435,23 @@ const stringB = await agent.aiString('当前列表的第一条记录的跳转链
 
 通过自然语言描述一个断言条件，让 AI 判断该条件是否为真。当条件不满足时，SDK 会抛出错误，并在错误信息中追加 AI 返回的详细原因。
 
-* 类型
+- 类型
 
 ```typescript
 function aiAssert(assertion: string, errorMsg?: string): Promise<void>;
 ```
 
-* 参数：
-  * assertion: string - 用自然语言描述的断言条件。
-  * errorMsg?: string - 当断言失败时附加的可选错误提示信息。
+- 参数：
 
-* 返回值：
-  * 返回一个 Promise。当断言成功时解析为 void；若断言失败，则抛出一个错误，错误信息包含 `errorMsg` 以及 AI 生成的原因。
+  - assertion: string - 用自然语言描述的断言条件。
+  - errorMsg?: string - 当断言失败时附加的可选错误提示信息。
 
-* 示例：
+- 返回值：
+
+  - 返回一个 Promise。当断言成功时解析为 void；若断言失败，则抛出一个错误，错误信息包含 `errorMsg` 以及 AI 生成的原因。
+
+- 示例：
+
 ```typescript
 await agent.aiAssert('"Sauce Labs Onesie" 的价格是 7.99');
 ```
@@ -442,24 +463,28 @@ await agent.aiAssert('"Sauce Labs Onesie" 的价格是 7.99');
 
 ```typescript
 const items = await agent.aiQuery(
-  '"{name: string, price: number}[], 返回商品名称和价格列表'
+  '"{name: string, price: number}[], 返回商品名称和价格列表',
 );
-const onesieItem = items.find(item => item.name === 'Sauce Labs Onesie');
+const onesieItem = items.find((item) => item.name === 'Sauce Labs Onesie');
 expect(onesieItem).toBeTruthy();
 expect(onesieItem.price).toBe(7.99);
 ```
+
 :::
 
 ### `agent.aiLocate()`
 
 通过自然语言描述一个元素的定位。
 
-* 类型
+- 类型
 
 ```typescript
-function aiLocate(locate: string, options?: {
-  cacheable?: boolean;
-}): Promise<{
+function aiLocate(
+  locate: string,
+  options?: {
+    cacheable?: boolean;
+  },
+): Promise<{
   rect: {
     left: number;
     top: number;
@@ -470,58 +495,61 @@ function aiLocate(locate: string, options?: {
 }>;
 ```
 
-* 参数：
-  * `locate: string` - 用自然语言描述的元素定位。
-  * `options?: Object` - 可选，一个配置对象，包含：
-    * `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
-    * `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
+- 参数：
 
-* 返回值：
-  * 返回一个 Promise。当元素定位成功时解析为元素定位信息。
+  - `locate: string` - 用自然语言描述的元素定位。
+  - `options?: Object` - 可选，一个配置对象，包含：
+    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
+    - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
 
-* 示例：
+- 返回值：
+
+  - 返回一个 Promise。当元素定位成功时解析为元素定位信息。
+
+- 示例：
 
 ```typescript
 const locateInfo = await agent.aiLocate('页面顶部的登录按钮');
 console.log(locateInfo);
 ```
 
-
 ### `agent.aiWaitFor()`
 
 等待某个条件达成。考虑到 AI 服务的成本，检查间隔不会超过 `checkIntervalMs` 毫秒。
 
-* 类型
+- 类型
 
 ```typescript
 function aiWaitFor(
-  assertion: string, 
-  options?: { 
+  assertion: string,
+  options?: {
     timeoutMs?: number;
     checkIntervalMs?: number;
-  }
+  },
 ): Promise<void>;
 ```
 
-* 参数：
-  * `assertion: string` - 用自然语言描述的断言条件
-  * `options?: object` - 可选的配置对象
-    * `timeoutMs?: number` - 超时时间（毫秒），默认为 15000
-    * `checkIntervalMs?: number` - 检查间隔（毫秒），默认为 3000
+- 参数：
 
-* 返回值：
-  * 返回一个 Promise。当断言成功时解析为 void；若超时，则抛出错误。
+  - `assertion: string` - 用自然语言描述的断言条件
+  - `options?: object` - 可选的配置对象
+    - `timeoutMs?: number` - 超时时间（毫秒），默认为 15000
+    - `checkIntervalMs?: number` - 检查间隔（毫秒），默认为 3000
 
-* 示例：
+- 返回值：
+
+  - 返回一个 Promise。当断言成功时解析为 void；若超时，则抛出错误。
+
+- 示例：
 
 ```typescript
 // 基本用法
-await agent.aiWaitFor("界面上至少有一个耳机的信息");
+await agent.aiWaitFor('界面上至少有一个耳机的信息');
 
 // 使用自定义配置
-await agent.aiWaitFor("购物车图标显示数量为 2", {
-  timeoutMs: 30000,    // 等待 30 秒
-  checkIntervalMs: 5000  // 每 5 秒检查一次
+await agent.aiWaitFor('购物车图标显示数量为 2', {
+  timeoutMs: 30000, // 等待 30 秒
+  checkIntervalMs: 5000, // 每 5 秒检查一次
 });
 ```
 
@@ -533,19 +561,21 @@ await agent.aiWaitFor("购物车图标显示数量为 2", {
 
 执行一个 YAML 格式的自动化脚本。脚本中的 `tasks` 部分会被执行，并返回所有 `.aiQuery` 调用的结果。
 
-* 类型
+- 类型
 
 ```typescript
 function runYaml(yamlScriptContent: string): Promise<{ result: any }>;
 ```
 
-* 参数：
-  * `yamlScriptContent: string` - YAML 格式的脚本内容
+- 参数：
 
-* 返回值：
-  * 返回一个包含 `result` 属性的对象，其中包含所有 `aiQuery` 调用的结果
+  - `yamlScriptContent: string` - YAML 格式的脚本内容
 
-* 示例：
+- 返回值：
+
+  - 返回一个包含 `result` 属性的对象，其中包含所有 `aiQuery` 调用的结果
+
+- 示例：
 
 ```typescript
 const { result } = await agent.runYaml(`
@@ -570,16 +600,17 @@ console.log(result);
 
 设置在调用 `agent.aiAction()` 时，发送给 AI 模型的背景知识。
 
-* 类型
+- 类型
 
 ```typescript
 function setAIActionContext(actionContext: string): void;
 ```
 
-* 参数：
-  * `actionContext: string` - 要发送给 AI 模型的背景知识。
+- 参数：
 
-* 示例：
+  - `actionContext: string` - 要发送给 AI 模型的背景知识。
+
+- 示例：
 
 ```typescript
 await agent.setAIActionContext('如果 “使用cookie” 对话框存在，先关闭它');
@@ -589,23 +620,74 @@ await agent.setAIActionContext('如果 “使用cookie” 对话框存在，先�
 
 这个方法允许你在 web 页面上下文中执行一段 JavaScript 代码，并返回执行结果。
 
-* 类型
+- 类型
 
 ```typescript
 function evaluateJavaScript(script: string): Promise<any>;
 ```
 
-* 参数：
-  * `script: string` - 要执行的 JavaScript 代码。
+- 参数：
 
-* 返回值：
-  * 返回执行结果。
+  - `script: string` - 要执行的 JavaScript 代码。
 
-* 示例：
+- 返回值：
+
+  - 返回执行结果。
+
+- 示例：
 
 ```typescript
 const result = await agent.evaluateJavaScript('document.title');
 console.log(result);
+```
+
+### `agent.logScreenshot()`
+
+在报告文件中记录当前截图，并添加描述。
+
+- 类型
+
+```typescript
+function logScreenshot(title?: string, options?: Object): Promise<void>;
+```
+
+- 参数：
+
+  - `title?: string` - 可选，截图的标题，如果未提供，则标题为 'untitled'。
+  - `options?: Object` - 可选，一个配置对象，包含：
+    - `content?: string` - 截图的描述。
+
+- 返回值：
+
+  - `Promise<void>`
+
+- 示例：
+
+```typescript
+await agent.logScreenshot('登录页面', {
+  content: '用户 A',
+});
+```
+
+### `agent._unstableLogContent()`
+
+从报告文件中获取日志内容。日志内容的结构可能会在未来发生变化。
+
+- 类型
+
+```typescript
+function _unstableLogContent(): Object;
+```
+
+- 返回值：
+
+  - 返回一个对象，包含日志内容。
+
+- 示例：
+
+```typescript
+const logContent = agent._unstableLogContent();
+console.log(logContent);
 ```
 
 ## 属性
@@ -624,9 +706,9 @@ console.log(result);
 import { overrideAIConfig } from '@midscene/web/puppeteer'; // 或其他的 Agent
 
 overrideAIConfig({
-  OPENAI_BASE_URL: "...",
-  OPENAI_API_KEY: "...",
-  MIDSCENE_MODEL_NAME: "..."
+  OPENAI_BASE_URL: '...',
+  OPENAI_API_KEY: '...',
+  MIDSCENE_MODEL_NAME: '...',
 });
 ```
 
@@ -654,7 +736,7 @@ LangSmith 是一个用于调试大语言模型的平台。想要集成 LangSmith
 # 设置环境变量
 
 # 启用调试标志
-export MIDSCENE_LANGSMITH_DEBUG=1 
+export MIDSCENE_LANGSMITH_DEBUG=1
 
 # LangSmith 配置
 export LANGSMITH_TRACING_V2=true
@@ -668,4 +750,3 @@ export LANGSMITH_PROJECT="your_project_name_here"
 ```log
 DEBUGGING MODE: langsmith wrapper enabled
 ```
-

@@ -24,9 +24,10 @@ export type {
 export * from './yaml';
 
 export type AIUsageInfo = Record<string, any> & {
-  prompt_tokens: number;
-  completion_tokens: number;
-  total_tokens: number;
+  prompt_tokens: number | undefined;
+  completion_tokens: number | undefined;
+  total_tokens: number | undefined;
+  time_cost: number | undefined;
 };
 
 /**
@@ -427,7 +428,6 @@ export type ExecutionTask<
       start: number;
       end?: number;
       cost?: number;
-      aiCost?: number;
     };
     usage?: AIUsageInfo;
   };

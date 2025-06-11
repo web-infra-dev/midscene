@@ -26,7 +26,7 @@ Update playwright.config.ts
 export default defineConfig({
   testDir: './e2e',
 + timeout: 90 * 1000,
-+ reporter: [["list"], ["@midscene/web/playwright-report", { type: "merged" }]], // type optional, default is "merged", means multiple test cases generate one report, optional value is "separate", means one report for each test case
++ reporter: [["list"], ["@midscene/web/playwright-reporter", { type: "merged" }]], // type optional, default is "merged", means multiple test cases generate one report, optional value is "separate", means one report for each test case
 });
 ```
 
@@ -39,82 +39,98 @@ import { test as base } from '@playwright/test';
 import type { PlayWrightAiFixtureType } from '@midscene/web/playwright';
 import { PlaywrightAiFixture } from '@midscene/web/playwright';
 
-export const test = base.extend<PlayWrightAiFixtureType>(PlaywrightAiFixture({
-  waitForNetworkIdleTimeout: 2000, // optional, the timeout for waiting for network idle between each action, default is 2000ms
-}));
+export const test = base.extend<PlayWrightAiFixtureType>(
+  PlaywrightAiFixture({
+    waitForNetworkIdleTimeout: 2000, // optional, the timeout for waiting for network idle between each action, default is 2000ms
+  }),
+);
 ```
 
 ## Step 3: write test cases
 
 ### Basic AI Operation APIs
 
-* `ai` or `aiAction` - General AI interaction
-* `aiTap` - Click operation
-* `aiHover` - Hover operation
-* `aiInput` - Input operation
-* `aiKeyboardPress` - Keyboard operation
-* `aiScroll` - Scroll operation
+- `ai` or `aiAction` - General AI interaction
+- `aiTap` - Click operation
+- `aiHover` - Hover operation
+- `aiInput` - Input operation
+- `aiKeyboardPress` - Keyboard operation
+- `aiScroll` - Scroll operation
 
 ### Query
 
-* `aiQuery` - AI Query
+- `aiQuery` - AI Query
+- `aiNumber` - Number Query
+- `aiString` - String Query
+- `aiBoolean` - Boolean Query
 
 ### More APIs
 
-* `aiAssert` - AI Assertion
-* `aiWaitFor` - AI Wait
+- `aiAssert` - AI Assertion
+- `aiWaitFor` - AI Wait
+- `aiLocate` - Locate Element
 
-You can find more details in [API Reference](./API).
+Besides the exposed shortcut methods, if you need to call other [API](./API) provided by the agent, you can use `agentForPage` to get the `PageAgent` instance, and use `PageAgent` to call the API for interaction:
+
+````typescript
+test('case demo', async ({ agentForPage, page }) => {
+  const agent = await agentForPage(page);
+
+  await agent.logScreenshot();
+  const logContent = agent._unstableLogContent();
+  console.log(logContent);
+});
+
 
 ### Example Code
 
 ```typescript title="./e2e/ebay-search.spec.ts"
-import { expect } from "@playwright/test";
-import { test } from "./fixture";
+import { expect } from '@playwright/test';
+import { test } from './fixture';
 
 test.beforeEach(async ({ page }) => {
   page.setViewportSize({ width: 400, height: 905 });
-  await page.goto("https://www.ebay.com");
-  await page.waitForLoadState("networkidle");
+  await page.goto('https://www.ebay.com');
+  await page.waitForLoadState('networkidle');
 });
 
-test("search headphone on ebay", async ({ 
-  ai, 
-  aiQuery, 
+test('search headphone on ebay', async ({
+  ai,
+  aiQuery,
   aiAssert,
   aiInput,
   aiTap,
   aiScroll,
-  aiWaitFor
+  aiWaitFor,
 }) => {
   // Use aiInput to enter search keyword
   await aiInput('Headphones', 'search box');
-  
+
   // Use aiTap to click search button
   await aiTap('search button');
-  
+
   // Wait for search results to load
   await aiWaitFor('search results list loaded', { timeoutMs: 5000 });
-  
+
   // Use aiScroll to scroll to bottom
   await aiScroll(
-    { 
+    {
       direction: 'down',
-      scrollType: 'untilBottom'
+      scrollType: 'untilBottom',
     },
-    'search results list'
+    'search results list',
   );
-  
+
   // Use aiQuery to get product information
-  const items = await aiQuery<Array<{title: string, price: number}>>(
-    'get product titles and prices from search results'
+  const items = await aiQuery<Array<{ title: string; price: number }>>(
+    'get product titles and prices from search results',
   );
-  
-  console.log("headphones in stock", items);
+
+  console.log('headphones in stock', items);
   expect(items?.length).toBeGreaterThan(0);
-  
+
   // Use aiAssert to verify filter functionality
-  await aiAssert("category filter exists on the left side");
+  await aiAssert('category filter exists on the left side');
 });
 ```
 
@@ -132,5 +148,6 @@ After the command executes successfully, it will output: `Midscene - report file
 
 ## More
 
-* For all the methods on the Agent, please refer to [API Reference](./API).
-* For more details about prompting, please refer to [Prompting Tips](./prompting-tips)
+- For all the methods on the Agent, please refer to [API Reference](./API).
+- For more details about prompting, please refer to [Prompting Tips](./prompting-tips)
+````

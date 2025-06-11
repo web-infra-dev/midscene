@@ -14,7 +14,7 @@ import {
   getAIConfigInJson,
 } from '@midscene/shared/env';
 import { getRunningPkgInfo } from '@midscene/shared/fs';
-import { assert } from '@midscene/shared/utils';
+import { assert, logMsg } from '@midscene/shared/utils';
 import { escapeHtml, ifInBrowser, uuid } from '@midscene/shared/utils';
 import xss from 'xss';
 import type { Rect, ReportDumpWithAttributes } from './types';
@@ -163,12 +163,26 @@ export function writeDumpReport(
   reportHTMLContent(dumpData, reportPath);
 
   if (process.env.MIDSCENE_DEBUG_LOG_JSON) {
+    const jsonPath = `${reportPath}.json`;
+    let data = dumpData as ReportDumpWithAttributes[];
+
+    if (typeof dumpData === 'string') {
+      data = JSON.parse(dumpData) as ReportDumpWithAttributes[];
+    }
+
     writeFileSync(
-      `${reportPath}.json`,
-      typeof dumpData === 'string'
-        ? dumpData
-        : JSON.stringify(dumpData, null, 2),
+      jsonPath,
+      JSON.stringify(
+        data.map((item) => ({
+          dumpString: JSON.parse(item.dumpString),
+          attributes: item.attributes,
+        })),
+        null,
+        2,
+      ),
     );
+
+    logMsg(`Midscene - dump file written: ${jsonPath}`);
   }
 
   return reportPath;

@@ -25,7 +25,8 @@
       "**/todo-report.spec.ts-snapshots/**",
       "**/visualizer/scripts/fixture/*",
       "**/unpacked-extension/*",
-      "**/page-data/**"
+      "**/page-data/**",
+      "**/dump.json"
     ]
   },
   "javascript": {

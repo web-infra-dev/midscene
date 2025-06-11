@@ -709,4 +709,27 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     this.appendExecutionDump(executionDump);
     this.writeOutActionDumps();
   }
+
+  _unstableLogContent() {
+    const { groupName, groupDescription, executions } = this.dump;
+    const newExecutions = Array.isArray(executions)
+      ? executions.map((execution: any) => {
+          const { tasks, ...restExecution } = execution;
+          let newTasks = tasks;
+          if (Array.isArray(tasks)) {
+            newTasks = tasks.map((task: any) => {
+              // only remove pageContext and log from task
+              const { pageContext, log, ...restTask } = task;
+              return restTask;
+            });
+          }
+          return { ...restExecution, ...(newTasks ? { tasks: newTasks } : {}) };
+        })
+      : [];
+    return {
+      groupName,
+      groupDescription,
+      executions: newExecutions,
+    };
+  }
 }

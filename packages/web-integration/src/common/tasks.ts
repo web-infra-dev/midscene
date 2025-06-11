@@ -285,8 +285,6 @@ export class PageTaskExecutor {
                 })
               ).element;
 
-            const aiCost = Date.now() - startTime;
-
             // update cache
             let currentXpaths: string[] | undefined;
             if (
@@ -331,7 +329,6 @@ export class PageTaskExecutor {
                 originalXpaths: xpaths,
                 currentXpaths,
               },
-              aiCost,
             };
           },
         };
@@ -351,6 +348,7 @@ export class PageTaskExecutor {
               insightDump = dump;
             };
             this.insight.onceDumpUpdatedFn = dumpCollector;
+            const startTime = Date.now();
             const assertion = await this.insight.assert(
               assertPlan.param.assertion,
             );
@@ -880,7 +878,6 @@ export class PageTaskExecutor {
           size: pageContext.size,
         });
 
-        const aiCost = Date.now() - startTime;
         const { actions, action_summary } = planResult;
         this.appendConversationHistory({
           role: 'assistant',
@@ -898,7 +895,6 @@ export class PageTaskExecutor {
           cache: {
             hit: false,
           },
-          aiCost,
         };
       },
     };
