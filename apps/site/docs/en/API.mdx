@@ -6,25 +6,25 @@
 
 Each Agent in Midscene has its own constructor.
 
-* In Puppeteer, use [PuppeteerAgent](./integrate-with-puppeteer)
-* In Bridge Mode, use [AgentOverChromeBridge](./bridge-mode-by-chrome-extension#constructor)
-* In Android, use [AndroidAgent](./integrate-with-android)
+- In Puppeteer, use [PuppeteerAgent](./integrate-with-puppeteer)
+- In Bridge Mode, use [AgentOverChromeBridge](./bridge-mode-by-chrome-extension#constructor)
+- In Android, use [AndroidAgent](./integrate-with-android)
 
 These Agents share some common constructor parameters:
 
-* `generateReport: boolean`: If true, a report file will be generated. (Default: true)
-* `autoPrintReportMsg: boolean`: If true, report messages will be printed. (Default: true)
-* `cacheId: string | undefined`: If provided, this cacheId will be used to save or match the cache. (Default: undefined, means cache feature is disabled)
-* `actionContext: string`: Some background knowledge that should be sent to the AI model when calling `agent.aiAction()`, like 'close the cookie consent dialog first if it exists' (Default: undefined)
+- `generateReport: boolean`: If true, a report file will be generated. (Default: true)
+- `autoPrintReportMsg: boolean`: If true, report messages will be printed. (Default: true)
+- `cacheId: string | undefined`: If provided, this cacheId will be used to save or match the cache. (Default: undefined, means cache feature is disabled)
+- `actionContext: string`: Some background knowledge that should be sent to the AI model when calling `agent.aiAction()`, like 'close the cookie consent dialog first if it exists' (Default: undefined)
 
 In Playwright and Puppeteer, there is an additional parameter:
 
-* `forceSameTabNavigation: boolean`: If true, page navigation is restricted to the current tab. (Default: true)
+- `forceSameTabNavigation: boolean`: If true, page navigation is restricted to the current tab. (Default: true)
 
 In Puppeteer, there are 2 additional parameters:
 
-* `waitForNetworkIdleTimeout: number`: The timeout for waiting for network idle between each action. (Default: 2000ms, set to 0 to disable the timeout)
-* `waitForNavigationTimeout: number`: The timeout for waiting for navigation finished. (Default: 5000ms, set to 0 to disable the timeout)
+- `waitForNetworkIdleTimeout: number`: The timeout for waiting for network idle between each action. (Default: 2000ms, set to 0 to disable the timeout)
+- `waitForNavigationTimeout: number`: The timeout for waiting for navigation finished. (Default: 5000ms, set to 0 to disable the timeout)
 
 ## Interaction Methods
 
@@ -34,8 +34,8 @@ Below are the main APIs available for the various Agents in Midscene.
 
 In Midscene, you can choose to use either auto planning or instant action.
 
-* `agent.ai()` is for Auto Planning: Midscene will automatically plan the steps and execute them. It's more smart and looks like more fashionable style for AI agents. But it may be slower and heavily rely on the quality of the AI model.
-* `agent.aiTap()`, `agent.aiHover()`, `agent.aiInput()`, `agent.aiKeyboardPress()`, `agent.aiScroll()`, `agent.aiRightClick()` are for Instant Action: Midscene will directly perform the specified action, while the AI model is responsible for basic tasks such as locating elements. It's faster and more reliable if you are certain about the action you want to perform.
+- `agent.ai()` is for Auto Planning: Midscene will automatically plan the steps and execute them. It's more smart and looks like more fashionable style for AI agents. But it may be slower and heavily rely on the quality of the AI model.
+- `agent.aiTap()`, `agent.aiHover()`, `agent.aiInput()`, `agent.aiKeyboardPress()`, `agent.aiScroll()`, `agent.aiRightClick()` are for Instant Action: Midscene will directly perform the specified action, while the AI model is responsible for basic tasks such as locating elements. It's faster and more reliable if you are certain about the action you want to perform.
 
 :::
 
@@ -43,31 +43,40 @@ In Midscene, you can choose to use either auto planning or instant action.
 
 This method allows you to perform a series of UI actions described in natural language. Midscene automatically plans the steps and executes them.
 
-* Type
+- Type
 
 ```typescript
-function aiAction(prompt: string, options?: {
-  cacheable?: boolean;
-}): Promise<void>;
+function aiAction(
+  prompt: string,
+  options?: {
+    cacheable?: boolean;
+  },
+): Promise<void>;
 function ai(prompt: string): Promise<void>; // shorthand form
 ```
 
-* Parameters:
-  * `prompt: string` - A natural language description of the UI steps.
-  * `options?: Object` - Optional, a configuration object containing:
-    * `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+- Parameters:
 
-* Return Value:
-  * Returns a Promise that resolves to void when all steps are completed; if execution fails, an error is thrown.
+  - `prompt: string` - A natural language description of the UI steps.
+  - `options?: Object` - Optional, a configuration object containing:
+    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
-* Examples:
+- Return Value:
+
+  - Returns a Promise that resolves to void when all steps are completed; if execution fails, an error is thrown.
+
+- Examples:
 
 ```typescript
 // Basic usage
-await agent.aiAction('Type "JavaScript" into the search box, then click the search button');
+await agent.aiAction(
+  'Type "JavaScript" into the search box, then click the search button',
+);
 
 // Using the shorthand .ai form
-await agent.ai('Click the login button at the top of the page, then enter "test@example.com" in the username field');
+await agent.ai(
+  'Click the login button at the top of the page, then enter "test@example.com" in the username field',
+);
 
 // When using UI Agent models like ui-tars, you can try a more goal-driven prompt
 await agent.aiAction('Post a Tweet "Hello World"');
@@ -75,12 +84,13 @@ await agent.aiAction('Post a Tweet "Hello World"');
 
 :::tip
 
-Under the hood, Midscene uses AI model to split the instruction into a series of steps (a.k.a. "Planning"). It then executes these steps sequentially. If Midscene determines that the actions cannot be performed, an error will be thrown. 
+Under the hood, Midscene uses AI model to split the instruction into a series of steps (a.k.a. "Planning"). It then executes these steps sequentially. If Midscene determines that the actions cannot be performed, an error will be thrown.
 
 For optimal results, please provide clear and detailed instructions for `agent.aiAction()`. For guides about writing prompts, you may read this doc: [Tips for Writing Prompts](./prompting-tips).
 
 Related Documentation:
-* [Choose a model](./choose-a-model)
+
+- [Choose a model](./choose-a-model)
 
 :::
 
@@ -88,50 +98,56 @@ Related Documentation:
 
 Tap something.
 
-* Type
+- Type
 
 ```typescript
 function aiTap(locate: string, options?: Object): Promise<void>;
 ```
 
-* Parameters:
-  * `locate: string` - A natural language description of the element to tap.
-  * `options?: Object` - Optional, a configuration object containing:
-    * `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. 
-    * `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+- Parameters:
 
-* Return Value:
-  * Returns a `Promise<void>`
+  - `locate: string` - A natural language description of the element to tap.
+  - `options?: Object` - Optional, a configuration object containing:
+    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element.
+    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
-* Examples:
+- Return Value:
+
+  - Returns a `Promise<void>`
+
+- Examples:
 
 ```typescript
 await agent.aiTap('The login button at the top of the page');
 
 // Use deepThink feature to precisely locate the element
-await agent.aiTap('The login button at the top of the page', { deepThink: true });
+await agent.aiTap('The login button at the top of the page', {
+  deepThink: true,
+});
 ```
 
 ### `agent.aiHover()`
 
 Move mouse over something.
 
-* Type
+- Type
 
 ```typescript
 function aiHover(locate: string, options?: Object): Promise<void>;
 ```
 
-* Parameters:
-  * `locate: string` - A natural language description of the element to hover over.
-  * `options?: Object` - Optional, a configuration object containing:
-    * `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. 
-    * `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+- Parameters:
 
-* Return Value:
-  * Returns a `Promise<void>`
+  - `locate: string` - A natural language description of the element to hover over.
+  - `options?: Object` - Optional, a configuration object containing:
+    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element.
+    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
-* Examples:
+- Return Value:
+
+  - Returns a `Promise<void>`
+
+- Examples:
 
 ```typescript
 await agent.aiHover('The version number of the current page');
@@ -141,24 +157,26 @@ await agent.aiHover('The version number of the current page');
 
 Input text into something.
 
-* Type
+- Type
 
 ```typescript
 function aiInput(text: string, locate: string, options?: Object): Promise<void>;
 ```
 
-* Parameters:
-  * `text: string` - The final text content that should be placed in the input element. Use blank string to clear the input.
-  * `locate: string` - A natural language description of the element to input text into.
-  * `options?: Object` - Optional, a configuration object containing:
-    * `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. 
-    * `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
-    * `autoDismissKeyboard?: boolean` - If true, the keyboard will be dismissed after input text, only available in Android. (Default: true)
+- Parameters:
 
-* Return Value:
-  * Returns a `Promise<void>`
+  - `text: string` - The final text content that should be placed in the input element. Use blank string to clear the input.
+  - `locate: string` - A natural language description of the element to input text into.
+  - `options?: Object` - Optional, a configuration object containing:
+    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element.
+    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+    - `autoDismissKeyboard?: boolean` - If true, the keyboard will be dismissed after input text, only available in Android. (Default: true)
 
-* Examples:
+- Return Value:
+
+  - Returns a `Promise<void>`
+
+- Examples:
 
 ```typescript
 await agent.aiInput('Hello World', 'The search input box');
@@ -168,23 +186,29 @@ await agent.aiInput('Hello World', 'The search input box');
 
 Press a keyboard key.
 
-* Type
+- Type
 
 ```typescript
-function aiKeyboardPress(key: string, locate?: string, options?: Object): Promise<void>;
+function aiKeyboardPress(
+  key: string,
+  locate?: string,
+  options?: Object,
+): Promise<void>;
 ```
 
-* Parameters:
-  * `key: string` - The web key to press, e.g. 'Enter', 'Tab', 'Escape', etc. Key Combination is not supported. 
-  * `locate?: string` - Optional, a natural language description of the element to press the key on.
-  * `options?: Object` - Optional, a configuration object containing:
-    * `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. 
-    * `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+- Parameters:
 
-* Return Value:
-  * Returns a `Promise<void>`
+  - `key: string` - The web key to press, e.g. 'Enter', 'Tab', 'Escape', etc. Key Combination is not supported.
+  - `locate?: string` - Optional, a natural language description of the element to press the key on.
+  - `options?: Object` - Optional, a configuration object containing:
+    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element.
+    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
-* Examples:
+- Return Value:
+
+  - Returns a `Promise<void>`
+
+- Examples:
 
 ```typescript
 await agent.aiKeyboardPress('Enter', 'The search input box');
@@ -194,57 +218,70 @@ await agent.aiKeyboardPress('Enter', 'The search input box');
 
 Scroll a page or an element.
 
-* Type
+- Type
 
 ```typescript
-function aiScroll(scrollParam: PlanningActionParamScroll, locate?: string, options?: Object): Promise<void>;
+function aiScroll(
+  scrollParam: PlanningActionParamScroll,
+  locate?: string,
+  options?: Object,
+): Promise<void>;
 ```
 
-* Parameters:
-  * `scrollParam: PlanningActionParamScroll` - The scroll parameter
-    * `direction: 'up' | 'down' | 'left' | 'right'` - The direction to scroll.
-    * `scrollType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft'` - Optional, the type of scroll to perform.
-    * `distance: number` - Optional, the distance to scroll in px.
-  * `locate?: string` - Optional, a natural language description of the element to scroll on. If not provided, Midscene will perform scroll on the current mouse position.
-  * `options?: Object` - Optional, a configuration object containing:
-    * `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. 
-    * `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+- Parameters:
 
-* Return Value:
-  * Returns a `Promise<void>`
+  - `scrollParam: PlanningActionParamScroll` - The scroll parameter
+    - `direction: 'up' | 'down' | 'left' | 'right'` - The direction to scroll.
+    - `scrollType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft'` - Optional, the type of scroll to perform.
+    - `distance: number` - Optional, the distance to scroll in px.
+  - `locate?: string` - Optional, a natural language description of the element to scroll on. If not provided, Midscene will perform scroll on the current mouse position.
+  - `options?: Object` - Optional, a configuration object containing:
+    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element.
+    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
-* Examples:
+- Return Value:
+
+  - Returns a `Promise<void>`
+
+- Examples:
 
 ```typescript
-await agent.aiScroll({ direction: 'up', distance: 100, scrollType: 'once' }, 'The form panel');
+await agent.aiScroll(
+  { direction: 'up', distance: 100, scrollType: 'once' },
+  'The form panel',
+);
 ```
 
 ### `agent.aiRightClick()`
 
 Right-click on an element. Please note that Midscene cannot interact with the native context menu in browser after right-clicking. This interface is usually used for the element that listens to the right-click event by itself.
 
-* Type
+- Type
 
 ```typescript
 function aiRightClick(locate: string, options?: Object): Promise<void>;
 ```
 
-* Parameters:
-  * `locate: string` - A natural language description of the element to right-click on.
-  * `options?: Object` - Optional, a configuration object containing:
-    * `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. 
-    * `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+- Parameters:
 
-* Return Value:
-  * Returns a `Promise<void>` 
+  - `locate: string` - A natural language description of the element to right-click on.
+  - `options?: Object` - Optional, a configuration object containing:
+    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element.
+    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
-* Examples:
+- Return Value:
+
+  - Returns a `Promise<void>`
+
+- Examples:
 
 ```typescript
 await agent.aiRightClick('The file name at the top of the page');
 
 // Use deepThink feature to precisely locate the element
-await agent.aiRightClick('The file name at the top of the page', { deepThink: true });
+await agent.aiRightClick('The file name at the top of the page', {
+  deepThink: true,
+});
 ```
 
 :::tip About the `deepThink` feature
@@ -259,30 +296,33 @@ The `deepThink` feature is a powerful feature that allows Midscene to call AI mo
 
 This method allows you to extract data directly from the UI using multimodal AI reasoning capabilities. Simply define the expected format (e.g., string, number, JSON, or an array) in the `dataDemand`, and Midscene will return a result that matches the format.
 
-* Type
+- Type
 
 ```typescript
 function aiQuery<T>(dataDemand: string | Object, options?: Object): Promise<T>;
 ```
 
-* Parameters:
-  * `dataDemand: T`: A description of the expected data and its return format.
-  * `options?: Object` - Optional, a configuration object containing:
-    * `domIncluded?: boolean` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. Default: False
-    * `screenshotIncluded?: boolean` - Whether to send screenshot to the model. Default: True.
+- Parameters:
 
-* Return Value:
-  * Returns any valid basic type, such as string, number, JSON, array, etc.
-  * Just describe the format in `dataDemand`, and Midscene will return a matching result.
+  - `dataDemand: T`: A description of the expected data and its return format.
+  - `options?: Object` - Optional, a configuration object containing:
+    - `domIncluded?: boolean` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. Default: False
+    - `screenshotIncluded?: boolean` - Whether to send screenshot to the model. Default: True.
 
-* Examples:
+- Return Value:
+
+  - Returns any valid basic type, such as string, number, JSON, array, etc.
+  - Just describe the format in `dataDemand`, and Midscene will return a matching result.
+
+- Examples:
 
 ```typescript
 const dataA = await agent.aiQuery({
   time: 'The date and time displayed in the top-left corner as a string',
   userInfo: 'User information in the format {name: string}',
   tableFields: 'An array of table field names, string[]',
-  tableDataRecord: 'Table records in the format {id: string, [fieldName]: string}[]',
+  tableDataRecord:
+    'Table records in the format {id: string, [fieldName]: string}[]',
 });
 
 // You can also describe the expected return format using a string:
@@ -291,91 +331,106 @@ const dataA = await agent.aiQuery({
 const dataB = await agent.aiQuery('string[], list of task names');
 
 // dataC will be an array of objects
-const dataC = await agent.aiQuery('{name: string, age: string}[], table data records');
+const dataC = await agent.aiQuery(
+  '{name: string, age: string}[], table data records',
+);
 
 // Use domIncluded feature to extract invisible attributes
-const dataD = await agent.aiQuery('{name: string, age: string, avatarUrl: string}[], table data records', { domIncluded: true });
+const dataD = await agent.aiQuery(
+  '{name: string, age: string, avatarUrl: string}[], table data records',
+  { domIncluded: true },
+);
 ```
 
 ### `agent.aiBoolean()`
 
-Extract a boolean value from the UI.  
+Extract a boolean value from the UI.
 
-* Type
+- Type
 
 ```typescript
 function aiBoolean(prompt: string, options?: Object): Promise<boolean>;
 ```
 
-* Parameters:
-  * `prompt: string` - A natural language description of the expected value.
-  * `options?: Object` - Optional, a configuration object containing:
-    * `domIncluded?: boolean` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. Default: False
-    * `screenshotIncluded?: boolean` - Whether to send screenshot to the model. Default: True.
-* Return Value:
-  * Returns a `Promise<boolean>` when AI returns a boolean value.
+- Parameters:
+  - `prompt: string` - A natural language description of the expected value.
+  - `options?: Object` - Optional, a configuration object containing:
+    - `domIncluded?: boolean` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. Default: False
+    - `screenshotIncluded?: boolean` - Whether to send screenshot to the model. Default: True.
+- Return Value:
 
-* Examples:
+  - Returns a `Promise<boolean>` when AI returns a boolean value.
+
+- Examples:
 
 ```typescript
 const boolA = await agent.aiBoolean('Whether there is a login dialog');
 
 // Use domIncluded feature to extract invisible attributes
-const boolB = await agent.aiBoolean('Whether the login button has a link', { domIncluded: true });
+const boolB = await agent.aiBoolean('Whether the login button has a link', {
+  domIncluded: true,
+});
 ```
 
 ### `agent.aiNumber()`
 
 Extract a number value from the UI.
 
-* Type
+- Type
 
 ```typescript
 function aiNumber(prompt: string, options?: Object): Promise<number>;
 ```
 
-* Parameters:
-  * `prompt: string` - A natural language description of the expected value.
-  * `options?: Object` - Optional, a configuration object containing:
-    * `domIncluded?: boolean` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. Default: False
-    * `screenshotIncluded?: boolean` - Whether to send screenshot to the model. Default: True.
-* Return Value:
-  * Returns a `Promise<number>` when AI returns a number value.
+- Parameters:
+  - `prompt: string` - A natural language description of the expected value.
+  - `options?: Object` - Optional, a configuration object containing:
+    - `domIncluded?: boolean` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. Default: False
+    - `screenshotIncluded?: boolean` - Whether to send screenshot to the model. Default: True.
+- Return Value:
 
-* Examples:
+  - Returns a `Promise<number>` when AI returns a number value.
+
+- Examples:
 
 ```typescript
 const numberA = await agent.aiNumber('The remaining points of the account');
 
 // Use domIncluded feature to extract invisible attributes
-const numberB = await agent.aiNumber('The value of the remaining points element', { domIncluded: true });
+const numberB = await agent.aiNumber(
+  'The value of the remaining points element',
+  { domIncluded: true },
+);
 ```
 
 ### `agent.aiString()`
 
 Extract a string value from the UI.
 
-* Type
+- Type
 
 ```typescript
 function aiString(prompt: string, options?: Object): Promise<string>;
 ```
 
-* Parameters:
-  * `prompt: string` - A natural language description of the expected value.
-  * `options?: Object` - Optional, a configuration object containing:
-    * `domIncluded?: boolean` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. Default: False
-    * `screenshotIncluded?: boolean` - Whether to send screenshot to the model. Default: True.
-* Return Value:
-  * Returns a `Promise<string>` when AI returns a string value.
+- Parameters:
+  - `prompt: string` - A natural language description of the expected value.
+  - `options?: Object` - Optional, a configuration object containing:
+    - `domIncluded?: boolean` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. Default: False
+    - `screenshotIncluded?: boolean` - Whether to send screenshot to the model. Default: True.
+- Return Value:
 
-* Examples:
+  - Returns a `Promise<string>` when AI returns a string value.
+
+- Examples:
 
 ```typescript
 const stringA = await agent.aiString('The first item in the list');
 
 // Use domIncluded feature to extract invisible attributes
-const stringB = await agent.aiString('The link of the first item in the list', { domIncluded: true });
+const stringB = await agent.aiString('The link of the first item in the list', {
+  domIncluded: true,
+});
 ```
 
 ## More APIs
@@ -384,20 +439,23 @@ const stringB = await agent.aiString('The link of the first item in the list', {
 
 Specify an assertion in natural language, and the AI determines whether the condition is true. If the assertion fails, the SDK throws an error that includes both the optional `errorMsg` and a detailed reason generated by the AI.
 
-* Type
+- Type
 
 ```typescript
 function aiAssert(assertion: string, errorMsg?: string): Promise<void>;
 ```
 
-* Parameters:
-  * `assertion: string` - The assertion described in natural language.
-  * `errorMsg?: string` - An optional error message to append if the assertion fails.
+- Parameters:
 
-* Return Value:
-  * Returns a Promise that resolves to void if the assertion passes; if it fails, an error is thrown with `errorMsg` and additional AI-provided information.
+  - `assertion: string` - The assertion described in natural language.
+  - `errorMsg?: string` - An optional error message to append if the assertion fails.
 
-* Example:
+- Return Value:
+
+  - Returns a Promise that resolves to void if the assertion passes; if it fails, an error is thrown with `errorMsg` and additional AI-provided information.
+
+- Example:
+
 ```typescript
 await agent.aiAssert('The price of "Sauce Labs Onesie" is 7.99');
 ```
@@ -409,22 +467,26 @@ For example, you might replace the above code with:
 
 ```typescript
 const items = await agent.aiQuery(
-  '"{name: string, price: number}[], return product names and prices'
+  '"{name: string, price: number}[], return product names and prices',
 );
-const onesieItem = items.find(item => item.name === 'Sauce Labs Onesie');
+const onesieItem = items.find((item) => item.name === 'Sauce Labs Onesie');
 expect(onesieItem).toBeTruthy();
 expect(onesieItem.price).toBe(7.99);
 ```
+
 :::
 
 ### `agent.aiLocate()`
 
 Locate an element using natural language.
 
-* Type
+- Type
 
 ```typescript
-function aiLocate(locate: string, options?: Object): Promise<{
+function aiLocate(
+  locate: string,
+  options?: Object,
+): Promise<{
   rect: {
     left: number;
     top: number;
@@ -435,19 +497,23 @@ function aiLocate(locate: string, options?: Object): Promise<{
 }>;
 ```
 
-* Parameters:
-  * `locate: string` - A natural language description of the element to locate.
-  * `options?: Object` - Optional, a configuration object containing:
-    * `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. 
-    * `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+- Parameters:
 
-* Return Value:
-  * Returns a `Promise` when the element is located parsed as an locate info object.
+  - `locate: string` - A natural language description of the element to locate.
+  - `options?: Object` - Optional, a configuration object containing:
+    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element.
+    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
-* Examples:
+- Return Value:
+
+  - Returns a `Promise` when the element is located parsed as an locate info object.
+
+- Examples:
 
 ```typescript
-const locateInfo = await agent.aiLocate('The login button at the top of the page');
+const locateInfo = await agent.aiLocate(
+  'The login button at the top of the page',
+);
 console.log(locateInfo);
 ```
 
@@ -455,37 +521,41 @@ console.log(locateInfo);
 
 Wait until a specified condition, described in natural language, becomes true. Considering the cost of AI calls, the check interval will not exceed the specified `checkIntervalMs`.
 
-* Type
+- Type
 
 ```typescript
 function aiWaitFor(
-  assertion: string, 
-  options?: { 
+  assertion: string,
+  options?: {
     timeoutMs?: number;
     checkIntervalMs?: number;
-  }
+  },
 ): Promise<void>;
 ```
 
-* Parameters:
-  * `assertion: string` - The condition described in natural language.
-  * `options?: object` - An optional configuration object containing:
-    * `timeoutMs?: number` - Timeout in milliseconds (default: 15000).
-    * `checkIntervalMs?: number` - Interval for checking in milliseconds (default: 3000).
+- Parameters:
 
-* Return Value:
-  * Returns a Promise that resolves to void if the condition is met; if not, an error is thrown when the timeout is reached.
+  - `assertion: string` - The condition described in natural language.
+  - `options?: object` - An optional configuration object containing:
+    - `timeoutMs?: number` - Timeout in milliseconds (default: 15000).
+    - `checkIntervalMs?: number` - Interval for checking in milliseconds (default: 3000).
 
-* Examples:
+- Return Value:
+
+  - Returns a Promise that resolves to void if the condition is met; if not, an error is thrown when the timeout is reached.
+
+- Examples:
 
 ```typescript
 // Basic usage
-await agent.aiWaitFor("There is at least one headphone information displayed on the interface");
+await agent.aiWaitFor(
+  'There is at least one headphone information displayed on the interface',
+);
 
 // Using custom options
-await agent.aiWaitFor("The shopping cart icon shows a quantity of 2", {
-  timeoutMs: 30000,    // Wait for 30 seconds
-  checkIntervalMs: 5000  // Check every 5 seconds
+await agent.aiWaitFor('The shopping cart icon shows a quantity of 2', {
+  timeoutMs: 30000, // Wait for 30 seconds
+  checkIntervalMs: 5000, // Check every 5 seconds
 });
 ```
 
@@ -497,19 +567,21 @@ Given the time consumption of AI services, `.aiWaitFor` might not be the most ef
 
 Execute an automation script written in YAML. Only the `tasks` part of the script is executed, and it returns the results of all `.aiQuery` calls within the script.
 
-* Type
+- Type
 
 ```typescript
 function runYaml(yamlScriptContent: string): Promise<{ result: any }>;
 ```
 
-* Parameters:
-  * `yamlScriptContent: string` - The YAML-formatted script content.
+- Parameters:
 
-* Return Value:
-  * Returns an object with a `result` property that includes the results of all `.aiQuery` calls.
+  - `yamlScriptContent: string` - The YAML-formatted script content.
 
-* Example:
+- Return Value:
+
+  - Returns an object with a `result` property that includes the results of all `.aiQuery` calls.
+
+- Example:
 
 ```typescript
 const { result } = await agent.runYaml(`
@@ -534,38 +606,43 @@ For more information about YAML scripts, please refer to [Automate with Scripts 
 
 Set the background knowledge that should be sent to the AI model when calling `agent.aiAction()`.
 
-* Type
+- Type
 
 ```typescript
 function setAIActionContext(actionContext: string): void;
 ```
 
-* Parameters:
-  * `actionContext: string` - The background knowledge that should be sent to the AI model.
+- Parameters:
 
-* Example:
+  - `actionContext: string` - The background knowledge that should be sent to the AI model.
+
+- Example:
 
 ```typescript
-await agent.setAIActionContext('Close the cookie consent dialog first if it exists');
+await agent.setAIActionContext(
+  'Close the cookie consent dialog first if it exists',
+);
 ```
 
 ### `agent.evaluateJavaScript()`
 
 Evaluate a JavaScript expression in the web page context.
 
-* Type
+- Type
 
 ```typescript
 function evaluateJavaScript(script: string): Promise<any>;
 ```
 
-* Parameters:
-  * `script: string` - The JavaScript expression to evaluate.
+- Parameters:
 
-* Return Value:
-  * Returns the result of the JavaScript expression.
+  - `script: string` - The JavaScript expression to evaluate.
 
-* Example:  
+- Return Value:
+
+  - Returns the result of the JavaScript expression.
+
+- Example:
 
 ```typescript
 const result = await agent.evaluateJavaScript('document.title');
@@ -576,21 +653,23 @@ console.log(result);
 
 Log the current screenshot with a description in the report file.
 
-* Type
+- Type
 
 ```typescript
 function logScreenshot(title?: string, options?: Object): Promise<void>;
 ```
 
-* Parameters:
-  * `title?: string` - Optional, the title of the screenshot, if not provided, the title will be 'untitled'.
-  * `options?: Object` - Optional, a configuration object containing:
-    * `content?: string` - The description of the screenshot.
+- Parameters:
 
-* Return Value:
-  * Returns a `Promise<void>`
+  - `title?: string` - Optional, the title of the screenshot, if not provided, the title will be 'untitled'.
+  - `options?: Object` - Optional, a configuration object containing:
+    - `content?: string` - The description of the screenshot.
 
-* Examples:
+- Return Value:
+
+  - Returns a `Promise<void>`
+
+- Examples:
 
 ```typescript
 await agent.logScreenshot('Login page', {
@@ -598,23 +677,24 @@ await agent.logScreenshot('Login page', {
 });
 ```
 
-### `agent.unstableLogContent()`
+### `agent._unstableLogContent()`
 
 Retrieve the log content in JSON format from the report file. The structure of the log content may change in the future.
 
-* Type
+- Type
 
 ```typescript
-function unstableLogContent(): Object;
+function _unstableLogContent(): Object;
 ```
 
-* Return Value:
-  * Returns an object containing the log content.
+- Return Value:
 
-* Examples:
+  - Returns an object containing the log content.
+
+- Examples:
 
 ```typescript
-const logContent = agent.unstableLogContent();
+const logContent = agent._unstableLogContent();
 console.log(logContent);
 ```
 
@@ -634,9 +714,9 @@ You can override environment variables at runtime by calling the `overrideAIConf
 import { overrideAIConfig } from '@midscene/web/puppeteer'; // or another Agent
 
 overrideAIConfig({
-  OPENAI_BASE_URL: "...",
-  OPENAI_API_KEY: "...",
-  MIDSCENE_MODEL_NAME: "..."
+  OPENAI_BASE_URL: '...',
+  OPENAI_API_KEY: '...',
+  MIDSCENE_MODEL_NAME: '...',
 });
 ```
 
@@ -664,7 +744,7 @@ LangSmith is a platform for debugging large language models. To integrate LangSm
 # Set environment variables
 
 # Enable debug mode
-export MIDSCENE_LANGSMITH_DEBUG=1 
+export MIDSCENE_LANGSMITH_DEBUG=1
 
 # LangSmith configuration
 export LANGSMITH_TRACING_V2=true
