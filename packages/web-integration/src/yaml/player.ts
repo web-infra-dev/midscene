@@ -130,7 +130,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
     this.currentTaskIndex = taskIndex;
   }
 
-  private async flushResult() {
+  private flushResult() {
     if (Object.keys(this.result).length && this.output) {
       const output = resolve(process.cwd(), this.output);
       const outputDir = dirname(output);
@@ -141,9 +141,9 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
     }
   }
 
-  private async flushUnstableLogContent() {
+  private flushUnstableLogContent() {
     if (this.unstableLogContent) {
-      const content = await this.pageAgent?._unstableLogContent();
+      const content = this.pageAgent?._unstableLogContent();
       const filePath = resolve(process.cwd(), this.unstableLogContent);
       const outputDir = dirname(filePath);
       if (!existsSync(outputDir)) {

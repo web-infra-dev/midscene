@@ -197,7 +197,7 @@ describe('PageAgent logContent', () => {
   it('should return correct content', async () => {
     expect(agent.dump.executions[0].tasks[0].pageContext).toBeDefined();
     expect(agent.dump.executions[0].tasks[0].log).toBeDefined();
-    const content = (await agent._unstableLogContent()) as GroupedActionDump;
+    const content = agent._unstableLogContent() as GroupedActionDump;
     expect(content).matchSnapshot();
     expect(content.executions[0].tasks[0].pageContext).toBeUndefined();
     expect(content.executions[0].tasks[0].log).toBeUndefined();
