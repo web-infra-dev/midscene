@@ -1,6 +1,6 @@
+import { PLAYWRIGHT_EXAMPLE_CODE } from '@midscene/shared/constants';
 import type { ChatCompletionMessageParam } from 'openai/resources';
 import { AIActionType, callAi } from '../index';
-import { PLAYWRIGHT_EXAMPLE_CODE } from '@midscene/shared/constants';
 
 // Types and interfaces for Playwright test generation
 export interface EventCounts {

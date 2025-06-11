@@ -1,10 +1,10 @@
 import type { ChromeRecordedEvent } from '@midscene/recorder';
+import { YAML_EXAMPLE_CODE } from '@midscene/shared/constants';
 import {
   AIActionType,
   type ChatCompletionMessageParam,
   callAi,
 } from '../index';
-import { YAML_EXAMPLE_CODE } from '@midscene/shared/constants';
 
 // Common interfaces for test generation
 export interface EventCounts {

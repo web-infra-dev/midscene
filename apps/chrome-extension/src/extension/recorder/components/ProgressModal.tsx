@@ -1,10 +1,10 @@
 import { CheckCircleOutlined, LoadingOutlined } from '@ant-design/icons';
+import { ShinyText } from '@midscene/visualizer';
 import { Modal, Progress, Typography } from 'antd';
 // @ts-ignore
 import confetti from 'canvas-confetti';
 import type React from 'react';
 import { useEffect, useState } from 'react';
-import { ShinyText } from '@midscene/visualizer';
 
 const { Text, Title } = Typography;
 
@@ -174,14 +174,16 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
                 </div>
                 <div style={{ flex: 1 }}>
                   {step.status === 'loading' ? (
-                    <div style={{
-                      fontWeight: 600,
-                      fontSize: '14px',
-                      lineHeight: '22px',
-                      minHeight: '22px',
-                      display: 'flex',
-                      alignItems: 'center'
-                    }}>
+                    <div
+                      style={{
+                        fontWeight: 600,
+                        fontSize: '14px',
+                        lineHeight: '22px',
+                        minHeight: '22px',
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                    >
                       <ShinyText
                         text={step.title}
                         disabled={false}
@@ -199,7 +201,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
                           lineHeight: '22px',
                           minHeight: '22px',
                           display: 'inline-flex',
-                          alignItems: 'center'
+                          alignItems: 'center',
                         }}
                       >
                         {step.title}

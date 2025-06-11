@@ -45,5 +45,4 @@ export {
 
 export { timeStr, filterBase64Value } from './utils';
 
-
 export { default as ShinyText } from './component/shiny-text';
