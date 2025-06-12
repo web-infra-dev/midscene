@@ -244,7 +244,10 @@ export function trimContextByViewport(execution: ExecutionDump) {
           if (task.pageContext?.tree) {
             newTask.pageContext = {
               ...task.pageContext,
-              tree: filterVisibleTree(task.pageContext.tree)!,
+              tree: filterVisibleTree(task.pageContext.tree) || {
+                node: null,
+                children: [],
+              },
             };
           }
           return newTask;
