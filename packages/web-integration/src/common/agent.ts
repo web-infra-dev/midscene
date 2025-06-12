@@ -87,6 +87,7 @@ export interface PageAgentOpt {
   autoPrintReportMsg?: boolean;
   onTaskStartTip?: OnTaskStartTip;
   aiActionContext?: string;
+  cacheDir?: string;
 }
 
 export class PageAgent<PageType extends WebPage = WebPage> {
@@ -150,7 +151,9 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     if (opts?.cacheId && this.page.pageType !== 'android') {
       this.taskCache = new TaskCache(
         opts.cacheId,
-        getAIConfigInBoolean('MIDSCENE_CACHE'), // if we should use cache to match the element
+        getAIConfigInBoolean('MIDSCENE_CACHE'),
+        undefined, // cacheFilePath
+        opts.cacheDir, // 新的 cacheDir 参数
       );
     }
 

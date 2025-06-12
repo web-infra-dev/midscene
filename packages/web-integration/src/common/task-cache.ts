@@ -53,14 +53,14 @@ export class TaskCache {
     cacheId: string,
     isCacheResultUsed: boolean,
     cacheFilePath?: string,
+    cacheDir?: string,
   ) {
     assert(cacheId, 'cacheId is required');
     this.cacheId = replaceIllegalPathCharsAndSpace(cacheId);
 
     this.cacheFilePath = ifInBrowser
       ? undefined
-      : cacheFilePath ||
-        join(getMidsceneRunSubDir('cache'), `${this.cacheId}${cacheFileExt}`);
+      : cacheFilePath || join(cacheDir || '', `${this.cacheId}${cacheFileExt}`);
     this.isCacheResultUsed = isCacheResultUsed;
 
     let cacheContent;

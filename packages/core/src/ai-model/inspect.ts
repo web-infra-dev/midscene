@@ -329,13 +329,13 @@ export async function AiExtractElementInfo<
   const userContent: ChatCompletionUserMessageParam['content'] = [];
 
   if (extractOption?.screenshotIncluded !== false) {
-    userContent.push({
-      type: 'image_url',
-      image_url: {
-        url: screenshotBase64,
-        detail: 'high',
-      },
-    });
+    // userContent.push({
+    //   type: 'image_url',
+    //   image_url: {
+    //     url: screenshotBase64,
+    //     detail: 'high',
+    //   },
+    // });
   }
 
   userContent.push({
