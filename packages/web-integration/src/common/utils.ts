@@ -2,6 +2,8 @@ import type { StaticPage } from '@/playground';
 import type {
   BaseElement,
   ElementTreeNode,
+  ExecutionDump,
+  ExecutionTask,
   PlanningLocateParam,
   PlaywrightParserOpt,
   UIContext,
@@ -14,7 +16,6 @@ import {
   generateElementByPosition,
   getNodeFromCacheList,
   traverseTree,
-  treeToList,
 } from '@midscene/shared/extractor';
 import { resizeImgBase64 } from '@midscene/shared/img';
 import type { DebugFunction } from '@midscene/shared/logger';
@@ -217,4 +218,37 @@ export function matchElementFromPlan(
   }
 
   return undefined;
+}
+
+export function trimContextByViewport(execution: ExecutionDump) {
+  function filterVisibleTree(
+    node: ElementTreeNode<BaseElement>,
+  ): ElementTreeNode<BaseElement> | null {
+    if (!node || !node.node || node.node.isVisible !== true) return null;
+    const filteredChildren = Array.isArray(node.children)
+      ? (node.children
+          .map(filterVisibleTree)
+          .filter((child) => child !== null) as ElementTreeNode<BaseElement>[])
+      : undefined;
+    return {
+      ...node,
+      ...(filteredChildren ? { children: filteredChildren } : {}),
+    };
+  }
+
+  return {
+    ...execution,
+    tasks: Array.isArray(execution.tasks)
+      ? execution.tasks.map((task: ExecutionTask) => {
+          const newTask = { ...task };
+          if (task.pageContext?.tree) {
+            newTask.pageContext = {
+              ...task.pageContext,
+              tree: filterVisibleTree(task.pageContext.tree)!,
+            };
+          }
+          return newTask;
+        })
+      : execution.tasks,
+  };
 }

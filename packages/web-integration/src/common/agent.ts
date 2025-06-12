@@ -55,6 +55,7 @@ import {
 } from './ui-utils';
 import { printReportMsg, reportFileName } from './utils';
 import { type WebUIContext, parseContextFromWebPage } from './utils';
+import { trimContextByViewport } from './utils';
 
 const debug = getDebug('web-integration');
 
@@ -190,8 +191,10 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   appendExecutionDump(execution: ExecutionDump) {
+    // use trimContextByViewport to process execution
+    const trimmedExecution = trimContextByViewport(execution);
     const currentDump = this.dump;
-    currentDump.executions.push(execution);
+    currentDump.executions.push(trimmedExecution);
   }
 
   dumpDataString() {
