@@ -5,7 +5,7 @@ on:
       version:
         description: 'Release Version(minor,patch,preminor,prepatch)'
         required: true
-        default: 'patch'
+        default: 'prepatch'
       branch:
         description: 'Release Branch(confirm release branch)'
         required: true
