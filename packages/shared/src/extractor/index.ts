@@ -4,7 +4,6 @@ export interface ElementInfo {
   id: string;
   indexId: number;
   nodeHashId: string;
-  locator: string;
   xpaths?: string[];
   attributes: {
     nodeType: NodeType;

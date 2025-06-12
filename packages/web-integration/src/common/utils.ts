@@ -53,11 +53,9 @@ export async function parseContextFromWebPage(
   ]);
 
   const webTree = traverseTree(tree!, (elementInfo) => {
-    const { rect, id, content, attributes, locator, indexId, isVisible } =
-      elementInfo;
+    const { rect, id, content, attributes, indexId, isVisible } = elementInfo;
     return new WebElementInfo({
       rect,
-      locator,
       id,
       content,
       attributes,
@@ -68,7 +66,6 @@ export async function parseContextFromWebPage(
 
   assert(screenshotBase64!, 'screenshotBase64 is required');
 
-  const elementsInfo = treeToList(webTree);
   const size = await page.size();
 
   if (size.dpr && size.dpr > 1) {
@@ -81,7 +78,6 @@ export async function parseContextFromWebPage(
   }
 
   return {
-    content: elementsInfo!,
     tree: webTree,
     size,
     screenshotBase64: screenshotBase64!,

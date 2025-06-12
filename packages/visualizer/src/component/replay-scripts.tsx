@@ -13,6 +13,7 @@ import type {
   Rect,
   UIContext,
 } from '@midscene/core';
+import { treeToList } from '@midscene/shared/extractor';
 
 export interface CameraState {
   left: number;
@@ -305,7 +306,9 @@ export const generateAnimationScripts = (
       const context = insightTask.pageContext;
       if (context?.screenshotBase64) {
         const insightDump = insightTask.log?.dump;
-        const insightContentLength = context.content.length;
+        const insightContentLength = context.tree
+          ? treeToList(context.tree).length
+          : 0;
 
         if (context.screenshotBase64) {
           // show the original screenshot first
