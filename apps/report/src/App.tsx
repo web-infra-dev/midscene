@@ -6,7 +6,7 @@ import { Button, ConfigProvider, Empty } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
-import { antiEscapeHtml } from '@midscene/shared/utils';
+import { antiEscapeScriptTag } from '@midscene/shared/utils';
 import { Logo, Player, globalThemeConfig } from '@midscene/visualizer';
 import { PlaywrightCaseSelector } from './components/PlaywrightCaseSelector';
 import DetailPanel from './components/detail-panel';
@@ -276,7 +276,7 @@ const App = () => {
         }
       });
 
-      const content = antiEscapeHtml(el.textContent || '');
+      const content = antiEscapeScriptTag(el.textContent || '');
       try {
         const jsonContent = JSON.parse(content);
         jsonContent.attributes = attributes;
