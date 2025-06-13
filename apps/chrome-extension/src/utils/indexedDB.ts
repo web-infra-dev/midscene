@@ -20,12 +20,12 @@ class IndexedDBManager {
   private isHealthy = true;
 
   async init(): Promise<void> {
-    // 防止重复初始化
+    // Prevent duplicate initialization
     if (this.isInitialized && this.isHealthy) {
       return;
     }
     
-    // 如果正在初始化，返回现有的Promise
+    // If already initializing, return existing Promise
     if (this.initPromise) {
       return this.initPromise;
     }
@@ -36,21 +36,21 @@ class IndexedDBManager {
       this.isInitialized = true;
       this.isHealthy = true;
     } catch (error) {
-      // 如果初始化失败，重置Promise以便下次重试
+      // Reset Promise on failure for retry
       this.initPromise = null;
       this.isHealthy = false;
       throw error;
     }
   }
 
-  // 健康检查方法
+  // Health check method
   private async healthCheck(): Promise<boolean> {
     if (!this.db || !this.isInitialized) {
       return false;
     }
     
     try {
-      // 简单的读取测试
+      // Simple read test
       await this.getConfig();
       this.isHealthy = true;
       return true;
@@ -73,7 +73,7 @@ class IndexedDBManager {
       request.onsuccess = () => {
         this.db = request.result;
         
-        // 添加数据库错误处理
+        // Add database error handling
         this.db.onerror = (event) => {
           console.error('IndexedDB error:', event);
         };
@@ -112,10 +112,10 @@ class IndexedDBManager {
     return this.db;
   }
 
-  // 安全的数据库操作包装器
+  // Safe database operation wrapper
   private async safeDBOperation<T>(operation: () => Promise<T>, fallback: T): Promise<T> {
     try {
-      // 健康检查
+      // Health check
       if (!this.isHealthy) {
         const isHealthy = await this.healthCheck();
         if (!isHealthy) {
@@ -131,18 +131,18 @@ class IndexedDBManager {
     }
   }
 
-  // 创建带超时的Promise包装器
+  // Create Promise wrapper with timeout
   private createTimeoutPromise<T>(
     promiseExecutor: (resolve: (value: T) => void, reject: (reason?: any) => void) => void,
     timeoutMs: number = 10000
   ): Promise<T> {
     return new Promise<T>((resolve, reject) => {
-      // 设置超时
+      // Set timeout
       const timeoutId = setTimeout(() => {
         reject(new Error(`IndexedDB operation timeout after ${timeoutMs}ms`));
       }, timeoutMs);
 
-      // 包装原始的resolve和reject
+      // Wrap original resolve and reject
       const wrappedResolve = (value: T) => {
         clearTimeout(timeoutId);
         resolve(value);
@@ -171,7 +171,7 @@ class IndexedDBManager {
       return this.createTimeoutPromise<RecordingSession[]>((resolve, reject) => {
         const transaction = db.transaction([SESSIONS_STORE], 'readonly');
         
-        // 添加事务错误处理
+        // Add transaction error handling
         transaction.onerror = () => {
           console.error('Transaction error in getAllSessions:', transaction.error);
           reject(transaction.error);
@@ -390,7 +390,7 @@ class IndexedDBManager {
   // Migration helper - migrate from localStorage to IndexedDB
   async migrateFromLocalStorage(): Promise<void> {
     try {
-      // 确保数据库已初始化但不触发递归
+      // Ensure database is initialized but don't trigger recursion
       if (!this.db || !this.isInitialized) {
         console.warn('Database not ready for migration, skipping...');
         return;
@@ -402,17 +402,17 @@ class IndexedDBManager {
       if (storedSessions) {
         const sessions: RecordingSession[] = JSON.parse(storedSessions);
         
-        // 直接操作数据库而不通过方法调用，避免递归
+        // Direct database operation to avoid method call recursion
         const db = this.db;
         const transaction = db.transaction([SESSIONS_STORE], 'readwrite');
         const store = transaction.objectStore(SESSIONS_STORE);
         
-        // 批量添加sessions
+        // Batch add sessions
         const promises = sessions.map(session => new Promise<void>((resolve, reject) => {
           const request = store.add(session);
           request.onsuccess = () => resolve();
           request.onerror = () => {
-            // 如果session已存在，忽略错误
+            // Ignore error if session already exists
             if (request.error?.name === 'ConstraintError') {
               resolve();
             } else {
@@ -451,18 +451,18 @@ class IndexedDBManager {
 // Singleton instance
 export const dbManager = new IndexedDBManager();
 
-// 全局初始化状态跟踪
+// Global initialization state tracking
 let isGloballyInitialized = false;
 let globalInitPromise: Promise<void> | null = null;
 
 // Initialize the database
 export const initializeDB = async (): Promise<void> => {
-  // 防止重复初始化
+  // Prevent duplicate initialization
   if (isGloballyInitialized) {
     return;
   }
   
-  // 如果正在初始化，返回现有的Promise
+  // If already initializing, return existing Promise
   if (globalInitPromise) {
     return globalInitPromise;
   }
@@ -470,13 +470,13 @@ export const initializeDB = async (): Promise<void> => {
   globalInitPromise = (async () => {
     try {
       await dbManager.init();
-      // 只在第一次初始化时执行迁移
+      // Only execute migration on first initialization
       if (!isGloballyInitialized) {
         await dbManager.migrateFromLocalStorage();
         isGloballyInitialized = true;
       }
     } catch (error) {
-      // 如果初始化失败，重置状态以便下次重试
+      // Reset state on initialization failure for retry
       globalInitPromise = null;
       console.error('Failed to initialize IndexedDB:', error);
       throw error;

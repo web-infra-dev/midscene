@@ -24,7 +24,7 @@ export default function Recorder() {
 
   // Initialize stores on component mount
   useEffect(() => {
-    let isMounted = true; // 防止组件卸载后的状态更新
+    let isMounted = true; // Prevent state updates after component unmount
 
     const initializeStores = async () => {
       try {
@@ -34,7 +34,7 @@ export default function Recorder() {
           recordStore.initialize(),
         ]);
         
-        // 只有在组件仍然挂载时才更新状态
+        // Only update state if component is still mounted
         if (isMounted) {
           setIsStoreInitialized(true);
         }
@@ -47,14 +47,14 @@ export default function Recorder() {
       }
     };
 
-    // 只在第一次挂载时初始化，避免无限循环
+    // Initialize only on first mount to avoid infinite loop
     initializeStores();
 
     // Cleanup function
     return () => {
       isMounted = false;
     };
-  }, []); // 空依赖数组，只在组件挂载时运行一次
+  }, []); // Empty dependency array, run only once on component mount
 
   // View state management
   const [viewMode, setViewMode] = useState<ViewMode>('list');

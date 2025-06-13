@@ -46,7 +46,7 @@ const RECORDING_STATE_KEY = 'midscene-recording-state';
 // Helper functions for persistence with IndexedDB
 const loadSessionsFromStorage = async (): Promise<RecordingSession[]> => {
   try {
-    // initializeDB 现在是幂等的，可以安全调用
+    // initializeDB is now idempotent, safe to call
     return await dbManager.getAllSessions();
   } catch (error) {
     console.error('Failed to load sessions from IndexedDB:', error);
@@ -112,14 +112,14 @@ export const useRecordingSessionStore = create<{
   currentSessionId: null,
   isInitialized: false,
   initializeStore: async () => {
-    // 防止重复初始化
+    // Prevent duplicate initialization
     const currentState = get();
     if (currentState.isInitialized) {
       return;
     }
     
     try {
-      // 确保数据库初始化
+      // Ensure database initialization
       await initializeDB();
       const [sessions, currentSessionId] = await Promise.all([
         loadSessionsFromStorage(),
@@ -222,14 +222,14 @@ export const useRecordStore = create<{
   events: [],
   isInitialized: false,
   initialize: async () => {
-    // 防止重复初始化
+    // Prevent duplicate initialization
     const currentState = get();
     if (currentState.isInitialized) {
       return;
     }
     
     try {
-      // 确保数据库初始化
+      // Ensure database initialization
       await initializeDB();
       const isRecording = await loadRecordingStateFromStorage();
       const events = isRecording ? loadEventsFromStorage() : [];
