@@ -74,7 +74,7 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 
 Besides the exposed shortcut methods, if you need to call other [API](./API) provided by the agent, you can use `agentForPage` to get the `PageAgent` instance, and use `PageAgent` to call the API for interaction:
 
-````typescript
+```typescript
 test('case demo', async ({ agentForPage, page }) => {
   const agent = await agentForPage(page);
 
@@ -82,7 +82,7 @@ test('case demo', async ({ agentForPage, page }) => {
   const logContent = agent._unstableLogContent();
   console.log(logContent);
 });
-
+```
 
 ### Example Code
 
