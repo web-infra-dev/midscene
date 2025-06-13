@@ -306,7 +306,7 @@ function aiQuery<T>(dataDemand: string | Object, options?: Object): Promise<T>;
 
   - `dataDemand: T`: A description of the expected data and its return format.
   - `options?: Object` - Optional, a configuration object containing:
-    - `domIncluded?: boolean` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. Default: False
+    - `domIncluded?: boolean | 'visible-only'` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. If set to `'visible-only'`, only the visible elements will be sent. Default: False.
     - `screenshotIncluded?: boolean` - Whether to send screenshot to the model. Default: True.
 
 - Return Value:
@@ -355,7 +355,7 @@ function aiBoolean(prompt: string, options?: Object): Promise<boolean>;
 - Parameters:
   - `prompt: string` - A natural language description of the expected value.
   - `options?: Object` - Optional, a configuration object containing:
-    - `domIncluded?: boolean` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. Default: False
+    - `domIncluded?: boolean | 'visible-only'` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. If set to `'visible-only'`, only the visible elements will be sent. Default: False.
     - `screenshotIncluded?: boolean` - Whether to send screenshot to the model. Default: True.
 - Return Value:
 
@@ -385,7 +385,7 @@ function aiNumber(prompt: string, options?: Object): Promise<number>;
 - Parameters:
   - `prompt: string` - A natural language description of the expected value.
   - `options?: Object` - Optional, a configuration object containing:
-    - `domIncluded?: boolean` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. Default: False
+    - `domIncluded?: boolean | 'visible-only'` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. If set to `'visible-only'`, only the visible elements will be sent. Default: False.
     - `screenshotIncluded?: boolean` - Whether to send screenshot to the model. Default: True.
 - Return Value:
 
@@ -416,7 +416,7 @@ function aiString(prompt: string, options?: Object): Promise<string>;
 - Parameters:
   - `prompt: string` - A natural language description of the expected value.
   - `options?: Object` - Optional, a configuration object containing:
-    - `domIncluded?: boolean` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. Default: False
+    - `domIncluded?: boolean | 'visible-only'` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. If set to `'visible-only'`, only the visible elements will be sent. Default: False.
     - `screenshotIncluded?: boolean` - Whether to send screenshot to the model. Default: True.
 - Return Value:
 

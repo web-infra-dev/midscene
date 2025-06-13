@@ -45,6 +45,7 @@ export function fakeInsight(content: string) {
         },
         center: [250, 250],
         tap: vi.fn() as unknown,
+        isVisible: true,
       },
     ] as unknown as BaseElement[],
     tree: {
@@ -62,6 +63,7 @@ export function fakeInsight(content: string) {
         },
         center: [250, 250] as [number, number],
         children: [],
+        isVisible: true,
       },
       children: [],
     },

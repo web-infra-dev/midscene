@@ -7,6 +7,7 @@ import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
 import type { BaseElement, Rect, UIContext } from '../../../core';
 import { colorForName, highlightColorForType } from './color';
 import './blackboard.less';
+import { treeToList } from '@midscene/shared/extractor';
 import { DropShadowFilter } from 'pixi-filters';
 import { useBlackboardPreference } from './store/store';
 
@@ -233,7 +234,8 @@ export const Blackboard = (props: {
     }
 
     // element rects
-    context.content.forEach((element) => {
+    const elements = treeToList(context.tree);
+    elements.forEach((element) => {
       const { rect, content, id } = element;
       const ifHighlight = highlightIds.includes(id) || hoverElement?.id === id;
 
@@ -253,7 +255,7 @@ export const Blackboard = (props: {
     app,
     appInitialed,
     highlightElements,
-    context.content,
+    context.tree,
     hoverElement,
     highlightRect,
     highlightPoints,

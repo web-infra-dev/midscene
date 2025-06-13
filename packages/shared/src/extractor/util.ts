@@ -20,44 +20,6 @@ export function logger(..._msg: any[]): void {
   console.log(..._msg);
 }
 
-// const nodeIndexCounter = 0;
-
-const taskIdKey = '_midscene_retrieve_task_id';
-// const nodeDataIdKey = 'data-midscene-task-';
-// const nodeIndexKey = '_midscene_retrieve_node_index';
-
-function selectorForValue(val: number | string): string {
-  return `[${taskIdKey}='${val}']`;
-}
-
-export function setDataForNode(
-  node: globalThis.HTMLElement | globalThis.Node,
-  nodeHash: string,
-  setToParentNode: boolean, // should be false for default
-  currentWindow: typeof globalThis.window,
-): string {
-  const taskId = taskIdKey;
-  if (!(node instanceof currentWindow.HTMLElement)) {
-    return '';
-  }
-  if (!taskId) {
-    console.error('No task id found');
-    return '';
-  }
-
-  const selector = selectorForValue(nodeHash);
-  if (getDebugMode()) {
-    if (setToParentNode) {
-      if (node.parentNode instanceof currentWindow.HTMLElement) {
-        node.parentNode.setAttribute(taskIdKey, nodeHash.toString());
-      }
-    } else {
-      node.setAttribute(taskIdKey, nodeHash.toString());
-    }
-  }
-  return selector;
-}
-
 export function isElementPartiallyInViewport(
   rect: ReturnType<typeof getRect>,
   currentWindow: typeof window,

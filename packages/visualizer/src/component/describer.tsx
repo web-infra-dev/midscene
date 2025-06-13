@@ -114,7 +114,6 @@ export const Describer = (props: { uiContext: UIContext }) => {
             <Blackboard
               uiContext={{
                 ...uiContext,
-                content: [], // remove all contents
                 tree: {
                   node: null,
                   children: [],

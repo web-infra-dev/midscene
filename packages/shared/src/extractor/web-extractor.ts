@@ -22,7 +22,6 @@ import {
   getTopDocument,
   logger,
   midsceneGenerateHash,
-  setDataForNode,
   setDebugMode,
 } from './util';
 
@@ -77,7 +76,6 @@ export function collectElementInfo(
     let valueContent =
       attributes.value || attributes.placeholder || node.textContent || '';
     const nodeHashId = midsceneGenerateHash(node, valueContent, rect);
-    const selector = setDataForNode(node, nodeHashId, false, currentWindow);
     const tagName = (node as HTMLElement).tagName.toLowerCase();
     if ((node as HTMLElement).tagName.toLowerCase() === 'select') {
       // Get the selected option using the selectedIndex property
@@ -100,7 +98,6 @@ export function collectElementInfo(
     const elementInfo: WebElementInfo = {
       id: nodeHashId,
       nodeHashId,
-      locator: selector,
       nodeType: NodeType.FORM_ITEM,
       indexId: indexId++,
       attributes: {
@@ -134,13 +131,11 @@ export function collectElementInfo(
     const pseudo = getPseudoElementContent(node, currentWindow);
     const content = node.innerText || pseudo.before || pseudo.after || '';
     const nodeHashId = midsceneGenerateHash(node, content, rect);
-    const selector = setDataForNode(node, nodeHashId, false, currentWindow);
     const elementInfo: WebElementInfo = {
       id: nodeHashId,
       indexId: indexId++,
       nodeHashId,
       nodeType: NodeType.BUTTON,
-      locator: selector,
       attributes: {
         ...attributes,
         htmlTagName: tagNameOfNode(node),
@@ -161,12 +156,10 @@ export function collectElementInfo(
   if (isImgElement(node)) {
     const attributes = getNodeAttributes(node, currentWindow);
     const nodeHashId = midsceneGenerateHash(node, '', rect);
-    const selector = setDataForNode(node, nodeHashId, false, currentWindow);
     const elementInfo: WebElementInfo = {
       id: nodeHashId,
       indexId: indexId++,
       nodeHashId,
-      locator: selector,
       attributes: {
         ...attributes,
         ...(node.nodeName.toLowerCase() === 'svg'
@@ -201,13 +194,11 @@ export function collectElementInfo(
       return null;
     }
     const nodeHashId = midsceneGenerateHash(node, text, rect);
-    const selector = setDataForNode(node, nodeHashId, true, currentWindow);
     const elementInfo: WebElementInfo = {
       id: nodeHashId,
       indexId: indexId++,
       nodeHashId,
       nodeType: NodeType.TEXT,
-      locator: selector,
       attributes: {
         ...attributes,
         nodeType: NodeType.TEXT,
@@ -230,13 +221,11 @@ export function collectElementInfo(
     const pseudo = getPseudoElementContent(node, currentWindow);
     const content = node.innerText || pseudo.before || pseudo.after || '';
     const nodeHashId = midsceneGenerateHash(node, content, rect);
-    const selector = setDataForNode(node, nodeHashId, false, currentWindow);
     const elementInfo: WebElementInfo = {
       id: nodeHashId,
       indexId: indexId++,
       nodeHashId,
       nodeType: NodeType.A,
-      locator: selector,
       attributes: {
         ...attributes,
         htmlTagName: tagNameOfNode(node),
@@ -258,13 +247,11 @@ export function collectElementInfo(
   if (isContainerElement(node)) {
     const attributes = getNodeAttributes(node, currentWindow);
     const nodeHashId = midsceneGenerateHash(node, '', rect);
-    const selector = setDataForNode(node, nodeHashId, false, currentWindow);
     const elementInfo: WebElementInfo = {
       id: nodeHashId,
       nodeHashId,
       indexId: indexId++,
       nodeType: NodeType.CONTAINER,
-      locator: selector,
       attributes: {
         ...attributes,
         nodeType: NodeType.CONTAINER,
@@ -336,7 +323,7 @@ export function extractTreeNode(
     currentDocument: typeof globalThis.document,
     baseZoom = 1,
     basePoint: Point = { left: 0, top: 0 },
-  ): WebElementNode | null {
+  ): WebElementNode | WebElementNode[] | null {
     if (!node) {
       return null;
     }
@@ -388,9 +375,21 @@ export function extractTreeNode(
         rect.zoom,
         basePoint,
       );
-      if (childNodeInfo) {
+      if (Array.isArray(childNodeInfo)) {
+        // if the recursive return is an array, expand and merge it into children
+        nodeInfo.children.push(...childNodeInfo);
+      } else if (childNodeInfo) {
         nodeInfo.children.push(childNodeInfo);
       }
+    }
+
+    // if nodeInfo.node is null
+    if (nodeInfo.node === null) {
+      if (nodeInfo.children.length === 0) {
+        return null;
+      }
+      // promote children to the upper layer
+      return nodeInfo.children;
     }
 
     return nodeInfo;
@@ -400,7 +399,9 @@ export function extractTreeNode(
     left: 0,
     top: 0,
   });
-  if (rootNodeInfo) {
+  if (Array.isArray(rootNodeInfo)) {
+    topChildren.push(...rootNodeInfo);
+  } else if (rootNodeInfo) {
     topChildren.push(rootNodeInfo);
   }
   if (startNode === topDocument) {
@@ -422,7 +423,9 @@ export function extractTreeNode(
               top: iframeInfo.rect.top,
             },
           );
-          if (iframeChildren) {
+          if (Array.isArray(iframeChildren)) {
+            topChildren.push(...iframeChildren);
+          } else if (iframeChildren) {
             topChildren.push(iframeChildren);
           }
         }

@@ -122,9 +122,6 @@ export interface AgentDescribeElementAtPointResult {
 export abstract class UIContext<ElementType extends BaseElement = BaseElement> {
   abstract screenshotBase64: string;
 
-  // @deprecated('use tree instead')
-  abstract content: ElementType[];
-
   abstract tree: ElementTreeNode<ElementType>;
 
   abstract size: Size;
@@ -142,14 +139,6 @@ export interface InsightOptions {
   taskInfo?: Omit<InsightTaskInfo, 'durationMs'>;
   aiVendorFn?: CallAIFn;
 }
-
-// export interface UISection {
-//   name: string;
-//   description: string;
-//   sectionCharacteristics: string;
-//   rect: Rect;
-//   content: BaseElement[];
-// }
 
 export type EnsureObject<T> = { [K in keyof T]: any };
 

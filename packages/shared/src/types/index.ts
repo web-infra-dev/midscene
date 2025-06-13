@@ -30,8 +30,6 @@ export abstract class BaseElement {
 
   abstract center: [number, number];
 
-  abstract locator?: string;
-
   abstract xpaths?: string[];
 
   abstract isVisible: boolean;

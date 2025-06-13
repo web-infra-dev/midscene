@@ -132,7 +132,7 @@ export async function describeUserPage<
   opt?: {
     truncateTextLength?: number;
     filterNonTextContent?: boolean;
-    domIncluded?: boolean;
+    domIncluded?: boolean | 'visible-only';
     visibleOnly?: boolean;
   },
 ) {
@@ -151,6 +151,13 @@ export async function describeUserPage<
   // dfs tree, save the id and element info
   const idElementMap: Record<string, ElementType> = {};
   const flatElements: ElementType[] = treeToList(treeRoot);
+
+  if (opt?.domIncluded === true && flatElements.length >= 5000) {
+    console.warn(
+      'The number of elements is too large, it may cause the prompt to be too long, please use domIncluded: "visible-only" to reduce the number of elements',
+    );
+  }
+
   flatElements.forEach((element) => {
     idElementMap[element.id] = element;
     if (typeof element.indexId !== 'undefined') {
@@ -159,12 +166,13 @@ export async function describeUserPage<
   });
 
   let pageDescription = '';
+  const visibleOnly = opt?.visibleOnly ?? opt?.domIncluded === 'visible-only';
   if (opt?.domIncluded) {
     const contentTree = await descriptionOfTree(
       treeRoot,
       opt?.truncateTextLength,
       opt?.filterNonTextContent,
-      opt?.visibleOnly,
+      visibleOnly,
     );
 
     // if match by position, don't need to provide the page description

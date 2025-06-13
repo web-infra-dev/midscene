@@ -10,7 +10,6 @@ export async function buildContext(targetDir: string): Promise<{
       width: number;
       height: number;
     };
-    content: any;
     tree: any;
     screenshotBase64: string;
     originalScreenshotBase64: string;
@@ -37,7 +36,6 @@ export async function buildContext(targetDir: string): Promise<{
     const size = await imageInfoOfBase64(originalScreenshotBase64);
     const baseContext = {
       size,
-      content: [],
       tree: {
         node: null,
         children: [],
@@ -71,7 +69,6 @@ export async function buildContext(targetDir: string): Promise<{
   const size = await imageInfoOfBase64(screenshotBase64);
   const baseContext = {
     size,
-    content: elementSnapshot,
     tree: elementTree,
     screenshotBase64,
     originalScreenshotBase64,

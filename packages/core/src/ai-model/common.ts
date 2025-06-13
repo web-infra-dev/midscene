@@ -323,7 +323,7 @@ export async function markupImageForLLM(
 
   const imagePayload = await compositeElementInfoImg({
     inputImgBase64: screenshotBase64,
-    elementsPositionInfo: elementsPositionInfoWithoutText as any,
+    elementsPositionInfo: elementsPositionInfoWithoutText,
     size,
   });
   return imagePayload;

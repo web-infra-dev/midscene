@@ -196,6 +196,7 @@ ${Object.keys(size)
     );
   }
 
+  // @deprecated
   async getElementsInfo(): Promise<ElementInfo[]> {
     return [];
   }

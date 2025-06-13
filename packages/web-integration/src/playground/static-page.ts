@@ -20,14 +20,10 @@ export default class StaticPage implements AbstractPage {
     if (uiContext.tree) {
       this.uiContext = uiContext;
     } else {
-      const contents = uiContext.content || [];
       this.uiContext = Object.assign(uiContext, {
         tree: {
           node: null,
-          children: contents.map((content) => ({
-            node: content,
-            children: [],
-          })),
+          children: [],
         },
       });
     }
@@ -37,6 +33,7 @@ export default class StaticPage implements AbstractPage {
     return ThrowNotImplemented('evaluateJavaScript');
   }
 
+  // @deprecated
   async getElementsInfo() {
     return ThrowNotImplemented('getElementsInfo');
   }

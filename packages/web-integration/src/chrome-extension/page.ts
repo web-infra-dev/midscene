@@ -337,6 +337,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     );
   }
 
+  // @deprecated
   async getElementsInfo() {
     const tree = await this.getElementsNodeTree();
     return treeToList(tree);

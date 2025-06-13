@@ -2,6 +2,8 @@ import type { StaticPage } from '@/playground';
 import type {
   BaseElement,
   ElementTreeNode,
+  ExecutionDump,
+  ExecutionTask,
   PlanningLocateParam,
   PlaywrightParserOpt,
   UIContext,
@@ -14,7 +16,6 @@ import {
   generateElementByPosition,
   getNodeFromCacheList,
   traverseTree,
-  treeToList,
 } from '@midscene/shared/extractor';
 import { resizeImgBase64 } from '@midscene/shared/img';
 import type { DebugFunction } from '@midscene/shared/logger';
@@ -53,11 +54,9 @@ export async function parseContextFromWebPage(
   ]);
 
   const webTree = traverseTree(tree!, (elementInfo) => {
-    const { rect, id, content, attributes, locator, indexId, isVisible } =
-      elementInfo;
+    const { rect, id, content, attributes, indexId, isVisible } = elementInfo;
     return new WebElementInfo({
       rect,
-      locator,
       id,
       content,
       attributes,
@@ -68,7 +67,6 @@ export async function parseContextFromWebPage(
 
   assert(screenshotBase64!, 'screenshotBase64 is required');
 
-  const elementsInfo = treeToList(webTree);
   const size = await page.size();
 
   if (size.dpr && size.dpr > 1) {
@@ -81,7 +79,6 @@ export async function parseContextFromWebPage(
   }
 
   return {
-    content: elementsInfo!,
     tree: webTree,
     size,
     screenshotBase64: screenshotBase64!,
@@ -221,4 +218,40 @@ export function matchElementFromPlan(
   }
 
   return undefined;
+}
+
+export function trimContextByViewport(execution: ExecutionDump) {
+  function filterVisibleTree(
+    node: ElementTreeNode<BaseElement>,
+  ): ElementTreeNode<BaseElement> | null {
+    if (!node || !node.node || node.node.isVisible !== true) return null;
+    const filteredChildren = Array.isArray(node.children)
+      ? (node.children
+          .map(filterVisibleTree)
+          .filter((child) => child !== null) as ElementTreeNode<BaseElement>[])
+      : undefined;
+    return {
+      ...node,
+      ...(filteredChildren ? { children: filteredChildren } : {}),
+    };
+  }
+
+  return {
+    ...execution,
+    tasks: Array.isArray(execution.tasks)
+      ? execution.tasks.map((task: ExecutionTask) => {
+          const newTask = { ...task };
+          if (task.pageContext?.tree) {
+            newTask.pageContext = {
+              ...task.pageContext,
+              tree: filterVisibleTree(task.pageContext.tree) || {
+                node: null,
+                children: [],
+              },
+            };
+          }
+          return newTask;
+        })
+      : execution.tasks,
+  };
 }
