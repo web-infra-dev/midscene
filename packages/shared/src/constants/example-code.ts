@@ -68,7 +68,7 @@ test('ai shop', async ({
 export const YAML_EXAMPLE_CODE = `
 1. Format:
 
-target:
+web:
   url: "starting_url"
   viewportWidth: 1280
   viewportHeight: 960

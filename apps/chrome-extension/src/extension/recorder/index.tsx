@@ -2,6 +2,7 @@
 import { Form } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
 import type { RecordingSession } from '../../store';
+import { useRecordingSessionStore, useRecordStore } from '../../store';
 import { RecordDetail } from './components/RecordDetail';
 import { RecordList } from './components/RecordList';
 import { SessionModals } from './components/SessionModals';
@@ -14,6 +15,47 @@ import type { ViewMode } from './types';
 import './recorder.less';
 
 export default function Recorder() {
+  // Local initialization state
+  const [isStoreInitialized, setIsStoreInitialized] = useState(false);
+  
+  // Get stores
+  const sessionStore = useRecordingSessionStore();
+  const recordStore = useRecordStore();
+
+  // Initialize stores on component mount
+  useEffect(() => {
+    let isMounted = true; // 防止组件卸载后的状态更新
+
+    const initializeStores = async () => {
+      try {
+        // Initialize both stores concurrently
+        await Promise.all([
+          sessionStore.initializeStore(),
+          recordStore.initialize(),
+        ]);
+        
+        // 只有在组件仍然挂载时才更新状态
+        if (isMounted) {
+          setIsStoreInitialized(true);
+        }
+      } catch (error) {
+        console.error('Failed to initialize stores in Recorder:', error);
+        // Still set as initialized to prevent blocking the UI
+        if (isMounted) {
+          setIsStoreInitialized(true);
+        }
+      }
+    };
+
+    // 只在第一次挂载时初始化，避免无限循环
+    initializeStores();
+
+    // Cleanup function
+    return () => {
+      isMounted = false;
+    };
+  }, []); // 空依赖数组，只在组件挂载时运行一次
+
   // View state management
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedSession, setSelectedSession] =
@@ -227,6 +269,20 @@ export default function Recorder() {
       }, 100);
     }
   };
+
+  // Show loading state while stores are initializing
+  if (!isStoreInitialized) {
+    return (
+      <div className="popup-record-container" style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '200px' 
+      }}>
+        <div>Loading sessions...</div>
+      </div>
+    );
+  }
 
   return (
     <div ref={recordContainerRef} className="popup-record-container">
