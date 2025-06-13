@@ -348,7 +348,18 @@ export class PageTaskExecutor {
               insightDump = dump;
             };
             this.insight.onceDumpUpdatedFn = dumpCollector;
-            const startTime = Date.now();
+            const shotTime = Date.now();
+            const pageContext = await this.insight.contextRetrieverFn('assert');
+            task.pageContext = pageContext;
+
+            const recordItem: ExecutionRecorderItem = {
+              type: 'screenshot',
+              ts: shotTime,
+              screenshot: pageContext.screenshotBase64,
+              timing: 'before locate',
+            };
+            task.recorder = [recordItem];
+
             const assertion = await this.insight.assert(
               assertPlan.param.assertion,
             );
@@ -369,6 +380,7 @@ export class PageTaskExecutor {
 
             return {
               output: assertion,
+              pageContext,
               log: {
                 dump: insightDump,
               },
