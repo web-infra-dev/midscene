@@ -54,6 +54,10 @@
       "types": "./dist/types/playwright-report.d.ts",
       "default": "./dist/lib/playwright-report.js"
     },
+    "./playwright-reporter": {
+      "types": "./dist/types/playwright-reporter.d.ts",
+      "default": "./dist/lib/playwright-reporter.js"
+    },
     "./playground": {
       "types": "./dist/types/playground.d.ts",
       "default": "./dist/lib/playground.js"
@@ -92,6 +96,7 @@
       ],
       "playwright": ["./dist/types/playwright.d.ts"],
       "playwright-report": ["./dist/types/playwright-report.d.ts"],
+      "playwright-reporter": ["./dist/types/playwright-reporter.d.ts"],
       "playground": ["./dist/types/playground.d.ts"],
       "midscene-playground": ["./dist/types/midscene-playground.d.ts"],
       "midscene-server": ["./dist/types/midscene-server.d.ts"],
