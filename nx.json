@@ -23,5 +23,14 @@
       "dependsOn": ["^build"]
     }
   },
+  "projects": {
+    "core": {
+      "targets": {
+        "build": {
+          "dependsOn": ["^build", "report:build"]
+        }
+      }
+    }
+  },
   "defaultBase": "main"
 }
