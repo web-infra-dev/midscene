@@ -6,7 +6,7 @@ import {
 } from '@ant-design/icons';
 import type { ChromeRecordedEvent } from '@midscene/recorder';
 import { RecordTimeline } from '@midscene/recorder';
-import { Alert, Button, Card, Divider, Empty, Space, Typography } from 'antd';
+import { Alert, Button, Card, Divider, Empty, Space, Tooltip, Typography } from 'antd';
 import type React from 'react';
 import {
   type RecordingSession,
@@ -78,15 +78,8 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
         />
       )}
 
-      {/* Header with back button and session info */}
-      <div
-        className="detail-header"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
+      {/* Header with back button */}
+      <div className="detail-header">
         <Button
           type="text"
           icon={<ArrowLeftOutlined />}
@@ -95,10 +88,15 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
         >
           Back to Sessions
         </Button>
-        <div className="session-title" style={{ textAlign: 'center', flex: 1 }}>
-          <Title level={4}>{session.name}</Title>
-        </div>
-        <div style={{ width: '120px' }} /> {/* Spacer to balance the layout */}
+      </div>
+
+      {/* Session title */}
+      <div className="session-title-section">
+        <Tooltip title={session.name} placement="topLeft">
+          <Title level={4} className="session-title-text">
+            {session.name}
+          </Title>
+        </Tooltip>
       </div>
 
       {/* Recording Controls */}
