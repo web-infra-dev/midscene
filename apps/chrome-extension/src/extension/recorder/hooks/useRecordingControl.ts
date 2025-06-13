@@ -50,7 +50,7 @@ export const useRecordingControl = (
     });
 
     if (!isExtensionMode) {
-      setIsRecording(false);
+      await setIsRecording(false);
       return;
     }
 
@@ -61,7 +61,7 @@ export const useRecordingControl = (
     }
 
     // Set isRecording to false immediately to prevent UI from showing recording state
-    setIsRecording(false);
+    await setIsRecording(false);
 
     try {
       // Check if content script is still available before sending message
@@ -141,7 +141,7 @@ export const useRecordingControl = (
       recordLogger.error('Failed to stop recording', undefined, error);
       message.error(`Failed to stop recording: ${error}`);
       // Still stop recording on our side even if there was an error
-      setIsRecording(false);
+      await setIsRecording(false);
     }
   }, [
     isExtensionMode,
@@ -236,7 +236,7 @@ export const useRecordingControl = (
         action: 'start',
         sessionId: sessionToUse.id,
       });
-      setIsRecording(true);
+      await setIsRecording(true);
 
       // Only clear events if this is a new session or if the session has no existing events
       // This allows resuming recording on existing sessions without losing previous events

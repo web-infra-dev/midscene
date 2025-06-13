@@ -131,36 +131,31 @@
     .detail-header {
       width: 100%;
       max-width: 100%;
-      display: flex;
-      align-items: flex-start;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
       
       .back-button {
-        // margin-right: 12px;
         flex-shrink: 0;
-        // margin-top: 4px; // 对齐标题
       }
+    }
+
+    // Session title section
+    .session-title-section {
+      width: 100%;
+      max-width: 100%;
+      margin-bottom: 16px;
+      text-align: center;
       
-      .session-title {
-        flex: 1;
-        min-width: 0; // 允许文本截断
-        max-width: calc(100% - 120px); // 为返回按钮留出空间
+      .session-title-text {
+        margin: 0 !important;
+        margin-bottom: 4px !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        width: 100%;
+        cursor: default;
         
-        h4 {
-          margin: 0;
-          margin-bottom: 4px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          width: 100%;
-        }
-        
-        .ant-typography {
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          font-size: 14px;
-          width: 100%;
+        &:hover {
+          color: #1890ff;
         }
       }
     }

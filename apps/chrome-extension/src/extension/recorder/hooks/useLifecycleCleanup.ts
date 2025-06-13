@@ -7,7 +7,7 @@ import { recordLogger } from '../logger';
 export const useLifecycleCleanup = (
   isRecording: boolean,
   stopRecording: () => Promise<void>,
-  setIsRecording: (recording: boolean) => void,
+  setIsRecording: (recording: boolean) => Promise<void>,
   currentSessionId: string | null,
   getCurrentSession: () => RecordingSession | null,
   updateSession: (
@@ -39,7 +39,7 @@ export const useLifecycleCleanup = (
           'Extension popup closing, stopping recording synchronously',
         );
         // For unload events, we need to stop synchronously
-        setIsRecording(false);
+        setIsRecording(false).catch(console.error);
         if (currentSessionId) {
           const session = getCurrentSession();
           if (session) {
@@ -75,7 +75,7 @@ export const useLifecycleCleanup = (
       // Clean up any ongoing recording when component unmounts
       if (isRecording) {
         recordLogger.info('Component unmounting, cleaning up recording');
-        setIsRecording(false);
+        setIsRecording(false).catch(console.error);
         if (currentSessionId) {
           const session = getCurrentSession();
           if (session) {
