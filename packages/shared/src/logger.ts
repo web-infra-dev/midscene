@@ -27,8 +27,24 @@ function writeLogToFile(topic: string, message: string): void {
   if (!isNodeEnv) return;
 
   const stream = getLogStream(topic);
-  const timestamp = new Date().toISOString();
-  stream.write(`[${timestamp}] ${message}\n`);
+  // Generate ISO format timestamp with local timezone
+  const now = new Date();
+  // Use sv-SE locale to get ISO-like format (YYYY-MM-DD HH:mm:ss)
+  const isoDate = now.toLocaleDateString('sv-SE'); // YYYY-MM-DD
+  const isoTime = now.toLocaleTimeString('sv-SE'); // HH:mm:ss
+  const milliseconds = now.getMilliseconds().toString().padStart(3, '0');
+  // Calculate timezone offset manually for correct format (+HH:mm)
+  const timezoneOffsetMinutes = now.getTimezoneOffset();
+  const sign = timezoneOffsetMinutes <= 0 ? '+' : '-';
+  const hours = Math.floor(Math.abs(timezoneOffsetMinutes) / 60)
+    .toString()
+    .padStart(2, '0');
+  const minutes = (Math.abs(timezoneOffsetMinutes) % 60)
+    .toString()
+    .padStart(2, '0');
+  const timezoneString = `${sign}${hours}:${minutes}`;
+  const localISOTime = `${isoDate}T${isoTime}.${milliseconds}${timezoneString}`;
+  stream.write(`[${localISOTime}] ${message}\n`);
 }
 
 export type DebugFunction = (...args: unknown[]) => void;
