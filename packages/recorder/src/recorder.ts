@@ -333,6 +333,10 @@ export class EventRecorder {
     if (!this.isRecording) return;
 
     const target = event.target as HTMLInputElement | HTMLTextAreaElement;
+    // checkbox skip collect
+    if (target.type === 'checkbox') {
+      return;
+    }
     const rect = target.getBoundingClientRect();
     const elementRect = {
       left: Number(rect.left.toFixed(2)),
@@ -342,7 +346,7 @@ export class EventRecorder {
     };
     const inputEvent: RecordedEvent = {
       type: 'input',
-      value: target.value,
+      value: target.type !== 'password'? target.value : '*****',
       timestamp: Date.now(),
       hashId: generateHashId('input', {
         ...elementRect,
