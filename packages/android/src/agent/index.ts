@@ -45,6 +45,7 @@ export async function agentFromAdbDevice(
     androidAdbPath: opts?.androidAdbPath,
     remoteAdbHost: opts?.remoteAdbHost,
     remoteAdbPort: opts?.remoteAdbPort,
+    imeStrategy: opts?.imeStrategy,
   });
 
   await page.connect();

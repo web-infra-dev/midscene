@@ -8,6 +8,7 @@ import {
   MIDSCENE_ADB_PATH,
   MIDSCENE_ADB_REMOTE_HOST,
   MIDSCENE_ADB_REMOTE_PORT,
+  MIDSCENE_ANDROID_IME_STRATEGY,
 } from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { isValidPNGImageBuffer, resizeImg } from '@midscene/shared/img';
@@ -27,6 +28,7 @@ export type AndroidDeviceOpt = {
   androidAdbPath?: string;
   remoteAdbHost?: string;
   remoteAdbPort?: number;
+  imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii';
 } & AndroidDeviceInputOpt;
 
 export class AndroidDevice implements AndroidDevicePage {
@@ -566,15 +568,21 @@ ${Object.keys(size)
     if (!text) return;
     const adb = await this.getAdb();
     const isChinese = /[\p{Script=Han}\p{sc=Hani}]/u.test(text);
+    const IME_STRATEGY =
+      (this.options?.imeStrategy ||
+        getAIConfig(MIDSCENE_ANDROID_IME_STRATEGY)) ??
+      'always-yadb';
     const isAutoDismissKeyboard =
       options?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard ?? true;
 
-    // for pure ASCII characters, directly use inputText
-    if (!isChinese) {
-      await adb.inputText(text);
-    } else {
-      // for non-ASCII characters, use yadb
+    if (
+      IME_STRATEGY === 'always-yadb' ||
+      (IME_STRATEGY === 'yadb-for-non-ascii' && isChinese)
+    ) {
       await this.execYadb(text);
+    } else {
+      // for pure ASCII characters, directly use inputText
+      await adb.inputText(text);
     }
 
     if (isAutoDismissKeyboard === true) {

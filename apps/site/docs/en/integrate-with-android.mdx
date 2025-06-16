@@ -13,7 +13,6 @@ Control Android devices with javascript: [https://github.com/web-infra-dev/midsc
 Integrate Vitest for testing: [https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo)
 :::
 
-
 <PrepareAndroid />
 
 <SetupEnv />
@@ -29,7 +28,11 @@ Let's take a simple example: search for headphones on eBay using the browser in 
 Write the following code, and save it as `./demo.ts`
 
 ```typescript title="./demo.ts"
-import { AndroidAgent, AndroidDevice, getConnectedDevices } from '@midscene/android';
+import {
+  AndroidAgent,
+  AndroidDevice,
+  getConnectedDevices,
+} from '@midscene/android';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 Promise.resolve(
@@ -38,7 +41,7 @@ Promise.resolve(
     const page = new AndroidDevice(devices[0].udid);
 
     // 👀 init Midscene agent
-    const agent = new AndroidAgent(page,{
+    const agent = new AndroidAgent(page, {
       aiActionContext:
         'If any location, permission, user agreement, etc. popup, click agree. If login page pops up, close it.',
     });
@@ -53,21 +56,20 @@ Promise.resolve(
     await agent.aiAction('type "Headphones" in search box, hit Enter');
 
     // 👀 wait for loading completed
-    await agent.aiWaitFor("There is at least one headphone product");
+    await agent.aiWaitFor('There is at least one headphone product');
     // or you can use a normal sleep:
     // await sleep(5000);
 
     // 👀 understand the page content, extract data
     const items = await agent.aiQuery(
-      "{itemTitle: string, price: Number}[], find item in list and corresponding price"
+      '{itemTitle: string, price: Number}[], find item in list and corresponding price',
     );
-    console.log("headphones in stock", items);
+    console.log('headphones in stock', items);
 
     // 👀 assert by AI
-    await agent.aiAssert("There is a category filter on the left");
-  })()
+    await agent.aiAssert('There is a category filter on the left');
+  })(),
 );
-
 ```
 
 ## Step 3. run
@@ -98,20 +100,19 @@ After a while, you will see the following output:
 
 After the above command executes successfully, the console will output: `Midscene - report file updated: /path/to/report/some_id.html`. You can open this file in a browser to view the report.
 
-
 ## `AndroidDevice` constructor
 
 The AndroidDevice constructor supports the following parameters:
 
-* `deviceId: string` - The device id
-* `opts?: AndroidDeviceOpt` - Optional, the options for the AndroidDevice
-  * `autoDismissKeyboard?: boolean` - Optional, whether to dismiss the keyboard after inputting. (Default: true)
-  * `androidAdbPath?: string` - Optional, the path to the adb executable.
-  * `remoteAdbHost?: string` - Optional, the remote adb host.
-  * `remoteAdbPort?: number` - Optional, the remote adb port.
+- `deviceId: string` - The device id
+- `opts?: AndroidDeviceOpt` - Optional, the options for the AndroidDevice
+  - `autoDismissKeyboard?: boolean` - Optional, whether to dismiss the keyboard after inputting. (Default: true)
+  - `androidAdbPath?: string` - Optional, the path to the adb executable.
+  - `remoteAdbHost?: string` - Optional, the remote adb host.
+  - `remoteAdbPort?: number` - Optional, the remote adb port.
+  - `imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii'` - Optional, the input method strategy. (Default: 'always-yadb')
 
-
-## More interfaces in AndroidAgent 
+## More interfaces in AndroidAgent
 
 Except the common agent interfaces in [API Reference](./API), AndroidAgent also provides some other interfaces:
 
@@ -119,19 +120,21 @@ Except the common agent interfaces in [API Reference](./API), AndroidAgent also 
 
 Launch a webpage or native page.
 
-* Type
+- Type
 
 ```typescript
 function launch(uri: string): Promise<void>;
 ```
 
-* Parameters:
-  * `uri: string` - The uri to open, can be a webpage url or a native app's package name or activity name, if the activity name exists, it should be separated by / (e.g. com.android.settings/.Settings).
+- Parameters:
 
-* Return Value:
-  * Returns a Promise that resolves to void when the page is opened.
+  - `uri: string` - The uri to open, can be a webpage url or a native app's package name or activity name, if the activity name exists, it should be separated by / (e.g. com.android.settings/.Settings).
 
-* Examples:
+- Return Value:
+
+  - Returns a Promise that resolves to void when the page is opened.
+
+- Examples:
 
 ```typescript
 import { AndroidAgent, AndroidDevice } from '@midscene/android';
@@ -148,20 +151,25 @@ await agent.launch('com.android.settings/.Settings'); // open a native page
 
 Create a AndroidAgent from a connected adb device.
 
-* Type
+- Type
 
 ```typescript
-function agentFromAdbDevice(deviceId?: string, opts?: PageAgentOpt): Promise<AndroidAgent>;
+function agentFromAdbDevice(
+  deviceId?: string,
+  opts?: PageAgentOpt,
+): Promise<AndroidAgent>;
 ```
 
-* Parameters:
-  * `deviceId?: string` - Optional, the adb device id to connect. If not provided, the first connected device will be used.
-  * `opts?: PageAgentOpt & AndroidDeviceOpt` - Optional, the options for the AndroidAgent, PageAgentOpt refer to [constructor](./API), AndroidDeviceOpt refer to [AndroidDevice constructor](./integrate-with-android#androiddevice-constructor).
+- Parameters:
 
-* Return Value:
-  * `Promise<AndroidAgent>` Returns a Promise that resolves to an AndroidAgent.
+  - `deviceId?: string` - Optional, the adb device id to connect. If not provided, the first connected device will be used.
+  - `opts?: PageAgentOpt & AndroidDeviceOpt` - Optional, the options for the AndroidAgent, PageAgentOpt refer to [constructor](./API), AndroidDeviceOpt refer to [AndroidDevice constructor](./integrate-with-android#androiddevice-constructor).
 
-* Examples:
+- Return Value:
+
+  - `Promise<AndroidAgent>` Returns a Promise that resolves to an AndroidAgent.
+
+- Examples:
 
 ```typescript
 import { agentFromAdbDevice } from '@midscene/android';
@@ -174,7 +182,7 @@ const agent = await agentFromAdbDevice(); // no deviceId, use the first connecte
 
 Get all connected Android devices.
 
-* Type
+- Type
 
 ```typescript
 function getConnectedDevices(): Promise<Device[]>;
@@ -192,10 +200,11 @@ interface Device {
 }
 ```
 
-* Return Value:
-  * `Promise<Device[]>` Returns a Promise that resolves to an array of Device.
+- Return Value:
 
-* Examples:
+  - `Promise<Device[]>` Returns a Promise that resolves to an array of Device.
+
+- Examples:
 
 ```typescript
 import { agentFromAdbDevice, getConnectedDevices } from '@midscene/android';
@@ -207,8 +216,8 @@ const agent = await agentFromAdbDevice(devices[0].udid);
 
 ## More
 
-* For all the APIs on the Agent, please refer to [API Reference](./API).
-* For more details about prompting, please refer to [Prompting Tips](./prompting-tips)
+- For all the APIs on the Agent, please refer to [API Reference](./API).
+- For more details about prompting, please refer to [Prompting Tips](./prompting-tips)
 
 ## FAQ
 
@@ -217,9 +226,8 @@ const agent = await agentFromAdbDevice(devices[0].udid);
 Please check if the device is unlocked in the developer options of the system settings.
 
 <p align="center">
-  <img src="/android-usb-debug-en.png" alt="android usb debug" width="400"/>
+  <img src="/android-usb-debug-en.png" alt="android usb debug" width="400" />
 </p>
-
 
 ### How to use a custom adb path, remote adb host and port?
 

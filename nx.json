@@ -30,6 +30,13 @@
           "dependsOn": ["^build", "report:build"]
         }
       }
+    },
+    "android": {
+      "targets": {
+        "build": {
+          "dependsOn": ["^build", "core:build"]
+        }
+      }
     }
   },
   "defaultBase": "main"
