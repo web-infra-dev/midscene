@@ -234,7 +234,7 @@ export class PageTaskExecutor {
               type: 'screenshot',
               ts: shotTime,
               screenshot: pageContext.screenshotBase64,
-              timing: 'before locate',
+              timing: 'before Insight',
             };
             task.recorder = [recordItem];
 
@@ -356,7 +356,7 @@ export class PageTaskExecutor {
               type: 'screenshot',
               ts: shotTime,
               screenshot: pageContext.screenshotBase64,
-              timing: 'before locate',
+              timing: 'before Insight',
             };
             task.recorder = [recordItem];
 
@@ -685,7 +685,7 @@ export class PageTaskExecutor {
       type: 'screenshot',
       ts: shotTime,
       screenshot: pageContext.screenshotBase64,
-      timing: 'before planning',
+      timing: 'before Planning',
     };
 
     executorContext.task.recorder = [recordItem];
