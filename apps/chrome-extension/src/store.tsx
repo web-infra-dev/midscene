@@ -197,15 +197,26 @@ const loadEventsFromStorage = async (): Promise<ChromeRecordedEvent[]> => {
 };
 
 function mergeEvents(oldEvents: ChromeRecordedEvent[], newEvents: ChromeRecordedEvent[]): ChromeRecordedEvent[] {
-  const mergedEvents = [...oldEvents];
-  for (const event of newEvents) {
-    const existingEvent = mergedEvents.find(e => e.timestamp === event.timestamp);
-    if (!existingEvent) {
-      // Add new event
-      mergedEvents.push(event);
+  const mergedEventsMap = new Map<string, ChromeRecordedEvent>();
+
+  // Add old events to map, prioritizing them initially
+  for (const event of oldEvents) {
+    if (event.hashId) {
+      mergedEventsMap.set(event.hashId, event);
     }
   }
-  return mergedEvents;
+
+  // Add new events to map, replacing old ones if hashId matches
+  for (const event of newEvents) {
+    if (event.hashId) {
+      mergedEventsMap.set(event.hashId, event);
+    }
+  }
+
+  const mergedArray = Array.from(mergedEventsMap.values());
+  // Sort events by timestamp in ascending order
+  mergedArray.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+  return mergedArray;
 }
 
 const saveEventsToStorage = async (events: ChromeRecordedEvent[]) => {
