@@ -61,14 +61,13 @@ export function elementByPositionWithElementInfo(
         position.y <= item.rect.top + item.rect.height
       ) {
         if (
-          filterPositionElements &&
-          item.attributes?.nodeType === NodeType.POSITION
+          !(
+            filterPositionElements &&
+            item.attributes?.nodeType === NodeType.POSITION
+          )
         ) {
-          // Skip POSITION elements if filterPositionElements is true
-          return;
+          matchingElements.push(item);
         }
-
-        matchingElements.push(item);
       }
     }
 
