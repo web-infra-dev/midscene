@@ -10,7 +10,6 @@
     "@midscene/android-playground": "./bin/android-playground"
   },
   "scripts": {
-    "postinstall": "fetch-scrcpy-server 3.1",
     "dev": "modern dev",
     "dev:server": "npm run build && ./bin/playground",
     "build": "modern build -c ./modern.config.ts",
@@ -23,7 +22,6 @@
     "@yume-chan/adb": "^1.1.0",
     "@yume-chan/adb-scrcpy": "^1.1.0",
     "@yume-chan/adb-server-node-tcp": "^1.1.0",
-    "@yume-chan/fetch-scrcpy-server": "^1.0.0",
     "@yume-chan/scrcpy": "^1.1.0",
     "@yume-chan/stream-extra": "^1.0.0",
     "cors": "2.8.5",
