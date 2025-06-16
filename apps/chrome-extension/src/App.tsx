@@ -1,4 +1,3 @@
-import React from 'react';
 import './App.less';
 import { PlaygroundPopup } from './extension/popup';
 

@@ -24,7 +24,7 @@ class IndexedDBManager {
     if (this.isInitialized && this.isHealthy) {
       return;
     }
-    
+
     // If already initializing, return existing Promise
     if (this.initPromise) {
       return this.initPromise;
@@ -48,7 +48,7 @@ class IndexedDBManager {
     if (!this.db || !this.isInitialized) {
       return false;
     }
-    
+
     try {
       // Simple read test
       await this.getConfig();
@@ -69,15 +69,15 @@ class IndexedDBManager {
         console.error('IndexedDB open error:', request.error);
         reject(request.error);
       };
-      
+
       request.onsuccess = () => {
         this.db = request.result;
-        
+
         // Add database error handling
         this.db.onerror = (event) => {
           console.error('IndexedDB error:', event);
         };
-        
+
         resolve();
       };
 
@@ -107,13 +107,18 @@ class IndexedDBManager {
 
   private ensureDB(): IDBDatabase {
     if (!this.db || !this.isInitialized || !this.isHealthy) {
-      throw new Error('Database not initialized or unhealthy. Call init() first.');
+      throw new Error(
+        'Database not initialized or unhealthy. Call init() first.',
+      );
     }
     return this.db;
   }
 
   // Safe database operation wrapper
-  private async safeDBOperation<T>(operation: () => Promise<T>, fallback: T): Promise<T> {
+  private async safeDBOperation<T>(
+    operation: () => Promise<T>,
+    fallback: T,
+  ): Promise<T> {
     try {
       // Health check
       if (!this.isHealthy) {
@@ -122,7 +127,7 @@ class IndexedDBManager {
           throw new Error('Database is unhealthy');
         }
       }
-      
+
       return await operation();
     } catch (error) {
       console.error('Database operation failed:', error);
@@ -133,8 +138,11 @@ class IndexedDBManager {
 
   // Create Promise wrapper with timeout
   private createTimeoutPromise<T>(
-    promiseExecutor: (resolve: (value: T) => void, reject: (reason?: any) => void) => void,
-    timeoutMs: number = 10000
+    promiseExecutor: (
+      resolve: (value: T) => void,
+      reject: (reason?: any) => void,
+    ) => void,
+    timeoutMs = 10000,
   ): Promise<T> {
     return new Promise<T>((resolve, reject) => {
       // Set timeout
@@ -167,42 +175,47 @@ class IndexedDBManager {
     return this.safeDBOperation(async () => {
       await this.init();
       const db = this.ensureDB();
-      
-      return this.createTimeoutPromise<RecordingSession[]>((resolve, reject) => {
-        const transaction = db.transaction([SESSIONS_STORE], 'readonly');
-        
-        // Add transaction error handling
-        transaction.onerror = () => {
-          console.error('Transaction error in getAllSessions:', transaction.error);
-          reject(transaction.error);
-        };
-        
-        transaction.onabort = () => {
-          console.error('Transaction aborted in getAllSessions');
-          reject(new Error('Transaction aborted'));
-        };
 
-        const store = transaction.objectStore(SESSIONS_STORE);
-        const index = store.index('updatedAt');
-        const request = index.getAll();
+      return this.createTimeoutPromise<RecordingSession[]>(
+        (resolve, reject) => {
+          const transaction = db.transaction([SESSIONS_STORE], 'readonly');
 
-        request.onsuccess = () => {
-          try {
-            // Sort by updatedAt descending (newest first)
-            const sessions = request.result.sort(
-              (a, b) => b.updatedAt - a.updatedAt,
+          // Add transaction error handling
+          transaction.onerror = () => {
+            console.error(
+              'Transaction error in getAllSessions:',
+              transaction.error,
             );
-            resolve(sessions);
-          } catch (error) {
-            reject(error);
-          }
-        };
-        
-        request.onerror = () => {
-          console.error('Request error in getAllSessions:', request.error);
-          reject(request.error);
-        };
-      });
+            reject(transaction.error);
+          };
+
+          transaction.onabort = () => {
+            console.error('Transaction aborted in getAllSessions');
+            reject(new Error('Transaction aborted'));
+          };
+
+          const store = transaction.objectStore(SESSIONS_STORE);
+          const index = store.index('updatedAt');
+          const request = index.getAll();
+
+          request.onsuccess = () => {
+            try {
+              // Sort by updatedAt descending (newest first)
+              const sessions = request.result.sort(
+                (a, b) => b.updatedAt - a.updatedAt,
+              );
+              resolve(sessions);
+            } catch (error) {
+              reject(error);
+            }
+          };
+
+          request.onerror = () => {
+            console.error('Request error in getAllSessions:', request.error);
+            reject(request.error);
+          };
+        },
+      );
     }, []);
   }
 
@@ -210,29 +223,34 @@ class IndexedDBManager {
     return this.safeDBOperation(async () => {
       await this.init();
       const db = this.ensureDB();
-      
-      return this.createTimeoutPromise<RecordingSession | null>((resolve, reject) => {
-        const transaction = db.transaction([SESSIONS_STORE], 'readonly');
-        
-        transaction.onerror = () => {
-          console.error('Transaction error in getSession:', transaction.error);
-          reject(transaction.error);
-        };
-        
-        transaction.onabort = () => {
-          console.error('Transaction aborted in getSession');
-          reject(new Error('Transaction aborted'));
-        };
 
-        const store = transaction.objectStore(SESSIONS_STORE);
-        const request = store.get(id);
+      return this.createTimeoutPromise<RecordingSession | null>(
+        (resolve, reject) => {
+          const transaction = db.transaction([SESSIONS_STORE], 'readonly');
 
-        request.onsuccess = () => resolve(request.result || null);
-        request.onerror = () => {
-          console.error('Request error in getSession:', request.error);
-          reject(request.error);
-        };
-      });
+          transaction.onerror = () => {
+            console.error(
+              'Transaction error in getSession:',
+              transaction.error,
+            );
+            reject(transaction.error);
+          };
+
+          transaction.onabort = () => {
+            console.error('Transaction aborted in getSession');
+            reject(new Error('Transaction aborted'));
+          };
+
+          const store = transaction.objectStore(SESSIONS_STORE);
+          const request = store.get(id);
+
+          request.onsuccess = () => resolve(request.result || null);
+          request.onerror = () => {
+            console.error('Request error in getSession:', request.error);
+            reject(request.error);
+          };
+        },
+      );
     }, null);
   }
 
@@ -273,7 +291,9 @@ class IndexedDBManager {
 
     // If session doesn't exist, create a basic session structure
     if (!existingSession) {
-      console.warn(`Session ${sessionId} not found, creating new session with updates`);
+      console.warn(
+        `Session ${sessionId} not found, creating new session with updates`,
+      );
       existingSession = {
         id: sessionId,
         name: `Session ${new Date().toLocaleString()}`,
@@ -401,28 +421,31 @@ class IndexedDBManager {
       const storedSessions = localStorage.getItem(sessionsKey);
       if (storedSessions) {
         const sessions: RecordingSession[] = JSON.parse(storedSessions);
-        
+
         // Direct database operation to avoid method call recursion
         const db = this.db;
         const transaction = db.transaction([SESSIONS_STORE], 'readwrite');
         const store = transaction.objectStore(SESSIONS_STORE);
-        
+
         // Batch add sessions
-        const promises = sessions.map(session => new Promise<void>((resolve, reject) => {
-          const request = store.add(session);
-          request.onsuccess = () => resolve();
-          request.onerror = () => {
-            // Ignore error if session already exists
-            if (request.error?.name === 'ConstraintError') {
-              resolve();
-            } else {
-              reject(request.error);
-            }
-          };
-        }));
-        
+        const promises = sessions.map(
+          (session) =>
+            new Promise<void>((resolve, reject) => {
+              const request = store.add(session);
+              request.onsuccess = () => resolve();
+              request.onerror = () => {
+                // Ignore error if session already exists
+                if (request.error?.name === 'ConstraintError') {
+                  resolve();
+                } else {
+                  reject(request.error);
+                }
+              };
+            }),
+        );
+
         await Promise.all(promises);
-        
+
         // Clean up localStorage after migration
         localStorage.removeItem(sessionsKey);
       }
@@ -461,7 +484,7 @@ export const initializeDB = async (): Promise<void> => {
   if (isGloballyInitialized) {
     return;
   }
-  
+
   // If already initializing, return existing Promise
   if (globalInitPromise) {
     return globalInitPromise;

@@ -117,7 +117,7 @@ export const useRecordingSessionStore = create<{
     if (currentState.isInitialized) {
       return;
     }
-    
+
     try {
       // Ensure database initialization
       await initializeDB();
@@ -149,10 +149,16 @@ export const useRecordingSessionStore = create<{
       console.error('Failed to update session:', error);
       // Try to recover by ensuring the session exists in memory
       const { sessions } = get();
-      const sessionInMemory = sessions.find(s => s.id === sessionId);
+      const sessionInMemory = sessions.find((s) => s.id === sessionId);
       if (sessionInMemory) {
-        const updatedSession = { ...sessionInMemory, ...updates, updatedAt: Date.now() };
-        const newSessions = sessions.map(s => s.id === sessionId ? updatedSession : s);
+        const updatedSession = {
+          ...sessionInMemory,
+          ...updates,
+          updatedAt: Date.now(),
+        };
+        const newSessions = sessions.map((s) =>
+          s.id === sessionId ? updatedSession : s,
+        );
         set({ sessions: newSessions });
       }
     }
@@ -227,7 +233,7 @@ export const useRecordStore = create<{
     if (currentState.isInitialized) {
       return;
     }
-    
+
     try {
       // Ensure database initialization
       await initializeDB();
