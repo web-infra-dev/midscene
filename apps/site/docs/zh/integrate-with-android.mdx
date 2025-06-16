@@ -110,7 +110,7 @@ AndroidDevice 的构造函数支持以下参数：
   - `androidAdbPath?: string` - 可选参数，用于指定 adb 可执行文件的路径。
   - `remoteAdbHost?: string` - 可选参数，用于指定远程 adb 主机。
   - `remoteAdbPort?: number` - 可选参数，用于指定远程 adb 端口。
-  - `imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii'` - 可选参数，用于指定输入法策略。默认值为 'always-yadb'。
+  - `imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii'` - 可选参数，控制 Midscene 何时调用 [yadb](https://github.com/ysbing/YADB) 来输入文本。默认值为 'always-yadb'。
 
 ## Android Agent 上的更多接口
 
