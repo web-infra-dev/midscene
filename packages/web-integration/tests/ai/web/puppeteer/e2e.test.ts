@@ -232,10 +232,10 @@ describe(
     });
 
     it('input xss content', async () => {
-      const { originPage, reset } = await launchPage('https://www.baidu.com/');
+      const { originPage, reset } = await launchPage('https://www.google.com/');
       const agent = new PuppeteerAgent(originPage);
       await agent.aiInput(
-        '</script><script>alert("xss")</script>',
+        '<html>hello world</html><script>alert("xss")</script><button>click me</button>',
         'the search box',
       );
       await reset();

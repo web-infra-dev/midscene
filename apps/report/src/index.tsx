@@ -1,4 +1,4 @@
-import { antiEscapeHtml } from '@midscene/shared/utils';
+import { escapeScriptTag } from '@midscene/shared/utils';
 import { Alert } from 'antd';
 import ReactDOM from 'react-dom/client';
 import { Visualizer } from './App';
@@ -49,7 +49,7 @@ if (rootEl) {
           }
         });
 
-        const content = antiEscapeHtml(el.textContent || '');
+        const content = escapeScriptTag(el.textContent || '');
         try {
           const jsonContent = JSON.parse(content);
           jsonContent.attributes = attributes;
