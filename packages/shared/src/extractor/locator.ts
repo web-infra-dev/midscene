@@ -1,4 +1,5 @@
 import type { ElementInfo } from '.';
+import { isButtonElement, isFormElement } from './dom-util';
 import { getNodeFromCacheList } from './util';
 import { getRect, isElementPartiallyInViewport } from './util';
 import { collectElementInfo } from './web-extractor';
@@ -32,6 +33,21 @@ const getTextNodeIndex = (textNode: Node): number => {
   return index;
 };
 
+// Helper function to create normalize-space condition
+const createNormalizeSpaceCondition = (textContent: string): string => {
+  return `[normalize-space()="${textContent}"]`;
+};
+
+// Helper function to add text content to xpath if applicable
+const addTextContentToXPath = (el: Node, baseXPath: string): string => {
+  const textContent = el.textContent?.trim();
+  if (textContent && (isButtonElement(el) || isFormElement(el))) {
+    // add text content for leaf elements before text node
+    return `${baseXPath}${createNormalizeSpaceCondition(textContent)}`;
+  }
+  return baseXPath;
+};
+
 const getElementXPath = (element: Node): string => {
   // deal with text node
   if (element.nodeType === Node.TEXT_NODE) {
@@ -44,7 +60,7 @@ const getElementXPath = (element: Node): string => {
 
       // If we have text content, include it in the xpath for better matching
       if (textContent) {
-        return `${parentXPath}/text()[${textIndex}][normalize-space()="${textContent}"]`;
+        return `${parentXPath}/text()[${textIndex}]${createNormalizeSpaceCondition(textContent)}`;
       }
       return `${parentXPath}/text()[${textIndex}]`;
     }
@@ -64,20 +80,18 @@ const getElementXPath = (element: Node): string => {
     return '/html/body';
   }
 
-  // If no parent node, return just the tag name
-  if (!el.parentNode) {
-    return `/${el.nodeName.toLowerCase()}`;
-  }
-
   const index = getElementIndex(el);
   const tagName = el.nodeName.toLowerCase();
 
-  if (el.parentNode) {
-    const parentXPath = getElementXPath(el.parentNode);
-    return `${parentXPath}/${tagName}[${index}]`;
+  // If no parent node, return just the tag name
+  if (!el.parentNode) {
+    const baseXPath = `/${tagName}`;
+    return addTextContentToXPath(el, baseXPath);
   }
 
-  return `/${tagName}[${index}]`;
+  const parentXPath = getElementXPath(el.parentNode);
+  const baseXPath = `${parentXPath}/${tagName}[${index}]`;
+  return addTextContentToXPath(el, baseXPath);
 };
 
 function generateXPaths(node: Node | null): string[] {
