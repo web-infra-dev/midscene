@@ -1,8 +1,12 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { getKeyCommands } from '@/common/ui-utils';
 import {
   getCurrentExecutionFile,
   replaceIllegalPathCharsAndSpace,
+  trimContextByViewport,
 } from '@/common/utils';
+import type { ExecutionDump } from '@midscene/core/.';
 import { describe, expect, it } from 'vitest';
 
 describe('TaskCache', () => {
@@ -149,5 +153,19 @@ describe('replaceIllegalPathCharsAndSpace', () => {
     const input = 'cache-id:with*special?chars"and<spaces>|';
     const result = replaceIllegalPathCharsAndSpace(input);
     expect(result).toBe('cache-id-with-special-chars-and-spaces--');
+  });
+});
+
+describe('trimContextByViewport', () => {
+  it('should reserve the visible nodes of invisible elements', () => {
+    const dumpPath = path.join(
+      __dirname,
+      'fixtures',
+      'dump-with-invisible.json',
+    );
+    const dump = JSON.parse(fs.readFileSync(dumpPath, 'utf8'));
+    const result = trimContextByViewport(dump.executions[0]);
+    expect(result.tasks[0].pageContext?.tree?.node).toBeNull();
+    expect(result.tasks[0].pageContext?.tree?.children.length).toBe(28);
   });
 });

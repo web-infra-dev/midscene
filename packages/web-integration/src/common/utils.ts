@@ -224,16 +224,33 @@ export function trimContextByViewport(execution: ExecutionDump) {
   function filterVisibleTree(
     node: ElementTreeNode<BaseElement>,
   ): ElementTreeNode<BaseElement> | null {
-    if (!node || !node.node || node.node.isVisible !== true) return null;
+    if (!node) return null;
+
+    // recursively process all children
     const filteredChildren = Array.isArray(node.children)
       ? (node.children
           .map(filterVisibleTree)
           .filter((child) => child !== null) as ElementTreeNode<BaseElement>[])
-      : undefined;
-    return {
-      ...node,
-      ...(filteredChildren ? { children: filteredChildren } : {}),
-    };
+      : [];
+
+    // if the current node is visible, keep it and the filtered children
+    if (node.node && node.node.isVisible === true) {
+      return {
+        ...node,
+        children: filteredChildren,
+      };
+    }
+
+    // if the current node is invisible, but has visible children, create an empty node to include these children
+    if (filteredChildren.length > 0) {
+      return {
+        node: null,
+        children: filteredChildren,
+      };
+    }
+
+    // if the current node is invisible and has no visible children, return null
+    return null;
   }
 
   return {

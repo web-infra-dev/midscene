@@ -26,7 +26,8 @@
       "**/visualizer/scripts/fixture/*",
       "**/unpacked-extension/*",
       "**/page-data/**",
-      "**/dump.json"
+      "**/dump.json",
+      "**/dump-with-invisible.json"
     ]
   },
   "javascript": {
