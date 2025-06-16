@@ -6,7 +6,16 @@ import {
 } from '@ant-design/icons';
 import type { ChromeRecordedEvent } from '@midscene/recorder';
 import { RecordTimeline } from '@midscene/recorder';
-import { Alert, Button, Card, Divider, Empty, Space, Tooltip, Typography } from 'antd';
+import {
+  Alert,
+  Button,
+  Card,
+  Divider,
+  Empty,
+  Space,
+  Tooltip,
+  Typography,
+} from 'antd';
 import type React from 'react';
 import {
   type RecordingSession,

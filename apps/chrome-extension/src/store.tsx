@@ -186,30 +186,29 @@ export const useRecordingSessionStore = create<{
   },
 }));
 
-// Helper functions for events persistence
-const loadEventsFromStorage = (): ChromeRecordedEvent[] => {
+// Helper functions for events persistence with IndexedDB
+const loadEventsFromStorage = async (): Promise<ChromeRecordedEvent[]> => {
   try {
-    const stored = localStorage.getItem('midscene-recording-events');
-    return stored ? JSON.parse(stored) : [];
+    return await dbManager.getRecordingEvents();
   } catch (error) {
-    console.error('Failed to load events from storage:', error);
+    console.error('Failed to load events from IndexedDB:', error);
     return [];
   }
 };
 
-const saveEventsToStorage = (events: ChromeRecordedEvent[]) => {
+const saveEventsToStorage = async (events: ChromeRecordedEvent[]) => {
   try {
-    localStorage.setItem('midscene-recording-events', JSON.stringify(events));
+    await dbManager.setRecordingEvents(events);
   } catch (error) {
-    console.error('Failed to save events to storage:', error);
+    console.error('Failed to save events to IndexedDB:', error);
   }
 };
 
-const clearEventsFromStorage = () => {
+const clearEventsFromStorage = async () => {
   try {
-    localStorage.removeItem('midscene-recording-events');
+    await dbManager.clearRecordingEvents();
   } catch (error) {
-    console.error('Failed to clear events from storage:', error);
+    console.error('Failed to clear events from IndexedDB:', error);
   }
 };
 
@@ -219,10 +218,10 @@ export const useRecordStore = create<{
   isInitialized: boolean;
   initialize: () => Promise<void>;
   setIsRecording: (recording: boolean) => Promise<void>;
-  updateEvent: (event: ChromeRecordedEvent) => void;
-  addEvent: (event: ChromeRecordedEvent) => void;
-  setEvents: (events: ChromeRecordedEvent[]) => void;
-  clearEvents: () => void;
+  updateEvent: (event: ChromeRecordedEvent) => Promise<void>;
+  addEvent: (event: ChromeRecordedEvent) => Promise<void>;
+  setEvents: (events: ChromeRecordedEvent[]) => Promise<void>;
+  clearEvents: () => Promise<void>;
 }>((set, get) => ({
   isRecording: false,
   events: [],
@@ -238,7 +237,7 @@ export const useRecordStore = create<{
       // Ensure database initialization
       await initializeDB();
       const isRecording = await loadRecordingStateFromStorage();
-      const events = isRecording ? loadEventsFromStorage() : [];
+      const events = isRecording ? await loadEventsFromStorage() : [];
       set({ isRecording, events, isInitialized: true });
     } catch (error) {
       console.error('Failed to initialize record store:', error);
@@ -251,41 +250,39 @@ export const useRecordStore = create<{
       set({ isRecording: recording });
       // Clear events from storage when stopping recording
       if (!recording) {
-        clearEventsFromStorage();
+        await clearEventsFromStorage();
       }
     } catch (error) {
       console.error('Failed to set recording state:', error);
     }
   },
-  addEvent: (event: ChromeRecordedEvent) => {
-    set((state) => {
-      const newEvents = [...state.events, event];
-      if (state.isRecording) {
-        saveEventsToStorage(newEvents);
-      }
-      return { events: newEvents };
-    });
-  },
-  updateEvent: (event: ChromeRecordedEvent) => {
-    set((state) => {
-      const newEvents = state.events.map((e) =>
-        e.timestamp === event.timestamp ? event : e,
-      );
-      if (state.isRecording) {
-        saveEventsToStorage(newEvents);
-      }
-      return { events: newEvents };
-    });
-  },
-  setEvents: (events: ChromeRecordedEvent[]) => {
+  addEvent: async (event: ChromeRecordedEvent) => {
     const state = get();
+    const newEvents = [...state.events, event];
+    set({ events: newEvents });
     if (state.isRecording) {
-      saveEventsToStorage(events);
+      await saveEventsToStorage(newEvents);
     }
-    set({ events });
   },
-  clearEvents: () => {
-    clearEventsFromStorage();
+  updateEvent: async (event: ChromeRecordedEvent) => {
+    const state = get();
+    const newEvents = state.events.map((e) =>
+      e.timestamp === event.timestamp ? event : e,
+    );
+    set({ events: newEvents });
+    if (state.isRecording) {
+      await saveEventsToStorage(newEvents);
+    }
+  },
+  setEvents: async (events: ChromeRecordedEvent[]) => {
+    const state = get();
+    set({ events });
+    if (state.isRecording) {
+      await saveEventsToStorage(events);
+    }
+  },
+  clearEvents: async () => {
+    await clearEventsFromStorage();
     set({ events: [] });
   },
 }));

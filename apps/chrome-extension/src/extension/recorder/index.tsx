@@ -2,7 +2,7 @@
 import { Form } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
 import type { RecordingSession } from '../../store';
-import { useRecordingSessionStore, useRecordStore } from '../../store';
+import { useRecordStore, useRecordingSessionStore } from '../../store';
 import { RecordDetail } from './components/RecordDetail';
 import { RecordList } from './components/RecordList';
 import { SessionModals } from './components/SessionModals';
@@ -17,7 +17,7 @@ import './recorder.less';
 export default function Recorder() {
   // Local initialization state
   const [isStoreInitialized, setIsStoreInitialized] = useState(false);
-  
+
   // Get stores
   const sessionStore = useRecordingSessionStore();
   const recordStore = useRecordStore();
@@ -33,7 +33,7 @@ export default function Recorder() {
           sessionStore.initializeStore(),
           recordStore.initialize(),
         ]);
-        
+
         // Only update state if component is still mounted
         if (isMounted) {
           setIsStoreInitialized(true);
@@ -273,12 +273,15 @@ export default function Recorder() {
   // Show loading state while stores are initializing
   if (!isStoreInitialized) {
     return (
-      <div className="popup-record-container" style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '200px' 
-      }}>
+      <div
+        className="popup-record-container"
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '200px',
+        }}
+      >
         <div>Loading sessions...</div>
       </div>
     );

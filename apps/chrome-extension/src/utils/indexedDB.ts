@@ -407,6 +407,73 @@ class IndexedDBManager {
     await this.setConfig({ isRecording });
   }
 
+  // Recording events management (temporary storage during recording)
+  async getRecordingEvents(): Promise<any[]> {
+    return this.safeDBOperation(async () => {
+      await this.init();
+      const db = this.ensureDB();
+
+      return this.createTimeoutPromise<any[]>((resolve, reject) => {
+        const transaction = db.transaction([CONFIG_STORE], 'readonly');
+
+        transaction.onerror = () => {
+          console.error(
+            'Transaction error in getRecordingEvents:',
+            transaction.error,
+          );
+          reject(transaction.error);
+        };
+
+        const store = transaction.objectStore(CONFIG_STORE);
+        const request = store.get('recording-events');
+
+        request.onsuccess = () => {
+          const result = request.result;
+          resolve(result?.value || []);
+        };
+        request.onerror = () => {
+          console.error('Request error in getRecordingEvents:', request.error);
+          reject(request.error);
+        };
+      });
+    }, []);
+  }
+
+  async setRecordingEvents(events: any[]): Promise<void> {
+    try {
+      await this.init();
+      const db = this.ensureDB();
+
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction([CONFIG_STORE], 'readwrite');
+        const store = transaction.objectStore(CONFIG_STORE);
+        const request = store.put({ key: 'recording-events', value: events });
+
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+    } catch (error) {
+      console.error('Failed to set recording events:', error);
+    }
+  }
+
+  async clearRecordingEvents(): Promise<void> {
+    try {
+      await this.init();
+      const db = this.ensureDB();
+
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction([CONFIG_STORE], 'readwrite');
+        const store = transaction.objectStore(CONFIG_STORE);
+        const request = store.delete('recording-events');
+
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+    } catch (error) {
+      console.error('Failed to clear recording events:', error);
+    }
+  }
   // Migration helper - migrate from localStorage to IndexedDB
   async migrateFromLocalStorage(): Promise<void> {
     try {
@@ -464,6 +531,15 @@ class IndexedDBManager {
       if (recordingState) {
         await this.setRecordingState(recordingState === 'true');
         localStorage.removeItem(recordingStateKey);
+      }
+
+      // Migrate recording events
+      const recordingEventsKey = 'midscene-recording-events';
+      const recordingEvents = localStorage.getItem(recordingEventsKey);
+      if (recordingEvents) {
+        const events = JSON.parse(recordingEvents);
+        await this.setRecordingEvents(events);
+        localStorage.removeItem(recordingEventsKey);
       }
     } catch (error) {
       console.error('Failed to migrate from localStorage:', error);
