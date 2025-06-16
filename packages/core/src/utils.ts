@@ -15,15 +15,11 @@ import {
 } from '@midscene/shared/env';
 import { getRunningPkgInfo } from '@midscene/shared/fs';
 import { assert, logMsg } from '@midscene/shared/utils';
-import { escapeHtml, ifInBrowser, uuid } from '@midscene/shared/utils';
-import xss from 'xss';
+import { escapeScriptTag, ifInBrowser, uuid } from '@midscene/shared/utils';
 import type { Rect, ReportDumpWithAttributes } from './types';
 
 let logEnvReady = false;
 
-const xssOptions = {
-  escapeHtml,
-};
 export const groupedActionDumpFileExt = 'web-dump.json';
 
 const reportTpl = 'REPLACE_ME_WITH_REPORT_HTML';
@@ -105,7 +101,7 @@ export function reportHTMLContent(
     const dumpContent =
       // biome-ignore lint/style/useTemplate: <explanation> do not use template string here, will cause bundle error
       '<script type="midscene_web_dump" type="application/json">\n' +
-      xss(dumpData, xssOptions) +
+      escapeScriptTag(dumpData) +
       '\n</script>';
     appendOrWrite(dumpContent);
   }
@@ -123,7 +119,7 @@ export function reportHTMLContent(
         '<script type="midscene_web_dump" type="application/json" ' +
         attributesArr.join(' ') +
         '>\n' +
-        xss(dumpString, xssOptions) +
+        escapeScriptTag(dumpString) +
         '\n</script>';
       appendOrWrite(dumpContent);
     }
