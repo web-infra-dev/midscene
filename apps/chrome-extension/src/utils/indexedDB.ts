@@ -471,16 +471,57 @@ class IndexedDBManager {
       await this.init();
       const db = this.ensureDB();
 
-      return new Promise((resolve, reject) => {
+      return this.createTimeoutPromise<void>((resolve, reject) => {
         const transaction = db.transaction([CONFIG_STORE], 'readwrite');
+        
+        // Add transaction error handling
+        transaction.onerror = () => {
+          console.error('Transaction error in setRecordingEvents:', transaction.error);
+          reject(transaction.error);
+        };
+
+        transaction.onabort = () => {
+          console.error('Transaction aborted in setRecordingEvents');
+          reject(new Error('Transaction aborted'));
+        };
+
         const store = transaction.objectStore(CONFIG_STORE);
         const request = store.put({ key: 'recording-events', value: events });
 
         request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
-      });
+        request.onerror = () => {
+          console.error('Request error in setRecordingEvents:', request.error);
+          reject(request.error);
+        };
+      }, 5000); // Shorter timeout for events during navigation
     } catch (error) {
       console.error('Failed to set recording events:', error);
+      // Don't throw error during navigation to prevent hanging
+    }
+  }
+
+  // Emergency method for saving events during navigation with minimal timeout
+  async emergencySetRecordingEvents(events: any[]): Promise<void> {
+    try {
+      await this.init();
+      const db = this.ensureDB();
+
+      return this.createTimeoutPromise<void>((resolve, reject) => {
+        const transaction = db.transaction([CONFIG_STORE], 'readwrite');
+        
+        // Immediate resolution on transaction complete for faster response
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
+        transaction.onabort = () => reject(new Error('Transaction aborted'));
+
+        const store = transaction.objectStore(CONFIG_STORE);
+        const request = store.put({ key: 'recording-events', value: events });
+
+        request.onerror = () => reject(request.error);
+      }, 2000); // Very short timeout for emergency saves
+    } catch (error) {
+      console.error('Failed to emergency save recording events:', error);
+      // Fail silently during navigation
     }
   }
 

@@ -129,8 +129,13 @@ export const useTabMonitoring = () => {
       changeInfo: chrome.tabs.TabChangeInfo,
       tab: chrome.tabs.Tab,
     ) => {
-      // Detect navigation start (loading state)
+      // Only handle navigation detection for recording state preservation
+      // Actual recording stop is handled by useRecordingControl to avoid duplication
       if (tab.active && changeInfo.status === 'loading' && changeInfo.url) {
+        recordLogger.info('Navigation detected, saving recording state', {
+          tabId,
+          url: changeInfo.url,
+        });
         await saveRecordingStateBeforeNavigation(tabId, changeInfo.url);
       }
 

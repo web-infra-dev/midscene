@@ -45,6 +45,7 @@ export const useRecordingControl = (
     updateEvent,
     clearEvents,
     setEvents,
+    emergencySaveEvents,
   } = useRecordStore();
 
   const isExtensionMode = isChromeExtension();
@@ -314,6 +315,8 @@ export const useRecordingControl = (
   useEffect(() => {
     if (!currentTab?.id || !isRecording) return;
 
+    let navigationGraceTimer: NodeJS.Timeout | null = null;
+
     const handleTabUpdate = (
       tabId: number,
       changeInfo: chrome.tabs.TabChangeInfo,
@@ -323,16 +326,35 @@ export const useRecordingControl = (
         changeInfo.status === 'loading' &&
         isRecording
       ) {
-        // Page is being refreshed or navigating away
-        stopRecording().then(() => {
-          message.warning('Recording stopped due to page refresh/navigation');
+        recordLogger.info('Navigation detected, starting grace period before stopping recording', {
+          tabId,
+          url: changeInfo.url,
         });
+
+        // Clear any existing timer
+        if (navigationGraceTimer) {
+          clearTimeout(navigationGraceTimer);
+        }
+
+        // Add 500ms grace period to allow final events to be processed and saved
+        navigationGraceTimer = setTimeout(() => {
+          recordLogger.info('Grace period completed, stopping recording');
+          stopRecording().then(() => {
+            message.warning('Recording stopped due to page refresh/navigation');
+          });
+          navigationGraceTimer = null;
+        }, 500);
       }
     };
 
     safeChromeAPI.tabs.onUpdated.addListener(handleTabUpdate);
 
-    return () => safeChromeAPI.tabs.onUpdated.removeListener(handleTabUpdate);
+    return () => {
+      safeChromeAPI.tabs.onUpdated.removeListener(handleTabUpdate);
+      if (navigationGraceTimer) {
+        clearTimeout(navigationGraceTimer);
+      }
+    };
   }, [currentTab, isRecording, stopRecording]);
 
   // Start recording
@@ -609,5 +631,6 @@ export const useRecordingControl = (
     exportEvents,
     setIsRecording,
     setEvents,
+    emergencySaveEvents,
   };
 };

@@ -250,6 +250,7 @@ export const useRecordStore = create<{
   addEvent: (event: ChromeRecordedEvent) => Promise<void>;
   setEvents: (events: ChromeRecordedEvent[]) => Promise<void>;
   clearEvents: () => Promise<void>;
+  emergencySaveEvents: (events?: ChromeRecordedEvent[]) => Promise<void>;
 }>((set, get) => ({
   isRecording: false,
   events: [],
@@ -311,6 +312,17 @@ export const useRecordStore = create<{
   clearEvents: async () => {
     await clearEventsFromStorage();
     set({ events: [] });
+  },
+  emergencySaveEvents: async (events?: ChromeRecordedEvent[]) => {
+    const state = get();
+    const eventsToSave = events || state.events;
+    if (eventsToSave.length > 0) {
+      try {
+        await dbManager.emergencySetRecordingEvents(eventsToSave);
+      } catch (error) {
+        console.error('Emergency save failed:', error);
+      }
+    }
   },
 }));
 

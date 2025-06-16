@@ -15,6 +15,7 @@ export const useLifecycleCleanup = (
     updates: Partial<RecordingSession>,
   ) => void,
   events: ChromeRecordedEvent[], // Add events parameter to save current events
+  emergencySaveEvents: (events?: ChromeRecordedEvent[]) => Promise<void>, // Add emergency save function
 ) => {
   // Monitor visibility changes for the extension popup
   useEffect(() => {
@@ -36,10 +37,14 @@ export const useLifecycleCleanup = (
     const handleBeforeUnload = () => {
       if (isRecording) {
         recordLogger.info(
-          'Extension popup closing, stopping recording synchronously',
+          'Extension popup closing, stopping recording synchronously and saving events',
         );
-        // For unload events, we need to stop synchronously
+        // For unload events, we need to stop synchronously and save immediately
         setIsRecording(false).catch(console.error);
+        
+        // Emergency save current events
+        emergencySaveEvents(events).catch(console.error);
+        
         if (currentSessionId) {
           const session = getCurrentSession();
           if (session) {
@@ -74,8 +79,12 @@ export const useLifecycleCleanup = (
     return () => {
       // Clean up any ongoing recording when component unmounts
       if (isRecording) {
-        recordLogger.info('Component unmounting, cleaning up recording');
+        recordLogger.info('Component unmounting, cleaning up recording and saving events');
         setIsRecording(false).catch(console.error);
+        
+        // Emergency save current events
+        emergencySaveEvents(events).catch(console.error);
+        
         if (currentSessionId) {
           const session = getCurrentSession();
           if (session) {

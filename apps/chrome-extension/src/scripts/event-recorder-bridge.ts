@@ -184,6 +184,35 @@ function sendEventsToExtension(optimizedEvent: ChromeRecordedEvent[]): void {
   }, 300);
 }
 
+// Send pending events immediately when needed
+function flushPendingEvents(): void {
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+    debounceTimer = null;
+  }
+
+  if (pendingEvents && pendingEvents.length > 0) {
+    console.log('[EventRecorder Bridge] Flushing pending events before navigation:', {
+      eventsCount: pendingEvents.length,
+      eventTypes: pendingEvents.map((e) => e.type),
+    });
+
+    chrome.runtime
+      .sendMessage({
+        action: 'events',
+        data: convertToChromeEvents(pendingEvents),
+      } as ChromeMessage)
+      .catch((error) => {
+        console.debug(
+          '[EventRecorder Bridge] Failed to flush events to extension:',
+          (error as Error).message,
+        );
+      });
+
+    pendingEvents = null;
+  }
+}
+
 // Listen for messages from extension popup
 chrome.runtime.onMessage.addListener(
   (
@@ -281,10 +310,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Clean up on page unload
 window.addEventListener('beforeunload', () => {
-  if (window.recorder?.isActive()) {
-    console.log(
-      '[EventRecorder Bridge] Page unloading, stopping active recorder',
-    );
-    window.recorder.stop();
+  // Flush any pending events before the page unloads
+  flushPendingEvents();
+  setTimeout(()=>{
+    if (window.recorder?.isActive()) {
+      console.log(
+        '[EventRecorder Bridge] Page unloading, stopping active recorder',
+      );
+      window.recorder.stop();
+    }
+  }, 200)
+});
+
+// Listen for navigation events
+window.addEventListener('pagehide', () => {
+  // Flush any pending events before page becomes hidden
+  flushPendingEvents();
+});
+
+// Handle visibility changes (tab switches, minimizing)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    // Flush pending events when page becomes hidden
+    flushPendingEvents();
   }
 });

@@ -109,6 +109,7 @@ export default function Recorder() {
     clearEvents,
     setIsRecording,
     setEvents,
+    emergencySaveEvents,
   } = controlHooks;
 
   // Initialize lifecycle cleanup
@@ -122,6 +123,7 @@ export default function Recorder() {
       sessionHooks.handleUpdateSession(sessionId, updates);
     },
     events, // Pass current events to save them during cleanup
+    emergencySaveEvents, // Pass emergency save function
   );
 
   // Load current session events when switching sessions

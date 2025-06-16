@@ -190,7 +190,7 @@ export class EventRecorder {
     }, 0);
 
     // Add event listeners
-    document.addEventListener('click', this.handleClick);
+    document.addEventListener('click', this.handleClick, true);
     document.addEventListener('input', this.handleInput);
     document.addEventListener('scroll', this.handleScroll, { passive: true });
     this.scrollTargets.forEach((target) => {
