@@ -1,5 +1,5 @@
 /// <reference types="chrome" />
-import { Button, Form, Modal, Space } from 'antd';
+import { Form } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
 import type { RecordingSession } from '../../store';
 import { useRecordStore, useRecordingSessionStore } from '../../store';
@@ -70,9 +70,6 @@ export default function Recorder() {
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
 
-  // State to track if we're in the middle of a recovery operation
-  const [isRecovering, setIsRecovering] = useState(false);
-
   // Initialize tab monitoring to get currentTab
   const { currentTab, checkRecordingRecovery } = useTabMonitoring();
 
@@ -107,32 +104,12 @@ export default function Recorder() {
     events,
     isExtensionMode,
     recordContainerRef,
-    recoveryOptions,
     startRecording,
     stopRecording,
     clearEvents,
     setIsRecording,
     setEvents,
-    handleRecordingRecovery: originalHandleRecordingRecovery,
   } = controlHooks;
-
-  // Wrap the recovery handler to manage recovery state
-  const handleRecordingRecovery = useCallback(
-    async (action: 'continue' | 'new' | 'ignore') => {
-      if (action === 'continue') {
-        setIsRecovering(true);
-        try {
-          await originalHandleRecordingRecovery(action);
-        } finally {
-          // Reset recovery state after a delay to ensure all operations complete
-          setTimeout(() => setIsRecovering(false), 500);
-        }
-      } else {
-        await originalHandleRecordingRecovery(action);
-      }
-    },
-    [originalHandleRecordingRecovery],
-  );
 
   // Initialize lifecycle cleanup
   useLifecycleCleanup(
@@ -149,24 +126,13 @@ export default function Recorder() {
 
   // Load current session events when switching sessions
   useEffect(() => {
-    // Skip event loading during recovery to avoid conflicts
-    if (isRecovering) {
-      return;
-    }
-
     const currentSession = getCurrentSession();
     if (currentSession && currentSession.events.length > 0) {
       setEvents(currentSession.events);
     } else {
       clearEvents();
     }
-  }, [
-    currentSessionId,
-    getCurrentSession,
-    setEvents,
-    clearEvents,
-    isRecovering,
-  ]);
+  }, [currentSessionId, getCurrentSession, setEvents, clearEvents]);
 
   // Sync selectedSession with currentSession for view management
   useEffect(() => {
@@ -325,46 +291,6 @@ export default function Recorder() {
 
   return (
     <div ref={recordContainerRef} className="popup-record-container">
-      {/* Recording Recovery Modal */}
-      <Modal
-        title="Recording Recovery"
-        open={recoveryOptions?.canRecover}
-        onCancel={() => handleRecordingRecovery('ignore')}
-        footer={null}
-        maskClosable={false}
-        closable={true}
-      >
-        <div style={{ marginBottom: 16 }}>
-          <p>
-            It looks like you were recording before navigating to this page.
-            Would you like to continue the previous recording session or start a
-            new one?
-          </p>
-          {recoveryOptions?.lastUrl && (
-            <p style={{ fontSize: '12px', color: '#666' }}>
-              Previous URL: {recoveryOptions.lastUrl}
-            </p>
-          )}
-        </div>
-        <Space
-          direction="horizontal"
-          style={{ width: '100%', justifyContent: 'flex-end' }}
-        >
-          <Button onClick={() => handleRecordingRecovery('ignore')}>
-            Ignore
-          </Button>
-          <Button onClick={() => handleRecordingRecovery('new')}>
-            Start New Session
-          </Button>
-          <Button
-            type="primary"
-            onClick={() => handleRecordingRecovery('continue')}
-          >
-            Continue Previous Session
-          </Button>
-        </Space>
-      </Modal>
-
       {viewMode === 'list' ? (
         <RecordList
           sessions={sessions}

@@ -196,7 +196,10 @@ const loadEventsFromStorage = async (): Promise<ChromeRecordedEvent[]> => {
   }
 };
 
-function mergeEvents(oldEvents: ChromeRecordedEvent[], newEvents: ChromeRecordedEvent[]): ChromeRecordedEvent[] {
+function mergeEvents(
+  oldEvents: ChromeRecordedEvent[],
+  newEvents: ChromeRecordedEvent[],
+): ChromeRecordedEvent[] {
   const mergedEventsMap = new Map<string, ChromeRecordedEvent>();
 
   // Add old events to map, prioritizing them initially

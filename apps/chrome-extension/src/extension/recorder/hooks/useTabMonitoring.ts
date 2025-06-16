@@ -65,11 +65,12 @@ export const useTabMonitoring = () => {
       const config = await dbManager.getConfig();
       const timeSinceNavigation = Date.now() - (config.lastNavigationTime || 0);
 
-      // Only attempt recovery within 30 seconds of navigation
+      // Only attempt recovery within 30 seconds of navigation and if flag is set
       if (
         config.wasRecordingBeforeNavigation &&
         config.lastRecordingSessionId &&
-        timeSinceNavigation < 30000
+        timeSinceNavigation < 30000 &&
+        timeSinceNavigation > 100 // Avoid immediate triggers
       ) {
         recordLogger.info('Potential recording recovery detected', {
           sessionId: config.lastRecordingSessionId,
@@ -105,18 +106,6 @@ export const useTabMonitoring = () => {
           if (tabs[0]) {
             recordLogger.info('Current tab found', { tabId: tabs[0].id });
             setCurrentTab(tabs[0]);
-
-            // Check for recording recovery when tab is loaded
-            if (tabs[0].status === 'complete') {
-              const recoveryInfo = await checkRecordingRecovery(tabs[0]);
-              if (recoveryInfo.canRecover) {
-                // Clear navigation state after successful check
-                setNavigationState((prev) => ({
-                  ...prev,
-                  isNavigating: false,
-                }));
-              }
-            }
           } else {
             recordLogger.warn('No active tab found');
             setCurrentTab(null);
@@ -150,14 +139,11 @@ export const useTabMonitoring = () => {
         recordLogger.info('Active tab updated', { tabId });
         setCurrentTab(tab);
 
-        // Check for recording recovery after navigation completes
-        const recoveryInfo = await checkRecordingRecovery(tab);
-        if (recoveryInfo.canRecover) {
-          setNavigationState((prev) => ({
-            ...prev,
-            isNavigating: false,
-          }));
-        }
+        // Reset navigation state when navigation completes
+        setNavigationState((prev) => ({
+          ...prev,
+          isNavigating: false,
+        }));
       }
     };
 
