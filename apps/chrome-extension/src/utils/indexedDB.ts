@@ -11,6 +11,12 @@ const MAX_SESSIONS = 5;
 interface DBConfig {
   currentSessionId: string | null;
   isRecording: boolean;
+  // Navigation recovery fields
+  wasRecordingBeforeNavigation?: boolean;
+  lastRecordingTabId?: number;
+  lastRecordingUrl?: string;
+  lastRecordingSessionId?: string;
+  lastNavigationTime?: number;
 }
 
 class IndexedDBManager {
@@ -355,6 +361,11 @@ class IndexedDBManager {
             result?.value || {
               currentSessionId: null,
               isRecording: false,
+              wasRecordingBeforeNavigation: false,
+              lastRecordingTabId: undefined,
+              lastRecordingUrl: undefined,
+              lastRecordingSessionId: undefined,
+              lastNavigationTime: undefined,
             },
           );
         };
@@ -365,6 +376,11 @@ class IndexedDBManager {
       return {
         currentSessionId: null,
         isRecording: false,
+        wasRecordingBeforeNavigation: false,
+        lastRecordingTabId: undefined,
+        lastRecordingUrl: undefined,
+        lastRecordingSessionId: undefined,
+        lastNavigationTime: undefined,
       };
     }
   }
@@ -405,6 +421,17 @@ class IndexedDBManager {
 
   async setRecordingState(isRecording: boolean): Promise<void> {
     await this.setConfig({ isRecording });
+  }
+
+  // Clear navigation recovery state
+  async clearNavigationRecoveryState(): Promise<void> {
+    await this.setConfig({
+      wasRecordingBeforeNavigation: false,
+      lastRecordingTabId: undefined,
+      lastRecordingUrl: undefined,
+      lastRecordingSessionId: undefined,
+      lastNavigationTime: undefined,
+    });
   }
 
   // Recording events management (temporary storage during recording)
@@ -474,77 +501,6 @@ class IndexedDBManager {
       console.error('Failed to clear recording events:', error);
     }
   }
-  // Migration helper - migrate from localStorage to IndexedDB
-  async migrateFromLocalStorage(): Promise<void> {
-    try {
-      // Ensure database is initialized but don't trigger recursion
-      if (!this.db || !this.isInitialized) {
-        console.warn('Database not ready for migration, skipping...');
-        return;
-      }
-
-      // Migrate sessions
-      const sessionsKey = 'midscene-recording-sessions';
-      const storedSessions = localStorage.getItem(sessionsKey);
-      if (storedSessions) {
-        const sessions: RecordingSession[] = JSON.parse(storedSessions);
-
-        // Direct database operation to avoid method call recursion
-        const db = this.db;
-        const transaction = db.transaction([SESSIONS_STORE], 'readwrite');
-        const store = transaction.objectStore(SESSIONS_STORE);
-
-        // Batch add sessions
-        const promises = sessions.map(
-          (session) =>
-            new Promise<void>((resolve, reject) => {
-              const request = store.add(session);
-              request.onsuccess = () => resolve();
-              request.onerror = () => {
-                // Ignore error if session already exists
-                if (request.error?.name === 'ConstraintError') {
-                  resolve();
-                } else {
-                  reject(request.error);
-                }
-              };
-            }),
-        );
-
-        await Promise.all(promises);
-
-        // Clean up localStorage after migration
-        localStorage.removeItem(sessionsKey);
-      }
-
-      // Migrate current session ID
-      const currentSessionIdKey = 'midscene-current-session-id';
-      const currentSessionId = localStorage.getItem(currentSessionIdKey);
-      if (currentSessionId) {
-        await this.setCurrentSessionId(currentSessionId);
-        localStorage.removeItem(currentSessionIdKey);
-      }
-
-      // Migrate recording state
-      const recordingStateKey = 'midscene-recording-state';
-      const recordingState = localStorage.getItem(recordingStateKey);
-      if (recordingState) {
-        await this.setRecordingState(recordingState === 'true');
-        localStorage.removeItem(recordingStateKey);
-      }
-
-      // Migrate recording events
-      const recordingEventsKey = 'midscene-recording-events';
-      const recordingEvents = localStorage.getItem(recordingEventsKey);
-      if (recordingEvents) {
-        const events = JSON.parse(recordingEvents);
-        await this.setRecordingEvents(events);
-        localStorage.removeItem(recordingEventsKey);
-      }
-    } catch (error) {
-      console.error('Failed to migrate from localStorage:', error);
-    }
-  }
 }
 
 // Singleton instance
@@ -571,7 +527,6 @@ export const initializeDB = async (): Promise<void> => {
       await dbManager.init();
       // Only execute migration on first initialization
       if (!isGloballyInitialized) {
-        await dbManager.migrateFromLocalStorage();
         isGloballyInitialized = true;
       }
     } catch (error) {

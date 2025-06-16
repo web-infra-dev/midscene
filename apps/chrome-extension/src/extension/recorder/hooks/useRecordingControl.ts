@@ -1,11 +1,12 @@
 import type { ChromeRecordedEvent } from '@midscene/recorder';
 import { message } from 'antd';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { type RecordingSession, useRecordStore } from '../../../store';
 import {
   clearDescriptionCache,
   optimizeEvent,
 } from '../../../utils/eventOptimizer';
+import { dbManager } from '../../../utils/indexedDB';
 import { recordLogger } from '../logger';
 import { type RecordMessage, isChromeExtension, safeChromeAPI } from '../types';
 import {
@@ -28,6 +29,13 @@ export const useRecordingControl = (
     updates: Partial<RecordingSession>,
   ) => void,
   createNewSession: (sessionName?: string) => RecordingSession,
+  checkRecordingRecovery?: (tab: chrome.tabs.Tab) => Promise<{
+    canRecover: boolean;
+    sessionId?: string;
+    lastUrl?: string;
+    timeSinceNavigation?: number;
+  }>,
+  selectSession?: (session: RecordingSession) => void,
 ) => {
   const {
     isRecording,
@@ -41,6 +49,149 @@ export const useRecordingControl = (
 
   const isExtensionMode = isChromeExtension();
   const recordContainerRef = useRef<HTMLDivElement>(null);
+
+  // State for recording recovery
+  const [recoveryOptions, setRecoveryOptions] = useState<{
+    canRecover: boolean;
+    sessionId?: string;
+    lastUrl?: string;
+    timeSinceNavigation?: number;
+  } | null>(null);
+
+  // Check for recording recovery on component mount and tab changes
+  useEffect(() => {
+    const checkRecovery = async () => {
+      if (!currentTab || !checkRecordingRecovery) return;
+
+      try {
+        const recovery = await checkRecordingRecovery(currentTab);
+        if (recovery.canRecover) {
+          setRecoveryOptions(recovery);
+          recordLogger.info('Recording recovery available', recovery);
+        }
+      } catch (error) {
+        recordLogger.error(
+          'Failed to check recording recovery',
+          undefined,
+          error,
+        );
+      }
+    };
+
+    checkRecovery();
+  }, [currentTab, checkRecordingRecovery]);
+
+  // Handle recording recovery
+  const handleRecordingRecovery = useCallback(
+    async (action: 'continue' | 'new' | 'ignore') => {
+      if (!recoveryOptions || !currentTab) return;
+
+      try {
+        switch (action) {
+          case 'continue':
+            // Continue recording with the previous session
+            recordLogger.info('Continuing previous recording session', {
+              sessionId: recoveryOptions.sessionId,
+            });
+
+            // Load the previous session and continue recording
+            if (recoveryOptions.sessionId) {
+              const session = await dbManager.getSession(
+                recoveryOptions.sessionId,
+              );
+              if (session) {
+                recordLogger.info('Loaded session for recovery', {
+                  sessionId: session.id,
+                  existingEventsCount: session.events.length,
+                });
+
+                // First, set this as the current session by calling the external function
+                // This is crucial - we need to update the session store state
+                if (selectSession) {
+                  selectSession(session);
+                  recordLogger.info('Set session as current for recovery', {
+                    sessionId: session.id,
+                  });
+                }
+
+                // Update session status
+                await updateSession(session.id, {
+                  status: 'idle', // Reset status before continuing
+                  updatedAt: Date.now(),
+                });
+
+                // Set the events from the previous session BEFORE starting recording
+                setEvents(session.events);
+
+                // Small delay to ensure state updates
+                await new Promise((resolve) => setTimeout(resolve, 200));
+
+                // Start recording with the existing session
+                await startRecording(recoveryOptions.sessionId);
+
+                message.success(
+                  `Continued recording from previous session (${session.events.length} events loaded)`,
+                );
+              } else {
+                recordLogger.error('Failed to load session for recovery', {
+                  sessionId: recoveryOptions.sessionId,
+                });
+                message.error('Failed to load previous session');
+              }
+            }
+            break;
+
+          case 'new':
+            // Start a new recording session
+            recordLogger.info('Starting new recording session');
+            await startRecording();
+            break;
+
+          case 'ignore':
+            // Do nothing, just clear the recovery state
+            recordLogger.info('Ignoring recording recovery');
+            break;
+        }
+
+        // Clear recovery state and navigation data
+        await dbManager.clearNavigationRecoveryState();
+        setRecoveryOptions(null);
+      } catch (error) {
+        recordLogger.error(
+          'Failed to handle recording recovery',
+          undefined,
+          error,
+        );
+        message.error('Failed to handle recording recovery');
+      }
+    },
+    [recoveryOptions, currentTab, setEvents, updateSession, selectSession],
+  );
+
+  // Real-time event persistence during recording
+  const persistEventToSession = useCallback(
+    async (event: ChromeRecordedEvent) => {
+      if (!currentSessionId || !isRecording) return;
+
+      try {
+        const session = getCurrentSession();
+        if (session) {
+          const updatedEvents = [...session.events, event];
+          updateSession(currentSessionId, {
+            events: updatedEvents,
+            updatedAt: Date.now(),
+          });
+        }
+      } catch (error) {
+        recordLogger.error(
+          'Failed to persist event to session',
+          undefined,
+          error,
+        );
+      }
+    },
+    [currentSessionId, isRecording, getCurrentSession, updateSession],
+  );
 
   // Define stopRecording early using useCallback
   const stopRecording = useCallback(async () => {
@@ -179,88 +330,123 @@ export const useRecordingControl = (
   }, [currentTab, isRecording, stopRecording]);
 
   // Start recording
-  const startRecording = useCallback(async () => {
-    recordLogger.info('Starting recording', { tabId: currentTab?.id });
-
-    if (!isExtensionMode) {
-      recordLogger.error('Not in extension environment');
-      message.error(
-        'Recording is only available in Chrome extension environment',
-      );
-      return;
-    }
-
-    // Check if there's a current session
-    let sessionToUse = getCurrentSession();
-    if (!sessionToUse) {
-      // Auto-create session with timestamp name
-      const sessionName = generateSessionName();
-      recordLogger.info('Auto-creating session', { action: 'create' });
-
-      sessionToUse = createNewSession(sessionName);
-      message.success(`Session "${sessionName}" created automatically`);
-
-      // Small delay to ensure state updates before continuing
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    } else {
-      recordLogger.info('Using existing session', {
-        sessionId: sessionToUse.id,
+  const startRecording = useCallback(
+    async (sessionId?: string) => {
+      recordLogger.info('Starting recording', {
+        tabId: currentTab?.id,
+        sessionId,
       });
-    }
 
-    // Update session status to recording
-    updateSession(sessionToUse.id, {
-      status: 'recording',
-      url: currentTab?.url,
-      updatedAt: Date.now(),
-    });
-
-    if (!currentTab?.id) {
-      recordLogger.error('No active tab found for starting recording');
-      message.error('No active tab found');
-      return;
-    }
-
-    // Always ensure script is injected before starting
-    await ensureScriptInjected(currentTab);
-
-    try {
-      // Clean up any previous recording instances first
-      await cleanupPreviousRecordings();
-
-      // Clear the AI description cache to avoid using old descriptions
-      clearDescriptionCache();
-
-      // Send message to content script to start recording
-      await safeChromeAPI.tabs.sendMessage(currentTab.id, {
-        action: 'start',
-        sessionId: sessionToUse.id,
-      });
-      await setIsRecording(true);
-
-      // Only clear events if this is a new session or if the session has no existing events
-      // This allows resuming recording on existing sessions without losing previous events
-      if (sessionToUse.events.length === 0) {
-        clearEvents(); // Clear previous events for new recording
+      if (!isExtensionMode) {
+        recordLogger.error('Not in extension environment');
+        message.error(
+          'Recording is only available in Chrome extension environment',
+        );
+        return;
       }
 
-      recordLogger.success('Recording started', { sessionId: sessionToUse.id });
-      message.success('Recording started');
-    } catch (error) {
-      recordLogger.error('Failed to start recording', undefined, error);
-      message.error(
-        'Failed to start recording. Please ensure you are on a regular web page (not Chrome internal pages) and try again.',
-      );
-    }
-  }, [
-    isExtensionMode,
-    getCurrentSession,
-    createNewSession,
-    updateSession,
-    currentTab,
-    setIsRecording,
-    clearEvents,
-  ]);
+      // Check if there's a current session or use provided sessionId
+      let sessionToUse: RecordingSession | null = null;
+
+      if (sessionId) {
+        // Use the specific session ID provided (for recovery)
+        const specificSession = await dbManager.getSession(sessionId);
+        if (specificSession) {
+          sessionToUse = specificSession;
+          recordLogger.info('Using specified session', {
+            sessionId,
+            eventsCount: specificSession.events.length,
+          });
+        } else {
+          recordLogger.error('Specified session not found', { sessionId });
+          message.error('Specified session not found');
+          return;
+        }
+      } else {
+        // Use current session if no specific sessionId provided
+        sessionToUse = getCurrentSession();
+      }
+
+      if (!sessionToUse) {
+        // Auto-create session with timestamp name
+        const sessionName = generateSessionName();
+        recordLogger.info('Auto-creating session', { action: 'create' });
+
+        sessionToUse = createNewSession(sessionName);
+        message.success(`Session "${sessionName}" created automatically`);
+
+        // Small delay to ensure state updates before continuing
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      } else {
+        recordLogger.info('Using existing session', {
+          sessionId: sessionToUse.id,
+          existingEventsCount: sessionToUse.events.length,
+        });
+      }
+
+      // Update session status to recording
+      updateSession(sessionToUse.id, {
+        status: 'recording',
+        url: currentTab?.url,
+        updatedAt: Date.now(),
+      });
+
+      if (!currentTab?.id) {
+        recordLogger.error('No active tab found for starting recording');
+        message.error('No active tab found');
+        return;
+      }
+
+      // Always ensure script is injected before starting
+      await ensureScriptInjected(currentTab);
+
+      try {
+        // Clean up any previous recording instances first
+        await cleanupPreviousRecordings();
+
+        // Clear the AI description cache to avoid using old descriptions
+        clearDescriptionCache();
+
+        // Send message to content script to start recording
+        await safeChromeAPI.tabs.sendMessage(currentTab.id, {
+          action: 'start',
+          sessionId: sessionToUse.id,
+        });
+        await setIsRecording(true);
+
+        // Only clear events if this is a new session or if the session has no existing events
+        // This allows resuming recording on existing sessions without losing previous events
+        if (sessionToUse.events.length === 0) {
+          clearEvents(); // Clear previous events for new recording
+        } else {
+          // Load existing events for continuation
+          setEvents(sessionToUse.events);
+          recordLogger.info('Loaded existing events for continuation', {
+            eventsCount: sessionToUse.events.length,
+          });
+        }
+
+        recordLogger.success('Recording started', {
+          sessionId: sessionToUse.id,
+        });
+        message.success('Recording started');
+      } catch (error) {
+        recordLogger.error('Failed to start recording', undefined, error);
+        message.error(
+          'Failed to start recording. Please ensure you are on a regular web page (not Chrome internal pages) and try again.',
+        );
+      }
+    },
+    [
+      isExtensionMode,
+      getCurrentSession,
+      createNewSession,
+      updateSession,
+      currentTab,
+      setIsRecording,
+      clearEvents,
+    ],
+  );
 
   // Export current events
   const exportEvents = useCallback(() => {
@@ -374,7 +560,10 @@ export const useRecordingControl = (
         const optimizedEvent = await processEventData(message.data);
         addEvent(optimizedEvent);
 
-        // Persist event to session during recording
+        // Real-time persistence during recording
+        await persistEventToSession(optimizedEvent);
+
+        // Legacy persistence for compatibility (will be removed once new system is stable)
         if (currentSessionId && isRecording) {
           const currentSession = getCurrentSession();
           if (currentSession) {
@@ -406,6 +595,7 @@ export const useRecordingControl = (
     events,
     isExtensionMode,
     recordContainerRef,
+    recoveryOptions,
 
     // Actions
     startRecording,
@@ -414,5 +604,6 @@ export const useRecordingControl = (
     exportEvents,
     setIsRecording,
     setEvents,
+    handleRecordingRecovery,
   };
 };

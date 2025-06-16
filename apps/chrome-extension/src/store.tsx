@@ -196,9 +196,23 @@ const loadEventsFromStorage = async (): Promise<ChromeRecordedEvent[]> => {
   }
 };
 
+function mergeEvents(oldEvents: ChromeRecordedEvent[], newEvents: ChromeRecordedEvent[]): ChromeRecordedEvent[] {
+  const mergedEvents = [...oldEvents];
+  for (const event of newEvents) {
+    const existingEvent = mergedEvents.find(e => e.timestamp === event.timestamp);
+    if (!existingEvent) {
+      // Add new event
+      mergedEvents.push(event);
+    }
+  }
+  return mergedEvents;
+}
+
 const saveEventsToStorage = async (events: ChromeRecordedEvent[]) => {
   try {
-    await dbManager.setRecordingEvents(events);
+    const existingEvents = await dbManager.getRecordingEvents();
+    const combinedEvents = mergeEvents(existingEvents, events);
+    await dbManager.setRecordingEvents(combinedEvents);
   } catch (error) {
     console.error('Failed to save events to IndexedDB:', error);
   }
@@ -266,9 +280,7 @@ export const useRecordStore = create<{
   },
   updateEvent: async (event: ChromeRecordedEvent) => {
     const state = get();
-    const newEvents = state.events.map((e) =>
-      e.timestamp === event.timestamp ? event : e,
-    );
+    const newEvents = mergeEvents(state.events, [event]);
     set({ events: newEvents });
     if (state.isRecording) {
       await saveEventsToStorage(newEvents);
@@ -276,9 +288,10 @@ export const useRecordStore = create<{
   },
   setEvents: async (events: ChromeRecordedEvent[]) => {
     const state = get();
-    set({ events });
+    const newEvents = mergeEvents(state.events, events);
+    set({ events: newEvents });
     if (state.isRecording) {
-      await saveEventsToStorage(events);
+      await saveEventsToStorage(newEvents);
     }
   },
   clearEvents: async () => {

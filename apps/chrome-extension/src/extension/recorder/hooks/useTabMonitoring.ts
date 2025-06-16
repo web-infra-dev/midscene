@@ -1,19 +1,122 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { dbManager } from '../../../utils/indexedDB';
 import { recordLogger } from '../logger';
 import { safeChromeAPI } from '../types';
 
 export const useTabMonitoring = () => {
   const [currentTab, setCurrentTab] = useState<chrome.tabs.Tab | null>(null);
+  const [navigationState, setNavigationState] = useState<{
+    isNavigating: boolean;
+    lastUrl: string | null;
+    lastTabId: number | null;
+    wasRecordingBeforeNavigation: boolean;
+  }>({
+    isNavigating: false,
+    lastUrl: null,
+    lastTabId: null,
+    wasRecordingBeforeNavigation: false,
+  });
+
+  // Save recording state before navigation
+  const saveRecordingStateBeforeNavigation = useCallback(
+    async (tabId: number, url?: string) => {
+      try {
+        const isRecording = await dbManager.getRecordingState();
+        const currentSessionId = await dbManager.getCurrentSessionId();
+
+        if (isRecording && currentSessionId) {
+          recordLogger.info('Saving recording state before navigation', {
+            tabId,
+            url,
+            sessionId: currentSessionId,
+          });
+
+          // Save navigation context for recovery
+          await dbManager.setConfig({
+            wasRecordingBeforeNavigation: true,
+            lastRecordingTabId: tabId,
+            lastRecordingUrl: url,
+            lastRecordingSessionId: currentSessionId,
+            lastNavigationTime: Date.now(),
+          });
+
+          setNavigationState((prev) => ({
+            ...prev,
+            isNavigating: true,
+            lastUrl: url || null,
+            lastTabId: tabId,
+            wasRecordingBeforeNavigation: true,
+          }));
+        }
+      } catch (error) {
+        recordLogger.error(
+          'Failed to save recording state before navigation',
+          undefined,
+          error,
+        );
+      }
+    },
+    [],
+  );
+
+  // Check for recording recovery after navigation
+  const checkRecordingRecovery = useCallback(async (tab: chrome.tabs.Tab) => {
+    try {
+      const config = await dbManager.getConfig();
+      const timeSinceNavigation = Date.now() - (config.lastNavigationTime || 0);
+
+      // Only attempt recovery within 30 seconds of navigation
+      if (
+        config.wasRecordingBeforeNavigation &&
+        config.lastRecordingSessionId &&
+        timeSinceNavigation < 30000
+      ) {
+        recordLogger.info('Potential recording recovery detected', {
+          sessionId: config.lastRecordingSessionId,
+          timeSinceNavigation,
+          currentUrl: tab.url,
+          lastUrl: config.lastRecordingUrl,
+        });
+
+        return {
+          canRecover: true,
+          sessionId: config.lastRecordingSessionId,
+          lastUrl: config.lastRecordingUrl,
+          timeSinceNavigation,
+        };
+      }
+    } catch (error) {
+      recordLogger.error(
+        'Failed to check recording recovery',
+        undefined,
+        error,
+      );
+    }
+
+    return { canRecover: false };
+  }, []);
 
   // Get current active tab and set up listeners for tab changes
   useEffect(() => {
-    const updateCurrentTab = () => {
+    const updateCurrentTab = async () => {
       safeChromeAPI.tabs.query(
         { active: true, currentWindow: true },
-        (tabs) => {
+        async (tabs) => {
           if (tabs[0]) {
             recordLogger.info('Current tab found', { tabId: tabs[0].id });
             setCurrentTab(tabs[0]);
+
+            // Check for recording recovery when tab is loaded
+            if (tabs[0].status === 'complete') {
+              const recoveryInfo = await checkRecordingRecovery(tabs[0]);
+              if (recoveryInfo.canRecover) {
+                // Clear navigation state after successful check
+                setNavigationState((prev) => ({
+                  ...prev,
+                  isNavigating: false,
+                }));
+              }
+            }
           } else {
             recordLogger.warn('No active tab found');
             setCurrentTab(null);
@@ -32,15 +135,29 @@ export const useTabMonitoring = () => {
     };
 
     // Listen for tab updates (URL changes, etc.)
-    const handleTabUpdated = (
+    const handleTabUpdated = async (
       tabId: number,
       changeInfo: chrome.tabs.TabChangeInfo,
       tab: chrome.tabs.Tab,
     ) => {
+      // Detect navigation start (loading state)
+      if (tab.active && changeInfo.status === 'loading' && changeInfo.url) {
+        await saveRecordingStateBeforeNavigation(tabId, changeInfo.url);
+      }
+
       // Only update if it's the currently active tab and has completed loading
       if (tab.active && changeInfo.status === 'complete') {
         recordLogger.info('Active tab updated', { tabId });
         setCurrentTab(tab);
+
+        // Check for recording recovery after navigation completes
+        const recoveryInfo = await checkRecordingRecovery(tab);
+        if (recoveryInfo.canRecover) {
+          setNavigationState((prev) => ({
+            ...prev,
+            isNavigating: false,
+          }));
+        }
       }
     };
 
@@ -69,5 +186,8 @@ export const useTabMonitoring = () => {
   return {
     currentTab,
     setCurrentTab,
+    navigationState,
+    saveRecordingStateBeforeNavigation,
+    checkRecordingRecovery,
   };
 };
