@@ -472,6 +472,13 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     return output;
   }
 
+  async aiAsk(
+    prompt: string,
+    opt: InsightExtractOption = defaultInsightExtractOption,
+  ) {
+    return this.aiString(prompt, opt);
+  }
+
   async describeElementAtPoint(
     center: [number, number],
     opt?: {

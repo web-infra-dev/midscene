@@ -88,7 +88,8 @@ export const PlaywrightAiFixture = (options?: {
       | 'aiLocate'
       | 'aiNumber'
       | 'aiString'
-      | 'aiBoolean';
+      | 'aiBoolean'
+      | 'aiAsk';
   }) {
     const { page, testInfo, use, aiActionType } = options;
     const agent = createOrReuseAgentForPage(page, testInfo) as PlaywrightAgent;
@@ -339,6 +340,18 @@ export const PlaywrightAiFixture = (options?: {
         aiActionType: 'aiBoolean',
       });
     },
+    aiAsk: async (
+      { page }: { page: OriginPlaywrightPage },
+      use: any,
+      testInfo: TestInfo,
+    ) => {
+      await generateAiFunction({
+        page,
+        testInfo,
+        use,
+        aiActionType: 'aiAsk',
+      });
+    },
   };
 };
 
@@ -383,4 +396,7 @@ export type PlayWrightAiFixtureType = {
   aiBoolean: (
     ...args: Parameters<PageAgent['aiBoolean']>
   ) => ReturnType<PageAgent['aiBoolean']>;
+  aiAsk: (
+    ...args: Parameters<PageAgent['aiAsk']>
+  ) => ReturnType<PageAgent['aiAsk']>;
 };
