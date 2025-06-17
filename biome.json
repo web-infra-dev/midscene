@@ -27,7 +27,8 @@
       "**/unpacked-extension/*",
       "**/page-data/**",
       "**/dump.json",
-      "**/dump-with-invisible.json"
+      "**/dump-with-invisible.json",
+      "**/dump-for-utils-test.json"
     ]
   },
   "javascript": {

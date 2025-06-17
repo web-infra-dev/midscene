@@ -65,7 +65,8 @@ export function elementByPositionWithElementInfo(
           !(
             filterPositionElements &&
             item.attributes?.nodeType === NodeType.POSITION
-          )
+          ) &&
+          item.isVisible
         ) {
           matchingElements.push(item);
         }
