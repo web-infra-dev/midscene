@@ -151,8 +151,8 @@ export const generateBoxedImage = async (
         rect: {
           left: event.elementRect.x,
           top: event.elementRect.y,
-          width: 2,
-          height: 2,
+          width: 4,
+          height: 4,
         },
       } as any);
     }
