@@ -1,10 +1,32 @@
-import { describeUserPage } from '@/ai-model/prompt/util';
 import { treeToList } from '@midscene/shared/extractor';
 import { getContextFromFixture } from 'tests/evaluation';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-describe('prompt utils', () => {
+// Mock the env module before importing the function that uses it
+vi.mock('@midscene/shared/env', () => ({
+  vlLocateMode: vi.fn(() => 'qwen-vl' as const), // default to 'qwen-vl'
+}));
+
+import fs from 'node:fs';
+import path from 'node:path';
+import {
+  describeUserPage,
+  elementByPositionWithElementInfo,
+} from '@/ai-model/prompt/util';
+import { vlLocateMode } from '@midscene/shared/env';
+
+describe('prompt utils - describeUserPage', () => {
   let lengthOfDescription: number;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    // Reset to default value
+    vi.mocked(vlLocateMode).mockReturnValue('qwen-vl');
+  });
+
   it('describe context ', async () => {
     const context = await getContextFromFixture('taobao');
     const { description } = await describeUserPage(context.context, {
@@ -48,5 +70,178 @@ describe('prompt utils', () => {
     expect(description.length).toBeLessThan(
       treeToList(context.context.tree).length,
     );
+  });
+
+  it('describe context with non-vl mode', async () => {
+    // Mock vlLocateMode to return false for this test
+    vi.mocked(vlLocateMode).mockReturnValue(false);
+
+    const context = await getContextFromFixture('taobao');
+    const { description } = await describeUserPage(context.context, {
+      domIncluded: false,
+    });
+
+    // In non-vl mode, description should include page elements even when domIncluded is false
+    expect(description).toBeTruthy();
+  });
+
+  it('describe context with vl mode', async () => {
+    // Mock vlLocateMode to return a VL mode for this test
+    vi.mocked(vlLocateMode).mockReturnValue('qwen-vl');
+
+    const context = await getContextFromFixture('taobao');
+    const { description } = await describeUserPage(context.context, {
+      domIncluded: false,
+    });
+
+    // In vl mode, description should be empty if domIncluded is false
+    expect(description).toBeFalsy();
+  });
+});
+
+describe('prompt utils - elementByPositionWithElementInfo', () => {
+  it('should return the correct element at the position(filter invisible elements)', async () => {
+    const dumpPath = path.join(
+      __dirname,
+      '../../',
+      'fixtures',
+      'dump-for-utils-test.json',
+    );
+    const dump = JSON.parse(fs.readFileSync(dumpPath, 'utf8'));
+    const targetNode = {
+      node: {
+        content: '选好了',
+        rect: {
+          left: 138,
+          top: 849,
+          width: 247,
+          height: 38,
+          zoom: 1,
+          isVisible: true,
+        },
+        center: [261, 868],
+        id: 'hdocg',
+        indexId: 263,
+        attributes: {
+          type: 'button',
+          class: '.submit-btn.ant-btn.ant-btn-primary.ant-btn-lg.ant-btn-block',
+          htmlTagName: '<button>',
+          nodeType: 'BUTTON Node',
+        },
+        isVisible: true,
+      },
+      children: [],
+    };
+    const rectCenter = {
+      x: targetNode.node.rect.left + targetNode.node.rect.width / 2,
+      y: targetNode.node.rect.top + targetNode.node.rect.height / 2,
+    };
+    const element = elementByPositionWithElementInfo(
+      dump.executions[0].tasks[0].pageContext.tree,
+      rectCenter,
+      {
+        requireStrictDistance: false,
+        filterPositionElements: true,
+      },
+    );
+
+    expect(element?.id).toBe(targetNode.node.id);
+  });
+
+  it('should return the correct element at the position with filterPositionElements = false', async () => {
+    const dumpPath = path.join(
+      __dirname,
+      '../../',
+      'fixtures',
+      'dump-for-utils-test.json',
+    );
+    const dump = JSON.parse(fs.readFileSync(dumpPath, 'utf8'));
+    const targetNode = {
+      node: {
+        content: '选好了',
+        rect: {
+          left: 138,
+          top: 849,
+          width: 247,
+          height: 38,
+          zoom: 1,
+          isVisible: true,
+        },
+        center: [261, 868],
+        id: 'hdocg',
+        indexId: 263,
+        attributes: {
+          type: 'button',
+          class: '.submit-btn.ant-btn.ant-btn-primary.ant-btn-lg.ant-btn-block',
+          htmlTagName: '<button>',
+          nodeType: 'BUTTON Node',
+        },
+        isVisible: true,
+      },
+      children: [],
+    };
+    const rectCenter = {
+      x: targetNode.node.rect.left + targetNode.node.rect.width / 2,
+      y: targetNode.node.rect.top + targetNode.node.rect.height / 2,
+    };
+    const element = elementByPositionWithElementInfo(
+      dump.executions[0].tasks[0].pageContext.tree,
+      rectCenter,
+      {
+        requireStrictDistance: false,
+        filterPositionElements: false,
+      },
+    );
+
+    expect(element?.id).not.toBe(targetNode.node.id);
+    expect(element?.attributes?.nodeType).toBe('POSITION Node');
+  });
+
+  it('should return correct element at the position when strictDistance is true', async () => {
+    const dumpPath = path.join(
+      __dirname,
+      '../../',
+      'fixtures',
+      'dump-for-utils-test.json',
+    );
+    const dump = JSON.parse(fs.readFileSync(dumpPath, 'utf8'));
+    const targetNode = {
+      node: {
+        content: '选好了',
+        rect: {
+          left: 138,
+          top: 849,
+          width: 247,
+          height: 38,
+          zoom: 1,
+          isVisible: true,
+        },
+        center: [261, 868],
+        id: 'hdocg',
+        indexId: 263,
+        attributes: {
+          type: 'button',
+          class: '.submit-btn.ant-btn.ant-btn-primary.ant-btn-lg.ant-btn-block',
+          htmlTagName: '<button>',
+          nodeType: 'BUTTON Node',
+        },
+        isVisible: true,
+      },
+      children: [],
+    };
+    const rectCenter = {
+      x: targetNode.node.rect.left + targetNode.node.rect.width / 2,
+      y: targetNode.node.rect.top + targetNode.node.rect.height / 2,
+    };
+    const element = elementByPositionWithElementInfo(
+      dump.executions[0].tasks[0].pageContext.tree,
+      rectCenter,
+      {
+        requireStrictDistance: true,
+        filterPositionElements: true,
+      },
+    );
+
+    expect(element?.id).toBe(targetNode.node.id);
   });
 });

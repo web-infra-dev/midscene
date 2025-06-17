@@ -1,6 +1,7 @@
 import { imageInfoOfBase64 } from '@/image/index';
 import type { BaseElement, ElementTreeNode, Size, UIContext } from '@/types';
 import { NodeType } from '@midscene/shared/constants';
+import { vlLocateMode } from '@midscene/shared/env';
 import {
   descriptionOfTree,
   generateElementByPosition,
@@ -61,14 +62,14 @@ export function elementByPositionWithElementInfo(
         position.y <= item.rect.top + item.rect.height
       ) {
         if (
-          filterPositionElements &&
-          item.attributes?.nodeType === NodeType.POSITION
+          !(
+            filterPositionElements &&
+            item.attributes?.nodeType === NodeType.POSITION
+          ) &&
+          item.isVisible
         ) {
-          // Skip POSITION elements if filterPositionElements is true
-          return;
+          matchingElements.push(item);
         }
-
-        matchingElements.push(item);
       }
     }
 
@@ -167,7 +168,8 @@ export async function describeUserPage<
 
   let pageDescription = '';
   const visibleOnly = opt?.visibleOnly ?? opt?.domIncluded === 'visible-only';
-  if (opt?.domIncluded) {
+  if (opt?.domIncluded || !vlLocateMode()) {
+    // non-vl mode must provide the page description
     const contentTree = await descriptionOfTree(
       treeRoot,
       opt?.truncateTextLength,
