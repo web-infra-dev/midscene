@@ -47,13 +47,6 @@ chrome.runtime.onConnect.addListener((port) => {
 });
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log('[ServiceWorker] Message received:', {
-    action: request.action,
-    type: request.type,
-    senderTabId: sender.tab?.id,
-    senderUrl: sender.tab?.url,
-    hasData: !!request.data,
-  });
 
   // Handle screenshot capture request
   if (request.action === 'captureScreenshot') {

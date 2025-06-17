@@ -330,20 +330,16 @@ export const useRecordingControl = (
           tabId,
           url: changeInfo.url,
         });
-
-        // Clear any existing timer
-        if (navigationGraceTimer) {
-          clearTimeout(navigationGraceTimer);
+      } else if (
+        currentTab?.id === tabId &&
+        changeInfo.status === 'complete' &&
+        isRecording
+      ) {
+        const session = getCurrentSession();
+        if (session) {
+          recordLogger.info('Navigation completed, starting new recording');
+          startRecording(session.id);
         }
-
-        // Add 500ms grace period to allow final events to be processed and saved
-        navigationGraceTimer = setTimeout(() => {
-          recordLogger.info('Grace period completed, stopping recording');
-          stopRecording().then(() => {
-            message.warning('Recording stopped due to page refresh/navigation');
-          });
-          navigationGraceTimer = null;
-        }, 500);
       }
     };
 

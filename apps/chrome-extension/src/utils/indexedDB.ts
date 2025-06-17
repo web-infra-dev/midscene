@@ -1,7 +1,7 @@
 import type { RecordingSession } from '../store';
 
 const DB_NAME = 'midscene-recorder';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const SESSIONS_STORE = 'recording-sessions';
 const CONFIG_STORE = 'config';
 

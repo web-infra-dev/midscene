@@ -63,10 +63,6 @@ export const RecordTimeline = ({
   events,
   onEventClick,
 }: RecordTimelineProps) => {
-  console.log('[RecordTimeline] events: ', {
-    events,
-    length: events.length,
-  });
   const getEventIcon = (type: string) => {
     switch (type) {
       case 'click':
