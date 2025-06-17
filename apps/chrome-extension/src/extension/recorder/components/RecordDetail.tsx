@@ -32,7 +32,7 @@ interface RecordDetailProps {
   isRecording: boolean;
   currentTab: chrome.tabs.Tab | null;
   onBack: () => void;
-  onStartRecording: () => void;
+  onStartRecording: (id?: string) => void;
   onStopRecording: () => void;
   onClearEvents: () => void;
   isExtensionMode: boolean;
@@ -157,7 +157,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
               <Button
                 type="primary"
                 icon={<PlayCircleOutlined />}
-                onClick={onStartRecording}
+                onClick={()=> onStartRecording(sessionId)}
                 disabled={!currentTab || !isExtensionMode}
               >
                 Start
