@@ -2,6 +2,26 @@
 
 > 完整更新日志请参考：[Midscene Releases](https://github.com/web-infra-dev/midscene/releases)
 
+## v0.19 - 支持获取完整的执行过程数据
+
+### 新增 API 获取 Midscene 执行过程数据
+
+为 agent 添加 `_unstableLogContent` API，即可获取 Midscene 执行过程数据，比如每个步骤的耗时、AI Tokens 消耗情况、页面截图等！
+
+对了，Midscene 的报告就是根据这份数据生成了，也就是说，使用这份数据，你甚至可以定制一个属于你自己的报告！
+
+详情请参考：[API 文档](./API.mdx#agent_unstablelogcontent)
+
+### CLI 新增参数支持调整 Midscene 环境变量优先级
+
+默认情况下，`dotenv` 不会覆盖 `.env` 文件中同名的全局环境变量。如果希望覆盖，你可以使用 `--dotenv-override` 选项。
+
+详情请参考：[使用 YAML 格式的自动化脚本](./automate-with-scripts-in-yaml.mdx#%E4%BD%BF%E7%94%A8-env-%E4%B8%AD%E7%9A%84%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F%E8%A6%86%E7%9B%96%E5%90%8C%E5%90%8D%E7%9A%84%E5%85%A8%E5%B1%80%E7%8E%AF%E5%A2%83%E5%8F%98%E9%87%8F)
+
+### 大幅减少报告文件大小
+
+裁剪生成的报告中冗余的数据，大幅减少复杂页面的报告文件大小，用户的典型复杂页面报告大小从 47.6M 减小到 15.6M！
+
 ## v0.18 - 回放报告功能增强
 
 🚀 Midscene 又有更新啦！为你带来高质量的 UI 自动化体验。
