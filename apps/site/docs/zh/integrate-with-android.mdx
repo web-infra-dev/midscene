@@ -17,7 +17,6 @@ import { PackageManagerTabs } from '@theme';
 
 <SetupEnv />
 
-
 ## 第一步：安装依赖
 
 <PackageManagerTabs command="install @midscene/android --save-dev" />
@@ -29,7 +28,11 @@ import { PackageManagerTabs } from '@theme';
 编写下方代码，保存为 `./demo.ts`
 
 ```typescript title="./demo.ts"
-import { AndroidAgent, AndroidDevice, getConnectedDevices } from '@midscene/android';
+import {
+  AndroidAgent,
+  AndroidDevice,
+  getConnectedDevices,
+} from '@midscene/android';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 Promise.resolve(
@@ -38,7 +41,7 @@ Promise.resolve(
     const page = new AndroidDevice(devices[0].udid);
 
     // 👀 初始化 Midscene agent
-    const agent = new AndroidAgent(page,{
+    const agent = new AndroidAgent(page, {
       aiActionContext:
         '如果出现位置、权限、用户协议等弹窗，点击同意。如果出现登录页面，关闭它。',
     });
@@ -53,21 +56,20 @@ Promise.resolve(
     await agent.aiAction('在搜索框输入 "Headphones" ，敲回车');
 
     // 👀 等待加载完成
-    await agent.aiWaitFor("页面中至少有一个耳机商品");
+    await agent.aiWaitFor('页面中至少有一个耳机商品');
     // 或者你也可以使用一个普通的 sleep:
     // await sleep(5000);
 
     // 👀 理解页面内容，提取数据
     const items = await agent.aiQuery(
-      "{itemTitle: string, price: Number}[], 找到列表里的商品标题和价格"
+      '{itemTitle: string, price: Number}[], 找到列表里的商品标题和价格',
     );
-    console.log("耳机商品信息", items);
+    console.log('耳机商品信息', items);
 
     // 👀 用 AI 断言
-    await agent.aiAssert("界面左侧有类目筛选功能");
-  })()
+    await agent.aiAssert('界面左侧有类目筛选功能');
+  })(),
 );
-
 ```
 
 ## 第三步：运行
@@ -98,18 +100,17 @@ npx tsx demo.ts
 
 当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: /path/to/report/some_id.html`， 通过浏览器打开该文件即可看到报告。
 
-
 ## `AndroidDevice` 的构造函数
 
 AndroidDevice 的构造函数支持以下参数：
 
-* `deviceId: string` - 设备 id
-* `opts?: AndroidDeviceOpt` - 可选参数，用于初始化 AndroidDevice 的配置
-  * `autoDismissKeyboard?: boolean` - 可选参数，是否在输入文本后自动关闭键盘。默认值为 true。
-  * `androidAdbPath?: string` - 可选参数，用于指定 adb 可执行文件的路径。
-  * `remoteAdbHost?: string` - 可选参数，用于指定远程 adb 主机。
-  * `remoteAdbPort?: number` - 可选参数，用于指定远程 adb 端口。
-
+- `deviceId: string` - 设备 id
+- `opts?: AndroidDeviceOpt` - 可选参数，用于初始化 AndroidDevice 的配置
+  - `autoDismissKeyboard?: boolean` - 可选参数，是否在输入文本后自动关闭键盘。默认值为 true。
+  - `androidAdbPath?: string` - 可选参数，用于指定 adb 可执行文件的路径。
+  - `remoteAdbHost?: string` - 可选参数，用于指定远程 adb 主机。
+  - `remoteAdbPort?: number` - 可选参数，用于指定远程 adb 端口。
+  - `imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii'` - 可选参数，控制 Midscene 何时调用 [yadb](https://github.com/ysbing/YADB) 来输入文本。默认值为 'always-yadb'。
 
 ## Android Agent 上的更多接口
 
@@ -119,19 +120,21 @@ AndroidDevice 的构造函数支持以下参数：
 
 启动一个网页或原生页面。
 
-* 类型
+- 类型
 
 ```typescript
 function launch(uri: string): Promise<void>;
 ```
 
-* 参数：
-  * `uri: string` - 要打开的 uri，可以是网页 url 或原生 app 的 package name 或 activity name，如果存在 activity name，则以 / 分隔（例如：com.android.settings/.Settings）
+- 参数：
 
-* 返回值：
-  * `Promise<void>`
+  - `uri: string` - 要打开的 uri，可以是网页 url 或原生 app 的 package name 或 activity name，如果存在 activity name，则以 / 分隔（例如：com.android.settings/.Settings）
 
-* 示例：
+- 返回值：
+
+  - `Promise<void>`
+
+- 示例：
 
 ```typescript
 import { AndroidAgent, AndroidDevice } from '@midscene/android';
@@ -148,20 +151,25 @@ await agent.launch('com.android.settings/.Settings'); // 打开系统设置 app(
 
 从已连接的 adb 设备中，创建一个 AndroidAgent。
 
-* 类型
+- 类型
 
 ```typescript
-function agentFromAdbDevice(deviceId?: string, opts?: PageAgentOpt): Promise<AndroidAgent>;
+function agentFromAdbDevice(
+  deviceId?: string,
+  opts?: PageAgentOpt,
+): Promise<AndroidAgent>;
 ```
 
-* 参数：
-  * `deviceId?: string` - 可选参数，要连接的 adb 设备 id，如果未传入，则使用第一个连接的设备
-  * `opts?: PageAgentOpt & AndroidDeviceOpt` - 可选参数，用于初始化 AndroidAgent 的配置，其中 PageAgentOpt 参考 [构造器](./API)，AndroidDeviceOpt 的配置值参考 [AndroidDevice 的构造函数](./integrate-with-android#androiddevice-%E7%9A%84%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0)
+- 参数：
 
-* 返回值：
-  * `Promise<AndroidAgent>` 返回一个 AndroidAgent 实例
+  - `deviceId?: string` - 可选参数，要连接的 adb 设备 id，如果未传入，则使用第一个连接的设备
+  - `opts?: PageAgentOpt & AndroidDeviceOpt` - 可选参数，用于初始化 AndroidAgent 的配置，其中 PageAgentOpt 参考 [构造器](./API)，AndroidDeviceOpt 的配置值参考 [AndroidDevice 的构造函数](./integrate-with-android#androiddevice-%E7%9A%84%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0)
 
-* 示例：
+- 返回值：
+
+  - `Promise<AndroidAgent>` 返回一个 AndroidAgent 实例
+
+- 示例：
 
 ```typescript
 import { agentFromAdbDevice } from '@midscene/android';
@@ -174,9 +182,9 @@ const agent = await agentFromAdbDevice(); // 不传入 deviceId，则使用第�
 
 获取所有连接的 Android 设备。
 
-* 类型
+- 类型
 
-```typescript 
+```typescript
 function getConnectedDevices(): Promise<Device[]>;
 interface Device {
   /**
@@ -192,13 +200,14 @@ interface Device {
 }
 ```
 
-* 返回值：
-  * `Promise<Device[]>` 返回一个 Device 数组
+- 返回值：
 
-* 示例：
+  - `Promise<Device[]>` 返回一个 Device 数组
+
+- 示例：
 
 ```typescript
-import { agentFromAdbDevice, getConnectedDevices } from '@midscene/android'
+import { agentFromAdbDevice, getConnectedDevices } from '@midscene/android';
 
 const devices = await getConnectedDevices();
 console.log(devices);
@@ -207,8 +216,8 @@ const agent = await agentFromAdbDevice(devices[0].udid);
 
 ## 更多
 
-* 更多 Agent 上的 API 接口请参考 [API 参考](./API)。
-* 更多关于提示词的技巧请参考 [提示词技巧](./prompting-tips)
+- 更多 Agent 上的 API 接口请参考 [API 参考](./API)。
+- 更多关于提示词的技巧请参考 [提示词技巧](./prompting-tips)
 
 ## FAQ
 
@@ -217,7 +226,7 @@ const agent = await agentFromAdbDevice(devices[0].udid);
 请检查是否在系统设置的开发者选项中，如果存在『USB 调试（安全设置）』，也需要开启。
 
 <p align="center">
-  <img src="/android-usb-debug.png" alt="android usb debug" width="400"/>
+  <img src="/android-usb-debug.png" alt="android usb debug" width="400" />
 </p>
 
 ### 如何使用自定义的 adb 路径、远程 adb 主机和端口？
