@@ -57,7 +57,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   // Handle screenshot capture request
   if (request.action === 'captureScreenshot') {
-    console.log('[ServiceWorker] Processing screenshot capture request');
     if (sender.tab && sender.tab.id !== undefined) {
       chrome.tabs.captureVisibleTab(
         sender.tab.windowId,
@@ -70,10 +69,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             );
             sendResponse(null);
           } else {
-            console.log(
-              '[ServiceWorker] Screenshot captured successfully, size:',
-              dataUrl ? dataUrl.length : 0,
-            );
             sendResponse(dataUrl);
           }
         },

@@ -20,7 +20,7 @@ export const getLatestEvents = (
   // If currently recording, always use live events as they have the most up-to-date AI descriptions
   if (isRecording && currentLiveEvents.length > 0) {
     recordLogger.info('Using live events during recording', {
-      eventsCount: currentLiveEvents.length,
+      events: currentLiveEvents
     });
     return currentLiveEvents;
   }
