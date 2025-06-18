@@ -2,6 +2,26 @@
 
 > For the complete changelog, please refer to: [Midscene Releases](https://github.com/web-infra-dev/midscene/releases)
 
+## v0.19.0 - Support for Getting Complete Execution Process Data
+
+### New API for Getting Midscene Execution Process Data
+
+Add the `_unstableLogContent` API to the agent. Get the execution process data of Midscene, including the time of each step, the AI tokens consumed, and the screenshot.
+
+The report is generated based on this data, which means you can customize your own report using this data.
+
+Read more: [API documentation](./API.mdx#agent_unstablelogcontent)
+
+### CLI Support for Adjusting Midscene Env Variable Priority
+
+By default, `dotenv` does not override the global environment variables in the `.env` file. If you want to override, you can use the `--dotenv-override` option.
+
+Read more: [Use YAML-based Automation Scripts](./automate-with-scripts-in-yaml.mdx#use-env-file-to-override-global-environment-variables)
+
+### Reduce Report File Size
+
+Reduce the size of the generated report by trimming redundant data, significantly reducing the report file size for complex pages. The typical report file size for complex pages has been reduced from 47.6M to 15.6M!
+
 ## v0.18.0 - enhanced reporting features
 
 🚀 Midscene has another update! It makes your testing and automation processes even more powerful:
