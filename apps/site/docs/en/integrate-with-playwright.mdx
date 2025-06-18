@@ -61,11 +61,11 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 
 ### Query
 
-- `aiAsk` - Ask AI Model
-- `aiQuery` - AI Query
-- `aiNumber` - Number Query
-- `aiString` - String Query
-- `aiBoolean` - Boolean Query
+- `aiAsk` - Ask AI Model anything about the current page
+- `aiQuery` - Extract structured data from current page
+- `aiNumber` - Extract number from current page
+- `aiString` - Extract string from current page
+- `aiBoolean` - Extract boolean from current page
 
 ### More APIs
 
@@ -153,7 +153,3 @@ After the command executes successfully, it will output: `Midscene - report file
 
 - For all the methods on the Agent, please refer to [API Reference](./API).
 - For more details about prompting, please refer to [Prompting Tips](./prompting-tips)
-
-```
-
-```

@@ -284,7 +284,7 @@ await agent.aiRightClick('页面顶部的文件名称', { deepThink: true });
 
 ### `agent.aiAsk()`
 
-使用此方法，你可以针对当前页面，直接询问 AI 模型，该方法返回 AI 模型的回答。
+使用此方法，你可以针对当前页面，直接向 AI 模型发起提问，并获得字符串形式的回答。
 
 - 类型
 
@@ -314,7 +314,7 @@ console.log(result); // 输出 AI 模型的回答
 
 ### `agent.aiQuery()`
 
-使用此方法，你可以直接从 UI 提取数据，并借助多模态 AI 的推理能力，实现智能提取。只需在 `dataDemand` 中描述期望的数据格式（如字符串、数字、JSON、数组等），Midscene 即返回相应结果。
+使用此方法，你可以直接从 UI 提取结构化的数据。只需在 `dataDemand` 中描述期望的数据格式（如字符串、数字、JSON、数组等），Midscene 即返回相应结果。
 
 - 类型
 
