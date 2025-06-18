@@ -18,7 +18,7 @@ const SideItem = (props: {
   const selectedClass = selected ? 'selected' : '';
   let statusText: JSX.Element | string = task.status;
 
-  const cacheEl = task.cache?.hit ? <span>(cache) </span> : null;
+  const cacheEl = task.hitBy?.from === 'Cache' ? <span>(cache) </span> : null;
 
   const deepThinkEl = (task as ExecutionTaskInsightLocate)?.log?.dump
     ?.deepThink ? (

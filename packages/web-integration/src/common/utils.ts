@@ -25,6 +25,8 @@ import type { Page as PlaywrightPage } from 'playwright';
 import type { Page as PuppeteerPage } from 'puppeteer';
 import { WebElementInfo } from '../web-element';
 import type { WebPage } from './page';
+import { debug as cacheDebug } from './task-cache';
+import type { PageTaskExecutor } from './tasks';
 
 export type WebUIContext = UIContext<WebElementInfo> & {
   url: string;
@@ -218,6 +220,40 @@ export function matchElementFromPlan(
   }
 
   return undefined;
+}
+
+export async function matchElementFromCache(
+  taskExecutor: PageTaskExecutor,
+  xpaths: string[] | undefined,
+  cachePrompt: string,
+  cacheable: boolean | undefined,
+) {
+  try {
+    if (
+      xpaths?.length &&
+      taskExecutor.taskCache?.isCacheResultUsed &&
+      cacheable !== false
+    ) {
+      // hit cache, use new id
+      for (let i = 0; i < xpaths.length; i++) {
+        const element = await taskExecutor.page.getElementInfoByXpath(
+          xpaths[i],
+        );
+
+        if (element?.id) {
+          cacheDebug('cache hit, prompt: %s', cachePrompt);
+          cacheDebug(
+            'found a new new element with same xpath, xpath: %s, id: %s',
+            xpaths[i],
+            element?.id,
+          );
+          return element;
+        }
+      }
+    }
+  } catch (error) {
+    cacheDebug('get element info by xpath error: ', error);
+  }
 }
 
 export function trimContextByViewport(execution: ExecutionDump) {

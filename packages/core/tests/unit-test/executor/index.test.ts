@@ -94,8 +94,7 @@ describe(
       expect(tasks[0].output).toMatchSnapshot();
       expect(tasks[0].log?.dump).toBeTruthy();
       expect(tasks[0].timing?.end).toBeTruthy();
-      expect(tasks[0].cache).toBeTruthy();
-      expect(tasks[0].cache?.hit).toEqual(false);
+      expect(tasks[0].hitBy?.from).not.toBe('Cache');
 
       expect(tapperFn).toBeCalledTimes(1);
       expect(tapperFn.mock.calls[0][0]).toBe(taskParam);

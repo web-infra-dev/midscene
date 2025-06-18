@@ -249,7 +249,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           typeof prompt === 'string',
           'prompt for aiLocate must be a string',
         );
-        const locateResult = await agent.aiLocate(prompt);
+        const locateResult = await agent.aiLocate(prompt, locateTask);
         this.setResult(locateTask.name, locateResult);
       } else if ('aiWaitFor' in (flowItem as MidsceneYamlFlowItemAIWaitFor)) {
         const waitForTask = flowItem as MidsceneYamlFlowItemAIWaitFor;

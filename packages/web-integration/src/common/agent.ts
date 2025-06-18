@@ -251,10 +251,13 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       const prompt = opt.prompt ?? locatePrompt;
       const deepThink = opt.deepThink ?? false;
       const cacheable = opt.cacheable ?? true;
+      const xpath = opt.xpath;
+
       return {
         prompt,
         deepThink,
         cacheable,
+        xpath,
       };
     }
     return {

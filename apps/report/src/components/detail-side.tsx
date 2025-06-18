@@ -198,14 +198,14 @@ const DetailSide = (): JSX.Element => {
             },
           ]
         : []),
-      {
-        key: 'cache',
-        content: task?.cache ? (
-          <pre>{JSON.stringify(task?.cache, undefined, 2)}</pre>
-        ) : (
-          'false'
-        ),
-      },
+      ...(task?.hitBy
+        ? [
+            {
+              key: 'hitBy',
+              content: <pre>{JSON.stringify(task?.hitBy, undefined, 2)}</pre>,
+            },
+          ]
+        : []),
       ...(task?.locate
         ? [
             {

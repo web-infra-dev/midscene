@@ -24,17 +24,15 @@
     }
   },
   "projects": {
-    "core": {
+    "report": {
       "targets": {
         "build": {
-          "dependsOn": ["^build", "report:build"]
-        }
-      }
-    },
-    "android": {
-      "targets": {
-        "build": {
-          "dependsOn": ["^build", "core:build"]
+          "dependsOn": [
+            "^build",
+            "core:build",
+            "web-integration:build",
+            "android:build"
+          ]
         }
       }
     }

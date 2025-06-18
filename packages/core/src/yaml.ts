@@ -4,6 +4,7 @@ export interface LocateOption {
   prompt?: string;
   deepThink?: boolean; // only available in vl model
   cacheable?: boolean; // user can set this param to false to disable the cache for a single agent api
+  xpath?: string; // only available in web
 }
 
 export interface InsightExtractOption {
@@ -115,7 +116,7 @@ export interface MidsceneYamlFlowItemAIBoolean extends InsightExtractOption {
   name?: string;
 }
 
-export interface MidsceneYamlFlowItemAILocate {
+export interface MidsceneYamlFlowItemAILocate extends LocateOption {
   aiLocate: string;
   name?: string;
 }
