@@ -105,7 +105,8 @@ function aiTap(locate: string, options?: Object): Promise<void>;
 - 参数：
   - `locate: string` - 用自然语言描述的元素定位。
   - `options?: Object` - 可选，一个配置对象，包含：
-    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
+    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。默认值为 False
+    - `xpath?: string` - 目标操作元素的 xpath，可让 Midscene 跳过 AI 大模型，直接根据该 xpath 定位元素。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
 - 返回值：
 
@@ -133,7 +134,8 @@ function aiHover(locate: string, options?: Object): Promise<void>;
 - 参数：
   - `locate: string` - 用自然语言描述的元素定位。
   - `options?: Object` - 可选，一个配置对象，包含：
-    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
+    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。默认值为 False
+    - `xpath?: string` - 目标操作元素的 xpath，可让 Midscene 跳过 AI 大模型，直接根据该 xpath 定位元素。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
 - 返回值：
 
@@ -160,7 +162,8 @@ function aiInput(text: string, locate: string, options?: Object): Promise<void>;
   - `text: string` - 要输入的文本内容。使用空字符串可以清空输入框。
   - `locate: string` - 用自然语言描述的元素定位。
   - `options?: Object` - 可选，一个配置对象，包含：
-    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
+    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。默认值为 False
+    - `xpath?: string` - 目标操作元素的 xpath，可让 Midscene 跳过 AI 大模型，直接根据该 xpath 定位元素。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
     - `autoDismissKeyboard?: boolean` - 如果为 true，则键盘会在输入文本后自动关闭，仅在 Android 中有效。默认值为 true。
 
@@ -193,7 +196,8 @@ function aiKeyboardPress(
   - `key: string` - 要按下的键，如 `Enter`、`Tab`、`Escape` 等。不支持组合键。
   - `locate?: string` - 用自然语言描述的元素定位。
   - `options?: Object` - 可选，一个配置对象，包含：
-    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
+    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。默认值为 False
+    - `xpath?: string` - 目标操作元素的 xpath，可让 Midscene 跳过 AI 大模型，直接根据该 xpath 定位元素。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
 
 - 返回值：
@@ -228,7 +232,8 @@ function aiScroll(
     - `distance: number` - 滚动距离，单位为像素。
   - `locate?: string` - 用自然语言描述的元素定位。如果未传入，Midscene 会在当前鼠标位置滚动。
   - `options?: Object` - 可选，一个配置对象，包含：
-    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
+    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。默认值为 False
+    - `xpath?: string` - 目标操作元素的 xpath，可让 Midscene 跳过 AI 大模型，直接根据该 xpath 定位元素。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
 
 - 返回值：
@@ -258,7 +263,8 @@ function aiRightClick(locate: string, options?: Object): Promise<void>;
 
   - `locate: string` - 用自然语言描述的元素定位。
   - `options?: Object` - 可选，一个配置对象，包含：
-    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
+    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。默认值为 False
+    - `xpath?: string` - 目标操作元素的 xpath，可让 Midscene 跳过 AI 大模型，直接根据该 xpath 定位元素。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
 
 - 返回值：
@@ -499,7 +505,8 @@ function aiLocate(
 
   - `locate: string` - 用自然语言描述的元素定位。
   - `options?: Object` - 可选，一个配置对象，包含：
-    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。
+    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。默认值为 False
+    - `xpath?: string` - 目标操作元素的 xpath，可让 Midscene 跳过 AI 大模型，直接根据该 xpath 定位元素。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
 
 - 返回值：
