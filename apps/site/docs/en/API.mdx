@@ -109,7 +109,7 @@ function aiTap(locate: string, options?: Object): Promise<void>;
   - `locate: string` - A natural language description of the element to tap.
   - `options?: Object` - Optional, a configuration object containing:
     - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. False by default.
-    - `xpath?: string` - The xpath of the element to tap. If provided, Midscene will skip the AI model and directly locate the element based on the xpath. Default: empty.
+    - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
 - Return Value:
@@ -142,7 +142,7 @@ function aiHover(locate: string, options?: Object): Promise<void>;
   - `locate: string` - A natural language description of the element to hover over.
   - `options?: Object` - Optional, a configuration object containing:
     - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. False by default.
-    - `xpath?: string` - The xpath of the element to tap. If provided, Midscene will skip the AI model and directly locate the element based on the xpath. Default: empty.
+    - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
 - Return Value:
@@ -171,7 +171,7 @@ function aiInput(text: string, locate: string, options?: Object): Promise<void>;
   - `locate: string` - A natural language description of the element to input text into.
   - `options?: Object` - Optional, a configuration object containing:
     - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. False by default.
-    - `xpath?: string` - The xpath of the element to tap. If provided, Midscene will skip the AI model and directly locate the element based on the xpath. Default: empty.
+    - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
     - `autoDismissKeyboard?: boolean` - If true, the keyboard will be dismissed after input text, only available in Android. (Default: true)
 
@@ -205,7 +205,7 @@ function aiKeyboardPress(
   - `locate?: string` - Optional, a natural language description of the element to press the key on.
   - `options?: Object` - Optional, a configuration object containing:
     - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. False by default.
-    - `xpath?: string` - The xpath of the element to tap. If provided, Midscene will skip the AI model and directly locate the element based on the xpath. Default: empty.
+    - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
 - Return Value:
@@ -241,7 +241,7 @@ function aiScroll(
   - `locate?: string` - Optional, a natural language description of the element to scroll on. If not provided, Midscene will perform scroll on the current mouse position.
   - `options?: Object` - Optional, a configuration object containing:
     - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. False by default.
-    - `xpath?: string` - The xpath of the element to tap. If provided, Midscene will skip the AI model and directly locate the element based on the xpath. Default: empty.
+    - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
 - Return Value:
@@ -272,7 +272,7 @@ function aiRightClick(locate: string, options?: Object): Promise<void>;
   - `locate: string` - A natural language description of the element to right-click on.
   - `options?: Object` - Optional, a configuration object containing:
     - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. False by default.
-    - `xpath?: string` - The xpath of the element to tap. If provided, Midscene will skip the AI model and directly locate the element based on the xpath. Default: empty.
+    - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
 - Return Value:
@@ -508,7 +508,7 @@ function aiLocate(
   - `locate: string` - A natural language description of the element to locate.
   - `options?: Object` - Optional, a configuration object containing:
     - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. False by default.
-    - `xpath?: string` - The xpath of the element to tap. If provided, Midscene will skip the AI model and directly locate the element based on the xpath. Default: empty.
+    - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
 - Return Value:

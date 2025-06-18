@@ -206,13 +206,13 @@ tasks:
       # 点击一个元素，用 prompt 描述元素位置
       - aiTap: <prompt>
         deepThink: <boolean> # 可选，是否使用深度思考（deepThink）来精确定位元素。默认值为 False
-        xpath: <xpath> # 可选，目标操作元素的 xpath，可让 Midscene 跳过 AI 大模型，直接根据该 xpath 定位元素。默认值为空
+        xpath: <xpath> # 可选，目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
         cacheable: <boolean> # 可选，当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
 
       # 鼠标悬停一个元素，用 prompt 描述元素位置
       - aiHover: <prompt>
         deepThink: <boolean> # 可选，是否使用深度思考（deepThink）来精确定位元素。默认值为 False
-        xpath: <xpath> # 可选，目标操作元素的 xpath，可让 Midscene 跳过 AI 大模型，直接根据该 xpath 定位元素。默认值为空
+        xpath: <xpath> # 可选，目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
 
         cacheable: <boolean> # 可选，当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
 
@@ -220,7 +220,7 @@ tasks:
       - aiInput: <输入框的最终文本内容>
         locate: <prompt>
         deepThink: <boolean> # 可选，是否使用深度思考（deepThink）来精确定位元素。默认值为 False
-        xpath: <xpath> # 可选，目标操作元素的 xpath，可让 Midscene 跳过 AI 大模型，直接根据该 xpath 定位元素。默认值为空
+        xpath: <xpath> # 可选，目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
 
         cacheable: <boolean> # 可选，当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
 
@@ -228,7 +228,7 @@ tasks:
       - aiKeyboardPress: <按键>
         locate: <prompt>
         deepThink: <boolean> # 可选，是否使用深度思考（deepThink）来精确定位元素。默认值为 False
-        xpath: <xpath> # 可选，目标操作元素的 xpath，可让 Midscene 跳过 AI 大模型，直接根据该 xpath 定位元素。默认值为空
+        xpath: <xpath> # 可选，目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
 
         cacheable: <boolean> # 可选，当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
 
@@ -239,7 +239,7 @@ tasks:
         distance: <number> # 可选，滚动距离，单位为像素
         locate: <prompt> # 可选，执行滚动的元素
         deepThink: <boolean> # 可选，是否使用深度思考（deepThink）来精确定位元素。默认值为 False
-        xpath: <xpath> # 可选，目标操作元素的 xpath，可让 Midscene 跳过 AI 大模型，直接根据该 xpath 定位元素。默认值为空
+        xpath: <xpath> # 可选，目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
 
         cacheable: <boolean> # 可选，当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
 
