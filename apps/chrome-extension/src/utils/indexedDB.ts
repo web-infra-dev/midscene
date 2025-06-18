@@ -473,10 +473,13 @@ class IndexedDBManager {
 
       return this.createTimeoutPromise<void>((resolve, reject) => {
         const transaction = db.transaction([CONFIG_STORE], 'readwrite');
-        
+
         // Add transaction error handling
         transaction.onerror = () => {
-          console.error('Transaction error in setRecordingEvents:', transaction.error);
+          console.error(
+            'Transaction error in setRecordingEvents:',
+            transaction.error,
+          );
           reject(transaction.error);
         };
 
@@ -508,7 +511,7 @@ class IndexedDBManager {
 
       return this.createTimeoutPromise<void>((resolve, reject) => {
         const transaction = db.transaction([CONFIG_STORE], 'readwrite');
-        
+
         // Immediate resolution on transaction complete for faster response
         transaction.oncomplete = () => resolve();
         transaction.onerror = () => reject(transaction.error);

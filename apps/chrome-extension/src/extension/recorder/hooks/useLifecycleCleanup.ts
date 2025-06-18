@@ -41,10 +41,10 @@ export const useLifecycleCleanup = (
         );
         // For unload events, we need to stop synchronously and save immediately
         setIsRecording(false).catch(console.error);
-        
+
         // Emergency save current events
         emergencySaveEvents(events).catch(console.error);
-        
+
         if (currentSessionId) {
           const session = getCurrentSession();
           if (session) {
@@ -79,12 +79,14 @@ export const useLifecycleCleanup = (
     return () => {
       // Clean up any ongoing recording when component unmounts
       if (isRecording) {
-        recordLogger.info('Component unmounting, cleaning up recording and saving events');
+        recordLogger.info(
+          'Component unmounting, cleaning up recording and saving events',
+        );
         setIsRecording(false).catch(console.error);
-        
+
         // Emergency save current events
         emergencySaveEvents(events).catch(console.error);
-        
+
         if (currentSessionId) {
           const session = getCurrentSession();
           if (session) {

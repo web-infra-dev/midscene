@@ -96,7 +96,7 @@ async function captureScreenshot(): Promise<string | undefined> {
 
 let initialScreenshot: Promise<string | undefined> | undefined = undefined;
 
-let laststEventSender: any = null;
+const laststEventSender: any = null;
 
 // Initialize recorder with callback to send events to extension
 async function initializeRecorder(sessionId: string): Promise<void> {
@@ -134,26 +134,28 @@ async function initializeRecorder(sessionId: string): Promise<void> {
   );
 }
 
-async function sendEventsToExtension(optimizedEvent: ChromeRecordedEvent[], immediate: boolean = false): Promise<void> {
-
+async function sendEventsToExtension(
+  optimizedEvent: ChromeRecordedEvent[],
+  immediate = false,
+): Promise<void> {
   const latestEvent = optimizedEvent[optimizedEvent.length - 1];
   const previousEvent = optimizedEvent[optimizedEvent.length - 2];
 
-  if (immediate){
+  if (immediate) {
     if (optimizedEvent.length > 1) {
       const screenshotBefore = previousEvent.screenshotAfter;
       latestEvent.screenshotBefore = screenshotBefore!;
-    } 
+    }
   } else {
     const screenshotAfter = await captureScreenshot();
     let screenshotBefore: string | undefined;
-  
+
     if (optimizedEvent.length > 1) {
       screenshotBefore = previousEvent.screenshotAfter;
     } else {
       screenshotBefore = await initialScreenshot;
     }
-  
+
     // Capture screenshot before processing the event
     latestEvent.screenshotAfter = screenshotAfter!;
     latestEvent.screenshotBefore = screenshotBefore!;
@@ -174,7 +176,7 @@ async function sendEventsToExtension(optimizedEvent: ChromeRecordedEvent[], imme
       optimizedEvent: pendingEvents,
       eventsCount: pendingEvents.length,
       eventTypes: pendingEvents.map((e) => e.type),
-      immediate
+      immediate,
     });
 
     chrome.runtime
@@ -201,7 +203,6 @@ async function sendEventsToExtension(optimizedEvent: ChromeRecordedEvent[], imme
     debounceTimer = setTimeout(sendEventsToExtension, 200);
   }
 }
-
 
 // Listen for messages from extension popup
 chrome.runtime.onMessage.addListener(
@@ -307,18 +308,18 @@ window.addEventListener('beforeunload', () => {
   if (window.recorder?.isActive()) {
     window.recorder.stop();
   }
-  sendEventsToExtension(events,true);
+  sendEventsToExtension(events, true);
 });
 
 // Listen for navigation events
 window.addEventListener('pagehide', () => {
-  sendEventsToExtension(events,true);
+  sendEventsToExtension(events, true);
 });
 
 // Handle visibility changes (tab switches, minimizing)
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') {
     // Flush pending events when page becomes hidden
-    sendEventsToExtension(events,true);
+    sendEventsToExtension(events, true);
   }
 });

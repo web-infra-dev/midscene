@@ -157,7 +157,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
               <Button
                 type="primary"
                 icon={<PlayCircleOutlined />}
-                onClick={()=> onStartRecording(sessionId)}
+                onClick={() => onStartRecording(sessionId)}
                 disabled={!currentTab || !isExtensionMode}
               >
                 Start

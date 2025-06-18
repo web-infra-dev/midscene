@@ -187,7 +187,7 @@ export const RecordTimeline = ({
                   WebkitLineClamp: 2,
                   WebkitBoxOrient: 'vertical',
                   overflow: 'hidden',
-                  wordBreak: 'break-all'
+                  wordBreak: 'break-all',
                 }}
               >
                 {event.url}

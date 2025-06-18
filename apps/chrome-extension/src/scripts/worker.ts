@@ -47,7 +47,6 @@ chrome.runtime.onConnect.addListener((port) => {
 });
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-
   // Handle screenshot capture request
   if (request.action === 'captureScreenshot') {
     if (sender.tab && sender.tab.id !== undefined) {

@@ -315,7 +315,7 @@ export const useRecordingControl = (
   useEffect(() => {
     if (!currentTab?.id || !isRecording) return;
 
-    let navigationGraceTimer: NodeJS.Timeout | null = null;
+    const navigationGraceTimer: NodeJS.Timeout | null = null;
 
     const handleTabUpdate = (
       tabId: number,
@@ -326,10 +326,13 @@ export const useRecordingControl = (
         changeInfo.status === 'loading' &&
         isRecording
       ) {
-        recordLogger.info('Navigation detected, starting grace period before stopping recording', {
-          tabId,
-          url: changeInfo.url,
-        });
+        recordLogger.info(
+          'Navigation detected, starting grace period before stopping recording',
+          {
+            tabId,
+            url: changeInfo.url,
+          },
+        );
       } else if (
         currentTab?.id === tabId &&
         changeInfo.status === 'complete' &&
