@@ -1,5 +1,17 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "namedInputs": {
+    "build": [
+      "default",
+      "{projectRoot}/tsconfig.json",
+      "{projectRoot}/package.json",
+      "{projectRoot}/modern.config.*",
+      "{projectRoot}/scripts/**/*",
+      "!{projectRoot}/**/*.{md,mdx}",
+      "!{projectRoot}/vitest.config.ts",
+      "!{projectRoot}/**/?(*.)+(spec|test).ts"
+    ]
+  },
   "targetDefaults": {
     "dev": {
       "dependsOn": ["^build"]
@@ -7,7 +19,7 @@
     "build": {
       "dependsOn": ["^build"],
       "cache": true,
-      "inputs": ["default", "{workspaceRoot}/package.json"],
+      "inputs": ["build", "^build", "{workspaceRoot}/package.json"],
       "outputs": ["{projectRoot}/dist"]
     },
     "build:watch": {
@@ -21,20 +33,6 @@
     },
     "e2e:ui": {
       "dependsOn": ["^build"]
-    }
-  },
-  "projects": {
-    "report": {
-      "targets": {
-        "build": {
-          "dependsOn": [
-            "^build",
-            "core:build",
-            "web-integration:build",
-            "android:build"
-          ]
-        }
-      }
     }
   },
   "defaultBase": "main"
