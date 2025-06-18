@@ -96,6 +96,8 @@ async function captureScreenshot(): Promise<string | undefined> {
 
 let initialScreenshot: Promise<string | undefined> | undefined = undefined;
 
+const laststEventSender: any = null;
+
 // Initialize recorder with callback to send events to extension
 async function initializeRecorder(sessionId: string): Promise<void> {
   if (!window.EventRecorder) {
@@ -124,21 +126,6 @@ async function initializeRecorder(sessionId: string): Promise<void> {
 
       // Add screenshots to the latest event
       setTimeout(async () => {
-        const latestEvent = optimizedEvent[optimizedEvent.length - 1];
-        const previousEvent = optimizedEvent[optimizedEvent.length - 2];
-        const screenshotAfter = await captureScreenshot();
-        let screenshotBefore: string | undefined;
-
-        if (optimizedEvent.length > 1) {
-          screenshotBefore = previousEvent.screenshotAfter;
-        } else {
-          screenshotBefore = await initialScreenshot;
-        }
-
-        // Capture screenshot before processing the event
-        latestEvent.screenshotAfter = screenshotAfter!;
-        latestEvent.screenshotBefore = screenshotBefore!;
-
         // Send updated events array to extension
         sendEventsToExtension(optimizedEvent);
       }, 100);
@@ -147,7 +134,33 @@ async function initializeRecorder(sessionId: string): Promise<void> {
   );
 }
 
-function sendEventsToExtension(optimizedEvent: ChromeRecordedEvent[]): void {
+async function sendEventsToExtension(
+  optimizedEvent: ChromeRecordedEvent[],
+  immediate = false,
+): Promise<void> {
+  const latestEvent = optimizedEvent[optimizedEvent.length - 1];
+  const previousEvent = optimizedEvent[optimizedEvent.length - 2];
+
+  if (immediate) {
+    if (optimizedEvent.length > 1) {
+      const screenshotBefore = previousEvent.screenshotAfter;
+      latestEvent.screenshotBefore = screenshotBefore!;
+    }
+  } else {
+    const screenshotAfter = await captureScreenshot();
+    let screenshotBefore: string | undefined;
+
+    if (optimizedEvent.length > 1) {
+      screenshotBefore = previousEvent.screenshotAfter;
+    } else {
+      screenshotBefore = await initialScreenshot;
+    }
+
+    // Capture screenshot before processing the event
+    latestEvent.screenshotAfter = screenshotAfter!;
+    latestEvent.screenshotBefore = screenshotBefore!;
+  }
+
   // Store the latest events
   pendingEvents = optimizedEvent;
 
@@ -156,14 +169,14 @@ function sendEventsToExtension(optimizedEvent: ChromeRecordedEvent[]): void {
     clearTimeout(debounceTimer);
   }
 
-  // Set new timer
-  debounceTimer = setTimeout(() => {
+  const sendEventsToExtension = () => {
     if (!pendingEvents) return;
 
     console.log('[EventRecorder Bridge] Sending events to extension:', {
       optimizedEvent: pendingEvents,
       eventsCount: pendingEvents.length,
       eventTypes: pendingEvents.map((e) => e.type),
+      immediate,
     });
 
     chrome.runtime
@@ -181,7 +194,14 @@ function sendEventsToExtension(optimizedEvent: ChromeRecordedEvent[]): void {
 
     // Clear the pending events after sending
     pendingEvents = null;
-  }, 300);
+  };
+
+  // Set new timer
+  if (immediate) {
+    sendEventsToExtension();
+  } else {
+    debounceTimer = setTimeout(sendEventsToExtension, 200);
+  }
 }
 
 // Listen for messages from extension popup
@@ -281,10 +301,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Clean up on page unload
 window.addEventListener('beforeunload', () => {
+  console.log(
+    '[EventRecorder Bridge] Page unloading, stopping active recorder',
+  );
+  // Flush any pending events before the page unloads
   if (window.recorder?.isActive()) {
-    console.log(
-      '[EventRecorder Bridge] Page unloading, stopping active recorder',
-    );
     window.recorder.stop();
+  }
+  sendEventsToExtension(events, true);
+});
+
+// Listen for navigation events
+window.addEventListener('pagehide', () => {
+  sendEventsToExtension(events, true);
+});
+
+// Handle visibility changes (tab switches, minimizing)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    // Flush pending events when page becomes hidden
+    sendEventsToExtension(events, true);
   }
 });

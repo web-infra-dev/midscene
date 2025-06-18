@@ -5,7 +5,7 @@
 
 class RecordLogger {
   private readonly prefix = '[Record]';
-  private readonly isDev = process.env.NODE_ENV === 'development';
+  private readonly isDev = localStorage.getItem('DEBUG') === 'true';
 
   /**
    * Log critical errors that affect functionality

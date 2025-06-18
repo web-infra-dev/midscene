@@ -2,6 +2,7 @@
 import { Form } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
 import type { RecordingSession } from '../../store';
+import { useRecordStore, useRecordingSessionStore } from '../../store';
 import { RecordDetail } from './components/RecordDetail';
 import { RecordList } from './components/RecordList';
 import { SessionModals } from './components/SessionModals';
@@ -14,6 +15,47 @@ import type { ViewMode } from './types';
 import './recorder.less';
 
 export default function Recorder() {
+  // Local initialization state
+  const [isStoreInitialized, setIsStoreInitialized] = useState(false);
+
+  // Get stores
+  const sessionStore = useRecordingSessionStore();
+  const recordStore = useRecordStore();
+
+  // Initialize stores on component mount
+  useEffect(() => {
+    let isMounted = true; // Prevent state updates after component unmount
+
+    const initializeStores = async () => {
+      try {
+        // Initialize both stores concurrently
+        await Promise.all([
+          sessionStore.initializeStore(),
+          recordStore.initialize(),
+        ]);
+
+        // Only update state if component is still mounted
+        if (isMounted) {
+          setIsStoreInitialized(true);
+        }
+      } catch (error) {
+        console.error('Failed to initialize stores in Recorder:', error);
+        // Still set as initialized to prevent blocking the UI
+        if (isMounted) {
+          setIsStoreInitialized(true);
+        }
+      }
+    };
+
+    // Initialize only on first mount to avoid infinite loop
+    initializeStores();
+
+    // Cleanup function
+    return () => {
+      isMounted = false;
+    };
+  }, []); // Empty dependency array, run only once on component mount
+
   // View state management
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedSession, setSelectedSession] =
@@ -29,7 +71,7 @@ export default function Recorder() {
   const [editForm] = Form.useForm();
 
   // Initialize tab monitoring to get currentTab
-  const { currentTab } = useTabMonitoring();
+  const { currentTab, checkRecordingRecovery } = useTabMonitoring();
 
   // Initialize recording session management with currentTab
   const sessionHooks = useRecordingSession(currentTab);
@@ -54,6 +96,8 @@ export default function Recorder() {
       sessionHooks.handleUpdateSession(sessionId, updates);
     },
     createNewSession,
+    checkRecordingRecovery,
+    handleSelectSession,
   );
   const {
     isRecording,
@@ -65,6 +109,7 @@ export default function Recorder() {
     clearEvents,
     setIsRecording,
     setEvents,
+    emergencySaveEvents,
   } = controlHooks;
 
   // Initialize lifecycle cleanup
@@ -78,6 +123,7 @@ export default function Recorder() {
       sessionHooks.handleUpdateSession(sessionId, updates);
     },
     events, // Pass current events to save them during cleanup
+    emergencySaveEvents, // Pass emergency save function
   );
 
   // Load current session events when switching sessions
@@ -227,6 +273,23 @@ export default function Recorder() {
       }, 100);
     }
   };
+
+  // Show loading state while stores are initializing
+  if (!isStoreInitialized) {
+    return (
+      <div
+        className="popup-record-container"
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '200px',
+        }}
+      >
+        <div>Loading sessions...</div>
+      </div>
+    );
+  }
 
   return (
     <div ref={recordContainerRef} className="popup-record-container">

@@ -10,14 +10,7 @@ function debugLog(...args: any[]) {
 // Generate a hash ID based on elementRect and type
 function generateHashId(
   type: string,
-  elementRect?: {
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-    x?: number;
-    y?: number;
-  },
+  elementRect?: ChromeRecordedEvent['elementRect'],
 ): string {
   const rectStr = elementRect
     ? `${elementRect.left}_${elementRect.top}_${elementRect.width}_${elementRect.height}${elementRect.x !== undefined ? `_${elementRect.x}` : ''}${elementRect.y !== undefined ? `_${elementRect.y}` : ''}`
@@ -40,10 +33,10 @@ export interface ChromeRecordedEvent {
   title?: string;
   value?: string;
   elementRect?: {
-    left: number;
-    top: number;
-    width: number;
-    height: number;
+    left?: number;
+    top?: number;
+    width?: number;
+    height?: number;
     x?: number;
     y?: number;
   };
@@ -197,7 +190,7 @@ export class EventRecorder {
     }, 0);
 
     // Add event listeners
-    document.addEventListener('click', this.handleClick);
+    document.addEventListener('click', this.handleClick, true);
     document.addEventListener('input', this.handleInput);
     document.addEventListener('scroll', this.handleScroll, { passive: true });
     this.scrollTargets.forEach((target) => {
@@ -236,10 +229,10 @@ export class EventRecorder {
     const { isLabelClick, labelInfo } = this.checkLabelClick(target);
     const rect = target.getBoundingClientRect();
     const elementRect = {
-      left: Number(rect.left.toFixed(2)),
-      top: Number(rect.top.toFixed(2)),
-      width: Number(rect.width.toFixed(2)),
-      height: Number(rect.height.toFixed(2)),
+      // left: Number(rect.left.toFixed(2)),
+      // top: Number(rect.top.toFixed(2)),
+      // width: Number(rect.width.toFixed(2)),
+      // height: Number(rect.height.toFixed(2)),
       x: Number(event.clientX.toFixed(2)),
       y: Number(event.clientY.toFixed(2)),
     };
@@ -333,6 +326,10 @@ export class EventRecorder {
     if (!this.isRecording) return;
 
     const target = event.target as HTMLInputElement | HTMLTextAreaElement;
+    // checkbox skip collect
+    if (target.type === 'checkbox') {
+      return;
+    }
     const rect = target.getBoundingClientRect();
     const elementRect = {
       left: Number(rect.left.toFixed(2)),
@@ -342,7 +339,7 @@ export class EventRecorder {
     };
     const inputEvent: RecordedEvent = {
       type: 'input',
-      value: target.value,
+      value: target.type !== 'password' ? target.value : '*****',
       timestamp: Date.now(),
       hashId: generateHashId('input', {
         ...elementRect,

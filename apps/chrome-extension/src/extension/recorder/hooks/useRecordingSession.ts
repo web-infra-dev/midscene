@@ -116,6 +116,7 @@ export const useRecordingSession = (currentTab: chrome.tabs.Tab | null) => {
     (sessionId: string, updates: Partial<RecordingSession>) => {
       recordLogger.info('Updating session', {
         sessionId,
+        events: updates.events,
         eventsCount: updates.events?.length,
       });
 
