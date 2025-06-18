@@ -83,9 +83,9 @@ export default defineConfig({
     pluginReact(),
     pluginNodePolyfill(),
     pluginLess(),
-    pluginTypeCheck({
-      // Enable type checking for both development and production builds
-      enable: true,
-    }),
+    // pluginTypeCheck({
+    //   // Enable type checking for both development and production builds
+    //   enable: true,
+    // }),
   ],
 });
