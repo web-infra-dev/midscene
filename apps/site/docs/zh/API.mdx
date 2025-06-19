@@ -282,9 +282,39 @@ await agent.aiRightClick('页面顶部的文件名称', { deepThink: true });
 
 ## 数据提取
 
+### `agent.aiAsk()`
+
+使用此方法，你可以针对当前页面，直接向 AI 模型发起提问，并获得字符串形式的回答。
+
+- 类型
+
+```typescript
+function aiAsk(prompt: string, options?: Object): Promise<string>;
+```
+
+- 参数：
+
+  - `prompt: string` - 用自然语言描述的询问内容。
+  - `options?: Object` - 可选，一个配置对象，包含：
+    - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 False。
+    - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 True。
+
+- 返回值：
+
+  - 返回一个 Promise。返回 AI 模型的回答。
+
+- 示例：
+
+```typescript
+const result = await agent.aiAsk('当前页面的应该怎么进行测试？');
+console.log(result); // 输出 AI 模型的回答
+```
+
+除了 `aiAsk` 方法，你还可以使用 `aiQuery` 方法，直接从 UI 提取结构化的数据。
+
 ### `agent.aiQuery()`
 
-使用此方法，你可以直接从 UI 提取数据，并借助多模态 AI 的推理能力，实现智能提取。只需在 `dataDemand` 中描述期望的数据格式（如字符串、数字、JSON、数组等），Midscene 即返回相应结果。
+使用此方法，你可以直接从 UI 提取结构化的数据。只需在 `dataDemand` 中描述期望的数据格式（如字符串、数字、JSON、数组等），Midscene 即返回相应结果。
 
 - 类型
 

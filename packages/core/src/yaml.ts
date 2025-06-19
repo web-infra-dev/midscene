@@ -105,8 +105,13 @@ export interface MidsceneYamlFlowItemAINumber extends InsightExtractOption {
   name?: string;
 }
 
-export interface MidsceneYamlFlowItemAINString extends InsightExtractOption {
+export interface MidsceneYamlFlowItemAIString extends InsightExtractOption {
   aiString: string;
+  name?: string;
+}
+
+export interface MidsceneYamlFlowItemAIAsk extends InsightExtractOption {
+  aiAsk: string;
   name?: string;
 }
 

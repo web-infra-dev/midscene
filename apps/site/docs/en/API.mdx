@@ -292,9 +292,39 @@ The `deepThink` feature is a powerful feature that allows Midscene to call AI mo
 
 ## Data Extraction
 
+### `agent.aiAsk()`
+
+Ask the AI model any question about the current page. It returns the answer in string from the AI model.
+
+- Type
+
+```typescript
+function aiAsk(prompt: string, options?: Object): Promise<string>;
+```
+
+- Parameters:
+
+  - `prompt: string` - A natural language description of the question.
+  - `options?: Object` - Optional, a configuration object containing:
+    - `domIncluded?: boolean | 'visible-only'` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. If set to `'visible-only'`, only the visible elements will be sent. Default: False.
+    - `screenshotIncluded?: boolean` - Whether to send screenshot to the model. Default: True.
+
+- Return Value:
+
+  - Return a Promise. Return the answer from the AI model.
+
+- Examples:
+
+```typescript
+const result = await agent.aiAsk('What should I do to test this page?');
+console.log(result); // Output the answer from the AI model
+```
+
+Besides `aiAsk`, you can also use `aiQuery` to extract structured data from the UI.
+
 ### `agent.aiQuery()`
 
-This method allows you to extract data directly from the UI using multimodal AI reasoning capabilities. Simply define the expected format (e.g., string, number, JSON, or an array) in the `dataDemand`, and Midscene will return a result that matches the format.
+This method allows you to extract structured data from current page. Simply define the expected format (e.g., string, number, JSON, or an array) in the `dataDemand`, and Midscene will return a result that matches the format.
 
 - Type
 

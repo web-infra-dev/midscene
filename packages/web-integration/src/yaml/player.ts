@@ -6,17 +6,18 @@ import type { PageAgent } from '@/common/agent';
 import type {
   FreeFn,
   MidsceneYamlFlowItemAIAction,
+  MidsceneYamlFlowItemAIAsk,
   MidsceneYamlFlowItemAIAssert,
   MidsceneYamlFlowItemAIBoolean,
   MidsceneYamlFlowItemAIHover,
   MidsceneYamlFlowItemAIInput,
   MidsceneYamlFlowItemAIKeyboardPress,
   MidsceneYamlFlowItemAILocate,
-  MidsceneYamlFlowItemAINString,
   MidsceneYamlFlowItemAINumber,
   MidsceneYamlFlowItemAIQuery,
   MidsceneYamlFlowItemAIRightClick,
   MidsceneYamlFlowItemAIScroll,
+  MidsceneYamlFlowItemAIString,
   MidsceneYamlFlowItemAITap,
   MidsceneYamlFlowItemAIWaitFor,
   MidsceneYamlFlowItemEvaluateJavaScript,
@@ -206,21 +207,21 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           domIncluded: numberTask.domIncluded,
           screenshotIncluded: numberTask.screenshotIncluded,
         };
-        assert(prompt, 'missing prompt for number');
+        assert(prompt, 'missing prompt for aiNumber');
         assert(
           typeof prompt === 'string',
           'prompt for number must be a string',
         );
         const numberResult = await agent.aiNumber(prompt, options);
         this.setResult(numberTask.name, numberResult);
-      } else if ('aiString' in (flowItem as MidsceneYamlFlowItemAINString)) {
-        const stringTask = flowItem as MidsceneYamlFlowItemAINString;
+      } else if ('aiString' in (flowItem as MidsceneYamlFlowItemAIString)) {
+        const stringTask = flowItem as MidsceneYamlFlowItemAIString;
         const prompt = stringTask.aiString;
         const options = {
           domIncluded: stringTask.domIncluded,
           screenshotIncluded: stringTask.screenshotIncluded,
         };
-        assert(prompt, 'missing prompt for string');
+        assert(prompt, 'missing prompt for aiNumber');
         assert(
           typeof prompt === 'string',
           'prompt for string must be a string',
@@ -234,13 +235,20 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           domIncluded: booleanTask.domIncluded,
           screenshotIncluded: booleanTask.screenshotIncluded,
         };
-        assert(prompt, 'missing prompt for boolean');
+        assert(prompt, 'missing prompt for aiBoolean');
         assert(
           typeof prompt === 'string',
           'prompt for boolean must be a string',
         );
         const booleanResult = await agent.aiBoolean(prompt, options);
         this.setResult(booleanTask.name, booleanResult);
+      } else if ('aiAsk' in (flowItem as MidsceneYamlFlowItemAIAsk)) {
+        const askTask = flowItem as MidsceneYamlFlowItemAIAsk;
+        const prompt = askTask.aiAsk;
+        assert(prompt, 'missing prompt for aiAsk');
+        assert(typeof prompt === 'string', 'prompt for aiAsk must be a string');
+        const askResult = await agent.aiAsk(prompt);
+        this.setResult(askTask.name, askResult);
       } else if ('aiLocate' in (flowItem as MidsceneYamlFlowItemAILocate)) {
         const locateTask = flowItem as MidsceneYamlFlowItemAILocate;
         const prompt = locateTask.aiLocate;
