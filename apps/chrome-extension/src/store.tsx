@@ -290,6 +290,13 @@ export const useRecordStore = create<{
     const newEvents = [...state.events, event];
     set({ events: newEvents });
     if (state.isRecording) {
+      const sessionId = useRecordingSessionStore.getState().currentSessionId;
+      if (sessionId) {
+        await dbManager.updateSession(sessionId, {
+          events: newEvents,
+          updatedAt: Date.now(),
+        });
+      }
       await saveEventsToStorage(newEvents);
     }
   },
@@ -298,7 +305,13 @@ export const useRecordStore = create<{
     const newEvents = mergeEvents(state.events, [event]);
     set({ events: newEvents });
     if (state.isRecording) {
-      await saveEventsToStorage(newEvents);
+      const sessionId = useRecordingSessionStore.getState().currentSessionId;
+      if (sessionId) {
+        await dbManager.updateSession(sessionId, {
+          events: newEvents,
+          updatedAt: Date.now(),
+        });
+      }
     }
   },
   setEvents: async (events: ChromeRecordedEvent[]) => {
@@ -306,11 +319,24 @@ export const useRecordStore = create<{
     const newEvents = mergeEvents(state.events, events);
     set({ events: newEvents });
     if (state.isRecording) {
-      await saveEventsToStorage(newEvents);
+      const sessionId = useRecordingSessionStore.getState().currentSessionId;
+      if (sessionId) {
+        await dbManager.updateSession(sessionId, {
+          events: newEvents,
+          updatedAt: Date.now(),
+        });
+      }
     }
   },
   clearEvents: async () => {
     await clearEventsFromStorage();
+    const sessionId = useRecordingSessionStore.getState().currentSessionId;
+    if (sessionId) {
+      await dbManager.updateSession(sessionId, {
+        events: [],
+        updatedAt: Date.now(),
+      });
+    }
     set({ events: [] });
   },
   emergencySaveEvents: async (events?: ChromeRecordedEvent[]) => {

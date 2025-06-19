@@ -25,7 +25,6 @@ const connectedPorts = new Set<chrome.runtime.Port>();
 
 // Listen for connections from extension pages
 chrome.runtime.onConnect.addListener((port) => {
-
   if (port.name === 'record-events') {
     connectedPorts.add(port);
     port.onDisconnect.addListener(() => {
@@ -65,7 +64,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   // Forward recording events to connected extension pages
   if (request.action === 'events' || request.action === 'event') {
-
     if (connectedPorts.size === 0) {
       console.warn(
         '[ServiceWorker] No connected ports to forward recording events to',
@@ -75,7 +73,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     connectedPorts.forEach((port) => {
       try {
         port.postMessage(request);
-        console.log('[ServiceWorker] Message forwarded to port successfully');
       } catch (error) {
         console.error(
           '[ServiceWorker] Failed to forward message to port:',

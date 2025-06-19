@@ -143,12 +143,10 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
                     WebkitBoxOrient: 'vertical',
                     overflow: 'hidden',
                     wordBreak: 'break-all',
-                  }}>
+                  }}
+                >
                   <Text strong>URL: </Text>
-                  <Text
-                  >
-                    {session.url}
-                  </Text>
+                  <Text>{session.url}</Text>
                 </div>
               )}
               {session.description && (

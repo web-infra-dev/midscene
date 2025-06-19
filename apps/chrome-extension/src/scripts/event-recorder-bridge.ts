@@ -200,7 +200,7 @@ async function sendEventsToExtension(
   if (immediate) {
     sendEventsToExtension();
   } else {
-    debounceTimer = setTimeout(sendEventsToExtension, 50);
+    debounceTimer = setTimeout(sendEventsToExtension, 300);
   }
 }
 

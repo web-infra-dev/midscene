@@ -178,8 +178,7 @@ export const RecordTimeline = ({
         );
       case 'navigation':
         return (
-          <Space direction="vertical" size="small"
-          >
+          <Space direction="vertical" size="small">
             <div
               style={{
                 display: '-webkit-box',
@@ -190,13 +189,7 @@ export const RecordTimeline = ({
               }}
             >
               <Text type="secondary">URL: </Text>
-              {event.url && (
-                <Text
-                  type="secondary"
-                >
-                  {event.url}
-                </Text>
-              )}
+              {event.url && <Text type="secondary">{event.url}</Text>}
             </div>
           </Space>
         );

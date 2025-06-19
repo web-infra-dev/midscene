@@ -389,7 +389,6 @@ export const useRecordingControl = (
 
   // Set up message listener for content script
   useEffect(() => {
-
     // Connect to service worker for receiving events
     const port = safeChromeAPI.runtime.connect({ name: 'record-events' });
 
@@ -465,7 +464,14 @@ export const useRecordingControl = (
     return () => {
       port.disconnect();
     };
-  }, [addEvent, setEvents, updateEvent, currentSessionId, isRecording, persistEventToSession]);
+  }, [
+    addEvent,
+    setEvents,
+    updateEvent,
+    currentSessionId,
+    isRecording,
+    persistEventToSession,
+  ]);
 
   return {
     // State

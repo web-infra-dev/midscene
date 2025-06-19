@@ -10,7 +10,7 @@ import { Button, Dropdown, Modal, Space, Typography, message } from 'antd';
 import type { MenuProps } from 'antd';
 import type React from 'react';
 import { useEffect, useState } from 'react';
-import { useRecordingSessionStore, useRecordStore } from '../../store';
+import { useRecordStore, useRecordingSessionStore } from '../../store';
 import { generateAIDescription } from '../../utils/eventOptimizer';
 import { ProgressModal, type ProgressStep } from './components/ProgressModal';
 import { generatePlaywrightTest, generateYamlTest } from './generators';
@@ -154,8 +154,7 @@ export const ExportControls: React.FC<{
     stepIndex: number,
   ): Promise<ChromeRecordedEvent[]> => {
     const eventsNeedingDescriptions = events.filter(
-      (event: ChromeRecordedEvent) =>
-        (event.type !== 'navigation'),
+      (event: ChromeRecordedEvent) => event.type !== 'navigation',
     );
 
     if (eventsNeedingDescriptions.length === 0) {
@@ -188,9 +187,7 @@ export const ExportControls: React.FC<{
           };
           completedCount++;
 
-          const progress = Math.round(
-            (completedCount / events.length) * 100,
-          );
+          const progress = Math.round((completedCount / events.length) * 100);
           updateProgressStep(stepIndex, {
             status: 'loading',
             progress,
@@ -328,10 +325,10 @@ export const ExportControls: React.FC<{
         type === 'playwright'
           ? await generatePlaywrightTest(finalEvents)
           : await generateYamlTest(finalEvents, {
-            testName: currentSessionName,
-            description: `Test session recorded on ${new Date().toLocaleDateString()}`,
-            includeTimestamps: true,
-          });
+              testName: currentSessionName,
+              description: `Test session recorded on ${new Date().toLocaleDateString()}`,
+              includeTimestamps: true,
+            });
 
       // Update session with generated code if sessionId exists
       if (sessionId) {

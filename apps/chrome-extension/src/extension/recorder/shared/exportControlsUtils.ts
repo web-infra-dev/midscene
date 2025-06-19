@@ -10,9 +10,7 @@ import { recordLogger } from '../logger';
 /**
  * Get the most current events with AI descriptions
  */
-export const getLatestEvents = (
-  sessionId?: string,
-): ChromeRecordedEvent[] => {
+export const getLatestEvents = (sessionId?: string): ChromeRecordedEvent[] => {
   const currentLiveEvents = useRecordStore.getState().events;
   const { isRecording } = useRecordStore.getState();
 
