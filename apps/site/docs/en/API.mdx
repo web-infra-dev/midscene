@@ -129,6 +129,8 @@ await agent.aiTap('The login button at the top of the page', {
 
 ### `agent.aiHover()`
 
+> Only available in web pages, not available in Android.
+
 Move mouse over something.
 
 - Type
@@ -258,6 +260,8 @@ await agent.aiScroll(
 ```
 
 ### `agent.aiRightClick()`
+
+> Only available in web pages, not available in Android.
 
 Right-click on an element. Please note that Midscene cannot interact with the native context menu in browser after right-clicking. This interface is usually used for the element that listens to the right-click event by itself.
 
@@ -662,6 +666,8 @@ await agent.setAIActionContext(
 ```
 
 ### `agent.evaluateJavaScript()`
+
+> Only available in web pages, not available in Android.
 
 Evaluate a JavaScript expression in the web page context.
 
