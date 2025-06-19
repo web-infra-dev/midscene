@@ -6,6 +6,7 @@ import {
   type ExecutionRecorderItem,
   type ExecutionTaskActionApply,
   type ExecutionTaskApply,
+  type ExecutionTaskHitBy,
   type ExecutionTaskInsightLocateApply,
   type ExecutionTaskInsightQueryApply,
   type ExecutionTaskPlanning,
@@ -47,7 +48,11 @@ import { assert } from '@midscene/shared/utils';
 import type { WebElementInfo } from '../web-element';
 import type { TaskCache } from './task-cache';
 import { getKeyCommands, taskTitleStr } from './ui-utils';
-import { type WebUIContext, matchElementFromPlan } from './utils';
+import {
+  type WebUIContext,
+  matchElementFromCache,
+  matchElementFromPlan,
+} from './utils';
 
 interface ExecutionResult<OutputType = any> {
   output: OutputType;
@@ -238,52 +243,51 @@ export class PageTaskExecutor {
             };
             task.recorder = [recordItem];
 
+            // try matching xpath
+            const elementFromXpath = param.xpath
+              ? await this.page.getElementInfoByXpath(param.xpath)
+              : undefined;
+            const userExpectedPathHitFlag = !!elementFromXpath;
+
             // try matching cache
-            let cacheHitFlag = false;
             const cachePrompt = param.prompt;
             const locateCacheRecord =
               this.taskCache?.matchLocateCache(cachePrompt);
             const xpaths = locateCacheRecord?.cacheContent?.xpaths;
-            let elementFromCache = null;
-            try {
-              if (
-                xpaths?.length &&
-                this.taskCache?.isCacheResultUsed &&
-                param?.cacheable !== false
-              ) {
-                // hit cache, use new id
+            const elementFromCache = userExpectedPathHitFlag
+              ? null
+              : await matchElementFromCache(
+                  this,
+                  xpaths,
+                  cachePrompt,
+                  param.cacheable,
+                );
+            const cacheHitFlag = !!elementFromCache;
 
-                for (let i = 0; i < xpaths.length; i++) {
-                  const element = await this.page.getElementInfoByXpath(
-                    xpaths[i],
-                  );
+            // try matching plan
+            const elementFromPlan =
+              !userExpectedPathHitFlag && !cacheHitFlag
+                ? matchElementFromPlan(param, pageContext.tree)
+                : undefined;
+            const planHitFlag = !!elementFromPlan;
 
-                  if (element?.id) {
-                    elementFromCache = element;
-                    debug('cache hit, prompt: %s', cachePrompt);
-                    cacheHitFlag = true;
-                    debug(
-                      'found a new new element with same xpath, xpath: %s, id: %s',
-                      xpaths[i],
-                      element?.id,
-                    );
-                    break;
-                  }
-                }
-              }
-            } catch (error) {
-              debug('get element info by xpath error: ', error);
-            }
+            // try ai locate
+            const elementFromAiLocate =
+              !userExpectedPathHitFlag && !cacheHitFlag && !planHitFlag
+                ? (
+                    await this.insight.locate(param, {
+                      // fallback to ai locate
+                      context: pageContext,
+                    })
+                  ).element
+                : undefined;
+            const aiLocateHitFlag = !!elementFromAiLocate;
 
-            const startTime = Date.now();
             const element =
-              elementFromCache || // try to match element from cache
-              matchElementFromPlan(param, pageContext.tree) || // try to match element from plan
-              (
-                await this.insight.locate(param, {
-                  context: pageContext,
-                })
-              ).element;
+              elementFromXpath || // highest priority
+              elementFromCache || // second priority
+              elementFromPlan || // third priority
+              elementFromAiLocate;
 
             // update cache
             let currentXpaths: string[] | undefined;
@@ -319,16 +323,46 @@ export class PageTaskExecutor {
               throw new Error(`Element not found: ${param.prompt}`);
             }
 
+            let hitBy: ExecutionTaskHitBy | undefined;
+
+            if (userExpectedPathHitFlag) {
+              hitBy = {
+                from: 'User expected path',
+                context: {
+                  xpath: param.xpath,
+                },
+              };
+            } else if (cacheHitFlag) {
+              hitBy = {
+                from: 'Cache',
+                context: {
+                  xpathsFromCache: xpaths,
+                  xpathsToSave: currentXpaths,
+                },
+              };
+            } else if (planHitFlag) {
+              hitBy = {
+                from: 'Planning',
+                context: {
+                  id: elementFromPlan?.id,
+                  bbox: elementFromPlan?.bbox,
+                },
+              };
+            } else if (aiLocateHitFlag) {
+              hitBy = {
+                from: 'AI model',
+                context: {
+                  prompt: param.prompt,
+                },
+              };
+            }
+
             return {
               output: {
                 element,
               },
               pageContext,
-              cache: {
-                hit: cacheHitFlag,
-                originalXpaths: xpaths,
-                currentXpaths,
-              },
+              hitBy,
             };
           },
         };

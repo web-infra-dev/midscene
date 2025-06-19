@@ -363,10 +363,6 @@ export interface ExecutorContext {
   element?: LocateResultElement | null;
 }
 
-export interface TaskCacheInfo {
-  hit: boolean;
-}
-
 export interface ExecutionTaskApply<
   Type extends ExecutionTaskType = any,
   TaskParam = any,
@@ -388,11 +384,16 @@ export interface ExecutionTaskApply<
     | void;
 }
 
+export interface ExecutionTaskHitBy {
+  from: string;
+  context: Record<string, any>;
+}
+
 export interface ExecutionTaskReturn<TaskOutput = unknown, TaskLog = unknown> {
   output?: TaskOutput;
   log?: TaskLog;
   recorder?: ExecutionRecorderItem[];
-  cache?: TaskCacheInfo;
+  hitBy?: ExecutionTaskHitBy;
 }
 
 export type ExecutionTask<

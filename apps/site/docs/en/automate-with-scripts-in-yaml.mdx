@@ -206,24 +206,32 @@ tasks:
 
       # tap an element located by prompt
       - aiTap: <prompt>
-        deepThink: <boolean> # optional, whether to use deepThink to precisely locate the element
+        deepThink: <boolean> # optional, whether to use deepThink to precisely locate the element. False by default.
+        xpath: <xpath> # optional, the xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
+    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
         cacheable: <boolean> # optional, whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
       # hover an element located by prompt
       - aiHover: <prompt>
-        deepThink: <boolean> # optional, whether to use deepThink to precisely locate the element
+        deepThink: <boolean> # optional, whether to use deepThink to precisely locate the element. False by default.
+        xpath: <xpath> # optional, the xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
+    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
         cacheable: <boolean> # optional, whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
       # input text into an element located by prompt
       - aiInput: <final text content of the input>
         locate: <prompt>
-        deepThink: <boolean> # optional, whether to use deepThink to precisely locate the element
+        deepThink: <boolean> # optional, whether to use deepThink to precisely locate the element. False by default.
+        xpath: <xpath> # optional, the xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
+    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
         cacheable: <boolean> # optional, whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
       # press a key (like Enter, Tab, Escape, etc.) on an element located by prompt
       - aiKeyboardPress: <key>
         locate: <prompt>
-        deepThink: <boolean> # optional, whether to use deepThink to precisely locate the element
+        deepThink: <boolean> # optional, whether to use deepThink to precisely locate the element. False by default.
+        xpath: <xpath> # optional, the xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
+    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
         cacheable: <boolean> # optional, whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
       # scroll globally or on an element located by prompt
@@ -232,7 +240,9 @@ tasks:
         scrollType: 'once' # or 'untilTop' | 'untilBottom' | 'untilLeft' | 'untilRight'
         distance: <number> # optional, distance to scroll in px
         locate: <prompt> # optional, the element to scroll on
-        deepThink: <boolean> # optional, whether to use deepThink to precisely locate the element
+        deepThink: <boolean> # optional, whether to use deepThink to precisely locate the element. False by default.
+        xpath: <xpath> # optional, the xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
+    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
         cacheable: <boolean> # optional, whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
       # log the current screenshot with a description in the report file

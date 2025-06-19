@@ -108,7 +108,8 @@ function aiTap(locate: string, options?: Object): Promise<void>;
 
   - `locate: string` - A natural language description of the element to tap.
   - `options?: Object` - Optional, a configuration object containing:
-    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element.
+    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. False by default.
+    - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
 - Return Value:
@@ -140,7 +141,8 @@ function aiHover(locate: string, options?: Object): Promise<void>;
 
   - `locate: string` - A natural language description of the element to hover over.
   - `options?: Object` - Optional, a configuration object containing:
-    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element.
+    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. False by default.
+    - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
 - Return Value:
@@ -168,7 +170,8 @@ function aiInput(text: string, locate: string, options?: Object): Promise<void>;
   - `text: string` - The final text content that should be placed in the input element. Use blank string to clear the input.
   - `locate: string` - A natural language description of the element to input text into.
   - `options?: Object` - Optional, a configuration object containing:
-    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element.
+    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. False by default.
+    - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
     - `autoDismissKeyboard?: boolean` - If true, the keyboard will be dismissed after input text, only available in Android. (Default: true)
 
@@ -201,7 +204,8 @@ function aiKeyboardPress(
   - `key: string` - The web key to press, e.g. 'Enter', 'Tab', 'Escape', etc. Key Combination is not supported.
   - `locate?: string` - Optional, a natural language description of the element to press the key on.
   - `options?: Object` - Optional, a configuration object containing:
-    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element.
+    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. False by default.
+    - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
 - Return Value:
@@ -236,7 +240,8 @@ function aiScroll(
     - `distance: number` - Optional, the distance to scroll in px.
   - `locate?: string` - Optional, a natural language description of the element to scroll on. If not provided, Midscene will perform scroll on the current mouse position.
   - `options?: Object` - Optional, a configuration object containing:
-    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element.
+    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. False by default.
+    - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
 - Return Value:
@@ -266,7 +271,8 @@ function aiRightClick(locate: string, options?: Object): Promise<void>;
 
   - `locate: string` - A natural language description of the element to right-click on.
   - `options?: Object` - Optional, a configuration object containing:
-    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element.
+    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. False by default.
+    - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
 - Return Value:
@@ -286,7 +292,7 @@ await agent.aiRightClick('The file name at the top of the page', {
 
 :::tip About the `deepThink` feature
 
-The `deepThink` feature is a powerful feature that allows Midscene to call AI model twice to precisely locate the element. It is useful when the AI model find it hard to distinguish the element from its surroundings.
+The `deepThink` feature is a powerful feature that allows Midscene to call AI model twice to precisely locate the element. False by default. It is useful when the AI model find it hard to distinguish the element from its surroundings.
 
 :::
 
@@ -531,7 +537,8 @@ function aiLocate(
 
   - `locate: string` - A natural language description of the element to locate.
   - `options?: Object` - Optional, a configuration object containing:
-    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element.
+    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. False by default.
+    - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
 - Return Value:

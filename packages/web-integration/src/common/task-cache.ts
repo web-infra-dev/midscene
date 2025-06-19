@@ -9,7 +9,7 @@ import semver from 'semver';
 import { version } from '../../package.json';
 import { replaceIllegalPathCharsAndSpace } from './utils';
 
-const debug = getDebug('cache');
+export const debug = getDebug('cache');
 
 export interface PlanningCache {
   type: 'plan';
