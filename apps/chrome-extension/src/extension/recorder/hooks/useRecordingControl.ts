@@ -29,13 +29,6 @@ export const useRecordingControl = (
     updates: Partial<RecordingSession>,
   ) => void,
   createNewSession: (sessionName?: string) => RecordingSession,
-  checkRecordingRecovery?: (tab: chrome.tabs.Tab) => Promise<{
-    canRecover: boolean;
-    sessionId?: string;
-    lastUrl?: string;
-    timeSinceNavigation?: number;
-  }>,
-  selectSession?: (session: RecordingSession) => void,
 ) => {
   const {
     isRecording,
@@ -50,130 +43,6 @@ export const useRecordingControl = (
 
   const isExtensionMode = isChromeExtension();
   const recordContainerRef = useRef<HTMLDivElement>(null);
-
-  // Recovery state management
-  const [isRecoveryInProgress, setIsRecoveryInProgress] = useState(false);
-  const recoveryAttemptedRef = useRef<Set<string>>(new Set());
-
-  // Check for recording recovery on component mount and tab changes
-  useEffect(() => {
-    const checkRecovery = async () => {
-      // Skip if no tab, no recovery function, already recording, or recovery in progress
-      if (
-        !currentTab ||
-        !checkRecordingRecovery ||
-        isRecording ||
-        isRecoveryInProgress
-      ) {
-        return;
-      }
-
-      try {
-        const recovery = await checkRecordingRecovery(currentTab);
-        if (recovery.canRecover && recovery.sessionId) {
-          // Check if we've already attempted recovery for this session/URL combination
-          const sessionUrlKey = `${recovery.sessionId}-${currentTab.url}`;
-          if (recoveryAttemptedRef.current.has(sessionUrlKey)) {
-            recordLogger.info(
-              'Recovery already attempted for this session/URL',
-              {
-                sessionId: recovery.sessionId,
-                url: currentTab.url,
-              },
-            );
-            return;
-          }
-
-          // Mark recovery as attempted for this session/URL
-          recoveryAttemptedRef.current.add(sessionUrlKey);
-          setIsRecoveryInProgress(true);
-
-          recordLogger.info(
-            'Auto-continuing recording from previous session',
-            recovery,
-          );
-
-          // Automatically continue recording without showing modal
-          const session = await dbManager.getSession(recovery.sessionId);
-          if (session) {
-            recordLogger.info('Auto-loaded session for recovery', {
-              sessionId: session.id,
-              existingEventsCount: session.events.length,
-            });
-
-            // Set this as the current session
-            if (selectSession) {
-              selectSession(session);
-              recordLogger.info('Set session as current for auto-recovery', {
-                sessionId: session.id,
-              });
-            }
-
-            // Update session status
-            await updateSession(session.id, {
-              status: 'idle',
-              updatedAt: Date.now(),
-            });
-
-            // Set the events from the previous session
-            setEvents(session.events);
-
-            // Small delay to ensure state updates
-            await new Promise((resolve) => setTimeout(resolve, 300));
-
-            // Auto-start recording with the existing session
-            await startRecording(recovery.sessionId);
-
-            // Clear recovery state after successful auto-continue
-            await dbManager.clearNavigationRecoveryState();
-
-            message.success(
-              `Auto-continued recording from previous session (${session.events.length} events loaded)`,
-            );
-          } else {
-            recordLogger.error('Failed to auto-load session for recovery', {
-              sessionId: recovery.sessionId,
-            });
-            // Clear recovery state if session not found
-            await dbManager.clearNavigationRecoveryState();
-          }
-        }
-      } catch (error) {
-        recordLogger.error(
-          'Failed to auto-continue recording recovery',
-          undefined,
-          error,
-        );
-        // Clear recovery state on error
-        await dbManager.clearNavigationRecoveryState();
-      } finally {
-        setIsRecoveryInProgress(false);
-      }
-    };
-
-    // Only check recovery when tab becomes available and complete
-    if (currentTab?.status === 'complete') {
-      checkRecovery();
-    }
-  }, [
-    currentTab?.id,
-    currentTab?.status,
-    currentTab?.url,
-    checkRecordingRecovery,
-    selectSession,
-    updateSession,
-    setEvents,
-    isRecording,
-    isRecoveryInProgress,
-  ]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      // Clear recovery attempts cache on unmount
-      recoveryAttemptedRef.current.clear();
-    };
-  }, []);
 
   // Real-time event persistence during recording
   const persistEventToSession = useCallback(
@@ -376,7 +245,7 @@ export const useRecordingControl = (
       let sessionToUse: RecordingSession | null = null;
 
       if (sessionId) {
-        // Use the specific session ID provided (for recovery)
+        // Use the specific session ID provided
         const specificSession = await dbManager.getSession(sessionId);
         if (specificSession) {
           sessionToUse = specificSession;
@@ -472,6 +341,7 @@ export const useRecordingControl = (
       currentTab,
       setIsRecording,
       clearEvents,
+      setEvents,
     ],
   );
 
@@ -522,7 +392,6 @@ export const useRecordingControl = (
 
   // Set up message listener for content script
   useEffect(() => {
-    recordLogger.info('Setting up message listener');
 
     // Connect to service worker for receiving events
     const port = safeChromeAPI.runtime.connect({ name: 'record-events' });
@@ -564,9 +433,6 @@ export const useRecordingControl = (
       }
 
       if (message.action === 'events' && Array.isArray(message.data)) {
-        recordLogger.info('Processing bulk events', {
-          eventsCount: message.data.length,
-        });
         const eventsData = await Promise.all(
           message.data.map(processEventData),
         );
@@ -589,18 +455,6 @@ export const useRecordingControl = (
 
         // Real-time persistence during recording
         await persistEventToSession(optimizedEvent);
-
-        // Legacy persistence for compatibility (will be removed once new system is stable)
-        if (currentSessionId && isRecording) {
-          const currentSession = getCurrentSession();
-          if (currentSession) {
-            const updatedEvents = [...currentSession.events, optimizedEvent];
-            updateSession(currentSessionId, {
-              events: updatedEvents,
-              updatedAt: Date.now(),
-            });
-          }
-        }
       } else {
         recordLogger.warn('Unhandled message format', {
           action: message.action,
@@ -614,7 +468,7 @@ export const useRecordingControl = (
     return () => {
       port.disconnect();
     };
-  }, [addEvent, setEvents, updateEvent, currentSessionId]);
+  }, [addEvent, setEvents, updateEvent, currentSessionId, isRecording, persistEventToSession]);
 
   return {
     // State

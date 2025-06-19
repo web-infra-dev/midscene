@@ -14,15 +14,13 @@ export const generateYamlTest = async (
   options: YamlGenerationOptions = {},
 ): Promise<string> => {
   try {
-    recordLogger.info('Starting AI-powered YAML test generation', {
-      eventsCount: events.length,
-    });
-
     // Extract navigation and viewport information
     const navigationInfo = extractNavigationAndViewportInfo(events);
 
-    recordLogger.info('Navigation and viewport info extracted', {
+    recordLogger.info('Starting AI-powered YAML test generation', {
       eventsCount: events.length,
+      events,
+      navigationInfo,
     });
 
     // Merge navigation and viewport info into options
@@ -35,6 +33,8 @@ export const generateYamlTest = async (
 
     recordLogger.success('AI-powered YAML test generated successfully', {
       eventsCount: events.length,
+      events,
+      yamlContent,
     });
 
     return yamlContent;

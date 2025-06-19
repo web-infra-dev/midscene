@@ -136,9 +136,19 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
                 <Text>{new Date(session.createdAt).toLocaleString()}</Text>
               </div>
               {session.url && (
-                <div>
+                <div
+                  style={{
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    wordBreak: 'break-all',
+                  }}>
                   <Text strong>URL: </Text>
-                  <Text>{session.url}</Text>
+                  <Text
+                  >
+                    {session.url}
+                  </Text>
                 </div>
               )}
               {session.description && (

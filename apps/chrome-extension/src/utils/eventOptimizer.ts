@@ -86,7 +86,6 @@ export const generateAIDescription = async (
       const mockContext: UIContext<BaseElement> = {
         screenshotBase64: event.screenshotBefore as string,
         size: { width: event.pageInfo.width, height: event.pageInfo.height },
-        content: [],
         tree: { node: null, children: [] },
       };
 

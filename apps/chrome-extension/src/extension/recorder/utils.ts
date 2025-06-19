@@ -104,7 +104,6 @@ export const injectScript = async (currentTab: chrome.tabs.Tab | null) => {
     });
 
     recordLogger.success('Script injected', { tabId: currentTab.id });
-    message.success('Recording script injected successfully');
   } catch (error) {
     recordLogger.error(
       'Failed to inject script',

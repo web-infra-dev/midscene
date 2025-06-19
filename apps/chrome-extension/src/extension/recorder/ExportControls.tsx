@@ -10,7 +10,7 @@ import { Button, Dropdown, Modal, Space, Typography, message } from 'antd';
 import type { MenuProps } from 'antd';
 import type React from 'react';
 import { useEffect, useState } from 'react';
-import { useRecordingSessionStore } from '../../store';
+import { useRecordingSessionStore, useRecordStore } from '../../store';
 import { generateAIDescription } from '../../utils/eventOptimizer';
 import { ProgressModal, type ProgressStep } from './components/ProgressModal';
 import { generatePlaywrightTest, generateYamlTest } from './generators';
@@ -73,7 +73,7 @@ export const ExportControls: React.FC<{
 
   // Create a function to get the latest events with AI descriptions
   const getCurrentEvents = (): ChromeRecordedEvent[] => {
-    return getLatestEvents(events, sessionId);
+    return getLatestEvents(sessionId);
   };
 
   // Generate session title and description using AI
@@ -92,10 +92,6 @@ export const ExportControls: React.FC<{
         session &&
         (!session.name || session.name.includes('-') || !session.description)
       ) {
-        recordLogger.info(
-          'Generating session title and description before export',
-        );
-
         // Update progress: Step 1 in progress
         updateProgressStep(stepIndex, {
           status: 'loading',
@@ -159,10 +155,7 @@ export const ExportControls: React.FC<{
   ): Promise<ChromeRecordedEvent[]> => {
     const eventsNeedingDescriptions = events.filter(
       (event: ChromeRecordedEvent) =>
-        (event.type === 'click' ||
-          event.type === 'input' ||
-          event.type === 'scroll') &&
-        event.descriptionLoading !== false,
+        (event.type !== 'navigation'),
     );
 
     if (eventsNeedingDescriptions.length === 0) {
@@ -176,11 +169,11 @@ export const ExportControls: React.FC<{
     updateProgressStep(stepIndex, {
       status: 'loading',
       progress: 0,
-      details: `Generating descriptions for ${eventsNeedingDescriptions.length} elements...`,
+      details: `Generating descriptions for ${events.length} elements...`,
     });
 
-    let completedCount = 0;
-    const updatedEvents = [...events];
+    let completedCount = events.length - eventsNeedingDescriptions.length;
+    const finalEvents = [...events];
 
     // Process events in parallel with progress tracking
     const optimizePromises = eventsNeedingDescriptions.map(
@@ -188,7 +181,7 @@ export const ExportControls: React.FC<{
         try {
           const description = await generateAIDescription(event, event.hashId);
 
-          updatedEvents[index] = {
+          finalEvents[index] = {
             ...event,
             elementDescription: description,
             descriptionLoading: false,
@@ -196,16 +189,16 @@ export const ExportControls: React.FC<{
           completedCount++;
 
           const progress = Math.round(
-            (completedCount / eventsNeedingDescriptions.length) * 100,
+            (completedCount / events.length) * 100,
           );
           updateProgressStep(stepIndex, {
             status: 'loading',
             progress,
-            details: `Generated ${completedCount}/${eventsNeedingDescriptions.length} element descriptions`,
+            details: `Generated ${completedCount}/${events.length} element descriptions`,
           });
         } catch (error) {
           console.error('Failed to optimize event:', error);
-          updatedEvents[index] = {
+          finalEvents[index] = {
             ...event,
             elementDescription: 'failed to generate element description',
             descriptionLoading: false,
@@ -220,12 +213,14 @@ export const ExportControls: React.FC<{
     // Update session with new event descriptions if sessionId exists
     if (sessionId) {
       updateSession(sessionId, {
-        events: updatedEvents,
+        events: finalEvents,
         updatedAt: Date.now(),
       });
+      useRecordStore.getState().setEvents(finalEvents);
       recordLogger.info('Updated session with AI descriptions', {
         sessionId,
-        eventsCount: updatedEvents.length,
+        finalEvents,
+        eventsCount: finalEvents.length,
         descriptionsGenerated: eventsNeedingDescriptions.length,
       });
     }
@@ -233,10 +228,10 @@ export const ExportControls: React.FC<{
     updateProgressStep(stepIndex, {
       status: 'completed',
       progress: 100,
-      details: `Generated descriptions for ${eventsNeedingDescriptions.length} elements`,
+      details: `Generated descriptions for ${events.length} elements`,
     });
 
-    return updatedEvents;
+    return finalEvents;
   };
 
   // Common function to handle code generation
@@ -289,10 +284,18 @@ export const ExportControls: React.FC<{
 
       // After stopping recording, get the latest events from session
       let finalEvents = getCurrentEvents();
+      recordLogger.info('start generating code', {
+        finalEvents,
+        sessionId,
+      });
 
       // Step 1: Generate element descriptions
       updateProgressStep(0, { status: 'loading' });
       finalEvents = await generateElementDescriptions(finalEvents, 0);
+      recordLogger.info('Generated element descriptions', {
+        finalEvents,
+        sessionId,
+      });
 
       // Step 2: Generate session title and description if not already generated
       updateProgressStep(1, { status: 'loading' });
@@ -302,6 +305,11 @@ export const ExportControls: React.FC<{
         finalEvents,
         1,
       );
+      recordLogger.info('Generated session title and description', {
+        finalEvents,
+        sessionId,
+        currentSessionName,
+      });
 
       // Step 3: Generate code
       updateProgressStep(2, {
@@ -317,10 +325,10 @@ export const ExportControls: React.FC<{
         type === 'playwright'
           ? await generatePlaywrightTest(finalEvents)
           : await generateYamlTest(finalEvents, {
-              testName: currentSessionName,
-              description: `Test session recorded on ${new Date().toLocaleDateString()}`,
-              includeTimestamps: true,
-            });
+            testName: currentSessionName,
+            description: `Test session recorded on ${new Date().toLocaleDateString()}`,
+            includeTimestamps: true,
+          });
 
       // Update session with generated code if sessionId exists
       if (sessionId) {
