@@ -435,12 +435,13 @@ export const useRecordingControl = (
         setEvents(eventsData);
 
         // Persist events to session during recording
-        if (currentSessionId && isRecording) {
-          updateSession(currentSessionId, {
-            events: eventsData,
-            updatedAt: Date.now(),
-          });
-        }
+        // if (currentSessionId && isRecording) {
+        //   setEvents(eventsData);
+        //   // updateSession(currentSessionId, {
+        //   //   events: eventsData,
+        //   //   updatedAt: Date.now(),
+        //   // });
+        // }
       } else if (
         message.action === 'event' &&
         message.data &&

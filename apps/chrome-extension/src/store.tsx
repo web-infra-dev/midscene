@@ -2,6 +2,7 @@ import type { ChromeRecordedEvent } from '@midscene/recorder';
 // import { createStore } from 'zustand/vanilla';
 import * as Z from 'zustand';
 import { dbManager, initializeDB } from './utils/indexedDB';
+import { recordLogger } from './extension/recorder/logger';
 
 const { create } = Z;
 export const useBlackboardPreference = create<{
@@ -318,6 +319,11 @@ export const useRecordStore = create<{
     const state = get();
     const newEvents = mergeEvents(state.events, events);
     set({ events: newEvents });
+    recordLogger.info('Setting events', {
+      events: newEvents,
+      newEvents,
+      eventsCount: newEvents.length,
+    });
     if (state.isRecording) {
       const sessionId = useRecordingSessionStore.getState().currentSessionId;
       if (sessionId) {

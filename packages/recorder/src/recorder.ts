@@ -150,7 +150,7 @@ export class EventRecorder {
         height: window.innerHeight,
       },
       timestamp: Date.now(),
-      hashId: 'navigation_0',
+      hashId: 'navigation_0' + Date.now(),
     };
   }
 
