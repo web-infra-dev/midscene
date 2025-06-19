@@ -258,9 +258,6 @@ export const useRecordingControl = (
           message.error('Specified session not found');
           return;
         }
-      } else {
-        // Use current session if no specific sessionId provided
-        sessionToUse = getCurrentSession();
       }
 
       if (!sessionToUse) {

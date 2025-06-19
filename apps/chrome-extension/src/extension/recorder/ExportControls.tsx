@@ -292,6 +292,9 @@ export const ExportControls: React.FC<{
       // Step 1: Generate element descriptions
       updateProgressStep(0, { status: 'loading' });
       finalEvents = await generateElementDescriptions(finalEvents, 0);
+      // generate again to ensure all descriptions are generated
+      finalEvents = getCurrentEvents();
+      finalEvents = await generateElementDescriptions(finalEvents, 0);
       recordLogger.info('Generated element descriptions', {
         finalEvents,
         sessionId,
