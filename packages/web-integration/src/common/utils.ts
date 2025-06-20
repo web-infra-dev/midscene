@@ -88,7 +88,7 @@ export async function parseContextFromWebPage(
   };
 }
 
-export function reportFileName(tag = 'web') {
+export function getReportFileName(tag = 'web') {
   const reportTagName = getAIConfig(MIDSCENE_REPORT_TAG_NAME);
   const dateTimeInFileName = dayjs().format('YYYY-MM-DD_HH-mm-ss');
   // ensure uniqueness at the same time

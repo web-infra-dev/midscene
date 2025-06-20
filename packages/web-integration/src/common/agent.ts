@@ -53,7 +53,7 @@ import {
   taskTitleStr,
   typeStr,
 } from './ui-utils';
-import { printReportMsg, reportFileName } from './utils';
+import { getReportFileName, printReportMsg } from './utils';
 import { type WebUIContext, parseContextFromWebPage } from './utils';
 import { trimContextByViewport } from './utils';
 
@@ -160,7 +160,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
     });
     this.dump = this.resetDump();
-    this.reportFileName = reportFileName(
+    this.reportFileName = getReportFileName(
       opts?.testId || this.page.pageType || 'web',
     );
   }

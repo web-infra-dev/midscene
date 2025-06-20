@@ -2,7 +2,7 @@ import './App.less';
 import './index.less';
 
 import { CaretRightOutlined } from '@ant-design/icons';
-import { Button, ConfigProvider, Empty } from 'antd';
+import { Alert, Button, ConfigProvider, Empty } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
@@ -23,7 +23,7 @@ import type {
 
 let globalRenderCount = 1;
 
-export function Visualizer(props: VisualizerProps): JSX.Element {
+function Visualizer(props: VisualizerProps): JSX.Element {
   const { dumps } = props;
 
   const executionDump = useExecutionDump((store: StoreState) => store.dump);
@@ -251,20 +251,12 @@ export function Visualizer(props: VisualizerProps): JSX.Element {
   );
 }
 
-// Main App component using Visualizer
-const App = () => {
-  const [reportDump, setReportDump] = useState<
-    ExecutionDumpWithPlaywrightAttributes[]
-  >([]);
-
-  const loadDumpElements = useCallback(() => {
-    console.log('[MidScene] loadDumpElements called');
+export function App() {
+  function getDumpElements(): ExecutionDumpWithPlaywrightAttributes[] {
     const dumpElements = document.querySelectorAll(
       'script[type="midscene_web_dump"]',
     );
-    console.log(`[MidScene] Found ${dumpElements.length} dump elements`);
     const reportDump: ExecutionDumpWithPlaywrightAttributes[] = [];
-
     Array.from(dumpElements)
       .filter((el) => {
         const textContent = el.textContent;
@@ -282,7 +274,6 @@ const App = () => {
             attributes[attr.name] = valueDecoded;
           }
         });
-
         const content = antiEscapeScriptTag(el.textContent || '');
         try {
           const jsonContent = JSON.parse(content);
@@ -293,57 +284,80 @@ const App = () => {
           console.error('failed to parse json content', e);
         }
       });
+    return reportDump;
+  }
 
-    setReportDump(reportDump);
+  const [reportDump, setReportDump] = useState<
+    ExecutionDumpWithPlaywrightAttributes[]
+  >([]);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadDumpElements = useCallback(() => {
+    const dumpElements = document.querySelectorAll(
+      'script[type="midscene_web_dump"]',
+    );
+    if (
+      dumpElements.length === 1 &&
+      dumpElements[0].textContent?.trim() === ''
+    ) {
+      setError('There is no dump data to display.');
+      setReportDump([]);
+      return;
+    }
+    setError(null);
+    setReportDump(getDumpElements());
   }, []);
 
   useEffect(() => {
-    // 初始加载
     loadDumpElements();
-
-    console.log('[MidScene] Setting up MutationObserver on document.body');
-    // 创建MutationObserver来监听DOM变化
     const observer = new MutationObserver((mutations) => {
-      console.log('[MidScene] MutationObserver triggered');
       for (const mutation of mutations) {
         if (mutation.type === 'childList') {
           const addedNodes = Array.from(mutation.addedNodes);
           const hasScriptTag = addedNodes.some((node) => {
             if (node.nodeType === Node.ELEMENT_NODE) {
               const element = node as Element;
-              // 检查是否是我们需要的script标签，或者包含这样的标签
               return (
                 (element.tagName === 'SCRIPT' &&
                   element.getAttribute('type') === 'midscene_web_dump') ||
-                element.querySelector('script[type="midscene_web_dump"]')
+                element.querySelector?.('script[type="midscene_web_dump"]')
               );
             }
             return false;
           });
-
           if (hasScriptTag) {
-            console.log(
-              '[MidScene] Found midscene_web_dump script in mutation. Reloading dumps.',
-            );
-            // 稍微延迟一下，确保DOM完全更新
             setTimeout(loadDumpElements, 10);
           }
         }
       }
     });
-
-    // 监听整个document body的变化
     observer.observe(document.body, {
       childList: true,
       subtree: true,
     });
-
     return () => {
       observer.disconnect();
     };
   }, [loadDumpElements]);
 
+  if (error) {
+    return (
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          padding: '100px',
+          boxSizing: 'border-box',
+        }}
+      >
+        <Alert
+          message="Midscene.js - Error"
+          description={error}
+          type="error"
+          showIcon
+        />
+      </div>
+    );
+  }
   return <Visualizer dumps={reportDump} />;
-};
-
-export default App;
+}

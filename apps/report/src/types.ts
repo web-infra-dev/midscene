@@ -1,5 +1,5 @@
 import type { GroupedActionDump } from '@midscene/core';
-import type { AnimationScript } from '@midscene/visualizer/playground';
+import type { AnimationScript } from '@midscene/visualizer';
 
 // Core visualization types
 export interface ExecutionDumpWithPlaywrightAttributes

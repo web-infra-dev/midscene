@@ -22,122 +22,68 @@ let logEnvReady = false;
 
 export const groupedActionDumpFileExt = 'web-dump.json';
 
-const reportTpl = 'REPLACE_ME_WITH_REPORT_HTML';
+const reportInitializedMap = new Map<string, boolean>();
 
 function getReportTpl() {
+  const reportTpl = 'REPLACE_ME_WITH_REPORT_HTML';
+
   return reportTpl;
 }
 
-export function replaceStringWithFirstAppearance(
-  str: string,
-  target: string,
-  replacement: string,
-) {
-  const index = str.indexOf(target);
-  return str.slice(0, index) + replacement + str.slice(index + target.length);
-}
-
 export function reportHTMLContent(
-  dumpData: string | ReportDumpWithAttributes[],
+  dumpData: string | ReportDumpWithAttributes,
   reportPath?: string,
 ): string {
   const tpl = getReportTpl();
+
   if (!tpl) {
     console.warn('reportTpl is not set, will not write report');
     return '';
   }
 
-  const dumpPlaceholder = '{{dump}}';
-
-  // verify the template contains the placeholder
-  if (!tpl.includes(dumpPlaceholder)) {
-    console.warn(
-      'Failed to get the Midscene report template due to the lack of the {{dump}} placeholder. If you are building Midscene.js by yourself, please refer to the contribution guide for more information: https://github.com/web-infra-dev/midscene/blob/main/CONTRIBUTING.md#FAQ',
-    );
-    return '';
-  }
-
-  // find the first placeholder position
-  const placeholderIndex = tpl.indexOf(dumpPlaceholder);
-
-  // split the template into two parts before and after the placeholder
-  const firstPart = tpl.substring(0, placeholderIndex);
-  const secondPart = tpl.substring(placeholderIndex + dumpPlaceholder.length);
-
   // if reportPath is set, it means we are in write to file mode
   const writeToFile = reportPath && !ifInBrowser;
-  let resultContent = '';
+  let dumpContent = '';
 
-  // helper function: decide to write to file or append to resultContent
-  const appendOrWrite = (content: string): void => {
-    if (writeToFile) {
-      writeFileSync(reportPath!, `${content}\n`, {
-        flag: 'a',
-      });
-    } else {
-      resultContent += `${content}\n`;
-    }
-  };
-
-  // if writeToFile is true, write the first part to file, otherwise set the first part to the initial value of resultContent
-  if (writeToFile) {
-    writeFileSync(reportPath!, firstPart, { flag: 'w' }); // use 'w' flag to overwrite the existing file
-  } else {
-    resultContent = firstPart;
-  }
-
-  // generate dump content
-  // handle empty data or undefined
-  if (
-    (Array.isArray(dumpData) && dumpData.length === 0) ||
-    typeof dumpData === 'undefined'
-  ) {
-    const dumpContent =
-      '<script type="midscene_web_dump" type="application/json"></script>';
-    appendOrWrite(dumpContent);
-  }
-  // handle string type dumpData
-  else if (typeof dumpData === 'string') {
-    const dumpContent =
-      // biome-ignore lint/style/useTemplate: <explanation> do not use template string here, will cause bundle error
+  if (typeof dumpData === 'string') {
+    // do not use template string here, will cause bundle error
+    dumpContent =
+      // biome-ignore lint/style/useTemplate: <explanation>
       '<script type="midscene_web_dump" type="application/json">\n' +
       escapeScriptTag(dumpData) +
       '\n</script>';
-    appendOrWrite(dumpContent);
-  }
-  // handle array type dumpData
-  else {
-    // for array, handle each item
-    for (let i = 0; i < dumpData.length; i++) {
-      const { dumpString, attributes } = dumpData[i];
-      const attributesArr = Object.keys(attributes || {}).map((key) => {
-        return `${key}="${encodeURIComponent(attributes![key])}"`;
-      });
+  } else {
+    const { dumpString, attributes } = dumpData;
+    const attributesArr = Object.keys(attributes || {}).map((key) => {
+      return `${key}="${encodeURIComponent(attributes![key])}"`;
+    });
 
-      const dumpContent =
-        // biome-ignore lint/style/useTemplate: <explanation> do not use template string here, will cause bundle error
-        '<script type="midscene_web_dump" type="application/json" ' +
-        attributesArr.join(' ') +
-        '>\n' +
-        escapeScriptTag(dumpString) +
-        '\n</script>';
-      appendOrWrite(dumpContent);
-    }
+    dumpContent =
+      // do not use template string here, will cause bundle error
+      // biome-ignore lint/style/useTemplate: <explanation>
+      '<script type="midscene_web_dump" type="application/json" ' +
+      attributesArr.join(' ') +
+      '>\n' +
+      escapeScriptTag(dumpString) +
+      '\n</script>';
   }
 
-  // add the second part
   if (writeToFile) {
-    writeFileSync(reportPath!, secondPart, { flag: 'a' });
+    if (!reportInitializedMap.get(reportPath!)) {
+      writeFileSync(reportPath!, tpl, { flag: 'w' });
+      reportInitializedMap.set(reportPath!, true);
+    }
+
+    writeFileSync(reportPath!, dumpContent, { flag: 'a' });
     return reportPath!;
   }
 
-  resultContent += secondPart;
-  return resultContent;
+  return tpl + dumpContent;
 }
 
 export function writeDumpReport(
   fileName: string,
-  dumpData: string | ReportDumpWithAttributes[],
+  dumpData: string | ReportDumpWithAttributes,
 ): string | null {
   if (ifInBrowser) {
     console.log('will not write report in browser');
@@ -160,23 +106,15 @@ export function writeDumpReport(
 
   if (process.env.MIDSCENE_DEBUG_LOG_JSON) {
     const jsonPath = `${reportPath}.json`;
-    let data = dumpData as ReportDumpWithAttributes[];
+    let data;
 
     if (typeof dumpData === 'string') {
-      data = JSON.parse(dumpData) as ReportDumpWithAttributes[];
+      data = JSON.parse(dumpData) as ReportDumpWithAttributes;
+    } else {
+      data = dumpData;
     }
 
-    writeFileSync(
-      jsonPath,
-      JSON.stringify(
-        data.map((item) => ({
-          dumpString: JSON.parse(item.dumpString),
-          attributes: item.attributes,
-        })),
-        null,
-        2,
-      ),
-    );
+    writeFileSync(jsonPath, JSON.stringify(data, null, 2), { flag: 'a' });
 
     logMsg(`Midscene - dump file written: ${jsonPath}`);
   }
