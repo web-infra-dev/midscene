@@ -320,7 +320,7 @@ export default function App() {
       }
 
       // handle the special case of aiAction type, extract script information
-      if (res?.dump) {
+      if (res?.dump && !['aiQuery', 'aiAssert'].includes(type)) {
         const info = allScriptsFromDump(res.dump);
         setReplayScriptsInfo(info);
         setReplayCounter((c) => c + 1);
