@@ -3,7 +3,7 @@ import './index.less';
 
 import { CaretRightOutlined } from '@ant-design/icons';
 import { Button, ConfigProvider, Empty } from 'antd';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
@@ -253,39 +253,95 @@ export function Visualizer(props: VisualizerProps): JSX.Element {
 
 // Main App component using Visualizer
 const App = () => {
-  const dumpElements = document.querySelectorAll(
-    'script[type="midscene_web_dump"]',
-  );
-  const reportDump: ExecutionDumpWithPlaywrightAttributes[] = [];
+  const [reportDump, setReportDump] = useState<
+    ExecutionDumpWithPlaywrightAttributes[]
+  >([]);
 
-  Array.from(dumpElements)
-    .filter((el) => {
-      const textContent = el.textContent;
-      if (!textContent) {
-        console.warn('empty content in script tag', el);
-      }
-      return !!textContent;
-    })
-    .forEach((el) => {
-      const attributes: Record<string, any> = {};
-      Array.from(el.attributes).forEach((attr) => {
-        const { name, value } = attr;
-        const valueDecoded = decodeURIComponent(value);
-        if (name.startsWith('playwright_')) {
-          attributes[attr.name] = valueDecoded;
+  const loadDumpElements = useCallback(() => {
+    console.log('[MidScene] loadDumpElements called');
+    const dumpElements = document.querySelectorAll(
+      'script[type="midscene_web_dump"]',
+    );
+    console.log(`[MidScene] Found ${dumpElements.length} dump elements`);
+    const reportDump: ExecutionDumpWithPlaywrightAttributes[] = [];
+
+    Array.from(dumpElements)
+      .filter((el) => {
+        const textContent = el.textContent;
+        if (!textContent) {
+          console.warn('empty content in script tag', el);
+        }
+        return !!textContent;
+      })
+      .forEach((el) => {
+        const attributes: Record<string, any> = {};
+        Array.from(el.attributes).forEach((attr) => {
+          const { name, value } = attr;
+          const valueDecoded = decodeURIComponent(value);
+          if (name.startsWith('playwright_')) {
+            attributes[attr.name] = valueDecoded;
+          }
+        });
+
+        const content = antiEscapeScriptTag(el.textContent || '');
+        try {
+          const jsonContent = JSON.parse(content);
+          jsonContent.attributes = attributes;
+          reportDump.push(jsonContent);
+        } catch (e) {
+          console.error(el);
+          console.error('failed to parse json content', e);
         }
       });
 
-      const content = antiEscapeScriptTag(el.textContent || '');
-      try {
-        const jsonContent = JSON.parse(content);
-        jsonContent.attributes = attributes;
-        reportDump.push(jsonContent);
-      } catch (e) {
-        console.error(el);
-        console.error('failed to parse json content', e);
+    setReportDump(reportDump);
+  }, []);
+
+  useEffect(() => {
+    // 初始加载
+    loadDumpElements();
+
+    console.log('[MidScene] Setting up MutationObserver on document.body');
+    // 创建MutationObserver来监听DOM变化
+    const observer = new MutationObserver((mutations) => {
+      console.log('[MidScene] MutationObserver triggered');
+      for (const mutation of mutations) {
+        if (mutation.type === 'childList') {
+          const addedNodes = Array.from(mutation.addedNodes);
+          const hasScriptTag = addedNodes.some((node) => {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              const element = node as Element;
+              // 检查是否是我们需要的script标签，或者包含这样的标签
+              return (
+                (element.tagName === 'SCRIPT' &&
+                  element.getAttribute('type') === 'midscene_web_dump') ||
+                element.querySelector('script[type="midscene_web_dump"]')
+              );
+            }
+            return false;
+          });
+
+          if (hasScriptTag) {
+            console.log(
+              '[MidScene] Found midscene_web_dump script in mutation. Reloading dumps.',
+            );
+            // 稍微延迟一下，确保DOM完全更新
+            setTimeout(loadDumpElements, 10);
+          }
+        }
       }
     });
+
+    // 监听整个document body的变化
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [loadDumpElements]);
 
   return <Visualizer dumps={reportDump} />;
 };
