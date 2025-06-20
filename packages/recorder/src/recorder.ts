@@ -1,3 +1,5 @@
+import { isNotContainerElement } from '@midscene/shared/extractor';
+
 const DEBUG = localStorage.getItem('DEBUG') === 'true'; // Based on process.env.NODE_ENV
 
 function debugLog(...args: any[]) {
@@ -150,7 +152,7 @@ export class EventRecorder {
         height: window.innerHeight,
       },
       timestamp: Date.now(),
-      hashId: 'navigation_0' + Date.now(),
+      hashId: 'navigation_' + Date.now(),
     };
   }
 
@@ -228,14 +230,18 @@ export class EventRecorder {
     const target = event.target as HTMLElement;
     const { isLabelClick, labelInfo } = this.checkLabelClick(target);
     const rect = target.getBoundingClientRect();
-    const elementRect = {
-      // left: Number(rect.left.toFixed(2)),
-      // top: Number(rect.top.toFixed(2)),
-      // width: Number(rect.width.toFixed(2)),
-      // height: Number(rect.height.toFixed(2)),
+    const elementRect: ChromeRecordedEvent['elementRect'] = {
       x: Number(event.clientX.toFixed(2)),
       y: Number(event.clientY.toFixed(2)),
     };
+    console.log('isNotContainerElement', isNotContainerElement(target));
+    if (isNotContainerElement(target)) {
+      elementRect.left = Number(rect.left.toFixed(2));
+      elementRect.top = Number(rect.top.toFixed(2));
+      elementRect.width = Number(rect.width.toFixed(2));
+      elementRect.height = Number(rect.height.toFixed(2));
+    }
+
     const clickEvent: RecordedEvent = {
       type: 'click',
       elementRect,

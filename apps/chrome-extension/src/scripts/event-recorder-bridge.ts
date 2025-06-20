@@ -125,10 +125,8 @@ async function initializeRecorder(sessionId: string): Promise<void> {
       });
 
       // Add screenshots to the latest event
-      setTimeout(async () => {
         // Send updated events array to extension
-        sendEventsToExtension(optimizedEvent);
-      }, 100);
+      sendEventsToExtension(optimizedEvent);
     },
     sessionId,
   );
@@ -138,28 +136,6 @@ async function sendEventsToExtension(
   optimizedEvent: ChromeRecordedEvent[],
   immediate = false,
 ): Promise<void> {
-  const latestEvent = optimizedEvent[optimizedEvent.length - 1];
-  const previousEvent = optimizedEvent[optimizedEvent.length - 2];
-
-  if (immediate) {
-    if (optimizedEvent.length > 1) {
-      const screenshotBefore = previousEvent.screenshotAfter;
-      latestEvent.screenshotBefore = screenshotBefore!;
-    }
-  } else {
-    const screenshotAfter = await captureScreenshot();
-    let screenshotBefore: string | undefined;
-
-    if (optimizedEvent.length > 1) {
-      screenshotBefore = previousEvent.screenshotAfter;
-    } else {
-      screenshotBefore = await initialScreenshot;
-    }
-
-    // Capture screenshot before processing the event
-    latestEvent.screenshotAfter = screenshotAfter!;
-    latestEvent.screenshotBefore = screenshotBefore!;
-  }
 
   // Store the latest events
   pendingEvents = optimizedEvent;
@@ -169,7 +145,30 @@ async function sendEventsToExtension(
     clearTimeout(debounceTimer);
   }
 
-  const sendEventsToExtension = () => {
+  const sendEventsToExtension = async () => {
+    const latestEvent = optimizedEvent[optimizedEvent.length - 1];
+    const previousEvent = optimizedEvent[optimizedEvent.length - 2];
+
+    if (immediate) {
+      if (optimizedEvent.length > 1) {
+        const screenshotBefore = previousEvent.screenshotAfter;
+        latestEvent.screenshotBefore = screenshotBefore!;
+      }
+    } else {
+      const screenshotAfter = await captureScreenshot();
+      let screenshotBefore: string | undefined;
+
+      if (optimizedEvent.length > 1) {
+        screenshotBefore = previousEvent.screenshotAfter;
+      } else {
+        screenshotBefore = await initialScreenshot;
+      }
+
+      // Capture screenshot before processing the event
+      latestEvent.screenshotAfter = screenshotAfter!;
+      latestEvent.screenshotBefore = screenshotBefore!;
+    }
+
     if (!pendingEvents) return;
 
     console.log('[EventRecorder Bridge] Sending events to extension:', {
@@ -198,7 +197,7 @@ async function sendEventsToExtension(
 
   // Set new timer
   if (immediate) {
-    sendEventsToExtension();
+    await sendEventsToExtension();
   } else {
     debounceTimer = setTimeout(sendEventsToExtension, 300);
   }

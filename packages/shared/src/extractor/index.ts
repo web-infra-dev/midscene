@@ -44,3 +44,5 @@ export {
 } from './locator';
 
 export { generateElementByPosition } from './dom-util';
+
+export { isNotContainerElement } from './dom-util';
