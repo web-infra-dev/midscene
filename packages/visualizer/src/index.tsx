@@ -33,6 +33,7 @@ export { Describer } from './component/describer';
 // Export playground utilities
 export {
   requestPlaygroundServer,
+  cancelTask,
   overrideServerConfig,
   getTaskProgress,
   checkServerStatus,
