@@ -31,6 +31,8 @@ export const MIDSCENE_USE_DOUBAO_VISION = 'MIDSCENE_USE_DOUBAO_VISION';
 export const MIDSCENE_USE_GEMINI = 'MIDSCENE_USE_GEMINI';
 export const MIDSCENE_USE_VL_MODEL = 'MIDSCENE_USE_VL_MODEL';
 export const MATCH_BY_POSITION = 'MATCH_BY_POSITION';
+export const MIDSCENE_USE_ECVLMCP = 'MIDSCENE_USE_ECVLMCP';
+export const MIDSCENE_ECVLMCP_ENDPOINT = 'MIDSCENE_ECVLMCP_ENDPOINT';
 export const MIDSCENE_API_TYPE = 'MIDSCENE-API-TYPE';
 export const MIDSCENE_REPORT_TAG_NAME = 'MIDSCENE_REPORT_TAG_NAME';
 
@@ -104,6 +106,8 @@ export const allConfigFromEnv = () => {
       process.env[MIDSCENE_USE_DOUBAO_VISION] || undefined,
     [MIDSCENE_USE_GEMINI]: process.env[MIDSCENE_USE_GEMINI] || undefined,
     [MIDSCENE_USE_VL_MODEL]: process.env[MIDSCENE_USE_VL_MODEL] || undefined,
+    [MIDSCENE_USE_ECVLMCP]: process.env[MIDSCENE_USE_ECVLMCP] || undefined,
+    [MIDSCENE_ECVLMCP_ENDPOINT]: process.env[MIDSCENE_ECVLMCP_ENDPOINT] || undefined,
     [ANTHROPIC_API_KEY]: process.env[ANTHROPIC_API_KEY] || undefined,
     [AZURE_OPENAI_ENDPOINT]: process.env[AZURE_OPENAI_ENDPOINT] || undefined,
     [AZURE_OPENAI_KEY]: process.env[AZURE_OPENAI_KEY] || undefined,
@@ -157,6 +161,7 @@ export const vlLocateMode = ():
   | 'gemini'
   | 'vl-model' // not actually in use
   | 'vlm-ui-tars'
+  | 'ecvlmcp'
   | false => {
   const enabledModes = [
     getAIConfigInBoolean(MIDSCENE_USE_DOUBAO_VISION) &&
@@ -165,6 +170,7 @@ export const vlLocateMode = ():
     getAIConfigInBoolean(MIDSCENE_USE_VLM_UI_TARS) &&
       'MIDSCENE_USE_VLM_UI_TARS',
     getAIConfigInBoolean(MIDSCENE_USE_GEMINI) && 'MIDSCENE_USE_GEMINI',
+    getAIConfigInBoolean(MIDSCENE_USE_ECVLMCP) && 'MIDSCENE_USE_ECVLMCP',
   ].filter(Boolean);
 
   if (enabledModes.length > 1) {
@@ -191,6 +197,10 @@ export const vlLocateMode = ():
 
   if (getAIConfigInBoolean(MIDSCENE_USE_VLM_UI_TARS)) {
     return 'vlm-ui-tars';
+  }
+
+  if (getAIConfigInBoolean(MIDSCENE_USE_ECVLMCP)) {
+    return 'ecvlmcp';
   }
 
   return false;

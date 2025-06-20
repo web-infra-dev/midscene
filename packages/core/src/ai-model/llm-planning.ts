@@ -52,6 +52,9 @@ export async function plan(
   let imagePayload = screenshotBase64;
   if (vlLocateMode() === 'qwen-vl') {
     imagePayload = await paddingToMatchBlockByBase64(imagePayload);
+  } else if (vlLocateMode() === 'ecvlmcp') {
+    // ECVLMCP uses original screenshot without markup
+    imagePayload = screenshotBase64;
   } else if (!vlLocateMode()) {
     imagePayload = await markupImageForLLM(
       screenshotBase64,

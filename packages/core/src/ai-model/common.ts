@@ -212,6 +212,20 @@ export function adaptBbox(
     return adaptGeminiBbox(bbox, width, height);
   }
 
+  if (vlLocateMode() === 'ecvlmcp') {
+    // ECVLMCP returns pixel coordinates directly, no transformation needed
+    console.log(`🐛 adaptBbox: ECVLMCP mode, returning bbox as-is: [${bbox.join(', ')}]`);
+    if (bbox.length < 4) {
+      throw new Error(`invalid bbox data for ecvlmcp mode: ${JSON.stringify(bbox)}`);
+    }
+    return [
+      Math.round(bbox[0]), // x1
+      Math.round(bbox[1]), // y1  
+      Math.round(bbox[2]), // x2
+      Math.round(bbox[3]), // y2
+    ];
+  }
+
   return adaptQwenBbox(bbox);
 }
 

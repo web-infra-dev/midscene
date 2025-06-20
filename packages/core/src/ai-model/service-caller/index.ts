@@ -24,6 +24,8 @@ import {
   MIDSCENE_USE_AZURE_OPENAI,
   MIDSCENE_USE_QWEN_VL,
   MIDSCENE_USE_VLM_UI_TARS,
+  MIDSCENE_USE_ECVLMCP,
+  MIDSCENE_ECVLMCP_ENDPOINT,
   OPENAI_API_KEY,
   OPENAI_BASE_URL,
   OPENAI_MAX_TOKENS,
@@ -46,11 +48,13 @@ import { AIActionType } from '../common';
 import { assertSchema } from '../prompt/assertion';
 import { locatorSchema } from '../prompt/llm-locator';
 import { planSchema } from '../prompt/llm-planning';
+import { EcvlmcpClient } from './ecvlmcp-client';
 
 export function checkAIConfig() {
   if (getAIConfig(OPENAI_API_KEY)) return true;
   if (getAIConfig(MIDSCENE_USE_AZURE_OPENAI)) return true;
   if (getAIConfig(ANTHROPIC_API_KEY)) return true;
+  if (getAIConfigInBoolean(MIDSCENE_USE_ECVLMCP)) return true;
 
   return Boolean(getAIConfig(MIDSCENE_OPENAI_INIT_CONFIG_JSON));
 }
@@ -239,6 +243,22 @@ export async function call(
     | OpenAI.ChatCompletionCreateParams['response_format']
     | OpenAI.ResponseFormatJSONObject,
 ): Promise<{ content: string; usage?: AIUsageInfo }> {
+  // Handle ECVLMCP separately
+  if (getAIConfigInBoolean(MIDSCENE_USE_ECVLMCP)) {
+    const client = new EcvlmcpClient();
+    const maxTokens = getAIConfig(OPENAI_MAX_TOKENS);
+    const model = getModelName();
+    
+    return await client.chat(messages, {
+      model,
+      temperature: 0.1,
+      max_tokens: typeof maxTokens === 'number'
+        ? maxTokens
+        : Number.parseInt(maxTokens || '2048', 10),
+      actionType: AIActionTypeValue,
+    });
+  }
+
   const { completion, style } = await createChatClient({
     AIActionTypeValue,
   });
