@@ -290,8 +290,6 @@ export const ExportControls: React.FC<{
       updateProgressStep(0, { status: 'loading' });
       finalEvents = await generateElementDescriptions(finalEvents, 0);
       // generate again to ensure all descriptions are generated
-      finalEvents = getCurrentEvents();
-      finalEvents = await generateElementDescriptions(finalEvents, 0);
       recordLogger.info('Generated element descriptions', {
         finalEvents,
         sessionId,
@@ -325,10 +323,10 @@ export const ExportControls: React.FC<{
         type === 'playwright'
           ? await generatePlaywrightTest(finalEvents)
           : await generateYamlTest(finalEvents, {
-              testName: currentSessionName,
-              description: `Test session recorded on ${new Date().toLocaleDateString()}`,
-              includeTimestamps: true,
-            });
+            testName: currentSessionName,
+            description: `Test session recorded on ${new Date().toLocaleDateString()}`,
+            includeTimestamps: true,
+          });
 
       // Update session with generated code if sessionId exists
       if (sessionId) {
