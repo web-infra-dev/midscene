@@ -45,7 +45,7 @@ describe('utils', () => {
   });
 
   it('write report file with empty dump', () => {
-    const reportPath = writeDumpReport('test', []);
+    const reportPath = writeDumpReport('test', '');
     expect(reportPath).toBeTruthy();
     const reportContent = readFileSync(reportPath!, 'utf-8');
     expect(reportContent).contains('type="midscene_web_dump"');
@@ -53,15 +53,13 @@ describe('utils', () => {
 
   it('write report file with attributes', () => {
     const content = randomUUID();
-    const reportPath = writeDumpReport('test', [
-      {
-        dumpString: content,
-        attributes: {
-          foo: 'bar',
-          hello: 'world',
-        },
+    const reportPath = writeDumpReport('test', {
+      dumpString: content,
+      attributes: {
+        foo: 'bar',
+        hello: 'world',
       },
-    ]);
+    });
     expect(reportPath).toBeTruthy();
     const reportContent = readFileSync(reportPath!, 'utf-8');
     expect(reportContent).contains(content);
@@ -79,9 +77,9 @@ describe('utils', () => {
   });
 
   it('reportHTMLContent', () => {
-    const reportA = reportHTMLContent([]);
+    const reportA = reportHTMLContent('');
     expect(reportA).toContain(
-      '<script type="midscene_web_dump" type="application/json"></script>',
+      '<script type="midscene_web_dump" type="application/json">\n\n</script>',
     );
 
     const content = randomUUID();
@@ -100,11 +98,11 @@ describe('utils', () => {
     }
 
     // test empty array
-    const reportPathA = reportHTMLContent([], tmpFile);
+    const reportPathA = reportHTMLContent('', tmpFile);
     expect(reportPathA).toBe(tmpFile);
     const fileContentA = readFileSync(tmpFile, 'utf-8');
     expect(fileContentA).toContain(
-      '<script type="midscene_web_dump" type="application/json"></script>',
+      '<script type="midscene_web_dump" type="application/json">\n\n</script>',
     );
 
     // test string content
@@ -118,22 +116,13 @@ describe('utils', () => {
 
     // test array with attributes
     const uuid1 = randomUUID();
-    const uuid2 = randomUUID();
-    const dumpArray = [
-      {
-        dumpString: JSON.stringify({ id: uuid1 }),
-        attributes: {
-          test_attr: 'test_value',
-          another_attr: 'another_value',
-        },
+    const dumpArray = {
+      dumpString: JSON.stringify({ id: uuid1 }),
+      attributes: {
+        test_attr: 'test_value',
+        another_attr: 'another_value',
       },
-      {
-        dumpString: JSON.stringify({ id: uuid2 }),
-        attributes: {
-          test_attr2: 'test_value2',
-        },
-      },
-    ];
+    };
 
     const reportPathC = reportHTMLContent(dumpArray, tmpFile);
     expect(reportPathC).toBe(tmpFile);
@@ -142,9 +131,7 @@ describe('utils', () => {
     // verify the file content contains attributes and data
     expect(fileContentC).toContain('test_attr="test_value"');
     expect(fileContentC).toContain('another_attr="another_value"');
-    expect(fileContentC).toContain('test_attr2="test_value2"');
     expect(fileContentC).toContain(uuid1);
-    expect(fileContentC).toContain(uuid2);
   });
 
   it(
@@ -174,11 +161,13 @@ describe('utils', () => {
 
       // Monitor memory usage
       const startMemory = process.memoryUsage();
+      const heapTotalBefore = startMemory.heapTotal / 1024 / 1024;
+      const heapUsedBefore = startMemory.heapUsed / 1024 / 1024;
       console.log(
         'Memory usage before test:',
         `RSS: ${Math.round(startMemory.rss / 1024 / 1024)}MB, ` +
-          `Heap Total: ${Math.round(startMemory.heapTotal / 1024 / 1024)}MB, ` +
-          `Heap Used: ${Math.round(startMemory.heapUsed / 1024 / 1024)}MB`,
+          `Heap Total: ${heapTotalBefore}MB, ` +
+          `Heap Used: ${heapUsedBefore}MB`,
       );
 
       // Store start time
@@ -186,19 +175,20 @@ describe('utils', () => {
 
       // Generate 10 large reports (each ~100MB)
       const numberOfReports = 10;
-      const dumpArray = Array.from({ length: numberOfReports }).map(
-        (_, index) => ({
-          dumpString: generateLargeString(100, `large-report-${index + 1}`),
-          attributes: {
-            report_number: `${index + 1}`,
-            report_size: '100MB',
-          },
-        }),
-      );
-
       // Write the large reports
-      const reportPath = reportHTMLContent(dumpArray, tmpFile);
-      expect(reportPath).toBe(tmpFile);
+      for (let i = 0; i < numberOfReports; i++) {
+        const reportPath = reportHTMLContent(
+          {
+            dumpString: generateLargeString(100, `large-report-${i + 1}`),
+            attributes: {
+              report_number: `${i + 1}`,
+              report_size: '100MB',
+            },
+          },
+          tmpFile,
+        );
+        expect(reportPath).toBe(tmpFile);
+      }
 
       // Calculate execution time
       const executionTime = Date.now() - startTime;
@@ -206,11 +196,13 @@ describe('utils', () => {
 
       // Check memory usage after test
       const endMemory = process.memoryUsage();
+      const heapTotalAfter = endMemory.heapTotal / 1024 / 1024;
+      const heapUsedAfter = endMemory.heapUsed / 1024 / 1024;
       console.log(
         'Memory usage after test:',
         `RSS: ${Math.round(endMemory.rss / 1024 / 1024)}MB, ` +
-          `Heap Total: ${Math.round(endMemory.heapTotal / 1024 / 1024)}MB, ` +
-          `Heap Used: ${Math.round(endMemory.heapUsed / 1024 / 1024)}MB`,
+          `Heap Total: ${heapTotalAfter}MB, ` +
+          `Heap Used: ${heapUsedAfter}MB`,
       );
 
       // Check if file exists
@@ -224,19 +216,19 @@ describe('utils', () => {
       // We expect the file to be approximately 700MB plus template overhead
       const expectedMinSize = 1000; // 10 reports × 100MB
       expect(fileSizeInMB).toBeGreaterThan(expectedMinSize);
+      expect(heapUsedAfter).toBeLessThan(500); // much less than 1GB
+      expect(heapTotalAfter - heapTotalBefore).toBeLessThan(300); // 300MB is the max memory usage for the test
     },
     { timeout: 30000 },
   );
 
   it('reportHTMLContent array with xss', () => {
-    const reportContent = reportHTMLContent([
-      {
-        dumpString: '<script>alert("xss")</script>',
-        attributes: {
-          'data-midscene-id': '123',
-        },
+    const reportContent = reportHTMLContent({
+      dumpString: '<script>alert("xss")</script>',
+      attributes: {
+        'data-midscene-id': '123',
       },
-    ]);
+    });
     expect(reportContent).toBeTruthy();
     expect(reportContent).toContain('data-midscene-id="123"');
     expect(reportContent).toContain(
