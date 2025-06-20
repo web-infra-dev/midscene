@@ -20,3 +20,10 @@ export {
 } from './transform';
 export { processImageElementInfo, compositeElementInfoImg } from './box-select';
 export { drawBoxOnImage, savePositionImg } from './draw-box';
+export {
+  matchTemplate,
+  findBestMatch,
+  templateExists,
+  type TemplateMatchResult,
+  type TemplateMatchOptions,
+} from './template-matching';

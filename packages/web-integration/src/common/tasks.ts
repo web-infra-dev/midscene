@@ -27,6 +27,7 @@ import {
   type PlanningActionParamAssert,
   type PlanningActionParamError,
   type PlanningActionParamHover,
+  type PlanningActionParamImgTap,
   type PlanningActionParamInputOrKeyPress,
   type PlanningActionParamScroll,
   type PlanningActionParamSleep,
@@ -41,6 +42,7 @@ import {
   vlmPlanning,
 } from '@midscene/core/ai-model';
 import { sleep } from '@midscene/core/utils';
+import { findBestMatch, matchTemplate, base64Encoded, compositeElementInfoImg, saveBase64Image } from '@midscene/shared/img';
 import { NodeType } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
@@ -218,6 +220,142 @@ export class PageTaskExecutor {
               param?.prompt || param?.id || param?.bbox,
               'No prompt or id or position or bbox to locate',
             );
+            
+            // Check if this is a template image locate for aiImgTap
+            const isTemplateImageLocate = param?.prompt?.startsWith('Template image:');
+            
+            if (isTemplateImageLocate) {
+              // For aiImgTap, use template matching instead of VL model
+              const templateImagePath = param.prompt!.replace('Template image: ', '');
+              const templateImageBase64 = base64Encoded(templateImagePath);
+              
+              // Only show detailed debug info if template debug is enabled
+              if (process.env.MIDSCENE_TEMPLATE_DEBUG === 'true') {
+                console.log('🎯 aiImgTap Template Matching Started');
+                console.log(`📍 Template path: ${templateImagePath}`);
+              }
+              
+              // Take a screenshot for template matching
+              const shotTime = Date.now();
+              const pageContext = await this.insight.contextRetrieverFn('describe');
+              task.pageContext = pageContext;
+              
+              const recordItem: ExecutionRecorderItem = {
+                type: 'screenshot',
+                ts: shotTime,
+                screenshot: pageContext.screenshotBase64,
+                timing: 'before Template Matching',
+              };
+              task.recorder = [recordItem];
+              
+              // Find the best match using template matching with debug info
+              if (process.env.MIDSCENE_TEMPLATE_DEBUG === 'true') {
+                console.log('🎯 Starting template matching process...');
+                console.log(`📊 Screenshot size: ${pageContext.screenshotBase64?.length || 0} chars`);
+                console.log(`📊 Template size: ${templateImageBase64?.length || 0} chars`);
+              }
+              
+              const matchResult = await findBestMatch(
+                pageContext.screenshotBase64,
+                templateImageBase64,
+                { threshold: 0.5, maxResults: 3 } // Lower threshold for better matching
+              );
+              
+              if (!matchResult) {
+                if (process.env.MIDSCENE_TEMPLATE_DEBUG === 'true') {
+                  console.log('❌ Template matching failed - no matches found');
+                  
+                  // Try with even lower threshold for debugging
+                  const debugMatches = await matchTemplate(
+                    pageContext.screenshotBase64,
+                    templateImageBase64,
+                    { threshold: 0.3, maxResults: 5 }
+                  );
+                  
+                  if (debugMatches.length > 0) {
+                    console.log(`🔍 Found ${debugMatches.length} matches with lower threshold:`);
+                    debugMatches.forEach((match: any, index: number) => {
+                      console.log(`  Match ${index + 1}: confidence=${(match.confidence * 100).toFixed(2)}%, position=(${match.x}, ${match.y})`);
+                    });
+                  } else {
+                    console.log('❌ No matches found even with threshold 0.3');
+                  }
+                }
+                
+                throw new Error(
+                  `Template not found on screen: ${templateImagePath}. Try using a different template image or check if the element is visible.`
+                );
+              }
+              
+              // Calculate click position (center of matched area)
+              const clickX = Math.round(matchResult.x + matchResult.width / 2);
+              const clickY = Math.round(matchResult.y + matchResult.height / 2);
+              
+              // Create virtual element object for report consistency
+              const virtualElement = {
+                id: `template_match_${Date.now()}`,
+                indexId: 1,
+                center: [clickX, clickY] as [number, number],
+                rect: {
+                  left: matchResult.x,
+                  top: matchResult.y,
+                  width: matchResult.width,
+                  height: matchResult.height,
+                },
+                attributes: {
+                  nodeType: 'TEMPLATE_MATCH' as any,
+                  templatePath: templateImagePath,
+                  confidence: matchResult.confidence,
+                },
+                content: `Template Match (${(matchResult.confidence * 100).toFixed(2)}% confidence)`,
+                xpaths: [],
+              };
+              
+              console.log('✅ aiImgTap Template Matching SUCCESS:');
+              console.log(`🎯 Match Found: confidence=${(matchResult.confidence * 100).toFixed(2)}%, position=(${matchResult.x}, ${matchResult.y})`);
+              
+              if (process.env.MIDSCENE_TEMPLATE_DEBUG === 'true') {
+                console.log(`📍 Template: ${templateImagePath}`);
+                console.log(`🎯 Match size: ${matchResult.width}x${matchResult.height}`);
+                console.log(`🎯 Click Coordinates: (${clickX}, ${clickY})`);
+              }
+              
+              // Set up mock insight dump for template matching (for report generation)
+              task.log = {
+                dump: {
+                  tasks: [{
+                    type: 'locate',
+                    status: 'success',
+                    thought: 'Template matching locate',
+                    param: param,
+                    output: {
+                      element: virtualElement
+                    }
+                  }]
+                } as any
+              };
+              
+              task.usage = {
+                prompt_tokens: 0,
+                completion_tokens: 0,
+                total_tokens: 0,
+                time_cost: 0
+              };
+              
+              return {
+                output: {
+                  element: virtualElement as any,
+                },
+                pageContext,
+                cache: {
+                  hit: false,
+                  originalXpaths: undefined,
+                  currentXpaths: undefined,
+                },
+              };
+            }
+            
+            // Original VL model locate logic for non-template operations
             let insightDump: InsightDump | undefined;
             let usage: AIUsageInfo | undefined;
             const dumpCollector: DumpSubscriber = (dump) => {
@@ -474,6 +612,73 @@ export class PageTaskExecutor {
             },
           };
         tasks.push(taskActionTap);
+      } else if (plan.type === 'ImgTap') {
+        const taskActionImgTap: ExecutionTaskActionApply<PlanningActionParamImgTap> =
+          {
+            type: 'Action',
+            subType: 'ImgTap',
+            param: plan.param,
+            thought: plan.thought,
+            locate: plan.locate,
+            executor: async (taskParam, taskContext) => {
+              const { templateImage: templateImagePath, threshold = 0.8 } = taskParam;
+              const { task, element } = taskContext;
+              
+              // Element should be available from the previous Locate step
+              if (element && element.attributes?.templatePath === templateImagePath) {
+                // Element was already located by previous Locate step, just perform the click
+                debug('🎯 aiImgTap: Using element from previous Locate step');
+                debug(`🖼️ Template: ${templateImagePath}`);
+                debug(`🎯 Click Coordinates: (${element.center[0]}, ${element.center[1]})`);
+                const confidence = typeof element.attributes.confidence === 'number' ? element.attributes.confidence : 0;
+                debug(`✅ Confidence Score: ${(confidence * 100).toFixed(2)}%`);
+                
+                // Create and save debug image with match visualization if debug enabled
+                if (process.env.MIDSCENE_TEMPLATE_DEBUG === 'true') {
+                  try {
+                    const debugImageBase64 = await compositeElementInfoImg({
+                      inputImgBase64: task.pageContext?.screenshotBase64 || '',
+                      elementsPositionInfo: [
+                        {
+                          rect: element.rect,
+                          indexId: 1
+                        },
+                        {
+                          rect: {
+                            left: element.center[0] - 5,
+                            top: element.center[1] - 5,
+                            width: 10,
+                            height: 10
+                          },
+                          indexId: 2
+                        }
+                      ],
+                      borderThickness: 3,
+                      annotationPadding: 2,
+                      prompt: `Template Match: ${(confidence * 100).toFixed(2)}% confidence, Click: (${element.center[0]}, ${element.center[1]})`
+                    });
+                    
+                    const debugFileName = `aiImgTap_debug_${Date.now()}.jpg`;
+                    const debugPath = `/tmp/${debugFileName}`;
+                    await saveBase64Image({
+                      base64Data: debugImageBase64,
+                      outputPath: debugPath
+                    });
+                    debug(`🖼️  Debug image saved: ${debugPath}`);
+                  } catch (error) {
+                    debug(`⚠️  Failed to save debug image: ${error}`);
+                  }
+                }
+                
+                await this.page.mouse.click(element.center[0], element.center[1]);
+                return;
+              }
+              
+              // Fallback: This should not happen if Locate step worked correctly
+              throw new Error('Element not found from previous Locate step for aiImgTap');
+            },
+          };
+        tasks.push(taskActionImgTap);
       } else if (plan.type === 'RightClick') {
         const taskActionRightClick: ExecutionTaskActionApply<PlanningActionParamTap> =
           {

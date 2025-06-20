@@ -255,6 +255,7 @@ export interface PlanningAction<ParamType = any> {
   type:
     | 'Locate'
     | 'Tap'
+    | 'ImgTap'
     | 'RightClick'
     | 'Hover'
     | 'Drag'
@@ -294,6 +295,10 @@ export interface PlanningAIResponse {
 // export type PlanningActionParamPlan = PlanningFurtherPlan;
 
 export type PlanningActionParamTap = null;
+export interface PlanningActionParamImgTap {
+  templateImage: string; // Image file path
+  threshold?: number; // Optional confidence threshold (0-1), defaults to 0.8
+}
 export type PlanningActionParamHover = null;
 export type PlanningActionParamRightClick = null;
 export interface PlanningActionParamInputOrKeyPress {

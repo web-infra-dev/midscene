@@ -65,6 +65,7 @@ export function taskTitleStr(
     | 'RightClick'
     | 'KeyboardPress'
     | 'Scroll'
+    | 'ImgTap'
     | 'Action'
     | 'Query'
     | 'Assert'
