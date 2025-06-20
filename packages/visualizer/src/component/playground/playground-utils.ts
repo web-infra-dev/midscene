@@ -65,6 +65,17 @@ export const overrideServerConfig = async (aiConfig: any) => {
   });
 };
 
+// Cancel task
+export const cancelTask = async (requestId: string) => {
+  try {
+    const res = await fetch(`${serverBase}/cancel/${requestId}`);
+    return res.json();
+  } catch (error) {
+    console.error('Failed to cancel task:', error);
+    return { error: 'Failed to cancel task' };
+  }
+};
+
 // Get task progress
 export const getTaskProgress = async (requestId: string) => {
   try {

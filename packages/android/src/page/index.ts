@@ -38,6 +38,7 @@ export class AndroidDevice implements AndroidDevicePage {
   private deviceRatio = 1;
   private adb: ADB | null = null;
   private connectingAdb: Promise<ADB> | null = null;
+  private destroyed = false;
   pageType: PageType = 'android';
   uri: string | undefined;
   options?: AndroidDeviceOpt;
@@ -54,6 +55,12 @@ export class AndroidDevice implements AndroidDevicePage {
   }
 
   public async getAdb(): Promise<ADB> {
+    if (this.destroyed) {
+      throw new Error(
+        `AndroidDevice ${this.deviceId} has been destroyed and cannot execute ADB commands`,
+      );
+    }
+
     // if already has ADB instance, return it
     if (this.adb) {
       return this.createAdbProxy(this.adb);
@@ -710,14 +717,24 @@ ${Object.keys(size)
   }
 
   async destroy(): Promise<void> {
-    // Clean up temporary files
-    try {
-      const adb = await this.getAdb();
+    if (this.destroyed) {
+      return;
+    }
 
-      await adb.shell(`rm -f ${androidScreenshotPath}`);
+    this.destroyed = true;
+
+    try {
+      if (this.adb) {
+        await this.adb.shell(`rm -f ${androidScreenshotPath}`);
+        this.adb = null;
+      }
     } catch (error) {
       console.error('Error during cleanup:', error);
     }
+
+    this.connectingAdb = null;
+    this.screenSize = null;
+    this.yadbPushed = false;
   }
 
   async back(): Promise<void> {
