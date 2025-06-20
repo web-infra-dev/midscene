@@ -123,6 +123,8 @@ await agent.aiTap('页面顶部的登录按钮', { deepThink: true });
 
 ### `agent.aiHover()`
 
+> 仅在 web 页面中可用，在 Android 下不可用
+
 鼠标悬停某个元素上。
 
 - 类型
@@ -250,6 +252,8 @@ await agent.aiScroll(
 ```
 
 ### `agent.aiRightClick()`
+
+> 仅在 web 页面中可用，在 Android 下不可用
 
 右键点击某个元素。请注意，Midscene 在右键点击后无法与浏览器原生上下文菜单交互。这个接口通常用于已经监听了右键点击事件的元素。
 
@@ -654,6 +658,8 @@ await agent.setAIActionContext('如果 “使用cookie” 对话框存在，先�
 ```
 
 ### `agent.evaluateJavaScript()`
+
+> 仅在 web 页面中可用，在 Android 下不可用
 
 这个方法允许你在 web 页面上下文中执行一段 JavaScript 代码，并返回执行结果。
 
