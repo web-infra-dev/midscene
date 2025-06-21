@@ -98,12 +98,10 @@ export const useRecordingControl = (
           action: 'stop',
           sessionId: currentSessionId,
         });
-        recordLogger.success('Recording stopped');
         message.success('Recording stopped');
       } catch (error: any) {
         // If content script is not available, just stop recording on our side
         if (error.message?.includes('Receiving end does not exist')) {
-          recordLogger.warn('Content script not available during stop');
           message.warning('Recording stopped (page may have been refreshed)');
         } else {
           recordLogger.error('Error sending stop message', undefined, error);
@@ -195,13 +193,6 @@ export const useRecordingControl = (
         changeInfo.status === 'loading' &&
         isRecording
       ) {
-        recordLogger.info(
-          'Navigation detected, starting grace period before stopping recording',
-          {
-            tabId,
-            url: changeInfo.url,
-          },
-        );
       } else if (
         currentTab?.id === tabId &&
         changeInfo.status === 'complete' &&
@@ -249,10 +240,6 @@ export const useRecordingControl = (
         const specificSession = await dbManager.getSession(sessionId);
         if (specificSession) {
           sessionToUse = specificSession;
-          recordLogger.info('Using specified session', {
-            sessionId,
-            eventsCount: specificSession.events.length,
-          });
         } else {
           recordLogger.error('Specified session not found', { sessionId });
           message.error('Specified session not found');
@@ -270,11 +257,6 @@ export const useRecordingControl = (
 
         // Small delay to ensure state updates before continuing
         await new Promise((resolve) => setTimeout(resolve, 100));
-      } else {
-        recordLogger.info('Using existing session', {
-          sessionId: sessionToUse.id,
-          existingEventsCount: sessionToUse.events.length,
-        });
       }
 
       // Update session status to recording
@@ -314,14 +296,7 @@ export const useRecordingControl = (
         } else {
           // Load existing events for continuation
           setEvents(sessionToUse.events);
-          recordLogger.info('Loaded existing events for continuation', {
-            eventsCount: sessionToUse.events.length,
-          });
         }
-
-        recordLogger.success('Recording started', {
-          sessionId: sessionToUse.id,
-        });
         message.success('Recording started');
       } catch (error) {
         recordLogger.error('Failed to start recording', undefined, error);

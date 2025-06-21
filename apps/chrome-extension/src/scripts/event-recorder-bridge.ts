@@ -199,7 +199,7 @@ async function sendEventsToExtension(
   if (immediate) {
     await sendEventsToExtension();
   } else {
-    debounceTimer = setTimeout(sendEventsToExtension, 300);
+    debounceTimer = setTimeout(sendEventsToExtension, 200);
   }
 }
 

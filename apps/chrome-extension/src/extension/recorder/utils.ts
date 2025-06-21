@@ -360,7 +360,6 @@ export const cleanupPreviousRecordings = async () => {
     });
 
     await Promise.allSettled(cleanupPromises);
-    recordLogger.success('Previous recordings cleaned up');
   } catch (error) {
     recordLogger.error('Error during recording cleanup', undefined, error);
   }

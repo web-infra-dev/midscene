@@ -104,7 +104,10 @@ export const useTabMonitoring = () => {
         { active: true, currentWindow: true },
         async (tabs) => {
           if (tabs[0]) {
-            recordLogger.info('Current tab found', { tabId: tabs[0].id });
+            recordLogger.info('Current tab found', {
+              tabId: tabs[0].id,
+              url: tabs[0].url,
+            });
             setCurrentTab(tabs[0]);
           } else {
             recordLogger.warn('No active tab found');
@@ -141,7 +144,6 @@ export const useTabMonitoring = () => {
 
       // Only update if it's the currently active tab and has completed loading
       if (tab.active && changeInfo.status === 'complete') {
-        recordLogger.info('Active tab updated', { tabId });
         setCurrentTab(tab);
 
         // Reset navigation state when navigation completes
