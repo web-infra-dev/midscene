@@ -116,6 +116,51 @@ async function captureScreenshot(timeout = 1000): Promise<string | undefined> {
 }
 
 let initialScreenshot: Promise<string | undefined> | undefined = undefined;
+let lastActivityTime = Date.now();
+let lastScreenshot: string | undefined = undefined;
+let pageChangeDetectionInterval: NodeJS.Timeout | null = null;
+const PAGE_CHANGE_CHECK_INTERVAL = 200; // Check every 2 seconds
+const MAX_IDLE_TIME = 500; // 5 seconds of inactivity before updating screenshot
+
+// Function to update screenshot when page changes during idle time
+async function updateIdleScreenshot(): Promise<void> {
+  if (isPageUnloading || !window.recorder?.isActive()) {
+    return;
+  }
+
+  const now = Date.now();
+  const timeSinceLastActivity = now - lastActivityTime;
+
+  // If enough time has passed since last activity, capture a fresh screenshot
+  if (timeSinceLastActivity >= MAX_IDLE_TIME) {
+    try {
+      const newScreenshot = await captureScreenshot();
+      if (newScreenshot && newScreenshot !== lastScreenshot) {
+        lastScreenshot = newScreenshot;
+        console.log('[EventRecorder Bridge] Updated idle screenshot after page change');
+      }
+    } catch (error) {
+      console.debug('[EventRecorder Bridge] Failed to update idle screenshot:', error);
+    }
+  }
+}
+
+// Function to start page change monitoring
+function startPageChangeMonitoring(): void {
+  if (pageChangeDetectionInterval) {
+    clearInterval(pageChangeDetectionInterval);
+  }
+
+  pageChangeDetectionInterval = setInterval(updateIdleScreenshot, PAGE_CHANGE_CHECK_INTERVAL);
+}
+
+// Function to stop page change monitoring
+function stopPageChangeMonitoring(): void {
+  if (pageChangeDetectionInterval) {
+    clearInterval(pageChangeDetectionInterval);
+    pageChangeDetectionInterval = null;
+  }
+}
 
 // Initialize recorder with callback to send events to extension
 async function initializeRecorder(sessionId: string): Promise<void> {
@@ -126,12 +171,11 @@ async function initializeRecorder(sessionId: string): Promise<void> {
     return;
   }
 
-  console.log(
-    '[EventRecorder Bridge] Initializing EventRecorder with callback',
-  );
-
   window.recorder = new window.EventRecorder(
     async (event: ChromeRecordedEvent) => {
+      // Update last activity time when new event occurs
+      lastActivityTime = Date.now();
+      
       const optimizedEvent = window.recorder!.optimizeEvent(event, events);
 
       // Add event to local array
@@ -179,9 +223,23 @@ async function sendEventsToExtension(
       let screenshotBefore: string | undefined;
 
       if (optimizedEvent.length > 1) {
-        screenshotBefore = previousEvent.screenshotAfter;
+        const timeSinceLastEvent = latestEvent.timestamp - previousEvent.timestamp;
+        
+        // If too much time has passed since the last event, use the updated idle screenshot
+        // or capture a fresh one to ensure accuracy
+        if (timeSinceLastEvent > MAX_IDLE_TIME && lastScreenshot) {
+          screenshotBefore = lastScreenshot;
+          console.log('[EventRecorder Bridge] Using updated idle screenshot for beforeScreen due to long interval');
+        } else {
+          screenshotBefore = previousEvent.screenshotAfter;
+        }
       } else {
         screenshotBefore = await initialScreenshot;
+      }
+
+      // Update lastScreenshot with the current screenshot
+      if (screenshotAfter) {
+        lastScreenshot = screenshotAfter;
       }
 
       // Capture screenshot before processing the event
@@ -292,6 +350,9 @@ chrome.runtime.onMessage.addListener(
       if (window.recorder) {
         window.recorder.start();
         events = []; // Clear previous events
+        lastActivityTime = Date.now(); // Reset activity time
+        lastScreenshot = undefined; // Reset screenshot cache
+        startPageChangeMonitoring(); // Start monitoring page changes
         console.log(
           '[EventRecorder Bridge] Recording started successfully with session ID:',
           message.sessionId,
@@ -310,6 +371,7 @@ chrome.runtime.onMessage.addListener(
         });
       }
     } else if (message.action === 'stop') {
+      stopPageChangeMonitoring(); // Stop monitoring when recording stops
       // biome-ignore lint/complexity/useOptionalChain: Preserving original logic
       if (window.recorder && window.recorder.isActive()) {
         window.recorder.stop();
@@ -367,6 +429,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Enhanced page unload handling with synchronous event flushing
 window.addEventListener('beforeunload', async () => {
   isPageUnloading = true;
+  stopPageChangeMonitoring(); // Stop monitoring during unload
   console.log(
     '[EventRecorder Bridge] Page unloading, flushing events immediately',
     { eventsCount: events.length, stats: eventSendStats },
