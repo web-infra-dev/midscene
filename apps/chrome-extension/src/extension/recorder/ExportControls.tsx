@@ -168,10 +168,10 @@ export const ExportControls: React.FC<{
     updateProgressStep(stepIndex, {
       status: 'loading',
       progress: 0,
-      details: `Generating descriptions for ${events.length} elements...`,
+      details: `Generating descriptions for ${eventsNeedingDescriptions.length} elements...`,
     });
 
-    let completedCount = events.length - eventsNeedingDescriptions.length;
+    let completedCount = 0;
     const finalEvents = [...events];
 
     // Process events in parallel with progress tracking
@@ -187,11 +187,11 @@ export const ExportControls: React.FC<{
           };
           completedCount++;
 
-          const progress = Math.round((completedCount / events.length) * 100);
+          const progress = Math.round((completedCount / eventsNeedingDescriptions.length) * 100);
           updateProgressStep(stepIndex, {
             status: 'loading',
             progress,
-            details: `Generated ${completedCount}/${events.length} element descriptions`,
+            details: `Generated ${completedCount}/${eventsNeedingDescriptions.length} element descriptions`,
           });
         } catch (error) {
           console.error('Failed to optimize event:', error);
@@ -323,10 +323,10 @@ export const ExportControls: React.FC<{
         type === 'playwright'
           ? await generatePlaywrightTest(finalEvents)
           : await generateYamlTest(finalEvents, {
-              testName: currentSessionName,
-              description: `Test session recorded on ${new Date().toLocaleDateString()}`,
-              includeTimestamps: true,
-            });
+            testName: currentSessionName,
+            description: `Test session recorded on ${new Date().toLocaleDateString()}`,
+            includeTimestamps: true,
+          });
 
       // Update session with generated code if sessionId exists
       if (sessionId) {
