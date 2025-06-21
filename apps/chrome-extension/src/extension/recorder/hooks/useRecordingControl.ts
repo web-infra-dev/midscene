@@ -441,7 +441,7 @@ export const useRecordingControl = (
     const connectToServiceWorker = () => {
       try {
         // Connect to service worker for receiving events
-        port = safeChromeAPI.runtime.connect({ name: 'record-events' });
+        port = safeChromeAPI.runtime.connect({ name: 'record-events' }) as chrome.runtime.Port;
         isConnected = true;
 
         recordLogger.info('Connected to service worker for event reception');
