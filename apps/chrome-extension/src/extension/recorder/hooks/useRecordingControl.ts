@@ -444,8 +444,6 @@ export const useRecordingControl = (
         port = safeChromeAPI.runtime.connect({ name: 'record-events' }) as chrome.runtime.Port;
         isConnected = true;
 
-        recordLogger.info('Connected to service worker for event reception');
-
         if (
           port &&
           'onDisconnect' in port &&
