@@ -1,8 +1,8 @@
 import type { ChromeRecordedEvent } from '@midscene/recorder';
 // import { createStore } from 'zustand/vanilla';
 import * as Z from 'zustand';
-import { dbManager, initializeDB } from './utils/indexedDB';
 import { recordLogger } from './extension/recorder/logger';
+import { dbManager, initializeDB } from './utils/indexedDB';
 
 const { create } = Z;
 export const useBlackboardPreference = create<{

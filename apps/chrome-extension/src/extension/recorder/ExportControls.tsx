@@ -323,10 +323,10 @@ export const ExportControls: React.FC<{
         type === 'playwright'
           ? await generatePlaywrightTest(finalEvents)
           : await generateYamlTest(finalEvents, {
-            testName: currentSessionName,
-            description: `Test session recorded on ${new Date().toLocaleDateString()}`,
-            includeTimestamps: true,
-          });
+              testName: currentSessionName,
+              description: `Test session recorded on ${new Date().toLocaleDateString()}`,
+              includeTimestamps: true,
+            });
 
       // Update session with generated code if sessionId exists
       if (sessionId) {

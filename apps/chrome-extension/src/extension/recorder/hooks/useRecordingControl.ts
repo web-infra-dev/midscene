@@ -182,7 +182,8 @@ export const useRecordingControl = (
   useEffect(() => {
     if (!currentTab?.id || !isRecording) return;
 
-    const navigationGraceTimer: NodeJS.Timeout | null = null;
+    let navigationGraceTimer: NodeJS.Timeout | null = null;
+    let eventBuffer: ChromeRecordedEvent[] = [];
 
     const handleTabUpdate = (
       tabId: number,
@@ -193,6 +194,46 @@ export const useRecordingControl = (
         changeInfo.status === 'loading' &&
         isRecording
       ) {
+        // Page is starting to load - prepare for potential event loss
+        recordLogger.info(
+          'Navigation loading detected, preparing event buffer',
+          {
+            tabId,
+            url: changeInfo.url,
+            currentEvents: events.length,
+          },
+        );
+
+        // Buffer current events before navigation
+        eventBuffer = [...events];
+
+        // Set a grace period to allow events to be sent
+        if (navigationGraceTimer) {
+          clearTimeout(navigationGraceTimer);
+        }
+
+        navigationGraceTimer = setTimeout(() => {
+          recordLogger.info(
+            'Navigation grace period expired, checking for lost events',
+          );
+          // Check if we lost events during navigation
+          if (eventBuffer.length > events.length) {
+            recordLogger.warn('Events may have been lost during navigation', {
+              beforeNavigation: eventBuffer.length,
+              afterNavigation: events.length,
+              lost: eventBuffer.length - events.length,
+            });
+
+            // Try to recover lost events
+            const lostEvents = eventBuffer.slice(events.length);
+            if (lostEvents.length > 0) {
+              recordLogger.info('Attempting to recover lost events', {
+                lostEventsCount: lostEvents.length,
+              });
+              lostEvents.forEach((event) => addEvent(event));
+            }
+          }
+        }, 2000); // 2 second grace period
       } else if (
         currentTab?.id === tabId &&
         changeInfo.status === 'complete' &&
@@ -200,8 +241,29 @@ export const useRecordingControl = (
       ) {
         const session = getCurrentSession();
         if (session) {
-          recordLogger.info('Navigation completed, starting new recording');
-          startRecording(session.id);
+          recordLogger.info('Navigation completed, re-establishing recording', {
+            sessionId: session.id,
+            url: changeInfo.url,
+          });
+
+          // Clear grace timer
+          if (navigationGraceTimer) {
+            clearTimeout(navigationGraceTimer);
+            navigationGraceTimer = null;
+          }
+
+          // Re-establish recording connection
+          setTimeout(async () => {
+            // Re-inject scripts and restart recording
+            if (currentTab?.id) {
+              await ensureScriptInjected(currentTab);
+              await safeChromeAPI.tabs.sendMessage(currentTab.id, {
+                action: 'start',
+                sessionId: session.id,
+              });
+              recordLogger.info('Recording re-established after navigation');
+            }
+          }, 500); // Small delay to ensure page is ready
         }
       }
     };
@@ -214,7 +276,14 @@ export const useRecordingControl = (
         clearTimeout(navigationGraceTimer);
       }
     };
-  }, [currentTab, isRecording, stopRecording]);
+  }, [
+    currentTab,
+    isRecording,
+    stopRecording,
+    getCurrentSession,
+    events.length,
+    addEvent,
+  ]);
 
   // Start recording
   const startRecording = useCallback(
@@ -362,83 +431,153 @@ export const useRecordingControl = (
     }
   }, [events.length, isRecording]);
 
-  // Set up message listener for content script
+  // Set up message listener for content script with enhanced error handling
   useEffect(() => {
-    // Connect to service worker for receiving events
-    const port = safeChromeAPI.runtime.connect({ name: 'record-events' });
+    let port: chrome.runtime.Port | null = null;
+    let reconnectTimer: NodeJS.Timeout | null = null;
+    let eventBuffer: ChromeRecordedEvent[] = [];
+    let isConnected = false;
 
-    // Note: onConnect is not available on Port objects, only on runtime
-    // We can check port connection status indirectly
+    const connectToServiceWorker = () => {
+      try {
+        // Connect to service worker for receiving events
+        port = safeChromeAPI.runtime.connect({ name: 'record-events' });
+        isConnected = true;
 
-    if (
-      'onDisconnect' in port &&
-      typeof port.onDisconnect?.addListener === 'function'
-    ) {
-      port.onDisconnect.addListener(() => {
-        if (chrome.runtime.lastError) {
-          recordLogger.error(
-            'Port disconnect error',
-            undefined,
-            chrome.runtime.lastError,
-          );
+        recordLogger.info('Connected to service worker for event reception');
+
+        if (
+          port &&
+          'onDisconnect' in port &&
+          typeof port.onDisconnect?.addListener === 'function'
+        ) {
+          port.onDisconnect.addListener(() => {
+            isConnected = false;
+            if (chrome.runtime.lastError) {
+              recordLogger.error(
+                'Port disconnect error',
+                undefined,
+                chrome.runtime.lastError,
+              );
+            }
+
+            recordLogger.warn(
+              'Service worker port disconnected, attempting reconnection',
+            );
+
+            // Attempt to reconnect after a delay
+            if (isRecording && currentSessionId) {
+              reconnectTimer = setTimeout(() => {
+                recordLogger.info('Attempting to reconnect to service worker');
+                connectToServiceWorker();
+              }, 1000);
+            }
+          });
         }
-      });
-    }
 
-    const processEventData = async (eventData: any) => {
-      const { element, ...cleanEventData } = eventData;
-      return await optimizeEvent(
-        cleanEventData as ChromeRecordedEvent,
-        updateEvent,
-      );
-    };
+        const processEventData = async (eventData: any) => {
+          const { element, ...cleanEventData } = eventData;
+          return await optimizeEvent(
+            cleanEventData as ChromeRecordedEvent,
+            updateEvent,
+          );
+        };
 
-    const handleMessage = async (message: RecordMessage) => {
-      // Validate session ID - only process events from current recording session
-      if (
-        message.sessionId &&
-        currentSessionId &&
-        message.sessionId !== currentSessionId
-      ) {
-        return;
-      }
+        const handleMessage = async (message: RecordMessage) => {
+          // Validate session ID - only process events from current recording session
+          if (
+            message.sessionId &&
+            currentSessionId &&
+            message.sessionId !== currentSessionId
+          ) {
+            recordLogger.warn(
+              'Received event from different session, ignoring',
+              {
+                messageSessionId: message.sessionId,
+                currentSessionId,
+              },
+            );
+            return;
+          }
 
-      if (message.action === 'events' && Array.isArray(message.data)) {
-        const eventsData = await Promise.all(
-          message.data.map(processEventData),
+          if (message.action === 'events' && Array.isArray(message.data)) {
+            const eventsData = await Promise.all(
+              message.data.map(processEventData),
+            );
+
+            // If we have buffered events, merge them
+            if (eventBuffer.length > 0) {
+              recordLogger.info('Merging buffered events with new events', {
+                bufferedCount: eventBuffer.length,
+                newCount: eventsData.length,
+              });
+              const mergedEvents = [...eventBuffer, ...eventsData];
+              setEvents(mergedEvents);
+              eventBuffer = [];
+            } else {
+              setEvents(eventsData);
+            }
+          } else if (
+            message.action === 'event' &&
+            message.data &&
+            !Array.isArray(message.data)
+          ) {
+            const optimizedEvent = await processEventData(message.data);
+
+            if (isConnected) {
+              addEvent(optimizedEvent);
+              // Real-time persistence during recording
+              await persistEventToSession(optimizedEvent);
+            } else {
+              // Buffer events if not connected
+              recordLogger.info('Buffering event due to disconnected port');
+              eventBuffer.push(optimizedEvent);
+            }
+          } else {
+            recordLogger.warn('Unhandled message format', {
+              action: message.action,
+            });
+          }
+        };
+
+        // Listen to messages via port
+        if (port && 'onMessage' in port) {
+          port.onMessage.addListener(handleMessage);
+        }
+      } catch (error) {
+        recordLogger.error(
+          'Failed to connect to service worker',
+          undefined,
+          error,
         );
-        setEvents(eventsData);
+        isConnected = false;
 
-        // Persist events to session during recording
-        // if (currentSessionId && isRecording) {
-        //   setEvents(eventsData);
-        //   // updateSession(currentSessionId, {
-        //   //   events: eventsData,
-        //   //   updatedAt: Date.now(),
-        //   // });
-        // }
-      } else if (
-        message.action === 'event' &&
-        message.data &&
-        !Array.isArray(message.data)
-      ) {
-        const optimizedEvent = await processEventData(message.data);
-        addEvent(optimizedEvent);
-
-        // Real-time persistence during recording
-        await persistEventToSession(optimizedEvent);
-      } else {
-        recordLogger.warn('Unhandled message format', {
-          action: message.action,
-        });
+        // Retry connection
+        if (isRecording && currentSessionId) {
+          reconnectTimer = setTimeout(connectToServiceWorker, 2000);
+        }
       }
     };
 
-    // Listen to messages via port
-    port.onMessage.addListener(handleMessage);
+    // Initial connection
+    connectToServiceWorker();
 
     return () => {
-      port.disconnect();
+      isConnected = false;
+      if (port && 'disconnect' in port) {
+        port.disconnect();
+      }
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+      }
+
+      // Save any remaining buffered events
+      if (eventBuffer.length > 0) {
+        recordLogger.info('Saving buffered events on cleanup', {
+          bufferedCount: eventBuffer.length,
+        });
+        eventBuffer.forEach((event) => addEvent(event));
+      }
     };
   }, [
     addEvent,

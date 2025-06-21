@@ -132,18 +132,32 @@ export const useTabMonitoring = () => {
       changeInfo: chrome.tabs.TabChangeInfo,
       tab: chrome.tabs.Tab,
     ) => {
-      // Only handle navigation detection for recording state preservation
-      // Actual recording stop is handled by useRecordingControl to avoid duplication
+      // Enhanced navigation detection for recording state preservation
       if (tab.active && changeInfo.status === 'loading' && changeInfo.url) {
         recordLogger.info('Navigation detected, saving recording state', {
           tabId,
           url: changeInfo.url,
+          fromUrl: tab.url,
         });
         await saveRecordingStateBeforeNavigation(tabId, changeInfo.url);
+
+        // Set navigation state immediately
+        setNavigationState((prev) => ({
+          ...prev,
+          isNavigating: true,
+          lastUrl: changeInfo.url || null,
+          lastTabId: tabId,
+        }));
       }
 
       // Only update if it's the currently active tab and has completed loading
       if (tab.active && changeInfo.status === 'complete') {
+        recordLogger.info('Navigation completed', {
+          tabId,
+          url: tab.url,
+          wasNavigating: navigationState.isNavigating,
+        });
+
         setCurrentTab(tab);
 
         // Reset navigation state when navigation completes
@@ -151,6 +165,17 @@ export const useTabMonitoring = () => {
           ...prev,
           isNavigating: false,
         }));
+
+        // Check for potential recording recovery after a short delay
+        setTimeout(async () => {
+          const recoveryInfo = await checkRecordingRecovery(tab);
+          if (recoveryInfo.canRecover) {
+            recordLogger.info(
+              'Recording recovery opportunity detected',
+              recoveryInfo,
+            );
+          }
+        }, 1000);
       }
     };
 

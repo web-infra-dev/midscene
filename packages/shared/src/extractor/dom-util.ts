@@ -56,7 +56,14 @@ function isIconfont(node: globalThis.Node): boolean {
 }
 
 export function isNotContainerElement(node: globalThis.Node) {
-  return isTextElement(node) || isIconfont(node) || isImgElement(node) || isButtonElement(node) || isAElement(node) || isFormElement(node);
+  return (
+    isTextElement(node) ||
+    isIconfont(node) ||
+    isImgElement(node) ||
+    isButtonElement(node) ||
+    isAElement(node) ||
+    isFormElement(node)
+  );
 }
 
 export function isTextElement(

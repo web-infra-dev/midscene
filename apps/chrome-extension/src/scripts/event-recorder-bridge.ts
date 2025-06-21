@@ -67,13 +67,30 @@ window.recorder = null;
 let events: ChromeRecordedEvent[] = [];
 let debounceTimer: NodeJS.Timeout | null = null;
 let pendingEvents: ChromeRecordedEvent[] | null = null;
+let isPageUnloading = false;
+const eventSendStats = { sent: 0, failed: 0, pending: 0 };
 
-// Helper function to capture screenshot
-async function captureScreenshot(): Promise<string | undefined> {
+// Helper function to capture screenshot with timeout
+async function captureScreenshot(timeout = 1000): Promise<string | undefined> {
+  // Skip screenshot if page is unloading
+  if (isPageUnloading) {
+    console.debug(
+      '[EventRecorder Bridge] Skipping screenshot during page unload',
+    );
+    return undefined;
+  }
+
   try {
-    const screenshot = await chrome.runtime.sendMessage({
+    const screenshotPromise = chrome.runtime.sendMessage({
       action: 'captureScreenshot',
     } as ChromeMessage);
+
+    // Add timeout to prevent hanging during navigation
+    const timeoutPromise = new Promise<undefined>((_, reject) => {
+      setTimeout(() => reject(new Error('Screenshot timeout')), timeout);
+    });
+
+    const screenshot = await Promise.race([screenshotPromise, timeoutPromise]);
     if (!screenshot) {
       console.warn(
         '[EventRecorder Bridge] Screenshot capture returned empty result',
@@ -82,12 +99,16 @@ async function captureScreenshot(): Promise<string | undefined> {
     return screenshot;
   } catch (error) {
     if (error instanceof Error) {
-      console.error(
-        '[EventRecorder Bridge] Failed to capture screenshot:',
-        error.message,
-      );
-      if (error.message.includes('Extension context invalidated')) {
-        window?.recorder?.stop();
+      if (error.message === 'Screenshot timeout') {
+        console.debug('[EventRecorder Bridge] Screenshot capture timed out');
+      } else {
+        console.error(
+          '[EventRecorder Bridge] Failed to capture screenshot:',
+          error.message,
+        );
+        if (error.message.includes('Extension context invalidated')) {
+          window?.recorder?.stop();
+        }
       }
     }
     return undefined;
@@ -95,8 +116,6 @@ async function captureScreenshot(): Promise<string | undefined> {
 }
 
 let initialScreenshot: Promise<string | undefined> | undefined = undefined;
-
-const laststEventSender: any = null;
 
 // Initialize recorder with callback to send events to extension
 async function initializeRecorder(sessionId: string): Promise<void> {
@@ -125,7 +144,7 @@ async function initializeRecorder(sessionId: string): Promise<void> {
       });
 
       // Add screenshots to the latest event
-        // Send updated events array to extension
+      // Send updated events array to extension
       sendEventsToExtension(optimizedEvent);
     },
     sessionId,
@@ -136,9 +155,9 @@ async function sendEventsToExtension(
   optimizedEvent: ChromeRecordedEvent[],
   immediate = false,
 ): Promise<void> {
-
   // Store the latest events
   pendingEvents = optimizedEvent;
+  eventSendStats.pending = optimizedEvent.length;
 
   // Clear any existing timer
   if (debounceTimer) {
@@ -149,7 +168,8 @@ async function sendEventsToExtension(
     const latestEvent = optimizedEvent[optimizedEvent.length - 1];
     const previousEvent = optimizedEvent[optimizedEvent.length - 2];
 
-    if (immediate) {
+    if (immediate || isPageUnloading) {
+      // For immediate sends or page unloading, use existing screenshots
       if (optimizedEvent.length > 1) {
         const screenshotBefore = previousEvent.screenshotAfter;
         latestEvent.screenshotBefore = screenshotBefore!;
@@ -176,30 +196,76 @@ async function sendEventsToExtension(
       eventsCount: pendingEvents.length,
       eventTypes: pendingEvents.map((e) => e.type),
       immediate,
+      isPageUnloading,
     });
 
-    chrome.runtime
-      .sendMessage({
-        action: 'events',
-        data: convertToChromeEvents(pendingEvents),
-      } as ChromeMessage)
-      .catch((error) => {
-        // Extension popup might not be open
-        console.debug(
-          '[EventRecorder Bridge] Failed to send events to extension (popup may be closed):',
-          (error as Error).message,
-        );
-      });
+    await sendEventsWithRetry(pendingEvents, immediate || isPageUnloading);
 
     // Clear the pending events after sending
     pendingEvents = null;
+    eventSendStats.pending = 0;
   };
 
-  // Set new timer
-  if (immediate) {
+  // Set new timer - bypass debounce if page is unloading
+  if (immediate || isPageUnloading) {
     await sendEventsToExtension();
   } else {
     debounceTimer = setTimeout(sendEventsToExtension, 200);
+  }
+}
+
+// Enhanced event sending with retry mechanism
+async function sendEventsWithRetry(
+  events: ChromeRecordedEvent[],
+  immediate = false,
+  maxRetries = 2,
+): Promise<void> {
+  const message = {
+    action: 'events',
+    data: convertToChromeEvents(events),
+  } as ChromeMessage;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      await chrome.runtime.sendMessage(message);
+      eventSendStats.sent += events.length;
+      console.log(
+        `[EventRecorder Bridge] Successfully sent ${events.length} events${attempt > 0 ? ` (attempt ${attempt + 1})` : ''}`,
+      );
+      return;
+    } catch (error) {
+      const errorMsg = (error as Error).message;
+
+      if (attempt === maxRetries || immediate) {
+        eventSendStats.failed += events.length;
+        console.warn(
+          `[EventRecorder Bridge] Failed to send events after ${attempt + 1} attempts:`,
+          errorMsg,
+        );
+
+        // Try to store events locally as fallback
+        try {
+          const storageKey = `midscene_lost_events_${Date.now()}`;
+          localStorage.setItem(storageKey, JSON.stringify(events));
+          console.log(
+            `[EventRecorder Bridge] Events stored locally as fallback: ${storageKey}`,
+          );
+        } catch (storageError) {
+          console.error(
+            '[EventRecorder Bridge] Failed to store events locally:',
+            storageError,
+          );
+        }
+        return;
+      }
+
+      // Wait before retry (shorter for immediate sends)
+      const retryDelay = immediate ? 50 : 100;
+      await new Promise((resolve) => setTimeout(resolve, retryDelay));
+      console.debug(
+        `[EventRecorder Bridge] Retrying event send (attempt ${attempt + 2})`,
+      );
+    }
   }
 }
 
@@ -298,27 +364,98 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('[EventRecorder Bridge] Bridge script loaded and ready');
 });
 
-// Clean up on page unload
-window.addEventListener('beforeunload', () => {
+// Enhanced page unload handling with synchronous event flushing
+window.addEventListener('beforeunload', async () => {
+  isPageUnloading = true;
   console.log(
-    '[EventRecorder Bridge] Page unloading, stopping active recorder',
+    '[EventRecorder Bridge] Page unloading, flushing events immediately',
+    { eventsCount: events.length, stats: eventSendStats },
   );
-  // Flush any pending events before the page unloads
+
+  // Stop active recorder immediately
   if (window.recorder?.isActive()) {
     window.recorder.stop();
   }
-  sendEventsToExtension(events, true);
-});
 
-// Listen for navigation events
-window.addEventListener('pagehide', () => {
-  sendEventsToExtension(events, true);
-});
-
-// Handle visibility changes (tab switches, minimizing)
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') {
-    // Flush pending events when page becomes hidden
-    sendEventsToExtension(events, true);
+  // Flush any pending events immediately without waiting
+  if (events.length > 0 || pendingEvents) {
+    const eventsToSend = pendingEvents || events;
+    // Use synchronous approach for beforeunload
+    try {
+      await sendEventsWithRetry(eventsToSend, true, 0); // No retries during unload
+    } catch (error) {
+      console.error('[EventRecorder Bridge] Final event send failed:', error);
+    }
   }
 });
+
+// Listen for navigation events with enhanced logging
+window.addEventListener('pagehide', async () => {
+  if (!isPageUnloading) {
+    isPageUnloading = true;
+    console.log('[EventRecorder Bridge] Page hiding, flushing events');
+    if (events.length > 0) {
+      await sendEventsToExtension(events, true);
+    }
+  }
+});
+
+// Handle visibility changes (tab switches, minimizing) with debounce
+let visibilityTimer: NodeJS.Timeout | null = null;
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && !isPageUnloading) {
+    // Clear existing timer
+    if (visibilityTimer) {
+      clearTimeout(visibilityTimer);
+    }
+
+    // Debounce visibility changes to avoid excessive sends
+    visibilityTimer = setTimeout(() => {
+      console.log('[EventRecorder Bridge] Page became hidden, flushing events');
+      if (events.length > 0) {
+        sendEventsToExtension(events, true);
+      }
+    }, 100);
+  } else if (document.visibilityState === 'visible') {
+    // Cancel flush if page becomes visible again
+    if (visibilityTimer) {
+      clearTimeout(visibilityTimer);
+      visibilityTimer = null;
+    }
+  }
+});
+
+// Add navigation detection
+let lastUrl = window.location.href;
+const checkForNavigation = () => {
+  const currentUrl = window.location.href;
+  if (currentUrl !== lastUrl) {
+    console.log('[EventRecorder Bridge] Navigation detected:', {
+      from: lastUrl,
+      to: currentUrl,
+    });
+    lastUrl = currentUrl;
+
+    // Flush events on navigation
+    if (events.length > 0 && !isPageUnloading) {
+      sendEventsToExtension(events, true);
+    }
+  }
+};
+
+// Monitor navigation using multiple methods
+setInterval(checkForNavigation, 1000); // Poll for URL changes
+window.addEventListener('popstate', checkForNavigation);
+window.addEventListener('pushstate', checkForNavigation);
+window.addEventListener('replacestate', checkForNavigation);
+
+// Log event send statistics periodically
+setInterval(() => {
+  if (
+    eventSendStats.sent > 0 ||
+    eventSendStats.failed > 0 ||
+    eventSendStats.pending > 0
+  ) {
+    console.log('[EventRecorder Bridge] Event send stats:', eventSendStats);
+  }
+}, 10000); // Every 10 seconds
