@@ -119,8 +119,8 @@ let initialScreenshot: Promise<string | undefined> | undefined = undefined;
 let lastActivityTime = Date.now();
 let lastScreenshot: string | undefined = undefined;
 let pageChangeDetectionInterval: NodeJS.Timeout | null = null;
-const PAGE_CHANGE_CHECK_INTERVAL = 200; // Check every 2 seconds
-const MAX_IDLE_TIME = 500; // 5 seconds of inactivity before updating screenshot
+const PAGE_CHANGE_CHECK_INTERVAL = 500; // Check every 2 seconds
+const MAX_IDLE_TIME = 100; // 5 seconds of inactivity before updating screenshot
 
 // Function to update screenshot when page changes during idle time
 async function updateIdleScreenshot(): Promise<void> {
@@ -141,8 +141,6 @@ async function updateIdleScreenshot(): Promise<void> {
           lastScreenshot = newScreenshot;
           console.log('[EventRecorder Bridge] Updated idle screenshot after page change');
         }
-      } else {
-        console.debug('[EventRecorder Bridge] Failed to capture idle screenshot, keeping existing one');
       }
     } catch (error) {
       console.debug('[EventRecorder Bridge] Failed to update idle screenshot:', error);

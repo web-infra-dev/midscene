@@ -182,10 +182,7 @@ export const useRecordingControl = (
   useEffect(() => {
     if (!currentTab?.id || !isRecording) return;
 
-    let navigationGraceTimer: NodeJS.Timeout | null = null;
-    let eventBuffer: ChromeRecordedEvent[] = [];
-
-    const handleTabUpdate = (
+    const handleTabUpdate = async (
       tabId: number,
       changeInfo: chrome.tabs.TabChangeInfo,
     ) => {
@@ -204,77 +201,25 @@ export const useRecordingControl = (
           },
         );
 
-        // Buffer current events before navigation
-        eventBuffer = [...events];
 
-        // Set a grace period to allow events to be sent
-        if (navigationGraceTimer) {
-          clearTimeout(navigationGraceTimer);
-        }
-
-        navigationGraceTimer = setTimeout(() => {
-          recordLogger.info(
-            'Navigation grace period expired, checking for lost events',
-          );
-          // Check if we lost events during navigation
-          if (eventBuffer.length > events.length) {
-            recordLogger.warn('Events may have been lost during navigation', {
-              beforeNavigation: eventBuffer.length,
-              afterNavigation: events.length,
-              lost: eventBuffer.length - events.length,
-            });
-
-            // Try to recover lost events
-            const lostEvents = eventBuffer.slice(events.length);
-            if (lostEvents.length > 0) {
-              recordLogger.info('Attempting to recover lost events', {
-                lostEventsCount: lostEvents.length,
-              });
-              lostEvents.forEach((event) => addEvent(event));
-            }
-          }
-        }, 2000); // 2 second grace period
-      } else if (
-        currentTab?.id === tabId &&
-        changeInfo.status === 'complete' &&
-        isRecording
-      ) {
         const session = getCurrentSession();
         if (session) {
-          recordLogger.info('Navigation completed, re-establishing recording', {
-            sessionId: session.id,
-            url: changeInfo.url,
-          });
-
-          // Clear grace timer
-          if (navigationGraceTimer) {
-            clearTimeout(navigationGraceTimer);
-            navigationGraceTimer = null;
-          }
-
-          // Re-establish recording connection
-          setTimeout(async () => {
-            // Re-inject scripts and restart recording
-            if (currentTab?.id) {
+          if (currentTab?.id) {
               await ensureScriptInjected(currentTab);
               await safeChromeAPI.tabs.sendMessage(currentTab.id, {
                 action: 'start',
                 sessionId: session.id,
               });
-              recordLogger.info('Recording re-established after navigation');
-            }
-          }, 500); // Small delay to ensure page is ready
+            recordLogger.info('Recording re-established after navigation');
+          }
         }
-      }
+      } 
     };
 
     safeChromeAPI.tabs.onUpdated.addListener(handleTabUpdate);
 
     return () => {
       safeChromeAPI.tabs.onUpdated.removeListener(handleTabUpdate);
-      if (navigationGraceTimer) {
-        clearTimeout(navigationGraceTimer);
-      }
     };
   }, [
     currentTab,
