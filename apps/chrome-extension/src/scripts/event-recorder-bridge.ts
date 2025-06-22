@@ -139,7 +139,6 @@ async function updateIdleScreenshot(): Promise<void> {
         // Only update if we got a valid screenshot and it's different from the last one
         if (!lastScreenshot || newScreenshot !== lastScreenshot) {
           lastScreenshot = newScreenshot;
-          console.log('[EventRecorder Bridge] Updated idle screenshot after page change');
         }
       }
     } catch (error) {
@@ -521,14 +520,3 @@ setInterval(checkForNavigation, 1000); // Poll for URL changes
 window.addEventListener('popstate', checkForNavigation);
 window.addEventListener('pushstate', checkForNavigation);
 window.addEventListener('replacestate', checkForNavigation);
-
-// Log event send statistics periodically
-setInterval(() => {
-  if (
-    eventSendStats.sent > 0 ||
-    eventSendStats.failed > 0 ||
-    eventSendStats.pending > 0
-  ) {
-    console.log('[EventRecorder Bridge] Event send stats:', eventSendStats);
-  }
-}, 10000); // Every 10 seconds
