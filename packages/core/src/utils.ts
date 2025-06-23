@@ -33,6 +33,7 @@ function getReportTpl() {
 export function reportHTMLContent(
   dumpData: string | ReportDumpWithAttributes,
   reportPath?: string,
+  appendReport?: boolean,
 ): string {
   const tpl = getReportTpl();
 
@@ -69,6 +70,11 @@ export function reportHTMLContent(
   }
 
   if (writeToFile) {
+    if (!appendReport) {
+      writeFileSync(reportPath!, tpl + dumpContent, { flag: 'w' });
+      return reportPath!;
+    }
+
     if (!reportInitializedMap.get(reportPath!)) {
       writeFileSync(reportPath!, tpl, { flag: 'w' });
       reportInitializedMap.set(reportPath!, true);
@@ -84,6 +90,7 @@ export function reportHTMLContent(
 export function writeDumpReport(
   fileName: string,
   dumpData: string | ReportDumpWithAttributes,
+  appendReport?: boolean,
 ): string | null {
   if (ifInBrowser) {
     console.log('will not write report in browser');
@@ -102,7 +109,7 @@ export function writeDumpReport(
     `${fileName}.html`,
   );
 
-  reportHTMLContent(dumpData, reportPath);
+  reportHTMLContent(dumpData, reportPath, appendReport);
 
   if (process.env.MIDSCENE_DEBUG_LOG_JSON) {
     const jsonPath = `${reportPath}.json`;
@@ -114,7 +121,9 @@ export function writeDumpReport(
       data = dumpData;
     }
 
-    writeFileSync(jsonPath, JSON.stringify(data, null, 2), { flag: 'a' });
+    writeFileSync(jsonPath, JSON.stringify(data, null, 2), {
+      flag: appendReport ? 'a' : 'w',
+    });
 
     logMsg(`Midscene - dump file written: ${jsonPath}`);
   }
@@ -128,6 +137,7 @@ export function writeLogFile(opts: {
   fileContent: string;
   type: 'dump' | 'cache' | 'report' | 'tmp';
   generateReport?: boolean;
+  appendReport?: boolean;
 }) {
   if (ifInBrowser) {
     return '/mock/report.html';
@@ -170,7 +180,7 @@ export function writeLogFile(opts: {
   }
 
   if (opts?.generateReport) {
-    return writeDumpReport(fileName, fileContent);
+    return writeDumpReport(fileName, fileContent, opts.appendReport);
   }
 
   return filePath;

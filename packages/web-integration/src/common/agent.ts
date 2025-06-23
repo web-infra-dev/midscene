@@ -676,6 +676,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
 
   async destroy() {
     await this.page.destroy();
+    this.resetDump(); // reset dump to release memory
   }
 
   async logScreenshot(

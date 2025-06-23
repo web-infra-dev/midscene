@@ -221,6 +221,7 @@ export default class PlaygroundServer {
           response.reportHTML = agent.reportHTMLString() || null;
 
           agent.writeOutActionDumps();
+          agent.destroy();
         } catch (error: any) {
           console.error(
             `write out dump failed: requestId: ${requestId}, ${error.message}`,
