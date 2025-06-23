@@ -186,6 +186,7 @@ describe('utils', () => {
             },
           },
           tmpFile,
+          true,
         );
         expect(reportPath).toBe(tmpFile);
       }

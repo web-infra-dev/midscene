@@ -309,34 +309,55 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    loadDumpElements();
+    // Check if document is already loaded
+    const loadDumps = () => {
+      console.log('Loading dump elements...');
+      loadDumpElements();
+    };
+
+    // If DOM is already loaded (React mounts after DOMContentLoaded in most cases)
+    if (
+      document.readyState === 'complete' ||
+      document.readyState === 'interactive'
+    ) {
+      // Use a small timeout to ensure all scripts are parsed
+      setTimeout(loadDumps, 0);
+    } else {
+      // Wait for DOM content to be fully loaded
+      document.addEventListener('DOMContentLoaded', loadDumps);
+    }
+
+    // Set up a MutationObserver to detect if dump scripts are added after initial load
     const observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
         if (mutation.type === 'childList') {
           const addedNodes = Array.from(mutation.addedNodes);
-          const hasScriptTag = addedNodes.some((node) => {
-            if (node.nodeType === Node.ELEMENT_NODE) {
-              const element = node as Element;
-              return (
-                (element.tagName === 'SCRIPT' &&
-                  element.getAttribute('type') === 'midscene_web_dump') ||
-                element.querySelector?.('script[type="midscene_web_dump"]')
-              );
-            }
-            return false;
-          });
-          if (hasScriptTag) {
-            setTimeout(loadDumpElements, 10);
+          const hasDumpScripts = addedNodes.some(
+            (node) =>
+              node.nodeType === Node.ELEMENT_NODE &&
+              node.nodeName === 'SCRIPT' &&
+              (node as HTMLElement).getAttribute('midscene_type') ===
+                'web_dump',
+          );
+
+          if (hasDumpScripts) {
+            loadDumps();
+            break;
           }
         }
       }
     });
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-    });
+
+    // Start observing the document with the configured parameters
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // Safety fallback in case other methods fail
+    const fallbackTimer = setTimeout(loadDumps, 3000);
+
     return () => {
+      document.removeEventListener('DOMContentLoaded', loadDumps);
       observer.disconnect();
+      clearTimeout(fallbackTimer);
     };
   }, [loadDumpElements]);
 
