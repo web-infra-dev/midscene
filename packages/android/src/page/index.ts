@@ -307,6 +307,7 @@ ${Object.keys(size)
     this.screenSize = {
       width: logicalWidth,
       height: logicalHeight,
+      dpr: this.deviceRatio,
     };
 
     return this.screenSize;

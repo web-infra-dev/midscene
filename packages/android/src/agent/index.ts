@@ -9,6 +9,8 @@ import { debugPage } from '../page';
 type AndroidAgentOpt = PageAgentOpt;
 
 export class AndroidAgent extends PageAgent<AndroidDevice> {
+  declare page: AndroidDevice;
+
   constructor(page: AndroidDevice, opts?: AndroidAgentOpt) {
     super(page, opts);
 
