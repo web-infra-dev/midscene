@@ -579,7 +579,10 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     return {
       rect: element?.rect,
       center: element?.center,
-    } as Pick<LocateResultElement, 'rect' | 'center'>;
+      scale: (await this.page.size()).dpr,
+    } as Pick<LocateResultElement, 'rect' | 'center'> & {
+      scale: number;
+    };
   }
 
   async aiAssert(assertion: string, msg?: string, opt?: AgentAssertOpt) {
