@@ -1,4 +1,5 @@
 import { execSync } from 'node:child_process';
+import * as fs from 'node:fs';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
@@ -28,6 +29,36 @@ function getReportTpl() {
   const reportTpl = 'REPLACE_ME_WITH_REPORT_HTML';
 
   return reportTpl;
+}
+
+/**
+ * high performance, insert script before </html> in HTML file
+ * only truncate and append, no temporary file
+ */
+export function insertScriptBeforeClosingHtml(
+  filePath: string,
+  scriptContent: string,
+): void {
+  const htmlEndTag = '</html>';
+  const stat = fs.statSync(filePath);
+  const readSize = 65536; // 64KB
+  const start = Math.max(0, stat.size - readSize);
+  const buffer = Buffer.alloc(stat.size - start);
+  const fd = fs.openSync(filePath, 'r');
+  fs.readSync(fd, buffer, 0, buffer.length, start);
+  fs.closeSync(fd);
+
+  const tailStr = buffer.toString('utf8');
+  const htmlEndIdx = tailStr.lastIndexOf(htmlEndTag);
+  if (htmlEndIdx === -1) {
+    throw new Error('No </html> found');
+  }
+
+  const htmlEndPos = start + htmlEndIdx;
+  // truncate to </html> before
+  fs.truncateSync(filePath, htmlEndPos);
+  // append script and </html>
+  fs.appendFileSync(filePath, `${scriptContent}\n${htmlEndTag}\n`);
 }
 
 export function reportHTMLContent(
@@ -80,7 +111,7 @@ export function reportHTMLContent(
       reportInitializedMap.set(reportPath!, true);
     }
 
-    writeFileSync(reportPath!, dumpContent, { flag: 'a' });
+    insertScriptBeforeClosingHtml(reportPath!, dumpContent);
     return reportPath!;
   }
 

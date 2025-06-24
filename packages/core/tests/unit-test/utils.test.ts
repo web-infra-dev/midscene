@@ -1,5 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { existsSync, readFileSync, statSync } from 'node:fs';
+import * as fs from 'node:fs';
+import { tmpdir } from 'node:os';
+import * as path from 'node:path';
 import {
   adaptDoubaoBbox,
   adaptQwenBbox,
@@ -14,13 +17,22 @@ import {
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { getAIConfig, overrideAIConfig } from '@midscene/shared/env';
 import { describe, expect, it } from 'vitest';
+import { reportHTMLContent, writeDumpReport } from '../../dist/es/utils'; // use modules from dist, otherwise we will miss the template file
 import {
   getTmpDir,
   getTmpFile,
+  insertScriptBeforeClosingHtml,
   overlapped,
-  reportHTMLContent,
-  writeDumpReport,
-} from '../../dist/es/utils'; // use modules from dist, otherwise we will miss the template file
+} from '../../src/utils';
+
+function createTempHtmlFile(content: string): string {
+  const filePath = getTmpFile('html');
+  if (!filePath) {
+    throw new Error('Failed to create temp html file');
+  }
+  fs.writeFileSync(filePath, content, 'utf8');
+  return filePath;
+}
 
 describe('utils', () => {
   it('tmpDir', () => {
@@ -90,12 +102,7 @@ describe('utils', () => {
   });
 
   it('reportHTMLContent with reportPath', () => {
-    const tmpFile = getTmpFile('html');
-    expect(tmpFile).toBeTruthy();
-
-    if (!tmpFile) {
-      return;
-    }
+    const tmpFile = createTempHtmlFile('');
 
     // test empty array
     const reportPathA = reportHTMLContent('', tmpFile);
@@ -137,12 +144,7 @@ describe('utils', () => {
   it(
     'should handle multiple large reports correctly',
     async () => {
-      const tmpFile = getTmpFile('html');
-      expect(tmpFile).toBeTruthy();
-
-      if (!tmpFile) {
-        return;
-      }
+      const tmpFile = createTempHtmlFile('');
 
       // Create a large string of approximately 100MB
       const generateLargeString = (sizeInMB: number, identifier: string) => {
@@ -620,5 +622,68 @@ describe('env', () => {
         } as any,
       }),
     ).toThrow();
+  });
+});
+
+describe('insertScriptBeforeClosingHtml', () => {
+  it('should insert script before </html> in a standard HTML file', () => {
+    const html = '<html>hello</html>';
+    const filePath = createTempHtmlFile(html);
+    insertScriptBeforeClosingHtml(filePath, '<script>test</script>');
+    const result = fs.readFileSync(filePath, 'utf8');
+    expect(result).toBe('<html>hello<script>test</script>\n</html>\n');
+    fs.unlinkSync(filePath);
+  });
+
+  it('should work with large HTML file and </html> at the end', () => {
+    const body = 'a'.repeat(5000);
+    const html = `<html>${body}</html>`;
+    const filePath = createTempHtmlFile(html);
+    insertScriptBeforeClosingHtml(filePath, '<script>large</script>');
+    const result = fs.readFileSync(filePath, 'utf8');
+    expect(result.endsWith('<script>large</script>\n</html>\n')).toBe(true);
+    fs.unlinkSync(filePath);
+  });
+
+  it('should throw if </html> is missing', () => {
+    const html = '<html>no end tag';
+    const filePath = createTempHtmlFile(html);
+    expect(() =>
+      insertScriptBeforeClosingHtml(filePath, '<script>fail</script>'),
+    ).toThrow('No </html> found');
+    fs.unlinkSync(filePath);
+  });
+
+  it('should support multi-line scriptContent', () => {
+    const html = '<html>abc</html>';
+    const script = '<script>\nconsole.log(1)\n</script>';
+    const filePath = createTempHtmlFile(html);
+    insertScriptBeforeClosingHtml(filePath, script);
+    const result = fs.readFileSync(filePath, 'utf8');
+    expect(result).toBe(
+      '<html>abc<script>\nconsole.log(1)\n</script>\n</html>\n',
+    );
+    fs.unlinkSync(filePath);
+  });
+
+  it('should not increase memory usage significantly for large files (memory check)', async () => {
+    const body = 'a'.repeat(50 * 1024 * 1024); // 50MB
+    const html = `<html>${body}</html>`;
+    const filePath = createTempHtmlFile(html);
+
+    // write large file first, wait for memory release
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const memBefore = process.memoryUsage().rss;
+
+    insertScriptBeforeClosingHtml(filePath, '<script>large</script>');
+
+    // wait for a while, ensure the insertion process ends
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const memAfter = process.memoryUsage().rss;
+
+    // allow at most 2MB growth
+    expect(memAfter - memBefore).toBeLessThan(2 * 1024 * 1024);
+
+    fs.unlinkSync(filePath);
   });
 });
