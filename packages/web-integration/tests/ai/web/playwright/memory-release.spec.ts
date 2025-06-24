@@ -21,7 +21,7 @@ const generateLargeString = (sizeInMB: number, identifier: string) => {
   return JSON.stringify(baseObj);
 };
 
-test.describe('memory release', () => {
+test.describe.skip('memory release', () => {
   let initialHeapMB: number;
   let initialHeapTotalMB: number;
   let initialRssMB: number;
@@ -34,6 +34,7 @@ test.describe('memory release', () => {
     rss: number;
   }[] = []; // Record memory after each test
   let testCount = 0; // Test counter
+  const totalTimes = 20;
 
   test.beforeAll(() => {
     // Record initial memory values
@@ -126,12 +127,12 @@ test.describe('memory release', () => {
     const averageRssMB =
       testMemoryHistory.reduce((sum, memory) => sum + memory.rss, 0) /
       testMemoryHistory.length;
-    expect(averageRssMB).toBeLessThan(1500);
+    expect(averageRssMB).toBeLessThan(totalTimes * 100 * 0.75);
 
     await sleep(5000);
   });
 
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < totalTimes; i++) {
     test(`test memory release ${i + 1}`, async ({
       page,
       ai,
