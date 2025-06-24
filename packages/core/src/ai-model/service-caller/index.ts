@@ -37,8 +37,8 @@ import {
 import { enableDebug, getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { ifInBrowser } from '@midscene/shared/utils';
-import dJSON from 'dirty-json';
 import { HttpsProxyAgent } from 'https-proxy-agent';
+import { jsonrepair } from 'jsonrepair';
 import OpenAI, { AzureOpenAI } from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources';
 import { SocksProxyAgent } from 'socks-proxy-agent';
@@ -442,12 +442,12 @@ export function safeParseJson(input: string) {
     return JSON.parse(cleanJsonString);
   } catch {}
   try {
-    return dJSON.parse(cleanJsonString);
+    return JSON.parse(jsonrepair(cleanJsonString));
   } catch (e) {}
 
   if (vlLocateMode() === 'doubao-vision' || vlLocateMode() === 'vlm-ui-tars') {
     const jsonString = preprocessDoubaoBboxJson(cleanJsonString);
-    return dJSON.parse(jsonString);
+    return JSON.parse(jsonrepair(jsonString));
   }
   throw Error(`failed to parse json response: ${input}`);
 }
