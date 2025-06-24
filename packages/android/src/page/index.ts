@@ -35,7 +35,7 @@ export class AndroidDevice implements AndroidDevicePage {
   private deviceId: string;
   private screenSize: Size | null = null;
   private yadbPushed = false;
-  private deviceRatio = 1;
+  private devicePixelRatio = 1;
   private adb: ADB | null = null;
   private connectingAdb: Promise<ADB> | null = null;
   private destroyed = false;
@@ -296,7 +296,7 @@ ${Object.keys(size)
     // Get device display density
     const densityNum = await adb.getScreenDensity();
     // Standard density is 160, calculate the ratio
-    this.deviceRatio = Number(densityNum) / 160;
+    this.devicePixelRatio = Number(densityNum) / 160;
 
     // calculate logical pixel size using reverseAdjustCoordinates function
     const { x: logicalWidth, y: logicalHeight } = this.reverseAdjustCoordinates(
@@ -307,14 +307,14 @@ ${Object.keys(size)
     this.screenSize = {
       width: logicalWidth,
       height: logicalHeight,
-      dpr: this.deviceRatio,
+      dpr: this.devicePixelRatio,
     };
 
     return this.screenSize;
   }
 
   private adjustCoordinates(x: number, y: number): { x: number; y: number } {
-    const ratio = this.deviceRatio;
+    const ratio = this.devicePixelRatio;
     return {
       x: Math.round(x * ratio),
       y: Math.round(y * ratio),
@@ -325,7 +325,7 @@ ${Object.keys(size)
     x: number,
     y: number,
   ): { x: number; y: number } {
-    const ratio = this.deviceRatio;
+    const ratio = this.devicePixelRatio;
     return {
       x: Math.round(x / ratio),
       y: Math.round(y / ratio),
