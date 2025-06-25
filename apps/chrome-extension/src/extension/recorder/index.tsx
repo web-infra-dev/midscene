@@ -96,8 +96,6 @@ export default function Recorder() {
       sessionHooks.handleUpdateSession(sessionId, updates);
     },
     createNewSession,
-    checkRecordingRecovery,
-    handleSelectSession,
   );
   const {
     isRecording,

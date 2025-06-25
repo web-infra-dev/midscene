@@ -124,7 +124,6 @@ export const useRecordingSession = (currentTab: chrome.tabs.Tab | null) => {
         ...updates,
         updatedAt: Date.now(),
       });
-      message.success('Session updated successfully');
     },
     [updateSession],
   );

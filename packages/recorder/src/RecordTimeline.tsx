@@ -179,20 +179,18 @@ export const RecordTimeline = ({
       case 'navigation':
         return (
           <Space direction="vertical" size="small">
-            {event.url && (
-              <Text
-                type="secondary"
-                style={{
-                  display: '-webkit-box',
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden',
-                  wordBreak: 'break-all',
-                }}
-              >
-                {event.url}
-              </Text>
-            )}
+            <div
+              style={{
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                wordBreak: 'break-all',
+              }}
+            >
+              <Text type="secondary">URL: </Text>
+              {event.url && <Text type="secondary">{event.url}</Text>}
+            </div>
           </Space>
         );
       case 'setViewport':
