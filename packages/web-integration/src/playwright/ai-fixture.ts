@@ -65,7 +65,14 @@ export const PlaywrightAiFixture = (options?: {
         generateReport: false, // we will generate it in the reporter
         ...opts,
       });
+
+      page.on('close', () => {
+        debugPage('page closed');
+        pageAgentMap[idForPage].destroy();
+        delete pageAgentMap[idForPage];
+      });
     }
+
     return pageAgentMap[idForPage];
   };
 

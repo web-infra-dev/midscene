@@ -1,7 +1,7 @@
 import {
+  getReportFileName,
   printReportMsg,
   replaceIllegalPathCharsAndSpace,
-  reportFileName,
 } from '@/common/utils';
 import type { ReportDumpWithAttributes } from '@midscene/core';
 import { writeDumpReport } from '@midscene/core/utils';
@@ -20,74 +20,61 @@ function logger(...message: any[]) {
   }
 }
 
-const testDataList: Array<ReportDumpWithAttributes> = [];
-let mergedFilename: string;
-const testTitleToFilename: Map<string, string> = new Map();
-
-function getStableFilename(testTitle: string): string {
-  if (!testTitleToFilename.has(testTitle)) {
-    // use reportFileName to generate the base filename
-    // only replace the illegal characters in the file system: /, \, :, *, ?, ", <, >, |
-    const baseTag = `playwright-${replaceIllegalPathCharsAndSpace(testTitle)}`;
-    const generatedFilename = reportFileName(baseTag);
-    testTitleToFilename.set(testTitle, generatedFilename);
-  }
-  return testTitleToFilename.get(testTitle)!;
-}
-
-function updateReport(mode: 'merged' | 'separate', testId?: string) {
-  if (mode === 'separate') {
-    // in separate mode, find the data for the corresponding testID and generate a separate report
-    const testData = testDataList.find(
-      (data) => data.attributes?.playwright_test_id === testId,
-    );
-
-    if (testData) {
-      // use the stable filename
-      const stableFilename = getStableFilename(
-        testData.attributes?.playwright_test_title,
-      );
-
-      const reportPath = writeDumpReport(stableFilename, [testData]);
-      reportPath && printReportMsg(reportPath);
-    }
-  } else if (mode === 'merged') {
-    // in merged mode, write all test data into one file
-    if (!mergedFilename) {
-      mergedFilename = reportFileName('playwright-merged');
-    }
-
-    const reportPath = writeDumpReport(mergedFilename, testDataList);
-    reportPath && printReportMsg(reportPath);
-  } else {
-    throw new Error(
-      `Unknown reporter type in playwright config: ${mode}, only support 'merged' or 'separate'`,
-    );
-  }
-}
-
-function getMode(reporterType: string) {
-  if (!reporterType) {
-    return 'merged';
-  }
-
-  if (reporterType !== 'merged' && reporterType !== 'separate') {
-    throw new Error(
-      `Unknown reporter type in playwright config: ${reporterType}, only support 'merged' or 'separate'`,
-    );
-  }
-
-  return reporterType;
-}
-
 class MidsceneReporter implements Reporter {
+  private mergedFilename?: string;
+  private testTitleToFilename = new Map<string, string>();
   mode?: 'merged' | 'separate';
+
+  private static getMode(reporterType: string): 'merged' | 'separate' {
+    if (!reporterType) {
+      return 'merged';
+    }
+    if (reporterType !== 'merged' && reporterType !== 'separate') {
+      throw new Error(
+        `Unknown reporter type in playwright config: ${reporterType}, only support 'merged' or 'separate'`,
+      );
+    }
+    return reporterType;
+  }
+
+  private getSeparatedFilename(testTitle: string): string {
+    if (!this.testTitleToFilename.has(testTitle)) {
+      const baseTag = `playwright-${replaceIllegalPathCharsAndSpace(testTitle)}`;
+      const generatedFilename = getReportFileName(baseTag);
+      this.testTitleToFilename.set(testTitle, generatedFilename);
+    }
+    return this.testTitleToFilename.get(testTitle)!;
+  }
+
+  private getReportFilename(testTitle?: string): string {
+    if (this.mode === 'merged') {
+      if (!this.mergedFilename) {
+        this.mergedFilename = getReportFileName('playwright-merged');
+      }
+      return this.mergedFilename;
+    } else if (this.mode === 'separate') {
+      if (!testTitle) throw new Error('testTitle is required in separate mode');
+      return this.getSeparatedFilename(testTitle);
+    }
+    throw new Error(`Unknown mode: ${this.mode}`);
+  }
+
+  private updateReport(testData: ReportDumpWithAttributes) {
+    if (!testData || !this.mode) return;
+    const fileName = this.getReportFilename(
+      testData.attributes?.playwright_test_title,
+    );
+    const reportPath = writeDumpReport(
+      fileName,
+      testData,
+      this.mode === 'merged',
+    );
+    reportPath && printReportMsg(reportPath);
+  }
 
   async onBegin(config: FullConfig, suite: Suite) {
     const reporterType = config.reporter?.[1]?.[1]?.type;
-
-    this.mode = getMode(reporterType);
-
+    this.mode = MidsceneReporter.getMode(reporterType);
     // const suites = suite.allTests();
     // logger(`Starting the run with ${suites.length} tests`);
   }
@@ -113,9 +100,7 @@ class MidsceneReporter implements Reporter {
       },
     };
 
-    testDataList.push(testData);
-
-    updateReport(this.mode!, testId);
+    this.updateReport(testData);
 
     test.annotations = test.annotations.filter(
       (annotation) => annotation.type !== 'MIDSCENE_DUMP_ANNOTATION',
@@ -123,8 +108,6 @@ class MidsceneReporter implements Reporter {
   }
 
   onEnd(result: FullResult) {
-    updateReport(this.mode!);
-
     logger(`Finished the run: ${result.status}`);
   }
 }

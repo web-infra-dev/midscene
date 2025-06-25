@@ -7,7 +7,6 @@ import {
   MinusOutlined,
   WarningOutlined,
 } from '@ant-design/icons';
-import React from 'react';
 
 export const iconForStatus = (status: string): JSX.Element => {
   switch (status) {
