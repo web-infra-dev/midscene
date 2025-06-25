@@ -2,6 +2,37 @@
 
 > 完整更新日志请参考：[Midscene Releases](https://github.com/web-infra-dev/midscene/releases)
 
+## v0.20 - 支持传入 XPath 定位元素
+
+### 🌐 Web集成增强
+#### 1️⃣ 新增 aiAsk 方法
+- 可直接向 AI 模型提问，获取当前页面的字符串形式答案
+- 适用场景：页面内容问答、信息提取等需要 AI 推理的任务
+- 示例：
+
+```typescript
+await agent.aiAsk('问题描述')
+```
+
+####   2️⃣ 支持传入 XPath 定位元素
+- 定位优先级：指定的 XPath > 缓存 > AI 大模型定位
+- 适用场景：已知元素 XPath，需要跳过 AI 大模型定位
+- 示例：
+
+```typescript
+await agent.aiTap('提交按钮', { xpath: '//button[@id="submit"]' })
+```
+
+### 📱 Android 改进
+#### 1️⃣ Playground 任务可取消
+- 支持中断正在执行的自动化任务，提升调试效率
+
+#### 2️⃣ aiLocate API 增强
+- 返回设备像素比（Device Pixel Ratio），通常用于计算元素真实坐标
+
+### 📈 报告生成优化
+改进报告生成机制，从批量存储改为单次追加，有效降低内存占用，避免用例数量大时造成的内存溢出
+
 ## v0.19 - 支持获取完整的执行过程数据
 
 ### 新增 API 获取 Midscene 执行过程数据

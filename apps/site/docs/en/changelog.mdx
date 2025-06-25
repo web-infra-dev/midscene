@@ -2,7 +2,46 @@
 
 > For the complete changelog, please refer to: [Midscene Releases](https://github.com/web-infra-dev/midscene/releases)
 
-## v0.19.0 - Support for Getting Complete Execution Process Data
+## v0.20 - Support for assigning XPath to locate elements
+
+### 🌐 Web Integration Enhancement
+
+#### 1️⃣ New `aiAsk` Method
+
+- Allows direct questioning of the AI model to obtain string-formatted answers for the current page.
+- Applicable scenarios: Tasks requiring AI reasoning such as Q&A on page content and information extraction.
+- Example:
+
+```typescript
+await agent.aiAsk('any question')
+```
+
+#### 2️⃣ Support for Passing XPath to Locate Elements
+
+- Location priority: Specified XPath > Cache > AI model location.
+- Applicable scenarios: When the XPath of an element is known and the AI model location needs to be skipped.
+- Example:
+
+```typescript
+await agent.aiTap('submit button', { xpath: '//button[@id="submit"]' })
+```
+
+### 📱 Android Improvement
+
+#### 1️⃣ Playground Tasks Can Be Cancelled
+
+- Supports interrupting ongoing automation tasks to improve debugging efficiency.
+
+#### 2️⃣ Enhanced `aiLocate` API
+
+- Returns the Device Pixel Ratio, which is commonly used to calculate the real coordinates of elements.
+
+### 📈 Report Generation Optimization
+
+Improve report generation mechanism, from batch storage to single append, effectively reducing memory usage and avoiding memory overflow when the number of test cases is large.
+
+
+## v0.19 - Support for Getting Complete Execution Process Data
 
 ### New API for Getting Midscene Execution Process Data
 
@@ -22,7 +61,7 @@ Read more: [Use YAML-based Automation Scripts](./automate-with-scripts-in-yaml.m
 
 Reduce the size of the generated report by trimming redundant data, significantly reducing the report file size for complex pages. The typical report file size for complex pages has been reduced from 47.6M to 15.6M!
 
-## v0.18.0 - enhanced reporting features
+## v0.18 - enhanced reporting features
 
 🚀 Midscene has another update! It makes your testing and automation processes even more powerful:
 
