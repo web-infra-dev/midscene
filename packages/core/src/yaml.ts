@@ -135,6 +135,11 @@ export interface MidsceneYamlFlowItemAITap extends LocateOption {
   aiTap: string;
 }
 
+export interface MidsceneYamlFlowItemAIImgTap {
+  aiImgTap: string; // Image file path
+  threshold?: number; // Optional confidence threshold (0-1), defaults to 0.8
+}
+
 export interface MidsceneYamlFlowItemAIRightClick extends LocateOption {
   aiRightClick: string;
 }
@@ -180,6 +185,7 @@ export type MidsceneYamlFlowItem =
   | MidsceneYamlFlowItemAIQuery
   | MidsceneYamlFlowItemAIWaitFor
   | MidsceneYamlFlowItemAITap
+  | MidsceneYamlFlowItemAIImgTap
   | MidsceneYamlFlowItemAIRightClick
   | MidsceneYamlFlowItemAIHover
   | MidsceneYamlFlowItemAIInput

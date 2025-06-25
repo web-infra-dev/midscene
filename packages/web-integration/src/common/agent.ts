@@ -280,6 +280,22 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     return output;
   }
 
+  async aiImgTap(templateImagePath: string, threshold = 0.8) {
+    assert(templateImagePath, 'missing template image path for image tap');
+    assert(threshold >= 0 && threshold <= 1, 'threshold must be between 0 and 1');
+    
+    const plans = buildPlans('ImgTap', undefined, {
+      templateImage: templateImagePath,
+      threshold,
+    });
+    const { executor, output } = await this.taskExecutor.runPlans(
+      taskTitleStr('ImgTap', `path: ${templateImagePath}, threshold: ${threshold}`),
+      plans,
+    );
+    this.afterTaskRunning(executor);
+    return output;
+  }
+
   async aiRightClick(locatePrompt: string, opt?: LocateOption) {
     const detailedLocateParam = this.buildDetailedLocateParam(
       locatePrompt,

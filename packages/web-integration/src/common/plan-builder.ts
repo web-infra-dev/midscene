@@ -6,6 +6,7 @@ import type {
   PlanningActionParamScroll,
   PlanningActionParamSleep,
   PlanningActionParamTap,
+  PlanningActionParamImgTap,
   PlanningLocateParam,
 } from '@midscene/core';
 import { getDebug } from '@midscene/shared/logger';
@@ -19,7 +20,8 @@ export function buildPlans(
   param?:
     | PlanningActionParamInputOrKeyPress
     | PlanningActionParamScroll
-    | PlanningActionParamSleep,
+    | PlanningActionParamSleep
+    | PlanningActionParamImgTap,
 ): PlanningAction[] {
   let returnPlans: PlanningAction[] = [];
   const locatePlan: PlanningAction<PlanningLocateParam> | null = locateParam
@@ -41,6 +43,34 @@ export function buildPlans(
     };
 
     returnPlans = [locatePlan, tapPlan];
+  }
+  
+  if (type === 'ImgTap') {
+    assert(param, `missing param for action "${type}"`);
+    
+    // Create a locate param for template image
+    const imgTapParam = param as PlanningActionParamImgTap;
+    const templateLocateParam: DetailedLocateParam = {
+      prompt: `Template image: ${imgTapParam.templateImage}`,
+    };
+    
+    // Create Locate plan for template matching
+    const locatePlan: PlanningAction<PlanningLocateParam> = {
+      type: 'Locate',
+      locate: templateLocateParam,
+      param: templateLocateParam,
+      thought: '',
+    };
+    
+    // Create ImgTap plan
+    const imgTapPlan: PlanningAction<PlanningActionParamImgTap> = {
+      type,
+      param: imgTapParam,
+      thought: '',
+      locate: templateLocateParam,
+    };
+    
+    returnPlans = [locatePlan, imgTapPlan];
   }
   if (type === 'Input' || type === 'KeyboardPress') {
     if (type === 'Input') {
