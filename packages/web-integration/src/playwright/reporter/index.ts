@@ -64,7 +64,11 @@ class MidsceneReporter implements Reporter {
     const fileName = this.getReportFilename(
       testData.attributes?.playwright_test_title,
     );
-    const reportPath = writeDumpReport(fileName, testData, true);
+    const reportPath = writeDumpReport(
+      fileName,
+      testData,
+      this.mode === 'merged',
+    );
     reportPath && printReportMsg(reportPath);
   }
 
