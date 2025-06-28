@@ -41,7 +41,8 @@ import { getAIConfigInBoolean, vlLocateMode } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { PageTaskExecutor } from '../common/tasks';
-import type { PuppeteerAgentOpt, PuppeteerWebPage } from '../puppeteer';
+import type { PlaywrightWebPage } from '../playwright';
+import type { PuppeteerWebPage } from '../puppeteer';
 import type { WebElementInfo } from '../web-element';
 import type { AndroidDeviceInputOpt } from './page';
 import { buildPlans } from './plan-builder';
@@ -90,6 +91,11 @@ export interface PageAgentOpt {
   aiActionContext?: string;
 }
 
+export type WebPageAgentOpt = PageAgentOpt & {
+  waitForNavigationTimeout?: number;
+  waitForNetworkIdleTimeout?: number;
+};
+
 export class PageAgent<PageType extends WebPage = WebPage> {
   page: PageType;
 
@@ -130,11 +136,15 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       this.page.pageType === 'puppeteer' ||
       this.page.pageType === 'playwright'
     ) {
-      (this.page as PuppeteerWebPage).waitForNavigationTimeout =
-        (this.opts as PuppeteerAgentOpt).waitForNavigationTimeout ||
+      (
+        this.page as PuppeteerWebPage | PlaywrightWebPage
+      ).waitForNavigationTimeout =
+        (this.opts as WebPageAgentOpt).waitForNavigationTimeout ||
         DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT;
-      (this.page as PuppeteerWebPage).waitForNetworkIdleTimeout =
-        (this.opts as PuppeteerAgentOpt).waitForNetworkIdleTimeout ||
+      (
+        this.page as PuppeteerWebPage | PlaywrightWebPage
+      ).waitForNetworkIdleTimeout =
+        (this.opts as WebPageAgentOpt).waitForNetworkIdleTimeout ||
         DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT;
     }
 
