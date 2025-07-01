@@ -1,5 +1,6 @@
 import { Alert } from 'antd';
 import type React from 'react';
+import ShinyText from '../shiny-text';
 
 import './index.less';
 
@@ -31,8 +32,8 @@ export const serverLaunchTip = (
 
 // empty result tip
 export const emptyResultTip = (
-  <div className="result-empty-tip">
-    <span>The result will be shown here</span>
+  <div className="result-empty-tip" style={{ textAlign: 'center' }}>
+    <ShinyText disabled text="The result will be shown here" />
   </div>
 );
 

@@ -36,6 +36,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   onStop,
 }) => {
   const [hoveringSettings, setHoveringSettings] = useState(false);
+  const [promptValue, setPromptValue] = useState('');
   const placeholder = getPlaceholderForType(selectedType);
   const textAreaRef = useRef<any>(null);
 
@@ -51,11 +52,13 @@ export const PromptInput: React.FC<PromptInputProps> = ({
         type: lastHistory.type || 'aiAction',
         prompt: lastHistory.prompt || '',
       });
+      setPromptValue(lastHistory.prompt || '');
     } else {
       form.setFieldsValue({
         type: 'aiAction',
         prompt: '',
       });
+      setPromptValue('');
     }
   }, [lastHistory, form]);
 
@@ -66,9 +69,23 @@ export const PromptInput: React.FC<PromptInputProps> = ({
         prompt: historyItem.prompt,
         type: historyItem.type,
       });
+      setPromptValue(historyItem.prompt);
     },
     [form],
   );
+
+  // Handle prompt input change
+  const handlePromptChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const value = e.target.value;
+      setPromptValue(value);
+      form.setFieldValue('prompt', value);
+    },
+    [form],
+  );
+
+  // Calculate if run button should be enabled
+  const isRunButtonEnabled = runButtonEnabled && promptValue.trim().length > 0;
 
   // Handle run with history addition
   const handleRunWithHistory = useCallback(() => {
@@ -86,7 +103,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   // Handle key events
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (e.key === 'Enter' && e.metaKey) {
+      if (e.key === 'Enter' && e.metaKey && isRunButtonEnabled) {
         handleRunWithHistory();
         e.preventDefault();
         e.stopPropagation();
@@ -110,7 +127,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
         }, 0);
       }
     },
-    [handleRunWithHistory],
+    [handleRunWithHistory, isRunButtonEnabled],
   );
 
   // Handle settings hover state
@@ -128,9 +145,9 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       <Button
         type="primary"
         icon={<SendOutlined />}
-        style={{ borderRadius: 20, zIndex: 9999 }}
+        style={{ borderRadius: 20, zIndex: 999 }}
         onClick={handleRunWithHistory}
-        disabled={!runButtonEnabled}
+        disabled={!isRunButtonEnabled}
         loading={loading}
       >
         {text}
@@ -152,7 +169,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
         <Button
           icon={<BorderOutlined />}
           onClick={onStop}
-          style={{ borderRadius: 20 }}
+          style={{ borderRadius: 20, zIndex: 999 }}
         >
           Stop
         </Button>
@@ -165,7 +182,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     loading,
     handleRunWithHistory,
     onStop,
-    runButtonEnabled,
+    isRunButtonEnabled,
     selectedType,
     stoppable,
   ]);
@@ -224,7 +241,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
       {/* input box area */}
       <div
-        className={`main-side-console-input ${!runButtonEnabled ? 'disabled' : ''}`}
+        className={`main-side-console-input ${!runButtonEnabled ? 'disabled' : ''} ${loading ? 'loading' : ''}`}
       >
         <Form.Item name="prompt" style={{ margin: 0 }}>
           <TextArea
@@ -234,6 +251,8 @@ export const PromptInput: React.FC<PromptInputProps> = ({
             placeholder={placeholder}
             autoFocus
             onKeyDown={handleKeyDown}
+            onChange={handlePromptChange}
+            value={promptValue}
             ref={textAreaRef}
           />
         </Form.Item>

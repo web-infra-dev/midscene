@@ -1,23 +1,28 @@
 import { SettingOutlined } from '@ant-design/icons';
 import { Input, Modal, Tooltip } from 'antd';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useEnvConfig } from './store/store';
 
 export function EnvConfig({
   showTooltipWhenEmpty = true,
   showModelName = true,
   tooltipPlacement = 'bottom',
+  mode = 'icon',
 }: {
   showTooltipWhenEmpty?: boolean;
   showModelName?: boolean;
   tooltipPlacement?: 'bottom' | 'top';
+  mode?: 'icon' | 'text';
 }) {
-  const { config, configString, loadConfig } = useEnvConfig();
+  const { config, configString, loadConfig, syncFromStorage } = useEnvConfig();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tempConfigString, setTempConfigString] = useState(configString);
   const midsceneModelName = config.MIDSCENE_MODEL_NAME;
   const componentRef = useRef<HTMLDivElement>(null);
   const showModal = (e: React.MouseEvent) => {
+    // every time open modal, sync from localStorage
+    syncFromStorage();
+
     setIsModalOpen(true);
     e.preventDefault();
     e.stopPropagation();
@@ -32,6 +37,13 @@ export function EnvConfig({
     setIsModalOpen(false);
   };
 
+  // when modal is open, use the latest config string
+  useEffect(() => {
+    if (isModalOpen) {
+      setTempConfigString(configString);
+    }
+  }, [isModalOpen, configString]);
+
   return (
     <div
       style={{
@@ -39,7 +51,6 @@ export function EnvConfig({
         justifyContent: 'flex-end',
         gap: '10px',
         alignItems: 'center',
-        width: '100%',
         height: '100%',
         minHeight: '32px',
       }}
@@ -60,7 +71,13 @@ export function EnvConfig({
               : undefined
         }
       >
-        <SettingOutlined onClick={showModal} />
+        {mode === 'icon' ? (
+          <SettingOutlined onClick={showModal} />
+        ) : (
+          <span onClick={showModal} style={{ color: '#006AFF' }}>
+            set up
+          </span>
+        )}
       </Tooltip>
       <Modal
         title="Model Env Config"

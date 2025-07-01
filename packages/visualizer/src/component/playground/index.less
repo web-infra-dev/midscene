@@ -70,6 +70,16 @@ body {
       border: 1px solid #F2F4F7;
       background: white;
 
+      @keyframes hue-shift {
+        0% {
+          filter: hue-rotate(0deg);
+        }
+
+        100% {
+          filter: hue-rotate(360deg);
+        }
+      }
+
       &:focus-within {
         border: 1px solid transparent;
         background:
@@ -93,6 +103,14 @@ body {
         background-color: rgba(0, 0, 0, 0.2);
         border-radius: 3px;
       }
+    }
+
+    &.loading .main-side-console-input-textarea {
+      border: 1px solid transparent;
+      background:
+        linear-gradient(white, white) padding-box,
+        linear-gradient(135deg, #4285f4 0%, #0066FF 25%, #7B02C5 50%, #ea4335 75%, #ff7043 100%) border-box;
+      animation: hue-shift 5s linear infinite;
     }
 
     .ant-form-item-control-input-content {
@@ -128,7 +146,7 @@ body {
     background-color: #FFF;
     left: 16px;
     bottom: 0.5px;
-    padding: 8px 0;
+    padding: 12px 0;
     line-height: 32px;
     transition: background-color 0.2s ease;
   }
@@ -317,5 +335,6 @@ body {
     background: #F2F4F7;
     border-radius: 8px;
     padding: 14px;
+    overflow: scroll;
   }
 }

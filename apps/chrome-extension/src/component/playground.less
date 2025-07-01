@@ -24,6 +24,7 @@
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+  position: relative;
 }
 
 .info-list-container {
@@ -223,7 +224,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 24px;
+  margin-top: 12px;
 
   .playground-icon,
   .mode-icon {
@@ -308,4 +309,52 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
+}
+
+/* 配置提醒样式 */
+.config-reminder {
+  background: rgba(255, 242, 232, 1);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  .reminder-icon {
+    color: rgba(250, 84, 28, 1);
+    width: 16px;
+    height: 16px;
+  }
+
+  .reminder-text {
+    flex: 1;
+    color: #000;
+    font-size: 14px;
+  }
+}
+
+/* scroll to bottom button */
+.scroll-to-bottom-button {
+  position: absolute;
+  bottom: 5px;
+  right: 0;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border: none;
+  background: #fff;
+
+  &:hover {
+    background: #1890ff;
+
+    .anticon {
+      color: #fff;
+    }
+  }
+
+
+  .anticon {
+    font-size: 16px;
+    color: #333333;
+  }
 }

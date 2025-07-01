@@ -5,12 +5,15 @@ import {
   MenuOutlined,
   QuestionCircleOutlined,
 } from '@ant-design/icons';
-import { EnvConfig, globalThemeConfig } from '@midscene/visualizer';
+import {
+  EnvConfig,
+  globalThemeConfig,
+  useEnvConfig,
+} from '@midscene/visualizer';
 import '@midscene/visualizer/index.css';
 import { ConfigProvider, Dropdown, Typography } from 'antd';
 import { useState } from 'react';
 import { BrowserExtensionPlayground } from '../component/playground';
-import { useEnvConfig } from '../store';
 import { getExtensionVersion } from '../utils';
 import Bridge from './bridge';
 import Recorder from './recorder';
@@ -32,7 +35,7 @@ declare const __SDK_VERSION__: string;
 
 export function PlaygroundPopup() {
   const extensionVersion = getExtensionVersion();
-  const { popupTab, setPopupTab } = useEnvConfig();
+  const { setPopupTab } = useEnvConfig();
   const [currentMode, setCurrentMode] = useState<'playground' | 'bridge'>(
     'playground',
   );
@@ -105,7 +108,7 @@ export function PlaygroundPopup() {
               <MenuOutlined className="nav-icon menu-trigger" />
             </Dropdown>
             <span className="nav-title">
-              {currentMode.charAt(0).toUpperCase() + currentMode.slice(1)}
+              {currentMode === 'playground' ? 'Playground' : 'Bridge Mode'}
             </span>
           </div>
           <div className="nav-right">
@@ -121,10 +124,7 @@ export function PlaygroundPopup() {
             >
               <QuestionCircleOutlined className="nav-icon" />
             </Typography.Link>
-            <EnvConfig
-              showTooltipWhenEmpty={popupTab !== 'bridge'}
-              showModelName={false}
-            />
+            <EnvConfig showTooltipWhenEmpty={false} showModelName={false} />
           </div>
         </div>
 

@@ -1,8 +1,14 @@
-import Icon, { ClearOutlined, LoadingOutlined } from '@ant-design/icons';
+import Icon, {
+  ClearOutlined,
+  LoadingOutlined,
+  ExclamationCircleFilled,
+  ArrowDownOutlined,
+} from '@ant-design/icons';
 import type { UIContext } from '@midscene/core';
 import { overrideAIConfig } from '@midscene/shared/env';
 import {
   ContextPreview,
+  EnvConfig,
   type PlaygroundResult,
   PlaygroundResultView,
   PromptInput,
@@ -99,6 +105,8 @@ export function BrowserExtensionPlayground({
     WELCOME_MSG,
     ...getMsgsFromStorage(WELCOME_MSG),
   ]);
+  const [showScrollToBottomButton, setShowScrollToBottomButton] =
+    useState(false);
   const infoListRef = useRef<HTMLDivElement>(null);
 
   // Form and environment configuration
@@ -176,11 +184,47 @@ export function BrowserExtensionPlayground({
     }, 100);
   };
 
+  // check if scrolled to bottom
+  const checkIfScrolledToBottom = () => {
+    if (infoListRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = infoListRef.current;
+      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10; // 10px tolerance
+      setShowScrollToBottomButton(!isAtBottom);
+    }
+  };
+
+  // manually scroll to bottom when button clicked
+  const handleScrollToBottom = () => {
+    if (infoListRef.current) {
+      infoListRef.current.scrollTop = infoListRef.current.scrollHeight;
+      setShowScrollToBottomButton(false);
+    }
+  };
+
   // when info list updated, scroll to bottom
   useEffect(() => {
     if (infoList.length > 0) {
       scrollToBottom();
     }
+  }, [infoList]);
+
+  // add scroll event listener to check scroll position
+  useEffect(() => {
+    const container = infoListRef.current;
+    if (container) {
+      container.addEventListener('scroll', checkIfScrolledToBottom);
+      // check initial state
+      checkIfScrolledToBottom();
+
+      return () => {
+        container.removeEventListener('scroll', checkIfScrolledToBottom);
+      };
+    }
+  }, []);
+
+  // check scroll position when info list changes
+  useEffect(() => {
+    checkIfScrolledToBottom();
   }, [infoList]);
 
   // Handle form submission
@@ -545,10 +589,31 @@ export function BrowserExtensionPlayground({
               )}
             />
           </div>
+          {/* scroll to bottom button */}
+          {showScrollToBottomButton && (
+            <Button
+              className="scroll-to-bottom-button"
+              type="primary"
+              shape="circle"
+              icon={<ArrowDownOutlined />}
+              onClick={handleScrollToBottom}
+              size="large"
+            />
+          )}
         </div>
 
         {/* bottom input box */}
         <div className="bottom-input-section">
+          {/* environment setup reminder */}
+          {!configAlreadySet && (
+            <div className="config-reminder">
+              <ExclamationCircleFilled className="reminder-icon" />
+              <span className="reminder-text">
+                Please set up your environment variables before using.
+              </span>
+              <EnvConfig mode="text" showTooltipWhenEmpty={false} />
+            </div>
+          )}
           <PromptInput
             runButtonEnabled={runButtonEnabled}
             form={form}
