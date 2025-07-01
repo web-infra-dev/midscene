@@ -18,6 +18,7 @@ interface PlaygroundResultProps {
   loadingProgressText: string;
   verticalMode?: boolean;
   notReadyMessage?: React.ReactNode | string;
+  fitMode?: 'width' | 'height';
 }
 
 export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
@@ -30,6 +31,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
   loadingProgressText,
   verticalMode = false,
   notReadyMessage,
+  fitMode,
 }) => {
   let resultWrapperClassName = 'result-wrapper';
   if (verticalMode) {
@@ -66,6 +68,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
             ? result?.reportHTML
             : null
         }
+        fitMode={fitMode}
       />
     );
   } else if (result?.result) {

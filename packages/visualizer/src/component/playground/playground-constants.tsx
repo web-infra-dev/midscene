@@ -31,7 +31,7 @@ export const serverLaunchTip = (
 
 // empty result tip
 export const emptyResultTip = (
-  <div className="result-empty-tip" style={{}}>
+  <div className="result-empty-tip">
     <span>The result will be shown here</span>
   </div>
 );

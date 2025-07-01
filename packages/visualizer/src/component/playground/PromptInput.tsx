@@ -128,7 +128,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       <Button
         type="primary"
         icon={<SendOutlined />}
-        style={{ borderRadius: 20 }}
+        style={{ borderRadius: 20, zIndex: 9999 }}
         onClick={handleRunWithHistory}
         disabled={!runButtonEnabled}
         loading={loading}
@@ -171,7 +171,8 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   ]);
 
   return (
-    <div className="form-part input-wrapper">
+    <div className="prompt-input-wrapper">
+      {/* top operation button area */}
       <Space className="mode-radio-group-wrapper">
         <Form.Item name="type" style={{ margin: 0 }}>
           <Radio.Group
@@ -201,24 +202,9 @@ export const PromptInput: React.FC<PromptInputProps> = ({
             </Tooltip>
           </Radio.Group>
         </Form.Item>
-        <HistorySelector onSelect={handleSelectHistory} />
-      </Space>
-      <div
-        className={`main-side-console-input ${!runButtonEnabled ? 'disabled' : ''}`}
-      >
-        <Form.Item name="prompt" style={{ margin: 0 }}>
-          <TextArea
-            className="main-side-console-input-textarea"
-            disabled={!runButtonEnabled}
-            rows={2}
-            placeholder={placeholder}
-            autoFocus
-            onKeyDown={handleKeyDown}
-            ref={textAreaRef}
-          />
-        </Form.Item>
 
-        <div className="form-controller-wrapper">
+        <div className="action-icons">
+          <HistorySelector onSelect={handleSelectHistory} />
           <div
             className={
               hoveringSettings
@@ -233,8 +219,26 @@ export const PromptInput: React.FC<PromptInputProps> = ({
               showDeepThinkOption={selectedType === 'aiTap'}
             />
           </div>
-          {renderActionButton()}
         </div>
+      </Space>
+
+      {/* input box area */}
+      <div
+        className={`main-side-console-input ${!runButtonEnabled ? 'disabled' : ''}`}
+      >
+        <Form.Item name="prompt" style={{ margin: 0 }}>
+          <TextArea
+            className="main-side-console-input-textarea"
+            disabled={!runButtonEnabled}
+            rows={4}
+            placeholder={placeholder}
+            autoFocus
+            onKeyDown={handleKeyDown}
+            ref={textAreaRef}
+          />
+        </Form.Item>
+
+        <div className="form-controller-wrapper">{renderActionButton()}</div>
       </div>
     </div>
   );

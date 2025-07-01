@@ -509,7 +509,7 @@ export default class ScrcpyServer {
 
   // close server
   close() {
-    // 停止设备监控
+    // stop device monitoring
     if (this.devicePollInterval) {
       clearInterval(this.devicePollInterval);
       this.devicePollInterval = null;

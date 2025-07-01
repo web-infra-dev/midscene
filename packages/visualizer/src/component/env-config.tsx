@@ -5,9 +5,11 @@ import { useEnvConfig } from './store/store';
 
 export function EnvConfig({
   showTooltipWhenEmpty = true,
+  showModelName = true,
   tooltipPlacement = 'bottom',
 }: {
   showTooltipWhenEmpty?: boolean;
+  showModelName?: boolean;
   tooltipPlacement?: 'bottom' | 'top';
 }) {
   const { config, configString, loadConfig } = useEnvConfig();
@@ -18,6 +20,7 @@ export function EnvConfig({
   const showModal = (e: React.MouseEvent) => {
     setIsModalOpen(true);
     e.preventDefault();
+    e.stopPropagation();
   };
 
   const handleOk = () => {
@@ -42,16 +45,20 @@ export function EnvConfig({
       }}
       ref={componentRef}
     >
-      {midsceneModelName}
+      {showModelName ? midsceneModelName : null}
       <Tooltip
         title="Please set up your environment variables before using."
         placement={tooltipPlacement}
         align={{ offset: [-10, 5] }}
         open={
           // undefined for default behavior of tooltip, hover for show
-          showTooltipWhenEmpty ? Object.keys(config).length === 0 : undefined
+          // close tooltip when modal is open
+          isModalOpen
+            ? false
+            : showTooltipWhenEmpty
+              ? Object.keys(config).length === 0
+              : undefined
         }
-        getPopupContainer={() => componentRef.current!}
       >
         <SettingOutlined onClick={showModal} />
       </Tooltip>
@@ -61,7 +68,10 @@ export function EnvConfig({
         onOk={handleOk}
         onCancel={handleCancel}
         okText="Save"
-        style={{ width: '800px' }}
+        style={{ width: '800px', height: '100%', marginTop: '10%' }}
+        destroyOnClose={true}
+        maskClosable={true}
+        centered={true}
       >
         <Input.TextArea
           rows={7}
