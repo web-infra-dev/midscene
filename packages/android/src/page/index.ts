@@ -649,7 +649,9 @@ ${Object.keys(size)
 
     // Use adjusted coordinates
     const { x: adjustedX, y: adjustedY } = this.adjustCoordinates(x, y);
-    await adb.shell(`input tap ${adjustedX} ${adjustedY}`);
+    await adb.shell(
+      `input swipe ${adjustedX} ${adjustedY} ${adjustedX} ${adjustedY} 150`,
+    );
   }
 
   private async mouseMove(x: number, y: number): Promise<void> {
