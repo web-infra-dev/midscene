@@ -74,7 +74,10 @@ export function EnvConfig({
         {mode === 'icon' ? (
           <SettingOutlined onClick={showModal} />
         ) : (
-          <span onClick={showModal} style={{ color: '#006AFF' }}>
+          <span
+            onClick={showModal}
+            style={{ color: '#006AFF', cursor: 'pointer' }}
+          >
             set up
           </span>
         )}
