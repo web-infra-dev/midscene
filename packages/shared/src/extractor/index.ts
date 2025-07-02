@@ -1,5 +1,7 @@
 import type { NodeType } from '../constants/index';
 
+import './patch';
+
 export interface ElementInfo {
   id: string;
   indexId: number;
