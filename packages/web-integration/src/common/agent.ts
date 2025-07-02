@@ -91,7 +91,8 @@ export interface PageAgentOpt {
   aiActionContext?: string;
 }
 
-export type WebPageAgentOpt = PageAgentOpt & {
+export type WebPageAgentOpt = PageAgentOpt & WebPageOpt;
+export type WebPageOpt = {
   waitForNavigationTimeout?: number;
   waitForNetworkIdleTimeout?: number;
 };
@@ -139,12 +140,12 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       (
         this.page as PuppeteerWebPage | PlaywrightWebPage
       ).waitForNavigationTimeout =
-        (this.opts as WebPageAgentOpt).waitForNavigationTimeout ||
+        (this.opts as WebPageAgentOpt).waitForNavigationTimeout ??
         DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT;
       (
         this.page as PuppeteerWebPage | PlaywrightWebPage
       ).waitForNetworkIdleTimeout =
-        (this.opts as WebPageAgentOpt).waitForNetworkIdleTimeout ||
+        (this.opts as WebPageAgentOpt).waitForNetworkIdleTimeout ??
         DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT;
     }
 

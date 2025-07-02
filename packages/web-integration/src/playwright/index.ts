@@ -13,7 +13,7 @@ const debug = getDebug('playwright:agent');
 
 export class PlaywrightAgent extends PageAgent<PlaywrightWebPage> {
   constructor(page: PlaywrightPage, opts?: WebPageAgentOpt) {
-    const webPage = new PlaywrightWebPage(page);
+    const webPage = new PlaywrightWebPage(page, opts);
     super(webPage, opts);
 
     const { forceSameTabNavigation = true } = opts ?? {};
