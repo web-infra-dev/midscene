@@ -73,15 +73,13 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
     );
   } else if (result?.error) {
     resultDataToShow = <pre>{result?.error}</pre>;
-  } else if (result && 'result' in result) {
+  } else if (result?.result !== undefined) {
     resultDataToShow =
       typeof result?.result === 'string' ? (
         <pre>{result?.result}</pre>
       ) : (
         <pre>{JSON.stringify(result?.result, null, 2)}</pre>
       );
-  } else {
-    resultDataToShow = 'Something went wrong with AI';
   }
 
   return (

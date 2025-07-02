@@ -1,14 +1,32 @@
-import { LoadingOutlined } from '@ant-design/icons';
+import {
+  CaretRightOutlined,
+  ClearOutlined,
+  LoadingOutlined,
+} from '@ant-design/icons';
+import Icon from '@ant-design/icons';
 import { ExtensionBridgePageBrowserSide } from '@midscene/web/bridge-mode-browser';
-import { Button, Spin } from 'antd';
+import { Button, List, Spin, Typography } from 'antd';
 import dayjs from 'dayjs';
 import { useEffect, useRef, useState } from 'react';
-import './bridge.less';
+import BridgeIcon from '../icons/bridge.svg?react';
+import PlayIcon from '../icons/play.svg?react';
+import {
+  clearStoredBridgeMessages,
+  getBridgeMsgsFromStorage,
+  storeBridgeMsgsToStorage,
+} from '../utils';
 import { iconForStatus } from './misc';
 
-interface BridgeLogItem {
-  time: string;
+import './bridge.less';
+
+const { Text } = Typography;
+
+interface BridgeMessageItem {
+  id: string;
+  type: 'system' | 'status';
   content: string;
+  timestamp: Date;
+  time: string;
 }
 
 const connectRetryInterval = 300;
@@ -101,22 +119,84 @@ export default function Bridge() {
   const [bridgeStatus, setBridgeStatus] = useState<BridgeStatus>('closed');
   const [taskStatus, setTaskStatus] = useState<string>('');
 
-  const [bridgeLog, setBridgeLog] = useState<BridgeLogItem[]>([]);
+  const [messageList, setMessageList] = useState<BridgeMessageItem[]>(() => {
+    // 从localStorage加载存储的消息
+    return getBridgeMsgsFromStorage();
+  });
+  const messageListRef = useRef<HTMLDivElement>(null);
 
-  const appendBridgeLog = (content: string) => {
-    setBridgeLog((prev) => [
-      ...prev,
-      {
+  // 用于追踪连接状态消息的ID - 改用useRef确保同步更新
+  const connectionStatusMessageId = useRef<string | null>(null);
+
+  // 初始化时恢复connectionStatusMessageId
+  useEffect(() => {
+    if (messageList.length > 0) {
+      // 找到最后一条status类型的消息作为当前连接状态消息
+      const lastStatusMessage = messageList
+        .slice()
+        .reverse()
+        .find((msg) => msg.type === 'status');
+
+      // 只有当存在未完成的连接会话时才恢复ID
+      // 检查最后一条消息是否表明连接已结束
+      if (lastStatusMessage) {
+        const lastContent = lastStatusMessage.content.toLowerCase();
+        const isConnectionEnded =
+          lastContent.includes('closed') ||
+          lastContent.includes('stopped') ||
+          lastContent.includes('disconnect');
+
+        if (!isConnectionEnded) {
+          connectionStatusMessageId.current = lastStatusMessage.id;
+        }
+      }
+    }
+  }, []);
+
+  // 保存消息到localStorage
+  useEffect(() => {
+    storeBridgeMsgsToStorage(messageList);
+  }, [messageList]);
+
+  const appendBridgeMessage = (
+    content: string,
+    type: 'system' | 'status' = 'system',
+  ) => {
+    // 如果已有连接状态消息，无论是什么类型的消息都追加到现有消息中
+    if (connectionStatusMessageId.current) {
+      setMessageList((prev) =>
+        prev.map((msg) =>
+          msg.id === connectionStatusMessageId.current
+            ? {
+                ...msg,
+                content: `${msg.content}\n${dayjs().format('HH:mm:ss.SSS')} - ${content}`,
+                timestamp: new Date(),
+                time: dayjs().format('HH:mm:ss.SSS'),
+              }
+            : msg,
+        ),
+      );
+    } else {
+      // 创建新消息（只有在没有活跃连接时）
+      const newMessage: BridgeMessageItem = {
+        id: `message-${Date.now()}`,
+        type: 'status', // 连接会话消息统一设为status类型
+        content: `${dayjs().format('HH:mm:ss.SSS')} - ${content}`,
+        timestamp: new Date(),
         time: dayjs().format('HH:mm:ss.SSS'),
-        content,
-      },
-    ]);
+      };
+
+      // 设置连接状态消息ID，后续所有消息都会追加到这条消息
+      connectionStatusMessageId.current = newMessage.id;
+      setMessageList((prev) => [...prev, newMessage]);
+    }
   };
 
   const activeBridgeConnectorRef = useRef<BridgeConnector | null>(
     new BridgeConnector(
       (message, type) => {
-        appendBridgeLog(message);
+        // 所有bridge消息都作为状态消息处理，追加到当前连接会话
+        appendBridgeMessage(message, 'status');
         if (type === 'status') {
           console.log('status tip changed event', type, message);
           setTaskStatus(message);
@@ -126,8 +206,10 @@ export default function Bridge() {
         console.log('status changed event', status);
         setTaskStatus('');
         setBridgeStatus(status);
+
+        // 所有状态变化也追加到当前连接会话
         if (status !== 'connected') {
-          appendBridgeLog(`Bridge status changed to ${status}`);
+          appendBridgeMessage(`Bridge status changed to ${status}`, 'status');
         }
       },
     ),
@@ -144,12 +226,35 @@ export default function Bridge() {
   };
 
   const startConnection = async () => {
+    // 只有在开始新连接时才重置状态消息ID，这样会创建新的消息
+    if (bridgeStatus === 'closed') {
+      connectionStatusMessageId.current = null;
+    }
     activeBridgeConnectorRef.current?.keepListening();
   };
 
-  let statusIcon: any;
+  // 清空消息列表
+  const clearMessageList = () => {
+    setMessageList([]);
+    connectionStatusMessageId.current = null;
+    clearStoredBridgeMessages();
+  };
+
+  // scroll to bottom when message list updated
+  useEffect(() => {
+    if (messageList.length > 0) {
+      setTimeout(() => {
+        if (messageListRef.current) {
+          messageListRef.current.scrollTop =
+            messageListRef.current.scrollHeight;
+        }
+      }, 100);
+    }
+  }, [messageList]);
+
+  let statusIcon;
   let statusTip: string;
-  let statusBtn: any;
+  let statusBtn;
   if (bridgeStatus === 'closed') {
     statusIcon = iconForStatus('closed');
     statusTip = 'Closed';
@@ -166,7 +271,7 @@ export default function Bridge() {
   } else if (bridgeStatus === 'listening' || bridgeStatus === 'disconnected') {
     statusIcon = (
       <Spin
-        className="bridge-status-icon"
+        className="status-loading-icon"
         indicator={<LoadingOutlined spin />}
         size="small"
       />
@@ -175,13 +280,18 @@ export default function Bridge() {
       bridgeStatus === 'listening'
         ? 'Listening for connection...'
         : 'Disconnected, listening for a new connection...';
-    statusBtn = <Button onClick={stopConnection}>Stop</Button>;
+    statusBtn = (
+      <Button className="stop-button" onClick={stopConnection}>
+        Stop
+      </Button>
+    );
   } else if (bridgeStatus === 'connected') {
     statusIcon = iconForStatus('connected');
-    statusTip = taskStatus ? `Connected - ${taskStatus}` : 'Connected';
+    statusTip = 'Connected';
 
     statusBtn = (
       <Button
+        className="stop-button"
         onClick={() => {
           stopConnection();
         }}
@@ -195,25 +305,9 @@ export default function Bridge() {
     statusBtn = null;
   }
 
-  const logs = [...bridgeLog].reverse().map((log, index) => {
-    return (
-      <div className="bridge-log-item" key={index}>
-        <div
-          className="bridge-log-item-content"
-          style={{
-            fontVariantNumeric: 'tabular-nums',
-            fontFeatureSettings: 'tnum',
-          }}
-        >
-          {log.time} - {log.content}
-        </div>
-      </div>
-    );
-  });
-
   return (
-    <div>
-      <p>
+    <div className="bridge-mode-container">
+      <p className="bridge-mode-description">
         In Bridge Mode, you can control this browser by the Midscene SDK running
         in the local terminal. This is useful for interacting both through
         scripts and manually, or to reuse cookies.{' '}
@@ -227,34 +321,73 @@ export default function Bridge() {
       </p>
 
       <div className="playground-form-container">
-        <div className="form-part">
-          <h3>Bridge Status</h3>
-          <div className="bridge-status-bar">
-            <div className="bridge-status-text">
-              <span className="bridge-status-icon">{statusIcon}</span>
-              <span className="bridge-status-tip">{statusTip}</span>
-            </div>
-            <div className="bridge-status-btn">{statusBtn}</div>
-          </div>
-        </div>
-        <div className="form-part">
-          <h3>
-            Bridge Log{' '}
+        <div className="form-part" />
+        {messageList.length > 0 && (
+          <div className="clear-button-container">
             <Button
+              size="small"
+              icon={<ClearOutlined />}
+              onClick={clearMessageList}
               type="text"
-              onClick={() => setBridgeLog([])}
-              style={{
-                marginLeft: '6px',
-                display: logs.length > 0 ? 'inline-block' : 'none',
-              }}
-            >
-              clear
-            </Button>
-          </h3>
-          <div className="bridge-log-container">
-            {logs.length === 0 ? <p>No logs yet</p> : logs}
+              className="clear-button"
+            />
+          </div>
+        )}
+        {/* middle dialog area */}
+        <div className="middle-dialog-area">
+          <div ref={messageListRef} className="info-list-container">
+            {messageList.length > 0 && (
+              <List
+                itemLayout="vertical"
+                dataSource={messageList}
+                renderItem={(item) => (
+                  <List.Item key={item.id} className="list-item">
+                    <div className="system-message-container">
+                      <div className="mode-header">
+                        <div className="mode-icon">
+                          <Icon component={BridgeIcon} />
+                        </div>
+                        <span className="mode-title">Bridge Mode</span>
+                      </div>
+                      <div className="system-message-content">
+                        <div className="message-body">
+                          <div className="system-message-text">
+                            {item.content}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </List.Item>
+                )}
+              />
+            )}
           </div>
         </div>
+      </div>
+
+      {/* 底部按钮 */}
+      <div className="bottom-button-container">
+        {bridgeStatus === 'closed' ? (
+          <Button
+            type="primary"
+            className="bottom-action-button"
+            icon={<PlayIcon />}
+            onClick={() => {
+              startConnection();
+            }}
+          >
+            Allow Connection
+          </Button>
+        ) : (
+          <div className="bottom-status-bar">
+            <div className="bottom-status-text">
+              <span className="bottom-status-icon">{statusIcon}</span>
+              <span className="bottom-status-tip">{statusTip}</span>
+            </div>
+            <div className="bottom-status-divider" />
+            <div className="bottom-status-btn">{statusBtn}</div>
+          </div>
+        )}
       </div>
     </div>
   );

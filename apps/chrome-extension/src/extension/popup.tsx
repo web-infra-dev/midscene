@@ -14,7 +14,6 @@ import '@midscene/visualizer/index.css';
 import { ConfigProvider, Dropdown, Typography } from 'antd';
 import { useState } from 'react';
 import { BrowserExtensionPlayground } from '../component/playground';
-import { getExtensionVersion } from '../utils';
 import Bridge from './bridge';
 import Recorder from './recorder';
 import './popup.less';
@@ -31,10 +30,7 @@ const extensionAgentForTab = (forceSameTabNavigation = true) => {
   return new ChromeExtensionProxyPageAgent(page);
 };
 
-declare const __SDK_VERSION__: string;
-
 export function PlaygroundPopup() {
-  const extensionVersion = getExtensionVersion();
   const { setPopupTab } = useEnvConfig();
   const [currentMode, setCurrentMode] = useState<'playground' | 'bridge'>(
     'playground',
@@ -67,7 +63,7 @@ export function PlaygroundPopup() {
         <div className="popup-content bridge-mode">
           <div className="mode-header">
             <div className="mode-icon">
-              <ApiOutlined />
+              <ApiOutlined style={{ fontSize: '12px' }} />
             </div>
             <h2 className="mode-title">Bridge Mode</h2>
           </div>

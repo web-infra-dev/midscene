@@ -251,3 +251,46 @@ export const clearStoredMessages = () => {
   localStorage.removeItem(MSG_STORAGE_KEY);
   clearStoredResults();
 };
+
+// Bridge storage utilities
+const BRIDGE_MSG_STORAGE_KEY = 'midscene_bridge_msgs';
+
+// get bridge messages from localStorage
+export const getBridgeMsgsFromStorage = () => {
+  const stored = localStorage.getItem(BRIDGE_MSG_STORAGE_KEY);
+  if (stored) {
+    try {
+      return JSON.parse(stored).map((item: any) => ({
+        ...item,
+        timestamp: new Date(item.timestamp),
+      }));
+    } catch {
+      return [];
+    }
+  }
+  return [];
+};
+
+// store bridge messages to localStorage
+export const storeBridgeMsgsToStorage = (messageList: any[]) => {
+  try {
+    const msgs = messageList
+      .filter((item) => item.type === 'system' || item.type === 'status')
+      .map((item) => ({
+        id: item.id,
+        type: item.type,
+        content: item.content,
+        timestamp: item.timestamp,
+        time: item.time,
+      }));
+
+    localStorage.setItem(BRIDGE_MSG_STORAGE_KEY, JSON.stringify(msgs));
+  } catch (e) {
+    console.warn('Failed to store bridge messages:', e);
+  }
+};
+
+// clear stored bridge messages
+export const clearStoredBridgeMessages = () => {
+  localStorage.removeItem(BRIDGE_MSG_STORAGE_KEY);
+};

@@ -21,6 +21,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import PlaygroundIcon from '../icons/playground.svg?react';
 import {
   clearStoredMessages,
+  getExtensionVersion,
   getMsgsFromStorage,
   storeMsgsToStorage,
   storeResult,
@@ -63,7 +64,7 @@ const formatErrorMessage = (e: any): string => {
 
 // Blank result template
 const blankResult = {
-  result: null,
+  result: undefined,
   dump: null,
   reportHTML: null,
   error: null,
@@ -81,7 +82,7 @@ const WELCOME_MSG: InfoListItem = {
     `,
   timestamp: new Date(),
   loading: false,
-  result: null,
+  result: undefined,
   replayScriptsInfo: null,
   replayCounter: 0,
   loadingProgressText: '',
@@ -95,6 +96,7 @@ export function BrowserExtensionPlayground({
   dryMode = false,
 }: PlaygroundProps) {
   // State management
+  const extensionVersion = getExtensionVersion();
   const [uiContextPreview, setUiContextPreview] = useState<
     UIContext | undefined
   >(undefined);
@@ -467,20 +469,18 @@ export function BrowserExtensionPlayground({
 
         {/* middle dialog list area */}
         <div className="middle-dialog-area">
+          {infoList.length > 0 && (
+            <div className="clear-button-container">
+              <Button
+                size="small"
+                icon={<ClearOutlined />}
+                onClick={clearInfoList}
+                type="text"
+                className="clear-button"
+              />
+            </div>
+          )}
           <div ref={infoListRef} className="info-list-container">
-            {infoList.length > 0 && (
-              <div className="clear-button-container">
-                <Button
-                  size="small"
-                  icon={<ClearOutlined />}
-                  onClick={clearInfoList}
-                  type="text"
-                  className="clear-button"
-                >
-                  Clear
-                </Button>
-              </div>
-            )}
             <List
               itemLayout="vertical"
               dataSource={infoList}
@@ -516,11 +516,17 @@ export function BrowserExtensionPlayground({
                                 {action}
                                 <span
                                   className={`progress-status-icon ${
-                                    shouldShowLoading ? 'loading' : 'completed'
+                                    shouldShowLoading
+                                      ? 'loading'
+                                      : item.result?.error
+                                        ? 'error'
+                                        : 'completed'
                                   }`}
                                 >
                                   {shouldShowLoading ? (
                                     <LoadingOutlined spin />
+                                  ) : item.result?.error ? (
+                                    '✗'
                                   ) : (
                                     '✓'
                                   )}
@@ -532,6 +538,12 @@ export function BrowserExtensionPlayground({
                                 <span className="progress-description">
                                   {description}
                                 </span>
+                              </div>
+                            )}
+                            {item.result?.error && (
+                              <div className="error-message">
+                                <div className="divider" />
+                                Error: {item.result.error}
                               </div>
                             )}
                           </>
@@ -625,6 +637,13 @@ export function BrowserExtensionPlayground({
             onRun={handleRun}
             onStop={handleStop}
           />
+        </div>
+
+        {/* version info section */}
+        <div className="version-info-section">
+          <span className="version-text">
+            Midscene.js version: {extensionVersion}
+          </span>
         </div>
 
         <div ref={runResultRef} className="hidden-result-ref" />

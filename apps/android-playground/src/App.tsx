@@ -43,7 +43,7 @@ export default function App() {
   const [messageApi, contextHolder] = message.useMessage();
   const [connectionReady, setConnectionReady] = useState(false);
   const [result, setResult] = useState<PlaygroundResult | null>({
-    result: null,
+    result: undefined,
     dump: null,
     reportHTML: null,
     error: null,

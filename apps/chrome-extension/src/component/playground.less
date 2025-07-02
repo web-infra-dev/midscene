@@ -2,10 +2,6 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-
-  &.vertical-mode {
-    // 垂直模式的特定样式
-  }
 }
 
 .command-form {
@@ -31,9 +27,9 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  padding-top: 16px;
   padding-bottom: 16px;
 
-  /* Ant Design List customization */
   .ant-list {
     .ant-list-item {
       border-bottom: none;
@@ -60,26 +56,11 @@
     }
   }
 
-  /* hide scrollbar */
   &::-webkit-scrollbar {
     display: none;
   }
 
-  /* Firefox hide scrollbar */
   scrollbar-width: none;
-}
-
-.clear-button-container {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  margin-top: 12px;
-  margin-bottom: 12px;
-  padding: 0 4px;
-}
-
-.clear-button {
-  color: #999;
 }
 
 .list-item {
@@ -129,6 +110,11 @@
 
   &.completed {
     color: #52c41a;
+  }
+
+  &.error {
+    color: #ff4d4f;
+    font-weight: bold;
   }
 }
 
@@ -218,7 +204,6 @@
   display: none;
 }
 
-/* Playground header and description styles moved from popup.less */
 .playground-header,
 .mode-header {
   display: flex;
@@ -228,9 +213,9 @@
 
   .playground-icon,
   .mode-icon {
-    width: 40px;
-    height: 40px;
-    background: #1890ff;
+    width: 20px;
+    height: 20px;
+    background: #FFA53C;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -241,10 +226,10 @@
 
   .playground-title,
   .mode-title {
-    font-size: 24px;
-    font-weight: 600;
+    font-size: 12px;
+    font-weight: 400;
     margin: 0;
-    color: #333333;
+    color: #000;
   }
 }
 
@@ -311,7 +296,6 @@
   min-height: 0;
 }
 
-/* 配置提醒样式 */
 .config-reminder {
   background: rgba(255, 242, 232, 1);
   border-radius: 12px;
@@ -334,7 +318,6 @@
   }
 }
 
-/* scroll to bottom button */
 .scroll-to-bottom-button {
   position: absolute;
   bottom: 5px;
@@ -356,5 +339,41 @@
   .anticon {
     font-size: 16px;
     color: #333333;
+  }
+}
+
+.version-info-section {
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.version-text {
+  font-size: 12px;
+  color: #999;
+  text-align: center;
+}
+
+.error-message {
+  color: #E51723;
+  word-break: break-word;
+  background-color: #fff;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  font-size: 14px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: flex-start;
+
+  .divider {
+    width: 1px;
+    background-color: #E6E8EB;
+    margin: 0 8px 0 0;
+    flex-shrink: 0;
+    align-self: stretch;
+    min-height: 20px;
   }
 }
