@@ -15,7 +15,7 @@ import type { WebKeyInput } from '../common/page';
 import type { AbstractPage } from '../page';
 import type { MouseButton } from '../page';
 
-const debugPage = getDebug('web:page');
+export const debugPage = getDebug('web:page');
 
 export class Page<
   AgentType extends 'puppeteer' | 'playwright',
@@ -67,6 +67,11 @@ export class Page<
   }
 
   async waitForNavigation() {
+    if (this.waitForNavigationTimeout === 0) {
+      debugPage('waitForNavigation timeout is 0, skip waiting');
+      return;
+    }
+
     // issue: https://github.com/puppeteer/puppeteer/issues/3323
     if (this.pageType === 'puppeteer' || this.pageType === 'playwright') {
       debugPage('waitForNavigation begin');

@@ -12,7 +12,7 @@ export type { AndroidDeviceInputOpt };
 
 export class PuppeteerAgent extends PageAgent<PuppeteerWebPage> {
   constructor(page: PuppeteerPage, opts?: WebPageAgentOpt) {
-    const webPage = new PuppeteerWebPage(page);
+    const webPage = new PuppeteerWebPage(page, opts);
     super(webPage, opts);
 
     const { forceSameTabNavigation = true } = opts ?? {};

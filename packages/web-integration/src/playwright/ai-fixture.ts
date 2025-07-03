@@ -1,8 +1,12 @@
 import { randomUUID } from 'node:crypto';
-import type { PageAgent, PageAgentOpt } from '@/common/agent';
+import type { PageAgent, PageAgentOpt, WebPageAgentOpt } from '@/common/agent';
 import { replaceIllegalPathCharsAndSpace } from '@/common/utils';
 import { PlaywrightAgent } from '@/playwright/index';
 import type { AgentWaitForOpt } from '@midscene/core';
+import {
+  DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
+  DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
+} from '@midscene/shared/constants';
 import { getDebug } from '@midscene/shared/logger';
 import { type TestInfo, type TestType, test } from '@playwright/test';
 import type { Page as OriginPlaywrightPage } from 'playwright';
@@ -41,14 +45,18 @@ export const midsceneDumpAnnotationId = 'MIDSCENE_DUMP_ANNOTATION';
 export const PlaywrightAiFixture = (options?: {
   forceSameTabNavigation?: boolean;
   waitForNetworkIdleTimeout?: number;
+  waitForNavigationTimeout?: number;
 }) => {
-  const { forceSameTabNavigation = true, waitForNetworkIdleTimeout = 1000 } =
-    options ?? {};
+  const {
+    forceSameTabNavigation = true,
+    waitForNetworkIdleTimeout = DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
+    waitForNavigationTimeout = DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
+  } = options ?? {};
   const pageAgentMap: Record<string, PageAgent> = {};
   const createOrReuseAgentForPage = (
     page: OriginPlaywrightPage,
     testInfo: TestInfo, // { testId: string; taskFile: string; taskTitle: string },
-    opts?: PageAgentOpt,
+    opts?: WebPageAgentOpt,
   ) => {
     let idForPage = (page as any)[midsceneAgentKeyId];
     if (!idForPage) {
@@ -99,7 +107,10 @@ export const PlaywrightAiFixture = (options?: {
       | 'aiAsk';
   }) {
     const { page, testInfo, use, aiActionType } = options;
-    const agent = createOrReuseAgentForPage(page, testInfo) as PlaywrightAgent;
+    const agent = createOrReuseAgentForPage(page, testInfo, {
+      waitForNavigationTimeout,
+      waitForNetworkIdleTimeout,
+    }) as PlaywrightAgent;
 
     await use(async (taskPrompt: string, ...args: any[]) => {
       return new Promise((resolve, reject) => {
@@ -158,11 +169,11 @@ export const PlaywrightAiFixture = (options?: {
           propsPage?: OriginPlaywrightPage | undefined,
           opts?: PageAgentOpt,
         ) => {
-          const agent = createOrReuseAgentForPage(
-            propsPage || page,
-            testInfo,
-            opts,
-          );
+          const agent = createOrReuseAgentForPage(propsPage || page, testInfo, {
+            waitForNavigationTimeout,
+            waitForNetworkIdleTimeout,
+            ...opts,
+          });
           return agent;
         },
       );

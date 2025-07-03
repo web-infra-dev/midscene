@@ -20,8 +20,8 @@ These Agents share some common constructor parameters:
 In Playwright and Puppeteer, there are some common parameters:
 
 - `forceSameTabNavigation: boolean`: If true, page navigation is restricted to the current tab. (Default: true)
-- `waitForNetworkIdleTimeout: number`: The timeout for waiting for network idle between each action. (Default: 2000ms, set to 0 to disable the timeout)
-- `waitForNavigationTimeout: number`: The timeout for waiting for navigation finished. (Default: 5000ms, set to 0 to disable the timeout)
+- `waitForNetworkIdleTimeout: number`: The timeout for waiting for network idle between each action. (Default: 2000ms, set to 0 means not waiting for network idle)
+- `waitForNavigationTimeout: number`: The timeout for waiting for navigation finished. (Default: 5000ms, set to 0 means not waiting for navigation finished)
 
 ## Interaction Methods
 
