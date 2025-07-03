@@ -84,7 +84,7 @@ export function collectElementInfo(
       ];
 
       // Retrieve the text content of the selected option
-      valueContent = selectedOption.textContent || '';
+      valueContent = selectedOption?.textContent || '';
     }
 
     if (
