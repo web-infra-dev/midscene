@@ -55,6 +55,14 @@ jobs:
       run: node ./scripts/release.js --version=${{ github.event.inputs.version }}
       env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    
+    - name: Get latest tag
+      id: get_tag
+      run: |
+        git fetch --tags
+        LATEST_TAG=$(git describe --tags --abbrev=0)
+        echo "tag=${LATEST_TAG}" >> $GITHUB_OUTPUT
+        echo "Latest tag: ${LATEST_TAG}"
           
     - name: Upload output
       uses: actions/upload-artifact@v4
@@ -66,7 +74,7 @@ jobs:
     - name: Upload Release Assets
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ github.event.inputs.version }}
+        tag_name: ${{ steps.get_tag.outputs.tag }}
         files: |
           ${{ github.workspace }}/apps/chrome-extension/extension_output/**/*.zip
           ${{ github.workspace }}/apps/chrome-extension/extension_output/**/*.tar.gz
