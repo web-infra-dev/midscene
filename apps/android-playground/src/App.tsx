@@ -403,7 +403,17 @@ export default function App() {
                           onStop={handleStop}
                         />
                       </div>
-                      <div className="result-container">
+                      <div
+                        className="result-container"
+                        style={
+                          result
+                            ? {}
+                            : {
+                                border: '1px solid #0000001f',
+                                borderRadius: '8px',
+                              }
+                        }
+                      >
                         <PlaygroundResultView
                           result={result}
                           loading={loading}
