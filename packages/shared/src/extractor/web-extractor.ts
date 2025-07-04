@@ -30,11 +30,11 @@ let indexId = 0;
 function tagNameOfNode(node: globalThis.Node): string {
   let tagName = '';
   if (node instanceof HTMLElement) {
-    tagName = node.tagName.toLowerCase();
+    tagName = node.tagName?.toLowerCase();
   } else {
     const parentElement = node.parentElement;
     if (parentElement && parentElement instanceof HTMLElement) {
-      tagName = parentElement.tagName.toLowerCase();
+      tagName = parentElement.tagName?.toLowerCase();
     }
   }
 
@@ -84,7 +84,7 @@ export function collectElementInfo(
       ];
 
       // Retrieve the text content of the selected option
-      valueContent = selectedOption.textContent || '';
+      valueContent = selectedOption?.textContent || '';
     }
 
     if (
@@ -162,7 +162,7 @@ export function collectElementInfo(
       nodeHashId,
       attributes: {
         ...attributes,
-        ...(node.nodeName.toLowerCase() === 'svg'
+        ...(node.nodeName?.toLowerCase() === 'svg'
           ? {
               svgContent: 'true',
             }
