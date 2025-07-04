@@ -280,15 +280,28 @@ export function StandardPlayground({
         </Panel>
         <PanelResizeHandle className="panel-resize-handle" />
         <Panel>
-          <PlaygroundResultView
-            result={result}
-            loading={loading}
-            serverValid={serverValid}
-            serviceMode={serviceMode}
-            replayScriptsInfo={replayScriptsInfo}
-            replayCounter={replayCounter}
-            loadingProgressText={loadingProgressText}
-          />
+          <div
+            className="playground-result-view-container"
+            style={
+              result
+                ? {}
+                : {
+                    border: '1px solid #0000001f',
+                    borderRadius: '8px',
+                    height: '90vh',
+                  }
+            }
+          >
+            <PlaygroundResultView
+              result={result}
+              loading={loading}
+              serverValid={serverValid}
+              serviceMode={serviceMode}
+              replayScriptsInfo={replayScriptsInfo}
+              replayCounter={replayCounter}
+              loadingProgressText={loadingProgressText}
+            />
+          </div>
         </Panel>
       </PanelGroup>
     </div>

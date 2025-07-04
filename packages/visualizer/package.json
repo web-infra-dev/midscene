@@ -64,12 +64,12 @@
     "access": "public"
   },
   "dependencies": {
-    "buffer": "6.0.3",
     "@ant-design/icons": "^5.3.1",
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
     "@midscene/web": "workspace:*",
     "antd": "^5.21.6",
+    "buffer": "6.0.3",
     "dayjs": "^1.11.11"
   },
   "license": "MIT"

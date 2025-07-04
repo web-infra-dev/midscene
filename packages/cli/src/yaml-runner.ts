@@ -85,7 +85,7 @@ export async function playYamlFiles(
         }
 
         if (!webTarget.bridgeMode) {
-          // 使用 puppeteer
+          // use puppeteer
           const { agent, freeFn: newFreeFn } = await puppeteerAgentForTarget(
             webTarget,
             preference,

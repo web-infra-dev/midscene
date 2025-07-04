@@ -90,6 +90,7 @@ export const ServiceModeControl: React.FC<ServiceModeControlProps> = ({
         style={{
           display: 'flex',
           alignItems: 'center',
+          justifyContent: 'space-between',
           gap: '10px',
         }}
       >

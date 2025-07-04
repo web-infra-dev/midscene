@@ -3,6 +3,7 @@ import { defineConfig } from '@rsbuild/core';
 import { pluginLess } from '@rsbuild/plugin-less';
 import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
 import { pluginReact } from '@rsbuild/plugin-react';
+import { pluginSvgr } from '@rsbuild/plugin-svgr';
 import { pluginTypeCheck } from '@rsbuild/plugin-type-check';
 import { version } from '../../packages/visualizer/package.json';
 
@@ -83,6 +84,7 @@ export default defineConfig({
     pluginReact(),
     pluginNodePolyfill(),
     pluginLess(),
+    pluginSvgr(),
     // pluginTypeCheck({
     //   // Enable type checking for both development and production builds
     //   enable: true,

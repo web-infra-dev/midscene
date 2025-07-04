@@ -171,6 +171,7 @@ export function Player(props?: {
   imageHeight?: number;
   reportFileContent?: string | null;
   key?: string | number;
+  fitMode?: 'width' | 'height'; // 'width': width adaptive, 'height': height adaptive, default to 'height'
 }) {
   const [titleText, setTitleText] = useState('');
   const [subTitleText, setSubTitleText] = useState('');
@@ -178,6 +179,7 @@ export function Player(props?: {
   const scripts = props?.replayScripts;
   const imageWidth = props?.imageWidth || 1920;
   const imageHeight = props?.imageHeight || 1080;
+  const fitMode = props?.fitMode || 'height'; // default to height adaptive
   const currentImg = useRef<string | null>(scripts?.[0]?.img || null);
 
   const divContainerRef = useRef<HTMLDivElement>(null);
@@ -766,6 +768,27 @@ export function Player(props?: {
     Promise.resolve(
       (async () => {
         await init();
+
+        // dynamically set the aspect ratio and fit mode of the container
+        if (divContainerRef.current && imageWidth && imageHeight) {
+          const aspectRatio = imageWidth / imageHeight;
+          divContainerRef.current.style.setProperty(
+            '--canvas-aspect-ratio',
+            aspectRatio.toString(),
+          );
+
+          // set adaptive mode for canvas container
+          divContainerRef.current.setAttribute('data-fit-mode', fitMode);
+
+          // set adaptive mode for player container (for background color switching)
+          const playerContainer = divContainerRef.current.closest(
+            '.player-container',
+          ) as HTMLElement;
+          if (playerContainer) {
+            playerContainer.setAttribute('data-fit-mode', fitMode);
+          }
+        }
+
         triggerReplay();
       })(),
     );
@@ -777,7 +800,7 @@ export function Player(props?: {
         console.warn('destroy failed', e);
       }
     };
-  }, []);
+  }, [imageWidth, imageHeight, fitMode]);
 
   useEffect(() => {
     if (replayMark) {

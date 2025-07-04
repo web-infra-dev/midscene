@@ -336,8 +336,8 @@ export function App() {
             (node) =>
               node.nodeType === Node.ELEMENT_NODE &&
               node.nodeName === 'SCRIPT' &&
-              (node as HTMLElement).getAttribute('midscene_type') ===
-                'web_dump',
+              (node as HTMLElement).getAttribute('type') ===
+                'midscene_web_dump',
           );
 
           if (hasDumpScripts) {
