@@ -58,7 +58,7 @@ function isIconfont(node: globalThis.Node): boolean {
 export function isTextElement(
   node: globalThis.Node,
 ): node is globalThis.HTMLTextAreaElement {
-  return node.nodeName.toLowerCase() === '#text' && !isIconfont(node);
+  return node.nodeName?.toLowerCase() === '#text' && !isIconfont(node);
 }
 
 export function isContainerElement(
