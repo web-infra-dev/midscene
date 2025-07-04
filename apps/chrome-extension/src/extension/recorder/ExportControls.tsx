@@ -187,7 +187,9 @@ export const ExportControls: React.FC<{
           };
           completedCount++;
 
-          const progress = Math.round((completedCount / eventsNeedingDescriptions.length) * 100);
+          const progress = Math.round(
+            (completedCount / eventsNeedingDescriptions.length) * 100,
+          );
           updateProgressStep(stepIndex, {
             status: 'loading',
             progress,
@@ -323,10 +325,10 @@ export const ExportControls: React.FC<{
         type === 'playwright'
           ? await generatePlaywrightTest(finalEvents)
           : await generateYamlTest(finalEvents, {
-            testName: currentSessionName,
-            description: `Test session recorded on ${new Date().toLocaleDateString()}`,
-            includeTimestamps: true,
-          });
+              testName: currentSessionName,
+              description: `Test session recorded on ${new Date().toLocaleDateString()}`,
+              includeTimestamps: true,
+            });
 
       // Update session with generated code if sessionId exists
       if (sessionId) {

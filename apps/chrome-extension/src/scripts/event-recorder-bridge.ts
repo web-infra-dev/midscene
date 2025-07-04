@@ -142,7 +142,10 @@ async function updateIdleScreenshot(): Promise<void> {
         }
       }
     } catch (error) {
-      console.debug('[EventRecorder Bridge] Failed to update idle screenshot:', error);
+      console.debug(
+        '[EventRecorder Bridge] Failed to update idle screenshot:',
+        error,
+      );
     }
   }
 }
@@ -153,7 +156,10 @@ function startPageChangeMonitoring(): void {
     clearInterval(pageChangeDetectionInterval);
   }
 
-  pageChangeDetectionInterval = setInterval(updateIdleScreenshot, PAGE_CHANGE_CHECK_INTERVAL);
+  pageChangeDetectionInterval = setInterval(
+    updateIdleScreenshot,
+    PAGE_CHANGE_CHECK_INTERVAL,
+  );
 }
 
 // Function to stop page change monitoring
@@ -177,7 +183,7 @@ async function initializeRecorder(sessionId: string): Promise<void> {
     async (event: ChromeRecordedEvent) => {
       // Update last activity time when new event occurs
       lastActivityTime = Date.now();
-      
+
       const optimizedEvent = window.recorder!.optimizeEvent(event, events);
 
       // Add event to local array
@@ -218,48 +224,60 @@ async function sendEventsToExtension(
       // For immediate sends or page unloading, use existing screenshots with fallback logic
       if (optimizedEvent.length > 1) {
         let screenshotBefore = previousEvent.screenshotAfter;
-        
+
         // If previousEvent screenshot is not available, try to use lastScreenshot as fallback
         if (!screenshotBefore && lastScreenshot) {
           screenshotBefore = lastScreenshot;
-          console.log('[EventRecorder Bridge] Using lastScreenshot as fallback for immediate beforeScreen');
+          console.log(
+            '[EventRecorder Bridge] Using lastScreenshot as fallback for immediate beforeScreen',
+          );
         }
-        
+
         latestEvent.screenshotBefore = screenshotBefore || '';
-        
+
         if (!screenshotBefore) {
-          console.warn('[EventRecorder Bridge] No valid screenshot available for immediate beforeScreen');
+          console.warn(
+            '[EventRecorder Bridge] No valid screenshot available for immediate beforeScreen',
+          );
         }
       } else {
         // For first event, try to use initialScreenshot or lastScreenshot
-        latestEvent.screenshotBefore = (await initialScreenshot) || lastScreenshot || '';
+        latestEvent.screenshotBefore =
+          (await initialScreenshot) || lastScreenshot || '';
       }
-      
+
       // For screenshotAfter, try to use lastScreenshot or keep existing
       if (!latestEvent.screenshotAfter && lastScreenshot) {
         latestEvent.screenshotAfter = lastScreenshot;
-        console.log('[EventRecorder Bridge] Using lastScreenshot for immediate screenshotAfter');
+        console.log(
+          '[EventRecorder Bridge] Using lastScreenshot for immediate screenshotAfter',
+        );
       }
     } else {
       const screenshotAfter = await captureScreenshot();
       let screenshotBefore: string | undefined;
 
       if (optimizedEvent.length > 1) {
-        const timeSinceLastEvent = latestEvent.timestamp - previousEvent.timestamp;
-        
+        const timeSinceLastEvent =
+          latestEvent.timestamp - previousEvent.timestamp;
+
         // If too much time has passed since the last event, try to use the updated idle screenshot
         // but fall back to previousEvent.screenshotAfter if lastScreenshot is not available
         if (timeSinceLastEvent > MAX_IDLE_TIME && lastScreenshot) {
           screenshotBefore = lastScreenshot;
-          console.log('[EventRecorder Bridge] Using updated idle screenshot for beforeScreen due to long interval');
+          console.log(
+            '[EventRecorder Bridge] Using updated idle screenshot for beforeScreen due to long interval',
+          );
         } else {
           screenshotBefore = previousEvent.screenshotAfter;
         }
-        
+
         // Ensure we always have a valid screenshotBefore - fallback to previousEvent.screenshotAfter
         if (!screenshotBefore) {
           screenshotBefore = previousEvent.screenshotAfter;
-          console.log('[EventRecorder Bridge] Fallback to previous event screenshot for beforeScreen');
+          console.log(
+            '[EventRecorder Bridge] Fallback to previous event screenshot for beforeScreen',
+          );
         }
       } else {
         screenshotBefore = await initialScreenshot;
@@ -273,13 +291,19 @@ async function sendEventsToExtension(
       // Ensure we have valid screenshots before assigning
       latestEvent.screenshotAfter = screenshotAfter || lastScreenshot || '';
       latestEvent.screenshotBefore = screenshotBefore || '';
-      
+
       // Log warning if screenshots are missing
       if (!latestEvent.screenshotAfter) {
-        console.warn('[EventRecorder Bridge] Missing screenshotAfter for event:', latestEvent.type);
+        console.warn(
+          '[EventRecorder Bridge] Missing screenshotAfter for event:',
+          latestEvent.type,
+        );
       }
       if (!latestEvent.screenshotBefore) {
-        console.warn('[EventRecorder Bridge] Missing screenshotBefore for event:', latestEvent.type);
+        console.warn(
+          '[EventRecorder Bridge] Missing screenshotBefore for event:',
+          latestEvent.type,
+        );
       }
     }
 
@@ -318,7 +342,9 @@ async function sendEvents(events: ChromeRecordedEvent[]): Promise<void> {
   try {
     await chrome.runtime.sendMessage(message);
     eventSendStats.sent += events.length;
-    console.log(`[EventRecorder Bridge] Successfully sent ${events.length} events`);
+    console.log(
+      `[EventRecorder Bridge] Successfully sent ${events.length} events`,
+    );
   } catch (error) {
     const errorMsg = (error as Error).message;
     eventSendStats.failed += events.length;
@@ -350,17 +376,24 @@ chrome.runtime.onMessage.addListener(
         window.recorder.start();
         events = []; // Clear previous events
         lastActivityTime = Date.now(); // Reset activity time
-        
+
         // Initialize lastScreenshot with the initial screenshot
-        initialScreenshot.then(screenshot => {
-          if (screenshot) {
-            lastScreenshot = screenshot;
-            console.log('[EventRecorder Bridge] Initialized lastScreenshot with initial screenshot');
-          }
-        }).catch(error => {
-          console.debug('[EventRecorder Bridge] Failed to initialize lastScreenshot:', error);
-        });
-        
+        initialScreenshot
+          .then((screenshot) => {
+            if (screenshot) {
+              lastScreenshot = screenshot;
+              console.log(
+                '[EventRecorder Bridge] Initialized lastScreenshot with initial screenshot',
+              );
+            }
+          })
+          .catch((error) => {
+            console.debug(
+              '[EventRecorder Bridge] Failed to initialize lastScreenshot:',
+              error,
+            );
+          });
+
         startPageChangeMonitoring(); // Start monitoring page changes
         console.log(
           '[EventRecorder Bridge] Recording started successfully with session ID:',

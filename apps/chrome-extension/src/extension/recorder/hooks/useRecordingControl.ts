@@ -201,19 +201,18 @@ export const useRecordingControl = (
           },
         );
 
-
         const session = getCurrentSession();
         if (session) {
           if (currentTab?.id) {
-              await ensureScriptInjected(currentTab);
-              await safeChromeAPI.tabs.sendMessage(currentTab.id, {
-                action: 'start',
-                sessionId: session.id,
-              });
+            await ensureScriptInjected(currentTab);
+            await safeChromeAPI.tabs.sendMessage(currentTab.id, {
+              action: 'start',
+              sessionId: session.id,
+            });
             recordLogger.info('Recording re-established after navigation');
           }
         }
-      } 
+      }
     };
 
     safeChromeAPI.tabs.onUpdated.addListener(handleTabUpdate);
@@ -386,7 +385,9 @@ export const useRecordingControl = (
     const connectToServiceWorker = () => {
       try {
         // Connect to service worker for receiving events
-        port = safeChromeAPI.runtime.connect({ name: 'record-events' }) as chrome.runtime.Port;
+        port = safeChromeAPI.runtime.connect({
+          name: 'record-events',
+        }) as chrome.runtime.Port;
         isConnected = true;
 
         if (

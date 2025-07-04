@@ -235,7 +235,6 @@ describe(
       await reset();
     });
 
-
     it('descriptionOfTree with visibleOnly true', async () => {
       const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
         viewport: {
