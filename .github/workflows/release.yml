@@ -63,3 +63,11 @@ jobs:
         name: chrome_extension
         path: ${{ github.workspace }}/apps/chrome-extension/extension_output
         
+    - name: Upload Release Assets
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          ${{ github.workspace }}/apps/chrome-extension/extension_output/**/*.zip
+          ${{ github.workspace }}/apps/chrome-extension/extension_output/**/*.tar.gz
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

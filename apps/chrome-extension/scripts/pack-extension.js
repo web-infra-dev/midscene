@@ -2,15 +2,21 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import {
+  fileURLToPath
+} from 'node:url';
 import archiver from 'archiver';
 
 // Get the directory path of the current file
-const __filename = fileURLToPath(import.meta.url);
+const __filename = fileURLToPath(
+  import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Read package.json
-const packageJsonPath = path.resolve(__dirname, '../package.json');
+const packageJsonPath = path.resolve(
+  __dirname,
+  '../../../packages/core/package.json',
+);
 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
 
 // Validate version string to prevent injection
