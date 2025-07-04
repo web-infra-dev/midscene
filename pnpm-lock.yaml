@@ -193,6 +193,9 @@ importers:
       '@rsbuild/plugin-react':
         specifier: ^1.3.1
         version: 1.3.1(@rsbuild/core@1.3.22)
+      '@rsbuild/plugin-svgr':
+        specifier: ^1.1.1
+        version: 1.2.0(@rsbuild/core@1.3.22)(typescript@5.8.3)
       '@rsbuild/plugin-type-check':
         specifier: 1.2.3
         version: 1.2.3(@rsbuild/core@1.3.22)(@rspack/core@1.3.12)(typescript@5.8.3)
@@ -729,7 +732,7 @@ importers:
     devDependencies:
       '@modern-js/module-tools':
         specifier: 2.60.6
-        version: 2.60.6(debug@4.4.0)(typescript@5.8.3)
+        version: 2.60.6(typescript@5.8.3)
       '@modern-js/plugin-module-doc':
         specifier: ^2.33.1
         version: 2.33.1(@modern-js/core@2.67.2)(@modern-js/doc-tools@2.32.1(@types/express@4.17.21)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(ts-node@10.9.2(@types/node@18.19.62)(typescript@5.8.3))(tsconfig-paths@4.2.0)(type-fest@3.13.1)(typescript@5.8.3)(webpack@5.95.0))(@modern-js/module-tools@2.60.6(typescript@5.8.3))(@types/express@4.17.21)(@types/react@18.3.23)(react-dom@18.3.1(react@18.3.1))(react-router-dom@7.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(ts-node@10.9.2(@types/node@18.19.62)(typescript@5.8.3))(tsconfig-paths@4.2.0)(type-fest@3.13.1)(typescript@5.8.3)(webpack@5.95.0)
@@ -17041,6 +17044,40 @@ snapshots:
       - debug
       - supports-color
 
+  '@modern-js/module-tools@2.60.6(typescript@5.8.3)':
+    dependencies:
+      '@ampproject/remapping': 2.3.0
+      '@ast-grep/napi': 0.16.0
+      '@babel/core': 7.26.0
+      '@babel/types': 7.26.8
+      '@modern-js/core': 2.60.6
+      '@modern-js/plugin': 2.60.6
+      '@modern-js/plugin-changeset': 2.60.6
+      '@modern-js/plugin-i18n': 2.60.6
+      '@modern-js/swc-plugins': 0.6.11(@swc/helpers@0.5.13)
+      '@modern-js/types': 2.60.6
+      '@modern-js/utils': 2.60.6
+      '@rollup/pluginutils': 4.1.1
+      '@swc/helpers': 0.5.13
+      convert-source-map: 1.8.0
+      enhanced-resolve: 5.12.0
+      esbuild: 0.19.2
+      magic-string: 0.30.12
+      postcss: 8.5.1
+      postcss-modules: 4.3.1(postcss@8.5.1)
+      safe-identifier: 0.4.2
+      source-map: 0.7.4
+      style-inject: 0.3.0
+      sucrase: 3.29.0
+      tapable: 2.2.1
+      terser: 5.36.0
+      tsconfig-paths-webpack-plugin: 4.1.0
+    optionalDependencies:
+      typescript: 5.8.3
+    transitivePeerDependencies:
+      - debug
+      - supports-color
+
   '@modern-js/monorepo-utils@2.31.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@modern-js/utils': 2.31.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -17080,6 +17117,19 @@ snapshots:
       '@swc/helpers': 0.5.13
       esbuild: 0.17.19
 
+  '@modern-js/plugin-changeset@2.60.6':
+    dependencies:
+      '@changesets/cli': 2.27.9
+      '@changesets/git': 2.0.0
+      '@changesets/read': 0.5.9
+      '@modern-js/plugin-i18n': 2.60.6
+      '@modern-js/utils': 2.60.6
+      '@swc/helpers': 0.5.13
+      axios: 1.8.4
+      resolve-from: 5.0.0
+    transitivePeerDependencies:
+      - debug
+
   '@modern-js/plugin-changeset@2.60.6(debug@4.4.0)':
     dependencies:
       '@changesets/cli': 2.27.9
@@ -17115,7 +17165,7 @@ snapshots:
       '@modern-js/doc-core': 2.31.2(@modern-js/core@2.67.2)(@modern-js/doc-tools@2.32.1(@types/express@4.17.21)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(ts-node@10.9.2(@types/node@18.19.62)(typescript@5.8.3))(tsconfig-paths@4.2.0)(type-fest@3.13.1)(typescript@5.8.3)(webpack@5.95.0))(@types/express@4.17.21)(react@18.3.1)(ts-node@10.9.2(@types/node@18.19.62)(typescript@5.8.3))(tsconfig-paths@4.2.0)(type-fest@3.13.1)(typescript@5.8.3)(webpack@5.95.0)
       '@modern-js/doc-plugin-api-docgen': 2.31.2(@modern-js/core@2.67.2)(@modern-js/doc-tools@2.32.1(@types/express@4.17.21)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(ts-node@10.9.2(@types/node@18.19.62)(typescript@5.8.3))(tsconfig-paths@4.2.0)(type-fest@3.13.1)(typescript@5.8.3)(webpack@5.95.0))(@types/express@4.17.21)(@types/react@18.3.23)(react-dom@18.3.1(react@18.3.1))(react-router-dom@7.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(ts-node@10.9.2(@types/node@18.19.62)(typescript@5.8.3))(tsconfig-paths@4.2.0)(type-fest@3.13.1)(typescript@5.8.3)(webpack@5.95.0)
       '@modern-js/doc-plugin-preview': 2.31.2(@modern-js/core@2.67.2)(@modern-js/doc-tools@2.32.1(@types/express@4.17.21)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(ts-node@10.9.2(@types/node@18.19.62)(typescript@5.8.3))(tsconfig-paths@4.2.0)(type-fest@3.13.1)(typescript@5.8.3)(webpack@5.95.0))(@types/express@4.17.21)(react-dom@18.3.1(react@18.3.1))(react-router-dom@7.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(ts-node@10.9.2(@types/node@18.19.62)(typescript@5.8.3))(tsconfig-paths@4.2.0)(type-fest@3.13.1)(typescript@5.8.3)(webpack@5.95.0)
-      '@modern-js/module-tools': 2.60.6(debug@4.4.0)(typescript@5.8.3)
+      '@modern-js/module-tools': 2.60.6(typescript@5.8.3)
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
     transitivePeerDependencies:
@@ -17173,7 +17223,7 @@ snapshots:
       util: 0.12.5
       vm-browserify: 1.1.2
     optionalDependencies:
-      '@modern-js/module-tools': 2.60.6(debug@4.4.0)(typescript@5.8.3)
+      '@modern-js/module-tools': 2.60.6(typescript@5.8.3)
 
   '@modern-js/plugin@2.31.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
@@ -20088,6 +20138,14 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
+  axios@1.8.4:
+    dependencies:
+      follow-redirects: 1.15.9
+      form-data: 4.0.2
+      proxy-from-env: 1.1.0
+    transitivePeerDependencies:
+      - debug
+
   axios@1.8.4(debug@4.4.0):
     dependencies:
       follow-redirects: 1.15.9(debug@4.4.0)
@@ -20098,7 +20156,7 @@ snapshots:
 
   axios@1.9.0:
     dependencies:
-      follow-redirects: 1.15.9(debug@4.4.0)
+      follow-redirects: 1.15.9
       form-data: 4.0.2
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
@@ -22108,6 +22166,8 @@ snapshots:
 
   flexsearch@0.7.43: {}
 
+  follow-redirects@1.15.9: {}
+
   follow-redirects@1.15.9(debug@4.4.0):
     optionalDependencies:
       debug: 4.4.0(supports-color@5.5.0)
@@ -22869,7 +22929,7 @@ snapshots:
   http-proxy@1.18.1:
     dependencies:
       eventemitter3: 4.0.7
-      follow-redirects: 1.15.9(debug@4.4.0)
+      follow-redirects: 1.15.9
       requires-port: 1.0.0
     transitivePeerDependencies:
       - debug
@@ -28003,7 +28063,7 @@ snapshots:
       '@tsconfig/node14': 1.0.3
       '@tsconfig/node16': 1.0.4
       '@types/node': 18.19.62
-      acorn: 8.14.0
+      acorn: 8.14.1
       acorn-walk: 8.3.4
       arg: 4.1.3
       create-require: 1.1.1

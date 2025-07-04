@@ -14,10 +14,10 @@
   height: 100%;
   max-width: 100%;
   max-height: 100%;
-  padding: 8px;
-  background: #fff;
+  padding: 12px;
+  background: #F5F5F5;
   box-sizing: border-box;
-  border: 1px solid #0000000F;
+  border: 1px solid #F5F5F5;
   border-radius: @radius;
   line-height: 100%;
   margin: 0 auto;
@@ -27,26 +27,66 @@
   min-height: 300px;
   position: relative;
 
+  // height adaptive mode: swap background colors
+  &[data-fit-mode="height"] {
+    background: #fff;
+
+    .canvas-container {
+      background-color: #F5F5F5;
+    }
+  }
+
   .canvas-container {
-    flex: 1;
+    flex: 0 0 auto; // let the container adjust height according to content, not force to fill
     min-height: 200px;
+    width: 100%; // ensure to fill width
     display: flex;
     justify-content: center;
     align-items: center;
     overflow: hidden;
-    padding: 8px;
     margin-bottom: @player-spacing;
     position: relative;
-    background-color: #F5F5F5;
+    background-color: #fff;
     border-radius: inherit;
 
+    // default to width adaptive mode
+    aspect-ratio: var(--canvas-aspect-ratio, 16/9); // use dynamic ratio
+
     canvas {
+      width: 100%; // fill container width
+      height: auto; // height adaptive
       max-width: 100%;
       max-height: 100%;
       box-sizing: border-box;
       display: block;
       margin: 0 auto;
       object-fit: contain;
+      border: none;
+    }
+
+    // height adaptive mode
+    &[data-fit-mode="height"] {
+      flex: 1 1 auto; // allow container to stretch to fill available space
+      aspect-ratio: unset; // cancel fixed aspect ratio
+      min-height: 0; // allow container to shrink
+      height: auto; // let height be controlled by flex
+
+      canvas {
+        height: 100%; // fill container height
+        width: auto; // width adaptive
+        max-width: 100%;
+        max-height: 100%;
+      }
+    }
+
+    // width adaptive mode (current default behavior)
+    &[data-fit-mode="width"] {
+      aspect-ratio: var(--canvas-aspect-ratio, 16/9);
+
+      canvas {
+        width: 100%;
+        height: auto;
+      }
     }
   }
 

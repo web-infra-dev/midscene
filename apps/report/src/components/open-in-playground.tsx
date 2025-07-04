@@ -1,6 +1,10 @@
 import { PlayCircleOutlined } from '@ant-design/icons';
 import type { UIContext } from '@midscene/core';
-import { Describer, useStaticPageAgent } from '@midscene/visualizer';
+import {
+  Describer,
+  useEnvConfig,
+  useStaticPageAgent,
+} from '@midscene/visualizer';
 import type { WebUIContext } from '@midscene/web/utils';
 import {
   Button,
@@ -12,7 +16,6 @@ import {
 } from 'antd';
 import { useEffect, useState } from 'react';
 import { StandardPlayground } from './playground';
-import { useEnvConfig } from './store';
 
 import '@midscene/visualizer/index.css';
 

@@ -122,7 +122,7 @@ export const ScrcpyPlayer = forwardRef<ScrcpyRefMethods, ScrcpyProps>(
       const { width: originalWidth, height: originalHeight } = screenInfo;
 
       // leave 20px padding on top and bottom
-      const paddingVertical = 40; // 顶部和底部各20px
+      const paddingVertical = 40; // padding on top and bottom, each 20px
       const availableHeight = containerHeight - paddingVertical;
 
       // calculate the size fit to container, keep the aspect ratio

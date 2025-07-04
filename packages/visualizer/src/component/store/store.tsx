@@ -70,6 +70,7 @@ export const useEnvConfig = create<{
   configString: string;
   setConfig: (config: Record<string, string>) => void;
   loadConfig: (configString: string) => void;
+  syncFromStorage: () => void;
   forceSameTabNavigation: boolean;
   setForceSameTabNavigation: (forceSameTabNavigation: boolean) => void;
   deepThink: boolean;
@@ -103,6 +104,11 @@ export const useEnvConfig = create<{
       const config = parseConfig(configString);
       set({ config, configString });
       localStorage.setItem(CONFIG_KEY, configString);
+    },
+    syncFromStorage: () => {
+      const latestConfigString = getConfigStringFromLocalStorage();
+      const latestConfig = parseConfig(latestConfigString);
+      set({ config: latestConfig, configString: latestConfigString });
     },
     forceSameTabNavigation: savedForceSameTabNavigation,
     setForceSameTabNavigation: (forceSameTabNavigation: boolean) => {

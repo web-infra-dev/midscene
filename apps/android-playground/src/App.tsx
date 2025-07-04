@@ -43,7 +43,7 @@ export default function App() {
   const [messageApi, contextHolder] = message.useMessage();
   const [connectionReady, setConnectionReady] = useState(false);
   const [result, setResult] = useState<PlaygroundResult | null>({
-    result: null,
+    result: undefined,
     dump: null,
     reportHTML: null,
     error: null,
@@ -378,6 +378,7 @@ export default function App() {
                     style={{
                       display: 'flex',
                       alignItems: 'center',
+                      justifyContent: 'space-between',
                       gap: '10px',
                     }}
                   >
@@ -402,7 +403,17 @@ export default function App() {
                           onStop={handleStop}
                         />
                       </div>
-                      <div className="result-container">
+                      <div
+                        className="result-container"
+                        style={
+                          result
+                            ? {}
+                            : {
+                                border: '1px solid #0000001f',
+                                borderRadius: '8px',
+                              }
+                        }
+                      >
                         <PlaygroundResultView
                           result={result}
                           loading={loading}
