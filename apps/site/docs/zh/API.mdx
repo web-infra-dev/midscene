@@ -17,14 +17,11 @@ Midscene 中每个 Agent 都有自己的构造函数。
 - `cacheId: string | undefined`: 如果配置，则使用此 cacheId 保存或匹配缓存。默认值为 undefined，也就是不启用缓存。
 - `actionContext: string`: 调用 `agent.aiAction()` 时，发送给 AI 模型的背景知识，比如 '有 cookie 对话框时先关闭它'，默认值为空。
 
-在 Playwright 和 Puppeteer 中，有一个共同的参数：
+在 Playwright 和 Puppeteer 中，有以下共同的参数：
 
 - `forceSameTabNavigation: boolean`: 如果为 true，则限制页面在当前 tab 打开。默认值为 true。
-
-在 Puppeteer 中，还有两个额外的参数：
-
-- `waitForNetworkIdleTimeout: number`: 在执行每个操作后等待网络空闲的超时时间，默认值为 2000ms，设置为 0 则禁用超时。
-- `waitForNavigationTimeout: number`: 在页面跳转后等待页面加载完成的超时时间，默认值为 5000ms，设置为 0 则禁用超时。
+- `waitForNetworkIdleTimeout: number`: 在执行每个操作后等待网络空闲的超时时间，默认值为 2000ms，设置为 0 则不做等待。
+- `waitForNavigationTimeout: number`: 在页面跳转后等待页面加载完成的超时时间，默认值为 5000ms，设置为 0 则不做等待。
 
 ## 交互方法
 
@@ -122,6 +119,8 @@ await agent.aiTap('页面顶部的登录按钮', { deepThink: true });
 ```
 
 ### `agent.aiHover()`
+
+> 仅在 web 页面中可用，在 Android 下不可用
 
 鼠标悬停某个元素上。
 
@@ -250,6 +249,8 @@ await agent.aiScroll(
 ```
 
 ### `agent.aiRightClick()`
+
+> 仅在 web 页面中可用，在 Android 下不可用
 
 右键点击某个元素。请注意，Midscene 在右键点击后无法与浏览器原生上下文菜单交互。这个接口通常用于已经监听了右键点击事件的元素。
 
@@ -528,6 +529,7 @@ function aiLocate(
     height: number;
   };
   center: [number, number];
+  scale: number; // device pixel ratio
 }>;
 ```
 
@@ -654,6 +656,8 @@ await agent.setAIActionContext('如果 “使用cookie” 对话框存在，先�
 ```
 
 ### `agent.evaluateJavaScript()`
+
+> 仅在 web 页面中可用，在 Android 下不可用
 
 这个方法允许你在 web 页面上下文中执行一段 JavaScript 代码，并返回执行结果。
 

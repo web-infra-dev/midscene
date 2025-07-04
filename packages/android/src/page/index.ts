@@ -35,9 +35,10 @@ export class AndroidDevice implements AndroidDevicePage {
   private deviceId: string;
   private screenSize: Size | null = null;
   private yadbPushed = false;
-  private deviceRatio = 1;
+  private devicePixelRatio = 1;
   private adb: ADB | null = null;
   private connectingAdb: Promise<ADB> | null = null;
+  private destroyed = false;
   pageType: PageType = 'android';
   uri: string | undefined;
   options?: AndroidDeviceOpt;
@@ -54,6 +55,12 @@ export class AndroidDevice implements AndroidDevicePage {
   }
 
   public async getAdb(): Promise<ADB> {
+    if (this.destroyed) {
+      throw new Error(
+        `AndroidDevice ${this.deviceId} has been destroyed and cannot execute ADB commands`,
+      );
+    }
+
     // if already has ADB instance, return it
     if (this.adb) {
       return this.createAdbProxy(this.adb);
@@ -289,7 +296,7 @@ ${Object.keys(size)
     // Get device display density
     const densityNum = await adb.getScreenDensity();
     // Standard density is 160, calculate the ratio
-    this.deviceRatio = Number(densityNum) / 160;
+    this.devicePixelRatio = Number(densityNum) / 160;
 
     // calculate logical pixel size using reverseAdjustCoordinates function
     const { x: logicalWidth, y: logicalHeight } = this.reverseAdjustCoordinates(
@@ -300,13 +307,14 @@ ${Object.keys(size)
     this.screenSize = {
       width: logicalWidth,
       height: logicalHeight,
+      dpr: this.devicePixelRatio,
     };
 
     return this.screenSize;
   }
 
   private adjustCoordinates(x: number, y: number): { x: number; y: number } {
-    const ratio = this.deviceRatio;
+    const ratio = this.devicePixelRatio;
     return {
       x: Math.round(x * ratio),
       y: Math.round(y * ratio),
@@ -317,7 +325,7 @@ ${Object.keys(size)
     x: number,
     y: number,
   ): { x: number; y: number } {
-    const ratio = this.deviceRatio;
+    const ratio = this.devicePixelRatio;
     return {
       x: Math.round(x / ratio),
       y: Math.round(y / ratio),
@@ -641,7 +649,9 @@ ${Object.keys(size)
 
     // Use adjusted coordinates
     const { x: adjustedX, y: adjustedY } = this.adjustCoordinates(x, y);
-    await adb.shell(`input tap ${adjustedX} ${adjustedY}`);
+    await adb.shell(
+      `input swipe ${adjustedX} ${adjustedY} ${adjustedX} ${adjustedY} 150`,
+    );
   }
 
   private async mouseMove(x: number, y: number): Promise<void> {
@@ -710,14 +720,24 @@ ${Object.keys(size)
   }
 
   async destroy(): Promise<void> {
-    // Clean up temporary files
-    try {
-      const adb = await this.getAdb();
+    if (this.destroyed) {
+      return;
+    }
 
-      await adb.shell(`rm -f ${androidScreenshotPath}`);
+    this.destroyed = true;
+
+    try {
+      if (this.adb) {
+        await this.adb.shell(`rm -f ${androidScreenshotPath}`);
+        this.adb = null;
+      }
     } catch (error) {
       console.error('Error during cleanup:', error);
     }
+
+    this.connectingAdb = null;
+    this.screenSize = null;
+    this.yadbPushed = false;
   }
 
   async back(): Promise<void> {

@@ -1,4 +1,4 @@
-import { PageAgent, type PageAgentOpt } from '@/common/agent';
+import { PageAgent, type WebPageAgentOpt } from '@/common/agent';
 import type { Page as PlaywrightPage } from 'playwright';
 import { WebPage as PlaywrightWebPage } from './page';
 
@@ -12,8 +12,8 @@ import { getDebug } from '@midscene/shared/logger';
 const debug = getDebug('playwright:agent');
 
 export class PlaywrightAgent extends PageAgent<PlaywrightWebPage> {
-  constructor(page: PlaywrightPage, opts?: PageAgentOpt) {
-    const webPage = new PlaywrightWebPage(page);
+  constructor(page: PlaywrightPage, opts?: WebPageAgentOpt) {
+    const webPage = new PlaywrightWebPage(page, opts);
     super(webPage, opts);
 
     const { forceSameTabNavigation = true } = opts ?? {};

@@ -46,6 +46,7 @@ export default class PlaygroundServer {
   ) => PageAgent;
   staticPath?: string;
   taskProgressTips: Record<string, string>;
+  activeAgents: Record<string, PageAgent>;
 
   constructor(
     pageClass: new (...args: any[]) => AbstractPage,
@@ -58,6 +59,7 @@ export default class PlaygroundServer {
     this.agentClass = agentClass;
     this.staticPath = staticPath;
     this.taskProgressTips = {};
+    this.activeAgents = {};
     setup();
   }
 
@@ -170,6 +172,7 @@ export default class PlaygroundServer {
 
         if (requestId) {
           this.taskProgressTips[requestId] = '';
+          this.activeAgents[requestId] = agent;
 
           agent.onTaskStartTip = (tip: string) => {
             this.taskProgressTips[requestId] = tip;
@@ -218,6 +221,7 @@ export default class PlaygroundServer {
           response.reportHTML = agent.reportHTMLString() || null;
 
           agent.writeOutActionDumps();
+          agent.destroy();
         } catch (error: any) {
           console.error(
             `write out dump failed: requestId: ${requestId}, ${error.message}`,
@@ -236,8 +240,41 @@ export default class PlaygroundServer {
             `handle request done after ${timeCost}ms: requestId: ${requestId}`,
           );
         }
+
+        // Clean up the agent from activeAgents after execution completes
+        if (requestId && this.activeAgents[requestId]) {
+          delete this.activeAgents[requestId];
+        }
       },
     );
+
+    this.app.get('/cancel/:requestId', async (req, res) => {
+      const { requestId } = req.params;
+
+      if (!requestId) {
+        return res.status(400).json({
+          error: 'requestId is required',
+        });
+      }
+
+      const agent = this.activeAgents[requestId];
+      if (!agent) {
+        return res.status(404).json({
+          error: 'No active agent found for this requestId',
+        });
+      }
+
+      try {
+        await agent.destroy();
+        delete this.activeAgents[requestId];
+        res.json({ status: 'cancelled' });
+      } catch (error: any) {
+        console.error(`Failed to cancel agent: ${error.message}`);
+        res.status(500).json({
+          error: `Failed to cancel: ${error.message}`,
+        });
+      }
+    });
 
     this.app.post(
       '/config',

@@ -74,7 +74,7 @@ export function isTextElement(
       return true;
     }
   }
-  return node.nodeName.toLowerCase() === '#text' && !isIconfont(node);
+  return node.nodeName?.toLowerCase() === '#text' && !isIconfont(node);
 }
 
 export function isContainerElement(

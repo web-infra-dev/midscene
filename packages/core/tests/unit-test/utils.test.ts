@@ -1,5 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { existsSync, readFileSync, statSync } from 'node:fs';
+import * as fs from 'node:fs';
+import { tmpdir } from 'node:os';
+import * as path from 'node:path';
 import {
   adaptDoubaoBbox,
   adaptQwenBbox,
@@ -14,13 +17,22 @@ import {
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { getAIConfig, overrideAIConfig } from '@midscene/shared/env';
 import { describe, expect, it } from 'vitest';
+import { reportHTMLContent, writeDumpReport } from '../../dist/es/utils'; // use modules from dist, otherwise we will miss the template file
 import {
   getTmpDir,
   getTmpFile,
+  insertScriptBeforeClosingHtml,
   overlapped,
-  reportHTMLContent,
-  writeDumpReport,
-} from '../../dist/es/utils'; // use modules from dist, otherwise we will miss the template file
+} from '../../src/utils';
+
+function createTempHtmlFile(content: string): string {
+  const filePath = getTmpFile('html');
+  if (!filePath) {
+    throw new Error('Failed to create temp html file');
+  }
+  fs.writeFileSync(filePath, content, 'utf8');
+  return filePath;
+}
 
 describe('utils', () => {
   it('tmpDir', () => {
@@ -45,7 +57,7 @@ describe('utils', () => {
   });
 
   it('write report file with empty dump', () => {
-    const reportPath = writeDumpReport('test', []);
+    const reportPath = writeDumpReport('test', '');
     expect(reportPath).toBeTruthy();
     const reportContent = readFileSync(reportPath!, 'utf-8');
     expect(reportContent).contains('type="midscene_web_dump"');
@@ -53,15 +65,13 @@ describe('utils', () => {
 
   it('write report file with attributes', () => {
     const content = randomUUID();
-    const reportPath = writeDumpReport('test', [
-      {
-        dumpString: content,
-        attributes: {
-          foo: 'bar',
-          hello: 'world',
-        },
+    const reportPath = writeDumpReport('test', {
+      dumpString: content,
+      attributes: {
+        foo: 'bar',
+        hello: 'world',
       },
-    ]);
+    });
     expect(reportPath).toBeTruthy();
     const reportContent = readFileSync(reportPath!, 'utf-8');
     expect(reportContent).contains(content);
@@ -79,9 +89,9 @@ describe('utils', () => {
   });
 
   it('reportHTMLContent', () => {
-    const reportA = reportHTMLContent([]);
+    const reportA = reportHTMLContent('');
     expect(reportA).toContain(
-      '<script type="midscene_web_dump" type="application/json"></script>',
+      '<script type="midscene_web_dump" type="application/json">\n\n</script>',
     );
 
     const content = randomUUID();
@@ -92,19 +102,14 @@ describe('utils', () => {
   });
 
   it('reportHTMLContent with reportPath', () => {
-    const tmpFile = getTmpFile('html');
-    expect(tmpFile).toBeTruthy();
-
-    if (!tmpFile) {
-      return;
-    }
+    const tmpFile = createTempHtmlFile('');
 
     // test empty array
-    const reportPathA = reportHTMLContent([], tmpFile);
+    const reportPathA = reportHTMLContent('', tmpFile);
     expect(reportPathA).toBe(tmpFile);
     const fileContentA = readFileSync(tmpFile, 'utf-8');
     expect(fileContentA).toContain(
-      '<script type="midscene_web_dump" type="application/json"></script>',
+      '<script type="midscene_web_dump" type="application/json">\n\n</script>',
     );
 
     // test string content
@@ -118,22 +123,13 @@ describe('utils', () => {
 
     // test array with attributes
     const uuid1 = randomUUID();
-    const uuid2 = randomUUID();
-    const dumpArray = [
-      {
-        dumpString: JSON.stringify({ id: uuid1 }),
-        attributes: {
-          test_attr: 'test_value',
-          another_attr: 'another_value',
-        },
+    const dumpArray = {
+      dumpString: JSON.stringify({ id: uuid1 }),
+      attributes: {
+        test_attr: 'test_value',
+        another_attr: 'another_value',
       },
-      {
-        dumpString: JSON.stringify({ id: uuid2 }),
-        attributes: {
-          test_attr2: 'test_value2',
-        },
-      },
-    ];
+    };
 
     const reportPathC = reportHTMLContent(dumpArray, tmpFile);
     expect(reportPathC).toBe(tmpFile);
@@ -142,20 +138,13 @@ describe('utils', () => {
     // verify the file content contains attributes and data
     expect(fileContentC).toContain('test_attr="test_value"');
     expect(fileContentC).toContain('another_attr="another_value"');
-    expect(fileContentC).toContain('test_attr2="test_value2"');
     expect(fileContentC).toContain(uuid1);
-    expect(fileContentC).toContain(uuid2);
   });
 
   it(
     'should handle multiple large reports correctly',
-    () => {
-      const tmpFile = getTmpFile('html');
-      expect(tmpFile).toBeTruthy();
-
-      if (!tmpFile) {
-        return;
-      }
+    async () => {
+      const tmpFile = createTempHtmlFile('');
 
       // Create a large string of approximately 100MB
       const generateLargeString = (sizeInMB: number, identifier: string) => {
@@ -174,11 +163,13 @@ describe('utils', () => {
 
       // Monitor memory usage
       const startMemory = process.memoryUsage();
+      const heapTotalBefore = startMemory.heapTotal / 1024 / 1024;
+      const heapUsedBefore = startMemory.heapUsed / 1024 / 1024;
       console.log(
         'Memory usage before test:',
         `RSS: ${Math.round(startMemory.rss / 1024 / 1024)}MB, ` +
-          `Heap Total: ${Math.round(startMemory.heapTotal / 1024 / 1024)}MB, ` +
-          `Heap Used: ${Math.round(startMemory.heapUsed / 1024 / 1024)}MB`,
+          `Heap Total: ${heapTotalBefore}MB, ` +
+          `Heap Used: ${heapUsedBefore}MB`,
       );
 
       // Store start time
@@ -186,19 +177,21 @@ describe('utils', () => {
 
       // Generate 10 large reports (each ~100MB)
       const numberOfReports = 10;
-      const dumpArray = Array.from({ length: numberOfReports }).map(
-        (_, index) => ({
-          dumpString: generateLargeString(100, `large-report-${index + 1}`),
-          attributes: {
-            report_number: `${index + 1}`,
-            report_size: '100MB',
-          },
-        }),
-      );
-
       // Write the large reports
-      const reportPath = reportHTMLContent(dumpArray, tmpFile);
-      expect(reportPath).toBe(tmpFile);
+      for (let i = 0; i < numberOfReports; i++) {
+        const reportPath = reportHTMLContent(
+          {
+            dumpString: generateLargeString(100, `large-report-${i + 1}`),
+            attributes: {
+              report_number: `${i + 1}`,
+              report_size: '100MB',
+            },
+          },
+          tmpFile,
+          true,
+        );
+        expect(reportPath).toBe(tmpFile);
+      }
 
       // Calculate execution time
       const executionTime = Date.now() - startTime;
@@ -206,11 +199,14 @@ describe('utils', () => {
 
       // Check memory usage after test
       const endMemory = process.memoryUsage();
+      const rssAfter = endMemory.rss / 1024 / 1024;
+      const heapTotalAfter = endMemory.heapTotal / 1024 / 1024;
+      const heapUsedAfter = endMemory.heapUsed / 1024 / 1024;
       console.log(
         'Memory usage after test:',
-        `RSS: ${Math.round(endMemory.rss / 1024 / 1024)}MB, ` +
-          `Heap Total: ${Math.round(endMemory.heapTotal / 1024 / 1024)}MB, ` +
-          `Heap Used: ${Math.round(endMemory.heapUsed / 1024 / 1024)}MB`,
+        `RSS: ${Math.round(rssAfter)}MB, ` +
+          `Heap Total: ${heapTotalAfter}MB, ` +
+          `Heap Used: ${heapUsedAfter}MB`,
       );
 
       // Check if file exists
@@ -221,6 +217,8 @@ describe('utils', () => {
       const fileSizeInMB = stats.size / (1024 * 1024);
       console.log(`File size: ${fileSizeInMB.toFixed(2)}MB`);
 
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+
       // We expect the file to be approximately 700MB plus template overhead
       const expectedMinSize = 1000; // 10 reports × 100MB
       expect(fileSizeInMB).toBeGreaterThan(expectedMinSize);
@@ -229,14 +227,12 @@ describe('utils', () => {
   );
 
   it('reportHTMLContent array with xss', () => {
-    const reportContent = reportHTMLContent([
-      {
-        dumpString: '<script>alert("xss")</script>',
-        attributes: {
-          'data-midscene-id': '123',
-        },
+    const reportContent = reportHTMLContent({
+      dumpString: '<script>alert("xss")</script>',
+      attributes: {
+        'data-midscene-id': '123',
       },
-    ]);
+    });
     expect(reportContent).toBeTruthy();
     expect(reportContent).toContain('data-midscene-id="123"');
     expect(reportContent).toContain(
@@ -626,5 +622,68 @@ describe('env', () => {
         } as any,
       }),
     ).toThrow();
+  });
+});
+
+describe('insertScriptBeforeClosingHtml', () => {
+  it('should insert script before </html> in a standard HTML file', () => {
+    const html = '<html>hello</html>';
+    const filePath = createTempHtmlFile(html);
+    insertScriptBeforeClosingHtml(filePath, '<script>test</script>');
+    const result = fs.readFileSync(filePath, 'utf8');
+    expect(result).toBe('<html>hello<script>test</script>\n</html>\n');
+    fs.unlinkSync(filePath);
+  });
+
+  it('should work with large HTML file and </html> at the end', () => {
+    const body = 'a'.repeat(5000);
+    const html = `<html>${body}</html>`;
+    const filePath = createTempHtmlFile(html);
+    insertScriptBeforeClosingHtml(filePath, '<script>large</script>');
+    const result = fs.readFileSync(filePath, 'utf8');
+    expect(result.endsWith('<script>large</script>\n</html>\n')).toBe(true);
+    fs.unlinkSync(filePath);
+  });
+
+  it('should throw if </html> is missing', () => {
+    const html = '<html>no end tag';
+    const filePath = createTempHtmlFile(html);
+    expect(() =>
+      insertScriptBeforeClosingHtml(filePath, '<script>fail</script>'),
+    ).toThrow('No </html> found');
+    fs.unlinkSync(filePath);
+  });
+
+  it('should support multi-line scriptContent', () => {
+    const html = '<html>abc</html>';
+    const script = '<script>\nconsole.log(1)\n</script>';
+    const filePath = createTempHtmlFile(html);
+    insertScriptBeforeClosingHtml(filePath, script);
+    const result = fs.readFileSync(filePath, 'utf8');
+    expect(result).toBe(
+      '<html>abc<script>\nconsole.log(1)\n</script>\n</html>\n',
+    );
+    fs.unlinkSync(filePath);
+  });
+
+  it('should not increase memory usage significantly for large files (memory check)', async () => {
+    const body = 'a'.repeat(50 * 1024 * 1024); // 50MB
+    const html = `<html>${body}</html>`;
+    const filePath = createTempHtmlFile(html);
+
+    // write large file first, wait for memory release
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const memBefore = process.memoryUsage().rss;
+
+    insertScriptBeforeClosingHtml(filePath, '<script>large</script>');
+
+    // wait for a while, ensure the insertion process ends
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const memAfter = process.memoryUsage().rss;
+
+    // allow at most 2MB growth
+    expect(memAfter - memBefore).toBeLessThan(2 * 1024 * 1024);
+
+    fs.unlinkSync(filePath);
   });
 });

@@ -17,14 +17,11 @@ These Agents share some common constructor parameters:
 - `cacheId: string | undefined`: If provided, this cacheId will be used to save or match the cache. (Default: undefined, means cache feature is disabled)
 - `actionContext: string`: Some background knowledge that should be sent to the AI model when calling `agent.aiAction()`, like 'close the cookie consent dialog first if it exists' (Default: undefined)
 
-In Playwright and Puppeteer, there is an additional parameter:
+In Playwright and Puppeteer, there are some common parameters:
 
 - `forceSameTabNavigation: boolean`: If true, page navigation is restricted to the current tab. (Default: true)
-
-In Puppeteer, there are 2 additional parameters:
-
-- `waitForNetworkIdleTimeout: number`: The timeout for waiting for network idle between each action. (Default: 2000ms, set to 0 to disable the timeout)
-- `waitForNavigationTimeout: number`: The timeout for waiting for navigation finished. (Default: 5000ms, set to 0 to disable the timeout)
+- `waitForNetworkIdleTimeout: number`: The timeout for waiting for network idle between each action. (Default: 2000ms, set to 0 means not waiting for network idle)
+- `waitForNavigationTimeout: number`: The timeout for waiting for navigation finished. (Default: 5000ms, set to 0 means not waiting for navigation finished)
 
 ## Interaction Methods
 
@@ -128,6 +125,8 @@ await agent.aiTap('The login button at the top of the page', {
 ```
 
 ### `agent.aiHover()`
+
+> Only available in web pages, not available in Android.
 
 Move mouse over something.
 
@@ -258,6 +257,8 @@ await agent.aiScroll(
 ```
 
 ### `agent.aiRightClick()`
+
+> Only available in web pages, not available in Android.
 
 Right-click on an element. Please note that Midscene cannot interact with the native context menu in browser after right-clicking. This interface is usually used for the element that listens to the right-click event by itself.
 
@@ -530,6 +531,7 @@ function aiLocate(
     height: number;
   };
   center: [number, number];
+  scale: number; // device pixel ratio
 }>;
 ```
 
@@ -662,6 +664,8 @@ await agent.setAIActionContext(
 ```
 
 ### `agent.evaluateJavaScript()`
+
+> Only available in web pages, not available in Android.
 
 Evaluate a JavaScript expression in the web page context.
 

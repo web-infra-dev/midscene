@@ -10,7 +10,7 @@ English | [简体中文](./README.zh.md)
 </div>
 
 <p align="center">
-  Your AI Operator for Web, Android, Automation & Testing
+  Open-source AI Operator for Web, Android, Automation & Testing
 </p>
 
 <p align="center">
@@ -21,7 +21,7 @@ English | [简体中文](./README.zh.md)
   <a href="https://discord.gg/2JyBHxszE4"><img src="https://img.shields.io/discord/1328277792730779648?style=flat-square&color=7289DA&label=Discord&logo=discord&logoColor=white" alt="discord" /></a>
   <a href="https://x.com/midscene_ai"><img src="https://img.shields.io/twitter/follow/midscene_ai?style=flat-square" alt="twitter" /></a>
   <a href="https://deepwiki.com/web-infra-dev/midscene">
-    <img alt="Ask DeepWiki.com" src="https://devin.ai/assets/deepwiki-badge.png" style="height: 18px; vertical-align: middle;">
+    <img alt="Ask DeepWiki.com" src="https://devin.ai/assets/deepwiki-badge.png" style="height: 18px; vertical-align: middle;" />
   </a>
 </p>
 
@@ -106,6 +106,7 @@ There are so many UI automation tools out there, and each one seems to be all-po
 ## 📄 Resources 
 
 * Home Page and Documentation: [https://midscenejs.com](https://midscenejs.com/)
+* Sample Projects: [https://github.com/web-infra-dev/midscene-example](https://github.com/web-infra-dev/midscene-example)
 * API Reference: [https://midscenejs.com/api.html](https://midscenejs.com/api.html)
 * GitHub: [https://github.com/web-infra-dev/midscene](https://github.com/web-infra-dev/midscene)
 

@@ -9,6 +9,7 @@ import {
   PromptInput,
   type ReplayScriptsInfo,
   allScriptsFromDump,
+  cancelTask,
   getTaskProgress,
   globalThemeConfig,
   overrideServerConfig,
@@ -320,7 +321,7 @@ export default function App() {
       }
 
       // handle the special case of aiAction type, extract script information
-      if (res?.dump) {
+      if (res?.dump && !['aiQuery', 'aiAssert'].includes(type)) {
         const info = allScriptsFromDump(res.dump);
         setReplayScriptsInfo(info);
         setReplayCounter((c) => c + 1);
@@ -353,10 +354,13 @@ export default function App() {
   };
 
   // handle stop button click
-  const handleStop = useCallback(() => {
+  const handleStop = useCallback(async () => {
     clearPollingInterval();
     setLoading(false);
     resetResult();
+    if (currentRequestIdRef.current) {
+      await cancelTask(currentRequestIdRef.current);
+    }
     messageApi.info('Operation stopped');
   }, [messageApi, clearPollingInterval]);
 

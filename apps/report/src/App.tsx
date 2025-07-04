@@ -2,8 +2,8 @@ import './App.less';
 import './index.less';
 
 import { CaretRightOutlined } from '@ant-design/icons';
-import { Button, ConfigProvider, Empty } from 'antd';
-import { useEffect, useRef, useState } from 'react';
+import { Alert, Button, ConfigProvider, Empty } from 'antd';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
@@ -23,7 +23,7 @@ import type {
 
 let globalRenderCount = 1;
 
-export function Visualizer(props: VisualizerProps): JSX.Element {
+function Visualizer(props: VisualizerProps): JSX.Element {
   const { dumps } = props;
 
   const executionDump = useExecutionDump((store: StoreState) => store.dump);
@@ -251,43 +251,134 @@ export function Visualizer(props: VisualizerProps): JSX.Element {
   );
 }
 
-// Main App component using Visualizer
-const App = () => {
-  const dumpElements = document.querySelectorAll(
-    'script[type="midscene_web_dump"]',
-  );
-  const reportDump: ExecutionDumpWithPlaywrightAttributes[] = [];
-
-  Array.from(dumpElements)
-    .filter((el) => {
-      const textContent = el.textContent;
-      if (!textContent) {
-        console.warn('empty content in script tag', el);
-      }
-      return !!textContent;
-    })
-    .forEach((el) => {
-      const attributes: Record<string, any> = {};
-      Array.from(el.attributes).forEach((attr) => {
-        const { name, value } = attr;
-        const valueDecoded = decodeURIComponent(value);
-        if (name.startsWith('playwright_')) {
-          attributes[attr.name] = valueDecoded;
+export function App() {
+  function getDumpElements(): ExecutionDumpWithPlaywrightAttributes[] {
+    const dumpElements = document.querySelectorAll(
+      'script[type="midscene_web_dump"]',
+    );
+    const reportDump: ExecutionDumpWithPlaywrightAttributes[] = [];
+    Array.from(dumpElements)
+      .filter((el) => {
+        const textContent = el.textContent;
+        if (!textContent) {
+          console.warn('empty content in script tag', el);
+        }
+        return !!textContent;
+      })
+      .forEach((el) => {
+        const attributes: Record<string, any> = {};
+        Array.from(el.attributes).forEach((attr) => {
+          const { name, value } = attr;
+          const valueDecoded = decodeURIComponent(value);
+          if (name.startsWith('playwright_')) {
+            attributes[attr.name] = valueDecoded;
+          }
+        });
+        const content = antiEscapeScriptTag(el.textContent || '');
+        try {
+          const jsonContent = JSON.parse(content);
+          jsonContent.attributes = attributes;
+          reportDump.push(jsonContent);
+        } catch (e) {
+          console.error(el);
+          console.error('failed to parse json content', e);
         }
       });
+    return reportDump;
+  }
 
-      const content = antiEscapeScriptTag(el.textContent || '');
-      try {
-        const jsonContent = JSON.parse(content);
-        jsonContent.attributes = attributes;
-        reportDump.push(jsonContent);
-      } catch (e) {
-        console.error(el);
-        console.error('failed to parse json content', e);
+  const [reportDump, setReportDump] = useState<
+    ExecutionDumpWithPlaywrightAttributes[]
+  >([]);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadDumpElements = useCallback(() => {
+    const dumpElements = document.querySelectorAll(
+      'script[type="midscene_web_dump"]',
+    );
+    if (
+      dumpElements.length === 1 &&
+      dumpElements[0].textContent?.trim() === ''
+    ) {
+      setError('There is no dump data to display.');
+      setReportDump([]);
+      return;
+    }
+    setError(null);
+    setReportDump(getDumpElements());
+  }, []);
+
+  useEffect(() => {
+    // Check if document is already loaded
+    const loadDumps = () => {
+      console.log('Loading dump elements...');
+      loadDumpElements();
+    };
+
+    // If DOM is already loaded (React mounts after DOMContentLoaded in most cases)
+    if (
+      document.readyState === 'complete' ||
+      document.readyState === 'interactive'
+    ) {
+      // Use a small timeout to ensure all scripts are parsed
+      setTimeout(loadDumps, 0);
+    } else {
+      // Wait for DOM content to be fully loaded
+      document.addEventListener('DOMContentLoaded', loadDumps);
+    }
+
+    // Set up a MutationObserver to detect if dump scripts are added after initial load
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === 'childList') {
+          const addedNodes = Array.from(mutation.addedNodes);
+          const hasDumpScripts = addedNodes.some(
+            (node) =>
+              node.nodeType === Node.ELEMENT_NODE &&
+              node.nodeName === 'SCRIPT' &&
+              (node as HTMLElement).getAttribute('midscene_type') ===
+                'web_dump',
+          );
+
+          if (hasDumpScripts) {
+            loadDumps();
+            break;
+          }
+        }
       }
     });
 
-  return <Visualizer dumps={reportDump} />;
-};
+    // Start observing the document with the configured parameters
+    observer.observe(document.body, { childList: true, subtree: true });
 
-export default App;
+    // Safety fallback in case other methods fail
+    const fallbackTimer = setTimeout(loadDumps, 3000);
+
+    return () => {
+      document.removeEventListener('DOMContentLoaded', loadDumps);
+      observer.disconnect();
+      clearTimeout(fallbackTimer);
+    };
+  }, [loadDumpElements]);
+
+  if (error) {
+    return (
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          padding: '100px',
+          boxSizing: 'border-box',
+        }}
+      >
+        <Alert
+          message="Midscene.js - Error"
+          description={error}
+          type="error"
+          showIcon
+        />
+      </div>
+    );
+  }
+  return <Visualizer dumps={reportDump} />;
+}
