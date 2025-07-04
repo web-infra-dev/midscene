@@ -10,6 +10,7 @@ import type {
   MidsceneYamlFlowItemAIAssert,
   MidsceneYamlFlowItemAIBoolean,
   MidsceneYamlFlowItemAIHover,
+  MidsceneYamlFlowItemAIImgTap,
   MidsceneYamlFlowItemAIInput,
   MidsceneYamlFlowItemAIKeyboardPress,
   MidsceneYamlFlowItemAILocate,
@@ -284,6 +285,9 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       } else if ('aiTap' in (flowItem as MidsceneYamlFlowItemAITap)) {
         const tapTask = flowItem as MidsceneYamlFlowItemAITap;
         await agent.aiTap(tapTask.aiTap, tapTask);
+      } else if ('aiImgTap' in (flowItem as MidsceneYamlFlowItemAIImgTap)) {
+        const imgTapTask = flowItem as MidsceneYamlFlowItemAIImgTap;
+        await agent.aiImgTap(imgTapTask.aiImgTap, imgTapTask.threshold);
       } else if (
         'aiRightClick' in (flowItem as MidsceneYamlFlowItemAIRightClick)
       ) {
