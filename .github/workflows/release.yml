@@ -65,8 +65,8 @@ jobs:
         
     - name: Upload Release Assets
       uses: softprops/action-gh-release@v1
-      if: github.ref_type == 'tag'
       with:
+        tag_name: ${{ github.event.inputs.version }}
         files: |
           ${{ github.workspace }}/apps/chrome-extension/extension_output/**/*.zip
           ${{ github.workspace }}/apps/chrome-extension/extension_output/**/*.tar.gz
