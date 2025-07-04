@@ -1,6 +1,6 @@
-import { AimOutlined } from '@ant-design/icons';
-import { Checkbox, Dropdown, type MenuProps, Space } from 'antd';
+import { Checkbox, Dropdown, type MenuProps } from 'antd';
 import type React from 'react';
+import SettingOutlined from '../../icons/setting.svg';
 import { useEnvConfig } from '../store/store';
 import { deepThinkTip, trackingTip } from './playground-constants';
 
@@ -29,12 +29,9 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
   const configItems: MenuProps['items'] = buildConfigItems();
 
   return (
-    <div className="config-selector">
-      <Dropdown menu={{ items: configItems }}>
-        <Space>
-          <AimOutlined />
-          {renderSettingsDisplay()}
-        </Space>
+    <div className="selector-trigger">
+      <Dropdown menu={{ items: configItems }} trigger={['click']}>
+        <SettingOutlined width={24} height={24} />
       </Dropdown>
     </div>
   );
@@ -73,26 +70,5 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
     }
 
     return items;
-  }
-
-  function renderSettingsDisplay() {
-    const displayParts = [];
-
-    if (enableTracking) {
-      const trackingText = forceSameTabNavigation
-        ? trackingTip
-        : "don't track popup";
-      displayParts.push(trackingText);
-    }
-
-    if (showDeepThinkOption && deepThink) {
-      displayParts.push(deepThinkTip);
-    }
-
-    if (displayParts.length === 2) {
-      displayParts.splice(1, 0, '/');
-    }
-
-    return displayParts.join(' ');
   }
 };

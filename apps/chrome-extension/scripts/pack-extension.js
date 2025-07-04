@@ -10,7 +10,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Read package.json
-const packageJsonPath = path.resolve(__dirname, '../package.json');
+const packageJsonPath = path.resolve(
+  __dirname,
+  '../../../packages/core/package.json',
+);
 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
 
 // Validate version string to prevent injection

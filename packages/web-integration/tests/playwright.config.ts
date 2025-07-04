@@ -3,7 +3,7 @@ import path from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
 import dotenv from 'dotenv';
 
-// 添加这两行获取当前文件目录（ES 模块兼容方式）
+// add these two lines to get the current file directory (ES module compatible way)
 // const __filename = fileURLToPath(import.meta.url);
 // const __dirname = path.dirname(__filename);
 
