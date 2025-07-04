@@ -114,6 +114,8 @@ export class PageAgent<PageType extends WebPage = WebPage> {
 
   taskCache?: TaskCache;
 
+  onDumpUpdate?: (dump: string) => void;
+
   constructor(page: PageType, opts?: PageAgentOpt) {
     this.page = page;
     this.opts = Object.assign(
@@ -232,8 +234,15 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     }
   }
 
-  private afterTaskRunning(executor: Executor, doNotThrowError = false) {
+  private async afterTaskRunning(executor: Executor, doNotThrowError = false) {
     this.appendExecutionDump(executor.dump());
+
+    try {
+      await this.onDumpUpdate?.(this.dumpDataString());
+    } catch (error) {
+      console.error('Error in onDumpUpdate', error);
+    }
+
     this.writeOutActionDumps();
 
     if (executor.isInErrorState() && !doNotThrowError) {
@@ -276,7 +285,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       plans,
       { cacheable: opt?.cacheable },
     );
-    this.afterTaskRunning(executor);
+    await this.afterTaskRunning(executor);
     return output;
   }
 
@@ -291,7 +300,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       plans,
       { cacheable: opt?.cacheable },
     );
-    this.afterTaskRunning(executor);
+    await this.afterTaskRunning(executor);
     return output;
   }
 
@@ -306,7 +315,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       plans,
       { cacheable: opt?.cacheable },
     );
-    this.afterTaskRunning(executor);
+    await this.afterTaskRunning(executor);
     return output;
   }
 
@@ -335,7 +344,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
         cacheable: opt?.cacheable,
       },
     );
-    this.afterTaskRunning(executor);
+    await this.afterTaskRunning(executor);
     return output;
   }
 
@@ -356,7 +365,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       plans,
       { cacheable: opt?.cacheable },
     );
-    this.afterTaskRunning(executor);
+    await this.afterTaskRunning(executor);
     return output;
   }
 
@@ -377,7 +386,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       plans,
       { cacheable: opt?.cacheable },
     );
-    this.afterTaskRunning(executor);
+    await this.afterTaskRunning(executor);
     return output;
   }
 
@@ -401,7 +410,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
         matchedCache.cacheContent?.yamlWorkflow,
       );
 
-      await this.afterTaskRunning(executor);
+      await await this.afterTaskRunning(executor);
 
       debug('matched cache, will call .runYaml to run the action');
       const yaml = matchedCache.cacheContent?.yamlWorkflow;
@@ -435,7 +444,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       );
     }
 
-    this.afterTaskRunning(executor);
+    await this.afterTaskRunning(executor);
     return output;
   }
 
@@ -444,7 +453,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     opt: InsightExtractOption = defaultInsightExtractOption,
   ) {
     const { output, executor } = await this.taskExecutor.query(demand, opt);
-    this.afterTaskRunning(executor);
+    await this.afterTaskRunning(executor);
     return output;
   }
 
@@ -453,7 +462,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     opt: InsightExtractOption = defaultInsightExtractOption,
   ) {
     const { output, executor } = await this.taskExecutor.boolean(prompt, opt);
-    this.afterTaskRunning(executor);
+    await this.afterTaskRunning(executor);
     return output;
   }
 
@@ -462,7 +471,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     opt: InsightExtractOption = defaultInsightExtractOption,
   ) {
     const { output, executor } = await this.taskExecutor.number(prompt, opt);
-    this.afterTaskRunning(executor);
+    await this.afterTaskRunning(executor);
     return output;
   }
 
@@ -471,7 +480,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     opt: InsightExtractOption = defaultInsightExtractOption,
   ) {
     const { output, executor } = await this.taskExecutor.string(prompt, opt);
-    this.afterTaskRunning(executor);
+    await this.afterTaskRunning(executor);
     return output;
   }
 
@@ -572,7 +581,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       plans,
       { cacheable: opt?.cacheable },
     );
-    this.afterTaskRunning(executor);
+    await this.afterTaskRunning(executor);
 
     const { element } = output;
 
@@ -587,7 +596,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
 
   async aiAssert(assertion: string, msg?: string, opt?: AgentAssertOpt) {
     const { output, executor } = await this.taskExecutor.assert(assertion);
-    this.afterTaskRunning(executor, true);
+    await this.afterTaskRunning(executor, true);
 
     if (output && opt?.keepRawResponse) {
       return output;

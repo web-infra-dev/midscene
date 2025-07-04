@@ -66,6 +66,10 @@ export const PlaywrightAiFixture = (options?: {
         ...opts,
       });
 
+      pageAgentMap[idForPage].onDumpUpdate = (dump: string) => {
+        updateDumpAnnotation(testInfo, dump);
+      };
+
       page.on('close', () => {
         debugPage('page closed');
         pageAgentMap[idForPage].destroy();
@@ -130,7 +134,6 @@ export const PlaywrightAiFixture = (options?: {
         });
       });
     });
-    updateDumpAnnotation(testInfo, agent.dumpDataString());
   }
 
   const updateDumpAnnotation = (test: TestInfo, dump: string) => {
@@ -163,26 +166,7 @@ export const PlaywrightAiFixture = (options?: {
             testInfo,
             opts,
           );
-
-          // Wrap all methods to automatically update dump annotation
-          const wrappedAgent = new Proxy(agent, {
-            get(target, prop) {
-              const originalMethod = target[prop as keyof typeof target];
-              if (typeof originalMethod === 'function') {
-                return async (...args: any[]) => {
-                  const result = await (originalMethod as any).call(
-                    target,
-                    ...args,
-                  );
-                  updateDumpAnnotation(testInfo, agent.dumpDataString());
-                  return result;
-                };
-              }
-              return originalMethod;
-            },
-          });
-
-          return wrappedAgent;
+          return agent;
         },
       );
     },
