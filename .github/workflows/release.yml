@@ -77,6 +77,7 @@ jobs:
         
     - name: Upload Release Assets
       uses: softprops/action-gh-release@v2
+      if: ${{ !contains(steps.get_version.outputs.version, 'beta') && !contains(steps.get_version.outputs.version, 'alpha') }}
       with:
         tag_name: ${{ steps.get_version.outputs.version }}
         files: |
