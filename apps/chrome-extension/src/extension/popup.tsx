@@ -52,12 +52,12 @@ export function PlaygroundPopup() {
         </div>
       ),
     },
-    {
-      key: 'recorder',
-      label: 'Recorder (Beta)',
-      icon: <VideoCameraOutlined />,
-      children: <Recorder />,
-    },
+    // {
+    //   key: 'recorder',
+    //   label: 'Recorder (Beta)',
+    //   icon: <VideoCameraOutlined />,
+    //   children: <Recorder />,
+    // },
     {
       key: 'bridge',
       label: 'Bridge Mode',
