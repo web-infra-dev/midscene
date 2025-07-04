@@ -75,8 +75,8 @@ export const useEnvConfig = create<{
   setForceSameTabNavigation: (forceSameTabNavigation: boolean) => void;
   deepThink: boolean;
   setDeepThink: (deepThink: boolean) => void;
-  popupTab: 'playground' | 'bridge';
-  setPopupTab: (tab: 'playground' | 'bridge') => void;
+  popupTab: 'playground' | 'bridge' | 'recorder';
+  setPopupTab: (tab: 'playground' | 'bridge' | 'recorder') => void;
 }>((set, get) => {
   const configString = getConfigStringFromLocalStorage();
   const config = parseConfig(configString);
@@ -124,7 +124,7 @@ export const useEnvConfig = create<{
       localStorage.setItem(DEEP_THINK_KEY, deepThink.toString());
     },
     popupTab: 'playground',
-    setPopupTab: (tab: 'playground' | 'bridge') => {
+    setPopupTab: (tab: 'playground' | 'bridge' | 'recorder') => {
       set({ popupTab: tab });
     },
   };

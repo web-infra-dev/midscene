@@ -4,6 +4,7 @@ import {
   GithubOutlined,
   MenuOutlined,
   QuestionCircleOutlined,
+  VideoCameraOutlined,
 } from '@ant-design/icons';
 import {
   EnvConfig,
@@ -32,7 +33,7 @@ const extensionAgentForTab = (forceSameTabNavigation = true) => {
 
 export function PlaygroundPopup() {
   const { setPopupTab } = useEnvConfig();
-  const [currentMode, setCurrentMode] = useState<'playground' | 'bridge'>(
+  const [currentMode, setCurrentMode] = useState<'playground' | 'bridge' | 'recorder'>(
     'playground',
   );
 
@@ -46,6 +47,15 @@ export function PlaygroundPopup() {
         setPopupTab('playground');
       },
     },
+    localStorage.getItem('recorder-enabled') === 'true' ? {
+      key: 'recorder',
+      label: 'Recorder',
+      icon: <VideoCameraOutlined />,
+      onClick: () => {
+        setCurrentMode('recorder');
+        setPopupTab('recorder');
+      },
+    } : undefined,
     {
       key: 'bridge',
       icon: <BridgeIcon />,
@@ -64,6 +74,13 @@ export function PlaygroundPopup() {
           <div className="bridge-container">
             <Bridge />
           </div>
+        </div>
+      );
+    }
+    if (currentMode === 'recorder') {
+      return (
+        <div className="popup-content recorder-mode">
+          <Recorder />
         </div>
       );
     }
