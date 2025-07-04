@@ -313,10 +313,7 @@ export default function Bridge() {
         size="small"
       />
     );
-    statusTip =
-      bridgeStatus === 'listening'
-        ? 'Listening for connection...'
-        : 'Disconnected, listening for a new connection...';
+    statusTip = 'Listening for connection';
     statusBtn = (
       <Button className="stop-button" onClick={stopConnection}>
         Stop
