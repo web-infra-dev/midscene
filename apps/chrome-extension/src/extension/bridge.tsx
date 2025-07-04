@@ -233,13 +233,8 @@ export default function Bridge() {
 
   // scroll to bottom when component first mounts (if there are messages from localStorage)
   useEffect(() => {
-    if (messageList.length > 0) {
-      setTimeout(() => {
-        if (messageListRef.current) {
-          messageListRef.current.scrollTop =
-            messageListRef.current.scrollHeight;
-        }
-      }, 100);
+    if (messageList.length > 0 && messageListRef.current) {
+      messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
     }
   }, []); // only run once on mount
 
@@ -262,16 +257,11 @@ export default function Bridge() {
   // scroll to bottom when message list updated
   useEffect(() => {
     if (messageList.length > 0) {
-      setTimeout(() => {
-        if (messageListRef.current) {
-          messageListRef.current.scrollTop =
-            messageListRef.current.scrollHeight;
-        }
-        // check status after scroll
-        setTimeout(() => {
-          checkIfScrolledToBottom();
-        }, 50);
-      }, 100);
+      if (messageListRef.current) {
+        messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
+      }
+      // check status after scroll
+      checkIfScrolledToBottom();
     }
   }, [messageList]);
 
@@ -281,9 +271,7 @@ export default function Bridge() {
     if (container) {
       container.addEventListener('scroll', checkIfScrolledToBottom);
       // initial check
-      setTimeout(() => {
-        checkIfScrolledToBottom();
-      }, 200);
+      checkIfScrolledToBottom();
       return () => {
         container.removeEventListener('scroll', checkIfScrolledToBottom);
       };
@@ -356,19 +344,6 @@ export default function Bridge() {
 
   return (
     <div className="bridge-mode-container">
-      <p className="bridge-mode-description">
-        In Bridge Mode, you can control this browser by the Midscene SDK running
-        in the local terminal. This is useful for interacting both through
-        scripts and manually, or to reuse cookies.{' '}
-        <a
-          href="https://www.midscenejs.com/bridge-mode-by-chrome-extension"
-          target="_blank"
-          rel="noreferrer"
-        >
-          More about bridge mode
-        </a>
-      </p>
-
       <div className="playground-form-container">
         <div className="form-part" />
         {messageList.length > 0 && (
@@ -385,6 +360,24 @@ export default function Bridge() {
         {/* middle dialog area */}
         <div className="middle-dialog-area">
           <div ref={messageListRef} className="info-list-container">
+            <div className="mode-header">
+              <div className="mode-icon">
+                <ApiOutlined style={{ fontSize: '12px' }} />
+              </div>
+              <h2 className="mode-title">Bridge Mode</h2>
+            </div>
+            <p className="bridge-mode-description">
+              In Bridge Mode, you can control this browser by the Midscene SDK
+              running in the local terminal. This is useful for interacting both
+              through scripts and manually, or to reuse cookies.{' '}
+              <a
+                href="https://www.midscenejs.com/bridge-mode-by-chrome-extension"
+                target="_blank"
+                rel="noreferrer"
+              >
+                More about bridge mode
+              </a>
+            </p>
             {messageList.length > 0 && (
               <List
                 itemLayout="vertical"

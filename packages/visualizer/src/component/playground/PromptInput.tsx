@@ -60,7 +60,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       });
       setPromptValue('');
     }
-  }, [lastHistory, form]);
+  }, []);
 
   // Handle history selection internally
   const handleSelectHistory = useCallback(
@@ -98,6 +98,10 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       });
     }
     onRun();
+
+    // Clear input after running
+    setPromptValue('');
+    form.setFieldValue('prompt', '');
   }, [form, addHistory, onRun]);
 
   // Handle key events

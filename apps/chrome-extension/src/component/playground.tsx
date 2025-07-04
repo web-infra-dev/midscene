@@ -227,7 +227,9 @@ export function BrowserExtensionPlayground({
   // when info list updated, scroll to bottom
   useEffect(() => {
     if (infoList.length > 0) {
-      scrollToBottom();
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
     }
   }, [infoList]);
 

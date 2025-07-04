@@ -61,12 +61,6 @@ export function PlaygroundPopup() {
     if (currentMode === 'bridge') {
       return (
         <div className="popup-content bridge-mode">
-          <div className="mode-header">
-            <div className="mode-icon">
-              <ApiOutlined style={{ fontSize: '12px' }} />
-            </div>
-            <h2 className="mode-title">Bridge Mode</h2>
-          </div>
           <div className="bridge-container">
             <Bridge />
           </div>
