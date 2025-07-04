@@ -40,7 +40,7 @@
     "@langchain/core": "0.3.26",
     "@midscene/recorder": "workspace:*",
     "@midscene/shared": "workspace:*",
-    "@ui-tars/action-parser": "1.2.0",
+    "@ui-tars/action-parser": "1.2.3",
     "dotenv": "16.4.5",
     "https-proxy-agent": "7.0.2",
     "jsonrepair": "3.12.0",
