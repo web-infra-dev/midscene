@@ -16,7 +16,7 @@ import {
   useEnvConfig,
 } from '@midscene/visualizer';
 import { allScriptsFromDump } from '@midscene/visualizer';
-import { Button, Form, List, Typography, message } from 'antd';
+import { Button, Form, List, Tooltip, Typography, message } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import PlaygroundIcon from '../icons/playground.svg?react';
 import {
@@ -27,6 +27,8 @@ import {
   storeResult,
 } from '../utils';
 import './playground.less';
+
+declare const __SDK_VERSION__: string;
 
 const { Text } = Typography;
 
@@ -88,6 +90,22 @@ const WELCOME_MSG: InfoListItem = {
   loadingProgressText: '',
   verticalMode: false,
 };
+
+function ErrorMessage({ error }: { error: string }) {
+  if (!error) return null;
+  return (
+    <Tooltip
+      title={
+        <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+          {error}
+        </span>
+      }
+      overlayStyle={{ maxWidth: '100vw' }}
+    >
+      Error: {error.split('\n')[0]}
+    </Tooltip>
+  );
+}
 
 // Browser Extension Playground Component
 export function BrowserExtensionPlayground({
@@ -198,7 +216,10 @@ export function BrowserExtensionPlayground({
   // manually scroll to bottom when button clicked
   const handleScrollToBottom = () => {
     if (infoListRef.current) {
-      infoListRef.current.scrollTop = infoListRef.current.scrollHeight;
+      infoListRef.current.scrollTo({
+        top: infoListRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
       setShowScrollToBottomButton(false);
     }
   };
@@ -541,10 +562,7 @@ export function BrowserExtensionPlayground({
                               </div>
                             )}
                             {item.result?.error && (
-                              <div className="error-message">
-                                <div className="divider" />
-                                Error: {item.result.error}
-                              </div>
+                              <ErrorMessage error={item.result.error} />
                             )}
                           </>
                         );
@@ -565,36 +583,49 @@ export function BrowserExtensionPlayground({
                     <div className="system-message-container">
                       {/* avatar and name */}
                       <div className="system-message-header">
-                        <Icon component={PlaygroundIcon} />
+                        <Icon
+                          component={PlaygroundIcon}
+                          style={{ fontSize: 20 }}
+                        />
                         <span className="system-message-title">Playground</span>
                       </div>
                       {/* info content */}
-                      <div className="system-message-content">
-                        {/* result message use original component, otherwise render text directly */}
-                        {item.type === 'result' ? (
-                          <PlaygroundResultView
-                            result={item.result || null}
-                            loading={item.loading || false}
-                            serviceMode={'In-Browser-Extension'}
-                            replayScriptsInfo={item.replayScriptsInfo || null}
-                            replayCounter={item.replayCounter || 0}
-                            loadingProgressText={item.loadingProgressText || ''}
-                            verticalMode={item.verticalMode || false}
-                            fitMode="width"
-                          />
-                        ) : (
-                          <>
-                            <div className="system-message-text">
-                              {item.content}
+                      {(item.content || item.result) && (
+                        <div className="system-message-content">
+                          {/* result message use original component, otherwise render text directly */}
+                          {item.type === 'result' && item.result?.error && (
+                            <div className="error-message">
+                              <div className="divider" />
+                              <ErrorMessage error={item.result.error} />
                             </div>
-                            {item.loading && item.loadingProgressText && (
-                              <div className="loading-progress-text">
-                                <span>{item.loadingProgressText}</span>
+                          )}
+                          {item.type === 'result' ? (
+                            <PlaygroundResultView
+                              result={item.result || null}
+                              loading={item.loading || false}
+                              serviceMode={'In-Browser-Extension'}
+                              replayScriptsInfo={item.replayScriptsInfo || null}
+                              replayCounter={item.replayCounter || 0}
+                              loadingProgressText={
+                                item.loadingProgressText || ''
+                              }
+                              verticalMode={item.verticalMode || false}
+                              fitMode="width"
+                            />
+                          ) : (
+                            <>
+                              <div className="system-message-text">
+                                {item.content}
                               </div>
-                            )}
-                          </>
-                        )}
-                      </div>
+                              {item.loading && item.loadingProgressText && (
+                                <div className="loading-progress-text">
+                                  <span>{item.loadingProgressText}</span>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                 </List.Item>
@@ -642,7 +673,7 @@ export function BrowserExtensionPlayground({
         {/* version info section */}
         <div className="version-info-section">
           <span className="version-text">
-            Midscene.js version: {extensionVersion}
+            Midscene.js version: {extensionVersion}(SDK v{__SDK_VERSION__})
           </span>
         </div>
 

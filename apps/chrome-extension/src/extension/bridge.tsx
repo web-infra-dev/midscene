@@ -1,14 +1,13 @@
 import {
-  CaretRightOutlined,
+  ApiOutlined,
+  ArrowDownOutlined,
   ClearOutlined,
   LoadingOutlined,
 } from '@ant-design/icons';
-import Icon from '@ant-design/icons';
 import { ExtensionBridgePageBrowserSide } from '@midscene/web/bridge-mode-browser';
-import { Button, List, Spin, Typography } from 'antd';
+import { Button, List, Spin } from 'antd';
 import dayjs from 'dayjs';
 import { useEffect, useRef, useState } from 'react';
-import BridgeIcon from '../icons/bridge.svg?react';
 import PlayIcon from '../icons/play.svg?react';
 import {
   clearStoredBridgeMessages,
@@ -18,8 +17,6 @@ import {
 import { iconForStatus } from './misc';
 
 import './bridge.less';
-
-const { Text } = Typography;
 
 interface BridgeMessageItem {
   id: string;
@@ -117,28 +114,27 @@ class BridgeConnector {
 
 export default function Bridge() {
   const [bridgeStatus, setBridgeStatus] = useState<BridgeStatus>('closed');
-  const [taskStatus, setTaskStatus] = useState<string>('');
-
   const [messageList, setMessageList] = useState<BridgeMessageItem[]>(() => {
-    // 从localStorage加载存储的消息
+    // load messages from localStorage
     return getBridgeMsgsFromStorage();
   });
+  const [showScrollToBottomButton, setShowScrollToBottomButton] =
+    useState(false);
   const messageListRef = useRef<HTMLDivElement>(null);
-
-  // 用于追踪连接状态消息的ID - 改用useRef确保同步更新
+  // useRef to track the ID of the connection status message
   const connectionStatusMessageId = useRef<string | null>(null);
 
-  // 初始化时恢复connectionStatusMessageId
+  // restore connectionStatusMessageId when initializing
   useEffect(() => {
     if (messageList.length > 0) {
-      // 找到最后一条status类型的消息作为当前连接状态消息
+      // find the last status message as the current connection status message
       const lastStatusMessage = messageList
         .slice()
         .reverse()
         .find((msg) => msg.type === 'status');
 
-      // 只有当存在未完成的连接会话时才恢复ID
-      // 检查最后一条消息是否表明连接已结束
+      // only restore ID when there is an unfinished connection session
+      // check if the last message indicates the connection has ended
       if (lastStatusMessage) {
         const lastContent = lastStatusMessage.content.toLowerCase();
         const isConnectionEnded =
@@ -153,16 +149,13 @@ export default function Bridge() {
     }
   }, []);
 
-  // 保存消息到localStorage
+  // save messages to localStorage
   useEffect(() => {
     storeBridgeMsgsToStorage(messageList);
   }, [messageList]);
 
-  const appendBridgeMessage = (
-    content: string,
-    type: 'system' | 'status' = 'system',
-  ) => {
-    // 如果已有连接状态消息，无论是什么类型的消息都追加到现有消息中
+  const appendBridgeMessage = (content: string) => {
+    // if there is a connection status message, append all messages to the existing message
     if (connectionStatusMessageId.current) {
       setMessageList((prev) =>
         prev.map((msg) =>
@@ -177,16 +170,16 @@ export default function Bridge() {
         ),
       );
     } else {
-      // 创建新消息（只有在没有活跃连接时）
+      // create a new message (only when there is no active connection)
       const newMessage: BridgeMessageItem = {
         id: `message-${Date.now()}`,
-        type: 'status', // 连接会话消息统一设为status类型
+        type: 'status', // connection session messages are unified as status type
         content: `${dayjs().format('HH:mm:ss.SSS')} - ${content}`,
         timestamp: new Date(),
         time: dayjs().format('HH:mm:ss.SSS'),
       };
 
-      // 设置连接状态消息ID，后续所有消息都会追加到这条消息
+      // set the connection status message ID, all subsequent messages will be appended to this message
       connectionStatusMessageId.current = newMessage.id;
       setMessageList((prev) => [...prev, newMessage]);
     }
@@ -195,21 +188,19 @@ export default function Bridge() {
   const activeBridgeConnectorRef = useRef<BridgeConnector | null>(
     new BridgeConnector(
       (message, type) => {
-        // 所有bridge消息都作为状态消息处理，追加到当前连接会话
-        appendBridgeMessage(message, 'status');
+        // all bridge messages are treated as status messages, appended to the current connection session
+        appendBridgeMessage(message);
         if (type === 'status') {
           console.log('status tip changed event', type, message);
-          setTaskStatus(message);
         }
       },
       (status) => {
         console.log('status changed event', status);
-        setTaskStatus('');
         setBridgeStatus(status);
 
-        // 所有状态变化也追加到当前连接会话
+        // all
         if (status !== 'connected') {
-          appendBridgeMessage(`Bridge status changed to ${status}`, 'status');
+          appendBridgeMessage(`Bridge status changed to ${status}`);
         }
       },
     ),
@@ -226,18 +217,46 @@ export default function Bridge() {
   };
 
   const startConnection = async () => {
-    // 只有在开始新连接时才重置状态消息ID，这样会创建新的消息
+    // only reset the connection status message ID when starting a new connection
     if (bridgeStatus === 'closed') {
       connectionStatusMessageId.current = null;
     }
     activeBridgeConnectorRef.current?.keepListening();
   };
 
-  // 清空消息列表
+  // clear the message list
   const clearMessageList = () => {
     setMessageList([]);
     connectionStatusMessageId.current = null;
     clearStoredBridgeMessages();
+  };
+
+  // scroll to bottom when component first mounts (if there are messages from localStorage)
+  useEffect(() => {
+    if (messageList.length > 0) {
+      setTimeout(() => {
+        if (messageListRef.current) {
+          messageListRef.current.scrollTop =
+            messageListRef.current.scrollHeight;
+        }
+      }, 100);
+    }
+  }, []); // only run once on mount
+
+  // check if scrolled to bottom
+  const checkIfScrolledToBottom = () => {
+    if (messageListRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = messageListRef.current;
+
+      // if content height is less than or equal to container height, no need to scroll, hide button
+      if (scrollHeight <= clientHeight) {
+        setShowScrollToBottomButton(false);
+        return;
+      }
+
+      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10; // 10px tolerance
+      setShowScrollToBottomButton(!isAtBottom);
+    }
   };
 
   // scroll to bottom when message list updated
@@ -248,9 +267,39 @@ export default function Bridge() {
           messageListRef.current.scrollTop =
             messageListRef.current.scrollHeight;
         }
+        // check status after scroll
+        setTimeout(() => {
+          checkIfScrolledToBottom();
+        }, 50);
       }, 100);
     }
   }, [messageList]);
+
+  // listen to scroll event
+  useEffect(() => {
+    const container = messageListRef.current;
+    if (container) {
+      container.addEventListener('scroll', checkIfScrolledToBottom);
+      // initial check
+      setTimeout(() => {
+        checkIfScrolledToBottom();
+      }, 200);
+      return () => {
+        container.removeEventListener('scroll', checkIfScrolledToBottom);
+      };
+    }
+  }, []);
+
+  // manually scroll to bottom
+  const handleScrollToBottom = () => {
+    if (messageListRef.current) {
+      messageListRef.current.scrollTo({
+        top: messageListRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
+      setShowScrollToBottomButton(false);
+    }
+  };
 
   let statusIcon;
   let statusTip: string;
@@ -345,7 +394,7 @@ export default function Bridge() {
                     <div className="system-message-container">
                       <div className="mode-header">
                         <div className="mode-icon">
-                          <Icon component={BridgeIcon} />
+                          <ApiOutlined style={{ fontSize: '12px' }} />
                         </div>
                         <span className="mode-title">Bridge Mode</span>
                       </div>
@@ -362,10 +411,21 @@ export default function Bridge() {
               />
             )}
           </div>
+          {/* scroll to bottom button */}
+          {messageList.length > 0 && showScrollToBottomButton && (
+            <Button
+              className="scroll-to-bottom-button"
+              type="primary"
+              shape="circle"
+              icon={<ArrowDownOutlined />}
+              onClick={handleScrollToBottom}
+              size="large"
+            />
+          )}
         </div>
       </div>
 
-      {/* 底部按钮 */}
+      {/* bottom buttons */}
       <div className="bottom-button-container">
         {bridgeStatus === 'closed' ? (
           <Button
