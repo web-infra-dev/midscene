@@ -11,6 +11,11 @@ on:
         required: true
         default: 'main'
 
+# Add permissions for creating releases
+permissions:
+  contents: write
+  packages: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -76,6 +81,5 @@ jobs:
         tag_name: ${{ steps.get_version.outputs.version }}
         files: |
           ${{ github.workspace }}/apps/chrome-extension/extension_output/**/*.zip
-          ${{ github.workspace }}/apps/chrome-extension/extension_output/**/*.tar.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
