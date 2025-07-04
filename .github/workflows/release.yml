@@ -56,14 +56,13 @@ jobs:
       env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     
-    - name: Get latest tag
-      id: get_tag
+    - name: Get version from core package
+      id: get_version
       run: |
-        git fetch --tags
-        LATEST_TAG=$(git describe --tags --abbrev=0)
-        echo "tag=${LATEST_TAG}" >> $GITHUB_OUTPUT
-        echo "Latest tag: ${LATEST_TAG}"
-          
+        VERSION=$(cat packages/core/package.json | jq -r '.version')
+        echo "version=v${VERSION}" >> $GITHUB_OUTPUT
+        echo "Core package version: v${VERSION}"
+      
     - name: Upload output
       uses: actions/upload-artifact@v4
       with:
@@ -74,7 +73,7 @@ jobs:
     - name: Upload Release Assets
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ steps.get_tag.outputs.tag }}
+        tag_name: ${{ steps.get_version.outputs.version }}
         files: |
           ${{ github.workspace }}/apps/chrome-extension/extension_output/**/*.zip
           ${{ github.workspace }}/apps/chrome-extension/extension_output/**/*.tar.gz
