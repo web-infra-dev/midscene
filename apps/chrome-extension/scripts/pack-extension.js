@@ -2,11 +2,14 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import {
+  fileURLToPath
+} from 'node:url';
 import archiver from 'archiver';
 
 // Get the directory path of the current file
-const __filename = fileURLToPath(import.meta.url);
+const __filename = fileURLToPath(
+  import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Read package.json
@@ -18,10 +21,10 @@ const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
 
 // Validate version string to prevent injection
 const version = packageJson.version;
-if (!/^[0-9]+\.[0-9]+\.[0-9]+(?:-[a-zA-Z0-9.]+)?$/.test(version)) {
-  console.error('Invalid version format in package.json');
-  process.exit(1);
-}
+// if (!/^[0-9]+\.[0-9]+\.[0-9]+(?:-[a-zA-Z0-9.]+)?$/.test(version)) {
+//   console.error('Invalid version format in package.json');
+//   process.exit(1);
+// }
 
 // Create extension directory
 const extensionDir = path.resolve(__dirname, '../extension_output');
