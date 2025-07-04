@@ -47,7 +47,7 @@ export function PlaygroundPopup() {
         setPopupTab('playground');
       },
     },
-    localStorage.getItem('recorder-enabled') === 'true' ? {
+    ...(localStorage.getItem('recorder-enabled') === 'true' ? [{
       key: 'recorder',
       label: 'Recorder',
       icon: <VideoCameraOutlined />,
@@ -55,7 +55,7 @@ export function PlaygroundPopup() {
         setCurrentMode('recorder');
         setPopupTab('recorder');
       },
-    } : undefined,
+    }] : []),
     {
       key: 'bridge',
       icon: <BridgeIcon />,
