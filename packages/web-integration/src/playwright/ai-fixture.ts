@@ -74,6 +74,10 @@ export const PlaywrightAiFixture = (options?: {
         ...opts,
       });
 
+      pageAgentMap[idForPage].onDumpUpdate = (dump: string) => {
+        updateDumpAnnotation(testInfo, dump);
+      };
+
       page.on('close', () => {
         debugPage('page closed');
         pageAgentMap[idForPage].destroy();
@@ -141,7 +145,6 @@ export const PlaywrightAiFixture = (options?: {
         });
       });
     });
-    updateDumpAnnotation(testInfo, agent.dumpDataString());
   }
 
   const updateDumpAnnotation = (test: TestInfo, dump: string) => {
