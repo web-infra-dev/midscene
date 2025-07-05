@@ -4,7 +4,9 @@ import {
   AIActionType,
   type ChatCompletionMessageParam,
   callAi,
+  callStream,
 } from '../index';
+import type { StreamingCodeGenerationOptions, StreamingAIResponse } from '@/types';
 
 // Common interfaces for test generation
 export interface EventCounts {
@@ -296,6 +298,100 @@ Respond with YAML only, no explanations.`,
     }
 
     throw new Error('Failed to generate YAML test configuration');
+  } catch (error) {
+    throw new Error(`Failed to generate YAML test: ${error}`);
+  }
+};
+
+/**
+ * Generates YAML test configuration from recorded events using AI with streaming support
+ */
+export const generateYamlTestStream = async (
+  events: ChromeRecordedEvent[],
+  options: YamlGenerationOptions & StreamingCodeGenerationOptions = {},
+): Promise<StreamingAIResponse> => {
+  try {
+    // Validate input
+    validateEvents(events);
+
+    // Prepare event summary using shared utilities
+    const summary = prepareEventSummary(events, {
+      testName: options.testName,
+      maxScreenshots: options.maxScreenshots || 3,
+    });
+
+    // Add YAML-specific options to summary
+    const yamlSummary = {
+      ...summary,
+      includeTimestamps: options.includeTimestamps || false,
+    };
+
+    // Get screenshots for visual context
+    const screenshots = getScreenshotsForLLM(
+      events,
+      options.maxScreenshots || 3,
+    );
+
+    // Use LLM to generate the YAML test configuration
+    const prompt: ChatCompletionMessageParam[] = [
+      {
+        role: 'system',
+        content: `You are an expert in Midscene.js YAML test generation. Generate clean, accurate YAML following these rules: ${YAML_EXAMPLE_CODE}`,
+      },
+      {
+        role: 'user',
+        content: `Generate YAML test for Midscene.js automation from recorded browser events.
+
+Event Summary:
+${JSON.stringify(yamlSummary, null, 2)}
+
+Convert events:
+- navigation → target.url
+- click → aiTap with element description
+- input → aiInput with value and locate
+- scroll → aiScroll with appropriate direction
+- Add aiAssert for important state changes
+
+Respond with YAML only, no explanations.`,
+      },
+    ];
+
+    // Add screenshots if available and requested
+    if (screenshots.length > 0) {
+      prompt.push({
+        role: 'user',
+        content:
+          'Here are screenshots from the recording session to help you understand the context:',
+      });
+
+      prompt.push({
+        role: 'user',
+        content: screenshots.map((screenshot) => ({
+          type: 'image_url',
+          image_url: {
+            url: screenshot,
+          },
+        })),
+      });
+    }
+
+    if (options.stream && options.onChunk) {
+      // Use streaming
+      return await callStream(prompt, AIActionType.EXTRACT_DATA, options.onChunk);
+    } else {
+      // Fallback to non-streaming
+      const response = await callAi(prompt, AIActionType.EXTRACT_DATA);
+
+      if (response?.content && typeof response.content === 'string') {
+        return {
+          content: response.content,
+          usage: response.usage,
+          isStreamed: false,
+        };
+      }
+
+      throw new Error('Failed to generate YAML test configuration');
+    }
   } catch (error) {
     throw new Error(`Failed to generate YAML test: ${error}`);
   }

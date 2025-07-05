@@ -543,3 +543,38 @@ export type PageType =
   | 'static'
   | 'chrome-extension-proxy'
   | 'android';
+
+export interface StreamingCodeGenerationOptions {
+  /** Whether to enable streaming output */
+  stream?: boolean;
+  /** Callback function to handle streaming chunks */
+  onChunk?: StreamingCallback;
+  /** Callback function to handle streaming completion */
+  onComplete?: (finalCode: string) => void;
+  /** Callback function to handle streaming errors */
+  onError?: (error: Error) => void;
+}
+
+export type StreamingCallback = (chunk: CodeGenerationChunk) => void;
+
+export interface CodeGenerationChunk {
+  /** The incremental content chunk */
+  content: string;
+  /** The reasoning content */
+  reasoning_content: string;
+  /** The accumulated content so far */
+  accumulated: string;
+  /** Whether this is the final chunk */
+  isComplete: boolean;
+  /** Token usage information if available */
+  usage?: AIUsageInfo;
+}
+
+export interface StreamingAIResponse {
+  /** The final accumulated content */
+  content: string;
+  /** Token usage information */
+  usage?: AIUsageInfo;
+  /** Whether the response was streamed */
+  isStreamed: boolean;
+}

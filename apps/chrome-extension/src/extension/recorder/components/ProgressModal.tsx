@@ -20,7 +20,7 @@ import type React from 'react';
 import { useEffect, useState } from 'react';
 import { useRecordStore, useRecordingSessionStore } from '../../../store';
 import { generateAIDescription } from '../../../utils/eventOptimizer';
-import { generatePlaywrightTest, generateYamlTest } from '../generators';
+import { generatePlaywrightTestStream, generateYamlTest, generateYamlTestStream } from '../generators';
 import { recordLogger } from '../logger';
 import {
   getLatestEvents,
@@ -31,6 +31,7 @@ import { generateRecordTitle } from '../utils';
 import { StepList } from './ProgressModal/StepList';
 import { PlaywrightCodeBlock } from './ProgressModal/PlaywrightCodeBlock';
 import { YamlCodeBlock } from './ProgressModal/YamlCodeBlock';
+import type { StreamingCallback, CodeGenerationChunk } from '@midscene/core';
 
 const { Text } = Typography;
 
@@ -115,6 +116,14 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
   const [generatedYaml, setGeneratedYaml] = useState('');
   const [steps, setSteps] = useState<ProgressStep[]>([]);
   const [showGeneratedCode, setShowGeneratedCode] = useState(false);
+
+  // Streaming states
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingContent, setStreamingContent] = useState('');
+  const [thinkingProcess, setThinkingProcess] = useState('');
+  const [actualCode, setActualCode] = useState('');
+  const [accumulatedThinking, setAccumulatedThinking] = useState('');
+
   const { updateSession } = useRecordingSessionStore();
 
   // Get current session helper
@@ -325,7 +334,80 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
     return finalEvents;
   };
 
-  // Common function to handle code generation
+  // Helper function to parse thinking process and code
+  const parseStreamingContent = (content: string) => {
+    // Look for code blocks (```typescript, ```yaml, ```javascript, etc.)
+    const codeBlockRegex = /```[\w]*\n([\s\S]*?)```/;
+    const codeMatch = content.match(codeBlockRegex);
+
+    if (codeMatch) {
+      // Found code block - split thinking and code
+      const codeStartIndex = content.indexOf('```');
+      const thinking = content.substring(0, codeStartIndex).trim();
+      const code = codeMatch[1];
+      return { thinking, code };
+    } else {
+      // No code block found yet - check if content looks like direct code
+      const looksLikeCode = content.includes('import ') ||
+        content.includes('test(') ||
+        content.includes('describe(') ||
+        content.includes('- name:') ||
+        content.includes('target:') ||
+        content.includes('aiTap:') ||
+        content.includes('aiInput:');
+
+      if (looksLikeCode) {
+        // Direct code without markdown blocks
+        return { thinking: '', code: content };
+      } else {
+        // Still thinking or explaining
+        return { thinking: content, code: '' };
+      }
+    }
+  };
+
+  // Streaming callback handler
+  const handleStreamingChunk: StreamingCallback = (chunk: CodeGenerationChunk) => {
+    setStreamingContent(chunk.accumulated);
+    console.log('chunk.accumulated', chunk);
+    const code = chunk.accumulated;
+    const thinking = chunk.reasoning_content;
+
+    // 累积思考过程内容
+    if (thinking) {
+      setAccumulatedThinking(prev => prev + thinking);
+    }
+
+    setThinkingProcess(thinking);
+    setActualCode(code);
+
+    if (chunk.isComplete) {
+      setIsStreaming(false);
+
+      // Use the actual code for final result
+      const finalCode = code || chunk.accumulated;
+
+      // Set the final generated code
+      if (selectedType === 'playwright') {
+        setGeneratedTest(finalCode);
+      } else if (selectedType === 'yaml') {
+        setGeneratedYaml(finalCode);
+      }
+
+      // Update session with final code
+      if (sessionId) {
+        updateSession(sessionId, {
+          generatedCode: {
+            ...getCurrentSession()?.generatedCode,
+            [selectedType]: finalCode,
+          },
+          updatedAt: Date.now(),
+        });
+      }
+    }
+  };
+
+  // Common function to handle code generation with streaming support
   const handleCodeGeneration = async (type: 'playwright' | 'yaml') => {
     // Get the most current events
     const currentEvents = getCurrentEvents();
@@ -336,6 +418,11 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
     }
 
     setIsGenerating(true);
+    setIsStreaming(true);
+    setStreamingContent('');
+    setThinkingProcess('');
+    setActualCode('');
+    setAccumulatedThinking('');
 
     // Initialize progress steps
     const progressSteps: ProgressStep[] = [
@@ -416,7 +503,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
         currentSessionName,
       });
 
-      // Step 3: Generate code
+      // Step 3: Generate code with streaming support
       updateProgressStep(2, {
         status: 'loading',
         details:
@@ -426,14 +513,30 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
       });
 
       finalEvents = getCurrentEvents();
-      const generatedCode =
-        type === 'playwright'
-          ? await generatePlaywrightTest(finalEvents)
-          : await generateYamlTest(finalEvents, {
-            testName: currentSessionName,
-            description: `Test session recorded on ${new Date().toLocaleDateString()}`,
-            includeTimestamps: true,
-          });
+
+      // Show the code generation area immediately when streaming starts
+      setShowGeneratedCode(true);
+
+      let generatedCode: string;
+
+      if (type === 'playwright') {
+        // Use streaming for Playwright
+        const streamingResult = await generatePlaywrightTestStream(finalEvents, {
+          stream: true,
+          onChunk: handleStreamingChunk,
+        });
+        generatedCode = streamingResult.content;
+      } else {
+        // Use streaming for YAML
+        const streamingResult = await generateYamlTestStream(finalEvents, {
+          stream: true,
+          onChunk: handleStreamingChunk,
+          testName: currentSessionName,
+          description: `Test session recorded on ${new Date().toLocaleDateString()}`,
+          includeTimestamps: true,
+        });
+        generatedCode = streamingResult.content;
+      }
 
       // Update session with generated code if sessionId exists
       if (sessionId) {
@@ -489,6 +592,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
       }, 2000);
     } finally {
       setIsGenerating(false);
+      setIsStreaming(false);
     }
   };
 
@@ -665,6 +769,61 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
     }
   };
 
+  // 思考过程展示区域
+  const [showThinking, setShowThinking] = useState(true);
+
+  // 判断是否有思考过程内容
+  const hasThinking = accumulatedThinking.length > 0;
+
+  // 自动折叠思考过程
+  useEffect(() => {
+    if (!isStreaming && hasThinking && actualCode) {
+      // 当流式结束且有实际代码时，2秒后自动折叠思考过程
+      const timer = setTimeout(() => {
+        setShowThinking(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [isStreaming, hasThinking, actualCode]);
+
+  useEffect(() => {
+    // 只有在所有步骤都完成且showConfetti为true时才显示撒花特效
+    const allStepsCompleted = steps.every(
+      (step) => step.status === 'completed',
+    );
+
+    if (allStepsCompleted && steps.length > 0 && !confettiVisible) {
+      setConfettiVisible(true);
+
+      // Trigger canvas-confetti effect
+      triggerConfetti();
+
+      const timer = setTimeout(() => {
+        setConfettiVisible(false);
+      }, 1000); // 撒花时间1秒
+      return () => clearTimeout(timer);
+    }
+  }, [confettiVisible, steps]);
+
+  useEffect(() => {
+    // 只有在所有步骤都完成且showConfetti为true时才显示撒花特效
+    const allStepsCompleted = steps.every(
+      (step) => step.status === 'completed',
+    );
+
+    if (allStepsCompleted && steps.length > 0 && !confettiVisible) {
+      setConfettiVisible(true);
+
+      // Trigger canvas-confetti effect
+      triggerConfetti();
+
+      const timer = setTimeout(() => {
+        setConfettiVisible(false);
+      }, 1000); // 撒花时间1秒
+      return () => clearTimeout(timer);
+    }
+  }, [confettiVisible, steps]);
+
   return (
     <>
       {eventsCount === 0 ? (
@@ -734,29 +893,41 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
         />
       )}
 
+
       {/* Code block for selectedType only */}
-      {showGeneratedCode && steps.every((step) => step.status === 'completed') && (
+      {(showGeneratedCode || isStreaming) && (
         <>
-          {selectedType === 'playwright' && generatedTest && (
+          {selectedType === 'playwright' && (generatedTest || isStreaming) && (
             <PlaywrightCodeBlock
               code={generatedTest}
               loading={isGenerating}
               onCopy={handleCopyTest}
               onDownload={handleDownloadTest}
               onRegenerate={handleRegenerateTest}
+              isStreaming={isStreaming && selectedType === 'playwright'}
+              streamingContent={streamingContent}
+              thinkingProcess={thinkingProcess}
+              actualCode={actualCode}
+              accumulatedThinking={accumulatedThinking}
             />
           )}
-          {selectedType === 'yaml' && generatedYaml && (
+          {selectedType === 'yaml' && (generatedYaml || isStreaming) && (
             <YamlCodeBlock
               code={generatedYaml}
               loading={isGenerating}
               onCopy={handleCopyYaml}
               onDownload={handleDownloadYaml}
               onRegenerate={handleRegenerateYaml}
+              isStreaming={isStreaming && selectedType === 'yaml'}
+              streamingContent={streamingContent}
+              thinkingProcess={thinkingProcess}
+              actualCode={actualCode}
+              accumulatedThinking={accumulatedThinking}
             />
           )}
         </>
       )}
+
     </>
   );
 };
