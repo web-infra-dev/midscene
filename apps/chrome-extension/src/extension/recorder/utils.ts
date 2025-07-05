@@ -1,4 +1,4 @@
-import { AIActionType, callToGetJSONObject } from '@midscene/core/ai-model';
+import { AIActionType, callAiFn } from '@midscene/core/ai-model';
 import { message } from 'antd';
 
 import type { ChromeRecordedEvent } from '@midscene/recorder';
@@ -104,7 +104,6 @@ export const injectScript = async (currentTab: chrome.tabs.Tab | null) => {
     });
 
     recordLogger.success('Script injected', { tabId: currentTab.id });
-    message.success('Recording script injected successfully');
   } catch (error) {
     recordLogger.error(
       'Failed to inject script',
@@ -305,8 +304,8 @@ export const generateRecordTitle = async (
         },
       ];
 
-      const response = await callToGetJSONObject(
-        prompt,
+      const response = await callAiFn(
+        [prompt[0], prompt[1]],
         AIActionType.EXTRACT_DATA,
       );
       if (response?.content) {
@@ -361,7 +360,6 @@ export const cleanupPreviousRecordings = async () => {
     });
 
     await Promise.allSettled(cleanupPromises);
-    recordLogger.success('Previous recordings cleaned up');
   } catch (error) {
     recordLogger.error('Error during recording cleanup', undefined, error);
   }
