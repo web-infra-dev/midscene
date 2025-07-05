@@ -98,7 +98,6 @@ export const useRecordingControl = (
           action: 'stop',
           sessionId: currentSessionId,
         });
-        message.success('Recording stopped');
       } catch (error: any) {
         // If content script is not available, just stop recording on our side
         if (error.message?.includes('Receiving end does not exist')) {
@@ -266,7 +265,6 @@ export const useRecordingControl = (
         recordLogger.info('Auto-creating session', { action: 'create' });
 
         sessionToUse = createNewSession(sessionName);
-        message.success(`Session "${sessionName}" created automatically`);
 
         // Small delay to ensure state updates before continuing
         await new Promise((resolve) => setTimeout(resolve, 100));

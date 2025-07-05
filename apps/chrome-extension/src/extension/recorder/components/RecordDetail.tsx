@@ -171,26 +171,18 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
       >
         <div className="flex gap-2 w-full items-stretch">
           <button
-            className={`flex items-center justify-center gap-1.5 flex-1 transition-colors ${tab === 'timeline'
+            className={`flex items-center justify-center gap-1.5 flex-1 transition-colors !font-bold !text-[12px] !leading-[1.83em] !bg-transparent !rounded-lg !py-2 !px-0 !border-none !cursor-pointer ${tab === 'timeline'
               ? 'text-[rgba(0,0,0,0.85)]'
               : 'text-[rgba(0,0,0,0.25)]'
               }`}
             style={{
-              fontFamily: 'Inter, -apple-system, sans-serif',
-              fontWeight: 'bold',
-              fontSize: '12px',
-              lineHeight: '1.83em',
-              background: 'transparent',
-              borderRadius: '8px',
-              padding: '8px 0px',
-              border: 'none',
-              cursor: 'pointer'
+              fontFamily: 'Inter, -apple-system, sans-serif'
             }}
             onClick={() => setTab('timeline')}
           >
             {/* Timeline 图标 */}
             <div
-              className="w-4 h-4 flex items-center justify-center"
+              className="w-4 h-4 flex items-center justify-center !rounded-none"
             >
               <ControlOutlined />
             </div>
@@ -200,38 +192,25 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
           {/* 分隔线 */}
           <div className="flex items-center">
             <div
-              style={{
-                width: '1px',
-                height: '8px',
-                background: 'rgba(0,0,0,0.25)'
-              }}
+              className="!w-px !h-2 !bg-[rgba(0,0,0,0.25)]"
             />
           </div>
 
           <button
-            className={`flex items-center justify-center gap-1.5 flex-1 transition-colors ${tab === 'code'
+            className={`flex items-center justify-center gap-1.5 flex-1 transition-colors !font-medium !text-[12px] !leading-[1.83em] !bg-transparent !rounded-lg !py-2 !px-0 !border-none !cursor-pointer ${tab === 'code'
               ? 'text-[rgba(0,0,0,0.85)]'
               : 'text-[rgba(0,0,0,0.25)]'
               }`}
             style={{
-              fontFamily: 'Inter, -apple-system, sans-serif',
-              fontWeight: 500,
-              fontSize: '12px',
-              lineHeight: '1.83em',
-              background: 'transparent',
-              borderRadius: '8px',
-              padding: '8px 0px',
-              border: 'none',
-              cursor: 'pointer'
+              fontFamily: 'Inter, -apple-system, sans-serif'
             }}
             onClick={() => setTab('code')}
           >
             {/* Code 图标 */}
             <div
-              className="w-4 h-4 flex items-center justify-center"
-              style={{ background: '#FFFFFF', borderRadius: '0px' }}
+              className="w-4 h-4 flex items-center justify-center !rounded-none"
             >
-              <CodeOutlined style={{ background: 'transparent' }} />
+              <CodeOutlined className="!bg-transparent" />
             </div>
             Generate code
           </button>
@@ -248,7 +227,6 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
           )
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-gray-400">
-            {/* 这里可放置生成代码相关内容或组件 */}
             <span>Generate code 功能开发中...</span>
           </div>
         )}
@@ -329,7 +307,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
               <button
                 onClick={onStopRecording}
                 disabled={!isRecording}
-                className="flex items-center gap-1 hover:opacity-80 transition-opacity bg-transparent border-none p-0"
+                className="flex items-center gap-1 hover:opacity-80 transition-opacity bg-transparent border-none p-0 cursor-pointer"
                 style={{ background: 'none' }}
               >
                 <div
