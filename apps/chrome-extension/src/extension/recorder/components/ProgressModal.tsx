@@ -713,25 +713,25 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
         </>
       )}
 
-      {steps.length > 0 && steps.some((step) => step.status !== 'completed') && (
+      {steps.length > 0 && !steps.every((step) => step.status === 'completed') && (
         <div className="py-5">
           {steps
-            .filter((step) => !completedSteps.has(step.id))
+            // .filter((step) => !completedSteps.has(step.id))
             .map((step, index, filteredSteps) => {
               const isSliding = slidingOutSteps.has(step.id);
               return (
                 <div
                   key={step.id}
-                  className={
-                    `${isSliding ? 'translate-y-[-100%] opacity-0 h-0' : 'translate-y-0 opacity-100 h-auto'} mb-6 transition-transform duration-500 ease-out overflow-hidden`
-                  }
-                  style={{
-                    transform: isSliding
-                      ? 'translateY(-100%)'
-                      : 'translateY(0)',
-                    opacity: isSliding ? 0 : 1,
-                    height: isSliding ? 0 : 'auto',
-                  }}
+                // className={
+                //   `${isSliding ? 'translate-y-[-100%] opacity-0 h-0' : 'translate-y-0 opacity-100 h-auto'} mb-6 transition-transform duration-500 ease-out overflow-hidden`
+                // }
+                // style={{
+                //   transform: isSliding
+                //     ? 'translateY(-100%)'
+                //     : 'translateY(0)',
+                //   opacity: isSliding ? 0 : 1,
+                //   height: isSliding ? 0 : 'auto',
+                // }}
                 >
                   <div className="flex items-center mb-2">
                     <div className="mr-3 min-w-[20px]">
@@ -805,7 +805,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
       )}
 
       {/* Generated Code Display */}
-      {showGeneratedCode &&
+      {showGeneratedCode && steps.every((step) => step.status === 'completed') &&
         ((selectedType === 'playwright' && generatedTest) ||
           (selectedType === 'yaml' && generatedYaml)) && (
           <div className="mt-5">
