@@ -42,6 +42,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
 }) => {
   // useState 必须在组件顶层调用，不能在条件语句之后
   const [tab, setTab] = useState<'timeline' | 'code'>('timeline');
+  const [isFromStopRecording, setIsFromStopRecording] = useState(false);
 
   // Get the session directly from the store to ensure we always have the latest data
   const { sessions } = useRecordingSessionStore();
@@ -73,7 +74,16 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
   // 包装 onStopRecording，停止录制后切换到 code tab
   const handleStopRecording = () => {
     onStopRecording();
+    setIsFromStopRecording(true);
     setTab('code');
+  };
+
+  // 当手动切换到 code tab 时，重置 isFromStopRecording 状态
+  const handleTabChange = (newTab: 'timeline' | 'code') => {
+    if (newTab === 'timeline') {
+      setIsFromStopRecording(false);
+    }
+    setTab(newTab);
   };
 
   return (
@@ -139,6 +149,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
             icon={<ClearOutlined />}
             onClick={() => {
               setTab('timeline');
+              setIsFromStopRecording(false);
               onClearEvents();
             }}
             disabled={events.length === 0 || isRecording}
@@ -175,7 +186,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
             style={{
               fontFamily: 'Inter, -apple-system, sans-serif',
             }}
-            onClick={() => setTab('timeline')}
+            onClick={() => handleTabChange('timeline')}
           >
             {/* Timeline 图标 */}
             <div className="w-4 h-4 flex items-center justify-center !rounded-none">
@@ -197,7 +208,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
             style={{
               fontFamily: 'Inter, -apple-system, sans-serif',
             }}
-            onClick={() => setTab('code')}
+            onClick={() => handleTabChange('code')}
           >
             {/* Code 图标 */}
             <div className="w-4 h-4 flex items-center justify-center !rounded-none">
@@ -225,6 +236,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
             events={events}
             sessionId={session.id}
             onStopRecording={handleStopRecording}
+            isFromStopRecording={isFromStopRecording}
           />
         )}
       </div>

@@ -36,7 +36,7 @@ export const PlaywrightCodeBlock: React.FC<PlaywrightCodeBlockProps> = ({
     return (
         <div className="mt-5">
             <div className="flex justify-between items-center mb-3">
-                {/* <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
                     <CodeOutlined className="text-blue-500" />
                     <Text strong>Playwright Test Code</Text>
                     {isStreaming && (
@@ -45,7 +45,7 @@ export const PlaywrightCodeBlock: React.FC<PlaywrightCodeBlockProps> = ({
                             <Text className="text-xs text-blue-500">Streaming...</Text>
                         </div>
                     )}
-                </div> */}
+                </div>
                 <div className="flex gap-2">
                     <Button
                         size="small"

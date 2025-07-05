@@ -52,6 +52,7 @@ interface ProgressModalProps {
   events?: ChromeRecordedEvent[];
   sessionId?: string;
   onStopRecording?: () => void | Promise<void>;
+  isFromStopRecording?: boolean;
 }
 
 const triggerConfetti = () => {
@@ -103,6 +104,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
   events = [],
   sessionId,
   onStopRecording,
+  isFromStopRecording,
 }) => {
   const [confettiVisible, setConfettiVisible] = useState(false);
   const [selectedType, setSelectedType] = useState<CodeGenerationType>('yaml');
@@ -147,6 +149,14 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
   // Merge: load persisted code and handle auto-generation/display logic
   useEffect(() => {
     const session = getCurrentSession();
+
+    // If this is from stop recording, always regenerate code regardless of cache
+    if (isFromStopRecording && eventsCount > 0) {
+      setSelectedType(defaultType);
+      handleGenerateCode(defaultType);
+      return;
+    }
+
     // Prefer loading persisted code from session
     if (session?.generatedCode) {
       if (session.generatedCode.playwright && !generatedTest) {
@@ -177,7 +187,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
       handleGenerateCode(defaultType);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId]);
+  }, [sessionId, isFromStopRecording]);
 
   // Helper function to update progress step
   const updateProgressStep = (
