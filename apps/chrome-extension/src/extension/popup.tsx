@@ -18,13 +18,13 @@ import { BrowserExtensionPlayground } from '../component/playground';
 import Bridge from './bridge';
 import Recorder from './recorder';
 import './popup.less';
+import { OPENAI_API_KEY, overrideAIConfig } from '@midscene/shared/env';
 import {
   ChromeExtensionProxyPage,
   ChromeExtensionProxyPageAgent,
 } from '@midscene/web/chrome-extension';
 import BridgeIcon from '../icons/bridge.svg?react';
 import PlaygroundIcon2 from '../icons/playground-2.svg?react';
-import { OPENAI_API_KEY, overrideAIConfig } from '@midscene/shared/env';
 // remember to destroy the agent when the tab is destroyed: agent.page.destroy()
 const extensionAgentForTab = (forceSameTabNavigation = true) => {
   const page = new ChromeExtensionProxyPage(forceSameTabNavigation);
@@ -33,9 +33,9 @@ const extensionAgentForTab = (forceSameTabNavigation = true) => {
 
 export function PlaygroundPopup() {
   const { setPopupTab } = useEnvConfig();
-  const [currentMode, setCurrentMode] = useState<'playground' | 'bridge' | 'recorder'>(
-    'recorder',
-  );
+  const [currentMode, setCurrentMode] = useState<
+    'playground' | 'bridge' | 'recorder'
+  >('recorder');
 
   const { config, deepThink } = useEnvConfig();
 
@@ -56,15 +56,19 @@ export function PlaygroundPopup() {
         setPopupTab('playground');
       },
     },
-    ...(localStorage.getItem('recorder-enabled') === 'true' ? [{
-      key: 'recorder',
-      label: 'Recorder',
-      icon: <VideoCameraOutlined />,
-      onClick: () => {
-        setCurrentMode('recorder');
-        setPopupTab('recorder');
-      },
-    }] : []),
+    ...(localStorage.getItem('recorder-enabled') === 'true'
+      ? [
+          {
+            key: 'recorder',
+            label: 'Recorder',
+            icon: <VideoCameraOutlined />,
+            onClick: () => {
+              setCurrentMode('recorder');
+              setPopupTab('recorder');
+            },
+          },
+        ]
+      : []),
     {
       key: 'bridge',
       icon: <BridgeIcon />,

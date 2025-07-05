@@ -17,8 +17,8 @@ import {
   message,
 } from 'antd';
 import React, { useState } from 'react';
-import type { RecordedEvent } from './recorder';
 import { ShinyText } from './components/shiny-text';
+import type { RecordedEvent } from './recorder';
 
 const { Text } = Typography;
 
@@ -43,12 +43,12 @@ export const RecordTimeline = ({
     setExpandedEvents(newExpanded);
   };
 
-  const truncateJsonStrings = (obj: any, maxLength: number = 30): any => {
+  const truncateJsonStrings = (obj: any, maxLength = 30): any => {
     if (typeof obj === 'string') {
       return obj.length > maxLength ? `${obj.substring(0, maxLength)}...` : obj;
     }
     if (Array.isArray(obj)) {
-      return obj.map(item => truncateJsonStrings(item, maxLength));
+      return obj.map((item) => truncateJsonStrings(item, maxLength));
     }
     if (obj && typeof obj === 'object') {
       const truncated: any = {};
@@ -149,60 +149,110 @@ export const RecordTimeline = ({
 
     switch (event.type) {
       case 'click':
-
-        if (event.descriptionLoading === true && event.elementRect?.x !== undefined && event.elementRect?.y !== undefined) {
+        if (
+          event.descriptionLoading === true &&
+          event.elementRect?.x !== undefined &&
+          event.elementRect?.y !== undefined
+        ) {
           return (
             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               <Text type="secondary">{eventTitle} - </Text>
-              <ShinyText text={`(${event.elementRect!.x}, ${event.elementRect!.y})`} disabled={false} speed={3} className="step-title-shiny" />
+              <ShinyText
+                text={`(${event.elementRect!.x}, ${event.elementRect!.y})`}
+                disabled={false}
+                speed={3}
+                className="step-title-shiny"
+              />
             </span>
           );
         }
 
         if (event.descriptionLoading === false && event.elementDescription) {
-          return <Text type="secondary">{eventTitle} - {event.elementDescription}</Text>;
+          return (
+            <Text type="secondary">
+              {eventTitle} - {event.elementDescription}
+            </Text>
+          );
         }
 
         return <Text type="secondary">{eventTitle}</Text>;
 
       case 'input':
-        if (event.descriptionLoading === true && event.elementRect?.x !== undefined && event.elementRect?.y !== undefined) {
+        if (
+          event.descriptionLoading === true &&
+          event.elementRect?.x !== undefined &&
+          event.elementRect?.y !== undefined
+        ) {
           return (
             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Text type="secondary">{eventTitle} - {event.value ? ` "${event.value}"` : ''} in </Text>
-              <ShinyText text={`(${event.elementRect.x}, ${event.elementRect.y})`} disabled={false} speed={3} className="step-title-shiny" />
+              <Text type="secondary">
+                {eventTitle} - {event.value ? ` "${event.value}"` : ''} in{' '}
+              </Text>
+              <ShinyText
+                text={`(${event.elementRect.x}, ${event.elementRect.y})`}
+                disabled={false}
+                speed={3}
+                className="step-title-shiny"
+              />
             </span>
           );
         }
 
         if (event.descriptionLoading === false && event.elementDescription) {
-          return <Text type="secondary">{eventTitle} - {event.elementDescription}</Text>;
+          return (
+            <Text type="secondary">
+              {eventTitle} - {event.elementDescription}
+            </Text>
+          );
         }
 
-        return <Text type="secondary">{eventTitle}{event.value ? ` - "${event.value}"` : ''}</Text>;
+        return (
+          <Text type="secondary">
+            {eventTitle}
+            {event.value ? ` - "${event.value}"` : ''}
+          </Text>
+        );
 
       case 'scroll':
         if (event.elementDescription) {
-          return <Text type="secondary">{eventTitle} - {event.elementDescription}</Text>;
+          return (
+            <Text type="secondary">
+              {eventTitle} - {event.elementDescription}
+            </Text>
+          );
         }
-        return <Text type="secondary">{eventTitle} - Position: ({event.elementRect?.x || 0}, {event.elementRect?.y || 0})</Text>;
+        return (
+          <Text type="secondary">
+            {eventTitle} - Position: ({event.elementRect?.x || 0},{' '}
+            {event.elementRect?.y || 0})
+          </Text>
+        );
 
       case 'navigation':
-        const truncatedUrl = event.url && event.url.length > 50 ? `${event.url.substring(0, 50)}...` : event.url;
-        return <Text type="secondary">{eventTitle} - {truncatedUrl}</Text>;
+        const truncatedUrl =
+          event.url && event.url.length > 50
+            ? `${event.url.substring(0, 50)}...`
+            : event.url;
+        return (
+          <Text type="secondary">
+            {eventTitle} - {truncatedUrl}
+          </Text>
+        );
 
       case 'setViewport':
         return <Text type="secondary">{eventTitle} - Desktop 964x992 px</Text>;
 
       case 'keydown':
-        return <Text type="secondary">{eventTitle} - Key: {event.value || 'Unknown'}</Text>;
+        return (
+          <Text type="secondary">
+            {eventTitle} - Key: {event.value || 'Unknown'}
+          </Text>
+        );
 
       default:
         return <Text type="secondary">{eventTitle}</Text>;
     }
   };
-
-
 
   const timelineItems = events.map((event, index) => {
     const boxedImage = event.screenshotWithBox;
@@ -224,7 +274,13 @@ export const RecordTimeline = ({
             }}
             bodyStyle={{ padding: '8px 12px' }}
           >
-            <Space style={{ width: '100%', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Space
+              style={{
+                width: '100%',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
               <Space style={{ flex: 1, minWidth: 0 }}>
                 {getEventDescription(event)}
               </Space>

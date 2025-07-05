@@ -14,10 +14,10 @@ import {
   type ReplayScriptsInfo,
   useEnvConfig,
 } from '@midscene/visualizer';
-import { EnvConfigReminder } from '../components';
 import { allScriptsFromDump } from '@midscene/visualizer';
 import { Button, Form, List, Tooltip, Typography, message } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { EnvConfigReminder } from '../components';
 import PlaygroundIcon from '../icons/playground.svg?react';
 import {
   clearStoredMessages,
@@ -155,7 +155,6 @@ export function BrowserExtensionPlayground({
       window.removeEventListener('resize', handleResize);
     };
   }, []);
-
 
   // Initialize context preview
   useEffect(() => {
@@ -371,11 +370,11 @@ export function BrowserExtensionPlayground({
       prev.map((item) =>
         item.id === `system-${thisRunningId}`
           ? {
-            ...item,
-            content: '', // 'execution completed',
-            loading: false,
-            loadingProgressText: '',
-          }
+              ...item,
+              content: '', // 'execution completed',
+              loading: false,
+              loadingProgressText: '',
+            }
           : item,
       ),
     );
@@ -401,11 +400,11 @@ export function BrowserExtensionPlayground({
         actionType === 'aiAction'
           ? result
           : {
-            result: result.result,
-            error: result.error,
-            dump: null,
-            reportHTML: null,
-          };
+              result: result.result,
+              error: result.error,
+              dump: null,
+              reportHTML: null,
+            };
       storeResult(resultItem.id, dataToStore);
     }
 
@@ -438,11 +437,11 @@ export function BrowserExtensionPlayground({
         prev.map((item) =>
           item.id === `system-${thisRunningId}` && item.loading
             ? {
-              ...item,
-              content: 'Operation stopped',
-              loading: false,
-              loadingProgressText: '',
-            }
+                ...item,
+                content: 'Operation stopped',
+                loading: false,
+                loadingProgressText: '',
+              }
             : item,
         ),
       );
@@ -531,12 +530,13 @@ export function BrowserExtensionPlayground({
                               <span className="progress-action-item">
                                 {action}
                                 <span
-                                  className={`progress-status-icon ${shouldShowLoading
-                                    ? 'loading'
-                                    : item.result?.error
-                                      ? 'error'
-                                      : 'completed'
-                                    }`}
+                                  className={`progress-status-icon ${
+                                    shouldShowLoading
+                                      ? 'loading'
+                                      : item.result?.error
+                                        ? 'error'
+                                        : 'completed'
+                                  }`}
                                 >
                                   {shouldShowLoading ? (
                                     <LoadingOutlined spin />

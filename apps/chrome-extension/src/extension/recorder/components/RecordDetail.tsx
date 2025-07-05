@@ -1,37 +1,20 @@
 import {
   ArrowLeftOutlined,
-  DeleteOutlined,
-  PlayCircleOutlined,
-  StopOutlined,
-  CloseOutlined,
-  RestOutlined,
   ClearOutlined,
-  LoadingOutlined,
+  CloseOutlined,
   CodeOutlined,
   ControlOutlined,
+  LoadingOutlined,
+  PlayCircleOutlined,
 } from '@ant-design/icons';
 import type { ChromeRecordedEvent } from '@midscene/recorder';
 import { RecordTimeline } from '@midscene/recorder';
-import {
-  Alert,
-  Button,
-  Card,
-  Divider,
-  Empty,
-  Space,
-  Tooltip,
-  Typography,
-  Spin,
-} from 'antd';
-import React, { useState } from 'react';
-import {
-  type RecordingSession,
-  useRecordingSessionStore,
-} from '../../../store';
+import { Alert, Button, Empty, Spin } from 'antd';
+import type React from 'react';
+import { useState } from 'react';
+import { useRecordingSessionStore } from '../../../store';
 
-import { ExportControls } from '../ExportControls';
-
-const { Title, Text } = Typography;
+import { ProgressModal } from './ProgressModal';
 
 interface RecordDetailProps {
   sessionId: string;
@@ -50,12 +33,10 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
   sessionId,
   events,
   isRecording,
-  currentTab,
   onBack,
   onStartRecording,
   onStopRecording,
   onClearEvents,
-  isExtensionMode,
   onClose,
 }) => {
   // useState 必须在组件顶层调用，不能在条件语句之后
@@ -126,14 +107,23 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
           ) : (
             <div className="flex items-center gap-[4px] h-[20px] px-[7px] py-[4px] rounded-[23px] bg-[#EFFFE0]">
               <span className="w-[6px] h-[6px] rounded-full bg-[#00C700] inline-block" />
-              <span className="text-[#12A902] text-[10px] font-medium leading-[2em]" style={{ fontFamily: 'PingFang SC, -apple-system, sans-serif', fontWeight: 700 }}>
+              <span
+                className="text-[#12A902] text-[10px] font-medium leading-[2em]"
+                style={{
+                  fontFamily: 'PingFang SC, -apple-system, sans-serif',
+                  fontWeight: 700,
+                }}
+              >
                 Ready
               </span>
             </div>
           )}
         </div>
         {/* 标题 */}
-        <span className="text-[12px] font-medium text-[rgba(0,0,0,0.9)] leading-[1.67em] truncate flex-1" style={{ fontFamily: 'PingFang SC, -apple-system, sans-serif' }}>
+        <span
+          className="text-[12px] font-medium text-[rgba(0,0,0,0.9)] leading-[1.67em] truncate flex-1"
+          style={{ fontFamily: 'PingFang SC, -apple-system, sans-serif' }}
+        >
           {session.name}
         </span>
         {/* 操作按钮 */}
@@ -166,24 +156,23 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
           borderRadius: '8px',
           height: '41px',
           display: 'flex',
-          alignItems: 'stretch'
+          alignItems: 'stretch',
         }}
       >
         <div className="flex gap-2 w-full items-stretch">
           <button
-            className={`flex items-center justify-center gap-1.5 flex-1 transition-colors !font-bold !text-[14px] !leading-[1.83em] !bg-transparent !rounded-lg !py-2 !px-0 !border-none !cursor-pointer ${tab === 'timeline'
-              ? 'text-[rgba(0,0,0,0.85)]'
-              : 'text-[rgba(0,0,0,0.25)]'
-              }`}
+            className={`flex items-center justify-center gap-1.5 flex-1 transition-colors !font-bold !text-[16px] !leading-[1.83em] !bg-transparent !rounded-lg !py-2 !px-0 !border-none !cursor-pointer ${
+              tab === 'timeline'
+                ? 'text-[rgba(0,0,0,0.85)]'
+                : 'text-[rgba(0,0,0,0.25)]'
+            }`}
             style={{
-              fontFamily: 'Inter, -apple-system, sans-serif'
+              fontFamily: 'Inter, -apple-system, sans-serif',
             }}
             onClick={() => setTab('timeline')}
           >
             {/* Timeline 图标 */}
-            <div
-              className="w-4 h-4 flex items-center justify-center !rounded-none"
-            >
+            <div className="w-4 h-4 flex items-center justify-center !rounded-none">
               <ControlOutlined />
             </div>
             Record Timeline
@@ -191,25 +180,22 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
 
           {/* 分隔线 */}
           <div className="flex items-center">
-            <div
-              className="!w-px !h-2 !bg-[rgba(0,0,0,0.25)]"
-            />
+            <div className="!w-px !h-2 !bg-[rgba(0,0,0,0.25)]" />
           </div>
 
           <button
-            className={`flex items-center justify-center gap-1.5 flex-1 transition-colors !font-medium !text-[14px] !leading-[1.83em] !bg-transparent !rounded-lg !py-2 !px-0 !border-none !cursor-pointer ${tab === 'code'
-              ? 'text-[rgba(0,0,0,0.85)]'
-              : 'text-[rgba(0,0,0,0.25)]'
-              }`}
+            className={`flex items-center justify-center gap-1.5 flex-1 transition-colors !font-medium !text-[16px] !leading-[1.83em] !bg-transparent !rounded-lg !py-2 !px-0 !border-none !cursor-pointer ${
+              tab === 'code'
+                ? 'text-[rgba(0,0,0,0.85)]'
+                : 'text-[rgba(0,0,0,0.25)]'
+            }`}
             style={{
-              fontFamily: 'Inter, -apple-system, sans-serif'
+              fontFamily: 'Inter, -apple-system, sans-serif',
             }}
             onClick={() => setTab('code')}
           >
             {/* Code 图标 */}
-            <div
-              className="w-4 h-4 flex items-center justify-center !rounded-none"
-            >
+            <div className="w-4 h-4 flex items-center justify-center !rounded-none">
               <CodeOutlined className="!bg-transparent" />
             </div>
             Generate code
@@ -228,9 +214,13 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
             </div>
           )
         ) : (
-          <div className="flex flex-col items-center justify-center h-full text-gray-400">
-            <span>Generate code 功能开发中...</span>
-          </div>
+          <ProgressModal
+            eventsCount={events.length}
+            sessionName={session.name}
+            events={events}
+            sessionId={session.id}
+            onStopRecording={onStopRecording}
+          />
         )}
       </div>
 
@@ -250,13 +240,17 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
               Start
             </Button>
           ) : (
-            <div className="relative" style={{ maxWidth: '304px', width: '100%' }}>
+            <div
+              className="relative"
+              style={{ maxWidth: '304px', width: '100%' }}
+            >
               {/* 渐变边框背景 */}
               <div
                 className="absolute inset-0 rounded-xl p-[1px] rec-breath-border"
                 style={{
-                  background: 'linear-gradient(45deg, #538CFF, #0066FF, #7B02C5, #FF7D3C, #FFA53C)',
-                  boxShadow: '0px 0px 0px 3px rgba(217, 233, 255, 1)'
+                  background:
+                    'linear-gradient(45deg, #538CFF, #0066FF, #7B02C5, #FF7D3C, #FFA53C)',
+                  boxShadow: '0px 0px 0px 3px rgba(217, 233, 255, 1)',
                 }}
               >
                 <div className="w-full h-full bg-white rounded-xl"></div>
@@ -278,17 +272,19 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
                 <div className="flex items-center gap-2.5 flex-1">
                   <Spin
                     size="small"
-                    indicator={<LoadingOutlined spin style={{ fontSize: 15 }} />}
+                    indicator={
+                      <LoadingOutlined spin style={{ fontSize: 15 }} />
+                    }
                     style={{
                       color: '#2B83FF',
-                      fontSize: '16px'
+                      fontSize: '16px',
                     }}
                   />
                   <span
                     className="text-[14px] font-medium text-[rgba(0,0,0,0.85)]"
                     style={{
                       fontFamily: 'Inter, -apple-system, sans-serif',
-                      lineHeight: '1.21'
+                      lineHeight: '1.21',
                     }}
                   >
                     Recording
@@ -302,7 +298,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
                     width: '0px',
                     height: '15px',
                     borderLeftColor: 'rgba(0,0,0,0.08)',
-                    borderLeftWidth: '1px'
+                    borderLeftWidth: '1px',
                   }}
                 ></div>
 
@@ -316,14 +312,14 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
                   <div
                     className="bg-[#151414] w-3 h-3"
                     style={{
-                      borderRadius: '2px'
+                      borderRadius: '2px',
                     }}
                   ></div>
                   <span
                     className="text-sm font-medium text-[rgba(0,0,0,0.85)]"
                     style={{
                       fontFamily: 'Inter, -apple-system, sans-serif',
-                      lineHeight: '1.21'
+                      lineHeight: '1.21',
                     }}
                   >
                     Stop
@@ -334,7 +330,6 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
           )}
         </div>
       )}
-
     </div>
   );
 };

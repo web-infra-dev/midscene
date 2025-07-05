@@ -329,7 +329,11 @@ export default function Recorder() {
         transitionName=""
         maskTransitionName=""
         styles={{
-          body: { padding: 0, height: 'calc(100vh * 9 / 10)', overflow: 'hidden' },
+          body: {
+            padding: 0,
+            height: 'calc(100vh * 9 / 10)',
+            overflow: 'hidden',
+          },
           content: {
             position: 'fixed',
             bottom: 0,
@@ -339,9 +343,9 @@ export default function Recorder() {
             margin: 0,
             borderRadius: '16px 16px 0 0',
             maxWidth: 'none',
-            width: '100%'
+            width: '100%',
           },
-          mask: { backgroundColor: 'rgba(0, 0, 0, 0.3)' }
+          mask: { backgroundColor: 'rgba(0, 0, 0, 0.3)' },
         }}
       >
         {selectedSession && (

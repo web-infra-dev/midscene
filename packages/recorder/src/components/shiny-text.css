@@ -20,14 +20,17 @@
   left: -150%;
   width: 120%;
   height: 120%;
-  background: linear-gradient(90deg,
-      rgba(255, 255, 255, 0) 0%,
-      rgba(255, 255, 255, 0.1) 10%,
-      rgba(255, 255, 255, 0.6) 50%,
-      rgba(255, 255, 255, 0.1) 90%,
-      rgba(255, 255, 255, 0) 100%);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.1) 10%,
+    rgba(255, 255, 255, 0.6) 50%,
+    rgba(255, 255, 255, 0.1) 90%,
+    rgba(255, 255, 255, 0) 100%
+  );
   transform: skewX(-20deg) translateY(0);
-  animation: shine var(--animation-duration, 5s) cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
+  animation: shine var(--animation-duration, 5s)
+    cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
   z-index: 1;
   pointer-events: none;
 }

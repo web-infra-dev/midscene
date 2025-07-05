@@ -82,13 +82,15 @@ export const RecordList: React.FC<RecordListProps> = ({
         />
       )}
 
-
       {sessions.length === 0 ? (
         <div className="session-empty flex flex-col items-center justify-center h-[200px] text-gray-500">
           <div className="w-16 h-16 border-2 border-gray-300 rounded-lg flex items-center justify-center mb-4">
             <div className="w-8 h-0.5 bg-gray-300 rounded-sm" />
           </div>
-          <Empty description="No data" className="flex flex-col items-center justify-center" />
+          <Empty
+            description="No data"
+            className="flex flex-col items-center justify-center"
+          />
         </div>
       ) : (
         <List
@@ -99,10 +101,11 @@ export const RecordList: React.FC<RecordListProps> = ({
             <List.Item>
               <Card
                 size="small"
-                className={`cursor-pointer ${session.id === currentSessionId
-                  ? 'selected-session border-2 border-blue-500'
-                  : 'border border-gray-300'
-                  }`}
+                className={`cursor-pointer ${
+                  session.id === currentSessionId
+                    ? 'selected-session border-2 border-blue-500'
+                    : 'border border-gray-300'
+                }`}
                 onClick={() => onViewDetail(session)}
                 actions={[
                   <Button
@@ -113,7 +116,9 @@ export const RecordList: React.FC<RecordListProps> = ({
                       e.stopPropagation();
                       onSelectSession(session);
                     }}
-                    className={session.id === currentSessionId ? 'text-blue-500' : ''}
+                    className={
+                      session.id === currentSessionId ? 'text-blue-500' : ''
+                    }
                   >
                     {session.id === currentSessionId ? 'Selected' : 'Select'}
                   </Button>,
@@ -160,9 +165,7 @@ export const RecordList: React.FC<RecordListProps> = ({
               >
                 <Card.Meta
                   title={
-                    <div
-                      className="flex justify-between items-center"
-                    >
+                    <div className="flex justify-between items-center">
                       <span>{session.name}</span>
                       <Space>
                         <Tag
@@ -193,9 +196,7 @@ export const RecordList: React.FC<RecordListProps> = ({
                           ` URL: ${session.url.slice(0, 50)}${session.url.length > 50 ? '...' : ''}`}
                       </div>
                       {session.description && (
-                        <div className="mt-1 italic">
-                          {session.description}
-                        </div>
+                        <div className="mt-1 italic">{session.description}</div>
                       )}
                     </div>
                   }

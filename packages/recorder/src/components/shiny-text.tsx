@@ -30,4 +30,3 @@ export const ShinyText: React.FC<ShinyTextProps> = ({
     </div>
   );
 };
-

@@ -503,6 +503,9 @@ window.addEventListener('pagehide', async () => {
       await sendEventsToExtension(events, true);
     }
   }
+  if (pageChangeDetectionInterval) {
+    clearInterval(pageChangeDetectionInterval);
+  }
 });
 
 // Handle visibility changes (tab switches, minimizing) with debounce
@@ -528,6 +531,10 @@ document.addEventListener('visibilitychange', () => {
       visibilityTimer = null;
     }
   }
+
+  if (pageChangeDetectionInterval) {
+    clearInterval(pageChangeDetectionInterval);
+  }
 });
 
 // Add navigation detection
@@ -545,6 +552,10 @@ const checkForNavigation = () => {
     if (events.length > 0 && !isPageUnloading) {
       sendEventsToExtension(events, true);
     }
+  }
+
+  if (pageChangeDetectionInterval) {
+    clearInterval(pageChangeDetectionInterval);
   }
 };
 

@@ -1,7 +1,7 @@
 export default {
-    plugins: {
-        '@tailwindcss/postcss': {
-            preflight: false,
-        },
+  plugins: {
+    '@tailwindcss/postcss': {
+      preflight: false,
     },
+  },
 };

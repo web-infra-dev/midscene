@@ -28,7 +28,7 @@
   overflow: auto;
 }
 
-.result-container>div {
+.result-container > div {
   flex: 1;
   height: auto;
   min-height: 0;

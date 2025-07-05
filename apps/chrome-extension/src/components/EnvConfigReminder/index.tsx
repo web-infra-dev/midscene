@@ -3,26 +3,26 @@ import { EnvConfig, useEnvConfig } from '@midscene/visualizer';
 import './index.less';
 
 interface EnvConfigReminderProps {
-    className?: string;
+  className?: string;
 }
 
 export const EnvConfigReminder: React.FC<EnvConfigReminderProps> = ({
-    className = '',
+  className = '',
 }) => {
-    const { config } = useEnvConfig();
-    const configAlreadySet = Object.keys(config || {}).length >= 1;
+  const { config } = useEnvConfig();
+  const configAlreadySet = Object.keys(config || {}).length >= 1;
 
-    if (configAlreadySet) {
-        return null;
-    }
+  if (configAlreadySet) {
+    return null;
+  }
 
-    return (
-        <div className={`env-config-reminder ${className}`}>
-            <ExclamationCircleFilled className="reminder-icon" />
-            <span className="reminder-text">
-                Please set up your environment variables before using.
-            </span>
-            <EnvConfig mode="text" showTooltipWhenEmpty={false} />
-        </div>
-    );
-}; 
+  return (
+    <div className={`env-config-reminder ${className}`}>
+      <ExclamationCircleFilled className="reminder-icon" />
+      <span className="reminder-text">
+        Please set up your environment variables before using.
+      </span>
+      <EnvConfig mode="text" showTooltipWhenEmpty={false} />
+    </div>
+  );
+};

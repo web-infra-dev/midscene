@@ -52,13 +52,13 @@ export function checkAIConfig() {
   const azureConfig = getAIConfig(MIDSCENE_USE_AZURE_OPENAI);
   const anthropicKey = getAIConfig(ANTHROPIC_API_KEY);
   const initConfigJson = getAIConfig(MIDSCENE_OPENAI_INIT_CONFIG_JSON);
-  
+
   console.log('AI Config Check:', {
     hasOpenAI: !!openaiKey,
     hasAzure: !!azureConfig,
     hasAnthropic: !!anthropicKey,
     hasInitConfig: !!initConfigJson,
-    openaiKeyPrefix: openaiKey ? openaiKey.substring(0, 10) + '...' : 'none'
+    openaiKeyPrefix: openaiKey ? openaiKey.substring(0, 10) + '...' : 'none',
   });
 
   if (openaiKey) return true;
