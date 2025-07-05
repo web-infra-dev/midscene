@@ -301,37 +301,6 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
     return finalEvents;
   };
 
-  // Helper function to parse thinking process and code
-  const parseStreamingContent = (content: string) => {
-    // Look for code blocks (```typescript, ```yaml, ```javascript, etc.)
-    const codeBlockRegex = /```[\w]*\n([\s\S]*?)```/;
-    const codeMatch = content.match(codeBlockRegex);
-
-    if (codeMatch) {
-      // Found code block - split thinking and code
-      const codeStartIndex = content.indexOf('```');
-      const thinking = content.substring(0, codeStartIndex).trim();
-      const code = codeMatch[1];
-      return { thinking, code };
-    } else {
-      // No code block found yet - check if content looks like direct code
-      const looksLikeCode = content.includes('import ') ||
-        content.includes('test(') ||
-        content.includes('describe(') ||
-        content.includes('- name:') ||
-        content.includes('target:') ||
-        content.includes('aiTap:') ||
-        content.includes('aiInput:');
-
-      if (looksLikeCode) {
-        // Direct code without markdown blocks
-        return { thinking: '', code: content };
-      } else {
-        // Still thinking or explaining
-        return { thinking: content, code: '' };
-      }
-    }
-  };
 
   // Streaming callback handler
   const handleStreamingChunk: StreamingCallback = (chunk: CodeGenerationChunk) => {
