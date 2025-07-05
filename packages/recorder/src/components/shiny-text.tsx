@@ -1,5 +1,5 @@
 import type React from 'react';
-import './shiny-text.less';
+import './shiny-text.css';
 
 type ColorTheme = 'blue' | 'purple' | 'green' | 'rainbow';
 

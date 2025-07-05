@@ -48,11 +48,24 @@ import { locatorSchema } from '../prompt/llm-locator';
 import { planSchema } from '../prompt/llm-planning';
 
 export function checkAIConfig() {
-  if (getAIConfig(OPENAI_API_KEY)) return true;
-  if (getAIConfig(MIDSCENE_USE_AZURE_OPENAI)) return true;
-  if (getAIConfig(ANTHROPIC_API_KEY)) return true;
+  const openaiKey = getAIConfig(OPENAI_API_KEY);
+  const azureConfig = getAIConfig(MIDSCENE_USE_AZURE_OPENAI);
+  const anthropicKey = getAIConfig(ANTHROPIC_API_KEY);
+  const initConfigJson = getAIConfig(MIDSCENE_OPENAI_INIT_CONFIG_JSON);
+  
+  console.log('AI Config Check:', {
+    hasOpenAI: !!openaiKey,
+    hasAzure: !!azureConfig,
+    hasAnthropic: !!anthropicKey,
+    hasInitConfig: !!initConfigJson,
+    openaiKeyPrefix: openaiKey ? openaiKey.substring(0, 10) + '...' : 'none'
+  });
 
-  return Boolean(getAIConfig(MIDSCENE_OPENAI_INIT_CONFIG_JSON));
+  if (openaiKey) return true;
+  if (azureConfig) return true;
+  if (anthropicKey) return true;
+
+  return Boolean(initConfigJson);
 }
 
 // if debug config is initialized

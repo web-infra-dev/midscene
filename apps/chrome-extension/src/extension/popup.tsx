@@ -13,7 +13,7 @@ import {
 } from '@midscene/visualizer';
 import '@midscene/visualizer/index.css';
 import { ConfigProvider, Dropdown, Typography } from 'antd';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BrowserExtensionPlayground } from '../component/playground';
 import Bridge from './bridge';
 import Recorder from './recorder';
@@ -24,7 +24,7 @@ import {
 } from '@midscene/web/chrome-extension';
 import BridgeIcon from '../icons/bridge.svg?react';
 import PlaygroundIcon2 from '../icons/playground-2.svg?react';
-
+import { OPENAI_API_KEY, overrideAIConfig } from '@midscene/shared/env';
 // remember to destroy the agent when the tab is destroyed: agent.page.destroy()
 const extensionAgentForTab = (forceSameTabNavigation = true) => {
   const page = new ChromeExtensionProxyPage(forceSameTabNavigation);
@@ -36,6 +36,15 @@ export function PlaygroundPopup() {
   const [currentMode, setCurrentMode] = useState<'playground' | 'bridge' | 'recorder'>(
     'recorder',
   );
+
+  const { config, deepThink } = useEnvConfig();
+
+  // Override AI configuration
+  useEffect(() => {
+    console.log('Chrome Extension - Overriding AI config:', config);
+    console.log('OPENAI_API_KEY exists:', !!OPENAI_API_KEY);
+    overrideAIConfig(config);
+  }, [config]);
 
   const menuItems = [
     {

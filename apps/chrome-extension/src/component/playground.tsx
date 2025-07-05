@@ -156,10 +156,6 @@ export function BrowserExtensionPlayground({
     };
   }, []);
 
-  // Override AI configuration
-  useEffect(() => {
-    overrideAIConfig(config);
-  }, [config]);
 
   // Initialize context preview
   useEffect(() => {

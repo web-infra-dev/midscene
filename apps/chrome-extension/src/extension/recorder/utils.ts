@@ -1,4 +1,4 @@
-import { AIActionType, callToGetJSONObject } from '@midscene/core/ai-model';
+import { AIActionType, callAiFn } from '@midscene/core/ai-model';
 import { message } from 'antd';
 
 import type { ChromeRecordedEvent } from '@midscene/recorder';
@@ -304,8 +304,8 @@ export const generateRecordTitle = async (
         },
       ];
 
-      const response = await callToGetJSONObject(
-        prompt,
+      const response = await callAiFn(
+        [prompt[0], prompt[1]],
         AIActionType.EXTRACT_DATA,
       );
       if (response?.content) {
