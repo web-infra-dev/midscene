@@ -18,17 +18,32 @@ export const ThinkingProcessSection: React.FC<ThinkingProcessSectionProps> = ({
     themeColor = 'blue',
 }) => {
     const [showThinking, setShowThinking] = useState(true);
+    const [thinkingEndTimer, setThinkingEndTimer] = useState<NodeJS.Timeout | null>(null);
     const hasThinking = accumulatedThinking.length > 0;
+
+    // 检测思考过程是否结束 - 当有实际代码内容出现时，思考就结束了
+    useEffect(() => {
+        if (isStreaming && actualCode && actualCode.trim().length > 0 && accumulatedThinking) {
+            // 有实际代码内容出现，说明思考过程已经结束，立即折叠
+            setShowThinking(false);
+        }
+    }, [actualCode, isStreaming, accumulatedThinking]);
 
     // Auto-collapse thinking process when streaming completes
     useEffect(() => {
         if (!isStreaming && hasThinking && actualCode) {
-            const timer = setTimeout(() => {
-                setShowThinking(false);
-            }, 2000); // Auto-collapse after 2 seconds
-            return () => clearTimeout(timer);
+            setShowThinking(false);
         }
     }, [isStreaming, hasThinking, actualCode]);
+
+    // 清理计时器
+    useEffect(() => {
+        return () => {
+            if (thinkingEndTimer) {
+                clearTimeout(thinkingEndTimer);
+            }
+        };
+    }, [thinkingEndTimer]);
 
     // Reset showThinking when starting new generation
     useEffect(() => {

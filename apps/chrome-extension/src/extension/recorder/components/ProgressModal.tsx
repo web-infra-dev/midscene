@@ -884,13 +884,29 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
 
       {/* Steps for selectedType only */}
       {steps.length > 0 && !steps.every((step) => step.status === 'completed') && (
-        <StepList
-          steps={steps}
-          completedSteps={completedSteps}
-          slidingOutSteps={slidingOutSteps}
-          getStepIcon={getStepIcon}
-          getStepColor={getStepColor}
-        />
+        (() => {
+          // 检查是否已经到达第三个步骤（代码生成步骤）
+          const thirdStepStarted = steps.length >= 3 && (
+            steps[2].status === 'loading' ||
+            steps[2].status === 'completed' ||
+            steps[2].status === 'error'
+          );
+
+          // 如果第三个步骤已经开始，隐藏步骤显示
+          if (thirdStepStarted) {
+            return null;
+          }
+
+          return (
+            <StepList
+              steps={steps}
+              completedSteps={completedSteps}
+              slidingOutSteps={slidingOutSteps}
+              getStepIcon={getStepIcon}
+              getStepColor={getStepColor}
+            />
+          );
+        })()
       )}
 
 
