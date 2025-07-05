@@ -1,5 +1,6 @@
 import {
   CheckCircleOutlined,
+  CheckOutlined,
   CodeOutlined,
   CopyOutlined,
   DownOutlined,
@@ -7,10 +8,12 @@ import {
   FileTextOutlined,
   LoadingOutlined,
   ReloadOutlined,
+  StarOutlined,
+  StarFilled,
 } from '@ant-design/icons';
 import type { ChromeRecordedEvent } from '@midscene/recorder';
 import { ShinyText } from '@midscene/visualizer';
-import { Button, Progress, Select, Typography, message } from 'antd';
+import { Button, Progress, Select, Typography, message, Tooltip } from 'antd';
 // @ts-ignore
 import confetti from 'canvas-confetti';
 import type React from 'react';
@@ -98,8 +101,8 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
   onStopRecording,
 }) => {
   const [confettiVisible, setConfettiVisible] = useState(false);
-  const [selectedType, setSelectedType] =
-    useState<CodeGenerationType>('playwright');
+  const [selectedType, setSelectedType] = useState<CodeGenerationType>('yaml');
+  const [defaultType, setDefaultType] = useState<CodeGenerationType>('yaml');
   const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
   const [slidingOutSteps, setSlidingOutSteps] = useState<Set<string>>(
     new Set(),
@@ -135,14 +138,27 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
     if (session?.generatedCode) {
       if (session.generatedCode.playwright) {
         setGeneratedTest(session.generatedCode.playwright);
-        setShowGeneratedCode(true);
+        if (selectedType === 'playwright') {
+          setShowGeneratedCode(true);
+        }
       }
       if (session.generatedCode.yaml) {
         setGeneratedYaml(session.generatedCode.yaml);
-        setShowGeneratedCode(true);
+        if (selectedType === 'yaml') {
+          setShowGeneratedCode(true);
+        }
       }
     }
-  }, [sessionId]);
+  }, [sessionId, selectedType]);
+
+  // 打开 Generate code 时自动生成（仅有 events 时）
+  useEffect(() => {
+    if (eventsCount > 0 && steps.length === 0 && !isGenerating) {
+      setSelectedType(defaultType);
+      handleGenerateCode(defaultType);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventsCount, defaultType]);
 
   // Helper function to update progress step
   const updateProgressStep = (
@@ -246,7 +262,12 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
     const optimizePromises = eventsNeedingDescriptions.map(
       async (event, index) => {
         try {
-          const description = await generateAIDescription(event, event.hashId);
+          let description = '';
+          if (event.elementDescription && event.descriptionLoading === false) {
+            description = event.elementDescription;
+          } else {
+            description = await generateAIDescription(event, event.hashId);
+          }
 
           finalEvents[index] = {
             ...event,
@@ -373,6 +394,8 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
         sessionId,
       });
 
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
       // Step 2: Generate session title and description if not already generated
       updateProgressStep(1, { status: 'loading' });
 
@@ -381,6 +404,9 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
         finalEvents,
         1,
       );
+
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
       recordLogger.info('Generated session title and description', {
         finalEvents,
         sessionId,
@@ -556,14 +582,29 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
   // 重置状态当开始新的生成时
   const handleSelectChange = (value: CodeGenerationType) => {
     setSelectedType(value);
-    if (value !== 'none' && !isGenerating) {
+
+    // Show/hide code based on what's available for the selected type
+    if (value === 'playwright' && generatedTest) {
+      setShowGeneratedCode(true);
+    } else if (value === 'yaml' && generatedYaml) {
+      setShowGeneratedCode(true);
+    } else if (value === 'none') {
+      setShowGeneratedCode(false);
+      setGeneratedTest('');
+      setGeneratedYaml('');
+    } else if ((value === 'playwright' || value === 'yaml') && !isGenerating) {
+      // Generate new code if none exists for this type
       handleGenerateCode(value);
+    } else {
+      setShowGeneratedCode(false);
+      setGeneratedTest('');
+      setGeneratedYaml('');
     }
   };
 
   const codeTypeOptions = [
-    { label: 'Playwright Test', value: 'playwright' as const },
-    { label: 'YAML Configuration', value: 'yaml' as const },
+    { label: 'Playwright', value: 'playwright' as const },
+    { label: 'YAML', value: 'yaml' as const },
     { label: 'None', value: 'none' as const },
   ];
 
@@ -624,26 +665,47 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
   return (
     <>
       {eventsCount === 0 ? (
-        <div
-          className="text-center text-gray-400"
-          style={{ padding: '20px 0' }}
-        >
+        <div className="text-center text-gray-400 py-5">
           <div className="text-lg mb-2">No events to generate code from</div>
           <div className="text-sm">Record some interactions first</div>
         </div>
       ) : (
         <>
-          <div style={{ marginBottom: '20px' }}>
+          <div className="mb-5">
             <Select
               value={selectedType}
-              onChange={handleSelectChange}
-              style={{ width: '100%' }}
+              onChange={(value) => {
+                setSelectedType(value);
+                handleSelectChange(value);
+              }}
+              className="w-full"
               size="large"
               suffixIcon={<DownOutlined />}
             >
               {codeTypeOptions.map((option) => (
                 <Select.Option key={option.value} value={option.value}>
-                  {option.label}
+                  <div className="flex items-center justify-between">
+                    <span>{option.label}</span>
+                    <div className="flex items-center gap-1">
+                      {defaultType === option.value && <CheckOutlined className="text-green-500 ml-2" />}
+                      <Tooltip title={option.value === 'none' ? '默认不生成代码' : '设为默认生成方式'}>
+                        <button
+                          type="button"
+                          className="ml-1 p-0.5 rounded hover:bg-gray-100"
+                          onClick={e => {
+                            e.stopPropagation();
+                            setDefaultType(option.value);
+                          }}
+                        >
+                          {defaultType === option.value ? (
+                            <StarFilled className="text-yellow-400" />
+                          ) : (
+                            <StarOutlined className="text-gray-400" />
+                          )}
+                        </button>
+                      </Tooltip>
+                    </div>
+                  </div>
                 </Select.Option>
               ))}
             </Select>
@@ -651,49 +713,33 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
         </>
       )}
 
-      {steps.length > 0 && (
-        <div style={{ padding: '20px 0' }}>
+      {steps.length > 0 && steps.some((step) => step.status !== 'completed') && (
+        <div className="py-5">
           {steps
-            .filter((step) => !completedSteps.has(step.id)) // 只显示未完全消失的步骤
+            .filter((step) => !completedSteps.has(step.id))
             .map((step, index, filteredSteps) => {
               const isSliding = slidingOutSteps.has(step.id);
               return (
                 <div
                   key={step.id}
+                  className={
+                    `${isSliding ? 'translate-y-[-100%] opacity-0 h-0' : 'translate-y-0 opacity-100 h-auto'} mb-6 transition-transform duration-500 ease-out overflow-hidden`
+                  }
                   style={{
-                    marginBottom: 24,
                     transform: isSliding
                       ? 'translateY(-100%)'
                       : 'translateY(0)',
                     opacity: isSliding ? 0 : 1,
-                    transition:
-                      'transform 0.5s ease-out, opacity 0.5s ease-out',
                     height: isSliding ? 0 : 'auto',
-                    overflow: 'hidden',
                   }}
                 >
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      marginBottom: 8,
-                    }}
-                  >
-                    <div style={{ marginRight: 12, minWidth: 20 }}>
+                  <div className="flex items-center mb-2">
+                    <div className="mr-3 min-w-[20px]">
                       {getStepIcon(step)}
                     </div>
-                    <div style={{ flex: 1 }}>
+                    <div className="flex-1">
                       {step.status === 'loading' ? (
-                        <div
-                          style={{
-                            fontWeight: 600,
-                            fontSize: '14px',
-                            lineHeight: '22px',
-                            minHeight: '22px',
-                            display: 'flex',
-                            alignItems: 'center',
-                          }}
-                        >
+                        <div className="font-semibold text-[14px] leading-[22px] min-h-[22px] flex items-center">
                           <ShinyText
                             text={step.title}
                             disabled={false}
@@ -720,16 +766,13 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
                           </Text>
                         </div>
                       )}
-                      <Text type="secondary" style={{ fontSize: '12px' }}>
+                      <Text type="secondary" className="text-xs">
                         {step.description}
                       </Text>
                       {step.details && (
                         <>
                           <br />
-                          <Text
-                            type="secondary"
-                            style={{ fontSize: '11px', color: '#666' }}
-                          >
+                          <Text type="secondary" className="text-[11px] text-[#666]">
                             {step.details}
                           </Text>
                         </>
@@ -738,7 +781,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
                   </div>
 
                   {step.status === 'loading' && step.progress !== undefined && (
-                    <div style={{ marginLeft: 32 }}>
+                    <div className="ml-8">
                       <Progress
                         percent={step.progress}
                         size="small"
@@ -750,14 +793,9 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
 
                   {index < filteredSteps.length - 1 && (
                     <div
-                      style={{
-                        marginLeft: 10,
-                        width: 2,
-                        height: 20,
-                        backgroundColor:
-                          step.status === 'completed' ? '#52c41a' : '#e8e8e8',
-                        marginTop: 8,
-                      }}
+                      className={
+                        `${step.status === 'completed' ? 'bg-green-500' : 'bg-gray-200'} ml-2 w-0.5 h-5 mt-2`
+                      }
                     />
                   )}
                 </div>
@@ -767,120 +805,107 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
       )}
 
       {/* Generated Code Display */}
-      {showGeneratedCode && (generatedTest || generatedYaml) && (
-        <div style={{ marginTop: '20px' }}>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '12px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {generatedTest ? <CodeOutlined /> : <FileTextOutlined />}
-              <Text strong>
-                {generatedTest
-                  ? 'Playwright Test'
-                  : 'YAML Configuration'}
-              </Text>
+      {showGeneratedCode &&
+        ((selectedType === 'playwright' && generatedTest) ||
+          (selectedType === 'yaml' && generatedYaml)) && (
+          <div className="mt-5">
+            <div className="flex justify-between items-center mb-3">
+              <div className="flex items-center gap-2">
+                {selectedType === 'playwright' ? (
+                  <CodeOutlined />
+                ) : (
+                  <FileTextOutlined />
+                )}
+                <Text strong>
+                  {selectedType === 'playwright'
+                    ? 'Playwright Test'
+                    : 'YAML Configuration'}
+                </Text>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  icon={<ReloadOutlined />}
+                  onClick={
+                    selectedType === 'playwright'
+                      ? handleRegenerateTest
+                      : handleRegenerateYaml
+                  }
+                  disabled={isGenerating}
+                  size="small"
+                >
+                  Regenerate
+                </Button>
+                <Button
+                  icon={<CopyOutlined />}
+                  onClick={
+                    selectedType === 'playwright'
+                      ? handleCopyTest
+                      : handleCopyYaml
+                  }
+                  size="small"
+                >
+                  Copy
+                </Button>
+                <Button
+                  type="primary"
+                  icon={<DownloadOutlined />}
+                  onClick={
+                    selectedType === 'playwright'
+                      ? handleDownloadTest
+                      : handleDownloadYaml
+                  }
+                  size="small"
+                >
+                  Download
+                </Button>
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <Button
-                icon={<ReloadOutlined />}
-                onClick={
-                  generatedTest ? handleRegenerateTest : handleRegenerateYaml
-                }
-                disabled={isGenerating}
-                size="small"
-              >
-                Regenerate
-              </Button>
-              <Button
-                icon={<CopyOutlined />}
-                onClick={generatedTest ? handleCopyTest : handleCopyYaml}
-                size="small"
-              >
-                Copy
-              </Button>
-              <Button
-                type="primary"
-                icon={<DownloadOutlined />}
-                onClick={
-                  generatedTest ? handleDownloadTest : handleDownloadYaml
-                }
-                size="small"
-              >
-                Download
-              </Button>
+
+            <div className="max-h-[55vh] overflow-auto bg-[#1e1e1e] p-4 rounded-md border border-gray-300 font-mono">
+              <pre className="m-0 whitespace-pre-wrap text-[#d4d4d4] text-[13px] leading-[1.5] tab-size-[2]">
+                {selectedType === 'playwright'
+                  ? generatedTest
+                  : generatedYaml || 'Generated code will appear here...'}
+              </pre>
             </div>
-          </div>
 
-
-          <div
-            style={{
-              height: '400px',
-              maxHeight: '50vh',
-              overflow: 'auto',
-              background: '#1e1e1e',
-              padding: '16px',
-              borderRadius: '6px',
-              border: '1px solid #d9d9d9',
-              fontFamily: '"Fira Code", "Consolas", "Monaco", monospace',
-            }}
-          >
-            <pre
-              style={{
-                margin: 0,
-                whiteSpace: 'pre-wrap',
-                color: '#d4d4d4',
-                fontSize: '13px',
-                lineHeight: '1.5',
-                tabSize: 2,
-              }}
-            >
-              {generatedTest ||
-                generatedYaml ||
-                'Generated code will appear here...'}
-            </pre>
-          </div>
-
-          <div style={{ marginTop: '12px' }}>
-            <Text type="secondary">
-              {generatedTest ? (
-                <>
-                  This test uses <strong>@midscene/web/playwright</strong> for
-                  AI-powered web automation.
-                </>
-              ) : (
-                <>
-                  This YAML configuration can be used with various automation
-                  frameworks that support <strong>@midscene/web</strong>{' '}
-                  integration.
-                </>
-              )}
-            </Text>
-          </div>
-
-          {(generatedTest || generatedYaml) && (
-            <div style={{ marginTop: '12px', textAlign: 'center' }}>
-              <Text type="secondary" style={{ fontSize: '12px' }}>
-                {generatedTest ? (
+            <div className="mt-3">
+              <Text type="secondary">
+                {selectedType === 'playwright' ? (
                   <>
-                    💡 Tip: This test is ready to run with{' '}
-                    <code>npx playwright test</code>
+                    This test uses <strong>@midscene/web/playwright</strong> for
+                    AI-powered web automation.
                   </>
                 ) : (
                   <>
-                    💡 Tip: This YAML can be used with automation frameworks
-                    that support @midscene/web
+                    This YAML configuration can be used with various automation
+                    frameworks that support <strong>@midscene/web</strong>{' '}
+                    integration.
                   </>
                 )}
               </Text>
             </div>
-          )}
-        </div>
-      )}
+
+            {((selectedType === 'playwright' && generatedTest) ||
+              (selectedType === 'yaml' && generatedYaml)) && (
+                <div className="mt-3 text-center">
+                  <Text type="secondary" className="text-xs">
+                    {selectedType === 'playwright' ? (
+                      <>
+                        💡 Tip: This test is ready to run with{' '}
+                        <code>npx playwright test</code>
+                      </>
+                    ) : (
+                      <>
+                        💡 Tip: This YAML can be used with automation frameworks
+                        that support @midscene/web
+                      </>
+                    )}
+                  </Text>
+                </div>
+              )}
+          </div>
+        )}
     </>
   );
 };

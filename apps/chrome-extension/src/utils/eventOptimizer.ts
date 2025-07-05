@@ -76,7 +76,7 @@ export const generateAIDescription = async (
   if (!event.screenshotBefore || !hasValidRect(event)) {
     return generateFallbackDescription();
   }
-
+  
   if (ongoingDescriptionRequests.has(hashId)) {
     return ongoingDescriptionRequests.get(hashId)!;
   }

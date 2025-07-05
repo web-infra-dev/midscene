@@ -6,6 +6,7 @@ import {
   ControlOutlined,
   LoadingOutlined,
   PlayCircleOutlined,
+  RightOutlined,
 } from '@ant-design/icons';
 import type { ChromeRecordedEvent } from '@midscene/recorder';
 import { RecordTimeline } from '@midscene/recorder';
@@ -69,6 +70,12 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
     );
   }
 
+  // 包装 onStopRecording，停止录制后切换到 code tab
+  const handleStopRecording = () => {
+    onStopRecording();
+    setTab('code');
+  };
+
   return (
     <div className="record-detail-view flex flex-col h-full">
       {/* 顶部栏 */}
@@ -130,7 +137,10 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
         <div className="flex items-center gap-2 ml-2">
           <Button
             icon={<ClearOutlined />}
-            onClick={onClearEvents}
+            onClick={() => {
+              setTab('timeline');
+              onClearEvents();
+            }}
             disabled={events.length === 0 || isRecording}
             size="small"
             type="text"
@@ -161,11 +171,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
       >
         <div className="flex gap-2 w-full items-stretch">
           <button
-            className={`flex items-center justify-center gap-1.5 flex-1 transition-colors !font-bold !text-[16px] !leading-[1.83em] !bg-transparent !rounded-lg !py-2 !px-0 !border-none !cursor-pointer ${
-              tab === 'timeline'
-                ? 'text-[rgba(0,0,0,0.85)]'
-                : 'text-[rgba(0,0,0,0.25)]'
-            }`}
+            className={`flex items-center justify-center gap-1.5 flex-1 transition-colors !font-bold !text-[16px] !leading-[1.83em] !bg-transparent !rounded-lg !py-2 !px-0 !border-none !cursor-pointer text-[rgba(0,0,0,0.85)]`}
             style={{
               fontFamily: 'Inter, -apple-system, sans-serif',
             }}
@@ -180,15 +186,14 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
 
           {/* 分隔线 */}
           <div className="flex items-center">
-            <div className="!w-px !h-2 !bg-[rgba(0,0,0,0.25)]" />
+            <RightOutlined />
           </div>
 
           <button
-            className={`flex items-center justify-center gap-1.5 flex-1 transition-colors !font-medium !text-[16px] !leading-[1.83em] !bg-transparent !rounded-lg !py-2 !px-0 !border-none !cursor-pointer ${
-              tab === 'code'
-                ? 'text-[rgba(0,0,0,0.85)]'
-                : 'text-[rgba(0,0,0,0.25)]'
-            }`}
+            className={`flex items-center justify-center gap-1.5 flex-1 transition-colors !font-medium !text-[16px] !leading-[1.83em] !bg-transparent !rounded-lg !py-2 !px-0 !border-none !cursor-pointer ${tab === 'code'
+              ? 'text-[rgba(0,0,0,0.85)]'
+              : 'text-[rgba(0,0,0,0.25)]'
+              }`}
             style={{
               fontFamily: 'Inter, -apple-system, sans-serif',
             }}
@@ -219,7 +224,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
             sessionName={session.name}
             events={events}
             sessionId={session.id}
-            onStopRecording={onStopRecording}
+            onStopRecording={handleStopRecording}
           />
         )}
       </div>
@@ -304,7 +309,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
 
                 {/* Stop 按钮 */}
                 <button
-                  onClick={onStopRecording}
+                  onClick={handleStopRecording}
                   disabled={!isRecording}
                   className="flex items-center gap-1 hover:opacity-80 transition-opacity bg-transparent border-none p-0 cursor-pointer"
                   style={{ background: 'none' }}
