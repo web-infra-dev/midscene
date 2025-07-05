@@ -7,6 +7,8 @@ import {
   RestOutlined,
   ClearOutlined,
   LoadingOutlined,
+  CodeOutlined,
+  ControlOutlined,
 } from '@ant-design/icons';
 import type { ChromeRecordedEvent } from '@midscene/recorder';
 import { RecordTimeline } from '@midscene/recorder';
@@ -21,7 +23,7 @@ import {
   Typography,
   Spin,
 } from 'antd';
-import type React from 'react';
+import React, { useState } from 'react';
 import {
   type RecordingSession,
   useRecordingSessionStore,
@@ -56,6 +58,9 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
   isExtensionMode,
   onClose,
 }) => {
+  // useState 必须在组件顶层调用，不能在条件语句之后
+  const [tab, setTab] = useState<'timeline' | 'code'>('timeline');
+
   // Get the session directly from the store to ensure we always have the latest data
   const { sessions } = useRecordingSessionStore();
   const session = sessions.find((s) => s.id === sessionId);
@@ -153,12 +158,99 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
         </div>
       </div>
 
-      {/* 事件列表 */}
+      {/* Figma 风格 Tabs */}
+      <div
+        className="px-2 py-0"
+        style={{
+          background: '#F2F4F7',
+          borderRadius: '8px',
+          height: '41px',
+          display: 'flex',
+          alignItems: 'stretch'
+        }}
+      >
+        <div className="flex gap-2 w-full items-stretch">
+          <button
+            className={`flex items-center justify-center gap-1.5 flex-1 transition-colors ${tab === 'timeline'
+              ? 'text-[rgba(0,0,0,0.85)]'
+              : 'text-[rgba(0,0,0,0.25)]'
+              }`}
+            style={{
+              fontFamily: 'Inter, -apple-system, sans-serif',
+              fontWeight: 'bold',
+              fontSize: '12px',
+              lineHeight: '1.83em',
+              background: 'transparent',
+              borderRadius: '8px',
+              padding: '8px 0px',
+              border: 'none',
+              cursor: 'pointer'
+            }}
+            onClick={() => setTab('timeline')}
+          >
+            {/* Timeline 图标 */}
+            <div
+              className="w-4 h-4 flex items-center justify-center"
+            >
+              <ControlOutlined />
+            </div>
+            Record Timeline
+          </button>
+
+          {/* 分隔线 */}
+          <div className="flex items-center">
+            <div
+              style={{
+                width: '1px',
+                height: '8px',
+                background: 'rgba(0,0,0,0.25)'
+              }}
+            />
+          </div>
+
+          <button
+            className={`flex items-center justify-center gap-1.5 flex-1 transition-colors ${tab === 'code'
+              ? 'text-[rgba(0,0,0,0.85)]'
+              : 'text-[rgba(0,0,0,0.25)]'
+              }`}
+            style={{
+              fontFamily: 'Inter, -apple-system, sans-serif',
+              fontWeight: 500,
+              fontSize: '12px',
+              lineHeight: '1.83em',
+              background: 'transparent',
+              borderRadius: '8px',
+              padding: '8px 0px',
+              border: 'none',
+              cursor: 'pointer'
+            }}
+            onClick={() => setTab('code')}
+          >
+            {/* Code 图标 */}
+            <div
+              className="w-4 h-4 flex items-center justify-center"
+              style={{ background: '#FFFFFF', borderRadius: '0px' }}
+            >
+              <CodeOutlined style={{ background: 'transparent' }} />
+            </div>
+            Generate code
+          </button>
+        </div>
+      </div>
+
+      {/* Tab 内容区 */}
       <div className="flex-1 overflow-auto p-4">
-        {events.length === 0 ? (
-          <Empty description="No events recorded yet" />
+        {tab === 'timeline' ? (
+          events.length === 0 ? (
+            <Empty description="No events recorded yet" />
+          ) : (
+            <RecordTimeline events={events} />
+          )
         ) : (
-          <RecordTimeline events={events} />
+          <div className="flex flex-col items-center justify-center h-full text-gray-400">
+            {/* 这里可放置生成代码相关内容或组件 */}
+            <span>Generate code 功能开发中...</span>
+          </div>
         )}
       </div>
 

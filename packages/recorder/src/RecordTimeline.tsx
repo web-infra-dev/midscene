@@ -573,24 +573,6 @@ export const RecordTimeline = ({
   return (
     <div style={{ padding: '16px' }}>
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <Title level={4} style={{ margin: 0 }}>
-            Recording Timeline
-          </Title>
-          <Space>
-            <Text type="secondary">{events.length} events recorded</Text>
-            <Text type="secondary" style={{ fontSize: '12px' }}>
-              ({events.filter((e) => e.elementRect?.left !== undefined).length}{' '}
-              events with located elements)
-            </Text>
-          </Space>
-        </div>
 
         <Timeline
           mode="left"

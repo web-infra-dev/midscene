@@ -8,6 +8,13 @@ import { pluginTypeCheck } from '@rsbuild/plugin-type-check';
 import { version } from '../../packages/visualizer/package.json';
 
 export default defineConfig({
+  tools: {
+    rspack: {
+      watchOptions: {
+        ignored: /\.git/,
+      },
+    },
+  },
   environments: {
     web: {
       source: {
