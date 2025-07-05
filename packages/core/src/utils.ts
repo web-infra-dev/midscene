@@ -24,6 +24,7 @@ let logEnvReady = false;
 export const groupedActionDumpFileExt = 'web-dump.json';
 
 const reportInitializedMap = new Map<string, boolean>();
+const writingFiles = new Set<string>();
 
 function getReportTpl() {
   const reportTpl = 'REPLACE_ME_WITH_REPORT_HTML';
@@ -34,31 +35,104 @@ function getReportTpl() {
 /**
  * high performance, insert script before </html> in HTML file
  * only truncate and append, no temporary file
+ * with file-system based locking to prevent concurrent writes across processes
  */
 export function insertScriptBeforeClosingHtml(
   filePath: string,
   scriptContent: string,
 ): void {
-  const htmlEndTag = '</html>';
-  const stat = fs.statSync(filePath);
-  const readSize = 65536; // 64KB
-  const start = Math.max(0, stat.size - readSize);
-  const buffer = Buffer.alloc(stat.size - start);
-  const fd = fs.openSync(filePath, 'r');
-  fs.readSync(fd, buffer, 0, buffer.length, start);
-  fs.closeSync(fd);
+  const lockFile = `${filePath}.lock`;
+  const maxRetries = 100; // max retries
+  const retryDelay = 100; // retry delay (ms)
 
-  const tailStr = buffer.toString('utf8');
-  const htmlEndIdx = tailStr.lastIndexOf(htmlEndTag);
-  if (htmlEndIdx === -1) {
-    throw new Error('No </html> found');
+  // process-level locking
+  if (writingFiles.has(filePath)) {
+    throw new Error(`File ${filePath} is being written by current process`);
   }
 
-  const htmlEndPos = start + htmlEndIdx;
-  // truncate to </html> before
-  fs.truncateSync(filePath, htmlEndPos);
-  // append script and </html>
-  fs.appendFileSync(filePath, `${scriptContent}\n${htmlEndTag}\n`);
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      // try to create lock file (atomic operation)
+      fs.writeFileSync(lockFile, process.pid.toString(), { flag: 'wx' });
+
+      // get process-level lock
+      writingFiles.add(filePath);
+
+      try {
+        const htmlEndTag = '</html>';
+        const stat = fs.statSync(filePath);
+        const readSize = 65536; // 64KB
+        const start = Math.max(0, stat.size - readSize);
+        const buffer = Buffer.alloc(stat.size - start);
+        const fd = fs.openSync(filePath, 'r');
+        fs.readSync(fd, buffer, 0, buffer.length, start);
+        fs.closeSync(fd);
+
+        const tailStr = buffer.toString('utf8');
+        const htmlEndIdx = tailStr.lastIndexOf(htmlEndTag);
+        if (htmlEndIdx === -1) {
+          throw new Error('No </html> found');
+        }
+
+        const htmlEndPos = start + htmlEndIdx;
+        // atomic operation: truncate and append
+        fs.truncateSync(filePath, htmlEndPos);
+        fs.appendFileSync(filePath, `${scriptContent}\n${htmlEndTag}\n`);
+        return; // success, exit
+      } finally {
+        // release lock
+        writingFiles.delete(filePath);
+        try {
+          fs.unlinkSync(lockFile);
+        } catch (e) {
+          // ignore error when deleting lock file
+        }
+      }
+    } catch (error: any) {
+      if (error.code === 'EEXIST') {
+        // lock file exists, check if it is a dead lock
+        try {
+          const lockContent = fs.readFileSync(lockFile, 'utf8');
+          const lockPid = Number.parseInt(lockContent, 10);
+
+          // check if the process still exists
+          try {
+            process.kill(lockPid, 0); // will not actually kill the process, just check if it exists
+          } catch (killError: any) {
+            if (killError.code === 'ESRCH') {
+              // process does not exist, delete dead lock file
+              try {
+                fs.unlinkSync(lockFile);
+                continue; // retry
+              } catch (unlinkError) {
+                // ignore error when deleting lock file
+              }
+            }
+          }
+        } catch (readError) {
+          // cannot read lock file, maybe format problem, try to delete
+          try {
+            fs.unlinkSync(lockFile);
+            continue; // retry
+          } catch (unlinkError) {
+            // ignore error when deleting lock file
+          }
+        }
+
+        // wait for a while and retry
+        const now = Date.now();
+        while (Date.now() - now < retryDelay) {
+          // busy wait
+        }
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  throw new Error(
+    `Failed to write to file ${filePath} after ${maxRetries} retries - file is locked`,
+  );
 }
 
 export function reportHTMLContent(
