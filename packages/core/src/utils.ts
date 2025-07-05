@@ -41,7 +41,7 @@ export function insertScriptBeforeClosingHtml(
 ): void {
   const htmlEndTag = '</html>';
   const stat = fs.statSync(filePath);
-  const readSize = 65536; // 64KB
+  const readSize = 32; // 32 bytes
   const start = Math.max(0, stat.size - readSize);
   const buffer = Buffer.alloc(stat.size - start);
   const fd = fs.openSync(filePath, 'r');
