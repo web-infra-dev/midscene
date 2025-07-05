@@ -65,7 +65,19 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
 }) => {
 
   const [selectedType, setSelectedType] = useState<CodeGenerationType>('yaml');
-  const [defaultType, setDefaultType] = useState<CodeGenerationType>('yaml');
+
+  // Initialize defaultType from localStorage
+  const [defaultType, setDefaultType] = useState<CodeGenerationType>(() => {
+    try {
+      const stored = localStorage.getItem('midscene-default-code-type');
+      if (stored && ['yaml', 'playwright', 'none'].includes(stored)) {
+        return stored as CodeGenerationType;
+      }
+    } catch (error) {
+      console.warn('Failed to read default code type from localStorage:', error);
+    }
+    return 'yaml'; // fallback default
+  });
   const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
   const [slidingOutSteps, setSlidingOutSteps] = useState<Set<string>>(
     new Set(),
@@ -84,6 +96,16 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
   const [accumulatedThinking, setAccumulatedThinking] = useState('');
 
   const { updateSession } = useRecordingSessionStore();
+
+  // Function to update defaultType and persist to localStorage
+  const updateDefaultType = (newType: CodeGenerationType) => {
+    setDefaultType(newType);
+    try {
+      localStorage.setItem('midscene-default-code-type', newType);
+    } catch (error) {
+      console.warn('Failed to save default code type to localStorage:', error);
+    }
+  };
 
   // Get current session helper
   const getCurrentSession = () => {
@@ -107,10 +129,19 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
   useEffect(() => {
     const session = getCurrentSession();
 
-    // If this is from stop recording, always regenerate code regardless of cache
+    // If this is from stop recording, use the pinned default type
     if (isFromStopRecording && eventsCount > 0) {
       setSelectedType(defaultType);
-      handleGenerateCode(defaultType);
+      // Only generate code if the pinned default is not 'none'
+      if (defaultType === 'playwright' || defaultType === 'yaml') {
+        handleGenerateCode(defaultType);
+      }
+      return;
+    }
+
+    // If the pinned default is 'none', set selected type to 'none' and don't generate anything
+    if (defaultType === 'none') {
+      setSelectedType('none');
       return;
     }
 
@@ -123,25 +154,31 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
         setGeneratedYaml(session.generatedCode.yaml);
       }
     }
-    // Prefer to directly show generated code if available
-    if (defaultType === 'yaml' && (generatedYaml || session?.generatedCode?.yaml)) {
-      setSelectedType('yaml');
+
+    // Check if the pinned default type has generated code
+    const hasDefaultTypeCode = defaultType === 'yaml'
+      ? (generatedYaml || session?.generatedCode?.yaml)
+      : defaultType === 'playwright'
+        ? (generatedTest || session?.generatedCode?.playwright)
+        : false;
+
+    // If the pinned default type has code, show it directly
+    if (hasDefaultTypeCode) {
+      setSelectedType(defaultType);
       setShowGeneratedCode(true);
       return;
     }
-    if (defaultType === 'playwright' && (generatedTest || session?.generatedCode?.playwright)) {
-      setSelectedType('playwright');
-      setShowGeneratedCode(true);
-      return;
-    }
-    // Only auto-generate if there is no generated code at all
+
+    // If the pinned default type doesn't have code and we have events, generate it
     if (
       eventsCount > 0 &&
-      !session?.generatedCode?.playwright &&
-      !session?.generatedCode?.yaml
+      (defaultType === 'playwright' || defaultType === 'yaml')
     ) {
       setSelectedType(defaultType);
       handleGenerateCode(defaultType);
+    } else {
+      // Set selected type to the pinned default (even if it's a valid type but no events)
+      setSelectedType(defaultType);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, isFromStopRecording]);
@@ -642,8 +679,8 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
   };
 
   const codeTypeOptions = [
-    { label: 'Playwright', value: 'playwright' as const },
-    { label: 'YAML', value: 'yaml' as const },
+    { label: <><CodeOutlined className="text-blue-500" /> Playwright</>, value: 'playwright' as const },
+    { label: <><FileTextOutlined className="text-green-500" /> YAML</>, value: 'yaml' as const },
     { label: 'None', value: 'none' as const },
   ];
 
@@ -726,7 +763,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
                             className="text-blue-500 cursor-pointer hover:text-blue-600 ml-1"
                             onClick={e => {
                               e.stopPropagation();
-                              setDefaultType(option.value);
+                              updateDefaultType(option.value);
                               // If pinning "None", also set it as selected type
                               if (option.value === 'none') {
                                 setSelectedType('none');
@@ -739,7 +776,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
                             className="text-gray-400 cursor-pointer hover:text-gray-600 ml-1"
                             onClick={e => {
                               e.stopPropagation();
-                              setDefaultType(option.value);
+                              updateDefaultType(option.value);
                               // If pinning "None", also set it as selected type
                               if (option.value === 'none') {
                                 setSelectedType('none');

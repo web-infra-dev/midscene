@@ -98,7 +98,7 @@ export const ThinkingProcessSection: React.FC<ThinkingProcessSectionProps> = ({
                 )}
             </div>
             {showThinking && (
-                <div className={`p-3 ${colors.content} border-l border-r border-b ${colors.border} rounded-b text-sm text-gray-700 whitespace-pre-wrap`}>
+                <div className={`p-3 ${colors.content} border-l border-r border-b ${colors.border} rounded-b text-sm text-gray-400 whitespace-pre-wrap`}>
                     {accumulatedThinking || 'AI is analyzing the recorded events and planning the test structure...'}
                 </div>
             )}

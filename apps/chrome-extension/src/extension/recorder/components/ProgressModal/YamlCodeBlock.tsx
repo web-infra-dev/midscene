@@ -47,16 +47,16 @@ export const YamlCodeBlock: React.FC<YamlCodeBlockProps> = ({
     return (
         <div className="mt-5">
             <div className="flex justify-between items-center mb-3">
-                <div className="flex items-center gap-2">
+                {/* <div className="flex items-center gap-2">
                     <FileTextOutlined className="text-green-500" />
                     <Text strong>YAML</Text>
-                    {/* {isStreaming && (
+                    {isStreaming && (
                         <div className="flex items-center gap-1 text-green-500">
                             <div className="animate-spin w-3 h-3 border border-green-500 border-t-transparent rounded-full"></div>
                             <Text className="text-xs text-green-500">Streaming...</Text>
                         </div>
-                    )} */}
-                </div>
+                    )}
+                </div> */}
                 <div className="flex gap-2">
                     <Button
                         size="small"
@@ -97,7 +97,7 @@ export const YamlCodeBlock: React.FC<YamlCodeBlockProps> = ({
             />
 
             <div className="relative">
-                <pre className={`bg-gray-50 p-4 rounded border text-sm overflow-auto max-h-96 font-mono ${isStreaming ? 'border-green-300' : 'border-gray-200'}`}>
+                <pre className={`bg-gray-50 p-4 rounded border text-sm overflow-auto max-h-128 font-mono ${isStreaming ? 'border-green-300' : 'border-gray-200'}`}>
                     <code>{displayContent || (isStreaming ? 'Generating code...' : 'No code generated yet')}</code>
                 </pre>
                 {isStreaming && (
