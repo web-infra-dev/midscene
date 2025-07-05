@@ -1,0 +1,80 @@
+.shiny-text {
+  position: relative;
+  display: inline-block;
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  animation: textGradient 8s ease infinite;
+  background-image: linear-gradient(45deg, #2b83ff, #6a11cb, #2575fc, #4481eb);
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: -10%;
+    left: -150%;
+    width: 120%;
+    height: 120%;
+    background: linear-gradient(90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.1) 10%,
+        rgba(255, 255, 255, 0.6) 50%,
+        rgba(255, 255, 255, 0.1) 90%,
+        rgba(255, 255, 255, 0) 100%);
+    transform: skewX(-20deg) translateY(0);
+    animation: shine var(--animation-duration, 5s) cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  &.disabled {
+    animation: none;
+    background: #2b83ff;
+
+    -webkit-background-clip: text;
+    background-clip: text;
+
+    &::after {
+      animation: none;
+      display: none;
+    }
+  }
+}
+
+@keyframes shine {
+  0% {
+    left: -150%;
+    opacity: 0.7;
+  }
+
+  20% {
+    opacity: 1;
+  }
+
+  80% {
+    opacity: 1;
+  }
+
+  100% {
+    left: 250%;
+    opacity: 0.7;
+  }
+}
+
+@keyframes textGradient {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}

@@ -3,56 +3,24 @@ import {
   CompassOutlined,
   CopyOutlined,
   EditOutlined,
-  InfoCircleOutlined,
   KeyOutlined,
-  MoreOutlined,
   VerticalAlignTopOutlined,
 } from '@ant-design/icons';
-import { compositeElementInfoImg } from '@midscene/shared/img';
 import {
   Button,
   Card,
   Image,
   Popover,
   Space,
-  Tag,
   Timeline,
   Typography,
   message,
 } from 'antd';
-import React from 'react';
+import React, { useState } from 'react';
 import type { RecordedEvent } from './recorder';
+import { ShinyText } from './components/shiny-text';
 
-const { Text, Title } = Typography;
-
-// interface RecordedEvent {
-//   type: 'click' | 'scroll' | 'input' | 'navigation' | 'setViewport' | 'keydown';
-//   timestamp: number;
-//   value?: string;
-//   element?: HTMLElement;
-//   targetTagName?: string;
-//   targetId?: string;
-//   targetClassName?: string;
-//   url?: string;
-//   title?: string;
-//   screenshot?: string;
-//   screenshotWithBox?: string;
-//   screenshotBefore?: string;
-//   screenshotAfter?: string;
-//   //点击点
-//   x?: number;
-//   y?: number;
-//   // 元素位置信息
-//   viewportX?: number;
-//   viewportY?: number;
-//   width?: number;
-//   height?: number;
-//   // 页面尺寸信息
-//   pageWidth: number;
-//   pageHeight: number;
-//   //元素描述
-//   elementDescription?: string;
-// }
+const { Text } = Typography;
 
 interface RecordTimelineProps {
   events: RecordedEvent[];
@@ -63,6 +31,47 @@ export const RecordTimeline = ({
   events,
   onEventClick,
 }: RecordTimelineProps) => {
+  const [expandedEvents, setExpandedEvents] = useState<Set<number>>(new Set());
+
+  const toggleEventExpansion = (index: number) => {
+    const newExpanded = new Set(expandedEvents);
+    if (newExpanded.has(index)) {
+      newExpanded.delete(index);
+    } else {
+      newExpanded.add(index);
+    }
+    setExpandedEvents(newExpanded);
+  };
+
+  const truncateJsonStrings = (obj: any, maxLength: number = 30): any => {
+    if (typeof obj === 'string') {
+      return obj.length > maxLength ? `${obj.substring(0, maxLength)}...` : obj;
+    }
+    if (Array.isArray(obj)) {
+      return obj.map(item => truncateJsonStrings(item, maxLength));
+    }
+    if (obj && typeof obj === 'object') {
+      const truncated: any = {};
+      for (const key in obj) {
+        if (obj.hasOwnProperty(key)) {
+          truncated[key] = truncateJsonStrings(obj[key], maxLength);
+        }
+      }
+      return truncated;
+    }
+    return obj;
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        message.success('JSON copied to clipboard');
+      })
+      .catch(() => {
+        message.error('Copy failed');
+      });
+  };
   const getEventIcon = (type: string) => {
     switch (type) {
       case 'click':
@@ -78,7 +87,7 @@ export const RecordTimeline = ({
       case 'keydown':
         return <KeyOutlined style={{ color: '#fa8c16' }} />;
       default:
-        return <MoreOutlined />;
+        return <AimOutlined style={{ color: '#d9d9d9' }} />;
     }
   };
 
@@ -121,11 +130,11 @@ export const RecordTimeline = ({
         }
         return 'Click';
       case 'input':
-        return 'Change';
+        return 'Input';
       case 'scroll':
         return 'Scroll';
       case 'navigation':
-        return event.title || 'Navigate';
+        return 'Navigate';
       case 'setViewport':
         return 'Set viewport';
       case 'keydown':
@@ -136,210 +145,97 @@ export const RecordTimeline = ({
   };
 
   const getEventDescription = (event: RecordedEvent) => {
+    const eventTitle = getEventTitle(event);
+
     switch (event.type) {
       case 'click':
-        return (
-          <Space direction="vertical" size="small">
-            {event.targetTagName && (
-              <Text type="secondary">Element "{event.targetTagName}"</Text>
-            )}
-            {event.elementRect?.x !== undefined &&
-              event.elementRect?.y !== undefined && (
-                <Text type="secondary">
-                  Position: ({event.elementRect?.x}, {event.elementRect?.y})
-                </Text>
-              )}
-            {event.elementDescription !== undefined && (
-              <Text type="secondary">
-                Description: {event.elementDescription}
-              </Text>
-            )}
-          </Space>
-        );
+
+        if (event.descriptionLoading === true && event.elementRect?.x !== undefined && event.elementRect?.y !== undefined) {
+          return (
+            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Text type="secondary">{eventTitle} - </Text>
+              <ShinyText text={`(${event.elementRect!.x}, ${event.elementRect!.y})`} disabled={false} speed={3} className="step-title-shiny" />
+            </span>
+          );
+        }
+
+        if (event.descriptionLoading === false && event.elementDescription) {
+          return <Text type="secondary">{eventTitle} - {event.elementDescription}</Text>;
+        }
+
+        return <Text type="secondary">{eventTitle}</Text>;
+
       case 'input':
-        return (
-          <Space direction="vertical" size="small">
-            <Text type="secondary">
-              Element "{event.targetTagName || 'Input'}"
-            </Text>
-            {event.elementDescription !== undefined && (
-              <Text type="secondary">
-                Description: {event.elementDescription}
-              </Text>
-            )}
-            {event.value && <Text code>"{event.value}"</Text>}
-          </Space>
-        );
+        if (event.descriptionLoading === true && event.elementRect?.x !== undefined && event.elementRect?.y !== undefined) {
+          return (
+            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Text type="secondary">{eventTitle} - {event.value ? ` "${event.value}"` : ''} in </Text>
+              <ShinyText text={`(${event.elementRect.x}, ${event.elementRect.y})`} disabled={false} speed={3} className="step-title-shiny" />
+            </span>
+          );
+        }
+
+        if (event.descriptionLoading === false && event.elementDescription) {
+          return <Text type="secondary">{eventTitle} - {event.elementDescription}</Text>;
+        }
+
+        return <Text type="secondary">{eventTitle}{event.value ? ` - "${event.value}"` : ''}</Text>;
+
       case 'scroll':
-        return (
-          <Text type="secondary">
-            Position: ({event.elementRect?.x || 0}, {event.elementRect?.y || 0})
-          </Text>
-        );
+        if (event.elementDescription) {
+          return <Text type="secondary">{eventTitle} - {event.elementDescription}</Text>;
+        }
+        return <Text type="secondary">{eventTitle} - Position: ({event.elementRect?.x || 0}, {event.elementRect?.y || 0})</Text>;
+
       case 'navigation':
-        return (
-          <Space direction="vertical" size="small">
-            <div
-              style={{
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden',
-                wordBreak: 'break-all',
-              }}
-            >
-              <Text type="secondary">URL: </Text>
-              {event.url && <Text type="secondary">{event.url}</Text>}
-            </div>
-          </Space>
-        );
+        const truncatedUrl = event.url && event.url.length > 50 ? `${event.url.substring(0, 50)}...` : event.url;
+        return <Text type="secondary">{eventTitle} - {truncatedUrl}</Text>;
+
       case 'setViewport':
-        return <Text type="secondary">Desktop 964x992 px</Text>;
+        return <Text type="secondary">{eventTitle} - Desktop 964x992 px</Text>;
+
       case 'keydown':
-        return <Text type="secondary">Key: {event.value || 'Unknown'}</Text>;
+        return <Text type="secondary">{eventTitle} - Key: {event.value || 'Unknown'}</Text>;
+
       default:
-        return null;
+        return <Text type="secondary">{eventTitle}</Text>;
     }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard
-      .writeText(text)
-      .then(() => {
-        message.success('JSON copied to clipboard');
-      })
-      .catch(() => {
-        message.error('Copy failed');
-      });
-  };
+
 
   const timelineItems = events.map((event, index) => {
-    const originalImage = event.screenshotBefore || '';
     const boxedImage = event.screenshotWithBox;
     const afterImage = event.screenshotAfter;
-    const hasElementInfo =
-      event.elementRect?.left !== undefined &&
-      event.elementRect?.top !== undefined;
-
-    const eventJsonString = JSON.stringify(event, null, 2);
+    const isExpanded = expandedEvents.has(index);
 
     return {
       dot: getEventIcon(event.type),
       color: getEventColor(event.type),
       children: (
-        <Card
-          size="small"
-          bordered={false}
-          style={{ marginBottom: 8, cursor: 'pointer' }}
-          onClick={() => onEventClick?.(event, index)}
-          bodyStyle={{ padding: '12px 16px' }}
-        >
-          <Space direction="vertical" size="small" style={{ width: '100%' }}>
-            <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-              <Space>
-                <Text strong>{getEventTitle(event)}</Text>
-                <Tag color={getEventColor(event.type)}>{event.type}</Tag>
-                {hasElementInfo && (
-                  <Tag color="orange" style={{ fontSize: '10px' }}>
-                    Element Located
-                  </Tag>
-                )}
+        <div>
+          <Card
+            size="small"
+            bordered={false}
+            style={{ marginBottom: isExpanded ? 8 : 8, cursor: 'pointer' }}
+            onClick={() => {
+              toggleEventExpansion(index);
+              onEventClick?.(event, index);
+            }}
+            bodyStyle={{ padding: '8px 12px' }}
+          >
+            <Space style={{ width: '100%', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Space style={{ flex: 1, minWidth: 0 }}>
+                {getEventDescription(event)}
               </Space>
               <Space>
-                <Popover
-                  content={
-                    <div style={{ maxWidth: '500px', maxHeight: '400px' }}>
-                      <div
-                        style={{
-                          marginBottom: '12px',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                        }}
-                      >
-                        <Text strong>Event Details</Text>
-                        <Button
-                          type="primary"
-                          size="small"
-                          icon={<CopyOutlined />}
-                          onClick={() => copyToClipboard(eventJsonString)}
-                        >
-                          Copy JSON
-                        </Button>
-                      </div>
-                      <div style={{ overflow: 'auto', maxHeight: '350px' }}>
-                        <pre
-                          style={{
-                            fontSize: '12px',
-                            margin: 0,
-                            whiteSpace: 'pre-wrap',
-                            backgroundColor: '#f5f5f5',
-                            padding: '12px',
-                            borderRadius: '4px',
-                            border: '1px solid #d9d9d9',
-                          }}
-                        >
-                          {eventJsonString}
-                        </pre>
-                      </div>
-                    </div>
-                  }
-                  trigger="click"
-                  placement="right"
-                  overlayStyle={{ maxWidth: '550px' }}
-                >
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<InfoCircleOutlined />}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
-                    title="View Event Details"
-                  />
-                </Popover>
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<MoreOutlined />}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // Handle more actions
-                  }}
-                />
-              </Space>
-            </Space>
-            {getEventDescription(event)}
-            {(boxedImage || afterImage) && (
-              <div
-                style={{
-                  display: 'flex',
-                  gap: '12px',
-                  alignItems: 'flex-start',
-                }}
-              >
-                {/* Screenshot with highlighted element */}
-                {boxedImage && (
-                  <div style={{ flexShrink: 0 }}>
-                    <div
-                      style={{
-                        marginBottom: '4px',
-                        fontSize: '11px',
-                        color: '#8c8c8c',
-                        textAlign: 'center',
-                      }}
-                    >
-                      Highlighted
-                    </div>
-                    <Popover
-                      content={
-                        <div style={{ maxWidth: '400px' }}>
-                          <Space
-                            direction="vertical"
-                            size="small"
-                            style={{ width: '100%' }}
-                          >
-                            <Text strong>Selected Element Details</Text>
+                {(boxedImage || afterImage) && (
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    {boxedImage && (
+                      <Popover
+                        content={
+                          <div style={{ maxWidth: '400px' }}>
+                            <Text strong>Highlighted Element</Text>
                             <Image
                               src={boxedImage}
                               style={{
@@ -349,127 +245,51 @@ export const RecordTimeline = ({
                               }}
                               preview={true}
                             />
-                            <div
-                              style={{
-                                padding: '6px 10px',
-                                backgroundColor: '#f0f8ff',
-                                borderRadius: '4px',
-                                fontSize: '12px',
-                              }}
-                            >
-                              <div>
-                                <Text strong>Element Type:</Text>{' '}
-                                {event.targetTagName || 'Unknown'}
-                              </div>
-                              <div>
-                                <Text strong>Action:</Text> {event.type}
-                              </div>
-                              <div>
-                                <Text strong>Position:</Text> (
-                                {event.elementRect?.left},{' '}
-                                {event.elementRect?.top})
-                              </div>
-                              <div>
-                                <Text strong>Size:</Text>{' '}
-                                {event.elementRect?.width} ×{' '}
-                                {event.elementRect?.height}px
-                              </div>
-                              {event.pageInfo.width &&
-                                event.pageInfo.height && (
-                                  <div>
-                                    <Text strong>Page Size:</Text>{' '}
-                                    {event.pageInfo.width} ×{' '}
-                                    {event.pageInfo.height}px
-                                  </div>
-                                )}
-                              {event.value && (
-                                <div>
-                                  <Text strong>Content:</Text> "{event.value}"
-                                </div>
-                              )}
-                            </div>
-                          </Space>
-                        </div>
-                      }
-                      title="Element Details"
-                      trigger="hover"
-                      placement="right"
-                    >
-                      <div
-                        style={{
-                          width: '80px',
-                          height: '50px',
-                          borderRadius: '6px',
-                          overflow: 'hidden',
-                          border: `2px solid ${getEventColor(event.type)}`,
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease-in-out',
-                          background: '#f8f9fa',
-                        }}
-                        onMouseEnter={(e) => {
-                          const target = e.currentTarget as HTMLElement;
-                          target.style.transform = 'scale(1.05)';
-                          target.style.boxShadow = `0 4px 12px ${getEventColor(event.type)}60`;
-                        }}
-                        onMouseLeave={(e) => {
-                          const target = e.currentTarget as HTMLElement;
-                          target.style.transform = 'scale(1)';
-                          target.style.boxShadow = 'none';
-                        }}
+                          </div>
+                        }
+                        trigger="hover"
+                        placement="left"
                       >
-                        <Image
-                          src={boxedImage}
-                          width="100%"
-                          height="100%"
-                          style={{
-                            objectFit: 'cover',
-                            display: 'block',
-                          }}
-                          preview={false}
-                        />
-                        {/* 元素类型标签 */}
                         <div
                           style={{
-                            position: 'absolute',
-                            top: '2px',
-                            right: '2px',
-                            background: getEventColor(event.type),
-                            color: 'white',
-                            fontSize: '8px',
-                            padding: '1px 3px',
-                            borderRadius: '2px',
-                            lineHeight: 1,
+                            width: '32px',
+                            height: '20px',
+                            borderRadius: '4px',
+                            overflow: 'hidden',
+                            border: `1px solid ${getEventColor(event.type)}`,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease-in-out',
+                            zIndex: 2,
+                          }}
+                          onMouseEnter={(e) => {
+                            const target = e.currentTarget as HTMLElement;
+                            target.style.transform = 'scale(1.2)';
+                            target.style.boxShadow = `0 2px 8px ${getEventColor(event.type)}60`;
+                          }}
+                          onMouseLeave={(e) => {
+                            const target = e.currentTarget as HTMLElement;
+                            target.style.transform = 'scale(1)';
+                            target.style.boxShadow = 'none';
                           }}
                         >
-                          {event.type.toUpperCase()}
+                          <Image
+                            src={boxedImage}
+                            width="100%"
+                            height="100%"
+                            style={{
+                              objectFit: 'cover',
+                              display: 'block',
+                            }}
+                            preview={false}
+                          />
                         </div>
-                      </div>
-                    </Popover>
-                  </div>
-                )}
-
-                {/* After screenshot */}
-                {afterImage && (
-                  <div style={{ flexShrink: 0 }}>
-                    <div
-                      style={{
-                        marginBottom: '4px',
-                        fontSize: '11px',
-                        color: '#8c8c8c',
-                        textAlign: 'center',
-                      }}
-                    >
-                      After
-                    </div>
-                    <Popover
-                      content={
-                        <div style={{ maxWidth: '400px' }}>
-                          <Space
-                            direction="vertical"
-                            size="small"
-                            style={{ width: '100%' }}
-                          >
-                            <Text strong>After Action Screenshot</Text>
+                      </Popover>
+                    )}
+                    {afterImage && (
+                      <Popover
+                        content={
+                          <div style={{ maxWidth: '400px' }}>
+                            <Text strong>After Action</Text>
                             <Image
                               src={afterImage}
                               style={{
@@ -479,101 +299,105 @@ export const RecordTimeline = ({
                               }}
                               preview={true}
                             />
-                            <div
-                              style={{
-                                padding: '6px 10px',
-                                backgroundColor: '#f0fff0',
-                                borderRadius: '4px',
-                                fontSize: '12px',
-                              }}
-                            >
-                              <div>
-                                <Text strong>Action:</Text> {event.type}
-                              </div>
-                              <div>
-                                <Text strong>Timestamp:</Text>{' '}
-                                {formatTime(event.timestamp)}
-                              </div>
-                              {event.value && (
-                                <div>
-                                  <Text strong>Value:</Text> "{event.value}"
-                                </div>
-                              )}
-                            </div>
-                          </Space>
-                        </div>
-                      }
-                      title="After Action"
-                      trigger="hover"
-                      placement="right"
-                    >
-                      <div
-                        style={{
-                          width: '80px',
-                          height: '50px',
-                          borderRadius: '6px',
-                          overflow: 'hidden',
-                          border: '2px solid #52c41a',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease-in-out',
-                          background: '#f6ffed',
-                        }}
-                        onMouseEnter={(e) => {
-                          const target = e.currentTarget as HTMLElement;
-                          target.style.transform = 'scale(1.05)';
-                          target.style.boxShadow = '0 4px 12px #52c41a60';
-                        }}
-                        onMouseLeave={(e) => {
-                          const target = e.currentTarget as HTMLElement;
-                          target.style.transform = 'scale(1)';
-                          target.style.boxShadow = 'none';
-                        }}
+                          </div>
+                        }
+                        trigger="hover"
+                        placement="left"
                       >
-                        <Image
-                          src={afterImage}
-                          width="100%"
-                          height="100%"
-                          style={{
-                            objectFit: 'cover',
-                            display: 'block',
-                          }}
-                          preview={false}
-                        />
-                        {/* After action label */}
                         <div
                           style={{
-                            position: 'absolute',
-                            top: '2px',
-                            right: '2px',
-                            background: '#52c41a',
-                            color: 'white',
-                            fontSize: '8px',
-                            padding: '1px 3px',
-                            borderRadius: '2px',
-                            lineHeight: 1,
+                            width: '32px',
+                            height: '20px',
+                            borderRadius: '4px',
+                            overflow: 'hidden',
+                            border: '1px solid #52c41a',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease-in-out',
+                            marginLeft: boxedImage ? '-14px' : '0',
+                            zIndex: 1,
+                          }}
+                          onMouseEnter={(e) => {
+                            const target = e.currentTarget as HTMLElement;
+                            target.style.transform = 'scale(1.2)';
+                            target.style.boxShadow = '0 2px 8px #52c41a60';
+                          }}
+                          onMouseLeave={(e) => {
+                            const target = e.currentTarget as HTMLElement;
+                            target.style.transform = 'scale(1)';
+                            target.style.boxShadow = 'none';
                           }}
                         >
-                          AFTER
+                          <Image
+                            src={afterImage}
+                            width="100%"
+                            height="100%"
+                            style={{
+                              objectFit: 'cover',
+                              display: 'block',
+                            }}
+                            preview={false}
+                          />
                         </div>
-                      </div>
-                    </Popover>
+                      </Popover>
+                    )}
                   </div>
                 )}
-              </div>
-            )}
-            <Text type="secondary" style={{ fontSize: '12px' }}>
-              {formatTime(event.timestamp)}
-            </Text>
-          </Space>
-        </Card>
+              </Space>
+            </Space>
+          </Card>
+          {isExpanded && (
+            <div style={{ marginTop: 8, marginBottom: 8 }}>
+              <Card
+                size="small"
+                style={{ backgroundColor: '#f5f5f5' }}
+                bodyStyle={{ padding: '12px' }}
+              >
+                <div style={{ position: 'relative' }}>
+                  <pre
+                    style={{
+                      fontSize: '12px',
+                      margin: 0,
+                      whiteSpace: 'pre-wrap',
+                      backgroundColor: '#ffffff',
+                      padding: '12px',
+                      paddingRight: '50px',
+                      borderRadius: '4px',
+                      border: '1px solid #d9d9d9',
+                      maxHeight: '250px',
+                      overflow: 'auto',
+                    }}
+                  >
+                    {JSON.stringify(truncateJsonStrings(event), null, 2)}
+                  </pre>
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<CopyOutlined />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      copyToClipboard(JSON.stringify(event, null, 2));
+                    }}
+                    style={{
+                      position: 'absolute',
+                      top: '8px',
+                      right: '8px',
+                      background: 'rgba(255, 255, 255, 0.9)',
+                      border: '1px solid #d9d9d9',
+                    }}
+                    title="Copy JSON"
+                  />
+                </div>
+              </Card>
+            </div>
+          )}
+        </div>
       ),
     };
   });
 
   return (
-    <div style={{ padding: '16px' }}>
+    <div style={{ padding: '3px' }}>
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
-
         <Timeline
           mode="left"
           items={timelineItems}

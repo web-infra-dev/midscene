@@ -119,7 +119,7 @@ let initialScreenshot: Promise<string | undefined> | undefined = undefined;
 let lastActivityTime = Date.now();
 let lastScreenshot: string | undefined = undefined;
 let pageChangeDetectionInterval: NodeJS.Timeout | null = null;
-const PAGE_CHANGE_CHECK_INTERVAL = 500; // Check every 2 seconds
+const PAGE_CHANGE_CHECK_INTERVAL = 2000; // Check every 2 seconds
 const MAX_IDLE_TIME = 100; // 5 seconds of inactivity before updating screenshot
 
 // Function to update screenshot when page changes during idle time

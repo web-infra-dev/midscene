@@ -154,7 +154,6 @@ export const useRecordingSession = (currentTab: chrome.tabs.Tab | null) => {
       });
 
       setCurrentSession(session.id);
-      message.success(`Switched to session "${session.name}"`);
     },
     [setCurrentSession],
   );

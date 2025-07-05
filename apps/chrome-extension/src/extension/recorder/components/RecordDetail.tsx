@@ -91,7 +91,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
   return (
     <div className="record-detail-view flex flex-col h-full">
       {/* 顶部栏 */}
-      <div className="flex items-center px-4 py-2">
+      <div className="flex items-center">
         {/* 录制状态 */}
         <div className="flex items-center mr-2">
           {isRecording ? (
@@ -160,7 +160,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
 
       {/* Figma 风格 Tabs */}
       <div
-        className="px-2 py-0"
+        className="px-2 py-0  my-[20px]"
         style={{
           background: '#F2F4F7',
           borderRadius: '8px',
@@ -218,12 +218,14 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
       </div>
 
       {/* Tab 内容区 */}
-      <div className="flex-1 overflow-auto p-4">
+      <div className="flex-1 overflow-auto">
         {tab === 'timeline' ? (
           events.length === 0 ? (
             <Empty description="No events recorded yet" />
           ) : (
-            <RecordTimeline events={events} />
+            <div className="p-[16px]">
+              <RecordTimeline events={events} />
+            </div>
           )
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-gray-400">
@@ -232,104 +234,107 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
         )}
       </div>
 
-      {/* 底部操作栏 */}
-      <div className="px-4 py-6 pb-8 flex justify-center">
-        {!isRecording ? (
-          <Button
-            type="primary"
-            icon={<PlayCircleOutlined />}
-            onClick={() => onStartRecording(sessionId)}
-            disabled={isRecording}
-            size="large"
-            className="w-full max-w-xs h-12 text-[14px] font-medium rounded-lg"
-            style={{ fontFamily: 'Inter, -apple-system, sans-serif' }}
-          >
-            Start
-          </Button>
-        ) : (
-          <div className="relative" style={{ maxWidth: '304px', width: '100%' }}>
-            {/* 渐变边框背景 */}
-            <div
-              className="absolute inset-0 rounded-xl p-[1px] rec-breath-border"
-              style={{
-                background: 'linear-gradient(45deg, #538CFF, #0066FF, #7B02C5, #FF7D3C, #FFA53C)',
-                boxShadow: '0px 0px 0px 3px rgba(217, 233, 255, 1)'
-              }}
+      {/* 固定底部操作栏 - 只在 timeline tab 显示 */}
+      {tab === 'timeline' && (
+        <div className="px-4 py-6 pb-8 flex justify-center">
+          {!isRecording ? (
+            <Button
+              type="primary"
+              icon={<PlayCircleOutlined />}
+              onClick={() => onStartRecording(sessionId)}
+              disabled={isRecording}
+              size="large"
+              className="w-full max-w-xs h-12 text-[14px] font-medium rounded-lg"
+              style={{ fontFamily: 'Inter, -apple-system, sans-serif' }}
             >
-              <div className="w-full h-full bg-white rounded-xl"></div>
-              <style>{`
-                @keyframes rec-breath {
-                  0%   { filter: brightness(1) opacity(1); }
-                  50%  { filter: brightness(1.08) opacity(0.88); }
-                  100% { filter: brightness(1) opacity(1); }
-                }
-                .rec-breath-border {
-                  animation: rec-breath 2s infinite ease-in-out;
-                }
-              `}</style>
-            </div>
-
-            {/* 内容容器 */}
-            <div className="relative flex items-center px-4 py-3">
-              {/* Recording 状态 */}
-              <div className="flex items-center gap-2.5 flex-1">
-                <Spin
-                  size="small"
-                  indicator={<LoadingOutlined spin style={{ fontSize: 15 }} />}
-                  style={{
-                    color: '#2B83FF',
-                    fontSize: '16px'
-                  }}
-                />
-                <span
-                  className="text-[14px] font-medium text-[rgba(0,0,0,0.85)]"
-                  style={{
-                    fontFamily: 'Inter, -apple-system, sans-serif',
-                    lineHeight: '1.21'
-                  }}
-                >
-                  Recording
-                </span>
+              Start
+            </Button>
+          ) : (
+            <div className="relative" style={{ maxWidth: '304px', width: '100%' }}>
+              {/* 渐变边框背景 */}
+              <div
+                className="absolute inset-0 rounded-xl p-[1px] rec-breath-border"
+                style={{
+                  background: 'linear-gradient(45deg, #538CFF, #0066FF, #7B02C5, #FF7D3C, #FFA53C)',
+                  boxShadow: '0px 0px 0px 3px rgba(217, 233, 255, 1)'
+                }}
+              >
+                <div className="w-full h-full bg-white rounded-xl"></div>
+                <style>{`
+                  @keyframes rec-breath {
+                    0%   { filter: brightness(1) opacity(1); }
+                    50%  { filter: brightness(1.08) opacity(0.88); }
+                    100% { filter: brightness(1) opacity(1); }
+                  }
+                  .rec-breath-border {
+                    animation: rec-breath 2s infinite ease-in-out;
+                  }
+                `}</style>
               </div>
 
-              {/* 分割线 */}
-              <div
-                className="border-l mx-4"
-                style={{
-                  width: '0px',
-                  height: '15px',
-                  borderLeftColor: 'rgba(0,0,0,0.08)',
-                  borderLeftWidth: '1px'
-                }}
-              ></div>
+              {/* 内容容器 */}
+              <div className="relative flex items-center px-4 py-3">
+                {/* Recording 状态 */}
+                <div className="flex items-center gap-2.5 flex-1">
+                  <Spin
+                    size="small"
+                    indicator={<LoadingOutlined spin style={{ fontSize: 15 }} />}
+                    style={{
+                      color: '#2B83FF',
+                      fontSize: '16px'
+                    }}
+                  />
+                  <span
+                    className="text-[14px] font-medium text-[rgba(0,0,0,0.85)]"
+                    style={{
+                      fontFamily: 'Inter, -apple-system, sans-serif',
+                      lineHeight: '1.21'
+                    }}
+                  >
+                    Recording
+                  </span>
+                </div>
 
-              {/* Stop 按钮 */}
-              <button
-                onClick={onStopRecording}
-                disabled={!isRecording}
-                className="flex items-center gap-1 hover:opacity-80 transition-opacity bg-transparent border-none p-0 cursor-pointer"
-                style={{ background: 'none' }}
-              >
+                {/* 分割线 */}
                 <div
-                  className="bg-[#151414] w-3 h-3"
+                  className="border-l mx-4"
                   style={{
-                    borderRadius: '2px'
+                    width: '0px',
+                    height: '15px',
+                    borderLeftColor: 'rgba(0,0,0,0.08)',
+                    borderLeftWidth: '1px'
                   }}
                 ></div>
-                <span
-                  className="text-sm font-medium text-[rgba(0,0,0,0.85)]"
-                  style={{
-                    fontFamily: 'Inter, -apple-system, sans-serif',
-                    lineHeight: '1.21'
-                  }}
+
+                {/* Stop 按钮 */}
+                <button
+                  onClick={onStopRecording}
+                  disabled={!isRecording}
+                  className="flex items-center gap-1 hover:opacity-80 transition-opacity bg-transparent border-none p-0 cursor-pointer"
+                  style={{ background: 'none' }}
                 >
-                  Stop
-                </span>
-              </button>
+                  <div
+                    className="bg-[#151414] w-3 h-3"
+                    style={{
+                      borderRadius: '2px'
+                    }}
+                  ></div>
+                  <span
+                    className="text-sm font-medium text-[rgba(0,0,0,0.85)]"
+                    style={{
+                      fontFamily: 'Inter, -apple-system, sans-serif',
+                      lineHeight: '1.21'
+                    }}
+                  >
+                    Stop
+                  </span>
+                </button>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
+
     </div>
   );
 };
