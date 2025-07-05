@@ -97,8 +97,6 @@ export const useRecordingSession = (currentTab: chrome.tabs.Tab | null) => {
       recordLogger.success('Session created from form', {
         sessionId: newSession.id,
       });
-      message.success(`Session "${values.name}" created successfully`);
-
       return newSession;
     },
     [

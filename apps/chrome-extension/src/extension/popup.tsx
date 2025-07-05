@@ -34,7 +34,7 @@ const extensionAgentForTab = (forceSameTabNavigation = true) => {
 export function PlaygroundPopup() {
   const { setPopupTab } = useEnvConfig();
   const [currentMode, setCurrentMode] = useState<'playground' | 'bridge' | 'recorder'>(
-    'playground',
+    'recorder',
   );
 
   const menuItems = [
@@ -115,7 +115,11 @@ export function PlaygroundPopup() {
               <MenuOutlined className="nav-icon menu-trigger" />
             </Dropdown>
             <span className="nav-title">
-              {currentMode === 'playground' ? 'Playground' : 'Bridge Mode'}
+              {currentMode === 'playground'
+                ? 'Playground'
+                : currentMode === 'recorder'
+                  ? 'Recorder'
+                  : 'Bridge Mode'}
             </span>
           </div>
           <div className="nav-right">

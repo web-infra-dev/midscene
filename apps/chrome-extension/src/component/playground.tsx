@@ -1,7 +1,6 @@
 import Icon, {
   ClearOutlined,
   LoadingOutlined,
-  ExclamationCircleFilled,
   ArrowDownOutlined,
 } from '@ant-design/icons';
 import type { UIContext } from '@midscene/core';
@@ -15,6 +14,7 @@ import {
   type ReplayScriptsInfo,
   useEnvConfig,
 } from '@midscene/visualizer';
+import { EnvConfigReminder } from '../components';
 import { allScriptsFromDump } from '@midscene/visualizer';
 import { Button, Form, List, Tooltip, Typography, message } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -141,9 +141,6 @@ export function BrowserExtensionPlayground({
   const currentAgentRef = useRef<any>(null);
   const currentRunningIdRef = useRef<number | null>(0);
   const interruptedFlagRef = useRef<Record<number, boolean>>({});
-
-  // Environment configuration check
-  const configAlreadySet = Object.keys(config || {}).length >= 1;
 
   // Responsive layout settings
   useEffect(() => {
@@ -378,11 +375,11 @@ export function BrowserExtensionPlayground({
       prev.map((item) =>
         item.id === `system-${thisRunningId}`
           ? {
-              ...item,
-              content: '', // 'execution completed',
-              loading: false,
-              loadingProgressText: '',
-            }
+            ...item,
+            content: '', // 'execution completed',
+            loading: false,
+            loadingProgressText: '',
+          }
           : item,
       ),
     );
@@ -408,11 +405,11 @@ export function BrowserExtensionPlayground({
         actionType === 'aiAction'
           ? result
           : {
-              result: result.result,
-              error: result.error,
-              dump: null,
-              reportHTML: null,
-            };
+            result: result.result,
+            error: result.error,
+            dump: null,
+            reportHTML: null,
+          };
       storeResult(resultItem.id, dataToStore);
     }
 
@@ -445,11 +442,11 @@ export function BrowserExtensionPlayground({
         prev.map((item) =>
           item.id === `system-${thisRunningId}` && item.loading
             ? {
-                ...item,
-                content: 'Operation stopped',
-                loading: false,
-                loadingProgressText: '',
-              }
+              ...item,
+              content: 'Operation stopped',
+              loading: false,
+              loadingProgressText: '',
+            }
             : item,
         ),
       );
@@ -470,7 +467,7 @@ export function BrowserExtensionPlayground({
   };
 
   // Validate if it can run
-  const runButtonEnabled = !!getAgent && configAlreadySet;
+  const runButtonEnabled = !!getAgent && Object.keys(config || {}).length >= 1;
 
   // Check if it can be stopped - extension specific
   const stoppable = !dryMode && loading;
@@ -538,13 +535,12 @@ export function BrowserExtensionPlayground({
                               <span className="progress-action-item">
                                 {action}
                                 <span
-                                  className={`progress-status-icon ${
-                                    shouldShowLoading
-                                      ? 'loading'
-                                      : item.result?.error
-                                        ? 'error'
-                                        : 'completed'
-                                  }`}
+                                  className={`progress-status-icon ${shouldShowLoading
+                                    ? 'loading'
+                                    : item.result?.error
+                                      ? 'error'
+                                      : 'completed'
+                                    }`}
                                 >
                                   {shouldShowLoading ? (
                                     <LoadingOutlined spin />
@@ -650,15 +646,7 @@ export function BrowserExtensionPlayground({
         {/* bottom input box */}
         <div className="bottom-input-section">
           {/* environment setup reminder */}
-          {!configAlreadySet && (
-            <div className="config-reminder">
-              <ExclamationCircleFilled className="reminder-icon" />
-              <span className="reminder-text">
-                Please set up your environment variables before using.
-              </span>
-              <EnvConfig mode="text" showTooltipWhenEmpty={false} />
-            </div>
-          )}
+          <EnvConfigReminder />
           <PromptInput
             runButtonEnabled={runButtonEnabled}
             form={form}

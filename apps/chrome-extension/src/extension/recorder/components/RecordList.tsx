@@ -57,7 +57,6 @@ export const RecordList: React.FC<RecordListProps> = ({
   const handleCreateNewSession = () => {
     const sessionName = generateDefaultSessionName();
     const newSession = createNewSession(sessionName);
-    message.success(`Session "${sessionName}" created successfully`);
 
     // Switch to detail view for the new session
     setSelectedSession(newSession);
@@ -72,51 +71,24 @@ export const RecordList: React.FC<RecordListProps> = ({
   };
 
   return (
-    <div className="record-list-view">
+    <div className="record-list-view relative">
       {!isExtensionMode && (
         <Alert
           message="Limited Functionality"
           description="Recording features require Chrome extension environment. Only session management and event viewing are available."
           type="info"
           showIcon
-          style={{ marginBottom: '16px' }}
+          className="mb-4"
         />
       )}
 
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '16px',
-        }}
-      >
-        <Title level={3} style={{ margin: 0 }}>
-          Recording Sessions
-        </Title>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={handleCreateNewSession}
-        >
-          New Session
-        </Button>
-      </div>
 
       {sessions.length === 0 ? (
-        <div className="session-empty">
-          <Empty
-            description="No recording sessions yet"
-            style={{ margin: '40px 0' }}
-          >
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={handleCreateNewSession}
-            >
-              Create First Session
-            </Button>
-          </Empty>
+        <div className="session-empty flex flex-col items-center justify-center h-[200px] text-gray-500">
+          <div className="w-16 h-16 border-2 border-gray-300 rounded-lg flex items-center justify-center mb-4">
+            <div className="w-8 h-0.5 bg-gray-300 rounded-sm" />
+          </div>
+          <Empty description="No data" className="flex flex-col items-center justify-center" />
         </div>
       ) : (
         <List
@@ -127,16 +99,10 @@ export const RecordList: React.FC<RecordListProps> = ({
             <List.Item>
               <Card
                 size="small"
-                className={
-                  session.id === currentSessionId ? 'selected-session' : ''
-                }
-                style={{
-                  cursor: 'pointer',
-                  border:
-                    session.id === currentSessionId
-                      ? '2px solid #1890ff'
-                      : '1px solid #d9d9d9',
-                }}
+                className={`cursor-pointer ${session.id === currentSessionId
+                  ? 'selected-session border-2 border-blue-500'
+                  : 'border border-gray-300'
+                  }`}
                 onClick={() => onViewDetail(session)}
                 actions={[
                   <Button
@@ -147,10 +113,7 @@ export const RecordList: React.FC<RecordListProps> = ({
                       e.stopPropagation();
                       onSelectSession(session);
                     }}
-                    style={{
-                      color:
-                        session.id === currentSessionId ? '#1890ff' : undefined,
-                    }}
+                    className={session.id === currentSessionId ? 'text-blue-500' : ''}
                   >
                     {session.id === currentSessionId ? 'Selected' : 'Select'}
                   </Button>,
@@ -198,11 +161,7 @@ export const RecordList: React.FC<RecordListProps> = ({
                 <Card.Meta
                   title={
                     <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                      }}
+                      className="flex justify-between items-center"
                     >
                       <span>{session.name}</span>
                       <Space>
@@ -234,7 +193,7 @@ export const RecordList: React.FC<RecordListProps> = ({
                           ` URL: ${session.url.slice(0, 50)}${session.url.length > 50 ? '...' : ''}`}
                       </div>
                       {session.description && (
-                        <div style={{ marginTop: '4px', fontStyle: 'italic' }}>
+                        <div className="mt-1 italic">
                           {session.description}
                         </div>
                       )}
@@ -246,6 +205,17 @@ export const RecordList: React.FC<RecordListProps> = ({
           )}
         />
       )}
+
+      {/* Floating Add Button */}
+      <Button
+        type="primary"
+        shape="circle"
+        size="large"
+        icon={<PlusOutlined />}
+        onClick={handleCreateNewSession}
+        className="!fixed bottom-5 right-5 w-14 h-14 shadow-lg 
+     shadow-blue-500/40 z-[1000]"
+      />
     </div>
   );
 };

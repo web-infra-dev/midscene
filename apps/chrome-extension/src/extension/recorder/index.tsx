@@ -1,5 +1,6 @@
 /// <reference types="chrome" />
-import { Form } from 'antd';
+import { ExclamationCircleFilled } from '@ant-design/icons';
+import { Form, Modal } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
 import type { RecordingSession } from '../../store';
 import { useRecordStore, useRecordingSessionStore } from '../../store';
@@ -13,6 +14,8 @@ import { useTabMonitoring } from './hooks/useTabMonitoring';
 import { recordLogger } from './logger';
 import type { ViewMode } from './types';
 import './recorder.less';
+import { EnvConfig, useEnvConfig } from '@midscene/visualizer';
+import { EnvConfigReminder } from '../../components';
 
 export default function Recorder() {
   // Local initialization state
@@ -21,6 +24,10 @@ export default function Recorder() {
   // Get stores
   const sessionStore = useRecordingSessionStore();
   const recordStore = useRecordStore();
+
+  // Environment configuration check
+  const { config } = useEnvConfig();
+  const configAlreadySet = Object.keys(config || {}).length >= 1;
 
   // Initialize stores on component mount
   useEffect(() => {
@@ -291,24 +298,53 @@ export default function Recorder() {
 
   return (
     <div ref={recordContainerRef} className="popup-record-container">
-      {viewMode === 'list' ? (
-        <RecordList
-          sessions={sessions}
-          currentSessionId={currentSessionId}
-          onEditSession={handleEditSession}
-          onDeleteSession={handleDeleteSessionWrapper}
-          onSelectSession={handleSelectSessionWrapper}
-          onExportSession={handleExportSession}
-          onViewDetail={handleViewDetail}
-          isExtensionMode={isExtensionMode}
-          createNewSession={createNewSession}
-          setSelectedSession={setSelectedSession}
-          setViewMode={setViewMode}
-          currentTab={currentTab}
-          startRecording={startRecording}
-        />
-      ) : (
-        selectedSession && (
+      {/* Environment setup reminder */}
+      <EnvConfigReminder />
+
+      <RecordList
+        sessions={sessions}
+        currentSessionId={currentSessionId}
+        onEditSession={handleEditSession}
+        onDeleteSession={handleDeleteSessionWrapper}
+        onSelectSession={handleSelectSessionWrapper}
+        onExportSession={handleExportSession}
+        onViewDetail={handleViewDetail}
+        isExtensionMode={isExtensionMode}
+        createNewSession={createNewSession}
+        setSelectedSession={setSelectedSession}
+        setViewMode={setViewMode}
+        currentTab={currentTab}
+        startRecording={startRecording}
+      />
+
+      {/* Recording Detail Modal */}
+      <Modal
+        open={viewMode === 'detail' && selectedSession !== null}
+        onCancel={handleBackToList}
+        footer={null}
+        closable={false}
+        width="100%"
+        centered={false}
+        className="recording-detail-modal"
+        transitionName=""
+        maskTransitionName=""
+        styles={{
+          body: { padding: 0, height: 'calc(100vh * 9 / 10)', overflow: 'hidden' },
+          content: {
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 'calc(100vh * 9 / 10)',
+            margin: 0,
+            borderRadius: '16px 16px 0 0',
+            maxWidth: 'none',
+            width: '100%'
+          },
+          mask: { backgroundColor: 'rgba(0, 0, 0, 0.3)' }
+        }}
+      >
+        {selectedSession && (
           <RecordDetail
             sessionId={selectedSession.id}
             events={events}
@@ -319,9 +355,10 @@ export default function Recorder() {
             onStopRecording={stopRecording}
             onClearEvents={clearEvents}
             isExtensionMode={isExtensionMode}
+            onClose={handleBackToList}
           />
-        )
-      )}
+        )}
+      </Modal>
 
       <SessionModals
         isCreateModalVisible={isCreateModalVisible}
