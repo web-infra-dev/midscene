@@ -310,13 +310,6 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
         events: finalEvents,
         updatedAt: Date.now(),
       });
-      useRecordStore.getState().setEvents(finalEvents);
-      recordLogger.info('Updated session with AI descriptions', {
-        sessionId,
-        finalEvents,
-        eventsCount: finalEvents.length,
-        descriptionsGenerated: eventsNeedingDescriptions.length,
-      });
     }
 
     updateProgressStep(stepIndex, {
@@ -875,22 +868,6 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
               </pre>
             </div>
 
-            <div className="mt-3">
-              <Text type="secondary">
-                {selectedType === 'playwright' ? (
-                  <>
-                    This test uses <strong>@midscene/web/playwright</strong> for
-                    AI-powered web automation.
-                  </>
-                ) : (
-                  <>
-                    This YAML configuration can be used with various automation
-                    frameworks that support <strong>@midscene/web</strong>{' '}
-                    integration.
-                  </>
-                )}
-              </Text>
-            </div>
 
             {((selectedType === 'playwright' && generatedTest) ||
               (selectedType === 'yaml' && generatedYaml)) && (
@@ -898,13 +875,11 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
                   <Text type="secondary" className="text-xs">
                     {selectedType === 'playwright' ? (
                       <>
-                        💡 Tip: This test is ready to run with{' '}
-                        <code>npx playwright test</code>
+                        💡 Can be executed with <b>@midscene/web</b> compatible automation frameworks. Run directly via <code>npx playwright test</code>.
                       </>
                     ) : (
                       <>
-                        💡 Tip: This YAML can be used with automation frameworks
-                        that support @midscene/web
+                        💡 Use with any automation platform that supports <b>@midscene/cli</b> for cross-platform integration and batch execution.
                       </>
                     )}
                   </Text>
