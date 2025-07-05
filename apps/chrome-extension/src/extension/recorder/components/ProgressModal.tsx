@@ -153,6 +153,12 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
 
   // 打开 Generate code 时自动生成（仅有 events 时）
   useEffect(() => {
+    if (defaultType === 'yaml' && generatedYaml) {
+      return;
+    }
+    if (defaultType === 'playwright' && generatedTest) {
+      return;
+    }
     if (eventsCount > 0 && steps.length === 0 && !isGenerating) {
       setSelectedType(defaultType);
       handleGenerateCode(defaultType);
