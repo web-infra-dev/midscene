@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Button, Typography } from 'antd';
 import { FileTextOutlined, ReloadOutlined, CopyOutlined, DownloadOutlined } from '@ant-design/icons';
 import { ThinkingProcessSection } from './ThinkingProcessSection';
+import { triggerConfetti } from './confetti';
 
 const { Text } = Typography;
 
@@ -32,19 +33,29 @@ export const YamlCodeBlock: React.FC<YamlCodeBlockProps> = ({
 }) => {
     const displayContent = isStreaming ? (actualCode || streamingContent) : code;
     const hasContent = displayContent.length > 0;
+    const wasStreamingRef = useRef(false);
+
+    // Monitor code generation completion, trigger confetti effect
+    useEffect(() => {
+        // If it was streaming before, now stopped, and has code content, trigger confetti effect
+        if (wasStreamingRef.current && !isStreaming && hasContent) {
+            triggerConfetti();
+        }
+        wasStreamingRef.current = isStreaming;
+    }, [isStreaming, hasContent]);
 
     return (
         <div className="mt-5">
             <div className="flex justify-between items-center mb-3">
                 <div className="flex items-center gap-2">
                     <FileTextOutlined className="text-green-500" />
-                    <Text strong>YAML Configuration</Text>
-                    {isStreaming && (
+                    <Text strong>YAML</Text>
+                    {/* {isStreaming && (
                         <div className="flex items-center gap-1 text-green-500">
                             <div className="animate-spin w-3 h-3 border border-green-500 border-t-transparent rounded-full"></div>
                             <Text className="text-xs text-green-500">Streaming...</Text>
                         </div>
-                    )}
+                    )} */}
                 </div>
                 <div className="flex gap-2">
                     <Button

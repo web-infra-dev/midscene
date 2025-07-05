@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Button, Typography } from 'antd';
 import { CodeOutlined, ReloadOutlined, CopyOutlined, DownloadOutlined } from '@ant-design/icons';
 import { ThinkingProcessSection } from './ThinkingProcessSection';
+import { triggerConfetti } from './confetti';
 
 const { Text } = Typography;
 
@@ -32,19 +33,29 @@ export const PlaywrightCodeBlock: React.FC<PlaywrightCodeBlockProps> = ({
 }) => {
     const displayContent = isStreaming ? (actualCode || streamingContent) : code;
     const hasContent = displayContent.length > 0;
+    const wasStreamingRef = useRef(false);
+
+    // Monitor code generation completion, trigger confetti effect
+    useEffect(() => {
+        // If it was streaming before, now stopped, and has code content, trigger confetti effect
+        if (wasStreamingRef.current && !isStreaming && hasContent) {
+            triggerConfetti();
+        }
+        wasStreamingRef.current = isStreaming;
+    }, [isStreaming, hasContent]);
 
     return (
         <div className="mt-5">
             <div className="flex justify-between items-center mb-3">
                 <div className="flex items-center gap-2">
                     <CodeOutlined className="text-blue-500" />
-                    <Text strong>Playwright Test Code</Text>
-                    {isStreaming && (
+                    <Text strong>Playwright</Text>
+                    {/* {isStreaming && (
                         <div className="flex items-center gap-1 text-blue-500">
                             <div className="animate-spin w-3 h-3 border border-blue-500 border-t-transparent rounded-full"></div>
                             <Text className="text-xs text-blue-500">Streaming...</Text>
                         </div>
-                    )}
+                    )} */}
                 </div>
                 <div className="flex gap-2">
                     <Button
@@ -77,7 +88,7 @@ export const PlaywrightCodeBlock: React.FC<PlaywrightCodeBlockProps> = ({
                 </div>
             </div>
 
-            {/* 思考过程展示区域 */}
+            {/* Thinking process display area */}
             <ThinkingProcessSection
                 accumulatedThinking={accumulatedThinking}
                 isStreaming={isStreaming}

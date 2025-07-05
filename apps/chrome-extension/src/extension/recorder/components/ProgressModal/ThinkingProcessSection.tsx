@@ -21,13 +21,16 @@ export const ThinkingProcessSection: React.FC<ThinkingProcessSectionProps> = ({
     const [thinkingEndTimer, setThinkingEndTimer] = useState<NodeJS.Timeout | null>(null);
     const hasThinking = accumulatedThinking.length > 0;
 
-    // 检测思考过程是否结束 - 当有实际代码内容出现时，思考就结束了
+    // Detect if thinking process has ended - when actual code content appears, thinking is finished
     useEffect(() => {
-        if (isStreaming && actualCode && actualCode.trim().length > 0 && accumulatedThinking) {
-            // 有实际代码内容出现，说明思考过程已经结束，立即折叠
-            setShowThinking(false);
+        if (!isStreaming && actualCode) {
+            // Actual code content appeared, thinking process has ended, collapse immediately
+            const timer = setTimeout(() => {
+                setShowThinking(false);
+            }, 500);
+            return () => clearTimeout(timer);
         }
-    }, [actualCode, isStreaming, accumulatedThinking]);
+    }, [isStreaming, actualCode]);
 
     // Auto-collapse thinking process when streaming completes
     useEffect(() => {
@@ -36,7 +39,7 @@ export const ThinkingProcessSection: React.FC<ThinkingProcessSectionProps> = ({
         }
     }, [isStreaming, hasThinking, actualCode]);
 
-    // 清理计时器
+    // Clean up timer
     useEffect(() => {
         return () => {
             if (thinkingEndTimer) {

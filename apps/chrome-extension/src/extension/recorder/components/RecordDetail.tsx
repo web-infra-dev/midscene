@@ -40,7 +40,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
   onClearEvents,
   onClose,
 }) => {
-  // useState 必须在组件顶层调用，不能在条件语句之后
+  // useState must be called at the top level of the component, not after conditional statements
   const [tab, setTab] = useState<'timeline' | 'code'>('timeline');
   const [isFromStopRecording, setIsFromStopRecording] = useState(false);
 
@@ -71,14 +71,14 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
     );
   }
 
-  // 包装 onStopRecording，停止录制后切换到 code tab
+  // Wrap onStopRecording, switch to code tab after stopping recording
   const handleStopRecording = () => {
     onStopRecording();
     setIsFromStopRecording(true);
     setTab('code');
   };
 
-  // 当手动切换到 code tab 时，重置 isFromStopRecording 状态
+  // Reset isFromStopRecording state when manually switching to code tab
   const handleTabChange = (newTab: 'timeline' | 'code') => {
     if (newTab === 'timeline') {
       setIsFromStopRecording(false);
@@ -88,16 +88,16 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
 
   return (
     <div className="record-detail-view flex flex-col h-full">
-      {/* 顶部栏 */}
+      {/* Header bar */}
       <div className="flex items-center">
-        {/* 录制状态 */}
+        {/* Recording status */}
         <div className="flex items-center mr-2">
           {isRecording ? (
             <div
               className="flex items-center gap-[4px] h-[20px] px-[7px] py-[4px] rounded-[23px]"
               style={{
                 background: 'rgba(255, 17, 17, 0.08)',
-                // 透明红色背景
+                // Transparent red background
               }}
             >
               <span
@@ -136,14 +136,14 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
             </div>
           )}
         </div>
-        {/* 标题 */}
+        {/* Title */}
         <span
           className="text-[12px] font-medium text-[rgba(0,0,0,0.9)] leading-[1.67em] truncate flex-1"
           style={{ fontFamily: 'PingFang SC, -apple-system, sans-serif' }}
         >
           {session.name}
         </span>
-        {/* 操作按钮 */}
+        {/* Action buttons */}
         <div className="flex items-center gap-2 ml-2">
           <Button
             icon={<ClearOutlined />}
@@ -169,7 +169,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
         </div>
       </div>
 
-      {/* Figma 风格 Tabs */}
+      {/* Figma-style Tabs */}
       <div
         className="px-2 py-0  my-[20px]"
         style={{
@@ -188,14 +188,14 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
             }}
             onClick={() => handleTabChange('timeline')}
           >
-            {/* Timeline 图标 */}
+            {/* Timeline icon */}
             <div className="w-4 h-4 flex items-center justify-center !rounded-none">
               <ControlOutlined />
             </div>
             Record Timeline
           </button>
 
-          {/* 分隔线 */}
+          {/* Divider */}
           <div className="flex items-center">
             <RightOutlined />
           </div>
@@ -210,7 +210,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
             }}
             onClick={() => handleTabChange('code')}
           >
-            {/* Code 图标 */}
+            {/* Code icon */}
             <div className="w-4 h-4 flex items-center justify-center !rounded-none">
               <CodeOutlined className="!bg-transparent" />
             </div>
@@ -219,7 +219,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
         </div>
       </div>
 
-      {/* Tab 内容区 */}
+      {/* Tab content area */}
       <div className="flex-1 overflow-auto">
         {tab === 'timeline' ? (
           events.length === 0 ? (
@@ -241,7 +241,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
         )}
       </div>
 
-      {/* 固定底部操作栏 - 只在 timeline tab 显示 */}
+      {/* Fixed bottom action bar - only shown in timeline tab */}
       {tab === 'timeline' && (
         <div className="px-4 py-6 pb-8 flex justify-center">
           {!isRecording ? (
@@ -261,7 +261,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
               className="relative"
               style={{ maxWidth: '304px', width: '100%' }}
             >
-              {/* 渐变边框背景 */}
+              {/* Gradient border background */}
               <div
                 className="absolute inset-0 rounded-xl p-[1px] rec-breath-border"
                 style={{
@@ -283,9 +283,9 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
                 `}</style>
               </div>
 
-              {/* 内容容器 */}
+              {/* Content container */}
               <div className="relative flex items-center px-4 py-3">
-                {/* Recording 状态 */}
+                {/* Recording status */}
                 <div className="flex items-center gap-2.5 flex-1">
                   <Spin
                     size="small"
@@ -308,7 +308,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
                   </span>
                 </div>
 
-                {/* 分割线 */}
+                {/* Divider */}
                 <div
                   className="border-l mx-4"
                   style={{
@@ -319,7 +319,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
                   }}
                 ></div>
 
-                {/* Stop 按钮 */}
+                {/* Stop button */}
                 <button
                   onClick={handleStopRecording}
                   disabled={!isRecording}

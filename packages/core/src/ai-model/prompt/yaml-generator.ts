@@ -1,4 +1,4 @@
-import type { ChromeRecordedEvent } from '@midscene/recorder';
+
 import { YAML_EXAMPLE_CODE } from '@midscene/shared/constants';
 import {
   AIActionType,
@@ -8,7 +8,7 @@ import {
 } from '../index';
 import type { StreamingCodeGenerationOptions, StreamingAIResponse } from '@/types';
 
-// Common interfaces for test generation
+// Common interfaces for test generation (shared between YAML and Playwright)
 export interface EventCounts {
   navigation: number;
   click: number;
@@ -37,11 +37,25 @@ export interface EventSummary {
   testName: string;
   startUrl: string;
   eventCounts: EventCounts;
-  pageTitles: string[];
   urls: string[];
   clickDescriptions: string[];
   inputDescriptions: InputDescription[];
   events: ProcessedEvent[];
+}
+
+// Common ChromeRecordedEvent interface
+export interface ChromeRecordedEvent {
+  type: string;
+  timestamp: number;
+  url?: string;
+  title?: string;
+  elementDescription?: string;
+  value?: string;
+  pageInfo?: any;
+  elementRect?: any;
+  screenshotBefore?: string;
+  screenshotAfter?: string;
+  screenshotWithBox?: string;
 }
 
 export interface YamlGenerationOptions {
@@ -57,6 +71,8 @@ export interface FilteredEvents {
   inputEvents: ChromeRecordedEvent[];
   scrollEvents: ChromeRecordedEvent[];
 }
+
+// Common utility functions (shared between YAML and Playwright generators)
 
 /**
  * Get screenshots from events for LLM context
@@ -166,7 +182,7 @@ export const processEventsForLLM = (
  */
 export const prepareEventSummary = (
   events: ChromeRecordedEvent[],
-  options: YamlGenerationOptions = {},
+  options: { testName?: string; maxScreenshots?: number } = {},
 ): EventSummary => {
   const filteredEvents = filterEventsByType(events);
   const eventCounts = createEventCounts(filteredEvents, events.length);
@@ -176,11 +192,6 @@ export const prepareEventSummary = (
     filteredEvents.navigationEvents.length > 0
       ? filteredEvents.navigationEvents[0].url || ''
       : '';
-
-  const pageTitles = filteredEvents.navigationEvents
-    .map((event) => event.title)
-    .filter((title): title is string => Boolean(title))
-    .slice(0, 5);
 
   const clickDescriptions = filteredEvents.clickEvents
     .map((event) => event.elementDescription)
@@ -202,12 +213,46 @@ export const prepareEventSummary = (
     testName: options.testName || 'Automated test from recorded events',
     startUrl,
     eventCounts,
-    pageTitles,
     urls,
     clickDescriptions,
     inputDescriptions,
     events: processedEvents,
   };
+};
+
+/**
+ * Create message content for LLM with optional screenshots
+ */
+export const createMessageContent = (
+  promptText: string,
+  screenshots: string[] = [],
+  includeScreenshots = true,
+) => {
+  const messageContent: any[] = [
+    {
+      type: 'text',
+      text: promptText,
+    },
+  ];
+
+  // Add screenshots if available and requested
+  if (includeScreenshots && screenshots.length > 0) {
+    messageContent.unshift({
+      type: 'text',
+      text: 'Here are screenshots from the recording session to help you understand the context:',
+    });
+
+    screenshots.forEach((screenshot) => {
+      messageContent.push({
+        type: 'image_url',
+        image_url: {
+          url: screenshot,
+        },
+      });
+    });
+  }
+
+  return messageContent;
 };
 
 /**
@@ -218,6 +263,8 @@ export const validateEvents = (events: ChromeRecordedEvent[]): void => {
     throw new Error('No events provided for test generation');
   }
 };
+
+// YAML-specific generation functions
 
 /**
  * Generates YAML test configuration from recorded events using AI

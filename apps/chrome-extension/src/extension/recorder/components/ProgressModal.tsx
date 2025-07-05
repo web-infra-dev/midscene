@@ -8,14 +8,12 @@ import {
   FileTextOutlined,
   LoadingOutlined,
   ReloadOutlined,
-  StarOutlined,
-  StarFilled,
+  PushpinOutlined,
+  PushpinFilled,
 } from '@ant-design/icons';
 import type { ChromeRecordedEvent } from '@midscene/recorder';
 import { ShinyText } from '@midscene/visualizer';
 import { Button, Progress, Select, Typography, message, Tooltip } from 'antd';
-// @ts-ignore
-import confetti from 'canvas-confetti';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { useRecordStore, useRecordingSessionStore } from '../../../store';
@@ -55,48 +53,7 @@ interface ProgressModalProps {
   isFromStopRecording?: boolean;
 }
 
-const triggerConfetti = () => {
-  // Create a celebratory confetti effect
-  const count = 200;
-  const defaults = {
-    origin: { y: 0.7 },
-  };
 
-  function fire(particleRatio: number, opts: any) {
-    confetti({
-      ...defaults,
-      ...opts,
-      particleCount: Math.floor(count * particleRatio),
-    });
-  }
-
-  fire(0.25, {
-    spread: 26,
-    startVelocity: 55,
-  });
-
-  fire(0.2, {
-    spread: 60,
-  });
-
-  fire(0.35, {
-    spread: 100,
-    decay: 0.91,
-    scalar: 0.8,
-  });
-
-  fire(0.1, {
-    spread: 120,
-    startVelocity: 25,
-    decay: 0.92,
-    scalar: 1.2,
-  });
-
-  fire(0.1, {
-    spread: 120,
-    startVelocity: 45,
-  });
-};
 
 export const ProgressModal: React.FC<ProgressModalProps> = ({
   eventsCount = 0,
@@ -106,7 +63,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
   onStopRecording,
   isFromStopRecording,
 }) => {
-  const [confettiVisible, setConfettiVisible] = useState(false);
+
   const [selectedType, setSelectedType] = useState<CodeGenerationType>('yaml');
   const [defaultType, setDefaultType] = useState<CodeGenerationType>('yaml');
   const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
@@ -383,7 +340,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
     const code = chunk.accumulated;
     const thinking = chunk.reasoning_content;
 
-    // 累积思考过程内容
+    // Accumulate thinking process content
     if (thinking) {
       setAccumulatedThinking(prev => prev + thinking);
     }
@@ -574,11 +531,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
       // Show the generated code after generation is complete
       setShowGeneratedCode(true);
 
-      // Show success message and confetti
-      setConfettiVisible(true);
-      setTimeout(() => {
-        setConfettiVisible(false);
-      }, 1000);
+      // Show success message
 
       message.success(
         `AI ${type === 'playwright' ? 'Playwright test' : 'YAML configuration'} generated successfully!`,
@@ -676,14 +629,14 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
   const handleRegenerateYaml = async () => {
     await handleCodeGeneration('yaml');
   };
-  // 监听步骤完成状态变化，添加滑动动画
+  // Monitor step completion state changes, add sliding animation
   useEffect(() => {
     steps.forEach((step) => {
       if (step.status === 'completed' && !completedSteps.has(step.id)) {
-        // 标记为滑出状态
+        // Mark as sliding out state
         setSlidingOutSteps((prev) => new Set([...prev, step.id]));
 
-        // 500ms后将其标记为已完成（从DOM中移除）
+        // Mark as completed after 500ms (remove from DOM)
         setTimeout(() => {
           setCompletedSteps((prev) => new Set([...prev, step.id]));
           setSlidingOutSteps((prev) => {
@@ -696,7 +649,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
     });
   }, [steps, completedSteps]);
 
-  // 重置状态当开始新的生成时
+  // Reset state when starting new generation
   const handleSelectChange = (value: CodeGenerationType) => {
     setSelectedType(value);
 
@@ -725,24 +678,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
     { label: 'None', value: 'none' as const },
   ];
 
-  useEffect(() => {
-    // 只有在所有步骤都完成且showConfetti为true时才显示撒花特效
-    const allStepsCompleted = steps.every(
-      (step) => step.status === 'completed',
-    );
 
-    if (allStepsCompleted && steps.length > 0 && !confettiVisible) {
-      setConfettiVisible(true);
-
-      // Trigger canvas-confetti effect
-      triggerConfetti();
-
-      const timer = setTimeout(() => {
-        setConfettiVisible(false);
-      }, 1000); // 撒花时间1秒
-      return () => clearTimeout(timer);
-    }
-  }, [confettiVisible, steps]);
 
   const getStepIcon = (step: ProgressStep) => {
     switch (step.status) {
@@ -779,60 +715,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
     }
   };
 
-  // 思考过程展示区域
-  const [showThinking, setShowThinking] = useState(true);
 
-  // 判断是否有思考过程内容
-  const hasThinking = accumulatedThinking.length > 0;
-
-  // 自动折叠思考过程
-  useEffect(() => {
-    if (!isStreaming && hasThinking && actualCode) {
-      // 当流式结束且有实际代码时，2秒后自动折叠思考过程
-      const timer = setTimeout(() => {
-        setShowThinking(false);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [isStreaming, hasThinking, actualCode]);
-
-  useEffect(() => {
-    // 只有在所有步骤都完成且showConfetti为true时才显示撒花特效
-    const allStepsCompleted = steps.every(
-      (step) => step.status === 'completed',
-    );
-
-    if (allStepsCompleted && steps.length > 0 && !confettiVisible) {
-      setConfettiVisible(true);
-
-      // Trigger canvas-confetti effect
-      triggerConfetti();
-
-      const timer = setTimeout(() => {
-        setConfettiVisible(false);
-      }, 1000); // 撒花时间1秒
-      return () => clearTimeout(timer);
-    }
-  }, [confettiVisible, steps]);
-
-  useEffect(() => {
-    // 只有在所有步骤都完成且showConfetti为true时才显示撒花特效
-    const allStepsCompleted = steps.every(
-      (step) => step.status === 'completed',
-    );
-
-    if (allStepsCompleted && steps.length > 0 && !confettiVisible) {
-      setConfettiVisible(true);
-
-      // Trigger canvas-confetti effect
-      triggerConfetti();
-
-      const timer = setTimeout(() => {
-        setConfettiVisible(false);
-      }, 1000); // 撒花时间1秒
-      return () => clearTimeout(timer);
-    }
-  }, [confettiVisible, steps]);
 
   return (
     <>
@@ -847,6 +730,10 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
             <Select
               value={selectedType}
               onChange={(value) => {
+                // Prevent selecting "None" directly - only allow through pin icon
+                if (value === 'none') {
+                  return;
+                }
                 setSelectedType(value);
                 handleSelectChange(value);
               }}
@@ -856,25 +743,42 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
               disabled={isGenerating}
             >
               {codeTypeOptions.map((option) => (
-                <Select.Option key={option.value} value={option.value}>
+                <Select.Option
+                  key={option.value}
+                  value={option.value}
+                  disabled={option.value === 'none'}
+                >
                   <div className="flex items-center justify-between">
-                    <span>{option.label}</span>
+                    <span className={option.value === 'none' ? 'text-gray-400' : ''}>{option.label}</span>
                     <div className="flex items-center gap-1">
-                      <Tooltip title={option.value === 'none' ? 'No code will be generated by default' : 'Set as default code generation type'}>
-                        <button
-                          type="button"
-                          className="ml-1 p-0.5 rounded hover:bg-gray-100"
-                          onClick={e => {
-                            e.stopPropagation();
-                            setDefaultType(option.value);
-                          }}
-                        >
-                          {defaultType === option.value ? (
-                            <StarFilled className="text-yellow-400" />
-                          ) : (
-                            <StarOutlined className="text-gray-400" />
-                          )}
-                        </button>
+                      <Tooltip title={option.value === 'none' ? 'Click to set None as default (no auto-generation)' : 'Pin as default code generation type'}>
+                        {defaultType === option.value ? (
+                          <PushpinFilled
+                            className="text-blue-500 cursor-pointer hover:text-blue-600 ml-1"
+                            onClick={e => {
+                              e.stopPropagation();
+                              setDefaultType(option.value);
+                              // If pinning "None", also set it as selected type
+                              if (option.value === 'none') {
+                                setSelectedType('none');
+                                handleSelectChange('none');
+                              }
+                            }}
+                          />
+                        ) : (
+                          <PushpinOutlined
+                            className="text-gray-400 cursor-pointer hover:text-gray-600 ml-1"
+                            onClick={e => {
+                              e.stopPropagation();
+                              setDefaultType(option.value);
+                              // If pinning "None", also set it as selected type
+                              if (option.value === 'none') {
+                                setSelectedType('none');
+                                handleSelectChange('none');
+                              }
+                            }}
+                          />
+                        )}
                       </Tooltip>
                     </div>
                   </div>
@@ -886,7 +790,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
             <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-sm">
               <div className="font-semibold mb-1">No Code Generation Selected</div>
               <div>Selecting <b>None</b> means no code will be generated automatically.</div>
-              <div className="mt-1">To auto-generate <b>YAML</b> or <b>Playwright</b> code, set it as the default (click the star icon on the right).<br />When you stop recording, the system will automatically generate code for the default type.</div>
+              <div className="mt-1">To auto-generate <b>YAML</b> or <b>Playwright</b> code, set it as the default (click the pin icon on the right).<br />When you stop recording, the system will automatically generate code for the default type.</div>
             </div>
           )}
         </>
@@ -895,14 +799,14 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
       {/* Steps for selectedType only */}
       {steps.length > 0 && !steps.every((step) => step.status === 'completed') && (
         (() => {
-          // 检查是否已经到达第三个步骤（代码生成步骤）
+          // Check if the third step (code generation step) has started
           const thirdStepStarted = steps.length >= 3 && (
             steps[2].status === 'loading' ||
             steps[2].status === 'completed' ||
             steps[2].status === 'error'
           );
 
-          // 如果第三个步骤已经开始，隐藏步骤显示
+          // Hide step display if the third step has started
           if (thirdStepStarted) {
             return null;
           }
