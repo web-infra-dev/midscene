@@ -171,7 +171,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
       >
         <div className="flex gap-2 w-full items-stretch">
           <button
-            className={`flex items-center justify-center gap-1.5 flex-1 transition-colors !font-bold !text-[12px] !leading-[1.83em] !bg-transparent !rounded-lg !py-2 !px-0 !border-none !cursor-pointer ${tab === 'timeline'
+            className={`flex items-center justify-center gap-1.5 flex-1 transition-colors !font-bold !text-[14px] !leading-[1.83em] !bg-transparent !rounded-lg !py-2 !px-0 !border-none !cursor-pointer ${tab === 'timeline'
               ? 'text-[rgba(0,0,0,0.85)]'
               : 'text-[rgba(0,0,0,0.25)]'
               }`}
@@ -197,7 +197,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
           </div>
 
           <button
-            className={`flex items-center justify-center gap-1.5 flex-1 transition-colors !font-medium !text-[12px] !leading-[1.83em] !bg-transparent !rounded-lg !py-2 !px-0 !border-none !cursor-pointer ${tab === 'code'
+            className={`flex items-center justify-center gap-1.5 flex-1 transition-colors !font-medium !text-[14px] !leading-[1.83em] !bg-transparent !rounded-lg !py-2 !px-0 !border-none !cursor-pointer ${tab === 'code'
               ? 'text-[rgba(0,0,0,0.85)]'
               : 'text-[rgba(0,0,0,0.25)]'
               }`}
