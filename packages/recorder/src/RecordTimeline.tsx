@@ -194,26 +194,6 @@ export const RecordTimeline = ({
         return <Text type="secondary">{eventTitle}</Text>;
 
       case 'input':
-        if (
-          event.descriptionLoading === true &&
-          event.elementRect?.x !== undefined &&
-          event.elementRect?.y !== undefined
-        ) {
-          return (
-            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Text type="secondary">
-                {eventTitle} - {event.value ? ` "${event.value}"` : ''} in{' '}
-              </Text>
-              <ShinyText
-                text={`(${event.elementRect.x}, ${event.elementRect.y})`}
-                disabled={false}
-                speed={3}
-                className="step-title-shiny"
-              />
-            </span>
-          );
-        }
-
         if (event.descriptionLoading === false && event.elementDescription) {
           return (
             <Text type="secondary">
@@ -223,10 +203,15 @@ export const RecordTimeline = ({
         }
 
         return (
-          <Text type="secondary">
-            {eventTitle}
-            {event.value ? ` - "${event.value}"` : ''}
-          </Text>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <Text type="secondary">{eventTitle} - </Text>
+            <ShinyText
+              text={event.value ? ` - "${event.value}"` : ''}
+              disabled={false}
+              speed={3}
+              className="step-title-shiny"
+            />
+          </span>
         );
 
       case 'scroll':

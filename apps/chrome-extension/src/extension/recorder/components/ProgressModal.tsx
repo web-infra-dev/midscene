@@ -287,6 +287,11 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
     let completedCount = 0;
     const finalEvents = [...events];
 
+    recordLogger.info('eventsNeedingDescriptions', {
+      eventsNeedingDescriptions,
+      events,
+    });
+
     // Process events in parallel with progress tracking
     const optimizePromises = eventsNeedingDescriptions.map(
       async (event, index) => {
