@@ -123,7 +123,7 @@ export const RecordList: React.FC<RecordListProps> = ({
                   title={
                     <div className="flex justify-between items-center">
                       <span>{session.name}</span>
-                      <Space>
+                      {/* <Space>
                         <Tag
                           color={
                             session.status === 'recording'
@@ -135,19 +135,21 @@ export const RecordList: React.FC<RecordListProps> = ({
                         >
                           {session.status}
                         </Tag>
-                      </Space>
+                      </Space> */}
                     </div>
                   }
                   description={
                     <div className="session-meta">
-                      <div className="session-details">
-                        {new Date(session.createdAt).toLocaleString()} |
+                      {session.description && (
+                        <div className="mt-1 mb-1">{session.description}</div>
+                      )}
+                      <div className="mt-1 mb-1">
                         {session.url &&
                           ` URL: ${session.url.slice(0, 50)}${session.url.length > 50 ? '...' : ''}`}
                       </div>
-                      {session.description && (
-                        <div className="mt-1 italic">{session.description}</div>
-                      )}
+                      <div className="session-details flex justify-between items-center mt-1 mb-1">
+                        <span>{new Date(session.createdAt).toLocaleString()}</span>
+                      </div>
                     </div>
                   }
                 />
