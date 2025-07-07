@@ -2,7 +2,6 @@ import {
   DeleteOutlined,
   DownloadOutlined,
   EditOutlined,
-  PlusOutlined,
 } from '@ant-design/icons';
 import {
   Alert,
@@ -19,7 +18,6 @@ import {
 import type React from 'react';
 import type { RecordingSession } from '../../../store';
 import type { ViewMode } from '../types';
-import { generateDefaultSessionName } from '../utils';
 
 const { Title } = Typography;
 
@@ -31,11 +29,6 @@ interface RecordListProps {
   onExportSession: (session: RecordingSession) => void;
   onViewDetail: (session: RecordingSession) => void;
   isExtensionMode: boolean;
-  createNewSession: (sessionName?: string) => RecordingSession;
-  setSelectedSession: (session: RecordingSession) => void;
-  setViewMode: (mode: ViewMode) => void;
-  currentTab?: chrome.tabs.Tab | null;
-  startRecording: (sessionId: string) => void;
 }
 
 export const RecordList: React.FC<RecordListProps> = ({
@@ -46,26 +39,7 @@ export const RecordList: React.FC<RecordListProps> = ({
   onExportSession,
   onViewDetail,
   isExtensionMode,
-  createNewSession,
-  setSelectedSession,
-  setViewMode,
-  currentTab,
-  startRecording,
 }) => {
-  const handleCreateNewSession = () => {
-    const sessionName = generateDefaultSessionName();
-    const newSession = createNewSession(sessionName);
-
-    // 只切换到 detail 视图，不直接 setSelectedSession，selectedSession 由 currentSessionId 驱动
-    setViewMode('detail');
-
-    // 自动开始录制
-    if (isExtensionMode && currentTab?.id) {
-      setTimeout(() => {
-        startRecording(newSession.id);
-      }, 100);
-    }
-  };
 
   return (
     <div className="record-list-view relative">
@@ -185,17 +159,6 @@ export const RecordList: React.FC<RecordListProps> = ({
           )}
         />
       )}
-
-      {/* Floating Add Button */}
-      <Button
-        type="primary"
-        shape="circle"
-        size="large"
-        icon={<PlusOutlined />}
-        onClick={handleCreateNewSession}
-        className="!fixed bottom-5 right-5 w-14 h-14 shadow-lg 
-     shadow-blue-500/40 z-[1000]"
-      />
     </div>
   );
 };

@@ -1,6 +1,6 @@
 /// <reference types="chrome" />
-import { ExclamationCircleFilled } from '@ant-design/icons';
-import { Form, Modal } from 'antd';
+import { PlusOutlined } from '@ant-design/icons';
+import { Button, Form, Modal } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
 import type { RecordingSession } from '../../store';
 import { useRecordStore, useRecordingSessionStore } from '../../store';
@@ -16,6 +16,7 @@ import type { ViewMode } from './types';
 import './recorder.less';
 import { EnvConfig, useEnvConfig } from '@midscene/visualizer';
 import { EnvConfigReminder } from '../../components';
+import { generateDefaultSessionName } from './utils';
 
 export default function Recorder() {
   // Local initialization state
@@ -201,23 +202,6 @@ export default function Recorder() {
     }
   };
 
-  // Select session handler with async handling
-  const handleSelectSessionWrapper = useCallback(
-    async (session: RecordingSession) => {
-      recordLogger.info('Switching to session', { sessionId: session.id });
-
-      // Stop current recording if any - wait for completion
-      if (isRecording) {
-        recordLogger.info(
-          'Stopping current recording before switching session',
-        );
-        await stopRecording();
-      }
-
-      handleSelectSession(session);
-    },
-    [isRecording, stopRecording, handleSelectSession],
-  );
 
   // View session detail handler
   const handleViewDetail = useCallback(
@@ -227,13 +211,8 @@ export default function Recorder() {
       setSelectedSession(session);
       setViewMode('detail');
 
-      // If not already the current session, switch to it
-      if (currentSessionId !== session.id) {
-        recordLogger.info('Session not current, switching sessions');
-        handleSelectSessionWrapper(session);
-      }
     },
-    [currentSessionId, handleSelectSessionWrapper],
+    [currentSessionId],
   );
 
   // Go back to list view handler
@@ -249,6 +228,22 @@ export default function Recorder() {
     setViewMode('list');
     setSelectedSession(null);
   }, [isRecording, stopRecording]);
+
+  // Create session handler
+  const handleCreateNewSession = () => {
+    const sessionName = generateDefaultSessionName();
+    const newSession = createNewSession(sessionName);
+
+    // Switch to detail view
+    setViewMode('detail');
+
+    // Auto-start recording if in extension mode
+    if (isExtensionMode && currentTab?.id) {
+      setTimeout(() => {
+        startRecording();
+      }, 100);
+    }
+  };
 
   // Create session handler
   const handleCreateSessionWrapper = async (values: {
@@ -309,12 +304,20 @@ export default function Recorder() {
         onExportSession={handleExportSession}
         onViewDetail={handleViewDetail}
         isExtensionMode={isExtensionMode}
-        createNewSession={createNewSession}
-        setSelectedSession={handleSelectSessionWrapper}
-        setViewMode={setViewMode}
-        currentTab={currentTab}
-        startRecording={startRecording}
       />
+
+      {/* Floating Add Button */}
+      {viewMode === 'list' && (
+        <Button
+          type="primary"
+          shape="circle"
+          size="large"
+          icon={<PlusOutlined />}
+          onClick={handleCreateNewSession}
+          className="!fixed bottom-5 right-5 w-14 h-14 shadow-lg 
+       shadow-blue-500/40 z-[1000]"
+        />
+      )}
 
       {/* Recording Detail Modal */}
       <Modal
