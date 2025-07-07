@@ -339,7 +339,9 @@ export const useRecordStore = create<{
     const sessionId = useRecordingSessionStore.getState().currentSessionId;
     if (sessionId) {
       // Get current session
-      const currentSession = useRecordingSessionStore.getState().sessions.find(s => s.id === sessionId);
+      const currentSession = useRecordingSessionStore
+        .getState()
+        .sessions.find((s) => s.id === sessionId);
       await dbManager.updateSession(sessionId, {
         events: [],
         updatedAt: Date.now(),

@@ -7,18 +7,23 @@ import {
   DownloadOutlined,
   FileTextOutlined,
   LoadingOutlined,
-  ReloadOutlined,
-  PushpinOutlined,
   PushpinFilled,
+  PushpinOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons';
+import type { CodeGenerationChunk, StreamingCallback } from '@midscene/core';
 import type { ChromeRecordedEvent } from '@midscene/recorder';
 import { ShinyText } from '@midscene/visualizer';
-import { Button, Progress, Select, Typography, message, Tooltip } from 'antd';
+import { Button, Progress, Select, Tooltip, Typography, message } from 'antd';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import { useRecordStore, useRecordingSessionStore } from '../../../store';
 import { generateAIDescription } from '../../../utils/eventOptimizer';
-import { generatePlaywrightTestStream, generateYamlTest, generateYamlTestStream } from '../generators';
+import {
+  generatePlaywrightTestStream,
+  generateYamlTest,
+  generateYamlTestStream,
+} from '../generators';
 import { recordLogger } from '../logger';
 import {
   getLatestEvents,
@@ -26,10 +31,9 @@ import {
   stopRecordingIfActive,
 } from '../shared/exportControlsUtils';
 import { generateRecordTitle } from '../utils';
-import { StepList } from './ProgressModal/StepList';
 import { PlaywrightCodeBlock } from './ProgressModal/PlaywrightCodeBlock';
+import { StepList } from './ProgressModal/StepList';
 import { YamlCodeBlock } from './ProgressModal/YamlCodeBlock';
-import type { StreamingCallback, CodeGenerationChunk } from '@midscene/core';
 
 const { Text } = Typography;
 
@@ -61,7 +65,6 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
   onStopRecording,
   isFromStopRecording,
 }) => {
-
   const [selectedType, setSelectedType] = useState<CodeGenerationType>('yaml');
 
   // Initialize defaultType from localStorage
@@ -72,7 +75,10 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
         return stored as CodeGenerationType;
       }
     } catch (error) {
-      console.warn('Failed to read default code type from localStorage:', error);
+      console.warn(
+        'Failed to read default code type from localStorage:',
+        error,
+      );
     }
     return 'yaml'; // fallback default
   });
@@ -154,11 +160,12 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
     }
 
     // Check if the pinned default type has generated code
-    const hasDefaultTypeCode = defaultType === 'yaml'
-      ? (generatedYaml || session?.generatedCode?.yaml)
-      : defaultType === 'playwright'
-        ? (generatedTest || session?.generatedCode?.playwright)
-        : false;
+    const hasDefaultTypeCode =
+      defaultType === 'yaml'
+        ? generatedYaml || session?.generatedCode?.yaml
+        : defaultType === 'playwright'
+          ? generatedTest || session?.generatedCode?.playwright
+          : false;
 
     // If the pinned default type has code, show it directly
     if (hasDefaultTypeCode) {
@@ -259,7 +266,8 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
     stepIndex: number,
   ): Promise<ChromeRecordedEvent[]> => {
     const eventsNeedingDescriptions = events.filter(
-      (event: ChromeRecordedEvent) => event.type !== 'navigation' && event.type !== 'scroll',
+      (event: ChromeRecordedEvent) =>
+        event.type !== 'navigation' && event.type !== 'scroll',
     );
 
     if (eventsNeedingDescriptions.length === 0) {
@@ -337,14 +345,16 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
   };
 
   // Streaming callback handler
-  const handleStreamingChunk: StreamingCallback = (chunk: CodeGenerationChunk) => {
+  const handleStreamingChunk: StreamingCallback = (
+    chunk: CodeGenerationChunk,
+  ) => {
     setStreamingContent(chunk.accumulated);
     const code = chunk.accumulated;
     const thinking = chunk.reasoning_content;
 
     // Accumulate thinking process content
     if (thinking) {
-      setAccumulatedThinking(prev => prev + thinking);
+      setAccumulatedThinking((prev) => prev + thinking);
     }
 
     setThinkingProcess(thinking);
@@ -490,10 +500,13 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
 
       if (type === 'playwright') {
         // Use streaming for Playwright
-        const streamingResult = await generatePlaywrightTestStream(finalEvents, {
-          stream: true,
-          onChunk: handleStreamingChunk,
-        });
+        const streamingResult = await generatePlaywrightTestStream(
+          finalEvents,
+          {
+            stream: true,
+            onChunk: handleStreamingChunk,
+          },
+        );
         generatedCode = streamingResult.content;
       } else {
         // Use streaming for YAML
@@ -675,8 +688,22 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
   };
 
   const codeTypeOptions = [
-    { label: <><CodeOutlined className="text-blue-500" /> Playwright</>, value: 'playwright' as const },
-    { label: <><FileTextOutlined className="text-green-500" /> YAML</>, value: 'yaml' as const },
+    {
+      label: (
+        <>
+          <CodeOutlined className="text-blue-500" /> Playwright
+        </>
+      ),
+      value: 'playwright' as const,
+    },
+    {
+      label: (
+        <>
+          <FileTextOutlined className="text-green-500" /> YAML
+        </>
+      ),
+      value: 'yaml' as const,
+    },
     { label: 'None', value: 'none' as const },
   ];
 
@@ -747,13 +774,23 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
                   disabled={option.value === 'none'}
                 >
                   <div className="flex items-center justify-between">
-                    <span className={option.value === 'none' ? 'text-gray-400' : ''}>{option.label}</span>
+                    <span
+                      className={option.value === 'none' ? 'text-gray-400' : ''}
+                    >
+                      {option.label}
+                    </span>
                     <div className="flex items-center gap-1">
-                      <Tooltip title={option.value === 'none' ? 'Click to set None as default (no auto-generation)' : 'Pin as default code generation type'}>
+                      <Tooltip
+                        title={
+                          option.value === 'none'
+                            ? 'Click to set None as default (no auto-generation)'
+                            : 'Pin as default code generation type'
+                        }
+                      >
                         {defaultType === option.value ? (
                           <PushpinFilled
                             className="text-blue-500 cursor-pointer hover:text-blue-600 ml-1"
-                            onClick={e => {
+                            onClick={(e) => {
                               e.stopPropagation();
                               updateDefaultType(option.value);
                               // If pinning "None", also set it as selected type
@@ -766,7 +803,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
                         ) : (
                           <PushpinOutlined
                             className="text-gray-400 cursor-pointer hover:text-gray-600 ml-1"
-                            onClick={e => {
+                            onClick={(e) => {
                               e.stopPropagation();
                               updateDefaultType(option.value);
                               // If pinning "None", also set it as selected type
@@ -783,51 +820,90 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
                 </Select.Option>
               ))}
             </Select>
-            {(selectedType === 'playwright' || selectedType === 'yaml') && (showGeneratedCode || isStreaming) && (
-              <div className="flex gap-2 ml-auto">
-                <Button
-                  size="small"
-                  icon={<CopyOutlined />}
-                  onClick={selectedType === 'playwright' ? handleCopyTest : handleCopyYaml}
-                  disabled={isStreaming || (selectedType === 'playwright' ? !generatedTest : !generatedYaml)}
-                  title="Copy to clipboard"
-                />
-                <Button
-                  size="small"
-                  icon={<DownloadOutlined />}
-                  onClick={selectedType === 'playwright' ? handleDownloadTest : handleDownloadYaml}
-                  disabled={isStreaming || (selectedType === 'playwright' ? !generatedTest : !generatedYaml)}
-                  title={selectedType === 'playwright' ? 'Download as .ts file' : 'Download as .yaml file'}
-                />
-                <Button
-                  size="small"
-                  icon={<ReloadOutlined />}
-                  onClick={selectedType === 'playwright' ? handleRegenerateTest : handleRegenerateYaml}
-                  disabled={isGenerating || isStreaming}
-                  title="Regenerate code"
-                />
-              </div>
-            )}
+            {(selectedType === 'playwright' || selectedType === 'yaml') &&
+              (showGeneratedCode || isStreaming) && (
+                <div className="flex gap-2 ml-auto">
+                  <Button
+                    size="small"
+                    icon={<CopyOutlined />}
+                    onClick={
+                      selectedType === 'playwright'
+                        ? handleCopyTest
+                        : handleCopyYaml
+                    }
+                    disabled={
+                      isStreaming ||
+                      (selectedType === 'playwright'
+                        ? !generatedTest
+                        : !generatedYaml)
+                    }
+                    title="Copy to clipboard"
+                  />
+                  <Button
+                    size="small"
+                    icon={<DownloadOutlined />}
+                    onClick={
+                      selectedType === 'playwright'
+                        ? handleDownloadTest
+                        : handleDownloadYaml
+                    }
+                    disabled={
+                      isStreaming ||
+                      (selectedType === 'playwright'
+                        ? !generatedTest
+                        : !generatedYaml)
+                    }
+                    title={
+                      selectedType === 'playwright'
+                        ? 'Download as .ts file'
+                        : 'Download as .yaml file'
+                    }
+                  />
+                  <Button
+                    size="small"
+                    icon={<ReloadOutlined />}
+                    onClick={
+                      selectedType === 'playwright'
+                        ? handleRegenerateTest
+                        : handleRegenerateYaml
+                    }
+                    disabled={isGenerating || isStreaming}
+                    title="Regenerate code"
+                  />
+                </div>
+              )}
           </div>
           {selectedType === 'none' && (
             <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-sm">
-              <div className="font-semibold mb-1">No Code Generation Selected</div>
-              <div>Selecting <b>None</b> means no code will be generated automatically.</div>
-              <div className="mt-1">To auto-generate <b>YAML</b> or <b>Playwright</b> code, set it as the default (click the pin icon on the right).<br />When you stop recording, the system will automatically generate code for the default type.</div>
+              <div className="font-semibold mb-1">
+                No Code Generation Selected
+              </div>
+              <div>
+                Selecting <b>None</b> means no code will be generated
+                automatically.
+              </div>
+              <div className="mt-1">
+                To auto-generate <b>YAML</b> or <b>Playwright</b> code, set it
+                as the default (click the pin icon on the right).
+                <br />
+                When you stop recording, the system will automatically generate
+                code for the default type.
+              </div>
             </div>
           )}
         </>
       )}
 
       {/* Steps for selectedType only */}
-      {steps.length > 0 && !steps.every((step) => step.status === 'completed') && (
+      {steps.length > 0 &&
+        !steps.every((step) => step.status === 'completed') &&
         (() => {
           // Check if the third step (code generation step) has started
-          const thirdStepStarted = steps.length >= 3 && (
-            steps[2].status === 'loading' ||
-            steps[2].status === 'completed' ||
-            steps[2].status === 'error'
-          );
+          const thirdStepStarted =
+            steps.length >= 3 &&
+            (steps[2].status === 'loading' ||
+              steps[2].status === 'completed' ||
+              steps[2].status === 'error');
 
           // Hide step display if the third step has started
           if (thirdStepStarted) {
@@ -843,8 +919,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
               getStepColor={getStepColor}
             />
           );
-        })()
-      )}
+        })()}
 
       {/* Code block for selectedType only */}
       {(showGeneratedCode || isStreaming) && (

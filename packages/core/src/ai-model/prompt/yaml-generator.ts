@@ -1,4 +1,7 @@
-
+import type {
+  StreamingAIResponse,
+  StreamingCodeGenerationOptions,
+} from '@/types';
 import { YAML_EXAMPLE_CODE } from '@midscene/shared/constants';
 import {
   AIActionType,
@@ -6,7 +9,6 @@ import {
   callAi,
   callStream,
 } from '../index';
-import type { StreamingCodeGenerationOptions, StreamingAIResponse } from '@/types';
 
 // Common interfaces for test generation (shared between YAML and Playwright)
 export interface EventCounts {
@@ -424,7 +426,11 @@ Respond with YAML only, no explanations.`,
 
     if (options.stream && options.onChunk) {
       // Use streaming
-      return await callStream(prompt, AIActionType.EXTRACT_DATA, options.onChunk);
+      return await callStream(
+        prompt,
+        AIActionType.EXTRACT_DATA,
+        options.onChunk,
+      );
     } else {
       // Fallback to non-streaming
       const response = await callAi(prompt, AIActionType.EXTRACT_DATA);

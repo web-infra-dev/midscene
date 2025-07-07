@@ -1,6 +1,10 @@
 // Main generators
 export { generatePlaywrightTestStream } from './playwrightGenerator';
-export { generateYamlTest, generateYamlTestStream, exportEventsToYaml } from './yamlGenerator';
+export {
+  generateYamlTest,
+  generateYamlTestStream,
+  exportEventsToYaml,
+} from './yamlGenerator';
 
 // Shared utilities
 export * from './shared/types';

@@ -1,6 +1,12 @@
-import { generateYamlTest as generateYamlTestCore, generateYamlTestStream as generateYamlTestStreamCore } from '@midscene/core/ai-model';
+import type {
+  StreamingAIResponse,
+  StreamingCodeGenerationOptions,
+} from '@midscene/core';
+import {
+  generateYamlTest as generateYamlTestCore,
+  generateYamlTestStream as generateYamlTestStreamCore,
+} from '@midscene/core/ai-model';
 import type { ChromeRecordedEvent } from '@midscene/recorder';
-import type { StreamingCodeGenerationOptions, StreamingAIResponse } from '@midscene/core';
 import { recordLogger } from '../logger';
 import { extractNavigationAndViewportInfo } from './playwrightGenerator';
 import { handleTestGenerationError } from './shared/testGenerationUtils';
@@ -95,11 +101,14 @@ export const generateYamlTestStream = async (
     // Extract navigation and viewport information
     const navigationInfo = extractNavigationAndViewportInfo(events);
 
-    recordLogger.info('Starting AI-powered YAML test generation with streaming', {
-      eventsCount: events.length,
-      events,
-      navigationInfo,
-    });
+    recordLogger.info(
+      'Starting AI-powered YAML test generation with streaming',
+      {
+        eventsCount: events.length,
+        events,
+        navigationInfo,
+      },
+    );
 
     // Merge navigation and viewport info into options
     const enhancedOptions = {
@@ -109,11 +118,14 @@ export const generateYamlTestStream = async (
 
     const result = await generateYamlTestStreamCore(events, enhancedOptions);
 
-    recordLogger.success('AI-powered YAML test generated successfully with streaming', {
-      eventsCount: events.length,
-      events,
-      yamlContent: result.content,
-    });
+    recordLogger.success(
+      'AI-powered YAML test generated successfully with streaming',
+      {
+        eventsCount: events.length,
+        events,
+        yamlContent: result.content,
+      },
+    );
 
     return result;
   } catch (error) {

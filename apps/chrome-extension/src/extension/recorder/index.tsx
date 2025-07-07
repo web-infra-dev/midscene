@@ -197,7 +197,6 @@ export default function Recorder() {
     handleDeleteSession(sessionId);
   };
 
-
   // View session detail handler
   const handleViewDetail = useCallback(
     (session: RecordingSession) => {
@@ -205,7 +204,6 @@ export default function Recorder() {
 
       setSelectedSession(session);
       setViewMode('detail');
-
     },
     [currentSessionId],
   );

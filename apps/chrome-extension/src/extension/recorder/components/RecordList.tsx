@@ -40,7 +40,6 @@ export const RecordList: React.FC<RecordListProps> = ({
   onViewDetail,
   isExtensionMode,
 }) => {
-
   return (
     <div className="record-list-view relative">
       {!isExtensionMode && (
@@ -72,10 +71,11 @@ export const RecordList: React.FC<RecordListProps> = ({
             <List.Item>
               <Card
                 size="small"
-                className={`cursor-pointer ${session.id === currentSessionId
-                  ? 'selected-session border-2 border-blue-500'
-                  : 'border border-gray-300'
-                  }`}
+                className={`cursor-pointer ${
+                  session.id === currentSessionId
+                    ? 'selected-session border-2 border-blue-500'
+                    : 'border border-gray-300'
+                }`}
                 onClick={() => onViewDetail(session)}
                 actions={[
                   <Button
@@ -148,7 +148,9 @@ export const RecordList: React.FC<RecordListProps> = ({
                           ` URL: ${session.url.slice(0, 50)}${session.url.length > 50 ? '...' : ''}`}
                       </div>
                       <div className="session-details flex justify-between items-center mt-1 mb-1">
-                        <span>{new Date(session.createdAt).toLocaleString()}</span>
+                        <span>
+                          {new Date(session.createdAt).toLocaleString()}
+                        </span>
                       </div>
                     </div>
                   }

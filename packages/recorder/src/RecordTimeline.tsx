@@ -37,7 +37,9 @@ export const RecordTimeline = ({
   useEffect(() => {
     // 方案二：用 className 和 querySelector 获取内部 div
     if (events.length > 0) {
-      const timeline = document.querySelector('.ant-timeline') as HTMLDivElement;
+      const timeline = document.querySelector(
+        '.ant-timeline',
+      ) as HTMLDivElement;
       if (timeline) {
         timeline.scrollIntoView({
           behavior: 'smooth',
@@ -231,7 +233,7 @@ export const RecordTimeline = ({
         if (event.elementDescription) {
           return (
             <Text type="secondary">
-              {eventTitle} - {(event.value?.split(' ')[0] || '')}
+              {eventTitle} - {event.value?.split(' ')[0] || ''}
             </Text>
           );
         }
@@ -242,7 +244,7 @@ export const RecordTimeline = ({
           </Text>
         );
 
-      case 'navigation':
+      case 'navigation': {
         const truncatedUrl =
           event.url && event.url.length > 50
             ? `${event.url.substring(0, 50)}...`
@@ -252,6 +254,7 @@ export const RecordTimeline = ({
             {eventTitle} - {truncatedUrl}
           </Text>
         );
+      }
 
       case 'setViewport':
         return <Text type="secondary">{eventTitle} - Desktop 964x992 px</Text>;

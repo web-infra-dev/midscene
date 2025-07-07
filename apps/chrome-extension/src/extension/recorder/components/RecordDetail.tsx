@@ -12,7 +12,7 @@ import type { ChromeRecordedEvent } from '@midscene/recorder';
 import { RecordTimeline } from '@midscene/recorder';
 import { Alert, Button, Empty, Spin } from 'antd';
 import type React from 'react';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRecordingSessionStore } from '../../../store';
 
 import { ProgressModal } from './ProgressModal';
@@ -188,7 +188,9 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
       >
         <div className="flex gap-2 w-full items-stretch">
           <button
-            className={`flex items-center justify-center gap-1.5 flex-1 transition-colors !font-bold !text-[12px] !leading-[1.83em] !bg-transparent !rounded-lg !py-2 !px-0 !border-none !cursor-pointer text-[rgba(0,0,0,0.85)]`}
+            className={
+              'flex items-center justify-center gap-1.5 flex-1 transition-colors !font-bold !text-[12px] !leading-[1.83em] !bg-transparent !rounded-lg !py-2 !px-0 !border-none !cursor-pointer text-[rgba(0,0,0,0.85)]'
+            }
             style={{
               fontFamily: 'Inter, -apple-system, sans-serif',
             }}
@@ -207,10 +209,11 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
           </div>
 
           <button
-            className={`flex items-center justify-center gap-1.5 flex-1 transition-colors !font-medium !text-[12px] !leading-[1.83em] !bg-transparent !rounded-lg !py-2 !px-0 !border-none !cursor-pointer ${tab === 'code'
-              ? 'text-[rgba(0,0,0,0.85)]'
-              : 'text-[rgba(0,0,0,0.25)]'
-              } ${events.length === 0 ? '!text-gray-300 !cursor-not-allowed' : ''}`}
+            className={`flex items-center justify-center gap-1.5 flex-1 transition-colors !font-medium !text-[12px] !leading-[1.83em] !bg-transparent !rounded-lg !py-2 !px-0 !border-none !cursor-pointer ${
+              tab === 'code'
+                ? 'text-[rgba(0,0,0,0.85)]'
+                : 'text-[rgba(0,0,0,0.25)]'
+            } ${events.length === 0 ? '!text-gray-300 !cursor-not-allowed' : ''}`}
             style={{
               fontFamily: 'Inter, -apple-system, sans-serif',
             }}
@@ -278,7 +281,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
                   boxShadow: '0px 0px 0px 3px rgba(217, 233, 255, 1)',
                 }}
               >
-                <div className="w-full h-full bg-white rounded-xl"></div>
+                <div className="w-full h-full bg-white rounded-xl" />
                 <style>{`
                   @keyframes rec-breath {
                     0%   { filter: brightness(1) opacity(1); }
@@ -325,7 +328,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
                     borderLeftColor: 'rgba(0,0,0,0.08)',
                     borderLeftWidth: '1px',
                   }}
-                ></div>
+                />
 
                 {/* Stop button */}
                 <button
@@ -339,7 +342,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
                     style={{
                       borderRadius: '2px',
                     }}
-                  ></div>
+                  />
                   <span
                     className="text-sm font-medium text-[rgba(0,0,0,0.85)]"
                     style={{

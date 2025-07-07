@@ -1,4 +1,9 @@
 import { AIResponseFormat, type AIUsageInfo } from '@/types';
+import type {
+  CodeGenerationChunk,
+  StreamingAIResponse,
+  StreamingCallback,
+} from '@/types';
 import { Anthropic } from '@anthropic-ai/sdk';
 import {
   DefaultAzureCredential,
@@ -41,13 +46,12 @@ import { HttpsProxyAgent } from 'https-proxy-agent';
 import { jsonrepair } from 'jsonrepair';
 import OpenAI, { AzureOpenAI } from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources';
+import type { Stream } from 'openai/streaming';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import { AIActionType } from '../common';
 import { assertSchema } from '../prompt/assertion';
 import { locatorSchema } from '../prompt/llm-locator';
 import { planSchema } from '../prompt/llm-planning';
-import type { StreamingCallback, CodeGenerationChunk, StreamingAIResponse } from '@/types';
-import { Stream } from 'openai/streaming';
 
 export function checkAIConfig() {
   const openaiKey = getAIConfig(OPENAI_API_KEY);
@@ -60,7 +64,7 @@ export function checkAIConfig() {
     hasAzure: !!azureConfig,
     hasAnthropic: !!anthropicKey,
     hasInitConfig: !!initConfigJson,
-    openaiKeyPrefix: openaiKey ? openaiKey.substring(0, 10) + '...' : 'none',
+    openaiKeyPrefix: openaiKey ? `${openaiKey.substring(0, 10)}...` : 'none',
   });
 
   if (openaiKey) return true;
@@ -506,20 +510,24 @@ export async function callStream(
   try {
     if (style === 'openai') {
       debugCall(`sending streaming request to ${model}`);
-      const stream = await completion.create({
-        model,
-        messages,
-        response_format: responseFormat,
-        ...commonConfig,
-      }, {
-        stream: true,
-      }) as Stream<OpenAI.Chat.Completions.ChatCompletionChunk> & {
+      const stream = (await completion.create(
+        {
+          model,
+          messages,
+          response_format: responseFormat,
+          ...commonConfig,
+        },
+        {
+          stream: true,
+        },
+      )) as Stream<OpenAI.Chat.Completions.ChatCompletionChunk> & {
         _request_id?: string | null;
-    };
+      };
 
       for await (const chunk of stream) {
         const content = chunk.choices?.[0]?.delta?.content || '';
-        const reasoning_content = (chunk.choices?.[0]?.delta as any)?.reasoning_content || '';
+        const reasoning_content =
+          (chunk.choices?.[0]?.delta as any)?.reasoning_content || '';
         if (content || reasoning_content) {
           accumulated += content;
           const chunkData: CodeGenerationChunk = {
@@ -536,19 +544,21 @@ export async function callStream(
         if (chunk.choices?.[0]?.finish_reason) {
           usage = chunk.usage ?? undefined;
           timeCost = Date.now() - startTime;
-          
+
           // Send final chunk
           const finalChunk: CodeGenerationChunk = {
             content: '',
             accumulated,
             reasoning_content: '',
             isComplete: true,
-            usage: usage ? {
-              prompt_tokens: usage.prompt_tokens ?? 0,
-              completion_tokens: usage.completion_tokens ?? 0,
-              total_tokens: usage.total_tokens ?? 0,
-              time_cost: timeCost ?? 0,
-            } : undefined,
+            usage: usage
+              ? {
+                  prompt_tokens: usage.prompt_tokens ?? 0,
+                  completion_tokens: usage.completion_tokens ?? 0,
+                  total_tokens: usage.total_tokens ?? 0,
+                  time_cost: timeCost ?? 0,
+                }
+              : undefined,
           };
           onChunk(finalChunk);
           break;
@@ -558,7 +568,6 @@ export async function callStream(
       debugProfileStats(
         `streaming model, ${model}, mode, ${vlLocateMode() || 'default'}, cost-ms, ${timeCost}`,
       );
-
     } else if (style === 'anthropic') {
       // Anthropic streaming implementation
       const convertImageContent = (content: any) => {
@@ -579,7 +588,7 @@ export async function callStream(
         return content;
       };
 
-      const stream = await completion.create({
+      const stream = (await completion.create({
         model,
         system: 'You are a versatile professional in software UI automation',
         messages: messages.map((m) => ({
@@ -590,7 +599,7 @@ export async function callStream(
         })),
         response_format: responseFormat,
         ...commonConfig,
-      } as any) as any;
+      } as any)) as any;
 
       for await (const chunk of stream) {
         const content = chunk.delta?.text || '';
@@ -610,19 +619,23 @@ export async function callStream(
         if (chunk.type === 'message_stop') {
           timeCost = Date.now() - startTime;
           const anthropicUsage = chunk.usage;
-          
+
           // Send final chunk
           const finalChunk: CodeGenerationChunk = {
             content: '',
             accumulated,
             reasoning_content: '',
             isComplete: true,
-            usage: anthropicUsage ? {
-              prompt_tokens: anthropicUsage.input_tokens ?? 0,
-              completion_tokens: anthropicUsage.output_tokens ?? 0,
-              total_tokens: (anthropicUsage.input_tokens ?? 0) + (anthropicUsage.output_tokens ?? 0),
-              time_cost: timeCost ?? 0,
-            } : undefined,
+            usage: anthropicUsage
+              ? {
+                  prompt_tokens: anthropicUsage.input_tokens ?? 0,
+                  completion_tokens: anthropicUsage.output_tokens ?? 0,
+                  total_tokens:
+                    (anthropicUsage.input_tokens ?? 0) +
+                    (anthropicUsage.output_tokens ?? 0),
+                  time_cost: timeCost ?? 0,
+                }
+              : undefined,
           };
           onChunk(finalChunk);
           break;
@@ -643,7 +656,6 @@ export async function callStream(
       },
       isStreamed: true,
     };
-
   } catch (e: any) {
     const newError = new Error(
       `failed to call streaming AI model service: ${e.message}. Trouble shooting: https://midscenejs.com/model-provider.html`,

@@ -43,4 +43,4 @@ export const triggerConfetti = () => {
     spread: 120,
     startVelocity: 45,
   });
-}; 
+};

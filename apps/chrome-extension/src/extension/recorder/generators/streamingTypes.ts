@@ -42,4 +42,4 @@ export interface StreamingAIResponse {
   };
   /** Whether the response was streamed */
   isStreamed: boolean;
-} 
+}

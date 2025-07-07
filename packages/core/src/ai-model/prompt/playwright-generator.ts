@@ -1,22 +1,25 @@
+import type {
+  StreamingAIResponse,
+  StreamingCodeGenerationOptions,
+} from '@/types';
 import { PLAYWRIGHT_EXAMPLE_CODE } from '@midscene/shared/constants';
 import type { ChatCompletionMessageParam } from 'openai/resources';
 import { AIActionType, callAi, callStream } from '../index';
-import type { StreamingCodeGenerationOptions, StreamingAIResponse } from '@/types';
 
 // Import shared utilities and types from yaml-generator
 import {
   type ChromeRecordedEvent,
   type EventCounts,
+  type EventSummary,
   type InputDescription,
   type ProcessedEvent,
-  type EventSummary,
-  getScreenshotsForLLM,
-  filterEventsByType,
   createEventCounts,
-  extractInputDescriptions,
-  processEventsForLLM,
-  prepareEventSummary,
   createMessageContent,
+  extractInputDescriptions,
+  filterEventsByType,
+  getScreenshotsForLLM,
+  prepareEventSummary,
+  processEventsForLLM,
   validateEvents,
 } from './yaml-generator';
 
@@ -207,7 +210,7 @@ ${PLAYWRIGHT_EXAMPLE_CODE}`;
   } else {
     // Fallback to non-streaming
     const response = await callAi(prompt, AIActionType.EXTRACT_DATA);
-    
+
     if (response?.content && typeof response.content === 'string') {
       return {
         content: response.content,
