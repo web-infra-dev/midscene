@@ -259,7 +259,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
     stepIndex: number,
   ): Promise<ChromeRecordedEvent[]> => {
     const eventsNeedingDescriptions = events.filter(
-      (event: ChromeRecordedEvent) => event.type !== 'navigation',
+      (event: ChromeRecordedEvent) => event.type !== 'navigation' && event.type !== 'scroll',
     );
 
     if (eventsNeedingDescriptions.length === 0) {

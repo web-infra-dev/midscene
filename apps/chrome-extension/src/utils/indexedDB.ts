@@ -111,7 +111,8 @@ class IndexedDBManager {
     });
   }
 
-  private ensureDB(): IDBDatabase {
+  private async ensureDB(): Promise<IDBDatabase> {
+    await this.init();
     if (!this.db || !this.isInitialized || !this.isHealthy) {
       throw new Error(
         'Database not initialized or unhealthy. Call init() first.',
@@ -179,8 +180,7 @@ class IndexedDBManager {
   // Session management
   async getAllSessions(): Promise<RecordingSession[]> {
     return this.safeDBOperation(async () => {
-      await this.init();
-      const db = this.ensureDB();
+      const db = await this.ensureDB();
 
       return this.createTimeoutPromise<RecordingSession[]>(
         (resolve, reject) => {
@@ -227,8 +227,7 @@ class IndexedDBManager {
 
   async getSession(id: string): Promise<RecordingSession | null> {
     return this.safeDBOperation(async () => {
-      await this.init();
-      const db = this.ensureDB();
+      const db = await this.ensureDB();
 
       return this.createTimeoutPromise<RecordingSession | null>(
         (resolve, reject) => {
@@ -261,8 +260,7 @@ class IndexedDBManager {
   }
 
   async addSession(session: RecordingSession): Promise<void> {
-    await this.init();
-    const db = this.ensureDB();
+    const db = await this.ensureDB();
 
     // First, check if we need to remove old sessions
     const sessions = await this.getAllSessions();
@@ -291,8 +289,7 @@ class IndexedDBManager {
     sessionId: string,
     updates: Partial<RecordingSession>,
   ): Promise<void> {
-    await this.init();
-    const db = this.ensureDB();
+    const db = await this.ensureDB();
     let existingSession = await this.getSession(sessionId);
 
     // If session doesn't exist, create a basic session structure
@@ -330,8 +327,7 @@ class IndexedDBManager {
 
   async deleteSession(sessionId: string): Promise<void> {
     try {
-      await this.init();
-      const db = this.ensureDB();
+      const db = await this.ensureDB();
       return new Promise((resolve, reject) => {
         setTimeout(() => {
           const transaction = db.transaction([SESSIONS_STORE], 'readwrite');
@@ -343,7 +339,7 @@ class IndexedDBManager {
           request.onerror = () => {
             reject(request.error);
           };
-        }, 1000);
+        }, 300);
       });
     } catch (error) {
       console.error('Failed to delete session:', error);
@@ -353,8 +349,7 @@ class IndexedDBManager {
   // Config management
   async getConfig(): Promise<DBConfig> {
     try {
-      await this.init();
-      const db = this.ensureDB();
+      const db = await this.ensureDB();
       return new Promise((resolve, reject) => {
         const transaction = db.transaction([CONFIG_STORE], 'readonly');
         const store = transaction.objectStore(CONFIG_STORE);
@@ -392,8 +387,7 @@ class IndexedDBManager {
 
   async setConfig(config: Partial<DBConfig>): Promise<void> {
     try {
-      await this.init();
-      const db = this.ensureDB();
+      const db = await this.ensureDB();
       const currentConfig = await this.getConfig();
       const newConfig = { ...currentConfig, ...config };
 
@@ -442,8 +436,7 @@ class IndexedDBManager {
   // Recording events management (temporary storage during recording)
   async getRecordingEvents(): Promise<any[]> {
     return this.safeDBOperation(async () => {
-      await this.init();
-      const db = this.ensureDB();
+      const db = await this.ensureDB();
 
       return this.createTimeoutPromise<any[]>((resolve, reject) => {
         const transaction = db.transaction([CONFIG_STORE], 'readonly');
@@ -473,8 +466,7 @@ class IndexedDBManager {
 
   async setRecordingEvents(events: any[]): Promise<void> {
     try {
-      await this.init();
-      const db = this.ensureDB();
+      const db = await this.ensureDB();
 
       return this.createTimeoutPromise<void>((resolve, reject) => {
         const transaction = db.transaction([CONFIG_STORE], 'readwrite');
@@ -511,8 +503,7 @@ class IndexedDBManager {
   // Emergency method for saving events during navigation with minimal timeout
   async emergencySetRecordingEvents(events: any[]): Promise<void> {
     try {
-      await this.init();
-      const db = this.ensureDB();
+      const db = await this.ensureDB();
 
       return this.createTimeoutPromise<void>((resolve, reject) => {
         const transaction = db.transaction([CONFIG_STORE], 'readwrite');
@@ -535,8 +526,7 @@ class IndexedDBManager {
 
   async clearRecordingEvents(): Promise<void> {
     try {
-      await this.init();
-      const db = this.ensureDB();
+      const db = await this.ensureDB();
 
       return new Promise((resolve, reject) => {
         const transaction = db.transaction([CONFIG_STORE], 'readwrite');

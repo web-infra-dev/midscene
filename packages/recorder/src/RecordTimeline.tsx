@@ -16,9 +16,10 @@ import {
   Typography,
   message,
 } from 'antd';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShinyText } from './components/shiny-text';
 import type { RecordedEvent } from './recorder';
+import './RecordTimeline.css';
 
 const { Text } = Typography;
 
@@ -32,6 +33,19 @@ export const RecordTimeline = ({
   onEventClick,
 }: RecordTimelineProps) => {
   const [expandedEvents, setExpandedEvents] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    // 方案二：用 className 和 querySelector 获取内部 div
+    if (events.length > 0) {
+      const timeline = document.querySelector('.ant-timeline') as HTMLDivElement;
+      if (timeline) {
+        timeline.scrollIntoView({
+          behavior: 'smooth',
+          block: 'end',
+        });
+      }
+    }
+  }, [events.length]);
 
   const toggleEventExpansion = (index: number) => {
     const newExpanded = new Set(expandedEvents);
@@ -217,7 +231,7 @@ export const RecordTimeline = ({
         if (event.elementDescription) {
           return (
             <Text type="secondary">
-              {eventTitle} - {event.elementDescription}
+              {eventTitle} - {(event.value?.split(' ')[0] || '')}
             </Text>
           );
         }
@@ -456,6 +470,7 @@ export const RecordTimeline = ({
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
         <Timeline
           mode="left"
+          className="timeline-scrollable"
           items={timelineItems}
           style={{ paddingTop: 16 }}
         />

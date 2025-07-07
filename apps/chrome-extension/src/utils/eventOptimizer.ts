@@ -60,11 +60,11 @@ export const generateFallbackDescription = (): string => {
 // Check if event has valid rect information
 const hasValidRect = (event: RecordedEvent): boolean => {
   return Boolean(
-    (event.elementRect?.left &&
-      event.elementRect?.top &&
+    ((event.elementRect?.left ||
+      event.elementRect?.top) &&
       event.elementRect?.width &&
       event.elementRect?.height) ||
-      (event.elementRect?.x && event.elementRect?.y),
+      (event.elementRect?.x || event.elementRect?.y),
   );
 };
 

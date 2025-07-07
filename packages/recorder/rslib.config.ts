@@ -23,7 +23,7 @@ export default defineConfig({
       },
     },
   ],
-  externals: ['@midscene/shared'],
+  // externals: ['@midscene/shared'],
   output: {
     target: 'web',
   },

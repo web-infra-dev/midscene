@@ -156,9 +156,6 @@ export const useRecordingControl = (
           }
 
           updateSession(currentSessionId, updateData);
-          message.success(
-            `Recording saved to session "${updateData.name || session.name}"`,
-          );
         }
       }
     } catch (error) {
