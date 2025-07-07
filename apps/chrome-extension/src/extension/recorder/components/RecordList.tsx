@@ -141,10 +141,7 @@ export const RecordList: React.FC<RecordListProps> = ({
                   description={
                     <div className="session-meta">
                       <div className="session-details">
-                        Events: {session.events.length} | Created:{' '}
                         {new Date(session.createdAt).toLocaleString()} |
-                        {session.duration &&
-                          ` Duration: ${(session.duration / 1000).toFixed(1)}s |`}
                         {session.url &&
                           ` URL: ${session.url.slice(0, 50)}${session.url.length > 50 ? '...' : ''}`}
                       </div>
