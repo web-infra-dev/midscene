@@ -1,8 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import * as fs from 'node:fs';
-import { tmpdir } from 'node:os';
-import * as path from 'node:path';
 import {
   adaptDoubaoBbox,
   adaptQwenBbox,
@@ -684,6 +682,49 @@ describe('insertScriptBeforeClosingHtml', () => {
     // allow at most 2MB growth
     expect(memAfter - memBefore).toBeLessThan(2 * 1024 * 1024);
 
+    fs.unlinkSync(filePath);
+  });
+
+  it('calculate correct position for html contains chinese', () => {
+    const html = `<!DOCTYPE html>
+<html>
+  <head>
+    <title>Bug Case</title>
+  </head>
+  <body>
+    <h1>Bug Case</h1>
+  </body>
+  <script>
+    { "hello": "你好", "world": "世界" }
+  </script>
+</html>`;
+    const filePath = createTempHtmlFile(html);
+    insertScriptBeforeClosingHtml(filePath, '<script>large</script>');
+    const result = fs.readFileSync(filePath, 'utf8');
+    const expected = html.replace(
+      '</html>',
+      '<script>large</script>\n</html>\n',
+    );
+
+    // bug case:
+    // - Expected
+    // + Received
+    //   <!DOCTYPE html>
+    //   <html>
+    //     <head>
+    //       <title>Bug Case</title>
+    //     </head>
+    //     <body>
+    //       <h1>Bug Case</h1>
+    //     </body>
+    //     <script>
+    //       { "hello": "你好", "world": "世界" }
+    // -   </script>
+    // - <script>large</script>
+    // +   </scri<script>large</script>
+    //   </html>
+
+    expect(result).toBe(expected);
     fs.unlinkSync(filePath);
   });
 });
