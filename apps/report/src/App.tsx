@@ -15,6 +15,7 @@ import GlobalHoverPreview from './components/global-hover-preview';
 import Sidebar from './components/sidebar';
 import { useExecutionDump } from './components/store';
 import Timeline from './components/timeline';
+import PlayIcon from './icons/play.svg?react';
 import type {
   ExecutionDumpWithPlaywrightAttributes,
   StoreState,
@@ -222,11 +223,8 @@ function Visualizer(props: VisualizerProps): JSX.Element {
               >
                 <Button
                   type="text"
-                  icon={<CaretRightOutlined />}
+                  icon={<PlayIcon />}
                   disabled={!replayAllScripts || replayAllScripts.length === 0}
-                  style={{
-                    background: replayAllMode ? '#bfc4da80' : undefined,
-                  }}
                   onClick={() => {
                     setReplayAllMode(true);
                   }}
