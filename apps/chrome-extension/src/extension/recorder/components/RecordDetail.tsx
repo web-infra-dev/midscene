@@ -12,7 +12,7 @@ import type { ChromeRecordedEvent } from '@midscene/recorder';
 import { RecordTimeline } from '@midscene/recorder';
 import { Alert, Button, Empty, Spin } from 'antd';
 import type React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRecordingSessionStore } from '../../../store';
 
 import { ProgressModal } from './ProgressModal';
@@ -47,6 +47,12 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
   // Get the session directly from the store to ensure we always have the latest data
   const { sessions } = useRecordingSessionStore();
   const session = sessions.find((s) => s.id === sessionId);
+
+  // 新增：sessionId 变化时重置 tab
+  useEffect(() => {
+    setTab('timeline');
+    setIsFromStopRecording(false);
+  }, [sessionId]);
 
   // If session is not found, show error
   if (!session) {
@@ -182,7 +188,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
       >
         <div className="flex gap-2 w-full items-stretch">
           <button
-            className={`flex items-center justify-center gap-1.5 flex-1 transition-colors !font-bold !text-[16px] !leading-[1.83em] !bg-transparent !rounded-lg !py-2 !px-0 !border-none !cursor-pointer text-[rgba(0,0,0,0.85)]`}
+            className={`flex items-center justify-center gap-1.5 flex-1 transition-colors !font-bold !text-[12px] !leading-[1.83em] !bg-transparent !rounded-lg !py-2 !px-0 !border-none !cursor-pointer text-[rgba(0,0,0,0.85)]`}
             style={{
               fontFamily: 'Inter, -apple-system, sans-serif',
             }}
@@ -201,14 +207,16 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
           </div>
 
           <button
-            className={`flex items-center justify-center gap-1.5 flex-1 transition-colors !font-medium !text-[16px] !leading-[1.83em] !bg-transparent !rounded-lg !py-2 !px-0 !border-none !cursor-pointer ${tab === 'code'
+            className={`flex items-center justify-center gap-1.5 flex-1 transition-colors !font-medium !text-[12px] !leading-[1.83em] !bg-transparent !rounded-lg !py-2 !px-0 !border-none !cursor-pointer ${tab === 'code'
               ? 'text-[rgba(0,0,0,0.85)]'
               : 'text-[rgba(0,0,0,0.25)]'
-              }`}
+              } ${events.length === 0 ? '!text-gray-300 !cursor-not-allowed' : ''}`}
             style={{
               fontFamily: 'Inter, -apple-system, sans-serif',
             }}
-            onClick={() => handleTabChange('code')}
+            onClick={() => events.length > 0 && handleTabChange('code')}
+            disabled={events.length === 0}
+            title={events.length === 0 ? 'Record some events first' : undefined}
           >
             {/* Code icon */}
             <div className="w-4 h-4 flex items-center justify-center !rounded-none">

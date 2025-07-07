@@ -306,12 +306,11 @@ export default function Recorder() {
         currentSessionId={currentSessionId}
         onEditSession={handleEditSession}
         onDeleteSession={handleDeleteSessionWrapper}
-        onSelectSession={handleSelectSessionWrapper}
         onExportSession={handleExportSession}
         onViewDetail={handleViewDetail}
         isExtensionMode={isExtensionMode}
         createNewSession={createNewSession}
-        setSelectedSession={setSelectedSession}
+        setSelectedSession={handleSelectSessionWrapper}
         setViewMode={setViewMode}
         currentTab={currentTab}
         startRecording={startRecording}

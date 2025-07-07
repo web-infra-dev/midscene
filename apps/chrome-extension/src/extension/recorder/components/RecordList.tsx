@@ -28,7 +28,6 @@ interface RecordListProps {
   currentSessionId: string | null;
   onEditSession: (session: RecordingSession) => void;
   onDeleteSession: (sessionId: string) => void;
-  onSelectSession: (session: RecordingSession) => void;
   onExportSession: (session: RecordingSession) => void;
   onViewDetail: (session: RecordingSession) => void;
   isExtensionMode: boolean;
@@ -36,7 +35,7 @@ interface RecordListProps {
   setSelectedSession: (session: RecordingSession) => void;
   setViewMode: (mode: ViewMode) => void;
   currentTab?: chrome.tabs.Tab | null;
-  startRecording: () => void;
+  startRecording: (sessionId: string) => void;
 }
 
 export const RecordList: React.FC<RecordListProps> = ({
@@ -44,7 +43,6 @@ export const RecordList: React.FC<RecordListProps> = ({
   currentSessionId,
   onEditSession,
   onDeleteSession,
-  onSelectSession,
   onExportSession,
   onViewDetail,
   isExtensionMode,
@@ -58,14 +56,13 @@ export const RecordList: React.FC<RecordListProps> = ({
     const sessionName = generateDefaultSessionName();
     const newSession = createNewSession(sessionName);
 
-    // Switch to detail view for the new session
-    setSelectedSession(newSession);
+    // 只切换到 detail 视图，不直接 setSelectedSession，selectedSession 由 currentSessionId 驱动
     setViewMode('detail');
 
-    // Automatically start recording if in extension mode
+    // 自动开始录制
     if (isExtensionMode && currentTab?.id) {
       setTimeout(() => {
-        startRecording();
+        startRecording(newSession.id);
       }, 100);
     }
   };
@@ -101,27 +98,12 @@ export const RecordList: React.FC<RecordListProps> = ({
             <List.Item>
               <Card
                 size="small"
-                className={`cursor-pointer ${
-                  session.id === currentSessionId
-                    ? 'selected-session border-2 border-blue-500'
-                    : 'border border-gray-300'
-                }`}
+                className={`cursor-pointer ${session.id === currentSessionId
+                  ? 'selected-session border-2 border-blue-500'
+                  : 'border border-gray-300'
+                  }`}
                 onClick={() => onViewDetail(session)}
                 actions={[
-                  <Button
-                    key="select"
-                    type="text"
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onSelectSession(session);
-                    }}
-                    className={
-                      session.id === currentSessionId ? 'text-blue-500' : ''
-                    }
-                  >
-                    {session.id === currentSessionId ? 'Selected' : 'Select'}
-                  </Button>,
                   <Button
                     key="edit"
                     type="text"
@@ -179,9 +161,6 @@ export const RecordList: React.FC<RecordListProps> = ({
                         >
                           {session.status}
                         </Tag>
-                        {session.id === currentSessionId && (
-                          <Tag color="blue">Current</Tag>
-                        )}
                       </Space>
                     </div>
                   }

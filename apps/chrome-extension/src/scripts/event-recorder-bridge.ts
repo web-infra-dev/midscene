@@ -156,10 +156,10 @@ function startPageChangeMonitoring(): void {
     clearInterval(pageChangeDetectionInterval);
   }
 
-  pageChangeDetectionInterval = setInterval(
-    updateIdleScreenshot,
-    PAGE_CHANGE_CHECK_INTERVAL,
-  );
+  // pageChangeDetectionInterval = setInterval(
+  //   updateIdleScreenshot,
+  //   PAGE_CHANGE_CHECK_INTERVAL,
+  // );
 }
 
 // Function to stop page change monitoring

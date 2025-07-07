@@ -53,8 +53,6 @@ interface ProgressModalProps {
   isFromStopRecording?: boolean;
 }
 
-
-
 export const ProgressModal: React.FC<ProgressModalProps> = ({
   eventsCount = 0,
   sessionName = '',
@@ -338,11 +336,9 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
     return finalEvents;
   };
 
-
   // Streaming callback handler
   const handleStreamingChunk: StreamingCallback = (chunk: CodeGenerationChunk) => {
     setStreamingContent(chunk.accumulated);
-    console.log('chunk.accumulated', chunk);
     const code = chunk.accumulated;
     const thinking = chunk.reasoning_content;
 
@@ -538,7 +534,6 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
       setShowGeneratedCode(true);
 
       // Show success message
-
       message.success(
         `AI ${type === 'playwright' ? 'Playwright test' : 'YAML configuration'} generated successfully!`,
       );
@@ -635,6 +630,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
   const handleRegenerateYaml = async () => {
     await handleCodeGeneration('yaml');
   };
+
   // Monitor step completion state changes, add sliding animation
   useEffect(() => {
     steps.forEach((step) => {
@@ -684,8 +680,6 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
     { label: 'None', value: 'none' as const },
   ];
 
-
-
   const getStepIcon = (step: ProgressStep) => {
     switch (step.status) {
       case 'loading':
@@ -721,8 +715,6 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
     }
   };
 
-
-
   return (
     <>
       {eventsCount === 0 ? (
@@ -732,7 +724,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
         </div>
       ) : (
         <>
-          <div className="mb-5">
+          <div className="mb-5 flex items-center gap-4">
             <Select
               value={selectedType}
               onChange={(value) => {
@@ -743,8 +735,8 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
                 setSelectedType(value);
                 handleSelectChange(value);
               }}
-              className="w-full"
-              size="large"
+              className="w-60"
+              size="middle"
               suffixIcon={<DownOutlined />}
               disabled={isGenerating}
             >
@@ -791,6 +783,31 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
                 </Select.Option>
               ))}
             </Select>
+            {(selectedType === 'playwright' || selectedType === 'yaml') && (showGeneratedCode || isStreaming) && (
+              <div className="flex gap-2 ml-auto">
+                <Button
+                  size="small"
+                  icon={<CopyOutlined />}
+                  onClick={selectedType === 'playwright' ? handleCopyTest : handleCopyYaml}
+                  disabled={isStreaming || (selectedType === 'playwright' ? !generatedTest : !generatedYaml)}
+                  title="Copy to clipboard"
+                />
+                <Button
+                  size="small"
+                  icon={<DownloadOutlined />}
+                  onClick={selectedType === 'playwright' ? handleDownloadTest : handleDownloadYaml}
+                  disabled={isStreaming || (selectedType === 'playwright' ? !generatedTest : !generatedYaml)}
+                  title={selectedType === 'playwright' ? 'Download as .ts file' : 'Download as .yaml file'}
+                />
+                <Button
+                  size="small"
+                  icon={<ReloadOutlined />}
+                  onClick={selectedType === 'playwright' ? handleRegenerateTest : handleRegenerateYaml}
+                  disabled={isGenerating || isStreaming}
+                  title="Regenerate code"
+                />
+              </div>
+            )}
           </div>
           {selectedType === 'none' && (
             <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-sm">
@@ -829,7 +846,6 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
         })()
       )}
 
-
       {/* Code block for selectedType only */}
       {(showGeneratedCode || isStreaming) && (
         <>
@@ -837,9 +853,6 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
             <PlaywrightCodeBlock
               code={generatedTest}
               loading={isGenerating}
-              onCopy={handleCopyTest}
-              onDownload={handleDownloadTest}
-              onRegenerate={handleRegenerateTest}
               isStreaming={isStreaming && selectedType === 'playwright'}
               streamingContent={streamingContent}
               thinkingProcess={thinkingProcess}
@@ -851,9 +864,6 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
             <YamlCodeBlock
               code={generatedYaml}
               loading={isGenerating}
-              onCopy={handleCopyYaml}
-              onDownload={handleDownloadYaml}
-              onRegenerate={handleRegenerateYaml}
               isStreaming={isStreaming && selectedType === 'yaml'}
               streamingContent={streamingContent}
               thinkingProcess={thinkingProcess}
@@ -863,7 +873,6 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
           )}
         </>
       )}
-
     </>
   );
 };

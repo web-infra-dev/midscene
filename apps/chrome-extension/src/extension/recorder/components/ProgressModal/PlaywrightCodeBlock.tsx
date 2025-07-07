@@ -9,9 +9,9 @@ const { Text } = Typography;
 interface PlaywrightCodeBlockProps {
     code: string;
     loading: boolean;
-    onCopy: () => void;
-    onDownload: () => void;
-    onRegenerate: () => void;
+    onCopy?: () => void;
+    onDownload?: () => void;
+    onRegenerate?: () => void;
     isStreaming?: boolean;
     streamingContent?: string;
     thinkingProcess?: string;
@@ -46,48 +46,7 @@ export const PlaywrightCodeBlock: React.FC<PlaywrightCodeBlockProps> = ({
 
     return (
         <div className="mt-5">
-            <div className="flex justify-between items-center mb-3">
-                {/* <div className="flex items-center gap-2">
-                    <CodeOutlined className="text-blue-500" />
-                    <Text strong>Playwright</Text>
-                    {isStreaming && (
-                        <div className="flex items-center gap-1 text-blue-500">
-                            <div className="animate-spin w-3 h-3 border border-blue-500 border-t-transparent rounded-full"></div>
-                            <Text className="text-xs text-blue-500">Streaming...</Text>
-                        </div>
-                    )}
-                </div> */}
-                <div className="flex gap-2">
-                    <Button
-                        size="small"
-                        icon={<CopyOutlined />}
-                        onClick={onCopy}
-                        disabled={!hasContent || isStreaming}
-                        title="Copy to clipboard"
-                    >
-                        Copy
-                    </Button>
-                    <Button
-                        size="small"
-                        icon={<DownloadOutlined />}
-                        onClick={onDownload}
-                        disabled={!hasContent || isStreaming}
-                        title="Download as .ts file"
-                    >
-                        Download
-                    </Button>
-                    <Button
-                        size="small"
-                        icon={<ReloadOutlined />}
-                        onClick={onRegenerate}
-                        disabled={loading || isStreaming}
-                        title="Regenerate code"
-                    >
-                        Regenerate
-                    </Button>
-                </div>
-            </div>
-
+            {/* 按钮区域已移除，只在外部渲染 */}
             {/* Thinking process display area */}
             <ThinkingProcessSection
                 accumulatedThinking={accumulatedThinking}
