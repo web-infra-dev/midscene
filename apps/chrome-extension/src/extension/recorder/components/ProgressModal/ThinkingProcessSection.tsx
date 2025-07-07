@@ -18,42 +18,18 @@ export const ThinkingProcessSection: React.FC<ThinkingProcessSectionProps> = ({
     themeColor = 'blue',
 }) => {
     const [showThinking, setShowThinking] = useState(true);
-    const [thinkingEndTimer, setThinkingEndTimer] = useState<NodeJS.Timeout | null>(null);
     const hasThinking = accumulatedThinking.length > 0;
 
     // Detect if thinking process has ended - when actual code content appears, thinking is finished
     useEffect(() => {
-        if (!isStreaming && actualCode) {
+        if (actualCode) {
             // Actual code content appeared, thinking process has ended, collapse immediately
-            const timer = setTimeout(() => {
-                setShowThinking(false);
-            }, 500);
-            return () => clearTimeout(timer);
-        }
-    }, [isStreaming, actualCode]);
-
-    // Auto-collapse thinking process when streaming completes
-    useEffect(() => {
-        if (!isStreaming && hasThinking && actualCode) {
             setShowThinking(false);
-        }
-    }, [isStreaming, hasThinking, actualCode]);
-
-    // Clean up timer
-    useEffect(() => {
-        return () => {
-            if (thinkingEndTimer) {
-                clearTimeout(thinkingEndTimer);
-            }
-        };
-    }, [thinkingEndTimer]);
-
-    // Reset showThinking when starting new generation
-    useEffect(() => {
-        if (isStreaming) {
+        } else {
             setShowThinking(true);
         }
-    }, [isStreaming]);
+    }, [actualCode]);
+
 
     if (!hasThinking) return null;
 

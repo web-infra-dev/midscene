@@ -21,13 +21,8 @@ interface PlaywrightCodeBlockProps {
 
 export const PlaywrightCodeBlock: React.FC<PlaywrightCodeBlockProps> = ({
     code,
-    loading,
-    onCopy,
-    onDownload,
-    onRegenerate,
     isStreaming = false,
     streamingContent = '',
-    thinkingProcess = '',
     actualCode = '',
     accumulatedThinking = '',
 }) => {
@@ -35,7 +30,6 @@ export const PlaywrightCodeBlock: React.FC<PlaywrightCodeBlockProps> = ({
     const hasContent = displayContent.length > 0;
     const wasStreamingRef = useRef(false);
 
-    // Monitor code generation completion, trigger confetti effect
     useEffect(() => {
         // If it was streaming before, now stopped, and has code content, trigger confetti effect
         if (wasStreamingRef.current && !isStreaming && hasContent) {
