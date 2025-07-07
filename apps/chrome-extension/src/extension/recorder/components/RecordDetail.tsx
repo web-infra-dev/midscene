@@ -23,7 +23,7 @@ interface RecordDetailProps {
   isRecording: boolean;
   currentTab: chrome.tabs.Tab | null;
   onBack: () => void;
-  onStartRecording: (id?: string) => void;
+  onStartRecording: (id: string) => void;
   onStopRecording: () => void;
   onClearEvents: () => void;
   isExtensionMode: boolean;

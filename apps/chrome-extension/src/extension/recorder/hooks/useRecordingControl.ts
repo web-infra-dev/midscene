@@ -230,7 +230,7 @@ export const useRecordingControl = (
 
   // Start recording
   const startRecording = useCallback(
-    async (sessionId?: string) => {
+    async (sessionId: string) => {
       recordLogger.info('Starting recording', {
         tabId: currentTab?.id,
         sessionId,
@@ -247,27 +247,14 @@ export const useRecordingControl = (
       // Check if there's a current session or use provided sessionId
       let sessionToUse: RecordingSession | null = null;
 
-      if (sessionId) {
-        // Use the specific session ID provided
-        const specificSession = await dbManager.getSession(sessionId);
-        if (specificSession) {
-          sessionToUse = specificSession;
-        } else {
-          recordLogger.error('Specified session not found', { sessionId });
-          message.error('Specified session not found');
-          return;
-        }
-      }
-
-      if (!sessionToUse) {
-        // Auto-create session with timestamp name
-        const sessionName = generateSessionName();
-        recordLogger.info('Auto-creating session', { action: 'create' });
-
-        sessionToUse = createNewSession(sessionName);
-
-        // Small delay to ensure state updates before continuing
-        await new Promise((resolve) => setTimeout(resolve, 100));
+      // Use the specific session ID provided
+      const specificSession = await dbManager.getSession(sessionId);
+      if (specificSession) {
+        sessionToUse = specificSession;
+      } else {
+        recordLogger.error('Specified session not found', { sessionId });
+        message.error('Specified session not found');
+        return;
       }
 
       // Update session status to recording

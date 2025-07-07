@@ -333,12 +333,17 @@ class IndexedDBManager {
       await this.init();
       const db = this.ensureDB();
       return new Promise((resolve, reject) => {
-        const transaction = db.transaction([SESSIONS_STORE], 'readwrite');
-        const store = transaction.objectStore(SESSIONS_STORE);
-        const request = store.delete(sessionId);
-
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
+        setTimeout(() => {
+          const transaction = db.transaction([SESSIONS_STORE], 'readwrite');
+          const store = transaction.objectStore(SESSIONS_STORE);
+          const request = store.delete(sessionId);
+          request.onsuccess = () => {
+            resolve();
+          };
+          request.onerror = () => {
+            reject(request.error);
+          };
+        }, 1000);
       });
     } catch (error) {
       console.error('Failed to delete session:', error);

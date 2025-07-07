@@ -195,11 +195,6 @@ export default function Recorder() {
   // Delete session handler
   const handleDeleteSessionWrapper = (sessionId: string) => {
     handleDeleteSession(sessionId);
-    // If we're viewing the deleted session, go back to list
-    if (selectedSession?.id === sessionId) {
-      setViewMode('list');
-      setSelectedSession(null);
-    }
   };
 
 
@@ -234,7 +229,6 @@ export default function Recorder() {
     const sessionName = generateDefaultSessionName();
     const newSession = createNewSession(sessionName);
 
-
     setTimeout(() => {
       startRecording(newSession.id);
     }, 300);
@@ -243,35 +237,6 @@ export default function Recorder() {
     setViewMode('detail');
 
     setSelectedSession(newSession);
-  };
-
-  // Create session handler
-  const handleCreateSessionWrapper = async (values: {
-    name: string;
-    description?: string;
-  }) => {
-    recordLogger.info('Creating new session', { action: 'create' });
-
-    const newSession = await handleCreateSession(values);
-    recordLogger.success('New session created', { sessionId: newSession.id });
-
-    setIsCreateModalVisible(false);
-    form.resetFields();
-
-    // Switch to detail view for the new session
-    setSelectedSession(newSession);
-    setViewMode('detail');
-
-    // Automatically start recording if in extension mode
-    if (isExtensionMode && currentTab?.id) {
-      recordLogger.info(
-        'Auto-starting recording for new session in extension mode',
-      );
-      // Small delay to ensure UI updates first
-      setTimeout(() => {
-        startRecording();
-      }, 100);
-    }
   };
 
   // Show loading state while stores are initializing
@@ -367,15 +332,10 @@ export default function Recorder() {
       </Modal>
 
       <SessionModals
-        isCreateModalVisible={isCreateModalVisible}
-        setIsCreateModalVisible={setIsCreateModalVisible}
-        onCreateSession={handleCreateSessionWrapper}
-        createForm={form}
         isEditModalVisible={isEditModalVisible}
         setIsEditModalVisible={setIsEditModalVisible}
         onUpdateSession={handleUpdateSessionWrapper}
         editForm={editForm}
-        editingSession={editingSession}
         setEditingSession={setEditingSession}
       />
     </div>
