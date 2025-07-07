@@ -7,8 +7,10 @@ import PrepareKeyForFurtherUse from './common/prepare-key-for-further-use.mdx';
 
 该扩展与 npm `@midscene/web` 包共享了相同的代码，因此你可以将其视为 Midscene 的一个 Playground 或调试工具。
 
-![](/midscene-extension.jpg)
-
+<video
+  src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/recording_2025-07-07_08-16-16.mp4"
+  controls
+/>
 
 ## 准备工作
 
@@ -27,13 +29,13 @@ OPENAI_API_KEY="sk-replace-by-your-own"
 
 <StartExperience />
 
-* [使用 Chrome 插件的桥接模式](./bridge-mode-by-chrome-extension)
-* [与 Puppeteer 集成](./integrate-with-puppeteer)
-* [与 Playwright 集成](./integrate-with-playwright)
+- [使用 Chrome 插件的桥接模式](./bridge-mode-by-chrome-extension)
+- [与 Puppeteer 集成](./integrate-with-puppeteer)
+- [与 Playwright 集成](./integrate-with-playwright)
 
 ## FAQ
 
-* 插件运行失败，提示 'Cannot access a chrome-extension:// URL of different extension'
+- 插件运行失败，提示 'Cannot access a chrome-extension:// URL of different extension'
 
 这一般是与其他插件冲突所致，如页面已经被其他插件注入了 `<iframe />` 或 `<script />`。
 
