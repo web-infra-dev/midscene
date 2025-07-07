@@ -7,7 +7,10 @@ Midscene.js provides a Chrome extension. By using it, you can quickly experience
 
 ⁠The extension shares the same code as the npm `@midscene/web` packages, so you can think of it as a playground or a way to debug with Midscene.
 
-![](/midscene-extension.jpg)
+<video
+  src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/recording_2025-07-07_08-16-16.mp4"
+  controls
+/>
 
 ## Preparation
 
@@ -26,18 +29,18 @@ OPENAI_API_KEY="sk-replace-by-your-own"
 
 <StartExperience />
 
-* [Bridge Mode by Chrome Extension](./bridge-mode-by-chrome-extension)
-* [Integrate with Puppeteer](./integrate-with-puppeteer)
-* [Integrate with Playwright](./integrate-with-playwright)
+- [Bridge Mode by Chrome Extension](./bridge-mode-by-chrome-extension)
+- [Integrate with Puppeteer](./integrate-with-puppeteer)
+- [Integrate with Playwright](./integrate-with-playwright)
 
 ## FAQ
 
 ### Extension fails to run and shows 'Cannot access a chrome-extension:// URL of different extension'
 
-It's mainly due to conflicts with other extensions injecting `<iframe />` or `<script />` into the page. Try disabling the suspicious plugins and refresh. 
+It's mainly due to conflicts with other extensions injecting `<iframe />` or `<script />` into the page. Try disabling the suspicious plugins and refresh.
 
 To find the suspicious plugins:
- 
+
 1. Open the Devtools of the page, find the `<script>` or `<iframe>` with a url like `chrome-extension://{ID-of-the-suspicious-plugin}/...`.
 2. Copy the ID from the url, open `chrome://extensions/` , use cmd+f to find the plugin with the same ID, disable it.
 3. Refresh the page, try again.

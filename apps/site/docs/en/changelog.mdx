@@ -2,6 +2,39 @@
 
 > For the complete changelog, please refer to: [Midscene Releases](https://github.com/web-infra-dev/midscene/releases)
 
+## v0.21 - 🎨 Chrome Extension UI Upgrade
+
+### 🌐 Web Integration Enhancement
+
+#### 1️⃣ New Chat-Style User Interface
+
+- New chat-style user interface design for better user experience
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/recording_2025-07-07_08-16-16.mp4" controls/>
+
+#### 2️⃣ Flexible Timeout Configuration
+
+- Supports overriding timeout settings from test fixture, providing more flexible timeout control
+- Applicable scenarios: Different test cases require different timeout settings
+
+#### 3️⃣ Unified Puppeteer and Playwright Configuration
+
+- New `waitForNavigationTimeout` and `waitForNetworkIdleTimeout` parameters for Playwright
+- Unified timeout options configuration for Puppeteer and Playwright, providing consistent API experience, reducing learning costs
+
+#### 4️⃣ New Data Export Callback Mechanism
+
+- New `agent.onDumpUpdate` callback function, can get real-time notification when data is exported
+- Refactored the post-task processing flow to ensure the correct execution of asynchronous operations
+- Applicable scenarios: Monitoring or processing exported data
+
+### 📱 Android Interaction Optimization
+
+#### 1️⃣ Input Experience Improvement
+
+- Changed click input to slide operation, improving interaction response and stability
+- Reduced operation failures caused by inaccurate clicks
+
 ## v0.20 - Support for assigning XPath to locate elements
 
 ### 🌐 Web Integration Enhancement

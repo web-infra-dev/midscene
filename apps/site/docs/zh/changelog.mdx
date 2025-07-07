@@ -2,6 +2,34 @@
 
 > 完整更新日志请参考：[Midscene Releases](https://github.com/web-infra-dev/midscene/releases)
 
+## v0.21 - 🎨 Chrome 扩展界面升级
+
+### 🌐 Web集成增强
+
+#### 1️⃣ 全新的 Chrome 扩展界面
+- 全新的聊天式用户界面设计，提供更好的使用体验
+- 界面布局优化，操作更加直观便捷
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/recording_2025-07-07_08-16-16.mp4" controls/>
+
+#### 2️⃣ 超时配置灵活性提升
+- 支持从测试 fixture 中覆盖超时设置，提供更灵活的超时控制
+- 适用场景：不同测试用例需要不同超时时间的场景
+
+#### 3️⃣ 统一 Puppeteer 和 Playwright 配置
+- 为 Playwright 新增 `waitForNavigationTimeout` 和 `waitForNetworkIdleTimeout` 参数
+- 统一了 Puppeteer 和 Playwright 的 timeout 选项配置，提供一致的 API 体验，降低学习成本
+
+#### 4️⃣ 新增数据导出回调机制
+- 新增 `agent.onDumpUpdate` 回调函数，可在数据导出时获得实时通知
+- 重构了任务结束后的处理流程，确保异步操作的正确执行
+- 适用场景：需要监控或处理导出数据的场景
+
+### 📱 Android 交互优化
+#### 1️⃣ 输入体验改进
+- 将点击输入改为滑动操作，提升交互响应性和稳定性
+- 减少因点击不准确导致的操作失败
+
 ## v0.20 - 支持传入 XPath 定位元素
 
 ### 🌐 Web集成增强
