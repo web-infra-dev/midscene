@@ -172,6 +172,7 @@ Generated code should:
 5. Include appropriate assertions and validations
 6. Follow best practices for Playwright tests
 7. Be ready to execute without further modification
+8. can't wrap this test code in markdown code block
 
 Respond ONLY with the complete Playwright test code, no explanations.`;
 

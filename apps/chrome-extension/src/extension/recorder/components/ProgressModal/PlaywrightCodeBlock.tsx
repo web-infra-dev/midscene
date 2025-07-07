@@ -26,7 +26,9 @@ export const PlaywrightCodeBlock: React.FC<PlaywrightCodeBlockProps> = ({
     actualCode = '',
     accumulatedThinking = '',
 }) => {
-    const displayContent = isStreaming ? (actualCode || streamingContent) : code;
+    let displayContent = isStreaming ? (actualCode || streamingContent) : code;
+    displayContent = displayContent.replace('```typescript', '').replace('```', '').trim();
+
     const hasContent = displayContent.length > 0;
     const wasStreamingRef = useRef(false);
 
