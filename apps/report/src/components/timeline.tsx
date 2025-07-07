@@ -79,7 +79,7 @@ const TimelineWidget = (props: {
 
   const sizeRatio = 2;
 
-  const titleBg = 0xf8f8f8; // @title-bg
+  const titleBg = 0xffffff; // @title-bg
   const sideBg = 0xffffff;
   const gridTextColor = 0;
   const shotBorderColor = 0x777777;

@@ -7,7 +7,6 @@ import { paramStr, typeStr } from '@midscene/web/ui-utils';
 import { RadiusSettingOutlined } from '@ant-design/icons';
 import type {
   BaseElement,
-  ExecutionTask,
   ExecutionTaskInsightAssertion,
   ExecutionTaskPlanning,
 } from '@midscene/core';
