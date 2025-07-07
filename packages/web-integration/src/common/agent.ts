@@ -628,8 +628,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       checkIntervalMs: opt?.checkIntervalMs || 3 * 1000,
       assertion,
     });
-    this.appendExecutionDump(executor.dump());
-    this.writeOutActionDumps();
+    await this.afterTaskRunning(executor, true);
 
     if (executor.isInErrorState()) {
       const errorTask = executor.latestErrorTask();
