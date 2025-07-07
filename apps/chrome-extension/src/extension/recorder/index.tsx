@@ -234,15 +234,15 @@ export default function Recorder() {
     const sessionName = generateDefaultSessionName();
     const newSession = createNewSession(sessionName);
 
+
+    setTimeout(() => {
+      startRecording(newSession.id);
+    }, 300);
+
     // Switch to detail view
     setViewMode('detail');
 
-    // Auto-start recording if in extension mode
-    if (isExtensionMode && currentTab?.id) {
-      setTimeout(() => {
-        startRecording();
-      }, 100);
-    }
+    setSelectedSession(newSession);
   };
 
   // Create session handler
