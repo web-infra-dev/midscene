@@ -186,10 +186,11 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
           alignItems: 'stretch',
         }}
       >
-        <div className="flex gap-2 w-full items-stretch">
+        <div className="flex gap-2 w-full items-stretch !text-[12px]">
           <button
+            type="button"
             className={
-              'flex items-center justify-center gap-1.5 flex-1 transition-colors !font-bold !text-[12px] !leading-[1.83em] !bg-transparent !rounded-lg !py-2 !px-0 !border-none !cursor-pointer text-[rgba(0,0,0,0.85)]'
+              'flex items-center justify-center gap-1.5 flex-1 transition-colors !font-medium !leading-[1.83em] !bg-transparent !rounded-lg !py-2 !px-0 !border-none !cursor-pointer text-[rgba(0,0,0,0.85)]'
             }
             style={{
               fontFamily: 'Inter, -apple-system, sans-serif',
@@ -205,11 +206,12 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
 
           {/* Divider */}
           <div className="flex items-center">
-            <RightOutlined />
+            <RightOutlined className="text-xs w-3 h-3 " />
           </div>
 
           <button
-            className={`flex items-center justify-center gap-1.5 flex-1 transition-colors !font-medium !text-[12px] !leading-[1.83em] !bg-transparent !rounded-lg !py-2 !px-0 !border-none !cursor-pointer ${
+            type="button"
+            className={`flex items-center justify-center gap-1.5 flex-1 transition-colors !font-medium !leading-[1.83em] !bg-transparent !rounded-lg !py-2 !px-0 !border-none !cursor-pointer ${
               tab === 'code'
                 ? 'text-[rgba(0,0,0,0.85)]'
                 : 'text-[rgba(0,0,0,0.25)]'
@@ -330,8 +332,8 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
                   }}
                 />
 
-                {/* Stop button */}
                 <button
+                  type="button"
                   onClick={handleStopRecording}
                   disabled={!isRecording}
                   className="flex items-center gap-1 hover:opacity-80 transition-opacity bg-transparent border-none p-0 cursor-pointer"
