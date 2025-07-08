@@ -211,10 +211,11 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
 
           <button
             type="button"
-            className={`flex items-center justify-center gap-1.5 flex-1 transition-colors !font-medium !leading-[1.83em] !bg-transparent !rounded-lg !py-2 !px-0 !border-none !cursor-pointer ${tab === 'code'
+            className={`flex items-center justify-center gap-1.5 flex-1 transition-colors !font-medium !leading-[1.83em] !bg-transparent !rounded-lg !py-2 !px-0 !border-none !cursor-pointer ${
+              tab === 'code'
                 ? 'text-[rgba(0,0,0,0.85)]'
                 : 'text-[rgba(0,0,0,0.25)]'
-              } ${events.length === 0 ? '!text-gray-300 !cursor-not-allowed' : ''}`}
+            } ${events.length === 0 ? '!text-gray-300 !cursor-not-allowed' : ''}`}
             style={{
               fontFamily: 'Inter, -apple-system, sans-serif',
             }}
