@@ -19,7 +19,6 @@ import { ProgressModal } from './ProgressModal';
 
 interface RecordDetailProps {
   sessionId: string;
-  events: ChromeRecordedEvent[];
   isRecording: boolean;
   currentTab: chrome.tabs.Tab | null;
   onBack: () => void;
@@ -32,7 +31,6 @@ interface RecordDetailProps {
 
 export const RecordDetail: React.FC<RecordDetailProps> = ({
   sessionId,
-  events,
   isRecording,
   onBack,
   onStartRecording,
@@ -47,6 +45,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
   // Get the session directly from the store to ensure we always have the latest data
   const { sessions } = useRecordingSessionStore();
   const session = sessions.find((s) => s.id === sessionId);
+  const events = session?.events || [];
 
   // 新增：sessionId 变化时重置 tab
   useEffect(() => {

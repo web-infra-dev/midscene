@@ -292,7 +292,6 @@ export default function Recorder() {
           <RecordDetail
             key={currentSessionId}
             sessionId={currentSessionId}
-            events={events}
             isRecording={isRecording}
             currentTab={currentTab}
             onBack={handleBackToList}
