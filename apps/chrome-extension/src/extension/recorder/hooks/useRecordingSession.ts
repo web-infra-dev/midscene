@@ -178,6 +178,7 @@ export const useRecordingSession = (currentTab: chrome.tabs.Tab | null) => {
     sessions,
     currentSessionId,
     getCurrentSession,
+    setCurrentSession,
 
     // Actions
     createNewSession,

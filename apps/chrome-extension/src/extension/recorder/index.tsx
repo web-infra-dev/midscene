@@ -66,20 +66,16 @@ export default function Recorder() {
 
   // View state management
   const [viewMode, setViewMode] = useState<ViewMode>('list');
-  const [selectedSession, setSelectedSession] =
-    useState<RecordingSession | null>(null);
 
   // Modal state management
-  const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [editingSession, setEditingSession] = useState<RecordingSession | null>(
     null,
   );
-  const [form] = Form.useForm();
   const [editForm] = Form.useForm();
 
   // Initialize tab monitoring to get currentTab
-  const { currentTab, checkRecordingRecovery } = useTabMonitoring();
+  const { currentTab } = useTabMonitoring();
 
   // Initialize recording session management with currentTab
   const sessionHooks = useRecordingSession(currentTab);
@@ -87,11 +83,10 @@ export default function Recorder() {
     sessions,
     currentSessionId,
     getCurrentSession,
+    setCurrentSession,
     createNewSession,
-    handleCreateSession,
     handleUpdateSession,
     handleDeleteSession,
-    handleSelectSession,
     handleExportSession,
   } = sessionHooks;
 
@@ -142,18 +137,6 @@ export default function Recorder() {
     }
   }, [currentSessionId, getCurrentSession, setEvents, clearEvents]);
 
-  // Sync selectedSession with currentSession for view management
-  useEffect(() => {
-    if (viewMode === 'detail' && currentSessionId) {
-      const currentSession = getCurrentSession();
-      if (
-        currentSession &&
-        (!selectedSession || selectedSession.id !== currentSessionId)
-      ) {
-        setSelectedSession(currentSession);
-      }
-    }
-  }, [currentSessionId, getCurrentSession, selectedSession, viewMode]);
 
   // Edit session handler
   const handleEditSession = (session: RecordingSession) => {
@@ -177,15 +160,6 @@ export default function Recorder() {
       description: values.description,
     });
 
-    // Update selectedSession if it's the one being edited
-    if (selectedSession?.id === editingSession.id) {
-      setSelectedSession({
-        ...editingSession,
-        name: values.name,
-        description: values.description,
-        updatedAt: Date.now(),
-      });
-    }
 
     setIsEditModalVisible(false);
     setEditingSession(null);
@@ -200,9 +174,11 @@ export default function Recorder() {
   // View session detail handler
   const handleViewDetail = useCallback(
     (session: RecordingSession) => {
-      recordLogger.info('Viewing session detail', { sessionId: session.id });
-
-      setSelectedSession(session);
+      recordLogger.info('Viewing session detail', {
+        sessionId: session.id,
+        session,
+      });
+      setCurrentSession(session.id)
       setViewMode('detail');
     },
     [currentSessionId],
@@ -219,7 +195,6 @@ export default function Recorder() {
     }
 
     setViewMode('list');
-    setSelectedSession(null);
   }, [isRecording, stopRecording]);
 
   // Create session handler
@@ -234,7 +209,7 @@ export default function Recorder() {
     // Switch to detail view
     setViewMode('detail');
 
-    setSelectedSession(newSession);
+    setCurrentSession(newSession.id)
   };
 
   // Show loading state while stores are initializing
@@ -284,7 +259,7 @@ export default function Recorder() {
 
       {/* Recording Detail Modal */}
       <Modal
-        open={viewMode === 'detail' && selectedSession !== null}
+        open={viewMode === 'detail' && currentSessionId !== null}
         onCancel={handleBackToList}
         footer={null}
         closable={false}
@@ -313,9 +288,10 @@ export default function Recorder() {
           mask: { backgroundColor: 'rgba(0, 0, 0, 0.3)' },
         }}
       >
-        {selectedSession && (
+        {currentSessionId && (
           <RecordDetail
-            sessionId={selectedSession.id}
+            key={currentSessionId}
+            sessionId={currentSessionId}
             events={events}
             isRecording={isRecording}
             currentTab={currentTab}

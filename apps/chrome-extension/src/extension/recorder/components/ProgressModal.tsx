@@ -751,7 +751,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
     (steps[2].status === 'loading' ||
       steps[2].status === 'completed' ||
       steps[2].status === 'error');
-  console.log('thirdStepStarted', thirdStepStarted, steps);
+
   return (
     <>
       {eventsCount === 0 ? (

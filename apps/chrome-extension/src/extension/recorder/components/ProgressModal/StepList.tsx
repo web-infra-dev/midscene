@@ -70,7 +70,7 @@ export const StepList: React.FC<StepListProps> = ({
                 )}
               </div>
             </div>
-            {step.status === 'loading' && step.progress !== undefined && (
+            {/* {step.status === 'loading' && step.progress !== undefined && (
               <div className="ml-8">
                 <Progress
                   percent={step.progress}
@@ -79,7 +79,7 @@ export const StepList: React.FC<StepListProps> = ({
                   showInfo={false}
                 />
               </div>
-            )}
+            )} */}
             {index < filteredSteps.length - 1 && (
               <div
                 className={`${step.status === 'completed' ? 'bg-green-500' : 'bg-gray-200'} ml-2 w-0.5 h-5 mt-2`}
