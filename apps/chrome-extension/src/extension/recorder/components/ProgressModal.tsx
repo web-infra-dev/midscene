@@ -751,7 +751,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
     (steps[2].status === 'loading' ||
       steps[2].status === 'completed' ||
       steps[2].status === 'error');
-
+  console.log('thirdStepStarted', thirdStepStarted, steps);
   return (
     <>
       {eventsCount === 0 ? (
@@ -941,7 +941,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
               thinkingProcess={thinkingProcess}
               actualCode={actualCode}
               accumulatedThinking={accumulatedThinking}
-              thirdStepStarted={thirdStepStarted}
+              stepDisplay={thirdStepStarted || steps.length === 0}
             />
           )}
           {selectedType === 'yaml' && (generatedYaml || isStreaming) && (
@@ -954,7 +954,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
               thinkingProcess={thinkingProcess}
               actualCode={actualCode}
               accumulatedThinking={accumulatedThinking}
-              thirdStepStarted={thirdStepStarted}
+              stepDisplay={thirdStepStarted || steps.length === 0}
             />
           )}
         </>

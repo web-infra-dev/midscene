@@ -19,7 +19,7 @@ interface CodeBlockProps {
   onCopy?: () => void;
   onDownload?: () => void;
   onRegenerate?: () => void;
-  thirdStepStarted: boolean;
+  stepDisplay: boolean;
   isStreaming?: boolean;
   streamingContent?: string;
   thinkingProcess?: string;
@@ -34,7 +34,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
   streamingContent = '',
   actualCode = '',
   accumulatedThinking = '',
-  thirdStepStarted,
+  stepDisplay,
 }) => {
   let displayContent = isStreaming ? actualCode || streamingContent : code;
   displayContent = displayContent
@@ -64,7 +64,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
         actualCode={actualCode}
         themeColor="green"
       />
-      {thirdStepStarted && (<div className="relative">
+      {stepDisplay && (<div className="relative">
         <pre
           className={`bg-gray-50 rounded-[8px] border text-sm overflow-auto max-h-128 font-mono border-radius-[8px] ${!actualCode ? 'p-4 border-[#F2F4F7]' : 'px-[12px] py-[8px] border-gray-200'}`}
         >
