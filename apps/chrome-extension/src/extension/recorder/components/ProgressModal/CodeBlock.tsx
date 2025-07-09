@@ -12,12 +12,14 @@ import { triggerConfetti } from './confetti';
 
 const { Text } = Typography;
 
-interface YamlCodeBlockProps {
+interface CodeBlockProps {
+  type: 'yaml' | 'playwright';
   code: string;
   loading: boolean;
   onCopy?: () => void;
   onDownload?: () => void;
   onRegenerate?: () => void;
+  thirdStepStarted: boolean;
   isStreaming?: boolean;
   streamingContent?: string;
   thinkingProcess?: string;
@@ -25,19 +27,20 @@ interface YamlCodeBlockProps {
   accumulatedThinking?: string;
 }
 
-export const YamlCodeBlock: React.FC<YamlCodeBlockProps> = ({
+export const CodeBlock: React.FC<CodeBlockProps> = ({
+  type,
   code,
-  loading,
-  onCopy,
-  onDownload,
-  onRegenerate,
   isStreaming = false,
   streamingContent = '',
-  thinkingProcess = '',
   actualCode = '',
   accumulatedThinking = '',
+  thirdStepStarted,
 }) => {
-  const displayContent = isStreaming ? actualCode || streamingContent : code;
+  let displayContent = isStreaming ? actualCode || streamingContent : code;
+  displayContent = displayContent
+    .replace('```typescript', '')
+    .replace('```', '')
+    .trim();
   const hasContent = displayContent.length > 0;
   const wasStreamingRef = useRef(false);
 
@@ -50,6 +53,7 @@ export const YamlCodeBlock: React.FC<YamlCodeBlockProps> = ({
     wasStreamingRef.current = isStreaming;
   }, [isStreaming, hasContent]);
 
+
   return (
     <div className="mt-5">
       {/* 按钮区域已移除，只在外部渲染 */}
@@ -60,28 +64,39 @@ export const YamlCodeBlock: React.FC<YamlCodeBlockProps> = ({
         actualCode={actualCode}
         themeColor="green"
       />
-
-      <div className="relative">
+      {thirdStepStarted && (<div className="relative">
         <pre
-          className={`bg-gray-50 p-4 rounded border text-sm overflow-auto max-h-128 font-mono ${isStreaming ? 'border-green-300' : 'border-gray-200'}`}
+          className={`bg-gray-50 rounded-[8px] border text-sm overflow-auto max-h-128 font-mono border-radius-[8px] ${!actualCode ? 'p-4 border-[#F2F4F7]' : 'px-[12px] py-[8px] border-gray-200'}`}
         >
           <code>
             {displayContent ||
-              (isStreaming ? 'Generating code...' : 'No code generated yet')}
+              (isStreaming && 'Generating code...')}
           </code>
         </pre>
-        {isStreaming && (
-          <div className="absolute bottom-2 right-2 bg-green-100 text-green-600 px-2 py-1 rounded text-xs">
-            {actualCode ? 'Generating code...' : 'Analyzing...'}
+        {isStreaming && !actualCode && (
+          <div className="absolute bottom-4 right-2 bg-[#2B83FF1F] text-[#2B83FF] px-2 py-1 rounded-full text-xs">
+            Analyzing...
           </div>
         )}
-      </div>
+      </div>)}
+
       {code && (
         <div className="mt-3 text-center">
           <Text type="secondary" className="text-xs">
-            💡 Use with any automation platform that supports{' '}
-            <b>@midscene/cli</b> for cross-platform integration and batch
-            execution.
+            {
+              type === 'playwright' ? (
+                <>
+                  💡 Can be executed with <b>@midscene/web</b> compatible automation
+                  frameworks. Run directly via <code>npx playwright test</code>.
+                </>
+              ) : (
+                <>
+                  💡 Use with any automation platform that supports{' '}
+                  <b>@midscene/cli</b> for cross-platform integration and batch
+                  execution.
+                </>
+              )
+            }
           </Text>
         </div>
       )}

@@ -29,20 +29,21 @@ export const StepList: React.FC<StepListProps> = ({
           <div key={step.id}>
             <div className="flex items-center mb-2">
               <div className="mr-3 min-w-[20px]">{getStepIcon(step)}</div>
-              <div className="flex-1">
+              <div className="flex-1 border border-[rgba(0,0,0,0.06)] p-[12px] rounded-[12px]">
                 {step.status === 'loading' ? (
                   <div className="font-semibold text-[14px] leading-[22px] min-h-[22px] flex items-center">
                     <ShinyText
                       text={step.title}
                       disabled={false}
                       speed={3}
-                      className="step-title-shiny"
+                    // className="step-title-shiny"
                     />
                   </div>
                 ) : (
                   <div>
                     <Text
                       strong
+                      className="!text-[rgba(0,0,0,1)] text-[14px]"
                       style={{
                         color:
                           step.status === 'completed' ? '#52c41a' : undefined,
@@ -56,13 +57,13 @@ export const StepList: React.FC<StepListProps> = ({
                     </Text>
                   </div>
                 )}
-                <Text type="secondary" className="text-xs">
+                <Text type="secondary" className="text-xs text-[12px]">
                   {step.description}
                 </Text>
                 {step.details && (
                   <>
                     <br />
-                    <Text type="secondary" className="text-[11px] text-[#666]">
+                    <Text className="text-[11px] !text-[rgba(0, 0, 0, 0.9)]">
                       {step.details}
                     </Text>
                   </>

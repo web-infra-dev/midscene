@@ -31,9 +31,8 @@ import {
   stopRecordingIfActive,
 } from '../shared/exportControlsUtils';
 import { generateRecordTitle } from '../utils';
-import { PlaywrightCodeBlock } from './ProgressModal/PlaywrightCodeBlock';
 import { StepList } from './ProgressModal/StepList';
-import { YamlCodeBlock } from './ProgressModal/YamlCodeBlock';
+import { CodeBlock } from './ProgressModal/CodeBlock';
 
 const { Text } = Typography;
 
@@ -747,6 +746,12 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
     }
   };
 
+  const thirdStepStarted =
+    steps.length >= 3 &&
+    (steps[2].status === 'loading' ||
+      steps[2].status === 'completed' ||
+      steps[2].status === 'error');
+
   return (
     <>
       {eventsCount === 0 ? (
@@ -904,14 +909,8 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
 
       {/* Steps for selectedType only */}
       {steps.length > 0 &&
-        !steps.every((step) => step.status === 'completed') &&
+        // !steps.every((step) => step.status === 'completed') &&
         (() => {
-          // Check if the third step (code generation step) has started
-          const thirdStepStarted =
-            steps.length >= 3 &&
-            (steps[2].status === 'loading' ||
-              steps[2].status === 'completed' ||
-              steps[2].status === 'error');
 
           // Hide step display if the third step has started
           if (thirdStepStarted) {
@@ -930,28 +929,32 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
         })()}
 
       {/* Code block for selectedType only */}
-      {(showGeneratedCode || isStreaming) && (
+      {((showGeneratedCode || isStreaming)) && (
         <>
           {selectedType === 'playwright' && (generatedTest || isStreaming) && (
-            <PlaywrightCodeBlock
+            <CodeBlock
               code={generatedTest}
+              type={'playwright'}
               loading={isGenerating}
               isStreaming={isStreaming && selectedType === 'playwright'}
               streamingContent={streamingContent}
               thinkingProcess={thinkingProcess}
               actualCode={actualCode}
               accumulatedThinking={accumulatedThinking}
+              thirdStepStarted={thirdStepStarted}
             />
           )}
           {selectedType === 'yaml' && (generatedYaml || isStreaming) && (
-            <YamlCodeBlock
+            <CodeBlock
               code={generatedYaml}
+              type={'yaml'}
               loading={isGenerating}
               isStreaming={isStreaming && selectedType === 'yaml'}
               streamingContent={streamingContent}
               thinkingProcess={thinkingProcess}
               actualCode={actualCode}
               accumulatedThinking={accumulatedThinking}
+              thirdStepStarted={thirdStepStarted}
             />
           )}
         </>
