@@ -172,7 +172,7 @@ export const RecordTimeline = ({
         ) {
           return (
             <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Text type="secondary">{eventTitle} - </Text>
+              <Text>{eventTitle} - </Text>
               <ShinyText
                 text={`(${event.elementRect!.x}, ${event.elementRect!.y})`}
                 disabled={false}
@@ -185,18 +185,18 @@ export const RecordTimeline = ({
 
         if (event.descriptionLoading === false && event.elementDescription) {
           return (
-            <Text type="secondary">
+            <Text className="">
               {eventTitle} - {event.elementDescription}
             </Text>
           );
         }
 
-        return <Text type="secondary">{eventTitle}</Text>;
+        return <Text>{eventTitle}</Text>;
 
       case 'input':
         if (event.descriptionLoading === false && event.elementDescription) {
           return (
-            <Text type="secondary">
+            <Text>
               {eventTitle} - {event.elementDescription}
             </Text>
           );
@@ -204,7 +204,7 @@ export const RecordTimeline = ({
 
         return (
           <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Text type="secondary">{eventTitle} - </Text>
+            <Text>{eventTitle} - </Text>
             <ShinyText
               text={event.value ? ` - "${event.value}"` : ''}
               disabled={false}
@@ -217,13 +217,13 @@ export const RecordTimeline = ({
       case 'scroll':
         if (event.elementDescription) {
           return (
-            <Text type="secondary">
+            <Text>
               {eventTitle} - {event.value?.split(' ')[0] || ''}
             </Text>
           );
         }
         return (
-          <Text type="secondary">
+          <Text>
             {eventTitle} - Position: ({event.elementRect?.x || 0},{' '}
             {event.elementRect?.y || 0})
           </Text>
@@ -235,24 +235,24 @@ export const RecordTimeline = ({
             ? `${event.url.substring(0, 50)}...`
             : event.url;
         return (
-          <Text type="secondary">
+          <Text>
             {eventTitle} - {truncatedUrl}
           </Text>
         );
       }
 
       case 'setViewport':
-        return <Text type="secondary">{eventTitle} - Desktop 964x992 px</Text>;
+        return <Text>{eventTitle} - Desktop 964x992 px</Text>;
 
       case 'keydown':
         return (
-          <Text type="secondary">
+          <Text>
             {eventTitle} - Key: {event.value || 'Unknown'}
           </Text>
         );
 
       default:
-        return <Text type="secondary">{eventTitle}</Text>;
+        return <Text>{eventTitle}</Text>;
     }
   };
 
@@ -274,13 +274,14 @@ export const RecordTimeline = ({
               toggleEventExpansion(index);
               onEventClick?.(event, index);
             }}
-            bodyStyle={{ padding: '8px 12px' }}
+            bodyStyle={{ padding: '8px 12px', backgroundColor: '#F2F4F7', borderRadius: '8px' }}
           >
             <Space
               style={{
                 width: '100%',
                 justifyContent: 'space-between',
                 alignItems: 'center',
+                color: 'rgba(0, 0, 0, 0.85)'
               }}
             >
               <Space style={{ flex: 1, minWidth: 0 }}>
@@ -310,11 +311,12 @@ export const RecordTimeline = ({
                       >
                         <div
                           style={{
-                            width: '32px',
-                            height: '20px',
+                            width: '24px',
+                            height: '24px',
                             borderRadius: '4px',
                             overflow: 'hidden',
-                            border: `1px solid ${getEventColor(event.type)}`,
+                            boxShadow: '1px 1px 1px 1px #00000014',
+                            // border: `1px solid ${getEventColor(event.type)}`,
                             cursor: 'pointer',
                             transition: 'all 0.2s ease-in-out',
                             zIndex: 2,
@@ -364,11 +366,12 @@ export const RecordTimeline = ({
                       >
                         <div
                           style={{
-                            width: '32px',
-                            height: '20px',
+                            width: '24px',
+                            height: '24px',
                             borderRadius: '4px',
                             overflow: 'hidden',
-                            border: '1px solid #52c41a',
+                            // border: '1px solid #52c41a',
+                            boxShadow: '1px 1px 1px 1px #00000014',
                             cursor: 'pointer',
                             transition: 'all 0.2s ease-in-out',
                             marginLeft: boxedImage ? '-14px' : '0',
@@ -402,52 +405,54 @@ export const RecordTimeline = ({
                 )}
               </Space>
             </Space>
+
+            {isExpanded && (
+              <div style={{ marginTop: 8, marginBottom: 8 }}>
+                <Card
+                  size="small"
+                  style={{ backgroundColor: '#f5f5f5' }}
+                  bodyStyle={{ padding: '0px' }}
+                >
+                  <div style={{ position: 'relative' }}>
+                    <pre
+                      style={{
+                        fontSize: '12px',
+                        margin: 0,
+                        whiteSpace: 'pre-wrap',
+                        backgroundColor: '#ffffff',
+                        padding: '12px',
+                        // paddingRight: '50px',
+                        borderRadius: '8px',
+                        // border: '1px solid #d9d9d9',
+                        maxHeight: '250px',
+                        overflow: 'auto',
+                      }}
+                    >
+                      {JSON.stringify(truncateJsonStrings(event), null, 2)}
+                    </pre>
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<CopyOutlined />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        copyToClipboard(JSON.stringify(event, null, 2));
+                      }}
+                      style={{
+                        position: 'absolute',
+                        top: '8px',
+                        right: '8px',
+                        background: 'rgba(255, 255, 255, 0.9)',
+                        border: '1px solid #d9d9d9',
+                      }}
+                      title="Copy JSON"
+                    />
+                  </div>
+                </Card>
+              </div>
+            )}
           </Card>
-          {isExpanded && (
-            <div style={{ marginTop: 8, marginBottom: 8 }}>
-              <Card
-                size="small"
-                style={{ backgroundColor: '#f5f5f5' }}
-                bodyStyle={{ padding: '12px' }}
-              >
-                <div style={{ position: 'relative' }}>
-                  <pre
-                    style={{
-                      fontSize: '12px',
-                      margin: 0,
-                      whiteSpace: 'pre-wrap',
-                      backgroundColor: '#ffffff',
-                      padding: '12px',
-                      paddingRight: '50px',
-                      borderRadius: '4px',
-                      border: '1px solid #d9d9d9',
-                      maxHeight: '250px',
-                      overflow: 'auto',
-                    }}
-                  >
-                    {JSON.stringify(truncateJsonStrings(event), null, 2)}
-                  </pre>
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<CopyOutlined />}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      copyToClipboard(JSON.stringify(event, null, 2));
-                    }}
-                    style={{
-                      position: 'absolute',
-                      top: '8px',
-                      right: '8px',
-                      background: 'rgba(255, 255, 255, 0.9)',
-                      border: '1px solid #d9d9d9',
-                    }}
-                    title="Copy JSON"
-                  />
-                </div>
-              </Card>
-            </div>
-          )}
+
         </div>
       ),
     };

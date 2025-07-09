@@ -140,7 +140,7 @@ export const useRecordingSession = (currentTab: chrome.tabs.Tab | null) => {
         setCurrentSession(null);
         clearEvents();
       }
-      message.success('Session deleted successfully');
+      // message.success('Session deleted successfully');
     },
     [deleteSession, currentSessionId, setCurrentSession, clearEvents],
   );

@@ -41,56 +41,27 @@ export const ThinkingProcessSection: React.FC<ThinkingProcessSectionProps> = ({
 
   if (!hasThinking) return null;
 
-  const colorClasses = {
-    blue: {
-      bg: 'bg-blue-50',
-      bgHover: 'hover:bg-blue-100',
-      border: 'border-blue-200',
-      text: 'text-blue-600',
-      icon: 'text-blue-400',
-      pulse: 'bg-blue-500',
-      content: 'bg-blue-25',
-    },
-    green: {
-      bg: 'bg-green-50',
-      bgHover: 'hover:bg-green-100',
-      border: 'border-green-200',
-      text: 'text-green-600',
-      icon: 'text-green-400',
-      pulse: 'bg-green-500',
-      content: 'bg-green-25',
-    },
-  };
-
-  const colors = colorClasses[themeColor];
 
   return (
-    <div className="mb-3">
+    <div className="mb-3 rounded-[8px] min-h-[40px]" style={{ background: showThinking ? "linear-gradient(180deg, rgba(43, 131, 255, 0.1) 0%, rgba(43, 131, 255, 0.024) 23.04%, rgba(43, 131, 255, 0) 100%)" : "linear-gradient(0deg, #FFFFFF, #FFFFFF)", border: showThinking ? '1px solid rgba(43, 131, 255, 0.16)' : '1px solid rgba(0, 0, 0, 0.06)' }}>
       <div
-        className={`flex items-center gap-2 cursor-pointer p-2 ${colors.bg} rounded-t border ${colors.border} ${colors.bgHover} transition-colors`}
+        className={`flex items-center gap-2 cursor-pointer p-2 bg-transparent`}
         onClick={() => setShowThinking(!showThinking)}
+      // style={{ borderBottom: showThinking ? '1px solid rgba(43, 131, 255, 0.16)' : 'none' }}
       >
-        <div className={`${colors.text} text-sm font-medium`}>
-          🤔 AI Thinking Process
+        <div className={` text-sm font-medium`} style={{ color: 'rgba(0, 0, 0, 0.85)' }}>
+          🧠  AI Thingking Process
         </div>
         <div
-          className={`transform transition-transform ${showThinking ? 'rotate-180' : ''}`}
+          className={`transform transition-transform ml-auto mr-1 ${showThinking ? 'rotate-180' : ''}`}
         >
-          <DownOutlined className={`${colors.icon} text-xs`} />
+          <DownOutlined className={`text-blue-400 text-xs`} style={{ color: 'rgba(128, 128, 128, 1)' }} />
         </div>
-        {isStreaming && hasThinking && (
-          <div className="flex items-center gap-1 ml-auto">
-            <div
-              className={`animate-pulse w-2 h-2 ${colors.pulse} rounded-full`}
-            />
-            <Text className={`text-xs ${colors.text}`}>Thinking...</Text>
-          </div>
-        )}
       </div>
       {showThinking && (
         <div
           ref={contentRef}
-          className={`p-3 ${colors.content} border-l border-r border-b ${colors.border} rounded-b text-sm text-gray-400 whitespace-pre-wrap`}
+          className={`p-3 bg-blue-25  rounded-b text-sm text-gray-400 whitespace-pre-wrap`}
           style={{ maxHeight: 200, overflowY: 'auto' }}
         >
           {accumulatedThinking ||

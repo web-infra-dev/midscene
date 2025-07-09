@@ -53,14 +53,8 @@ export const RecordList: React.FC<RecordListProps> = ({
       )}
 
       {sessions.length === 0 ? (
-        <div className="session-empty flex flex-col items-center justify-center h-[200px] text-gray-500">
-          <div className="w-16 h-16 border-2 border-gray-300 rounded-lg flex items-center justify-center mb-4">
-            <div className="w-8 h-0.5 bg-gray-300 rounded-sm" />
-          </div>
-          <Empty
-            description="No data"
-            className="flex flex-col items-center justify-center"
-          />
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />
         </div>
       ) : (
         <List
@@ -71,11 +65,10 @@ export const RecordList: React.FC<RecordListProps> = ({
             <List.Item>
               <Card
                 size="small"
-                className={`cursor-pointer ${
-                  session.id === currentSessionId
-                    ? 'selected-session border-2 border-blue-500'
-                    : 'border border-gray-300'
-                }`}
+                className={`cursor-pointer ${session.id === currentSessionId
+                  ? 'selected-session border-2 border-blue-500'
+                  : 'border border-gray-300'
+                  }`}
                 onClick={() => onViewDetail(session)}
                 actions={[
                   <Button

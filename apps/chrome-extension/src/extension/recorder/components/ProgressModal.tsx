@@ -827,7 +827,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
             </Select>
             {(selectedType === 'playwright' || selectedType === 'yaml') &&
               (showGeneratedCode || isStreaming) && (
-                <div className="flex gap-2 ml-auto">
+                <div className="flex gap-0.2 ml-auto">
                   <Button
                     size="small"
                     icon={<CopyOutlined />}
@@ -836,6 +836,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
                         ? handleCopyTest
                         : handleCopyYaml
                     }
+                    className="!border-none !bg-none !shadow-none"
                     disabled={
                       isStreaming ||
                       (selectedType === 'playwright'
@@ -846,7 +847,20 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
                   />
                   <Button
                     size="small"
+                    icon={<ReloadOutlined />}
+                    onClick={
+                      selectedType === 'playwright'
+                        ? handleRegenerateTest
+                        : handleRegenerateYaml
+                    }
+                    disabled={isGenerating || isStreaming}
+                    className="!border-none !bg-none !shadow-none"
+                    title="Regenerate code"
+                  />
+                  <Button
+                    size="small"
                     icon={<DownloadOutlined />}
+                    className="!border-none !bg-none !shadow-none"
                     onClick={
                       selectedType === 'playwright'
                         ? handleDownloadTest
@@ -863,17 +877,6 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
                         ? 'Download as .ts file'
                         : 'Download as .yaml file'
                     }
-                  />
-                  <Button
-                    size="small"
-                    icon={<ReloadOutlined />}
-                    onClick={
-                      selectedType === 'playwright'
-                        ? handleRegenerateTest
-                        : handleRegenerateYaml
-                    }
-                    disabled={isGenerating || isStreaming}
-                    title="Regenerate code"
                   />
                 </div>
               )}

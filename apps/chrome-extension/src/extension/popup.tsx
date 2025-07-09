@@ -14,7 +14,7 @@ import {
 import '@midscene/visualizer/index.css';
 import { ConfigProvider, Dropdown, Typography } from 'antd';
 import { useEffect, useState } from 'react';
-import { BrowserExtensionPlayground } from '../component/playground';
+import { BrowserExtensionPlayground } from '../components/playground';
 import Bridge from './bridge';
 import Recorder from './recorder';
 import './popup.less';
@@ -58,16 +58,16 @@ export function PlaygroundPopup() {
     },
     ...(localStorage.getItem('recorder-enabled') === 'true'
       ? [
-          {
-            key: 'recorder',
-            label: 'Recorder',
-            icon: <VideoCameraOutlined />,
-            onClick: () => {
-              setCurrentMode('recorder');
-              setPopupTab('recorder');
-            },
+        {
+          key: 'recorder',
+          label: 'Recorder',
+          icon: <VideoCameraOutlined />,
+          onClick: () => {
+            setCurrentMode('recorder');
+            setPopupTab('recorder');
           },
-        ]
+        },
+      ]
       : []),
     {
       key: 'bridge',

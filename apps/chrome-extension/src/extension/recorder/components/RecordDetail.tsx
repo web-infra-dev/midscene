@@ -211,11 +211,10 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
 
           <button
             type="button"
-            className={`flex items-center justify-center gap-1.5 flex-1 transition-colors !font-medium !leading-[1.83em] !bg-transparent !rounded-lg !py-2 !px-0 !border-none !cursor-pointer ${
-              tab === 'code'
-                ? 'text-[rgba(0,0,0,0.85)]'
-                : 'text-[rgba(0,0,0,0.25)]'
-            } ${events.length === 0 ? '!text-gray-300 !cursor-not-allowed' : ''}`}
+            className={`flex items-center justify-center gap-1.5 flex-1 transition-colors !font-medium !leading-[1.83em] !bg-transparent !rounded-lg !py-2 !px-0 !border-none !cursor-pointer ${tab === 'code'
+              ? 'text-[rgba(0,0,0,0.85)]'
+              : 'text-[rgba(0,0,0,0.25)]'
+              } ${events.length === 0 ? '!text-gray-300 !cursor-not-allowed' : ''}`}
             style={{
               fontFamily: 'Inter, -apple-system, sans-serif',
             }}
@@ -256,18 +255,17 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
 
       {/* Fixed bottom action bar - only shown in timeline tab */}
       {tab === 'timeline' && (
-        <div className="px-4 py-6 pb-8 flex justify-center">
+        <div className="px-4 py-6 pb-16 flex justify-center">
           {!isRecording ? (
             <Button
               type="primary"
               icon={<PlayCircleOutlined />}
               onClick={() => onStartRecording(sessionId)}
               disabled={isRecording}
-              size="large"
-              className="w-full max-w-xs h-12 text-[14px] font-medium rounded-lg"
+              className="!fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[1000] !h-[40px] !py-[12px] !px-[12px] !rounded-[48px]"
               style={{ fontFamily: 'Inter, -apple-system, sans-serif' }}
             >
-              Start
+              Start Recording
             </Button>
           ) : (
             <div

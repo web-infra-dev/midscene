@@ -273,13 +273,13 @@ export default function Recorder() {
       {viewMode === 'list' && (
         <Button
           type="primary"
-          shape="circle"
-          size="large"
-          icon={<PlusOutlined />}
+          className="!fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[1000] !h-[40px] !py-[12px] !px-[16px] !rounded-[48px]"
+          // className="!fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[1000] flex items-center justify-center gap-[10px] text-[14px] text-white w-[172px] h-[40px] rounded-[48px] border py-[12px] px-[16px]"
+          icon={<PlusOutlined className="stroke-[2]" />}
           onClick={handleCreateNewSession}
-          className="!fixed bottom-5 right-5 w-14 h-14 shadow-lg 
-       shadow-blue-500/40 z-[1000]"
-        />
+        >
+          New Recording
+        </Button>
       )}
 
       {/* Recording Detail Modal */}
