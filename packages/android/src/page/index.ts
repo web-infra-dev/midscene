@@ -752,7 +752,7 @@ ${Object.keys(size)
 
   async recentApps(): Promise<void> {
     const adb = await this.getAdb();
-    await adb.shell('input keyevent 82');
+    await adb.shell('input keyevent 187');
   }
 
   async getXpathsById(id: string): Promise<string[]> {
