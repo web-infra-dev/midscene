@@ -42,7 +42,6 @@ function CodeBlockContainer({ language, code, isStreaming }: { language: 'yaml' 
 
   useEffect(() => {
     if (codeRef.current && !isStreaming) {
-      console.log('codeRef.current', code);
       hljs.highlightElement(codeRef.current);
     }
   }, [code, language]);

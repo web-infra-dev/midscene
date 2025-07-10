@@ -99,7 +99,12 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
   const [accumulatedThinking, setAccumulatedThinking] = useState('');
 
   const { updateSession } = useRecordingSessionStore();
-
+  console.log({
+    generatedTest,
+    generatedYaml,
+    showGeneratedCode,
+    selectedType
+  })
   // Function to update defaultType and persist to localStorage
   const updateDefaultType = (newType: CodeGenerationType) => {
     setDefaultType(newType);
@@ -349,8 +354,8 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
     return events;
   };
 
-  // Streaming callback handler
-  const handleStreamingChunk: StreamingCallback = (
+  // Streaming callback handler factory
+  const createStreamingChunkHandler = (targetType: 'playwright' | 'yaml'): StreamingCallback => (
     chunk: CodeGenerationChunk,
   ) => {
     setStreamingContent(chunk.accumulated);
@@ -371,10 +376,10 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
       // Use the actual code for final result
       const finalCode = code || chunk.accumulated;
 
-      // Set the final generated code
-      if (selectedType === 'playwright') {
+      // Set the final generated code based on the target type, not current selectedType
+      if (targetType === 'playwright') {
         setGeneratedTest(finalCode);
-      } else if (selectedType === 'yaml') {
+      } else if (targetType === 'yaml') {
         setGeneratedYaml(finalCode);
       }
 
@@ -383,7 +388,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
         updateSession(sessionId, {
           generatedCode: {
             ...getCurrentSession()?.generatedCode,
-            [selectedType]: finalCode,
+            [targetType]: finalCode,
           },
           updatedAt: Date.now(),
         });
@@ -509,7 +514,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
           finalEvents,
           {
             stream: true,
-            onChunk: handleStreamingChunk,
+            onChunk: createStreamingChunkHandler(type),
           },
         );
         generatedCode = streamingResult.content;
@@ -517,7 +522,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
         // Use streaming for YAML
         const streamingResult = await generateYamlTestStream(finalEvents, {
           stream: true,
-          onChunk: handleStreamingChunk,
+          onChunk: createStreamingChunkHandler(type),
           testName: currentSessionName,
           description: `Test session recorded on ${new Date().toLocaleDateString()}`,
           includeTimestamps: true,
