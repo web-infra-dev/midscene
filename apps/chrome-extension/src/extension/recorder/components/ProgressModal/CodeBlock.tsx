@@ -10,6 +10,16 @@ import { useEffect, useRef } from 'react';
 import { ThinkingProcessSection } from './ThinkingProcessSection';
 import { triggerConfetti } from './confetti';
 
+import hljs from 'highlight.js/lib/core';
+import yaml from 'highlight.js/lib/languages/yaml';
+import javascript from 'highlight.js/lib/languages/javascript';
+
+import 'highlight.js/styles/github.css';
+
+
+hljs.registerLanguage('javascript', javascript);
+hljs.registerLanguage('yaml', yaml);
+
 const { Text } = Typography;
 
 interface CodeBlockProps {
@@ -26,6 +36,27 @@ interface CodeBlockProps {
   actualCode?: string;
   accumulatedThinking?: string;
 }
+
+function CodeBlockContainer({ language, code, isStreaming }: { language: 'yaml' | 'javascript', code: string, isStreaming: boolean }) {
+  const codeRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (codeRef.current && !isStreaming) {
+      console.log('codeRef.current', code);
+      hljs.highlightElement(codeRef.current);
+    }
+  }, [code, language]);
+
+  return (
+    <pre>
+      <code ref={codeRef} className={`language-${language}`}>
+        {code}
+      </code>
+    </pre>
+  );
+}
+
+
 
 export const CodeBlock: React.FC<CodeBlockProps> = ({
   type,
@@ -66,12 +97,20 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
       />
       {stepDisplay && (<div className="relative">
         <pre
-          className={`bg-gray-50 rounded-[8px] border text-sm overflow-auto max-h-128 font-mono border-radius-[8px] ${!actualCode ? 'p-4 border-[#F2F4F7]' : 'px-[12px] py-[8px] border-gray-200'}`}
+          className={`bg-gray-50 rounded-[8px] border text-sm overflow-auto max-h-128 font-mono border-radius-[8px] ${!actualCode ? 'p-4 border-[#F2F4F7]' : 'px-[12px]  border-gray-200'}`}
         >
-          <code>
-            {displayContent ||
-              (isStreaming && 'Generating code...')}
-          </code>
+          {
+            displayContent ?
+              (
+                <CodeBlockContainer language={type === 'playwright' ? 'javascript' : 'yaml'} code={displayContent} isStreaming={isStreaming} />
+
+              ) :
+              isStreaming ? (
+                <code>
+                  Generating code...
+                </code>
+              ) : null
+          }
         </pre>
         {isStreaming && !actualCode && (
           <div className="absolute bottom-4 right-2 bg-[#2B83FF1F] text-[#2B83FF] px-2 py-1 rounded-full text-xs">

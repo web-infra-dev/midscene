@@ -20,6 +20,7 @@
     "antd": "^5.21.6",
     "canvas-confetti": "1.9.3",
     "dayjs": "^1.11.11",
+    "highlight.js": "11.11.1",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "zustand": "4.5.2"

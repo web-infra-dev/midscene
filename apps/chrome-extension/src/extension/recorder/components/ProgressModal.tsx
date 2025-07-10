@@ -671,21 +671,28 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
 
   // Reset state when starting new generation
   const handleSelectChange = (value: CodeGenerationType) => {
+    console.log('handleSelectChange', value);
     setSelectedType(value);
 
     if (value === 'playwright') {
       // Don't clear yaml code, just check if playwright code exists
       if (generatedTest) {
         setShowGeneratedCode(true);
-      } else if (!isGenerating) {
-        handleGenerateCode(value);
+      } else {
+        setShowGeneratedCode(false);
+        if (!isGenerating) {
+          handleGenerateCode(value);
+        }
       }
     } else if (value === 'yaml') {
       // Don't clear playwright code, just check if yaml code exists
       if (generatedYaml) {
         setShowGeneratedCode(true);
-      } else if (!isGenerating) {
-        handleGenerateCode(value);
+      } else {
+        setShowGeneratedCode(false);
+        if (!isGenerating) {
+          handleGenerateCode(value);
+        }
       }
     } else if (value === 'none') {
       setShowGeneratedCode(false);
@@ -773,7 +780,6 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
                 if (value === 'none') {
                   return;
                 }
-                setSelectedType(value);
                 handleSelectChange(value);
               }}
               className="w-60"
@@ -933,10 +939,11 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
         })()}
 
       {/* Code block for selectedType only */}
-      {((showGeneratedCode || isStreaming)) && (
+      {(showGeneratedCode || isStreaming) && (
         <>
-          {selectedType === 'playwright' && (generatedTest || isStreaming) && (
+          {selectedType === 'playwright' && (generatedTest || (isStreaming && selectedType === 'playwright')) && (
             <CodeBlock
+              key={'playwright'}
               code={generatedTest}
               type={'playwright'}
               loading={isGenerating}
@@ -948,8 +955,9 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
               stepDisplay={thirdStepStarted || steps.length === 0}
             />
           )}
-          {selectedType === 'yaml' && (generatedYaml || isStreaming) && (
+          {selectedType === 'yaml' && (generatedYaml || (isStreaming && selectedType === 'yaml')) && (
             <CodeBlock
+              key={'yaml'}
               code={generatedYaml}
               type={'yaml'}
               loading={isGenerating}
