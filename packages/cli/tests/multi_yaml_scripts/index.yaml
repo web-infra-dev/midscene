@@ -2,7 +2,7 @@
 # This demonstrates how to use the multi-YAML file batch execution feature
 
 # Concurrency settings (default: 1 for sequential execution)
-concurrent: 1
+concurrent: 2
 
 # Continue execution even if one file fails (default: false)
 continueOnError: true

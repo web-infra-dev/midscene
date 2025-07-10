@@ -152,11 +152,9 @@ export const contextTaskListSummary = (
       }
     }
   }
-  const currentLineText =
-    currentLine.length > 0 ? `\n${paddingLines(currentLine).join('\n')}` : '';
-  const prefix =
-    prefixLines.length > 0 ? `\n${paddingLines(prefixLines).join('\n')}` : '';
-  const suffix =
-    suffixText.length > 0 ? `\n${paddingLines(suffixText).join('\n')}` : '';
-  return `${fileInfo}${prefix}${currentLineText}${suffix}`;
+  const lines: string[] = [fileInfo];
+  if (prefixLines.length > 0) lines.push(...paddingLines(prefixLines));
+  if (currentLine.length > 0) lines.push(...paddingLines(currentLine));
+  if (suffixText.length > 0) lines.push(...paddingLines(suffixText));
+  return lines.join('\n');
 };
