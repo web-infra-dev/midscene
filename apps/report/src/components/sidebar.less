@@ -16,13 +16,14 @@
 
   .task-meta {
     color: @weak-text;
-    font-weight: normal;  
-    padding-left: @side-horizontal-padding;    
+    font-weight: normal;
+    padding-left: @side-horizontal-padding;
   }
 
   // side-seperator side-seperator-line side-seperator-space-up side-seperator-space-down" />
   .side-seperator {
     border-top: 1px solid none;
+
     &.side-seperator-line {
       border-top: 1px solid @border-color;
     }
@@ -37,28 +38,26 @@
   }
 
   .side-sub-title {
-    padding: 0 @side-horizontal-padding;
+    padding: 0 20px;
     margin-bottom: 6px;
   }
 
   .name-status {
     font-size: 12px;
     display: inline-block;
-    margin-right: 6px;
+    margin-right: 2px;
   }
 
   .side-item {
     cursor: pointer;
     transition: .1s;
-    // margin-bottom: 9px;
-    padding: 2px 0 2px 28px;
-    
+    padding: 0 0 0 42px;
+
     &:hover {
       background: @hover-bg;
     }
-    
-    &.selected
-    {
+
+    &.selected {
       background: @selected-bg;
     }
 
@@ -66,14 +65,16 @@
       padding: 0 @side-horizontal-padding 0 calc(@side-horizontal-padding + 10px);
     }
   }
-  
+
   .side-item-name {
     padding: 0 @side-horizontal-padding 0 calc(@side-horizontal-padding + 10px);
     position: relative;
     display: flex;
     justify-content: space-between;
-    
-    .status-icon{
+    height: 34px;
+    line-height: 34px;
+
+    .status-icon {
       position: absolute;
       left: 0;
       display: inline-block;
@@ -89,9 +90,63 @@
     }
   }
 
-  .bottom-controls{
+  .usage-info {
+    padding: 0 10px 0 5px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+
+    .usage-divider {
+      width: 1px;
+      height: 40px;
+      background-color: @border-color;
+      margin-top: 2px;
+      margin-right: 5px;
+      flex-shrink: 0;
+    }
+
+    .usage-content {
+      flex: 1;
+    }
+
+    .usage-item {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      line-height: 20px;
+      height: 20px;
+      margin-bottom: 2px;
+
+      .usage-label {
+        color: @weak-text;
+      }
+
+      .usage-value {
+        color: @weak-text;
+        font-weight: 500;
+      }
+    }
+  }
+
+  .bottom-controls {
     padding: @side-horizontal-padding 10px;
     text-align: left;
     text-align: center;
   }
+
+  .execution-info-section {
+    .section-separator {
+      height: 1px;
+      background-color: @border-color;
+    }
+
+    .execution-info-title {
+      font-size: 14px;
+      height: 36px;
+      line-height: 36px;
+      color: @weak-text;
+      padding-left: 20px;
+    }
+  }
+
 }

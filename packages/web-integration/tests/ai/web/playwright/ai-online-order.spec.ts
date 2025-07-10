@@ -9,11 +9,13 @@ test.beforeEach(async ({ page }) => {
   await page.waitForLoadState('networkidle');
 });
 
-test('ai online order', async ({ ai, page, aiQuery }) => {
+test('ai online order', async ({ ai, aiTap, page, aiQuery }) => {
   await ai('点击顶部语言切换按钮(英文、中文)，在弹出的下拉列表中点击中文');
   await ai('向下滚动一屏');
   await sleep(2000);
-  await ai('点击多肉葡萄的规格按钮');
+  await aiTap('点击多肉葡萄的规格按钮', {
+    deepThink: true,
+  });
   await ai('点击不使用吸管、点击冰沙推荐、点击正常冰推荐');
   await ai('向下滚动一屏');
   await sleep(2000);

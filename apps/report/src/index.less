@@ -21,7 +21,7 @@ body {
 :root {
   --modern-sidebar-width: 0 !important;
   --modern-aside-width: 0 !important;
-  --modern-preview-padding:0 !important;
+  --modern-preview-padding: 0 !important;
 }
 
 .modern-doc-layout,
@@ -36,18 +36,32 @@ body {
 header.w-full {
   display: none !important;
 }
-.modern-doc-container{
+
+.modern-doc-container {
   padding: 0 !important;
 }
 
-footer.mt-8{
+footer.mt-8 {
   display: none;
 }
+
 // ----------
 
 .page-container {
 
-  blockquote, dl, dd, h1, h2, h3, h4, h5, h6, hr, figure, p, pre {
+  blockquote,
+  dl,
+  dd,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  hr,
+  figure,
+  p,
+  pre {
     margin: 0;
   }
 
@@ -55,7 +69,15 @@ footer.mt-8{
   flex-direction: column;
   height: 100%;
   color: @main-text;
-  font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
+  font-family: -apple-system,
+  BlinkMacSystemFont,
+  "Segoe UI",
+  "Noto Sans",
+  Helvetica,
+  Arial,
+  sans-serif,
+  "Apple Color Emoji",
+  "Segoe UI Emoji";
   font-size: 14px;
   border-top: 1px solid @border-color;
   border-bottom: 1px solid @border-color;
@@ -76,7 +98,6 @@ footer.mt-8{
   border-bottom: 1px solid @border-color;
   display: flex;
   flex-direction: row;
-  background: @side-bg;
 
   .page-nav-left {
     display: flex;
@@ -87,13 +108,29 @@ footer.mt-8{
     margin-left: 20px;
 
     .ant-btn {
-      background: @toolbar-btn-bg;
+      background: #fff;
+      border: solid 1px rgba(0, 0, 0, 0.08);
+      width: 94px;
+      height: 28px;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+
+      &:hover {
+        background: #f5f5f5;
+      }
     }
   }
 
   .playwright-case-selector {
     margin-left: 16px;
     line-height: 30px;
+  }
+
+  .test-case-stats {
+    margin-left: 16px;
+    line-height: 30px;
+    border-left: 1px solid @border-color;
   }
 }
 
@@ -124,14 +161,14 @@ footer.mt-8{
     margin: 0 auto;
   }
 
-  .main-content{
+  .main-content {
     display: flex;
     flex-direction: row;
     flex-grow: 1;
     overflow: hidden;
     background: #FFF;
   }
-  
+
   &.uploader-wrapper {
     box-sizing: border-box;
     margin: auto;
@@ -149,7 +186,7 @@ footer.mt-8{
       margin-top: 10px;
     }
   }
-  
+
   .main-content-container {
     flex-grow: 1;
     height: 100%;
@@ -157,7 +194,7 @@ footer.mt-8{
     overflow: hidden;
     border-right: 1px solid @border-color;
   }
-    
+
   .main-side {
     box-sizing: border-box;
     overflow-y: scroll;
