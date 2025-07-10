@@ -18,6 +18,7 @@ import {
 import type React from 'react';
 import type { RecordingSession } from '../../../store';
 import type { ViewMode } from '../types';
+import './recordList.css';
 
 const { Title } = Typography;
 
@@ -62,7 +63,7 @@ export const RecordList: React.FC<RecordListProps> = ({
           grid={{ gutter: 16, column: 1 }}
           dataSource={[...sessions].sort((a, b) => b.updatedAt - a.updatedAt)}
           renderItem={(session) => (
-            <List.Item>
+            <List.Item className="session-item">
               <Card
                 size="small"
                 className={`cursor-pointer ${session.id === currentSessionId

@@ -99,12 +99,6 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
   const [accumulatedThinking, setAccumulatedThinking] = useState('');
 
   const { updateSession } = useRecordingSessionStore();
-  console.log({
-    generatedTest,
-    generatedYaml,
-    showGeneratedCode,
-    selectedType
-  })
   // Function to update defaultType and persist to localStorage
   const updateDefaultType = (newType: CodeGenerationType) => {
     setDefaultType(newType);
