@@ -284,7 +284,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
     });
 
     let completedCount = 0;
-    const finalEvents = [...events];
+    // const finalEvents = [...events];
 
     recordLogger.info('eventsNeedingDescriptions', {
       eventsNeedingDescriptions,
@@ -292,8 +292,14 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
     });
 
     // Process events in parallel with progress tracking
-    const optimizePromises = eventsNeedingDescriptions.map(
+    const optimizePromises = events.map(
       async (event, index) => {
+        if (event.type === 'navigation' || event.type === 'scroll') {
+          event.elementDescription = 'navigation or scroll';
+          event.descriptionLoading = false;
+          return;
+        }
+
         try {
           let description = '';
           if (event.elementDescription && event.descriptionLoading === false) {
@@ -302,11 +308,9 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
             description = await generateAIDescription(event, event.hashId);
           }
 
-          finalEvents[index] = {
-            ...event,
-            elementDescription: description,
-            descriptionLoading: false,
-          };
+          event.elementDescription = description;
+          event.descriptionLoading = false;
+
           completedCount++;
 
           const progress = Math.round(
@@ -319,11 +323,8 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
           });
         } catch (error) {
           console.error('Failed to optimize event:', error);
-          finalEvents[index] = {
-            ...event,
-            elementDescription: 'failed to generate element description',
-            descriptionLoading: false,
-          };
+          event.elementDescription = 'failed to generate element description';
+          event.descriptionLoading = false;
           completedCount++;
         }
       },
@@ -334,7 +335,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
     // Update session with new event descriptions if sessionId exists
     if (sessionId) {
       updateSession(sessionId, {
-        events: finalEvents,
+        events,
         updatedAt: Date.now(),
       });
     }
@@ -345,7 +346,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
       details: `Generated descriptions for ${events.length} elements`,
     });
 
-    return finalEvents;
+    return events;
   };
 
   // Streaming callback handler
@@ -441,7 +442,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
     setSlidingOutSteps(new Set());
     // Hide code generation area when starting new generation
     setShowGeneratedCode(false);
-    // Clear old generated code
+    // Only clear the code that we're about to regenerate, preserve the other type
     if (type === 'playwright') {
       setGeneratedTest('');
     } else {
@@ -672,22 +673,25 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
   const handleSelectChange = (value: CodeGenerationType) => {
     setSelectedType(value);
 
-    // Show/hide code based on what's available for the selected type
-    if (value === 'playwright' && generatedTest) {
-      setShowGeneratedCode(true);
-    } else if (value === 'yaml' && generatedYaml) {
-      setShowGeneratedCode(true);
+    if (value === 'playwright') {
+      // Don't clear yaml code, just check if playwright code exists
+      if (generatedTest) {
+        setShowGeneratedCode(true);
+      } else if (!isGenerating) {
+        handleGenerateCode(value);
+      }
+    } else if (value === 'yaml') {
+      // Don't clear playwright code, just check if yaml code exists
+      if (generatedYaml) {
+        setShowGeneratedCode(true);
+      } else if (!isGenerating) {
+        handleGenerateCode(value);
+      }
     } else if (value === 'none') {
       setShowGeneratedCode(false);
-      setGeneratedTest('');
-      setGeneratedYaml('');
-    } else if ((value === 'playwright' || value === 'yaml') && !isGenerating) {
-      // Generate new code if none exists for this type
-      handleGenerateCode(value);
+      // Don't clear generated code when selecting 'none', preserve it for future switches
     } else {
       setShowGeneratedCode(false);
-      setGeneratedTest('');
-      setGeneratedYaml('');
     }
   };
 

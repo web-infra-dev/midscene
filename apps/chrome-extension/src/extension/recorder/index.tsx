@@ -293,6 +293,7 @@ export default function Recorder() {
             key={currentSessionId}
             sessionId={currentSessionId}
             isRecording={isRecording}
+            // events={events}
             currentTab={currentTab}
             onBack={handleBackToList}
             onStartRecording={startRecording}

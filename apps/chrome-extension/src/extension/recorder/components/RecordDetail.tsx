@@ -13,7 +13,7 @@ import { RecordTimeline } from '@midscene/recorder';
 import { Alert, Button, Empty, Spin } from 'antd';
 import type React from 'react';
 import { useEffect, useState } from 'react';
-import { useRecordingSessionStore } from '../../../store';
+import { useRecordingSessionStore, useRecordStore } from '../../../store';
 
 import { ProgressModal } from './ProgressModal';
 
@@ -21,6 +21,7 @@ interface RecordDetailProps {
   sessionId: string;
   isRecording: boolean;
   currentTab: chrome.tabs.Tab | null;
+  // events: ChromeRecordedEvent[];
   onBack: () => void;
   onStartRecording: (id: string) => void;
   onStopRecording: () => void;
@@ -32,6 +33,7 @@ interface RecordDetailProps {
 export const RecordDetail: React.FC<RecordDetailProps> = ({
   sessionId,
   isRecording,
+  // events = [],
   onBack,
   onStartRecording,
   onStopRecording,
@@ -41,11 +43,11 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
   // useState must be called at the top level of the component, not after conditional statements
   const [tab, setTab] = useState<'timeline' | 'code'>('timeline');
   const [isFromStopRecording, setIsFromStopRecording] = useState(false);
+  const { events } = useRecordStore();
 
   // Get the session directly from the store to ensure we always have the latest data
   const { sessions } = useRecordingSessionStore();
   const session = sessions.find((s) => s.id === sessionId);
-  const events = session?.events || [];
 
   // 新增：sessionId 变化时重置 tab
   useEffect(() => {

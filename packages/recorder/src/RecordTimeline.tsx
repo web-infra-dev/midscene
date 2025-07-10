@@ -274,7 +274,7 @@ export const RecordTimeline = ({
               toggleEventExpansion(index);
               onEventClick?.(event, index);
             }}
-            bodyStyle={{ padding: '8px 12px', backgroundColor: '#F2F4F7', borderRadius: '8px' }}
+            styles={{ body: { padding: '8px 12px', backgroundColor: '#F2F4F7', borderRadius: '8px' } }}
           >
             <Space
               style={{

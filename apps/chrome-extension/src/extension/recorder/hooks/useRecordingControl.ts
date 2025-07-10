@@ -74,6 +74,8 @@ export const useRecordingControl = (
     recordLogger.info('Stopping recording', {
       sessionId: currentSessionId || undefined,
       tabId: currentTab?.id,
+      events,
+      session: getCurrentSession(),
     });
 
     if (!isExtensionMode) {

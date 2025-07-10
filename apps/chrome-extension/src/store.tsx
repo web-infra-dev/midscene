@@ -143,6 +143,7 @@ export const useRecordingSessionStore = create<{
   },
   updateSession: async (sessionId, updates) => {
     try {
+      recordLogger.info('Updating session', { sessionId, updates });
       await dbManager.updateSession(sessionId, updates);
       const sessions = await dbManager.getAllSessions();
       set({ sessions });
