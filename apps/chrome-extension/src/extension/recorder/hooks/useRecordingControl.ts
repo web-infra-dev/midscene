@@ -389,9 +389,9 @@ export const useRecordingControl = (
               );
             }
 
-            recordLogger.warn(
-              'Service worker port disconnected, attempting reconnection',
-            );
+            // recordLogger.warn(
+            //   'Service worker port disconnected, attempting reconnection',
+            // );
 
             // Attempt to reconnect after a delay
             if (isRecording && currentSessionId) {
