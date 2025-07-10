@@ -1,6 +1,6 @@
 import { assert } from 'node:console';
 import { mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { basename, join } from 'node:path';
+import { basename, dirname, extname, join, relative } from 'node:path';
 import type {
   MidsceneYamlIndexResult,
   MidsceneYamlScript,
@@ -13,9 +13,6 @@ import { IndexYamlParser, type ParsedIndexConfig } from './index-parser';
 import { type YamlExecutionResult, playYamlFiles } from './yaml-runner';
 
 export interface BatchExecutionOptions {
-  concurrent?: number;
-  continueOnError?: boolean;
-  dryRun?: boolean;
   keepWindow?: boolean;
   headed?: boolean;
 }
@@ -29,18 +26,27 @@ export class BatchYamlExecutor {
   constructor(indexYamlPath: string) {
     this.parser = new IndexYamlParser(indexYamlPath);
     // Create batch output directory using entry filename + PID, similar to ScriptPlayer
-    const indexFileName = basename(indexYamlPath, '.yaml').replace(
-      /\.(ya?ml)$/i,
-      '',
-    );
+    const indexFileName = basename(indexYamlPath, extname(indexYamlPath));
     this.batchOutputDir = join(
       getMidsceneRunSubDir('output'),
-      `${indexFileName}-${process.pid}`,
+      `${indexFileName}-${Date.now()}`,
     );
   }
 
   async initialize(): Promise<void> {
     this.config = await this.parser.parse();
+
+    // Update batch output directory if web.output is specified in index.yaml
+    if (
+      this.config.web?.output ||
+      this.config.android?.output ||
+      this.config.target?.output
+    ) {
+      // Use the directory containing the specified output file as the base directory
+      this.batchOutputDir = dirname(
+        this.config.web?.output || this.config.android?.output || '',
+      );
+    }
   }
 
   async execute(
@@ -51,28 +57,22 @@ export class BatchYamlExecutor {
       'BatchYamlExecutor not initialized. Call initialize() first.',
     );
 
-    const {
-      concurrent = this.config.concurrent,
-      continueOnError = this.config.continueOnError,
-      dryRun = false,
-      keepWindow = false,
-      headed = false,
-    } = options;
+    const { keepWindow = false, headed = false } = options;
+    const concurrent = this.config.concurrent || 1;
 
     // Print execution plan
-    this.printExecutionPlan(
-      concurrent,
-      continueOnError,
-      dryRun,
-      keepWindow,
-      headed,
-    );
-
-    if (dryRun) {
-      return this.createDryRunResults();
-    }
+    this.printExecutionPlan(concurrent, keepWindow, headed);
 
     let browser: any = null;
+    const taskResults: Array<{
+      file: string;
+      success: boolean;
+      output?: string;
+      report?: string;
+      error?: string;
+      startTime?: number;
+      duration?: number;
+    }> = [];
     try {
       browser = await puppeteer.launch({ headless: !headed });
       // Execute files with concurrency control using p-limit
@@ -80,31 +80,22 @@ export class BatchYamlExecutor {
       const limit = pLimit(concurrent);
 
       // Create tasks for all files
-      const tasks = this.config.files.map((file, index) =>
+      const tasks = this.config.files.map((file) =>
         limit(async () => {
+          const startTime = Date.now();
           try {
-            const startTime = Date.now();
-
-            // Load and merge configuration
+            // Load file configuration and build execution config with output path
             const fileConfig = await this.loadFileConfig(file);
-            const mergedConfig = this.parser.mergeGlobalConfig(
+            const outputPath = this.generateFileOutputPath(file);
+            const executionConfig = this.parser.buildExecutionConfig(
               fileConfig,
               this.config,
+              outputPath,
             );
-
-            // Generate output path for this file
-            const outputPath = this.generateFileOutputPath(file);
-            if (mergedConfig.web) {
-              mergedConfig.web.output = outputPath;
-            } else if (mergedConfig.android) {
-              mergedConfig.android.output = outputPath;
-            } else if (mergedConfig.target) {
-              mergedConfig.target.output = outputPath;
-            }
 
             // Execute using existing playYamlFiles function with config override
             const result: YamlExecutionResult = await playYamlFiles(
-              [{ file, script: mergedConfig }],
+              [{ file, script: executionConfig }],
               {
                 keepWindow,
                 headed,
@@ -121,139 +112,107 @@ export class BatchYamlExecutor {
               const fileResult = result.files[0];
               const player = fileResult.player;
 
-              // Report files stay in their original location (midscene_run/report)
-              // Just reference the file path
+              // 1. record reportFile
               if (player.reportFile) {
                 reportFile = player.reportFile;
               }
 
-              // Check if the output file was created at the expected location
+              // 2. check output file
+              let needWriteOutput = true;
               if (player.output && player.output === outputPath) {
                 try {
                   const stats = statSync(outputPath);
                   if (stats.isFile()) {
-                    actualOutputPath = basename(outputPath); // Store only filename
+                    actualOutputPath = this.formatOutputPath(outputPath);
+                    needWriteOutput = false;
                   }
-                } catch (error) {
-                  console.warn(
-                    `Warning: Could not create or find output file: ${error}`,
-                  );
+                } catch (e) {
+                  // file not exist, continue
                 }
               }
 
-              // If no output file was created, check if there are results and create one
-              if (!actualOutputPath) {
-                if (Object.keys(player.result).length > 0) {
-                  // Create output file with player results
-                  try {
-                    writeFileSync(
-                      outputPath,
-                      JSON.stringify(player.result, undefined, 2),
-                    );
-                    actualOutputPath = basename(outputPath);
-                  } catch (error) {
-                    console.warn(
-                      `Warning: Could not create output file: ${error}`,
-                    );
-                  }
-                } else {
-                  // Create empty result file to indicate successful execution with no data
-                  try {
-                    writeFileSync(outputPath, '{}');
-                    actualOutputPath = basename(outputPath);
-                  } catch (error) {
-                    console.warn(
-                      `Warning: Could not create empty output file: ${error}`,
-                    );
-                  }
+              // 3. if output file not generated, write result to output file
+              if (needWriteOutput) {
+                try {
+                  const content =
+                    Object.keys(player.result).length > 0
+                      ? JSON.stringify(player.result, undefined, 2)
+                      : '{}';
+                  writeFileSync(outputPath, content);
+                  actualOutputPath = this.formatOutputPath(outputPath);
+                } catch (e) {
+                  console.warn(`Warning: Could not create output file: ${e}`);
                 }
               }
             }
 
-            return this.parser.createIndexResult(
+            return {
               file,
               success,
-              actualOutputPath,
-              reportFile,
-              undefined,
+              output: actualOutputPath,
+              report: reportFile,
+              error: undefined,
               startTime,
-            );
+              duration: Date.now() - startTime,
+            };
           } catch (error) {
             const errorMessage =
               error instanceof Error ? error.message : String(error);
-
-            return this.parser.createIndexResult(
+            return {
               file,
-              false,
-              undefined,
-              undefined,
-              errorMessage,
-            );
+              success: false,
+              output: undefined,
+              report: undefined,
+              error: errorMessage,
+              startTime,
+              duration: Date.now() - startTime,
+            };
           }
         }),
       );
 
-      // Execute all tasks with proper error handling
-      if (continueOnError) {
-        // If continue on error, execute all tasks and collect results
+      if (this.config.continueOnError) {
         const results = await Promise.allSettled(tasks);
-        this.results = results.map((result, index) => {
+        for (let i = 0; i < results.length; i++) {
+          const result = results[i];
           if (result.status === 'fulfilled') {
-            return result.value;
+            taskResults.push(result.value);
           } else {
-            const file = this.config.files[index];
-            const errorMessage =
-              result.reason instanceof Error
-                ? result.reason.message
-                : String(result.reason);
-
-            return this.parser.createIndexResult(
-              file,
-              false,
-              undefined,
-              undefined,
-              errorMessage,
-            );
-          }
-        });
-      } else {
-        // If not continue on error, stop on first failure
-        try {
-          this.results = await Promise.all(tasks);
-        } catch (error) {
-          // Find which file failed and include partial results
-          const settledResults = await Promise.allSettled(tasks);
-          this.results = [];
-
-          for (let i = 0; i < settledResults.length; i++) {
-            const result = settledResults[i];
-            if (result.status === 'fulfilled') {
-              this.results.push(result.value);
-            } else {
-              const file = this.config.files[i];
-              const errorMessage =
+            taskResults.push({
+              file: this.config.files[i],
+              success: false,
+              error:
                 result.reason instanceof Error
                   ? result.reason.message
-                  : String(result.reason);
-
-              this.results.push(
-                this.parser.createIndexResult(
-                  file,
-                  false,
-                  undefined,
-                  undefined,
-                  errorMessage,
-                ),
-              );
-              // Stop processing after first error
+                  : String(result.reason),
+              duration: 0,
+            });
+          }
+        }
+      } else {
+        for (let i = 0; i < tasks.length; i++) {
+          try {
+            const value = await tasks[i];
+            taskResults.push(value);
+            if (!value.success) {
               break;
             }
+          } catch (error) {
+            taskResults.push({
+              file: this.config.files[i],
+              success: false,
+              error: error instanceof Error ? error.message : String(error),
+              duration: 0,
+            });
+            break;
           }
         }
       }
     } finally {
       if (browser) await browser.close();
     }
+
+    this.results = taskResults;
 
     // Generate output index file
     await this.generateOutputIndex();
@@ -263,7 +222,24 @@ export class BatchYamlExecutor {
 
   private async loadFileConfig(file: string): Promise<MidsceneYamlScript> {
     const content = readFileSync(file, 'utf8');
-    return parseYamlScript(content, file);
+    const fullConfig = parseYamlScript(content, file);
+    // Build the result object with only allowed fields
+    const result: MidsceneYamlScript = {
+      tasks: fullConfig.tasks,
+    };
+
+    // Add allowed nested fields if they exist
+    if (fullConfig.web?.url || fullConfig.target?.url) {
+      result.web = {
+        url: fullConfig.web?.url || fullConfig.target?.url || '',
+      };
+    }
+
+    if (fullConfig.android?.launch) {
+      result.android = { launch: fullConfig.android.launch };
+    }
+
+    return result;
   }
 
   private generateFileOutputPath(file: string): string {
@@ -279,47 +255,27 @@ export class BatchYamlExecutor {
     return outputPath;
   }
 
+  private formatOutputPath(outputPath: string): string {
+    const relativePath = relative(this.batchOutputDir, outputPath);
+    return `./${relativePath}`;
+  }
+
   private printExecutionPlan(
     concurrent: number,
-    continueOnError: boolean,
-    dryRun: boolean,
     keepWindow: boolean,
     headed: boolean,
   ): void {
-    console.log('📋 Execution Plan:');
+    console.log('📋 Execution plan:');
     console.log(`   Files to execute: ${this.config.files.length}`);
     console.log(`   Concurrency: ${concurrent}`);
-    console.log(`   Continue on error: ${continueOnError}`);
-    console.log(`   Mode: ${dryRun ? 'DRY RUN' : 'EXECUTE'}`);
     console.log(`   Output directory: ${this.batchOutputDir}`);
     console.log(`   Keep window: ${keepWindow}`);
     console.log(`   Headed: ${headed}`);
-
-    if (this.config.web) {
-      console.log(
-        `   Global web config: viewport ${this.config.web.viewportWidth}x${this.config.web.viewportHeight}`,
-      );
-    }
-
-    if (this.config.android) {
-      console.log(
-        `   Global android config: device ${this.config.android.deviceId || 'default'}`,
-      );
-    }
-
     console.log('📄 Files to execute:');
+
     this.config.files.forEach((file, index) => {
       console.log(`   ${index + 1}. ${file}`);
     });
-  }
-
-  private createDryRunResults(): MidsceneYamlIndexResult[] {
-    return this.config.files.map((file) => ({
-      file,
-      success: true,
-      output: this.generateFileOutputPath(file),
-      duration: 0,
-    }));
   }
 
   private async generateOutputIndex(): Promise<void> {
@@ -340,13 +296,15 @@ export class BatchYamlExecutor {
             (sum, r) => sum + (r.duration || 0),
             0,
           ),
-          generatedAt: new Date().toISOString(),
+          generatedAt: new Date().toLocaleString(),
         },
         results: this.results.map((result) => ({
-          file: result.file,
+          script: relative(this.batchOutputDir, result.file),
           success: result.success,
-          output: result.output, // Already stored as filename only
-          report: result.report, // Full path to report file
+          output: result.output, // Already stored with ./ prefix
+          report: result.report
+            ? relative(this.batchOutputDir, result.report)
+            : undefined,
           error: result.error,
           duration: result.duration,
         })),
@@ -354,27 +312,8 @@ export class BatchYamlExecutor {
 
       // Write index file
       writeFileSync(indexPath, JSON.stringify(indexData, null, 2));
+
       console.log(`📊 Index file generated: ${indexPath}`);
-
-      // Log individual output files that were preserved
-      const preservedFiles = this.results.filter((r) => r.output && r.success);
-      if (preservedFiles.length > 0) {
-        console.log('📄 Individual output files preserved:');
-        preservedFiles.forEach((result) => {
-          console.log(`   ${result.file} → ${result.output}`);
-        });
-      }
-
-      // Log report files that were preserved
-      const preservedReports = this.results.filter(
-        (r) => r.report && r.success,
-      );
-      if (preservedReports.length > 0) {
-        console.log('📊 Individual report files preserved:');
-        preservedReports.forEach((result) => {
-          console.log(`   ${result.file} → ${result.report}`);
-        });
-      }
     } catch (error) {
       console.error('Failed to generate output index:', error);
     }

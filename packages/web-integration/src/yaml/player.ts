@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { assert, ifInBrowser } from '@midscene/shared/utils';
 
 import type { PageAgent } from '@/common/agent';
@@ -43,6 +43,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
   private pageAgent: PageAgent | null = null;
   public agentStatusTip?: string;
   public target?: MidsceneYamlScriptEnv;
+  private scriptPath?: string;
   constructor(
     private script: MidsceneYamlScript,
     private setupAgent: (platform: T) => Promise<{
@@ -50,7 +51,9 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       freeFn: FreeFn[];
     }>,
     public onTaskStatusChange?: (taskStatus: ScriptPlayerTaskStatus) => void,
+    scriptPath?: string,
   ) {
+    this.scriptPath = scriptPath;
     this.result = {};
 
     this.target = script.target || script.web || script.android;
@@ -60,7 +63,13 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
     } else if (this.target?.output) {
       this.output = resolve(process.cwd(), this.target.output);
     } else {
-      this.output = join(getMidsceneRunSubDir('output'), `${process.pid}.json`);
+      const scriptName = this.scriptPath
+        ? basename(this.scriptPath, '.yaml').replace(/\.(ya?ml)$/i, '')
+        : 'script';
+      this.output = join(
+        getMidsceneRunSubDir('output'),
+        `${scriptName}-${Date.now()}.json`,
+      );
     }
 
     if (ifInBrowser) {

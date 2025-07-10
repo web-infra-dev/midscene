@@ -17,6 +17,7 @@ export interface ParsedIndexConfig {
   continueOnError: boolean;
   web?: MidsceneYamlScriptWebEnv;
   android?: MidsceneYamlScriptAndroidEnv;
+  target?: MidsceneYamlScriptWebEnv;
   files: string[];
   outputPath?: string;
   outputFormat: 'json';
@@ -94,42 +95,32 @@ export class IndexYamlParser {
   }
 
   /**
-   * Merge global configuration with individual file configuration
+   * Build execution configuration by merging file config with global config and setting output path
    */
-  mergeGlobalConfig(
+  buildExecutionConfig(
     fileConfig: MidsceneYamlScript,
     globalConfig: ParsedIndexConfig,
+    outputPath?: string,
   ): MidsceneYamlScript {
-    const merged: MidsceneYamlScript = { ...fileConfig };
+    const merged: MidsceneYamlScript = {
+      tasks: fileConfig.tasks,
+    };
 
-    // Merge web configuration if present
-    if (globalConfig.web && fileConfig.web) {
+    // Use fileConfig as base, fallback to globalConfig, and add outputPath
+    if (fileConfig.web || fileConfig.target) {
       merged.web = {
-        ...globalConfig.web,
-        ...fileConfig.web,
+        ...(globalConfig.web || { url: '' }),
+        ...(fileConfig.web || fileConfig.target || { url: '' }),
+        output: outputPath,
       };
-    } else if (globalConfig.web) {
-      merged.web = globalConfig.web;
     }
 
-    // Merge android configuration if present
-    if (globalConfig.android && fileConfig.android) {
+    if (fileConfig.android) {
       merged.android = {
-        ...globalConfig.android,
+        ...(globalConfig.android || {}),
         ...fileConfig.android,
+        output: outputPath,
       };
-    } else if (globalConfig.android) {
-      merged.android = globalConfig.android;
-    }
-
-    // Handle deprecated target field
-    if (globalConfig.web && fileConfig.target) {
-      merged.target = {
-        ...globalConfig.web,
-        ...fileConfig.target,
-      };
-    } else if (globalConfig.web && !fileConfig.web && !fileConfig.target) {
-      merged.target = globalConfig.web;
     }
 
     return merged;
@@ -147,31 +138,5 @@ export class IndexYamlParser {
     }
 
     return outputName;
-  }
-
-  /**
-   * Create index result entry
-   */
-  createIndexResult(
-    file: string,
-    success: boolean,
-    output?: string,
-    report?: string,
-    error?: string,
-    startTime?: number,
-  ): MidsceneYamlIndexResult {
-    const result: MidsceneYamlIndexResult = {
-      file,
-      success,
-      output,
-      report,
-      error,
-    };
-
-    if (startTime) {
-      result.duration = Date.now() - startTime;
-    }
-
-    return result;
   }
 }

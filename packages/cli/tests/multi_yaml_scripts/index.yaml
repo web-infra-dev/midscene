@@ -2,7 +2,7 @@
 # This demonstrates how to use the multi-YAML file batch execution feature
 
 # Concurrency settings (default: 1 for sequential execution)
-concurrent: 2
+concurrent: 1
 
 # Continue execution even if one file fails (default: false)
 continueOnError: true
@@ -12,8 +12,9 @@ web:
   # All individual YAML files will inherit these settings
   viewportWidth: 1280
   viewportHeight: 720
+  # bridgeMode: "newTabWithUrl"
   # Output directory for individual files (will be combined with file-specific paths)
-  # output: "./batch-results/"
+  output: "./midscene_run/output/batch-execution-result/index.json"
 
 # Global android environment configuration (if needed)
 # android:
@@ -21,11 +22,8 @@ web:
 
 # Execution order using glob patterns
 order:
-  - "test-*.yaml"      # Execute all files starting with "test-"
+  # - "midscene_scripts/local/*.yml"
+  # - "midscene_scripts/online/*.yaml"
+  # - "test-*.yaml"      # Execute all files starting with "test-"
   - "demo.yaml"        # Execute specific file
   - "scripts/*.yaml"   # Execute all YAML files in scripts directory
-
-# Output configuration for the batch execution summary
-output:
-  path: "./batch-execution-result.json"
-  format: "json"
