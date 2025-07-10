@@ -64,92 +64,83 @@ export const RecordList: React.FC<RecordListProps> = ({
           dataSource={[...sessions].sort((a, b) => b.updatedAt - a.updatedAt)}
           renderItem={(session) => (
             <List.Item className="session-item">
-              <Card
-                size="small"
-                className={`cursor-pointer ${session.id === currentSessionId
-                  ? 'selected-session border-2 border-blue-500'
-                  : 'border border-gray-300'
+              <div
+                className={`w-full bg-[#F4F6F9] rounded-lg cursor-pointer transition-all duration-200 overflow-hidden hover:shadow-md ${session.id === currentSessionId
+                  ? 'border-2 border-[#F4F6F9] bg-blue-50'
+                  : ''
                   }`}
                 onClick={() => onViewDetail(session)}
-                actions={[
-                  <Button
-                    key="edit"
-                    type="text"
-                    icon={<EditOutlined />}
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onEditSession(session);
-                    }}
-                  />,
-                  <Button
-                    key="download"
-                    type="text"
-                    icon={<DownloadOutlined />}
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onExportSession(session);
-                    }}
-                    disabled={session.events.length === 0}
-                  />,
-                  <Popconfirm
-                    key="delete"
-                    title="Delete session"
-                    description="Are you sure you want to delete this session?"
-                    onConfirm={(e) => {
-                      e?.stopPropagation();
-                      onDeleteSession(session.id);
-                    }}
-                    onCancel={(e) => e?.stopPropagation()}
-                  >
+              >
+                {/* Main content area */}
+                <div className="bg-white border border-[#F2F4F7] rounded-[8px] p-3 flex flex-col gap-2">
+                  <div className="font-medium text-sm leading-[1.21] text-black w-full">
+                    {session.name}
+                  </div>
+                  {session.description && (
+                    <div className="font-normal text-xs leading-[1.67] text-[#595959] max-h-10 overflow-hidden line-clamp-2">
+                      {session.description}
+                    </div>
+                  )}
+                  <div className="font-normal text-xs leading-[1.67] text-[#595959]">
+                    {session.url &&
+                      `URL: ${session.url.slice(0, 50)}${session.url.length > 50 ? '...' : ''}`}
+                  </div>
+                  <div className="font-normal text-xs leading-[1.67] text-[#595959]">
+                    {new Date(session.createdAt).toLocaleString()}
+                  </div>
+                </div>
+
+                {/* Action bar */}
+                <div className="h-10 bg-[#F2F4F7] rounded-b-lg flex items-center justify-between px-3">
+                  <div className="flex items-center justify-center flex-1">
                     <Button
                       type="text"
-                      danger
-                      icon={<DeleteOutlined />}
+                      icon={<EditOutlined />}
                       size="small"
-                      onClick={(e) => e.stopPropagation()}
+                      className="!w-4 !h-4 !p-0 !border-0 !bg-transparent !text-[#595959] hover:!text-blue-500 hover:!bg-transparent focus:!bg-transparent !shadow-none"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEditSession(session);
+                      }}
                     />
-                  </Popconfirm>,
-                ]}
-              >
-                <Card.Meta
-                  title={
-                    <div className="flex justify-between items-center">
-                      <span>{session.name}</span>
-                      {/* <Space>
-                        <Tag
-                          color={
-                            session.status === 'recording'
-                              ? 'red'
-                              : session.status === 'completed'
-                                ? 'green'
-                                : 'default'
-                          }
-                        >
-                          {session.status}
-                        </Tag>
-                      </Space> */}
-                    </div>
-                  }
-                  description={
-                    <div className="session-meta">
-                      {session.description && (
-                        <div className="mt-1 mb-1">{session.description}</div>
-                      )}
-                      <div className="mt-1 mb-1">
-                        {session.url &&
-                          ` URL: ${session.url.slice(0, 50)}${session.url.length > 50 ? '...' : ''}`}
-                      </div>
-                      <div className="session-details flex justify-between items-center mt-1 mb-1">
-                        <span>
-                          {new Date(session.createdAt).toLocaleString()}
-                        </span>
-                      </div>
-                    </div>
-                  }
-                />
-              </Card>
+                  </div>
+                  <div className="w-px h-5 bg-[rgba(0, 0, 0, 0.04)]" />
+                  <div className="flex items-center justify-center flex-1">
+                    <Button
+                      type="text"
+                      icon={<DownloadOutlined />}
+                      size="small"
+                      className="!w-4 !h-4 !p-0 !border-0 !bg-transparent !text-[#595959] hover:!text-blue-500 hover:!bg-transparent focus:!bg-transparent !shadow-none disabled:!text-gray-300"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onExportSession(session);
+                      }}
+                      disabled={session.events.length === 0}
+                    />
+                  </div>
+                  <div className="w-px h-5 bg-[rgba(0, 0, 0, 0.04)]" />
+                  <div className="flex items-center justify-center flex-1">
+                    <Popconfirm
+                      title="Delete session"
+                      description="Are you sure you want to delete this session?"
+                      onConfirm={(e) => {
+                        e?.stopPropagation();
+                        onDeleteSession(session.id);
+                      }}
+                      onCancel={(e) => e?.stopPropagation()}
+                    >
+                      <Button
+                        type="text"
+                        danger
+                        icon={<DeleteOutlined />}
+                        size="small"
+                        className="!w-4 !h-4 !p-0 !border-0 !bg-transparent !text-[#595959] hover:!text-red-500 hover:!bg-transparent focus:!bg-transparent !shadow-none"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </Popconfirm>
+                  </div>
+                </div>
+              </div>
             </List.Item>
           )}
         />

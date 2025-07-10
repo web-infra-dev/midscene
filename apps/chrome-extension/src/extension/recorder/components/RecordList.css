@@ -1,3 +1,6 @@
 .ant-row {
     margin: 0 !important;
 }
+.ant-col {
+    padding: 0 !important;
+}
