@@ -1,5 +1,6 @@
 import { basename, dirname, relative } from 'node:path';
 import type {
+  MidsceneYamlScriptEnv,
   ScriptPlayerStatusValue,
   ScriptPlayerTaskStatus,
 } from '@midscene/core';
@@ -8,7 +9,7 @@ import chalk from 'chalk';
 
 export interface MidsceneYamlFileContext {
   file: string;
-  player: ScriptPlayer;
+  player: ScriptPlayer<MidsceneYamlScriptEnv>;
 }
 
 export const isTTY = process.env.MIDSCENE_CLI_LOG_ON_NON_TTY

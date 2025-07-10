@@ -23,6 +23,7 @@
   "dependencies": {
     "@midscene/android": "workspace:*",
     "@midscene/core": "workspace:*",
+    "@midscene/shared": "workspace:*",
     "@midscene/web": "workspace:*",
     "puppeteer": "24.2.0",
     "http-server": "14.1.1"
@@ -42,6 +43,7 @@
     "execa": "9.3.0",
     "glob": "11.0.0",
     "js-yaml": "4.1.0",
+    "p-limit": "6.2.0",
     "restore-cursor": "5.1.0"
   },
   "engines": {

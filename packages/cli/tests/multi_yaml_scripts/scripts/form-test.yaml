@@ -1,0 +1,9 @@
+# Script 1 - Form testing
+
+web:
+  url: "https://httpbin.org/forms/post"
+
+tasks:
+  - name: "Check form page"
+    flow:
+      - aiAssert: "form is displayed"

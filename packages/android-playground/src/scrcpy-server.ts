@@ -1,6 +1,5 @@
 import { exec } from 'node:child_process';
 import { createReadStream } from 'node:fs';
-import fs from 'node:fs/promises';
 import { createServer } from 'node:http';
 import type { Server as HttpServer } from 'node:http';
 import path from 'node:path';
