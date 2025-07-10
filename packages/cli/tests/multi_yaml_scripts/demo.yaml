@@ -1,0 +1,14 @@
+# Demo file - Simple page interaction
+
+web:
+  url: "https://httpbin.org"
+
+tasks:
+  - name: "Check HTTPBin page"
+    flow:
+      - sleep: 2000
+      - aiAssert: "httpbin page is loaded"
+      - aiQuery: "What APIs are available on this page?"
+        name: "available_apis"
+      - aiBoolean: "Does the page contain the text 'HTTP Request & Response Service'?"
+        name: "has_service_text"

@@ -1,0 +1,15 @@
+# Test file 1 - Simple web automation
+
+web:
+  url: "https://example.com"
+  viewportWidth: 500
+  viewportHeight: 1000
+
+tasks:
+  - name: "Navigate to example.com"
+    flow:
+      - aiAssert: "page loaded successfully"
+      - aiQuery: "What is the main heading text?"
+        name: "main_heading"
+      - aiString: "Extract the page title"
+        name: "page_title"

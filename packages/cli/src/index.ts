@@ -2,7 +2,8 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import dotenv from 'dotenv';
 import { version } from '../package.json';
-import { matchYamlFiles, parseProcessArgs } from './cli-utils';
+import { BatchYamlExecutor } from './batch-executor';
+import { isIndexYamlFile, matchYamlFiles, parseProcessArgs } from './cli-utils';
 import { playYamlFiles } from './yaml-runner';
 
 Promise.resolve(
@@ -34,6 +35,42 @@ Promise.resolve(
       process.exit(1);
     }
 
+    // Check if the path is an index YAML file
+    if (existsSync(path) && isIndexYamlFile(path)) {
+      console.log('📋 Detected index YAML file, executing batch workflow...\n');
+
+      const executor = new BatchYamlExecutor(path);
+      await executor.initialize();
+
+      await executor.execute({
+        concurrent: options.concurrent,
+        continueOnError: options['continue-on-error'],
+        dryRun: options['dry-run'],
+        keepWindow: options['keep-window'],
+        headed: options.headed,
+      });
+
+      const summary = executor.getExecutionSummary();
+
+      console.log('\n📊 Execution Summary:');
+      console.log(`   Total files: ${summary.total}`);
+      console.log(`   Successful: ${summary.successful}`);
+      console.log(`   Failed: ${summary.failed}`);
+      console.log(`   Duration: ${(summary.totalDuration / 1000).toFixed(2)}s`);
+
+      if (summary.failed > 0) {
+        console.log('\n❌ Failed files:');
+        executor.getFailedFiles().forEach((file) => {
+          console.log(`   - ${file}`);
+        });
+        process.exit(1);
+      }
+
+      console.log('\n✅ All files executed successfully!');
+      process.exit(0);
+    }
+
+    // Handle regular YAML files
     const files = await matchYamlFiles(path);
     if (files.length === 0) {
       console.error(`no yaml files found in ${path}`);

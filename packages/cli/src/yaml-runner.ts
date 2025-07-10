@@ -13,15 +13,25 @@ import { TTYWindowRenderer } from './tty-renderer';
 
 import assert from 'node:assert';
 import { agentFromAdbDevice } from '@midscene/android';
-import type { FreeFn } from '@midscene/core';
+import type { FreeFn, MidsceneYamlScript } from '@midscene/core';
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
 import { puppeteerAgentForTarget } from '@midscene/web/puppeteer-agent-launcher';
+import type { Browser } from 'puppeteer';
+
+export interface YamlExecutionResult {
+  success: boolean;
+  files: Array<{
+    file: string;
+    player: ScriptPlayer<any>;
+    success: boolean;
+  }>;
+}
 
 export const launchServer = async (
   dir: string,
 ): Promise<ReturnType<typeof createServer>> => {
   // https://github.com/http-party/http-server/blob/master/bin/http-server
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const server = createServer({
       root: dir,
     });
@@ -33,16 +43,35 @@ export const launchServer = async (
 
 let ttyRenderer: TTYWindowRenderer | undefined;
 export async function playYamlFiles(
-  files: string[],
+  files:
+    | string[]
+    | {
+        file: string;
+        script: MidsceneYamlScript;
+      }[],
   options?: {
     headed?: boolean;
     keepWindow?: boolean;
+    browser?: Browser;
   },
-): Promise<boolean> {
+  configOverrides?: Array<MidsceneYamlScript>,
+): Promise<YamlExecutionResult> {
   // prepare
   const fileContextList: MidsceneYamlFileContext[] = [];
-  for (const file of files) {
-    const script = parseYamlScript(readFileSync(file, 'utf-8'), file);
+  for (let i = 0; i < files.length; i++) {
+    const fileItem = files[i];
+    let file: string;
+    let script: MidsceneYamlScript;
+    if (typeof fileItem === 'string') {
+      file = fileItem;
+      script = parseYamlScript(readFileSync(file, 'utf-8'), file);
+      if (configOverrides?.[i]) {
+        script = configOverrides[i];
+      }
+    } else {
+      file = fileItem.file;
+      script = fileItem.script;
+    }
     const fileName = basename(file, extname(file));
     const preference = {
       headed: options?.headed,
@@ -89,6 +118,7 @@ export async function playYamlFiles(
           const { agent, freeFn: newFreeFn } = await puppeteerAgentForTarget(
             webTarget,
             preference,
+            options?.browser,
           );
           freeFn.push(...newFreeFn);
 
@@ -198,5 +228,13 @@ export async function playYamlFiles(
   }
 
   const ifFail = fileContextList.some((task) => task.player.status === 'error');
-  return !ifFail;
+
+  return {
+    success: !ifFail,
+    files: fileContextList.map((context) => ({
+      file: context.file,
+      player: context.player,
+      success: context.player.status !== 'error',
+    })),
+  };
 }
