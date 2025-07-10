@@ -54,7 +54,7 @@ export const RecordList: React.FC<RecordListProps> = ({
       )}
 
       {sessions.length === 0 ? (
-        <div className="fixed inset-0 flex items-center justify-center z-50">
+        <div className="absolute inset-0 flex items-center justify-center z-50">
           <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />
         </div>
       ) : (
