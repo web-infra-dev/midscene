@@ -35,6 +35,9 @@ Promise.resolve(
       process.exit(1);
     }
 
+    const keepWindow = options['keep-window'] || false;
+    const headed = options.headed || false;
+
     // Check if the path is an index YAML file
     if (existsSync(path) && isIndexYamlFile(path)) {
       console.log('📋 Detected index YAML file, executing batch workflow...\n');
@@ -43,11 +46,8 @@ Promise.resolve(
       await executor.initialize();
 
       await executor.execute({
-        concurrent: options.concurrent,
-        continueOnError: options['continue-on-error'],
-        dryRun: options['dry-run'],
-        keepWindow: options['keep-window'],
-        headed: options.headed,
+        keepWindow,
+        headed,
       });
 
       const summary = executor.getExecutionSummary();
@@ -77,9 +77,8 @@ Promise.resolve(
       process.exit(1);
     }
 
-    const keepWindow = options['keep-window'] || false;
     const success = await playYamlFiles(files, {
-      headed: !!options.headed,
+      headed,
       keepWindow,
     });
 

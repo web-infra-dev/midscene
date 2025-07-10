@@ -46,21 +46,6 @@ Usage: $0 [options] <path-to-yaml-script-file-or-directory>`,
         description:
           'Turn on logging to help debug why certain keys or values are not being set as you expect',
       },
-      concurrent: {
-        type: 'number',
-        description:
-          'Number of concurrent executions for index YAML files (overrides the concurrent value in index.yaml)',
-      },
-      'continue-on-error': {
-        type: 'boolean',
-        description:
-          'Continue execution even if some files fail (overrides the continueOnError value in index.yaml)',
-      },
-      'dry-run': {
-        type: 'boolean',
-        default: false,
-        description: 'Show execution plan without actually running the scripts',
-      },
     })
     .version('version', 'Show version number', __VERSION__)
     .help()
