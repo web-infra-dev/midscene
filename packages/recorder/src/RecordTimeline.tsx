@@ -206,7 +206,7 @@ export const RecordTimeline = ({
           <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <Text>{eventTitle} - </Text>
             <ShinyText
-              text={event.value ? ` - "${event.value}"` : ''}
+              text={event.value ? `"${event.value}"` : ''}
               disabled={false}
               speed={3}
               className="step-title-shiny"
