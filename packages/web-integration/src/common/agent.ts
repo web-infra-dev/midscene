@@ -743,6 +743,13 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     };
     // 5. append to execution dump
     this.appendExecutionDump(executionDump);
+
+    try {
+      this.onDumpUpdate?.(this.dumpDataString());
+    } catch (error) {
+      console.error('Failed to update dump', error);
+    }
+
     this.writeOutActionDumps();
   }
 
