@@ -2,9 +2,8 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import dotenv from 'dotenv';
 import { version } from '../package.json';
-import { BatchYamlExecutor } from './batch-executor';
 import { isIndexYamlFile, matchYamlFiles, parseProcessArgs } from './cli-utils';
-import { playYamlFiles } from './yaml-runner';
+import { BatchYamlExecutor } from './yaml-runner';
 
 Promise.resolve(
   (async () => {
@@ -39,10 +38,10 @@ Promise.resolve(
     const headed = options.headed || false;
 
     // Check if the path is an index YAML file
-    if (existsSync(path) && isIndexYamlFile(path)) {
+    if (isIndexYamlFile(path)) {
       console.log('📋 Detected index YAML file, executing batch workflow...\n');
 
-      const executor = new BatchYamlExecutor(path);
+      const executor = new BatchYamlExecutor(path, 'index');
       await executor.initialize();
 
       await executor.execute({
@@ -50,23 +49,12 @@ Promise.resolve(
         headed,
       });
 
-      const summary = executor.getExecutionSummary();
+      const success = executor.printExecutionSummary();
 
-      console.log('\n📊 Execution Summary:');
-      console.log(`   Total files: ${summary.total}`);
-      console.log(`   Successful: ${summary.successful}`);
-      console.log(`   Failed: ${summary.failed}`);
-      console.log(`   Duration: ${(summary.totalDuration / 1000).toFixed(2)}s`);
-
-      if (summary.failed > 0) {
-        console.log('\n❌ Failed files:');
-        executor.getFailedFiles().forEach((file) => {
-          console.log(`   - ${file}`);
-        });
+      if (!success) {
         process.exit(1);
       }
 
-      console.log('\n✅ All files executed successfully!');
       process.exit(0);
     }
 
@@ -77,10 +65,17 @@ Promise.resolve(
       process.exit(1);
     }
 
-    const success = await playYamlFiles(files, {
-      headed,
+    console.log('📄 Executing YAML files...\n');
+
+    const executor = new BatchYamlExecutor(files, 'files');
+    await executor.initialize();
+
+    await executor.execute({
       keepWindow,
+      headed,
     });
+
+    const success = executor.printExecutionSummary();
 
     if (keepWindow) {
       // hang the process to keep the browser window open
