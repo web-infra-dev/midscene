@@ -201,3 +201,27 @@ export interface ScriptPlayerTaskStatus extends MidsceneYamlTask {
 }
 
 export type ScriptPlayerStatusValue = 'init' | 'running' | 'done' | 'error';
+
+// Index YAML file types for batch execution
+export interface MidsceneYamlIndex {
+  concurrent?: number;
+  continueOnError?: boolean;
+  web?: MidsceneYamlScriptWebEnv;
+  android?: MidsceneYamlScriptAndroidEnv;
+  order: string[];
+  output?: MidsceneYamlIndexOutput;
+}
+
+export interface MidsceneYamlIndexOutput {
+  format?: 'json';
+  path?: string;
+}
+
+export interface MidsceneYamlIndexResult {
+  file: string;
+  success: boolean;
+  output?: string;
+  report?: string;
+  error?: string;
+  duration?: number;
+}

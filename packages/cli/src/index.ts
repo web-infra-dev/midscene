@@ -1,8 +1,8 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import dotenv from 'dotenv';
-import { matchYamlFiles, parseProcessArgs } from './cli-utils';
-import { playYamlFiles } from './yaml-runner';
+import { isIndexYamlFile, matchYamlFiles, parseProcessArgs } from './cli-utils';
+import { BatchYamlExecutor } from './yaml-runner';
 
 Promise.resolve(
   (async () => {
@@ -33,17 +33,48 @@ Promise.resolve(
       process.exit(1);
     }
 
+    const keepWindow = options['keep-window'] || false;
+    const headed = options.headed || false;
+
+    // Check if the path is an index YAML file
+    if (isIndexYamlFile(path)) {
+      console.log('📋 Detected index YAML file, executing batch workflow...\n');
+
+      const executor = new BatchYamlExecutor(path, 'index');
+      await executor.initialize();
+
+      await executor.execute({
+        keepWindow,
+        headed,
+      });
+
+      const success = executor.printExecutionSummary();
+
+      if (!success) {
+        process.exit(1);
+      }
+
+      process.exit(0);
+    }
+
+    // Handle regular YAML files
     const files = await matchYamlFiles(path);
     if (files.length === 0) {
       console.error(`no yaml files found in ${path}`);
       process.exit(1);
     }
 
-    const keepWindow = options['keep-window'] || false;
-    const success = await playYamlFiles(files, {
-      headed: !!options.headed,
+    console.log('📄 Executing YAML files...\n');
+
+    const executor = new BatchYamlExecutor(files, 'files');
+    await executor.initialize();
+
+    await executor.execute({
       keepWindow,
+      headed,
     });
+
+    const success = executor.printExecutionSummary();
 
     if (keepWindow) {
       // hang the process to keep the browser window open

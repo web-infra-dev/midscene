@@ -110,9 +110,74 @@ midscene /dir/**/yaml/
 
 ## YAML file schema
 
-There are two parts in a `.yaml` file, the `web/android` and the `tasks`.
+Midscene supports two types of `.yaml` files:
+
+### 1. Standard script files
+
+In standard script `.yaml` files, there are two parts: `web/android` and `tasks`.
 
 The `web/android` part defines the basic of a task. Use `web` parameter (also previously named as `target`) for web browser automation, and use `android` parameter for Android device automation. They are mutually exclusive.
+
+### 2. Batch execution index files
+
+For more complex batch execution needs, Midscene supports using an entry `.yaml` file that contains multiple sub `.yaml` files to define the execution plan. This approach provides the ability to execute multiple YAML files concurrently and reuse browser state (like cookies).
+
+Batch execution index files contain the following parts:
+
+```yaml
+# Define the list of files to execute and their order
+order:
+  - './scripts/login.yaml'
+  - './scripts/search.yaml'
+  - './scripts/**/*.yaml' # glob pattern is supported
+
+# Concurrent execution count, default is 1
+concurrent: 2
+
+# Whether to continue execution even if one file fails, default is false
+continueOnError: true
+
+# Global web configuration (only url and serve fields can be overridden by each file)
+web:
+  userAgent: 'Custom User Agent'
+  viewportWidth: 1920
+  viewportHeight: 1080
+
+# Global android configuration (only launch field can be overridden by each file)
+android:
+  deviceId: 'your-device-id'
+```
+
+#### Configuration description
+
+- **order**: required, define the list of files to execute, glob pattern is supported
+- **concurrent**: optional, the number of concurrent execution, default is 1
+- **continueOnError**: optional, whether to continue execution even if one file fails, default is false
+- **web**: optional, global web configuration. Note: only `url` and `serve` fields can be overridden by each YAML file's configuration, other fields serve as global defaults
+- **android**: optional, global android configuration. Note: only `launch` field can be overridden by each YAML file's configuration, other fields serve as global defaults
+
+#### Batch execution advantages
+
+1. **Concurrent execution**: execute multiple YAML files concurrently, improve execution efficiency
+2. **Reuse browser state**: reuse browser state (like cookies), improve execution efficiency
+3. **Result summary**: automatically generate a summary report containing the execution status and statistics of all files
+4. **Configuration reuse**: global configuration can be shared by all files, reduce duplicate configuration (note: only specific fields can be overridden)
+5. **Execution plan**: clear execution plan, including file number, concurrent number, output directory, etc.
+
+After the batch execution is complete, the following files will be generated in the output directory:
+
+- The aggregated `index.json` file, containing the execution status and statistics of all files
+- The individual execution results of each YAML file (JSON format)
+- The visualization reports of each file (HTML format)
+
+Run batch execution index files:
+
+```bash
+midscene ./index.yaml
+
+# Also supports --headed and --keep-window options
+midscene ./index.yaml --headed
+```
 
 ### The `web` part
 
@@ -177,6 +242,9 @@ android:
 
   # The url to launch, optional, default is the current page
   launch: <url>
+
+  # The path to save the aiQuery/aiAssert result, optional
+  output: <path-to-output-file>
 ```
 
 ### The `tasks` part

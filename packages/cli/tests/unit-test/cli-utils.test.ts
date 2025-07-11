@@ -6,14 +6,20 @@ const serverRoot = join(__dirname, '../server_root');
 
 describe('cli utils', () => {
   test('match exact file', async () => {
-    const files = await matchYamlFiles('./tests/midscene_scripts/foo.yml');
-    expect(files).toMatchSnapshot();
+    const files = await matchYamlFiles(
+      './tests/midscene_scripts/local/local.yml',
+    );
+    expect(files).toHaveLength(1);
+    expect(files[0]).toMatch(/tests\/midscene_scripts\/local\/local\.yml$/);
   });
 
   let files: string[];
   test('match folder', async () => {
     files = await matchYamlFiles('./tests/midscene_scripts/');
-    expect(files).toMatchSnapshot();
+    expect(files.length).toBeGreaterThan(0);
+    expect(
+      files.every((file) => file.endsWith('.yml') || file.endsWith('.yaml')),
+    ).toBe(true);
   });
 
   test('match folder 2', async () => {
@@ -28,7 +34,10 @@ describe('cli utils', () => {
 
   test('match files', async () => {
     const files3 = await matchYamlFiles('./tests/midscene_scripts/**/*.yml');
-    expect(files3).toMatchSnapshot();
+    expect(files3.length).toBeGreaterThan(0);
+    expect(
+      files3.every((file) => file.endsWith('.yml') || file.endsWith('.yaml')),
+    ).toBe(true);
   });
 });
 

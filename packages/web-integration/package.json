@@ -157,6 +157,7 @@
     "@types/cors": "2.8.12",
     "@types/express": "^4.17.21",
     "@types/fs-extra": "11.0.4",
+    "@types/http-server": "^0.12.4",
     "@types/js-yaml": "4.0.9",
     "@types/node": "^18.0.0",
     "@types/semver": "7.7.0",

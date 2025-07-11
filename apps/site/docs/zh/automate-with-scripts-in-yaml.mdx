@@ -109,9 +109,74 @@ midscene /dir/**/yaml/
 
 ## `.yaml` 文件结构
 
-在 `.yaml` 文件中，有两个部分：`web/android` 和 `tasks`。
+Midscene 支持两种类型的 `.yaml` 文件：
+
+### 1. 标准脚本文件
+
+在标准脚本 `.yaml` 文件中，有两个部分：`web/android` 和 `tasks`。
 
 `web/android` 部分定义了任务的基本信息，浏览器下的自动化使用 `web` 参数（曾用参数名 `target`），安卓设备下的自动化使用 `android` 参数，二者是互斥的。
+
+### 2. 批量执行索引文件
+
+对于更复杂的批量执行需求，Midscene 支持使用包含多个子 `.yaml` 文件的入口 `.yaml` 文件来定义执行计划。这种方式提供了并发执行和复用浏览器状态（比如 cookie）的能力。
+
+批量执行索引文件包含以下部分：
+
+```yaml
+# 定义要执行的文件列表和顺序
+order:
+  - './scripts/login.yaml'
+  - './scripts/search.yaml'
+  - './scripts/**/*.yaml' # 支持 glob 模式
+
+# 并发执行数量，默认为 1
+concurrent: 2
+
+# 遇到错误时是否继续执行其他文件，默认为 false
+continueOnError: true
+
+# 全局 web 配置（仅 url 和 serve 字段可被各个文件的配置覆盖）
+web:
+  userAgent: 'Custom User Agent'
+  viewportWidth: 1920
+  viewportHeight: 1080
+
+# 全局 android 配置（仅 launch 字段可被各个文件的配置覆盖）
+android:
+  deviceId: 'your-device-id'
+```
+
+#### 配置说明
+
+- **order**: 必填，定义要执行的文件列表，支持 glob 模式匹配
+- **concurrent**: 可选，并发执行的文件数量，默认为 1
+- **continueOnError**: 可选，当某个文件执行失败时是否继续执行其他文件，默认为 false
+- **web**: 可选，全局 web 配置。注意：仅 `url` 和 `serve` 字段可被各个 YAML 文件的配置覆盖，其他字段作为全局固定配置
+- **android**: 可选，全局 android 配置。注意：仅 `launch` 字段可被各个 YAML 文件的配置覆盖，其他字段作为全局固定配置
+
+#### 批量执行的优势
+
+1. **并发执行**: 可以同时执行多个 YAML 文件，提高执行效率
+2. **复用浏览器状态**: 可以复用浏览器状态（比如 cookie），提高执行效率
+3. **结果汇总**: 自动生成包含所有执行结果的汇总报告
+4. **配置复用**: 全局配置可以被所有文件共享，减少重复配置
+5. **执行计划**: 清晰的执行计划展示，包括文件数量、并发数、输出目录等信息
+
+批量执行完成后，会在输出目录中生成：
+
+- 汇总的 `index.json` 文件，包含所有文件的执行状态和统计信息
+- 各个 YAML 文件的独立执行结果（JSON 格式）
+- 各个文件的可视化报告（HTML 格式）
+
+运行批量执行索引文件：
+
+```bash
+midscene ./index.yaml
+
+# 也支持 --headed 和 --keep-window 选项
+midscene ./index.yaml --headed
+```
 
 ### `web` 部分
 
@@ -176,6 +241,9 @@ android:
 
   # 启动 URL，可选，默认使用设备当前页面
   launch: <url>
+
+  # 输出 aiQuery/aiAssert 结果的 JSON 文件路径，可选
+  output: <path-to-output-file>
 ```
 
 ### `tasks` 部分

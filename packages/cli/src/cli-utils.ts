@@ -1,7 +1,7 @@
-import { statSync } from 'node:fs';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { glob } from 'glob';
+import { load as yamlLoad } from 'js-yaml';
 import { hideBin } from 'yargs/helpers';
 import yargs from 'yargs/yargs';
 
@@ -57,16 +57,48 @@ Usage: $0 [options] <path-to-yaml-script-file-or-directory>`,
 };
 
 // match yml or yaml files
-export async function matchYamlFiles(fileGlob: string) {
+export async function matchYamlFiles(
+  fileGlob: string,
+  options?: {
+    cwd?: string;
+  },
+) {
   if (existsSync(fileGlob) && statSync(fileGlob).isDirectory()) {
     fileGlob = join(fileGlob, '**/*.{yml,yaml}');
   }
+
+  const { cwd } = options || {};
+  const ignore = ['**/node_modules/**'];
   const files = await glob(fileGlob, {
     nodir: true,
     windowsPathsNoEscape: true,
-    ignore: ['**/node_modules/**'],
+    absolute: true,
+    ignore,
+    cwd,
   });
+
   return files
     .filter((file) => file.endsWith('.yml') || file.endsWith('.yaml'))
     .sort();
+}
+
+/**
+ * Check if a YAML file is an index YAML file
+ */
+export function isIndexYamlFile(filePath: string): boolean {
+  try {
+    if (!existsSync(filePath)) {
+      return false;
+    }
+
+    const content = readFileSync(filePath, 'utf8');
+    const yaml = yamlLoad(content) as any;
+
+    // Check if it has the required 'order' field for index YAML
+    return (
+      yaml && typeof yaml.order !== 'undefined' && Array.isArray(yaml.order)
+    );
+  } catch (error) {
+    return false;
+  }
 }
