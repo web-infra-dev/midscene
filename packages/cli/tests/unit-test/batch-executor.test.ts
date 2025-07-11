@@ -255,7 +255,7 @@ describe('BatchYamlExecutor', () => {
   test('loadFileConfig extracts correct fields', async () => {
     const fullConfig = {
       tasks: [{ name: 'test', flow: [] }],
-      web: { url: 'http://test.com' },
+      web: { url: 'index.html', serve: './tests/server_root' },
       android: { launch: 'com.test.app' },
       other: 'should be ignored',
     };
@@ -267,7 +267,10 @@ describe('BatchYamlExecutor', () => {
     const config = await executor['loadFileConfig']('test.yml');
 
     expect(config.tasks).toEqual([{ name: 'test', flow: [] }]);
-    expect(config.web).toEqual({ url: 'http://test.com' });
+    expect(config.web).toEqual({
+      url: 'index.html',
+      serve: './tests/server_root',
+    });
     expect(config.android).toEqual({ launch: 'com.test.app' });
     expect(config).not.toHaveProperty('other');
   });

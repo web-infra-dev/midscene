@@ -1,7 +1,7 @@
 # Test file 2 - Search functionality
 
 web:
-  url: "https://www.github.com"
+  url: "https://www.bing.com"
   viewportWidth: 1000
   viewportHeight: 500
 

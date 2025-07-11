@@ -22,8 +22,8 @@ web:
 
 # Execution order using glob patterns
 order:
-  # - "midscene_scripts/local/*.yml"
-  # - "midscene_scripts/online/*.yaml"
-  # - "test-*.yaml"      # Execute all files starting with "test-"
+  - "midscene_scripts/local/*.yml"
+  - "midscene_scripts/online/*.yaml"
+  - "test-*.yaml"      # Execute all files starting with "test-"
   - "demo.yaml"        # Execute specific file
   - "scripts/*.yaml"   # Execute all YAML files in scripts directory
