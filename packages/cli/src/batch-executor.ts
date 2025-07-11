@@ -232,6 +232,7 @@ export class BatchYamlExecutor {
     if (fullConfig.web?.url || fullConfig.target?.url) {
       result.web = {
         url: fullConfig.web?.url || fullConfig.target?.url || '',
+        serve: fullConfig.web?.serve || fullConfig.target?.serve || '',
       };
     }
 
