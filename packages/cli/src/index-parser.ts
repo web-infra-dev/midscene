@@ -3,7 +3,6 @@ import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import type {
   MidsceneYamlIndex,
-  MidsceneYamlIndexResult,
   MidsceneYamlScript,
   MidsceneYamlScriptAndroidEnv,
   MidsceneYamlScriptWebEnv,
@@ -20,7 +19,6 @@ export interface ParsedIndexConfig {
   target?: MidsceneYamlScriptWebEnv;
   files: string[];
   outputPath?: string;
-  outputFormat: 'json';
   patterns: string[]; // Keep patterns for reference
 }
 
@@ -63,7 +61,6 @@ export class IndexYamlParser {
       android: indexYaml.android,
       patterns: indexYaml.order,
       outputPath: indexYaml.output?.path,
-      outputFormat: indexYaml.output?.format || 'json',
       files,
     };
 
