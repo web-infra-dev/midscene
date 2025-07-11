@@ -61,7 +61,7 @@ export const ThinkingProcessSection: React.FC<ThinkingProcessSectionProps> = ({
       {showThinking && (
         <div
           ref={contentRef}
-          className={`p-3 bg-blue-25 max-h-[139px]  rounded-b text-sm  text-[rgba(0, 0, 0, 0.65)] whitespace-pre-wrap`}
+          className={`p-3 bg-blue-25 max-h-[139px]  rounded-b text-sm text-gray-400 whitespace-pre-wrap`}
           style={{ overflowY: 'auto' }}
         >
           {accumulatedThinking ||
