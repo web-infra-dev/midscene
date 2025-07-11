@@ -2,7 +2,7 @@
 # This demonstrates how to use the multi-YAML file batch execution feature
 
 # Concurrency settings (default: 1 for sequential execution)
-concurrent: 2
+concurrent: 1
 
 # Continue execution even if one file fails (default: false)
 continueOnError: true
@@ -22,8 +22,6 @@ web:
 
 # Execution order using glob patterns
 order:
-  - "midscene_scripts/local/*.yml"
-  - "midscene_scripts/online/*.yaml"
-  - "test-*.yaml"      # Execute all files starting with "test-"
-  - "demo.yaml"        # Execute specific file
-  - "scripts/*.yaml"   # Execute all YAML files in scripts directory
+  - "login.yaml"
+  - "local/local*.yml"
+  - "after-login.yaml"
