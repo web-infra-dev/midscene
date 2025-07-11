@@ -136,7 +136,7 @@ export async function launchPuppeteerPage(
 
   if (target.cookie) {
     const cookieFileContent = readFileSync(target.cookie, 'utf-8');
-    await page.setCookie(...JSON.parse(cookieFileContent));
+    await browser.setCookie(...JSON.parse(cookieFileContent));
   }
 
   const waitForNetworkIdleTimeout =
