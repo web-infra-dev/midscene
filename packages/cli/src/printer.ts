@@ -42,9 +42,8 @@ function indicatorForStatus(status: ScriptPlayerStatusValue) {
 
 export const contextInfo = (context: MidsceneYamlFileContext) => {
   const filePath = context.file;
-  const fileName = basename(filePath);
-  const fileDir = dirname(filePath);
-  const fileNameToPrint = `${chalk.gray(`${fileDir}/`)}${fileName}`;
+  const filePathToShow = relative(process.cwd(), filePath);
+  const fileNameToPrint = `${chalk.gray(`${filePathToShow}`)}`;
   const fileStatusText = indicatorForStatus(context.player.status);
   const contextActionText =
     typeof context.player.currentTaskIndex === 'undefined' &&
@@ -66,9 +65,8 @@ export const contextInfo = (context: MidsceneYamlFileContext) => {
 
   // report: ...
   const reportFile = context.player.reportFile;
-  const reportFileToShow = relative(process.cwd(), reportFile || '');
   const reportText = reportFile
-    ? `\n${indent}${chalk.gray(`report: ./${reportFileToShow}`)}`
+    ? `\n${indent}${chalk.gray(`report: ${reportFile}`)}`
     : '';
 
   // agent status: ...
