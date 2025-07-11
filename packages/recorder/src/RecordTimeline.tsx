@@ -291,115 +291,85 @@ export const RecordTimeline = ({
                 {(boxedImage || afterImage) && (
                   <div style={{ display: 'flex', alignItems: 'center' }}>
                     {boxedImage && (
-                      <Popover
-                        content={
-                          <div style={{ maxWidth: '400px' }}>
-                            <Text strong>Highlighted Element</Text>
-                            <Image
-                              src={boxedImage}
-                              style={{
-                                width: '100%',
-                                maxHeight: '300px',
-                                objectFit: 'contain',
-                              }}
-                              preview={true}
-                            />
-                          </div>
-                        }
-                        trigger="hover"
-                        placement="left"
+                      <div
+                        style={{
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '4px',
+                          overflow: 'hidden',
+                          boxShadow: '1px 1px 1px 1px #00000014',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease-in-out',
+                          zIndex: 2,
+                        }}
+                        onMouseEnter={(e) => {
+                          const target = e.currentTarget as HTMLElement;
+                          target.style.transform = 'scale(1.2)';
+                          target.style.boxShadow = `0 2px 8px ${getEventColor(event.type)}60`;
+                        }}
+                        onMouseLeave={(e) => {
+                          const target = e.currentTarget as HTMLElement;
+                          target.style.transform = 'scale(1)';
+                          target.style.boxShadow = '1px 1px 1px 1px #00000014';
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
                       >
-                        <div
+                        <Image
+                          src={boxedImage}
+                          width="100%"
+                          height="100%"
                           style={{
-                            width: '24px',
-                            height: '24px',
-                            borderRadius: '4px',
-                            overflow: 'hidden',
-                            boxShadow: '1px 1px 1px 1px #00000014',
-                            // border: `1px solid ${getEventColor(event.type)}`,
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease-in-out',
-                            zIndex: 2,
+                            objectFit: 'cover',
+                            display: 'block',
                           }}
-                          onMouseEnter={(e) => {
-                            const target = e.currentTarget as HTMLElement;
-                            target.style.transform = 'scale(1.2)';
-                            target.style.boxShadow = `0 2px 8px ${getEventColor(event.type)}60`;
+                          preview={{
+                            mask: false,
                           }}
-                          onMouseLeave={(e) => {
-                            const target = e.currentTarget as HTMLElement;
-                            target.style.transform = 'scale(1)';
-                            target.style.boxShadow = 'none';
-                          }}
-                        >
-                          <Image
-                            src={boxedImage}
-                            width="100%"
-                            height="100%"
-                            style={{
-                              objectFit: 'cover',
-                              display: 'block',
-                            }}
-                            preview={false}
-                          />
-                        </div>
-                      </Popover>
+                        />
+                      </div>
                     )}
                     {afterImage && (
-                      <Popover
-                        content={
-                          <div style={{ maxWidth: '400px' }}>
-                            <Text strong>After Action</Text>
-                            <Image
-                              src={afterImage}
-                              style={{
-                                width: '100%',
-                                maxHeight: '300px',
-                                objectFit: 'contain',
-                              }}
-                              preview={true}
-                            />
-                          </div>
-                        }
-                        trigger="hover"
-                        placement="left"
+                      <div
+                        style={{
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '4px',
+                          overflow: 'hidden',
+                          boxShadow: '1px 1px 1px 1px #00000014',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease-in-out',
+                          marginLeft: boxedImage ? '-8px' : '0',
+                          zIndex: 1,
+                        }}
+                        onMouseEnter={(e) => {
+                          const target = e.currentTarget as HTMLElement;
+                          target.style.transform = 'scale(1.2)';
+                          target.style.boxShadow = '0 2px 8px #52c41a60';
+                        }}
+                        onMouseLeave={(e) => {
+                          const target = e.currentTarget as HTMLElement;
+                          target.style.transform = 'scale(1)';
+                          target.style.boxShadow = '1px 1px 1px 1px #00000014';
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
                       >
-                        <div
+                        <Image
+                          src={afterImage}
+                          width="100%"
+                          height="100%"
                           style={{
-                            width: '24px',
-                            height: '24px',
-                            borderRadius: '4px',
-                            overflow: 'hidden',
-                            // border: '1px solid #52c41a',
-                            boxShadow: '1px 1px 1px 1px #00000014',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease-in-out',
-                            marginLeft: boxedImage ? '-14px' : '0',
-                            zIndex: 1,
+                            objectFit: 'cover',
+                            display: 'block',
                           }}
-                          onMouseEnter={(e) => {
-                            const target = e.currentTarget as HTMLElement;
-                            target.style.transform = 'scale(1.2)';
-                            target.style.boxShadow = '0 2px 8px #52c41a60';
+                          preview={{
+                            mask: false,
                           }}
-                          onMouseLeave={(e) => {
-                            const target = e.currentTarget as HTMLElement;
-                            target.style.transform = 'scale(1)';
-                            target.style.boxShadow = 'none';
-                          }}
-                        >
-                          <Image
-                            src={afterImage}
-                            width="100%"
-                            height="100%"
-                            style={{
-                              objectFit: 'cover',
-                              display: 'block',
-                            }}
-                            preview={false}
-                          />
-                        </div>
-                      </Popover>
+                        />
+                      </div>
                     )}
                   </div>
                 )}

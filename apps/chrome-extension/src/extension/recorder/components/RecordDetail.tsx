@@ -101,14 +101,16 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
         <div className="flex items-center mr-2">
           {isRecording ? (
             <div
-              className="flex items-center gap-[4px] h-[20px] px-[7px] py-[4px] rounded-[23px]"
+              className="flex items-center gap-[4px] h-[20px] px-[7px] py-[4px] rounded-[23px] cursor-pointer hover:opacity-80 transition-opacity"
               style={{
                 background: 'rgba(255, 17, 17, 0.08)',
                 // Transparent red background
               }}
+              onClick={handleStopRecording}
+              title="Click to stop recording"
             >
               <span
-                className="inline-block"
+                className="inline-block rec-dot-pulse"
                 style={{
                   width: 6,
                   height: 6,
@@ -127,6 +129,25 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
               >
                 REC
               </span>
+              <style>{`
+                @keyframes rec-dot-pulse {
+                  0% { 
+                    transform: scale(1);
+                    opacity: 1;
+                  }
+                  50% { 
+                    transform: scale(1.3);
+                    opacity: 0.7;
+                  }
+                  100% { 
+                    transform: scale(1);
+                    opacity: 1;
+                  }
+                }
+                .rec-dot-pulse {
+                  animation: rec-dot-pulse 1.5s infinite ease-in-out;
+                }
+              `}</style>
             </div>
           ) : (
             <div className="flex items-center gap-[4px] h-[20px] px-[7px] py-[4px] rounded-[23px] bg-[#EFFFE0]">
@@ -238,7 +259,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
           events.length === 0 ? (
             <Empty description="No events recorded yet" />
           ) : (
-            <div className="p-[16px]">
+            <div className="p-[16px 0]">
               <RecordTimeline events={events} />
             </div>
           )

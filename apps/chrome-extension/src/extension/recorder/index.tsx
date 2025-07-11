@@ -279,11 +279,12 @@ export default function Recorder() {
             bottom: 0,
             left: 0,
             right: 0,
-            height: 'calc(100vh * 9 / 10)',
+            // height: 'calc(100vh * 9 / 10)',
             margin: 0,
             borderRadius: '16px 16px 0 0',
             maxWidth: 'none',
             width: '100%',
+            padding: '20px',
           },
           mask: { backgroundColor: 'rgba(0, 0, 0, 0.3)' },
         }}

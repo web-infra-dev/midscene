@@ -124,14 +124,11 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
             {
               type === 'playwright' ? (
                 <>
-                  💡 Can be executed with <b>@midscene/web</b> compatible automation
-                  frameworks. Run directly via <code>npx playwright test</code>.
+                  💡 Integrate with Playwright, Read more on <a target="_blank" href="https://midscenejs.com/integrate-with-playwright.html">Playwright</a>.
                 </>
               ) : (
                 <>
-                  💡 Use with any automation platform that supports{' '}
-                  <b>@midscene/cli</b> for cross-platform integration and batch
-                  execution.
+                  💡 Integrate with YAML, Read more on <a target="_blank" href="https://midscenejs.com/automate-with-scripts-in-yaml.html">YAML</a>.
                 </>
               )
             }
