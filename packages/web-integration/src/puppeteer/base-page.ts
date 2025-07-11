@@ -181,7 +181,7 @@ export class Page<
         y: number,
         options?: { button?: MouseButton; count?: number },
       ) => {
-        await this.mouse.move(x, y);
+        // await this.mouse.move(x, y);
         this.underlyingPage.mouse.click(x, y, {
           button: options?.button || 'left',
           count: options?.count || 1,
