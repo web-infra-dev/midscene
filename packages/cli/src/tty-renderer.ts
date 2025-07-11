@@ -68,7 +68,7 @@ export class TTYWindowRenderer {
 
   stop() {
     this.flushBuffer();
-    this.clearWindow();
+    // this.clearWindow();
     this.write(SHOW_CURSOR, 'output');
     this.cleanups.splice(0).map((fn) => fn());
     clearInterval(this.renderInterval);
