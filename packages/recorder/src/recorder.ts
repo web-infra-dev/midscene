@@ -349,7 +349,7 @@ export class EventRecorder {
       width: Number(rect.width.toFixed(2)),
       height: Number(rect.height.toFixed(2)),
     };
-    
+
     // Throttle logic: clear existing timer and set new one
     if (this.inputThrottleTimer) {
       clearTimeout(this.inputThrottleTimer);

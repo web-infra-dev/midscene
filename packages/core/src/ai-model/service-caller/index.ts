@@ -314,12 +314,12 @@ export async function call(
           const content = chunk.choices?.[0]?.delta?.content || '';
           const reasoning_content =
             (chunk.choices?.[0]?.delta as any)?.reasoning_content || '';
-          
+
           // Check for usage info in any chunk (OpenAI provides usage in separate chunks)
           if (chunk.usage) {
             usage = chunk.usage;
           }
-          
+
           if (content || reasoning_content) {
             accumulated += content;
             const chunkData: CodeGenerationChunk = {
@@ -339,7 +339,10 @@ export async function call(
             // If usage is not available from the stream, provide a basic usage info
             if (!usage) {
               // Estimate token counts based on content length (rough approximation)
-              const estimatedTokens = Math.max(1, Math.floor(accumulated.length / 4));
+              const estimatedTokens = Math.max(
+                1,
+                Math.floor(accumulated.length / 4),
+              );
               usage = {
                 prompt_tokens: estimatedTokens,
                 completion_tokens: estimatedTokens,
@@ -492,7 +495,10 @@ export async function call(
     // Ensure we always have usage info for streaming responses
     if (isStreaming && !usage) {
       // Estimate token counts based on content length (rough approximation)
-      const estimatedTokens = Math.max(1, Math.floor((content || '').length / 4));
+      const estimatedTokens = Math.max(
+        1,
+        Math.floor((content || '').length / 4),
+      );
       usage = {
         prompt_tokens: estimatedTokens,
         completion_tokens: estimatedTokens,
@@ -502,12 +508,14 @@ export async function call(
 
     return {
       content: content || '',
-      usage: usage ? {
-        prompt_tokens: usage.prompt_tokens ?? 0,
-        completion_tokens: usage.completion_tokens ?? 0,
-        total_tokens: usage.total_tokens ?? 0,
-        time_cost: timeCost ?? 0,
-      } : undefined,
+      usage: usage
+        ? {
+            prompt_tokens: usage.prompt_tokens ?? 0,
+            completion_tokens: usage.completion_tokens ?? 0,
+            total_tokens: usage.total_tokens ?? 0,
+            time_cost: timeCost ?? 0,
+          }
+        : undefined,
       isStreamed: !!isStreaming,
     };
   } catch (e: any) {
