@@ -274,14 +274,20 @@ export const RecordTimeline = ({
               toggleEventExpansion(index);
               onEventClick?.(event, index);
             }}
-            styles={{ body: { padding: '8px 12px', backgroundColor: '#F2F4F7', borderRadius: '8px' } }}
+            styles={{
+              body: {
+                padding: '8px 12px',
+                backgroundColor: '#F2F4F7',
+                borderRadius: '8px',
+              },
+            }}
           >
             <Space
               style={{
                 width: '100%',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                color: 'rgba(0, 0, 0, 0.85)'
+                color: 'rgba(0, 0, 0, 0.85)',
               }}
             >
               <Space style={{ flex: 1, minWidth: 0 }}>
@@ -422,7 +428,6 @@ export const RecordTimeline = ({
               </div>
             )}
           </Card>
-
         </div>
       ),
     };

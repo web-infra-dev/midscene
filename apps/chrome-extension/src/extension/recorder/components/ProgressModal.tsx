@@ -31,8 +31,8 @@ import {
   stopRecordingIfActive,
 } from '../shared/exportControlsUtils';
 import { generateRecordTitle } from '../utils';
-import { StepList } from './ProgressModal/StepList';
 import { CodeBlock } from './ProgressModal/CodeBlock';
+import { StepList } from './ProgressModal/StepList';
 
 const { Text } = Typography;
 
@@ -291,43 +291,41 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
     });
 
     // Process events in parallel with progress tracking
-    const optimizePromises = events.map(
-      async (event, index) => {
-        if (event.type === 'navigation' || event.type === 'scroll') {
-          event.elementDescription = 'navigation or scroll';
-          event.descriptionLoading = false;
-          return;
+    const optimizePromises = events.map(async (event, index) => {
+      if (event.type === 'navigation' || event.type === 'scroll') {
+        event.elementDescription = 'navigation or scroll';
+        event.descriptionLoading = false;
+        return;
+      }
+
+      try {
+        let description = '';
+        if (event.elementDescription && event.descriptionLoading === false) {
+          description = event.elementDescription;
+        } else {
+          description = await generateAIDescription(event, event.hashId);
         }
 
-        try {
-          let description = '';
-          if (event.elementDescription && event.descriptionLoading === false) {
-            description = event.elementDescription;
-          } else {
-            description = await generateAIDescription(event, event.hashId);
-          }
+        event.elementDescription = description;
+        event.descriptionLoading = false;
 
-          event.elementDescription = description;
-          event.descriptionLoading = false;
+        completedCount++;
 
-          completedCount++;
-
-          const progress = Math.round(
-            (completedCount / eventsNeedingDescriptions.length) * 100,
-          );
-          updateProgressStep(stepIndex, {
-            status: 'loading',
-            progress,
-            details: `Generated ${completedCount}/${eventsNeedingDescriptions.length} element descriptions`,
-          });
-        } catch (error) {
-          console.error('Failed to optimize event:', error);
-          event.elementDescription = 'failed to generate element description';
-          event.descriptionLoading = false;
-          completedCount++;
-        }
-      },
-    );
+        const progress = Math.round(
+          (completedCount / eventsNeedingDescriptions.length) * 100,
+        );
+        updateProgressStep(stepIndex, {
+          status: 'loading',
+          progress,
+          details: `Generated ${completedCount}/${eventsNeedingDescriptions.length} element descriptions`,
+        });
+      } catch (error) {
+        console.error('Failed to optimize event:', error);
+        event.elementDescription = 'failed to generate element description';
+        event.descriptionLoading = false;
+        completedCount++;
+      }
+    });
 
     await Promise.all(optimizePromises);
 
@@ -349,46 +347,46 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
   };
 
   // Streaming callback handler factory
-  const createStreamingChunkHandler = (targetType: 'playwright' | 'yaml'): StreamingCallback => (
-    chunk: CodeGenerationChunk,
-  ) => {
-    setStreamingContent(chunk.accumulated);
-    const code = chunk.accumulated;
-    const thinking = chunk.reasoning_content;
+  const createStreamingChunkHandler =
+    (targetType: 'playwright' | 'yaml'): StreamingCallback =>
+    (chunk: CodeGenerationChunk) => {
+      setStreamingContent(chunk.accumulated);
+      const code = chunk.accumulated;
+      const thinking = chunk.reasoning_content;
 
-    // Accumulate thinking process content
-    if (thinking) {
-      setAccumulatedThinking((prev) => prev + thinking);
-    }
-
-    setThinkingProcess(thinking);
-    setActualCode(code);
-
-    if (chunk.isComplete) {
-      setIsStreaming(false);
-
-      // Use the actual code for final result
-      const finalCode = code || chunk.accumulated;
-
-      // Set the final generated code based on the target type, not current selectedType
-      if (targetType === 'playwright') {
-        setGeneratedTest(finalCode);
-      } else if (targetType === 'yaml') {
-        setGeneratedYaml(finalCode);
+      // Accumulate thinking process content
+      if (thinking) {
+        setAccumulatedThinking((prev) => prev + thinking);
       }
 
-      // Update session with final code
-      if (sessionId) {
-        updateSession(sessionId, {
-          generatedCode: {
-            ...getCurrentSession()?.generatedCode,
-            [targetType]: finalCode,
-          },
-          updatedAt: Date.now(),
-        });
+      setThinkingProcess(thinking);
+      setActualCode(code);
+
+      if (chunk.isComplete) {
+        setIsStreaming(false);
+
+        // Use the actual code for final result
+        const finalCode = code || chunk.accumulated;
+
+        // Set the final generated code based on the target type, not current selectedType
+        if (targetType === 'playwright') {
+          setGeneratedTest(finalCode);
+        } else if (targetType === 'yaml') {
+          setGeneratedYaml(finalCode);
+        }
+
+        // Update session with final code
+        if (sessionId) {
+          updateSession(sessionId, {
+            generatedCode: {
+              ...getCurrentSession()?.generatedCode,
+              [targetType]: finalCode,
+            },
+            updatedAt: Date.now(),
+          });
+        }
       }
-    }
-  };
+    };
 
   // Common function to handle code generation with streaming support
   const handleCodeGeneration = async (type: 'playwright' | 'yaml') => {
@@ -920,7 +918,6 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
       {steps.length > 0 &&
         // !steps.every((step) => step.status === 'completed') &&
         (() => {
-
           // Hide step display if the third step has started
           if (thirdStepStarted) {
             return null;
@@ -940,34 +937,37 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
       {/* Code block for selectedType only */}
       {(showGeneratedCode || isStreaming) && (
         <>
-          {selectedType === 'playwright' && (generatedTest || (isStreaming && selectedType === 'playwright')) && (
-            <CodeBlock
-              key={'playwright'}
-              code={generatedTest}
-              type={'playwright'}
-              loading={isGenerating}
-              isStreaming={isStreaming && selectedType === 'playwright'}
-              streamingContent={streamingContent}
-              thinkingProcess={thinkingProcess}
-              actualCode={actualCode}
-              accumulatedThinking={accumulatedThinking}
-              stepDisplay={thirdStepStarted || steps.length === 0}
-            />
-          )}
-          {selectedType === 'yaml' && (generatedYaml || (isStreaming && selectedType === 'yaml')) && (
-            <CodeBlock
-              key={'yaml'}
-              code={generatedYaml}
-              type={'yaml'}
-              loading={isGenerating}
-              isStreaming={isStreaming && selectedType === 'yaml'}
-              streamingContent={streamingContent}
-              thinkingProcess={thinkingProcess}
-              actualCode={actualCode}
-              accumulatedThinking={accumulatedThinking}
-              stepDisplay={thirdStepStarted || steps.length === 0}
-            />
-          )}
+          {selectedType === 'playwright' &&
+            (generatedTest ||
+              (isStreaming && selectedType === 'playwright')) && (
+              <CodeBlock
+                key={'playwright'}
+                code={generatedTest}
+                type={'playwright'}
+                loading={isGenerating}
+                isStreaming={isStreaming && selectedType === 'playwright'}
+                streamingContent={streamingContent}
+                thinkingProcess={thinkingProcess}
+                actualCode={actualCode}
+                accumulatedThinking={accumulatedThinking}
+                stepDisplay={thirdStepStarted || steps.length === 0}
+              />
+            )}
+          {selectedType === 'yaml' &&
+            (generatedYaml || (isStreaming && selectedType === 'yaml')) && (
+              <CodeBlock
+                key={'yaml'}
+                code={generatedYaml}
+                type={'yaml'}
+                loading={isGenerating}
+                isStreaming={isStreaming && selectedType === 'yaml'}
+                streamingContent={streamingContent}
+                thinkingProcess={thinkingProcess}
+                actualCode={actualCode}
+                accumulatedThinking={accumulatedThinking}
+                stepDisplay={thirdStepStarted || steps.length === 0}
+              />
+            )}
         </>
       )}
     </>

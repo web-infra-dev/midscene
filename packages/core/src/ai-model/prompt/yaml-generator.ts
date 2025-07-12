@@ -7,7 +7,6 @@ import {
   AIActionType,
   type ChatCompletionMessageParam,
   callAi,
-  callStream,
 } from '../index';
 
 // Common interfaces for test generation (shared between YAML and Playwright)
@@ -426,11 +425,10 @@ Respond with YAML only, no explanations.`,
 
     if (options.stream && options.onChunk) {
       // Use streaming
-      return await callStream(
-        prompt,
-        AIActionType.EXTRACT_DATA,
-        options.onChunk,
-      );
+      return await callAi(prompt, AIActionType.EXTRACT_DATA, undefined, {
+        stream: true,
+        onChunk: options.onChunk,
+      });
     } else {
       // Fallback to non-streaming
       const response = await callAi(prompt, AIActionType.EXTRACT_DATA);

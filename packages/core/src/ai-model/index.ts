@@ -1,7 +1,6 @@
 export {
   callToGetJSONObject,
   call as callAi,
-  callStream,
 } from './service-caller/index';
 export { systemPromptToLocateElement } from './prompt/llm-locator';
 export {

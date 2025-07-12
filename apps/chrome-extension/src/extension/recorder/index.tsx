@@ -137,7 +137,6 @@ export default function Recorder() {
     }
   }, [currentSessionId, getCurrentSession, setEvents, clearEvents]);
 
-
   // Edit session handler
   const handleEditSession = (session: RecordingSession) => {
     setEditingSession(session);
@@ -160,7 +159,6 @@ export default function Recorder() {
       description: values.description,
     });
 
-
     setIsEditModalVisible(false);
     setEditingSession(null);
     editForm.resetFields();
@@ -178,7 +176,7 @@ export default function Recorder() {
         sessionId: session.id,
         session,
       });
-      setCurrentSession(session.id)
+      setCurrentSession(session.id);
       setViewMode('detail');
     },
     [currentSessionId],
@@ -209,7 +207,7 @@ export default function Recorder() {
     // Switch to detail view
     setViewMode('detail');
 
-    setCurrentSession(newSession.id)
+    setCurrentSession(newSession.id);
   };
 
   // Show loading state while stores are initializing

@@ -4,7 +4,7 @@ import type {
 } from '@/types';
 import { PLAYWRIGHT_EXAMPLE_CODE } from '@midscene/shared/constants';
 import type { ChatCompletionMessageParam } from 'openai/resources';
-import { AIActionType, callAi, callStream } from '../index';
+import { AIActionType, callAi } from '../index';
 
 // Import shared utilities and types from yaml-generator
 import {
@@ -206,7 +206,10 @@ ${PLAYWRIGHT_EXAMPLE_CODE}`;
 
   if (options.stream && options.onChunk) {
     // Use streaming
-    return await callStream(prompt, AIActionType.EXTRACT_DATA, options.onChunk);
+    return await callAi(prompt, AIActionType.EXTRACT_DATA, undefined, {
+      stream: true,
+      onChunk: options.onChunk,
+    });
   } else {
     // Fallback to non-streaming
     const response = await callAi(prompt, AIActionType.EXTRACT_DATA);

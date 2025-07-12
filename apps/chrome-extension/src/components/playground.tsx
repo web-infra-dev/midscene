@@ -370,11 +370,11 @@ export function BrowserExtensionPlayground({
       prev.map((item) =>
         item.id === `system-${thisRunningId}`
           ? {
-            ...item,
-            content: '', // 'execution completed',
-            loading: false,
-            loadingProgressText: '',
-          }
+              ...item,
+              content: '', // 'execution completed',
+              loading: false,
+              loadingProgressText: '',
+            }
           : item,
       ),
     );
@@ -400,11 +400,11 @@ export function BrowserExtensionPlayground({
         actionType === 'aiAction'
           ? result
           : {
-            result: result.result,
-            error: result.error,
-            dump: null,
-            reportHTML: null,
-          };
+              result: result.result,
+              error: result.error,
+              dump: null,
+              reportHTML: null,
+            };
       storeResult(resultItem.id, dataToStore);
     }
 
@@ -437,11 +437,11 @@ export function BrowserExtensionPlayground({
         prev.map((item) =>
           item.id === `system-${thisRunningId}` && item.loading
             ? {
-              ...item,
-              content: 'Operation stopped',
-              loading: false,
-              loadingProgressText: '',
-            }
+                ...item,
+                content: 'Operation stopped',
+                loading: false,
+                loadingProgressText: '',
+              }
             : item,
         ),
       );
@@ -530,12 +530,13 @@ export function BrowserExtensionPlayground({
                               <span className="progress-action-item">
                                 {action}
                                 <span
-                                  className={`progress-status-icon ${shouldShowLoading
+                                  className={`progress-status-icon ${
+                                    shouldShowLoading
                                       ? 'loading'
                                       : item.result?.error
                                         ? 'error'
                                         : 'completed'
-                                    }`}
+                                  }`}
                                 >
                                   {shouldShowLoading ? (
                                     <LoadingOutlined spin />

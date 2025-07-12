@@ -36,7 +36,7 @@ export const StepList: React.FC<StepListProps> = ({
                       text={step.title}
                       disabled={false}
                       speed={3}
-                    // className="step-title-shiny"
+                      // className="step-title-shiny"
                     />
                   </div>
                 ) : (
