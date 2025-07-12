@@ -185,7 +185,8 @@ describe('playwright-generator', () => {
       expect(summary.testName).toBe('Custom Test Name');
       expect(summary.startUrl).toBe('https://example.com');
       expect(summary.eventCounts.total).toBe(4);
-      expect(summary.pageTitles).toContain('Example Page');
+      expect(summary.events).toHaveLength(4);
+      expect(summary.events[0].title).toBe('Example Page');
       expect(summary.clickDescriptions).toContain('Login button');
       expect(summary.inputDescriptions).toHaveLength(1);
       expect(summary.urls).toContain('https://example.com');
@@ -266,6 +267,7 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
       mockCallAi.mockResolvedValue({
         content: mockPlaywrightCode,
         usage: undefined,
+        isStreamed: false,
       });
     });
 
