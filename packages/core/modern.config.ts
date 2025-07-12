@@ -11,7 +11,7 @@ export default defineConfig({
       tree: 'src/tree.ts',
       'ai-model': 'src/ai-model/index.ts',
     },
-    externals: ['langsmith'],
+    externals: ['langsmith', '@midscene/shared'],
     target: 'es2020',
     define: {
       __VERSION__: version,

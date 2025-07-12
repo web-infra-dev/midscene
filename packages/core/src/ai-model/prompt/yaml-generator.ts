@@ -1,4 +1,7 @@
-import type { ChromeRecordedEvent } from '@midscene/recorder';
+import type {
+  StreamingAIResponse,
+  StreamingCodeGenerationOptions,
+} from '@/types';
 import { YAML_EXAMPLE_CODE } from '@midscene/shared/constants';
 import {
   AIActionType,
@@ -6,7 +9,7 @@ import {
   callAi,
 } from '../index';
 
-// Common interfaces for test generation
+// Common interfaces for test generation (shared between YAML and Playwright)
 export interface EventCounts {
   navigation: number;
   click: number;
@@ -35,11 +38,25 @@ export interface EventSummary {
   testName: string;
   startUrl: string;
   eventCounts: EventCounts;
-  pageTitles: string[];
   urls: string[];
   clickDescriptions: string[];
   inputDescriptions: InputDescription[];
   events: ProcessedEvent[];
+}
+
+// Common ChromeRecordedEvent interface
+export interface ChromeRecordedEvent {
+  type: string;
+  timestamp: number;
+  url?: string;
+  title?: string;
+  elementDescription?: string;
+  value?: string;
+  pageInfo?: any;
+  elementRect?: any;
+  screenshotBefore?: string;
+  screenshotAfter?: string;
+  screenshotWithBox?: string;
 }
 
 export interface YamlGenerationOptions {
@@ -55,6 +72,8 @@ export interface FilteredEvents {
   inputEvents: ChromeRecordedEvent[];
   scrollEvents: ChromeRecordedEvent[];
 }
+
+// Common utility functions (shared between YAML and Playwright generators)
 
 /**
  * Get screenshots from events for LLM context
@@ -164,7 +183,7 @@ export const processEventsForLLM = (
  */
 export const prepareEventSummary = (
   events: ChromeRecordedEvent[],
-  options: YamlGenerationOptions = {},
+  options: { testName?: string; maxScreenshots?: number } = {},
 ): EventSummary => {
   const filteredEvents = filterEventsByType(events);
   const eventCounts = createEventCounts(filteredEvents, events.length);
@@ -174,11 +193,6 @@ export const prepareEventSummary = (
     filteredEvents.navigationEvents.length > 0
       ? filteredEvents.navigationEvents[0].url || ''
       : '';
-
-  const pageTitles = filteredEvents.navigationEvents
-    .map((event) => event.title)
-    .filter((title): title is string => Boolean(title))
-    .slice(0, 5);
 
   const clickDescriptions = filteredEvents.clickEvents
     .map((event) => event.elementDescription)
@@ -200,12 +214,46 @@ export const prepareEventSummary = (
     testName: options.testName || 'Automated test from recorded events',
     startUrl,
     eventCounts,
-    pageTitles,
     urls,
     clickDescriptions,
     inputDescriptions,
     events: processedEvents,
   };
+};
+
+/**
+ * Create message content for LLM with optional screenshots
+ */
+export const createMessageContent = (
+  promptText: string,
+  screenshots: string[] = [],
+  includeScreenshots = true,
+) => {
+  const messageContent: any[] = [
+    {
+      type: 'text',
+      text: promptText,
+    },
+  ];
+
+  // Add screenshots if available and requested
+  if (includeScreenshots && screenshots.length > 0) {
+    messageContent.unshift({
+      type: 'text',
+      text: 'Here are screenshots from the recording session to help you understand the context:',
+    });
+
+    screenshots.forEach((screenshot) => {
+      messageContent.push({
+        type: 'image_url',
+        image_url: {
+          url: screenshot,
+        },
+      });
+    });
+  }
+
+  return messageContent;
 };
 
 /**
@@ -216,6 +264,8 @@ export const validateEvents = (events: ChromeRecordedEvent[]): void => {
     throw new Error('No events provided for test generation');
   }
 };
+
+// YAML-specific generation functions
 
 /**
  * Generates YAML test configuration from recorded events using AI
@@ -296,6 +346,103 @@ Respond with YAML only, no explanations.`,
     }
 
     throw new Error('Failed to generate YAML test configuration');
+  } catch (error) {
+    throw new Error(`Failed to generate YAML test: ${error}`);
+  }
+};
+
+/**
+ * Generates YAML test configuration from recorded events using AI with streaming support
+ */
+export const generateYamlTestStream = async (
+  events: ChromeRecordedEvent[],
+  options: YamlGenerationOptions & StreamingCodeGenerationOptions = {},
+): Promise<StreamingAIResponse> => {
+  try {
+    // Validate input
+    validateEvents(events);
+
+    // Prepare event summary using shared utilities
+    const summary = prepareEventSummary(events, {
+      testName: options.testName,
+      maxScreenshots: options.maxScreenshots || 3,
+    });
+
+    // Add YAML-specific options to summary
+    const yamlSummary = {
+      ...summary,
+      includeTimestamps: options.includeTimestamps || false,
+    };
+
+    // Get screenshots for visual context
+    const screenshots = getScreenshotsForLLM(
+      events,
+      options.maxScreenshots || 3,
+    );
+
+    // Use LLM to generate the YAML test configuration
+    const prompt: ChatCompletionMessageParam[] = [
+      {
+        role: 'system',
+        content: `You are an expert in Midscene.js YAML test generation. Generate clean, accurate YAML following these rules: ${YAML_EXAMPLE_CODE}`,
+      },
+      {
+        role: 'user',
+        content: `Generate YAML test for Midscene.js automation from recorded browser events.
+
+Event Summary:
+${JSON.stringify(yamlSummary, null, 2)}
+
+Convert events:
+- navigation → target.url
+- click → aiTap with element description
+- input → aiInput with value and locate
+- scroll → aiScroll with appropriate direction
+- Add aiAssert for important state changes
+
+Respond with YAML only, no explanations.`,
+      },
+    ];
+
+    // Add screenshots if available and requested
+    if (screenshots.length > 0) {
+      prompt.push({
+        role: 'user',
+        content:
+          'Here are screenshots from the recording session to help you understand the context:',
+      });
+
+      prompt.push({
+        role: 'user',
+        content: screenshots.map((screenshot) => ({
+          type: 'image_url',
+          image_url: {
+            url: screenshot,
+          },
+        })),
+      });
+    }
+
+    if (options.stream && options.onChunk) {
+      // Use streaming
+      return await callAi(prompt, AIActionType.EXTRACT_DATA, undefined, {
+        stream: true,
+        onChunk: options.onChunk,
+      });
+    } else {
+      // Fallback to non-streaming
+      const response = await callAi(prompt, AIActionType.EXTRACT_DATA);
+
+      if (response?.content && typeof response.content === 'string') {
+        return {
+          content: response.content,
+          usage: response.usage,
+          isStreamed: false,
+        };
+      }
+
+      throw new Error('Failed to generate YAML test configuration');
+    }
   } catch (error) {
     throw new Error(`Failed to generate YAML test: ${error}`);
   }

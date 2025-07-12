@@ -1,7 +1,6 @@
 import Icon, {
   ClearOutlined,
   LoadingOutlined,
-  ExclamationCircleFilled,
   ArrowDownOutlined,
 } from '@ant-design/icons';
 import type { UIContext } from '@midscene/core';
@@ -18,6 +17,7 @@ import {
 import { allScriptsFromDump } from '@midscene/visualizer';
 import { Button, Form, List, Tooltip, Typography, message } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { EnvConfigReminder } from '.';
 import PlaygroundIcon from '../icons/playground.svg?react';
 import {
   clearStoredMessages,
@@ -142,9 +142,6 @@ export function BrowserExtensionPlayground({
   const currentRunningIdRef = useRef<number | null>(0);
   const interruptedFlagRef = useRef<Record<number, boolean>>({});
 
-  // Environment configuration check
-  const configAlreadySet = Object.keys(config || {}).length >= 1;
-
   // Responsive layout settings
   useEffect(() => {
     const sizeThreshold = 750;
@@ -158,11 +155,6 @@ export function BrowserExtensionPlayground({
       window.removeEventListener('resize', handleResize);
     };
   }, []);
-
-  // Override AI configuration
-  useEffect(() => {
-    overrideAIConfig(config);
-  }, [config]);
 
   // Initialize context preview
   useEffect(() => {
@@ -470,7 +462,7 @@ export function BrowserExtensionPlayground({
   };
 
   // Validate if it can run
-  const runButtonEnabled = !!getAgent && configAlreadySet;
+  const runButtonEnabled = !!getAgent && Object.keys(config || {}).length >= 1;
 
   // Check if it can be stopped - extension specific
   const stoppable = !dryMode && loading;
@@ -650,15 +642,7 @@ export function BrowserExtensionPlayground({
         {/* bottom input box */}
         <div className="bottom-input-section">
           {/* environment setup reminder */}
-          {!configAlreadySet && (
-            <div className="config-reminder">
-              <ExclamationCircleFilled className="reminder-icon" />
-              <span className="reminder-text">
-                Please set up your environment variables before using.
-              </span>
-              <EnvConfig mode="text" showTooltipWhenEmpty={false} />
-            </div>
-          )}
+          <EnvConfigReminder />
           <PromptInput
             runButtonEnabled={runButtonEnabled}
             form={form}

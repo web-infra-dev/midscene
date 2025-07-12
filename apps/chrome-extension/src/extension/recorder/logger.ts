@@ -5,6 +5,7 @@
 
 class RecordLogger {
   private readonly prefix = '[Record]';
+  // localStorage.setItem('DEBUG','true')
   private readonly isDev = localStorage.getItem('DEBUG') === 'true';
 
   /**

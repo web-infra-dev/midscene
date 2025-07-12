@@ -1,3 +1,5 @@
+import { isNotContainerElement } from '@midscene/shared/extractor';
+
 const DEBUG = localStorage.getItem('DEBUG') === 'true'; // Based on process.env.NODE_ENV
 
 function debugLog(...args: any[]) {
@@ -130,6 +132,8 @@ export class EventRecorder {
   private eventCallback: EventCallback;
   private scrollThrottleTimer: number | null = null;
   private scrollThrottleDelay = 200; // 200ms throttle
+  private inputThrottleTimer: number | null = null;
+  private inputThrottleDelay = 300; // 300ms throttle for input events
   private lastViewportScroll: { x: number; y: number } | null = null;
   private scrollTargets: HTMLElement[] = [];
   private sessionId: string;
@@ -150,7 +154,7 @@ export class EventRecorder {
         height: window.innerHeight,
       },
       timestamp: Date.now(),
-      hashId: 'navigation_0',
+      hashId: `navigation_${Date.now()}`,
     };
   }
 
@@ -212,6 +216,10 @@ export class EventRecorder {
       clearTimeout(this.scrollThrottleTimer);
       this.scrollThrottleTimer = null;
     }
+    if (this.inputThrottleTimer) {
+      clearTimeout(this.inputThrottleTimer);
+      this.inputThrottleTimer = null;
+    }
     document.removeEventListener('click', this.handleClick);
     document.removeEventListener('input', this.handleInput);
     this.scrollTargets.forEach((target) => {
@@ -228,14 +236,18 @@ export class EventRecorder {
     const target = event.target as HTMLElement;
     const { isLabelClick, labelInfo } = this.checkLabelClick(target);
     const rect = target.getBoundingClientRect();
-    const elementRect = {
-      // left: Number(rect.left.toFixed(2)),
-      // top: Number(rect.top.toFixed(2)),
-      // width: Number(rect.width.toFixed(2)),
-      // height: Number(rect.height.toFixed(2)),
+    const elementRect: ChromeRecordedEvent['elementRect'] = {
       x: Number(event.clientX.toFixed(2)),
       y: Number(event.clientY.toFixed(2)),
     };
+    console.log('isNotContainerElement', isNotContainerElement(target));
+    if (isNotContainerElement(target)) {
+      elementRect.left = Number(rect.left.toFixed(2));
+      elementRect.top = Number(rect.top.toFixed(2));
+      elementRect.width = Number(rect.width.toFixed(2));
+      elementRect.height = Number(rect.height.toFixed(2));
+    }
+
     const clickEvent: RecordedEvent = {
       type: 'click',
       elementRect,
@@ -337,23 +349,40 @@ export class EventRecorder {
       width: Number(rect.width.toFixed(2)),
       height: Number(rect.height.toFixed(2)),
     };
-    const inputEvent: RecordedEvent = {
-      type: 'input',
-      value: target.type !== 'password' ? target.value : '*****',
-      timestamp: Date.now(),
-      hashId: generateHashId('input', {
-        ...elementRect,
-      }),
-      element: target,
-      inputType: target.type || 'text',
-      elementRect,
-      pageInfo: {
-        width: window.innerWidth,
-        height: window.innerHeight,
-      },
-    };
 
-    this.eventCallback(inputEvent);
+    // Throttle logic: clear existing timer and set new one
+    if (this.inputThrottleTimer) {
+      clearTimeout(this.inputThrottleTimer);
+    }
+    this.inputThrottleTimer = window.setTimeout(() => {
+      if (this.isRecording) {
+        const inputEvent: RecordedEvent = {
+          type: 'input',
+          value: target.type !== 'password' ? target.value : '*****',
+          timestamp: Date.now(),
+          hashId: generateHashId('input', {
+            ...elementRect,
+          }),
+          element: target,
+          inputType: target.type || 'text',
+          elementRect,
+          pageInfo: {
+            width: window.innerWidth,
+            height: window.innerHeight,
+          },
+        };
+
+        debugLog('Throttled input event:', {
+          value: inputEvent.value,
+          timestamp: inputEvent.timestamp,
+          target: target.tagName,
+          inputType: target.type,
+        });
+
+        this.eventCallback(inputEvent);
+      }
+      this.inputThrottleTimer = null;
+    }, this.inputThrottleDelay);
   };
 
   // Check if it's a label click

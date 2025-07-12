@@ -1,8 +1,9 @@
 .popup-record-container {
-  min-height: 500px;
+  // min-height: 500px;
+  height: 100%;
   overflow-y: auto;
   overflow-x: hidden; // 禁用横向滚动条
-  padding: 16px;
+  padding: 16px 0;
   box-sizing: border-box;
   width: 100%;
   
@@ -41,6 +42,7 @@
   .record-list-view {
     width: 100%;
     max-width: 100%;
+    height: 100%;
     
     .session-list {
       width: 100%;
@@ -623,3 +625,6 @@
     }
   }
 } 
+.ant-btn-variant-outlined:disabled{
+  background: none !important;
+}

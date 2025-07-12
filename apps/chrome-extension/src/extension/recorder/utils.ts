@@ -1,4 +1,4 @@
-import { AIActionType, callToGetJSONObject } from '@midscene/core/ai-model';
+import { AIActionType, callAiFn } from '@midscene/core/ai-model';
 import { message } from 'antd';
 
 import type { ChromeRecordedEvent } from '@midscene/recorder';
@@ -7,7 +7,8 @@ import { isChromeExtension, safeChromeAPI } from './types';
 
 // Generate default session name with current time
 export const generateDefaultSessionName = () => {
-  return new Date()
+  const now = new Date();
+  const dateStr = now
     .toLocaleString('zh-CN', {
       year: 'numeric',
       month: '2-digit',
@@ -18,6 +19,8 @@ export const generateDefaultSessionName = () => {
       hour12: false,
     })
     .replace(/\//g, '-');
+  const ms = String(now.getMilliseconds()).padStart(3, '0');
+  return `${dateStr}-${ms}`;
 };
 
 // Check if content script is injected
@@ -104,7 +107,6 @@ export const injectScript = async (currentTab: chrome.tabs.Tab | null) => {
     });
 
     recordLogger.success('Script injected', { tabId: currentTab.id });
-    message.success('Recording script injected successfully');
   } catch (error) {
     recordLogger.error(
       'Failed to inject script',
@@ -152,8 +154,8 @@ export const exportEventsToFile = (
 };
 
 export const generateSessionName = () => {
-  // Auto-create session with timestamp name
-  const sessionName = new Date()
+  const now = new Date();
+  const dateStr = now
     .toLocaleString('zh-CN', {
       year: 'numeric',
       month: '2-digit',
@@ -164,7 +166,8 @@ export const generateSessionName = () => {
       hour12: false,
     })
     .replace(/\//g, '-');
-  return sessionName;
+  const ms = String(now.getMilliseconds()).padStart(3, '0');
+  return `${dateStr}-${ms}`;
 };
 
 // Function to get screenshots from events
@@ -305,8 +308,8 @@ export const generateRecordTitle = async (
         },
       ];
 
-      const response = await callToGetJSONObject(
-        prompt,
+      const response = await callAiFn(
+        [prompt[0], prompt[1]],
         AIActionType.EXTRACT_DATA,
       );
       if (response?.content) {
@@ -361,7 +364,6 @@ export const cleanupPreviousRecordings = async () => {
     });
 
     await Promise.allSettled(cleanupPromises);
-    recordLogger.success('Previous recordings cleaned up');
   } catch (error) {
     recordLogger.error('Error during recording cleanup', undefined, error);
   }

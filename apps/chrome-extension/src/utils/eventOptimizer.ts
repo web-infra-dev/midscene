@@ -60,11 +60,11 @@ export const generateFallbackDescription = (): string => {
 // Check if event has valid rect information
 const hasValidRect = (event: RecordedEvent): boolean => {
   return Boolean(
-    (event.elementRect?.left &&
-      event.elementRect?.top &&
+    ((event.elementRect?.left || event.elementRect?.top) &&
       event.elementRect?.width &&
       event.elementRect?.height) ||
-      (event.elementRect?.x && event.elementRect?.y),
+      event.elementRect?.x ||
+      event.elementRect?.y,
   );
 };
 
@@ -86,7 +86,6 @@ export const generateAIDescription = async (
       const mockContext: UIContext<BaseElement> = {
         screenshotBase64: event.screenshotBefore as string,
         size: { width: event.pageInfo.width, height: event.pageInfo.height },
-        content: [],
         tree: { node: null, children: [] },
       };
 

@@ -1,4 +1,5 @@
 import { AIResponseFormat, type AIUsageInfo } from '@/types';
+import type { CodeGenerationChunk, StreamingCallback } from '@/types';
 import { Anthropic } from '@anthropic-ai/sdk';
 import {
   DefaultAzureCredential,
@@ -41,6 +42,7 @@ import { HttpsProxyAgent } from 'https-proxy-agent';
 import { jsonrepair } from 'jsonrepair';
 import OpenAI, { AzureOpenAI } from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources';
+import type { Stream } from 'openai/streaming';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import { AIActionType } from '../common';
 import { assertSchema } from '../prompt/assertion';
@@ -48,11 +50,24 @@ import { locatorSchema } from '../prompt/llm-locator';
 import { planSchema } from '../prompt/llm-planning';
 
 export function checkAIConfig() {
-  if (getAIConfig(OPENAI_API_KEY)) return true;
-  if (getAIConfig(MIDSCENE_USE_AZURE_OPENAI)) return true;
-  if (getAIConfig(ANTHROPIC_API_KEY)) return true;
+  const openaiKey = getAIConfig(OPENAI_API_KEY);
+  const azureConfig = getAIConfig(MIDSCENE_USE_AZURE_OPENAI);
+  const anthropicKey = getAIConfig(ANTHROPIC_API_KEY);
+  const initConfigJson = getAIConfig(MIDSCENE_OPENAI_INIT_CONFIG_JSON);
 
-  return Boolean(getAIConfig(MIDSCENE_OPENAI_INIT_CONFIG_JSON));
+  console.log('AI Config Check:', {
+    hasOpenAI: !!openaiKey,
+    hasAzure: !!azureConfig,
+    hasAnthropic: !!anthropicKey,
+    hasInitConfig: !!initConfigJson,
+    openaiKeyPrefix: openaiKey ? `${openaiKey.substring(0, 10)}...` : 'none',
+  });
+
+  if (openaiKey) return true;
+  if (azureConfig) return true;
+  if (anthropicKey) return true;
+
+  return Boolean(initConfigJson);
 }
 
 // if debug config is initialized
@@ -238,7 +253,11 @@ export async function call(
   responseFormat?:
     | OpenAI.ChatCompletionCreateParams['response_format']
     | OpenAI.ResponseFormatJSONObject,
-): Promise<{ content: string; usage?: AIUsageInfo }> {
+  options?: {
+    stream?: boolean;
+    onChunk?: StreamingCallback;
+  },
+): Promise<{ content: string; usage?: AIUsageInfo; isStreamed: boolean }> {
   const { completion, style } = await createChatClient({
     AIActionTypeValue,
   });
@@ -250,12 +269,15 @@ export async function call(
 
   const startTime = Date.now();
   const model = getModelName();
+  const isStreaming = options?.stream && options?.onChunk;
   let content: string | undefined;
+  let accumulated = '';
   let usage: OpenAI.CompletionUsage | undefined;
   let timeCost: number | undefined;
+
   const commonConfig = {
     temperature: vlLocateMode() === 'vlm-ui-tars' ? 0.0 : 0.1,
-    stream: false,
+    stream: !!isStreaming,
     max_tokens:
       typeof maxTokens === 'number'
         ? maxTokens
@@ -266,91 +288,246 @@ export async function call(
         }
       : {}),
   };
-  if (style === 'openai') {
-    debugCall(`sending request to ${model}`);
-    let result: Awaited<ReturnType<typeof completion.create>>;
-    try {
-      const startTime = Date.now();
-      result = await completion.create({
-        model,
-        messages,
-        response_format: responseFormat,
-        ...commonConfig,
-      } as any);
-      timeCost = Date.now() - startTime;
-    } catch (e: any) {
-      const newError = new Error(
-        `failed to call AI model service: ${e.message}. Trouble shooting: https://midscenejs.com/model-provider.html`,
-        {
-          cause: e,
-        },
+
+  try {
+    if (style === 'openai') {
+      debugCall(
+        `sending ${isStreaming ? 'streaming ' : ''}request to ${model}`,
       );
-      throw newError;
+
+      if (isStreaming) {
+        const stream = (await completion.create(
+          {
+            model,
+            messages,
+            response_format: responseFormat,
+            ...commonConfig,
+          },
+          {
+            stream: true,
+          },
+        )) as Stream<OpenAI.Chat.Completions.ChatCompletionChunk> & {
+          _request_id?: string | null;
+        };
+
+        for await (const chunk of stream) {
+          const content = chunk.choices?.[0]?.delta?.content || '';
+          const reasoning_content =
+            (chunk.choices?.[0]?.delta as any)?.reasoning_content || '';
+
+          // Check for usage info in any chunk (OpenAI provides usage in separate chunks)
+          if (chunk.usage) {
+            usage = chunk.usage;
+          }
+
+          if (content || reasoning_content) {
+            accumulated += content;
+            const chunkData: CodeGenerationChunk = {
+              content,
+              reasoning_content,
+              accumulated,
+              isComplete: false,
+              usage: undefined,
+            };
+            options.onChunk!(chunkData);
+          }
+
+          // Check if stream is complete
+          if (chunk.choices?.[0]?.finish_reason) {
+            timeCost = Date.now() - startTime;
+
+            // If usage is not available from the stream, provide a basic usage info
+            if (!usage) {
+              // Estimate token counts based on content length (rough approximation)
+              const estimatedTokens = Math.max(
+                1,
+                Math.floor(accumulated.length / 4),
+              );
+              usage = {
+                prompt_tokens: estimatedTokens,
+                completion_tokens: estimatedTokens,
+                total_tokens: estimatedTokens * 2,
+              };
+            }
+
+            // Send final chunk
+            const finalChunk: CodeGenerationChunk = {
+              content: '',
+              accumulated,
+              reasoning_content: '',
+              isComplete: true,
+              usage: {
+                prompt_tokens: usage.prompt_tokens ?? 0,
+                completion_tokens: usage.completion_tokens ?? 0,
+                total_tokens: usage.total_tokens ?? 0,
+                time_cost: timeCost ?? 0,
+              },
+            };
+            options.onChunk!(finalChunk);
+            break;
+          }
+        }
+        content = accumulated;
+        debugProfileStats(
+          `streaming model, ${model}, mode, ${vlLocateMode() || 'default'}, cost-ms, ${timeCost}`,
+        );
+      } else {
+        const result = await completion.create({
+          model,
+          messages,
+          response_format: responseFormat,
+          ...commonConfig,
+        } as any);
+        timeCost = Date.now() - startTime;
+
+        debugProfileStats(
+          `model, ${model}, mode, ${vlLocateMode() || 'default'}, ui-tars-version, ${uiTarsModelVersion()}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${timeCost}, requestId, ${result._request_id || ''}`,
+        );
+
+        debugProfileDetail(
+          `model usage detail: ${JSON.stringify(result.usage)}`,
+        );
+
+        assert(
+          result.choices,
+          `invalid response from LLM service: ${JSON.stringify(result)}`,
+        );
+        content = result.choices[0].message.content!;
+        usage = result.usage;
+      }
+
+      debugCall(`response: ${content}`);
+      assert(content, 'empty content');
+    } else if (style === 'anthropic') {
+      const convertImageContent = (content: any) => {
+        if (content.type === 'image_url') {
+          const imgBase64 = content.image_url.url;
+          assert(imgBase64, 'image_url is required');
+          return {
+            source: {
+              type: 'base64',
+              media_type: imgBase64.includes('data:image/png;base64,')
+                ? 'image/png'
+                : 'image/jpeg',
+              data: imgBase64.split(',')[1],
+            },
+            type: 'image',
+          };
+        }
+        return content;
+      };
+
+      if (isStreaming) {
+        const stream = (await completion.create({
+          model,
+          system: 'You are a versatile professional in software UI automation',
+          messages: messages.map((m) => ({
+            role: 'user',
+            content: Array.isArray(m.content)
+              ? (m.content as any).map(convertImageContent)
+              : m.content,
+          })),
+          response_format: responseFormat,
+          ...commonConfig,
+        } as any)) as any;
+
+        for await (const chunk of stream) {
+          const content = chunk.delta?.text || '';
+          if (content) {
+            accumulated += content;
+            const chunkData: CodeGenerationChunk = {
+              content,
+              accumulated,
+              reasoning_content: '',
+              isComplete: false,
+              usage: undefined,
+            };
+            options.onChunk!(chunkData);
+          }
+
+          // Check if stream is complete
+          if (chunk.type === 'message_stop') {
+            timeCost = Date.now() - startTime;
+            const anthropicUsage = chunk.usage;
+
+            // Send final chunk
+            const finalChunk: CodeGenerationChunk = {
+              content: '',
+              accumulated,
+              reasoning_content: '',
+              isComplete: true,
+              usage: anthropicUsage
+                ? {
+                    prompt_tokens: anthropicUsage.input_tokens ?? 0,
+                    completion_tokens: anthropicUsage.output_tokens ?? 0,
+                    total_tokens:
+                      (anthropicUsage.input_tokens ?? 0) +
+                      (anthropicUsage.output_tokens ?? 0),
+                    time_cost: timeCost ?? 0,
+                  }
+                : undefined,
+            };
+            options.onChunk!(finalChunk);
+            break;
+          }
+        }
+        content = accumulated;
+      } else {
+        const result = await completion.create({
+          model,
+          system: 'You are a versatile professional in software UI automation',
+          messages: messages.map((m) => ({
+            role: 'user',
+            content: Array.isArray(m.content)
+              ? (m.content as any).map(convertImageContent)
+              : m.content,
+          })),
+          response_format: responseFormat,
+          ...commonConfig,
+        } as any);
+        timeCost = Date.now() - startTime;
+        content = (result as any).content[0].text as string;
+        usage = result.usage;
+      }
+
+      assert(content, 'empty content');
+    }
+    // Ensure we always have usage info for streaming responses
+    if (isStreaming && !usage) {
+      // Estimate token counts based on content length (rough approximation)
+      const estimatedTokens = Math.max(
+        1,
+        Math.floor((content || '').length / 4),
+      );
+      usage = {
+        prompt_tokens: estimatedTokens,
+        completion_tokens: estimatedTokens,
+        total_tokens: estimatedTokens * 2,
+      };
     }
 
-    debugProfileStats(
-      `model, ${model}, mode, ${vlLocateMode() || 'default'}, ui-tars-version, ${uiTarsModelVersion()}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${Date.now() - startTime}, requestId, ${result._request_id || ''}`,
-    );
-
-    debugProfileDetail(`model usage detail: ${JSON.stringify(result.usage)}`);
-
-    assert(
-      result.choices,
-      `invalid response from LLM service: ${JSON.stringify(result)}`,
-    );
-    content = result.choices[0].message.content!;
-
-    debugCall(`response: ${content}`);
-    assert(content, 'empty content');
-    usage = result.usage;
-    // console.log('headers', result.headers);
-  } else if (style === 'anthropic') {
-    const convertImageContent = (content: any) => {
-      if (content.type === 'image_url') {
-        const imgBase64 = content.image_url.url;
-        assert(imgBase64, 'image_url is required');
-        return {
-          source: {
-            type: 'base64',
-            media_type: imgBase64.includes('data:image/png;base64,')
-              ? 'image/png'
-              : 'image/jpeg',
-            data: imgBase64.split(',')[1],
-          },
-          type: 'image',
-        };
-      }
-      return content;
+    return {
+      content: content || '',
+      usage: usage
+        ? {
+            prompt_tokens: usage.prompt_tokens ?? 0,
+            completion_tokens: usage.completion_tokens ?? 0,
+            total_tokens: usage.total_tokens ?? 0,
+            time_cost: timeCost ?? 0,
+          }
+        : undefined,
+      isStreamed: !!isStreaming,
     };
-
-    const startTime = Date.now();
-    const result = await completion.create({
-      model,
-      system: 'You are a versatile professional in software UI automation',
-      messages: messages.map((m) => ({
-        role: 'user',
-        content: Array.isArray(m.content)
-          ? (m.content as any).map(convertImageContent)
-          : m.content,
-      })),
-      response_format: responseFormat,
-      ...commonConfig,
-    } as any);
-    timeCost = Date.now() - startTime;
-    content = (result as any).content[0].text as string;
-    assert(content, 'empty content');
-    usage = result.usage;
+  } catch (e: any) {
+    console.error(' call AI error', e);
+    const newError = new Error(
+      `failed to call ${isStreaming ? 'streaming ' : ''}AI model service: ${e.message}. Trouble shooting: https://midscenejs.com/model-provider.html`,
+      {
+        cause: e,
+      },
+    );
+    throw newError;
   }
-
-  return {
-    content: content || '',
-    usage: {
-      prompt_tokens: usage?.prompt_tokens ?? 0,
-      completion_tokens: usage?.completion_tokens ?? 0,
-      total_tokens: usage?.total_tokens ?? 0,
-      time_cost: timeCost ?? 0,
-    },
-  };
 }
 
 export async function callToGetJSONObject<T>(

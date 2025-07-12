@@ -97,8 +97,6 @@ export const useRecordingSession = (currentTab: chrome.tabs.Tab | null) => {
       recordLogger.success('Session created from form', {
         sessionId: newSession.id,
       });
-      message.success(`Session "${values.name}" created successfully`);
-
       return newSession;
     },
     [
@@ -124,7 +122,6 @@ export const useRecordingSession = (currentTab: chrome.tabs.Tab | null) => {
         ...updates,
         updatedAt: Date.now(),
       });
-      message.success('Session updated successfully');
     },
     [updateSession],
   );
@@ -143,7 +140,7 @@ export const useRecordingSession = (currentTab: chrome.tabs.Tab | null) => {
         setCurrentSession(null);
         clearEvents();
       }
-      message.success('Session deleted successfully');
+      // message.success('Session deleted successfully');
     },
     [deleteSession, currentSessionId, setCurrentSession, clearEvents],
   );
@@ -157,7 +154,6 @@ export const useRecordingSession = (currentTab: chrome.tabs.Tab | null) => {
       });
 
       setCurrentSession(session.id);
-      message.success(`Switched to session "${session.name}"`);
     },
     [setCurrentSession],
   );
@@ -182,6 +178,7 @@ export const useRecordingSession = (currentTab: chrome.tabs.Tab | null) => {
     sessions,
     currentSessionId,
     getCurrentSession,
+    setCurrentSession,
 
     // Actions
     createNewSession,

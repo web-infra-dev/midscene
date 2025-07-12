@@ -4,6 +4,7 @@ import {
   GithubOutlined,
   MenuOutlined,
   QuestionCircleOutlined,
+  VideoCameraOutlined,
 } from '@ant-design/icons';
 import {
   EnvConfig,
@@ -12,18 +13,18 @@ import {
 } from '@midscene/visualizer';
 import '@midscene/visualizer/index.css';
 import { ConfigProvider, Dropdown, Typography } from 'antd';
-import { useState } from 'react';
-import { BrowserExtensionPlayground } from '../component/playground';
+import { useEffect, useState } from 'react';
+import { BrowserExtensionPlayground } from '../components/playground';
 import Bridge from './bridge';
 import Recorder from './recorder';
 import './popup.less';
+import { OPENAI_API_KEY, overrideAIConfig } from '@midscene/shared/env';
 import {
   ChromeExtensionProxyPage,
   ChromeExtensionProxyPageAgent,
 } from '@midscene/web/chrome-extension';
 import BridgeIcon from '../icons/bridge.svg?react';
 import PlaygroundIcon2 from '../icons/playground-2.svg?react';
-
 // remember to destroy the agent when the tab is destroyed: agent.page.destroy()
 const extensionAgentForTab = (forceSameTabNavigation = true) => {
   const page = new ChromeExtensionProxyPage(forceSameTabNavigation);
@@ -32,9 +33,18 @@ const extensionAgentForTab = (forceSameTabNavigation = true) => {
 
 export function PlaygroundPopup() {
   const { setPopupTab } = useEnvConfig();
-  const [currentMode, setCurrentMode] = useState<'playground' | 'bridge'>(
-    'playground',
-  );
+  const [currentMode, setCurrentMode] = useState<
+    'playground' | 'bridge' | 'recorder'
+  >('recorder');
+
+  const { config, deepThink } = useEnvConfig();
+
+  // Override AI configuration
+  useEffect(() => {
+    console.log('Chrome Extension - Overriding AI config:', config);
+    console.log('OPENAI_API_KEY exists:', !!OPENAI_API_KEY);
+    overrideAIConfig(config);
+  }, [config]);
 
   const menuItems = [
     {
@@ -44,6 +54,15 @@ export function PlaygroundPopup() {
       onClick: () => {
         setCurrentMode('playground');
         setPopupTab('playground');
+      },
+    },
+    {
+      key: 'recorder',
+      label: 'Recorder (Preview)',
+      icon: <VideoCameraOutlined />,
+      onClick: () => {
+        setCurrentMode('recorder');
+        setPopupTab('recorder');
       },
     },
     {
@@ -64,6 +83,13 @@ export function PlaygroundPopup() {
           <div className="bridge-container">
             <Bridge />
           </div>
+        </div>
+      );
+    }
+    if (currentMode === 'recorder') {
+      return (
+        <div className="popup-content recorder-mode">
+          <Recorder />
         </div>
       );
     }
@@ -98,7 +124,11 @@ export function PlaygroundPopup() {
               <MenuOutlined className="nav-icon menu-trigger" />
             </Dropdown>
             <span className="nav-title">
-              {currentMode === 'playground' ? 'Playground' : 'Bridge Mode'}
+              {currentMode === 'playground'
+                ? 'Playground'
+                : currentMode === 'recorder'
+                  ? 'Recorder'
+                  : 'Bridge Mode'}
             </span>
           </div>
           <div className="nav-right">

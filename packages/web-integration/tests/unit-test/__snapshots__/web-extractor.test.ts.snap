@@ -242,6 +242,7 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
+      "for": "name",
       "htmlTagName": "<label>",
       "nodeType": "TEXT Node",
     },
@@ -283,13 +284,6 @@ exports[`extractor > basic 1`] = `
   {
     "attributes": {
       "href": "https://www.google.com",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node",
-    },
-    "content": "Google",
-  },
-  {
-    "attributes": {
       "htmlTagName": "<a>",
       "nodeType": "TEXT Node",
     },
@@ -352,6 +346,7 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
+      "for": "options",
       "htmlTagName": "<label>",
       "nodeType": "TEXT Node",
     },
@@ -370,6 +365,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "htmlTagName": "<div>",
       "nodeType": "TEXT Node",
+      "style": "width: 160px;height: 40px;background-color: #ccc;zoom: 1.5;",
     },
     "content": "This is zoomed content",
   },
@@ -391,6 +387,8 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
+      "class": ".gh-ar-hdn",
+      "for": "gh-ac",
       "htmlTagName": "<label>",
       "nodeType": "TEXT Node",
     },
@@ -433,14 +431,6 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
-      "class": ".life-core-checkbox-icon",
-      "htmlTagName": "<span>",
-      "nodeType": "CONTAINER Node",
-    },
-    "content": "",
-  },
-  {
-    "attributes": {
       "aria-label": "The phrase 'The quick brown fox jumps over the lazy dog' is a well-known English-language pangram, meaning it contains every letter of the alphabet at least once. This sentence has become a standard tool for various applications, particularly in typing practice, font display, and keyboard testing. T...",
       "htmlTagName": "<div>",
       "nodeType": "CONTAINER Node",
@@ -470,6 +460,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "htmlTagName": "<div>",
       "nodeType": "TEXT Node",
+      "style": "height: 30px",
     },
     "content": "content 000",
   },
@@ -506,8 +497,11 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
+      "aria-label": "Click me",
+      "class": ".widget",
       "htmlTagName": "<div>",
       "nodeType": "TEXT Node",
+      "role": "button",
     },
     "content": "Click me",
   },
@@ -531,6 +525,7 @@ exports[`extractor > basic 1`] = `
   },
   {
     "attributes": {
+      "class": ".child-container",
       "htmlTagName": "<div>",
       "nodeType": "TEXT Node",
     },
@@ -609,6 +604,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "htmlTagName": "<div>",
       "nodeType": "TEXT Node",
+      "style": "position: absolute; left: 0px; bottom: 0; width: 100%; height: 50px; background-color: #EEE;",
     },
     "content": "content editable div content. We should collect the parent.",
   },
@@ -623,6 +619,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "htmlTagName": "<div>",
       "nodeType": "TEXT Node",
+      "style": "position: absolute; top: 0px; left: 0; width: 100%;text-align: right;",
     },
     "content": "content Right",
   },
@@ -638,6 +635,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "htmlTagName": "<div>",
       "nodeType": "TEXT Node",
+      "style": "width: 120px; height: 120px; background-color: #EEE;",
     },
     "content": "AAA",
   },
@@ -645,6 +643,7 @@ exports[`extractor > basic 1`] = `
     "attributes": {
       "htmlTagName": "<div>",
       "nodeType": "TEXT Node",
+      "style": "position: absolute; bottom: 200px; right: 0; width: 120px; height: 120px; background-color: #CCC;",
     },
     "content": "This should be collected",
   },
@@ -1060,6 +1059,7 @@ exports[`extractor > basic 2`] = `
       "children": [],
       "node": {
         "attributes": {
+          "for": "name",
           "htmlTagName": "<label>",
           "nodeType": "TEXT Node",
         },
@@ -1117,24 +1117,12 @@ exports[`extractor > basic 2`] = `
       },
     },
     {
-      "children": [
-        {
-          "children": [],
-          "node": {
-            "attributes": {
-              "htmlTagName": "<a>",
-              "nodeType": "TEXT Node",
-            },
-            "content": "Google",
-            "indexId": 40,
-          },
-        },
-      ],
+      "children": [],
       "node": {
         "attributes": {
           "href": "https://www.google.com",
           "htmlTagName": "<a>",
-          "nodeType": "Anchor Node",
+          "nodeType": "TEXT Node",
         },
         "content": "Google",
         "indexId": 39,
@@ -1150,7 +1138,7 @@ exports[`extractor > basic 2`] = `
           "style": "width: 100px; height: 20px; vertical-align: middle; display: inline-block; background: #ccc;",
         },
         "content": "",
-        "indexId": 41,
+        "indexId": 40,
       },
     },
     {
@@ -1162,7 +1150,7 @@ exports[`extractor > basic 2`] = `
           "nodeType": "Anchor Node",
         },
         "content": " ",
-        "indexId": 42,
+        "indexId": 41,
       },
     },
     {
@@ -1175,7 +1163,7 @@ exports[`extractor > basic 2`] = `
           "value": "Rectangle",
         },
         "content": "Rectangle",
-        "indexId": 43,
+        "indexId": 42,
       },
     },
     {
@@ -1187,7 +1175,7 @@ exports[`extractor > basic 2`] = `
           "placeholder": "this_is_a_textarea",
         },
         "content": "this_is_a_textarea",
-        "indexId": 44,
+        "indexId": 43,
       },
     },
     {
@@ -1198,7 +1186,7 @@ exports[`extractor > basic 2`] = `
           "nodeType": "TEXT Node",
         },
         "content": "English",
-        "indexId": 45,
+        "indexId": 44,
       },
     },
     {
@@ -1209,7 +1197,7 @@ exports[`extractor > basic 2`] = `
           "nodeType": "TEXT Node",
         },
         "content": "中文",
-        "indexId": 46,
+        "indexId": 45,
       },
     },
     {
@@ -1220,18 +1208,19 @@ exports[`extractor > basic 2`] = `
           "nodeType": "TEXT Node",
         },
         "content": "Tiếng Việt",
-        "indexId": 47,
+        "indexId": 46,
       },
     },
     {
       "children": [],
       "node": {
         "attributes": {
+          "for": "options",
           "htmlTagName": "<label>",
           "nodeType": "TEXT Node",
         },
         "content": "Choose an option:",
-        "indexId": 48,
+        "indexId": 47,
       },
     },
     {
@@ -1244,6 +1233,18 @@ exports[`extractor > basic 2`] = `
           "nodeType": "FORM_ITEM Node",
         },
         "content": "Option 1",
+        "indexId": 48,
+      },
+    },
+    {
+      "children": [],
+      "node": {
+        "attributes": {
+          "htmlTagName": "<div>",
+          "nodeType": "TEXT Node",
+          "style": "width: 160px;height: 40px;background-color: #ccc;zoom: 1.5;",
+        },
+        "content": "This is zoomed content",
         "indexId": 49,
       },
     },
@@ -1254,19 +1255,8 @@ exports[`extractor > basic 2`] = `
           "htmlTagName": "<div>",
           "nodeType": "TEXT Node",
         },
-        "content": "This is zoomed content",
-        "indexId": 50,
-      },
-    },
-    {
-      "children": [],
-      "node": {
-        "attributes": {
-          "htmlTagName": "<div>",
-          "nodeType": "TEXT Node",
-        },
         "content": "Something Else",
-        "indexId": 51,
+        "indexId": 50,
       },
     },
     {
@@ -1279,18 +1269,20 @@ exports[`extractor > basic 2`] = `
           "style": "width:30px;height:30px;background: #AC0",
         },
         "content": "",
-        "indexId": 52,
+        "indexId": 51,
       },
     },
     {
       "children": [],
       "node": {
         "attributes": {
+          "class": ".gh-ar-hdn",
+          "for": "gh-ac",
           "htmlTagName": "<label>",
           "nodeType": "TEXT Node",
         },
         "content": "输入搜索关键词",
-        "indexId": 53,
+        "indexId": 52,
       },
     },
     {
@@ -1318,7 +1310,7 @@ exports[`extractor > basic 2`] = `
           "type": "text",
         },
         "content": "搜索任何物品",
-        "indexId": 54,
+        "indexId": 53,
       },
     },
     {
@@ -1333,19 +1325,7 @@ exports[`extractor > basic 2`] = `
           "type": "text",
         },
         "content": "验证码",
-        "indexId": 55,
-      },
-    },
-    {
-      "children": [],
-      "node": {
-        "attributes": {
-          "class": ".life-core-checkbox-icon",
-          "htmlTagName": "<span>",
-          "nodeType": "CONTAINER Node",
-        },
-        "content": "",
-        "indexId": 56,
+        "indexId": 54,
       },
     },
     {
@@ -1358,7 +1338,7 @@ exports[`extractor > basic 2`] = `
           "style": "width: 100px; height: 100px; background-color: #ccc;",
         },
         "content": "",
-        "indexId": 57,
+        "indexId": 55,
       },
     },
     {
@@ -1369,7 +1349,7 @@ exports[`extractor > basic 2`] = `
           "nodeType": "TEXT Node",
         },
         "content": "phrase "The quick brown fox jumps over the lazy dog" is a well-known English-language pangram, meaning it contains every letter of the alphabet at least once. This sentence has become a standard tool for various applications, particularly     in typing practice, font display, and keyboard testing. The phrase has permeated popular culture and is referenced in various media, including literature and film. Its simplicity and utility have made it a staple in educational contexts and beyond.     For instance, it was famously used as the first message sent over the Moscow–Washington hotline in 19634.",
-        "indexId": 58,
+        "indexId": 56,
       },
     },
     {
@@ -1384,7 +1364,7 @@ exports[`extractor > basic 2`] = `
           "type": "submit",
         },
         "content": " ",
-        "indexId": 59,
+        "indexId": 57,
       },
     },
     {
@@ -1393,9 +1373,10 @@ exports[`extractor > basic 2`] = `
         "attributes": {
           "htmlTagName": "<div>",
           "nodeType": "TEXT Node",
+          "style": "height: 30px",
         },
         "content": "content 000",
-        "indexId": 60,
+        "indexId": 58,
       },
     },
     {
@@ -1407,7 +1388,7 @@ exports[`extractor > basic 2`] = `
           "style": "height: 30px;width: 100px;",
         },
         "content": "",
-        "indexId": 61,
+        "indexId": 59,
       },
     },
     {
@@ -1418,7 +1399,7 @@ exports[`extractor > basic 2`] = `
           "nodeType": "TEXT Node",
         },
         "content": "content AAA",
-        "indexId": 62,
+        "indexId": 60,
       },
     },
     {
@@ -1430,7 +1411,7 @@ exports[`extractor > basic 2`] = `
           "src": "image",
         },
         "content": "",
-        "indexId": 63,
+        "indexId": 61,
       },
     },
     {
@@ -1442,18 +1423,21 @@ exports[`extractor > basic 2`] = `
           "very-long-attr": "width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color: #ccc;",
         },
         "content": "long-style-content",
-        "indexId": 64,
+        "indexId": 62,
       },
     },
     {
       "children": [],
       "node": {
         "attributes": {
+          "aria-label": "Click me",
+          "class": ".widget",
           "htmlTagName": "<div>",
           "nodeType": "TEXT Node",
+          "role": "button",
         },
         "content": "Click me",
-        "indexId": 65,
+        "indexId": 63,
       },
     },
     {
@@ -1466,7 +1450,7 @@ exports[`extractor > basic 2`] = `
           "nodeType": "CONTAINER Node",
         },
         "content": "",
-        "indexId": 66,
+        "indexId": 64,
       },
     },
     {
@@ -1479,18 +1463,19 @@ exports[`extractor > basic 2`] = `
           "nodeType": "CONTAINER Node",
         },
         "content": "",
-        "indexId": 67,
+        "indexId": 65,
       },
     },
     {
       "children": [],
       "node": {
         "attributes": {
+          "class": ".child-container",
           "htmlTagName": "<div>",
           "nodeType": "TEXT Node",
         },
         "content": "Content 1",
-        "indexId": 68,
+        "indexId": 66,
       },
     },
     {
@@ -1503,7 +1488,7 @@ exports[`extractor > basic 2`] = `
           "style": "width: 100px; height: 100px; background-color: #ccc;",
         },
         "content": "",
-        "indexId": 69,
+        "indexId": 67,
       },
     },
     {
@@ -1514,7 +1499,7 @@ exports[`extractor > basic 2`] = `
           "nodeType": "TEXT Node",
         },
         "content": "Content 2",
-        "indexId": 70,
+        "indexId": 68,
       },
     },
     {
@@ -1525,7 +1510,7 @@ exports[`extractor > basic 2`] = `
           "nodeType": "TEXT Node",
         },
         "content": "Nested Content 3",
-        "indexId": 71,
+        "indexId": 69,
       },
     },
     {
@@ -1538,7 +1523,7 @@ exports[`extractor > basic 2`] = `
           "style": "width: 100px; height: 100px; background-color: #ccc;",
         },
         "content": "",
-        "indexId": 72,
+        "indexId": 70,
       },
     },
     {
@@ -1550,7 +1535,7 @@ exports[`extractor > basic 2`] = `
           "nodeType": "IMG Node",
         },
         "content": "",
-        "indexId": 73,
+        "indexId": 71,
       },
     },
     {
@@ -1562,7 +1547,7 @@ exports[`extractor > basic 2`] = `
           "svgContent": "true",
         },
         "content": "",
-        "indexId": 74,
+        "indexId": 72,
       },
     },
     {
@@ -1573,7 +1558,7 @@ exports[`extractor > basic 2`] = `
           "nodeType": "TEXT Node",
         },
         "content": "hidden label",
-        "indexId": 75,
+        "indexId": 73,
       },
     },
     {
@@ -1584,7 +1569,7 @@ exports[`extractor > basic 2`] = `
           "nodeType": "TEXT Node",
         },
         "content": "i am fixed child content",
-        "indexId": 76,
+        "indexId": 74,
       },
     },
     {
@@ -1595,7 +1580,7 @@ exports[`extractor > basic 2`] = `
           "nodeType": "TEXT Node",
         },
         "content": "abcd efg",
-        "indexId": 77,
+        "indexId": 75,
       },
     },
     {
@@ -1604,9 +1589,10 @@ exports[`extractor > basic 2`] = `
         "attributes": {
           "htmlTagName": "<div>",
           "nodeType": "TEXT Node",
+          "style": "position: absolute; left: 0px; bottom: 0; width: 100%; height: 50px; background-color: #EEE;",
         },
         "content": "content editable div content. We should collect the parent.",
-        "indexId": 78,
+        "indexId": 76,
       },
     },
     {
@@ -1617,7 +1603,7 @@ exports[`extractor > basic 2`] = `
           "nodeType": "TEXT Node",
         },
         "content": "absolute child content",
-        "indexId": 79,
+        "indexId": 77,
       },
     },
     {
@@ -1626,9 +1612,10 @@ exports[`extractor > basic 2`] = `
         "attributes": {
           "htmlTagName": "<div>",
           "nodeType": "TEXT Node",
+          "style": "position: absolute; top: 0px; left: 0; width: 100%;text-align: right;",
         },
         "content": "content Right",
-        "indexId": 80,
+        "indexId": 78,
       },
     },
     {
@@ -1640,7 +1627,7 @@ exports[`extractor > basic 2`] = `
           "nodeType": "CONTAINER Node",
         },
         "content": "",
-        "indexId": 81,
+        "indexId": 79,
       },
     },
     {
@@ -1649,9 +1636,10 @@ exports[`extractor > basic 2`] = `
         "attributes": {
           "htmlTagName": "<div>",
           "nodeType": "TEXT Node",
+          "style": "width: 120px; height: 120px; background-color: #EEE;",
         },
         "content": "AAA",
-        "indexId": 82,
+        "indexId": 80,
       },
     },
     {
@@ -1660,9 +1648,10 @@ exports[`extractor > basic 2`] = `
         "attributes": {
           "htmlTagName": "<div>",
           "nodeType": "TEXT Node",
+          "style": "position: absolute; bottom: 200px; right: 0; width: 120px; height: 120px; background-color: #CCC;",
         },
         "content": "This should be collected",
-        "indexId": 83,
+        "indexId": 81,
       },
     },
     {
@@ -1673,7 +1662,7 @@ exports[`extractor > basic 2`] = `
           "nodeType": "TEXT Node",
         },
         "content": "Child Page",
-        "indexId": 85,
+        "indexId": 83,
       },
     },
     {
@@ -1684,7 +1673,7 @@ exports[`extractor > basic 2`] = `
           "nodeType": "TEXT Node",
         },
         "content": "This is a child page.",
-        "indexId": 86,
+        "indexId": 84,
       },
     },
     {
@@ -1695,7 +1684,7 @@ exports[`extractor > basic 2`] = `
           "nodeType": "TEXT Node",
         },
         "content": "Click me",
-        "indexId": 87,
+        "indexId": 85,
       },
     },
     {
@@ -1706,7 +1695,7 @@ exports[`extractor > basic 2`] = `
           "nodeType": "TEXT Node",
         },
         "content": "Something beyong 200px",
-        "indexId": 88,
+        "indexId": 86,
       },
     },
   ],
