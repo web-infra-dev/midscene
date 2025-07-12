@@ -58,7 +58,7 @@ export function PlaygroundPopup() {
     },
     {
       key: 'recorder',
-      label: 'Recorder',
+      label: 'Recorder (Preview)',
       icon: <VideoCameraOutlined />,
       onClick: () => {
         setCurrentMode('recorder');

@@ -4,3 +4,11 @@
 .ant-col {
   padding: 0 !important;
 }
+
+.session-list {
+    padding: 0;
+}
+.session-item {
+    padding: 0;
+    margin: 0 !important;
+}
