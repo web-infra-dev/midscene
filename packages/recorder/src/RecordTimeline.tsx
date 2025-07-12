@@ -33,7 +33,7 @@ export const RecordTimeline = ({
   onEventClick,
 }: RecordTimelineProps) => {
   const [expandedEvents, setExpandedEvents] = useState<Set<number>>(new Set());
-
+  console.log('events', events);
   useEffect(() => {
     // 方案二：用 className 和 querySelector 获取内部 div
     if (events.length > 0) {

@@ -132,6 +132,8 @@ export class EventRecorder {
   private eventCallback: EventCallback;
   private scrollThrottleTimer: number | null = null;
   private scrollThrottleDelay = 200; // 200ms throttle
+  private inputThrottleTimer: number | null = null;
+  private inputThrottleDelay = 300; // 300ms throttle for input events
   private lastViewportScroll: { x: number; y: number } | null = null;
   private scrollTargets: HTMLElement[] = [];
   private sessionId: string;
@@ -213,6 +215,10 @@ export class EventRecorder {
     if (this.scrollThrottleTimer) {
       clearTimeout(this.scrollThrottleTimer);
       this.scrollThrottleTimer = null;
+    }
+    if (this.inputThrottleTimer) {
+      clearTimeout(this.inputThrottleTimer);
+      this.inputThrottleTimer = null;
     }
     document.removeEventListener('click', this.handleClick);
     document.removeEventListener('input', this.handleInput);
@@ -343,23 +349,40 @@ export class EventRecorder {
       width: Number(rect.width.toFixed(2)),
       height: Number(rect.height.toFixed(2)),
     };
-    const inputEvent: RecordedEvent = {
-      type: 'input',
-      value: target.type !== 'password' ? target.value : '*****',
-      timestamp: Date.now(),
-      hashId: generateHashId('input', {
-        ...elementRect,
-      }),
-      element: target,
-      inputType: target.type || 'text',
-      elementRect,
-      pageInfo: {
-        width: window.innerWidth,
-        height: window.innerHeight,
-      },
-    };
+    
+    // Throttle logic: clear existing timer and set new one
+    if (this.inputThrottleTimer) {
+      clearTimeout(this.inputThrottleTimer);
+    }
+    this.inputThrottleTimer = window.setTimeout(() => {
+      if (this.isRecording) {
+        const inputEvent: RecordedEvent = {
+          type: 'input',
+          value: target.type !== 'password' ? target.value : '*****',
+          timestamp: Date.now(),
+          hashId: generateHashId('input', {
+            ...elementRect,
+          }),
+          element: target,
+          inputType: target.type || 'text',
+          elementRect,
+          pageInfo: {
+            width: window.innerWidth,
+            height: window.innerHeight,
+          },
+        };
 
-    this.eventCallback(inputEvent);
+        debugLog('Throttled input event:', {
+          value: inputEvent.value,
+          timestamp: inputEvent.timestamp,
+          target: target.tagName,
+          inputType: target.type,
+        });
+
+        this.eventCallback(inputEvent);
+      }
+      this.inputThrottleTimer = null;
+    }, this.inputThrottleDelay);
   };
 
   // Check if it's a label click

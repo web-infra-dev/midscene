@@ -18,7 +18,7 @@ import {
 import type React from 'react';
 import type { RecordingSession } from '../../../store';
 import type { ViewMode } from '../types';
-import './recordList.css';
+import './Record-List.css';
 
 const { Title } = Typography;
 
@@ -65,11 +65,10 @@ export const RecordList: React.FC<RecordListProps> = ({
           renderItem={(session) => (
             <List.Item className="session-item">
               <div
-                className={`w-full bg-[#F4F6F9] rounded-lg cursor-pointer transition-all duration-200 overflow-hidden hover:shadow-md ${
-                  session.id === currentSessionId
+                className={`w-full bg-[#F4F6F9] rounded-lg cursor-pointer transition-all duration-200 overflow-hidden hover:shadow-md ${session.id === currentSessionId
                     ? 'border-2 border-[#F4F6F9] bg-blue-50'
                     : ''
-                }`}
+                  }`}
                 onClick={() => onViewDetail(session)}
               >
                 {/* Main content area */}
