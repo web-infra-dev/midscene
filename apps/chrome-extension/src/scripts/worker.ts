@@ -1,11 +1,21 @@
 /// <reference types="chrome" />
 
 import type { WebUIContext } from '@midscene/web/utils';
-import {
-  type WorkerRequestGetContext,
-  type WorkerRequestSaveContext,
-  workerMessageTypes,
-} from '../utils';
+
+const workerMessageTypes = {
+  SAVE_CONTEXT: 'save-context',
+  GET_CONTEXT: 'get-context',
+};
+
+// save screenshot
+interface WorkerRequestSaveContext {
+  context: WebUIContext;
+}
+
+// get screenshot
+interface WorkerRequestGetContext {
+  id: string;
+}
 
 // console-browserify won't work in worker, so we need to use globalThis.console
 const console = globalThis.console;
