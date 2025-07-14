@@ -9,21 +9,18 @@ import type React from 'react';
 import { useEffect, useRef } from 'react';
 import { ThinkingProcessSection } from './ThinkingProcessSection';
 import { triggerConfetti } from './confetti';
-
-import hljs from 'highlight.js/lib/core';
-import javascript from 'highlight.js/lib/languages/javascript';
-import yaml from 'highlight.js/lib/languages/yaml';
+import './CodeBlock.css';
+//@ts-ignore
+import Highlight from 'react-highlight';
 
 import 'highlight.js/styles/github.css';
-
-hljs.registerLanguage('javascript', javascript);
-hljs.registerLanguage('yaml', yaml);
 
 const { Text } = Typography;
 
 interface CodeBlockProps {
   type: 'yaml' | 'playwright';
   code: string;
+
   loading: boolean;
   onCopy?: () => void;
   onDownload?: () => void;
@@ -39,25 +36,18 @@ interface CodeBlockProps {
 function CodeBlockContainer({
   language,
   code,
-  isStreaming,
-}: { language: 'yaml' | 'javascript'; code: string; isStreaming: boolean }) {
-  const codeRef = useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    if (codeRef.current && !isStreaming) {
-      hljs.highlightElement(codeRef.current);
-    }
-  }, [code, language]);
-
+  accumulatedThinking,
+}: {
+  language: 'yaml' | 'javascript';
+  code: string;
+  accumulatedThinking?: string;
+  isStreaming: boolean;
+}) {
   return (
     <pre
-      className={
-        'bg-gray-50 rounded-[8px] border text-sm overflow-auto font-mono border-radius-[8px] border-[#F2F4F7] max-h-[calc(100vh-400px)]'
-      }
+      className={`bg-gray-50 rounded-[8px] border text-sm overflow-auto font-mono border-radius-[8px] border-[#F2F4F7] ${accumulatedThinking ? 'max-h-[calc(100vh-380px)]' : 'max-h-[calc(100vh-340px)]'} !mt-0 !p-0`}
     >
-      <code ref={codeRef} className={`language-${language} p-4`}>
-        {code}
-      </code>
+      <Highlight className={`language-${language} !mt-0`}>{code}</Highlight>
     </pre>
   );
 }
@@ -73,8 +63,8 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
 }) => {
   let displayContent = isStreaming ? actualCode || streamingContent : code;
   displayContent = displayContent
-    .replace('```typescript', '')
-    .replace('```', '')
+    .replace(/```typescript/g, '')
+    .replace(/```/g, '')
     .trim();
   const hasContent = displayContent.length > 0;
   const wasStreamingRef = useRef(false);
@@ -117,6 +107,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
 
           {displayContent && (
             <CodeBlockContainer
+              accumulatedThinking={accumulatedThinking}
               language={type === 'playwright' ? 'javascript' : 'yaml'}
               code={displayContent}
               isStreaming={isStreaming}
