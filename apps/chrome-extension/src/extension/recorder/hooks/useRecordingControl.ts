@@ -29,13 +29,6 @@ export const useRecordingControl = (
     updates: Partial<RecordingSession>,
   ) => void,
   createNewSession: (sessionName?: string) => RecordingSession,
-  checkRecordingRecovery?: (tab: chrome.tabs.Tab) => Promise<{
-    canRecover: boolean;
-    sessionId?: string;
-    lastUrl?: string;
-    timeSinceNavigation?: number;
-  }>,
-  selectSession?: (session: RecordingSession) => void,
 ) => {
   const {
     isRecording,
@@ -50,130 +43,6 @@ export const useRecordingControl = (
 
   const isExtensionMode = isChromeExtension();
   const recordContainerRef = useRef<HTMLDivElement>(null);
-
-  // Recovery state management
-  const [isRecoveryInProgress, setIsRecoveryInProgress] = useState(false);
-  const recoveryAttemptedRef = useRef<Set<string>>(new Set());
-
-  // Check for recording recovery on component mount and tab changes
-  useEffect(() => {
-    const checkRecovery = async () => {
-      // Skip if no tab, no recovery function, already recording, or recovery in progress
-      if (
-        !currentTab ||
-        !checkRecordingRecovery ||
-        isRecording ||
-        isRecoveryInProgress
-      ) {
-        return;
-      }
-
-      try {
-        const recovery = await checkRecordingRecovery(currentTab);
-        if (recovery.canRecover && recovery.sessionId) {
-          // Check if we've already attempted recovery for this session/URL combination
-          const sessionUrlKey = `${recovery.sessionId}-${currentTab.url}`;
-          if (recoveryAttemptedRef.current.has(sessionUrlKey)) {
-            recordLogger.info(
-              'Recovery already attempted for this session/URL',
-              {
-                sessionId: recovery.sessionId,
-                url: currentTab.url,
-              },
-            );
-            return;
-          }
-
-          // Mark recovery as attempted for this session/URL
-          recoveryAttemptedRef.current.add(sessionUrlKey);
-          setIsRecoveryInProgress(true);
-
-          recordLogger.info(
-            'Auto-continuing recording from previous session',
-            recovery,
-          );
-
-          // Automatically continue recording without showing modal
-          const session = await dbManager.getSession(recovery.sessionId);
-          if (session) {
-            recordLogger.info('Auto-loaded session for recovery', {
-              sessionId: session.id,
-              existingEventsCount: session.events.length,
-            });
-
-            // Set this as the current session
-            if (selectSession) {
-              selectSession(session);
-              recordLogger.info('Set session as current for auto-recovery', {
-                sessionId: session.id,
-              });
-            }
-
-            // Update session status
-            await updateSession(session.id, {
-              status: 'idle',
-              updatedAt: Date.now(),
-            });
-
-            // Set the events from the previous session
-            setEvents(session.events);
-
-            // Small delay to ensure state updates
-            await new Promise((resolve) => setTimeout(resolve, 300));
-
-            // Auto-start recording with the existing session
-            await startRecording(recovery.sessionId);
-
-            // Clear recovery state after successful auto-continue
-            await dbManager.clearNavigationRecoveryState();
-
-            message.success(
-              `Auto-continued recording from previous session (${session.events.length} events loaded)`,
-            );
-          } else {
-            recordLogger.error('Failed to auto-load session for recovery', {
-              sessionId: recovery.sessionId,
-            });
-            // Clear recovery state if session not found
-            await dbManager.clearNavigationRecoveryState();
-          }
-        }
-      } catch (error) {
-        recordLogger.error(
-          'Failed to auto-continue recording recovery',
-          undefined,
-          error,
-        );
-        // Clear recovery state on error
-        await dbManager.clearNavigationRecoveryState();
-      } finally {
-        setIsRecoveryInProgress(false);
-      }
-    };
-
-    // Only check recovery when tab becomes available and complete
-    if (currentTab?.status === 'complete') {
-      checkRecovery();
-    }
-  }, [
-    currentTab?.id,
-    currentTab?.status,
-    currentTab?.url,
-    checkRecordingRecovery,
-    selectSession,
-    updateSession,
-    setEvents,
-    isRecording,
-    isRecoveryInProgress,
-  ]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      // Clear recovery attempts cache on unmount
-      recoveryAttemptedRef.current.clear();
-    };
-  }, []);
 
   // Real-time event persistence during recording
   const persistEventToSession = useCallback(
@@ -205,6 +74,8 @@ export const useRecordingControl = (
     recordLogger.info('Stopping recording', {
       sessionId: currentSessionId || undefined,
       tabId: currentTab?.id,
+      events,
+      session: getCurrentSession(),
     });
 
     if (!isExtensionMode) {
@@ -229,12 +100,9 @@ export const useRecordingControl = (
           action: 'stop',
           sessionId: currentSessionId,
         });
-        recordLogger.success('Recording stopped');
-        message.success('Recording stopped');
       } catch (error: any) {
         // If content script is not available, just stop recording on our side
         if (error.message?.includes('Receiving end does not exist')) {
-          recordLogger.warn('Content script not available during stop');
           message.warning('Recording stopped (page may have been refreshed)');
         } else {
           recordLogger.error('Error sending stop message', undefined, error);
@@ -290,9 +158,6 @@ export const useRecordingControl = (
           }
 
           updateSession(currentSessionId, updateData);
-          message.success(
-            `Recording saved to session "${updateData.name || session.name}"`,
-          );
         }
       }
     } catch (error) {
@@ -315,9 +180,7 @@ export const useRecordingControl = (
   useEffect(() => {
     if (!currentTab?.id || !isRecording) return;
 
-    const navigationGraceTimer: NodeJS.Timeout | null = null;
-
-    const handleTabUpdate = (
+    const handleTabUpdate = async (
       tabId: number,
       changeInfo: chrome.tabs.TabChangeInfo,
     ) => {
@@ -326,22 +189,26 @@ export const useRecordingControl = (
         changeInfo.status === 'loading' &&
         isRecording
       ) {
+        // Page is starting to load - prepare for potential event loss
         recordLogger.info(
-          'Navigation detected, starting grace period before stopping recording',
+          'Navigation loading detected, preparing event buffer',
           {
             tabId,
             url: changeInfo.url,
+            currentEvents: events.length,
           },
         );
-      } else if (
-        currentTab?.id === tabId &&
-        changeInfo.status === 'complete' &&
-        isRecording
-      ) {
+
         const session = getCurrentSession();
         if (session) {
-          recordLogger.info('Navigation completed, starting new recording');
-          startRecording(session.id);
+          if (currentTab?.id) {
+            await ensureScriptInjected(currentTab);
+            await safeChromeAPI.tabs.sendMessage(currentTab.id, {
+              action: 'start',
+              sessionId: session.id,
+            });
+            recordLogger.info('Recording re-established after navigation');
+          }
         }
       }
     };
@@ -350,15 +217,19 @@ export const useRecordingControl = (
 
     return () => {
       safeChromeAPI.tabs.onUpdated.removeListener(handleTabUpdate);
-      if (navigationGraceTimer) {
-        clearTimeout(navigationGraceTimer);
-      }
     };
-  }, [currentTab, isRecording, stopRecording]);
+  }, [
+    currentTab,
+    isRecording,
+    stopRecording,
+    getCurrentSession,
+    events.length,
+    addEvent,
+  ]);
 
   // Start recording
   const startRecording = useCallback(
-    async (sessionId?: string) => {
+    async (sessionId: string) => {
       recordLogger.info('Starting recording', {
         tabId: currentTab?.id,
         sessionId,
@@ -375,40 +246,14 @@ export const useRecordingControl = (
       // Check if there's a current session or use provided sessionId
       let sessionToUse: RecordingSession | null = null;
 
-      if (sessionId) {
-        // Use the specific session ID provided (for recovery)
-        const specificSession = await dbManager.getSession(sessionId);
-        if (specificSession) {
-          sessionToUse = specificSession;
-          recordLogger.info('Using specified session', {
-            sessionId,
-            eventsCount: specificSession.events.length,
-          });
-        } else {
-          recordLogger.error('Specified session not found', { sessionId });
-          message.error('Specified session not found');
-          return;
-        }
+      // Use the specific session ID provided
+      const specificSession = await dbManager.getSession(sessionId);
+      if (specificSession) {
+        sessionToUse = specificSession;
       } else {
-        // Use current session if no specific sessionId provided
-        sessionToUse = getCurrentSession();
-      }
-
-      if (!sessionToUse) {
-        // Auto-create session with timestamp name
-        const sessionName = generateSessionName();
-        recordLogger.info('Auto-creating session', { action: 'create' });
-
-        sessionToUse = createNewSession(sessionName);
-        message.success(`Session "${sessionName}" created automatically`);
-
-        // Small delay to ensure state updates before continuing
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      } else {
-        recordLogger.info('Using existing session', {
-          sessionId: sessionToUse.id,
-          existingEventsCount: sessionToUse.events.length,
-        });
+        recordLogger.error('Specified session not found', { sessionId });
+        message.error('Specified session not found');
+        return;
       }
 
       // Update session status to recording
@@ -448,14 +293,7 @@ export const useRecordingControl = (
         } else {
           // Load existing events for continuation
           setEvents(sessionToUse.events);
-          recordLogger.info('Loaded existing events for continuation', {
-            eventsCount: sessionToUse.events.length,
-          });
         }
-
-        recordLogger.success('Recording started', {
-          sessionId: sessionToUse.id,
-        });
         message.success('Recording started');
       } catch (error) {
         recordLogger.error('Failed to start recording', undefined, error);
@@ -472,6 +310,7 @@ export const useRecordingControl = (
       currentTab,
       setIsRecording,
       clearEvents,
+      setEvents,
     ],
   );
 
@@ -520,101 +359,162 @@ export const useRecordingControl = (
     }
   }, [events.length, isRecording]);
 
-  // Set up message listener for content script
+  // Set up message listener for content script with enhanced error handling
   useEffect(() => {
-    recordLogger.info('Setting up message listener');
+    let port: chrome.runtime.Port | null = null;
+    let reconnectTimer: NodeJS.Timeout | null = null;
+    let eventBuffer: ChromeRecordedEvent[] = [];
+    let isConnected = false;
 
-    // Connect to service worker for receiving events
-    const port = safeChromeAPI.runtime.connect({ name: 'record-events' });
+    const connectToServiceWorker = () => {
+      try {
+        // Connect to service worker for receiving events
+        port = safeChromeAPI.runtime.connect({
+          name: 'record-events',
+        }) as chrome.runtime.Port;
+        isConnected = true;
 
-    // Note: onConnect is not available on Port objects, only on runtime
-    // We can check port connection status indirectly
+        if (
+          port &&
+          'onDisconnect' in port &&
+          typeof port.onDisconnect?.addListener === 'function'
+        ) {
+          port.onDisconnect.addListener(() => {
+            isConnected = false;
+            if (chrome.runtime.lastError) {
+              recordLogger.error(
+                'Port disconnect error',
+                undefined,
+                chrome.runtime.lastError,
+              );
+            }
 
-    if (
-      'onDisconnect' in port &&
-      typeof port.onDisconnect?.addListener === 'function'
-    ) {
-      port.onDisconnect.addListener(() => {
-        if (chrome.runtime.lastError) {
-          recordLogger.error(
-            'Port disconnect error',
-            undefined,
-            chrome.runtime.lastError,
-          );
-        }
-      });
-    }
+            // recordLogger.warn(
+            //   'Service worker port disconnected, attempting reconnection',
+            // );
 
-    const processEventData = async (eventData: any) => {
-      const { element, ...cleanEventData } = eventData;
-      return await optimizeEvent(
-        cleanEventData as ChromeRecordedEvent,
-        updateEvent,
-      );
-    };
-
-    const handleMessage = async (message: RecordMessage) => {
-      // Validate session ID - only process events from current recording session
-      if (
-        message.sessionId &&
-        currentSessionId &&
-        message.sessionId !== currentSessionId
-      ) {
-        return;
-      }
-
-      if (message.action === 'events' && Array.isArray(message.data)) {
-        recordLogger.info('Processing bulk events', {
-          eventsCount: message.data.length,
-        });
-        const eventsData = await Promise.all(
-          message.data.map(processEventData),
-        );
-        setEvents(eventsData);
-
-        // Persist events to session during recording
-        if (currentSessionId && isRecording) {
-          updateSession(currentSessionId, {
-            events: eventsData,
-            updatedAt: Date.now(),
+            // Attempt to reconnect after a delay
+            if (isRecording && currentSessionId) {
+              reconnectTimer = setTimeout(() => {
+                recordLogger.info('Attempting to reconnect to service worker');
+                connectToServiceWorker();
+              }, 1000);
+            }
           });
         }
-      } else if (
-        message.action === 'event' &&
-        message.data &&
-        !Array.isArray(message.data)
-      ) {
-        const optimizedEvent = await processEventData(message.data);
-        addEvent(optimizedEvent);
 
-        // Real-time persistence during recording
-        await persistEventToSession(optimizedEvent);
+        const processEventData = async (eventData: any) => {
+          const { element, ...cleanEventData } = eventData;
+          return await optimizeEvent(
+            cleanEventData as ChromeRecordedEvent,
+            updateEvent,
+          );
+        };
 
-        // Legacy persistence for compatibility (will be removed once new system is stable)
-        if (currentSessionId && isRecording) {
-          const currentSession = getCurrentSession();
-          if (currentSession) {
-            const updatedEvents = [...currentSession.events, optimizedEvent];
-            updateSession(currentSessionId, {
-              events: updatedEvents,
-              updatedAt: Date.now(),
+        const handleMessage = async (message: RecordMessage) => {
+          // Validate session ID - only process events from current recording session
+          if (
+            message.sessionId &&
+            currentSessionId &&
+            message.sessionId !== currentSessionId
+          ) {
+            recordLogger.warn(
+              'Received event from different session, ignoring',
+              {
+                messageSessionId: message.sessionId,
+                currentSessionId,
+              },
+            );
+            return;
+          }
+
+          if (message.action === 'events' && Array.isArray(message.data)) {
+            const eventsData = await Promise.all(
+              message.data.map(processEventData),
+            );
+
+            // If we have buffered events, merge them
+            if (eventBuffer.length > 0) {
+              recordLogger.info('Merging buffered events with new events', {
+                bufferedCount: eventBuffer.length,
+                newCount: eventsData.length,
+              });
+              const mergedEvents = [...eventBuffer, ...eventsData];
+              setEvents(mergedEvents);
+              eventBuffer = [];
+            } else {
+              setEvents(eventsData);
+            }
+          } else if (
+            message.action === 'event' &&
+            message.data &&
+            !Array.isArray(message.data)
+          ) {
+            const optimizedEvent = await processEventData(message.data);
+
+            if (isConnected) {
+              addEvent(optimizedEvent);
+              // Real-time persistence during recording
+              await persistEventToSession(optimizedEvent);
+            } else {
+              // Buffer events if not connected
+              recordLogger.info('Buffering event due to disconnected port');
+              eventBuffer.push(optimizedEvent);
+            }
+          } else {
+            recordLogger.warn('Unhandled message format', {
+              action: message.action,
             });
           }
+        };
+
+        // Listen to messages via port
+        if (port && 'onMessage' in port) {
+          port.onMessage.addListener(handleMessage);
         }
-      } else {
-        recordLogger.warn('Unhandled message format', {
-          action: message.action,
-        });
+      } catch (error) {
+        recordLogger.error(
+          'Failed to connect to service worker',
+          undefined,
+          error,
+        );
+        isConnected = false;
+
+        // Retry connection
+        if (isRecording && currentSessionId) {
+          reconnectTimer = setTimeout(connectToServiceWorker, 2000);
+        }
       }
     };
 
-    // Listen to messages via port
-    port.onMessage.addListener(handleMessage);
+    // Initial connection
+    connectToServiceWorker();
 
     return () => {
-      port.disconnect();
+      isConnected = false;
+      if (port && 'disconnect' in port) {
+        port.disconnect();
+      }
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+      }
+
+      // Save any remaining buffered events
+      if (eventBuffer.length > 0) {
+        recordLogger.info('Saving buffered events on cleanup', {
+          bufferedCount: eventBuffer.length,
+        });
+        eventBuffer.forEach((event) => addEvent(event));
+      }
     };
-  }, [addEvent, setEvents, updateEvent, currentSessionId]);
+  }, [
+    addEvent,
+    setEvents,
+    updateEvent,
+    currentSessionId,
+    isRecording,
+    persistEventToSession,
+  ]);
 
   return {
     // State

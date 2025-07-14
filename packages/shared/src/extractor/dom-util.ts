@@ -55,9 +55,25 @@ function isIconfont(node: globalThis.Node): boolean {
   return false;
 }
 
+export function isNotContainerElement(node: globalThis.Node) {
+  return (
+    isTextElement(node) ||
+    isIconfont(node) ||
+    isImgElement(node) ||
+    isButtonElement(node) ||
+    isAElement(node) ||
+    isFormElement(node)
+  );
+}
+
 export function isTextElement(
   node: globalThis.Node,
 ): node is globalThis.HTMLTextAreaElement {
+  if (node instanceof Element) {
+    if (node?.childNodes?.length === 1 && node?.childNodes[0] instanceof Text) {
+      return true;
+    }
+  }
   return node.nodeName?.toLowerCase() === '#text' && !isIconfont(node);
 }
 

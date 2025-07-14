@@ -1,3 +1,8 @@
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+/* @import "tailwindcss/preflight.css" layer(base); */
+@import "tailwindcss/utilities.css" layer(utilities);
+
 .command-form {
   display: flex;
   flex-direction: column;
@@ -23,7 +28,7 @@
   overflow: auto;
 }
 
-.result-container>div {
+.result-container > div {
   flex: 1;
   height: auto;
   min-height: 0;

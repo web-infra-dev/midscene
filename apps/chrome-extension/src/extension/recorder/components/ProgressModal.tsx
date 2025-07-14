@@ -1,12 +1,40 @@
-import { CheckCircleOutlined, LoadingOutlined } from '@ant-design/icons';
+import {
+  CheckCircleOutlined,
+  CheckOutlined,
+  CodeOutlined,
+  CopyOutlined,
+  DownOutlined,
+  DownloadOutlined,
+  FileTextOutlined,
+  LoadingOutlined,
+  PushpinFilled,
+  PushpinOutlined,
+  ReloadOutlined,
+} from '@ant-design/icons';
+import type { CodeGenerationChunk, StreamingCallback } from '@midscene/core';
+import type { ChromeRecordedEvent } from '@midscene/recorder';
 import { ShinyText } from '@midscene/visualizer';
-import { Modal, Progress, Typography } from 'antd';
-// @ts-ignore
-import confetti from 'canvas-confetti';
+import { Button, Progress, Select, Tooltip, Typography, message } from 'antd';
 import type React from 'react';
 import { useEffect, useState } from 'react';
+import { useRecordStore, useRecordingSessionStore } from '../../../store';
+import { generateAIDescription } from '../../../utils/eventOptimizer';
+import {
+  generatePlaywrightTestStream,
+  generateYamlTest,
+  generateYamlTestStream,
+} from '../generators';
+import { recordLogger } from '../logger';
+import {
+  getLatestEvents,
+  resolveSessionName,
+  stopRecordingIfActive,
+} from '../shared/exportControlsUtils';
+import { generateRecordTitle } from '../utils';
+import { CodeBlock } from './ProgressModal/CodeBlock';
+import { StepList } from './ProgressModal/StepList';
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
 export interface ProgressStep {
   id: string;
@@ -17,95 +45,679 @@ export interface ProgressStep {
   details?: string;
 }
 
+export type CodeGenerationType = 'yaml' | 'playwright' | 'none';
+
 interface ProgressModalProps {
-  open: boolean;
-  title: string;
-  steps: ProgressStep[];
-  onComplete?: () => void;
-  showConfetti?: boolean;
+  eventsCount?: number;
+  sessionName?: string;
+  events?: ChromeRecordedEvent[];
+  sessionId?: string;
+  onStopRecording?: () => void | Promise<void>;
+  isFromStopRecording?: boolean;
 }
 
-const triggerConfetti = () => {
-  // Create a celebratory confetti effect
-  const count = 200;
-  const defaults = {
-    origin: { y: 0.7 },
+export const ProgressModal: React.FC<ProgressModalProps> = ({
+  eventsCount = 0,
+  sessionName = '',
+  events = [],
+  sessionId,
+  onStopRecording,
+  isFromStopRecording,
+}) => {
+  const [selectedType, setSelectedType] = useState<CodeGenerationType>('yaml');
+
+  // Initialize defaultType from localStorage
+  const [defaultType, setDefaultType] = useState<CodeGenerationType>(() => {
+    try {
+      const stored = localStorage.getItem('midscene-default-code-type');
+      if (stored && ['yaml', 'playwright', 'none'].includes(stored)) {
+        return stored as CodeGenerationType;
+      }
+    } catch (error) {
+      console.warn(
+        'Failed to read default code type from localStorage:',
+        error,
+      );
+    }
+    return 'yaml'; // fallback default
+  });
+  const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
+  const [slidingOutSteps, setSlidingOutSteps] = useState<Set<string>>(
+    new Set(),
+  );
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedTest, setGeneratedTest] = useState('');
+  const [generatedYaml, setGeneratedYaml] = useState('');
+  const [steps, setSteps] = useState<ProgressStep[]>([]);
+  const [showGeneratedCode, setShowGeneratedCode] = useState(false);
+
+  // Streaming states
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingContent, setStreamingContent] = useState('');
+  const [thinkingProcess, setThinkingProcess] = useState('');
+  const [actualCode, setActualCode] = useState('');
+  const [accumulatedThinking, setAccumulatedThinking] = useState('');
+
+  const { updateSession } = useRecordingSessionStore();
+  // Function to update defaultType and persist to localStorage
+  const updateDefaultType = (newType: CodeGenerationType) => {
+    setDefaultType(newType);
+    try {
+      localStorage.setItem('midscene-default-code-type', newType);
+    } catch (error) {
+      console.warn('Failed to save default code type to localStorage:', error);
+    }
   };
 
-  function fire(particleRatio: number, opts: any) {
-    confetti({
-      ...defaults,
-      ...opts,
-      particleCount: Math.floor(count * particleRatio),
-    });
-  }
+  // Get current session helper
+  const getCurrentSession = () => {
+    if (!sessionId) return null;
+    return (
+      useRecordingSessionStore
+        .getState()
+        .sessions.find((s) => s.id === sessionId) || null
+    );
+  };
 
-  fire(0.25, {
-    spread: 26,
-    startVelocity: 55,
-  });
+  // Get the latest events with AI descriptions
+  const getCurrentEvents = (): ChromeRecordedEvent[] => {
+    if (sessionId) {
+      return getLatestEvents(sessionId);
+    }
+    return events;
+  };
 
-  fire(0.2, {
-    spread: 60,
-  });
-
-  fire(0.35, {
-    spread: 100,
-    decay: 0.91,
-    scalar: 0.8,
-  });
-
-  fire(0.1, {
-    spread: 120,
-    startVelocity: 25,
-    decay: 0.92,
-    scalar: 1.2,
-  });
-
-  fire(0.1, {
-    spread: 120,
-    startVelocity: 45,
-  });
-};
-
-export const ProgressModal: React.FC<ProgressModalProps> = ({
-  open,
-  title,
-  steps,
-  onComplete,
-  showConfetti = false,
-}) => {
-  const [confettiVisible, setConfettiVisible] = useState(false);
-
+  // Merge: load persisted code and handle auto-generation/display logic
   useEffect(() => {
-    // 只有在所有步骤都完成且showConfetti为true时才显示撒花特效
-    const allStepsCompleted = steps.every(
-      (step) => step.status === 'completed',
+    const session = getCurrentSession();
+
+    // If this is from stop recording, use the pinned default type
+    if (isFromStopRecording && eventsCount > 0) {
+      setSelectedType(defaultType);
+      // Only generate code if the pinned default is not 'none'
+      if (defaultType === 'playwright' || defaultType === 'yaml') {
+        handleGenerateCode(defaultType);
+      }
+      return;
+    }
+
+    // If the pinned default is 'none', set selected type to 'none' and don't generate anything
+    if (defaultType === 'none') {
+      setSelectedType('none');
+      return;
+    }
+
+    // Prefer loading persisted code from session
+    if (session?.generatedCode) {
+      if (session.generatedCode.playwright && !generatedTest) {
+        setGeneratedTest(session.generatedCode.playwright);
+      }
+      if (session.generatedCode.yaml && !generatedYaml) {
+        setGeneratedYaml(session.generatedCode.yaml);
+      }
+    }
+
+    // Check if the pinned default type has generated code
+    const hasDefaultTypeCode =
+      defaultType === 'yaml'
+        ? generatedYaml || session?.generatedCode?.yaml
+        : defaultType === 'playwright'
+          ? generatedTest || session?.generatedCode?.playwright
+          : false;
+
+    // If the pinned default type has code, show it directly
+    if (hasDefaultTypeCode) {
+      setSelectedType(defaultType);
+      setShowGeneratedCode(true);
+      return;
+    }
+
+    // If the pinned default type doesn't have code and we have events, generate it
+    if (
+      eventsCount > 0 &&
+      (defaultType === 'playwright' || defaultType === 'yaml')
+    ) {
+      setSelectedType(defaultType);
+      handleGenerateCode(defaultType);
+    } else {
+      // Set selected type to the pinned default (even if it's a valid type but no events)
+      setSelectedType(defaultType);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId, isFromStopRecording]);
+
+  // Helper function to update progress step
+  const updateProgressStep = (
+    stepIndex: number,
+    updates: Partial<ProgressStep>,
+  ) => {
+    setSteps((prevSteps) =>
+      prevSteps.map((step, index) =>
+        index === stepIndex ? { ...step, ...updates } : step,
+      ),
+    );
+  };
+
+  // Generate session title and description using AI
+  const generateSessionTitleAndDescription = async (
+    finalEvents: ChromeRecordedEvent[],
+    stepIndex: number,
+  ): Promise<string> => {
+    let currentSessionName = sessionName; // Default to the original prop
+
+    if (sessionId) {
+      const session = useRecordingSessionStore
+        .getState()
+        .sessions.find((s) => s.id === sessionId);
+
+      if (
+        session &&
+        (!session.name || session.name.includes('-') || !session.description)
+      ) {
+        // Update progress: Step 1 in progress
+        updateProgressStep(stepIndex, {
+          status: 'loading',
+          details: 'Analyzing session content...',
+        });
+
+        const { title, description } = await generateRecordTitle(finalEvents);
+
+        if (title || description) {
+          updateSession(sessionId, {
+            name: title || session.name,
+            description: description || session.description,
+          });
+
+          // Update the session name to use for export
+          currentSessionName = title || session.name;
+        }
+
+        // Update progress: Step 1 completed
+        updateProgressStep(stepIndex, {
+          status: 'completed',
+          details: `Generated: "${currentSessionName}"`,
+        });
+      } else if (session) {
+        // Use the current session name from the store in case it was updated elsewhere
+        currentSessionName = session.name;
+
+        // Update progress: Step 1 completed (skipped)
+        updateProgressStep(stepIndex, {
+          status: 'completed',
+          details: `Using existing: "${currentSessionName}"`,
+        });
+      }
+    } else {
+      // Update progress: Step 1 completed (no session)
+      updateProgressStep(stepIndex, {
+        status: 'completed',
+        details: `Using provided: "${currentSessionName}"`,
+      });
+    }
+
+    return currentSessionName;
+  };
+
+  // Generate element descriptions for events that need them
+  const generateElementDescriptions = async (
+    events: ChromeRecordedEvent[],
+    stepIndex: number,
+  ): Promise<ChromeRecordedEvent[]> => {
+    const eventsNeedingDescriptions = events.filter(
+      (event: ChromeRecordedEvent) =>
+        event.type !== 'navigation' && event.type !== 'scroll',
     );
 
-    if (showConfetti && allStepsCompleted && !confettiVisible) {
-      setConfettiVisible(true);
-
-      // Trigger canvas-confetti effect
-      triggerConfetti();
-
-      const timer = setTimeout(() => {
-        setConfettiVisible(false);
-        // 延迟500毫秒再调用onComplete,让撒花特效先展示一会
-        setTimeout(() => {
-          onComplete?.();
-        }, 500);
-      }, 1000); // 撒花时间1秒
-      return () => clearTimeout(timer);
+    if (eventsNeedingDescriptions.length === 0) {
+      updateProgressStep(stepIndex, {
+        status: 'completed',
+        details: 'All elements already have descriptions',
+      });
+      return events;
     }
-  }, [showConfetti, confettiVisible, onComplete, steps]);
 
-  // 监听 open 状态变化，重置 confettiVisible
+    updateProgressStep(stepIndex, {
+      status: 'loading',
+      progress: 0,
+      details: `Generating descriptions for ${eventsNeedingDescriptions.length} elements...`,
+    });
+
+    let completedCount = 0;
+    // const finalEvents = [...events];
+
+    recordLogger.info('eventsNeedingDescriptions', {
+      eventsNeedingDescriptions,
+      events,
+    });
+
+    // Process events in parallel with progress tracking
+    const optimizePromises = events.map(async (event, index) => {
+      if (event.type === 'navigation' || event.type === 'scroll') {
+        event.elementDescription = 'navigation or scroll';
+        event.descriptionLoading = false;
+        return;
+      }
+
+      try {
+        let description = '';
+        if (event.elementDescription && event.descriptionLoading === false) {
+          description = event.elementDescription;
+        } else {
+          description = await generateAIDescription(event, event.hashId);
+        }
+
+        event.elementDescription = description;
+        event.descriptionLoading = false;
+
+        completedCount++;
+
+        const progress = Math.round(
+          (completedCount / eventsNeedingDescriptions.length) * 100,
+        );
+        updateProgressStep(stepIndex, {
+          status: 'loading',
+          progress,
+          details: `Generated ${completedCount}/${eventsNeedingDescriptions.length} element descriptions`,
+        });
+      } catch (error) {
+        console.error('Failed to optimize event:', error);
+        event.elementDescription = 'failed to generate element description';
+        event.descriptionLoading = false;
+        completedCount++;
+      }
+    });
+
+    await Promise.all(optimizePromises);
+
+    // Update session with new event descriptions if sessionId exists
+    if (sessionId) {
+      updateSession(sessionId, {
+        events,
+        updatedAt: Date.now(),
+      });
+    }
+
+    updateProgressStep(stepIndex, {
+      status: 'completed',
+      progress: 100,
+      details: `Generated descriptions for ${events.length} elements`,
+    });
+
+    return events;
+  };
+
+  // Streaming callback handler factory
+  const createStreamingChunkHandler =
+    (targetType: 'playwright' | 'yaml'): StreamingCallback =>
+    (chunk: CodeGenerationChunk) => {
+      setStreamingContent(chunk.accumulated);
+      const code = chunk.accumulated;
+      const thinking = chunk.reasoning_content;
+
+      // Accumulate thinking process content
+      if (thinking) {
+        setAccumulatedThinking((prev) => prev + thinking);
+      }
+
+      setThinkingProcess(thinking);
+      setActualCode(code);
+
+      if (chunk.isComplete) {
+        setIsStreaming(false);
+
+        // Use the actual code for final result
+        const finalCode = code || chunk.accumulated;
+
+        // Set the final generated code based on the target type, not current selectedType
+        if (targetType === 'playwright') {
+          setGeneratedTest(finalCode);
+        } else if (targetType === 'yaml') {
+          setGeneratedYaml(finalCode);
+        }
+
+        // Update session with final code
+        if (sessionId) {
+          updateSession(sessionId, {
+            generatedCode: {
+              ...getCurrentSession()?.generatedCode,
+              [targetType]: finalCode,
+            },
+            updatedAt: Date.now(),
+          });
+        }
+      }
+    };
+
+  // Common function to handle code generation with streaming support
+  const handleCodeGeneration = async (type: 'playwright' | 'yaml') => {
+    // Get the most current events
+    const currentEvents = getCurrentEvents();
+
+    if (currentEvents.length === 0) {
+      message.warning(`No events to generate ${type} from`);
+      return;
+    }
+
+    setIsGenerating(true);
+    setIsStreaming(true);
+    setStreamingContent('');
+    setThinkingProcess('');
+    setActualCode('');
+    setAccumulatedThinking('');
+
+    // Initialize progress steps
+    const progressSteps: ProgressStep[] = [
+      {
+        id: 'descriptions',
+        title: 'Generate Element Descriptions',
+        description: 'Analyzing UI elements and generating descriptions',
+        status: 'pending',
+      },
+      {
+        id: 'title',
+        title: 'Generate Title & Description',
+        description: 'Creating session title and description using AI',
+        status: 'pending',
+      },
+      {
+        id: type,
+        title:
+          type === 'playwright'
+            ? 'Generate Playwright Code'
+            : 'Generate YAML Configuration',
+        description:
+          type === 'playwright'
+            ? 'Creating executable Playwright test code'
+            : 'Creating YAML configuration',
+        status: 'pending',
+      },
+    ];
+
+    setSteps(progressSteps);
+    // Reset completed states
+    setCompletedSteps(new Set());
+    setSlidingOutSteps(new Set());
+    // Hide code generation area when starting new generation
+    setShowGeneratedCode(false);
+    // Only clear the code that we're about to regenerate, preserve the other type
+    if (type === 'playwright') {
+      setGeneratedTest('');
+    } else {
+      setGeneratedYaml('');
+    }
+
+    try {
+      // Step 0: Stop recording if currently recording
+      await stopRecordingIfActive(onStopRecording);
+
+      // After stopping recording, get the latest events from session
+      let finalEvents = getCurrentEvents();
+      recordLogger.info('start generating code', {
+        finalEvents,
+        sessionId,
+      });
+
+      // Step 1: Generate element descriptions
+      updateProgressStep(0, { status: 'loading' });
+      finalEvents = await generateElementDescriptions(finalEvents, 0);
+      recordLogger.info('Generated element descriptions', {
+        finalEvents,
+        sessionId,
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Step 2: Generate session title and description if not already generated
+      updateProgressStep(1, { status: 'loading' });
+
+      finalEvents = getCurrentEvents();
+      const currentSessionName = await generateSessionTitleAndDescription(
+        finalEvents,
+        1,
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      recordLogger.info('Generated session title and description', {
+        finalEvents,
+        sessionId,
+        currentSessionName,
+      });
+
+      // Step 3: Generate code with streaming support
+      updateProgressStep(2, {
+        status: 'loading',
+        details:
+          type === 'playwright'
+            ? 'Generating Playwright test code...'
+            : 'Generating YAML configuration...',
+      });
+
+      finalEvents = getCurrentEvents();
+
+      // Show the code generation area immediately when streaming starts
+      setShowGeneratedCode(true);
+
+      let generatedCode: string;
+
+      if (type === 'playwright') {
+        // Use streaming for Playwright
+        const streamingResult = await generatePlaywrightTestStream(
+          finalEvents,
+          {
+            stream: true,
+            onChunk: createStreamingChunkHandler(type),
+          },
+        );
+        generatedCode = streamingResult.content;
+      } else {
+        // Use streaming for YAML
+        const streamingResult = await generateYamlTestStream(finalEvents, {
+          stream: true,
+          onChunk: createStreamingChunkHandler(type),
+          testName: currentSessionName,
+          description: `Test session recorded on ${new Date().toLocaleDateString()}`,
+          includeTimestamps: true,
+        });
+        generatedCode = streamingResult.content;
+      }
+
+      // Update session with generated code if sessionId exists
+      if (sessionId) {
+        updateSession(sessionId, {
+          generatedCode: {
+            ...getCurrentSession()?.generatedCode,
+            [type]: generatedCode,
+          },
+          updatedAt: Date.now(),
+        });
+      }
+
+      // Set the generated code in state
+      if (type === 'playwright') {
+        setGeneratedTest(generatedCode);
+      } else {
+        setGeneratedYaml(generatedCode);
+      }
+
+      // Mark all steps as completed
+      progressSteps.forEach((_, index) => {
+        updateProgressStep(index, { status: 'completed' });
+      });
+
+      // Show the generated code after generation is complete
+      setShowGeneratedCode(true);
+
+      // Show success message
+      message.success(
+        `AI ${type === 'playwright' ? 'Playwright test' : 'YAML configuration'} generated successfully!`,
+      );
+    } catch (error) {
+      recordLogger.error(`Failed to generate ${type}`, undefined, error);
+
+      // Update current step to error status
+      const currentStep = steps.findIndex((step) => step.status === 'loading');
+      if (currentStep >= 0) {
+        updateProgressStep(currentStep, {
+          status: 'error',
+          details: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        });
+      }
+
+      setTimeout(() => {
+        message.error(
+          `Failed to generate ${type}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
+      }, 2000);
+    } finally {
+      setIsGenerating(false);
+      setIsStreaming(false);
+    }
+  };
+
+  // Function to handle code generation from dropdown
+  const handleGenerateCode = async (type: CodeGenerationType) => {
+    if (getCurrentEvents().length === 0 || type === 'none') {
+      return;
+    }
+
+    await handleCodeGeneration(type);
+  };
+
+  // Copy generated test to clipboard
+  const handleCopyTest = () => {
+    navigator.clipboard.writeText(generatedTest);
+    message.success('Test copied to clipboard');
+  };
+
+  // Copy generated YAML to clipboard
+  const handleCopyYaml = () => {
+    navigator.clipboard.writeText(generatedYaml);
+    message.success('YAML copied to clipboard');
+  };
+
+  // Download generated test as a TypeScript file
+  const handleDownloadTest = () => {
+    const downloadSessionName = resolveSessionName(sessionName, sessionId);
+
+    const dataBlob = new Blob([generatedTest], {
+      type: 'application/typescript',
+    });
+    const url = URL.createObjectURL(dataBlob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${downloadSessionName}-playwright-test.ts`;
+    link.click();
+
+    URL.revokeObjectURL(url);
+    message.success(
+      `Playwright test for "${downloadSessionName}" downloaded successfully`,
+    );
+  };
+
+  // Download generated YAML as a YAML file
+  const handleDownloadYaml = () => {
+    const downloadSessionName = resolveSessionName(sessionName, sessionId);
+
+    const dataBlob = new Blob([generatedYaml], {
+      type: 'application/x-yaml',
+    });
+    const url = URL.createObjectURL(dataBlob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${downloadSessionName}-test.yaml`;
+    link.click();
+
+    URL.revokeObjectURL(url);
+    message.success(
+      `YAML test for "${downloadSessionName}" downloaded successfully`,
+    );
+  };
+
+  // Regenerate Playwright test
+  const handleRegenerateTest = async () => {
+    await handleCodeGeneration('playwright');
+  };
+
+  // Regenerate YAML test
+  const handleRegenerateYaml = async () => {
+    await handleCodeGeneration('yaml');
+  };
+
+  // Monitor step completion state changes, add sliding animation
   useEffect(() => {
-    if (!open) {
-      setConfettiVisible(false);
+    steps.forEach((step) => {
+      if (step.status === 'completed' && !completedSteps.has(step.id)) {
+        // Mark as sliding out state
+        setSlidingOutSteps((prev) => new Set([...prev, step.id]));
+
+        // Mark as completed after 500ms (remove from DOM)
+        setTimeout(() => {
+          setCompletedSteps((prev) => new Set([...prev, step.id]));
+          setSlidingOutSteps((prev) => {
+            const newSet = new Set(prev);
+            newSet.delete(step.id);
+            return newSet;
+          });
+        }, 500);
+      }
+    });
+  }, [steps, completedSteps]);
+
+  // Reset state when starting new generation
+  const handleSelectChange = (value: CodeGenerationType) => {
+    console.log('handleSelectChange', value);
+    setSelectedType(value);
+
+    if (value === 'playwright') {
+      // Don't clear yaml code, just check if playwright code exists
+      if (generatedTest) {
+        setShowGeneratedCode(true);
+      } else {
+        setShowGeneratedCode(false);
+        if (!isGenerating) {
+          handleGenerateCode(value);
+        }
+      }
+    } else if (value === 'yaml') {
+      // Don't clear playwright code, just check if yaml code exists
+      if (generatedYaml) {
+        setShowGeneratedCode(true);
+      } else {
+        setShowGeneratedCode(false);
+        if (!isGenerating) {
+          handleGenerateCode(value);
+        }
+      }
+    } else if (value === 'none') {
+      setShowGeneratedCode(false);
+      // Don't clear generated code when selecting 'none', preserve it for future switches
+    } else {
+      setShowGeneratedCode(false);
     }
-  }, [open]);
+  };
+
+  const codeTypeOptions = [
+    {
+      label: (
+        <>
+          <CodeOutlined className="text-blue-500" /> Playwright
+        </>
+      ),
+      value: 'playwright' as const,
+    },
+    {
+      label: (
+        <>
+          <FileTextOutlined className="text-green-500" /> YAML
+        </>
+      ),
+      value: 'yaml' as const,
+    },
+    { label: 'None', value: 'none' as const },
+  ];
 
   const getStepIcon = (step: ProgressStep) => {
     switch (step.status) {
@@ -142,124 +754,222 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
     }
   };
 
-  const allCompleted = steps.every((step) => step.status === 'completed');
+  const thirdStepStarted =
+    steps.length >= 3 &&
+    (steps[2].status === 'loading' ||
+      steps[2].status === 'completed' ||
+      steps[2].status === 'error');
 
   return (
     <>
-      <Modal
-        title={title}
-        open={open}
-        closable={false}
-        footer={null}
-        width={500}
-        centered
-        maskClosable={false}
-        zIndex={20}
-        style={{
-          position: 'relative',
-        }}
-      >
-        <div style={{ padding: '20px 0' }}>
-          {steps.map((step, index) => (
-            <div key={step.id} style={{ marginBottom: 24 }}>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  marginBottom: 8,
-                }}
-              >
-                <div style={{ marginRight: 12, minWidth: 20 }}>
-                  {getStepIcon(step)}
-                </div>
-                <div style={{ flex: 1 }}>
-                  {step.status === 'loading' ? (
-                    <div
-                      style={{
-                        fontWeight: 600,
-                        fontSize: '14px',
-                        lineHeight: '22px',
-                        minHeight: '22px',
-                        display: 'flex',
-                        alignItems: 'center',
-                      }}
+      {eventsCount === 0 ? (
+        <div className="text-center text-gray-400 py-5">
+          <div className="text-lg mb-2">No events to generate code from</div>
+          <div className="text-sm">Record some interactions first</div>
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center gap-4">
+            <Select
+              value={selectedType}
+              onChange={(value) => {
+                // Prevent selecting "None" directly - only allow through pin icon
+                if (value === 'none') {
+                  return;
+                }
+                handleSelectChange(value);
+              }}
+              className="w-60"
+              size="middle"
+              suffixIcon={<DownOutlined />}
+              disabled={isGenerating}
+            >
+              {codeTypeOptions.map((option) => (
+                <Select.Option
+                  key={option.value}
+                  value={option.value}
+                  disabled={option.value === 'none'}
+                >
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={option.value === 'none' ? 'text-gray-400' : ''}
                     >
-                      <ShinyText
-                        text={step.title}
-                        disabled={false}
-                        speed={3}
-                        className="step-title-shiny"
-                      />
-                    </div>
-                  ) : (
-                    <div>
-                      <Text
-                        strong
-                        style={{
-                          color:
-                            step.status === 'completed' ? '#52c41a' : undefined,
-                          lineHeight: '22px',
-                          minHeight: '22px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                        }}
+                      {option.label}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <Tooltip
+                        title={
+                          option.value === 'none'
+                            ? 'Click to set None as default (no auto-generation)'
+                            : 'Pin as default code generation type'
+                        }
                       >
-                        {step.title}
-                      </Text>
+                        {defaultType === option.value ? (
+                          <PushpinFilled
+                            className="text-blue-500 cursor-pointer hover:text-blue-600 ml-1"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateDefaultType(option.value);
+                              // If pinning "None", also set it as selected type
+                              if (option.value === 'none') {
+                                setSelectedType('none');
+                                handleSelectChange('none');
+                              }
+                            }}
+                          />
+                        ) : (
+                          <PushpinOutlined
+                            className="text-gray-400 cursor-pointer hover:text-gray-600 ml-1"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateDefaultType(option.value);
+                              // If pinning "None", also set it as selected type
+                              if (option.value === 'none') {
+                                setSelectedType('none');
+                                handleSelectChange('none');
+                              }
+                            }}
+                          />
+                        )}
+                      </Tooltip>
                     </div>
-                  )}
-                  <Text type="secondary" style={{ fontSize: '12px' }}>
-                    {step.description}
-                  </Text>
-                  {step.details && (
-                    <>
-                      <br />
-                      <Text
-                        type="secondary"
-                        style={{ fontSize: '11px', color: '#666' }}
-                      >
-                        {step.details}
-                      </Text>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {step.status === 'loading' && step.progress !== undefined && (
-                <div style={{ marginLeft: 32 }}>
-                  <Progress
-                    percent={step.progress}
+                  </div>
+                </Select.Option>
+              ))}
+            </Select>
+            {(selectedType === 'playwright' || selectedType === 'yaml') &&
+              (showGeneratedCode || isStreaming) && (
+                <div className="flex gap-0.2 ml-auto">
+                  <Button
                     size="small"
-                    strokeColor={getStepColor(step)}
-                    showInfo={false}
+                    icon={<CopyOutlined />}
+                    onClick={
+                      selectedType === 'playwright'
+                        ? handleCopyTest
+                        : handleCopyYaml
+                    }
+                    className="!border-none !bg-none !shadow-none"
+                    disabled={
+                      isStreaming ||
+                      (selectedType === 'playwright'
+                        ? !generatedTest
+                        : !generatedYaml)
+                    }
+                    title="Copy to clipboard"
+                  />
+                  <Button
+                    size="small"
+                    icon={<ReloadOutlined />}
+                    onClick={
+                      selectedType === 'playwright'
+                        ? handleRegenerateTest
+                        : handleRegenerateYaml
+                    }
+                    disabled={isGenerating || isStreaming}
+                    className="!border-none !bg-none !shadow-none"
+                    title="Regenerate code"
+                  />
+                  <Button
+                    size="small"
+                    icon={<DownloadOutlined />}
+                    className="!border-none !bg-none !shadow-none"
+                    onClick={
+                      selectedType === 'playwright'
+                        ? handleDownloadTest
+                        : handleDownloadYaml
+                    }
+                    disabled={
+                      isStreaming ||
+                      (selectedType === 'playwright'
+                        ? !generatedTest
+                        : !generatedYaml)
+                    }
+                    title={
+                      selectedType === 'playwright'
+                        ? 'Download as .ts file'
+                        : 'Download as .yaml file'
+                    }
                   />
                 </div>
               )}
-
-              {index < steps.length - 1 && (
-                <div
-                  style={{
-                    marginLeft: 10,
-                    width: 2,
-                    height: 20,
-                    backgroundColor:
-                      step.status === 'completed' ? '#52c41a' : '#e8e8e8',
-                    marginTop: 8,
-                  }}
-                />
-              )}
-            </div>
-          ))}
-
-          {allCompleted && (
-            <div style={{ textAlign: 'center', marginTop: 20 }}>
-              <Title level={4} style={{ color: '#52c41a', margin: 0 }}>
-                🎉 Generation Complete!
-              </Title>
+          </div>
+          {selectedType === 'none' && (
+            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-sm">
+              <div className="font-semibold mb-1">
+                No Code Generation Selected
+              </div>
+              <div>
+                Selecting <b>None</b> means no code will be generated
+                automatically.
+              </div>
+              <div className="mt-1">
+                To auto-generate <b>YAML</b> or <b>Playwright</b> code, set it
+                as the default (click the pin icon on the right).
+                <br />
+                When you stop recording, the system will automatically generate
+                code for the default type.
+              </div>
             </div>
           )}
-        </div>
-      </Modal>
+        </>
+      )}
+
+      {/* Steps for selectedType only */}
+      {steps.length > 0 &&
+        // !steps.every((step) => step.status === 'completed') &&
+        (() => {
+          // Hide step display if the third step has started
+          if (thirdStepStarted) {
+            return null;
+          }
+
+          return (
+            <StepList
+              steps={steps}
+              completedSteps={completedSteps}
+              slidingOutSteps={slidingOutSteps}
+              getStepIcon={getStepIcon}
+              getStepColor={getStepColor}
+            />
+          );
+        })()}
+
+      {/* Code block for selectedType only */}
+      {(showGeneratedCode || isStreaming) && (
+        <>
+          {selectedType === 'playwright' &&
+            (generatedTest ||
+              (isStreaming && selectedType === 'playwright')) && (
+              <CodeBlock
+                key={'playwright'}
+                code={generatedTest}
+                type={'playwright'}
+                loading={isGenerating}
+                isStreaming={isStreaming && selectedType === 'playwright'}
+                streamingContent={streamingContent}
+                thinkingProcess={thinkingProcess}
+                actualCode={actualCode}
+                accumulatedThinking={accumulatedThinking}
+                stepDisplay={thirdStepStarted || steps.length === 0}
+              />
+            )}
+          {selectedType === 'yaml' &&
+            (generatedYaml || (isStreaming && selectedType === 'yaml')) && (
+              <CodeBlock
+                key={'yaml'}
+                code={generatedYaml}
+                type={'yaml'}
+                loading={isGenerating}
+                isStreaming={isStreaming && selectedType === 'yaml'}
+                streamingContent={streamingContent}
+                thinkingProcess={thinkingProcess}
+                actualCode={actualCode}
+                accumulatedThinking={accumulatedThinking}
+                stepDisplay={thirdStepStarted || steps.length === 0}
+              />
+            )}
+        </>
+      )}
     </>
   );
 };

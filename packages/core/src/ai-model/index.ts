@@ -1,11 +1,20 @@
-export { callToGetJSONObject, call as callAi } from './service-caller/index';
+export {
+  callToGetJSONObject,
+  call as callAi,
+} from './service-caller/index';
 export { systemPromptToLocateElement } from './prompt/llm-locator';
 export {
   describeUserPage,
   elementByPositionWithElementInfo,
 } from './prompt/util';
-export { generatePlaywrightTest } from './prompt/playwright-generator';
-export { generateYamlTest } from './prompt/yaml-generator';
+export {
+  generatePlaywrightTest,
+  generatePlaywrightTestStream,
+} from './prompt/playwright-generator';
+export {
+  generateYamlTest,
+  generateYamlTestStream,
+} from './prompt/yaml-generator';
 
 export type { ChatCompletionMessageParam } from 'openai/resources';
 

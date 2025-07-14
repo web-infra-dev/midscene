@@ -1,5 +1,6 @@
 /// <reference types="chrome" />
-import { Form } from 'antd';
+import { PlusOutlined } from '@ant-design/icons';
+import { Button, Form, Modal } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
 import type { RecordingSession } from '../../store';
 import { useRecordStore, useRecordingSessionStore } from '../../store';
@@ -13,6 +14,9 @@ import { useTabMonitoring } from './hooks/useTabMonitoring';
 import { recordLogger } from './logger';
 import type { ViewMode } from './types';
 import './recorder.less';
+import { EnvConfig, useEnvConfig } from '@midscene/visualizer';
+import { EnvConfigReminder } from '../../components';
+import { generateDefaultSessionName } from './utils';
 
 export default function Recorder() {
   // Local initialization state
@@ -21,6 +25,10 @@ export default function Recorder() {
   // Get stores
   const sessionStore = useRecordingSessionStore();
   const recordStore = useRecordStore();
+
+  // Environment configuration check
+  const { config } = useEnvConfig();
+  const configAlreadySet = Object.keys(config || {}).length >= 1;
 
   // Initialize stores on component mount
   useEffect(() => {
@@ -58,20 +66,16 @@ export default function Recorder() {
 
   // View state management
   const [viewMode, setViewMode] = useState<ViewMode>('list');
-  const [selectedSession, setSelectedSession] =
-    useState<RecordingSession | null>(null);
 
   // Modal state management
-  const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [editingSession, setEditingSession] = useState<RecordingSession | null>(
     null,
   );
-  const [form] = Form.useForm();
   const [editForm] = Form.useForm();
 
   // Initialize tab monitoring to get currentTab
-  const { currentTab, checkRecordingRecovery } = useTabMonitoring();
+  const { currentTab } = useTabMonitoring();
 
   // Initialize recording session management with currentTab
   const sessionHooks = useRecordingSession(currentTab);
@@ -79,11 +83,10 @@ export default function Recorder() {
     sessions,
     currentSessionId,
     getCurrentSession,
+    setCurrentSession,
     createNewSession,
-    handleCreateSession,
     handleUpdateSession,
     handleDeleteSession,
-    handleSelectSession,
     handleExportSession,
   } = sessionHooks;
 
@@ -96,8 +99,6 @@ export default function Recorder() {
       sessionHooks.handleUpdateSession(sessionId, updates);
     },
     createNewSession,
-    checkRecordingRecovery,
-    handleSelectSession,
   );
   const {
     isRecording,
@@ -136,19 +137,6 @@ export default function Recorder() {
     }
   }, [currentSessionId, getCurrentSession, setEvents, clearEvents]);
 
-  // Sync selectedSession with currentSession for view management
-  useEffect(() => {
-    if (viewMode === 'detail' && currentSessionId) {
-      const currentSession = getCurrentSession();
-      if (
-        currentSession &&
-        (!selectedSession || selectedSession.id !== currentSessionId)
-      ) {
-        setSelectedSession(currentSession);
-      }
-    }
-  }, [currentSessionId, getCurrentSession, selectedSession, viewMode]);
-
   // Edit session handler
   const handleEditSession = (session: RecordingSession) => {
     setEditingSession(session);
@@ -171,16 +159,6 @@ export default function Recorder() {
       description: values.description,
     });
 
-    // Update selectedSession if it's the one being edited
-    if (selectedSession?.id === editingSession.id) {
-      setSelectedSession({
-        ...editingSession,
-        name: values.name,
-        description: values.description,
-        updatedAt: Date.now(),
-      });
-    }
-
     setIsEditModalVisible(false);
     setEditingSession(null);
     editForm.resetFields();
@@ -189,46 +167,19 @@ export default function Recorder() {
   // Delete session handler
   const handleDeleteSessionWrapper = (sessionId: string) => {
     handleDeleteSession(sessionId);
-    // If we're viewing the deleted session, go back to list
-    if (selectedSession?.id === sessionId) {
-      setViewMode('list');
-      setSelectedSession(null);
-    }
   };
-
-  // Select session handler with async handling
-  const handleSelectSessionWrapper = useCallback(
-    async (session: RecordingSession) => {
-      recordLogger.info('Switching to session', { sessionId: session.id });
-
-      // Stop current recording if any - wait for completion
-      if (isRecording) {
-        recordLogger.info(
-          'Stopping current recording before switching session',
-        );
-        await stopRecording();
-      }
-
-      handleSelectSession(session);
-    },
-    [isRecording, stopRecording, handleSelectSession],
-  );
 
   // View session detail handler
   const handleViewDetail = useCallback(
     (session: RecordingSession) => {
-      recordLogger.info('Viewing session detail', { sessionId: session.id });
-
-      setSelectedSession(session);
+      recordLogger.info('Viewing session detail', {
+        sessionId: session.id,
+        session,
+      });
+      setCurrentSession(session.id);
       setViewMode('detail');
-
-      // If not already the current session, switch to it
-      if (currentSessionId !== session.id) {
-        recordLogger.info('Session not current, switching sessions');
-        handleSelectSessionWrapper(session);
-      }
     },
-    [currentSessionId, handleSelectSessionWrapper],
+    [currentSessionId],
   );
 
   // Go back to list view handler
@@ -242,36 +193,21 @@ export default function Recorder() {
     }
 
     setViewMode('list');
-    setSelectedSession(null);
   }, [isRecording, stopRecording]);
 
   // Create session handler
-  const handleCreateSessionWrapper = async (values: {
-    name: string;
-    description?: string;
-  }) => {
-    recordLogger.info('Creating new session', { action: 'create' });
+  const handleCreateNewSession = () => {
+    const sessionName = generateDefaultSessionName();
+    const newSession = createNewSession(sessionName);
 
-    const newSession = await handleCreateSession(values);
-    recordLogger.success('New session created', { sessionId: newSession.id });
+    setTimeout(() => {
+      startRecording(newSession.id);
+    }, 300);
 
-    setIsCreateModalVisible(false);
-    form.resetFields();
-
-    // Switch to detail view for the new session
-    setSelectedSession(newSession);
+    // Switch to detail view
     setViewMode('detail');
 
-    // Automatically start recording if in extension mode
-    if (isExtensionMode && currentTab?.id) {
-      recordLogger.info(
-        'Auto-starting recording for new session in extension mode',
-      );
-      // Small delay to ensure UI updates first
-      setTimeout(() => {
-        startRecording();
-      }, 100);
-    }
+    setCurrentSession(newSession.id);
   };
 
   // Show loading state while stores are initializing
@@ -293,48 +229,71 @@ export default function Recorder() {
 
   return (
     <div ref={recordContainerRef} className="popup-record-container">
-      {viewMode === 'list' ? (
-        <RecordList
-          sessions={sessions}
-          currentSessionId={currentSessionId}
-          onEditSession={handleEditSession}
-          onDeleteSession={handleDeleteSessionWrapper}
-          onSelectSession={handleSelectSessionWrapper}
-          onExportSession={handleExportSession}
-          onViewDetail={handleViewDetail}
-          isExtensionMode={isExtensionMode}
-          createNewSession={createNewSession}
-          setSelectedSession={setSelectedSession}
-          setViewMode={setViewMode}
-          currentTab={currentTab}
-          startRecording={startRecording}
-        />
-      ) : (
-        selectedSession && (
+      <RecordList
+        sessions={sessions}
+        currentSessionId={currentSessionId}
+        onEditSession={handleEditSession}
+        onDeleteSession={handleDeleteSessionWrapper}
+        onExportSession={handleExportSession}
+        onViewDetail={handleViewDetail}
+        isExtensionMode={isExtensionMode}
+        handleCreateNewSession={handleCreateNewSession}
+      />
+
+      {/* Recording Detail Modal */}
+      <Modal
+        open={viewMode === 'detail' && currentSessionId !== null}
+        onCancel={handleBackToList}
+        footer={null}
+        closable={false}
+        width="100%"
+        centered={false}
+        className="recording-detail-modal"
+        transitionName=""
+        maskTransitionName=""
+        styles={{
+          body: {
+            padding: 0,
+            height: 'calc(100vh * 9 / 10)',
+            overflow: 'hidden',
+          },
+          content: {
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            // height: 'calc(100vh * 9 / 10)',
+            margin: 0,
+            borderRadius: '16px 16px 0 0',
+            maxWidth: 'none',
+            width: '100%',
+            padding: '20px',
+          },
+          mask: { backgroundColor: 'rgba(0, 0, 0, 0.3)' },
+        }}
+      >
+        {currentSessionId && (
           <RecordDetail
-            sessionId={selectedSession.id}
-            events={events}
+            key={currentSessionId}
+            sessionId={currentSessionId}
             isRecording={isRecording}
+            // events={events}
             currentTab={currentTab}
             onBack={handleBackToList}
             onStartRecording={startRecording}
             onStopRecording={stopRecording}
             onClearEvents={clearEvents}
             isExtensionMode={isExtensionMode}
+            onClose={handleBackToList}
           />
-        )
-      )}
+        )}
+      </Modal>
 
       <SessionModals
-        isCreateModalVisible={isCreateModalVisible}
-        setIsCreateModalVisible={setIsCreateModalVisible}
-        onCreateSession={handleCreateSessionWrapper}
-        createForm={form}
         isEditModalVisible={isEditModalVisible}
         setIsEditModalVisible={setIsEditModalVisible}
         onUpdateSession={handleUpdateSessionWrapper}
         editForm={editForm}
-        editingSession={editingSession}
         setEditingSession={setEditingSession}
       />
     </div>

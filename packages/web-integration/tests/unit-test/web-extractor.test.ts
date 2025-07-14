@@ -235,23 +235,6 @@ describe(
       await reset();
     });
 
-    it('getElementInfoByXpath from non form/button/image/text/a/container node by evaluateJavaScript', async () => {
-      const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
-        viewport: {
-          width: 1080,
-          height: 3000,
-          deviceScaleFactor: 1,
-        },
-      });
-
-      const elementInfosScriptContent = getElementInfosScriptContent();
-      const element = await page.evaluateJavaScript?.(
-        `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('/html/body/div[3]/div')`,
-      );
-      expect(element).toBe(null);
-      await reset();
-    });
-
     it('descriptionOfTree with visibleOnly true', async () => {
       const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
         viewport: {

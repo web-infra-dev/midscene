@@ -10,10 +10,7 @@ import { recordLogger } from '../logger';
 /**
  * Get the most current events with AI descriptions
  */
-export const getLatestEvents = (
-  events: ChromeRecordedEvent[],
-  sessionId?: string,
-): ChromeRecordedEvent[] => {
+export const getLatestEvents = (sessionId?: string): ChromeRecordedEvent[] => {
   const currentLiveEvents = useRecordStore.getState().events;
   const { isRecording } = useRecordStore.getState();
 
@@ -37,25 +34,14 @@ export const getLatestEvents = (
       currentLiveEvents.length > 0 &&
       currentLiveEvents.length >= sessionEvents.length
     ) {
-      recordLogger.info('Using live events (more recent)', {
-        eventsCount: currentLiveEvents.length,
-      });
       return currentLiveEvents;
     }
 
-    recordLogger.info('Using session events', {
-      eventsCount: sessionEvents.length,
-    });
     return sessionEvents;
   }
 
   // Fallback to live events or provided events
-  const fallbackEvents =
-    currentLiveEvents.length > 0 ? currentLiveEvents : events;
-  recordLogger.info('Using fallback events', {
-    eventsCount: fallbackEvents.length,
-  });
-  return fallbackEvents;
+  throw new Error('No events found');
 };
 
 /**
