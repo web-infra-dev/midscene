@@ -56,13 +56,13 @@ export const ThinkingProcessSection: React.FC<ThinkingProcessSectionProps> = ({
       <div
         className={'flex items-center gap-2 cursor-pointer p-2 bg-transparent'}
         onClick={() => setShowThinking(!showThinking)}
-        // style={{ borderBottom: showThinking ? '1px solid rgba(43, 131, 255, 0.16)' : 'none' }}
+      // style={{ borderBottom: showThinking ? '1px solid rgba(43, 131, 255, 0.16)' : 'none' }}
       >
         <div
           className={' text-sm font-medium'}
           style={{ color: 'rgba(0, 0, 0, 0.85)' }}
         >
-          🧠 AI Thingking Process
+          🤔 AI Thingking Process
         </div>
         <div
           className={`transform transition-transform ml-auto mr-1 ${showThinking ? 'rotate-180' : ''}`}

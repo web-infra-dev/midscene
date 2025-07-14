@@ -2,6 +2,7 @@ import {
   DeleteOutlined,
   DownloadOutlined,
   EditOutlined,
+  PlusOutlined,
 } from '@ant-design/icons';
 import {
   Alert,
@@ -19,6 +20,8 @@ import type React from 'react';
 import type { RecordingSession } from '../../../store';
 import type { ViewMode } from '../types';
 import './Record-List.css';
+import { EnvConfigReminder } from '../../../components';
+import { useEnvConfig } from '@midscene/visualizer';
 
 const { Title } = Typography;
 
@@ -30,6 +33,7 @@ interface RecordListProps {
   onExportSession: (session: RecordingSession) => void;
   onViewDetail: (session: RecordingSession) => void;
   isExtensionMode: boolean;
+  handleCreateNewSession: () => void;
 }
 
 export const RecordList: React.FC<RecordListProps> = ({
@@ -40,9 +44,17 @@ export const RecordList: React.FC<RecordListProps> = ({
   onExportSession,
   onViewDetail,
   isExtensionMode,
+  handleCreateNewSession,
 }) => {
+  const { config } = useEnvConfig();
+
+  const runButtonEnabled = Object.keys(config || {}).length >= 1;
+
   return (
     <div className="record-list-view relative">
+      {/* Environment setup reminder */}
+      <EnvConfigReminder />
+
       {!isExtensionMode && (
         <Alert
           message="Limited Functionality"
@@ -54,9 +66,7 @@ export const RecordList: React.FC<RecordListProps> = ({
       )}
 
       {sessions.length === 0 ? (
-        <div className="absolute inset-0 flex items-center justify-center z-50">
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />
-        </div>
+        <Empty className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" image={Empty.PRESENTED_IMAGE_SIMPLE} />
       ) : (
         <List
           className="session-list"
@@ -65,11 +75,10 @@ export const RecordList: React.FC<RecordListProps> = ({
           renderItem={(session) => (
             <List.Item className="session-item">
               <div
-                className={`w-full bg-[#F4F6F9] rounded-lg cursor-pointer transition-all duration-200 overflow-hidden hover:shadow-md ${
-                  session.id === currentSessionId
-                    ? 'border-2 border-[#F4F6F9] bg-blue-50'
-                    : ''
-                }`}
+                className={`w-full bg-[#F4F6F9] rounded-lg cursor-pointer transition-all duration-200 overflow-hidden hover:shadow-md ${session.id === currentSessionId
+                  ? 'border-2 border-[#F4F6F9] bg-blue-50'
+                  : ''
+                  }`}
                 onClick={() => onViewDetail(session)}
               >
                 {/* Main content area */}
@@ -146,6 +155,17 @@ export const RecordList: React.FC<RecordListProps> = ({
           )}
         />
       )}
+
+      <Button
+        type="primary"
+        className="!fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[1000] !h-[40px] !py-[12px] !px-[16px] !rounded-[48px]"
+        disabled={!runButtonEnabled}
+        // className="!fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[1000] flex items-center justify-center gap-[10px] text-[14px] text-white w-[172px] h-[40px] rounded-[48px] border py-[12px] px-[16px]"
+        icon={<PlusOutlined className="stroke-[2]" />}
+        onClick={handleCreateNewSession}
+      >
+        New Recording
+      </Button>
     </div>
   );
 };

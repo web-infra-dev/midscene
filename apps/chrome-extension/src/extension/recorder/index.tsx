@@ -229,8 +229,6 @@ export default function Recorder() {
 
   return (
     <div ref={recordContainerRef} className="popup-record-container">
-      {/* Environment setup reminder */}
-      <EnvConfigReminder />
 
       <RecordList
         sessions={sessions}
@@ -240,20 +238,8 @@ export default function Recorder() {
         onExportSession={handleExportSession}
         onViewDetail={handleViewDetail}
         isExtensionMode={isExtensionMode}
+        handleCreateNewSession={handleCreateNewSession}
       />
-
-      {/* Floating Add Button */}
-      {viewMode === 'list' && (
-        <Button
-          type="primary"
-          className="!fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[1000] !h-[40px] !py-[12px] !px-[16px] !rounded-[48px]"
-          // className="!fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[1000] flex items-center justify-center gap-[10px] text-[14px] text-white w-[172px] h-[40px] rounded-[48px] border py-[12px] px-[16px]"
-          icon={<PlusOutlined className="stroke-[2]" />}
-          onClick={handleCreateNewSession}
-        >
-          New Recording
-        </Button>
-      )}
 
       {/* Recording Detail Modal */}
       <Modal

@@ -35,7 +35,7 @@ export function PlaygroundPopup() {
   const { setPopupTab } = useEnvConfig();
   const [currentMode, setCurrentMode] = useState<
     'playground' | 'bridge' | 'recorder'
-  >('recorder');
+  >('playground');
 
   const { config, deepThink } = useEnvConfig();
 
