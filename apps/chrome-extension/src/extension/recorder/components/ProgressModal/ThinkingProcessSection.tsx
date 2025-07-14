@@ -43,7 +43,7 @@ export const ThinkingProcessSection: React.FC<ThinkingProcessSectionProps> = ({
 
   return (
     <div
-      className="mb-3 rounded-[8px] min-h-[40px]"
+      className="rounded-[8px] min-h-[40px]"
       style={{
         background: showThinking
           ? 'linear-gradient(180deg, rgba(43, 131, 255, 0.1) 0%, rgba(43, 131, 255, 0.024) 23.04%, rgba(43, 131, 255, 0) 100%)'
@@ -59,7 +59,7 @@ export const ThinkingProcessSection: React.FC<ThinkingProcessSectionProps> = ({
         // style={{ borderBottom: showThinking ? '1px solid rgba(43, 131, 255, 0.16)' : 'none' }}
       >
         <div
-          className={' text-sm font-medium'}
+          className={' text-sm font-medium '}
           style={{ color: 'rgba(0, 0, 0, 0.85)' }}
         >
           🤔 AI Thingking Process
