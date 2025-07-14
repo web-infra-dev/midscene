@@ -41,7 +41,8 @@ export function insertScriptBeforeClosingHtml(
 ): void {
   const htmlEndTag = '</html>';
   const stat = fs.statSync(filePath);
-  const readSize = 65536; // 64KB
+
+  const readSize = Math.min(stat.size, 4096);
   const start = Math.max(0, stat.size - readSize);
   const buffer = Buffer.alloc(stat.size - start);
   const fd = fs.openSync(filePath, 'r');
@@ -54,7 +55,10 @@ export function insertScriptBeforeClosingHtml(
     throw new Error('No </html> found');
   }
 
-  const htmlEndPos = start + htmlEndIdx;
+  // calculate the correct byte position: char position to byte position
+  const beforeHtmlInTail = tailStr.slice(0, htmlEndIdx);
+  const htmlEndPos = start + Buffer.byteLength(beforeHtmlInTail, 'utf8');
+
   // truncate to </html> before
   fs.truncateSync(filePath, htmlEndPos);
   // append script and </html>
