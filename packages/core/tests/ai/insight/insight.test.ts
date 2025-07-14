@@ -88,4 +88,6 @@ describe('insight describe', () => {
 
     expect(description).toBeDefined();
   });
+}, {
+  timeout: 2 * 60 * 1000,
 });
