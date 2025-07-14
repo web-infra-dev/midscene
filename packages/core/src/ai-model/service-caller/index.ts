@@ -49,7 +49,6 @@ import { assertSchema } from '../prompt/assertion';
 import { locatorSchema } from '../prompt/llm-locator';
 import { planSchema } from '../prompt/llm-planning';
 
-
 export function checkAIConfig() {
   const openaiKey = getAIConfig(OPENAI_API_KEY);
   const azureConfig = getAIConfig(MIDSCENE_USE_AZURE_OPENAI);
