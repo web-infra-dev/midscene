@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import dotenv from 'dotenv';
 import { isIndexYamlFile, matchYamlFiles, parseProcessArgs } from './cli-utils';
-import { BatchYamlExecutor } from './yaml-runner';
+import { YamlRunner } from './yaml-runner';
 
 Promise.resolve(
   (async () => {
@@ -40,10 +40,10 @@ Promise.resolve(
     if (isIndexYamlFile(path)) {
       console.log('📋 Detected index YAML file, executing batch workflow...\n');
 
-      const executor = new BatchYamlExecutor(path, 'index');
+      const executor = new YamlRunner(path, 'index');
       await executor.initialize();
 
-      await executor.execute({
+      await executor.run({
         keepWindow,
         headed,
       });
@@ -60,16 +60,16 @@ Promise.resolve(
     // Handle regular YAML files
     const files = await matchYamlFiles(path);
     if (files.length === 0) {
-      console.error(`no yaml files found in ${path}`);
+      console.error(`No yaml files found in ${path}`);
       process.exit(1);
     }
 
     console.log('📄 Executing YAML files...\n');
 
-    const executor = new BatchYamlExecutor(files, 'files');
+    const executor = new YamlRunner(files, 'files');
     await executor.initialize();
 
-    await executor.execute({
+    await executor.run({
       keepWindow,
       headed,
     });
