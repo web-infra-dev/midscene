@@ -4,6 +4,7 @@ import {
   GithubOutlined,
   MenuOutlined,
   QuestionCircleOutlined,
+  SendOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons';
 import {
@@ -23,8 +24,6 @@ import {
   ChromeExtensionProxyPage,
   ChromeExtensionProxyPageAgent,
 } from '@midscene/web/chrome-extension';
-import BridgeIcon from '../icons/bridge.svg?react';
-import PlaygroundIcon2 from '../icons/playground-2.svg?react';
 // remember to destroy the agent when the tab is destroyed: agent.page.destroy()
 const extensionAgentForTab = (forceSameTabNavigation = true) => {
   const page = new ChromeExtensionProxyPage(forceSameTabNavigation);
@@ -49,7 +48,7 @@ export function PlaygroundPopup() {
   const menuItems = [
     {
       key: 'playground',
-      icon: <PlaygroundIcon2 />,
+      icon: <SendOutlined />,
       label: 'Playground',
       onClick: () => {
         setCurrentMode('playground');
@@ -67,7 +66,7 @@ export function PlaygroundPopup() {
     },
     {
       key: 'bridge',
-      icon: <BridgeIcon />,
+      icon: <ApiOutlined />,
       label: 'Bridge Mode',
       onClick: () => {
         setCurrentMode('bridge');

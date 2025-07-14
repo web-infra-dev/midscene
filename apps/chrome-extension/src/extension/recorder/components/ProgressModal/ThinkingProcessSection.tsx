@@ -42,49 +42,51 @@ export const ThinkingProcessSection: React.FC<ThinkingProcessSectionProps> = ({
   if (!hasThinking) return null;
 
   return (
-    <div
-      className="rounded-[8px] min-h-[40px]"
-      style={{
-        background: showThinking
-          ? 'linear-gradient(180deg, rgba(43, 131, 255, 0.1) 0%, rgba(43, 131, 255, 0.024) 23.04%, rgba(43, 131, 255, 0) 100%)'
-          : 'linear-gradient(0deg, #FFFFFF, #FFFFFF)',
-        border: showThinking
-          ? '1px solid rgba(43, 131, 255, 0.16)'
-          : '1px solid rgba(0, 0, 0, 0.06)',
-      }}
-    >
+    accumulatedThinking ? (
       <div
-        className={'flex items-center gap-2 cursor-pointer p-2 bg-transparent'}
-        onClick={() => setShowThinking(!showThinking)}
-        // style={{ borderBottom: showThinking ? '1px solid rgba(43, 131, 255, 0.16)' : 'none' }}
+        className="rounded-[8px] min-h-[40px]"
+        style={{
+          background: showThinking
+            ? 'linear-gradient(180deg, rgba(43, 131, 255, 0.1) 0%, rgba(43, 131, 255, 0.024) 23.04%, rgba(43, 131, 255, 0) 100%)'
+            : 'linear-gradient(0deg, #FFFFFF, #FFFFFF)',
+          border: showThinking
+            ? '1px solid rgba(43, 131, 255, 0.16)'
+            : '1px solid rgba(0, 0, 0, 0.06)',
+        }}
       >
         <div
-          className={' text-sm font-medium '}
-          style={{ color: 'rgba(0, 0, 0, 0.85)' }}
+          className={'flex items-center gap-2 cursor-pointer p-2 bg-transparent'}
+          onClick={() => setShowThinking(!showThinking)}
+        // style={{ borderBottom: showThinking ? '1px solid rgba(43, 131, 255, 0.16)' : 'none' }}
         >
-          🤔 AI Thingking Process
+          <div
+            className={' text-sm font-medium '}
+            style={{ color: 'rgba(0, 0, 0, 0.85)' }}
+          >
+            🤔 AI Thingking Process
+          </div>
+          <div
+            className={`transform transition-transform ml-auto mr-1 ${showThinking ? 'rotate-180' : ''}`}
+          >
+            <DownOutlined
+              className={'text-blue-400 text-xs'}
+              style={{ color: 'rgba(128, 128, 128, 1)' }}
+            />
+          </div>
         </div>
-        <div
-          className={`transform transition-transform ml-auto mr-1 ${showThinking ? 'rotate-180' : ''}`}
-        >
-          <DownOutlined
-            className={'text-blue-400 text-xs'}
-            style={{ color: 'rgba(128, 128, 128, 1)' }}
-          />
-        </div>
+        {showThinking && (
+          <div
+            ref={contentRef}
+            className={
+              'p-3 bg-blue-25 max-h-[139px]  rounded-b text-sm text-gray-400 whitespace-pre-wrap'
+            }
+            style={{ overflowY: 'auto' }}
+          >
+            {accumulatedThinking ||
+              'AI is analyzing the recorded events and planning the test structure...'}
+          </div>
+        )}
       </div>
-      {showThinking && (
-        <div
-          ref={contentRef}
-          className={
-            'p-3 bg-blue-25 max-h-[139px]  rounded-b text-sm text-gray-400 whitespace-pre-wrap'
-          }
-          style={{ overflowY: 'auto' }}
-        >
-          {accumulatedThinking ||
-            'AI is analyzing the recorded events and planning the test structure...'}
-        </div>
-      )}
-    </div>
+    ) : null
   );
 };
