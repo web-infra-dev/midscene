@@ -49,19 +49,23 @@ import { assertSchema } from '../prompt/assertion';
 import { locatorSchema } from '../prompt/llm-locator';
 import { planSchema } from '../prompt/llm-planning';
 
+let aiConfigCheckedLoged = false;
 export function checkAIConfig() {
   const openaiKey = getAIConfig(OPENAI_API_KEY);
   const azureConfig = getAIConfig(MIDSCENE_USE_AZURE_OPENAI);
   const anthropicKey = getAIConfig(ANTHROPIC_API_KEY);
   const initConfigJson = getAIConfig(MIDSCENE_OPENAI_INIT_CONFIG_JSON);
 
-  console.log('AI Config Check:', {
-    hasOpenAI: !!openaiKey,
-    hasAzure: !!azureConfig,
-    hasAnthropic: !!anthropicKey,
-    hasInitConfig: !!initConfigJson,
-    openaiKeyPrefix: openaiKey ? `${openaiKey.substring(0, 10)}...` : 'none',
-  });
+  if (!aiConfigCheckedLoged ){
+    console.log('AI Config Check:', {
+      hasOpenAI: !!openaiKey,
+      hasAzure: !!azureConfig,
+      hasAnthropic: !!anthropicKey,
+      hasInitConfig: !!initConfigJson,
+      openaiKeyPrefix: openaiKey ? `${openaiKey.substring(0, 10)}...` : 'none',
+    });
+    aiConfigCheckedLoged = true;
+  }
 
   if (openaiKey) return true;
   if (azureConfig) return true;
