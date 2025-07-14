@@ -52,7 +52,7 @@ function CodeBlockContainer({
   return (
     <pre
       className={
-        'bg-gray-50 rounded-[8px] border text-sm overflow-auto font-mono border-radius-[8px] border-[#F2F4F7] max-h-[calc(100vh-380px)]'
+        'bg-gray-50 rounded-[8px] border text-sm overflow-auto font-mono border-radius-[8px] border-[#F2F4F7] max-h-[calc(100vh-310px)]'
       }
     >
       <code ref={codeRef} className={`language-${language} p-4`}>
@@ -89,7 +89,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
   }, [isStreaming, hasContent]);
 
   return (
-    <div className="mt-5 flex flex-col">
+    <div className="flex flex-col">
       {/* 按钮区域已移除，只在外部渲染 */}
       {/* Thinking Process Section */}
       <ThinkingProcessSection
