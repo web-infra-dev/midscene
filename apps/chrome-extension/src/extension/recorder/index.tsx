@@ -229,7 +229,6 @@ export default function Recorder() {
 
   return (
     <div ref={recordContainerRef} className="popup-record-container">
-
       <RecordList
         sessions={sessions}
         currentSessionId={currentSessionId}

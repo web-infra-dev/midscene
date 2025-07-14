@@ -20,8 +20,8 @@ import type React from 'react';
 import type { RecordingSession } from '../../../store';
 import type { ViewMode } from '../types';
 import './Record-List.css';
-import { EnvConfigReminder } from '../../../components';
 import { useEnvConfig } from '@midscene/visualizer';
+import { EnvConfigReminder } from '../../../components';
 
 const { Title } = Typography;
 
@@ -66,7 +66,10 @@ export const RecordList: React.FC<RecordListProps> = ({
       )}
 
       {sessions.length === 0 ? (
-        <Empty className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+        <Empty
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+        />
       ) : (
         <List
           className="session-list"
@@ -75,10 +78,11 @@ export const RecordList: React.FC<RecordListProps> = ({
           renderItem={(session) => (
             <List.Item className="session-item">
               <div
-                className={`w-full bg-[#F4F6F9] rounded-lg cursor-pointer transition-all duration-200 overflow-hidden hover:shadow-md ${session.id === currentSessionId
-                  ? 'border-2 border-[#F4F6F9] bg-blue-50'
-                  : ''
-                  }`}
+                className={`w-full bg-[#F4F6F9] rounded-lg cursor-pointer transition-all duration-200 overflow-hidden hover:shadow-md ${
+                  session.id === currentSessionId
+                    ? 'border-2 border-[#F4F6F9] bg-blue-50'
+                    : ''
+                }`}
                 onClick={() => onViewDetail(session)}
               >
                 {/* Main content area */}
