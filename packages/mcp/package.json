@@ -22,7 +22,7 @@
     "inspect2": "mcp-inspector node ./dist/test2.cjs"
   },
   "devDependencies": {
-    "@modelcontextprotocol/inspector": "0.9.0",
+    "@modelcontextprotocol/inspector": "0.14.1",
     "@rslib/core": "^0.8.0",
     "@types/node": "^18.0.0",
     "typescript": "^5.8.3",
