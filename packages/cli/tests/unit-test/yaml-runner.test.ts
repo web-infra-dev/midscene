@@ -1,6 +1,6 @@
 import { mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { IndexYamlParser } from '@/index-parser';
-import { BatchYamlExecutor } from '@/yaml-runner';
+import { YamlRunner } from '@/yaml-runner';
 import type { MidsceneYamlScript } from '@midscene/core/.';
 import { ScriptPlayer, parseYamlScript } from '@midscene/web/yaml';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
@@ -46,13 +46,17 @@ const mockYamlScript = {
 // Mock ScriptPlayer
 const createMockPlayer = (success = true) => {
   const mockPlayer = {
-    status: success ? 'done' : 'error',
+    status: 'init' as any,
     output: '/test/output/file.json',
     reportFile: '/test/report.html',
     result: { test: 'data' },
     errorInSetup: success ? null : new Error('Mock error'),
     taskStatusList: [],
-    run: vi.fn().mockResolvedValue(undefined),
+    run: vi.fn().mockImplementation(async () => {
+      // Simulate the run method changing the status
+      mockPlayer.status = success ? 'done' : 'error';
+      return undefined;
+    }),
     script: mockYamlScript,
     setupAgent: vi.fn(),
     unnamedResultIndex: 0,
@@ -96,44 +100,44 @@ describe('BatchYamlExecutor', () => {
 
   describe('Index YAML mode', () => {
     test('constructor creates executor with index mode', () => {
-      const executor = new BatchYamlExecutor('/test/index.yml', 'index');
+      const executor = new YamlRunner('/test/index.yml', 'index');
       expect(executor).toBeDefined();
       expect(IndexYamlParser).toHaveBeenCalledWith('/test/index.yml');
     });
 
     test('constructor throws error with invalid arguments', () => {
       expect(() => {
-        new BatchYamlExecutor(['file1.yml'] as any, 'index');
+        new YamlRunner(['file1.yml'] as any, 'index');
       }).toThrow('Invalid constructor arguments');
     });
 
     test('initialize parses config correctly', async () => {
-      const executor = new BatchYamlExecutor('/test/index.yml', 'index');
+      const executor = new YamlRunner('/test/index.yml', 'index');
 
       await executor.initialize();
       expect(mockParser.parse).toHaveBeenCalled();
     });
 
     test('execute throws error if not initialized', async () => {
-      const executor = new BatchYamlExecutor('/test/index.yml', 'index');
-      await expect(executor.execute()).rejects.toThrow();
+      const executor = new YamlRunner('/test/index.yml', 'index');
+      await expect(executor.run()).rejects.toThrow();
     });
 
     test('execute runs files successfully with default options', async () => {
-      const executor = new BatchYamlExecutor('/test/index.yml', 'index');
+      const executor = new YamlRunner('/test/index.yml', 'index');
       await executor.initialize();
 
-      const results = await executor.execute();
+      const results = await executor.run();
 
       expect(results).toHaveLength(2);
       expect(results[0].success).toBe(true);
     });
 
     test('execute handles concurrent execution', async () => {
-      const executor = new BatchYamlExecutor('/test/index.yml', 'index');
+      const executor = new YamlRunner('/test/index.yml', 'index');
       await executor.initialize();
 
-      const results = await executor.execute({
+      const results = await executor.run({
         keepWindow: true,
         headed: true,
       });
@@ -146,19 +150,19 @@ describe('BatchYamlExecutor', () => {
   describe('Files mode', () => {
     test('constructor creates executor with files mode', () => {
       const files = ['file1.yml', 'file2.yml'];
-      const executor = new BatchYamlExecutor(files, 'files');
+      const executor = new YamlRunner(files, 'files');
       expect(executor).toBeDefined();
     });
 
     test('constructor throws error with invalid arguments for files mode', () => {
       expect(() => {
-        new BatchYamlExecutor('/test/index.yml' as any, 'files');
+        new YamlRunner('/test/index.yml' as any, 'files');
       }).toThrow('Invalid constructor arguments');
     });
 
     test('initialize does nothing for files mode', async () => {
       const files = ['file1.yml', 'file2.yml'];
-      const executor = new BatchYamlExecutor(files, 'files');
+      const executor = new YamlRunner(files, 'files');
 
       await executor.initialize();
 
@@ -168,26 +172,64 @@ describe('BatchYamlExecutor', () => {
 
     test('execute runs files successfully in files mode', async () => {
       const files = ['file1.yml', 'file2.yml'];
-      const executor = new BatchYamlExecutor(files, 'files');
+      const executor = new YamlRunner(files, 'files');
       await executor.initialize();
 
-      const results = await executor.execute();
+      const results = await executor.run();
 
       expect(results).toHaveLength(2);
       expect(results[0].success).toBe(true);
     });
+
+    test('execute stops on first failure in files mode', async () => {
+      const files = ['file1.yml', 'file2.yml'];
+
+      // Clear previous mock and set up new one for this test
+      vi.clearAllMocks();
+
+      // Re-setup required mocks
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(mkdirSync).mockImplementation(() => undefined);
+      vi.mocked(writeFileSync).mockImplementation(() => undefined);
+      vi.mocked(statSync).mockReturnValue({ isFile: () => true } as any);
+      vi.mocked(parseYamlScript).mockReturnValue(
+        mockYamlScript as MidsceneYamlScript,
+      );
+
+      let callCount = 0;
+      vi.mocked(ScriptPlayer).mockImplementation(() => {
+        const shouldFail = callCount === 0; // first call should fail
+        callCount++;
+        return createMockPlayer(!shouldFail);
+      });
+
+      const executor = new YamlRunner(files, 'files');
+      await executor.initialize();
+
+      const results = await executor.run();
+
+      // Should stop after first failure in files mode
+      expect(results.filter((r) => !r.success)).toHaveLength(2);
+      expect(results[0].error).toBe('Mock error');
+      expect(results[1].error).toBe('Not executed (previous task failed)');
+
+      // Check summary reflects the stopped execution
+      const summary = executor.getExecutionSummary();
+      expect(summary.failed).toBe(1);
+      expect(summary.notExecuted).toBe(1);
+    });
   });
 
   describe('Common functionality', () => {
-    let executor: BatchYamlExecutor;
+    let executor: YamlRunner;
 
     beforeEach(async () => {
-      executor = new BatchYamlExecutor('/test/index.yml', 'index');
+      executor = new YamlRunner('/test/index.yml', 'index');
       await executor.initialize();
     });
 
     test('getExecutionSummary returns correct summary', async () => {
-      await executor.execute();
+      await executor.run();
 
       const summary = executor.getExecutionSummary();
       expect(summary.total).toBe(2);
@@ -202,14 +244,14 @@ describe('BatchYamlExecutor', () => {
         return createMockPlayer(false);
       });
 
-      await executor.execute();
+      await executor.run();
 
       const failedFiles = executor.getFailedFiles();
       expect(failedFiles).toHaveLength(1);
     });
 
     test('getResults returns copy of results', async () => {
-      await executor.execute();
+      await executor.run();
 
       const results = executor.getResults();
       expect(results).toHaveLength(2);
@@ -218,7 +260,7 @@ describe('BatchYamlExecutor', () => {
     test('printExecutionSummary prints and returns success status', async () => {
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
-      await executor.execute();
+      await executor.run();
       const success = executor.printExecutionSummary();
 
       expect(success).toBe(true);
@@ -226,7 +268,7 @@ describe('BatchYamlExecutor', () => {
         expect.stringContaining('📊 Execution Summary:'),
       );
       expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('✅ All files executed successfully!'),
+        expect.stringContaining('🎉 All files executed successfully!'),
       );
 
       consoleSpy.mockRestore();
@@ -240,7 +282,7 @@ describe('BatchYamlExecutor', () => {
         return createMockPlayer(false);
       });
 
-      await executor.execute();
+      await executor.run();
       const success = executor.printExecutionSummary();
 
       expect(success).toBe(false);
@@ -261,7 +303,7 @@ describe('BatchYamlExecutor', () => {
 
       mockParser.parse.mockResolvedValue(configWithContinueOnError);
 
-      const executor = new BatchYamlExecutor('/test/index.yml', 'index');
+      const executor = new YamlRunner('/test/index.yml', 'index');
       await executor.initialize();
 
       // Mock one successful and one failed execution
@@ -273,7 +315,7 @@ describe('BatchYamlExecutor', () => {
           return createMockPlayer(false);
         });
 
-      const results = await executor.execute();
+      const results = await executor.run();
 
       expect(results).toHaveLength(2);
       expect(results[0].success).toBe(true);
@@ -286,21 +328,40 @@ describe('BatchYamlExecutor', () => {
         continueOnError: false,
       };
 
+      // Clear previous mock and set up new one for this test
+      vi.clearAllMocks();
+
+      // Re-setup required mocks
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(mkdirSync).mockImplementation(() => undefined);
+      vi.mocked(writeFileSync).mockImplementation(() => undefined);
+      vi.mocked(statSync).mockReturnValue({ isFile: () => true } as any);
+      vi.mocked(parseYamlScript).mockReturnValue(
+        mockYamlScript as MidsceneYamlScript,
+      );
+
+      // Setup parser mock
       mockParser.parse.mockResolvedValue(configWithContinueOnError);
+      mockParser.buildExecutionConfig.mockReturnValue(mockYamlScript);
+      mockParser.generateOutputPath.mockReturnValue('/test/output/file.json');
+      (IndexYamlParser as any).mockImplementation(() => mockParser);
 
-      const executor = new BatchYamlExecutor('/test/index.yml', 'index');
-      await executor.initialize();
-
-      // Mock first execution to fail
-      vi.mocked(ScriptPlayer).mockImplementationOnce(() => {
-        return createMockPlayer(false);
+      let callCount = 0;
+      vi.mocked(ScriptPlayer).mockImplementation(() => {
+        const shouldFail = callCount === 0;
+        callCount++;
+        return createMockPlayer(!shouldFail);
       });
 
-      const results = await executor.execute();
+      const executor = new YamlRunner('/test/index.yml', 'index');
+      await executor.initialize();
+
+      const results = await executor.run();
 
       // Should stop after first failure
-      expect(results).toHaveLength(1);
       expect(results[0].success).toBe(false);
+      expect(results[0].error).toBe('Mock error');
+      expect(results[1].success).toBe(true); // index mode with concurrent=2, even if the first fails, the second will be executed and succeed
     });
   });
 });

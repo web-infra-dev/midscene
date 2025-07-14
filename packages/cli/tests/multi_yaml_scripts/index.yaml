@@ -5,7 +5,7 @@
 concurrent: 2
 
 # Continue execution even if one file fails (default: false)
-continueOnError: true
+continueOnError: false
 
 # Global web environment configuration (applied to all files)
 web:
@@ -23,6 +23,7 @@ web:
 # Execution order using glob patterns
 order:
   - "login.yaml"
+  - "local/local-error-message.yml"
   - "local/local.yml"
   # - "local/local*.yml"
   - "after-login.yaml"
