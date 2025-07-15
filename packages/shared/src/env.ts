@@ -34,6 +34,9 @@ export const MATCH_BY_POSITION = 'MATCH_BY_POSITION';
 export const MIDSCENE_API_TYPE = 'MIDSCENE-API-TYPE';
 export const MIDSCENE_REPORT_TAG_NAME = 'MIDSCENE_REPORT_TAG_NAME';
 
+export const MIDSCENE_REPLANNING_CYCLE_LIMIT =
+  'MIDSCENE_REPLANNING_CYCLE_LIMIT';
+
 export const MIDSCENE_PREFERRED_LANGUAGE = 'MIDSCENE_PREFERRED_LANGUAGE';
 
 export const MIDSCENE_USE_AZURE_OPENAI = 'MIDSCENE_USE_AZURE_OPENAI';
@@ -116,6 +119,8 @@ export const allConfigFromEnv = () => {
     [MIDSCENE_RUN_DIR]: process.env[MIDSCENE_RUN_DIR] || undefined,
     [MIDSCENE_PREFERRED_LANGUAGE]:
       process.env[MIDSCENE_PREFERRED_LANGUAGE] || undefined,
+    [MIDSCENE_REPLANNING_CYCLE_LIMIT]:
+      process.env[MIDSCENE_REPLANNING_CYCLE_LIMIT] || undefined,
   };
 };
 
@@ -219,6 +224,13 @@ export const getAIConfigInBoolean = (
     return false;
   }
   return !!config.trim();
+};
+
+export const getAIConfigInNumber = (
+  configKey: keyof ReturnType<typeof allConfigFromEnv>,
+) => {
+  const config = getAIConfig(configKey) || '';
+  return Number(config);
 };
 
 export const getAIConfigInJson = (

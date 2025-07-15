@@ -23,8 +23,6 @@ import {
   MIDSCENE_OPENAI_SOCKS_PROXY,
   MIDSCENE_USE_ANTHROPIC_SDK,
   MIDSCENE_USE_AZURE_OPENAI,
-  MIDSCENE_USE_QWEN_VL,
-  MIDSCENE_USE_VLM_UI_TARS,
   OPENAI_API_KEY,
   OPENAI_BASE_URL,
   OPENAI_MAX_TOKENS,
@@ -125,9 +123,12 @@ async function createChatClient({
   const httpProxy = getAIConfig(MIDSCENE_OPENAI_HTTP_PROXY);
 
   let proxyAgent = undefined;
+  const debugProxy = getDebug('ai:call:proxy');
   if (httpProxy) {
+    debugProxy('using http proxy', httpProxy);
     proxyAgent = new HttpsProxyAgent(httpProxy);
   } else if (socksProxy) {
+    debugProxy('using socks proxy', socksProxy);
     proxyAgent = new SocksProxyAgent(socksProxy);
   }
 

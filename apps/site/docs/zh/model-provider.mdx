@@ -49,7 +49,8 @@ Midscene 默认集成了 OpenAI SDK 调用 AI 服务。使用这个 SDK 限定�
 |------|-------------|
 | `OPENAI_USE_AZURE` | 可选。设置为 "true" 以使用 Azure OpenAI Service。更多详情请参阅后文 |
 | `MIDSCENE_OPENAI_INIT_CONFIG_JSON` | 可选。OpenAI SDK 的初始化配置 JSON |
-| `MIDSCENE_OPENAI_SOCKS_PROXY` | 可选。代理配置 (如 "socks5://127.0.0.1:1080") |
+| `MIDSCENE_OPENAI_HTTP_PROXY` | 可选。HTTP/HTTPS 代理配置 (如 "http://127.0.0.1:8080" 或 "https://proxy.example.com:8080")。这个选项优先级高于 `MIDSCENE_OPENAI_SOCKS_PROXY` |
+| `MIDSCENE_OPENAI_SOCKS_PROXY` | 可选。SOCKS 代理配置 (如 "socks5://127.0.0.1:1080") |
 | `MIDSCENE_PREFERRED_LANGUAGE` | 可选。模型响应的语言。如果当前时区是 GMT+8 则默认是 `Chinese`，否则是 `English` |
 | `OPENAI_MAX_TOKENS` | 可选。模型响应的 max_tokens 数 |
 
@@ -193,6 +194,7 @@ export MIDSCENE_USE_ANTHROPIC_SDK=1
 export ANTHROPIC_API_KEY="....."
 export MIDSCENE_MODEL_NAME="claude-3-opus-20240229"
 ```
+
 ## 调试 LLM 服务连接问题
 
 如果你想要调试 LLM 服务连接问题，可以使用示例项目中的 `connectivity-test` 目录：[https://github.com/web-infra-dev/midscene-example/tree/main/connectivity-test](https://github.com/web-infra-dev/midscene-example/tree/main/connectivity-test)
