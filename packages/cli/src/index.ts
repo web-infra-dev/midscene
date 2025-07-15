@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import dotenv from 'dotenv';
+import { version } from '../package.json';
 import { matchYamlFiles, parseProcessArgs } from './cli-utils';
 import { playYamlFiles } from './yaml-runner';
 
@@ -8,7 +9,7 @@ Promise.resolve(
   (async () => {
     const { options, path } = await parseProcessArgs();
 
-    const welcome = '\nWelcome to @midscene/cli\n';
+    const welcome = `\nWelcome to @midscene/cli v${version}\n`;
     console.log(welcome);
 
     const dotEnvConfigFile = join(process.cwd(), '.env');

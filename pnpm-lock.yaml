@@ -459,6 +459,9 @@ importers:
       '@midscene/core':
         specifier: workspace:*
         version: link:../core
+      '@midscene/shared':
+        specifier: workspace:*
+        version: link:../shared
       '@midscene/web':
         specifier: workspace:*
         version: link:../web-integration

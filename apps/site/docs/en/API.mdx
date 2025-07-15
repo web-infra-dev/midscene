@@ -777,6 +777,14 @@ Set the `MIDSCENE_RUN_DIR` variable to customize the run artifact directory.
 export MIDSCENE_RUN_DIR=midscene_run # The default value is the midscene_run in the current working directory, you can set it to an absolute path or a relative path
 ```
 
+### Customize the replanning cycle limit
+
+Set the `MIDSCENE_REPLANNING_CYCLE_LIMIT` variable to customize the maximum number of replanning cycles allowed during action execution (`aiAction`).
+
+```bash
+export MIDSCENE_REPLANNING_CYCLE_LIMIT=10 # The default value is 10. When the AI needs to replan more than this limit, an error will be thrown suggesting to split the task into multiple steps
+```
+
 ### Using LangSmith
 
 LangSmith is a platform for debugging large language models. To integrate LangSmith, follow these steps:

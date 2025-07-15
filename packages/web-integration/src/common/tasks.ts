@@ -42,6 +42,10 @@ import {
 } from '@midscene/core/ai-model';
 import { sleep } from '@midscene/core/utils';
 import { NodeType } from '@midscene/shared/constants';
+import {
+  MIDSCENE_REPLANNING_CYCLE_LIMIT,
+  getAIConfigInNumber,
+} from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
@@ -60,8 +64,7 @@ interface ExecutionResult<OutputType = any> {
 }
 
 const debug = getDebug('page-task-executor');
-
-const replanningCountLimit = 10;
+const defaultReplanningCycleLimit = 10;
 
 const isAndroidPage = (page: WebPage): page is AndroidDevicePage => {
   return page.pageType === 'android';
@@ -991,8 +994,11 @@ export class PageTaskExecutor {
     const logList: string[] = [];
 
     const yamlFlow: MidsceneYamlFlowItem[] = [];
+    const replanningCycleLimit =
+      getAIConfigInNumber(MIDSCENE_REPLANNING_CYCLE_LIMIT) ||
+      defaultReplanningCycleLimit;
     while (planningTask) {
-      if (replanCount > replanningCountLimit) {
+      if (replanCount > replanningCycleLimit) {
         const errorMsg =
           'Replanning too many times, please split the task into multiple steps';
 

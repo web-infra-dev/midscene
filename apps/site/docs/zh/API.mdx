@@ -769,6 +769,14 @@ export DEBUG=midscene:ai:profile:stats
 export MIDSCENE_RUN_DIR=midscene_run # 默认值为当前运行目录下的 midscene_run 目录，支持设置为绝对路径或者相对于当前目录的相对路径
 ```
 
+### 自定义重新规划循环限制
+
+设置 `MIDSCENE_REPLANNING_CYCLE_LIMIT` 变量，你可以自定义在执行操作(`aiAction`)时允许的最大重新规划循环次数。
+
+```bash
+export MIDSCENE_REPLANNING_CYCLE_LIMIT=10 # 默认值为 10。当 AI 需要重新规划超过这个限制时，会抛出错误建议将任务拆分为多个步骤
+```
+
 ### 使用 LangSmith
 
 LangSmith 是一个用于调试大语言模型的平台。想要集成 LangSmith，请按以下步骤操作：

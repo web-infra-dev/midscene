@@ -1,11 +1,14 @@
 import { statSync } from 'node:fs';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { getDebug } from '@midscene/shared/logger';
 import { glob } from 'glob';
 import { hideBin } from 'yargs/helpers';
 import yargs from 'yargs/yargs';
 
 declare const __VERSION__: string;
+
+const debug = getDebug('midscene:cli');
 
 export const parseProcessArgs = async (): Promise<{
   path?: string;
@@ -49,6 +52,7 @@ Usage: $0 [options] <path-to-yaml-script-file-or-directory>`,
     .wrap(yargs().terminalWidth());
 
   const argv = await args.argv;
+  debug('argv', argv);
 
   return {
     path: argv._[0] as string | undefined,
