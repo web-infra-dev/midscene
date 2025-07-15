@@ -260,6 +260,7 @@ export function StandardPlayground({
           loading={loading}
           onRun={handleRun}
           onStop={handleStop}
+          clearPromptAfterRun={false}
         />
       </div>
     </Form>

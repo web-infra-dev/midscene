@@ -138,7 +138,9 @@ export function PlaywrightCaseSelector({
       {/* Header */}
       <div className="selector-header" onClick={toggleExpanded}>
         <div className="header-content">
-          <span className="check-icon">✓</span>
+          <span className="check-icon">
+            {iconForStatus(selectedDump.attributes?.playwright_test_status)}
+          </span>
           <span className="header-text">{displayText}</span>
         </div>
         <div className="arrow-icon">
