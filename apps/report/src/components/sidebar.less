@@ -69,10 +69,19 @@
   .side-item-name {
     padding: 0 @side-horizontal-padding 0 calc(@side-horizontal-padding + 10px);
     position: relative;
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    gap: 8px;
+    align-items: center;
     height: 34px;
     line-height: 34px;
+
+    // Default layout (pro mode off): title takes space, time goes to end
+    grid-template-columns: 1fr auto;
+
+    // Pro mode layout: title, time, prompt tokens, completion tokens
+    &.pro-mode {
+      grid-template-columns: 1fr auto 60px 60px;
+    }
 
     .status-icon {
       position: absolute;
@@ -85,46 +94,67 @@
       margin-top: -5px;
     }
 
+    .title {
+      grid-column: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-align: left;
+    }
+
     .status-text {
-      color: @weak-text;
+      grid-column: 2;
+      color: #262626;
+      font-size: 12px;
+      text-align: right;
+    }
+
+    .usage-column {
+      font-size: 12px;
+      color: #262626;
+      font-weight: 500;
+      text-align: right;
+
+      &.prompt-tokens {
+        grid-column: 3;
+      }
+
+      &.completion-tokens {
+        grid-column: 4;
+      }
     }
   }
 
-  .usage-info {
-    padding: 0 10px 0 5px;
-    display: flex;
-    align-items: flex-start;
+  .table-header {
+    padding: 0 10px 0 40px;
+    display: grid;
+    grid-template-columns: 1fr auto 60px 60px;
     gap: 8px;
+    align-items: center;
+    height: 28px;
+    margin-bottom: 4px;
+    font-size: 12px;
+    color: rgba(0, 0, 0, 0.5);
+    font-weight: 500;
 
-    .usage-divider {
-      width: 1px;
-      height: 40px;
-      background-color: @border-color;
-      margin-top: 2px;
-      margin-right: 5px;
-      flex-shrink: 0;
+    .header-name {
+      grid-column: 1;
+      text-align: left;
     }
 
-    .usage-content {
-      flex: 1;
+    .header-time {
+      grid-column: 2;
+      text-align: right;
     }
 
-    .usage-item {
-      display: flex;
-      justify-content: space-between;
-      font-size: 12px;
-      line-height: 20px;
-      height: 20px;
-      margin-bottom: 2px;
+    .header-prompt {
+      grid-column: 3;
+      text-align: right;
+    }
 
-      .usage-label {
-        color: @weak-text;
-      }
-
-      .usage-value {
-        color: @weak-text;
-        font-weight: 500;
-      }
+    .header-completion {
+      grid-column: 4;
+      text-align: right;
     }
   }
 

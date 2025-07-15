@@ -1,14 +1,17 @@
 import './App.less';
 import './index.less';
 
-import { CaretRightOutlined } from '@ant-design/icons';
-import { Alert, Button, ConfigProvider, Empty } from 'antd';
+import { Alert, Button, ConfigProvider, Empty, Switch, Tooltip } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
-import { Logo, Player, globalThemeConfig } from '@midscene/visualizer';
-import { PlaywrightCaseSelector } from './components/PlaywrightCaseSelector';
+import {
+  Logo,
+  Player,
+  globalThemeConfig,
+  iconForStatus,
+} from '@midscene/visualizer';
 import DetailPanel from './components/detail-panel';
 import DetailSide from './components/detail-side';
 import GlobalHoverPreview from './components/global-hover-preview';
@@ -54,6 +57,56 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   const [mainLayoutChangeFlag, setMainLayoutChangeFlag] = useState(0);
   const mainLayoutChangedRef = useRef(false);
   const dump = useExecutionDump((store: StoreState) => store.dump);
+  const [proModeEnabled, setProModeEnabled] = useState(false);
+
+  // 计算测试统计信息
+  const calculateTestStats = useCallback(() => {
+    if (!dumps || dumps.length === 0) {
+      return {
+        total: 0,
+        passed: 0,
+        failed: 0,
+        skipped: 0,
+        passedTests: [],
+        failedTests: [],
+        skippedTests: [],
+      };
+    }
+
+    const stats = {
+      total: 0,
+      passed: 0,
+      failed: 0,
+      skipped: 0,
+      passedTests: [] as string[],
+      failedTests: [] as string[],
+      skippedTests: [] as string[],
+    };
+
+    dumps.forEach((dump) => {
+      stats.total++;
+      const status = dump.attributes?.playwright_test_status;
+      const testName =
+        (dump as any).groupName ||
+        dump.attributes?.playwright_test_title ||
+        `Test ${stats.total}`;
+
+      if (status === 'passed') {
+        stats.passed++;
+        stats.passedTests.push(testName);
+      } else if (status === 'failed') {
+        stats.failed++;
+        stats.failedTests.push(testName);
+      } else if (status === 'skipped') {
+        stats.skipped++;
+        stats.skippedTests.push(testName);
+      }
+    });
+
+    return stats;
+  }, [dumps]);
+
+  const testStats = calculateTestStats();
 
   useEffect(() => {
     if (dumps) {
@@ -148,7 +201,14 @@ function Visualizer(props: VisualizerProps): JSX.Element {
       >
         <Panel maxSize={95} defaultSize={20}>
           <div className="page-side">
-            <Sidebar />
+            <Sidebar
+              dumps={dumps}
+              selectedDump={executionDump}
+              onDumpSelect={(dump) => {
+                setGroupedDump(dump);
+              }}
+              proModeEnabled={proModeEnabled}
+            />
           </div>
         </Panel>
         <PanelResizeHandle
@@ -231,16 +291,118 @@ function Visualizer(props: VisualizerProps): JSX.Element {
                 >
                   Replay All
                 </Button>
+                <div className="pro-mode-section">
+                  <span className="pro-mode-label">Pro Mode</span>
+                  <Switch
+                    checked={proModeEnabled}
+                    onChange={setProModeEnabled}
+                    size="small"
+                  />
+                </div>
+                {dumps && dumps.length > 0 && (
+                  <div className="test-case-stats">
+                    <span className="stats-item">
+                      Total:{' '}
+                      <span className="stats-value">{testStats.total}</span>
+                    </span>
+                    <span className="stats-item">
+                      Passed:{' '}
+                      {testStats.passedTests.length > 0 ? (
+                        <Tooltip
+                          title={
+                            <div>
+                              {testStats.passedTests.length > 0 && (
+                                <div className="tooltip-test-list">
+                                  {testStats.passedTests.map((test, index) => (
+                                    <div
+                                      key={index}
+                                      className="tooltip-test-item"
+                                    >
+                                      {iconForStatus('passed')} {test}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          }
+                        >
+                          <span className="stats-value stats-passed">
+                            {testStats.passed}
+                          </span>
+                        </Tooltip>
+                      ) : (
+                        <span className="stats-value stats-passed">
+                          {testStats.passed}
+                        </span>
+                      )}
+                    </span>
+                    <span className="stats-item">
+                      Failed:{' '}
+                      {testStats.failedTests.length > 0 ? (
+                        <Tooltip
+                          title={
+                            <div>
+                              {testStats.failedTests.length > 0 && (
+                                <div className="tooltip-test-list">
+                                  {testStats.failedTests.map((test, index) => (
+                                    <div
+                                      key={index}
+                                      className="tooltip-test-item"
+                                    >
+                                      {iconForStatus('failed')} {test}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          }
+                        >
+                          <span className="stats-value stats-failed">
+                            {testStats.failed}
+                          </span>
+                        </Tooltip>
+                      ) : (
+                        <span className="stats-value stats-failed">
+                          {testStats.failed}
+                        </span>
+                      )}
+                    </span>
+                    <span className="stats-item">
+                      Skipped:{' '}
+                      {testStats.skippedTests.length > 0 ? (
+                        <Tooltip
+                          title={
+                            <div>
+                              {testStats.skippedTests.length > 0 && (
+                                <div className="tooltip-test-list">
+                                  {testStats.skippedTests.map((test, index) => (
+                                    <div
+                                      key={index}
+                                      className="tooltip-test-item"
+                                    >
+                                      {iconForStatus('skipped')} {test}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          }
+                        >
+                          <span className="stats-value stats-skipped">
+                            {testStats.skipped}
+                          </span>
+                        </Tooltip>
+                      ) : (
+                        <span className="stats-value stats-skipped">
+                          {testStats.skipped}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                )}
               </ConfigProvider>
             </div>
           </div>
-          <PlaywrightCaseSelector
-            dumps={props.dumps}
-            selected={executionDump}
-            onSelect={(dump) => {
-              setGroupedDump(dump);
-            }}
-          />
         </div>
         {mainContent}
       </div>

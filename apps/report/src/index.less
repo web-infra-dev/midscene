@@ -106,6 +106,9 @@ footer.mt-8 {
 
   .page-nav-toolbar {
     margin-left: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
 
     .ant-btn {
       background: #fff;
@@ -120,6 +123,17 @@ footer.mt-8 {
         background: #f5f5f5;
       }
     }
+
+    .pro-mode-section {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .pro-mode-label {
+        font-size: 12px;
+        color: @main-text;
+      }
+    }
   }
 
   .playwright-case-selector {
@@ -131,6 +145,67 @@ footer.mt-8 {
     margin-left: 16px;
     line-height: 30px;
     border-left: 1px solid @border-color;
+    padding-left: 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 12px;
+    color: @main-text;
+
+    .stats-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      color: rgba(0, 0, 0, 0.65);
+
+      .stats-value {
+        font-size: 16px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        padding: 2px 4px;
+        border-radius: 4px;
+
+        &.stats-passed {
+          color: #00AD4B;
+        }
+
+        &.stats-failed {
+          color: #E40303;
+        }
+
+        &.stats-skipped {
+          color: rgba(0, 0, 0, 0.7);
+        }
+      }
+    }
+  }
+
+  // Tooltip样式
+  .ant-tooltip {
+    .ant-tooltip-content {
+      .ant-tooltip-inner {
+        max-width: 300px;
+        text-align: left;
+
+        .tooltip-test-list {
+          max-height: 200px;
+          overflow-y: auto;
+
+          .tooltip-test-item {
+            padding: 2px 0;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.85);
+            line-height: 1.4;
+
+            &:not(:last-child) {
+              border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            }
+          }
+        }
+      }
+    }
   }
 }
 

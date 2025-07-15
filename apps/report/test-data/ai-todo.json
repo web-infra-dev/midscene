@@ -1,5 +1,5 @@
 {
-    "groupName": "ai-auto-todo.spec.ts",
+    "groupName": "ai-todo.spec.ts",
     "groupDescription": "ai todo",
     "executions": [{
         "sdkVersion": "0.2.1",
