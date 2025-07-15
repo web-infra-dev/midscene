@@ -13,7 +13,7 @@ import {
   clearStoredBridgeMessages,
   getBridgeMsgsFromStorage,
   storeBridgeMsgsToStorage,
-} from '../utils';
+} from '../utils/bridgeDB';
 import { iconForStatus } from './misc';
 
 import './bridge.less';
@@ -114,15 +114,26 @@ class BridgeConnector {
 
 export default function Bridge() {
   const [bridgeStatus, setBridgeStatus] = useState<BridgeStatus>('closed');
-  const [messageList, setMessageList] = useState<BridgeMessageItem[]>(() => {
-    // load messages from localStorage
-    return getBridgeMsgsFromStorage();
-  });
+  const [messageList, setMessageList] = useState<BridgeMessageItem[]>([]);
   const [showScrollToBottomButton, setShowScrollToBottomButton] =
     useState(false);
   const messageListRef = useRef<HTMLDivElement>(null);
   // useRef to track the ID of the connection status message
   const connectionStatusMessageId = useRef<string | null>(null);
+
+  // load messages from storage on component mount
+  useEffect(() => {
+    const loadMessages = async () => {
+      try {
+        const messages = await getBridgeMsgsFromStorage();
+        setMessageList(messages);
+      } catch (error) {
+        console.error('Failed to load bridge messages from storage:', error);
+      }
+    };
+
+    loadMessages();
+  }, []);
 
   // restore connectionStatusMessageId when initializing
   useEffect(() => {
@@ -147,7 +158,7 @@ export default function Bridge() {
         }
       }
     }
-  }, []);
+  }, [messageList]);
 
   // save messages to localStorage
   useEffect(() => {

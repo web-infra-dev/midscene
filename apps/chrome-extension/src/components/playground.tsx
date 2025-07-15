@@ -4,10 +4,8 @@ import Icon, {
   ArrowDownOutlined,
 } from '@ant-design/icons';
 import type { UIContext } from '@midscene/core';
-import { overrideAIConfig } from '@midscene/shared/env';
 import {
   ContextPreview,
-  EnvConfig,
   type PlaygroundResult,
   PlaygroundResultView,
   PromptInput,
@@ -19,13 +17,13 @@ import { Button, Form, List, Tooltip, Typography, message } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { EnvConfigReminder } from '.';
 import PlaygroundIcon from '../icons/playground.svg?react';
+import { getExtensionVersion } from '../utils/chrome';
 import {
   clearStoredMessages,
-  getExtensionVersion,
   getMsgsFromStorage,
   storeMsgsToStorage,
   storeResult,
-} from '../utils';
+} from '../utils/playgroundDB';
 import './playground.less';
 
 declare const __SDK_VERSION__: string;
@@ -38,7 +36,7 @@ export interface PlaygroundProps {
   dryMode?: boolean;
 }
 
-interface InfoListItem {
+export interface InfoListItem {
   id: string;
   type: 'user' | 'system' | 'result' | 'progress' | 'separator';
   content: string;
@@ -121,10 +119,7 @@ export function BrowserExtensionPlayground({
   const [loading, setLoading] = useState(false);
   const [verticalMode, setVerticalMode] = useState(false);
   const [replayCounter, setReplayCounter] = useState(0);
-  const [infoList, setInfoList] = useState<InfoListItem[]>([
-    WELCOME_MSG,
-    ...getMsgsFromStorage(WELCOME_MSG),
-  ]);
+  const [infoList, setInfoList] = useState<InfoListItem[]>([]);
   const [showScrollToBottomButton, setShowScrollToBottomButton] =
     useState(false);
   const infoListRef = useRef<HTMLDivElement>(null);
@@ -154,6 +149,12 @@ export function BrowserExtensionPlayground({
     return () => {
       window.removeEventListener('resize', handleResize);
     };
+  }, []);
+
+  useEffect(() => {
+    getMsgsFromStorage(WELCOME_MSG).then((msgs) => {
+      setInfoList([WELCOME_MSG, ...msgs]);
+    });
   }, []);
 
   // Initialize context preview
@@ -393,22 +394,9 @@ export function BrowserExtensionPlayground({
       verticalMode: verticalMode,
     };
 
-    // if has real result data, store to separate key
-    if (result && Object.keys(result).length > 0 && !(result as any)?.fake) {
-      // For non-action operations, only store the result.result field to save space
-      const dataToStore =
-        actionType === 'aiAction'
-          ? result
-          : {
-              result: result.result,
-              error: result.error,
-              dump: null,
-              reportHTML: null,
-            };
-      storeResult(resultItem.id, dataToStore);
-    }
-
     setInfoList((prev) => [...prev, resultItem]);
+
+    storeResult(resultItem.id, resultItem);
 
     // Add separator item to mark the end of this session
     const separatorItem: InfoListItem = {
