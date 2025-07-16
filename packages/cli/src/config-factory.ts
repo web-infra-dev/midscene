@@ -121,8 +121,6 @@ export function createFilesConfig(
   return {
     files,
     concurrent: options.concurrent ?? 1,
-    continueOnError: options.continueOnError ?? false,
-    indexFileName: undefined,
-    globalConfig: undefined,
+    continueOnError: options.continueOnError ?? true,
   };
 }

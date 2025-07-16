@@ -1,14 +1,18 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { readFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import type {
   MidsceneYamlIndexResult,
   MidsceneYamlScript,
+  MidsceneYamlScriptAndroidEnv,
+  MidsceneYamlScriptEnv,
+  MidsceneYamlScriptWebEnv,
 } from '@midscene/core';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
-import { parseYamlScript } from '@midscene/web/yaml';
+import { type ScriptPlayer, parseYamlScript } from '@midscene/web/yaml';
 import pLimit from 'p-limit';
-import puppeteer from 'puppeteer';
+import puppeteer, { type Browser } from 'puppeteer';
+import { createYamlPlayer } from './create-yaml-player';
 import {
   type MidsceneYamlFileContext,
   contextInfo,
@@ -17,7 +21,6 @@ import {
   spinnerInterval,
 } from './printer';
 import { TTYWindowRenderer } from './tty-renderer';
-import { createYamlPlayer } from './yaml-runner';
 
 export interface BatchExecutionOptions {
   keepWindow?: boolean;
@@ -30,9 +33,9 @@ export interface BatchRunnerConfig {
   continueOnError: boolean;
   indexFileName?: string;
   globalConfig?: {
-    web?: any;
-    android?: any;
-    target?: any;
+    web?: MidsceneYamlScriptWebEnv;
+    android?: MidsceneYamlScriptAndroidEnv;
+    target?: MidsceneYamlScriptWebEnv;
   };
 }
 
@@ -43,7 +46,7 @@ interface BatchFileContext {
   options: {
     headed?: boolean;
     keepWindow?: boolean;
-    browser?: any;
+    browser?: Browser;
   };
 }
 
@@ -65,7 +68,7 @@ class BatchRunner {
 
     // Prepare file contexts
     const fileContextList: BatchFileContext[] = [];
-    let browser: any = null;
+    let browser: Browser | null = null;
 
     try {
       browser = await puppeteer.launch({ headless: !headed });
@@ -105,7 +108,7 @@ class BatchRunner {
   private async createFileContext(
     file: string,
     fileConfig: MidsceneYamlScript,
-    options: { headed?: boolean; keepWindow?: boolean; browser?: any },
+    options: { headed?: boolean; keepWindow?: boolean; browser?: Browser },
   ): Promise<BatchFileContext> {
     const executionConfig: MidsceneYamlScript = fileConfig;
     const outputPath: string | undefined = undefined;
@@ -120,10 +123,16 @@ class BatchRunner {
 
   private async executeFiles(fileContextList: BatchFileContext[]): Promise<{
     executedResults: MidsceneYamlFileContext[];
-    notExecutedContexts: Array<{ file: string; player: any }>;
+    notExecutedContexts: Array<{
+      file: string;
+      player: ScriptPlayer<MidsceneYamlScriptEnv>;
+    }>;
   }> {
     const executedResults: MidsceneYamlFileContext[] = [];
-    const notExecutedContexts: Array<{ file: string; player: any }> = [];
+    const notExecutedContexts: Array<{
+      file: string;
+      player: ScriptPlayer<MidsceneYamlScriptEnv>;
+    }> = [];
 
     // Pre-create all player contexts for displaying task lists
     const allFileContexts: MidsceneYamlFileContext[] = [];
@@ -136,7 +145,7 @@ class BatchRunner {
       );
       allFileContexts.push({
         file: context.file,
-        player: player as any,
+        player,
       });
     }
 
@@ -170,7 +179,7 @@ class BatchRunner {
         if (!isTTY) {
           const { mergedText } = contextInfo({
             file: context.file,
-            player: null as any,
+            player: null,
           });
           console.log(mergedText);
         }
@@ -240,7 +249,10 @@ class BatchRunner {
       context: BatchFileContext,
     ) => Promise<MidsceneYamlFileContext>,
     executedResults: MidsceneYamlFileContext[],
-    notExecutedContexts: Array<{ file: string; player: any }>,
+    notExecutedContexts: Array<{
+      file: string;
+      player: ScriptPlayer<MidsceneYamlScriptEnv> | null;
+    }>,
   ): Promise<void> {
     const limit = pLimit(this.config.concurrent);
 
@@ -261,7 +273,10 @@ class BatchRunner {
       const tasks = fileContextList.map((context) =>
         limit(async () => {
           if (stopLock.value) {
-            notExecutedContexts.push({ file: context.file, player: null });
+            notExecutedContexts.push({
+              file: context.file,
+              player: null,
+            });
             return;
           }
 
@@ -293,7 +308,10 @@ class BatchRunner {
 
   private async processResults(
     executedContexts: MidsceneYamlFileContext[],
-    notExecutedContexts: Array<{ file: string; player: any }>,
+    notExecutedContexts: Array<{
+      file: string;
+      player: ScriptPlayer<MidsceneYamlScriptEnv> | null;
+    }>,
   ): Promise<MidsceneYamlIndexResult[]> {
     const results: MidsceneYamlIndexResult[] = [];
 
@@ -306,7 +324,11 @@ class BatchRunner {
         reportFile = player.reportFile;
       }
 
-      const outputPath = player.output;
+      // Check if output file actually exists
+      let outputPath: string | undefined = player.output || undefined;
+      if (outputPath && !existsSync(outputPath)) {
+        outputPath = undefined;
+      }
 
       results.push({
         file,
