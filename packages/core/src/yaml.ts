@@ -220,8 +220,9 @@ export interface MidsceneYamlIndexOutput {
 export interface MidsceneYamlIndexResult {
   file: string;
   success: boolean;
-  output?: string;
-  report?: string;
+  executed: boolean;
+  output?: string | null;
+  report?: string | null;
   error?: string;
   duration?: number;
 }

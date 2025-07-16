@@ -2,8 +2,9 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import dotenv from 'dotenv';
 import { version } from '../package.json';
+import { BatchRunner } from './batch-runner';
 import { isIndexYamlFile, matchYamlFiles, parseProcessArgs } from './cli-utils';
-import { YamlRunner } from './yaml-runner';
+import { createFilesConfig, createIndexConfig } from './config-factory';
 
 Promise.resolve(
   (async () => {
@@ -41,8 +42,8 @@ Promise.resolve(
     if (isIndexYamlFile(path)) {
       console.log('📋 Detected index YAML file, executing batch workflow...\n');
 
-      const executor = new YamlRunner(path, 'index');
-      await executor.initialize();
+      const config = await createIndexConfig(path);
+      const executor = new BatchRunner(config);
 
       await executor.run({
         keepWindow,
@@ -67,8 +68,8 @@ Promise.resolve(
 
     console.log('📄 Executing YAML files...\n');
 
-    const executor = new YamlRunner(files, 'files');
-    await executor.initialize();
+    const config = createFilesConfig(files);
+    const executor = new BatchRunner(config);
 
     await executor.run({
       keepWindow,
