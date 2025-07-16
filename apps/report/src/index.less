@@ -144,7 +144,21 @@ footer.mt-8 {
   .test-case-stats {
     margin-left: 16px;
     line-height: 30px;
-    border-left: 1px solid @border-color;
+    position: relative;
+    align-items: center;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 1px;
+      height: 20px;
+      background: @border-color;
+    }
+
+    border-left: none; // 移除原有的 border-left
     padding-left: 16px;
     display: flex;
     align-items: center;

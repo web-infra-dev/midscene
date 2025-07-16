@@ -40,18 +40,14 @@
   .side-sub-title {
     padding: 0 20px;
     margin-bottom: 6px;
-  }
-
-  .name-status {
-    font-size: 12px;
-    display: inline-block;
-    margin-right: 2px;
+    font-weight: 500;
+    color: #1A1A1A;
   }
 
   .side-item {
     cursor: pointer;
     transition: .1s;
-    padding: 0 0 0 42px;
+    padding: 0 20 0 22px;
 
     &:hover {
       background: @hover-bg;
@@ -72,8 +68,9 @@
     display: grid;
     gap: 8px;
     align-items: center;
-    height: 34px;
-    line-height: 34px;
+    height: 32px;
+    line-height: 32px;
+    color: #404040;
 
     // Default layout (pro mode off): title takes space, time goes to end
     grid-template-columns: 1fr auto;
@@ -104,15 +101,11 @@
 
     .status-text {
       grid-column: 2;
-      color: #262626;
-      font-size: 12px;
+      font-size: 14px;
       text-align: right;
     }
 
     .usage-column {
-      font-size: 12px;
-      color: #262626;
-      font-weight: 500;
       text-align: right;
 
       &.prompt-tokens {
@@ -126,7 +119,7 @@
   }
 
   .table-header {
-    padding: 0 10px 0 40px;
+    padding: 0 20px 0 20px;
     display: grid;
     grid-template-columns: 1fr auto 55px 65px;
     gap: 8px;
@@ -134,7 +127,7 @@
     height: 28px;
     margin-bottom: 4px;
     font-size: 12px;
-    color: rgba(0, 0, 0, 0.5);
+    color: #808080;
     font-weight: 500;
 
     .header-name {
@@ -171,10 +164,12 @@
     }
 
     .execution-info-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       font-size: 14px;
       height: 36px;
       line-height: 36px;
-      color: @weak-text;
       padding-left: 20px;
     }
   }
