@@ -141,13 +141,13 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
   }
 
   private flushResult() {
-    if (Object.keys(this.result).length && this.output) {
+    if (this.output) {
       const output = resolve(process.cwd(), this.output);
       const outputDir = dirname(output);
       if (!existsSync(outputDir)) {
         mkdirSync(outputDir, { recursive: true });
       }
-      writeFileSync(output, JSON.stringify(this.result, undefined, 2));
+      writeFileSync(output, JSON.stringify(this.result || {}, undefined, 2));
     }
   }
 
@@ -404,7 +404,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           break;
         }
       }
-      this.reportFile = agent.reportFile;
+      this.reportFile = agent?.reportFile;
       taskIndex++;
     }
 
