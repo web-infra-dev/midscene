@@ -34,10 +34,11 @@ export function PlaywrightCaseSelector({
   const [statusFilter, setStatusFilter] = useState('all');
   const [isExpanded, setIsExpanded] = useState(false);
   const [hasSearchText, setHasSearchText] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
 
   const selectorRef = useRef<HTMLDivElement>(null);
 
-  // 点击空白处收起
+  // 点击空白处收起和处理滚动
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -49,12 +50,24 @@ export function PlaywrightCaseSelector({
       }
     };
 
+    const handleScroll = () => {
+      if (isExpanded && selectorRef.current) {
+        const rect = selectorRef.current.getBoundingClientRect();
+        setDropdownPosition({
+          top: rect.bottom + 10,
+          left: rect.left,
+        });
+      }
+    };
+
     if (isExpanded) {
       document.addEventListener('mousedown', handleClickOutside);
+      window.addEventListener('scroll', handleScroll, true);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', handleScroll, true);
     };
   }, [isExpanded]);
 
@@ -115,6 +128,13 @@ export function PlaywrightCaseSelector({
   };
 
   const toggleExpanded = () => {
+    if (!isExpanded && selectorRef.current) {
+      const rect = selectorRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + 10,
+        left: rect.left,
+      });
+    }
     setIsExpanded(!isExpanded);
   };
 
@@ -150,7 +170,13 @@ export function PlaywrightCaseSelector({
 
       {/* Collapsible Content */}
       {isExpanded && (
-        <div className="selector-content">
+        <div
+          className="selector-content"
+          style={{
+            top: dropdownPosition.top,
+            left: dropdownPosition.left,
+          }}
+        >
           {/* Filter Controls */}
           <div className="filter-controls">
             <div

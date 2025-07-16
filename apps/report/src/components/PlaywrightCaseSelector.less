@@ -52,10 +52,7 @@
   }
 
   .selector-content {
-    position: absolute;
-    top: 48px;
-    left: 0;
-    right: 0;
+    position: fixed;
     z-index: 1000;
     border: 1px solid #e1e4e8;
     border-radius: 6px;
@@ -63,6 +60,8 @@
     max-height: 400px;
     overflow: hidden;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    width: fit-content;
+    max-width: 90vw;
 
     .filter-controls {
       padding: 12px;

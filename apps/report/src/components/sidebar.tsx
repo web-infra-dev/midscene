@@ -10,9 +10,9 @@ import { typeStr } from '@midscene/web/ui-utils';
 import { Tag, Tooltip } from 'antd';
 import { useEffect } from 'react';
 import CameraIcon from '../icons/camera.svg?react';
+import MessageIcon from '../icons/message.svg?react';
 import type { ExecutionDumpWithPlaywrightAttributes } from '../types';
 import ReportOverview from './report-overview';
-import MessageIcon from '../icons/message.svg?react';
 
 const SideItem = (props: {
   task: ExecutionTask;
