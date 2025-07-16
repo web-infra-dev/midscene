@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import type { MidsceneYamlIndex } from '@midscene/core';
 import { glob } from 'glob';
 import { load as yamlLoad } from 'js-yaml';
 import { hideBin } from 'yargs/helpers';
@@ -92,7 +93,7 @@ export function isIndexYamlFile(filePath: string): boolean {
     }
 
     const content = readFileSync(filePath, 'utf8');
-    const yaml = yamlLoad(content) as any;
+    const yaml = yamlLoad(content) as MidsceneYamlIndex;
 
     // Check if it has the required 'order' field for index YAML
     return (

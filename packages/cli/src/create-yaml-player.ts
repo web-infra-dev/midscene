@@ -5,7 +5,11 @@ import { createServer } from 'http-server';
 
 import assert from 'node:assert';
 import { agentFromAdbDevice } from '@midscene/android';
-import type { FreeFn, MidsceneYamlScript } from '@midscene/core';
+import type {
+  FreeFn,
+  MidsceneYamlScript,
+  MidsceneYamlScriptEnv,
+} from '@midscene/core';
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
 import { puppeteerAgentForTarget } from '@midscene/web/puppeteer-agent-launcher';
 import type { Browser } from 'puppeteer';
@@ -13,7 +17,7 @@ import type { Browser } from 'puppeteer';
 export interface SingleYamlExecutionResult {
   success: boolean;
   file: string;
-  player: ScriptPlayer<any>;
+  player: ScriptPlayer<MidsceneYamlScriptEnv>;
 }
 
 export const launchServer = async (
@@ -38,7 +42,7 @@ export async function createYamlPlayer(
     keepWindow?: boolean;
     browser?: Browser;
   },
-): Promise<ScriptPlayer<any>> {
+): Promise<ScriptPlayer<MidsceneYamlScriptEnv>> {
   const yamlScript =
     script || parseYamlScript(readFileSync(file, 'utf-8'), file);
   const fileName = basename(file, extname(file));

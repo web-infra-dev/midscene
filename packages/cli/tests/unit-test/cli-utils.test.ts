@@ -1,10 +1,11 @@
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { matchYamlFiles } from '@/cli-utils';
-import { launchServer } from '@/yaml-runner';
-import { describe, expect, test } from 'vitest';
+import { isIndexYamlFile, matchYamlFiles } from '@/cli-utils';
+import { launchServer } from '@/create-yaml-player';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 const serverRoot = join(__dirname, '../server_root');
 
-describe('cli utils', () => {
+describe('matchYamlFiles', () => {
   test('match exact file', async () => {
     const files = await matchYamlFiles(
       './tests/midscene_scripts/local/local.yml',
@@ -38,6 +39,93 @@ describe('cli utils', () => {
     expect(
       files3.every((file) => file.endsWith('.yml') || file.endsWith('.yaml')),
     ).toBe(true);
+  });
+});
+
+describe('isIndexYamlFile', () => {
+  const testDir = join(__dirname, '../test_yaml_files');
+
+  beforeEach(() => {
+    // Create test directory
+    mkdirSync(testDir, { recursive: true });
+  });
+
+  afterEach(() => {
+    // Clean up test directory
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  test('should return true for file with order array', () => {
+    const indexYamlContent = `
+order:
+  - file1.yml
+  - file2.yml
+`;
+    const indexYamlPath = join(testDir, 'index.yml');
+    writeFileSync(indexYamlPath, indexYamlContent);
+
+    expect(isIndexYamlFile(indexYamlPath)).toBe(true);
+  });
+
+  test('should return false for file without order field', () => {
+    const normalYamlContent = `
+target:
+  serve: ./tests/server_root
+  url: index.html
+tasks:
+  - name: check title
+    flow:
+      - aiAssert: the content title is "My App"
+`;
+    const normalYamlPath = join(testDir, 'normal.yml');
+    writeFileSync(normalYamlPath, normalYamlContent);
+
+    expect(isIndexYamlFile(normalYamlPath)).toBe(false);
+  });
+
+  test('should return false for file with order field but not array', () => {
+    const invalidYamlContent = `
+order: "not-an-array"
+`;
+    const invalidYamlPath = join(testDir, 'invalid.yml');
+    writeFileSync(invalidYamlPath, invalidYamlContent);
+
+    expect(isIndexYamlFile(invalidYamlPath)).toBe(false);
+  });
+
+  test('should return false for non-existent file', () => {
+    const nonExistentPath = join(testDir, 'non-existent.yml');
+    expect(isIndexYamlFile(nonExistentPath)).toBe(false);
+  });
+
+  test('should return false for invalid YAML file', () => {
+    const invalidYamlContent = `
+invalid: yaml: content: [
+`;
+    const invalidYamlPath = join(testDir, 'invalid-yaml.yml');
+    writeFileSync(invalidYamlPath, invalidYamlContent);
+
+    expect(isIndexYamlFile(invalidYamlPath)).toBe(false);
+  });
+
+  test('should return false for file with empty order array', () => {
+    const emptyOrderYamlContent = `
+order: []
+`;
+    const emptyOrderYamlPath = join(testDir, 'empty-order.yml');
+    writeFileSync(emptyOrderYamlPath, emptyOrderYamlContent);
+
+    expect(isIndexYamlFile(emptyOrderYamlPath)).toBe(true);
+  });
+
+  test('should return false for file with order field as null', () => {
+    const nullOrderYamlContent = `
+order: null
+`;
+    const nullOrderYamlPath = join(testDir, 'null-order.yml');
+    writeFileSync(nullOrderYamlPath, nullOrderYamlContent);
+
+    expect(isIndexYamlFile(nullOrderYamlPath)).toBe(false);
   });
 });
 
