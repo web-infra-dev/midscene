@@ -243,7 +243,7 @@ export async function matchElementFromCache(
         if (element?.id) {
           cacheDebug('cache hit, prompt: %s', cachePrompt);
           cacheDebug(
-            'found a new new element with same xpath, xpath: %s, id: %s',
+            'found a new element with same xpath, xpath: %s, id: %s',
             xpaths[i],
             element?.id,
           );
