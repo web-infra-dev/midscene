@@ -16,8 +16,7 @@ import { getDebug } from '@midscene/shared/logger';
 import { repeat } from '@midscene/shared/utils';
 import type { AndroidDeviceInputOpt, AndroidDevicePage } from '@midscene/web';
 import { ADB } from 'appium-adb';
-
-const androidScreenshotPath = '/data/local/tmp/midscene_screenshot.png';
+import { v4 as uuidv4 } from 'uuid';
 // only for Android, because it's impossible to scroll to the bottom, so we need to set a default scroll times
 const defaultScrollUntilTimes = 10;
 const defaultFastScrollDuration = 100;
@@ -337,6 +336,7 @@ ${Object.keys(size)
     const { width, height } = await this.size();
     const adb = await this.getAdb();
     let screenshotBuffer;
+    const androidScreenshotPath = `/data/local/tmp/midscene_screenshot_${uuidv4()}.png`;
 
     try {
       screenshotBuffer = await adb.takeScreenshot(null);
@@ -359,14 +359,18 @@ ${Object.keys(size)
       const screenshotPath = getTmpFile('png')!;
 
       try {
-        // Take a screenshot and save it locally
-        await adb.shell(`screencap -p ${androidScreenshotPath}`);
-      } catch (error) {
-        await this.forceScreenshot(androidScreenshotPath);
-      }
+        try {
+          // Take a screenshot and save it locally
+          await adb.shell(`screencap -p ${androidScreenshotPath}`);
+        } catch (error) {
+          await this.forceScreenshot(androidScreenshotPath);
+        }
 
-      await adb.pull(androidScreenshotPath, screenshotPath);
-      screenshotBuffer = await fs.promises.readFile(screenshotPath);
+        await adb.pull(androidScreenshotPath, screenshotPath);
+        screenshotBuffer = await fs.promises.readFile(screenshotPath);
+      } finally {
+        await adb.shell(`rm -f ${androidScreenshotPath}`);
+      }
     }
 
     const resizedScreenshotBuffer = await resizeImg(screenshotBuffer, {
@@ -728,7 +732,6 @@ ${Object.keys(size)
 
     try {
       if (this.adb) {
-        await this.adb.shell(`rm -f ${androidScreenshotPath}`);
         this.adb = null;
       }
     } catch (error) {
