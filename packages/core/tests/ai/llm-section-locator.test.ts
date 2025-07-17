@@ -1,4 +1,3 @@
-import { AiLocateElement } from '@/ai-model';
 import { AiLocateSection } from '@/ai-model/inspect';
 import { saveBase64Image } from '@/image';
 import { getTmpFile } from '@/utils';

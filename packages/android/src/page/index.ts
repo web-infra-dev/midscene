@@ -1,4 +1,5 @@
 import assert from 'node:assert';
+import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { type Point, type Size, getAIConfig } from '@midscene/core';
@@ -17,7 +18,6 @@ import { repeat } from '@midscene/shared/utils';
 import type { AndroidDeviceInputOpt, AndroidDevicePage } from '@midscene/web';
 import { ADB } from 'appium-adb';
 
-const androidScreenshotPath = '/data/local/tmp/midscene_screenshot.png';
 // only for Android, because it's impossible to scroll to the bottom, so we need to set a default scroll times
 const defaultScrollUntilTimes = 10;
 const defaultFastScrollDuration = 100;
@@ -337,6 +337,7 @@ ${Object.keys(size)
     const { width, height } = await this.size();
     const adb = await this.getAdb();
     let screenshotBuffer;
+    const androidScreenshotPath = `/data/local/tmp/midscene_screenshot_${randomUUID()}.png`;
 
     try {
       screenshotBuffer = await adb.takeScreenshot(null);
@@ -359,14 +360,18 @@ ${Object.keys(size)
       const screenshotPath = getTmpFile('png')!;
 
       try {
-        // Take a screenshot and save it locally
-        await adb.shell(`screencap -p ${androidScreenshotPath}`);
-      } catch (error) {
-        await this.forceScreenshot(androidScreenshotPath);
-      }
+        try {
+          // Take a screenshot and save it locally
+          await adb.shell(`screencap -p ${androidScreenshotPath}`);
+        } catch (error) {
+          await this.forceScreenshot(androidScreenshotPath);
+        }
 
-      await adb.pull(androidScreenshotPath, screenshotPath);
-      screenshotBuffer = await fs.promises.readFile(screenshotPath);
+        await adb.pull(androidScreenshotPath, screenshotPath);
+        screenshotBuffer = await fs.promises.readFile(screenshotPath);
+      } finally {
+        await adb.shell(`rm -f ${androidScreenshotPath}`);
+      }
     }
 
     const resizedScreenshotBuffer = await resizeImg(screenshotBuffer, {
@@ -728,7 +733,6 @@ ${Object.keys(size)
 
     try {
       if (this.adb) {
-        await this.adb.shell(`rm -f ${androidScreenshotPath}`);
         this.adb = null;
       }
     } catch (error) {
