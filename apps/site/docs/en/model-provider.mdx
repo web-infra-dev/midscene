@@ -4,8 +4,6 @@ Midscene uses the OpenAI SDK to call AI services. Using this SDK limits the inpu
 
 In this article, we will show you how to config AI service provider and how to choose a different model. You may read [Choose a model](./choose-a-model) first to learn more about how to choose a model.
 
-
-
 ## Configs
 
 ### Common configs
@@ -70,6 +68,9 @@ Pick one of the following ways to config environment variables.
 ```bash
 # replace by your own
 export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+
+# if you are not using the default OpenAI model, you need to config more params
+# export MIDSCENE_MODEL_NAME="..."
 ```
 
 ### 2. Set environment variables using dotenv

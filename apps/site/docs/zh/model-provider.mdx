@@ -4,9 +4,6 @@ Midscene 默认集成了 OpenAI SDK 调用 AI 服务。使用这个 SDK 限定�
 
 在本文中，我们将展示如何配置 AI 提供商，以及如何选择不同的模型。你可以先阅读 [选择 AI 模型](./choose-a-model) 来了解如何选择模型。
 
-# 选择 AI 模型
-
-
 ## 配置
 
 ### 通用配置
@@ -74,6 +71,9 @@ Midscene 默认集成了 OpenAI SDK 调用 AI 服务。使用这个 SDK 限定�
 ```bash
 # 替换为你自己的 API Key
 export OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+
+# 如果不是使用默认 OpenAI模型，还需要配置更多参数
+# export MIDSCENE_MODEL_NAME="..."
 ```
 
 ### 方法二：使用 dotenv 配置环境变量
