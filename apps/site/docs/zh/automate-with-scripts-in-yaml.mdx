@@ -92,49 +92,95 @@ npx midscene ./bing-search.yaml
 
 ## 命令行工具使用方法
 
-### 运行单个 `.yaml` 文件
+`@midscene/cli` 提供了灵活的方式来运行你的自动化脚本。
+
+### 运行一个或多个脚本
+
+你可以直接向 `midscene` 命令传递一个 `.yaml` 脚本文件或使用 glob 模式来匹配多个 `.yaml`。
 
 ```bash
-midscene /path/to/yaml
+# 运行单个脚本
+midscene ./bing-search.yaml
+
+# 使用 glob 模式运行所有匹配的脚本
+midscene './scripts/**/*.yaml'
 ```
 
-### 运行一个文件夹下的所有 `.yaml` 文件
+### 使用索引文件来编排运行
+
+对于更复杂的场景，你可以使用一个索引 `.yaml` 文件来定义一个完整的执行计划。这让你能更好地控制并发、错误处理和配置共享。
 
 ```bash
-midscene /dir/of/yaml/
+midscene ./index.yaml
+```
 
-# 支持 glob 语法
-midscene /dir/**/yaml/
+### 命令行选项
+
+无论你是直接运行脚本文件还是使用索引文件，都可以通过命令行选项来控制执行行为。如果索引文件中也定义了相同的配置，命令行选项将拥有更高的优先级。
+
+- `--concurrent <number>`: 设置并发执行的数量。默认为 `1`。
+- `--continue-on-error`: 如果设置了此选项，即使有脚本执行失败，也会继续运行余下的脚本。
+- `--share-browser-context`: 在所有脚本之间共享同一个浏览器上下文（例如 Cookies 和 `localStorage`）。这对于需要登录状态的连续测试非常有用。
+- `--summary <filename>`: 指定生成的汇总报告文件的路径。
+- `--headed`: 在有图形界面的浏览器中运行脚本，而不是在无头模式下。
+- `--keep-window`: 脚本执行结束后保持浏览器窗口打开。此选项会自动启用 `--headed` 模式。
+
+```bash
+# 以 4 个并发数运行所有脚本，并在出错时继续
+midscene './scripts/**/*.yaml' --concurrent 4 --continue-on-error
+
+# 运行索引文件，但覆盖其并发设置为 10
+midscene ./index.yaml --concurrent 10
 ```
 
 ## `.yaml` 文件结构
 
-Midscene 支持两种类型的 `.yaml` 文件：
+Midscene 支持两种类型的 `.yaml` 文件，它们可以组合使用以实现灵活的自动化流程。
 
-### 1. 标准脚本文件
+### 1. 单脚本文件
 
-在标准脚本 `.yaml` 文件中，有两个部分：`web/android` 和 `tasks`。
+脚本文件是执行具体自动化任务的地方。它定义了要操作的目标（如网页或安卓应用）以及一系列要执行的步骤。
 
-`web/android` 部分定义了任务的基本信息，浏览器下的自动化使用 `web` 参数（曾用参数名 `target`），安卓设备下的自动化使用 `android` 参数，二者是互斥的。
-
-### 2. 批量执行索引文件
-
-对于更复杂的批量执行需求，Midscene 支持使用包含多个子 `.yaml` 文件的入口 `.yaml` 文件来定义执行计划。这种方式提供了并发执行和复用浏览器状态（比如 cookie）的能力。
-
-批量执行索引文件包含以下部分：
+一个标准的 `.yaml` 脚本文件包含 `web` 或 `android` 部分，以及一个 `tasks` 部分。
 
 ```yaml
-# 定义要执行的文件列表和顺序
-order:
+# web 或 android 部分定义了自动化的目标
+web:
+  url: https://www.bing.com
+
+# tasks 部分定义了要执行的一系列步骤
+tasks:
+  - name: 搜索天气
+    flow:
+      - ai: 搜索 "今日天气"
+      - sleep: 3000
+      - aiAssert: 结果显示天气信息
+```
+
+### 2. 多脚本文件
+
+多脚本文件作为一个入口，用于组织和管理多个脚本文件的批量执行。它不包含具体的 `tasks`，而是定义了要执行哪些脚本文件以及执行的规则。
+
+一个多脚本文件包含以下部分：
+
+```yaml
+# 定义要执行的文件列表，支持 glob 模式
+files:
   - './scripts/login.yaml'
   - './scripts/search.yaml'
-  - './scripts/**/*.yaml' # 支持 glob 模式
+  - './scripts/**/*.yaml'
 
 # 并发执行数量，默认为 1
+# 可以被 --concurrent 命令行选项覆盖
 concurrent: 2
 
 # 遇到错误时是否继续执行其他文件，默认为 false
+# 可以被 --continue-on-error 命令行选项覆盖
 continueOnError: true
+
+# 是否共享浏览器上下文，默认为 false
+# 可以被 --share-browser-context 命令行选项覆盖
+shareBrowserContext: true
 
 # 全局 web 配置（仅 url 和 serve 字段可被各个文件的配置覆盖）
 web:
@@ -149,27 +195,21 @@ android:
 
 #### 配置说明
 
-- **order**: 必填，定义要执行的文件列表，支持 glob 模式匹配
-- **concurrent**: 可选，并发执行的文件数量，默认为 1
-- **continueOnError**: 可选，当某个文件执行失败时是否继续执行其他文件，默认为 false
-- **web**: 可选，全局 web 配置。注意：仅 `url` 和 `serve` 字段可被各个 YAML 文件的配置覆盖，其他字段作为全局固定配置
-- **android**: 可选，全局 android 配置。注意：仅 `launch` 字段可被各个 YAML 文件的配置覆盖，其他字段作为全局固定配置
+- **files**: 必填，定义要执行的脚本文件列表，支持 glob 模式匹配。
+- **concurrent**: 可选，并发执行的文件数量，默认为 1。
+- **continueOnError**: 可选，当某个文件执行失败时是否继续执行其他文件，默认为 `false`。
+- **shareBrowserContext**: 可选，是否在所有脚本之间共享浏览器上下文，默认为 `false`。
+- **summary**: 可选，指定生成的汇总报告文件的路径。
+- **web**: 可选，全局 web 配置。注意：仅 `url` 和 `serve` 字段可被各个 YAML 文件的配置覆盖，其他字段作为全局固定配置。
+- **android**: 可选，全局 android 配置。注意：仅 `launch` 字段可被各个 YAML 文件的配置覆盖，其他字段作为全局固定配置。
 
-#### 批量执行的优势
+#### 使用多脚本文件的优势
 
-1. **并发执行**: 可以同时执行多个 YAML 文件，提高执行效率
-2. **复用浏览器状态**: 可以复用浏览器状态（比如 cookie），提高执行效率
-3. **结果汇总**: 自动生成包含所有执行结果的汇总报告
-4. **配置复用**: 全局配置可以被所有文件共享，减少重复配置
-5. **执行计划**: 清晰的执行计划展示，包括文件数量、并发数、输出目录等信息
+1.  **集中管理**: 在一个文件中定义复杂的执行计划。
+2.  **配置复用**: 全局配置可以被所有文件共享，减少重复配置。
+3.  **结果汇总**: 自动生成包含所有执行结果的汇总报告。
 
-批量执行完成后，会在输出目录中生成：
-
-- 汇总的 `index.json` 文件，包含所有文件的执行状态和统计信息
-- 各个 YAML 文件的独立执行结果（JSON 格式）
-- 各个文件的可视化报告（HTML 格式）
-
-运行批量执行索引文件：
+运行多脚本文件：
 
 ```bash
 midscene ./index.yaml
@@ -177,6 +217,14 @@ midscene ./index.yaml
 # 也支持 --headed 和 --keep-window 选项
 midscene ./index.yaml --headed
 ```
+
+### 运行产物
+
+执行完成后，会在输出目录中生成以下文件：
+
+- 汇总的 `index.json` 文件（或由 `--summary` 选项指定的文件），包含所有文件的执行状态和统计信息
+- 各个 YAML 文件的独立执行结果（JSON 格式）
+- 各个文件的可视化报告（HTML 格式）
 
 ### `web` 部分
 
@@ -213,7 +261,7 @@ web:
   # 输出 aiQuery/aiAssert 结果的 JSON 文件路径，可选
   output: <path-to-output-file>
 
-  # 是否保存日志内容到 JSON 文件，可选，默认 false。如果为 true，保存到 `unstableLogContent.json` 文件中。如果为字符串，则保存到该字符串指定的路径中。日志内容的结构可能会在未来发生变化。
+  # 是否保存日志内容到 JSON 文件，可选，默认 `false`。如果为 true，保存到 `unstableLogContent.json` 文件中。如果为字符串，则保存到该字符串指定的路径中。日志内容的结构可能会在未来发生变化。
   unstableLogContent: <boolean | path-to-unstable-log-file>
 
   # 是否限制页面在当前 tab 打开，可选，默认 true

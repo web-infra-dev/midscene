@@ -34,12 +34,20 @@ Promise.resolve(
       process.exit(1);
     }
 
-    const keepWindow = options['keep-window'] || false;
+    const keepWindow = options['keep-window'] ?? false;
     const headed = options.headed || false;
+
+    // Extract new configuration options
+    const configOptions = {
+      concurrent: options.concurrent,
+      continueOnError: options['continue-on-error'],
+      summary: options.summary,
+      shareBrowserContext: options['share-browser-context'],
+    };
 
     // Check if the path is an index YAML file
     if (isIndexYamlFile(path)) {
-      const config = await createIndexConfig(path);
+      const config = await createIndexConfig(path, configOptions);
       const executor = new BatchRunner(config);
 
       await executor.run({
@@ -65,7 +73,7 @@ Promise.resolve(
 
     console.log('📄 Executing YAML files...\n');
 
-    const config = createFilesConfig(files);
+    const config = createFilesConfig(files, configOptions);
     const executor = new BatchRunner(config);
 
     await executor.run({

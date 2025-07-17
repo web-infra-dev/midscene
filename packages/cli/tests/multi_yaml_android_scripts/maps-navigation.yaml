@@ -1,0 +1,14 @@
+# search headphone on ebay, extract the items info into a json file, and assert the shopping cart icon
+
+android:
+  # launch: https://www.ebay.com
+  deviceId: s4ey59ytbitot4yp
+
+tasks:
+  - name: travel
+    flow:
+      - aiAction: open Maps app
+      - aiAction: input 'attractions' in the search bar, and click the search button
+      - aiAction: click the first search result, enter the attraction details page
+      - aiAction: click "Directions" button, enter the route planning page
+      - aiAction: click "Start" button to start navigation

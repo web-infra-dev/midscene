@@ -206,10 +206,11 @@ export type ScriptPlayerStatusValue = 'init' | 'running' | 'done' | 'error';
 export interface MidsceneYamlIndex {
   concurrent?: number;
   continueOnError?: boolean;
+  summary?: string;
+  shareBrowserContext?: boolean;
   web?: MidsceneYamlScriptWebEnv;
   android?: MidsceneYamlScriptAndroidEnv;
   order: string[];
-  output?: MidsceneYamlIndexOutput;
 }
 
 export interface MidsceneYamlIndexOutput {

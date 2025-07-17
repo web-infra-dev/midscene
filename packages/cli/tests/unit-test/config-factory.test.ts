@@ -88,7 +88,8 @@ output:
           deviceId: 'test-device',
         },
         patterns: ['*.yml', 'test/*.yaml'],
-        outputPath: '/test/output',
+        shareBrowserContext: false,
+        summary: expect.stringMatching(/index-\d+\.json$/),
         files: ['file1.yml', 'file2.yaml'],
       });
 
@@ -124,7 +125,8 @@ order:
       expect(result.continueOnError).toBe(false);
       expect(result.web).toBeUndefined();
       expect(result.android).toBeUndefined();
-      expect(result.outputPath).toBeUndefined();
+      expect(result.summary).toMatch(/index-\d+\.json$/);
+      expect(result.shareBrowserContext).toBe(false);
     });
 
     test('should handle file expansion with duplicates', async () => {
@@ -259,7 +261,8 @@ order:
         files: ['test1.yml', 'test2.yml'],
         concurrent: 2,
         continueOnError: true,
-        indexFileName: 'my-index',
+        shareBrowserContext: false,
+        summary: expect.stringMatching(/my-index-\d+\.json$/),
         globalConfig: {
           web: { url: 'http://example.com' },
           android: { deviceId: 'test-device' },
@@ -277,7 +280,9 @@ order:
       expect(result).toEqual({
         files,
         concurrent: 1,
-        continueOnError: true,
+        continueOnError: false,
+        shareBrowserContext: false,
+        summary: expect.stringMatching(/summary-\d+\.json$/),
       });
     });
 
@@ -293,6 +298,8 @@ order:
         files,
         concurrent: 3,
         continueOnError: true,
+        shareBrowserContext: false,
+        summary: expect.stringMatching(/summary-\d+\.json$/),
       });
     });
 
@@ -303,7 +310,9 @@ order:
       expect(result).toEqual({
         files,
         concurrent: 1,
-        continueOnError: true,
+        continueOnError: false,
+        shareBrowserContext: false,
+        summary: expect.stringMatching(/summary-\d+\.json$/),
       });
     });
 
@@ -314,7 +323,9 @@ order:
       expect(result).toEqual({
         files,
         concurrent: 1,
-        continueOnError: true,
+        continueOnError: false,
+        shareBrowserContext: false,
+        summary: expect.stringMatching(/summary-\d+\.json$/),
       });
     });
   });
