@@ -30,13 +30,11 @@
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
     "@midscene/web": "workspace:*",
-    "appium-adb": "12.12.1",
-    "uuid": "^9.0.1"
+    "appium-adb": "12.12.1"
   },
   "devDependencies": {
     "@modern-js/module-tools": "2.60.6",
     "@types/node": "^18.0.0",
-    "@types/uuid": "^9.0.8",
     "dotenv": "16.4.5",
     "typescript": "^5.8.3",
     "vitest": "3.0.5"

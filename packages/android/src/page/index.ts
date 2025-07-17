@@ -1,4 +1,5 @@
 import assert from 'node:assert';
+import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { type Point, type Size, getAIConfig } from '@midscene/core';
@@ -16,7 +17,7 @@ import { getDebug } from '@midscene/shared/logger';
 import { repeat } from '@midscene/shared/utils';
 import type { AndroidDeviceInputOpt, AndroidDevicePage } from '@midscene/web';
 import { ADB } from 'appium-adb';
-import { v4 as uuidv4 } from 'uuid';
+
 // only for Android, because it's impossible to scroll to the bottom, so we need to set a default scroll times
 const defaultScrollUntilTimes = 10;
 const defaultFastScrollDuration = 100;
@@ -336,7 +337,7 @@ ${Object.keys(size)
     const { width, height } = await this.size();
     const adb = await this.getAdb();
     let screenshotBuffer;
-    const androidScreenshotPath = `/data/local/tmp/midscene_screenshot_${uuidv4()}.png`;
+    const androidScreenshotPath = `/data/local/tmp/midscene_screenshot_${randomUUID()}.png`;
 
     try {
       screenshotBuffer = await adb.takeScreenshot(null);
