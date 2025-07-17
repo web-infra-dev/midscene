@@ -31,7 +31,8 @@ export interface BatchRunnerConfig {
   files: string[];
   concurrent: number;
   continueOnError: boolean;
-  indexFileName?: string;
+  summary: string;
+  shareBrowserContext: boolean;
   globalConfig?: {
     web?: MidsceneYamlScriptWebEnv;
     android?: MidsceneYamlScriptAndroidEnv;
@@ -71,17 +72,27 @@ class BatchRunner {
     let browser: Browser | null = null;
 
     try {
-      browser = await puppeteer.launch({ headless: !headed });
-
-      // Create all file contexts upfront
+      // First, create all file contexts without a browser instance
       for (const file of this.config.files) {
         const fileConfig = await this.loadFileConfig(file);
         const context = await this.createFileContext(file, fileConfig, {
           headed,
           keepWindow,
-          browser,
         });
         fileContextList.push(context);
+      }
+
+      // Now, check if any of the tasks require a web browser
+      const needsBrowser = fileContextList.some(
+        (ctx) => ctx.executionConfig.web || ctx.executionConfig.target,
+      );
+
+      if (needsBrowser) {
+        browser = await puppeteer.launch({ headless: !headed });
+        // Assign the browser instance to all contexts
+        for (const context of fileContextList) {
+          context.options.browser = browser;
+        }
       }
 
       // Execute files
@@ -95,10 +106,6 @@ class BatchRunner {
       );
     } finally {
       if (browser) await browser.close();
-    }
-
-    // Generate output index file if needed
-    if (this.config.indexFileName) {
       await this.generateOutputIndex();
     }
 
@@ -110,13 +117,45 @@ class BatchRunner {
     fileConfig: MidsceneYamlScript,
     options: { headed?: boolean; keepWindow?: boolean; browser?: Browser },
   ): Promise<BatchFileContext> {
-    const executionConfig: MidsceneYamlScript = fileConfig;
-    const outputPath: string | undefined = undefined;
+    // Deep clone to avoid mutating the original config
+    const executionConfig: MidsceneYamlScript = JSON.parse(
+      JSON.stringify(fileConfig),
+    );
+    const { globalConfig } = this.config;
+
+    if (globalConfig) {
+      const globalWeb = globalConfig.web || globalConfig.target;
+      const executionWeb = executionConfig.web || executionConfig.target;
+
+      if (globalWeb) {
+        if (!executionWeb) {
+          executionConfig.web = { url: '', serve: '' };
+        }
+        if (globalWeb.url && !executionWeb?.url) {
+          executionConfig.web!.url = globalWeb.url;
+        }
+        if (globalWeb.serve && !executionWeb?.serve) {
+          executionConfig.web!.serve = globalWeb.serve;
+        }
+      }
+
+      const globalAndroid = globalConfig.android;
+      if (globalAndroid) {
+        if (!executionConfig.android) {
+          executionConfig.android = {};
+        }
+        if (globalAndroid.launch && !executionConfig.android.launch) {
+          executionConfig.android.launch = globalAndroid.launch;
+        }
+        if (globalAndroid.deviceId && !executionConfig.android.deviceId) {
+          executionConfig.android.deviceId = globalAndroid.deviceId;
+        }
+      }
+    }
 
     return {
       file,
       executionConfig,
-      outputPath,
       options,
     };
   }
@@ -178,20 +217,17 @@ class BatchRunner {
       const executeFile = async (
         context: BatchFileContext,
       ): Promise<MidsceneYamlFileContext & { duration: number }> => {
-        if (!isTTY) {
-          const { mergedText } = contextInfo({
-            file: context.file,
-            player: null,
-          });
-          console.log(mergedText);
-        }
-
         // Find the corresponding player in allFileContexts
         const allFileContext = allFileContexts.find(
           (c) => c.file === context.file,
         );
         if (!allFileContext) {
           throw new Error(`Player not found for file: ${context.file}`);
+        }
+
+        if (!isTTY) {
+          const { mergedText } = contextInfo(allFileContext);
+          console.log(mergedText);
         }
 
         // Set output path if specified
@@ -371,23 +407,11 @@ class BatchRunner {
 
   private async loadFileConfig(file: string): Promise<MidsceneYamlScript> {
     const content = readFileSync(file, 'utf8');
-    const fullConfig = parseYamlScript(content, file);
-    const result: MidsceneYamlScript = {
-      tasks: fullConfig.tasks,
-    };
+    return parseYamlScript(content, file, true);
+  }
 
-    if (fullConfig.web?.url || fullConfig.target?.url) {
-      result.web = {
-        url: fullConfig.web?.url || fullConfig.target?.url || '',
-        serve: fullConfig.web?.serve || fullConfig.target?.serve || '',
-      };
-    }
-
-    if (fullConfig.android?.launch) {
-      result.android = { launch: fullConfig.android.launch };
-    }
-
-    return result;
+  private getSummaryAbsolutePath(): string {
+    return resolve(getMidsceneRunSubDir('output'), this.config.summary);
   }
 
   private printExecutionPlan(keepWindow: boolean, headed: boolean): void {
@@ -398,28 +422,18 @@ class BatchRunner {
     console.log(`   Keep window: ${keepWindow}`);
     console.log(`   Headed: ${headed}`);
     console.log(`   Continue on error: ${this.config.continueOnError}`);
+    console.log(
+      `   Share browser context: ${this.config.shareBrowserContext ?? false}`,
+    );
+    console.log(`   Summary output: ${this.config.summary}`);
   }
 
   private async generateOutputIndex(): Promise<void> {
-    let indexPath: string;
-
-    if (
-      this.config.globalConfig?.web?.output ||
-      this.config.globalConfig?.android?.output
-    ) {
-      // if global config has output path, use it
-      const outputPath =
-        this.config.globalConfig.web?.output ||
-        this.config.globalConfig.android?.output;
-      indexPath = resolve(process.cwd(), outputPath);
-    } else {
-      // if global config has no output path, use default format: filename-timestamp.json
-      const fileName = this.config.indexFileName;
-      const indexFileName = `${fileName}-${Date.now()}.json`;
-      const outputDir = getMidsceneRunSubDir('output');
-      indexPath = join(outputDir, indexFileName);
-    }
-
+    // summary field should always have a value now
+    const indexPath = resolve(
+      getMidsceneRunSubDir('output'),
+      this.config.summary,
+    );
     const outputDir = dirname(indexPath);
 
     try {
@@ -513,25 +527,26 @@ class BatchRunner {
     console.log(`   Failed: ${summary.failed}`);
     console.log(`   Not executed: ${summary.notExecuted}`);
     console.log(`   Duration: ${(summary.totalDuration / 1000).toFixed(2)}s`);
+    console.log(`   Summary: ${this.getSummaryAbsolutePath()}`);
 
     if (summary.successful > 0) {
       console.log('\n✅ Successful files:');
       this.getSuccessfulFiles().forEach((file) => {
-        console.log(`   - ${file}`);
+        console.log(`   ${file}`);
       });
     }
 
     if (summary.failed > 0) {
       console.log('\n❌ Failed files');
       this.getFailedFiles().forEach((file) => {
-        console.log(`   - ${file}`);
+        console.log(`   ${file}`);
       });
     }
 
     if (summary.notExecuted > 0) {
       console.log('\n⏸️ Not executed files');
       this.getNotExecutedFiles().forEach((file) => {
-        console.log(`   - ${file}`);
+        console.log(`   ${file}`);
       });
     }
 

@@ -47,6 +47,25 @@ Usage: $0 [options] <path-to-yaml-script-file-or-directory>`,
         description:
           'Turn on logging to help debug why certain keys or values are not being set as you expect',
       },
+      concurrent: {
+        type: 'number',
+        default: 1,
+        description: 'Number of concurrent executions',
+      },
+      'continue-on-error': {
+        type: 'boolean',
+        default: false,
+        description: 'Continue execution even if some tasks fail',
+      },
+      summary: {
+        type: 'string',
+        description: 'Path for the summary output file',
+      },
+      'share-browser-context': {
+        type: 'boolean',
+        default: false,
+        description: 'Share browser context across multiple files',
+      },
     })
     .version('version', 'Show version number', __VERSION__)
     .help()

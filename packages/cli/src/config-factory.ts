@@ -6,6 +6,7 @@ import type {
   MidsceneYamlScriptAndroidEnv,
   MidsceneYamlScriptWebEnv,
 } from '@midscene/core';
+import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { interpolateEnvVars } from '@midscene/web/yaml';
 import { load as yamlLoad } from 'js-yaml';
 import type { BatchRunnerConfig } from './batch-runner';
@@ -14,16 +15,19 @@ import { matchYamlFiles } from './cli-utils';
 export interface ConfigFactoryOptions {
   concurrent?: number;
   continueOnError?: boolean;
+  summary?: string;
+  shareBrowserContext?: boolean;
 }
 
 export interface ParsedIndexConfig {
   concurrent: number;
   continueOnError: boolean;
+  summary: string;
+  shareBrowserContext: boolean;
   web?: MidsceneYamlScriptWebEnv;
   android?: MidsceneYamlScriptAndroidEnv;
   target?: MidsceneYamlScriptWebEnv;
   files: string[];
-  outputPath?: string;
   patterns: string[]; // Keep patterns for reference
 }
 
@@ -81,14 +85,20 @@ export async function parseIndexYaml(
     'No YAML files found matching the patterns in "order"',
   );
 
-  // Build parsed configuration
+  // Generate default summary filename
+  const indexFileName = basename(indexYamlPath, extname(indexYamlPath));
+  const timestamp = Date.now();
+  const defaultSummary = `${indexFileName}-${timestamp}.json`;
+
+  // Build parsed configuration from file only
   const config: ParsedIndexConfig = {
     concurrent: indexYaml.concurrent ?? 1,
     continueOnError: indexYaml.continueOnError ?? false,
+    summary: indexYaml.summary ?? defaultSummary,
+    shareBrowserContext: indexYaml.shareBrowserContext ?? false,
     web: indexYaml.web,
     android: indexYaml.android,
     patterns: indexYaml.order,
-    outputPath: indexYaml.output?.path,
     files,
   };
 
@@ -97,15 +107,23 @@ export async function parseIndexYaml(
 
 export async function createIndexConfig(
   indexYamlPath: string,
+  cmdLineOptions?: {
+    concurrent?: number;
+    continueOnError?: boolean;
+    summary?: string;
+    shareBrowserContext?: boolean;
+  },
 ): Promise<BatchRunnerConfig> {
   const parsedConfig = await parseIndexYaml(indexYamlPath);
-  const indexFileName = basename(indexYamlPath, extname(indexYamlPath));
-
+  // Apply command line overrides with higher priority than file configuration
   return {
     files: parsedConfig.files,
-    concurrent: parsedConfig.concurrent,
-    continueOnError: parsedConfig.continueOnError,
-    indexFileName,
+    concurrent: cmdLineOptions?.concurrent ?? parsedConfig.concurrent,
+    continueOnError:
+      cmdLineOptions?.continueOnError ?? parsedConfig.continueOnError,
+    summary: cmdLineOptions?.summary ?? parsedConfig.summary,
+    shareBrowserContext:
+      cmdLineOptions?.shareBrowserContext ?? parsedConfig.shareBrowserContext,
     globalConfig: {
       web: parsedConfig.web,
       android: parsedConfig.android,
@@ -118,9 +136,15 @@ export function createFilesConfig(
   files: string[],
   options: ConfigFactoryOptions = {},
 ): BatchRunnerConfig {
+  // Generate default summary filename if not provided
+  const timestamp = Date.now();
+  const defaultSummary = `summary-${timestamp}.json`;
+
   return {
     files,
     concurrent: options.concurrent ?? 1,
-    continueOnError: options.continueOnError ?? true,
+    continueOnError: options.continueOnError ?? false,
+    summary: options.summary ?? defaultSummary,
+    shareBrowserContext: options.shareBrowserContext ?? false,
   };
 }

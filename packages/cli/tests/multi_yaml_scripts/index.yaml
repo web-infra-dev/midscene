@@ -7,6 +7,9 @@ concurrent: 2
 # Continue execution even if one file fails (default: false)
 continueOnError: false
 
+# Summary file path
+summary: "./midscene_run/output/custom-summary.json"
+
 # Global web environment configuration (applied to all files)
 web:
   # All individual YAML files will inherit these settings
@@ -14,7 +17,6 @@ web:
   viewportHeight: 720
   # bridgeMode: "newTabWithUrl"
   # Output directory for individual files (will be combined with file-specific paths)
-  output: "./midscene_run/output/batch-execution-result/index.json"
 
 # Global android environment configuration (if needed)
 # android:

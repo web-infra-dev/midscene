@@ -1,0 +1,7 @@
+android:
+  deviceId: s4ey59ytbitot4yp
+
+tasks:
+  - name: dummy task
+    flow:
+      - sleep: 100
