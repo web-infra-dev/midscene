@@ -39,8 +39,6 @@ Promise.resolve(
 
     // Check if the path is an index YAML file
     if (isIndexYamlFile(path)) {
-      console.log('📋 Detected index YAML file, executing batch workflow...\n');
-
       const config = await createIndexConfig(path);
       const executor = new BatchRunner(config);
 

@@ -122,13 +122,15 @@ class BatchRunner {
   }
 
   private async executeFiles(fileContextList: BatchFileContext[]): Promise<{
-    executedResults: MidsceneYamlFileContext[];
+    executedResults: Array<MidsceneYamlFileContext & { duration: number }>;
     notExecutedContexts: Array<{
       file: string;
       player: ScriptPlayer<MidsceneYamlScriptEnv>;
     }>;
   }> {
-    const executedResults: MidsceneYamlFileContext[] = [];
+    const executedResults: Array<
+      MidsceneYamlFileContext & { duration: number }
+    > = [];
     const notExecutedContexts: Array<{
       file: string;
       player: ScriptPlayer<MidsceneYamlScriptEnv>;
@@ -175,7 +177,7 @@ class BatchRunner {
       // Helper function to execute a single file
       const executeFile = async (
         context: BatchFileContext,
-      ): Promise<MidsceneYamlFileContext> => {
+      ): Promise<MidsceneYamlFileContext & { duration: number }> => {
         if (!isTTY) {
           const { mergedText } = contextInfo({
             file: context.file,
@@ -197,13 +199,22 @@ class BatchRunner {
           allFileContext.player.output = context.outputPath;
         }
 
+        // Record start time
+        const startTime = Date.now();
+
         // Run the player
         await allFileContext.player.run();
 
-        const executedContext: MidsceneYamlFileContext = {
-          file: context.file,
-          player: allFileContext.player,
-        };
+        // Calculate duration
+        const endTime = Date.now();
+        const duration = endTime - startTime;
+
+        const executedContext: MidsceneYamlFileContext & { duration: number } =
+          {
+            file: context.file,
+            player: allFileContext.player,
+            duration,
+          };
 
         if (!isTTY) {
           console.log(
@@ -247,8 +258,8 @@ class BatchRunner {
     fileContextList: BatchFileContext[],
     executeFile: (
       context: BatchFileContext,
-    ) => Promise<MidsceneYamlFileContext>,
-    executedResults: MidsceneYamlFileContext[],
+    ) => Promise<MidsceneYamlFileContext & { duration: number }>,
+    executedResults: Array<MidsceneYamlFileContext & { duration: number }>,
     notExecutedContexts: Array<{
       file: string;
       player: ScriptPlayer<MidsceneYamlScriptEnv> | null;
@@ -307,7 +318,7 @@ class BatchRunner {
   }
 
   private async processResults(
-    executedContexts: MidsceneYamlFileContext[],
+    executedContexts: Array<MidsceneYamlFileContext & { duration: number }>,
     notExecutedContexts: Array<{
       file: string;
       player: ScriptPlayer<MidsceneYamlScriptEnv> | null;
@@ -316,7 +327,7 @@ class BatchRunner {
     const results: MidsceneYamlIndexResult[] = [];
 
     for (const context of executedContexts) {
-      const { file, player } = context;
+      const { file, player, duration } = context;
       const success = player.status !== 'error';
       let reportFile: string | undefined;
 
@@ -336,6 +347,7 @@ class BatchRunner {
         executed: true,
         output: outputPath,
         report: reportFile,
+        duration,
         error:
           player.errorInSetup?.message ||
           (player.status === 'error' ? 'Execution failed' : undefined),
@@ -349,6 +361,7 @@ class BatchRunner {
         executed: false,
         output: undefined,
         report: undefined,
+        duration: 0,
         error: 'Not executed (previous task failed)',
       });
     }
@@ -378,7 +391,8 @@ class BatchRunner {
   }
 
   private printExecutionPlan(keepWindow: boolean, headed: boolean): void {
-    console.log('📋 Execution plan:');
+    console.log('📋 Execution plan');
+    console.log('   Config File:');
     console.log(`   Files to execute: ${this.config.files.length}`);
     console.log(`   Concurrency: ${this.config.concurrent}`);
     console.log(`   Keep window: ${keepWindow}`);
@@ -442,7 +456,7 @@ class BatchRunner {
       };
 
       writeFileSync(indexPath, JSON.stringify(indexData, null, 2));
-      console.log(`📊 Index file generated: ${resolve(indexPath)}`);
+      console.log('Execution finished:');
     } catch (error) {
       console.error('Failed to generate output index:', error);
     }
@@ -508,14 +522,14 @@ class BatchRunner {
     }
 
     if (summary.failed > 0) {
-      console.log('\n❌ Failed files:');
+      console.log('\n❌ Failed files');
       this.getFailedFiles().forEach((file) => {
         console.log(`   - ${file}`);
       });
     }
 
     if (summary.notExecuted > 0) {
-      console.log('\n⏸️ Not executed files:');
+      console.log('\n⏸️ Not executed files');
       this.getNotExecutedFiles().forEach((file) => {
         console.log(`   - ${file}`);
       });

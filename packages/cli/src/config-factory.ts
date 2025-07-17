@@ -83,7 +83,7 @@ export async function parseIndexYaml(
 
   // Build parsed configuration
   const config: ParsedIndexConfig = {
-    concurrent: indexYaml.concurrent || 1,
+    concurrent: indexYaml.concurrent ?? 1,
     continueOnError: indexYaml.continueOnError ?? false,
     web: indexYaml.web,
     android: indexYaml.android,
