@@ -15,7 +15,6 @@ import {
   timeCostStrElement,
 } from '@midscene/visualizer';
 import { Tag, Timeline, type TimelineItemProps, Tooltip } from 'antd';
-import PanelTitle from './panel-title';
 import { useExecutionDump } from './store';
 
 const noop = () => {};
@@ -475,15 +474,23 @@ const DetailSide = (): JSX.Element => {
 
   return (
     <div className="detail-side">
-      {/* Meta */}
-      <PanelTitle title="Task Meta" />
-      {metaKVElement}
-      {/* Input: Param/Content  */}
-      <PanelTitle title={task?.type === 'Log' ? 'Content' : 'Param'} />
-      {taskInput}
-      {/* Response */}
-      <PanelTitle title={task?.subType === 'Locate' ? 'Element' : 'Output'} />
-      <div className="item-list item-list-space-up">{outputDataContent}</div>
+      <div className="info-tabs">
+        <div className="info-tab active">Information</div>
+      </div>
+      <div className="info-content">
+        <details open>
+          <summary>Task meta</summary>
+          {metaKVElement}
+        </details>
+        <details open>
+          <summary>Param</summary>
+          {taskInput}
+        </details>
+        <details open>
+          <summary>{task?.subType === 'Locate' ? 'Element' : 'Output'}</summary>
+          <div className="item-list">{outputDataContent}</div>
+        </details>
+      </div>
     </div>
   );
 };

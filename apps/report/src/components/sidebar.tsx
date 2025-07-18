@@ -1,16 +1,22 @@
 import './sidebar.less';
 import { useAllCurrentTasks, useExecutionDump } from '@/components/store';
+import { PauseOutlined } from '@ant-design/icons';
 import type {
   ExecutionTask,
   ExecutionTaskInsightLocate,
   GroupedActionDump,
 } from '@midscene/core';
-import { iconForStatus, timeCostStrElement } from '@midscene/visualizer';
+import {
+  type AnimationScript,
+  iconForStatus,
+  timeCostStrElement,
+} from '@midscene/visualizer';
 import { typeStr } from '@midscene/web/ui-utils';
-import { Tag, Tooltip } from 'antd';
+import { Checkbox, Tag, Tooltip } from 'antd';
 import { useEffect } from 'react';
 import CameraIcon from '../icons/camera.svg?react';
 import MessageIcon from '../icons/message.svg?react';
+import PlayIcon from '../icons/play.svg?react';
 import type { ExecutionDumpWithPlaywrightAttributes } from '../types';
 import ReportOverview from './report-overview';
 
@@ -136,23 +142,30 @@ interface SidebarProps {
   selectedDump?: GroupedActionDump | null;
   onDumpSelect?: (dump: GroupedActionDump) => void;
   proModeEnabled?: boolean;
+  onProModeChange?: (checked: boolean) => void;
+  replayAllScripts?: AnimationScript[] | null;
+  replayAllMode?: boolean;
+  setReplayAllMode?: (mode: boolean) => void;
 }
 
 const Sidebar = (props: SidebarProps = {}): JSX.Element => {
-  const { dumps, selectedDump, onDumpSelect, proModeEnabled = false } = props;
-  const sdkVersion = useExecutionDump((store) => store.sdkVersion);
-  const modelName = useExecutionDump((store) => store.modelName);
-  const modelDescription = useExecutionDump((store) => store.modelDescription);
+  const {
+    dumps,
+    selectedDump,
+    onDumpSelect,
+    proModeEnabled = false,
+    onProModeChange,
+    replayAllMode,
+    setReplayAllMode,
+  } = props;
   const groupedDump = useExecutionDump((store) => store.dump);
   const setActiveTask = useExecutionDump((store) => store.setActiveTask);
   const activeTask = useExecutionDump((store) => store.activeTask);
   const setHoverTask = useExecutionDump((store) => store.setHoverTask);
+
   const setHoverPreviewConfig = useExecutionDump(
     (store) => store.setHoverPreviewConfig,
   );
-  // const selectedTaskIndex = useExecutionDump((store) => store.selectedTaskIndex);
-  // const setSelectedTaskIndex = useExecutionDump((store) => store.setSelectedTaskIndex);
-
   const allTasks = useAllCurrentTasks();
   const currentSelectedIndex = allTasks?.findIndex(
     (task) => task === activeTask,
@@ -191,73 +204,14 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
 
   const sideList = groupedDump ? (
     [groupedDump].map((group, groupIndex) => {
-      const executions = group.executions.map((execution, indexOfExecution) => {
-        const { tasks } = execution;
-        const taskList = tasks.map((task, index) => {
-          return (
-            <SideItem
-              key={index}
-              task={task}
-              selected={task === activeTask}
-              proModeEnabled={proModeEnabled}
-              onClick={() => {
-                setActiveTask(task);
-              }}
-              onItemHover={(hoverTask, x, y) => {
-                if (hoverTask && x && y) {
-                  setHoverPreviewConfig({ x, y });
-                  setHoverTask(hoverTask);
-                } else {
-                  setHoverPreviewConfig(null);
-                  setHoverTask(null);
-                }
-              }}
-            />
-          );
-        });
-
-        // Add table header when pro mode is enabled
-        const tableHeader = proModeEnabled ? (
-          <div className="table-header">
-            <div className="header-name">Name</div>
-            <div className="header-time">Time</div>
-            <div className="header-prompt">Prompt</div>
-            <div className="header-completion">Completion</div>
-          </div>
-        ) : null;
-        return (
-          <div key={indexOfExecution}>
-            <div className="side-seperator side-seperator-space-up" />
-            <div
-              className="side-sub-title"
-              style={{ display: 'flex', alignItems: 'flex-start' }}
-            >
-              {execution.name}
-            </div>
-            {tableHeader}
-            {taskList}
-          </div>
-        );
-      });
       return (
         <div key={groupIndex}>
           <ReportOverview
             title={group.groupName}
-            version={sdkVersion ?? undefined}
-            modelName={modelName ?? undefined}
-            modelDescription={modelDescription ?? undefined}
             dumps={dumps}
             selected={selectedDump}
             onSelect={onDumpSelect}
           />
-          <div className="execution-info-section">
-            <div className="section-separator" />
-            <div className="execution-info-title">
-              <MessageIcon width={16} height={16} />
-              Execution
-            </div>
-            {executions}
-          </div>
         </div>
       );
     })
@@ -265,16 +219,128 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     <span>no tasks</span>
   );
 
-  return (
-    <div className="side-bar">
-      <div className="top-controls">
-        <div className="task-list">{sideList}</div>
-        <div className="side-seperator side-seperator-line side-seperator-space-up" />
-        <div className="task-meta-section">
-          <div className="task-meta">switch: Command + Up / Down</div>
+  const totalPromptTokens =
+    groupedDump?.executions
+      .flatMap((e) => e.tasks)
+      .reduce((acc, task) => acc + (task.usage?.prompt_tokens || 0), 0) || 0;
+
+  const totalCompletionTokens =
+    groupedDump?.executions
+      .flatMap((e) => e.tasks)
+      .reduce((acc, task) => acc + (task.usage?.completion_tokens || 0), 0) ||
+    0;
+
+  const executionContent = groupedDump ? (
+    <div className="execution-info-section">
+      <div className="execution-info-title">
+        <div className="execution-info-title-left">
+          <MessageIcon width={16} height={16} />
+          Execution
+        </div>
+        <div className="execution-info-title-right">
+          <Checkbox
+            className="token-usage-checkbox"
+            checked={proModeEnabled}
+            onChange={(e) => onProModeChange?.(e.target.checked)}
+          >
+            Token Usage
+          </Checkbox>
         </div>
       </div>
-      <div className="bottom-controls" />
+      <div className={`table-header ${proModeEnabled ? 'pro-mode' : ''}`}>
+        <div className="header-name">Name</div>
+        <div className="header-time">Time</div>
+        {proModeEnabled && (
+          <>
+            <div className="header-prompt">Prompt</div>
+            <div className="header-completion">Completion</div>
+          </>
+        )}
+      </div>
+      <div className="executions-wrapper">
+        {groupedDump.executions.map((execution, indexOfExecution) => {
+          const { tasks } = execution;
+          const taskList = tasks.map((task, index) => {
+            return (
+              <SideItem
+                key={index}
+                task={task}
+                selected={task === activeTask}
+                proModeEnabled={proModeEnabled}
+                onClick={() => {
+                  setActiveTask(task);
+                  setReplayAllMode?.(false);
+                }}
+                onItemHover={(hoverTask, x, y) => {
+                  if (hoverTask && x && y) {
+                    setHoverPreviewConfig({ x, y });
+                    setHoverTask(hoverTask);
+                  } else {
+                    setHoverPreviewConfig(null);
+                    setHoverTask(null);
+                  }
+                }}
+              />
+            );
+          });
+
+          return (
+            <div key={indexOfExecution}>
+              <div className="side-seperator side-seperator-space-up" />
+              <div
+                className="side-sub-title"
+                style={{ display: 'flex', alignItems: 'flex-start' }}
+              >
+                {execution.name}
+              </div>
+              <div className="task-list">{taskList}</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  ) : null;
+
+  return (
+    <div className="side-bar">
+      <div className="page-nav">
+        <div className="page-nav-left">
+          <div className="page-nav-title">
+            Report
+            <span className="page-nav-title-hint">
+              Switch: Command + Up / Down
+            </span>
+          </div>
+          <div className="page-nav-toolbar">
+            <div
+              className="icon-button"
+              onClick={() => {
+                setReplayAllMode?.(!replayAllMode);
+              }}
+            >
+              {replayAllMode ? <PauseOutlined /> : <PlayIcon />}
+            </div>
+          </div>
+        </div>
+      </div>
+      {sideList}
+      {executionContent}
+      {proModeEnabled && (
+        <>
+          <div className="side-seperator side-seperator-line side-seperator-space-up" />
+          <div className="task-token-section">
+            <div className="task-meta-tokens">
+              <div className="token-total-label">Total</div>
+              <div className="token-total-item">
+                <span className="token-value">{totalPromptTokens}</span>
+              </div>
+              <div className="token-total-item">
+                <span className="token-value">{totalCompletionTokens}</span>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

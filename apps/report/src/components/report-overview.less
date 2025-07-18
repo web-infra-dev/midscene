@@ -1,58 +1,46 @@
 @import './common.less';
 
 .report-overview {
-  background: @title-bg;
+  background: #fff;
+  flex-shrink: 0;
 
-  .pro-mode-section {
+  .test-case-stats {
     display: flex;
-    align-items: center;
     gap: 8px;
+    padding: 0 12px;
 
-    .pro-mode-label {
-      font-size: 12px;
-      color: @main-text;
-    }
-  }
+    .stats-card {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      background: #F5F7FA;
+      border-radius: 8px;
+      flex: 1;
+      min-width: 0;
+      padding-left: 12px;
+      padding-top: 8px;
+      padding-bottom: 8px;
 
-  .env-info-card {
-    padding: 0px 20px;
+      .stats-label {
+        font-size: 12px;
+        color: rgba(0, 0, 0, 0.65);
+        font-weight: 500;
+      }
 
-    .env-info-title {
-      height: 36px;
-      line-height: 36px;
-      font-size: 14px;
-      color: @weak-text;
-    }
+      .stats-value {
+        font-size: 22px;
+        font-weight: 700;
+        line-height: 26px;
+        color: rgba(0, 0, 0, 0.65);
 
-    .env-info-content {
-      padding-bottom: 6px;
-
-      .env-info-row {
-        display: flex;
-        margin-bottom: 4px;
-
-        &:last-child {
-          margin-bottom: 0;
+        &.stats-passed {
+          color: #00AD4B;
         }
 
-        .env-label {
-          color: @weak-text;
-          font-size: 14px;
-          width: 65px;
-          flex-shrink: 0;
-        }
-
-        .env-value {
-          color: @main-text;
-          font-size: 14px;
-          flex: 1;
+        &.stats-failed {
+          color: #E40303;
         }
       }
     }
-  }
-
-  .section-separator {
-    height: 1px;
-    background-color: @border-color;
   }
 }

@@ -1,24 +1,17 @@
 import './App.less';
-import './index.less';
 
-import { Alert, Button, ConfigProvider, Empty, Switch, Tooltip } from 'antd';
+import { Alert, ConfigProvider, Empty } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
-import {
-  Logo,
-  Player,
-  globalThemeConfig,
-  iconForStatus,
-} from '@midscene/visualizer';
+import { Logo, Player, globalThemeConfig } from '@midscene/visualizer';
 import DetailPanel from './components/detail-panel';
 import DetailSide from './components/detail-side';
 import GlobalHoverPreview from './components/global-hover-preview';
 import Sidebar from './components/sidebar';
 import { useExecutionDump } from './components/store';
 import Timeline from './components/timeline';
-import PlayIcon from './icons/play.svg?react';
 import type {
   ExecutionDumpWithPlaywrightAttributes,
   StoreState,
@@ -53,60 +46,14 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   const setGroupedDump = useExecutionDump(
     (store: StoreState) => store.setGroupedDump,
   );
+  const sdkVersion = useExecutionDump((store) => store.sdkVersion);
+  const modelName = useExecutionDump((store) => store.modelName);
+  const modelDescription = useExecutionDump((store) => store.modelDescription);
   const reset = useExecutionDump((store: StoreState) => store.reset);
   const [mainLayoutChangeFlag, setMainLayoutChangeFlag] = useState(0);
   const mainLayoutChangedRef = useRef(false);
   const dump = useExecutionDump((store: StoreState) => store.dump);
   const [proModeEnabled, setProModeEnabled] = useState(false);
-
-  // 计算测试统计信息
-  const calculateTestStats = useCallback(() => {
-    if (!dumps || dumps.length === 0) {
-      return {
-        total: 0,
-        passed: 0,
-        failed: 0,
-        skipped: 0,
-        passedTests: [],
-        failedTests: [],
-        skippedTests: [],
-      };
-    }
-
-    const stats = {
-      total: 0,
-      passed: 0,
-      failed: 0,
-      skipped: 0,
-      passedTests: [] as string[],
-      failedTests: [] as string[],
-      skippedTests: [] as string[],
-    };
-
-    dumps.forEach((dump) => {
-      stats.total++;
-      const status = dump.attributes?.playwright_test_status;
-      const testName =
-        (dump as any).groupName ||
-        dump.attributes?.playwright_test_title ||
-        `Test ${stats.total}`;
-
-      if (status === 'passed') {
-        stats.passed++;
-        stats.passedTests.push(testName);
-      } else if (status === 'failed') {
-        stats.failed++;
-        stats.failedTests.push(testName);
-      } else if (status === 'skipped') {
-        stats.skipped++;
-        stats.skippedTests.push(testName);
-      }
-    });
-
-    return stats;
-  }, [dumps]);
-
-  const testStats = calculateTestStats();
 
   useEffect(() => {
     if (dumps) {
@@ -180,7 +127,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
             <DetailPanel />
           </div>
         </Panel>
-        <PanelResizeHandle />
+        <PanelResizeHandle className="resize-handle" />
         <Panel maxSize={95}>
           <div className="main-side">
             <DetailSide />
@@ -208,10 +155,15 @@ function Visualizer(props: VisualizerProps): JSX.Element {
                 setGroupedDump(dump);
               }}
               proModeEnabled={proModeEnabled}
+              onProModeChange={setProModeEnabled}
+              replayAllScripts={replayAllScripts}
+              replayAllMode={replayAllMode}
+              setReplayAllMode={setReplayAllMode}
             />
           </div>
         </Panel>
         <PanelResizeHandle
+          className="resize-handle"
           onDragging={(isChanging) => {
             if (mainLayoutChangedRef.current && !isChanging) {
               setMainLayoutChangeFlag((prev) => prev + 1);
@@ -221,6 +173,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
         />
         <Panel defaultSize={80} maxSize={95}>
           <div className="main-right">
+            <div className="main-right-header">Record</div>
             <Timeline key={mainLayoutChangeFlag} />
             <div className="main-content">{content}</div>
           </div>
@@ -262,9 +215,6 @@ function Visualizer(props: VisualizerProps): JSX.Element {
 
   return (
     <ConfigProvider theme={globalThemeConfig()}>
-      {/* <Helmet>
-        <title>Report - Midscene.js</title>
-      </Helmet> */}
       <div
         className="page-container"
         key={`render-${globalRenderCount}`}
@@ -273,134 +223,15 @@ function Visualizer(props: VisualizerProps): JSX.Element {
         <div className="page-nav">
           <div className="page-nav-left">
             <Logo />
-            <div className="page-nav-toolbar">
-              <ConfigProvider
-                theme={{
-                  components: {
-                    Button: { textHoverBg: '#bfc4da80' },
-                  },
-                }}
-              >
-                <Button
-                  type="text"
-                  icon={<PlayIcon />}
-                  disabled={!replayAllScripts || replayAllScripts.length === 0}
-                  onClick={() => {
-                    setReplayAllMode(true);
-                  }}
-                >
-                  Replay All
-                </Button>
-                <div className="pro-mode-section">
-                  <span className="pro-mode-label">Pro Mode</span>
-                  <Switch
-                    checked={proModeEnabled}
-                    onChange={setProModeEnabled}
-                    size="small"
-                  />
-                </div>
-                {dumps && dumps.length > 0 && (
-                  <div className="test-case-stats">
-                    <span className="stats-item">
-                      Total:{' '}
-                      <span className="stats-value">{testStats.total}</span>
-                    </span>
-                    <span className="stats-item">
-                      Passed:{' '}
-                      {testStats.passedTests.length > 0 ? (
-                        <Tooltip
-                          title={
-                            <div>
-                              {testStats.passedTests.length > 0 && (
-                                <div className="tooltip-test-list">
-                                  {testStats.passedTests.map((test, index) => (
-                                    <div
-                                      key={index}
-                                      className="tooltip-test-item"
-                                    >
-                                      {iconForStatus('passed')} {test}
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          }
-                        >
-                          <span className="stats-value stats-passed">
-                            {testStats.passed}
-                          </span>
-                        </Tooltip>
-                      ) : (
-                        <span className="stats-value stats-passed">
-                          {testStats.passed}
-                        </span>
-                      )}
-                    </span>
-                    <span className="stats-item">
-                      Failed:{' '}
-                      {testStats.failedTests.length > 0 ? (
-                        <Tooltip
-                          title={
-                            <div>
-                              {testStats.failedTests.length > 0 && (
-                                <div className="tooltip-test-list">
-                                  {testStats.failedTests.map((test, index) => (
-                                    <div
-                                      key={index}
-                                      className="tooltip-test-item"
-                                    >
-                                      {iconForStatus('failed')} {test}
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          }
-                        >
-                          <span className="stats-value stats-failed">
-                            {testStats.failed}
-                          </span>
-                        </Tooltip>
-                      ) : (
-                        <span className="stats-value stats-failed">
-                          {testStats.failed}
-                        </span>
-                      )}
-                    </span>
-                    <span className="stats-item">
-                      Skipped:{' '}
-                      {testStats.skippedTests.length > 0 ? (
-                        <Tooltip
-                          title={
-                            <div>
-                              {testStats.skippedTests.length > 0 && (
-                                <div className="tooltip-test-list">
-                                  {testStats.skippedTests.map((test, index) => (
-                                    <div
-                                      key={index}
-                                      className="tooltip-test-item"
-                                    >
-                                      {iconForStatus('skipped')} {test}
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          }
-                        >
-                          <span className="stats-value stats-skipped">
-                            {testStats.skipped}
-                          </span>
-                        </Tooltip>
-                      ) : (
-                        <span className="stats-value stats-skipped">
-                          {testStats.skipped}
-                        </span>
-                      )}
-                    </span>
-                  </div>
-                )}
-              </ConfigProvider>
+          </div>
+          <div className="page-nav-right">
+            <div className="page-nav-version">
+              v{sdkVersion}
+              {modelName || modelDescription
+                ? ` | ${[modelName, modelDescription]
+                    .filter(Boolean)
+                    .join(', ')}`
+                : ''}
             </div>
           </div>
         </div>

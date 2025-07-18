@@ -15,9 +15,9 @@
   max-width: 100%;
   max-height: 100%;
   padding: 12px;
-  background: #F5F5F5;
+  background: #F2F4F7;
   box-sizing: border-box;
-  border: 1px solid #F5F5F5;
+  border: 1px solid #F2F4F7;
   border-radius: @radius;
   line-height: 100%;
   margin: 0 auto;
@@ -32,7 +32,7 @@
     background: #fff;
 
     .canvas-container {
-      background-color: #F5F5F5;
+      background-color: #F2F4F7;
     }
   }
 
@@ -122,7 +122,14 @@
     position: relative;
     padding-top: @player-vertical-spacing;
     padding-bottom: @player-vertical-spacing;
+    padding-left: 16px;
+    padding-right: 16px;
     box-sizing: border-box;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    border-left: 1px solid rgba(0, 0, 0, 0.06);
+    border-right: 1px solid rgba(0, 0, 0, 0.06);
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 16px;
   }
 
   .player-tools {
