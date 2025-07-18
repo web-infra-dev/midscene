@@ -315,10 +315,10 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
             <div
               className="icon-button"
               onClick={() => {
-                setReplayAllMode?.(!replayAllMode);
+                setReplayAllMode?.(true);
               }}
             >
-              {replayAllMode ? <PauseOutlined /> : <PlayIcon />}
+              <PlayIcon />
             </div>
           </div>
         </div>
