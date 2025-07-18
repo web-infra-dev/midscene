@@ -38,7 +38,6 @@ export function PlaywrightCaseSelector({
 
   const selectorRef = useRef<HTMLDivElement>(null);
 
-  // 点击空白处收起和处理滚动
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (

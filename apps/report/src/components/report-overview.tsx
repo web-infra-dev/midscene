@@ -15,7 +15,6 @@ const ReportOverview = (props: {
   selected?: GroupedActionDump | null;
   onSelect?: (dump: GroupedActionDump) => void;
 }): JSX.Element => {
-  // 计算测试统计信息
   const testStats = useMemo(() => {
     if (!props.dumps || props.dumps.length === 0) {
       return {
@@ -62,9 +61,8 @@ const ReportOverview = (props: {
     return stats;
   }, [props.dumps]);
 
-  // 测试统计信息卡片
   const testStatsEl =
-    props.dumps && props.dumps.length > 0 ? (
+    props.dumps && props.dumps.length > 1 ? (
       <div className="test-case-stats">
         <div className="stats-card">
           <div className="stats-value">{testStats.total}</div>
