@@ -232,7 +232,7 @@ export default defineConfig({
           text: 'API 和用法',
           items: [
             {
-              text: '使用 YAML 格式的自动化脚本',
+              text: '命令行和 YAML 脚本',
               link: '/zh/automate-with-scripts-in-yaml',
             },
             {
