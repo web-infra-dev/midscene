@@ -13,7 +13,7 @@ import type {
 } from '@midscene/core';
 import { filterBase64Value, timeStr } from '@midscene/visualizer';
 import { Blackboard, Player } from '@midscene/visualizer';
-import { ConfigProvider, Segmented } from 'antd';
+import { Segmented } from 'antd';
 import { useEffect, useState } from 'react';
 import OpenInPlayground from './open-in-playground';
 
@@ -191,28 +191,18 @@ const DetailPanel = (): JSX.Element => {
   return (
     <div className="detail-panel">
       <div className="view-switcher">
-        <ConfigProvider
-          theme={{
-            components: {
-              Segmented: {
-                itemSelectedBg: '#bfc4da50',
-                itemSelectedColor: '#000000',
-              },
-            },
+        <Segmented
+          shape="round"
+          options={options}
+          value={viewType}
+          onChange={(value: any) => {
+            setViewType(value);
           }}
-        >
-          <Segmented
-            options={options}
-            value={viewType}
-            onChange={(value: any) => {
-              setViewType(value);
-            }}
-          />
+        />
 
-          <OpenInPlayground
-            context={(activeTask as ExecutionTaskPlanning)?.pageContext}
-          />
-        </ConfigProvider>
+        <OpenInPlayground
+          context={(activeTask as ExecutionTaskPlanning)?.pageContext}
+        />
       </div>
       <div className="detail-content">{content}</div>
     </div>

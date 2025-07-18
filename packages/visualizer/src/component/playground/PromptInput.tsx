@@ -22,6 +22,7 @@ interface PromptInputProps {
   loading: boolean;
   onRun: () => void;
   onStop: () => void;
+  clearPromptAfterRun?: boolean;
 }
 
 export const PromptInput: React.FC<PromptInputProps> = ({
@@ -34,6 +35,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   loading,
   onRun,
   onStop,
+  clearPromptAfterRun = true,
 }) => {
   const [hoveringSettings, setHoveringSettings] = useState(false);
   const [promptValue, setPromptValue] = useState('');
@@ -99,9 +101,10 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     }
     onRun();
 
-    // Clear input after running
-    setPromptValue('');
-    form.setFieldValue('prompt', '');
+    if (clearPromptAfterRun) {
+      setPromptValue('');
+      form.setFieldValue('prompt', '');
+    }
   }, [form, addHistory, onRun]);
 
   // Handle key events

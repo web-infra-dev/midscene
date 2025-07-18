@@ -1,10 +1,11 @@
-import { DownOutlined, SearchOutlined } from '@ant-design/icons';
+import { DownOutlined, SearchOutlined, UpOutlined } from '@ant-design/icons';
 import type { GroupedActionDump } from '@midscene/core';
 import { iconForStatus, timeCostStrElement } from '@midscene/visualizer';
-import { Dropdown, Input, Select, Space } from 'antd';
+import { Input, Select } from 'antd';
 import type React from 'react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ExecutionDumpWithPlaywrightAttributes } from '../types';
+import './PlaywrightCaseSelector.less';
 
 // define all possible test statuses
 const TEST_STATUS_OPTIONS = [
@@ -31,7 +32,43 @@ export function PlaywrightCaseSelector({
 
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [hasSearchText, setHasSearchText] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+
+  const selectorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        isExpanded &&
+        selectorRef.current &&
+        !selectorRef.current.contains(event.target as Node)
+      ) {
+        setIsExpanded(false);
+      }
+    };
+
+    const handleScroll = () => {
+      if (isExpanded && selectorRef.current) {
+        const rect = selectorRef.current.getBoundingClientRect();
+        setDropdownPosition({
+          top: rect.bottom + 10,
+          left: rect.left,
+        });
+      }
+    };
+
+    if (isExpanded) {
+      document.addEventListener('mousedown', handleClickOutside);
+      window.addEventListener('scroll', handleScroll, true);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', handleScroll, true);
+    };
+  }, [isExpanded]);
 
   const nameForDump = (dump: GroupedActionDump) =>
     `${dump.groupName} - ${dump.groupDescription}`;
@@ -79,82 +116,107 @@ export function PlaywrightCaseSelector({
     return result;
   }, [dumps, searchText, statusFilter]);
 
-  const items = filteredDumps.map((dump, index) => {
-    return {
-      key: index,
-      label: (
-        <a
-          onClick={(e) => {
-            e.preventDefault();
-            if (onSelect) {
-              onSelect(dump);
-            }
-            setDropdownVisible(false);
-          }}
-        >
-          <div>{contentForDump(dump, index)}</div>
-        </a>
-      ),
-    };
-  });
-
-  const btnName = selected
-    ? contentForDump(
-        selected as ExecutionDumpWithPlaywrightAttributes,
-        'selector',
-      )
-    : 'Select a case';
-
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchText(e.target.value);
+    const value = e.target.value;
+    setSearchText(value);
+    setHasSearchText(value.length > 0);
   };
 
   const handleStatusChange = (value: string) => {
     setStatusFilter(value);
   };
 
-  const dropdownRender = (menu: React.ReactNode) => (
-    <div>
-      <div style={{ padding: '8px' }}>
-        <Space style={{ width: '100%' }}>
-          <Input
-            placeholder="Search test case"
-            value={searchText}
-            onChange={handleSearchChange}
-            prefix={<SearchOutlined />}
-            allowClear
-            autoFocus
-            style={{ flex: 1 }}
-          />
-          <Select
-            value={statusFilter}
-            onChange={handleStatusChange}
-            style={{ width: 120 }}
-            options={TEST_STATUS_OPTIONS}
-          />
-        </Space>
-      </div>
-      {menu}
-    </div>
-  );
+  const toggleExpanded = () => {
+    if (!isExpanded && selectorRef.current) {
+      const rect = selectorRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + 10,
+        left: rect.left,
+      });
+    }
+    setIsExpanded(!isExpanded);
+  };
+
+  const handleOptionClick = (dump: GroupedActionDump) => {
+    if (onSelect) {
+      onSelect(dump);
+    }
+    setIsExpanded(false);
+  };
+
+  const selectedDump = selected as ExecutionDumpWithPlaywrightAttributes;
+  const displayText = selected
+    ? `${selectedDump.groupName} - (${selectedDump.attributes?.playwright_test_duration / 1000}s)`
+    : 'Select a case';
 
   return (
-    <div className="playwright-case-selector">
-      <Dropdown
-        menu={{ items }}
-        dropdownRender={dropdownRender}
-        onOpenChange={setDropdownVisible}
-        open={dropdownVisible}
-      >
-        <a
-          onClick={(e) => {
-            e.preventDefault();
-            setDropdownVisible(!dropdownVisible);
+    <div
+      ref={selectorRef}
+      className={`modern-playwright-selector ${isExpanded ? 'expanded' : ''}`}
+    >
+      {/* Header */}
+      <div className="selector-header" onClick={toggleExpanded}>
+        <div className="header-content">
+          <span className="check-icon">
+            {iconForStatus(selectedDump.attributes?.playwright_test_status)}
+          </span>
+          <span className="header-text">{displayText}</span>
+        </div>
+        <div className="arrow-icon">
+          {isExpanded ? <UpOutlined /> : <DownOutlined />}
+        </div>
+      </div>
+
+      {/* Collapsible Content */}
+      {isExpanded && (
+        <div
+          className="selector-content"
+          style={{
+            top: dropdownPosition.top,
+            left: dropdownPosition.left,
           }}
         >
-          {btnName} <DownOutlined />
-        </a>
-      </Dropdown>
+          {/* Filter Controls */}
+          <div className="filter-controls">
+            <div
+              className={`search-container ${hasSearchText ? 'has-content' : ''}`}
+            >
+              <Select
+                value={statusFilter}
+                onChange={handleStatusChange}
+                style={{ width: 80 }}
+                options={TEST_STATUS_OPTIONS}
+                size="small"
+                bordered={false}
+              />
+              <div className="search-input-container">
+                <Input
+                  placeholder="Search by name"
+                  value={searchText}
+                  onChange={handleSearchChange}
+                  suffix={<SearchOutlined style={{ color: '#ccc' }} />}
+                  bordered={false}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Options List */}
+          <div className="options-list">
+            {filteredDumps.map((dump, index) => (
+              <div
+                key={index}
+                className={`option-item ${selected === dump ? 'selected' : ''}`}
+                onClick={() => handleOptionClick(dump)}
+              >
+                <div className="option-content">
+                  {contentForDump(dump, index)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
