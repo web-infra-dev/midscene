@@ -2,26 +2,29 @@ import { readFileSync } from 'node:fs';
 import { basename, extname } from 'node:path';
 import { ScriptPlayer, parseYamlScript } from '@midscene/web/yaml';
 import { createServer } from 'http-server';
-import {
-  type MidsceneYamlFileContext,
-  contextInfo,
-  contextTaskListSummary,
-  isTTY,
-  spinnerInterval,
-} from './printer';
-import { TTYWindowRenderer } from './tty-renderer';
 
 import assert from 'node:assert';
 import { agentFromAdbDevice } from '@midscene/android';
-import type { FreeFn } from '@midscene/core';
+import type {
+  FreeFn,
+  MidsceneYamlScript,
+  MidsceneYamlScriptEnv,
+} from '@midscene/core';
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
 import { puppeteerAgentForTarget } from '@midscene/web/puppeteer-agent-launcher';
+import type { Browser } from 'puppeteer';
+
+export interface SingleYamlExecutionResult {
+  success: boolean;
+  file: string;
+  player: ScriptPlayer<MidsceneYamlScriptEnv>;
+}
 
 export const launchServer = async (
   dir: string,
 ): Promise<ReturnType<typeof createServer>> => {
   // https://github.com/http-party/http-server/blob/master/bin/http-server
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const server = createServer({
       root: dir,
     });
@@ -31,32 +34,34 @@ export const launchServer = async (
   });
 };
 
-let ttyRenderer: TTYWindowRenderer | undefined;
-export async function playYamlFiles(
-  files: string[],
+export async function createYamlPlayer(
+  file: string,
+  script?: MidsceneYamlScript,
   options?: {
     headed?: boolean;
     keepWindow?: boolean;
+    browser?: Browser;
   },
-): Promise<boolean> {
-  // prepare
-  const fileContextList: MidsceneYamlFileContext[] = [];
-  for (const file of files) {
-    const script = parseYamlScript(readFileSync(file, 'utf-8'), file);
-    const fileName = basename(file, extname(file));
-    const preference = {
-      headed: options?.headed,
-      keepWindow: options?.keepWindow,
-      testId: fileName,
-      cacheId: fileName,
-    };
-    const player = new ScriptPlayer(script, async (target) => {
+): Promise<ScriptPlayer<MidsceneYamlScriptEnv>> {
+  const yamlScript =
+    script || parseYamlScript(readFileSync(file, 'utf-8'), file);
+  const fileName = basename(file, extname(file));
+  const preference = {
+    headed: options?.headed,
+    keepWindow: options?.keepWindow,
+    testId: fileName,
+    cacheId: fileName,
+  };
+
+  const player = new ScriptPlayer(
+    yamlScript,
+    async () => {
       const freeFn: FreeFn[] = [];
-      const webTarget = script.web || script.target;
+      const webTarget = yamlScript.web || yamlScript.target;
 
       // handle new web config
       if (typeof webTarget !== 'undefined') {
-        if (typeof script.target !== 'undefined') {
+        if (typeof yamlScript.target !== 'undefined') {
           console.warn(
             'target is deprecated, please use web instead. See https://midscenejs.com/automate-with-scripts-in-yaml for more information. Sorry for the inconvenience.',
           );
@@ -89,6 +94,7 @@ export async function playYamlFiles(
           const { agent, freeFn: newFreeFn } = await puppeteerAgentForTarget(
             webTarget,
             preference,
+            options?.browser,
           );
           freeFn.push(...newFreeFn);
 
@@ -139,8 +145,8 @@ export async function playYamlFiles(
       }
 
       // handle android
-      if (typeof script.android !== 'undefined') {
-        const androidTarget = script.android;
+      if (typeof yamlScript.android !== 'undefined') {
+        const androidTarget = yamlScript.android;
         const agent = await agentFromAdbDevice(androidTarget?.deviceId);
 
         if (androidTarget?.launch) {
@@ -158,45 +164,10 @@ export async function playYamlFiles(
       throw new Error(
         'No valid target configuration found in the yaml script, should be either "web" or "android"',
       );
-    });
-    fileContextList.push({ file, player });
-  }
+    },
+    undefined,
+    file,
+  );
 
-  // play
-  if (isTTY) {
-    const summaryContents = () => {
-      const summary: string[] = [''];
-      for (const context of fileContextList) {
-        summary.push(
-          contextTaskListSummary(context.player.taskStatusList, context),
-        );
-      }
-      summary.push('');
-      return summary;
-    };
-    ttyRenderer = new TTYWindowRenderer({
-      outputStream: process.stdout,
-      errorStream: process.stderr,
-      getWindow: summaryContents,
-      interval: spinnerInterval,
-    });
-
-    ttyRenderer.start();
-    for (const context of fileContextList) {
-      await context.player.run();
-    }
-    ttyRenderer.stop();
-  } else {
-    for (const context of fileContextList) {
-      const { mergedText } = contextInfo(context);
-      console.log(mergedText);
-      await context.player.run();
-      console.log(
-        contextTaskListSummary(context.player.taskStatusList, context),
-      );
-    }
-  }
-
-  const ifFail = fileContextList.some((task) => task.player.status === 'error');
-  return !ifFail;
+  return player;
 }

@@ -2,8 +2,9 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import dotenv from 'dotenv';
 import { version } from '../package.json';
-import { matchYamlFiles, parseProcessArgs } from './cli-utils';
-import { playYamlFiles } from './yaml-runner';
+import { BatchRunner } from './batch-runner';
+import { isIndexYamlFile, matchYamlFiles, parseProcessArgs } from './cli-utils';
+import { createFilesConfig, createIndexConfig } from './config-factory';
 
 Promise.resolve(
   (async () => {
@@ -34,17 +35,54 @@ Promise.resolve(
       process.exit(1);
     }
 
+    const keepWindow = options['keep-window'] ?? false;
+    const headed = options.headed || false;
+
+    // Extract new configuration options
+    const configOptions = {
+      concurrent: options.concurrent,
+      continueOnError: options['continue-on-error'],
+      summary: options.summary,
+      shareBrowserContext: options['share-browser-context'],
+    };
+
+    // Check if the path is an index YAML file
+    if (isIndexYamlFile(path)) {
+      const config = await createIndexConfig(path, configOptions);
+      const executor = new BatchRunner(config);
+
+      await executor.run({
+        keepWindow,
+        headed,
+      });
+
+      const success = executor.printExecutionSummary();
+
+      if (!success) {
+        process.exit(1);
+      }
+
+      process.exit(0);
+    }
+
+    // Handle regular YAML files
     const files = await matchYamlFiles(path);
     if (files.length === 0) {
-      console.error(`no yaml files found in ${path}`);
+      console.error(`No yaml files found in ${path}`);
       process.exit(1);
     }
 
-    const keepWindow = options['keep-window'] || false;
-    const success = await playYamlFiles(files, {
-      headed: !!options.headed,
+    console.log('📄 Executing YAML files...\n');
+
+    const config = createFilesConfig(files, configOptions);
+    const executor = new BatchRunner(config);
+
+    await executor.run({
       keepWindow,
+      headed,
     });
+
+    const success = executor.printExecutionSummary();
 
     if (keepWindow) {
       // hang the process to keep the browser window open

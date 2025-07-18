@@ -1,0 +1,9 @@
+# login to sauce demo, extract the items info into a json file, and assert the price of 'Sauce Labs Fleece Jacket'
+
+web:
+  url: https://www.saucedemo.com/inventory.html
+
+tasks:
+  - name: check login status
+    flow:
+      - aiAssert: there is no login button in the page

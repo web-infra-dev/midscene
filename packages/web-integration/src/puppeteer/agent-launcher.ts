@@ -5,7 +5,7 @@ import { assert } from '@midscene/shared/utils';
 import { PuppeteerAgent } from '@/puppeteer/index';
 import type { MidsceneYamlScriptWebEnv } from '@midscene/core';
 import { DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT } from '@midscene/shared/constants';
-import puppeteer from 'puppeteer';
+import puppeteer, { type Browser } from 'puppeteer';
 
 export const defaultUA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36';
@@ -28,6 +28,7 @@ export async function launchPuppeteerPage(
     headed?: boolean;
     keepWindow?: boolean;
   },
+  browser?: Browser,
 ) {
   assert(target.url, 'url is required');
   const freeFn: FreeFn[] = [];
@@ -108,35 +109,44 @@ export async function launchPuppeteerPage(
     'preference',
     preference,
   );
-  const browser = await puppeteer.launch({
-    headless: !headed,
-    defaultViewport: viewportConfig,
-    args,
-    acceptInsecureCerts: target.acceptInsecureCerts,
-  });
-  freeFn.push({
-    name: 'puppeteer_browser',
-    fn: () => {
-      if (!preference?.keepWindow) {
-        if (isWindows) {
-          setTimeout(() => {
-            browser.close();
-          }, 800);
-        } else {
-          browser.close();
+  let browserInstance = browser;
+  if (!browserInstance) {
+    browserInstance = await puppeteer.launch({
+      headless: !preference?.headed,
+      defaultViewport: viewportConfig,
+      args,
+      acceptInsecureCerts: target.acceptInsecureCerts,
+    });
+    freeFn.push({
+      name: 'puppeteer_browser',
+      fn: () => {
+        if (!preference?.keepWindow) {
+          if (isWindows) {
+            setTimeout(() => {
+              browserInstance?.close();
+            }, 800);
+          } else {
+            browserInstance?.close();
+          }
         }
-      }
-    },
-  });
-
-  const pages = await browser.pages();
-  const page = pages[0];
+      },
+    });
+  }
+  const page = await browserInstance.newPage();
   // await page.setUserAgent(ua);
   // await page.setViewport(viewportConfig);
 
   if (target.cookie) {
     const cookieFileContent = readFileSync(target.cookie, 'utf-8');
-    await browser.setCookie(...JSON.parse(cookieFileContent));
+    await browserInstance.setCookie(...JSON.parse(cookieFileContent));
+  }
+
+  if (ua) {
+    await page.setUserAgent(ua);
+  }
+
+  if (viewportConfig) {
+    await page.setViewport(viewportConfig);
   }
 
   const waitForNetworkIdleTimeout =
@@ -179,8 +189,13 @@ export async function puppeteerAgentForTarget(
     testId?: string;
     cacheId?: string;
   },
+  browser?: Browser,
 ) {
-  const { page, freeFn } = await launchPuppeteerPage(target, preference);
+  const { page, freeFn } = await launchPuppeteerPage(
+    target,
+    preference,
+    browser,
+  );
 
   // prepare Midscene agent
   const agent = new PuppeteerAgent(page, {
