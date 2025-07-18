@@ -25,7 +25,6 @@
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
     "@midscene/web": "workspace:*",
-    "@midscene/shared": "workspace:*",
     "puppeteer": "24.2.0",
     "http-server": "14.1.1"
   },

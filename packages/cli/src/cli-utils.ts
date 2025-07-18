@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { getDebug } from '@midscene/shared/logger';
 import type { MidsceneYamlIndex } from '@midscene/core';
+import { getDebug } from '@midscene/shared/logger';
 import { glob } from 'glob';
 import { load as yamlLoad } from 'js-yaml';
 import { hideBin } from 'yargs/helpers';

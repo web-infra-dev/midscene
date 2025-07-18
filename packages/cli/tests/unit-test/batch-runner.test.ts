@@ -14,7 +14,7 @@ import type {
   ScriptPlayerStatusValue,
 } from '@midscene/core';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
-import { parseYamlScript, type ScriptPlayer } from '@midscene/web/yaml';
+import { type ScriptPlayer, parseYamlScript } from '@midscene/web/yaml';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 // Mock all dependencies
