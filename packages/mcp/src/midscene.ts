@@ -138,7 +138,7 @@ export class MidsceneManager {
   try {  
     let deviceId = this.androidDeviceId;  
       
-    // 如果没有指定设备ID，获取第一个连接的设备  
+    // If no device ID is specified, get the first connected device  
     if (!deviceId) {  
       const devices = await getConnectedDevices();  
       if (devices.length === 0) {  
@@ -148,21 +148,21 @@ export class MidsceneManager {
       this.androidDeviceId = deviceId;  
     }  
   
-    // 创建Android设备实例  
+    // Create an Android device instance  
     const androidDevice = new AndroidDevice(deviceId, {  
       autoDismissKeyboard: true,  
       imeStrategy: 'yadb-for-non-ascii'  
     });  
   
-    // 连接设备  
+    // Connect to the device  
     await androidDevice.connect();  
   
-    // 如果提供了URI，启动应用或网页  
+    // If a URI is provided, launch the app or web page  
     if (uri) {  
       await androidDevice.launch(uri);  
     }  
   
-    // 创建Android Agent  
+    // Create an Android Agent  
     const agent = new AndroidAgent(androidDevice, {  
       aiActionContext: 'If any permission dialog appears, click Allow. If login page appears, close it.'  
     });  
@@ -505,7 +505,7 @@ export class MidsceneManager {
         },
         async ({ deviceId }) => {
           this.androidDeviceId = deviceId;
-          this.agent = undefined; // 重置agent以强制重新初始化
+          this.agent = undefined; // Reset the agent to force reinitialization
           const agent = await this.initAgent();
           
           return {
@@ -538,7 +538,7 @@ export class MidsceneManager {
                 isError: false,
               };
             } catch (error: any) {
-              // 捕获并返回更友好的错误信息
+              // Capture and return a more user-friendly error message
               return {
                 content: [
                   { type: 'text', text: `Failed to launch: ${uri}: ${error.message}` },

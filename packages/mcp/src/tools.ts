@@ -25,7 +25,7 @@ export const tools = {
     description:
       'Moves the mouse cursor to hover over an element identified by a natural language selector.',
   },
-  
+
   // Common tools
   midscene_aiWaitFor: {
     name: 'midscene_aiWaitFor',
