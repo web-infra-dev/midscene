@@ -568,7 +568,9 @@ ${Object.keys(size)
     // Push the YADB tool to the device only once
     if (!this.yadbPushed) {
       const adb = await this.getAdb();
-      const yadbBin = path.join(__dirname, '../../bin/yadb');
+      // Use a more reliable path resolution method
+      const androidPkgJson = require.resolve('@midscene/android/package.json');  
+      const yadbBin = path.join(path.dirname(androidPkgJson), 'bin', 'yadb');
       await adb.push(yadbBin, '/data/local/tmp');
       this.yadbPushed = true;
     }
