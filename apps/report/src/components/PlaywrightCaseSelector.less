@@ -1,0 +1,211 @@
+.modern-playwright-selector {
+  position: relative;
+  margin: 16px 12px;
+  flex-shrink: 0;
+
+  .selector-header {
+    padding: 0 12px;
+    background: #F2F4F7;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.2s ease;
+    min-height: 36px;
+
+    &:hover {
+      background: #f6f8fa;
+      border-color: #d0d7de;
+    }
+
+    .header-content {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+
+      .check-icon {
+        color: #28a745;
+        font-weight: bold;
+        font-size: 12px;
+      }
+
+      .header-text {
+        color: #24292f;
+        font-size: 13px;
+        font-weight: 400;
+      }
+    }
+
+    .arrow-icon {
+      color: #656d76;
+      font-size: 10px;
+      transition: transform 0.2s ease;
+      margin-left: 8px;
+    }
+  }
+
+  &.expanded .selector-header {
+    border-radius: 6px;
+    border: 1px solid #2B83FF;
+    background: #ffffff;
+  }
+
+  .selector-content {
+    position: fixed;
+    z-index: 1000;
+    border: 1px solid #e1e4e8;
+    border-radius: 6px;
+    background: #ffffff;
+    max-height: 400px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    width: fit-content;
+    max-width: 90vw;
+
+    .filter-controls {
+      padding: 12px;
+
+      .search-container {
+        display: flex;
+        align-items: stretch;
+        border: 1px solid #d0d7de;
+        border-radius: 6px;
+        overflow: hidden;
+        background: white;
+        position: relative;
+        height: 32px;
+
+
+        &:focus-within::before,
+        &.has-content::before {
+          opacity: 1;
+        }
+
+        .ant-select {
+          border-right: 1px solid #e1e4e8;
+          display: flex;
+          align-items: center;
+          height: 100%;
+
+          .ant-select-selector {
+            border: none;
+            border-radius: 0;
+            box-shadow: none;
+            background: transparent;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            min-height: auto;
+          }
+
+          .ant-select-selection-item {
+            color: #24292f;
+            font-size: 12px;
+            font-weight: 500;
+            line-height: 1;
+          }
+
+          .ant-select-arrow {
+            color: #656d76;
+          }
+        }
+
+        .search-input-container {
+          flex: 1;
+          position: relative;
+          z-index: 1;
+          display: flex;
+          align-items: center;
+          height: 100%;
+
+          .ant-input {
+            border: none;
+            position: relative;
+            z-index: 1;
+            background: white;
+            border-radius: 0;
+            padding-left: 12px;
+            padding-right: 32px;
+            width: 100%;
+
+            &:focus {
+              border: none;
+              box-shadow: none;
+            }
+
+            &:hover {
+              border: none;
+            }
+          }
+
+          .ant-input-suffix {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 2;
+            pointer-events: none;
+          }
+        }
+      }
+    }
+
+    .options-list {
+      max-height: 300px;
+      overflow-y: auto;
+      overflow-x: hidden;
+
+      .option-item {
+        width: 100%;
+        padding-left: 8px;
+        padding-right: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+        line-height: 32px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+
+        &:hover {
+          background: #f8f9fa;
+        }
+
+        &.selected {
+          background: #e3f2fd;
+
+          .option-check {
+            color: #00c851;
+          }
+        }
+
+        .option-check {
+          color: #00c851;
+          font-weight: bold;
+          font-size: 12px;
+          width: 16px;
+          flex-shrink: 0;
+        }
+
+        .option-content {
+          flex: 1;
+          font-size: 14px;
+          color: #333;
+
+          .cost-str {
+            color: #999;
+            font-size: 12px;
+          }
+        }
+
+        &:last-child {
+          border-bottom: none;
+        }
+      }
+    }
+  }
+}

@@ -1,14 +1,11 @@
 import './App.less';
-import './index.less';
 
-import { CaretRightOutlined } from '@ant-design/icons';
-import { Alert, Button, ConfigProvider, Empty } from 'antd';
+import { Alert, ConfigProvider, Empty } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
 import { Logo, Player, globalThemeConfig } from '@midscene/visualizer';
-import { PlaywrightCaseSelector } from './components/PlaywrightCaseSelector';
 import DetailPanel from './components/detail-panel';
 import DetailSide from './components/detail-side';
 import GlobalHoverPreview from './components/global-hover-preview';
@@ -49,10 +46,14 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   const setGroupedDump = useExecutionDump(
     (store: StoreState) => store.setGroupedDump,
   );
+  const sdkVersion = useExecutionDump((store) => store.sdkVersion);
+  const modelName = useExecutionDump((store) => store.modelName);
+  const modelDescription = useExecutionDump((store) => store.modelDescription);
   const reset = useExecutionDump((store: StoreState) => store.reset);
   const [mainLayoutChangeFlag, setMainLayoutChangeFlag] = useState(0);
   const mainLayoutChangedRef = useRef(false);
   const dump = useExecutionDump((store: StoreState) => store.dump);
+  const [proModeEnabled, setProModeEnabled] = useState(false);
 
   useEffect(() => {
     if (dumps) {
@@ -126,7 +127,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
             <DetailPanel />
           </div>
         </Panel>
-        <PanelResizeHandle />
+        <PanelResizeHandle className="resize-handle" />
         <Panel maxSize={95}>
           <div className="main-side">
             <DetailSide />
@@ -145,12 +146,24 @@ function Visualizer(props: VisualizerProps): JSX.Element {
           }
         }}
       >
-        <Panel maxSize={95} defaultSize={20}>
+        <Panel maxSize={95} defaultSize={25}>
           <div className="page-side">
-            <Sidebar />
+            <Sidebar
+              dumps={dumps}
+              selectedDump={executionDump}
+              onDumpSelect={(dump) => {
+                setGroupedDump(dump);
+              }}
+              proModeEnabled={proModeEnabled}
+              onProModeChange={setProModeEnabled}
+              replayAllScripts={replayAllScripts}
+              replayAllMode={replayAllMode}
+              setReplayAllMode={setReplayAllMode}
+            />
           </div>
         </Panel>
         <PanelResizeHandle
+          className="resize-handle"
           onDragging={(isChanging) => {
             if (mainLayoutChangedRef.current && !isChanging) {
               setMainLayoutChangeFlag((prev) => prev + 1);
@@ -158,8 +171,9 @@ function Visualizer(props: VisualizerProps): JSX.Element {
             mainLayoutChangedRef.current = isChanging;
           }}
         />
-        <Panel defaultSize={80} maxSize={95}>
+        <Panel defaultSize={75} maxSize={95}>
           <div className="main-right">
+            <div className="main-right-header">Record</div>
             <Timeline key={mainLayoutChangeFlag} />
             <div className="main-content">{content}</div>
           </div>
@@ -201,9 +215,6 @@ function Visualizer(props: VisualizerProps): JSX.Element {
 
   return (
     <ConfigProvider theme={globalThemeConfig()}>
-      {/* <Helmet>
-        <title>Report - Midscene.js</title>
-      </Helmet> */}
       <div
         className="page-container"
         key={`render-${globalRenderCount}`}
@@ -212,37 +223,17 @@ function Visualizer(props: VisualizerProps): JSX.Element {
         <div className="page-nav">
           <div className="page-nav-left">
             <Logo />
-            <div className="page-nav-toolbar">
-              <ConfigProvider
-                theme={{
-                  components: {
-                    Button: { textHoverBg: '#bfc4da80' },
-                  },
-                }}
-              >
-                <Button
-                  type="text"
-                  icon={<CaretRightOutlined />}
-                  disabled={!replayAllScripts || replayAllScripts.length === 0}
-                  style={{
-                    background: replayAllMode ? '#bfc4da80' : undefined,
-                  }}
-                  onClick={() => {
-                    setReplayAllMode(true);
-                  }}
-                >
-                  Replay All
-                </Button>
-              </ConfigProvider>
+          </div>
+          <div className="page-nav-right">
+            <div className="page-nav-version">
+              v{sdkVersion}
+              {modelName || modelDescription
+                ? ` | ${[modelName, modelDescription]
+                    .filter(Boolean)
+                    .join(', ')}`
+                : ''}
             </div>
           </div>
-          <PlaywrightCaseSelector
-            dumps={props.dumps}
-            selected={executionDump}
-            onSelect={(dump) => {
-              setGroupedDump(dump);
-            }}
-          />
         </div>
         {mainContent}
       </div>

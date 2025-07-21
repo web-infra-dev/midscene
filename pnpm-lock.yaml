@@ -324,6 +324,9 @@ importers:
       '@rsbuild/plugin-node-polyfill':
         specifier: 1.3.0
         version: 1.3.0(@rsbuild/core@1.3.22)
+      '@rsbuild/plugin-svgr':
+        specifier: ^1.1.1
+        version: 1.2.0(@rsbuild/core@1.3.22)(typescript@5.8.3)
       '@rsdoctor/rspack-plugin':
         specifier: 1.0.2
         version: 1.0.2(@rsbuild/core@1.3.22)(@rspack/core@1.3.12(@swc/helpers@0.5.17))(webpack@5.99.5)

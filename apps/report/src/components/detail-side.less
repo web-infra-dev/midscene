@@ -4,6 +4,80 @@
 @lightTextColor: #777;
 
 .detail-side {
+  height: 100%;
+  overflow-y: auto;
+
+  .info-tabs {
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 1;
+    border-bottom: 1px solid #f0f0f0;
+
+    .info-tab {
+      display: inline-block;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      position: relative;
+
+      &.active {
+        &::after {
+          content: '';
+          position: absolute;
+          bottom: -1px;
+          left: 0;
+          width: 100%;
+          height: 2px;
+          background-color: #1677ff;
+        }
+      }
+    }
+  }
+
+  details {
+    summary {
+      height: 34px;
+      line-height: 34px;
+      color: rgba(0, 0, 0, 0.85);
+      font-size: 16px;
+      font-weight: 500;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      border-top: 1px solid rgba(0, 0, 0, 0.06);
+
+      &::-webkit-details-marker {
+        display: none;
+      }
+
+      &::before {
+        content: '';
+        background-image: url('../icons/arrow.svg');
+        background-size: contain;
+        width: 10px;
+        height: 6px;
+        display: inline-block;
+        margin-right: 8px;
+        transition: transform 0.2s;
+        transform: rotate(-90deg);
+      }
+    }
+  }
+
+  details:first-of-type summary {
+    border-top: none;
+  }
+
+  details[open]>summary {
+    &::before {
+      transform: rotate(0deg);
+      position: relative;
+    }
+  }
+
   h2 {
     padding-top: 0;
     margin-top: 0;
@@ -14,40 +88,34 @@
     margin-top: 2px;
   }
 
-
   .log-content {
     padding: 20px;
   }
 
   .meta-kv {
-    padding: @side-vertical-spacing @side-horizontal-padding calc(@side-vertical-spacing + 4px);
-    overflow: hidden;
+    overflow: scroll;
 
     .meta {
       box-sizing: border-box;
-      padding: 2px 0;
+      padding: 6px 20px;
       width: 100%;
       display: flex;
-      flex-direction: row;
-      line-height: 1.5;
+      flex-direction: column;
+      line-height: 22px;
 
       .meta-key {
-        width: 100px;
-        text-align: right;
-        padding-right: 16px;
-        flex-shrink: 0;
-        // color: #999;
+        font-size: 14px;
+        color: rgba(0, 0, 0, 0.45);
       }
 
       .meta-value {
-        flex: 1;
+        font-size: 14px;
+        color: rgba(0, 0, 0, 0.85);
       }
     }
   }
 
   .item-list {
-    padding: @side-vertical-spacing @side-horizontal-padding;
-
     cursor: default;
     margin-bottom: 10px;
 
@@ -106,6 +174,7 @@
 
     .description {
       margin-top: @subSpacing;
+      padding: 0 20px;
     }
 
     .description-content {
@@ -130,9 +199,5 @@
 
   pre {
     text-wrap: balance;
-  }
-
-  .item-list-space-up {
-    margin-top: @side-vertical-spacing;
   }
 }

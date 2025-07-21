@@ -39,7 +39,7 @@ export const iconForStatus = (status: string) => {
     case 'success':
     case 'connected':
       return (
-        <span style={{ color: '#2B8243' }}>
+        <span style={{ color: '#00AD4B' }}>
           <CheckOutlined />
         </span>
       );

@@ -15,9 +15,9 @@
   max-width: 100%;
   max-height: 100%;
   padding: 12px;
-  background: #F5F5F5;
+  background: #F2F4F7;
   box-sizing: border-box;
-  border: 1px solid #F5F5F5;
+  border: 1px solid #F2F4F7;
   border-radius: @radius;
   line-height: 100%;
   margin: 0 auto;
@@ -32,7 +32,7 @@
     background: #fff;
 
     .canvas-container {
-      background-color: #F5F5F5;
+      background-color: #F2F4F7;
     }
   }
 
@@ -44,10 +44,10 @@
     justify-content: center;
     align-items: center;
     overflow: hidden;
-    margin-bottom: @player-spacing;
     position: relative;
     background-color: #fff;
-    border-radius: inherit;
+    border-top-right-radius: 16px;
+    border-top-left-radius: 16px;
 
     // default to width adaptive mode
     aspect-ratio: var(--canvas-aspect-ratio, 16/9); // use dynamic ratio
@@ -122,6 +122,8 @@
     position: relative;
     padding-top: @player-vertical-spacing;
     padding-bottom: @player-vertical-spacing;
+    padding-left: 16px;
+    padding-right: 16px;
     box-sizing: border-box;
   }
 
