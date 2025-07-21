@@ -23,7 +23,7 @@ Promise.resolve(
     const configFile = options.config as string | undefined;
 
     if (!configFile && !path && !(cmdFiles && cmdFiles.length > 0)) {
-      console.error('no script path, files, or config provided');
+      console.error('No script path, files, or config provided');
       process.exit(1);
     }
 
