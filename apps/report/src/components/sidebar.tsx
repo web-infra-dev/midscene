@@ -243,7 +243,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
             checked={proModeEnabled}
             onChange={(e) => onProModeChange?.(e.target.checked)}
           >
-            Token Usage
+            Token usage
           </Checkbox>
         </div>
       </div>
