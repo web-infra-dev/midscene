@@ -61,6 +61,7 @@ export function EnvConfig({
         title="Please set up your environment variables before using."
         placement={tooltipPlacement}
         align={{ offset: [-10, 5] }}
+        getPopupContainer={() => componentRef.current as HTMLElement}
         open={
           // undefined for default behavior of tooltip, hover for show
           // close tooltip when modal is open
