@@ -146,7 +146,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
           }
         }}
       >
-        <Panel maxSize={95} defaultSize={20}>
+        <Panel maxSize={95} defaultSize={25}>
           <div className="page-side">
             <Sidebar
               dumps={dumps}
@@ -171,7 +171,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
             mainLayoutChangedRef.current = isChanging;
           }}
         />
-        <Panel defaultSize={80} maxSize={95}>
+        <Panel defaultSize={75} maxSize={95}>
           <div className="main-right">
             <div className="main-right-header">Record</div>
             <Timeline key={mainLayoutChangeFlag} />
