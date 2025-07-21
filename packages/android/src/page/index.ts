@@ -33,7 +33,6 @@ export type AndroidDeviceOpt = {
 
 export class AndroidDevice implements AndroidDevicePage {
   private deviceId: string;
-  private screenSize: Size | null = null;
   private yadbPushed = false;
   private devicePixelRatio = 1;
   private adb: ADB | null = null;
@@ -253,12 +252,19 @@ ${Object.keys(size)
 
     let orientation = 0;
     try {
-      const orientationStdout = await adb.shell(
+      let orientationStdout = await adb.shell(
         'dumpsys input | grep SurfaceOrientation',
       );
-      const orientationMatch = orientationStdout.match(
+      let orientationMatch = orientationStdout.match(
         /SurfaceOrientation:\s*(\d)/,
       );
+      if (!orientationMatch) {
+        // fallback to dumpsys display
+        orientationStdout = await adb.shell(
+          'dumpsys display | grep mCurrentOrientation',
+        );
+        orientationMatch = orientationStdout.match(/mCurrentOrientation=(\d)/);
+      }
       orientation = orientationMatch ? Number(orientationMatch[1]) : 0;
       debugPage(`Screen orientation: ${orientation}`);
     } catch (e) {
@@ -273,10 +279,6 @@ ${Object.keys(size)
   }
 
   async size(): Promise<Size> {
-    if (this.screenSize) {
-      return this.screenSize;
-    }
-
     const adb = await this.getAdb();
 
     // Use custom getScreenSize method instead of adb.getScreenSize()
@@ -307,13 +309,11 @@ ${Object.keys(size)
       height,
     );
 
-    this.screenSize = {
+    return {
       width: logicalWidth,
       height: logicalHeight,
       dpr: this.devicePixelRatio,
     };
-
-    return this.screenSize;
   }
 
   private adjustCoordinates(x: number, y: number): { x: number; y: number } {
@@ -743,7 +743,6 @@ ${Object.keys(size)
     }
 
     this.connectingAdb = null;
-    this.screenSize = null;
     this.yadbPushed = false;
   }
 
