@@ -1,9 +1,9 @@
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { isIndexYamlFile, matchYamlFiles } from '@/cli-utils';
+import { matchYamlFiles, parseProcessArgs } from '@/cli-utils';
 import { launchServer } from '@/create-yaml-player';
-import { afterEach, beforeEach, describe, expect, test } from 'vitest';
-const serverRoot = join(__dirname, '../server_root');
+import { afterEach, describe, expect, test } from 'vitest';
+
+(global as any).__VERSION__ = '0.0.0-test';
 
 describe('matchYamlFiles', () => {
   test('match exact file', async () => {
@@ -42,94 +42,139 @@ describe('matchYamlFiles', () => {
   });
 });
 
-describe('isIndexYamlFile', () => {
-  const testDir = join(__dirname, '../test_yaml_files');
-
-  beforeEach(() => {
-    // Create test directory
-    mkdirSync(testDir, { recursive: true });
-  });
+describe('parseProcessArgs', () => {
+  const originalArgv = process.argv;
 
   afterEach(() => {
-    // Clean up test directory
-    rmSync(testDir, { recursive: true, force: true });
+    process.argv = originalArgv;
   });
 
-  test('should return true for file with order array', () => {
-    const indexYamlContent = `
-order:
-  - file1.yml
-  - file2.yml
-`;
-    const indexYamlPath = join(testDir, 'index.yml');
-    writeFileSync(indexYamlPath, indexYamlContent);
-
-    expect(isIndexYamlFile(indexYamlPath)).toBe(true);
+  test('should parse path argument', async () => {
+    process.argv = ['node', 'midscene', 'path/to/script.yml'];
+    const { path, options, files } = await parseProcessArgs();
+    expect(path).toBe('path/to/script.yml');
+    expect(files).toBeUndefined();
+    expect(options._).toEqual(['path/to/script.yml']);
   });
 
-  test('should return false for file without order field', () => {
-    const normalYamlContent = `
-target:
-  serve: ./tests/server_root
-  url: index.html
-tasks:
-  - name: check title
-    flow:
-      - aiAssert: the content title is "My App"
-`;
-    const normalYamlPath = join(testDir, 'normal.yml');
-    writeFileSync(normalYamlPath, normalYamlContent);
-
-    expect(isIndexYamlFile(normalYamlPath)).toBe(false);
+  test('should parse --files argument', async () => {
+    process.argv = ['node', 'midscene', '--files', 'file1.yml', 'file2.yml'];
+    const { path, options, files } = await parseProcessArgs();
+    expect(path).toBeUndefined();
+    expect(files).toEqual(['file1.yml', 'file2.yml']);
   });
 
-  test('should return false for file with order field but not array', () => {
-    const invalidYamlContent = `
-order: "not-an-array"
-`;
-    const invalidYamlPath = join(testDir, 'invalid.yml');
-    writeFileSync(invalidYamlPath, invalidYamlContent);
-
-    expect(isIndexYamlFile(invalidYamlPath)).toBe(false);
+  test('should parse --config argument', async () => {
+    process.argv = ['node', 'midscene', '--config', 'config.yml'];
+    const { options } = await parseProcessArgs();
+    expect(options.config).toBe('config.yml');
   });
 
-  test('should return false for non-existent file', () => {
-    const nonExistentPath = join(testDir, 'non-existent.yml');
-    expect(isIndexYamlFile(nonExistentPath)).toBe(false);
+  test('should parse all boolean and value flags', async () => {
+    process.argv = [
+      'node',
+      'midscene',
+      '--headed',
+      '--keep-window',
+      '--continue-on-error',
+      '--share-browser-context',
+      '--dotenv-override',
+      '--dotenv-debug',
+      '--concurrent',
+      '3',
+      '--summary',
+      'report.json',
+    ];
+    const { options } = await parseProcessArgs();
+    expect(options.headed).toBe(true);
+    expect(options['keep-window']).toBe(true);
+    expect(options['continue-on-error']).toBe(true);
+    expect(options['share-browser-context']).toBe(true);
+    expect(options['dotenv-override']).toBe(true);
+    expect(options['dotenv-debug']).toBe(true);
+    expect(options.concurrent).toBe(3);
+    expect(options.summary).toBe('report.json');
   });
 
-  test('should return false for invalid YAML file', () => {
-    const invalidYamlContent = `
-invalid: yaml: content: [
-`;
-    const invalidYamlPath = join(testDir, 'invalid-yaml.yml');
-    writeFileSync(invalidYamlPath, invalidYamlContent);
-
-    expect(isIndexYamlFile(invalidYamlPath)).toBe(false);
+  test('should parse nested web and android options in camelCase', async () => {
+    process.argv = [
+      'node',
+      'midscene',
+      '--web.userAgent',
+      'test-ua',
+      '--web.viewportWidth',
+      '1024',
+      '--web.viewportHeight',
+      '768',
+      '--android.deviceId',
+      'test-device',
+    ];
+    const { options } = await parseProcessArgs();
+    expect(options.web).toEqual({
+      'user-agent': 'test-ua',
+      userAgent: 'test-ua',
+      'viewport-width': 1024,
+      viewportWidth: 1024,
+      'viewport-height': 768,
+      viewportHeight: 768,
+    });
+    expect(options.android).toEqual({
+      'device-id': 'test-device',
+      deviceId: 'test-device',
+    });
   });
 
-  test('should return false for file with empty order array', () => {
-    const emptyOrderYamlContent = `
-order: []
-`;
-    const emptyOrderYamlPath = join(testDir, 'empty-order.yml');
-    writeFileSync(emptyOrderYamlPath, emptyOrderYamlContent);
-
-    expect(isIndexYamlFile(emptyOrderYamlPath)).toBe(true);
+  test('should parse nested web and android options in kebab-case', async () => {
+    process.argv = [
+      'node',
+      'midscene',
+      '--web.user-agent',
+      'test-ua-kebab',
+      '--web.viewport-width',
+      '1280',
+      '--web.viewport-height',
+      '1024',
+      '--android.device-id',
+      'test-device-kebab',
+    ];
+    const { options } = await parseProcessArgs();
+    expect(options.web).toEqual({
+      'user-agent': 'test-ua-kebab',
+      userAgent: 'test-ua-kebab',
+      'viewport-width': 1280,
+      viewportWidth: 1280,
+      'viewport-height': 1024,
+      viewportHeight: 1024,
+    });
+    expect(options.android).toEqual({
+      'device-id': 'test-device-kebab',
+      deviceId: 'test-device-kebab',
+    });
   });
 
-  test('should return false for file with order field as null', () => {
-    const nullOrderYamlContent = `
-order: null
-`;
-    const nullOrderYamlPath = join(testDir, 'null-order.yml');
-    writeFileSync(nullOrderYamlPath, nullOrderYamlContent);
-
-    expect(isIndexYamlFile(nullOrderYamlPath)).toBe(false);
+  test('should handle mixed arguments', async () => {
+    process.argv = [
+      'node',
+      'midscene',
+      '--config',
+      'config.yml',
+      '--files',
+      'a.yml',
+      'b.yml',
+      '--concurrent',
+      '5',
+      'some/path.yml',
+    ];
+    const { path, files, options } = await parseProcessArgs();
+    expect(path).toBe('some/path.yml');
+    expect(files).toEqual(['a.yml', 'b.yml']);
+    expect(options.config).toBe('config.yml');
+    expect(options.concurrent).toBe(5);
   });
 });
 
 describe('launch server', () => {
+  const serverRoot = join(__dirname, '../server_root');
   test('launch server', async () => {
     const serverResult = await launchServer(serverRoot);
     expect(serverResult).toBeDefined();

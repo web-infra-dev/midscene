@@ -210,7 +210,11 @@ export interface MidsceneYamlIndex {
   shareBrowserContext?: boolean;
   web?: MidsceneYamlScriptWebEnv;
   android?: MidsceneYamlScriptAndroidEnv;
-  order: string[];
+  files: string[];
+  headed?: boolean;
+  keepWindow?: boolean;
+  dotenvOverride?: boolean;
+  dotenvDebug?: boolean;
 }
 
 export interface MidsceneYamlIndexOutput {

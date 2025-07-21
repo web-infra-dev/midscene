@@ -15,6 +15,7 @@ import type {
 } from '@midscene/core';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { type ScriptPlayer, parseYamlScript } from '@midscene/web/yaml';
+import puppeteer from 'puppeteer';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 // Mock all dependencies
@@ -55,6 +56,10 @@ const mockBatchConfig = {
   globalConfig: {
     web: { url: 'http://example.com' },
   },
+  headed: false,
+  keepWindow: false,
+  dotenvDebug: true,
+  dotenvOverride: false,
 };
 
 // Mock the yaml script
@@ -107,6 +112,75 @@ describe('BatchRunner', () => {
     );
 
     vi.mocked(getMidsceneRunSubDir).mockReturnValue('/test/output');
+  });
+
+  describe('shareBrowserContext logic', () => {
+    test('should create one browser instance when shareBrowserContext is true', async () => {
+      const config = {
+        ...mockBatchConfig,
+        shareBrowserContext: true,
+        files: ['web1.yml', 'web2.yml'],
+      };
+      const runner = new BatchRunner(config);
+      await runner.run();
+
+      expect(puppeteer.launch).toHaveBeenCalledTimes(1);
+
+      const browserInstance = (await vi.mocked(puppeteer.launch).mock.results[0]
+        .value) as any;
+      expect(vi.mocked(createYamlPlayer)).toHaveBeenCalledWith(
+        'web1.yml',
+        expect.any(Object),
+        expect.objectContaining({ browser: browserInstance }),
+      );
+      expect(vi.mocked(createYamlPlayer)).toHaveBeenCalledWith(
+        'web2.yml',
+        expect.any(Object),
+        expect.objectContaining({ browser: browserInstance }),
+      );
+    });
+
+    test('should not create a shared browser instance when shareBrowserContext is false', async () => {
+      const config = {
+        ...mockBatchConfig,
+        shareBrowserContext: false,
+        files: ['web1.yml', 'web2.yml'],
+      };
+      const runner = new BatchRunner(config);
+      await runner.run();
+
+      expect(puppeteer.launch).not.toHaveBeenCalled();
+
+      expect(vi.mocked(createYamlPlayer)).toHaveBeenCalledWith(
+        'web1.yml',
+        expect.any(Object),
+        expect.not.objectContaining({ browser: expect.anything() }),
+      );
+      expect(vi.mocked(createYamlPlayer)).toHaveBeenCalledWith(
+        'web2.yml',
+        expect.any(Object),
+        expect.not.objectContaining({ browser: expect.anything() }),
+      );
+    });
+
+    test('should not create any browser instance if no web tasks', async () => {
+      const config = {
+        ...mockBatchConfig,
+        shareBrowserContext: true, // even if true
+        files: ['android1.yml', 'android2.yml'],
+        globalConfig: {},
+      };
+      // mock file config to be android only
+      vi.mocked(parseYamlScript).mockReturnValue({
+        tasks: [],
+        android: { deviceId: 'test' },
+      });
+
+      const runner = new BatchRunner(config);
+      await runner.run();
+
+      expect(puppeteer.launch).not.toHaveBeenCalled();
+    });
   });
 
   describe('BatchRunner execution', () => {
@@ -343,6 +417,10 @@ describe('BatchRunner', () => {
         ...mockBatchConfig,
         files: ['file1.yml'],
         globalConfig: undefined,
+        headed: false,
+        keepWindow: false,
+        dotenvDebug: true,
+        dotenvOverride: false,
       });
       vi.mocked(parseYamlScript).mockReturnValue(
         JSON.parse(JSON.stringify(baseFileConfig)),
@@ -357,13 +435,21 @@ describe('BatchRunner', () => {
       expect(call[1]).toEqual(baseFileConfig);
     });
 
-    test('should merge web config from global config without overriding existing values', async () => {
+    test('should override file config with global config', async () => {
       const runner = new BatchRunner({
         ...mockBatchConfig,
         files: ['file1.yml'],
         globalConfig: {
-          web: { url: 'http://global.com', serve: '/global/serve' },
+          web: {
+            url: 'http://global.com',
+            serve: '/global/serve',
+            userAgent: 'global-agent',
+          },
         },
+        headed: false,
+        keepWindow: false,
+        dotenvDebug: true,
+        dotenvOverride: false,
       });
       vi.mocked(parseYamlScript).mockReturnValue(
         JSON.parse(JSON.stringify(baseFileConfig)),
@@ -375,21 +461,24 @@ describe('BatchRunner', () => {
       const call = createYamlPlayerSpy.mock.calls[0];
       const script = call[1]!;
 
-      // Should not be overridden
-      expect(script.web?.url).toBe('http://file.com');
-      // Should be added from global config
+      // url and userAgent should be overridden by global config
+      expect(script.web?.url).toBe('http://global.com');
+      expect(script.web?.userAgent).toBe('global-agent');
+      // serve should be added from global config
       expect(script.web?.serve).toBe('/global/serve');
-      // Should not be touched
-      expect(script.web?.userAgent).toBe('file-agent');
     });
 
-    test('should merge android config from global config without overriding existing values', async () => {
+    test('should merge android config from global config, overriding existing values', async () => {
       const runner = new BatchRunner({
         ...mockBatchConfig,
         files: ['file1.yml'],
         globalConfig: {
           android: { launch: 'global.app', deviceId: 'global-device' },
         },
+        headed: false,
+        keepWindow: false,
+        dotenvDebug: true,
+        dotenvOverride: false,
       });
       vi.mocked(parseYamlScript).mockReturnValue(
         JSON.parse(JSON.stringify(baseFileConfig)),
@@ -401,44 +490,9 @@ describe('BatchRunner', () => {
       const call = createYamlPlayerSpy.mock.calls[0];
       const script = call[1]!;
 
-      // Should not be overridden
-      expect(script.android?.launch).toBe('file.app');
-      expect(script.android?.deviceId).toBe('file-device');
-    });
-
-    test('should add values from global config if they are missing in file config', async () => {
-      const fileConfigWithMissingValues: MidsceneYamlScript = {
-        tasks: [{ name: 'test task', flow: [{ ai: 'do something' }] }],
-        web: { userAgent: 'file-agent' }, // missing url and serve
-        android: { launch: 'file.app' }, // missing deviceId
-      };
-
-      const runner = new BatchRunner({
-        ...mockBatchConfig,
-        files: ['file1.yml'],
-        globalConfig: {
-          web: { url: 'http://global.com', serve: '/global/serve' },
-          android: { deviceId: 'global-device' },
-        },
-      });
-      vi.mocked(parseYamlScript).mockReturnValue(
-        JSON.parse(JSON.stringify(fileConfigWithMissingValues)),
-      );
-
-      await runner.run();
-
-      const createYamlPlayerSpy = vi.mocked(createYamlPlayer);
-      const call = createYamlPlayerSpy.mock.calls[0];
-      const script = call[1]!;
-
-      // Check added values
-      expect(script.web?.url).toBe('http://global.com');
-      expect(script.web?.serve).toBe('/global/serve');
+      // Should be overridden
+      expect(script.android?.launch).toBe('global.app');
       expect(script.android?.deviceId).toBe('global-device');
-
-      // Check existing values are untouched
-      expect(script.web?.userAgent).toBe('file-agent');
-      expect(script.android?.launch).toBe('file.app');
     });
 
     test('should create web/android config if it does not exist in file config', async () => {
@@ -452,6 +506,10 @@ describe('BatchRunner', () => {
           web: { url: 'http://global.com' },
           android: { deviceId: 'global-device' },
         },
+        headed: false,
+        keepWindow: false,
+        dotenvDebug: true,
+        dotenvOverride: false,
       });
       vi.mocked(parseYamlScript).mockReturnValue(
         JSON.parse(JSON.stringify(fileConfigWithoutWebAndroid)),
@@ -469,30 +527,6 @@ describe('BatchRunner', () => {
       expect(script.android?.deviceId).toBe('global-device');
     });
 
-    test('should handle single file execution without global config correctly', async () => {
-      const singleFileConfig = {
-        ...mockBatchConfig,
-        files: ['file1.yml'],
-        globalConfig: undefined, // Explicitly no global config
-      };
-      const runner = new BatchRunner(singleFileConfig);
-      const androidConfigOnly = {
-        tasks: [{ name: 'test task', flow: [{ ai: 'do something' }] }],
-        android: { deviceId: 'test-device' },
-      };
-      vi.mocked(parseYamlScript).mockReturnValue(
-        JSON.parse(JSON.stringify(androidConfigOnly)),
-      );
-
-      await runner.run();
-
-      const createYamlPlayerSpy = vi.mocked(createYamlPlayer);
-      expect(createYamlPlayerSpy).toHaveBeenCalled();
-      const call = createYamlPlayerSpy.mock.calls[0];
-      // The script passed to the player should be the same as the file content
-      expect(call[1]).toEqual(androidConfigOnly);
-    });
-
     test('should not launch puppeteer if no web tasks are present', async () => {
       const puppeteer = await import('puppeteer');
       const launchSpy = vi.spyOn(puppeteer.default, 'launch');
@@ -501,6 +535,10 @@ describe('BatchRunner', () => {
         ...mockBatchConfig,
         files: ['android-only.yml'],
         globalConfig: undefined,
+        headed: false,
+        keepWindow: false,
+        dotenvDebug: true,
+        dotenvOverride: false,
       });
 
       const androidOnlyScript = {

@@ -88,63 +88,15 @@ midscene ./bing-search.yaml
 npx midscene ./bing-search.yaml
 ```
 
-You should see the script's execution progress and a link to the visual report file.
+You will see the script's execution progress and the visual report file.
 
-## Command-Line Tool Usage
+## Script File Structure
 
-`@midscene/cli` provides flexible ways to run your automation scripts.
+Script files use YAML format to describe automation tasks. It defines the target to be manipulated (like a webpage or an Android app) and the series of steps to perform.
 
-### Run One or More Scripts
-
-You can pass a single `.yaml` script file or use a glob pattern to match multiple `.yaml` files to the `midscene` command.
-
-```bash
-# Run a single script
-midscene ./bing-search.yaml
-
-# Use a glob pattern to run all matching scripts
-midscene './scripts/**/*.yaml'
-```
-
-### Use an Index File for Orchestration
-
-For more complex scenarios, you can use an index `.yaml` file to define a complete execution plan. This gives you better control over concurrency, error handling, and configuration sharing.
-
-```bash
-midscene ./index.yaml
-```
-
-### Command-Line Options
-
-Whether you run script files directly or use an index file, you can control the execution behavior with command-line options. If the same configuration is defined in the index file, the command-line options will take precedence.
-
-- `--concurrent <number>`: Sets the number of concurrent executions. Defaults to `1`.
-- `--continue-on-error`: If this flag is set, it will continue to run the remaining scripts even if one fails.
-- `--share-browser-context`: Shares the same browser context (e.g., Cookies and `localStorage`) across all scripts. This is very useful for sequential tests that require a login state.
-- `--summary <filename>`: Specifies the path for the generated summary report file.
-- `--headed`: Runs the script in a browser with a graphical user interface, rather than in headless mode.
-- `--keep-window`: Keeps the browser window open after the script execution is complete. This option automatically enables `--headed` mode.
-
-```bash
-# Run all scripts with a concurrency of 4 and continue on error
-midscene './scripts/**/*.yaml' --concurrent 4 --continue-on-error
-
-# Run the index file but override its concurrency setting to 10
-midscene ./index.yaml --concurrent 10
-```
-
-## `.yaml` File Structure
-
-Midscene supports two types of `.yaml` files, which can be combined to achieve flexible automation workflows.
-
-### 1. Single Script Files
-
-A script file is where you define the specific automation tasks to be executed. It specifies the target to be manipulated (like a webpage or an Android app) and the series of steps to perform.
-
-A standard `.yaml` script file includes a `web` or `android` section, and a `tasks` section.
+A standard `.yaml` script file includes a `web` or `android` section to configure the environment, and a `tasks` section to define the automation tasks.
 
 ```yaml
-# The web or android section defines the automation target
 web:
   url: https://www.bing.com
 
@@ -156,75 +108,6 @@ tasks:
       - sleep: 3000
       - aiAssert: The results show weather information
 ```
-
-### 2. Multi-Script Files
-
-A multi-script file acts as an entry point for organizing and managing the batch execution of multiple script files. It does not contain specific `tasks` but instead defines which script files to execute and the rules for their execution.
-
-A multi-script file contains the following parts:
-
-```yaml
-# Defines the list of files to execute, supports glob patterns
-files:
-  - './scripts/login.yaml'
-  - './scripts/search.yaml'
-  - './scripts/**/*.yaml'
-
-# Number of concurrent executions, defaults to 1
-# Can be overridden by the --concurrent command-line option
-concurrent: 2
-
-# Whether to continue executing other files on error, defaults to false
-# Can be overridden by the --continue-on-error command-line option
-continueOnError: true
-
-# Whether to share the browser context, defaults to false
-# Can be overridden by the --share-browser-context command-line option
-shareBrowserContext: true
-
-# Global web configuration (only url and serve fields can be overridden by individual file configurations)
-web:
-  userAgent: 'Custom User Agent'
-  viewportWidth: 1920
-  viewportHeight: 1080
-
-# Global android configuration (only the launch field can be overridden by individual file configurations)
-android:
-  deviceId: 'your-device-id'
-```
-
-#### Configuration Description
-
-- **files**: Required, defines the list of script files to execute, supports glob pattern matching.
-- **concurrent**: Optional, the number of files to execute concurrently, defaults to 1.
-- **continueOnError**: Optional, whether to continue executing other files when one fails, defaults to `false`.
-- **shareBrowserContext**: Optional, whether to share the browser context across all scripts, defaults to `false`.
-- **summary**: Optional, specifies the path for the generated summary report file.
-- **web**: Optional, global web configuration. Note: Only the `url` and `serve` fields can be overridden by individual YAML file configurations; other fields serve as fixed global settings.
-- **android**: Optional, global android configuration. Note: Only the `launch` field can be overridden by individual YAML file configurations; other fields serve as fixed global settings.
-
-#### Advantages of Using Multi-Script Files
-
-1.  **Centralized Management**: Define complex execution plans in a single file.
-2.  **Configuration Reuse**: Global configurations can be shared by all files, reducing redundant setup.
-3.  **Aggregated Results**: Automatically generates a summary report containing the results of all executions.
-
-Running a multi-script file:
-
-```bash
-midscene ./index.yaml
-
-# Also supports --headed and --keep-window options
-midscene ./index.yaml --headed
-```
-
-### Execution Artifacts
-
-After execution is complete, the following files will be generated in the output directory:
-
-- An aggregated `index.json` file (or the file specified by the `--summary` option), containing the execution status and statistics of all files.
-- The individual execution results of each YAML file (in JSON format).
-- The visual reports for each file (in HTML format).
 
 ### The `web` part
 
@@ -389,6 +272,76 @@ tasks:
       # ...
 ```
 
+## Advanced Usage of the Command-Line Tool
+
+`@midscene/cli` provides flexible ways to run your automation scripts.
+
+### Run One or More Scripts
+
+You can pass a single `.yaml` script file or use a glob pattern to match multiple `.yaml` files to the `midscene` command. This is a shorthand for the `--files` argument.
+
+```bash
+# Run a single script
+midscene ./bing-search.yaml
+
+# Use a glob pattern to run all matching scripts
+midscene './scripts/**/*.yaml'
+```
+
+### Command-Line Options
+
+The command-line tool provides several options to control the execution behavior of your scripts.
+
+- `--files <file1> <file2> ...`: Specifies a list of script files to execute, which will be run in order. Supports glob patterns, following the syntax supported by [glob](https://www.npmjs.com/package/glob).
+- `--concurrent <number>`: Sets the number of concurrent executions. Defaults to `1`.
+- `--continue-on-error`: If this flag is set, it will continue to run the remaining scripts even if one fails. Defaults to off.
+- `--share-browser-context`: Shares the same browser context (e.g., Cookies and `localStorage`) across all scripts. This is very useful for sequential tests that require a login state. Defaults to off.
+- `--summary <filename>`: Specifies the path for the generated JSON format summary report file.
+- `--headed`: Runs the script in a browser with a graphical user interface, rather than in headless mode.
+- `--keep-window`: Keeps the browser window open after the script execution is complete. This option automatically enables `--headed` mode.
+- `--config <filename>`: Specifies a configuration file. Parameters in the config file will be used as default values for the command-line arguments.
+- `--web.userAgent <ua>`: Sets the browser UA, which will override the `web.userAgent` parameter in all script files.
+- `--web.viewportWidth <width>`: Sets the browser viewport width, which will override the `web.viewportWidth` parameter in all script files.
+- `--web.viewportHeight <height>`: Sets the browser viewport height, which will override the `web.viewportHeight` parameter in all script files.
+- `--android.deviceId <device-id>`: Sets the Android device ID, which will override the `android.deviceId` parameter in all script files.
+- `--dotenv-debug`: Sets the debug log for dotenv, enabled by default.
+- `--dotenv-override`: Sets whether dotenv overrides global environment variables with the same name, disabled by default.
+
+Examples:
+
+Use the `--files` argument to specify the file order and run in parallel.
+
+```bash
+midscene --files ./login.yaml ./buy/*.yaml ./checkout.yaml
+```
+
+Run all scripts with a concurrency of 4 and continue on any file error.
+
+```bash
+midscene --files './scripts/**/*.yaml' --concurrent 4 --continue-on-error
+```
+
+### Writing Command-Line Arguments in a File
+
+You can write a configuration file in YAML format and reference it with `--config`. When invoking the command-line tool, command-line arguments have higher priority than the configuration file.
+
+```yaml
+files:
+  - './scripts/login.yaml'
+  - './scripts/search.yaml'
+  - './scripts/**/*.yaml'
+
+concurrent: 4
+continueOnError: true
+shareBrowserContext: true
+```
+
+Usage:
+
+```bash
+midscene --config ./config.yaml
+```
+
 ## More Features
 
 ### Using Environment Variables in `.yaml` Files
@@ -446,6 +399,14 @@ Please refer to [Bridge Mode via Chrome Extension](./bridge-mode-by-chrome-exten
 ### Running YAML Scripts with JavaScript
 
 You can also run a YAML script using JavaScript by calling the [`runYaml`](./api.html#runyaml) method on the Agent. Note that this method will only execute the `tasks` part of the YAML script.
+
+### Analyzing Command-Line Tool Results
+
+After execution is complete, the following files will be generated in the output directory:
+
+- The file path specified by the `--summary` option (defaults to `index.json`), containing the execution status and statistics of all files.
+- The individual execution results of each YAML file (in JSON format).
+- The visual reports for each file (in HTML format).
 
 ## Configure dotenv's Default Behavior
 

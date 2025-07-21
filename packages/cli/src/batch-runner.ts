@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { readFileSync } from 'node:fs';
-import { dirname, join, relative, resolve } from 'node:path';
+import { dirname, relative, resolve } from 'node:path';
 import type {
   MidsceneYamlIndexResult,
   MidsceneYamlScript,
@@ -10,6 +10,7 @@ import type {
 } from '@midscene/core';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { type ScriptPlayer, parseYamlScript } from '@midscene/web/yaml';
+import merge from 'lodash.merge';
 import pLimit from 'p-limit';
 import puppeteer, { type Browser } from 'puppeteer';
 import { createYamlPlayer } from './create-yaml-player';
@@ -22,11 +23,6 @@ import {
 } from './printer';
 import { TTYWindowRenderer } from './tty-renderer';
 
-export interface BatchExecutionOptions {
-  keepWindow?: boolean;
-  headed?: boolean;
-}
-
 export interface BatchRunnerConfig {
   files: string[];
   concurrent: number;
@@ -38,6 +34,10 @@ export interface BatchRunnerConfig {
     android?: MidsceneYamlScriptAndroidEnv;
     target?: MidsceneYamlScriptWebEnv;
   };
+  headed: boolean;
+  keepWindow: boolean;
+  dotenvOverride: boolean;
+  dotenvDebug: boolean;
 }
 
 interface BatchFileContext {
@@ -59,13 +59,11 @@ class BatchRunner {
     this.config = config;
   }
 
-  async run(
-    options: BatchExecutionOptions = {},
-  ): Promise<MidsceneYamlIndexResult[]> {
-    const { keepWindow = false, headed = false } = options;
+  async run(): Promise<MidsceneYamlIndexResult[]> {
+    const { keepWindow, headed } = this.config;
 
     // Print execution plan
-    this.printExecutionPlan(keepWindow, headed);
+    this.printExecutionPlan();
 
     // Prepare file contexts
     const fileContextList: BatchFileContext[] = [];
@@ -84,10 +82,13 @@ class BatchRunner {
 
       // Now, check if any of the tasks require a web browser
       const needsBrowser = fileContextList.some(
-        (ctx) => ctx.executionConfig.web || ctx.executionConfig.target,
+        (ctx) =>
+          Object.keys(
+            ctx.executionConfig.web || ctx.executionConfig.target || {},
+          ).length > 0,
       );
 
-      if (needsBrowser) {
+      if (needsBrowser && this.config.shareBrowserContext) {
         browser = await puppeteer.launch({ headless: !headed });
         // Assign the browser instance to all contexts
         for (const context of fileContextList) {
@@ -105,7 +106,7 @@ class BatchRunner {
         notExecutedContexts,
       );
     } finally {
-      if (browser) await browser.close();
+      if (browser && !this.config.keepWindow) await browser.close();
       await this.generateOutputIndex();
     }
 
@@ -117,41 +118,29 @@ class BatchRunner {
     fileConfig: MidsceneYamlScript,
     options: { headed?: boolean; keepWindow?: boolean; browser?: Browser },
   ): Promise<BatchFileContext> {
-    // Deep clone to avoid mutating the original config
-    const executionConfig: MidsceneYamlScript = JSON.parse(
-      JSON.stringify(fileConfig),
-    );
     const { globalConfig } = this.config;
 
-    if (globalConfig) {
-      const globalWeb = globalConfig.web || globalConfig.target;
-      const executionWeb = executionConfig.web || executionConfig.target;
+    // Deep clone to avoid mutation
+    const clonedFileConfig = JSON.parse(JSON.stringify(fileConfig));
 
-      if (globalWeb) {
-        if (!executionWeb) {
-          executionConfig.web = { url: '', serve: '' };
-        }
-        if (globalWeb.url && !executionWeb?.url) {
-          executionConfig.web!.url = globalWeb.url;
-        }
-        if (globalWeb.serve && !executionWeb?.serve) {
-          executionConfig.web!.serve = globalWeb.serve;
-        }
-      }
-
-      const globalAndroid = globalConfig.android;
-      if (globalAndroid) {
-        if (!executionConfig.android) {
-          executionConfig.android = {};
-        }
-        if (globalAndroid.launch && !executionConfig.android.launch) {
-          executionConfig.android.launch = globalAndroid.launch;
-        }
-        if (globalAndroid.deviceId && !executionConfig.android.deviceId) {
-          executionConfig.android.deviceId = globalAndroid.deviceId;
-        }
-      }
+    // Normalize deprecated 'target' to 'web'
+    if (clonedFileConfig.target) {
+      clonedFileConfig.web = {
+        ...clonedFileConfig.target,
+        ...clonedFileConfig.web,
+      };
+      // biome-ignore lint/performance/noDelete: <explanation>
+      delete clonedFileConfig.target;
     }
+    if (globalConfig?.target) {
+      globalConfig.web = { ...globalConfig.target, ...globalConfig.web };
+      // biome-ignore lint/performance/noDelete: <explanation>
+      delete globalConfig.target;
+    }
+
+    // Start with the file's config, then merge the global config from the index file,
+    // which has already been merged with command-line options.
+    const executionConfig = merge(clonedFileConfig, globalConfig);
 
     return {
       file,
@@ -414,13 +403,13 @@ class BatchRunner {
     return resolve(getMidsceneRunSubDir('output'), this.config.summary);
   }
 
-  private printExecutionPlan(keepWindow: boolean, headed: boolean): void {
+  private printExecutionPlan(): void {
     console.log('📋 Execution plan');
     console.log('   Config File:');
     console.log(`   Files to execute: ${this.config.files.length}`);
     console.log(`   Concurrency: ${this.config.concurrent}`);
-    console.log(`   Keep window: ${keepWindow}`);
-    console.log(`   Headed: ${headed}`);
+    console.log(`   Keep window: ${this.config.keepWindow}`);
+    console.log(`   Headed: ${this.config.headed}`);
     console.log(`   Continue on error: ${this.config.continueOnError}`);
     console.log(
       `   Share browser context: ${this.config.shareBrowserContext ?? false}`,

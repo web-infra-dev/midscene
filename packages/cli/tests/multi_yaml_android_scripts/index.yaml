@@ -14,8 +14,8 @@ summary: "./midscene_run/output/custom-summary.json"
 android: 
   deviceId: s4ey59ytbitot4yp
 
-# Execution order using glob patterns
-order:
+# Execution files using glob patterns
+files:
   - "maps-navigation.yaml"
   - "search-headphone-on-ebay.yaml"
   - "twitter-auto-like.yaml"

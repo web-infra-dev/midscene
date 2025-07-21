@@ -1,8 +1,6 @@
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import {
   type ConfigFactoryOptions,
-  type ParsedIndexConfig,
   createFilesConfig,
   createIndexConfig,
   parseIndexYaml,
@@ -29,10 +27,11 @@ vi.mock('js-yaml', () => ({
 import { matchYamlFiles } from '@/cli-utils';
 import { interpolateEnvVars } from '@midscene/web/yaml';
 import { load as yamlLoad } from 'js-yaml';
+import merge from 'lodash.merge';
 
 describe('config-factory', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
   describe('parseIndexYaml', () => {
@@ -40,79 +39,60 @@ describe('config-factory', () => {
 
     test('should parse valid index YAML with all options', async () => {
       const mockYamlContent = `
-order: 
+files:
   - "*.yml"
-  - "test/*.yaml"
 concurrent: 3
 continueOnError: true
+headed: true
+keepWindow: true
+dotenvOverride: true
+dotenvDebug: false
 web:
   url: "http://example.com"
-  serve: "./static"
+  userAgent: "yaml-ua"
 android:
-  deviceId: "test-device"
-output:
-  path: "/test/output"
+  deviceId: "yaml-device"
+summary: "yaml-summary.json"
 `;
-
       const mockParsedYaml = {
-        order: ['*.yml', 'test/*.yaml'],
+        files: ['*.yml'],
         concurrent: 3,
         continueOnError: true,
-        web: {
-          url: 'http://example.com',
-          serve: './static',
-        },
-        android: {
-          deviceId: 'test-device',
-        },
-        output: {
-          path: '/test/output',
-        },
+        headed: true,
+        keepWindow: true,
+        dotenvOverride: true,
+        dotenvDebug: false,
+        web: { url: 'http://example.com', userAgent: 'yaml-ua' },
+        android: { deviceId: 'yaml-device' },
+        summary: 'yaml-summary.json',
       };
 
       vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
       vi.mocked(interpolateEnvVars).mockReturnValue(mockYamlContent);
       vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
-      vi.mocked(matchYamlFiles).mockResolvedValue(['file1.yml', 'file2.yaml']);
+      vi.mocked(matchYamlFiles).mockResolvedValue(['file1.yml']);
 
       const result = await parseIndexYaml(mockIndexPath);
 
       expect(result).toEqual({
         concurrent: 3,
         continueOnError: true,
-        web: {
-          url: 'http://example.com',
-          serve: './static',
-        },
-        android: {
-          deviceId: 'test-device',
-        },
-        patterns: ['*.yml', 'test/*.yaml'],
+        headed: true,
+        keepWindow: true,
+        dotenvOverride: true,
+        dotenvDebug: false,
+        web: { url: 'http://example.com', userAgent: 'yaml-ua' },
+        android: { deviceId: 'yaml-device' },
+        summary: 'yaml-summary.json',
+        patterns: ['*.yml'],
         shareBrowserContext: false,
-        summary: expect.stringMatching(/index-\d+\.json$/),
-        files: ['file1.yml', 'file2.yaml'],
-      });
-
-      expect(readFileSync).toHaveBeenCalledWith(mockIndexPath, 'utf8');
-      expect(interpolateEnvVars).toHaveBeenCalledWith(mockYamlContent);
-      expect(yamlLoad).toHaveBeenCalledWith(mockYamlContent);
-      expect(matchYamlFiles).toHaveBeenCalledWith('*.yml', {
-        cwd: resolve('/test'),
-      });
-      expect(matchYamlFiles).toHaveBeenCalledWith('test/*.yaml', {
-        cwd: resolve('/test'),
+        files: ['file1.yml'],
       });
     });
 
     test('should use default values when options are not specified', async () => {
-      const mockYamlContent = `
-order: 
-  - "*.yml"
-`;
-
-      const mockParsedYaml = {
-        order: ['*.yml'],
-      };
+      const mockYamlContent = `files: ["*.yml"]`;
+      const mockParsedYaml = { files: ['*.yml'] };
 
       vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
       vi.mocked(interpolateEnvVars).mockReturnValue(mockYamlContent);
@@ -123,209 +103,158 @@ order:
 
       expect(result.concurrent).toBe(1);
       expect(result.continueOnError).toBe(false);
-      expect(result.web).toBeUndefined();
-      expect(result.android).toBeUndefined();
+      expect(result.headed).toBe(false);
+      expect(result.keepWindow).toBe(false);
+      expect(result.dotenvOverride).toBe(false);
+      expect(result.dotenvDebug).toBe(true);
       expect(result.summary).toMatch(/index-\d+\.json$/);
-      expect(result.shareBrowserContext).toBe(false);
     });
 
-    test('should handle file expansion with duplicates', async () => {
-      const mockYamlContent = `
-order: 
-  - "*.yml"
-  - "test.yml"
-`;
-
-      const mockParsedYaml = {
-        order: ['*.yml', 'test.yml'],
-      };
+    test('should throw an error if "files" is not an array', async () => {
+      const mockYamlContent = `files: "not-an-array"`;
+      const mockParsedYaml = { files: 'not-an-array' };
 
       vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
-      vi.mocked(interpolateEnvVars).mockReturnValue(mockYamlContent);
-      vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
-
-      // Mock matchYamlFiles to return overlapping files
-      vi.mocked(matchYamlFiles)
-        .mockResolvedValueOnce(['test.yml', 'other.yml'])
-        .mockResolvedValueOnce(['test.yml']); // duplicate
-
-      const result = await parseIndexYaml(mockIndexPath);
-
-      expect(result.files).toEqual(['test.yml', 'other.yml']);
-    });
-
-    test('should throw error when YAML parsing fails', async () => {
-      const mockYamlContent = 'invalid: yaml: content:';
-
-      vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
-      vi.mocked(interpolateEnvVars).mockReturnValue(mockYamlContent);
-      vi.mocked(yamlLoad).mockImplementation(() => {
-        throw new Error('Invalid YAML');
-      });
-
-      await expect(parseIndexYaml(mockIndexPath)).rejects.toThrow(
-        'Failed to parse index YAML: Error: Invalid YAML',
-      );
-    });
-
-    test('should throw error when order is missing', async () => {
-      const mockYamlContent = `
-concurrent: 2
-`;
-
-      const mockParsedYaml = {
-        concurrent: 2,
-      };
-
-      vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
-      vi.mocked(interpolateEnvVars).mockReturnValue(mockYamlContent);
       vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
 
       await expect(parseIndexYaml(mockIndexPath)).rejects.toThrow(
-        'patterns is not iterable',
+        'Index YAML must contain a "files" array',
       );
     });
 
-    test('should return config with empty files when no files are found', async () => {
-      const mockYamlContent = `
-order: 
-  - "nonexistent/*.yml"
-`;
-
-      const mockParsedYaml = {
-        order: ['nonexistent/*.yml'],
-      };
+    test('should throw an error if no files are found', async () => {
+      const mockYamlContent = `files: ["*.yml"]`;
+      const mockParsedYaml = { files: ['*.yml'] };
 
       vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
-      vi.mocked(interpolateEnvVars).mockReturnValue(mockYamlContent);
       vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
-      vi.mocked(matchYamlFiles).mockResolvedValue([]);
+      vi.mocked(matchYamlFiles).mockResolvedValue([]); // No files found
 
-      const result = await parseIndexYaml(mockIndexPath);
-
-      expect(result.files).toEqual([]);
-      expect(result.patterns).toEqual(['nonexistent/*.yml']);
-    });
-
-    test('should handle file expansion errors gracefully', async () => {
-      const mockYamlContent = `
-order: 
-  - "valid/*.yml"
-  - "invalid/*.yml"
-`;
-
-      const mockParsedYaml = {
-        order: ['valid/*.yml', 'invalid/*.yml'],
-      };
-
-      const consoleWarnSpy = vi
-        .spyOn(console, 'warn')
-        .mockImplementation(() => {});
-
-      vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
-      vi.mocked(interpolateEnvVars).mockReturnValue(mockYamlContent);
-      vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
-      vi.mocked(matchYamlFiles)
-        .mockResolvedValueOnce(['valid.yml'])
-        .mockRejectedValueOnce(new Error('Permission denied'));
-
-      const result = await parseIndexYaml(mockIndexPath);
-
-      expect(result.files).toEqual(['valid.yml']);
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        'Warning: Failed to expand pattern "invalid/*.yml":',
-        expect.any(Error),
+      await expect(parseIndexYaml(mockIndexPath)).rejects.toThrow(
+        'No YAML files found matching the patterns in "files"',
       );
-
-      consoleWarnSpy.mockRestore();
     });
   });
 
   describe('createIndexConfig', () => {
-    test('should create BatchRunnerConfig from parsed index config', async () => {
-      vi.mocked(readFileSync).mockReturnValue('mock content');
-      vi.mocked(interpolateEnvVars).mockReturnValue('mock content');
-      vi.mocked(yamlLoad).mockReturnValue({
-        order: ['*.yml'],
+    test('should merge command-line options over config file options', async () => {
+      const mockYamlContent = `
+files:
+  - file1.yml
+concurrent: 2
+`;
+      const mockParsedYaml = {
+        files: ['file1.yml'],
         concurrent: 2,
-        continueOnError: true,
-        web: { url: 'http://example.com' },
-        android: { deviceId: 'test-device' },
-        output: { path: '/test/output' },
-      });
-      vi.mocked(matchYamlFiles).mockResolvedValue(['test1.yml', 'test2.yml']);
-
-      const result = await createIndexConfig('/test/my-index.yml');
-
-      expect(result).toEqual({
-        files: ['test1.yml', 'test2.yml'],
-        concurrent: 2,
-        continueOnError: true,
+        continueOnError: false,
+        headed: false,
+        keepWindow: false,
+        dotenvOverride: false,
+        dotenvDebug: true,
+        summary: 'parsed.json',
         shareBrowserContext: false,
-        summary: expect.stringMatching(/my-index-\d+\.json$/),
-        globalConfig: {
-          web: { url: 'http://example.com' },
-          android: { deviceId: 'test-device' },
-          target: undefined,
+        web: { userAgent: 'from-file', viewportWidth: 800 },
+        android: { deviceId: 'from-file' },
+      };
+      vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
+      vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
+      vi.mocked(matchYamlFiles).mockResolvedValue(['file1.yml']);
+
+      const cmdLineOptions: ConfigFactoryOptions = {
+        concurrent: 5,
+        headed: true,
+        summary: 'from-cmd.json',
+        web: { userAgent: 'from-cmd', viewportHeight: 900 },
+        android: { deviceId: 'from-cmd' },
+      };
+
+      const result = await createIndexConfig('/test/index.yml', cmdLineOptions);
+
+      const expectedGlobalConfig = merge(
+        {
+          web: mockParsedYaml.web,
+          android: mockParsedYaml.android,
         },
-      });
+        {
+          web: cmdLineOptions.web,
+          android: cmdLineOptions.android,
+        },
+      );
+
+      expect(result.concurrent).toBe(5);
+      expect(result.headed).toBe(true);
+      expect(result.summary).toBe('from-cmd.json');
+      expect(result.globalConfig).toEqual(expectedGlobalConfig);
     });
   });
 
-  describe('createFilesConfig', () => {
-    test('should create BatchRunnerConfig with default options', () => {
-      const files = ['test1.yml', 'test2.yml'];
-      const result = createFilesConfig(files);
+  describe('createFilesConfig', async () => {
+    test('should create config with default options and expand patterns', async () => {
+      const patterns = ['test1.yml', 'test*.yml'];
+      const expandedFiles = ['test1.yml', 'testA.yml', 'testB.yml'];
+      vi.mocked(matchYamlFiles).mockResolvedValue(expandedFiles);
+
+      const result = await createFilesConfig(patterns);
 
       expect(result).toEqual({
-        files,
+        files: expandedFiles,
         concurrent: 1,
         continueOnError: false,
         shareBrowserContext: false,
         summary: expect.stringMatching(/summary-\d+\.json$/),
+        headed: false,
+        keepWindow: false,
+        dotenvOverride: false,
+        dotenvDebug: true,
+        globalConfig: {
+          web: undefined,
+          android: undefined,
+        },
+      });
+      expect(matchYamlFiles).toHaveBeenCalledWith(patterns[0], {
+        cwd: process.cwd(),
+      });
+      expect(matchYamlFiles).toHaveBeenCalledWith(patterns[1], {
+        cwd: process.cwd(),
       });
     });
 
-    test('should create BatchRunnerConfig with custom options', () => {
-      const files = ['test1.yml', 'test2.yml'];
+    test('should create config with all custom options and expand patterns', async () => {
+      const patterns = ['*.yml'];
+      const expandedFiles = ['file1.yml', 'file2.yml'];
+      vi.mocked(matchYamlFiles).mockResolvedValue(expandedFiles);
+
       const options: ConfigFactoryOptions = {
         concurrent: 3,
         continueOnError: true,
+        summary: 'custom.json',
+        shareBrowserContext: true,
+        headed: true,
+        keepWindow: true,
+        dotenvOverride: true,
+        dotenvDebug: false,
+        web: { userAgent: 'custom-ua' },
+        android: { deviceId: 'custom-device' },
       };
-      const result = createFilesConfig(files, options);
+      const result = await createFilesConfig(patterns, options);
 
       expect(result).toEqual({
-        files,
+        files: expandedFiles,
         concurrent: 3,
         continueOnError: true,
-        shareBrowserContext: false,
-        summary: expect.stringMatching(/summary-\d+\.json$/),
+        summary: 'custom.json',
+        shareBrowserContext: true,
+        headed: true,
+        keepWindow: true,
+        dotenvOverride: true,
+        dotenvDebug: false,
+        globalConfig: {
+          web: { userAgent: 'custom-ua' },
+          android: { deviceId: 'custom-device' },
+        },
       });
-    });
-
-    test('should handle empty options object', () => {
-      const files = ['test.yml'];
-      const result = createFilesConfig(files, {});
-
-      expect(result).toEqual({
-        files,
-        concurrent: 1,
-        continueOnError: false,
-        shareBrowserContext: false,
-        summary: expect.stringMatching(/summary-\d+\.json$/),
-      });
-    });
-
-    test('should handle undefined options', () => {
-      const files = ['test.yml'];
-      const result = createFilesConfig(files);
-
-      expect(result).toEqual({
-        files,
-        concurrent: 1,
-        continueOnError: false,
-        shareBrowserContext: false,
-        summary: expect.stringMatching(/summary-\d+\.json$/),
+      expect(matchYamlFiles).toHaveBeenCalledWith(patterns[0], {
+        cwd: process.cwd(),
       });
     });
   });

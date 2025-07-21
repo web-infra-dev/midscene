@@ -22,8 +22,8 @@ web:
 # android:
 #   deviceId: "emulator-5554"
 
-# Execution order using glob patterns
-order:
+# Execution files using glob patterns
+files:
   - "login.yaml"
   - "local/local-error-message.yml"
   - "local/local.yml"

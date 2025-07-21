@@ -3,25 +3,15 @@ import { join } from 'node:path';
 import dotenv from 'dotenv';
 import { version } from '../package.json';
 import { BatchRunner } from './batch-runner';
-import { isIndexYamlFile, matchYamlFiles, parseProcessArgs } from './cli-utils';
+import { matchYamlFiles, parseProcessArgs } from './cli-utils';
 import { createFilesConfig, createIndexConfig } from './config-factory';
 
 Promise.resolve(
   (async () => {
-    const { options, path } = await parseProcessArgs();
+    const { options, path, files: cmdFiles } = await parseProcessArgs();
 
     const welcome = `\nWelcome to @midscene/cli v${version}\n`;
     console.log(welcome);
-
-    const dotEnvConfigFile = join(process.cwd(), '.env');
-    if (existsSync(dotEnvConfigFile)) {
-      console.log(`loading .env file from ${dotEnvConfigFile}`);
-      dotenv.config({
-        path: dotEnvConfigFile,
-        debug: options.dotenvDebug ?? true,
-        override: options.dotenvOverride ?? false,
-      });
-    }
 
     if (options.url) {
       console.error(
@@ -30,13 +20,12 @@ Promise.resolve(
       process.exit(1);
     }
 
-    if (!path) {
-      console.error('no script path provided');
+    const configFile = options.config as string | undefined;
+
+    if (!configFile && !path && !(cmdFiles && cmdFiles.length > 0)) {
+      console.error('no script path, files, or config provided');
       process.exit(1);
     }
-
-    const keepWindow = options['keep-window'] ?? false;
-    const headed = options.headed || false;
 
     // Extract new configuration options
     const configOptions = {
@@ -44,47 +33,53 @@ Promise.resolve(
       continueOnError: options['continue-on-error'],
       summary: options.summary,
       shareBrowserContext: options['share-browser-context'],
+      headed: options.headed,
+      keepWindow: options['keep-window'],
+      dotenvOverride: options['dotenv-override'],
+      dotenvDebug: options['dotenv-debug'],
+      web: options.web,
+      android: options.android,
     };
 
-    // Check if the path is an index YAML file
-    if (isIndexYamlFile(path)) {
-      const config = await createIndexConfig(path, configOptions);
-      const executor = new BatchRunner(config);
+    let config;
 
-      await executor.run({
-        keepWindow,
-        headed,
-      });
-
-      const success = executor.printExecutionSummary();
-
-      if (!success) {
+    if (configFile) {
+      config = await createIndexConfig(configFile, configOptions);
+    } else if (cmdFiles && cmdFiles.length > 0) {
+      console.log('📄 Executing YAML files from --files argument...\n');
+      config = await createFilesConfig(cmdFiles, configOptions);
+    } else if (path) {
+      const files = await matchYamlFiles(path);
+      if (files.length === 0) {
+        console.error(`No yaml files found in ${path}`);
         process.exit(1);
       }
-
-      process.exit(0);
+      console.log('📄 Executing YAML files...\n');
+      config = await createFilesConfig(files, configOptions);
     }
 
-    // Handle regular YAML files
-    const files = await matchYamlFiles(path);
-    if (files.length === 0) {
-      console.error(`No yaml files found in ${path}`);
+    if (!config) {
+      console.error('Could not create a valid configuration.');
       process.exit(1);
     }
 
-    console.log('📄 Executing YAML files...\n');
+    const dotEnvConfigFile = join(process.cwd(), '.env');
+    if (existsSync(dotEnvConfigFile)) {
+      console.log(`loading .env file from ${dotEnvConfigFile}`);
+      dotenv.config({
+        path: dotEnvConfigFile,
+        debug: config.dotenvDebug,
+        override: config.dotenvOverride,
+      });
+    }
 
-    const config = createFilesConfig(files, configOptions);
     const executor = new BatchRunner(config);
 
-    await executor.run({
-      keepWindow,
-      headed,
-    });
+    await executor.run();
 
     const success = executor.printExecutionSummary();
 
-    if (keepWindow) {
+    if (config.keepWindow) {
       // hang the process to keep the browser window open
       setInterval(() => {
         console.log('browser is still running, use ctrl+c to stop it');

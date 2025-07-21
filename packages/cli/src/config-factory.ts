@@ -1,14 +1,14 @@
-import { assert } from 'node:console';
 import { readFileSync } from 'node:fs';
 import { basename, dirname, extname, resolve } from 'node:path';
+import { cwd } from 'node:process';
 import type {
   MidsceneYamlIndex,
   MidsceneYamlScriptAndroidEnv,
   MidsceneYamlScriptWebEnv,
 } from '@midscene/core';
-import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { interpolateEnvVars } from '@midscene/web/yaml';
 import { load as yamlLoad } from 'js-yaml';
+import merge from 'lodash.merge';
 import type { BatchRunnerConfig } from './batch-runner';
 import { matchYamlFiles } from './cli-utils';
 
@@ -17,6 +17,12 @@ export interface ConfigFactoryOptions {
   continueOnError?: boolean;
   summary?: string;
   shareBrowserContext?: boolean;
+  headed?: boolean;
+  keepWindow?: boolean;
+  dotenvOverride?: boolean;
+  dotenvDebug?: boolean;
+  web?: Partial<MidsceneYamlScriptWebEnv>;
+  android?: Partial<MidsceneYamlScriptAndroidEnv>;
 }
 
 export interface ParsedIndexConfig {
@@ -29,6 +35,10 @@ export interface ParsedIndexConfig {
   target?: MidsceneYamlScriptWebEnv;
   files: string[];
   patterns: string[]; // Keep patterns for reference
+  headed: boolean;
+  keepWindow: boolean;
+  dotenvOverride: boolean;
+  dotenvDebug: boolean;
 }
 
 async function expandFilePatterns(
@@ -71,19 +81,17 @@ export async function parseIndexYaml(
     throw new Error(`Failed to parse index YAML: ${error}`);
   }
 
-  assert(
-    indexYaml.order && Array.isArray(indexYaml.order),
-    'Index YAML must contain an "order" array',
-  );
+  if (!indexYaml?.files || !Array.isArray(indexYaml?.files)) {
+    throw new Error('Index YAML must contain a "files" array');
+  }
 
   // Expand file patterns using glob
-  const files = await expandFilePatterns(indexYaml.order, basePath);
+  const files = await expandFilePatterns(indexYaml?.files, basePath);
 
   // Validate that at least one file was found
-  assert(
-    files.length > 0,
-    'No YAML files found matching the patterns in "order"',
-  );
+  if (files.length === 0) {
+    throw new Error('No YAML files found matching the patterns in "files"');
+  }
 
   // Generate default summary filename
   const indexFileName = basename(indexYamlPath, extname(indexYamlPath));
@@ -98,8 +106,12 @@ export async function parseIndexYaml(
     shareBrowserContext: indexYaml.shareBrowserContext ?? false,
     web: indexYaml.web,
     android: indexYaml.android,
-    patterns: indexYaml.order,
+    patterns: indexYaml.files,
     files,
+    headed: indexYaml.headed ?? false,
+    keepWindow: indexYaml.keepWindow ?? false,
+    dotenvOverride: indexYaml.dotenvOverride ?? false,
+    dotenvDebug: indexYaml.dotenvDebug ?? true,
   };
 
   return config;
@@ -107,14 +119,21 @@ export async function parseIndexYaml(
 
 export async function createIndexConfig(
   indexYamlPath: string,
-  cmdLineOptions?: {
-    concurrent?: number;
-    continueOnError?: boolean;
-    summary?: string;
-    shareBrowserContext?: boolean;
-  },
+  cmdLineOptions?: ConfigFactoryOptions,
 ): Promise<BatchRunnerConfig> {
   const parsedConfig = await parseIndexYaml(indexYamlPath);
+  const globalConfig = merge(
+    {
+      web: parsedConfig.web,
+      android: parsedConfig.android,
+      target: parsedConfig.target,
+    },
+    {
+      web: cmdLineOptions?.web,
+      android: cmdLineOptions?.android,
+    },
+  );
+
   // Apply command line overrides with higher priority than file configuration
   return {
     files: parsedConfig.files,
@@ -124,18 +143,20 @@ export async function createIndexConfig(
     summary: cmdLineOptions?.summary ?? parsedConfig.summary,
     shareBrowserContext:
       cmdLineOptions?.shareBrowserContext ?? parsedConfig.shareBrowserContext,
-    globalConfig: {
-      web: parsedConfig.web,
-      android: parsedConfig.android,
-      target: parsedConfig.target,
-    },
+    headed: cmdLineOptions?.headed ?? parsedConfig.headed,
+    keepWindow: cmdLineOptions?.keepWindow ?? parsedConfig.keepWindow,
+    dotenvOverride:
+      cmdLineOptions?.dotenvOverride ?? parsedConfig.dotenvOverride,
+    dotenvDebug: cmdLineOptions?.dotenvDebug ?? parsedConfig.dotenvDebug,
+    globalConfig,
   };
 }
 
-export function createFilesConfig(
-  files: string[],
+export async function createFilesConfig(
+  patterns: string[],
   options: ConfigFactoryOptions = {},
-): BatchRunnerConfig {
+): Promise<BatchRunnerConfig> {
+  const files = await expandFilePatterns(patterns, cwd());
   // Generate default summary filename if not provided
   const timestamp = Date.now();
   const defaultSummary = `summary-${timestamp}.json`;
@@ -146,5 +167,13 @@ export function createFilesConfig(
     continueOnError: options.continueOnError ?? false,
     summary: options.summary ?? defaultSummary,
     shareBrowserContext: options.shareBrowserContext ?? false,
+    headed: options.headed ?? false,
+    keepWindow: options.keepWindow ?? false,
+    dotenvOverride: options.dotenvOverride ?? false,
+    dotenvDebug: options.dotenvDebug ?? true,
+    globalConfig: {
+      web: options.web as MidsceneYamlScriptWebEnv | undefined,
+      android: options.android as MidsceneYamlScriptAndroidEnv | undefined,
+    },
   };
 }

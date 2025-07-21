@@ -1,9 +1,7 @@
-import { existsSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import type { MidsceneYamlIndex } from '@midscene/core';
 import { getDebug } from '@midscene/shared/logger';
 import { glob } from 'glob';
-import { load as yamlLoad } from 'js-yaml';
 import { hideBin } from 'yargs/helpers';
 import yargs from 'yargs/yargs';
 
@@ -13,6 +11,7 @@ const debug = getDebug('midscene:cli');
 
 export const parseProcessArgs = async (): Promise<{
   path?: string;
+  files?: string[];
   options: Record<string, any>;
 }> => {
   const args = yargs(hideBin(process.argv))
@@ -21,7 +20,9 @@ export const parseProcessArgs = async (): Promise<{
 Homepage: https://midscenejs.com/
 Github: https://github.com/web-infra-dev/midscene
 
-Usage: $0 [options] <path-to-yaml-script-file-or-directory>`,
+Usage: $0 [options] <path-to-yaml-script-file-or-directory>
+       $0 --files <file1> <file2 ...>
+       $0 --config <path-to-config-file>`,
     )
     .options({
       headed: {
@@ -66,6 +67,36 @@ Usage: $0 [options] <path-to-yaml-script-file-or-directory>`,
         default: false,
         description: 'Share browser context across multiple files',
       },
+      files: {
+        type: 'array',
+        string: true,
+        description: 'A list of yaml files to run, separated by space',
+      },
+      config: {
+        type: 'string',
+        description:
+          'Path to a configuration file. Options in this file are used as defaults.',
+      },
+      'web.user-agent': {
+        alias: 'web.userAgent',
+        type: 'string',
+        description: 'Override user agent for web environments.',
+      },
+      'web.viewport-width': {
+        alias: 'web.viewportWidth',
+        type: 'number',
+        description: 'Override viewport width for web environments.',
+      },
+      'web.viewport-height': {
+        alias: 'web.viewportHeight',
+        type: 'number',
+        description: 'Override viewport height for web environments.',
+      },
+      'android.device-id': {
+        alias: 'android.deviceId',
+        type: 'string',
+        description: 'Override device ID for Android environments.',
+      },
     })
     .version('version', 'Show version number', __VERSION__)
     .help()
@@ -76,6 +107,7 @@ Usage: $0 [options] <path-to-yaml-script-file-or-directory>`,
 
   return {
     path: argv._[0] as string | undefined,
+    files: argv.files as string[] | undefined,
     options: argv,
   };
 };
@@ -104,25 +136,4 @@ export async function matchYamlFiles(
   return files
     .filter((file) => file.endsWith('.yml') || file.endsWith('.yaml'))
     .sort();
-}
-
-/**
- * Check if a YAML file is an index YAML file
- */
-export function isIndexYamlFile(filePath: string): boolean {
-  try {
-    if (!existsSync(filePath)) {
-      return false;
-    }
-
-    const content = readFileSync(filePath, 'utf8');
-    const yaml = yamlLoad(content) as MidsceneYamlIndex;
-
-    // Check if it has the required 'order' field for index YAML
-    return (
-      yaml && typeof yaml.order !== 'undefined' && Array.isArray(yaml.order)
-    );
-  } catch (error) {
-    return false;
-  }
 }
