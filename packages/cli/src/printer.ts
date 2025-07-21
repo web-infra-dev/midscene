@@ -1,5 +1,6 @@
 import { basename, dirname, relative } from 'node:path';
 import type {
+  MidsceneYamlScriptEnv,
   ScriptPlayerStatusValue,
   ScriptPlayerTaskStatus,
 } from '@midscene/core';
@@ -8,7 +9,7 @@ import chalk from 'chalk';
 
 export interface MidsceneYamlFileContext {
   file: string;
-  player: ScriptPlayer;
+  player: ScriptPlayer<MidsceneYamlScriptEnv>;
 }
 
 export const isTTY = process.env.MIDSCENE_CLI_LOG_ON_NON_TTY
@@ -41,9 +42,8 @@ function indicatorForStatus(status: ScriptPlayerStatusValue) {
 
 export const contextInfo = (context: MidsceneYamlFileContext) => {
   const filePath = context.file;
-  const fileName = basename(filePath);
-  const fileDir = dirname(filePath);
-  const fileNameToPrint = `${chalk.gray(`${fileDir}/`)}${fileName}`;
+  const filePathToShow = relative(process.cwd(), filePath);
+  const fileNameToPrint = `${chalk.gray(`${filePathToShow}`)}`;
   const fileStatusText = indicatorForStatus(context.player.status);
   const contextActionText =
     typeof context.player.currentTaskIndex === 'undefined' &&
@@ -65,9 +65,8 @@ export const contextInfo = (context: MidsceneYamlFileContext) => {
 
   // report: ...
   const reportFile = context.player.reportFile;
-  const reportFileToShow = relative(process.cwd(), reportFile || '');
   const reportText = reportFile
-    ? `\n${indent}${chalk.gray(`report: ./${reportFileToShow}`)}`
+    ? `\n${indent}${chalk.gray(`report: ${reportFile}`)}`
     : '';
 
   // agent status: ...
@@ -151,11 +150,9 @@ export const contextTaskListSummary = (
       }
     }
   }
-  const currentLineText =
-    currentLine.length > 0 ? `\n${paddingLines(currentLine).join('\n')}` : '';
-  const prefix =
-    prefixLines.length > 0 ? `\n${paddingLines(prefixLines).join('\n')}` : '';
-  const suffix =
-    suffixText.length > 0 ? `\n${paddingLines(suffixText).join('\n')}` : '';
-  return `${fileInfo}${prefix}${currentLineText}${suffix}`;
+  const lines: string[] = [fileInfo];
+  if (prefixLines.length > 0) lines.push(...paddingLines(prefixLines));
+  if (currentLine.length > 0) lines.push(...paddingLines(currentLine));
+  if (suffixText.length > 0) lines.push(...paddingLines(suffixText));
+  return lines.join('\n');
 };

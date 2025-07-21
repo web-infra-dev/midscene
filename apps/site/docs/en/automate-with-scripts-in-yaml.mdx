@@ -2,31 +2,30 @@ import SetupEnv from './common/setup-env.mdx';
 
 # Automate with Scripts in YAML
 
-In most cases, developers write automation just to perform some smoke tests, like checking the appearance of some content, or verifying that the key user path is accessible. Maintaining a large test project is unnecessary in this situation.
+In most cases, developers write automation scripts just to perform some smoke tests, like checking for the appearance of certain content or verifying that a key user path is accessible. In such situations, maintaining a large test project is unnecessary.
 
-⁠Midscene offers a way to do this kind of automation with `.yaml` files, which helps you to focus on the script itself instead of the test infrastructure. Any team member can write an automation script without learning any API.
+Midscene offers a way to perform automation using `.yaml` files, which helps you focus on the script itself rather than the testing framework. This allows any team member to write automation scripts without needing to learn any API.
 
-Here is an example of `.yaml` script, you may have already understood how it works by reading its content.
+Here is an example. By reading its content, you should be able to understand how it works.
 
 ```yaml
 web:
   url: https://www.bing.com
 
 tasks:
-  - name: search weather
+  - name: Search for weather
     flow:
-      - ai: search for 'weather today'
+      - ai: Search for "today's weather"
       - sleep: 3000
 
-  - name: check result
+  - name: Check results
     flow:
-      - aiAssert: the result shows the weather info
+      - aiAssert: The results show weather information
 ```
 
-:::info Demo Project
+:::info Sample Project
 
-You can find the demo project with YAML scripts
-[https://github.com/web-infra-dev/midscene-example/tree/main/yaml-scripts-demo](https://github.com/web-infra-dev/midscene-example/tree/main/yaml-scripts-demo)
+You can find a sample project that uses YAML scripts for automation here:
 
 - [Web](https://github.com/web-infra-dev/midscene-example/tree/main/yaml-scripts-demo)
 - [Android](https://github.com/web-infra-dev/midscene-example/tree/main/android/yaml-scripts-demo)
@@ -35,37 +34,37 @@ You can find the demo project with YAML scripts
 
 <SetupEnv />
 
-or you can use a `.env` file locate at the same directory as you run the command to store the configuration, Midscene command line tool will automatically load it.
+Alternatively, you can use a `.env` file in the same directory where you run the command to store your configuration. The Midscene command-line tool will automatically load it when running a YAML script.
 
 ```env filename=.env
 OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 ```
 
-## Install Command Line Tool
+## Install the Command-Line Tool
 
-Install `@midscene/cli` globally
+Install `@midscene/cli` globally:
 
 ```bash
 npm i -g @midscene/cli
-# or if you prefer a project-wide installation
+# Or install it within your project
 npm i @midscene/cli --save-dev
 ```
 
-Write a yaml file to `bing-search.yaml` to automate in web browser :
+Create a file named `bing-search.yaml` to drive a web browser automation task:
 
 ```yaml
 web:
   url: https://www.bing.com
 
 tasks:
-  - name: search weather
+  - name: Search for weather
     flow:
-      - ai: search for 'weather today'
+      - ai: Search for "today's weather"
       - sleep: 3000
-      - aiAssert: the result shows the weather info
+      - aiAssert: The results show weather information
 ```
 
-or to automate in Android device connected by adb :
+Or, to drive an Android device automation task (requires the device to be connected via adb):
 
 ```yaml
 android:
@@ -73,98 +72,94 @@ android:
   deviceId: s4ey59
 
 tasks:
-  - name: search weather
+  - name: Search for weather
     flow:
-      - ai: open browser and navigate to bing.com
-      - ai: search for 'weather today'
+      - ai: Open the browser and navigate to bing.com
+      - ai: Search for "today's weather"
       - sleep: 3000
-      - aiAssert: the result shows the weather info
+      - aiAssert: The results show weather information
 ```
 
-Run this script
+Run the script:
 
 ```bash
 midscene ./bing-search.yaml
-# or if you installed midscene inside the project
+# Or if you installed midscene in your project
 npx midscene ./bing-search.yaml
 ```
 
-You should see that the output shows the progress of the running process and the report file.
+You will see the script's execution progress and the visual report file.
 
-## Command line usage
+## Script File Structure
 
-### Run single `.yaml` file
+Script files use YAML format to describe automation tasks. It defines the target to be manipulated (like a webpage or an Android app) and the series of steps to perform.
 
-```bash
-midscene /path/to/yaml
+A standard `.yaml` script file includes a `web` or `android` section to configure the environment, and a `tasks` section to define the automation tasks.
+
+```yaml
+web:
+  url: https://www.bing.com
+
+# The tasks section defines the series of steps to be executed
+tasks:
+  - name: Search for weather
+    flow:
+      - ai: Search for "today's weather"
+      - sleep: 3000
+      - aiAssert: The results show weather information
 ```
-
-### Run all `.yaml` files under a folder
-
-```bash
-midscene /dir/of/yaml/
-
-# glob is also supported
-midscene /dir/**/yaml/
-```
-
-## YAML file schema
-
-There are two parts in a `.yaml` file, the `web/android` and the `tasks`.
-
-The `web/android` part defines the basic of a task. Use `web` parameter (also previously named as `target`) for web browser automation, and use `android` parameter for Android device automation. They are mutually exclusive.
 
 ### The `web` part
 
 ```yaml
 web:
-  # The URL to visit, required. If `serve` is provided, provide the path to the file to visit
+  # The URL to visit, required. If `serve` is provided, provide the relative path.
   url: <url>
 
-  # Serve the local path as a static server, optional
+  # Serve a local path as a static server, optional.
   serve: <root-directory>
 
-  # The user agent to use, optional
+  # The browser user agent, optional.
   userAgent: <ua>
 
-  # number, the viewport width, default is 1280, optional
+  # The browser viewport width, optional, defaults to 1280.
   viewportWidth: <width>
 
-  # number, the viewport height, default is 960, optional
+  # The browser viewport height, optional, defaults to 960.
   viewportHeight: <height>
 
-  # number, the device scale factor (dpr), default is 1, optional
+  # The browser's device pixel ratio, optional, defaults to 1.
   deviceScaleFactor: <scale>
 
-  # string, the path to the json format cookie file, optional
+  # Path to a JSON format browser cookie file, optional.
   cookie: <path-to-cookie-file>
 
-  # object, the strategy to wait for network idle, optional
+  # The strategy for waiting for network idle, optional.
   waitForNetworkIdle:
-    # number, the timeout in milliseconds, 2000ms for default, optional
+    # The timeout in milliseconds, optional, defaults to 2000ms.
     timeout: <ms>
-    # boolean, continue on network idle error, true for default
+    # Whether to continue on timeout, optional, defaults to true.
     continueOnNetworkIdleError: <boolean>
 
-  # string, the path to save the aiQuery/aiAssert result, optional
+  # The path to the JSON file for outputting aiQuery/aiAssert results, optional.
   output: <path-to-output-file>
 
-  # string, the path to save the log content in JSON format, optional. If true, save to `unstableLogContent.json` file. If a string, save to the specified path. The structure of the log content may change in the future.
+  # Whether to save log content to a JSON file, optional, defaults to `false`. If true, saves to `unstableLogContent.json`. If a string, saves to the specified path. The log content structure may change in the future.
   unstableLogContent: <boolean | path-to-unstable-log-file>
 
-  # boolean, if limit the popup to the current page, true for default in yaml script
+  # Whether to restrict page navigation to the current tab, optional, defaults to true.
   forceSameTabNavigation: <boolean>
 
-  # string, the bridge mode to use, optional, default is false, can be 'newTabWithUrl' or 'currentTab'. More details see the following section
+  # The bridge mode, optional, defaults to false. Can be 'newTabWithUrl' or 'currentTab'. See below for more details.
   bridgeMode: false | 'newTabWithUrl' | 'currentTab'
 
-  # boolean, if close the new tabs after the bridge is disconnected, optional, default is false
+  # Whether to close newly created tabs when the bridge disconnects, optional, defaults to false.
   closeNewTabsAfterDisconnect: <boolean>
 
-  # boolean, if allow insecure https certs, optional, default is false
+  # Whether to ignore HTTPS certificate errors, optional, defaults to false.
   acceptInsecureCerts: <boolean>
 
-  # string, the background knowledge to send to the AI model when calling aiAction, optional
+  # Background knowledge to send to the AI model when calling aiAction, optional.
   aiActionContext: <string>
 ```
 
@@ -172,118 +167,186 @@ web:
 
 ```yaml
 android:
-  # The device id to use, optional, default is the first connected device
+  # The device ID, optional, defaults to the first connected device.
   deviceId: <device-id>
 
-  # The url to launch, optional, default is the current page
+  # The launch URL, optional, defaults to the device's current page.
   launch: <url>
+
+  # The path to the JSON file for outputting aiQuery/aiAssert results, optional.
+  output: <path-to-output-file>
 ```
 
 ### The `tasks` part
 
-The `tasks` part is an array indicates the tasks to do. Remember to write a `-` before each item which means an array item.
+The `tasks` part is an array that defines the steps of the script. Remember to add a `-` before each step to indicate it's an array item.
 
-The interfaces of the `flow` part are almost the same as the [API](./API.html), except for some parameter levels.
+The interfaces in the `flow` section are almost identical to the [API](./api.html), with some differences in parameter nesting levels.
 
 ```yaml
 tasks:
   - name: <name>
-    continueOnError: <boolean> # optional, default is false
+    continueOnError: <boolean> # Optional, whether to continue to the next task on error, defaults to false.
     flow:
       # Auto Planning (.ai)
       # ----------------
 
-      # perform an action, this is the shortcut for aiAction
+      # Perform an interaction. `ai` is a shorthand for `aiAction`.
       - ai: <prompt>
-        cacheable: <boolean> # optional, whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+        cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
 
-      # this is the same as ai
+      # This usage is the same as `ai`.
       - aiAction: <prompt>
-        cacheable: <boolean> # optional, whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+        cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
 
-      # Instant Action(.aiTap, .aiHover, .aiInput, .aiKeyboardPress, .aiScroll)
+      # Instant Action (.aiTap, .aiHover, .aiInput, .aiKeyboardPress, .aiScroll)
       # ----------------
 
-      # tap an element located by prompt
+      # Tap an element described by a prompt.
       - aiTap: <prompt>
-        deepThink: <boolean> # optional, whether to use deepThink to precisely locate the element. False by default.
-        xpath: <xpath> # optional, the xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
-    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
-        cacheable: <boolean> # optional, whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+        deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
+        xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
+        cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
 
-      # hover an element located by prompt
+      # Hover over an element described by a prompt.
       - aiHover: <prompt>
-        deepThink: <boolean> # optional, whether to use deepThink to precisely locate the element. False by default.
-        xpath: <xpath> # optional, the xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
-    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
-        cacheable: <boolean> # optional, whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+        deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
+        xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
+        cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
 
-      # input text into an element located by prompt
+      # Input text into an element described by a prompt.
       - aiInput: <final text content of the input>
         locate: <prompt>
-        deepThink: <boolean> # optional, whether to use deepThink to precisely locate the element. False by default.
-        xpath: <xpath> # optional, the xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
-    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
-        cacheable: <boolean> # optional, whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+        deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
+        xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
+        cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
 
-      # press a key (like Enter, Tab, Escape, etc.) on an element located by prompt
+      # Press a key (e.g., Enter, Tab, Escape) on an element described by a prompt.
       - aiKeyboardPress: <key>
         locate: <prompt>
-        deepThink: <boolean> # optional, whether to use deepThink to precisely locate the element. False by default.
-        xpath: <xpath> # optional, the xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
-    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
-        cacheable: <boolean> # optional, whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+        deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
+        xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
+        cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
 
-      # scroll globally or on an element located by prompt
+      # Scroll globally or on an element described by a prompt.
       - aiScroll:
         direction: 'up' # or 'down' | 'left' | 'right'
         scrollType: 'once' # or 'untilTop' | 'untilBottom' | 'untilLeft' | 'untilRight'
-        distance: <number> # optional, distance to scroll in px
-        locate: <prompt> # optional, the element to scroll on
-        deepThink: <boolean> # optional, whether to use deepThink to precisely locate the element. False by default.
-        xpath: <xpath> # optional, the xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
-    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
-        cacheable: <boolean> # optional, whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+        distance: <number> # Optional, the scroll distance in pixels.
+        locate: <prompt> # Optional, the element to scroll on.
+        deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
+        xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
+        cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
 
-      # log the current screenshot with a description in the report file
-      - logScreenshot: <title> # optional, the title of the screenshot, if not provided, the title will be 'untitled'
-        content: <content> # optional, the screenshot description
+      # Log the current screenshot with a description in the report file.
+      - logScreenshot: <title> # Optional, the title of the screenshot. If not provided, the title will be 'untitled'.
+        content: <content> # Optional, the description of the screenshot.
 
       # Data Extraction
       # ----------------
 
-      # perform a query, return a json object
-      - aiQuery: <prompt> # remember to describe the format of the result in the prompt
-        name: <name> # the name of the result, will be used as the key in the output json
+      # Perform a query that returns a JSON object.
+      - aiQuery: <prompt> # Remember to describe the format of the result in the prompt.
+        name: <name> # The key for the query result in the JSON output.
 
       # More APIs
       # ----------------
 
-      # wait for a condition to be met with a timeout (ms, optional, default 30000)
+      # Wait for a condition to be met, with a timeout (in ms, optional, defaults to 30000).
       - aiWaitFor: <prompt>
         timeout: <ms>
 
-      # perform an assertion
+      # Perform an assertion.
       - aiAssert: <prompt>
-        errorMessage: <error-message> # optional, the error message to print when the assertion fails
+        errorMessage: <error-message> # Optional, the error message to print if the assertion fails.
 
-      # sleep for a number of milliseconds
+      # Wait for a specified amount of time.
       - sleep: <ms>
 
-      # evaluate a javascript expression in web page context
+      # Execute a piece of JavaScript code in the web page context.
       - javascript: <javascript>
-        name: <name> # assign a name to the return value, will be used as the key in the output json, optional
+        name: <name> # Optional, assign a name to the return value, which will be used as a key in the JSON output.
 
   - name: <name>
     flow:
       # ...
 ```
 
-## More features
+## Advanced Usage of the Command-Line Tool
 
-### Use environment variables in `.yaml` file
+`@midscene/cli` provides flexible ways to run your automation scripts.
 
-You can use environment variables in `.yaml` file by `${variable-name}`.
+### Run One or More Scripts
+
+You can pass a single `.yaml` script file or use a glob pattern to match multiple `.yaml` files to the `midscene` command. This is a shorthand for the `--files` argument.
+
+```bash
+# Run a single script
+midscene ./bing-search.yaml
+
+# Use a glob pattern to run all matching scripts
+midscene './scripts/**/*.yaml'
+```
+
+### Command-Line Options
+
+The command-line tool provides several options to control the execution behavior of your scripts.
+
+- `--files <file1> <file2> ...`: Specifies a list of script files to execute, which will be run in order. Supports glob patterns, following the syntax supported by [glob](https://www.npmjs.com/package/glob).
+- `--concurrent <number>`: Sets the number of concurrent executions. Defaults to `1`.
+- `--continue-on-error`: If this flag is set, it will continue to run the remaining scripts even if one fails. Defaults to off.
+- `--share-browser-context`: Shares the same browser context (e.g., Cookies and `localStorage`) across all scripts. This is very useful for sequential tests that require a login state. Defaults to off.
+- `--summary <filename>`: Specifies the path for the generated JSON format summary report file.
+- `--headed`: Runs the script in a browser with a graphical user interface, rather than in headless mode.
+- `--keep-window`: Keeps the browser window open after the script execution is complete. This option automatically enables `--headed` mode.
+- `--config <filename>`: Specifies a configuration file. Parameters in the config file will be used as default values for the command-line arguments.
+- `--web.userAgent <ua>`: Sets the browser UA, which will override the `web.userAgent` parameter in all script files.
+- `--web.viewportWidth <width>`: Sets the browser viewport width, which will override the `web.viewportWidth` parameter in all script files.
+- `--web.viewportHeight <height>`: Sets the browser viewport height, which will override the `web.viewportHeight` parameter in all script files.
+- `--android.deviceId <device-id>`: Sets the Android device ID, which will override the `android.deviceId` parameter in all script files.
+- `--dotenv-debug`: Sets the debug log for dotenv, disabled by default.
+- `--dotenv-override`: Sets whether dotenv overrides global environment variables with the same name, disabled by default.
+
+Examples:
+
+Use the `--files` argument to specify the file order and run in parallel.
+
+```bash
+midscene --files ./login.yaml ./buy/*.yaml ./checkout.yaml
+```
+
+Run all scripts with a concurrency of 4 and continue on any file error.
+
+```bash
+midscene --files './scripts/**/*.yaml' --concurrent 4 --continue-on-error
+```
+
+### Writing Command-Line Arguments in a File
+
+You can write a configuration file in YAML format and reference it with `--config`. When invoking the command-line tool, command-line arguments have higher priority than the configuration file.
+
+```yaml
+files:
+  - './scripts/login.yaml'
+  - './scripts/search.yaml'
+  - './scripts/**/*.yaml'
+
+concurrent: 4
+continueOnError: true
+shareBrowserContext: true
+```
+
+Usage:
+
+```bash
+midscene --config ./config.yaml
+```
+
+## More Features
+
+### Using Environment Variables in `.yaml` Files
+
+You can use environment variables in your `.yaml` files with the `${variable-name}` syntax.
 
 For example, if you have a `.env` file with the following content:
 
@@ -291,7 +354,7 @@ For example, if you have a `.env` file with the following content:
 topic=weather today
 ```
 
-You can use the environment variable in the `.yaml` file like this:
+You can use the environment variable in your `.yaml` file like this:
 
 ```yaml
 #...
@@ -299,30 +362,31 @@ You can use the environment variable in the `.yaml` file like this:
 #...
 ```
 
-### Debug in headed mode
+### Running in Headed Mode
 
-> `web` scenario only
+> `web` scenarios only
 
-'headed mode' means the browser will be visible. The default behavior is to run in headless mode.
+'Headed' mode means the browser window will be visible. By default, scripts run in headless mode.
 
-To turn on headed mode, you can use `--headed` option. Besides, if you want to keep the browser window open after the script finishes, you can use `--keep-window` option. `--keep-window` implies `--headed`.
+To run in headed mode, you can use the `--headed` option. Additionally, if you want to keep the browser window open after the script finishes, you can use the `--keep-window` option. The `--keep-window` option automatically enables `--headed` mode.
 
-When running in headed mode, it will consume more resources, so we recommend you to use it locally only when needed.
+Headed mode consumes more resources, so it is recommended to use it only locally.
 
 ```bash
-# run in headed mode
+# Run in headed mode
 midscene /path/to/yaml --headed
 
-# run in headed mode and keep the browser window open after the script finishes
+# Run in headed mode and keep the browser window open afterward
 midscene /path/to/yaml --keep-window
 ```
 
-### Use bridge mode
+### Using Bridge Mode
 
-> `web` scenario only
-> By using bridge mode, you can utilize YAML scripts to automate the web browser on your desktop. This is particularly useful if you want to reuse cookies, plugins, and page states, or if you want to manually interact with automation scripts.
+> `web` scenarios only
 
-To use bridge mode, you should install the Chrome extension first, and use this configuration in the `target` section:
+By using bridge mode, you can leverage YAML scripts to automate your existing desktop browser. This is particularly useful for reusing cookies, plugins, and page states, or for interacting manually with automation scripts.
+
+To use bridge mode, you first need to install the Chrome extension and then use the following configuration in the `target` section:
 
 ```diff
 web:
@@ -330,29 +394,35 @@ web:
 + bridgeMode: newTabWithUrl
 ```
 
-See [Bridge Mode by Chrome Extension](./bridge-mode-by-chrome-extension) for more details.
+Please refer to [Bridge Mode via Chrome Extension](./bridge-mode-by-chrome-extension) for more details.
 
-### Run yaml script with javascript
+### Running YAML Scripts with JavaScript
 
-You can also run a yaml script with javascript by using the [`runYaml`](./api.html#runyaml) method of the Midscene agent. Only the `tasks` part of the yaml script will be executed.
+You can also run a YAML script using JavaScript by calling the [`runYaml`](./api.html#runyaml) method on the Agent. Note that this method will only execute the `tasks` part of the YAML script.
 
-## Config default behavior of dotenv
+### Analyzing Command-Line Tool Results
 
-Midscene uses [`dotenv`](https://github.com/motdotla/dotenv) to load environment variables from `.env` file to set the environment variables.
+After execution is complete, the following files will be generated in the output directory:
 
-### Debug log
+- The file path specified by the `--summary` option (defaults to `index.json`), containing the execution status and statistics of all files.
+- The individual execution results of each YAML file (in JSON format).
+- The visual reports for each file (in HTML format).
 
-The debug log of `dotenv` will be printed by default. If you don't want to see these information, you can use `--dotenv-debug` option.
+## Configure dotenv's Default Behavior
+
+Midscene uses [`dotenv`](https://github.com/motdotla/dotenv) to load environment variables from a `.env` file.
+
+### Disable dotenv's Debug Logs
+
+By default, Midscene prints debug information from dotenv. If you don't want to see this information, you can use the `--dotenv-debug` option to disable it.
 
 ```bash
 midscene /path/to/yaml --dotenv-debug=false
 ```
 
-### Use .env file to override global environment variables
+### Use .env to Override Global Environment Variables
 
-By default, `dotenv` will NOT override the same name environment variable in the `.env` file if the global environment variable is already set.
-
-If you want to do this, you can use `--dotenv-override` option.
+By default, `dotenv` will not override global environment variables with the same name found in the `.env` file. If you want to override them, you can use the `--dotenv-override` option.
 
 ```bash
 midscene /path/to/yaml --dotenv-override=true
@@ -360,10 +430,18 @@ midscene /path/to/yaml --dotenv-override=true
 
 ## FAQ
 
-**How to get cookies in JSON format from Chrome?**
+**How can I get cookies in JSON format from Chrome?**
 
-You can use this [chrome extension](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc) to export cookies in JSON format.
+You can use this [Chrome extension](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc) to export cookies in JSON format.
+
+**How can I open the debug log for dotenv?**
+
+Midscene uses `dotenv` to load environment variables from a `.env` file. You can use the `--dotenv-debug` option to open the debug log for dotenv.
+
+```bash
+midscene /path/to/yaml --dotenv-debug=true
+```
 
 ## More
 
-You may also be interested in [Prompting Tips](./prompting-tips)
+You might also be interested in [Prompting Tips](./prompting-tips).

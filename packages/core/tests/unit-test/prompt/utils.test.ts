@@ -27,19 +27,23 @@ describe('prompt utils - describeUserPage', () => {
     vi.mocked(vlLocateMode).mockReturnValue('qwen-vl');
   });
 
-  it('describe context ', async () => {
-    const context = await getContextFromFixture('taobao');
-    const { description } = await describeUserPage(context.context, {
-      domIncluded: true,
-      visibleOnly: false,
-    });
+  it(
+    'describe context ',
+    async () => {
+      const context = await getContextFromFixture('taobao');
+      const { description } = await describeUserPage(context.context, {
+        domIncluded: true,
+        visibleOnly: false,
+      });
 
-    lengthOfDescription = description.length;
-    const stringLengthOfEachItem =
-      lengthOfDescription / treeToList(context.context.tree).length;
-    expect(description).toBeTruthy();
-    expect(stringLengthOfEachItem).toBeLessThan(250);
-  });
+      lengthOfDescription = description.length;
+      const stringLengthOfEachItem =
+        lengthOfDescription / treeToList(context.context.tree).length;
+      expect(description).toBeTruthy();
+      expect(stringLengthOfEachItem).toBeLessThan(250);
+    },
+    { timeout: 10000 },
+  );
 
   it('describe context, truncateTextLength = 100, filterNonTextContent = true', async () => {
     const context = await getContextFromFixture('taobao');

@@ -2,9 +2,9 @@ import SetupEnv from './common/setup-env.mdx';
 
 # 使用 YAML 格式的自动化脚本
 
-在大多数情况下，开发者编写自动化脚本只是为了执行一些冒烟测试，比如检查某些内容是否出现，或者验证某个关键用户路径是否可用。在这种情况下，维护一个大型测试项目会显得毫无必要。
+在大多数情况下，开发者编写自动化脚本只是为了执行一些简单流程，比如检查某些内容是否出现，或者验证某个关键用户路径是否可用。此时维护一个大型测试项目会显得毫无必要。
 
-⁠Midscene 提供了一种基于 `.yaml` 文件的自动化测试方法，这有助于你专注于脚本本身，而不是测试框架。以此，任何团队内的成员都可以编写自动化脚本，而无需学习任何 API。
+⁠Midscene 提供了一种基于 `.yaml` 文件的自动化测试方法，这有助于你专注于编写流程，而不是测试框架。
 
 这里有一个示例，通过阅读它的内容，你应该已经理解了它的工作原理。
 
@@ -40,7 +40,7 @@ tasks:
 OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 ```
 
-## 安装命令行工具
+## 使用命令行工具
 
 全局安装 `@midscene/cli`
 
@@ -88,30 +88,26 @@ midscene ./bing-search.yaml
 npx midscene ./bing-search.yaml
 ```
 
-你应该会看到脚本的执行进度和可视化运行报告文件。
+你将会看到脚本的执行进度和可视化运行报告文件。
 
-## 命令行工具使用方法
+## 脚本文件结构
 
-### 运行单个 `.yaml` 文件
+脚本文件使用 YAML 格式来描述自动化任务。它定义了要操作的目标（如网页或安卓应用）以及一系列要执行的步骤。
 
-```bash
-midscene /path/to/yaml
+一个标准的 `.yaml` 脚本文件包含 `web` 或 `android` 部分配置环境，以及一个 `tasks` 部分来定义自动化任务。
+
+```yaml
+web:
+  url: https://www.bing.com
+
+# tasks 部分定义了要执行的一系列步骤
+tasks:
+  - name: 搜索天气
+    flow:
+      - ai: 搜索 "今日天气"
+      - sleep: 3000
+      - aiAssert: 结果显示天气信息
 ```
-
-### 运行一个文件夹下的所有 `.yaml` 文件
-
-```bash
-midscene /dir/of/yaml/
-
-# 支持 glob 语法
-midscene /dir/**/yaml/
-```
-
-## `.yaml` 文件结构
-
-在 `.yaml` 文件中，有两个部分：`web/android` 和 `tasks`。
-
-`web/android` 部分定义了任务的基本信息，浏览器下的自动化使用 `web` 参数（曾用参数名 `target`），安卓设备下的自动化使用 `android` 参数，二者是互斥的。
 
 ### `web` 部分
 
@@ -148,7 +144,7 @@ web:
   # 输出 aiQuery/aiAssert 结果的 JSON 文件路径，可选
   output: <path-to-output-file>
 
-  # 是否保存日志内容到 JSON 文件，可选，默认 false。如果为 true，保存到 `unstableLogContent.json` 文件中。如果为字符串，则保存到该字符串指定的路径中。日志内容的结构可能会在未来发生变化。
+  # 是否保存日志内容到 JSON 文件，可选，默认 `false`。如果为 true，保存到 `unstableLogContent.json` 文件中。如果为字符串，则保存到该字符串指定的路径中。日志内容的结构可能会在未来发生变化。
   unstableLogContent: <boolean | path-to-unstable-log-file>
 
   # 是否限制页面在当前 tab 打开，可选，默认 true
@@ -176,6 +172,9 @@ android:
 
   # 启动 URL，可选，默认使用设备当前页面
   launch: <url>
+
+  # 输出 aiQuery/aiAssert 结果的 JSON 文件路径，可选
+  output: <path-to-output-file>
 ```
 
 ### `tasks` 部分
@@ -277,6 +276,76 @@ tasks:
       # ...
 ```
 
+## 命令行工具的高级用法
+
+`@midscene/cli` 提供了灵活的方式来运行你的自动化脚本。
+
+### 运行一个或多个脚本
+
+你可以直接向 `midscene` 命令传递一个 `.yaml` 脚本文件或使用通配符模式来匹配多个 `.yaml`。这是 `--files` 参数的简写方式。
+
+```bash
+# 运行单个脚本
+midscene ./bing-search.yaml
+
+# 使用通配符模式运行所有匹配的脚本
+midscene './scripts/**/*.yaml'
+```
+
+### 命令行选项
+
+命令行工具提供了一些选项来控制脚本的执行行为。
+
+- `--files <file1> <file2> ...`: 指定要执行的脚本文件列表，文件将按顺序执行。支持通配符模式，遵循 [glob](https://www.npmjs.com/package/glob) 支持的语法。
+- `--concurrent <number>`: 设置并发执行的数量。默认为 `1`。
+- `--continue-on-error`: 如果设置了此选项，即使有脚本文件执行失败，也会继续运行余下的脚本文件。默认关闭。
+- `--share-browser-context`: 在所有脚本之间共享同一个浏览器上下文（例如 Cookies 和 `localStorage`）。这对于需要登录状态的连续测试非常有用，默认关闭。
+- `--summary <filename>`: 指定生成的 JSON 格式汇总报告文件的路径。
+- `--headed`: 在有图形界面的浏览器中运行脚本，而不是在无头模式下。
+- `--keep-window`: 脚本执行结束后保持浏览器窗口打开。此选项会自动启用 `--headed` 参数。
+- `--config <filename>`: 指定配置文件，配置文件中的参数将作为命令行参数的默认值。
+- `--web.userAgent <ua>`: 设置浏览器 UA，这将覆盖所有脚本文件中的 `web.userAgent` 参数。
+- `--web.viewportWidth <width>`: 设置浏览器视口宽度，这将覆盖所有脚本文件中的 `web.viewportWidth` 参数。
+- `--web.viewportHeight <height>`: 设置浏览器视口高度，这将覆盖所有脚本文件中的 `web.viewportHeight` 参数。
+- `--android.deviceId <device-id>`: 设置安卓设备 ID，这将覆盖所有脚本文件中的 `android.deviceId` 参数。
+- `--dotenv-debug`: 设置 dotenv 的 debug 日志，默认关闭。
+- `--dotenv-override`: 设置 dotenv 是否覆盖同名的全局环境变量，默认关闭。
+
+举例：
+
+使用 `--files` 参数来指定文件顺序，并行执行
+
+```bash
+midscene --files ./login.yaml ./buy/*.yaml ./checkout.yaml
+```
+
+以 4 个并发数运行所有脚本，并在任一文件出错时继续
+
+```bash
+midscene --files './scripts/**/*.yaml' --concurrent 4 --continue-on-error
+```
+
+### 以文件形式编写命令行参数
+
+你可以编写 YAML 格式的配置文件，然后通过 `--config` 来引用它。调用命令行工具时，命令行参数的优先级高于配置文件。
+
+```yaml
+files:
+  - './scripts/login.yaml'
+  - './scripts/search.yaml'
+  - './scripts/**/*.yaml'
+
+concurrent: 4
+continueOnError: true
+shareBrowserContext: true
+```
+
+使用方法：
+
+```bash
+midscene --config ./config.yaml
+```
+
 ## 更多特性
 
 ### 在 `.yaml` 文件中使用环境变量
@@ -335,6 +404,14 @@ web:
 
 你也可以使用 JavaScript 运行 YAML 脚本，调用 Agent 上的 [`runYaml`](./api.html#runyaml) 方法即可。注意，这种方法只会执行 YAML 脚本中的 `tasks` 部分。
 
+### 分析命令行工具的运行结果
+
+执行完成后，会在输出目录中生成以下文件：
+
+- 由 `--summary` 选项指定的文件路径（默认是 `index.json`），包含所有文件的执行状态和统计信息
+- 各个 YAML 文件的独立执行结果（JSON 格式）
+- 各个文件的可视化报告（HTML 格式）
+
 ## 配置 dotenv 的默认行为
 
 Midscene 使用 [`dotenv`](https://github.com/motdotla/dotenv) 加载 `.env` 文件中的环境变量。
@@ -360,6 +437,14 @@ midscene /path/to/yaml --dotenv-override=true
 **如何从 Chrome 中获取 JSON 格式的 Cookies？**
 
 你可以使用这个 [Chrome 扩展](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc) 来导出 Cookies 为 JSON 格式。
+
+**如何打开 dotenv 的 debug 日志？**
+
+Midscene 使用 `dotenv` 加载 `.env` 文件中的环境变量。你可以使用 `--dotenv-debug` 选项来打开 dotenv 的 debug 日志。
+
+```bash
+midscene /path/to/yaml --dotenv-debug=true
+```
 
 ## 更多
 

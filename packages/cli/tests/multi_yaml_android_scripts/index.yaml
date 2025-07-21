@@ -1,0 +1,18 @@
+# Example batch execution index YAML file
+# This demonstrates how to use the multi-YAML file batch execution feature
+
+# Concurrency settings (default: 1 for sequential execution)
+concurrent: 1
+
+# Continue execution even if one file fails (default: false)
+continueOnError: true
+
+# Global android environment configuration (applied to all files)
+android: 
+  deviceId: s4ey59ytbitot4yp
+
+# Execution files using glob patterns
+files:
+  - "maps-navigation.yaml"
+  - "search-headphone-on-ebay.yaml"
+  - "twitter-auto-like.yaml"

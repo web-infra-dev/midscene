@@ -1,0 +1,31 @@
+# Example batch execution index YAML file
+# This demonstrates how to use the multi-YAML file batch execution feature
+
+# Concurrency settings (default: 1 for sequential execution)
+concurrent: 2
+
+# Continue execution even if one file fails (default: false)
+continueOnError: false
+
+# Summary file path
+summary: "./midscene_run/output/custom-summary.json"
+
+# Global web environment configuration (applied to all files)
+web:
+  # All individual YAML files will inherit these settings
+  viewportWidth: 1280
+  viewportHeight: 720
+  # bridgeMode: "newTabWithUrl"
+  # Output directory for individual files (will be combined with file-specific paths)
+
+# Global android environment configuration (if needed)
+# android:
+#   deviceId: "emulator-5554"
+
+# Execution files using glob patterns
+files:
+  - "login.yaml"
+  - "local/local-error-message.yml"
+  - "local/local.yml"
+  # - "local/local*.yml"
+  - "after-login.yaml"

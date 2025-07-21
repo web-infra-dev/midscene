@@ -1,0 +1,8 @@
+target:
+  serve: ./tests/server_root
+  url: index.html
+tasks:
+  - name: check title
+    flow:
+      - aiAssert: the content title is "Your App"
+        errorMessage: "something error when assert title"

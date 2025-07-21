@@ -140,7 +140,10 @@ ${Object.keys(size)
         return async (...args: any[]) => {
           try {
             debugPage(`adb ${String(prop)} ${args.join(' ')}`);
-            return originalMethod.apply(target, args);
+            return (originalMethod as (...args: any[]) => any).apply(
+              target,
+              args,
+            );
           } catch (error: any) {
             const methodName = String(prop);
             const deviceId = this.deviceId;
