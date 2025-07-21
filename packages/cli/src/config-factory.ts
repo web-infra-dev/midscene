@@ -19,7 +19,7 @@ const defaultConfig = {
   headed: false,
   keepWindow: false,
   dotenvOverride: false,
-  dotenvDebug: true,
+  dotenvDebug: false,
 };
 
 export interface ConfigFactoryOptions {

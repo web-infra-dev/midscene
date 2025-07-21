@@ -106,7 +106,7 @@ summary: "yaml-summary.json"
       expect(result.headed).toBe(false);
       expect(result.keepWindow).toBe(false);
       expect(result.dotenvOverride).toBe(false);
-      expect(result.dotenvDebug).toBe(true);
+      expect(result.dotenvDebug).toBe(false);
       expect(result.summary).toMatch(/index-\d+\.json$/);
     });
 
@@ -205,7 +205,7 @@ concurrent: 2
         headed: false,
         keepWindow: false,
         dotenvOverride: false,
-        dotenvDebug: true,
+        dotenvDebug: false,
         globalConfig: {
           web: undefined,
           android: undefined,

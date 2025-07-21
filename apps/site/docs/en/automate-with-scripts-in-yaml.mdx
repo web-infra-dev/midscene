@@ -304,7 +304,7 @@ The command-line tool provides several options to control the execution behavior
 - `--web.viewportWidth <width>`: Sets the browser viewport width, which will override the `web.viewportWidth` parameter in all script files.
 - `--web.viewportHeight <height>`: Sets the browser viewport height, which will override the `web.viewportHeight` parameter in all script files.
 - `--android.deviceId <device-id>`: Sets the Android device ID, which will override the `android.deviceId` parameter in all script files.
-- `--dotenv-debug`: Sets the debug log for dotenv, enabled by default.
+- `--dotenv-debug`: Sets the debug log for dotenv, disabled by default.
 - `--dotenv-override`: Sets whether dotenv overrides global environment variables with the same name, disabled by default.
 
 Examples:
@@ -433,6 +433,14 @@ midscene /path/to/yaml --dotenv-override=true
 **How can I get cookies in JSON format from Chrome?**
 
 You can use this [Chrome extension](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc) to export cookies in JSON format.
+
+**How can I open the debug log for dotenv?**
+
+You can use the `--dotenv-debug` option to open the debug log for dotenv.
+
+```bash
+midscene /path/to/yaml --dotenv-debug=true
+```
 
 ## More
 

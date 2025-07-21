@@ -404,9 +404,11 @@ class BatchRunner {
   }
 
   private printExecutionPlan(): void {
+    console.log('   Scripts:');
+    for (const file of this.config.files) {
+      console.log(`     - ${file}`);
+    }
     console.log('📋 Execution plan');
-    console.log('   Config File:');
-    console.log(`   Files to execute: ${this.config.files.length}`);
     console.log(`   Concurrency: ${this.config.concurrent}`);
     console.log(`   Keep window: ${this.config.keepWindow}`);
     console.log(`   Headed: ${this.config.headed}`);

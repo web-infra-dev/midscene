@@ -45,8 +45,9 @@ Promise.resolve(
 
     if (configFile) {
       config = await createConfig(configFile, configOptions);
+      console.log(`   Config file: ${configFile}`);
     } else if (cmdFiles && cmdFiles.length > 0) {
-      console.log('📄 Executing YAML files from --files argument...\n');
+      console.log('   Executing YAML files from --files argument...');
       config = await createFilesConfig(cmdFiles, configOptions);
     } else if (path) {
       const files = await matchYamlFiles(path);
@@ -54,7 +55,7 @@ Promise.resolve(
         console.error(`No yaml files found in ${path}`);
         process.exit(1);
       }
-      console.log('📄 Executing YAML files...\n');
+      console.log('   Executing YAML files...');
       config = await createFilesConfig(files, configOptions);
     }
 
@@ -65,7 +66,7 @@ Promise.resolve(
 
     const dotEnvConfigFile = join(process.cwd(), '.env');
     if (existsSync(dotEnvConfigFile)) {
-      console.log(`loading .env file from ${dotEnvConfigFile}`);
+      console.log(`   Env file: ${dotEnvConfigFile}`);
       dotenv.config({
         path: dotEnvConfigFile,
         debug: config.dotenvDebug,

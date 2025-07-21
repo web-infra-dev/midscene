@@ -44,7 +44,7 @@ Usage: $0 [options] <path-to-yaml-script-file-or-directory>
       },
       'dotenv-debug': {
         type: 'boolean',
-        default: true,
+        default: false,
         description:
           'Turn on logging to help debug why certain keys or values are not being set as you expect',
       },

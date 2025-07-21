@@ -276,7 +276,6 @@ tasks:
       # ...
 ```
 
-
 ## 命令行工具的高级用法
 
 `@midscene/cli` 提供了灵活的方式来运行你的自动化脚本。
@@ -309,7 +308,7 @@ midscene './scripts/**/*.yaml'
 - `--web.viewportWidth <width>`: 设置浏览器视口宽度，这将覆盖所有脚本文件中的 `web.viewportWidth` 参数。
 - `--web.viewportHeight <height>`: 设置浏览器视口高度，这将覆盖所有脚本文件中的 `web.viewportHeight` 参数。
 - `--android.deviceId <device-id>`: 设置安卓设备 ID，这将覆盖所有脚本文件中的 `android.deviceId` 参数。
-- `--dotenv-debug`: 设置 dotenv 的 debug 日志，默认开启。
+- `--dotenv-debug`: 设置 dotenv 的 debug 日志，默认关闭。
 - `--dotenv-override`: 设置 dotenv 是否覆盖同名的全局环境变量，默认关闭。
 
 举例：
@@ -331,7 +330,6 @@ midscene --files './scripts/**/*.yaml' --concurrent 4 --continue-on-error
 你可以编写 YAML 格式的配置文件，然后通过 `--config` 来引用它。调用命令行工具时，命令行参数的优先级高于配置文件。
 
 ```yaml
-
 files:
   - './scripts/login.yaml'
   - './scripts/search.yaml'
@@ -439,6 +437,14 @@ midscene /path/to/yaml --dotenv-override=true
 **如何从 Chrome 中获取 JSON 格式的 Cookies？**
 
 你可以使用这个 [Chrome 扩展](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc) 来导出 Cookies 为 JSON 格式。
+
+**如何打开 dotenv 的 debug 日志？**
+
+你可以使用 `--dotenv-debug` 选项来打开 dotenv 的 debug 日志。
+
+```bash
+midscene /path/to/yaml --dotenv-debug=true
+```
 
 ## 更多
 
