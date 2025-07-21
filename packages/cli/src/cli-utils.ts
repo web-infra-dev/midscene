@@ -4,6 +4,7 @@ import { getDebug } from '@midscene/shared/logger';
 import { glob } from 'glob';
 import { hideBin } from 'yargs/helpers';
 import yargs from 'yargs/yargs';
+import { defaultConfig } from './config-factory';
 
 declare const __VERSION__: string;
 
@@ -27,35 +28,35 @@ Usage: $0 [options] <path-to-yaml-script-file-or-directory>
     .options({
       headed: {
         type: 'boolean',
-        default: false,
+        default: defaultConfig.headed,
         description: 'Run the browser in headed mode to see the browser UI',
       },
       'keep-window': {
         type: 'boolean',
-        default: false,
+        default: defaultConfig.keepWindow,
         description:
           'Keep the browser window open after the script finishes. This is useful when debugging, but will consume more resources',
       },
       'dotenv-override': {
         type: 'boolean',
-        default: false,
+        default: defaultConfig.dotenvOverride,
         description:
           'Whether the variables in the .env file override the global variables, the default is false',
       },
       'dotenv-debug': {
         type: 'boolean',
-        default: false,
+        default: defaultConfig.dotenvDebug,
         description:
           'Turn on logging to help debug why certain keys or values are not being set as you expect',
       },
       concurrent: {
         type: 'number',
-        default: 1,
+        default: defaultConfig.concurrent,
         description: 'Number of concurrent executions',
       },
       'continue-on-error': {
         type: 'boolean',
-        default: false,
+        default: defaultConfig.continueOnError,
         description: 'Continue execution even if some tasks fail',
       },
       summary: {
@@ -64,7 +65,7 @@ Usage: $0 [options] <path-to-yaml-script-file-or-directory>
       },
       'share-browser-context': {
         type: 'boolean',
-        default: false,
+        default: defaultConfig.shareBrowserContext,
         description: 'Share browser context across multiple files',
       },
       files: {

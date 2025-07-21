@@ -12,7 +12,7 @@ import merge from 'lodash.merge';
 import type { BatchRunnerConfig } from './batch-runner';
 import { matchYamlFiles } from './cli-utils';
 
-const defaultConfig = {
+export const defaultConfig = {
   concurrent: 1,
   continueOnError: false,
   shareBrowserContext: false,
