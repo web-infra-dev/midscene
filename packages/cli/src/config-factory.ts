@@ -12,6 +12,16 @@ import merge from 'lodash.merge';
 import type { BatchRunnerConfig } from './batch-runner';
 import { matchYamlFiles } from './cli-utils';
 
+const defaultConfig = {
+  concurrent: 1,
+  continueOnError: false,
+  shareBrowserContext: false,
+  headed: false,
+  keepWindow: false,
+  dotenvOverride: false,
+  dotenvDebug: true,
+};
+
 export interface ConfigFactoryOptions {
   concurrent?: number;
   continueOnError?: boolean;
@@ -25,7 +35,7 @@ export interface ConfigFactoryOptions {
   android?: Partial<MidsceneYamlScriptAndroidEnv>;
 }
 
-export interface ParsedIndexConfig {
+export interface ParsedConfig {
   concurrent: number;
   continueOnError: boolean;
   summary: string;
@@ -68,25 +78,25 @@ async function expandFilePatterns(
   return allFiles;
 }
 
-export async function parseIndexYaml(
-  indexYamlPath: string,
-): Promise<ParsedIndexConfig> {
-  const basePath = dirname(resolve(indexYamlPath));
-  const indexContent = readFileSync(indexYamlPath, 'utf8');
-  const interpolatedContent = interpolateEnvVars(indexContent);
-  let indexYaml: MidsceneYamlIndex;
+export async function parseConfigYaml(
+  configYamlPath: string,
+): Promise<ParsedConfig> {
+  const basePath = dirname(resolve(configYamlPath));
+  const configContent = readFileSync(configYamlPath, 'utf8');
+  const interpolatedContent = interpolateEnvVars(configContent);
+  let configYaml: MidsceneYamlIndex;
   try {
-    indexYaml = yamlLoad(interpolatedContent) as MidsceneYamlIndex;
+    configYaml = yamlLoad(interpolatedContent) as MidsceneYamlIndex;
   } catch (error) {
-    throw new Error(`Failed to parse index YAML: ${error}`);
+    throw new Error(`Failed to parse config YAML: ${error}`);
   }
 
-  if (!indexYaml?.files || !Array.isArray(indexYaml?.files)) {
-    throw new Error('Index YAML must contain a "files" array');
+  if (!configYaml?.files || !Array.isArray(configYaml?.files)) {
+    throw new Error('Config YAML must contain a "files" array');
   }
 
   // Expand file patterns using glob
-  const files = await expandFilePatterns(indexYaml?.files, basePath);
+  const files = await expandFilePatterns(configYaml?.files, basePath);
 
   // Validate that at least one file was found
   if (files.length === 0) {
@@ -94,34 +104,36 @@ export async function parseIndexYaml(
   }
 
   // Generate default summary filename
-  const indexFileName = basename(indexYamlPath, extname(indexYamlPath));
+  const configFileName = basename(configYamlPath, extname(configYamlPath));
   const timestamp = Date.now();
-  const defaultSummary = `${indexFileName}-${timestamp}.json`;
+  const defaultSummary = `${configFileName}-${timestamp}.json`;
 
   // Build parsed configuration from file only
-  const config: ParsedIndexConfig = {
-    concurrent: indexYaml.concurrent ?? 1,
-    continueOnError: indexYaml.continueOnError ?? false,
-    summary: indexYaml.summary ?? defaultSummary,
-    shareBrowserContext: indexYaml.shareBrowserContext ?? false,
-    web: indexYaml.web,
-    android: indexYaml.android,
-    patterns: indexYaml.files,
+  const config: ParsedConfig = {
+    concurrent: configYaml.concurrent ?? defaultConfig.concurrent,
+    continueOnError:
+      configYaml.continueOnError ?? defaultConfig.continueOnError,
+    summary: configYaml.summary ?? defaultSummary,
+    shareBrowserContext:
+      configYaml.shareBrowserContext ?? defaultConfig.shareBrowserContext,
+    web: configYaml.web,
+    android: configYaml.android,
+    patterns: configYaml.files,
     files,
-    headed: indexYaml.headed ?? false,
-    keepWindow: indexYaml.keepWindow ?? false,
-    dotenvOverride: indexYaml.dotenvOverride ?? false,
-    dotenvDebug: indexYaml.dotenvDebug ?? true,
+    headed: configYaml.headed ?? defaultConfig.headed,
+    keepWindow: configYaml.keepWindow ?? defaultConfig.keepWindow,
+    dotenvOverride: configYaml.dotenvOverride ?? defaultConfig.dotenvOverride,
+    dotenvDebug: configYaml.dotenvDebug ?? defaultConfig.dotenvDebug,
   };
 
   return config;
 }
 
-export async function createIndexConfig(
-  indexYamlPath: string,
-  cmdLineOptions?: ConfigFactoryOptions,
+export async function createConfig(
+  configYamlPath: string,
+  options?: ConfigFactoryOptions,
 ): Promise<BatchRunnerConfig> {
-  const parsedConfig = await parseIndexYaml(indexYamlPath);
+  const parsedConfig = await parseConfigYaml(configYamlPath);
   const globalConfig = merge(
     {
       web: parsedConfig.web,
@@ -129,25 +141,23 @@ export async function createIndexConfig(
       target: parsedConfig.target,
     },
     {
-      web: cmdLineOptions?.web,
-      android: cmdLineOptions?.android,
+      web: options?.web,
+      android: options?.android,
     },
   );
 
   // Apply command line overrides with higher priority than file configuration
   return {
     files: parsedConfig.files,
-    concurrent: cmdLineOptions?.concurrent ?? parsedConfig.concurrent,
-    continueOnError:
-      cmdLineOptions?.continueOnError ?? parsedConfig.continueOnError,
-    summary: cmdLineOptions?.summary ?? parsedConfig.summary,
+    concurrent: options?.concurrent ?? parsedConfig.concurrent,
+    continueOnError: options?.continueOnError ?? parsedConfig.continueOnError,
+    summary: options?.summary ?? parsedConfig.summary,
     shareBrowserContext:
-      cmdLineOptions?.shareBrowserContext ?? parsedConfig.shareBrowserContext,
-    headed: cmdLineOptions?.headed ?? parsedConfig.headed,
-    keepWindow: cmdLineOptions?.keepWindow ?? parsedConfig.keepWindow,
-    dotenvOverride:
-      cmdLineOptions?.dotenvOverride ?? parsedConfig.dotenvOverride,
-    dotenvDebug: cmdLineOptions?.dotenvDebug ?? parsedConfig.dotenvDebug,
+      options?.shareBrowserContext ?? parsedConfig.shareBrowserContext,
+    headed: options?.headed ?? parsedConfig.headed,
+    keepWindow: options?.keepWindow ?? parsedConfig.keepWindow,
+    dotenvOverride: options?.dotenvOverride ?? parsedConfig.dotenvOverride,
+    dotenvDebug: options?.dotenvDebug ?? parsedConfig.dotenvDebug,
     globalConfig,
   };
 }
@@ -163,14 +173,15 @@ export async function createFilesConfig(
 
   return {
     files,
-    concurrent: options.concurrent ?? 1,
-    continueOnError: options.continueOnError ?? false,
+    concurrent: options.concurrent ?? defaultConfig.concurrent,
+    continueOnError: options.continueOnError ?? defaultConfig.continueOnError,
     summary: options.summary ?? defaultSummary,
-    shareBrowserContext: options.shareBrowserContext ?? false,
-    headed: options.headed ?? false,
-    keepWindow: options.keepWindow ?? false,
-    dotenvOverride: options.dotenvOverride ?? false,
-    dotenvDebug: options.dotenvDebug ?? true,
+    shareBrowserContext:
+      options.shareBrowserContext ?? defaultConfig.shareBrowserContext,
+    headed: options.headed ?? defaultConfig.headed,
+    keepWindow: options.keepWindow ?? defaultConfig.keepWindow,
+    dotenvOverride: options.dotenvOverride ?? defaultConfig.dotenvOverride,
+    dotenvDebug: options.dotenvDebug ?? defaultConfig.dotenvDebug,
     globalConfig: {
       web: options.web as MidsceneYamlScriptWebEnv | undefined,
       android: options.android as MidsceneYamlScriptAndroidEnv | undefined,

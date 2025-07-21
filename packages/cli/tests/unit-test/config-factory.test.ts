@@ -1,9 +1,9 @@
 import { readFileSync } from 'node:fs';
 import {
   type ConfigFactoryOptions,
+  createConfig,
   createFilesConfig,
-  createIndexConfig,
-  parseIndexYaml,
+  parseConfigYaml,
 } from '@/config-factory';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -34,10 +34,10 @@ describe('config-factory', () => {
     vi.restoreAllMocks();
   });
 
-  describe('parseIndexYaml', () => {
+  describe('parseConfigYaml', () => {
     const mockIndexPath = '/test/index.yml';
 
-    test('should parse valid index YAML with all options', async () => {
+    test('should parse valid config YAML with all options', async () => {
       const mockYamlContent = `
 files:
   - "*.yml"
@@ -72,7 +72,7 @@ summary: "yaml-summary.json"
       vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
       vi.mocked(matchYamlFiles).mockResolvedValue(['file1.yml']);
 
-      const result = await parseIndexYaml(mockIndexPath);
+      const result = await parseConfigYaml(mockIndexPath);
 
       expect(result).toEqual({
         concurrent: 3,
@@ -99,7 +99,7 @@ summary: "yaml-summary.json"
       vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
       vi.mocked(matchYamlFiles).mockResolvedValue(['test.yml']);
 
-      const result = await parseIndexYaml(mockIndexPath);
+      const result = await parseConfigYaml(mockIndexPath);
 
       expect(result.concurrent).toBe(1);
       expect(result.continueOnError).toBe(false);
@@ -117,8 +117,8 @@ summary: "yaml-summary.json"
       vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
       vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
 
-      await expect(parseIndexYaml(mockIndexPath)).rejects.toThrow(
-        'Index YAML must contain a "files" array',
+      await expect(parseConfigYaml(mockIndexPath)).rejects.toThrow(
+        'Config YAML must contain a "files" array',
       );
     });
 
@@ -130,13 +130,13 @@ summary: "yaml-summary.json"
       vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
       vi.mocked(matchYamlFiles).mockResolvedValue([]); // No files found
 
-      await expect(parseIndexYaml(mockIndexPath)).rejects.toThrow(
+      await expect(parseConfigYaml(mockIndexPath)).rejects.toThrow(
         'No YAML files found matching the patterns in "files"',
       );
     });
   });
 
-  describe('createIndexConfig', () => {
+  describe('createConfig', () => {
     test('should merge command-line options over config file options', async () => {
       const mockYamlContent = `
 files:
@@ -168,7 +168,7 @@ concurrent: 2
         android: { deviceId: 'from-cmd' },
       };
 
-      const result = await createIndexConfig('/test/index.yml', cmdLineOptions);
+      const result = await createConfig('/test/index.yml', cmdLineOptions);
 
       const expectedGlobalConfig = merge(
         {

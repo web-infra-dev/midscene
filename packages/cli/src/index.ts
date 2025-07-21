@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import { version } from '../package.json';
 import { BatchRunner } from './batch-runner';
 import { matchYamlFiles, parseProcessArgs } from './cli-utils';
-import { createFilesConfig, createIndexConfig } from './config-factory';
+import { createConfig, createFilesConfig } from './config-factory';
 
 Promise.resolve(
   (async () => {
@@ -44,7 +44,7 @@ Promise.resolve(
     let config;
 
     if (configFile) {
-      config = await createIndexConfig(configFile, configOptions);
+      config = await createConfig(configFile, configOptions);
     } else if (cmdFiles && cmdFiles.length > 0) {
       console.log('📄 Executing YAML files from --files argument...\n');
       config = await createFilesConfig(cmdFiles, configOptions);
