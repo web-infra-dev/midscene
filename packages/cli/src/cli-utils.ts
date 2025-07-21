@@ -18,14 +18,39 @@ export const parseProcessArgs = async (): Promise<{
   const args = yargs(hideBin(process.argv))
     .usage(
       `Midscene.js helps you automate browser actions, assertions, and data extraction by AI. 
-Homepage: https://midscenejs.com/
+Homepage: https://midscenejs.com
 Github: https://github.com/web-infra-dev/midscene
 
-Usage: $0 [options] <path-to-yaml-script-file-or-directory>
-       $0 --files <file1> <file2 ...>
-       $0 --config <path-to-config-file>`,
+Usage: 
+      $0 [options] <path-to-yaml-script-file-or-directory>
+      $0 [options] --files <yaml-file1> <yaml-file2 ...>
+      $0 [options] --config <path-to-config-yaml-file>`,
     )
     .options({
+      files: {
+        type: 'array',
+        string: true,
+        description: 'A list of yaml files to run, separated by space',
+      },
+      config: {
+        type: 'string',
+        description:
+          'Path to a configuration file. Options in this file are used as defaults.',
+      },
+      concurrent: {
+        type: 'number',
+        default: defaultConfig.concurrent,
+        description: 'Number of concurrent executions',
+      },
+      summary: {
+        type: 'string',
+        description: 'Path for the summary output file',
+      },
+      'continue-on-error': {
+        type: 'boolean',
+        default: defaultConfig.continueOnError,
+        description: 'Continue execution even if some tasks fail',
+      },
       headed: {
         type: 'boolean',
         default: defaultConfig.headed,
@@ -36,6 +61,11 @@ Usage: $0 [options] <path-to-yaml-script-file-or-directory>
         default: defaultConfig.keepWindow,
         description:
           'Keep the browser window open after the script finishes. This is useful when debugging, but will consume more resources',
+      },
+      'share-browser-context': {
+        type: 'boolean',
+        default: defaultConfig.shareBrowserContext,
+        description: 'Share browser context across multiple yaml files',
       },
       'dotenv-override': {
         type: 'boolean',
@@ -48,35 +78,6 @@ Usage: $0 [options] <path-to-yaml-script-file-or-directory>
         default: defaultConfig.dotenvDebug,
         description:
           'Turn on logging to help debug why certain keys or values are not being set as you expect',
-      },
-      concurrent: {
-        type: 'number',
-        default: defaultConfig.concurrent,
-        description: 'Number of concurrent executions',
-      },
-      'continue-on-error': {
-        type: 'boolean',
-        default: defaultConfig.continueOnError,
-        description: 'Continue execution even if some tasks fail',
-      },
-      summary: {
-        type: 'string',
-        description: 'Path for the summary output file',
-      },
-      'share-browser-context': {
-        type: 'boolean',
-        default: defaultConfig.shareBrowserContext,
-        description: 'Share browser context across multiple files',
-      },
-      files: {
-        type: 'array',
-        string: true,
-        description: 'A list of yaml files to run, separated by space',
-      },
-      config: {
-        type: 'string',
-        description:
-          'Path to a configuration file. Options in this file are used as defaults.',
       },
       'web.user-agent': {
         alias: 'web.userAgent',

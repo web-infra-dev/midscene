@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { basename, dirname, extname, resolve } from 'node:path';
 import { cwd } from 'node:process';
 import type {
-  MidsceneYamlIndex,
+  MidsceneYamlConfig,
   MidsceneYamlScriptAndroidEnv,
   MidsceneYamlScriptWebEnv,
 } from '@midscene/core';
@@ -84,9 +84,9 @@ export async function parseConfigYaml(
   const basePath = dirname(resolve(configYamlPath));
   const configContent = readFileSync(configYamlPath, 'utf8');
   const interpolatedContent = interpolateEnvVars(configContent);
-  let configYaml: MidsceneYamlIndex;
+  let configYaml: MidsceneYamlConfig;
   try {
-    configYaml = yamlLoad(interpolatedContent) as MidsceneYamlIndex;
+    configYaml = yamlLoad(interpolatedContent) as MidsceneYamlConfig;
   } catch (error) {
     throw new Error(`Failed to parse config YAML: ${error}`);
   }

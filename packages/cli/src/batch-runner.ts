@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { readFileSync } from 'node:fs';
 import { dirname, relative, resolve } from 'node:path';
 import type {
-  MidsceneYamlIndexResult,
+  MidsceneYamlConfigResult,
   MidsceneYamlScript,
   MidsceneYamlScriptAndroidEnv,
   MidsceneYamlScriptEnv,
@@ -53,13 +53,13 @@ interface BatchFileContext {
 
 class BatchRunner {
   private config: BatchRunnerConfig;
-  private results: MidsceneYamlIndexResult[] = [];
+  private results: MidsceneYamlConfigResult[] = [];
 
   constructor(config: BatchRunnerConfig) {
     this.config = config;
   }
 
-  async run(): Promise<MidsceneYamlIndexResult[]> {
+  async run(): Promise<MidsceneYamlConfigResult[]> {
     const { keepWindow, headed } = this.config;
 
     // Print execution plan
@@ -348,8 +348,8 @@ class BatchRunner {
       file: string;
       player: ScriptPlayer<MidsceneYamlScriptEnv> | null;
     }>,
-  ): Promise<MidsceneYamlIndexResult[]> {
-    const results: MidsceneYamlIndexResult[] = [];
+  ): Promise<MidsceneYamlConfigResult[]> {
+    const results: MidsceneYamlConfigResult[] = [];
 
     for (const context of executedContexts) {
       const { file, player, duration } = context;
@@ -504,7 +504,7 @@ class BatchRunner {
     return this.results.filter((r) => r.success).map((r) => r.file);
   }
 
-  getResults(): MidsceneYamlIndexResult[] {
+  getResults(): MidsceneYamlConfigResult[] {
     return [...this.results];
   }
 
