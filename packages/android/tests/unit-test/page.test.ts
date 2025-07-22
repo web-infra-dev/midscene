@@ -108,9 +108,7 @@ describe('AndroidDevice', () => {
       expect(size1).toEqual({ width: 540, height: 960, dpr: 2 });
       expect(size2).toEqual(size1);
       // Caching is removed, so it should be called twice
-      expect(
-        vi.spyOn(device as any, 'getScreenSize'),
-      ).toHaveBeenCalledTimes(2);
+      expect(vi.spyOn(device as any, 'getScreenSize')).toHaveBeenCalledTimes(2);
     });
   });
 

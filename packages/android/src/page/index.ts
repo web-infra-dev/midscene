@@ -258,7 +258,12 @@ ${Object.keys(size)
       const orientationMatch = orientationStdout.match(
         /SurfaceOrientation:\s*(\d)/,
       );
-      orientation = orientationMatch ? Number(orientationMatch[1]) : 0;
+      if (!orientationMatch) {
+        throw new Error('Failed to get orientation from input');
+      }
+
+      orientation = Number(orientationMatch[1]);
+
       debugPage(`Screen orientation: ${orientation}`);
     } catch (e) {
       debugPage('Failed to get orientation from input, try display');
@@ -269,9 +274,15 @@ ${Object.keys(size)
         const orientationMatch = orientationStdout.match(
           /mCurrentOrientation=(\d)/,
         );
-        orientation = orientationMatch ? Number(orientationMatch[1]) : 0;
+        if (!orientationMatch) {
+          throw new Error('Failed to get orientation from display');
+        }
+
+        orientation = Number(orientationMatch[1]);
+
         debugPage(`Screen orientation (fallback): ${orientation}`);
       } catch (e2) {
+        orientation = 0;
         debugPage('Failed to get orientation from display, default to 0');
       }
     }
