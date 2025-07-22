@@ -117,7 +117,7 @@ export const generateAIDescription = async (
               height: event.elementRect?.height!,
             };
 
-      // 修改为带重试的调用
+      // Modify it to a call with retry
       const { description } = await describeWithRetry(insight, rect, 3);
       addToCache(descriptionCache, hashId, description);
       return description;
