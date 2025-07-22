@@ -81,6 +81,23 @@ export const generateAIDescription = async (
     return ongoingDescriptionRequests.get(hashId)!;
   }
 
+  // New addition: describe call with retry
+  async function describeWithRetry(insight: any, rect: any, maxRetries = 3) {
+    let lastError;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await insight.describe(rect);
+      } catch (err) {
+        lastError = err;
+        if (attempt < maxRetries) {
+          // Optional: Wait for a while and then try again
+          await new Promise((res) => setTimeout(res, 200));
+        }
+      }
+    }
+    throw lastError;
+  }
+
   const descriptionPromise = (async () => {
     try {
       const mockContext: UIContext<BaseElement> = {
@@ -100,7 +117,8 @@ export const generateAIDescription = async (
               height: event.elementRect?.height!,
             };
 
-      const { description } = await insight.describe(rect);
+      // Modify it to a call with retry
+      const { description } = await describeWithRetry(insight, rect, 3);
       addToCache(descriptionCache, hashId, description);
       return description;
     } catch (error) {
