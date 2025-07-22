@@ -252,23 +252,28 @@ ${Object.keys(size)
 
     let orientation = 0;
     try {
-      let orientationStdout = await adb.shell(
+      const orientationStdout = await adb.shell(
         'dumpsys input | grep SurfaceOrientation',
       );
-      let orientationMatch = orientationStdout.match(
+      const orientationMatch = orientationStdout.match(
         /SurfaceOrientation:\s*(\d)/,
       );
-      if (!orientationMatch) {
-        // fallback to dumpsys display
-        orientationStdout = await adb.shell(
-          'dumpsys display | grep mCurrentOrientation',
-        );
-        orientationMatch = orientationStdout.match(/mCurrentOrientation=(\d)/);
-      }
       orientation = orientationMatch ? Number(orientationMatch[1]) : 0;
       debugPage(`Screen orientation: ${orientation}`);
     } catch (e) {
-      debugPage('Failed to get orientation, default to 0');
+      debugPage('Failed to get orientation from input, try display');
+      try {
+        const orientationStdout = await adb.shell(
+          'dumpsys display | grep mCurrentOrientation',
+        );
+        const orientationMatch = orientationStdout.match(
+          /mCurrentOrientation=(\d)/,
+        );
+        orientation = orientationMatch ? Number(orientationMatch[1]) : 0;
+        debugPage(`Screen orientation (fallback): ${orientation}`);
+      } catch (e2) {
+        debugPage('Failed to get orientation from display, default to 0');
+      }
     }
 
     if (size.override || size.physical) {
