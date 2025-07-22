@@ -2,6 +2,55 @@
 
 > For the complete changelog, please refer to: [Midscene Releases](https://github.com/web-infra-dev/midscene/releases)
 
+## v0.23 - 📊 New Report Style and YAML Script Ability Enhancement
+
+### 🎨 Report System Upgrade
+#### New Report Style
+- New report style design, providing clearer and more beautiful test result display
+- Optimize report layout and visual effects, improve user reading experience
+- Enhance report readability and information hierarchy structure
+
+### ⚙️ YAML Script Ability Enhancement
+
+#### Support Multiple YAML Files Batch Execution
+- New config mode support, support configure Yaml file running order, browser reuse strategy, parallelism
+- Support getting JSON format running results
+
+### 🧪 Test Coverage Enhancement
+
+#### Android Test Enhancement
+- New Android platform related test cases, improve code quality and stability
+- Improve test coverage, ensure the reliability of Android features
+
+## v0.22- 🎬 Chrome Extension Recording Function Released
+
+### 🌐 Web Integration Enhancement
+
+#### 1️⃣ New Recording Function
+- Chrome extension adds recording function, which can record user operations on the page and generate automation scripts
+- Support recording click, input, scroll and other common operations, greatly reducing the threshold for writing automation scripts
+- The recorded operations can be directly played back and debugged in the Playground
+
+#### 2️⃣ Upgrade to IndexedDB for storage
+- Chrome extension's Playground and Bridge now use IndexedDB for data storage
+- Compared to the previous storage scheme, it provides larger storage capacity and better performance
+- Support storing more complex data structures, laying the foundation for future feature extensions
+
+#### 3️⃣ Customize Replanning Cycle Limit
+- Set the `MIDSCENE_REPLANNING_CYCLE_LIMIT` environment variable to customize the maximum number of re-planning cycles allowed when executing operations (aiAction).
+- The default value is 10. When the AI needs to re-plan more than this limit, an error will be thrown and suggest splitting the task.
+- Provide more flexible task execution control, adapting to different automation scenarios
+
+```bash
+export MIDSCENE_REPLANNING_CYCLE_LIMIT=10 # default value is 10
+```
+
+### 📱 Android Interaction Optimization
+
+#### 1️⃣ New Screenshot Path Generation
+- Generate a unique file path for each screenshot to avoid file overwrite issues
+- Improve stability in concurrent test scenarios
+
 ## v0.21 - 🎨 Chrome Extension UI Upgrade
 
 ### 🌐 Web Integration Enhancement
