@@ -1,6 +1,7 @@
 import { isNotContainerElement } from '@midscene/shared/extractor';
 
 const DEBUG = localStorage.getItem('DEBUG') === 'true'; // Based on process.env.NODE_ENV
+// localStorage.setItem('DEBUG', 'true');
 
 function debugLog(...args: any[]) {
   if (DEBUG) {
@@ -439,6 +440,7 @@ export class EventRecorder {
         lastEvent &&
         lastEvent.type === 'click' &&
         lastEvent.isLabelClick &&
+        lastEvent.labelInfo?.htmlFor &&
         lastEvent.labelInfo?.htmlFor === (event.element as HTMLInputElement).id
       ) {
         debugLog('Skip input event triggered by label click:', event.element);
