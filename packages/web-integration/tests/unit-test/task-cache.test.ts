@@ -8,7 +8,15 @@ import {
 import { cacheFileExt } from '@/common/task-cache';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { uuid } from '@midscene/shared/utils';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
 vi.mock('../../package.json', () => {
   return {
@@ -356,3 +364,38 @@ describe(
   },
   { timeout: 20000 },
 );
+
+describe('TaskCache filename length logic', () => {
+  const DEFAULT = 200;
+
+  it('should not hash if cacheId is within max length (default)', () => {
+    const base = 'a'.repeat(DEFAULT - 10);
+    const cache = new TaskCache(base, true);
+    // Should keep original id, no hash
+    expect(cache.cacheId.startsWith(base)).toBe(true);
+    expect(cache.cacheId.length).toBeLessThanOrEqual(DEFAULT + 10); // allow small difference
+    expect(cache.cacheFilePath).toContain(base);
+  });
+
+  it('should hash if cacheId exceeds max length (default)', () => {
+    const longId = 'b'.repeat(DEFAULT + 50);
+    const cache = new TaskCache(longId, true);
+    // Prefix keeps first 32 chars, then '-' and hash
+    expect(cache.cacheId.startsWith(`${'b'.repeat(32)}-`)).toBe(true);
+    // Hash part should be non-empty and short
+    const hashPart = cache.cacheId.split('-')[1];
+    expect(hashPart.length).toBeGreaterThan(0);
+    expect(cache.cacheId.length).toBeLessThanOrEqual(32 + 1 + 50); // 32+1+hash
+    // File name should not contain the full original id
+    expect(cache.cacheFilePath).not.toContain(longId);
+  });
+
+  it('should preserve readable prefix in hashed cacheId', () => {
+    const prefix = 'readable-prefix-';
+    const longId = prefix + 'x'.repeat(DEFAULT + 50);
+    const cache = new TaskCache(longId, true);
+    // Prefix should be preserved
+    expect(cache.cacheId.startsWith(prefix)).toBe(true);
+    expect(cache.cacheId.length).toBeLessThanOrEqual(32 + 1 + 50);
+  });
+});

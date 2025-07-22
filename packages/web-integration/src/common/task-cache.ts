@@ -2,12 +2,22 @@ import assert from 'node:assert';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
+import {
+  MIDSCENE_CACHE_MAX_FILENAME_LENGTH,
+  getAIConfigInNumber,
+} from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { ifInBrowser } from '@midscene/shared/utils';
+import { generateHashId } from '@midscene/shared/utils';
 import yaml from 'js-yaml';
 import semver from 'semver';
 import { version } from '../../package.json';
 import { replaceIllegalPathCharsAndSpace } from './utils';
+
+const DEFAULT_CACHE_MAX_FILENAME_LENGTH = 200;
+const CACHE_MAX_FILENAME_LENGTH =
+  getAIConfigInNumber(MIDSCENE_CACHE_MAX_FILENAME_LENGTH) ||
+  DEFAULT_CACHE_MAX_FILENAME_LENGTH;
 
 export const debug = getDebug('cache');
 
@@ -55,7 +65,13 @@ export class TaskCache {
     cacheFilePath?: string,
   ) {
     assert(cacheId, 'cacheId is required');
-    this.cacheId = replaceIllegalPathCharsAndSpace(cacheId);
+    let safeCacheId = replaceIllegalPathCharsAndSpace(cacheId);
+    if (Buffer.byteLength(safeCacheId, 'utf8') > CACHE_MAX_FILENAME_LENGTH) {
+      const prefix = safeCacheId.slice(0, 32);
+      const hash = generateHashId(undefined, safeCacheId);
+      safeCacheId = `${prefix}-${hash}`;
+    }
+    this.cacheId = safeCacheId;
 
     this.cacheFilePath = ifInBrowser
       ? undefined
