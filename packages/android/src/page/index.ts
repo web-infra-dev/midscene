@@ -33,7 +33,6 @@ export type AndroidDeviceOpt = {
 
 export class AndroidDevice implements AndroidDevicePage {
   private deviceId: string;
-  private screenSize: Size | null = null;
   private yadbPushed = false;
   private devicePixelRatio = 1;
   private adb: ADB | null = null;
@@ -259,10 +258,33 @@ ${Object.keys(size)
       const orientationMatch = orientationStdout.match(
         /SurfaceOrientation:\s*(\d)/,
       );
-      orientation = orientationMatch ? Number(orientationMatch[1]) : 0;
+      if (!orientationMatch) {
+        throw new Error('Failed to get orientation from input');
+      }
+
+      orientation = Number(orientationMatch[1]);
+
       debugPage(`Screen orientation: ${orientation}`);
     } catch (e) {
-      debugPage('Failed to get orientation, default to 0');
+      debugPage('Failed to get orientation from input, try display');
+      try {
+        const orientationStdout = await adb.shell(
+          'dumpsys display | grep mCurrentOrientation',
+        );
+        const orientationMatch = orientationStdout.match(
+          /mCurrentOrientation=(\d)/,
+        );
+        if (!orientationMatch) {
+          throw new Error('Failed to get orientation from display');
+        }
+
+        orientation = Number(orientationMatch[1]);
+
+        debugPage(`Screen orientation (fallback): ${orientation}`);
+      } catch (e2) {
+        orientation = 0;
+        debugPage('Failed to get orientation from display, default to 0');
+      }
     }
 
     if (size.override || size.physical) {
@@ -273,10 +295,6 @@ ${Object.keys(size)
   }
 
   async size(): Promise<Size> {
-    if (this.screenSize) {
-      return this.screenSize;
-    }
-
     const adb = await this.getAdb();
 
     // Use custom getScreenSize method instead of adb.getScreenSize()
@@ -307,13 +325,11 @@ ${Object.keys(size)
       height,
     );
 
-    this.screenSize = {
+    return {
       width: logicalWidth,
       height: logicalHeight,
       dpr: this.devicePixelRatio,
     };
-
-    return this.screenSize;
   }
 
   private adjustCoordinates(x: number, y: number): { x: number; y: number } {
@@ -743,7 +759,6 @@ ${Object.keys(size)
     }
 
     this.connectingAdb = null;
-    this.screenSize = null;
     this.yadbPushed = false;
   }
 
