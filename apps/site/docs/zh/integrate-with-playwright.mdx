@@ -5,13 +5,14 @@ import { PackageManagerTabs } from '@theme';
 
 [Playwright.js](https://playwright.com/) 是由微软开发的一个开源自动化库，主要用于对网络应用程序进行端到端测试（end-to-end test）和网页抓取。
 
-与 Playwright 的集成方式有两种，一种是通过 Playwright 的测试用例管理集成 Midscene，另一种是直接用脚本方式集成和调用 Midscene Agent。前者适合需要管理测试用例的场景，后者适合快速体验、原型开发、数据抓取和自动化脚本等场景。
+与 Playwright 的集成方式有以下两种方式：
 
-前者适合需要管理测试用例的场景，后者适合快速体验、原型开发、数据抓取和自动化脚本、与三方测试框架集成等场景。
+- 直接用脚本方式集成和调用 Midscene Agent，适合快速体验、原型开发、数据抓取和自动化脚本等场景。
+- 在 Playwright 的测试用例中集成 Midscene，适合需要执行 UI 测试的场景。
 
 <SetupEnv />
 
-## 脚本直连式集成
+## 直接集成 Midscene Agent
 
 :::info 样例项目
 你可以在这里看到向 Playwright 集成的样例项目：[https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo)
@@ -130,9 +131,9 @@ const mid = new PlaywrightAgent(page, {
 });
 ```
 
-## 测试用例管理集成
+## 在 Playwright 的测试用例中集成 Midscene
 
-这里我们假设你已经拥有一个集成了 Playwright 的仓库。
+这里我们假设你已经拥有一个集成了 Playwright 的测试项目。
 
 :::info 样例项目
 你可以在这里看到向 Playwright 集成的样例项目：[https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo)
