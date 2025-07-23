@@ -15,9 +15,6 @@ import { version } from '../../package.json';
 import { replaceIllegalPathCharsAndSpace } from './utils';
 
 const DEFAULT_CACHE_MAX_FILENAME_LENGTH = 200;
-const CACHE_MAX_FILENAME_LENGTH =
-  getAIConfigInNumber(MIDSCENE_CACHE_MAX_FILENAME_LENGTH) ||
-  DEFAULT_CACHE_MAX_FILENAME_LENGTH;
 
 export const debug = getDebug('cache');
 
@@ -66,7 +63,10 @@ export class TaskCache {
   ) {
     assert(cacheId, 'cacheId is required');
     let safeCacheId = replaceIllegalPathCharsAndSpace(cacheId);
-    if (Buffer.byteLength(safeCacheId, 'utf8') > CACHE_MAX_FILENAME_LENGTH) {
+    const cacheMaxFilenameLength =
+      getAIConfigInNumber(MIDSCENE_CACHE_MAX_FILENAME_LENGTH) ||
+      DEFAULT_CACHE_MAX_FILENAME_LENGTH;
+    if (Buffer.byteLength(safeCacheId, 'utf8') > cacheMaxFilenameLength) {
       const prefix = safeCacheId.slice(0, 32);
       const hash = generateHashId(undefined, safeCacheId);
       safeCacheId = `${prefix}-${hash}`;
