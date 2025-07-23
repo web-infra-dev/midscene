@@ -1,20 +1,145 @@
 import SetupEnv from './common/setup-env.mdx';
+import { PackageManagerTabs } from '@theme';
 
 # 集成到 Playwright
 
-import { PackageManagerTabs } from '@theme';
-
 [Playwright.js](https://playwright.com/) 是由微软开发的一个开源自动化库，主要用于对网络应用程序进行端到端测试（end-to-end test）和网页抓取。
 
-这里我们假设你已经拥有一个集成了 Playwright 的仓库。
+与 Playwright 的集成方式有以下两种方式：
+
+- 直接用脚本方式集成和调用 Midscene Agent，适合快速体验、原型开发、数据抓取和自动化脚本等场景。
+- 在 Playwright 的测试用例中集成 Midscene，适合需要执行 UI 测试的场景。
+
+<SetupEnv />
+
+## 直接集成 Midscene Agent
 
 :::info 样例项目
 你可以在这里看到向 Playwright 集成的样例项目：[https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo)
 :::
 
-<SetupEnv />
+### 第一步：安装依赖
 
-## 第一步：新增依赖，更新配置文件
+<PackageManagerTabs command="install @midscene/web playwright @playwright/test tsx --save-dev" />
+
+### 第二步：编写脚本
+
+编写下方代码，保存为 `./demo.ts`
+
+```typescript
+import { chromium } from 'playwright';
+import { PlaywrightAgent } from '@midscene/web/playwright';
+import 'dotenv/config'; // read environment variables from .env file
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+Promise.resolve(
+  (async () => {
+    const browser = await chromium.launch({
+      headless: true, // 'true' means we can't see the browser window
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
+
+    const page = await browser.newPage();
+    await page.setViewportSize({
+      width: 1280,
+      height: 768,
+    });
+    await page.goto('https://www.ebay.com');
+    await sleep(5000); // 👀 init Midscene agent
+    const agent = new PlaywrightAgent(page);
+
+    // 👀 type keywords, perform a search
+    await agent.aiAction('type "Headphones" in search box, hit Enter');
+
+    // 👀 wait for the loading
+    await agent.aiWaitFor('there is at least one headphone item on page');
+    // or you may use a plain sleep:
+    // await sleep(5000);
+
+    // 👀 understand the page content, find the items
+    const items = await agent.aiQuery(
+      '{itemTitle: string, price: Number}[], find item in list and corresponding price',
+    );
+    console.log('headphones in stock', items);
+
+    const isMoreThan1000 = await agent.aiBoolean(
+      'Is the price of the headphones more than 1000?',
+    );
+    console.log('isMoreThan1000', isMoreThan1000);
+
+    const price = await agent.aiNumber(
+      'What is the price of the first headphone?',
+    );
+    console.log('price', price);
+
+    const name = await agent.aiString(
+      'What is the name of the first headphone?',
+    );
+    console.log('name', name);
+
+    const location = await agent.aiLocate(
+      'What is the location of the first headphone?',
+    );
+    console.log('location', location);
+
+    // 👀 assert by AI
+    await agent.aiAssert('There is a category filter on the left');
+
+    // 👀 click on the first item
+    await agent.aiTap('the first item in the list');
+
+    await browser.close();
+  })(),
+);
+```
+
+更多 Agent 的 API 讲解请参考 [API 参考](./API)。
+
+### 第三步：运行
+
+使用 `tsx` 来运行，你会看到命令行打印出了耳机的商品信息：
+
+```bash
+# run
+npx tsx demo.ts
+
+# 命令行应该有如下输出
+#  [
+#   {
+#     itemTitle: 'JBL Tour Pro 2 - True wireless Noise Cancelling earbuds with Smart Charging Case',
+#     price: 551.21
+#   },
+#   {
+#     itemTitle: 'Soundcore Space One无线耳机40H ANC播放时间2XStronger语音还原',
+#     price: 543.94
+#   }
+# ]
+```
+
+### 第四步：查看运行报告
+
+当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: /path/to/report/some_id.html`， 通过浏览器打开该文件即可看到报告。
+
+### 如何限制页面在当前 tab 打开
+
+如果你想要限制页面在当前 tab 打开（比如点击一个带有 `target="_blank"` 属性的链接），你可以设置 `forceSameTabNavigation` 选项为 `true`：
+
+```typescript
+const mid = new PlaywrightAgent(page, {
+  forceSameTabNavigation: true,
+});
+```
+
+## 在 Playwright 的测试用例中集成 Midscene
+
+这里我们假设你已经拥有一个集成了 Playwright 的测试项目。
+
+:::info 样例项目
+你可以在这里看到向 Playwright 集成的样例项目：[https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo)
+:::
+
+### 第一步：新增依赖，更新配置文件
 
 新增依赖
 
@@ -32,7 +157,7 @@ export default defineConfig({
 
 其中 `reporter` 配置项的 `type` 可选值为 `merged` 或 `separate`，默认值为 `merged`，表示多个测试用例生成一个报告，可选值为 `separate`，表示为每个测试用例一个报告。
 
-## 第二步：扩展 `test` 实例
+### 第二步：扩展 `test` 实例
 
 把下方代码保存为 `./e2e/fixture.ts`;
 
@@ -48,9 +173,9 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 );
 ```
 
-## 第三步：编写测试用例
+### 第三步：编写测试用例
 
-### 基础 AI 操作
+#### 基础 AI 操作
 
 - `ai` 或 `aiAction` - 通用 AI 交互
 - `aiTap` - 点击操作
@@ -59,7 +184,7 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 - `aiKeyboardPress` - 键盘操作
 - `aiScroll` - 滚动操作
 
-### 查询
+#### 查询
 
 - `aiAsk` - 询问 AI 模型任何问题
 - `aiQuery` - 从当前页面提取结构化的数据
@@ -67,7 +192,7 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 - `aiString` - 从当前页面提取字符串
 - `aiBoolean` - 从当前页面提取布尔值
 
-### 更多 API
+#### 更多 API
 
 - `aiAssert` - 断言
 - `aiWaitFor` - 等待
@@ -84,7 +209,7 @@ test('case demo', async ({ agentForPage, page }) => {
   console.log(logContent);
 });
 
-### 示例代码
+#### 示例代码
 
 ```typescript title="./e2e/ebay-search.spec.ts"
 import { expect } from '@playwright/test';
@@ -139,13 +264,13 @@ test('search headphone on ebay', async ({
 
 更多 Agent 的 API 讲解请参考 [API 参考](./API)。
 
-## Step 4. 运行测试用例
+### Step 4. 运行测试用例
 
 ```bash
 npx playwright test ./e2e/ebay-search.spec.ts
 ```
 
-## Step 5. 查看测试报告
+### Step 5. 查看测试报告
 
 当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: ./current_cwd/midscene_run/report/some_id.html`，通过浏览器打开该文件即可看到报告。
 

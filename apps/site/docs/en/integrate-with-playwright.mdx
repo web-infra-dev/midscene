@@ -1,20 +1,145 @@
 import SetupEnv from './common/setup-env.mdx';
+import { PackageManagerTabs } from '@theme';
 
 # Integrate with Playwright
 
-import { PackageManagerTabs } from '@theme';
+[Playwright.js](https://playwright.com/) is an open-source automation library developed by Microsoft, mainly used for end-to-end testing and web scraping of web applications.
 
-[Playwright.js](https://playwright.com/) is an open-source automation library developed by Microsoft, primarily used for end-to-end testing and web scraping of web applications.
+There are two ways to integrate with Playwright:
+
+- Directly integrate and call the Midscene Agent via script, suitable for quick prototyping, data scraping, and automation scripts.
+- Integrate Midscene into Playwright test cases, suitable for UI testing scenarios.
+
+<SetupEnv />
+
+## Direct Integration with Midscene Agent
+
+:::info Example Project
+You can find an example project of direct Playwright integration here: [https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo)
+:::
+
+### Step 1: Install dependencies
+
+<PackageManagerTabs command="install @midscene/web playwright @playwright/test tsx --save-dev" />
+
+### Step 2: Write the script
+
+Save the following code as `./demo.ts`:
+
+```typescript
+import { chromium } from 'playwright';
+import { PlaywrightAgent } from '@midscene/web/playwright';
+import 'dotenv/config'; // read environment variables from .env file
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+Promise.resolve(
+  (async () => {
+    const browser = await chromium.launch({
+      headless: true, // 'true' means we can't see the browser window
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
+
+    const page = await browser.newPage();
+    await page.setViewportSize({
+      width: 1280,
+      height: 768,
+    });
+    await page.goto('https://www.ebay.com');
+    await sleep(5000); // 👀 init Midscene agent
+    const agent = new PlaywrightAgent(page);
+
+    // 👀 type keywords, perform a search
+    await agent.aiAction('type "Headphones" in search box, hit Enter');
+
+    // 👀 wait for the loading
+    await agent.aiWaitFor('there is at least one headphone item on page');
+    // or you may use a plain sleep:
+    // await sleep(5000);
+
+    // 👀 understand the page content, find the items
+    const items = await agent.aiQuery(
+      '{itemTitle: string, price: Number}[], find item in list and corresponding price',
+    );
+    console.log('headphones in stock', items);
+
+    const isMoreThan1000 = await agent.aiBoolean(
+      'Is the price of the headphones more than 1000?',
+    );
+    console.log('isMoreThan1000', isMoreThan1000);
+
+    const price = await agent.aiNumber(
+      'What is the price of the first headphone?',
+    );
+    console.log('price', price);
+
+    const name = await agent.aiString(
+      'What is the name of the first headphone?',
+    );
+    console.log('name', name);
+
+    const location = await agent.aiLocate(
+      'What is the location of the first headphone?',
+    );
+    console.log('location', location);
+
+    // 👀 assert by AI
+    await agent.aiAssert('There is a category filter on the left');
+
+    // 👀 click on the first item
+    await agent.aiTap('the first item in the list');
+
+    await browser.close();
+  })(),
+);
+```
+
+For more Agent API details, please refer to [API Reference](./API).
+
+### Step 3: Run the script
+
+Use `tsx` to run, and you will see the product information printed in the terminal:
+
+```bash
+# run
+npx tsx demo.ts
+
+# The terminal should output something like:
+#  [
+#   {
+#     itemTitle: 'JBL Tour Pro 2 - True wireless Noise Cancelling earbuds with Smart Charging Case',
+#     price: 551.21
+#   },
+#   {
+#     itemTitle: 'Soundcore Space One Wireless Headphones 40H ANC Playtime 2XStronger Voice',
+#     price: 543.94
+#   }
+# ]
+```
+
+### Step 4: View the run report
+
+After the above command executes successfully, it will output: `Midscene - report file updated: /path/to/report/some_id.html`. Open this file in your browser to view the report.
+
+### How to force navigation in the current tab
+
+If you want to force the page to open in the current tab (for example, clicking a link with `target="_blank"`), you can set the `forceSameTabNavigation` option to `true`:
+
+```typescript
+const mid = new PlaywrightAgent(page, {
+  forceSameTabNavigation: true,
+});
+```
+
+## Integration in Playwright Test Cases
 
 Here we assume you already have a repository with Playwright integration.
 
 :::info Example Project
-You can find an example project of Playwright integration here: [https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo)
+You can find an example project of Playwright test integration here: [https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo)
 :::
 
-<SetupEnv />
-
-## Step 1: add dependencies and update configuration
+### Step 1: add dependencies and update configuration
 
 Add dependencies
 
@@ -32,7 +157,7 @@ export default defineConfig({
 
 The `type` option of the `reporter` configuration can be `merged` or `separate`. The default value is `merged`, which indicates that one merged report for all test cases; the optional value is `separate`, indicating that the report is separated for each test case.
 
-## Step 2: extend the `test` instance
+### Step 2: extend the `test` instance
 
 Save the following code as `./e2e/fixture.ts`:
 
@@ -48,9 +173,9 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 );
 ```
 
-## Step 3: write test cases
+### Step 3: write test cases
 
-### Basic AI Operation APIs
+#### Basic AI Operation APIs
 
 - `ai` or `aiAction` - General AI interaction
 - `aiTap` - Click operation
@@ -59,7 +184,7 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 - `aiKeyboardPress` - Keyboard operation
 - `aiScroll` - Scroll operation
 
-### Query
+#### Query
 
 - `aiAsk` - Ask AI Model anything about the current page
 - `aiQuery` - Extract structured data from current page
@@ -67,7 +192,7 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 - `aiString` - Extract string from current page
 - `aiBoolean` - Extract boolean from current page
 
-### More APIs
+#### More APIs
 
 - `aiAssert` - AI Assertion
 - `aiWaitFor` - AI Wait
@@ -85,7 +210,7 @@ test('case demo', async ({ agentForPage, page }) => {
 });
 ```
 
-### Example Code
+#### Example Code
 
 ```typescript title="./e2e/ebay-search.spec.ts"
 import { expect } from '@playwright/test';
@@ -139,13 +264,13 @@ test('search headphone on ebay', async ({
 
 For more Agent API details, please refer to [API Reference](./API).
 
-## Step 4. run test cases
+### Step 4. run test cases
 
 ```bash
 npx playwright test ./e2e/ebay-search.spec.ts
 ```
 
-## Step 5. view test report
+### Step 5. view test report
 
 After the command executes successfully, it will output: `Midscene - report file updated: ./current_cwd/midscene_run/report/some_id.html`. Open this file in your browser to view the report.
 
