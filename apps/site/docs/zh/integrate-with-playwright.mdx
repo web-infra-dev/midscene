@@ -15,13 +15,11 @@ import { PackageManagerTabs } from '@theme';
 
 :::info 样例项目
 你可以在这里看到向 Playwright 集成的样例项目：[https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo)
-
-这里还有一个 Playwright 和 Vitest 结合的样例项目：[https://github.com/web-infra-dev/midscene-example/tree/main/playwright-with-vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/playwright-with-vitest-demo)
 :::
 
 ### 第一步：安装依赖
 
-<PackageManagerTabs command="install @midscene/web playwright tsx --save-dev" />
+<PackageManagerTabs command="install @midscene/web playwright @playwright/test tsx --save-dev" />
 
 ### 第二步：编写脚本
 
@@ -137,7 +135,7 @@ const mid = new PlaywrightAgent(page, {
 这里我们假设你已经拥有一个集成了 Playwright 的仓库。
 
 :::info 样例项目
-你可以在这里看到向 Playwright 集成的样例项目：[https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo)
+你可以在这里看到向 Playwright 集成的样例项目：[https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo)
 :::
 
 ### 第一步：新增依赖，更新配置文件
