@@ -123,6 +123,8 @@ export class PageAgent<PageType extends WebPage = WebPage> {
 
   onDumpUpdate?: (dump: string) => void;
 
+  destroyed = false;
+
   constructor(page: PageType, opts?: PageAgentOpt) {
     this.page = page;
     this.opts = Object.assign(
@@ -222,6 +224,11 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   writeOutActionDumps() {
+    if (this.destroyed) {
+      throw new Error(
+        'PageAgent has been destroyed. Cannot update report file.',
+      );
+    }
     const { generateReport, autoPrintReportMsg } = this.opts;
     this.reportFile = writeLogFile({
       fileName: this.reportFileName!,
@@ -696,6 +703,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   async destroy() {
     await this.page.destroy();
     this.resetDump(); // reset dump to release memory
+    this.destroyed = true;
   }
 
   async logScreenshot(
