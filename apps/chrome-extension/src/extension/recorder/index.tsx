@@ -88,6 +88,7 @@ export default function Recorder() {
     handleUpdateSession,
     handleDeleteSession,
     handleExportSession,
+    handleExportAllEvents,
   } = sessionHooks;
 
   // Initialize recording control with currentTab
@@ -235,6 +236,7 @@ export default function Recorder() {
         onEditSession={handleEditSession}
         onDeleteSession={handleDeleteSessionWrapper}
         onExportSession={handleExportSession}
+        onExportAllEvents={handleExportAllEvents}
         onViewDetail={handleViewDetail}
         isExtensionMode={isExtensionMode}
         handleCreateNewSession={handleCreateNewSession}

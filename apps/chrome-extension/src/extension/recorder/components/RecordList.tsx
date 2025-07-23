@@ -31,6 +31,7 @@ interface RecordListProps {
   onEditSession: (session: RecordingSession) => void;
   onDeleteSession: (sessionId: string) => void;
   onExportSession: (session: RecordingSession) => void;
+  onExportAllEvents: () => void;
   onViewDetail: (session: RecordingSession) => void;
   isExtensionMode: boolean;
   handleCreateNewSession: () => void;
@@ -42,6 +43,7 @@ export const RecordList: React.FC<RecordListProps> = ({
   onEditSession,
   onDeleteSession,
   onExportSession,
+  onExportAllEvents,
   onViewDetail,
   isExtensionMode,
   handleCreateNewSession,
@@ -49,11 +51,26 @@ export const RecordList: React.FC<RecordListProps> = ({
   const { config } = useEnvConfig();
 
   const runButtonEnabled = Object.keys(config || {}).length >= 1;
+  const hasEventsToExport = sessions.some(session => session.events.length > 0);
 
   return (
     <div className="record-list-view relative">
       {/* Environment setup reminder */}
       <EnvConfigReminder />
+
+      {/* Export All Events Button */}
+      {hasEventsToExport && (
+        <Button
+          type="default"
+          icon={<DownloadOutlined />}
+          size="small"
+          className="!absolute top-4 right-4 z-10"
+          onClick={onExportAllEvents}
+          title="Export all events to ZIP file"
+        >
+          Export All
+        </Button>
+      )}
 
       {!isExtensionMode && (
         <Alert

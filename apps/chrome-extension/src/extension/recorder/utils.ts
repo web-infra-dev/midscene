@@ -1,7 +1,10 @@
 import { AIActionType, callAiFn } from '@midscene/core/ai-model';
 import { message } from 'antd';
+import { saveAs } from 'file-saver';
+import JSZip from 'jszip';
 
 import type { ChromeRecordedEvent } from '@midscene/recorder';
+import type { RecordingSession } from '../../store';
 import { recordLogger } from './logger';
 import { isChromeExtension, safeChromeAPI } from './types';
 
@@ -463,4 +466,163 @@ export const diagnoseRecordingChain = async (
   recordLogger.info('Diagnosis complete');
 
   return { issues, info };
+};
+
+// Generate Mermaid mindmap for events flow
+const generateMermaidMindmap = (sessions: RecordingSession[]): string => {
+  let mermaid = 'mindmap\n  root)Test Case Flow(\n';
+
+  sessions.forEach((session, sessionIndex) => {
+    if (session.events.length === 0) return;
+
+    mermaid += `    ${session.name.replace(/[^a-zA-Z0-9]/g, '')}\n`;
+
+    const groupedEvents: { [key: string]: ChromeRecordedEvent[] } = {};
+
+    session.events.forEach((event) => {
+      const key = event.url || '';
+      if (!groupedEvents[key]) {
+        groupedEvents[key] = [];
+      }
+      groupedEvents[key].push(event);
+    });
+
+    Object.entries(groupedEvents).forEach(([url, events]) => {
+      const pageName = events[0]?.title || url.split('/').pop() || 'Page';
+      mermaid += `      ${pageName.replace(/[^a-zA-Z0-9]/g, '').slice(0, 20)}\n`;
+
+      events.forEach((event) => {
+        let actionDesc = '';
+        switch (event.type) {
+          case 'click':
+            actionDesc = `Click: ${event.elementDescription || 'Element'}`;
+            break;
+          case 'input':
+            actionDesc = `Input: ${event.value || 'Text'}`;
+            break;
+          case 'navigation':
+            actionDesc = `Navigate: ${event.title || 'Page'}`;
+            break;
+          default:
+            actionDesc = `${event.type}: ${event.elementDescription || 'Action'}`;
+        }
+        mermaid += `        ${actionDesc.replace(/[^a-zA-Z0-9:]/g, '').slice(0, 30)}\n`;
+      });
+    });
+  });
+
+  return mermaid;
+};
+
+// Generate markdown table for event details
+const generateEventsMarkdownTable = (sessions: RecordingSession[]): string => {
+  let markdown = '# Test Events Report\n\n';
+
+  sessions.forEach((session, sessionIndex) => {
+    if (session.events.length === 0) return;
+
+    markdown += `## ${session.name}\n\n`;
+    if (session.description) {
+      markdown += `**Description:** ${session.description}\n\n`;
+    }
+    markdown += `**Created:** ${new Date(session.createdAt).toLocaleString()}\n\n`;
+
+    markdown += '| Page | Screenshot| Action |\n';
+    markdown += '|------|------------|--------|\n';
+
+    session.events.forEach((event, eventIndex) => {
+      const page = event.title || event.url || '';
+      const screenshot = event.screenshotBefore
+        ? `![](./images/screenshot_${sessionIndex}_${eventIndex}.png)`
+        : 'N/A';
+
+      let expected = 'N/A';
+      if (event.type === 'navigation') {
+        expected = `Navigate to ${event.url}`;
+      }
+
+      let action = '';
+      switch (event.type) {
+        case 'click':
+          action = `Click on ${event.elementDescription || 'element'}`;
+          break;
+        case 'input':
+          action = `Input "${event.value}" into ${event.elementDescription || 'field'}`;
+          break;
+        case 'navigation':
+          action = `Navigate to ${event.url}`;
+          break;
+        default:
+          action = `${event.type} on ${event.elementDescription || 'element'}`;
+      }
+
+      markdown += `| ${page} | ${screenshot} | ${action} |\n`;
+    });
+
+    markdown += '\n\n\n';
+  });
+
+  return markdown;
+};
+
+// Convert base64 to blob
+const base64ToBlob = (base64: string, mimeType: string): Blob => {
+  const byteCharacters = atob(base64.split(',')[1]);
+  const byteNumbers = new Array(byteCharacters.length);
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+  const byteArray = new Uint8Array(byteNumbers);
+  return new Blob([byteArray], { type: mimeType });
+};
+
+// Export all sessions with events to ZIP file
+export const exportAllEventsToZip = async (sessions: RecordingSession[]) => {
+  try {
+    const zip = new JSZip();
+
+    // Filter sessions that have events
+    const sessionsWithEvents = sessions.filter(
+      (session) => session.events.length > 0,
+    );
+
+    if (sessionsWithEvents.length === 0) {
+      message.warning('No sessions with events to export');
+      return;
+    }
+
+    // Add images folder
+    const imagesFolder = zip.folder('images');
+
+    // Process each session and extract images
+    sessionsWithEvents.forEach((session, sessionIndex) => {
+      session.events.forEach((event, eventIndex) => {
+        if (event.screenshotBefore) {
+          const fileName = `screenshot_${sessionIndex}_${eventIndex}.png`;
+          const blob = base64ToBlob(event.screenshotBefore, 'image/png');
+          imagesFolder?.file(fileName, blob);
+        }
+      });
+    });
+
+    // Generate and add Mermaid mindmap
+    const mermaidContent = generateMermaidMindmap(sessionsWithEvents);
+    zip.file('mindmap.md', `\`\`\`mermaid\n${mermaidContent}\n\`\`\``);
+
+    // Generate and add markdown table
+    const markdownContent = generateEventsMarkdownTable(sessionsWithEvents);
+    zip.file('test-report.md', markdownContent);
+
+    // Generate ZIP file
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+
+    // Download ZIP file
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+    saveAs(zipBlob, `midscene-test-events-${timestamp}.zip`);
+
+    message.success('All events exported successfully!');
+  } catch (error) {
+    console.error('Error exporting all events:', error);
+    message.error('Failed to export events');
+  }
 };
