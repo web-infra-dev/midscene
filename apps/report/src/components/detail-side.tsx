@@ -444,7 +444,9 @@ const DetailSide = (): JSX.Element => {
         });
       }
 
-      outputDataContent = <Timeline items={timelineData} />;
+      outputDataContent = (
+        <Timeline items={timelineData} className="detail-side-timeline" />
+      );
     }
   } else {
     let data;
