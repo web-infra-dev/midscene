@@ -1,4 +1,9 @@
-import type { MidsceneYamlFlowItem, PlanningAction, Size } from '@/types';
+import type {
+  AIUsageInfo,
+  MidsceneYamlFlowItem,
+  PlanningAction,
+  Size,
+} from '@/types';
 import {
   UITarsModelVersion,
   uiTarsModelVersion,
@@ -49,6 +54,8 @@ export async function vlmPlanning(options: {
   actionsFromModel: ReturnType<typeof actionParser>['parsed'];
   action_summary: string;
   yamlFlow?: MidsceneYamlFlowItem[];
+  usage?: AIUsageInfo;
+  rawResponse?: string;
 }> {
   const { conversationHistory, userInstruction, size } = options;
   const systemPrompt = getUiTarsPlanningPrompt() + userInstruction;
@@ -208,6 +215,8 @@ export async function vlmPlanning(options: {
     actions: transformActions,
     actionsFromModel: parsed,
     action_summary: getSummary(res.content),
+    usage: res.usage,
+    rawResponse: JSON.stringify(res.content, undefined, 2),
   };
 }
 
