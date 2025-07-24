@@ -29,4 +29,4 @@ export { plan } from './llm-planning';
 export { callAiFn, adaptBboxToRect } from './common';
 export { vlmPlanning, resizeImageForUiTars } from './ui-tars-planning';
 
-export { AIActionType } from './common';
+export { AIActionType, type AIArgs } from './common';

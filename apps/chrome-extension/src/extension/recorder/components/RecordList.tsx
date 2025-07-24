@@ -60,16 +60,18 @@ export const RecordList: React.FC<RecordListProps> = ({
 
       {/* Export All Events Button */}
       {hasEventsToExport && (
-        <Button
-          type="default"
-          icon={<DownloadOutlined />}
-          size="small"
-          className="!absolute top-4 right-4 z-10"
-          onClick={onExportAllEvents}
-          title="Export all events to ZIP file"
-        >
-          Export All
-        </Button>
+        <div className='h-[30px]'>
+          <Button
+            type="default"
+            icon={<DownloadOutlined />}
+            size="small"
+            className="float-right"
+            onClick={onExportAllEvents}
+            title="Export all events to ZIP file"
+          >
+            Export All
+          </Button>
+        </div>
       )}
 
       {!isExtensionMode && (
@@ -96,11 +98,10 @@ export const RecordList: React.FC<RecordListProps> = ({
           renderItem={(session) => (
             <List.Item className="session-item">
               <div
-                className={`w-full bg-[#F4F6F9] rounded-lg cursor-pointer transition-all duration-200 overflow-hidden hover:shadow-md ${
-                  session.id === currentSessionId
-                    ? 'border-2 border-[#F4F6F9] bg-blue-50'
-                    : ''
-                }`}
+                className={`w-full bg-[#F4F6F9] rounded-lg cursor-pointer transition-all duration-200 overflow-hidden hover:shadow-md ${session.id === currentSessionId
+                  ? 'border-2 border-[#F4F6F9] bg-blue-50'
+                  : ''
+                  }`}
                 onClick={() => onViewDetail(session)}
               >
                 {/* Main content area */}
