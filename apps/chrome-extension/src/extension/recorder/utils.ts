@@ -510,12 +510,16 @@ const generateAIMindmap = async (
           elementDescription: event.elementDescription,
           inputValue: event.value,
           url: event.url,
-          title: event.title
+          title: event.title,
         };
       });
 
       // Create page transition flow
-      const pageFlow = [];
+      const pageFlow: {
+        step: number;
+        pageName: string;
+        eventIndex: number;
+      }[] = [];
       let currentPage = '';
       session.events.forEach((event, index) => {
         const pageName = event.title || event.url || 'Unknown Page';
@@ -523,7 +527,7 @@ const generateAIMindmap = async (
           pageFlow.push({
             step: pageFlow.length + 1,
             pageName,
-            eventIndex: index + 1
+            eventIndex: index + 1,
           });
           currentPage = pageName;
         }
@@ -540,11 +544,14 @@ const generateAIMindmap = async (
         pageTransitionFlow: pageFlow,
         // Summary statistics
         eventTypeCounts: {
-          navigation: session.events.filter(e => e.type === 'navigation').length,
-          clicks: session.events.filter(e => e.type === 'click').length,
-          inputs: session.events.filter(e => e.type === 'input').length,
-          other: session.events.filter(e => !['navigation', 'click', 'input'].includes(e.type)).length
-        }
+          navigation: session.events.filter((e) => e.type === 'navigation')
+            .length,
+          clicks: session.events.filter((e) => e.type === 'click').length,
+          inputs: session.events.filter((e) => e.type === 'input').length,
+          other: session.events.filter(
+            (e) => !['navigation', 'click', 'input'].includes(e.type),
+          ).length,
+        },
       };
     });
 
@@ -574,7 +581,7 @@ Syntax Guidelines:
 - Keep full element descriptions and input values
 - Show clear progression between events
 
-IMPORTANT: Do not summarize or abbreviate event details. Include the full action descriptions to maintain test documentation value.`
+IMPORTANT: Do not summarize or abbreviate event details. Include the full action descriptions to maintain test documentation value.`,
       },
       {
         role: 'user',
@@ -597,14 +604,14 @@ mindmap
     Session Name Here
       Homepage Section
         Step 1 Navigate to Homepage URL
-        Step 2 Click Login Button Element
-        Step 3 Input Username into Email Field
+          Step 2 Click Login Button Element
+            Step 3 Input Username into Email Field
       Login Page Section  
         Step 4 Navigate to Login Page
-        Step 5 Input Password into Password Field
-        Step 6 Click Submit Button Element
+          Step 5 Input Password into Password Field
+            Step 6 Click Submit Button Element
 
-Return ONLY the Mermaid mindmap syntax. Include ALL detailed descriptions and maintain sequential order.`
+Return ONLY the Mermaid mindmap syntax. Include ALL detailed descriptions and maintain sequential order.`,
       },
     ];
 
@@ -633,13 +640,82 @@ Return ONLY the Mermaid mindmap syntax. Include ALL detailed descriptions and ma
     }
 
     // Fallback to enhanced sequential static mindmap if AI fails
-    console.warn('AI mindmap generation failed, using detailed sequential fallback');
+    console.warn(
+      'AI mindmap generation failed, using detailed sequential fallback',
+    );
     return generateDetailedSequentialMindmap(sessions);
   } catch (error) {
     console.error('Error generating AI mindmap:', error);
     // Fallback to detailed sequential mindmap
     return generateDetailedSequentialMindmap(sessions);
   }
+};
+
+// Enhanced detailed sequential mindmap generation (preserves all event details and order)
+const generateDetailedSequentialMindmap = (
+  sessions: RecordingSession[],
+): string => {
+  let mermaid = 'mindmap\n  root(Detailed Test Execution Flow)\n';
+
+  sessions.forEach((session, sessionIndex) => {
+    if (session.events.length === 0) return;
+
+    // Clean session name for use as node
+    const sessionNodeName = session.name
+      .replace(/[^a-zA-Z0-9\s]/g, '')
+      .slice(0, 30);
+    mermaid += `    ${sessionNodeName}\n`;
+
+    // Track page transitions for better organization
+    let currentPage = '';
+    let pageNodeAdded = false;
+
+    session.events.forEach((event, eventIndex) => {
+      const eventNumber = eventIndex + 1;
+      const pageName = event.title || event.url || 'Unknown Page';
+
+      // Add page section when page changes
+      if (pageName !== currentPage) {
+        currentPage = pageName;
+        const cleanPageName = pageName
+          .replace(/[^a-zA-Z0-9\s]/g, '')
+          .slice(0, 25);
+        mermaid += `      ${cleanPageName}\n`;
+        pageNodeAdded = true;
+      }
+
+      // Generate detailed event description
+      let detailedEventDescription = '';
+      switch (event.type) {
+        case 'navigation':
+          detailedEventDescription = `Step ${eventNumber} Navigate to ${event.title || 'Page'}`;
+          if (event.url) {
+            detailedEventDescription += ` (${event.url.slice(0, 30)}...)`;
+          }
+          break;
+        case 'click':
+          detailedEventDescription = `Step ${eventNumber} Click ${event.elementDescription || 'element'}`;
+          break;
+        case 'input': {
+          const inputValue = event.value
+            ? ` "${event.value.slice(0, 20)}${event.value.length > 20 ? '...' : ''}"`
+            : ' text';
+          detailedEventDescription = `Step ${eventNumber} Input${inputValue} into ${event.elementDescription || 'field'}`;
+          break;
+        }
+        default:
+          detailedEventDescription = `Step ${eventNumber} ${event.type} on ${event.elementDescription || 'element'}`;
+      }
+
+      // Clean the description for Mermaid syntax
+      const cleanDescription = detailedEventDescription
+        .replace(/[^a-zA-Z0-9\s\-_"()]/g, '')
+        .slice(0, 60);
+      mermaid += `        ${cleanDescription}\n`;
+    });
+  });
+
+  return mermaid;
 };
 
 // Fallback static mindmap generation (enhanced version)
@@ -838,7 +914,7 @@ export const exportAllEventsToZip = async (sessions: RecordingSession[]) => {
     // Generate AI-powered mindmap
     const aiMindmap = await generateAIMindmap(sessionsWithEvents);
 
-    // Combine mindmap and table in test-report.md
+    // Combine mindmap and table in automation-story.md
     const combinedContent = `# Test Events Report
 
 ## Test Flow Mindmap
@@ -849,7 +925,7 @@ ${aiMindmap}
 
 ${markdownContent.replace('# Test Events Report\n\n', '')}`;
 
-    zip.file('test-report.md', combinedContent);
+    zip.file('automation-story.md', combinedContent);
 
     // Generate ZIP file
     const zipBlob = await zip.generateAsync({ type: 'blob' });
