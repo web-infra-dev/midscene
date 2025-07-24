@@ -7,11 +7,11 @@ import { version } from './package.json';
 // The file copying functionality in modern.js is not operating correctly.
 const files = [
   [
-    'node_modules/@midscene/shared/dist/script/htmlElement.js',
+    'node_modules/@midscene/shared/dist-inspect/script/htmlElement.js',
     'iife-script/htmlElement.js',
   ],
   [
-    'node_modules/@midscene/shared/dist/script/htmlElementDebug.js',
+    'node_modules/@midscene/shared/dist-inspect/script/htmlElementDebug.js',
     'iife-script/htmlElementDebug.js',
   ],
 ];

@@ -20,7 +20,7 @@
       "dependsOn": ["^build"],
       "cache": true,
       "inputs": ["build", "^build", "{workspaceRoot}/package.json"],
-      "outputs": ["{projectRoot}/dist"]
+      "outputs": ["{projectRoot}/dist", "{projectRoot}/dist-inspect"]
     },
     "build:watch": {
       "dependsOn": ["^build"]

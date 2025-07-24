@@ -65,7 +65,7 @@ export function getElementInfosScriptContent() {
   const currentFilePath = __filename;
   const pathDir = findNearestPackageJson(dirname(currentFilePath));
   assert(pathDir, `can't find pathDir, with ${dirname}`);
-  const scriptPath = path.join(pathDir, './dist/script/htmlElement.js');
+  const scriptPath = path.join(pathDir, './dist-inspect/script/htmlElement.js');
   const elementInfosScriptContent = readFileSync(scriptPath, 'utf-8');
 
   return elementInfosScriptContent;

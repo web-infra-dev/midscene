@@ -15,10 +15,16 @@
       "default": "./dist/index.css"
     }
   },
-  "files": ["dist", "html", "README.md"],
+  "files": [
+    "dist",
+    "html",
+    "README.md"
+  ],
   "watch": {
     "build": {
-      "patterns": ["src"],
+      "patterns": [
+        "src"
+      ],
       "extensions": "tsx,less,scss,css,js,jsx,ts",
       "quiet": false
     }
@@ -26,7 +32,7 @@
   "scripts": {
     "dev": "npm run build && npx npm-watch",
     "build": "modern build ",
-    "build:watch": "modern build -w",
+    "build:watch": "modern build -w --no-clear",
     "serve": "http-server ./dist/ -p 3000",
     "new": "modern new",
     "upgrade": "modern upgrade"
@@ -59,7 +65,12 @@
     "typescript": "^5.8.3",
     "zustand": "4.5.2"
   },
-  "sideEffects": ["**/*.css", "**/*.less", "**/*.sass", "**/*.scss"],
+  "sideEffects": [
+    "**/*.css",
+    "**/*.less",
+    "**/*.sass",
+    "**/*.scss"
+  ],
   "publishConfig": {
     "access": "public"
   },
