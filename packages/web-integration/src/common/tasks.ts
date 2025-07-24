@@ -919,15 +919,24 @@ export class PageTaskExecutor {
             },
           ],
         });
-        const startTime = Date.now();
-
-        const planResult = await vlmPlanning({
+        const planResult: {
+          actions: PlanningAction<any>[];
+          action_summary: string;
+          usage?: AIUsageInfo;
+          yamlFlow?: MidsceneYamlFlowItem[];
+          rawResponse?: string;
+        } = await vlmPlanning({
           userInstruction: param.userInstruction,
           conversationHistory: this.conversationHistory,
           size: pageContext.size,
         });
 
-        const { actions, action_summary } = planResult;
+        const { actions, action_summary, usage } = planResult;
+        executorContext.task.log = {
+          ...(executorContext.task.log || {}),
+          rawResponse: planResult.rawResponse,
+        };
+        executorContext.task.usage = usage;
         this.appendConversationHistory({
           role: 'assistant',
           content: action_summary,
