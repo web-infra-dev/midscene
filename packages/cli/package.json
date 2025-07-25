@@ -9,11 +9,15 @@
   "bin": {
     "midscene": "./bin/midscene"
   },
-  "files": ["dist", "README.md", "bin"],
+  "files": [
+    "dist",
+    "README.md",
+    "bin"
+  ],
   "scripts": {
     "dev": "npm run build:watch",
     "build": "modern build",
-    "build:watch": "modern build -w",
+    "build:watch": "modern build -w --no-clear",
     "new": "modern new",
     "upgrade": "modern upgrade",
     "test": "vitest --run",

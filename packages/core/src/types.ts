@@ -379,7 +379,7 @@ export interface ExecutionTaskApply<
     param: TaskParam,
     context: ExecutorContext,
   ) => // biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
-    | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
+  | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
     | undefined
     | void;
 }
@@ -578,3 +578,11 @@ export interface StreamingAIResponse {
   /** Whether the response was streamed */
   isStreamed: boolean;
 }
+
+export type TUserPrompt =
+  | string
+  | {
+      text: string;
+      /** let use image to inspect elements */
+      images: Record<string, string>;
+    };

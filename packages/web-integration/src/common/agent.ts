@@ -22,6 +22,7 @@ import {
   type OnTaskStartTip,
   type PlanningActionParamScroll,
   type Rect,
+  type TUserPrompt,
 } from '@midscene/core';
 
 import yaml from 'js-yaml';
@@ -476,7 +477,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   async aiBoolean(
-    prompt: string,
+    prompt: TUserPrompt,
     opt: InsightExtractOption = defaultInsightExtractOption,
   ) {
     const { output, executor } = await this.taskExecutor.boolean(prompt, opt);
@@ -485,7 +486,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   async aiNumber(
-    prompt: string,
+    prompt: TUserPrompt,
     opt: InsightExtractOption = defaultInsightExtractOption,
   ) {
     const { output, executor } = await this.taskExecutor.number(prompt, opt);
@@ -494,7 +495,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   async aiString(
-    prompt: string,
+    prompt: TUserPrompt,
     opt: InsightExtractOption = defaultInsightExtractOption,
   ) {
     const { output, executor } = await this.taskExecutor.string(prompt, opt);
@@ -503,7 +504,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   async aiAsk(
-    prompt: string,
+    prompt: TUserPrompt,
     opt: InsightExtractOption = defaultInsightExtractOption,
   ) {
     return this.aiString(prompt, opt);

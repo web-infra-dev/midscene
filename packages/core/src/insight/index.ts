@@ -229,19 +229,10 @@ export default class Insight<
     };
   }
 
-  async extract<T = any>(input: string, opt?: InsightExtractOption): Promise<T>;
-  async extract<T extends Record<string, string>>(
-    input: T,
-    opt?: InsightExtractOption,
-  ): Promise<Record<keyof T, any>>;
-  async extract<T extends object>(
-    input: Record<keyof T, string>,
-    opt?: InsightExtractOption,
-  ): Promise<T>;
-
   async extract<T>(
     dataDemand: InsightExtractParam,
     opt?: InsightExtractOption,
+    promptImages?: Record<string, string>,
   ): Promise<any> {
     assert(
       typeof dataDemand === 'object' || typeof dataDemand === 'string',
@@ -256,6 +247,7 @@ export default class Insight<
     const { parseResult, usage } = await AiExtractElementInfo<T>({
       context,
       dataQuery: dataDemand,
+      promptImages,
       extractOption: opt,
     });
 

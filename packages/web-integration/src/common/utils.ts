@@ -7,6 +7,7 @@ import type {
   PlanningLocateParam,
   PlaywrightParserOpt,
   UIContext,
+  TUserPrompt,
 } from '@midscene/core';
 import { elementByPositionWithElementInfo } from '@midscene/core/ai-model';
 import { uploadTestInfoToServer } from '@midscene/core/utils';
@@ -308,3 +309,18 @@ export function trimContextByViewport(execution: ExecutionDump) {
       : execution.tasks,
   };
 }
+
+export const parsePrompt = (
+  prompt: TUserPrompt,
+): { promptText: string; promptImages: Record<string, string> } => {
+  if (typeof prompt === 'string') {
+    return {
+      promptText: prompt,
+      promptImages: {},
+    };
+  }
+  return {
+    promptText: prompt.text,
+    promptImages: prompt.images,
+  };
+};
