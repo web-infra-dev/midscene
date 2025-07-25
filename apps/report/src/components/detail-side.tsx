@@ -477,7 +477,7 @@ const DetailSide = (): JSX.Element => {
   return (
     <div className="detail-side">
       <div className="info-tabs">
-        <div className="info-tab active">Information</div>
+        <div className="info-tab">Information</div>
       </div>
       <div className="info-content">
         <details open>
