@@ -18,7 +18,11 @@ import {
   getAIConfigInBoolean,
   vlLocateMode,
 } from '@midscene/shared/env';
-import { cropByRect, paddingToMatchBlockByBase64 } from '@midscene/shared/img';
+import {
+  cropByRect,
+  paddingToMatchBlockByBase64,
+  transformImgPathToBase64Str,
+} from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type {
@@ -56,7 +60,7 @@ import { callToGetJSONObject } from './service-caller/index';
 
 export type AIArgs = [
   ChatCompletionSystemMessageParam,
-  ChatCompletionUserMessageParam,
+  ...ChatCompletionUserMessageParam[],
 ];
 
 const debugInspect = getDebug('ai:inspect');
@@ -301,15 +305,37 @@ export async function AiLocateSection(options: {
   };
 }
 
+export const imageUrl2Base64 = async (url: string) => {
+  if (url.startsWith('data:')) {
+    return url;
+  } else if (url.startsWith('http://') || url.startsWith('https://')) {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch image: ${url}`);
+    }
+    const contentType = response.headers.get('content-type');
+    if (!contentType) {
+      throw new Error(`Failed to fetch image: ${url}`);
+    }
+    const ext = contentType.split('/')[1];
+    assert(ext, 'get mime-type extension from response headers failed');
+    const buffer = Buffer.from(await response.arrayBuffer());
+    return `data:image/${ext};base64,${buffer.toString('base64')}`;
+  } else {
+    return await transformImgPathToBase64Str(url);
+  }
+};
+
 export async function AiExtractElementInfo<
   T,
   ElementType extends BaseElement = BaseElement,
 >(options: {
   dataQuery: string | Record<string, string>;
+  promptImages?: Record<string, string>;
   context: UIContext<ElementType>;
   extractOption?: InsightExtractOption;
 }) {
-  const { dataQuery, context, extractOption } = options;
+  const { dataQuery, context, extractOption, promptImages } = options;
   const systemPrompt = systemPromptToExtract();
 
   const { screenshotBase64 } = context;
@@ -348,7 +374,48 @@ export async function AiExtractElementInfo<
       role: 'user',
       content: userContent,
     },
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: '',
+        },
+      ],
+    },
   ];
+
+  const multiMsg = false;
+
+  if (promptImages) {
+    for (const [key, url] of Object.entries(promptImages)) {
+      const base64 = await imageUrl2Base64(url);
+      const text = {
+        type: 'text',
+        text: `reference image ${key}:`,
+      } as const;
+      const img = {
+        type: 'image_url',
+        image_url: {
+          url: base64,
+          detail: 'high',
+        },
+      } as const;
+      if (multiMsg) {
+        msgs.push({
+          role: 'user',
+          content: [text],
+        });
+        msgs.push({
+          role: 'user',
+          content: [img],
+        });
+      } else {
+        userContent.push(text);
+        userContent.push(img);
+      }
+    }
+  }
 
   const result = await callAiFn<AIDataExtractionResponse<T>>(
     msgs,

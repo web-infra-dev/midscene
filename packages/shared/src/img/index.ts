@@ -10,6 +10,7 @@ export {
   resizeImg,
   resizeImgBase64,
   transformImgPathToBase64,
+  transformImgPathToBase64Str,
   zoomForGPT4o,
   saveBase64Image,
   paddingToMatchBlock,

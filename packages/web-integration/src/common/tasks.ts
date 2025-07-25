@@ -32,6 +32,7 @@ import {
   type PlanningActionParamSleep,
   type PlanningActionParamTap,
   type PlanningActionParamWaitFor,
+  type TUserPrompt,
   plan,
 } from '@midscene/core';
 import {
@@ -56,6 +57,7 @@ import {
   type WebUIContext,
   matchElementFromCache,
   matchElementFromPlan,
+  parsePrompt,
 } from './utils';
 
 interface ExecutionResult<OutputType = any> {
@@ -1145,6 +1147,7 @@ export class PageTaskExecutor {
     type: 'Query' | 'Boolean' | 'Number' | 'String',
     demand: InsightExtractParam,
     opt?: InsightExtractOption,
+    promptImages?: Record<string, string>,
   ): Promise<ExecutionResult<T>> {
     const taskExecutor = new Executor(
       taskTitleStr(
@@ -1161,7 +1164,8 @@ export class PageTaskExecutor {
       subType: type,
       locate: null,
       param: {
-        dataDemand: demand, // for user param presentation in report right sidebar
+        // maybe only effect display title
+        dataDemand: demand as never, // for user param presentation in report right sidebar
       },
       executor: async (param) => {
         let insightDump: InsightDump | undefined;
@@ -1181,6 +1185,7 @@ export class PageTaskExecutor {
         const { data, usage } = await this.insight.extract<any>(
           demandInput,
           opt,
+          promptImages,
         );
 
         let outputResult = data;
@@ -1213,24 +1218,42 @@ export class PageTaskExecutor {
   }
 
   async boolean(
-    prompt: string,
+    prompt: TUserPrompt,
     opt?: InsightExtractOption,
   ): Promise<ExecutionResult<boolean>> {
-    return this.createTypeQueryTask<boolean>('Boolean', prompt, opt);
+    const { promptText, promptImages } = parsePrompt(prompt);
+    return this.createTypeQueryTask<boolean>(
+      'Boolean',
+      promptText,
+      opt,
+      promptImages,
+    );
   }
 
   async number(
-    prompt: string,
+    prompt: TUserPrompt,
     opt?: InsightExtractOption,
   ): Promise<ExecutionResult<number>> {
-    return this.createTypeQueryTask<number>('Number', prompt, opt);
+    const { promptText, promptImages } = parsePrompt(prompt);
+    return this.createTypeQueryTask<number>(
+      'Number',
+      promptText,
+      opt,
+      promptImages,
+    );
   }
 
   async string(
-    prompt: string,
+    prompt: TUserPrompt,
     opt?: InsightExtractOption,
   ): Promise<ExecutionResult<string>> {
-    return this.createTypeQueryTask<string>('String', prompt, opt);
+    const { promptText, promptImages } = parsePrompt(prompt);
+    return this.createTypeQueryTask<string>(
+      'String',
+      promptText,
+      opt,
+      promptImages,
+    );
   }
 
   async assert(

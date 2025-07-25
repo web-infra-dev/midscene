@@ -51,6 +51,21 @@ export async function transformImgPathToBase64(inputPath: string) {
 }
 
 /**
+ * like transformImgPathToBase64, but return base64 string with mime type
+ */
+export const transformImgPathToBase64Str = async (
+  inputPath: string,
+): Promise<string> => {
+  debugImg(`transformImgPathToBase64Str start: ${inputPath}`);
+  const Jimp = await getJimp();
+  const image = await Jimp.read(inputPath);
+  const mimeType = image.getMIME();
+  const base64 = await image.getBase64Async(mimeType);
+  debugImg(`transformImgPathToBase64Str done: ${inputPath}`);
+  return base64;
+};
+
+/**
  * Resizes an image from a base64-encoded string
  *
  * @param base64Data - A base64-encoded string representing the image
