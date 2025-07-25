@@ -38,7 +38,7 @@
   },
   "files": ["dist", "src", "README.md"],
   "scripts": {
-    "dev": "modern dev",
+    "dev": "npm run build:watch",
     "build": "npm run build:pkg && npm run build:script",
     "build:pkg": "modern build -c ./modern.config.ts",
     "build:script": "modern build -c ./modern.inspect.config.ts",

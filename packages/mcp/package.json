@@ -17,6 +17,7 @@
   "scripts": {
     "build": "rslib build",
     "dev": "rslib build --watch",
+    "build:watch": "npm run dev",
     "test": "vitest run",
     "inspect": "node scripts/inspect.mjs",
     "inspect2": "mcp-inspector node ./dist/test2.cjs"

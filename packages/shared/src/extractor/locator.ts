@@ -80,8 +80,13 @@ const getElementXPath = (element: Node): string => {
     return '/html/body';
   }
 
-  const index = getElementIndex(el);
+  const isSVG = el.namespaceURI === 'http://www.w3.org/2000/svg';
   const tagName = el.nodeName.toLowerCase();
+
+  // if the element is svg itself, return the parent node's xpath
+  if (isSVG && tagName === 'svg') {
+    return getElementXPath(el.parentNode!);
+  }
 
   // If no parent node, return just the tag name
   if (!el.parentNode) {
@@ -90,6 +95,7 @@ const getElementXPath = (element: Node): string => {
   }
 
   const parentXPath = getElementXPath(el.parentNode);
+  const index = getElementIndex(el);
   const baseXPath = `${parentXPath}/${tagName}[${index}]`;
   return addTextContentToXPath(el, baseXPath);
 };
@@ -147,8 +153,15 @@ export function getElementInfoByXpath(xpath: string): ElementInfo | null {
     }
   }
 
-  return collectElementInfo(node, window, document, 1, {
-    left: 0,
-    top: 0,
-  });
+  return collectElementInfo(
+    node,
+    window,
+    document,
+    1,
+    {
+      left: 0,
+      top: 0,
+    },
+    true,
+  );
 }
