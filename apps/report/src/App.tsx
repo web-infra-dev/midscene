@@ -283,7 +283,13 @@ export function App() {
   >([]);
   const [error, setError] = useState<string | null>(null);
 
+  const dumpsLoadedRef = useRef(false);
+
   const loadDumpElements = useCallback(() => {
+    if (dumpsLoadedRef.current) {
+      return;
+    }
+    dumpsLoadedRef.current = true;
     const dumpElements = document.querySelectorAll(
       'script[type="midscene_web_dump"]',
     );
