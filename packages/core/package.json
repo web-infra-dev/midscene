@@ -23,7 +23,7 @@
     }
   },
   "scripts": {
-    "dev": "modern dev",
+    "dev": "npm run build:watch",
     "build": "modern build",
     "build:watch": "modern build -w",
     "new": "modern new",
