@@ -230,7 +230,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           domIncluded: stringTask.domIncluded,
           screenshotIncluded: stringTask.screenshotIncluded,
         };
-        assert(prompt, 'missing prompt for aiNumber');
+        assert(prompt, 'missing prompt for aiString');
         assert(
           typeof prompt === 'string',
           'prompt for string must be a string',
