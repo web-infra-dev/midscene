@@ -171,6 +171,41 @@ describe('parseProcessArgs', () => {
     expect(options.config).toBe('config.yml');
     expect(options.concurrent).toBe(5);
   });
+
+  test('should not set boolean flags if they are not provided', async () => {
+    process.argv = ['node', 'midscene'];
+    const { options } = await parseProcessArgs();
+    expect(options.headed).toBeUndefined();
+    expect(options['keep-window']).toBeUndefined();
+    expect(options['continue-on-error']).toBeUndefined();
+    expect(options['share-browser-context']).toBeUndefined();
+    expect(options['dotenv-override']).toBeUndefined();
+    expect(options['dotenv-debug']).toBeUndefined();
+    expect(options.concurrent).toBeUndefined();
+  });
+
+  test('should override default values with command-line arguments', async () => {
+    process.argv = [
+      'node',
+      'midscene',
+      '--headed',
+      '--keep-window',
+      '--continue-on-error',
+      '--no-share-browser-context',
+      '--dotenv-override',
+      '--dotenv-debug',
+      '--concurrent',
+      '10',
+    ];
+    const { options } = await parseProcessArgs();
+    expect(options.headed).toBe(true);
+    expect(options['keep-window']).toBe(true);
+    expect(options['continue-on-error']).toBe(true);
+    expect(options['share-browser-context']).toBe(false);
+    expect(options['dotenv-override']).toBe(true);
+    expect(options['dotenv-debug']).toBe(true);
+    expect(options.concurrent).toBe(10);
+  });
 });
 
 describe('launch server', () => {

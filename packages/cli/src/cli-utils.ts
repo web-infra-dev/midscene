@@ -37,47 +37,37 @@ Usage:
         description:
           'Path to a configuration file. Options in this file are used as defaults.',
       },
-      concurrent: {
-        type: 'number',
-        default: defaultConfig.concurrent,
-        description: 'Number of concurrent executions',
-      },
       summary: {
         type: 'string',
         description: 'Path for the summary output file',
       },
+      concurrent: {
+        type: 'number',
+        description: `Number of concurrent executions, default is ${defaultConfig.concurrent}`,
+      },
       'continue-on-error': {
         type: 'boolean',
-        default: defaultConfig.continueOnError,
-        description: 'Continue execution even if some tasks fail',
+        description: `Continue execution even if some tasks fail, default is ${defaultConfig.continueOnError}`,
       },
       headed: {
         type: 'boolean',
-        default: defaultConfig.headed,
-        description: 'Run the browser in headed mode to see the browser UI',
+        description: `Run the browser in headed mode to see the browser UI, default is ${defaultConfig.headed}`,
       },
       'keep-window': {
         type: 'boolean',
-        default: defaultConfig.keepWindow,
-        description:
-          'Keep the browser window open after the script finishes. This is useful when debugging, but will consume more resources',
+        description: `Keep the browser window open after the script finishes. This is useful when debugging, but will consume more resources, default is ${defaultConfig.keepWindow}`,
       },
       'share-browser-context': {
         type: 'boolean',
-        default: defaultConfig.shareBrowserContext,
-        description: 'Share browser context across multiple yaml files',
+        description: `Share browser context across multiple yaml files, default is ${defaultConfig.shareBrowserContext}`,
       },
       'dotenv-override': {
         type: 'boolean',
-        default: defaultConfig.dotenvOverride,
-        description:
-          'Whether the variables in the .env file override the global variables, the default is false',
+        description: `Whether the variables in the .env file override the global variables, the default is ${defaultConfig.dotenvOverride}`,
       },
       'dotenv-debug': {
         type: 'boolean',
-        default: defaultConfig.dotenvDebug,
-        description:
-          'Turn on logging to help debug why certain keys or values are not being set as you expect',
+        description: `Turn on logging to help debug why certain keys or values are not being set as you expect, default is ${defaultConfig.dotenvDebug}`,
       },
       'web.user-agent': {
         alias: 'web.userAgent',
