@@ -668,7 +668,7 @@ export class MidsceneManager {
         timestamp: new Date().toISOString(),
       };
 
-      // Send notification with well-formatted active tab info
+      // Send notification with well-formatted active tab info 
       this.mcpServer.server.notification({
         method: 'activeTabInfo',
         params: {
