@@ -62,7 +62,7 @@ export const tools = {
       'Inputs text into a specified form field or element identified by a natural language selector.',
   },
 
-  // Android-specific tools
+  // Android-specific tools 
   midscene_android_connect: {  
     name: 'midscene_android_connect',  
     description: 'Connect to an Android device via ADB for automation',  
