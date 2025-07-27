@@ -180,77 +180,227 @@ export class MidsceneManager {
     }  
   }
 
-  private registerTools() {
-    if (!this.androidMode) {
-      this.mcpServer.tool(
-        tools.midscene_navigate.name,
-        tools.midscene_navigate.description,
-        {
-          url: z.string().describe('URL to navigate to'),
-        },
-        async ({ url }) => {
-          await this.initAgent(url);
+  /**
+   * Register Android-specific tools
+   * This method registers all tools that are specific to Android automation
+   */
+  private registerAndroidTool() {
+    // Android device connection tool
+    this.mcpServer.tool(
+      'midscene_android_connect',
+      'Connect to an Android device via ADB',
+      {
+        deviceId: z.string().optional().describe('Device ID to connect to. If not provided, uses the first available device.'),
+      },
+      async ({ deviceId }) => {
+        this.androidDeviceId = deviceId;
+        this.agent = undefined; // Reset the agent to force reinitialization
+        const agent = await this.initAgent();
+        
+        return {
+          content: [
+            { type: 'text', text: `Connected to Android device: ${this.androidDeviceId}` },
+          ],
+          isError: false,
+        };
+      },
+    );
+    
+    // Android app launch tool
+    this.mcpServer.tool(
+      'midscene_android_launch',
+      'Launch an app or navigate to a URL on Android device',
+      {
+        uri: z.string().describe('Package name, activity name, or URL to launch'),
+      },
+      async ({ uri }) => {
+        const agent = await this.initAgent();
+        if (agent instanceof AndroidAgent) {
+          try {
+            await agent.launch(uri);
+            return {
+              content: [
+                { type: 'text', text: `Launched: ${uri}` },
+              ],
+              isError: false,
+            };
+          } catch (error: any) {
+            // Capture and return a more user-friendly error message
+            return {
+              content: [
+                { type: 'text', text: `Failed to launch: ${uri}: ${error.message}` },
+              ],
+              isError: true,
+            };
+          }
+        } else {
+          throw new Error('Android mode is not enabled. Set MIDSCENE_MCP_USE_ANDROID_MODE=true');
+        }
+      },
+    );
+    
+    // Android device list tool
+    this.mcpServer.tool(
+      'midscene_android_list_devices',
+      'List all connected Android devices',
+      {},
+      async () => {
+        const devices = await getConnectedDevices();
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Connected Android devices:\n${JSON.stringify(devices, null, 2)}`,
+            },
+          ],
+          isError: false,
+        };
+      },
+    );
+    
+    // Android back button tool
+    this.mcpServer.tool(
+      'midscene_android_back',
+      'Press the back button on Android device',
+      {},
+      async () => {
+        const agent = await this.initAgent();
+        if (agent instanceof AndroidAgent) {
+          await agent.page.back();
+          return {
+            content: [
+              { type: 'text', text: 'Pressed back button' },
+            ],
+            isError: false,
+          };
+        } else {
+          throw new Error('Android mode is not enabled');
+        }
+      },
+    );
+    
+    // Android Home button tool
+    this.mcpServer.tool(
+      'midscene_android_home',  
+      'Press the home button on Android device',
+      {},
+      async () => {
+        const agent = await this.initAgent();
+        if (agent instanceof AndroidAgent) {
+          await agent.page.home();
+          return {
+            content: [
+              { type: 'text', text: 'Pressed home button' },
+            ],
+            isError: false,
+          };
+        } else {
+          throw new Error('Android mode is not enabled');
+        }
+      },
+    );
+  }
+
+  /**
+   * Register browser-specific tools
+   * This method registers all tools that are specific to browser automation
+   */
+  private registerBrowserTool() {
+    this.mcpServer.tool(
+      tools.midscene_navigate.name,
+      tools.midscene_navigate.description,
+      {
+        url: z.string().describe('URL to navigate to'),
+      },
+      async ({ url }) => {
+        await this.initAgent(url);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Navigated to ${url}`,
+            },
+          ],
+          isError: false,
+        };
+      },
+    );
+
+    this.mcpServer.tool(
+      tools.midscene_get_tabs.name,
+      tools.midscene_get_tabs.description,
+      {},
+      async () => {
+        const agent = await this.initAgent();
+        if ('getBrowserTabList' in agent) {
+          const tabsInfo = await agent.getBrowserTabList();
           return {
             content: [
               {
                 type: 'text',
-                text: `Navigated to ${url}`,
+                text: `Current Tabs:\n${JSON.stringify(tabsInfo, null, 2)}`,
               },
             ],
             isError: false,
           };
-        },
-      );
+        } else {
+          // Tab management is not supported in Android mode
+          throw new Error('Tab management is not supported in Android mode');
+        }
+      },
+    );
+
+    this.mcpServer.tool(
+      tools.midscene_set_active_tab.name,
+      tools.midscene_set_active_tab.description,
+      { tabId: z.string().describe('The ID of the tab to set as active.') },
+      async ({ tabId }) => {
+        const agent = await this.initAgent();
+        // Add type checking
+        if ('setActiveTabId' in agent) {
+          await agent.setActiveTabId(tabId);
+          return {
+            content: [{ type: 'text', text: `Set active tab to ${tabId}` }],
+            isError: false,
+          };
+        } else {
+          // Tab switching is not supported in Android mode
+          throw new Error('Tab switching is not supported in Android mode');
+        }
+      },
+    );
+
+    this.mcpServer.tool(
+      tools.midscene_aiHover.name,
+      tools.midscene_aiHover.description,
+      {
+        locate: z
+          .string()
+          .describe('Use natural language describe the element to hover over'),
+      },
+      async ({ locate }) => {
+        const agent = await this.initAgent();
+        await agent.aiHover(locate);
+        return {
+          content: [
+            { type: 'text', text: `Hovered over ${locate}` },
+            { type: 'text', text: `report file: ${agent.reportFile}` },
+          ],
+          isError: false,
+        };
+      },
+    );
+  }
+
+  private registerTools() {
+    // Register mode-specific tools
+    if (this.androidMode) {
+      this.registerAndroidTool();
+    } else {
+      this.registerBrowserTool();
     }
 
-    if (!this.androidMode) {
-      this.mcpServer.tool(
-        tools.midscene_get_tabs.name,
-        tools.midscene_get_tabs.description,
-        {},
-        async () => {
-          const agent = await this.initAgent();
-          if ('getBrowserTabList' in agent) {
-            const tabsInfo = await agent.getBrowserTabList();
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: `Current Tabs:\n${JSON.stringify(tabsInfo, null, 2)}`,
-                },
-              ],
-              isError: false,
-            };
-          } else {
-            // Tab management is not supported in Android mode
-            throw new Error('Tab management is not supported in Android mode');
-          }
-        },
-      );
-    }
-
-    if (!this.androidMode) {
-      this.mcpServer.tool(
-        tools.midscene_set_active_tab.name,
-        tools.midscene_set_active_tab.description,
-        { tabId: z.string().describe('The ID of the tab to set as active.') },
-        async ({ tabId }) => {
-          const agent = await this.initAgent();
-          // Add type checking
-          if ('setActiveTabId' in agent) {
-            await agent.setActiveTabId(tabId);
-            return {
-              content: [{ type: 'text', text: `Set active tab to ${tabId}` }],
-              isError: false,
-            };
-          } else {
-            // Tab switching is not supported in Android mode
-            throw new Error('Tab switching is not supported in Android mode');
-          }
-        },
-      );
-    }
-
+    // Register common tools available in both modes
     this.mcpServer.tool(
       tools.midscene_aiWaitFor.name,
       tools.midscene_aiWaitFor.description,
@@ -471,154 +621,6 @@ export class MidsceneManager {
         };
       },
     );
-
-    if (!this.androidMode) {
-      this.mcpServer.tool(
-        tools.midscene_aiHover.name,
-        tools.midscene_aiHover.description,
-        {
-          locate: z
-            .string()
-            .describe('Use natural language describe the element to hover over'),
-        },
-        async ({ locate }) => {
-          const agent = await this.initAgent();
-          await agent.aiHover(locate);
-          return {
-            content: [
-              { type: 'text', text: `Hovered over ${locate}` },
-              { type: 'text', text: `report file: ${agent.reportFile}` },
-            ],
-            isError: false,
-          };
-        },
-      );
-    }
-
-    if (this.androidMode) {
-      // Android device connection tool
-      this.mcpServer.tool(
-        'midscene_android_connect',
-        'Connect to an Android device via ADB',
-        {
-          deviceId: z.string().optional().describe('Device ID to connect to. If not provided, uses the first available device.'),
-        },
-        async ({ deviceId }) => {
-          this.androidDeviceId = deviceId;
-          this.agent = undefined; // Reset the agent to force reinitialization
-          const agent = await this.initAgent();
-          
-          return {
-            content: [
-              { type: 'text', text: `Connected to Android device: ${this.androidDeviceId}` },
-            ],
-            isError: false,
-          };
-        },
-      );
-    }  
-      
-    if (this.androidMode) {
-      // Android app launch tool
-      this.mcpServer.tool(
-        'midscene_android_launch',
-        'Launch an app or navigate to a URL on Android device',
-        {
-          uri: z.string().describe('Package name, activity name, or URL to launch'),
-        },
-        async ({ uri }) => {
-          const agent = await this.initAgent();
-          if (agent instanceof AndroidAgent) {
-            try {
-              await agent.launch(uri);
-              return {
-                content: [
-                  { type: 'text', text: `Launched: ${uri}` },
-                ],
-                isError: false,
-              };
-            } catch (error: any) {
-              // Capture and return a more user-friendly error message
-              return {
-                content: [
-                  { type: 'text', text: `Failed to launch: ${uri}: ${error.message}` },
-                ],
-                isError: true,
-              };
-            }
-          } else {
-            throw new Error('Android mode is not enabled. Set MIDSCENE_MCP_USE_ANDROID_MODE=true');
-          }
-        },
-      );
-    }  
-      
-    if (this.androidMode) {
-      // Android device list tool
-      this.mcpServer.tool(
-        'midscene_android_list_devices',
-        'List all connected Android devices',
-        {},
-        async () => {
-          const devices = await getConnectedDevices();
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Connected Android devices:\n${JSON.stringify(devices, null, 2)}`,
-              },
-            ],
-            isError: false,
-          };
-        },
-      );
-    }  
-      
-    if (this.androidMode) {
-      // Android back button tool
-      this.mcpServer.tool(
-        'midscene_android_back',
-        'Press the back button on Android device',
-        {},
-        async () => {
-          const agent = await this.initAgent();
-          if (agent instanceof AndroidAgent) {
-            await agent.page.back();
-            return {
-              content: [
-                { type: 'text', text: 'Pressed back button' },
-              ],
-              isError: false,
-            };
-          } else {
-            throw new Error('Android mode is not enabled');
-          }
-        },
-      );
-    }  
-      
-    if (this.androidMode) {
-      // Android Home button tool
-      this.mcpServer.tool(
-        'midscene_android_home',  
-        'Press the home button on Android device',
-        {},
-        async () => {
-          const agent = await this.initAgent();
-          if (agent instanceof AndroidAgent) {
-            await agent.page.home();
-            return {
-              content: [
-                { type: 'text', text: 'Pressed home button' },
-              ],
-              isError: false,
-            };
-          } else {
-            throw new Error('Android mode is not enabled');
-          }
-        },
-      );
-    }
   }
 
   public getConsoleLogs(): string {
