@@ -36,7 +36,7 @@ export class MidsceneManager {
   private mcpServer: McpServer; // Add server instance
   private agent?: AgentOverChromeBridge | PuppeteerBrowserAgent | AndroidAgent;
   private puppeteerMode = getAIConfigInBoolean(MIDSCENE_MCP_USE_PUPPETEER_MODE);
-  private androidMode = getAIConfigInBoolean('MIDSCENE_MCP_USE_ANDROID_MODE'); // Add Android mode flag
+  private androidMode = getAIConfigInBoolean('MIDSCENE_MCP_ANDROID_MODE'); // Add Android mode flag
   private androidDeviceId?: string; // Add device ID storage
   constructor(server: McpServer) {
     this.mcpServer = server;
@@ -251,7 +251,7 @@ export class MidsceneManager {
           }
         } else {
           throw new Error(
-            'Android mode is not enabled. Set MIDSCENE_MCP_USE_ANDROID_MODE=true',
+            'Android mode is not enabled. Set MIDSCENE_MCP_ANDROID_MODE=true',
           );
         }
       },

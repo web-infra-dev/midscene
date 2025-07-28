@@ -10,8 +10,8 @@ MCP ([Model Context Protocol](https://modelcontextprotocol.io/introduction)) is 
 
 ## Use Cases
 
-* Execute automated testing on Android devices
-* Control Android apps for UI interaction
+- Execute automated testing on Android devices
+- Control Android apps for UI interaction
 
 ## Setting Up Midscene MCP
 
@@ -34,7 +34,7 @@ Add the Midscene MCP server to your MCP configuration:
       "env": {
         "MIDSCENE_MODEL_NAME": "REPLACE_WITH_YOUR_MODEL_NAME",
         "OPENAI_API_KEY": "REPLACE_WITH_YOUR_OPENAI_API_KEY",
-        "MIDSCENE_MCP_USE_ANDROID_MODE": "true",
+        "MIDSCENE_MCP_ANDROID_MODE": "true",
         "MCP_SERVER_REQUEST_TIMEOUT": "800000"
       }
     }
@@ -48,24 +48,25 @@ For more information about configuring AI models, see [Choosing an AI Model](./c
 
 Midscene MCP provides the following Android device automation tools:
 
-| Category | Tool Name | Description |
-|---------|---------|---------|
-| **Device Management** | midscene_android_list_devices | List all connected Android devices |
-| | midscene_android_connect | Connect to a specific Android device |
-| **App Control** | midscene_android_launch | Launch an app or open a webpage on Android device |
-| **System Operations** | midscene_android_back | Press the back button on Android device |
-| | midscene_android_home | Press the home button on Android device |
-| **Page Interaction** | midscene_aiTap | Click on an element described in natural language |
-| | midscene_aiInput | Input text into a form field or element |
-| | midscene_aiKeyboardPress | Press a specific keyboard key |
-| | midscene_aiScroll | Scroll the page or a specific element |
-| **Verification and Observation** | midscene_aiWaitFor | Wait for a condition to be true on the page |
-| | midscene_aiAssert | Assert that a condition is true on the page |
-| | midscene_screenshot | Take a screenshot of the current page |
+| Category                         | Tool Name                     | Description                                       |
+| -------------------------------- | ----------------------------- | ------------------------------------------------- |
+| **Device Management**            | midscene_android_list_devices | List all connected Android devices                |
+|                                  | midscene_android_connect      | Connect to a specific Android device              |
+| **App Control**                  | midscene_android_launch       | Launch an app or open a webpage on Android device |
+| **System Operations**            | midscene_android_back         | Press the back button on Android device           |
+|                                  | midscene_android_home         | Press the home button on Android device           |
+| **Page Interaction**             | midscene_aiTap                | Click on an element described in natural language |
+|                                  | midscene_aiInput              | Input text into a form field or element           |
+|                                  | midscene_aiKeyboardPress      | Press a specific keyboard key                     |
+|                                  | midscene_aiScroll             | Scroll the page or a specific element             |
+| **Verification and Observation** | midscene_aiWaitFor            | Wait for a condition to be true on the page       |
+|                                  | midscene_aiAssert             | Assert that a condition is true on the page       |
+|                                  | midscene_screenshot           | Take a screenshot of the current page             |
 
 ### Device Management
 
 - **midscene_android_list_devices**: List all connected Android devices available for automation
+
   ```
   Parameters: None
   ```
@@ -87,6 +88,7 @@ Midscene MCP provides the following Android device automation tools:
 ### System Operations
 
 - **midscene_android_back**: Press the back button on Android device
+
   ```
   Parameters: None
   ```
@@ -99,12 +101,14 @@ Midscene MCP provides the following Android device automation tools:
 ### Page Interaction
 
 - **midscene_aiTap**: Click on an element described in natural language
+
   ```
   Parameters:
   - locate: Natural language description of the element to click
   ```
 
 - **midscene_aiInput**: Input text into a form field or element
+
   ```
   Parameters:
   - value: The text to input
@@ -112,6 +116,7 @@ Midscene MCP provides the following Android device automation tools:
   ```
 
 - **midscene_aiKeyboardPress**: Press a specific keyboard key
+
   ```
   Parameters:
   - key: The key to press (e.g., 'Enter', 'Tab', 'Escape')
@@ -132,6 +137,7 @@ Midscene MCP provides the following Android device automation tools:
 ### Verification and Observation
 
 - **midscene_aiWaitFor**: Wait for a condition to be true on the page
+
   ```
   Parameters:
   - assertion: Natural language description of the condition to wait for
@@ -140,6 +146,7 @@ Midscene MCP provides the following Android device automation tools:
   ```
 
 - **midscene_aiAssert**: Assert that a condition is true on the page
+
   ```
   Parameters:
   - assertion: Natural language description of the condition to check
@@ -164,6 +171,7 @@ Midscene MCP provides the following Android device automation tools:
 ### How to Launch an Android App?
 
 Use the `midscene_android_launch` tool with parameters that can be:
+
 - App package name: e.g., `com.android.chrome`
 - Activity name: e.g., `com.android.chrome/.MainActivity`
 - Web URL: e.g., `https://www.example.com`
@@ -197,4 +205,3 @@ open report_file_name.html
 ```
 
 ![image](https://lf3-static.bytednsdoc.com/obj/eden-cn/ozpmyhn_lm_hymuPild/ljhwZthlaukjlkulzlp/midscene/image.png)
- 

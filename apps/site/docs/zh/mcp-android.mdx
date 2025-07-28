@@ -10,8 +10,8 @@ Midscene 提供了专门的 MCP 服务，允许 AI 助手通过自然语言命�
 
 ## 使用场景
 
-* 在 Android 设备上执行自动化测试
-* 控制 Android 应用进行 UI 交互
+- 在 Android 设备上执行自动化测试
+- 控制 Android 应用进行 UI 交互
 
 ## 设置 Midscene MCP
 
@@ -34,7 +34,7 @@ Midscene 提供了专门的 MCP 服务，允许 AI 助手通过自然语言命�
       "env": {
         "MIDSCENE_MODEL_NAME": "REPLACE_WITH_YOUR_MODEL_NAME",
         "OPENAI_API_KEY": "REPLACE_WITH_YOUR_OPENAI_API_KEY",
-        "MIDSCENE_MCP_USE_ANDROID_MODE": "true",
+        "MIDSCENE_MCP_ANDROID_MODE": "true",
         "MCP_SERVER_REQUEST_TIMEOUT": "800000"
       }
     }
@@ -48,24 +48,25 @@ Midscene 提供了专门的 MCP 服务，允许 AI 助手通过自然语言命�
 
 Midscene MCP 提供以下 Android 设备自动化工具：
 
-| 功能分类 | 工具名称 | 功能描述 |
-|---------|---------|---------|
-| **设备管理** | midscene_android_list_devices | 列出所有已连接的 Android 设备 |
-| | midscene_android_connect | 连接到指定的 Android 设备 |
-| **应用控制** | midscene_android_launch | 在 Android 设备上启动应用或打开网页 |
-| **系统操作** | midscene_android_back | 按下 Android 设备的返回键 |
-| | midscene_android_home | 按下 Android 设备的主页键 |
-| **页面交互** | midscene_aiTap | 点击通过自然语言描述的元素 |
-| | midscene_aiInput | 在表单字段或元素中输入文本 |
-| | midscene_aiKeyboardPress | 按下特定键盘按键 |
-| | midscene_aiScroll | 滚动页面或特定元素 |
-| **验证和观察** | midscene_aiWaitFor | 等待页面上的条件为真 |
-| | midscene_aiAssert | 断言页面上的条件为真 |
-| | midscene_screenshot | 对当前页面截图 |
+| 功能分类       | 工具名称                      | 功能描述                            |
+| -------------- | ----------------------------- | ----------------------------------- |
+| **设备管理**   | midscene_android_list_devices | 列出所有已连接的 Android 设备       |
+|                | midscene_android_connect      | 连接到指定的 Android 设备           |
+| **应用控制**   | midscene_android_launch       | 在 Android 设备上启动应用或打开网页 |
+| **系统操作**   | midscene_android_back         | 按下 Android 设备的返回键           |
+|                | midscene_android_home         | 按下 Android 设备的主页键           |
+| **页面交互**   | midscene_aiTap                | 点击通过自然语言描述的元素          |
+|                | midscene_aiInput              | 在表单字段或元素中输入文本          |
+|                | midscene_aiKeyboardPress      | 按下特定键盘按键                    |
+|                | midscene_aiScroll             | 滚动页面或特定元素                  |
+| **验证和观察** | midscene_aiWaitFor            | 等待页面上的条件为真                |
+|                | midscene_aiAssert             | 断言页面上的条件为真                |
+|                | midscene_screenshot           | 对当前页面截图                      |
 
 ### 设备管理
 
 - **midscene_android_list_devices**：列出所有已连接的 Android 设备
+
   ```
   参数：无
   ```
@@ -87,6 +88,7 @@ Midscene MCP 提供以下 Android 设备自动化工具：
 ### 系统操作
 
 - **midscene_android_back**：按下 Android 设备的返回键
+
   ```
   参数：无
   ```
@@ -99,12 +101,14 @@ Midscene MCP 提供以下 Android 设备自动化工具：
 ### 页面交互
 
 - **midscene_aiTap**：点击通过自然语言描述的元素
+
   ```
   参数：
   - locate：要点击元素的自然语言描述
   ```
 
 - **midscene_aiInput**：在表单字段或元素中输入文本
+
   ```
   参数：
   - value：要输入的文本
@@ -112,6 +116,7 @@ Midscene MCP 提供以下 Android 设备自动化工具：
   ```
 
 - **midscene_aiKeyboardPress**：按下特定键盘按键
+
   ```
   参数：
   - key：要按下的按键（例如 'Enter'、'Tab'、'Escape'）
@@ -132,6 +137,7 @@ Midscene MCP 提供以下 Android 设备自动化工具：
 ### 验证和观察
 
 - **midscene_aiWaitFor**：等待页面上的条件为真
+
   ```
   参数：
   - assertion：要等待的条件的自然语言描述
@@ -140,6 +146,7 @@ Midscene MCP 提供以下 Android 设备自动化工具：
   ```
 
 - **midscene_aiAssert**：断言页面上的条件为真
+
   ```
   参数：
   - assertion：要检查的条件的自然语言描述
@@ -164,6 +171,7 @@ Midscene MCP 提供以下 Android 设备自动化工具：
 ### 如何启动 Android 应用？
 
 使用 `midscene_android_launch` 工具，参数可以是：
+
 - 应用包名：如 `com.android.chrome`
 - Activity 名称：如 `com.android.chrome/.MainActivity`
 - 网页 URL：如 `https://www.example.com`
@@ -197,4 +205,3 @@ open report_file_name.html
 ```
 
 ![image](https://lf3-static.bytednsdoc.com/obj/eden-cn/ozpmyhn_lm_hymuPild/ljhwZthlaukjlkulzlp/midscene/image.png)
- 
