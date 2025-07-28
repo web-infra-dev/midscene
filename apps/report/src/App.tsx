@@ -286,16 +286,22 @@ export function App() {
   const dumpsLoadedRef = useRef(false);
 
   const loadDumpElements = useCallback(() => {
-    if (dumpsLoadedRef.current) {
-      return;
-    }
-    dumpsLoadedRef.current = true;
-    const dumpElements = document.querySelectorAll(
+    const currentElements = document.querySelectorAll(
       'script[type="midscene_web_dump"]',
     );
+
+    // If it has been loaded and the number of elements has not changed, skip it.
     if (
-      dumpElements.length === 1 &&
-      dumpElements[0].textContent?.trim() === ''
+      dumpsLoadedRef.current &&
+      currentElements.length === reportDump.length
+    ) {
+      return;
+    }
+
+    dumpsLoadedRef.current = true;
+    if (
+      currentElements.length === 1 &&
+      currentElements[0].textContent?.trim() === ''
     ) {
       setError('There is no dump data to display.');
       setReportDump([]);
@@ -303,7 +309,7 @@ export function App() {
     }
     setError(null);
     setReportDump(getDumpElements());
-  }, []);
+  }, [reportDump.length]);
 
   useEffect(() => {
     // Check if document is already loaded
