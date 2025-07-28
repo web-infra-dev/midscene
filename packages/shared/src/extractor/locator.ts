@@ -1,5 +1,5 @@
 import type { ElementInfo } from '.';
-import { isButtonElement, isFormElement } from './dom-util';
+import type { Point } from '../types';
 import { getNodeFromCacheList } from './util';
 import { getRect, isElementPartiallyInViewport } from './util';
 import { collectElementInfo } from './web-extractor';
@@ -18,92 +18,103 @@ const getElementIndex = (element: Element): number => {
   return index;
 };
 
-// Get the index of a text node among its siblings of the same type
-const getTextNodeIndex = (textNode: Node): number => {
-  let index = 1;
-  let current = textNode.previousSibling;
-
-  while (current) {
-    if (current.nodeType === Node.TEXT_NODE) {
-      index++;
-    }
-    current = current.previousSibling;
+function normalizeText(text: string): string {
+  if (typeof text !== 'string') {
+    return '';
   }
 
-  return index;
-};
+  return text.replace(/\s+/g, ' ').trim();
+}
 
-// Helper function to create normalize-space condition
-const createNormalizeSpaceCondition = (textContent: string): string => {
-  return `[normalize-space()="${textContent}"]`;
-};
-
-// Helper function to add text content to xpath if applicable
-const addTextContentToXPath = (el: Node, baseXPath: string): string => {
-  const textContent = el.textContent?.trim();
-  if (textContent && (isButtonElement(el) || isFormElement(el))) {
-    // add text content for leaf elements before text node
-    return `${baseXPath}${createNormalizeSpaceCondition(textContent)}`;
-  }
-  return baseXPath;
-};
-
-const getElementXPath = (element: Node): string => {
-  // deal with text node
+const getElementXPath = (
+  element: Node,
+  isOrderSensitive?: boolean,
+  isLeafElement?: boolean,
+): string => {
+  // process text node
   if (element.nodeType === Node.TEXT_NODE) {
-    // get parent node xpath
     const parentNode = element.parentNode;
     if (parentNode && parentNode.nodeType === Node.ELEMENT_NODE) {
-      const parentXPath = getElementXPath(parentNode);
-      const textIndex = getTextNodeIndex(element);
+      const parentXPath = getElementXPath(parentNode, true);
       const textContent = element.textContent?.trim();
-
-      // If we have text content, include it in the xpath for better matching
       if (textContent) {
-        return `${parentXPath}/text()[${textIndex}]${createNormalizeSpaceCondition(textContent)}`;
+        return `${parentXPath}/text()[normalize-space()="${normalizeText(textContent)}"]`;
       }
-      return `${parentXPath}/text()[${textIndex}]`;
+      return `${parentXPath}/text()`;
     }
     return '';
   }
 
+  // process element node
   if (element.nodeType !== Node.ELEMENT_NODE) return '';
-
   const el = element as Element;
 
-  // handle html and body tags
-  if (el === document.documentElement) {
-    return '/html';
-  }
-
-  if (el === document.body) {
-    return '/html/body';
-  }
+  // special element handling
+  if (el === document.documentElement) return '/html';
+  if (el === document.body) return '/html/body';
 
   const isSVG = el.namespaceURI === 'http://www.w3.org/2000/svg';
   const tagName = el.nodeName.toLowerCase();
 
-  // if the element is svg itself, return the parent node's xpath
-  if (isSVG && tagName === 'svg') {
-    return getElementXPath(el.parentNode!);
+  // if the element is any SVG element, find the nearest non-SVG ancestor
+  if (isSVG) {
+    let parent = el.parentNode;
+    while (parent && parent.nodeType === Node.ELEMENT_NODE) {
+      const parentEl = parent as Element;
+      if (parentEl.namespaceURI !== 'http://www.w3.org/2000/svg') {
+        return getElementXPath(parent, isOrderSensitive, isLeafElement);
+      }
+      parent = parent.parentNode;
+    }
+    // fallback if no non-SVG parent found
+    return getElementXPath(el.parentNode!, isOrderSensitive, isLeafElement);
   }
 
-  // If no parent node, return just the tag name
-  if (!el.parentNode) {
-    const baseXPath = `/${tagName}`;
-    return addTextContentToXPath(el, baseXPath);
+  const textContent = el.textContent?.trim();
+
+  // build parent path
+  const buildParentPath = () => {
+    if (!el.parentNode) return '';
+    return getElementXPath(el.parentNode, true);
+  };
+
+  // build current element xpath
+  const buildCurrentElement = (useIndex: boolean, useText?: boolean) => {
+    const parentPath = buildParentPath();
+    const prefix = parentPath ? `${parentPath}/` : '/';
+
+    if (useText && textContent) {
+      return `${prefix}${tagName}[normalize-space()="${normalizeText(textContent)}"]`;
+    }
+    if (useIndex) {
+      const index = getElementIndex(el);
+      return `${prefix}${tagName}[${index}]`;
+    }
+    return `${prefix}${tagName}`;
+  };
+
+  // decide which format to use
+  if (isOrderSensitive) {
+    // order sensitive: always use index
+    return buildCurrentElement(true);
   }
 
-  const parentXPath = getElementXPath(el.parentNode);
-  const index = getElementIndex(el);
-  const baseXPath = `${parentXPath}/${tagName}[${index}]`;
-  return addTextContentToXPath(el, baseXPath);
+  if (isLeafElement) {
+    // leaf element: use text matching first, otherwise use index
+    return buildCurrentElement(false, true);
+  }
+
+  // non-leaf element: use index
+  return buildCurrentElement(true);
 };
 
-function generateXPaths(node: Node | null): string[] {
+function generateXPaths(
+  node: Node | null,
+  isOrderSensitive?: boolean,
+): string[] {
   if (!node) return [];
 
-  const fullXPath = getElementXPath(node);
+  const fullXPath = getElementXPath(node, isOrderSensitive, true);
 
   return [fullXPath];
 }
@@ -116,6 +127,19 @@ export function getXpathsById(id: string): string[] | null {
   }
 
   return generateXPaths(node);
+}
+
+export function getXpathsByPoint(
+  point: Point,
+  isOrderSensitive: boolean,
+): string[] | null {
+  const element = document.elementFromPoint(point.left, point.top);
+
+  if (!element) {
+    return null;
+  }
+
+  return generateXPaths(element, isOrderSensitive);
 }
 
 export function getNodeInfoByXpath(xpath: string): Node | null {

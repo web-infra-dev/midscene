@@ -113,6 +113,18 @@ export class PageTaskExecutor {
     element: LocateResultElement,
   ): Promise<string[] | undefined> {
     let elementId = element?.id;
+    if (element?.isOrderSensitive !== undefined) {
+      const xpaths = await this.page.getXpathsByPoint(
+        {
+          left: element.center[0],
+          top: element.center[1],
+        },
+        element?.isOrderSensitive,
+      );
+
+      return xpaths;
+    }
+
     // find the nearest xpath for the element
     if (element?.attributes?.nodeType === NodeType.POSITION) {
       await this.insight.contextRetrieverFn('locate');

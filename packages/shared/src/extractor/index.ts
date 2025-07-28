@@ -39,6 +39,7 @@ export { setNodeHashCacheListOnWindow, getNodeFromCacheList } from './util';
 
 export {
   getXpathsById,
+  getXpathsByPoint,
   getNodeInfoByXpath,
   getElementInfoByXpath,
 } from './locator';
