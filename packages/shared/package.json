@@ -39,8 +39,7 @@
   "files": ["dist", "src", "README.md", "scripts"],
   "scripts": {
     "dev": "npm run build:watch",
-    "build": "npm run build:pkg && npm run build:script",
-    "postbuild": "node scripts/post-build.js",
+    "build": " npm run build:script && npm run build:pkg && npm run build:script",
     "build:pkg": "modern build -c ./modern.config.ts",
     "build:script": "modern build -c ./modern.inspect.config.ts",
     "build:watch": "modern build -w",
