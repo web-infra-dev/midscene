@@ -29,7 +29,10 @@ if (configResult.error) {
 
 // Prepare the command and arguments
 const command = 'npx';
-const keys = Object.keys(allConfigFromEnv());
+const keys = Object.keys(allConfigFromEnv()).concat([
+  'MCP_SERVER_REQUEST_TIMEOUT',
+]);
+
 const envOverrides = {};
 for (const key of keys) {
   const value = process.env[key];

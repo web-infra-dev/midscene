@@ -1,4 +1,8 @@
-import { appendFileSync } from 'node:fs';
+import {
+  AndroidAgent,
+  AndroidDevice,
+  getConnectedDevices,
+} from '@midscene/android';
 import {
   MIDSCENE_MCP_USE_PUPPETEER_MODE,
   getAIConfigInBoolean,
@@ -8,8 +12,6 @@ import {
   allConfigFromEnv,
   overrideAIConfig,
 } from '@midscene/web/bridge-mode';
-// Add Android-related imports
-import { AndroidAgent, AndroidDevice, getConnectedDevices } from '@midscene/android';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type {
   ImageContent,
@@ -68,15 +70,15 @@ export class MidsceneManager {
 
     if (this.agent) return this.agent;
 
-    // Check if running in Android mode or bridge mode 
-    if (this.androidMode) {  
-      this.agent = await this.initAndroidAgent(openNewTabWithUrl);  
-    } else if (!this.puppeteerMode) {  
-      this.agent = await this.initAgentByBridgeMode(openNewTabWithUrl);  
-    } else {  
-      this.agent = await this.initPuppeteerAgent(openNewTabWithUrl);  
+    // Check if running in Android mode or bridge mode
+    if (this.androidMode) {
+      this.agent = await this.initAndroidAgent(openNewTabWithUrl);
+    } else if (!this.puppeteerMode) {
+      this.agent = await this.initAgentByBridgeMode(openNewTabWithUrl);
+    } else {
+      this.agent = await this.initPuppeteerAgent(openNewTabWithUrl);
     }
-    
+
     return this.agent;
   }
 
@@ -134,50 +136,53 @@ export class MidsceneManager {
     return agent;
   }
 
-  private async initAndroidAgent(uri?: string): Promise<AndroidAgent> {  
-  try {  
-    let deviceId = this.androidDeviceId;  
-      
-    // If no device ID is specified, get the first connected device  
-    if (!deviceId) {  
-      const devices = await getConnectedDevices();  
-      if (devices.length === 0) {  
-        throw new Error('No Android devices connected. Please connect a device via ADB.');  
-      }  
-      deviceId = devices[0].udid;  
-      this.androidDeviceId = deviceId;  
-    }  
-  
-    // Create an Android device instance  
-    const androidDevice = new AndroidDevice(deviceId, {  
-      autoDismissKeyboard: true,  
-      imeStrategy: 'yadb-for-non-ascii'  
-    });  
-  
-    // Connect to the device  
-    await androidDevice.connect();  
-  
-    // If a URI is provided, launch the app or web page  
-    if (uri) {  
-      await androidDevice.launch(uri);  
-    }  
-  
-    // Create an Android Agent  
-    const agent = new AndroidAgent(androidDevice, {  
-      aiActionContext: 'If any permission dialog appears, click Allow. If login page appears, close it.'  
-    });  
-  
-    return agent;  
-    } catch (err) {  
-      console.error('Android mode connection failed', err);  
-      throw new Error(  
-        'Unable to establish Android connection. Please check the following:\n' +  
-        '1. Android device is connected via ADB\n' +  
-        '2. USB debugging is enabled on the device\n' +  
-        '3. Device is unlocked and authorized for debugging\n' +  
-        '4. ADB is properly installed and accessible'  
-      );  
-    }  
+  private async initAndroidAgent(uri?: string): Promise<AndroidAgent> {
+    try {
+      let deviceId = this.androidDeviceId;
+
+      // If no device ID is specified, get the first connected device
+      if (!deviceId) {
+        const devices = await getConnectedDevices();
+        if (devices.length === 0) {
+          throw new Error(
+            'No Android devices connected. Please connect a device via ADB.',
+          );
+        }
+        deviceId = devices[0].udid;
+        this.androidDeviceId = deviceId;
+      }
+
+      // Create an Android device instance
+      const androidDevice = new AndroidDevice(deviceId, {
+        autoDismissKeyboard: true,
+        imeStrategy: 'yadb-for-non-ascii',
+      });
+
+      // Connect to the device
+      await androidDevice.connect();
+
+      // If a URI is provided, launch the app or web page
+      if (uri) {
+        await androidDevice.launch(uri);
+      }
+
+      // Create an Android Agent
+      const agent = new AndroidAgent(androidDevice, {
+        aiActionContext:
+          'If any permission dialog appears, click Allow. If login page appears, close it.',
+      });
+
+      return agent;
+    } catch (err) {
+      console.error('Android mode connection failed', err);
+      throw new Error(
+        'Unable to establish Android connection. Please check the following:\n' +
+          '1. Android device is connected via ADB\n' +
+          '2. USB debugging is enabled on the device\n' +
+          '3. Device is unlocked and authorized for debugging\n' +
+          '4. ADB is properly installed and accessible',
+      );
+    }
   }
 
   /**
@@ -190,28 +195,38 @@ export class MidsceneManager {
       'midscene_android_connect',
       'Connect to an Android device via ADB',
       {
-        deviceId: z.string().optional().describe('Device ID to connect to. If not provided, uses the first available device.'),
+        deviceId: z
+          .string()
+          .optional()
+          .describe(
+            'Device ID to connect to. If not provided, uses the first available device.',
+          ),
       },
       async ({ deviceId }) => {
         this.androidDeviceId = deviceId;
         this.agent = undefined; // Reset the agent to force reinitialization
         const agent = await this.initAgent();
-        
+
         return {
           content: [
-            { type: 'text', text: `Connected to Android device: ${this.androidDeviceId}` },
+            {
+              type: 'text',
+              text: `Connected to Android device: ${this.androidDeviceId}`,
+            },
           ],
           isError: false,
         };
       },
     );
-    
+
     // Android app launch tool
     this.mcpServer.tool(
       'midscene_android_launch',
       'Launch an app or navigate to a URL on Android device',
       {
-        uri: z.string().describe('Package name, activity name, or URL to launch'),
+        uri: z
+          .string()
+          .describe('Package name, activity name, or URL to launch'),
       },
       async ({ uri }) => {
         const agent = await this.initAgent();
@@ -219,26 +234,29 @@ export class MidsceneManager {
           try {
             await agent.launch(uri);
             return {
-              content: [
-                { type: 'text', text: `Launched: ${uri}` },
-              ],
+              content: [{ type: 'text', text: `Launched: ${uri}` }],
               isError: false,
             };
           } catch (error: any) {
             // Capture and return a more user-friendly error message
             return {
               content: [
-                { type: 'text', text: `Failed to launch: ${uri}: ${error.message}` },
+                {
+                  type: 'text',
+                  text: `Failed to launch: ${uri}: ${error.message}`,
+                },
               ],
               isError: true,
             };
           }
         } else {
-          throw new Error('Android mode is not enabled. Set MIDSCENE_MCP_USE_ANDROID_MODE=true');
+          throw new Error(
+            'Android mode is not enabled. Set MIDSCENE_MCP_USE_ANDROID_MODE=true',
+          );
         }
       },
     );
-    
+
     // Android device list tool
     this.mcpServer.tool(
       'midscene_android_list_devices',
@@ -257,7 +275,7 @@ export class MidsceneManager {
         };
       },
     );
-    
+
     // Android back button tool
     this.mcpServer.tool(
       'midscene_android_back',
@@ -268,9 +286,7 @@ export class MidsceneManager {
         if (agent instanceof AndroidAgent) {
           await agent.page.back();
           return {
-            content: [
-              { type: 'text', text: 'Pressed back button' },
-            ],
+            content: [{ type: 'text', text: 'Pressed back button' }],
             isError: false,
           };
         } else {
@@ -278,10 +294,10 @@ export class MidsceneManager {
         }
       },
     );
-    
+
     // Android Home button tool
     this.mcpServer.tool(
-      'midscene_android_home',  
+      'midscene_android_home',
       'Press the home button on Android device',
       {},
       async () => {
@@ -289,9 +305,7 @@ export class MidsceneManager {
         if (agent instanceof AndroidAgent) {
           await agent.page.home();
           return {
-            content: [
-              { type: 'text', text: 'Pressed home button' },
-            ],
+            content: [{ type: 'text', text: 'Pressed home button' }],
             isError: false,
           };
         } else {
@@ -668,7 +682,7 @@ export class MidsceneManager {
         timestamp: new Date().toISOString(),
       };
 
-      // Send notification with well-formatted active tab info 
+      // Send notification with well-formatted active tab info
       this.mcpServer.server.notification({
         method: 'activeTabInfo',
         params: {
