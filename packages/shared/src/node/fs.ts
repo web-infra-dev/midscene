@@ -61,14 +61,9 @@ export function findNearestPackageJson(dir: string): string | null {
 }
 
 export function getElementInfosScriptContent() {
-  // Get __dirname equivalent in Node.js environment
-  const currentFilePath = __filename;
-  const pathDir = findNearestPackageJson(dirname(currentFilePath));
-  assert(pathDir, `can't find pathDir, with ${dirname}`);
-  const scriptPath = path.join(pathDir, './dist/script/htmlElement.js');
-  const elementInfosScriptContent = readFileSync(scriptPath, 'utf-8');
 
-  return elementInfosScriptContent;
+  //@ts-ignore
+  return {ELEMENT_INFO_SCRIPT_CONTENT};
 }
 
 export async function getExtraReturnLogic(tree = false) {
