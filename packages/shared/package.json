@@ -42,7 +42,7 @@
     "build": "npm run build:pkg && npm run build:script",
     "build:pkg": "modern build -c ./modern.config.ts",
     "build:script": "modern build -c ./modern.inspect.config.ts",
-    "build:watch": "modern build -w",
+    "build:watch": "modern build -w --no-clear",
     "reset": "rimraf ./**/node_modules",
     "lint": "modern lint",
     "bump": "modern bump",
