@@ -74,7 +74,7 @@ export default defineConfig({
           items: [
             {
               text: 'MCP Server',
-              link: '/mcp',
+              link: '/web-mcp',
             },
             {
               text: 'Integrate with Playwright',
@@ -97,6 +97,10 @@ export default defineConfig({
         {
           text: 'Android Automation',
           items: [
+            {
+              text: 'MCP Server',
+              link: '/mcp-android',
+            },
             {
               text: 'Quick Experience by Android Playground',
               link: '/quick-experience-with-android',
@@ -195,7 +199,7 @@ export default defineConfig({
           items: [
             {
               text: 'MCP 服务',
-              link: '/zh/mcp',
+              link: '/zh/web-mcp',
             },
             {
               text: '集成到 Playwright',
@@ -218,6 +222,10 @@ export default defineConfig({
         {
           text: 'Android 自动化',
           items: [
+            {
+              text: 'MCP 服务',
+              link: '/zh/mcp-android',
+            },
             {
               text: '使用 Android Playground 快速体验',
               link: '/zh/quick-experience-with-android',
