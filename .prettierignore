@@ -94,6 +94,7 @@ shrinkwrap.json
 
 # Build outputs
 dist
+dist-inspect
 lib
 
 # Prettier reformats code blocks inside Markdown, which affects rendered output

@@ -14,6 +14,7 @@
       "test-data/**",
       "**/inject-tp.js",
       "dist",
+      "dist-inspect",
       "__ai_responses__",
       "ai-data/**",
       "**/doc_build",
