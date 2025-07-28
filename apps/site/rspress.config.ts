@@ -74,7 +74,7 @@ export default defineConfig({
           items: [
             {
               text: 'MCP Server',
-              link: '/mcp',
+              link: '/web-mcp',
             },
             {
               text: 'Integrate with Playwright',
@@ -199,7 +199,7 @@ export default defineConfig({
           items: [
             {
               text: 'MCP 服务',
-              link: '/zh/mcp',
+              link: '/zh/web-mcp',
             },
             {
               text: '集成到 Playwright',
