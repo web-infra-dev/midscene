@@ -16,7 +16,7 @@
     ".": {
       "types": "./dist/types/index.d.ts",
       "default": "./dist/lib/index.js"
-    },  
+    },
     "./package.json": "./package.json"
   },
   "scripts": {
