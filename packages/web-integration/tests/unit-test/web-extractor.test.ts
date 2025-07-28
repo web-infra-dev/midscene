@@ -270,6 +270,131 @@ describe(
       expect(description.split('\n').length).toBeGreaterThan(200);
       await reset();
     });
+
+    describe('locator functions integration tests', () => {
+      it('getXpathsByPoint should work with order-sensitive and order-insensitive modes', async () => {
+        const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
+          viewport: {
+            width: 1080,
+            height: 3000,
+            deviceScaleFactor: 1,
+          },
+        });
+
+        const elementInfosScriptContent = getElementInfosScriptContent();
+
+        // Test clicking on the button element
+        const orderSensitiveXpaths = await page.evaluateJavaScript?.(
+          `${elementInfosScriptContent}midscene_element_inspector.getXpathsByPoint({left: 100, top: 400}, true)`,
+        );
+
+        const orderInsensitiveXpaths = await page.evaluateJavaScript?.(
+          `${elementInfosScriptContent}midscene_element_inspector.getXpathsByPoint({left: 100, top: 400}, false)`,
+        );
+
+        expect(orderSensitiveXpaths).toBeDefined();
+        expect(orderInsensitiveXpaths).toBeDefined();
+        expect(orderSensitiveXpaths).toHaveLength(1);
+        expect(orderInsensitiveXpaths).toHaveLength(1);
+
+        // Order sensitive should end with [number]
+        expect(orderSensitiveXpaths[0]).toMatch(/\[\d+\]$/);
+
+        // Order insensitive should not end with [number] (use text matching or plain tag)
+        expect(orderInsensitiveXpaths[0]).not.toMatch(/\[\d+\]$/);
+
+        // Should be different
+        expect(orderSensitiveXpaths[0]).not.toBe(orderInsensitiveXpaths[0]);
+
+        await reset();
+      });
+
+      it('getElementInfoByXpath should work with text content matching', async () => {
+        const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
+          viewport: {
+            width: 1080,
+            height: 3000,
+            deviceScaleFactor: 1,
+          },
+        });
+
+        const elementInfosScriptContent = getElementInfosScriptContent();
+
+        // Test xpath with normalize-space text matching - this may match the text node
+        const elementInfo = await page.evaluateJavaScript?.(
+          `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('/html/body/div[2]/div/div/ul/li[1]/span[normalize-space()="English"]')`,
+        );
+
+        expect(elementInfo).toBeDefined();
+        expect(elementInfo.content).toBe('English');
+        // The xpath might match either the span element or its text node
+        expect(['SPAN Node', 'TEXT Node']).toContain(elementInfo.nodeType);
+
+        await reset();
+      });
+
+      it('getXpathsById should work with cached elements', async () => {
+        const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
+          viewport: {
+            width: 1080,
+            height: 3000,
+            deviceScaleFactor: 1,
+          },
+        });
+
+        const elementInfosScriptContent = getElementInfosScriptContent();
+
+        // First, ensure we have extracted element info (which populates the cache)
+        await page.evaluateJavaScript?.(
+          `${elementInfosScriptContent}midscene_element_inspector.webExtractNodeTree(document)`,
+        );
+
+        // Try to get xpath by an element id from the cache
+        const result = await page.evaluateJavaScript?.(
+          `${elementInfosScriptContent}
+          // Get any cached element ID from the window cache
+          const cacheList = window.midsceneNodeHashCacheList;
+          if (cacheList && cacheList.length > 0) {
+            const firstCachedId = cacheList[0].id;
+            midscene_element_inspector.getXpathsById(firstCachedId);
+          } else {
+            null;
+          }`,
+        );
+
+        // If there are cached elements, we should get a valid xpath
+        expect(result).toHaveLength(1);
+        expect(result[0]).toMatch(/^\/html/);
+
+        await reset();
+      });
+
+      it('getXpathsByPoint should handle elements with special characters', async () => {
+        const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
+          viewport: {
+            width: 1080,
+            height: 3000,
+            deviceScaleFactor: 1,
+          },
+        });
+
+        const elementInfosScriptContent = getElementInfosScriptContent();
+
+        // Look for elements with Chinese text or special characters
+        const point = { left: 600, top: 500 }; // Adjust coordinates as needed
+        const xpaths = await page.evaluateJavaScript?.(
+          `${elementInfosScriptContent}midscene_element_inspector.getXpathsByPoint(${JSON.stringify(point)}, false)`,
+        );
+
+        expect(xpaths[0]).toMatch(/^\/html/);
+        // Should handle special characters in xpath text matching
+        if (xpaths[0].includes('normalize-space')) {
+          expect(xpaths[0]).toMatch(/normalize-space\(\)="[^"]*"/);
+        }
+
+        await reset();
+      });
+    });
   },
   {
     timeout: 90 * 1000,

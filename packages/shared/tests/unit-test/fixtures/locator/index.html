@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Locator Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .section {
+            border: 1px solid #ccc;
+            padding: 20px;
+            margin: 10px 0;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        input {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin: 5px;
+        }
+        
+        .svg-container {
+            margin: 20px 0;
+        }
+        
+        .icon-button {
+            display: inline-block;
+            padding: 10px;
+            background-color: #28a745;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="section">
+            <h2>Button Tests</h2>
+            <button id="test-button">Click Me</button>
+            <button>Submit Form</button>
+            <button>Cancel</button>
+        </div>
+        
+        <div class="section">
+            <h2>Input Tests</h2>
+            <input type="text" placeholder="Enter your name" id="name-input">
+            <input type="email" placeholder="Enter your email">
+            <input type="password" placeholder="Password">
+        </div>
+        
+        <div class="section svg-container">
+            <h2>SVG Tests</h2>
+            <div class="icon-button">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2L13.09 8.26L20 9L13.09 9.74L12 16L10.91 9.74L4 9L10.91 8.26L12 2Z" fill="white"/>
+                </svg>
+            </div>
+            
+            <button class="icon-button">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8 0L10 6L16 8L10 10L8 16L6 10L0 8L6 6L8 0Z" fill="white"/>
+                </svg>
+                Icon Button
+            </button>
+        </div>
+        
+        <div class="section">
+            <h2>Text Content Tests</h2>
+            <div>
+                <span>Simple Text</span>
+            </div>
+            <div>
+                <p>Paragraph with <strong>躍動黃 (庫存量低)</strong> text</p>
+            </div>
+            <div>
+                <button>Button with Special Characters: 特殊字符</button>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Nested Elements</h2>
+            <div class="parent">
+                <div class="child">
+                    <div class="grandchild">
+                        <span>Deeply Nested Text</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>Elements without text</h2>
+            <div class="empty-container">
+                <div class="placeholder" style="width: 100px; height: 50px; background-color: #eee;"></div>
+            </div>
+            <input type="range" min="0" max="100" value="50">
+        </div>
+    </div>
+</body>
+</html>
