@@ -25,7 +25,12 @@ export const groupedActionDumpFileExt = 'web-dump.json';
 
 const reportInitializedMap = new Map<string, boolean>();
 
+declare const __DEV_REPORT_PATH__: string;
+
 function getReportTpl() {
+  if (__DEV_REPORT_PATH__) {
+    return fs.readFileSync(__DEV_REPORT_PATH__, 'utf-8');
+  }
   const reportTpl = 'REPLACE_ME_WITH_REPORT_HTML';
 
   return reportTpl;
@@ -52,7 +57,7 @@ export function insertScriptBeforeClosingHtml(
   const tailStr = buffer.toString('utf8');
   const htmlEndIdx = tailStr.lastIndexOf(htmlEndTag);
   if (htmlEndIdx === -1) {
-    throw new Error('No </html> found');
+    throw new Error(`No </html> found in file：${filePath}`);
   }
 
   // calculate the correct byte position: char position to byte position
