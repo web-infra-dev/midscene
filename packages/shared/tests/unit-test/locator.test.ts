@@ -30,6 +30,32 @@ class MockElement {
   }
 }
 
+// Mock text node
+class MockTextNode {
+  nodeName: string;
+  nodeType: number;
+  parentNode: MockElement | null;
+  textContent: string;
+
+  constructor(textContent: string, parentNode: MockElement | null = null) {
+    this.nodeName = '#text';
+    this.nodeType = 3; // TEXT_NODE
+    this.textContent = textContent;
+    this.parentNode = parentNode;
+  }
+}
+
+// Mock SVG element that extends SVGElement
+class MockSVGElement extends MockElement {
+  constructor(
+    nodeName: string,
+    textContent = '',
+    parentNode: MockElement | null = null,
+  ) {
+    super(nodeName, textContent, 'http://www.w3.org/2000/svg', parentNode);
+  }
+}
+
 // Mock global objects needed by locator functions
 const setupMockDOM = () => {
   global.Node = {
@@ -42,6 +68,9 @@ const setupMockDOM = () => {
     ORDERED_NODE_SNAPSHOT_TYPE: 7,
   } as any;
 
+  // Mock SVGElement for SVG handling
+  global.SVGElement = MockSVGElement as any;
+
   global.document = {
     documentElement: new MockElement('html'),
     body: new MockElement('body'),
@@ -53,6 +82,19 @@ const setupMockDOM = () => {
         button.parentNode = div;
         div.parentNode = global.document.body as any;
         return button as any;
+      }
+      // Return a text node for text node testing
+      if (x === 150 && y === 250) {
+        const div = new MockElement('div', 'Outer Div');
+        const span = new MockElement('span', 'Parent Text');
+        const textNode = new MockTextNode('Text Content');
+
+        // Set up parent-child relationships
+        div.parentNode = global.document.body as any;
+        span.parentNode = div;
+        textNode.parentNode = span;
+
+        return textNode as any;
       }
       // Return null for out-of-bounds points
       return null;
@@ -145,17 +187,14 @@ describe('locator', () => {
       // Mock an SVG element
       global.document.elementFromPoint = (x: number, y: number) => {
         if (x === 300 && y === 400) {
-          const path = new MockElement(
-            'path',
-            '',
-            'http://www.w3.org/2000/svg',
-          );
-          const svg = new MockElement('svg', '', 'http://www.w3.org/2000/svg');
           const button = new MockElement('button', 'Icon Button');
+          const svg = new MockSVGElement('svg', '');
+          const path = new MockSVGElement('path', '');
 
-          path.parentNode = svg;
-          svg.parentNode = button;
+          // Set up proper parent chain
           button.parentNode = global.document.body as any;
+          svg.parentNode = button;
+          path.parentNode = svg;
 
           return path as any;
         }
@@ -167,10 +206,39 @@ describe('locator', () => {
 
       expect(xpaths).toBeDefined();
       expect(xpaths).toHaveLength(1);
-      // Should return the xpath of the button (non-SVG parent), not the path element
+      // Should return the xpath of the button (non-SVG ancestor), not the path element
       expect(xpaths?.[0]).toMatch(/button/);
       expect(xpaths?.[0]).not.toMatch(/path/);
       expect(xpaths?.[0]).not.toMatch(/svg/);
+      // Should be the button's xpath
+      expect(xpaths?.[0]).toBe('/html/body/button[1]');
+    });
+
+    it('should handle text nodes with order-sensitive mode', () => {
+      const point = { left: 150, top: 250 };
+      const xpaths = getXpathsByPoint(point, true);
+
+      expect(xpaths).toBeDefined();
+      expect(xpaths).toHaveLength(1);
+      // For order-sensitive text node, parent path should use indices
+      expect(xpaths?.[0]).toMatch(
+        /\/html\/body\/div\[1\]\/span\[1\]\/text\(\)\[normalize-space\(\)="Text Content"\]/,
+      );
+    });
+
+    it('should handle text nodes with order-insensitive mode', () => {
+      const point = { left: 150, top: 250 };
+      const xpaths = getXpathsByPoint(point, false);
+
+      expect(xpaths).toBeDefined();
+      expect(xpaths).toHaveLength(1);
+      // For order-insensitive text node, the direct parent (span) should use text matching
+      // but higher ancestors (div) may still use indices since they're not leaf elements
+      expect(xpaths?.[0]).toMatch(
+        /\/html\/body\/div\[1\]\/span\[normalize-space\(\)="Parent Text"\]\/text\(\)\[normalize-space\(\)="Text Content"\]/,
+      );
+      // Should not contain [number] indices for the direct parent (span)
+      expect(xpaths?.[0]).not.toMatch(/span\[1\]/);
     });
   });
 
