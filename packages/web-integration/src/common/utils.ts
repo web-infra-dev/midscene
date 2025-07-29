@@ -18,7 +18,7 @@ import {
   traverseTree,
 } from '@midscene/shared/extractor';
 import { resizeImgBase64 } from '@midscene/shared/img';
-import type { DebugFunction } from '@midscene/shared/logger';
+import { getDebug, type DebugFunction } from '@midscene/shared/logger';
 import { assert, logMsg, uuid } from '@midscene/shared/utils';
 import dayjs from 'dayjs';
 import type { Page as PlaywrightPage } from 'playwright';
@@ -27,6 +27,8 @@ import { WebElementInfo } from '../web-element';
 import type { WebPage } from './page';
 import { debug as cacheDebug } from './task-cache';
 import type { PageTaskExecutor } from './tasks';
+
+const debug = getDebug('tool:profile');
 
 export type WebUIContext = UIContext<WebElementInfo> & {
   url: string;
@@ -40,21 +42,34 @@ export async function parseContextFromWebPage(
   if ((page as StaticPage)._forceUsePageContext) {
     return await (page as any)._forceUsePageContext();
   }
+
+  const urlStartTime = Date.now();
   const url = await page.url();
+  debug(`url end, cost: ${Date.now() - urlStartTime}ms`);
+
+  const uploadTestInfoStartTime = Date.now();
   uploadTestInfoToServer({ testUrl: url });
+  debug(
+    `uploadTestInfoToServer end, cost: ${Date.now() - uploadTestInfoStartTime}ms`,
+  );
 
   let screenshotBase64: string;
   let tree: ElementTreeNode<ElementInfo>;
 
+  const startTime = Date.now();
   await Promise.all([
     page.screenshotBase64().then((base64) => {
       screenshotBase64 = base64;
+      debug(`screenshotBase64 end, cost: ${Date.now() - startTime}ms`);
     }),
     page.getElementsNodeTree().then(async (treeRoot) => {
       tree = treeRoot;
+      debug(`getElementsNodeTree end, cost: ${Date.now() - startTime}ms`);
     }),
   ]);
-
+  const endTime = Date.now();
+  debug(`parseContextFromWebPage end, cost: ${endTime - startTime}ms`);
+  const traverseStartTime = Date.now();
   const webTree = traverseTree(tree!, (elementInfo) => {
     const { rect, id, content, attributes, indexId, isVisible } = elementInfo;
     return new WebElementInfo({
@@ -66,18 +81,20 @@ export async function parseContextFromWebPage(
       isVisible,
     });
   });
-
+  const traverseEndTime = Date.now();
+  debug(`traverseTree end, cost: ${traverseEndTime - traverseStartTime}ms`);
   assert(screenshotBase64!, 'screenshotBase64 is required');
 
   const size = await page.size();
 
   if (size.dpr && size.dpr > 1) {
-    // console.time('resizeImgBase64');
+    const resizeStartTime = Date.now();
     screenshotBase64 = await resizeImgBase64(screenshotBase64, {
       width: size.width,
       height: size.height,
     });
-    // console.timeEnd('resizeImgBase64');
+    const resizeEndTime = Date.now();
+    debug(`resizeImgBase64 end, cost: ${resizeEndTime - resizeStartTime}ms`);
   }
 
   return {

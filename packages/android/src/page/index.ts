@@ -74,7 +74,7 @@ export class AndroidDevice implements AndroidDevicePage {
     this.connectingAdb = (async () => {
       let error: Error | null = null;
       debugPage(`Initializing ADB with device ID: ${this.deviceId}`);
-
+      const startTime = Date.now();
       try {
         const androidAdbPath =
           this.options?.androidAdbPath || getAIConfig(MIDSCENE_ADB_PATH);
@@ -105,7 +105,9 @@ ${Object.keys(size)
   )
   .join('\n')}
 `);
-        debugPage('ADB initialized successfully');
+        debugPage(
+          `ADB initialized successfully, cost: ${Date.now() - startTime}ms`,
+        );
         return this.adb;
       } catch (e) {
         debugPage(`Failed to initialize ADB: ${e}`);
@@ -138,11 +140,16 @@ ${Object.keys(size)
         // return the proxied method
         return async (...args: any[]) => {
           try {
+            const startTime = Date.now();
             debugPage(`adb ${String(prop)} ${args.join(' ')}`);
-            return (originalMethod as (...args: any[]) => any).apply(
-              target,
-              args,
+            const result = await (
+              originalMethod as (...args: any[]) => any
+            ).apply(target, args);
+            const endTime = Date.now();
+            debugPage(
+              `adb ${String(prop)} ${args.join(' ')} end, cost: ${endTime - startTime}ms`,
             );
+            return result;
           } catch (error: any) {
             const methodName = String(prop);
             const deviceId = this.deviceId;
@@ -168,6 +175,7 @@ ${Object.keys(size)
     this.uri = uri;
 
     try {
+      const startTime = Date.now();
       if (
         uri.startsWith('http://') ||
         uri.startsWith('https://') ||
@@ -186,7 +194,10 @@ ${Object.keys(size)
         // Assume it's just a package name
         await adb.activateApp(uri);
       }
-      debugPage(`Successfully launched: ${uri}`);
+      const endTime = Date.now();
+      debugPage(
+        `Successfully launched: ${uri}, cost: ${endTime - startTime}ms`,
+      );
     } catch (error: any) {
       debugPage(`Error launching ${uri}: ${error}`);
       throw new Error(`Failed to launch ${uri}: ${error.message}`, {
@@ -359,7 +370,10 @@ ${Object.keys(size)
     const androidScreenshotPath = `/data/local/tmp/midscene_screenshot_${randomUUID()}.png`;
 
     try {
+      const startTime = Date.now();
       screenshotBuffer = await adb.takeScreenshot(null);
+      const endTime = Date.now();
+      debugPage(`adb.takeScreenshot end, cost: ${endTime - startTime}ms`);
 
       // make sure screenshotBuffer is not null
       if (!screenshotBuffer) {
@@ -379,14 +393,20 @@ ${Object.keys(size)
       const screenshotPath = getTmpFile('png')!;
 
       try {
+        const startTime = Date.now();
         try {
           // Take a screenshot and save it locally
           await adb.shell(`screencap -p ${androidScreenshotPath}`);
+          const endTime = Date.now();
+          debugPage(`adb.shell screencap end, cost: ${endTime - startTime}ms`);
         } catch (error) {
           await this.forceScreenshot(androidScreenshotPath);
         }
 
+        const pullStartTime = Date.now();
         await adb.pull(androidScreenshotPath, screenshotPath);
+        const pullEndTime = Date.now();
+        debugPage(`adb.pull end, cost: ${pullEndTime - pullStartTime}ms`);
         screenshotBuffer = await fs.promises.readFile(screenshotPath);
       } finally {
         await adb.shell(`rm -f ${androidScreenshotPath}`);
@@ -398,8 +418,12 @@ ${Object.keys(size)
       height,
     });
 
+    const screenshotBase64StartTime = Date.now();
     const result = `data:image/jpeg;base64,${resizedScreenshotBuffer.toString('base64')}`;
-    debugPage('screenshotBase64 end');
+    const screenshotBase64EndTime = Date.now();
+    debugPage(
+      `screenshotBase64 end, cost: ${screenshotBase64EndTime - screenshotBase64StartTime}ms`,
+    );
     return result;
   }
 

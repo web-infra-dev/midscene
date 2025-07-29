@@ -1,6 +1,7 @@
 import assert from 'node:assert';
 import { Buffer } from 'node:buffer';
 import { readFileSync } from 'node:fs';
+import { getDebug as midsceneGetDebug } from '../logger';
 import getDebug from 'debug';
 import type Jimp from 'jimp';
 import type { Rect } from 'src/types';
@@ -8,6 +9,7 @@ import getJimp from './get-jimp';
 const debugImg = getDebug('img');
 import path from 'node:path';
 
+const midsceneDebug = midsceneGetDebug('img');
 /**
 /**
  * Saves a Base64-encoded image to a file
@@ -70,11 +72,14 @@ export async function resizeImg(
   if (newSize.width === width && newSize.height === height) {
     return inputData;
   }
-
+  const resizeStartTime = Date.now();
   image.resize(newSize.width, newSize.height, Jimp.RESIZE_BICUBIC);
   image.quality(90);
   const resizedBuffer = await image.getBufferAsync(Jimp.MIME_JPEG);
-  debugImg(`resizeImg done, target size: ${newSize.width}x${newSize.height}`);
+  const resizeEndTime = Date.now();
+  midsceneDebug(
+    `jimp resizeImg done, target size: ${newSize.width}x${newSize.height}, cost: ${resizeEndTime - resizeStartTime}ms`,
+  );
 
   return resizedBuffer;
 }
