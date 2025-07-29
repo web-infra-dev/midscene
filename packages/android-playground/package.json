@@ -13,7 +13,7 @@
     "dev": "modern dev",
     "dev:server": "npm run build && ./bin/playground",
     "build": "modern build -c ./modern.config.ts",
-    "build:watch": "modern build -w -c ./modern.config.ts"
+    "build:watch": "modern build -w -c ./modern.config.ts --no-clear"
   },
   "dependencies": {
     "@midscene/android": "workspace:*",
