@@ -701,6 +701,9 @@ importers:
 
   packages/shared:
     dependencies:
+      '@cf-wasm/photon':
+        specifier: ^0.1.31
+        version: 0.1.31
       debug:
         specifier: 4.4.0
         version: 4.4.0(supports-color@5.5.0)
@@ -2367,6 +2370,12 @@ packages:
 
   '@bufbuild/protobuf@2.6.0':
     resolution: {integrity: sha512-6cuonJVNOIL7lTj5zgo/Rc2bKAo4/GvN+rKCrUj7GdEHRzCk8zKOfFwUsL9nAVk5rSIsRmlgcpLzTRysopEeeg==}
+
+  '@cf-wasm/internals@0.0.3':
+    resolution: {integrity: sha512-v6PmiQnJIrVvL2IdPg5aCqARSKw/U1JvFsms2cCt3Szx3/3EvtVVhN9MALCh6kZ2CV2fvzs3tmiYezRQ6JyqcQ==}
+
+  '@cf-wasm/photon@0.1.31':
+    resolution: {integrity: sha512-czB1kvK8L1oKsBcQxNhWn5JyIlXrXF+Fd61kQSZSwxi+ol7ikqf9SPnEVQ//C3MW9bzp62eCVMetoB5+9iMsvw==}
 
   '@cfworker/json-schema@4.0.3':
     resolution: {integrity: sha512-ZykIcDTVv5UNmKWSTLAs3VukO6NDJkkSKxrgUTDPBkAlORVT3H9n5DbRjRl8xIotklscHdbLIa0b9+y3mQq73g==}
@@ -15655,6 +15664,12 @@ snapshots:
 
   '@bufbuild/protobuf@2.6.0':
     optional: true
+
+  '@cf-wasm/internals@0.0.3': {}
+
+  '@cf-wasm/photon@0.1.31':
+    dependencies:
+      '@cf-wasm/internals': 0.0.3
 
   '@cfworker/json-schema@4.0.3': {}
 

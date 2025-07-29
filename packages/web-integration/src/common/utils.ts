@@ -87,6 +87,8 @@ export async function parseContextFromWebPage(
 
   const size = await page.size();
 
+  debug(`size: ${size.width}x${size.height} dpr: ${size.dpr}`);
+
   if (size.dpr && size.dpr > 1) {
     const resizeStartTime = Date.now();
     screenshotBase64 = await resizeImgBase64(screenshotBase64, {

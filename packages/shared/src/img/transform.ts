@@ -1,11 +1,13 @@
 import assert from 'node:assert';
 import { Buffer } from 'node:buffer';
 import { readFileSync } from 'node:fs';
-import { getDebug as midsceneGetDebug } from '../logger';
+
 import getDebug from 'debug';
 import type Jimp from 'jimp';
 import type { Rect } from 'src/types';
+import { getDebug as midsceneGetDebug } from '../logger';
 import getJimp from './get-jimp';
+import { getPhoton } from './get-photon';
 const debugImg = getDebug('img');
 import path from 'node:path';
 
@@ -60,26 +62,55 @@ export async function resizeImg(
     'newSize must be positive',
   );
 
+  const resizeStartTime = Date.now();
   debugImg(`resizeImg start, target size: ${newSize.width}x${newSize.height}`);
-  const Jimp = await getJimp();
-  const image = await Jimp.read(inputData);
-  const { width, height } = image.bitmap;
 
-  if (!width || !height) {
+  // Get photon module
+  const { PhotonImage, SamplingFilter, resize } = await getPhoton();
+
+  // Convert Buffer to Uint8Array for photon
+  const inputBytes = new Uint8Array(inputData);
+
+  // Create PhotonImage instance
+  const inputImage = PhotonImage.new_from_byteslice(inputBytes);
+
+  // Get original dimensions
+  const originalWidth = inputImage.get_width();
+  const originalHeight = inputImage.get_height();
+
+  if (!originalWidth || !originalHeight) {
+    inputImage.free();
     throw Error('Undefined width or height from the input image.');
   }
 
-  if (newSize.width === width && newSize.height === height) {
+  if (newSize.width === originalWidth && newSize.height === originalHeight) {
+    inputImage.free();
     return inputData;
   }
-  const resizeStartTime = Date.now();
-  image.resize(newSize.width, newSize.height, Jimp.RESIZE_BICUBIC);
-  image.quality(90);
-  const resizedBuffer = await image.getBufferAsync(Jimp.MIME_JPEG);
+
+  // Resize image using photon with bicubic-like sampling
+  const outputImage = resize(
+    inputImage,
+    newSize.width,
+    newSize.height,
+    SamplingFilter.Lanczos3, // Similar to bicubic, provides good quality
+  );
+
+  // Get JPEG bytes with quality 90
+  const outputBytes = outputImage.get_bytes_jpeg(90);
+
+  // Convert Uint8Array to Buffer
+  const resizedBuffer = Buffer.from(outputBytes);
+
+  // Free memory
+  inputImage.free();
+  outputImage.free();
+
   const resizeEndTime = Date.now();
   midsceneDebug(
-    `jimp resizeImg done, target size: ${newSize.width}x${newSize.height}, cost: ${resizeEndTime - resizeStartTime}ms`,
+    `resizeImg done, target size: ${newSize.width}x${newSize.height}, cost: ${resizeEndTime - resizeStartTime}ms`,
   );
+  debugImg(`resizeImg done, target size: ${newSize.width}x${newSize.height}`);
 
   return resizedBuffer;
 }
