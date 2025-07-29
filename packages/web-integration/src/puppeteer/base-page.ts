@@ -267,6 +267,11 @@ export class Page<
       return;
     }
 
+    const backspace = async () => {
+      await sleep(100);
+      await this.keyboard.press([{ key: 'Backspace' }]);
+    };
+
     const isMac = process.platform === 'darwin';
     if (isMac) {
       if (this.pageType === 'puppeteer') {
@@ -274,20 +279,21 @@ export class Page<
         await this.mouse.click(element.center[0], element.center[1], {
           count: 3,
         });
-      } else {
-        await this.mouse.click(element.center[0], element.center[1]);
-        await this.underlyingPage.keyboard.down('Meta');
-        await this.underlyingPage.keyboard.press('a');
-        await this.underlyingPage.keyboard.up('Meta');
+        await backspace();
       }
+
+      await this.mouse.click(element.center[0], element.center[1]);
+      await this.underlyingPage.keyboard.down('Meta');
+      await this.underlyingPage.keyboard.press('a');
+      await this.underlyingPage.keyboard.up('Meta');
+      await backspace();
     } else {
       await this.mouse.click(element.center[0], element.center[1]);
       await this.underlyingPage.keyboard.down('Control');
       await this.underlyingPage.keyboard.press('a');
       await this.underlyingPage.keyboard.up('Control');
+      await backspace();
     }
-    await sleep(100);
-    await this.keyboard.press([{ key: 'Backspace' }]);
   }
 
   private everMoved = false;
