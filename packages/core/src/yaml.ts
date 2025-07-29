@@ -1,7 +1,6 @@
-import type { PlanningActionParamScroll, Rect } from './types';
+import type { PlanningActionParamScroll, Rect, TUserPrompt } from './types';
 
 export interface LocateOption {
-  prompt?: string;
   deepThink?: boolean; // only available in vl model
   cacheable?: boolean; // user can set this param to false to disable the cache for a single agent api
   xpath?: string; // only available in web
@@ -18,7 +17,7 @@ export interface ReferenceImage {
 }
 
 export interface DetailedLocateParam extends LocateOption {
-  prompt: string;
+  prompt: TUserPrompt;
   referenceImage?: ReferenceImage;
 }
 
@@ -132,32 +131,32 @@ export interface MidsceneYamlFlowItemAIWaitFor {
 }
 
 export interface MidsceneYamlFlowItemAITap extends LocateOption {
-  aiTap: string;
+  aiTap: TUserPrompt;
 }
 
 export interface MidsceneYamlFlowItemAIRightClick extends LocateOption {
-  aiRightClick: string;
+  aiRightClick: TUserPrompt;
 }
 
 export interface MidsceneYamlFlowItemAIHover extends LocateOption {
-  aiHover: string;
+  aiHover: TUserPrompt;
 }
 
 export interface MidsceneYamlFlowItemAIInput extends LocateOption {
   aiInput: string; // value to input
-  locate: string; // where to input
+  locate: TUserPrompt; // where to input
 }
 
 export interface MidsceneYamlFlowItemAIKeyboardPress extends LocateOption {
   aiKeyboardPress: string;
-  locate?: string; // where to press, optional
+  locate?: TUserPrompt; // where to press, optional
 }
 
 export interface MidsceneYamlFlowItemAIScroll
   extends LocateOption,
     PlanningActionParamScroll {
   aiScroll: null;
-  locate?: string; // which area to scroll, optional
+  locate?: TUserPrompt; // which area to scroll, optional
 }
 
 export interface MidsceneYamlFlowItemEvaluateJavaScript {

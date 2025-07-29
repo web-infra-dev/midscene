@@ -31,7 +31,7 @@ import { getDebug } from '@midscene/shared/logger';
 
 export type AIArgs = [
   ChatCompletionSystemMessageParam,
-  ChatCompletionUserMessageParam,
+  ...ChatCompletionUserMessageParam[],
 ];
 
 export enum AIActionType {
