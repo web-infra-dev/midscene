@@ -273,7 +273,8 @@ export interface PlanningAction<ParamType = any> {
     | 'AndroidBackButton'
     | 'AndroidHomeButton'
     | 'AndroidRecentAppsButton'
-    | 'AndroidLongPress';
+    | 'AndroidLongPress'
+    | 'AndroidPull';
   param: ParamType;
   locate?: PlanningLocateParam | null;
 }
@@ -326,6 +327,13 @@ export type PlanningActionParamWaitFor = AgentWaitForOpt & {
 export interface PlanningActionParamAndroidLongPress {
   x: number;
   y: number;
+  duration?: number;
+}
+
+export interface PlanningActionParamAndroidPull {
+  direction: 'up' | 'down';
+  startPoint?: { x: number; y: number };
+  distance?: number;
   duration?: number;
 }
 /**

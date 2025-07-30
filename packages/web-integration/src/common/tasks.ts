@@ -25,6 +25,7 @@ import {
   type PlanningAIResponse,
   type PlanningAction,
   type PlanningActionParamAndroidLongPress,
+  type PlanningActionParamAndroidPull,
   type PlanningActionParamAssert,
   type PlanningActionParamError,
   type PlanningActionParamHover,
@@ -724,6 +725,39 @@ export class PageTaskExecutor {
             },
           };
         tasks.push(taskActionAndroidLongPress);
+      } else if (plan.type === 'AndroidPull') {
+        const taskActionAndroidPull: ExecutionTaskActionApply<PlanningActionParamAndroidPull> =
+          {
+            type: 'Action',
+            subType: 'AndroidPull',
+            param: plan.param as PlanningActionParamAndroidPull,
+            thought: plan.thought,
+            locate: plan.locate,
+            executor: async (param) => {
+              assert(
+                isAndroidPage(this.page),
+                'Cannot use pull action on non-Android devices',
+              );
+              const { direction, startPoint, distance, duration } = param;
+
+              const convertedStartPoint = startPoint
+                ? { left: startPoint.x, top: startPoint.y }
+                : undefined;
+
+              if (direction === 'down') {
+                await this.page.pullDown(
+                  convertedStartPoint,
+                  distance,
+                  duration,
+                );
+              } else if (direction === 'up') {
+                await this.page.pullUp(convertedStartPoint, distance, duration);
+              } else {
+                throw new Error(`Unknown pull direction: ${direction}`);
+              }
+            },
+          };
+        tasks.push(taskActionAndroidPull);
       } else {
         throw new Error(`Unknown or unsupported task type: ${plan.type}`);
       }

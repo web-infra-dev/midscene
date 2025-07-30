@@ -789,6 +789,63 @@ ${Object.keys(size)
     );
   }
 
+  async pullDown(
+    startPoint?: Point,
+    distance?: number,
+    duration = 800,
+  ): Promise<void> {
+    const { width, height } = await this.size();
+
+    // Default start point is near top of screen (but not too close to edge)
+    const start = startPoint
+      ? { x: startPoint.left, y: startPoint.top }
+      : { x: width / 2, y: height * 0.15 };
+
+    // Default distance is larger to ensure refresh is triggered
+    const pullDistance = distance || height * 0.5;
+    const end = { x: start.x, y: start.y + pullDistance };
+
+    // Use custom drag with specified duration for better pull-to-refresh detection
+    await this.pullDrag(start, end, duration);
+    await sleep(200); // Give more time for refresh to start
+  }
+
+  private async pullDrag(
+    from: { x: number; y: number },
+    to: { x: number; y: number },
+    duration: number,
+  ): Promise<void> {
+    const adb = await this.getAdb();
+
+    // Use adjusted coordinates
+    const { x: fromX, y: fromY } = this.adjustCoordinates(from.x, from.y);
+    const { x: toX, y: toY } = this.adjustCoordinates(to.x, to.y);
+
+    // Use the specified duration for better pull gesture recognition
+    await adb.shell(`input swipe ${fromX} ${fromY} ${toX} ${toY} ${duration}`);
+  }
+
+  async pullUp(
+    startPoint?: Point,
+    distance?: number,
+    duration = 600,
+  ): Promise<void> {
+    const { width, height } = await this.size();
+
+    // Default start point is bottom center of screen
+    const start = startPoint
+      ? { x: startPoint.left, y: startPoint.top }
+      : { x: width / 2, y: height * 0.85 };
+
+    // Default distance is 1/3 of screen height
+    const pullDistance = distance || height * 0.4;
+    const end = { x: start.x, y: start.y - pullDistance };
+
+    // Use pullDrag for consistent pull gesture handling
+    await this.pullDrag(start, end, duration);
+    await sleep(100);
+  }
+
   async getXpathsById(id: string): Promise<string[]> {
     throw new Error('Not implemented');
   }

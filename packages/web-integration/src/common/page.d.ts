@@ -35,6 +35,16 @@ export interface AndroidDevicePage extends AbstractPage {
   home(): Promise<void>;
   recentApps(): Promise<void>;
   longPress(x: number, y: number, duration?: number): Promise<void>;
+  pullDown(
+    startPoint?: Point,
+    distance?: number,
+    duration?: number,
+  ): Promise<void>;
+  pullUp(
+    startPoint?: Point,
+    distance?: number,
+    duration?: number,
+  ): Promise<void>;
 }
 
 export type AndroidDeviceInputOpt = {

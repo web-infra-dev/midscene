@@ -29,7 +29,8 @@ type ActionType =
   | 'androidBackButton'
   | 'androidHomeButton'
   | 'androidRecentAppsButton'
-  | 'androidLongPress';
+  | 'androidLongPress'
+  | 'androidPull';
 
 const debug = getDebug('ui-tars-planning');
 const bboxSize = 10;
@@ -212,6 +213,26 @@ export async function vlmPlanning(options: {
           x: point[0],
           y: point[1],
           duration: 1000,
+        },
+        locate: null,
+        thought: action.thought || '',
+      });
+    } else if (action.action_type === 'androidPull') {
+      const pullDirection = action.action_inputs.direction || 'down';
+      const startPoint = action.action_inputs.start_coords
+        ? {
+            x: action.action_inputs.start_coords[0],
+            y: action.action_inputs.start_coords[1],
+          }
+        : undefined;
+
+      transformActions.push({
+        type: 'AndroidPull',
+        param: {
+          direction: pullDirection as 'up' | 'down',
+          startPoint,
+          distance: (action.action_inputs as any).distance,
+          duration: (action.action_inputs as any).duration || 500,
         },
         locate: null,
         thought: action.thought || '',
