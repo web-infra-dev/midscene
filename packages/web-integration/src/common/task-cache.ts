@@ -229,7 +229,20 @@ export class TaskCache {
         mkdirSync(dir, { recursive: true });
         debug('created cache directory: %s', dir);
       }
-      const yamlData = yaml.dump(this.cache);
+
+      // Sort caches to ensure plan entries come before locate entries for better readability
+      const sortedCaches = [...this.cache.caches].sort((a, b) => {
+        if (a.type === 'plan' && b.type === 'locate') return -1;
+        if (a.type === 'locate' && b.type === 'plan') return 1;
+        return 0;
+      });
+
+      const cacheToWrite = {
+        ...this.cache,
+        caches: sortedCaches,
+      };
+
+      const yamlData = yaml.dump(cacheToWrite);
       writeFileSync(this.cacheFilePath, yamlData);
       debug('cache flushed to file: %s', this.cacheFilePath);
     } catch (err) {
