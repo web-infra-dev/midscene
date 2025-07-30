@@ -46,94 +46,47 @@ describe('MidsceneReporter', () => {
     require.resolve = originalResolve;
   });
 
-  describe('onBegin', () => {
-    it('should set mode from config when reporter is specified by file path', async () => {
-      vi.stubGlobal('__filename', reporterSrcPath);
-      const reporter = new MidsceneReporter();
-      const mockConfig: FullConfig = {
-        rootDir: '/path/to/project',
-        reporter: [['list'], [reporterSrcPath, { type: 'separate' }]],
-      } as any;
-
-      await reporter.onBegin(mockConfig, mockSuite);
+  describe('constructor', () => {
+    it('should set mode to separate when type option is provided', () => {
+      const reporter = new MidsceneReporter({ type: 'separate' });
       expect(reporter.mode).toBe('separate');
     });
 
-    it('should set mode from config when reporter is specified by package name', async () => {
-      // Use the same dist path resolution as the third test
-      const distPath = path.resolve(
-        __dirname,
-        '../../dist/lib/playwright-reporter.js',
-      );
-
-      const reporter = new MidsceneReporter();
-      const mockConfig: FullConfig = {
-        rootDir: '/path/to/project',
-        reporter: [['list'], [distPath, { type: 'separate' }]],
-      } as any;
-
-      await reporter.onBegin(mockConfig, mockSuite);
-      // This test verifies that when the config contains the resolved dist path,
-      // the reporter correctly identifies its configuration via selfResolvedPath match
-      expect(reporter.mode).toBe('separate');
-    });
-
-    it('should find config when Playwright resolves package name to dist path', async () => {
-      // This simulates the real-world scenario where Playwright resolves the package name
-      // to the compiled 'dist' file path, but the test is running the 'src' file.
-      const distPath = path.resolve(
-        __dirname,
-        '../../dist/lib/playwright-reporter.js',
-      );
-
-      // Mock require.resolve to return the 'dist' path
-      require.resolve = vi.fn((pkg) => {
-        if (pkg === reporterPackageName) {
-          return distPath;
-        }
-        return originalResolve(pkg);
-      }) as any;
-
-      // __filename will point to the 'src' file path during the test run
-      vi.stubGlobal('__filename', reporterSrcPath);
-
-      const reporter = new MidsceneReporter();
-      const mockConfig: FullConfig = {
-        rootDir: '/path/to/project',
-        // In the config, Playwright has already resolved the package name to the dist path
-        reporter: [['list'], [distPath, { type: 'separate' }]],
-      } as any;
-
-      await reporter.onBegin(mockConfig, mockSuite);
-      expect(reporter.mode).toBe('separate');
-    });
-
-    it('should default to merged mode if its config is not found', async () => {
-      const reporter = new MidsceneReporter();
-      const mockConfig: FullConfig = {
-        rootDir: '/path/to/project',
-        reporter: [['list'], ['html']],
-      } as any;
-
-      await reporter.onBegin(mockConfig, mockSuite);
+    it('should set mode to merged when type option is provided', () => {
+      const reporter = new MidsceneReporter({ type: 'merged' });
       expect(reporter.mode).toBe('merged');
     });
 
-    it('should default to merged mode when config is found but no type is specified', async () => {
+    it('should default to merged mode when no options are provided', () => {
       const reporter = new MidsceneReporter();
-      const mockConfig: FullConfig = {
-        rootDir: '/path/to/project',
-        reporter: [['list'], [reporterSrcPath, {}]], // no type specified
-      } as any;
-
-      await reporter.onBegin(mockConfig, mockSuite);
       expect(reporter.mode).toBe('merged');
+    });
+
+    it('should default to merged mode when options object is empty', () => {
+      const reporter = new MidsceneReporter({});
+      expect(reporter.mode).toBe('merged');
+    });
+
+    it('should default to merged mode when type is undefined', () => {
+      const reporter = new MidsceneReporter({ type: undefined });
+      expect(reporter.mode).toBe('merged');
+    });
+
+    it('should throw error for invalid type', () => {
+      expect(() => {
+        new MidsceneReporter({ type: 'invalid' as any });
+      }).toThrow(
+        "Unknown reporter type in playwright config: invalid, only support 'merged' or 'separate'",
+      );
     });
   });
 
   describe('onTestEnd', () => {
     it('should not write a report if mode is not set', () => {
-      const reporter = new MidsceneReporter(); // mode is undefined
+      const reporter = new MidsceneReporter();
+      // Manually clear mode to simulate the old behavior where mode could be undefined
+      reporter.mode = undefined;
+
       const mockTest: TestCase = {
         id: 'test-id-0',
         title: 'Should Not Report',
@@ -151,8 +104,7 @@ describe('MidsceneReporter', () => {
     });
 
     it('should write a report if dump annotation is present and mode is set', async () => {
-      const reporter = new MidsceneReporter();
-      reporter.mode = 'merged'; // Manually set mode
+      const reporter = new MidsceneReporter({ type: 'merged' });
 
       const mockTest: TestCase = {
         id: 'test-id-1',
@@ -186,14 +138,7 @@ describe('MidsceneReporter', () => {
     });
 
     it('should remove the dump annotation after processing', async () => {
-      const reporter = new MidsceneReporter();
-      await reporter.onBegin(
-        {
-          rootDir: '/path/to/project',
-          reporter: [[reporterSrcPath, { type: 'merged' }]],
-        } as unknown as FullConfig,
-        mockSuite,
-      );
+      const reporter = new MidsceneReporter({ type: 'merged' });
 
       const mockTest: TestCase = {
         id: 'test-id-2',
@@ -210,14 +155,7 @@ describe('MidsceneReporter', () => {
     });
 
     it('should not write a report if dump annotation is not present', async () => {
-      const reporter = new MidsceneReporter();
-      await reporter.onBegin(
-        {
-          rootDir: '/path/to/project',
-          reporter: [[reporterSrcPath, { type: 'merged' }]],
-        } as unknown as FullConfig,
-        mockSuite,
-      );
+      const reporter = new MidsceneReporter({ type: 'merged' });
 
       const mockTest: TestCase = {
         id: 'test-id-3',
@@ -232,14 +170,7 @@ describe('MidsceneReporter', () => {
     });
 
     it('should handle retry attempts in test title and id', async () => {
-      const reporter = new MidsceneReporter();
-      await reporter.onBegin(
-        {
-          rootDir: '/path/to/project',
-          reporter: [[reporterSrcPath, { type: 'merged' }]],
-        } as unknown as FullConfig,
-        mockSuite,
-      );
+      const reporter = new MidsceneReporter({ type: 'merged' });
 
       const mockTest: TestCase = {
         id: 'test-id-4',
