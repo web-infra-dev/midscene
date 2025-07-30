@@ -683,7 +683,7 @@ Target: User will give you a screenshot, an instruction and some previous logs i
 
 Restriction:
 - Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
-- Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are Tap, Hover, Input, KeyboardPress, Scroll, AndroidBackButton, AndroidHomeButton, AndroidRecentAppsButton, AndroidLongPress.
+- Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are Tap, Hover, Input, KeyboardPress, Scroll, AndroidBackButton, AndroidHomeButton, AndroidRecentAppsButton, AndroidLongPress, AndroidPull.
 - Don't repeat actions in the previous logs.
 - Bbox is the bounding box of the element to be located. It's an array of 4 numbers, representing 2d bounding box as [xmin, ymin, xmax, ymax].
 
@@ -698,6 +698,7 @@ Supporting actions:
 - AndroidHomeButton: { type: "AndroidHomeButton", param: {} }
 - AndroidRecentAppsButton: { type: "AndroidRecentAppsButton", param: {} }
 - AndroidLongPress: { type: "AndroidLongPress", param: { x: number, y: number, duration?: number } }
+- AndroidPull: { type: "AndroidPull", param: { direction: 'up' | 'down', startPoint?: { x: number, y: number }, distance?: number, duration?: number } } // Pull down to refresh (direction: 'down') or pull up to load more (direction: 'up')
 
 Field description:
 * The \`prompt\` field inside the \`locate\` field is a short description that could be used to locate the element.
