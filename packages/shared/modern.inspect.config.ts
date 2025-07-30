@@ -13,7 +13,7 @@ export default defineConfig({
       htmlElementDebug: 'src/extractor/debug.ts',
     },
     autoExternal: false,
-    outDir: 'dist/script',
+    outDir: 'dist-inspect',
     esbuildOptions: (options) => {
       options.globalName = 'midscene_element_inspector';
       return options;
