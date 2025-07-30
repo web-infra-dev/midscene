@@ -73,8 +73,21 @@ class MidsceneReporter implements Reporter {
   }
 
   async onBegin(config: FullConfig, suite: Suite) {
-    const reporterType = config.reporter?.[1]?.[1]?.type;
-    this.mode = MidsceneReporter.getMode(reporterType);
+    const selfPackageName = '@midscene/web/playwright-reporter';
+    const reporterConfig = config.reporter?.find(
+      (r) =>
+        Array.isArray(r) &&
+        typeof r[0] === 'string' &&
+        // __filename is the absolute path of the current file
+        (r[0] === __filename || r[0] === selfPackageName),
+    );
+
+    const options = Array.isArray(reporterConfig)
+      ? reporterConfig[1]
+      : undefined;
+    if (options?.type) {
+      this.mode = MidsceneReporter.getMode(options?.type);
+    }
     // const suites = suite.allTests();
     // logger(`Starting the run with ${suites.length} tests`);
   }
