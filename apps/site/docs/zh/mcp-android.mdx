@@ -18,12 +18,12 @@ Midscene 提供了专门的 MCP 服务，允许 AI 助手通过自然语言命�
 ### 前提条件
 
 1. OpenAI API 密钥或其他支持的 AI 模型提供商，更多信息请查看 [选择 AI 模型](./choose-a-model)。
-2. Android 调试桥 (ADB) 已安装并配置
+2. [Android adb](https://developer.android.com/tools/adb?hl=zh-cn) 工具已安装并配置
 3. Android 设备已启用 USB 调试模式并连接到电脑
 
 ### 配置
 
-将 Midscene MCP 服务器添加到你的 MCP 配置中：
+将 Midscene MCP 服务器添加到你的 MCP 配置中，注意不要遗漏 `MIDSCENE_MCP_ANDROID_MODE` 环境变量：
 
 ```json
 {
@@ -42,7 +42,7 @@ Midscene 提供了专门的 MCP 服务，允许 AI 助手通过自然语言命�
 }
 ```
 
-有关配置 AI 模型的更多信息，请参阅[选择 AI 模型](./choose-a-model)。
+其中有关配置 AI 模型的信息，请参阅[选择 AI 模型](./choose-a-model)。
 
 ## 可用工具
 
