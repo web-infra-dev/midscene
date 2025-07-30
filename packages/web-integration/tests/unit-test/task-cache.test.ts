@@ -8,6 +8,7 @@ import {
 import { cacheFileExt } from '@/common/task-cache';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { uuid } from '@midscene/shared/utils';
+import yaml from 'js-yaml';
 import {
   afterAll,
   afterEach,
@@ -360,6 +361,65 @@ describe(
       });
 
       expect(existsSync(cache.cacheFilePath!)).toBe(true);
+    });
+
+    it('should sort caches with plan entries before locate entries when writing to disk', () => {
+      const cacheId = uuid();
+      const cache = new TaskCache(cacheId, true);
+
+      // Add caches in mixed order: locate, plan, locate, plan
+      cache.appendCache({
+        type: 'locate',
+        prompt: 'locate-prompt-1',
+        xpaths: ['xpath-1'],
+      });
+
+      cache.appendCache({
+        type: 'plan',
+        prompt: 'plan-prompt-1',
+        yamlWorkflow: 'workflow-1',
+      });
+
+      cache.appendCache({
+        type: 'locate',
+        prompt: 'locate-prompt-2',
+        xpaths: ['xpath-2'],
+      });
+
+      cache.appendCache({
+        type: 'plan',
+        prompt: 'plan-prompt-2',
+        yamlWorkflow: 'workflow-2',
+      });
+
+      // In memory, caches should maintain insertion order
+      expect(cache.cache.caches[0].type).toBe('locate');
+      expect(cache.cache.caches[1].type).toBe('plan');
+      expect(cache.cache.caches[2].type).toBe('locate');
+      expect(cache.cache.caches[3].type).toBe('plan');
+
+      // Read the file content to verify disk ordering
+      const fileContent = readFileSync(cache.cacheFilePath!, 'utf-8');
+      const parsedContent = yaml.load(fileContent) as any;
+
+      // On disk, all plan entries should come before all locate entries
+      const diskCaches = parsedContent.caches;
+      expect(diskCaches[0].type).toBe('plan');
+      expect(diskCaches[0].prompt).toBe('plan-prompt-1');
+      expect(diskCaches[1].type).toBe('plan');
+      expect(diskCaches[1].prompt).toBe('plan-prompt-2');
+      expect(diskCaches[2].type).toBe('locate');
+      expect(diskCaches[2].prompt).toBe('locate-prompt-1');
+      expect(diskCaches[3].type).toBe('locate');
+      expect(diskCaches[3].prompt).toBe('locate-prompt-2');
+
+      // Verify that plan entries maintain their relative order
+      expect(diskCaches[0].yamlWorkflow).toBe('workflow-1');
+      expect(diskCaches[1].yamlWorkflow).toBe('workflow-2');
+
+      // Verify that locate entries maintain their relative order
+      expect(diskCaches[2].xpaths).toEqual(['xpath-1']);
+      expect(diskCaches[3].xpaths).toEqual(['xpath-2']);
     });
   },
   { timeout: 20000 },
