@@ -65,11 +65,13 @@ export interface AIElementLocatorResponse {
     xpaths?: string[];
   }[];
   bbox?: [number, number, number, number];
+  isOrderSensitive?: boolean;
   errors?: string[];
 }
 
 export interface AIElementCoordinatesResponse {
   bbox: [number, number, number, number];
+  isOrderSensitive?: boolean;
   errors?: string[];
 }
 
@@ -156,6 +158,7 @@ export type LocateResultElement = {
     nodeType: NodeType;
     [key: string]: string;
   };
+  isOrderSensitive?: boolean;
 };
 
 export interface LocateResult {

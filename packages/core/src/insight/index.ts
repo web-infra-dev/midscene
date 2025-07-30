@@ -140,13 +140,19 @@ export default class Insight<
     }
 
     const startTime = Date.now();
-    const { parseResult, rect, elementById, rawResponse, usage } =
-      await AiLocateElement({
-        callAI: callAI || this.aiVendorFn,
-        context,
-        targetElementDescription: queryPrompt,
-        searchConfig: searchAreaResponse,
-      });
+    const {
+      parseResult,
+      rect,
+      elementById,
+      rawResponse,
+      usage,
+      isOrderSensitive,
+    } = await AiLocateElement({
+      callAI: callAI || this.aiVendorFn,
+      context,
+      targetElementDescription: queryPrompt,
+      searchConfig: searchAreaResponse,
+    });
 
     const timeCost = Date.now() - startTime;
     const taskInfo: InsightTaskInfo = {
@@ -219,6 +225,7 @@ export default class Insight<
           rect: elements[0]!.rect,
           xpaths: elements[0]!.xpaths || [],
           attributes: elements[0]!.attributes,
+          isOrderSensitive,
         },
         rect,
       };

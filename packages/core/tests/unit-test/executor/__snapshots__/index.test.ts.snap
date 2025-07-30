@@ -12,6 +12,7 @@ exports[`executor > insight - basic run 1`] = `
     ],
     "id": "0",
     "indexId": undefined,
+    "isOrderSensitive": undefined,
     "rect": {
       "height": 100,
       "left": 200,

@@ -14,31 +14,47 @@ You are an expert in software testing.
 ## Objective:
 - Identify elements in screenshots and text that match the user's description.
 - Give the coordinates of the element that matches the user's description best in the screenshot.
+- Determine whether the user's description is order-sensitive (e.g., contains phrases like 'the third item in the list', 'the last button', etc.).
 
 ## Output Format:
 \`\`\`json
 {
   "bbox": [number, number, number, number],  // ${bboxComment}
-  "errors"?: string[]
+  "errors"?: string[],
+  "isOrderSensitive": boolean // Whether the targetElementDescription is order-sensitive (true/false)
 }
 \`\`\`
 
 Fields:
 * \`bbox\` is the bounding box of the element that matches the user's description best in the screenshot
+* \`isOrderSensitive\` is a boolean indicating whether the user's description is order-sensitive (true/false)
 * \`errors\` is an optional array of error messages (if any)
 
-For example, when an element is found:
+Order-sensitive means the description contains phrases like:
+- "the third item in the list"
+- "the last button"
+- "the first input box"
+- "the second row"
+
+Not order-sensitive means the description is like:
+- "confirm button"
+- "search box"
+- "password input"
+
+For example, when an element is found and the description is order-sensitive:
 \`\`\`json
 {
   "bbox": [100, 100, 200, 200],
+  "isOrderSensitive": true,
   "errors": []
 }
 \`\`\`
 
-When no element is found:
+When no element is found and the description is not order-sensitive:
 \`\`\`json
 {
   "bbox": [],
+  "isOrderSensitive": false,
   "errors": ["I can see ..., but {some element} is not found"]
 }
 \`\`\`
@@ -52,6 +68,7 @@ You are an expert in software page image (2D) and page element text analysis.
 ## Objective:
 - Identify elements in screenshots and text that match the user's description.
 - Return JSON data containing the selection reason and element ID.
+- Determine whether the user's description is order-sensitive (e.g., contains phrases like 'the third item in the list', 'the last button', etc.).
 
 ## Skills:
 - Image analysis and recognition
@@ -63,6 +80,7 @@ You are an expert in software page image (2D) and page element text analysis.
 2. Based on the user's description, locate the target element ID in the list of element descriptions and the screenshot.
 3. Found the required number of elements
 4. Return JSON data containing the selection reason and element ID.
+5. Judge whether the user's description is order-sensitive (see below for definition and examples).
 
 ## Constraints:
 - Strictly adhere to the specified location when describing the required element; do not select elements from other locations.
@@ -71,6 +89,10 @@ You are an expert in software page image (2D) and page element text analysis.
 - If no elements are found, the "elements" array should be empty.
 - The returned data must conform to the specified JSON format.
 - The returned value id information must use the id from element info (important: **use id not indexId, id is hash content**)
+
+## Order-Sensitive Definition:
+- If the description contains phrases like "the third item in the list", "the last button", "the first input box", "the second row", etc., it is order-sensitive (isOrderSensitive = true).
+- If the description is like "confirm button", "search box", "password input", etc., it is not order-sensitive (isOrderSensitive = false).
 
 ## Output Format:
 
@@ -87,6 +109,7 @@ Please return the result in JSON format as follows:
     }
     // More elements...
   ],
+  "isOrderSensitive": true, // or false, depending on the user's description
   "errors": [] // Array of strings containing any error messages
 }
 \`\`\`
@@ -175,6 +198,7 @@ Output Example:
       "id": "1231"
     }
   ],
+  "isOrderSensitive": true,
   "errors": []
 }
 \`\`\`
@@ -213,6 +237,11 @@ export const locatorSchema: ResponseFormatJSONSchema = {
           },
           description: 'List of found elements',
         },
+        isOrderSensitive: {
+          type: 'boolean',
+          description:
+            'Whether the targetElementDescription is order-sensitive (true/false)',
+        },
         errors: {
           type: 'array',
           items: {
@@ -221,7 +250,7 @@ export const locatorSchema: ResponseFormatJSONSchema = {
           description: 'List of error messages, if any',
         },
       },
-      required: ['elements', 'errors'],
+      required: ['elements', 'isOrderSensitive', 'errors'],
       additionalProperties: false,
     },
   },

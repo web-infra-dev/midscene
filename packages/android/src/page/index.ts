@@ -783,6 +783,13 @@ ${Object.keys(size)
     throw new Error('Not implemented');
   }
 
+  async getXpathsByPoint(
+    point: Point,
+    isOrderSensitive: boolean,
+  ): Promise<string[]> {
+    throw new Error('Not implemented');
+  }
+
   async getElementInfoByXpath(xpath: string): Promise<ElementInfo> {
     throw new Error('Not implemented');
   }

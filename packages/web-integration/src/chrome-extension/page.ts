@@ -361,6 +361,23 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     return result.result.value;
   }
 
+  async getXpathsByPoint(point: Point, isOrderSensitive: boolean) {
+    const script = await getHtmlElementScript();
+
+    await this.sendCommandToDebugger<
+      CDPTypes.Runtime.EvaluateResponse,
+      CDPTypes.Runtime.EvaluateRequest
+    >('Runtime.evaluate', {
+      expression: script,
+    });
+
+    const result = await this.sendCommandToDebugger('Runtime.evaluate', {
+      expression: `window.midscene_element_inspector.getXpathsByPoint({left: ${point.left}, top: ${point.top}}, ${isOrderSensitive})`,
+      returnByValue: true,
+    });
+    return result.result.value;
+  }
+
   async getElementInfoByXpath(xpath: string) {
     const script = await getHtmlElementScript();
 

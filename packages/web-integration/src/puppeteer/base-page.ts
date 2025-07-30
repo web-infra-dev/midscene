@@ -110,6 +110,14 @@ export class Page<
     );
   }
 
+  async getXpathsByPoint(point: Point, isOrderSensitive: boolean) {
+    const elementInfosScriptContent = getElementInfosScriptContent();
+
+    return this.evaluateJavaScript(
+      `${elementInfosScriptContent}midscene_element_inspector.getXpathsByPoint({left: ${point.left}, top: ${point.top}}, ${isOrderSensitive})`,
+    );
+  }
+
   async getElementInfoByXpath(xpath: string) {
     const elementInfosScriptContent = getElementInfosScriptContent();
 

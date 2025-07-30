@@ -76,6 +76,7 @@ export async function AiLocateElement<
   rawResponse: string;
   elementById: ElementById;
   usage?: AIUsageInfo;
+  isOrderSensitive?: boolean;
 }> {
   const { context, targetElementDescription, callAI } = options;
   const { screenshotBase64 } = context;
@@ -208,6 +209,12 @@ export async function AiLocateElement<
     rawResponse,
     elementById,
     usage: res.usage,
+    isOrderSensitive:
+      typeof res.content === 'object' &&
+      res.content !== null &&
+      'isOrderSensitive' in res.content
+        ? (res.content as any).isOrderSensitive
+        : undefined,
   };
 }
 
