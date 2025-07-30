@@ -18,12 +18,12 @@ MCP ([Model Context Protocol](https://modelcontextprotocol.io/introduction)) is 
 ### Prerequisites
 
 1. An OpenAI API key or another supported AI model provider. For more information, see [Choosing an AI Model](./choose-a-model).
-2. Android Debug Bridge (ADB) installed and configured
+2. [Android adb](https://developer.android.com/tools/adb?hl=zh-cn) tool installed and configured
 3. Android device with USB debugging enabled and connected to your computer
 
 ### Configuration
 
-Add the Midscene MCP server to your MCP configuration:
+Add the Midscene MCP server to your MCP configuration, note that the `MIDSCENE_MCP_ANDROID_MODE` environment variable is required:
 
 ```json
 {
