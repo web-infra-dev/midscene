@@ -116,7 +116,7 @@ describe('MidsceneReporter', () => {
       expect(reporter.mode).toBe('separate');
     });
 
-    it('should have an undefined mode if its config is not found', async () => {
+    it('should default to merged mode if its config is not found', async () => {
       const reporter = new MidsceneReporter();
       const mockConfig: FullConfig = {
         rootDir: '/path/to/project',
@@ -124,7 +124,18 @@ describe('MidsceneReporter', () => {
       } as any;
 
       await reporter.onBegin(mockConfig, mockSuite);
-      expect(reporter.mode).toBeUndefined();
+      expect(reporter.mode).toBe('merged');
+    });
+
+    it('should default to merged mode when config is found but no type is specified', async () => {
+      const reporter = new MidsceneReporter();
+      const mockConfig: FullConfig = {
+        rootDir: '/path/to/project',
+        reporter: [['list'], [reporterSrcPath, {}]], // no type specified
+      } as any;
+
+      await reporter.onBegin(mockConfig, mockSuite);
+      expect(reporter.mode).toBe('merged');
     });
   });
 

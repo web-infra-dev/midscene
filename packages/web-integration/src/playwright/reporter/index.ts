@@ -103,9 +103,8 @@ class MidsceneReporter implements Reporter {
     const options = Array.isArray(reporterConfig)
       ? reporterConfig[1]
       : undefined;
-    if (options?.type) {
-      this.mode = MidsceneReporter.getMode(options.type);
-    }
+
+    this.mode = MidsceneReporter.getMode(options?.type);
   }
 
   onTestBegin(_test: TestCase, _result: TestResult) {
