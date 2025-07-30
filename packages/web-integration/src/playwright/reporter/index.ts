@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import {
   getReportFileName,
   printReportMsg,
@@ -13,6 +14,12 @@ import type {
   TestCase,
   TestResult,
 } from '@playwright/test/reporter';
+
+// Playwright reporters can be loaded in a CJS-style environment where
+// `__filename` is available. We declare it for TypeScript since we are
+// writing in ESM syntax, and use it to create a `require` function.
+declare const __filename: string;
+const require = createRequire(__filename);
 
 function logger(...message: any[]) {
   if (process.env.DEBUG === 'true') {
@@ -74,25 +81,34 @@ class MidsceneReporter implements Reporter {
 
   async onBegin(config: FullConfig, suite: Suite) {
     const selfPackageName = '@midscene/web/playwright-reporter';
+    let selfResolvedPath: string | undefined;
+    try {
+      // Resolve the package path to its absolute path on the filesystem.
+      selfResolvedPath = require.resolve(selfPackageName);
+    } catch (e) {
+      // This can fail in some environments (e.g., if the package is not installed
+      // in a standard node_modules structure), so we ignore the error.
+    }
+
     const reporterConfig = config.reporter?.find(
       (r) =>
         Array.isArray(r) &&
         typeof r[0] === 'string' &&
-        // __filename is the absolute path of the current file
-        (r[0] === __filename || r[0] === selfPackageName),
+        // The path in the config could be the path to the source file (e.g., in tests)
+        // or the path to the compiled file (when used as a package). We check for both.
+        (r[0] === __filename ||
+          (selfResolvedPath && r[0] === selfResolvedPath)),
     );
 
     const options = Array.isArray(reporterConfig)
       ? reporterConfig[1]
       : undefined;
     if (options?.type) {
-      this.mode = MidsceneReporter.getMode(options?.type);
+      this.mode = MidsceneReporter.getMode(options.type);
     }
-    // const suites = suite.allTests();
-    // logger(`Starting the run with ${suites.length} tests`);
   }
 
-  onTestBegin(test: TestCase, _result: TestResult) {
+  onTestBegin(_test: TestCase, _result: TestResult) {
     // logger(`Starting test ${test.title}`);
   }
 

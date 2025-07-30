@@ -64,6 +64,6 @@ export default defineConfig({
     //   { outputFile: 'midscene_run/playwright-reporter/test-results.json' },
     // ],
     // ['html', { outputFolder: 'midscene_run/playwright-reporter' }],
-    ['../src/playwright/reporter/index.ts', { type: 'merged' }], // separate/merged
+    ['@midscene/web/playwright-reporter', { type: 'merged' }], // separate/merged
   ],
 });
