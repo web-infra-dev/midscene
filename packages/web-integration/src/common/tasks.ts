@@ -24,6 +24,7 @@ import {
   type PageType,
   type PlanningAIResponse,
   type PlanningAction,
+  type PlanningActionParamAndroidLongPress,
   type PlanningActionParamAssert,
   type PlanningActionParamError,
   type PlanningActionParamHover,
@@ -705,6 +706,24 @@ export class PageTaskExecutor {
             },
           };
         tasks.push(taskActionAndroidRecentAppsButton);
+      } else if (plan.type === 'AndroidLongPress') {
+        const taskActionAndroidLongPress: ExecutionTaskActionApply<PlanningActionParamAndroidLongPress> =
+          {
+            type: 'Action',
+            subType: 'AndroidLongPress',
+            param: plan.param as PlanningActionParamAndroidLongPress,
+            thought: plan.thought,
+            locate: plan.locate,
+            executor: async (param) => {
+              assert(
+                isAndroidPage(this.page),
+                'Cannot use long press on non-Android devices',
+              );
+              const { x, y, duration } = param;
+              await this.page.longPress(x, y, duration);
+            },
+          };
+        tasks.push(taskActionAndroidLongPress);
       } else {
         throw new Error(`Unknown or unsupported task type: ${plan.type}`);
       }

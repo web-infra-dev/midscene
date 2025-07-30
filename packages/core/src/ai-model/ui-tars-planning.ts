@@ -28,7 +28,8 @@ type ActionType =
   | 'wait'
   | 'androidBackButton'
   | 'androidHomeButton'
-  | 'androidRecentAppsButton';
+  | 'androidRecentAppsButton'
+  | 'androidLongPress';
 
 const debug = getDebug('ui-tars-planning');
 const bboxSize = 10;
@@ -199,6 +200,22 @@ export async function vlmPlanning(options: {
         type: 'AndroidRecentAppsButton',
         param: {},
       });
+    } else if (action.action_type === 'androidLongPress') {
+      assert(
+        action.action_inputs.start_coords,
+        'start_coords is required for androidLongPress',
+      );
+      const point = action.action_inputs.start_coords;
+      transformActions.push({
+        type: 'AndroidLongPress',
+        param: {
+          x: point[0],
+          y: point[1],
+          duration: 1000,
+        },
+        locate: null,
+        thought: action.thought || '',
+      });
     }
   });
 
@@ -315,6 +332,14 @@ interface FinishedAction extends BaseAction {
   action_inputs: Record<string, never>;
 }
 
+interface AndroidLongPressAction extends BaseAction {
+  action_type: 'androidLongPress';
+  action_inputs: {
+    start_coords: [number, number]; // Coordinates for long press
+    duration?: number; // Duration in milliseconds
+  };
+}
+
 export type Action =
   | ClickAction
   | DragAction
@@ -322,7 +347,8 @@ export type Action =
   | HotkeyAction
   | ScrollAction
   | FinishedAction
-  | WaitAction;
+  | WaitAction
+  | AndroidLongPressAction;
 
 export async function resizeImageForUiTars(imageBase64: string, size: Size) {
   if (

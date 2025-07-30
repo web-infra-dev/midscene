@@ -779,6 +779,16 @@ ${Object.keys(size)
     await adb.shell('input keyevent 187');
   }
 
+  async longPress(x: number, y: number, duration = 1000): Promise<void> {
+    const adb = await this.getAdb();
+
+    // Use adjusted coordinates
+    const { x: adjustedX, y: adjustedY } = this.adjustCoordinates(x, y);
+    await adb.shell(
+      `input swipe ${adjustedX} ${adjustedY} ${adjustedX} ${adjustedY} ${duration}`,
+    );
+  }
+
   async getXpathsById(id: string): Promise<string[]> {
     throw new Error('Not implemented');
   }

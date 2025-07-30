@@ -272,7 +272,8 @@ export interface PlanningAction<ParamType = any> {
     | 'Finished'
     | 'AndroidBackButton'
     | 'AndroidHomeButton'
-    | 'AndroidRecentAppsButton';
+    | 'AndroidRecentAppsButton'
+    | 'AndroidLongPress';
   param: ParamType;
   locate?: PlanningLocateParam | null;
 }
@@ -321,6 +322,12 @@ export interface PlanningActionParamError {
 export type PlanningActionParamWaitFor = AgentWaitForOpt & {
   assertion: string;
 };
+
+export interface PlanningActionParamAndroidLongPress {
+  x: number;
+  y: number;
+  duration?: number;
+}
 /**
  * misc
  */
