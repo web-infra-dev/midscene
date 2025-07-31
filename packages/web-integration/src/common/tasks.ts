@@ -424,7 +424,7 @@ export class PageTaskExecutor {
                 );
               }
 
-              task.error = assertion.thought;
+              task.error = new Error(assertion.thought);
             }
 
             return {

@@ -415,7 +415,8 @@ export type ExecutionTask<
       : unknown
   > & {
     status: 'pending' | 'running' | 'finished' | 'failed' | 'cancelled';
-    error?: string;
+    error?: Error;
+    errorMessage?: string;
     errorStack?: string;
     timing?: {
       start: number;
