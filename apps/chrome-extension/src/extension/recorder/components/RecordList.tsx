@@ -60,17 +60,9 @@ export const RecordList: React.FC<RecordListProps> = ({
 
       {/* Export All Events Button */}
       {hasEventsToExport && (
-        <div className='h-[30px]'>
-          <Button
-            type="default"
-            icon={<DownloadOutlined />}
-            size="small"
-            className="float-right"
-            onClick={onExportAllEvents}
-            title="Export all events to ZIP file"
-          >
-            Export All
-          </Button>
+        <div className='h-[30px] font-bold text-[14px] p-[5px]'>
+          <span>Record All</span>
+          <DownloadOutlined onClick={onExportAllEvents} className='cursor-pointer float-right' />
         </div>
       )}
 
