@@ -265,7 +265,9 @@ export class PageAgent<PageType extends WebPage = WebPage> {
 
     if (executor.isInErrorState() && !doNotThrowError) {
       const errorTask = executor.latestErrorTask();
-      throw new Error(`${errorTask?.error}\n${errorTask?.errorStack}`);
+      throw new Error(`${errorTask?.error}\n${errorTask?.errorStack}`, {
+        cause: errorTask?.error,
+      });
     }
   }
 
