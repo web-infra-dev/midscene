@@ -117,15 +117,6 @@ export async function AiLocateElement<
     );
   }
 
-  let referenceImagePayload: string | undefined;
-  if (options.referenceImage?.rect && options.referenceImage.base64) {
-    referenceImagePayload = await cropByRect(
-      options.referenceImage.base64,
-      options.referenceImage.rect,
-      getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL),
-    );
-  }
-
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
     {
