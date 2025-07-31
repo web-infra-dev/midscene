@@ -718,105 +718,6 @@ const generateDetailedSequentialMindmap = (
   return mermaid;
 };
 
-// Fallback static mindmap generation (enhanced version)
-const generateStaticMindmap = (sessions: RecordingSession[]): string => {
-  let mermaid = 'mindmap\n  root(Test Execution Flow)\n';
-
-  sessions.forEach((session, sessionIndex) => {
-    if (session.events.length === 0) return;
-
-    // Clean session name for use as node
-    const sessionNodeName = session.name
-      .replace(/[^a-zA-Z0-9\s]/g, '')
-      .slice(0, 25);
-    mermaid += `    ${sessionNodeName}\n`;
-
-    // Group events by workflow phases
-    const phases = {
-      navigation: session.events.filter((e) => e.type === 'navigation'),
-      interaction: session.events.filter((e) =>
-        ['click', 'input'].includes(e.type),
-      ),
-      other: session.events.filter(
-        (e) => !['navigation', 'click', 'input'].includes(e.type),
-      ),
-    };
-
-    // Add Navigation phase if exists
-    if (phases.navigation.length > 0) {
-      mermaid += '      Navigation\n';
-      phases.navigation.forEach((event) => {
-        const pageName = (event.title || 'Page')
-          .replace(/[^a-zA-Z0-9\s]/g, '')
-          .slice(0, 20);
-        mermaid += `        ${pageName}\n`;
-      });
-    }
-
-    // Add Interaction phase if exists
-    if (phases.interaction.length > 0) {
-      mermaid += '      User Actions\n';
-
-      // Group by page for better organization
-      const actionsByPage: { [key: string]: ChromeRecordedEvent[] } = {};
-      phases.interaction.forEach((event) => {
-        const pageKey = event.title || event.url || 'Unknown Page';
-        if (!actionsByPage[pageKey]) {
-          actionsByPage[pageKey] = [];
-        }
-        actionsByPage[pageKey].push(event);
-      });
-
-      Object.entries(actionsByPage).forEach(([page, events]) => {
-        const pageName = page.replace(/[^a-zA-Z0-9\s]/g, '').slice(0, 15);
-        if (events.length > 1) {
-          mermaid += `        ${pageName}\n`;
-          events.forEach((event) => {
-            let actionDesc = '';
-            switch (event.type) {
-              case 'click':
-                actionDesc = `Click ${(event.elementDescription || 'Element').slice(0, 15)}`;
-                break;
-              case 'input':
-                actionDesc = 'Input Data';
-                break;
-              default:
-                actionDesc = event.type;
-            }
-            mermaid += `          ${actionDesc.replace(/[^a-zA-Z0-9\s]/g, '')}\n`;
-          });
-        } else {
-          // Single action, add directly
-          const event = events[0];
-          let actionDesc = '';
-          switch (event.type) {
-            case 'click':
-              actionDesc = `Click ${(event.elementDescription || 'Element').slice(0, 20)}`;
-              break;
-            case 'input':
-              actionDesc = `Input in ${(event.elementDescription || 'Field').slice(0, 15)}`;
-              break;
-            default:
-              actionDesc = `${event.type} Action`;
-          }
-          mermaid += `        ${actionDesc.replace(/[^a-zA-Z0-9\s]/g, '')}\n`;
-        }
-      });
-    }
-
-    // Add Other actions if they exist
-    if (phases.other.length > 0) {
-      mermaid += '      Other Actions\n';
-      phases.other.forEach((event) => {
-        const actionDesc = `${event.type} ${(event.elementDescription || 'Element').slice(0, 15)}`;
-        mermaid += `        ${actionDesc.replace(/[^a-zA-Z0-9\s]/g, '')}\n`;
-      });
-    }
-  });
-
-  return mermaid;
-};
-
 // Generate markdown table for event details
 const generateEventsMarkdownTable = (sessions: RecordingSession[]): string => {
   let markdown = '# Test Events Report\n\n';
@@ -830,16 +731,18 @@ const generateEventsMarkdownTable = (sessions: RecordingSession[]): string => {
     }
     markdown += `**Created:** ${new Date(session.createdAt).toLocaleString()}\n\n`;
 
-    markdown += '| Page | Screenshot| Action |\n';
-    markdown += '|------|------------|--------|\n';
+    markdown += '| Page | Screenshot Before | Screenshot After | Action |\n';
+    markdown += '|------|------------|------------|--------|\n';
 
     session.events.forEach((event, eventIndex) => {
-      const page = event.title || event.url || '';
-      const screenshot = event.screenshotBefore
-        ? `![](./images/screenshot_${sessionIndex}_${eventIndex}.png)`
-        : 'N/A';
-
       let expected = 'N/A';
+      const page = event.title || event.url || '';
+      const screenshotBefore = event.screenshotBefore
+        ? `![](./images/screenshot_${sessionIndex}_${eventIndex}_before.png)`
+        : 'N/A';
+      const screenshotAfter = event.screenshotAfter
+        ? `![](./images/screenshot_${sessionIndex}_${eventIndex}_after.png)`
+        : 'N/A';
       if (event.type === 'navigation') {
         expected = `Navigate to ${event.url}`;
       }
@@ -859,8 +762,20 @@ const generateEventsMarkdownTable = (sessions: RecordingSession[]): string => {
           action = `${event.type} on ${event.elementDescription || 'element'}`;
       }
 
-      markdown += `| ${page} | ${screenshot} | ${action} |\n`;
+      markdown += `| ${page} | ${screenshotBefore} | ${screenshotAfter} | ${action} |\n`;
     });
+
+    if (session.generatedCode?.yaml || session.generatedCode?.playwright) {
+      markdown += '## Generated Code\n\n';
+      if (session.generatedCode?.yaml) {
+        markdown += '### YAML\n\n';
+        markdown += `\`\`\`yaml\n${session.generatedCode.yaml}\n\`\`\`\n\n`;
+      }
+      if (session.generatedCode?.playwright) {
+        markdown += '### Playwright\n\n';
+        markdown += `\`\`\`playwright\n${session.generatedCode.playwright}\n\`\`\`\n\n`;
+      }
+    }
 
     markdown += '\n\n\n';
   });
@@ -901,8 +816,13 @@ export const exportAllEventsToZip = async (sessions: RecordingSession[]) => {
     sessionsWithEvents.forEach((session, sessionIndex) => {
       session.events.forEach((event, eventIndex) => {
         if (event.screenshotBefore) {
-          const fileName = `screenshot_${sessionIndex}_${eventIndex}.png`;
+          const fileName = `screenshot_${sessionIndex}_${eventIndex}_before.png`;
           const blob = base64ToBlob(event.screenshotBefore, 'image/png');
+          imagesFolder?.file(fileName, blob);
+        }
+        if (event.screenshotAfter) {
+          const fileName = `screenshot_${sessionIndex}_${eventIndex}_after.png`;
+          const blob = base64ToBlob(event.screenshotAfter, 'image/png');
           imagesFolder?.file(fileName, blob);
         }
       });
