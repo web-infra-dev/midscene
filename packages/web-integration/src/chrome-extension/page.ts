@@ -44,6 +44,8 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
   private isMobileEmulation: boolean | null = null;
 
+  public continueWhenFailedToAttachDebugger = false;
+
   constructor(forceSameTabNavigation: boolean) {
     this.forceSameTabNavigation = forceSameTabNavigation;
   }
@@ -143,7 +145,19 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
         // detach any debugger attached to the tab
         console.log('attaching debugger', currentTabId);
-        await chrome.debugger.attach({ tabId: currentTabId }, '1.3');
+        try {
+          await chrome.debugger.attach({ tabId: currentTabId }, '1.3');
+        } catch (e) {
+          if (this._continueWhenFailedToAttachDebugger) {
+            console.warn(
+              'Failed to attach debugger, but the script will continue as if the debugger is attached since the _continueWhenFailedToAttachDebugger is true',
+              e,
+            );
+          } else {
+            throw e;
+          }
+        }
+
         // wait util the debugger banner in Chrome appears
         await sleep(500);
 
