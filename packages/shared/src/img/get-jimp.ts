@@ -1,5 +1,5 @@
 // @ts-ignore
-import Jimp from 'jimp';
+import Jimp from 'jimp/es';
 import { ifInBrowser, ifInWorker } from '../utils';
 
 export default async function getJimp(): Promise<typeof Jimp> {
