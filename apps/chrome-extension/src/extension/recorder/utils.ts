@@ -1,9 +1,8 @@
 import { AIActionType, type AIArgs, callAiFn } from '@midscene/core/ai-model';
+import type { ChromeRecordedEvent } from '@midscene/recorder';
 import { message } from 'antd';
 import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
-
-import type { ChromeRecordedEvent } from '@midscene/recorder';
 import type { RecordingSession } from '../../store';
 import { recordLogger } from './logger';
 import { isChromeExtension, safeChromeAPI } from './types';
@@ -615,7 +614,9 @@ Return ONLY the Mermaid mindmap syntax. Include ALL detailed descriptions and ma
       },
     ];
 
-    const response = await callAiFn(prompt, AIActionType.EXTRACT_DATA);
+    const response = await callAiFn(prompt, AIActionType.EXTRACT_DATA, {
+      skipJsonParse: true,
+    });
 
     if (response?.content && typeof response.content === 'string') {
       // Extract mindmap content if it's wrapped in code blocks
