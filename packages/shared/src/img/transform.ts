@@ -7,7 +7,8 @@ import type Jimp from 'jimp';
 import type { Rect } from 'src/types';
 import { getDebug as midsceneGetDebug } from '../logger';
 import getJimp from './get-jimp';
-import { getPhoton } from './get-photon';
+import getPhoton from './get-photon';
+import getSharp from './get-sharp';
 const debugImg = getDebug('img');
 import path from 'node:path';
 
@@ -65,7 +66,48 @@ export async function resizeImg(
   const resizeStartTime = Date.now();
   debugImg(`resizeImg start, target size: ${newSize.width}x${newSize.height}`);
 
-  // Get photon module
+  // check if in Node.js environment
+  const isNode = typeof process !== 'undefined' && process.versions?.node;
+
+  if (isNode) {
+    // Node.js environment: use Sharp
+    try {
+      const Sharp = await getSharp();
+      const metadata = await Sharp(inputData).metadata();
+      const { width: originalWidth, height: originalHeight } = metadata;
+
+      if (!originalWidth || !originalHeight) {
+        throw Error('Undefined width or height from the input image.');
+      }
+
+      if (
+        newSize.width === originalWidth &&
+        newSize.height === originalHeight
+      ) {
+        return inputData;
+      }
+
+      const resizedBuffer = await Sharp(inputData)
+        .resize(newSize.width, newSize.height)
+        .jpeg({ quality: 90 })
+        .toBuffer();
+
+      const resizeEndTime = Date.now();
+      midsceneDebug(
+        `resizeImg done (Sharp), target size: ${newSize.width}x${newSize.height}, cost: ${resizeEndTime - resizeStartTime}ms`,
+      );
+      debugImg(
+        `resizeImg done (Sharp), target size: ${newSize.width}x${newSize.height}`,
+      );
+
+      return resizedBuffer;
+    } catch (error) {
+      // if Sharp fails, fall back to Photon
+      debugImg('Sharp failed, falling back to Photon:', error);
+    }
+  }
+
+  // if not in Node.js environment or Sharp fails, use Photon
   const { PhotonImage, SamplingFilter, resize } = await getPhoton();
 
   // Convert Buffer to Uint8Array for photon
@@ -108,9 +150,11 @@ export async function resizeImg(
 
   const resizeEndTime = Date.now();
   midsceneDebug(
-    `resizeImg done, target size: ${newSize.width}x${newSize.height}, cost: ${resizeEndTime - resizeStartTime}ms`,
+    `resizeImg done (Photon), target size: ${newSize.width}x${newSize.height}, cost: ${resizeEndTime - resizeStartTime}ms`,
   );
-  debugImg(`resizeImg done, target size: ${newSize.width}x${newSize.height}`);
+  debugImg(
+    `resizeImg done (Photon), target size: ${newSize.width}x${newSize.height}`,
+  );
 
   return resizedBuffer;
 }

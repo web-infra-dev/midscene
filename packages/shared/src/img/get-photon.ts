@@ -1,12 +1,12 @@
 import type { PhotonImage, SamplingFilter } from '@cf-wasm/photon/node';
 
-// 检测是否在浏览器环境中
+// check if in browser environment
 const isBrowser =
   typeof window !== 'undefined' && typeof document !== 'undefined';
 
 let photonModule: any = null;
 
-export async function getPhoton(): Promise<{
+export default async function getPhoton(): Promise<{
   PhotonImage: typeof PhotonImage;
   SamplingFilter: typeof SamplingFilter;
   resize: (
@@ -15,7 +15,7 @@ export async function getPhoton(): Promise<{
     height: number,
     filter: SamplingFilter,
   ) => PhotonImage;
-  // 新增的方法
+  // new methods
   crop: (
     image: PhotonImage,
     x: number,
@@ -32,10 +32,10 @@ export async function getPhoton(): Promise<{
 
   try {
     if (isBrowser) {
-      // 浏览器环境：从 @cf-wasm/photon/others 导入
+      // browser environment: import from @cf-wasm/photon/others
       photonModule = await import('@cf-wasm/photon/others');
     } else {
-      // Node.js 环境：从 @cf-wasm/photon/node 导入
+      // Node.js environment: import from @cf-wasm/photon/node
       photonModule = await import('@cf-wasm/photon/node');
     }
 
