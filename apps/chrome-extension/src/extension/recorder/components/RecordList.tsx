@@ -51,7 +51,9 @@ export const RecordList: React.FC<RecordListProps> = ({
   const { config } = useEnvConfig();
 
   const runButtonEnabled = Object.keys(config || {}).length >= 1;
-  const hasEventsToExport = sessions.some(session => session.events.length > 0);
+  const hasEventsToExport = sessions.some(
+    (session) => session.events.length > 0,
+  );
 
   return (
     <div className="record-list-view relative">
@@ -60,9 +62,12 @@ export const RecordList: React.FC<RecordListProps> = ({
 
       {/* Export All Events Button */}
       {hasEventsToExport && (
-        <div className='h-[30px] font-bold text-[14px] p-[5px]'>
+        <div className="h-[30px] font-bold text-[14px] p-[5px]">
           <span>Record All</span>
-          <DownloadOutlined onClick={onExportAllEvents} className='cursor-pointer float-right' />
+          <DownloadOutlined
+            onClick={onExportAllEvents}
+            className="cursor-pointer float-right"
+          />
         </div>
       )}
 
@@ -90,10 +95,11 @@ export const RecordList: React.FC<RecordListProps> = ({
           renderItem={(session) => (
             <List.Item className="session-item">
               <div
-                className={`w-full bg-[#F4F6F9] rounded-lg cursor-pointer transition-all duration-200 overflow-hidden hover:shadow-md ${session.id === currentSessionId
-                  ? 'border-2 border-[#F4F6F9] bg-blue-50'
-                  : ''
-                  }`}
+                className={`w-full bg-[#F4F6F9] rounded-lg cursor-pointer transition-all duration-200 overflow-hidden hover:shadow-md ${
+                  session.id === currentSessionId
+                    ? 'border-2 border-[#F4F6F9] bg-blue-50'
+                    : ''
+                }`}
                 onClick={() => onViewDetail(session)}
               >
                 {/* Main content area */}
