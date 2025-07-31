@@ -1,11 +1,9 @@
-import type Sharp from 'sharp';
-
 // detect if in Node.js environment
 const isNode = typeof process !== 'undefined' && process.versions?.node;
 
-let sharpModule: typeof Sharp | null = null;
+let sharpModule: any = null;
 
-export default async function getSharp(): Promise<typeof Sharp> {
+export default async function getSharp(): Promise<any> {
   if (sharpModule) {
     return sharpModule;
   }
@@ -15,7 +13,7 @@ export default async function getSharp(): Promise<typeof Sharp> {
   }
 
   try {
-    // import sharp dynamically, only available in Node.js environment
+    // @ts-ignore
     const sharp = await import('sharp');
     sharpModule = sharp.default;
     return sharpModule;

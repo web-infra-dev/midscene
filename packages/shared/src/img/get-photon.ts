@@ -1,3 +1,5 @@
+import { ifInBrowser, ifInWorker } from '../utils';
+
 const isNode = typeof process !== 'undefined' && process.versions?.node;
 let photonModule: any = null;
 let isInitialized = false;
@@ -15,19 +17,19 @@ export default async function getPhoton(): Promise<{
   }
 
   try {
-    if (isNode) {
-      // Node.js environment: use @silvia-odwyer/photon-node
-      photonModule = await import('@silvia-odwyer/photon-node');
-    } else {
+    if (ifInBrowser || ifInWorker) {
       // Regular browser environment: use @silvia-odwyer/photon
       const photonPackageName = '@silvia-odwyer/photon';
       const photon = await import(/* webpackIgnore: true */ photonPackageName);
-      // for browser environment, ensure WASM module is correctly initialized
       if (typeof photon.default === 'function') {
+        // for browser environment, ensure WASM module is correctly initialized
         await photon.default();
       }
 
       photonModule = photon;
+    } else if (isNode) {
+      // Node.js environment: use @silvia-odwyer/photon-node
+      photonModule = await import('@silvia-odwyer/photon-node');
     }
 
     // verify that the critical functions exist

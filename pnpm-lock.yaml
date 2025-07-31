@@ -717,7 +717,7 @@ importers:
         specifier: 0.11.0
         version: 0.11.0
       sharp:
-        specifier: ^0.33.5
+        specifier: 0.33.5
         version: 0.33.5
     devDependencies:
       '@modern-js/module-tools':
@@ -21188,7 +21188,7 @@ snapshots:
 
   axios@1.9.0:
     dependencies:
-      follow-redirects: 1.15.9(debug@4.4.0)
+      follow-redirects: 1.15.9
       form-data: 4.0.2
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
@@ -23243,6 +23243,8 @@ snapshots:
   flexsearch@0.6.32: {}
 
   flexsearch@0.7.43: {}
+
+  follow-redirects@1.15.9: {}
 
   follow-redirects@1.15.9(debug@4.4.0):
     optionalDependencies:
