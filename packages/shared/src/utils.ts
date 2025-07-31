@@ -1,6 +1,9 @@
 import { sha256 } from 'js-sha256';
 
+declare const WorkerGlobalScope: any;
+
 export const ifInBrowser = typeof window !== 'undefined';
+export const ifInWorker = typeof WorkerGlobalScope !== 'undefined';
 
 export function uuid(): string {
   return Math.random().toString(36).substring(2, 15);

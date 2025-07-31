@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { ifInBrowser } from '@midscene/shared/utils';
+import { ifInBrowser, ifInWorker } from '@midscene/shared/utils';
 
 // remember to include this file into extension's package
 // extract html element from page
@@ -7,7 +7,7 @@ let scriptFileContentCache: string | null = null;
 export const getHtmlElementScript = async () => {
   const scriptFileToRetrieve = chrome.runtime.getURL('scripts/htmlElement.js');
   if (scriptFileContentCache) return scriptFileContentCache;
-  if (ifInBrowser) {
+  if (ifInBrowser || ifInWorker) {
     const script = await fetch(scriptFileToRetrieve);
     scriptFileContentCache = await script.text();
     return scriptFileContentCache;
@@ -22,7 +22,7 @@ export const injectWaterFlowAnimation = async () => {
     'scripts/water-flow.js',
   );
   if (waterFlowScriptFileContentCache) return waterFlowScriptFileContentCache;
-  if (ifInBrowser) {
+  if (ifInBrowser || ifInWorker) {
     const script = await fetch(waterFlowScriptFileToRetrieve);
     waterFlowScriptFileContentCache = await script.text();
     return waterFlowScriptFileContentCache;
@@ -38,7 +38,7 @@ export const injectStopWaterFlowAnimation = async () => {
   );
   if (stopWaterFlowScriptFileContentCache)
     return stopWaterFlowScriptFileContentCache;
-  if (ifInBrowser) {
+  if (ifInBrowser || ifInWorker) {
     const script = await fetch(stopWaterFlowScriptFileToRetrieve);
     stopWaterFlowScriptFileContentCache = await script.text();
     return stopWaterFlowScriptFileContentCache;

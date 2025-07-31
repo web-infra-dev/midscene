@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { ifInBrowser } from '../utils';
+import { ifInBrowser, ifInWorker } from '../utils';
 
 declare const __HTML_ELEMENT_SCRIPT__: string;
 
@@ -13,7 +13,7 @@ interface PkgInfo {
 const pkgCacheMap: Record<string, PkgInfo> = {};
 
 export function getRunningPkgInfo(dir?: string): PkgInfo | null {
-  if (ifInBrowser) {
+  if (ifInBrowser || ifInWorker) {
     return null;
   }
   const dirToCheck = dir || process.cwd();
@@ -71,7 +71,7 @@ export function getElementInfosScriptContent() {
 }
 
 export async function getExtraReturnLogic(tree = false) {
-  if (ifInBrowser) {
+  if (ifInBrowser || ifInWorker) {
     return null;
   }
 

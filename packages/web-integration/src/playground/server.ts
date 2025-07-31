@@ -6,7 +6,7 @@ import { ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED } from '@/common/utils';
 import { getTmpDir } from '@midscene/core/utils';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import { overrideAIConfig } from '@midscene/shared/env';
-import { ifInBrowser } from '@midscene/shared/utils';
+import { ifInBrowser, ifInWorker } from '@midscene/shared/utils';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
@@ -24,7 +24,7 @@ const errorHandler = (err: any, req: any, res: any, next: any) => {
 };
 
 const setup = async () => {
-  if (!ifInBrowser) {
+  if (!ifInBrowser && !ifInWorker) {
     const { parsed } = dotenv.config();
 
     if (parsed) {

@@ -1,9 +1,9 @@
 // @ts-ignore
 import type Jimp from 'jimp/browser/lib/jimp.js';
+import { ifInBrowser, ifInWorker } from '../utils';
 
-const ifInBrowser = typeof window !== 'undefined';
 export default async function getJimp(): Promise<typeof Jimp> {
-  if (ifInBrowser) {
+  if (ifInBrowser || ifInWorker) {
     // @ts-ignore
     await import('jimp/browser/lib/jimp.js');
     return (window as any).Jimp;
