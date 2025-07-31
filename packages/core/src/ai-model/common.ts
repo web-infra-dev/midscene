@@ -376,7 +376,9 @@ export function buildYamlFlowFromPlans(
     } else if (
       type === 'AndroidBackButton' ||
       type === 'AndroidHomeButton' ||
-      type === 'AndroidRecentAppsButton'
+      type === 'AndroidRecentAppsButton' ||
+      type === 'AndroidLongPress' ||
+      type === 'AndroidPull'
     ) {
       // not implemented in yaml yet
     } else if (
