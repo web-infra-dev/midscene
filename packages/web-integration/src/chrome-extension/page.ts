@@ -44,7 +44,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
   private isMobileEmulation: boolean | null = null;
 
-  public continueWhenFailedToAttachDebugger = false;
+  public _continueWhenFailedToAttachDebugger = false;
 
   constructor(forceSameTabNavigation: boolean) {
     this.forceSameTabNavigation = forceSameTabNavigation;
