@@ -415,7 +415,7 @@ export const generateAnimationScripts = (
     if (task.status !== 'finished') {
       errorStateFlag = true;
       const errorTitle = typeStr(task);
-      const errorMsg = task.error || 'unknown error';
+      const errorMsg = task.errorMessage || 'unknown error';
       const errorSubTitle =
         errorMsg.indexOf('NOT_IMPLEMENTED_AS_DESIGNED') > 0
           ? 'Further actions cannot be performed in the current environment'

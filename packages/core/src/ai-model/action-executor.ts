@@ -152,7 +152,8 @@ export class Executor {
         taskIndex++;
       } catch (e: any) {
         successfullyCompleted = false;
-        task.error =
+        task.error = e;
+        task.errorMessage =
           e?.message || (typeof e === 'string' ? e : 'error-without-message');
         task.errorStack = e.stack;
 

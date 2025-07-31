@@ -7,7 +7,7 @@ import {
   getAIConfigInNumber,
 } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
-import { ifInBrowser } from '@midscene/shared/utils';
+import { ifInBrowser, ifInWorker } from '@midscene/shared/utils';
 import { generateHashId } from '@midscene/shared/utils';
 import yaml from 'js-yaml';
 import semver from 'semver';
@@ -73,10 +73,11 @@ export class TaskCache {
     }
     this.cacheId = safeCacheId;
 
-    this.cacheFilePath = ifInBrowser
-      ? undefined
-      : cacheFilePath ||
-        join(getMidsceneRunSubDir('cache'), `${this.cacheId}${cacheFileExt}`);
+    this.cacheFilePath =
+      ifInBrowser || ifInWorker
+        ? undefined
+        : cacheFilePath ||
+          join(getMidsceneRunSubDir('cache'), `${this.cacheId}${cacheFileExt}`);
     this.isCacheResultUsed = isCacheResultUsed;
 
     let cacheContent;
