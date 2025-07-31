@@ -20,8 +20,8 @@ export default async function getPhoton(): Promise<{
       photonModule = await import('@silvia-odwyer/photon-node');
     } else {
       // Regular browser environment: use @silvia-odwyer/photon
-      const photon = await import('@silvia-odwyer/photon');
-
+      const photonPackageName = '@silvia-odwyer/photon';
+      const photon = await import(/* webpackIgnore: true */ photonPackageName);
       // for browser environment, ensure WASM module is correctly initialized
       if (typeof photon.default === 'function') {
         await photon.default();
