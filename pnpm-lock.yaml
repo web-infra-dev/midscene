@@ -701,9 +701,12 @@ importers:
 
   packages/shared:
     dependencies:
-      '@cf-wasm/photon':
-        specifier: ^0.1.31
-        version: 0.1.31
+      '@silvia-odwyer/photon':
+        specifier: 0.3.3
+        version: 0.3.3
+      '@silvia-odwyer/photon-node':
+        specifier: 0.3.3
+        version: 0.3.3
       debug:
         specifier: 4.4.0
         version: 4.4.0(supports-color@5.5.0)
@@ -713,6 +716,9 @@ importers:
       js-sha256:
         specifier: 0.11.0
         version: 0.11.0
+      sharp:
+        specifier: ^0.33.5
+        version: 0.33.5
     devDependencies:
       '@modern-js/module-tools':
         specifier: 2.60.6
@@ -2370,12 +2376,6 @@ packages:
 
   '@bufbuild/protobuf@2.6.0':
     resolution: {integrity: sha512-6cuonJVNOIL7lTj5zgo/Rc2bKAo4/GvN+rKCrUj7GdEHRzCk8zKOfFwUsL9nAVk5rSIsRmlgcpLzTRysopEeeg==}
-
-  '@cf-wasm/internals@0.0.3':
-    resolution: {integrity: sha512-v6PmiQnJIrVvL2IdPg5aCqARSKw/U1JvFsms2cCt3Szx3/3EvtVVhN9MALCh6kZ2CV2fvzs3tmiYezRQ6JyqcQ==}
-
-  '@cf-wasm/photon@0.1.31':
-    resolution: {integrity: sha512-czB1kvK8L1oKsBcQxNhWn5JyIlXrXF+Fd61kQSZSwxi+ol7ikqf9SPnEVQ//C3MW9bzp62eCVMetoB5+9iMsvw==}
 
   '@cfworker/json-schema@4.0.3':
     resolution: {integrity: sha512-ZykIcDTVv5UNmKWSTLAs3VukO6NDJkkSKxrgUTDPBkAlORVT3H9n5DbRjRl8xIotklscHdbLIa0b9+y3mQq73g==}
@@ -5441,6 +5441,12 @@ packages:
 
   '@selderee/plugin-htmlparser2@0.11.0':
     resolution: {integrity: sha512-P33hHGdldxGabLFjPPpaTxVolMrzrcegejx+0GxjrIb9Zv48D8yAIA/QTDR2dFl7Uz7urX8aX6+5bCZslr+gWQ==}
+
+  '@silvia-odwyer/photon-node@0.3.3':
+    resolution: {integrity: sha512-30nDWTHQ7/d1xGnO41ol5tnBA1Bmo2N6h9HNPByBbIYU2xCYB9g4o4zB6vxAq15ixrBRTjb1Nnz1K0Jli3Hxnw==}
+
+  '@silvia-odwyer/photon@0.3.3':
+    resolution: {integrity: sha512-8BhUjEch4slwRe8uXnaA4vcA5uiiOTT90UMsxulOj2gN98X1p0q9Z4Ysk4DkD05uNgbR9XoSqtZ37w+33w4QKQ==}
 
   '@sinclair/typebox@0.27.8':
     resolution: {integrity: sha512-+Fj43pSMwJs4KRrH/938Uf+uAELIgVBmQzg/q1YG10djyfA3TnrU8N8XzqCh/okZdszqBQTZf96idMfE5lnwTA==}
@@ -15665,12 +15671,6 @@ snapshots:
   '@bufbuild/protobuf@2.6.0':
     optional: true
 
-  '@cf-wasm/internals@0.0.3': {}
-
-  '@cf-wasm/photon@0.1.31':
-    dependencies:
-      '@cf-wasm/internals': 0.0.3
-
   '@cfworker/json-schema@4.0.3': {}
 
   '@changesets/apply-release-plan@6.1.4':
@@ -19873,6 +19873,10 @@ snapshots:
     dependencies:
       domhandler: 5.0.3
       selderee: 0.11.0
+
+  '@silvia-odwyer/photon-node@0.3.3': {}
+
+  '@silvia-odwyer/photon@0.3.3': {}
 
   '@sinclair/typebox@0.27.8': {}
 
@@ -28511,7 +28515,6 @@ snapshots:
       '@img/sharp-wasm32': 0.33.5
       '@img/sharp-win32-ia32': 0.33.5
       '@img/sharp-win32-x64': 0.33.5
-    optional: true
 
   sharp@0.34.1:
     dependencies:

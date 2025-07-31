@@ -13,6 +13,7 @@ const debugImg = getDebug('img');
 import path from 'node:path';
 
 const midsceneDebug = midsceneGetDebug('img');
+
 /**
 /**
  * Saves a Base64-encoded image to a file
@@ -66,7 +67,6 @@ export async function resizeImg(
   const resizeStartTime = Date.now();
   debugImg(`resizeImg start, target size: ${newSize.width}x${newSize.height}`);
 
-  // check if in Node.js environment
   const isNode = typeof process !== 'undefined' && process.versions?.node;
 
   if (isNode) {
@@ -102,21 +102,14 @@ export async function resizeImg(
 
       return resizedBuffer;
     } catch (error) {
-      // if Sharp fails, fall back to Photon
       debugImg('Sharp failed, falling back to Photon:', error);
     }
   }
 
-  // if not in Node.js environment or Sharp fails, use Photon
+  // browser environment: use Photon
   const { PhotonImage, SamplingFilter, resize } = await getPhoton();
-
-  // Convert Buffer to Uint8Array for photon
   const inputBytes = new Uint8Array(inputData);
-
-  // Create PhotonImage instance
   const inputImage = PhotonImage.new_from_byteslice(inputBytes);
-
-  // Get original dimensions
   const originalWidth = inputImage.get_width();
   const originalHeight = inputImage.get_height();
 
@@ -135,13 +128,10 @@ export async function resizeImg(
     inputImage,
     newSize.width,
     newSize.height,
-    SamplingFilter.Lanczos3, // Similar to bicubic, provides good quality
+    SamplingFilter.CatmullRom,
   );
 
-  // Get JPEG bytes with quality 90
   const outputBytes = outputImage.get_bytes_jpeg(90);
-
-  // Convert Uint8Array to Buffer
   const resizedBuffer = Buffer.from(outputBytes);
 
   // Free memory
@@ -149,6 +139,7 @@ export async function resizeImg(
   outputImage.free();
 
   const resizeEndTime = Date.now();
+
   midsceneDebug(
     `resizeImg done (Photon), target size: ${newSize.width}x${newSize.height}, cost: ${resizeEndTime - resizeStartTime}ms`,
   );

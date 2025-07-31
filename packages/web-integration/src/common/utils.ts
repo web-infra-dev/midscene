@@ -18,7 +18,7 @@ import {
   traverseTree,
 } from '@midscene/shared/extractor';
 import { resizeImgBase64 } from '@midscene/shared/img';
-import { getDebug, type DebugFunction } from '@midscene/shared/logger';
+import { type DebugFunction, getDebug } from '@midscene/shared/logger';
 import { assert, logMsg, uuid } from '@midscene/shared/utils';
 import dayjs from 'dayjs';
 import type { Page as PlaywrightPage } from 'playwright';

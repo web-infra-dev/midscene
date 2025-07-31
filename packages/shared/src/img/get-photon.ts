@@ -1,44 +1,44 @@
-import type { PhotonImage, SamplingFilter } from '@cf-wasm/photon/node';
-
-// check if in browser environment
-const isBrowser =
-  typeof window !== 'undefined' && typeof document !== 'undefined';
-
+const isNode = typeof process !== 'undefined' && process.versions?.node;
 let photonModule: any = null;
+let isInitialized = false;
 
 export default async function getPhoton(): Promise<{
-  PhotonImage: typeof PhotonImage;
-  SamplingFilter: typeof SamplingFilter;
-  resize: (
-    image: PhotonImage,
-    width: number,
-    height: number,
-    filter: SamplingFilter,
-  ) => PhotonImage;
-  // new methods
-  crop: (
-    image: PhotonImage,
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-  ) => PhotonImage;
-  open_image: (bytes: Uint8Array) => PhotonImage;
-  base64_to_image: (base64: string) => PhotonImage;
+  PhotonImage: typeof import('@silvia-odwyer/photon-node').PhotonImage;
+  SamplingFilter: typeof import('@silvia-odwyer/photon-node').SamplingFilter;
+  resize: typeof import('@silvia-odwyer/photon-node').resize;
+  crop: typeof import('@silvia-odwyer/photon-node').crop;
+  open_image: typeof import('@silvia-odwyer/photon-node').open_image;
+  base64_to_image: typeof import('@silvia-odwyer/photon-node').base64_to_image;
 }> {
-  if (photonModule) {
+  if (photonModule && isInitialized) {
     return photonModule;
   }
 
   try {
-    if (isBrowser) {
-      // browser environment: import from @cf-wasm/photon/others
-      photonModule = await import('@cf-wasm/photon/others');
+    if (isNode) {
+      // Node.js environment: use @silvia-odwyer/photon-node
+      photonModule = await import('@silvia-odwyer/photon-node');
     } else {
-      // Node.js environment: import from @cf-wasm/photon/node
-      photonModule = await import('@cf-wasm/photon/node');
+      // Regular browser environment: use @silvia-odwyer/photon
+      const photon = await import('@silvia-odwyer/photon');
+
+      // for browser environment, ensure WASM module is correctly initialized
+      if (typeof photon.default === 'function') {
+        await photon.default();
+      }
+
+      photonModule = photon;
     }
 
+    // verify that the critical functions exist
+    if (
+      !photonModule.PhotonImage ||
+      !photonModule.PhotonImage.new_from_byteslice
+    ) {
+      throw new Error('PhotonImage.new_from_byteslice is not available');
+    }
+
+    isInitialized = true;
     return photonModule;
   } catch (error) {
     throw new Error(

@@ -56,17 +56,17 @@
     "test:u": "vitest --run -u"
   },
   "dependencies": {
-    "@cf-wasm/photon": "^0.1.31",
+    "@silvia-odwyer/photon": "0.3.3",
+    "@silvia-odwyer/photon-node": "0.3.3",
     "debug": "4.4.0",
     "jimp": "0.22.12",
     "js-sha256": "0.11.0",
-    "sharp": "^0.34.1"
+    "sharp": "0.33.5"
   },
   "devDependencies": {
     "@modern-js/module-tools": "2.60.6",
     "@types/debug": "4.1.12",
     "@types/node": "^18.0.0",
-    "@types/sharp": "^0.33.5",
     "@ui-tars/shared": "1.2.0",
     "dotenv": "16.4.5",
     "rimraf": "~3.0.2",
