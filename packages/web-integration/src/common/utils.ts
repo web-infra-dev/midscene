@@ -20,7 +20,7 @@ import {
   traverseTree,
 } from '@midscene/shared/extractor';
 import { resizeImgBase64 } from '@midscene/shared/img';
-import type { DebugFunction } from '@midscene/shared/logger';
+import { type DebugFunction, getDebug } from '@midscene/shared/logger';
 import { assert, logMsg, uuid } from '@midscene/shared/utils';
 import dayjs from 'dayjs';
 import type { Page as PlaywrightPage } from 'playwright';
@@ -29,6 +29,8 @@ import { WebElementInfo } from '../web-element';
 import type { WebPage } from './page';
 import { debug as cacheDebug } from './task-cache';
 import type { PageTaskExecutor } from './tasks';
+
+const debug = getDebug('tool:profile');
 
 export type WebUIContext = UIContext<WebElementInfo> & {
   url: string;
@@ -42,21 +44,31 @@ export async function parseContextFromWebPage(
   if ((page as StaticPage)._forceUsePageContext) {
     return await (page as any)._forceUsePageContext();
   }
+
+  debug('Getting page URL');
   const url = await page.url();
+  debug('URL end');
+
+  debug('Uploading test info to server');
   uploadTestInfoToServer({ testUrl: url });
+  debug('UploadTestInfoToServer end');
 
   let screenshotBase64: string;
   let tree: ElementTreeNode<ElementInfo>;
 
+  debug('Starting parallel operations: screenshot and element tree');
   await Promise.all([
     page.screenshotBase64().then((base64) => {
       screenshotBase64 = base64;
+      debug('ScreenshotBase64 end');
     }),
     page.getElementsNodeTree().then(async (treeRoot) => {
       tree = treeRoot;
+      debug('GetElementsNodeTree end');
     }),
   ]);
-
+  debug('ParseContextFromWebPage end');
+  debug('Traversing element tree');
   const webTree = traverseTree(tree!, (elementInfo) => {
     const { rect, id, content, attributes, indexId, isVisible } = elementInfo;
     return new WebElementInfo({
@@ -68,18 +80,20 @@ export async function parseContextFromWebPage(
       isVisible,
     });
   });
-
+  debug('TraverseTree end');
   assert(screenshotBase64!, 'screenshotBase64 is required');
 
   const size = await page.size();
 
+  debug(`size: ${size.width}x${size.height} dpr: ${size.dpr}`);
+
   if (size.dpr && size.dpr > 1) {
-    // console.time('resizeImgBase64');
+    debug('Resizing screenshot for high DPR display');
     screenshotBase64 = await resizeImgBase64(screenshotBase64, {
       width: size.width,
       height: size.height,
     });
-    // console.timeEnd('resizeImgBase64');
+    debug('ResizeImgBase64 end');
   }
 
   return {

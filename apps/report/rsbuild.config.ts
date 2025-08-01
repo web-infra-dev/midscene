@@ -137,6 +137,7 @@ export default defineConfig({
           },
         },
       },
+      externals: ['sharp'],
     },
   },
   output: {

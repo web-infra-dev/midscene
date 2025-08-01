@@ -74,7 +74,6 @@ export class AndroidDevice implements AndroidDevicePage {
     this.connectingAdb = (async () => {
       let error: Error | null = null;
       debugPage(`Initializing ADB with device ID: ${this.deviceId}`);
-
       try {
         const androidAdbPath =
           this.options?.androidAdbPath || getAIConfig(MIDSCENE_ADB_PATH);
@@ -139,10 +138,11 @@ ${Object.keys(size)
         return async (...args: any[]) => {
           try {
             debugPage(`adb ${String(prop)} ${args.join(' ')}`);
-            return (originalMethod as (...args: any[]) => any).apply(
-              target,
-              args,
-            );
+            const result = await (
+              originalMethod as (...args: any[]) => any
+            ).apply(target, args);
+            debugPage(`adb ${String(prop)} ${args.join(' ')} end`);
+            return result;
           } catch (error: any) {
             const methodName = String(prop);
             const deviceId = this.deviceId;
@@ -168,6 +168,7 @@ ${Object.keys(size)
     this.uri = uri;
 
     try {
+      debugPage(`Launching app: ${uri}`);
       if (
         uri.startsWith('http://') ||
         uri.startsWith('https://') ||
@@ -359,7 +360,9 @@ ${Object.keys(size)
     const androidScreenshotPath = `/data/local/tmp/midscene_screenshot_${randomUUID()}.png`;
 
     try {
+      debugPage('Taking screenshot via adb.takeScreenshot');
       screenshotBuffer = await adb.takeScreenshot(null);
+      debugPage('adb.takeScreenshot completed');
 
       // make sure screenshotBuffer is not null
       if (!screenshotBuffer) {
@@ -379,25 +382,34 @@ ${Object.keys(size)
       const screenshotPath = getTmpFile('png')!;
 
       try {
+        debugPage('Fallback: taking screenshot via shell screencap');
         try {
           // Take a screenshot and save it locally
           await adb.shell(`screencap -p ${androidScreenshotPath}`);
+          debugPage('adb.shell screencap completed');
         } catch (error) {
+          debugPage('screencap failed, using forceScreenshot');
           await this.forceScreenshot(androidScreenshotPath);
+          debugPage('forceScreenshot completed');
         }
 
+        debugPage('Pulling screenshot file from device');
         await adb.pull(androidScreenshotPath, screenshotPath);
+        debugPage('adb.pull completed');
         screenshotBuffer = await fs.promises.readFile(screenshotPath);
       } finally {
         await adb.shell(`rm -f ${androidScreenshotPath}`);
       }
     }
 
+    debugPage('Resizing screenshot image');
     const resizedScreenshotBuffer = await resizeImg(screenshotBuffer, {
       width,
       height,
     });
+    debugPage('Image resize completed');
 
+    debugPage('Converting to base64');
     const result = `data:image/jpeg;base64,${resizedScreenshotBuffer.toString('base64')}`;
     debugPage('screenshotBase64 end');
     return result;
