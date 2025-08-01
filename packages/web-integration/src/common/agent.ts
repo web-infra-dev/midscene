@@ -192,6 +192,10 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     });
   }
 
+  async _snapshotContext(): Promise<WebUIContext> {
+    return await this.getUIContext('locate');
+  }
+
   async setAIActionContext(prompt: string) {
     this.opts.aiActionContext = prompt;
   }
@@ -275,19 +279,21 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   private buildDetailedLocateParam(
     locatePrompt: TUserPrompt,
     opt?: LocateOption,
-  ): DetailedLocateParam {
+  ): DetailedLocateParam & { _forceContext?: WebUIContext } {
     assert(locatePrompt, 'missing locate prompt');
     if (typeof opt === 'object') {
       const prompt = locatePrompt;
       const deepThink = opt.deepThink ?? false;
       const cacheable = opt.cacheable ?? true;
       const xpath = opt.xpath;
+      const _forceContext = opt._forceContext as WebUIContext | undefined;
 
       return {
         prompt,
         deepThink,
         cacheable,
         xpath,
+        _forceContext,
       };
     }
     return {
