@@ -2,10 +2,11 @@ import { readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
-  base64Encoded,
+  httpImg2Base64,
   imageInfo,
   imageInfoOfBase64,
   isValidPNGImageBuffer,
+  localImg2Base64,
   resizeImg,
   resizeImgBase64,
 } from 'src/img';
@@ -40,17 +41,17 @@ describe('image utils', () => {
     expect(info.jimpImage.bitmap).toMatchSnapshot();
   });
 
-  it('base64Encoded', () => {
-    const base64 = base64Encoded(image);
+  it('localImg2Base64', () => {
+    const base64 = localImg2Base64(image);
     expect(base64).toMatchSnapshot();
 
-    const headlessBase64 = base64Encoded(image, false);
+    const headlessBase64 = localImg2Base64(image, true);
     expect(headlessBase64).toMatchSnapshot();
   });
 
-  it('base64 + imageInfo', async () => {
+  it('localImg2Base64 + imageInfo', async () => {
     const image = getFixture('icon.png');
-    const base64 = base64Encoded(image);
+    const base64 = localImg2Base64(image);
     const info = await imageInfoOfBase64(base64);
     expect(info.width).toMatchSnapshot();
     expect(info.height).toMatchSnapshot();
@@ -58,7 +59,7 @@ describe('image utils', () => {
 
   it('jpeg + base64 + imageInfo', async () => {
     const image = getFixture('heytea.jpeg');
-    const base64 = base64Encoded(image);
+    const base64 = localImg2Base64(image);
     const info = await imageInfoOfBase64(base64);
     expect(info.width).toMatchSnapshot();
     expect(info.height).toMatchSnapshot();
@@ -76,7 +77,7 @@ describe('image utils', () => {
   it('resizeImgBase64', async () => {
     const image = getFixture('heytea.jpeg');
 
-    const base64 = base64Encoded(image);
+    const base64 = localImg2Base64(image);
     const resizedBase64 = await resizeImgBase64(base64, {
       width: 100,
       height: 100,
@@ -95,7 +96,7 @@ describe('image utils', () => {
 
   it('paddingToMatchBlock', async () => {
     const image = getFixture('heytea.jpeg');
-    const base64 = base64Encoded(image);
+    const base64 = localImg2Base64(image);
     const jimpImage = await jimpFromBase64(base64);
     const result = await paddingToMatchBlock(jimpImage);
 
@@ -115,7 +116,7 @@ describe('image utils', () => {
 
   it('cropByRect, with padding', async () => {
     const image = getFixture('heytea.jpeg');
-    const base64 = base64Encoded(image);
+    const base64 = localImg2Base64(image);
     const croppedBase64 = await cropByRect(
       base64,
       {
@@ -145,7 +146,7 @@ describe('image utils', () => {
 
   it('cropByRect, without padding', async () => {
     const image = getFixture('heytea.jpeg');
-    const base64 = base64Encoded(image);
+    const base64 = localImg2Base64(image);
     const croppedBase64 = await cropByRect(
       base64,
       {
@@ -192,6 +193,16 @@ describe('image utils', () => {
       ),
     );
     expect(isValid).toBe(false);
+  });
+
+  it('httpImg2Base64', async () => {
+    expect(
+      await httpImg2Base64(
+        'https://github.githubassets.com/favicons/favicon.svg',
+      ),
+    ).toMatchInlineSnapshot(
+      `"data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xNiAwQzcuMTYgMCAwIDcuMTYgMCAxNkMwIDIzLjA4IDQuNTggMjkuMDYgMTAuOTQgMzEuMThDMTEuNzQgMzEuMzIgMTIuMDQgMzAuODQgMTIuMDQgMzAuNDJDMTIuMDQgMzAuMDQgMTIuMDIgMjguNzggMTIuMDIgMjcuNDRDOCAyOC4xOCA2Ljk2IDI2LjQ2IDYuNjQgMjUuNTZDNi40NiAyNS4xIDUuNjggMjMuNjggNSAyMy4zQzQuNDQgMjMgMy42NCAyMi4yNiA0Ljk4IDIyLjI0QzYuMjQgMjIuMjIgNy4xNCAyMy40IDcuNDQgMjMuODhDOC44OCAyNi4zIDExLjE4IDI1LjYyIDEyLjEgMjUuMkMxMi4yNCAyNC4xNiAxMi42NiAyMy40NiAxMy4xMiAyMy4wNkM5LjU2IDIyLjY2IDUuODQgMjEuMjggNS44NCAxNS4xNkM1Ljg0IDEzLjQyIDYuNDYgMTEuOTggNy40OCAxMC44NkM3LjMyIDEwLjQ2IDYuNzYgOC44MiA3LjY0IDYuNjJDNy42NCA2LjYyIDguOTggNi4yIDEyLjA0IDguMjZDMTMuMzIgNy45IDE0LjY4IDcuNzIgMTYuMDQgNy43MkMxNy40IDcuNzIgMTguNzYgNy45IDIwLjA0IDguMjZDMjMuMSA2LjE4IDI0LjQ0IDYuNjIgMjQuNDQgNi42MkMyNS4zMiA4LjgyIDI0Ljc2IDEwLjQ2IDI0LjYgMTAuODZDMjUuNjIgMTEuOTggMjYuMjQgMTMuNCAyNi4yNCAxNS4xNkMyNi4yNCAyMS4zIDIyLjUgMjIuNjYgMTguOTQgMjMuMDZDMTkuNTIgMjMuNTYgMjAuMDIgMjQuNTIgMjAuMDIgMjYuMDJDMjAuMDIgMjguMTYgMjAgMjkuODggMjAgMzAuNDJDMjAgMzAuODQgMjAuMyAzMS4zNCAyMS4xIDMxLjE4QzI3LjQyIDI5LjA2IDMyIDIzLjA2IDMyIDE2QzMyIDcuMTYgMjQuODQgMCAxNiAwVjBaIiBmaWxsPSIjMjQyOTJFIi8+Cjwvc3ZnPgo="`,
+    );
   });
 
   // it(

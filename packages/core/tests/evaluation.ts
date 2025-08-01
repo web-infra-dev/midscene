@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describeUserPage } from '@/index';
 import { vlLocateMode } from '@midscene/shared/env';
-import { base64Encoded, imageInfoOfBase64 } from '@midscene/shared/img';
+import { imageInfoOfBase64, localImg2Base64 } from '@midscene/shared/img';
 
 export async function buildContext(targetDir: string): Promise<{
   context: {
@@ -23,7 +23,7 @@ export async function buildContext(targetDir: string): Promise<{
     targetDir,
     existsSync(path.join(targetDir, 'input.png')) ? 'input.png' : 'input.jpeg',
   );
-  const originalScreenshotBase64 = base64Encoded(originalInputImgP);
+  const originalScreenshotBase64 = localImg2Base64(originalInputImgP);
 
   const resizeOutputImgP = path.join(targetDir, 'output_without_text.png');
   const snapshotJsonPath = path.join(targetDir, 'element-snapshot.json');
@@ -58,13 +58,12 @@ export async function buildContext(targetDir: string): Promise<{
   }
 
   const snapshotJson = readFileSync(snapshotJsonPath, { encoding: 'utf-8' });
-  const elementSnapshot = JSON.parse(snapshotJson);
   const elementTree = JSON.parse(
     readFileSync(elementTreeJsonPath, { encoding: 'utf-8' }),
   );
   const screenshotBase64 = vlLocateMode()
     ? originalScreenshotBase64
-    : base64Encoded(resizeOutputImgP);
+    : localImg2Base64(resizeOutputImgP);
 
   const size = await imageInfoOfBase64(screenshotBase64);
   const baseContext = {
