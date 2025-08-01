@@ -2,6 +2,7 @@ import type { AndroidDevicePage, WebPage } from '@/common/page';
 import type { PuppeteerWebPage } from '@/puppeteer';
 import {
   type AIUsageInfo,
+  type BaseElement,
   type DumpSubscriber,
   type ExecutionRecorderItem,
   type ExecutionTaskActionApply,
@@ -36,6 +37,7 @@ import {
   type PlanningActionParamWaitFor,
   type TMultimodalPrompt,
   type TUserPrompt,
+  type UIContext,
   plan,
 } from '@midscene/core';
 import {
@@ -115,7 +117,7 @@ export class PageTaskExecutor {
   }
 
   private async getElementXpath(
-    pageContext: WebUIContext,
+    pageContext: UIContext<BaseElement>,
     element: LocateResultElement,
   ): Promise<string[] | undefined> {
     let elementId = element?.id;
