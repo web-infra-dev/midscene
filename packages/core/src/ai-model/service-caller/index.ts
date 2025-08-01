@@ -526,7 +526,11 @@ export async function call(
 export async function callToGetJSONObject<T>(
   messages: ChatCompletionMessageParam[],
   AIActionTypeValue: AIActionType,
+  options?: {
+    skipJsonParse?: boolean;
+  },
 ): Promise<{ content: T; usage?: AIUsageInfo }> {
+  const skipJsonParse = options?.skipJsonParse;
   let responseFormat:
     | OpenAI.ChatCompletionCreateParams['response_format']
     | OpenAI.ResponseFormatJSONObject
@@ -559,7 +563,9 @@ export async function callToGetJSONObject<T>(
 
   const response = await call(messages, AIActionTypeValue, responseFormat);
   assert(response, 'empty response');
-  const jsonContent = safeParseJson(response.content);
+  const jsonContent = skipJsonParse
+    ? response.content
+    : safeParseJson(response.content);
   return { content: jsonContent, usage: response.usage };
 }
 

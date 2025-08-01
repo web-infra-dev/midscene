@@ -45,6 +45,9 @@ export enum AIActionType {
 export async function callAiFn<T>(
   msgs: AIArgs,
   AIActionTypeValue: AIActionType,
+  options?: {
+    skipJsonParse?: boolean;
+  },
 ): Promise<{ content: T; usage?: AIUsageInfo }> {
   assert(
     checkAIConfig(),
@@ -54,6 +57,7 @@ export async function callAiFn<T>(
   const { content, usage } = await callToGetJSONObject<T>(
     msgs,
     AIActionTypeValue,
+    options,
   );
   return { content, usage };
 }
