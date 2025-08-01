@@ -253,7 +253,11 @@ export class PageTaskExecutor {
             };
             this.insight.onceDumpUpdatedFn = dumpCollector;
             const shotTime = Date.now();
-            const pageContext = await this.insight.contextRetrieverFn('locate');
+
+            // Use forced context if provided, otherwise get context normally
+            const pageContext =
+              param?._forceContext ||
+              (await this.insight.contextRetrieverFn('locate'));
             task.pageContext = pageContext;
 
             const recordItem: ExecutionRecorderItem = {
