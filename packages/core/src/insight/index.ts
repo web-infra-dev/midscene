@@ -27,6 +27,8 @@ import type {
   LocateResult,
   PartialInsightDumpFromSDK,
   Rect,
+  TMultimodalPrompt,
+  TUserPrompt,
   UIContext,
 } from '@/types';
 import {
@@ -236,19 +238,10 @@ export default class Insight<
     };
   }
 
-  async extract<T = any>(input: string, opt?: InsightExtractOption): Promise<T>;
-  async extract<T extends Record<string, string>>(
-    input: T,
-    opt?: InsightExtractOption,
-  ): Promise<Record<keyof T, any>>;
-  async extract<T extends object>(
-    input: Record<keyof T, string>,
-    opt?: InsightExtractOption,
-  ): Promise<T>;
-
   async extract<T>(
     dataDemand: InsightExtractParam,
     opt?: InsightExtractOption,
+    multimodalPrompt?: TMultimodalPrompt,
   ): Promise<any> {
     assert(
       typeof dataDemand === 'object' || typeof dataDemand === 'string',
@@ -263,6 +256,7 @@ export default class Insight<
     const { parseResult, usage } = await AiExtractElementInfo<T>({
       context,
       dataQuery: dataDemand,
+      multimodalPrompt,
       extractOption: opt,
     });
 
@@ -310,13 +304,7 @@ export default class Insight<
     };
   }
 
-  async assert(assertion: string): Promise<InsightAssertionResponse> {
-    if (typeof assertion !== 'string') {
-      throw new Error(
-        'This is the assert method for Midscene, the first argument should be a string. If you want to use the assert method from Node.js, please import it from the Node.js assert module.',
-      );
-    }
-
+  async assert(assertion: TUserPrompt): Promise<InsightAssertionResponse> {
     const dumpSubscriber = this.onceDumpUpdatedFn;
     this.onceDumpUpdatedFn = undefined;
 

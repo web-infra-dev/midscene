@@ -249,3 +249,25 @@ export const localImg2Base64 = (
 
   return `data:image/${finalType};base64,${body}`;
 };
+
+/**
+ * PreProcess image url to ensure image is accessible to LLM.
+ * @param url - The url of the image, it can be a http url or a base64 string or a file path
+ * @param convertHttpImage2Base64 - Whether to convert http image to base64, if true, the http image will be converted to base64, otherwise, the http image will be returned as is
+ * @returns The base64 string of the image (when convertHttpImage2Base64 is true or url is a file path) or the http image url
+ */
+export const preProcessImageUrl = async (
+  url: string,
+  convertHttpImage2Base64: boolean,
+) => {
+  if (url.startsWith('data:')) {
+    return url;
+  } else if (url.startsWith('http://') || url.startsWith('https://')) {
+    if (!convertHttpImage2Base64) {
+      return url;
+    }
+    return await httpImg2Base64(url);
+  } else {
+    return await localImg2Base64(url);
+  }
+};

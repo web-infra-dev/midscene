@@ -34,6 +34,8 @@ import {
   type PlanningActionParamSleep,
   type PlanningActionParamTap,
   type PlanningActionParamWaitFor,
+  type TMultimodalPrompt,
+  type TUserPrompt,
   plan,
 } from '@midscene/core';
 import {
@@ -58,6 +60,7 @@ import {
   type WebUIContext,
   matchElementFromCache,
   matchElementFromPlan,
+  parsePrompt,
 } from './utils';
 
 interface ExecutionResult<OutputType = any> {
@@ -899,7 +902,8 @@ export class PageTaskExecutor {
                 type: 'Locate',
                 locate: planningAction.locate,
                 param: null,
-                thought: planningAction.locate.prompt,
+                // thought is prompt created by ai, always a string
+                thought: planningAction.locate.prompt as string,
               });
             } else if (
               ['Tap', 'Hover', 'Input'].includes(planningAction.type)
@@ -1210,6 +1214,7 @@ export class PageTaskExecutor {
     type: 'Query' | 'Boolean' | 'Number' | 'String',
     demand: InsightExtractParam,
     opt?: InsightExtractOption,
+    multimodalPrompt?: TMultimodalPrompt,
   ): Promise<ExecutionResult<T>> {
     const taskExecutor = new Executor(
       taskTitleStr(
@@ -1226,7 +1231,13 @@ export class PageTaskExecutor {
       subType: type,
       locate: null,
       param: {
-        dataDemand: demand, // for user param presentation in report right sidebar
+        // TODO: display image thumbnail in report
+        dataDemand: multimodalPrompt
+          ? ({
+              demand,
+              multimodalPrompt,
+            } as never)
+          : demand, // for user param presentation in report right sidebar
       },
       executor: async (param) => {
         let insightDump: InsightDump | undefined;
@@ -1246,6 +1257,7 @@ export class PageTaskExecutor {
         const { data, usage } = await this.insight.extract<any>(
           demandInput,
           opt,
+          multimodalPrompt,
         );
 
         let outputResult = data;
@@ -1278,30 +1290,48 @@ export class PageTaskExecutor {
   }
 
   async boolean(
-    prompt: string,
+    prompt: TUserPrompt,
     opt?: InsightExtractOption,
   ): Promise<ExecutionResult<boolean>> {
-    return this.createTypeQueryTask<boolean>('Boolean', prompt, opt);
+    const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
+    return this.createTypeQueryTask<boolean>(
+      'Boolean',
+      textPrompt,
+      opt,
+      multimodalPrompt,
+    );
   }
 
   async number(
-    prompt: string,
+    prompt: TUserPrompt,
     opt?: InsightExtractOption,
   ): Promise<ExecutionResult<number>> {
-    return this.createTypeQueryTask<number>('Number', prompt, opt);
+    const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
+    return this.createTypeQueryTask<number>(
+      'Number',
+      textPrompt,
+      opt,
+      multimodalPrompt,
+    );
   }
 
   async string(
-    prompt: string,
+    prompt: TUserPrompt,
     opt?: InsightExtractOption,
   ): Promise<ExecutionResult<string>> {
-    return this.createTypeQueryTask<string>('String', prompt, opt);
+    const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
+    return this.createTypeQueryTask<string>(
+      'String',
+      textPrompt,
+      opt,
+      multimodalPrompt,
+    );
   }
 
   async assert(
-    assertion: string,
+    assertion: TUserPrompt,
   ): Promise<ExecutionResult<InsightAssertionResponse>> {
-    const description = `assert: ${assertion}`;
+    const description = `assert: ${typeof assertion === 'string' ? assertion : assertion.prompt}`;
     const taskExecutor = new Executor(taskTitleStr('Assert', description), {
       onTaskStart: this.onTaskStartCallback,
     });

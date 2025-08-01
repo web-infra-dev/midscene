@@ -1,6 +1,8 @@
 import assert from 'node:assert';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
+import type { TUserPrompt } from '@midscene/core';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import {
   MIDSCENE_CACHE_MAX_FILENAME_LENGTH,
@@ -26,7 +28,7 @@ export interface PlanningCache {
 
 export interface LocateCache {
   type: 'locate';
-  prompt: string;
+  prompt: TUserPrompt;
   xpaths: string[];
 }
 
@@ -96,16 +98,18 @@ export class TaskCache {
   }
 
   matchCache(
-    prompt: string,
+    prompt: TUserPrompt,
     type: 'plan' | 'locate',
   ): MatchCacheResult<PlanningCache | LocateCache> | undefined {
     // Find the first unused matching cache
     for (let i = 0; i < this.cacheOriginalLength; i++) {
       const item = this.cache.caches[i];
-      const key = `${type}:${prompt}:${i}`;
+      const promptStr =
+        typeof prompt === 'string' ? prompt : JSON.stringify(prompt);
+      const key = `${type}:${promptStr}:${i}`;
       if (
         item.type === type &&
-        item.prompt === prompt &&
+        isDeepStrictEqual(item.prompt, prompt) &&
         !this.matchedCacheIndices.has(key)
       ) {
         this.matchedCacheIndices.add(key);
@@ -146,7 +150,9 @@ export class TaskCache {
       | undefined;
   }
 
-  matchLocateCache(prompt: string): MatchCacheResult<LocateCache> | undefined {
+  matchLocateCache(
+    prompt: TUserPrompt,
+  ): MatchCacheResult<LocateCache> | undefined {
     return this.matchCache(prompt, 'locate') as
       | MatchCacheResult<LocateCache>
       | undefined;

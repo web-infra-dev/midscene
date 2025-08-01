@@ -6,6 +6,8 @@ import type {
   ExecutionTask,
   PlanningLocateParam,
   PlaywrightParserOpt,
+  TMultimodalPrompt,
+  TUserPrompt,
   UIContext,
 } from '@midscene/core';
 import { elementByPositionWithElementInfo } from '@midscene/core/ai-model';
@@ -225,7 +227,7 @@ export function matchElementFromPlan(
 export async function matchElementFromCache(
   taskExecutor: PageTaskExecutor,
   xpaths: string[] | undefined,
-  cachePrompt: string,
+  cachePrompt: TUserPrompt,
   cacheable: boolean | undefined,
 ) {
   try {
@@ -308,3 +310,26 @@ export function trimContextByViewport(execution: ExecutionDump) {
       : execution.tasks,
   };
 }
+
+export const parsePrompt = (
+  prompt: TUserPrompt,
+): {
+  textPrompt: string;
+  multimodalPrompt?: TMultimodalPrompt;
+} => {
+  if (typeof prompt === 'string') {
+    return {
+      textPrompt: prompt,
+      multimodalPrompt: undefined,
+    };
+  }
+  return {
+    textPrompt: prompt.prompt,
+    multimodalPrompt: prompt.images
+      ? {
+          images: prompt.images,
+          convertHttpImage2Base64: !!prompt.convertHttpImage2Base64,
+        }
+      : undefined,
+  };
+};

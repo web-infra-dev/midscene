@@ -48,7 +48,9 @@ export function locateParamStr(locate?: DetailedLocateParam) {
     return locate;
   }
 
-  return locate.prompt;
+  return typeof locate.prompt === 'string'
+    ? locate.prompt
+    : locate.prompt.prompt;
 }
 
 export function scrollParamStr(scrollParam?: PlanningActionParamScroll) {
