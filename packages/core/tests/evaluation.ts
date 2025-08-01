@@ -58,7 +58,6 @@ export async function buildContext(targetDir: string): Promise<{
   }
 
   const snapshotJson = readFileSync(snapshotJsonPath, { encoding: 'utf-8' });
-  const elementSnapshot = JSON.parse(snapshotJson);
   const elementTree = JSON.parse(
     readFileSync(elementTreeJsonPath, { encoding: 'utf-8' }),
   );
