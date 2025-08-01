@@ -2,6 +2,7 @@ import type { AndroidDevicePage, WebPage } from '@/common/page';
 import type { PuppeteerWebPage } from '@/puppeteer';
 import {
   type AIUsageInfo,
+  type BaseElement,
   type DumpSubscriber,
   type ExecutionRecorderItem,
   type ExecutionTaskActionApply,
@@ -36,6 +37,7 @@ import {
   type PlanningActionParamWaitFor,
   type TMultimodalPrompt,
   type TUserPrompt,
+  type UIContext,
   plan,
 } from '@midscene/core';
 import {
@@ -114,7 +116,7 @@ export class PageTaskExecutor {
   }
 
   private async getElementXpath(
-    pageContext: WebUIContext,
+    pageContext: UIContext<BaseElement>,
     element: LocateResultElement,
   ): Promise<string[] | undefined> {
     let elementId = element?.id;
@@ -252,7 +254,11 @@ export class PageTaskExecutor {
             };
             this.insight.onceDumpUpdatedFn = dumpCollector;
             const shotTime = Date.now();
-            const pageContext = await this.insight.contextRetrieverFn('locate');
+
+            // Use forced context if provided, otherwise get context normally
+            const pageContext =
+              param?._forceContext ||
+              (await this.insight.contextRetrieverFn('locate'));
             task.pageContext = pageContext;
 
             const recordItem: ExecutionRecorderItem = {

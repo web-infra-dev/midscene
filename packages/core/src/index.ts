@@ -21,4 +21,6 @@ export type {
   MidsceneYamlFlowItem,
   MidsceneYamlFlowItemAIRightClick,
   MidsceneYamlConfigResult,
+  LocateOption,
+  DetailedLocateParam,
 } from './yaml';
