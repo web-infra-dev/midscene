@@ -6,7 +6,6 @@ export {
   isValidPNGImageBuffer,
 } from './info';
 export {
-  trimImage,
   resizeImg,
   resizeImgBase64,
   transformImgPathToBase64,

@@ -168,50 +168,6 @@ export function zoomForGPT4o(originalWidth: number, originalHeight: number) {
   };
 }
 
-/**
- * Trims an image and returns the trimming information, including the offset from the left and top edges, and the trimmed width and height
- *
- * @param image - The image to be trimmed. This can be a file path or a Buffer object containing the image data
- * @returns A Promise that resolves to an object containing the trimming information. If the image does not need to be trimmed, this object will be null
- */
-export async function trimImage(image: string | Buffer): Promise<{
-  trimOffsetLeft: number; // attention: trimOffsetLeft is a negative number
-  trimOffsetTop: number; // so as trimOffsetTop
-  width: number;
-  height: number;
-} | null> {
-  const Jimp = await getJimp();
-  const jimpImage = await Jimp.read(
-    Buffer.isBuffer(image) ? image : Buffer.from(image),
-  );
-  const { width, height } = jimpImage.bitmap;
-
-  if (width <= 3 || height <= 3) {
-    return null;
-  }
-
-  const trimmedImage = jimpImage.autocrop();
-  const { width: trimmedWidth, height: trimmedHeight } = trimmedImage.bitmap;
-
-  const trimOffsetLeft = (width - trimmedWidth) / 2;
-  const trimOffsetTop = (height - trimmedHeight) / 2;
-
-  if (trimOffsetLeft === 0 && trimOffsetTop === 0) {
-    return null;
-  }
-
-  return {
-    trimOffsetLeft: -trimOffsetLeft,
-    trimOffsetTop: -trimOffsetTop,
-    width: trimmedWidth,
-    height: trimmedHeight,
-  };
-}
-
-export function prependBase64Header(base64: string, mimeType = 'image/png') {
-  return `data:${mimeType};base64,${base64}`;
-}
-
 export async function jimpFromBase64(base64: string): Promise<Jimp> {
   const Jimp = await getJimp();
   const imageBuffer = await bufferFromBase64(base64);
