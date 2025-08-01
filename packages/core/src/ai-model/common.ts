@@ -282,7 +282,7 @@ export function mergeRects(rects: Rect[]) {
 
 // expand the search area to at least 300 x 300, or add a default padding
 export function expandSearchArea(rect: Rect, screenSize: Size) {
-  const minEdgeSize = 300;
+  const minEdgeSize = vlLocateMode() === 'doubao-vision' ? 500 : 300;
   const defaultPadding = 160;
 
   const paddingSizeHorizontal =
