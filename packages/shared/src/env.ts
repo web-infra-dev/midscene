@@ -217,7 +217,11 @@ export const getAIConfig = (
     );
   }
 
-  return getGlobalConfig()[configKey]?.trim?.();
+  const value = getGlobalConfig()[configKey];
+  if (typeof value === 'string') {
+    return value.trim();
+  }
+  return value;
 };
 
 export const getAIConfigInBoolean = (
