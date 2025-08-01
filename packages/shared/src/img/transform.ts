@@ -221,7 +221,10 @@ export const httpImg2Base64 = async (url: string): Promise<string> => {
   if (!contentType) {
     throw new Error(`Failed to fetch image: ${url}`);
   }
-  assert(contentType.startsWith('image/'), `The url ${url} is not a image`);
+  assert(
+    contentType.startsWith('image/'),
+    `The url ${url} is not a image, because of content-type in header is ${contentType}.`,
+  );
   const buffer = Buffer.from(await response.arrayBuffer());
   return `data:${contentType};base64,${buffer.toString('base64')}`;
 };
