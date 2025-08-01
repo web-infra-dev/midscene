@@ -1,5 +1,4 @@
-// detect if in Node.js environment
-const isNode = typeof process !== 'undefined' && process.versions?.node;
+import { ifInNode } from '../utils';
 
 let sharpModule: any = null;
 
@@ -8,7 +7,7 @@ export default async function getSharp(): Promise<any> {
     return sharpModule;
   }
 
-  if (!isNode) {
+  if (!ifInNode) {
     throw new Error('Sharp is only available in Node.js environment');
   }
 

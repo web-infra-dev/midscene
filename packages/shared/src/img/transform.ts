@@ -1,18 +1,16 @@
 import assert from 'node:assert';
 import { Buffer } from 'node:buffer';
 import { readFileSync } from 'node:fs';
-
-import getDebug from 'debug';
+import path from 'node:path';
 import type Jimp from 'jimp';
 import type { Rect } from 'src/types';
-import { getDebug as midsceneGetDebug } from '../logger';
+import { getDebug } from '../logger';
+import { ifInNode } from '../utils';
 import getJimp from './get-jimp';
 import getPhoton from './get-photon';
 import getSharp from './get-sharp';
-const debugImg = getDebug('img');
-import path from 'node:path';
 
-const midsceneDebug = midsceneGetDebug('img');
+const imgDebug = getDebug('img');
 
 /**
 /**
@@ -27,7 +25,6 @@ export async function saveBase64Image(options: {
   base64Data: string;
   outputPath: string;
 }): Promise<void> {
-  debugImg(`saveBase64Image start: ${options.outputPath}`);
   const { base64Data, outputPath } = options;
   // Remove the base64 data prefix (if any)
   const base64Image = base64Data.split(';base64,').pop() || base64Data;
@@ -39,7 +36,20 @@ export async function saveBase64Image(options: {
   const Jimp = await getJimp();
   const image = await Jimp.read(imageBuffer);
   await image.writeAsync(outputPath);
-  debugImg(`saveBase64Image done: ${options.outputPath}`);
+}
+
+/**
+ * Transforms an image path into a base64-encoded string
+ * @param inputPath - The path of the image file to be encoded
+ * @returns A Promise that resolves to a base64-encoded string representing the image file
+ */
+export async function transformImgPathToBase64(inputPath: string) {
+  // Use Jimp to process images and generate base64 data
+  const Jimp = await getJimp();
+  const image = await Jimp.read(inputPath);
+  const buffer = await image.getBufferAsync(Jimp.MIME_JPEG);
+  const res = buffer.toString('base64');
+  return res;
 }
 
 /**
@@ -65,11 +75,9 @@ export async function resizeImg(
   );
 
   const resizeStartTime = Date.now();
-  debugImg(`resizeImg start, target size: ${newSize.width}x${newSize.height}`);
+  imgDebug(`resizeImg start, target size: ${newSize.width}x${newSize.height}`);
 
-  const isNode = typeof process !== 'undefined' && process.versions?.node;
-
-  if (isNode) {
+  if (ifInNode) {
     // Node.js environment: use Sharp
     try {
       const Sharp = await getSharp();
@@ -93,16 +101,13 @@ export async function resizeImg(
         .toBuffer();
 
       const resizeEndTime = Date.now();
-      midsceneDebug(
+      imgDebug(
         `resizeImg done (Sharp), target size: ${newSize.width}x${newSize.height}, cost: ${resizeEndTime - resizeStartTime}ms`,
-      );
-      debugImg(
-        `resizeImg done (Sharp), target size: ${newSize.width}x${newSize.height}`,
       );
 
       return resizedBuffer;
     } catch (error) {
-      debugImg('Sharp failed, falling back to Photon:', error);
+      imgDebug('Sharp failed, falling back to Photon:', error);
     }
   }
 
@@ -140,11 +145,8 @@ export async function resizeImg(
 
   const resizeEndTime = Date.now();
 
-  midsceneDebug(
+  imgDebug(
     `resizeImg done (Photon), target size: ${newSize.width}x${newSize.height}, cost: ${resizeEndTime - resizeStartTime}ms`,
-  );
-  debugImg(
-    `resizeImg done (Photon), target size: ${newSize.width}x${newSize.height}`,
   );
 
   return resizedBuffer;
@@ -156,9 +158,7 @@ export async function bufferFromBase64(base64: string) {
   if (dataSplitted.length !== 2) {
     throw Error('Invalid base64 data');
   }
-  debugImg(`bufferFromBase64 start: ${base64}`);
   const res = Buffer.from(dataSplitted[1], 'base64');
-  debugImg(`bufferFromBase64 done: ${base64}`);
   return res;
 }
 
@@ -169,7 +169,6 @@ export async function resizeImgBase64(
     height: number;
   },
 ): Promise<string> {
-  debugImg(`resizeImgBase64 start: ${inputBase64}`);
   const splitFlag = ';base64,';
   const dataSplitted = inputBase64.split(splitFlag);
   if (dataSplitted.length !== 2) {
@@ -180,7 +179,6 @@ export async function resizeImgBase64(
   const buffer = await resizeImg(imageBuffer, newSize);
   const content = buffer.toString('base64');
   const res = `${dataSplitted[0]}${splitFlag}${content}`;
-  debugImg(`resizeImgBase64 done: ${inputBase64}`);
   return res;
 }
 
@@ -236,7 +234,6 @@ export async function paddingToMatchBlock(
   image: Jimp,
   blockSize = 28,
 ): Promise<Jimp> {
-  debugImg('paddingToMatchBlock start');
   const { width, height } = image.bitmap;
 
   const targetWidth = Math.ceil(width / blockSize) * blockSize;

@@ -1,6 +1,5 @@
-import { ifInBrowser, ifInWorker } from '../utils';
+import { ifInBrowser, ifInNode, ifInWorker } from '../utils';
 
-const isNode = typeof process !== 'undefined' && process.versions?.node;
 let photonModule: any = null;
 let isInitialized = false;
 
@@ -26,7 +25,7 @@ export default async function getPhoton(): Promise<{
       }
 
       photonModule = photon;
-    } else if (isNode) {
+    } else if (ifInNode) {
       // Node.js environment: use @silvia-odwyer/photon-node
       photonModule = await import('@silvia-odwyer/photon-node');
     }

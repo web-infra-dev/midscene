@@ -43,33 +43,30 @@ export async function parseContextFromWebPage(
     return await (page as any)._forceUsePageContext();
   }
 
-  const urlStartTime = Date.now();
+  debug('Getting page URL');
   const url = await page.url();
-  debug(`url end, cost: ${Date.now() - urlStartTime}ms`);
+  debug('URL end');
 
-  const uploadTestInfoStartTime = Date.now();
+  debug('Uploading test info to server');
   uploadTestInfoToServer({ testUrl: url });
-  debug(
-    `uploadTestInfoToServer end, cost: ${Date.now() - uploadTestInfoStartTime}ms`,
-  );
+  debug('UploadTestInfoToServer end');
 
   let screenshotBase64: string;
   let tree: ElementTreeNode<ElementInfo>;
 
-  const startTime = Date.now();
+  debug('Starting parallel operations: screenshot and element tree');
   await Promise.all([
     page.screenshotBase64().then((base64) => {
       screenshotBase64 = base64;
-      debug(`screenshotBase64 end, cost: ${Date.now() - startTime}ms`);
+      debug('ScreenshotBase64 end');
     }),
     page.getElementsNodeTree().then(async (treeRoot) => {
       tree = treeRoot;
-      debug(`getElementsNodeTree end, cost: ${Date.now() - startTime}ms`);
+      debug('GetElementsNodeTree end');
     }),
   ]);
-  const endTime = Date.now();
-  debug(`parseContextFromWebPage end, cost: ${endTime - startTime}ms`);
-  const traverseStartTime = Date.now();
+  debug('ParseContextFromWebPage end');
+  debug('Traversing element tree');
   const webTree = traverseTree(tree!, (elementInfo) => {
     const { rect, id, content, attributes, indexId, isVisible } = elementInfo;
     return new WebElementInfo({
@@ -81,8 +78,7 @@ export async function parseContextFromWebPage(
       isVisible,
     });
   });
-  const traverseEndTime = Date.now();
-  debug(`traverseTree end, cost: ${traverseEndTime - traverseStartTime}ms`);
+  debug('TraverseTree end');
   assert(screenshotBase64!, 'screenshotBase64 is required');
 
   const size = await page.size();
@@ -90,13 +86,12 @@ export async function parseContextFromWebPage(
   debug(`size: ${size.width}x${size.height} dpr: ${size.dpr}`);
 
   if (size.dpr && size.dpr > 1) {
-    const resizeStartTime = Date.now();
+    debug('Resizing screenshot for high DPR display');
     screenshotBase64 = await resizeImgBase64(screenshotBase64, {
       width: size.width,
       height: size.height,
     });
-    const resizeEndTime = Date.now();
-    debug(`resizeImgBase64 end, cost: ${resizeEndTime - resizeStartTime}ms`);
+    debug('ResizeImgBase64 end');
   }
 
   return {
