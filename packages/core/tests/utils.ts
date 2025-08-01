@@ -1,7 +1,7 @@
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { callAiFn } from '@/ai-model/common';
-import { base64Encoded } from '@/image';
+import { localImg2Base64 } from '@/image';
 import Insight from '@/insight';
 import type { AIElementLocatorResponse, BaseElement, UIContext } from '@/types';
 import { NodeType } from '@midscene/shared/constants';
@@ -27,7 +27,7 @@ export function sleep(ms: number) {
 export function fakeInsight(content: string) {
   const screenshot = getFixture('baidu.png');
   const basicContext = {
-    screenshotBase64: base64Encoded(screenshot),
+    screenshotBase64: localImg2Base64(screenshot),
     size: { width: 1920, height: 1080 },
     content: [
       {

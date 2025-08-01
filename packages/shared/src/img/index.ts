@@ -2,13 +2,11 @@ export {
   imageInfo,
   imageInfoOfBase64,
   bufferFromBase64,
-  base64Encoded,
   isValidPNGImageBuffer,
 } from './info';
 export {
   resizeImg,
   resizeImgBase64,
-  transformImgPathToBase64,
   zoomForGPT4o,
   saveBase64Image,
   paddingToMatchBlock,
@@ -16,6 +14,8 @@ export {
   cropByRect,
   jimpFromBase64,
   jimpToBase64,
+  localImg2Base64,
+  httpImg2Base64,
 } from './transform';
 export { processImageElementInfo, compositeElementInfoImg } from './box-select';
 export { drawBoxOnImage, savePositionImg } from './draw-box';

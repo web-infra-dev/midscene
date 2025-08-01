@@ -1,7 +1,8 @@
 export {
   imageInfo,
   imageInfoOfBase64,
-  base64Encoded,
+  localImg2Base64,
+  httpImg2Base64,
   resizeImg,
   saveBase64Image,
   zoomForGPT4o,

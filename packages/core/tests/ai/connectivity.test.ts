@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { AIActionType } from '@/ai-model/common';
 import { call, callToGetJSONObject } from '@/ai-model/service-caller';
-import { base64Encoded } from '@/image';
+import { localImg2Base64 } from '@/image';
 import dotenv from 'dotenv';
 import { getFixture } from 'tests/utils';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
@@ -121,7 +121,7 @@ vi.setConfig({
               {
                 type: 'image_url',
                 image_url: {
-                  url: base64Encoded(imagePath),
+                  url: localImg2Base64(imagePath),
                   detail: 'high',
                 },
               },

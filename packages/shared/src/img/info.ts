@@ -1,6 +1,5 @@
 import assert from 'node:assert';
 import { Buffer } from 'node:buffer';
-import { readFileSync } from 'node:fs';
 import type Jimp from 'jimp';
 import getJimp from './get-jimp';
 
@@ -62,31 +61,6 @@ export async function imageInfoOfBase64(
 export async function bufferFromBase64(imageBase64: string): Promise<Buffer> {
   const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
   return Buffer.from(base64Data, 'base64');
-}
-
-/**
- * Encodes an image file to a base64 encoded string
- *
- * @param image The path of the image file
- * @param withHeader Determine whether to return data including the file header information, the default is true
- *
- * @returns The base64 encoded string of the image file, which may or may not include header information depending on the withHeader parameter
- *
- * @throws When the image type is not supported, an error will be thrown
- */
-export function base64Encoded(image: string, withHeader = true) {
-  // get base64 encoded image
-  const imageBuffer = readFileSync(image);
-  if (!withHeader) {
-    return imageBuffer.toString('base64');
-  }
-  if (image.endsWith('png')) {
-    return `data:image/png;base64,${imageBuffer.toString('base64')}`;
-  }
-  if (image.endsWith('jpg') || image.endsWith('jpeg')) {
-    return `data:image/jpeg;base64,${imageBuffer.toString('base64')}`;
-  }
-  throw new Error('unsupported image type');
 }
 
 /**

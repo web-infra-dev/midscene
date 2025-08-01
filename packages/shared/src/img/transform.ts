@@ -1,11 +1,13 @@
 import assert from 'node:assert';
 import { Buffer } from 'node:buffer';
-
+import { readFileSync } from 'node:fs';
 import getDebug from 'debug';
 import type Jimp from 'jimp';
 import type { Rect } from 'src/types';
 import getJimp from './get-jimp';
 const debugImg = getDebug('img');
+import path from 'node:path';
+
 /**
 /**
  * Saves a Base64-encoded image to a file
@@ -32,22 +34,6 @@ export async function saveBase64Image(options: {
   const image = await Jimp.read(imageBuffer);
   await image.writeAsync(outputPath);
   debugImg(`saveBase64Image done: ${options.outputPath}`);
-}
-
-/**
- * Transforms an image path into a base64-encoded string
- * @param inputPath - The path of the image file to be encoded
- * @returns A Promise that resolves to a base64-encoded string representing the image file
- */
-export async function transformImgPathToBase64(inputPath: string) {
-  // Use Jimp to process images and generate base64 data
-  debugImg(`transformImgPathToBase64 start: ${inputPath}`);
-  const Jimp = await getJimp();
-  const image = await Jimp.read(inputPath);
-  const buffer = await image.getBufferAsync(Jimp.MIME_JPEG);
-  const res = buffer.toString('base64');
-  debugImg(`transformImgPathToBase64 done: ${inputPath}`);
-  return res;
 }
 
 /**
@@ -225,3 +211,38 @@ export async function jimpToBase64(image: Jimp): Promise<string> {
   const Jimp = await getJimp();
   return image.getBase64Async(Jimp.MIME_JPEG);
 }
+
+export const httpImg2Base64 = async (url: string): Promise<string> => {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch image: ${url}`);
+  }
+  const contentType = response.headers.get('content-type');
+  if (!contentType) {
+    throw new Error(`Failed to fetch image: ${url}`);
+  }
+  assert(contentType.startsWith('image/'), `The url ${url} is not a image`);
+  const buffer = Buffer.from(await response.arrayBuffer());
+  return `data:${contentType};base64,${buffer.toString('base64')}`;
+};
+
+/**
+ * Convert image file to base64 string
+ * Because this method is synchronous, the npm package `sharp` cannot be used to detect the file type.
+ * TODO: convert to webp to reduce base64 size.
+ */
+export const localImg2Base64 = (
+  imgPath: string,
+  withoutHeader = false,
+): string => {
+  const body = readFileSync(imgPath).toString('base64');
+  if (withoutHeader) {
+    return body;
+  }
+
+  // Detect image type by extname.
+  const type = path.extname(imgPath).slice(1);
+  const finalType = type === 'svg' ? 'svg+xml' : type || 'jpg';
+
+  return `data:image/${finalType};base64,${body}`;
+};
