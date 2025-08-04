@@ -28,11 +28,11 @@ tasks:
       - aiTap: "搜索图标"
       - sleep: 3000
       - aiInput: "Coldplay"
-        locate: "Search input field"
+        locate: "底部Search input field"
       - sleep: 2000
       - aiKeyboardPress: "Enter"
       - sleep: 3000
       - aiWaitFor: "Search results are displayed"
-      - aiAction: "随机播放一首歌曲"
+      - aiAction: "播放第一首歌曲"
       - sleep: 3000
       - aiAction: "返回Home"
