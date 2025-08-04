@@ -16,7 +16,12 @@ import {
 } from '@midscene/shared/env';
 import { getRunningPkgInfo } from '@midscene/shared/fs';
 import { assert, logMsg } from '@midscene/shared/utils';
-import { escapeScriptTag, ifInBrowser, uuid } from '@midscene/shared/utils';
+import {
+  escapeScriptTag,
+  ifInBrowser,
+  ifInWorker,
+  uuid,
+} from '@midscene/shared/utils';
 import type { Rect, ReportDumpWithAttributes } from './types';
 
 let logEnvReady = false;
@@ -25,7 +30,12 @@ export const groupedActionDumpFileExt = 'web-dump.json';
 
 const reportInitializedMap = new Map<string, boolean>();
 
+declare const __DEV_REPORT_PATH__: string;
+
 function getReportTpl() {
+  if (__DEV_REPORT_PATH__) {
+    return fs.readFileSync(__DEV_REPORT_PATH__, 'utf-8');
+  }
   const reportTpl = 'REPLACE_ME_WITH_REPORT_HTML';
 
   return reportTpl;
@@ -52,7 +62,7 @@ export function insertScriptBeforeClosingHtml(
   const tailStr = buffer.toString('utf8');
   const htmlEndIdx = tailStr.lastIndexOf(htmlEndTag);
   if (htmlEndIdx === -1) {
-    throw new Error('No </html> found');
+    throw new Error(`No </html> found in file：${filePath}`);
   }
 
   // calculate the correct byte position: char position to byte position
@@ -127,7 +137,7 @@ export function writeDumpReport(
   dumpData: string | ReportDumpWithAttributes,
   appendReport?: boolean,
 ): string | null {
-  if (ifInBrowser) {
+  if (ifInBrowser || ifInWorker) {
     console.log('will not write report in browser');
     return null;
   }
@@ -174,7 +184,7 @@ export function writeLogFile(opts: {
   generateReport?: boolean;
   appendReport?: boolean;
 }) {
-  if (ifInBrowser) {
+  if (ifInBrowser || ifInWorker) {
     return '/mock/report.html';
   }
   const { fileName, fileExt, fileContent, type = 'dump' } = opts;
@@ -237,7 +247,7 @@ export function getTmpDir(): string | null {
 }
 
 export function getTmpFile(fileExtWithoutDot: string): string | null {
-  if (ifInBrowser) {
+  if (ifInBrowser || ifInWorker) {
     return null;
   }
   const tmpDir = getTmpDir();

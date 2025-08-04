@@ -1,9 +1,9 @@
 {
   "name": "midscene",
   "private": true,
-  "version": "0.23.0",
+  "version": "0.24.1",
   "scripts": {
-    "dev": "nx run-many --target=build:watch --exclude=android-playground,chrome-extension,@midscene/report,doc --verbose",
+    "dev": "nx run-many --target=build:watch --exclude=android-playground,chrome-extension,@midscene/report,doc --verbose --parallel=8",
     "build": "nx run-many --target=build --exclude=doc --verbose",
     "build:skip-cache": "nx run-many --target=build --exclude=doc --verbose --skip-nx-cache",
     "test": "nx run-many --target=test --projects=@midscene/core,@midscene/shared,@midscene/visualizer,@midscene/web,@midscene/cli,@midscene/android --verbose",

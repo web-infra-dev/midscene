@@ -65,11 +65,13 @@ export interface AIElementLocatorResponse {
     xpaths?: string[];
   }[];
   bbox?: [number, number, number, number];
+  isOrderSensitive?: boolean;
   errors?: string[];
 }
 
 export interface AIElementCoordinatesResponse {
   bbox: [number, number, number, number];
+  isOrderSensitive?: boolean;
   errors?: string[];
 }
 
@@ -156,6 +158,7 @@ export type LocateResultElement = {
     nodeType: NodeType;
     [key: string]: string;
   };
+  isOrderSensitive?: boolean;
 };
 
 export interface LocateResult {
@@ -189,9 +192,9 @@ export interface InsightDump extends DumpMeta {
   type: 'locate' | 'extract' | 'assert';
   logId: string;
   userQuery: {
-    element?: string;
+    element?: TUserPrompt;
     dataDemand?: InsightExtractParam;
-    assertion?: string;
+    assertion?: TUserPrompt;
   };
   matchedElement: BaseElement[];
   matchedRect?: Rect;
@@ -269,7 +272,9 @@ export interface PlanningAction<ParamType = any> {
     | 'Finished'
     | 'AndroidBackButton'
     | 'AndroidHomeButton'
-    | 'AndroidRecentAppsButton';
+    | 'AndroidRecentAppsButton'
+    | 'AndroidLongPress'
+    | 'AndroidPull';
   param: ParamType;
   locate?: PlanningLocateParam | null;
 }
@@ -304,7 +309,7 @@ export interface PlanningActionParamInputOrKeyPress {
 export type PlanningActionParamScroll = scrollParam;
 
 export interface PlanningActionParamAssert {
-  assertion: string;
+  assertion: TUserPrompt;
 }
 
 export interface PlanningActionParamSleep {
@@ -318,6 +323,19 @@ export interface PlanningActionParamError {
 export type PlanningActionParamWaitFor = AgentWaitForOpt & {
   assertion: string;
 };
+
+export interface PlanningActionParamAndroidLongPress {
+  x: number;
+  y: number;
+  duration?: number;
+}
+
+export interface PlanningActionParamAndroidPull {
+  direction: 'up' | 'down';
+  startPoint?: { x: number; y: number };
+  distance?: number;
+  duration?: number;
+}
 /**
  * misc
  */
@@ -412,7 +430,8 @@ export type ExecutionTask<
       : unknown
   > & {
     status: 'pending' | 'running' | 'finished' | 'failed' | 'cancelled';
-    error?: string;
+    error?: Error;
+    errorMessage?: string;
     errorStack?: string;
     timing?: {
       start: number;
@@ -578,3 +597,27 @@ export interface StreamingAIResponse {
   /** Whether the response was streamed */
   isStreamed: boolean;
 }
+
+export type TMultimodalPrompt = {
+  /**
+   * Support use image to inspect elements.
+   * The "images" field is an object that uses image name as key and image url as value.
+   * The image url can be a local path, a http link , or a base64 string.
+   */
+  images?: {
+    name: string;
+    url: string;
+  }[];
+  /**
+   * By default, the image url in the "images" filed starts with `https://` or `http://` will be directly sent to the LLM.
+   * In case the images are not accessible to the LLM (One common case is that image url is internal network only.), you can enable this option.
+   * Then image will be download and convert to base64 format.
+   */
+  convertHttpImage2Base64?: boolean;
+};
+
+export type TUserPrompt =
+  | string
+  | ({
+      prompt: string;
+    } & Partial<TMultimodalPrompt>);

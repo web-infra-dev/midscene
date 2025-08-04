@@ -1,13 +1,22 @@
 import assert from 'node:assert';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
+import type { TUserPrompt } from '@midscene/core';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
+import {
+  MIDSCENE_CACHE_MAX_FILENAME_LENGTH,
+  getAIConfigInNumber,
+} from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
-import { ifInBrowser } from '@midscene/shared/utils';
+import { ifInBrowser, ifInWorker } from '@midscene/shared/utils';
+import { generateHashId } from '@midscene/shared/utils';
 import yaml from 'js-yaml';
 import semver from 'semver';
 import { version } from '../../package.json';
 import { replaceIllegalPathCharsAndSpace } from './utils';
+
+const DEFAULT_CACHE_MAX_FILENAME_LENGTH = 200;
 
 export const debug = getDebug('cache');
 
@@ -19,7 +28,7 @@ export interface PlanningCache {
 
 export interface LocateCache {
   type: 'locate';
-  prompt: string;
+  prompt: TUserPrompt;
   xpaths: string[];
 }
 
@@ -55,12 +64,22 @@ export class TaskCache {
     cacheFilePath?: string,
   ) {
     assert(cacheId, 'cacheId is required');
-    this.cacheId = replaceIllegalPathCharsAndSpace(cacheId);
+    let safeCacheId = replaceIllegalPathCharsAndSpace(cacheId);
+    const cacheMaxFilenameLength =
+      getAIConfigInNumber(MIDSCENE_CACHE_MAX_FILENAME_LENGTH) ||
+      DEFAULT_CACHE_MAX_FILENAME_LENGTH;
+    if (Buffer.byteLength(safeCacheId, 'utf8') > cacheMaxFilenameLength) {
+      const prefix = safeCacheId.slice(0, 32);
+      const hash = generateHashId(undefined, safeCacheId);
+      safeCacheId = `${prefix}-${hash}`;
+    }
+    this.cacheId = safeCacheId;
 
-    this.cacheFilePath = ifInBrowser
-      ? undefined
-      : cacheFilePath ||
-        join(getMidsceneRunSubDir('cache'), `${this.cacheId}${cacheFileExt}`);
+    this.cacheFilePath =
+      ifInBrowser || ifInWorker
+        ? undefined
+        : cacheFilePath ||
+          join(getMidsceneRunSubDir('cache'), `${this.cacheId}${cacheFileExt}`);
     this.isCacheResultUsed = isCacheResultUsed;
 
     let cacheContent;
@@ -79,16 +98,18 @@ export class TaskCache {
   }
 
   matchCache(
-    prompt: string,
+    prompt: TUserPrompt,
     type: 'plan' | 'locate',
   ): MatchCacheResult<PlanningCache | LocateCache> | undefined {
     // Find the first unused matching cache
     for (let i = 0; i < this.cacheOriginalLength; i++) {
       const item = this.cache.caches[i];
-      const key = `${type}:${prompt}:${i}`;
+      const promptStr =
+        typeof prompt === 'string' ? prompt : JSON.stringify(prompt);
+      const key = `${type}:${promptStr}:${i}`;
       if (
         item.type === type &&
-        item.prompt === prompt &&
+        isDeepStrictEqual(item.prompt, prompt) &&
         !this.matchedCacheIndices.has(key)
       ) {
         this.matchedCacheIndices.add(key);
@@ -129,7 +150,9 @@ export class TaskCache {
       | undefined;
   }
 
-  matchLocateCache(prompt: string): MatchCacheResult<LocateCache> | undefined {
+  matchLocateCache(
+    prompt: TUserPrompt,
+  ): MatchCacheResult<LocateCache> | undefined {
     return this.matchCache(prompt, 'locate') as
       | MatchCacheResult<LocateCache>
       | undefined;
@@ -213,7 +236,20 @@ export class TaskCache {
         mkdirSync(dir, { recursive: true });
         debug('created cache directory: %s', dir);
       }
-      const yamlData = yaml.dump(this.cache);
+
+      // Sort caches to ensure plan entries come before locate entries for better readability
+      const sortedCaches = [...this.cache.caches].sort((a, b) => {
+        if (a.type === 'plan' && b.type === 'locate') return -1;
+        if (a.type === 'locate' && b.type === 'plan') return 1;
+        return 0;
+      });
+
+      const cacheToWrite = {
+        ...this.cache,
+        caches: sortedCaches,
+      };
+
+      const yamlData = yaml.dump(cacheToWrite);
       writeFileSync(this.cacheFilePath, yamlData);
       debug('cache flushed to file: %s', this.cacheFilePath);
     } catch (err) {

@@ -1,4 +1,5 @@
 export const tools = {
+  // Web-specific tools
   midscene_playwright_example: {
     name: 'midscene_playwright_example',
     description:
@@ -19,6 +20,13 @@ export const tools = {
     description:
       "Switches the browser's focus to the tab specified by its ID. Use midscene_get_tabs first to find the correct tab ID.",
   },
+  midscene_aiHover: {
+    name: 'midscene_aiHover',
+    description:
+      'Moves the mouse cursor to hover over an element identified by a natural language selector.',
+  },
+
+  // Common tools
   midscene_aiWaitFor: {
     name: 'midscene_aiWaitFor',
     description:
@@ -53,9 +61,26 @@ export const tools = {
     description:
       'Inputs text into a specified form field or element identified by a natural language selector.',
   },
-  midscene_aiHover: {
-    name: 'midscene_aiHover',
-    description:
-      'Moves the mouse cursor to hover over an element identified by a natural language selector.',
+
+  // Android-specific tools
+  midscene_android_connect: {
+    name: 'midscene_android_connect',
+    description: 'Connect to an Android device via ADB for automation',
+  },
+  midscene_android_launch: {
+    name: 'midscene_android_launch',
+    description: 'Launch an application or navigate to URL on Android device',
+  },
+  midscene_android_list_devices: {
+    name: 'midscene_android_list_devices',
+    description: 'List all connected Android devices available for automation',
+  },
+  midscene_android_back: {
+    name: 'midscene_android_back',
+    description: 'Press the back button on Android device',
+  },
+  midscene_android_home: {
+    name: 'midscene_android_home',
+    description: 'Press the home button on Android device',
   },
 };

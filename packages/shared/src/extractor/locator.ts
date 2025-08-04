@@ -1,10 +1,11 @@
 import type { ElementInfo } from '.';
-import { isButtonElement, isFormElement } from './dom-util';
+import type { Point } from '../types';
+import { isSvgElement } from './dom-util';
 import { getNodeFromCacheList } from './util';
 import { getRect, isElementPartiallyInViewport } from './util';
 import { collectElementInfo } from './web-extractor';
 
-const getElementIndex = (element: Element): number => {
+const getElementXpathIndex = (element: Element): number => {
   let index = 1;
   let prev = element.previousElementSibling;
 
@@ -18,89 +19,91 @@ const getElementIndex = (element: Element): number => {
   return index;
 };
 
-// Get the index of a text node among its siblings of the same type
-const getTextNodeIndex = (textNode: Node): number => {
-  let index = 1;
-  let current = textNode.previousSibling;
-
-  while (current) {
-    if (current.nodeType === Node.TEXT_NODE) {
-      index++;
-    }
-    current = current.previousSibling;
+const normalizeXpathText = (text: string): string => {
+  if (typeof text !== 'string') {
+    return '';
   }
 
-  return index;
+  return text.replace(/\s+/g, ' ').trim();
 };
 
-// Helper function to create normalize-space condition
-const createNormalizeSpaceCondition = (textContent: string): string => {
-  return `[normalize-space()="${textContent}"]`;
-};
+const buildCurrentElementXpath = (
+  element: Element,
+  isOrderSensitive: boolean,
+  isLeafElement: boolean,
+): string => {
+  // Build parent path - inline the buildParentXpath logic
+  const parentPath = element.parentNode
+    ? getElementXpath(element.parentNode, isOrderSensitive)
+    : '';
+  const prefix = parentPath ? `${parentPath}/` : '/';
+  const tagName = element.nodeName.toLowerCase();
+  const textContent = element.textContent?.trim();
 
-// Helper function to add text content to xpath if applicable
-const addTextContentToXPath = (el: Node, baseXPath: string): string => {
-  const textContent = el.textContent?.trim();
-  if (textContent && (isButtonElement(el) || isFormElement(el))) {
-    // add text content for leaf elements before text node
-    return `${baseXPath}${createNormalizeSpaceCondition(textContent)}`;
+  // Order-sensitive mode: always use index
+  if (isOrderSensitive) {
+    const index = getElementXpathIndex(element);
+    return `${prefix}${tagName}[${index}]`;
   }
-  return baseXPath;
+
+  // Order-insensitive mode:
+  // - Leaf elements: try text first, fallback to index if no text
+  // - Non-leaf elements: always use index
+  if (isLeafElement && textContent) {
+    return `${prefix}${tagName}[normalize-space()="${normalizeXpathText(textContent)}"]`;
+  }
+
+  // Fallback to index (for non-leaf elements or leaf elements without text)
+  const index = getElementXpathIndex(element);
+  return `${prefix}${tagName}[${index}]`;
 };
 
-export const getElementXPath = (element: Node): string => {
-  // deal with text node
+export const getElementXpath = (
+  element: Node,
+  isOrderSensitive = false,
+  isLeafElement = false,
+): string => {
+  // process text node
   if (element.nodeType === Node.TEXT_NODE) {
-    // get parent node xpath
     const parentNode = element.parentNode;
     if (parentNode && parentNode.nodeType === Node.ELEMENT_NODE) {
-      const parentXPath = getElementXPath(parentNode);
-      const textIndex = getTextNodeIndex(element);
+      // For text nodes, treat parent as leaf element to enable text matching
+      const parentXPath = getElementXpath(parentNode, isOrderSensitive, true);
       const textContent = element.textContent?.trim();
-
-      // If we have text content, include it in the xpath for better matching
       if (textContent) {
-        return `${parentXPath}/text()[${textIndex}]${createNormalizeSpaceCondition(textContent)}`;
+        return `${parentXPath}/text()[normalize-space()="${normalizeXpathText(textContent)}"]`;
       }
-      return `${parentXPath}/text()[${textIndex}]`;
+      return `${parentXPath}/text()`;
     }
     return '';
   }
 
+  // process element node
   if (element.nodeType !== Node.ELEMENT_NODE) return '';
 
+  // process element node - at this point, element should be an Element
   const el = element as Element;
 
-  // handle html and body tags
-  if (el === document.documentElement) {
-    return '/html';
+  // special element handling
+  if (el === document.documentElement) return '/html';
+  if (el === document.body) return '/html/body';
+
+  // if the element is any SVG element, find the nearest non-SVG ancestor
+  if (isSvgElement(el)) {
+    let parent = el.parentNode;
+    while (parent && parent.nodeType === Node.ELEMENT_NODE) {
+      if (!isSvgElement(parent)) {
+        return getElementXpath(parent, isOrderSensitive, isLeafElement);
+      }
+      parent = parent.parentNode;
+    }
+    // fallback if no non-SVG parent found
+    return getElementXpath(el.parentNode!, isOrderSensitive, isLeafElement);
   }
 
-  if (el === document.body) {
-    return '/html/body';
-  }
-
-  const index = getElementIndex(el);
-  const tagName = el.nodeName.toLowerCase();
-
-  // If no parent node, return just the tag name
-  if (!el.parentNode) {
-    const baseXPath = `/${tagName}`;
-    return addTextContentToXPath(el, baseXPath);
-  }
-
-  const parentXPath = getElementXPath(el.parentNode);
-  const baseXPath = `${parentXPath}/${tagName}[${index}]`;
-  return addTextContentToXPath(el, baseXPath);
+  // decide which format to use
+  return buildCurrentElementXpath(el, isOrderSensitive, isLeafElement);
 };
-
-function generateXPaths(node: Node | null): string[] {
-  if (!node) return [];
-
-  const fullXPath = getElementXPath(node);
-
-  return [fullXPath];
-}
 
 export function getXpathsById(id: string): string[] | null {
   const node = getNodeFromCacheList(id);
@@ -109,7 +112,22 @@ export function getXpathsById(id: string): string[] | null {
     return null;
   }
 
-  return generateXPaths(node);
+  const fullXPath = getElementXpath(node, false, true);
+  return [fullXPath];
+}
+
+export function getXpathsByPoint(
+  point: Point,
+  isOrderSensitive: boolean,
+): string[] | null {
+  const element = document.elementFromPoint(point.left, point.top);
+
+  if (!element) {
+    return null;
+  }
+
+  const fullXPath = getElementXpath(element, isOrderSensitive, true);
+  return [fullXPath];
 }
 
 export function getNodeInfoByXpath(xpath: string): Node | null {
@@ -147,8 +165,15 @@ export function getElementInfoByXpath(xpath: string): ElementInfo | null {
     }
   }
 
-  return collectElementInfo(node, window, document, 1, {
-    left: 0,
-    top: 0,
-  });
+  return collectElementInfo(
+    node,
+    window,
+    document,
+    1,
+    {
+      left: 0,
+      top: 0,
+    },
+    true,
+  );
 }

@@ -28,11 +28,23 @@ export interface AndroidDevicePage extends AbstractPage {
   scrollRight(distance?: number): Promise<void>;
 
   getXpathsById(id: string): Promise<string[]>;
+  getXpathsByPoint(point: Point, isOrderSensitive: boolean): Promise<string[]>;
   getElementInfoByXpath(xpath: string): Promise<ElementInfo>;
 
   back(): Promise<void>;
   home(): Promise<void>;
   recentApps(): Promise<void>;
+  longPress(x: number, y: number, duration?: number): Promise<void>;
+  pullDown(
+    startPoint?: Point,
+    distance?: number,
+    duration?: number,
+  ): Promise<void>;
+  pullUp(
+    startPoint?: Point,
+    distance?: number,
+    duration?: number,
+  ): Promise<void>;
 }
 
 export type AndroidDeviceInputOpt = {

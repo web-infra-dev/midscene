@@ -1,9 +1,9 @@
 export {
   imageInfo,
   imageInfoOfBase64,
-  base64Encoded,
+  localImg2Base64,
+  httpImg2Base64,
   resizeImg,
-  transformImgPathToBase64,
   saveBase64Image,
   zoomForGPT4o,
 } from '@midscene/shared/img';

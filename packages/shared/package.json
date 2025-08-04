@@ -1,6 +1,6 @@
 {
   "name": "@midscene/shared",
-  "version": "0.23.0",
+  "version": "0.24.1",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "types": "./dist/types/index.d.ts",
@@ -38,11 +38,11 @@
   },
   "files": ["dist", "src", "README.md"],
   "scripts": {
-    "dev": "modern dev",
-    "build": "npm run build:pkg && npm run build:script",
+    "dev": "npm run build:watch",
+    "build": "npm run build:script && npm run build:pkg",
     "build:pkg": "modern build -c ./modern.config.ts",
     "build:script": "modern build -c ./modern.inspect.config.ts",
-    "build:watch": "modern build -w",
+    "build:watch": "npm run build:script && modern build -w --no-clear",
     "reset": "rimraf ./**/node_modules",
     "lint": "modern lint",
     "bump": "modern bump",

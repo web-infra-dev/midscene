@@ -31,7 +31,7 @@ import { getDebug } from '@midscene/shared/logger';
 
 export type AIArgs = [
   ChatCompletionSystemMessageParam,
-  ChatCompletionUserMessageParam,
+  ...ChatCompletionUserMessageParam[],
 ];
 
 export enum AIActionType {
@@ -286,7 +286,7 @@ export function mergeRects(rects: Rect[]) {
 
 // expand the search area to at least 300 x 300, or add a default padding
 export function expandSearchArea(rect: Rect, screenSize: Size) {
-  const minEdgeSize = 300;
+  const minEdgeSize = vlLocateMode() === 'doubao-vision' ? 500 : 300;
   const defaultPadding = 160;
 
   const paddingSizeHorizontal =
@@ -380,7 +380,9 @@ export function buildYamlFlowFromPlans(
     } else if (
       type === 'AndroidBackButton' ||
       type === 'AndroidHomeButton' ||
-      type === 'AndroidRecentAppsButton'
+      type === 'AndroidRecentAppsButton' ||
+      type === 'AndroidLongPress' ||
+      type === 'AndroidPull'
     ) {
       // not implemented in yaml yet
     } else if (

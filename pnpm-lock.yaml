@@ -634,6 +634,9 @@ importers:
         specifier: 24.2.0
         version: 24.2.0(typescript@5.8.3)
     devDependencies:
+      '@midscene/android':
+        specifier: workspace:*
+        version: link:../android
       '@midscene/core':
         specifier: workspace:*
         version: link:../core

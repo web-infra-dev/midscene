@@ -10,6 +10,8 @@ import type {
   InsightExtractOption,
   Rect,
   ReferenceImage,
+  TMultimodalPrompt,
+  TUserPrompt,
   UIContext,
 } from '@/types';
 import {
@@ -18,7 +20,11 @@ import {
   getAIConfigInBoolean,
   vlLocateMode,
 } from '@midscene/shared/env';
-import { cropByRect, paddingToMatchBlockByBase64 } from '@midscene/shared/img';
+import {
+  cropByRect,
+  paddingToMatchBlockByBase64,
+  preProcessImageUrl,
+} from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type {
@@ -56,17 +62,73 @@ import { callToGetJSONObject } from './service-caller/index';
 
 export type AIArgs = [
   ChatCompletionSystemMessageParam,
-  ChatCompletionUserMessageParam,
+  ...ChatCompletionUserMessageParam[],
 ];
 
 const debugInspect = getDebug('ai:inspect');
 const debugSection = getDebug('ai:section');
 
+const extraTextFromUserPrompt = (prompt: TUserPrompt): string => {
+  if (typeof prompt === 'string') {
+    return prompt;
+  } else {
+    return prompt.prompt;
+  }
+};
+
+const promptsToChatParam = async (
+  multimodalPrompt: TMultimodalPrompt,
+): Promise<ChatCompletionUserMessageParam[]> => {
+  const msgs: ChatCompletionUserMessageParam[] = [];
+  if (multimodalPrompt?.images?.length) {
+    msgs.push({
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'Next, I will provide all the reference images.',
+        },
+      ],
+    });
+
+    for (const item of multimodalPrompt.images) {
+      const base64 = await preProcessImageUrl(
+        item.url,
+        !!multimodalPrompt.convertHttpImage2Base64,
+      );
+
+      msgs.push({
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: `reference image ${item.name}:`,
+          },
+        ],
+      });
+
+      msgs.push({
+        role: 'user',
+        content: [
+          {
+            type: 'image_url',
+            image_url: {
+              url: base64,
+              detail: 'high',
+            },
+          },
+        ],
+      });
+    }
+  }
+  return msgs;
+};
+
 export async function AiLocateElement<
   ElementType extends BaseElement = BaseElement,
 >(options: {
   context: UIContext<ElementType>;
-  targetElementDescription: string;
+  targetElementDescription: TUserPrompt;
   referenceImage?: ReferenceImage;
   callAI?: typeof callAiFn<AIElementResponse | [number, number]>;
   searchConfig?: Awaited<ReturnType<typeof AiLocateSection>>;
@@ -76,6 +138,7 @@ export async function AiLocateElement<
   rawResponse: string;
   elementById: ElementById;
   usage?: AIUsageInfo;
+  isOrderSensitive?: boolean;
 }> {
   const { context, targetElementDescription, callAI } = options;
   const { screenshotBase64 } = context;
@@ -89,7 +152,7 @@ export async function AiLocateElement<
 
   const userInstructionPrompt = await findElementPrompt.format({
     pageDescription: description,
-    targetElementDescription,
+    targetElementDescription: extraTextFromUserPrompt(targetElementDescription),
   });
   const systemPrompt = systemPromptToLocateElement(vlLocateMode());
 
@@ -116,15 +179,6 @@ export async function AiLocateElement<
     );
   }
 
-  let referenceImagePayload: string | undefined;
-  if (options.referenceImage?.rect && options.referenceImage.base64) {
-    referenceImagePayload = await cropByRect(
-      options.referenceImage.base64,
-      options.referenceImage.rect,
-      getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL),
-    );
-  }
-
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
     {
@@ -144,6 +198,14 @@ export async function AiLocateElement<
       ],
     },
   ];
+
+  if (typeof targetElementDescription !== 'string') {
+    const addOns = await promptsToChatParam({
+      images: targetElementDescription.images,
+      convertHttpImage2Base64: targetElementDescription.convertHttpImage2Base64,
+    });
+    msgs.push(...addOns);
+  }
 
   const callAIFn =
     callAI || callToGetJSONObject<AIElementResponse | [number, number]>;
@@ -208,12 +270,18 @@ export async function AiLocateElement<
     rawResponse,
     elementById,
     usage: res.usage,
+    isOrderSensitive:
+      typeof res.content === 'object' &&
+      res.content !== null &&
+      'isOrderSensitive' in res.content
+        ? (res.content as any).isOrderSensitive
+        : undefined,
   };
 }
 
 export async function AiLocateSection(options: {
   context: UIContext<BaseElement>;
-  sectionDescription: string;
+  sectionDescription: TUserPrompt;
   callAI?: typeof callAiFn<AISectionLocatorResponse>;
 }): Promise<{
   rect?: Rect;
@@ -227,7 +295,7 @@ export async function AiLocateSection(options: {
 
   const systemPrompt = systemPromptToLocateSection(vlLocateMode());
   const sectionLocatorInstructionText = await sectionLocatorInstruction.format({
-    sectionDescription,
+    sectionDescription: extraTextFromUserPrompt(sectionDescription),
   });
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
@@ -248,6 +316,14 @@ export async function AiLocateSection(options: {
       ],
     },
   ];
+
+  if (typeof sectionDescription !== 'string') {
+    const addOns = await promptsToChatParam({
+      images: sectionDescription.images,
+      convertHttpImage2Base64: sectionDescription.convertHttpImage2Base64,
+    });
+    msgs.push(...addOns);
+  }
 
   const result = await callAiFn<AISectionLocatorResponse>(
     msgs,
@@ -306,10 +382,11 @@ export async function AiExtractElementInfo<
   ElementType extends BaseElement = BaseElement,
 >(options: {
   dataQuery: string | Record<string, string>;
+  multimodalPrompt?: TMultimodalPrompt;
   context: UIContext<ElementType>;
   extractOption?: InsightExtractOption;
 }) {
-  const { dataQuery, context, extractOption } = options;
+  const { dataQuery, context, extractOption, multimodalPrompt } = options;
   const systemPrompt = systemPromptToExtract();
 
   const { screenshotBase64 } = context;
@@ -350,6 +427,14 @@ export async function AiExtractElementInfo<
     },
   ];
 
+  if (multimodalPrompt) {
+    const addOns = await promptsToChatParam({
+      images: multimodalPrompt.images,
+      convertHttpImage2Base64: multimodalPrompt.convertHttpImage2Base64,
+    });
+    msgs.push(...addOns);
+  }
+
   const result = await callAiFn<AIDataExtractionResponse<T>>(
     msgs,
     AIActionType.EXTRACT_DATA,
@@ -363,16 +448,18 @@ export async function AiExtractElementInfo<
 
 export async function AiAssert<
   ElementType extends BaseElement = BaseElement,
->(options: { assertion: string; context: UIContext<ElementType> }) {
+>(options: { assertion: TUserPrompt; context: UIContext<ElementType> }) {
   const { assertion, context } = options;
 
-  assert(assertion, 'assertion should be a string');
+  assert(assertion, 'assertion should not be empty');
 
   const { screenshotBase64 } = context;
 
   const systemPrompt = systemPromptToAssert({
     isUITars: getAIConfigInBoolean(MIDSCENE_USE_VLM_UI_TARS),
   });
+
+  const assertionText = extraTextFromUserPrompt(assertion);
 
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
@@ -391,13 +478,21 @@ export async function AiAssert<
           text: `
 Here is the assertion. Please tell whether it is truthy according to the screenshot.
 =====================================
-${assertion}
+${assertionText}
 =====================================
   `,
         },
       ],
     },
   ];
+
+  if (typeof assertion !== 'string') {
+    const addOns = await promptsToChatParam({
+      images: assertion.images,
+      convertHttpImage2Base64: assertion.convertHttpImage2Base64,
+    });
+    msgs.push(...addOns);
+  }
 
   const { content: assertResult, usage } = await callAiFn<AIAssertionResponse>(
     msgs,

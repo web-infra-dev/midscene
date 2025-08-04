@@ -46,6 +46,10 @@ export default class StaticPage implements AbstractPage {
     return ThrowNotImplemented('getXpathsById');
   }
 
+  async getXpathsByPoint(point: Point) {
+    return ThrowNotImplemented('getXpathsByPoint');
+  }
+
   async getElementInfoByXpath(xpath: string) {
     return ThrowNotImplemented('getElementInfoByXpath');
   }

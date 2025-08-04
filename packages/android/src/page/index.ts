@@ -33,7 +33,6 @@ export type AndroidDeviceOpt = {
 
 export class AndroidDevice implements AndroidDevicePage {
   private deviceId: string;
-  private screenSize: Size | null = null;
   private yadbPushed = false;
   private devicePixelRatio = 1;
   private adb: ADB | null = null;
@@ -259,10 +258,33 @@ ${Object.keys(size)
       const orientationMatch = orientationStdout.match(
         /SurfaceOrientation:\s*(\d)/,
       );
-      orientation = orientationMatch ? Number(orientationMatch[1]) : 0;
+      if (!orientationMatch) {
+        throw new Error('Failed to get orientation from input');
+      }
+
+      orientation = Number(orientationMatch[1]);
+
       debugPage(`Screen orientation: ${orientation}`);
     } catch (e) {
-      debugPage('Failed to get orientation, default to 0');
+      debugPage('Failed to get orientation from input, try display');
+      try {
+        const orientationStdout = await adb.shell(
+          'dumpsys display | grep mCurrentOrientation',
+        );
+        const orientationMatch = orientationStdout.match(
+          /mCurrentOrientation=(\d)/,
+        );
+        if (!orientationMatch) {
+          throw new Error('Failed to get orientation from display');
+        }
+
+        orientation = Number(orientationMatch[1]);
+
+        debugPage(`Screen orientation (fallback): ${orientation}`);
+      } catch (e2) {
+        orientation = 0;
+        debugPage('Failed to get orientation from display, default to 0');
+      }
     }
 
     if (size.override || size.physical) {
@@ -273,10 +295,6 @@ ${Object.keys(size)
   }
 
   async size(): Promise<Size> {
-    if (this.screenSize) {
-      return this.screenSize;
-    }
-
     const adb = await this.getAdb();
 
     // Use custom getScreenSize method instead of adb.getScreenSize()
@@ -307,13 +325,11 @@ ${Object.keys(size)
       height,
     );
 
-    this.screenSize = {
+    return {
       width: logicalWidth,
       height: logicalHeight,
       dpr: this.devicePixelRatio,
     };
-
-    return this.screenSize;
   }
 
   private adjustCoordinates(x: number, y: number): { x: number; y: number } {
@@ -571,7 +587,9 @@ ${Object.keys(size)
     // Push the YADB tool to the device only once
     if (!this.yadbPushed) {
       const adb = await this.getAdb();
-      const yadbBin = path.join(__dirname, '../../bin/yadb');
+      // Use a more reliable path resolution method
+      const androidPkgJson = require.resolve('@midscene/android/package.json');
+      const yadbBin = path.join(path.dirname(androidPkgJson), 'bin', 'yadb');
       await adb.push(yadbBin, '/data/local/tmp');
       this.yadbPushed = true;
     }
@@ -743,7 +761,6 @@ ${Object.keys(size)
     }
 
     this.connectingAdb = null;
-    this.screenSize = null;
     this.yadbPushed = false;
   }
 
@@ -762,7 +779,81 @@ ${Object.keys(size)
     await adb.shell('input keyevent 187');
   }
 
+  async longPress(x: number, y: number, duration = 1000): Promise<void> {
+    const adb = await this.getAdb();
+
+    // Use adjusted coordinates
+    const { x: adjustedX, y: adjustedY } = this.adjustCoordinates(x, y);
+    await adb.shell(
+      `input swipe ${adjustedX} ${adjustedY} ${adjustedX} ${adjustedY} ${duration}`,
+    );
+  }
+
+  async pullDown(
+    startPoint?: Point,
+    distance?: number,
+    duration = 800,
+  ): Promise<void> {
+    const { width, height } = await this.size();
+
+    // Default start point is near top of screen (but not too close to edge)
+    const start = startPoint
+      ? { x: startPoint.left, y: startPoint.top }
+      : { x: width / 2, y: height * 0.15 };
+
+    // Default distance is larger to ensure refresh is triggered
+    const pullDistance = distance || height * 0.5;
+    const end = { x: start.x, y: start.y + pullDistance };
+
+    // Use custom drag with specified duration for better pull-to-refresh detection
+    await this.pullDrag(start, end, duration);
+    await sleep(200); // Give more time for refresh to start
+  }
+
+  private async pullDrag(
+    from: { x: number; y: number },
+    to: { x: number; y: number },
+    duration: number,
+  ): Promise<void> {
+    const adb = await this.getAdb();
+
+    // Use adjusted coordinates
+    const { x: fromX, y: fromY } = this.adjustCoordinates(from.x, from.y);
+    const { x: toX, y: toY } = this.adjustCoordinates(to.x, to.y);
+
+    // Use the specified duration for better pull gesture recognition
+    await adb.shell(`input swipe ${fromX} ${fromY} ${toX} ${toY} ${duration}`);
+  }
+
+  async pullUp(
+    startPoint?: Point,
+    distance?: number,
+    duration = 600,
+  ): Promise<void> {
+    const { width, height } = await this.size();
+
+    // Default start point is bottom center of screen
+    const start = startPoint
+      ? { x: startPoint.left, y: startPoint.top }
+      : { x: width / 2, y: height * 0.85 };
+
+    // Default distance is 1/3 of screen height
+    const pullDistance = distance || height * 0.4;
+    const end = { x: start.x, y: start.y - pullDistance };
+
+    // Use pullDrag for consistent pull gesture handling
+    await this.pullDrag(start, end, duration);
+    await sleep(100);
+  }
+
   async getXpathsById(id: string): Promise<string[]> {
+    throw new Error('Not implemented');
+  }
+
+  async getXpathsByPoint(
+    point: Point,
+    isOrderSensitive: boolean,
+  ): Promise<string[]> {
     throw new Error('Not implemented');
   }
 

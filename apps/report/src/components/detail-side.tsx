@@ -444,7 +444,9 @@ const DetailSide = (): JSX.Element => {
         });
       }
 
-      outputDataContent = <Timeline items={timelineData} />;
+      outputDataContent = (
+        <Timeline items={timelineData} className="detail-side-timeline" />
+      );
     }
   } else {
     let data;
@@ -475,7 +477,7 @@ const DetailSide = (): JSX.Element => {
   return (
     <div className="detail-side">
       <div className="info-tabs">
-        <div className="info-tab active">Information</div>
+        <div className="info-tab">Information</div>
       </div>
       <div className="info-content">
         <details open>

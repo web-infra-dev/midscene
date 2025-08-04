@@ -34,6 +34,8 @@ The user will give you a screenshot, the contents of it (optional), and some dat
 
 If a key specifies a JSON data type (such as Number, String, Boolean, Object, Array), ensure the returned value strictly matches that data type.
 
+If the user provides multiple reference images, please carefully review the reference images with the screenshot and provide the correct answer for <DATA_DEMAND>.
+
 Return in the following JSON format:
 {
   data: any, // the extracted data. Make sure both the value and scheme meet the DATA_DEMAND. If you want to write some description in this field, use the same language as the DATA_DEMAND.
@@ -112,6 +114,7 @@ You are an expert in software page image (2D) and page element text analysis.
 ## Objective:
 - Identify elements in screenshots and text that match the user's description.
 - Return JSON data containing the selection reason and element ID.
+- Determine whether the user's description is order-sensitive (e.g., contains phrases like 'the third item in the list', 'the last button', etc.).
 
 ## Skills:
 - Image analysis and recognition
@@ -123,6 +126,7 @@ You are an expert in software page image (2D) and page element text analysis.
 2. Based on the user's description, locate the target element ID in the list of element descriptions and the screenshot.
 3. Found the required number of elements
 4. Return JSON data containing the selection reason and element ID.
+5. Judge whether the user's description is order-sensitive (see below for definition and examples).
 
 ## Constraints:
 - Strictly adhere to the specified location when describing the required element; do not select elements from other locations.
@@ -131,6 +135,10 @@ You are an expert in software page image (2D) and page element text analysis.
 - If no elements are found, the "elements" array should be empty.
 - The returned data must conform to the specified JSON format.
 - The returned value id information must use the id from element info (important: **use id not indexId, id is hash content**)
+
+## Order-Sensitive Definition:
+- If the description contains phrases like "the third item in the list", "the last button", "the first input box", "the second row", etc., it is order-sensitive (isOrderSensitive = true).
+- If the description is like "confirm button", "search box", "password input", etc., it is not order-sensitive (isOrderSensitive = false).
 
 ## Output Format:
 
@@ -147,6 +155,7 @@ Please return the result in JSON format as follows:
     }
     // More elements...
   ],
+  "isOrderSensitive": true, // or false, depending on the user's description
   "errors": [] // Array of strings containing any error messages
 }
 \`\`\`
@@ -235,6 +244,7 @@ Output Example:
       "id": "1231"
     }
   ],
+  "isOrderSensitive": true,
   "errors": []
 }
 \`\`\`
@@ -250,31 +260,47 @@ You are an expert in software testing.
 ## Objective:
 - Identify elements in screenshots and text that match the user's description.
 - Give the coordinates of the element that matches the user's description best in the screenshot.
+- Determine whether the user's description is order-sensitive (e.g., contains phrases like 'the third item in the list', 'the last button', etc.).
 
 ## Output Format:
 \`\`\`json
 {
   "bbox": [number, number, number, number],  // 2d bounding box as [ymin, xmin, ymax, xmax]
-  "errors"?: string[]
+  "errors"?: string[],
+  "isOrderSensitive": boolean // Whether the targetElementDescription is order-sensitive (true/false)
 }
 \`\`\`
 
 Fields:
 * \`bbox\` is the bounding box of the element that matches the user's description best in the screenshot
+* \`isOrderSensitive\` is a boolean indicating whether the user's description is order-sensitive (true/false)
 * \`errors\` is an optional array of error messages (if any)
 
-For example, when an element is found:
+Order-sensitive means the description contains phrases like:
+- "the third item in the list"
+- "the last button"
+- "the first input box"
+- "the second row"
+
+Not order-sensitive means the description is like:
+- "confirm button"
+- "search box"
+- "password input"
+
+For example, when an element is found and the description is order-sensitive:
 \`\`\`json
 {
   "bbox": [100, 100, 200, 200],
+  "isOrderSensitive": true,
   "errors": []
 }
 \`\`\`
 
-When no element is found:
+When no element is found and the description is not order-sensitive:
 \`\`\`json
 {
   "bbox": [],
+  "isOrderSensitive": false,
   "errors": ["I can see ..., but {some element} is not found"]
 }
 \`\`\`
@@ -289,31 +315,47 @@ You are an expert in software testing.
 ## Objective:
 - Identify elements in screenshots and text that match the user's description.
 - Give the coordinates of the element that matches the user's description best in the screenshot.
+- Determine whether the user's description is order-sensitive (e.g., contains phrases like 'the third item in the list', 'the last button', etc.).
 
 ## Output Format:
 \`\`\`json
 {
   "bbox": [number, number, number, number],  // 2d bounding box as [xmin, ymin, xmax, ymax]
-  "errors"?: string[]
+  "errors"?: string[],
+  "isOrderSensitive": boolean // Whether the targetElementDescription is order-sensitive (true/false)
 }
 \`\`\`
 
 Fields:
 * \`bbox\` is the bounding box of the element that matches the user's description best in the screenshot
+* \`isOrderSensitive\` is a boolean indicating whether the user's description is order-sensitive (true/false)
 * \`errors\` is an optional array of error messages (if any)
 
-For example, when an element is found:
+Order-sensitive means the description contains phrases like:
+- "the third item in the list"
+- "the last button"
+- "the first input box"
+- "the second row"
+
+Not order-sensitive means the description is like:
+- "confirm button"
+- "search box"
+- "password input"
+
+For example, when an element is found and the description is order-sensitive:
 \`\`\`json
 {
   "bbox": [100, 100, 200, 200],
+  "isOrderSensitive": true,
   "errors": []
 }
 \`\`\`
 
-When no element is found:
+When no element is found and the description is not order-sensitive:
 \`\`\`json
 {
   "bbox": [],
+  "isOrderSensitive": false,
   "errors": ["I can see ..., but {some element} is not found"]
 }
 \`\`\`
@@ -443,7 +485,7 @@ exports[`system prompts > planning - 4o - response format 1`] = `
                 "type": "string",
               },
               "type": {
-                "description": "Type of action, one of "Tap", "RightClick", "Hover" , "Input", "KeyboardPress", "Scroll", "ExpectedFalsyCondition", "Sleep", "AndroidBackButton", "AndroidHomeButton", "AndroidRecentAppsButton"",
+                "description": "Type of action, one of "Tap", "RightClick", "Hover" , "Input", "KeyboardPress", "Scroll", "ExpectedFalsyCondition", "Sleep", "AndroidBackButton", "AndroidHomeButton", "AndroidRecentAppsButton", "AndroidLongPress"",
                 "type": "string",
               },
             },
@@ -643,7 +685,7 @@ Target: User will give you a screenshot, an instruction and some previous logs i
 
 Restriction:
 - Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
-- Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are Tap, Hover, Input, KeyboardPress, Scroll, AndroidBackButton, AndroidHomeButton, AndroidRecentAppsButton.
+- Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are Tap, Hover, Input, KeyboardPress, Scroll, AndroidBackButton, AndroidHomeButton, AndroidRecentAppsButton, AndroidLongPress, AndroidPull.
 - Don't repeat actions in the previous logs.
 - Bbox is the bounding box of the element to be located. It's an array of 4 numbers, representing 2d bounding box as [xmin, ymin, xmax, ymax].
 
@@ -657,6 +699,8 @@ Supporting actions:
 - AndroidBackButton: { type: "AndroidBackButton", param: {} }
 - AndroidHomeButton: { type: "AndroidHomeButton", param: {} }
 - AndroidRecentAppsButton: { type: "AndroidRecentAppsButton", param: {} }
+- AndroidLongPress: { type: "AndroidLongPress", param: { x: number, y: number, duration?: number } }
+- AndroidPull: { type: "AndroidPull", param: { direction: 'up' | 'down', startPoint?: { x: number, y: number }, distance?: number, duration?: number } } // Pull down to refresh (direction: 'down') or pull up to load more (direction: 'up')
 
 Field description:
 * The \`prompt\` field inside the \`locate\` field is a short description that could be used to locate the element.

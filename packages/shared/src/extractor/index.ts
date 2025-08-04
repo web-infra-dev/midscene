@@ -39,9 +39,10 @@ export { setNodeHashCacheListOnWindow, getNodeFromCacheList } from './util';
 
 export {
   getXpathsById,
+  getXpathsByPoint,
   getNodeInfoByXpath,
   getElementInfoByXpath,
-  getElementXPath,
+  getElementXpath,
 } from './locator';
 
 export { generateElementByPosition } from './dom-util';

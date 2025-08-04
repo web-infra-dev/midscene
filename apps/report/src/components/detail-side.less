@@ -36,10 +36,14 @@
     }
   }
 
+  .detail-side-timeline {
+    margin-left: 20px;
+  }
+
   details {
     summary {
-      height: 34px;
-      line-height: 34px;
+      height: 40px;
+      line-height: 40px;
       color: rgba(0, 0, 0, 0.85);
       font-size: 16px;
       font-weight: 500;
@@ -93,7 +97,8 @@
   }
 
   .meta-kv {
-    overflow: scroll;
+    word-wrap: break-word;
+    padding-bottom: 5px;
 
     .meta {
       box-sizing: border-box;
@@ -120,9 +125,7 @@
     margin-bottom: 10px;
 
     .item {
-      padding: 16px @side-horizontal-padding @side-horizontal-padding;
       transition: .1s;
-      border: 1px solid #DDD;
       border-radius: @subSpacing;
       margin-bottom: @side-vertical-spacing;
       position: relative;
@@ -153,9 +156,10 @@
     }
 
     .title {
-      font-size: 18px;
-      font-weight: bold;
-      margin-bottom: @subSpacing;
+      color: #00000073;
+      font-size: 14px;
+      display: block;
+      padding-left: 20px;
 
       .title-tag {
         display: inline-block;
@@ -167,9 +171,10 @@
     }
 
     .subtitle {
+      padding-left: 20px;
       font-weight: normal;
       font-size: 14px;
-      color: #777;
+      color: #00000073;
     }
 
     .description {

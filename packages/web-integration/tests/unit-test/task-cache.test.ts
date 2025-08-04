@@ -8,7 +8,16 @@ import {
 import { cacheFileExt } from '@/common/task-cache';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { uuid } from '@midscene/shared/utils';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import yaml from 'js-yaml';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 
 vi.mock('../../package.json', () => {
   return {
@@ -353,6 +362,100 @@ describe(
 
       expect(existsSync(cache.cacheFilePath!)).toBe(true);
     });
+
+    it('should sort caches with plan entries before locate entries when writing to disk', () => {
+      const cacheId = uuid();
+      const cache = new TaskCache(cacheId, true);
+
+      // Add caches in mixed order: locate, plan, locate, plan
+      cache.appendCache({
+        type: 'locate',
+        prompt: 'locate-prompt-1',
+        xpaths: ['xpath-1'],
+      });
+
+      cache.appendCache({
+        type: 'plan',
+        prompt: 'plan-prompt-1',
+        yamlWorkflow: 'workflow-1',
+      });
+
+      cache.appendCache({
+        type: 'locate',
+        prompt: 'locate-prompt-2',
+        xpaths: ['xpath-2'],
+      });
+
+      cache.appendCache({
+        type: 'plan',
+        prompt: 'plan-prompt-2',
+        yamlWorkflow: 'workflow-2',
+      });
+
+      // In memory, caches should maintain insertion order
+      expect(cache.cache.caches[0].type).toBe('locate');
+      expect(cache.cache.caches[1].type).toBe('plan');
+      expect(cache.cache.caches[2].type).toBe('locate');
+      expect(cache.cache.caches[3].type).toBe('plan');
+
+      // Read the file content to verify disk ordering
+      const fileContent = readFileSync(cache.cacheFilePath!, 'utf-8');
+      const parsedContent = yaml.load(fileContent) as any;
+
+      // On disk, all plan entries should come before all locate entries
+      const diskCaches = parsedContent.caches;
+      expect(diskCaches[0].type).toBe('plan');
+      expect(diskCaches[0].prompt).toBe('plan-prompt-1');
+      expect(diskCaches[1].type).toBe('plan');
+      expect(diskCaches[1].prompt).toBe('plan-prompt-2');
+      expect(diskCaches[2].type).toBe('locate');
+      expect(diskCaches[2].prompt).toBe('locate-prompt-1');
+      expect(diskCaches[3].type).toBe('locate');
+      expect(diskCaches[3].prompt).toBe('locate-prompt-2');
+
+      // Verify that plan entries maintain their relative order
+      expect(diskCaches[0].yamlWorkflow).toBe('workflow-1');
+      expect(diskCaches[1].yamlWorkflow).toBe('workflow-2');
+
+      // Verify that locate entries maintain their relative order
+      expect(diskCaches[2].xpaths).toEqual(['xpath-1']);
+      expect(diskCaches[3].xpaths).toEqual(['xpath-2']);
+    });
   },
   { timeout: 20000 },
 );
+
+describe('TaskCache filename length logic', () => {
+  const DEFAULT = 200;
+
+  it('should not hash if cacheId is within max length (default)', () => {
+    const base = 'a'.repeat(DEFAULT - 10);
+    const cache = new TaskCache(base, true);
+    // Should keep original id, no hash
+    expect(cache.cacheId.startsWith(base)).toBe(true);
+    expect(cache.cacheId.length).toBeLessThanOrEqual(DEFAULT + 10); // allow small difference
+    expect(cache.cacheFilePath).toContain(base);
+  });
+
+  it('should hash if cacheId exceeds max length (default)', () => {
+    const longId = 'b'.repeat(DEFAULT + 50);
+    const cache = new TaskCache(longId, true);
+    // Prefix keeps first 32 chars, then '-' and hash
+    expect(cache.cacheId.startsWith(`${'b'.repeat(32)}-`)).toBe(true);
+    // Hash part should be non-empty and short
+    const hashPart = cache.cacheId.split('-')[1];
+    expect(hashPart.length).toBeGreaterThan(0);
+    expect(cache.cacheId.length).toBeLessThanOrEqual(32 + 1 + 50); // 32+1+hash
+    // File name should not contain the full original id
+    expect(cache.cacheFilePath).not.toContain(longId);
+  });
+
+  it('should preserve readable prefix in hashed cacheId', () => {
+    const prefix = 'readable-prefix-';
+    const longId = prefix + 'x'.repeat(DEFAULT + 50);
+    const cache = new TaskCache(longId, true);
+    // Prefix should be preserved
+    expect(cache.cacheId.startsWith(prefix)).toBe(true);
+    expect(cache.cacheId.length).toBeLessThanOrEqual(32 + 1 + 50);
+  });
+});

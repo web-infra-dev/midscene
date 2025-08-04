@@ -6,6 +6,7 @@ import type {
   ExecutionTaskInsightLocate,
   ExecutionTaskInsightQuery,
   ExecutionTaskPlanning,
+  PlanningActionParamAndroidPull,
   PlanningActionParamScroll,
 } from '@midscene/core';
 
@@ -47,7 +48,9 @@ export function locateParamStr(locate?: DetailedLocateParam) {
     return locate;
   }
 
-  return locate.prompt;
+  return typeof locate.prompt === 'string'
+    ? locate.prompt
+    : locate.prompt.prompt;
 }
 
 export function scrollParamStr(scrollParam?: PlanningActionParamScroll) {
@@ -55,6 +58,24 @@ export function scrollParamStr(scrollParam?: PlanningActionParamScroll) {
     return '';
   }
   return `${scrollParam.direction || 'down'}, ${scrollParam.scrollType || 'once'}, ${scrollParam.distance || 'distance-not-set'}`;
+}
+
+export function pullParamStr(pullParam?: PlanningActionParamAndroidPull) {
+  if (!pullParam) {
+    return '';
+  }
+  const parts: string[] = [];
+  parts.push(`direction: ${pullParam.direction || 'down'}`);
+  if (pullParam.startPoint) {
+    parts.push(`start: (${pullParam.startPoint.x}, ${pullParam.startPoint.y})`);
+  }
+  if (pullParam.distance) {
+    parts.push(`distance: ${pullParam.distance}`);
+  }
+  if (pullParam.duration) {
+    parts.push(`duration: ${pullParam.duration}ms`);
+  }
+  return parts.join(', ');
 }
 
 export function taskTitleStr(
@@ -106,6 +127,11 @@ export function paramStr(task: ExecutionTask) {
       typeof (task as ExecutionTaskAction)?.param?.scrollType === 'string'
     ) {
       value = scrollParamStr((task as ExecutionTaskAction)?.param);
+    } else if (
+      typeof (task as ExecutionTaskAction)?.param?.direction === 'string' &&
+      (task as ExecutionTaskAction)?.subType === 'AndroidPull'
+    ) {
+      value = pullParamStr((task as ExecutionTaskAction)?.param);
     } else if (
       typeof (task as ExecutionTaskAction)?.param?.value !== 'undefined'
     ) {

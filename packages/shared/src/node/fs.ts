@@ -1,7 +1,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import path from 'node:path';
-import { assert, ifInBrowser } from '../utils';
+import { ifInBrowser, ifInWorker } from '../utils';
+
+declare const __HTML_ELEMENT_SCRIPT__: string;
 
 interface PkgInfo {
   name: string;
@@ -12,7 +13,7 @@ interface PkgInfo {
 const pkgCacheMap: Record<string, PkgInfo> = {};
 
 export function getRunningPkgInfo(dir?: string): PkgInfo | null {
-  if (ifInBrowser) {
+  if (ifInBrowser || ifInWorker) {
     return null;
   }
   const dirToCheck = dir || process.cwd();
@@ -61,18 +62,16 @@ export function findNearestPackageJson(dir: string): string | null {
 }
 
 export function getElementInfosScriptContent() {
-  // Get __dirname equivalent in Node.js environment
-  const currentFilePath = __filename;
-  const pathDir = findNearestPackageJson(dirname(currentFilePath));
-  assert(pathDir, `can't find pathDir, with ${dirname}`);
-  const scriptPath = path.join(pathDir, './dist/script/htmlElement.js');
-  const elementInfosScriptContent = readFileSync(scriptPath, 'utf-8');
+  const htmlElementScript = __HTML_ELEMENT_SCRIPT__;
 
-  return elementInfosScriptContent;
+  if (!htmlElementScript) {
+    throw new Error('HTML_ELEMENT_SCRIPT inject failed.');
+  }
+  return htmlElementScript;
 }
 
 export async function getExtraReturnLogic(tree = false) {
-  if (ifInBrowser) {
+  if (ifInBrowser || ifInWorker) {
     return null;
   }
 

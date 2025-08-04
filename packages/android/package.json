@@ -1,6 +1,6 @@
 {
   "name": "@midscene/android",
-  "version": "0.23.0",
+  "version": "0.24.1",
   "description": "Android automation library for Midscene",
   "keywords": [
     "Android UI automation",
@@ -16,12 +16,13 @@
     ".": {
       "types": "./dist/types/index.d.ts",
       "default": "./dist/lib/index.js"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "scripts": {
-    "dev": "modern dev",
+    "dev": "npm run build:watch",
     "build": "modern build -c ./modern.config.ts",
-    "build:watch": "modern build -w -c ./modern.config.ts",
+    "build:watch": "modern build -w -c ./modern.config.ts --no-clear",
     "test": "vitest --run",
     "test:u": "vitest --run -u",
     "test:ai": "AI_TEST_TYPE=android npm run test",

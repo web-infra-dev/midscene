@@ -1,6 +1,6 @@
 {
   "name": "@midscene/mcp",
-  "version": "0.23.0",
+  "version": "0.24.1",
   "type": "module",
   "exports": {
     ".": {
@@ -17,6 +17,7 @@
   "scripts": {
     "build": "rslib build",
     "dev": "rslib build --watch",
+    "build:watch": "npm run dev",
     "test": "vitest run",
     "inspect": "node scripts/inspect.mjs",
     "inspect2": "mcp-inspector node ./dist/test2.cjs"
@@ -32,6 +33,7 @@
     "@midscene/report": "workspace:*",
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
+    "@midscene/android": "workspace:*",
     "@modelcontextprotocol/sdk": "1.10.2",
     "zod": "3.24.3"
   },

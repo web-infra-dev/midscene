@@ -24,6 +24,8 @@ import {
   type PageType,
   type PlanningAIResponse,
   type PlanningAction,
+  type PlanningActionParamAndroidLongPress,
+  type PlanningActionParamAndroidPull,
   type PlanningActionParamAssert,
   type PlanningActionParamError,
   type PlanningActionParamHover,
@@ -32,6 +34,8 @@ import {
   type PlanningActionParamSleep,
   type PlanningActionParamTap,
   type PlanningActionParamWaitFor,
+  type TMultimodalPrompt,
+  type TUserPrompt,
   plan,
 } from '@midscene/core';
 import {
@@ -56,6 +60,7 @@ import {
   type WebUIContext,
   matchElementFromCache,
   matchElementFromPlan,
+  parsePrompt,
 } from './utils';
 
 interface ExecutionResult<OutputType = any> {
@@ -113,6 +118,18 @@ export class PageTaskExecutor {
     element: LocateResultElement,
   ): Promise<string[] | undefined> {
     let elementId = element?.id;
+    if (element?.isOrderSensitive !== undefined) {
+      const xpaths = await this.page.getXpathsByPoint(
+        {
+          left: element.center[0],
+          top: element.center[1],
+        },
+        element?.isOrderSensitive,
+      );
+
+      return xpaths;
+    }
+
     // find the nearest xpath for the element
     if (element?.attributes?.nodeType === NodeType.POSITION) {
       await this.insight.contextRetrieverFn('locate');
@@ -412,7 +429,7 @@ export class PageTaskExecutor {
                 );
               }
 
-              task.error = assertion.thought;
+              task.error = new Error(assertion.thought);
             }
 
             return {
@@ -693,6 +710,57 @@ export class PageTaskExecutor {
             },
           };
         tasks.push(taskActionAndroidRecentAppsButton);
+      } else if (plan.type === 'AndroidLongPress') {
+        const taskActionAndroidLongPress: ExecutionTaskActionApply<PlanningActionParamAndroidLongPress> =
+          {
+            type: 'Action',
+            subType: 'AndroidLongPress',
+            param: plan.param as PlanningActionParamAndroidLongPress,
+            thought: plan.thought,
+            locate: plan.locate,
+            executor: async (param) => {
+              assert(
+                isAndroidPage(this.page),
+                'Cannot use long press on non-Android devices',
+              );
+              const { x, y, duration } = param;
+              await this.page.longPress(x, y, duration);
+            },
+          };
+        tasks.push(taskActionAndroidLongPress);
+      } else if (plan.type === 'AndroidPull') {
+        const taskActionAndroidPull: ExecutionTaskActionApply<PlanningActionParamAndroidPull> =
+          {
+            type: 'Action',
+            subType: 'AndroidPull',
+            param: plan.param as PlanningActionParamAndroidPull,
+            thought: plan.thought,
+            locate: plan.locate,
+            executor: async (param) => {
+              assert(
+                isAndroidPage(this.page),
+                'Cannot use pull action on non-Android devices',
+              );
+              const { direction, startPoint, distance, duration } = param;
+
+              const convertedStartPoint = startPoint
+                ? { left: startPoint.x, top: startPoint.y }
+                : undefined;
+
+              if (direction === 'down') {
+                await this.page.pullDown(
+                  convertedStartPoint,
+                  distance,
+                  duration,
+                );
+              } else if (direction === 'up') {
+                await this.page.pullUp(convertedStartPoint, distance, duration);
+              } else {
+                throw new Error(`Unknown pull direction: ${direction}`);
+              }
+            },
+          };
+        tasks.push(taskActionAndroidPull);
       } else {
         throw new Error(`Unknown or unsupported task type: ${plan.type}`);
       }
@@ -834,7 +902,8 @@ export class PageTaskExecutor {
                 type: 'Locate',
                 locate: planningAction.locate,
                 param: null,
-                thought: planningAction.locate.prompt,
+                // thought is prompt created by ai, always a string
+                thought: planningAction.locate.prompt as string,
               });
             } else if (
               ['Tap', 'Hover', 'Input'].includes(planningAction.type)
@@ -919,15 +988,24 @@ export class PageTaskExecutor {
             },
           ],
         });
-        const startTime = Date.now();
-
-        const planResult = await vlmPlanning({
+        const planResult: {
+          actions: PlanningAction<any>[];
+          action_summary: string;
+          usage?: AIUsageInfo;
+          yamlFlow?: MidsceneYamlFlowItem[];
+          rawResponse?: string;
+        } = await vlmPlanning({
           userInstruction: param.userInstruction,
           conversationHistory: this.conversationHistory,
           size: pageContext.size,
         });
 
-        const { actions, action_summary } = planResult;
+        const { actions, action_summary, usage } = planResult;
+        executorContext.task.log = {
+          ...(executorContext.task.log || {}),
+          rawResponse: planResult.rawResponse,
+        };
+        executorContext.task.usage = usage;
         this.appendConversationHistory({
           role: 'assistant',
           content: action_summary,
@@ -1136,6 +1214,7 @@ export class PageTaskExecutor {
     type: 'Query' | 'Boolean' | 'Number' | 'String',
     demand: InsightExtractParam,
     opt?: InsightExtractOption,
+    multimodalPrompt?: TMultimodalPrompt,
   ): Promise<ExecutionResult<T>> {
     const taskExecutor = new Executor(
       taskTitleStr(
@@ -1152,7 +1231,13 @@ export class PageTaskExecutor {
       subType: type,
       locate: null,
       param: {
-        dataDemand: demand, // for user param presentation in report right sidebar
+        // TODO: display image thumbnail in report
+        dataDemand: multimodalPrompt
+          ? ({
+              demand,
+              multimodalPrompt,
+            } as never)
+          : demand, // for user param presentation in report right sidebar
       },
       executor: async (param) => {
         let insightDump: InsightDump | undefined;
@@ -1172,6 +1257,7 @@ export class PageTaskExecutor {
         const { data, usage } = await this.insight.extract<any>(
           demandInput,
           opt,
+          multimodalPrompt,
         );
 
         let outputResult = data;
@@ -1204,30 +1290,48 @@ export class PageTaskExecutor {
   }
 
   async boolean(
-    prompt: string,
+    prompt: TUserPrompt,
     opt?: InsightExtractOption,
   ): Promise<ExecutionResult<boolean>> {
-    return this.createTypeQueryTask<boolean>('Boolean', prompt, opt);
+    const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
+    return this.createTypeQueryTask<boolean>(
+      'Boolean',
+      textPrompt,
+      opt,
+      multimodalPrompt,
+    );
   }
 
   async number(
-    prompt: string,
+    prompt: TUserPrompt,
     opt?: InsightExtractOption,
   ): Promise<ExecutionResult<number>> {
-    return this.createTypeQueryTask<number>('Number', prompt, opt);
+    const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
+    return this.createTypeQueryTask<number>(
+      'Number',
+      textPrompt,
+      opt,
+      multimodalPrompt,
+    );
   }
 
   async string(
-    prompt: string,
+    prompt: TUserPrompt,
     opt?: InsightExtractOption,
   ): Promise<ExecutionResult<string>> {
-    return this.createTypeQueryTask<string>('String', prompt, opt);
+    const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
+    return this.createTypeQueryTask<string>(
+      'String',
+      textPrompt,
+      opt,
+      multimodalPrompt,
+    );
   }
 
   async assert(
-    assertion: string,
+    assertion: TUserPrompt,
   ): Promise<ExecutionResult<InsightAssertionResponse>> {
-    const description = `assert: ${assertion}`;
+    const description = `assert: ${typeof assertion === 'string' ? assertion : assertion.prompt}`;
     const taskExecutor = new Executor(taskTitleStr('Assert', description), {
       onTaskStart: this.onTaskStartCallback,
     });

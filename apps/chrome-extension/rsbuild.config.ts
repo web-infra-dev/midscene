@@ -55,10 +55,7 @@ export default defineConfig({
     copy: [
       { from: './static', to: './' },
       {
-        from: path.resolve(
-          __dirname,
-          '../../packages/web-integration/iife-script',
-        ),
+        from: path.resolve(__dirname, '../../packages/shared/dist-inspect'),
         to: 'scripts',
       },
       {

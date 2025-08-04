@@ -1,11 +1,6 @@
 import path from 'node:path';
-// import { fileURLToPath } from 'node:url';
 import { defineConfig, devices } from '@playwright/test';
 import dotenv from 'dotenv';
-
-// add these two lines to get the current file directory (ES module compatible way)
-// const __filename = fileURLToPath(import.meta.url);
-// const __dirname = path.dirname(__filename);
 
 const MIDSCENE_REPORT = process.env.MIDSCENE_REPORT;
 

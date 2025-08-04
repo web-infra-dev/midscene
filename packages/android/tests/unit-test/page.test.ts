@@ -94,7 +94,7 @@ describe('AndroidDevice', () => {
   });
 
   describe('size', () => {
-    it('should calculate and cache screen size', async () => {
+    it('should calculate screen size', async () => {
       vi.spyOn(device as any, 'getScreenSize').mockResolvedValue({
         override: '1080x1920',
         physical: '1080x1920',
@@ -107,7 +107,59 @@ describe('AndroidDevice', () => {
 
       expect(size1).toEqual({ width: 540, height: 960, dpr: 2 });
       expect(size2).toEqual(size1);
-      expect(vi.spyOn(device as any, 'getScreenSize')).toHaveBeenCalledTimes(1);
+      // Caching is removed, so it should be called twice
+      expect(vi.spyOn(device as any, 'getScreenSize')).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('getScreenSize', () => {
+    it('should use fallback to get orientation when primary method fails', async () => {
+      mockAdb.shell.mockImplementation(async (command: string | string[]) => {
+        if (Array.isArray(command) && command.join(' ') === 'wm size') {
+          return 'Physical size: 1080x1920';
+        }
+        if (command.includes('dumpsys input')) {
+          return 'some other output'; // No match for SurfaceOrientation
+        }
+        if (command.includes('dumpsys display')) {
+          return 'mCurrentOrientation=1';
+        }
+        return '';
+      });
+
+      const screenSize = await (device as any).getScreenSize();
+      expect(screenSize.orientation).toBe(1);
+      expect(mockAdb.shell).toHaveBeenCalledWith(
+        'dumpsys input | grep SurfaceOrientation',
+      );
+      expect(mockAdb.shell).toHaveBeenCalledWith(
+        'dumpsys display | grep mCurrentOrientation',
+      );
+    });
+
+    it('should get orientation with primary method and not use fallback', async () => {
+      mockAdb.shell.mockImplementation(async (command: string | string[]) => {
+        if (Array.isArray(command) && command.join(' ') === 'wm size') {
+          return 'Physical size: 1080x1920';
+        }
+        if (command.includes('dumpsys input')) {
+          return 'SurfaceOrientation: 2';
+        }
+        if (command.includes('dumpsys display')) {
+          // This should not be called
+          return 'mCurrentOrientation=1';
+        }
+        return '';
+      });
+
+      const screenSize = await (device as any).getScreenSize();
+      expect(screenSize.orientation).toBe(2);
+      expect(mockAdb.shell).toHaveBeenCalledWith(
+        'dumpsys input | grep SurfaceOrientation',
+      );
+      expect(mockAdb.shell).not.toHaveBeenCalledWith(
+        'dumpsys display | grep mCurrentOrientation',
+      );
     });
   });
 

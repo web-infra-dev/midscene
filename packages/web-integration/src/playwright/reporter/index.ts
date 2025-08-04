@@ -20,10 +20,19 @@ function logger(...message: any[]) {
   }
 }
 
+interface MidsceneReporterOptions {
+  type?: 'merged' | 'separate';
+}
+
 class MidsceneReporter implements Reporter {
   private mergedFilename?: string;
   private testTitleToFilename = new Map<string, string>();
   mode?: 'merged' | 'separate';
+
+  constructor(options: MidsceneReporterOptions = {}) {
+    // Set mode from constructor options (official Playwright way)
+    this.mode = MidsceneReporter.getMode(options.type ?? 'merged');
+  }
 
   private static getMode(reporterType: string): 'merged' | 'separate' {
     if (!reporterType) {
@@ -72,14 +81,9 @@ class MidsceneReporter implements Reporter {
     reportPath && printReportMsg(reportPath);
   }
 
-  async onBegin(config: FullConfig, suite: Suite) {
-    const reporterType = config.reporter?.[1]?.[1]?.type;
-    this.mode = MidsceneReporter.getMode(reporterType);
-    // const suites = suite.allTests();
-    // logger(`Starting the run with ${suites.length} tests`);
-  }
+  async onBegin(config: FullConfig, suite: Suite) {}
 
-  onTestBegin(test: TestCase, _result: TestResult) {
+  onTestBegin(_test: TestCase, _result: TestResult) {
     // logger(`Starting test ${test.title}`);
   }
 

@@ -10,7 +10,7 @@ export const MIDSCENE_DANGEROUSLY_PRINT_ALL_CONFIG =
 export const MIDSCENE_DEBUG_MODE = 'MIDSCENE_DEBUG_MODE';
 export const MIDSCENE_MCP_USE_PUPPETEER_MODE =
   'MIDSCENE_MCP_USE_PUPPETEER_MODE';
-
+export const MIDSCENE_MCP_ANDROID_MODE = 'MIDSCENE_MCP_ANDROID_MODE';
 export const MIDSCENE_FORCE_DEEP_THINK = 'MIDSCENE_FORCE_DEEP_THINK';
 
 export const MIDSCENE_OPENAI_SOCKS_PROXY = 'MIDSCENE_OPENAI_SOCKS_PROXY';
@@ -44,6 +44,9 @@ export const MIDSCENE_AZURE_OPENAI_SCOPE = 'MIDSCENE_AZURE_OPENAI_SCOPE';
 export const MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON =
   'MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON';
 
+export const MIDSCENE_CACHE_MAX_FILENAME_LENGTH =
+  'MIDSCENE_CACHE_MAX_FILENAME_LENGTH';
+
 export const AZURE_OPENAI_ENDPOINT = 'AZURE_OPENAI_ENDPOINT';
 export const AZURE_OPENAI_KEY = 'AZURE_OPENAI_KEY';
 export const AZURE_OPENAI_API_VERSION = 'AZURE_OPENAI_API_VERSION';
@@ -59,6 +62,8 @@ export const OPENAI_USE_AZURE = 'OPENAI_USE_AZURE';
 
 export const allConfigFromEnv = () => {
   return {
+    [MIDSCENE_MCP_ANDROID_MODE]:
+      process.env[MIDSCENE_MCP_ANDROID_MODE] || undefined,
     [MIDSCENE_OPENAI_INIT_CONFIG_JSON]:
       process.env[MIDSCENE_OPENAI_INIT_CONFIG_JSON] || undefined,
     [MIDSCENE_MODEL_NAME]: process.env[MIDSCENE_MODEL_NAME] || undefined,
@@ -121,6 +126,8 @@ export const allConfigFromEnv = () => {
       process.env[MIDSCENE_PREFERRED_LANGUAGE] || undefined,
     [MIDSCENE_REPLANNING_CYCLE_LIMIT]:
       process.env[MIDSCENE_REPLANNING_CYCLE_LIMIT] || undefined,
+    [MIDSCENE_CACHE_MAX_FILENAME_LENGTH]:
+      process.env[MIDSCENE_CACHE_MAX_FILENAME_LENGTH] || undefined,
   };
 };
 
@@ -210,7 +217,11 @@ export const getAIConfig = (
     );
   }
 
-  return getGlobalConfig()[configKey]?.trim?.();
+  const value = getGlobalConfig()[configKey];
+  if (typeof value === 'string') {
+    return value.trim();
+  }
+  return value;
 };
 
 export const getAIConfigInBoolean = (

@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
-import { assert, ifInBrowser } from '@midscene/shared/utils';
+import { assert, ifInBrowser, ifInWorker } from '@midscene/shared/utils';
 
 import type { PageAgent } from '@/common/agent';
 import type {
@@ -58,7 +58,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
 
     this.target = script.target || script.web || script.android;
 
-    if (ifInBrowser) {
+    if (ifInBrowser || ifInWorker) {
       this.output = undefined;
     } else if (this.target?.output) {
       this.output = resolve(process.cwd(), this.target.output);
@@ -72,7 +72,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       );
     }
 
-    if (ifInBrowser) {
+    if (ifInBrowser || ifInWorker) {
       this.unstableLogContent = undefined;
     } else if (typeof this.target?.unstableLogContent === 'string') {
       this.unstableLogContent = resolve(
@@ -230,7 +230,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           domIncluded: stringTask.domIncluded,
           screenshotIncluded: stringTask.screenshotIncluded,
         };
-        assert(prompt, 'missing prompt for aiNumber');
+        assert(prompt, 'missing prompt for aiString');
         assert(
           typeof prompt === 'string',
           'prompt for string must be a string',

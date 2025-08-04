@@ -1,11 +1,7 @@
-import { readFileSync, writeFileSync } from 'node:fs';
-import path, { join } from 'node:path';
+import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import type { callAiFn } from '@/ai-model/common';
-import {
-  base64Encoded,
-  imageInfoOfBase64,
-  transformImgPathToBase64,
-} from '@/image';
+import { localImg2Base64 } from '@/image';
 import Insight from '@/insight';
 import type { AIElementLocatorResponse, BaseElement, UIContext } from '@/types';
 import { NodeType } from '@midscene/shared/constants';
@@ -31,7 +27,7 @@ export function sleep(ms: number) {
 export function fakeInsight(content: string) {
   const screenshot = getFixture('baidu.png');
   const basicContext = {
-    screenshotBase64: base64Encoded(screenshot),
+    screenshotBase64: localImg2Base64(screenshot),
     size: { width: 1920, height: 1080 },
     content: [
       {
@@ -85,31 +81,4 @@ export function fakeInsight(content: string) {
   });
 
   return insight;
-}
-
-export function generateUIContext(testDataPath: string) {
-  return async () => {
-    const screenshotBase64 = await transformImgPathToBase64(
-      path.join(testDataPath, 'input.png'),
-    );
-    const size = await imageInfoOfBase64(screenshotBase64);
-
-    const captureElementSnapshot = readFileSync(
-      path.join(testDataPath, 'element-snapshot.json'),
-      'utf-8',
-    );
-
-    // align element
-    const elementsInfo = JSON.parse(captureElementSnapshot) as BaseElement[];
-
-    const baseContext = {
-      size: { width: size.width, height: size.height },
-      content: elementsInfo,
-      screenshotBase64: `data:image/png;base64,${screenshotBase64}`,
-    };
-
-    return {
-      ...baseContext,
-    };
-  };
 }

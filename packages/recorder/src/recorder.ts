@@ -1,7 +1,8 @@
 import { isNotContainerElement } from '@midscene/shared/extractor';
-import { getElementXPath } from '@midscene/shared/extractor';
+import { getElementXpath } from '@midscene/shared/extractor';
 
 const DEBUG = localStorage.getItem('DEBUG') === 'true'; // Based on process.env.NODE_ENV
+// localStorage.setItem('DEBUG', 'true');
 
 function debugLog(...args: any[]) {
   if (DEBUG) {
@@ -405,7 +406,7 @@ export class EventRecorder {
         labelInfo = {
           htmlFor: (target as HTMLLabelElement).htmlFor,
           textContent: target.textContent?.trim(),
-          xpath: getElementXPath(target),
+          xpath: getElementXpath(target),
         };
       } else {
         let parent = target.parentElement;
@@ -415,7 +416,7 @@ export class EventRecorder {
             labelInfo = {
               htmlFor: (parent as HTMLLabelElement).htmlFor,
               textContent: parent.textContent?.trim(),
-              xpath: getElementXPath(parent),
+              xpath: getElementXpath(parent),
             };
             break;
           }

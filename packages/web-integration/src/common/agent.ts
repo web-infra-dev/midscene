@@ -22,6 +22,7 @@ import {
   type OnTaskStartTip,
   type PlanningActionParamScroll,
   type Rect,
+  type TUserPrompt,
 } from '@midscene/core';
 
 import yaml from 'js-yaml';
@@ -123,6 +124,8 @@ export class PageAgent<PageType extends WebPage = WebPage> {
 
   onDumpUpdate?: (dump: string) => void;
 
+  destroyed = false;
+
   constructor(page: PageType, opts?: PageAgentOpt) {
     this.page = page;
     this.opts = Object.assign(
@@ -222,6 +225,11 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   writeOutActionDumps() {
+    if (this.destroyed) {
+      throw new Error(
+        'PageAgent has been destroyed. Cannot update report file.',
+      );
+    }
     const { generateReport, autoPrintReportMsg } = this.opts;
     this.reportFile = writeLogFile({
       fileName: this.reportFileName!,
@@ -258,17 +266,19 @@ export class PageAgent<PageType extends WebPage = WebPage> {
 
     if (executor.isInErrorState() && !doNotThrowError) {
       const errorTask = executor.latestErrorTask();
-      throw new Error(`${errorTask?.error}\n${errorTask?.errorStack}`);
+      throw new Error(`${errorTask?.errorMessage}\n${errorTask?.errorStack}`, {
+        cause: errorTask?.error,
+      });
     }
   }
 
   private buildDetailedLocateParam(
-    locatePrompt: string,
+    locatePrompt: TUserPrompt,
     opt?: LocateOption,
   ): DetailedLocateParam {
     assert(locatePrompt, 'missing locate prompt');
     if (typeof opt === 'object') {
-      const prompt = opt.prompt ?? locatePrompt;
+      const prompt = locatePrompt;
       const deepThink = opt.deepThink ?? false;
       const cacheable = opt.cacheable ?? true;
       const xpath = opt.xpath;
@@ -285,7 +295,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     };
   }
 
-  async aiTap(locatePrompt: string, opt?: LocateOption) {
+  async aiTap(locatePrompt: TUserPrompt, opt?: LocateOption) {
     const detailedLocateParam = this.buildDetailedLocateParam(
       locatePrompt,
       opt,
@@ -300,7 +310,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     return output;
   }
 
-  async aiRightClick(locatePrompt: string, opt?: LocateOption) {
+  async aiRightClick(locatePrompt: TUserPrompt, opt?: LocateOption) {
     const detailedLocateParam = this.buildDetailedLocateParam(
       locatePrompt,
       opt,
@@ -315,7 +325,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     return output;
   }
 
-  async aiHover(locatePrompt: string, opt?: LocateOption) {
+  async aiHover(locatePrompt: TUserPrompt, opt?: LocateOption) {
     const detailedLocateParam = this.buildDetailedLocateParam(
       locatePrompt,
       opt,
@@ -332,7 +342,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
 
   async aiInput(
     value: string,
-    locatePrompt: string,
+    locatePrompt: TUserPrompt,
     opt?: AndroidDeviceInputOpt & LocateOption,
   ) {
     assert(
@@ -361,7 +371,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
 
   async aiKeyboardPress(
     keyName: string,
-    locatePrompt?: string,
+    locatePrompt?: TUserPrompt,
     opt?: LocateOption,
   ) {
     assert(keyName, 'missing keyName for keyboard press');
@@ -382,7 +392,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
 
   async aiScroll(
     scrollParam: PlanningActionParamScroll,
-    locatePrompt?: string,
+    locatePrompt?: TUserPrompt,
     opt?: LocateOption,
   ) {
     const detailedLocateParam = locatePrompt
@@ -469,7 +479,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   async aiBoolean(
-    prompt: string,
+    prompt: TUserPrompt,
     opt: InsightExtractOption = defaultInsightExtractOption,
   ) {
     const { output, executor } = await this.taskExecutor.boolean(prompt, opt);
@@ -478,7 +488,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   async aiNumber(
-    prompt: string,
+    prompt: TUserPrompt,
     opt: InsightExtractOption = defaultInsightExtractOption,
   ) {
     const { output, executor } = await this.taskExecutor.number(prompt, opt);
@@ -487,7 +497,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   async aiString(
-    prompt: string,
+    prompt: TUserPrompt,
     opt: InsightExtractOption = defaultInsightExtractOption,
   ) {
     const { output, executor } = await this.taskExecutor.string(prompt, opt);
@@ -496,7 +506,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   async aiAsk(
-    prompt: string,
+    prompt: TUserPrompt,
     opt: InsightExtractOption = defaultInsightExtractOption,
   ) {
     return this.aiString(prompt, opt);
@@ -584,7 +594,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     return verifyResult;
   }
 
-  async aiLocate(prompt: string, opt?: LocateOption) {
+  async aiLocate(prompt: TUserPrompt, opt?: LocateOption) {
     const detailedLocateParam = this.buildDetailedLocateParam(prompt, opt);
     const plans = buildPlans('Locate', detailedLocateParam);
     const { executor, output } = await this.taskExecutor.runPlans(
@@ -605,7 +615,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     };
   }
 
-  async aiAssert(assertion: string, msg?: string, opt?: AgentAssertOpt) {
+  async aiAssert(assertion: TUserPrompt, msg?: string, opt?: AgentAssertOpt) {
     const { output, executor } = await this.taskExecutor.assert(assertion);
     await this.afterTaskRunning(executor, true);
 
@@ -696,6 +706,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   async destroy() {
     await this.page.destroy();
     this.resetDump(); // reset dump to release memory
+    this.destroyed = true;
   }
 
   async logScreenshot(

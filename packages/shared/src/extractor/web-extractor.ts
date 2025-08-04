@@ -47,6 +47,7 @@ export function collectElementInfo(
   currentDocument: typeof document,
   baseZoom = 1,
   basePoint: Point = { left: 0, top: 0 },
+  isContainer = false, // if true, the element will be considered as a container
 ): WebElementInfo | null | any {
   const rect = elementRect(node, currentWindow, currentDocument, baseZoom);
 
@@ -244,7 +245,7 @@ export function collectElementInfo(
   }
 
   // else, consider as a container
-  if (isContainerElement(node)) {
+  if (isContainerElement(node) || isContainer) {
     const attributes = getNodeAttributes(node, currentWindow);
     const nodeHashId = midsceneGenerateHash(node, '', rect);
     const elementInfo: WebElementInfo = {
