@@ -29,7 +29,7 @@ aiAction('逐条点击所有记录，如果一个记录包含“已完成”，�
 
 原始提示：
 
-```
+```txt
 逐条点击所有记录，如果一个记录包含“已完成”，则跳过
 ```
 
@@ -155,7 +155,7 @@ Midscene 提供了一些即时操作方法，如 `aiTap` `aiInput` `aiScroll` `a
 使用你的 AI IDE 索引以下文档：
 
 - https://midscenejs.com/blog-programming-practice-using-structured-api.md
-- https://midscenejs.com/API.md
+- https://midscenejs.com/api.md
 
 :::tip
 如何将 Midscene 文档添加到 AI IDE？
@@ -194,4 +194,3 @@ Midscene 提供了一些即时操作方法，如 `aiTap` `aiInput` `aiScroll` `a
 为了获得更好的性能，你可以检查 [Midscene 缓存功能](./caching) 来缓存规划和 xpath 定位结果。
 
 要了解更多关于结构化 API 的信息，请查看 [API 参考](./api.mdx)。
-

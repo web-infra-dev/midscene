@@ -158,7 +158,7 @@ If you think the javascript code is hard to write, then this is the right time t
 Use your AI IDE to index the following documents:
 
 - https://midscenejs.com/blog-programming-practice-using-structured-api.md
-- https://midscenejs.com/API.md
+- https://midscenejs.com/api.md
 
 :::tip
 How to add the Midscene documents to the AI IDE?
@@ -169,7 +169,7 @@ Refer to [this article](./llm-txt.mdx#usage).
 
 And use this prompt with the mention of the Midscene documents:
 
-```
+```txt
 According to the tips and APIs mentioned in @Use JavaScript to Optimize the Midscene Al Automation Code and @@Midscene API docs,
 
 please help me convert the following instructions into structured javascript code:
@@ -200,5 +200,3 @@ Generally, if you encounter the following situations, you should consider abando
 To achieve better performance, you can check the [Midscene caching feature](./caching) to cache the planning and xpath results.
 
 To learn more about the structured API, you can check the [API reference](./api.mdx).
-
-
