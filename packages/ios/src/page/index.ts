@@ -348,8 +348,6 @@ export class iOSDevice implements AndroidDevicePage {
   async tap(point: Point): Promise<void> {
     debugPage(`tap at (${point.left}, ${point.top})`);
 
-    // 对于iOS mirroring模式，直接传递iOS坐标，让Python服务器处理坐标变换
-    // 对于非mirroring模式，使用设备像素比调整坐标
     if (this.options?.iOSMirrorConfig) {
       await this.executePyAutoGUIAction({
         action: 'click',
