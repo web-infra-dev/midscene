@@ -19225,10 +19225,10 @@ snapshots:
   '@rsdoctor/core@1.0.2(@rsbuild/core@1.3.22)(@rspack/core@1.4.11(@swc/helpers@0.5.17))(webpack@5.99.5)':
     dependencies:
       '@rsbuild/plugin-check-syntax': 1.3.0(@rsbuild/core@1.3.22)
-      '@rsdoctor/graph': 1.0.2(@rspack/core@1.3.12(@swc/helpers@0.5.17))(webpack@5.99.5)
-      '@rsdoctor/sdk': 1.0.2(@rspack/core@1.3.12(@swc/helpers@0.5.17))(webpack@5.99.5)
-      '@rsdoctor/types': 1.0.2(@rspack/core@1.3.12(@swc/helpers@0.5.17))(webpack@5.99.5)
-      '@rsdoctor/utils': 1.0.2(@rspack/core@1.3.12(@swc/helpers@0.5.17))(webpack@5.99.5)
+      '@rsdoctor/graph': 1.0.2(@rspack/core@1.4.11(@swc/helpers@0.5.17))(webpack@5.99.5)
+      '@rsdoctor/sdk': 1.0.2(@rspack/core@1.4.11(@swc/helpers@0.5.17))(webpack@5.99.5)
+      '@rsdoctor/types': 1.0.2(@rspack/core@1.4.11(@swc/helpers@0.5.17))(webpack@5.99.5)
+      '@rsdoctor/utils': 1.0.2(@rspack/core@1.4.11(@swc/helpers@0.5.17))(webpack@5.99.5)
       axios: 1.10.0(debug@4.4.0)
       browserslist-load-config: 1.0.0
       enhanced-resolve: 5.12.0
