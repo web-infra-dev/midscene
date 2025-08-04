@@ -15,6 +15,7 @@ export default defineConfig({
     dark: '/midscene_with_text_light.png',
   },
   themeConfig: {
+    lastUpdated: true,
     darkMode: false,
     socialLinks: [
       {
@@ -44,11 +45,21 @@ export default defineConfig({
         lang: 'en',
         outlineTitle: 'On This Page',
         label: 'On This Page',
+        editLink: {
+          docRepoBaseUrl:
+            'https://github.com/web-infra-dev/midscene/tree/main/apps/site/docs',
+          text: '📝 Edit this page on GitHub',
+        },
       },
       {
         lang: 'zh',
         outlineTitle: '大纲',
         label: '大纲',
+        editLink: {
+          docRepoBaseUrl:
+          'https://github.com/web-infra-dev/midscene/tree/main/apps/site/docs',
+          text: '📝 在 GitHub 上编辑此页',
+        },
       },
     ],
     sidebar: {
