@@ -102,6 +102,27 @@ export class iOSDevice implements AndroidDevicePage {
       }
       const healthData = await response.json();
       debugPage(`Python server is running: ${JSON.stringify(healthData)}`);
+
+      // Make iPhone mirroring app foreground
+      try {
+        // Use fixed mirroring app name for iOS device screen mirroring
+        const mirroringAppName = 'iPhone Mirroring';
+
+        const { exec } = await import('node:child_process');
+        const { promisify } = await import('node:util');
+        const execAsync = promisify(exec);
+
+        // Activate the mirroring application using AppleScript
+        await execAsync(
+          `osascript -e 'tell application "${mirroringAppName}" to activate'`,
+        );
+        debugPage(`Activated iOS mirroring app: ${mirroringAppName}`);
+      } catch (mirrorError: any) {
+        debugPage(
+          `Warning: Failed to bring iOS mirroring app to foreground: ${mirrorError.message}`,
+        );
+        // Continue execution even if this fails - it's not critical
+      }
     } catch (error: any) {
       throw new Error(
         `Failed to connect to Python server at ${this.serverUrl}: ${error.message}`,

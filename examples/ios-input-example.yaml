@@ -28,7 +28,7 @@ tasks:
       - aiTap: "搜索图标"
       - sleep: 3000
       - aiInput: "Coldplay"
-        locate: "Search box"
+        locate: "Search input field"
       - sleep: 2000
       - aiKeyboardPress: "Enter"
       - sleep: 3000
