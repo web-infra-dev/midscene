@@ -2,11 +2,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import util from 'node:util';
 import debug from 'debug';
-import { getMidsceneRunSubDir, isNodeEnv } from './common';
+import { getMidsceneRunSubDir } from './common';
+import { ifInNode } from './utils';
 
 const topicPrefix = 'midscene';
 // Map to store file streams
 const logStreams = new Map<string, fs.WriteStream>();
+// Map to store debug instances
+const debugInstances = new Map<string, DebugFunction>();
 
 // Function to get or create a log stream
 function getLogStream(topic: string): fs.WriteStream {
@@ -24,7 +27,7 @@ function getLogStream(topic: string): fs.WriteStream {
 
 // Function to write log to file
 function writeLogToFile(topic: string, message: string): void {
-  if (!isNodeEnv) return;
+  if (!ifInNode) return;
 
   const stream = getLogStream(topic);
   // Generate ISO format timestamp with local timezone
@@ -50,20 +53,28 @@ function writeLogToFile(topic: string, message: string): void {
 export type DebugFunction = (...args: unknown[]) => void;
 
 export function getDebug(topic: string): DebugFunction {
-  // Create a wrapper function that handles both file logging and debug output
-  return (...args: unknown[]): void => {
-    if (isNodeEnv) {
-      const message = util.format(...args);
-      writeLogToFile(topic, message);
-    }
+  const fullTopic = `${topicPrefix}:${topic}`;
 
-    const debugFn = debug(`${topicPrefix}:${topic}`) as DebugFunction;
-    debugFn(...args);
-  };
+  if (!debugInstances.has(fullTopic)) {
+    const debugFn = debug(fullTopic) as DebugFunction;
+
+    // Create wrapper that handles both file logging and debug output
+    const wrapper = (...args: unknown[]): void => {
+      if (ifInNode) {
+        const message = util.format(...args);
+        writeLogToFile(topic, message);
+      }
+      debugFn(...args);
+    };
+
+    debugInstances.set(fullTopic, wrapper);
+  }
+
+  return debugInstances.get(fullTopic)!;
 }
 
 export function enableDebug(topic: string): void {
-  if (isNodeEnv) {
+  if (ifInNode) {
     // In Node.js, we don't need to enable debug as we're using file logging
     return;
   }
@@ -72,10 +83,11 @@ export function enableDebug(topic: string): void {
 
 // Cleanup function to close all log streams
 export function cleanupLogStreams(): void {
-  if (!isNodeEnv) return;
+  if (!ifInNode) return;
 
   for (const stream of logStreams.values()) {
     stream.end();
   }
   logStreams.clear();
+  debugInstances.clear();
 }

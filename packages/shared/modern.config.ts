@@ -26,6 +26,7 @@ export default defineConfig({
       env: './src/env.ts',
       types: './src/types/index.ts',
     },
+    externals: ['sharp'],
     target: 'es2020',
     dts: {
       respectExternal: true,

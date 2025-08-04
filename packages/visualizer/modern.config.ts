@@ -3,6 +3,7 @@ import { defineConfig, moduleTools } from '@modern-js/module-tools';
 import { modulePluginNodePolyfill } from '@modern-js/plugin-module-node-polyfill';
 import { version } from './package.json';
 const externals = [
+  'sharp',
   'playwright',
   'bufferutil',
   'utf-8-validate',
