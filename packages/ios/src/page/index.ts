@@ -568,8 +568,8 @@ export class iOSDevice implements AndroidDevicePage {
   get mouse(): any {
     return {
       click: async (x: number, y: number, options: { button: string }) => {
-        // 直接使用传入的坐标，因为这些坐标已经是iOS坐标系的
-        // 在executePyAutoGUIAction中会进行iOS到macOS的坐标变换
+        // Directly use the provided coordinates, as these are already in the iOS coordinate system.
+        // The coordinate transformation from iOS to macOS will be handled inside executePyAutoGUIAction.
         await this.executePyAutoGUIAction({
           action: 'click',
           x: x,
