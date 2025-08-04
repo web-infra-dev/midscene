@@ -192,16 +192,16 @@ export class iOSDevice implements AndroidDevicePage {
   }
 
   async size(): Promise<Size> {
-    // 对于iOS镜像模式，返回iOS设备的逻辑尺寸而不是macOS屏幕尺寸
+    // For iOS mirroring mode, return iOS device logical size instead of macOS screen size
     if (this.options?.mirrorConfig) {
-      // 从Python服务器获取配置信息，使用估算的iOS设备尺寸
+      // Get configuration from Python server, using estimated iOS device size
       try {
         const config = await this.getConfiguration();
         if (config.status === 'ok' && config.config.enabled) {
           return {
             width: config.config.estimated_ios_width,
             height: config.config.estimated_ios_height,
-            dpr: 1, // iOS坐标系不需要额外的像素比调整
+            dpr: 1, // iOS coordinate system doesn't need additional pixel ratio adjustment
           };
         }
       } catch (error) {
@@ -209,7 +209,7 @@ export class iOSDevice implements AndroidDevicePage {
       }
     }
 
-    // 非iOS镜像模式或配置获取失败时的fallback
+    // Fallback for non-iOS mirroring mode or when configuration retrieval fails
     if (!this.screenInfo) {
       this.screenInfo = await getScreenSize();
     }
@@ -577,7 +577,7 @@ export class iOSDevice implements AndroidDevicePage {
         from: { x: number; y: number },
         to: { x: number; y: number },
       ) => {
-        // 对于iOS镜像模式，直接传递坐标；对于非镜像模式，使用设备像素比调整
+        // For iOS mirroring mode, pass coordinates directly; for non-mirroring mode, adjust using device pixel ratio
         if (this.options?.mirrorConfig) {
           await this.executePyAutoGUIAction({
             action: 'drag',

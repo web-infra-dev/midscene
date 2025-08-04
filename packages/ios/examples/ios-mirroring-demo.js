@@ -137,8 +137,8 @@ async function demonstrateIOSMirroring() {
 
     // Example AI operations (commented out as they need actual iOS app content)
     await agent.aiTap('Settings app icon');
-    await agent.ai('返回主屏幕');
-    // await agent.ai("在 显示与亮度中 开启深色模式")
+    await agent.ai('Go back to home screen');
+    // await agent.ai("Enable dark mode in Display & Brightness settings")
 
     console.log('✅ Demo completed successfully!\n');
 
