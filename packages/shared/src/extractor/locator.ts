@@ -48,7 +48,7 @@ const addTextContentToXPath = (el: Node, baseXPath: string): string => {
   return baseXPath;
 };
 
-const getElementXPath = (element: Node): string => {
+export const getElementXPath = (element: Node): string => {
   // deal with text node
   if (element.nodeType === Node.TEXT_NODE) {
     // get parent node xpath

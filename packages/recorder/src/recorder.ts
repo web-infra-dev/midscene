@@ -1,4 +1,5 @@
 import { isNotContainerElement } from '@midscene/shared/extractor';
+import { getElementXPath } from '@midscene/shared/extractor';
 
 const DEBUG = localStorage.getItem('DEBUG') === 'true'; // Based on process.env.NODE_ENV
 
@@ -67,6 +68,7 @@ export interface RecordedEvent extends ChromeRecordedEvent {
   labelInfo?: {
     htmlFor?: string;
     textContent?: string;
+    xpath?: string; // xpath of the label element
   };
   isTrusted?: boolean;
   detail?: number;
@@ -388,11 +390,14 @@ export class EventRecorder {
   // Check if it's a label click
   private checkLabelClick(target: HTMLElement): {
     isLabelClick: boolean;
-    labelInfo: { htmlFor?: string; textContent?: string } | undefined;
+    labelInfo:
+      | { htmlFor?: string; textContent?: string; xpath?: string }
+      | undefined;
   } {
     let isLabelClick = false;
-    let labelInfo: { htmlFor?: string; textContent?: string } | undefined =
-      undefined;
+    let labelInfo:
+      | { htmlFor?: string; textContent?: string; xpath?: string }
+      | undefined = undefined;
 
     if (target) {
       if (target.tagName === 'LABEL') {
@@ -400,6 +405,7 @@ export class EventRecorder {
         labelInfo = {
           htmlFor: (target as HTMLLabelElement).htmlFor,
           textContent: target.textContent?.trim(),
+          xpath: getElementXPath(target),
         };
       } else {
         let parent = target.parentElement;
@@ -409,6 +415,7 @@ export class EventRecorder {
             labelInfo = {
               htmlFor: (parent as HTMLLabelElement).htmlFor,
               textContent: parent.textContent?.trim(),
+              xpath: getElementXPath(parent),
             };
             break;
           }
@@ -435,16 +442,26 @@ export class EventRecorder {
     if (event.type === 'click') {
       // Optimization: if the previous event is a label click and labelInfo.htmlFor equals current input's id, skip
       const lastEvent = getLastLabelClick(events);
-      if (
-        lastEvent &&
-        lastEvent.type === 'click' &&
-        lastEvent.isLabelClick &&
-        lastEvent.labelInfo?.htmlFor === (event.element as HTMLInputElement).id
-      ) {
-        debugLog('Skip input event triggered by label click:', event.element);
-        return events;
+      if (event.element) {
+        const { isLabelClick, labelInfo } = this.checkLabelClick(event.element);
+        if (
+          lastEvent &&
+          isLabelClick &&
+          lastEvent.type === 'click' &&
+          lastEvent.isLabelClick &&
+          ((lastEvent.labelInfo?.htmlFor &&
+            (event.element as HTMLInputElement).id &&
+            lastEvent.labelInfo?.htmlFor ===
+              (event.element as HTMLInputElement).id) ||
+            (labelInfo?.xpath &&
+              lastEvent.labelInfo?.xpath &&
+              lastEvent.labelInfo?.xpath === labelInfo?.xpath))
+        ) {
+          debugLog('Skip input event triggered by label click:', event.element);
+          return events;
+        }
+        return [...events, event];
       }
-      return [...events, event];
     }
 
     // If it's an input event, check if it should be skipped or merged

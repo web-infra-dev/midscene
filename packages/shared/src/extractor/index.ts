@@ -41,6 +41,7 @@ export {
   getXpathsById,
   getNodeInfoByXpath,
   getElementInfoByXpath,
+  getElementXPath,
 } from './locator';
 
 export { generateElementByPosition } from './dom-util';
