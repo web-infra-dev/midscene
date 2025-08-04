@@ -261,92 +261,19 @@ def handle_action(action):
                 method = "horizontal_scroll"
                 success = False
                 
-                # Method 1: Try using hscroll if available (rarely works on macOS)
                 if hasattr(pyautogui, 'hscroll'):
-                    try:
-                        scroll_amount = clicks * 3 if direction == "right" else -clicks * 3
-                        pyautogui.hscroll(scroll_amount, x=mac_x, y=mac_y)
-                        print(f"   ✅ Used hscroll method: {scroll_amount}")
-                        success = True
-                    except Exception as e:
-                        print(f"   ❌ hscroll failed: {e}")
-                
-                # Method 2: Try AppleScript system events (macOS native approach)
-                if not success:
-                    try:
-                        scroll_amount = clicks * 5  # More units for better effect
-                        scroll_direction = "right" if direction == "right" else "left"
-                        
-                        # Use AppleScript to simulate horizontal scroll
-                        applescript = f'''
-                        tell application "System Events"
-                            set mousePosition to {{{mac_x}, {mac_y}}}
-                            set mouseLoc to mousePosition
-                            repeat {clicks} times
-                                tell application "System Events" to scroll mouseLoc horizontally by {5 if direction == "right" else -5}
-                                delay 0.01
-                            end repeat
-                        end tell
-                        '''
-                        
-                        success, stdout, stderr = execute_applescript(applescript)
-                        if success:
-                            print(f"   ✅ Used AppleScript horizontal scroll: {scroll_direction}")
-                        else:
-                            print(f"   ❌ AppleScript failed: {stderr}")
-                    except Exception as e:
-                        print(f"   ❌ AppleScript method failed: {e}")
-                
-                # Method 3: Drag simulation (most reliable fallback)
-                if not success:
-                    try:
-                        print(f"   🖱️ Using drag simulation for horizontal scroll")
-                        start_x = mac_x
-                        start_y = mac_y
-                        
-                        # Calculate drag distance based on clicks (more aggressive)
-                        drag_distance = min(clicks * 15, 300)  # Cap at 300px
-                        
-                        if direction == "right":
-                            end_x = start_x - drag_distance  # Drag left to scroll right
-                        else:
-                            end_x = start_x + drag_distance  # Drag right to scroll left
-                        
-                        # Ensure we don't drag outside reasonable bounds
-                        screen_width = pyautogui.size().width
-                        end_x = max(50, min(end_x, screen_width - 50))
-                        
-                        # Perform smooth drag scroll
-                        pyautogui.moveTo(start_x, start_y)
-                        time.sleep(0.1)  # Brief pause
-                        pyautogui.mouseDown()
-                        pyautogui.moveTo(end_x, start_y, duration=0.4)  # Slower for iOS compatibility
-                        pyautogui.mouseUp()
-                        
-                        print(f"   ✅ Drag scroll: ({start_x}, {start_y}) -> ({end_x}, {start_y}), distance: {abs(end_x - start_x)}px")
-                        success = True
-                        method = "horizontal_drag_scroll"
-                    except Exception as e:
-                        print(f"   ❌ Drag simulation failed: {e}")
-                
-                # Final fallback: shift+scroll (even though it might not work)
-                if not success:
-                    print(f"   ⚠️ All methods failed, trying shift+scroll fallback")
-                    pyautogui.keyDown('shift')
                     for i in range(clicks):
-                        scroll_amount = 8 if direction == "left" else -8
-                        pyautogui.scroll(scroll_amount, x=mac_x, y=mac_y)
-                        time.sleep(0.008)
-                    pyautogui.keyUp('shift')
-                    method = "horizontal_scroll_fallback"
+                        scroll_amount = 20 if direction == "left" else -20
+                        pyautogui.hscroll(scroll_amount, x=mac_x, y=mac_y)
+                else:
+                    raise NotImplementedError("Horizontal scrolling not supported on this platform")
                     
             else:
                 print(f"⬆️⬇️ VERTICAL SCROLL: {direction}")
                 # Vertical scrolling (this should work fine)
                 for i in range(clicks):
-                    scroll_amount = 8 if direction == "up" else -8
+                    scroll_amount = 20 if direction == "up" else -20
                     pyautogui.scroll(scroll_amount, x=mac_x, y=mac_y)
-                    time.sleep(0.008)  # Fast succession
                 method = "vertical_scroll"
             
             print(f"✅ Scroll completed: {direction} ({clicks} iterations)")
