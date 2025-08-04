@@ -25,7 +25,7 @@ Target: User will give you a screenshot, an instruction and some previous logs i
 
 Restriction:
 - Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
-- Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are Tap, Hover, Input, KeyboardPress, Scroll${pageType === 'android' ? ', AndroidBackButton, AndroidHomeButton, AndroidRecentAppsButton, AndroidLongPress, AndroidPull.' : '.'}
+- Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are Tap, Hover, Input, KeyboardPress, Scroll${pageType === 'android' || pageType === 'ios' ? ', AndroidBackButton, AndroidHomeButton, AndroidRecentAppsButton, AndroidLongPress, AndroidPull.' : '.'}
 - Don't repeat actions in the previous logs.
 - Bbox is the bounding box of the element to be located. It's an array of 4 numbers, representing ${bboxDescription(vlMode)}.
 
@@ -37,7 +37,7 @@ Supporting actions:
 - KeyboardPress: { type: "KeyboardPress", param: { value: string } }
 - Scroll: { type: "Scroll", ${vlLocateParam} | null, param: { direction: 'down'(default) | 'up' | 'right' | 'left', scrollType: 'once' (default) | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft', distance: null | number }} // locate is the element to scroll. If it's a page scroll, put \`null\` in the \`locate\` field.
 ${
-  pageType === 'android'
+  pageType === 'android' || pageType === 'ios'
     ? `- AndroidBackButton: { type: "AndroidBackButton", param: {} }
 - AndroidHomeButton: { type: "AndroidHomeButton", param: {} }
 - AndroidRecentAppsButton: { type: "AndroidRecentAppsButton", param: {} }

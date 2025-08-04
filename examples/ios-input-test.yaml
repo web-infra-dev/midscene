@@ -1,0 +1,46 @@
+# iOS Input Test - YAML Version
+# This demonstrates how the improved iOS input system works seamlessly
+# through the standard YAML automation interface
+
+ios:
+  serverPort: 1412
+  autoDismissKeyboard: true
+  iOSMirrorConfig:
+    mirrorX: 692
+    mirrorY: 161
+    mirrorWidth: 344
+    mirrorHeight: 764
+
+tasks:
+  - name: test basic text input
+    flow:
+      - aiInput: "Hello from iOS!"
+        locate: "search box or text field"
+      - sleep: 2000
+
+  - name: test email input
+    flow:
+      - aiInput: "user@example.com"
+        locate: "email input field"
+      - sleep: 2000
+
+  - name: test password with symbols
+    flow:
+      - aiInput: "SecurePass123!@#"
+        locate: "password field"
+      - sleep: 2000
+
+  - name: test clear and replace
+    flow:
+      - aiInput: ""  # Clear the field
+        locate: "text input"
+      - sleep: 1000
+      - aiInput: "Replaced text content"
+        locate: "same text input"
+      - sleep: 2000
+
+  - name: test long text
+    flow:
+      - aiInput: "This is a much longer text message that tests the iOS keyboard input with multiple words and proper spacing between characters"
+        locate: "text area or message field"
+      - sleep: 3000

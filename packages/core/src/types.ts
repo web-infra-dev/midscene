@@ -561,7 +561,8 @@ export type PageType =
   | 'playwright'
   | 'static'
   | 'chrome-extension-proxy'
-  | 'android';
+  | 'android'
+  | 'ios';
 
 export interface StreamingCodeGenerationOptions {
   /** Whether to enable streaming output */

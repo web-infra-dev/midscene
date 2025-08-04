@@ -21,4 +21,8 @@ export type {
   MidsceneYamlFlowItem,
   MidsceneYamlFlowItemAIRightClick,
   MidsceneYamlConfigResult,
+  MidsceneYamlScriptWebEnv,
+  MidsceneYamlScriptAndroidEnv,
+  MidsceneYamlScriptIOSEnv,
+  MidsceneYamlConfig,
 } from './yaml';

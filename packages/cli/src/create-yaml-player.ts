@@ -10,6 +10,7 @@ import type {
   MidsceneYamlScript,
   MidsceneYamlScriptEnv,
 } from '@midscene/core';
+import { agentFromPyAutoGUI } from '@midscene/ios';
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
 import { puppeteerAgentForTarget } from '@midscene/web/puppeteer-agent-launcher';
 import type { Browser } from 'puppeteer';
@@ -161,8 +162,30 @@ export async function createYamlPlayer(
         return { agent, freeFn };
       }
 
+      // handle ios
+      if (typeof yamlScript.ios !== 'undefined') {
+        const iosTarget = yamlScript.ios;
+        const agent = await agentFromPyAutoGUI({
+          serverUrl: iosTarget.serverUrl,
+          serverPort: iosTarget.serverPort,
+          autoDismissKeyboard: iosTarget.autoDismissKeyboard,
+          iOSMirrorConfig: iosTarget.mirrorConfig,
+        });
+
+        if (iosTarget?.launch) {
+          await agent.launch(iosTarget.launch);
+        }
+
+        freeFn.push({
+          name: 'destroy_ios_agent',
+          fn: () => agent.destroy(),
+        });
+
+        return { agent, freeFn };
+      }
+
       throw new Error(
-        'No valid target configuration found in the yaml script, should be either "web" or "android"',
+        'No valid target configuration found in the yaml script, should be either "web", "android", or "ios"',
       );
     },
     undefined,

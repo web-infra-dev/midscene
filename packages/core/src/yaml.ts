@@ -32,6 +32,7 @@ export interface MidsceneYamlScript {
   target?: MidsceneYamlScriptWebEnv;
   web?: MidsceneYamlScriptWebEnv;
   android?: MidsceneYamlScriptAndroidEnv;
+  ios?: MidsceneYamlScriptIOSEnv;
   tasks: MidsceneYamlTask[];
 }
 
@@ -79,9 +80,28 @@ export interface MidsceneYamlScriptAndroidEnv
   launch?: string;
 }
 
+export interface MidsceneYamlScriptIOSEnv extends MidsceneYamlScriptEnvBase {
+  // The URL or app to launch, optional, will use the current screen if not specified
+  launch?: string;
+
+  // PyAutoGUI server configuration
+  serverUrl?: string;
+  serverPort?: number;
+  autoDismissKeyboard?: boolean;
+
+  // iOS device mirroring configuration to define the mirror position and size
+  mirrorConfig?: {
+    mirrorX: number;
+    mirrorY: number;
+    mirrorWidth: number;
+    mirrorHeight: number;
+  };
+}
+
 export type MidsceneYamlScriptEnv =
   | MidsceneYamlScriptWebEnv
-  | MidsceneYamlScriptAndroidEnv;
+  | MidsceneYamlScriptAndroidEnv
+  | MidsceneYamlScriptIOSEnv;
 
 export interface MidsceneYamlFlowItemAIAction {
   ai?: string; // this is the shortcut for aiAction
@@ -209,6 +229,7 @@ export interface MidsceneYamlConfig {
   shareBrowserContext?: boolean;
   web?: MidsceneYamlScriptWebEnv;
   android?: MidsceneYamlScriptAndroidEnv;
+  ios?: MidsceneYamlScriptIOSEnv;
   files: string[];
   headed?: boolean;
   keepWindow?: boolean;

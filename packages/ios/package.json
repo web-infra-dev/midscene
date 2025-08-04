@@ -1,0 +1,58 @@
+{
+  "name": "@midscene/ios",
+  "version": "0.1.0",
+  "description": "Midscene.js for iOS automation",
+  "main": "./dist/lib/index.js",
+  "types": "./dist/lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/lib/index.d.ts",
+      "import": "./dist/es/index.js",
+      "require": "./dist/lib/index.js"
+    },
+    "./agent": {
+      "types": "./dist/lib/agent.d.ts",
+      "import": "./dist/es/agent.js",
+      "require": "./dist/lib/agent.js"
+    }
+  },
+  "bin": {
+    "midscene-ios-server": "./bin/server.js"
+  },
+  "files": ["lib/**/*", "bin/**/*", "idb/**/*", "README.md"],
+  "scripts": {
+    "build": "modern build",
+    "dev": "modern dev",
+    "test": "vitest",
+    "server": "node bin/server.js",
+    "server:test": "python3 idb/test.py",
+    "example": "tsx tests/example.ts",
+    "setup": "./setup.sh",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "@midscene/core": "workspace:*",
+    "@midscene/shared": "workspace:*",
+    "@midscene/web": "workspace:*",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "@modern-js/module-tools": "^2.60.3",
+    "@types/node": "^22.10.5",
+    "dotenv": "^16.4.5",
+    "tsx": "^4.17.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "peerDependencies": {},
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/midscene.git",
+    "directory": "packages/ios"
+  },
+  "license": "MIT"
+}
