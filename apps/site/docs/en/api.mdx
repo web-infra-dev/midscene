@@ -98,12 +98,12 @@ Tap something.
 - Type
 
 ```typescript
-function aiTap(locate: string, options?: Object): Promise<void>;
+function aiTap(locate: string | Object, options?: Object): Promise<void>;
 ```
 
 - Parameters:
 
-  - `locate: string` - A natural language description of the element to tap.
+  - `locate: string | Object` - A natural language description of the element to tap, or [prompting with images](#prompting-with-images).
   - `options?: Object` - Optional, a configuration object containing:
     - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. False by default.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
@@ -133,12 +133,12 @@ Move mouse over something.
 - Type
 
 ```typescript
-function aiHover(locate: string, options?: Object): Promise<void>;
+function aiHover(locate: string | Object, options?: Object): Promise<void>;
 ```
 
 - Parameters:
 
-  - `locate: string` - A natural language description of the element to hover over.
+  - `locate: string | Object` - A natural language description of the element to hover over, or [prompting with images](#prompting-with-images).
   - `options?: Object` - Optional, a configuration object containing:
     - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. False by default.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
@@ -161,13 +161,17 @@ Input text into something.
 - Type
 
 ```typescript
-function aiInput(text: string, locate: string, options?: Object): Promise<void>;
+function aiInput(
+  text: string | Object,
+  locate: string,
+  options?: Object,
+): Promise<void>;
 ```
 
 - Parameters:
 
   - `text: string` - The final text content that should be placed in the input element. Use blank string to clear the input.
-  - `locate: string` - A natural language description of the element to input text into.
+  - `locate: string | Object` - A natural language description of the element to input text into, or [prompting with images](#prompting-with-images).
   - `options?: Object` - Optional, a configuration object containing:
     - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. False by default.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
@@ -193,7 +197,7 @@ Press a keyboard key.
 ```typescript
 function aiKeyboardPress(
   key: string,
-  locate?: string,
+  locate?: string | Object,
   options?: Object,
 ): Promise<void>;
 ```
@@ -201,7 +205,7 @@ function aiKeyboardPress(
 - Parameters:
 
   - `key: string` - The web key to press, e.g. 'Enter', 'Tab', 'Escape', etc. Key Combination is not supported.
-  - `locate?: string` - Optional, a natural language description of the element to press the key on.
+  - `locate?: string | Object` - Optional, a natural language description of the element to press the key on, or [prompting with images](#prompting-with-images).
   - `options?: Object` - Optional, a configuration object containing:
     - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. False by default.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
@@ -226,7 +230,7 @@ Scroll a page or an element.
 ```typescript
 function aiScroll(
   scrollParam: PlanningActionParamScroll,
-  locate?: string,
+  locate?: string | Object,
   options?: Object,
 ): Promise<void>;
 ```
@@ -237,7 +241,7 @@ function aiScroll(
     - `direction: 'up' | 'down' | 'left' | 'right'` - The direction to scroll.
     - `scrollType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft'` - Optional, the type of scroll to perform.
     - `distance: number` - Optional, the distance to scroll in px.
-  - `locate?: string` - Optional, a natural language description of the element to scroll on. If not provided, Midscene will perform scroll on the current mouse position.
+  - `locate?: string | Object` - Optional, a natural language description of the element to scroll on, or [prompting with images](#prompting-with-images). If not provided, Midscene will perform scroll on the current mouse position.
   - `options?: Object` - Optional, a configuration object containing:
     - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. False by default.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
@@ -270,7 +274,7 @@ function aiRightClick(locate: string, options?: Object): Promise<void>;
 
 - Parameters:
 
-  - `locate: string` - A natural language description of the element to right-click on.
+  - `locate: string | Object` - A natural language description of the element to right-click on, or [prompting with images](#prompting-with-images).
   - `options?: Object` - Optional, a configuration object containing:
     - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. False by default.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
@@ -306,12 +310,12 @@ Ask the AI model any question about the current page. It returns the answer in s
 - Type
 
 ```typescript
-function aiAsk(prompt: string, options?: Object): Promise<string>;
+function aiAsk(prompt: string | Object, options?: Object): Promise<string>;
 ```
 
 - Parameters:
 
-  - `prompt: string` - A natural language description of the question.
+  - `prompt: string | Object` - A natural language description of the question, or [prompting with images](#prompting-with-images).
   - `options?: Object` - Optional, a configuration object containing:
     - `domIncluded?: boolean | 'visible-only'` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. If set to `'visible-only'`, only the visible elements will be sent. Default: False.
     - `screenshotIncluded?: boolean` - Whether to send screenshot to the model. Default: True.
@@ -386,11 +390,11 @@ Extract a boolean value from the UI.
 - Type
 
 ```typescript
-function aiBoolean(prompt: string, options?: Object): Promise<boolean>;
+function aiBoolean(prompt: string | Object, options?: Object): Promise<boolean>;
 ```
 
 - Parameters:
-  - `prompt: string` - A natural language description of the expected value.
+  - `prompt: string | Object` - A natural language description of the expected value, or [prompting with images](#prompting-with-images).
   - `options?: Object` - Optional, a configuration object containing:
     - `domIncluded?: boolean | 'visible-only'` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. If set to `'visible-only'`, only the visible elements will be sent. Default: False.
     - `screenshotIncluded?: boolean` - Whether to send screenshot to the model. Default: True.
@@ -416,11 +420,11 @@ Extract a number value from the UI.
 - Type
 
 ```typescript
-function aiNumber(prompt: string, options?: Object): Promise<number>;
+function aiNumber(prompt: string | Object, options?: Object): Promise<number>;
 ```
 
 - Parameters:
-  - `prompt: string` - A natural language description of the expected value.
+  - `prompt: string | Object` - A natural language description of the expected value, or [prompting with images](#prompting-with-images).
   - `options?: Object` - Optional, a configuration object containing:
     - `domIncluded?: boolean | 'visible-only'` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. If set to `'visible-only'`, only the visible elements will be sent. Default: False.
     - `screenshotIncluded?: boolean` - Whether to send screenshot to the model. Default: True.
@@ -447,11 +451,11 @@ Extract a string value from the UI.
 - Type
 
 ```typescript
-function aiString(prompt: string, options?: Object): Promise<string>;
+function aiString(prompt: string | Object, options?: Object): Promise<string>;
 ```
 
 - Parameters:
-  - `prompt: string` - A natural language description of the expected value.
+  - `prompt: string | Object` - A natural language description of the expected value, or [prompting with images](#prompting-with-images).
   - `options?: Object` - Optional, a configuration object containing:
     - `domIncluded?: boolean | 'visible-only'` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. If set to `'visible-only'`, only the visible elements will be sent. Default: False.
     - `screenshotIncluded?: boolean` - Whether to send screenshot to the model. Default: True.
@@ -479,12 +483,12 @@ Specify an assertion in natural language, and the AI determines whether the cond
 - Type
 
 ```typescript
-function aiAssert(assertion: string, errorMsg?: string): Promise<void>;
+function aiAssert(assertion: string | Object, errorMsg?: string): Promise<void>;
 ```
 
 - Parameters:
 
-  - `assertion: string` - The assertion described in natural language.
+  - `assertion: string | Object` - The assertion described in natural language, or [prompting with images](#prompting-with-images).
   - `errorMsg?: string` - An optional error message to append if the assertion fails.
 
 - Return Value:
@@ -521,7 +525,7 @@ Locate an element using natural language.
 
 ```typescript
 function aiLocate(
-  locate: string,
+  locate: string | Object,
   options?: Object,
 ): Promise<{
   rect: {
@@ -537,7 +541,7 @@ function aiLocate(
 
 - Parameters:
 
-  - `locate: string` - A natural language description of the element to locate.
+  - `locate: string | Object` - A natural language description of the element to locate, or [prompting with images](#prompting-with-images).
   - `options?: Object` - Optional, a configuration object containing:
     - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. False by default.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
@@ -806,4 +810,57 @@ After starting Midscene, you should see logs similar to:
 
 ```log
 DEBUGGING MODE: langsmith wrapper enabled
+```
+
+## Advanced features
+
+### Prompting with images
+
+You can use images as supplements in the prompt to describe things that cannot be expressed in natural language.
+
+When prompting with images, the format of the prompt parameters is as follows:
+
+```javascript
+{
+  // Prompt text, in which images can be referred
+  prompt: string,
+  // The images referred in the prompt text
+  images?: {
+    // Image name, corresponding to the names referred in the prompt text
+    name: string,
+    // Image url, can be a local image path, Base64 string, or http link
+    url: string
+  }[]
+  // When convertHttpImage2Base64 is true，the image links in the http format will be converted into Base64 encoding and sent to the LLM.
+  // Which is applicable when the image links are not publicly accessible.
+  convertHttpImage2Base64?: boolean
+}
+```
+
+- Example 1: use images to inspect the tap position.
+
+```javascript
+await agent.aiTap({
+  prompt: 'The specific logo',
+  images: [
+    {
+      name: 'The specific logo',
+      url: 'https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png',
+    },
+  ],
+});
+```
+
+- Example 2: use images to assert the page content.
+
+```javascript
+await agent.aiAssert({
+  prompt: 'Whether there is a specific logo on the page.',
+  images: [
+    {
+      name: 'The specific logo',
+      url: 'https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png',
+    },
+  ],
+});
 ```
