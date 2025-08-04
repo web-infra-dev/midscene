@@ -7,9 +7,6 @@ export default defineConfig({
   root: path.join(__dirname, 'docs'),
   title:
     '(AI UI Automation, AI Testing, Computer Use, Browser Use, Android Use)',
-  search: {
-    codeBlocks: true,
-  },
   description:
     'AI UI Automation, AI Testing, Computer Use, Browser Use, Android Use. It offers JavaScript SDK, Chrome extension, and support for scripting in YAML.',
   icon: '/midscene-icon.png',
@@ -354,7 +351,26 @@ export default defineConfig({
   },
   lang: 'en',
   plugins: [
-    pluginLlms(),
+    pluginLlms([
+      {
+        llmsTxt: {
+          name: 'llms.txt',
+        },
+        llmsFullTxt: {
+          name: 'llms-full.txt',
+        },
+        include: ({ page }) => page.lang === 'en',
+      },
+      {
+        llmsTxt: {
+          name: 'zh/llms.txt',
+        },
+        llmsFullTxt: {
+          name: 'zh/llms-full.txt',
+        },
+        include: ({ page }) => page.lang === 'zh',
+      },
+    ]),
     pluginSitemap({
       siteUrl: 'https://midscenejs.com',
     }),
