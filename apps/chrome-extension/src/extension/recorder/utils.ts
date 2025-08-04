@@ -559,58 +559,59 @@ const generateAIMindmap = async (
         role: 'system',
         content: `You are an expert test automation analyst who creates detailed Mermaid mindmaps that preserve the complete sequence and details of user interactions.
 
-CRITICAL REQUIREMENTS:
-1. PRESERVE ALL EVENT DETAILS: Include complete descriptions from detailedDescription field
-2. MAINTAIN SEQUENTIAL ORDER: Events must follow the exact chronological sequence (1→2→3→4...)
-3. SHOW PROGRESSION: Each event should logically connect to the next event
-4. DETAILED NODE NAMES: Use full descriptive names, not abbreviated versions
-5. HIERARCHICAL FLOW: Organize by session → page transitions → detailed event sequence
+    CRITICAL REQUIREMENTS:
+    1. PRESERVE ALL EVENT DETAILS: Include complete descriptions from detailedDescription field
+    2. MAINTAIN SEQUENTIAL ORDER: Events must follow the exact chronological sequence (1→2→3→4...)
+    3. SHOW PROGRESSION: Each event should logically connect to the next event
+    4. DETAILED NODE NAMES: Use full descriptive names, not abbreviated versions
+    5. HIERARCHICAL FLOW: Organize by session → page transitions → detailed event sequence
 
-Mindmap Structure:
-- Root: Main test scenario
-- Level 1: Session name
-- Level 2: Page sections (when page changes)
-- Level 3: Sequential detailed events with full descriptions
-- Level 4: Sub-actions if needed
+    Mindmap Structure:
+    - Root: Main test scenario
+      \s- Level 1: Session name
+      \s\s- Level 2: Page sections (when page changes)
+      \s\s\s- Level 3: Sequential detailed events with full descriptions
+      \s\s\s\s- Level 4: Sub-actions if needed
 
-Syntax Guidelines:
-- Use parentheses for root: root(Test Scenario)
-- Use descriptive text for events: Navigate to Login Page
-- Preserve sequence numbers: Step 1 Navigate to Homepage
-- Keep full element descriptions and input values
-- Show clear progression between events
+    Syntax Guidelines:
+    - Use parentheses for root: root(Test Scenario)
+    - Use descriptive text for events: Navigate to Login Page
+    - Preserve sequence numbers: Step 1 Navigate to Homepage
+    - Keep full element descriptions and input values
+    - Show clear progression between events
+    -
 
-IMPORTANT: Do not summarize or abbreviate event details. Include the full action descriptions to maintain test documentation value.`,
+    IMPORTANT: Do not summarize or abbreviate event details. Include the full action descriptions to maintain test documentation value.`,
       },
       {
         role: 'user',
         content: `Create a detailed Mermaid mindmap that preserves ALL event details and maintains exact sequential order:
 
-${JSON.stringify(sequentialSessionData, null, 2)}
+    ${JSON.stringify(sequentialSessionData, null, 2)}
 
-Requirements:
-1. Use the detailedDescription field for event nodes (preserve full descriptions)
-2. Maintain exact sequential order from eventSequence array
-3. Show page transitions clearly using pageTransitionFlow
-4. Include input values, element descriptions, and page contexts
-5. Create a hierarchical flow: Session → Page → Sequential Events
-6. Use meaningful, descriptive node names
-7. Ensure proper Mermaid mindmap syntax with correct indentation
+    Requirements:
+    1. Use the detailedDescription field for event nodes (preserve full descriptions)
+    2. Maintain exact sequential order from eventSequence array
+    3. Show page transitions clearly using pageTransitionFlow
+    4. Include input values, element descriptions, and page contexts
+    5. Create a hierarchical flow: Session → Page → Sequential Events
+    6. Use meaningful, descriptive node names
+    7. Ensure proper Mermaid mindmap syntax with correct indentation
 
-Example structure:
-mindmap
-  root(User Journey Test)
-    Session Name Here
-      Homepage Section
-        Step 1 Navigate to Homepage URL
-          Step 2 Click Login Button Element
-            Step 3 Input Username into Email Field
-      Login Page Section  
-        Step 4 Navigate to Login Page
-          Step 5 Input Password into Password Field
-            Step 6 Click Submit Button Element
+    Example structure:
+    mindmap
+      root(User Journey Test)
+        Session Name Here
+          Homepage Section
+            Step 1 Navigate to Homepage URL
+            \s\s  Step 2 Click Login Button Element
+            \s\s\s  Step 3 Input Username into Email Field
+            \s\s\s\s  Login Page Section
+            \s\s\s\s\s  Step 4 Navigate to Login Page
+            \s\s\s\s\s\s  Step 5 Input Password into Password Field
+            \s\s\s\s\s\s\s  Step 6 Click Submit Button Element
 
-Return ONLY the Mermaid mindmap syntax. Include ALL detailed descriptions and maintain sequential order.`,
+    Return ONLY the Mermaid mindmap syntax. Include ALL detailed descriptions and maintain sequential order.`,
       },
     ];
 
@@ -619,25 +620,7 @@ Return ONLY the Mermaid mindmap syntax. Include ALL detailed descriptions and ma
     });
 
     if (response?.content && typeof response.content === 'string') {
-      // Extract mindmap content if it's wrapped in code blocks
-      const mindmapMatch = response.content.match(
-        /```(?:mermaid)?\s*(mindmap[\s\S]*?)\s*```/,
-      );
-      if (mindmapMatch) {
-        return mindmapMatch[1].trim();
-      }
-
-      // If no code blocks, check if it starts with mindmap
-      const trimmedContent = response.content.trim();
-      if (trimmedContent.startsWith('mindmap')) {
-        return trimmedContent;
-      }
-
-      // Try to extract just the mindmap part if it's mixed with other content
-      const mindmapSection = trimmedContent.match(/mindmap[\s\S]*$/);
-      if (mindmapSection) {
-        return mindmapSection[0].trim();
-      }
+      return response.content as string;
     }
 
     // Fallback to enhanced sequential static mindmap if AI fails
@@ -662,37 +645,34 @@ const generateDetailedSequentialMindmap = (
     if (session.events.length === 0) return;
 
     // Clean session name for use as node
-    const sessionNodeName = session.name
-      .replace(/[^a-zA-Z0-9\s]/g, '')
-      .slice(0, 30);
+    const sessionNodeName = session.name.replace(/[^a-zA-Z0-9\s]/g, '');
     mermaid += `    ${sessionNodeName}\n`;
 
     // Track page transitions for better organization
     let currentPage = '';
-    let pageNodeAdded = false;
+    let indentLevel = 2; // Start at level 2 (after session)
 
     session.events.forEach((event, eventIndex) => {
       const eventNumber = eventIndex + 1;
-      const pageName = event.title || event.url || 'Unknown Page';
+      const pageName = event.title || event.url || '';
 
-      // Add page section when page changes
-      if (pageName !== currentPage) {
+      // Add page section when page changes and pageName is not empty
+      if (pageName !== currentPage && pageName) {
         currentPage = pageName;
         const cleanPageName = pageName
           .replace(/[^a-zA-Z0-9\s]/g, '')
           .slice(0, 25);
-        mermaid += `      ${cleanPageName}\n`;
-        pageNodeAdded = true;
+        indentLevel++; // Increase indent level for events under this page
+        const pageIndentation = '  '.repeat(indentLevel);
+        mermaid += `${pageIndentation}${cleanPageName}\n`;
       }
 
+      indentLevel++; // Increase indent level for events under this page
       // Generate detailed event description
       let detailedEventDescription = '';
       switch (event.type) {
         case 'navigation':
           detailedEventDescription = `Step ${eventNumber} Navigate to ${event.title || 'Page'}`;
-          if (event.url) {
-            detailedEventDescription += ` (${event.url.slice(0, 30)}...)`;
-          }
           break;
         case 'click':
           detailedEventDescription = `Step ${eventNumber} Click ${event.elementDescription || 'element'}`;
@@ -709,10 +689,14 @@ const generateDetailedSequentialMindmap = (
       }
 
       // Clean the description for Mermaid syntax
-      const cleanDescription = detailedEventDescription
-        .replace(/[^a-zA-Z0-9\s\-_"()]/g, '')
-        .slice(0, 60);
-      mermaid += `        ${cleanDescription}\n`;
+      const cleanDescription = detailedEventDescription.replace(
+        /[^a-zA-Z0-9\s\-_"()]/g,
+        '',
+      );
+
+      // Add event with current indent level using colon format
+      const eventIndentation = '  '.repeat(indentLevel);
+      mermaid += `${eventIndentation}${cleanDescription}\n`;
     });
   });
 
@@ -833,7 +817,8 @@ export const exportAllEventsToZip = async (sessions: RecordingSession[]) => {
     const markdownContent = generateEventsMarkdownTable(sessionsWithEvents);
 
     // Generate AI-powered mindmap
-    const aiMindmap = await generateAIMindmap(sessionsWithEvents);
+    const aiMindmap =
+      await generateDetailedSequentialMindmap(sessionsWithEvents);
 
     // Combine mindmap and table in automation-story.md
     const combinedContent = `# Test Events Report
