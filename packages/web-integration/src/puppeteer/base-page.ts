@@ -133,7 +133,10 @@ export class Page<
     await this.waitForNavigation();
     const scripts = await getExtraReturnLogic(true);
     assert(scripts, 'scripts should be set before writing report in browser');
+    const startTime = Date.now();
     const captureElementSnapshot = await this.evaluate(scripts);
+    const endTime = Date.now();
+    debugPage(`getElementsNodeTree end, cost: ${endTime - startTime}ms`);
     return captureElementSnapshot as ElementTreeNode<ElementInfo>;
   }
 
@@ -154,6 +157,7 @@ export class Page<
     const imgType = 'jpeg';
     const quality = 90;
     await this.waitForNavigation();
+    const startTime = Date.now();
     debugPage('screenshotBase64 begin');
 
     let base64: string;
@@ -174,7 +178,8 @@ export class Page<
     } else {
       throw new Error('Unsupported page type for screenshot');
     }
-    debugPage('screenshotBase64 end');
+    const endTime = Date.now();
+    debugPage(`screenshotBase64 end, cost: ${endTime - startTime}ms`);
     return base64;
   }
 

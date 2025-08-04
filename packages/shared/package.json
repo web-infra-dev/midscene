@@ -56,9 +56,12 @@
     "test:u": "vitest --run -u"
   },
   "dependencies": {
+    "@silvia-odwyer/photon": "0.3.3",
+    "@silvia-odwyer/photon-node": "0.3.3",
     "debug": "4.4.0",
     "jimp": "0.22.12",
-    "js-sha256": "0.11.0"
+    "js-sha256": "0.11.0",
+    "sharp": "0.33.5"
   },
   "devDependencies": {
     "@modern-js/module-tools": "2.60.6",

@@ -1,15 +1,12 @@
 import * as path from 'node:path';
+import { defineConfig } from '@rspress/core';
 import { pluginLlms } from '@rspress/plugin-llms';
-import sitemap from 'rspress-plugin-sitemap';
-import { defineConfig } from 'rspress/config';
+import { pluginSitemap } from '@rspress/plugin-sitemap';
 
 export default defineConfig({
   root: path.join(__dirname, 'docs'),
   title:
     '(AI UI Automation, AI Testing, Computer Use, Browser Use, Android Use)',
-  search: {
-    codeBlocks: true,
-  },
   description:
     'AI UI Automation, AI Testing, Computer Use, Browser Use, Android Use. It offers JavaScript SDK, Chrome extension, and support for scripting in YAML.',
   icon: '/midscene-icon.png',
@@ -18,6 +15,7 @@ export default defineConfig({
     dark: '/midscene_with_text_light.png',
   },
   themeConfig: {
+    lastUpdated: true,
     darkMode: false,
     socialLinks: [
       {
@@ -47,11 +45,21 @@ export default defineConfig({
         lang: 'en',
         outlineTitle: 'On This Page',
         label: 'On This Page',
+        editLink: {
+          docRepoBaseUrl:
+            'https://github.com/web-infra-dev/midscene/tree/main/apps/site/docs',
+          text: '📝 Edit this page on GitHub',
+        },
       },
       {
         lang: 'zh',
         outlineTitle: '大纲',
         label: '大纲',
+        editLink: {
+          docRepoBaseUrl:
+            'https://github.com/web-infra-dev/midscene/tree/main/apps/site/docs',
+          text: '📝 在 GitHub 上编辑此页',
+        },
       },
     ],
     sidebar: {
@@ -354,9 +362,28 @@ export default defineConfig({
   },
   lang: 'en',
   plugins: [
-    pluginLlms(),
-    sitemap({
-      domain: 'https://midscenejs.com',
+    pluginLlms([
+      {
+        llmsTxt: {
+          name: 'llms.txt',
+        },
+        llmsFullTxt: {
+          name: 'llms-full.txt',
+        },
+        include: ({ page }) => page.lang === 'en',
+      },
+      {
+        llmsTxt: {
+          name: 'zh/llms.txt',
+        },
+        llmsFullTxt: {
+          name: 'zh/llms-full.txt',
+        },
+        include: ({ page }) => page.lang === 'zh',
+      },
+    ]),
+    pluginSitemap({
+      siteUrl: 'https://midscenejs.com',
     }),
   ],
 });

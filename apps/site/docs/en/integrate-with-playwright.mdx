@@ -94,7 +94,7 @@ Promise.resolve(
 );
 ```
 
-For more Agent API details, please refer to [API Reference](./API).
+For more Agent API details, please refer to [API Reference](./api.mdx).
 
 ### Step 3: Run the script
 
@@ -198,7 +198,7 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 - `aiWaitFor` - AI Wait
 - `aiLocate` - Locate Element
 
-Besides the exposed shortcut methods, if you need to call other [API](./API) provided by the agent, you can use `agentForPage` to get the `PageAgent` instance, and use `PageAgent` to call the API for interaction:
+Besides the exposed shortcut methods, if you need to call other [API](./api.mdx) provided by the agent, you can use `agentForPage` to get the `PageAgent` instance, and use `PageAgent` to call the API for interaction:
 
 ```typescript
 test('case demo', async ({ agentForPage, page }) => {
@@ -262,7 +262,7 @@ test('search headphone on ebay', async ({
 });
 ```
 
-For more Agent API details, please refer to [API Reference](./API).
+For more Agent API details, please refer to [API Reference](./api.mdx).
 
 ### Step 4. run test cases
 
@@ -276,5 +276,5 @@ After the command executes successfully, it will output: `Midscene - report file
 
 ## More
 
-- For all the methods on the Agent, please refer to [API Reference](./API).
+- For all the methods on the Agent, please refer to [API Reference](./api.mdx).
 - For more details about prompting, please refer to [Prompting Tips](./prompting-tips)

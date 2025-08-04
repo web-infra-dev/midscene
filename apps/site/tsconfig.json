@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "moduleResolution": "bundler",
     "jsx": "react-jsx",
     "esModuleInterop": true
   },
