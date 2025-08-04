@@ -57,7 +57,7 @@ export default defineConfig({
         label: '大纲',
         editLink: {
           docRepoBaseUrl:
-          'https://github.com/web-infra-dev/midscene/tree/main/apps/site/docs',
+            'https://github.com/web-infra-dev/midscene/tree/main/apps/site/docs',
           text: '📝 在 GitHub 上编辑此页',
         },
       },
