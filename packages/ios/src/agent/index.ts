@@ -49,7 +49,7 @@ export async function agentFromPyAutoGUI(opts?: iOSAgentOpt & iOSDeviceOpt) {
     serverUrl: opts?.serverUrl,
     serverPort,
     autoDismissKeyboard: opts?.autoDismissKeyboard,
-    iOSMirrorConfig: opts?.iOSMirrorConfig || opts?.mirrorConfig,
+    mirrorConfig: opts?.mirrorConfig,
   });
 
   await page.connect();

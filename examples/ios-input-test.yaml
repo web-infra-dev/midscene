@@ -5,7 +5,7 @@
 ios:
   serverPort: 1412
   autoDismissKeyboard: true
-  iOSMirrorConfig:
+  mirrorConfig:
     mirrorX: 692
     mirrorY: 161
     mirrorWidth: 344

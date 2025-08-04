@@ -18,13 +18,6 @@ export interface iOSDeviceOpt extends AndroidDeviceInputOpt {
   serverPort?: number;
   autoDismissKeyboard?: boolean;
   // iOS device mirroring configuration
-  iOSMirrorConfig?: {
-    mirrorX: number;
-    mirrorY: number;
-    mirrorWidth: number;
-    mirrorHeight: number;
-  };
-  // Alternative name for better API compatibility
   mirrorConfig?: {
     mirrorX: number;
     mirrorY: number;
@@ -116,8 +109,8 @@ export class iOSDevice implements AndroidDevicePage {
     }
 
     // Configure iOS mirroring if provided
-    if (this.options?.iOSMirrorConfig) {
-      await this.configureIOSMirror(this.options.iOSMirrorConfig);
+    if (this.options?.mirrorConfig) {
+      await this.configureIOSMirror(this.options.mirrorConfig);
     }
 
     // Get screen information (will use iOS dimensions if configured)
@@ -200,7 +193,7 @@ export class iOSDevice implements AndroidDevicePage {
 
   async size(): Promise<Size> {
     // 对于iOS镜像模式，返回iOS设备的逻辑尺寸而不是macOS屏幕尺寸
-    if (this.options?.iOSMirrorConfig) {
+    if (this.options?.mirrorConfig) {
       // 从Python服务器获取配置信息，使用估算的iOS设备尺寸
       try {
         const config = await this.getConfiguration();
@@ -252,7 +245,7 @@ export class iOSDevice implements AndroidDevicePage {
 
     try {
       // Use PyAutoGUI server's screenshot functionality for iOS mirroring
-      if (this.options?.iOSMirrorConfig) {
+      if (this.options?.mirrorConfig) {
         const result = await this.executePyAutoGUIAction({
           action: 'screenshot',
         });
@@ -348,7 +341,7 @@ export class iOSDevice implements AndroidDevicePage {
   async tap(point: Point): Promise<void> {
     debugPage(`tap at (${point.left}, ${point.top})`);
 
-    if (this.options?.iOSMirrorConfig) {
+    if (this.options?.mirrorConfig) {
       await this.executePyAutoGUIAction({
         action: 'click',
         x: point.left,
@@ -367,7 +360,7 @@ export class iOSDevice implements AndroidDevicePage {
   async hover(point: Point): Promise<void> {
     debugPage(`hover at (${point.left}, ${point.top})`);
 
-    if (this.options?.iOSMirrorConfig) {
+    if (this.options?.mirrorConfig) {
       await this.executePyAutoGUIAction({
         action: 'move',
         x: point.left,
@@ -528,7 +521,7 @@ export class iOSDevice implements AndroidDevicePage {
     };
 
     // Always use mouse wheel/trackpad for scrolling (better compatibility)
-    if (this.options?.iOSMirrorConfig) {
+    if (this.options?.mirrorConfig) {
       // iOS mirroring mode: use iOS coordinates directly
       await this.executePyAutoGUIAction(scrollAction);
     } else {
@@ -585,7 +578,7 @@ export class iOSDevice implements AndroidDevicePage {
         to: { x: number; y: number },
       ) => {
         // 对于iOS镜像模式，直接传递坐标；对于非镜像模式，使用设备像素比调整
-        if (this.options?.iOSMirrorConfig) {
+        if (this.options?.mirrorConfig) {
           await this.executePyAutoGUIAction({
             action: 'drag',
             x: from.x,
@@ -754,7 +747,7 @@ export class iOSDevice implements AndroidDevicePage {
   }
 
   async longPress(x: number, y: number, duration?: number): Promise<void> {
-    if (this.options?.iOSMirrorConfig) {
+    if (this.options?.mirrorConfig) {
       await this.executePyAutoGUIAction({
         action: 'click',
         x: x,
@@ -790,7 +783,7 @@ export class iOSDevice implements AndroidDevicePage {
       top: start.top + (distance || screenSize.height / 3),
     };
 
-    if (this.options?.iOSMirrorConfig) {
+    if (this.options?.mirrorConfig) {
       await this.executePyAutoGUIAction({
         action: 'drag',
         x: start.left,
@@ -827,7 +820,7 @@ export class iOSDevice implements AndroidDevicePage {
       top: start.top - (distance || screenSize.height / 3),
     };
 
-    if (this.options?.iOSMirrorConfig) {
+    if (this.options?.mirrorConfig) {
       await this.executePyAutoGUIAction({
         action: 'drag',
         x: start.left,

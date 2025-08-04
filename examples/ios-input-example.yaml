@@ -11,8 +11,8 @@ ios:
   # iOS device mirroring configuration for precise location targeting
   # These values define the position and size of the mirrored device screen
   mirrorConfig:
-    mirrorX: 692      # X position of iOS mirror on computer screen
-    mirrorY: 161      # Y position of iOS mirror on computer screen  
+    mirrorX: 788      # X position of iOS mirror on computer screen
+    mirrorY: 133      # Y position of iOS mirror on computer screen  
     mirrorWidth: 344  # Width of the mirrored iOS screen
     mirrorHeight: 764 # Height of the mirrored iOS screen (iPhone 11 Pro size)
   
@@ -25,7 +25,7 @@ tasks:
       - sleep: 5000
       - aiAction: "打开音乐应用"
       - sleep: 2000
-      - aiTap: "搜索按钮"
+      - aiTap: "搜索图标"
       - sleep: 3000
       - aiInput: "Coldplay"
         locate: "Search box"

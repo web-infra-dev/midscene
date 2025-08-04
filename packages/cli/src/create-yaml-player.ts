@@ -169,7 +169,7 @@ export async function createYamlPlayer(
           serverUrl: iosTarget.serverUrl,
           serverPort: iosTarget.serverPort,
           autoDismissKeyboard: iosTarget.autoDismissKeyboard,
-          iOSMirrorConfig: iosTarget.mirrorConfig,
+          mirrorConfig: iosTarget.mirrorConfig,
         });
 
         if (iosTarget?.launch) {

@@ -23,7 +23,7 @@ async function testIOSInput() {
   const options: iOSDeviceOpt = {
     serverPort: 1412,
     autoDismissKeyboard: true,
-    iOSMirrorConfig: {
+    mirrorConfig: {
       mirrorX: 692, // X position of iOS mirror on screen
       mirrorY: 161, // Y position of iOS mirror on screen
       mirrorWidth: 344, // Width of the mirrored iOS screen

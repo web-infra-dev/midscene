@@ -66,7 +66,7 @@ async function demonstrateIOSMirroring() {
 
   const device = new iOSDevice({
     serverPort: 1412,
-    iOSMirrorConfig: mirrorConfig,
+    mirrorConfig: mirrorConfig,
   });
 
   try {

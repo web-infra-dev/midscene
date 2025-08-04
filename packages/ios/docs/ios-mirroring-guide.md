@@ -18,11 +18,8 @@ iOS device mirroring allows you to control iOS devices through their screen repr
    pip3 install flask pyautogui
    ```
 
-2. **iOS Device Mirroring Setup** (choose one):
-   - **QuickTime Player**: Connect iOS device → File → New Movie Recording → Select iOS device
+2. **iOS Device Mirroring Setup**:
    - **iPhone Mirroring** (macOS Sequoia): Built-in iOS mirroring feature
-   - **iOS Simulator**: Xcode's iOS Simulator
-   - **Third-party tools**: Reflector, AirServer, etc.
 
 3. **Screen Position**: Note the exact position and size of iOS mirror on your macOS screen
 
@@ -35,7 +32,7 @@ import { iOSDevice, iOSAgent } from '@midscene/ios';
 
 const device = new iOSDevice({
   serverPort: 1412,
-  iOSMirrorConfig: {
+  mirrorConfig: {
     mirrorX: 100,       // Mirror position X on macOS screen
     mirrorY: 50,        // Mirror position Y on macOS screen
     mirrorWidth: 400,   // Mirror width on macOS screen
@@ -281,12 +278,12 @@ await device.configureIOSMirror({
 // Control multiple iOS devices
 const device1 = new iOSDevice({ 
   serverPort: 1412, 
-  iOSMirrorConfig: config1 
+  mirrorConfig: config1 
 });
 
 const device2 = new iOSDevice({ 
   serverPort: 1413,  // Different server instance
-  iOSMirrorConfig: config2 
+  mirrorConfig: config2 
 });
 ```
 
