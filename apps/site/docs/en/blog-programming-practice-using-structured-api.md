@@ -149,7 +149,7 @@ const userList = await agent.aiQuery('string[], the user list')
 
 ### Instant Action Methods
 
-Midscene provides some instant action methods, like `aiTap`, `aiInput`, `aiScroll`, `aiHover`, etc., They are also commonly used in the automation code. You can check them in the [API](./API) page.
+Midscene provides some instant action methods, like `aiTap`, `aiInput`, `aiScroll`, `aiHover`, etc., They are also commonly used in the automation code. You can check them in the [API](./api.mdx) page.
 
 ## Want to Write Structured Code Easily ?
 
@@ -199,6 +199,6 @@ Generally, if you encounter the following situations, you should consider abando
 
 To achieve better performance, you can check the [Midscene caching feature](./caching) to cache the planning and xpath results.
 
-To learn more about the structured API, you can check the [API reference](./API).
+To learn more about the structured API, you can check the [API reference](./api.mdx).
 
 

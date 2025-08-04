@@ -83,13 +83,13 @@ import { AgentOverChromeBridge } from "@midscene/web/bridge-mode";
 const agent = new AgentOverChromeBridge();
 ```
 
-除了 [普通 Agent 构造器](./api) 的参数，`AgentOverChromeBridge` 还接受以下参数：
+除了 [普通 Agent 构造器](./api.mdx) 的参数，`AgentOverChromeBridge` 还接受以下参数：
 
 * `closeNewTabsAfterDisconnect?: boolean`: 如果为 true，当桥接断开时，所有新创建的标签页都将被自动关闭。默认值为 false。
 
 ## 方法
 
-除了 [普通的 Agent 接口](./api)，`AgentOverChromeBridge` 还提供了一些额外的接口来控制桌面 Chrome。
+除了 [普通的 Agent 接口](./api.mdx)，`AgentOverChromeBridge` 还提供了一些额外的接口来控制桌面 Chrome。
 
 :::info
 你应该在执行其他操作前，先调用 `connectCurrentTab` 或 `connectNewTabWithUrl`。
@@ -185,7 +185,7 @@ await agent.destroy();
 
 ### 更多接口
 
-Agent 中的常用接口（如 `aiAction`，`aiQuery` 等）请阅读 [API 参考](./API)。
+Agent 中的常用接口（如 `aiAction`，`aiQuery` 等）请阅读 [API 参考](./api.mdx)。
 
 ## 在 YAML 自动化脚本中使用桥接模式
 

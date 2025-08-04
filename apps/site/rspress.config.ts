@@ -1,7 +1,7 @@
 import * as path from 'node:path';
+import { defineConfig } from '@rspress/core';
 import { pluginLlms } from '@rspress/plugin-llms';
-import sitemap from 'rspress-plugin-sitemap';
-import { defineConfig } from 'rspress/config';
+import { pluginSitemap } from '@rspress/plugin-sitemap';
 
 export default defineConfig({
   root: path.join(__dirname, 'docs'),
@@ -355,8 +355,8 @@ export default defineConfig({
   lang: 'en',
   plugins: [
     pluginLlms(),
-    sitemap({
-      domain: 'https://midscenejs.com',
+    pluginSitemap({
+      siteUrl: 'https://midscenejs.com',
     }),
   ],
 });

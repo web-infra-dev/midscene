@@ -40,7 +40,7 @@ For example:
 
 By using `agent.aiTap('Login Button')`, you can directly using the locating result from the AI model and perform the click action. It's faster and more accurate compared to the auto planning mode.
 
-For more details, please refer to [API](./API).
+For more details, please refer to [API](./api.mdx).
 
 ### Understand the reason why `.ai` is wrong
 

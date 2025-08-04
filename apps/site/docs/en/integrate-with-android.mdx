@@ -114,7 +114,7 @@ The AndroidDevice constructor supports the following parameters:
 
 ## More interfaces in AndroidAgent
 
-Except the common agent interfaces in [API Reference](./API), AndroidAgent also provides some other interfaces:
+Except the common agent interfaces in [API Reference](./api.mdx), AndroidAgent also provides some other interfaces:
 
 ### `agent.launch()`
 
@@ -163,7 +163,7 @@ function agentFromAdbDevice(
 - Parameters:
 
   - `deviceId?: string` - Optional, the adb device id to connect. If not provided, the first connected device will be used.
-  - `opts?: PageAgentOpt & AndroidDeviceOpt` - Optional, the options for the AndroidAgent, PageAgentOpt refer to [constructor](./API), AndroidDeviceOpt refer to [AndroidDevice constructor](./integrate-with-android#androiddevice-constructor).
+  - `opts?: PageAgentOpt & AndroidDeviceOpt` - Optional, the options for the AndroidAgent, PageAgentOpt refer to [constructor](./api.mdx), AndroidDeviceOpt refer to [AndroidDevice constructor](./integrate-with-android#androiddevice-constructor).
 
 - Return Value:
 
@@ -216,7 +216,7 @@ const agent = await agentFromAdbDevice(devices[0].udid);
 
 ## More
 
-- For all the APIs on the Agent, please refer to [API Reference](./API).
+- For all the APIs on the Agent, please refer to [API Reference](./api.mdx).
 - For more details about prompting, please refer to [Prompting Tips](./prompting-tips)
 
 ## FAQ
