@@ -17,8 +17,8 @@ import type {
   ChatCompletionUserMessageParam,
 } from 'openai/resources';
 import {
+  call,
   callToGetJSONObject,
-  checkAIConfig,
   getModelName,
 } from './service-caller/index';
 
@@ -45,20 +45,19 @@ export enum AIActionType {
 export async function callAiFn<T>(
   msgs: AIArgs,
   AIActionTypeValue: AIActionType,
-  options?: {
-    skipJsonParse?: boolean;
-  },
 ): Promise<{ content: T; usage?: AIUsageInfo }> {
-  assert(
-    checkAIConfig(),
-    'Cannot find config for AI model service. If you are using a self-hosted model without validating the API key, please set `OPENAI_API_KEY` to any non-null value. https://midscenejs.com/model-provider.html',
-  );
-
   const { content, usage } = await callToGetJSONObject<T>(
     msgs,
     AIActionTypeValue,
-    options,
   );
+  return { content, usage };
+}
+
+export async function callAiFnWithStringResponse<T>(
+  msgs: AIArgs,
+  AIActionTypeValue: AIActionType,
+): Promise<{ content: string; usage?: AIUsageInfo }> {
+  const { content, usage } = await call(msgs, AIActionTypeValue);
   return { content, usage };
 }
 

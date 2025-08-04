@@ -1,4 +1,9 @@
-import { AIActionType, type AIArgs, callAiFn } from '@midscene/core/ai-model';
+import {
+  AIActionType,
+  type AIArgs,
+  callAiFn,
+  callAiFnWithStringResponse,
+} from '@midscene/core/ai-model';
 import type { ChromeRecordedEvent } from '@midscene/recorder';
 import { message } from 'antd';
 import { saveAs } from 'file-saver';
@@ -615,9 +620,10 @@ const generateAIMindmap = async (
       },
     ];
 
-    const response = await callAiFn(prompt, AIActionType.EXTRACT_DATA, {
-      skipJsonParse: true,
-    });
+    const response = await callAiFnWithStringResponse(
+      prompt,
+      AIActionType.EXTRACT_DATA,
+    );
 
     if (response?.content && typeof response.content === 'string') {
       return response.content as string;
