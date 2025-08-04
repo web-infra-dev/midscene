@@ -82,13 +82,13 @@ import { AgentOverChromeBridge } from "@midscene/web/bridge-mode";
 const agent = new AgentOverChromeBridge();
 ```
 
-Except [the normal parameters in the agent constructor](./api), `AgentOverChromeBridge` accepts one more parameter:
+Except [the normal parameters in the agent constructor](./api.mdx), `AgentOverChromeBridge` accepts one more parameter:
 
 * `closeNewTabsAfterDisconnect?: boolean`: If true, the newly created tab will be closed when the bridge is destroyed. Default is false.
 
 ## Methods
 
-Except [the normal agent interface](./api), `AgentOverChromeBridge` provides some other interfaces to control the desktop Chrome.
+Except [the normal agent interface](./api.mdx), `AgentOverChromeBridge` provides some other interfaces to control the desktop Chrome.
 
 :::info
 You should always call `connectCurrentTab` or `connectNewTabWithUrl` before doing further actions.

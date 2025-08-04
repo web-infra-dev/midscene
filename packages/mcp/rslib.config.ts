@@ -40,7 +40,7 @@ export default defineConfig({
     },
   },
   output: {
-    copy: [{ from: path.join(__dirname, '../../apps/site/docs/en/API.mdx') }],
+    copy: [{ from: path.join(__dirname, '../../apps/site/docs/en/api.mdx') }],
   },
   lib: [
     {

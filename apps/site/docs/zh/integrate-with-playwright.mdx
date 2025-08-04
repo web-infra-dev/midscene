@@ -94,7 +94,7 @@ Promise.resolve(
 );
 ```
 
-更多 Agent 的 API 讲解请参考 [API 参考](./API)。
+更多 Agent 的 API 讲解请参考 [API 参考](./api.mdx)。
 
 ### 第三步：运行
 
@@ -198,7 +198,7 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 - `aiWaitFor` - 等待
 - `aiLocate` - 定位元素
 
-除了上述暴露的快捷方法之外，如果还需要调用其它 agent 提供的 [API](./API)，请使用 `agentForPage` 获取 `PageAgent` 实例，使用 `PageAgent` 调用 API 进行交互：
+除了上述暴露的快捷方法之外，如果还需要调用其它 agent 提供的 [API](./api.mdx)，请使用 `agentForPage` 获取 `PageAgent` 实例，使用 `PageAgent` 调用 API 进行交互：
 
 ````typescript
 test('case demo', async ({ agentForPage, page }) => {
@@ -262,7 +262,7 @@ test('search headphone on ebay', async ({
 });
 ````
 
-更多 Agent 的 API 讲解请参考 [API 参考](./API)。
+更多 Agent 的 API 讲解请参考 [API 参考](./api.mdx)。
 
 ### Step 4. 运行测试用例
 
@@ -276,5 +276,5 @@ npx playwright test ./e2e/ebay-search.spec.ts
 
 ## 更多
 
-- 更多 Agent 上的 API 接口请参考 [API 参考](./API)。
+- 更多 Agent 上的 API 接口请参考 [API 参考](./api.mdx)。
 - 更多关于提示词的技巧请参考 [提示词技巧](./prompting-tips)
