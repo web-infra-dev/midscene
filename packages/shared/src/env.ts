@@ -1,3 +1,7 @@
+declare global {
+  var midsceneGlobalConfig: Partial<ReturnType<typeof allConfigFromEnv>> | null;
+}
+
 // config keys
 export const MIDSCENE_OPENAI_INIT_CONFIG_JSON =
   'MIDSCENE_OPENAI_INIT_CONFIG_JSON';
@@ -131,18 +135,8 @@ export const allConfigFromEnv = () => {
   };
 };
 
-// Use global variable on globalThis for config maintenance
-declare global {
-  var midsceneGlobalConfig: Partial<ReturnType<typeof allConfigFromEnv>> | null;
-}
-
-// Initialize global config if not exists
-if (!globalThis.midsceneGlobalConfig) {
-  globalThis.midsceneGlobalConfig = null;
-}
-
 const getGlobalConfig = () => {
-  if (globalThis.midsceneGlobalConfig === null) {
+  if (!globalThis.midsceneGlobalConfig) {
     globalThis.midsceneGlobalConfig = allConfigFromEnv();
   }
   return globalThis.midsceneGlobalConfig;
