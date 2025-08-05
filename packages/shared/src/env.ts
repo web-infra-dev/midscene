@@ -131,13 +131,21 @@ export const allConfigFromEnv = () => {
   };
 };
 
-let globalConfig: Partial<ReturnType<typeof allConfigFromEnv>> | null = null;
+// Use global variable on globalThis for config maintenance
+declare global {
+  var midsceneGlobalConfig: Partial<ReturnType<typeof allConfigFromEnv>> | null;
+}
+
+// Initialize global config if not exists
+if (!globalThis.midsceneGlobalConfig) {
+  globalThis.midsceneGlobalConfig = null;
+}
 
 const getGlobalConfig = () => {
-  if (globalConfig === null) {
-    globalConfig = allConfigFromEnv();
+  if (globalThis.midsceneGlobalConfig === null) {
+    globalThis.midsceneGlobalConfig = allConfigFromEnv();
   }
-  return globalConfig;
+  return globalThis.midsceneGlobalConfig;
 };
 
 // import { UITarsModelVersion } from '@ui-tars/shared/constants';
@@ -276,7 +284,7 @@ export const overrideAIConfig = (
   }
 
   const currentConfig = getGlobalConfig();
-  globalConfig = extendMode
+  globalThis.midsceneGlobalConfig = extendMode
     ? { ...currentConfig, ...newConfig }
     : { ...newConfig };
 };
