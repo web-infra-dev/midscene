@@ -200,7 +200,7 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 
 除了上述暴露的快捷方法之外，如果还需要调用其它 agent 提供的 [API](./api.mdx)，请使用 `agentForPage` 获取 `PageAgent` 实例，使用 `PageAgent` 调用 API 进行交互：
 
-````typescript
+```typescript
 test('case demo', async ({ agentForPage, page }) => {
   const agent = await agentForPage(page);
 
@@ -208,6 +208,9 @@ test('case demo', async ({ agentForPage, page }) => {
   const logContent = agent._unstableLogContent();
   console.log(logContent);
 });
+```
+
+
 
 #### 示例代码
 
