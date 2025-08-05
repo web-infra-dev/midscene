@@ -63,7 +63,7 @@ export class Executor {
     }
   }
 
-  async flush(): Promise<any> {
+  async flush(): Promise<{ output: any; thought?: string } | undefined> {
     if (this.status === 'init' && this.tasks.length > 0) {
       console.warn(
         'illegal state for executor, status is init but tasks are not empty',
@@ -178,7 +178,11 @@ export class Executor {
     if (this.tasks.length) {
       // return the last output
       const outputIndex = Math.min(taskIndex, this.tasks.length - 1);
-      return this.tasks[outputIndex].output;
+      const { thought, output } = this.tasks[outputIndex];
+      return {
+        thought,
+        output,
+      };
     }
   }
 

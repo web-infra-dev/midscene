@@ -103,7 +103,7 @@ describe(
       const dump = executor.dump();
       expect(dump.logTime).toBeTruthy();
 
-      expect(flushResult).toBe(flushResultData);
+      expect(flushResult?.output).toBe(flushResultData);
     });
 
     it('insight - init and append', async () => {
@@ -177,7 +177,7 @@ describe(
       expect(executor.status).toBe('error');
       expect(executor.latestErrorTask()).toBeTruthy();
       expect(executor.isInErrorState()).toBeTruthy();
-      expect(r).toEqual('error-output');
+      expect(r?.output).toEqual('error-output');
 
       // expect to throw an error
       expect(async () => {
