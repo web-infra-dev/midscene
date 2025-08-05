@@ -7,6 +7,11 @@ IMPORTANT: Follow these exact type signatures for AI functions:
 // Type signatures for AI functions:
 aiInput(value: string, locator: string): Promise<void>
 aiTap(locator: string): Promise<void>  
+aiScroll(scrollParam: {
+  direction: 'up' | 'down' | 'left' | 'right',
+  scrollType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft',
+  distance: number - scroll distance, px is the unit
+}): Promise<void>
 aiAssert(assertion: string): Promise<void>
 aiQuery<T>(queryObject: Record<string, string>): Promise<T> // Extracts data from page based on descriptions
 
@@ -97,4 +102,94 @@ tasks:
 - Use natural language descriptions
 - Add deepThink: true for complex interactions
 - Keep task names concise but descriptive
+
+
+
+YAML type
+tasks:
+  - name: <name>
+    continueOnError: <boolean> # Optional, whether to continue to the next task on error, defaults to false.
+    flow:
+      # Auto Planning (.ai)
+      # ----------------
+
+      # Perform an interaction. \`ai\` is a shorthand for \`aiAction\`.
+      - ai: <prompt>
+        cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
+
+      # This usage is the same as \`ai\`.
+      - aiAction: <prompt>
+        cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
+
+      # Instant Action (.aiTap, .aiHover, .aiInput, .aiKeyboardPress, .aiScroll)
+      # ----------------
+
+      # Tap an element described by a prompt.
+      - aiTap: <prompt>
+        deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
+        xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
+        cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
+
+      # Hover over an element described by a prompt.
+      - aiHover: <prompt>
+        deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
+        xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
+        cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
+
+      # Input text into an element described by a prompt.
+      - aiInput: <final text content of the input>
+        locate: <prompt>
+        deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
+        xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
+        cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
+
+      # Press a key (e.g., Enter, Tab, Escape) on an element described by a prompt.
+      - aiKeyboardPress: <key>
+        locate: <prompt>
+        deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
+        xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
+        cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
+
+      # Scroll globally or on an element described by a prompt.
+      - aiScroll:
+        direction: 'up' # or 'down' | 'left' | 'right'
+        scrollType: 'once' # or 'untilTop' | 'untilBottom' | 'untilLeft' | 'untilRight'
+        distance: <number> # Optional, the scroll distance in pixels.
+        locate: <prompt> # Optional, the element to scroll on.
+        deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
+        xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
+        cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
+
+      # Log the current screenshot with a description in the report file.
+      - logScreenshot: <title> # Optional, the title of the screenshot. If not provided, the title will be 'untitled'.
+        content: <content> # Optional, the description of the screenshot.
+
+      # Data Extraction
+      # ----------------
+
+      # Perform a query that returns a JSON object.
+      - aiQuery: <prompt> # Remember to describe the format of the result in the prompt.
+        name: <name> # The key for the query result in the JSON output.
+
+      # More APIs
+      # ----------------
+
+      # Wait for a condition to be met, with a timeout (in ms, optional, defaults to 30000).
+      - aiWaitFor: <prompt>
+        timeout: <ms>
+
+      # Perform an assertion.
+      - aiAssert: <prompt>
+        errorMessage: <error-message> # Optional, the error message to print if the assertion fails.
+
+      # Wait for a specified amount of time.
+      - sleep: <ms>
+
+      # Execute a piece of JavaScript code in the web page context.
+      - javascript: <javascript>
+        name: <name> # Optional, assign a name to the return value, which will be used as a key in the JSON output.
+
+  - name: <name>
+    flow:
+      # ...
 `;
