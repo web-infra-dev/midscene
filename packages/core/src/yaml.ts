@@ -9,6 +9,7 @@ export interface LocateOption {
 export interface InsightExtractOption {
   domIncluded?: boolean | 'visible-only';
   screenshotIncluded?: boolean;
+  returnThought?: boolean;
 }
 
 export interface ReferenceImage {

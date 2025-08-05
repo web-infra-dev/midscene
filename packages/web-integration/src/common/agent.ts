@@ -616,17 +616,25 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   async aiAssert(assertion: TUserPrompt, msg?: string, opt?: AgentAssertOpt) {
-    const { output, executor } = await this.taskExecutor.assert(assertion);
+    const { output, executor, thought } = await this.taskExecutor.assert(
+      assertion,
+      {
+        returnThought: true,
+      },
+    );
     await this.afterTaskRunning(executor, true);
 
-    if (output && opt?.keepRawResponse) {
-      return output;
+    if (opt?.keepRawResponse) {
+      return {
+        pass: output,
+        thought,
+      };
     }
 
-    if (!output?.pass) {
+    if (!output) {
       const errMsg = msg || `Assertion failed: ${assertion}`;
       const reasonMsg = `Reason: ${
-        output?.thought || executor.latestErrorTask()?.error || '(no_reason)'
+        thought || executor.latestErrorTask()?.error || '(no_reason)'
       }`;
       throw new Error(`${errMsg}\n${reasonMsg}`);
     }
