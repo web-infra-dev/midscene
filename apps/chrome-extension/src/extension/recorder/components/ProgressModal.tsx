@@ -349,44 +349,44 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
   // Streaming callback handler factory
   const createStreamingChunkHandler =
     (targetType: 'playwright' | 'yaml'): StreamingCallback =>
-      (chunk: CodeGenerationChunk) => {
-        setStreamingContent(chunk.accumulated);
-        const code = chunk.accumulated;
-        const thinking = chunk.reasoning_content;
+    (chunk: CodeGenerationChunk) => {
+      setStreamingContent(chunk.accumulated);
+      const code = chunk.accumulated;
+      const thinking = chunk.reasoning_content;
 
-        // Accumulate thinking process content
-        if (thinking) {
-          setAccumulatedThinking((prev) => prev + thinking);
+      // Accumulate thinking process content
+      if (thinking) {
+        setAccumulatedThinking((prev) => prev + thinking);
+      }
+
+      setThinkingProcess(thinking);
+      setActualCode(code);
+
+      if (chunk.isComplete) {
+        setIsStreaming(false);
+
+        // Use the actual code for final result
+        const finalCode = code || chunk.accumulated;
+
+        // Set the final generated code based on the target type, not current selectedType
+        if (targetType === 'playwright') {
+          setGeneratedTest(finalCode);
+        } else if (targetType === 'yaml') {
+          setGeneratedYaml(finalCode);
         }
 
-        setThinkingProcess(thinking);
-        setActualCode(code);
-
-        if (chunk.isComplete) {
-          setIsStreaming(false);
-
-          // Use the actual code for final result
-          const finalCode = code || chunk.accumulated;
-
-          // Set the final generated code based on the target type, not current selectedType
-          if (targetType === 'playwright') {
-            setGeneratedTest(finalCode);
-          } else if (targetType === 'yaml') {
-            setGeneratedYaml(finalCode);
-          }
-
-          // Update session with final code
-          if (sessionId) {
-            updateSession(sessionId, {
-              generatedCode: {
-                ...getCurrentSession()?.generatedCode,
-                [targetType]: finalCode,
-              },
-              updatedAt: Date.now(),
-            });
-          }
+        // Update session with final code
+        if (sessionId) {
+          updateSession(sessionId, {
+            generatedCode: {
+              ...getCurrentSession()?.generatedCode,
+              [targetType]: finalCode,
+            },
+            updatedAt: Date.now(),
+          });
         }
-      };
+      }
+    };
 
   // Common function to handle code generation with streaming support
   const handleCodeGeneration = async (type: 'playwright' | 'yaml') => {
