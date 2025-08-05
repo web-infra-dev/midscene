@@ -1,3 +1,7 @@
+declare global {
+  var midsceneGlobalConfig: Partial<ReturnType<typeof allConfigFromEnv>> | null;
+}
+
 // config keys
 export const MIDSCENE_OPENAI_INIT_CONFIG_JSON =
   'MIDSCENE_OPENAI_INIT_CONFIG_JSON';
@@ -131,13 +135,11 @@ export const allConfigFromEnv = () => {
   };
 };
 
-let globalConfig: Partial<ReturnType<typeof allConfigFromEnv>> | null = null;
-
 const getGlobalConfig = () => {
-  if (globalConfig === null) {
-    globalConfig = allConfigFromEnv();
+  if (!globalThis.midsceneGlobalConfig) {
+    globalThis.midsceneGlobalConfig = allConfigFromEnv();
   }
-  return globalConfig;
+  return globalThis.midsceneGlobalConfig;
 };
 
 // import { UITarsModelVersion } from '@ui-tars/shared/constants';
@@ -276,7 +278,7 @@ export const overrideAIConfig = (
   }
 
   const currentConfig = getGlobalConfig();
-  globalConfig = extendMode
+  globalThis.midsceneGlobalConfig = extendMode
     ? { ...currentConfig, ...newConfig }
     : { ...newConfig };
 };
