@@ -1,4 +1,5 @@
 export {
+  callAiFnWithStringResponse,
   callToGetJSONObject,
   call as callAi,
 } from './service-caller/index';
@@ -28,7 +29,6 @@ export {
 export { plan } from './llm-planning';
 export {
   callAiFn,
-  callAiFnWithStringResponse,
   adaptBboxToRect,
 } from './common';
 export { vlmPlanning, resizeImageForUiTars } from './ui-tars-planning';

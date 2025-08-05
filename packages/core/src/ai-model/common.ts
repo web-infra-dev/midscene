@@ -53,14 +53,6 @@ export async function callAiFn<T>(
   return { content, usage };
 }
 
-export async function callAiFnWithStringResponse<T>(
-  msgs: AIArgs,
-  AIActionTypeValue: AIActionType,
-): Promise<{ content: string; usage?: AIUsageInfo }> {
-  const { content, usage } = await call(msgs, AIActionTypeValue);
-  return { content, usage };
-}
-
 const defaultBboxSize = 20; // must be even number
 const debugInspectUtils = getDebug('ai:common');
 
