@@ -11,6 +11,38 @@ vi.mock('@/common/plan-builder', () => ({
   buildPlans: vi.fn(),
 }));
 
+// Mock only the necessary parts to avoid side effects
+vi.mock('@midscene/core/utils', () => ({
+  writeLogFile: vi.fn(() => null),
+  reportHTMLContent: vi.fn(() => ''),
+  stringifyDumpData: vi.fn(() => '{}'),
+  groupedActionDumpFileExt: '.json',
+}));
+
+vi.mock('@midscene/shared/logger', () => ({
+  getDebug: vi.fn(() => vi.fn()),
+  logMsg: vi.fn(),
+}));
+
+vi.mock('@midscene/core', async () => {
+  const actual = await vi.importActual('@midscene/core');
+  return {
+    ...actual,
+    Insight: vi.fn().mockImplementation(() => ({})),
+  };
+});
+
+// Partial mock for utils - only mock the async functions that need mocking
+vi.mock('@/common/utils', async () => {
+  const actual = await vi.importActual('@/common/utils');
+  return {
+    ...actual,
+    parseContextFromWebPage: vi.fn().mockResolvedValue({}),
+    trimContextByViewport: vi.fn((execution) => execution),
+    printReportMsg: vi.fn(),
+  };
+});
+
 // Mock page implementation
 const mockPage = {
   pageType: 'puppeteer',
@@ -19,6 +51,8 @@ const mockPage = {
   },
   screenshotBase64: vi.fn().mockResolvedValue('mock-screenshot'),
   evaluateJavaScript: vi.fn(),
+  size: vi.fn().mockResolvedValue({ dpr: 1 }),
+  destroy: vi.fn(),
 } as unknown as WebPage;
 
 // Mock task executor
@@ -203,5 +237,67 @@ describe('PageAgent logContent', () => {
     expect(content.executions[0].tasks[0].log).toBeUndefined();
     expect(agent.dump.executions[0].tasks[0].pageContext).toBeDefined();
     expect(agent.dump.executions[0].tasks[0].log).toBeDefined();
+  });
+});
+
+describe('PageAgent reportFileName', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should use external reportFileName when provided', () => {
+    const customReportName = 'my-custom-report-name';
+    const agent = new PageAgent(mockPage, {
+      reportFileName: customReportName,
+    });
+
+    expect(agent.reportFileName).toBe(customReportName);
+  });
+
+  it('should generate reportFileName when not provided', () => {
+    const agent = new PageAgent(mockPage);
+
+    // The generated name should contain puppeteer and follow the pattern
+    // Note: uuid() generates base-36 strings (0-9, a-z)
+    expect(agent.reportFileName).toMatch(
+      /puppeteer-\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}-[a-z0-9]{8}/,
+    );
+  });
+
+  it('should use testId for generated reportFileName when provided', () => {
+    const agent = new PageAgent(mockPage, {
+      testId: 'test-123',
+    });
+
+    // The generated name should contain test-123 and follow the pattern
+    // Note: uuid() generates base-36 strings (0-9, a-z)
+    expect(agent.reportFileName).toMatch(
+      /test-123-\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}-[a-z0-9]{8}/,
+    );
+  });
+
+  it('should prioritize external reportFileName over testId', () => {
+    const customReportName = 'my-custom-report';
+    const agent = new PageAgent(mockPage, {
+      reportFileName: customReportName,
+      testId: 'test-456',
+    });
+
+    expect(agent.reportFileName).toBe(customReportName);
+  });
+
+  it('should fallback to "web" when pageType is not available', () => {
+    const mockPageWithoutType = {
+      ...mockPage,
+      pageType: undefined,
+    } as unknown as WebPage;
+
+    const agent = new PageAgent(mockPageWithoutType);
+
+    // The generated name should contain web and follow the pattern
+    // Note: uuid() generates base-36 strings (0-9, a-z)
+    expect(agent.reportFileName).toMatch(
+      /web-\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}-[a-z0-9]{8}/,
+    );
   });
 });
