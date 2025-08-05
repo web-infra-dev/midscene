@@ -242,7 +242,11 @@ export default class Insight<
     dataDemand: InsightExtractParam,
     opt?: InsightExtractOption,
     multimodalPrompt?: TMultimodalPrompt,
-  ): Promise<any> {
+  ): Promise<{
+    data: T;
+    thought?: string;
+    usage?: AIUsageInfo;
+  }> {
     assert(
       typeof dataDemand === 'object' || typeof dataDemand === 'string',
       `dataDemand should be object or string, but get ${typeof dataDemand}`,
@@ -283,7 +287,7 @@ export default class Insight<
       error: errorLog,
     };
 
-    const { data } = parseResult || {};
+    const { data, thought } = parseResult || {};
 
     // 4
     emitInsightDump(
@@ -300,6 +304,7 @@ export default class Insight<
 
     return {
       data,
+      thought,
       usage,
     };
   }

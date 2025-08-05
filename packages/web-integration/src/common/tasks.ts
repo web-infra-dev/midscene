@@ -65,6 +65,7 @@ import {
 
 interface ExecutionResult<OutputType = any> {
   output: OutputType;
+  thought?: string;
   executor: Executor;
 }
 
@@ -1042,8 +1043,9 @@ export class PageTaskExecutor {
     const { tasks } = await this.convertPlanToExecutable(plans, opts);
     await taskExecutor.append(tasks);
     const result = await taskExecutor.flush();
+    const { output } = result!;
     return {
-      output: result,
+      output,
       executor: taskExecutor,
     };
   }
@@ -1085,7 +1087,8 @@ export class PageTaskExecutor {
 
       // plan
       await taskExecutor.append(planningTask);
-      const planResult: PlanningAIResponse = await taskExecutor.flush();
+      const result = await taskExecutor.flush();
+      const planResult: PlanningAIResponse = result?.output;
       if (taskExecutor.isInErrorState()) {
         return {
           output: planResult,
@@ -1167,13 +1170,19 @@ export class PageTaskExecutor {
       const planningTask: ExecutionTaskPlanningApply =
         this.planningTaskToGoal(userPrompt);
       await taskExecutor.append(planningTask);
-      const output = await taskExecutor.flush();
+      const result = await taskExecutor.flush();
       if (taskExecutor.isInErrorState()) {
         return {
           output: undefined,
           executor: taskExecutor,
         };
       }
+      if (!result) {
+        throw new Error(
+          'result of taskExecutor.flush() is undefined in function actionToGoal',
+        );
+      }
+      const { output } = result;
       const plans = output.actions;
       yamlFlow.push(...(output.yamlFlow || []));
       let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
@@ -1211,7 +1220,7 @@ export class PageTaskExecutor {
   }
 
   private async createTypeQueryTask<T>(
-    type: 'Query' | 'Boolean' | 'Number' | 'String',
+    type: 'Query' | 'Boolean' | 'Number' | 'String' | 'Assert',
     demand: InsightExtractParam,
     opt?: InsightExtractOption,
     multimodalPrompt?: TMultimodalPrompt,
@@ -1254,7 +1263,7 @@ export class PageTaskExecutor {
           };
         }
 
-        const { data, usage } = await this.insight.extract<any>(
+        const { data, usage, thought } = await this.insight.extract<any>(
           demandInput,
           opt,
           multimodalPrompt,
@@ -1270,14 +1279,25 @@ export class PageTaskExecutor {
           output: outputResult,
           log: { dump: insightDump },
           usage,
+          thought,
         };
       },
     };
 
     await taskExecutor.append(this.prependExecutorWithScreenshot(queryTask));
-    const output = await taskExecutor.flush();
+    const result = await taskExecutor.flush();
+
+    if (!result) {
+      throw new Error(
+        'result of taskExecutor.flush() is undefined in function createTypeQueryTask',
+      );
+    }
+
+    const { output, thought } = result;
+
     return {
       output,
+      thought,
       executor: taskExecutor,
     };
   }
@@ -1330,27 +1350,15 @@ export class PageTaskExecutor {
 
   async assert(
     assertion: TUserPrompt,
-  ): Promise<ExecutionResult<InsightAssertionResponse>> {
-    const description = `assert: ${typeof assertion === 'string' ? assertion : assertion.prompt}`;
-    const taskExecutor = new Executor(taskTitleStr('Assert', description), {
-      onTaskStart: this.onTaskStartCallback,
-    });
-    const assertionPlan: PlanningAction<PlanningActionParamAssert> = {
-      type: 'Assert',
-      param: {
-        assertion,
-      },
-      locate: null,
-    };
-    const { tasks } = await this.convertPlanToExecutable([assertionPlan]);
-
-    await taskExecutor.append(this.prependExecutorWithScreenshot(tasks[0]));
-    const output: InsightAssertionResponse = await taskExecutor.flush();
-
-    return {
-      output,
-      executor: taskExecutor,
-    };
+    opt?: InsightExtractOption,
+  ): Promise<ExecutionResult<boolean>> {
+    const { textPrompt, multimodalPrompt } = parsePrompt(assertion);
+    return await this.createTypeQueryTask<boolean>(
+      'Assert',
+      textPrompt,
+      opt,
+      multimodalPrompt,
+    );
   }
 
   /**
@@ -1436,7 +1444,15 @@ export class PageTaskExecutor {
       await taskExecutor.append(
         this.prependExecutorWithScreenshot(assertTasks[0]),
       );
-      const output: InsightAssertionResponse = await taskExecutor.flush();
+      const result = await taskExecutor.flush();
+
+      if (!result) {
+        throw new Error(
+          'result of taskExecutor.flush() is undefined in function waitFor',
+        );
+      }
+
+      const { output } = result as { output: InsightAssertionResponse };
 
       if (output?.pass) {
         return {

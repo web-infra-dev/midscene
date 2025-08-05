@@ -82,6 +82,7 @@ export type AIElementResponse =
 export interface AIDataExtractionResponse<DataDemand> {
   data: DataDemand;
   errors?: string[];
+  thought?: string;
 }
 
 export interface AISectionLocatorResponse {
