@@ -58,7 +58,7 @@ const buildCurrentElementXpath = (
   return `${prefix}${tagName}[${index}]`;
 };
 
-const getElementXpath = (
+export const getElementXpath = (
   element: Node,
   isOrderSensitive = false,
   isLeafElement = false,
