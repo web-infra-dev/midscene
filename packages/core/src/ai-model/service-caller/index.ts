@@ -251,6 +251,11 @@ export async function call(
     onChunk?: StreamingCallback;
   },
 ): Promise<{ content: string; usage?: AIUsageInfo; isStreamed: boolean }> {
+  assert(
+    checkAIConfig(),
+    'Cannot find config for AI model service. If you are using a self-hosted model without validating the API key, please set `OPENAI_API_KEY` to any non-null value. https://midscenejs.com/model-provider.html',
+  );
+
   const { completion, style } = await createChatClient({
     AIActionTypeValue,
   });
@@ -526,11 +531,7 @@ export async function call(
 export async function callToGetJSONObject<T>(
   messages: ChatCompletionMessageParam[],
   AIActionTypeValue: AIActionType,
-  options?: {
-    skipJsonParse?: boolean;
-  },
 ): Promise<{ content: T; usage?: AIUsageInfo }> {
-  const skipJsonParse = options?.skipJsonParse;
   let responseFormat:
     | OpenAI.ChatCompletionCreateParams['response_format']
     | OpenAI.ResponseFormatJSONObject
@@ -563,9 +564,7 @@ export async function callToGetJSONObject<T>(
 
   const response = await call(messages, AIActionTypeValue, responseFormat);
   assert(response, 'empty response');
-  const jsonContent = skipJsonParse
-    ? response.content
-    : safeParseJson(response.content);
+  const jsonContent = safeParseJson(response.content);
   return { content: jsonContent, usage: response.usage };
 }
 
