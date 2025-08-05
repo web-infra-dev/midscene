@@ -90,6 +90,8 @@ export interface PageAgentOpt {
   autoPrintReportMsg?: boolean;
   onTaskStartTip?: OnTaskStartTip;
   aiActionContext?: string;
+  /* custom report file name */
+  reportFileName?: string;
 }
 
 export type WebPageAgentOpt = PageAgentOpt & WebPageOpt;
@@ -176,9 +178,9 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
     });
     this.dump = this.resetDump();
-    this.reportFileName = getReportFileName(
-      opts?.testId || this.page.pageType || 'web',
-    );
+    this.reportFileName =
+      opts?.reportFileName ||
+      getReportFileName(opts?.testId || this.page.pageType || 'web');
   }
 
   async getUIContext(action?: InsightAction): Promise<WebUIContext> {

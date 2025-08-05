@@ -13,7 +13,11 @@ import {
   safeParseJson,
 } from '@/ai-model/service-caller';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
-import { getAIConfig, overrideAIConfig } from '@midscene/shared/env';
+import {
+  getAIConfig,
+  overrideAIConfig,
+  vlLocateMode,
+} from '@midscene/shared/env';
 import { describe, expect, it } from 'vitest';
 import { reportHTMLContent, writeDumpReport } from '../../dist/es/utils'; // use modules from dist, otherwise we will miss the template file
 import {
@@ -565,14 +569,17 @@ describe('search area', () => {
       { left: 100, top: 100, width: 100, height: 100 },
       { width: 1000, height: 1000 },
     );
-    expect(result).toMatchInlineSnapshot(`
-      {
-        "height": 300,
-        "left": 0,
-        "top": 0,
-        "width": 300,
-      }
-    `);
+
+    // Dynamic expectation based on vlLocateMode
+    const isDoubaoVision = vlLocateMode() === 'doubao-vision';
+    const expectedSize = isDoubaoVision ? 500 : 300;
+
+    expect(result).toEqual({
+      height: expectedSize,
+      left: 0,
+      top: 0,
+      width: expectedSize,
+    });
   });
 
   it('expandSearchArea with a big rect', () => {
@@ -595,14 +602,27 @@ describe('search area', () => {
       { left: 951, top: 800, width: 50, height: 50 },
       { width: 1000, height: 1000 },
     );
-    expect(result).toMatchInlineSnapshot(`
-      {
-        "height": 300,
-        "left": 826,
-        "top": 675,
-        "width": 174,
-      }
-    `);
+
+    // Dynamic expectation based on vlLocateMode
+    const isDoubaoVision = vlLocateMode() === 'doubao-vision';
+
+    if (isDoubaoVision) {
+      // minEdgeSize = 500, paddingSize = 225
+      expect(result).toEqual({
+        height: 425, // min(50 + 225*2, 1000 - 575) = min(500, 425) = 425
+        left: 726, // max(0, 951 - 225) = 726
+        top: 575, // max(0, 800 - 225) = 575
+        width: 274, // min(50 + 225*2, 1000 - 726) = min(500, 274) = 274
+      });
+    } else {
+      // minEdgeSize = 300, paddingSize = 125
+      expect(result).toEqual({
+        height: 300, // min(50 + 125*2, 1000 - 675) = min(300, 325) = 300
+        left: 826, // max(0, 951 - 125) = 826
+        top: 675, // max(0, 800 - 125) = 675
+        width: 174, // min(50 + 125*2, 1000 - 826) = min(300, 174) = 174
+      });
+    }
   });
 });
 
