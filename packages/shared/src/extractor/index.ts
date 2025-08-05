@@ -42,6 +42,7 @@ export {
   getXpathsByPoint,
   getNodeInfoByXpath,
   getElementInfoByXpath,
+  getElementXpath,
 } from './locator';
 
 export { generateElementByPosition } from './dom-util';

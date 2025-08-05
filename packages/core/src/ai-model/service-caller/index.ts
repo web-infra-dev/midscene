@@ -42,7 +42,7 @@ import OpenAI, { AzureOpenAI } from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources';
 import type { Stream } from 'openai/streaming';
 import { SocksProxyAgent } from 'socks-proxy-agent';
-import { AIActionType } from '../common';
+import { AIActionType, type AIArgs } from '../common';
 import { assertSchema } from '../prompt/assertion';
 import { locatorSchema } from '../prompt/llm-locator';
 import { planSchema } from '../prompt/llm-planning';
@@ -251,6 +251,11 @@ export async function call(
     onChunk?: StreamingCallback;
   },
 ): Promise<{ content: string; usage?: AIUsageInfo; isStreamed: boolean }> {
+  assert(
+    checkAIConfig(),
+    'Cannot find config for AI model service. If you are using a self-hosted model without validating the API key, please set `OPENAI_API_KEY` to any non-null value. https://midscenejs.com/model-provider.html',
+  );
+
   const { completion, style } = await createChatClient({
     AIActionTypeValue,
   });
@@ -561,6 +566,14 @@ export async function callToGetJSONObject<T>(
   assert(response, 'empty response');
   const jsonContent = safeParseJson(response.content);
   return { content: jsonContent, usage: response.usage };
+}
+
+export async function callAiFnWithStringResponse<T>(
+  msgs: AIArgs,
+  AIActionTypeValue: AIActionType,
+): Promise<{ content: string; usage?: AIUsageInfo }> {
+  const { content, usage } = await call(msgs, AIActionTypeValue);
+  return { content, usage };
 }
 
 export function extractJSONFromCodeBlock(response: string) {

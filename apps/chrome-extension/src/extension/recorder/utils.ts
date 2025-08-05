@@ -1,7 +1,14 @@
-import { AIActionType, callAiFn } from '@midscene/core/ai-model';
-import { message } from 'antd';
-
+import {
+  AIActionType,
+  type AIArgs,
+  callAiFn,
+  callAiFnWithStringResponse,
+} from '@midscene/core/ai-model';
 import type { ChromeRecordedEvent } from '@midscene/recorder';
+import { message } from 'antd';
+import { saveAs } from 'file-saver';
+import JSZip from 'jszip';
+import type { RecordingSession } from '../../store';
 import { recordLogger } from './logger';
 import { isChromeExtension, safeChromeAPI } from './types';
 
@@ -463,4 +470,385 @@ export const diagnoseRecordingChain = async (
   recordLogger.info('Diagnosis complete');
 
   return { issues, info };
+};
+
+// Generate AI-powered mindmap based on session events
+const generateAIMindmap = async (
+  sessions: RecordingSession[],
+): Promise<string> => {
+  try {
+    // Prepare detailed sequential event data for AI
+    const sequentialSessionData = sessions.map((session) => {
+      // Create a detailed sequential list of events with full descriptions
+      const detailedEventSequence = session.events.map((event, index) => {
+        const eventNumber = index + 1;
+        let detailedDescription = '';
+        let shortNodeName = '';
+
+        switch (event.type) {
+          case 'navigation':
+            detailedDescription = `Navigate to "${event.title || 'Page'}" at URL: ${event.url}`;
+            shortNodeName = `Navigate to ${(event.title || 'Page').slice(0, 15)}`;
+            break;
+          case 'click':
+            detailedDescription = `Click on element "${event.elementDescription || 'element'}" on page "${event.title || event.url}"`;
+            shortNodeName = `Click ${(event.elementDescription || 'Element').slice(0, 20)}`;
+            break;
+          case 'input':
+            detailedDescription = `Input text "${event.value || ''}" into field "${event.elementDescription || 'field'}" on page "${event.title || event.url}"`;
+            shortNodeName = `Input ${event.value ? `"${event.value.slice(0, 15)}"` : 'text'} in ${(event.elementDescription || 'field').slice(0, 15)}`;
+            break;
+          default:
+            detailedDescription = `Perform ${event.type} action on "${event.elementDescription || 'element'}" on page "${event.title || event.url}"`;
+            shortNodeName = `${event.type} ${(event.elementDescription || 'Element').slice(0, 15)}`;
+        }
+
+        return {
+          sequenceNumber: eventNumber,
+          eventType: event.type,
+          detailedDescription,
+          shortNodeName: shortNodeName.replace(/[^a-zA-Z0-9\s\-_"]/g, ''),
+          pageName: event.title || event.url,
+          timestamp: event.timestamp || new Date().toISOString(),
+          // Additional context for AI
+          elementDescription: event.elementDescription,
+          inputValue: event.value,
+          url: event.url,
+          title: event.title,
+        };
+      });
+
+      // Create page transition flow
+      const pageFlow: {
+        step: number;
+        pageName: string;
+        eventIndex: number;
+      }[] = [];
+      let currentPage = '';
+      session.events.forEach((event, index) => {
+        const pageName = event.title || event.url || 'Unknown Page';
+        if (pageName !== currentPage) {
+          pageFlow.push({
+            step: pageFlow.length + 1,
+            pageName,
+            eventIndex: index + 1,
+          });
+          currentPage = pageName;
+        }
+      });
+
+      return {
+        sessionName: session.name,
+        sessionDescription: session.description || '',
+        totalEvents: session.events.length,
+        createdAt: session.createdAt,
+        // Sequential event data with full details
+        eventSequence: detailedEventSequence,
+        // Page transition flow
+        pageTransitionFlow: pageFlow,
+        // Summary statistics
+        eventTypeCounts: {
+          navigation: session.events.filter((e) => e.type === 'navigation')
+            .length,
+          clicks: session.events.filter((e) => e.type === 'click').length,
+          inputs: session.events.filter((e) => e.type === 'input').length,
+          other: session.events.filter(
+            (e) => !['navigation', 'click', 'input'].includes(e.type),
+          ).length,
+        },
+      };
+    });
+
+    const prompt: AIArgs = [
+      {
+        role: 'system',
+        content: `You are an expert test automation analyst who creates detailed Mermaid mindmaps that preserve the complete sequence and details of user interactions.
+
+    CRITICAL REQUIREMENTS:
+    1. PRESERVE ALL EVENT DETAILS: Include complete descriptions from detailedDescription field
+    2. MAINTAIN SEQUENTIAL ORDER: Events must follow the exact chronological sequence (1→2→3→4...)
+    3. SHOW PROGRESSION: Each event should logically connect to the next event
+    4. DETAILED NODE NAMES: Use full descriptive names, not abbreviated versions
+    5. HIERARCHICAL FLOW: Organize by session → page transitions → detailed event sequence
+
+    Mindmap Structure:
+    - Root: Main test scenario
+      \s- Level 1: Session name
+      \s\s- Level 2: Page sections (when page changes)
+      \s\s\s- Level 3: Sequential detailed events with full descriptions
+      \s\s\s\s- Level 4: Sub-actions if needed
+
+    Syntax Guidelines:
+    - Use parentheses for root: root(Test Scenario)
+    - Use descriptive text for events: Navigate to Login Page
+    - Preserve sequence numbers: Step 1 Navigate to Homepage
+    - Keep full element descriptions and input values
+    - Show clear progression between events
+    -
+
+    IMPORTANT: Do not summarize or abbreviate event details. Include the full action descriptions to maintain test documentation value.`,
+      },
+      {
+        role: 'user',
+        content: `Create a detailed Mermaid mindmap that preserves ALL event details and maintains exact sequential order:
+
+    ${JSON.stringify(sequentialSessionData, null, 2)}
+
+    Requirements:
+    1. Use the detailedDescription field for event nodes (preserve full descriptions)
+    2. Maintain exact sequential order from eventSequence array
+    3. Show page transitions clearly using pageTransitionFlow
+    4. Include input values, element descriptions, and page contexts
+    5. Create a hierarchical flow: Session → Page → Sequential Events
+    6. Use meaningful, descriptive node names
+    7. Ensure proper Mermaid mindmap syntax with correct indentation
+
+    Example structure:
+    mindmap
+      root(User Journey Test)
+        Session Name Here
+          Homepage Section
+            Step 1 Navigate to Homepage URL
+            \s\s  Step 2 Click Login Button Element
+            \s\s\s  Step 3 Input Username into Email Field
+            \s\s\s\s  Login Page Section
+            \s\s\s\s\s  Step 4 Navigate to Login Page
+            \s\s\s\s\s\s  Step 5 Input Password into Password Field
+            \s\s\s\s\s\s\s  Step 6 Click Submit Button Element
+
+    Return ONLY the Mermaid mindmap syntax. Include ALL detailed descriptions and maintain sequential order.`,
+      },
+    ];
+
+    const response = await callAiFnWithStringResponse(
+      prompt,
+      AIActionType.EXTRACT_DATA,
+    );
+
+    if (response?.content && typeof response.content === 'string') {
+      return response.content as string;
+    }
+
+    // Fallback to enhanced sequential static mindmap if AI fails
+    console.warn(
+      'AI mindmap generation failed, using detailed sequential fallback',
+    );
+    return generateDetailedSequentialMindmap(sessions);
+  } catch (error) {
+    console.error('Error generating AI mindmap:', error);
+    // Fallback to detailed sequential mindmap
+    return generateDetailedSequentialMindmap(sessions);
+  }
+};
+
+// Enhanced detailed sequential mindmap generation (preserves all event details and order)
+const generateDetailedSequentialMindmap = (
+  sessions: RecordingSession[],
+): string => {
+  let mermaid = 'mindmap\n  root(Detailed Test Execution Flow)\n';
+
+  sessions.forEach((session, sessionIndex) => {
+    if (session.events.length === 0) return;
+
+    // Clean session name for use as node
+    const sessionNodeName = session.name.replace(/[^a-zA-Z0-9\s]/g, '');
+    mermaid += `    ${sessionNodeName}\n`;
+
+    // Track page transitions for better organization
+    let currentPage = '';
+    let indentLevel = 2; // Start at level 2 (after session)
+
+    session.events.forEach((event, eventIndex) => {
+      const eventNumber = eventIndex + 1;
+      const pageName = event.title || event.url || '';
+
+      // Add page section when page changes and pageName is not empty
+      if (pageName !== currentPage && pageName) {
+        currentPage = pageName;
+        const cleanPageName = pageName
+          .replace(/[^a-zA-Z0-9\s]/g, '')
+          .slice(0, 25);
+        indentLevel++; // Increase indent level for events under this page
+        const pageIndentation = '  '.repeat(indentLevel);
+        mermaid += `${pageIndentation}${cleanPageName}\n`;
+      }
+
+      indentLevel++; // Increase indent level for events under this page
+      // Generate detailed event description
+      let detailedEventDescription = '';
+      switch (event.type) {
+        case 'navigation':
+          detailedEventDescription = `Step ${eventNumber} Navigate to ${event.title || 'Page'}`;
+          break;
+        case 'click':
+          detailedEventDescription = `Step ${eventNumber} Click ${event.elementDescription || 'element'}`;
+          break;
+        case 'input': {
+          const inputValue = event.value
+            ? ` "${event.value.slice(0, 20)}${event.value.length > 20 ? '...' : ''}"`
+            : ' text';
+          detailedEventDescription = `Step ${eventNumber} Input${inputValue} into ${event.elementDescription || 'field'}`;
+          break;
+        }
+        default:
+          detailedEventDescription = `Step ${eventNumber} ${event.type} on ${event.elementDescription || 'element'}`;
+      }
+
+      // Clean the description for Mermaid syntax
+      const cleanDescription = detailedEventDescription.replace(
+        /[^a-zA-Z0-9\s\-_"()]/g,
+        '',
+      );
+
+      // Add event with current indent level using colon format
+      const eventIndentation = '  '.repeat(indentLevel);
+      mermaid += `${eventIndentation}${cleanDescription}\n`;
+    });
+  });
+
+  return mermaid;
+};
+
+// Generate markdown table for event details
+const generateEventsMarkdownTable = (sessions: RecordingSession[]): string => {
+  let markdown = '# Test Events Report\n\n';
+
+  sessions.forEach((session, sessionIndex) => {
+    if (session.events.length === 0) return;
+
+    markdown += `## ${session.name}\n\n`;
+    if (session.description) {
+      markdown += `**Description:** ${session.description}\n\n`;
+    }
+    markdown += `**Created:** ${new Date(session.createdAt).toLocaleString()}\n\n`;
+
+    markdown += '| Page | Screenshot Before | Screenshot After | Action |\n';
+    markdown += '|------|------------|------------|--------|\n';
+
+    session.events.forEach((event, eventIndex) => {
+      let expected = 'N/A';
+      const page = event.title || event.url || '';
+      const screenshotBefore = event.screenshotBefore
+        ? `![](./images/screenshot_${sessionIndex}_${eventIndex}_before.png)`
+        : 'N/A';
+      const screenshotAfter = event.screenshotAfter
+        ? `![](./images/screenshot_${sessionIndex}_${eventIndex}_after.png)`
+        : 'N/A';
+      if (event.type === 'navigation') {
+        expected = `Navigate to ${event.url}`;
+      }
+
+      let action = '';
+      switch (event.type) {
+        case 'click':
+          action = `Click on ${event.elementDescription || 'element'}`;
+          break;
+        case 'input':
+          action = `Input "${event.value}" into ${event.elementDescription || 'field'}`;
+          break;
+        case 'navigation':
+          action = `Navigate to ${event.url}`;
+          break;
+        default:
+          action = `${event.type} on ${event.elementDescription || 'element'}`;
+      }
+
+      markdown += `| ${page} | ${screenshotBefore} | ${screenshotAfter} | ${action} |\n`;
+    });
+
+    if (session.generatedCode?.yaml || session.generatedCode?.playwright) {
+      markdown += '## Generated Code\n\n';
+      if (session.generatedCode?.yaml) {
+        markdown += '### YAML\n\n';
+        markdown += `\`\`\`yaml\n${session.generatedCode.yaml}\n\`\`\`\n\n`;
+      }
+      if (session.generatedCode?.playwright) {
+        markdown += '### Playwright\n\n';
+        markdown += `\`\`\`playwright\n${session.generatedCode.playwright}\n\`\`\`\n\n`;
+      }
+    }
+
+    markdown += '\n\n\n';
+  });
+
+  return markdown;
+};
+
+// Convert base64 to blob
+const base64ToBlob = (base64: string, mimeType: string): Blob => {
+  const byteCharacters = atob(base64.split(',')[1]);
+  const byteNumbers = new Array(byteCharacters.length);
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+  const byteArray = new Uint8Array(byteNumbers);
+  return new Blob([byteArray], { type: mimeType });
+};
+
+// Export all sessions with events to ZIP file
+export const exportAllEventsToZip = async (sessions: RecordingSession[]) => {
+  try {
+    const zip = new JSZip();
+
+    // Filter sessions that have events
+    const sessionsWithEvents = sessions.filter(
+      (session) => session.events.length > 0,
+    );
+
+    if (sessionsWithEvents.length === 0) {
+      message.warning('No sessions with events to export');
+      return;
+    }
+
+    // Add images folder
+    const imagesFolder = zip.folder('images');
+
+    // Process each session and extract images
+    sessionsWithEvents.forEach((session, sessionIndex) => {
+      session.events.forEach((event, eventIndex) => {
+        if (event.screenshotBefore) {
+          const fileName = `screenshot_${sessionIndex}_${eventIndex}_before.png`;
+          const blob = base64ToBlob(event.screenshotBefore, 'image/png');
+          imagesFolder?.file(fileName, blob);
+        }
+        if (event.screenshotAfter) {
+          const fileName = `screenshot_${sessionIndex}_${eventIndex}_after.png`;
+          const blob = base64ToBlob(event.screenshotAfter, 'image/png');
+          imagesFolder?.file(fileName, blob);
+        }
+      });
+    });
+
+    // Generate and add markdown table
+    const markdownContent = generateEventsMarkdownTable(sessionsWithEvents);
+
+    // Generate AI-powered mindmap
+    const aiMindmap =
+      await generateDetailedSequentialMindmap(sessionsWithEvents);
+
+    // Combine mindmap and table in automation-story.md
+    const combinedContent = `# Test Events Report
+
+## Test Flow Mindmap
+
+\`\`\`mermaid
+${aiMindmap}
+\`\`\`
+
+${markdownContent.replace('# Test Events Report\n\n', '')}`;
+
+    zip.file('automation-story.md', combinedContent);
+
+    // Generate ZIP file
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+
+    // Download ZIP file
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+    saveAs(zipBlob, `midscene-test-events-${timestamp}.zip`);
+
+    message.success('All events exported successfully!');
+  } catch (error) {
+    console.error('Error exporting all events:', error);
+    message.error('Failed to export events');
+  }
 };

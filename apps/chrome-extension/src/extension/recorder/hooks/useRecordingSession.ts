@@ -6,7 +6,11 @@ import {
   useRecordingSessionStore,
 } from '../../../store';
 import { recordLogger } from '../logger';
-import { exportEventsToFile, generateDefaultSessionName } from '../utils';
+import {
+  exportAllEventsToZip,
+  exportEventsToFile,
+  generateDefaultSessionName,
+} from '../utils';
 
 export const useRecordingSession = (currentTab: chrome.tabs.Tab | null) => {
   const {
@@ -173,6 +177,26 @@ export const useRecordingSession = (currentTab: chrome.tabs.Tab | null) => {
     exportEventsToFile(session.events, session.name);
   }, []);
 
+  // Export all sessions events to ZIP
+  const handleExportAllEvents = useCallback(async () => {
+    recordLogger.info('Exporting all events', {
+      sessionsCount: sessions.length,
+    });
+    const hideLoading = message.loading(
+      'Exporting all events to ZIP file...',
+      0,
+    );
+    try {
+      await exportAllEventsToZip(sessions);
+      message.success('Export all events to ZIP file successfully');
+    } catch (error) {
+      message.error('Failed to export all events to ZIP file');
+      throw error;
+    } finally {
+      hideLoading();
+    }
+  }, [sessions]);
+
   return {
     // State
     sessions,
@@ -187,5 +211,6 @@ export const useRecordingSession = (currentTab: chrome.tabs.Tab | null) => {
     handleDeleteSession,
     handleSelectSession,
     handleExportSession,
+    handleExportAllEvents,
   };
 };

@@ -612,7 +612,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
 
     URL.revokeObjectURL(url);
     message.success(
-      `Playwright test for "${downloadSessionName}" downloaded successfully`,
+      `Playwright script for "${downloadSessionName}" downloaded successfully`,
     );
   };
 
@@ -632,7 +632,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
 
     URL.revokeObjectURL(url);
     message.success(
-      `YAML test for "${downloadSessionName}" downloaded successfully`,
+      `YAML script for "${downloadSessionName}" downloaded successfully`,
     );
   };
 
