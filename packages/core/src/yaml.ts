@@ -5,7 +5,7 @@ export interface LocateOption {
   deepThink?: boolean; // only available in vl model
   cacheable?: boolean; // user can set this param to false to disable the cache for a single agent api
   xpath?: string; // only available in web
-  _forceContext?: UIContext<BaseElement>;
+  pageContext?: UIContext<BaseElement>;
 }
 
 export interface InsightExtractOption {

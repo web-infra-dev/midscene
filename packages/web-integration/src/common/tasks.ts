@@ -55,11 +55,10 @@ import {
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import type { WebElementInfo } from '../web-element';
+import type { WebElementInfo, WebUIContext } from '../web-element';
 import type { TaskCache } from './task-cache';
 import { getKeyCommands, taskTitleStr } from './ui-utils';
 import {
-  type WebUIContext,
   matchElementFromCache,
   matchElementFromPlan,
   parsePrompt,
@@ -258,7 +257,7 @@ export class PageTaskExecutor {
 
             // Use forced context if provided, otherwise get context normally
             const pageContext =
-              param?._forceContext ||
+              param?.pageContext ||
               (await this.insight.contextRetrieverFn('locate'));
             task.pageContext = pageContext;
 

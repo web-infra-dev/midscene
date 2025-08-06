@@ -1,5 +1,5 @@
+import type { WebUIContext } from '@midscene/web';
 import type { StaticPageAgent } from '@midscene/web/playground';
-import type { WebUIContext } from '@midscene/web/utils';
 import { useMemo } from 'react';
 import { staticAgentFromContext } from './playground-utils';
 

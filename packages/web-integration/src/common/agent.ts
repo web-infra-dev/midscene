@@ -44,7 +44,7 @@ import { assert } from '@midscene/shared/utils';
 import { PageTaskExecutor } from '../common/tasks';
 import type { PlaywrightWebPage } from '../playwright';
 import type { PuppeteerWebPage } from '../puppeteer';
-import type { WebElementInfo } from '../web-element';
+import type { WebElementInfo, WebUIContext } from '../web-element';
 import type { AndroidDeviceInputOpt } from './page';
 import { buildPlans } from './plan-builder';
 import { TaskCache } from './task-cache';
@@ -56,7 +56,7 @@ import {
   typeStr,
 } from './ui-utils';
 import { getReportFileName, printReportMsg } from './utils';
-import { type WebUIContext, parseContextFromWebPage } from './utils';
+import { parseContextFromWebPage } from './utils';
 import { trimContextByViewport } from './utils';
 
 const debug = getDebug('web-integration');
@@ -127,6 +127,16 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   onDumpUpdate?: (dump: string) => void;
 
   destroyed = false;
+
+  /**
+   * Frozen page context for consistent AI operations
+   */
+  private frozenPageContext?: WebUIContext;
+
+  /**
+   * Flag to indicate if page context is frozen
+   */
+  private isPageContextFrozen = false;
 
   constructor(page: PageType, opts?: PageAgentOpt) {
     this.page = page;
@@ -281,25 +291,32 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   private buildDetailedLocateParam(
     locatePrompt: TUserPrompt,
     opt?: LocateOption,
-  ): DetailedLocateParam & { _forceContext?: WebUIContext } {
+  ): DetailedLocateParam & { pageContext?: WebUIContext } {
     assert(locatePrompt, 'missing locate prompt');
-    if (typeof opt === 'object') {
+
+    // Use frozen context if page is frozen
+    const pageContext = this.isPageContextFrozen
+      ? this.frozenPageContext
+      : undefined;
+
+    if (typeof opt === 'object' && opt !== null) {
       const prompt = locatePrompt;
       const deepThink = opt.deepThink ?? false;
       const cacheable = opt.cacheable ?? true;
       const xpath = opt.xpath;
-      const _forceContext = opt._forceContext as WebUIContext | undefined;
 
       return {
         prompt,
         deepThink,
         cacheable,
         xpath,
-        _forceContext,
+        pageContext,
       };
     }
+
     return {
       prompt: locatePrompt,
+      pageContext,
     };
   }
 
@@ -801,5 +818,25 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       groupDescription,
       executions: newExecutions,
     };
+  }
+
+  /**
+   * Freezes the current page context to be reused in subsequent AI operations
+   * This avoids recalculating page context for each operation
+   */
+  async freezePageContext(): Promise<void> {
+    const context = await this._snapshotContext();
+    // Mark the context as frozen
+    context._isFrozen = true;
+    this.frozenPageContext = context;
+    this.isPageContextFrozen = true;
+  }
+
+  /**
+   * Unfreezes the page context, allowing AI operations to calculate context dynamically
+   */
+  async unfreezePageContext(): Promise<void> {
+    this.frozenPageContext = undefined;
+    this.isPageContextFrozen = false;
   }
 }
