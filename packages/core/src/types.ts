@@ -622,3 +622,11 @@ export type TUserPrompt =
   | ({
       prompt: string;
     } & Partial<TMultimodalPrompt>);
+
+export interface IModelPreferences {
+  /**
+   * - VQA: Visual Question Answering
+   * - grounding：short for Visual Grounding
+   */
+  intent: 'VQA' | 'planning' | 'grounding';
+}

@@ -7,6 +7,7 @@ import type {
   AIUsageInfo,
   BaseElement,
   ElementById,
+  IModelPreferences,
   InsightExtractOption,
   Rect,
   ReferenceImage,
@@ -385,8 +386,15 @@ export async function AiExtractElementInfo<
   multimodalPrompt?: TMultimodalPrompt;
   context: UIContext<ElementType>;
   extractOption?: InsightExtractOption;
+  modelPreferences?: IModelPreferences;
 }) {
-  const { dataQuery, context, extractOption, multimodalPrompt } = options;
+  const {
+    dataQuery,
+    context,
+    extractOption,
+    multimodalPrompt,
+    modelPreferences,
+  } = options;
   const systemPrompt = systemPromptToExtract();
 
   const { screenshotBase64 } = context;
@@ -445,6 +453,7 @@ export async function AiExtractElementInfo<
   const result = await callAiFn<AIDataExtractionResponse<T>>(
     msgs,
     AIActionType.EXTRACT_DATA,
+    modelPreferences,
   );
   return {
     parseResult: result.content,
