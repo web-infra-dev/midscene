@@ -24,20 +24,20 @@
   },
   "devDependencies": {
     "@modelcontextprotocol/inspector": "0.14.1",
-    "@rslib/core": "^0.8.0",
+    "@rslib/core": "^0.11.2",
     "@types/node": "^18.0.0",
     "typescript": "^5.8.3",
     "vitest": "3.0.5",
     "dotenv": "16.4.5",
-    "@midscene/web": "workspace:*",
     "@midscene/report": "workspace:*",
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
-    "@midscene/android": "workspace:*",
     "@modelcontextprotocol/sdk": "1.10.2",
     "zod": "3.24.3"
   },
   "dependencies": {
+    "@midscene/web": "workspace:*",
+    "@midscene/android": "workspace:*",
     "puppeteer": "24.2.0"
   },
   "license": "MIT"
