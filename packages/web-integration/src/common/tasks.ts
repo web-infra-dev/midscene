@@ -1055,6 +1055,9 @@ export class PageTaskExecutor {
           demandInput,
           opt,
           multimodalPrompt,
+          {
+            intent: 'VQA',
+          },
         );
 
         let outputResult = data;

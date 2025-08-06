@@ -617,3 +617,11 @@ export interface DeviceAction<ParamType = any> {
   whatToLocate?: string; // what to locate if location is required or optional
   call: (context: ExecutorContext, param: ParamType) => Promise<void> | void;
 }
+
+export interface IModelPreferences {
+  /**
+   * - VQA: Visual Question Answering
+   * - grounding：short for Visual Grounding
+   */
+  intent: 'VQA' | 'planning' | 'grounding';
+}

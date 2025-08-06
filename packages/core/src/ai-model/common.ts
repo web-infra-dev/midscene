@@ -2,6 +2,7 @@ import type {
   AIUsageInfo,
   BaseElement,
   ElementTreeNode,
+  IModelPreferences,
   MidsceneYamlFlowItem,
   PlanningAction,
   PlanningActionParamInputOrKeyPress,
@@ -45,8 +46,13 @@ export enum AIActionType {
 export async function callAiFn<T>(
   msgs: AIArgs,
   AIActionTypeValue: AIActionType,
+  modelPreferences?: IModelPreferences,
 ): Promise<{ content: T; usage?: AIUsageInfo }> {
-  const jsonObject = await callToGetJSONObject<T>(msgs, AIActionTypeValue);
+  const jsonObject = await callToGetJSONObject<T>(
+    msgs,
+    AIActionTypeValue,
+    modelPreferences,
+  );
 
   return {
     content: jsonObject.content,

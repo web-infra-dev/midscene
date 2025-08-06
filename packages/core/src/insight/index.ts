@@ -18,6 +18,7 @@ import type {
   BaseElement,
   DetailedLocateParam,
   DumpSubscriber,
+  IModelPreferences,
   InsightAction,
   InsightAssertionResponse,
   InsightExtractOption,
@@ -242,6 +243,7 @@ export default class Insight<
     dataDemand: InsightExtractParam,
     opt?: InsightExtractOption,
     multimodalPrompt?: TMultimodalPrompt,
+    modelPreferences?: IModelPreferences,
   ): Promise<{
     data: T;
     thought?: string;
@@ -262,6 +264,7 @@ export default class Insight<
       dataQuery: dataDemand,
       multimodalPrompt,
       extractOption: opt,
+      modelPreferences,
     });
 
     const timeCost = Date.now() - startTime;
