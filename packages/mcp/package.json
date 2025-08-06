@@ -1,6 +1,6 @@
 {
   "name": "@midscene/mcp",
-  "version": "0.25.0",
+  "version": "0.25.2",
   "type": "module",
   "exports": {
     ".": {
@@ -38,7 +38,8 @@
     "zod": "3.24.3"
   },
   "dependencies": {
-    "puppeteer": "24.2.0"
+    "puppeteer": "24.2.0",
+    "sharp": "0.33.5"
   },
   "license": "MIT"
 }

@@ -670,6 +670,9 @@ importers:
       puppeteer:
         specifier: 24.2.0
         version: 24.2.0(typescript@5.8.3)
+      sharp:
+        specifier: 0.33.5
+        version: 0.33.5
     devDependencies:
       '@midscene/android':
         specifier: workspace:*
@@ -16614,7 +16617,7 @@ snapshots:
 
   '@img/sharp-wasm32@0.33.5':
     dependencies:
-      '@emnapi/runtime': 1.4.3
+      '@emnapi/runtime': 1.4.5
     optional: true
 
   '@img/sharp-win32-ia32@0.33.5':
