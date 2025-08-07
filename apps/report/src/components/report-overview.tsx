@@ -1,7 +1,6 @@
-import type { GroupedActionDump } from '@midscene/core';
 import { Tooltip } from 'antd';
 import { useMemo } from 'react';
-import type { ExecutionDumpWithPlaywrightAttributes } from '../types';
+import type { PlaywrightTasks } from '../types';
 import { PlaywrightCaseSelector } from './PlaywrightCaseSelector';
 
 import './report-overview.less';
@@ -11,9 +10,7 @@ const ReportOverview = (props: {
   title: string;
   proModeEnabled?: boolean;
   onProModeChange?: (enabled: boolean) => void;
-  dumps?: ExecutionDumpWithPlaywrightAttributes[];
-  selected?: GroupedActionDump | null;
-  onSelect?: (dump: GroupedActionDump) => void;
+  dumps?: PlaywrightTasks[];
 }): JSX.Element => {
   const testStats = useMemo(() => {
     if (!props.dumps || props.dumps.length === 0) {
@@ -112,8 +109,6 @@ const ReportOverview = (props: {
       {testStatsEl}
       <PlaywrightCaseSelector
         dumps={props.dumps}
-        selected={props.selected}
-        onSelect={props.onSelect}
       />
     </div>
   );

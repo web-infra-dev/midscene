@@ -4,7 +4,6 @@ import { PauseOutlined } from '@ant-design/icons';
 import type {
   ExecutionTask,
   ExecutionTaskInsightLocate,
-  GroupedActionDump,
 } from '@midscene/core';
 import {
   type AnimationScript,
@@ -17,7 +16,7 @@ import { useEffect } from 'react';
 import CameraIcon from '../icons/camera.svg?react';
 import MessageIcon from '../icons/message.svg?react';
 import PlayIcon from '../icons/play.svg?react';
-import type { ExecutionDumpWithPlaywrightAttributes } from '../types';
+import type { PlaywrightTasks } from '../types';
 import ReportOverview from './report-overview';
 
 const SideItem = (props: {
@@ -138,9 +137,7 @@ const SideItem = (props: {
 };
 
 interface SidebarProps {
-  dumps?: ExecutionDumpWithPlaywrightAttributes[];
-  selectedDump?: GroupedActionDump | null;
-  onDumpSelect?: (dump: GroupedActionDump) => void;
+  dumps?: PlaywrightTasks[];
   proModeEnabled?: boolean;
   onProModeChange?: (checked: boolean) => void;
   replayAllScripts?: AnimationScript[] | null;
@@ -151,8 +148,6 @@ interface SidebarProps {
 const Sidebar = (props: SidebarProps = {}): JSX.Element => {
   const {
     dumps,
-    selectedDump,
-    onDumpSelect,
     proModeEnabled = false,
     onProModeChange,
     replayAllMode,
@@ -209,8 +204,6 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
           <ReportOverview
             title={group.groupName}
             dumps={dumps}
-            selected={selectedDump}
-            onSelect={onDumpSelect}
           />
         </div>
       );

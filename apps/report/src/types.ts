@@ -1,26 +1,21 @@
 import type { GroupedActionDump } from '@midscene/core';
-import type { AnimationScript } from '@midscene/visualizer';
 
 // Core visualization types
-export interface ExecutionDumpWithPlaywrightAttributes
-  extends GroupedActionDump {
-  attributes: Record<string, any>;
+export interface PlaywrightTaskAttributes {
+  playwright_test_name: string;
+  playwright_test_description: string;
+  playwright_test_id: string;
+  playwright_test_title: string;
+  playwright_test_status: string;
+  playwright_test_duration: number;
+}
+
+export interface PlaywrightTasks {
+  get: () => GroupedActionDump;
+  attributes: PlaywrightTaskAttributes;
 }
 
 export interface VisualizerProps {
   logoAction?: () => void;
-  dumps?: ExecutionDumpWithPlaywrightAttributes[];
-}
-
-// Store types
-export interface StoreState {
-  dump: GroupedActionDump | null;
-  _executionDumpLoadId: number;
-  replayAllMode: boolean;
-  setReplayAllMode: (mode: boolean) => void;
-  allExecutionAnimation: AnimationScript[] | null;
-  insightWidth: number | null;
-  insightHeight: number | null;
-  setGroupedDump: (dump: GroupedActionDump) => void;
-  reset: () => void;
+  dumps?: PlaywrightTasks[];
 }

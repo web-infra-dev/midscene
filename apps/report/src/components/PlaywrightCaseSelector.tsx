@@ -4,8 +4,9 @@ import { iconForStatus, timeCostStrElement } from '@midscene/visualizer';
 import { Input, Select } from 'antd';
 import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { ExecutionDumpWithPlaywrightAttributes } from '../types';
+import type { PlaywrightTasks } from '../types';
 import './PlaywrightCaseSelector.less';
+import { type DumpStoreType, useExecutionDump } from './store';
 
 // define all possible test statuses
 const TEST_STATUS_OPTIONS = [
@@ -18,18 +19,23 @@ const TEST_STATUS_OPTIONS = [
 ];
 
 interface PlaywrightCaseSelectorProps {
-  dumps?: ExecutionDumpWithPlaywrightAttributes[];
+  dumps?: PlaywrightTasks[];
   selected?: GroupedActionDump | null;
   onSelect?: (dump: GroupedActionDump) => void;
 }
 
 export function PlaywrightCaseSelector({
   dumps,
-  selected,
-  onSelect,
 }: PlaywrightCaseSelectorProps): JSX.Element | null {
   if (!dumps || dumps.length <= 1) return null;
 
+  const selected = useExecutionDump((store: DumpStoreType) => store.dump);
+  const playwrightAttributes = useExecutionDump(
+    (store) => store.playwrightAttributes,
+  );
+  const setGroupedDump = useExecutionDump(
+    (store: DumpStoreType) => store.setGroupedDump,
+  );
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [isExpanded, setIsExpanded] = useState(false);
@@ -70,13 +76,7 @@ export function PlaywrightCaseSelector({
     };
   }, [isExpanded]);
 
-  const nameForDump = (dump: GroupedActionDump) =>
-    `${dump.groupName} - ${dump.groupDescription}`;
-
-  const contentForDump = (
-    dump: ExecutionDumpWithPlaywrightAttributes,
-    key: React.Key,
-  ) => {
+  const titleForDump = (dump: PlaywrightTasks, key: React.Key) => {
     const status = iconForStatus(dump.attributes?.playwright_test_status);
     const costStr = dump.attributes?.playwright_test_duration;
     const cost = costStr ? (
@@ -89,7 +89,7 @@ export function PlaywrightCaseSelector({
       <span key={key}>
         {status}
         {'  '}
-        {nameForDump(dump)}
+        {`${dump.attributes.playwright_test_name || 'unnamed'} - ${dump.attributes.playwright_test_description || ''}`}
         {cost}
       </span>
     );
@@ -101,8 +101,14 @@ export function PlaywrightCaseSelector({
 
     // apply text filter
     if (searchText) {
-      result = result.filter((dump) =>
-        nameForDump(dump).toLowerCase().includes(searchText.toLowerCase()),
+      result = result.filter(
+        (dump) =>
+          (dump.attributes.playwright_test_name || '')
+            .toLowerCase()
+            .includes(searchText.toLowerCase()) ||
+          (dump.attributes.playwright_test_description || '')
+            .toLowerCase()
+            .includes(searchText.toLowerCase()),
       );
     }
 
@@ -137,16 +143,13 @@ export function PlaywrightCaseSelector({
     setIsExpanded(!isExpanded);
   };
 
-  const handleOptionClick = (dump: GroupedActionDump) => {
-    if (onSelect) {
-      onSelect(dump);
-    }
+  const handlePlaywrightTaskSelect = (dump: PlaywrightTasks) => {
+    setGroupedDump(dump.get(), dump.attributes);
     setIsExpanded(false);
   };
 
-  const selectedDump = selected as ExecutionDumpWithPlaywrightAttributes;
   const displayText = selected
-    ? `${selectedDump.groupName} - (${selectedDump.attributes?.playwright_test_duration / 1000}s)`
+    ? `${selected.groupName} - (${(playwrightAttributes?.playwright_test_duration || 0) / 1000}s)`
     : 'Select a case';
 
   return (
@@ -158,7 +161,7 @@ export function PlaywrightCaseSelector({
       <div className="selector-header" onClick={toggleExpanded}>
         <div className="header-content">
           <span className="check-icon">
-            {iconForStatus(selectedDump.attributes?.playwright_test_status)}
+            {iconForStatus(playwrightAttributes?.playwright_test_status || '')}
           </span>
           <span className="header-text">{displayText}</span>
         </div>
@@ -187,7 +190,7 @@ export function PlaywrightCaseSelector({
                 style={{ width: 80 }}
                 options={TEST_STATUS_OPTIONS}
                 size="small"
-                bordered={false}
+                variant="borderless"
               />
               <div className="search-input-container">
                 <Input
@@ -195,7 +198,7 @@ export function PlaywrightCaseSelector({
                   value={searchText}
                   onChange={handleSearchChange}
                   suffix={<SearchOutlined style={{ color: '#ccc' }} />}
-                  bordered={false}
+                  variant="borderless"
                 />
               </div>
             </div>
@@ -206,11 +209,11 @@ export function PlaywrightCaseSelector({
             {filteredDumps.map((dump, index) => (
               <div
                 key={index}
-                className={`option-item ${selected === dump ? 'selected' : ''}`}
-                onClick={() => handleOptionClick(dump)}
+                className={`option-item ${playwrightAttributes?.playwright_test_id === dump.attributes.playwright_test_id ? 'selected' : ''}`}
+                onClick={() => handlePlaywrightTaskSelect(dump)}
               >
                 <div className="option-content">
-                  {contentForDump(dump, index)}
+                  {titleForDump(dump, index)}
                 </div>
               </div>
             ))}

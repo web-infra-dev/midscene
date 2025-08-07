@@ -1,4 +1,5 @@
 // import { createStore } from 'zustand/vanilla';
+import type { PlaywrightTaskAttributes } from '@/types';
 import type {
   ExecutionDump,
   ExecutionTask,
@@ -35,6 +36,32 @@ export interface HistoryItem {
   timestamp: number;
 }
 
+export interface DumpStoreType {
+    dump: GroupedActionDump | null;
+    playwrightAttributes: PlaywrightTaskAttributes | null;
+    setGroupedDump: (dump: GroupedActionDump, playwrightAttributes?: PlaywrightTaskAttributes) => void;
+    _executionDumpLoadId: number;
+    replayAllMode: boolean;
+    setReplayAllMode: (replayAllMode: boolean) => void;
+    allExecutionAnimation: AnimationScript[] | null;
+    sdkVersion: string | null;
+    modelName: string | null;
+    modelDescription: string | null;
+    insightWidth: number | null;
+    insightHeight: number | null;
+    activeExecution: ExecutionDump | null;
+    activeExecutionAnimation: AnimationScript[] | null;
+    activeTask: ExecutionTask | null;
+    setActiveTask: (task: ExecutionTask) => void;
+    insightDump: InsightDump | null;
+    _contextLoadId: number;
+    hoverTask: ExecutionTask | null;
+    hoverTimestamp: number | null;
+    setHoverTask: (task: ExecutionTask | null, timestamp?: number | null) => void;
+    hoverPreviewConfig: { x: number; y: number } | null;
+    setHoverPreviewConfig: (config: { x: number; y: number } | null) => void;
+    reset: () => void;
+}
 /**
 /**
  * Service Mode
@@ -44,33 +71,10 @@ export interface HistoryItem {
  * - In-Browser-Extension: use browser's fetch API to run the code, but the page is running in the extension context
  */
 export type ServiceModeType = 'Server' | 'In-Browser' | 'In-Browser-Extension'; // | 'Extension';
-export const useExecutionDump = create<{
-  dump: GroupedActionDump | null;
-  setGroupedDump: (dump: GroupedActionDump) => void;
-  _executionDumpLoadId: number;
-  replayAllMode: boolean;
-  setReplayAllMode: (replayAllMode: boolean) => void;
-  allExecutionAnimation: AnimationScript[] | null;
-  sdkVersion: string | null;
-  modelName: string | null;
-  modelDescription: string | null;
-  insightWidth: number | null;
-  insightHeight: number | null;
-  activeExecution: ExecutionDump | null;
-  activeExecutionAnimation: AnimationScript[] | null;
-  activeTask: ExecutionTask | null;
-  setActiveTask: (task: ExecutionTask) => void;
-  insightDump: InsightDump | null;
-  _contextLoadId: number;
-  hoverTask: ExecutionTask | null;
-  hoverTimestamp: number | null;
-  setHoverTask: (task: ExecutionTask | null, timestamp?: number | null) => void;
-  hoverPreviewConfig: { x: number; y: number } | null;
-  setHoverPreviewConfig: (config: { x: number; y: number } | null) => void;
-  reset: () => void;
-}>((set, get) => {
+export const useExecutionDump = create<DumpStoreType>((set, get) => {
   let _executionDumpLoadId = 0;
   const initData = {
+    playwrightAttributes: null,
     dump: null,
     replayAllMode: false,
     allExecutionAnimation: null,
@@ -115,11 +119,12 @@ export const useExecutionDump = create<{
         );
       }
     },
-    setGroupedDump: (dump: GroupedActionDump) => {
+    setGroupedDump: (dump: GroupedActionDump, playwrightAttributes?: PlaywrightTaskAttributes) => {
       console.log('will set ExecutionDump', dump);
       set({
         ...initData,
         dump,
+        playwrightAttributes,
       });
 
       // set the first task as selected

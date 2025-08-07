@@ -99,22 +99,27 @@ const copyReportTemplate = () => ({
   },
 });
 
+let veryMuchTestData = allTestData;
+for (let i = 0; i < 3; i++) {
+  veryMuchTestData = veryMuchTestData.concat(veryMuchTestData);
+}
+
 export default defineConfig({
   html: {
     template: './template/index.html',
     inject: 'body',
     tags:
       process.env.NODE_ENV === 'development'
-        ? allTestData.map((item) => ({
+        ? veryMuchTestData.map((item, index) => ({
             tag: 'script',
             attrs: {
               type: 'midscene_web_dump',
               playwright_test_name: item.data.groupName,
               playwright_test_description: item.data.groupDescription,
-              playwright_test_id: '8465e854a4d9a753cc87-1f096ece43c67754f95a',
+              playwright_test_id: `id-${index}`,
               playwright_test_title: 'test open new tab',
               playwright_test_status: 'passed',
-              playwright_test_duration: '44274',
+              playwright_test_duration: 44712,
             },
             children: JSON.stringify(item.data),
           }))
