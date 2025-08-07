@@ -26,7 +26,11 @@ export default defineConfig({
       env: './src/env.ts',
       types: './src/types/index.ts',
     },
-    externals: ['sharp'],
+    /**
+     * It is unnecessary to declare externals here.
+     * By default, third-party dependencies under "dependencies" and "peerDependencies" are not bundled by Modern.js Module.
+     * ref: https://modernjs.dev/module-tools/en/guide/advance/external-dependency.html#default-handling-of-third-party-dependencies
+     */
     target: 'es2020',
     dts: {
       respectExternal: true,

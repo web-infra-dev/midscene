@@ -67,6 +67,7 @@ export default defineConfig({
       },
     ],
     sourceMap: true,
+    externals: ['sharp'],
   },
   source: {
     define: {
