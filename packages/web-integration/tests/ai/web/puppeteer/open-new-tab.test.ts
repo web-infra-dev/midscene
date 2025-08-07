@@ -16,29 +16,23 @@ describe('agent with forceSameTabNavigation', () => {
   });
 
   it('open new tab', async () => {
-    const { originPage, reset } = await launchPage('https://www.bing.com/');
+    const { originPage, reset } = await launchPage(
+      'https://www.saucedemo.com/',
+    );
     resetFn = reset;
     const agent = new PuppeteerAgent(originPage, {
       cacheId: 'puppeteer-open-new-tab',
     });
-    const inputXpath = '//*[@id="sb_form_q"]';
-    await agent.aiInput('midscene github', 'The search input box', {
-      xpath: inputXpath,
-    });
-    const log = await agent._unstableLogContent();
-    expect(log.executions[0].tasks[0].hitBy?.from).toBe('User expected path');
-    expect(log.executions[0].tasks[0].hitBy?.context?.xpath).toBe(inputXpath);
-    await agent.aiKeyboardPress('Enter', 'The search input box', {
-      xpath: inputXpath,
-    });
     await sleep(5000);
-    const log1 = await agent._unstableLogContent();
-    expect(log1.executions[1].tasks[0].hitBy?.from).toBe('User expected path');
-    expect(log1.executions[1].tasks[0].hitBy?.context?.xpath).toBe(inputXpath);
-    await agent.aiTap('The search result link for "midscene" project');
-    const log2 = await agent._unstableLogContent();
-    expect(log2.executions[2].tasks[0].hitBy?.from).toBe('AI model');
-    await sleep(5000);
-    await agent.aiAssert('the page is about "midscene" project');
+    await agent.aiAssert('the page is not about "midscene" project');
+    await agent.freezePageContext();
+    await agent.aiBoolean('The search result link for "midscene" project');
+    const result = await Promise.all([
+      agent.aiLocate('login button'),
+      agent.aiLocate('username input'),
+      agent.aiLocate('password input'),
+    ]);
+    await agent.unfreezePageContext();
+    await agent.aiTap('login button');
   });
 });

@@ -194,6 +194,12 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   async getUIContext(action?: InsightAction): Promise<WebUIContext> {
+    // If page context is frozen, return the frozen context for all actions
+    if (this.isPageContextFrozen && this.frozenPageContext) {
+      return this.frozenPageContext;
+    }
+
+    // Otherwise, get fresh context based on the action type
     if (action && (action === 'extract' || action === 'assert')) {
       return await parseContextFromWebPage(this.page, {
         ignoreMarker: true,
@@ -291,13 +297,8 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   private buildDetailedLocateParam(
     locatePrompt: TUserPrompt,
     opt?: LocateOption,
-  ): DetailedLocateParam & { pageContext?: WebUIContext } {
+  ): DetailedLocateParam {
     assert(locatePrompt, 'missing locate prompt');
-
-    // Use frozen context if page is frozen
-    const pageContext = this.isPageContextFrozen
-      ? this.frozenPageContext
-      : undefined;
 
     if (typeof opt === 'object' && opt !== null) {
       const prompt = locatePrompt;
@@ -310,13 +311,11 @@ export class PageAgent<PageType extends WebPage = WebPage> {
         deepThink,
         cacheable,
         xpath,
-        pageContext,
       };
     }
 
     return {
       prompt: locatePrompt,
-      pageContext,
     };
   }
 

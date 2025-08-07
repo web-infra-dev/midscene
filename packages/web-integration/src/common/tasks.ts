@@ -255,10 +255,8 @@ export class PageTaskExecutor {
             this.insight.onceDumpUpdatedFn = dumpCollector;
             const shotTime = Date.now();
 
-            // Use forced context if provided, otherwise get context normally
-            const pageContext =
-              param?.pageContext ||
-              (await this.insight.contextRetrieverFn('locate'));
+            // Get context through contextRetrieverFn which handles frozen context
+            const pageContext = await this.insight.contextRetrieverFn('locate');
             task.pageContext = pageContext;
 
             const recordItem: ExecutionRecorderItem = {
@@ -1253,12 +1251,26 @@ export class PageTaskExecutor {
             } as never)
           : demand, // for user param presentation in report right sidebar
       },
-      executor: async (param) => {
+      executor: async (param, taskContext) => {
+        const { task } = taskContext;
         let insightDump: InsightDump | undefined;
         const dumpCollector: DumpSubscriber = (dump) => {
           insightDump = dump;
         };
         this.insight.onceDumpUpdatedFn = dumpCollector;
+
+        // Get page context for query operations
+        const shotTime = Date.now();
+        const pageContext = await this.insight.contextRetrieverFn('extract');
+        task.pageContext = pageContext;
+
+        const recordItem: ExecutionRecorderItem = {
+          type: 'screenshot',
+          ts: shotTime,
+          screenshot: pageContext.screenshotBase64,
+          timing: 'before Extract',
+        };
+        task.recorder = [recordItem];
 
         const ifTypeRestricted = type !== 'Query';
         let demandInput = demand;

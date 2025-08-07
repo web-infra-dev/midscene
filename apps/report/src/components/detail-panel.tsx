@@ -50,6 +50,11 @@ const DetailPanel = (): JSX.Element => {
   const imageWidth = useExecutionDump((store) => store.insightWidth);
   const imageHeight = useExecutionDump((store) => store.insightHeight);
 
+  // Check if page context is frozen
+  const isPageContextFrozen = Boolean(
+    (activeTask?.pageContext as WebUIContext)?._isFrozen,
+  );
+
   let availableViewTypes = [VIEW_TYPE_SCREENSHOT, VIEW_TYPE_JSON];
   if (blackboardViewAvailable) {
     availableViewTypes = [
@@ -163,10 +168,8 @@ const DetailPanel = (): JSX.Element => {
       };
     }
     if (type === VIEW_TYPE_BLACKBOARD) {
-      const isFrozen: boolean =
-        (activeTask?.pageContext as WebUIContext)?._isFrozen ?? false;
       return {
-        label: isFrozen ? (
+        label: isPageContextFrozen ? (
           <Tooltip title="Current pageContext is frozen">Insight 🧊</Tooltip>
         ) : (
           'Insight'

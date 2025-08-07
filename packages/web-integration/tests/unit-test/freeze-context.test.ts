@@ -1,6 +1,5 @@
 import { PageAgent } from '@/common/agent';
-import type { WebPage } from '@/common/page';
-import type { WebUIContext } from '@/common/utils';
+import type { WebPage, WebUIContext } from '@/common/page';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock page implementation
@@ -141,103 +140,69 @@ describe('PageAgent freeze/unfreeze page context', () => {
       const frozenContext = (agent as any).frozenPageContext;
       expect(frozenContext._isFrozen).toBe(true);
 
-      // Use frozen context in buildDetailedLocateParam
+      // buildDetailedLocateParam no longer returns pageContext
       const result = (agent as any).buildDetailedLocateParam('test');
-      expect(result.pageContext._isFrozen).toBe(true);
+      expect(result.pageContext).toBeUndefined();
 
-      // Original frozen context should still be marked
+      // But frozen context should still be marked and available via getUIContext
       expect(frozenContext._isFrozen).toBe(true);
+      const contextViaGetUIContext = await agent.getUIContext('locate');
+      expect(contextViaGetUIContext._isFrozen).toBe(true);
     });
   });
 
-  describe('buildDetailedLocateParam integration', () => {
-    it('should use frozen context when frozen', async () => {
-      // Freeze context first
-      await agent.freezePageContext();
-
-      // Call buildDetailedLocateParam with options
+  describe('buildDetailedLocateParam after simplification', () => {
+    it('should not include pageContext in the result', async () => {
+      // Test with options
       const result1 = (agent as any).buildDetailedLocateParam('test prompt', {
         deepThink: true,
         cacheable: false,
         xpath: '/html/body/button',
       });
 
-      // Should include the frozen context
+      // Should not include pageContext
       expect(result1).toEqual({
         prompt: 'test prompt',
         deepThink: true,
         cacheable: false,
         xpath: '/html/body/button',
-        pageContext: expect.objectContaining({
-          _isFrozen: true,
-          screenshotBase64: mockContext.screenshotBase64,
-        }),
       });
+      expect(result1.pageContext).toBeUndefined();
 
-      // Call buildDetailedLocateParam without options
+      // Test without options
       const result2 = (agent as any).buildDetailedLocateParam('another prompt');
 
-      // Should also include the frozen context
+      // Should also not include pageContext
       expect(result2).toEqual({
         prompt: 'another prompt',
-        pageContext: expect.objectContaining({
-          _isFrozen: true,
-          screenshotBase64: mockContext.screenshotBase64,
-        }),
       });
+      expect(result2.pageContext).toBeUndefined();
     });
 
-    it('should not use frozen context when not frozen', async () => {
-      // Don't freeze context
+    it('should work correctly with freeze/unfreeze through contextRetrieverFn', async () => {
+      // The insight's contextRetrieverFn should respect frozen state
+      // Initially not frozen
+      expect((agent as any).isPageContextFrozen).toBe(false);
 
-      // Call buildDetailedLocateParam with options
-      const result1 = (agent as any).buildDetailedLocateParam('test prompt', {
-        deepThink: true,
-        cacheable: false,
-        xpath: '/html/body/button',
-      });
-
-      // Should not include frozen context
-      expect(result1).toEqual({
-        prompt: 'test prompt',
-        deepThink: true,
-        cacheable: false,
-        xpath: '/html/body/button',
-        pageContext: undefined,
-      });
-
-      // Call buildDetailedLocateParam without options
-      const result2 = (agent as any).buildDetailedLocateParam('another prompt');
-
-      // Should also not include frozen context
-      expect(result2).toEqual({
-        prompt: 'another prompt',
-        pageContext: undefined,
-      });
-    });
-
-    it('should switch between frozen and unfrozen states correctly', async () => {
-      // Initial state - not frozen
-      let result = (agent as any).buildDetailedLocateParam('prompt1');
-      expect(result.pageContext).toBeUndefined();
-
-      // Freeze
+      // Freeze context
       await agent.freezePageContext();
-      result = (agent as any).buildDetailedLocateParam('prompt2');
-      expect(result.pageContext).toBe(mockContext);
+      expect((agent as any).isPageContextFrozen).toBe(true);
+
+      // The frozen context should be used when calling locate
+      const detailedParam = (agent as any).buildDetailedLocateParam(
+        'test prompt',
+      );
+      expect(detailedParam.pageContext).toBeUndefined(); // No pageContext in param anymore
+
+      // But the agent's frozen context should be available via getUIContext
+      const frozenContext = (agent as any).frozenPageContext;
+      expect(frozenContext).toBe(mockContext);
+      expect(frozenContext._isFrozen).toBe(true);
 
       // Unfreeze
       await agent.unfreezePageContext();
-      result = (agent as any).buildDetailedLocateParam('prompt3');
-      expect(result.pageContext).toBeUndefined();
-
-      // Freeze again
-      await agent.freezePageContext();
-      result = (agent as any).buildDetailedLocateParam('prompt4');
-      expect(result.pageContext._isFrozen).toBe(true);
-      expect(result.pageContext.screenshotBase64).toBe(
-        mockContext2.screenshotBase64,
-      ); // Should be the second context
+      expect((agent as any).isPageContextFrozen).toBe(false);
+      expect((agent as any).frozenPageContext).toBeUndefined();
     });
   });
 
@@ -314,9 +279,7 @@ describe('PageAgent freeze/unfreeze page context', () => {
   });
 
   describe('Integration with buildDetailedLocateParam edge cases', () => {
-    it('should handle all option combinations when frozen', async () => {
-      await agent.freezePageContext();
-
+    it('should handle all option combinations correctly', async () => {
       // Test with all possible option combinations
       const testCases = [
         {},
@@ -335,18 +298,20 @@ describe('PageAgent freeze/unfreeze page context', () => {
           options,
         );
 
-        expect(result.pageContext._isFrozen).toBe(true);
-        expect(result.pageContext.screenshotBase64).toBe(
-          mockContext.screenshotBase64,
-        );
+        // Should not include pageContext
+        expect(result.pageContext).toBeUndefined();
         expect(result.prompt).toBe(`prompt${index}`);
 
         // Check other properties are preserved
         if (options.deepThink !== undefined) {
           expect(result.deepThink).toBe(options.deepThink);
+        } else if (Object.keys(options).length > 0) {
+          expect(result.deepThink).toBe(false); // default value
         }
         if (options.cacheable !== undefined) {
           expect(result.cacheable).toBe(options.cacheable);
+        } else if (Object.keys(options).length > 0) {
+          expect(result.cacheable).toBe(true); // default value
         }
         if (options.xpath !== undefined) {
           expect(result.xpath).toBe(options.xpath);
@@ -354,18 +319,13 @@ describe('PageAgent freeze/unfreeze page context', () => {
       });
     });
 
-    it('should handle null and undefined options when frozen', async () => {
-      await agent.freezePageContext();
-
+    it('should handle null and undefined options correctly', async () => {
       // Test with null options (should be treated as no options)
       const result1 = (agent as any).buildDetailedLocateParam('prompt1', null);
       expect(result1).toEqual({
         prompt: 'prompt1',
-        pageContext: expect.objectContaining({
-          _isFrozen: true,
-          screenshotBase64: mockContext.screenshotBase64,
-        }),
       });
+      expect(result1.pageContext).toBeUndefined();
 
       // Test with undefined options
       const result2 = (agent as any).buildDetailedLocateParam(
@@ -374,11 +334,8 @@ describe('PageAgent freeze/unfreeze page context', () => {
       );
       expect(result2).toEqual({
         prompt: 'prompt2',
-        pageContext: expect.objectContaining({
-          _isFrozen: true,
-          screenshotBase64: mockContext.screenshotBase64,
-        }),
       });
+      expect(result2.pageContext).toBeUndefined();
 
       // Test with empty object
       const result3 = (agent as any).buildDetailedLocateParam('prompt3', {});
@@ -387,11 +344,8 @@ describe('PageAgent freeze/unfreeze page context', () => {
         deepThink: false,
         cacheable: true,
         xpath: undefined,
-        pageContext: expect.objectContaining({
-          _isFrozen: true,
-          screenshotBase64: mockContext.screenshotBase64,
-        }),
       });
+      expect(result3.pageContext).toBeUndefined();
     });
   });
 
@@ -423,6 +377,127 @@ describe('PageAgent freeze/unfreeze page context', () => {
 
       expect(firstContext).not.toBe(secondContext);
       expect(secondContext).toBe(mockContext2);
+    });
+  });
+
+  describe('getUIContext with frozen context', () => {
+    it('should return frozen context for all actions when frozen', async () => {
+      // Mock parseContextFromWebPage to return a new context each time
+      const mockParseContext = vi.fn().mockResolvedValue(mockContext2);
+      vi.spyOn(
+        await import('@/common/utils'),
+        'parseContextFromWebPage',
+      ).mockImplementation(mockParseContext);
+
+      // Freeze context
+      await agent.freezePageContext();
+
+      // Test all action types
+      const actions = [
+        'locate',
+        'extract',
+        'assert',
+        'describe',
+        undefined,
+      ] as const;
+
+      for (const action of actions) {
+        const context = await agent.getUIContext(action);
+
+        // Should return the frozen context, not call parseContextFromWebPage
+        expect(context).toBe(mockContext);
+        expect(context._isFrozen).toBe(true);
+      }
+
+      // parseContextFromWebPage should not be called when frozen
+      expect(mockParseContext).not.toHaveBeenCalled();
+    });
+
+    it('should return fresh context for all actions when not frozen', async () => {
+      // Mock parseContextFromWebPage
+      const mockParseContext = vi
+        .fn()
+        .mockResolvedValueOnce({ ...mockContext, fresh: 1 })
+        .mockResolvedValueOnce({ ...mockContext, fresh: 2 })
+        .mockResolvedValueOnce({ ...mockContext, fresh: 3 });
+
+      vi.spyOn(
+        await import('@/common/utils'),
+        'parseContextFromWebPage',
+      ).mockImplementation(mockParseContext);
+
+      // Test without freezing
+      const context1 = await agent.getUIContext('locate');
+      const context2 = await agent.getUIContext('extract');
+      const context3 = await agent.getUIContext('assert');
+
+      // Each call should get a fresh context
+      expect(context1.fresh).toBe(1);
+      expect(context2.fresh).toBe(2);
+      expect(context3.fresh).toBe(3);
+
+      // parseContextFromWebPage should be called for each
+      expect(mockParseContext).toHaveBeenCalledTimes(3);
+    });
+
+    it('should switch between frozen and fresh contexts correctly', async () => {
+      // Mock parseContextFromWebPage
+      const mockParseContext = vi
+        .fn()
+        .mockResolvedValueOnce({ ...mockContext2, callNumber: 1 })
+        .mockResolvedValueOnce({ ...mockContext2, callNumber: 2 });
+
+      vi.spyOn(
+        await import('@/common/utils'),
+        'parseContextFromWebPage',
+      ).mockImplementation(mockParseContext);
+
+      // Get fresh context initially
+      const freshContext1 = await agent.getUIContext('locate');
+      expect(freshContext1.callNumber).toBe(1);
+
+      // Freeze context
+      await agent.freezePageContext();
+
+      // Should return frozen context now
+      const frozenContext = await agent.getUIContext('locate');
+      expect(frozenContext).toBe(mockContext);
+      expect(frozenContext._isFrozen).toBe(true);
+
+      // Unfreeze
+      await agent.unfreezePageContext();
+
+      // Should return fresh context again
+      const freshContext2 = await agent.getUIContext('locate');
+      expect(freshContext2.callNumber).toBe(2);
+
+      // Total calls: 2 (initial fresh + after unfreeze)
+      expect(mockParseContext).toHaveBeenCalledTimes(2);
+    });
+
+    it('should handle extract and assert actions correctly when frozen', async () => {
+      // Mock parseContextFromWebPage
+      const mockParseContext = vi.fn().mockResolvedValue(mockContext2);
+      vi.spyOn(
+        await import('@/common/utils'),
+        'parseContextFromWebPage',
+      ).mockImplementation(mockParseContext);
+
+      // Freeze context
+      await agent.freezePageContext();
+
+      // Test extract action
+      const extractContext = await agent.getUIContext('extract');
+      expect(extractContext).toBe(mockContext);
+      expect(extractContext._isFrozen).toBe(true);
+
+      // Test assert action
+      const assertContext = await agent.getUIContext('assert');
+      expect(assertContext).toBe(mockContext);
+      expect(assertContext._isFrozen).toBe(true);
+
+      // parseContextFromWebPage should not be called
+      expect(mockParseContext).not.toHaveBeenCalled();
     });
   });
 });
