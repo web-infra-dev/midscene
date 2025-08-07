@@ -195,12 +195,14 @@ export class Page<
         options?: { button?: MouseButton; count?: number },
       ) => {
         await this.mouse.move(x, y);
+        debugPage(`mouse click ${x}, ${y}`);
         this.underlyingPage.mouse.click(x, y, {
           button: options?.button || 'left',
           count: options?.count || 1,
         });
       },
       wheel: async (deltaX: number, deltaY: number) => {
+        debugPage(`mouse wheel ${deltaX}, ${deltaY}`);
         if (this.pageType === 'puppeteer') {
           await (this.underlyingPage as PuppeteerPage).mouse.wheel({
             deltaX,
@@ -215,12 +217,14 @@ export class Page<
       },
       move: async (x: number, y: number) => {
         this.everMoved = true;
+        debugPage(`mouse move to ${x}, ${y}`);
         return this.underlyingPage.mouse.move(x, y);
       },
       drag: async (
         from: { x: number; y: number },
         to: { x: number; y: number },
       ) => {
+        debugPage(`mouse drag from ${from.x}, ${from.y} to ${to.x}, ${to.y}`);
         if (this.pageType === 'puppeteer') {
           await (this.underlyingPage as PuppeteerPage).mouse.drag(
             {
@@ -248,15 +252,17 @@ export class Page<
 
   get keyboard() {
     return {
-      type: async (text: string) =>
-        this.underlyingPage.keyboard.type(text, { delay: 80 }),
-
+      type: async (text: string) => {
+        debugPage(`keyboard type ${text}`);
+        this.underlyingPage.keyboard.type(text, { delay: 80 });
+      },
       press: async (
         action:
           | { key: WebKeyInput; command?: string }
           | { key: WebKeyInput; command?: string }[],
       ) => {
         const keys = Array.isArray(action) ? action : [action];
+        debugPage('keyboard press', keys);
         for (const k of keys) {
           const commands = k.command ? [k.command] : [];
           await this.underlyingPage.keyboard.down(k.key, { commands });
@@ -266,9 +272,11 @@ export class Page<
         }
       },
       down: async (key: WebKeyInput) => {
+        debugPage(`keyboard down ${key}`);
         this.underlyingPage.keyboard.down(key);
       },
       up: async (key: WebKeyInput) => {
+        debugPage(`keyboard up ${key}`);
         this.underlyingPage.keyboard.up(key);
       },
     };
@@ -286,6 +294,7 @@ export class Page<
     };
 
     const isMac = process.platform === 'darwin';
+    debugPage('clearInput begin');
     if (isMac) {
       if (this.pageType === 'puppeteer') {
         // https://github.com/segment-boneyard/nightmare/issues/810#issuecomment-452669866
@@ -307,6 +316,7 @@ export class Page<
       await this.underlyingPage.keyboard.up('Control');
       await backspace();
     }
+    debugPage('clearInput end');
   }
 
   private everMoved = false;
@@ -371,6 +381,7 @@ export class Page<
   }
 
   async navigate(url: string): Promise<void> {
+    debugPage(`navigate to ${url}`);
     if (this.pageType === 'puppeteer') {
       await (this.underlyingPage as PuppeteerPage).goto(url);
     } else if (this.pageType === 'playwright') {
