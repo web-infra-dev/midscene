@@ -718,6 +718,73 @@ await agent.logScreenshot('Login page', {
 });
 ```
 
+### `agent.freezePageContext()`
+
+Freezes the current page context, allowing subsequent AI operations to reuse the same page snapshot without recalculation. This significantly improves performance, especially when executing multiple consecutive operations on the same page.
+
+- Type
+
+```typescript
+function freezePageContext(): Promise<void>;
+```
+
+- Return Value:
+
+  - `Promise<void>`
+
+- Examples:
+
+```typescript
+// Freeze the page context to ensure multiple operations see the same page state
+await agent.freezePageContext();
+
+// The following operations will all use the frozen page snapshot
+const price = await agent.aiQuery('What is the product price?');
+const inStock = await agent.aiQuery('Is the product in stock?');
+await agent.aiTap('Add to cart button');
+
+// Unfreeze the page context
+await agent.unfreezePageContext();
+```
+
+:::tip
+In the report, operations using frozen context will display a 🧊 icon in the Insight tab.
+:::
+
+### `agent.unfreezePageContext()`
+
+Unfreezes the page context, restoring the use of real-time page state.
+
+- Type
+
+```typescript
+function unfreezePageContext(): Promise<void>;
+```
+
+- Return Value:
+
+  - `Promise<void>`
+
+- Examples:
+
+```typescript
+// Freeze the page context
+await agent.freezePageContext();
+
+// Perform some operations...
+await Promise.all([
+  await agent.aiLocate('Username input box');
+  await agent.aiQuery('Username input box value');
+  await agent.aiAssert('Username input box exists');
+]);
+
+// Unfreeze the page context, subsequent operations will use real-time page state
+await agent.unfreezePageContext();
+
+// This operation will use the fresh page state
+await agent.aiInput('Username input box', 'test@example.com');
+```
+
 ### `agent._unstableLogContent()`
 
 Retrieve the log content in JSON format from the report file. The structure of the log content may change in the future.

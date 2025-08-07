@@ -710,6 +710,73 @@ await agent.logScreenshot('登录页面', {
 });
 ```
 
+### `agent.freezePageContext()`
+
+冻结当前页面上下文，使后续的 AI 操作复用同一个页面快照，避免重复计算。这可以显著提升性能，特别是在同一页面上执行多个连续操作时。
+
+- 类型
+
+```typescript
+function freezePageContext(): Promise<void>;
+```
+
+- 返回值：
+
+  - `Promise<void>`
+
+- 示例：
+
+```typescript
+// 冻结页面上下文，确保多个操作看到相同的页面状态
+await agent.freezePageContext();
+
+// 以下操作都会使用冻结时的页面快照
+const price = await agent.aiQuery('产品价格是多少？');
+const inStock = await agent.aiQuery('产品是否有货？');
+await agent.aiTap('添加到购物车按钮');
+
+// 解冻页面上下文
+await agent.unfreezePageContext();
+```
+
+:::tip
+在报告中，使用冻结上下文的操作会在 Insight tab 中显示 🧊 图标。
+:::
+
+### `agent.unfreezePageContext()`
+
+解冻页面上下文，恢复使用实时的页面状态。
+
+- 类型
+
+```typescript
+function unfreezePageContext(): Promise<void>;
+```
+
+- 返回值：
+
+  - `Promise<void>`
+
+- 示例：
+
+```typescript
+// 冻结页面上下文
+await agent.freezePageContext();
+
+// 执行一些操作...
+await Promise.all([
+  await agent.aiLocate('用户名输入框');
+  await agent.aiQuery('用户名输入框的值');
+  await agent.aiAssert('存在用户名输入框');
+]);
+
+// 解冻页面上下文，后续操作将使用实时页面状态
+await agent.unfreezePageContext();
+
+// 这个操作会使用新的页面状态
+await agent.aiInput('用户名输入框', 'test@example.com');
+```
+
 ### `agent._unstableLogContent()`
 
 从报告文件中获取日志内容。日志内容的结构可能会在未来发生变化。

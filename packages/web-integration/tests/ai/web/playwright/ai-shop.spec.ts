@@ -13,7 +13,6 @@ test('ai shop', async ({
   aiAssert,
   aiQuery,
   aiTap,
-  aiLocate,
   agentForPage,
   page,
 }) => {
@@ -24,14 +23,15 @@ test('ai shop', async ({
   const agent = await agentForPage(page);
   await aiInput('standard_user', 'in user name input');
   await aiInput('secret_sauce', 'in password input');
-  await agent.freezePageContext();
-  const result = await Promise.all([
-    aiLocate('login button'),
-    aiLocate('username input'),
-    aiLocate('password input'),
-  ]);
-  await agent.unfreezePageContext();
-  await aiTap('login button');
+  await agent.aiTap('Login Button');
 
-  console.log(result);
+  // check the login success
+  await aiAssert('the page title is "Swag Labs"');
+
+  // add to cart
+  await aiTap('"add to cart" for black t-shirt products');
+
+  await aiTap('click right top cart icon', {
+    deepThink: true,
+  });
 });
