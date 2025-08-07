@@ -107,9 +107,7 @@ const ReportOverview = (props: {
   return (
     <div className="report-overview">
       {testStatsEl}
-      <PlaywrightCaseSelector
-        dumps={props.dumps}
-      />
+      <PlaywrightCaseSelector dumps={props.dumps} />
     </div>
   );
 };

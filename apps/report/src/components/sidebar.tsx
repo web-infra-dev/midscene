@@ -1,10 +1,7 @@
 import './sidebar.less';
 import { useAllCurrentTasks, useExecutionDump } from '@/components/store';
 import { PauseOutlined } from '@ant-design/icons';
-import type {
-  ExecutionTask,
-  ExecutionTaskInsightLocate,
-} from '@midscene/core';
+import type { ExecutionTask, ExecutionTaskInsightLocate } from '@midscene/core';
 import {
   type AnimationScript,
   iconForStatus,
@@ -201,10 +198,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     [groupedDump].map((group, groupIndex) => {
       return (
         <div key={groupIndex}>
-          <ReportOverview
-            title={group.groupName}
-            dumps={dumps}
-          />
+          <ReportOverview title={group.groupName} dumps={dumps} />
         </div>
       );
     })

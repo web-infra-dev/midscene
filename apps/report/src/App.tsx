@@ -28,24 +28,14 @@ function Visualizer(props: VisualizerProps): JSX.Element {
     (store) => store._executionDumpLoadId,
   );
 
-  const setReplayAllMode = useExecutionDump(
-    (store) => store.setReplayAllMode,
-  );
+  const setReplayAllMode = useExecutionDump((store) => store.setReplayAllMode);
   const replayAllScripts = useExecutionDump(
     (store) => store.allExecutionAnimation,
   );
-  const insightWidth = useExecutionDump(
-    (store) => store.insightWidth,
-  );
-  const insightHeight = useExecutionDump(
-    (store) => store.insightHeight,
-  );
-  const replayAllMode = useExecutionDump(
-    (store) => store.replayAllMode,
-  );
-  const setGroupedDump = useExecutionDump(
-    (store) => store.setGroupedDump,
-  );
+  const insightWidth = useExecutionDump((store) => store.insightWidth);
+  const insightHeight = useExecutionDump((store) => store.insightHeight);
+  const replayAllMode = useExecutionDump((store) => store.replayAllMode);
+  const setGroupedDump = useExecutionDump((store) => store.setGroupedDump);
   const sdkVersion = useExecutionDump((store) => store.sdkVersion);
   const modelName = useExecutionDump((store) => store.modelName);
   const modelDescription = useExecutionDump((store) => store.modelDescription);
@@ -265,14 +255,15 @@ export function App() {
           const { name, value } = attr;
           const valueDecoded = decodeURIComponent(value);
           if (name.startsWith('playwright_')) {
-            attributes[attr.name as keyof PlaywrightTaskAttributes] = valueDecoded;
+            attributes[attr.name as keyof PlaywrightTaskAttributes] =
+              valueDecoded;
           }
         });
-        
+
         // Lazy loading: Store raw content and parse only when get() is called
         let cachedJsonContent: any = null;
         let isParsed = false;
-        
+
         reportDump.push({
           get: () => {
             if (!isParsed) {
@@ -287,7 +278,10 @@ export function App() {
                 console.error(el);
                 console.error('failed to parse json content', e);
                 // Return a fallback object to prevent crashes
-                cachedJsonContent = { attributes, error: 'Failed to parse JSON content' };
+                cachedJsonContent = {
+                  attributes,
+                  error: 'Failed to parse JSON content',
+                };
                 isParsed = true;
               }
             }
@@ -299,9 +293,7 @@ export function App() {
     return reportDump;
   }
 
-  const [reportDump, setReportDump] = useState<
-    PlaywrightTasks[]
-  >([]);
+  const [reportDump, setReportDump] = useState<PlaywrightTasks[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const dumpsLoadedRef = useRef(false);
@@ -313,7 +305,7 @@ export function App() {
       const currentElements = document.querySelectorAll(
         'script[type="midscene_web_dump"]',
       );
-  
+
       // If it has been loaded and the number of elements has not changed, skip it.
       if (
         dumpsLoadedRef.current &&
@@ -321,7 +313,7 @@ export function App() {
       ) {
         return;
       }
-  
+
       dumpsLoadedRef.current = true;
       if (
         currentElements.length === 1 &&
@@ -334,7 +326,7 @@ export function App() {
       setError(null);
       const dumpElements = getDumpElements();
       setReportDump(dumpElements);
-    }
+    };
 
     const loadDumps = () => {
       console.time('loading_dump');

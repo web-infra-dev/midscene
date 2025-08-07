@@ -37,30 +37,33 @@ export interface HistoryItem {
 }
 
 export interface DumpStoreType {
-    dump: GroupedActionDump | null;
-    playwrightAttributes: PlaywrightTaskAttributes | null;
-    setGroupedDump: (dump: GroupedActionDump, playwrightAttributes?: PlaywrightTaskAttributes) => void;
-    _executionDumpLoadId: number;
-    replayAllMode: boolean;
-    setReplayAllMode: (replayAllMode: boolean) => void;
-    allExecutionAnimation: AnimationScript[] | null;
-    sdkVersion: string | null;
-    modelName: string | null;
-    modelDescription: string | null;
-    insightWidth: number | null;
-    insightHeight: number | null;
-    activeExecution: ExecutionDump | null;
-    activeExecutionAnimation: AnimationScript[] | null;
-    activeTask: ExecutionTask | null;
-    setActiveTask: (task: ExecutionTask) => void;
-    insightDump: InsightDump | null;
-    _contextLoadId: number;
-    hoverTask: ExecutionTask | null;
-    hoverTimestamp: number | null;
-    setHoverTask: (task: ExecutionTask | null, timestamp?: number | null) => void;
-    hoverPreviewConfig: { x: number; y: number } | null;
-    setHoverPreviewConfig: (config: { x: number; y: number } | null) => void;
-    reset: () => void;
+  dump: GroupedActionDump | null;
+  playwrightAttributes: PlaywrightTaskAttributes | null;
+  setGroupedDump: (
+    dump: GroupedActionDump,
+    playwrightAttributes?: PlaywrightTaskAttributes,
+  ) => void;
+  _executionDumpLoadId: number;
+  replayAllMode: boolean;
+  setReplayAllMode: (replayAllMode: boolean) => void;
+  allExecutionAnimation: AnimationScript[] | null;
+  sdkVersion: string | null;
+  modelName: string | null;
+  modelDescription: string | null;
+  insightWidth: number | null;
+  insightHeight: number | null;
+  activeExecution: ExecutionDump | null;
+  activeExecutionAnimation: AnimationScript[] | null;
+  activeTask: ExecutionTask | null;
+  setActiveTask: (task: ExecutionTask) => void;
+  insightDump: InsightDump | null;
+  _contextLoadId: number;
+  hoverTask: ExecutionTask | null;
+  hoverTimestamp: number | null;
+  setHoverTask: (task: ExecutionTask | null, timestamp?: number | null) => void;
+  hoverPreviewConfig: { x: number; y: number } | null;
+  setHoverPreviewConfig: (config: { x: number; y: number } | null) => void;
+  reset: () => void;
 }
 /**
 /**
@@ -119,7 +122,10 @@ export const useExecutionDump = create<DumpStoreType>((set, get) => {
         );
       }
     },
-    setGroupedDump: (dump: GroupedActionDump, playwrightAttributes?: PlaywrightTaskAttributes) => {
+    setGroupedDump: (
+      dump: GroupedActionDump,
+      playwrightAttributes?: PlaywrightTaskAttributes,
+    ) => {
       console.log('will set ExecutionDump', dump);
       set({
         ...initData,
