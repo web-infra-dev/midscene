@@ -99,9 +99,9 @@ const copyReportTemplate = () => ({
   },
 });
 
-let veryMuchTestData = allTestData;
+let tooManyCases = allTestData;
 for (let i = 0; i < 3; i++) {
-  veryMuchTestData = veryMuchTestData.concat(veryMuchTestData);
+  tooManyCases = tooManyCases.concat(tooManyCases);
 }
 
 export default defineConfig({
@@ -110,7 +110,7 @@ export default defineConfig({
     inject: 'body',
     tags:
       process.env.NODE_ENV === 'development'
-        ? veryMuchTestData.map((item, index) => ({
+        ? tooManyCases.map((item, index) => ({
             tag: 'script',
             attrs: {
               type: 'midscene_web_dump',
@@ -119,7 +119,9 @@ export default defineConfig({
               playwright_test_id: `id-${index}`,
               playwright_test_title: 'test open new tab',
               playwright_test_status: 'passed',
-              playwright_test_duration: 44712,
+              playwright_test_duration: Math.round(
+                Math.random() * 100000,
+              ).toString(),
             },
             children: JSON.stringify(item.data),
           }))
