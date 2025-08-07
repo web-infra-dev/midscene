@@ -11,9 +11,9 @@
   },
   "scripts": {
     "dev": "npm run build:watch",
+    "dev:server": "npm run build && ./bin/playground",
     "build": "rslib build",
-    "build:watch": "rslib build --watch",
-    "dev:server": "npm run build && ./bin/playground"
+    "build:watch": "rslib build --watch"
   },
   "dependencies": {
     "@midscene/android": "workspace:*",
