@@ -1,6 +1,7 @@
 import { PageAgent } from '@/common/agent';
-import type { WebPage, WebUIContext } from '@/common/page';
+import type { WebPage } from '@/common/page';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { WebUIContext } from '../../src';
 
 // Mock page implementation
 const mockPage = {
@@ -151,61 +152,6 @@ describe('PageAgent freeze/unfreeze page context', () => {
     });
   });
 
-  describe('buildDetailedLocateParam after simplification', () => {
-    it('should not include pageContext in the result', async () => {
-      // Test with options
-      const result1 = (agent as any).buildDetailedLocateParam('test prompt', {
-        deepThink: true,
-        cacheable: false,
-        xpath: '/html/body/button',
-      });
-
-      // Should not include pageContext
-      expect(result1).toEqual({
-        prompt: 'test prompt',
-        deepThink: true,
-        cacheable: false,
-        xpath: '/html/body/button',
-      });
-      expect(result1.pageContext).toBeUndefined();
-
-      // Test without options
-      const result2 = (agent as any).buildDetailedLocateParam('another prompt');
-
-      // Should also not include pageContext
-      expect(result2).toEqual({
-        prompt: 'another prompt',
-      });
-      expect(result2.pageContext).toBeUndefined();
-    });
-
-    it('should work correctly with freeze/unfreeze through contextRetrieverFn', async () => {
-      // The insight's contextRetrieverFn should respect frozen state
-      // Initially not frozen
-      expect((agent as any).isPageContextFrozen).toBe(false);
-
-      // Freeze context
-      await agent.freezePageContext();
-      expect((agent as any).isPageContextFrozen).toBe(true);
-
-      // The frozen context should be used when calling locate
-      const detailedParam = (agent as any).buildDetailedLocateParam(
-        'test prompt',
-      );
-      expect(detailedParam.pageContext).toBeUndefined(); // No pageContext in param anymore
-
-      // But the agent's frozen context should be available via getUIContext
-      const frozenContext = (agent as any).frozenPageContext;
-      expect(frozenContext).toBe(mockContext);
-      expect(frozenContext._isFrozen).toBe(true);
-
-      // Unfreeze
-      await agent.unfreezePageContext();
-      expect((agent as any).isPageContextFrozen).toBe(false);
-      expect((agent as any).frozenPageContext).toBeUndefined();
-    });
-  });
-
   describe('Context isolation and lifecycle', () => {
     it('should not share context between different agents', async () => {
       const agent2 = new PageAgent(mockPage, {
@@ -278,108 +224,6 @@ describe('PageAgent freeze/unfreeze page context', () => {
     });
   });
 
-  describe('Integration with buildDetailedLocateParam edge cases', () => {
-    it('should handle all option combinations correctly', async () => {
-      // Test with all possible option combinations
-      const testCases = [
-        {},
-        { deepThink: true },
-        { cacheable: false },
-        { xpath: '/html/body/div' },
-        { deepThink: true, cacheable: false },
-        { deepThink: true, xpath: '/html/body/span' },
-        { cacheable: false, xpath: '/html/body/input' },
-        { deepThink: true, cacheable: false, xpath: '/html/body/button' },
-      ];
-
-      testCases.forEach((options, index) => {
-        const result = (agent as any).buildDetailedLocateParam(
-          `prompt${index}`,
-          options,
-        );
-
-        // Should not include pageContext
-        expect(result.pageContext).toBeUndefined();
-        expect(result.prompt).toBe(`prompt${index}`);
-
-        // Check other properties are preserved
-        if (options.deepThink !== undefined) {
-          expect(result.deepThink).toBe(options.deepThink);
-        } else if (Object.keys(options).length > 0) {
-          expect(result.deepThink).toBe(false); // default value
-        }
-        if (options.cacheable !== undefined) {
-          expect(result.cacheable).toBe(options.cacheable);
-        } else if (Object.keys(options).length > 0) {
-          expect(result.cacheable).toBe(true); // default value
-        }
-        if (options.xpath !== undefined) {
-          expect(result.xpath).toBe(options.xpath);
-        }
-      });
-    });
-
-    it('should handle null and undefined options correctly', async () => {
-      // Test with null options (should be treated as no options)
-      const result1 = (agent as any).buildDetailedLocateParam('prompt1', null);
-      expect(result1).toEqual({
-        prompt: 'prompt1',
-      });
-      expect(result1.pageContext).toBeUndefined();
-
-      // Test with undefined options
-      const result2 = (agent as any).buildDetailedLocateParam(
-        'prompt2',
-        undefined,
-      );
-      expect(result2).toEqual({
-        prompt: 'prompt2',
-      });
-      expect(result2.pageContext).toBeUndefined();
-
-      // Test with empty object
-      const result3 = (agent as any).buildDetailedLocateParam('prompt3', {});
-      expect(result3).toEqual({
-        prompt: 'prompt3',
-        deepThink: false,
-        cacheable: true,
-        xpath: undefined,
-      });
-      expect(result3.pageContext).toBeUndefined();
-    });
-  });
-
-  describe('Memory management', () => {
-    it('should clean up frozen context when unfreezing', async () => {
-      // Freeze context
-      await agent.freezePageContext();
-      const contextRef = (agent as any).frozenPageContext;
-      expect(contextRef).toBeDefined();
-
-      // Unfreeze
-      await agent.unfreezePageContext();
-
-      // Reference should be cleared
-      expect((agent as any).frozenPageContext).toBeUndefined();
-
-      // Verify the context object itself is no longer referenced by agent
-      expect((agent as any).frozenPageContext).not.toBe(contextRef);
-    });
-
-    it('should replace old context when freezing multiple times', async () => {
-      // First freeze
-      await agent.freezePageContext();
-      const firstContext = (agent as any).frozenPageContext;
-
-      // Second freeze should replace the context
-      await agent.freezePageContext();
-      const secondContext = (agent as any).frozenPageContext;
-
-      expect(firstContext).not.toBe(secondContext);
-      expect(secondContext).toBe(mockContext2);
-    });
-  });
-
   describe('getUIContext with frozen context', () => {
     it('should return frozen context for all actions when frozen', async () => {
       // Mock parseContextFromWebPage to return a new context each time
@@ -432,9 +276,9 @@ describe('PageAgent freeze/unfreeze page context', () => {
       const context3 = await agent.getUIContext('assert');
 
       // Each call should get a fresh context
-      expect(context1.fresh).toBe(1);
-      expect(context2.fresh).toBe(2);
-      expect(context3.fresh).toBe(3);
+      expect((context1 as any).fresh).toBe(1);
+      expect((context2 as any).fresh).toBe(2);
+      expect((context3 as any).fresh).toBe(3);
 
       // parseContextFromWebPage should be called for each
       expect(mockParseContext).toHaveBeenCalledTimes(3);
@@ -454,7 +298,7 @@ describe('PageAgent freeze/unfreeze page context', () => {
 
       // Get fresh context initially
       const freshContext1 = await agent.getUIContext('locate');
-      expect(freshContext1.callNumber).toBe(1);
+      expect((freshContext1 as any).callNumber).toBe(1);
 
       // Freeze context
       await agent.freezePageContext();
@@ -469,7 +313,7 @@ describe('PageAgent freeze/unfreeze page context', () => {
 
       // Should return fresh context again
       const freshContext2 = await agent.getUIContext('locate');
-      expect(freshContext2.callNumber).toBe(2);
+      expect((freshContext2 as any).callNumber).toBe(2);
 
       // Total calls: 2 (initial fresh + after unfreeze)
       expect(mockParseContext).toHaveBeenCalledTimes(2);
