@@ -47,6 +47,7 @@ export default defineConfig({
     define: {
       __VERSION__: JSON.stringify(version),
     },
+    tsconfigPath: 'tsconfig.build.json',
   },
   output: {
     externals: ['node:buffer', 'puppeteer'],
