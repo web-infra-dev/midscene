@@ -1,7 +1,7 @@
 import './App.less';
 
 import { Alert, ConfigProvider, Empty } from 'antd';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
@@ -10,11 +10,11 @@ import DetailPanel from './components/detail-panel';
 import DetailSide from './components/detail-side';
 import GlobalHoverPreview from './components/global-hover-preview';
 import Sidebar from './components/sidebar';
-import { useExecutionDump } from './components/store';
+import { type DumpStoreType, useExecutionDump } from './components/store';
 import Timeline from './components/timeline';
 import type {
-  ExecutionDumpWithPlaywrightAttributes,
-  StoreState,
+  PlaywrightTaskAttributes,
+  PlaywrightTasks,
   VisualizerProps,
 } from './types';
 
@@ -23,41 +23,31 @@ let globalRenderCount = 1;
 function Visualizer(props: VisualizerProps): JSX.Element {
   const { dumps } = props;
 
-  const executionDump = useExecutionDump((store: StoreState) => store.dump);
+  const executionDump = useExecutionDump((store: DumpStoreType) => store.dump);
   const executionDumpLoadId = useExecutionDump(
-    (store: StoreState) => store._executionDumpLoadId,
+    (store) => store._executionDumpLoadId,
   );
 
-  const setReplayAllMode = useExecutionDump(
-    (store: StoreState) => store.setReplayAllMode,
-  );
+  const setReplayAllMode = useExecutionDump((store) => store.setReplayAllMode);
   const replayAllScripts = useExecutionDump(
-    (store: StoreState) => store.allExecutionAnimation,
+    (store) => store.allExecutionAnimation,
   );
-  const insightWidth = useExecutionDump(
-    (store: StoreState) => store.insightWidth,
-  );
-  const insightHeight = useExecutionDump(
-    (store: StoreState) => store.insightHeight,
-  );
-  const replayAllMode = useExecutionDump(
-    (store: StoreState) => store.replayAllMode,
-  );
-  const setGroupedDump = useExecutionDump(
-    (store: StoreState) => store.setGroupedDump,
-  );
+  const insightWidth = useExecutionDump((store) => store.insightWidth);
+  const insightHeight = useExecutionDump((store) => store.insightHeight);
+  const replayAllMode = useExecutionDump((store) => store.replayAllMode);
+  const setGroupedDump = useExecutionDump((store) => store.setGroupedDump);
   const sdkVersion = useExecutionDump((store) => store.sdkVersion);
   const modelName = useExecutionDump((store) => store.modelName);
   const modelDescription = useExecutionDump((store) => store.modelDescription);
-  const reset = useExecutionDump((store: StoreState) => store.reset);
+  const reset = useExecutionDump((store) => store.reset);
   const [mainLayoutChangeFlag, setMainLayoutChangeFlag] = useState(0);
   const mainLayoutChangedRef = useRef(false);
-  const dump = useExecutionDump((store: StoreState) => store.dump);
+  const dump = useExecutionDump((store) => store.dump);
   const [proModeEnabled, setProModeEnabled] = useState(false);
 
   useEffect(() => {
-    if (dumps) {
-      setGroupedDump(dumps[0]);
+    if (dumps?.[0]) {
+      setGroupedDump(dumps[0].get(), dumps[0].attributes);
     }
     return () => {
       reset();
@@ -150,10 +140,6 @@ function Visualizer(props: VisualizerProps): JSX.Element {
           <div className="page-side">
             <Sidebar
               dumps={dumps}
-              selectedDump={executionDump}
-              onDumpSelect={(dump) => {
-                setGroupedDump(dump);
-              }}
               proModeEnabled={proModeEnabled}
               onProModeChange={setProModeEnabled}
               replayAllScripts={replayAllScripts}
@@ -243,11 +229,11 @@ function Visualizer(props: VisualizerProps): JSX.Element {
 }
 
 export function App() {
-  function getDumpElements(): ExecutionDumpWithPlaywrightAttributes[] {
+  function getDumpElements(): PlaywrightTasks[] {
     const dumpElements = document.querySelectorAll(
       'script[type="midscene_web_dump"]',
     );
-    const reportDump: ExecutionDumpWithPlaywrightAttributes[] = [];
+    const reportDump: PlaywrightTasks[] = [];
     Array.from(dumpElements)
       .filter((el) => {
         const textContent = el.textContent;
@@ -257,65 +243,95 @@ export function App() {
         return !!textContent;
       })
       .forEach((el) => {
-        const attributes: Record<string, any> = {};
+        const attributes: PlaywrightTaskAttributes = {
+          playwright_test_name: '',
+          playwright_test_description: '',
+          playwright_test_id: '',
+          playwright_test_title: '',
+          playwright_test_status: '',
+          playwright_test_duration: '',
+        };
         Array.from(el.attributes).forEach((attr) => {
           const { name, value } = attr;
           const valueDecoded = decodeURIComponent(value);
           if (name.startsWith('playwright_')) {
-            attributes[attr.name] = valueDecoded;
+            attributes[attr.name as keyof PlaywrightTaskAttributes] =
+              valueDecoded;
           }
         });
-        const content = antiEscapeScriptTag(el.textContent || '');
-        try {
-          const jsonContent = JSON.parse(content);
-          jsonContent.attributes = attributes;
-          reportDump.push(jsonContent);
-        } catch (e) {
-          console.error(el);
-          console.error('failed to parse json content', e);
-        }
+
+        // Lazy loading: Store raw content and parse only when get() is called
+        let cachedJsonContent: any = null;
+        let isParsed = false;
+
+        reportDump.push({
+          get: () => {
+            if (!isParsed) {
+              try {
+                console.time('parse_dump');
+                const content = antiEscapeScriptTag(el.textContent || '');
+                cachedJsonContent = JSON.parse(content);
+                console.timeEnd('parse_dump');
+                cachedJsonContent.attributes = attributes;
+                isParsed = true;
+              } catch (e) {
+                console.error(el);
+                console.error('failed to parse json content', e);
+                // Return a fallback object to prevent crashes
+                cachedJsonContent = {
+                  attributes,
+                  error: 'Failed to parse JSON content',
+                };
+                isParsed = true;
+              }
+            }
+            return cachedJsonContent;
+          },
+          attributes: attributes,
+        });
       });
     return reportDump;
   }
 
-  const [reportDump, setReportDump] = useState<
-    ExecutionDumpWithPlaywrightAttributes[]
-  >([]);
+  const [reportDump, setReportDump] = useState<PlaywrightTasks[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const dumpsLoadedRef = useRef(false);
 
-  const loadDumpElements = useCallback(() => {
-    const currentElements = document.querySelectorAll(
-      'script[type="midscene_web_dump"]',
-    );
-
-    // If it has been loaded and the number of elements has not changed, skip it.
-    if (
-      dumpsLoadedRef.current &&
-      currentElements.length === reportDump.length
-    ) {
-      return;
-    }
-
-    dumpsLoadedRef.current = true;
-    if (
-      currentElements.length === 1 &&
-      currentElements[0].textContent?.trim() === ''
-    ) {
-      setError('There is no dump data to display.');
-      setReportDump([]);
-      return;
-    }
-    setError(null);
-    setReportDump(getDumpElements());
-  }, [reportDump.length]);
-
   useEffect(() => {
     // Check if document is already loaded
+
+    const loadDumpElements = () => {
+      const currentElements = document.querySelectorAll(
+        'script[type="midscene_web_dump"]',
+      );
+
+      // If it has been loaded and the number of elements has not changed, skip it.
+      if (
+        dumpsLoadedRef.current &&
+        currentElements.length === reportDump.length
+      ) {
+        return;
+      }
+
+      dumpsLoadedRef.current = true;
+      if (
+        currentElements.length === 1 &&
+        currentElements[0].textContent?.trim() === ''
+      ) {
+        setError('There is no dump data to display.');
+        setReportDump([]);
+        return;
+      }
+      setError(null);
+      const dumpElements = getDumpElements();
+      setReportDump(dumpElements);
+    };
+
     const loadDumps = () => {
-      console.log('Loading dump elements...');
+      console.time('loading_dump');
       loadDumpElements();
+      console.timeEnd('loading_dump');
     };
 
     // If DOM is already loaded (React mounts after DOMContentLoaded in most cases)
@@ -330,39 +346,10 @@ export function App() {
       document.addEventListener('DOMContentLoaded', loadDumps);
     }
 
-    // Set up a MutationObserver to detect if dump scripts are added after initial load
-    const observer = new MutationObserver((mutations) => {
-      for (const mutation of mutations) {
-        if (mutation.type === 'childList') {
-          const addedNodes = Array.from(mutation.addedNodes);
-          const hasDumpScripts = addedNodes.some(
-            (node) =>
-              node.nodeType === Node.ELEMENT_NODE &&
-              node.nodeName === 'SCRIPT' &&
-              (node as HTMLElement).getAttribute('type') ===
-                'midscene_web_dump',
-          );
-
-          if (hasDumpScripts) {
-            loadDumps();
-            break;
-          }
-        }
-      }
-    });
-
-    // Start observing the document with the configured parameters
-    observer.observe(document.body, { childList: true, subtree: true });
-
-    // Safety fallback in case other methods fail
-    const fallbackTimer = setTimeout(loadDumps, 3000);
-
     return () => {
       document.removeEventListener('DOMContentLoaded', loadDumps);
-      observer.disconnect();
-      clearTimeout(fallbackTimer);
     };
-  }, [loadDumpElements]);
+  }, []);
 
   if (error) {
     return (

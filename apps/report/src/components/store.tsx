@@ -1,4 +1,5 @@
 // import { createStore } from 'zustand/vanilla';
+import type { PlaywrightTaskAttributes } from '@/types';
 import type {
   ExecutionDump,
   ExecutionTask,
@@ -35,18 +36,13 @@ export interface HistoryItem {
   timestamp: number;
 }
 
-/**
-/**
- * Service Mode
- *
- * - Server: use a node server to run the code
- * - In-Browser: use browser's fetch API to run the code
- * - In-Browser-Extension: use browser's fetch API to run the code, but the page is running in the extension context
- */
-export type ServiceModeType = 'Server' | 'In-Browser' | 'In-Browser-Extension'; // | 'Extension';
-export const useExecutionDump = create<{
+export interface DumpStoreType {
   dump: GroupedActionDump | null;
-  setGroupedDump: (dump: GroupedActionDump) => void;
+  playwrightAttributes: PlaywrightTaskAttributes | null;
+  setGroupedDump: (
+    dump: GroupedActionDump,
+    playwrightAttributes?: PlaywrightTaskAttributes,
+  ) => void;
   _executionDumpLoadId: number;
   replayAllMode: boolean;
   setReplayAllMode: (replayAllMode: boolean) => void;
@@ -68,9 +64,20 @@ export const useExecutionDump = create<{
   hoverPreviewConfig: { x: number; y: number } | null;
   setHoverPreviewConfig: (config: { x: number; y: number } | null) => void;
   reset: () => void;
-}>((set, get) => {
+}
+/**
+/**
+ * Service Mode
+ *
+ * - Server: use a node server to run the code
+ * - In-Browser: use browser's fetch API to run the code
+ * - In-Browser-Extension: use browser's fetch API to run the code, but the page is running in the extension context
+ */
+export type ServiceModeType = 'Server' | 'In-Browser' | 'In-Browser-Extension'; // | 'Extension';
+export const useExecutionDump = create<DumpStoreType>((set, get) => {
   let _executionDumpLoadId = 0;
   const initData = {
+    playwrightAttributes: null,
     dump: null,
     replayAllMode: false,
     allExecutionAnimation: null,
@@ -115,11 +122,15 @@ export const useExecutionDump = create<{
         );
       }
     },
-    setGroupedDump: (dump: GroupedActionDump) => {
+    setGroupedDump: (
+      dump: GroupedActionDump,
+      playwrightAttributes?: PlaywrightTaskAttributes,
+    ) => {
       console.log('will set ExecutionDump', dump);
       set({
         ...initData,
         dump,
+        playwrightAttributes,
       });
 
       // set the first task as selected
