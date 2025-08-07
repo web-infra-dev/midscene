@@ -1,4 +1,4 @@
-import type { IModelPreferences } from '@/types';
+import type { IModelConfigForVQA, IModelPreferences } from '@/types';
 import {
   ANTHROPIC_API_KEY,
   AZURE_OPENAI_API_VERSION,
@@ -114,40 +114,52 @@ interface IModelConfigForCreateLLMClient {
 }
 
 const createAssert =
-  (modelNameKey: string, modelName: string) =>
+  (
+    modelNameKey: string,
+    modelName: string,
+    provider: 'process.env' | 'modelConfig',
+  ) =>
   (value: string | undefined, key: string, modelVendorFlag?: string) => {
     if (modelVendorFlag) {
       assert(
         value,
-        `The ${key} must be a non-empty string because of the ${modelNameKey} is declared as ${modelName} and ${modelVendorFlag} has also been specified, but got: ${value}\nPlease check your config.`,
+        `The ${key} must be a non-empty string because of the ${modelNameKey} is declared as ${modelName} and ${modelVendorFlag} has also been specified in ${provider}, but got: ${value}\nPlease check your config.`,
       );
     } else {
       assert(
         value,
-        `The ${key} must be a non-empty string because of the ${modelNameKey} is declared as ${modelName}, but got: ${value}\nPlease check your config.`,
+        `The ${key} must be a non-empty string because of the ${modelNameKey} is declared as ${modelName} in ${provider}, but got: ${value}\nPlease check your config.`,
       );
     }
   };
 
-const getModelConfigFromEnv = (
-  modelName: string,
+const getModelConfigFromProvider = ({
+  modelName,
+  keys,
+  valueAssert,
+  getStringConfig,
+  getJsonConfig,
+}: {
+  modelName: string;
   keys: Record<
     Exclude<keyof IModelConfigForCreateLLMClient, 'modelName'>,
     Parameters<typeof getAIConfig>[0]
-  >,
+  >;
   valueAssert: (
     value: string | undefined,
     key: string,
     modelVendorFlag?: string,
-  ) => void,
-): IModelConfigForCreateLLMClient => {
-  const socksProxy = getAIConfig(keys.socksProxy);
-  const httpProxy = getAIConfig(keys.httpProxy);
+  ) => void;
+  getStringConfig: (key?: string) => string | undefined;
+  getJsonConfig: (key?: string) => Record<string, unknown> | undefined;
+}): IModelConfigForCreateLLMClient => {
+  const socksProxy = getStringConfig(keys.socksProxy);
+  const httpProxy = getStringConfig(keys.httpProxy);
 
-  if (getAIConfig(keys.openaiUseAzureDeprecated)) {
-    const openaiBaseURL = getAIConfig(keys.openaiBaseURL);
-    const openaiApiKey = getAIConfig(keys.openaiApiKey);
-    const openaiExtraConfig = getAIConfigInJson(keys.openaiExtraConfig);
+  if (getStringConfig(keys.openaiUseAzureDeprecated)) {
+    const openaiBaseURL = getStringConfig(keys.openaiBaseURL);
+    const openaiApiKey = getStringConfig(keys.openaiApiKey);
+    const openaiExtraConfig = getJsonConfig(keys.openaiExtraConfig);
 
     valueAssert(
       openaiBaseURL,
@@ -165,16 +177,16 @@ const getModelConfigFromEnv = (
       openaiBaseURL,
       openaiExtraConfig,
     };
-  } else if (getAIConfig(keys.useAzureOpenai)) {
-    const azureOpenaiScope = getAIConfig(keys.azureOpenaiScope);
+  } else if (getStringConfig(keys.useAzureOpenai)) {
+    const azureOpenaiScope = getStringConfig(keys.azureOpenaiScope);
 
-    const azureOpenaiApiKey = getAIConfig(keys.azureOpenaiApiKey);
-    const azureOpenaiEndpoint = getAIConfig(keys.azureOpenaiEndpoint);
-    const azureOpenaiDeployment = getAIConfig(keys.azureOpenaiDeployment);
-    const azureOpenaiApiVersion = getAIConfig(keys.azureOpenaiApiVersion);
+    const azureOpenaiApiKey = getStringConfig(keys.azureOpenaiApiKey);
+    const azureOpenaiEndpoint = getStringConfig(keys.azureOpenaiEndpoint);
+    const azureOpenaiDeployment = getStringConfig(keys.azureOpenaiDeployment);
+    const azureOpenaiApiVersion = getStringConfig(keys.azureOpenaiApiVersion);
 
-    const azureExtraConfig = getAIConfigInJson(keys.azureExtraConfig);
-    const openaiExtraConfig = getAIConfigInJson(keys.openaiExtraConfig);
+    const azureExtraConfig = getJsonConfig(keys.azureExtraConfig);
+    const openaiExtraConfig = getJsonConfig(keys.openaiExtraConfig);
 
     valueAssert(azureOpenaiApiKey, keys.azureOpenaiApiKey, keys.useAzureOpenai);
 
@@ -191,8 +203,8 @@ const getModelConfigFromEnv = (
       azureExtraConfig,
       openaiExtraConfig,
     };
-  } else if (getAIConfig(keys.useAnthropicSdk)) {
-    const anthropicApiKey = getAIConfig(keys.anthropicApiKey);
+  } else if (getStringConfig(keys.useAnthropicSdk)) {
+    const anthropicApiKey = getStringConfig(keys.anthropicApiKey);
     valueAssert(anthropicApiKey, keys.anthropicApiKey, keys.useAnthropicSdk);
 
     return {
@@ -203,9 +215,9 @@ const getModelConfigFromEnv = (
       anthropicApiKey,
     };
   } else {
-    const openaiBaseURL = getAIConfig(keys.openaiBaseURL);
-    const openaiApiKey = getAIConfig(keys.openaiApiKey);
-    const openaiExtraConfig = getAIConfigInJson(keys.openaiExtraConfig);
+    const openaiBaseURL = getStringConfig(keys.openaiBaseURL);
+    const openaiApiKey = getStringConfig(keys.openaiApiKey);
+    const openaiExtraConfig = getJsonConfig(keys.openaiExtraConfig);
 
     valueAssert(openaiBaseURL, keys.openaiBaseURL);
     valueAssert(openaiApiKey, keys.openaiApiKey);
@@ -253,6 +265,36 @@ const maskConfig = (config: IModelConfigForCreateLLMClient) => {
   );
 };
 
+const vqaModelConfigKeys = {
+  /**
+   * proxy
+   */
+  socksProxy: MIDSCENE_VQA_OPENAI_SOCKS_PROXY,
+  httpProxy: MIDSCENE_VQA_OPENAI_HTTP_PROXY,
+  /**
+   * OpenAI
+   */
+  openaiBaseURL: MIDSCENE_VQA_OPENAI_BASE_URL,
+  openaiApiKey: MIDSCENE_VQA_OPENAI_API_KEY,
+  openaiExtraConfig: MIDSCENE_VQA_OPENAI_INIT_CONFIG_JSON,
+  /**
+   * Azure
+   */
+  openaiUseAzureDeprecated: MIDSCENE_VQA_OPENAI_USE_AZURE,
+  useAzureOpenai: MIDSCENE_VQA_USE_AZURE_OPENAI,
+  azureOpenaiScope: MIDSCENE_VQA_AZURE_OPENAI_SCOPE,
+  azureOpenaiApiKey: MIDSCENE_VQA_AZURE_OPENAI_KEY,
+  azureOpenaiEndpoint: MIDSCENE_VQA_AZURE_OPENAI_ENDPOINT,
+  azureOpenaiApiVersion: MIDSCENE_VQA_AZURE_OPENAI_API_VERSION,
+  azureOpenaiDeployment: MIDSCENE_VQA_AZURE_OPENAI_DEPLOYMENT,
+  azureExtraConfig: MIDSCENE_VQA_AZURE_OPENAI_INIT_CONFIG_JSON,
+  /**
+   * Anthropic
+   */
+  useAnthropicSdk: MIDSCENE_VQA_USE_ANTHROPIC_SDK,
+  anthropicApiKey: MIDSCENE_VQA_ANTHROPIC_API_KEY,
+} as const;
+
 /**
  * get and validate model config for model client
  */
@@ -267,49 +309,81 @@ export const decideModelConfig = (
 
   const isVQAIntent = modelPreferences?.intent === 'VQA';
 
+  const vqaModelCallback = modelPreferences?.modelConfigByIntent?.VQA;
   const vqaModelName = getAIConfig(MIDSCENE_VQA_MODEL_NAME);
 
-  if (isVQAIntent && vqaModelName) {
-    debugLog(
-      `current action is a VQA action and detected ${MIDSCENE_VQA_MODEL_NAME} ${vqaModelName}, will only read VQA related model config from process.env`,
-    );
-    const config = getModelConfigFromEnv(
-      vqaModelName,
-      {
-        /**
-         * proxy
-         */
-        socksProxy: MIDSCENE_VQA_OPENAI_SOCKS_PROXY,
-        httpProxy: MIDSCENE_VQA_OPENAI_HTTP_PROXY,
-        /**
-         * OpenAI
-         */
-        openaiBaseURL: MIDSCENE_VQA_OPENAI_BASE_URL,
-        openaiApiKey: MIDSCENE_VQA_OPENAI_API_KEY,
-        openaiExtraConfig: MIDSCENE_VQA_OPENAI_INIT_CONFIG_JSON,
-        /**
-         * Azure
-         */
-        openaiUseAzureDeprecated: MIDSCENE_VQA_OPENAI_USE_AZURE,
-        useAzureOpenai: MIDSCENE_VQA_USE_AZURE_OPENAI,
-        azureOpenaiScope: MIDSCENE_VQA_AZURE_OPENAI_SCOPE,
-        azureOpenaiApiKey: MIDSCENE_VQA_AZURE_OPENAI_KEY,
-        azureOpenaiEndpoint: MIDSCENE_VQA_AZURE_OPENAI_ENDPOINT,
-        azureOpenaiApiVersion: MIDSCENE_VQA_AZURE_OPENAI_API_VERSION,
-        azureOpenaiDeployment: MIDSCENE_VQA_AZURE_OPENAI_DEPLOYMENT,
-        azureExtraConfig: MIDSCENE_VQA_AZURE_OPENAI_INIT_CONFIG_JSON,
-        /**
-         * Anthropic
-         */
-        useAnthropicSdk: MIDSCENE_VQA_USE_ANTHROPIC_SDK,
-        anthropicApiKey: MIDSCENE_VQA_ANTHROPIC_API_KEY,
-      },
-      createAssert(MIDSCENE_VQA_MODEL_NAME, vqaModelName),
-    );
+  const vqaModelConfig = vqaModelCallback?.();
 
-    debugLog('got model config for VQA usage:', maskConfig(config));
+  if (isVQAIntent && (vqaModelConfig || vqaModelName)) {
+    if (vqaModelConfig) {
+      debugLog(
+        'current action is a VQA action and detected VQA declared in modelConfig, will only read VQA related model config from modelConfig.VQA',
+      );
+      const modelName = vqaModelConfig[MIDSCENE_VQA_MODEL_NAME];
+      assert(
+        modelName,
+        'The return value of modelConfig.VQA() does not have a valid MIDSCENE_VQA_MODEL_NAME filed.',
+      );
+      const config = getModelConfigFromProvider({
+        modelName,
+        keys: vqaModelConfigKeys,
+        valueAssert: createAssert(
+          MIDSCENE_VQA_MODEL_NAME,
+          modelName,
+          'modelConfig',
+        ),
+        getStringConfig: (key) =>
+          key ? vqaModelConfig[key as keyof IModelConfigForVQA] : undefined,
+        getJsonConfig: (key) => {
+          if (key) {
+            const content = vqaModelConfig[key as keyof IModelConfigForVQA];
+            if (content) {
+              try {
+                return JSON.parse(content);
+              } catch (e) {
+                throw new Error(
+                  `Failed to parse json config: ${key}. ${(e as Error).message}`,
+                  {
+                    cause: e,
+                  },
+                );
+              }
+            }
+          }
+          return undefined;
+        },
+      });
+      debugLog(
+        'got model config for VQA usage from modelConfig.VQA:',
+        maskConfig(config),
+      );
 
-    return config;
+      return config;
+    } else {
+      debugLog(
+        `current action is a VQA action and detected ${MIDSCENE_VQA_MODEL_NAME} ${vqaModelName} in process.env, will only read VQA related model config from process.env`,
+      );
+      const config = getModelConfigFromProvider({
+        modelName: vqaModelName!,
+        keys: vqaModelConfigKeys,
+        valueAssert: createAssert(
+          MIDSCENE_VQA_MODEL_NAME,
+          vqaModelName!,
+          'process.env',
+        ),
+        getStringConfig: getAIConfig as (key?: string) => string | undefined,
+        getJsonConfig: getAIConfigInJson as (
+          key?: string,
+        ) => Record<string, unknown> | undefined,
+      });
+
+      debugLog(
+        'got model config for VQA usage from process.env:',
+        maskConfig(config),
+      );
+
+      return config;
+    }
   } else {
     debugLog('read model config from process.env as normal.');
     const commonModelName = getAIConfig(MIDSCENE_MODEL_NAME);
@@ -317,9 +391,9 @@ export const decideModelConfig = (
       commonModelName,
       `${MIDSCENE_MODEL_NAME} is empty, please check your config.`,
     );
-    const config = getModelConfigFromEnv(
-      commonModelName,
-      {
+    const config = getModelConfigFromProvider({
+      modelName: commonModelName,
+      keys: {
         /**
          * proxy
          */
@@ -348,8 +422,16 @@ export const decideModelConfig = (
         useAnthropicSdk: MIDSCENE_USE_ANTHROPIC_SDK,
         anthropicApiKey: ANTHROPIC_API_KEY,
       },
-      createAssert(MIDSCENE_MODEL_NAME, commonModelName),
-    );
+      valueAssert: createAssert(
+        MIDSCENE_MODEL_NAME,
+        commonModelName,
+        'process.env',
+      ),
+      getStringConfig: getAIConfig as (key?: string) => string | undefined,
+      getJsonConfig: getAIConfigInJson as (
+        key?: string,
+      ) => Record<string, unknown> | undefined,
+    });
 
     debugLog('got model config for common usage:', maskConfig(config));
 

@@ -29,7 +29,7 @@ import {
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { decideModelConfig } from '../../../../src/ai-model/service-caller/utils';
 
-describe('decideModelConfig - VQA', () => {
+describe('decideModelConfig - VQA in env', () => {
   beforeEach(() => {
     // env will cached by midsceneGlobalConfig
     globalThis.midsceneGlobalConfig = null;
@@ -77,7 +77,7 @@ describe('decideModelConfig - VQA', () => {
       const result = decideModelConfig({ intent: 'VQA' });
     }).toThrowErrorMatchingInlineSnapshot(
       `
-      [Error: The MIDSCENE_VQA_OPENAI_BASE_URL must be a non-empty string because of the MIDSCENE_VQA_MODEL_NAME is declared as <vql-model>, but got: undefined
+      [Error: The MIDSCENE_VQA_OPENAI_BASE_URL must be a non-empty string because of the MIDSCENE_VQA_MODEL_NAME is declared as <vql-model> in process.env, but got: undefined
       Please check your config.]
     `,
     );
@@ -108,7 +108,7 @@ describe('decideModelConfig - VQA', () => {
       const result = decideModelConfig({ intent: 'VQA' });
     }).toThrowErrorMatchingInlineSnapshot(
       `
-      [Error: The MIDSCENE_VQA_AZURE_OPENAI_KEY must be a non-empty string because of the MIDSCENE_VQA_MODEL_NAME is declared as <vql-model> and MIDSCENE_VQA_USE_AZURE_OPENAI has also been specified, but got: undefined
+      [Error: The MIDSCENE_VQA_AZURE_OPENAI_KEY must be a non-empty string because of the MIDSCENE_VQA_MODEL_NAME is declared as <vql-model> and MIDSCENE_VQA_USE_AZURE_OPENAI has also been specified in process.env, but got: undefined
       Please check your config.]
     `,
     );
@@ -147,7 +147,7 @@ describe('decideModelConfig - VQA', () => {
       const result = decideModelConfig({ intent: 'VQA' });
     }).toThrowErrorMatchingInlineSnapshot(
       `
-      [Error: The MIDSCENE_VQA_AZURE_OPENAI_KEY must be a non-empty string because of the MIDSCENE_VQA_MODEL_NAME is declared as <vql-model> and MIDSCENE_VQA_USE_AZURE_OPENAI has also been specified, but got: undefined
+      [Error: The MIDSCENE_VQA_AZURE_OPENAI_KEY must be a non-empty string because of the MIDSCENE_VQA_MODEL_NAME is declared as <vql-model> and MIDSCENE_VQA_USE_AZURE_OPENAI has also been specified in process.env, but got: undefined
       Please check your config.]
     `,
     );
@@ -196,7 +196,7 @@ describe('decideModelConfig - VQA', () => {
       const result = decideModelConfig({ intent: 'VQA' });
     }).toThrowErrorMatchingInlineSnapshot(
       `
-      [Error: The MIDSCENE_VQA_ANTHROPIC_API_KEY must be a non-empty string because of the MIDSCENE_VQA_MODEL_NAME is declared as <vql-model> and MIDSCENE_VQA_USE_ANTHROPIC_SDK has also been specified, but got: undefined
+      [Error: The MIDSCENE_VQA_ANTHROPIC_API_KEY must be a non-empty string because of the MIDSCENE_VQA_MODEL_NAME is declared as <vql-model> and MIDSCENE_VQA_USE_ANTHROPIC_SDK has also been specified in process.env, but got: undefined
       Please check your config.]
     `,
     );
@@ -215,6 +215,90 @@ describe('decideModelConfig - VQA', () => {
       useAnthropicSdk: true,
       modelName: '<vql-model>',
       anthropicApiKey: '<anthropic-apiKey>',
+    });
+  });
+});
+
+describe('decideModelConfig - VQA in modelConfig', () => {
+  beforeEach(() => {
+    // env will cached by midsceneGlobalConfig
+    globalThis.midsceneGlobalConfig = null;
+    vi.unstubAllEnvs();
+    vi.stubEnv(MIDSCENE_MODEL_NAME, '<common-model>');
+    vi.stubEnv(OPENAI_API_KEY, '<openai-api-key>');
+    vi.stubEnv(OPENAI_BASE_URL, '<openai-base-url>');
+    vi.stubEnv(MIDSCENE_OPENAI_INIT_CONFIG_JSON, '{}');
+  });
+
+  afterEach(() => {
+    // env will cached by midsceneGlobalConfig
+    globalThis.midsceneGlobalConfig = null;
+    vi.unstubAllEnvs();
+  });
+
+  it('intent is VQA but no modelConfig.VQA will not enter VQA branch', () => {
+    const result1 = decideModelConfig({ intent: 'VQA' });
+    expect(result1).toStrictEqual({
+      httpProxy: undefined,
+      socksProxy: undefined,
+      modelName: '<common-model>',
+      openaiApiKey: '<openai-api-key>',
+      openaiBaseURL: '<openai-base-url>',
+      openaiExtraConfig: {},
+    });
+
+    const result2 = decideModelConfig({
+      intent: 'VQA',
+      modelConfigByIntent: {
+        VQA: undefined,
+      },
+    });
+    expect(result2).toStrictEqual({
+      httpProxy: undefined,
+      socksProxy: undefined,
+      modelName: '<common-model>',
+      openaiApiKey: '<openai-api-key>',
+      openaiBaseURL: '<openai-base-url>',
+      openaiExtraConfig: {},
+    });
+  });
+
+  it('intent is VQA and modelConfig.VQA is a function will enter VQA branch', () => {
+    expect(() =>
+      decideModelConfig({
+        intent: 'VQA',
+        modelConfigByIntent: {
+          VQA: () => ({
+            MIDSCENE_VQA_MODEL_NAME: '',
+          }),
+        },
+      }),
+    ).toThrowErrorMatchingInlineSnapshot(
+      // biome-ignore lint/style/noUnusedTemplateLiteral: <explanation>
+      `[Error: The return value of modelConfig.VQA() does not have a valid MIDSCENE_VQA_MODEL_NAME filed.]`,
+    );
+  });
+
+  it('modelConfig.VQA has high priority then process.env.MIDSCENE_VQA_MODEL_NAME', () => {
+    vi.stubEnv(MIDSCENE_VQA_MODEL_NAME, '<vql-model>');
+    const result = decideModelConfig({
+      intent: 'VQA',
+      modelConfigByIntent: {
+        VQA: () => ({
+          MIDSCENE_VQA_MODEL_NAME: '<vql-model-in-config>',
+          MIDSCENE_VQA_OPENAI_BASE_URL: '<openai-base-url-in-config>',
+          MIDSCENE_VQA_OPENAI_API_KEY: '<openai-api-key-in-config>',
+        }),
+      },
+    });
+
+    expect(result).toStrictEqual({
+      httpProxy: undefined,
+      socksProxy: undefined,
+      modelName: '<vql-model-in-config>',
+      openaiApiKey: '<openai-api-key-in-config>',
+      openaiBaseURL: '<openai-base-url-in-config>',
+      openaiExtraConfig: undefined,
     });
   });
 });
@@ -244,7 +328,7 @@ describe('decideModelConfig - common', () => {
       const result = decideModelConfig();
     }).toThrowErrorMatchingInlineSnapshot(
       `
-      [Error: The AZURE_OPENAI_KEY must be a non-empty string because of the MIDSCENE_MODEL_NAME is declared as <common-model> and MIDSCENE_USE_AZURE_OPENAI has also been specified, but got: undefined
+      [Error: The AZURE_OPENAI_KEY must be a non-empty string because of the MIDSCENE_MODEL_NAME is declared as <common-model> and MIDSCENE_USE_AZURE_OPENAI has also been specified in process.env, but got: undefined
       Please check your config.]
     `,
     );
@@ -278,7 +362,7 @@ describe('decideModelConfig - common', () => {
       const result = decideModelConfig();
     }).toThrowErrorMatchingInlineSnapshot(
       `
-      [Error: The AZURE_OPENAI_KEY must be a non-empty string because of the MIDSCENE_MODEL_NAME is declared as <common-model> and MIDSCENE_USE_AZURE_OPENAI has also been specified, but got: undefined
+      [Error: The AZURE_OPENAI_KEY must be a non-empty string because of the MIDSCENE_MODEL_NAME is declared as <common-model> and MIDSCENE_USE_AZURE_OPENAI has also been specified in process.env, but got: undefined
       Please check your config.]
     `,
     );
@@ -318,7 +402,7 @@ describe('decideModelConfig - common', () => {
       const result = decideModelConfig();
     }).toThrowErrorMatchingInlineSnapshot(
       `
-      [Error: The ANTHROPIC_API_KEY must be a non-empty string because of the MIDSCENE_MODEL_NAME is declared as <common-model> and MIDSCENE_USE_ANTHROPIC_SDK has also been specified, but got: undefined
+      [Error: The ANTHROPIC_API_KEY must be a non-empty string because of the MIDSCENE_MODEL_NAME is declared as <common-model> and MIDSCENE_USE_ANTHROPIC_SDK has also been specified in process.env, but got: undefined
       Please check your config.]
     `,
     );
