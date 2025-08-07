@@ -14,6 +14,7 @@ import {
   type ExecutionTaskProgressOptions,
   Executor,
   type ExecutorContext,
+  type IModelConfigByIntent,
   type Insight,
   type InsightAssertionResponse,
   type InsightDump,
@@ -87,12 +88,15 @@ export class PageTaskExecutor {
 
   onTaskStartCallback?: ExecutionTaskProgressOptions['onTaskStart'];
 
+  modelConfigByIntent?: IModelConfigByIntent;
+
   constructor(
     page: WebPage,
     insight: Insight<WebElementInfo, WebUIContext>,
     opts: {
       taskCache?: TaskCache;
       onTaskStart?: ExecutionTaskProgressOptions['onTaskStart'];
+      modelConfigByIntent?: IModelConfigByIntent;
     },
   ) {
     this.page = page;
@@ -101,6 +105,8 @@ export class PageTaskExecutor {
     this.taskCache = opts.taskCache;
 
     this.onTaskStartCallback = opts?.onTaskStart;
+
+    this.modelConfigByIntent = opts.modelConfigByIntent;
   }
 
   private async recordScreenshot(timing: ExecutionRecorderItem['timing']) {
@@ -1269,6 +1275,7 @@ export class PageTaskExecutor {
           multimodalPrompt,
           {
             intent: 'VQA',
+            modelConfigByIntent: this.modelConfigByIntent,
           },
         );
 
