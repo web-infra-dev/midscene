@@ -82,14 +82,14 @@ export function PlaywrightCaseSelector({
     const cost = costStr ? (
       <span key={key} className="cost-str">
         {' '}
-        ({timeCostStrElement(Number.parseInt(costStr, 10))})
+        ({timeCostStrElement(Number(costStr) || 0)})
       </span>
     ) : null;
     const rowContent = (
       <span key={key}>
         {status}
         {'  '}
-        {`${dump.attributes.playwright_test_name || 'unnamed'} - ${dump.attributes.playwright_test_description || ''}`}
+        {`${dump.attributes.playwright_test_title || 'unnamed'} - ${dump.attributes.playwright_test_description || ''}`}
         {cost}
       </span>
     );
@@ -103,7 +103,7 @@ export function PlaywrightCaseSelector({
     if (searchText) {
       result = result.filter(
         (dump) =>
-          (dump.attributes.playwright_test_name || '')
+          (dump.attributes.playwright_test_title || '')
             .toLowerCase()
             .includes(searchText.toLowerCase()) ||
           (dump.attributes.playwright_test_description || '')

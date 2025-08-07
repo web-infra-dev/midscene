@@ -114,7 +114,6 @@ export default defineConfig({
             tag: 'script',
             attrs: {
               type: 'midscene_web_dump',
-              playwright_test_name: item.data.groupName,
               playwright_test_description: item.data.groupDescription,
               playwright_test_id: `id-${index}`,
               playwright_test_title: 'test open new tab',

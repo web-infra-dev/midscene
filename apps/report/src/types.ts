@@ -2,7 +2,6 @@ import type { GroupedActionDump } from '@midscene/core';
 
 // Core visualization types
 export interface PlaywrightTaskAttributes {
-  playwright_test_name: string;
   playwright_test_description: string;
   playwright_test_id: string;
   playwright_test_title: string;
