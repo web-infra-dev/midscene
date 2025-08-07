@@ -96,11 +96,11 @@ await agent.aiAction('发布一条微博，内容为 "Hello World"');
 - 类型
 
 ```typescript
-function aiTap(locate: string, options?: Object): Promise<void>;
+function aiTap(locate: string | Object, options?: Object): Promise<void>;
 ```
 
 - 参数：
-  - `locate: string` - 用自然语言描述的元素定位。
+  - `locate: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: Object` - 可选，一个配置对象，包含：
     - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。默认值为 False
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
@@ -127,11 +127,11 @@ await agent.aiTap('页面顶部的登录按钮', { deepThink: true });
 - 类型
 
 ```typescript
-function aiHover(locate: string, options?: Object): Promise<void>;
+function aiHover(locate: string | Object, options?: Object): Promise<void>;
 ```
 
 - 参数：
-  - `locate: string` - 用自然语言描述的元素定位。
+  - `locate: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: Object` - 可选，一个配置对象，包含：
     - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。默认值为 False
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
@@ -153,13 +153,17 @@ await agent.aiHover('页面顶部的登录按钮');
 - 类型
 
 ```typescript
-function aiInput(text: string, locate: string, options?: Object): Promise<void>;
+function aiInput(
+  text: string,
+  locate: string | Object,
+  options?: Object,
+): Promise<void>;
 ```
 
 - 参数：
 
   - `text: string` - 要输入的文本内容。使用空字符串可以清空输入框。
-  - `locate: string` - 用自然语言描述的元素定位。
+  - `locate: string | Object` - 用自然语言描述的元素定位，，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: Object` - 可选，一个配置对象，包含：
     - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。默认值为 False
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
@@ -185,7 +189,7 @@ await agent.aiInput('Hello World', '搜索框');
 ```typescript
 function aiKeyboardPress(
   key: string,
-  locate?: string,
+  locate?: string | Object,
   options?: Object,
 ): Promise<void>;
 ```
@@ -193,7 +197,7 @@ function aiKeyboardPress(
 - 参数：
 
   - `key: string` - 要按下的键，如 `Enter`、`Tab`、`Escape` 等。不支持组合键。
-  - `locate?: string` - 用自然语言描述的元素定位。
+  - `locate?: string | Object` - 用自然语言描述的元素定位，，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: Object` - 可选，一个配置对象，包含：
     - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。默认值为 False
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
@@ -218,7 +222,7 @@ await agent.aiKeyboardPress('Enter', '搜索框');
 ```typescript
 function aiScroll(
   scrollParam: PlanningActionParamScroll,
-  locate?: string,
+  locate?: string | Object,
   options?: Object,
 ): Promise<void>;
 ```
@@ -229,7 +233,7 @@ function aiScroll(
     - `direction: 'up' | 'down' | 'left' | 'right'` - 滚动方向
     - `scrollType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft'` - 滚动类型
     - `distance: number` - 滚动距离，单位为像素。
-  - `locate?: string` - 用自然语言描述的元素定位。如果未传入，Midscene 会在当前鼠标位置滚动。
+  - `locate?: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。如果未传入，Midscene 会在当前鼠标位置滚动。
   - `options?: Object` - 可选，一个配置对象，包含：
     - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。默认值为 False
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
@@ -257,12 +261,12 @@ await agent.aiScroll(
 - 类型
 
 ```typescript
-function aiRightClick(locate: string, options?: Object): Promise<void>;
+function aiRightClick(locate: string | Object, options?: Object): Promise<void>;
 ```
 
 - 参数：
 
-  - `locate: string` - 用自然语言描述的元素定位。
+  - `locate: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: Object` - 可选，一个配置对象，包含：
     - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。默认值为 False
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
@@ -296,12 +300,12 @@ await agent.aiRightClick('页面顶部的文件名称', { deepThink: true });
 - 类型
 
 ```typescript
-function aiAsk(prompt: string, options?: Object): Promise<string>;
+function aiAsk(prompt: string | Object, options?: Object): Promise<string>;
 ```
 
 - 参数：
 
-  - `prompt: string` - 用自然语言描述的询问内容。
+  - `prompt: string | Object` - 用自然语言描述的询问内容，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: Object` - 可选，一个配置对象，包含：
     - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 False。
     - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 True。
@@ -377,12 +381,12 @@ const dataD = await agent.aiQuery(
 - 类型
 
 ```typescript
-function aiBoolean(prompt: string, options?: Object): Promise<boolean>;
+function aiBoolean(prompt: string | Object, options?: Object): Promise<boolean>;
 ```
 
 - 参数：
 
-  - `prompt: string` - 用自然语言描述的期望值。
+  - `prompt: string` - 用自然语言描述的期望值，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: Object` - 可选，一个配置对象，包含：
     - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 False。
     - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 True。
@@ -409,12 +413,12 @@ const boolB = await agent.aiBoolean('忘记密码按钮是否存在链接', {
 - 类型
 
 ```typescript
-function aiNumber(prompt: string, options?: Object): Promise<number>;
+function aiNumber(prompt: string | Object, options?: Object): Promise<number>;
 ```
 
 - 参数：
 
-  - `prompt: string` - 用自然语言描述的期望值。
+  - `prompt: string | Object` - 用自然语言描述的期望值，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: Object` - 可选，一个配置对象，包含：
     - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 False。
     - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 True。
@@ -441,12 +445,12 @@ const numberB = await agent.aiNumber('账户剩余的积分元素的 value 值',
 - 类型
 
 ```typescript
-function aiString(prompt: string, options?: Object): Promise<string>;
+function aiString(prompt: string | Object, options?: Object): Promise<string>;
 ```
 
 - 参数：
 
-  - `prompt: string` - 用自然语言描述的期望值。
+  - `prompt: string | Object` - 用自然语言描述的期望值，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: Object` - 可选，一个配置对象，包含：
     - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 False。
     - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 True。
@@ -475,12 +479,12 @@ const stringB = await agent.aiString('当前列表的第一条记录的跳转链
 - 类型
 
 ```typescript
-function aiAssert(assertion: string, errorMsg?: string): Promise<void>;
+function aiAssert(assertion: string | Object, errorMsg?: string): Promise<void>;
 ```
 
 - 参数：
 
-  - assertion: string - 用自然语言描述的断言条件。
+  - assertion: string | Object - 用自然语言描述的断言条件，或[使用图片作为提示词](#使用图片作为提示词)。
   - errorMsg?: string - 当断言失败时附加的可选错误提示信息。
 
 - 返回值：
@@ -517,7 +521,7 @@ expect(onesieItem.price).toBe(7.99);
 
 ```typescript
 function aiLocate(
-  locate: string,
+  locate: string | Object,
   options?: {
     cacheable?: boolean;
   },
@@ -535,7 +539,7 @@ function aiLocate(
 
 - 参数：
 
-  - `locate: string` - 用自然语言描述的元素定位。
+  - `locate: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: Object` - 可选，一个配置对象，包含：
     - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。默认值为 False
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
@@ -798,4 +802,56 @@ export LANGSMITH_PROJECT="your_project_name_here"
 
 ```log
 DEBUGGING MODE: langsmith wrapper enabled
+```
+
+## 高级功能
+
+### 使用图片作为提示词
+
+你可以在提示词中使用图片作为补充，来描述无法通过自然语言表达的内容。
+
+使用图片作为提示词时，提示词的参数格式如下：
+
+```javascript
+{
+  // 提示词文本，其中可提及需要使用的图片
+  prompt: string,
+  // 提示词中提到的图片
+  images?: {
+    // 图片名称，需要和提示词文本中提到的图片名称对应
+    name: string,
+    // 图片 url，可以是本地图片路径、Base64 字符串，或者图片的 http 链接
+    url: string
+  }[]
+  // 开启该选项后，http 格式的图片链接会被转化为 Base64 编码发送给大模型，适用于图片链接不是公开可访问的情况。
+  convertHttpImage2Base64?: boolean
+}
+```
+
+- 示例一：使用图片描述点击位置
+
+```javascript
+await agent.aiTap({
+  prompt: '指定 logo',
+  images: [
+    {
+      name: '指定 logo',
+      url: 'https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png',
+    },
+  ],
+});
+```
+
+- 示例二：使用图片进行页面断言
+
+```javascript
+await agent.aiAssert({
+  prompt: '页面上是否存在指定 logo',
+  images: [
+    {
+      name: '指定 logo',
+      url: 'https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png',
+    },
+  ],
+});
 ```
