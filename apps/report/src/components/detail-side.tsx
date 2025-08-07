@@ -327,7 +327,28 @@ const DetailSide = (): JSX.Element => {
         />
       );
     });
-  } else if (task?.error) {
+  } else if (task?.error || task?.errorMessage) {
+    let errorContent = '';
+
+    // prefer errorMessage
+    if (task.errorMessage) {
+      errorContent = task.errorMessage;
+    } else if (task.error) {
+      // if no errorMessage, try to show error object
+      if (typeof task.error === 'string') {
+        errorContent = task.error;
+      } else if (typeof task.error === 'object' && task.error.message) {
+        errorContent = task.error.message;
+      } else {
+        errorContent = JSON.stringify(task.error, null, 2) || 'Unknown error';
+      }
+    }
+
+    // add stack info (if exists and not duplicate)
+    if (task.errorStack && !errorContent.includes(task.errorStack)) {
+      errorContent += `\n\nStack:\n${task.errorStack}`;
+    }
+
     outputDataContent = (
       <Card
         liteMode={true}
@@ -336,7 +357,7 @@ const DetailSide = (): JSX.Element => {
         onMouseLeave={noop}
         content={
           <pre className="description-content" style={{ color: '#F00' }}>
-            {task.error}
+            {errorContent}
           </pre>
         }
       />
