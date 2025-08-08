@@ -622,3 +622,40 @@ export type TUserPrompt =
   | ({
       prompt: string;
     } & Partial<TMultimodalPrompt>);
+
+export interface IModelConfigForVQA {
+  // model name
+  MIDSCENE_VQA_MODEL_NAME: string;
+  // proxy
+  MIDSCENE_VQA_OPENAI_SOCKS_PROXY?: string;
+  MIDSCENE_VQA_OPENAI_HTTP_PROXY?: string;
+  // OpenAI
+  MIDSCENE_VQA_OPENAI_BASE_URL?: string;
+  MIDSCENE_VQA_OPENAI_API_KEY?: string;
+  MIDSCENE_VQA_OPENAI_INIT_CONFIG_JSON?: string;
+  // Azure
+  MIDSCENE_VQA_OPENAI_USE_AZURE?: string;
+  MIDSCENE_VQA_USE_AZURE_OPENAI?: string;
+  MIDSCENE_VQA_AZURE_OPENAI_SCOPE?: string;
+  MIDSCENE_VQA_AZURE_OPENAI_KEY?: string;
+  MIDSCENE_VQA_AZURE_OPENAI_ENDPOINT?: string;
+  MIDSCENE_VQA_AZURE_OPENAI_API_VERSION?: string;
+  MIDSCENE_VQA_AZURE_OPENAI_DEPLOYMENT?: string;
+  MIDSCENE_VQA_AZURE_OPENAI_INIT_CONFIG_JSON?: string;
+  // Anthropic
+  MIDSCENE_VQA_USE_ANTHROPIC_SDK?: string;
+  MIDSCENE_VQA_ANTHROPIC_API_KEY?: string;
+}
+
+export interface IModelConfigByIntent {
+  VQA?: () => IModelConfigForVQA;
+}
+
+export interface IModelPreferences {
+  /**
+   * - VQA: Visual Question Answering
+   * - grounding：short for Visual Grounding
+   */
+  intent?: 'VQA' | 'planning' | 'grounding';
+  modelConfigByIntent?: IModelConfigByIntent;
+}

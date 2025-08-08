@@ -10,6 +10,7 @@ import {
   type ExecutionTaskLog,
   type Executor,
   type GroupedActionDump,
+  type IModelConfigByIntent,
   Insight,
   type InsightAction,
   type InsightExtractOption,
@@ -92,6 +93,7 @@ export interface PageAgentOpt {
   aiActionContext?: string;
   /* custom report file name */
   reportFileName?: string;
+  modelConfigByIntent?: IModelConfigByIntent;
 }
 
 export type WebPageAgentOpt = PageAgentOpt & WebPageOpt;
