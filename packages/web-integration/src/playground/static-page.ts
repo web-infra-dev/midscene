@@ -1,9 +1,7 @@
-import {
-  ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED,
-  type WebUIContext,
-} from '@/common/utils';
+import { ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED } from '@/common/utils';
 import type { AbstractPage } from '@/page';
 import type { Point } from '@midscene/core';
+import type { WebUIContext } from '../web-element';
 
 const ThrowNotImplemented: any = (methodName: string) => {
   throw new Error(

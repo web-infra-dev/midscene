@@ -116,7 +116,7 @@ export default defineConfig({
               type: 'midscene_web_dump',
               playwright_test_description: item.data.groupDescription,
               playwright_test_id: `id-${index}`,
-              playwright_test_title: 'test open new tab',
+              playwright_test_title: item.data.groupName,
               playwright_test_status: 'passed',
               playwright_test_duration: Math.round(
                 Math.random() * 100000,

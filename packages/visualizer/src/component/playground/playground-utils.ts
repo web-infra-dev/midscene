@@ -1,11 +1,11 @@
 import type { UIContext } from '@midscene/core';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
+import type { WebUIContext } from '@midscene/web';
 import {
   ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED,
   StaticPage,
   StaticPageAgent,
 } from '@midscene/web/playground';
-import type { WebUIContext } from '@midscene/web/utils';
 
 // Server base URL
 export const serverBase = `http://localhost:${PLAYGROUND_SERVER_PORT}`;
