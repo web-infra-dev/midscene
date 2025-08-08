@@ -126,7 +126,7 @@ export default function Bridge() {
     const loadMessages = async () => {
       try {
         const messages = await getBridgeMsgsFromStorage();
-        setMessageList(messages);
+        setMessageList(messages as BridgeMessageItem[]);
       } catch (error) {
         console.error('Failed to load bridge messages from storage:', error);
       }

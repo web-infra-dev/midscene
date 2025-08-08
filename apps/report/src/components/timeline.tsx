@@ -292,7 +292,6 @@ const TimelineWidget = (props: {
           const mask = (
             start: number | undefined,
             end: number | undefined,
-            color: number,
             alpha: number,
           ) => {
             if (
@@ -336,8 +335,8 @@ const TimelineWidget = (props: {
             highlightMaskContainer.addChild(mask);
           };
 
-          mask(start, end, gridHighlightColor, highlightMaskAlpha);
-          mask(hoverStart, hoverEnd, hoverMaskColor, hoverMaskAlpha);
+          mask(start, end, highlightMaskAlpha);
+          mask(hoverStart, hoverEnd, hoverMaskAlpha);
         };
         highlightMaskUpdater(
           props.highlightMask?.startMs,
