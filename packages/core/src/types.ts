@@ -622,3 +622,11 @@ export type TUserPrompt =
   | ({
       prompt: string;
     } & Partial<TMultimodalPrompt>);
+
+export interface DeviceAction<ParamType = any> {
+  name: string;
+  actionDescription: string;
+  paramDescription: string;
+  needLocation?: 'required' | 'optional' | false;
+  call: (param: ParamType) => Promise<void> | void;
+}

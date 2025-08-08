@@ -30,19 +30,47 @@ Restriction:
 - Bbox is the bounding box of the element to be located. It's an array of 4 numbers, representing ${bboxDescription(vlMode)}.
 
 Supporting actions:
-- Tap: { type: "Tap", ${vlLocateParam} }
-- RightClick: { type: "RightClick", ${vlLocateParam} }
-- Hover: { type: "Hover", ${vlLocateParam} }
-- Input: { type: "Input", ${vlLocateParam}, param: { value: string } } // Replace the input field with a new value. \`value\` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. Giving a blank string means clear the input field.
-- KeyboardPress: { type: "KeyboardPress", param: { value: string } }
-- Scroll: { type: "Scroll", ${vlLocateParam} | null, param: { direction: 'down'(default) | 'up' | 'right' | 'left', scrollType: 'once' (default) | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft', distance: null | number }} // locate is the element to scroll. If it's a page scroll, put \`null\` in the \`locate\` field.
+- Tap
+  - type: "Tap"
+  - ${vlLocateParam}
+- RightClick
+  - type: "RightClick"
+  - ${vlLocateParam}
+- Hover
+  - type: "Hover"
+  - ${vlLocateParam}
+- Input
+  - type: "Input"
+  - ${vlLocateParam}
+  - param: { value: string } // Replace the input field with a new value. \`value\` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. Giving a blank string means clear the input field.
+- KeyboardPress
+  - type: "KeyboardPress"
+  - param: { value: string }
+- Scroll
+  - type: "Scroll"
+  - ${vlLocateParam} | null
+  - param: { direction: 'down'(default) | 'up' | 'right' | 'left', scrollType: 'once' (default) | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft', distance: null | number } // locate is the element to scroll. If it's a page scroll, put \`null\` in the \`locate\` field.
 ${
   pageType === 'android'
-    ? `- AndroidBackButton: { type: "AndroidBackButton", param: {} }
-- AndroidHomeButton: { type: "AndroidHomeButton", param: {} }
-- AndroidRecentAppsButton: { type: "AndroidRecentAppsButton", param: {} }
-- AndroidLongPress: { type: "AndroidLongPress", param: { x: number, y: number, duration?: number } }
-- AndroidPull: { type: "AndroidPull", param: { direction: 'up' | 'down', startPoint?: { x: number, y: number }, distance?: number, duration?: number } } // Pull down to refresh (direction: 'down') or pull up to load more (direction: 'up')`
+    ? `- AndroidBackButton
+  - type: "AndroidBackButton"
+  - param: {}
+- AndroidHomeButton
+  - type: "AndroidHomeButton"
+  - param: {}
+- AndroidRecentAppsButton
+  - type: "AndroidRecentAppsButton"
+  - param: {}
+- AndroidHomeButton
+  - type: "AndroidHomeButton"
+- AndroidRecentAppsButton
+  - type: "AndroidRecentAppsButton"
+- AndroidLongPress
+  - type: "AndroidLongPress"
+  - param: { x: number, y: number, duration?: number }
+- AndroidPull
+  - type: "AndroidPull"
+  - param: { direction: 'up' | 'down', startPoint?: { x: number, y: number }, distance?: number, duration?: number } // Pull down to refresh (direction: 'down') or pull up to load more (direction: 'up')`
     : ''
 }
 
