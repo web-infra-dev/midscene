@@ -1,4 +1,4 @@
-import type { BaseElement, Rect } from '@midscene/core';
+import type { BaseElement, Rect, UIContext } from '@midscene/core';
 import type { NodeType } from '@midscene/shared/constants';
 export interface WebElementInfoType extends BaseElement {
   id: string;
@@ -61,3 +61,8 @@ export class WebElementInfo implements BaseElement {
     this.isVisible = isVisible;
   }
 }
+
+export type WebUIContext = UIContext<WebElementInfo> & {
+  url: string;
+  _isFrozen?: boolean;
+};

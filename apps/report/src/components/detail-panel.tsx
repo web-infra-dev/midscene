@@ -13,7 +13,8 @@ import type {
 } from '@midscene/core';
 import { filterBase64Value, timeStr } from '@midscene/visualizer';
 import { Blackboard, Player } from '@midscene/visualizer';
-import { Segmented } from 'antd';
+import type { WebUIContext } from '@midscene/web';
+import { Segmented, Tooltip } from 'antd';
 import { useEffect, useState } from 'react';
 import OpenInPlayground from './open-in-playground';
 
@@ -48,6 +49,11 @@ const DetailPanel = (): JSX.Element => {
   );
   const imageWidth = useExecutionDump((store) => store.insightWidth);
   const imageHeight = useExecutionDump((store) => store.insightHeight);
+
+  // Check if page context is frozen
+  const isPageContextFrozen = Boolean(
+    (activeTask?.pageContext as WebUIContext)?._isFrozen,
+  );
 
   let availableViewTypes = [VIEW_TYPE_SCREENSHOT, VIEW_TYPE_JSON];
   if (blackboardViewAvailable) {
@@ -163,7 +169,11 @@ const DetailPanel = (): JSX.Element => {
     }
     if (type === VIEW_TYPE_BLACKBOARD) {
       return {
-        label: 'Insight',
+        label: isPageContextFrozen ? (
+          <Tooltip title="Current pageContext is frozen">Insight 🧊</Tooltip>
+        ) : (
+          'Insight'
+        ),
         value: type,
         icon: <ScheduleOutlined />,
       };

@@ -5,7 +5,7 @@ import {
   useEnvConfig,
   useStaticPageAgent,
 } from '@midscene/visualizer';
-import type { WebUIContext } from '@midscene/web/utils';
+import type { WebUIContext } from '@midscene/web';
 import {
   Button,
   ConfigProvider,

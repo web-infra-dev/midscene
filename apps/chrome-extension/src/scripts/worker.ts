@@ -1,6 +1,6 @@
 /// <reference types="chrome" />
 
-import type { WebUIContext } from '@midscene/web/utils';
+import type { WebUIContext } from '@midscene/web';
 
 const workerMessageTypes = {
   SAVE_CONTEXT: 'save-context',

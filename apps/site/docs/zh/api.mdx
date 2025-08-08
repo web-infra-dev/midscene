@@ -714,6 +714,61 @@ await agent.logScreenshot('登录页面', {
 });
 ```
 
+### `agent.freezePageContext()`
+
+冻结当前页面上下文，使后续所有的操作都复用同一个页面快照，避免多次重复获取页面状态。在执行大量并发操作时，它可以显著提升性能。
+
+一些注意点：
+* 通常情况下，你不需要使用这个方法，除非你确定“页面状态获取”是脚本性能瓶颈。
+* 需要及时调用 `agent.unfreezePageContext()` 来恢复实时页面状态。
+* 不要在交互类操作中使用这个方法，它会让 AI 模型无法感知到页面的最新状态，产生令人困惑的错误。
+
+- 类型
+
+```typescript
+function freezePageContext(): Promise<void>;
+```
+
+- 返回值：
+
+  - `Promise<void>`
+
+- 示例：
+
+```typescript
+// 冻结页面上下文，确保多个操作看到相同的页面状态
+await agent.freezePageContext();
+
+// 执行一些操作...
+const results = await Promise.all([
+  await agent.aiQuery('Username input box value'),
+  await agent.aiQuery('Password input box value'),
+  await agent.aiLocate('Login button'),
+]);
+console.log(results);
+
+// 解冻页面上下文
+await agent.unfreezePageContext();
+```
+
+:::tip
+在报告中，使用冻结上下文的操作会在 Insight tab 中显示 🧊 图标。
+:::
+
+### `agent.unfreezePageContext()`
+
+解冻页面上下文，恢复使用实时的页面状态。
+
+- 类型
+
+```typescript
+function unfreezePageContext(): Promise<void>;
+```
+
+- 返回值：
+
+  - `Promise<void>`
+
 ### `agent._unstableLogContent()`
 
 从报告文件中获取日志内容。日志内容的结构可能会在未来发生变化。
