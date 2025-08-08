@@ -2,6 +2,37 @@
 
 > For the complete changelog, please refer to: [Midscene Releases](https://github.com/web-infra-dev/midscene/releases)
 
+## v0.25 - 🚀 Support Using Images as AI Prompt Input
+
+### 🎯 Core Function Enhancement
+- New worker runtime support, support running in worker environment
+- Support using images as AI prompt input, see [Prompting with images](./api.mdx#prompting-with-images)
+- Image processing upgrade, using Photon & Sharp for efficient image cropping
+
+### 🌐 Web Integration Optimization
+- Get XPath by coordinates, improve cache reproducibility
+- Cache file moves plan module to the front, improving readability
+- Chrome Recorder supports exporting all events to markdown documents
+- agent supports specifying HTML report name, see [reportFileName](./api.mdx)
+
+### 📱 Android Automation Enhancement
+- Long press gesture support
+- Pull-to-refresh support
+
+### 🐞 Bug Fixes
+- Use global config to handle environment variables, avoid issues caused by multiple packaging
+- Manually construct error information when error object serialization fails
+- Fix playwright report type dependency declaration order issue
+- Fix MCP packaging issue
+
+### 📚 Documentation AI-Friendly
+- [LLMs.txt](./llm-txt.mdx) is now available in both Chinese and English, making it easier for AI to understand
+- Each document now has a copy-to-markdown button, making it easier to feed to AI
+
+### 🤖 Other Function Enhancement
+- Chrome Recorder supports aiScroll function
+- Refactor aiAssert to be consistent with aiBoolean
+
 ## v0.24 - 🤖 MCP for Android Automation
 
 ### 🚀 MCP for Android Automation

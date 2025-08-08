@@ -13,6 +13,7 @@ Midscene 中每个 Agent 都有自己的构造函数。
 这些 Agent 有一些相同的构造参数：
 
 - `generateReport: boolean`: 如果为 true，则生成报告文件。默认值为 true。
+- `reportFileName: string`: 报告文件的名称，默认值由 midscene 内部生成。
 - `autoPrintReportMsg: boolean`: 如果为 true，则打印报告消息。默认值为 true。
 - `cacheId: string | undefined`: 如果配置，则使用此 cacheId 保存或匹配缓存。默认值为 undefined，也就是不启用缓存。
 - `actionContext: string`: 调用 `agent.aiAction()` 时，发送给 AI 模型的背景知识，比如 '有 cookie 对话框时先关闭它'，默认值为空。

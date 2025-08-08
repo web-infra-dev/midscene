@@ -2,6 +2,37 @@
 
 > 完整更新日志请参考：[Midscene Releases](https://github.com/web-infra-dev/midscene/releases)
 
+## v0.25 - 🚀 支持使用图像作为 AI prompt 输入
+
+### 🎯 核心功能增强
+- 新增运行环境，支持运行在 Worker 环境
+- 支持使用图像作为 AI prompt 输入，详见 [使用图片作为提示词](./api.mdx#%E4%BD%BF%E7%94%A8%E5%9B%BE%E7%89%87%E4%BD%9C%E4%B8%BA%E6%8F%90%E7%A4%BA%E8%AF%8D)
+- 图像处理升级，采用 Photon & Sharp 进行高效图片裁剪
+
+### 🌐 Web 集成优化
+- 通过坐标获取 XPath，提高缓存可复现性
+- 缓存文件将 plan 模块提到最前面，增加可读性
+- Chrome Recorder 支持导出所有事件到 markdown 文档
+- agent 支持指定 HTML 报告名称，详见 [reportFileName](./api.mdx)
+
+### 📱 Android 自动化增强
+- 长按手势支持
+- 下拉刷新支持
+
+### 🐞 问题修复
+  - 使用全局配置处理环境变量，避免因多打包导致环境无法覆盖的问题
+  - 当错误对象序列化失败时，手动构造错误信息
+  - 修复 playwright 报告类型依赖声明顺序问题
+  - 修复 MCP 打包问题
+
+### 📚 文档 AI 友好
+- [LLMs.txt](./llm-txt.mdx) 区分中文与英文，方便 AI 理解
+- 每篇文档顶部新增按钮，支持复制为 markdown，方便喂给 AI 使用
+
+### 🤖 其它功能增强
+- Chrome Recorder 支持 aiScroll 功能
+- 重构 aiAssert 使其与 aiBoolean 实现一致
+
 ## v0.24 - 🤖 Android 自动化支持 MCP 调用
 
 ### 🚀 Android 自动化支持 MCP 调用
