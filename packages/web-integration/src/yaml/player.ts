@@ -415,6 +415,9 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
     }
     this.agentStatusTip = '';
 
+    // Ensure output is flushed even on error
+    this.flushResult();
+
     // free the resources
     for (const fn of freeFn) {
       try {
