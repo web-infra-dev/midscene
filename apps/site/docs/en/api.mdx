@@ -720,7 +720,12 @@ await agent.logScreenshot('Login page', {
 
 ### `agent.freezePageContext()`
 
-Freezes the current page context, allowing subsequent AI operations to reuse the same page snapshot without recalculation. This significantly improves performance, especially when executing multiple consecutive operations on the same page.
+Freeze the current page context, allowing all subsequent operations to reuse the same page snapshot without retrieving the page state repeatedly. This significantly improves performance when executing a large number of concurrent operations. 
+
+Some notes:
+* Usually, you do not need to use this method, unless you are certain that "context retrieval" is the bottleneck of your test script.
+* You need to call `agent.unfreezePageContext()` in time to restore the real-time page state.
+* Do not call this method in interaction operations, it will make the AI model unable to perceive the latest page state, causing confusing errors.
 
 - Type
 
@@ -735,15 +740,18 @@ function freezePageContext(): Promise<void>;
 - Examples:
 
 ```typescript
-// Freeze the page context to ensure multiple operations see the same page state
+// Freeze the page context
 await agent.freezePageContext();
 
-// The following operations will all use the frozen page snapshot
-const price = await agent.aiQuery('What is the product price?');
-const inStock = await agent.aiQuery('Is the product in stock?');
-await agent.aiTap('Add to cart button');
+// Some queries...
+const results = await Promise.all([
+  await agent.aiQuery('Username input box value'),
+  await agent.aiQuery('Password input box value'),
+  await agent.aiLocate('Login button'),
+]);
+console.log(results);
 
-// Unfreeze the page context
+// Unfreeze the page context, subsequent operations will use real-time page state
 await agent.unfreezePageContext();
 ```
 
@@ -764,47 +772,6 @@ function unfreezePageContext(): Promise<void>;
 - Return Value:
 
   - `Promise<void>`
-
-- Examples:
-
-```typescript
-// Freeze the page context
-await agent.freezePageContext();
-
-// Perform some operations...
-await Promise.all([
-  await agent.aiLocate('Username input box');
-  await agent.aiQuery('Username input box value');
-  await agent.aiAssert('Username input box exists');
-]);
-
-// Unfreeze the page context, subsequent operations will use real-time page state
-await agent.unfreezePageContext();
-
-// This operation will use the fresh page state
-await agent.aiInput('Username input box', 'test@example.com');
-```
-
-### `agent._unstableLogContent()`
-
-Retrieve the log content in JSON format from the report file. The structure of the log content may change in the future.
-
-- Type
-
-```typescript
-function _unstableLogContent(): Object;
-```
-
-- Return Value:
-
-  - Returns an object containing the log content.
-
-- Examples:
-
-```typescript
-const logContent = agent._unstableLogContent();
-console.log(logContent);
-```
 
 ## Properties
 
