@@ -145,6 +145,8 @@ def handle_action(action):
             return {"status": "ok", "action": "drag", "ios_from": [x, y], "ios_to": [x2, y2], "mac_from": [mac_x, mac_y], "mac_to": [mac_x2, mac_y2]}
 
         elif act == "type":
+            # select all
+            pyautogui.hotkey('command', 'a')
             text = action["text"]
             interval = float(action.get("interval", 0.0))
             # For iOS, we need slower typing to ensure proper character registration
