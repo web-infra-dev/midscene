@@ -90,7 +90,6 @@ const TimelineWidget = (props: {
   const commonPadding = 12;
   const timeTextTop = commonPadding;
   const timeTitleBottom = timeTextTop * 2 + timeContentFontSize;
-  const hoverMaskColor = 0xdcdcdc; // @hover-bg
   const hoverMaskAlpha = 0.3;
 
   const closestScreenshotItemOnXY = (x: number, _y: number) => {
