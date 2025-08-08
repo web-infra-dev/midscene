@@ -722,26 +722,60 @@ await agent.logScreenshot('Login page', {
 });
 ```
 
-### `agent._unstableLogContent()`
+### `agent.freezePageContext()`
 
-Retrieve the log content in JSON format from the report file. The structure of the log content may change in the future.
+Freeze the current page context, allowing all subsequent operations to reuse the same page snapshot without retrieving the page state repeatedly. This significantly improves performance when executing a large number of concurrent operations. 
+
+Some notes:
+* Usually, you do not need to use this method, unless you are certain that "context retrieval" is the bottleneck of your test script.
+* You need to call `agent.unfreezePageContext()` in time to restore the real-time page state.
+* Do not call this method in interaction operations, it will make the AI model unable to perceive the latest page state, causing confusing errors.
 
 - Type
 
 ```typescript
-function _unstableLogContent(): Object;
+function freezePageContext(): Promise<void>;
 ```
 
 - Return Value:
 
-  - Returns an object containing the log content.
+  - `Promise<void>`
 
 - Examples:
 
 ```typescript
-const logContent = agent._unstableLogContent();
-console.log(logContent);
+// Freeze the page context
+await agent.freezePageContext();
+
+// Some queries...
+const results = await Promise.all([
+  await agent.aiQuery('Username input box value'),
+  await agent.aiQuery('Password input box value'),
+  await agent.aiLocate('Login button'),
+]);
+console.log(results);
+
+// Unfreeze the page context, subsequent operations will use real-time page state
+await agent.unfreezePageContext();
 ```
+
+:::tip
+In the report, operations using frozen context will display a 🧊 icon in the Insight tab.
+:::
+
+### `agent.unfreezePageContext()`
+
+Unfreezes the page context, restoring the use of real-time page state.
+
+- Type
+
+```typescript
+function unfreezePageContext(): Promise<void>;
+```
+
+- Return Value:
+
+  - `Promise<void>`
 
 ## Properties
 

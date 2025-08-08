@@ -5,7 +5,7 @@ import type {
   Rect,
   UIContext,
 } from '@midscene/core';
-import type { WebUIContext } from '@midscene/web/utils';
+import type { WebUIContext } from '@midscene/web';
 import { useEffect, useRef, useState } from 'react';
 import { useStaticPageAgent } from './playground/useStaticPageAgent';
 import './describer.less';

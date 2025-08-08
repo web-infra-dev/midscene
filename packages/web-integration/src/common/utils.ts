@@ -25,16 +25,12 @@ import { assert, logMsg, uuid } from '@midscene/shared/utils';
 import dayjs from 'dayjs';
 import type { Page as PlaywrightPage } from 'playwright';
 import type { Page as PuppeteerPage } from 'puppeteer';
-import { WebElementInfo } from '../web-element';
+import { WebElementInfo, type WebUIContext } from '../web-element';
 import type { WebPage } from './page';
 import { debug as cacheDebug } from './task-cache';
 import type { PageTaskExecutor } from './tasks';
 
 const debug = getDebug('tool:profile');
-
-export type WebUIContext = UIContext<WebElementInfo> & {
-  url: string;
-};
 
 export async function parseContextFromWebPage(
   page: WebPage,
