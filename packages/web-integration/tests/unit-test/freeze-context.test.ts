@@ -70,7 +70,6 @@ describe('PageAgent freeze/unfreeze page context', () => {
   describe('Basic freeze/unfreeze functionality', () => {
     it('should have correct initial state', () => {
       // Initially not frozen
-      expect((agent as any).isPageContextFrozen).toBe(false);
       expect((agent as any).frozenPageContext).toBeUndefined();
     });
 
@@ -79,7 +78,6 @@ describe('PageAgent freeze/unfreeze page context', () => {
       await agent.freezePageContext();
 
       // Should be frozen with the context and marked as frozen
-      expect((agent as any).isPageContextFrozen).toBe(true);
       expect((agent as any).frozenPageContext).toBeDefined();
       expect((agent as any).frozenPageContext._isFrozen).toBe(true);
       expect(agent._snapshotContext).toHaveBeenCalledOnce();
@@ -88,14 +86,12 @@ describe('PageAgent freeze/unfreeze page context', () => {
     it('should unfreeze page context successfully', async () => {
       // First freeze the context
       await agent.freezePageContext();
-      expect((agent as any).isPageContextFrozen).toBe(true);
       expect((agent as any).frozenPageContext).toBe(mockContext);
 
       // Then unfreeze
       await agent.unfreezePageContext();
 
       // Should be unfrozen
-      expect((agent as any).isPageContextFrozen).toBe(false);
       expect((agent as any).frozenPageContext).toBeUndefined();
     });
 
@@ -107,7 +103,6 @@ describe('PageAgent freeze/unfreeze page context', () => {
       // Second freeze should update the context
       await agent.freezePageContext();
       expect((agent as any).frozenPageContext).toBe(mockContext2);
-      expect((agent as any).isPageContextFrozen).toBe(true);
 
       // Should be called twice
       expect(agent._snapshotContext).toHaveBeenCalledTimes(2);
@@ -117,7 +112,6 @@ describe('PageAgent freeze/unfreeze page context', () => {
       // Should not throw error when unfreezing already unfrozen context
       await agent.unfreezePageContext();
 
-      expect((agent as any).isPageContextFrozen).toBe(false);
       expect((agent as any).frozenPageContext).toBeUndefined();
     });
 
@@ -166,11 +160,9 @@ describe('PageAgent freeze/unfreeze page context', () => {
       await agent.freezePageContext();
 
       // agent1 should have frozen context
-      expect((agent as any).isPageContextFrozen).toBe(true);
       expect((agent as any).frozenPageContext).toBe(mockContext);
 
       // agent2 should not have frozen context
-      expect((agent2 as any).isPageContextFrozen).toBe(false);
       expect((agent2 as any).frozenPageContext).toBeUndefined();
 
       // Freeze agent2
@@ -184,8 +176,8 @@ describe('PageAgent freeze/unfreeze page context', () => {
       await agent.unfreezePageContext();
 
       // agent1 should be unfrozen, agent2 should still be frozen
-      expect((agent as any).isPageContextFrozen).toBe(false);
-      expect((agent2 as any).isPageContextFrozen).toBe(true);
+      expect((agent as any).frozenPageContext).toBeUndefined();
+      expect((agent2 as any).frozenPageContext).toBe(mockContext2);
     });
 
     it('should not share context between different freeze cycles', async () => {
@@ -216,7 +208,6 @@ describe('PageAgent freeze/unfreeze page context', () => {
       await agent.freezePageContext();
 
       // Final state should be frozen
-      expect((agent as any).isPageContextFrozen).toBe(true);
       expect((agent as any).frozenPageContext).toBeDefined();
 
       // Should have called _snapshotContext 3 times (for each freeze)

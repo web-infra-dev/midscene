@@ -133,11 +133,6 @@ export class PageAgent<PageType extends WebPage = WebPage> {
    */
   private frozenPageContext?: WebUIContext;
 
-  /**
-   * Flag to indicate if page context is frozen
-   */
-  private isPageContextFrozen = false;
-
   constructor(page: PageType, opts?: PageAgentOpt) {
     this.page = page;
     this.opts = Object.assign(
@@ -195,7 +190,8 @@ export class PageAgent<PageType extends WebPage = WebPage> {
 
   async getUIContext(action?: InsightAction): Promise<WebUIContext> {
     // If page context is frozen, return the frozen context for all actions
-    if (this.isPageContextFrozen && this.frozenPageContext) {
+    if (this.frozenPageContext) {
+      debug('Using frozen page context for action:', action);
       return this.frozenPageContext;
     }
 
@@ -824,18 +820,20 @@ export class PageAgent<PageType extends WebPage = WebPage> {
    * This avoids recalculating page context for each operation
    */
   async freezePageContext(): Promise<void> {
+    debug('Freezing page context');
     const context = await this._snapshotContext();
     // Mark the context as frozen
     context._isFrozen = true;
     this.frozenPageContext = context;
-    this.isPageContextFrozen = true;
+    debug('Page context frozen successfully');
   }
 
   /**
    * Unfreezes the page context, allowing AI operations to calculate context dynamically
    */
   async unfreezePageContext(): Promise<void> {
+    debug('Unfreezing page context');
     this.frozenPageContext = undefined;
-    this.isPageContextFrozen = false;
+    debug('Page context unfrozen successfully');
   }
 }
