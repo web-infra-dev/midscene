@@ -90,9 +90,6 @@ export default defineConfig({
     pluginNodePolyfill(),
     pluginLess(),
     pluginSvgr(),
-    // pluginTypeCheck({
-    //   // Enable type checking for both development and production builds
-    //   enable: true,
-    // }),
+    pluginTypeCheck(),
   ],
 });

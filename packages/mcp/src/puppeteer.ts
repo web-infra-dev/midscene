@@ -1,9 +1,9 @@
 // fork from https://github.com/modelcontextprotocol/servers/blob/f93737dbb098f8c078365c63c94908598f7db157/src/puppeteer/index.ts
 
 import { PuppeteerAgent } from '@midscene/web/puppeteer';
-import type { Browser, LaunchOptions } from 'puppeteer';
-import type { Page } from 'puppeteer';
-import puppeteer from 'puppeteer';
+import type { Browser, LaunchOptions } from 'puppeteer-core';
+import type { Page } from 'puppeteer-core';
+import puppeteer from 'puppeteer-core';
 import { deepMerge } from './utils';
 
 // Global state
@@ -120,6 +120,7 @@ export class PuppeteerBrowserAgent extends PuppeteerAgent {
   private browser: Browser;
 
   constructor(browser: Browser, page: Page) {
+    // @ts-expect-error The `Page` type in Puppeteer and Puppeteer-core is the same, but it is in different files. They all have a `#private` declare, which causes a TypeScript error.
     super(page);
     this.browser = browser;
   }
