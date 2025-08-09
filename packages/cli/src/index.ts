@@ -39,6 +39,7 @@ Promise.resolve(
       dotenvDebug: options['dotenv-debug'],
       web: options.web,
       android: options.android,
+      ios: options.ios,
     };
 
     let config;

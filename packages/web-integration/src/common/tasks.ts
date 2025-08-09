@@ -74,7 +74,7 @@ const debug = getDebug('page-task-executor');
 const defaultReplanningCycleLimit = 10;
 
 const isAndroidPage = (page: WebPage): page is AndroidDevicePage => {
-  return page.pageType === 'android';
+  return page.pageType === 'android' || page.pageType === 'ios';
 };
 
 export class PageTaskExecutor {
@@ -456,6 +456,7 @@ export class PageTaskExecutor {
             thought: plan.thought,
             locate: plan.locate,
             executor: async (taskParam, { element }) => {
+              // Clear existing content first if we have an element
               if (element) {
                 await this.page.clearInput(element as unknown as ElementInfo);
 
@@ -464,6 +465,8 @@ export class PageTaskExecutor {
                 }
               }
 
+              // For iOS, the keyboard.type method will automatically use optimized input
+              // For other platforms, it will use the standard implementation
               await this.page.keyboard.type(taskParam.value, {
                 autoDismissKeyboard: taskParam.autoDismissKeyboard,
               });

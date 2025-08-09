@@ -42,6 +42,10 @@ export function parseYamlScript(
     typeof obj.android !== 'undefined'
       ? Object.assign({}, obj.android || {})
       : undefined;
+  const ios =
+    typeof obj.ios !== 'undefined'
+      ? Object.assign({}, obj.ios || {})
+      : undefined;
   const webConfig = obj.web || obj.target; // no need to handle null case, because web has required parameters url
   const web =
     typeof webConfig !== 'undefined'
@@ -49,23 +53,26 @@ export function parseYamlScript(
       : undefined;
 
   if (!ignoreCheckingTarget) {
-    // make sure at least one of target/web/android is provided
+    // make sure at least one of target/web/android/ios is provided
     assert(
-      web || android,
-      `at least one of "target", "web", or "android" properties is required in yaml script${pathTip}`,
+      web || android || ios,
+      `at least one of "target", "web", "android", or "ios" properties is required in yaml script${pathTip}`,
     );
 
-    // make sure only one of target/web/android is provided
+    // make sure only one of target/web/android/ios is provided
+    const configCount = [web, android, ios].filter(Boolean).length;
     assert(
-      (web && !android) || (!web && android),
-      `only one of "target", "web", or "android" properties is allowed in yaml script${pathTip}`,
+      configCount === 1,
+      `only one of "target", "web", "android", or "ios" properties is allowed in yaml script${pathTip}`,
     );
 
     // make sure the config is valid
-    if (web || android) {
+    if (web || android || ios) {
       assert(
-        typeof web === 'object' || typeof android === 'object',
-        `property "target/web/android" must be an object${pathTip}`,
+        typeof web === 'object' ||
+          typeof android === 'object' ||
+          typeof ios === 'object',
+        `property "target/web/android/ios" must be an object${pathTip}`,
       );
     }
   }

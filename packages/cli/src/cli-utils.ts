@@ -89,6 +89,31 @@ Usage:
         type: 'string',
         description: 'Override device ID for Android environments.',
       },
+      'ios.server-port': {
+        alias: 'ios.serverPort',
+        type: 'number',
+        description: 'Override PyAutoGUI server port for iOS environments.',
+      },
+      'ios.mirror-x': {
+        alias: 'ios.mirrorConfig.mirrorX',
+        type: 'number',
+        description: 'Override mirror X position for iOS environments.',
+      },
+      'ios.mirror-y': {
+        alias: 'ios.mirrorConfig.mirrorY',
+        type: 'number',
+        description: 'Override mirror Y position for iOS environments.',
+      },
+      'ios.mirror-width': {
+        alias: 'ios.mirrorConfig.mirrorWidth',
+        type: 'number',
+        description: 'Override mirror width for iOS environments.',
+      },
+      'ios.mirror-height': {
+        alias: 'ios.mirrorConfig.mirrorHeight',
+        type: 'number',
+        description: 'Override mirror height for iOS environments.',
+      },
     })
     .version('version', 'Show version number', __VERSION__)
     .help()

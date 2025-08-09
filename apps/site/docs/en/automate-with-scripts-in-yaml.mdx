@@ -80,6 +80,27 @@ tasks:
       - aiAssert: The results show weather information
 ```
 
+Or, to drive an iOS device automation task (requires PyAutoGUI server setup and device mirroring):
+
+```yaml
+ios:
+  serverPort: 1412
+  mirrorConfig:
+    mirrorX: 100
+    mirrorY: 200
+    mirrorWidth: 400
+    mirrorHeight: 800
+
+tasks:
+  - name: Search for weather
+    flow:
+      - ai: Open Safari browser
+      - ai: Navigate to bing.com
+      - ai: Search for "today's weather"
+      - sleep: 3000
+      - aiAssert: The results show weather information
+```
+
 Run the script:
 
 ```bash
@@ -171,6 +192,37 @@ android:
   deviceId: <device-id>
 
   # The launch URL, optional, defaults to the device's current page.
+  launch: <url>
+
+  # The path to the JSON file for outputting aiQuery/aiAssert results, optional.
+  output: <path-to-output-file>
+```
+
+### The `ios` part
+
+```yaml
+ios:
+  # PyAutoGUI server port, optional, defaults to 1412.
+  serverPort: <port>
+
+  # PyAutoGUI server URL, optional, defaults to http://localhost:1412.
+  serverUrl: <url>
+
+  # Whether to automatically dismiss keyboard after input, optional, defaults to false.
+  autoDismissKeyboard: <boolean>
+
+  # iOS device mirroring configuration for precise targeting operations
+  mirrorConfig:
+    # X position of the mirror on the host display
+    mirrorX: <number>
+    # Y position of the mirror on the host display
+    mirrorY: <number>
+    # Width of the mirror
+    mirrorWidth: <number>
+    # Height of the mirror
+    mirrorHeight: <number>
+
+  # The launch URL or app, optional, defaults to the device's current page.
   launch: <url>
 
   # The path to the JSON file for outputting aiQuery/aiAssert results, optional.
@@ -304,6 +356,11 @@ The command-line tool provides several options to control the execution behavior
 - `--web.viewportWidth <width>`: Sets the browser viewport width, which will override the `web.viewportWidth` parameter in all script files.
 - `--web.viewportHeight <height>`: Sets the browser viewport height, which will override the `web.viewportHeight` parameter in all script files.
 - `--android.deviceId <device-id>`: Sets the Android device ID, which will override the `android.deviceId` parameter in all script files.
+- `--ios.serverPort <port>`: Sets the iOS PyAutoGUI server port, which will override the `ios.serverPort` parameter in all script files.
+- `--ios.mirrorX <x>`: Sets the iOS mirror X position, which will override the `ios.mirrorConfig.mirrorX` parameter in all script files.
+- `--ios.mirrorY <y>`: Sets the iOS mirror Y position, which will override the `ios.mirrorConfig.mirrorY` parameter in all script files.
+- `--ios.mirrorWidth <width>`: Sets the iOS mirror width, which will override the `ios.mirrorConfig.mirrorWidth` parameter in all script files.
+- `--ios.mirrorHeight <height>`: Sets the iOS mirror height, which will override the `ios.mirrorConfig.mirrorHeight` parameter in all script files.
 - `--dotenv-debug`: Sets the debug log for dotenv, disabled by default.
 - `--dotenv-override`: Sets whether dotenv overrides global environment variables with the same name, disabled by default.
 
