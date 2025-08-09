@@ -153,7 +153,6 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     dumps,
     proModeEnabled = false,
     onProModeChange,
-    replayAllMode,
     setReplayAllMode,
   } = props;
   const groupedDump = useExecutionDump((store) => store.dump);

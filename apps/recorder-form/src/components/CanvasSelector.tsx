@@ -1,4 +1,3 @@
-import { Button, Space } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 
 interface CanvasElement {
@@ -277,14 +276,6 @@ const CanvasSelector: React.FC<CanvasSelectorProps> = ({
     }
     setIsDrawing(false);
     setStartPoint(null);
-  };
-
-  const handleDelete = () => {
-    if (!selectedElement) return;
-    const newElements = elements.filter((el) => el.id !== selectedElement.id);
-    setElements(newElements);
-    setSelectedElement(null);
-    onChange?.(newElements);
   };
 
   return (
