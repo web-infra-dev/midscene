@@ -46,10 +46,15 @@ export function PlaywrightCaseSelector({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      // Check if click is on Select dropdown
+      const target = event.target as HTMLElement;
+      const isSelectDropdown = target.closest('.ant-select-dropdown');
+
       if (
         isExpanded &&
         selectorRef.current &&
-        !selectorRef.current.contains(event.target as Node)
+        !selectorRef.current.contains(event.target as Node) &&
+        !isSelectDropdown
       ) {
         setIsExpanded(false);
       }
@@ -180,17 +185,19 @@ export function PlaywrightCaseSelector({
           }}
         >
           {/* Filter Controls */}
-          <div className="filter-controls">
+          <div className="filter-controls" onClick={(e) => e.stopPropagation()}>
             <div
               className={`search-container ${hasSearchText ? 'has-content' : ''}`}
             >
               <Select
                 value={statusFilter}
                 onChange={handleStatusChange}
-                style={{ width: 80 }}
+                style={{ width: 120 }}
                 options={TEST_STATUS_OPTIONS}
                 size="small"
                 variant="borderless"
+                popupMatchSelectWidth={false}
+                getPopupContainer={() => document.body}
               />
               <div className="search-input-container">
                 <Input

@@ -100,18 +100,13 @@ const copyReportTemplate = () => ({
   },
 });
 
-let tooManyCases = allTestData;
-for (let i = 0; i < 3; i++) {
-  tooManyCases = tooManyCases.concat(tooManyCases);
-}
-
 export default defineConfig({
   html: {
     template: './template/index.html',
     inject: 'body',
     tags:
       process.env.NODE_ENV === 'development'
-        ? tooManyCases.map((item, index) => ({
+        ? allTestData.map((item, index) => ({
             tag: 'script',
             attrs: {
               type: 'midscene_web_dump',
