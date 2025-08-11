@@ -44,9 +44,9 @@
 - **Android 自动化 📱**: 使用 [Javascript SDK](https://midscenejs.com/integrate-with-android.html) 配合 adb 来控制本地 Android 设备。
 
 ### 工具
-- **用于调试的可视化报告 🎞️**: 通过我们的测试报告和 Playground，你可以轻松理解、回放和调试整个过程。
-- [**使用缓存，提高执行效率 🔄**](https://midscenejs.com/zh/caching.html): 使用缓存能力重放脚本，提高执行效率。
-- [**MCP 🔗**](https://midscenejs.com/zh/mcp.html): 允许其他 MCP Client 直接使用 Midscene 的能力。
+- **用于调试的可视化报告**: 通过我们的测试报告和 Playground，你可以轻松理解、回放和调试整个过程。
+- [**使用缓存，提高执行效率**](https://midscenejs.com/zh/caching.html): 使用缓存能力重放脚本，提高执行效率。
+- **MCP**: 允许其他 MCP Client 直接使用 Midscene 的能力。[**Web MCP**](https://midscenejs.com/zh/web-mcp.html) [**Android MCP**](https://midscenejs.com/zh/mcp-android.html)。
 
 ### 三种类型的 API
   - [**交互 API 🔗**](https://midscenejs.com/zh/api.html#interaction-methods): 与用户界面交互。

@@ -46,7 +46,7 @@ English | [简体中文](./README.zh.md)
 ### Tools
 - **Visual Reports for Debugging 🎞️**: Through our test reports and Playground, you can easily understand, replay and debug the entire process.
 - [**Caching for Efficiency 🔄**](https://midscenejs.com/caching.html): Replay your script with cache and get the result faster.
-- [**MCP 🔗**](https://midscenejs.com/mcp.html): Allows other MCP Clients to directly use Midscene's capabilities.
+- **MCP**: Allows other MCP Clients to directly use Midscene's capabilities. [**Web MCP**](https://midscenejs.com/web-mcp.html) [**Android MCP**](https://midscenejs.com/mcp-android.html)
 
 ### Three kinds of APIs
 - [Interaction API 🔗](https://midscenejs.com/api.html#interaction-methods): interact with the user interface.
