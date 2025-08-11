@@ -99,6 +99,7 @@ lib
 
 # Prettier reformats code blocks inside Markdown, which affects rendered output
 *.md
+*.mdx
 
 vendors/**/index.d.ts
 vendors/**/index.js
