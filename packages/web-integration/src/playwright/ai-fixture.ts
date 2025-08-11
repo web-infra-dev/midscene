@@ -108,7 +108,13 @@ export const PlaywrightAiFixture = (options?: {
       | 'aiNumber'
       | 'aiString'
       | 'aiBoolean'
-      | 'aiAsk';
+      | 'aiAsk'
+      | 'runYaml'
+      | 'setAIActionContext'
+      | 'evaluateJavaScript'
+      | 'logScreenshot'
+      | 'freezePageContext'
+      | 'unfreezePageContext';
   }) {
     const { page, testInfo, use, aiActionType } = options;
     const agent = createOrReuseAgentForPage(page, testInfo, {
@@ -373,6 +379,78 @@ export const PlaywrightAiFixture = (options?: {
         aiActionType: 'aiAsk',
       });
     },
+    runYaml: async (
+      { page }: { page: OriginPlaywrightPage },
+      use: any,
+      testInfo: TestInfo,
+    ) => {
+      await generateAiFunction({
+        page,
+        testInfo,
+        use,
+        aiActionType: 'runYaml',
+      });
+    },
+    setAIActionContext: async (
+      { page }: { page: OriginPlaywrightPage },
+      use: any,
+      testInfo: TestInfo,
+    ) => {
+      await generateAiFunction({
+        page,
+        testInfo,
+        use,
+        aiActionType: 'setAIActionContext',
+      });
+    },
+    evaluateJavaScript: async (
+      { page }: { page: OriginPlaywrightPage },
+      use: any,
+      testInfo: TestInfo,
+    ) => {
+      await generateAiFunction({
+        page,
+        testInfo,
+        use,
+        aiActionType: 'evaluateJavaScript',
+      });
+    },
+    logScreenshot: async (
+      { page }: { page: OriginPlaywrightPage },
+      use: any,
+      testInfo: TestInfo,
+    ) => {
+      await generateAiFunction({
+        page,
+        testInfo,
+        use,
+        aiActionType: 'logScreenshot',
+      });
+    },
+    freezePageContext: async (
+      { page }: { page: OriginPlaywrightPage },
+      use: any,
+      testInfo: TestInfo,
+    ) => {
+      await generateAiFunction({
+        page,
+        testInfo,
+        use,
+        aiActionType: 'freezePageContext',
+      });
+    },
+    unfreezePageContext: async (
+      { page }: { page: OriginPlaywrightPage },
+      use: any,
+      testInfo: TestInfo,
+    ) => {
+      await generateAiFunction({
+        page,
+        testInfo,
+        use,
+        aiActionType: 'unfreezePageContext',
+      });
+    },
   };
 };
 
@@ -420,4 +498,22 @@ export type PlayWrightAiFixtureType = {
   aiAsk: (
     ...args: Parameters<PageAgent['aiAsk']>
   ) => ReturnType<PageAgent['aiAsk']>;
+  runYaml: (
+    ...args: Parameters<PageAgent['runYaml']>
+  ) => ReturnType<PageAgent['runYaml']>;
+  setAIActionContext: (
+    ...args: Parameters<PageAgent['setAIActionContext']>
+  ) => ReturnType<PageAgent['setAIActionContext']>;
+  evaluateJavaScript: (
+    ...args: Parameters<PageAgent['evaluateJavaScript']>
+  ) => ReturnType<PageAgent['evaluateJavaScript']>;
+  logScreenshot: (
+    ...args: Parameters<PageAgent['logScreenshot']>
+  ) => ReturnType<PageAgent['logScreenshot']>;
+  freezePageContext: (
+    ...args: Parameters<PageAgent['freezePageContext']>
+  ) => ReturnType<PageAgent['freezePageContext']>;
+  unfreezePageContext: (
+    ...args: Parameters<PageAgent['unfreezePageContext']>
+  ) => ReturnType<PageAgent['unfreezePageContext']>;
 };
