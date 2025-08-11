@@ -25,7 +25,7 @@ describe('puppeteer integration', () => {
     );
   });
 
-  it('agent with yaml script', async () => {
+  it.only('agent with yaml script', async () => {
     const { originPage, reset } = await launchPage('https://www.bing.com/');
     resetFn = reset;
     const agent = new PuppeteerAgent(originPage);

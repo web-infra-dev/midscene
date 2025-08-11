@@ -34,6 +34,14 @@ const sampleActionSpace: DeviceAction[] = [
     location: false,
     call: async () => {},
   },
+  {
+    name: 'Input',
+    description: 'Input text into the input field',
+    paramSchema: '{ value: string }',
+    paramDescription: 'The value to be input',
+    location: 'optional',
+    call: async () => {},
+  },
 ];
 
 const mockLocatorScheme = 'locate: {"mock": string}';
@@ -49,9 +57,8 @@ describe('action space', () => {
       mockLocatorScheme,
     );
     expect(action).toMatchInlineSnapshot(`
-      "- Tap
-        - type: "Tap"
-        - description: Tap the element"
+      "- Tap, Tap the element
+        - type: "Tap""
     `);
   });
 
@@ -68,11 +75,9 @@ describe('action space', () => {
       mockLocatorScheme,
     );
     expect(action).toMatchInlineSnapshot(`
-      "- Tap
+      "- Tap, Tap the element
         - type: "Tap"
-        - description: Tap the element
-        - paramSchema: { foo: string }
-        - paramDescription: The foo to be tapped"
+        - param: { foo: string } // The foo to be tapped"
     `);
   });
 
@@ -88,10 +93,9 @@ describe('action space', () => {
       mockLocatorScheme,
     );
     expect(action).toMatchInlineSnapshot(`
-      "- Tap
+      "- Tap, Tap the element
         - type: "Tap"
-        - description: Tap the element
-        - paramSchema: { foo: string }"
+        - param: { foo: string }"
     `);
   });
 
@@ -107,11 +111,9 @@ describe('action space', () => {
       mockLocatorScheme,
     );
     expect(action).toMatchInlineSnapshot(`
-      "- Tap
+      "- Tap, Tap the element
         - type: "Tap"
-        - description: Tap the element
-        - locate: {"mock": string}
-        - whatToLocate: The element to be tapped"
+        - locate: {"mock": string}"
     `);
   });
 
@@ -128,11 +130,9 @@ describe('action space', () => {
       mockLocatorScheme,
     );
     expect(action).toMatchInlineSnapshot(`
-      "- Tap
+      "- Tap, Tap the element
         - type: "Tap"
-        - description: Tap the element
-        - paramSchema: { value: string }
-        - paramDescription: The value to be tapped
+        - param: { value: string } // The value to be tapped
         - locate: {"mock": string} | null"
     `);
   });

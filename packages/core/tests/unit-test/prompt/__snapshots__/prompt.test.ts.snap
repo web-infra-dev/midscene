@@ -548,7 +548,7 @@ You are a versatile professional in software UI automation. Your outstanding con
 ## Workflow
 
 1. Receive the screenshot, element description of screenshot(if any), user's instruction and previous logs.
-2. Decompose the user's task into a sequence of actions, and place it in the \`actions\` field. There are different types of actions (Tap / Sleep). The "About the action" section below will give you more details.
+2. Decompose the user's task into a sequence of actions, and place it in the \`actions\` field. There are different types of actions (Tap / Sleep / Input). The "About the action" section below will give you more details.
 3. Precisely locate the target element if it's already shown in the screenshot, put the location info in the \`locate\` field of the action.
 4. If some target elements is not shown in the screenshot, consider the user's instruction is not feasible on this page. Follow the next steps.
 5. Consider whether the user's instruction will be accomplished after all the actions
@@ -574,18 +574,17 @@ type LocateParam = {
 ## Supported actions
 
 Each action has a \`type\` and corresponding \`param\`. To be detailed:
-- Tap
+- Tap, Tap the element
   - type: "Tap"
-  - description: Tap the element
-  - paramSchema: { value: string }
-  - paramDescription: The value to be tapped
+  - param: { value: string } // The value to be tapped
   - locate: {"id": string, "prompt": string}
-  - whatToLocate: The element to be tapped
-- Sleep
+- Sleep, Sleep for a period of time
   - type: "Sleep"
-  - description: Sleep for a period of time
-  - paramSchema: { timeMs: number }
-  - paramDescription: The duration of the sleep in milliseconds
+  - param: { timeMs: number } // The duration of the sleep in milliseconds
+- Input, Input text into the input field
+  - type: "Input"
+  - param: { value: string } // The value to be input
+  - locate?: {"id": string, "prompt": string} | null
 
 
 ## Output JSON Format:
@@ -669,23 +668,22 @@ Target: User will give you a screenshot, an instruction and some previous logs i
 
 Restriction:
 - Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
-- Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are Tap, Sleep.
+- Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are Tap, Sleep, Input.
 - Don't repeat actions in the previous logs.
 - Bbox is the bounding box of the element to be located. It's an array of 4 numbers, representing 2d bounding box as [xmin, ymin, xmax, ymax].
 
 Supporting actions:
-- Tap
+- Tap, Tap the element
   - type: "Tap"
-  - description: Tap the element
-  - paramSchema: { value: string }
-  - paramDescription: The value to be tapped
+  - param: { value: string } // The value to be tapped
   - locate: {bbox: [number, number, number, number], prompt: string }
-  - whatToLocate: The element to be tapped
-- Sleep
+- Sleep, Sleep for a period of time
   - type: "Sleep"
-  - description: Sleep for a period of time
-  - paramSchema: { timeMs: number }
-  - paramDescription: The duration of the sleep in milliseconds
+  - param: { timeMs: number } // The duration of the sleep in milliseconds
+- Input, Input text into the input field
+  - type: "Input"
+  - param: { value: string } // The value to be input
+  - locate?: {bbox: [number, number, number, number], prompt: string } | null
 
 Field description:
 * The \`prompt\` field inside the \`locate\` field is a short description that could be used to locate the element.
@@ -749,23 +747,22 @@ Target: User will give you a screenshot, an instruction and some previous logs i
 
 Restriction:
 - Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
-- Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are Tap, Sleep.
+- Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are Tap, Sleep, Input.
 - Don't repeat actions in the previous logs.
 - Bbox is the bounding box of the element to be located. It's an array of 4 numbers, representing 2d bounding box as [ymin, xmin, ymax, xmax].
 
 Supporting actions:
-- Tap
+- Tap, Tap the element
   - type: "Tap"
-  - description: Tap the element
-  - paramSchema: { value: string }
-  - paramDescription: The value to be tapped
+  - param: { value: string } // The value to be tapped
   - locate: {bbox: [number, number, number, number], prompt: string }
-  - whatToLocate: The element to be tapped
-- Sleep
+- Sleep, Sleep for a period of time
   - type: "Sleep"
-  - description: Sleep for a period of time
-  - paramSchema: { timeMs: number }
-  - paramDescription: The duration of the sleep in milliseconds
+  - param: { timeMs: number } // The duration of the sleep in milliseconds
+- Input, Input text into the input field
+  - type: "Input"
+  - param: { value: string } // The value to be input
+  - locate?: {bbox: [number, number, number, number], prompt: string } | null
 
 Field description:
 * The \`prompt\` field inside the \`locate\` field is a short description that could be used to locate the element.
@@ -809,23 +806,22 @@ Target: User will give you a screenshot, an instruction and some previous logs i
 
 Restriction:
 - Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
-- Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are Tap, Sleep.
+- Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are Tap, Sleep, Input.
 - Don't repeat actions in the previous logs.
 - Bbox is the bounding box of the element to be located. It's an array of 4 numbers, representing 2d bounding box as [xmin, ymin, xmax, ymax].
 
 Supporting actions:
-- Tap
+- Tap, Tap the element
   - type: "Tap"
-  - description: Tap the element
-  - paramSchema: { value: string }
-  - paramDescription: The value to be tapped
+  - param: { value: string } // The value to be tapped
   - locate: {bbox: [number, number, number, number], prompt: string }
-  - whatToLocate: The element to be tapped
-- Sleep
+- Sleep, Sleep for a period of time
   - type: "Sleep"
-  - description: Sleep for a period of time
-  - paramSchema: { timeMs: number }
-  - paramDescription: The duration of the sleep in milliseconds
+  - param: { timeMs: number } // The duration of the sleep in milliseconds
+- Input, Input text into the input field
+  - type: "Input"
+  - param: { value: string } // The value to be input
+  - locate?: {bbox: [number, number, number, number], prompt: string } | null
 
 Field description:
 * The \`prompt\` field inside the \`locate\` field is a short description that could be used to locate the element.

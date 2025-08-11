@@ -12,9 +12,10 @@ const llmCurrentLog = `"log": string, // Log what the next actions you can do ac
 
 const commonOutputFields = `"error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not expected according to the instruction. Use the same language as the user's instruction.
   "more_actions_needed_by_instruction": boolean, // Consider if there is still more action(s) to do after the action in "Log" is done, according to the instruction. If so, set this field to true. Otherwise, set it to false.`;
-const vlLocateParam =
-  'locate: {bbox: [number, number, number, number], prompt: string }';
-const llmLocateParam = `locate: {"id": string, "prompt": string}`;
+const vlLocateParam = (required: boolean) =>
+  `locate${required ? '' : '?'}: {bbox: [number, number, number, number], prompt: string }`;
+const llmLocateParam = (required: boolean) =>
+  `locate${required ? '' : '?'}: {"id": string, "prompt": string}`;
 
 export const descriptionForAction = (
   action: DeviceAction,
@@ -29,43 +30,35 @@ export const descriptionForAction = (
   } else if (action.location === false) {
     locateParam = '';
   }
-  const locatorParam = locateParam ? `${tab}- ${locateParam}` : '';
+  const locatorParam = locateParam ? `- ${locateParam}` : '';
 
-  let whatToLocate = '';
   if (action.whatToLocate) {
     if (!locateParam) {
       console.warn(
         `whatToLocate is provided for action ${action.name}, but location is not required or optional. The whatToLocate will be ignored.`,
       );
     } else {
-      whatToLocate = `${tab}- whatToLocate: ${action.whatToLocate}`;
+      locateParam += ` // ${action.whatToLocate}`;
     }
   }
 
   let paramSchema = '';
   if (action.paramSchema) {
-    paramSchema = `${tab}- paramSchema: ${action.paramSchema}`;
+    paramSchema = `- param: ${action.paramSchema}`;
   }
-  let paramDescription = '';
   if (action.paramDescription) {
     assert(
       paramSchema,
       `paramSchema is required when paramDescription is provided for action ${action.name}, but got ${action.paramSchema}`,
     );
-    paramDescription = `${tab}- paramDescription: ${action.paramDescription}`;
+    paramSchema += ` // ${action.paramDescription}`;
   }
 
-  const fields = [
-    paramSchema,
-    paramDescription,
-    locatorParam,
-    whatToLocate,
-  ].filter(Boolean);
+  const fields = [paramSchema, locatorParam].filter(Boolean);
 
-  return `- ${action.name}
-  - type: "${action.name}"
-  - description: ${action.description}
-${fields.join('\n')}
+  return `- ${action.name}, ${action.description}
+${tab}- type: "${action.name}"
+${tab}${fields.join(`\n${tab}`)}
 `.trim();
 };
 
@@ -78,7 +71,7 @@ const systemTemplateOfVLPlanning = ({
 }) => {
   const actionNameList = actionSpace.map((action) => action.name).join(', ');
   const actionDescriptionList = actionSpace.map((action) =>
-    descriptionForAction(action, vlLocateParam),
+    descriptionForAction(action, vlLocateParam(action.location === 'required')),
   );
   const actionList = actionDescriptionList.join('\n');
 
@@ -134,7 +127,10 @@ const systemTemplateOfLLM = ({
 }: { actionSpace: DeviceAction[] }) => {
   const actionNameList = actionSpace.map((action) => action.name).join(' / ');
   const actionDescriptionList = actionSpace.map((action) =>
-    descriptionForAction(action, llmLocateParam),
+    descriptionForAction(
+      action,
+      llmLocateParam(action.location === 'required'),
+    ),
   );
   const actionList = actionDescriptionList.join('\n');
 
