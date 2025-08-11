@@ -107,6 +107,7 @@ AndroidDevice 的构造函数支持以下参数：
 - `deviceId: string` - 设备 id
 - `opts?: AndroidDeviceOpt` - 可选参数，用于初始化 AndroidDevice 的配置
   - `autoDismissKeyboard?: boolean` - 可选参数，是否在输入文本后自动关闭键盘。默认值为 true。
+  - `hideKeyboardStrategy?: 'esc-first' | 'back-first'` - 可选参数，关闭键盘的策略。'esc-first' 优先尝试 ESC 键，如果键盘仍存在则尝试返回键。'back-first' 优先尝试返回键，如果键盘仍存在则尝试 ESC 键。默认值为 'esc-first'。
   - `androidAdbPath?: string` - 可选参数，用于指定 adb 可执行文件的路径。
   - `remoteAdbHost?: string` - 可选参数，用于指定远程 adb 主机。
   - `remoteAdbPort?: number` - 可选参数，用于指定远程 adb 端口。

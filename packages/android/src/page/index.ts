@@ -632,7 +632,7 @@ ${Object.keys(size)
     }
 
     if (isAutoDismissKeyboard === true) {
-      await adb.hideKeyboard();
+      await this.hideKeyboard(options);
     }
   }
 
@@ -871,5 +871,64 @@ ${Object.keys(size)
 
   async getElementInfoByXpath(xpath: string): Promise<ElementInfo> {
     throw new Error('Not implemented');
+  }
+
+  async hideKeyboard(
+    options?: AndroidDeviceInputOpt,
+    timeoutMs = 1000,
+  ): Promise<boolean> {
+    const adb = await this.getAdb();
+    const hideKeyboardStrategy =
+      options?.hideKeyboardStrategy ??
+      this.options?.hideKeyboardStrategy ??
+      'esc-first';
+
+    // Check if keyboard is shown
+    const keyboardStatus = await adb.isSoftKeyboardPresent();
+    const isKeyboardShown =
+      typeof keyboardStatus === 'boolean'
+        ? keyboardStatus
+        : keyboardStatus?.isKeyboardShown;
+
+    if (!isKeyboardShown) {
+      debugPage('Keyboard has no UI; no closing necessary');
+      return false;
+    }
+
+    // Determine key codes order based on strategy
+    const keyCodes =
+      hideKeyboardStrategy === 'back-first'
+        ? [4, 111] // KEYCODE_BACK, KEYCODE_ESCAPE
+        : [111, 4]; // KEYCODE_ESCAPE, KEYCODE_BACK
+
+    // Try each key code with waiting
+    for (const keyCode of keyCodes) {
+      await adb.keyevent(keyCode);
+
+      // Wait for keyboard to be hidden with timeout
+      const startTime = Date.now();
+      const intervalMs = 100;
+
+      while (Date.now() - startTime < timeoutMs) {
+        await sleep(intervalMs);
+
+        const currentStatus = await adb.isSoftKeyboardPresent();
+        const isStillShown =
+          typeof currentStatus === 'boolean'
+            ? currentStatus
+            : currentStatus?.isKeyboardShown;
+
+        if (!isStillShown) {
+          debugPage(`Keyboard hidden successfully with keycode ${keyCode}`);
+          return true;
+        }
+      }
+
+      debugPage(
+        `Keyboard still shown after keycode ${keyCode}, trying next key`,
+      );
+    }
+
+    throw new Error('The software keyboard cannot be hidden');
   }
 }

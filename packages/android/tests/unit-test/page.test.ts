@@ -27,6 +27,7 @@ vi.mock('appium-adb', () => {
     keyevent: vi.fn(),
     hideKeyboard: vi.fn(),
     push: vi.fn(),
+    isSoftKeyboardPresent: vi.fn().mockResolvedValue(false),
   };
   return {
     ADB: vi.fn(() => mockAdb),
@@ -231,9 +232,23 @@ describe('AndroidDevice', () => {
     it('type should call inputText for ASCII text', async () => {
       device.options = { imeStrategy: 'yadb-for-non-ascii' };
       vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
+      mockAdb.isSoftKeyboardPresent.mockResolvedValue(false); // keyboard already hidden
       await device.keyboard.type('hello');
       expect(mockAdb.inputText).toHaveBeenCalledWith('hello');
-      expect(mockAdb.hideKeyboard).toHaveBeenCalled();
+      // Since keyboard is already hidden, no keyevent should be called
+      expect(mockAdb.isSoftKeyboardPresent).toHaveBeenCalled();
+    });
+
+    it('type should hide keyboard when shown', async () => {
+      device.options = { imeStrategy: 'yadb-for-non-ascii' };
+      vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
+      // First call returns true (keyboard shown), second returns false (keyboard hidden)
+      mockAdb.isSoftKeyboardPresent
+        .mockResolvedValueOnce(true)
+        .mockResolvedValueOnce(false);
+      await device.keyboard.type('hello');
+      expect(mockAdb.inputText).toHaveBeenCalledWith('hello');
+      expect(mockAdb.keyevent).toHaveBeenCalledWith(111); // ESC key
     });
 
     it('press should call keyevent for mapped keys', async () => {
