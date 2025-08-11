@@ -161,6 +161,67 @@ export const PlaywrightAiFixture = (options?: {
     }
   };
 
+  /**
+   * Wrap all agent methods with test.step for better UI visibility
+   */
+  const wrapAgentWithTestSteps = (agent: PageAgent): PageAgent => {
+    // List of agent methods mentioned in the API documentation
+    const methodsToWrap = [
+      // Interaction methods
+      'aiAction',
+      'ai',
+      'aiTap',
+      'aiHover',
+      'aiInput',
+      'aiKeyboardPress',
+      'aiScroll',
+      'aiRightClick',
+      // Data extraction methods
+      'aiAsk',
+      'aiQuery',
+      'aiBoolean',
+      'aiNumber',
+      'aiString',
+      // More methods
+      'aiAssert',
+      'aiLocate',
+      'aiWaitFor',
+      'runYaml',
+      'setAIActionContext',
+      'evaluateJavaScript',
+      'logScreenshot',
+      'freezePageContext',
+      'unfreezePageContext',
+    ] as const;
+
+    // Store original methods
+    const originalMethods: Record<string, any> = {};
+
+    methodsToWrap.forEach((methodName) => {
+      const originalMethod = agent[methodName];
+      if (typeof originalMethod === 'function') {
+        originalMethods[methodName] = originalMethod.bind(agent);
+
+        (agent as any)[methodName] = async (...args: any[]) => {
+          const stepName = `${methodName} - ${JSON.stringify(args[0] || '')}`;
+
+          return new Promise((resolve, reject) => {
+            test.step(stepName, async () => {
+              try {
+                const result = await originalMethods[methodName](...args);
+                resolve(result);
+              } catch (error) {
+                reject(error);
+              }
+            });
+          });
+        };
+      }
+    });
+
+    return agent;
+  };
+
   return {
     agentForPage: async (
       { page }: { page: OriginPlaywrightPage },
@@ -177,7 +238,8 @@ export const PlaywrightAiFixture = (options?: {
             waitForNetworkIdleTimeout,
             ...opts,
           });
-          return agent;
+
+          return wrapAgentWithTestSteps(agent);
         },
       );
     },
