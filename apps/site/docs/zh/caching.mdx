@@ -108,3 +108,7 @@ Midscene 使用 [XPath](https://developer.mozilla.org/en-US/docs/Web/XML/XPath) 
 2. 页面的 DOM 结构与缓存时的结构不同。
 
 当缓存未命中时，Midscene 将回退到继续使用 AI 服务来查找元素。
+
+### 获取缓存相关的调试日志
+
+在环境变量中配置 `DEBUG=midscene:cache:*`，你可以看到缓存相关的调试日志。
