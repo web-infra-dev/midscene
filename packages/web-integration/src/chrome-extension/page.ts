@@ -7,8 +7,13 @@
 
 import type { WebKeyInput } from '@/common/page';
 import { limitOpenNewTabScript } from '@/common/ui-utils';
-import type { AbstractPage, MouseButton } from '@/page';
-import type { ElementTreeNode, Point, Size } from '@midscene/core';
+import { type AbstractPage, type MouseButton, commonWebActions } from '@/page';
+import type {
+  DeviceAction,
+  ElementTreeNode,
+  Point,
+  Size,
+} from '@midscene/core';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
 import { assert } from '@midscene/shared/utils';
@@ -48,6 +53,10 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
   constructor(forceSameTabNavigation: boolean) {
     this.forceSameTabNavigation = forceSameTabNavigation;
+  }
+
+  actionSpace(): DeviceAction[] {
+    return commonWebActions;
   }
 
   public async setActiveTabId(tabId: number) {

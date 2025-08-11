@@ -8,21 +8,46 @@ import {
 } from '@/ai-model/prompt/llm-planning';
 import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
 import { getUiTarsPlanningPrompt } from '@/ai-model/prompt/ui-tars-planning';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import type { DeviceAction } from '@/types';
+import { describe, expect, it } from 'vitest';
 import {
   extractDataQueryPrompt,
   systemPromptToExtract,
 } from '../../../src/ai-model/prompt/extraction';
 import { mockNonChinaTimeZone, restoreIntl } from '../mocks/intl-mock';
 
+const sampleActionSpace: DeviceAction[] = [
+  {
+    name: 'Tap',
+    description: 'Tap the element',
+    location: 'required',
+    whatToLocate: 'The element to be tapped',
+    paramSchema: '{ value: string }',
+    paramDescription: 'The value to be tapped',
+    call: async () => {},
+  },
+  {
+    name: 'Sleep',
+    description: 'Sleep for a period of time',
+    paramSchema: '{ timeMs: number }',
+    paramDescription: 'The duration of the sleep in milliseconds',
+    location: false,
+    call: async () => {},
+  },
+];
+
+const mockLocatorScheme = 'locate: {"mock": string}';
 describe('action space', () => {
   it('action without param, location is false', () => {
-    const action = descriptionForAction({
-      name: 'Tap',
-      description: 'Tap the element',
-      location: false,
-      call: async () => {},
-    });
+    const action = descriptionForAction(
+      {
+        name: 'Tap',
+        description: 'Tap the element',
+        location: false,
+        call: async () => {},
+      },
+      mockLocatorScheme,
+    );
     expect(action).toMatchInlineSnapshot(`
       "- Tap
         - type: "Tap"
@@ -31,14 +56,17 @@ describe('action space', () => {
   });
 
   it('action with param, location is false', () => {
-    const action = descriptionForAction({
-      name: 'Tap',
-      description: 'Tap the element',
-      paramSchema: '{ foo: string }',
-      paramDescription: 'The foo to be tapped',
-      location: false,
-      call: async () => {},
-    });
+    const action = descriptionForAction(
+      {
+        name: 'Tap',
+        description: 'Tap the element',
+        paramSchema: '{ foo: string }',
+        paramDescription: 'The foo to be tapped',
+        location: false,
+        call: async () => {},
+      },
+      mockLocatorScheme,
+    );
     expect(action).toMatchInlineSnapshot(`
       "- Tap
         - type: "Tap"
@@ -49,13 +77,16 @@ describe('action space', () => {
   });
 
   it('action with param, no paramDescription, location is false', () => {
-    const action = descriptionForAction({
-      name: 'Tap',
-      description: 'Tap the element',
-      paramSchema: '{ foo: string }',
-      location: false,
-      call: async () => {},
-    });
+    const action = descriptionForAction(
+      {
+        name: 'Tap',
+        description: 'Tap the element',
+        paramSchema: '{ foo: string }',
+        location: false,
+        call: async () => {},
+      },
+      mockLocatorScheme,
+    );
     expect(action).toMatchInlineSnapshot(`
       "- Tap
         - type: "Tap"
@@ -65,38 +96,44 @@ describe('action space', () => {
   });
 
   it('action without param, location is required', () => {
-    const action = descriptionForAction({
-      name: 'Tap',
-      description: 'Tap the element',
-      location: 'required',
-      whatToLocate: 'The element to be tapped',
-      call: async () => {},
-    });
+    const action = descriptionForAction(
+      {
+        name: 'Tap',
+        description: 'Tap the element',
+        location: 'required',
+        whatToLocate: 'The element to be tapped',
+        call: async () => {},
+      },
+      mockLocatorScheme,
+    );
     expect(action).toMatchInlineSnapshot(`
       "- Tap
         - type: "Tap"
         - description: Tap the element
-        - locate: {bbox: [number, number, number, number], prompt: string }
+        - locate: {"mock": string}
         - whatToLocate: The element to be tapped"
     `);
   });
 
   it('action with param, location is optional', () => {
-    const action = descriptionForAction({
-      name: 'Tap',
-      description: 'Tap the element',
-      paramSchema: '{ value: string }',
-      paramDescription: 'The value to be tapped',
-      location: 'optional',
-      call: async () => {},
-    });
+    const action = descriptionForAction(
+      {
+        name: 'Tap',
+        description: 'Tap the element',
+        paramSchema: '{ value: string }',
+        paramDescription: 'The value to be tapped',
+        location: 'optional',
+        call: async () => {},
+      },
+      mockLocatorScheme,
+    );
     expect(action).toMatchInlineSnapshot(`
       "- Tap
         - type: "Tap"
         - description: Tap the element
         - paramSchema: { value: string }
         - paramDescription: The value to be tapped
-        - locate: {bbox: [number, number, number, number], prompt: string } | null"
+        - locate: {"mock": string} | null"
     `);
   });
 });
@@ -104,7 +141,7 @@ describe('action space', () => {
 describe('system prompts', () => {
   it('planning - 4o', async () => {
     const prompt = await systemPromptToTaskPlanning({
-      pageType: 'puppeteer',
+      actionSpace: sampleActionSpace,
       vlMode: false,
     });
     expect(prompt).toMatchSnapshot();
@@ -117,7 +154,7 @@ describe('system prompts', () => {
 
   it('planning - qwen', async () => {
     const prompt = await systemPromptToTaskPlanning({
-      pageType: 'puppeteer',
+      actionSpace: sampleActionSpace,
       vlMode: 'qwen-vl',
     });
     expect(prompt).toMatchSnapshot();
@@ -125,7 +162,7 @@ describe('system prompts', () => {
 
   it('planning - gemini', async () => {
     const prompt = await systemPromptToTaskPlanning({
-      pageType: 'puppeteer',
+      actionSpace: sampleActionSpace,
       vlMode: 'gemini',
     });
     expect(prompt).toMatchSnapshot();
@@ -133,7 +170,7 @@ describe('system prompts', () => {
 
   it('planning - android', async () => {
     const prompt = await systemPromptToTaskPlanning({
-      pageType: 'android',
+      actionSpace: sampleActionSpace,
       vlMode: 'qwen-vl',
     });
     expect(prompt).toMatchSnapshot();

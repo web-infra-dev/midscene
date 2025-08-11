@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import type { DeviceAction, PageType } from '@/types';
+import type { DeviceAction } from '@/types';
 import { PromptTemplate } from '@langchain/core/prompts';
 import type { vlLocateMode } from '@midscene/shared/env';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
@@ -7,116 +7,25 @@ import { bboxDescription } from './common';
 import { samplePageDescription } from './util';
 // Note: put the log field first to trigger the CoT
 const vlCoTLog = `"what_the_user_wants_to_do_next_by_instruction": string, // What the user wants to do according to the instruction and previous logs. `;
-const vlCurrentLog = `"log": string, // Log what the next one action (ONLY ONE!) you can do according to the screenshot and the instruction. The typical log looks like "Now i want to use action '{{ action-type }}' to do .. first". If no action should be done, log the reason. ". Use the same language as the user's instruction.`;
-const llmCurrentLog = `"log": string, // Log what the next actions you can do according to the screenshot and the instruction. The typical log looks like "Now i want to use action '{{ action-type }}' to do ..". If no action should be done, log the reason. ". Use the same language as the user's instruction.`;
+const vlCurrentLog = `"log": string, // Log what the next one action (ONLY ONE!) you can do according to the screenshot and the instruction. The typical log looks like "Now i want to use action '{ action-type }' to do .. first". If no action should be done, log the reason. ". Use the same language as the user's instruction.`;
+const llmCurrentLog = `"log": string, // Log what the next actions you can do according to the screenshot and the instruction. The typical log looks like "Now i want to use action '{ action-type }' to do ..". If no action should be done, log the reason. ". Use the same language as the user's instruction.`;
 
 const commonOutputFields = `"error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not expected according to the instruction. Use the same language as the user's instruction.
   "more_actions_needed_by_instruction": boolean, // Consider if there is still more action(s) to do after the action in "Log" is done, according to the instruction. If so, set this field to true. Otherwise, set it to false.`;
 const vlLocateParam =
   'locate: {bbox: [number, number, number, number], prompt: string }';
+const llmLocateParam = `locate: {"id": string, "prompt": string}`;
 
-const asyncNoop = async () => {};
-const webActions: DeviceAction[] = [
-  {
-    name: 'Tap',
-    description: 'Tap the element',
-    location: 'required',
-    call: asyncNoop,
-  },
-  {
-    name: 'RightClick',
-    description: 'Right click the element',
-    location: 'required',
-    call: asyncNoop,
-  },
-  {
-    name: 'Hover',
-    description: 'Move the mouse to the element',
-    location: 'required',
-    call: asyncNoop,
-  },
-  {
-    name: 'Input',
-    description: 'Replace the input field with a new value',
-    paramSchema: '{ value: string }',
-    paramDescription:
-      '`value` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. Giving a blank string means clear the input field.',
-    location: 'required',
-    whatToLocate: 'The input field to be filled',
-    call: asyncNoop,
-  },
-  {
-    name: 'KeyboardPress',
-    description: 'Press a key',
-    paramSchema: '{ value: string }',
-    paramDescription: 'The key to be pressed',
-    location: false,
-    call: asyncNoop,
-  },
-  {
-    name: 'Scroll',
-    description: 'Scroll the page or an element',
-    paramSchema:
-      '{ direction: "down"(default) | "up" | "right" | "left", scrollType: "once" (default) | "untilBottom" | "untilTop" | "untilRight" | "untilLeft", distance: number | null }',
-    paramDescription:
-      'The direction to scroll, the scroll type, and the distance to scroll. The distance is the number of pixels to scroll. If not specified, use `down` direction, `once` scroll type, and `null` distance.',
-    location: 'optional',
-    whatToLocate: 'The element to be scrolled',
-    call: asyncNoop,
-  },
-];
-
-const androidActions: DeviceAction[] = [
-  {
-    name: 'AndroidBackButton',
-    description: 'Trigger the system "back" operation on Android devices',
-    location: false,
-    call: asyncNoop,
-  },
-  {
-    name: 'AndroidHomeButton',
-    description: 'Trigger the system "home" operation on Android devices',
-    location: false,
-    call: asyncNoop,
-  },
-  {
-    name: 'AndroidRecentAppsButton',
-    description:
-      'Trigger the system "recent apps" operation on Android devices',
-    location: false,
-    call: asyncNoop,
-  },
-  {
-    name: 'AndroidLongPress',
-    description:
-      'Trigger a long press on the screen at specified coordinates on Android devices',
-    paramSchema: '{ duration?: number }',
-    paramDescription: 'The duration of the long press',
-    location: 'optional',
-    whatToLocate: 'The element to be long pressed',
-    call: asyncNoop,
-  },
-  {
-    name: 'AndroidPull',
-    description:
-      'Trigger pull down to refresh or pull up actions on Android devices',
-    paramSchema:
-      '{ direction: "up" | "down", distance?: number, duration?: number }',
-    paramDescription:
-      'The direction to pull, the distance to pull, and the duration of the pull.',
-    location: 'optional',
-    whatToLocate: 'The element to be pulled',
-    call: asyncNoop,
-  },
-];
-
-export const descriptionForAction = (action: DeviceAction) => {
+export const descriptionForAction = (
+  action: DeviceAction,
+  locatorScheme: string,
+) => {
   const tab = '  ';
   let locateParam = '';
   if (action.location === 'required') {
-    locateParam = vlLocateParam;
+    locateParam = locatorScheme;
   } else if (action.location === 'optional') {
-    locateParam = `${vlLocateParam} | null`;
+    locateParam = `${locatorScheme} | null`;
   } else if (action.location === false) {
     locateParam = '';
   }
@@ -161,17 +70,15 @@ ${fields.join('\n')}
 };
 
 const systemTemplateOfVLPlanning = ({
-  pageType,
+  actionSpace,
   vlMode,
 }: {
-  pageType: PageType;
+  actionSpace: DeviceAction[];
   vlMode: ReturnType<typeof vlLocateMode>;
 }) => {
-  const actionSpace =
-    pageType === 'android' ? webActions.concat(androidActions) : webActions;
   const actionNameList = actionSpace.map((action) => action.name).join(', ');
   const actionDescriptionList = actionSpace.map((action) =>
-    descriptionForAction(action),
+    descriptionForAction(action, vlLocateParam),
   );
   const actionList = actionDescriptionList.join('\n');
 
@@ -222,8 +129,16 @@ this and output the JSON:
 `;
 };
 
-const llmLocateParam = `locate: {{"id": string, "prompt": string}} | null`;
-const systemTemplateOfLLM = ({ pageType }: { pageType: PageType }) => `
+const systemTemplateOfLLM = ({
+  actionSpace,
+}: { actionSpace: DeviceAction[] }) => {
+  const actionNameList = actionSpace.map((action) => action.name).join(' / ');
+  const actionDescriptionList = actionSpace.map((action) =>
+    descriptionForAction(action, llmLocateParam),
+  );
+  const actionList = actionDescriptionList.join('\n');
+
+  return `
 ## Role
 
 You are a versatile professional in software UI automation. Your outstanding contributions will impact the user experience of billions of users.
@@ -237,7 +152,7 @@ You are a versatile professional in software UI automation. Your outstanding con
 ## Workflow
 
 1. Receive the screenshot, element description of screenshot(if any), user's instruction and previous logs.
-2. Decompose the user's task into a sequence of actions, and place it in the \`actions\` field. There are different types of actions (Tap / Hover / Input / KeyboardPress / Scroll / FalsyConditionStatement / Sleep ${pageType === 'android' ? '/ AndroidBackButton / AndroidHomeButton / AndroidRecentAppsButton / AndroidLongPress / AndroidPull' : ''}). The "About the action" section below will give you more details.
+2. Decompose the user's task into a sequence of actions, and place it in the \`actions\` field. There are different types of actions (${actionNameList}). The "About the action" section below will give you more details.
 3. Precisely locate the target element if it's already shown in the screenshot, put the location info in the \`locate\` field of the action.
 4. If some target elements is not shown in the screenshot, consider the user's instruction is not feasible on this page. Follow the next steps.
 5. Consider whether the user's instruction will be accomplished after all the actions
@@ -255,70 +170,31 @@ You are a versatile professional in software UI automation. Your outstanding con
 
 The \`locate\` param is commonly used in the \`param\` field of the action, means to locate the target element to perform the action, it conforms to the following scheme:
 
-type LocateParam = {{
+type LocateParam = {
   "id": string, // the id of the element found. It should either be the id marked with a rectangle in the screenshot or the id described in the description.
   "prompt"?: string // the description of the element to find. It can only be omitted when locate is null.
-}} | null // If it's not on the page, the LocateParam should be null
+} | null // If it's not on the page, the LocateParam should be null
 
 ## Supported actions
 
 Each action has a \`type\` and corresponding \`param\`. To be detailed:
-- type: 'Tap'
-  * {{ ${llmLocateParam} }}
-- type: 'RightClick'
-  * {{ ${llmLocateParam} }}
-- type: 'Hover'
-  * {{ ${llmLocateParam} }}
-- type: 'Input', replace the value in the input field
-  * {{ ${llmLocateParam}, param: {{ value: string }} }}
-  * \`value\` is the final value that should be filled in the input field. No matter what modifications are required, just provide the final value user should see after the action is done. 
-- type: 'KeyboardPress', press a key
-  * {{ param: {{ value: string }} }}
-- type: 'Scroll', scroll up or down.
-  * {{ 
-      ${llmLocateParam}, 
-      param: {{ 
-        direction: 'down'(default) | 'up' | 'right' | 'left', 
-        scrollType: 'once' (default) | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft', 
-        distance: null | number 
-      }} 
-    }}
-    * To scroll some specific element, put the element at the center of the region in the \`locate\` field. If it's a page scroll, put \`null\` in the \`locate\` field. 
-    * \`param\` is required in this action. If some fields are not specified, use direction \`down\`, \`once\` scroll type, and \`null\` distance.
-  * {{ param: {{ button: 'Back' | 'Home' | 'RecentApp' }} }}
-- type: 'ExpectedFalsyCondition'
-  * {{ param: {{ reason: string }} }}
-  * use this action when the conditional statement talked about in the instruction is falsy.
-- type: 'Sleep'
-  * {{ param: {{ timeMs: number }} }}
-${
-  pageType === 'android'
-    ? `- type: 'AndroidBackButton', trigger the system "back" operation on Android devices
-  * {{ param: {{}} }}
-- type: 'AndroidHomeButton', trigger the system "home" operation on Android devices
-  * {{ param: {{}} }}
-- type: 'AndroidRecentAppsButton', trigger the system "recent apps" operation on Android devices
-  * {{ param: {{}} }}
-- type: 'AndroidLongPress', trigger a long press on the screen at specified coordinates on Android devices
-  * {{ param: {{ x: number, y: number, duration?: number }} }}
-- type: 'AndroidPull', trigger pull down to refresh or pull up actions on Android devices
-  * {{ param: {{ direction: 'up' | 'down', startPoint?: {{ x: number, y: number }}, distance?: number, duration?: number }} }}`
-    : ''
-}
-`;
+${actionList}
+
+`.trim();
+};
 
 const outputTemplate = `
 ## Output JSON Format:
 
 The JSON format is as follows:
 
-{{
+{
   "actions": [
     // ... some actions
   ],
   ${llmCurrentLog}
   ${commonOutputFields}
-}}
+}
 
 ## Examples
 
@@ -334,47 +210,47 @@ By viewing the page screenshot and description, you should consider this and out
 * Log what these action do: Click the language switch button to open the language options. Wait for 1 second.
 * The task cannot be accomplished (because we cannot see the "English" option now), so the \`more_actions_needed_by_instruction\` field is true.
 
-{{
+{
   "actions":[
-    {{
+    {
       "type": "Tap", 
       "thought": "Click the language switch button to open the language options.",
       "param": null,
-      "locate": {{ id: "c81c4e9a33", prompt: "The language switch button" }},
-    }},
-    {{
+      "locate": { id: "c81c4e9a33", prompt: "The language switch button" }},
+    },
+    {
       "type": "Sleep",
       "thought": "Wait for 1 second to ensure the language options are displayed.",
-      "param": {{ "timeMs": 1000 }},
-    }}
+      "param": { "timeMs": 1000 },
+    }
   ],
   "error": null,
   "more_actions_needed_by_instruction": true,
   "log": "Click the language switch button to open the language options. Wait for 1 second",
-}}
+}
 
 ### Example: What NOT to do
 Wrong output:
-{{
+{
   "actions":[
-    {{
+    {
       "type": "Tap",
       "thought": "Click the language switch button to open the language options.",
       "param": null,
-      "locate": {{
-        {{ "id": "c81c4e9a33" }}, // WRONG: prompt is missing
-      }}
-    }},
-    {{
+      "locate": {
+        { "id": "c81c4e9a33" }, // WRONG: prompt is missing
+      }
+    },
+    {
       "type": "Tap", 
       "thought": "Click the English option",
       "param": null,
       "locate": null, // This means the 'English' option is not shown in the screenshot, the task cannot be accomplished
-    }}
+    }
   ],
   "more_actions_needed_by_instruction": false, // WRONG: should be true
   "log": "Click the language switch button to open the language options",
-}}
+}
 
 Reason:
 * The \`prompt\` is missing in the first 'Locate' action
@@ -382,24 +258,26 @@ Reason:
 `;
 
 export async function systemPromptToTaskPlanning({
-  pageType,
+  actionSpace,
   vlMode,
 }: {
-  pageType: PageType;
+  actionSpace: DeviceAction[];
   vlMode: ReturnType<typeof vlLocateMode>;
 }) {
   if (vlMode) {
-    return systemTemplateOfVLPlanning({ pageType, vlMode });
+    return systemTemplateOfVLPlanning({ actionSpace, vlMode });
   }
 
-  const promptTemplate = new PromptTemplate({
-    template: `${systemTemplateOfLLM({ pageType })}\n\n${outputTemplate}`,
-    inputVariables: ['pageDescription'],
-  });
+  // const promptTemplate = new PromptTemplate({
+  //   template:,
+  //   inputVariables: ['pageDescription'],
+  // });
 
-  return await promptTemplate.format({
-    pageDescription: samplePageDescription,
-  });
+  // return await promptTemplate.format({
+  //   // pageDescription: samplePageDescription,
+  // });
+
+  return `${systemTemplateOfLLM({ actionSpace })}\n\n${outputTemplate}`;
 }
 
 export const planSchema: ResponseFormatJSONSchema = {

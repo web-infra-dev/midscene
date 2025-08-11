@@ -859,11 +859,28 @@ export class PageTaskExecutor {
         const { pageContext } =
           await this.setupPlanningContext(executorContext);
 
+        assert(
+          this.page.actionSpace,
+          'actionSpace for device is not implemented',
+        );
+        const actionSpace = await this.page.actionSpace();
+        debug(
+          'actionSpace for page',
+          actionSpace.map((action) => action.name).join(', '),
+        );
+        assert(Array.isArray(actionSpace), 'actionSpace must be an array');
+        if (actionSpace.length === 0) {
+          console.warn(
+            `ActionSpace for ${this.page.pageType} is empty. This may lead to unexpected behavior.`,
+          );
+        }
+
         const planResult = await plan(param.userInstruction, {
           context: pageContext,
           log: param.log,
           actionContext,
           pageType: this.page.pageType as PageType,
+          actionSpace,
         });
 
         const {
