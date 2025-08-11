@@ -231,11 +231,6 @@ export const generateAnimationScripts = (
     }
   }
 
-  // remove assertion and query tasks
-  tasksIncluded = tasksIncluded.filter(
-    (task) => task.type !== 'Assertion' && task.type !== 'Query',
-  );
-
   if (tasksIncluded.length === 0) {
     return null;
   }
@@ -407,6 +402,22 @@ export const generateAnimationScripts = (
         scripts.push({
           type: 'sleep',
           duration: imgStillDuration,
+          title,
+          subTitle,
+        });
+      }
+    } else {
+      // Handle normal tasks
+      const title = typeStr(task);
+      const subTitle = paramStr(task);
+      const screenshot = task.recorder?.[task.recorder.length - 1]?.screenshot;
+
+      if (screenshot) {
+        scripts.push({
+          type: 'img',
+          img: screenshot,
+          duration: stillDuration,
+          camera: fullPageCameraState,
           title,
           subTitle,
         });
