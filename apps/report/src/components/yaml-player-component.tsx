@@ -1,4 +1,7 @@
-import type { MidsceneYamlFlowItemAIAction } from '@midscene/core';
+import type {
+  MidsceneYamlFlowItemAIAction,
+  MidsceneYamlScriptEnv,
+} from '@midscene/core';
 import type { ScriptPlayer } from '@midscene/web/yaml';
 import { Steps } from 'antd';
 import { useState } from 'react';
@@ -6,9 +9,9 @@ import { useState } from 'react';
 export function YamlPlayerStatusIndicator({
   player,
 }: {
-  player: ScriptPlayer;
+  player: ScriptPlayer<MidsceneYamlScriptEnv>;
 }) {
-  const [loadingProgressText, setLoadingProgressText] = useState('');
+  const [_loadingProgressText, setLoadingProgressText] = useState('');
   const [steps, setSteps] = useState<
     {
       title: string;

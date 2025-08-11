@@ -130,7 +130,7 @@ const DetailSide = (): JSX.Element => {
       Boolean((value as any).center) &&
       Boolean((value as any).rect);
 
-    const elementEl = (value: BaseElement) => (
+    const elementEl = (_value: BaseElement) => (
       <span>
         <Tag bordered={false} color="orange" className="element-button">
           Element

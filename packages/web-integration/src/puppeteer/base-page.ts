@@ -254,7 +254,7 @@ export class Page<
     return {
       type: async (text: string) => {
         debugPage(`keyboard type ${text}`);
-        this.underlyingPage.keyboard.type(text, { delay: 80 });
+        return this.underlyingPage.keyboard.type(text, { delay: 80 });
       },
       press: async (
         action:

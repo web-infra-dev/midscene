@@ -143,7 +143,6 @@ function Visualizer(props: VisualizerProps): JSX.Element {
               proModeEnabled={proModeEnabled}
               onProModeChange={setProModeEnabled}
               replayAllScripts={replayAllScripts}
-              replayAllMode={replayAllMode}
               setReplayAllMode={setReplayAllMode}
             />
           </div>
@@ -243,20 +242,23 @@ export function App() {
         return !!textContent;
       })
       .forEach((el) => {
-        const attributes: PlaywrightTaskAttributes = {
-          playwright_test_name: '',
+        const attributes: Partial<PlaywrightTaskAttributes> &
+          Record<string, any> = {
           playwright_test_description: '',
           playwright_test_id: '',
           playwright_test_title: '',
           playwright_test_status: '',
-          playwright_test_duration: '',
+          playwright_test_duration: 0,
         };
         Array.from(el.attributes).forEach((attr) => {
           const { name, value } = attr;
           const valueDecoded = decodeURIComponent(value);
           if (name.startsWith('playwright_')) {
-            attributes[attr.name as keyof PlaywrightTaskAttributes] =
-              valueDecoded;
+            if (name === 'playwright_test_duration') {
+              attributes[name] = Number(valueDecoded) || 0;
+            } else {
+              attributes[name] = valueDecoded;
+            }
           }
         });
 
@@ -287,7 +289,7 @@ export function App() {
             }
             return cachedJsonContent;
           },
-          attributes: attributes,
+          attributes: attributes as PlaywrightTaskAttributes,
         });
       });
     return reportDump;

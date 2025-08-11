@@ -90,7 +90,6 @@ const TimelineWidget = (props: {
   const commonPadding = 12;
   const timeTextTop = commonPadding;
   const timeTitleBottom = timeTextTop * 2 + timeContentFontSize;
-  const hoverMaskColor = 0xdcdcdc; // @hover-bg
   const hoverMaskAlpha = 0.3;
 
   const closestScreenshotItemOnXY = (x: number, _y: number) => {
@@ -292,7 +291,6 @@ const TimelineWidget = (props: {
           const mask = (
             start: number | undefined,
             end: number | undefined,
-            color: number,
             alpha: number,
           ) => {
             if (
@@ -336,8 +334,8 @@ const TimelineWidget = (props: {
             highlightMaskContainer.addChild(mask);
           };
 
-          mask(start, end, gridHighlightColor, highlightMaskAlpha);
-          mask(hoverStart, hoverEnd, hoverMaskColor, hoverMaskAlpha);
+          mask(start, end, highlightMaskAlpha);
+          mask(hoverStart, hoverEnd, hoverMaskAlpha);
         };
         highlightMaskUpdater(
           props.highlightMask?.startMs,

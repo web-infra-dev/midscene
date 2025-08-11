@@ -209,7 +209,7 @@ export const ScrcpyPlayer = forwardRef<ScrcpyRefMethods, ScrcpyProps>(
     };
 
     // setup video stream processing
-    const setupVideoStream = (metadata: VideoMetadata) => {
+    const setupVideoStream = (_metadata: VideoMetadata) => {
       // for tracking if the configuration frame has been received
       let configurationPacketSent = false;
       let pendingDataPackets: any[] = [];

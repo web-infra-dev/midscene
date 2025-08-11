@@ -36,7 +36,7 @@ export interface AdbDeviceProps {
 
 const AdbDevice: React.FC<AdbDeviceProps> = ({
   devices,
-  loadingDevices,
+  loadingDevices: _loadingDevices,
   selectedDeviceId,
   onDeviceSelect,
   socketRef,
