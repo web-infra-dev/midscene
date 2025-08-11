@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { spawn } from 'node:child_process';
+import { spawn, execSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -10,6 +10,14 @@ const serverPath = join(__dirname, '../idb/auto_server.py');
 const port = process.argv[2] || '1412';
 
 console.log(`Starting PyAutoGUI server on port ${port}...`);
+
+// kill process on port 1412 first
+try {
+  execSync(`lsof -ti:${port} | xargs kill -9`, { stdio: 'ignore' });
+  console.log(`Killed existing process on port ${port}`);
+} catch (error) {
+  console.error(`Failed to kill process on port ${port}:`, error);
+}
 
 const server = spawn('python3', [serverPath, port], {
   stdio: 'inherit',

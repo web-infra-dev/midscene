@@ -10,11 +10,6 @@ ios:
   
   # iOS device mirroring configuration for precise location targeting
   # These values define the position and size of the mirrored device screen
-  mirrorConfig:
-    mirrorX: 794      # X position of iOS mirror on computer screen
-    mirrorY: 171      # Y position of iOS mirror on computer screen  
-    mirrorWidth: 332  # Width of the mirrored iOS screen
-    mirrorHeight: 720 # Height of the mirrored iOS screen (iPhone 11 Pro size)
   
   # Output file for aiQuery/aiAssert results (optional)
   output: "./results.json"

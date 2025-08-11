@@ -80,11 +80,14 @@ export class iOSDevice implements AndroidDevicePage {
   uri: string | undefined;
   options?: iOSDeviceOpt;
   private serverUrl: string;
+  private serverPort: number;
+  private serverProcess?: any; // Store reference to server process
 
   constructor(options?: iOSDeviceOpt) {
     this.options = options;
+    this.serverPort = options?.serverPort || 1412;
     this.serverUrl =
-      options?.serverUrl || `http://localhost:${options?.serverPort || 1412}`;
+      options?.serverUrl || `http://localhost:${this.serverPort}`;
   }
 
   public async connect(): Promise<void> {
@@ -102,36 +105,131 @@ export class iOSDevice implements AndroidDevicePage {
       }
       const healthData = await response.json();
       debugPage(`Python server is running: ${JSON.stringify(healthData)}`);
-
-      // Make iPhone mirroring app foreground
-      try {
-        // Use fixed mirroring app name for iOS device screen mirroring
-        const mirroringAppName = 'iPhone Mirroring';
-
-        const { exec } = await import('node:child_process');
-        const { promisify } = await import('node:util');
-        const execAsync = promisify(exec);
-
-        // Activate the mirroring application using AppleScript
-        await execAsync(
-          `osascript -e 'tell application "${mirroringAppName}" to activate'`,
-        );
-        debugPage(`Activated iOS mirroring app: ${mirroringAppName}`);
-      } catch (mirrorError: any) {
-        debugPage(
-          `Warning: Failed to bring iOS mirroring app to foreground: ${mirrorError.message}`,
-        );
-        // Continue execution even if this fails - it's not critical
-      }
     } catch (error: any) {
-      throw new Error(
-        `Failed to connect to Python server at ${this.serverUrl}: ${error.message}`,
+      debugPage(`Python server connection failed: ${error.message}`);
+      
+      // Try to start server automatically
+      debugPage('Attempting to start Python server automatically...');
+      
+      try {
+        await this.startPyAutoGUIServer();
+        debugPage('Python server started successfully');
+        
+        // Verify server is now running
+        const response = await fetch(`${this.serverUrl}/health`);
+        if (!response.ok) {
+          throw new Error(`Server still not responding after startup: ${response.status}`);
+        }
+        
+        const healthData = await response.json();
+        debugPage(`Python server is now running: ${JSON.stringify(healthData)}`);
+      } catch (startError: any) {
+        throw new Error(
+          `Failed to auto-start Python server: ${startError.message}. ` +
+          `Please manually start the server by running: node packages/ios/bin/server.js ${this.serverPort}`
+        );
+      }
+    }
+
+    // Make iPhone mirroring app foreground
+    try {
+      // Use fixed mirroring app name for iOS device screen mirroring
+      const mirroringAppName = 'iPhone Mirroring';
+
+      const { exec } = await import('node:child_process');
+      const { promisify } = await import('node:util');
+      const execAsync = promisify(exec);
+
+      // Activate the mirroring application using AppleScript
+      await execAsync(
+        `osascript -e 'tell application "${mirroringAppName}" to activate'`,
       );
+      debugPage(`Activated iOS mirroring app: ${mirroringAppName}`);
+    } catch (mirrorError: any) {
+      debugPage(
+        `Warning: Failed to bring iOS mirroring app to foreground: ${mirrorError.message}`,
+      );
+      // Continue execution even if this fails - it's not critical
     }
 
     // Configure iOS mirroring if provided
+    await this.initializeMirrorConfiguration();
+
+  }
+
+  private async startPyAutoGUIServer(): Promise<void> {
+    try {
+      const { spawn } = await import('node:child_process');
+      const serverScriptPath = path.resolve(__dirname, '../../bin/server.js');
+      
+      debugPage(`Starting PyAutoGUI server using: node ${serverScriptPath} ${this.serverPort}`);
+      
+      // Start server process in background (similar to server.js background mode)
+      this.serverProcess = spawn('node', [serverScriptPath, this.serverPort.toString()], {
+        detached: true,
+        stdio: 'pipe', // Capture output
+        env: {
+          ...process.env,
+        },
+      });
+      
+      // Handle server process events
+      this.serverProcess.on('error', (error: any) => {
+        debugPage(`Server process error: ${error.message}`);
+      });
+      
+      this.serverProcess.on('exit', (code: number, signal: string) => {
+        debugPage(`Server process exited with code ${code}, signal ${signal}`);
+      });
+      
+      // Capture and log server output
+      if (this.serverProcess.stdout) {
+        this.serverProcess.stdout.on('data', (data: Buffer) => {
+          debugPage(`Server stdout: ${data.toString().trim()}`);
+        });
+      }
+      
+      if (this.serverProcess.stderr) {
+        this.serverProcess.stderr.on('data', (data: Buffer) => {
+          debugPage(`Server stderr: ${data.toString().trim()}`);
+        });
+      }
+      
+      debugPage(`Started PyAutoGUI server process with PID: ${this.serverProcess.pid}`);
+      
+      // Wait for server to start up (similar to server.js timeout)
+      await sleep(3000);
+      
+    } catch (error: any) {
+      throw new Error(`Failed to start PyAutoGUI server: ${error.message}`);
+    }
+  }
+
+  private async initializeMirrorConfiguration() {
     if (this.options?.mirrorConfig) {
       await this.configureIOSMirror(this.options.mirrorConfig);
+    } else {
+      try {
+        // Auto-detect iPhone Mirroring app window using AppleScript
+        const mirrorConfig = await this.detectAndConfigureIOSMirror();
+        if (mirrorConfig) {
+          if (!this.options || typeof this.options.mirrorConfig !== 'object') {
+            this.options = {};
+          }
+          this.options.mirrorConfig = mirrorConfig;
+
+          debugPage(
+            `Auto-detected iOS mirror config: ${mirrorConfig.mirrorWidth}x${mirrorConfig.mirrorHeight} at (${mirrorConfig.mirrorX}, ${mirrorConfig.mirrorY})`
+          );
+          
+          // Configure the detected mirror settings
+          await this.configureIOSMirror(mirrorConfig);
+        } else {
+          debugPage('No iPhone Mirroring app found or auto-detection failed');
+        }
+      } catch (error: any) {
+        debugPage(`Failed to auto-detect iPhone Mirroring app: ${error.message}`);
+      }
     }
 
     // Get screen information (will use iOS dimensions if configured)
@@ -170,6 +268,128 @@ export class iOSDevice implements AndroidDevicePage {
       );
     } catch (error: any) {
       throw new Error(`Failed to configure iOS mirroring: ${error.message}`);
+    }
+  }
+
+  private async detectAndConfigureIOSMirror(): Promise<{
+    mirrorX: number;
+    mirrorY: number;
+    mirrorWidth: number;
+    mirrorHeight: number;
+  } | null> {
+    try {
+      const { exec } = await import('node:child_process');
+      const { promisify } = await import('node:util');
+      const execAsync = promisify(exec);
+
+      // AppleScript to get window information for iPhone Mirroring app
+      const applescript = `
+        tell application "System Events"
+            try
+                set mirrorApp to first application process whose name contains "iPhone Mirroring"
+                set mirrorWindow to first window of mirrorApp
+                set windowPosition to position of mirrorWindow
+                set windowSize to size of mirrorWindow
+                
+                -- Get window frame information
+                set windowX to item 1 of windowPosition
+                set windowY to item 2 of windowPosition
+                set windowWidth to item 1 of windowSize
+                set windowHeight to item 2 of windowSize
+                
+                -- Try to get the actual visible frame (content area)
+                try
+                    set appName to name of mirrorApp
+                    set bundleId to bundle identifier of mirrorApp
+                    set visibleFrame to "{\\"found\\":true,\\"x\\":" & windowX & ",\\"y\\":" & windowY & ",\\"width\\":" & windowWidth & ",\\"height\\":" & windowHeight & ",\\"app\\":\\"" & appName & "\\",\\"bundle\\":\\"" & bundleId & "\\"}"
+                    return visibleFrame
+                on error
+                    return "{\\"found\\":true,\\"x\\":" & windowX & ",\\"y\\":" & windowY & ",\\"width\\":" & windowWidth & ",\\"height\\":" & windowHeight & "}"
+                end try
+                
+            on error errMsg
+                return "{\\"found\\":false,\\"error\\":\\"" & errMsg & "\\"}"
+            end try
+        end tell
+      `;
+
+      const { stdout, stderr } = await execAsync(`osascript -e '${applescript}'`);
+
+      if (stderr) {
+        debugPage(`AppleScript error: ${stderr}`);
+        return null;
+      }
+
+      const result = JSON.parse(stdout.trim());
+
+      if (!result.found) {
+        debugPage(`iPhone Mirroring app not found: ${result.error || 'Unknown error'}`);
+        return null;
+      }
+
+      const windowX = result.x;
+      const windowY = result.y;
+      const windowWidth = result.width;
+      const windowHeight = result.height;
+
+      debugPage(`Detected iPhone Mirroring window: ${windowWidth}x${windowHeight} at (${windowX}, ${windowY})`);
+
+      // Calculate device content area with smart detection based on window size
+      let titleBarHeight = 28;
+      let contentPaddingH, contentPaddingV;
+
+      if (windowWidth < 500 && windowHeight < 1000) {
+        // Small window - minimal padding
+        contentPaddingH = 20;
+        contentPaddingV = 20;
+      } else if (windowWidth < 800 && windowHeight < 1400) {
+        // Medium window - moderate padding
+        contentPaddingH = 40;
+        contentPaddingV = 50;
+      } else {
+        // Large window - more padding
+        contentPaddingH = 80;
+        contentPaddingV = 100;
+      }
+
+      // Calculate the actual iOS device screen area within the window
+      const contentX = windowX + Math.floor(contentPaddingH / 2);
+      const contentY = windowY + titleBarHeight + Math.floor(contentPaddingV / 2);
+      const contentWidth = windowWidth - contentPaddingH;
+      const contentHeight = windowHeight - titleBarHeight - contentPaddingV;
+
+      // Ensure minimum viable dimensions
+      if (contentWidth < 200 || contentHeight < 400) {
+        // Try with minimal padding if initial calculation is too small
+        const minimalContentX = windowX + 10;
+        const minimalContentY = windowY + titleBarHeight + 10;
+        const minimalContentWidth = windowWidth - 20;
+        const minimalContentHeight = windowHeight - titleBarHeight - 20;
+
+        if (minimalContentWidth < 200 || minimalContentHeight < 400) {
+          debugPage(`Detected window seems too small for iPhone content: ${windowWidth}x${windowHeight}`);
+          return null;
+        }
+
+        return {
+          mirrorX: minimalContentX,
+          mirrorY: minimalContentY,
+          mirrorWidth: minimalContentWidth,
+          mirrorHeight: minimalContentHeight,
+        };
+      }
+
+      debugPage(`Calculated content area: ${contentWidth}x${contentHeight} at (${contentX}, ${contentY})`);
+
+      return {
+        mirrorX: contentX,
+        mirrorY: contentY,
+        mirrorWidth: contentWidth,
+        mirrorHeight: contentHeight,
+      };
+    } catch (error: any) {
+      debugPage(`Exception during iPhone Mirroring app detection: ${error.message}`);
+      return null;
     }
   }
 
@@ -866,6 +1086,17 @@ export class iOSDevice implements AndroidDevicePage {
   async destroy(): Promise<void> {
     debugPage('destroy iOS device');
     this.destroyed = true;
+    
+    // Clean up server process if we started it
+    if (this.serverProcess) {
+      try {
+        debugPage('Terminating PyAutoGUI server process');
+        this.serverProcess.kill('SIGTERM');
+        this.serverProcess = undefined;
+      } catch (error) {
+        debugPage('Error terminating server process:', error);
+      }
+    }
   }
 
   // Additional abstract methods from AbstractPage

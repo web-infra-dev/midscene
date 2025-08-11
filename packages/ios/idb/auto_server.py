@@ -1,17 +1,183 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import pyautogui
 import time
 import traceback
-import json
 import sys
 import subprocess
-import os
+import base64
+import io
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 # Configure pyautogui
 pyautogui.FAILSAFE = True
 pyautogui.PAUSE = 0.1
+
+def detect_and_configure_ios_mirror():
+    """Automatically detect iPhone Mirroring app window and configure mapping"""
+    try:
+        # AppleScript to get window information for iPhone Mirroring app
+        applescript = '''
+        tell application "System Events"
+            try
+                set mirrorApp to first application process whose name contains "iPhone Mirroring"
+                set mirrorWindow to first window of mirrorApp
+                set windowPosition to position of mirrorWindow
+                set windowSize to size of mirrorWindow
+                
+                -- Get window frame information
+                set windowX to item 1 of windowPosition
+                set windowY to item 2 of windowPosition
+                set windowWidth to item 1 of windowSize
+                set windowHeight to item 2 of windowSize
+                
+                -- Try to get the actual visible frame (content area)
+                try
+                    set appName to name of mirrorApp
+                    set bundleId to bundle identifier of mirrorApp
+                    set visibleFrame to "{" & quote & "found" & quote & ":true," & quote & "x" & quote & ":" & windowX & "," & quote & "y" & quote & ":" & windowY & "," & quote & "width" & quote & ":" & windowWidth & "," & quote & "height" & quote & ":" & windowHeight & "," & quote & "app" & quote & ":" & quote & appName & quote & "," & quote & "bundle" & quote & ":" & quote & bundleId & quote & "}"
+                    return visibleFrame
+                on error
+                    return "{" & quote & "found" & quote & ":true," & quote & "x" & quote & ":" & windowX & "," & quote & "y" & quote & ":" & windowY & "," & quote & "width" & quote & ":" & windowWidth & "," & quote & "height" & quote & ":" & windowHeight & "}"
+                end try
+                
+            on error errMsg
+                return "{" & quote & "found" & quote & ":false," & quote & "error" & quote & ":" & quote & errMsg & quote & "}"
+            end try
+        end tell
+        '''
+        
+        success, stdout, stderr = execute_applescript(applescript)
+        
+        if not success:
+            return {
+                "status": "error", 
+                "error": "Failed to execute AppleScript", 
+                "details": stderr
+            }
+        
+        # Parse the JSON-like response
+        import re
+        result_str = stdout.strip()
+        
+        # Extract values using regex since it's a simple JSON-like format
+        found_match = re.search(r'"found":(\w+)', result_str)
+        if not found_match or found_match.group(1) != 'true':
+            error_match = re.search(r'"error":"([^"]*)"', result_str)
+            error_msg = error_match.group(1) if error_match else "iPhone Mirroring app not found"
+            return {
+                "status": "error",
+                "error": "iPhone Mirroring app not found or not active",
+                "details": error_msg,
+                "suggestion": "Please make sure iPhone Mirroring app is open and visible"
+            }
+        
+        # Extract window coordinates and size
+        x_match = re.search(r'"x":(\d+)', result_str)
+        y_match = re.search(r'"y":(\d+)', result_str)
+        width_match = re.search(r'"width":(\d+)', result_str)
+        height_match = re.search(r'"height":(\d+)', result_str)
+        
+        if not all([x_match, y_match, width_match, height_match]):
+            return {
+                "status": "error",
+                "error": "Failed to parse window dimensions",
+                "raw_output": result_str
+            }
+        
+        window_x = int(x_match.group(1))
+        window_y = int(y_match.group(1))
+        window_width = int(width_match.group(1))
+        window_height = int(height_match.group(1))
+        
+        # Extract app info if available
+        app_match = re.search(r'"app":"([^"]*)"', result_str)
+        bundle_match = re.search(r'"bundle":"([^"]*)"', result_str)
+        app_name = app_match.group(1) if app_match else "Unknown"
+        bundle_id = bundle_match.group(1) if bundle_match else "Unknown"
+        
+        print(f"🔍 Detected {app_name} window: {window_width}x{window_height} at ({window_x}, {window_y})")
+        print(f"    Bundle ID: {bundle_id}")
+        
+        # Calculate device content area with smart detection based on window size
+        # Different calculation strategies based on window size
+        if window_width < 500 and window_height < 1000:
+            # Small window - minimal padding
+            title_bar_height = 28
+            content_padding_h = 20  # horizontal padding
+            content_padding_v = 20  # vertical padding
+        elif window_width < 800 and window_height < 1400:
+            # Medium window - moderate padding
+            title_bar_height = 28
+            content_padding_h = 40
+            content_padding_v = 50
+        else:
+            # Large window - more padding
+            title_bar_height = 28
+            content_padding_h = 80
+            content_padding_v = 100
+        
+        # Calculate the actual iOS device screen area within the window
+        content_x = window_x + content_padding_h // 2
+        content_y = window_y + title_bar_height + content_padding_v // 2
+        content_width = window_width - content_padding_h
+        content_height = window_height - title_bar_height - content_padding_v
+        
+        # Ensure minimum viable dimensions
+        if content_width < 200 or content_height < 400:
+            # Try with minimal padding if initial calculation is too small
+            content_x = window_x + 10
+            content_y = window_y + title_bar_height + 10
+            content_width = window_width - 20
+            content_height = window_height - title_bar_height - 20
+            
+            if content_width < 200 or content_height < 400:
+                return {
+                    "status": "error",
+                    "error": "Detected window seems too small for iPhone content",
+                    "window_size": [window_width, window_height],
+                    "calculated_content": [content_width, content_height],
+                    "suggestion": "Try making the iPhone Mirroring window larger"
+                }
+        
+        # Auto-configure the mapping
+        setup_ios_mapping(content_x, content_y, content_width, content_height)
+        
+        # Verify configuration was set
+        print(f"✅ iOS mapping auto-configured successfully!")
+        print(f"   Enabled: {ios_config['enabled']}")
+        print(f"   Device estimation: {ios_config['estimated_ios_width']}x{ios_config['estimated_ios_height']}")
+        print(f"   Mirror area: {ios_config['mirror_width']}x{ios_config['mirror_height']} at ({ios_config['mirror_x']}, {ios_config['mirror_y']})")
+        
+        return {
+            "status": "ok",
+            "action": "detect_ios_mirror",
+            "window_detected": {
+                "x": window_x,
+                "y": window_y,
+                "width": window_width,
+                "height": window_height,
+                "app_name": app_name,
+                "bundle_id": bundle_id
+            },
+            "content_area": {
+                "x": content_x,
+                "y": content_y,
+                "width": content_width,
+                "height": content_height
+            },
+            "config": ios_config,
+            "message": f"Successfully auto-configured for {ios_config['estimated_ios_width']}x{ios_config['estimated_ios_height']} device"
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": f"Exception during auto-detection: {str(e)}",
+            "traceback": traceback.format_exc()
+        }
 
 def execute_applescript(script):
     """Execute AppleScript command"""
@@ -66,8 +232,9 @@ def setup_ios_mapping(mirror_x, mirror_y, mirror_width, mirror_height):
         "estimated_ios_height": best_match["height"]
     })
     
-    print(f"iOS mapping configured: Estimated {best_match['name']} ({best_match['width']}x{best_match['height']}) -> {mirror_width}x{mirror_height} at ({mirror_x},{mirror_y})")
-    print(f"Aspect ratio: {mirror_aspect_ratio:.3f}, Device: {best_match['name']}")
+    print(f"📱 iOS mapping configured: Estimated {best_match['name']} ({best_match['width']}x{best_match['height']}) -> {mirror_width}x{mirror_height} at ({mirror_x},{mirror_y})")
+    print(f"   Aspect ratio: {mirror_aspect_ratio:.3f}, Device: {best_match['name']}")
+    print(f"   ✅ iOS coordinate transformation is now ENABLED")
 
 def transform_ios_coordinates(ios_x, ios_y):
     """Transform iOS coordinates to macOS screen coordinates"""
@@ -284,14 +451,40 @@ def handle_action(action):
         elif act == "screenshot":
             # Take screenshot of iOS region if mapping is enabled
             region = get_ios_screenshot_region()
+            print(f"📸 Taking screenshot with region: {region}")
+            
             if region:
+                print(f"   📱 iOS screenshot region: x={region[0]}, y={region[1]}, w={region[2]}, h={region[3]}")
                 screenshot = pyautogui.screenshot(region=region)
             else:
+                print(f"   🖥️  Full screen screenshot (iOS config not enabled)")
                 screenshot = pyautogui.screenshot()
-            # Save to temporary file and return path
+            
+            # Convert screenshot to base64 for web frontend
+            buffer = io.BytesIO()
+            screenshot.save(buffer, format='PNG')
+            buffer.seek(0)
+            
+            # Create base64 data URL
+            img_base64 = base64.b64encode(buffer.read()).decode('utf-8')
+            data_url = f"data:image/png;base64,{img_base64}"
+            
+            # Also save to temporary file as backup
             temp_path = f"/tmp/screenshot_{int(time.time())}.png"
             screenshot.save(temp_path)
-            return {"status": "ok", "action": "screenshot", "path": temp_path, "ios_region": region is not None}
+            
+            print(f"   ✅ Screenshot saved: {temp_path}")
+            print(f"   📊 Screenshot size: {screenshot.size[0]}x{screenshot.size[1]}")
+            
+            return {
+                "status": "ok", 
+                "action": "screenshot", 
+                "path": temp_path, 
+                "data_url": data_url,
+                "ios_region": region is not None,
+                "region_info": region if region else None,
+                "screenshot_size": {"width": screenshot.size[0], "height": screenshot.size[1]}
+            }
 
         elif act == "get_screen_size":
             if ios_config["enabled"]:
@@ -307,6 +500,11 @@ def handle_action(action):
             mirror_height = int(action["mirror_height"])
             setup_ios_mapping(mirror_x, mirror_y, mirror_width, mirror_height)
             return {"status": "ok", "action": "configure_ios", "config": ios_config}
+
+        elif act == "detect_ios_mirror":
+            """Automatically detect iPhone Mirroring app window and configure mapping"""
+            result = detect_and_configure_ios_mirror()
+            return result
 
         elif act == "sleep":
             seconds = float(action["seconds"])
@@ -339,6 +537,19 @@ def health_check():
             "status": "error",
             "error": str(e)
         }), 500
+
+@app.route("/detect", methods=["POST"])
+def detect_ios_mirror():
+    """Auto-detect and configure iOS device mapping"""
+    try:
+        result = handle_action({"action": "detect_ios_mirror"})
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        })
 
 @app.route("/configure", methods=["POST"])
 def configure_ios():

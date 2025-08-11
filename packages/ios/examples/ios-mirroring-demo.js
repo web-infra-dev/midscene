@@ -55,18 +55,8 @@ async function demonstrateIOSMirroring() {
   // Step 1: Configure iOS device mirroring
   console.log('📱 Step 1: Setting up iOS device mirroring...');
 
-  // Example configuration for iOS device mirrored via macOS screen sharing
-  // {"iPhone Mirroring", {692, 161}, {344, 764}}
-  const mirrorConfig = {
-    mirrorX: 692, // X position of iOS mirror on macOS screen
-    mirrorY: 161, // Y position of iOS mirror on macOS screen
-    mirrorWidth: 344, // Width of iOS mirror on macOS screen
-    mirrorHeight: 764, // Height of iOS mirror on macOS screen
-  };
-
   const device = new iOSDevice({
-    serverPort: 1412,
-    mirrorConfig: mirrorConfig,
+    serverPort: 1412
   });
 
   try {
@@ -85,38 +75,13 @@ async function demonstrateIOSMirroring() {
     const agent = new iOSAgent(device);
     console.log('✅ AI agent ready!\n');
 
-    // Step 3: Demonstrate coordinate transformation
-    console.log('🎯 Step 3: Testing coordinate transformation...');
-    // sleep 5 seconds to allow user to make the mirror app foreground
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-
-    // Test tap at various iOS coordinates
-    const testPoints = [
-      { left: 100, top: 200, description: 'Upper left area' },
-      { left: 196, top: 426, description: 'Center of screen' },
-      { left: 300, top: 700, description: 'Lower right area' },
-    ];
-
-    for (const point of testPoints) {
-      console.log(
-        `   📍 Tapping at iOS coordinates (${point.left}, ${point.top}) - ${point.description}`,
-      );
-      await device.tap(point);
-      await new Promise((resolve) => setTimeout(resolve, 500)); // Brief pause
-    }
-    console.log('✅ Coordinate transformation test completed!\n');
-
-    // Step 4: Take iOS region screenshot
-    console.log('📸 Step 4: Taking iOS region screenshot...');
+    // Step 3: Take iOS region screenshot
+    console.log('📸 Step 3: Taking iOS region screenshot...');
     const screenshot = await device.screenshotBase64();
     console.log(`✅ Screenshot captured (${screenshot.length} bytes)`);
     console.log('   💾 Screenshot contains only the iOS mirrored area\n');
 
-    // Step 5: Test enhanced scrolling functionality (now uses intelligent distance mapping)
-    console.log(
-      '🖱️ Step 5: Testing enhanced trackpad scrolling with intelligent distance mapping...',
-    );
-
+    // Step 4: Test scrolling
     console.log(
       '   🔄 Testing horizontal scroll right (300px) - should scroll horizontally to the right:',
     );
@@ -131,8 +96,8 @@ async function demonstrateIOSMirroring() {
 
     console.log('✅ Enhanced horizontal scrolling test completed!\n');
 
-    // Step 6: Demonstrate AI automation
-    console.log('🧠 Step 6: AI automation example...');
+    // Step 5: Demonstrate AI automation
+    console.log('🧠 Step 5: AI automation example...');
     console.log('   (This would work with actual iOS app content)');
 
     // Example AI operations (commented out as they need actual iOS app content)
@@ -142,8 +107,8 @@ async function demonstrateIOSMirroring() {
 
     console.log('✅ Demo completed successfully!\n');
 
-    // Step 7: Show usage summary
-    console.log('📋 Usage Summary:');
+    // Step 6: Show usage summary
+    console.log('📋 Step 6: Usage Summary:');
     console.log('================');
     console.log(
       '• iOS coordinates are automatically transformed to macOS coordinates',

@@ -8,23 +8,20 @@ type iOSAgentOpt = PageAgentOpt;
 
 export class iOSAgent extends PageAgent<iOSDevice> {
   declare page: iOSDevice;
+  private connectionPromise: Promise<void> | null = null;
 
-  async launch(uri: string): Promise<void> {
-    const device = this.page;
-    await device.launch(uri);
+  constructor(page: iOSDevice, opts?: iOSAgentOpt) {
+    super(page, opts);
+    this.ensureConnected();
   }
 
-  async back(): Promise<void> {
-    await this.page.back();
+  private ensureConnected(): Promise<void> {
+    if (!this.connectionPromise) {
+      this.connectionPromise = this.page.connect();
+    }
+    return this.connectionPromise;
   }
 
-  async home(): Promise<void> {
-    await this.page.home();
-  }
-
-  async recentApps(): Promise<void> {
-    await this.page.recentApps();
-  }
 }
 
 export async function agentFromPyAutoGUI(opts?: iOSAgentOpt & iOSDeviceOpt) {

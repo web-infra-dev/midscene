@@ -8,6 +8,17 @@ import { createConfig, createFilesConfig } from './config-factory';
 
 Promise.resolve(
   (async () => {
+    // Load .env file early, before parsing any YAML files that might use env vars
+    const dotEnvConfigFile = join(process.cwd(), '.env');
+    if (existsSync(dotEnvConfigFile)) {
+      console.log(`   Env file: ${dotEnvConfigFile}`);
+      dotenv.config({
+        path: dotEnvConfigFile,
+        debug: false, // Will be set properly later
+        override: false, // Will be set properly later
+      });
+    }
+
     const { options, path, files: cmdFiles } = await parseProcessArgs();
 
     const welcome = `\nWelcome to @midscene/cli v${version}\n`;
@@ -65,9 +76,8 @@ Promise.resolve(
       process.exit(1);
     }
 
-    const dotEnvConfigFile = join(process.cwd(), '.env');
+    // Update dotenv configuration with user-specified options
     if (existsSync(dotEnvConfigFile)) {
-      console.log(`   Env file: ${dotEnvConfigFile}`);
       dotenv.config({
         path: dotEnvConfigFile,
         debug: config.dotenvDebug,
