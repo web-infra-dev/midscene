@@ -38,7 +38,7 @@ aiAction('逐条点击所有记录，如果一个记录包含“已完成”，�
 ```javascript
 const recordList = await agent.aiQuery('string[], the record list')
 for (const record of recordList) {
-  const hasCompleted = await agent.aiBoolean(`check if the record contains the text "completed"`)
+  const hasCompleted = await agent.aiBoolean(`check if the record ${record}" contains the text "completed"`)
   if (!hasCompleted) {
     await agent.aiTap(record)
   }

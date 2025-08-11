@@ -39,7 +39,7 @@ Converted code:
 ```javascript
 const recordList = await agent.aiQuery('string[], the record list')
 for (const record of recordList) {
-  const hasCompleted = await agent.aiBoolean(`check if the record contains the text "completed"`)
+  const hasCompleted = await agent.aiBoolean(`check if the record ${record}" contains the text "completed"`)
   if (!hasCompleted) {
     await agent.aiTap(record)
   }
