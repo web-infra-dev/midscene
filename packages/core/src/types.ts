@@ -625,8 +625,10 @@ export type TUserPrompt =
 
 export interface DeviceAction<ParamType = any> {
   name: string;
-  actionDescription: string;
-  paramDescription: string;
-  needLocation?: 'required' | 'optional' | false;
+  description?: string;
+  paramSchema?: string;
+  paramDescription?: string;
+  location?: 'required' | 'optional' | false;
+  whatToLocate?: string; // what to locate if location is required or optional
   call: (param: ParamType) => Promise<void> | void;
 }

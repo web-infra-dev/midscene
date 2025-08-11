@@ -1,4 +1,5 @@
-import type { PageType } from '@/types';
+import assert from 'node:assert';
+import type { DeviceAction, PageType } from '@/types';
 import { PromptTemplate } from '@langchain/core/prompts';
 import type { vlLocateMode } from '@midscene/shared/env';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
@@ -14,65 +15,177 @@ const commonOutputFields = `"error"?: string, // Error messages about unexpected
 const vlLocateParam =
   'locate: {bbox: [number, number, number, number], prompt: string }';
 
+const asyncNoop = async () => {};
+const webActions: DeviceAction[] = [
+  {
+    name: 'Tap',
+    description: 'Tap the element',
+    location: 'required',
+    call: asyncNoop,
+  },
+  {
+    name: 'RightClick',
+    description: 'Right click the element',
+    location: 'required',
+    call: asyncNoop,
+  },
+  {
+    name: 'Hover',
+    description: 'Move the mouse to the element',
+    location: 'required',
+    call: asyncNoop,
+  },
+  {
+    name: 'Input',
+    description: 'Replace the input field with a new value',
+    paramSchema: '{ value: string }',
+    paramDescription:
+      '`value` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. Giving a blank string means clear the input field.',
+    location: 'required',
+    whatToLocate: 'The input field to be filled',
+    call: asyncNoop,
+  },
+  {
+    name: 'KeyboardPress',
+    description: 'Press a key',
+    paramSchema: '{ value: string }',
+    paramDescription: 'The key to be pressed',
+    location: false,
+    call: asyncNoop,
+  },
+  {
+    name: 'Scroll',
+    description: 'Scroll the page or an element',
+    paramSchema:
+      '{ direction: "down"(default) | "up" | "right" | "left", scrollType: "once" (default) | "untilBottom" | "untilTop" | "untilRight" | "untilLeft", distance: number | null }',
+    paramDescription:
+      'The direction to scroll, the scroll type, and the distance to scroll. The distance is the number of pixels to scroll. If not specified, use `down` direction, `once` scroll type, and `null` distance.',
+    location: 'optional',
+    whatToLocate: 'The element to be scrolled',
+    call: asyncNoop,
+  },
+];
+
+const androidActions: DeviceAction[] = [
+  {
+    name: 'AndroidBackButton',
+    description: 'Trigger the system "back" operation on Android devices',
+    location: false,
+    call: asyncNoop,
+  },
+  {
+    name: 'AndroidHomeButton',
+    description: 'Trigger the system "home" operation on Android devices',
+    location: false,
+    call: asyncNoop,
+  },
+  {
+    name: 'AndroidRecentAppsButton',
+    description:
+      'Trigger the system "recent apps" operation on Android devices',
+    location: false,
+    call: asyncNoop,
+  },
+  {
+    name: 'AndroidLongPress',
+    description:
+      'Trigger a long press on the screen at specified coordinates on Android devices',
+    paramSchema: '{ duration?: number }',
+    paramDescription: 'The duration of the long press',
+    location: 'optional',
+    whatToLocate: 'The element to be long pressed',
+    call: asyncNoop,
+  },
+  {
+    name: 'AndroidPull',
+    description:
+      'Trigger pull down to refresh or pull up actions on Android devices',
+    paramSchema:
+      '{ direction: "up" | "down", distance?: number, duration?: number }',
+    paramDescription:
+      'The direction to pull, the distance to pull, and the duration of the pull.',
+    location: 'optional',
+    whatToLocate: 'The element to be pulled',
+    call: asyncNoop,
+  },
+];
+
+export const descriptionForAction = (action: DeviceAction) => {
+  const tab = '  ';
+  let locateParam = '';
+  if (action.location === 'required') {
+    locateParam = vlLocateParam;
+  } else if (action.location === 'optional') {
+    locateParam = `${vlLocateParam} | null`;
+  } else if (action.location === false) {
+    locateParam = '';
+  }
+  const locatorParam = locateParam ? `${tab}- ${locateParam}` : '';
+
+  let whatToLocate = '';
+  if (action.whatToLocate) {
+    if (!locateParam) {
+      console.warn(
+        `whatToLocate is provided for action ${action.name}, but location is not required or optional. The whatToLocate will be ignored.`,
+      );
+    } else {
+      whatToLocate = `${tab}- whatToLocate: ${action.whatToLocate}`;
+    }
+  }
+
+  let paramSchema = '';
+  if (action.paramSchema) {
+    paramSchema = `${tab}- paramSchema: ${action.paramSchema}`;
+  }
+  let paramDescription = '';
+  if (action.paramDescription) {
+    assert(
+      paramSchema,
+      `paramSchema is required when paramDescription is provided for action ${action.name}, but got ${action.paramSchema}`,
+    );
+    paramDescription = `${tab}- paramDescription: ${action.paramDescription}`;
+  }
+
+  const fields = [
+    paramSchema,
+    paramDescription,
+    locatorParam,
+    whatToLocate,
+  ].filter(Boolean);
+
+  return `- ${action.name}
+  - type: "${action.name}"
+  - description: ${action.description}
+${fields.join('\n')}
+`.trim();
+};
+
 const systemTemplateOfVLPlanning = ({
   pageType,
   vlMode,
 }: {
   pageType: PageType;
   vlMode: ReturnType<typeof vlLocateMode>;
-}) => `
+}) => {
+  const actionSpace =
+    pageType === 'android' ? webActions.concat(androidActions) : webActions;
+  const actionNameList = actionSpace.map((action) => action.name).join(', ');
+  const actionDescriptionList = actionSpace.map((action) =>
+    descriptionForAction(action),
+  );
+  const actionList = actionDescriptionList.join('\n');
+
+  return `
 Target: User will give you a screenshot, an instruction and some previous logs indicating what have been done. Please tell what the next one action is (or null if no action should be done) to do the tasks the instruction requires. 
 
 Restriction:
 - Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
-- Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are Tap, Hover, Input, KeyboardPress, Scroll${pageType === 'android' ? ', AndroidBackButton, AndroidHomeButton, AndroidRecentAppsButton, AndroidLongPress, AndroidPull.' : '.'}
+- Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are ${actionNameList}.
 - Don't repeat actions in the previous logs.
 - Bbox is the bounding box of the element to be located. It's an array of 4 numbers, representing ${bboxDescription(vlMode)}.
 
 Supporting actions:
-- Tap
-  - type: "Tap"
-  - ${vlLocateParam}
-- RightClick
-  - type: "RightClick"
-  - ${vlLocateParam}
-- Hover
-  - type: "Hover"
-  - ${vlLocateParam}
-- Input
-  - type: "Input"
-  - ${vlLocateParam}
-  - param: { value: string } // Replace the input field with a new value. \`value\` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. Giving a blank string means clear the input field.
-- KeyboardPress
-  - type: "KeyboardPress"
-  - param: { value: string }
-- Scroll
-  - type: "Scroll"
-  - ${vlLocateParam} | null
-  - param: { direction: 'down'(default) | 'up' | 'right' | 'left', scrollType: 'once' (default) | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft', distance: null | number } // locate is the element to scroll. If it's a page scroll, put \`null\` in the \`locate\` field.
-${
-  pageType === 'android'
-    ? `- AndroidBackButton
-  - type: "AndroidBackButton"
-  - param: {}
-- AndroidHomeButton
-  - type: "AndroidHomeButton"
-  - param: {}
-- AndroidRecentAppsButton
-  - type: "AndroidRecentAppsButton"
-  - param: {}
-- AndroidHomeButton
-  - type: "AndroidHomeButton"
-- AndroidRecentAppsButton
-  - type: "AndroidRecentAppsButton"
-- AndroidLongPress
-  - type: "AndroidLongPress"
-  - param: { x: number, y: number, duration?: number }
-- AndroidPull
-  - type: "AndroidPull"
-  - param: { direction: 'up' | 'down', startPoint?: { x: number, y: number }, distance?: number, duration?: number } // Pull down to refresh (direction: 'down') or pull up to load more (direction: 'up')`
-    : ''
-}
+${actionList}
 
 Field description:
 * The \`prompt\` field inside the \`locate\` field is a short description that could be used to locate the element.
@@ -107,6 +220,7 @@ this and output the JSON:
   }
 }
 `;
+};
 
 const llmLocateParam = `locate: {{"id": string, "prompt": string}} | null`;
 const systemTemplateOfLLM = ({ pageType }: { pageType: PageType }) => `

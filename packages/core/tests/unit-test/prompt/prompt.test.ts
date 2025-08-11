@@ -1,6 +1,7 @@
 import { systemPromptToLocateElement } from '@/ai-model';
 import {
   automationUserPrompt,
+  descriptionForAction,
   generateTaskBackgroundContext,
   planSchema,
   systemPromptToTaskPlanning,
@@ -13,6 +14,92 @@ import {
   systemPromptToExtract,
 } from '../../../src/ai-model/prompt/extraction';
 import { mockNonChinaTimeZone, restoreIntl } from '../mocks/intl-mock';
+
+describe('action space', () => {
+  it('action without param, location is false', () => {
+    const action = descriptionForAction({
+      name: 'Tap',
+      description: 'Tap the element',
+      location: false,
+      call: async () => {},
+    });
+    expect(action).toMatchInlineSnapshot(`
+      "- Tap
+        - type: "Tap"
+        - description: Tap the element"
+    `);
+  });
+
+  it('action with param, location is false', () => {
+    const action = descriptionForAction({
+      name: 'Tap',
+      description: 'Tap the element',
+      paramSchema: '{ foo: string }',
+      paramDescription: 'The foo to be tapped',
+      location: false,
+      call: async () => {},
+    });
+    expect(action).toMatchInlineSnapshot(`
+      "- Tap
+        - type: "Tap"
+        - description: Tap the element
+        - paramSchema: { foo: string }
+        - paramDescription: The foo to be tapped"
+    `);
+  });
+
+  it('action with param, no paramDescription, location is false', () => {
+    const action = descriptionForAction({
+      name: 'Tap',
+      description: 'Tap the element',
+      paramSchema: '{ foo: string }',
+      location: false,
+      call: async () => {},
+    });
+    expect(action).toMatchInlineSnapshot(`
+      "- Tap
+        - type: "Tap"
+        - description: Tap the element
+        - paramSchema: { foo: string }"
+    `);
+  });
+
+  it('action without param, location is required', () => {
+    const action = descriptionForAction({
+      name: 'Tap',
+      description: 'Tap the element',
+      location: 'required',
+      whatToLocate: 'The element to be tapped',
+      call: async () => {},
+    });
+    expect(action).toMatchInlineSnapshot(`
+      "- Tap
+        - type: "Tap"
+        - description: Tap the element
+        - locate: {bbox: [number, number, number, number], prompt: string }
+        - whatToLocate: The element to be tapped"
+    `);
+  });
+
+  it('action with param, location is optional', () => {
+    const action = descriptionForAction({
+      name: 'Tap',
+      description: 'Tap the element',
+      paramSchema: '{ value: string }',
+      paramDescription: 'The value to be tapped',
+      location: 'optional',
+      call: async () => {},
+    });
+    expect(action).toMatchInlineSnapshot(`
+      "- Tap
+        - type: "Tap"
+        - description: Tap the element
+        - paramSchema: { value: string }
+        - paramDescription: The value to be tapped
+        - locate: {bbox: [number, number, number, number], prompt: string } | null"
+    `);
+  });
+});
 
 describe('system prompts', () => {
   it('planning - 4o', async () => {

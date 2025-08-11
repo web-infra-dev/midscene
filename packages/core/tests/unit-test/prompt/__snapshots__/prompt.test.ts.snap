@@ -688,22 +688,65 @@ Target: User will give you a screenshot, an instruction and some previous logs i
 
 Restriction:
 - Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
-- Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are Tap, Hover, Input, KeyboardPress, Scroll, AndroidBackButton, AndroidHomeButton, AndroidRecentAppsButton, AndroidLongPress, AndroidPull.
+- Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are Tap, RightClick, Hover, Input, KeyboardPress, Scroll, AndroidBackButton, AndroidHomeButton, AndroidRecentAppsButton, AndroidLongPress, AndroidPull.
 - Don't repeat actions in the previous logs.
 - Bbox is the bounding box of the element to be located. It's an array of 4 numbers, representing 2d bounding box as [xmin, ymin, xmax, ymax].
 
 Supporting actions:
-- Tap: { type: "Tap", locate: {bbox: [number, number, number, number], prompt: string } }
-- RightClick: { type: "RightClick", locate: {bbox: [number, number, number, number], prompt: string } }
-- Hover: { type: "Hover", locate: {bbox: [number, number, number, number], prompt: string } }
-- Input: { type: "Input", locate: {bbox: [number, number, number, number], prompt: string }, param: { value: string } } // Replace the input field with a new value. \`value\` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. Giving a blank string means clear the input field.
-- KeyboardPress: { type: "KeyboardPress", param: { value: string } }
-- Scroll: { type: "Scroll", locate: {bbox: [number, number, number, number], prompt: string } | null, param: { direction: 'down'(default) | 'up' | 'right' | 'left', scrollType: 'once' (default) | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft', distance: null | number }} // locate is the element to scroll. If it's a page scroll, put \`null\` in the \`locate\` field.
-- AndroidBackButton: { type: "AndroidBackButton", param: {} }
-- AndroidHomeButton: { type: "AndroidHomeButton", param: {} }
-- AndroidRecentAppsButton: { type: "AndroidRecentAppsButton", param: {} }
-- AndroidLongPress: { type: "AndroidLongPress", param: { x: number, y: number, duration?: number } }
-- AndroidPull: { type: "AndroidPull", param: { direction: 'up' | 'down', startPoint?: { x: number, y: number }, distance?: number, duration?: number } } // Pull down to refresh (direction: 'down') or pull up to load more (direction: 'up')
+- Tap
+  - type: "Tap"
+  - description: Tap the element
+  - locate: {bbox: [number, number, number, number], prompt: string }
+- RightClick
+  - type: "RightClick"
+  - description: Right click the element
+  - locate: {bbox: [number, number, number, number], prompt: string }
+- Hover
+  - type: "Hover"
+  - description: Move the mouse to the element
+  - locate: {bbox: [number, number, number, number], prompt: string }
+- Input
+  - type: "Input"
+  - description: Replace the input field with a new value
+  - paramSchema: { value: string }
+  - paramDescription: \`value\` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. Giving a blank string means clear the input field.
+  - locate: {bbox: [number, number, number, number], prompt: string }
+  - whatToLocate: The input field to be filled
+- KeyboardPress
+  - type: "KeyboardPress"
+  - description: Press a key
+  - paramSchema: { value: string }
+  - paramDescription: The key to be pressed
+- Scroll
+  - type: "Scroll"
+  - description: Scroll the page or an element
+  - paramSchema: { direction: "down"(default) | "up" | "right" | "left", scrollType: "once" (default) | "untilBottom" | "untilTop" | "untilRight" | "untilLeft", distance: number | null }
+  - paramDescription: The direction to scroll, the scroll type, and the distance to scroll. The distance is the number of pixels to scroll. If not specified, use \`down\` direction, \`once\` scroll type, and \`null\` distance.
+  - locate: {bbox: [number, number, number, number], prompt: string } | null
+  - whatToLocate: The element to be scrolled
+- AndroidBackButton
+  - type: "AndroidBackButton"
+  - description: Trigger the system "back" operation on Android devices
+- AndroidHomeButton
+  - type: "AndroidHomeButton"
+  - description: Trigger the system "home" operation on Android devices
+- AndroidRecentAppsButton
+  - type: "AndroidRecentAppsButton"
+  - description: Trigger the system "recent apps" operation on Android devices
+- AndroidLongPress
+  - type: "AndroidLongPress"
+  - description: Trigger a long press on the screen at specified coordinates on Android devices
+  - paramSchema: { duration?: number }
+  - paramDescription: The duration of the long press
+  - locate: {bbox: [number, number, number, number], prompt: string } | null
+  - whatToLocate: The element to be long pressed
+- AndroidPull
+  - type: "AndroidPull"
+  - description: Trigger pull down to refresh or pull up actions on Android devices
+  - paramSchema: { direction: "up" | "down", distance?: number, duration?: number }
+  - paramDescription: The direction to pull, the distance to pull, and the duration of the pull.
+  - locate: {bbox: [number, number, number, number], prompt: string } | null
+  - whatToLocate: The element to be pulled
 
 Field description:
 * The \`prompt\` field inside the \`locate\` field is a short description that could be used to locate the element.
@@ -767,18 +810,42 @@ Target: User will give you a screenshot, an instruction and some previous logs i
 
 Restriction:
 - Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
-- Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are Tap, Hover, Input, KeyboardPress, Scroll.
+- Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are Tap, RightClick, Hover, Input, KeyboardPress, Scroll.
 - Don't repeat actions in the previous logs.
 - Bbox is the bounding box of the element to be located. It's an array of 4 numbers, representing 2d bounding box as [ymin, xmin, ymax, xmax].
 
 Supporting actions:
-- Tap: { type: "Tap", locate: {bbox: [number, number, number, number], prompt: string } }
-- RightClick: { type: "RightClick", locate: {bbox: [number, number, number, number], prompt: string } }
-- Hover: { type: "Hover", locate: {bbox: [number, number, number, number], prompt: string } }
-- Input: { type: "Input", locate: {bbox: [number, number, number, number], prompt: string }, param: { value: string } } // Replace the input field with a new value. \`value\` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. Giving a blank string means clear the input field.
-- KeyboardPress: { type: "KeyboardPress", param: { value: string } }
-- Scroll: { type: "Scroll", locate: {bbox: [number, number, number, number], prompt: string } | null, param: { direction: 'down'(default) | 'up' | 'right' | 'left', scrollType: 'once' (default) | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft', distance: null | number }} // locate is the element to scroll. If it's a page scroll, put \`null\` in the \`locate\` field.
-
+- Tap
+  - type: "Tap"
+  - description: Tap the element
+  - locate: {bbox: [number, number, number, number], prompt: string }
+- RightClick
+  - type: "RightClick"
+  - description: Right click the element
+  - locate: {bbox: [number, number, number, number], prompt: string }
+- Hover
+  - type: "Hover"
+  - description: Move the mouse to the element
+  - locate: {bbox: [number, number, number, number], prompt: string }
+- Input
+  - type: "Input"
+  - description: Replace the input field with a new value
+  - paramSchema: { value: string }
+  - paramDescription: \`value\` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. Giving a blank string means clear the input field.
+  - locate: {bbox: [number, number, number, number], prompt: string }
+  - whatToLocate: The input field to be filled
+- KeyboardPress
+  - type: "KeyboardPress"
+  - description: Press a key
+  - paramSchema: { value: string }
+  - paramDescription: The key to be pressed
+- Scroll
+  - type: "Scroll"
+  - description: Scroll the page or an element
+  - paramSchema: { direction: "down"(default) | "up" | "right" | "left", scrollType: "once" (default) | "untilBottom" | "untilTop" | "untilRight" | "untilLeft", distance: number | null }
+  - paramDescription: The direction to scroll, the scroll type, and the distance to scroll. The distance is the number of pixels to scroll. If not specified, use \`down\` direction, \`once\` scroll type, and \`null\` distance.
+  - locate: {bbox: [number, number, number, number], prompt: string } | null
+  - whatToLocate: The element to be scrolled
 
 Field description:
 * The \`prompt\` field inside the \`locate\` field is a short description that could be used to locate the element.
@@ -822,18 +889,42 @@ Target: User will give you a screenshot, an instruction and some previous logs i
 
 Restriction:
 - Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
-- Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are Tap, Hover, Input, KeyboardPress, Scroll.
+- Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are Tap, RightClick, Hover, Input, KeyboardPress, Scroll.
 - Don't repeat actions in the previous logs.
 - Bbox is the bounding box of the element to be located. It's an array of 4 numbers, representing 2d bounding box as [xmin, ymin, xmax, ymax].
 
 Supporting actions:
-- Tap: { type: "Tap", locate: {bbox: [number, number, number, number], prompt: string } }
-- RightClick: { type: "RightClick", locate: {bbox: [number, number, number, number], prompt: string } }
-- Hover: { type: "Hover", locate: {bbox: [number, number, number, number], prompt: string } }
-- Input: { type: "Input", locate: {bbox: [number, number, number, number], prompt: string }, param: { value: string } } // Replace the input field with a new value. \`value\` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. Giving a blank string means clear the input field.
-- KeyboardPress: { type: "KeyboardPress", param: { value: string } }
-- Scroll: { type: "Scroll", locate: {bbox: [number, number, number, number], prompt: string } | null, param: { direction: 'down'(default) | 'up' | 'right' | 'left', scrollType: 'once' (default) | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft', distance: null | number }} // locate is the element to scroll. If it's a page scroll, put \`null\` in the \`locate\` field.
-
+- Tap
+  - type: "Tap"
+  - description: Tap the element
+  - locate: {bbox: [number, number, number, number], prompt: string }
+- RightClick
+  - type: "RightClick"
+  - description: Right click the element
+  - locate: {bbox: [number, number, number, number], prompt: string }
+- Hover
+  - type: "Hover"
+  - description: Move the mouse to the element
+  - locate: {bbox: [number, number, number, number], prompt: string }
+- Input
+  - type: "Input"
+  - description: Replace the input field with a new value
+  - paramSchema: { value: string }
+  - paramDescription: \`value\` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. Giving a blank string means clear the input field.
+  - locate: {bbox: [number, number, number, number], prompt: string }
+  - whatToLocate: The input field to be filled
+- KeyboardPress
+  - type: "KeyboardPress"
+  - description: Press a key
+  - paramSchema: { value: string }
+  - paramDescription: The key to be pressed
+- Scroll
+  - type: "Scroll"
+  - description: Scroll the page or an element
+  - paramSchema: { direction: "down"(default) | "up" | "right" | "left", scrollType: "once" (default) | "untilBottom" | "untilTop" | "untilRight" | "untilLeft", distance: number | null }
+  - paramDescription: The direction to scroll, the scroll type, and the distance to scroll. The distance is the number of pixels to scroll. If not specified, use \`down\` direction, \`once\` scroll type, and \`null\` distance.
+  - locate: {bbox: [number, number, number, number], prompt: string } | null
+  - whatToLocate: The element to be scrolled
 
 Field description:
 * The \`prompt\` field inside the \`locate\` field is a short description that could be used to locate the element.
