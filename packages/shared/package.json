@@ -61,7 +61,7 @@
     "debug": "4.4.0",
     "jimp": "0.22.12",
     "js-sha256": "0.11.0",
-    "sharp": "0.33.5"
+    "sharp": "^0.34.3"
   },
   "devDependencies": {
     "@modern-js/module-tools": "2.60.6",
