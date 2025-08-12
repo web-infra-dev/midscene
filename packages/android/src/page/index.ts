@@ -579,59 +579,28 @@ ${Object.keys(size)
     return '';
   }
 
-  async scrollUntilTop(startPoint?: Point): Promise<void> {
-    if (startPoint) {
-      const start = { x: startPoint.left, y: startPoint.top };
-      const end = { x: start.x, y: 0 };
-
-      await this.mouseDrag(start, end);
-      return;
-    }
-
+  async scrollUntilTop(): Promise<void> {
     await repeat(defaultScrollUntilTimes, () =>
       this.mouseWheel(0, 9999999, defaultFastScrollDuration),
     );
     await sleep(1000);
   }
 
-  async scrollUntilBottom(startPoint?: Point): Promise<void> {
-    if (startPoint) {
-      const { height } = await this.size();
-      const start = { x: startPoint.left, y: startPoint.top };
-      const end = { x: start.x, y: height };
-      await this.mouseDrag(start, end);
-      return;
-    }
-
+  async scrollUntilBottom(): Promise<void> {
     await repeat(defaultScrollUntilTimes, () =>
       this.mouseWheel(0, -9999999, defaultFastScrollDuration),
     );
     await sleep(1000);
   }
 
-  async scrollUntilLeft(startPoint?: Point): Promise<void> {
-    if (startPoint) {
-      const start = { x: startPoint.left, y: startPoint.top };
-      const end = { x: 0, y: start.y };
-      await this.mouseDrag(start, end);
-      return;
-    }
-
+  async scrollUntilLeft(): Promise<void> {
     await repeat(defaultScrollUntilTimes, () =>
       this.mouseWheel(9999999, 0, defaultFastScrollDuration),
     );
     await sleep(1000);
   }
 
-  async scrollUntilRight(startPoint?: Point): Promise<void> {
-    if (startPoint) {
-      const { width } = await this.size();
-      const start = { x: startPoint.left, y: startPoint.top };
-      const end = { x: width, y: start.y };
-      await this.mouseDrag(start, end);
-      return;
-    }
-
+  async scrollUntilRight(): Promise<void> {
     await repeat(defaultScrollUntilTimes, () =>
       this.mouseWheel(-9999999, 0, defaultFastScrollDuration),
     );
