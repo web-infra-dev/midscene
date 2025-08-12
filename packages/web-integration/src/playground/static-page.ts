@@ -123,4 +123,10 @@ export default class StaticPage implements AbstractPage {
   async destroy(): Promise<void> {
     //
   }
+  async longPress(): Promise<void> {
+    //
+  }
+  async swipe(): Promise<void> {
+    //
+  }
 }

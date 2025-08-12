@@ -265,6 +265,8 @@ export interface PlanningAction<ParamType = any> {
     | 'Input'
     | 'KeyboardPress'
     | 'Scroll'
+    | 'Swipe'
+    | 'LongPress'
     | 'Error'
     | 'ExpectedFalsyCondition'
     | 'Assert'
@@ -309,6 +311,23 @@ export interface PlanningActionParamInputOrKeyPress {
 
 export type PlanningActionParamScroll = scrollParam;
 
+export interface PlanningActionParamLongPress {
+  duration?: number;
+}
+export interface PlanningActionParamSwipe {
+  from?: {
+    x: number;
+    y: number;
+  };
+  to?: {
+    x: number;
+    y: number;
+  };
+  duration?: number;
+  direction: 'down' | 'up' | 'right' | 'left';
+  swipeType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft';
+  distance?: number;
+}
 export interface PlanningActionParamAssert {
   assertion: TUserPrompt;
 }
@@ -510,7 +529,7 @@ export type ExecutionTaskInsightAssertion =
   ExecutionTask<ExecutionTaskInsightAssertionApply>;
 
 /*
-task - action (i.e. interact) 
+task - action (i.e. interact)
 */
 export type ExecutionTaskActionApply<ActionParam = any> = ExecutionTaskApply<
   'Action',

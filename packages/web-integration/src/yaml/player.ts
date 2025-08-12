@@ -19,6 +19,8 @@ import type {
   MidsceneYamlFlowItemAIScroll,
   MidsceneYamlFlowItemAIString,
   MidsceneYamlFlowItemAITap,
+  MidsceneYamlFlowItemAILongPress,
+  MidsceneYamlFlowItemAISwipe,
   MidsceneYamlFlowItemAIWaitFor,
   MidsceneYamlFlowItemEvaluateJavaScript,
   MidsceneYamlFlowItemLogScreenshot,
@@ -318,6 +320,12 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       } else if ('aiScroll' in (flowItem as MidsceneYamlFlowItemAIScroll)) {
         const scrollTask = flowItem as MidsceneYamlFlowItemAIScroll;
         await agent.aiScroll(scrollTask, scrollTask.locate, scrollTask);
+      } else if ('aiLongPress' in (flowItem as MidsceneYamlFlowItemAILongPress)) {
+        const longPressTask = flowItem as MidsceneYamlFlowItemAILongPress;
+        await agent.aiLongPress(longPressTask.aiLongPress, longPressTask, longPressTask);
+      } else if ('aiSwipe' in (flowItem as MidsceneYamlFlowItemAISwipe)) {
+        const swipeTask = flowItem as MidsceneYamlFlowItemAISwipe;
+        await agent.aiSwipe(swipeTask, swipeTask.locate, swipeTask);
       } else if (
         'javascript' in (flowItem as MidsceneYamlFlowItemEvaluateJavaScript)
       ) {

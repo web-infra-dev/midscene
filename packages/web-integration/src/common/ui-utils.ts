@@ -8,6 +8,7 @@ import type {
   ExecutionTaskPlanning,
   PlanningActionParamAndroidPull,
   PlanningActionParamScroll,
+  PlanningActionParamSwipe,
 } from '@midscene/core';
 
 export function typeStr(task: ExecutionTask) {
@@ -60,6 +61,27 @@ export function scrollParamStr(scrollParam?: PlanningActionParamScroll) {
   return `${scrollParam.direction || 'down'}, ${scrollParam.scrollType || 'once'}, ${scrollParam.distance || 'distance-not-set'}`;
 }
 
+export function swipeParamStr(swipeParam?: PlanningActionParamSwipe) {
+  if (!swipeParam) {
+    return '';
+  }
+  const parts: string[] = [];
+  parts.push(`direction: ${swipeParam.direction || 'down'}`);
+  if (swipeParam.from) {
+    parts.push(`start: (${swipeParam.from.x}, ${swipeParam.from.y})`);
+  }
+  if (swipeParam.to) {
+    parts.push(`to: (${swipeParam.to.x}, ${swipeParam.to.y})`);
+  }
+  if (swipeParam.distance) {
+    parts.push(`distance: ${swipeParam.distance}`);
+  }
+  if (swipeParam.duration) {
+    parts.push(`duration: ${swipeParam.duration}ms`);
+  }
+  return parts.join(', ');
+}
+
 export function pullParamStr(pullParam?: PlanningActionParamAndroidPull) {
   if (!pullParam) {
     return '';
@@ -93,7 +115,9 @@ export function taskTitleStr(
     | 'Locate'
     | 'Boolean'
     | 'Number'
-    | 'String',
+    | 'String'
+    | 'LongPress'
+    | 'Swipe',
   prompt: string,
 ) {
   if (prompt) {

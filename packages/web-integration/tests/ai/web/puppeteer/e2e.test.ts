@@ -278,6 +278,33 @@ describe(
         'Type "AI 101" in search box, hit Enter, wait 2s. If there is a cookie prompt, close it',
       );
     });
+
+    it('swipe', async () => {
+      const { originPage, reset } = await launchPage('https://m.baidu.com/s?word=%E5%A4%A7%E4%BC%97%E8%BD%A6%E5%9E%8Bid4', {
+        viewport: {
+          width: 393,
+          height: 808,
+        },
+      });
+      resetFn = reset;
+      const agent = new PuppeteerAgent(originPage);
+      await agent.aiAction(
+        '第一屏幕的中心区域向右滑动一屏',
+      );
+    });
+    it('longPress', async () => {
+      const { originPage, reset } = await launchPage('https://m.baidu.com/s?sid=505&word=6003828251-510eacba84f6ecf6d107bd82a763cd9a', {
+        viewport: {
+          width: 393,
+          height: 808,
+        },
+      });
+      resetFn = reset;
+      const agent = new PuppeteerAgent(originPage);
+      await agent.aiAction(
+        '长按进入新空间按钮',
+      );
+    });
   },
   4 * 60 * 1000,
 );
