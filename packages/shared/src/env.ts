@@ -1,5 +1,9 @@
 declare global {
   var midsceneGlobalConfig: Partial<ReturnType<typeof allConfigFromEnv>> | null;
+  var midsceneGlobalConfigOverride: {
+    newConfig?: Partial<ReturnType<typeof allConfigFromEnv>>;
+    extendMode?: boolean;
+  } | null;
 }
 
 // config keys
@@ -139,6 +143,16 @@ const getGlobalConfig = () => {
   if (!globalThis.midsceneGlobalConfig) {
     globalThis.midsceneGlobalConfig = allConfigFromEnv();
   }
+  const envConfig = allConfigFromEnv();
+  if (globalThis.midsceneGlobalConfigOverride) {
+    const { newConfig, extendMode } = globalThis.midsceneGlobalConfigOverride;
+    globalThis.midsceneGlobalConfig = extendMode
+      ? { ...envConfig, ...newConfig }
+      : { ...newConfig };
+  } else {
+    globalThis.midsceneGlobalConfig = envConfig;
+  }
+
   return globalThis.midsceneGlobalConfig;
 };
 
@@ -277,10 +291,10 @@ export const overrideAIConfig = (
     }
   }
 
-  const currentConfig = getGlobalConfig();
-  globalThis.midsceneGlobalConfig = extendMode
-    ? { ...currentConfig, ...newConfig }
-    : { ...newConfig };
+  globalThis.midsceneGlobalConfigOverride = {
+    newConfig,
+    extendMode,
+  };
 };
 
 export const getPreferredLanguage = () => {
