@@ -8,41 +8,13 @@ import {
 } from '@/ai-model/prompt/llm-planning';
 import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
 import { getUiTarsPlanningPrompt } from '@/ai-model/prompt/ui-tars-planning';
-import type { DeviceAction } from '@/types';
+import { mockActionSpace } from 'tests/common';
 import { describe, expect, it } from 'vitest';
 import {
   extractDataQueryPrompt,
   systemPromptToExtract,
 } from '../../../src/ai-model/prompt/extraction';
 import { mockNonChinaTimeZone, restoreIntl } from '../mocks/intl-mock';
-
-const sampleActionSpace: DeviceAction[] = [
-  {
-    name: 'Tap',
-    description: 'Tap the element',
-    location: 'required',
-    whatToLocate: 'The element to be tapped',
-    paramSchema: '{ value: string }',
-    paramDescription: 'The value to be tapped',
-    call: async () => {},
-  },
-  {
-    name: 'Sleep',
-    description: 'Sleep for a period of time',
-    paramSchema: '{ timeMs: number }',
-    paramDescription: 'The duration of the sleep in milliseconds',
-    location: false,
-    call: async () => {},
-  },
-  {
-    name: 'Input',
-    description: 'Input text into the input field',
-    paramSchema: '{ value: string }',
-    paramDescription: 'The value to be input',
-    location: 'optional',
-    call: async () => {},
-  },
-];
 
 const mockLocatorScheme = 'locate: {"mock": string}';
 describe('action space', () => {
@@ -141,7 +113,7 @@ describe('action space', () => {
 describe('system prompts', () => {
   it('planning - 4o', async () => {
     const prompt = await systemPromptToTaskPlanning({
-      actionSpace: sampleActionSpace,
+      actionSpace: mockActionSpace,
       vlMode: false,
     });
     expect(prompt).toMatchSnapshot();
@@ -154,7 +126,7 @@ describe('system prompts', () => {
 
   it('planning - qwen', async () => {
     const prompt = await systemPromptToTaskPlanning({
-      actionSpace: sampleActionSpace,
+      actionSpace: mockActionSpace,
       vlMode: 'qwen-vl',
     });
     expect(prompt).toMatchSnapshot();
@@ -162,7 +134,7 @@ describe('system prompts', () => {
 
   it('planning - gemini', async () => {
     const prompt = await systemPromptToTaskPlanning({
-      actionSpace: sampleActionSpace,
+      actionSpace: mockActionSpace,
       vlMode: 'gemini',
     });
     expect(prompt).toMatchSnapshot();
@@ -170,7 +142,7 @@ describe('system prompts', () => {
 
   it('planning - android', async () => {
     const prompt = await systemPromptToTaskPlanning({
-      actionSpace: sampleActionSpace,
+      actionSpace: mockActionSpace,
       vlMode: 'qwen-vl',
     });
     expect(prompt).toMatchSnapshot();

@@ -10,7 +10,7 @@ const vlCoTLog = `"what_the_user_wants_to_do_next_by_instruction": string, // Wh
 const vlCurrentLog = `"log": string, // Log what the next one action (ONLY ONE!) you can do according to the screenshot and the instruction. The typical log looks like "Now i want to use action '{ action-type }' to do .. first". If no action should be done, log the reason. ". Use the same language as the user's instruction.`;
 const llmCurrentLog = `"log": string, // Log what the next actions you can do according to the screenshot and the instruction. The typical log looks like "Now i want to use action '{ action-type }' to do ..". If no action should be done, log the reason. ". Use the same language as the user's instruction.`;
 
-const commonOutputFields = `"error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not expected according to the instruction. Use the same language as the user's instruction.
+const commonOutputFields = `"error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not foreseeable according to the instruction. Use the same language as the user's instruction.
   "more_actions_needed_by_instruction": boolean, // Consider if there is still more action(s) to do after the action in "Log" is done, according to the instruction. If so, set this field to true. Otherwise, set it to false.`;
 const vlLocateParam = (required: boolean) =>
   `locate${required ? '' : '?'}: {bbox: [number, number, number, number], prompt: string }`;
@@ -213,14 +213,14 @@ By viewing the page screenshot and description, you should consider this and out
 {
   "actions":[
     {
-      "type": "Tap", 
       "thought": "Click the language switch button to open the language options.",
+      "type": "Tap", 
       "param": null,
       "locate": { id: "c81c4e9a33", prompt: "The language switch button" }},
     },
     {
-      "type": "Sleep",
       "thought": "Wait for 1 second to ensure the language options are displayed.",
+      "type": "Sleep",
       "param": { "timeMs": 1000 },
     }
   ],
@@ -234,16 +234,16 @@ Wrong output:
 {
   "actions":[
     {
-      "type": "Tap",
       "thought": "Click the language switch button to open the language options.",
+      "type": "Tap",
       "param": null,
       "locate": {
         { "id": "c81c4e9a33" }, // WRONG: prompt is missing, this is not a valid LocateParam
       }
     },
     {
-      "type": "Tap", 
       "thought": "Click the English option",
+      "type": "Tap", 
       "param": null,
       "locate": null, // This means the 'English' option is not shown in the screenshot, the task cannot be accomplished
     }
@@ -271,17 +271,16 @@ export const planSchema: ResponseFormatJSONSchema = {
   type: 'json_schema',
   json_schema: {
     name: 'action_items',
-    strict: true,
+    strict: false,
     schema: {
       type: 'object',
-      strict: true,
+      strict: false,
       properties: {
         actions: {
-          //  TODO
           type: 'array',
           items: {
             type: 'object',
-            strict: true,
+            strict: false,
             properties: {
               thought: {
                 type: 'string',
@@ -290,49 +289,17 @@ export const planSchema: ResponseFormatJSONSchema = {
               },
               type: {
                 type: 'string',
-                description:
-                  'Type of action, one of "Tap", "RightClick", "Hover" , "Input", "KeyboardPress", "Scroll", "ExpectedFalsyCondition", "Sleep", "AndroidBackButton", "AndroidHomeButton", "AndroidRecentAppsButton", "AndroidLongPress"',
+                description: 'Type of action',
               },
               param: {
                 anyOf: [
                   { type: 'null' },
                   {
                     type: 'object',
-                    properties: { value: { type: ['string', 'number'] } },
-                    required: ['value'],
-                    additionalProperties: false,
-                  },
-                  {
-                    type: 'object',
-                    properties: { timeMs: { type: ['number', 'string'] } },
-                    required: ['timeMs'],
-                    additionalProperties: false,
-                  },
-                  {
-                    type: 'object',
-                    properties: {
-                      direction: { type: 'string' },
-                      scrollType: { type: 'string' },
-                      distance: { type: ['number', 'string', 'null'] },
-                    },
-                    required: ['direction', 'scrollType', 'distance'],
-                    additionalProperties: false,
-                  },
-                  {
-                    type: 'object',
-                    properties: { reason: { type: 'string' } },
-                    required: ['reason'],
-                    additionalProperties: false,
-                  },
-                  {
-                    type: 'object',
-                    properties: { button: { type: 'string' } },
-                    required: ['button'],
-                    additionalProperties: false,
+                    additionalProperties: true,
                   },
                 ],
-                description:
-                  'Parameter of the action, can be null ONLY when the type field is Tap or Hover',
+                description: 'Parameter of the action',
               },
               locate: {
                 type: ['object', 'null'],

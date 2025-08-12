@@ -641,19 +641,6 @@ export class PageTaskExecutor {
             },
           };
         tasks.push(taskActionError);
-      } else if (plan.type === 'ExpectedFalsyCondition') {
-        const taskActionFalsyConditionStatement: ExecutionTaskActionApply<null> =
-          {
-            type: 'Action',
-            subType: 'ExpectedFalsyCondition',
-            param: null,
-            thought: plan.param?.reason,
-            locate: plan.locate,
-            executor: async () => {
-              // console.warn(`[warn]falsy condition: ${plan.thought}`);
-            },
-          };
-        tasks.push(taskActionFalsyConditionStatement);
       } else if (plan.type === 'Finished') {
         const taskActionFinished: ExecutionTaskActionApply<null> = {
           type: 'Action',

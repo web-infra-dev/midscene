@@ -403,92 +403,18 @@ exports[`system prompts > planning - 4o - response format 1`] = `
                     "type": "null",
                   },
                   {
-                    "additionalProperties": false,
-                    "properties": {
-                      "value": {
-                        "type": [
-                          "string",
-                          "number",
-                        ],
-                      },
-                    },
-                    "required": [
-                      "value",
-                    ],
-                    "type": "object",
-                  },
-                  {
-                    "additionalProperties": false,
-                    "properties": {
-                      "timeMs": {
-                        "type": [
-                          "number",
-                          "string",
-                        ],
-                      },
-                    },
-                    "required": [
-                      "timeMs",
-                    ],
-                    "type": "object",
-                  },
-                  {
-                    "additionalProperties": false,
-                    "properties": {
-                      "direction": {
-                        "type": "string",
-                      },
-                      "distance": {
-                        "type": [
-                          "number",
-                          "string",
-                          "null",
-                        ],
-                      },
-                      "scrollType": {
-                        "type": "string",
-                      },
-                    },
-                    "required": [
-                      "direction",
-                      "scrollType",
-                      "distance",
-                    ],
-                    "type": "object",
-                  },
-                  {
-                    "additionalProperties": false,
-                    "properties": {
-                      "reason": {
-                        "type": "string",
-                      },
-                    },
-                    "required": [
-                      "reason",
-                    ],
-                    "type": "object",
-                  },
-                  {
-                    "additionalProperties": false,
-                    "properties": {
-                      "button": {
-                        "type": "string",
-                      },
-                    },
-                    "required": [
-                      "button",
-                    ],
+                    "additionalProperties": true,
                     "type": "object",
                   },
                 ],
-                "description": "Parameter of the action, can be null ONLY when the type field is Tap or Hover",
+                "description": "Parameter of the action",
               },
               "thought": {
                 "description": "Reasons for generating this task, and why this task is feasible on this page",
                 "type": "string",
               },
               "type": {
-                "description": "Type of action, one of "Tap", "RightClick", "Hover" , "Input", "KeyboardPress", "Scroll", "ExpectedFalsyCondition", "Sleep", "AndroidBackButton", "AndroidHomeButton", "AndroidRecentAppsButton", "AndroidLongPress"",
+                "description": "Type of action",
                 "type": "string",
               },
             },
@@ -498,7 +424,7 @@ exports[`system prompts > planning - 4o - response format 1`] = `
               "param",
               "locate",
             ],
-            "strict": true,
+            "strict": false,
             "type": "object",
           },
           "type": "array",
@@ -525,10 +451,10 @@ exports[`system prompts > planning - 4o - response format 1`] = `
         "log",
         "error",
       ],
-      "strict": true,
+      "strict": false,
       "type": "object",
     },
-    "strict": true,
+    "strict": false,
   },
   "type": "json_schema",
 }
@@ -548,7 +474,7 @@ You are a versatile professional in software UI automation. Your outstanding con
 ## Workflow
 
 1. Receive the screenshot, element description of screenshot(if any), user's instruction and previous logs.
-2. Decompose the user's task into a sequence of feasible actions, and place it in the \`actions\` field. There are different types of actions (Tap / Sleep / Input). The "About the action" section below will give you more details.
+2. Decompose the user's task into a sequence of feasible actions, and place it in the \`actions\` field. There are different types of actions (Tap / Sleep / Input / KeyboardPress / Scroll). The "About the action" section below will give you more details.
 3. Consider whether the user's instruction will be accomplished after the actions you composed.
 - If the instruction is accomplished, set \`more_actions_needed_by_instruction\` to false.
 - If more actions are needed, set \`more_actions_needed_by_instruction\` to true. Get ready to hand over to the next talent people like you. Carefully log what have been done in the \`log\` field, he or she will continue the task according to your logs.
@@ -584,6 +510,14 @@ Each action has a \`type\` and corresponding \`param\`. To be detailed:
   - type: "Input"
   - param: { value: string } // The value to be input
   - locate?: {"id": string, "prompt": string} | null
+- KeyboardPress, Press a keyboard key
+  - type: "KeyboardPress"
+  - param: { value: string } // The value to be input
+  - locate?: {"id": string, "prompt": string} | null
+- Scroll, Scroll the page
+  - type: "Scroll"
+  - param: { value: string } // The value to be input
+  - locate?: {"id": string, "prompt": string} | null
 
 
 ## Output JSON Format:
@@ -595,7 +529,7 @@ The JSON format is as follows:
     // ... some actions
   ],
   "log": string, // Log what the next actions you can do according to the screenshot and the instruction. The typical log looks like "Now i want to use action '{ action-type }' to do ..". If no action should be done, log the reason. ". Use the same language as the user's instruction.
-  "error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not expected according to the instruction. Use the same language as the user's instruction.
+  "error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not foreseeable according to the instruction. Use the same language as the user's instruction.
   "more_actions_needed_by_instruction": boolean, // Consider if there is still more action(s) to do after the action in "Log" is done, according to the instruction. If so, set this field to true. Otherwise, set it to false.
 }
 
@@ -621,14 +555,14 @@ By viewing the page screenshot and description, you should consider this and out
 {
   "actions":[
     {
-      "type": "Tap", 
       "thought": "Click the language switch button to open the language options.",
+      "type": "Tap", 
       "param": null,
       "locate": { id: "c81c4e9a33", prompt: "The language switch button" }},
     },
     {
-      "type": "Sleep",
       "thought": "Wait for 1 second to ensure the language options are displayed.",
+      "type": "Sleep",
       "param": { "timeMs": 1000 },
     }
   ],
@@ -642,16 +576,16 @@ Wrong output:
 {
   "actions":[
     {
-      "type": "Tap",
       "thought": "Click the language switch button to open the language options.",
+      "type": "Tap",
       "param": null,
       "locate": {
         { "id": "c81c4e9a33" }, // WRONG: prompt is missing, this is not a valid LocateParam
       }
     },
     {
-      "type": "Tap", 
       "thought": "Click the English option",
+      "type": "Tap", 
       "param": null,
       "locate": null, // This means the 'English' option is not shown in the screenshot, the task cannot be accomplished
     }
@@ -668,7 +602,7 @@ Target: User will give you a screenshot, an instruction and some previous logs i
 
 Restriction:
 - Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
-- Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are Tap, Sleep, Input.
+- Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are Tap, Sleep, Input, KeyboardPress, Scroll.
 - Don't repeat actions in the previous logs.
 - Bbox is the bounding box of the element to be located. It's an array of 4 numbers, representing 2d bounding box as [xmin, ymin, xmax, ymax].
 
@@ -684,6 +618,14 @@ Supporting actions:
   - type: "Input"
   - param: { value: string } // The value to be input
   - locate?: {bbox: [number, number, number, number], prompt: string } | null
+- KeyboardPress, Press a keyboard key
+  - type: "KeyboardPress"
+  - param: { value: string } // The value to be input
+  - locate?: {bbox: [number, number, number, number], prompt: string } | null
+- Scroll, Scroll the page
+  - type: "Scroll"
+  - param: { value: string } // The value to be input
+  - locate?: {bbox: [number, number, number, number], prompt: string } | null
 
 Field description:
 * The \`prompt\` field inside the \`locate\` field is a short description that could be used to locate the element.
@@ -692,7 +634,7 @@ Return in JSON format:
 {
   "what_the_user_wants_to_do_next_by_instruction": string, // What the user wants to do according to the instruction and previous logs. 
   "log": string, // Log what the next one action (ONLY ONE!) you can do according to the screenshot and the instruction. The typical log looks like "Now i want to use action '{ action-type }' to do .. first". If no action should be done, log the reason. ". Use the same language as the user's instruction.
-  "error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not expected according to the instruction. Use the same language as the user's instruction.
+  "error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not foreseeable according to the instruction. Use the same language as the user's instruction.
   "more_actions_needed_by_instruction": boolean, // Consider if there is still more action(s) to do after the action in "Log" is done, according to the instruction. If so, set this field to true. Otherwise, set it to false.
   "action": 
     {
@@ -747,7 +689,7 @@ Target: User will give you a screenshot, an instruction and some previous logs i
 
 Restriction:
 - Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
-- Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are Tap, Sleep, Input.
+- Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are Tap, Sleep, Input, KeyboardPress, Scroll.
 - Don't repeat actions in the previous logs.
 - Bbox is the bounding box of the element to be located. It's an array of 4 numbers, representing 2d bounding box as [ymin, xmin, ymax, xmax].
 
@@ -763,6 +705,14 @@ Supporting actions:
   - type: "Input"
   - param: { value: string } // The value to be input
   - locate?: {bbox: [number, number, number, number], prompt: string } | null
+- KeyboardPress, Press a keyboard key
+  - type: "KeyboardPress"
+  - param: { value: string } // The value to be input
+  - locate?: {bbox: [number, number, number, number], prompt: string } | null
+- Scroll, Scroll the page
+  - type: "Scroll"
+  - param: { value: string } // The value to be input
+  - locate?: {bbox: [number, number, number, number], prompt: string } | null
 
 Field description:
 * The \`prompt\` field inside the \`locate\` field is a short description that could be used to locate the element.
@@ -771,7 +721,7 @@ Return in JSON format:
 {
   "what_the_user_wants_to_do_next_by_instruction": string, // What the user wants to do according to the instruction and previous logs. 
   "log": string, // Log what the next one action (ONLY ONE!) you can do according to the screenshot and the instruction. The typical log looks like "Now i want to use action '{ action-type }' to do .. first". If no action should be done, log the reason. ". Use the same language as the user's instruction.
-  "error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not expected according to the instruction. Use the same language as the user's instruction.
+  "error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not foreseeable according to the instruction. Use the same language as the user's instruction.
   "more_actions_needed_by_instruction": boolean, // Consider if there is still more action(s) to do after the action in "Log" is done, according to the instruction. If so, set this field to true. Otherwise, set it to false.
   "action": 
     {
@@ -806,7 +756,7 @@ Target: User will give you a screenshot, an instruction and some previous logs i
 
 Restriction:
 - Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
-- Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are Tap, Sleep, Input.
+- Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are Tap, Sleep, Input, KeyboardPress, Scroll.
 - Don't repeat actions in the previous logs.
 - Bbox is the bounding box of the element to be located. It's an array of 4 numbers, representing 2d bounding box as [xmin, ymin, xmax, ymax].
 
@@ -822,6 +772,14 @@ Supporting actions:
   - type: "Input"
   - param: { value: string } // The value to be input
   - locate?: {bbox: [number, number, number, number], prompt: string } | null
+- KeyboardPress, Press a keyboard key
+  - type: "KeyboardPress"
+  - param: { value: string } // The value to be input
+  - locate?: {bbox: [number, number, number, number], prompt: string } | null
+- Scroll, Scroll the page
+  - type: "Scroll"
+  - param: { value: string } // The value to be input
+  - locate?: {bbox: [number, number, number, number], prompt: string } | null
 
 Field description:
 * The \`prompt\` field inside the \`locate\` field is a short description that could be used to locate the element.
@@ -830,7 +788,7 @@ Return in JSON format:
 {
   "what_the_user_wants_to_do_next_by_instruction": string, // What the user wants to do according to the instruction and previous logs. 
   "log": string, // Log what the next one action (ONLY ONE!) you can do according to the screenshot and the instruction. The typical log looks like "Now i want to use action '{ action-type }' to do .. first". If no action should be done, log the reason. ". Use the same language as the user's instruction.
-  "error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not expected according to the instruction. Use the same language as the user's instruction.
+  "error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not foreseeable according to the instruction. Use the same language as the user's instruction.
   "more_actions_needed_by_instruction": boolean, // Consider if there is still more action(s) to do after the action in "Log" is done, according to the instruction. If so, set this field to true. Otherwise, set it to false.
   "action": 
     {
