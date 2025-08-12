@@ -1,4 +1,4 @@
-import type { PlanningActionParamScroll, Rect, TUserPrompt } from './types';
+import type { PlanningActionParamScroll, Rect, TUserPrompt, PlanningActionParamLongPress, PlanningActionParamSwipe } from './types';
 
 export interface LocateOption {
   deepThink?: boolean; // only available in vl model
@@ -153,13 +153,17 @@ export interface MidsceneYamlFlowItemAIKeyboardPress extends LocateOption {
   locate?: TUserPrompt; // where to press, optional
 }
 
-export interface MidsceneYamlFlowItemAIScroll
-  extends LocateOption,
-    PlanningActionParamScroll {
+export interface MidsceneYamlFlowItemAIScroll extends LocateOption, PlanningActionParamScroll {
   aiScroll: null;
   locate?: TUserPrompt; // which area to scroll, optional
 }
-
+export interface MidsceneYamlFlowItemAILongPress extends LocateOption, PlanningActionParamLongPress {
+  aiLongPress: TUserPrompt;
+}
+export interface MidsceneYamlFlowItemAISwipe extends LocateOption, PlanningActionParamSwipe{
+  aiSwipe: null;
+  locate?: TUserPrompt; // where to swipe, optional
+}
 export interface MidsceneYamlFlowItemEvaluateJavaScript {
   javascript: string;
   name?: string;
@@ -185,6 +189,8 @@ export type MidsceneYamlFlowItem =
   | MidsceneYamlFlowItemAIInput
   | MidsceneYamlFlowItemAIKeyboardPress
   | MidsceneYamlFlowItemAIScroll
+  | MidsceneYamlFlowItemAISwipe
+  | MidsceneYamlFlowItemAILongPress
   | MidsceneYamlFlowItemSleep
   | MidsceneYamlFlowItemLogScreenshot;
 

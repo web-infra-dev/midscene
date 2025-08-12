@@ -5,8 +5,10 @@ import type {
   MidsceneYamlFlowItem,
   PlanningAction,
   PlanningActionParamInputOrKeyPress,
+  PlanningActionParamLongPress,
   PlanningActionParamScroll,
   PlanningActionParamSleep,
+  PlanningActionParamSwipe,
   Rect,
   Size,
 } from '@/types';
@@ -362,6 +364,24 @@ export function buildYamlFlowFromPlans(
         direction: param.direction,
         scrollType: param.scrollType,
         distance: param.distance,
+      });
+    } else if (type === 'Swipe') {
+      const param = plan.param as PlanningActionParamSwipe;
+        flow.push({
+          aiSwipe: null,
+          locate,
+          from: param.from,
+          to: param.to,
+          duration: param.duration,
+          direction: param.direction,
+          swipeType: param.swipeType,
+          distance: param.distance,
+        });
+    } else if (type === 'LongPress') {
+      const param = plan.param as PlanningActionParamLongPress;
+      flow.push({
+        aiLongPress: locate!,
+        duration: param.duration,
       });
     } else if (type === 'Sleep') {
       const param = plan.param as PlanningActionParamSleep;

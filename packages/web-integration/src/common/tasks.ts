@@ -33,6 +33,8 @@ import {
   type PlanningActionParamScroll,
   type PlanningActionParamSleep,
   type PlanningActionParamTap,
+  type PlanningActionParamSwipe,
+  type PlanningActionParamLongPress,
   type PlanningActionParamWaitFor,
   type TMultimodalPrompt,
   type TUserPrompt,
@@ -610,6 +612,97 @@ export class PageTaskExecutor {
             },
           };
         tasks.push(taskActionScroll);
+      } else if (plan.type === 'Swipe') {
+        const taskActionSwipe: ExecutionTaskActionApply<PlanningActionParamSwipe> = {
+          type: 'Action',
+          subType: 'Swipe',
+          param: plan.param,
+          thought: plan.thought,
+          locate: plan.locate,
+          executor: async (taskParam, { element }) => {
+            assert(
+              !isAndroidPage(this.page),
+              'Cannot use swipe on Android devices',
+            );
+            let { from, to, direction, swipeType = 'untilLeft', distance = 500, duration = 300 } = taskParam || {};
+
+            if (element) {
+              from = {
+                x: element.center[0],
+                y: element.center[1],
+              };
+            }
+
+            const { width, height } = await this.page.size();
+
+            if (!from) {
+              from = { x: width / 2, y: height / 2 };
+            }
+            if (to) {
+              await this.page.swipe(from, to, duration);
+              return;
+            }
+            if (distance == null) {
+              distance = width / 2;
+            }
+            switch (swipeType) {
+              case 'once':
+                switch (direction) {
+                  case 'up':
+                    to = { x: from.x, y: from.y - distance! };
+                    break;
+                  case 'down':
+                    to = { x: from.x, y: from.y + distance! };
+                    break;
+                  case 'left':
+                    to = { x: from.x - distance!, y: from.y };
+                    break;
+                  case 'right':
+                    to = { x: from.x + distance!, y: from.y };
+                    break;
+                  default:
+                    throw new Error(`Unknown direction: ${direction}`);
+                }
+                break;
+
+              case 'untilTop':
+                to = { x: from.x, y: 0 };
+                break;
+              case 'untilBottom':
+                to = { x: from.x, y: height };
+                break;
+              case 'untilLeft':
+                to = { x: 0, y: from.y };
+                break;
+              case 'untilRight':
+                to = { x: width, y: from.y };
+                break;
+
+              default:
+                throw new Error(`Unknown swipeType: ${swipeType}`);
+            }
+            await this.page.swipe(from, to, duration);
+          },
+        };
+        tasks.push(taskActionSwipe);
+      } else if (plan.type === 'LongPress') {
+        const taskActionLongPress: ExecutionTaskActionApply<PlanningActionParamLongPress> = {
+          type: 'Action',
+          subType: 'LongPress',
+          param: plan.param,
+          thought: plan.thought,
+          locate: plan.locate,
+          executor: async (taskParam, { element }) => {
+            assert(
+              !isAndroidPage(this.page),
+              'Cannot use long press on Android devices, use android long press action instead',
+            );
+            assert(element, 'Element not found, cannot long press');
+            const duration = taskParam?.duration;
+            await this.page.longPress(element.center[0], element.center[1], duration);
+          },
+        };
+        tasks.push(taskActionLongPress);
       } else if (plan.type === 'Sleep') {
         const taskActionSleep: ExecutionTaskActionApply<PlanningActionParamSleep> =
           {

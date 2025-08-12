@@ -25,7 +25,7 @@ Target: User will give you a screenshot, an instruction and some previous logs i
 
 Restriction:
 - Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
-- Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are Tap, Hover, Input, KeyboardPress, Scroll${pageType === 'android' ? ', AndroidBackButton, AndroidHomeButton, AndroidRecentAppsButton, AndroidLongPress, AndroidPull.' : '.'}
+- Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are Tap, Hover, Input, KeyboardPress, Scroll, LongPress, Swipe${pageType === 'android' ? ', AndroidBackButton, AndroidHomeButton, AndroidRecentAppsButton, AndroidLongPress, AndroidPull.' : '.'}
 - Don't repeat actions in the previous logs.
 - Bbox is the bounding box of the element to be located. It's an array of 4 numbers, representing ${bboxDescription(vlMode)}.
 
@@ -35,6 +35,8 @@ Supporting actions:
 - Hover: { type: "Hover", ${vlLocateParam} }
 - Input: { type: "Input", ${vlLocateParam}, param: { value: string } } // Replace the input field with a new value. \`value\` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. Giving a blank string means clear the input field.
 - KeyboardPress: { type: "KeyboardPress", param: { value: string } }
+- LongPress: { type: "LongPress", ${vlLocateParam}, param: { duration?: number(ms) } }
+- Swipe: { type: "Swipe", ${vlLocateParam} | null, param: { from?: { x: number, y: number }, to?: { x: number, y: number }, duration?: number(ms), direction: 'down' | 'up' | 'right' | 'left'(default), swipeType: 'once' (default) | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft', distance?: number } } // locate is the element to swipe. For a page-level swipe, set \`locate\` to \`null\`.
 - Scroll: { type: "Scroll", ${vlLocateParam} | null, param: { direction: 'down'(default) | 'up' | 'right' | 'left', scrollType: 'once' (default) | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft', distance: null | number }} // locate is the element to scroll. If it's a page scroll, put \`null\` in the \`locate\` field.
 ${
   pageType === 'android'
@@ -95,7 +97,7 @@ You are a versatile professional in software UI automation. Your outstanding con
 ## Workflow
 
 1. Receive the screenshot, element description of screenshot(if any), user's instruction and previous logs.
-2. Decompose the user's task into a sequence of actions, and place it in the \`actions\` field. There are different types of actions (Tap / Hover / Input / KeyboardPress / Scroll / FalsyConditionStatement / Sleep ${pageType === 'android' ? '/ AndroidBackButton / AndroidHomeButton / AndroidRecentAppsButton / AndroidLongPress / AndroidPull' : ''}). The "About the action" section below will give you more details.
+2. Decompose the user's task into a sequence of actions, and place it in the \`actions\` field. There are different types of actions (Tap / Hover / Input / KeyboardPress / Scroll / LongPress / Swipe / FalsyConditionStatement / Sleep ${pageType === 'android' ? '/ AndroidBackButton / AndroidHomeButton / AndroidRecentAppsButton / AndroidLongPress / AndroidPull' : ''}). The "About the action" section below will give you more details.
 3. Precisely locate the target element if it's already shown in the screenshot, put the location info in the \`locate\` field of the action.
 4. If some target elements is not shown in the screenshot, consider the user's instruction is not feasible on this page. Follow the next steps.
 5. Consider whether the user's instruction will be accomplished after all the actions
@@ -149,6 +151,31 @@ Each action has a \`type\` and corresponding \`param\`. To be detailed:
   * use this action when the conditional statement talked about in the instruction is falsy.
 - type: 'Sleep'
   * {{ param: {{ timeMs: number }} }}
+- type: 'LongPress',  trigger a long press on the screen at specified coordinates
+  * {{ ${llmLocateParam}, param: {{ duration?: number(ms) }} }}
+- type: 'Swipe', trigger a swipe gesture from one point to another on the screen  
+  * {{ 
+      ${llmLocateParam},  
+      param: {{  
+        from?: {{ x: number, y: number }},  
+        to?: {{ x: number, y: number }},  
+        duration?: number(ms),  
+        direction?: 'down' | 'up' | 'right' | 'left',  
+        swipeType?: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft',  
+        distance?: number  
+      }}  
+    }}  
+  * To swipe a specific element, put the element at the center of the region in the \`locate\` field.  
+    For a page-level swipe, set \`locate\` to \`null\`.  
+  * If the user specifies an element, use its center as the \`from\` position.
+    If \`from\` and \`to\` are specified, use them directly.  
+  * If \`to\` cannot be extracted, only extract \`direction\` and \`swipeType\` and \`distance\` for later use.  
+  * Default values:  
+    - \`direction\`: \`'left'\`  
+    - \`swipeType\`: \`'untilLeft'\`  
+  * \`swipeType\` describes swipe behavior:
+    - 'once'
+    - 'untilBottom', 'untilTop', 'untilRight', 'untilLeft'
 ${
   pageType === 'android'
     ? `- type: 'AndroidBackButton', trigger the system "back" operation on Android devices
@@ -284,7 +311,7 @@ export const planSchema: ResponseFormatJSONSchema = {
               type: {
                 type: 'string',
                 description:
-                  'Type of action, one of "Tap", "RightClick", "Hover" , "Input", "KeyboardPress", "Scroll", "ExpectedFalsyCondition", "Sleep", "AndroidBackButton", "AndroidHomeButton", "AndroidRecentAppsButton", "AndroidLongPress"',
+                  'Type of action, one of "Tap", "RightClick", "Hover" , "Input", "KeyboardPress", "Scroll", "Swipe", "LongPress", "ExpectedFalsyCondition", "Sleep", "AndroidBackButton", "AndroidHomeButton", "AndroidRecentAppsButton", "AndroidLongPress"',
               },
               param: {
                 anyOf: [
@@ -309,6 +336,47 @@ export const planSchema: ResponseFormatJSONSchema = {
                       distance: { type: ['number', 'string', 'null'] },
                     },
                     required: ['direction', 'scrollType', 'distance'],
+                    additionalProperties: false,
+                  },
+                  {
+                    type: 'object',
+                    properties: {
+                      duration: { type: ['number', 'string'] },
+                      from: {
+                        anyOf: [
+                          {
+                            type: 'object',
+                            properties: {
+                              x: { type: ['number', 'string'] },
+                              y: { type: ['number', 'string'] },
+                            },
+                            required: ['x', 'y'],
+                            additionalProperties: false,
+                          },
+                          { type: 'null' }
+                        ]
+                      },
+                      to: {
+                        anyOf: [
+                          {
+                            type: 'object',
+                            properties: {
+                              x: { type: ['number', 'string'] },
+                              y: { type: ['number', 'string'] },
+                            },
+                            required: ['x', 'y'],
+                            additionalProperties: false,
+                          },
+                          { type: 'null' }
+                        ]
+                      }
+                    },
+                    additionalProperties: false
+                  },
+
+                  {
+                    type: 'object',
+                    properties: { duration: { type: ['number', 'string'] } },
                     additionalProperties: false,
                   },
                   {

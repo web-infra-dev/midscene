@@ -99,6 +99,8 @@ export const PlaywrightAiFixture = (options?: {
       | 'aiInput'
       | 'aiKeyboardPress'
       | 'aiScroll'
+      | 'aiLongPress'
+      | 'aiSwipe'
       | 'aiTap'
       | 'aiRightClick'
       | 'aiQuery'
@@ -277,6 +279,30 @@ export const PlaywrightAiFixture = (options?: {
         aiActionType: 'aiScroll',
       });
     },
+    aiLongPress: async (
+      { page }: { page: OriginPlaywrightPage },
+      use: any,
+      testInfo: TestInfo,
+    ) => {
+      await generateAiFunction({
+        page,
+        testInfo,
+        use,
+        aiActionType: 'aiLongPress',
+      });
+    },
+    aiSwipe: async (
+      { page }: { page: OriginPlaywrightPage },
+      use: any,
+      testInfo: TestInfo,
+    ) => {
+      await generateAiFunction({
+        page,
+        testInfo,
+        use,
+        aiActionType: 'aiSwipe',
+      });
+    },
     aiQuery: async (
       { page }: { page: OriginPlaywrightPage },
       use: any,
@@ -398,6 +424,12 @@ export type PlayWrightAiFixtureType = {
   aiScroll: (
     ...args: Parameters<PageAgent['aiScroll']>
   ) => ReturnType<PageAgent['aiScroll']>;
+  aiLongPress: (
+    ...args: Parameters<PageAgent['aiLongPress']>
+  ) => ReturnType<PageAgent['aiLongPress']>;
+  aiSwipe: (
+    ...args: Parameters<PageAgent['aiSwipe']>
+  ) => ReturnType<PageAgent['aiSwipe']>;
   aiQuery: <T = any>(
     ...args: Parameters<PageAgent['aiQuery']>
   ) => ReturnType<PageAgent['aiQuery']>;

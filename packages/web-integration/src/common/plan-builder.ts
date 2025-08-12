@@ -7,6 +7,8 @@ import type {
   PlanningActionParamSleep,
   PlanningActionParamTap,
   PlanningLocateParam,
+  PlanningActionParamLongPress,
+  PlanningActionParamSwipe,
 } from '@midscene/core';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
@@ -19,7 +21,9 @@ export function buildPlans(
   param?:
     | PlanningActionParamInputOrKeyPress
     | PlanningActionParamScroll
-    | PlanningActionParamSleep,
+    | PlanningActionParamSleep
+    | PlanningActionParamLongPress
+    | PlanningActionParamSwipe
 ): PlanningAction[] {
   let returnPlans: PlanningAction[] = [];
   const locatePlan: PlanningAction<PlanningLocateParam> | null = locateParam
@@ -41,6 +45,18 @@ export function buildPlans(
     };
 
     returnPlans = [locatePlan, tapPlan];
+  }
+  if (type === 'LongPress') {
+    assert(locateParam, `missing locate info for action "${type}"`);
+    assert(locatePlan, `missing locate info for action "${type}"`);
+    const longPressPlan: PlanningAction<PlanningActionParamLongPress> = {
+      type,
+      param: param as PlanningActionParamLongPress,
+      thought: '',
+      locate: locateParam,
+    };
+
+    returnPlans = [locatePlan, longPressPlan];
   }
   if (type === 'Input' || type === 'KeyboardPress') {
     if (type === 'Input') {
@@ -76,6 +92,23 @@ export function buildPlans(
       returnPlans = [locatePlan, scrollPlan];
     } else {
       returnPlans = [scrollPlan];
+    }
+  }
+
+  if (type === 'Swipe') {
+    assert(param, `missing param for action "${type}"`);
+
+    const swipePlan: PlanningAction<PlanningActionParamSwipe> = {
+      type,
+      param: param as PlanningActionParamSwipe,
+      thought: '',
+      locate: locateParam,
+    };
+
+    if (locatePlan) {
+      returnPlans = [locatePlan, swipePlan];
+    } else {
+      returnPlans = [swipePlan];
     }
   }
 

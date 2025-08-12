@@ -21,6 +21,8 @@ import {
   type MidsceneYamlScript,
   type OnTaskStartTip,
   type PlanningActionParamScroll,
+  type PlanningActionParamSwipe,
+  type PlanningActionParamLongPress,
   type Rect,
   type TUserPrompt,
 } from '@midscene/core';
@@ -54,6 +56,7 @@ import {
   scrollParamStr,
   taskTitleStr,
   typeStr,
+  swipeParamStr,
 } from './ui-utils';
 import { getReportFileName, printReportMsg } from './utils';
 import { type WebUIContext, parseContextFromWebPage } from './utils';
@@ -413,6 +416,41 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     return output;
   }
 
+  async aiLongPress(locatePrompt: TUserPrompt, opt?: LocateOption, longPressParam?: PlanningActionParamLongPress) {
+    const detailedLocateParam = this.buildDetailedLocateParam(
+      locatePrompt,
+      opt,
+    );
+    const plans = buildPlans('LongPress', detailedLocateParam, longPressParam);
+    const { executor, output } = await this.taskExecutor.runPlans(
+      taskTitleStr('LongPress', locateParamStr(detailedLocateParam)),
+      plans,
+      { cacheable: opt?.cacheable },
+    );
+    await this.afterTaskRunning(executor);
+    return output;
+  }
+
+  async aiSwipe(
+    swipeParam: PlanningActionParamSwipe,
+    locatePrompt?: TUserPrompt,
+    opt?: LocateOption,
+  ) {
+    const detailedLocateParam = locatePrompt
+      ? this.buildDetailedLocateParam(locatePrompt, opt)
+      : undefined;
+    const plans = buildPlans('Swipe', detailedLocateParam, swipeParam);
+    const paramInTitle = locatePrompt
+      ? `${locateParamStr(detailedLocateParam)} - ${swipeParamStr(swipeParam)}`
+      : swipeParamStr(swipeParam);
+    const { executor, output } = await this.taskExecutor.runPlans(
+      taskTitleStr('Swipe', paramInTitle),
+      plans,
+      { cacheable: opt?.cacheable },
+    );
+    await this.afterTaskRunning(executor);
+    return output;
+  }
   async aiAction(
     taskPrompt: string,
     opt?: {
