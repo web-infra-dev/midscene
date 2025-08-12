@@ -239,7 +239,7 @@ function aiScroll(
 - Parameters:
 
   - `scrollParam: PlanningActionParamScroll` - The scroll parameter
-    - `direction: 'up' | 'down' | 'left' | 'right'` - The direction to scroll.
+    - `direction: 'up' | 'down' | 'left' | 'right'` - The direction to scroll. Whether it is Android or Web, the scrolling direction here all refers to which direction of the page's content will appear on the screen. For example, when the scrolling direction is `down`, the hidden content at the bottom of the page will gradually reveal itself from the bottom of the screen upwards.
     - `scrollType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft'` - Optional, the type of scroll to perform.
     - `distance: number` - Optional, the distance to scroll in px.
   - `locate?: string | Object` - Optional, a natural language description of the element to scroll on, or [prompting with images](#prompting-with-images). If not provided, Midscene will perform scroll on the current mouse position.
@@ -899,3 +899,7 @@ await agent.aiAssert({
   ],
 });
 ```
+
+**Notes on Image Size**
+
+When prompting with images, it is necessary to pay attention to the requirements of the AI model provider regarding the size and dimensions of the images. Images that are too large (such as exceeding 10M) or too small (such as being less than 10 pixels) may cause errors when the model is invoked. The specific restrictions should be based on the documentation provided by the AI model provider you are using.

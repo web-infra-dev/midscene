@@ -1,4 +1,9 @@
-import type { PageType, PlanningAIResponse, UIContext } from '@/types';
+import type {
+  DeviceAction,
+  PageType,
+  PlanningAIResponse,
+  UIContext,
+} from '@/types';
 import { vlLocateMode } from '@midscene/shared/env';
 import { paddingToMatchBlockByBase64 } from '@midscene/shared/img';
 import { assert } from '@midscene/shared/utils';
@@ -23,6 +28,7 @@ export async function plan(
   opts: {
     context: UIContext;
     pageType: PageType;
+    actionSpace: DeviceAction[];
     callAI?: typeof callAiFn<PlanningAIResponse>;
     log?: string;
     actionContext?: string;
@@ -34,7 +40,7 @@ export async function plan(
     await describeUserPage(context);
 
   const systemPrompt = await systemPromptToTaskPlanning({
-    pageType: opts.pageType,
+    actionSpace: opts.actionSpace,
     vlMode: vlLocateMode(),
   });
   const taskBackgroundContextText = generateTaskBackgroundContext(

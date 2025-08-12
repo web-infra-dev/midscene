@@ -1,6 +1,6 @@
 {
   "name": "@midscene/shared",
-  "version": "0.26.0",
+  "version": "0.26.1",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "types": "./dist/types/index.d.ts",
@@ -61,7 +61,7 @@
     "debug": "4.4.0",
     "jimp": "0.22.12",
     "js-sha256": "0.11.0",
-    "sharp": "0.33.5"
+    "sharp": "^0.34.3"
   },
   "devDependencies": {
     "@modern-js/module-tools": "2.60.6",

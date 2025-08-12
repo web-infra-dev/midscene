@@ -1,4 +1,9 @@
-import type { ElementTreeNode, Point, Size } from '@midscene/core';
+import type {
+  DeviceAction,
+  ElementTreeNode,
+  Point,
+  Size,
+} from '@midscene/core';
 import { sleep } from '@midscene/core/utils';
 import { DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
@@ -12,7 +17,7 @@ import { assert } from '@midscene/shared/utils';
 import type { Page as PlaywrightPage } from 'playwright';
 import type { Page as PuppeteerPage } from 'puppeteer';
 import type { WebKeyInput } from '../common/page';
-import type { AbstractPage } from '../page';
+import { type AbstractPage, commonWebActions } from '../page';
 import type { MouseButton } from '../page';
 
 export const debugPage = getDebug('web:page');
@@ -27,6 +32,10 @@ export class Page<
   private viewportSize?: Size;
 
   pageType: AgentType;
+
+  actionSpace(): DeviceAction[] {
+    return commonWebActions;
+  }
 
   private async evaluate<R>(
     pageFunction: string | ((...args: any[]) => R | Promise<R>),

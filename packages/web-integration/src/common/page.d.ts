@@ -49,6 +49,7 @@ export interface AndroidDevicePage extends AbstractPage {
 
 export type AndroidDeviceInputOpt = {
   autoDismissKeyboard?: boolean;
+  keyboardDismissStrategy?: 'esc-first' | 'back-first';
 };
 
 export type WebPage =

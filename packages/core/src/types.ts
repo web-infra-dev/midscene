@@ -266,7 +266,6 @@ export interface PlanningAction<ParamType = any> {
     | 'KeyboardPress'
     | 'Scroll'
     | 'Error'
-    | 'ExpectedFalsyCondition'
     | 'Assert'
     | 'AssertWithoutThrow'
     | 'Sleep'
@@ -292,12 +291,6 @@ export interface PlanningAIResponse {
   yamlFlow?: MidsceneYamlFlowItem[];
   yamlString?: string;
 }
-
-// export interface PlanningFurtherPlan {
-//   whatToDoNext: string;
-//   log: string;
-// }
-// export type PlanningActionParamPlan = PlanningFurtherPlan;
 
 export type PlanningActionParamTap = null;
 export type PlanningActionParamHover = null;
@@ -623,3 +616,13 @@ export type TUserPrompt =
   | ({
       prompt: string;
     } & Partial<TMultimodalPrompt>);
+
+export interface DeviceAction<ParamType = any> {
+  name: string;
+  description?: string;
+  paramSchema?: string;
+  paramDescription?: string;
+  location?: 'required' | 'optional' | false;
+  whatToLocate?: string; // what to locate if location is required or optional
+  call: (param: ParamType) => Promise<void> | void;
+}

@@ -1,4 +1,4 @@
-import type { Point, Size } from '@midscene/core';
+import type { DeviceAction, Point, Size } from '@midscene/core';
 import type { ElementInfo, ElementNode } from '@midscene/shared/extractor';
 import type { WebKeyInput } from './common/page';
 import type { WebUIContext } from './web-element';
@@ -40,6 +40,7 @@ export abstract class AbstractPage {
   abstract url(): string | Promise<string>;
   abstract screenshotBase64?(): Promise<string>;
   abstract size(): Promise<Size>;
+  abstract actionSpace(): DeviceAction[];
 
   get mouse(): MouseAction {
     return {
@@ -90,3 +91,62 @@ export abstract class AbstractPage {
 
   abstract evaluateJavaScript?<T = any>(script: string): Promise<T>;
 }
+
+const asyncNoop = async () => {};
+export const commonWebActions: DeviceAction[] = [
+  {
+    name: 'Tap',
+    description: 'Tap the element',
+    location: 'required',
+    call: asyncNoop,
+  },
+  {
+    name: 'RightClick',
+    description: 'Right click the element',
+    location: 'required',
+    call: asyncNoop,
+  },
+  {
+    name: 'Hover',
+    description: 'Move the mouse to the element',
+    location: 'required',
+    call: asyncNoop,
+  },
+  {
+    name: 'Input',
+    description: 'Replace the input field with a new value',
+    paramSchema: '{ value: string }',
+    paramDescription:
+      '`value` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. Giving a blank string means clear the input field.',
+    location: 'required',
+    whatToLocate: 'The input field to be filled',
+    call: asyncNoop,
+  },
+  {
+    name: 'KeyboardPress',
+    description: 'Press a key',
+    paramSchema: '{ value: string }',
+    paramDescription: 'The key to be pressed',
+    location: false,
+    call: asyncNoop,
+  },
+  {
+    name: 'Scroll',
+    description: 'Scroll the page or an element',
+    paramSchema:
+      '{ direction: "down"(default) | "up" | "right" | "left", scrollType: "once" (default) | "untilBottom" | "untilTop" | "untilRight" | "untilLeft", distance: number | null }',
+    paramDescription:
+      'The direction to scroll, the scroll type, and the distance to scroll. The distance is the number of pixels to scroll. If not specified, use `down` direction, `once` scroll type, and `null` distance.',
+    location: 'optional',
+    whatToLocate: 'The element to be scrolled',
+    call: asyncNoop,
+  },
+  {
+    name: 'Sleep',
+    description: 'Sleep for a period of time',
+    paramSchema: '{ timeMs: number }',
+    paramDescription: 'The duration of the sleep in milliseconds',
+    location: false,
+    call: asyncNoop,
+  },
+];

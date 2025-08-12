@@ -1,6 +1,6 @@
 import { ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED } from '@/common/utils';
 import type { AbstractPage } from '@/page';
-import type { Point } from '@midscene/core';
+import type { DeviceAction, Point } from '@midscene/core';
 import type { WebUIContext } from '../web-element';
 
 const ThrowNotImplemented: any = (methodName: string) => {
@@ -25,6 +25,11 @@ export default class StaticPage implements AbstractPage {
         },
       });
     }
+  }
+
+  actionSpace(): DeviceAction[] {
+    // no action space for static page
+    return [];
   }
 
   async evaluateJavaScript<T = any>(script: string): Promise<T> {

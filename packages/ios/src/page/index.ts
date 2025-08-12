@@ -1,5 +1,3 @@
-import assert from 'node:assert';
-import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Point, Size } from '@midscene/core';
@@ -8,10 +6,64 @@ import { getTmpFile, sleep } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { resizeImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
-import type { AndroidDeviceInputOpt, AndroidDevicePage } from '@midscene/web';
+import {
+  type AndroidDeviceInputOpt,
+  type AndroidDevicePage,
+  commonWebActions,
+} from '@midscene/web';
 import { type ScreenInfo, getScreenSize } from '../utils';
 
 export const debugPage = getDebug('ios:device');
+
+// Temporary DeviceAction interface definition - should match @midscene/core types
+interface DeviceAction<ParamType = any> {
+  name: string;
+  description?: string;
+  paramSchema?: string;
+  paramDescription?: string;
+  location?: 'required' | 'optional' | false;
+  whatToLocate?: string; // what to locate if location is required or optional
+  call: (param: ParamType) => Promise<void> | void;
+}
+
+const asyncNoop = async () => {};
+const iOSActions: DeviceAction[] = [
+  {
+    name: 'AndroidBackButton',
+    description: 'Trigger the system "back" operation on iOS devices using CMD+[',
+    location: false,
+    call: asyncNoop,
+  },
+  {
+    name: 'AndroidHomeButton',
+    description: 'Trigger the system "home" operation on iOS devices using CMD+1',
+    location: false,
+    call: asyncNoop,
+  },
+  {
+    name: 'AndroidRecentAppsButton',
+    description: 'Trigger the system "recent apps" operation on iOS devices using CMD+2',
+    location: false,
+    call: asyncNoop,
+  },
+  {
+    name: 'AndroidLongPress',
+    description: 'Long press operation on iOS devices',
+    paramSchema: '{ duration?: number }',
+    paramDescription: 'The duration of the long press',
+    location: 'optional',
+    whatToLocate: 'The element to be long pressed',
+    call: asyncNoop,
+  },
+  {
+    name: 'AndroidPull',
+    description: 'Pull gesture (swipe) operation on iOS devices, can be pull up or pull down',
+    location: false,
+    paramSchema: '{ direction: "up" | "down" }',
+    paramDescription: 'Pull direction: up or down',
+    call: asyncNoop,
+  },
+];
 
 export interface iOSDeviceOpt extends AndroidDeviceInputOpt {
   serverUrl?: string;
@@ -90,6 +142,10 @@ export class iOSDevice implements AndroidDevicePage {
       options?.serverUrl || `http://localhost:${this.serverPort}`;
   }
 
+  actionSpace(): DeviceAction[] {
+    return commonWebActions.concat(iOSActions);
+  }
+
   public async connect(): Promise<void> {
     if (this.destroyed) {
       throw new Error('iOSDevice has been destroyed and cannot be used');
@@ -145,6 +201,9 @@ export class iOSDevice implements AndroidDevicePage {
         `osascript -e 'tell application "${mirroringAppName}" to activate'`,
       );
       debugPage(`Activated iOS mirroring app: ${mirroringAppName}`);
+
+      //wait for app to be ready
+      await sleep(2000);
     } catch (mirrorError: any) {
       debugPage(
         `Warning: Failed to bring iOS mirroring app to foreground: ${mirrorError.message}`,

@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { type Point, type Size, getAIConfig } from '@midscene/core';
-import type { PageType } from '@midscene/core';
+import type { DeviceAction, PageType } from '@midscene/core';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import {
   MIDSCENE_ADB_PATH,
@@ -15,7 +15,11 @@ import type { ElementInfo } from '@midscene/shared/extractor';
 import { isValidPNGImageBuffer, resizeImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { repeat } from '@midscene/shared/utils';
-import type { AndroidDeviceInputOpt, AndroidDevicePage } from '@midscene/web';
+import {
+  type AndroidDeviceInputOpt,
+  type AndroidDevicePage,
+  commonWebActions,
+} from '@midscene/web';
 import { ADB } from 'appium-adb';
 
 // only for Android, because it's impossible to scroll to the bottom, so we need to set a default scroll times
@@ -31,6 +35,51 @@ export type AndroidDeviceOpt = {
   imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii';
 } & AndroidDeviceInputOpt;
 
+const asyncNoop = async () => {};
+const androidActions: DeviceAction[] = [
+  {
+    name: 'AndroidBackButton',
+    description: 'Trigger the system "back" operation on Android devices',
+    location: false,
+    call: asyncNoop,
+  },
+  {
+    name: 'AndroidHomeButton',
+    description: 'Trigger the system "home" operation on Android devices',
+    location: false,
+    call: asyncNoop,
+  },
+  {
+    name: 'AndroidRecentAppsButton',
+    description:
+      'Trigger the system "recent apps" operation on Android devices',
+    location: false,
+    call: asyncNoop,
+  },
+  {
+    name: 'AndroidLongPress',
+    description:
+      'Trigger a long press on the screen at specified coordinates on Android devices',
+    paramSchema: '{ duration?: number }',
+    paramDescription: 'The duration of the long press',
+    location: 'optional',
+    whatToLocate: 'The element to be long pressed',
+    call: asyncNoop,
+  },
+  {
+    name: 'AndroidPull',
+    description:
+      'Trigger pull down to refresh or pull up actions on Android devices',
+    paramSchema:
+      '{ direction: "up" | "down", distance?: number, duration?: number }',
+    paramDescription:
+      'The direction to pull, the distance to pull, and the duration of the pull.',
+    location: 'optional',
+    whatToLocate: 'The element to be pulled',
+    call: asyncNoop,
+  },
+];
+
 export class AndroidDevice implements AndroidDevicePage {
   private deviceId: string;
   private yadbPushed = false;
@@ -41,6 +90,10 @@ export class AndroidDevice implements AndroidDevicePage {
   pageType: PageType = 'android';
   uri: string | undefined;
   options?: AndroidDeviceOpt;
+
+  actionSpace(): DeviceAction[] {
+    return commonWebActions.concat(androidActions);
+  }
 
   constructor(deviceId: string, options?: AndroidDeviceOpt) {
     assert(deviceId, 'deviceId is required for AndroidDevice');
@@ -632,7 +685,7 @@ ${Object.keys(size)
     }
 
     if (isAutoDismissKeyboard === true) {
-      await adb.hideKeyboard();
+      await this.hideKeyboard(options);
     }
   }
 
@@ -871,5 +924,67 @@ ${Object.keys(size)
 
   async getElementInfoByXpath(xpath: string): Promise<ElementInfo> {
     throw new Error('Not implemented');
+  }
+
+  async hideKeyboard(
+    options?: AndroidDeviceInputOpt,
+    timeoutMs = 1000,
+  ): Promise<boolean> {
+    const adb = await this.getAdb();
+    const keyboardDismissStrategy =
+      options?.keyboardDismissStrategy ??
+      this.options?.keyboardDismissStrategy ??
+      'esc-first';
+
+    // Check if keyboard is shown
+    const keyboardStatus = await adb.isSoftKeyboardPresent();
+    const isKeyboardShown =
+      typeof keyboardStatus === 'boolean'
+        ? keyboardStatus
+        : keyboardStatus?.isKeyboardShown;
+
+    if (!isKeyboardShown) {
+      debugPage('Keyboard has no UI; no closing necessary');
+      return false;
+    }
+
+    // Determine key codes order based on strategy
+    const keyCodes =
+      keyboardDismissStrategy === 'back-first'
+        ? [4, 111] // KEYCODE_BACK, KEYCODE_ESCAPE
+        : [111, 4]; // KEYCODE_ESCAPE, KEYCODE_BACK
+
+    // Try each key code with waiting
+    for (const keyCode of keyCodes) {
+      await adb.keyevent(keyCode);
+
+      // Wait for keyboard to be hidden with timeout
+      const startTime = Date.now();
+      const intervalMs = 100;
+
+      while (Date.now() - startTime < timeoutMs) {
+        await sleep(intervalMs);
+
+        const currentStatus = await adb.isSoftKeyboardPresent();
+        const isStillShown =
+          typeof currentStatus === 'boolean'
+            ? currentStatus
+            : currentStatus?.isKeyboardShown;
+
+        if (!isStillShown) {
+          debugPage(`Keyboard hidden successfully with keycode ${keyCode}`);
+          return true;
+        }
+      }
+
+      debugPage(
+        `Keyboard still shown after keycode ${keyCode}, trying next key`,
+      );
+    }
+
+    console.warn(
+      'Warning: Failed to hide the software keyboard after trying both ESC and BACK keys',
+    );
+    return false;
   }
 }

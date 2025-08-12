@@ -378,7 +378,6 @@ export function buildYamlFlowFromPlans(
       // not implemented in yaml yet
     } else if (
       type === 'Error' ||
-      type === 'ExpectedFalsyCondition' ||
       type === 'Assert' ||
       type === 'AssertWithoutThrow' ||
       type === 'Finished'

@@ -35,7 +35,7 @@ describe('puppeteer integration', () => {
   tasks:
     - name: search weather
       flow:
-        - ai: input 'weather today' in input box, press Enter
+        - ai: input 'weather today' in input box, press Enter, wait for 3000ms, click the first result
         - sleep: 3000
 
     - name: result page
