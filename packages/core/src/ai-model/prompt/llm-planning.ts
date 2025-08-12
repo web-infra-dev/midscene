@@ -4,7 +4,7 @@ import { PromptTemplate } from '@langchain/core/prompts';
 import type { vlLocateMode } from '@midscene/shared/env';
 import type { ResponseFormatJSONSchema } from 'openai/resources';
 import { bboxDescription } from './common';
-import { samplePageDescription } from './util';
+
 // Note: put the log field first to trigger the CoT
 const vlCoTLog = `"what_the_user_wants_to_do_next_by_instruction": string, // What the user wants to do according to the instruction and previous logs. `;
 const vlCurrentLog = `"log": string, // Log what the next one action (ONLY ONE!) you can do according to the screenshot and the instruction. The typical log looks like "Now i want to use action '{ action-type }' to do .. first". If no action should be done, log the reason. ". Use the same language as the user's instruction.`;
@@ -148,16 +148,15 @@ You are a versatile professional in software UI automation. Your outstanding con
 ## Workflow
 
 1. Receive the screenshot, element description of screenshot(if any), user's instruction and previous logs.
-2. Decompose the user's task into a sequence of actions, and place it in the \`actions\` field. There are different types of actions (${actionNameList}). The "About the action" section below will give you more details.
-3. Precisely locate the target element if it's already shown in the screenshot, put the location info in the \`locate\` field of the action.
-4. If some target elements is not shown in the screenshot, consider the user's instruction is not feasible on this page. Follow the next steps.
-5. Consider whether the user's instruction will be accomplished after all the actions
- - If yes, set \`taskWillBeAccomplished\` to true
- - If no, don't plan more actions by closing the array. Get ready to reevaluate the task. Some talent people like you will handle this. Give him a clear description of what have been done and what to do next. Put your new plan in the \`furtherPlan\` field. The "How to compose the \`taskWillBeAccomplished\` and \`furtherPlan\` fields" section will give you more details.
+2. Decompose the user's task into a sequence of feasible actions, and place it in the \`actions\` field. There are different types of actions (${actionNameList}). The "About the action" section below will give you more details.
+3. Consider whether the user's instruction will be accomplished after the actions you composed.
+- If the instruction is accomplished, set \`more_actions_needed_by_instruction\` to false.
+- If more actions are needed, set \`more_actions_needed_by_instruction\` to true. Get ready to hand over to the next talent people like you. Carefully log what have been done in the \`log\` field, he or she will continue the task according to your logs.
+4. If the task is not feasible on this page, set \`error\` field to the reason.
 
 ## Constraints
 
-- All the actions you composed MUST be based on the page context information you get.
+- All the actions you composed MUST be feasible, which means all the action fields can be filled with the page context information you get. If not, don't plan this action.
 - Trust the "What have been done" field about the task (if any), don't repeat actions in it.
 - Respond only with valid JSON. Do not write an introduction or summary or markdown prefix like \`\`\`json\`\`\`.
 - If the screenshot and the instruction are totally irrelevant, set reason in the \`error\` field.
@@ -196,15 +195,20 @@ The JSON format is as follows:
 
 ### Example: Decompose a task
 
-When the instruction is 'Click the language switch button, wait 1s, click "English"', and not log is provided
+When you received the following information:
+
+* Instruction: 'Click the language switch button, wait 1s, click "English"'
+* Logs: null
+* Page Context (screenshot and description) shows: There is a language switch button, and the "English" option is not shown in the screenshot now.
 
 By viewing the page screenshot and description, you should consider this and output the JSON:
 
-* The main steps should be: tap the switch button, sleep, and tap the 'English' option
-* The language switch button is shown in the screenshot, but it's not marked with a rectangle. So we have to use the page description to find the element. By carefully checking the context information (coordinates, attributes, content, etc.), you can find the element.
+* The user intent is: tap the switch button, sleep, and tap the 'English' option
+* The language switch button is shown in the screenshot, and can be located by the page description or the id marked with a rectangle. So we can plan a Tap action to do this.
+* Plan a Sleep action to wait for 1 second to ensure the language options are displayed.
 * The "English" option button is not shown in the screenshot now, it means it may only show after the previous actions are finished. So don't plan any action to do this.
 * Log what these action do: Click the language switch button to open the language options. Wait for 1 second.
-* The task cannot be accomplished (because we cannot see the "English" option now), so the \`more_actions_needed_by_instruction\` field is true.
+* The task cannot be accomplished (because the last tapping action is not finished yet), so the \`more_actions_needed_by_instruction\` field is true. The \`error\` field is null.
 
 {
   "actions":[
@@ -234,7 +238,7 @@ Wrong output:
       "thought": "Click the language switch button to open the language options.",
       "param": null,
       "locate": {
-        { "id": "c81c4e9a33" }, // WRONG: prompt is missing
+        { "id": "c81c4e9a33" }, // WRONG: prompt is missing, this is not a valid LocateParam
       }
     },
     {
@@ -247,10 +251,6 @@ Wrong output:
   "more_actions_needed_by_instruction": false, // WRONG: should be true
   "log": "Click the language switch button to open the language options",
 }
-
-Reason:
-* The \`prompt\` is missing in the first 'Locate' action
-* Since the option button is not shown in the screenshot, there are still more actions to be done, so the \`more_actions_needed_by_instruction\` field should be true
 `;
 
 export async function systemPromptToTaskPlanning({
@@ -263,15 +263,6 @@ export async function systemPromptToTaskPlanning({
   if (vlMode) {
     return systemTemplateOfVLPlanning({ actionSpace, vlMode });
   }
-
-  // const promptTemplate = new PromptTemplate({
-  //   template:,
-  //   inputVariables: ['pageDescription'],
-  // });
-
-  // return await promptTemplate.format({
-  //   // pageDescription: samplePageDescription,
-  // });
 
   return `${systemTemplateOfLLM({ actionSpace })}\n\n${outputTemplate}`;
 }

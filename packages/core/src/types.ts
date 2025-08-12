@@ -293,12 +293,6 @@ export interface PlanningAIResponse {
   yamlString?: string;
 }
 
-// export interface PlanningFurtherPlan {
-//   whatToDoNext: string;
-//   log: string;
-// }
-// export type PlanningActionParamPlan = PlanningFurtherPlan;
-
 export type PlanningActionParamTap = null;
 export type PlanningActionParamHover = null;
 export type PlanningActionParamRightClick = null;
