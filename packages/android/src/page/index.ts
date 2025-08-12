@@ -929,6 +929,9 @@ ${Object.keys(size)
       );
     }
 
-    throw new Error('The software keyboard cannot be hidden');
+    console.warn(
+      'Warning: Failed to hide the software keyboard after trying both ESC and BACK keys',
+    );
+    return false;
   }
 }
