@@ -9,6 +9,7 @@ import { HistorySelector } from './HistorySelector';
 import type { RunType } from './playground-types';
 import type { ServiceModeType } from './playground-types';
 import { actionNameForType, getPlaceholderForType } from './playground-utils';
+import './index.less';
 
 const { TextArea } = Input;
 

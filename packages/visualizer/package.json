@@ -9,7 +9,7 @@
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
-      "default": "./dist/lib/index.js"
+      "default": "./dist/es/index.js"
     }
   },
   "files": ["dist", "html", "README.md"],

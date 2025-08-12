@@ -34,6 +34,9 @@ export default defineConfig({
     },
   ],
   source: {
+    entry: {
+      index: ['./src/**', '!./src/**/*.json'],
+    },
     define: {
       __VERSION__: JSON.stringify(version),
       'import.meta.env': JSON.stringify({}),
@@ -41,6 +44,8 @@ export default defineConfig({
   },
   output: {
     target: 'web',
+    copy: [{ from: './**/*.json', context: './src' }],
+    externals: [/.*\.json$/],
   },
   plugins: [
     pluginReact(),
