@@ -6,6 +6,7 @@ export type {
   AndroidDeviceInputOpt,
 } from './common/page';
 export type { AbstractPage } from './page';
+export { commonWebActions } from './page';
 export type { WebUIContext } from './web-element';
 
 export { PageAgent, type PageAgentOpt } from './common/agent';

@@ -1,5 +1,6 @@
 import { plan } from '@/ai-model';
 import { vlLocateMode } from '@midscene/shared/env';
+import { mockActionSpace } from 'tests/common';
 import { getContextFromFixture } from 'tests/evaluation';
 /* eslint-disable max-lines-per-function */
 import { describe, expect, it, vi } from 'vitest';
@@ -19,9 +20,12 @@ describe.skipIf(vlMode)('automation - llm planning', () => {
       'type "Why is the earth a sphere?", wait 3.5s, hit Enter',
       {
         context,
+        actionSpace: mockActionSpace,
+        pageType: 'puppeteer',
       },
     );
     expect(actions).toBeTruthy();
+
     expect(actions!.length).toBe(3);
     expect(actions![0].type).toBe('Input');
     expect(actions![1].type).toBe('Sleep');
@@ -34,7 +38,7 @@ describe.skipIf(vlMode)('automation - llm planning', () => {
     const { context } = await getContextFromFixture('todo');
     const { actions } = await plan(
       'Scroll down the page by 200px, scroll up the page by 100px, scroll right the second item of the task list by 300px',
-      { context },
+      { context, actionSpace: mockActionSpace, pageType: 'puppeteer' },
     );
     expect(actions).toBeTruthy();
     expect(actions!.length).toBe(3);
@@ -79,7 +83,11 @@ describe('planning', () => {
   todoInstructions.forEach(({ name, instruction }) => {
     it(`todo mvc - ${name}`, async () => {
       const { context } = await getContextFromFixture('todo');
-      const { actions } = await plan(instruction, { context });
+      const { actions } = await plan(instruction, {
+        context,
+        actionSpace: mockActionSpace,
+        pageType: 'puppeteer',
+      });
       expect(actions).toBeTruthy();
       expect(actions![0].locate).toBeTruthy();
       expect(actions![0].locate?.prompt).toBeTruthy();
@@ -93,6 +101,8 @@ describe('planning', () => {
       'Scroll left the status filters (with a button named "completed")',
       {
         context,
+        actionSpace: mockActionSpace,
+        pageType: 'puppeteer',
       },
     );
     expect(actions).toBeTruthy();
@@ -100,22 +110,22 @@ describe('planning', () => {
     expect(actions![0].locate).toBeTruthy();
   });
 
-  it.skip('should not throw in an "if" statement', async () => {
+  it('should not throw in an "if" statement', async () => {
     const { context } = await getContextFromFixture('todo');
     const { actions, error } = await plan(
       'If there is a cookie prompt, close it',
-      { context },
+      { context, actionSpace: mockActionSpace, pageType: 'puppeteer' },
     );
 
-    expect(actions?.length === 1).toBeTruthy();
-    expect(actions?.[0]!.type).toBe('ExpectedFalsyCondition');
+    expect(error).toBeFalsy();
+    expect(actions?.length).toBe(0);
   });
 
   it('should make mark unfinished when something is not found', async () => {
     const { context } = await getContextFromFixture('todo');
     const res = await plan(
-      'click the input box, wait 300ms, click the close button of the cookie prompt',
-      { context },
+      'click the input box, wait 300ms. After that, the page will be redirected to the home page, click the close button of the cookie prompt on the home page',
+      { context, actionSpace: mockActionSpace, pageType: 'puppeteer' },
     );
 
     expect(res.more_actions_needed_by_instruction).toBeTruthy();

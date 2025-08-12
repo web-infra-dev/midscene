@@ -1,23 +1,119 @@
 import { systemPromptToLocateElement } from '@/ai-model';
 import {
   automationUserPrompt,
+  descriptionForAction,
   generateTaskBackgroundContext,
   planSchema,
   systemPromptToTaskPlanning,
 } from '@/ai-model/prompt/llm-planning';
 import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
 import { getUiTarsPlanningPrompt } from '@/ai-model/prompt/ui-tars-planning';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { mockActionSpace } from 'tests/common';
+import { describe, expect, it } from 'vitest';
 import {
   extractDataQueryPrompt,
   systemPromptToExtract,
 } from '../../../src/ai-model/prompt/extraction';
 import { mockNonChinaTimeZone, restoreIntl } from '../mocks/intl-mock';
 
+const mockLocatorScheme = 'locate: {"mock": string}';
+describe('action space', () => {
+  it('action without param, location is false', () => {
+    const action = descriptionForAction(
+      {
+        name: 'Tap',
+        description: 'Tap the element',
+        location: false,
+        call: async () => {},
+      },
+      mockLocatorScheme,
+    );
+    expect(action).toMatchInlineSnapshot(`
+      "- Tap, Tap the element
+        - type: "Tap""
+    `);
+  });
+
+  it('action with param, location is false', () => {
+    const action = descriptionForAction(
+      {
+        name: 'Tap',
+        description: 'Tap the element',
+        paramSchema: '{ foo: string }',
+        paramDescription: 'The foo to be tapped',
+        location: false,
+        call: async () => {},
+      },
+      mockLocatorScheme,
+    );
+    expect(action).toMatchInlineSnapshot(`
+      "- Tap, Tap the element
+        - type: "Tap"
+        - param: { foo: string } // The foo to be tapped"
+    `);
+  });
+
+  it('action with param, no paramDescription, location is false', () => {
+    const action = descriptionForAction(
+      {
+        name: 'Tap',
+        description: 'Tap the element',
+        paramSchema: '{ foo: string }',
+        location: false,
+        call: async () => {},
+      },
+      mockLocatorScheme,
+    );
+    expect(action).toMatchInlineSnapshot(`
+      "- Tap, Tap the element
+        - type: "Tap"
+        - param: { foo: string }"
+    `);
+  });
+
+  it('action without param, location is required', () => {
+    const action = descriptionForAction(
+      {
+        name: 'Tap',
+        description: 'Tap the element',
+        location: 'required',
+        whatToLocate: 'The element to be tapped',
+        call: async () => {},
+      },
+      mockLocatorScheme,
+    );
+    expect(action).toMatchInlineSnapshot(`
+      "- Tap, Tap the element
+        - type: "Tap"
+        - locate: {"mock": string}"
+    `);
+  });
+
+  it('action with param, location is optional', () => {
+    const action = descriptionForAction(
+      {
+        name: 'Tap',
+        description: 'Tap the element',
+        paramSchema: '{ value: string }',
+        paramDescription: 'The value to be tapped',
+        location: 'optional',
+        call: async () => {},
+      },
+      mockLocatorScheme,
+    );
+    expect(action).toMatchInlineSnapshot(`
+      "- Tap, Tap the element
+        - type: "Tap"
+        - param: { value: string } // The value to be tapped
+        - locate: {"mock": string} | null"
+    `);
+  });
+});
+
 describe('system prompts', () => {
   it('planning - 4o', async () => {
     const prompt = await systemPromptToTaskPlanning({
-      pageType: 'puppeteer',
+      actionSpace: mockActionSpace,
       vlMode: false,
     });
     expect(prompt).toMatchSnapshot();
@@ -30,7 +126,7 @@ describe('system prompts', () => {
 
   it('planning - qwen', async () => {
     const prompt = await systemPromptToTaskPlanning({
-      pageType: 'puppeteer',
+      actionSpace: mockActionSpace,
       vlMode: 'qwen-vl',
     });
     expect(prompt).toMatchSnapshot();
@@ -38,7 +134,7 @@ describe('system prompts', () => {
 
   it('planning - gemini', async () => {
     const prompt = await systemPromptToTaskPlanning({
-      pageType: 'puppeteer',
+      actionSpace: mockActionSpace,
       vlMode: 'gemini',
     });
     expect(prompt).toMatchSnapshot();
@@ -46,7 +142,7 @@ describe('system prompts', () => {
 
   it('planning - android', async () => {
     const prompt = await systemPromptToTaskPlanning({
-      pageType: 'android',
+      actionSpace: mockActionSpace,
       vlMode: 'qwen-vl',
     });
     expect(prompt).toMatchSnapshot();
