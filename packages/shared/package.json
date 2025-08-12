@@ -7,18 +7,54 @@
   "main": "./dist/lib/index.js",
   "module": "./dist/es/index.js",
   "exports": {
-    ".": "./dist/lib/index.js",
-    "./constants": "./dist/lib/constants.js",
-    "./fs": "./dist/lib/fs.js",
-    "./img": "./dist/lib/img.js",
-    "./utils": "./dist/lib/utils.js",
-    "./extractor": "./dist/lib/extractor.js",
-    "./extractor-debug": "./dist/lib/extractor-debug.js",
-    "./keyboard-layout": "./dist/lib/us-keyboard-layout.js",
-    "./logger": "./dist/lib/logger.js",
-    "./common": "./dist/lib/common.js",
-    "./env": "./dist/lib/env.js",
-    "./types": "./dist/lib/types.js"
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/lib/index.js"
+    },
+    "./constants": {
+      "types": "./dist/types/constants.d.ts",
+      "default": "./dist/lib/constants.js"
+    },
+    "./fs": {
+      "types": "./dist/types/fs.d.ts",
+      "default": "./dist/lib/fs.js"
+    },
+    "./img": {
+      "types": "./dist/types/img.d.ts",
+      "default": "./dist/lib/img.js"
+    },
+    "./utils": {
+      "types": "./dist/types/utils.d.ts",
+      "default": "./dist/lib/utils.js"
+    },
+    "./extractor": {
+      "types": "./dist/types/extractor.d.ts",
+      "default": "./dist/lib/extractor.js"
+    },
+    "./extractor-debug": {
+      "types": "./dist/types/extractor-debug.d.ts",
+      "default": "./dist/lib/extractor-debug.js"
+    },
+    "./keyboard-layout": {
+      "types": "./dist/types/us-keyboard-layout.d.ts",
+      "default": "./dist/lib/us-keyboard-layout.js"
+    },
+    "./logger": {
+      "types": "./dist/types/logger.d.ts",
+      "default": "./dist/lib/logger.js"
+    },
+    "./common": {
+      "types": "./dist/types/common.d.ts",
+      "default": "./dist/lib/common.js"
+    },
+    "./env": {
+      "types": "./dist/types/env.d.ts",
+      "default": "./dist/lib/env.js"
+    },
+    "./types": {
+      "types": "./dist/types/types.d.ts",
+      "default": "./dist/lib/types.js"
+    }
   },
   "typesVersions": {
     "*": {
@@ -40,9 +76,9 @@
   "scripts": {
     "dev": "npm run build:watch",
     "build": "npm run build:script && npm run build:pkg",
-    "build:pkg": "modern build -c ./modern.config.ts",
-    "build:script": "modern build -c ./modern.inspect.config.ts",
-    "build:watch": "npm run build:script && modern build -w --no-clear",
+    "build:pkg": "rslib build",
+    "build:script": "rslib build -c ./rslib.inspect.config.ts",
+    "build:watch": "npm run build:script && rslib build --watch",
     "reset": "rimraf ./**/node_modules",
     "lint": "modern lint",
     "bump": "modern bump",
@@ -64,7 +100,8 @@
     "sharp": "^0.34.3"
   },
   "devDependencies": {
-    "@modern-js/module-tools": "2.60.6",
+    "@microsoft/api-extractor": "^7.52.10",
+    "@rslib/core": "^0.11.2",
     "@types/debug": "4.1.12",
     "@types/node": "^18.0.0",
     "@ui-tars/shared": "1.2.0",

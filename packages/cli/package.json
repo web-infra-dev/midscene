@@ -4,7 +4,6 @@
   "version": "0.26.1",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
-  "jsnext:source": "./src/index.ts",
   "main": "./dist/lib/index.js",
   "bin": {
     "midscene": "./bin/midscene"
@@ -12,10 +11,8 @@
   "files": ["dist", "README.md", "bin"],
   "scripts": {
     "dev": "npm run build:watch",
-    "build": "modern build",
-    "build:watch": "modern build -w --no-clear",
-    "new": "modern new",
-    "upgrade": "modern upgrade",
+    "build": "rslib build",
+    "build:watch": "rslib build --watch",
     "test": "vitest --run",
     "test:ai": "AITEST=true vitest --run",
     "test:ai:temp": "AITEST=true BRIDGE_MODE=true vitest tests/bridge.test.ts"
@@ -30,7 +27,8 @@
     "puppeteer": "24.2.0"
   },
   "devDependencies": {
-    "@modern-js/module-tools": "2.60.6",
+    "@microsoft/api-extractor": "^7.52.10",
+    "@rslib/core": "^0.11.2",
     "@types/js-yaml": "4.0.9",
     "@types/lodash.merge": "4.6.9",
     "@types/minimist": "1.2.5",

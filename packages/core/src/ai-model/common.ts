@@ -46,11 +46,12 @@ export async function callAiFn<T>(
   msgs: AIArgs,
   AIActionTypeValue: AIActionType,
 ): Promise<{ content: T; usage?: AIUsageInfo }> {
-  const { content, usage } = await callToGetJSONObject<T>(
-    msgs,
-    AIActionTypeValue,
-  );
-  return { content, usage };
+  const jsonObject = await callToGetJSONObject<T>(msgs, AIActionTypeValue);
+
+  return {
+    content: jsonObject.content,
+    usage: jsonObject.usage,
+  };
 }
 
 const defaultBboxSize = 20; // must be even number

@@ -19,6 +19,7 @@ import {
   vlLocateMode,
 } from '@midscene/shared/env';
 import { describe, expect, it } from 'vitest';
+// @ts-ignore no types in es folder
 import { reportHTMLContent, writeDumpReport } from '../../dist/es/utils'; // use modules from dist, otherwise we will miss the template file
 import {
   getTmpDir,

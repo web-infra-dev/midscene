@@ -75,6 +75,7 @@ common/autoinstallers/*/.npmrc
 .eden-mono
 
 dist
+dist-modern
 dist-script
 doc_build
 build_cn
