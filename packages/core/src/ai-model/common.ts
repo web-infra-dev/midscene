@@ -5,9 +5,9 @@ import type {
   MidsceneYamlFlowItem,
   PlanningAction,
   PlanningActionParamInputOrKeyPress,
-  PlanningActionParamScroll,
   PlanningActionParamSleep,
   Rect,
+  ScrollParam,
   Size,
 } from '@/types';
 import { assert } from '@midscene/shared/utils';
@@ -356,7 +356,7 @@ export function buildYamlFlowFromPlans(
         locate,
       });
     } else if (type === 'Scroll') {
-      const param = plan.param as PlanningActionParamScroll;
+      const param = plan.param as ScrollParam;
       flow.push({
         aiScroll: null,
         locate,

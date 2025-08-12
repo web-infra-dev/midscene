@@ -7,7 +7,11 @@
 
 import type { WebKeyInput } from '@/common/page';
 import { limitOpenNewTabScript } from '@/common/ui-utils';
-import { type AbstractPage, type MouseButton, commonWebActions } from '@/page';
+import {
+  type AbstractPage,
+  type MouseButton,
+  commonWebActionsForWebPage,
+} from '@/page';
 import type {
   DeviceAction,
   ElementTreeNode,
@@ -56,7 +60,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   }
 
   actionSpace(): DeviceAction[] {
-    return commonWebActions;
+    return commonWebActionsForWebPage(this);
   }
 
   public async setActiveTabId(tabId: number) {
