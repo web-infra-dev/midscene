@@ -2,6 +2,7 @@ import type { AndroidDevicePage, WebPage } from '@/common/page';
 import type { PuppeteerWebPage } from '@/puppeteer';
 import {
   type AIUsageInfo,
+  type BaseElement,
   type DumpSubscriber,
   type ExecutionRecorderItem,
   type ExecutionTaskActionApply,
@@ -38,6 +39,7 @@ import {
   type PlanningActionParamWaitFor,
   type TMultimodalPrompt,
   type TUserPrompt,
+  type UIContext,
   plan,
 } from '@midscene/core';
 import {
@@ -55,11 +57,10 @@ import {
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import type { WebElementInfo } from '../web-element';
+import type { WebElementInfo, WebUIContext } from '../web-element';
 import type { TaskCache } from './task-cache';
 import { getKeyCommands, taskTitleStr } from './ui-utils';
 import {
-  type WebUIContext,
   matchElementFromCache,
   matchElementFromPlan,
   parsePrompt,
@@ -117,7 +118,7 @@ export class PageTaskExecutor {
   }
 
   private async getElementXpath(
-    pageContext: WebUIContext,
+    pageContext: UIContext<BaseElement>,
     element: LocateResultElement,
   ): Promise<string[] | undefined> {
     let elementId = element?.id;
@@ -255,6 +256,8 @@ export class PageTaskExecutor {
             };
             this.insight.onceDumpUpdatedFn = dumpCollector;
             const shotTime = Date.now();
+
+            // Get context through contextRetrieverFn which handles frozen context
             const pageContext = await this.insight.contextRetrieverFn('locate');
             task.pageContext = pageContext;
 
@@ -1351,12 +1354,26 @@ export class PageTaskExecutor {
             } as never)
           : demand, // for user param presentation in report right sidebar
       },
-      executor: async (param) => {
+      executor: async (param, taskContext) => {
+        const { task } = taskContext;
         let insightDump: InsightDump | undefined;
         const dumpCollector: DumpSubscriber = (dump) => {
           insightDump = dump;
         };
         this.insight.onceDumpUpdatedFn = dumpCollector;
+
+        // Get page context for query operations
+        const shotTime = Date.now();
+        const pageContext = await this.insight.contextRetrieverFn('extract');
+        task.pageContext = pageContext;
+
+        const recordItem: ExecutionRecorderItem = {
+          type: 'screenshot',
+          ts: shotTime,
+          screenshot: pageContext.screenshotBase64,
+          timing: 'before Extract',
+        };
+        task.recorder = [recordItem];
 
         const ifTypeRestricted = type !== 'Query';
         let demandInput = demand;

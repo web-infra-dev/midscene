@@ -9,7 +9,12 @@ test.beforeEach(async ({ page }) => {
 
 const CACHE_TIME_OUT = process.env.MIDSCENE_CACHE;
 
-test('test open new tab', async ({ aiBoolean, aiAction, aiAssert, aiTap }) => {
+test('prompting with images', async ({
+  aiBoolean,
+  aiAction,
+  aiAssert,
+  aiTap,
+}) => {
   if (CACHE_TIME_OUT) {
     test.setTimeout(200 * 1000);
   }

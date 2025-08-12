@@ -84,7 +84,7 @@ export default function App() {
       socket.emit('get-devices');
     });
 
-    socket.on('disconnect', (reason: string) => {
+    socket.on('disconnect', (_reason: string) => {
       setLoadingDevices(true);
     });
 

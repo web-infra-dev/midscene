@@ -6,6 +6,7 @@ export type {
   AndroidDeviceInputOpt,
 } from './common/page';
 export type { AbstractPage } from './page';
+export type { WebUIContext } from './web-element';
 
 export { PageAgent, type PageAgentOpt } from './common/agent';
 export { PuppeteerAgent } from './puppeteer';

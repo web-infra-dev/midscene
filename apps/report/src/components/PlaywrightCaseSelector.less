@@ -167,9 +167,8 @@
         cursor: pointer;
         transition: background-color 0.2s ease;
         line-height: 32px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        white-space: normal;
+        overflow: visible;
 
         &:hover {
           background: #f8f9fa;
@@ -195,6 +194,8 @@
           flex: 1;
           font-size: 14px;
           color: #333;
+          white-space: normal;
+          word-wrap: break-word;
 
           .cost-str {
             color: #999;
