@@ -239,7 +239,7 @@ function aiScroll(
 - Parameters:
 
   - `scrollParam: PlanningActionParamScroll` - The scroll parameter
-    - `direction: 'up' | 'down' | 'left' | 'right'` - The direction to scroll.
+    - `direction: 'up' | 'down' | 'left' | 'right'` - The direction to scroll. Whether it is Android or Web, the scrolling direction here all refers to which direction of the page's content will appear on the screen. For example, when the scrolling direction is `down`, the hidden content at the bottom of the page will gradually reveal itself from the bottom of the screen upwards.
     - `scrollType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft'` - Optional, the type of scroll to perform.
     - `distance: number` - Optional, the distance to scroll in px.
   - `locate?: string | Object` - Optional, a natural language description of the element to scroll on, or [prompting with images](#prompting-with-images). If not provided, Midscene will perform scroll on the current mouse position.
