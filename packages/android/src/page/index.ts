@@ -878,9 +878,9 @@ ${Object.keys(size)
     timeoutMs = 1000,
   ): Promise<boolean> {
     const adb = await this.getAdb();
-    const hideKeyboardStrategy =
-      options?.hideKeyboardStrategy ??
-      this.options?.hideKeyboardStrategy ??
+    const keyboardDismissStrategy =
+      options?.keyboardDismissStrategy ??
+      this.options?.keyboardDismissStrategy ??
       'esc-first';
 
     // Check if keyboard is shown
@@ -897,7 +897,7 @@ ${Object.keys(size)
 
     // Determine key codes order based on strategy
     const keyCodes =
-      hideKeyboardStrategy === 'back-first'
+      keyboardDismissStrategy === 'back-first'
         ? [4, 111] // KEYCODE_BACK, KEYCODE_ESCAPE
         : [111, 4]; // KEYCODE_ESCAPE, KEYCODE_BACK
 

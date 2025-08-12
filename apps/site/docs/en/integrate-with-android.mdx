@@ -107,7 +107,7 @@ The AndroidDevice constructor supports the following parameters:
 - `deviceId: string` - The device id
 - `opts?: AndroidDeviceOpt` - Optional, the options for the AndroidDevice
   - `autoDismissKeyboard?: boolean` - Optional, whether to dismiss the keyboard after inputting. (Default: true)
-  - `hideKeyboardStrategy?: 'esc-first' | 'back-first'` - Optional, the strategy to dismiss the keyboard. 'esc-first' tries ESC key first, then back key if needed. 'back-first' tries back key first, then ESC key if needed. (Default: 'esc-first')
+  - `keyboardDismissStrategy?: 'esc-first' | 'back-first'` - Optional, the strategy to dismiss the keyboard. 'esc-first' tries ESC key first, then back key if needed. 'back-first' tries back key first, then ESC key if needed. (Default: 'esc-first')
   - `androidAdbPath?: string` - Optional, the path to the adb executable.
   - `remoteAdbHost?: string` - Optional, the remote adb host.
   - `remoteAdbPort?: number` - Optional, the remote adb port.
