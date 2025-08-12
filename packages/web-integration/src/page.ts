@@ -1,6 +1,9 @@
-import type { DeviceAction, Point, Size } from '@midscene/core';
+import type { DeviceAction, Point, ScrollParam, Size } from '@midscene/core';
+import { sleep } from '@midscene/core/utils';
 import type { ElementInfo, ElementNode } from '@midscene/shared/extractor';
+import { assert } from '@midscene/shared/utils';
 import type { WebKeyInput } from './common/page';
+import { getKeyCommands } from './common/ui-utils';
 import type { WebUIContext } from './web-element';
 
 export type MouseButton = 'left' | 'right' | 'middle';
@@ -78,7 +81,7 @@ export abstract class AbstractPage {
   abstract scrollUp(distance?: number, startingPoint?: Point): Promise<void>;
   abstract scrollDown(distance?: number, startingPoint?: Point): Promise<void>;
   abstract scrollLeft(distance?: number, startingPoint?: Point): Promise<void>;
-  abstract scrollRight(distance?: number): Promise<void>;
+  abstract scrollRight(distance?: number, startingPoint?: Point): Promise<void>;
 
   abstract _forceUsePageContext?(): Promise<WebUIContext>;
 
@@ -92,25 +95,42 @@ export abstract class AbstractPage {
   abstract evaluateJavaScript?<T = any>(script: string): Promise<T>;
 }
 
-const asyncNoop = async () => {};
-export const commonWebActions: DeviceAction[] = [
+export const commonWebActionsForWebPage = <T extends AbstractPage>(
+  page: T,
+): DeviceAction[] => [
   {
     name: 'Tap',
     description: 'Tap the element',
     location: 'required',
-    call: asyncNoop,
+    call: async (context) => {
+      const { element } = context;
+      assert(element, 'Element not found, cannot tap');
+      await page.mouse.click(element.center[0], element.center[1], {
+        button: 'left',
+      });
+    },
   },
   {
     name: 'RightClick',
     description: 'Right click the element',
     location: 'required',
-    call: asyncNoop,
+    call: async (context) => {
+      const { element } = context;
+      assert(element, 'Element not found, cannot right click');
+      await page.mouse.click(element.center[0], element.center[1], {
+        button: 'right',
+      });
+    },
   },
   {
     name: 'Hover',
     description: 'Move the mouse to the element',
     location: 'required',
-    call: asyncNoop,
+    call: async (context) => {
+      const { element } = context;
+      assert(element, 'Element not found, cannot hover');
+      await page.mouse.move(element.center[0], element.center[1]);
+    },
   },
   {
     name: 'Input',
@@ -120,16 +140,31 @@ export const commonWebActions: DeviceAction[] = [
       '`value` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. Giving a blank string means clear the input field.',
     location: 'required',
     whatToLocate: 'The input field to be filled',
-    call: asyncNoop,
-  },
+    call: async (context, param) => {
+      const { element } = context;
+      if (element) {
+        await page.clearInput(element as unknown as ElementInfo);
+
+        if (!param || !param.value) {
+          return;
+        }
+      }
+
+      // Note: there is another implementation in AndroidDevicePage, which is more complex
+      await page.keyboard.type(param.value);
+    },
+  } as DeviceAction<{ value: string }>,
   {
     name: 'KeyboardPress',
     description: 'Press a key',
     paramSchema: '{ value: string }',
     paramDescription: 'The key to be pressed',
     location: false,
-    call: asyncNoop,
-  },
+    call: async (context, param) => {
+      const keys = getKeyCommands(param.value);
+      await page.keyboard.press(keys as any); // TODO: fix this type error
+    },
+  } as DeviceAction<{ value: string }>,
   {
     name: 'Scroll',
     description: 'Scroll the page or an element',
@@ -139,14 +174,44 @@ export const commonWebActions: DeviceAction[] = [
       'The direction to scroll, the scroll type, and the distance to scroll. The distance is the number of pixels to scroll. If not specified, use `down` direction, `once` scroll type, and `null` distance.',
     location: 'optional',
     whatToLocate: 'The element to be scrolled',
-    call: asyncNoop,
-  },
-  {
-    name: 'Sleep',
-    description: 'Sleep for a period of time',
-    paramSchema: '{ timeMs: number }',
-    paramDescription: 'The duration of the sleep in milliseconds',
-    location: false,
-    call: asyncNoop,
-  },
+    call: async (context, param) => {
+      const { element } = context;
+      const startingPoint = element
+        ? {
+            left: element.center[0],
+            top: element.center[1],
+          }
+        : undefined;
+      const scrollToEventName = param?.scrollType;
+      if (scrollToEventName === 'untilTop') {
+        await page.scrollUntilTop(startingPoint);
+      } else if (scrollToEventName === 'untilBottom') {
+        await page.scrollUntilBottom(startingPoint);
+      } else if (scrollToEventName === 'untilRight') {
+        await page.scrollUntilRight(startingPoint);
+      } else if (scrollToEventName === 'untilLeft') {
+        await page.scrollUntilLeft(startingPoint);
+      } else if (scrollToEventName === 'once' || !scrollToEventName) {
+        if (param?.direction === 'down' || !param || !param.direction) {
+          await page.scrollDown(param?.distance || undefined, startingPoint);
+        } else if (param.direction === 'up') {
+          await page.scrollUp(param.distance || undefined, startingPoint);
+        } else if (param.direction === 'left') {
+          await page.scrollLeft(param.distance || undefined, startingPoint);
+        } else if (param.direction === 'right') {
+          await page.scrollRight(param.distance || undefined, startingPoint);
+        } else {
+          throw new Error(`Unknown scroll direction: ${param.direction}`);
+        }
+        // until mouse event is done
+        await sleep(500);
+      } else {
+        throw new Error(
+          `Unknown scroll event type: ${scrollToEventName}, param: ${JSON.stringify(
+            param,
+          )}`,
+        );
+      }
+    },
+  } as DeviceAction<ScrollParam>,
 ];

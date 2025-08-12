@@ -8,11 +8,7 @@ import type {
   Size,
 } from '@midscene/shared/types';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
-import type {
-  DetailedLocateParam,
-  MidsceneYamlFlowItem,
-  scrollParam,
-} from './yaml';
+import type { DetailedLocateParam, MidsceneYamlFlowItem } from './yaml';
 
 export type {
   ElementTreeNode,
@@ -295,12 +291,11 @@ export interface PlanningAIResponse {
 export type PlanningActionParamTap = null;
 export type PlanningActionParamHover = null;
 export type PlanningActionParamRightClick = null;
+
 export interface PlanningActionParamInputOrKeyPress {
   value: string;
   autoDismissKeyboard?: boolean;
 }
-
-export type PlanningActionParamScroll = scrollParam;
 
 export interface PlanningActionParamAssert {
   assertion: TUserPrompt;
@@ -318,15 +313,12 @@ export type PlanningActionParamWaitFor = AgentWaitForOpt & {
   assertion: string;
 };
 
-export interface PlanningActionParamAndroidLongPress {
-  x: number;
-  y: number;
+export interface AndroidLongPressParam {
   duration?: number;
 }
 
-export interface PlanningActionParamAndroidPull {
+export interface AndroidPullParam {
   direction: 'up' | 'down';
-  startPoint?: { x: number; y: number };
   distance?: number;
   duration?: number;
 }
@@ -623,5 +615,5 @@ export interface DeviceAction<ParamType = any> {
   paramDescription?: string;
   location?: 'required' | 'optional' | false;
   whatToLocate?: string; // what to locate if location is required or optional
-  call: (param: ParamType) => Promise<void> | void;
+  call: (context: ExecutorContext, param: ParamType) => Promise<void> | void;
 }
