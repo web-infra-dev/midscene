@@ -12,7 +12,6 @@ import {
   globalThemeConfig,
   useEnvConfig,
 } from '@midscene/visualizer';
-import '@midscene/visualizer/index.css';
 import { ConfigProvider, Dropdown, Typography } from 'antd';
 import { useEffect, useState } from 'react';
 import { BrowserExtensionPlayground } from '../components/playground';

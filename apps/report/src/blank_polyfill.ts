@@ -1,1 +1,2 @@
-export default {};
+const AsyncLocalStorage = {};
+export { AsyncLocalStorage };
