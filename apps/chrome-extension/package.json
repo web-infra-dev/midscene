@@ -43,6 +43,7 @@
     "archiver": "^6.0.0",
     "less": "^4.2.0",
     "tailwindcss": "4.1.11",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "openai": "4.81.0"
   }
 }

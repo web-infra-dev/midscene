@@ -8,15 +8,32 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "lib": ["ESNext", "DOM"],
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
+    "module": "esnext",
     "paths": {
       "@/*": ["./src/*"]
     },
     "resolveJsonModule": true,
     "rootDir": ".",
     "skipLibCheck": true,
-    "strict": true
+    "strict": true,
+    "composite": true,
+    "declarationDir": "dist/types"
   },
   "exclude": ["**/node_modules"],
-  "include": ["src", "tests"]
+  "include": ["src", "tests"],
+  "references": [
+    {
+      "path": "../android"
+    },
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../shared"
+    },
+    {
+      "path": "../web-integration"
+    }
+  ]
 }

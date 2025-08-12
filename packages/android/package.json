@@ -10,12 +10,14 @@
     "Android use"
   ],
   "main": "./dist/lib/index.js",
+  "module": "./dist/es/index.mjs",
   "types": "./dist/types/index.d.ts",
   "files": ["bin", "dist", "README.md"],
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
-      "default": "./dist/lib/index.js"
+      "import": "./dist/es/index.mjs",
+      "require": "./dist/lib/index.js"
     },
     "./package.json": "./package.json"
   },

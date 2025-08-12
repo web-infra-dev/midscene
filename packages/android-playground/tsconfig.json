@@ -9,15 +9,28 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "lib": ["DOM", "ESNext"],
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "rootDir": "src",
     "skipLibCheck": true,
     "strict": true,
     "module": "ES2020",
     "target": "es2020",
-    "types": ["node"]
+    "types": ["node"],
+    "composite": true,
+    "declarationDir": "dist/types"
   },
   "exclude": ["**/node_modules"],
-  "include": ["src"]
+  "include": ["src"],
+  "references": [
+    {
+      "path": "../android"
+    },
+    {
+      "path": "../shared"
+    },
+    {
+      "path": "../web-integration"
+    }
+  ]
 }

@@ -15,9 +15,9 @@ export default defineConfig({
           root: 'dist/lib',
         },
       },
-      autoExtension: false,
       format: 'cjs',
       syntax: 'es2020',
+      bundle: false,
     },
     {
       output: {
@@ -25,30 +25,13 @@ export default defineConfig({
           root: 'dist/es',
         },
       },
-      autoExtension: false,
-      dts: {
-        bundle: true,
-        distPath: 'dist/types',
-      },
       format: 'esm',
       syntax: 'es2020',
+      bundle: false,
+      dts: true,
     },
   ],
   source: {
-    entry: {
-      index: './src/index.ts',
-      img: './src/img/index.ts',
-      constants: './src/constants/index.ts',
-      extractor: './src/extractor/index.ts',
-      'extractor-debug': './src/extractor/debug.ts',
-      fs: './src/node/fs.ts',
-      utils: './src/utils.ts',
-      logger: './src/logger.ts',
-      common: './src/common.ts',
-      'us-keyboard-layout': './src/us-keyboard-layout.ts',
-      env: './src/env.ts',
-      types: './src/types/index.ts',
-    },
     define: {
       __HTML_ELEMENT_SCRIPT__: JSON.stringify(scriptStr),
     },

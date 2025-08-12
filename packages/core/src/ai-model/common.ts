@@ -15,7 +15,7 @@ import { assert } from '@midscene/shared/utils';
 import type {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
-} from 'openai/resources';
+} from 'openai/resources/index';
 import {
   call,
   callToGetJSONObject,

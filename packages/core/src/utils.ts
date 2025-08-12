@@ -14,7 +14,7 @@ import {
   getAIConfig,
   getAIConfigInJson,
 } from '@midscene/shared/env';
-import { getRunningPkgInfo } from '@midscene/shared/fs';
+import { getRunningPkgInfo } from '@midscene/shared/node';
 import { assert, logMsg } from '@midscene/shared/utils';
 import {
   escapeScriptTag,

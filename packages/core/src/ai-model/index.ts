@@ -17,7 +17,7 @@ export {
   generateYamlTestStream,
 } from './prompt/yaml-generator';
 
-export type { ChatCompletionMessageParam } from 'openai/resources';
+export type { ChatCompletionMessageParam } from 'openai/resources/index';
 
 export {
   AiLocateElement,

@@ -4,11 +4,11 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": "./dist/types/src/index.d.ts",
       "import": "./dist/index.js"
     }
   },
-  "types": "./dist/index.d.ts",
+  "types": "./dist/types/src/index.d.ts",
   "files": ["dist"],
   "scripts": {
     "build": "rslib build",

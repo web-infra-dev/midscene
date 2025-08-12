@@ -10,7 +10,7 @@ import {
   type KeyDefinition,
   type KeyInput,
   _keyDefinitions,
-} from '@midscene/shared/keyboard-layout';
+} from '@midscene/shared/us-keyboard-layout';
 import { assert } from '@midscene/shared/utils';
 
 type KeyDescription = Required<

@@ -8,7 +8,6 @@ export default defineConfig({
           root: 'dist/lib',
         },
       },
-      autoExtension: false,
       format: 'cjs',
       syntax: 'es2020',
     },
@@ -18,7 +17,6 @@ export default defineConfig({
           root: 'dist/es',
         },
       },
-      autoExtension: false,
       dts: {
         bundle: true,
         distPath: 'dist/types',

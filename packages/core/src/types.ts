@@ -7,7 +7,7 @@ import type {
   Rect,
   Size,
 } from '@midscene/shared/types';
-import type { ChatCompletionMessageParam } from 'openai/resources';
+import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type {
   DetailedLocateParam,
   MidsceneYamlFlowItem,

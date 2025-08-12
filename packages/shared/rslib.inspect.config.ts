@@ -18,7 +18,7 @@ export default defineConfig({
           htmlElementDebug: 'src/extractor/debug.ts',
         },
       },
-      syntax: 'es6',
+      syntax: 'esnext',
       tools: {
         rspack: {
           output: {

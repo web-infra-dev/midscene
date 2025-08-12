@@ -37,16 +37,23 @@ vi.mock('appium-adb', () => {
 
 vi.mock('@midscene/shared/img');
 vi.mock('@midscene/core/utils');
-vi.mock('node:fs', () => ({
-  promises: {
-    readFile: vi.fn(),
-  },
-  default: {
+vi.mock('node:fs', async (importOriginal) => {
+  const original = (await importOriginal()) as {
+    default: Record<string, unknown>;
+  };
+  return {
+    ...original,
     promises: {
       readFile: vi.fn(),
     },
-  },
-}));
+    default: {
+      ...original.default,
+      promises: {
+        readFile: vi.fn(),
+      },
+    },
+  };
+});
 
 describe('AndroidDevice', () => {
   let device: AndroidDevice;
