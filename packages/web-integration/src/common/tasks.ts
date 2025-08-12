@@ -620,51 +620,59 @@ export class PageTaskExecutor {
           thought: plan.thought,
           locate: plan.locate,
           executor: async (taskParam, { element }) => {
-            assert(
-              !isAndroidPage(this.page),
-              'Cannot use swipe on Android devices',
-            );
-            let { from, to, direction, swipeType = 'untilLeft', distance = 500, duration = 300 } = taskParam || {};
+            assert(!isAndroidPage(this.page), 'Cannot use swipe on Android devices');
 
-            if (element) {
-              from = {
-                x: element.center[0],
-                y: element.center[1],
-              };
-            }
+            const {
+              direction,
+              swipeType = 'untilLeft',
+              distance,
+              duration = 300,
+              from: fromParam,
+              to: toParam,
+            } = taskParam || {};
 
             const { width, height } = await this.page.size();
+            const from = element
+              ? { x: element.center[0], y: element.center[1] }
+              : (fromParam ?? { x: width / 2, y: height / 2 });
 
-            if (!from) {
-              from = { x: width / 2, y: height / 2 };
-            }
-            if (to) {
-              await this.page.swipe(from, to, duration);
+            if (toParam) {
+              await this.page.swipe(from, toParam, duration);
               return;
             }
-            if (distance == null) {
-              distance = width / 2;
-            }
+
+            const moveDistance = (() => {
+              if (distance != null) {
+                return distance;
+              }
+              if (swipeType === 'once') {
+                if (!direction) {
+                  throw new Error('direction is required for swipeType "once"')
+                };
+                return direction === 'up' || direction === 'down' ? height / 2 : width / 2;
+              }
+              return width / 2;
+            })();
+
+            let to: { x: number; y: number };
             switch (swipeType) {
               case 'once':
                 switch (direction) {
                   case 'up':
-                    to = { x: from.x, y: from.y - distance! };
+                    to = { x: from.x, y: from.y - moveDistance };
                     break;
                   case 'down':
-                    to = { x: from.x, y: from.y + distance! };
+                    to = { x: from.x, y: from.y + moveDistance };
                     break;
                   case 'left':
-                    to = { x: from.x - distance!, y: from.y };
+                    to = { x: from.x - moveDistance, y: from.y };
                     break;
-                  case 'right':
-                    to = { x: from.x + distance!, y: from.y };
+                  case 'right': 
+                    to = { x: from.x + moveDistance, y: from.y };
                     break;
-                  default:
-                    throw new Error(`Unknown direction: ${direction}`);
+                  default: throw new Error(`Unknown direction: ${direction}`);
                 }
                 break;
-
               case 'untilTop':
                 to = { x: from.x, y: 0 };
                 break;
@@ -677,10 +685,12 @@ export class PageTaskExecutor {
               case 'untilRight':
                 to = { x: width, y: from.y };
                 break;
-
-              default:
-                throw new Error(`Unknown swipeType: ${swipeType}`);
+              default: throw new Error(`Unknown swipeType: ${swipeType}`);
             }
+            const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
+            to.x = clamp(to.x, 0, width);
+            to.y = clamp(to.y, 0, height);
+
             await this.page.swipe(from, to, duration);
           },
         };
