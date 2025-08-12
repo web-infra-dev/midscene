@@ -72,10 +72,7 @@ common/autoinstallers/*/.npmrc
 # pnpm store
 .pnpm-store
 
-.eden-mono
-
 dist
-dist-modern
 dist-script
 doc_build
 build_cn
