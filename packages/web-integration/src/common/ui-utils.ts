@@ -1,4 +1,5 @@
 import type {
+  AndroidPullParam,
   DetailedLocateParam,
   ExecutionTask,
   ExecutionTaskAction,
@@ -6,8 +7,7 @@ import type {
   ExecutionTaskInsightLocate,
   ExecutionTaskInsightQuery,
   ExecutionTaskPlanning,
-  PlanningActionParamAndroidPull,
-  PlanningActionParamScroll,
+  ScrollParam,
 } from '@midscene/core';
 
 export function typeStr(task: ExecutionTask) {
@@ -53,22 +53,19 @@ export function locateParamStr(locate?: DetailedLocateParam) {
     : locate.prompt.prompt;
 }
 
-export function scrollParamStr(scrollParam?: PlanningActionParamScroll) {
+export function scrollParamStr(scrollParam?: ScrollParam) {
   if (!scrollParam) {
     return '';
   }
   return `${scrollParam.direction || 'down'}, ${scrollParam.scrollType || 'once'}, ${scrollParam.distance || 'distance-not-set'}`;
 }
 
-export function pullParamStr(pullParam?: PlanningActionParamAndroidPull) {
+export function pullParamStr(pullParam?: AndroidPullParam) {
   if (!pullParam) {
     return '';
   }
   const parts: string[] = [];
   parts.push(`direction: ${pullParam.direction || 'down'}`);
-  if (pullParam.startPoint) {
-    parts.push(`start: (${pullParam.startPoint.x}, ${pullParam.startPoint.y})`);
-  }
   if (pullParam.distance) {
     parts.push(`distance: ${pullParam.distance}`);
   }

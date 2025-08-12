@@ -18,7 +18,7 @@ import { repeat } from '@midscene/shared/utils';
 import {
   type AndroidDeviceInputOpt,
   type AndroidDevicePage,
-  commonWebActions,
+  commonWebActionsForWebPage,
 } from '@midscene/web';
 import { ADB } from 'appium-adb';
 
@@ -35,51 +35,6 @@ export type AndroidDeviceOpt = {
   imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii';
 } & AndroidDeviceInputOpt;
 
-const asyncNoop = async () => {};
-const androidActions: DeviceAction[] = [
-  {
-    name: 'AndroidBackButton',
-    description: 'Trigger the system "back" operation on Android devices',
-    location: false,
-    call: asyncNoop,
-  },
-  {
-    name: 'AndroidHomeButton',
-    description: 'Trigger the system "home" operation on Android devices',
-    location: false,
-    call: asyncNoop,
-  },
-  {
-    name: 'AndroidRecentAppsButton',
-    description:
-      'Trigger the system "recent apps" operation on Android devices',
-    location: false,
-    call: asyncNoop,
-  },
-  {
-    name: 'AndroidLongPress',
-    description:
-      'Trigger a long press on the screen at specified coordinates on Android devices',
-    paramSchema: '{ duration?: number }',
-    paramDescription: 'The duration of the long press',
-    location: 'optional',
-    whatToLocate: 'The element to be long pressed',
-    call: asyncNoop,
-  },
-  {
-    name: 'AndroidPull',
-    description:
-      'Trigger pull down to refresh or pull up actions on Android devices',
-    paramSchema:
-      '{ direction: "up" | "down", distance?: number, duration?: number }',
-    paramDescription:
-      'The direction to pull, the distance to pull, and the duration of the pull.',
-    location: 'optional',
-    whatToLocate: 'The element to be pulled',
-    call: asyncNoop,
-  },
-];
-
 export class AndroidDevice implements AndroidDevicePage {
   private deviceId: string;
   private yadbPushed = false;
@@ -92,7 +47,102 @@ export class AndroidDevice implements AndroidDevicePage {
   options?: AndroidDeviceOpt;
 
   actionSpace(): DeviceAction[] {
-    return commonWebActions.concat(androidActions);
+    const commonActions = commonWebActionsForWebPage(this);
+    commonActions.forEach((action) => {
+      if (action.name === 'Input') {
+        action.call = async (context, param) => {
+          const { element } = context;
+          if (element) {
+            await this.clearInput(element as unknown as ElementInfo);
+
+            if (!param || !param.value) {
+              return;
+            }
+          }
+
+          await this.keyboard.type(param.value, {
+            autoDismissKeyboard: this.options?.autoDismissKeyboard,
+          });
+        };
+      }
+    });
+
+    const allActions: DeviceAction[] = [
+      ...commonWebActionsForWebPage(this),
+      {
+        name: 'AndroidBackButton',
+        description: 'Trigger the system "back" operation on Android devices',
+        location: false,
+        call: async (context, param) => {
+          await this.back();
+        },
+      },
+      {
+        name: 'AndroidHomeButton',
+        description: 'Trigger the system "home" operation on Android devices',
+        location: false,
+        call: async (context, param) => {
+          await this.home();
+        },
+      },
+      {
+        name: 'AndroidRecentAppsButton',
+        description:
+          'Trigger the system "recent apps" operation on Android devices',
+        location: false,
+        call: async (context, param) => {
+          await this.recentApps();
+        },
+      },
+      {
+        name: 'AndroidLongPress',
+        description:
+          'Trigger a long press on the screen at specified coordinates on Android devices',
+        paramSchema: '{ duration?: number }',
+        paramDescription: 'The duration of the long press in milliseconds',
+        location: 'required',
+        whatToLocate: 'The element to be long pressed',
+        call: async (context, param) => {
+          const { element } = context;
+          if (!element) {
+            throw new Error(
+              'AndroidLongPress requires an element to be located',
+            );
+          }
+          const [x, y] = element.center;
+          await this.longPress(x, y, param.duration);
+        },
+      } as DeviceAction<{ duration?: number }>,
+      {
+        name: 'AndroidPull',
+        description:
+          'Trigger pull down to refresh or pull up actions on Android devices',
+        paramSchema:
+          '{ direction: "up" | "down", distance?: number, duration?: number }',
+        paramDescription:
+          'The direction to pull, the distance to pull (in pixels), and the duration of the pull (in milliseconds).',
+        location: 'optional',
+        whatToLocate: 'The element to be pulled',
+        call: async (context, param) => {
+          const { element } = context;
+          const startPoint = element
+            ? { left: element.center[0], top: element.center[1] }
+            : undefined;
+          if (param.direction === 'down') {
+            await this.pullDown(startPoint, param.distance, param.duration);
+          } else if (param.direction === 'up') {
+            await this.pullUp(startPoint, param.distance, param.duration);
+          } else {
+            throw new Error(`Unknown pull direction: ${param.direction}`);
+          }
+        },
+      } as DeviceAction<{
+        direction: 'up' | 'down';
+        distance?: number;
+        duration?: number;
+      }>,
+    ];
+    return allActions;
   }
 
   constructor(deviceId: string, options?: AndroidDeviceOpt) {
