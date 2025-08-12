@@ -153,6 +153,12 @@ export async function createConfig(
   );
 
   // Apply command line overrides with higher priority than file configuration
+  const keepWindow = options?.keepWindow ?? parsedConfig.keepWindow;
+  const headed = options?.headed ?? parsedConfig.headed;
+
+  // If keepWindow is true, automatically enable headed mode
+  const finalHeaded = keepWindow || headed;
+
   return {
     files: parsedConfig.files,
     concurrent: options?.concurrent ?? parsedConfig.concurrent,
@@ -160,8 +166,8 @@ export async function createConfig(
     summary: options?.summary ?? parsedConfig.summary,
     shareBrowserContext:
       options?.shareBrowserContext ?? parsedConfig.shareBrowserContext,
-    headed: options?.headed ?? parsedConfig.headed,
-    keepWindow: options?.keepWindow ?? parsedConfig.keepWindow,
+    headed: finalHeaded,
+    keepWindow: keepWindow,
     dotenvOverride: options?.dotenvOverride ?? parsedConfig.dotenvOverride,
     dotenvDebug: options?.dotenvDebug ?? parsedConfig.dotenvDebug,
     globalConfig,
@@ -177,6 +183,12 @@ export async function createFilesConfig(
   const timestamp = Date.now();
   const defaultSummary = `summary-${timestamp}.json`;
 
+  const keepWindow = options.keepWindow ?? defaultConfig.keepWindow;
+  const headed = options.headed ?? defaultConfig.headed;
+
+  // If keepWindow is true, automatically enable headed mode
+  const finalHeaded = keepWindow || headed;
+
   return {
     files,
     concurrent: options.concurrent ?? defaultConfig.concurrent,
@@ -184,8 +196,8 @@ export async function createFilesConfig(
     summary: options.summary ?? defaultSummary,
     shareBrowserContext:
       options.shareBrowserContext ?? defaultConfig.shareBrowserContext,
-    headed: options.headed ?? defaultConfig.headed,
-    keepWindow: options.keepWindow ?? defaultConfig.keepWindow,
+    headed: finalHeaded,
+    keepWindow: keepWindow,
     dotenvOverride: options.dotenvOverride ?? defaultConfig.dotenvOverride,
     dotenvDebug: options.dotenvDebug ?? defaultConfig.dotenvDebug,
     globalConfig: {
