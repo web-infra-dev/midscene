@@ -19,6 +19,7 @@ describe('env', () => {
 
   // clean up before each test
   beforeEach(() => {
+    globalThis.midsceneGlobalConfigOverride = null;
     // reset to empty object, avoid interference between tests
     overrideAIConfig({}, false);
   });
