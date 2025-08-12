@@ -291,8 +291,15 @@ export const overrideAIConfig = (
     }
   }
 
+  const savedNewConfig = extendMode
+    ? {
+        ...globalThis.midsceneGlobalConfigOverride?.newConfig,
+        ...newConfig,
+      }
+    : newConfig;
+
   globalThis.midsceneGlobalConfigOverride = {
-    newConfig,
+    newConfig: savedNewConfig,
     extendMode,
   };
 };
