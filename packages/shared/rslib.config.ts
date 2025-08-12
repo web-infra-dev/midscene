@@ -1,7 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-
-import { defineConfig, moduleTools } from '@modern-js/module-tools';
+import { defineConfig } from '@rslib/core';
 
 const scriptStr = fs.readFileSync(
   path.resolve(__dirname, './dist-inspect/htmlElement.js'),
@@ -9,10 +8,34 @@ const scriptStr = fs.readFileSync(
 );
 
 export default defineConfig({
-  plugins: [moduleTools()],
-  buildPreset: 'npm-library',
-  buildConfig: {
-    input: {
+  lib: [
+    {
+      output: {
+        distPath: {
+          root: 'dist/lib',
+        },
+      },
+      autoExtension: false,
+      format: 'cjs',
+      syntax: 'es2020',
+    },
+    {
+      output: {
+        distPath: {
+          root: 'dist/es',
+        },
+      },
+      autoExtension: false,
+      dts: {
+        bundle: true,
+        distPath: 'dist/types',
+      },
+      format: 'esm',
+      syntax: 'es2020',
+    },
+  ],
+  source: {
+    entry: {
       index: './src/index.ts',
       img: './src/img/index.ts',
       constants: './src/constants/index.ts',
@@ -26,17 +49,8 @@ export default defineConfig({
       env: './src/env.ts',
       types: './src/types/index.ts',
     },
-    /**
-     * It is unnecessary to declare externals here.
-     * By default, third-party dependencies under "dependencies" and "peerDependencies" are not bundled by Modern.js Module.
-     * ref: https://modernjs.dev/module-tools/en/guide/advance/external-dependency.html#default-handling-of-third-party-dependencies
-     */
-    target: 'es2020',
-    dts: {
-      respectExternal: true,
-    },
     define: {
-      __HTML_ELEMENT_SCRIPT__: scriptStr,
+      __HTML_ELEMENT_SCRIPT__: JSON.stringify(scriptStr),
     },
   },
 });

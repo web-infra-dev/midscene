@@ -84,7 +84,7 @@ const copyReportTemplate = () => ({
               'magic string shows more than once in the file, cannot process',
             );
             const replacedContent = fileContent.replace(
-              `"${magicString}"`,
+              `'${magicString}'`,
               () => finalContent, // there are some $- code in the tpl, so we have to use a function as the second argument
             );
             fs.writeFileSync(filePath, replacedContent);

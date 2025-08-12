@@ -10,10 +10,10 @@
     "@midscene/android-playground": "./bin/android-playground"
   },
   "scripts": {
-    "dev": "modern dev",
+    "dev": "npm run build:watch",
     "dev:server": "npm run build && ./bin/playground",
-    "build": "modern build -c ./modern.config.ts",
-    "build:watch": "modern build -w -c ./modern.config.ts --no-clear"
+    "build": "rslib build",
+    "build:watch": "rslib build --watch"
   },
   "dependencies": {
     "@midscene/android": "workspace:*",
@@ -30,7 +30,8 @@
     "socket.io": "^4.8.1"
   },
   "devDependencies": {
-    "@modern-js/module-tools": "2.60.6",
+    "@microsoft/api-extractor": "^7.52.10",
+    "@rslib/core": "^0.11.2",
     "@types/cors": "2.8.12",
     "@types/express": "^4.17.21",
     "@types/node": "^18.0.0",

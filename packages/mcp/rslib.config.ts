@@ -6,7 +6,7 @@ import { version } from './package.json';
 const copyReportTemplate = () => ({
   name: 'copy-report-template',
   setup(api) {
-    api.onAfterBuild(({ compiler }) => {
+    api.onAfterBuild(() => {
       const shebang = '#!/usr/bin/env node\n';
 
       // Add shebang to index.cjs

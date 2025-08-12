@@ -3,6 +3,7 @@ import type React from 'react';
 import SettingOutlined from '../../icons/setting.svg';
 import { useEnvConfig } from '../store/store';
 import { deepThinkTip, trackingTip } from './playground-constants';
+import './index.less';
 
 interface ConfigSelectorProps {
   showDeepThinkOption: boolean;

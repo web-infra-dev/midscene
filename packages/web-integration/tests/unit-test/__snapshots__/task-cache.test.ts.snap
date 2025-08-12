@@ -37,7 +37,7 @@ exports[`TaskCache > save and retrieve cache from file 2`] = `
 `;
 
 exports[`TaskCache > save and retrieve cache from file 3`] = `
-"midsceneVersion: 0.16.11
+"midsceneVersion: 0.26.1
 cacheId: cacheId
 caches:
   - type: plan
@@ -52,7 +52,7 @@ caches:
 `;
 
 exports[`TaskCache > should create cache file 1`] = `
-"midsceneVersion: 0.16.11
+"midsceneVersion: 0.26.1
 cacheId: cacheId
 caches:
   - type: plan

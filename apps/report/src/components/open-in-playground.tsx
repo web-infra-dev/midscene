@@ -17,8 +17,6 @@ import {
 import { useEffect, useState } from 'react';
 import { StandardPlayground } from './playground';
 
-import '@midscene/visualizer/index.css';
-
 declare const __VERSION__: string;
 
 export const serverBase = 'http://localhost:5800';

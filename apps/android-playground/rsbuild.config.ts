@@ -45,6 +45,7 @@ export default defineConfig({
       },
       output: {
         target: 'web',
+        externals: ['sharp'],
         sourceMap: true,
       },
       html: {

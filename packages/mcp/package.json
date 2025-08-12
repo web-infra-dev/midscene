@@ -24,7 +24,7 @@
   },
   "devDependencies": {
     "@modelcontextprotocol/inspector": "0.14.1",
-    "@rslib/core": "^0.8.0",
+    "@rslib/core": "^0.11.2",
     "@types/node": "^18.0.0",
     "typescript": "^5.8.3",
     "vitest": "3.0.5",
