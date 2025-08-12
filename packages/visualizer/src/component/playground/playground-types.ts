@@ -1,7 +1,7 @@
 import type { GroupedActionDump, UIContext } from '@midscene/core';
+import type { WebUIContext } from '@midscene/web';
 import type { ChromeExtensionProxyPageAgent } from '@midscene/web/chrome-extension';
 import type { StaticPageAgent } from '@midscene/web/playground';
-import type { WebUIContext } from '@midscene/web/utils';
 
 // result type
 export interface PlaygroundResult {

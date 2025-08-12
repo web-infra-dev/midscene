@@ -137,6 +137,50 @@ summary: "yaml-summary.json"
   });
 
   describe('createConfig', () => {
+    test('should automatically enable headed when keepWindow is true', async () => {
+      const mockYamlContent = `
+files:
+  - file1.yml
+keepWindow: true
+headed: false
+`;
+      const mockParsedYaml = {
+        files: ['file1.yml'],
+        concurrent: 1,
+        continueOnError: false,
+        headed: false,
+        keepWindow: true,
+        dotenvOverride: false,
+        dotenvDebug: false,
+        summary: 'parsed.json',
+        shareBrowserContext: false,
+      };
+      vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
+      vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
+      vi.mocked(matchYamlFiles).mockResolvedValue(['file1.yml']);
+
+      // Test 1: keepWindow from config file should enable headed
+      const result1 = await createConfig('/test/index.yml');
+      expect(result1.keepWindow).toBe(true);
+      expect(result1.headed).toBe(true);
+
+      // Test 2: keepWindow from command line should enable headed
+      const result2 = await createConfig('/test/index.yml', {
+        keepWindow: true,
+        headed: false,
+      });
+      expect(result2.keepWindow).toBe(true);
+      expect(result2.headed).toBe(true);
+
+      // Test 3: keepWindow false should not affect headed
+      const result3 = await createConfig('/test/index.yml', {
+        keepWindow: false,
+        headed: true,
+      });
+      expect(result3.keepWindow).toBe(false);
+      expect(result3.headed).toBe(true);
+    });
+
     test('should merge command-line options over config file options', async () => {
       const mockYamlContent = `
 files:
@@ -189,6 +233,43 @@ concurrent: 2
   });
 
   describe('createFilesConfig', async () => {
+    test('should automatically enable headed when keepWindow is true', async () => {
+      const patterns = ['test.yml'];
+      const expandedFiles = ['test.yml'];
+      vi.mocked(matchYamlFiles).mockResolvedValue(expandedFiles);
+
+      // Test 1: keepWindow true should enable headed
+      const result1 = await createFilesConfig(patterns, {
+        keepWindow: true,
+        headed: false,
+      });
+      expect(result1.keepWindow).toBe(true);
+      expect(result1.headed).toBe(true);
+
+      // Test 2: keepWindow true with headed undefined should enable headed
+      const result2 = await createFilesConfig(patterns, {
+        keepWindow: true,
+      });
+      expect(result2.keepWindow).toBe(true);
+      expect(result2.headed).toBe(true);
+
+      // Test 3: keepWindow false should not affect headed true
+      const result3 = await createFilesConfig(patterns, {
+        keepWindow: false,
+        headed: true,
+      });
+      expect(result3.keepWindow).toBe(false);
+      expect(result3.headed).toBe(true);
+
+      // Test 4: Both false should remain false
+      const result4 = await createFilesConfig(patterns, {
+        keepWindow: false,
+        headed: false,
+      });
+      expect(result4.keepWindow).toBe(false);
+      expect(result4.headed).toBe(false);
+    });
+
     test('should create config with default options and expand patterns', async () => {
       const patterns = ['test1.yml', 'test*.yml'];
       const expandedFiles = ['test1.yml', 'testA.yml', 'testB.yml'];

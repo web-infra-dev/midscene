@@ -183,6 +183,7 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 - `aiInput` - Input operation
 - `aiKeyboardPress` - Keyboard operation
 - `aiScroll` - Scroll operation
+- `aiRightClick` - Right-click operation
 
 #### Query
 
@@ -197,6 +198,12 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 - `aiAssert` - AI Assertion
 - `aiWaitFor` - AI Wait
 - `aiLocate` - Locate Element
+- `runYaml` - Execute YAML automation script
+- `setAIActionContext` - Set AI action context, send background knowledge to AI model when calling `agent.aiAction()`
+- `evaluateJavaScript` - Execute JavaScript in page context
+- `logScreenshot` - Log screenshot with description in report file
+- `freezePageContext` - Freeze page context
+- `unfreezePageContext` - Unfreeze page context
 
 Besides the exposed shortcut methods, if you need to call other [API](./api.mdx) provided by the agent, you can use `agentForPage` to get the `PageAgent` instance, and use `PageAgent` to call the API for interaction:
 
@@ -230,6 +237,8 @@ test('search headphone on ebay', async ({
   aiTap,
   aiScroll,
   aiWaitFor,
+  aiRightClick,
+  logScreenshot,
 }) => {
   // Use aiInput to enter search keyword
   await aiInput('Headphones', 'search box');
@@ -259,6 +268,11 @@ test('search headphone on ebay', async ({
 
   // Use aiAssert to verify filter functionality
   await aiAssert('category filter exists on the left side');
+
+  // Use logScreenshot to capture the current state
+  await logScreenshot('Search Results', {
+    content: 'Final search results for headphones',
+  });
 });
 ```
 

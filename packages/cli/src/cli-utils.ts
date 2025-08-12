@@ -55,7 +55,7 @@ Usage:
       },
       'keep-window': {
         type: 'boolean',
-        description: `Keep the browser window open after the script finishes. This is useful when debugging, but will consume more resources, default is ${defaultConfig.keepWindow}`,
+        description: `Keep the browser window open after the script finishes. This option automatically enables --headed mode. This is useful when debugging, but will consume more resources, default is ${defaultConfig.keepWindow}`,
       },
       'share-browser-context': {
         type: 'boolean',

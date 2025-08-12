@@ -1,9 +1,11 @@
 import type { PlanningActionParamScroll, Rect, TUserPrompt, PlanningActionParamLongPress, PlanningActionParamSwipe } from './types';
+import type { BaseElement, UIContext } from './types';
 
 export interface LocateOption {
   deepThink?: boolean; // only available in vl model
   cacheable?: boolean; // user can set this param to false to disable the cache for a single agent api
   xpath?: string; // only available in web
+  pageContext?: UIContext<BaseElement>;
 }
 
 export interface InsightExtractOption {

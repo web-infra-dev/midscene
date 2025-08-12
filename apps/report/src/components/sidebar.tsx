@@ -1,6 +1,5 @@
 import './sidebar.less';
 import { useAllCurrentTasks, useExecutionDump } from '@/components/store';
-import { PauseOutlined } from '@ant-design/icons';
 import type { ExecutionTask, ExecutionTaskInsightLocate } from '@midscene/core';
 import {
   type AnimationScript,
@@ -66,10 +65,17 @@ const SideItem = (props: {
     statusText = timeCostStrElement(task.timing.cost);
   }
 
-  const statusIcon =
-    task.status === 'finished' && task.error
-      ? iconForStatus('finishedWithWarning')
-      : iconForStatus(task.status);
+  const statusIcon = (() => {
+    const isFinished = task.status === 'finished';
+    const isAssertFailed = isFinished && task.output === false;
+    const hasError = isFinished && (task.error || task.errorMessage);
+
+    if (isAssertFailed) return iconForStatus('failed');
+
+    if (hasError) return iconForStatus('finishedWithWarning');
+
+    return iconForStatus(task.status);
+  })();
 
   const titleTextIcon =
     task.type === 'Planning' ? (
@@ -147,7 +153,6 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     dumps,
     proModeEnabled = false,
     onProModeChange,
-    replayAllMode,
     setReplayAllMode,
   } = props;
   const groupedDump = useExecutionDump((store) => store.dump);

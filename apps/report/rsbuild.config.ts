@@ -6,6 +6,7 @@ import { pluginLess } from '@rsbuild/plugin-less';
 import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
 import { pluginReact } from '@rsbuild/plugin-react';
 import { pluginSvgr } from '@rsbuild/plugin-svgr';
+import { pluginTypeCheck } from '@rsbuild/plugin-type-check';
 
 // Read all JSON files from test-data directory
 const testDataDir = path.join(__dirname, 'test-data');
@@ -99,24 +100,19 @@ const copyReportTemplate = () => ({
   },
 });
 
-let tooManyCases = allTestData;
-for (let i = 0; i < 3; i++) {
-  tooManyCases = tooManyCases.concat(tooManyCases);
-}
-
 export default defineConfig({
   html: {
     template: './template/index.html',
     inject: 'body',
     tags:
       process.env.NODE_ENV === 'development'
-        ? tooManyCases.map((item, index) => ({
+        ? allTestData.map((item, index) => ({
             tag: 'script',
             attrs: {
               type: 'midscene_web_dump',
               playwright_test_description: item.data.groupDescription,
               playwright_test_id: `id-${index}`,
-              playwright_test_title: 'test open new tab',
+              playwright_test_title: item.data.groupName,
               playwright_test_status: 'passed',
               playwright_test_duration: Math.round(
                 Math.random() * 100000,
@@ -156,5 +152,6 @@ export default defineConfig({
     pluginNodePolyfill(),
     pluginSvgr(),
     copyReportTemplate(),
+    pluginTypeCheck(),
   ],
 });
