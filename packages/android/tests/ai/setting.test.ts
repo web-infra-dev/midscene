@@ -16,13 +16,16 @@ describe(
       });
 
       await agent.launch('com.android.settings/.Settings');
-
       await agent.aiAction('scroll list to bottom');
       await agent.aiAction('open "More settings"');
-      await agent.aiAction('scroll list to bottom');
+      await agent.aiAction('scroll left until left edge');
+      await agent.aiAction('scroll right until right edge');
       await agent.aiAction('scroll list to top');
-      await agent.aiAction('swipe down one screen');
-      await agent.aiAction('swipe up one screen');
+      await agent.aiAction('scroll list to bottom');
+      await agent.aiAction('scroll down one screen');
+      await agent.aiAction('scroll up one screen');
+      await agent.aiAction('scroll right one screen');
+      await agent.aiAction('scroll left one screen');
     });
   },
   360 * 1000,
