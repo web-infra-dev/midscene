@@ -9,15 +9,8 @@ import { cacheFileExt } from '@/common/task-cache';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { uuid } from '@midscene/shared/utils';
 import yaml from 'js-yaml';
-import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  describe,
-  expect,
-  it,
-  vi,
-} from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { version } from '../../package.json';
 
 const prepareCache = (
   caches: (PlanningCache | LocateCache)[],
@@ -30,6 +23,10 @@ const prepareCache = (
   });
 
   return cache.cacheFilePath;
+};
+
+const replaceVersion = (content: string) => {
+  return content.replace(version, '0.0.0');
 };
 
 describe(
@@ -59,7 +56,7 @@ describe(
         cacheId,
         'cacheId',
       );
-      expect(cacheContent).toMatchSnapshot();
+      expect(replaceVersion(cacheContent)).toMatchSnapshot();
 
       expect(cache.isCacheResultUsed).toBe(true);
     });
@@ -227,7 +224,7 @@ describe(
         newTaskCache.cacheFilePath!,
         'utf-8',
       ).replace(newTaskCache.cacheId, 'cacheId');
-      expect(cacheFileContent).toMatchSnapshot();
+      expect(replaceVersion(cacheFileContent)).toMatchSnapshot();
     });
 
     it('should sanitize cache ID for file path', () => {
