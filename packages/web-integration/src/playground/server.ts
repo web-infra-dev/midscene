@@ -28,7 +28,8 @@ const setup = async () => {
     const { parsed } = dotenv.config();
 
     if (parsed) {
-      overrideAIConfig(parsed);
+      // Use extendMode to merge with existing config instead of replacing it
+      overrideAIConfig(parsed, true);
     }
   }
 };
