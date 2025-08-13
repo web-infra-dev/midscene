@@ -1,5 +1,5 @@
 import { PromptTemplate } from '@langchain/core/prompts';
-import type { ResponseFormatJSONSchema } from 'openai/resources';
+import type { ResponseFormatJSONSchema } from 'openai/resources/index';
 
 export function systemPromptToExtract() {
   return `

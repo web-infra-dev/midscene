@@ -4,6 +4,7 @@ import type React from 'react';
 import Blackboard from '../blackboard';
 import { iconForStatus } from '../misc';
 import DemoData from '../playground-demo-ui-context.json';
+import './index.less';
 
 interface ContextPreviewProps {
   uiContextPreview: UIContext | undefined;

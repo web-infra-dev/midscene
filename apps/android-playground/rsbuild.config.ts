@@ -45,6 +45,7 @@ export default defineConfig({
       },
       output: {
         target: 'web',
+        externals: ['sharp'],
         sourceMap: true,
       },
       html: {
@@ -65,6 +66,9 @@ export default defineConfig({
       react: path.resolve(__dirname, 'node_modules/react'),
       'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
     },
+  },
+  output: {
+    externals: ['sharp'],
   },
   plugins: [
     pluginReact(),

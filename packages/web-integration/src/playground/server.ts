@@ -25,11 +25,7 @@ const errorHandler = (err: any, req: any, res: any, next: any) => {
 
 const setup = async () => {
   if (!ifInBrowser && !ifInWorker) {
-    const { parsed } = dotenv.config();
-
-    if (parsed) {
-      overrideAIConfig(parsed);
-    }
+    dotenv.config();
   }
 };
 

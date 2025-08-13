@@ -8,6 +8,7 @@ import type { ChromeRecordedEvent } from '@midscene/recorder';
 import { message } from 'antd';
 import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
+import type { ChatCompletionContentPart } from 'openai/resources/index';
 import type { RecordingSession } from '../../store';
 import { recordLogger } from './logger';
 import { isChromeExtension, safeChromeAPI } from './types';
@@ -278,7 +279,7 @@ export const generateRecordTitle = async (
       const screenshots = getScreenshotsForLLM(events);
 
       // Create the message content
-      const messageContent: Array<string | Record<string, any>> = [
+      const messageContent: ChatCompletionContentPart[] = [
         {
           type: 'text',
           text: `Generate a concise title (5-7 words) and brief description (1-2 sentences) for a browser recording session with the following events:\n\n${JSON.stringify(summary, null, 2)}\n\nRespond with a JSON object containing "title" and "description" fields. The title should be action-oriented and highlight the main task accomplished. The description should provide slightly more detail about what was done.`,
@@ -313,7 +314,7 @@ export const generateRecordTitle = async (
           role: 'user',
           content: messageContent,
         },
-      ];
+      ] as const;
 
       const response = await callAiFn(
         [prompt[0], prompt[1]],

@@ -20,7 +20,6 @@ import { Col, ConfigProvider, Form, Layout, Row, message } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import IOSPlayer, { type IOSPlayerRefMethods } from './ios-player';
 
-import '@midscene/visualizer/index.css';
 import './ios-device/index.less';
 
 const { Content } = Layout;

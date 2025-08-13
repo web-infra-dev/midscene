@@ -72,8 +72,6 @@ common/autoinstallers/*/.npmrc
 # pnpm store
 .pnpm-store
 
-.eden-mono
-
 dist
 dist-script
 doc_build
@@ -122,3 +120,4 @@ CLAUDE.md
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.md
 .gemini-clipboard
+tsconfig.build.tsbuildinfo

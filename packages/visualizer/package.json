@@ -1,18 +1,16 @@
 {
   "name": "@midscene/visualizer",
-  "version": "0.26.1",
+  "version": "0.26.2",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "types": "./dist/types/index.d.ts",
-  "main": "./dist/index.js",
-  "module": "./dist/es/index.js",
+  "main": "./dist/lib/index.js",
+  "module": "./dist/es/index.mjs",
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
-      "default": "./dist/index.js"
-    },
-    "./index.css": {
-      "default": "./dist/index.css"
+      "import": "./dist/es/index.mjs",
+      "require": "./dist/es/index.js"
     }
   },
   "files": ["dist", "html", "README.md"],
@@ -25,22 +23,21 @@
   },
   "scripts": {
     "dev": "npm run build && npx npm-watch",
-    "build": "modern build ",
-    "build:watch": "modern build -w --no-clear",
-    "serve": "http-server ./dist/ -p 3000",
-    "new": "modern new",
-    "upgrade": "modern upgrade"
+    "build": "rslib build",
+    "build:watch": "rslib build --watch",
+    "serve": "http-server ./dist/ -p 3000"
   },
   "peerDependencies": {
     "react": "18.3.1",
     "react-dom": ">=19.1.0"
   },
   "devDependencies": {
-    "@modern-js/module-tools": "2.60.6",
-    "@modern-js/plugin-module-doc": "^2.33.1",
-    "@modern-js/plugin-module-node-polyfill": "2.60.6",
-    "@modern-js/runtime": "2.60.6",
     "@pixi/unsafe-eval": "7.4.2",
+    "@rsbuild/plugin-less": "^1.2.4",
+    "@rsbuild/plugin-node-polyfill": "1.3.0",
+    "@rsbuild/plugin-react": "^1.3.1",
+    "@rsbuild/plugin-svgr": "^1.1.1",
+    "@rslib/core": "^0.11.2",
     "@types/chrome": "0.0.279",
     "@types/node": "^18.0.0",
     "@types/react": "^18.3.1",

@@ -8,7 +8,7 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "lib": ["DOM", "ESNext"],
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "paths": {
       "@/*": ["./src/*"]
     },
@@ -17,8 +17,18 @@
     "rootDir": "./src",
     "skipLibCheck": true,
     "strict": true,
-    "module": "ESNext"
+    "module": "ESNext",
+    "composite": true,
+    "declarationDir": "dist/types"
   },
   "exclude": ["node_modules"],
-  "include": ["src", "./vitest.config"]
+  "include": ["src", "./vitest.config"],
+  "references": [
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../shared"
+    }
+  ]
 }

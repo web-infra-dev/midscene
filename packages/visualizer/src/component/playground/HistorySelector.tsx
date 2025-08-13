@@ -6,6 +6,7 @@ import HistoryOutlined from '../../icons/history.svg';
 import MagnifyingGlass from '../../icons/magnifying-glass.svg';
 import { useHistoryStore } from '../store/history';
 import type { HistoryItem } from '../store/history';
+import './index.less';
 
 const { Text } = Typography;
 

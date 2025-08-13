@@ -1,7 +1,6 @@
 import path from 'node:path';
 import dotenv from 'dotenv';
 import { defineConfig } from 'vitest/config';
-import { version } from './package.json';
 
 /**
  * Read environment variables from file.
@@ -39,7 +38,8 @@ export default defineConfig({
     dangerouslyIgnoreUnhandledErrors: !!process.env.CI, // showcase.test.ts is not stable
   },
   define: {
-    __VERSION__: `'${version}'`,
+    // must greater than 0.16.0, otherwise will cause warning "You are using an old version of Midscene cache file"
+    __VERSION__: `'0.999.0'`,
   },
   ssr: {
     external: ['@silvia-odwyer/photon'],

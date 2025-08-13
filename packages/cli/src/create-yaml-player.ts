@@ -172,10 +172,6 @@ export async function createYamlPlayer(
           mirrorConfig: iosTarget.mirrorConfig,
         });
 
-        if (iosTarget?.launch) {
-          await agent.launch(iosTarget.launch);
-        }
-
         freeFn.push({
           name: 'destroy_ios_agent',
           fn: () => agent.destroy(),

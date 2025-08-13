@@ -9,21 +9,8 @@ import { cacheFileExt } from '@/common/task-cache';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { uuid } from '@midscene/shared/utils';
 import yaml from 'js-yaml';
-import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  describe,
-  expect,
-  it,
-  vi,
-} from 'vitest';
-
-vi.mock('../../package.json', () => {
-  return {
-    version: '0.16.11',
-  };
-});
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { version } from '../../package.json';
 
 const prepareCache = (
   caches: (PlanningCache | LocateCache)[],
@@ -38,392 +25,383 @@ const prepareCache = (
   return cache.cacheFilePath;
 };
 
-describe(
-  'TaskCache',
-  () => {
-    beforeAll(() => {
-      vi.resetModules();
+describe('TaskCache', { timeout: 20000 }, () => {
+  beforeAll(() => {
+    vi.resetModules();
+  });
+
+  afterAll(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should create cache file', () => {
+    const cacheId = uuid();
+    const cache = new TaskCache(cacheId, true);
+    expect(cache.cacheFilePath).toBeDefined();
+
+    cache.appendCache({
+      type: 'plan',
+      prompt: 'test',
+      yamlWorkflow: 'test',
     });
 
-    afterAll(() => {
-      vi.restoreAllMocks();
+    expect(existsSync(cache.cacheFilePath!)).toBe(true);
+    const cacheContent = readFileSync(cache.cacheFilePath!, 'utf-8').replace(
+      cacheId,
+      'cacheId',
+    );
+    expect(cacheContent).toMatchSnapshot();
+
+    expect(cache.isCacheResultUsed).toBe(true);
+  });
+
+  it('update or append cache record - should not match cache added in same run', () => {
+    const cacheId = uuid();
+    const cache = new TaskCache(cacheId, true);
+
+    cache.appendCache({
+      type: 'plan',
+      prompt: 'test-prompt',
+      yamlWorkflow: 'test-yaml-workflow',
     });
 
-    it('should create cache file', () => {
-      const cacheId = uuid();
-      const cache = new TaskCache(cacheId, true);
-      expect(cache.cacheFilePath).toBeDefined();
+    const existingRecord = cache.matchPlanCache('test-prompt');
+    expect(existingRecord).toBeUndefined();
 
-      cache.appendCache({
+    cache.updateOrAppendCacheRecord(
+      {
         type: 'plan',
-        prompt: 'test',
-        yamlWorkflow: 'test',
-      });
+        prompt: 'test-prompt',
+        yamlWorkflow: 'test-yaml-workflow-2',
+      },
+      existingRecord,
+    );
 
-      expect(existsSync(cache.cacheFilePath!)).toBe(true);
-      const cacheContent = readFileSync(cache.cacheFilePath!, 'utf-8').replace(
-        cacheId,
-        'cacheId',
-      );
-      expect(cacheContent).toMatchSnapshot();
+    expect(cache.cache.caches.length).toBe(2);
+    expect(cache.cache.caches).toMatchSnapshot();
+  });
 
-      expect(cache.isCacheResultUsed).toBe(true);
-    });
-
-    it('update or append cache record - should not match cache added in same run', () => {
-      const cacheId = uuid();
-      const cache = new TaskCache(cacheId, true);
-
-      cache.appendCache({
+  it('one cache record can only be matched once - when loaded from file', () => {
+    const cacheFilePath = prepareCache([
+      {
         type: 'plan',
         prompt: 'test-prompt',
         yamlWorkflow: 'test-yaml-workflow',
-      });
+      },
+    ]);
 
-      const existingRecord = cache.matchPlanCache('test-prompt');
-      expect(existingRecord).toBeUndefined();
+    const newCache = new TaskCache(uuid(), true, cacheFilePath);
 
-      cache.updateOrAppendCacheRecord(
-        {
-          type: 'plan',
-          prompt: 'test-prompt',
-          yamlWorkflow: 'test-yaml-workflow-2',
-        },
-        existingRecord,
-      );
+    // should be able to match cache record
+    expect(newCache.matchPlanCache('test-prompt')).toBeDefined();
+    // should return undefined when matching the same record again
+    expect(newCache.matchPlanCache('test-prompt')).toBeUndefined();
+  });
 
-      expect(cache.cache.caches.length).toBe(2);
-      expect(cache.cache.caches).toMatchSnapshot();
-    });
-
-    it('one cache record can only be matched once - when loaded from file', () => {
-      const cacheFilePath = prepareCache([
-        {
-          type: 'plan',
-          prompt: 'test-prompt',
-          yamlWorkflow: 'test-yaml-workflow',
-        },
-      ]);
-
-      const newCache = new TaskCache(uuid(), true, cacheFilePath);
-
-      // should be able to match cache record
-      expect(newCache.matchPlanCache('test-prompt')).toBeDefined();
-      // should return undefined when matching the same record again
-      expect(newCache.matchPlanCache('test-prompt')).toBeUndefined();
-    });
-
-    it('same prompt with same type cache record can be matched twice - when loaded from file', () => {
-      const cacheFilePath = prepareCache([
-        {
-          type: 'plan',
-          prompt: 'test-prompt',
-          yamlWorkflow: 'test-yaml-workflow-1',
-        },
-        {
-          type: 'plan',
-          prompt: 'test-prompt',
-          yamlWorkflow: 'test-yaml-workflow-2',
-        },
-      ]);
-      const newCache = new TaskCache(uuid(), true, cacheFilePath);
-
-      // should be able to match the first record
-      const firstMatch = newCache.matchPlanCache('test-prompt');
-      expect(firstMatch).toBeDefined();
-      expect(firstMatch?.cacheContent.yamlWorkflow).toBe(
-        'test-yaml-workflow-1',
-      );
-
-      // should be able to match the second record
-      const secondMatch = newCache.matchPlanCache('test-prompt');
-      expect(secondMatch).toBeDefined();
-      expect(secondMatch?.cacheContent.yamlWorkflow).toBe(
-        'test-yaml-workflow-2',
-      );
-
-      // should return undefined when matching the same record again
-      expect(newCache.matchPlanCache('test-prompt')).toBeUndefined();
-    });
-
-    it('should not match cache records added in the same run', () => {
-      const cacheId = uuid();
-      const cache = new TaskCache(cacheId, true);
-
-      // cache is empty, cacheOriginalLength should be 0
-      expect(cache.cacheOriginalLength).toBe(0);
-
-      // add a cache record
-      cache.appendCache({
+  it('same prompt with same type cache record can be matched twice - when loaded from file', () => {
+    const cacheFilePath = prepareCache([
+      {
         type: 'plan',
-        prompt: 'test-prompt-1',
+        prompt: 'test-prompt',
         yamlWorkflow: 'test-yaml-workflow-1',
-      });
-
-      // add another cache record
-      cache.appendCache({
+      },
+      {
         type: 'plan',
-        prompt: 'test-prompt-2',
+        prompt: 'test-prompt',
         yamlWorkflow: 'test-yaml-workflow-2',
-      });
+      },
+    ]);
+    const newCache = new TaskCache(uuid(), true, cacheFilePath);
 
-      // cache has two records
-      expect(cache.cache.caches.length).toBe(2);
+    // should be able to match the first record
+    const firstMatch = newCache.matchPlanCache('test-prompt');
+    expect(firstMatch).toBeDefined();
+    expect(firstMatch?.cacheContent.yamlWorkflow).toBe('test-yaml-workflow-1');
 
-      // cacheOriginalLength should be 0
-      expect(cache.cacheOriginalLength).toBe(0);
+    // should be able to match the second record
+    const secondMatch = newCache.matchPlanCache('test-prompt');
+    expect(secondMatch).toBeDefined();
+    expect(secondMatch?.cacheContent.yamlWorkflow).toBe('test-yaml-workflow-2');
 
-      // should not be able to match any record
-      expect(cache.matchPlanCache('test-prompt-1')).toBeUndefined();
-      expect(cache.matchPlanCache('test-prompt-2')).toBeUndefined();
+    // should return undefined when matching the same record again
+    expect(newCache.matchPlanCache('test-prompt')).toBeUndefined();
+  });
+
+  it('should not match cache records added in the same run', () => {
+    const cacheId = uuid();
+    const cache = new TaskCache(cacheId, true);
+
+    // cache is empty, cacheOriginalLength should be 0
+    expect(cache.cacheOriginalLength).toBe(0);
+
+    // add a cache record
+    cache.appendCache({
+      type: 'plan',
+      prompt: 'test-prompt-1',
+      yamlWorkflow: 'test-yaml-workflow-1',
     });
 
-    it('save and retrieve cache from file', () => {
-      const cacheId = uuid();
-      const planningCachedPrompt = 'test';
-      const planningCachedYamlWorkflow = 'test-yaml-workflow';
-
-      const locateCachedPrompt = 'test-locate';
-      const locateCachedXpaths = ['test-xpath-1', 'test-xpath-2'];
-
-      const cacheFilePath = prepareCache(
-        [
-          {
-            type: 'plan',
-            prompt: planningCachedPrompt,
-            yamlWorkflow: planningCachedYamlWorkflow,
-          },
-          {
-            type: 'locate',
-            prompt: locateCachedPrompt,
-            xpaths: locateCachedXpaths,
-          },
-        ],
-        cacheId,
-      );
-
-      const newTaskCache = new TaskCache(cacheId, true, cacheFilePath);
-
-      // should be able to match all cache records
-      const cachedPlanCache = newTaskCache.matchPlanCache(planningCachedPrompt);
-      const { cacheContent: cachedPlanCacheContent } = cachedPlanCache!;
-      expect(cachedPlanCacheContent.prompt).toBe(planningCachedPrompt);
-      expect(cachedPlanCacheContent.yamlWorkflow).toBe(
-        planningCachedYamlWorkflow,
-      );
-
-      const cachedLocateCache =
-        newTaskCache.matchLocateCache(locateCachedPrompt);
-      const {
-        cacheContent: cachedLocateCacheContent,
-        updateFn: cachedLocateCacheUpdateFn,
-      } = cachedLocateCache!;
-      expect(cachedLocateCacheContent.prompt).toBe(locateCachedPrompt);
-      expect(cachedLocateCacheContent.xpaths).toEqual(locateCachedXpaths);
-
-      expect(newTaskCache.cache.caches).toMatchSnapshot();
-
-      // test update cache
-      cachedLocateCacheUpdateFn((cache) => {
-        cache.xpaths = ['test-xpath-3', 'test-xpath-4'];
-      });
-
-      expect(newTaskCache.cache.caches).toMatchSnapshot();
-      const cacheFileContent = readFileSync(
-        newTaskCache.cacheFilePath!,
-        'utf-8',
-      ).replace(newTaskCache.cacheId, 'cacheId');
-      expect(cacheFileContent).toMatchSnapshot();
+    // add another cache record
+    cache.appendCache({
+      type: 'plan',
+      prompt: 'test-prompt-2',
+      yamlWorkflow: 'test-yaml-workflow-2',
     });
 
-    it('should sanitize cache ID for file path', () => {
-      const cacheIdWithIllegalChars =
-        'test:cache*with?illegal"chars<>|and spaces';
-      const cache = new TaskCache(cacheIdWithIllegalChars, true);
+    // cache has two records
+    expect(cache.cache.caches.length).toBe(2);
 
-      // Cache ID should be sanitized
-      expect(cache.cacheId).toBe('test-cache-with-illegal-chars---and-spaces');
+    // cacheOriginalLength should be 0
+    expect(cache.cacheOriginalLength).toBe(0);
 
-      // File path should contain sanitized cache ID
-      expect(cache.cacheFilePath).toContain(
-        'test-cache-with-illegal-chars---and-spaces.cache.yaml',
-      );
+    // should not be able to match any record
+    expect(cache.matchPlanCache('test-prompt-1')).toBeUndefined();
+    expect(cache.matchPlanCache('test-prompt-2')).toBeUndefined();
+  });
 
-      // Should be able to create cache file with sanitized name
-      cache.appendCache({
-        type: 'plan',
-        prompt: 'test',
-        yamlWorkflow: 'test-workflow',
-      });
+  it('save and retrieve cache from file', () => {
+    const cacheId = uuid();
+    const planningCachedPrompt = 'test';
+    const planningCachedYamlWorkflow = 'test-yaml-workflow';
 
-      expect(existsSync(cache.cacheFilePath!)).toBe(true);
+    const locateCachedPrompt = 'test-locate';
+    const locateCachedXpaths = ['test-xpath-1', 'test-xpath-2'];
+
+    const cacheFilePath = prepareCache(
+      [
+        {
+          type: 'plan',
+          prompt: planningCachedPrompt,
+          yamlWorkflow: planningCachedYamlWorkflow,
+        },
+        {
+          type: 'locate',
+          prompt: locateCachedPrompt,
+          xpaths: locateCachedXpaths,
+        },
+      ],
+      cacheId,
+    );
+
+    const newTaskCache = new TaskCache(cacheId, true, cacheFilePath);
+
+    // should be able to match all cache records
+    const cachedPlanCache = newTaskCache.matchPlanCache(planningCachedPrompt);
+    const { cacheContent: cachedPlanCacheContent } = cachedPlanCache!;
+    expect(cachedPlanCacheContent.prompt).toBe(planningCachedPrompt);
+    expect(cachedPlanCacheContent.yamlWorkflow).toBe(
+      planningCachedYamlWorkflow,
+    );
+
+    const cachedLocateCache = newTaskCache.matchLocateCache(locateCachedPrompt);
+    const {
+      cacheContent: cachedLocateCacheContent,
+      updateFn: cachedLocateCacheUpdateFn,
+    } = cachedLocateCache!;
+    expect(cachedLocateCacheContent.prompt).toBe(locateCachedPrompt);
+    expect(cachedLocateCacheContent.xpaths).toEqual(locateCachedXpaths);
+
+    expect(newTaskCache.cache.caches).toMatchSnapshot();
+
+    // test update cache
+    cachedLocateCacheUpdateFn((cache) => {
+      cache.xpaths = ['test-xpath-3', 'test-xpath-4'];
     });
 
-    it('should handle cache ID with path separators', () => {
-      const cacheIdWithPaths = '/path/to/cache\\with\\separators';
-      const cache = new TaskCache(cacheIdWithPaths, true);
+    expect(newTaskCache.cache.caches).toMatchSnapshot();
+    const cacheFileContent = readFileSync(
+      newTaskCache.cacheFilePath!,
+      'utf-8',
+    ).replace(newTaskCache.cacheId, 'cacheId');
+    expect(cacheFileContent).toMatchSnapshot();
+  });
 
-      // Path separators should be preserved in cache ID
-      expect(cache.cacheId).toBe('/path/to/cache\\with\\separators');
+  it('should sanitize cache ID for file path', () => {
+    const cacheIdWithIllegalChars =
+      'test:cache*with?illegal"chars<>|and spaces';
+    const cache = new TaskCache(cacheIdWithIllegalChars, true);
 
-      // File path should be valid
-      expect(cache.cacheFilePath).toBeDefined();
-      expect(cache.cacheFilePath).toContain('.cache.yaml');
+    // Cache ID should be sanitized
+    expect(cache.cacheId).toBe('test-cache-with-illegal-chars---and-spaces');
+
+    // File path should contain sanitized cache ID
+    expect(cache.cacheFilePath).toContain(
+      'test-cache-with-illegal-chars---and-spaces.cache.yaml',
+    );
+
+    // Should be able to create cache file with sanitized name
+    cache.appendCache({
+      type: 'plan',
+      prompt: 'test',
+      yamlWorkflow: 'test-workflow',
     });
 
-    it('should create cache directory if it does not exist', () => {
-      const cacheId = uuid();
-      const uniqueDir = path.join(
-        process.cwd(),
-        'midscene_run',
-        'cache',
-        `test-cache-dir-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-      );
-      const customCacheDir = join(process.cwd(), uniqueDir, 'nested', 'deep');
-      const customCacheFilePath = join(customCacheDir, `${cacheId}.cache.yaml`);
+    expect(existsSync(cache.cacheFilePath!)).toBe(true);
+  });
 
-      const cache = new TaskCache(cacheId, true, customCacheFilePath);
+  it('should handle cache ID with path separators', () => {
+    const cacheIdWithPaths = '/path/to/cache\\with\\separators';
+    const cache = new TaskCache(cacheIdWithPaths, true);
 
-      // Directory should not exist initially
-      expect(existsSync(customCacheDir)).toBe(false);
+    // Path separators should be preserved in cache ID
+    expect(cache.cacheId).toBe('/path/to/cache\\with\\separators');
 
-      // Adding cache should create the directory
-      cache.appendCache({
-        type: 'plan',
-        prompt: 'test',
-        yamlWorkflow: 'test-workflow',
-      });
+    // File path should be valid
+    expect(cache.cacheFilePath).toBeDefined();
+    expect(cache.cacheFilePath).toContain('.cache.yaml');
+  });
 
-      // Directory and file should now exist
-      expect(existsSync(customCacheDir)).toBe(true);
-      expect(existsSync(customCacheFilePath)).toBe(true);
+  it('should create cache directory if it does not exist', () => {
+    const cacheId = uuid();
+    const uniqueDir = path.join(
+      process.cwd(),
+      'midscene_run',
+      'cache',
+      `test-cache-dir-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+    );
+    const customCacheDir = join(process.cwd(), uniqueDir, 'nested', 'deep');
+    const customCacheFilePath = join(customCacheDir, `${cacheId}.cache.yaml`);
+
+    const cache = new TaskCache(cacheId, true, customCacheFilePath);
+
+    // Directory should not exist initially
+    expect(existsSync(customCacheDir)).toBe(false);
+
+    // Adding cache should create the directory
+    cache.appendCache({
+      type: 'plan',
+      prompt: 'test',
+      yamlWorkflow: 'test-workflow',
     });
 
-    it('should handle custom cache file path', () => {
-      const customPath = 'custom-cache.yaml';
+    // Directory and file should now exist
+    expect(existsSync(customCacheDir)).toBe(true);
+    expect(existsSync(customCacheFilePath)).toBe(true);
+  });
 
-      const cache = new TaskCache(customPath, true);
+  it('should handle custom cache file path', () => {
+    const customPath = 'custom-cache.yaml';
 
-      expect(cache.cacheFilePath).toBe(
-        join(getMidsceneRunSubDir('cache'), `${customPath}${cacheFileExt}`),
-      );
+    const cache = new TaskCache(customPath, true);
 
-      cache.appendCache({
-        type: 'locate',
-        prompt: 'test-locate',
-        xpaths: ['test-xpath'],
-      });
+    expect(cache.cacheFilePath).toBe(
+      join(getMidsceneRunSubDir('cache'), `${customPath}${cacheFileExt}`),
+    );
 
-      expect(existsSync(cache.cacheFilePath!)).toBe(true);
-
-      // Verify content
-      const content = readFileSync(cache.cacheFilePath!, 'utf-8');
-      expect(content).toContain('test-locate');
-      expect(content).toContain('test-xpath');
+    cache.appendCache({
+      type: 'locate',
+      prompt: 'test-locate',
+      xpaths: ['test-xpath'],
     });
 
-    it('should handle empty cache ID gracefully', () => {
-      // TaskCache requires non-empty cache ID, so test that it throws error for empty string
-      expect(() => new TaskCache('', true)).toThrow('cacheId is required');
+    expect(existsSync(cache.cacheFilePath!)).toBe(true);
+
+    // Verify content
+    const content = readFileSync(cache.cacheFilePath!, 'utf-8');
+    expect(content).toContain('test-locate');
+    expect(content).toContain('test-xpath');
+  });
+
+  it('should handle empty cache ID gracefully', () => {
+    // TaskCache requires non-empty cache ID, so test that it throws error for empty string
+    expect(() => new TaskCache('', true)).toThrow('cacheId is required');
+  });
+
+  it('should handle minimal cache ID', () => {
+    const cache = new TaskCache('a', true);
+
+    // Minimal cache ID should work
+    expect(cache.cacheId).toBe('a');
+    expect(cache.cacheFilePath).toContain('a.cache.yaml');
+
+    // Should be able to create cache file
+    cache.appendCache({
+      type: 'plan',
+      prompt: 'test',
+      yamlWorkflow: 'test-workflow',
     });
 
-    it('should handle minimal cache ID', () => {
-      const cache = new TaskCache('a', true);
+    expect(existsSync(cache.cacheFilePath!)).toBe(true);
+  });
 
-      // Minimal cache ID should work
-      expect(cache.cacheId).toBe('a');
-      expect(cache.cacheFilePath).toContain('a.cache.yaml');
+  it('should preserve cache file path structure', () => {
+    const cacheId = 'test-cache-id';
+    const cache = new TaskCache(cacheId, true);
 
-      // Should be able to create cache file
-      cache.appendCache({
-        type: 'plan',
-        prompt: 'test',
-        yamlWorkflow: 'test-workflow',
-      });
+    // Should use default cache directory structure
+    expect(cache.cacheFilePath).toMatch(
+      /.*\/cache\/test-cache-id\.cache\.yaml$/,
+    );
 
-      expect(existsSync(cache.cacheFilePath!)).toBe(true);
+    // Should be able to write to the path
+    cache.appendCache({
+      type: 'plan',
+      prompt: 'test',
+      yamlWorkflow: 'test-workflow',
     });
 
-    it('should preserve cache file path structure', () => {
-      const cacheId = 'test-cache-id';
-      const cache = new TaskCache(cacheId, true);
+    expect(existsSync(cache.cacheFilePath!)).toBe(true);
+  });
 
-      // Should use default cache directory structure
-      expect(cache.cacheFilePath).toMatch(
-        /.*\/cache\/test-cache-id\.cache\.yaml$/,
-      );
+  it('should sort caches with plan entries before locate entries when writing to disk', () => {
+    const cacheId = uuid();
+    const cache = new TaskCache(cacheId, true);
 
-      // Should be able to write to the path
-      cache.appendCache({
-        type: 'plan',
-        prompt: 'test',
-        yamlWorkflow: 'test-workflow',
-      });
-
-      expect(existsSync(cache.cacheFilePath!)).toBe(true);
+    // Add caches in mixed order: locate, plan, locate, plan
+    cache.appendCache({
+      type: 'locate',
+      prompt: 'locate-prompt-1',
+      xpaths: ['xpath-1'],
     });
 
-    it('should sort caches with plan entries before locate entries when writing to disk', () => {
-      const cacheId = uuid();
-      const cache = new TaskCache(cacheId, true);
-
-      // Add caches in mixed order: locate, plan, locate, plan
-      cache.appendCache({
-        type: 'locate',
-        prompt: 'locate-prompt-1',
-        xpaths: ['xpath-1'],
-      });
-
-      cache.appendCache({
-        type: 'plan',
-        prompt: 'plan-prompt-1',
-        yamlWorkflow: 'workflow-1',
-      });
-
-      cache.appendCache({
-        type: 'locate',
-        prompt: 'locate-prompt-2',
-        xpaths: ['xpath-2'],
-      });
-
-      cache.appendCache({
-        type: 'plan',
-        prompt: 'plan-prompt-2',
-        yamlWorkflow: 'workflow-2',
-      });
-
-      // In memory, caches should maintain insertion order
-      expect(cache.cache.caches[0].type).toBe('locate');
-      expect(cache.cache.caches[1].type).toBe('plan');
-      expect(cache.cache.caches[2].type).toBe('locate');
-      expect(cache.cache.caches[3].type).toBe('plan');
-
-      // Read the file content to verify disk ordering
-      const fileContent = readFileSync(cache.cacheFilePath!, 'utf-8');
-      const parsedContent = yaml.load(fileContent) as any;
-
-      // On disk, all plan entries should come before all locate entries
-      const diskCaches = parsedContent.caches;
-      expect(diskCaches[0].type).toBe('plan');
-      expect(diskCaches[0].prompt).toBe('plan-prompt-1');
-      expect(diskCaches[1].type).toBe('plan');
-      expect(diskCaches[1].prompt).toBe('plan-prompt-2');
-      expect(diskCaches[2].type).toBe('locate');
-      expect(diskCaches[2].prompt).toBe('locate-prompt-1');
-      expect(diskCaches[3].type).toBe('locate');
-      expect(diskCaches[3].prompt).toBe('locate-prompt-2');
-
-      // Verify that plan entries maintain their relative order
-      expect(diskCaches[0].yamlWorkflow).toBe('workflow-1');
-      expect(diskCaches[1].yamlWorkflow).toBe('workflow-2');
-
-      // Verify that locate entries maintain their relative order
-      expect(diskCaches[2].xpaths).toEqual(['xpath-1']);
-      expect(diskCaches[3].xpaths).toEqual(['xpath-2']);
+    cache.appendCache({
+      type: 'plan',
+      prompt: 'plan-prompt-1',
+      yamlWorkflow: 'workflow-1',
     });
-  },
-  { timeout: 20000 },
-);
+
+    cache.appendCache({
+      type: 'locate',
+      prompt: 'locate-prompt-2',
+      xpaths: ['xpath-2'],
+    });
+
+    cache.appendCache({
+      type: 'plan',
+      prompt: 'plan-prompt-2',
+      yamlWorkflow: 'workflow-2',
+    });
+
+    // In memory, caches should maintain insertion order
+    expect(cache.cache.caches[0].type).toBe('locate');
+    expect(cache.cache.caches[1].type).toBe('plan');
+    expect(cache.cache.caches[2].type).toBe('locate');
+    expect(cache.cache.caches[3].type).toBe('plan');
+
+    // Read the file content to verify disk ordering
+    const fileContent = readFileSync(cache.cacheFilePath!, 'utf-8');
+    const parsedContent = yaml.load(fileContent) as any;
+
+    // On disk, all plan entries should come before all locate entries
+    const diskCaches = parsedContent.caches;
+    expect(diskCaches[0].type).toBe('plan');
+    expect(diskCaches[0].prompt).toBe('plan-prompt-1');
+    expect(diskCaches[1].type).toBe('plan');
+    expect(diskCaches[1].prompt).toBe('plan-prompt-2');
+    expect(diskCaches[2].type).toBe('locate');
+    expect(diskCaches[2].prompt).toBe('locate-prompt-1');
+    expect(diskCaches[3].type).toBe('locate');
+    expect(diskCaches[3].prompt).toBe('locate-prompt-2');
+
+    // Verify that plan entries maintain their relative order
+    expect(diskCaches[0].yamlWorkflow).toBe('workflow-1');
+    expect(diskCaches[1].yamlWorkflow).toBe('workflow-2');
+
+    // Verify that locate entries maintain their relative order
+    expect(diskCaches[2].xpaths).toEqual(['xpath-1']);
+    expect(diskCaches[3].xpaths).toEqual(['xpath-2']);
+  });
+});
 
 describe('TaskCache filename length logic', () => {
   const DEFAULT = 200;
