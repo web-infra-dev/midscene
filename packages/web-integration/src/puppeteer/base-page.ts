@@ -8,11 +8,11 @@ import { sleep } from '@midscene/core/utils';
 import { DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
+import { getDebug } from '@midscene/shared/logger';
 import {
   getElementInfosScriptContent,
   getExtraReturnLogic,
-} from '@midscene/shared/fs';
-import { getDebug } from '@midscene/shared/logger';
+} from '@midscene/shared/node';
 import { assert } from '@midscene/shared/utils';
 import type { Page as PlaywrightPage } from 'playwright';
 import type { Page as PuppeteerPage } from 'puppeteer';

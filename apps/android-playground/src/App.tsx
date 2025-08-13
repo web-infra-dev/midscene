@@ -23,7 +23,6 @@ import { type Socket, io } from 'socket.io-client';
 import AdbDevice from './adb-device';
 import ScrcpyPlayer, { type ScrcpyRefMethods } from './scrcpy-player';
 
-import '@midscene/visualizer/index.css';
 import './adb-device/index.less';
 
 const { Content } = Layout;

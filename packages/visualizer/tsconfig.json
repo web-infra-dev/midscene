@@ -9,7 +9,7 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "lib": ["DOM", "ESNext"],
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "paths": {
       "@/*": ["./src/*"]
     },
@@ -18,8 +18,21 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "ES2022",
-    "types": ["react"]
+    "types": ["react"],
+    "composite": true,
+    "declarationDir": "dist/types"
   },
   "exclude": ["**/node_modules"],
-  "include": ["src", "builder"]
+  "include": ["src", "builder"],
+  "references": [
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../shared"
+    },
+    {
+      "path": "../web-integration"
+    }
+  ]
 }

@@ -7,6 +7,7 @@ import { iconForStatus } from '../misc';
 import { useEnvConfig } from '../store/store';
 import { overrideServerConfig } from './playground-utils';
 import { useServerValid } from './useServerValid';
+import './index.less';
 
 interface ServiceModeControlProps {
   serviceMode: 'Server' | 'In-Browser';

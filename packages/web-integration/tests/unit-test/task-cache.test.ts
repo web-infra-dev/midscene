@@ -19,12 +19,6 @@ import {
   vi,
 } from 'vitest';
 
-vi.mock('../../package.json', () => {
-  return {
-    version: '0.16.11',
-  };
-});
-
 const prepareCache = (
   caches: (PlanningCache | LocateCache)[],
   cacheId?: string,

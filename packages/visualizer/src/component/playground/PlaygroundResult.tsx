@@ -7,6 +7,7 @@ import ShinyText from '../shiny-text';
 import { emptyResultTip, serverLaunchTip } from './playground-constants';
 import type { PlaygroundResult as PlaygroundResultType } from './playground-types';
 import type { ServiceModeType } from './playground-types';
+import './index.less';
 
 interface PlaygroundResultProps {
   result: PlaygroundResultType | null;

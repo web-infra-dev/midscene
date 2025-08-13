@@ -1,18 +1,35 @@
 {
   "name": "@midscene/core",
   "description": "Automate browser actions, extract data, and perform assertions using AI. It offers JavaScript SDK, Chrome extension, and support for scripting in YAML. See https://midscenejs.com/ for details.",
-  "version": "0.26.1",
+  "version": "0.26.2",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "jsnext:source": "./src/index.ts",
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",
+  "module": "./dist/es/index.mjs",
   "files": ["dist", "README.md"],
   "exports": {
-    ".": "./dist/lib/index.js",
-    "./utils": "./dist/lib/utils.js",
-    "./ai-model": "./dist/lib/ai-model.js",
-    "./tree": "./dist/lib/tree.js"
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/es/index.mjs",
+      "require": "./dist/lib/index.js"
+    },
+    "./utils": {
+      "types": "./dist/types/utils.d.ts",
+      "import": "./dist/es/utils.mjs",
+      "require": "./dist/lib/utils.js"
+    },
+    "./ai-model": {
+      "types": "./dist/types/ai-model.d.ts",
+      "import": "./dist/es/ai-model.mjs",
+      "require": "./dist/lib/ai-model.js"
+    },
+    "./tree": {
+      "types": "./dist/types/tree.d.ts",
+      "import": "./dist/es/tree.mjs",
+      "require": "./dist/lib/tree.js"
+    }
   },
   "typesVersions": {
     "*": {
@@ -24,10 +41,8 @@
   },
   "scripts": {
     "dev": "npm run build:watch",
-    "build": "modern build",
-    "build:watch": "USE_DEV_REPORT=1 modern build -w --no-clear",
-    "new": "modern new",
-    "upgrade": "modern upgrade",
+    "build": "rslib build",
+    "build:watch": "USE_DEV_REPORT=1 rslib build --watch",
     "test": "vitest --run",
     "test:u": "vitest --run -u",
     "test:ai": "AITEST=true npm run test",
@@ -49,7 +64,8 @@
     "socks-proxy-agent": "8.0.4"
   },
   "devDependencies": {
-    "@modern-js/module-tools": "2.60.6",
+    "@microsoft/api-extractor": "^7.52.10",
+    "@rslib/core": "^0.11.2",
     "@types/node": "^18.0.0",
     "@types/node-fetch": "2.6.11",
     "typescript": "^5.8.3",

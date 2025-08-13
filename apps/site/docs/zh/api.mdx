@@ -231,7 +231,7 @@ function aiScroll(
 - 参数：
 
   - `scrollParam: PlanningActionParamScroll` - 滚动参数
-    - `direction: 'up' | 'down' | 'left' | 'right'` - 滚动方向
+    - `direction: 'up' | 'down' | 'left' | 'right'` - 滚动方向。不论是 Android 还是 Web，这里的滚动方向都是指页面哪个方向的内容会进入屏幕。比如当滚动方向是 `down` 时，页面下方被隐藏的内容会从屏幕底部开始逐渐向上露出。
     - `scrollType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft'` - 滚动类型
     - `distance: number` - 滚动距离，单位为像素。
   - `locate?: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。如果未传入，Midscene 会在当前鼠标位置滚动。

@@ -3,7 +3,7 @@ import type {
   StreamingCodeGenerationOptions,
 } from '@/types';
 import { PLAYWRIGHT_EXAMPLE_CODE } from '@midscene/shared/constants';
-import type { ChatCompletionMessageParam } from 'openai/resources';
+import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { AIActionType, callAi } from '../index';
 
 // Import shared utilities and types from yaml-generator
