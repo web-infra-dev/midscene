@@ -1,4 +1,10 @@
-import type { DeviceAction, Point, ScrollParam, Size } from '@midscene/core';
+import type {
+  DeviceAction,
+  ExecutorContext,
+  Point,
+  ScrollParam,
+  Size,
+} from '@midscene/core';
 import { sleep } from '@midscene/core/utils';
 import type { ElementInfo, ElementNode } from '@midscene/shared/extractor';
 import { assert } from '@midscene/shared/utils';
@@ -43,7 +49,12 @@ export abstract class AbstractPage {
   abstract url(): string | Promise<string>;
   abstract screenshotBase64?(): Promise<string>;
   abstract size(): Promise<Size>;
-  abstract actionSpace(): DeviceAction[];
+  abstract actionSpace(): DeviceAction[] | Promise<DeviceAction[]>;
+  abstract executeAction<T = unknown>(
+    actionName: string,
+    context: ExecutorContext,
+    param: T,
+  ): Promise<void>;
 
   get mouse(): MouseAction {
     return {

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { type Point, type Size, getAIConfig } from '@midscene/core';
-import type { DeviceAction, PageType } from '@midscene/core';
+import type { DeviceAction, ExecutorContext, PageType } from '@midscene/core';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import {
   MIDSCENE_ADB_PATH,
@@ -145,6 +145,19 @@ export class AndroidDevice implements AndroidDevicePage {
       }>,
     ];
     return allActions;
+  }
+
+  async executeAction<T = unknown>(
+    actionName: string,
+    context: ExecutorContext,
+    param: T,
+  ): Promise<void> {
+    const actionSpace = this.actionSpace();
+    const action = actionSpace.find((a) => a.name === actionName);
+    if (!action) {
+      throw new Error(`Action ${actionName} not found in action space`);
+    }
+    return action.call(context, param);
   }
 
   constructor(deviceId: string, options?: AndroidDeviceOpt) {

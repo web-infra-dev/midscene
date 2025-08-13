@@ -203,7 +203,7 @@ export class PageTaskExecutor {
     },
   ) {
     const tasks: ExecutionTaskApply[] = [];
-    plans.forEach((plan) => {
+    for (const plan of plans) {
       if (plan.type === 'Locate') {
         if (
           plan.locate === null ||
@@ -211,7 +211,7 @@ export class PageTaskExecutor {
           plan.locate?.id === 'null'
         ) {
           // console.warn('Locate action with id is null, will be ignored');
-          return;
+          continue;
         }
         const taskFind: ExecutionTaskInsightLocateApply = {
           type: 'Insight',
@@ -495,13 +495,7 @@ export class PageTaskExecutor {
         };
         tasks.push(taskActionDrag);
       } else {
-        const actionSpace = this.page.actionSpace();
         const planType = plan.type;
-        const action = actionSpace.find((action) => action.name === planType);
-        if (!action) {
-          throw new Error(`Action ${planType} not found in action space`);
-        }
-
         const task: ExecutionTaskActionApply = {
           type: 'Action',
           subType: planType,
@@ -510,17 +504,16 @@ export class PageTaskExecutor {
           executor: async (param, context) => {
             debug(
               'executing action',
-              action.name,
+              planType,
               param,
               `context.element.center: ${context.element?.center}`,
             );
-            return action.call(context, param);
+            return await this.page.executeAction(planType, context, param);
           },
         };
-        assert(task, `Unknown or unsupported task type: ${planType}`);
         tasks.push(task);
       }
-    });
+    }
 
     const wrappedTasks = tasks.map(
       (task: ExecutionTaskApply, index: number) => {

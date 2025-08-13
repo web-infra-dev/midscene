@@ -1,5 +1,6 @@
 import { PageAgent, type PageAgentOpt } from '@/common/agent';
 import type { KeyboardAction, MouseAction } from '@/page';
+import type { ExecutorContext } from '@midscene/core';
 import { assert } from '@midscene/shared/utils';
 import {
   type BridgeConnectTabOptions,
@@ -14,6 +15,11 @@ import type { ExtensionBridgePageBrowserSide } from './page-browser-side';
 
 interface ChromeExtensionPageCliSide extends ExtensionBridgePageBrowserSide {
   showStatusMessage: (message: string) => Promise<void>;
+  executeAction: <T = unknown>(
+    actionName: string,
+    context: ExecutorContext,
+    param: T,
+  ) => Promise<void>;
 }
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -41,6 +47,17 @@ export const getBridgePageInCliSide = (
   const page = {
     showStatusMessage: async (message: string) => {
       await server.call(BridgeEvent.UpdateAgentStatus, [message]);
+    },
+    executeAction: async <T = unknown>(
+      actionName: string,
+      context: ExecutorContext,
+      param: T,
+    ): Promise<void> => {
+      return await server.call(BridgeEvent.ExecuteAction, [
+        actionName,
+        context,
+        param,
+      ]);
     },
   };
 

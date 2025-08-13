@@ -12,6 +12,7 @@ import type { AbstractPage, MouseButton } from '@/page';
 import type {
   DeviceAction,
   ElementTreeNode,
+  ExecutorContext,
   Point,
   Size,
 } from '@midscene/core';
@@ -58,6 +59,19 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
 
   actionSpace(): DeviceAction[] {
     return commonWebActionsForWebPage(this);
+  }
+
+  async executeAction<T = unknown>(
+    actionName: string,
+    context: ExecutorContext,
+    param: T,
+  ): Promise<void> {
+    const actionSpace = this.actionSpace();
+    const action = actionSpace.find((a) => a.name === actionName);
+    if (!action) {
+      throw new Error(`Action ${actionName} not found in action space`);
+    }
+    return action.call(context, param);
   }
 
   public async setActiveTabId(tabId: number) {
