@@ -25,12 +25,7 @@ const errorHandler = (err: any, req: any, res: any, next: any) => {
 
 const setup = async () => {
   if (!ifInBrowser && !ifInWorker) {
-    const { parsed } = dotenv.config();
-
-    if (parsed) {
-      // Use extendMode to merge with existing config instead of replacing it
-      overrideAIConfig(parsed, true);
-    }
+    dotenv.config();
   }
 };
 

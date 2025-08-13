@@ -9,15 +9,8 @@ import { cacheFileExt } from '@/common/task-cache';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { uuid } from '@midscene/shared/utils';
 import yaml from 'js-yaml';
-import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  describe,
-  expect,
-  it,
-  vi,
-} from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { version } from '../../package.json';
 
 const prepareCache = (
   caches: (PlanningCache | LocateCache)[],

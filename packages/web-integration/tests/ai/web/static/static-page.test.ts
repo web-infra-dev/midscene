@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { StaticPageAgent } from '@/playground/agent';
 import PlaygroundServer from '@/playground/server';
 import StaticPage from '@/playground/static-page';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 const dumpFilePath = join(__dirname, '../../fixtures/ui-context.json');
 const context = readFileSync(dumpFilePath, { encoding: 'utf-8' });
@@ -11,6 +11,9 @@ const contextJson = JSON.parse(context);
 
 describe(
   'static page agent',
+  {
+    timeout: 30 * 1000,
+  },
   () => {
     let server: PlaygroundServer | null = null;
     
@@ -34,7 +37,7 @@ describe(
 
     it('server should work', async () => {
       server = new PlaygroundServer(StaticPage, StaticPageAgent);
-      
+
       await server.launch();
 
       const port = server.port;
@@ -59,7 +62,5 @@ describe(
       expect(data.error).toBeFalsy();
     });
   },
-  {
-    timeout: 30 * 1000,
-  },
+
 );
