@@ -9,7 +9,7 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "lib": ["DOM", "ESNext"],
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "paths": {
       "@/*": ["./src/*"]
     },
@@ -18,8 +18,18 @@
     "skipLibCheck": true,
     "strict": true,
     "module": "ESNext",
-    "target": "es2018"
+    "target": "es2018",
+    "composite": true,
+    "declarationDir": "dist/types"
   },
   "exclude": ["**/node_modules"],
-  "include": ["src", "report"]
+  "include": ["src", "report"],
+  "references": [
+    {
+      "path": "../shared"
+    },
+    {
+      "path": "../recorder"
+    }
+  ]
 }

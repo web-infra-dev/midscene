@@ -9,7 +9,6 @@ export default defineConfig({
           root: 'dist/lib',
         },
       },
-      autoExtension: false,
       format: 'cjs',
       // disable default shims for import.meta.url
       shims: {
@@ -31,7 +30,6 @@ export default defineConfig({
           root: 'dist/es',
         },
       },
-      autoExtension: false,
       format: 'esm',
       syntax: 'es2020',
       dts: {

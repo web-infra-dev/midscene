@@ -10,11 +10,11 @@ import {
   vlLocateMode,
 } from '@midscene/shared/env';
 import { resizeImgBase64 } from '@midscene/shared/img';
-import { transformHotkeyInput } from '@midscene/shared/keyboard-layout';
 import { getDebug } from '@midscene/shared/logger';
+import { transformHotkeyInput } from '@midscene/shared/us-keyboard-layout';
 import { assert } from '@midscene/shared/utils';
 import { actionParser } from '@ui-tars/action-parser';
-import type { ChatCompletionMessageParam } from 'openai/resources';
+import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { AIActionType } from './common';
 import { getSummary, getUiTarsPlanningPrompt } from './prompt/ui-tars-planning';
 import { call } from './service-caller/index';

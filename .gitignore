@@ -120,3 +120,4 @@ CLAUDE.md
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.md
 .gemini-clipboard
+tsconfig.build.tsbuildinfo

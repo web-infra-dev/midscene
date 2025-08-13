@@ -59,7 +59,10 @@ const copyReportTemplate = () => ({
       const jsFiles = fs.readdirSync(corePkgDistDir, { recursive: true });
       let replacedCount = 0;
       for (const file of jsFiles) {
-        if (typeof file === 'string' && file.endsWith('.js')) {
+        if (
+          typeof file === 'string' &&
+          (file.endsWith('.js') || file.endsWith('.mjs'))
+        ) {
           const filePath = path.join(corePkgDistDir, file.toString());
           const fileContent = fs.readFileSync(filePath, 'utf-8');
           if (fileContent.includes(replacedMark)) {

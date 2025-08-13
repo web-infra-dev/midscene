@@ -21,7 +21,23 @@
 
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+    "composite": true,
+    "declarationDir": "dist/types"
   },
-  "include": ["src"]
+  "include": ["src"],
+  "references": [
+    {
+      "path": "../../packages/core"
+    },
+    {
+      "path": "../../packages/shared"
+    },
+    {
+      "path": "../../packages/visualizer"
+    },
+    {
+      "path": "../../packages/web-integration"
+    }
+  ]
 }

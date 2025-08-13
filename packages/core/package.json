@@ -7,23 +7,28 @@
   "jsnext:source": "./src/index.ts",
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",
+  "module": "./dist/es/index.mjs",
   "files": ["dist", "README.md"],
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
-      "default": "./dist/lib/index.js"
+      "import": "./dist/es/index.mjs",
+      "require": "./dist/lib/index.js"
     },
     "./utils": {
       "types": "./dist/types/utils.d.ts",
-      "default": "./dist/lib/utils.js"
+      "import": "./dist/es/utils.mjs",
+      "require": "./dist/lib/utils.js"
     },
     "./ai-model": {
       "types": "./dist/types/ai-model.d.ts",
-      "default": "./dist/lib/ai-model.js"
+      "import": "./dist/es/ai-model.mjs",
+      "require": "./dist/lib/ai-model.js"
     },
     "./tree": {
       "types": "./dist/types/tree.d.ts",
-      "default": "./dist/lib/tree.js"
+      "import": "./dist/es/tree.mjs",
+      "require": "./dist/lib/tree.js"
     }
   },
   "typesVersions": {
