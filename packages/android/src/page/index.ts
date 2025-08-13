@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { type Point, type Size, getAIConfig } from '@midscene/core';
-import type { DeviceAction, PageType } from '@midscene/core';
+import type { DeviceAction, ExecutorContext, PageType } from '@midscene/core';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import {
   MIDSCENE_ADB_PATH,
@@ -17,7 +17,10 @@ import { isValidPNGImageBuffer, resizeImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { repeat } from '@midscene/shared/utils';
 import type { AndroidDeviceInputOpt, AndroidDevicePage } from '@midscene/web';
-import { commonWebActionsForWebPage } from '@midscene/web/utils';
+import {
+  commonWebActionsForWebPage,
+  executeActionForPage,
+} from '@midscene/web/utils';
 
 import { ADB } from 'appium-adb';
 
@@ -145,6 +148,14 @@ export class AndroidDevice implements AndroidDevicePage {
       }>,
     ];
     return allActions;
+  }
+
+  async executeAction<T = unknown>(
+    actionName: string,
+    context: ExecutorContext,
+    param: T,
+  ): Promise<void> {
+    return executeActionForPage(this, actionName, context, param);
   }
 
   constructor(deviceId: string, options?: AndroidDeviceOpt) {

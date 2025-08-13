@@ -1,6 +1,7 @@
 import type {
   DeviceAction,
   ElementTreeNode,
+  ExecutorContext,
   Point,
   Size,
 } from '@midscene/core';
@@ -17,8 +18,11 @@ import { assert } from '@midscene/shared/utils';
 import type { Page as PlaywrightPage } from 'playwright';
 import type { Page as PuppeteerPage } from 'puppeteer';
 import type { WebKeyInput } from '../common/page';
-import { type AbstractPage, commonWebActionsForWebPage } from '../page';
-import type { MouseButton } from '../page';
+import {
+  commonWebActionsForWebPage,
+  executeActionForPage,
+} from '../common/utils';
+import type { AbstractPage, MouseButton } from '../page';
 
 export const debugPage = getDebug('web:page');
 
@@ -35,6 +39,14 @@ export class Page<
 
   actionSpace(): DeviceAction[] {
     return commonWebActionsForWebPage(this);
+  }
+
+  async executeAction<T = unknown>(
+    actionName: string,
+    context: ExecutorContext,
+    param: T,
+  ): Promise<void> {
+    return executeActionForPage(this, actionName, context, param);
   }
 
   private async evaluate<R>(

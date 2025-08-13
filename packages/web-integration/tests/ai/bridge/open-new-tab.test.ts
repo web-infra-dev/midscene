@@ -1,9 +1,6 @@
-import {
-  AgentOverChromeBridge,
-  getBridgePageInCliSide,
-} from '@/bridge-mode/agent-cli-side';
+import { AgentOverChromeBridge } from '@/bridge-mode/agent-cli-side';
 import { sleep } from '@midscene/core/utils';
-import { describe, expect, it, test, vi } from 'vitest';
+import { describe, it, vi } from 'vitest';
 
 vi.setConfig({
   testTimeout: 300 * 1000,
