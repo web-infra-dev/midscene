@@ -55,10 +55,9 @@ describe(
       });
 
       expect(existsSync(cache.cacheFilePath!)).toBe(true);
-      const cacheContent = readFileSync(cache.cacheFilePath!, 'utf-8').replace(
-        cacheId,
-        'cacheId',
-      );
+      const cacheContent = readFileSync(cache.cacheFilePath!, 'utf-8')
+        .replace(cacheId, 'cacheId')
+        .replace(/midsceneVersion: .+/, 'midsceneVersion: <VERSION>');
       expect(cacheContent).toMatchSnapshot();
 
       expect(cache.isCacheResultUsed).toBe(true);
@@ -226,7 +225,9 @@ describe(
       const cacheFileContent = readFileSync(
         newTaskCache.cacheFilePath!,
         'utf-8',
-      ).replace(newTaskCache.cacheId, 'cacheId');
+      )
+        .replace(newTaskCache.cacheId, 'cacheId')
+        .replace(/midsceneVersion: .+/, 'midsceneVersion: <VERSION>');
       expect(cacheFileContent).toMatchSnapshot();
     });
 
