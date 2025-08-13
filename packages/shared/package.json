@@ -39,7 +39,7 @@
     },
     "./*": {
       "types": "./dist/types/*.d.ts",
-      "default": "./dist/es/*.mjs",
+      "import": "./dist/es/*.mjs",
       "require": "./dist/lib/*.js"
     }
   },
