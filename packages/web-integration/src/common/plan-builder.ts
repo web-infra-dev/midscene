@@ -1,12 +1,11 @@
 import type {
   DetailedLocateParam,
-  MidsceneYamlFlowItem,
   PlanningAction,
   PlanningActionParamInputOrKeyPress,
-  PlanningActionParamScroll,
   PlanningActionParamSleep,
   PlanningActionParamTap,
   PlanningLocateParam,
+  ScrollParam,
 } from '@midscene/core';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
@@ -18,7 +17,7 @@ export function buildPlans(
   locateParam?: DetailedLocateParam,
   param?:
     | PlanningActionParamInputOrKeyPress
-    | PlanningActionParamScroll
+    | ScrollParam
     | PlanningActionParamSleep,
 ): PlanningAction[] {
   let returnPlans: PlanningAction[] = [];
@@ -65,9 +64,9 @@ export function buildPlans(
   if (type === 'Scroll') {
     assert(param, `missing param for action "${type}"`);
 
-    const scrollPlan: PlanningAction<PlanningActionParamScroll> = {
+    const scrollPlan: PlanningAction<ScrollParam> = {
       type,
-      param: param as PlanningActionParamScroll,
+      param: param as ScrollParam,
       thought: '',
       locate: locateParam,
     };
