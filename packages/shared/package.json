@@ -9,38 +9,38 @@
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
-      "require": "./dist/lib/index.js",
-      "import": "./dist/es/index.mjs"
+      "import": "./dist/es/index.mjs",
+      "require": "./dist/lib/index.js"
     },
     "./constants": {
       "types": "./dist/types/constants/index.d.ts",
-      "require": "./dist/lib/constants/index.js",
-      "import": "./dist/es/constants/index.mjs"
+      "import": "./dist/es/constants/index.mjs",
+      "require": "./dist/lib/constants/index.js"
     },
     "./extractor": {
       "types": "./dist/types/extractor/index.d.ts",
-      "require": "./dist/lib/extractor/index.js",
-      "import": "./dist/es/extractor/index.mjs"
+      "import": "./dist/es/extractor/index.mjs",
+      "require": "./dist/lib/extractor/index.js"
     },
     "./img": {
       "types": "./dist/types/img/index.d.ts",
-      "require": "./dist/lib/img/index.js",
-      "import": "./dist/es/img/index.mjs"
+      "import": "./dist/es/img/index.mjs",
+      "require": "./dist/lib/img/index.js"
     },
     "./node": {
       "types": "./dist/types/node/index.d.ts",
-      "require": "./dist/lib/node/index.js",
-      "import": "./dist/es/node/index.mjs"
+      "import": "./dist/es/node/index.mjs",
+      "require": "./dist/lib/node/index.js"
     },
     "./types": {
       "types": "./dist/types/types/index.d.ts",
-      "require": "./dist/lib/types/index.js",
-      "import": "./dist/es/types/index.mjs"
+      "import": "./dist/es/types/index.mjs",
+      "require": "./dist/lib/types/index.js"
     },
     "./*": {
       "types": "./dist/types/*.d.ts",
-      "require": "./dist/lib/*.js",
-      "default": "./dist/es/*.mjs"
+      "default": "./dist/es/*.mjs",
+      "require": "./dist/lib/*.js"
     }
   },
   "files": ["dist", "src", "README.md"],
