@@ -184,7 +184,7 @@ describe(
       resetFn = reset;
       const agent = new PuppeteerAgent(originPage);
 
-      const { center } = await agent.aiLocate('the "search" button');
+      const { center } = await agent.aiLocate('the input field for search');
       const describeResult = await agent.describeElementAtPoint(center, {
         deepThink: true,
       });
