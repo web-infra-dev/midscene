@@ -11,6 +11,9 @@ const contextJson = JSON.parse(context);
 
 describe(
   'static page agent',
+  {
+    timeout: 30 * 1000,
+  },
   () => {
     let server: PlaygroundServer | null = null;
     
@@ -59,7 +62,5 @@ describe(
       expect(data.error).toBeFalsy();
     });
   },
-  {
-    timeout: 30 * 1000,
-  },
+
 );
