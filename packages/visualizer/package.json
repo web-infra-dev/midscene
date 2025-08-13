@@ -32,7 +32,6 @@
     "react-dom": ">=19.1.0"
   },
   "devDependencies": {
-    "@modern-js/runtime": "2.60.6",
     "@pixi/unsafe-eval": "7.4.2",
     "@rsbuild/plugin-less": "^1.2.4",
     "@rsbuild/plugin-node-polyfill": "1.3.0",

@@ -60,6 +60,11 @@ export default defineConfig({
       format: 'esm',
       syntax: 'es2021',
       dts: true,
+      shims: {
+        esm: {
+          __dirname: true,
+        },
+      },
     },
     {
       format: 'cjs',

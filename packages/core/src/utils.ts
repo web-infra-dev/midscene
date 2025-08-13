@@ -3,7 +3,6 @@ import * as fs from 'node:fs';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
-import { dirname } from 'node:path';
 import {
   defaultRunDirName,
   getMidsceneRunSubDir,
@@ -139,13 +138,6 @@ export function writeDumpReport(
 ): string | null {
   if (ifInBrowser || ifInWorker) {
     console.log('will not write report in browser');
-    return null;
-  }
-
-  const __dirname = dirname(__filename);
-  const midscenePkgInfo = getRunningPkgInfo(__dirname);
-  if (!midscenePkgInfo) {
-    console.warn('midscenePkgInfo not found, will not write report');
     return null;
   }
 

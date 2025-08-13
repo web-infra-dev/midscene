@@ -1,6 +1,7 @@
 import assert from 'node:assert';
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { type Point, type Size, getAIConfig } from '@midscene/core';
 import type { DeviceAction, PageType } from '@midscene/core';
@@ -653,7 +654,9 @@ ${Object.keys(size)
     if (!this.yadbPushed) {
       const adb = await this.getAdb();
       // Use a more reliable path resolution method
-      const androidPkgJson = require.resolve('@midscene/android/package.json');
+      const androidPkgJson = createRequire(import.meta.url).resolve(
+        '@midscene/android/package.json',
+      );
       const yadbBin = path.join(path.dirname(androidPkgJson), 'bin', 'yadb');
       await adb.push(yadbBin, '/data/local/tmp');
       this.yadbPushed = true;
