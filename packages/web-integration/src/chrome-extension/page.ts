@@ -7,11 +7,8 @@
 
 import type { WebKeyInput } from '@/common/page';
 import { limitOpenNewTabScript } from '@/common/ui-utils';
-import {
-  type AbstractPage,
-  type MouseButton,
-  commonWebActionsForWebPage,
-} from '@/page';
+import { commonWebActionsForWebPage } from '@/common/utils';
+import type { AbstractPage, MouseButton } from '@/page';
 import type {
   DeviceAction,
   ElementTreeNode,
