@@ -172,7 +172,7 @@ describe(
       resetFn = reset;
       const agent = new PuppeteerAgent(originPage);
 
-      const { center } = await agent.aiLocate('the search bar');
+      const { center } = await agent.aiLocate('the input field for search');
       const describeResult = await agent.describeElementAtPoint(center);
       expect(describeResult.verifyResult?.pass).toBe(true);
       expect(describeResult.verifyResult?.rect).toBeTruthy();
