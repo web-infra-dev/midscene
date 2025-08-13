@@ -110,7 +110,7 @@ export class AndroidDevice implements AndroidDevicePage {
             );
           }
           const [x, y] = element.center;
-          await this.longPress(x, y, param.duration);
+          await this.longPress(x, y, param?.duration);
         },
       } as DeviceAction<{ duration?: number }>,
       {
@@ -128,6 +128,9 @@ export class AndroidDevice implements AndroidDevicePage {
           const startPoint = element
             ? { left: element.center[0], top: element.center[1] }
             : undefined;
+          if (!param || !param.direction) {
+            throw new Error('AndroidPull requires a direction parameter');
+          }
           if (param.direction === 'down') {
             await this.pullDown(startPoint, param.distance, param.duration);
           } else if (param.direction === 'up') {
