@@ -35,7 +35,7 @@ describe(
       agent.writeOutActionDumps();
     });
 
-    it('server should work', async () => {      
+    it('server should work', async () => {
       server = new PlaygroundServer(StaticPage, StaticPageAgent);
 
       await server.launch();
