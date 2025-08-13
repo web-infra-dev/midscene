@@ -18,8 +18,11 @@ import { assert } from '@midscene/shared/utils';
 import type { Page as PlaywrightPage } from 'playwright';
 import type { Page as PuppeteerPage } from 'puppeteer';
 import type { WebKeyInput } from '../common/page';
-import { type AbstractPage, commonWebActionsForWebPage } from '../page';
-import type { MouseButton } from '../page';
+import {
+  commonWebActionsForWebPage,
+  executeActionForPage,
+} from '../common/utils';
+import type { AbstractPage, MouseButton } from '../page';
 
 export const debugPage = getDebug('web:page');
 
@@ -43,12 +46,7 @@ export class Page<
     context: ExecutorContext,
     param: T,
   ): Promise<void> {
-    const actionSpace = this.actionSpace();
-    const action = actionSpace.find((a) => a.name === actionName);
-    if (!action) {
-      throw new Error(`Action ${actionName} not found in action space`);
-    }
-    return action.call(context, param);
+    return executeActionForPage(this, actionName, context, param);
   }
 
   private async evaluate<R>(

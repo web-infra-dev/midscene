@@ -5,6 +5,7 @@ import type {
   ElementTreeNode,
   ExecutionDump,
   ExecutionTask,
+  ExecutorContext,
   PlanningLocateParam,
   PlaywrightParserOpt,
   ScrollParam,
@@ -346,6 +347,22 @@ export const parsePrompt = (
         }
       : undefined,
   };
+};
+
+export const executeActionForPage = async <T extends AbstractPage, P = unknown>(
+  page: T,
+  actionName: string,
+  context: ExecutorContext,
+  param: P,
+): Promise<void> => {
+  const actions = await page.actionSpace();
+  const action = actions.find((a) => a.name === actionName);
+  
+  if (!action) {
+    throw new Error(`Action ${actionName} not found in action space`);
+  }
+  
+  return action.call(context, param);
 };
 
 export const commonWebActionsForWebPage = <T extends AbstractPage>(

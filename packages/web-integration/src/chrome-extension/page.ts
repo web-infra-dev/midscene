@@ -7,7 +7,10 @@
 
 import type { WebKeyInput } from '@/common/page';
 import { limitOpenNewTabScript } from '@/common/ui-utils';
-import { commonWebActionsForWebPage } from '@/common/utils';
+import {
+  commonWebActionsForWebPage,
+  executeActionForPage,
+} from '@/common/utils';
 import type { AbstractPage, MouseButton } from '@/page';
 import type {
   DeviceAction,
@@ -66,12 +69,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     context: ExecutorContext,
     param: T,
   ): Promise<void> {
-    const actionSpace = this.actionSpace();
-    const action = actionSpace.find((a) => a.name === actionName);
-    if (!action) {
-      throw new Error(`Action ${actionName} not found in action space`);
-    }
-    return action.call(context, param);
+    return executeActionForPage(this, actionName, context, param);
   }
 
   public async setActiveTabId(tabId: number) {

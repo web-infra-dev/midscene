@@ -17,7 +17,10 @@ import { isValidPNGImageBuffer, resizeImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { repeat } from '@midscene/shared/utils';
 import type { AndroidDeviceInputOpt, AndroidDevicePage } from '@midscene/web';
-import { commonWebActionsForWebPage } from '@midscene/web/utils';
+import {
+  commonWebActionsForWebPage,
+  executeActionForPage,
+} from '@midscene/web/utils';
 
 import { ADB } from 'appium-adb';
 
@@ -152,12 +155,7 @@ export class AndroidDevice implements AndroidDevicePage {
     context: ExecutorContext,
     param: T,
   ): Promise<void> {
-    const actionSpace = this.actionSpace();
-    const action = actionSpace.find((a) => a.name === actionName);
-    if (!action) {
-      throw new Error(`Action ${actionName} not found in action space`);
-    }
-    return action.call(context, param);
+    return executeActionForPage(this, actionName, context, param);
   }
 
   constructor(deviceId: string, options?: AndroidDeviceOpt) {
