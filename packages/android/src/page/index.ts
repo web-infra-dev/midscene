@@ -522,11 +522,14 @@ ${Object.keys(size)
   get mouse() {
     return {
       click: (x: number, y: number) => this.mouseClick(x, y),
-      wheel: (deltaX: number, deltaY: number) =>
-        this.mouseWheel(deltaX, deltaY),
+      wheel: (deltaX: number, deltaY: number, duration?: number) =>
+        this.mouseWheel(deltaX, deltaY, duration),
       move: (x: number, y: number) => this.mouseMove(x, y),
-      drag: (from: { x: number; y: number }, to: { x: number; y: number }) =>
-        this.mouseDrag(from, to),
+      drag: (
+        from: { x: number; y: number },
+        to: { x: number; y: number },
+        duration?: number,
+      ) => this.mouseDrag(from, to, duration),
     };
   }
 
@@ -582,25 +585,14 @@ ${Object.keys(size)
 
   async scrollUntilTop(startPoint?: Point): Promise<void> {
     if (startPoint) {
-      const start = { x: startPoint.left, y: startPoint.top };
-      const end = { x: start.x, y: 0 };
-
-      await this.mouseDrag(start, end);
-      return;
-    }
-
-    await repeat(defaultScrollUntilTimes, () =>
-      this.mouseWheel(0, 9999999, defaultFastScrollDuration),
-    );
-    await sleep(1000);
-  }
-
-  async scrollUntilBottom(startPoint?: Point): Promise<void> {
-    if (startPoint) {
       const { height } = await this.size();
       const start = { x: startPoint.left, y: startPoint.top };
       const end = { x: start.x, y: height };
-      await this.mouseDrag(start, end);
+
+      await repeat(defaultScrollUntilTimes, () =>
+        this.mouseDrag(start, end, defaultFastScrollDuration),
+      );
+      await sleep(1000);
       return;
     }
 
@@ -610,26 +602,34 @@ ${Object.keys(size)
     await sleep(1000);
   }
 
-  async scrollUntilLeft(startPoint?: Point): Promise<void> {
+  async scrollUntilBottom(startPoint?: Point): Promise<void> {
     if (startPoint) {
       const start = { x: startPoint.left, y: startPoint.top };
-      const end = { x: 0, y: start.y };
-      await this.mouseDrag(start, end);
+      const end = { x: start.x, y: 0 };
+
+      await repeat(defaultScrollUntilTimes, () =>
+        this.mouseDrag(start, end, defaultFastScrollDuration),
+      );
+      await sleep(1000);
       return;
     }
 
     await repeat(defaultScrollUntilTimes, () =>
-      this.mouseWheel(9999999, 0, defaultFastScrollDuration),
+      this.mouseWheel(0, 9999999, defaultFastScrollDuration),
     );
     await sleep(1000);
   }
 
-  async scrollUntilRight(startPoint?: Point): Promise<void> {
+  async scrollUntilLeft(startPoint?: Point): Promise<void> {
     if (startPoint) {
       const { width } = await this.size();
       const start = { x: startPoint.left, y: startPoint.top };
       const end = { x: width, y: start.y };
-      await this.mouseDrag(start, end);
+
+      await repeat(defaultScrollUntilTimes, () =>
+        this.mouseDrag(start, end, defaultFastScrollDuration),
+      );
+      await sleep(1000);
       return;
     }
 
@@ -639,22 +639,25 @@ ${Object.keys(size)
     await sleep(1000);
   }
 
-  async scrollUp(distance?: number, startPoint?: Point): Promise<void> {
-    const { height } = await this.size();
-    const scrollDistance = distance || height;
-
+  async scrollUntilRight(startPoint?: Point): Promise<void> {
     if (startPoint) {
       const start = { x: startPoint.left, y: startPoint.top };
-      const endY = Math.max(0, start.y - scrollDistance);
-      const end = { x: start.x, y: endY };
-      await this.mouseDrag(start, end);
+      const end = { x: 0, y: start.y };
+
+      await repeat(defaultScrollUntilTimes, () =>
+        this.mouseDrag(start, end, defaultFastScrollDuration),
+      );
+      await sleep(1000);
       return;
     }
 
-    await this.mouseWheel(0, scrollDistance);
+    await repeat(defaultScrollUntilTimes, () =>
+      this.mouseWheel(9999999, 0, defaultFastScrollDuration),
+    );
+    await sleep(1000);
   }
 
-  async scrollDown(distance?: number, startPoint?: Point): Promise<void> {
+  async scrollUp(distance?: number, startPoint?: Point): Promise<void> {
     const { height } = await this.size();
     const scrollDistance = distance || height;
 
@@ -669,22 +672,22 @@ ${Object.keys(size)
     await this.mouseWheel(0, -scrollDistance);
   }
 
-  async scrollLeft(distance?: number, startPoint?: Point): Promise<void> {
-    const { width } = await this.size();
-    const scrollDistance = distance || width;
+  async scrollDown(distance?: number, startPoint?: Point): Promise<void> {
+    const { height } = await this.size();
+    const scrollDistance = distance || height;
 
     if (startPoint) {
       const start = { x: startPoint.left, y: startPoint.top };
-      const endX = Math.max(0, start.x - scrollDistance);
-      const end = { x: endX, y: start.y };
+      const endY = Math.max(0, start.y - scrollDistance);
+      const end = { x: start.x, y: endY };
       await this.mouseDrag(start, end);
       return;
     }
 
-    await this.mouseWheel(scrollDistance, 0);
+    await this.mouseWheel(0, scrollDistance);
   }
 
-  async scrollRight(distance?: number, startPoint?: Point): Promise<void> {
+  async scrollLeft(distance?: number, startPoint?: Point): Promise<void> {
     const { width } = await this.size();
     const scrollDistance = distance || width;
 
@@ -697,6 +700,21 @@ ${Object.keys(size)
     }
 
     await this.mouseWheel(-scrollDistance, 0);
+  }
+
+  async scrollRight(distance?: number, startPoint?: Point): Promise<void> {
+    const { width } = await this.size();
+    const scrollDistance = distance || width;
+
+    if (startPoint) {
+      const start = { x: startPoint.left, y: startPoint.top };
+      const endX = Math.max(0, start.x - scrollDistance);
+      const end = { x: endX, y: start.y };
+      await this.mouseDrag(start, end);
+      return;
+    }
+
+    await this.mouseWheel(scrollDistance, 0);
   }
 
   private async ensureYadb() {
@@ -807,6 +825,7 @@ ${Object.keys(size)
   private async mouseDrag(
     from: { x: number; y: number },
     to: { x: number; y: number },
+    duration?: number,
   ): Promise<void> {
     const adb = await this.getAdb();
 
@@ -814,13 +833,18 @@ ${Object.keys(size)
     const { x: fromX, y: fromY } = this.adjustCoordinates(from.x, from.y);
     const { x: toX, y: toY } = this.adjustCoordinates(to.x, to.y);
 
-    await adb.shell(`input swipe ${fromX} ${fromY} ${toX} ${toY} 300`);
+    // Ensure duration has a default value
+    const swipeDuration = duration ?? 300;
+
+    await adb.shell(
+      `input swipe ${fromX} ${fromY} ${toX} ${toY} ${swipeDuration}`,
+    );
   }
 
   private async mouseWheel(
     deltaX: number,
     deltaY: number,
-    duration = defaultNormalScrollDuration,
+    duration?: number,
   ): Promise<void> {
     const { width, height } = await this.size();
 
@@ -842,8 +866,11 @@ ${Object.keys(size)
     deltaY = Math.max(-maxNegativeDeltaY, Math.min(deltaY, maxPositiveDeltaY));
 
     // Calculate the end coordinates
-    const endX = startX + deltaX;
-    const endY = startY + deltaY;
+    // Note: For swipe, we need to reverse the delta direction
+    // because positive deltaY should scroll up (show top content),
+    // which requires swiping from bottom to top (decreasing Y)
+    const endX = startX - deltaX;
+    const endY = startY - deltaY;
 
     // Adjust coordinates to fit device ratio
     const { x: adjustedStartX, y: adjustedStartY } = this.adjustCoordinates(
@@ -857,9 +884,12 @@ ${Object.keys(size)
 
     const adb = await this.getAdb();
 
+    // Ensure duration has a default value
+    const swipeDuration = duration ?? defaultNormalScrollDuration;
+
     // Execute the swipe operation
     await adb.shell(
-      `input swipe ${adjustedStartX} ${adjustedStartY} ${adjustedEndX} ${adjustedEndY} ${duration}`,
+      `input swipe ${adjustedStartX} ${adjustedStartY} ${adjustedEndX} ${adjustedEndY} ${swipeDuration}`,
     );
   }
 
