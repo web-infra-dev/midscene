@@ -10,7 +10,6 @@ import {
   ExportOutlined,
   LoadingOutlined,
 } from '@ant-design/icons';
-import { QuestionCircleOutlined } from '@ant-design/icons';
 import type { BaseElement, LocateResultElement, Rect } from '@midscene/core';
 import { treeToList } from '@midscene/shared/extractor';
 import { Dropdown, Spin, Switch, Tooltip } from 'antd';
@@ -175,20 +174,20 @@ export function Player(props?: {
   reportFileContent?: string | null;
   key?: string | number;
   fitMode?: 'width' | 'height'; // 'width': width adaptive, 'height': height adaptive, default to 'height'
-  disableAutoZoom?: boolean; // disable auto zoom when playing, default to false
+  autoZoom?: boolean; // enable auto zoom when playing, default to true
 }) {
   const [titleText, setTitleText] = useState('');
   const [subTitleText, setSubTitleText] = useState('');
-  const [disableAutoZoom, setDisableAutoZoom] = useState(
-    props?.disableAutoZoom || false,
+  const [autoZoom, setAutoZoom] = useState(
+    props?.autoZoom !== undefined ? props.autoZoom : true,
   );
 
   // Update state when prop changes
   useEffect(() => {
-    if (props?.disableAutoZoom !== undefined) {
-      setDisableAutoZoom(props.disableAutoZoom);
+    if (props?.autoZoom !== undefined) {
+      setAutoZoom(props.autoZoom);
     }
-  }, [props?.disableAutoZoom]);
+  }, [props?.autoZoom]);
 
   const scripts = props?.replayScripts;
   const imageWidth = props?.imageWidth || 1920;
@@ -363,19 +362,17 @@ export function Player(props?: {
   const updateCamera = (state: CameraState): void => {
     cameraState.current = state;
 
-    // If auto zoom is disabled, keep scale at 1 (no zoom)
-    const newScale = disableAutoZoom
-      ? 1
-      : Math.max(1, imageWidth / state.width);
+    // If auto zoom is enabled, apply zoom
+    const newScale = autoZoom ? Math.max(1, imageWidth / state.width) : 1;
     windowContentContainer.scale.set(newScale);
 
-    // If auto zoom is disabled, don't pan the camera
-    windowContentContainer.x = disableAutoZoom
-      ? canvasPaddingLeft
-      : Math.round(canvasPaddingLeft - state.left * newScale);
-    windowContentContainer.y = disableAutoZoom
-      ? canvasPaddingTop
-      : Math.round(canvasPaddingTop - state.top * newScale);
+    // If auto zoom is enabled, pan the camera
+    windowContentContainer.x = autoZoom
+      ? Math.round(canvasPaddingLeft - state.left * newScale)
+      : canvasPaddingLeft;
+    windowContentContainer.y = autoZoom
+      ? Math.round(canvasPaddingTop - state.top * newScale)
+      : canvasPaddingTop;
 
     const pointer = windowContentContainer.getChildByLabel('pointer');
     if (pointer) {
@@ -397,7 +394,7 @@ export function Player(props?: {
     frame: FrameFn,
   ): Promise<void> => {
     // If auto zoom is disabled, skip camera animation (only animate pointer)
-    if (disableAutoZoom) {
+    if (!autoZoom) {
       const currentState = { ...cameraState.current };
       const startPointerLeft = currentState.pointerLeft;
       const startPointerTop = currentState.pointerTop;
@@ -1024,25 +1021,17 @@ export function Player(props?: {
                           <GlobalPerspectiveIcon
                             style={{ width: '16px', height: '16px' }}
                           />
-                          <span style={{ fontSize: '12px' }}>
-                            Global Perspective
+                          <span
+                            style={{ fontSize: '12px', marginRight: '16px' }}
+                          >
+                            focuses on cursor
                           </span>
-                          <Tooltip title="When enabled, the canvas will not follow the mouse zoom">
-                            <QuestionCircleOutlined
-                              style={{
-                                fontSize: '12px',
-                                color: '#999',
-                                cursor: 'help',
-                                marginRight: '16px',
-                              }}
-                            />
-                          </Tooltip>
                         </div>
                         <Switch
                           size="small"
-                          checked={disableAutoZoom}
+                          checked={autoZoom}
                           onChange={(checked) => {
-                            setDisableAutoZoom(checked);
+                            setAutoZoom(checked);
                             triggerReplay();
                           }}
                           onClick={(_, e) => e?.stopPropagation?.()}

@@ -20,7 +20,7 @@ interface PlaygroundResultProps {
   verticalMode?: boolean;
   notReadyMessage?: React.ReactNode | string;
   fitMode?: 'width' | 'height';
-  disableAutoZoom?: boolean;
+  autoZoom?: boolean;
 }
 
 export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
@@ -34,7 +34,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
   verticalMode = false,
   notReadyMessage,
   fitMode,
-  disableAutoZoom,
+  autoZoom,
 }) => {
   let resultWrapperClassName = 'result-wrapper';
   if (verticalMode) {
@@ -72,7 +72,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
             : null
         }
         fitMode={fitMode}
-        disableAutoZoom={disableAutoZoom}
+        autoZoom={autoZoom}
       />
     );
   } else if (result?.error) {
