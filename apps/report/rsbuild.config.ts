@@ -155,6 +155,6 @@ export default defineConfig({
     pluginNodePolyfill(),
     pluginSvgr(),
     copyReportTemplate(),
-    pluginTypeCheck(),
+    process.env.NODE_ENV !== 'development' ? pluginTypeCheck() : undefined,
   ],
 });

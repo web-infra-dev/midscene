@@ -10,9 +10,12 @@ import {
   ExportOutlined,
   LoadingOutlined,
 } from '@ant-design/icons';
+import { QuestionCircleOutlined } from '@ant-design/icons';
 import type { BaseElement, LocateResultElement, Rect } from '@midscene/core';
 import { treeToList } from '@midscene/shared/extractor';
-import { Spin, Tooltip } from 'antd';
+import { Dropdown, Spin, Switch, Tooltip } from 'antd';
+import GlobalPerspectiveIcon from '../icons/global-perspective.svg';
+import SettingIcon from '../icons/player-setting.svg';
 import { rectMarkForItem } from './blackboard';
 import { getTextureFromCache, loadTexture } from './pixi-loader';
 import type {
@@ -172,9 +175,20 @@ export function Player(props?: {
   reportFileContent?: string | null;
   key?: string | number;
   fitMode?: 'width' | 'height'; // 'width': width adaptive, 'height': height adaptive, default to 'height'
+  disableAutoZoom?: boolean; // disable auto zoom when playing, default to false
 }) {
   const [titleText, setTitleText] = useState('');
   const [subTitleText, setSubTitleText] = useState('');
+  const [disableAutoZoom, setDisableAutoZoom] = useState(
+    props?.disableAutoZoom || false,
+  );
+
+  // Update state when prop changes
+  useEffect(() => {
+    if (props?.disableAutoZoom !== undefined) {
+      setDisableAutoZoom(props.disableAutoZoom);
+    }
+  }, [props?.disableAutoZoom]);
 
   const scripts = props?.replayScripts;
   const imageWidth = props?.imageWidth || 1920;
@@ -349,14 +363,19 @@ export function Player(props?: {
   const updateCamera = (state: CameraState): void => {
     cameraState.current = state;
 
-    const newScale = Math.max(1, imageWidth / state.width);
+    // If auto zoom is disabled, keep scale at 1 (no zoom)
+    const newScale = disableAutoZoom
+      ? 1
+      : Math.max(1, imageWidth / state.width);
     windowContentContainer.scale.set(newScale);
-    windowContentContainer.x = Math.round(
-      canvasPaddingLeft - state.left * newScale,
-    );
-    windowContentContainer.y = Math.round(
-      canvasPaddingTop - state.top * newScale,
-    );
+
+    // If auto zoom is disabled, don't pan the camera
+    windowContentContainer.x = disableAutoZoom
+      ? canvasPaddingLeft
+      : Math.round(canvasPaddingLeft - state.left * newScale);
+    windowContentContainer.y = disableAutoZoom
+      ? canvasPaddingTop
+      : Math.round(canvasPaddingTop - state.top * newScale);
 
     const pointer = windowContentContainer.getChildByLabel('pointer');
     if (pointer) {
@@ -377,6 +396,50 @@ export function Player(props?: {
     duration: number,
     frame: FrameFn,
   ): Promise<void> => {
+    // If auto zoom is disabled, skip camera animation (only animate pointer)
+    if (disableAutoZoom) {
+      const currentState = { ...cameraState.current };
+      const startPointerLeft = currentState.pointerLeft;
+      const startPointerTop = currentState.pointerTop;
+      const startTime = performance.now();
+
+      const shouldMovePointer =
+        typeof targetState.pointerLeft === 'number' &&
+        typeof targetState.pointerTop === 'number' &&
+        (targetState.pointerLeft !== startPointerLeft ||
+          targetState.pointerTop !== startPointerTop);
+
+      if (!shouldMovePointer) return;
+
+      await new Promise<void>((resolve) => {
+        const animate = (currentTime: number) => {
+          const elapsedTime = currentTime - startTime;
+          const rawProgress = Math.min(elapsedTime / duration, 1);
+          const progress = cubicMouse(rawProgress);
+
+          const nextState: CameraState = {
+            ...currentState,
+            pointerLeft:
+              startPointerLeft +
+              (targetState.pointerLeft! - startPointerLeft) * progress,
+            pointerTop:
+              startPointerTop +
+              (targetState.pointerTop! - startPointerTop) * progress,
+          };
+
+          updateCamera(nextState);
+
+          if (elapsedTime < duration) {
+            frame(animate);
+          } else {
+            resolve();
+          }
+        };
+        frame(animate);
+      });
+      return;
+    }
+
     const currentState = { ...cameraState.current };
     const startLeft = currentState.left;
     const startTop = currentState.top;
@@ -809,6 +872,7 @@ export function Player(props?: {
   }, [replayMark]);
 
   const [mouseOverStatusIcon, setMouseOverStatusIcon] = useState(false);
+  const [mouseOverSettingsIcon, setMouseOverSettingsIcon] = useState(false);
   const progressString = Math.round(animationProgress * 100);
   const transitionStyle = animationProgress === 0 ? 'none' : '0.3s';
 
@@ -908,6 +972,105 @@ export function Player(props?: {
                 )}
               </div>
             </Tooltip>
+            <Dropdown
+              trigger={['click']}
+              placement="bottomRight"
+              overlayStyle={{
+                minWidth: '148px',
+              }}
+              dropdownRender={(menu) => (
+                <div
+                  style={{
+                    borderRadius: '8px',
+                    border: '1px solid rgba(0, 0, 0, 0.08)',
+                    backgroundColor: '#fff',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {menu}
+                </div>
+              )}
+              menu={{
+                style: {
+                  borderRadius: '8px',
+                  padding: 0,
+                },
+                items: [
+                  {
+                    key: 'autoZoom',
+                    style: {
+                      height: '39px',
+                      margin: 0,
+                      padding: '0 12px',
+                    },
+                    label: (
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          width: '100%',
+                          height: '39px',
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}
+                        >
+                          <GlobalPerspectiveIcon
+                            style={{ width: '16px', height: '16px' }}
+                          />
+                          <span style={{ fontSize: '12px' }}>
+                            Global Perspective
+                          </span>
+                          <Tooltip title="When enabled, the canvas will not follow the mouse zoom">
+                            <QuestionCircleOutlined
+                              style={{
+                                fontSize: '12px',
+                                color: '#999',
+                                cursor: 'help',
+                                marginRight: '16px',
+                              }}
+                            />
+                          </Tooltip>
+                        </div>
+                        <Switch
+                          size="small"
+                          checked={disableAutoZoom}
+                          onChange={(checked) => {
+                            setDisableAutoZoom(checked);
+                            triggerReplay();
+                          }}
+                          onClick={(_, e) => e?.stopPropagation?.()}
+                        />
+                      </div>
+                    ),
+                  },
+                ],
+              }}
+            >
+              <Tooltip title="Settings">
+                <div
+                  className="status-icon"
+                  onMouseEnter={() => setMouseOverSettingsIcon(true)}
+                  onMouseLeave={() => setMouseOverSettingsIcon(false)}
+                  style={{
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    opacity: mouseOverSettingsIcon ? 1 : 0.7,
+                    transition: 'opacity 0.2s',
+                  }}
+                >
+                  <SettingIcon style={{ width: '16px', height: '16px' }} />
+                </div>
+              </Tooltip>
+            </Dropdown>
           </div>
         </div>
       </div>

@@ -90,6 +90,6 @@ export default defineConfig({
     pluginNodePolyfill(),
     pluginLess(),
     pluginSvgr(),
-    pluginTypeCheck(),
+    process.env.NODE_ENV !== 'development' ? pluginTypeCheck() : undefined,
   ],
 });

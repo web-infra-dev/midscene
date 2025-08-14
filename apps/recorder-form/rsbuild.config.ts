@@ -7,5 +7,9 @@ export default defineConfig({
   server: {
     port: 3001,
   },
-  plugins: [pluginReact(), pluginNodePolyfill(), pluginTypeCheck()],
+  plugins: [
+    pluginReact(),
+    pluginNodePolyfill(),
+    process.env.NODE_ENV !== 'development' ? pluginTypeCheck() : undefined,
+  ],
 });
