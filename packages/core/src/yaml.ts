@@ -1,4 +1,4 @@
-import type { PlanningActionParamScroll, Rect, TUserPrompt } from './types';
+import type { Rect, TUserPrompt } from './types';
 import type { BaseElement, UIContext } from './types';
 
 export interface LocateOption {
@@ -24,7 +24,7 @@ export interface DetailedLocateParam extends LocateOption {
   referenceImage?: ReferenceImage;
 }
 
-export interface scrollParam {
+export interface ScrollParam {
   direction: 'down' | 'up' | 'right' | 'left';
   scrollType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft';
   distance?: null | number; // distance in px
@@ -177,7 +177,7 @@ export interface MidsceneYamlFlowItemAIKeyboardPress extends LocateOption {
 
 export interface MidsceneYamlFlowItemAIScroll
   extends LocateOption,
-    PlanningActionParamScroll {
+    ScrollParam {
   aiScroll: null;
   locate?: TUserPrompt; // which area to scroll, optional
 }

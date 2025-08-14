@@ -1,29 +1,17 @@
 {
   "name": "@midscene/mcp",
-  "version": "0.26.2",
-  "type": "module",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
-    }
-  },
-  "bin": "dist/index.cjs",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "version": "0.26.4",
+  "bin": "dist/index.js",
   "files": ["dist"],
   "scripts": {
     "build": "rslib build",
     "dev": "rslib build --watch",
     "build:watch": "npm run dev",
     "test": "vitest run",
-    "inspect": "node scripts/inspect.mjs",
-    "inspect2": "mcp-inspector node ./dist/test2.cjs"
+    "inspect": "node scripts/inspect.mjs"
   },
   "devDependencies": {
-    "@modelcontextprotocol/inspector": "0.14.1",
+    "@modelcontextprotocol/inspector": "^0.16.3",
     "@rslib/core": "^0.11.2",
     "@types/node": "^18.0.0",
     "typescript": "^5.8.3",
@@ -35,10 +23,10 @@
     "@midscene/shared": "workspace:*",
     "@midscene/android": "workspace:*",
     "@modelcontextprotocol/sdk": "1.10.2",
+    "puppeteer-core": "24.2.0",
     "zod": "3.24.3"
   },
   "dependencies": {
-    "puppeteer-core": "24.2.0",
     "sharp": "^0.34.3"
   },
   "license": "MIT"

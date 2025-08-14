@@ -375,6 +375,9 @@ importers:
       '@rsbuild/plugin-react':
         specifier: ^1.3.1
         version: 1.3.1(@rsbuild/core@1.3.22)
+      '@rsbuild/plugin-type-check':
+        specifier: 1.2.3
+        version: 1.2.3(@rsbuild/core@1.3.22)(@rspack/core@1.4.11)(typescript@5.8.3)
       '@types/chrome':
         specifier: 0.0.279
         version: 0.0.279
@@ -786,9 +789,6 @@ importers:
 
   packages/mcp:
     dependencies:
-      puppeteer-core:
-        specifier: 24.2.0
-        version: 24.2.0
       sharp:
         specifier: ^0.34.3
         version: 0.34.3
@@ -809,8 +809,8 @@ importers:
         specifier: workspace:*
         version: link:../web-integration
       '@modelcontextprotocol/inspector':
-        specifier: 0.14.1
-        version: 0.14.1(@types/node@18.19.62)(@types/react-dom@19.1.5(@types/react@19.1.5))(@types/react@19.1.5)(typescript@5.8.3)
+        specifier: ^0.16.3
+        version: 0.16.3(@types/node@18.19.62)(@types/react-dom@19.1.5(@types/react@19.1.5))(@types/react@19.1.5)(typescript@5.8.3)
       '@modelcontextprotocol/sdk':
         specifier: 1.10.2
         version: 1.10.2
@@ -823,6 +823,9 @@ importers:
       dotenv:
         specifier: 16.4.5
         version: 16.4.5
+      puppeteer-core:
+        specifier: 24.2.0
+        version: 24.2.0
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
@@ -2859,28 +2862,29 @@ packages:
   '@microsoft/tsdoc@0.15.1':
     resolution: {integrity: sha512-4aErSrCR/On/e5G2hDP0wjooqDdauzEbIq8hIkIe5pXV0rtWJZvdCEKL0ykZxex+IxIwBp0eGeV48hQN07dXtw==}
 
-  '@modelcontextprotocol/inspector-cli@0.14.3':
-    resolution: {integrity: sha512-cAjCfwJUfN1WHc/sGgY/yAQ7K02WOKIso+LzVoKzEr50Nf4R+WKEuq6lhnLfG3f61sU823V8TxRscc8NTYTgww==}
+  '@modelcontextprotocol/inspector-cli@0.16.3':
+    resolution: {integrity: sha512-6Hbh+QVRsEDel7hA9qiRklwWEoW4dQXHw4Ltr8JdsU1ziqem4/ERgGxthg/d+qrmbVwW9shOqPIaGoRFaZ264g==}
     hasBin: true
 
-  '@modelcontextprotocol/inspector-client@0.14.3':
-    resolution: {integrity: sha512-kbpUYzImbB3VOolyzASfmz08m6kDQvFC0iYv4bF/ZZiwJHaqAPi/i/BIZSrpfRGbAnH+ECqjeRsxRjD6S8pr+g==}
+  '@modelcontextprotocol/inspector-client@0.16.3':
+    resolution: {integrity: sha512-BbFyNUesmZrl9FcM+TeogAo2DM6lA1+NJSSszd9+xtuumdX8WxEynv4quBgfxW/R+nHv6+D5h/ftQ3x9hwgskQ==}
     hasBin: true
 
-  '@modelcontextprotocol/inspector-server@0.14.3':
-    resolution: {integrity: sha512-nstKV26OUHj0Dh4S+M44JsU8UGfCrxfChmczR3GZ1658t6cBLBvw2EeqUgQa4BJ0X/KbDdIgZMX0oYKEE1hYcA==}
+  '@modelcontextprotocol/inspector-server@0.16.3':
+    resolution: {integrity: sha512-7chp1jSSzM/7YswfQXA0CoBoWwEzUyKBe9s4H3e8DOBJPho6IxYgouHccHHmghWkd7e2W6ir3xwQBkLRnkt2nQ==}
     hasBin: true
 
-  '@modelcontextprotocol/inspector@0.14.1':
-    resolution: {integrity: sha512-F9Xd/06eCfeuHkFR+6sNGhGrKAfgXFmf9VDzw+hMMoeJM3ltOUSJh/fqCvvM6tGrxvb49uAF7dr/o5Dz+rVKxw==}
+  '@modelcontextprotocol/inspector@0.16.3':
+    resolution: {integrity: sha512-9zOf8piPYNz/8vLEMHzmp8kBYQ/FZ1WP1Ao7fXHqkNcSbyw6d7CfTgZvI2Uj1Cb5VFxZ2jWvCD7J80q8G4okjg==}
+    engines: {node: '>=22.7.5'}
     hasBin: true
 
   '@modelcontextprotocol/sdk@1.10.2':
     resolution: {integrity: sha512-rb6AMp2DR4SN+kc6L1ta2NCpApyA9WYNx3CrTSZvGxq9wH71bRur+zRqPfg0vQ9mjywR7qZdX2RGHOPq3ss+tA==}
     engines: {node: '>=18'}
 
-  '@modelcontextprotocol/sdk@1.15.1':
-    resolution: {integrity: sha512-W/XlN9c528yYn+9MQkVjxiTPgPxoxt+oczfjHBDsJx0+59+O7B75Zhsp0B16Xbwbz8ANISDajh6+V7nIcPMc5w==}
+  '@modelcontextprotocol/sdk@1.17.2':
+    resolution: {integrity: sha512-EFLRNXR/ixpXQWu6/3Cu30ndDFIFNaqUXcTqsGebujeMan9FzhAaFFswLRiFj61rgygDRr8WO1N+UijjgRxX9g==}
     engines: {node: '>=18'}
 
   '@modern-js/core@2.60.6':
@@ -7393,10 +7397,10 @@ packages:
     resolution: {integrity: sha512-jumlc0BIUrS3qJGgIkWZsyfAM7NCWiBcCDhnd+3NNM5KbBmLTgHVfWBcg6W+rLUsIpzpERPsvwUP7CckAQSOoA==}
     engines: {node: '>=12'}
 
-  lucide-react@0.447.0:
-    resolution: {integrity: sha512-SZ//hQmvi+kDKrNepArVkYK7/jfeZ5uFNEnYmd45RKZcbGD78KLnrcNXmgeg6m+xNHFvTG+CblszXCy4n6DN4w==}
+  lucide-react@0.523.0:
+    resolution: {integrity: sha512-rUjQoy7egZT9XYVXBK1je9ckBnNp7qzRZOhLQx5RcEp2dCGlXo+mv6vf7Am4LimEcFBJIIZzSGfgTqc9QCrPSw==}
     peerDependencies:
-      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0-rc
+      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   magic-string@0.30.12:
     resolution: {integrity: sha512-Ea8I3sQMVXr8JhN4z+H/d8zwo+tYDgHE9+5G4Wnrwhs0gaK9fXTKx0Tw5Xwsd/bCPTTZNRAdpyzvoeORe9LYpw==}
@@ -7953,6 +7957,10 @@ packages:
 
   open@10.1.0:
     resolution: {integrity: sha512-mnkeQ1qP5Ue2wd+aivTD3NHd/lZ96Lu0jgf0pwktLPtx6cTZiH7tyeGRRHs0zX0rbrahXPnXlUnbeXyaBBuIaw==}
+    engines: {node: '>=18'}
+
+  open@10.2.0:
+    resolution: {integrity: sha512-YgBpdJHPyQ2UE5x+hlSXcnejzAvD0b22U2OuAP+8OnlJT+PjWPxtgmGqKKc+RgTM63U9gN0YzrYc71R2WT/hTA==}
     engines: {node: '>=18'}
 
   open@8.4.2:
@@ -10418,6 +10426,10 @@ packages:
       utf-8-validate:
         optional: true
 
+  wsl-utils@0.1.0:
+    resolution: {integrity: sha512-h3Fbisa2nKGPxCpm89Hk33lBLsnaGBvctQopaBSOW/uIs6FTe1ATyAnKFJrzVs9vpGdsTe73WF3V4lIsk4Gacw==}
+    engines: {node: '>=18'}
+
   xhr@2.6.0:
     resolution: {integrity: sha512-/eCGLb5rxjx5e3mF1A7s+pLlR6CGyqWN91fv1JgER5mVWg1MZmlhBvy9kjcsOdRk8RrIujotWyJamfyrp+WIcA==}
 
@@ -12520,17 +12532,17 @@ snapshots:
 
   '@microsoft/tsdoc@0.15.1': {}
 
-  '@modelcontextprotocol/inspector-cli@0.14.3':
+  '@modelcontextprotocol/inspector-cli@0.16.3':
     dependencies:
-      '@modelcontextprotocol/sdk': 1.15.1
+      '@modelcontextprotocol/sdk': 1.17.2
       commander: 13.1.0
       spawn-rx: 5.1.2
     transitivePeerDependencies:
       - supports-color
 
-  '@modelcontextprotocol/inspector-client@0.14.3(@types/react-dom@19.1.5(@types/react@19.1.5))(@types/react@19.1.5)':
+  '@modelcontextprotocol/inspector-client@0.16.3(@types/react-dom@19.1.5(@types/react@19.1.5))(@types/react@19.1.5)':
     dependencies:
-      '@modelcontextprotocol/sdk': 1.15.1
+      '@modelcontextprotocol/sdk': 1.17.2
       '@radix-ui/react-checkbox': 1.3.2(@types/react-dom@19.1.5(@types/react@19.1.5))(@types/react@19.1.5)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@radix-ui/react-dialog': 1.1.14(@types/react-dom@19.1.5(@types/react@19.1.5))(@types/react@19.1.5)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@radix-ui/react-icons': 1.3.2(react@18.3.1)
@@ -12545,7 +12557,7 @@ snapshots:
       class-variance-authority: 0.7.1
       clsx: 2.1.1
       cmdk: 1.1.1(@types/react-dom@19.1.5(@types/react@19.1.5))(@types/react@19.1.5)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      lucide-react: 0.447.0(react@18.3.1)
+      lucide-react: 0.523.0(react@18.3.1)
       pkce-challenge: 4.1.0
       prismjs: 1.30.0
       react: 18.3.1
@@ -12554,37 +12566,37 @@ snapshots:
       serve-handler: 6.1.6
       tailwind-merge: 2.6.0
       tailwindcss-animate: 1.0.7
-      zod: 3.24.3
+      zod: 3.25.76
     transitivePeerDependencies:
       - '@types/react'
       - '@types/react-dom'
       - supports-color
       - tailwindcss
 
-  '@modelcontextprotocol/inspector-server@0.14.3':
+  '@modelcontextprotocol/inspector-server@0.16.3':
     dependencies:
-      '@modelcontextprotocol/sdk': 1.15.1
+      '@modelcontextprotocol/sdk': 1.17.2
       cors: 2.8.5
       express: 5.1.0
       ws: 8.18.3
-      zod: 3.24.3
+      zod: 3.25.76
     transitivePeerDependencies:
       - bufferutil
       - supports-color
       - utf-8-validate
 
-  '@modelcontextprotocol/inspector@0.14.1(@types/node@18.19.62)(@types/react-dom@19.1.5(@types/react@19.1.5))(@types/react@19.1.5)(typescript@5.8.3)':
+  '@modelcontextprotocol/inspector@0.16.3(@types/node@18.19.62)(@types/react-dom@19.1.5(@types/react@19.1.5))(@types/react@19.1.5)(typescript@5.8.3)':
     dependencies:
-      '@modelcontextprotocol/inspector-cli': 0.14.3
-      '@modelcontextprotocol/inspector-client': 0.14.3(@types/react-dom@19.1.5(@types/react@19.1.5))(@types/react@19.1.5)
-      '@modelcontextprotocol/inspector-server': 0.14.3
-      '@modelcontextprotocol/sdk': 1.15.1
+      '@modelcontextprotocol/inspector-cli': 0.16.3
+      '@modelcontextprotocol/inspector-client': 0.16.3(@types/react-dom@19.1.5(@types/react@19.1.5))(@types/react@19.1.5)
+      '@modelcontextprotocol/inspector-server': 0.16.3
+      '@modelcontextprotocol/sdk': 1.17.2
       concurrently: 9.2.0
-      open: 10.1.0
+      open: 10.2.0
       shell-quote: 1.8.3
       spawn-rx: 5.1.2
       ts-node: 10.9.2(@types/node@18.19.62)(typescript@5.8.3)
-      zod: 3.24.3
+      zod: 3.25.76
     transitivePeerDependencies:
       - '@swc/core'
       - '@swc/wasm'
@@ -12612,7 +12624,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@modelcontextprotocol/sdk@1.15.1':
+  '@modelcontextprotocol/sdk@1.17.2':
     dependencies:
       ajv: 6.12.6
       content-type: 1.0.5
@@ -18092,7 +18104,7 @@ snapshots:
 
   lru-cache@7.18.3: {}
 
-  lucide-react@0.447.0(react@18.3.1):
+  lucide-react@0.523.0(react@18.3.1):
     dependencies:
       react: 18.3.1
 
@@ -18928,6 +18940,13 @@ snapshots:
       define-lazy-prop: 3.0.0
       is-inside-container: 1.0.0
       is-wsl: 3.1.0
+
+  open@10.2.0:
+    dependencies:
+      default-browser: 5.2.1
+      define-lazy-prop: 3.0.0
+      is-inside-container: 1.0.0
+      wsl-utils: 0.1.0
 
   open@8.4.2:
     dependencies:
@@ -21859,6 +21878,10 @@ snapshots:
 
   ws@8.18.3: {}
 
+  wsl-utils@0.1.0:
+    dependencies:
+      is-wsl: 3.1.0
+
   xhr@2.6.0:
     dependencies:
       global: 4.4.0
@@ -21982,8 +22005,7 @@ snapshots:
 
   zod@3.24.3: {}
 
-  zod@3.25.76:
-    optional: true
+  zod@3.25.76: {}
 
   zustand@4.5.2(@types/react@18.3.23)(immer@10.1.1)(react@18.3.1):
     dependencies:

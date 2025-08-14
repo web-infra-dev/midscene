@@ -1,7 +1,7 @@
 {
   "name": "@midscene/core",
   "description": "Automate browser actions, extract data, and perform assertions using AI. It offers JavaScript SDK, Chrome extension, and support for scripting in YAML. See https://midscenejs.com/ for details.",
-  "version": "0.26.2",
+  "version": "0.26.4",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "main": "./dist/lib/index.js",
@@ -20,9 +20,9 @@
       "require": "./dist/lib/utils.js"
     },
     "./ai-model": {
-      "types": "./dist/types/ai-model.d.ts",
-      "import": "./dist/es/ai-model.mjs",
-      "require": "./dist/lib/ai-model.js"
+      "types": "./dist/types/ai-model/index.d.ts",
+      "import": "./dist/es/ai-model/index.mjs",
+      "require": "./dist/lib/ai-model/index.js"
     },
     "./tree": {
       "types": "./dist/types/tree.d.ts",

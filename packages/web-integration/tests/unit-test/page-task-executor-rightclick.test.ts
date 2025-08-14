@@ -1,5 +1,5 @@
 import { PageTaskExecutor } from '@/common/tasks';
-import type { PlanningAction } from '@midscene/core';
+import type { DeviceAction, PlanningAction } from '@midscene/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock page with mouse operations
@@ -10,6 +10,22 @@ const mockPage = {
   },
   screenshotBase64: vi.fn().mockResolvedValue('mock-screenshot'),
   evaluateJavaScript: vi.fn(),
+  actionSpace: () =>
+    [
+      {
+        name: 'RightClick',
+        call: (context, param) => {
+          if (!context.element) {
+            throw new Error('Element not found');
+          }
+          mockPage.mouse.click(
+            context.element.center[0],
+            context.element.center[1],
+            { button: 'right' },
+          );
+        },
+      },
+    ] as DeviceAction[],
 } as any;
 
 // Mock insight
@@ -165,8 +181,6 @@ describe('PageTaskExecutor RightClick Action', () => {
     };
 
     // Should throw error when element is null
-    await expect(rightClickTask.executor(null, mockContext)).rejects.toThrow(
-      'Element not found, cannot right click',
-    );
+    await expect(rightClickTask.executor(null, mockContext)).rejects.toThrow();
   });
 });

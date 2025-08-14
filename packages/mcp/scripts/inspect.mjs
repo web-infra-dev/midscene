@@ -44,7 +44,7 @@ console.log(envOverrides);
 const args = [
   'mcp-inspector',
   'node',
-  path.resolve(__dirname, '..', 'dist', 'index.cjs'), // Use resolved path for robustness
+  path.resolve(__dirname, '..', 'dist', 'index.js'), // Use resolved path for robustness
   ...Object.entries(envOverrides).map(([key, value]) => `-e ${key}=${value}`),
 ];
 

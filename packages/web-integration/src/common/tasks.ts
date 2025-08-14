@@ -3,6 +3,7 @@ import type { PuppeteerWebPage } from '@/puppeteer';
 import {
   type AIUsageInfo,
   type BaseElement,
+  type DeviceAction,
   type DumpSubscriber,
   type ExecutionRecorderItem,
   type ExecutionTaskActionApply,
@@ -25,15 +26,9 @@ import {
   type PageType,
   type PlanningAIResponse,
   type PlanningAction,
-  type PlanningActionParamAndroidLongPress,
-  type PlanningActionParamAndroidPull,
   type PlanningActionParamAssert,
   type PlanningActionParamError,
-  type PlanningActionParamHover,
-  type PlanningActionParamInputOrKeyPress,
-  type PlanningActionParamScroll,
   type PlanningActionParamSleep,
-  type PlanningActionParamTap,
   type PlanningActionParamWaitFor,
   type TMultimodalPrompt,
   type TUserPrompt,
@@ -52,12 +47,11 @@ import {
   MIDSCENE_REPLANNING_CYCLE_LIMIT,
   getAIConfigInNumber,
 } from '@midscene/shared/env';
-import type { ElementInfo } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { WebElementInfo, WebUIContext } from '../web-element';
 import type { TaskCache } from './task-cache';
-import { getKeyCommands, taskTitleStr } from './ui-utils';
+import { taskTitleStr } from './ui-utils';
 import {
   matchElementFromCache,
   matchElementFromPlan,
@@ -70,12 +64,8 @@ interface ExecutionResult<OutputType = any> {
   executor: Executor;
 }
 
-const debug = getDebug('page-task-executor');
+const debug = getDebug('device-task-executor');
 const defaultReplanningCycleLimit = 10;
-
-const isAndroidPage = (page: WebPage): page is AndroidDevicePage => {
-  return page.pageType === 'android' || page.pageType === 'ios';
-};
 
 export class PageTaskExecutor {
   page: WebPage;
@@ -213,7 +203,7 @@ export class PageTaskExecutor {
     },
   ) {
     const tasks: ExecutionTaskApply[] = [];
-    plans.forEach((plan) => {
+    for (const plan of plans) {
       if (plan.type === 'Locate') {
         if (
           plan.locate === null ||
@@ -221,7 +211,7 @@ export class PageTaskExecutor {
           plan.locate?.id === 'null'
         ) {
           // console.warn('Locate action with id is null, will be ignored');
-          return;
+          continue;
         }
         const taskFind: ExecutionTaskInsightLocateApply = {
           type: 'Insight',
@@ -447,188 +437,6 @@ export class PageTaskExecutor {
           },
         };
         tasks.push(taskAssert);
-      } else if (plan.type === 'Input') {
-        const taskActionInput: ExecutionTaskActionApply<PlanningActionParamInputOrKeyPress> =
-          {
-            type: 'Action',
-            subType: 'Input',
-            param: plan.param,
-            thought: plan.thought,
-            locate: plan.locate,
-            executor: async (taskParam, { element }) => {
-              // Clear existing content first if we have an element
-              if (element) {
-                await this.page.clearInput(element as unknown as ElementInfo);
-
-                if (!taskParam || !taskParam.value) {
-                  return;
-                }
-              }
-
-              // For iOS, the keyboard.type method will automatically use optimized input
-              // For other platforms, it will use the standard implementation
-              await this.page.keyboard.type(taskParam.value, {
-                autoDismissKeyboard: taskParam.autoDismissKeyboard,
-              });
-            },
-          };
-        tasks.push(taskActionInput);
-      } else if (plan.type === 'KeyboardPress') {
-        const taskActionKeyboardPress: ExecutionTaskActionApply<PlanningActionParamInputOrKeyPress> =
-          {
-            type: 'Action',
-            subType: 'KeyboardPress',
-            param: plan.param,
-            thought: plan.thought,
-            locate: plan.locate,
-            executor: async (taskParam) => {
-              const keys = getKeyCommands(taskParam.value);
-
-              await this.page.keyboard.press(keys);
-            },
-          };
-        tasks.push(taskActionKeyboardPress);
-      } else if (plan.type === 'Tap') {
-        const taskActionTap: ExecutionTaskActionApply<PlanningActionParamTap> =
-          {
-            type: 'Action',
-            subType: 'Tap',
-            thought: plan.thought,
-            locate: plan.locate,
-            executor: async (param, { element }) => {
-              assert(element, 'Element not found, cannot tap');
-              await this.page.mouse.click(element.center[0], element.center[1]);
-            },
-          };
-        tasks.push(taskActionTap);
-      } else if (plan.type === 'RightClick') {
-        const taskActionRightClick: ExecutionTaskActionApply<PlanningActionParamTap> =
-          {
-            type: 'Action',
-            subType: 'RightClick',
-            thought: plan.thought,
-            locate: plan.locate,
-            executor: async (param, { element }) => {
-              assert(element, 'Element not found, cannot right click');
-              await this.page.mouse.click(
-                element.center[0],
-                element.center[1],
-                { button: 'right' },
-              );
-            },
-          };
-        tasks.push(taskActionRightClick);
-      } else if (plan.type === 'Drag') {
-        const taskActionDrag: ExecutionTaskActionApply<{
-          start_box: { x: number; y: number };
-          end_box: { x: number; y: number };
-        }> = {
-          type: 'Action',
-          subType: 'Drag',
-          param: plan.param,
-          thought: plan.thought,
-          locate: plan.locate,
-          executor: async (taskParam) => {
-            assert(
-              taskParam?.start_box && taskParam?.end_box,
-              'No start_box or end_box to drag',
-            );
-            await this.page.mouse.drag(taskParam.start_box, taskParam.end_box);
-          },
-        };
-        tasks.push(taskActionDrag);
-      } else if (plan.type === 'Hover') {
-        const taskActionHover: ExecutionTaskActionApply<PlanningActionParamHover> =
-          {
-            type: 'Action',
-            subType: 'Hover',
-            thought: plan.thought,
-            locate: plan.locate,
-            executor: async (param, { element }) => {
-              assert(element, 'Element not found, cannot hover');
-              await this.page.mouse.move(element.center[0], element.center[1]);
-            },
-          };
-        tasks.push(taskActionHover);
-      } else if (plan.type === 'Scroll') {
-        const taskActionScroll: ExecutionTaskActionApply<PlanningActionParamScroll> =
-          {
-            type: 'Action',
-            subType: 'Scroll',
-            param: plan.param,
-            thought: plan.thought,
-            locate: plan.locate,
-            executor: async (taskParam, { element }) => {
-              const startingPoint = element
-                ? {
-                    left: element.center[0],
-                    top: element.center[1],
-                  }
-                : undefined;
-              const scrollToEventName = taskParam?.scrollType;
-              if (scrollToEventName === 'untilTop') {
-                await this.page.scrollUntilTop(startingPoint);
-              } else if (scrollToEventName === 'untilBottom') {
-                await this.page.scrollUntilBottom(startingPoint);
-              } else if (scrollToEventName === 'untilRight') {
-                await this.page.scrollUntilRight(startingPoint);
-              } else if (scrollToEventName === 'untilLeft') {
-                await this.page.scrollUntilLeft(startingPoint);
-              } else if (scrollToEventName === 'once' || !scrollToEventName) {
-                if (
-                  taskParam?.direction === 'down' ||
-                  !taskParam ||
-                  !taskParam.direction
-                ) {
-                  await this.page.scrollDown(
-                    taskParam?.distance || undefined,
-                    startingPoint,
-                  );
-                } else if (taskParam.direction === 'up') {
-                  await this.page.scrollUp(
-                    taskParam.distance || undefined,
-                    startingPoint,
-                  );
-                } else if (taskParam.direction === 'left') {
-                  await this.page.scrollLeft(
-                    taskParam.distance || undefined,
-                    startingPoint,
-                  );
-                } else if (taskParam.direction === 'right') {
-                  await this.page.scrollRight(
-                    taskParam.distance || undefined,
-                    startingPoint,
-                  );
-                } else {
-                  throw new Error(
-                    `Unknown scroll direction: ${taskParam.direction}`,
-                  );
-                }
-                // until mouse event is done
-                await sleep(500);
-              } else {
-                throw new Error(
-                  `Unknown scroll event type: ${scrollToEventName}, taskParam: ${JSON.stringify(
-                    taskParam,
-                  )}`,
-                );
-              }
-            },
-          };
-        tasks.push(taskActionScroll);
-      } else if (plan.type === 'Sleep') {
-        const taskActionSleep: ExecutionTaskActionApply<PlanningActionParamSleep> =
-          {
-            type: 'Action',
-            subType: 'Sleep',
-            param: plan.param,
-            thought: plan.thought,
-            locate: plan.locate,
-            executor: async (taskParam) => {
-              await sleep(taskParam?.timeMs || 3000);
-            },
-          };
-        tasks.push(taskActionSleep);
       } else if (plan.type === 'Error') {
         const taskActionError: ExecutionTaskActionApply<PlanningActionParamError> =
           {
@@ -654,111 +462,66 @@ export class PageTaskExecutor {
           executor: async (param) => {},
         };
         tasks.push(taskActionFinished);
-      } else if (plan.type === 'AndroidHomeButton') {
-        const taskActionAndroidHomeButton: ExecutionTaskActionApply<null> = {
+      } else if (plan.type === 'Sleep') {
+        const taskActionSleep: ExecutionTaskActionApply<PlanningActionParamSleep> =
+          {
+            type: 'Action',
+            subType: 'Sleep',
+            param: plan.param,
+            thought: plan.thought,
+            locate: plan.locate,
+            executor: async (taskParam) => {
+              await sleep(taskParam?.timeMs || 3000);
+            },
+          };
+        tasks.push(taskActionSleep);
+      } else if (plan.type === 'Drag') {
+        const taskActionDrag: ExecutionTaskActionApply<{
+          start_box: { x: number; y: number };
+          end_box: { x: number; y: number };
+        }> = {
           type: 'Action',
-          subType: 'AndroidHomeButton',
-          param: null,
+          subType: 'Drag',
+          param: plan.param,
           thought: plan.thought,
           locate: plan.locate,
-          executor: async (param) => {
-            // Check if the page has back method (Android devices)
+          executor: async (taskParam) => {
             assert(
-              isAndroidPage(this.page),
-              'Cannot use home button on non-Android devices',
+              taskParam?.start_box && taskParam?.end_box,
+              'No start_box or end_box to drag',
             );
-            await this.page.home();
+            await this.page.mouse.drag(taskParam.start_box, taskParam.end_box);
           },
         };
-        tasks.push(taskActionAndroidHomeButton);
-      } else if (plan.type === 'AndroidBackButton') {
-        const taskActionAndroidBackButton: ExecutionTaskActionApply<null> = {
-          type: 'Action',
-          subType: 'AndroidBackButton',
-          param: null,
-          thought: plan.thought,
-          locate: plan.locate,
-          executor: async (param) => {
-            assert(
-              isAndroidPage(this.page),
-              'Cannot use back button on non-Android devices',
-            );
-            await this.page.back();
-          },
-        };
-        tasks.push(taskActionAndroidBackButton);
-      } else if (plan.type === 'AndroidRecentAppsButton') {
-        const taskActionAndroidRecentAppsButton: ExecutionTaskActionApply<null> =
-          {
-            type: 'Action',
-            subType: 'AndroidRecentAppsButton',
-            param: null,
-            thought: plan.thought,
-            locate: plan.locate,
-            executor: async (param) => {
-              assert(
-                isAndroidPage(this.page),
-                'Cannot use recent apps button on non-Android devices',
-              );
-              await this.page.recentApps();
-            },
-          };
-        tasks.push(taskActionAndroidRecentAppsButton);
-      } else if (plan.type === 'AndroidLongPress') {
-        const taskActionAndroidLongPress: ExecutionTaskActionApply<PlanningActionParamAndroidLongPress> =
-          {
-            type: 'Action',
-            subType: 'AndroidLongPress',
-            param: plan.param as PlanningActionParamAndroidLongPress,
-            thought: plan.thought,
-            locate: plan.locate,
-            executor: async (param) => {
-              assert(
-                isAndroidPage(this.page),
-                'Cannot use long press on non-Android devices',
-              );
-              const { x, y, duration } = param;
-              await this.page.longPress(x, y, duration);
-            },
-          };
-        tasks.push(taskActionAndroidLongPress);
-      } else if (plan.type === 'AndroidPull') {
-        const taskActionAndroidPull: ExecutionTaskActionApply<PlanningActionParamAndroidPull> =
-          {
-            type: 'Action',
-            subType: 'AndroidPull',
-            param: plan.param as PlanningActionParamAndroidPull,
-            thought: plan.thought,
-            locate: plan.locate,
-            executor: async (param) => {
-              assert(
-                isAndroidPage(this.page),
-                'Cannot use pull action on non-Android devices',
-              );
-              const { direction, startPoint, distance, duration } = param;
-
-              const convertedStartPoint = startPoint
-                ? { left: startPoint.x, top: startPoint.y }
-                : undefined;
-
-              if (direction === 'down') {
-                await this.page.pullDown(
-                  convertedStartPoint,
-                  distance,
-                  duration,
-                );
-              } else if (direction === 'up') {
-                await this.page.pullUp(convertedStartPoint, distance, duration);
-              } else {
-                throw new Error(`Unknown pull direction: ${direction}`);
-              }
-            },
-          };
-        tasks.push(taskActionAndroidPull);
+        tasks.push(taskActionDrag);
       } else {
-        throw new Error(`Unknown or unsupported task type: ${plan.type}`);
+        const planType = plan.type;
+        const task: ExecutionTaskActionApply = {
+          type: 'Action',
+          subType: planType,
+          thought: plan.thought,
+          param: plan.param,
+          executor: async (param, context) => {
+            debug(
+              'executing action',
+              planType,
+              param,
+              `context.element.center: ${context.element?.center}`,
+            );
+            const actionSpace = await this.page.actionSpace();
+            const action = actionSpace.find(
+              (action) => action.name === planType,
+            );
+            if (!action) {
+              throw new Error(`Action type '${planType}' not found`);
+            }
+            const actionFn = action.call.bind(this.page);
+            return await actionFn(context, param);
+          },
+        };
+        tasks.push(task);
       }
-    });
+    }
 
     const wrappedTasks = tasks.map(
       (task: ExecutionTaskApply, index: number) => {
@@ -855,7 +618,7 @@ export class PageTaskExecutor {
         );
         const actionSpace = await this.page.actionSpace();
         debug(
-          'actionSpace for page',
+          'actionSpace for page is:',
           actionSpace.map((action) => action.name).join(', '),
         );
         assert(Array.isArray(actionSpace), 'actionSpace must be an array');
@@ -1282,8 +1045,9 @@ export class PageTaskExecutor {
         const ifTypeRestricted = type !== 'Query';
         let demandInput = demand;
         if (ifTypeRestricted) {
+          const returnType = type === 'Assert' ? 'Boolean' : type;
           demandInput = {
-            result: `${type}, ${demand}`,
+            result: `${returnType}, ${demand}`,
           };
         }
 

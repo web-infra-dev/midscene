@@ -20,8 +20,8 @@ import {
   type LocatorValidatorOption,
   type MidsceneYamlScript,
   type OnTaskStartTip,
-  type PlanningActionParamScroll,
   type Rect,
+  type ScrollParam,
   type TUserPrompt,
 } from '@midscene/core';
 
@@ -411,7 +411,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   async aiScroll(
-    scrollParam: PlanningActionParamScroll,
+    scrollParam: ScrollParam,
     locatePrompt?: TUserPrompt,
     opt?: LocateOption,
   ) {

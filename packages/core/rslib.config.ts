@@ -12,6 +12,7 @@ export default defineConfig({
       },
       format: 'cjs',
       syntax: 'es2020',
+      bundle: false,
     },
     {
       output: {
@@ -20,10 +21,11 @@ export default defineConfig({
         },
       },
       dts: {
-        bundle: true,
+        bundle: false,
         distPath: 'dist/types',
       },
       format: 'esm',
+      bundle: false,
       syntax: 'es2020',
     },
   ],
@@ -35,12 +37,6 @@ export default defineConfig({
           ? path.resolve(__dirname, '../../apps/report/dist/index.html')
           : '',
       ),
-    },
-    entry: {
-      index: 'src/index.ts',
-      utils: 'src/utils.ts',
-      tree: 'src/tree.ts',
-      'ai-model': 'src/ai-model/index.ts',
     },
   },
   output: {

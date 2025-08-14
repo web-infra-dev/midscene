@@ -13,9 +13,7 @@ import { ifInBrowser, ifInWorker } from '@midscene/shared/utils';
 import { generateHashId } from '@midscene/shared/utils';
 import yaml from 'js-yaml';
 import semver from 'semver';
-import { replaceIllegalPathCharsAndSpace } from './utils';
-
-declare const __VERSION__: string;
+import { getMidsceneVersion, replaceIllegalPathCharsAndSpace } from './utils';
 
 const DEFAULT_CACHE_MAX_FILENAME_LENGTH = 200;
 
@@ -89,7 +87,7 @@ export class TaskCache {
     }
     if (!cacheContent) {
       cacheContent = {
-        midsceneVersion: __VERSION__,
+        midsceneVersion: getMidsceneVersion(),
         cacheId: this.cacheId,
         caches: [],
       };
@@ -187,7 +185,8 @@ export class TaskCache {
       const data = readFileSync(cacheFile, 'utf8');
       const jsonData = yaml.load(data) as CacheFileContent;
 
-      if (!__VERSION__) {
+      const version = getMidsceneVersion();
+      if (!version) {
         debug('no midscene version info, will not read cache from file');
         return undefined;
       }
@@ -208,7 +207,7 @@ export class TaskCache {
         jsonData.midsceneVersion,
         jsonData.caches.length,
       );
-      jsonData.midsceneVersion = __VERSION__; // update the version
+      jsonData.midsceneVersion = getMidsceneVersion(); // update the version
       return jsonData;
     } catch (err) {
       debug(
@@ -221,7 +220,8 @@ export class TaskCache {
   }
 
   flushCacheToFile() {
-    if (!__VERSION__) {
+    const version = getMidsceneVersion();
+    if (!version) {
       debug('no midscene version info, will not write cache to file');
       return;
     }
