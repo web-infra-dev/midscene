@@ -326,6 +326,20 @@ export function trimContextByViewport(execution: ExecutionDump) {
   };
 }
 
+declare const __VERSION__: string | undefined;
+
+export const getMidsceneVersion = (): string => {
+  if (typeof __VERSION__ !== 'undefined') {
+    return __VERSION__;
+  } else if (
+    process.env.__VERSION__ &&
+    process.env.__VERSION__ !== 'undefined'
+  ) {
+    return process.env.__VERSION__;
+  }
+  throw new Error('__VERSION__ inject failed during build');
+};
+
 export const parsePrompt = (
   prompt: TUserPrompt,
 ): {
