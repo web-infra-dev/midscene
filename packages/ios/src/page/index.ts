@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Point, Size } from '@midscene/core';
-import type { PageType } from '@midscene/core';
+import type { DeviceAction, ExecutorContext, PageType } from '@midscene/core';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { resizeImg } from '@midscene/shared/img';
@@ -9,62 +9,11 @@ import { getDebug } from '@midscene/shared/logger';
 import {
   type AndroidDeviceInputOpt,
   type AndroidDevicePage,
-  commonWebActions,
 } from '@midscene/web';
+import { commonWebActionsForWebPage } from '@midscene/web/utils';
 import { type ScreenInfo, getScreenSize } from '../utils';
 
 export const debugPage = getDebug('ios:device');
-
-// Temporary DeviceAction interface definition - should match @midscene/core types
-interface DeviceAction<ParamType = any> {
-  name: string;
-  description?: string;
-  paramSchema?: string;
-  paramDescription?: string;
-  location?: 'required' | 'optional' | false;
-  whatToLocate?: string; // what to locate if location is required or optional
-  call: (param: ParamType) => Promise<void> | void;
-}
-
-const asyncNoop = async () => {};
-const iOSActions: DeviceAction[] = [
-  {
-    name: 'AndroidBackButton',
-    description: 'Trigger the system "back" operation on iOS devices using CMD+[',
-    location: false,
-    call: asyncNoop,
-  },
-  {
-    name: 'AndroidHomeButton',
-    description: 'Trigger the system "home" operation on iOS devices using CMD+1',
-    location: false,
-    call: asyncNoop,
-  },
-  {
-    name: 'AndroidRecentAppsButton',
-    description: 'Trigger the system "recent apps" operation on iOS devices using CMD+2',
-    location: false,
-    call: asyncNoop,
-  },
-  {
-    name: 'AndroidLongPress',
-    description: 'Long press operation on iOS devices',
-    paramSchema: '{ duration?: number }',
-    paramDescription: 'The duration of the long press',
-    location: 'optional',
-    whatToLocate: 'The element to be long pressed',
-    call: asyncNoop,
-  },
-  {
-    name: 'AndroidPull',
-    description: 'Pull gesture (swipe) operation on iOS devices, can be pull up or pull down',
-    location: false,
-    paramSchema: '{ direction: "up" | "down" }',
-    paramDescription: 'Pull direction: up or down',
-    call: asyncNoop,
-  },
-];
-
 export interface iOSDeviceOpt extends AndroidDeviceInputOpt {
   serverUrl?: string;
   serverPort?: number;
@@ -143,9 +92,109 @@ export class iOSDevice implements AndroidDevicePage {
   }
 
   actionSpace(): DeviceAction[] {
-    return commonWebActions.concat(iOSActions);
+    const commonActions = commonWebActionsForWebPage(this);
+    commonActions.forEach((action) => {
+      if (action.name === 'Input') {
+        action.call = async (context, param) => {
+          const { element } = context;
+          if (element) {
+            await this.clearInput(element as unknown as ElementInfo);
+
+            if (!param || !param.value) {
+              return;
+            }
+          }
+
+          await this.keyboard.type(param.value, {
+            autoDismissKeyboard:
+              param.autoDismissKeyboard ?? this.options?.autoDismissKeyboard,
+          });
+        };
+      }
+    });
+
+    const allActions: DeviceAction[] = [
+      ...commonWebActionsForWebPage(this),
+      {
+        name: 'IOSBackButton',
+        description: 'Trigger the system "back" operation on iOS devices',
+        location: false,
+        call: async (context, param) => {
+          await this.back();
+        },
+      },
+      {
+        name: 'IOSHomeButton',
+        description: 'Trigger the system "home" operation on iOS devices',
+        location: false,
+        call: async (context, param) => {
+          await this.home();
+        },
+      },
+      {
+        name: 'IOSRecentAppsButton',
+        description:
+          'Trigger the system "recent apps" operation on iOS devices',
+        location: false,
+        call: async (context, param) => {
+          await this.recentApps();
+        },
+      },
+      {
+        name: 'IOSLongPress',
+        description:
+          'Trigger a long press on the screen at specified coordinates on iOS devices',
+        paramSchema: '{ duration?: number }',
+        paramDescription: 'The duration of the long press in milliseconds',
+        location: 'required',
+        whatToLocate: 'The element to be long pressed',
+        call: async (context, param) => {
+          const { element } = context;
+          if (!element) {
+            throw new Error(
+              'IOSLongPress requires an element to be located',
+            );
+          }
+          const [x, y] = element.center;
+          await this.longPress(x, y, param?.duration);
+        },
+      } as DeviceAction<{ duration?: number }>,
+      {
+        name: 'IOSPull',
+        description:
+          'Trigger pull down to refresh or pull up actions on iOS devices',
+        paramSchema:
+          '{ direction: "up" | "down", distance?: number, duration?: number }',
+        paramDescription:
+          'The direction to pull, the distance to pull (in pixels), and the duration of the pull (in milliseconds).',
+        location: 'optional',
+        whatToLocate: 'The element to be pulled',
+        call: async (context, param) => {
+          const { element } = context;
+          const startPoint = element
+            ? { left: element.center[0], top: element.center[1] }
+            : undefined;
+          if (!param || !param.direction) {
+            throw new Error('IOSPull requires a direction parameter');
+          }
+          if (param.direction === 'down') {
+            await this.pullDown(startPoint, param.distance, param.duration);
+          } else if (param.direction === 'up') {
+            await this.pullUp(startPoint, param.distance, param.duration);
+          } else {
+            throw new Error(`Unknown pull direction: ${param.direction}`);
+          }
+        },
+      } as DeviceAction<{
+        direction: 'up' | 'down';
+        distance?: number;
+        duration?: number;
+      }>,
+    ];
+    return allActions;
   }
 
+  
   public async connect(): Promise<void> {
     if (this.destroyed) {
       throw new Error('iOSDevice has been destroyed and cannot be used');
