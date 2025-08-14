@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { type Point, type Size, getAIConfig } from '@midscene/core';
-import type { DeviceAction, PageType } from '@midscene/core';
+import type { DeviceAction, ExecutorContext, PageType } from '@midscene/core';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import {
   MIDSCENE_ADB_PATH,
@@ -16,11 +16,9 @@ import type { ElementInfo } from '@midscene/shared/extractor';
 import { isValidPNGImageBuffer, resizeImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { repeat } from '@midscene/shared/utils';
-import {
-  type AndroidDeviceInputOpt,
-  type AndroidDevicePage,
-  commonWebActions,
-} from '@midscene/web';
+import type { AndroidDeviceInputOpt, AndroidDevicePage } from '@midscene/web';
+import { commonWebActionsForWebPage } from '@midscene/web/utils';
+
 import { ADB } from 'appium-adb';
 
 // only for Android, because it's impossible to scroll to the bottom, so we need to set a default scroll times
@@ -36,51 +34,6 @@ export type AndroidDeviceOpt = {
   imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii';
 } & AndroidDeviceInputOpt;
 
-const asyncNoop = async () => {};
-const androidActions: DeviceAction[] = [
-  {
-    name: 'AndroidBackButton',
-    description: 'Trigger the system "back" operation on Android devices',
-    location: false,
-    call: asyncNoop,
-  },
-  {
-    name: 'AndroidHomeButton',
-    description: 'Trigger the system "home" operation on Android devices',
-    location: false,
-    call: asyncNoop,
-  },
-  {
-    name: 'AndroidRecentAppsButton',
-    description:
-      'Trigger the system "recent apps" operation on Android devices',
-    location: false,
-    call: asyncNoop,
-  },
-  {
-    name: 'AndroidLongPress',
-    description:
-      'Trigger a long press on the screen at specified coordinates on Android devices',
-    paramSchema: '{ duration?: number }',
-    paramDescription: 'The duration of the long press',
-    location: 'optional',
-    whatToLocate: 'The element to be long pressed',
-    call: asyncNoop,
-  },
-  {
-    name: 'AndroidPull',
-    description:
-      'Trigger pull down to refresh or pull up actions on Android devices',
-    paramSchema:
-      '{ direction: "up" | "down", distance?: number, duration?: number }',
-    paramDescription:
-      'The direction to pull, the distance to pull, and the duration of the pull.',
-    location: 'optional',
-    whatToLocate: 'The element to be pulled',
-    call: asyncNoop,
-  },
-];
-
 export class AndroidDevice implements AndroidDevicePage {
   private deviceId: string;
   private yadbPushed = false;
@@ -93,7 +46,105 @@ export class AndroidDevice implements AndroidDevicePage {
   options?: AndroidDeviceOpt;
 
   actionSpace(): DeviceAction[] {
-    return commonWebActions.concat(androidActions);
+    const commonActions = commonWebActionsForWebPage(this);
+    commonActions.forEach((action) => {
+      if (action.name === 'Input') {
+        action.call = async (context, param) => {
+          const { element } = context;
+          if (element) {
+            await this.clearInput(element as unknown as ElementInfo);
+
+            if (!param || !param.value) {
+              return;
+            }
+          }
+
+          await this.keyboard.type(param.value, {
+            autoDismissKeyboard: this.options?.autoDismissKeyboard,
+          });
+        };
+      }
+    });
+
+    const allActions: DeviceAction[] = [
+      ...commonWebActionsForWebPage(this),
+      {
+        name: 'AndroidBackButton',
+        description: 'Trigger the system "back" operation on Android devices',
+        location: false,
+        call: async (context, param) => {
+          await this.back();
+        },
+      },
+      {
+        name: 'AndroidHomeButton',
+        description: 'Trigger the system "home" operation on Android devices',
+        location: false,
+        call: async (context, param) => {
+          await this.home();
+        },
+      },
+      {
+        name: 'AndroidRecentAppsButton',
+        description:
+          'Trigger the system "recent apps" operation on Android devices',
+        location: false,
+        call: async (context, param) => {
+          await this.recentApps();
+        },
+      },
+      {
+        name: 'AndroidLongPress',
+        description:
+          'Trigger a long press on the screen at specified coordinates on Android devices',
+        paramSchema: '{ duration?: number }',
+        paramDescription: 'The duration of the long press in milliseconds',
+        location: 'required',
+        whatToLocate: 'The element to be long pressed',
+        call: async (context, param) => {
+          const { element } = context;
+          if (!element) {
+            throw new Error(
+              'AndroidLongPress requires an element to be located',
+            );
+          }
+          const [x, y] = element.center;
+          await this.longPress(x, y, param?.duration);
+        },
+      } as DeviceAction<{ duration?: number }>,
+      {
+        name: 'AndroidPull',
+        description:
+          'Trigger pull down to refresh or pull up actions on Android devices',
+        paramSchema:
+          '{ direction: "up" | "down", distance?: number, duration?: number }',
+        paramDescription:
+          'The direction to pull, the distance to pull (in pixels), and the duration of the pull (in milliseconds).',
+        location: 'optional',
+        whatToLocate: 'The element to be pulled',
+        call: async (context, param) => {
+          const { element } = context;
+          const startPoint = element
+            ? { left: element.center[0], top: element.center[1] }
+            : undefined;
+          if (!param || !param.direction) {
+            throw new Error('AndroidPull requires a direction parameter');
+          }
+          if (param.direction === 'down') {
+            await this.pullDown(startPoint, param.distance, param.duration);
+          } else if (param.direction === 'up') {
+            await this.pullUp(startPoint, param.distance, param.duration);
+          } else {
+            throw new Error(`Unknown pull direction: ${param.direction}`);
+          }
+        },
+      } as DeviceAction<{
+        direction: 'up' | 'down';
+        distance?: number;
+        duration?: number;
+      }>,
+    ];
+    return allActions;
   }
 
   constructor(deviceId: string, options?: AndroidDeviceOpt) {
@@ -472,11 +523,14 @@ ${Object.keys(size)
   get mouse() {
     return {
       click: (x: number, y: number) => this.mouseClick(x, y),
-      wheel: (deltaX: number, deltaY: number) =>
-        this.mouseWheel(deltaX, deltaY),
+      wheel: (deltaX: number, deltaY: number, duration?: number) =>
+        this.mouseWheel(deltaX, deltaY, duration),
       move: (x: number, y: number) => this.mouseMove(x, y),
-      drag: (from: { x: number; y: number }, to: { x: number; y: number }) =>
-        this.mouseDrag(from, to),
+      drag: (
+        from: { x: number; y: number },
+        to: { x: number; y: number },
+        duration?: number,
+      ) => this.mouseDrag(from, to, duration),
     };
   }
 
@@ -532,25 +586,14 @@ ${Object.keys(size)
 
   async scrollUntilTop(startPoint?: Point): Promise<void> {
     if (startPoint) {
-      const start = { x: startPoint.left, y: startPoint.top };
-      const end = { x: start.x, y: 0 };
-
-      await this.mouseDrag(start, end);
-      return;
-    }
-
-    await repeat(defaultScrollUntilTimes, () =>
-      this.mouseWheel(0, 9999999, defaultFastScrollDuration),
-    );
-    await sleep(1000);
-  }
-
-  async scrollUntilBottom(startPoint?: Point): Promise<void> {
-    if (startPoint) {
       const { height } = await this.size();
       const start = { x: startPoint.left, y: startPoint.top };
       const end = { x: start.x, y: height };
-      await this.mouseDrag(start, end);
+
+      await repeat(defaultScrollUntilTimes, () =>
+        this.mouseDrag(start, end, defaultFastScrollDuration),
+      );
+      await sleep(1000);
       return;
     }
 
@@ -560,26 +603,34 @@ ${Object.keys(size)
     await sleep(1000);
   }
 
-  async scrollUntilLeft(startPoint?: Point): Promise<void> {
+  async scrollUntilBottom(startPoint?: Point): Promise<void> {
     if (startPoint) {
       const start = { x: startPoint.left, y: startPoint.top };
-      const end = { x: 0, y: start.y };
-      await this.mouseDrag(start, end);
+      const end = { x: start.x, y: 0 };
+
+      await repeat(defaultScrollUntilTimes, () =>
+        this.mouseDrag(start, end, defaultFastScrollDuration),
+      );
+      await sleep(1000);
       return;
     }
 
     await repeat(defaultScrollUntilTimes, () =>
-      this.mouseWheel(9999999, 0, defaultFastScrollDuration),
+      this.mouseWheel(0, 9999999, defaultFastScrollDuration),
     );
     await sleep(1000);
   }
 
-  async scrollUntilRight(startPoint?: Point): Promise<void> {
+  async scrollUntilLeft(startPoint?: Point): Promise<void> {
     if (startPoint) {
       const { width } = await this.size();
       const start = { x: startPoint.left, y: startPoint.top };
       const end = { x: width, y: start.y };
-      await this.mouseDrag(start, end);
+
+      await repeat(defaultScrollUntilTimes, () =>
+        this.mouseDrag(start, end, defaultFastScrollDuration),
+      );
+      await sleep(1000);
       return;
     }
 
@@ -589,22 +640,25 @@ ${Object.keys(size)
     await sleep(1000);
   }
 
-  async scrollUp(distance?: number, startPoint?: Point): Promise<void> {
-    const { height } = await this.size();
-    const scrollDistance = distance || height;
-
+  async scrollUntilRight(startPoint?: Point): Promise<void> {
     if (startPoint) {
       const start = { x: startPoint.left, y: startPoint.top };
-      const endY = Math.max(0, start.y - scrollDistance);
-      const end = { x: start.x, y: endY };
-      await this.mouseDrag(start, end);
+      const end = { x: 0, y: start.y };
+
+      await repeat(defaultScrollUntilTimes, () =>
+        this.mouseDrag(start, end, defaultFastScrollDuration),
+      );
+      await sleep(1000);
       return;
     }
 
-    await this.mouseWheel(0, scrollDistance);
+    await repeat(defaultScrollUntilTimes, () =>
+      this.mouseWheel(9999999, 0, defaultFastScrollDuration),
+    );
+    await sleep(1000);
   }
 
-  async scrollDown(distance?: number, startPoint?: Point): Promise<void> {
+  async scrollUp(distance?: number, startPoint?: Point): Promise<void> {
     const { height } = await this.size();
     const scrollDistance = distance || height;
 
@@ -619,22 +673,22 @@ ${Object.keys(size)
     await this.mouseWheel(0, -scrollDistance);
   }
 
-  async scrollLeft(distance?: number, startPoint?: Point): Promise<void> {
-    const { width } = await this.size();
-    const scrollDistance = distance || width;
+  async scrollDown(distance?: number, startPoint?: Point): Promise<void> {
+    const { height } = await this.size();
+    const scrollDistance = distance || height;
 
     if (startPoint) {
       const start = { x: startPoint.left, y: startPoint.top };
-      const endX = Math.max(0, start.x - scrollDistance);
-      const end = { x: endX, y: start.y };
+      const endY = Math.max(0, start.y - scrollDistance);
+      const end = { x: start.x, y: endY };
       await this.mouseDrag(start, end);
       return;
     }
 
-    await this.mouseWheel(scrollDistance, 0);
+    await this.mouseWheel(0, scrollDistance);
   }
 
-  async scrollRight(distance?: number, startPoint?: Point): Promise<void> {
+  async scrollLeft(distance?: number, startPoint?: Point): Promise<void> {
     const { width } = await this.size();
     const scrollDistance = distance || width;
 
@@ -647,6 +701,21 @@ ${Object.keys(size)
     }
 
     await this.mouseWheel(-scrollDistance, 0);
+  }
+
+  async scrollRight(distance?: number, startPoint?: Point): Promise<void> {
+    const { width } = await this.size();
+    const scrollDistance = distance || width;
+
+    if (startPoint) {
+      const start = { x: startPoint.left, y: startPoint.top };
+      const endX = Math.max(0, start.x - scrollDistance);
+      const end = { x: endX, y: start.y };
+      await this.mouseDrag(start, end);
+      return;
+    }
+
+    await this.mouseWheel(scrollDistance, 0);
   }
 
   private async ensureYadb() {
@@ -757,6 +826,7 @@ ${Object.keys(size)
   private async mouseDrag(
     from: { x: number; y: number },
     to: { x: number; y: number },
+    duration?: number,
   ): Promise<void> {
     const adb = await this.getAdb();
 
@@ -764,13 +834,18 @@ ${Object.keys(size)
     const { x: fromX, y: fromY } = this.adjustCoordinates(from.x, from.y);
     const { x: toX, y: toY } = this.adjustCoordinates(to.x, to.y);
 
-    await adb.shell(`input swipe ${fromX} ${fromY} ${toX} ${toY} 300`);
+    // Ensure duration has a default value
+    const swipeDuration = duration ?? 300;
+
+    await adb.shell(
+      `input swipe ${fromX} ${fromY} ${toX} ${toY} ${swipeDuration}`,
+    );
   }
 
   private async mouseWheel(
     deltaX: number,
     deltaY: number,
-    duration = defaultNormalScrollDuration,
+    duration?: number,
   ): Promise<void> {
     const { width, height } = await this.size();
 
@@ -792,8 +867,11 @@ ${Object.keys(size)
     deltaY = Math.max(-maxNegativeDeltaY, Math.min(deltaY, maxPositiveDeltaY));
 
     // Calculate the end coordinates
-    const endX = startX + deltaX;
-    const endY = startY + deltaY;
+    // Note: For swipe, we need to reverse the delta direction
+    // because positive deltaY should scroll up (show top content),
+    // which requires swiping from bottom to top (decreasing Y)
+    const endX = startX - deltaX;
+    const endY = startY - deltaY;
 
     // Adjust coordinates to fit device ratio
     const { x: adjustedStartX, y: adjustedStartY } = this.adjustCoordinates(
@@ -807,9 +885,12 @@ ${Object.keys(size)
 
     const adb = await this.getAdb();
 
+    // Ensure duration has a default value
+    const swipeDuration = duration ?? defaultNormalScrollDuration;
+
     // Execute the swipe operation
     await adb.shell(
-      `input swipe ${adjustedStartX} ${adjustedStartY} ${adjustedEndX} ${adjustedEndY} ${duration}`,
+      `input swipe ${adjustedStartX} ${adjustedStartY} ${adjustedEndX} ${adjustedEndY} ${swipeDuration}`,
     );
   }
 

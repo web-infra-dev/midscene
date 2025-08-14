@@ -1,17 +1,20 @@
 import type { StaticPage } from '@/playground';
 import type {
   BaseElement,
+  DeviceAction,
   ElementTreeNode,
   ExecutionDump,
   ExecutionTask,
+  ExecutorContext,
   PlanningLocateParam,
   PlaywrightParserOpt,
+  ScrollParam,
   TMultimodalPrompt,
   TUserPrompt,
   UIContext,
 } from '@midscene/core';
 import { elementByPositionWithElementInfo } from '@midscene/core/ai-model';
-import { uploadTestInfoToServer } from '@midscene/core/utils';
+import { sleep, uploadTestInfoToServer } from '@midscene/core/utils';
 import { MIDSCENE_REPORT_TAG_NAME, getAIConfig } from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import {
@@ -25,10 +28,12 @@ import { assert, logMsg, uuid } from '@midscene/shared/utils';
 import dayjs from 'dayjs';
 import type { Page as PlaywrightPage } from 'playwright';
 import type { Page as PuppeteerPage } from 'puppeteer';
+import type { AbstractPage } from '../page';
 import { WebElementInfo, type WebUIContext } from '../web-element';
 import type { WebPage } from './page';
 import { debug as cacheDebug } from './task-cache';
 import type { PageTaskExecutor } from './tasks';
+import { getKeyCommands } from './ui-utils';
 
 const debug = getDebug('tool:profile');
 
@@ -343,3 +348,124 @@ export const parsePrompt = (
       : undefined,
   };
 };
+
+export const commonWebActionsForWebPage = <T extends AbstractPage>(
+  page: T,
+): DeviceAction[] => [
+  {
+    name: 'Tap',
+    description: 'Tap the element',
+    location: 'required',
+    call: async (context) => {
+      const { element } = context;
+      assert(element, 'Element not found, cannot tap');
+      await page.mouse.click(element.center[0], element.center[1], {
+        button: 'left',
+      });
+    },
+  },
+  {
+    name: 'RightClick',
+    description: 'Right click the element',
+    location: 'required',
+    call: async (context) => {
+      const { element } = context;
+      assert(element, 'Element not found, cannot right click');
+      await page.mouse.click(element.center[0], element.center[1], {
+        button: 'right',
+      });
+    },
+  },
+  {
+    name: 'Hover',
+    description: 'Move the mouse to the element',
+    location: 'required',
+    call: async (context) => {
+      const { element } = context;
+      assert(element, 'Element not found, cannot hover');
+      await page.mouse.move(element.center[0], element.center[1]);
+    },
+  },
+  {
+    name: 'Input',
+    description: 'Replace the input field with a new value',
+    paramSchema: '{ value: string }',
+    paramDescription:
+      '`value` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. Giving a blank string means clear the input field.',
+    location: 'required',
+    whatToLocate: 'The input field to be filled',
+    call: async (context, param) => {
+      const { element } = context;
+      if (element) {
+        await page.clearInput(element as unknown as ElementInfo);
+
+        if (!param || !param.value) {
+          return;
+        }
+      }
+
+      // Note: there is another implementation in AndroidDevicePage, which is more complex
+      await page.keyboard.type(param.value);
+    },
+  } as DeviceAction<{ value: string }>,
+  {
+    name: 'KeyboardPress',
+    description: 'Press a key',
+    paramSchema: '{ value: string }',
+    paramDescription: 'The key to be pressed',
+    location: false,
+    call: async (context, param) => {
+      const keys = getKeyCommands(param.value);
+      await page.keyboard.press(keys as any); // TODO: fix this type error
+    },
+  } as DeviceAction<{ value: string }>,
+  {
+    name: 'Scroll',
+    description: 'Scroll the page or an element',
+    paramSchema:
+      '{ direction: "down"(default) | "up" | "right" | "left", scrollType: "once" (default) | "untilBottom" | "untilTop" | "untilRight" | "untilLeft", distance: number | null }',
+    paramDescription:
+      'The direction to scroll, the scroll type, and the distance to scroll. The distance is the number of pixels to scroll. If not specified, use `down` direction, `once` scroll type, and `null` distance.',
+    location: 'optional',
+    whatToLocate: 'The element to be scrolled',
+    call: async (context, param) => {
+      const { element } = context;
+      const startingPoint = element
+        ? {
+            left: element.center[0],
+            top: element.center[1],
+          }
+        : undefined;
+      const scrollToEventName = param?.scrollType;
+      if (scrollToEventName === 'untilTop') {
+        await page.scrollUntilTop(startingPoint);
+      } else if (scrollToEventName === 'untilBottom') {
+        await page.scrollUntilBottom(startingPoint);
+      } else if (scrollToEventName === 'untilRight') {
+        await page.scrollUntilRight(startingPoint);
+      } else if (scrollToEventName === 'untilLeft') {
+        await page.scrollUntilLeft(startingPoint);
+      } else if (scrollToEventName === 'once' || !scrollToEventName) {
+        if (param?.direction === 'down' || !param || !param.direction) {
+          await page.scrollDown(param?.distance || undefined, startingPoint);
+        } else if (param.direction === 'up') {
+          await page.scrollUp(param.distance || undefined, startingPoint);
+        } else if (param.direction === 'left') {
+          await page.scrollLeft(param.distance || undefined, startingPoint);
+        } else if (param.direction === 'right') {
+          await page.scrollRight(param.distance || undefined, startingPoint);
+        } else {
+          throw new Error(`Unknown scroll direction: ${param.direction}`);
+        }
+        // until mouse event is done
+        await sleep(500);
+      } else {
+        throw new Error(
+          `Unknown scroll event type: ${scrollToEventName}, param: ${JSON.stringify(
+            param,
+          )}`,
+        );
+      }
+    },
+  } as DeviceAction<ScrollParam>,
+];
