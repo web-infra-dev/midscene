@@ -973,7 +973,7 @@ export function Player(props?: {
               </div>
             </Tooltip>
             <Dropdown
-              trigger={['click']}
+              trigger={['hover']}
               placement="bottomRight"
               overlayStyle={{
                 minWidth: '148px',
@@ -1053,23 +1053,21 @@ export function Player(props?: {
                 ],
               }}
             >
-              <Tooltip title="Settings">
-                <div
-                  className="status-icon"
-                  onMouseEnter={() => setMouseOverSettingsIcon(true)}
-                  onMouseLeave={() => setMouseOverSettingsIcon(false)}
-                  style={{
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    opacity: mouseOverSettingsIcon ? 1 : 0.7,
-                    transition: 'opacity 0.2s',
-                  }}
-                >
-                  <SettingIcon style={{ width: '16px', height: '16px' }} />
-                </div>
-              </Tooltip>
+              <div
+                className="status-icon"
+                onMouseEnter={() => setMouseOverSettingsIcon(true)}
+                onMouseLeave={() => setMouseOverSettingsIcon(false)}
+                style={{
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: mouseOverSettingsIcon ? 1 : 0.7,
+                  transition: 'opacity 0.2s',
+                }}
+              >
+                <SettingIcon style={{ width: '16px', height: '16px' }} />
+              </div>
             </Dropdown>
           </div>
         </div>
