@@ -14,7 +14,6 @@ import type { BaseElement, LocateResultElement, Rect } from '@midscene/core';
 import { treeToList } from '@midscene/shared/extractor';
 import { Dropdown, Spin, Switch, Tooltip } from 'antd';
 import GlobalPerspectiveIcon from '../icons/global-perspective.svg';
-import SettingIcon from '../icons/player-setting.svg';
 import { rectMarkForItem } from './blackboard';
 import { getTextureFromCache, loadTexture } from './pixi-loader';
 import type {
@@ -1024,7 +1023,7 @@ export function Player(props?: {
                           <span
                             style={{ fontSize: '12px', marginRight: '16px' }}
                           >
-                            focuses on cursor
+                            Focus on Cursor
                           </span>
                         </div>
                         <Switch
@@ -1055,7 +1054,9 @@ export function Player(props?: {
                   transition: 'opacity 0.2s',
                 }}
               >
-                <SettingIcon style={{ width: '16px', height: '16px' }} />
+                <GlobalPerspectiveIcon
+                  style={{ width: '16px', height: '16px' }}
+                />
               </div>
             </Dropdown>
           </div>
