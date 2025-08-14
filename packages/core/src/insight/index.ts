@@ -18,7 +18,6 @@ import type {
   BaseElement,
   DetailedLocateParam,
   DumpSubscriber,
-  IModelPreferences,
   InsightAction,
   InsightAssertionResponse,
   InsightExtractOption,
@@ -33,9 +32,10 @@ import type {
   UIContext,
 } from '@/types';
 import {
+  type IModelPreferences,
   MIDSCENE_FORCE_DEEP_THINK,
-  MIDSCENE_USE_QWEN_VL,
   getAIConfigInBoolean,
+  getIsUseQwenVl,
   vlLocateMode,
 } from '@midscene/shared/env';
 import { compositeElementInfoImg, cropByRect } from '@midscene/shared/img';
@@ -207,6 +207,9 @@ export default class Insight<
         ...dumpData,
         matchedElement: elements,
       },
+      {
+        intent: 'grounding',
+      },
       dumpSubscriber,
     );
 
@@ -243,7 +246,6 @@ export default class Insight<
     dataDemand: InsightExtractParam,
     opt?: InsightExtractOption,
     multimodalPrompt?: TMultimodalPrompt,
-    modelPreferences?: IModelPreferences,
   ): Promise<{
     data: T;
     thought?: string;
@@ -259,6 +261,11 @@ export default class Insight<
     const context = await this.contextRetrieverFn('extract');
 
     const startTime = Date.now();
+
+    const modelPreferences: IModelPreferences = {
+      intent: 'VQA',
+    };
+
     const { parseResult, usage } = await AiExtractElementInfo<T>({
       context,
       dataQuery: dataDemand,
@@ -298,6 +305,7 @@ export default class Insight<
         ...dumpData,
         data,
       },
+      modelPreferences,
       dumpSubscriber,
     );
 
@@ -343,7 +351,14 @@ export default class Insight<
       assertionThought: thought,
       error: pass ? undefined : thought,
     };
-    emitInsightDump(dumpData, dumpSubscriber);
+    // this assert function is used in aiAction
+    emitInsightDump(
+      dumpData,
+      {
+        intent: 'planning',
+      },
+      dumpSubscriber,
+    );
 
     return {
       pass,
@@ -392,7 +407,7 @@ export default class Insight<
       imagePayload = await cropByRect(
         imagePayload,
         searchArea,
-        getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL),
+        getIsUseQwenVl(),
       );
     }
 

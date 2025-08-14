@@ -10,7 +10,6 @@ import {
   type ExecutionTaskLog,
   type Executor,
   type GroupedActionDump,
-  type IModelConfigByIntent,
   Insight,
   type InsightAction,
   type InsightExtractOption,
@@ -39,7 +38,11 @@ import {
   DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
   DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
 } from '@midscene/shared/constants';
-import { getAIConfigInBoolean, vlLocateMode } from '@midscene/shared/env';
+import {
+  type TModelConfigFn,
+  getAIConfigInBoolean,
+  vlLocateMode,
+} from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { PageTaskExecutor } from '../common/tasks';
@@ -93,7 +96,7 @@ export interface PageAgentOpt {
   aiActionContext?: string;
   /* custom report file name */
   reportFileName?: string;
-  modelConfig?: IModelConfigByIntent;
+  modelConfig?: TModelConfigFn;
 }
 
 export type WebPageAgentOpt = PageAgentOpt & WebPageOpt;

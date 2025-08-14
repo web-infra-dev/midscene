@@ -1,15 +1,12 @@
 import { AIResponseFormat, type AIUsageInfo } from '@/types';
-import type {
-  CodeGenerationChunk,
-  IModelPreferences,
-  StreamingCallback,
-} from '@/types';
+import type { CodeGenerationChunk, StreamingCallback } from '@/types';
 import { Anthropic } from '@anthropic-ai/sdk';
 import {
   DefaultAzureCredential,
   getBearerTokenProvider,
 } from '@azure/identity';
 import {
+  type IModelPreferences,
   MIDSCENE_API_TYPE,
   MIDSCENE_LANGSMITH_DEBUG,
   OPENAI_MAX_TOKENS,

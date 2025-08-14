@@ -7,7 +7,6 @@ import type {
   AIUsageInfo,
   BaseElement,
   ElementById,
-  IModelPreferences,
   InsightExtractOption,
   Rect,
   ReferenceImage,
@@ -16,11 +15,12 @@ import type {
   UIContext,
 } from '@/types';
 import {
-  MIDSCENE_USE_QWEN_VL,
-  MIDSCENE_USE_VLM_UI_TARS,
-  getAIConfigInBoolean,
+  type IModelPreferences,
+  getIsUseQwenVl,
+  getIsUseVlmUiTars,
   vlLocateMode,
 } from '@midscene/shared/env';
+
 import {
   cropByRect,
   paddingToMatchBlockByBase64,
@@ -365,7 +365,7 @@ export async function AiLocateSection(options: {
     imageBase64 = await cropByRect(
       screenshotBase64,
       sectionRect,
-      getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL),
+      getIsUseQwenVl(),
     );
   }
 
@@ -472,7 +472,7 @@ export async function AiAssert<
   const { screenshotBase64 } = context;
 
   const systemPrompt = systemPromptToAssert({
-    isUITars: getAIConfigInBoolean(MIDSCENE_USE_VLM_UI_TARS),
+    isUITars: getIsUseVlmUiTars(),
   });
 
   const assertionText = extraTextFromUserPrompt(assertion);

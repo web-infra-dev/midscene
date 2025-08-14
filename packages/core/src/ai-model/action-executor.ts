@@ -9,8 +9,8 @@ import type {
 } from '@/types';
 import { getVersion } from '@/utils';
 import {
-  MIDSCENE_MODEL_NAME,
-  getAIConfig,
+  type IModelPreferences,
+  getUsedModelName,
   uiTarsModelVersion,
   vlLocateMode,
 } from '@midscene/shared/env';
@@ -216,7 +216,7 @@ export class Executor {
     }
     const dumpData: ExecutionDump = {
       sdkVersion: getVersion(),
-      model_name: getAIConfig(MIDSCENE_MODEL_NAME) || '',
+      model_name: getUsedModelName({ intent: 'multi' }) || '',
       model_description: modelDescription,
       logTime: Date.now(),
       name: this.name,

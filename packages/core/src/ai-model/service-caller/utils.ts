@@ -1,10 +1,11 @@
-import type { IModelConfigForVQA, IModelPreferences } from '@/types';
 import {
   ANTHROPIC_API_KEY,
   AZURE_OPENAI_API_VERSION,
   AZURE_OPENAI_DEPLOYMENT,
   AZURE_OPENAI_ENDPOINT,
   AZURE_OPENAI_KEY,
+  type IModelConfigForVQA,
+  type IModelPreferences,
   MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON,
   MIDSCENE_AZURE_OPENAI_SCOPE,
   MIDSCENE_DEBUG_AI_PROFILE,
@@ -37,6 +38,7 @@ import {
   getAIConfig,
   getAIConfigInBoolean,
   getAIConfigInJson,
+  globalConfigManger,
 } from '@midscene/shared/env';
 import { enableDebug, getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
@@ -309,10 +311,11 @@ export const decideModelConfig = (
 
   const isVQAIntent = modelPreferences?.intent === 'VQA';
 
-  const vqaModelCallback = modelPreferences?.modelConfigByIntent?.VQA;
-  const vqaModelName = getAIConfig(MIDSCENE_VQA_MODEL_NAME);
+  const vqaModelConfig = globalConfigManger.getModelConfig(
+    modelPreferences?.intent,
+  ) as IModelConfigForVQA;
 
-  const vqaModelConfig = vqaModelCallback?.();
+  const vqaModelName = getAIConfig(MIDSCENE_VQA_MODEL_NAME);
 
   if (isVQAIntent && (vqaModelConfig || vqaModelName)) {
     if (vqaModelConfig) {

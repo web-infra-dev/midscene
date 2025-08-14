@@ -2,7 +2,6 @@ import type {
   AIUsageInfo,
   BaseElement,
   ElementTreeNode,
-  IModelPreferences,
   MidsceneYamlFlowItem,
   PlanningAction,
   PlanningActionParamInputOrKeyPress,
@@ -25,7 +24,7 @@ import {
 
 import type { PlanningLocateParam } from '@/types';
 import { NodeType } from '@midscene/shared/constants';
-import { vlLocateMode } from '@midscene/shared/env';
+import { type IModelPreferences, vlLocateMode } from '@midscene/shared/env';
 import { treeToList } from '@midscene/shared/extractor';
 import { compositeElementInfoImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
