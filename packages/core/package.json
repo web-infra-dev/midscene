@@ -20,9 +20,9 @@
       "require": "./dist/lib/utils.js"
     },
     "./ai-model": {
-      "types": "./dist/types/ai-model.d.ts",
-      "import": "./dist/es/ai-model.mjs",
-      "require": "./dist/lib/ai-model.js"
+      "types": "./dist/types/ai-model/index.d.ts",
+      "import": "./dist/es/ai-model/index.mjs",
+      "require": "./dist/lib/ai-model/index.js"
     },
     "./tree": {
       "types": "./dist/types/tree.d.ts",
