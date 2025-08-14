@@ -311,6 +311,9 @@ importers:
       '@rsbuild/plugin-react':
         specifier: ^1.3.1
         version: 1.3.1(@rsbuild/core@1.3.22)
+      '@rsbuild/plugin-type-check':
+        specifier: 1.2.3
+        version: 1.2.3(@rsbuild/core@1.3.22)(@rspack/core@1.4.11)(typescript@5.8.3)
       '@types/chrome':
         specifier: 0.0.279
         version: 0.0.279
