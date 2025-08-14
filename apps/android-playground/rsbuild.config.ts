@@ -76,6 +76,6 @@ export default defineConfig({
     pluginLess(),
     pluginSvgr(),
     copyAndroidPlaygroundStatic(),
-    process.env.NODE_ENV !== 'development' ? pluginTypeCheck() : undefined,
+    pluginTypeCheck(),
   ],
 });
