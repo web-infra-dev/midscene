@@ -62,16 +62,6 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
           return this.onLogMessage(args[0] as string, 'status');
         }
 
-        if (method === BridgeEvent.ExecuteAction) {
-          const [actionName, context, param] = args;
-          const actionSpace = this.actionSpace();
-          const action = actionSpace.find((a) => a.name === actionName);
-          if (!action) {
-            throw new Error(`Action ${actionName} not found in action space`);
-          }
-          return action.call(context, param);
-        }
-
         const tabId = await this.getActiveTabId();
         if (!tabId || tabId === 0) {
           throw new Error('no tab is connected');

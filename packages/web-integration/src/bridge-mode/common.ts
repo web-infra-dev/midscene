@@ -14,7 +14,6 @@ export enum BridgeEvent {
   GetBrowserTabList = 'getBrowserTabList',
   SetDestroyOptions = 'setDestroyOptions',
   SetActiveTabId = 'setActiveTabId',
-  ExecuteAction = 'executeAction',
 }
 
 export const BridgeSignalKill = 'MIDSCENE_BRIDGE_SIGNAL_KILL';

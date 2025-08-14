@@ -26,18 +26,6 @@ const mockPage = {
         },
       },
     ] as DeviceAction[],
-  executeAction: vi
-    .fn()
-    .mockImplementation(async (actionName, context, param) => {
-      const actions = mockPage.actionSpace();
-      const action = actions.find(
-        (a: { name: string }) => a.name === actionName,
-      );
-      if (!action) {
-        throw new Error(`Action ${actionName} not found in action space`);
-      }
-      return action.call(context, param);
-    }),
 } as any;
 
 // Mock insight

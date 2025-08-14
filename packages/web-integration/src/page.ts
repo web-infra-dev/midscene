@@ -50,11 +50,6 @@ export abstract class AbstractPage {
   abstract screenshotBase64?(): Promise<string>;
   abstract size(): Promise<Size>;
   abstract actionSpace(): DeviceAction[] | Promise<DeviceAction[]>;
-  abstract executeAction<T = unknown>(
-    actionName: string,
-    context: ExecutorContext,
-    param: T,
-  ): Promise<void>;
 
   get mouse(): MouseAction {
     return {

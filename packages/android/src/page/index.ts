@@ -17,10 +17,7 @@ import { isValidPNGImageBuffer, resizeImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { repeat } from '@midscene/shared/utils';
 import type { AndroidDeviceInputOpt, AndroidDevicePage } from '@midscene/web';
-import {
-  commonWebActionsForWebPage,
-  executeActionForPage,
-} from '@midscene/web/utils';
+import { commonWebActionsForWebPage } from '@midscene/web/utils';
 
 import { ADB } from 'appium-adb';
 
@@ -148,14 +145,6 @@ export class AndroidDevice implements AndroidDevicePage {
       }>,
     ];
     return allActions;
-  }
-
-  async executeAction<T = unknown>(
-    actionName: string,
-    context: ExecutorContext,
-    param: T,
-  ): Promise<void> {
-    return executeActionForPage(this, actionName, context, param);
   }
 
   constructor(deviceId: string, options?: AndroidDeviceOpt) {

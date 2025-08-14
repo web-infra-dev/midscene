@@ -508,7 +508,15 @@ export class PageTaskExecutor {
               param,
               `context.element.center: ${context.element?.center}`,
             );
-            return await this.page.executeAction(planType, context, param);
+            const actionSpace = await this.page.actionSpace();
+            const action = actionSpace.find(
+              (action) => action.name === planType,
+            );
+            if (!action) {
+              throw new Error(`Action type '${planType}' not found`);
+            }
+            const actionFn = action.call.bind(this.page);
+            return await actionFn(context, param);
           },
         };
         tasks.push(task);

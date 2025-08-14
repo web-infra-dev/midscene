@@ -1,6 +1,7 @@
 import { PageAgent, type PageAgentOpt } from '@/common/agent';
+import { commonWebActionsForWebPage } from '@/common/utils';
 import type { KeyboardAction, MouseAction } from '@/page';
-import type { ExecutorContext } from '@midscene/core';
+import type { DeviceAction, ExecutorContext } from '@midscene/core';
 import { assert } from '@midscene/shared/utils';
 import {
   type BridgeConnectTabOptions,
@@ -15,11 +16,6 @@ import type { ExtensionBridgePageBrowserSide } from './page-browser-side';
 
 interface ChromeExtensionPageCliSide extends ExtensionBridgePageBrowserSide {
   showStatusMessage: (message: string) => Promise<void>;
-  executeAction: <T = unknown>(
-    actionName: string,
-    context: ExecutorContext,
-    param: T,
-  ) => Promise<void>;
 }
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -48,20 +44,9 @@ export const getBridgePageInCliSide = (
     showStatusMessage: async (message: string) => {
       await server.call(BridgeEvent.UpdateAgentStatus, [message]);
     },
-    executeAction: async <T = unknown>(
-      actionName: string,
-      context: ExecutorContext,
-      param: T,
-    ): Promise<void> => {
-      return await server.call(BridgeEvent.ExecuteAction, [
-        actionName,
-        context,
-        param,
-      ]);
-    },
   };
 
-  return new Proxy(page, {
+  const proxyPage = new Proxy(page, {
     get(target, prop, receiver) {
       assert(typeof prop === 'string', 'prop must be a string');
 
@@ -79,6 +64,10 @@ export const getBridgePageInCliSide = (
 
       if (prop === '_forceUsePageContext') {
         return undefined;
+      }
+
+      if (prop === 'actionSpace') {
+        return () => commonWebActionsForWebPage(proxyPage);
       }
 
       if (Object.keys(page).includes(prop)) {
@@ -118,6 +107,8 @@ export const getBridgePageInCliSide = (
       return bridgeCaller(prop);
     },
   }) as ChromeExtensionPageCliSide;
+
+  return proxyPage;
 };
 
 export class AgentOverChromeBridge extends PageAgent<ChromeExtensionPageCliSide> {
