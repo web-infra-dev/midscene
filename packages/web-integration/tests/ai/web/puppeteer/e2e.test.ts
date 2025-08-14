@@ -168,7 +168,7 @@ describe(
     );
 
     it('element describer', async () => {
-      const { originPage, reset } = await launchPage('https://www.baidu.com/');
+      const { originPage, reset } = await launchPage('https://www.google.com/');
       resetFn = reset;
       const agent = new PuppeteerAgent(originPage);
 
@@ -180,7 +180,7 @@ describe(
     });
 
     it('element describer - deep think', async () => {
-      const { originPage, reset } = await launchPage('https://www.baidu.com/');
+      const { originPage, reset } = await launchPage('https://www.google.com/');
       resetFn = reset;
       const agent = new PuppeteerAgent(originPage);
 
