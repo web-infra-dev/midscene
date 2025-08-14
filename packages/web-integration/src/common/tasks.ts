@@ -1,9 +1,8 @@
-import type { AndroidDevicePage, WebPage } from '@/common/page';
+import type { WebPage } from '@/common/page';
 import type { PuppeteerWebPage } from '@/puppeteer';
 import {
   type AIUsageInfo,
   type BaseElement,
-  type DeviceAction,
   type DumpSubscriber,
   type ExecutionRecorderItem,
   type ExecutionTaskActionApply,
@@ -677,13 +676,16 @@ export class PageTaskExecutor {
                 // thought is prompt created by ai, always a string
                 thought: planningAction.locate.prompt as string,
               });
-            } else if (
-              ['Tap', 'Hover', 'Input'].includes(planningAction.type)
-            ) {
-              planParsingError = `invalid planning response: ${JSON.stringify(planningAction)}`;
-              // should include locate but get null
-              stopCollecting = true;
-              return acc;
+            } else {
+              const actionType = planningAction.type;
+              const action = actionSpace.find(
+                (action) => action.name === actionType,
+              );
+              if (action && action?.location === 'required') {
+                planParsingError = `Location is required for action: ${actionType}, but not provided by planning`;
+                stopCollecting = true;
+                return acc;
+              }
             }
             acc.push(planningAction);
             return acc;

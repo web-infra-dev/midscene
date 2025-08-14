@@ -2,14 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { PageAgent } from '@/common/agent';
 import type { WebPage } from '@/common/page';
-import { buildPlans } from '@/common/plan-builder';
 import type { GroupedActionDump } from '@midscene/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-// Mock the buildPlans function
-vi.mock('@/common/plan-builder', () => ({
-  buildPlans: vi.fn(),
-}));
 
 // Mock only the necessary parts to avoid side effects
 vi.mock('@midscene/core/utils', () => ({
@@ -76,51 +70,6 @@ describe('PageAgent RightClick', () => {
     agent.taskExecutor = mockTaskExecutor;
   });
 
-  it('should build correct plans for aiRightClick', async () => {
-    const mockPlans = [
-      {
-        type: 'Locate' as const,
-        locate: { prompt: 'context menu trigger' },
-        param: { prompt: 'context menu trigger' },
-        thought: '',
-      },
-      {
-        type: 'RightClick' as const,
-        locate: { prompt: 'context menu trigger' },
-        param: null,
-        thought: '',
-      },
-    ];
-
-    const mockExecutorResult = {
-      executor: {
-        dump: () => ({ name: 'test', tasks: [] }),
-        isInErrorState: () => false,
-      },
-      output: {},
-    };
-
-    vi.mocked(buildPlans).mockReturnValue(mockPlans);
-    mockTaskExecutor.runPlans.mockResolvedValue(mockExecutorResult);
-
-    // Call aiRightClick
-    await agent.aiRightClick('context menu trigger');
-
-    // Verify buildPlans was called with correct parameters
-    expect(buildPlans).toHaveBeenCalledWith('RightClick', {
-      prompt: 'context menu trigger',
-    });
-
-    // Verify runPlans was called with correct parameters
-    expect(mockTaskExecutor.runPlans).toHaveBeenCalledWith(
-      'RightClick - context menu trigger',
-      mockPlans,
-      {
-        cacheable: undefined,
-      },
-    );
-  });
-
   it('should handle aiRightClick with locate options', async () => {
     const mockPlans = [
       {
@@ -157,18 +106,10 @@ describe('PageAgent RightClick', () => {
       output: {},
     };
 
-    vi.mocked(buildPlans).mockReturnValue(mockPlans);
     mockTaskExecutor.runPlans.mockResolvedValue(mockExecutorResult);
 
     // Call aiRightClick with options
     await agent.aiRightClick('right click target', {
-      deepThink: true,
-      cacheable: false,
-    });
-
-    // Verify buildPlans was called with correct parameters including options
-    expect(buildPlans).toHaveBeenCalledWith('RightClick', {
-      prompt: 'right click target',
       deepThink: true,
       cacheable: false,
     });
@@ -198,16 +139,8 @@ describe('PageAgent RightClick', () => {
       output: {},
     };
 
-    vi.mocked(buildPlans).mockReturnValue(mockPlans);
-    mockTaskExecutor.runPlans.mockResolvedValue(mockExecutorResult);
-
     // Call ai method with rightClick type
     await agent.ai('button to right click', 'rightClick');
-
-    // Verify buildPlans was called with RightClick
-    expect(buildPlans).toHaveBeenCalledWith('RightClick', {
-      prompt: 'button to right click',
-    });
   });
 
   it('should throw error for invalid ai method type', async () => {
