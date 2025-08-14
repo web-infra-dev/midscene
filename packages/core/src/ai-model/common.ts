@@ -1,6 +1,7 @@
 import type {
   AIUsageInfo,
   BaseElement,
+  DeviceAction,
   ElementTreeNode,
   MidsceneYamlFlowItem,
   PlanningAction,
@@ -41,6 +42,8 @@ export enum AIActionType {
   PLAN = 3,
   DESCRIBE_ELEMENT = 4,
 }
+
+export const actionSpaceTypePrefix = 'action_space_';
 
 export async function callAiFn<T>(
   msgs: AIArgs,
@@ -327,73 +330,36 @@ export async function markupImageForLLM(
 
 export function buildYamlFlowFromPlans(
   plans: PlanningAction[],
+  actionSpace: DeviceAction[],
   sleep?: number,
 ): MidsceneYamlFlowItem[] {
   const flow: MidsceneYamlFlowItem[] = [];
 
   for (const plan of plans) {
-    const type = plan.type;
-    const locate = plan.locate?.prompt!; // TODO: check if locate is null
+    const verb = plan.type;
 
-    if (type === 'Tap') {
-      flow.push({
-        aiTap: locate!,
-      });
-    } else if (type === 'Hover') {
-      flow.push({
-        aiHover: locate!,
-      });
-    } else if (type === 'Input') {
-      const param = plan.param as PlanningActionParamInputOrKeyPress;
-      flow.push({
-        aiInput: param.value,
-        locate,
-      });
-    } else if (type === 'KeyboardPress') {
-      const param = plan.param as PlanningActionParamInputOrKeyPress;
-      flow.push({
-        aiKeyboardPress: param.value,
-        locate,
-      });
-    } else if (type === 'Scroll') {
-      const param = plan.param as ScrollParam;
-      flow.push({
-        aiScroll: null,
-        locate,
-        direction: param.direction,
-        scrollType: param.scrollType,
-        distance: param.distance,
-      });
-    } else if (type === 'Sleep') {
-      const param = plan.param as PlanningActionParamSleep;
-      flow.push({
-        sleep: param.timeMs,
-      });
-    } else if (
-      type === 'AndroidBackButton' ||
-      type === 'AndroidHomeButton' ||
-      type === 'AndroidRecentAppsButton' ||
-      type === 'AndroidLongPress' ||
-      type === 'AndroidPull'
-    ) {
-      // not implemented in yaml yet
-    } else if (
-      type === 'Error' ||
-      type === 'Assert' ||
-      type === 'AssertWithoutThrow' ||
-      type === 'Finished'
-    ) {
-      // do nothing
-    } else {
+    const action = actionSpace.find((action) => action.name === verb);
+    if (!action) {
       console.warn(
-        `Cannot convert action ${type} to yaml flow. This should be a bug of Midscene.`,
+        `Cannot convert action ${verb} to yaml flow. Will ignore it.`,
       );
+      continue;
     }
+
+    const locate = plan.locate?.prompt;
+    const flowKey = action.interfaceAlias || `${actionSpaceTypePrefix}${verb}`;
+
+    const flowItem: MidsceneYamlFlowItem = {
+      [flowKey]: locate || '',
+      ...(plan.param || {}),
+    };
+
+    flow.push(flowItem);
   }
 
   if (sleep) {
     flow.push({
-      sleep: sleep,
+      sleep,
     });
   }
 

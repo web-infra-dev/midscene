@@ -88,9 +88,7 @@ export class PageTaskExecutor {
   ) {
     this.page = page;
     this.insight = insight;
-
     this.taskCache = opts.taskCache;
-
     this.onTaskStartCallback = opts?.onTaskStart;
   }
 

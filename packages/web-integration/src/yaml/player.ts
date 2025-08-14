@@ -304,20 +304,96 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       } else if ('aiInput' in (flowItem as MidsceneYamlFlowItemAIInput)) {
         // may be input empty string ''
         const inputTask = flowItem as MidsceneYamlFlowItemAIInput;
-        await agent.aiInput(inputTask.aiInput, inputTask.locate, inputTask);
+
+        // Compatibility with previous version:
+        // Old format: { aiInput: string (value), locate: TUserPrompt }
+        // New format: { aiInput: TUserPrompt, value: string }
+        if ((inputTask as any).locate) {
+          // Old format - aiInput is the value, locate is the prompt
+          const value = inputTask.aiInput as string;
+          const locatePrompt = (inputTask as any).locate;
+          await agent.aiInput(value, locatePrompt, inputTask);
+        } else {
+          // New format - aiInput is the prompt, value is the value
+          const locatePrompt = inputTask.aiInput;
+          const value = inputTask.value;
+          if (locatePrompt) {
+            await agent.aiInput(locatePrompt, {
+              ...inputTask,
+              value: value,
+            });
+          } else {
+            throw new Error(
+              'aiInput requires either locatePrompt or value and locate',
+            );
+          }
+        }
       } else if (
         'aiKeyboardPress' in (flowItem as MidsceneYamlFlowItemAIKeyboardPress)
       ) {
         const keyboardPressTask =
           flowItem as MidsceneYamlFlowItemAIKeyboardPress;
-        await agent.aiKeyboardPress(
-          keyboardPressTask.aiKeyboardPress,
-          keyboardPressTask.locate,
-          keyboardPressTask,
-        );
+
+        // Compatibility with previous version:
+        // Old format: { aiKeyboardPress: string (key), locate?: TUserPrompt }
+        // New format: { aiKeyboardPress: TUserPrompt, key: string }
+        if ((keyboardPressTask as any).locate) {
+          // Old format - aiKeyboardPress is the key, locate is the prompt
+          const keyName = keyboardPressTask.aiKeyboardPress as string;
+          const locatePrompt = (keyboardPressTask as any).locate;
+          await agent.aiKeyboardPress(keyName, locatePrompt, keyboardPressTask);
+        } else if ((keyboardPressTask as any).key) {
+          // New format - aiKeyboardPress is the prompt, key is the key
+          const locatePrompt = keyboardPressTask.aiKeyboardPress;
+          const keyName = (keyboardPressTask as any).key;
+          if (locatePrompt) {
+            await agent.aiKeyboardPress(locatePrompt, {
+              ...keyboardPressTask,
+              keyName: keyName,
+            });
+          } else {
+            throw new Error(
+              'aiKeyboardPress in new format requires locatePrompt',
+            );
+          }
+        } else {
+          // Fallback to old format without locate (global key press)
+          const keyName = keyboardPressTask.aiKeyboardPress as string;
+          await agent.aiKeyboardPress(keyName, undefined, keyboardPressTask);
+        }
       } else if ('aiScroll' in (flowItem as MidsceneYamlFlowItemAIScroll)) {
         const scrollTask = flowItem as MidsceneYamlFlowItemAIScroll;
-        await agent.aiScroll(scrollTask, scrollTask.locate, scrollTask);
+
+        // Compatibility with previous version:
+        // Old format: { aiScroll: null, locate?: TUserPrompt, direction, scrollType, distance? }
+        // New format: { aiScroll: TUserPrompt, direction, scrollType, distance? }
+        if ((scrollTask as any).locate) {
+          // Old format - locate is the prompt, aiScroll is null/ignored
+          const locatePrompt = (scrollTask as any).locate;
+          const scrollParam = {
+            direction: scrollTask.direction,
+            scrollType: scrollTask.scrollType,
+            distance: scrollTask.distance,
+          };
+          await agent.aiScroll(scrollParam, locatePrompt, scrollTask);
+        } else {
+          // New format - aiScroll is the prompt, or no prompt for global scroll
+          const locatePrompt = scrollTask.aiScroll;
+          const scrollParam = {
+            direction: scrollTask.direction,
+            scrollType: scrollTask.scrollType,
+            distance: scrollTask.distance,
+          };
+          if (locatePrompt) {
+            await agent.aiScroll(locatePrompt, {
+              ...scrollTask,
+              ...scrollParam,
+            });
+          } else {
+            // Global scroll without specific element
+            await agent.aiScroll(scrollParam, undefined, scrollTask);
+          }
+        }
       } else if (
         'javascript' in (flowItem as MidsceneYamlFlowItemEvaluateJavaScript)
       ) {

@@ -360,11 +360,56 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     return output;
   }
 
+  // New signature, always use locatePrompt as the first param
+  async aiInput(
+    locatePrompt: TUserPrompt,
+    opt: AndroidDeviceInputOpt & LocateOption & { value: string },
+  ): Promise<any>;
+
+  // Legacy signature - deprecated
+  /**
+   * @deprecated Use aiInput(locatePrompt, opt) instead where opt contains the value
+   */
   async aiInput(
     value: string,
     locatePrompt: TUserPrompt,
     opt?: AndroidDeviceInputOpt & LocateOption,
+  ): Promise<any>;
+
+  // Implementation
+  async aiInput(
+    locatePromptOrValue: TUserPrompt | string,
+    locatePromptOrOpt:
+      | TUserPrompt
+      | (AndroidDeviceInputOpt & LocateOption & { value: string })
+      | undefined,
+    optOrUndefined?: AndroidDeviceInputOpt & LocateOption,
   ) {
+    let value: string;
+    let locatePrompt: TUserPrompt;
+    let opt: (AndroidDeviceInputOpt & LocateOption) | undefined;
+
+    // Check if using new signature (first param is locatePrompt, second has value)
+    if (
+      typeof locatePromptOrOpt === 'object' &&
+      locatePromptOrOpt !== null &&
+      'value' in locatePromptOrOpt
+    ) {
+      // New signature: aiInput(locatePrompt, opt)
+      locatePrompt = locatePromptOrValue as TUserPrompt;
+      const optWithValue = locatePromptOrOpt as AndroidDeviceInputOpt &
+        LocateOption & { value: string };
+      value = optWithValue.value;
+      // Extract value from opt and create new opt without value
+      const { value: _, ...restOpt } = optWithValue;
+      opt = restOpt;
+    } else {
+      // Legacy signature: aiInput(value, locatePrompt, opt)
+      value = locatePromptOrValue as string;
+      locatePrompt = locatePromptOrOpt as TUserPrompt;
+      opt = optOrUndefined;
+    }
+
     assert(
       typeof value === 'string',
       'input value must be a string, use empty string if you want to clear the input',
@@ -389,11 +434,57 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     return output;
   }
 
+  // New signature
+  async aiKeyboardPress(
+    locatePrompt: TUserPrompt,
+    opt: LocateOption & { keyName: string },
+  ): Promise<any>;
+
+  // Legacy signature - deprecated
+  /**
+   * @deprecated Use aiKeyboardPress(locatePrompt, opt) instead where opt contains the keyName
+   */
   async aiKeyboardPress(
     keyName: string,
     locatePrompt?: TUserPrompt,
     opt?: LocateOption,
+  ): Promise<any>;
+
+  // Implementation
+  async aiKeyboardPress(
+    locatePromptOrKeyName: TUserPrompt | string,
+    locatePromptOrOpt:
+      | TUserPrompt
+      | (LocateOption & { keyName: string })
+      | undefined,
+    optOrUndefined?: LocateOption,
   ) {
+    let keyName: string;
+    let locatePrompt: TUserPrompt | undefined;
+    let opt: LocateOption | undefined;
+
+    // Check if using new signature (first param is locatePrompt, second has keyName)
+    if (
+      typeof locatePromptOrOpt === 'object' &&
+      locatePromptOrOpt !== null &&
+      'keyName' in locatePromptOrOpt
+    ) {
+      // New signature: aiKeyboardPress(locatePrompt, opt)
+      locatePrompt = locatePromptOrKeyName as TUserPrompt;
+      const optWithKeyName = locatePromptOrOpt as LocateOption & {
+        keyName: string;
+      };
+      keyName = optWithKeyName.keyName;
+      // Extract keyName from opt and create new opt without keyName
+      const { keyName: _, ...restOpt } = optWithKeyName;
+      opt = restOpt;
+    } else {
+      // Legacy signature: aiKeyboardPress(keyName, locatePrompt, opt)
+      keyName = locatePromptOrKeyName as string;
+      locatePrompt = locatePromptOrOpt as TUserPrompt | undefined;
+      opt = optOrUndefined;
+    }
+
     assert(keyName, 'missing keyName for keyboard press');
     const detailedLocateParam = locatePrompt
       ? this.buildDetailedLocateParam(locatePrompt, opt)
@@ -410,11 +501,54 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     return output;
   }
 
+  // New signature
+  async aiScroll(
+    locatePrompt: TUserPrompt,
+    opt: LocateOption & ScrollParam,
+  ): Promise<any>;
+
+  // Legacy signature - deprecated
+  /**
+   * @deprecated Use aiScroll(locatePrompt, opt) instead where opt contains the scroll parameters
+   */
   async aiScroll(
     scrollParam: ScrollParam,
     locatePrompt?: TUserPrompt,
     opt?: LocateOption,
+  ): Promise<any>;
+
+  // Implementation
+  async aiScroll(
+    locatePromptOrScrollParam: TUserPrompt | ScrollParam,
+    locatePromptOrOpt: TUserPrompt | (LocateOption & ScrollParam) | undefined,
+    optOrUndefined?: LocateOption,
   ) {
+    let scrollParam: ScrollParam;
+    let locatePrompt: TUserPrompt | undefined;
+    let opt: LocateOption | undefined;
+
+    // Check if using new signature (first param is locatePrompt, second has scroll params)
+    if (
+      typeof locatePromptOrOpt === 'object' &&
+      locatePromptOrOpt !== null &&
+      ('direction' in locatePromptOrOpt || 'scrollType' in locatePromptOrOpt)
+    ) {
+      // New signature: aiScroll(locatePrompt, opt)
+      locatePrompt = locatePromptOrScrollParam as TUserPrompt;
+      const optWithScrollParam = locatePromptOrOpt as LocateOption &
+        ScrollParam;
+      // Extract scroll params from opt
+      const { direction, scrollType, distance, ...restOpt } =
+        optWithScrollParam;
+      scrollParam = { direction, scrollType, distance };
+      opt = restOpt;
+    } else {
+      // Legacy signature: aiScroll(scrollParam, locatePrompt, opt)
+      scrollParam = locatePromptOrScrollParam as ScrollParam;
+      locatePrompt = locatePromptOrOpt as TUserPrompt | undefined;
+      opt = optOrUndefined;
+    }
+
     const detailedLocateParam = locatePrompt
       ? this.buildDetailedLocateParam(locatePrompt, opt)
       : undefined;
