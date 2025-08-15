@@ -4,7 +4,7 @@ import type { Point, Size } from '@midscene/core';
 import type { DeviceAction, ExecutorContext, PageType } from '@midscene/core';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
-import { resizeImg } from '@midscene/shared/img';
+import { resizeImgBuffer } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import {
   type AndroidDeviceInputOpt,
@@ -607,10 +607,14 @@ export class iOSDevice implements AndroidDevicePage {
           const { width, height } = await this.size();
 
           // Resize to match iOS device dimensions
-          const resizedScreenshotBuffer = await resizeImg(screenshotBuffer, {
-            width,
-            height,
-          });
+          const { buffer: resizedScreenshotBuffer } = await resizeImgBuffer(
+            'png',
+            screenshotBuffer,
+            {
+              width,
+              height,
+            }
+          );
 
           // Clean up temporary file
           try {
@@ -639,10 +643,14 @@ export class iOSDevice implements AndroidDevicePage {
         const screenshotBuffer = await fs.promises.readFile(tempPath);
         const { width, height } = await this.size();
 
-        const resizedScreenshotBuffer = await resizeImg(screenshotBuffer, {
-          width,
-          height,
-        });
+        const { buffer: resizedScreenshotBuffer } = await resizeImgBuffer(
+          'png',
+          screenshotBuffer,
+          {
+            width,
+            height,
+          }
+        );
 
         debugPage('screenshotBase64 end (via screencapture)');
         return `data:image/png;base64,${resizedScreenshotBuffer.toString('base64')}`;
