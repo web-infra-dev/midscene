@@ -5,17 +5,18 @@ import type {
   PartialInsightDumpFromSDK,
 } from '@/types';
 import { getVersion } from '@/utils';
-import { MIDSCENE_MODEL_NAME, getAIConfig } from '@midscene/shared/env';
+import { type IModelPreferences, getUsedModelName } from '@midscene/shared/env';
 import { uuid } from '@midscene/shared/utils';
 
 export function emitInsightDump(
   data: PartialInsightDumpFromSDK,
+  modelPreference: IModelPreferences,
   dumpSubscriber?: DumpSubscriber,
 ) {
   const baseData: DumpMeta = {
     sdkVersion: getVersion(),
     logTime: Date.now(),
-    model_name: getAIConfig(MIDSCENE_MODEL_NAME) || '',
+    model_name: getUsedModelName(modelPreference) || '',
   };
   const finalData: InsightDump = {
     logId: uuid(),

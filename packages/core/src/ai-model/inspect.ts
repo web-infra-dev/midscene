@@ -15,11 +15,12 @@ import type {
   UIContext,
 } from '@/types';
 import {
-  MIDSCENE_USE_QWEN_VL,
-  MIDSCENE_USE_VLM_UI_TARS,
-  getAIConfigInBoolean,
+  type IModelPreferences,
+  getIsUseQwenVl,
+  getIsUseVlmUiTars,
   vlLocateMode,
 } from '@midscene/shared/env';
+
 import {
   cropByRect,
   paddingToMatchBlockByBase64,
@@ -364,7 +365,7 @@ export async function AiLocateSection(options: {
     imageBase64 = await cropByRect(
       screenshotBase64,
       sectionRect,
-      getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL),
+      getIsUseQwenVl(),
     );
   }
 
@@ -385,8 +386,15 @@ export async function AiExtractElementInfo<
   multimodalPrompt?: TMultimodalPrompt;
   context: UIContext<ElementType>;
   extractOption?: InsightExtractOption;
+  modelPreferences?: IModelPreferences;
 }) {
-  const { dataQuery, context, extractOption, multimodalPrompt } = options;
+  const {
+    dataQuery,
+    context,
+    extractOption,
+    multimodalPrompt,
+    modelPreferences,
+  } = options;
   const systemPrompt = systemPromptToExtract();
 
   const { screenshotBase64 } = context;
@@ -445,6 +453,7 @@ export async function AiExtractElementInfo<
   const result = await callAiFn<AIDataExtractionResponse<T>>(
     msgs,
     AIActionType.EXTRACT_DATA,
+    modelPreferences,
   );
   return {
     parseResult: result.content,
@@ -463,7 +472,7 @@ export async function AiAssert<
   const { screenshotBase64 } = context;
 
   const systemPrompt = systemPromptToAssert({
-    isUITars: getAIConfigInBoolean(MIDSCENE_USE_VLM_UI_TARS),
+    isUITars: getIsUseVlmUiTars(),
   });
 
   const assertionText = extraTextFromUserPrompt(assertion);

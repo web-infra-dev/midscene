@@ -281,6 +281,7 @@ export function getVersion() {
   return __VERSION__;
 }
 
+// 是不是直接从环境变量读就完事了…也不应该给覆盖的机会…
 function debugLog(...message: any[]) {
   const debugMode = getAIConfig(MIDSCENE_DEBUG_MODE);
   if (debugMode) {

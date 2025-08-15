@@ -425,7 +425,7 @@ Respond with YAML only, no explanations.`,
 
     if (options.stream && options.onChunk) {
       // Use streaming
-      return await callAi(prompt, AIActionType.EXTRACT_DATA, undefined, {
+      return await callAi(prompt, AIActionType.EXTRACT_DATA, {
         stream: true,
         onChunk: options.onChunk,
       });

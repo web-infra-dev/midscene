@@ -37,6 +37,11 @@
       "import": "./dist/es/types/index.mjs",
       "require": "./dist/lib/types/index.js"
     },
+    "./env": {
+      "types": "./dist/types/env/index.d.ts",
+      "import": "./dist/es/env/index.mjs",
+      "require": "./dist/lib/env/index.js"
+    },
     "./*": {
       "types": "./dist/types/*.d.ts",
       "import": "./dist/es/*.mjs",

@@ -24,7 +24,7 @@ import {
 
 import type { PlanningLocateParam } from '@/types';
 import { NodeType } from '@midscene/shared/constants';
-import { vlLocateMode } from '@midscene/shared/env';
+import { type IModelPreferences, vlLocateMode } from '@midscene/shared/env';
 import { treeToList } from '@midscene/shared/extractor';
 import { compositeElementInfoImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
@@ -45,8 +45,13 @@ export enum AIActionType {
 export async function callAiFn<T>(
   msgs: AIArgs,
   AIActionTypeValue: AIActionType,
+  modelPreferences?: IModelPreferences,
 ): Promise<{ content: T; usage?: AIUsageInfo }> {
-  const jsonObject = await callToGetJSONObject<T>(msgs, AIActionTypeValue);
+  const jsonObject = await callToGetJSONObject<T>(
+    msgs,
+    AIActionTypeValue,
+    modelPreferences,
+  );
 
   return {
     content: jsonObject.content,

@@ -6,34 +6,16 @@ import {
   getBearerTokenProvider,
 } from '@azure/identity';
 import {
-  ANTHROPIC_API_KEY,
-  AZURE_OPENAI_API_VERSION,
-  AZURE_OPENAI_DEPLOYMENT,
-  AZURE_OPENAI_ENDPOINT,
-  AZURE_OPENAI_KEY,
+  type IModelPreferences,
   MIDSCENE_API_TYPE,
-  MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON,
-  MIDSCENE_AZURE_OPENAI_SCOPE,
-  MIDSCENE_DEBUG_AI_PROFILE,
-  MIDSCENE_DEBUG_AI_RESPONSE,
   MIDSCENE_LANGSMITH_DEBUG,
-  MIDSCENE_MODEL_NAME,
-  MIDSCENE_OPENAI_HTTP_PROXY,
-  MIDSCENE_OPENAI_INIT_CONFIG_JSON,
-  MIDSCENE_OPENAI_SOCKS_PROXY,
-  MIDSCENE_USE_ANTHROPIC_SDK,
-  MIDSCENE_USE_AZURE_OPENAI,
-  OPENAI_API_KEY,
-  OPENAI_BASE_URL,
   OPENAI_MAX_TOKENS,
-  OPENAI_USE_AZURE,
   getAIConfig,
   getAIConfigInBoolean,
-  getAIConfigInJson,
   uiTarsModelVersion,
   vlLocateMode,
 } from '@midscene/shared/env';
-import { enableDebug, getDebug } from '@midscene/shared/logger';
+import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { ifInBrowser } from '@midscene/shared/utils';
 import { HttpsProxyAgent } from 'https-proxy-agent';
@@ -46,81 +28,41 @@ import { AIActionType, type AIArgs } from '../common';
 import { assertSchema } from '../prompt/assertion';
 import { locatorSchema } from '../prompt/llm-locator';
 import { planSchema } from '../prompt/llm-planning';
+import { decideModelConfig } from './utils';
 
-export function checkAIConfig() {
-  const openaiKey = getAIConfig(OPENAI_API_KEY);
-  const azureConfig = getAIConfig(MIDSCENE_USE_AZURE_OPENAI);
-  const anthropicKey = getAIConfig(ANTHROPIC_API_KEY);
-  const initConfigJson = getAIConfig(MIDSCENE_OPENAI_INIT_CONFIG_JSON);
-
-  if (openaiKey) return true;
-  if (azureConfig) return true;
-  if (anthropicKey) return true;
-
-  return Boolean(initConfigJson);
-}
-
-// if debug config is initialized
-let debugConfigInitialized = false;
-
-function initDebugConfig() {
-  // if debug config is initialized, return
-  if (debugConfigInitialized) return;
-
-  const shouldPrintTiming = getAIConfigInBoolean(MIDSCENE_DEBUG_AI_PROFILE);
-  let debugConfig = '';
-  if (shouldPrintTiming) {
-    console.warn(
-      'MIDSCENE_DEBUG_AI_PROFILE is deprecated, use DEBUG=midscene:ai:profile instead',
-    );
-    debugConfig = 'ai:profile';
-  }
-  const shouldPrintAIResponse = getAIConfigInBoolean(
-    MIDSCENE_DEBUG_AI_RESPONSE,
-  );
-  if (shouldPrintAIResponse) {
-    console.warn(
-      'MIDSCENE_DEBUG_AI_RESPONSE is deprecated, use DEBUG=midscene:ai:response instead',
-    );
-    if (debugConfig) {
-      debugConfig = 'ai:*';
-    } else {
-      debugConfig = 'ai:call';
-    }
-  }
-  if (debugConfig) {
-    enableDebug(debugConfig);
-  }
-
-  // mark as initialized
-  debugConfigInitialized = true;
-}
-
-// default model
-const defaultModel = 'gpt-4o';
-export function getModelName() {
-  let modelName = defaultModel;
-  const nameInConfig = getAIConfig(MIDSCENE_MODEL_NAME);
-  if (nameInConfig) {
-    modelName = nameInConfig;
-  }
-  return modelName;
-}
+export { getModelName } from './utils';
 
 async function createChatClient({
   AIActionTypeValue,
+  modelPreferences,
 }: {
   AIActionTypeValue: AIActionType;
+  modelPreferences?: IModelPreferences;
 }): Promise<{
   completion: OpenAI.Chat.Completions;
   style: 'openai' | 'anthropic';
+  modelName: string;
 }> {
-  initDebugConfig();
-  let openai: OpenAI | AzureOpenAI | undefined;
-  const extraConfig = getAIConfigInJson(MIDSCENE_OPENAI_INIT_CONFIG_JSON);
+  const {
+    socksProxy,
+    httpProxy,
+    modelName,
+    openaiBaseURL,
+    openaiApiKey,
+    openaiExtraConfig,
+    openaiUseAzureDeprecated,
+    useAzureOpenai,
+    azureOpenaiScope,
+    azureOpenaiApiKey,
+    azureOpenaiEndpoint,
+    azureOpenaiApiVersion,
+    azureOpenaiDeployment,
+    azureExtraConfig,
+    useAnthropicSdk,
+    anthropicApiKey,
+  } = decideModelConfig(modelPreferences);
 
-  const socksProxy = getAIConfig(MIDSCENE_OPENAI_SOCKS_PROXY);
-  const httpProxy = getAIConfig(MIDSCENE_OPENAI_HTTP_PROXY);
+  let openai: OpenAI | AzureOpenAI | undefined;
 
   let proxyAgent = undefined;
   const debugProxy = getDebug('ai:call:proxy');
@@ -132,71 +74,56 @@ async function createChatClient({
     proxyAgent = new SocksProxyAgent(socksProxy);
   }
 
-  if (getAIConfig(OPENAI_USE_AZURE)) {
+  if (openaiUseAzureDeprecated) {
     // this is deprecated
     openai = new AzureOpenAI({
-      baseURL: getAIConfig(OPENAI_BASE_URL),
-      apiKey: getAIConfig(OPENAI_API_KEY),
+      baseURL: openaiBaseURL,
+      apiKey: openaiApiKey,
       httpAgent: proxyAgent,
-      ...extraConfig,
+      ...openaiExtraConfig,
       dangerouslyAllowBrowser: true,
     }) as OpenAI;
-  } else if (getAIConfig(MIDSCENE_USE_AZURE_OPENAI)) {
-    const extraAzureConfig = getAIConfigInJson(
-      MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON,
-    );
-
+  } else if (useAzureOpenai) {
     // https://learn.microsoft.com/en-us/azure/ai-services/openai/chatgpt-quickstart?tabs=bash%2Cjavascript-key%2Ctypescript-keyless%2Cpython&pivots=programming-language-javascript#rest-api
     // keyless authentication
-    const scope = getAIConfig(MIDSCENE_AZURE_OPENAI_SCOPE);
     let tokenProvider: any = undefined;
-    if (scope) {
+    if (azureOpenaiScope) {
       assert(
         !ifInBrowser,
         'Azure OpenAI is not supported in browser with Midscene.',
       );
       const credential = new DefaultAzureCredential();
 
-      assert(scope, 'MIDSCENE_AZURE_OPENAI_SCOPE is required');
-      tokenProvider = getBearerTokenProvider(credential, scope);
+      tokenProvider = getBearerTokenProvider(credential, azureOpenaiScope);
 
       openai = new AzureOpenAI({
         azureADTokenProvider: tokenProvider,
-        endpoint: getAIConfig(AZURE_OPENAI_ENDPOINT),
-        apiVersion: getAIConfig(AZURE_OPENAI_API_VERSION),
-        deployment: getAIConfig(AZURE_OPENAI_DEPLOYMENT),
-        ...extraConfig,
-        ...extraAzureConfig,
+        endpoint: azureOpenaiEndpoint,
+        apiVersion: azureOpenaiApiVersion,
+        deployment: azureOpenaiDeployment,
+        ...openaiExtraConfig,
+        ...azureExtraConfig,
       });
     } else {
       // endpoint, apiKey, apiVersion, deployment
       openai = new AzureOpenAI({
-        apiKey: getAIConfig(AZURE_OPENAI_KEY),
-        endpoint: getAIConfig(AZURE_OPENAI_ENDPOINT),
-        apiVersion: getAIConfig(AZURE_OPENAI_API_VERSION),
-        deployment: getAIConfig(AZURE_OPENAI_DEPLOYMENT),
+        apiKey: azureOpenaiApiKey,
+        endpoint: azureOpenaiEndpoint,
+        apiVersion: azureOpenaiApiVersion,
+        deployment: azureOpenaiDeployment,
         dangerouslyAllowBrowser: true,
-        ...extraConfig,
-        ...extraAzureConfig,
+        ...openaiExtraConfig,
+        ...azureExtraConfig,
       });
     }
-  } else if (!getAIConfig(MIDSCENE_USE_ANTHROPIC_SDK)) {
-    const baseURL = getAIConfig(OPENAI_BASE_URL);
-    if (typeof baseURL === 'string') {
-      if (!/^https?:\/\//.test(baseURL)) {
-        throw new Error(
-          `OPENAI_BASE_URL must be a valid URL starting with http:// or https://, but got: ${baseURL}\nPlease check your config.`,
-        );
-      }
-    }
-
+  } else if (!useAnthropicSdk) {
     openai = new OpenAI({
-      baseURL: getAIConfig(OPENAI_BASE_URL),
-      apiKey: getAIConfig(OPENAI_API_KEY),
+      baseURL: openaiBaseURL,
+      apiKey: openaiApiKey,
       httpAgent: proxyAgent,
-      ...extraConfig,
+      ...openaiExtraConfig,
       defaultHeaders: {
-        ...(extraConfig?.defaultHeaders || {}),
+        ...(openaiExtraConfig?.defaultHeaders || {}),
         [MIDSCENE_API_TYPE]: AIActionTypeValue.toString(),
       },
       dangerouslyAllowBrowser: true,
@@ -216,15 +143,14 @@ async function createChatClient({
     return {
       completion: openai.chat.completions,
       style: 'openai',
+      modelName,
     };
   }
 
   // Anthropic
-  if (getAIConfig(MIDSCENE_USE_ANTHROPIC_SDK)) {
-    const apiKey = getAIConfig(ANTHROPIC_API_KEY);
-    assert(apiKey, 'ANTHROPIC_API_KEY is required');
+  if (useAnthropicSdk) {
     openai = new Anthropic({
-      apiKey,
+      apiKey: anthropicApiKey,
       httpAgent: proxyAgent,
       dangerouslyAllowBrowser: true,
     }) as any;
@@ -234,6 +160,7 @@ async function createChatClient({
     return {
       completion: (openai as any).messages,
       style: 'anthropic',
+      modelName,
     };
   }
 
@@ -243,22 +170,18 @@ async function createChatClient({
 export async function call(
   messages: ChatCompletionMessageParam[],
   AIActionTypeValue: AIActionType,
-  responseFormat?:
-    | OpenAI.ChatCompletionCreateParams['response_format']
-    | OpenAI.ResponseFormatJSONObject,
   options?: {
     stream?: boolean;
     onChunk?: StreamingCallback;
   },
+  modelPreferences?: IModelPreferences,
 ): Promise<{ content: string; usage?: AIUsageInfo; isStreamed: boolean }> {
-  assert(
-    checkAIConfig(),
-    'Cannot find config for AI model service. If you are using a self-hosted model without validating the API key, please set `OPENAI_API_KEY` to any non-null value. https://midscenejs.com/model-provider.html',
-  );
-
-  const { completion, style } = await createChatClient({
+  const { completion, style, modelName } = await createChatClient({
     AIActionTypeValue,
+    modelPreferences,
   });
+
+  const responseFormat = getResponseFormat(modelName, AIActionTypeValue);
 
   const maxTokens = getAIConfig(OPENAI_MAX_TOKENS);
   const debugCall = getDebug('ai:call');
@@ -266,7 +189,7 @@ export async function call(
   const debugProfileDetail = getDebug('ai:profile:detail');
 
   const startTime = Date.now();
-  const model = getModelName();
+
   const isStreaming = options?.stream && options?.onChunk;
   let content: string | undefined;
   let accumulated = '';
@@ -290,13 +213,13 @@ export async function call(
   try {
     if (style === 'openai') {
       debugCall(
-        `sending ${isStreaming ? 'streaming ' : ''}request to ${model}`,
+        `sending ${isStreaming ? 'streaming ' : ''}request to ${modelName}`,
       );
 
       if (isStreaming) {
         const stream = (await completion.create(
           {
-            model,
+            model: modelName,
             messages,
             response_format: responseFormat,
             ...commonConfig,
@@ -367,11 +290,11 @@ export async function call(
         }
         content = accumulated;
         debugProfileStats(
-          `streaming model, ${model}, mode, ${vlLocateMode() || 'default'}, cost-ms, ${timeCost}`,
+          `streaming model, ${modelName}, mode, ${vlLocateMode() || 'default'}, cost-ms, ${timeCost}`,
         );
       } else {
         const result = await completion.create({
-          model,
+          model: modelName,
           messages,
           response_format: responseFormat,
           ...commonConfig,
@@ -379,7 +302,7 @@ export async function call(
         timeCost = Date.now() - startTime;
 
         debugProfileStats(
-          `model, ${model}, mode, ${vlLocateMode() || 'default'}, ui-tars-version, ${uiTarsModelVersion()}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${timeCost}, requestId, ${result._request_id || ''}`,
+          `model, ${modelName}, mode, ${vlLocateMode() || 'default'}, ui-tars-version, ${uiTarsModelVersion()}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${timeCost}, requestId, ${result._request_id || ''}`,
         );
 
         debugProfileDetail(
@@ -417,7 +340,7 @@ export async function call(
 
       if (isStreaming) {
         const stream = (await completion.create({
-          model,
+          model: modelName,
           system: 'You are a versatile professional in software UI automation',
           messages: messages.map((m) => ({
             role: 'user',
@@ -472,7 +395,7 @@ export async function call(
         content = accumulated;
       } else {
         const result = await completion.create({
-          model,
+          model: modelName,
           system: 'You are a versatile professional in software UI automation',
           messages: messages.map((m) => ({
             role: 'user',
@@ -528,18 +451,18 @@ export async function call(
   }
 }
 
-export async function callToGetJSONObject<T>(
-  messages: ChatCompletionMessageParam[],
+export const getResponseFormat = (
+  modelName: string,
   AIActionTypeValue: AIActionType,
-): Promise<{ content: T; usage?: AIUsageInfo }> {
+):
+  | OpenAI.ChatCompletionCreateParams['response_format']
+  | OpenAI.ResponseFormatJSONObject => {
   let responseFormat:
     | OpenAI.ChatCompletionCreateParams['response_format']
     | OpenAI.ResponseFormatJSONObject
     | undefined;
 
-  const model = getModelName();
-
-  if (model.includes('gpt-4')) {
+  if (modelName.includes('gpt-4')) {
     switch (AIActionTypeValue) {
       case AIActionType.ASSERT:
         responseFormat = assertSchema;
@@ -558,11 +481,24 @@ export async function callToGetJSONObject<T>(
   }
 
   // gpt-4o-2024-05-13 only supports json_object response format
-  if (model === 'gpt-4o-2024-05-13') {
+  if (modelName === 'gpt-4o-2024-05-13') {
     responseFormat = { type: AIResponseFormat.JSON };
   }
 
-  const response = await call(messages, AIActionTypeValue, responseFormat);
+  return responseFormat;
+};
+
+export async function callToGetJSONObject<T>(
+  messages: ChatCompletionMessageParam[],
+  AIActionTypeValue: AIActionType,
+  modelPreferences?: IModelPreferences,
+): Promise<{ content: T; usage?: AIUsageInfo }> {
+  const response = await call(
+    messages,
+    AIActionTypeValue,
+    undefined,
+    modelPreferences,
+  );
   assert(response, 'empty response');
   const jsonContent = safeParseJson(response.content);
   return { content: jsonContent, usage: response.usage };
