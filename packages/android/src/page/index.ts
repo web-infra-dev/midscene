@@ -500,7 +500,7 @@ ${Object.keys(size)
 
         debugPage('Pulling screenshot file from device');
         await adb.pull(androidScreenshotPath, screenshotPath);
-        debugPage('adb.pull completed');
+        debugPage(`adb.pull completed, local path: ${screenshotPath}`);
         screenshotBuffer = await fs.promises.readFile(screenshotPath);
       } finally {
         await adb.shell(`rm -f ${androidScreenshotPath}`);
