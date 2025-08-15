@@ -7,6 +7,7 @@ import {
   MIDSCENE_MCP_USE_PUPPETEER_MODE,
   getAIConfigInBoolean,
 } from '@midscene/shared/env';
+import { parseBase64 } from '@midscene/shared/img';
 import {
   AgentOverChromeBridge,
   allConfigFromEnv,
@@ -519,8 +520,8 @@ export class MidsceneManager {
       async ({ name }) => {
         const agent = await this.initAgent();
         const screenshot = await agent.page.screenshotBase64();
-        // Remove the data URL prefix if present
-        const base64Data = screenshot.replace(/^data:image\/\w+;base64,/, '');
+
+        const { mimeType, body } = parseBase64(screenshot);
 
         this.screenshots.set(name, screenshot as string);
 
@@ -532,8 +533,8 @@ export class MidsceneManager {
             } as TextContent,
             {
               type: 'image',
-              data: base64Data,
-              mimeType: 'image/jpeg',
+              data: body,
+              mimeType,
             } as ImageContent,
           ],
           isError: false,
