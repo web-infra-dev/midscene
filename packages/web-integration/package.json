@@ -8,7 +8,7 @@
     "Browser use",
     "Android use"
   ],
-  "version": "0.26.2",
+  "version": "0.26.5",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "main": "./dist/lib/index.js",
@@ -57,6 +57,11 @@
       "types": "./dist/types/playwright/index.d.ts",
       "require": "./dist/lib/playwright/index.js",
       "import": "./dist/es/playwright/index.mjs"
+    },
+    "./playwright-report": {
+      "types": "./dist/types/playwright/reporter/index.d.ts",
+      "require": "./dist/lib/playwright/reporter/index.js",
+      "import": "./dist/es/playwright/reporter/index.mjs"
     },
     "./playwright-reporter": {
       "types": "./dist/types/playwright/reporter/index.d.ts",

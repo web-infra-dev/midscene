@@ -5,12 +5,14 @@ import type { WebPage } from '@/common/page';
 import type { GroupedActionDump } from '@midscene/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+declare const __VERSION__: string;
 // Mock only the necessary parts to avoid side effects
 vi.mock('@midscene/core/utils', () => ({
   writeLogFile: vi.fn(() => null),
   reportHTMLContent: vi.fn(() => ''),
   stringifyDumpData: vi.fn(() => '{}'),
   groupedActionDumpFileExt: '.json',
+  getVersion: () => __VERSION__,
 }));
 
 vi.mock('@midscene/shared/logger', () => ({

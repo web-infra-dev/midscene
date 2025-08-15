@@ -60,7 +60,8 @@ export class AndroidDevice implements AndroidDevicePage {
           }
 
           await this.keyboard.type(param.value, {
-            autoDismissKeyboard: this.options?.autoDismissKeyboard,
+            autoDismissKeyboard:
+              param.autoDismissKeyboard ?? this.options?.autoDismissKeyboard,
           });
         };
       }

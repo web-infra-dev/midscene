@@ -4,6 +4,8 @@ import dotenv from 'dotenv';
 
 const MIDSCENE_REPORT = process.env.MIDSCENE_REPORT;
 
+process.env.__VERSION__ = '1.0.0';
+
 /**
  * Read environment variables from file.
  * https://github.com/motdotla/dotenv

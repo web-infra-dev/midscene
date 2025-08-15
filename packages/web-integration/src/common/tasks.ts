@@ -1045,8 +1045,9 @@ export class PageTaskExecutor {
         const ifTypeRestricted = type !== 'Query';
         let demandInput = demand;
         if (ifTypeRestricted) {
+          const returnType = type === 'Assert' ? 'Boolean' : type;
           demandInput = {
-            result: `${type}, ${demand}`,
+            result: `${returnType}, ${demand}`,
           };
         }
 
