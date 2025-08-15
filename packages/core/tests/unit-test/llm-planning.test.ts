@@ -61,47 +61,70 @@ describe('llm planning - doubao', () => {
 
 describe('llm planning - build yaml flow', () => {
   it('build yaml flow', () => {
-    const flow = buildYamlFlowFromPlans([
-      {
-        type: 'Input',
-        locate: {
-          bbox: [512, 127, 1068, 198],
-          prompt: 'The input box for adding a new todo',
+    const flow = buildYamlFlowFromPlans(
+      [
+        {
+          type: 'Input',
+          locate: {
+            bbox: [512, 127, 1068, 198],
+            prompt: 'The input box for adding a new todo',
+          },
+          param: {
+            value: 'hello',
+          },
         },
-        param: {
-          value: 'hello',
+        {
+          type: 'Hover',
+          locate: {
+            bbox: [521, 273, 692, 294],
+            prompt: "The second item 'Learn Rust' in the task list",
+          },
+          param: null,
         },
-      },
-      {
-        type: 'Hover',
-        locate: {
-          bbox: [521, 273, 692, 294],
-          prompt: "The second item 'Learn Rust' in the task list",
+        {
+          type: 'Tap',
+          locate: {
+            bbox: [512, 127, 1068, 197],
+            prompt: "The input box labeled 'What needs to be done?'",
+          },
+          param: null,
         },
-        param: null,
-      },
-      {
-        type: 'Tap',
-        locate: {
-          bbox: [512, 127, 1068, 197],
-          prompt: "The input box labeled 'What needs to be done?'",
+        {
+          locate: {
+            id: 'button',
+            prompt: 'some button',
+          },
+          param: {
+            direction: 'down',
+            distance: 500,
+            scrollType: 'once',
+          },
+          thought: 'Scroll down the page by 500px to view more content.',
+          type: 'Scroll',
         },
-        param: null,
-      },
-      {
-        locate: {
-          id: 'button',
-          prompt: 'some button',
+      ],
+      [
+        {
+          name: 'Input',
+          interfaceAlias: 'aiInput',
+          call: async () => {},
         },
-        param: {
-          direction: 'down',
-          distance: 500,
-          scrollType: 'once',
+        {
+          name: 'Hover',
+          interfaceAlias: 'aiHover',
+          call: async () => {},
         },
-        thought: 'Scroll down the page by 500px to view more content.',
-        type: 'Scroll',
-      },
-    ]);
+        {
+          name: 'Tap',
+          interfaceAlias: 'aiTap',
+          call: async () => {},
+        },
+        {
+          name: 'Scroll', // no alias for this
+          call: async () => {},
+        },
+      ],
+    );
     expect(flow).toMatchSnapshot();
   });
 });

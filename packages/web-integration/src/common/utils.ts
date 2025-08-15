@@ -370,6 +370,7 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
     name: 'Tap',
     description: 'Tap the element',
     location: 'required',
+    interfaceAlias: 'aiTap',
     call: async (context) => {
       const { element } = context;
       assert(element, 'Element not found, cannot tap');
@@ -394,6 +395,7 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
     name: 'Hover',
     description: 'Move the mouse to the element',
     location: 'required',
+    interfaceAlias: 'aiHover',
     call: async (context) => {
       const { element } = context;
       assert(element, 'Element not found, cannot hover');
@@ -408,6 +410,7 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
       '`value` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. Giving a blank string means clear the input field.',
     location: 'required',
     whatToLocate: 'The input field to be filled',
+    interfaceAlias: 'aiInput',
     call: async (context, param) => {
       const { element } = context;
       if (element) {
@@ -428,6 +431,7 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
     paramSchema: '{ value: string }',
     paramDescription: 'The key to be pressed',
     location: false,
+    interfaceAlias: 'aiKeyboardPress',
     call: async (context, param) => {
       const keys = getKeyCommands(param.value);
       await page.keyboard.press(keys as any); // TODO: fix this type error
@@ -442,6 +446,7 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
       'The direction to scroll, the scroll type, and the distance to scroll. The distance is the number of pixels to scroll. If not specified, use `down` direction, `once` scroll type, and `null` distance.',
     location: 'optional',
     whatToLocate: 'The element to be scrolled',
+    interfaceAlias: 'aiScroll',
     call: async (context, param) => {
       const { element } = context;
       const startingPoint = element

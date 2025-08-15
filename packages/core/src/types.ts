@@ -610,6 +610,7 @@ export type TUserPrompt =
 
 export interface DeviceAction<ParamType = any> {
   name: string;
+  interfaceAlias?: string;
   description?: string;
   paramSchema?: string;
   paramDescription?: string;
