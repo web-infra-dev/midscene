@@ -33,6 +33,7 @@ import {
   uiTarsModelVersion,
   vlLocateMode,
 } from '@midscene/shared/env';
+import { parseBase64 } from '@midscene/shared/img';
 import { enableDebug, getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { ifInBrowser } from '@midscene/shared/utils';
@@ -401,13 +402,12 @@ export async function call(
         if (content.type === 'image_url') {
           const imgBase64 = content.image_url.url;
           assert(imgBase64, 'image_url is required');
+          const { mimeType, body } = parseBase64(content.image_url.url);
           return {
             source: {
               type: 'base64',
-              media_type: imgBase64.includes('data:image/png;base64,')
-                ? 'image/png'
-                : 'image/jpeg',
-              data: imgBase64.split(',')[1],
+              media_type: mimeType,
+              data: body,
             },
             type: 'image',
           };

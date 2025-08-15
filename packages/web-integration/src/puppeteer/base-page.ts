@@ -9,6 +9,7 @@ import { sleep } from '@midscene/core/utils';
 import { DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
+import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import {
   getElementInfosScriptContent,
@@ -177,14 +178,14 @@ export class Page<
         quality,
         encoding: 'base64',
       });
-      base64 = `data:image/jpeg;base64,${result}`;
+      base64 = createImgBase64ByFormat(imgType, result);
     } else if (this.pageType === 'playwright') {
       const buffer = await (this.underlyingPage as PlaywrightPage).screenshot({
         type: imgType,
         quality,
         timeout: 10 * 1000,
       });
-      base64 = `data:image/jpeg;base64,${buffer.toString('base64')}`;
+      base64 = createImgBase64ByFormat(imgType, buffer.toString('base64'));
     } else {
       throw new Error('Unsupported page type for screenshot');
     }

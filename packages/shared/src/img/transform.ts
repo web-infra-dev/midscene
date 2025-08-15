@@ -26,11 +26,10 @@ export async function saveBase64Image(options: {
   outputPath: string;
 }): Promise<void> {
   const { base64Data, outputPath } = options;
-  // Remove the base64 data prefix (if any)
-  const base64Image = base64Data.split(';base64,').pop() || base64Data;
+  const { body } = parseBase64(base64Data);
 
   // Converts base64 data to buffer
-  const imageBuffer = Buffer.from(base64Image, 'base64');
+  const imageBuffer = Buffer.from(body, 'base64');
 
   // Use Jimp to process the image and save it to the specified location
   const Jimp = await getJimp();
@@ -39,33 +38,20 @@ export async function saveBase64Image(options: {
 }
 
 /**
- * Transforms an image path into a base64-encoded string
- * @param inputPath - The path of the image file to be encoded
- * @returns A Promise that resolves to a base64-encoded string representing the image file
+ * Resizes an image from Buffer
  */
-export async function transformImgPathToBase64(inputPath: string) {
-  // Use Jimp to process images and generate base64 data
-  const Jimp = await getJimp();
-  const image = await Jimp.read(inputPath);
-  const buffer = await image.getBufferAsync(Jimp.MIME_JPEG);
-  const res = buffer.toString('base64');
-  return res;
-}
-
-/**
- * Resizes an image from a base64-encoded string
- *
- * @param base64Data - A base64-encoded string representing the image
- * @returns A Promise that resolves to a base64-encoded string representing the resized image
- * @throws An error if the width or height cannot be determined from the metadata
- */
-export async function resizeImg(
+export async function resizeImgBuffer(
+  format: string,
   inputData: Buffer,
   newSize: {
     width: number;
     height: number;
   },
-): Promise<Buffer> {
+): Promise<{
+  buffer: Buffer;
+  // jpg, png, etc.
+  format: string;
+}> {
   if (typeof inputData === 'string')
     throw Error('inputData is base64, use resizeImgBase64 instead');
 
@@ -92,7 +78,10 @@ export async function resizeImg(
         newSize.width === originalWidth &&
         newSize.height === originalHeight
       ) {
-        return inputData;
+        return {
+          buffer: inputData,
+          format,
+        };
       }
 
       const resizedBuffer = await Sharp(inputData)
@@ -105,7 +94,11 @@ export async function resizeImg(
         `resizeImg done (Sharp), target size: ${newSize.width}x${newSize.height}, cost: ${resizeEndTime - resizeStartTime}ms`,
       );
 
-      return resizedBuffer;
+      return {
+        buffer: resizedBuffer,
+        // by Sharp.jpeg()
+        format: 'jpeg',
+      };
     } catch (error) {
       imgDebug('Sharp failed, falling back to Photon:', error);
     }
@@ -125,7 +118,10 @@ export async function resizeImg(
 
   if (newSize.width === originalWidth && newSize.height === originalHeight) {
     inputImage.free();
-    return inputData;
+    return {
+      buffer: inputData,
+      format,
+    };
   }
 
   // Resize image using photon with bicubic-like sampling
@@ -149,18 +145,16 @@ export async function resizeImg(
     `resizeImg done (Photon), target size: ${newSize.width}x${newSize.height}, cost: ${resizeEndTime - resizeStartTime}ms`,
   );
 
-  return resizedBuffer;
+  return {
+    buffer: resizedBuffer,
+    // by Photon.get_bytes_jpeg()
+    format: 'jpeg',
+  };
 }
 
-export async function bufferFromBase64(base64: string) {
-  const splitFlag = ';base64,';
-  const dataSplitted = base64.split(splitFlag);
-  if (dataSplitted.length !== 2) {
-    throw Error('Invalid base64 data');
-  }
-  const res = Buffer.from(dataSplitted[1], 'base64');
-  return res;
-}
+export const createImgBase64ByFormat = (format: string, body: string) => {
+  return `data:image/${format};base64,${body}`;
+};
 
 export async function resizeImgBase64(
   inputBase64: string,
@@ -169,17 +163,14 @@ export async function resizeImgBase64(
     height: number;
   },
 ): Promise<string> {
-  const splitFlag = ';base64,';
-  const dataSplitted = inputBase64.split(splitFlag);
-  if (dataSplitted.length !== 2) {
-    throw Error('Invalid base64 data');
-  }
-
-  const imageBuffer = Buffer.from(dataSplitted[1], 'base64');
-  const buffer = await resizeImg(imageBuffer, newSize);
-  const content = buffer.toString('base64');
-  const res = `${dataSplitted[0]}${splitFlag}${content}`;
-  return res;
+  const { body, mimeType } = parseBase64(inputBase64);
+  const imageBuffer = Buffer.from(body, 'base64');
+  const { buffer, format } = await resizeImgBuffer(
+    mimeType.split('/')[1],
+    imageBuffer,
+    newSize,
+  );
+  return createImgBase64ByFormat(format, buffer.toString('base64'));
 }
 
 /**
@@ -225,7 +216,8 @@ export function zoomForGPT4o(originalWidth: number, originalHeight: number) {
 
 export async function jimpFromBase64(base64: string): Promise<Jimp> {
   const Jimp = await getJimp();
-  const imageBuffer = await bufferFromBase64(base64);
+  const { body } = parseBase64(base64);
+  const imageBuffer = Buffer.from(body, 'base64');
   return Jimp.read(imageBuffer);
 }
 
@@ -337,5 +329,35 @@ export const preProcessImageUrl = async (
     return await httpImg2Base64(url);
   } else {
     return await localImg2Base64(url);
+  }
+};
+
+/**
+ * parse base64 string to get mimeType and body
+ */
+export const parseBase64 = (
+  fullBase64String: string,
+): {
+  mimeType: string;
+  body: string;
+} => {
+  try {
+    const separator = ';base64,';
+    const index = fullBase64String.indexOf(separator);
+    if (index === -1) {
+      throw new Error('Invalid base64 string');
+    }
+    return {
+      // 5 means 'data:'
+      mimeType: fullBase64String.slice(5, index),
+      body: fullBase64String.slice(index + separator.length),
+    };
+  } catch (e) {
+    throw new Error(
+      `parseBase64 fail because intput is not a valid base64 string: ${fullBase64String}`,
+      {
+        cause: e,
+      },
+    );
   }
 };
