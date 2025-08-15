@@ -6,10 +6,7 @@ import { getTmpFile, sleep } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { resizeImgBuffer } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
-import {
-  type AndroidDeviceInputOpt,
-  type AndroidDevicePage,
-} from '@midscene/web';
+import type { AndroidDeviceInputOpt, AndroidDevicePage } from '@midscene/web';
 import { commonWebActionsForWebPage } from '@midscene/web/utils';
 import { type ScreenInfo, getScreenSize } from '../utils';
 
@@ -151,9 +148,7 @@ export class iOSDevice implements AndroidDevicePage {
         call: async (context, param) => {
           const { element } = context;
           if (!element) {
-            throw new Error(
-              'IOSLongPress requires an element to be located',
-            );
+            throw new Error('IOSLongPress requires an element to be located');
           }
           const [x, y] = element.center;
           await this.longPress(x, y, param?.duration);
@@ -194,7 +189,6 @@ export class iOSDevice implements AndroidDevicePage {
     return allActions;
   }
 
-  
   public async connect(): Promise<void> {
     if (this.destroyed) {
       throw new Error('iOSDevice has been destroyed and cannot be used');
@@ -212,26 +206,30 @@ export class iOSDevice implements AndroidDevicePage {
       debugPage(`Python server is running: ${JSON.stringify(healthData)}`);
     } catch (error: any) {
       debugPage(`Python server connection failed: ${error.message}`);
-      
+
       // Try to start server automatically
       debugPage('Attempting to start Python server automatically...');
-      
+
       try {
         await this.startPyAutoGUIServer();
         debugPage('Python server started successfully');
-        
+
         // Verify server is now running
         const response = await fetch(`${this.serverUrl}/health`);
         if (!response.ok) {
-          throw new Error(`Server still not responding after startup: ${response.status}`);
+          throw new Error(
+            `Server still not responding after startup: ${response.status}`,
+          );
         }
-        
+
         const healthData = await response.json();
-        debugPage(`Python server is now running: ${JSON.stringify(healthData)}`);
+        debugPage(
+          `Python server is now running: ${JSON.stringify(healthData)}`,
+        );
       } catch (startError: any) {
         throw new Error(
           `Failed to auto-start Python server: ${startError.message}. ` +
-          `Please manually start the server by running: node packages/ios/bin/server.js ${this.serverPort}`
+            `Please manually start the server by running: node packages/ios/bin/server.js ${this.serverPort}`,
         );
       }
     }
@@ -262,52 +260,58 @@ export class iOSDevice implements AndroidDevicePage {
 
     // Configure iOS mirroring if provided
     await this.initializeMirrorConfiguration();
-
   }
 
   private async startPyAutoGUIServer(): Promise<void> {
     try {
       const { spawn } = await import('node:child_process');
       const serverScriptPath = path.resolve(__dirname, '../../bin/server.js');
-      
-      debugPage(`Starting PyAutoGUI server using: node ${serverScriptPath} ${this.serverPort}`);
-      
+
+      debugPage(
+        `Starting PyAutoGUI server using: node ${serverScriptPath} ${this.serverPort}`,
+      );
+
       // Start server process in background (similar to server.js background mode)
-      this.serverProcess = spawn('node', [serverScriptPath, this.serverPort.toString()], {
-        detached: true,
-        stdio: 'pipe', // Capture output
-        env: {
-          ...process.env,
+      this.serverProcess = spawn(
+        'node',
+        [serverScriptPath, this.serverPort.toString()],
+        {
+          detached: true,
+          stdio: 'pipe', // Capture output
+          env: {
+            ...process.env,
+          },
         },
-      });
-      
+      );
+
       // Handle server process events
       this.serverProcess.on('error', (error: any) => {
         debugPage(`Server process error: ${error.message}`);
       });
-      
+
       this.serverProcess.on('exit', (code: number, signal: string) => {
         debugPage(`Server process exited with code ${code}, signal ${signal}`);
       });
-      
+
       // Capture and log server output
       if (this.serverProcess.stdout) {
         this.serverProcess.stdout.on('data', (data: Buffer) => {
           debugPage(`Server stdout: ${data.toString().trim()}`);
         });
       }
-      
+
       if (this.serverProcess.stderr) {
         this.serverProcess.stderr.on('data', (data: Buffer) => {
           debugPage(`Server stderr: ${data.toString().trim()}`);
         });
       }
-      
-      debugPage(`Started PyAutoGUI server process with PID: ${this.serverProcess.pid}`);
-      
+
+      debugPage(
+        `Started PyAutoGUI server process with PID: ${this.serverProcess.pid}`,
+      );
+
       // Wait for server to start up (similar to server.js timeout)
       await sleep(3000);
-      
     } catch (error: any) {
       throw new Error(`Failed to start PyAutoGUI server: ${error.message}`);
     }
@@ -327,16 +331,18 @@ export class iOSDevice implements AndroidDevicePage {
           this.options.mirrorConfig = mirrorConfig;
 
           debugPage(
-            `Auto-detected iOS mirror config: ${mirrorConfig.mirrorWidth}x${mirrorConfig.mirrorHeight} at (${mirrorConfig.mirrorX}, ${mirrorConfig.mirrorY})`
+            `Auto-detected iOS mirror config: ${mirrorConfig.mirrorWidth}x${mirrorConfig.mirrorHeight} at (${mirrorConfig.mirrorX}, ${mirrorConfig.mirrorY})`,
           );
-          
+
           // Configure the detected mirror settings
           await this.configureIOSMirror(mirrorConfig);
         } else {
           debugPage('No iPhone Mirroring app found or auto-detection failed');
         }
       } catch (error: any) {
-        debugPage(`Failed to auto-detect iPhone Mirroring app: ${error.message}`);
+        debugPage(
+          `Failed to auto-detect iPhone Mirroring app: ${error.message}`,
+        );
       }
     }
 
@@ -421,7 +427,9 @@ export class iOSDevice implements AndroidDevicePage {
         end tell
       `;
 
-      const { stdout, stderr } = await execAsync(`osascript -e '${applescript}'`);
+      const { stdout, stderr } = await execAsync(
+        `osascript -e '${applescript}'`,
+      );
 
       if (stderr) {
         debugPage(`AppleScript error: ${stderr}`);
@@ -431,7 +439,9 @@ export class iOSDevice implements AndroidDevicePage {
       const result = JSON.parse(stdout.trim());
 
       if (!result.found) {
-        debugPage(`iPhone Mirroring app not found: ${result.error || 'Unknown error'}`);
+        debugPage(
+          `iPhone Mirroring app not found: ${result.error || 'Unknown error'}`,
+        );
         return null;
       }
 
@@ -440,11 +450,14 @@ export class iOSDevice implements AndroidDevicePage {
       const windowWidth = result.width;
       const windowHeight = result.height;
 
-      debugPage(`Detected iPhone Mirroring window: ${windowWidth}x${windowHeight} at (${windowX}, ${windowY})`);
+      debugPage(
+        `Detected iPhone Mirroring window: ${windowWidth}x${windowHeight} at (${windowX}, ${windowY})`,
+      );
 
       // Calculate device content area with smart detection based on window size
-      let titleBarHeight = 28;
-      let contentPaddingH, contentPaddingV;
+      const titleBarHeight = 28;
+      let contentPaddingH;
+      let contentPaddingV;
 
       if (windowWidth < 500 && windowHeight < 1000) {
         // Small window - minimal padding
@@ -462,7 +475,8 @@ export class iOSDevice implements AndroidDevicePage {
 
       // Calculate the actual iOS device screen area within the window
       const contentX = windowX + Math.floor(contentPaddingH / 2);
-      const contentY = windowY + titleBarHeight + Math.floor(contentPaddingV / 2);
+      const contentY =
+        windowY + titleBarHeight + Math.floor(contentPaddingV / 2);
       const contentWidth = windowWidth - contentPaddingH;
       const contentHeight = windowHeight - titleBarHeight - contentPaddingV;
 
@@ -475,7 +489,9 @@ export class iOSDevice implements AndroidDevicePage {
         const minimalContentHeight = windowHeight - titleBarHeight - 20;
 
         if (minimalContentWidth < 200 || minimalContentHeight < 400) {
-          debugPage(`Detected window seems too small for iPhone content: ${windowWidth}x${windowHeight}`);
+          debugPage(
+            `Detected window seems too small for iPhone content: ${windowWidth}x${windowHeight}`,
+          );
           return null;
         }
 
@@ -487,7 +503,9 @@ export class iOSDevice implements AndroidDevicePage {
         };
       }
 
-      debugPage(`Calculated content area: ${contentWidth}x${contentHeight} at (${contentX}, ${contentY})`);
+      debugPage(
+        `Calculated content area: ${contentWidth}x${contentHeight} at (${contentX}, ${contentY})`,
+      );
 
       return {
         mirrorX: contentX,
@@ -496,7 +514,9 @@ export class iOSDevice implements AndroidDevicePage {
         mirrorHeight: contentHeight,
       };
     } catch (error: any) {
-      debugPage(`Exception during iPhone Mirroring app detection: ${error.message}`);
+      debugPage(
+        `Exception during iPhone Mirroring app detection: ${error.message}`,
+      );
       return null;
     }
   }
@@ -613,7 +633,7 @@ export class iOSDevice implements AndroidDevicePage {
             {
               width,
               height,
-            }
+            },
           );
 
           // Clean up temporary file
@@ -649,7 +669,7 @@ export class iOSDevice implements AndroidDevicePage {
           {
             width,
             height,
-          }
+          },
         );
 
         debugPage('screenshotBase64 end (via screencapture)');
@@ -1202,7 +1222,7 @@ export class iOSDevice implements AndroidDevicePage {
   async destroy(): Promise<void> {
     debugPage('destroy iOS device');
     this.destroyed = true;
-    
+
     // Clean up server process if we started it
     if (this.serverProcess) {
       try {

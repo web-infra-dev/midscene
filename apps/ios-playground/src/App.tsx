@@ -115,15 +115,10 @@ export default function App() {
 
     try {
       // Use a fixed context string for iOS since we don't have device selection
-      const res = await requestPlaygroundServer(
-        'ios-device',
-        type,
-        prompt,
-        {
-          requestId: thisRunningId,
-          deepThink,
-        },
-      );
+      const res = await requestPlaygroundServer('ios-device', type, prompt, {
+        requestId: thisRunningId,
+        deepThink,
+      });
 
       // stop polling
       clearPollingInterval();
@@ -144,7 +139,6 @@ export default function App() {
         setReplayScriptsInfo(null);
       }
       messageApi.success('Command executed');
-
     } catch (error) {
       clearPollingInterval();
       setLoading(false);
@@ -205,9 +199,7 @@ export default function App() {
                     <div className="form-content">
                       <div className="command-input-wrapper">
                         <PromptInput
-                          runButtonEnabled={
-                            serverValid && configAlreadySet
-                          }
+                          runButtonEnabled={serverValid && configAlreadySet}
                           form={form}
                           serviceMode="Server"
                           selectedType={selectedType}
@@ -224,9 +216,9 @@ export default function App() {
                           result
                             ? {}
                             : {
-                              border: '1px solid #0000001f',
-                              borderRadius: '8px',
-                            }
+                                border: '1px solid #0000001f',
+                                borderRadius: '8px',
+                              }
                         }
                       >
                         <PlaygroundResultView
@@ -247,7 +239,8 @@ export default function App() {
                                 npx --yes @midscene/ios-playground
                               </strong>
                               <br />
-                              And make sure PyAutoGUI server is running on port 1412
+                              And make sure PyAutoGUI server is running on port
+                              1412
                             </span>
                           }
                         />

@@ -56,7 +56,7 @@ async function demonstrateIOSMirroring() {
   console.log('📱 Step 1: Setting up iOS device mirroring...');
 
   const device = new iOSDevice({
-    serverPort: 1412
+    serverPort: 1412,
   });
 
   try {

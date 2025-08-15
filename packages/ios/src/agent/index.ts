@@ -21,7 +21,6 @@ export class iOSAgent extends PageAgent<iOSDevice> {
     }
     return this.connectionPromise;
   }
-
 }
 
 export async function agentFromPyAutoGUI(opts?: iOSAgentOpt & iOSDeviceOpt) {

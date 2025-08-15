@@ -61,10 +61,10 @@ export default defineConfig({
         target: 'http://localhost:1412',
         changeOrigin: true,
         pathRewrite: {
-          '^/api/pyautogui': ''
-        }
-      }
-    }
+          '^/api/pyautogui': '',
+        },
+      },
+    },
   },
   resolve: {
     alias: {

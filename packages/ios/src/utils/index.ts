@@ -81,7 +81,7 @@ export async function getScreenSize(): Promise<ScreenInfo> {
 export async function startPyAutoGUIServer(port = 1412): Promise<void> {
   const { spawn } = await import('node:child_process');
   const path = await import('node:path');
-  
+
   // Use __dirname in a way that works for both ESM and CommonJS
   let currentDir: string;
   if (typeof __dirname !== 'undefined') {
@@ -90,7 +90,7 @@ export async function startPyAutoGUIServer(port = 1412): Promise<void> {
     const { fileURLToPath } = await import('node:url');
     currentDir = path.dirname(fileURLToPath(import.meta.url));
   }
-  
+
   const serverPath = path.join(currentDir, '../../idb/auto_server.py');
 
   const server = spawn('python3', [serverPath], {
