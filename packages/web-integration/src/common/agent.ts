@@ -330,7 +330,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   private async callActionInActionSpace<T = any>(
     type: string,
     locatePrompt?: TUserPrompt,
-    opt?: LocateOption,
+    opt?: LocateOption, // and all other action params
   ) {
     const locatePlan = locatePrompt
       ? this.locateTaskForLocate(locatePrompt, opt)

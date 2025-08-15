@@ -5,10 +5,7 @@ import type {
   ElementTreeNode,
   MidsceneYamlFlowItem,
   PlanningAction,
-  PlanningActionParamInputOrKeyPress,
-  PlanningActionParamSleep,
   Rect,
-  ScrollParam,
   Size,
 } from '@/types';
 import { assert } from '@midscene/shared/utils';

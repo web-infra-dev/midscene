@@ -116,30 +116,6 @@ describe('PageAgent RightClick', () => {
   });
 
   it('should be supported in ai method with rightClick type', async () => {
-    const mockPlans = [
-      {
-        type: 'Locate' as const,
-        locate: { prompt: 'button to right click' },
-        param: { prompt: 'button to right click' },
-        thought: '',
-      },
-      {
-        type: 'RightClick' as const,
-        locate: { prompt: 'button to right click' },
-        param: null,
-        thought: '',
-      },
-    ];
-
-    const mockExecutorResult = {
-      executor: {
-        dump: () => ({ name: 'test', tasks: [] }),
-        isInErrorState: () => false,
-      },
-      output: {},
-    };
-
-    // Call ai method with rightClick type
     await agent.ai('button to right click', 'rightClick');
   });
 
