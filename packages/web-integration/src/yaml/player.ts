@@ -4,21 +4,19 @@ import { assert, ifInBrowser, ifInWorker } from '@midscene/shared/utils';
 
 import type { PageAgent } from '@/common/agent';
 import type {
+  DeviceAction,
   FreeFn,
   MidsceneYamlFlowItemAIAction,
   MidsceneYamlFlowItemAIAsk,
   MidsceneYamlFlowItemAIAssert,
   MidsceneYamlFlowItemAIBoolean,
-  MidsceneYamlFlowItemAIHover,
   MidsceneYamlFlowItemAIInput,
   MidsceneYamlFlowItemAIKeyboardPress,
   MidsceneYamlFlowItemAILocate,
   MidsceneYamlFlowItemAINumber,
   MidsceneYamlFlowItemAIQuery,
-  MidsceneYamlFlowItemAIRightClick,
   MidsceneYamlFlowItemAIScroll,
   MidsceneYamlFlowItemAIString,
-  MidsceneYamlFlowItemAITap,
   MidsceneYamlFlowItemAIWaitFor,
   MidsceneYamlFlowItemEvaluateJavaScript,
   MidsceneYamlFlowItemLogScreenshot,
@@ -27,7 +25,9 @@ import type {
   MidsceneYamlScriptEnv,
   ScriptPlayerStatusValue,
   ScriptPlayerTaskStatus,
+  TUserPrompt,
 } from '@midscene/core';
+import { actionSpaceTypePrefix } from '@midscene/core/ai-model';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 
 export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
@@ -43,6 +43,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
   private pageAgent: PageAgent | null = null;
   public agentStatusTip?: string;
   public target?: MidsceneYamlScriptEnv;
+  private actionSpace: DeviceAction[] = [];
   private scriptPath?: string;
   constructor(
     private script: MidsceneYamlScript,
@@ -55,7 +56,6 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
   ) {
     this.scriptPath = scriptPath;
     this.result = {};
-
     this.target = script.target || script.web || script.android;
 
     if (ifInBrowser || ifInWorker) {
@@ -290,17 +290,6 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           `ms for sleep must be greater than 0, but got ${ms}`,
         );
         await new Promise((resolve) => setTimeout(resolve, msNumber));
-      } else if ('aiTap' in (flowItem as MidsceneYamlFlowItemAITap)) {
-        const tapTask = flowItem as MidsceneYamlFlowItemAITap;
-        await agent.aiTap(tapTask.aiTap, tapTask);
-      } else if (
-        'aiRightClick' in (flowItem as MidsceneYamlFlowItemAIRightClick)
-      ) {
-        const rightClickTask = flowItem as MidsceneYamlFlowItemAIRightClick;
-        await agent.aiRightClick(rightClickTask.aiRightClick, rightClickTask);
-      } else if ('aiHover' in (flowItem as MidsceneYamlFlowItemAIHover)) {
-        const hoverTask = flowItem as MidsceneYamlFlowItemAIHover;
-        await agent.aiHover(hoverTask.aiHover, hoverTask);
       } else if ('aiInput' in (flowItem as MidsceneYamlFlowItemAIInput)) {
         // may be input empty string ''
         const inputTask = flowItem as MidsceneYamlFlowItemAIInput;
@@ -412,7 +401,51 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           content: logScreenshotTask.content || '',
         });
       } else {
-        throw new Error(`unknown flowItem: ${JSON.stringify(flowItem)}`);
+        // generic action, find the action in actionSpace
+        const actionSpace = this.actionSpace;
+        let locatePrompt: TUserPrompt | undefined;
+        const matchedAction = actionSpace.find((action) => {
+          const actionInterfaceAlias = action.interfaceAlias;
+          if (
+            actionInterfaceAlias &&
+            Object.prototype.hasOwnProperty.call(flowItem, actionInterfaceAlias)
+          ) {
+            locatePrompt = flowItem[
+              actionInterfaceAlias as keyof typeof flowItem
+            ] as TUserPrompt;
+            return true;
+          }
+
+          const keyOfActionInActionSpace = `${actionSpaceTypePrefix}${action.name}`;
+          if (
+            Object.prototype.hasOwnProperty.call(
+              flowItem,
+              keyOfActionInActionSpace,
+            )
+          ) {
+            locatePrompt = flowItem[
+              keyOfActionInActionSpace as keyof typeof flowItem
+            ] as TUserPrompt;
+            return true;
+          }
+
+          return false;
+        });
+
+        if (matchedAction) {
+          const {
+            [matchedAction.interfaceAlias as string]: _,
+            [actionSpaceTypePrefix + matchedAction.name]: __,
+            ...restParams
+          } = flowItem as any;
+          await agent.callActionInActionSpace(
+            matchedAction.name,
+            locatePrompt,
+            restParams,
+          );
+        } else {
+          throw new Error(`unknown flowItem: ${JSON.stringify(flowItem)}`);
+        }
       }
     }
     this.reportFile = agent.reportFile;
@@ -433,6 +466,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       const { agent: newAgent, freeFn: newFreeFn } = await this.setupAgent(
         platform as T,
       );
+      this.actionSpace = await newAgent.getActionSpace();
       agent = newAgent;
       const originalOnTaskStartTip = agent.onTaskStartTip;
       agent.onTaskStartTip = (tip) => {

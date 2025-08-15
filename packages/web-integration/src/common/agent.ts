@@ -4,6 +4,7 @@ import {
   type AgentDescribeElementAtPointResult,
   type AgentWaitForOpt,
   type DetailedLocateParam,
+  type DeviceAction,
   type ExecutionDump,
   type ExecutionRecorderItem,
   type ExecutionTask,
@@ -189,6 +190,10 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       getReportFileName(opts?.testId || this.page.pageType || 'web');
   }
 
+  async getActionSpace(): Promise<DeviceAction[]> {
+    return this.page.actionSpace();
+  }
+
   async getUIContext(action?: InsightAction): Promise<WebUIContext> {
     // If page context is frozen, return the frozen context for all actions
     if (this.frozenPageContext) {
@@ -327,7 +332,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     return locatePlan;
   }
 
-  private async callActionInActionSpace<T = any>(
+  async callActionInActionSpace<T = any>(
     type: string,
     locatePrompt?: TUserPrompt,
     opt?: LocateOption, // and all other action params
@@ -808,6 +813,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     result: Record<string, any>;
   }> {
     const script = parseYamlScript(yamlScriptContent, 'yaml', true);
+    const actionSpace = await this.page.actionSpace();
     const player = new ScriptPlayer(script, async (target) => {
       return { agent: this, freeFn: [] };
     });
