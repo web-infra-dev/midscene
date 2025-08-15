@@ -53,6 +53,9 @@ export class AndroidDevice implements AndroidDevicePage {
     const commonActions = commonWebActionsForWebPage(this);
     commonActions.forEach((action) => {
       if (action.name === 'Input') {
+        action.paramSchema = '{ value: string, autoDismissKeyboard?: boolean }';
+        action.paramDescription +=
+          '`autoDismissKeyboard` is a boolean value, if true, the keyboard will be dismissed after the input is completed. Do not set it unless the user asks you to do so.';
         action.call = async (context, param) => {
           const { element } = context;
           if (element) {
@@ -63,16 +66,17 @@ export class AndroidDevice implements AndroidDevicePage {
             }
           }
 
+          const autoDismissKeyboard =
+            param.autoDismissKeyboard ?? this.options?.autoDismissKeyboard;
           await this.keyboard.type(param.value, {
-            autoDismissKeyboard:
-              param.autoDismissKeyboard ?? this.options?.autoDismissKeyboard,
+            autoDismissKeyboard,
           });
         };
       }
     });
 
     const allActions: DeviceAction[] = [
-      ...commonWebActionsForWebPage(this),
+      ...commonActions,
       {
         name: 'AndroidBackButton',
         description: 'Trigger the system "back" operation on Android devices',
@@ -508,7 +512,7 @@ ${Object.keys(size)
         debugPage(`adb.pull completed, local path: ${screenshotPath}`);
         screenshotBuffer = await fs.promises.readFile(screenshotPath);
       } finally {
-        await adb.shell(`rm -f ${androidScreenshotPath}`);
+        await adb.shell(`rm ${androidScreenshotPath}`);
       }
     }
 
@@ -753,7 +757,7 @@ ${Object.keys(size)
       (this.options?.imeStrategy ||
         getAIConfig(MIDSCENE_ANDROID_IME_STRATEGY)) ??
       'always-yadb';
-    const isAutoDismissKeyboard =
+    const shouldAutoDismissKeyboard =
       options?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard ?? true;
 
     if (
@@ -766,7 +770,7 @@ ${Object.keys(size)
       await adb.inputText(text);
     }
 
-    if (isAutoDismissKeyboard === true) {
+    if (shouldAutoDismissKeyboard === true) {
       await this.hideKeyboard(options);
     }
   }

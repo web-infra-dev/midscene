@@ -208,9 +208,7 @@ describe('AndroidDevice', () => {
       expect(mockAdb.pull).toHaveBeenCalled();
       expect(fs.promises.readFile).toHaveBeenCalled();
       expect(result).toContain(mockBuffer.toString('base64'));
-      expect(mockAdb.shell).toHaveBeenCalledWith(
-        expect.stringMatching(/rm -f/),
-      );
+      expect(mockAdb.shell).toHaveBeenCalledWith(expect.stringMatching(/rm/));
     });
   });
 

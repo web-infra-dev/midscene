@@ -50,18 +50,12 @@ import type { PuppeteerWebPage } from '../puppeteer';
 import type { WebElementInfo, WebUIContext } from '../web-element';
 import type { AndroidDeviceInputOpt } from './page';
 import { TaskCache } from './task-cache';
-import {
-  locateParamStr,
-  paramStr,
-  scrollParamStr,
-  taskTitleStr,
-  typeStr,
-} from './ui-utils';
+import { locateParamStr, paramStr, taskTitleStr, typeStr } from './ui-utils';
 import { getReportFileName, printReportMsg } from './utils';
 import { parseContextFromWebPage } from './utils';
 import { trimContextByViewport } from './utils';
 
-const debug = getDebug('web-integration');
+const debug = getDebug('agent');
 
 const distanceOfTwoPoints = (p1: [number, number], p2: [number, number]) => {
   const [x1, y1] = p1;
@@ -337,6 +331,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     locatePrompt?: TUserPrompt,
     opt?: LocateOption, // and all other action params
   ) {
+    debug('callActionInActionSpace', type, ',', locatePrompt, ',', opt);
     const locatePlan = locatePrompt
       ? this.locateTaskForLocate(locatePrompt, opt)
       : null;
@@ -357,11 +352,9 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       locateParamStr(locatePlan?.locate || undefined),
     );
 
-    const { executor, output } = await this.taskExecutor.runPlans(
-      title,
-      plans,
-      { cacheable: opt?.cacheable },
-    );
+    const { executor } = await this.taskExecutor.runPlans(title, plans, {
+      cacheable: opt?.cacheable,
+    });
     await this.afterTaskRunning(executor);
   }
 
@@ -404,7 +397,9 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   ) {
     let value: string;
     let locatePrompt: TUserPrompt;
-    let opt: (AndroidDeviceInputOpt & LocateOption) | undefined;
+    let opt:
+      | (AndroidDeviceInputOpt & LocateOption & { value: string })
+      | undefined;
 
     // Check if using new signature (first param is locatePrompt, second has value)
     if (
@@ -417,14 +412,15 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       const optWithValue = locatePromptOrOpt as AndroidDeviceInputOpt &
         LocateOption & { value: string };
       value = optWithValue.value;
-      // Extract value from opt and create new opt without value
-      const { value: _, ...restOpt } = optWithValue;
-      opt = restOpt;
+      opt = optWithValue;
     } else {
       // Legacy signature: aiInput(value, locatePrompt, opt)
       value = locatePromptOrValue as string;
       locatePrompt = locatePromptOrOpt as TUserPrompt;
-      opt = optOrUndefined;
+      opt = {
+        ...optOrUndefined,
+        value,
+      };
     }
 
     assert(
@@ -462,7 +458,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   ) {
     let keyName: string;
     let locatePrompt: TUserPrompt | undefined;
-    let opt: LocateOption | undefined;
+    let opt: (LocateOption & { keyName: string }) | undefined;
 
     // Check if using new signature (first param is locatePrompt, second has keyName)
     if (
@@ -472,27 +468,26 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     ) {
       // New signature: aiKeyboardPress(locatePrompt, opt)
       locatePrompt = locatePromptOrKeyName as TUserPrompt;
-      const optWithKeyName = locatePromptOrOpt as LocateOption & {
+      opt = locatePromptOrOpt as LocateOption & {
         keyName: string;
       };
-      keyName = optWithKeyName.keyName;
-      // Extract keyName from opt and create new opt without keyName
-      const { keyName: _, ...restOpt } = optWithKeyName;
-      opt = restOpt;
     } else {
       // Legacy signature: aiKeyboardPress(keyName, locatePrompt, opt)
       keyName = locatePromptOrKeyName as string;
       locatePrompt = locatePromptOrOpt as TUserPrompt | undefined;
-      opt = optOrUndefined;
+      opt = {
+        ...(optOrUndefined || {}),
+        keyName,
+      };
     }
 
-    assert(keyName, 'missing keyName for keyboard press');
+    assert(opt?.keyName, 'missing keyName for keyboard press');
     return this.callActionInActionSpace('KeyboardPress', locatePrompt, opt);
   }
 
   // New signature
   async aiScroll(
-    locatePrompt: TUserPrompt,
+    locatePrompt: TUserPrompt | undefined,
     opt: LocateOption & ScrollParam,
   ): Promise<any>;
 
@@ -508,7 +503,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
 
   // Implementation
   async aiScroll(
-    locatePromptOrScrollParam: TUserPrompt | ScrollParam,
+    locatePromptOrScrollParam: TUserPrompt | ScrollParam | undefined,
     locatePromptOrOpt: TUserPrompt | (LocateOption & ScrollParam) | undefined,
     optOrUndefined?: LocateOption,
   ) {
@@ -519,23 +514,21 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     // Check if using new signature (first param is locatePrompt, second has scroll params)
     if (
       typeof locatePromptOrOpt === 'object' &&
-      locatePromptOrOpt !== null &&
-      ('direction' in locatePromptOrOpt || 'scrollType' in locatePromptOrOpt)
+      ('direction' in locatePromptOrOpt ||
+        'scrollType' in locatePromptOrOpt ||
+        'distance' in locatePromptOrOpt)
     ) {
       // New signature: aiScroll(locatePrompt, opt)
       locatePrompt = locatePromptOrScrollParam as TUserPrompt;
-      const optWithScrollParam = locatePromptOrOpt as LocateOption &
-        ScrollParam;
-      // Extract scroll params from opt
-      const { direction, scrollType, distance, ...restOpt } =
-        optWithScrollParam;
-      scrollParam = { direction, scrollType, distance };
-      opt = restOpt;
+      opt = locatePromptOrOpt as LocateOption & ScrollParam;
     } else {
       // Legacy signature: aiScroll(scrollParam, locatePrompt, opt)
       scrollParam = locatePromptOrScrollParam as ScrollParam;
       locatePrompt = locatePromptOrOpt as TUserPrompt | undefined;
-      opt = optOrUndefined;
+      opt = {
+        ...(optOrUndefined || {}),
+        ...(scrollParam || {}),
+      };
     }
 
     return this.callActionInActionSpace('Scroll', locatePrompt, opt);
