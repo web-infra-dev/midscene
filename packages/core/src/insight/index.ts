@@ -9,7 +9,7 @@ import {
   AiLocateElement,
   callToGetJSONObject,
 } from '@/ai-model/index';
-import { AiAssert, AiLocateSection } from '@/ai-model/inspect';
+import { AiLocateSection } from '@/ai-model/inspect';
 import { elementDescriberInstruction } from '@/ai-model/prompt/describe';
 import type {
   AIDescribeElementResponse,
@@ -309,45 +309,6 @@ export default class Insight<
     };
   }
 
-  async assert(assertion: TUserPrompt): Promise<InsightAssertionResponse> {
-    const dumpSubscriber = this.onceDumpUpdatedFn;
-    this.onceDumpUpdatedFn = undefined;
-
-    const context = await this.contextRetrieverFn('assert');
-    const startTime = Date.now();
-    const assertResult = await AiAssert({
-      assertion,
-      context,
-    });
-
-    const timeCost = Date.now() - startTime;
-    const taskInfo: InsightTaskInfo = {
-      ...(this.taskInfo ? this.taskInfo : {}),
-      durationMs: timeCost,
-      rawResponse: JSON.stringify(assertResult.content),
-    };
-
-    const { thought, pass } = assertResult.content;
-    const dumpData: PartialInsightDumpFromSDK = {
-      type: 'assert',
-      userQuery: {
-        assertion,
-      },
-      matchedElement: [],
-      data: null,
-      taskInfo,
-      assertionPass: pass,
-      assertionThought: thought,
-      error: pass ? undefined : thought,
-    };
-    emitInsightDump(dumpData, dumpSubscriber);
-
-    return {
-      pass,
-      thought,
-      usage: assertResult.usage,
-    };
-  }
   async describe(
     target: Rect | [number, number],
     opt?: {

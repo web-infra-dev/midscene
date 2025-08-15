@@ -12,6 +12,8 @@ export interface InsightExtractOption {
   domIncluded?: boolean | 'visible-only';
   screenshotIncluded?: boolean;
   returnThought?: boolean;
+  // To make the assert in the "waitfor" section display the warning icon in report
+  isWaitForAssert?: boolean;
 }
 
 export interface ReferenceImage {
