@@ -5,7 +5,7 @@ export {
   isValidPNGImageBuffer,
 } from './info';
 export {
-  resizeImg,
+  resizeImgBuffer,
   resizeImgBase64,
   zoomForGPT4o,
   saveBase64Image,
@@ -17,6 +17,8 @@ export {
   localImg2Base64,
   httpImg2Base64,
   preProcessImageUrl,
+  parseBase64,
+  createImgBase64ByFormat,
 } from './transform';
 export { processImageElementInfo, compositeElementInfoImg } from './box-select';
 export { drawBoxOnImage, savePositionImg } from './draw-box';

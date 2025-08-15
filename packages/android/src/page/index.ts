@@ -13,7 +13,11 @@ import {
   MIDSCENE_ANDROID_IME_STRATEGY,
 } from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
-import { isValidPNGImageBuffer, resizeImg } from '@midscene/shared/img';
+import {
+  createImgBase64ByFormat,
+  isValidPNGImageBuffer,
+  resizeImgBuffer,
+} from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { repeat } from '@midscene/shared/utils';
 import type { AndroidDeviceInputOpt, AndroidDevicePage } from '@midscene/web';
@@ -509,14 +513,19 @@ ${Object.keys(size)
     }
 
     debugPage('Resizing screenshot image');
-    const resizedScreenshotBuffer = await resizeImg(screenshotBuffer, {
-      width,
-      height,
-    });
+    const { buffer, format } = await resizeImgBuffer(
+      // both "adb.takeScreenshot" and "shell screencap" result are png format
+      'png',
+      screenshotBuffer,
+      {
+        width,
+        height,
+      },
+    );
     debugPage('Image resize completed');
 
     debugPage('Converting to base64');
-    const result = `data:image/jpeg;base64,${resizedScreenshotBuffer.toString('base64')}`;
+    const result = createImgBase64ByFormat(format, buffer.toString('base64'));
     debugPage('screenshotBase64 end');
     return result;
   }

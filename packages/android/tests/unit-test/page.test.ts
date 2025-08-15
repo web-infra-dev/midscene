@@ -35,7 +35,6 @@ vi.mock('appium-adb', () => {
   };
 });
 
-vi.mock('@midscene/shared/img');
 vi.mock('@midscene/core/utils');
 vi.mock('node:fs', async (importOriginal) => {
   const original = (await importOriginal()) as {
@@ -179,8 +178,11 @@ describe('AndroidDevice', () => {
         dpr: 2,
       });
       vi.spyOn(ImgUtils, 'isValidPNGImageBuffer').mockReturnValue(true);
-      vi.spyOn(ImgUtils, 'resizeImg').mockImplementation(
-        async (buffer) => buffer,
+      vi.spyOn(ImgUtils, 'resizeImgBuffer').mockImplementation(
+        async (format, buffer) => ({
+          buffer,
+          format,
+        }),
       );
     });
 

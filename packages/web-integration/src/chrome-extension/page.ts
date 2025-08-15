@@ -18,6 +18,7 @@ import type {
 } from '@midscene/core';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
+import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { assert } from '@midscene/shared/utils';
 import type { Protocol as CDPTypes } from 'devtools-protocol';
 import { CdpKeyboard } from './cdpInput';
@@ -439,11 +440,12 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
   async screenshotBase64() {
     // screenshot by cdp
     await this.hideMousePointer();
+    const format = 'jpeg';
     const base64 = await this.sendCommandToDebugger('Page.captureScreenshot', {
-      format: 'jpeg',
+      format,
       quality: 90,
     });
-    return `data:image/jpeg;base64,${base64.data}`;
+    return createImgBase64ByFormat(format, base64.data);
   }
 
   async url() {
