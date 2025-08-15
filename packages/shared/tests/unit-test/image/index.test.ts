@@ -7,19 +7,21 @@ import {
   imageInfoOfBase64,
   isValidPNGImageBuffer,
   localImg2Base64,
-  resizeImg,
   resizeImgBase64,
+  resizeImgBuffer,
 } from 'src/img';
 import getJimp from 'src/img/get-jimp';
 import {
+  createImgBase64ByFormat,
   cropByRect,
   jimpFromBase64,
   jimpToBase64,
   paddingToMatchBlock,
+  parseBase64,
   saveBase64Image,
 } from 'src/img/transform';
 import { getFixture } from 'tests/utils';
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 describe('image utils', () => {
   const image = getFixture('icon.png');
@@ -83,15 +85,6 @@ describe('image utils', () => {
       height: 100,
     });
     expect(resizedBase64).toContain(';base64,');
-  });
-
-  it('resize image', async () => {
-    const image = getFixture('heytea.jpeg');
-    const buffer = await resizeImg(readFileSync(image), {
-      width: 100,
-      height: 100,
-    });
-    expect(buffer).toBeDefined();
   });
 
   it('paddingToMatchBlock', async () => {
@@ -205,6 +198,28 @@ describe('image utils', () => {
     );
   });
 
+  it('parseBase64', () => {
+    const base64 =
+      'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==';
+    const { mimeType, body } = parseBase64(base64);
+    expect(mimeType).toBe('image/gif');
+    expect(body).toBe(
+      'R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==',
+    );
+  });
+
+  it('parseBase64, invalid', () => {
+    const base64 = 'IamNotBase64';
+    expect(() => parseBase64(base64)).toThrowError(
+      'parseBase64 fail because intput is not a valid base64 string: IamNotBase64',
+    );
+  });
+
+  it('createImgBase64ByFormat', () => {
+    const base64 = createImgBase64ByFormat('png', 'foo');
+    expect(base64).toBe('data:image/png;base64,foo');
+  });
+
   // it(
   //   'profile',
   //   async () => {
@@ -223,4 +238,60 @@ describe('image utils', () => {
   //   },
   //   10 * 1000,
   // );
+});
+
+describe('resizeImgBuffer', () => {
+  const imageBuffer = readFileSync(getFixture('2x2.png'));
+
+  describe('try sharp', () => {
+    it('Sharp no-resize will get original format', async () => {
+      const { format, buffer } = await resizeImgBuffer('png', imageBuffer, {
+        width: 2,
+        height: 2,
+      });
+      expect(format).toBe('png');
+    });
+    it('Sharp resize will get jpeg format', async () => {
+      const { format, buffer } = await resizeImgBuffer('png', imageBuffer, {
+        width: 1,
+        height: 1,
+      });
+      expect(format).toBe('jpeg');
+    });
+  });
+
+  describe('fallback photon', () => {
+    const metadataFn = vi.fn(() => {
+      throw new Error('sharp is not available');
+    });
+
+    beforeAll(() => {
+      vi.doMock('sharp', () => ({
+        default: () => ({
+          metadata: metadataFn,
+        }),
+      }));
+    });
+
+    afterAll(() => {
+      vi.resetAllMocks();
+    });
+
+    it('fallback photon no-resize will get original format', async () => {
+      const { format, buffer } = await resizeImgBuffer('png', imageBuffer, {
+        width: 2,
+        height: 2,
+      });
+      expect(metadataFn).toHaveBeenCalledTimes(1);
+      expect(format).toBe('png');
+    });
+    it('fallback photon resize will get jpeg format', async () => {
+      const { format, buffer } = await resizeImgBuffer('png', imageBuffer, {
+        width: 1,
+        height: 1,
+      });
+      expect(format).toBe('jpeg');
+      expect(metadataFn).toHaveBeenCalledTimes(2);
+    });
+  });
 });
