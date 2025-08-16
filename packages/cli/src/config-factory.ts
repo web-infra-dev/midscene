@@ -4,6 +4,7 @@ import { cwd } from 'node:process';
 import type {
   MidsceneYamlConfig,
   MidsceneYamlScriptAndroidEnv,
+  MidsceneYamlScriptIOSEnv,
   MidsceneYamlScriptWebEnv,
 } from '@midscene/core';
 import { interpolateEnvVars } from '@midscene/web/yaml';
@@ -33,6 +34,7 @@ export interface ConfigFactoryOptions {
   dotenvDebug?: boolean;
   web?: Partial<MidsceneYamlScriptWebEnv>;
   android?: Partial<MidsceneYamlScriptAndroidEnv>;
+  ios?: Partial<MidsceneYamlScriptIOSEnv>;
 }
 
 export interface ParsedConfig {
@@ -42,6 +44,7 @@ export interface ParsedConfig {
   shareBrowserContext: boolean;
   web?: MidsceneYamlScriptWebEnv;
   android?: MidsceneYamlScriptAndroidEnv;
+  ios?: MidsceneYamlScriptIOSEnv;
   target?: MidsceneYamlScriptWebEnv;
   files: string[];
   patterns: string[]; // Keep patterns for reference
@@ -118,6 +121,7 @@ export async function parseConfigYaml(
       configYaml.shareBrowserContext ?? defaultConfig.shareBrowserContext,
     web: configYaml.web,
     android: configYaml.android,
+    ios: configYaml.ios,
     patterns: configYaml.files,
     files,
     headed: configYaml.headed ?? defaultConfig.headed,
@@ -138,11 +142,13 @@ export async function createConfig(
     {
       web: parsedConfig.web,
       android: parsedConfig.android,
+      ios: parsedConfig.ios,
       target: parsedConfig.target,
     },
     {
       web: options?.web,
       android: options?.android,
+      ios: options?.ios,
     },
   );
 

@@ -65,6 +65,35 @@ tasks:
       expect(result.android?.deviceId).toBe('001234567890');
     });
 
+    test('ios configuration', () => {
+      const yamlContent = `
+ios:
+  serverPort: 1412
+  serverUrl: "http://localhost:1412"
+  autoDismissKeyboard: true
+  mirrorConfig:
+    mirrorX: 100
+    mirrorY: 200
+    mirrorWidth: 400
+    mirrorHeight: 800
+  launch: "https://www.apple.com"
+  output: "./results.json"
+tasks:
+- sleep: 1000
+`;
+
+      const result = parseYamlScript(yamlContent);
+      expect(result.ios?.serverPort).toBe(1412);
+      expect(result.ios?.serverUrl).toBe('http://localhost:1412');
+      expect(result.ios?.autoDismissKeyboard).toBe(true);
+      expect(result.ios?.mirrorConfig?.mirrorX).toBe(100);
+      expect(result.ios?.mirrorConfig?.mirrorY).toBe(200);
+      expect(result.ios?.mirrorConfig?.mirrorWidth).toBe(400);
+      expect(result.ios?.mirrorConfig?.mirrorHeight).toBe(800);
+      expect(result.ios?.launch).toBe('https://www.apple.com');
+      expect(result.ios?.output).toBe('./results.json');
+    });
+
     test('illegal android deviceId', () => {
       const yamlContent = `
 android:

@@ -1,0 +1,34 @@
+#!/usr/bin/env node
+
+const path = require('path');
+const { spawn } = require('child_process');
+
+// Get the directory where this script is located
+const binDir = __dirname;
+// The server script should be in the same directory as this bin script
+const serverScript = path.join(binDir, 'server.js');
+
+console.log('Starting iOS Playground server...');
+
+// Start the server
+const serverProcess = spawn('node', [serverScript], {
+    stdio: 'inherit',
+    env: { ...process.env, NODE_ENV: 'production' }
+});
+
+// Handle process termination
+process.on('SIGINT', () => {
+    console.log('\nShutting down iOS Playground server...');
+    serverProcess.kill('SIGINT');
+    process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+    serverProcess.kill('SIGTERM');
+    process.exit(0);
+});
+
+serverProcess.on('close', (code) => {
+    console.log(`iOS Playground server exited with code ${code}`);
+    process.exit(code);
+});
