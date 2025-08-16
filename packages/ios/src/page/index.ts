@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Point, Size } from '@midscene/core';
-import type { DeviceAction, ExecutorContext, PageType } from '@midscene/core';
+import type { DeviceAction, PageType } from '@midscene/core';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { resizeImgBuffer } from '@midscene/shared/img';
@@ -272,11 +272,12 @@ export class iOSDevice implements AndroidDevicePage {
       );
 
       // Start server process in background (similar to server.js background mode)
+      // Start server process (non-detached so parent can reliably terminate it)
       this.serverProcess = spawn(
         'node',
         [serverScriptPath, this.serverPort.toString()],
         {
-          detached: true,
+          detached: false,
           stdio: 'pipe', // Capture output
           env: {
             ...process.env,
@@ -289,9 +290,24 @@ export class iOSDevice implements AndroidDevicePage {
         debugPage(`Server process error: ${error.message}`);
       });
 
-      this.serverProcess.on('exit', (code: number, signal: string) => {
-        debugPage(`Server process exited with code ${code}, signal ${signal}`);
-      });
+      // Listen for both exit and close for robust termination handling
+      this.serverProcess.on(
+        'exit',
+        (code: number | null, signal: string | null) => {
+          debugPage(
+            `Server process exit event: code=${code}, signal=${signal}`,
+          );
+        },
+      );
+
+      this.serverProcess.on(
+        'close',
+        (code: number | null, signal: string | null) => {
+          debugPage(`Server process closed: code=${code}, signal=${signal}`);
+          // Ensure reference is cleared when process actually stops
+          this.serverProcess = undefined;
+        },
+      );
 
       // Capture and log server output
       if (this.serverProcess.stdout) {

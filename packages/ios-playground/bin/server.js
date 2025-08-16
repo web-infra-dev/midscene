@@ -85,15 +85,20 @@ const startAutoServer = async () => {
     // Handle auto server output
     autoServerProcess.stdout.on('data', (data) => {
       const output = data.toString().trim();
-      if (output) {
-        console.log(`[PyAutoGUI] ${output}`);
-      }
+      if (!output) return;
+      console.log(`[PyAutoGUI] ${output}`);
     });
 
     autoServerProcess.stderr.on('data', (data) => {
       const output = data.toString().trim();
-      if (output) {
+      if (!output) return;
+      // Only surface real errors
+      const isRealError =
+        /Traceback|Exception|Error|Trace|Failed|CRITICAL/i.test(output);
+      if (isRealError) {
         console.error(`[PyAutoGUI Error] ${output}`);
+      } else {
+        console.error(`[PyAutoGUI] ${output}`);
       }
     });
 
@@ -122,10 +127,12 @@ const startAutoServer = async () => {
       console.error(
         `❌ Failed to start PyAutoGUI server on port ${AUTO_SERVER_PORT}`,
       );
+      lastStartFailed = true;
       return false;
     }
   } catch (error) {
     console.error('Error starting auto server:', error);
+    lastStartFailed = true;
     return false;
   }
 };

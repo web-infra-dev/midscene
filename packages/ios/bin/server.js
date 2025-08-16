@@ -11,12 +11,12 @@ const port = process.argv[2] || '1412';
 
 console.log(`Starting PyAutoGUI server on port ${port}...`);
 
-// kill process on port 1412 first
+// kill process on port first; if nothing is listening, silently ignore
 try {
   execSync(`lsof -ti:${port} | xargs kill -9`, { stdio: 'ignore' });
   console.log(`Killed existing process on port ${port}`);
 } catch (error) {
-  console.error(`Failed to kill process on port ${port}:`, error);
+  console.warn(`No existing process to kill on port ${port}`);
 }
 
 const server = spawn('python3', [serverPath, port], {

@@ -1,8 +1,6 @@
-import { vlLocateMode } from '@midscene/shared/env';
 import { PageAgent, type PageAgentOpt } from '@midscene/web/agent';
 import { iOSDevice, type iOSDeviceOpt } from '../page';
-import { debugPage } from '../page';
-import { getScreenSize, startPyAutoGUIServer } from '../utils';
+import { startPyAutoGUIServer } from '../utils';
 
 type iOSAgentOpt = PageAgentOpt;
 
