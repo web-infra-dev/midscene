@@ -3,8 +3,14 @@ import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
-import { type Point, type Size, getAIConfig } from '@midscene/core';
+import {
+  MidsceneLocation,
+  type Point,
+  type Size,
+  getAIConfig,
+} from '@midscene/core';
 import type { DeviceAction, ExecutorContext, PageType } from '@midscene/core';
+import { z } from '@midscene/core';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import {
   MIDSCENE_ADB_PATH,
@@ -53,9 +59,19 @@ export class AndroidDevice implements AndroidDevicePage {
     const commonActions = commonWebActionsForWebPage(this);
     commonActions.forEach((action) => {
       if (action.name === 'Input') {
-        action.paramSchema = '{ value: string, autoDismissKeyboard?: boolean }';
-        action.paramDescription +=
-          '`autoDismissKeyboard` is a boolean value, if true, the keyboard will be dismissed after the input is completed. Do not set it unless the user asks you to do so.';
+        action.paramSchema = z.object({
+          value: z
+            .string()
+            .describe(
+              'The final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. Giving a blank string means clear the input field.',
+            ),
+          autoDismissKeyboard: z
+            .boolean()
+            .optional()
+            .describe(
+              'If true, the keyboard will be dismissed after the input is completed. Do not set it unless the user asks you to do so.',
+            ),
+        });
         action.call = async (context, param) => {
           const { element } = context;
           if (element) {
@@ -80,7 +96,6 @@ export class AndroidDevice implements AndroidDevicePage {
       {
         name: 'AndroidBackButton',
         description: 'Trigger the system "back" operation on Android devices',
-        location: false,
         call: async (context, param) => {
           await this.back();
         },
@@ -88,7 +103,6 @@ export class AndroidDevice implements AndroidDevicePage {
       {
         name: 'AndroidHomeButton',
         description: 'Trigger the system "home" operation on Android devices',
-        location: false,
         call: async (context, param) => {
           await this.home();
         },
@@ -97,7 +111,6 @@ export class AndroidDevice implements AndroidDevicePage {
         name: 'AndroidRecentAppsButton',
         description:
           'Trigger the system "recent apps" operation on Android devices',
-        location: false,
         call: async (context, param) => {
           await this.recentApps();
         },
@@ -106,10 +119,13 @@ export class AndroidDevice implements AndroidDevicePage {
         name: 'AndroidLongPress',
         description:
           'Trigger a long press on the screen at specified coordinates on Android devices',
-        paramSchema: '{ duration?: number }',
-        paramDescription: 'The duration of the long press in milliseconds',
-        location: 'required',
-        whatToLocate: 'The element to be long pressed',
+        paramSchema: z.object({
+          duration: z
+            .number()
+            .optional()
+            .describe('The duration of the long press in milliseconds'),
+          locate: MidsceneLocation.describe('The element to be long pressed'),
+        }),
         call: async (context, param) => {
           const { element } = context;
           if (!element) {
@@ -120,18 +136,30 @@ export class AndroidDevice implements AndroidDevicePage {
           const [x, y] = element.center;
           await this.longPress(x, y, param?.duration);
         },
-      } as DeviceAction<{ duration?: number }>,
+      },
       {
         name: 'AndroidPull',
         description:
           'Trigger pull down to refresh or pull up actions on Android devices',
-        paramSchema:
-          '{ direction: "up" | "down", distance?: number, duration?: number }',
-        paramDescription:
-          'The direction to pull, the distance to pull (in pixels), and the duration of the pull (in milliseconds).',
-        location: 'optional',
-        whatToLocate: 'The element to be pulled',
-        call: async (context, param) => {
+        paramSchema: z.object({
+          direction: z.enum(['up', 'down']).describe('The direction to pull'),
+          distance: z
+            .number()
+            .optional()
+            .describe('The distance to pull (in pixels)'),
+          duration: z
+            .number()
+            .optional()
+            .describe('The duration of the pull (in milliseconds)'),
+        }),
+        call: async (
+          context: ExecutorContext,
+          param: {
+            direction: 'up' | 'down';
+            distance?: number;
+            duration?: number;
+          },
+        ) => {
           const { element } = context;
           const startPoint = element
             ? { left: element.center[0], top: element.center[1] }
@@ -147,11 +175,7 @@ export class AndroidDevice implements AndroidDevicePage {
             throw new Error(`Unknown pull direction: ${param.direction}`);
           }
         },
-      } as DeviceAction<{
-        direction: 'up' | 'down';
-        distance?: number;
-        duration?: number;
-      }>,
+      },
     ];
     return allActions;
   }

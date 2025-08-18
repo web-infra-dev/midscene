@@ -34,4 +34,8 @@ export { vlmPlanning, resizeImageForUiTars } from './ui-tars-planning';
 
 export { AIActionType, type AIArgs } from './common';
 
-export { actionSpaceTypePrefix } from './common';
+export {
+  actionSpaceTypePrefix,
+  MidsceneLocation,
+  type MidsceneLocationType,
+} from './common';

@@ -26,6 +26,7 @@ import { vlLocateMode } from '@midscene/shared/env';
 import { treeToList } from '@midscene/shared/extractor';
 import { compositeElementInfoImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
+import { z } from 'zod';
 
 export type AIArgs = [
   ChatCompletionSystemMessageParam,
@@ -362,3 +363,46 @@ export function buildYamlFlowFromPlans(
 
   return flow;
 }
+
+export const MidsceneLocation = z
+  .object({
+    midscene_location_field_flag: z.literal(true),
+    prompt: z.string(),
+  })
+  .passthrough();
+
+export type MidsceneLocationType = z.infer<typeof MidsceneLocation>;
+
+export const ifMidsceneLocatorField = (field: any): boolean => {
+  // Handle optional fields by getting the inner type
+  let actualField = field;
+  if (actualField._def?.typeName === 'ZodOptional') {
+    actualField = actualField._def.innerType;
+  }
+
+  // Check if this is a ZodObject with midscene_location_field_flag
+  if (actualField._def?.typeName === 'ZodObject') {
+    const shape = actualField._def.shape();
+    return 'midscene_location_field_flag' in shape;
+  }
+
+  return false;
+};
+
+export const findAllMidsceneLocatorField = (
+  zodType?: z.ZodType<any>,
+): string[] => {
+  if (!zodType) {
+    return [];
+  }
+
+  // Check if this is a ZodObject by checking if it has a shape property
+  const zodObject = zodType as any;
+  if (zodObject._def?.typeName === 'ZodObject' && zodObject.shape) {
+    const keys = Object.keys(zodObject.shape);
+    return keys.filter((key) => ifMidsceneLocatorField(zodObject.shape[key]));
+  }
+
+  // For other ZodType instances, we can't extract field names
+  return [];
+};

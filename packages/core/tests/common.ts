@@ -1,5 +1,4 @@
-import type { DeviceAction } from '@/types';
-import { MidsceneLocation } from '@/types';
+import { type DeviceAction, MidsceneLocation } from '@/index';
 import { z } from 'zod';
 
 export const mockActionSpace: DeviceAction<any>[] = [

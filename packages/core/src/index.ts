@@ -7,21 +7,15 @@ export {
   plan,
   describeUserPage,
   AiLocateElement,
+  MidsceneLocation,
+  type MidsceneLocationType,
 } from './ai-model/index';
 
 export { getAIConfig, MIDSCENE_MODEL_NAME } from '@midscene/shared/env';
 
 export type * from './types';
 
-export const MidsceneLocation = z
-  .object({
-    midscene_location_field_flag: z.literal(true),
-  })
-  .passthrough();
-
 export { z };
-
-export type MidsceneLocationType = z.infer<typeof MidsceneLocation>;
 
 export default Insight;
 export { Executor, Insight, getVersion };

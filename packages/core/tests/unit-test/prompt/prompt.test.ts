@@ -8,7 +8,7 @@ import {
 } from '@/ai-model/prompt/llm-planning';
 import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
 import { getUiTarsPlanningPrompt } from '@/ai-model/prompt/ui-tars-planning';
-import { MidsceneLocation } from '@/types';
+import { MidsceneLocation } from '@/index';
 import { mockActionSpace } from 'tests/common';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';

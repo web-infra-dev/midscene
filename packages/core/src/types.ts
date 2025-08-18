@@ -255,6 +255,7 @@ export interface PlanningAction<ParamType = any> {
   thought?: string;
   type: string;
   param: ParamType;
+  locate?: PlanningLocateParam | null;
 }
 
 export interface PlanningAIResponse {
@@ -591,10 +592,10 @@ export type TUserPrompt =
     } & Partial<TMultimodalPrompt>);
 
 // biome-ignore lint/complexity/noBannedTypes: <explanation>
-export interface DeviceAction<ParamType extends z.ZodRawShape = {}> {
+export interface DeviceAction<T = {}> {
   name: string;
-  interfaceAlias?: string;
   description?: string;
-  paramSchema?: z.ZodObject<ParamType>;
-  call: (context: ExecutorContext, param: ParamType) => Promise<void> | void;
+  interfaceAlias?: string;
+  paramSchema?: z.ZodType<T>;
+  call: (context: ExecutorContext, param: T) => Promise<void> | void;
 }

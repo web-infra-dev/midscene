@@ -4,6 +4,7 @@ import { PromptTemplate } from '@langchain/core/prompts';
 import type { vlLocateMode } from '@midscene/shared/env';
 import type { ResponseFormatJSONSchema } from 'openai/resources/index';
 import { z } from 'zod';
+import { ifMidsceneLocatorField } from '../common';
 import { bboxDescription } from './common';
 
 // Note: put the log field first to trigger the CoT
@@ -16,13 +17,6 @@ const commonOutputFields = `"error"?: string, // Error messages about unexpected
 const vlLocateParam = () =>
   '{bbox: [number, number, number, number], prompt: string }';
 const llmLocateParam = () => '{"id": string, "prompt": string}';
-
-const ifLocatorField = (field: z.ZodTypeAny) => {
-  if (field instanceof z.ZodObject) {
-    return field.shape.midscene_location_field_flag;
-  }
-  return false;
-};
 
 export const descriptionForAction = (
   action: DeviceAction<any>,
@@ -56,7 +50,7 @@ export const descriptionForAction = (
       if (actualField._def?.typeName === 'ZodArray') return 'array';
       if (actualField._def?.typeName === 'ZodObject') {
         // Check if this is a passthrough object (like MidsceneLocation)
-        if ('midscene_location_field_flag' in actualField._def.shape()) {
+        if (ifMidsceneLocatorField(actualField)) {
           return locatorSchemaTypeDescription;
         }
         return 'object';
