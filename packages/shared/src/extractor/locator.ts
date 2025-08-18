@@ -10,7 +10,11 @@ const getElementXpathIndex = (element: Element): number => {
   let prev = element.previousElementSibling;
 
   while (prev) {
-    if (prev.nodeName.toLowerCase() === element.nodeName.toLowerCase()) {
+    if (
+      prev.nodeName &&
+      element.nodeName &&
+      prev.nodeName.toLowerCase?.() === element.nodeName.toLowerCase?.()
+    ) {
       index++;
     }
     prev = prev.previousElementSibling;
@@ -37,7 +41,18 @@ const buildCurrentElementXpath = (
     ? getElementXpath(element.parentNode, isOrderSensitive)
     : '';
   const prefix = parentPath ? `${parentPath}/` : '/';
-  const tagName = element.nodeName.toLowerCase();
+
+  // Safety check for nodeName
+  if (!element.nodeName) {
+    return '';
+  }
+
+  const tagName = element.nodeName.toLowerCase?.();
+
+  if (!tagName) {
+    return '';
+  }
+
   const textContent = element.textContent?.trim();
 
   // Order-sensitive mode: always use index
