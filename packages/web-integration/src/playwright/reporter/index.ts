@@ -1,3 +1,4 @@
+import { readFileSync, rmSync } from 'node:fs';
 import {
   getReportFileName,
   printReportMsg,
@@ -7,7 +8,6 @@ import type { ReportDumpWithAttributes } from '@midscene/core';
 import { writeDumpReport } from '@midscene/core/utils';
 import type {
   FullConfig,
-  FullResult,
   Reporter,
   Suite,
   TestCase,
@@ -92,10 +92,24 @@ class MidsceneReporter implements Reporter {
       return annotation.type === 'MIDSCENE_DUMP_ANNOTATION';
     });
     if (!dumpAnnotation?.description) return;
+
+    const tempFilePath = dumpAnnotation.description;
+    let dumpString: string;
+
+    try {
+      dumpString = readFileSync(tempFilePath, 'utf-8');
+    } catch (error) {
+      console.error(
+        `Failed to read Midscene dump file: ${tempFilePath}`,
+        error,
+      );
+      return;
+    }
+
     const retry = result.retry ? `(retry #${result.retry})` : '';
     const testId = `${test.id}${retry}`;
     const testData: ReportDumpWithAttributes = {
-      dumpString: dumpAnnotation.description,
+      dumpString,
       attributes: {
         playwright_test_id: testId,
         playwright_test_title: `${test.title}${retry}`,
@@ -106,13 +120,15 @@ class MidsceneReporter implements Reporter {
 
     this.updateReport(testData);
 
-    test.annotations = test.annotations.filter(
-      (annotation) => annotation.type !== 'MIDSCENE_DUMP_ANNOTATION',
-    );
-  }
-
-  onEnd(result: FullResult) {
-    logger(`Finished the run: ${result.status}`);
+    // Clean up: delete temp file
+    try {
+      rmSync(tempFilePath, { force: true });
+    } catch (error) {
+      console.warn(
+        `Failed to delete Midscene temp file: ${tempFilePath}`,
+        error,
+      );
+    }
   }
 }
 

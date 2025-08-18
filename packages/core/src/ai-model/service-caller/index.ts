@@ -360,6 +360,7 @@ export async function call(
                 completion_tokens: usage.completion_tokens ?? 0,
                 total_tokens: usage.total_tokens ?? 0,
                 time_cost: timeCost ?? 0,
+                model_name: model,
               },
             };
             options.onChunk!(finalChunk);
@@ -462,6 +463,7 @@ export async function call(
                       (anthropicUsage.input_tokens ?? 0) +
                       (anthropicUsage.output_tokens ?? 0),
                     time_cost: timeCost ?? 0,
+                    model_name: model,
                   }
                 : undefined,
             };
@@ -512,6 +514,7 @@ export async function call(
             completion_tokens: usage.completion_tokens ?? 0,
             total_tokens: usage.total_tokens ?? 0,
             time_cost: timeCost ?? 0,
+            model_name: model,
           }
         : undefined,
       isStreamed: !!isStreaming,

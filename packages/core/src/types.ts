@@ -25,6 +25,7 @@ export type AIUsageInfo = Record<string, any> & {
   completion_tokens: number | undefined;
   total_tokens: number | undefined;
   time_cost: number | undefined;
+  model_name: string | undefined;
 };
 
 /**
@@ -177,8 +178,6 @@ export interface InsightTaskInfo {
 export interface DumpMeta {
   sdkVersion: string;
   logTime: number;
-  model_name: string;
-  model_description?: string;
 }
 
 export interface ReportDumpWithAttributes {
@@ -522,6 +521,8 @@ Grouped dump
 export interface GroupedActionDump {
   groupName: string;
   groupDescription?: string;
+  modelName: string;
+  modelDescription: string;
   executions: ExecutionDump[];
 }
 
