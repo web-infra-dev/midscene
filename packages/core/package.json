@@ -7,10 +7,7 @@
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",
   "module": "./dist/es/index.mjs",
-  "files": [
-    "dist",
-    "README.md"
-  ],
+  "files": ["dist", "README.md"],
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
@@ -35,18 +32,10 @@
   },
   "typesVersions": {
     "*": {
-      ".": [
-        "./dist/types/index.d.ts"
-      ],
-      "utils": [
-        "./dist/types/utils.d.ts"
-      ],
-      "ai-model": [
-        "./dist/types/ai-model.d.ts"
-      ],
-      "tree": [
-        "./dist/types/tree.d.ts"
-      ]
+      ".": ["./dist/types/index.d.ts"],
+      "utils": ["./dist/types/utils.d.ts"],
+      "ai-model": ["./dist/types/ai-model.d.ts"],
+      "tree": ["./dist/types/tree.d.ts"]
     }
   },
   "scripts": {
