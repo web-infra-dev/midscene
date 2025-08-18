@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { launchPage } from './utils';
 
 vi.setConfig({
-  testTimeout: 120 * 1000,
+  testTimeout: 600 * 1000,
 });
 
 describe('puppeteer integration', () => {
@@ -20,10 +20,31 @@ describe('puppeteer integration', () => {
     const { originPage, reset } = await launchPage('https://www.google.com/');
     resetFn = reset;
     const agent = new PuppeteerAgent(originPage, {
-      cacheId: 'test-input-and-clear-text',
+      cacheId: 'input-related-test',
     });
-    await agent.aiAction(
-      'Enter "happy birthday" , sleep 100ms, delete all text in the input box',
+    await agent.aiAction('Enter "happy birthday" in search input box');
+    await agent.aiAssert('the text in the input box is "happy birthday"');
+
+    await agent.aiInput('Jay Chou', 'search input box');
+    await agent.aiAssert('the text in the input box is "Jay Chou"');
+
+    await agent.aiInput('search input box', {
+      value: 'Mayday',
+    });
+    await agent.aiAssert('the text in the input box is "Mayday"');
+
+    await agent.runYaml(
+      `
+    tasks:
+      - name: input
+        flow:
+          - aiInput: 'weather today'
+            locate: 'search input box'
+          - aiAssert: 'the text in the input box is "weather today"'
+          - aiInput: 'search input box'
+            value: 'weather tomorrow'
+          - aiAssert: 'the text in the input box is "weather tomorrow"'
+    `,
     );
   });
 
