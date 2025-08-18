@@ -1,4 +1,7 @@
 import { randomUUID } from 'node:crypto';
+import { writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import type { PageAgent, PageAgentOpt, WebPageAgentOpt } from '@/common/agent';
 import { replaceIllegalPathCharsAndSpace } from '@/common/utils';
 import { PlaywrightAgent } from '@/playwright/index';
@@ -154,15 +157,24 @@ export const PlaywrightAiFixture = (options?: {
   }
 
   const updateDumpAnnotation = (test: TestInfo, dump: string) => {
+    // Write dump to temporary file
+    const tempFileName = `midscene-dump-${test.testId || randomUUID()}-${Date.now()}.json`;
+    const tempFilePath = join(tmpdir(), tempFileName);
+
+    writeFileSync(tempFilePath, dump, 'utf-8');
+    debugPage(`Dump written to temp file: ${tempFilePath}`);
+
+    // Store only the file path in annotation
     const currentAnnotation = test.annotations.find((item) => {
       return item.type === midsceneDumpAnnotationId;
     });
     if (currentAnnotation) {
-      currentAnnotation.description = dump;
+      // Store file path instead of dump content
+      currentAnnotation.description = tempFilePath;
     } else {
       test.annotations.push({
         type: midsceneDumpAnnotationId,
-        description: dump,
+        description: tempFilePath,
       });
     }
   };

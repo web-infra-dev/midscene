@@ -2,6 +2,7 @@ export {
   callAiFnWithStringResponse,
   callToGetJSONObject,
   call as callAi,
+  getModelName,
 } from './service-caller/index';
 export { systemPromptToLocateElement } from './prompt/llm-locator';
 export {
@@ -22,7 +23,6 @@ export type { ChatCompletionMessageParam } from 'openai/resources/index';
 export {
   AiLocateElement,
   AiExtractElementInfo,
-  AiAssert,
   AiLocateSection,
 } from './inspect';
 
@@ -34,3 +34,5 @@ export {
 export { vlmPlanning, resizeImageForUiTars } from './ui-tars-planning';
 
 export { AIActionType, type AIArgs } from './common';
+
+export { actionSpaceTypePrefix } from './common';

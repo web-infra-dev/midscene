@@ -1,42 +1,36 @@
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { createRequire } from 'node:module';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import MidsceneReporter from '@/playwright/reporter';
 import * as coreUtils from '@midscene/core/utils';
-import type {
-  FullConfig,
-  Suite,
-  TestCase,
-  TestResult,
-} from '@playwright/test/reporter';
+import type { TestCase, TestResult } from '@playwright/test/reporter';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
-
-const __filename_url = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename_url);
 
 // Mock core utilities to prevent actual file I/O
 vi.mock('@midscene/core/utils', () => ({
   writeDumpReport: vi.fn(),
 }));
 
-// Resolve path to the actual reporter file from the test file's location
-const reporterSrcPath = path.resolve(
-  __dirname,
-  '../../src/playwright/reporter/index.ts',
-);
-const reporterPackageName = '@midscene/web/playwright-reporter';
-
 describe('MidsceneReporter', () => {
-  const mockSuite = {} as Suite;
   let originalResolve: typeof require.resolve;
+  let tempDir: string;
 
   beforeEach(() => {
     // Reset mocks before each test
     vi.clearAllMocks();
     // Backup original require.resolve
     originalResolve = require.resolve;
+    // Create temp directory for test files
+    tempDir = mkdtempSync(join(tmpdir(), 'midscene-test-'));
   });
 
   afterEach(() => {
@@ -106,12 +100,17 @@ describe('MidsceneReporter', () => {
     it('should write a report if dump annotation is present and mode is set', async () => {
       const reporter = new MidsceneReporter({ type: 'merged' });
 
+      // Create a temp file with dump content
+      const tempFile = join(tempDir, 'test-dump.json');
+      const dumpContent = 'dump-data-string';
+      writeFileSync(tempFile, dumpContent, 'utf-8');
+
       const mockTest: TestCase = {
         id: 'test-id-1',
         title: 'My Test Case',
         annotations: [
           { type: 'some-other-annotation', description: 'some-data' },
-          { type: 'MIDSCENE_DUMP_ANNOTATION', description: 'dump-data-string' },
+          { type: 'MIDSCENE_DUMP_ANNOTATION', description: tempFile },
         ],
       } as any;
       const mockResult: TestResult = {
@@ -125,7 +124,7 @@ describe('MidsceneReporter', () => {
       expect(coreUtils.writeDumpReport).toHaveBeenCalledWith(
         expect.stringContaining('playwright-merged'),
         {
-          dumpString: 'dump-data-string',
+          dumpString: dumpContent,
           attributes: {
             playwright_test_id: 'test-id-1',
             playwright_test_title: 'My Test Case',
@@ -135,23 +134,36 @@ describe('MidsceneReporter', () => {
         },
         true, // merged mode
       );
+
+      // Verify temp file was deleted
+      expect(existsSync(tempFile)).toBe(false);
     });
 
-    it('should remove the dump annotation after processing', async () => {
+    it('should handle file path and delete temp file after processing', async () => {
       const reporter = new MidsceneReporter({ type: 'merged' });
+
+      // Create temp file
+      const tempFile = join(tempDir, 'test-dump-2.json');
+      writeFileSync(tempFile, 'dump-data', 'utf-8');
 
       const mockTest: TestCase = {
         id: 'test-id-2',
         title: 'Another Test',
         annotations: [
-          { type: 'MIDSCENE_DUMP_ANNOTATION', description: 'dump-data' },
+          { type: 'MIDSCENE_DUMP_ANNOTATION', description: tempFile },
         ],
       } as any;
       const mockResult: TestResult = { status: 'failed' } as any;
 
       reporter.onTestEnd(mockTest, mockResult);
 
-      expect(mockTest.annotations).toEqual([]);
+      // The annotation should still exist with the path (no clearing)
+      expect(mockTest.annotations).toHaveLength(1);
+      expect(mockTest.annotations[0].type).toBe('MIDSCENE_DUMP_ANNOTATION');
+      expect(mockTest.annotations[0].description).toBe(tempFile);
+
+      // Temp file should be deleted
+      expect(existsSync(tempFile)).toBe(false);
     });
 
     it('should not write a report if dump annotation is not present', async () => {
@@ -172,11 +184,15 @@ describe('MidsceneReporter', () => {
     it('should handle retry attempts in test title and id', async () => {
       const reporter = new MidsceneReporter({ type: 'merged' });
 
+      // Create a temp file
+      const tempFile = join(tempDir, 'flaky-dump.json');
+      writeFileSync(tempFile, 'flaky-data', 'utf-8');
+
       const mockTest: TestCase = {
         id: 'test-id-4',
         title: 'A Flaky Test',
         annotations: [
-          { type: 'MIDSCENE_DUMP_ANNOTATION', description: 'flaky-data' },
+          { type: 'MIDSCENE_DUMP_ANNOTATION', description: tempFile },
         ],
       } as any;
       const mockResult: TestResult = {
@@ -197,6 +213,39 @@ describe('MidsceneReporter', () => {
         }),
         true,
       );
+    });
+
+    it('should handle missing temp file gracefully', async () => {
+      const reporter = new MidsceneReporter({ type: 'merged' });
+      const consoleSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+
+      // Use non-existent file path
+      const mockTest: TestCase = {
+        id: 'test-id-missing',
+        title: 'Missing File Test',
+        annotations: [
+          {
+            type: 'MIDSCENE_DUMP_ANNOTATION',
+            description: '/tmp/non-existent-file.json',
+          },
+        ],
+      } as any;
+      const mockResult: TestResult = { status: 'passed' } as any;
+
+      reporter.onTestEnd(mockTest, mockResult);
+
+      // Verify no report was written
+      expect(coreUtils.writeDumpReport).not.toHaveBeenCalled();
+
+      // Verify error was logged
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to read Midscene dump file'),
+        expect.anything(),
+      );
+
+      consoleSpy.mockRestore();
     });
   });
 });

@@ -100,7 +100,11 @@ export async function plan(
     actions,
     rawResponse,
     usage,
-    yamlFlow: buildYamlFlowFromPlans(actions, planFromAI.sleep),
+    yamlFlow: buildYamlFlowFromPlans(
+      actions,
+      opts.actionSpace,
+      planFromAI.sleep,
+    ),
   };
 
   assert(planFromAI, "can't get plans from AI");

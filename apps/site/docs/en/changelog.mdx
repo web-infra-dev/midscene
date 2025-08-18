@@ -2,6 +2,33 @@
 
 > For the complete changelog, please refer to: [Midscene Releases](https://github.com/web-infra-dev/midscene/releases)
 
+## v0.26 - 🚀 Toolchain fully integrated [Rslib](https://github.com/web-infra-dev/rslib), greatly improving development experience and reducing contribution threshold
+
+### 🌐 Web Integration Optimization
+- Support freezing page context([freezePageContext](./api.mdx#agentfreezepagecontext)/[unfreezePageContext](./api.mdx#agentunfreezepagecontext)), so that all subsequent operations reuse the same page snapshot, avoiding repeated page status acquisition
+- Add all agent APIs to Playwright fixture, simplify test script writing, and solve the problem of not generating reports when using agentForPage
+
+### 📱 Android Automation Enhancement
+- New keyboard hiding strategy([keyboardDismissStrategy](./integrate-with-android.html#androiddevice-constructor)), allowing you to specify the way to automatically hide the keyboard
+
+### 📊 Report Function Optimization
+- Report content lazy parsing, solving the problem of report crash when the report is large
+- Report player adds automatic zoom switch, making it easier to view the global perspective playback
+- Support aiAssert / aiQuery tasks in report playback, to fully show the entire page change process
+- Fix the problem that the sidebar status is not displayed as a failure icon when the assertion fails
+- Fix the problem that the drop-down filter in the report cannot be switched
+
+### 🚀 Build and Engineering
+- Build tool migration to [Rslib](https://github.com/web-infra-dev/rslib) library development tool, improving build efficiency and development experience
+- Full repository source code jump, making it easier for developers to view source code
+- MCP npm package product volume optimization, from 56M to 30M, greatly improving loading speed
+
+### 🐞 Bug Fixes
+- CLI automatically opens headed mode when keepWindow is true
+- Fix the implementation problem of getGlobalConfig, solve the problem of abnormal environment variable initialization
+- Ensure that the mime-type in base64 encoding is correct
+- Fix the return value type of aiAssert task
+
 ## v0.25 - 🚀 Support Using Images as AI Prompt Input
 
 ### 🎯 Core Function Enhancement

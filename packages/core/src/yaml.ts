@@ -12,6 +12,8 @@ export interface InsightExtractOption {
   domIncluded?: boolean | 'visible-only';
   screenshotIncluded?: boolean;
   returnThought?: boolean;
+  // To make the assert in the "waitfor" section display the warning icon in report
+  isWaitForAssert?: boolean;
 }
 
 export interface ReferenceImage {
@@ -166,20 +168,28 @@ export interface MidsceneYamlFlowItemAIHover extends LocateOption {
 }
 
 export interface MidsceneYamlFlowItemAIInput extends LocateOption {
-  aiInput: string; // value to input
-  locate: TUserPrompt; // where to input
+  // previous version
+  // aiInput: string; // value to input
+  // locate: TUserPrompt; // where to input
+  aiInput: TUserPrompt | undefined; // where to input
+  value: string; // value to input
 }
 
 export interface MidsceneYamlFlowItemAIKeyboardPress extends LocateOption {
-  aiKeyboardPress: string;
-  locate?: TUserPrompt; // where to press, optional
+  // previous version
+  // aiKeyboardPress: string;
+  // locate?: TUserPrompt; // where to press, optional
+  aiKeyboardPress: TUserPrompt | undefined; // where to press
+  key: string; // key to press
 }
 
 export interface MidsceneYamlFlowItemAIScroll
   extends LocateOption,
     ScrollParam {
-  aiScroll: null;
-  locate?: TUserPrompt; // which area to scroll, optional
+  // previous version
+  // aiScroll: null;
+  // locate?: TUserPrompt; // which area to scroll, optional
+  aiScroll: TUserPrompt | undefined; // which area to scroll
 }
 
 export interface MidsceneYamlFlowItemEvaluateJavaScript {

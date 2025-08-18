@@ -4,6 +4,7 @@ import {
   type AgentDescribeElementAtPointResult,
   type AgentWaitForOpt,
   type DetailedLocateParam,
+  type DeviceAction,
   type ExecutionDump,
   type ExecutionRecorderItem,
   type ExecutionTask,
@@ -20,6 +21,8 @@ import {
   type LocatorValidatorOption,
   type MidsceneYamlScript,
   type OnTaskStartTip,
+  type PlanningAction,
+  type PlanningLocateParam,
   type Rect,
   type ScrollParam,
   type TUserPrompt,
@@ -28,6 +31,7 @@ import {
 import yaml from 'js-yaml';
 
 import { ScriptPlayer, parseYamlScript } from '@/yaml/index';
+import { getModelName } from '@midscene/core/ai-model';
 import {
   groupedActionDumpFileExt,
   reportHTMLContent,
@@ -38,7 +42,11 @@ import {
   DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
   DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
 } from '@midscene/shared/constants';
-import { getAIConfigInBoolean, vlLocateMode } from '@midscene/shared/env';
+import {
+  getAIConfigInBoolean,
+  uiTarsModelVersion,
+  vlLocateMode,
+} from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { PageTaskExecutor } from '../common/tasks';
@@ -46,20 +54,13 @@ import type { PlaywrightWebPage } from '../playwright';
 import type { PuppeteerWebPage } from '../puppeteer';
 import type { WebElementInfo, WebUIContext } from '../web-element';
 import type { AndroidDeviceInputOpt } from './page';
-import { buildPlans } from './plan-builder';
 import { TaskCache } from './task-cache';
-import {
-  locateParamStr,
-  paramStr,
-  scrollParamStr,
-  taskTitleStr,
-  typeStr,
-} from './ui-utils';
+import { locateParamStr, paramStr, taskTitleStr, typeStr } from './ui-utils';
 import { getReportFileName, printReportMsg } from './utils';
 import { parseContextFromWebPage } from './utils';
 import { trimContextByViewport } from './utils';
 
-const debug = getDebug('web-integration');
+const debug = getDebug('agent');
 
 const distanceOfTwoPoints = (p1: [number, number], p2: [number, number]) => {
   const [x1, y1] = p1;
@@ -188,6 +189,10 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       getReportFileName(opts?.testId || this.page.pageType || 'web');
   }
 
+  async getActionSpace(): Promise<DeviceAction[]> {
+    return this.page.actionSpace();
+  }
+
   async getUIContext(action?: InsightAction): Promise<WebUIContext> {
     // If page context is frozen, return the frozen context for all actions
     if (this.frozenPageContext) {
@@ -215,9 +220,25 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   resetDump() {
+    const modelDescription = (() => {
+      if (vlLocateMode()) {
+        const uiTarsModelVer = uiTarsModelVersion();
+        if (uiTarsModelVer) {
+          return `UI-TARS=${uiTarsModelVer}`;
+        } else {
+          return `${vlLocateMode()} mode`;
+        }
+      }
+      return '';
+    })();
+
+    const modelName = getModelName();
+
     this.dump = {
       groupName: this.opts.groupName!,
       groupDescription: this.opts.groupDescription,
+      modelName,
+      modelDescription,
       executions: [],
     };
 
@@ -315,120 +336,223 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     };
   }
 
-  async aiTap(locatePrompt: TUserPrompt, opt?: LocateOption) {
-    const detailedLocateParam = this.buildDetailedLocateParam(
-      locatePrompt,
-      opt,
+  private locateTaskForLocate(prompt: TUserPrompt, opt?: LocateOption) {
+    const detailedLocateParam = this.buildDetailedLocateParam(prompt, opt);
+    const locatePlan: PlanningAction<PlanningLocateParam> = {
+      type: 'Locate',
+      locate: detailedLocateParam,
+      param: detailedLocateParam,
+      thought: '',
+    };
+    return locatePlan;
+  }
+
+  async callActionInActionSpace<T = any>(
+    type: string,
+    locatePrompt?: TUserPrompt,
+    opt?: LocateOption, // and all other action params
+  ) {
+    debug('callActionInActionSpace', type, ',', locatePrompt, ',', opt);
+    const locatePlan = locatePrompt
+      ? this.locateTaskForLocate(locatePrompt, opt)
+      : null;
+
+    const actionPlan: PlanningAction<T> = {
+      type: type as any,
+      param: opt as any,
+      thought: '',
+      locate: locatePlan?.locate,
+    };
+
+    const plans: PlanningAction[] = [locatePlan, actionPlan].filter(
+      Boolean,
+    ) as PlanningAction[];
+
+    const title = taskTitleStr(
+      type as any,
+      locateParamStr(locatePlan?.locate || undefined),
     );
-    const plans = buildPlans('Tap', detailedLocateParam);
-    const { executor, output } = await this.taskExecutor.runPlans(
-      taskTitleStr('Tap', locateParamStr(detailedLocateParam)),
-      plans,
-      { cacheable: opt?.cacheable },
-    );
+
+    const { executor } = await this.taskExecutor.runPlans(title, plans, {
+      cacheable: opt?.cacheable,
+    });
     await this.afterTaskRunning(executor);
-    return output;
+  }
+
+  async aiTap(locatePrompt: TUserPrompt, opt?: LocateOption) {
+    return this.callActionInActionSpace('Tap', locatePrompt, opt);
   }
 
   async aiRightClick(locatePrompt: TUserPrompt, opt?: LocateOption) {
-    const detailedLocateParam = this.buildDetailedLocateParam(
-      locatePrompt,
-      opt,
-    );
-    const plans = buildPlans('RightClick', detailedLocateParam);
-    const { executor, output } = await this.taskExecutor.runPlans(
-      taskTitleStr('RightClick', locateParamStr(detailedLocateParam)),
-      plans,
-      { cacheable: opt?.cacheable },
-    );
-    await this.afterTaskRunning(executor);
-    return output;
+    return this.callActionInActionSpace('RightClick', locatePrompt, opt);
   }
 
   async aiHover(locatePrompt: TUserPrompt, opt?: LocateOption) {
-    const detailedLocateParam = this.buildDetailedLocateParam(
-      locatePrompt,
-      opt,
-    );
-    const plans = buildPlans('Hover', detailedLocateParam);
-    const { executor, output } = await this.taskExecutor.runPlans(
-      taskTitleStr('Hover', locateParamStr(detailedLocateParam)),
-      plans,
-      { cacheable: opt?.cacheable },
-    );
-    await this.afterTaskRunning(executor);
-    return output;
+    return this.callActionInActionSpace('Hover', locatePrompt, opt);
   }
 
+  // New signature, always use locatePrompt as the first param
+  async aiInput(
+    locatePrompt: TUserPrompt,
+    opt: AndroidDeviceInputOpt & LocateOption & { value: string },
+  ): Promise<any>;
+
+  // Legacy signature - deprecated
+  /**
+   * @deprecated Use aiInput(locatePrompt, opt) instead where opt contains the value
+   */
   async aiInput(
     value: string,
     locatePrompt: TUserPrompt,
     opt?: AndroidDeviceInputOpt & LocateOption,
+  ): Promise<any>;
+
+  // Implementation
+  async aiInput(
+    locatePromptOrValue: TUserPrompt | string,
+    locatePromptOrOpt:
+      | TUserPrompt
+      | (AndroidDeviceInputOpt & LocateOption & { value: string })
+      | undefined,
+    optOrUndefined?: AndroidDeviceInputOpt & LocateOption,
   ) {
+    let value: string;
+    let locatePrompt: TUserPrompt;
+    let opt:
+      | (AndroidDeviceInputOpt & LocateOption & { value: string })
+      | undefined;
+
+    // Check if using new signature (first param is locatePrompt, second has value)
+    if (
+      typeof locatePromptOrOpt === 'object' &&
+      locatePromptOrOpt !== null &&
+      'value' in locatePromptOrOpt
+    ) {
+      // New signature: aiInput(locatePrompt, opt)
+      locatePrompt = locatePromptOrValue as TUserPrompt;
+      const optWithValue = locatePromptOrOpt as AndroidDeviceInputOpt &
+        LocateOption & { value: string };
+      value = optWithValue.value;
+      opt = optWithValue;
+    } else {
+      // Legacy signature: aiInput(value, locatePrompt, opt)
+      value = locatePromptOrValue as string;
+      locatePrompt = locatePromptOrOpt as TUserPrompt;
+      opt = {
+        ...optOrUndefined,
+        value,
+      };
+    }
+
     assert(
       typeof value === 'string',
       'input value must be a string, use empty string if you want to clear the input',
     );
     assert(locatePrompt, 'missing locate prompt for input');
-    const detailedLocateParam = this.buildDetailedLocateParam(
-      locatePrompt,
-      opt,
-    );
-    const plans = buildPlans('Input', detailedLocateParam, {
-      value,
-      autoDismissKeyboard: opt?.autoDismissKeyboard,
-    });
-    const { executor, output } = await this.taskExecutor.runPlans(
-      taskTitleStr('Input', locateParamStr(detailedLocateParam)),
-      plans,
-      {
-        cacheable: opt?.cacheable,
-      },
-    );
-    await this.afterTaskRunning(executor);
-    return output;
+    return this.callActionInActionSpace('Input', locatePrompt, opt);
   }
 
+  // New signature
+  async aiKeyboardPress(
+    locatePrompt: TUserPrompt,
+    opt: LocateOption & { keyName: string },
+  ): Promise<any>;
+
+  // Legacy signature - deprecated
+  /**
+   * @deprecated Use aiKeyboardPress(locatePrompt, opt) instead where opt contains the keyName
+   */
   async aiKeyboardPress(
     keyName: string,
     locatePrompt?: TUserPrompt,
     opt?: LocateOption,
+  ): Promise<any>;
+
+  // Implementation
+  async aiKeyboardPress(
+    locatePromptOrKeyName: TUserPrompt | string,
+    locatePromptOrOpt:
+      | TUserPrompt
+      | (LocateOption & { keyName: string })
+      | undefined,
+    optOrUndefined?: LocateOption,
   ) {
-    assert(keyName, 'missing keyName for keyboard press');
-    const detailedLocateParam = locatePrompt
-      ? this.buildDetailedLocateParam(locatePrompt, opt)
-      : undefined;
-    const plans = buildPlans('KeyboardPress', detailedLocateParam, {
-      value: keyName,
-    });
-    const { executor, output } = await this.taskExecutor.runPlans(
-      taskTitleStr('KeyboardPress', locateParamStr(detailedLocateParam)),
-      plans,
-      { cacheable: opt?.cacheable },
-    );
-    await this.afterTaskRunning(executor);
-    return output;
+    let keyName: string;
+    let locatePrompt: TUserPrompt | undefined;
+    let opt: (LocateOption & { keyName: string }) | undefined;
+
+    // Check if using new signature (first param is locatePrompt, second has keyName)
+    if (
+      typeof locatePromptOrOpt === 'object' &&
+      locatePromptOrOpt !== null &&
+      'keyName' in locatePromptOrOpt
+    ) {
+      // New signature: aiKeyboardPress(locatePrompt, opt)
+      locatePrompt = locatePromptOrKeyName as TUserPrompt;
+      opt = locatePromptOrOpt as LocateOption & {
+        keyName: string;
+      };
+    } else {
+      // Legacy signature: aiKeyboardPress(keyName, locatePrompt, opt)
+      keyName = locatePromptOrKeyName as string;
+      locatePrompt = locatePromptOrOpt as TUserPrompt | undefined;
+      opt = {
+        ...(optOrUndefined || {}),
+        keyName,
+      };
+    }
+
+    assert(opt?.keyName, 'missing keyName for keyboard press');
+    return this.callActionInActionSpace('KeyboardPress', locatePrompt, opt);
   }
 
+  // New signature
+  async aiScroll(
+    locatePrompt: TUserPrompt | undefined,
+    opt: LocateOption & ScrollParam,
+  ): Promise<any>;
+
+  // Legacy signature - deprecated
+  /**
+   * @deprecated Use aiScroll(locatePrompt, opt) instead where opt contains the scroll parameters
+   */
   async aiScroll(
     scrollParam: ScrollParam,
     locatePrompt?: TUserPrompt,
     opt?: LocateOption,
+  ): Promise<any>;
+
+  // Implementation
+  async aiScroll(
+    locatePromptOrScrollParam: TUserPrompt | ScrollParam | undefined,
+    locatePromptOrOpt: TUserPrompt | (LocateOption & ScrollParam) | undefined,
+    optOrUndefined?: LocateOption,
   ) {
-    const detailedLocateParam = locatePrompt
-      ? this.buildDetailedLocateParam(locatePrompt, opt)
-      : undefined;
-    const plans = buildPlans('Scroll', detailedLocateParam, scrollParam);
-    const paramInTitle = locatePrompt
-      ? `${locateParamStr(detailedLocateParam)} - ${scrollParamStr(scrollParam)}`
-      : scrollParamStr(scrollParam);
-    const { executor, output } = await this.taskExecutor.runPlans(
-      taskTitleStr('Scroll', paramInTitle),
-      plans,
-      { cacheable: opt?.cacheable },
-    );
-    await this.afterTaskRunning(executor);
-    return output;
+    let scrollParam: ScrollParam;
+    let locatePrompt: TUserPrompt | undefined;
+    let opt: LocateOption | undefined;
+
+    // Check if using new signature (first param is locatePrompt, second has scroll params)
+    if (
+      typeof locatePromptOrOpt === 'object' &&
+      ('direction' in locatePromptOrOpt ||
+        'scrollType' in locatePromptOrOpt ||
+        'distance' in locatePromptOrOpt)
+    ) {
+      // New signature: aiScroll(locatePrompt, opt)
+      locatePrompt = locatePromptOrScrollParam as TUserPrompt;
+      opt = locatePromptOrOpt as LocateOption & ScrollParam;
+    } else {
+      // Legacy signature: aiScroll(scrollParam, locatePrompt, opt)
+      scrollParam = locatePromptOrScrollParam as ScrollParam;
+      locatePrompt = locatePromptOrOpt as TUserPrompt | undefined;
+      opt = {
+        ...(optOrUndefined || {}),
+        ...(scrollParam || {}),
+      };
+    }
+
+    return this.callActionInActionSpace('Scroll', locatePrompt, opt);
   }
 
   async aiAction(
@@ -615,10 +739,10 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   async aiLocate(prompt: TUserPrompt, opt?: LocateOption) {
-    const detailedLocateParam = this.buildDetailedLocateParam(prompt, opt);
-    const plans = buildPlans('Locate', detailedLocateParam);
+    const locatePlan = this.locateTaskForLocate(prompt, opt);
+    const plans = [locatePlan];
     const { executor, output } = await this.taskExecutor.runPlans(
-      taskTitleStr('Locate', locateParamStr(detailedLocateParam)),
+      taskTitleStr('Locate', locateParamStr(locatePlan?.locate || undefined)),
       plans,
       { cacheable: opt?.cacheable },
     );
@@ -703,6 +827,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     result: Record<string, any>;
   }> {
     const script = parseYamlScript(yamlScriptContent, 'yaml', true);
+    const actionSpace = await this.page.actionSpace();
     const player = new ScriptPlayer(script, async (target) => {
       return { agent: this, freeFn: [] };
     });
@@ -774,8 +899,6 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     const executionDump: ExecutionDump = {
       sdkVersion: '',
       logTime: now,
-      model_name: '',
-      model_description: '',
       name: `Log - ${title || 'untitled'}`,
       description: opt?.content || '',
       tasks: [task],

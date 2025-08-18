@@ -1,9 +1,8 @@
-import type { AndroidDevicePage, WebPage } from '@/common/page';
+import type { WebPage } from '@/common/page';
 import type { PuppeteerWebPage } from '@/puppeteer';
 import {
   type AIUsageInfo,
   type BaseElement,
-  type DeviceAction,
   type DumpSubscriber,
   type ExecutionRecorderItem,
   type ExecutionTaskActionApply,
@@ -17,7 +16,6 @@ import {
   Executor,
   type ExecutorContext,
   type Insight,
-  type InsightAssertionResponse,
   type InsightDump,
   type InsightExtractOption,
   type InsightExtractParam,
@@ -26,7 +24,6 @@ import {
   type PageType,
   type PlanningAIResponse,
   type PlanningAction,
-  type PlanningActionParamAssert,
   type PlanningActionParamError,
   type PlanningActionParamSleep,
   type PlanningActionParamWaitFor,
@@ -88,9 +85,7 @@ export class PageTaskExecutor {
   ) {
     this.page = page;
     this.insight = insight;
-
     this.taskCache = opts.taskCache;
-
     this.onTaskStartCallback = opts?.onTaskStart;
   }
 
@@ -381,62 +376,6 @@ export class PageTaskExecutor {
           },
         };
         tasks.push(taskFind);
-      } else if (plan.type === 'Assert' || plan.type === 'AssertWithoutThrow') {
-        const assertPlan = plan as PlanningAction<PlanningActionParamAssert>;
-        const taskAssert: ExecutionTaskApply = {
-          type: 'Insight',
-          subType: 'Assert',
-          param: assertPlan.param,
-          thought: assertPlan.thought,
-          locate: assertPlan.locate,
-          executor: async (param, taskContext) => {
-            const { task } = taskContext;
-            let insightDump: InsightDump | undefined;
-            const dumpCollector: DumpSubscriber = (dump) => {
-              insightDump = dump;
-            };
-            this.insight.onceDumpUpdatedFn = dumpCollector;
-            const shotTime = Date.now();
-            const pageContext = await this.insight.contextRetrieverFn('assert');
-            task.pageContext = pageContext;
-
-            const recordItem: ExecutionRecorderItem = {
-              type: 'screenshot',
-              ts: shotTime,
-              screenshot: pageContext.screenshotBase64,
-              timing: 'before Insight',
-            };
-            task.recorder = [recordItem];
-
-            const assertion = await this.insight.assert(
-              assertPlan.param.assertion,
-            );
-
-            if (!assertion.pass) {
-              if (plan.type === 'Assert') {
-                task.output = assertion;
-                task.log = {
-                  dump: insightDump,
-                };
-                throw new Error(
-                  assertion.thought || 'Assertion failed without reason',
-                );
-              }
-
-              task.error = new Error(assertion.thought);
-            }
-
-            return {
-              output: assertion,
-              pageContext,
-              log: {
-                dump: insightDump,
-              },
-              usage: assertion.usage,
-            };
-          },
-        };
-        tasks.push(taskAssert);
       } else if (plan.type === 'Error') {
         const taskActionError: ExecutionTaskActionApply<PlanningActionParamError> =
           {
@@ -679,13 +618,16 @@ export class PageTaskExecutor {
                 // thought is prompt created by ai, always a string
                 thought: planningAction.locate.prompt as string,
               });
-            } else if (
-              ['Tap', 'Hover', 'Input'].includes(planningAction.type)
-            ) {
-              planParsingError = `invalid planning response: ${JSON.stringify(planningAction)}`;
-              // should include locate but get null
-              stopCollecting = true;
-              return acc;
+            } else {
+              const actionType = planningAction.type;
+              const action = actionSpace.find(
+                (action) => action.name === actionType,
+              );
+              if (action && action?.location === 'required') {
+                planParsingError = `Location is required for action: ${actionType}, but not provided by planning`;
+                stopCollecting = true;
+                return acc;
+              }
             }
             acc.push(planningAction);
             return acc;
@@ -992,22 +934,12 @@ export class PageTaskExecutor {
     };
   }
 
-  private async createTypeQueryTask<T>(
+  private createTypeQueryTask(
     type: 'Query' | 'Boolean' | 'Number' | 'String' | 'Assert',
     demand: InsightExtractParam,
     opt?: InsightExtractOption,
     multimodalPrompt?: TMultimodalPrompt,
-  ): Promise<ExecutionResult<T>> {
-    const taskExecutor = new Executor(
-      taskTitleStr(
-        type,
-        typeof demand === 'string' ? demand : JSON.stringify(demand),
-      ),
-      {
-        onTaskStart: this.onTaskStartCallback,
-      },
-    );
-
+  ) {
     const queryTask: ExecutionTaskInsightQueryApply = {
       type: 'Insight',
       subType: type,
@@ -1065,12 +997,37 @@ export class PageTaskExecutor {
 
         return {
           output: outputResult,
-          log: { dump: insightDump },
+          log: { dump: insightDump, isWaitForAssert: opt?.isWaitForAssert },
           usage,
           thought,
         };
       },
     };
+
+    return queryTask;
+  }
+  private async createTypeQueryExecution<T>(
+    type: 'Query' | 'Boolean' | 'Number' | 'String' | 'Assert',
+    demand: InsightExtractParam,
+    opt?: InsightExtractOption,
+    multimodalPrompt?: TMultimodalPrompt,
+  ): Promise<ExecutionResult<T>> {
+    const taskExecutor = new Executor(
+      taskTitleStr(
+        type,
+        typeof demand === 'string' ? demand : JSON.stringify(demand),
+      ),
+      {
+        onTaskStart: this.onTaskStartCallback,
+      },
+    );
+
+    const queryTask = await this.createTypeQueryTask(
+      type,
+      demand,
+      opt,
+      multimodalPrompt,
+    );
 
     await taskExecutor.append(this.prependExecutorWithScreenshot(queryTask));
     const result = await taskExecutor.flush();
@@ -1094,7 +1051,7 @@ export class PageTaskExecutor {
     demand: InsightExtractParam,
     opt?: InsightExtractOption,
   ): Promise<ExecutionResult> {
-    return this.createTypeQueryTask('Query', demand, opt);
+    return this.createTypeQueryExecution('Query', demand, opt);
   }
 
   async boolean(
@@ -1102,7 +1059,7 @@ export class PageTaskExecutor {
     opt?: InsightExtractOption,
   ): Promise<ExecutionResult<boolean>> {
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
-    return this.createTypeQueryTask<boolean>(
+    return this.createTypeQueryExecution<boolean>(
       'Boolean',
       textPrompt,
       opt,
@@ -1115,7 +1072,7 @@ export class PageTaskExecutor {
     opt?: InsightExtractOption,
   ): Promise<ExecutionResult<number>> {
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
-    return this.createTypeQueryTask<number>(
+    return this.createTypeQueryExecution<number>(
       'Number',
       textPrompt,
       opt,
@@ -1128,7 +1085,7 @@ export class PageTaskExecutor {
     opt?: InsightExtractOption,
   ): Promise<ExecutionResult<string>> {
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
-    return this.createTypeQueryTask<string>(
+    return this.createTypeQueryExecution<string>(
       'String',
       textPrompt,
       opt,
@@ -1141,7 +1098,7 @@ export class PageTaskExecutor {
     opt?: InsightExtractOption,
   ): Promise<ExecutionResult<boolean>> {
     const { textPrompt, multimodalPrompt } = parsePrompt(assertion);
-    return await this.createTypeQueryTask<boolean>(
+    return await this.createTypeQueryExecution<boolean>(
       'Assert',
       textPrompt,
       opt,
@@ -1219,20 +1176,16 @@ export class PageTaskExecutor {
     let errorThought = '';
     while (Date.now() - overallStartTime < timeoutMs) {
       startTime = Date.now();
-      const assertPlan: PlanningAction<PlanningActionParamAssert> = {
-        type: 'AssertWithoutThrow',
-        param: {
-          assertion,
-        },
-        locate: null,
+      const queryTask = await this.createTypeQueryTask('Assert', assertion, {
+        isWaitForAssert: true,
+        returnThought: true,
+      });
+
+      await taskExecutor.append(this.prependExecutorWithScreenshot(queryTask));
+      const result = (await taskExecutor.flush()) as {
+        output: boolean;
+        thought?: string;
       };
-      const { tasks: assertTasks } = await this.convertPlanToExecutable([
-        assertPlan,
-      ]);
-      await taskExecutor.append(
-        this.prependExecutorWithScreenshot(assertTasks[0]),
-      );
-      const result = await taskExecutor.flush();
 
       if (!result) {
         throw new Error(
@@ -1240,9 +1193,7 @@ export class PageTaskExecutor {
         );
       }
 
-      const { output } = result as { output: InsightAssertionResponse };
-
-      if (output?.pass) {
+      if (result.output) {
         return {
           output: undefined,
           executor: taskExecutor,
@@ -1250,7 +1201,7 @@ export class PageTaskExecutor {
       }
 
       errorThought =
-        output?.thought ||
+        result?.thought ||
         `unknown error when waiting for assertion: ${assertion}`;
       const now = Date.now();
       if (now - startTime < checkIntervalMs) {
