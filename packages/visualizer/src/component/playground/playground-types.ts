@@ -30,4 +30,19 @@ export interface StaticPlaygroundProps {
 export type ServiceModeType = 'Server' | 'In-Browser' | 'In-Browser-Extension';
 
 // run type
-export type RunType = 'aiAction' | 'aiQuery' | 'aiAssert' | 'aiTap';
+export type RunType =
+  | 'aiAction'
+  | 'aiQuery'
+  | 'aiAssert'
+  | 'aiTap'
+  | 'aiHover'
+  | 'aiInput'
+  | 'aiRightClick'
+  | 'aiKeyboardPress'
+  | 'aiScroll'
+  | 'aiLocate'
+  | 'aiBoolean'
+  | 'aiNumber'
+  | 'aiString'
+  | 'aiAsk'
+  | 'aiWaitFor';

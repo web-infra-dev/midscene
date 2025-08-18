@@ -1,5 +1,6 @@
-import { BorderOutlined, SendOutlined } from '@ant-design/icons';
-import { Button, Form, Input, Radio, Space, Tooltip } from 'antd';
+import { BorderOutlined, DownOutlined, SendOutlined } from '@ant-design/icons';
+import { Button, Dropdown, Form, Input, Radio, Space, Tooltip } from 'antd';
+import type { MenuProps } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type React from 'react';
 import type { HistoryItem } from '../store/history';
@@ -42,6 +43,46 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   const [promptValue, setPromptValue] = useState('');
   const placeholder = getPlaceholderForType(selectedType);
   const textAreaRef = useRef<any>(null);
+
+  // Define all available APIs with their metadata
+  const apiMetadata = {
+    aiAction: {
+      group: 'interaction',
+      title: 'Auto Planning: plan the steps and execute',
+    },
+    aiTap: { group: 'interaction', title: 'Click an element' },
+    aiHover: { group: 'interaction', title: 'Hover over an element' },
+    aiInput: { group: 'interaction', title: 'Input text into an element' },
+    aiRightClick: { group: 'interaction', title: 'Right-click an element' },
+    aiKeyboardPress: { group: 'interaction', title: 'Press keyboard keys' },
+    aiScroll: { group: 'interaction', title: 'Scroll the page or element' },
+    aiLocate: { group: 'interaction', title: 'Locate an element on the page' },
+    aiQuery: {
+      group: 'extraction',
+      title: 'Extract data directly from the UI',
+    },
+    aiBoolean: { group: 'extraction', title: 'Get true/false answer' },
+    aiNumber: { group: 'extraction', title: 'Extract numeric value' },
+    aiString: { group: 'extraction', title: 'Extract text value' },
+    aiAsk: { group: 'extraction', title: 'Ask a question about the UI' },
+    aiAssert: { group: 'validation', title: 'Assert a condition is true' },
+    aiWaitFor: { group: 'validation', title: 'Wait for a condition to be met' },
+  };
+
+  // Define the default main buttons
+  const defaultMainButtons = ['aiAction', 'aiTap', 'aiQuery', 'aiAssert'];
+
+  // State to track if a dropdown item is selected
+  const [dropdownSelection, setDropdownSelection] = useState<string | null>(
+    null,
+  );
+
+  // Clear dropdown selection when selectedType changes to a main button
+  useEffect(() => {
+    if (defaultMainButtons.includes(selectedType)) {
+      setDropdownSelection(null);
+    }
+  }, [selectedType]);
 
   // Get history from store
   const history = useHistoryStore((state) => state.history);
@@ -205,26 +246,114 @@ export const PromptInput: React.FC<PromptInputProps> = ({
             disabled={!runButtonEnabled}
             className="mode-radio-group"
           >
-            <Tooltip title="Auto Planning: plan the steps and execute">
-              <Radio.Button value="aiAction">
-                {actionNameForType('aiAction')}
+            {defaultMainButtons.map((apiType) => (
+              <Tooltip
+                key={apiType}
+                title={
+                  apiMetadata[apiType as keyof typeof apiMetadata]?.title || ''
+                }
+              >
+                <Radio.Button value={apiType}>
+                  {actionNameForType(apiType)}
+                </Radio.Button>
+              </Tooltip>
+            ))}
+            <Dropdown
+              menu={(() => {
+                // Get all APIs not currently shown in main buttons
+                const hiddenAPIs = Object.keys(apiMetadata).filter(
+                  (api) => !defaultMainButtons.includes(api),
+                );
+
+                // Group hidden APIs by category
+                const groupedItems: any[] = [];
+
+                const interactionAPIs = hiddenAPIs.filter(
+                  (api) =>
+                    apiMetadata[api as keyof typeof apiMetadata].group ===
+                    'interaction',
+                );
+                if (interactionAPIs.length > 0) {
+                  groupedItems.push({
+                    key: 'interaction-group',
+                    type: 'group',
+                    label: 'Interaction APIs',
+                    children: interactionAPIs.map((api) => ({
+                      key: api,
+                      label: actionNameForType(api),
+                      title: apiMetadata[api as keyof typeof apiMetadata].title,
+                      onClick: () => {
+                        form.setFieldValue('type', api);
+                        setDropdownSelection(api);
+                      },
+                    })),
+                  });
+                }
+
+                const extractionAPIs = hiddenAPIs.filter(
+                  (api) =>
+                    apiMetadata[api as keyof typeof apiMetadata].group ===
+                    'extraction',
+                );
+                if (extractionAPIs.length > 0) {
+                  groupedItems.push({
+                    key: 'extraction-group',
+                    type: 'group',
+                    label: 'Data Extraction APIs',
+                    children: extractionAPIs.map((api) => ({
+                      key: api,
+                      label: actionNameForType(api),
+                      title: apiMetadata[api as keyof typeof apiMetadata].title,
+                      onClick: () => {
+                        form.setFieldValue('type', api);
+                        setDropdownSelection(api);
+                      },
+                    })),
+                  });
+                }
+
+                const validationAPIs = hiddenAPIs.filter(
+                  (api) =>
+                    apiMetadata[api as keyof typeof apiMetadata].group ===
+                    'validation',
+                );
+                if (validationAPIs.length > 0) {
+                  groupedItems.push({
+                    key: 'validation-group',
+                    type: 'group',
+                    label: 'Validation APIs',
+                    children: validationAPIs.map((api) => ({
+                      key: api,
+                      label: actionNameForType(api),
+                      title: apiMetadata[api as keyof typeof apiMetadata].title,
+                      onClick: () => {
+                        form.setFieldValue('type', api);
+                        setDropdownSelection(api);
+                      },
+                    })),
+                  });
+                }
+
+                return { items: groupedItems } as MenuProps;
+              })()}
+              placement="bottomLeft"
+              trigger={['click']}
+              disabled={!runButtonEnabled}
+            >
+              <Radio.Button
+                className={`more-apis-button ${!defaultMainButtons.includes(selectedType) ? 'selected-from-dropdown' : ''}`}
+                value={
+                  selectedType && !defaultMainButtons.includes(selectedType)
+                    ? selectedType
+                    : 'more'
+                }
+              >
+                {selectedType && !defaultMainButtons.includes(selectedType)
+                  ? actionNameForType(selectedType)
+                  : 'More'}{' '}
+                <DownOutlined style={{ fontSize: '10px', marginLeft: '2px' }} />
               </Radio.Button>
-            </Tooltip>
-            <Tooltip title="Extract data directly from the UI">
-              <Radio.Button value="aiQuery">
-                {actionNameForType('aiQuery')}
-              </Radio.Button>
-            </Tooltip>
-            <Tooltip title="Understand the UI and determine if the assertion is true">
-              <Radio.Button value="aiAssert">
-                {actionNameForType('aiAssert')}
-              </Radio.Button>
-            </Tooltip>
-            <Tooltip title="Instant Action: click something">
-              <Radio.Button value="aiTap">
-                {actionNameForType('aiTap')}
-              </Radio.Button>
-            </Tooltip>
+            </Dropdown>
           </Radio.Group>
         </Form.Item>
 
@@ -241,7 +370,13 @@ export const PromptInput: React.FC<PromptInputProps> = ({
           >
             <ConfigSelector
               enableTracking={serviceMode === 'In-Browser-Extension'}
-              showDeepThinkOption={selectedType === 'aiTap'}
+              showDeepThinkOption={
+                selectedType === 'aiTap' ||
+                selectedType === 'aiHover' ||
+                selectedType === 'aiInput' ||
+                selectedType === 'aiRightClick' ||
+                selectedType === 'aiLocate'
+              }
             />
           </div>
         </div>

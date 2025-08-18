@@ -322,6 +322,71 @@ export function BrowserExtensionPlayground({
         result.result = await activeAgent?.aiTap(value.prompt, {
           deepThink,
         });
+      } else if (actionType === 'aiHover') {
+        result.result = await activeAgent?.aiHover(value.prompt, {
+          deepThink,
+        });
+      } else if (actionType === 'aiInput') {
+        // Parse format: "value | element"
+        const parts = value.prompt.split('|').map((s: string) => s.trim());
+        if (parts.length !== 2) {
+          throw new Error('aiInput requires format: "value | element"');
+        }
+        result.result = await activeAgent?.aiInput(parts[0], parts[1], {
+          deepThink,
+        });
+      } else if (actionType === 'aiRightClick') {
+        result.result = await activeAgent?.aiRightClick(value.prompt, {
+          deepThink,
+        });
+      } else if (actionType === 'aiKeyboardPress') {
+        // Parse format: "key | element (optional)"
+        const parts = value.prompt.split('|').map((s: string) => s.trim());
+        const keyName = parts[0];
+        const element = parts[1] || undefined;
+        result.result = await activeAgent?.aiKeyboardPress(keyName, element, {
+          deepThink,
+        });
+      } else if (actionType === 'aiScroll') {
+        // Parse format: "direction amount | element (optional)"
+        const parts = value.prompt.split('|').map((s: string) => s.trim());
+        const scrollParts = parts[0].split(' ').map((s: string) => s.trim());
+
+        if (scrollParts.length < 2) {
+          throw new Error(
+            'aiScroll requires format: "direction amount | element (optional)"',
+          );
+        }
+        const direction = scrollParts[0];
+        const amount = Number.parseInt(scrollParts[1]);
+        const element = parts[1] || undefined;
+
+        const scrollParam = {
+          direction: direction as 'up' | 'down' | 'left' | 'right',
+          scrollType: 'once' as const,
+          distance: amount,
+        };
+
+        result.result = await activeAgent?.aiScroll(scrollParam, element);
+      } else if (actionType === 'aiLocate') {
+        result.result = await activeAgent?.aiLocate(value.prompt, {
+          deepThink,
+        });
+      } else if (actionType === 'aiBoolean') {
+        result.result = await activeAgent?.aiBoolean(value.prompt);
+      } else if (actionType === 'aiNumber') {
+        result.result = await activeAgent?.aiNumber(value.prompt);
+      } else if (actionType === 'aiString') {
+        result.result = await activeAgent?.aiString(value.prompt);
+      } else if (actionType === 'aiAsk') {
+        result.result = await activeAgent?.aiAsk(value.prompt);
+      } else if (actionType === 'aiWaitFor') {
+        result.result = await activeAgent?.aiWaitFor(value.prompt, {
+          timeoutMs: 15000,
+          checkIntervalMs: 3000,
+        });
+      } else {
+        throw new Error(`Unknown action type: ${actionType}`);
       }
     } catch (e: any) {
       result.error = formatErrorMessage(e);
@@ -358,12 +423,22 @@ export function BrowserExtensionPlayground({
     let replayInfo: ReplayScriptsInfo | null = null;
     let counter = replayCounter;
 
-    if (result?.dump && !['aiQuery', 'aiAssert'].includes(actionType)) {
+    // Only generate replay info for interaction APIs, not for data extraction or validation APIs
+    const dataExtractionAPIs = [
+      'aiQuery',
+      'aiBoolean',
+      'aiNumber',
+      'aiString',
+      'aiAsk',
+    ];
+    const validationAPIs = ['aiAssert', 'aiWaitFor'];
+    const noReplayAPIs = [...dataExtractionAPIs, ...validationAPIs];
+
+    if (result?.dump && !noReplayAPIs.includes(actionType)) {
       const info = allScriptsFromDump(result.dump);
       setReplayCounter((c) => c + 1);
       replayInfo = info;
       counter = replayCounter + 1;
-    } else {
     }
 
     // update system message to completed, then add result to list

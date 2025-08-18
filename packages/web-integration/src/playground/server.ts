@@ -191,6 +191,7 @@ export default class PlaygroundServer {
 
         const startTime = Date.now();
         try {
+          // Parse parameters for certain methods
           if (type === 'aiQuery') {
             response.result = await agent.aiQuery(prompt);
           } else if (type === 'aiAction') {
@@ -202,6 +203,74 @@ export default class PlaygroundServer {
           } else if (type === 'aiTap') {
             response.result = await agent.aiTap(prompt, {
               deepThink,
+            });
+          } else if (type === 'aiHover') {
+            response.result = await agent.aiHover(prompt, {
+              deepThink,
+            });
+          } else if (type === 'aiRightClick') {
+            response.result = await agent.aiRightClick(prompt, {
+              deepThink,
+            });
+          } else if (type === 'aiLocate') {
+            response.result = await agent.aiLocate(prompt, {
+              deepThink,
+            });
+          } else if (type === 'aiInput') {
+            // Parse format: "value | element"
+            const parts = prompt.split('|').map((s: string) => s.trim());
+            if (parts.length !== 2) {
+              response.error = 'aiInput requires format: "value | element"';
+            } else {
+              response.result = await agent.aiInput(parts[0], parts[1], {
+                deepThink,
+              });
+            }
+          } else if (type === 'aiKeyboardPress') {
+            // Parse format: "key | element (optional)"
+            const parts = prompt.split('|').map((s: string) => s.trim());
+            const keyName = parts[0];
+            const element = parts[1] || undefined;
+            response.result = await agent.aiKeyboardPress(keyName, element, {
+              deepThink,
+            });
+          } else if (type === 'aiScroll') {
+            // Parse format: "direction amount | element (optional)"
+            // Example: "down 500 | main content"
+            const parts = prompt.split('|').map((s: string) => s.trim());
+            const scrollParts = parts[0]
+              .split(' ')
+              .map((s: string) => s.trim());
+
+            if (scrollParts.length < 2) {
+              response.error =
+                'aiScroll requires format: "direction amount | element (optional)"';
+            } else {
+              const direction = scrollParts[0];
+              const amount = Number.parseInt(scrollParts[1]);
+              const element = parts[1] || undefined;
+
+              const scrollParam = {
+                direction: direction as 'up' | 'down' | 'left' | 'right',
+                scrollType: 'once' as const,
+                distance: amount,
+              };
+
+              response.result = await agent.aiScroll(scrollParam, element);
+            }
+          } else if (type === 'aiBoolean') {
+            response.result = await agent.aiBoolean(prompt);
+          } else if (type === 'aiNumber') {
+            response.result = await agent.aiNumber(prompt);
+          } else if (type === 'aiString') {
+            response.result = await agent.aiString(prompt);
+          } else if (type === 'aiAsk') {
+            response.result = await agent.aiAsk(prompt);
+          } else if (type === 'aiWaitFor') {
+            // aiWaitFor with default timeout of 15 seconds
+            response.result = await agent.aiWaitFor(prompt, {
+              timeoutMs: 15000,
+              checkIntervalMs: 3000,
             });
           } else {
             response.error = `Unknown type: ${type}`;

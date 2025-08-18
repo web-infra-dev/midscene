@@ -49,11 +49,28 @@ body {
           }
         }
 
-        &:hover {
-          color: #2B83FF;
+        &.more-apis-button {
+          display: inline-flex;
+          align-items: center;
+          gap: 2px;
+
+          &:not(.ant-radio-button-wrapper-checked):hover {
+            background-color: #e6e6e6;
+          }
+
+          &.selected-from-dropdown {
+            background-color: #2B83FF;
+            color: #fff;
+            font-weight: 500;
+
+            &:hover {
+              background-color: #2B83FF;
+            }
+          }
         }
       }
     }
+
 
     .action-icons {
       display: flex;
