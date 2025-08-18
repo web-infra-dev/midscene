@@ -9,7 +9,12 @@ import {
   type Size,
   getAIConfig,
 } from '@midscene/core';
-import type { DeviceAction, ExecutorContext, PageType } from '@midscene/core';
+import type {
+  DeviceAction,
+  ExecutorContext,
+  MidsceneLocationType,
+  PageType,
+} from '@midscene/core';
 import { z } from '@midscene/core';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import {
@@ -91,7 +96,7 @@ export class AndroidDevice implements AndroidDevicePage {
       }
     });
 
-    const allActions: DeviceAction[] = [
+    const allActions: DeviceAction<any>[] = [
       ...commonActions,
       {
         name: 'AndroidBackButton',
@@ -136,11 +141,13 @@ export class AndroidDevice implements AndroidDevicePage {
           const [x, y] = element.center;
           await this.longPress(x, y, param?.duration);
         },
-      },
+      } as DeviceAction<{
+        duration?: number;
+        locate: MidsceneLocationType;
+      }>,
       {
         name: 'AndroidPull',
-        description:
-          'Trigger pull down to refresh or pull up actions on Android devices',
+        description: 'Trigger pull down to refresh or pull up actions',
         paramSchema: z.object({
           direction: z.enum(['up', 'down']).describe('The direction to pull'),
           distance: z
@@ -175,7 +182,11 @@ export class AndroidDevice implements AndroidDevicePage {
             throw new Error(`Unknown pull direction: ${param.direction}`);
           }
         },
-      },
+      } as DeviceAction<{
+        direction: 'up' | 'down';
+        distance?: number;
+        duration?: number;
+      }>,
     ];
     return allActions;
   }

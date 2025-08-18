@@ -126,17 +126,24 @@ export async function plan(
     debug('locateFields', locateFields);
 
     locateFields.forEach((field) => {
-      const value = action.param[field];
-      if (value) {
+      const locateResult = action.param[field];
+      if (locateResult) {
         if (vlLocateMode()) {
-          action.param[field] = fillBboxParam(value, size.width, size.height);
+          action.param[field] = fillBboxParam(
+            locateResult,
+            size.width,
+            size.height,
+          );
         } else {
-          const element = elementById(value);
+          const element = elementById(locateResult);
           if (element) {
-            action.param[field] = element.id;
+            action.param[field].id = element.id;
           }
         }
       }
+
+      // to be compatible with the web-integration
+      action.locate = action.param[field];
     });
   });
   // in Qwen-VL, error means error. In GPT-4o, error may mean more actions are needed.
