@@ -4,23 +4,34 @@ const { create } = Z;
 export const useBlackboardPreference = create<{
   markerVisible: boolean;
   elementsVisible: boolean;
+  autoZoom: boolean;
   setMarkerVisible: (visible: boolean) => void;
   setTextsVisible: (visible: boolean) => void;
-}>((set) => ({
-  markerVisible: true,
-  elementsVisible: true,
-  setMarkerVisible: (visible: boolean) => {
-    set({ markerVisible: visible });
-  },
-  setTextsVisible: (visible: boolean) => {
-    set({ elementsVisible: visible });
-  },
-}));
+  setAutoZoom: (enabled: boolean) => void;
+}>((set) => {
+  const savedAutoZoom = localStorage.getItem(AUTO_ZOOM_KEY) !== 'false';
+  return {
+    markerVisible: true,
+    elementsVisible: true,
+    autoZoom: savedAutoZoom,
+    setMarkerVisible: (visible: boolean) => {
+      set({ markerVisible: visible });
+    },
+    setTextsVisible: (visible: boolean) => {
+      set({ elementsVisible: visible });
+    },
+    setAutoZoom: (enabled: boolean) => {
+      set({ autoZoom: enabled });
+      localStorage.setItem(AUTO_ZOOM_KEY, enabled.toString());
+    },
+  };
+});
 
 const CONFIG_KEY = 'midscene-env-config';
 const SERVICE_MODE_KEY = 'midscene-service-mode';
 const TRACKING_ACTIVE_TAB_KEY = 'midscene-tracking-active-tab';
 const DEEP_THINK_KEY = 'midscene-deep-think';
+const AUTO_ZOOM_KEY = 'midscene-auto-zoom';
 const getConfigStringFromLocalStorage = () => {
   const configString = localStorage.getItem(CONFIG_KEY);
   return configString || '';

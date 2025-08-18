@@ -16,6 +16,7 @@ import { Dropdown, Spin, Switch, Tooltip } from 'antd';
 import GlobalPerspectiveIcon from '../icons/global-perspective.svg';
 import { rectMarkForItem } from './blackboard';
 import { getTextureFromCache, loadTexture } from './pixi-loader';
+import { useBlackboardPreference } from './store/store';
 import type {
   AnimationScript,
   CameraState,
@@ -177,16 +178,14 @@ export function Player(props?: {
 }) {
   const [titleText, setTitleText] = useState('');
   const [subTitleText, setSubTitleText] = useState('');
-  const [autoZoom, setAutoZoom] = useState(
-    props?.autoZoom !== undefined ? props.autoZoom : true,
-  );
+  const { autoZoom, setAutoZoom } = useBlackboardPreference();
 
   // Update state when prop changes
   useEffect(() => {
     if (props?.autoZoom !== undefined) {
       setAutoZoom(props.autoZoom);
     }
-  }, [props?.autoZoom]);
+  }, [props?.autoZoom, setAutoZoom]);
 
   const scripts = props?.replayScripts;
   const imageWidth = props?.imageWidth || 1920;
