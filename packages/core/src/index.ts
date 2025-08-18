@@ -6,7 +6,6 @@ export {
   plan,
   describeUserPage,
   AiLocateElement,
-  AiAssert,
 } from './ai-model/index';
 
 export { getAIConfig, MIDSCENE_MODEL_NAME } from '@midscene/shared/env';
