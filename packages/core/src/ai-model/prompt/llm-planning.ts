@@ -17,6 +17,13 @@ const vlLocateParam = () =>
   '{bbox: [number, number, number, number], prompt: string }';
 const llmLocateParam = () => '{"id": string, "prompt": string}';
 
+const ifLocatorField = (field: z.ZodTypeAny) => {
+  if (field instanceof z.ZodObject) {
+    return field.shape.midscene_location_field_flag;
+  }
+  return false;
+};
+
 export const descriptionForAction = (
   action: DeviceAction<any>,
   locatorSchemaTypeDescription: string,
@@ -60,13 +67,13 @@ export const descriptionForAction = (
     };
 
     // Helper function to get description from zod schema
-    const getDescription = (field: any): string | null => {
+    const getDescription = (field: z.ZodTypeAny): string | null => {
       // Handle unwrapped optional fields
       const actualField = field._def?.innerType || field;
 
       // Check for direct description
       if ('description' in field) {
-        return (field as any).description;
+        return field.description || null;
       }
 
       // Check for MidsceneLocation fields and add description
@@ -91,7 +98,7 @@ export const descriptionForAction = (
         const typeName = getTypeName(field);
 
         // Get description
-        const description = getDescription(field);
+        const description = getDescription(field as z.ZodTypeAny);
 
         // Build param line for this field
         let paramLine = `${keyWithOptional}: ${typeName}`;

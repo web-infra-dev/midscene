@@ -253,27 +253,8 @@ export interface PlanningLocateParam extends DetailedLocateParam {
 
 export interface PlanningAction<ParamType = any> {
   thought?: string;
-  type:
-    | 'Locate'
-    | 'Tap'
-    | 'RightClick'
-    | 'Hover'
-    | 'Drag'
-    | 'Input'
-    | 'KeyboardPress'
-    | 'Scroll'
-    | 'Error'
-    | 'Assert'
-    | 'AssertWithoutThrow'
-    | 'Sleep'
-    | 'Finished'
-    | 'AndroidBackButton'
-    | 'AndroidHomeButton'
-    | 'AndroidRecentAppsButton'
-    | 'AndroidLongPress'
-    | 'AndroidPull';
+  type: string;
   param: ParamType;
-  locate?: PlanningLocateParam | null;
 }
 
 export interface PlanningAIResponse {
