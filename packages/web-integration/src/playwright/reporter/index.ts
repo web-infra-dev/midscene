@@ -1,4 +1,6 @@
-import { readFileSync, rmSync } from 'node:fs';
+import { createReadStream, readFileSync, rmSync } from 'node:fs';
+import { pipeline } from 'node:stream';
+import { promisify } from 'node:util';
 import {
   getReportFileName,
   printReportMsg,
@@ -14,6 +16,8 @@ import type {
   TestCase,
   TestResult,
 } from '@playwright/test/reporter';
+
+const pipelineAsync = promisify(pipeline);
 
 function logger(...message: any[]) {
   if (process.env.DEBUG === 'true') {

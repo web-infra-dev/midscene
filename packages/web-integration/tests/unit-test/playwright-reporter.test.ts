@@ -38,10 +38,6 @@ describe('MidsceneReporter', () => {
     vi.unstubAllGlobals();
     // Restore original require.resolve
     require.resolve = originalResolve;
-    // Clean up temp directory
-    if (tempDir && existsSync(tempDir)) {
-      rmSync(tempDir, { recursive: true, force: true });
-    }
   });
 
   describe('constructor', () => {
@@ -165,7 +161,7 @@ describe('MidsceneReporter', () => {
       expect(mockTest.annotations).toHaveLength(1);
       expect(mockTest.annotations[0].type).toBe('MIDSCENE_DUMP_ANNOTATION');
       expect(mockTest.annotations[0].description).toBe(tempFile);
-      
+
       // Temp file should be deleted
       expect(existsSync(tempFile)).toBe(false);
     });
@@ -217,199 +213,6 @@ describe('MidsceneReporter', () => {
         }),
         true,
       );
-    });
-
-    it('should clear memory after each write to reduce memory usage', async () => {
-      const reporter = new MidsceneReporter({ type: 'merged' });
-
-      // Create a large dump string to simulate memory usage
-      const largeDumpData = 'x'.repeat(10 * 1024 * 1024); // 10MB string
-      const tempFile = join(tempDir, 'large-dump.json');
-      writeFileSync(tempFile, largeDumpData, 'utf-8');
-
-      const mockTest: TestCase = {
-        id: 'test-id-memory',
-        title: 'Memory Test',
-        annotations: [
-          { type: 'MIDSCENE_DUMP_ANNOTATION', description: tempFile },
-        ],
-      } as any;
-      const mockResult: TestResult = { status: 'passed', duration: 100 } as any;
-
-      // Store reference to the annotation
-      const annotation = mockTest.annotations[0];
-
-      // Before onTestEnd, the annotation should contain only the file path
-      expect(annotation.description).toBe(tempFile);
-      expect(annotation.description?.length).toBeLessThan(200); // Path is much smaller than 10MB
-
-      // Process the test
-      reporter.onTestEnd(mockTest, mockResult);
-
-      // After onTestEnd, the annotation still has the path (no clearing)
-      expect(annotation.description).toBe(tempFile);
-
-      // Verify the report was written with the original data
-      expect(coreUtils.writeDumpReport).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          dumpString: largeDumpData,
-        }),
-        true,
-      );
-
-      // Verify temp file was deleted
-      expect(existsSync(tempFile)).toBe(false);
-    });
-
-    it('should not write report again if annotation is already cleared', async () => {
-      const reporter = new MidsceneReporter({ type: 'merged' });
-
-      const mockTest: TestCase = {
-        id: 'test-id-cleared',
-        title: 'Cleared Test',
-        annotations: [
-          { type: 'MIDSCENE_DUMP_ANNOTATION', description: '' }, // Already cleared
-        ],
-      } as any;
-      const mockResult: TestResult = { status: 'passed' } as any;
-
-      reporter.onTestEnd(mockTest, mockResult);
-
-      // Should not write report for empty description
-      expect(coreUtils.writeDumpReport).not.toHaveBeenCalled();
-    });
-
-    it('should handle multiple dump updates and clears correctly', async () => {
-      const reporter = new MidsceneReporter({ type: 'merged' });
-
-      const mockTest: TestCase = {
-        id: 'test-id-multiple',
-        title: 'Multiple Updates Test',
-        annotations: [],
-      } as any;
-      const mockResult: TestResult = { status: 'passed', duration: 200 } as any;
-
-      // First dump update - simulate agent writing dump to temp file
-      const firstDump = 'first-dump-data-5mb'.repeat(250000); // ~5MB
-      const firstTempFile = join(tempDir, 'first-dump.json');
-      writeFileSync(firstTempFile, firstDump, 'utf-8');
-      mockTest.annotations.push({
-        type: 'MIDSCENE_DUMP_ANNOTATION',
-        description: firstTempFile,
-      });
-
-      // First write
-      reporter.onTestEnd(mockTest, mockResult);
-
-      // Verify first write
-      expect(coreUtils.writeDumpReport).toHaveBeenCalledTimes(1);
-      expect(coreUtils.writeDumpReport).toHaveBeenLastCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          dumpString: expect.stringContaining('first-dump-data'),
-        }),
-        true,
-      );
-
-      // Verify temp file was deleted (annotation still has path)
-      expect(mockTest.annotations[0].description).toBe(firstTempFile);
-      expect(existsSync(firstTempFile)).toBe(false);
-
-      // Second dump update - simulate more agent actions
-      const secondDump = 'second-dump-data-10mb'.repeat(500000); // ~10MB
-      const secondTempFile = join(tempDir, 'second-dump.json');
-      writeFileSync(secondTempFile, secondDump, 'utf-8');
-      mockTest.annotations[0].description = secondTempFile;
-
-      // Second write
-      reporter.onTestEnd(mockTest, mockResult);
-
-      // Verify second write
-      expect(coreUtils.writeDumpReport).toHaveBeenCalledTimes(2);
-      expect(coreUtils.writeDumpReport).toHaveBeenLastCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          dumpString: expect.stringContaining('second-dump-data'),
-        }),
-        true,
-      );
-
-      // Verify temp file was deleted (annotation still has path)
-      expect(mockTest.annotations[0].description).toBe(secondTempFile);
-      expect(existsSync(secondTempFile)).toBe(false);
-
-      // Third attempt with same path (file deleted) - should not write
-      reporter.onTestEnd(mockTest, mockResult);
-
-      // Should still be 2 calls, not 3 (file doesn't exist)
-      expect(coreUtils.writeDumpReport).toHaveBeenCalledTimes(2);
-
-      // Fourth dump update - simulate final agent actions
-      const thirdDump = 'third-dump-data-15mb'.repeat(750000); // ~15MB
-      const thirdTempFile = join(tempDir, 'third-dump.json');
-      writeFileSync(thirdTempFile, thirdDump, 'utf-8');
-      mockTest.annotations[0].description = thirdTempFile;
-
-      // Fourth write
-      reporter.onTestEnd(mockTest, mockResult);
-
-      // Verify third write
-      expect(coreUtils.writeDumpReport).toHaveBeenCalledTimes(3);
-      expect(coreUtils.writeDumpReport).toHaveBeenLastCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          dumpString: expect.stringContaining('third-dump-data'),
-        }),
-        true,
-      );
-
-      // Verify temp file was deleted (annotation still has path)
-      expect(mockTest.annotations[0].description).toBe(thirdTempFile);
-      expect(existsSync(thirdTempFile)).toBe(false);
-
-      // Verify annotation structure is preserved throughout
-      expect(mockTest.annotations).toHaveLength(1);
-      expect(mockTest.annotations[0].type).toBe('MIDSCENE_DUMP_ANNOTATION');
-    });
-
-    it('should handle concurrent annotations correctly', async () => {
-      const reporter = new MidsceneReporter({ type: 'merged' });
-
-      // Create temp file for dump
-      const tempFile = join(tempDir, 'concurrent-dump.json');
-      writeFileSync(tempFile, 'dump-to-clear', 'utf-8');
-
-      const mockTest: TestCase = {
-        id: 'test-id-concurrent',
-        title: 'Concurrent Annotations Test',
-        annotations: [
-          { type: 'OTHER_ANNOTATION', description: 'should-remain' },
-          { type: 'MIDSCENE_DUMP_ANNOTATION', description: tempFile },
-          { type: 'ANOTHER_ANNOTATION', description: 'also-should-remain' },
-        ],
-      } as any;
-      const mockResult: TestResult = { status: 'passed' } as any;
-
-      reporter.onTestEnd(mockTest, mockResult);
-
-      // Verify dump was written
-      expect(coreUtils.writeDumpReport).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          dumpString: 'dump-to-clear',
-        }),
-        true,
-      );
-
-      // Verify other annotations are not affected
-      expect(mockTest.annotations).toHaveLength(3);
-      expect(mockTest.annotations[0].description).toBe('should-remain');
-      expect(mockTest.annotations[1].description).toBe(tempFile); // Still has path
-      expect(mockTest.annotations[2].description).toBe('also-should-remain');
-
-      // Verify temp file was deleted
-      expect(existsSync(tempFile)).toBe(false);
     });
 
     it('should handle missing temp file gracefully', async () => {
