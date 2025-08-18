@@ -133,20 +133,12 @@ export const allScriptsFromDump = (
   let width: number | undefined = undefined;
   let height: number | undefined = undefined;
   let sdkVersion: string | undefined = undefined;
-  let modelName: string | undefined = undefined;
-  let modelDescription: string | undefined = undefined;
+  const modelName: string | undefined = dump.modelName;
+  const modelDescription: string | undefined = dump.modelDescription;
 
   dump.executions.forEach((execution) => {
     if (execution.sdkVersion) {
       sdkVersion = execution.sdkVersion;
-    }
-
-    if (execution.model_name) {
-      modelName = execution.model_name;
-    }
-
-    if (execution.model_description) {
-      modelDescription = execution.model_description;
     }
 
     execution.tasks.forEach((task) => {

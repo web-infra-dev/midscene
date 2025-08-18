@@ -5,7 +5,6 @@ import type {
   PartialInsightDumpFromSDK,
 } from '@/types';
 import { getVersion } from '@/utils';
-import { MIDSCENE_MODEL_NAME, getAIConfig } from '@midscene/shared/env';
 import { uuid } from '@midscene/shared/utils';
 
 export function emitInsightDump(
@@ -15,7 +14,6 @@ export function emitInsightDump(
   const baseData: DumpMeta = {
     sdkVersion: getVersion(),
     logTime: Date.now(),
-    model_name: getAIConfig(MIDSCENE_MODEL_NAME) || '',
   };
   const finalData: InsightDump = {
     logId: uuid(),
