@@ -1,3 +1,4 @@
+import { readFileSync, rmSync } from 'node:fs';
 import {
   getReportFileName,
   printReportMsg,
@@ -92,10 +93,22 @@ class MidsceneReporter implements Reporter {
       return annotation.type === 'MIDSCENE_DUMP_ANNOTATION';
     });
     if (!dumpAnnotation?.description) return;
+
+    const tempFilePath = dumpAnnotation.description;
+    let dumpString: string;
+
+    try {
+      dumpString = readFileSync(tempFilePath, 'utf-8');
+      logger(`Read dump from temp file: ${tempFilePath}`);
+    } catch (error) {
+      console.error(`Failed to read dump file: ${tempFilePath}`, error);
+      return;
+    }
+
     const retry = result.retry ? `(retry #${result.retry})` : '';
     const testId = `${test.id}${retry}`;
     const testData: ReportDumpWithAttributes = {
-      dumpString: dumpAnnotation.description,
+      dumpString,
       attributes: {
         playwright_test_id: testId,
         playwright_test_title: `${test.title}${retry}`,
@@ -106,7 +119,15 @@ class MidsceneReporter implements Reporter {
 
     this.updateReport(testData);
 
-    // Clear only the written dump content from memory, keep the annotation for potential future updates
+    // Clean up: delete temp file
+    try {
+      rmSync(tempFilePath, { force: true });
+      logger(`Deleted temp file: ${tempFilePath}`);
+    } catch (error) {
+      console.warn(`Failed to delete temp file: ${tempFilePath}`, error);
+    }
+
+    // Clear the annotation description to prevent re-processing
     dumpAnnotation.description = '';
   }
 
