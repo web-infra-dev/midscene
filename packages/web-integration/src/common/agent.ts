@@ -31,6 +31,7 @@ import {
 import yaml from 'js-yaml';
 
 import { ScriptPlayer, parseYamlScript } from '@/yaml/index';
+import { getModelName } from '@midscene/core/ai-model';
 import {
   groupedActionDumpFileExt,
   reportHTMLContent,
@@ -41,7 +42,11 @@ import {
   DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
   DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
 } from '@midscene/shared/constants';
-import { getAIConfigInBoolean, vlLocateMode } from '@midscene/shared/env';
+import {
+  getAIConfigInBoolean,
+  uiTarsModelVersion,
+  vlLocateMode,
+} from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { PageTaskExecutor } from '../common/tasks';
@@ -215,9 +220,25 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   resetDump() {
+    const modelDescription = (() => {
+      if (vlLocateMode()) {
+        const uiTarsModelVer = uiTarsModelVersion();
+        if (uiTarsModelVer) {
+          return `UI-TARS=${uiTarsModelVer}`;
+        } else {
+          return `${vlLocateMode()} mode`;
+        }
+      }
+      return '';
+    })();
+
+    const modelName = getModelName();
+
     this.dump = {
       groupName: this.opts.groupName!,
       groupDescription: this.opts.groupDescription,
+      modelName,
+      modelDescription,
       executions: [],
     };
 
@@ -878,8 +899,6 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     const executionDump: ExecutionDump = {
       sdkVersion: '',
       logTime: now,
-      model_name: '',
-      model_description: '',
       name: `Log - ${title || 'untitled'}`,
       description: opt?.content || '',
       tasks: [task],
