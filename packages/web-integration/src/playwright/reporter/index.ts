@@ -106,9 +106,8 @@ class MidsceneReporter implements Reporter {
 
     this.updateReport(testData);
 
-    test.annotations = test.annotations.filter(
-      (annotation) => annotation.type !== 'MIDSCENE_DUMP_ANNOTATION',
-    );
+    // Clear only the written dump content from memory, keep the annotation for potential future updates
+    dumpAnnotation.description = '';
   }
 
   onEnd(result: FullResult) {

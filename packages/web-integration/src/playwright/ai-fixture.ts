@@ -158,6 +158,7 @@ export const PlaywrightAiFixture = (options?: {
       return item.type === midsceneDumpAnnotationId;
     });
     if (currentAnnotation) {
+      // Replace the entire dump content (accumulation happens in agent)
       currentAnnotation.description = dump;
     } else {
       test.annotations.push({

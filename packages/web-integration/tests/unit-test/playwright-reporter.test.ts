@@ -1,35 +1,17 @@
 import { createRequire } from 'node:module';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import MidsceneReporter from '@/playwright/reporter';
 import * as coreUtils from '@midscene/core/utils';
-import type {
-  FullConfig,
-  Suite,
-  TestCase,
-  TestResult,
-} from '@playwright/test/reporter';
+import type { TestCase, TestResult } from '@playwright/test/reporter';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
-
-const __filename_url = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename_url);
 
 // Mock core utilities to prevent actual file I/O
 vi.mock('@midscene/core/utils', () => ({
   writeDumpReport: vi.fn(),
 }));
 
-// Resolve path to the actual reporter file from the test file's location
-const reporterSrcPath = path.resolve(
-  __dirname,
-  '../../src/playwright/reporter/index.ts',
-);
-const reporterPackageName = '@midscene/web/playwright-reporter';
-
 describe('MidsceneReporter', () => {
-  const mockSuite = {} as Suite;
   let originalResolve: typeof require.resolve;
 
   beforeEach(() => {
@@ -137,7 +119,7 @@ describe('MidsceneReporter', () => {
       );
     });
 
-    it('should remove the dump annotation after processing', async () => {
+    it('should clear the dump annotation description after processing', async () => {
       const reporter = new MidsceneReporter({ type: 'merged' });
 
       const mockTest: TestCase = {
@@ -151,7 +133,10 @@ describe('MidsceneReporter', () => {
 
       reporter.onTestEnd(mockTest, mockResult);
 
-      expect(mockTest.annotations).toEqual([]);
+      // The annotation should still exist but with empty description
+      expect(mockTest.annotations).toHaveLength(1);
+      expect(mockTest.annotations[0].type).toBe('MIDSCENE_DUMP_ANNOTATION');
+      expect(mockTest.annotations[0].description).toBe('');
     });
 
     it('should not write a report if dump annotation is not present', async () => {
@@ -197,6 +182,180 @@ describe('MidsceneReporter', () => {
         }),
         true,
       );
+    });
+
+    it('should clear memory after each write to reduce memory usage', async () => {
+      const reporter = new MidsceneReporter({ type: 'merged' });
+
+      // Create a large dump string to simulate memory usage
+      const largeDumpData = 'x'.repeat(10 * 1024 * 1024); // 10MB string
+
+      const mockTest: TestCase = {
+        id: 'test-id-memory',
+        title: 'Memory Test',
+        annotations: [
+          { type: 'MIDSCENE_DUMP_ANNOTATION', description: largeDumpData },
+        ],
+      } as any;
+      const mockResult: TestResult = { status: 'passed', duration: 100 } as any;
+
+      // Store reference to the annotation
+      const annotation = mockTest.annotations[0];
+
+      // Before onTestEnd, the annotation should contain the large data
+      expect(annotation.description).toBe(largeDumpData);
+      expect(annotation.description?.length).toBe(10 * 1024 * 1024);
+
+      // Process the test
+      reporter.onTestEnd(mockTest, mockResult);
+
+      // After onTestEnd, the annotation should be cleared
+      expect(annotation.description).toBe('');
+      expect(annotation.description?.length).toBe(0);
+
+      // Verify the report was written with the original data
+      expect(coreUtils.writeDumpReport).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          dumpString: largeDumpData,
+        }),
+        true,
+      );
+    });
+
+    it('should not write report again if annotation is already cleared', async () => {
+      const reporter = new MidsceneReporter({ type: 'merged' });
+
+      const mockTest: TestCase = {
+        id: 'test-id-cleared',
+        title: 'Cleared Test',
+        annotations: [
+          { type: 'MIDSCENE_DUMP_ANNOTATION', description: '' }, // Already cleared
+        ],
+      } as any;
+      const mockResult: TestResult = { status: 'passed' } as any;
+
+      reporter.onTestEnd(mockTest, mockResult);
+
+      // Should not write report for empty description
+      expect(coreUtils.writeDumpReport).not.toHaveBeenCalled();
+    });
+
+    it('should handle multiple dump updates and clears correctly', async () => {
+      const reporter = new MidsceneReporter({ type: 'merged' });
+
+      const mockTest: TestCase = {
+        id: 'test-id-multiple',
+        title: 'Multiple Updates Test',
+        annotations: [],
+      } as any;
+      const mockResult: TestResult = { status: 'passed', duration: 200 } as any;
+
+      // First dump update - simulate agent writing dump
+      mockTest.annotations.push({
+        type: 'MIDSCENE_DUMP_ANNOTATION',
+        description: 'first-dump-data-5mb'.repeat(250000), // ~5MB
+      });
+
+      // First write
+      reporter.onTestEnd(mockTest, mockResult);
+
+      // Verify first write
+      expect(coreUtils.writeDumpReport).toHaveBeenCalledTimes(1);
+      expect(coreUtils.writeDumpReport).toHaveBeenLastCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          dumpString: expect.stringContaining('first-dump-data'),
+        }),
+        true,
+      );
+
+      // Verify memory was cleared
+      expect(mockTest.annotations[0].description).toBe('');
+
+      // Second dump update - simulate more agent actions
+      mockTest.annotations[0].description = 'second-dump-data-10mb'.repeat(
+        500000,
+      ); // ~10MB
+
+      // Second write
+      reporter.onTestEnd(mockTest, mockResult);
+
+      // Verify second write
+      expect(coreUtils.writeDumpReport).toHaveBeenCalledTimes(2);
+      expect(coreUtils.writeDumpReport).toHaveBeenLastCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          dumpString: expect.stringContaining('second-dump-data'),
+        }),
+        true,
+      );
+
+      // Verify memory was cleared again
+      expect(mockTest.annotations[0].description).toBe('');
+
+      // Third attempt with empty description - should not write
+      reporter.onTestEnd(mockTest, mockResult);
+
+      // Should still be 2 calls, not 3
+      expect(coreUtils.writeDumpReport).toHaveBeenCalledTimes(2);
+
+      // Fourth dump update - simulate final agent actions
+      mockTest.annotations[0].description = 'third-dump-data-15mb'.repeat(
+        750000,
+      ); // ~15MB
+
+      // Fourth write
+      reporter.onTestEnd(mockTest, mockResult);
+
+      // Verify third write
+      expect(coreUtils.writeDumpReport).toHaveBeenCalledTimes(3);
+      expect(coreUtils.writeDumpReport).toHaveBeenLastCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          dumpString: expect.stringContaining('third-dump-data'),
+        }),
+        true,
+      );
+
+      // Verify memory was cleared
+      expect(mockTest.annotations[0].description).toBe('');
+
+      // Verify annotation structure is preserved throughout
+      expect(mockTest.annotations).toHaveLength(1);
+      expect(mockTest.annotations[0].type).toBe('MIDSCENE_DUMP_ANNOTATION');
+    });
+
+    it('should handle concurrent annotations correctly', async () => {
+      const reporter = new MidsceneReporter({ type: 'merged' });
+
+      const mockTest: TestCase = {
+        id: 'test-id-concurrent',
+        title: 'Concurrent Annotations Test',
+        annotations: [
+          { type: 'OTHER_ANNOTATION', description: 'should-remain' },
+          { type: 'MIDSCENE_DUMP_ANNOTATION', description: 'dump-to-clear' },
+          { type: 'ANOTHER_ANNOTATION', description: 'also-should-remain' },
+        ],
+      } as any;
+      const mockResult: TestResult = { status: 'passed' } as any;
+
+      reporter.onTestEnd(mockTest, mockResult);
+
+      // Verify dump was written
+      expect(coreUtils.writeDumpReport).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          dumpString: 'dump-to-clear',
+        }),
+        true,
+      );
+
+      // Verify only MIDSCENE_DUMP_ANNOTATION was cleared
+      expect(mockTest.annotations).toHaveLength(3);
+      expect(mockTest.annotations[0].description).toBe('should-remain');
+      expect(mockTest.annotations[1].description).toBe(''); // Only this one cleared
+      expect(mockTest.annotations[2].description).toBe('also-should-remain');
     });
   });
 });
