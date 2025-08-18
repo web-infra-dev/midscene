@@ -1,6 +1,4 @@
-import { createReadStream, readFileSync, rmSync } from 'node:fs';
-import { pipeline } from 'node:stream';
-import { promisify } from 'node:util';
+import { readFileSync, rmSync } from 'node:fs';
 import {
   getReportFileName,
   printReportMsg,
@@ -10,14 +8,11 @@ import type { ReportDumpWithAttributes } from '@midscene/core';
 import { writeDumpReport } from '@midscene/core/utils';
 import type {
   FullConfig,
-  FullResult,
   Reporter,
   Suite,
   TestCase,
   TestResult,
 } from '@playwright/test/reporter';
-
-const pipelineAsync = promisify(pipeline);
 
 function logger(...message: any[]) {
   if (process.env.DEBUG === 'true') {
@@ -103,9 +98,11 @@ class MidsceneReporter implements Reporter {
 
     try {
       dumpString = readFileSync(tempFilePath, 'utf-8');
-      logger(`Read dump from temp file: ${tempFilePath}`);
     } catch (error) {
-      console.error(`Failed to read dump file: ${tempFilePath}`, error);
+      console.error(
+        `Failed to read Midscene dump file: ${tempFilePath}`,
+        error,
+      );
       return;
     }
 
@@ -126,14 +123,12 @@ class MidsceneReporter implements Reporter {
     // Clean up: delete temp file
     try {
       rmSync(tempFilePath, { force: true });
-      logger(`Deleted temp file: ${tempFilePath}`);
     } catch (error) {
-      console.warn(`Failed to delete temp file: ${tempFilePath}`, error);
+      console.warn(
+        `Failed to delete Midscene temp file: ${tempFilePath}`,
+        error,
+      );
     }
-  }
-
-  onEnd(result: FullResult) {
-    logger(`Finished the run: ${result.status}`);
   }
 }
 
