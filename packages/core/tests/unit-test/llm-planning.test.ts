@@ -70,6 +70,10 @@ describe('llm planning - build yaml flow', () => {
       [
         {
           type: 'Input',
+          locate: {
+            bbox: [512, 127, 1068, 198],
+            prompt: 'The input box for adding a new todo',
+          },
           param: {
             value: 'hello',
             locate: {
@@ -84,6 +88,10 @@ describe('llm planning - build yaml flow', () => {
         },
         {
           type: 'Tap',
+          locate: {
+            bbox: [512, 127, 1068, 197],
+            prompt: "The input box labeled 'What needs to be done?'",
+          },
           param: {
             locate: {
               bbox: [512, 127, 1068, 197],
@@ -130,15 +138,23 @@ describe('llm planning - build yaml flow', () => {
     expect(flow).toMatchInlineSnapshot(`
       [
         {
-          "aiInput": "",
-          "locate": "The input box for adding a new todo",
+          "aiInput": "The input box for adding a new todo",
+          "locate": {
+            "bbox": [
+              512,
+              127,
+              1068,
+              198,
+            ],
+            "prompt": "The input box for adding a new todo",
+          },
           "value": "hello",
         },
         {
           "aiHover": "",
         },
         {
-          "aiTap": "",
+          "aiTap": "The input box labeled 'What needs to be done?'",
           "locate": {
             "bbox": [
               512,
@@ -164,6 +180,10 @@ describe('llm planning - build yaml flow', () => {
       [
         {
           type: 'Tap',
+          locate: {
+            bbox: [300, 300, 400, 400],
+            prompt: 'Cancel button',
+          },
           param: {
             locate: {
               bbox: [300, 300, 400, 400],
@@ -173,6 +193,10 @@ describe('llm planning - build yaml flow', () => {
         },
         {
           type: 'Input',
+          locate: {
+            bbox: [500, 500, 600, 600],
+            prompt: 'Text input field',
+          },
           param: {
             value: 'test',
             locate: {
@@ -206,10 +230,27 @@ describe('llm planning - build yaml flow', () => {
       [
         {
           "aiTap": "Cancel button",
+          "locate": {
+            "bbox": [
+              300,
+              300,
+              400,
+              400,
+            ],
+            "prompt": "Cancel button",
+          },
         },
         {
-          "aiInput": "",
-          "locate": "Text input field",
+          "aiInput": "Text input field",
+          "locate": {
+            "bbox": [
+              500,
+              500,
+              600,
+              600,
+            ],
+            "prompt": "Text input field",
+          },
           "value": "test",
         },
       ]
@@ -221,6 +262,10 @@ describe('llm planning - build yaml flow', () => {
       [
         {
           type: 'Click',
+          locate: {
+            bbox: [100, 100, 200, 200],
+            prompt: 'Submit button',
+          },
           param: {
             locate: {
               bbox: [100, 100, 200, 200],
@@ -240,12 +285,22 @@ describe('llm planning - build yaml flow', () => {
         },
       ],
     );
-    expect(flow).toEqual([
-      {
-        action_space_Click: '',
-        locate: 'Submit button',
-      },
-    ]);
+    expect(flow).toMatchInlineSnapshot(`
+      [
+        {
+          "action_space_Click": "Submit button",
+          "locate": {
+            "bbox": [
+              100,
+              100,
+              200,
+              200,
+            ],
+            "prompt": "Submit button",
+          },
+        },
+      ]
+    `);
   });
 
   it('build yaml flow without simplified format when multiple params', () => {
@@ -277,13 +332,31 @@ describe('llm planning - build yaml flow', () => {
         },
       ],
     );
-    expect(flow).toEqual([
-      {
-        aiDragAndDrop: '',
-        from: 'Source element',
-        to: 'Target element',
-      },
-    ]);
+    expect(flow).toMatchInlineSnapshot(`
+      [
+        {
+          "aiDragAndDrop": "",
+          "from": {
+            "bbox": [
+              100,
+              100,
+              200,
+              200,
+            ],
+            "prompt": "Source element",
+          },
+          "to": {
+            "bbox": [
+              300,
+              300,
+              400,
+              400,
+            ],
+            "prompt": "Target element",
+          },
+        },
+      ]
+    `);
   });
 
   it('build yaml flow without simplified format when param is not locator field', () => {
