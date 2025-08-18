@@ -143,24 +143,31 @@ describe('MidsceneReporter', () => {
       expect(existsSync(tempFile)).toBe(false);
     });
 
-    it('should clear the dump annotation description after processing', async () => {
+    it('should handle file path and delete temp file after processing', async () => {
       const reporter = new MidsceneReporter({ type: 'merged' });
+
+      // Create temp file
+      const tempFile = join(tempDir, 'test-dump-2.json');
+      writeFileSync(tempFile, 'dump-data', 'utf-8');
 
       const mockTest: TestCase = {
         id: 'test-id-2',
         title: 'Another Test',
         annotations: [
-          { type: 'MIDSCENE_DUMP_ANNOTATION', description: 'dump-data' },
+          { type: 'MIDSCENE_DUMP_ANNOTATION', description: tempFile },
         ],
       } as any;
       const mockResult: TestResult = { status: 'failed' } as any;
 
       reporter.onTestEnd(mockTest, mockResult);
 
-      // The annotation should still exist but with empty description
+      // The annotation should still exist with the path (no clearing)
       expect(mockTest.annotations).toHaveLength(1);
       expect(mockTest.annotations[0].type).toBe('MIDSCENE_DUMP_ANNOTATION');
-      expect(mockTest.annotations[0].description).toBe('');
+      expect(mockTest.annotations[0].description).toBe(tempFile);
+      
+      // Temp file should be deleted
+      expect(existsSync(tempFile)).toBe(false);
     });
 
     it('should not write a report if dump annotation is not present', async () => {
@@ -239,9 +246,8 @@ describe('MidsceneReporter', () => {
       // Process the test
       reporter.onTestEnd(mockTest, mockResult);
 
-      // After onTestEnd, the annotation should be cleared
-      expect(annotation.description).toBe('');
-      expect(annotation.description?.length).toBe(0);
+      // After onTestEnd, the annotation still has the path (no clearing)
+      expect(annotation.description).toBe(tempFile);
 
       // Verify the report was written with the original data
       expect(coreUtils.writeDumpReport).toHaveBeenCalledWith(
@@ -306,8 +312,8 @@ describe('MidsceneReporter', () => {
         true,
       );
 
-      // Verify annotation was cleared and temp file deleted
-      expect(mockTest.annotations[0].description).toBe('');
+      // Verify temp file was deleted (annotation still has path)
+      expect(mockTest.annotations[0].description).toBe(firstTempFile);
       expect(existsSync(firstTempFile)).toBe(false);
 
       // Second dump update - simulate more agent actions
@@ -329,14 +335,14 @@ describe('MidsceneReporter', () => {
         true,
       );
 
-      // Verify annotation was cleared again and temp file deleted
-      expect(mockTest.annotations[0].description).toBe('');
+      // Verify temp file was deleted (annotation still has path)
+      expect(mockTest.annotations[0].description).toBe(secondTempFile);
       expect(existsSync(secondTempFile)).toBe(false);
 
-      // Third attempt with empty description - should not write
+      // Third attempt with same path (file deleted) - should not write
       reporter.onTestEnd(mockTest, mockResult);
 
-      // Should still be 2 calls, not 3
+      // Should still be 2 calls, not 3 (file doesn't exist)
       expect(coreUtils.writeDumpReport).toHaveBeenCalledTimes(2);
 
       // Fourth dump update - simulate final agent actions
@@ -358,8 +364,8 @@ describe('MidsceneReporter', () => {
         true,
       );
 
-      // Verify annotation was cleared and temp file deleted
-      expect(mockTest.annotations[0].description).toBe('');
+      // Verify temp file was deleted (annotation still has path)
+      expect(mockTest.annotations[0].description).toBe(thirdTempFile);
       expect(existsSync(thirdTempFile)).toBe(false);
 
       // Verify annotation structure is preserved throughout
@@ -396,10 +402,10 @@ describe('MidsceneReporter', () => {
         true,
       );
 
-      // Verify only MIDSCENE_DUMP_ANNOTATION was cleared
+      // Verify other annotations are not affected
       expect(mockTest.annotations).toHaveLength(3);
       expect(mockTest.annotations[0].description).toBe('should-remain');
-      expect(mockTest.annotations[1].description).toBe(''); // Only this one cleared
+      expect(mockTest.annotations[1].description).toBe(tempFile); // Still has path
       expect(mockTest.annotations[2].description).toBe('also-should-remain');
 
       // Verify temp file was deleted

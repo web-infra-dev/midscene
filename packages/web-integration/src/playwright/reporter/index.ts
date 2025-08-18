@@ -126,9 +126,6 @@ class MidsceneReporter implements Reporter {
     } catch (error) {
       console.warn(`Failed to delete temp file: ${tempFilePath}`, error);
     }
-
-    // Clear the annotation description to prevent re-processing
-    dumpAnnotation.description = '';
   }
 
   onEnd(result: FullResult) {
