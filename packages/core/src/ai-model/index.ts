@@ -22,7 +22,6 @@ export type { ChatCompletionMessageParam } from 'openai/resources/index';
 export {
   AiLocateElement,
   AiExtractElementInfo,
-  AiAssert,
   AiLocateSection,
 } from './inspect';
 

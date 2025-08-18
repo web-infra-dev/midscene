@@ -1,5 +1,4 @@
 import type {
-  AIAssertionResponse,
   AIDataExtractionResponse,
   AIElementLocatorResponse,
   AIElementResponse,
@@ -16,7 +15,6 @@ import type {
 } from '@/types';
 import {
   MIDSCENE_USE_QWEN_VL,
-  MIDSCENE_USE_VLM_UI_TARS,
   getAIConfigInBoolean,
   vlLocateMode,
 } from '@midscene/shared/env';
@@ -39,7 +37,6 @@ import {
   markupImageForLLM,
   mergeRects,
 } from './common';
-import { systemPromptToAssert } from './prompt/assertion';
 import {
   extractDataQueryPrompt,
   systemPromptToExtract,
@@ -450,63 +447,5 @@ export async function AiExtractElementInfo<
     parseResult: result.content,
     elementById,
     usage: result.usage,
-  };
-}
-
-export async function AiAssert<
-  ElementType extends BaseElement = BaseElement,
->(options: { assertion: TUserPrompt; context: UIContext<ElementType> }) {
-  const { assertion, context } = options;
-
-  assert(assertion, 'assertion should not be empty');
-
-  const { screenshotBase64 } = context;
-
-  const systemPrompt = systemPromptToAssert({
-    isUITars: getAIConfigInBoolean(MIDSCENE_USE_VLM_UI_TARS),
-  });
-
-  const assertionText = extraTextFromUserPrompt(assertion);
-
-  const msgs: AIArgs = [
-    { role: 'system', content: systemPrompt },
-    {
-      role: 'user',
-      content: [
-        {
-          type: 'image_url',
-          image_url: {
-            url: screenshotBase64,
-            detail: 'high',
-          },
-        },
-        {
-          type: 'text',
-          text: `
-Here is the assertion. Please tell whether it is truthy according to the screenshot.
-=====================================
-${assertionText}
-=====================================
-  `,
-        },
-      ],
-    },
-  ];
-
-  if (typeof assertion !== 'string') {
-    const addOns = await promptsToChatParam({
-      images: assertion.images,
-      convertHttpImage2Base64: assertion.convertHttpImage2Base64,
-    });
-    msgs.push(...addOns);
-  }
-
-  const { content: assertResult, usage } = await callAiFn<AIAssertionResponse>(
-    msgs,
-    AIActionType.ASSERT,
-  );
-  return {
-    content: assertResult,
-    usage,
   };
 }
