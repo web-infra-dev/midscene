@@ -28,7 +28,7 @@ export async function plan(
   opts: {
     context: UIContext;
     pageType: PageType;
-    actionSpace: DeviceAction[];
+    actionSpace: DeviceAction<any>[];
     callAI?: typeof callAiFn<PlanningAIResponse>;
     log?: string;
     actionContext?: string;

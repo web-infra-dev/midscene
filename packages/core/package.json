@@ -7,7 +7,10 @@
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",
   "module": "./dist/es/index.mjs",
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
@@ -32,10 +35,18 @@
   },
   "typesVersions": {
     "*": {
-      ".": ["./dist/types/index.d.ts"],
-      "utils": ["./dist/types/utils.d.ts"],
-      "ai-model": ["./dist/types/ai-model.d.ts"],
-      "tree": ["./dist/types/tree.d.ts"]
+      ".": [
+        "./dist/types/index.d.ts"
+      ],
+      "utils": [
+        "./dist/types/utils.d.ts"
+      ],
+      "ai-model": [
+        "./dist/types/ai-model.d.ts"
+      ],
+      "tree": [
+        "./dist/types/tree.d.ts"
+      ]
     }
   },
   "scripts": {
@@ -60,7 +71,8 @@
     "jsonrepair": "3.12.0",
     "langsmith": "0.3.7",
     "openai": "4.81.0",
-    "socks-proxy-agent": "8.0.4"
+    "socks-proxy-agent": "8.0.4",
+    "zod": "3.24.3"
   },
   "devDependencies": {
     "@microsoft/api-extractor": "^7.52.10",

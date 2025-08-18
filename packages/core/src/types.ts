@@ -8,6 +8,7 @@ import type {
   Size,
 } from '@midscene/shared/types';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
+import type { z } from 'zod';
 import type { DetailedLocateParam, MidsceneYamlFlowItem } from './yaml';
 
 export type {
@@ -608,13 +609,11 @@ export type TUserPrompt =
       prompt: string;
     } & Partial<TMultimodalPrompt>);
 
-export interface DeviceAction<ParamType = any> {
+// biome-ignore lint/complexity/noBannedTypes: <explanation>
+export interface DeviceAction<ParamType extends z.ZodRawShape = {}> {
   name: string;
   interfaceAlias?: string;
   description?: string;
-  paramSchema?: string;
-  paramDescription?: string;
-  location?: 'required' | 'optional' | false;
-  whatToLocate?: string; // what to locate if location is required or optional
+  paramSchema?: z.ZodObject<ParamType>;
   call: (context: ExecutorContext, param: ParamType) => Promise<void> | void;
 }

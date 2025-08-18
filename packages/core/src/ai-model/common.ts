@@ -327,7 +327,7 @@ export async function markupImageForLLM(
 
 export function buildYamlFlowFromPlans(
   plans: PlanningAction[],
-  actionSpace: DeviceAction[],
+  actionSpace: DeviceAction<any>[],
   sleep?: number,
 ): MidsceneYamlFlowItem[] {
   const flow: MidsceneYamlFlowItem[] = [];

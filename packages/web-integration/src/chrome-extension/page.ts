@@ -12,7 +12,6 @@ import type { AbstractPage, MouseButton } from '@/page';
 import type {
   DeviceAction,
   ElementTreeNode,
-  ExecutorContext,
   Point,
   Size,
 } from '@midscene/core';

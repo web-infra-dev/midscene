@@ -3,6 +3,7 @@ import type { DeviceAction } from '@/types';
 import { PromptTemplate } from '@langchain/core/prompts';
 import type { vlLocateMode } from '@midscene/shared/env';
 import type { ResponseFormatJSONSchema } from 'openai/resources/index';
+import { z } from 'zod';
 import { bboxDescription } from './common';
 
 // Note: put the log field first to trigger the CoT
@@ -12,52 +13,105 @@ const llmCurrentLog = `"log": string, // Log what the next actions you can do ac
 
 const commonOutputFields = `"error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not foreseeable according to the instruction. Use the same language as the user's instruction.
   "more_actions_needed_by_instruction": boolean, // Consider if there is still more action(s) to do after the action in "Log" is done, according to the instruction. If so, set this field to true. Otherwise, set it to false.`;
-const vlLocateParam = (required: boolean) =>
-  `locate${required ? '' : '?'}: {bbox: [number, number, number, number], prompt: string }`;
-const llmLocateParam = (required: boolean) =>
-  `locate${required ? '' : '?'}: {"id": string, "prompt": string}`;
+const vlLocateParam = () =>
+  '{bbox: [number, number, number, number], prompt: string }';
+const llmLocateParam = () => '{"id": string, "prompt": string}';
 
 export const descriptionForAction = (
-  action: DeviceAction,
-  locatorScheme: string,
+  action: DeviceAction<any>,
+  locatorSchemaTypeDescription: string,
 ) => {
   const tab = '  ';
-  let locateParam = '';
-  if (action.location === 'required') {
-    locateParam = locatorScheme;
-  } else if (action.location === 'optional') {
-    locateParam = `${locatorScheme} | null`;
-  } else if (action.location === false) {
-    locateParam = '';
-  }
-  const locatorParam = locateParam ? `- ${locateParam}` : '';
+  const fields: string[] = [];
 
-  if (action.whatToLocate) {
-    if (!locateParam) {
-      console.warn(
-        `whatToLocate is provided for action ${action.name}, but location is not required or optional. The whatToLocate will be ignored.`,
-      );
-    } else {
-      locateParam += ` // ${action.whatToLocate}`;
+  // Add the action type field
+  fields.push(`- type: "${action.name}"`);
+
+  // Handle paramSchema if it exists
+  if (action.paramSchema) {
+    assert(
+      action.paramSchema instanceof z.ZodObject,
+      'paramSchema must be a zod object',
+    );
+    // Try to extract parameter information from the zod schema
+    // For zod object schemas, extract type information and descriptions
+    const shape = action.paramSchema.shape;
+    const paramLines: string[] = [];
+
+    // Helper function to get type name from zod schema
+    const getTypeName = (field: any): string => {
+      // Handle unwrapped optional fields
+      const actualField = field._def?.innerType || field;
+
+      if (actualField._def?.typeName === 'ZodString') return 'string';
+      if (actualField._def?.typeName === 'ZodNumber') return 'number';
+      if (actualField._def?.typeName === 'ZodBoolean') return 'boolean';
+      if (actualField._def?.typeName === 'ZodArray') return 'array';
+      if (actualField._def?.typeName === 'ZodObject') {
+        // Check if this is a passthrough object (like MidsceneLocation)
+        if ('midscene_location_field_flag' in actualField._def.shape()) {
+          return locatorSchemaTypeDescription;
+        }
+        return 'object';
+      }
+
+      console.warn('unknown type: ', actualField._def);
+      return 'type';
+    };
+
+    // Helper function to get description from zod schema
+    const getDescription = (field: any): string | null => {
+      // Handle unwrapped optional fields
+      const actualField = field._def?.innerType || field;
+
+      // Check for direct description
+      if ('description' in field) {
+        return (field as any).description;
+      }
+
+      // Check for MidsceneLocation fields and add description
+      if (actualField._def?.typeName === 'ZodObject') {
+        if ('midscene_location_field_flag' in actualField._def.shape()) {
+          return 'Location information for the target element';
+        }
+      }
+
+      return null;
+    };
+
+    for (const [key, field] of Object.entries(shape)) {
+      if (field && typeof field === 'object') {
+        // Check if field is optional
+        const isOptional =
+          typeof (field as any).isOptional === 'function' &&
+          (field as any).isOptional();
+        const keyWithOptional = isOptional ? `${key}?` : key;
+
+        // Get the type name
+        const typeName = getTypeName(field);
+
+        // Get description
+        const description = getDescription(field);
+
+        // Build param line for this field
+        let paramLine = `${keyWithOptional}: ${typeName}`;
+        if (description) {
+          paramLine += ` // ${description}`;
+        }
+
+        paramLines.push(paramLine);
+      }
+    }
+
+    if (paramLines.length > 0) {
+      fields.push('- param:');
+      for (const paramLine of paramLines) {
+        fields.push(`  - ${paramLine}`);
+      }
     }
   }
 
-  let paramSchema = '';
-  if (action.paramSchema) {
-    paramSchema = `- param: ${action.paramSchema}`;
-  }
-  if (action.paramDescription) {
-    assert(
-      paramSchema,
-      `paramSchema is required when paramDescription is provided for action ${action.name}, but got ${action.paramSchema}`,
-    );
-    paramSchema += ` // ${action.paramDescription}`;
-  }
-
-  const fields = [paramSchema, locatorParam].filter(Boolean);
-
-  return `- ${action.name}, ${action.description}
-${tab}- type: "${action.name}"
+  return `- ${action.name}, ${action.description || 'No description provided'}
 ${tab}${fields.join(`\n${tab}`)}
 `.trim();
 };
@@ -66,13 +120,13 @@ const systemTemplateOfVLPlanning = ({
   actionSpace,
   vlMode,
 }: {
-  actionSpace: DeviceAction[];
+  actionSpace: DeviceAction<any>[];
   vlMode: ReturnType<typeof vlLocateMode>;
 }) => {
   const actionNameList = actionSpace.map((action) => action.name).join(', ');
-  const actionDescriptionList = actionSpace.map((action) =>
-    descriptionForAction(action, vlLocateParam(action.location === 'required')),
-  );
+  const actionDescriptionList = actionSpace.map((action) => {
+    return descriptionForAction(action, vlLocateParam());
+  });
   const actionList = actionDescriptionList.join('\n');
 
   return `
@@ -124,14 +178,11 @@ this and output the JSON:
 
 const systemTemplateOfLLM = ({
   actionSpace,
-}: { actionSpace: DeviceAction[] }) => {
+}: { actionSpace: DeviceAction<any>[] }) => {
   const actionNameList = actionSpace.map((action) => action.name).join(' / ');
-  const actionDescriptionList = actionSpace.map((action) =>
-    descriptionForAction(
-      action,
-      llmLocateParam(action.location === 'required'),
-    ),
-  );
+  const actionDescriptionList = actionSpace.map((action) => {
+    return descriptionForAction(action, llmLocateParam());
+  });
   const actionList = actionDescriptionList.join('\n');
 
   return `
@@ -257,7 +308,7 @@ export async function systemPromptToTaskPlanning({
   actionSpace,
   vlMode,
 }: {
-  actionSpace: DeviceAction[];
+  actionSpace: DeviceAction<any>[];
   vlMode: ReturnType<typeof vlLocateMode>;
 }) {
   if (vlMode) {
