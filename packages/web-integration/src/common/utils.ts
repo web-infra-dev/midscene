@@ -6,6 +6,7 @@ import type {
   ExecutionDump,
   ExecutionTask,
   ExecutorContext,
+  MidsceneLocationType,
   PlanningLocateParam,
   PlaywrightParserOpt,
   TMultimodalPrompt,
@@ -380,7 +381,9 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
         button: 'left',
       });
     },
-  },
+  } as DeviceAction<{
+    locate: MidsceneLocationType;
+  }>,
   {
     name: 'RightClick',
     description: 'Right click the element',
@@ -394,7 +397,9 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
         button: 'right',
       });
     },
-  },
+  } as DeviceAction<{
+    locate: MidsceneLocationType;
+  }>,
   {
     name: 'Hover',
     description: 'Move the mouse to the element',
@@ -407,7 +412,9 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
       assert(element, 'Element not found, cannot hover');
       await page.mouse.move(element.center[0], element.center[1]);
     },
-  },
+  } as DeviceAction<{
+    locate: MidsceneLocationType;
+  }>,
   {
     name: 'Input',
     description:
@@ -432,7 +439,10 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
       // Note: there is another implementation in AndroidDevicePage, which is more complex
       await page.keyboard.type(param.value);
     },
-  },
+  } as DeviceAction<{
+    value: string;
+    locate: MidsceneLocationType;
+  }>,
   {
     name: 'KeyboardPress',
     description: 'Press a key',
@@ -444,7 +454,9 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
       const keys = getKeyCommands(param.value);
       await page.keyboard.press(keys as any); // TODO: fix this type error
     },
-  },
+  } as DeviceAction<{
+    value: string;
+  }>,
   {
     name: 'Scroll',
     description:
@@ -507,5 +519,16 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
         );
       }
     },
-  },
+  } as DeviceAction<{
+    scrollType:
+      | 'once'
+      | 'untilBottom'
+      | 'untilTop'
+      | 'untilRight'
+      | 'untilLeft';
+    direction: 'up' | 'down';
+    distance?: number;
+    duration?: number;
+    locate: MidsceneLocationType;
+  }>,
 ];
