@@ -126,6 +126,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   taskCache?: TaskCache;
 
   onDumpUpdate?: (dump: string) => void;
+  onReportGenerate?: (reportPath: string | null) => void;
 
   destroyed = false;
 
@@ -302,6 +303,12 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     }
 
     this.writeOutActionDumps();
+
+    try {
+      this.onReportGenerate?.(this.reportFile || null);
+    } catch (error) {
+      console.error('Error in onReportGenerate', error);
+    }
 
     if (executor.isInErrorState() && !doNotThrowError) {
       const errorTask = executor.latestErrorTask();
