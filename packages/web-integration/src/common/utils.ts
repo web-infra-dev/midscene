@@ -448,14 +448,14 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
     description: 'Press a key',
     interfaceAlias: 'aiKeyboardPress',
     paramSchema: z.object({
-      value: z.string().describe('The key to be pressed'),
+      keyName: z.string().describe('The key to be pressed'),
     }),
     call: async (param, context) => {
-      const keys = getKeyCommands(param.value);
+      const keys = getKeyCommands(param.keyName);
       await page.keyboard.press(keys as any); // TODO: fix this type error
     },
   } as DeviceAction<{
-    value: string;
+    keyName: string;
   }>,
   {
     name: 'Scroll',
