@@ -241,7 +241,7 @@ describe('MidsceneReporter', () => {
 
       // Verify error was logged
       expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Failed to read dump file'),
+        expect.stringContaining('Failed to read Midscene dump file'),
         expect.anything(),
       );
 
