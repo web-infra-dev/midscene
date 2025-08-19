@@ -16,12 +16,12 @@ import { Dropdown, Spin, Switch, Tooltip } from 'antd';
 import GlobalPerspectiveIcon from '../icons/global-perspective.svg';
 import { rectMarkForItem } from './blackboard';
 import { getTextureFromCache, loadTexture } from './pixi-loader';
-import { useBlackboardPreference } from './store/store';
 import type {
   AnimationScript,
   CameraState,
   TargetCameraState,
 } from './replay-scripts';
+import { useBlackboardPreference } from './store/store';
 
 const canvasPaddingLeft = 0;
 const canvasPaddingTop = 0;

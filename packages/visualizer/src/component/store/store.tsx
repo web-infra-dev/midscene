@@ -1,6 +1,9 @@
 import * as Z from 'zustand';
 
 const { create } = Z;
+
+const AUTO_ZOOM_KEY = 'midscene-auto-zoom';
+
 export const useBlackboardPreference = create<{
   markerVisible: boolean;
   elementsVisible: boolean;
@@ -31,7 +34,6 @@ const CONFIG_KEY = 'midscene-env-config';
 const SERVICE_MODE_KEY = 'midscene-service-mode';
 const TRACKING_ACTIVE_TAB_KEY = 'midscene-tracking-active-tab';
 const DEEP_THINK_KEY = 'midscene-deep-think';
-const AUTO_ZOOM_KEY = 'midscene-auto-zoom';
 const getConfigStringFromLocalStorage = () => {
   const configString = localStorage.getItem(CONFIG_KEY);
   return configString || '';
