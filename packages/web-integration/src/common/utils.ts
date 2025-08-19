@@ -374,7 +374,7 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
     paramSchema: z.object({
       locate: MidsceneLocation.describe('The element to be tapped'),
     }),
-    call: async (context, param) => {
+    call: async (param, context) => {
       const { element } = context;
       assert(element, 'Element not found, cannot tap');
       await page.mouse.click(element.center[0], element.center[1], {
@@ -390,7 +390,7 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
     paramSchema: z.object({
       locate: MidsceneLocation.describe('The element to be right clicked'),
     }),
-    call: async (context, param) => {
+    call: async (param, context) => {
       const { element } = context;
       assert(element, 'Element not found, cannot right click');
       await page.mouse.click(element.center[0], element.center[1], {
@@ -407,7 +407,7 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
     paramSchema: z.object({
       locate: MidsceneLocation.describe('The element to be hovered'),
     }),
-    call: async (context, param) => {
+    call: async (param, context) => {
       const { element } = context;
       assert(element, 'Element not found, cannot hover');
       await page.mouse.move(element.center[0], element.center[1]);
@@ -426,7 +426,7 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
         .describe('The final value that should be filled in the input box'),
       locate: MidsceneLocation.describe('The input field to be filled'),
     }),
-    call: async (context, param) => {
+    call: async (param, context) => {
       const { element } = context;
       if (element) {
         await page.clearInput(element as unknown as ElementInfo);
@@ -450,7 +450,7 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
     paramSchema: z.object({
       value: z.string().describe('The key to be pressed'),
     }),
-    call: async (context, param) => {
+    call: async (param, context) => {
       const keys = getKeyCommands(param.value);
       await page.keyboard.press(keys as any); // TODO: fix this type error
     },
@@ -480,7 +480,7 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
         'The element to be scrolled',
       ),
     }),
-    call: async (context, param) => {
+    call: async (param, context) => {
       const { element } = context;
       const startingPoint = element
         ? {

@@ -455,7 +455,7 @@ export class PageTaskExecutor {
               throw new Error(`Action type '${planType}' not found`);
             }
             const actionFn = action.call.bind(this.page);
-            return await actionFn(context, param);
+            return await actionFn(param, context);
           },
         };
         tasks.push(task);

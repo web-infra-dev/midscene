@@ -77,7 +77,7 @@ export class AndroidDevice implements AndroidDevicePage {
               'If true, the keyboard will be dismissed after the input is completed. Do not set it unless the user asks you to do so.',
             ),
         });
-        action.call = async (context, param) => {
+        action.call = async (param, context) => {
           const { element } = context;
           if (element) {
             await this.clearInput(element as unknown as ElementInfo);
@@ -101,14 +101,14 @@ export class AndroidDevice implements AndroidDevicePage {
       {
         name: 'AndroidBackButton',
         description: 'Trigger the system "back" operation on Android devices',
-        call: async (context, param) => {
+        call: async (param, context) => {
           await this.back();
         },
       },
       {
         name: 'AndroidHomeButton',
         description: 'Trigger the system "home" operation on Android devices',
-        call: async (context, param) => {
+        call: async (param, context) => {
           await this.home();
         },
       },
@@ -116,7 +116,7 @@ export class AndroidDevice implements AndroidDevicePage {
         name: 'AndroidRecentAppsButton',
         description:
           'Trigger the system "recent apps" operation on Android devices',
-        call: async (context, param) => {
+        call: async (param, context) => {
           await this.recentApps();
         },
       },
@@ -131,7 +131,7 @@ export class AndroidDevice implements AndroidDevicePage {
             .describe('The duration of the long press in milliseconds'),
           locate: MidsceneLocation.describe('The element to be long pressed'),
         }),
-        call: async (context, param) => {
+        call: async (param, context) => {
           const { element } = context;
           if (!element) {
             throw new Error(
@@ -160,12 +160,12 @@ export class AndroidDevice implements AndroidDevicePage {
             .describe('The duration of the pull (in milliseconds)'),
         }),
         call: async (
-          context: ExecutorContext,
           param: {
             direction: 'up' | 'down';
             distance?: number;
             duration?: number;
           },
+          context: ExecutorContext,
         ) => {
           const { element } = context;
           const startPoint = element
