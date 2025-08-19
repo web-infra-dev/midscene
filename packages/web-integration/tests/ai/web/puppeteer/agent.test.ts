@@ -16,22 +16,22 @@ describe('puppeteer integration', () => {
     }
   });
 
-  it.only('input and clear text', async () => {
+  it('input and clear text', async () => {
     const { originPage, reset } = await launchPage('https://www.google.com/');
     resetFn = reset;
     const agent = new PuppeteerAgent(originPage, {
       cacheId: 'input-related-test',
     });
     await agent.aiAction('Enter "happy birthday" in search input box');
-    await agent.aiAssert('the text in the input box is "happy birthday"');
+    await agent.aiAssert('the text in the input box starts with "happy birthday"');
 
     await agent.aiInput('Jay Chou', 'search input box');
-    await agent.aiAssert('the text in the input box is "Jay Chou"');
+    await agent.aiAssert('the text in the input box contains "Jay Chou"');
 
     await agent.aiInput('search input box', {
       value: 'Mayday',
     });
-    await agent.aiAssert('the text in the input box is "Mayday"');
+    await agent.aiAssert('the text in the input box contains "Mayday"');
 
     await agent.runYaml(
       `

@@ -22,7 +22,6 @@ import {
   type MidsceneYamlScript,
   type OnTaskStartTip,
   type PlanningAction,
-  type PlanningLocateParam,
   type Rect,
   type ScrollParam,
   type TUserPrompt,
@@ -342,21 +341,26 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     opt?: LocateOption, // and all other action params
   ) {
     debug('callActionInActionSpace', type, ',', locatePrompt, ',', opt);
+    const locateParam = locatePrompt
+      ? // TODO: this should be a 'titleForTask' function
+        this.buildDetailedLocateParam(locatePrompt, opt)
+      : undefined;
 
     const actionPlan: PlanningAction<T> = {
       type: type as any,
-      param: opt as any,
+      param: {
+        // action param
+        ...(opt || {}),
+        ...(locateParam ? { locate: locateParam } : {}),
+      } as any,
       thought: '',
     };
+    debug('actionPlan', actionPlan); // , ', in which the locateParam is', locateParam);
 
     const plans: PlanningAction[] = [actionPlan].filter(
       Boolean,
     ) as PlanningAction[];
 
-    // TODO: this should be a 'titleForTask' function
-    const locateParam = locatePrompt
-      ? this.buildDetailedLocateParam(locatePrompt, opt)
-      : undefined;
     const title = taskTitleStr(type as any, locateParamStr(locateParam));
 
     const { executor } = await this.taskExecutor.runPlans(title, plans, {

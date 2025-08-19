@@ -476,9 +476,8 @@ export class PageTaskExecutor {
           debug(
             'will prepend locate param for field',
             `action.type=${planType}`,
-            field,
-            'locatePlan',
-            locatePlan,
+            `fieldName=${field}`,
+            `locatePlan=${JSON.stringify(locatePlan)}`,
           );
           const locateTask = taskForLocatePlan(
             locatePlan,
