@@ -2,9 +2,11 @@ import { randomUUID } from 'node:crypto';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import * as fs from 'node:fs';
 import {
+  type MidsceneLocationType,
   adaptDoubaoBbox,
   adaptQwenBbox,
   expandSearchArea,
+  findAllMidsceneLocatorField,
   mergeRects,
 } from '@/ai-model/common';
 import {
@@ -12,6 +14,7 @@ import {
   preprocessDoubaoBboxJson,
   safeParseJson,
 } from '@/ai-model/service-caller';
+import { type DeviceAction, MidsceneLocation } from '@/index';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import {
   getAIConfig,
@@ -19,6 +22,7 @@ import {
   vlLocateMode,
 } from '@midscene/shared/env';
 import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
 // @ts-ignore no types in es folder
 import { reportHTMLContent, writeDumpReport } from '../../dist/es/utils'; // use modules from dist, otherwise we will miss the template file
 import {
@@ -747,5 +751,44 @@ describe('insertScriptBeforeClosingHtml', () => {
 
     expect(result).toBe(expected);
     fs.unlinkSync(filePath);
+  });
+
+  it('findAllMidsceneLocatorField', () => {
+    const result = findAllMidsceneLocatorField(
+      z.object({
+        a: MidsceneLocation,
+        b: z.string(),
+        c: MidsceneLocation.optional().describe('ccccc'),
+      }),
+    );
+    expect(result).toEqual(['a', 'c']);
+  });
+
+  it('findAllMidsceneLocatorField - non match', () => {
+    const result = findAllMidsceneLocatorField(
+      z.object({
+        b: z.string(),
+      }),
+    );
+    expect(result).toEqual([]);
+  });
+
+  it('type of DeviceAction', () => {
+    const action: DeviceAction<{
+      locate: MidsceneLocationType;
+      duration?: number;
+      autoDismissKeyboard?: boolean;
+    }> = {
+      name: 'click',
+      description: 'click the element',
+      paramSchema: z.object({
+        locate: MidsceneLocation,
+        duration: z.number().optional(),
+        autoDismissKeyboard: z.boolean().optional(),
+      }),
+      call: async (context, param) => {
+        console.log(param.duration);
+      },
+    };
   });
 });

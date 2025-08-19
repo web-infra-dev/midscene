@@ -6,6 +6,7 @@ import type {
 } from '@/types';
 import { vlLocateMode } from '@midscene/shared/env';
 import { paddingToMatchBlockByBase64 } from '@midscene/shared/img';
+import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import {
   AIActionType,
@@ -13,6 +14,7 @@ import {
   buildYamlFlowFromPlans,
   callAiFn,
   fillBboxParam,
+  findAllMidsceneLocatorField,
   markupImageForLLM,
   warnGPT4oSizeLimit,
 } from './common';
@@ -23,12 +25,14 @@ import {
 } from './prompt/llm-planning';
 import { describeUserPage } from './prompt/util';
 
+const debug = getDebug('planning');
+
 export async function plan(
   userInstruction: string,
   opts: {
     context: UIContext;
     pageType: PageType;
-    actionSpace: DeviceAction[];
+    actionSpace: DeviceAction<any>[];
     callAI?: typeof callAiFn<PlanningAIResponse>;
     log?: string;
     actionContext?: string;
@@ -109,36 +113,41 @@ export async function plan(
 
   assert(planFromAI, "can't get plans from AI");
 
-  if (vlLocateMode()) {
-    actions.forEach((action) => {
-      if (action.locate) {
-        try {
-          action.locate = fillBboxParam(action.locate, size.width, size.height);
-        } catch (e) {
-          throw new Error(
-            `Failed to fill locate param: ${planFromAI.error} (${
-              e instanceof Error ? e.message : 'unknown error'
-            })`,
-            {
-              cause: e,
-            },
+  // TODO: use zod.parse to parse the action.param, and then fill the bbox param.
+  actions.forEach((action) => {
+    const type = action.type;
+    const actionInActionSpace = opts.actionSpace.find(
+      (action) => action.name === type,
+    );
+    const locateFields = actionInActionSpace
+      ? findAllMidsceneLocatorField(actionInActionSpace.paramSchema)
+      : [];
+
+    debug('locateFields', locateFields);
+
+    locateFields.forEach((field) => {
+      const locateResult = action.param[field];
+      if (locateResult) {
+        if (vlLocateMode()) {
+          action.param[field] = fillBboxParam(
+            locateResult,
+            size.width,
+            size.height,
           );
+        } else {
+          const element = elementById(locateResult);
+          if (element) {
+            action.param[field].id = element.id;
+          }
         }
       }
+
+      // to be compatible with the web-integration
+      action.locate = action.param[field];
     });
-    // in Qwen-VL, error means error. In GPT-4o, error may mean more actions are needed.
-    assert(!planFromAI.error, `Failed to plan actions: ${planFromAI.error}`);
-  } else {
-    actions.forEach((action) => {
-      if (action.locate?.id) {
-        // The model may return indexId, need to perform a query correction to avoid exceptions
-        const element = elementById(action.locate.id);
-        if (element) {
-          action.locate.id = element.id;
-        }
-      }
-    });
-  }
+  });
+  // in Qwen-VL, error means error. In GPT-4o, error may mean more actions are needed.
+  assert(!planFromAI.error, `Failed to plan actions: ${planFromAI.error}`);
 
   if (
     actions.length === 0 &&

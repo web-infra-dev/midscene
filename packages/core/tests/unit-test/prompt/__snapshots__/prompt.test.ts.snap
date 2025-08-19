@@ -501,23 +501,28 @@ type LocateParam = {
 Each action has a \`type\` and corresponding \`param\`. To be detailed:
 - Tap, Tap the element
   - type: "Tap"
-  - param: { value: string } // The value to be tapped
-  - locate: {"id": string, "prompt": string}
+  - param:
+    - value: string // The value to be tapped
+    - locate: {"id": string, "prompt": string} // The element to be tapped
 - Sleep, Sleep for a period of time
   - type: "Sleep"
-  - param: { timeMs: number } // The duration of the sleep in milliseconds
+  - param:
+    - timeMs: number // The duration of the sleep in milliseconds
 - Input, Input text into the input field
   - type: "Input"
-  - param: { value: string } // The value to be input
-  - locate?: {"id": string, "prompt": string} | null
+  - param:
+    - value: string // The value to be input
+    - locate?: {"id": string, "prompt": string} // The input field to target
 - KeyboardPress, Press a keyboard key
   - type: "KeyboardPress"
-  - param: { value: string } // The value to be input
-  - locate?: {"id": string, "prompt": string} | null
+  - param:
+    - value: string // The key to be pressed
+    - locate?: {"id": string, "prompt": string} // The element to target for key press
 - Scroll, Scroll the page
   - type: "Scroll"
-  - param: { value: string } // The value to be input
-  - locate?: {"id": string, "prompt": string} | null
+  - param:
+    - value: string // The scroll direction or amount
+    - locate?: {"id": string, "prompt": string} // The element to scroll
 
 
 ## Output JSON Format:
@@ -609,23 +614,28 @@ Restriction:
 Supporting actions:
 - Tap, Tap the element
   - type: "Tap"
-  - param: { value: string } // The value to be tapped
-  - locate: {bbox: [number, number, number, number], prompt: string }
+  - param:
+    - value: string // The value to be tapped
+    - locate: {bbox: [number, number, number, number], prompt: string } // The element to be tapped
 - Sleep, Sleep for a period of time
   - type: "Sleep"
-  - param: { timeMs: number } // The duration of the sleep in milliseconds
+  - param:
+    - timeMs: number // The duration of the sleep in milliseconds
 - Input, Input text into the input field
   - type: "Input"
-  - param: { value: string } // The value to be input
-  - locate?: {bbox: [number, number, number, number], prompt: string } | null
+  - param:
+    - value: string // The value to be input
+    - locate?: {bbox: [number, number, number, number], prompt: string } // The input field to target
 - KeyboardPress, Press a keyboard key
   - type: "KeyboardPress"
-  - param: { value: string } // The value to be input
-  - locate?: {bbox: [number, number, number, number], prompt: string } | null
+  - param:
+    - value: string // The key to be pressed
+    - locate?: {bbox: [number, number, number, number], prompt: string } // The element to target for key press
 - Scroll, Scroll the page
   - type: "Scroll"
-  - param: { value: string } // The value to be input
-  - locate?: {bbox: [number, number, number, number], prompt: string } | null
+  - param:
+    - value: string // The scroll direction or amount
+    - locate?: {bbox: [number, number, number, number], prompt: string } // The element to scroll
 
 Field description:
 * The \`prompt\` field inside the \`locate\` field is a short description that could be used to locate the element.
@@ -696,23 +706,28 @@ Restriction:
 Supporting actions:
 - Tap, Tap the element
   - type: "Tap"
-  - param: { value: string } // The value to be tapped
-  - locate: {bbox: [number, number, number, number], prompt: string }
+  - param:
+    - value: string // The value to be tapped
+    - locate: {bbox: [number, number, number, number], prompt: string } // The element to be tapped
 - Sleep, Sleep for a period of time
   - type: "Sleep"
-  - param: { timeMs: number } // The duration of the sleep in milliseconds
+  - param:
+    - timeMs: number // The duration of the sleep in milliseconds
 - Input, Input text into the input field
   - type: "Input"
-  - param: { value: string } // The value to be input
-  - locate?: {bbox: [number, number, number, number], prompt: string } | null
+  - param:
+    - value: string // The value to be input
+    - locate?: {bbox: [number, number, number, number], prompt: string } // The input field to target
 - KeyboardPress, Press a keyboard key
   - type: "KeyboardPress"
-  - param: { value: string } // The value to be input
-  - locate?: {bbox: [number, number, number, number], prompt: string } | null
+  - param:
+    - value: string // The key to be pressed
+    - locate?: {bbox: [number, number, number, number], prompt: string } // The element to target for key press
 - Scroll, Scroll the page
   - type: "Scroll"
-  - param: { value: string } // The value to be input
-  - locate?: {bbox: [number, number, number, number], prompt: string } | null
+  - param:
+    - value: string // The scroll direction or amount
+    - locate?: {bbox: [number, number, number, number], prompt: string } // The element to scroll
 
 Field description:
 * The \`prompt\` field inside the \`locate\` field is a short description that could be used to locate the element.
@@ -763,23 +778,28 @@ Restriction:
 Supporting actions:
 - Tap, Tap the element
   - type: "Tap"
-  - param: { value: string } // The value to be tapped
-  - locate: {bbox: [number, number, number, number], prompt: string }
+  - param:
+    - value: string // The value to be tapped
+    - locate: {bbox: [number, number, number, number], prompt: string } // The element to be tapped
 - Sleep, Sleep for a period of time
   - type: "Sleep"
-  - param: { timeMs: number } // The duration of the sleep in milliseconds
+  - param:
+    - timeMs: number // The duration of the sleep in milliseconds
 - Input, Input text into the input field
   - type: "Input"
-  - param: { value: string } // The value to be input
-  - locate?: {bbox: [number, number, number, number], prompt: string } | null
+  - param:
+    - value: string // The value to be input
+    - locate?: {bbox: [number, number, number, number], prompt: string } // The input field to target
 - KeyboardPress, Press a keyboard key
   - type: "KeyboardPress"
-  - param: { value: string } // The value to be input
-  - locate?: {bbox: [number, number, number, number], prompt: string } | null
+  - param:
+    - value: string // The key to be pressed
+    - locate?: {bbox: [number, number, number, number], prompt: string } // The element to target for key press
 - Scroll, Scroll the page
   - type: "Scroll"
-  - param: { value: string } // The value to be input
-  - locate?: {bbox: [number, number, number, number], prompt: string } | null
+  - param:
+    - value: string // The scroll direction or amount
+    - locate?: {bbox: [number, number, number, number], prompt: string } // The element to scroll
 
 Field description:
 * The \`prompt\` field inside the \`locate\` field is a short description that could be used to locate the element.

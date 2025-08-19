@@ -1,6 +1,11 @@
-import { adaptQwenBbox, fillBboxParam } from '@/ai-model/common';
+import {
+  MidsceneLocation,
+  adaptQwenBbox,
+  fillBboxParam,
+} from '@/ai-model/common';
 import { buildYamlFlowFromPlans } from '@/ai-model/common';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { z } from 'zod';
 
 describe('llm planning - qwen', () => {
   it('adapt qwen bbox', () => {
@@ -71,14 +76,14 @@ describe('llm planning - build yaml flow', () => {
           },
           param: {
             value: 'hello',
+            locate: {
+              bbox: [512, 127, 1068, 198],
+              prompt: 'The input box for adding a new todo',
+            },
           },
         },
         {
           type: 'Hover',
-          locate: {
-            bbox: [521, 273, 692, 294],
-            prompt: "The second item 'Learn Rust' in the task list",
-          },
           param: null,
         },
         {
@@ -87,13 +92,14 @@ describe('llm planning - build yaml flow', () => {
             bbox: [512, 127, 1068, 197],
             prompt: "The input box labeled 'What needs to be done?'",
           },
-          param: null,
+          param: {
+            locate: {
+              bbox: [512, 127, 1068, 197],
+              prompt: "The input box labeled 'What needs to be done?'",
+            },
+          },
         },
         {
-          locate: {
-            id: 'button',
-            prompt: 'some button',
-          },
           param: {
             direction: 'down',
             distance: 500,
@@ -107,6 +113,10 @@ describe('llm planning - build yaml flow', () => {
         {
           name: 'Input',
           interfaceAlias: 'aiInput',
+          paramSchema: z.object({
+            value: z.string(),
+            locate: MidsceneLocation,
+          }),
           call: async () => {},
         },
         {
@@ -115,7 +125,7 @@ describe('llm planning - build yaml flow', () => {
           call: async () => {},
         },
         {
-          name: 'Tap',
+          name: 'Tap', // TODO: should throw error here
           interfaceAlias: 'aiTap',
           call: async () => {},
         },
@@ -125,6 +135,256 @@ describe('llm planning - build yaml flow', () => {
         },
       ],
     );
-    expect(flow).toMatchSnapshot();
+    expect(flow).toMatchInlineSnapshot(`
+      [
+        {
+          "aiInput": "The input box for adding a new todo",
+          "locate": {
+            "bbox": [
+              512,
+              127,
+              1068,
+              198,
+            ],
+            "prompt": "The input box for adding a new todo",
+          },
+          "value": "hello",
+        },
+        {
+          "aiHover": "",
+        },
+        {
+          "aiTap": "The input box labeled 'What needs to be done?'",
+          "locate": {
+            "bbox": [
+              512,
+              127,
+              1068,
+              197,
+            ],
+            "prompt": "The input box labeled 'What needs to be done?'",
+          },
+        },
+        {
+          "action_space_Scroll": "",
+          "direction": "down",
+          "distance": 500,
+          "scrollType": "once",
+        },
+      ]
+    `);
+  });
+
+  it('build yaml flow with simplified format for single locator param', () => {
+    const flow = buildYamlFlowFromPlans(
+      [
+        {
+          type: 'Tap',
+          locate: {
+            bbox: [300, 300, 400, 400],
+            prompt: 'Cancel button',
+          },
+          param: {
+            locate: {
+              bbox: [300, 300, 400, 400],
+              prompt: 'Cancel button',
+            },
+          },
+        },
+        {
+          type: 'Input',
+          locate: {
+            bbox: [500, 500, 600, 600],
+            prompt: 'Text input field',
+          },
+          param: {
+            value: 'test',
+            locate: {
+              bbox: [500, 500, 600, 600],
+              prompt: 'Text input field',
+            },
+          },
+        },
+      ],
+      [
+        {
+          name: 'Tap',
+          interfaceAlias: 'aiTap',
+          paramSchema: z.object({
+            locate: MidsceneLocation,
+          }),
+          call: async () => {},
+        },
+        {
+          name: 'Input',
+          interfaceAlias: 'aiInput',
+          paramSchema: z.object({
+            value: z.string(),
+            locate: MidsceneLocation,
+          }),
+          call: async () => {},
+        },
+      ],
+    );
+    expect(flow).toMatchInlineSnapshot(`
+      [
+        {
+          "aiTap": "Cancel button",
+          "locate": {
+            "bbox": [
+              300,
+              300,
+              400,
+              400,
+            ],
+            "prompt": "Cancel button",
+          },
+        },
+        {
+          "aiInput": "Text input field",
+          "locate": {
+            "bbox": [
+              500,
+              500,
+              600,
+              600,
+            ],
+            "prompt": "Text input field",
+          },
+          "value": "test",
+        },
+      ]
+    `);
+  });
+
+  it('build yaml flow without simplified format when no alias', () => {
+    const flow = buildYamlFlowFromPlans(
+      [
+        {
+          type: 'Click',
+          locate: {
+            bbox: [100, 100, 200, 200],
+            prompt: 'Submit button',
+          },
+          param: {
+            locate: {
+              bbox: [100, 100, 200, 200],
+              prompt: 'Submit button',
+            },
+          },
+        },
+      ],
+      [
+        {
+          name: 'Click',
+          // No interfaceAlias
+          paramSchema: z.object({
+            locate: MidsceneLocation,
+          }),
+          call: async () => {},
+        },
+      ],
+    );
+    expect(flow).toMatchInlineSnapshot(`
+      [
+        {
+          "action_space_Click": "Submit button",
+          "locate": {
+            "bbox": [
+              100,
+              100,
+              200,
+              200,
+            ],
+            "prompt": "Submit button",
+          },
+        },
+      ]
+    `);
+  });
+
+  it('build yaml flow without simplified format when multiple params', () => {
+    const flow = buildYamlFlowFromPlans(
+      [
+        {
+          type: 'DragAndDrop',
+          param: {
+            from: {
+              bbox: [100, 100, 200, 200],
+              prompt: 'Source element',
+            },
+            to: {
+              bbox: [300, 300, 400, 400],
+              prompt: 'Target element',
+            },
+          },
+        },
+      ],
+      [
+        {
+          name: 'DragAndDrop',
+          interfaceAlias: 'aiDragAndDrop',
+          paramSchema: z.object({
+            from: MidsceneLocation,
+            to: MidsceneLocation,
+          }),
+          call: async () => {},
+        },
+      ],
+    );
+    expect(flow).toMatchInlineSnapshot(`
+      [
+        {
+          "aiDragAndDrop": "",
+          "from": {
+            "bbox": [
+              100,
+              100,
+              200,
+              200,
+            ],
+            "prompt": "Source element",
+          },
+          "to": {
+            "bbox": [
+              300,
+              300,
+              400,
+              400,
+            ],
+            "prompt": "Target element",
+          },
+        },
+      ]
+    `);
+  });
+
+  it('build yaml flow without simplified format when param is not locator field', () => {
+    const flow = buildYamlFlowFromPlans(
+      [
+        {
+          type: 'Wait',
+          param: {
+            duration: 1000,
+          },
+        },
+      ],
+      [
+        {
+          name: 'Wait',
+          interfaceAlias: 'aiWait',
+          paramSchema: z.object({
+            duration: z.number(),
+          }),
+          call: async () => {},
+        },
+      ],
+    );
+    expect(flow).toEqual([
+      {
+        aiWait: '',
+        duration: 1000,
+      },
+    ]);
   });
 });

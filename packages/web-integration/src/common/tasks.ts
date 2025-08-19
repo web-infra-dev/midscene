@@ -455,7 +455,7 @@ export class PageTaskExecutor {
               throw new Error(`Action type '${planType}' not found`);
             }
             const actionFn = action.call.bind(this.page);
-            return await actionFn(context, param);
+            return await actionFn(param, context);
           },
         };
         tasks.push(task);
@@ -591,15 +591,10 @@ export class PageTaskExecutor {
         };
         executorContext.task.usage = usage;
 
-        let stopCollecting = false;
         let bboxCollected = false;
-        let planParsingError = '';
         const finalActions = (actions || []).reduce<PlanningAction[]>(
           (acc, planningAction) => {
-            if (stopCollecting) {
-              return acc;
-            }
-
+            // TODO: magic field "locate" is used to indicate the action requires a locate
             if (planningAction.locate) {
               // we only collect bbox once, let qwen re-locate in the following steps
               if (bboxCollected && planningAction.locate.bbox) {
@@ -618,16 +613,6 @@ export class PageTaskExecutor {
                 // thought is prompt created by ai, always a string
                 thought: planningAction.locate.prompt as string,
               });
-            } else {
-              const actionType = planningAction.type;
-              const action = actionSpace.find(
-                (action) => action.name === actionType,
-              );
-              if (action && action?.location === 'required') {
-                planParsingError = `Location is required for action: ${actionType}, but not provided by planning`;
-                stopCollecting = true;
-                return acc;
-              }
             }
             acc.push(planningAction);
             return acc;
@@ -652,9 +637,7 @@ export class PageTaskExecutor {
         if (finalActions.length === 0) {
           assert(
             !more_actions_needed_by_instruction || sleep,
-            error
-              ? `Failed to plan: ${error}`
-              : planParsingError || 'No plan found',
+            error ? `Failed to plan: ${error}` : 'No plan found',
           );
         }
 
@@ -1006,7 +989,7 @@ export class PageTaskExecutor {
 
     return queryTask;
   }
-  private async createTypeQueryExecution<T>(
+  async createTypeQueryExecution<T>(
     type: 'Query' | 'Boolean' | 'Number' | 'String' | 'Assert',
     demand: InsightExtractParam,
     opt?: InsightExtractOption,
@@ -1045,52 +1028,6 @@ export class PageTaskExecutor {
       thought,
       executor: taskExecutor,
     };
-  }
-
-  async query(
-    demand: InsightExtractParam,
-    opt?: InsightExtractOption,
-  ): Promise<ExecutionResult> {
-    return this.createTypeQueryExecution('Query', demand, opt);
-  }
-
-  async boolean(
-    prompt: TUserPrompt,
-    opt?: InsightExtractOption,
-  ): Promise<ExecutionResult<boolean>> {
-    const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
-    return this.createTypeQueryExecution<boolean>(
-      'Boolean',
-      textPrompt,
-      opt,
-      multimodalPrompt,
-    );
-  }
-
-  async number(
-    prompt: TUserPrompt,
-    opt?: InsightExtractOption,
-  ): Promise<ExecutionResult<number>> {
-    const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
-    return this.createTypeQueryExecution<number>(
-      'Number',
-      textPrompt,
-      opt,
-      multimodalPrompt,
-    );
-  }
-
-  async string(
-    prompt: TUserPrompt,
-    opt?: InsightExtractOption,
-  ): Promise<ExecutionResult<string>> {
-    const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
-    return this.createTypeQueryExecution<string>(
-      'String',
-      textPrompt,
-      opt,
-      multimodalPrompt,
-    );
   }
 
   async assert(
@@ -1179,6 +1116,7 @@ export class PageTaskExecutor {
       const queryTask = await this.createTypeQueryTask('Assert', assertion, {
         isWaitForAssert: true,
         returnThought: true,
+        doNotThrowError: true,
       });
 
       await taskExecutor.append(this.prependExecutorWithScreenshot(queryTask));
@@ -1193,7 +1131,7 @@ export class PageTaskExecutor {
         );
       }
 
-      if (result.output) {
+      if (result?.output) {
         return {
           output: undefined,
           executor: taskExecutor,

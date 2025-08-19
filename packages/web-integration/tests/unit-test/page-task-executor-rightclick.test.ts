@@ -14,7 +14,7 @@ const mockPage = {
     [
       {
         name: 'RightClick',
-        call: (context, param) => {
+        call: (param, context) => {
           if (!context.element) {
             throw new Error('Element not found');
           }
