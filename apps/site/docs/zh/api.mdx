@@ -480,13 +480,20 @@ const stringB = await agent.aiString('当前列表的第一条记录的跳转链
 - 类型
 
 ```typescript
-function aiAssert(assertion: string | Object, errorMsg?: string): Promise<void>;
+function aiAssert(
+  assertion: string | Object, 
+  errorMsg?: string, 
+  options?: Object
+): Promise<void>;
 ```
 
 - 参数：
 
   - assertion: string | Object - 用自然语言描述的断言条件，或[使用图片作为提示词](#使用图片作为提示词)。
   - errorMsg?: string - 当断言失败时附加的可选错误提示信息。
+  - options?: Object - 可选，一个配置对象，包含：
+    - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 False。
+    - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 True。
 
 - 返回值：
 

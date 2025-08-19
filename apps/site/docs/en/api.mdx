@@ -484,13 +484,20 @@ Specify an assertion in natural language, and the AI determines whether the cond
 - Type
 
 ```typescript
-function aiAssert(assertion: string | Object, errorMsg?: string): Promise<void>;
+function aiAssert(
+  assertion: string | Object, 
+  errorMsg?: string, 
+  options?: Object
+): Promise<void>;
 ```
 
 - Parameters:
 
   - `assertion: string | Object` - The assertion described in natural language, or [prompting with images](#prompting-with-images).
   - `errorMsg?: string` - An optional error message to append if the assertion fails.
+  - `options?: Object` - Optional, a configuration object containing:
+    - `domIncluded?: boolean | 'visible-only'` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. If set to `'visible-only'`, only the visible elements will be sent. Default: False.
+    - `screenshotIncluded?: boolean` - Whether to send screenshot to the model. Default: True.
 
 - Return Value:
 
