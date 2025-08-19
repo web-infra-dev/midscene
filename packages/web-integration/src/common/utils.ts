@@ -374,8 +374,8 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
     paramSchema: z.object({
       locate: MidsceneLocation.describe('The element to be tapped'),
     }),
-    call: async (param, context) => {
-      const { element } = context;
+    call: async (param) => {
+      const element = param.locate;
       assert(element, 'Element not found, cannot tap');
       await page.mouse.click(element.center[0], element.center[1], {
         button: 'left',
@@ -390,8 +390,8 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
     paramSchema: z.object({
       locate: MidsceneLocation.describe('The element to be right clicked'),
     }),
-    call: async (param, context) => {
-      const { element } = context;
+    call: async (param) => {
+      const element = param.locate;
       assert(element, 'Element not found, cannot right click');
       await page.mouse.click(element.center[0], element.center[1], {
         button: 'right',
@@ -407,8 +407,8 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
     paramSchema: z.object({
       locate: MidsceneLocation.describe('The element to be hovered'),
     }),
-    call: async (param, context) => {
-      const { element } = context;
+    call: async (param) => {
+      const element = param.locate;
       assert(element, 'Element not found, cannot hover');
       await page.mouse.move(element.center[0], element.center[1]);
     },
@@ -426,8 +426,8 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
         .describe('The final value that should be filled in the input box'),
       locate: MidsceneLocation.describe('The input field to be filled'),
     }),
-    call: async (param, context) => {
-      const { element } = context;
+    call: async (param) => {
+      const element = param.locate;
       if (element) {
         await page.clearInput(element as unknown as ElementInfo);
 
@@ -480,8 +480,8 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
         'The element to be scrolled',
       ),
     }),
-    call: async (param, context) => {
-      const { element } = context;
+    call: async (param) => {
+      const element = param.locate;
       const startingPoint = element
         ? {
             left: element.center[0],

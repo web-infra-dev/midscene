@@ -42,4 +42,5 @@ export {
   PointSchema,
   SizeSchema,
   RectSchema,
+  findAllMidsceneLocatorField,
 } from './common';

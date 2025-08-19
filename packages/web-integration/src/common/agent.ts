@@ -49,7 +49,7 @@ import {
 } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import { PageTaskExecutor } from '../common/tasks';
+import { PageTaskExecutor, locatePlanForLocate } from '../common/tasks';
 import type { PlaywrightWebPage } from '../playwright';
 import type { PuppeteerWebPage } from '../puppeteer';
 import type { WebElementInfo, WebUIContext } from '../web-element';
@@ -336,42 +336,28 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     };
   }
 
-  private locateTaskForLocate(prompt: TUserPrompt, opt?: LocateOption) {
-    const detailedLocateParam = this.buildDetailedLocateParam(prompt, opt);
-    const locatePlan: PlanningAction<PlanningLocateParam> = {
-      type: 'Locate',
-      locate: detailedLocateParam,
-      param: detailedLocateParam,
-      thought: '',
-    };
-    return locatePlan;
-  }
-
   async callActionInActionSpace<T = any>(
     type: string,
     locatePrompt?: TUserPrompt,
     opt?: LocateOption, // and all other action params
   ) {
     debug('callActionInActionSpace', type, ',', locatePrompt, ',', opt);
-    const locatePlan = locatePrompt
-      ? this.locateTaskForLocate(locatePrompt, opt)
-      : null;
 
     const actionPlan: PlanningAction<T> = {
       type: type as any,
       param: opt as any,
       thought: '',
-      locate: locatePlan?.locate,
     };
 
-    const plans: PlanningAction[] = [locatePlan, actionPlan].filter(
+    const plans: PlanningAction[] = [actionPlan].filter(
       Boolean,
     ) as PlanningAction[];
 
-    const title = taskTitleStr(
-      type as any,
-      locateParamStr(locatePlan?.locate || undefined),
-    );
+    // TODO: this should be a 'titleForTask' function
+    const locateParam = locatePrompt
+      ? this.buildDetailedLocateParam(locatePrompt, opt)
+      : undefined;
+    const title = taskTitleStr(type as any, locateParamStr(locateParam));
 
     const { executor } = await this.taskExecutor.runPlans(title, plans, {
       cacheable: opt?.cacheable,
@@ -739,10 +725,11 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   async aiLocate(prompt: TUserPrompt, opt?: LocateOption) {
-    const locatePlan = this.locateTaskForLocate(prompt, opt);
+    const locateParam = this.buildDetailedLocateParam(prompt, opt);
+    const locatePlan = locatePlanForLocate(locateParam);
     const plans = [locatePlan];
     const { executor, output } = await this.taskExecutor.runPlans(
-      taskTitleStr('Locate', locateParamStr(locatePlan?.locate || undefined)),
+      taskTitleStr('Locate', locateParamStr(locateParam)),
       plans,
       { cacheable: opt?.cacheable },
     );
