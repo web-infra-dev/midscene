@@ -298,7 +298,7 @@ export default class Insight<
       dumpSubscriber,
     );
 
-    if (errorLog && !data) {
+    if (errorLog && !data && !opt?.doNotThrowError) {
       throw new Error(errorLog);
     }
 

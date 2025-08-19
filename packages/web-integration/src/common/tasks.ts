@@ -1046,7 +1046,7 @@ export class PageTaskExecutor {
 
     return queryTask;
   }
-  private async createTypeQueryExecution<T>(
+  async createTypeQueryExecution<T>(
     type: 'Query' | 'Boolean' | 'Number' | 'String' | 'Assert',
     demand: InsightExtractParam,
     opt?: InsightExtractOption,
@@ -1085,52 +1085,6 @@ export class PageTaskExecutor {
       thought,
       executor: taskExecutor,
     };
-  }
-
-  async query(
-    demand: InsightExtractParam,
-    opt?: InsightExtractOption,
-  ): Promise<ExecutionResult> {
-    return this.createTypeQueryExecution('Query', demand, opt);
-  }
-
-  async boolean(
-    prompt: TUserPrompt,
-    opt?: InsightExtractOption,
-  ): Promise<ExecutionResult<boolean>> {
-    const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
-    return this.createTypeQueryExecution<boolean>(
-      'Boolean',
-      textPrompt,
-      opt,
-      multimodalPrompt,
-    );
-  }
-
-  async number(
-    prompt: TUserPrompt,
-    opt?: InsightExtractOption,
-  ): Promise<ExecutionResult<number>> {
-    const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
-    return this.createTypeQueryExecution<number>(
-      'Number',
-      textPrompt,
-      opt,
-      multimodalPrompt,
-    );
-  }
-
-  async string(
-    prompt: TUserPrompt,
-    opt?: InsightExtractOption,
-  ): Promise<ExecutionResult<string>> {
-    const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
-    return this.createTypeQueryExecution<string>(
-      'String',
-      textPrompt,
-      opt,
-      multimodalPrompt,
-    );
   }
 
   async assert(
@@ -1219,6 +1173,7 @@ export class PageTaskExecutor {
       const queryTask = await this.createTypeQueryTask('Assert', assertion, {
         isWaitForAssert: true,
         returnThought: true,
+        doNotThrowError: true,
       });
 
       await taskExecutor.append(this.prependExecutorWithScreenshot(queryTask));
@@ -1233,7 +1188,7 @@ export class PageTaskExecutor {
         );
       }
 
-      if (result.output) {
+      if (result?.output) {
         return {
           output: undefined,
           executor: taskExecutor,

@@ -13,6 +13,7 @@ vi.mock('@midscene/core/utils', () => ({
   stringifyDumpData: vi.fn(() => '{}'),
   groupedActionDumpFileExt: '.json',
   getVersion: () => __VERSION__,
+  sleep: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock('@midscene/shared/logger', () => ({
@@ -209,6 +210,152 @@ describe('PageAgent reportFileName', () => {
     // Note: uuid() generates base-36 strings (0-9, a-z)
     expect(agent.reportFileName).toMatch(
       /web-\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}-[a-z0-9]{8}/,
+    );
+  });
+});
+
+describe('PageAgent aiWaitFor with doNotThrowError', () => {
+  let agent: PageAgent;
+  let mockTaskExecutor: any;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    // Create agent instance
+    agent = new PageAgent(mockPage, {
+      generateReport: false,
+      autoPrintReportMsg: false,
+    });
+
+    // Mock the task executor with waitFor method
+    mockTaskExecutor = {
+      waitFor: vi.fn(),
+    };
+
+    // Replace the taskExecutor with our mock
+    agent.taskExecutor = mockTaskExecutor;
+  });
+
+  it('should call waitFor with doNotThrowError option in createTypeQueryTask', async () => {
+    // Mock the waitFor method to return a successful executor
+    const mockExecutorResult = {
+      executor: {
+        dump: () => ({ name: 'waitFor test', tasks: [] }),
+        isInErrorState: () => false,
+        latestErrorTask: () => null,
+      },
+    };
+
+    mockTaskExecutor.waitFor.mockResolvedValue(mockExecutorResult);
+
+    // Call aiWaitFor
+    await agent.aiWaitFor('test assertion', {
+      timeoutMs: 5000,
+      checkIntervalMs: 1000,
+    });
+
+    // Verify that waitFor was called with the correct parameters
+    expect(mockTaskExecutor.waitFor).toHaveBeenCalledWith('test assertion', {
+      timeoutMs: 5000,
+      checkIntervalMs: 1000,
+      assertion: 'test assertion',
+    });
+  });
+
+  it('should handle executor error state and still generate report', async () => {
+    // Mock the waitFor method to return an executor in error state
+    const mockExecutorResult = {
+      executor: {
+        dump: () => ({ name: 'waitFor test', tasks: [] }),
+        isInErrorState: () => true,
+        latestErrorTask: () => ({
+          error: 'Test error message',
+          errorStack: 'Test error stack',
+        }),
+      },
+    };
+
+    mockTaskExecutor.waitFor.mockResolvedValue(mockExecutorResult);
+
+    // Call aiWaitFor and expect it to throw after generating report
+    await expect(agent.aiWaitFor('test assertion')).rejects.toThrow(
+      'Test error message\nTest error stack',
+    );
+
+    // Verify that waitFor was called
+    expect(mockTaskExecutor.waitFor).toHaveBeenCalled();
+  });
+
+  it('should use default timeout and checkInterval values', async () => {
+    const mockExecutorResult = {
+      executor: {
+        dump: () => ({ name: 'waitFor test', tasks: [] }),
+        isInErrorState: () => false,
+        latestErrorTask: () => null,
+      },
+    };
+
+    mockTaskExecutor.waitFor.mockResolvedValue(mockExecutorResult);
+
+    // Call aiWaitFor without options
+    await agent.aiWaitFor('test assertion');
+
+    // Verify that waitFor was called with default values
+    expect(mockTaskExecutor.waitFor).toHaveBeenCalledWith('test assertion', {
+      timeoutMs: 15000, // 15 * 1000
+      checkIntervalMs: 3000, // 3 * 1000
+      assertion: 'test assertion',
+    });
+  });
+
+  it('should pass through custom timeout and checkInterval values', async () => {
+    const mockExecutorResult = {
+      executor: {
+        dump: () => ({ name: 'waitFor test', tasks: [] }),
+        isInErrorState: () => false,
+        latestErrorTask: () => null,
+      },
+    };
+
+    mockTaskExecutor.waitFor.mockResolvedValue(mockExecutorResult);
+
+    const customOptions = {
+      timeoutMs: 30000,
+      checkIntervalMs: 5000,
+    };
+
+    // Call aiWaitFor with custom options
+    await agent.aiWaitFor('test assertion', customOptions);
+
+    // Verify that waitFor was called with custom values
+    expect(mockTaskExecutor.waitFor).toHaveBeenCalledWith('test assertion', {
+      timeoutMs: 30000,
+      checkIntervalMs: 5000,
+      assertion: 'test assertion',
+    });
+  });
+
+  it('should call afterTaskRunning with doNotThrowError=true', async () => {
+    const mockExecutorResult = {
+      executor: {
+        dump: () => ({ name: 'waitFor test', tasks: [] }),
+        isInErrorState: () => false,
+        latestErrorTask: () => null,
+      },
+    };
+
+    mockTaskExecutor.waitFor.mockResolvedValue(mockExecutorResult);
+
+    // Spy on afterTaskRunning method
+    const afterTaskRunningSpy = vi.spyOn(agent as any, 'afterTaskRunning');
+
+    // Call aiWaitFor
+    await agent.aiWaitFor('test assertion');
+
+    // Verify that afterTaskRunning was called with doNotThrowError=true
+    expect(afterTaskRunningSpy).toHaveBeenCalledWith(
+      mockExecutorResult.executor,
+      true,
     );
   });
 });
