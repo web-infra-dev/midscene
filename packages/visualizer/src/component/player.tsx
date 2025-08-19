@@ -14,6 +14,8 @@ import type { BaseElement, LocateResultElement, Rect } from '@midscene/core';
 import { treeToList } from '@midscene/shared/extractor';
 import { Dropdown, Spin, Switch, Tooltip } from 'antd';
 import GlobalPerspectiveIcon from '../icons/global-perspective.svg';
+import PlayerSettingIcon from '../icons/player-setting.svg';
+import ShowMarkerIcon from '../icons/show-marker.svg';
 import { rectMarkForItem } from './blackboard';
 import { getTextureFromCache, loadTexture } from './pixi-loader';
 import type {
@@ -178,7 +180,8 @@ export function Player(props?: {
 }) {
   const [titleText, setTitleText] = useState('');
   const [subTitleText, setSubTitleText] = useState('');
-  const { autoZoom, setAutoZoom } = useBlackboardPreference();
+  const { autoZoom, setAutoZoom, elementsVisible, setElementsVisible } =
+    useBlackboardPreference();
 
   // Update state when prop changes
   useEffect(() => {
@@ -213,6 +216,10 @@ export function Player(props?: {
     container.zIndex = LAYER_ORDER_INSIGHT;
     return container;
   }, []);
+
+  useEffect(() => {
+    insightMarkContainer.visible = elementsVisible;
+  }, [elementsVisible, insightMarkContainer]);
 
   const basicCameraState = {
     left: 0,
@@ -968,7 +975,7 @@ export function Player(props?: {
               </div>
             </Tooltip>
             <Dropdown
-              trigger={['hover']}
+              trigger={['hover', 'click']}
               placement="bottomRight"
               overlayStyle={{
                 minWidth: '148px',
@@ -1037,6 +1044,51 @@ export function Player(props?: {
                       </div>
                     ),
                   },
+                  {
+                    key: 'elementsVisible',
+                    style: {
+                      height: '39px',
+                      margin: 0,
+                      padding: '0 12px',
+                    },
+                    label: (
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          width: '100%',
+                          height: '39px',
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}
+                        >
+                          <ShowMarkerIcon
+                            style={{ width: '16px', height: '16px' }}
+                          />
+                          <span
+                            style={{ fontSize: '12px', marginRight: '16px' }}
+                          >
+                            Show Element Markers
+                          </span>
+                        </div>
+                        <Switch
+                          size="small"
+                          checked={elementsVisible}
+                          onChange={(checked) => {
+                            setElementsVisible(checked);
+                            triggerReplay();
+                          }}
+                          onClick={(_, e) => e?.stopPropagation?.()}
+                        />
+                      </div>
+                    ),
+                  },
                 ],
               }}
             >
@@ -1053,9 +1105,7 @@ export function Player(props?: {
                   transition: 'opacity 0.2s',
                 }}
               >
-                <GlobalPerspectiveIcon
-                  style={{ width: '16px', height: '16px' }}
-                />
+                <PlayerSettingIcon style={{ width: '16px', height: '16px' }} />
               </div>
             </Dropdown>
           </div>
