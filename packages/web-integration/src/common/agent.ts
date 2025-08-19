@@ -56,7 +56,7 @@ import type { WebElementInfo, WebUIContext } from '../web-element';
 import type { AndroidDeviceInputOpt } from './page';
 import { TaskCache } from './task-cache';
 import { locateParamStr, paramStr, taskTitleStr, typeStr } from './ui-utils';
-import { getReportFileName, printReportMsg } from './utils';
+import { getReportFileName, parsePrompt, printReportMsg } from './utils';
 import { parseContextFromWebPage } from './utils';
 import { trimContextByViewport } from './utils';
 
@@ -617,7 +617,8 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     demand: InsightExtractParam,
     opt: InsightExtractOption = defaultInsightExtractOption,
   ) {
-    const { output, executor } = await this.taskExecutor.query(demand, opt);
+    const { output, executor } =
+      await this.taskExecutor.createTypeQueryExecution('Query', demand, opt);
     await this.afterTaskRunning(executor);
     return output;
   }
@@ -626,7 +627,14 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     prompt: TUserPrompt,
     opt: InsightExtractOption = defaultInsightExtractOption,
   ) {
-    const { output, executor } = await this.taskExecutor.boolean(prompt, opt);
+    const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
+    const { output, executor } =
+      await this.taskExecutor.createTypeQueryExecution(
+        'Boolean',
+        textPrompt,
+        opt,
+        multimodalPrompt,
+      );
     await this.afterTaskRunning(executor);
     return output;
   }
@@ -635,7 +643,14 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     prompt: TUserPrompt,
     opt: InsightExtractOption = defaultInsightExtractOption,
   ) {
-    const { output, executor } = await this.taskExecutor.number(prompt, opt);
+    const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
+    const { output, executor } =
+      await this.taskExecutor.createTypeQueryExecution(
+        'Number',
+        textPrompt,
+        opt,
+        multimodalPrompt,
+      );
     await this.afterTaskRunning(executor);
     return output;
   }
@@ -644,7 +659,14 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     prompt: TUserPrompt,
     opt: InsightExtractOption = defaultInsightExtractOption,
   ) {
-    const { output, executor } = await this.taskExecutor.string(prompt, opt);
+    const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
+    const { output, executor } =
+      await this.taskExecutor.createTypeQueryExecution(
+        'String',
+        textPrompt,
+        opt,
+        multimodalPrompt,
+      );
     await this.afterTaskRunning(executor);
     return output;
   }
