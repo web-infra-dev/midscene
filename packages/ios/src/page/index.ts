@@ -1,7 +1,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type { Point, Size } from '@midscene/core';
-import type { DeviceAction, PageType } from '@midscene/core';
+import {
+  MidsceneLocation,
+  type Point,
+  type Size,
+} from '@midscene/core';
+import type {
+  DeviceAction,
+  ExecutorContext,
+  MidsceneLocationType,
+  PageType,
+} from '@midscene/core';
+import { z } from '@midscene/core';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { resizeImgBuffer } from '@midscene/shared/img';
@@ -92,7 +102,20 @@ export class iOSDevice implements AndroidDevicePage {
     const commonActions = commonWebActionsForWebPage(this);
     commonActions.forEach((action) => {
       if (action.name === 'Input') {
-        action.call = async (context, param) => {
+        action.paramSchema = z.object({
+          value: z
+            .string()
+            .describe(
+              'The final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. Giving a blank string means clear the input field.',
+            ),
+          autoDismissKeyboard: z
+            .boolean()
+            .optional()
+            .describe(
+              'If true, the keyboard will be dismissed after the input is completed. Do not set it unless the user asks you to do so.',
+            ),
+        });
+        action.call = async (param, context) => {
           const { element } = context;
           if (element) {
             await this.clearInput(element as unknown as ElementInfo);
@@ -102,29 +125,28 @@ export class iOSDevice implements AndroidDevicePage {
             }
           }
 
+          const autoDismissKeyboard =
+            param.autoDismissKeyboard ?? this.options?.autoDismissKeyboard;
           await this.keyboard.type(param.value, {
-            autoDismissKeyboard:
-              param.autoDismissKeyboard ?? this.options?.autoDismissKeyboard,
+            autoDismissKeyboard,
           });
         };
       }
     });
 
-    const allActions: DeviceAction[] = [
-      ...commonWebActionsForWebPage(this),
+    const allActions: DeviceAction<any>[] = [
+      ...commonActions,
       {
         name: 'IOSBackButton',
         description: 'Trigger the system "back" operation on iOS devices',
-        location: false,
-        call: async (context, param) => {
+        call: async (param, context) => {
           await this.back();
         },
       },
       {
         name: 'IOSHomeButton',
         description: 'Trigger the system "home" operation on iOS devices',
-        location: false,
-        call: async (context, param) => {
+        call: async (param, context) => {
           await this.home();
         },
       },
@@ -132,8 +154,7 @@ export class iOSDevice implements AndroidDevicePage {
         name: 'IOSRecentAppsButton',
         description:
           'Trigger the system "recent apps" operation on iOS devices',
-        location: false,
-        call: async (context, param) => {
+        call: async (param, context) => {
           await this.recentApps();
         },
       },
@@ -141,30 +162,49 @@ export class iOSDevice implements AndroidDevicePage {
         name: 'IOSLongPress',
         description:
           'Trigger a long press on the screen at specified coordinates on iOS devices',
-        paramSchema: '{ duration?: number }',
-        paramDescription: 'The duration of the long press in milliseconds',
-        location: 'required',
-        whatToLocate: 'The element to be long pressed',
-        call: async (context, param) => {
+        paramSchema: z.object({
+          duration: z
+            .number()
+            .optional()
+            .describe('The duration of the long press in milliseconds'),
+          locate: MidsceneLocation.describe('The element to be long pressed'),
+        }),
+        call: async (param, context) => {
           const { element } = context;
           if (!element) {
-            throw new Error('IOSLongPress requires an element to be located');
+            throw new Error(
+              'IOSLongPress requires an element to be located',
+            );
           }
           const [x, y] = element.center;
           await this.longPress(x, y, param?.duration);
         },
-      } as DeviceAction<{ duration?: number }>,
+      } as DeviceAction<{
+        duration?: number;
+        locate: MidsceneLocationType;
+      }>,
       {
         name: 'IOSPull',
-        description:
-          'Trigger pull down to refresh or pull up actions on iOS devices',
-        paramSchema:
-          '{ direction: "up" | "down", distance?: number, duration?: number }',
-        paramDescription:
-          'The direction to pull, the distance to pull (in pixels), and the duration of the pull (in milliseconds).',
-        location: 'optional',
-        whatToLocate: 'The element to be pulled',
-        call: async (context, param) => {
+        description: 'Trigger pull down to refresh or pull up actions',
+        paramSchema: z.object({
+          direction: z.enum(['up', 'down']).describe('The direction to pull'),
+          distance: z
+            .number()
+            .optional()
+            .describe('The distance to pull (in pixels)'),
+          duration: z
+            .number()
+            .optional()
+            .describe('The duration of the pull (in milliseconds)'),
+        }),
+        call: async (
+          param: {
+            direction: 'up' | 'down';
+            distance?: number;
+            duration?: number;
+          },
+          context: ExecutorContext,
+        ) => {
           const { element } = context;
           const startPoint = element
             ? { left: element.center[0], top: element.center[1] }
@@ -879,8 +919,8 @@ export class iOSDevice implements AndroidDevicePage {
 
     const distance = scrollType.distance || 100;
 
-    // Improved distance calculation to better match Android scroll behavior
-    // Android scroll distance is in pixels, we need to convert to effective scroll events
+    // Improved distance calculation to better match iOS scroll behavior
+    // iOS scroll distance is in pixels, we need to convert to effective scroll events
     // Base the calculation on screen size for better proportional scrolling
     const screenArea = width * height;
     const scrollRatio = distance / Math.sqrt(screenArea); // Normalize by screen size
@@ -935,7 +975,7 @@ export class iOSDevice implements AndroidDevicePage {
     throw new Error('getElementText is not implemented for iOS devices');
   }
 
-  // Required AndroidDevicePage interface methods
+  // Required iOSDevicePage interface methods
   async getElementsNodeTree(): Promise<any> {
     // Simplified implementation, returns an empty node tree
     return {
