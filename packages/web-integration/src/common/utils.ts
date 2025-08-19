@@ -6,13 +6,14 @@ import type {
   ExecutionDump,
   ExecutionTask,
   ExecutorContext,
+  MidsceneLocationType,
   PlanningLocateParam,
   PlaywrightParserOpt,
-  ScrollParam,
   TMultimodalPrompt,
   TUserPrompt,
   UIContext,
 } from '@midscene/core';
+import { MidsceneLocation, z } from '@midscene/core';
 import { elementByPositionWithElementInfo } from '@midscene/core/ai-model';
 import { sleep, uploadTestInfoToServer } from '@midscene/core/utils';
 import { MIDSCENE_REPORT_TAG_NAME, getAIConfig } from '@midscene/shared/env';
@@ -365,53 +366,67 @@ export const parsePrompt = (
 
 export const commonWebActionsForWebPage = <T extends AbstractPage>(
   page: T,
-): DeviceAction[] => [
+): DeviceAction<any>[] => [
   {
     name: 'Tap',
     description: 'Tap the element',
-    location: 'required',
     interfaceAlias: 'aiTap',
-    call: async (context) => {
+    paramSchema: z.object({
+      locate: MidsceneLocation.describe('The element to be tapped'),
+    }),
+    call: async (param, context) => {
       const { element } = context;
       assert(element, 'Element not found, cannot tap');
       await page.mouse.click(element.center[0], element.center[1], {
         button: 'left',
       });
     },
-  },
+  } as DeviceAction<{
+    locate: MidsceneLocationType;
+  }>,
   {
     name: 'RightClick',
     description: 'Right click the element',
-    location: 'required',
-    call: async (context) => {
+    paramSchema: z.object({
+      locate: MidsceneLocation.describe('The element to be right clicked'),
+    }),
+    call: async (param, context) => {
       const { element } = context;
       assert(element, 'Element not found, cannot right click');
       await page.mouse.click(element.center[0], element.center[1], {
         button: 'right',
       });
     },
-  },
+  } as DeviceAction<{
+    locate: MidsceneLocationType;
+  }>,
   {
     name: 'Hover',
     description: 'Move the mouse to the element',
-    location: 'required',
     interfaceAlias: 'aiHover',
-    call: async (context) => {
+    paramSchema: z.object({
+      locate: MidsceneLocation.describe('The element to be hovered'),
+    }),
+    call: async (param, context) => {
       const { element } = context;
       assert(element, 'Element not found, cannot hover');
       await page.mouse.move(element.center[0], element.center[1]);
     },
-  },
+  } as DeviceAction<{
+    locate: MidsceneLocationType;
+  }>,
   {
     name: 'Input',
-    description: 'Replace the input field with a new value',
-    paramSchema: '{ value: string }',
-    paramDescription:
-      '`value` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. Giving a blank string means clear the input field.',
-    location: 'required',
-    whatToLocate: 'The input field to be filled',
+    description:
+      'Replace the input field with a new value. `value` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. Giving a blank string means clear the input field.',
     interfaceAlias: 'aiInput',
-    call: async (context, param) => {
+    paramSchema: z.object({
+      value: z
+        .string()
+        .describe('The final value that should be filled in the input box'),
+      locate: MidsceneLocation.describe('The input field to be filled'),
+    }),
+    call: async (param, context) => {
       const { element } = context;
       if (element) {
         await page.clearInput(element as unknown as ElementInfo);
@@ -424,30 +439,48 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
       // Note: there is another implementation in AndroidDevicePage, which is more complex
       await page.keyboard.type(param.value);
     },
-  } as DeviceAction<{ value: string }>,
+  } as DeviceAction<{
+    value: string;
+    locate: MidsceneLocationType;
+  }>,
   {
     name: 'KeyboardPress',
     description: 'Press a key',
-    paramSchema: '{ value: string }',
-    paramDescription: 'The key to be pressed',
-    location: false,
     interfaceAlias: 'aiKeyboardPress',
-    call: async (context, param) => {
+    paramSchema: z.object({
+      value: z.string().describe('The key to be pressed'),
+    }),
+    call: async (param, context) => {
       const keys = getKeyCommands(param.value);
       await page.keyboard.press(keys as any); // TODO: fix this type error
     },
-  } as DeviceAction<{ value: string }>,
+  } as DeviceAction<{
+    value: string;
+  }>,
   {
     name: 'Scroll',
-    description: 'Scroll the page or an element',
-    paramSchema:
-      '{ direction: "down"(default) | "up" | "right" | "left", scrollType: "once" (default) | "untilBottom" | "untilTop" | "untilRight" | "untilLeft", distance: number | null }',
-    paramDescription:
-      'The direction to scroll, the scroll type, and the distance to scroll. The distance is the number of pixels to scroll. If not specified, use `down` direction, `once` scroll type, and `null` distance.',
-    location: 'optional',
-    whatToLocate: 'The element to be scrolled',
+    description:
+      'Scroll the page or an element. The direction to scroll, the scroll type, and the distance to scroll. The distance is the number of pixels to scroll. If not specified, use `down` direction, `once` scroll type, and `null` distance.',
     interfaceAlias: 'aiScroll',
-    call: async (context, param) => {
+    paramSchema: z.object({
+      direction: z
+        .enum(['down', 'up', 'right', 'left'])
+        .default('down')
+        .describe('The direction to scroll'),
+      scrollType: z
+        .enum(['once', 'untilBottom', 'untilTop', 'untilRight', 'untilLeft'])
+        .default('once')
+        .describe('The scroll type'),
+      distance: z
+        .number()
+        .nullable()
+        .optional()
+        .describe('The distance in pixels to scroll'),
+      locate: MidsceneLocation.optional().describe(
+        'The element to be scrolled',
+      ),
+    }),
+    call: async (param, context) => {
       const { element } = context;
       const startingPoint = element
         ? {
@@ -486,5 +519,16 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
         );
       }
     },
-  } as DeviceAction<ScrollParam>,
+  } as DeviceAction<{
+    scrollType:
+      | 'once'
+      | 'untilBottom'
+      | 'untilTop'
+      | 'untilRight'
+      | 'untilLeft';
+    direction: 'up' | 'down';
+    distance?: number;
+    duration?: number;
+    locate: MidsceneLocationType;
+  }>,
 ];

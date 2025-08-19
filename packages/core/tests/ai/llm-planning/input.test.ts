@@ -3,6 +3,7 @@ import type { DeviceAction, PlanningAction } from '@/types';
 import { getContextFromFixture } from 'tests/evaluation';
 /* eslint-disable max-lines-per-function */
 import { describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
 
 vi.setConfig({
   testTimeout: 180 * 1000,
@@ -13,11 +14,9 @@ const mockActionSpace: DeviceAction[] = [
   {
     name: 'Input',
     description: 'Replace the input field with a new value',
-    paramSchema: '{ value: string }',
-    paramDescription:
-      '`value` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. Giving a blank string means clear the input field.',
-    location: 'required',
-    whatToLocate: 'The input field to be filled',
+    paramSchema: z.object({
+      value: z.string(),
+    }),
     call: () => {},
   },
 ];

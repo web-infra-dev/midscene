@@ -1,15 +1,6 @@
-import type {
-  DeviceAction,
-  ExecutorContext,
-  Point,
-  ScrollParam,
-  Size,
-} from '@midscene/core';
-import { sleep } from '@midscene/core/utils';
+import type { DeviceAction, Point, Size } from '@midscene/core';
 import type { ElementInfo, ElementNode } from '@midscene/shared/extractor';
-import { assert } from '@midscene/shared/utils';
 import type { WebKeyInput } from './common/page';
-import { getKeyCommands } from './common/ui-utils';
 import type { WebUIContext } from './web-element';
 
 export type MouseButton = 'left' | 'right' | 'middle';

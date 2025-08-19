@@ -8,22 +8,24 @@ import {
 } from '@/ai-model/prompt/llm-planning';
 import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
 import { getUiTarsPlanningPrompt } from '@/ai-model/prompt/ui-tars-planning';
+import { MidsceneLocation } from '@/index';
 import { mockActionSpace } from 'tests/common';
 import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
 import {
   extractDataQueryPrompt,
   systemPromptToExtract,
 } from '../../../src/ai-model/prompt/extraction';
 import { mockNonChinaTimeZone, restoreIntl } from '../mocks/intl-mock';
 
-const mockLocatorScheme = 'locate: {"mock": string}';
+const mockLocatorScheme =
+  '{"bbox": [number, number, number, number], "prompt": string}';
 describe('action space', () => {
-  it('action without param, location is false', () => {
+  it('action without param, no locate needed', () => {
     const action = descriptionForAction(
       {
         name: 'Tap',
         description: 'Tap the element',
-        location: false,
         call: async () => {},
       },
       mockLocatorScheme,
@@ -34,14 +36,16 @@ describe('action space', () => {
     `);
   });
 
-  it('action with param, location is false', () => {
+  it('action with param, no locate needed', () => {
     const action = descriptionForAction(
       {
         name: 'Tap',
         description: 'Tap the element',
-        paramSchema: '{ foo: string }',
-        paramDescription: 'The foo to be tapped',
-        location: false,
+        paramSchema: z.object({
+          foo: z.string().describe('The foo to be tapped'),
+          bar: z.number().optional().describe('An optional bar value'),
+          help: z.string().describe('Help information for this action'),
+        }),
         call: async () => {},
       },
       mockLocatorScheme,
@@ -49,17 +53,25 @@ describe('action space', () => {
     expect(action).toMatchInlineSnapshot(`
       "- Tap, Tap the element
         - type: "Tap"
-        - param: { foo: string } // The foo to be tapped"
+        - param:
+          - foo: string // The foo to be tapped
+          - bar?: number // An optional bar value
+          - help: string // Help information for this action"
     `);
   });
 
-  it('action with param, no paramDescription, location is false', () => {
+  it('action with param, multiple location fields', () => {
     const action = descriptionForAction(
       {
         name: 'Tap',
         description: 'Tap the element',
-        paramSchema: '{ foo: string }',
-        location: false,
+        paramSchema: z.object({
+          value: z.string().describe('The value to be tapped'),
+          locate: MidsceneLocation.describe('The element to be tapped'),
+          locate2: MidsceneLocation.describe(
+            'The element to be tapped',
+          ).optional(),
+        }),
         call: async () => {},
       },
       mockLocatorScheme,
@@ -67,45 +79,10 @@ describe('action space', () => {
     expect(action).toMatchInlineSnapshot(`
       "- Tap, Tap the element
         - type: "Tap"
-        - param: { foo: string }"
-    `);
-  });
-
-  it('action without param, location is required', () => {
-    const action = descriptionForAction(
-      {
-        name: 'Tap',
-        description: 'Tap the element',
-        location: 'required',
-        whatToLocate: 'The element to be tapped',
-        call: async () => {},
-      },
-      mockLocatorScheme,
-    );
-    expect(action).toMatchInlineSnapshot(`
-      "- Tap, Tap the element
-        - type: "Tap"
-        - locate: {"mock": string}"
-    `);
-  });
-
-  it('action with param, location is optional', () => {
-    const action = descriptionForAction(
-      {
-        name: 'Tap',
-        description: 'Tap the element',
-        paramSchema: '{ value: string }',
-        paramDescription: 'The value to be tapped',
-        location: 'optional',
-        call: async () => {},
-      },
-      mockLocatorScheme,
-    );
-    expect(action).toMatchInlineSnapshot(`
-      "- Tap, Tap the element
-        - type: "Tap"
-        - param: { value: string } // The value to be tapped
-        - locate: {"mock": string} | null"
+        - param:
+          - value: string // The value to be tapped
+          - locate: {"bbox": [number, number, number, number], "prompt": string} // The element to be tapped
+          - locate2?: {"bbox": [number, number, number, number], "prompt": string} // The element to be tapped"
     `);
   });
 });

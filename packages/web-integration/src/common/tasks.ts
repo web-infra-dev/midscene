@@ -455,7 +455,7 @@ export class PageTaskExecutor {
               throw new Error(`Action type '${planType}' not found`);
             }
             const actionFn = action.call.bind(this.page);
-            return await actionFn(context, param);
+            return await actionFn(param, context);
           },
         };
         tasks.push(task);
@@ -591,15 +591,10 @@ export class PageTaskExecutor {
         };
         executorContext.task.usage = usage;
 
-        let stopCollecting = false;
         let bboxCollected = false;
-        let planParsingError = '';
         const finalActions = (actions || []).reduce<PlanningAction[]>(
           (acc, planningAction) => {
-            if (stopCollecting) {
-              return acc;
-            }
-
+            // TODO: magic field "locate" is used to indicate the action requires a locate
             if (planningAction.locate) {
               // we only collect bbox once, let qwen re-locate in the following steps
               if (bboxCollected && planningAction.locate.bbox) {
@@ -618,16 +613,6 @@ export class PageTaskExecutor {
                 // thought is prompt created by ai, always a string
                 thought: planningAction.locate.prompt as string,
               });
-            } else {
-              const actionType = planningAction.type;
-              const action = actionSpace.find(
-                (action) => action.name === actionType,
-              );
-              if (action && action?.location === 'required') {
-                planParsingError = `Location is required for action: ${actionType}, but not provided by planning`;
-                stopCollecting = true;
-                return acc;
-              }
             }
             acc.push(planningAction);
             return acc;
@@ -652,9 +637,7 @@ export class PageTaskExecutor {
         if (finalActions.length === 0) {
           assert(
             !more_actions_needed_by_instruction || sleep,
-            error
-              ? `Failed to plan: ${error}`
-              : planParsingError || 'No plan found',
+            error ? `Failed to plan: ${error}` : 'No plan found',
           );
         }
 

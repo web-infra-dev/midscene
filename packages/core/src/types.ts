@@ -8,6 +8,7 @@ import type {
   Size,
 } from '@midscene/shared/types';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
+import type { z } from 'zod';
 import type { DetailedLocateParam, MidsceneYamlFlowItem } from './yaml';
 
 export type {
@@ -147,10 +148,10 @@ export type InsightAction = 'locate' | 'extract' | 'assert' | 'describe';
 export type InsightExtractParam = string | Record<string, string>;
 
 export type LocateResultElement = {
-  id: string;
-  indexId?: number;
   center: [number, number];
   rect: Rect;
+  id: string;
+  indexId?: number;
   xpaths: string[];
   attributes: {
     nodeType: NodeType;
@@ -251,25 +252,7 @@ export interface PlanningLocateParam extends DetailedLocateParam {
 
 export interface PlanningAction<ParamType = any> {
   thought?: string;
-  type:
-    | 'Locate'
-    | 'Tap'
-    | 'RightClick'
-    | 'Hover'
-    | 'Drag'
-    | 'Input'
-    | 'KeyboardPress'
-    | 'Scroll'
-    | 'Error'
-    | 'Assert'
-    | 'AssertWithoutThrow'
-    | 'Sleep'
-    | 'Finished'
-    | 'AndroidBackButton'
-    | 'AndroidHomeButton'
-    | 'AndroidRecentAppsButton'
-    | 'AndroidLongPress'
-    | 'AndroidPull';
+  type: string;
   param: ParamType;
   locate?: PlanningLocateParam | null;
 }
@@ -609,13 +592,11 @@ export type TUserPrompt =
       prompt: string;
     } & Partial<TMultimodalPrompt>);
 
-export interface DeviceAction<ParamType = any> {
+// biome-ignore lint/complexity/noBannedTypes: <explanation>
+export interface DeviceAction<T = {}> {
   name: string;
-  interfaceAlias?: string;
   description?: string;
-  paramSchema?: string;
-  paramDescription?: string;
-  location?: 'required' | 'optional' | false;
-  whatToLocate?: string; // what to locate if location is required or optional
-  call: (context: ExecutorContext, param: ParamType) => Promise<void> | void;
+  interfaceAlias?: string;
+  paramSchema?: z.ZodType<T>;
+  call: (param: T, context: ExecutorContext) => Promise<void> | void;
 }
