@@ -27,7 +27,6 @@ import type {
   ScriptPlayerTaskStatus,
   TUserPrompt,
 } from '@midscene/core';
-import { actionSpaceTypePrefix } from '@midscene/core/ai-model';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 
 export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
@@ -299,7 +298,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         // New format: { aiInput: TUserPrompt, value: string }
         if ((inputTask as any).locate) {
           // Old format - aiInput is the value, locate is the prompt
-          const value = inputTask.aiInput as string;
+          const value = (inputTask.aiInput as string) || inputTask.value;
           const locatePrompt = (inputTask as any).locate;
           await agent.aiInput(value, locatePrompt, inputTask);
         } else {
@@ -416,7 +415,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
             return true;
           }
 
-          const keyOfActionInActionSpace = `${actionSpaceTypePrefix}${action.name}`;
+          const keyOfActionInActionSpace = action.name;
           if (
             Object.prototype.hasOwnProperty.call(
               flowItem,
@@ -435,7 +434,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         if (matchedAction) {
           const {
             [matchedAction.interfaceAlias as string]: _,
-            [actionSpaceTypePrefix + matchedAction.name]: __,
+            [matchedAction.name]: __,
             ...restParams
           } = flowItem as any;
           await agent.callActionInActionSpace(

@@ -819,7 +819,6 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     result: Record<string, any>;
   }> {
     const script = parseYamlScript(yamlScriptContent, 'yaml', true);
-    const actionSpace = await this.page.actionSpace();
     const player = new ScriptPlayer(script, async (target) => {
       return { agent: this, freeFn: [] };
     });

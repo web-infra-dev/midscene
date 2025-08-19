@@ -141,9 +141,6 @@ export async function plan(
           }
         }
       }
-
-      // to be compatible with the web-integration
-      action.locate = action.param[field];
     });
   });
   // in Qwen-VL, error means error. In GPT-4o, error may mean more actions are needed.

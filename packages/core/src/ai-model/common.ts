@@ -37,8 +37,6 @@ export enum AIActionType {
   DESCRIBE_ELEMENT = 4,
 }
 
-export const actionSpaceTypePrefix = 'action_space_';
-
 export async function callAiFn<T>(
   msgs: AIArgs,
   AIActionTypeValue: AIActionType,
@@ -341,7 +339,7 @@ export function buildYamlFlowFromPlans(
     }
 
     const locate = plan.locate?.prompt;
-    const flowKey = action.interfaceAlias || `${actionSpaceTypePrefix}${verb}`;
+    const flowKey = action.interfaceAlias || verb;
 
     const flowItem: MidsceneYamlFlowItem = {
       [flowKey]: locate || '',
@@ -378,9 +376,11 @@ export const RectSchema = PointSchema.and(SizeSchema).and(
   }),
 );
 
+const locateFieldFlagName = 'midscene_location_field_flag';
+
 export const MidsceneLocation = z
   .object({
-    midscene_location_field_flag: z.literal(true),
+    [locateFieldFlagName]: z.literal(true),
     prompt: z.string(),
     center: z.tuple([z.number(), z.number()]),
     rect: RectSchema,
@@ -399,10 +399,19 @@ export const ifMidsceneLocatorField = (field: any): boolean => {
   // Check if this is a ZodObject with midscene_location_field_flag
   if (actualField._def?.typeName === 'ZodObject') {
     const shape = actualField._def.shape();
-    return 'midscene_location_field_flag' in shape;
+    return locateFieldFlagName in shape;
   }
 
   return false;
+};
+
+export const dumpMidsceneLocatorField = (field: any): string => {
+  assert(
+    ifMidsceneLocatorField(field),
+    'field is not a midscene locator field',
+  );
+
+  return field.prompt;
 };
 
 export const findAllMidsceneLocatorField = (
@@ -421,4 +430,43 @@ export const findAllMidsceneLocatorField = (
 
   // For other ZodType instances, we can't extract field names
   return [];
+};
+
+export const dumpActionParam = (
+  jsonObject: Record<string, any>,
+  zodSchema: z.ZodType<any>,
+): Record<string, any> => {
+  const locatorFields = findAllMidsceneLocatorField(zodSchema);
+  const result = { ...jsonObject };
+
+  for (const fieldName of locatorFields) {
+    const fieldValue = result[fieldName];
+    if (fieldValue && typeof fieldValue === 'object') {
+      // Check if this field is actually a MidsceneLocationType object
+      if (fieldValue.prompt && typeof fieldValue.prompt === 'string') {
+        result[fieldName] = fieldValue.prompt;
+      }
+    }
+  }
+
+  return result;
+};
+
+export const loadActionParam = (
+  jsonObject: Record<string, any>,
+  zodSchema: z.ZodType<any>,
+): Record<string, any> => {
+  const locatorFields = findAllMidsceneLocatorField(zodSchema);
+  const result = { ...jsonObject };
+
+  for (const fieldName of locatorFields) {
+    const fieldValue = result[fieldName];
+    if (fieldValue && typeof fieldValue === 'string') {
+      result[fieldName] = {
+        prompt: fieldValue,
+      };
+    }
+  }
+
+  return result;
 };
