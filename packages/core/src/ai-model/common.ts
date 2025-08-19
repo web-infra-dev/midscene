@@ -338,12 +338,14 @@ export function buildYamlFlowFromPlans(
       continue;
     }
 
-    const locate = plan.locate?.prompt;
     const flowKey = action.interfaceAlias || verb;
+    const flowParam = action.paramSchema
+      ? dumpActionParam(plan.param || {}, action.paramSchema)
+      : {};
 
     const flowItem: MidsceneYamlFlowItem = {
-      [flowKey]: locate || '',
-      ...(plan.param || {}),
+      [flowKey]: '',
+      ...flowParam,
     };
 
     flow.push(flowItem);

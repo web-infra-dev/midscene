@@ -130,7 +130,7 @@ describe('llm planning - build yaml flow', () => {
           call: async () => {},
         },
         {
-          name: 'Scroll', // no alias for this
+          name: 'Scroll', // no alias for this, no param schema
           call: async () => {},
         },
       ],
@@ -138,38 +138,18 @@ describe('llm planning - build yaml flow', () => {
     expect(flow).toMatchInlineSnapshot(`
       [
         {
-          "aiInput": "The input box for adding a new todo",
-          "locate": {
-            "bbox": [
-              512,
-              127,
-              1068,
-              198,
-            ],
-            "prompt": "The input box for adding a new todo",
-          },
+          "aiInput": "",
+          "locate": "The input box for adding a new todo",
           "value": "hello",
         },
         {
           "aiHover": "",
         },
         {
-          "aiTap": "The input box labeled 'What needs to be done?'",
-          "locate": {
-            "bbox": [
-              512,
-              127,
-              1068,
-              197,
-            ],
-            "prompt": "The input box labeled 'What needs to be done?'",
-          },
+          "aiTap": "",
         },
         {
-          "action_space_Scroll": "",
-          "direction": "down",
-          "distance": 500,
-          "scrollType": "once",
+          "Scroll": "",
         },
       ]
     `);
@@ -229,28 +209,12 @@ describe('llm planning - build yaml flow', () => {
     expect(flow).toMatchInlineSnapshot(`
       [
         {
-          "aiTap": "Cancel button",
-          "locate": {
-            "bbox": [
-              300,
-              300,
-              400,
-              400,
-            ],
-            "prompt": "Cancel button",
-          },
+          "aiTap": "",
+          "locate": "Cancel button",
         },
         {
-          "aiInput": "Text input field",
-          "locate": {
-            "bbox": [
-              500,
-              500,
-              600,
-              600,
-            ],
-            "prompt": "Text input field",
-          },
+          "aiInput": "",
+          "locate": "Text input field",
           "value": "test",
         },
       ]
@@ -288,16 +252,8 @@ describe('llm planning - build yaml flow', () => {
     expect(flow).toMatchInlineSnapshot(`
       [
         {
-          "action_space_Click": "Submit button",
-          "locate": {
-            "bbox": [
-              100,
-              100,
-              200,
-              200,
-            ],
-            "prompt": "Submit button",
-          },
+          "Click": "",
+          "locate": "Submit button",
         },
       ]
     `);
@@ -336,24 +292,8 @@ describe('llm planning - build yaml flow', () => {
       [
         {
           "aiDragAndDrop": "",
-          "from": {
-            "bbox": [
-              100,
-              100,
-              200,
-              200,
-            ],
-            "prompt": "Source element",
-          },
-          "to": {
-            "bbox": [
-              300,
-              300,
-              400,
-              400,
-            ],
-            "prompt": "Target element",
-          },
+          "from": "Source element",
+          "to": "Target element",
         },
       ]
     `);
