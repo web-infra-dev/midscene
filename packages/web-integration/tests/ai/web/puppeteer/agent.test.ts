@@ -22,8 +22,11 @@ describe('puppeteer integration', () => {
     const agent = new PuppeteerAgent(originPage, {
       cacheId: 'input-related-test',
     });
+
     await agent.aiAction('Enter "happy birthday" in search input box');
-    await agent.aiAssert('the text in the input box starts with "happy birthday"');
+    await agent.aiAssert(
+      'the text in the input box starts with "happy birthday"',
+    );
 
     await agent.aiInput('Jay Chou', 'search input box');
     await agent.aiAssert('the text in the input box contains "Jay Chou"');

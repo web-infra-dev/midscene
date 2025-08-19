@@ -316,28 +316,29 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   ): DetailedLocateParam {
     assert(locatePrompt, 'missing locate prompt');
 
-    if (typeof opt === 'object' && opt !== null) {
-      const prompt = locatePrompt;
-      const deepThink = opt.deepThink ?? false;
-      const cacheable = opt.cacheable ?? true;
-      const xpath = opt.xpath;
+    let prompt = locatePrompt;
+    let deepThink = false;
+    let cacheable = true;
+    let xpath = undefined;
 
-      return {
-        prompt,
-        deepThink,
-        cacheable,
-        xpath,
-      };
+    if (typeof opt === 'object' && opt !== null) {
+      deepThink = opt.deepThink ?? false;
+      cacheable = opt.cacheable ?? true;
+      xpath = opt.xpath;
+      prompt = opt.prompt || locatePrompt;
     }
 
     return {
-      prompt: locatePrompt,
+      prompt,
+      deepThink,
+      cacheable,
+      xpath,
     };
   }
 
   async callActionInActionSpace<T = any>(
     type: string,
-    locatePrompt?: TUserPrompt,
+    locatePrompt?: TUserPrompt, // this is a shortcut for { locate: 'locatePrompt' }
     opt?: LocateOption, // and all other action params
   ) {
     debug('callActionInActionSpace', type, ',', locatePrompt, ',', opt);

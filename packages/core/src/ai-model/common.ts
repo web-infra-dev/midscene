@@ -14,11 +14,7 @@ import type {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
 } from 'openai/resources/index';
-import {
-  call,
-  callToGetJSONObject,
-  getModelName,
-} from './service-caller/index';
+import { callToGetJSONObject, getModelName } from './service-caller/index';
 
 import type { PlanningLocateParam } from '@/types';
 import { NodeType } from '@midscene/shared/constants';

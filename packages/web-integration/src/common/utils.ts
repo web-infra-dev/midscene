@@ -531,4 +531,20 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
     duration?: number;
     locate: MidsceneLocationType;
   }>,
+  // {
+  //   name: 'DragAndDrop',
+  //   description: 'Drag and drop the element',
+  //   paramSchema: z.object({
+  //     from: MidsceneLocation.describe('The position to be dragged'),
+  //     to: MidsceneLocation.describe('The position to be dropped'),
+  //   }),
+  //   call: async (param) => {
+  //     const from = param.from;
+  //     const to = param.to;
+  //     console.log('drag and drop', from, to);
+  //   },
+  // } as DeviceAction<{
+  //   from: MidsceneLocationType;
+  //   to: MidsceneLocationType;
+  // }>,
 ];
