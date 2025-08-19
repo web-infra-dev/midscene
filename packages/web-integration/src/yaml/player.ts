@@ -301,7 +301,10 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           // Old format - aiInput is the value, locate is the prompt
           const value = inputTask.aiInput as string;
           const locatePrompt = (inputTask as any).locate;
-          await agent.aiInput(value, locatePrompt, inputTask);
+          await agent.aiInput(locatePrompt, {
+            ...inputTask,
+            value: value,
+          });
         } else {
           // New format - aiInput is the prompt, value is the value
           const locatePrompt = inputTask.aiInput;
@@ -330,7 +333,10 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           // Old format - aiKeyboardPress is the key, locate is the prompt
           const keyName = keyboardPressTask.aiKeyboardPress as string;
           const locatePrompt = (keyboardPressTask as any).locate;
-          await agent.aiKeyboardPress(keyName, locatePrompt, keyboardPressTask);
+          await agent.aiKeyboardPress(locatePrompt, {
+            ...keyboardPressTask,
+            keyName: keyName,
+          });
         } else if ((keyboardPressTask as any).key) {
           // New format - aiKeyboardPress is the prompt, key is the key
           const locatePrompt = keyboardPressTask.aiKeyboardPress;
@@ -348,7 +354,11 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         } else {
           // Fallback to old format without locate (global key press)
           const keyName = keyboardPressTask.aiKeyboardPress as string;
-          await agent.aiKeyboardPress(keyName, undefined, keyboardPressTask);
+          // Use new API signature with empty string for global key press
+          await agent.aiKeyboardPress('', {
+            ...keyboardPressTask,
+            keyName: keyName,
+          } as any);
         }
       } else if ('aiScroll' in (flowItem as MidsceneYamlFlowItemAIScroll)) {
         const scrollTask = flowItem as MidsceneYamlFlowItemAIScroll;
@@ -364,7 +374,10 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
             scrollType: scrollTask.scrollType,
             distance: scrollTask.distance,
           };
-          await agent.aiScroll(scrollParam, locatePrompt, scrollTask);
+          await agent.aiScroll(locatePrompt, {
+            ...scrollTask,
+            ...scrollParam,
+          });
         } else {
           // New format - aiScroll is the prompt, or no prompt for global scroll
           const locatePrompt = scrollTask.aiScroll;
@@ -380,7 +393,10 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
             });
           } else {
             // Global scroll without specific element
-            await agent.aiScroll(scrollParam, undefined, scrollTask);
+            await agent.aiScroll(undefined, {
+              ...scrollTask,
+              ...scrollParam,
+            });
           }
         }
       } else if (
