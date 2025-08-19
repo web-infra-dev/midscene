@@ -148,10 +148,10 @@ export type InsightAction = 'locate' | 'extract' | 'assert' | 'describe';
 export type InsightExtractParam = string | Record<string, string>;
 
 export type LocateResultElement = {
-  id: string;
-  indexId?: number;
   center: [number, number];
   rect: Rect;
+  id: string;
+  indexId?: number;
   xpaths: string[];
   attributes: {
     nodeType: NodeType;

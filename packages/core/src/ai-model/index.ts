@@ -39,4 +39,7 @@ export {
   actionSpaceTypePrefix,
   MidsceneLocation,
   type MidsceneLocationType,
+  PointSchema,
+  SizeSchema,
+  RectSchema,
 } from './common';

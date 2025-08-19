@@ -9,6 +9,9 @@ export {
   AiLocateElement,
   MidsceneLocation,
   type MidsceneLocationType,
+  PointSchema,
+  SizeSchema,
+  RectSchema,
 } from './ai-model/index';
 
 export { getAIConfig, MIDSCENE_MODEL_NAME } from '@midscene/shared/env';

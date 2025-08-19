@@ -364,10 +364,30 @@ export function buildYamlFlowFromPlans(
   return flow;
 }
 
+// Zod schemas for shared types
+export const PointSchema = z.object({
+  left: z.number(),
+  top: z.number(),
+});
+
+export const SizeSchema = z.object({
+  width: z.number(),
+  height: z.number(),
+  dpr: z.number().optional(),
+});
+
+export const RectSchema = PointSchema.and(SizeSchema).and(
+  z.object({
+    zoom: z.number().optional(),
+  }),
+);
+
 export const MidsceneLocation = z
   .object({
     midscene_location_field_flag: z.literal(true),
     prompt: z.string(),
+    center: z.tuple([z.number(), z.number()]),
+    rect: RectSchema,
   })
   .passthrough();
 
