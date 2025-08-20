@@ -467,11 +467,11 @@ tasks:
     ).toMatchInlineSnapshot(`
       [
         [
-          "i am value 1",
           "input field 1",
           {
             "aiInput": "i am value 1",
             "locate": "input field 1",
+            "value": "i am value 1",
           },
         ],
         [
@@ -498,11 +498,6 @@ tasks:
           },
         ],
         [
-          {
-            "direction": "up",
-            "distance": 100,
-            "scrollType": "once",
-          },
           "scrollable area B",
           {
             "aiScroll": null,
@@ -528,10 +523,10 @@ tasks:
           },
         ],
         [
-          "Control",
           "input field 4",
           {
             "aiKeyboardPress": "Control",
+            "keyName": "Control",
             "locate": "input field 4",
           },
         ],

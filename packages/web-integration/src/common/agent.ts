@@ -781,28 +781,43 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     };
   }
 
-  async aiAssert(assertion: TUserPrompt, msg?: string, opt?: AgentAssertOpt) {
+  async aiAssert(
+    assertion: TUserPrompt,
+    msg?: string,
+    opt?: AgentAssertOpt & InsightExtractOption,
+  ) {
+    const insightOpt: InsightExtractOption = {
+      domIncluded: opt?.domIncluded ?? defaultInsightExtractOption.domIncluded,
+      screenshotIncluded:
+        opt?.screenshotIncluded ??
+        defaultInsightExtractOption.screenshotIncluded,
+      returnThought: opt?.returnThought ?? true,
+      isWaitForAssert: opt?.isWaitForAssert,
+      doNotThrowError: opt?.doNotThrowError,
+    };
+
     const { output, executor, thought } = await this.taskExecutor.assert(
       assertion,
-      {
-        returnThought: true,
-      },
+      insightOpt,
     );
     await this.afterTaskRunning(executor, true);
+
+    const errMsg = msg || `Assertion failed: ${assertion}`;
+    const reasonMsg = `Reason: ${
+      thought || executor.latestErrorTask()?.error || '(no_reason)'
+    }`;
+    const message = `${errMsg}\n${reasonMsg}`;
 
     if (opt?.keepRawResponse) {
       return {
         pass: output,
         thought,
+        message,
       };
     }
 
     if (!output) {
-      const errMsg = msg || `Assertion failed: ${assertion}`;
-      const reasonMsg = `Reason: ${
-        thought || executor.latestErrorTask()?.error || '(no_reason)'
-      }`;
-      throw new Error(`${errMsg}\n${reasonMsg}`);
+      throw new Error(message);
     }
   }
 

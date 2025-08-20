@@ -311,6 +311,7 @@ tasks:
       # Perform an assertion.
       - aiAssert: <prompt>
         errorMessage: <error-message> # Optional, the error message to print if the assertion fails.
+        name: <name> # Optional, give the assertion a name, which will be used as a key in the JSON output.
 
       # Wait for a specified amount of time.
       - sleep: <ms>
