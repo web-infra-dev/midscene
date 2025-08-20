@@ -1,25 +1,13 @@
-import {
-  AIActionType,
-  type AIArgs,
-  callAiFn,
-  expandSearchArea,
-} from '@/ai-model/common';
-import {
-  AiExtractElementInfo,
-  AiLocateElement,
-  callToGetJSONObject,
-} from '@/ai-model/index';
+import { callAiFn } from '@/ai-model/common';
+import { AiExtractElementInfo, AiLocateElement } from '@/ai-model/index';
 import { AiLocateSection } from '@/ai-model/inspect';
-import { elementDescriberInstruction } from '@/ai-model/prompt/describe';
 import type {
-  AIDescribeElementResponse,
   AIElementResponse,
   AIUsageInfo,
   BaseElement,
   DetailedLocateParam,
   DumpSubscriber,
   InsightAction,
-  InsightAssertionResponse,
   InsightExtractOption,
   InsightExtractParam,
   InsightOptions,
@@ -28,16 +16,14 @@ import type {
   PartialInsightDumpFromSDK,
   Rect,
   TMultimodalPrompt,
-  TUserPrompt,
   UIContext,
 } from '@/types';
 import {
+  type IModelPreferences,
   MIDSCENE_FORCE_DEEP_THINK,
-  MIDSCENE_USE_QWEN_VL,
   getAIConfigInBoolean,
   vlLocateMode,
 } from '@midscene/shared/env';
-import { compositeElementInfoImg, cropByRect } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { emitInsightDump } from './utils';
@@ -109,8 +95,11 @@ export default class Insight<
     if (query.deepThink || globalDeepThinkSwitch) {
       searchAreaPrompt = query.prompt;
     }
+    const modelPreferences: IModelPreferences = {
+      intent: 'grounding',
+    };
 
-    if (searchAreaPrompt && !vlLocateMode()) {
+    if (searchAreaPrompt && !vlLocateMode(modelPreferences)) {
       console.warn(
         'The "deepThink" feature is not supported with multimodal LLM. Please config VL model for Midscene. https://midscenejs.com/choose-a-model',
       );
@@ -254,6 +243,10 @@ export default class Insight<
     const dumpSubscriber = this.onceDumpUpdatedFn;
     this.onceDumpUpdatedFn = undefined;
 
+    const modelPreferences: IModelPreferences = {
+      intent: 'VQA',
+    };
+
     const context = await this.contextRetrieverFn('extract');
 
     const startTime = Date.now();
@@ -262,6 +255,7 @@ export default class Insight<
       dataQuery: dataDemand,
       multimodalPrompt,
       extractOption: opt,
+      modelPreferences,
     });
 
     const timeCost = Date.now() - startTime;
@@ -307,77 +301,5 @@ export default class Insight<
       thought,
       usage,
     };
-  }
-
-  async describe(
-    target: Rect | [number, number],
-    opt?: {
-      deepThink?: boolean;
-    },
-  ): Promise<Pick<AIDescribeElementResponse, 'description'>> {
-    assert(target, 'target is required for insight.describe');
-    const context = await this.contextRetrieverFn('describe');
-    const { screenshotBase64, size } = context;
-    assert(screenshotBase64, 'screenshot is required for insight.describe');
-
-    const systemPrompt = elementDescriberInstruction();
-
-    // Convert [x,y] center point to Rect if needed
-    const defaultRectSize = 30;
-    const targetRect: Rect = Array.isArray(target)
-      ? {
-          left: Math.floor(target[0] - defaultRectSize / 2),
-          top: Math.floor(target[1] - defaultRectSize / 2),
-          width: defaultRectSize,
-          height: defaultRectSize,
-        }
-      : target;
-
-    let imagePayload = await compositeElementInfoImg({
-      inputImgBase64: screenshotBase64,
-      size,
-      elementsPositionInfo: [
-        {
-          rect: targetRect,
-        },
-      ],
-      borderThickness: 3,
-    });
-
-    if (opt?.deepThink) {
-      const searchArea = expandSearchArea(targetRect, context.size);
-      debug('describe: set searchArea', searchArea);
-      imagePayload = await cropByRect(
-        imagePayload,
-        searchArea,
-        getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL),
-      );
-    }
-
-    const msgs: AIArgs = [
-      { role: 'system', content: systemPrompt },
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'image_url',
-            image_url: {
-              url: imagePayload,
-              detail: 'high',
-            },
-          },
-        ],
-      },
-    ];
-
-    const callAIFn =
-      this.aiVendorFn || callToGetJSONObject<AIDescribeElementResponse>;
-
-    const res = await callAIFn(msgs, AIActionType.DESCRIBE_ELEMENT);
-
-    const { content } = res;
-    assert(!content.error, `describe failed: ${content.error}`);
-    assert(content.description, 'failed to describe the element');
-    return content;
   }
 }

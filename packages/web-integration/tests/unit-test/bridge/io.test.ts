@@ -95,7 +95,7 @@ describe('bridge-io', () => {
     await client.connect();
     await server.call('test', ['a', 'b']);
     await killRunningServer(port);
-    expect(server.call('test2', ['a', 'b'])).rejects.toThrow();
+    await expect(server.call('test2', ['a', 'b'])).rejects.toThrow();
   });
 
   it('server and client communicate', async () => {
@@ -138,7 +138,7 @@ describe('bridge-io', () => {
 
     await client.connect();
     // await server.call('test', ['a', 'b']);
-    expect(server.call('test', ['a', 'b'])).rejects.toThrow(errMsg);
+    await expect(server.call('test', ['a', 'b'])).rejects.toThrow(errMsg);
   });
 
   it('client disconnect event', async () => {
@@ -226,7 +226,7 @@ describe('bridge-io', () => {
     );
     await client.connect();
 
-    expect(server.call('test', ['a', 'b'], 1000)).rejects.toThrow();
+    await expect(server.call('test', ['a', 'b'], 1000)).rejects.toThrow();
 
     server.close();
     client.disconnect();

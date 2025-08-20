@@ -12,20 +12,15 @@ import {
   MIDSCENE_MODEL_NAME,
   MIDSCENE_USE_DOUBAO_VISION,
   getAIConfig,
+  globalConfigManger,
   overrideAIConfig,
   vlLocateMode,
-} from '../../src/env';
+} from '../../../src/env';
 
 describe('env', () => {
   beforeEach(() => {
     // Clean up global config before each test
-    globalThis.midsceneGlobalConfig = null;
-    globalThis.midsceneGlobalConfigOverride = null;
-  });
-
-  afterAll(() => {
-    // Reset process.env before each test
-    vi.resetModules();
+    globalConfigManger.reset();
   });
 
   it('getAIConfigInBoolean', () => {
@@ -33,24 +28,27 @@ describe('env', () => {
       [MIDSCENE_USE_DOUBAO_VISION]: 'true',
     });
 
-    const vlMode = vlLocateMode();
+    const vlMode = vlLocateMode({
+      intent: 'default',
+    });
     expect(vlMode).toBe('doubao-vision');
   });
 
   it('getAIConfigInBoolean 2', () => {
     overrideAIConfig({
-      [MIDSCENE_USE_DOUBAO_VISION]: 1 as any,
+      [MIDSCENE_USE_DOUBAO_VISION]: '1',
     });
 
-    const vlMode = vlLocateMode();
+    const vlMode = vlLocateMode({
+      intent: 'default',
+    });
     expect(vlMode).toBe('doubao-vision');
   });
 
   describe('getGlobalConfig with override', () => {
     beforeEach(() => {
       // Clean up global state
-      globalThis.midsceneGlobalConfig = null;
-      globalThis.midsceneGlobalConfigOverride = null;
+      globalConfigManger.reset();
 
       // Mock process.env
       vi.stubEnv(MIDSCENE_MODEL_NAME, 'original-model');
@@ -161,7 +159,7 @@ describe('env', () => {
       expect(config).toBe('overridden');
 
       // Clear the override
-      globalThis.midsceneGlobalConfigOverride = null;
+      globalConfigManger.reset();
 
       // Should return to env values
       config = getAIConfig(MIDSCENE_MODEL_NAME);

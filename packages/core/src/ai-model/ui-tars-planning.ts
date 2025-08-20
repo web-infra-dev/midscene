@@ -5,6 +5,7 @@ import type {
   Size,
 } from '@/types';
 import {
+  type IModelPreferences,
   UITarsModelVersion,
   uiTarsModelVersion,
   vlLocateMode,
@@ -51,6 +52,7 @@ export async function vlmPlanning(options: {
   userInstruction: string;
   conversationHistory: ChatCompletionMessageParam[];
   size: { width: number; height: number };
+  modelPreferences: IModelPreferences;
 }): Promise<{
   actions: PlanningAction<any>[];
   actionsFromModel: ReturnType<typeof actionParser>['parsed'];
@@ -59,7 +61,8 @@ export async function vlmPlanning(options: {
   usage?: AIUsageInfo;
   rawResponse?: string;
 }> {
-  const { conversationHistory, userInstruction, size } = options;
+  const { conversationHistory, userInstruction, size, modelPreferences } =
+    options;
   const systemPrompt = getUiTarsPlanningPrompt() + userInstruction;
 
   const res = await call(
@@ -71,10 +74,11 @@ export async function vlmPlanning(options: {
       ...conversationHistory,
     ],
     AIActionType.INSPECT_ELEMENT,
+    modelPreferences,
   );
   const convertedText = convertBboxToCoordinates(res.content);
 
-  const modelVer = uiTarsModelVersion();
+  const modelVer = uiTarsModelVersion(modelPreferences);
 
   const { parsed } = actionParser({
     prediction: convertedText,
@@ -371,10 +375,14 @@ export type Action =
   | WaitAction
   | AndroidLongPressAction;
 
-export async function resizeImageForUiTars(imageBase64: string, size: Size) {
+export async function resizeImageForUiTars(
+  imageBase64: string,
+  size: Size,
+  modelPreferences: IModelPreferences,
+) {
   if (
-    vlLocateMode() === 'vlm-ui-tars' &&
-    uiTarsModelVersion() === UITarsModelVersion.V1_5
+    vlLocateMode(modelPreferences) === 'vlm-ui-tars' &&
+    uiTarsModelVersion(modelPreferences) === UITarsModelVersion.V1_5
   ) {
     debug('ui-tars-v1.5, will check image size', size);
     const currentPixels = size.width * size.height;
