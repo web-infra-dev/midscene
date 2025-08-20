@@ -30,7 +30,9 @@ import type {
   TUserPrompt,
 } from '@midscene/core';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
+import { getDebug } from '@midscene/shared/logger';
 
+const debug = getDebug('yaml-player');
 export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
   public currentTaskIndex?: number;
   public taskStatusList: ScriptPlayerTaskStatus[] = [];
@@ -172,6 +174,9 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       const currentStep = Number.parseInt(flowItemIndex, 10);
       taskStatus.currentStep = currentStep;
       const flowItem = flow[flowItemIndex];
+      debug(
+        `playing step ${flowItemIndex}, flowItem=${JSON.stringify(flowItem)}`,
+      );
       if (
         'aiAction' in (flowItem as MidsceneYamlFlowItemAIAction) ||
         'ai' in (flowItem as MidsceneYamlFlowItemAIAction)
@@ -464,8 +469,8 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           ...restParams
         } = flowItem as any;
         await agent.callActionInActionSpace(matchedAction.name, {
-          locate: locateParam,
           ...restParams,
+          locate: locateParam,
         });
       }
     }

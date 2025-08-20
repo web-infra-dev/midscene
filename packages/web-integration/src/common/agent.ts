@@ -439,8 +439,8 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
 
     return this.callActionInActionSpace('Input', {
-      locate: detailedLocateParam,
       ...(opt || {}),
+      locate: detailedLocateParam,
     });
   }
 
@@ -502,8 +502,8 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     );
 
     return this.callActionInActionSpace('KeyboardPress', {
-      locate: detailedLocateParam,
       ...(opt || {}),
+      locate: detailedLocateParam,
     });
   }
 
@@ -559,8 +559,8 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     );
 
     return this.callActionInActionSpace('Scroll', {
-      locate: detailedLocateParam,
       ...(opt || {}),
+      locate: detailedLocateParam,
     });
   }
 
