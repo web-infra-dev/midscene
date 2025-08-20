@@ -3,9 +3,11 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { assert, ifInBrowser, ifInWorker } from '@midscene/shared/utils';
 
 import type { PageAgent } from '@/common/agent';
+import { buildDetailedLocateParam } from '@/common/utils';
 import type {
   DeviceAction,
   FreeFn,
+  LocateOption,
   MidsceneYamlFlowItemAIAction,
   MidsceneYamlFlowItemAIAsk,
   MidsceneYamlFlowItemAIAssert,
@@ -431,20 +433,24 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           return false;
         });
 
-        if (matchedAction) {
-          const {
-            [matchedAction.interfaceAlias as string]: _,
-            [matchedAction.name]: __,
-            ...restParams
-          } = flowItem as any;
-          await agent.callActionInActionSpace(
-            matchedAction.name,
-            locatePrompt,
-            restParams,
-          );
-        } else {
-          throw new Error(`unknown flowItem: ${JSON.stringify(flowItem)}`);
-        }
+        assert(
+          matchedAction,
+          `unknown flowItem in yaml: ${JSON.stringify(flowItem)}`,
+        );
+
+        const locateParam = locatePrompt
+          ? buildDetailedLocateParam(locatePrompt, flowItem as LocateOption)
+          : (flowItem as LocateOption);
+
+        const {
+          [matchedAction.interfaceAlias as string]: _,
+          [matchedAction.name]: __,
+          ...restParams
+        } = flowItem as any;
+        await agent.callActionInActionSpace(matchedAction.name, {
+          locate: locateParam,
+          ...restParams,
+        });
       }
     }
     this.reportFile = agent.reportFile;

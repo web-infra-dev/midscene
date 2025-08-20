@@ -1,11 +1,13 @@
 import type { StaticPage } from '@/playground';
 import type {
   BaseElement,
+  DetailedLocateParam,
   DeviceAction,
   ElementTreeNode,
   ExecutionDump,
   ExecutionTask,
   ExecutorContext,
+  LocateOption,
   MidsceneLocationType,
   PlanningLocateParam,
   PlaywrightParserOpt,
@@ -328,6 +330,32 @@ export function trimContextByViewport(execution: ExecutionDump) {
 }
 
 declare const __VERSION__: string | undefined;
+
+export function buildDetailedLocateParam(
+  locatePrompt: TUserPrompt,
+  opt?: LocateOption,
+): DetailedLocateParam {
+  assert(locatePrompt, 'missing locate prompt');
+
+  let prompt = locatePrompt;
+  let deepThink = false;
+  let cacheable = true;
+  let xpath = undefined;
+
+  if (typeof opt === 'object' && opt !== null) {
+    deepThink = opt.deepThink ?? false;
+    cacheable = opt.cacheable ?? true;
+    xpath = opt.xpath;
+    prompt = opt.prompt || locatePrompt;
+  }
+
+  return {
+    prompt,
+    deepThink,
+    cacheable,
+    xpath,
+  };
+}
 
 export const getMidsceneVersion = (): string => {
   if (typeof __VERSION__ !== 'undefined') {
