@@ -2,13 +2,13 @@ import { readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
+  convertImgBuffer,
   httpImg2Base64,
   imageInfo,
   imageInfoOfBase64,
   isValidPNGImageBuffer,
   localImg2Base64,
   resizeImgBase64,
-  resizeImgBuffer,
 } from 'src/img';
 import getJimp from 'src/img/get-jimp';
 import {
@@ -240,23 +240,23 @@ describe('image utils', () => {
   // );
 });
 
-describe('resizeImgBuffer', () => {
+describe('convertImgBuffer', () => {
   const imageBuffer = readFileSync(getFixture('2x2.png'));
 
   describe('try sharp', () => {
-    it('Sharp no-resize will get original format', async () => {
-      const { format, buffer } = await resizeImgBuffer('png', imageBuffer, {
+    it('Sharp no-resize will get webp format', async () => {
+      const { format, buffer } = await convertImgBuffer('png', imageBuffer, {
         width: 2,
         height: 2,
       });
-      expect(format).toBe('png');
+      expect(format).toBe('webp');
     });
-    it('Sharp resize will get jpeg format', async () => {
-      const { format, buffer } = await resizeImgBuffer('png', imageBuffer, {
+    it('Sharp resize will get webp format', async () => {
+      const { format, buffer } = await convertImgBuffer('png', imageBuffer, {
         width: 1,
         height: 1,
       });
-      expect(format).toBe('jpeg');
+      expect(format).toBe('webp');
     });
   });
 
@@ -278,7 +278,7 @@ describe('resizeImgBuffer', () => {
     });
 
     it('fallback photon no-resize will get original format', async () => {
-      const { format, buffer } = await resizeImgBuffer('png', imageBuffer, {
+      const { format, buffer } = await convertImgBuffer('png', imageBuffer, {
         width: 2,
         height: 2,
       });
@@ -286,7 +286,7 @@ describe('resizeImgBuffer', () => {
       expect(format).toBe('png');
     });
     it('fallback photon resize will get jpeg format', async () => {
-      const { format, buffer } = await resizeImgBuffer('png', imageBuffer, {
+      const { format, buffer } = await convertImgBuffer('png', imageBuffer, {
         width: 1,
         height: 1,
       });

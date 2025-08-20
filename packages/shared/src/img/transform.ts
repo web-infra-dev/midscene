@@ -38,9 +38,12 @@ export async function saveBase64Image(options: {
 }
 
 /**
- * Resizes an image from Buffer
+ *
+ * Convert and resize ImageBuffer
+ * By default, will convert image to webp format if Sharp is available
+ * @returns { buffer: the result buffer, format: the new format after resize }
  */
-export async function resizeImgBuffer(
+export async function convertImgBuffer(
   format: string,
   inputData: Buffer,
   newSize: {
@@ -49,7 +52,7 @@ export async function resizeImgBuffer(
   },
 ): Promise<{
   buffer: Buffer;
-  // jpg, png, etc.
+  // webp, jpg, png, etc.
   format: string;
 }> {
   if (typeof inputData === 'string')
@@ -67,26 +70,31 @@ export async function resizeImgBuffer(
     // Node.js environment: use Sharp
     try {
       const Sharp = await getSharp();
-      const metadata = await Sharp(inputData).metadata();
+      const ins = await Sharp(inputData);
+      const metadata = await ins.metadata();
       const { width: originalWidth, height: originalHeight } = metadata;
 
       if (!originalWidth || !originalHeight) {
         throw Error('Undefined width or height from the input image.');
       }
 
-      if (
-        newSize.width === originalWidth &&
-        newSize.height === originalHeight
-      ) {
-        return {
-          buffer: inputData,
-          format,
-        };
-      }
+      const afterResize = await (async () => {
+        if (
+          newSize.width === originalWidth &&
+          newSize.height === originalHeight
+        ) {
+          return ins;
+        }
+        return await ins.resize(newSize.width, newSize.height);
+      })();
 
-      const resizedBuffer = await Sharp(inputData)
-        .resize(newSize.width, newSize.height)
-        .jpeg({ quality: 90 })
+      // always convert image to webp format to reduce size when Sharp is available
+      const resizedBuffer = await afterResize
+        .webp({
+          // default is 80
+          // quality only affects processing speed and does not affect token consumption.
+          quality: 100,
+        })
         .toBuffer();
 
       const resizeEndTime = Date.now();
@@ -96,8 +104,8 @@ export async function resizeImgBuffer(
 
       return {
         buffer: resizedBuffer,
-        // by Sharp.jpeg()
-        format: 'jpeg',
+        // by Sharp.webp()
+        format: 'webp',
       };
     } catch (error) {
       imgDebug('Sharp failed, falling back to Photon:', error);
@@ -132,6 +140,7 @@ export async function resizeImgBuffer(
     SamplingFilter.CatmullRom,
   );
 
+  // Photon don not support webp format, it's so sad.
   const outputBytes = outputImage.get_bytes_jpeg(90);
   const resizedBuffer = Buffer.from(outputBytes);
 
@@ -165,7 +174,7 @@ export async function resizeImgBase64(
 ): Promise<string> {
   const { body, mimeType } = parseBase64(inputBase64);
   const imageBuffer = Buffer.from(body, 'base64');
-  const { buffer, format } = await resizeImgBuffer(
+  const { buffer, format } = await convertImgBuffer(
     mimeType.split('/')[1],
     imageBuffer,
     newSize,
