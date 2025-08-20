@@ -781,12 +781,24 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     };
   }
 
-  async aiAssert(assertion: TUserPrompt, msg?: string, opt?: AgentAssertOpt) {
+  async aiAssert(
+    assertion: TUserPrompt,
+    msg?: string,
+    opt?: AgentAssertOpt & InsightExtractOption,
+  ) {
+    const insightOpt: InsightExtractOption = {
+      domIncluded: opt?.domIncluded ?? defaultInsightExtractOption.domIncluded,
+      screenshotIncluded:
+        opt?.screenshotIncluded ??
+        defaultInsightExtractOption.screenshotIncluded,
+      returnThought: opt?.returnThought ?? true,
+      isWaitForAssert: opt?.isWaitForAssert,
+      doNotThrowError: opt?.doNotThrowError,
+    };
+
     const { output, executor, thought } = await this.taskExecutor.assert(
       assertion,
-      {
-        returnThought: true,
-      },
+      insightOpt,
     );
     await this.afterTaskRunning(executor, true);
 
