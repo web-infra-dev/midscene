@@ -106,7 +106,6 @@ describe('PageTaskExecutor waitFor method with doNotThrowError', () => {
     const result = await taskExecutor.waitFor('test assertion', {
       timeoutMs: 5000,
       checkIntervalMs: 1000,
-      assertion: 'test assertion',
     });
 
     // Verify that createTypeQueryTask was called with doNotThrowError: true
@@ -163,7 +162,6 @@ describe('PageTaskExecutor waitFor method with doNotThrowError', () => {
     const result = await taskExecutor.waitFor('test assertion', {
       timeoutMs: 5000,
       checkIntervalMs: 1000,
-      assertion: 'test assertion',
     });
 
     // Verify that createTypeQueryTask was called multiple times with doNotThrowError: true
@@ -228,7 +226,6 @@ describe('PageTaskExecutor waitFor method with doNotThrowError', () => {
     const result = await taskExecutor.waitFor('test assertion', {
       timeoutMs: 100, // Very short timeout
       checkIntervalMs: 50,
-      assertion: 'test assertion',
     });
 
     // Verify that createTypeQueryTask was called with doNotThrowError: true
