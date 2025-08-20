@@ -44,7 +44,7 @@ export async function saveBase64Image(options: {
  * @returns { buffer: resized buffer, format: the new format}
  */
 export async function resizeAndConvertImgBuffer(
-  format: string,
+  inputFormat: string,
   inputData: Buffer,
   newSize: {
     width: number;
@@ -83,7 +83,7 @@ export async function resizeAndConvertImgBuffer(
       ) {
         return {
           buffer: inputData,
-          format,
+          format: inputFormat,
         };
       }
 
@@ -123,7 +123,7 @@ export async function resizeAndConvertImgBuffer(
     inputImage.free();
     return {
       buffer: inputData,
-      format,
+      format: inputFormat,
     };
   }
 
