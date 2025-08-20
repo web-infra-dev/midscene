@@ -1,10 +1,6 @@
 import { PlayCircleOutlined } from '@ant-design/icons';
 import type { UIContext } from '@midscene/core';
-import {
-  Describer,
-  useEnvConfig,
-  useStaticPageAgent,
-} from '@midscene/visualizer';
+import { useEnvConfig, useStaticPageAgent } from '@midscene/visualizer';
 import type { WebUIContext } from '@midscene/web';
 import {
   Button,
@@ -122,13 +118,7 @@ export default function OpenInPlayground(props?: { context?: UIContext }) {
       />
     );
   } else if (activeTab === tabKeys.ELEMENT_DESCRIBER) {
-    if (context) {
-      toolContent = (
-        <Describer uiContext={context} key={contextLoadingCounter} />
-      );
-    } else {
-      toolContent = <div>No context found</div>;
-    }
+    toolContent = <div>The component Describer was removed</div>;
   }
 
   const tabComponent = (

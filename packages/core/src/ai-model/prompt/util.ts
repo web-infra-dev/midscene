@@ -1,7 +1,7 @@
 import { imageInfoOfBase64 } from '@/image/index';
 import type { BaseElement, ElementTreeNode, Size, UIContext } from '@/types';
 import { NodeType } from '@midscene/shared/constants';
-import { vlLocateMode } from '@midscene/shared/env';
+import { type IModelPreferences, vlLocateMode } from '@midscene/shared/env';
 import {
   descriptionOfTree,
   generateElementByPosition,
@@ -130,6 +130,7 @@ export async function describeUserPage<
   ElementType extends BaseElement = BaseElement,
 >(
   context: Omit<UIContext<ElementType>, 'describer'>,
+  modelPreferences: IModelPreferences,
   opt?: {
     truncateTextLength?: number;
     filterNonTextContent?: boolean;
@@ -168,7 +169,7 @@ export async function describeUserPage<
 
   let pageDescription = '';
   const visibleOnly = opt?.visibleOnly ?? opt?.domIncluded === 'visible-only';
-  if (opt?.domIncluded || !vlLocateMode()) {
+  if (opt?.domIncluded || !vlLocateMode(modelPreferences)) {
     // non-vl mode must provide the page description
     const contentTree = await descriptionOfTree(
       treeRoot,

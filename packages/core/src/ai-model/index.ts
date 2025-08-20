@@ -2,7 +2,6 @@ export {
   callAiFnWithStringResponse,
   callToGetJSONObject,
   call as callAi,
-  getModelName,
 } from './service-caller/index';
 export { systemPromptToLocateElement } from './prompt/llm-locator';
 export {

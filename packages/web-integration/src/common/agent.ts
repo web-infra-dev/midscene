@@ -1,7 +1,6 @@
 import type { WebPage } from '@/common/page';
 import {
   type AgentAssertOpt,
-  type AgentDescribeElementAtPointResult,
   type AgentWaitForOpt,
   type DetailedLocateParam,
   type DeviceAction,
@@ -31,7 +30,6 @@ import {
 import yaml from 'js-yaml';
 
 import { ScriptPlayer, parseYamlScript } from '@/yaml/index';
-import { getModelName } from '@midscene/core/ai-model';
 import {
   groupedActionDumpFileExt,
   reportHTMLContent,
@@ -43,8 +41,10 @@ import {
   DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
 } from '@midscene/shared/constants';
 import {
+  type IModelPreferences,
+  type TModelConfigFn,
   getAIConfigInBoolean,
-  uiTarsModelVersion,
+  globalConfigManger,
   vlLocateMode,
 } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
@@ -93,6 +93,7 @@ export interface PageAgentOpt {
   aiActionContext?: string;
   /* custom report file name */
   reportFileName?: string;
+  modelConfig?: TModelConfigFn;
 }
 
 export type WebPageAgentOpt = PageAgentOpt & WebPageOpt;
@@ -145,6 +146,9 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       },
       opts || {},
     );
+    if (typeof opts?.modelConfig === 'function') {
+      globalConfigManger.registerModelConfigFn(opts?.modelConfig);
+    }
 
     if (
       this.page.pageType === 'puppeteer' ||
@@ -202,13 +206,9 @@ export class PageAgent<PageType extends WebPage = WebPage> {
 
     // Otherwise, get fresh context based on the action type
     if (action && (action === 'extract' || action === 'assert')) {
-      return await parseContextFromWebPage(this.page, {
-        ignoreMarker: true,
-      });
+      return await parseContextFromWebPage(this.page, {});
     }
-    return await parseContextFromWebPage(this.page, {
-      ignoreMarker: !!vlLocateMode(),
-    });
+    return await parseContextFromWebPage(this.page, {});
   }
 
   async _snapshotContext(): Promise<WebUIContext> {
@@ -220,19 +220,9 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   resetDump() {
-    const modelDescription = (() => {
-      if (vlLocateMode()) {
-        const uiTarsModelVer = uiTarsModelVersion();
-        if (uiTarsModelVer) {
-          return `UI-TARS=${uiTarsModelVer}`;
-        } else {
-          return `${vlLocateMode()} mode`;
-        }
-      }
-      return '';
-    })();
+    const modelDescription = '<modelDescription>';
 
-    const modelName = getModelName();
+    const modelName = '<modelName>';
 
     this.dump = {
       groupName: this.opts.groupName!,
@@ -561,9 +551,10 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       cacheable?: boolean;
     },
   ) {
+    const modelPreferences: IModelPreferences = { intent: 'planning' };
     const cacheable = opt?.cacheable;
     // if vlm-ui-tars, plan cache is not used
-    const isVlmUiTars = vlLocateMode() === 'vlm-ui-tars';
+    const isVlmUiTars = vlLocateMode(modelPreferences) === 'vlm-ui-tars';
     const matchedCache =
       isVlmUiTars || cacheable === false
         ? undefined
@@ -676,61 +667,6 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     opt: InsightExtractOption = defaultInsightExtractOption,
   ) {
     return this.aiString(prompt, opt);
-  }
-
-  async describeElementAtPoint(
-    center: [number, number],
-    opt?: {
-      verifyPrompt?: boolean;
-      retryLimit?: number;
-      deepThink?: boolean;
-    } & LocatorValidatorOption,
-  ): Promise<AgentDescribeElementAtPointResult> {
-    const { verifyPrompt = true, retryLimit = 3 } = opt || {};
-
-    let success = false;
-    let retryCount = 0;
-    let resultPrompt = '';
-    let deepThink = opt?.deepThink || false;
-    let verifyResult: LocateValidatorResult | undefined;
-
-    while (!success && retryCount < retryLimit) {
-      if (retryCount >= 2) {
-        deepThink = true;
-      }
-      debug(
-        'aiDescribe',
-        center,
-        'verifyPrompt',
-        verifyPrompt,
-        'retryCount',
-        retryCount,
-        'deepThink',
-        deepThink,
-      );
-      const text = await this.insight.describe(center, { deepThink });
-      debug('aiDescribe text', text);
-      assert(text.description, `failed to describe element at [${center}]`);
-      resultPrompt = text.description;
-
-      verifyResult = await this.verifyLocator(
-        resultPrompt,
-        deepThink ? { deepThink: true } : undefined,
-        center,
-        opt,
-      );
-      if (verifyResult.pass) {
-        success = true;
-      } else {
-        retryCount++;
-      }
-    }
-
-    return {
-      prompt: resultPrompt,
-      deepThink,
-      verifyResult,
-    };
   }
 
   async verifyLocator(

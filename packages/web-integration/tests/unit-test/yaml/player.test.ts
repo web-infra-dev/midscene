@@ -142,14 +142,14 @@ describe('yaml utils', () => {
   });
 
   test('player - bad params', async () => {
-    expect(async () => {
+    await expect(async () => {
       await runYaml(`
           target:
             serve: ${serverRoot}
         `);
     }).rejects.toThrow();
 
-    expect(async () => {
+    await expect(async () => {
       await runYaml(`
           target:
             serve: ${serverRoot}
@@ -240,7 +240,7 @@ describe.skipIf(!shouldRunAITest)(
             - aiAssert: the response is "Hello, world!"
     `;
 
-      expect(async () => {
+      await expect(async () => {
         await runYaml(yamlString);
       }).rejects.toThrow(/TimeoutError/i);
     });

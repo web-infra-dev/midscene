@@ -9,9 +9,7 @@ import {
 } from '@midscene/shared/common';
 import {
   MIDSCENE_DEBUG_MODE,
-  MIDSCENE_OPENAI_INIT_CONFIG_JSON,
-  getAIConfig,
-  getAIConfigInJson,
+  getUploadTestServerUrl,
 } from '@midscene/shared/env';
 import { getRunningPkgInfo } from '@midscene/shared/node';
 import { assert, logMsg } from '@midscene/shared/utils';
@@ -282,7 +280,8 @@ export function getVersion() {
 }
 
 function debugLog(...message: any[]) {
-  const debugMode = getAIConfig(MIDSCENE_DEBUG_MODE);
+  // always read from process.env, and cannot be override by modelConfig, overrideAIConfig, etc.
+  const debugMode = process.env[MIDSCENE_DEBUG_MODE];
   if (debugMode) {
     console.log('[Midscene]', ...message);
   }
@@ -293,8 +292,7 @@ export function uploadTestInfoToServer({ testUrl }: { testUrl: string }) {
   let repoUrl = '';
   let userEmail = '';
 
-  const extraConfig = getAIConfigInJson(MIDSCENE_OPENAI_INIT_CONFIG_JSON);
-  const serverUrl = extraConfig?.REPORT_SERVER_URL;
+  const serverUrl = getUploadTestServerUrl();
 
   try {
     repoUrl = execSync('git config --get remote.origin.url').toString().trim();
