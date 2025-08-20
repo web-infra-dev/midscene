@@ -101,6 +101,7 @@ export interface MidsceneYamlFlowItemAIAction {
 export interface MidsceneYamlFlowItemAIAssert {
   aiAssert: string;
   errorMessage?: string;
+  name?: string;
 }
 
 export interface MidsceneYamlFlowItemAIQuery extends InsightExtractOption {

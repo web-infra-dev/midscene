@@ -803,19 +803,22 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     );
     await this.afterTaskRunning(executor, true);
 
+    const errMsg = msg || `Assertion failed: ${assertion}`;
+    const reasonMsg = `Reason: ${
+      thought || executor.latestErrorTask()?.error || '(no_reason)'
+    }`;
+    const message = `${errMsg}\n${reasonMsg}`;
+
     if (opt?.keepRawResponse) {
       return {
         pass: output,
         thought,
+        message,
       };
     }
 
     if (!output) {
-      const errMsg = msg || `Assertion failed: ${assertion}`;
-      const reasonMsg = `Reason: ${
-        thought || executor.latestErrorTask()?.error || '(no_reason)'
-      }`;
-      throw new Error(`${errMsg}\n${reasonMsg}`);
+      throw new Error(message);
     }
   }
 
