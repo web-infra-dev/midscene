@@ -44,6 +44,7 @@ import {
 import { sleep } from '@midscene/core/utils';
 import { NodeType } from '@midscene/shared/constants';
 import {
+  type IModelPreferences,
   MIDSCENE_REPLANNING_CYCLE_LIMIT,
   getAIConfigInNumber,
 } from '@midscene/shared/env';
@@ -709,7 +710,10 @@ export class PageTaskExecutor {
     return task;
   }
 
-  private planningTaskToGoal(userInstruction: string) {
+  private planningTaskToGoal(
+    userInstruction: string,
+    modelPreferences: IModelPreferences,
+  ) {
     const task: ExecutionTaskPlanningApply = {
       type: 'Planning',
       subType: 'Plan',
@@ -724,6 +728,7 @@ export class PageTaskExecutor {
         const imagePayload = await resizeImageForUiTars(
           pageContext.screenshotBase64,
           pageContext.size,
+          modelPreferences,
         );
 
         this.appendConversationHistory({
@@ -747,6 +752,7 @@ export class PageTaskExecutor {
           userInstruction: param.userInstruction,
           conversationHistory: this.conversationHistory,
           size: pageContext.size,
+          modelPreferences,
         });
 
         const { actions, action_summary, usage } = planResult;
@@ -909,8 +915,12 @@ export class PageTaskExecutor {
     const yamlFlow: MidsceneYamlFlowItem[] = [];
     while (!isCompleted && currentActionNumber < maxActionNumber) {
       currentActionNumber++;
-      const planningTask: ExecutionTaskPlanningApply =
-        this.planningTaskToGoal(userPrompt);
+      const planningTask: ExecutionTaskPlanningApply = this.planningTaskToGoal(
+        userPrompt,
+        {
+          intent: 'planning',
+        },
+      );
       await taskExecutor.append(planningTask);
       const result = await taskExecutor.flush();
       if (taskExecutor.isInErrorState()) {

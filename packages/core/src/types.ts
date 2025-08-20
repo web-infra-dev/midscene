@@ -316,7 +316,6 @@ export interface Color {
 
 export interface BaseAgentParserOpt {
   selector?: string;
-  ignoreMarker?: boolean;
 }
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface PuppeteerParserOpt extends BaseAgentParserOpt {}

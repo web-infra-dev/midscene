@@ -137,6 +137,11 @@ const SideItem = (props: {
         {/* Display usage info in table style if available and Pro mode is enabled */}
         {props.proModeEnabled && (
           <>
+            <Tooltip title="The name of the model used this time">
+              <div className="usage-column model-name">
+                {task.usage?.model_name || '-'}
+              </div>
+            </Tooltip>
             <Tooltip title="Input tokens sent to the AI model">
               <div className="usage-column prompt-tokens">
                 {task.usage?.prompt_tokens || '-'}
@@ -259,6 +264,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
         <div className="header-time">Time</div>
         {proModeEnabled && (
           <>
+            <div className="header-model-name">Name</div>
             <div className="header-prompt">Prompt</div>
             <div className="header-completion">Completion</div>
           </>

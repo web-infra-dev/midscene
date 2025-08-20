@@ -215,7 +215,7 @@ describe(
       await agent.aiAction('Tap hao123 in the navigation bar');
       await sleep(6000);
 
-      expect(async () => {
+      await expect(async () => {
         await agent.aiAssert('There is a weather forecast in the page');
       }).rejects.toThrowError();
     });

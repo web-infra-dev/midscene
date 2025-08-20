@@ -290,6 +290,9 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
           }),
         ]),
         AIActionType.EXTRACT_DATA,
+        {
+          intent: 'default',
+        },
       );
     });
 

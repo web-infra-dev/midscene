@@ -168,7 +168,7 @@
 
 
     &.pro-mode {
-      grid-template-columns: 1fr auto 55px 65px;
+      grid-template-columns: 1fr auto 100px 55px 65px;
     }
 
     .status-icon {
@@ -199,12 +199,19 @@
     .usage-column {
       text-align: right;
 
-      &.prompt-tokens {
+      &.model-name {
         grid-column: 3;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      &.prompt-tokens {
+        grid-column: 4;
       }
 
       &.completion-tokens {
-        grid-column: 4;
+        grid-column: 5;
       }
     }
   }
@@ -223,7 +230,7 @@
     flex-shrink: 0;
 
     &.pro-mode {
-      grid-template-columns: 1fr auto 55px 65px;
+      grid-template-columns: 1fr auto 100px 55px 65px;
     }
 
     .header-name {
@@ -236,13 +243,21 @@
       text-align: right;
     }
 
-    .header-prompt {
+    .header-model-name {
       grid-column: 3;
+      text-align: right;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .header-prompt {
+      grid-column: 4;
       text-align: right;
     }
 
     .header-completion {
-      grid-column: 4;
+      grid-column: 5;
       text-align: right;
     }
   }

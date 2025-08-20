@@ -4,7 +4,13 @@ import {
   getMidsceneLocationSchema,
 } from '@/ai-model/common';
 import { buildYamlFlowFromPlans } from '@/ai-model/common';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import {
+  MIDSCENE_USE_DOUBAO_VISION,
+  MIDSCENE_USE_QWEN_VL,
+  OPENAI_API_KEY,
+  OPENAI_BASE_URL,
+} from '@midscene/shared/env';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 describe('llm planning - qwen', () => {
@@ -34,18 +40,15 @@ describe('llm planning - qwen', () => {
 });
 
 describe('llm planning - doubao', () => {
-  let originalMidsceneUseDoubaoVl: string | undefined;
-  let originalMidsceneUseQwenVl: string | undefined;
   beforeEach(() => {
-    originalMidsceneUseDoubaoVl = process.env.MIDSCENE_USE_DOUBAO_VISION;
-    originalMidsceneUseQwenVl = process.env.MIDSCENE_USE_QWEN_VL;
-    process.env.MIDSCENE_USE_DOUBAO_VISION = 'true';
-    process.env.MIDSCENE_USE_QWEN_VL = 'false';
+    vi.stubEnv(OPENAI_BASE_URL, 'http://mock');
+    vi.stubEnv(OPENAI_API_KEY, 'mock');
+    vi.stubEnv(MIDSCENE_USE_DOUBAO_VISION, 'true');
+    vi.stubEnv(MIDSCENE_USE_QWEN_VL, 'false');
   });
 
   afterEach(() => {
-    process.env.MIDSCENE_USE_DOUBAO_VISION = originalMidsceneUseDoubaoVl;
-    process.env.MIDSCENE_USE_QWEN_VL = originalMidsceneUseQwenVl;
+    vi.unstubAllEnvs();
   });
 
   it('fill locate param', () => {
@@ -55,7 +58,9 @@ describe('llm planning - doubao', () => {
       bbox_2d: [923, 123, 123, 123] as [number, number, number, number],
     };
 
-    const filledLocate = fillBboxParam(locate, 1000, 1000);
+    const filledLocate = fillBboxParam(locate, 1000, 1000, {
+      intent: 'grounding',
+    });
     expect(filledLocate).toEqual({
       id: 'test',
       prompt: 'test',

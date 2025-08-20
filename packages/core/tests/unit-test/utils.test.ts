@@ -19,6 +19,7 @@ import {
 import { type DeviceAction, getMidsceneLocationSchema } from '@/index';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import {
+  type IModelPreferences,
   getAIConfig,
   overrideAIConfig,
   vlLocateMode,
@@ -42,6 +43,8 @@ function createTempHtmlFile(content: string): string {
   fs.writeFileSync(filePath, content, 'utf8');
   return filePath;
 }
+
+const defaultIntent: IModelPreferences = { intent: 'default' };
 
 describe('utils', () => {
   it('tmpDir', () => {
@@ -308,31 +311,31 @@ describe('extractJSONFromCodeBlock', () => {
 
   it('should handle JSON with point coordinates', () => {
     const input = '(123,456)';
-    const result = safeParseJson(input);
+    const result = safeParseJson(input, defaultIntent);
     expect(result).toEqual([123, 456]);
   });
 
   it('should parse valid JSON string using JSON.parse', () => {
     const input = '{"key": "value"}';
-    const result = safeParseJson(input);
+    const result = safeParseJson(input, defaultIntent);
     expect(result).toEqual({ key: 'value' });
   });
 
   it('should parse dirty JSON using dirty-json parser', () => {
     const input = "{key: 'value'}"; // Invalid JSON but valid dirty-json
-    const result = safeParseJson(input);
+    const result = safeParseJson(input, defaultIntent);
     expect(result).toEqual({ key: 'value' });
   });
 
   it('should throw error for unparseable content', () => {
     const input = 'not a json at all';
-    const result = safeParseJson(input);
+    const result = safeParseJson(input, defaultIntent);
     expect(result).toEqual(input);
   });
 
   it('should parse JSON from code block', () => {
     const input = '```json\n{"key": "value"}\n```';
-    const result = safeParseJson(input);
+    const result = safeParseJson(input, defaultIntent);
     expect(result).toEqual({ key: 'value' });
   });
 
@@ -346,7 +349,7 @@ describe('extractJSONFromCodeBlock', () => {
         "nested": "value"
       }
     }`;
-    const result = safeParseJson(input);
+    const result = safeParseJson(input, defaultIntent);
     expect(result).toEqual({
       string: 'value',
       number: 123,
@@ -575,10 +578,11 @@ describe('search area', () => {
     const result = expandSearchArea(
       { left: 100, top: 100, width: 100, height: 100 },
       { width: 1000, height: 1000 },
+      defaultIntent,
     );
 
     // Dynamic expectation based on vlLocateMode
-    const isDoubaoVision = vlLocateMode() === 'doubao-vision';
+    const isDoubaoVision = vlLocateMode(defaultIntent) === 'doubao-vision';
     const expectedSize = isDoubaoVision ? 500 : 300;
 
     expect(result).toEqual({
@@ -593,6 +597,7 @@ describe('search area', () => {
     const result = expandSearchArea(
       { left: 100, top: 100, width: 500, height: 500 },
       { width: 1000, height: 1000 },
+      defaultIntent,
     );
     expect(result).toMatchInlineSnapshot(`
       {
@@ -608,10 +613,11 @@ describe('search area', () => {
     const result = expandSearchArea(
       { left: 951, top: 800, width: 50, height: 50 },
       { width: 1000, height: 1000 },
+      defaultIntent,
     );
 
     // Dynamic expectation based on vlLocateMode
-    const isDoubaoVision = vlLocateMode() === 'doubao-vision';
+    const isDoubaoVision = vlLocateMode(defaultIntent) === 'doubao-vision';
 
     if (isDoubaoVision) {
       // minEdgeSize = 500, paddingSize = 225

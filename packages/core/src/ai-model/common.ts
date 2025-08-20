@@ -14,11 +14,15 @@ import type {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
 } from 'openai/resources/index';
-import { callToGetJSONObject, getModelName } from './service-caller/index';
+import { callToGetJSONObject } from './service-caller/index';
 
 import type { PlanningLocateParam } from '@/types';
 import { NodeType } from '@midscene/shared/constants';
-import { vlLocateMode } from '@midscene/shared/env';
+import {
+  type IModelPreferences,
+  getModelName,
+  vlLocateMode,
+} from '@midscene/shared/env';
 import { treeToList } from '@midscene/shared/extractor';
 import { compositeElementInfoImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
@@ -40,8 +44,13 @@ export enum AIActionType {
 export async function callAiFn<T>(
   msgs: AIArgs,
   AIActionTypeValue: AIActionType,
+  modelPreferences: IModelPreferences,
 ): Promise<{ content: T; usage?: AIUsageInfo }> {
-  const jsonObject = await callToGetJSONObject<T>(msgs, AIActionTypeValue);
+  const jsonObject = await callToGetJSONObject<T>(
+    msgs,
+    AIActionTypeValue,
+    modelPreferences,
+  );
 
   return {
     content: jsonObject.content,
@@ -57,6 +66,7 @@ export function fillBboxParam(
   locate: PlanningLocateParam,
   width: number,
   height: number,
+  modelPreferences: IModelPreferences,
 ) {
   // The Qwen model might have hallucinations of naming bbox as bbox_2d.
   if ((locate as any).bbox_2d && !locate?.bbox) {
@@ -66,7 +76,7 @@ export function fillBboxParam(
   }
 
   if (locate?.bbox) {
-    locate.bbox = adaptBbox(locate.bbox, width, height);
+    locate.bbox = adaptBbox(locate.bbox, width, height, modelPreferences);
   }
 
   return locate;
@@ -194,12 +204,16 @@ export function adaptBbox(
   bbox: number[],
   width: number,
   height: number,
+  modelPreferences: IModelPreferences,
 ): [number, number, number, number] {
-  if (vlLocateMode() === 'doubao-vision' || vlLocateMode() === 'vlm-ui-tars') {
+  if (
+    vlLocateMode(modelPreferences) === 'doubao-vision' ||
+    vlLocateMode(modelPreferences) === 'vlm-ui-tars'
+  ) {
     return adaptDoubaoBbox(bbox, width, height);
   }
 
-  if (vlLocateMode() === 'gemini') {
+  if (vlLocateMode(modelPreferences) === 'gemini') {
     return adaptGeminiBbox(bbox, width, height);
   }
 
@@ -222,11 +236,17 @@ export function adaptBboxToRect(
   bbox: number[],
   width: number,
   height: number,
+  modelPreferences: IModelPreferences,
   offsetX = 0,
   offsetY = 0,
 ): Rect {
   debugInspectUtils('adaptBboxToRect', bbox, width, height, offsetX, offsetY);
-  const [left, top, right, bottom] = adaptBbox(bbox, width, height);
+  const [left, top, right, bottom] = adaptBbox(
+    bbox,
+    width,
+    height,
+    modelPreferences,
+  );
   const rect = {
     left: left + offsetX,
     top: top + offsetY,
@@ -238,9 +258,12 @@ export function adaptBboxToRect(
 }
 
 let warned = false;
-export function warnGPT4oSizeLimit(size: Size) {
+export function warnGPT4oSizeLimit(
+  size: Size,
+  modelPreferences: IModelPreferences,
+) {
   if (warned) return;
-  if (getModelName()?.toLowerCase().includes('gpt-4o')) {
+  if (getModelName(modelPreferences)?.toLowerCase().includes('gpt-4o')) {
     const warningMsg = `GPT-4o has a maximum image input size of 2000x768 or 768x2000, but got ${size.width}x${size.height}. Please set your page to a smaller resolution. Otherwise, the result may be inaccurate.`;
 
     if (
@@ -272,8 +295,13 @@ export function mergeRects(rects: Rect[]) {
 }
 
 // expand the search area to at least 300 x 300, or add a default padding
-export function expandSearchArea(rect: Rect, screenSize: Size) {
-  const minEdgeSize = vlLocateMode() === 'doubao-vision' ? 500 : 300;
+export function expandSearchArea(
+  rect: Rect,
+  screenSize: Size,
+  modelPreferences: IModelPreferences,
+) {
+  const minEdgeSize =
+    vlLocateMode(modelPreferences) === 'doubao-vision' ? 500 : 300;
   const defaultPadding = 160;
 
   const paddingSizeHorizontal =

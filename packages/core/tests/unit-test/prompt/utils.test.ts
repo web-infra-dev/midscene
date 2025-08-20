@@ -31,10 +31,14 @@ describe('prompt utils - describeUserPage', () => {
     'describe context ',
     async () => {
       const context = await getContextFromFixture('taobao');
-      const { description } = await describeUserPage(context.context, {
-        domIncluded: true,
-        visibleOnly: false,
-      });
+      const { description } = await describeUserPage(
+        context.context,
+        { intent: 'default' },
+        {
+          domIncluded: true,
+          visibleOnly: false,
+        },
+      );
 
       lengthOfDescription = description.length;
       const stringLengthOfEachItem =
@@ -48,12 +52,16 @@ describe('prompt utils - describeUserPage', () => {
   it('describe context, truncateTextLength = 100, filterNonTextContent = true', async () => {
     const context = await getContextFromFixture('taobao');
 
-    const { description } = await describeUserPage(context.context, {
-      truncateTextLength: 100,
-      filterNonTextContent: true,
-      domIncluded: true,
-      visibleOnly: false,
-    });
+    const { description } = await describeUserPage(
+      context.context,
+      { intent: 'default' },
+      {
+        truncateTextLength: 100,
+        filterNonTextContent: true,
+        domIncluded: true,
+        visibleOnly: false,
+      },
+    );
 
     const stringLengthOfEachItem =
       description.length / treeToList(context.context.tree).length;
@@ -65,10 +73,14 @@ describe('prompt utils - describeUserPage', () => {
   it('describe context, domIncluded = "visible-only"', async () => {
     const context = await getContextFromFixture('taobao');
 
-    const { description } = await describeUserPage(context.context, {
-      filterNonTextContent: true,
-      domIncluded: 'visible-only',
-    });
+    const { description } = await describeUserPage(
+      context.context,
+      { intent: 'default' },
+      {
+        filterNonTextContent: true,
+        domIncluded: 'visible-only',
+      },
+    );
 
     expect(description).toBeTruthy();
     expect(description.length).toBeLessThan(
@@ -81,9 +93,13 @@ describe('prompt utils - describeUserPage', () => {
     vi.mocked(vlLocateMode).mockReturnValue(false);
 
     const context = await getContextFromFixture('taobao');
-    const { description } = await describeUserPage(context.context, {
-      domIncluded: false,
-    });
+    const { description } = await describeUserPage(
+      context.context,
+      { intent: 'default' },
+      {
+        domIncluded: false,
+      },
+    );
 
     // In non-vl mode, description should include page elements even when domIncluded is false
     expect(description).toBeTruthy();
@@ -94,9 +110,13 @@ describe('prompt utils - describeUserPage', () => {
     vi.mocked(vlLocateMode).mockReturnValue('qwen-vl');
 
     const context = await getContextFromFixture('taobao');
-    const { description } = await describeUserPage(context.context, {
-      domIncluded: false,
-    });
+    const { description } = await describeUserPage(
+      context.context,
+      { intent: 'default' },
+      {
+        domIncluded: false,
+      },
+    );
 
     // In vl mode, description should be empty if domIncluded is false
     expect(description).toBeFalsy();
