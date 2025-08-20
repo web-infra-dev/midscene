@@ -27,8 +27,6 @@ import type {
   LocateResult,
   PartialInsightDumpFromSDK,
   Rect,
-  TMultimodalPrompt,
-  TUserPrompt,
   UIContext,
 } from '@/types';
 import {
@@ -40,6 +38,7 @@ import {
 import { compositeElementInfoImg, cropByRect } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
+import type { TMultimodalPrompt, TUserPrompt } from '../ai-model/common';
 import { emitInsightDump } from './utils';
 
 export interface LocateOpts {

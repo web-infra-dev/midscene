@@ -67,11 +67,12 @@ interface ExecutionResult<OutputType = any> {
 const debug = getDebug('device-task-executor');
 const defaultReplanningCycleLimit = 10;
 
-export function locatePlanForLocate(detailedLocateParam: DetailedLocateParam) {
+export function locatePlanForLocate(param: string | DetailedLocateParam) {
+  const locate = typeof param === 'string' ? { prompt: param } : param;
   const locatePlan: PlanningAction<PlanningLocateParam> = {
     type: 'Locate',
-    locate: detailedLocateParam,
-    param: detailedLocateParam,
+    locate,
+    param: locate,
     thought: '',
   };
   return locatePlan;
@@ -790,9 +791,9 @@ export class PageTaskExecutor {
   async runPlans(
     title: string,
     plans: PlanningAction[],
-    opts?: {
-      cacheable?: boolean;
-    },
+    // opts?: {
+    //   cacheable?: boolean;
+    // },
   ): Promise<ExecutionResult> {
     const taskExecutor = new Executor(title, {
       onTaskStart: this.onTaskStartCallback,

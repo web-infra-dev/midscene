@@ -378,18 +378,55 @@ export const RectSchema = PointSchema.and(SizeSchema).and(
   }),
 );
 
+// Zod schema for TMultimodalPrompt
+export const TMultimodalPromptSchema = z.object({
+  images: z
+    .array(
+      z.object({
+        name: z.string(),
+        url: z.string(),
+      }),
+    )
+    .optional(),
+  convertHttpImage2Base64: z.boolean().optional(),
+});
+
+// Zod schema for TUserPrompt
+export const TUserPromptSchema = z.union([
+  z.string(),
+  z
+    .object({
+      prompt: z.string(),
+    })
+    .and(TMultimodalPromptSchema.partial()),
+]);
+
+// Generate TypeScript types from Zod schemas
+export type TMultimodalPrompt = z.infer<typeof TMultimodalPromptSchema>;
+export type TUserPrompt = z.infer<typeof TUserPromptSchema>;
+
 const locateFieldFlagName = 'midscene_location_field_flag';
 
-export const MidsceneLocation = z
+const MidsceneLocationResult = z
   .object({
     [locateFieldFlagName]: z.literal(true),
-    prompt: z.string(),
+    prompt: TUserPromptSchema,
+
+    // optional fields
+    deepThink: z.boolean().optional(), // only available in vl model
+    cacheable: z.boolean().optional(),
+    xpath: z.boolean().optional(), // preset result for xpath
+
+    // these two fields will only appear in the result
     center: z.tuple([z.number(), z.number()]),
     rect: RectSchema,
   })
   .passthrough();
 
-export type MidsceneLocationType = z.infer<typeof MidsceneLocation>;
+export type MidsceneLocationResultType = z.infer<typeof MidsceneLocationResult>;
+export const getMidsceneLocationSchema = () => {
+  return MidsceneLocationResult;
+};
 
 export const ifMidsceneLocatorField = (field: any): boolean => {
   // Handle optional fields by getting the inner type
@@ -398,7 +435,7 @@ export const ifMidsceneLocatorField = (field: any): boolean => {
     actualField = actualField._def.innerType;
   }
 
-  // Check if this is a ZodObject with midscene_location_field_flag
+  // Check if this is a ZodUnion (the new MidsceneLocation structure)
   if (actualField._def?.typeName === 'ZodObject') {
     const shape = actualField._def.shape();
     return locateFieldFlagName in shape;
@@ -413,11 +450,30 @@ export const dumpMidsceneLocatorField = (field: any): string => {
     'field is not a midscene locator field',
   );
 
-  return field.prompt;
+  // If field is a string, return it directly
+  if (typeof field === 'string') {
+    return field;
+  }
+
+  // If field is an object with prompt property
+  if (field && typeof field === 'object' && field.prompt) {
+    // If prompt is a string, return it directly
+    if (typeof field.prompt === 'string') {
+      return field.prompt;
+    }
+    // If prompt is a TUserPrompt object, extract the prompt string
+    if (typeof field.prompt === 'object' && field.prompt.prompt) {
+      return field.prompt.prompt; // TODO: dump images if necessary
+    }
+  }
+
+  // Fallback: try to convert to string
+  return String(field);
 };
 
 export const findAllMidsceneLocatorField = (
   zodType?: z.ZodType<any>,
+  requiredOnly?: boolean,
 ): string[] => {
   if (!zodType) {
     return [];
@@ -427,7 +483,19 @@ export const findAllMidsceneLocatorField = (
   const zodObject = zodType as any;
   if (zodObject._def?.typeName === 'ZodObject' && zodObject.shape) {
     const keys = Object.keys(zodObject.shape);
-    return keys.filter((key) => ifMidsceneLocatorField(zodObject.shape[key]));
+    return keys.filter((key) => {
+      const field = zodObject.shape[key];
+      if (!ifMidsceneLocatorField(field)) {
+        return false;
+      }
+
+      // If requiredOnly is true, filter out optional fields
+      if (requiredOnly) {
+        return field._def?.typeName !== 'ZodOptional';
+      }
+
+      return true;
+    });
   }
 
   // For other ZodType instances, we can't extract field names
@@ -443,10 +511,24 @@ export const dumpActionParam = (
 
   for (const fieldName of locatorFields) {
     const fieldValue = result[fieldName];
-    if (fieldValue && typeof fieldValue === 'object') {
-      // Check if this field is actually a MidsceneLocationType object
-      if (fieldValue.prompt && typeof fieldValue.prompt === 'string') {
-        result[fieldName] = fieldValue.prompt;
+    if (fieldValue) {
+      // If it's already a string, keep it as is
+      if (typeof fieldValue === 'string') {
+        result[fieldName] = fieldValue;
+      } else if (typeof fieldValue === 'object') {
+        // Check if this field is actually a MidsceneLocationType object
+        if (fieldValue.prompt) {
+          // If prompt is a string, use it directly
+          if (typeof fieldValue.prompt === 'string') {
+            result[fieldName] = fieldValue.prompt;
+          } else if (
+            typeof fieldValue.prompt === 'object' &&
+            fieldValue.prompt.prompt
+          ) {
+            // If prompt is a TUserPrompt object, extract the prompt string
+            result[fieldName] = fieldValue.prompt.prompt;
+          }
+        }
       }
     }
   }
@@ -465,6 +547,7 @@ export const loadActionParam = (
     const fieldValue = result[fieldName];
     if (fieldValue && typeof fieldValue === 'string') {
       result[fieldName] = {
+        [locateFieldFlagName]: true,
         prompt: fieldValue,
       };
     }

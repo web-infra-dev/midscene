@@ -8,7 +8,7 @@ import {
 } from '@/ai-model/prompt/llm-planning';
 import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
 import { getUiTarsPlanningPrompt } from '@/ai-model/prompt/ui-tars-planning';
-import { MidsceneLocation } from '@/index';
+import { getMidsceneLocationSchema } from '@/index';
 import { mockActionSpace } from 'tests/common';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
@@ -69,10 +69,12 @@ describe('action space', () => {
           value: z.string().describe('The value to be tapped'),
           value2: z.number().describe('The value to be tapped').optional(),
           value3: z.number().describe('The value 3').optional().default(345),
-          locate: MidsceneLocation.describe('The element to be tapped'),
-          locate2: MidsceneLocation.describe(
-            'The element to be tapped for the second time',
-          ).optional(),
+          locate: getMidsceneLocationSchema().describe(
+            'The element to be tapped',
+          ),
+          locate2: getMidsceneLocationSchema()
+            .describe('The element to be tapped for the second time')
+            .optional(),
           scrollType: z
             .enum([
               'once',

@@ -1,4 +1,5 @@
-import type { Rect, TUserPrompt } from './types';
+import type { TUserPrompt } from './ai-model/common';
+import type { Rect } from './types';
 import type { BaseElement, UIContext } from './types';
 
 export interface LocateOption {
@@ -162,7 +163,7 @@ export interface MidsceneYamlFlowItemAIKeyboardPress extends LocateOption {
   // aiKeyboardPress: string;
   // locate?: TUserPrompt; // where to press, optional
   aiKeyboardPress: TUserPrompt | undefined; // where to press
-  key: string; // key to press
+  keyName: string; // key to press
 }
 
 export interface MidsceneYamlFlowItemAIScroll

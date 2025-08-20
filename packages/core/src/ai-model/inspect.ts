@@ -9,8 +9,6 @@ import type {
   InsightExtractOption,
   Rect,
   ReferenceImage,
-  TMultimodalPrompt,
-  TUserPrompt,
   UIContext,
 } from '@/types';
 import {
@@ -29,6 +27,7 @@ import type {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
 } from 'openai/resources/index';
+import type { TMultimodalPrompt, TUserPrompt } from './common';
 import {
   AIActionType,
   adaptBboxToRect,

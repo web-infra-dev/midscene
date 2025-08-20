@@ -7,11 +7,15 @@ export {
   plan,
   describeUserPage,
   AiLocateElement,
-  MidsceneLocation,
-  type MidsceneLocationType,
+  getMidsceneLocationSchema,
+  type MidsceneLocationResultType,
   PointSchema,
   SizeSchema,
   RectSchema,
+  TMultimodalPromptSchema,
+  TUserPromptSchema,
+  type TMultimodalPrompt,
+  type TUserPrompt,
 } from './ai-model/index';
 
 export { getAIConfig, MIDSCENE_MODEL_NAME } from '@midscene/shared/env';

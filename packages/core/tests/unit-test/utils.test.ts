@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import * as fs from 'node:fs';
 import {
-  type MidsceneLocationType,
+  type MidsceneLocationResultType,
   adaptDoubaoBbox,
   adaptQwenBbox,
   dumpActionParam,
@@ -16,7 +16,7 @@ import {
   preprocessDoubaoBboxJson,
   safeParseJson,
 } from '@/ai-model/service-caller';
-import { type DeviceAction, MidsceneLocation } from '@/index';
+import { type DeviceAction, getMidsceneLocationSchema } from '@/index';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import {
   getAIConfig,
@@ -758,9 +758,9 @@ describe('insertScriptBeforeClosingHtml', () => {
   it('findAllMidsceneLocatorField', () => {
     const result = findAllMidsceneLocatorField(
       z.object({
-        a: MidsceneLocation,
+        a: getMidsceneLocationSchema(),
         b: z.string(),
-        c: MidsceneLocation.optional().describe('ccccc'),
+        c: getMidsceneLocationSchema().optional().describe('ccccc'),
       }),
     );
     expect(result).toEqual(['a', 'c']);
@@ -775,16 +775,37 @@ describe('insertScriptBeforeClosingHtml', () => {
     expect(result).toEqual([]);
   });
 
+  it('findAllMidsceneLocatorField - requiredOnly parameter', () => {
+    const schema = z.object({
+      a: getMidsceneLocationSchema(),
+      b: z.string(),
+      c: getMidsceneLocationSchema().optional().describe('optional locator'),
+      d: getMidsceneLocationSchema().describe('required locator'),
+    });
+
+    // Test default behavior (requiredOnly = false, should return all locator fields)
+    const allResult = findAllMidsceneLocatorField(schema);
+    expect(allResult).toEqual(['a', 'c', 'd']);
+
+    // Test requiredOnly = false explicitly
+    const allResultExplicit = findAllMidsceneLocatorField(schema, false);
+    expect(allResultExplicit).toEqual(['a', 'c', 'd']);
+
+    // Test requiredOnly = true (should only return required locator fields)
+    const requiredOnlyResult = findAllMidsceneLocatorField(schema, true);
+    expect(requiredOnlyResult).toEqual(['a', 'd']);
+  });
+
   it('type of DeviceAction', () => {
     const action: DeviceAction<{
-      locate: MidsceneLocationType;
+      locate: MidsceneLocationResultType;
       duration?: number;
       autoDismissKeyboard?: boolean;
     }> = {
       name: 'click',
       description: 'click the element',
       paramSchema: z.object({
-        locate: MidsceneLocation,
+        locate: getMidsceneLocationSchema(),
         duration: z.number().optional(),
         autoDismissKeyboard: z.boolean().optional(),
       }),
@@ -799,9 +820,9 @@ describe('dumpActionParam', () => {
   it('should handle various locator field scenarios', () => {
     const schema = z.object({
       foo: z.string(),
-      locator1: MidsceneLocation,
-      locator2: MidsceneLocation.optional(),
-      locator3: MidsceneLocation.optional(),
+      locator1: getMidsceneLocationSchema(),
+      locator2: getMidsceneLocationSchema().optional(),
+      locator3: getMidsceneLocationSchema().optional(),
       bar: z.number(),
       baz: z.boolean().optional(),
     });
@@ -861,8 +882,8 @@ describe('dumpActionParam', () => {
   it('should handle edge cases and invalid inputs', () => {
     const schema = z.object({
       foo: z.string(),
-      locator1: MidsceneLocation,
-      locator2: MidsceneLocation.optional(),
+      locator1: getMidsceneLocationSchema(),
+      locator2: getMidsceneLocationSchema().optional(),
       bar: z.number().optional(),
     });
 
@@ -923,7 +944,7 @@ describe('dumpActionParam', () => {
     // Test case 3: Empty object
     const emptySchema = z.object({
       foo: z.string().optional(),
-      locator: MidsceneLocation.optional(),
+      locator: getMidsceneLocationSchema().optional(),
     });
     const emptyInput = {};
 
@@ -977,8 +998,8 @@ describe('loadActionParam', () => {
   it('should convert string values to MidsceneLocation objects for locator fields', () => {
     const schema = z.object({
       foo: z.string(),
-      locator1: MidsceneLocation,
-      locator2: MidsceneLocation.optional(),
+      locator1: getMidsceneLocationSchema(),
+      locator2: getMidsceneLocationSchema().optional(),
       bar: z.number(),
       baz: z.boolean().optional(),
     });
@@ -999,9 +1020,11 @@ describe('loadActionParam', () => {
         "baz": true,
         "foo": "test",
         "locator1": {
+          "midscene_location_field_flag": true,
           "prompt": "first locator",
         },
         "locator2": {
+          "midscene_location_field_flag": true,
           "prompt": "second locator",
         },
       }
@@ -1026,6 +1049,7 @@ describe('loadActionParam', () => {
         "bar": 24,
         "foo": "test2",
         "locator1": {
+          "midscene_location_field_flag": true,
           "prompt": "string locator",
         },
         "locator2": {
@@ -1049,9 +1073,9 @@ describe('loadActionParam', () => {
   it('should handle missing and optional locator fields', () => {
     const schema = z.object({
       foo: z.string(),
-      locator1: MidsceneLocation,
-      locator2: MidsceneLocation.optional(),
-      locator3: MidsceneLocation.optional(),
+      locator1: getMidsceneLocationSchema(),
+      locator2: getMidsceneLocationSchema().optional(),
+      locator3: getMidsceneLocationSchema().optional(),
       bar: z.number().optional(),
     });
 
@@ -1068,6 +1092,7 @@ describe('loadActionParam', () => {
         "bar": 123,
         "foo": "test",
         "locator1": {
+          "midscene_location_field_flag": true,
           "prompt": "required locator",
         },
       }
@@ -1086,12 +1111,15 @@ describe('loadActionParam', () => {
       {
         "foo": "test2",
         "locator1": {
+          "midscene_location_field_flag": true,
           "prompt": "first locator",
         },
         "locator2": {
+          "midscene_location_field_flag": true,
           "prompt": "second locator",
         },
         "locator3": {
+          "midscene_location_field_flag": true,
           "prompt": "third locator",
         },
       }
@@ -1101,8 +1129,8 @@ describe('loadActionParam', () => {
   it('should handle edge cases and invalid inputs', () => {
     const schema = z.object({
       foo: z.string(),
-      locator1: MidsceneLocation,
-      locator2: MidsceneLocation.optional(),
+      locator1: getMidsceneLocationSchema(),
+      locator2: getMidsceneLocationSchema().optional(),
       bar: z.number().optional(),
     });
 
@@ -1137,6 +1165,7 @@ describe('loadActionParam', () => {
         "foo": "test2",
         "locator1": "",
         "locator2": {
+          "midscene_location_field_flag": true,
           "prompt": "valid locator",
         },
       }
@@ -1155,6 +1184,7 @@ describe('loadActionParam', () => {
         "foo": "test3",
         "locator1": 123,
         "locator2": {
+          "midscene_location_field_flag": true,
           "prompt": "string locator",
         },
       }
@@ -1206,7 +1236,7 @@ describe('loadActionParam', () => {
     // Test case 1: Empty input object
     const schema1 = z.object({
       foo: z.string().optional(),
-      locator: MidsceneLocation.optional(),
+      locator: getMidsceneLocationSchema().optional(),
     });
     const emptyInput = {};
 
@@ -1237,8 +1267,8 @@ describe('loadActionParam and dumpActionParam integration', () => {
   it('should be inverse operations for valid data', () => {
     const schema = z.object({
       foo: z.string(),
-      locator1: MidsceneLocation,
-      locator2: MidsceneLocation.optional(),
+      locator1: getMidsceneLocationSchema(),
+      locator2: getMidsceneLocationSchema().optional(),
       bar: z.number(),
     });
 
@@ -1263,8 +1293,8 @@ describe('loadActionParam and dumpActionParam integration', () => {
   it('should handle partial round-trip scenarios', () => {
     const schema = z.object({
       foo: z.string(),
-      locator1: MidsceneLocation,
-      locator2: MidsceneLocation.optional(),
+      locator1: getMidsceneLocationSchema(),
+      locator2: getMidsceneLocationSchema().optional(),
     });
 
     // Start with mixed format
@@ -1282,7 +1312,12 @@ describe('loadActionParam and dumpActionParam integration', () => {
     // Load should only affect string locators
     const loadedData = loadActionParam(mixedData, schema);
     expect(loadedData.locator1).toEqual(mixedData.locator1); // unchanged
-    expect(loadedData.locator2).toEqual({ prompt: 'string locator' }); // converted
+    expect(loadedData.locator2).toMatchInlineSnapshot(`
+      {
+        "midscene_location_field_flag": true,
+        "prompt": "string locator",
+      }
+    `);
 
     // Dump should convert both to strings
     const dumpedData = dumpActionParam(loadedData, schema);

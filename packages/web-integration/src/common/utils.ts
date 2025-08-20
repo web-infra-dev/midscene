@@ -8,14 +8,14 @@ import type {
   ExecutionTask,
   ExecutorContext,
   LocateOption,
-  MidsceneLocationType,
+  MidsceneLocationResultType,
   PlanningLocateParam,
   PlaywrightParserOpt,
   TMultimodalPrompt,
   TUserPrompt,
   UIContext,
 } from '@midscene/core';
-import { MidsceneLocation, z } from '@midscene/core';
+import { getMidsceneLocationSchema, z } from '@midscene/core';
 import { elementByPositionWithElementInfo } from '@midscene/core/ai-model';
 import { sleep, uploadTestInfoToServer } from '@midscene/core/utils';
 import { MIDSCENE_REPORT_TAG_NAME, getAIConfig } from '@midscene/shared/env';
@@ -400,7 +400,7 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
     description: 'Tap the element',
     interfaceAlias: 'aiTap',
     paramSchema: z.object({
-      locate: MidsceneLocation.describe('The element to be tapped'),
+      locate: getMidsceneLocationSchema().describe('The element to be tapped'),
     }),
     call: async (param) => {
       const element = param.locate;
@@ -410,13 +410,15 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
       });
     },
   } as DeviceAction<{
-    locate: MidsceneLocationType;
+    locate: MidsceneLocationResultType;
   }>,
   {
     name: 'RightClick',
     description: 'Right click the element',
     paramSchema: z.object({
-      locate: MidsceneLocation.describe('The element to be right clicked'),
+      locate: getMidsceneLocationSchema().describe(
+        'The element to be right clicked',
+      ),
     }),
     call: async (param) => {
       const element = param.locate;
@@ -426,14 +428,14 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
       });
     },
   } as DeviceAction<{
-    locate: MidsceneLocationType;
+    locate: MidsceneLocationResultType;
   }>,
   {
     name: 'Hover',
     description: 'Move the mouse to the element',
     interfaceAlias: 'aiHover',
     paramSchema: z.object({
-      locate: MidsceneLocation.describe('The element to be hovered'),
+      locate: getMidsceneLocationSchema().describe('The element to be hovered'),
     }),
     call: async (param) => {
       const element = param.locate;
@@ -441,7 +443,7 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
       await page.mouse.move(element.center[0], element.center[1]);
     },
   } as DeviceAction<{
-    locate: MidsceneLocationType;
+    locate: MidsceneLocationResultType;
   }>,
   {
     name: 'Input',
@@ -452,7 +454,9 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
       value: z
         .string()
         .describe('The final value that should be filled in the input box'),
-      locate: MidsceneLocation.describe('The input field to be filled'),
+      locate: getMidsceneLocationSchema().describe(
+        'The input field to be filled',
+      ),
     }),
     call: async (param) => {
       const element = param.locate;
@@ -469,21 +473,32 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
     },
   } as DeviceAction<{
     value: string;
-    locate: MidsceneLocationType;
+    locate: MidsceneLocationResultType;
   }>,
   {
     name: 'KeyboardPress',
     description: 'Press a key',
     interfaceAlias: 'aiKeyboardPress',
     paramSchema: z.object({
+      locate: getMidsceneLocationSchema()
+        .describe('The element to be clicked before pressing the key')
+        .optional(),
       keyName: z.string().describe('The key to be pressed'),
     }),
     call: async (param, context) => {
+      const element = param.locate;
+      if (element) {
+        await page.mouse.click(element.center[0], element.center[1], {
+          button: 'left',
+        });
+      }
+
       const keys = getKeyCommands(param.keyName);
       await page.keyboard.press(keys as any); // TODO: fix this type error
     },
   } as DeviceAction<{
     keyName: string;
+    locate: MidsceneLocationResultType;
   }>,
   {
     name: 'Scroll',
@@ -504,9 +519,9 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
         .nullable()
         .optional()
         .describe('The distance in pixels to scroll'),
-      locate: MidsceneLocation.optional().describe(
-        'The element to be scrolled',
-      ),
+      locate: getMidsceneLocationSchema()
+        .optional()
+        .describe('The element to be scrolled'),
     }),
     call: async (param) => {
       const element = param.locate;
@@ -557,14 +572,14 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
     direction: 'up' | 'down';
     distance?: number;
     duration?: number;
-    locate: MidsceneLocationType;
+    locate: MidsceneLocationResultType;
   }>,
   // {
   //   name: 'DragAndDrop',
   //   description: 'Drag and drop the element',
   //   paramSchema: z.object({
-  //     from: MidsceneLocation.describe('The position to be dragged'),
-  //     to: MidsceneLocation.describe('The position to be dropped'),
+  //     from: getMidsceneLocationSchema().describe('The position to be dragged'),
+  //     to: getMidsceneLocationSchema().describe('The position to be dropped'),
   //   }),
   //   call: async (param) => {
   //     const from = param.from;
@@ -572,7 +587,7 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
   //     console.log('drag and drop', from, to);
   //   },
   // } as DeviceAction<{
-  //   from: MidsceneLocationType;
-  //   to: MidsceneLocationType;
+  //   from: MidsceneLocationResultType;
+  //   to: MidsceneLocationResultType;
   // }>,
 ];

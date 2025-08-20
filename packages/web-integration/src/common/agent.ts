@@ -316,18 +316,13 @@ export class PageAgent<PageType extends WebPage = WebPage> {
 
   async callActionInActionSpace<T = any>(
     type: string,
-    // locatePrompt?: TUserPrompt, // this is a shortcut for { locate: 'locatePrompt' }
-    opt?: LocateOption & T, // and all other action params
+    opt?: T, // and all other action params
   ) {
     debug('callActionInActionSpace', type, ',', opt, ',', opt);
 
     const actionPlan: PlanningAction<T> = {
       type: type as any,
-      param: {
-        // action param
-        ...(opt || {}),
-        // ...(locateParam ? { locate: locateParam } : {}),
-      } as any,
+      param: (opt as any) || {},
       thought: '',
     };
     debug('actionPlan', actionPlan); // , ', in which the locateParam is', locateParam);
@@ -341,9 +336,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       locateParamStr((opt as any)?.locate || {}),
     );
 
-    const { executor } = await this.taskExecutor.runPlans(title, plans, {
-      cacheable: opt?.cacheable,
-    });
+    const { executor } = await this.taskExecutor.runPlans(title, plans);
     await this.afterTaskRunning(executor);
   }
 
@@ -496,10 +489,9 @@ export class PageAgent<PageType extends WebPage = WebPage> {
 
     assert(opt?.keyName, 'missing keyName for keyboard press');
 
-    const detailedLocateParam = buildDetailedLocateParam(
-      locatePrompt || '',
-      opt,
-    );
+    const detailedLocateParam = locatePrompt
+      ? buildDetailedLocateParam(locatePrompt, opt)
+      : undefined;
 
     return this.callActionInActionSpace('KeyboardPress', {
       ...(opt || {}),
@@ -776,7 +768,6 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     const { executor, output } = await this.taskExecutor.runPlans(
       taskTitleStr('Locate', locateParamStr(locateParam)),
       plans,
-      { cacheable: opt?.cacheable },
     );
     await this.afterTaskRunning(executor);
 
