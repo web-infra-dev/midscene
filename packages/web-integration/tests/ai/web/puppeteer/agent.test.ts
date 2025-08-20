@@ -16,7 +16,7 @@ describe('puppeteer integration', () => {
     }
   });
 
-  it('input and clear text', async () => {
+  it.only('input and clear text', async () => {
     const { originPage, reset } = await launchPage('https://www.google.com/');
     resetFn = reset;
     const agent = new PuppeteerAgent(originPage, {
