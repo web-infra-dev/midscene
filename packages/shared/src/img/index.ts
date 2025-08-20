@@ -5,7 +5,7 @@ export {
   isValidPNGImageBuffer,
 } from './info';
 export {
-  resizeImgBuffer,
+  resizeAndConvertImgBuffer,
   resizeImgBase64,
   zoomForGPT4o,
   saveBase64Image,
