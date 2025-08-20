@@ -3,7 +3,6 @@ import {
   type AgentAssertOpt,
   type AgentDescribeElementAtPointResult,
   type AgentWaitForOpt,
-  type DetailedLocateParam,
   type DeviceAction,
   type ExecutionDump,
   type ExecutionRecorderItem,
@@ -337,7 +336,10 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       Boolean,
     ) as PlanningAction[];
 
-    const title = taskTitleStr(type as any, locateParamStr((opt as any) || {}));
+    const title = taskTitleStr(
+      type as any,
+      locateParamStr((opt as any)?.locate || {}),
+    );
 
     const { executor } = await this.taskExecutor.runPlans(title, plans, {
       cacheable: opt?.cacheable,

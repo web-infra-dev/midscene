@@ -231,7 +231,9 @@ export class PageTaskExecutor {
           const { task } = taskContext;
           assert(
             param?.prompt || param?.id || param?.bbox,
-            'No prompt or id or position or bbox to locate',
+            `No prompt or id or position or bbox to locate, param=${JSON.stringify(
+              param,
+            )}`,
           );
           let insightDump: InsightDump | undefined;
           let usage: AIUsageInfo | undefined;
@@ -476,7 +478,7 @@ export class PageTaskExecutor {
           debug(
             'will prepend locate param for field',
             `action.type=${planType}`,
-            `fieldName=${field}`,
+            `param=${JSON.stringify(param[field])}`,
             `locatePlan=${JSON.stringify(locatePlan)}`,
           );
           const locateTask = taskForLocatePlan(
