@@ -7,8 +7,8 @@ import {
   imageInfoOfBase64,
   isValidPNGImageBuffer,
   localImg2Base64,
+  resizeAndConvertImgBuffer,
   resizeImgBase64,
-  resizeImgBuffer,
 } from 'src/img';
 import getJimp from 'src/img/get-jimp';
 import {
@@ -240,22 +240,30 @@ describe('image utils', () => {
   // );
 });
 
-describe('resizeImgBuffer', () => {
+describe('resizeAndConvertImgBuffer', () => {
   const imageBuffer = readFileSync(getFixture('2x2.png'));
 
   describe('try sharp', () => {
     it('Sharp no-resize will get original format', async () => {
-      const { format, buffer } = await resizeImgBuffer('png', imageBuffer, {
-        width: 2,
-        height: 2,
-      });
+      const { format, buffer } = await resizeAndConvertImgBuffer(
+        'png',
+        imageBuffer,
+        {
+          width: 2,
+          height: 2,
+        },
+      );
       expect(format).toBe('png');
     });
     it('Sharp resize will get jpeg format', async () => {
-      const { format, buffer } = await resizeImgBuffer('png', imageBuffer, {
-        width: 1,
-        height: 1,
-      });
+      const { format, buffer } = await resizeAndConvertImgBuffer(
+        'png',
+        imageBuffer,
+        {
+          width: 1,
+          height: 1,
+        },
+      );
       expect(format).toBe('jpeg');
     });
   });
@@ -278,18 +286,26 @@ describe('resizeImgBuffer', () => {
     });
 
     it('fallback photon no-resize will get original format', async () => {
-      const { format, buffer } = await resizeImgBuffer('png', imageBuffer, {
-        width: 2,
-        height: 2,
-      });
+      const { format, buffer } = await resizeAndConvertImgBuffer(
+        'png',
+        imageBuffer,
+        {
+          width: 2,
+          height: 2,
+        },
+      );
       expect(metadataFn).toHaveBeenCalledTimes(1);
       expect(format).toBe('png');
     });
     it('fallback photon resize will get jpeg format', async () => {
-      const { format, buffer } = await resizeImgBuffer('png', imageBuffer, {
-        width: 1,
-        height: 1,
-      });
+      const { format, buffer } = await resizeAndConvertImgBuffer(
+        'png',
+        imageBuffer,
+        {
+          width: 1,
+          height: 1,
+        },
+      );
       expect(format).toBe('jpeg');
       expect(metadataFn).toHaveBeenCalledTimes(2);
     });

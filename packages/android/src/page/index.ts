@@ -27,7 +27,7 @@ import type { ElementInfo } from '@midscene/shared/extractor';
 import {
   createImgBase64ByFormat,
   isValidPNGImageBuffer,
-  resizeImgBuffer,
+  resizeAndConvertImgBuffer,
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { repeat } from '@midscene/shared/utils';
@@ -552,7 +552,7 @@ ${Object.keys(size)
     }
 
     debugPage('Resizing screenshot image');
-    const { buffer, format } = await resizeImgBuffer(
+    const { buffer, format } = await resizeAndConvertImgBuffer(
       // both "adb.takeScreenshot" and "shell screencap" result are png format
       'png',
       screenshotBuffer,
