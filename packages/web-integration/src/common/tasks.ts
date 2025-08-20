@@ -465,22 +465,34 @@ export class PageTaskExecutor {
           ? findAllMidsceneLocatorField(action.paramSchema)
           : [];
 
+        const requiredLocateFields = action
+          ? findAllMidsceneLocatorField(action.paramSchema, true)
+          : [];
+
         locateFields.forEach((field) => {
-          const locatePlan = locatePlanForLocate(param[field]);
-          debug(
-            'will prepend locate param for field',
-            `action.type=${planType}`,
-            `param=${JSON.stringify(param[field])}`,
-            `locatePlan=${JSON.stringify(locatePlan)}`,
-          );
-          const locateTask = taskForLocatePlan(
-            locatePlan,
-            param[field],
-            (result) => {
-              param[field] = result;
-            },
-          );
-          tasks.push(locateTask);
+          if (param[field]) {
+            const locatePlan = locatePlanForLocate(param[field]);
+            debug(
+              'will prepend locate param for field',
+              `action.type=${planType}`,
+              `param=${JSON.stringify(param[field])}`,
+              `locatePlan=${JSON.stringify(locatePlan)}`,
+            );
+            const locateTask = taskForLocatePlan(
+              locatePlan,
+              param[field],
+              (result) => {
+                param[field] = result;
+              },
+            );
+            tasks.push(locateTask);
+          } else {
+            assert(
+              !requiredLocateFields.includes(field),
+              `Required locate field '${field}' is not provided for action ${planType}`,
+            );
+            debug(`field '${field}' is not provided for action ${planType}`);
+          }
         });
 
         const task: ExecutionTaskActionApply = {
