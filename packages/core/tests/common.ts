@@ -24,7 +24,9 @@ export const mockActionSpace: DeviceAction<any>[] = [
     description: 'Input text into the input field',
     paramSchema: z.object({
       value: z.string().describe('The value to be input'),
-      locate: getMidsceneLocationSchema().optional().describe('The input field to target'),
+      locate: getMidsceneLocationSchema()
+        .optional()
+        .describe('The input field to target'),
     }),
     call: async () => {},
   },
@@ -33,9 +35,9 @@ export const mockActionSpace: DeviceAction<any>[] = [
     description: 'Press a keyboard key',
     paramSchema: z.object({
       value: z.string().describe('The key to be pressed'),
-      locate: getMidsceneLocationSchema().optional().describe(
-        'The element to target for key press',
-      ),
+      locate: getMidsceneLocationSchema()
+        .optional()
+        .describe('The element to target for key press'),
     }),
     call: async () => {},
   },
@@ -44,7 +46,9 @@ export const mockActionSpace: DeviceAction<any>[] = [
     description: 'Scroll the page',
     paramSchema: z.object({
       value: z.string().describe('The scroll direction or amount'),
-      locate: getMidsceneLocationSchema().optional().describe('The element to scroll'),
+      locate: getMidsceneLocationSchema()
+        .optional()
+        .describe('The element to scroll'),
     }),
     call: async () => {},
   },
