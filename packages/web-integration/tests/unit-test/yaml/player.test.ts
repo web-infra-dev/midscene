@@ -348,11 +348,16 @@ tasks:
       [
         [
           "RightClick",
-          "element to right click",
           {
             "cacheable": false,
             "deepThink": true,
             "foo": 123,
+            "locate": {
+              "cacheable": false,
+              "deepThink": true,
+              "prompt": "element to right click",
+              "xpath": undefined,
+            },
             "moreParam": null,
           },
         ],
@@ -367,11 +372,11 @@ target:
 tasks:
   - name: test_right_click_with_options
     flow:
-      - action_space_RightClick: "element to right click"
+      - RightClick: "element to right click"
         deepThink: true
         cacheable: false
         moreParam: 456
-      - action_space_Input: "input field 1"
+      - Input: "input field 1"
         value: "i am value 1"
       - aiRightClick: "item in menu"
 
@@ -387,8 +392,9 @@ tasks:
     await player.run();
 
     // Verify the player completed successfully
-    expect(player.status).toBe('done');
     expect(player.errorInSetup).toBeUndefined();
+    console.log(player.taskStatusList);
+    expect(player.status).toBe('done');
 
     expect(
       (mockAgent.agent.callActionInActionSpace as MockedFunction<any>).mock
@@ -397,24 +403,40 @@ tasks:
       [
         [
           "RightClick",
-          "element to right click",
           {
             "cacheable": false,
             "deepThink": true,
+            "locate": {
+              "cacheable": false,
+              "deepThink": true,
+              "prompt": "element to right click",
+              "xpath": undefined,
+            },
             "moreParam": 456,
           },
         ],
         [
           "Input",
-          "input field 1",
           {
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "input field 1",
+              "xpath": undefined,
+            },
             "value": "i am value 1",
           },
         ],
         [
           "RightClick",
-          "item in menu",
-          {},
+          {
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "item in menu",
+              "xpath": undefined,
+            },
+          },
         ],
       ]
     `);
@@ -441,7 +463,7 @@ tasks:
         scrollType: 'once'
         distance: 100
       - aiKeyboardPress: 'input field 3'
-        key: 'Enter'
+        keyName: 'Enter'
       - aiKeyboardPress: 'Control'
         locate: 'input field 4'
 `;
@@ -454,10 +476,10 @@ tasks:
     );
 
     await player.run();
-    console.log(player);
 
     // Verify the player completed successfully
     expect(player.errorInSetup).toBeUndefined();
+    // console.log(player.taskStatusList);
     expect(player.status).toBe('done');
 
     // Verify aiRightClick was called with correct parameters
@@ -518,7 +540,6 @@ tasks:
           "input field 3",
           {
             "aiKeyboardPress": "input field 3",
-            "key": "Enter",
             "keyName": "Enter",
           },
         ],
@@ -541,7 +562,7 @@ target:
 tasks:
   - name: test_right_click_error
     flow:
-      - action_space_no_such_action: "non-existent element"
+      - no_such_action: "non-existent element"
 `;
 
     const script = parseYamlScript(yamlString);
@@ -618,8 +639,14 @@ tasks:
       [
         [
           "aiTap",
-          "some button",
-          {},
+          {
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "some button",
+              "xpath": undefined,
+            },
+          },
         ],
       ]
     `);

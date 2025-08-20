@@ -1,7 +1,7 @@
 import {
-  MidsceneLocation,
   adaptQwenBbox,
   fillBboxParam,
+  getMidsceneLocationSchema,
 } from '@/ai-model/common';
 import { buildYamlFlowFromPlans } from '@/ai-model/common';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -115,7 +115,7 @@ describe('llm planning - build yaml flow', () => {
           interfaceAlias: 'aiInput',
           paramSchema: z.object({
             value: z.string(),
-            locate: MidsceneLocation,
+            locate: getMidsceneLocationSchema(),
           }),
           call: async () => {},
         },
@@ -191,7 +191,7 @@ describe('llm planning - build yaml flow', () => {
           name: 'Tap',
           interfaceAlias: 'aiTap',
           paramSchema: z.object({
-            locate: MidsceneLocation,
+            locate: getMidsceneLocationSchema(),
           }),
           call: async () => {},
         },
@@ -200,7 +200,7 @@ describe('llm planning - build yaml flow', () => {
           interfaceAlias: 'aiInput',
           paramSchema: z.object({
             value: z.string(),
-            locate: MidsceneLocation,
+            locate: getMidsceneLocationSchema(),
           }),
           call: async () => {},
         },
@@ -243,7 +243,7 @@ describe('llm planning - build yaml flow', () => {
           name: 'Click',
           // No interfaceAlias
           paramSchema: z.object({
-            locate: MidsceneLocation,
+            locate: getMidsceneLocationSchema(),
           }),
           call: async () => {},
         },
@@ -281,8 +281,8 @@ describe('llm planning - build yaml flow', () => {
           name: 'DragAndDrop',
           interfaceAlias: 'aiDragAndDrop',
           paramSchema: z.object({
-            from: MidsceneLocation,
-            to: MidsceneLocation,
+            from: getMidsceneLocationSchema(),
+            to: getMidsceneLocationSchema(),
           }),
           call: async () => {},
         },
