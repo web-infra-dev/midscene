@@ -194,12 +194,19 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           typeof prompt === 'string',
           'prompt for aiAssert must be a string',
         );
-        try {
-          await agent.aiAssert(prompt, msg);
-          this.setResult(assertTask.name, true);
-        } catch (error: any) {
-          this.setResult(assertTask.name, msg ? msg : error.message);
-          throw error;
+        const { pass, thought, message } =
+          (await agent.aiAssert(prompt, msg, {
+            keepRawResponse: true,
+          })) || {};
+
+        this.setResult(assertTask.name, {
+          pass,
+          thought,
+          message,
+        });
+
+        if (!pass) {
+          throw new Error(message);
         }
       } else if ('aiQuery' in (flowItem as MidsceneYamlFlowItemAIQuery)) {
         const queryTask = flowItem as MidsceneYamlFlowItemAIQuery;
