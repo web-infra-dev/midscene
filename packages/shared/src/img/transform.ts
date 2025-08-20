@@ -38,9 +38,12 @@ export async function saveBase64Image(options: {
 }
 
 /**
- * Resizes an image from Buffer
+ * Resizes an image from Buffer, maybe return a new format
+ * - If the image is Resized, the returned format will be jpg.
+ * - If the image is not Resized, it will return to its original format.
+ * @returns { buffer: resized buffer, format: the new format}
  */
-export async function resizeImgBuffer(
+export async function resizeAndConvertImgBuffer(
   format: string,
   inputData: Buffer,
   newSize: {
@@ -165,7 +168,7 @@ export async function resizeImgBase64(
 ): Promise<string> {
   const { body, mimeType } = parseBase64(inputBase64);
   const imageBuffer = Buffer.from(body, 'base64');
-  const { buffer, format } = await resizeImgBuffer(
+  const { buffer, format } = await resizeAndConvertImgBuffer(
     mimeType.split('/')[1],
     imageBuffer,
     newSize,

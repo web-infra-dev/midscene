@@ -178,7 +178,7 @@ describe('AndroidDevice', () => {
         dpr: 2,
       });
       vi.spyOn(ImgUtils, 'isValidPNGImageBuffer').mockReturnValue(true);
-      vi.spyOn(ImgUtils, 'resizeImgBuffer').mockImplementation(
+      vi.spyOn(ImgUtils, 'resizeAndConvertImgBuffer').mockImplementation(
         async (format, buffer) => ({
           buffer,
           format,
