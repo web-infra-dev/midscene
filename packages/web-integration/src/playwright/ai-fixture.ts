@@ -494,7 +494,7 @@ export type PlayWrightAiFixtureType = {
   aiAssert: (
     ...args: Parameters<PageAgent['aiAssert']>
   ) => ReturnType<PageAgent['aiAssert']>;
-  aiWaitFor: (assertion: string, opt?: AgentWaitForOpt) => Promise<void>;
+  aiWaitFor: (...args: Parameters<PageAgent['aiWaitFor']>) => Promise<void>;
   aiLocate: (
     ...args: Parameters<PageAgent['aiLocate']>
   ) => ReturnType<PageAgent['aiLocate']>;

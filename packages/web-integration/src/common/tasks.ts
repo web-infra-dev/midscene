@@ -1095,10 +1095,12 @@ export class PageTaskExecutor {
   }
 
   async waitFor(
-    assertion: string,
+    assertion: TUserPrompt,
     opt: PlanningActionParamWaitFor,
   ): Promise<ExecutionResult<void>> {
-    const description = `waitFor: ${assertion}`;
+    const { textPrompt, multimodalPrompt } = parsePrompt(assertion);
+
+    const description = `waitFor: ${textPrompt}`;
     const taskExecutor = new Executor(taskTitleStr('WaitFor', description), {
       onTaskStart: this.onTaskStartCallback,
     });
@@ -1113,11 +1115,16 @@ export class PageTaskExecutor {
     let errorThought = '';
     while (Date.now() - overallStartTime < timeoutMs) {
       startTime = Date.now();
-      const queryTask = await this.createTypeQueryTask('Assert', assertion, {
-        isWaitForAssert: true,
-        returnThought: true,
-        doNotThrowError: true,
-      });
+      const queryTask = await this.createTypeQueryTask(
+        'Assert',
+        textPrompt,
+        {
+          isWaitForAssert: true,
+          returnThought: true,
+          doNotThrowError: true,
+        },
+        multimodalPrompt,
+      );
 
       await taskExecutor.append(this.prependExecutorWithScreenshot(queryTask));
       const result = (await taskExecutor.flush()) as {
@@ -1140,7 +1147,7 @@ export class PageTaskExecutor {
 
       errorThought =
         result?.thought ||
-        `unknown error when waiting for assertion: ${assertion}`;
+        `unknown error when waiting for assertion: ${textPrompt}`;
       const now = Date.now();
       if (now - startTime < checkIntervalMs) {
         const timeRemaining = checkIntervalMs - (now - startTime);

@@ -258,7 +258,6 @@ describe('PageAgent aiWaitFor with doNotThrowError', () => {
     expect(mockTaskExecutor.waitFor).toHaveBeenCalledWith('test assertion', {
       timeoutMs: 5000,
       checkIntervalMs: 1000,
-      assertion: 'test assertion',
     });
   });
 
@@ -304,7 +303,6 @@ describe('PageAgent aiWaitFor with doNotThrowError', () => {
     expect(mockTaskExecutor.waitFor).toHaveBeenCalledWith('test assertion', {
       timeoutMs: 15000, // 15 * 1000
       checkIntervalMs: 3000, // 3 * 1000
-      assertion: 'test assertion',
     });
   });
 
@@ -331,7 +329,6 @@ describe('PageAgent aiWaitFor with doNotThrowError', () => {
     expect(mockTaskExecutor.waitFor).toHaveBeenCalledWith('test assertion', {
       timeoutMs: 30000,
       checkIntervalMs: 5000,
-      assertion: 'test assertion',
     });
   });
 
