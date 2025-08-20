@@ -14,7 +14,10 @@ import type {
 import { z } from '@midscene/core';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
-import { resizeImgBuffer } from '@midscene/shared/img';
+import { 
+  createImgBase64ByFormat,
+  resizeImgBuffer
+ } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import type { AndroidDeviceInputOpt, AndroidDevicePage } from '@midscene/web';
 import { commonWebActionsForWebPage } from '@midscene/web/utils';
@@ -683,7 +686,7 @@ export class iOSDevice implements AndroidDevicePage {
           const { width, height } = await this.size();
 
           // Resize to match iOS device dimensions
-          const { buffer: resizedScreenshotBuffer } = await resizeImgBuffer(
+          const { buffer, format } = await resizeImgBuffer(
             'png',
             screenshotBuffer,
             {
@@ -700,7 +703,8 @@ export class iOSDevice implements AndroidDevicePage {
           }
 
           debugPage('screenshotBase64 end (via PyAutoGUI server)');
-          return `data:image/png;base64,${resizedScreenshotBuffer.toString('base64')}`;
+          const image = createImgBase64ByFormat(format, buffer.toString('base64'));
+          return image;
         } else {
           throw new Error('PyAutoGUI screenshot failed: no path returned');
         }
