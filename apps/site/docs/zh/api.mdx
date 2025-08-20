@@ -922,3 +922,23 @@ await agent.aiAssert({
 **图片尺寸的注意事项**
 
 在提示词中使用图片时，可能需要关注模型提供商对图片体积和尺寸的要求，过大（比如超过 10M）或过小（比如小于 10 像素）的图片都有可能导致模型调用时出现报错，具体的限制请以你所使用模型提供商的文档为准。
+
+**在 YAML 自动化脚本中使用**
+
+图片提示词同样支持在 YAML 自动化脚本中使用，只需要把对应参数按照 YAML 语法书写即可，示例如下：
+
+```yaml
+web:
+  url: https://github.com/
+  output: ./output/demo.json
+
+tasks:
+  - name: 断言 GitHub logo
+    flow:
+      - aiAssert:
+          prompt: 页面上是否存在指定 logo
+          images:
+            - name: 指定 logo
+              url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
+          convertHttpImage2Base64: true
+```

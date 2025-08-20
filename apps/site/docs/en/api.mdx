@@ -910,3 +910,23 @@ await agent.aiAssert({
 **Notes on Image Size**
 
 When prompting with images, it is necessary to pay attention to the requirements of the AI model provider regarding the size and dimensions of the images. Images that are too large (such as exceeding 10M) or too small (such as being less than 10 pixels) may cause errors when the model is invoked. The specific restrictions should be based on the documentation provided by the AI model provider you are using.
+
+**Using in YAML Automation Scripts**
+
+You can also prompting with images in YAML automated scripts. All you need to do is to write the corresponding parameters according to the YAML syntax. For example:
+
+```yaml
+web:
+  url: https://github.com/
+  output: ./output/demo.json
+
+tasks:
+  - name: assert Github logo
+    flow:
+      - aiAssert:
+          prompt: Please determine whether there is a specific on the page.
+          images:
+            - name: The specific logo
+              url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
+          convertHttpImage2Base64: true
+```
