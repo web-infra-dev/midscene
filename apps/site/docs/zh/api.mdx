@@ -57,7 +57,7 @@ function ai(prompt: string): Promise<void>; // 简写形式
 
   - `prompt: string` - 用自然语言描述的操作内容
   - `opt?: Object` - 可选，一个配置对象，包含：
-    - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
+    - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
 
 - 返回值：
 
@@ -103,9 +103,9 @@ function aiTap(locate: string | Object, options?: Object): Promise<void>;
 - 参数：
   - `locate: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: Object` - 可选，一个配置对象，包含：
-    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。默认值为 False
+    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。默认值为 false
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
-    - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
+    - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
 - 返回值：
 
   - `Promise<void>`
@@ -134,9 +134,9 @@ function aiHover(locate: string | Object, options?: Object): Promise<void>;
 - 参数：
   - `locate: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: Object` - 可选，一个配置对象，包含：
-    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。默认值为 False
+    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。默认值为 false
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
-    - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
+    - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
 - 返回值：
 
   - `Promise<void>`
@@ -166,9 +166,9 @@ function aiInput(
   - `text: string` - 要输入的文本内容。使用空字符串可以清空输入框。
   - `locate: string | Object` - 用自然语言描述的元素定位，，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: Object` - 可选，一个配置对象，包含：
-    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。默认值为 False
+    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。默认值为 false
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
-    - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
+    - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
     - `autoDismissKeyboard?: boolean` - 如果为 true，则键盘会在输入文本后自动关闭，仅在 Android 中有效。默认值为 true。
 
 - 返回值：
@@ -200,9 +200,9 @@ function aiKeyboardPress(
   - `key: string` - 要按下的键，如 `Enter`、`Tab`、`Escape` 等。不支持组合键。
   - `locate?: string | Object` - 用自然语言描述的元素定位，，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: Object` - 可选，一个配置对象，包含：
-    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。默认值为 False
+    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。默认值为 false
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
-    - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
+    - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
 
 - 返回值：
 
@@ -236,9 +236,9 @@ function aiScroll(
     - `distance: number` - 滚动距离，单位为像素。
   - `locate?: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。如果未传入，Midscene 会在当前鼠标位置滚动。
   - `options?: Object` - 可选，一个配置对象，包含：
-    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。默认值为 False
+    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。默认值为 false
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
-    - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
+    - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
 
 - 返回值：
 
@@ -269,9 +269,9 @@ function aiRightClick(locate: string | Object, options?: Object): Promise<void>;
 
   - `locate: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: Object` - 可选，一个配置对象，包含：
-    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。默认值为 False
+    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。默认值为 false
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
-    - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
+    - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
 
 - 返回值：
 
@@ -308,8 +308,8 @@ function aiAsk(prompt: string | Object, options?: Object): Promise<string>;
 
   - `prompt: string | Object` - 用自然语言描述的询问内容，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: Object` - 可选，一个配置对象，包含：
-    - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 False。
-    - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 True。
+    - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
+    - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
 
 - 返回值：
 
@@ -338,8 +338,8 @@ function aiQuery<T>(dataDemand: string | Object, options?: Object): Promise<T>;
 
   - `dataDemand: T`: 描述预期的返回值和格式。
   - `options?: Object` - 可选，一个配置对象，包含：
-    - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 False。
-    - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 True。
+    - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
+    - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
 
 - 返回值：
 
@@ -389,8 +389,8 @@ function aiBoolean(prompt: string | Object, options?: Object): Promise<boolean>;
 
   - `prompt: string` - 用自然语言描述的期望值，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: Object` - 可选，一个配置对象，包含：
-    - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 False。
-    - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 True。
+    - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
+    - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
 
 - 返回值：
 
@@ -421,8 +421,8 @@ function aiNumber(prompt: string | Object, options?: Object): Promise<number>;
 
   - `prompt: string | Object` - 用自然语言描述的期望值，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: Object` - 可选，一个配置对象，包含：
-    - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 False。
-    - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 True。
+    - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
+    - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
 
 - 返回值：
 
@@ -453,8 +453,8 @@ function aiString(prompt: string | Object, options?: Object): Promise<string>;
 
   - `prompt: string | Object` - 用自然语言描述的期望值，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: Object` - 可选，一个配置对象，包含：
-    - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 False。
-    - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 True。
+    - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
+    - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
 
 - 返回值：
 
@@ -480,13 +480,20 @@ const stringB = await agent.aiString('当前列表的第一条记录的跳转链
 - 类型
 
 ```typescript
-function aiAssert(assertion: string | Object, errorMsg?: string): Promise<void>;
+function aiAssert(
+  assertion: string | Object, 
+  errorMsg?: string, 
+  options?: Object
+): Promise<void>;
 ```
 
 - 参数：
 
   - assertion: string | Object - 用自然语言描述的断言条件，或[使用图片作为提示词](#使用图片作为提示词)。
   - errorMsg?: string - 当断言失败时附加的可选错误提示信息。
+  - options?: Object - 可选，一个配置对象，包含：
+    - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
+    - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
 
 - 返回值：
 
@@ -542,9 +549,9 @@ function aiLocate(
 
   - `locate: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: Object` - 可选，一个配置对象，包含：
-    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。默认值为 False
+    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。默认值为 false
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
-    - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
+    - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
 
 - 返回值：
 

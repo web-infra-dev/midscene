@@ -105,8 +105,12 @@ export const Blackboard = (props: {
 
   // key overlays
   const pixiBgRef = useRef<PIXI.Sprite | undefined>(undefined);
-  const { markerVisible, setMarkerVisible, elementsVisible, setTextsVisible } =
-    useBlackboardPreference();
+  const {
+    backgroundVisible,
+    setBackgroundVisible,
+    elementsVisible,
+    setElementsVisible,
+  } = useBlackboardPreference();
 
   useEffect(() => {
     Promise.resolve(
@@ -192,6 +196,7 @@ export const Blackboard = (props: {
 
       app.stage.addChildAt(backgroundSprite, 0);
       pixiBgRef.current = backgroundSprite;
+      backgroundSprite.visible = backgroundVisible;
     };
     img.onerror = (e) => {
       console.error('load screenshot failed', e);
@@ -263,15 +268,15 @@ export const Blackboard = (props: {
     // elementsVisible,
   ]);
 
-  const onSetMarkerVisible: CheckboxProps['onChange'] = (e) => {
-    setMarkerVisible(e.target.checked);
+  const onSetBackgroundVisible: CheckboxProps['onChange'] = (e) => {
+    setBackgroundVisible(e.target.checked);
     if (pixiBgRef.current) {
       pixiBgRef.current.visible = e.target.checked;
     }
   };
 
   const onSetElementsVisible: CheckboxProps['onChange'] = (e) => {
-    setTextsVisible(e.target.checked);
+    setElementsVisible(e.target.checked);
     elementMarkContainer.visible = e.target.checked;
   };
 
@@ -306,6 +311,12 @@ export const Blackboard = (props: {
         style={{ display: props.hideController ? 'none' : 'block' }}
       >
         <div className="overlay-control">
+          <Checkbox
+            checked={backgroundVisible}
+            onChange={onSetBackgroundVisible}
+          >
+            Background
+          </Checkbox>
           <Checkbox checked={elementsVisible} onChange={onSetElementsVisible}>
             Elements
           </Checkbox>
