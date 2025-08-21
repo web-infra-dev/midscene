@@ -794,11 +794,11 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     );
     await this.afterTaskRunning(executor, true);
 
-    const errMsg = msg || `Assertion failed: ${assertion}`;
-    const reasonMsg = `Reason: ${
-      thought || executor.latestErrorTask()?.error || '(no_reason)'
-    }`;
-    const message = `${errMsg}\n${reasonMsg}`;
+    const message = output
+      ? undefined
+      : `Assertion failed: ${msg || assertion}\nReason: ${
+          thought || executor.latestErrorTask()?.error || '(no_reason)'
+        }`;
 
     if (opt?.keepRawResponse) {
       return {
