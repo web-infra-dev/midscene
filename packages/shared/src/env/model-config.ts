@@ -276,6 +276,8 @@ const decideVlModelValueFromGlobalConfig = ():
   | 'gemini'
   | 'vlm-ui-tars'
   | undefined => {
+  const debugLog = getDebug('ai:decideModel');
+
   const isDoubao = globalConfigManger.getConfigValueInBoolean(
     MIDSCENE_USE_DOUBAO_VISION,
   );
@@ -288,6 +290,13 @@ const decideVlModelValueFromGlobalConfig = ():
 
   const isGemini =
     globalConfigManger.getConfigValueInBoolean(MIDSCENE_USE_GEMINI);
+
+  debugLog('decideVlModelValueFromGlobalConfig get enabledModes', {
+    isDoubao,
+    isQwen,
+    isUiTars,
+    isGemini,
+  });
 
   const enabledModes = [
     isDoubao && MIDSCENE_USE_DOUBAO_VISION,
@@ -412,54 +421,50 @@ export const decideModelConfig = (
     candidateModelNameFromEnv,
   );
 
-  if (candidateModelNameFromEnv) {
-    debugLog('ChooseOpenaiSdkConfig base on global env config with intent.');
+  if (intent !== 'default' && allConfig[keysForEnv.modelName]) {
+    const modelName = allConfig[keysForEnv.modelName]!;
+
+    debugLog(
+      `Got intent ${intent} corresponding modelName ${modelName} by key ${keysForEnv.modelName} from globalConfig, will get other config by intent.`,
+    );
+
     const result = decideOpenaiSdkConfig({
       keys: keysForEnv,
       provider: allConfig,
       valueAssert: withAssert
-        ? createAssert(
-            keysForEnv.modelName,
-            'process.env',
-            candidateModelNameFromEnv,
-          )
+        ? createAssert(keysForEnv.modelName, 'process.env', modelName)
         : () => {},
     });
 
     const finalResult: IModelConfig = {
       ...result,
-      modelName: candidateModelNameFromEnv,
+      modelName,
       from: 'env',
     };
 
     debugLog('ChooseOpenaiSdkConfig result:', finalResult);
-
-    return finalResult;
-  } else {
-    debugLog('ChooseOpenaiSdkConfig base on global env config without intent.');
-    const result = decideOpenaiSdkConfig({
-      keys: DEFAULT_MODEL_CONFIG_KEYS_LEGACY,
-      provider: allConfig,
-      valueAssert: withAssert
-        ? createAssert(
-            DEFAULT_MODEL_CONFIG_KEYS_LEGACY.modelName,
-            'process.env',
-          )
-        : () => {},
-    });
-
-    const vlMode = decideVlModelValueFromGlobalConfig();
-
-    const finalResult: IModelConfig = {
-      ...result,
-      // In the legacy logic, GPT-4o is the default model.
-      modelName:
-        allConfig[DEFAULT_MODEL_CONFIG_KEYS_LEGACY.modelName] || 'gpt-4o',
-      vlMode,
-      from: 'legacy-env',
-    };
-
-    debugLog('ChooseOpenaiSdkConfig result:', finalResult);
-    return finalResult;
   }
+
+  debugLog(`ChooseOpenaiSdkConfig as legacy logic with intent ${intent}.`);
+  const result = decideOpenaiSdkConfig({
+    keys: DEFAULT_MODEL_CONFIG_KEYS_LEGACY,
+    provider: allConfig,
+    valueAssert: withAssert
+      ? createAssert(DEFAULT_MODEL_CONFIG_KEYS_LEGACY.modelName, 'process.env')
+      : () => {},
+  });
+
+  const vlMode = decideVlModelValueFromGlobalConfig();
+
+  const finalResult: IModelConfig = {
+    ...result,
+    // In the legacy logic, GPT-4o is the default model.
+    modelName:
+      allConfig[DEFAULT_MODEL_CONFIG_KEYS_LEGACY.modelName] || 'gpt-4o',
+    vlMode,
+    from: 'legacy-env',
+  };
+
+  debugLog('ChooseOpenaiSdkConfig result:', finalResult);
+  return finalResult;
 };

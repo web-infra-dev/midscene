@@ -10,7 +10,9 @@ vi.setConfig({
   hookTimeout: 30 * 1000,
 });
 
-const vlMode = vlLocateMode();
+const vlMode = vlLocateMode({
+  intent: 'default',
+});
 
 describe.skipIf(vlMode)('automation - llm planning', () => {
   it('basic run', async () => {
