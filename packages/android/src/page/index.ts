@@ -47,6 +47,7 @@ export type AndroidDeviceOpt = {
   remoteAdbHost?: string;
   remoteAdbPort?: number;
   imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii';
+  activeDisplayId?: number;
 } & AndroidDeviceInputOpt;
 
 export class AndroidDevice implements AndroidDevicePage {
@@ -509,8 +510,16 @@ ${Object.keys(size)
     const adb = await this.getAdb();
     let screenshotBuffer;
     const androidScreenshotPath = `/data/local/tmp/midscene_screenshot_${randomUUID()}.png`;
+    const useShellScreencap = typeof this.options?.activeDisplayId === 'number';
 
     try {
+      if (useShellScreencap) {
+        // appium-adb's takeScreenshot does not support specifying a display.
+        // Throw an error to jump directly to the shell-based screencap logic.
+        throw new Error(
+          `Display ${this.options?.activeDisplayId} requires shell screencap`,
+        );
+      }
       debugPage('Taking screenshot via adb.takeScreenshot');
       screenshotBuffer = await adb.takeScreenshot(null);
       debugPage('adb.takeScreenshot completed');
@@ -530,15 +539,24 @@ ${Object.keys(size)
         );
       }
     } catch (error) {
+      debugPage(
+        `Taking screenshot via adb.takeScreenshot failed or was skipped: ${error}`,
+      );
       const screenshotPath = getTmpFile('png')!;
 
       try {
         debugPage('Fallback: taking screenshot via shell screencap');
+        const displayArg =
+          typeof this.options?.activeDisplayId === 'number'
+            ? `-d ${this.options?.activeDisplayId}`
+            : '';
         try {
           // Take a screenshot and save it locally
-          await adb.shell(`screencap -p ${androidScreenshotPath}`);
+          await adb.shell(
+            `screencap -p ${displayArg} ${androidScreenshotPath}`.trim(),
+          );
           debugPage('adb.shell screencap completed');
-        } catch (error) {
+        } catch (screencapError) {
           debugPage('screencap failed, using forceScreenshot');
           await this.forceScreenshot(androidScreenshotPath);
           debugPage('forceScreenshot completed');
