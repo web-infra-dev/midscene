@@ -21,6 +21,38 @@ import {
 import { enableDebug, getDebug } from '../logger';
 import { assert } from '../utils';
 
+const maskKey = (key: string, maskChar = '*') => {
+  if (typeof key !== 'string' || key.length === 0) {
+    return key;
+  }
+
+  const prefixLen = 3;
+  const suffixLen = 3;
+  const keepLength = prefixLen + suffixLen;
+
+  if (key.length <= keepLength) {
+    return key;
+  }
+
+  const prefix = key.substring(0, prefixLen);
+  const suffix = key.substring(key.length - suffixLen);
+  const maskLength = key.length - keepLength;
+  const mask = maskChar.repeat(maskLength);
+
+  return `${prefix}${mask}${suffix}`;
+};
+
+export const maskConfig = (config: IModelConfig) => {
+  return Object.fromEntries(
+    Object.entries(config).map(([key, value]) => [
+      key,
+      ['openaiApiKey', 'azureOpenaiKey', 'anthropicApiKey'].includes(key)
+        ? maskKey(value)
+        : value,
+    ]),
+  );
+};
+
 const initDebugConfig = () => {
   const shouldPrintTiming = globalConfigManger.getConfigValueInBoolean(
     MIDSCENE_DEBUG_AI_PROFILE,
@@ -168,7 +200,7 @@ export const decideOpenaiSdkConfig = ({
   const vlMode = provider[keys.vlMode];
   const debugLog = getDebug('ai:decideModel');
 
-  debugLog('enter decideOpenaiSdkConfig', provider, keys);
+  debugLog('enter decideOpenaiSdkConfig with keys:', keys);
   if (provider[keys.openaiUseAzureDeprecated]) {
     debugLog(
       `provider has ${keys.openaiUseAzureDeprecated} with value${provider[keys.openaiUseAzureDeprecated]}`,
@@ -351,8 +383,6 @@ export const decideModelConfig = (
   const { hasModelConfigFn, result: modelConfigFromFn } =
     globalConfigManger.getModelConfig(intent);
 
-  debugLog('The return value of agent.modelConfig()', modelConfigFromFn);
-
   if (hasModelConfigFn) {
     if (!modelConfigFromFn) {
       throw new Error(
@@ -405,7 +435,10 @@ export const decideModelConfig = (
       from: 'modelConfig',
     };
 
-    debugLog('decideModelConfig result:', finalResult);
+    debugLog(
+      'decideModelConfig result by agent.modelConfig():',
+      maskConfig(finalResult),
+    );
     return finalResult;
   }
 
@@ -442,7 +475,10 @@ export const decideModelConfig = (
       from: 'env',
     };
 
-    debugLog('decideModelConfig result:', finalResult);
+    debugLog(
+      'decideModelConfig result by process.env with intent:',
+      maskConfig(finalResult),
+    );
     return finalResult;
   }
 
@@ -466,6 +502,9 @@ export const decideModelConfig = (
     from: 'legacy-env',
   };
 
-  debugLog('decideModelConfig result:', finalResult);
+  debugLog(
+    'decideModelConfig result by legacy logic:',
+    maskConfig(finalResult),
+  );
   return finalResult;
 };
