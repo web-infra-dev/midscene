@@ -47,7 +47,9 @@ export async function buildContext(targetDir: string): Promise<{
       context: {
         ...baseContext,
         describer: async () => {
-          return describeUserPage(baseContext);
+          return describeUserPage(baseContext, {
+            intent: 'default',
+          });
         },
       },
       snapshotJson: '',
@@ -61,7 +63,9 @@ export async function buildContext(targetDir: string): Promise<{
   const elementTree = JSON.parse(
     readFileSync(elementTreeJsonPath, { encoding: 'utf-8' }),
   );
-  const screenshotBase64 = vlLocateMode()
+  const screenshotBase64 = vlLocateMode({
+    intent: 'default',
+  })
     ? originalScreenshotBase64
     : localImg2Base64(resizeOutputImgP);
 
@@ -77,7 +81,9 @@ export async function buildContext(targetDir: string): Promise<{
     context: {
       ...baseContext,
       describer: async () => {
-        return describeUserPage(baseContext);
+        return describeUserPage(baseContext, {
+          intent: 'default',
+        });
       },
     },
     snapshotJson,

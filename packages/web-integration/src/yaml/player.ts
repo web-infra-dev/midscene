@@ -3,9 +3,11 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { assert, ifInBrowser, ifInWorker } from '@midscene/shared/utils';
 
 import type { PageAgent } from '@/common/agent';
+import { buildDetailedLocateParamAndRestParams } from '@/common/utils';
 import type {
   DeviceAction,
   FreeFn,
+  LocateOption,
   MidsceneYamlFlowItemAIAction,
   MidsceneYamlFlowItemAIAsk,
   MidsceneYamlFlowItemAIAssert,
@@ -25,11 +27,13 @@ import type {
   MidsceneYamlScriptEnv,
   ScriptPlayerStatusValue,
   ScriptPlayerTaskStatus,
+  ScrollParam,
   TUserPrompt,
 } from '@midscene/core';
-import { actionSpaceTypePrefix } from '@midscene/core/ai-model';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
+import { getDebug } from '@midscene/shared/logger';
 
+const debug = getDebug('yaml-player');
 export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
   public currentTaskIndex?: number;
   public taskStatusList: ScriptPlayerTaskStatus[] = [];
@@ -171,6 +175,9 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       const currentStep = Number.parseInt(flowItemIndex, 10);
       taskStatus.currentStep = currentStep;
       const flowItem = flow[flowItemIndex];
+      debug(
+        `playing step ${flowItemIndex}, flowItem=${JSON.stringify(flowItem)}`,
+      );
       if (
         'aiAction' in (flowItem as MidsceneYamlFlowItemAIAction) ||
         'ai' in (flowItem as MidsceneYamlFlowItemAIAction)
@@ -303,115 +310,6 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           `ms for sleep must be greater than 0, but got ${ms}`,
         );
         await new Promise((resolve) => setTimeout(resolve, msNumber));
-      } else if ('aiInput' in (flowItem as MidsceneYamlFlowItemAIInput)) {
-        // may be input empty string ''
-        const inputTask = flowItem as MidsceneYamlFlowItemAIInput;
-
-        // Compatibility with previous version:
-        // Old format: { aiInput: string (value), locate: TUserPrompt }
-        // New format: { aiInput: TUserPrompt, value: string }
-        if ((inputTask as any).locate) {
-          // Old format - aiInput is the value, locate is the prompt
-          const value = inputTask.aiInput as string;
-          const locatePrompt = (inputTask as any).locate;
-          await agent.aiInput(locatePrompt, {
-            ...inputTask,
-            value: value,
-          });
-        } else {
-          // New format - aiInput is the prompt, value is the value
-          const locatePrompt = inputTask.aiInput;
-          const value = inputTask.value;
-          if (locatePrompt) {
-            await agent.aiInput(locatePrompt, {
-              ...inputTask,
-              value: value,
-            });
-          } else {
-            throw new Error(
-              'aiInput requires either locatePrompt or value and locate',
-            );
-          }
-        }
-      } else if (
-        'aiKeyboardPress' in (flowItem as MidsceneYamlFlowItemAIKeyboardPress)
-      ) {
-        const keyboardPressTask =
-          flowItem as MidsceneYamlFlowItemAIKeyboardPress;
-
-        // Compatibility with previous version:
-        // Old format: { aiKeyboardPress: string (key), locate?: TUserPrompt }
-        // New format: { aiKeyboardPress: TUserPrompt, key: string }
-        if ((keyboardPressTask as any).locate) {
-          // Old format - aiKeyboardPress is the key, locate is the prompt
-          const keyName = keyboardPressTask.aiKeyboardPress as string;
-          const locatePrompt = (keyboardPressTask as any).locate;
-          await agent.aiKeyboardPress(locatePrompt, {
-            ...keyboardPressTask,
-            keyName: keyName,
-          });
-        } else if ((keyboardPressTask as any).key) {
-          // New format - aiKeyboardPress is the prompt, key is the key
-          const locatePrompt = keyboardPressTask.aiKeyboardPress;
-          const keyName = (keyboardPressTask as any).key;
-          if (locatePrompt) {
-            await agent.aiKeyboardPress(locatePrompt, {
-              ...keyboardPressTask,
-              keyName: keyName,
-            });
-          } else {
-            throw new Error(
-              'aiKeyboardPress in new format requires locatePrompt',
-            );
-          }
-        } else {
-          // Fallback to old format without locate (global key press)
-          const keyName = keyboardPressTask.aiKeyboardPress as string;
-          // Use new API signature with empty string for global key press
-          await agent.aiKeyboardPress('', {
-            ...keyboardPressTask,
-            keyName: keyName,
-          } as any);
-        }
-      } else if ('aiScroll' in (flowItem as MidsceneYamlFlowItemAIScroll)) {
-        const scrollTask = flowItem as MidsceneYamlFlowItemAIScroll;
-
-        // Compatibility with previous version:
-        // Old format: { aiScroll: null, locate?: TUserPrompt, direction, scrollType, distance? }
-        // New format: { aiScroll: TUserPrompt, direction, scrollType, distance? }
-        if ((scrollTask as any).locate) {
-          // Old format - locate is the prompt, aiScroll is null/ignored
-          const locatePrompt = (scrollTask as any).locate;
-          const scrollParam = {
-            direction: scrollTask.direction,
-            scrollType: scrollTask.scrollType,
-            distance: scrollTask.distance,
-          };
-          await agent.aiScroll(locatePrompt, {
-            ...scrollTask,
-            ...scrollParam,
-          });
-        } else {
-          // New format - aiScroll is the prompt, or no prompt for global scroll
-          const locatePrompt = scrollTask.aiScroll;
-          const scrollParam = {
-            direction: scrollTask.direction,
-            scrollType: scrollTask.scrollType,
-            distance: scrollTask.distance,
-          };
-          if (locatePrompt) {
-            await agent.aiScroll(locatePrompt, {
-              ...scrollTask,
-              ...scrollParam,
-            });
-          } else {
-            // Global scroll without specific element
-            await agent.aiScroll(undefined, {
-              ...scrollTask,
-              ...scrollParam,
-            });
-          }
-        }
       } else if (
         'javascript' in (flowItem as MidsceneYamlFlowItemEvaluateJavaScript)
       ) {
@@ -429,52 +327,161 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         await agent.logScreenshot(logScreenshotTask.logScreenshot, {
           content: logScreenshotTask.content || '',
         });
+      } else if ('aiInput' in (flowItem as MidsceneYamlFlowItemAIInput)) {
+        // may be input empty string ''
+        const { aiInput, ...inputTask } =
+          flowItem as MidsceneYamlFlowItemAIInput;
+
+        // Compatibility with previous version:
+        // Old format: { aiInput: string (value), locate: TUserPrompt }
+        // New format - 1: { aiInput: TUserPrompt, value: string }
+        // New format - 2: { aiInput: undefined, locate: TUserPrompt, value: string }
+        let locatePrompt: TUserPrompt | undefined;
+        let value: string | undefined;
+        if ((inputTask as any).locate) {
+          // Old format - aiInput is the value, locate is the prompt
+          value = (aiInput as string) || inputTask.value;
+          locatePrompt = (inputTask as any).locate;
+        } else {
+          // New format - aiInput is the prompt, value is the value
+          locatePrompt = aiInput || '';
+          value = inputTask.value;
+        }
+
+        await agent.callActionInActionSpace('Input', {
+          ...inputTask,
+          ...(value !== undefined ? { value } : {}),
+          ...(locatePrompt ? { locate: locatePrompt } : {}),
+        });
+      } else if (
+        'aiKeyboardPress' in (flowItem as MidsceneYamlFlowItemAIKeyboardPress)
+      ) {
+        const { aiKeyboardPress, ...keyboardPressTask } =
+          flowItem as MidsceneYamlFlowItemAIKeyboardPress;
+
+        // Compatibility with previous version:
+        // Old format: { aiKeyboardPress: string (key), locate?: TUserPrompt }
+        // New format - 1: { aiKeyboardPress: TUserPrompt, keyName: string }
+        // New format - 2: { aiKeyboardPress: , locate?: TUserPrompt, keyName: string }
+        let locatePrompt: TUserPrompt | undefined;
+        let keyName: string | undefined;
+        if ((keyboardPressTask as any).locate) {
+          // Old format - aiKeyboardPress is the key, locate is the prompt
+          keyName = aiKeyboardPress as string;
+          locatePrompt = (keyboardPressTask as any).locate;
+        } else if (keyboardPressTask.keyName) {
+          // New format - aiKeyboardPress is the prompt, key is the key
+          keyName = keyboardPressTask.keyName;
+          locatePrompt = aiKeyboardPress;
+        }
+
+        await agent.callActionInActionSpace('KeyboardPress', {
+          ...keyboardPressTask,
+          ...(keyName ? { keyName } : {}),
+          ...(locatePrompt ? { locate: locatePrompt } : {}),
+        });
+      } else if ('aiScroll' in (flowItem as MidsceneYamlFlowItemAIScroll)) {
+        const { aiScroll, ...scrollTask } =
+          flowItem as MidsceneYamlFlowItemAIScroll;
+
+        // Compatibility with previous version:
+        // Old format: { aiScroll: null, locate?: TUserPrompt, direction, scrollType, distance? }
+        // New format - 1: { aiScroll: TUserPrompt, direction, scrollType, distance? }
+        // New format - 2: { aiScroll: undefined, locate: TUserPrompt, direction, scrollType, distance? }
+        let locatePrompt: TUserPrompt | undefined;
+        if ((scrollTask as any).locate) {
+          // Old format - locate is the prompt, aiScroll is null/ignored
+          locatePrompt = (scrollTask as any).locate;
+        } else {
+          // New format - aiScroll is the prompt, or no prompt for global scroll
+          locatePrompt = aiScroll;
+        }
+
+        await agent.callActionInActionSpace('Scroll', {
+          ...scrollTask,
+          ...(locatePrompt ? { locate: locatePrompt } : {}),
+        });
       } else {
         // generic action, find the action in actionSpace
+
+        /* for aiTap, aiRightClick, the parameters are a flattened data for the 'locate', these are all valid data
+
+        - aiTap: 'search input box'
+        - aiTap: 'search input box'
+          deepThink: true
+          cacheable: false
+        - aiTap:
+          prompt: 'search input box'
+        - aiTap:
+          prompt: 'search input box'
+          deepThink: true
+          cacheable: false
+        */
+
         const actionSpace = this.actionSpace;
-        let locatePrompt: TUserPrompt | undefined;
+        let locatePromptShortcut: string | undefined;
         const matchedAction = actionSpace.find((action) => {
           const actionInterfaceAlias = action.interfaceAlias;
           if (
             actionInterfaceAlias &&
             Object.prototype.hasOwnProperty.call(flowItem, actionInterfaceAlias)
           ) {
-            locatePrompt = flowItem[
+            locatePromptShortcut = flowItem[
               actionInterfaceAlias as keyof typeof flowItem
-            ] as TUserPrompt;
+            ] as string;
             return true;
           }
 
-          const keyOfActionInActionSpace = `${actionSpaceTypePrefix}${action.name}`;
+          const keyOfActionInActionSpace = action.name;
           if (
             Object.prototype.hasOwnProperty.call(
               flowItem,
               keyOfActionInActionSpace,
             )
           ) {
-            locatePrompt = flowItem[
+            locatePromptShortcut = flowItem[
               keyOfActionInActionSpace as keyof typeof flowItem
-            ] as TUserPrompt;
+            ] as string;
             return true;
           }
 
           return false;
         });
 
-        if (matchedAction) {
-          const {
-            [matchedAction.interfaceAlias as string]: _,
-            [actionSpaceTypePrefix + matchedAction.name]: __,
-            ...restParams
-          } = flowItem as any;
-          await agent.callActionInActionSpace(
-            matchedAction.name,
-            locatePrompt,
-            restParams,
-          );
-        } else {
-          throw new Error(`unknown flowItem: ${JSON.stringify(flowItem)}`);
+        assert(
+          matchedAction,
+          `unknown flowItem in yaml: ${JSON.stringify(flowItem)}`,
+        );
+
+        assert(
+          !((flowItem as any).prompt && locatePromptShortcut),
+          `conflict locate prompt for item: ${JSON.stringify(flowItem)}`,
+        );
+
+        if (locatePromptShortcut) {
+          (flowItem as any).prompt = locatePromptShortcut;
         }
+
+        const { locateParam, restParams } =
+          buildDetailedLocateParamAndRestParams(
+            locatePromptShortcut || '',
+            flowItem as LocateOption,
+            [
+              matchedAction.name,
+              matchedAction.interfaceAlias || '_never_mind_',
+            ],
+          );
+
+        const flowParams = {
+          ...restParams,
+          locate: locateParam,
+        };
+
+        debug(
+          `matchedAction: ${matchedAction.name}`,
+          `flowParams: ${JSON.stringify(flowParams, null, 2)}`,
+        );
+        await agent.callActionInActionSpace(matchedAction.name, flowParams);
       }
     }
     this.reportFile = agent.reportFile;

@@ -52,6 +52,9 @@ const insightFindTask = (shouldThrow?: boolean) => {
 
 describe(
   'executor',
+  {
+    timeout: 1000 * 60 * 3,
+  },
   () => {
     it('insight - basic run', async () => {
       const insightTask1 = insightFindTask();
@@ -180,16 +183,13 @@ describe(
       expect(r?.output).toEqual('error-output');
 
       // expect to throw an error
-      expect(async () => {
+      await expect(async () => {
         await executor.flush();
       }).rejects.toThrowError();
 
-      expect(async () => {
+      await expect(async () => {
         await executor.append(insightFindTask());
       }).rejects.toThrowError();
     });
-  },
-  {
-    timeout: 1000 * 60 * 3,
   },
 );

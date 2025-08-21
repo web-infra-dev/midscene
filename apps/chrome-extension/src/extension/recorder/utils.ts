@@ -319,6 +319,9 @@ export const generateRecordTitle = async (
       const response = await callAiFn(
         [prompt[0], prompt[1]],
         AIActionType.EXTRACT_DATA,
+        {
+          intent: 'default',
+        },
       );
       if (response?.content) {
         return {
@@ -624,6 +627,9 @@ const generateAIMindmap = async (
     const response = await callAiFnWithStringResponse(
       prompt,
       AIActionType.EXTRACT_DATA,
+      {
+        intent: 'default',
+      },
     );
 
     if (response?.content && typeof response.content === 'string') {

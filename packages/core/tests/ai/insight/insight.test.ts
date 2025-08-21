@@ -9,7 +9,7 @@ vi.setConfig({
   testTimeout: 60 * 1000,
 });
 
-const vlMode = vlLocateMode();
+const vlMode = vlLocateMode({ intent: 'grounding' });
 
 describe.skipIf(!vlMode)('insight locate with deep think', () => {
   test('insight locate with search area', async () => {
@@ -69,6 +69,9 @@ test.skip('insight locate with search area', async () => {
 
 describe(
   'insight describe',
+  {
+    timeout: 2 * 60 * 1000,
+  },
   () => {
     test('insight describe - by rect', async () => {
       const { context } = await getContextFromFixture('taobao');
@@ -90,8 +93,5 @@ describe(
 
       expect(description).toBeDefined();
     });
-  },
-  {
-    timeout: 2 * 60 * 1000,
   },
 );

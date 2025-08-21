@@ -8,11 +8,7 @@ import {
   getAIConfigInBoolean,
 } from '@midscene/shared/env';
 import { parseBase64 } from '@midscene/shared/img';
-import {
-  AgentOverChromeBridge,
-  allConfigFromEnv,
-  overrideAIConfig,
-} from '@midscene/web/bridge-mode';
+import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type {
   ImageContent,
@@ -41,20 +37,7 @@ export class MidsceneManager {
   private androidDeviceId?: string; // Add device ID storage
   constructor(server: McpServer) {
     this.mcpServer = server;
-    this.initEnv();
     this.registerTools();
-  }
-
-  private initEnv() {
-    const keys = Object.keys(allConfigFromEnv());
-    const envOverrides: { [key: string]: string } = {};
-    for (const key of keys) {
-      const value = process.env[key];
-      if (value !== undefined) {
-        envOverrides[key] = value;
-      }
-    }
-    overrideAIConfig(envOverrides);
   }
 
   // initializes or re-initializes the browser agent.

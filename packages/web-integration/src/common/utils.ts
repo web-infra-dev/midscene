@@ -1,19 +1,21 @@
 import type { StaticPage } from '@/playground';
 import type {
   BaseElement,
+  DetailedLocateParam,
   DeviceAction,
   ElementTreeNode,
   ExecutionDump,
   ExecutionTask,
   ExecutorContext,
-  MidsceneLocationType,
+  LocateOption,
+  MidsceneLocationResultType,
   PlanningLocateParam,
   PlaywrightParserOpt,
   TMultimodalPrompt,
   TUserPrompt,
   UIContext,
 } from '@midscene/core';
-import { MidsceneLocation, z } from '@midscene/core';
+import { getMidsceneLocationSchema, z } from '@midscene/core';
 import { elementByPositionWithElementInfo } from '@midscene/core/ai-model';
 import { sleep, uploadTestInfoToServer } from '@midscene/core/utils';
 import { MIDSCENE_REPORT_TAG_NAME, getAIConfig } from '@midscene/shared/env';
@@ -36,7 +38,8 @@ import { debug as cacheDebug } from './task-cache';
 import type { PageTaskExecutor } from './tasks';
 import { getKeyCommands } from './ui-utils';
 
-const debug = getDebug('tool:profile');
+const debugProfile = getDebug('web:tool:profile');
+const debugUtils = getDebug('web:tool:utils');
 
 export async function parseContextFromWebPage(
   page: WebPage,
@@ -47,30 +50,30 @@ export async function parseContextFromWebPage(
     return await (page as any)._forceUsePageContext();
   }
 
-  debug('Getting page URL');
+  debugProfile('Getting page URL');
   const url = await page.url();
-  debug('URL end');
+  debugProfile('URL end');
 
-  debug('Uploading test info to server');
+  debugProfile('Uploading test info to server');
   uploadTestInfoToServer({ testUrl: url });
-  debug('UploadTestInfoToServer end');
+  debugProfile('UploadTestInfoToServer end');
 
   let screenshotBase64: string;
   let tree: ElementTreeNode<ElementInfo>;
 
-  debug('Starting parallel operations: screenshot and element tree');
+  debugProfile('Starting parallel operations: screenshot and element tree');
   await Promise.all([
     page.screenshotBase64().then((base64) => {
       screenshotBase64 = base64;
-      debug('ScreenshotBase64 end');
+      debugProfile('ScreenshotBase64 end');
     }),
     page.getElementsNodeTree().then(async (treeRoot) => {
       tree = treeRoot;
-      debug('GetElementsNodeTree end');
+      debugProfile('GetElementsNodeTree end');
     }),
   ]);
-  debug('ParseContextFromWebPage end');
-  debug('Traversing element tree');
+  debugProfile('ParseContextFromWebPage end');
+  debugProfile('Traversing element tree');
   const webTree = traverseTree(tree!, (elementInfo) => {
     const { rect, id, content, attributes, indexId, isVisible } = elementInfo;
     return new WebElementInfo({
@@ -82,20 +85,20 @@ export async function parseContextFromWebPage(
       isVisible,
     });
   });
-  debug('TraverseTree end');
+  debugProfile('TraverseTree end');
   assert(screenshotBase64!, 'screenshotBase64 is required');
 
   const size = await page.size();
 
-  debug(`size: ${size.width}x${size.height} dpr: ${size.dpr}`);
+  debugProfile(`size: ${size.width}x${size.height} dpr: ${size.dpr}`);
 
   if (size.dpr && size.dpr > 1) {
-    debug('Resizing screenshot for high DPR display');
+    debugProfile('Resizing screenshot for high DPR display');
     screenshotBase64 = await resizeImgBase64(screenshotBase64, {
       width: size.width,
       height: size.height,
     });
-    debug('ResizeImgBase64 end');
+    debugProfile('ResizeImgBase64 end');
   }
 
   return {
@@ -181,7 +184,7 @@ export function replaceIllegalPathCharsAndSpace(str: string) {
 
 export function forceClosePopup(
   page: PuppeteerPage | PlaywrightPage,
-  debug: DebugFunction,
+  debugProfile: DebugFunction,
 ) {
   page.on('popup', async (popup) => {
     if (!popup) {
@@ -194,20 +197,20 @@ export function forceClosePopup(
       try {
         await (popup as PuppeteerPage).close(); // Close the newly opened TAB
       } catch (error) {
-        debug(`failed to close popup ${url}, error: ${error}`);
+        debugProfile(`failed to close popup ${url}, error: ${error}`);
       }
     } else {
-      debug(`popup is already closed, skip close ${url}`);
+      debugProfile(`popup is already closed, skip close ${url}`);
     }
 
     if (!page.isClosed()) {
       try {
         await page.goto(url);
       } catch (error) {
-        debug(`failed to goto ${url}, error: ${error}`);
+        debugProfile(`failed to goto ${url}, error: ${error}`);
       }
     } else {
-      debug(`page is already closed, skip goto ${url}`);
+      debugProfile(`page is already closed, skip goto ${url}`);
     }
   });
 }
@@ -329,6 +332,85 @@ export function trimContextByViewport(execution: ExecutionDump) {
 
 declare const __VERSION__: string | undefined;
 
+export function buildDetailedLocateParam(
+  locatePrompt: TUserPrompt,
+  opt?: LocateOption,
+): DetailedLocateParam | undefined {
+  debugUtils('will call buildDetailedLocateParam', locatePrompt, opt);
+  let prompt = locatePrompt || opt?.prompt || (opt as any)?.locate; // as a shortcut
+  let deepThink = false;
+  let cacheable = true;
+  let xpath = undefined;
+
+  if (typeof opt === 'object' && opt !== null) {
+    deepThink = opt.deepThink ?? false;
+    cacheable = opt.cacheable ?? true;
+    xpath = opt.xpath;
+    if (locatePrompt && opt.prompt && locatePrompt !== opt.prompt) {
+      console.warn(
+        'conflict prompt for item',
+        locatePrompt,
+        opt,
+        'maybe you put the prompt in the wrong place',
+      );
+    }
+    prompt = prompt || opt.prompt;
+  }
+
+  if (!prompt) {
+    debugUtils(
+      'no prompt, will return undefined in buildDetailedLocateParam',
+      opt,
+    );
+    return undefined;
+  }
+
+  return {
+    prompt,
+    deepThink,
+    cacheable,
+    xpath,
+  };
+}
+
+export function buildDetailedLocateParamAndRestParams(
+  locatePrompt: TUserPrompt,
+  opt: LocateOption | undefined,
+  excludeKeys: string[] = [],
+): {
+  locateParam: DetailedLocateParam | undefined;
+  restParams: Record<string, any>;
+} {
+  const locateParam = buildDetailedLocateParam(locatePrompt, opt);
+
+  // Extract all keys from opt except the ones already included in locateParam
+  const restParams: Record<string, any> = {};
+
+  if (typeof opt === 'object' && opt !== null) {
+    // Get all keys from opt
+    const allKeys = Object.keys(opt);
+
+    // Keys already included in locateParam: prompt, deepThink, cacheable, xpath
+    const locateParamKeys = Object.keys(locateParam || {});
+
+    // Extract all other keys
+    for (const key of allKeys) {
+      if (
+        !locateParamKeys.includes(key) &&
+        !excludeKeys.includes(key) &&
+        key !== 'locate'
+      ) {
+        restParams[key] = opt[key as keyof LocateOption];
+      }
+    }
+  }
+
+  return {
+    locateParam,
+    restParams,
+  };
+}
+
 export const getMidsceneVersion = (): string => {
   if (typeof __VERSION__ !== 'undefined') {
     return __VERSION__;
@@ -372,48 +454,50 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
     description: 'Tap the element',
     interfaceAlias: 'aiTap',
     paramSchema: z.object({
-      locate: MidsceneLocation.describe('The element to be tapped'),
+      locate: getMidsceneLocationSchema().describe('The element to be tapped'),
     }),
-    call: async (param, context) => {
-      const { element } = context;
+    call: async (param) => {
+      const element = param.locate;
       assert(element, 'Element not found, cannot tap');
       await page.mouse.click(element.center[0], element.center[1], {
         button: 'left',
       });
     },
   } as DeviceAction<{
-    locate: MidsceneLocationType;
+    locate: MidsceneLocationResultType;
   }>,
   {
     name: 'RightClick',
     description: 'Right click the element',
     paramSchema: z.object({
-      locate: MidsceneLocation.describe('The element to be right clicked'),
+      locate: getMidsceneLocationSchema().describe(
+        'The element to be right clicked',
+      ),
     }),
-    call: async (param, context) => {
-      const { element } = context;
+    call: async (param) => {
+      const element = param.locate;
       assert(element, 'Element not found, cannot right click');
       await page.mouse.click(element.center[0], element.center[1], {
         button: 'right',
       });
     },
   } as DeviceAction<{
-    locate: MidsceneLocationType;
+    locate: MidsceneLocationResultType;
   }>,
   {
     name: 'Hover',
     description: 'Move the mouse to the element',
     interfaceAlias: 'aiHover',
     paramSchema: z.object({
-      locate: MidsceneLocation.describe('The element to be hovered'),
+      locate: getMidsceneLocationSchema().describe('The element to be hovered'),
     }),
-    call: async (param, context) => {
-      const { element } = context;
+    call: async (param) => {
+      const element = param.locate;
       assert(element, 'Element not found, cannot hover');
       await page.mouse.move(element.center[0], element.center[1]);
     },
   } as DeviceAction<{
-    locate: MidsceneLocationType;
+    locate: MidsceneLocationResultType;
   }>,
   {
     name: 'Input',
@@ -424,10 +508,12 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
       value: z
         .string()
         .describe('The final value that should be filled in the input box'),
-      locate: MidsceneLocation.describe('The input field to be filled'),
+      locate: getMidsceneLocationSchema()
+        .describe('The input field to be filled')
+        .optional(),
     }),
-    call: async (param, context) => {
-      const { element } = context;
+    call: async (param) => {
+      const element = param.locate;
       if (element) {
         await page.clearInput(element as unknown as ElementInfo);
 
@@ -441,21 +527,32 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
     },
   } as DeviceAction<{
     value: string;
-    locate: MidsceneLocationType;
+    locate: MidsceneLocationResultType;
   }>,
   {
     name: 'KeyboardPress',
     description: 'Press a key',
     interfaceAlias: 'aiKeyboardPress',
     paramSchema: z.object({
+      locate: getMidsceneLocationSchema()
+        .describe('The element to be clicked before pressing the key')
+        .optional(),
       keyName: z.string().describe('The key to be pressed'),
     }),
     call: async (param, context) => {
+      const element = param.locate;
+      if (element) {
+        await page.mouse.click(element.center[0], element.center[1], {
+          button: 'left',
+        });
+      }
+
       const keys = getKeyCommands(param.keyName);
       await page.keyboard.press(keys as any); // TODO: fix this type error
     },
   } as DeviceAction<{
     keyName: string;
+    locate: MidsceneLocationResultType;
   }>,
   {
     name: 'Scroll',
@@ -476,12 +573,12 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
         .nullable()
         .optional()
         .describe('The distance in pixels to scroll'),
-      locate: MidsceneLocation.optional().describe(
-        'The element to be scrolled',
-      ),
+      locate: getMidsceneLocationSchema()
+        .optional()
+        .describe('The element to be scrolled'),
     }),
-    call: async (param, context) => {
-      const { element } = context;
+    call: async (param) => {
+      const element = param.locate;
       const startingPoint = element
         ? {
             left: element.center[0],
@@ -529,6 +626,33 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
     direction: 'up' | 'down';
     distance?: number;
     duration?: number;
-    locate: MidsceneLocationType;
+    locate: MidsceneLocationResultType;
+  }>,
+  {
+    name: 'DragAndDrop',
+    description: 'Drag and drop the element',
+    paramSchema: z.object({
+      from: getMidsceneLocationSchema().describe('The position to be dragged'),
+      to: getMidsceneLocationSchema().describe('The position to be dropped'),
+    }),
+    call: async (param) => {
+      const from = param.from;
+      const to = param.to;
+      assert(from, 'missing "from" param for drag and drop');
+      assert(to, 'missing "to" param for drag and drop');
+      await page.mouse.drag(
+        {
+          x: from.center[0],
+          y: from.center[1],
+        },
+        {
+          x: to.center[0],
+          y: to.center[1],
+        },
+      );
+    },
+  } as DeviceAction<{
+    from: MidsceneLocationResultType;
+    to: MidsceneLocationResultType;
   }>,
 ];

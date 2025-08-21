@@ -1,6 +1,5 @@
 /// <reference types="chrome" />
-import { PlusOutlined } from '@ant-design/icons';
-import { Button, Form, Modal } from 'antd';
+import { Form, Modal } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
 import type { RecordingSession } from '../../store';
 import { useRecordStore, useRecordingSessionStore } from '../../store';
@@ -14,8 +13,7 @@ import { useTabMonitoring } from './hooks/useTabMonitoring';
 import { recordLogger } from './logger';
 import type { ViewMode } from './types';
 import './recorder.less';
-import { EnvConfig, useEnvConfig } from '@midscene/visualizer';
-import { EnvConfigReminder } from '../../components';
+import { useEnvConfig } from '@midscene/visualizer';
 import { generateDefaultSessionName } from './utils';
 
 export default function Recorder() {

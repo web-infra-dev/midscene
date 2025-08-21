@@ -3,7 +3,6 @@ import {
   type AgentAssertOpt,
   type AgentDescribeElementAtPointResult,
   type AgentWaitForOpt,
-  type DetailedLocateParam,
   type DeviceAction,
   type ExecutionDump,
   type ExecutionRecorderItem,
@@ -22,7 +21,6 @@ import {
   type MidsceneYamlScript,
   type OnTaskStartTip,
   type PlanningAction,
-  type PlanningLocateParam,
   type Rect,
   type ScrollParam,
   type TUserPrompt,
@@ -31,7 +29,6 @@ import {
 import yaml from 'js-yaml';
 
 import { ScriptPlayer, parseYamlScript } from '@/yaml/index';
-import { getModelName } from '@midscene/core/ai-model';
 import {
   groupedActionDumpFileExt,
   reportHTMLContent,
@@ -43,20 +40,27 @@ import {
   DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
 } from '@midscene/shared/constants';
 import {
+  type IModelPreferences,
+  type TModelConfigFn,
   getAIConfigInBoolean,
-  uiTarsModelVersion,
+  globalConfigManger,
   vlLocateMode,
 } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import { PageTaskExecutor } from '../common/tasks';
+import { PageTaskExecutor, locatePlanForLocate } from '../common/tasks';
 import type { PlaywrightWebPage } from '../playwright';
 import type { PuppeteerWebPage } from '../puppeteer';
 import type { WebElementInfo, WebUIContext } from '../web-element';
 import type { AndroidDeviceInputOpt } from './page';
 import { TaskCache } from './task-cache';
 import { locateParamStr, paramStr, taskTitleStr, typeStr } from './ui-utils';
-import { getReportFileName, parsePrompt, printReportMsg } from './utils';
+import {
+  buildDetailedLocateParam,
+  getReportFileName,
+  parsePrompt,
+  printReportMsg,
+} from './utils';
 import { parseContextFromWebPage } from './utils';
 import { trimContextByViewport } from './utils';
 
@@ -93,6 +97,7 @@ export interface PageAgentOpt {
   aiActionContext?: string;
   /* custom report file name */
   reportFileName?: string;
+  modelConfig?: TModelConfigFn;
 }
 
 export type WebPageAgentOpt = PageAgentOpt & WebPageOpt;
@@ -145,6 +150,9 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       },
       opts || {},
     );
+    if (typeof opts?.modelConfig === 'function') {
+      globalConfigManger.registerModelConfigFn(opts?.modelConfig);
+    }
 
     if (
       this.page.pageType === 'puppeteer' ||
@@ -202,13 +210,9 @@ export class PageAgent<PageType extends WebPage = WebPage> {
 
     // Otherwise, get fresh context based on the action type
     if (action && (action === 'extract' || action === 'assert')) {
-      return await parseContextFromWebPage(this.page, {
-        ignoreMarker: true,
-      });
+      return await parseContextFromWebPage(this.page, {});
     }
-    return await parseContextFromWebPage(this.page, {
-      ignoreMarker: !!vlLocateMode(),
-    });
+    return await parseContextFromWebPage(this.page, {});
   }
 
   async _snapshotContext(): Promise<WebUIContext> {
@@ -220,26 +224,11 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   resetDump() {
-    const modelDescription = (() => {
-      if (vlLocateMode()) {
-        const uiTarsModelVer = uiTarsModelVersion();
-        if (uiTarsModelVer) {
-          return `UI-TARS=${uiTarsModelVer}`;
-        } else {
-          return `${vlLocateMode()} mode`;
-        }
-      }
-      return '';
-    })();
-
-    const modelName = getModelName();
-
     this.dump = {
       groupName: this.opts.groupName!,
       groupDescription: this.opts.groupDescription,
-      modelName,
-      modelDescription,
       executions: [],
+      modelBriefs: [],
     };
 
     return this.dump;
@@ -311,84 +300,60 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     }
   }
 
-  private buildDetailedLocateParam(
-    locatePrompt: TUserPrompt,
-    opt?: LocateOption,
-  ): DetailedLocateParam {
-    assert(locatePrompt, 'missing locate prompt');
-
-    if (typeof opt === 'object' && opt !== null) {
-      const prompt = locatePrompt;
-      const deepThink = opt.deepThink ?? false;
-      const cacheable = opt.cacheable ?? true;
-      const xpath = opt.xpath;
-
-      return {
-        prompt,
-        deepThink,
-        cacheable,
-        xpath,
-      };
-    }
-
-    return {
-      prompt: locatePrompt,
-    };
-  }
-
-  private locateTaskForLocate(prompt: TUserPrompt, opt?: LocateOption) {
-    const detailedLocateParam = this.buildDetailedLocateParam(prompt, opt);
-    const locatePlan: PlanningAction<PlanningLocateParam> = {
-      type: 'Locate',
-      locate: detailedLocateParam,
-      param: detailedLocateParam,
-      thought: '',
-    };
-    return locatePlan;
-  }
-
   async callActionInActionSpace<T = any>(
     type: string,
-    locatePrompt?: TUserPrompt,
-    opt?: LocateOption, // and all other action params
+    opt?: T, // and all other action params
   ) {
-    debug('callActionInActionSpace', type, ',', locatePrompt, ',', opt);
-    const locatePlan = locatePrompt
-      ? this.locateTaskForLocate(locatePrompt, opt)
-      : null;
+    debug('callActionInActionSpace', type, ',', opt, ',', opt);
 
     const actionPlan: PlanningAction<T> = {
       type: type as any,
-      param: opt as any,
+      param: (opt as any) || {},
       thought: '',
-      locate: locatePlan?.locate,
     };
+    debug('actionPlan', actionPlan); // , ', in which the locateParam is', locateParam);
 
-    const plans: PlanningAction[] = [locatePlan, actionPlan].filter(
+    const plans: PlanningAction[] = [actionPlan].filter(
       Boolean,
     ) as PlanningAction[];
 
     const title = taskTitleStr(
       type as any,
-      locateParamStr(locatePlan?.locate || undefined),
+      locateParamStr((opt as any)?.locate || {}),
     );
 
-    const { executor } = await this.taskExecutor.runPlans(title, plans, {
-      cacheable: opt?.cacheable,
-    });
+    const { executor } = await this.taskExecutor.runPlans(title, plans);
     await this.afterTaskRunning(executor);
   }
 
   async aiTap(locatePrompt: TUserPrompt, opt?: LocateOption) {
-    return this.callActionInActionSpace('Tap', locatePrompt, opt);
+    assert(locatePrompt, 'missing locate prompt for tap');
+
+    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+
+    return this.callActionInActionSpace('Tap', {
+      locate: detailedLocateParam,
+    });
   }
 
   async aiRightClick(locatePrompt: TUserPrompt, opt?: LocateOption) {
-    return this.callActionInActionSpace('RightClick', locatePrompt, opt);
+    assert(locatePrompt, 'missing locate prompt for right click');
+
+    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+
+    return this.callActionInActionSpace('RightClick', {
+      locate: detailedLocateParam,
+    });
   }
 
   async aiHover(locatePrompt: TUserPrompt, opt?: LocateOption) {
-    return this.callActionInActionSpace('Hover', locatePrompt, opt);
+    assert(locatePrompt, 'missing locate prompt for hover');
+
+    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+
+    return this.callActionInActionSpace('Hover', {
+      locate: detailedLocateParam,
+    });
   }
 
   // New signature, always use locatePrompt as the first param
@@ -449,7 +414,13 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       'input value must be a string, use empty string if you want to clear the input',
     );
     assert(locatePrompt, 'missing locate prompt for input');
-    return this.callActionInActionSpace('Input', locatePrompt, opt);
+
+    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+
+    return this.callActionInActionSpace('Input', {
+      ...(opt || {}),
+      locate: detailedLocateParam,
+    });
   }
 
   // New signature
@@ -503,7 +474,15 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     }
 
     assert(opt?.keyName, 'missing keyName for keyboard press');
-    return this.callActionInActionSpace('KeyboardPress', locatePrompt, opt);
+
+    const detailedLocateParam = locatePrompt
+      ? buildDetailedLocateParam(locatePrompt, opt)
+      : undefined;
+
+    return this.callActionInActionSpace('KeyboardPress', {
+      ...(opt || {}),
+      locate: detailedLocateParam,
+    });
   }
 
   // New signature
@@ -552,7 +531,15 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       };
     }
 
-    return this.callActionInActionSpace('Scroll', locatePrompt, opt);
+    const detailedLocateParam = buildDetailedLocateParam(
+      locatePrompt || '',
+      opt,
+    );
+
+    return this.callActionInActionSpace('Scroll', {
+      ...(opt || {}),
+      locate: detailedLocateParam,
+    });
   }
 
   async aiAction(
@@ -561,9 +548,10 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       cacheable?: boolean;
     },
   ) {
+    const modelPreferences: IModelPreferences = { intent: 'planning' };
     const cacheable = opt?.cacheable;
     // if vlm-ui-tars, plan cache is not used
-    const isVlmUiTars = vlLocateMode() === 'vlm-ui-tars';
+    const isVlmUiTars = vlLocateMode(modelPreferences) === 'vlm-ui-tars';
     const matchedCache =
       isVlmUiTars || cacheable === false
         ? undefined
@@ -583,10 +571,8 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     }
 
     const { output, executor } = await (isVlmUiTars
-      ? this.taskExecutor.actionToGoal(taskPrompt, { cacheable })
-      : this.taskExecutor.action(taskPrompt, this.opts.aiActionContext, {
-          cacheable,
-        }));
+      ? this.taskExecutor.actionToGoal(taskPrompt)
+      : this.taskExecutor.action(taskPrompt, this.opts.aiActionContext));
 
     // update cache
     if (this.taskCache && output?.yamlFlow && cacheable !== false) {
@@ -613,20 +599,20 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     return output;
   }
 
-  async aiQuery(
+  async aiQuery<ReturnType = any>(
     demand: InsightExtractParam,
     opt: InsightExtractOption = defaultInsightExtractOption,
-  ) {
+  ): Promise<ReturnType> {
     const { output, executor } =
       await this.taskExecutor.createTypeQueryExecution('Query', demand, opt);
     await this.afterTaskRunning(executor);
-    return output;
+    return output as ReturnType;
   }
 
   async aiBoolean(
     prompt: TUserPrompt,
     opt: InsightExtractOption = defaultInsightExtractOption,
-  ) {
+  ): Promise<boolean> {
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
     const { output, executor } =
       await this.taskExecutor.createTypeQueryExecution(
@@ -636,13 +622,13 @@ export class PageAgent<PageType extends WebPage = WebPage> {
         multimodalPrompt,
       );
     await this.afterTaskRunning(executor);
-    return output;
+    return output as boolean;
   }
 
   async aiNumber(
     prompt: TUserPrompt,
     opt: InsightExtractOption = defaultInsightExtractOption,
-  ) {
+  ): Promise<number> {
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
     const { output, executor } =
       await this.taskExecutor.createTypeQueryExecution(
@@ -652,13 +638,13 @@ export class PageAgent<PageType extends WebPage = WebPage> {
         multimodalPrompt,
       );
     await this.afterTaskRunning(executor);
-    return output;
+    return output as number;
   }
 
   async aiString(
     prompt: TUserPrompt,
     opt: InsightExtractOption = defaultInsightExtractOption,
-  ) {
+  ): Promise<string> {
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
     const { output, executor } =
       await this.taskExecutor.createTypeQueryExecution(
@@ -668,13 +654,13 @@ export class PageAgent<PageType extends WebPage = WebPage> {
         multimodalPrompt,
       );
     await this.afterTaskRunning(executor);
-    return output;
+    return output as string;
   }
 
   async aiAsk(
     prompt: TUserPrompt,
     opt: InsightExtractOption = defaultInsightExtractOption,
-  ) {
+  ): Promise<string> {
     return this.aiString(prompt, opt);
   }
 
@@ -761,12 +747,13 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   async aiLocate(prompt: TUserPrompt, opt?: LocateOption) {
-    const locatePlan = this.locateTaskForLocate(prompt, opt);
+    const locateParam = buildDetailedLocateParam(prompt, opt);
+    assert(locateParam, 'cannot get locate param for aiLocate');
+    const locatePlan = locatePlanForLocate(locateParam);
     const plans = [locatePlan];
     const { executor, output } = await this.taskExecutor.runPlans(
-      taskTitleStr('Locate', locateParamStr(locatePlan?.locate || undefined)),
+      taskTitleStr('Locate', locateParamStr(locateParam)),
       plans,
-      { cacheable: opt?.cacheable },
     );
     await this.afterTaskRunning(executor);
 
@@ -802,11 +789,11 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     );
     await this.afterTaskRunning(executor, true);
 
-    const errMsg = msg || `Assertion failed: ${assertion}`;
-    const reasonMsg = `Reason: ${
-      thought || executor.latestErrorTask()?.error || '(no_reason)'
-    }`;
-    const message = `${errMsg}\n${reasonMsg}`;
+    const message = output
+      ? undefined
+      : `Assertion failed: ${msg || assertion}\nReason: ${
+          thought || executor.latestErrorTask()?.error || '(no_reason)'
+        }`;
 
     if (opt?.keepRawResponse) {
       return {
@@ -821,11 +808,10 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     }
   }
 
-  async aiWaitFor(assertion: string, opt?: AgentWaitForOpt) {
+  async aiWaitFor(assertion: TUserPrompt, opt?: AgentWaitForOpt) {
     const { executor } = await this.taskExecutor.waitFor(assertion, {
       timeoutMs: opt?.timeoutMs || 15 * 1000,
       checkIntervalMs: opt?.checkIntervalMs || 3 * 1000,
-      assertion,
     });
     await this.afterTaskRunning(executor, true);
 
@@ -864,7 +850,6 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     result: Record<string, any>;
   }> {
     const script = parseYamlScript(yamlScriptContent, 'yaml', true);
-    const actionSpace = await this.page.actionSpace();
     const player = new ScriptPlayer(script, async (target) => {
       return { agent: this, freeFn: [] };
     });

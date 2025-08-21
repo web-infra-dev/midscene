@@ -339,7 +339,9 @@ Respond with YAML only, no explanations.`,
       });
     }
 
-    const response = await callAi(prompt, AIActionType.EXTRACT_DATA);
+    const response = await callAi(prompt, AIActionType.EXTRACT_DATA, {
+      intent: 'default',
+    });
 
     if (response?.content && typeof response.content === 'string') {
       return response.content;
@@ -425,13 +427,22 @@ Respond with YAML only, no explanations.`,
 
     if (options.stream && options.onChunk) {
       // Use streaming
-      return await callAi(prompt, AIActionType.EXTRACT_DATA, undefined, {
-        stream: true,
-        onChunk: options.onChunk,
-      });
+      return await callAi(
+        prompt,
+        AIActionType.EXTRACT_DATA,
+        {
+          intent: 'default',
+        },
+        {
+          stream: true,
+          onChunk: options.onChunk,
+        },
+      );
     } else {
       // Fallback to non-streaming
-      const response = await callAi(prompt, AIActionType.EXTRACT_DATA);
+      const response = await callAi(prompt, AIActionType.EXTRACT_DATA, {
+        intent: 'default',
+      });
 
       if (response?.content && typeof response.content === 'string') {
         return {

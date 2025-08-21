@@ -4,21 +4,9 @@ import {
   EditOutlined,
   PlusOutlined,
 } from '@ant-design/icons';
-import {
-  Alert,
-  Button,
-  Card,
-  Empty,
-  List,
-  Popconfirm,
-  Space,
-  Tag,
-  Typography,
-  message,
-} from 'antd';
+import { Alert, Button, Empty, List, Popconfirm, Typography } from 'antd';
 import type React from 'react';
 import type { RecordingSession } from '../../../store';
-import type { ViewMode } from '../types';
 import './Record-List.css';
 import { useEnvConfig } from '@midscene/visualizer';
 import { EnvConfigReminder } from '../../../components';

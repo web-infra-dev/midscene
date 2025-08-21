@@ -4,15 +4,15 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import {
-  MidsceneLocation,
   type Point,
   type Size,
   getAIConfig,
+  getMidsceneLocationSchema,
 } from '@midscene/core';
 import type {
   DeviceAction,
   ExecutorContext,
-  MidsceneLocationType,
+  MidsceneLocationResultType,
   PageType,
 } from '@midscene/core';
 import { z } from '@midscene/core';
@@ -27,7 +27,7 @@ import type { ElementInfo } from '@midscene/shared/extractor';
 import {
   createImgBase64ByFormat,
   isValidPNGImageBuffer,
-  resizeImgBuffer,
+  resizeAndConvertImgBuffer,
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { repeat } from '@midscene/shared/utils';
@@ -129,7 +129,9 @@ export class AndroidDevice implements AndroidDevicePage {
             .number()
             .optional()
             .describe('The duration of the long press in milliseconds'),
-          locate: MidsceneLocation.describe('The element to be long pressed'),
+          locate: getMidsceneLocationSchema().describe(
+            'The element to be long pressed',
+          ),
         }),
         call: async (param, context) => {
           const { element } = context;
@@ -143,7 +145,7 @@ export class AndroidDevice implements AndroidDevicePage {
         },
       } as DeviceAction<{
         duration?: number;
-        locate: MidsceneLocationType;
+        locate: MidsceneLocationResultType;
       }>,
       {
         name: 'AndroidPull',
@@ -552,7 +554,7 @@ ${Object.keys(size)
     }
 
     debugPage('Resizing screenshot image');
-    const { buffer, format } = await resizeImgBuffer(
+    const { buffer, format } = await resizeAndConvertImgBuffer(
       // both "adb.takeScreenshot" and "shell screencap" result are png format
       'png',
       screenshotBuffer,

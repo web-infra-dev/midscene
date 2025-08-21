@@ -14,15 +14,15 @@ import type {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
 } from 'openai/resources/index';
-import {
-  call,
-  callToGetJSONObject,
-  getModelName,
-} from './service-caller/index';
+import { callToGetJSONObject } from './service-caller/index';
 
 import type { PlanningLocateParam } from '@/types';
 import { NodeType } from '@midscene/shared/constants';
-import { vlLocateMode } from '@midscene/shared/env';
+import {
+  type IModelPreferences,
+  getModelName,
+  vlLocateMode,
+} from '@midscene/shared/env';
 import { treeToList } from '@midscene/shared/extractor';
 import { compositeElementInfoImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
@@ -41,13 +41,16 @@ export enum AIActionType {
   DESCRIBE_ELEMENT = 4,
 }
 
-export const actionSpaceTypePrefix = 'action_space_';
-
 export async function callAiFn<T>(
   msgs: AIArgs,
   AIActionTypeValue: AIActionType,
+  modelPreferences: IModelPreferences,
 ): Promise<{ content: T; usage?: AIUsageInfo }> {
-  const jsonObject = await callToGetJSONObject<T>(msgs, AIActionTypeValue);
+  const jsonObject = await callToGetJSONObject<T>(
+    msgs,
+    AIActionTypeValue,
+    modelPreferences,
+  );
 
   return {
     content: jsonObject.content,
@@ -63,6 +66,7 @@ export function fillBboxParam(
   locate: PlanningLocateParam,
   width: number,
   height: number,
+  modelPreferences: IModelPreferences,
 ) {
   // The Qwen model might have hallucinations of naming bbox as bbox_2d.
   if ((locate as any).bbox_2d && !locate?.bbox) {
@@ -72,7 +76,7 @@ export function fillBboxParam(
   }
 
   if (locate?.bbox) {
-    locate.bbox = adaptBbox(locate.bbox, width, height);
+    locate.bbox = adaptBbox(locate.bbox, width, height, modelPreferences);
   }
 
   return locate;
@@ -200,12 +204,16 @@ export function adaptBbox(
   bbox: number[],
   width: number,
   height: number,
+  modelPreferences: IModelPreferences,
 ): [number, number, number, number] {
-  if (vlLocateMode() === 'doubao-vision' || vlLocateMode() === 'vlm-ui-tars') {
+  if (
+    vlLocateMode(modelPreferences) === 'doubao-vision' ||
+    vlLocateMode(modelPreferences) === 'vlm-ui-tars'
+  ) {
     return adaptDoubaoBbox(bbox, width, height);
   }
 
-  if (vlLocateMode() === 'gemini') {
+  if (vlLocateMode(modelPreferences) === 'gemini') {
     return adaptGeminiBbox(bbox, width, height);
   }
 
@@ -228,11 +236,17 @@ export function adaptBboxToRect(
   bbox: number[],
   width: number,
   height: number,
+  modelPreferences: IModelPreferences,
   offsetX = 0,
   offsetY = 0,
 ): Rect {
   debugInspectUtils('adaptBboxToRect', bbox, width, height, offsetX, offsetY);
-  const [left, top, right, bottom] = adaptBbox(bbox, width, height);
+  const [left, top, right, bottom] = adaptBbox(
+    bbox,
+    width,
+    height,
+    modelPreferences,
+  );
   const rect = {
     left: left + offsetX,
     top: top + offsetY,
@@ -244,9 +258,12 @@ export function adaptBboxToRect(
 }
 
 let warned = false;
-export function warnGPT4oSizeLimit(size: Size) {
+export function warnGPT4oSizeLimit(
+  size: Size,
+  modelPreferences: IModelPreferences,
+) {
   if (warned) return;
-  if (getModelName()?.toLowerCase().includes('gpt-4o')) {
+  if (getModelName(modelPreferences)?.toLowerCase().includes('gpt-4o')) {
     const warningMsg = `GPT-4o has a maximum image input size of 2000x768 or 768x2000, but got ${size.width}x${size.height}. Please set your page to a smaller resolution. Otherwise, the result may be inaccurate.`;
 
     if (
@@ -278,8 +295,13 @@ export function mergeRects(rects: Rect[]) {
 }
 
 // expand the search area to at least 300 x 300, or add a default padding
-export function expandSearchArea(rect: Rect, screenSize: Size) {
-  const minEdgeSize = vlLocateMode() === 'doubao-vision' ? 500 : 300;
+export function expandSearchArea(
+  rect: Rect,
+  screenSize: Size,
+  modelPreferences: IModelPreferences,
+) {
+  const minEdgeSize =
+    vlLocateMode(modelPreferences) === 'doubao-vision' ? 500 : 300;
   const defaultPadding = 160;
 
   const paddingSizeHorizontal =
@@ -344,12 +366,14 @@ export function buildYamlFlowFromPlans(
       continue;
     }
 
-    const locate = plan.locate?.prompt;
-    const flowKey = action.interfaceAlias || `${actionSpaceTypePrefix}${verb}`;
+    const flowKey = action.interfaceAlias || verb;
+    const flowParam = action.paramSchema
+      ? dumpActionParam(plan.param || {}, action.paramSchema)
+      : {};
 
     const flowItem: MidsceneYamlFlowItem = {
-      [flowKey]: locate || '',
-      ...(plan.param || {}),
+      [flowKey]: '',
+      ...flowParam,
     };
 
     flow.push(flowItem);
@@ -382,16 +406,55 @@ export const RectSchema = PointSchema.and(SizeSchema).and(
   }),
 );
 
-export const MidsceneLocation = z
+// Zod schema for TMultimodalPrompt
+export const TMultimodalPromptSchema = z.object({
+  images: z
+    .array(
+      z.object({
+        name: z.string(),
+        url: z.string(),
+      }),
+    )
+    .optional(),
+  convertHttpImage2Base64: z.boolean().optional(),
+});
+
+// Zod schema for TUserPrompt
+export const TUserPromptSchema = z.union([
+  z.string(),
+  z
+    .object({
+      prompt: z.string(),
+    })
+    .and(TMultimodalPromptSchema.partial()),
+]);
+
+// Generate TypeScript types from Zod schemas
+export type TMultimodalPrompt = z.infer<typeof TMultimodalPromptSchema>;
+export type TUserPrompt = z.infer<typeof TUserPromptSchema>;
+
+const locateFieldFlagName = 'midscene_location_field_flag';
+
+const MidsceneLocationResult = z
   .object({
-    midscene_location_field_flag: z.literal(true),
-    prompt: z.string(),
+    [locateFieldFlagName]: z.literal(true),
+    prompt: TUserPromptSchema,
+
+    // optional fields
+    deepThink: z.boolean().optional(), // only available in vl model
+    cacheable: z.boolean().optional(),
+    xpath: z.boolean().optional(), // preset result for xpath
+
+    // these two fields will only appear in the result
     center: z.tuple([z.number(), z.number()]),
     rect: RectSchema,
   })
   .passthrough();
 
-export type MidsceneLocationType = z.infer<typeof MidsceneLocation>;
+export type MidsceneLocationResultType = z.infer<typeof MidsceneLocationResult>;
+export const getMidsceneLocationSchema = () => {
+  return MidsceneLocationResult;
+};
 
 export const ifMidsceneLocatorField = (field: any): boolean => {
   // Handle optional fields by getting the inner type
@@ -400,17 +463,45 @@ export const ifMidsceneLocatorField = (field: any): boolean => {
     actualField = actualField._def.innerType;
   }
 
-  // Check if this is a ZodObject with midscene_location_field_flag
+  // Check if this is a ZodUnion (the new MidsceneLocation structure)
   if (actualField._def?.typeName === 'ZodObject') {
     const shape = actualField._def.shape();
-    return 'midscene_location_field_flag' in shape;
+    return locateFieldFlagName in shape;
   }
 
   return false;
 };
 
+export const dumpMidsceneLocatorField = (field: any): string => {
+  assert(
+    ifMidsceneLocatorField(field),
+    'field is not a midscene locator field',
+  );
+
+  // If field is a string, return it directly
+  if (typeof field === 'string') {
+    return field;
+  }
+
+  // If field is an object with prompt property
+  if (field && typeof field === 'object' && field.prompt) {
+    // If prompt is a string, return it directly
+    if (typeof field.prompt === 'string') {
+      return field.prompt;
+    }
+    // If prompt is a TUserPrompt object, extract the prompt string
+    if (typeof field.prompt === 'object' && field.prompt.prompt) {
+      return field.prompt.prompt; // TODO: dump images if necessary
+    }
+  }
+
+  // Fallback: try to convert to string
+  return String(field);
+};
+
 export const findAllMidsceneLocatorField = (
   zodType?: z.ZodType<any>,
+  requiredOnly?: boolean,
 ): string[] => {
   if (!zodType) {
     return [];
@@ -420,9 +511,75 @@ export const findAllMidsceneLocatorField = (
   const zodObject = zodType as any;
   if (zodObject._def?.typeName === 'ZodObject' && zodObject.shape) {
     const keys = Object.keys(zodObject.shape);
-    return keys.filter((key) => ifMidsceneLocatorField(zodObject.shape[key]));
+    return keys.filter((key) => {
+      const field = zodObject.shape[key];
+      if (!ifMidsceneLocatorField(field)) {
+        return false;
+      }
+
+      // If requiredOnly is true, filter out optional fields
+      if (requiredOnly) {
+        return field._def?.typeName !== 'ZodOptional';
+      }
+
+      return true;
+    });
   }
 
   // For other ZodType instances, we can't extract field names
   return [];
+};
+
+export const dumpActionParam = (
+  jsonObject: Record<string, any>,
+  zodSchema: z.ZodType<any>,
+): Record<string, any> => {
+  const locatorFields = findAllMidsceneLocatorField(zodSchema);
+  const result = { ...jsonObject };
+
+  for (const fieldName of locatorFields) {
+    const fieldValue = result[fieldName];
+    if (fieldValue) {
+      // If it's already a string, keep it as is
+      if (typeof fieldValue === 'string') {
+        result[fieldName] = fieldValue;
+      } else if (typeof fieldValue === 'object') {
+        // Check if this field is actually a MidsceneLocationType object
+        if (fieldValue.prompt) {
+          // If prompt is a string, use it directly
+          if (typeof fieldValue.prompt === 'string') {
+            result[fieldName] = fieldValue.prompt;
+          } else if (
+            typeof fieldValue.prompt === 'object' &&
+            fieldValue.prompt.prompt
+          ) {
+            // If prompt is a TUserPrompt object, extract the prompt string
+            result[fieldName] = fieldValue.prompt.prompt;
+          }
+        }
+      }
+    }
+  }
+
+  return result;
+};
+
+export const loadActionParam = (
+  jsonObject: Record<string, any>,
+  zodSchema: z.ZodType<any>,
+): Record<string, any> => {
+  const locatorFields = findAllMidsceneLocatorField(zodSchema);
+  const result = { ...jsonObject };
+
+  for (const fieldName of locatorFields) {
+    const fieldValue = result[fieldName];
+    if (fieldValue && typeof fieldValue === 'string') {
+      result[fieldName] = {
+        [locateFieldFlagName]: true,
+        prompt: fieldValue,
+      };
+    }
+  }
+
+  return result;
 };

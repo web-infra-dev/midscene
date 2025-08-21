@@ -1,10 +1,16 @@
 import {
-  MidsceneLocation,
   adaptQwenBbox,
   fillBboxParam,
+  getMidsceneLocationSchema,
 } from '@/ai-model/common';
 import { buildYamlFlowFromPlans } from '@/ai-model/common';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import {
+  MIDSCENE_USE_DOUBAO_VISION,
+  MIDSCENE_USE_QWEN_VL,
+  OPENAI_API_KEY,
+  OPENAI_BASE_URL,
+} from '@midscene/shared/env';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 describe('llm planning - qwen', () => {
@@ -34,18 +40,14 @@ describe('llm planning - qwen', () => {
 });
 
 describe('llm planning - doubao', () => {
-  let originalMidsceneUseDoubaoVl: string | undefined;
-  let originalMidsceneUseQwenVl: string | undefined;
   beforeEach(() => {
-    originalMidsceneUseDoubaoVl = process.env.MIDSCENE_USE_DOUBAO_VISION;
-    originalMidsceneUseQwenVl = process.env.MIDSCENE_USE_QWEN_VL;
-    process.env.MIDSCENE_USE_DOUBAO_VISION = 'true';
-    process.env.MIDSCENE_USE_QWEN_VL = 'false';
+    vi.stubEnv(OPENAI_BASE_URL, 'http://mock');
+    vi.stubEnv(OPENAI_API_KEY, 'mock');
+    vi.stubEnv(MIDSCENE_USE_DOUBAO_VISION, 'true');
   });
 
   afterEach(() => {
-    process.env.MIDSCENE_USE_DOUBAO_VISION = originalMidsceneUseDoubaoVl;
-    process.env.MIDSCENE_USE_QWEN_VL = originalMidsceneUseQwenVl;
+    vi.unstubAllEnvs();
   });
 
   it('fill locate param', () => {
@@ -55,7 +57,9 @@ describe('llm planning - doubao', () => {
       bbox_2d: [923, 123, 123, 123] as [number, number, number, number],
     };
 
-    const filledLocate = fillBboxParam(locate, 1000, 1000);
+    const filledLocate = fillBboxParam(locate, 1000, 1000, {
+      intent: 'grounding',
+    });
     expect(filledLocate).toEqual({
       id: 'test',
       prompt: 'test',
@@ -115,7 +119,7 @@ describe('llm planning - build yaml flow', () => {
           interfaceAlias: 'aiInput',
           paramSchema: z.object({
             value: z.string(),
-            locate: MidsceneLocation,
+            locate: getMidsceneLocationSchema(),
           }),
           call: async () => {},
         },
@@ -130,7 +134,7 @@ describe('llm planning - build yaml flow', () => {
           call: async () => {},
         },
         {
-          name: 'Scroll', // no alias for this
+          name: 'Scroll', // no alias for this, no param schema
           call: async () => {},
         },
       ],
@@ -138,38 +142,18 @@ describe('llm planning - build yaml flow', () => {
     expect(flow).toMatchInlineSnapshot(`
       [
         {
-          "aiInput": "The input box for adding a new todo",
-          "locate": {
-            "bbox": [
-              512,
-              127,
-              1068,
-              198,
-            ],
-            "prompt": "The input box for adding a new todo",
-          },
+          "aiInput": "",
+          "locate": "The input box for adding a new todo",
           "value": "hello",
         },
         {
           "aiHover": "",
         },
         {
-          "aiTap": "The input box labeled 'What needs to be done?'",
-          "locate": {
-            "bbox": [
-              512,
-              127,
-              1068,
-              197,
-            ],
-            "prompt": "The input box labeled 'What needs to be done?'",
-          },
+          "aiTap": "",
         },
         {
-          "action_space_Scroll": "",
-          "direction": "down",
-          "distance": 500,
-          "scrollType": "once",
+          "Scroll": "",
         },
       ]
     `);
@@ -211,7 +195,7 @@ describe('llm planning - build yaml flow', () => {
           name: 'Tap',
           interfaceAlias: 'aiTap',
           paramSchema: z.object({
-            locate: MidsceneLocation,
+            locate: getMidsceneLocationSchema(),
           }),
           call: async () => {},
         },
@@ -220,7 +204,7 @@ describe('llm planning - build yaml flow', () => {
           interfaceAlias: 'aiInput',
           paramSchema: z.object({
             value: z.string(),
-            locate: MidsceneLocation,
+            locate: getMidsceneLocationSchema(),
           }),
           call: async () => {},
         },
@@ -229,28 +213,12 @@ describe('llm planning - build yaml flow', () => {
     expect(flow).toMatchInlineSnapshot(`
       [
         {
-          "aiTap": "Cancel button",
-          "locate": {
-            "bbox": [
-              300,
-              300,
-              400,
-              400,
-            ],
-            "prompt": "Cancel button",
-          },
+          "aiTap": "",
+          "locate": "Cancel button",
         },
         {
-          "aiInput": "Text input field",
-          "locate": {
-            "bbox": [
-              500,
-              500,
-              600,
-              600,
-            ],
-            "prompt": "Text input field",
-          },
+          "aiInput": "",
+          "locate": "Text input field",
           "value": "test",
         },
       ]
@@ -279,7 +247,7 @@ describe('llm planning - build yaml flow', () => {
           name: 'Click',
           // No interfaceAlias
           paramSchema: z.object({
-            locate: MidsceneLocation,
+            locate: getMidsceneLocationSchema(),
           }),
           call: async () => {},
         },
@@ -288,16 +256,8 @@ describe('llm planning - build yaml flow', () => {
     expect(flow).toMatchInlineSnapshot(`
       [
         {
-          "action_space_Click": "Submit button",
-          "locate": {
-            "bbox": [
-              100,
-              100,
-              200,
-              200,
-            ],
-            "prompt": "Submit button",
-          },
+          "Click": "",
+          "locate": "Submit button",
         },
       ]
     `);
@@ -325,8 +285,8 @@ describe('llm planning - build yaml flow', () => {
           name: 'DragAndDrop',
           interfaceAlias: 'aiDragAndDrop',
           paramSchema: z.object({
-            from: MidsceneLocation,
-            to: MidsceneLocation,
+            from: getMidsceneLocationSchema(),
+            to: getMidsceneLocationSchema(),
           }),
           call: async () => {},
         },
@@ -336,24 +296,8 @@ describe('llm planning - build yaml flow', () => {
       [
         {
           "aiDragAndDrop": "",
-          "from": {
-            "bbox": [
-              100,
-              100,
-              200,
-              200,
-            ],
-            "prompt": "Source element",
-          },
-          "to": {
-            "bbox": [
-              300,
-              300,
-              400,
-              400,
-            ],
-            "prompt": "Target element",
-          },
+          "from": "Source element",
+          "to": "Target element",
         },
       ]
     `);

@@ -14,7 +14,10 @@ export class AndroidAgent extends PageAgent<AndroidDevice> {
   constructor(page: AndroidDevice, opts?: AndroidAgentOpt) {
     super(page, opts);
 
-    if (!vlLocateMode()) {
+    if (
+      !vlLocateMode({ intent: 'grounding' }) ||
+      !vlLocateMode({ intent: 'planning' })
+    ) {
       throw new Error(
         'Android Agent only supports vl-model. https://midscenejs.com/choose-a-model.html',
       );

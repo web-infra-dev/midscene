@@ -35,6 +35,9 @@
   "[typescript]": {
     "editor.defaultFormatter": "biomejs.biome"
   },
+  "[less]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
   "[plaintext]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },

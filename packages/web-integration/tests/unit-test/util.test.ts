@@ -2,11 +2,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { getKeyCommands } from '@/common/ui-utils';
 import {
+  buildDetailedLocateParam,
+  buildDetailedLocateParamAndRestParams,
   getCurrentExecutionFile,
   replaceIllegalPathCharsAndSpace,
   trimContextByViewport,
 } from '@/common/utils';
-import type { ExecutionDump } from '@midscene/core/.';
 import { describe, expect, it } from 'vitest';
 
 describe('TaskCache', () => {
@@ -167,5 +168,151 @@ describe('trimContextByViewport', () => {
     const result = trimContextByViewport(dump.executions[0]);
     expect(result.tasks[0].pageContext?.tree?.node).toBeNull();
     expect(result.tasks[0].pageContext?.tree?.children.length).toBe(28);
+  });
+});
+
+describe('buildDetailedLocateParam', () => {
+  it('should build basic detailed locate param from string prompt', () => {
+    const locatePrompt = 'Click on the login button';
+    const result = buildDetailedLocateParam(locatePrompt);
+
+    expect(result).toEqual({
+      prompt: 'Click on the login button',
+      deepThink: false,
+      cacheable: true,
+      xpath: undefined,
+    });
+  });
+
+  it('should build detailed locate param with options', () => {
+    const locatePrompt = 'Find the submit button';
+    const options = {
+      deepThink: true,
+      cacheable: false,
+      xpath: '//button[@type="submit"]',
+      // prompt: 'Override prompt',
+    };
+    const result = buildDetailedLocateParam(locatePrompt, options);
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "cacheable": false,
+        "deepThink": true,
+        "prompt": "Find the submit button",
+        "xpath": "//button[@type="submit"]",
+      }
+    `);
+  });
+
+  it('should handle partial options with defaults', () => {
+    const locatePrompt = 'Locate the search input';
+    const options = {
+      deepThink: true,
+      // cacheable and xpath not provided - should use defaults
+    };
+    const result = buildDetailedLocateParam(locatePrompt, options);
+
+    expect(result).toEqual({
+      prompt: 'Locate the search input',
+      deepThink: true,
+      cacheable: true, // default value
+      xpath: undefined, // default value
+    });
+  });
+});
+
+describe('buildDetailedLocateParamAndRestParams', () => {
+  it('should build detailed locate param and empty rest params when no extra options', () => {
+    const locatePrompt = 'Click on the login button';
+    const result = buildDetailedLocateParamAndRestParams(
+      locatePrompt,
+      undefined,
+    );
+
+    expect(result.locateParam).toEqual({
+      prompt: 'Click on the login button',
+      deepThink: false,
+      cacheable: true,
+      xpath: undefined,
+    });
+    expect(result.restParams).toEqual({});
+  });
+
+  it('should build detailed locate param and extract pageContext to restParams', () => {
+    const locatePrompt = 'Find the submit button';
+    const mockPageContext = {
+      tree: { node: null, children: [] },
+      size: { width: 800, height: 600 },
+      screenshotBase64: 'mock-base64-string',
+    };
+    const options = {
+      deepThink: true,
+      cacheable: false,
+      xpath: '//button[@type="submit"]',
+      prompt: 'Override prompt',
+      pageContext: mockPageContext,
+    };
+    const result = buildDetailedLocateParamAndRestParams(locatePrompt, options);
+
+    expect(result.locateParam).toMatchInlineSnapshot(`
+      {
+        "cacheable": false,
+        "deepThink": true,
+        "prompt": "Find the submit button",
+        "xpath": "//button[@type="submit"]",
+      }
+    `);
+    expect(result.restParams).toEqual({
+      pageContext: mockPageContext,
+    });
+  });
+
+  it('should handle multiple rest params', () => {
+    const locatePrompt = 'Locate the search input';
+    const options = {
+      deepThink: true,
+      pageContext: {
+        tree: { node: null, children: [] },
+        size: { width: 1024, height: 768 },
+        screenshotBase64: 'mock-base64-string',
+      },
+      customParam1: 'value1',
+      customParam2: 42,
+      customParam3: true,
+    } as any; // Using 'as any' because these custom params aren't in LocateOption type
+    const result = buildDetailedLocateParamAndRestParams(locatePrompt, options);
+
+    expect(result.locateParam).toEqual({
+      prompt: 'Locate the search input',
+      deepThink: true,
+      cacheable: true,
+      xpath: undefined,
+    });
+    expect(result.restParams).toEqual({
+      pageContext: {
+        tree: { node: null, children: [] },
+        size: { width: 1024, height: 768 },
+        screenshotBase64: 'mock-base64-string',
+      },
+      customParam1: 'value1',
+      customParam2: 42,
+      customParam3: true,
+    });
+  });
+
+  it('should handle null options', () => {
+    const locatePrompt = 'Test prompt';
+    const result = buildDetailedLocateParamAndRestParams(
+      locatePrompt,
+      null as any,
+    );
+
+    expect(result.locateParam).toEqual({
+      prompt: 'Test prompt',
+      deepThink: false,
+      cacheable: true,
+      xpath: undefined,
+    });
+    expect(result.restParams).toEqual({});
   });
 });

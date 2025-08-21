@@ -41,33 +41,84 @@ export const descriptionForAction = (
 
     // Helper function to get type name from zod schema
     const getTypeName = (field: any): string => {
-      // Handle unwrapped optional fields
-      const actualField = field._def?.innerType || field;
+      // Recursively unwrap optional, nullable, and other wrapper types to get the actual inner type
+      const unwrapField = (f: any): any => {
+        if (!f._def) return f;
 
-      if (actualField._def?.typeName === 'ZodString') return 'string';
-      if (actualField._def?.typeName === 'ZodNumber') return 'number';
-      if (actualField._def?.typeName === 'ZodBoolean') return 'boolean';
-      if (actualField._def?.typeName === 'ZodArray') return 'array';
-      if (actualField._def?.typeName === 'ZodObject') {
+        const typeName = f._def.typeName;
+
+        // Handle wrapper types that have innerType
+        if (
+          typeName === 'ZodOptional' ||
+          typeName === 'ZodNullable' ||
+          typeName === 'ZodDefault'
+        ) {
+          return unwrapField(f._def.innerType);
+        }
+
+        return f;
+      };
+
+      const actualField = unwrapField(field);
+      const fieldTypeName = actualField._def?.typeName;
+
+      if (fieldTypeName === 'ZodString') return 'string';
+      if (fieldTypeName === 'ZodNumber') return 'number';
+      if (fieldTypeName === 'ZodBoolean') return 'boolean';
+      if (fieldTypeName === 'ZodArray') return 'array';
+      if (fieldTypeName === 'ZodObject') {
         // Check if this is a passthrough object (like MidsceneLocation)
         if (ifMidsceneLocatorField(actualField)) {
           return locatorSchemaTypeDescription;
         }
         return 'object';
       }
+      if (fieldTypeName === 'ZodEnum') {
+        const values =
+          (actualField._def?.values as unknown[] | undefined)
+            ?.map((option: unknown) => String(`'${option}'`))
+            .join(', ') ?? 'enum';
 
-      console.warn('unknown type: ', actualField._def);
-      return 'type';
+        return `enum(${values})`;
+      }
+
+      console.warn(
+        'failed to parse Zod type. This may lead to wrong params from the LLM.\n',
+        actualField._def,
+      );
+      return actualField.toString();
     };
 
     // Helper function to get description from zod schema
     const getDescription = (field: z.ZodTypeAny): string | null => {
-      // Handle unwrapped optional fields
-      const actualField = field._def?.innerType || field;
+      // Recursively unwrap optional, nullable, and other wrapper types to get the actual inner type
+      const unwrapField = (f: any): any => {
+        if (!f._def) return f;
 
-      // Check for direct description
+        const typeName = f._def.typeName;
+
+        // Handle wrapper types that have innerType
+        if (
+          typeName === 'ZodOptional' ||
+          typeName === 'ZodNullable' ||
+          typeName === 'ZodDefault'
+        ) {
+          return unwrapField(f._def.innerType);
+        }
+
+        return f;
+      };
+
+      // Check for direct description on the original field (wrapper may have description)
       if ('description' in field) {
         return field.description || null;
+      }
+
+      const actualField = unwrapField(field);
+
+      // Check for description on the unwrapped field
+      if ('description' in actualField) {
+        return actualField.description || null;
       }
 
       // Check for MidsceneLocation fields and add description
@@ -168,9 +219,11 @@ this and output the JSON:
   "more_actions_needed_by_instruction": false,
   "action": {
     "type": "Tap",
-    "locate": {
-      "bbox": [100, 100, 200, 200],
-      "prompt": "The 'Yes' button in popup"
+    "param": {
+      "locate": {
+        "bbox": [100, 100, 200, 200],
+        "prompt": "The 'Yes' button in popup"
+      }
     }
   }
 }
@@ -267,8 +320,9 @@ By viewing the page screenshot and description, you should consider this and out
     {
       "thought": "Click the language switch button to open the language options.",
       "type": "Tap", 
-      "param": null,
-      "locate": { id: "c81c4e9a33", prompt: "The language switch button" }},
+      "param": {
+        "locate": { id: "c81c4e9a33", prompt: "The language switch button" }
+      }
     },
     {
       "thought": "Wait for 1 second to ensure the language options are displayed.",
@@ -288,16 +342,16 @@ Wrong output:
     {
       "thought": "Click the language switch button to open the language options.",
       "type": "Tap",
-      "param": null,
-      "locate": {
-        { "id": "c81c4e9a33" }, // WRONG: prompt is missing, this is not a valid LocateParam
+      "param": {
+        "locate": { "id": "c81c4e9a33" } // WRONG: prompt is missing, this is not a valid LocateParam
       }
     },
     {
       "thought": "Click the English option",
       "type": "Tap", 
-      "param": null,
-      "locate": null, // This means the 'English' option is not shown in the screenshot, the task cannot be accomplished
+      "param": {
+        "locate": null // WRONG: if the element is not on the page, you should not plan this action
+      }
     }
   ],
   "more_actions_needed_by_instruction": false, // WRONG: should be true

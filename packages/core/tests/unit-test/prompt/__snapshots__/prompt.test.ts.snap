@@ -562,8 +562,9 @@ By viewing the page screenshot and description, you should consider this and out
     {
       "thought": "Click the language switch button to open the language options.",
       "type": "Tap", 
-      "param": null,
-      "locate": { id: "c81c4e9a33", prompt: "The language switch button" }},
+      "param": {
+        "locate": { id: "c81c4e9a33", prompt: "The language switch button" }
+      }
     },
     {
       "thought": "Wait for 1 second to ensure the language options are displayed.",
@@ -583,16 +584,16 @@ Wrong output:
     {
       "thought": "Click the language switch button to open the language options.",
       "type": "Tap",
-      "param": null,
-      "locate": {
-        { "id": "c81c4e9a33" }, // WRONG: prompt is missing, this is not a valid LocateParam
+      "param": {
+        "locate": { "id": "c81c4e9a33" } // WRONG: prompt is missing, this is not a valid LocateParam
       }
     },
     {
       "thought": "Click the English option",
       "type": "Tap", 
-      "param": null,
-      "locate": null, // This means the 'English' option is not shown in the screenshot, the task cannot be accomplished
+      "param": {
+        "locate": null // WRONG: if the element is not on the page, you should not plan this action
+      }
     }
   ],
   "more_actions_needed_by_instruction": false, // WRONG: should be true
@@ -664,9 +665,11 @@ this and output the JSON:
   "more_actions_needed_by_instruction": false,
   "action": {
     "type": "Tap",
-    "locate": {
-      "bbox": [100, 100, 200, 200],
-      "prompt": "The 'Yes' button in popup"
+    "param": {
+      "locate": {
+        "bbox": [100, 100, 200, 200],
+        "prompt": "The 'Yes' button in popup"
+      }
     }
   }
 }
@@ -756,9 +759,11 @@ this and output the JSON:
   "more_actions_needed_by_instruction": false,
   "action": {
     "type": "Tap",
-    "locate": {
-      "bbox": [100, 100, 200, 200],
-      "prompt": "The 'Yes' button in popup"
+    "param": {
+      "locate": {
+        "bbox": [100, 100, 200, 200],
+        "prompt": "The 'Yes' button in popup"
+      }
     }
   }
 }
@@ -828,9 +833,11 @@ this and output the JSON:
   "more_actions_needed_by_instruction": false,
   "action": {
     "type": "Tap",
-    "locate": {
-      "bbox": [100, 100, 200, 200],
-      "prompt": "The 'Yes' button in popup"
+    "param": {
+      "locate": {
+        "bbox": [100, 100, 200, 200],
+        "prompt": "The 'Yes' button in popup"
+      }
     }
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@midscene/shared",
-  "version": "0.26.6",
+  "version": "0.27.0",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "types": "./dist/types/index.d.ts",
@@ -36,6 +36,11 @@
       "types": "./dist/types/types/index.d.ts",
       "import": "./dist/es/types/index.mjs",
       "require": "./dist/lib/types/index.js"
+    },
+    "./env": {
+      "types": "./dist/types/env/index.d.ts",
+      "import": "./dist/es/env/index.mjs",
+      "require": "./dist/lib/env/index.js"
     },
     "./*": {
       "types": "./dist/types/*.d.ts",

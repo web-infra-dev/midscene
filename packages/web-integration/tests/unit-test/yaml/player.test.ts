@@ -142,14 +142,14 @@ describe('yaml utils', () => {
   });
 
   test('player - bad params', async () => {
-    expect(async () => {
+    await expect(async () => {
       await runYaml(`
           target:
             serve: ${serverRoot}
         `);
     }).rejects.toThrow();
 
-    expect(async () => {
+    await expect(async () => {
       await runYaml(`
           target:
             serve: ${serverRoot}
@@ -240,7 +240,7 @@ describe.skipIf(!shouldRunAITest)(
             - aiAssert: the response is "Hello, world!"
     `;
 
-      expect(async () => {
+      await expect(async () => {
         await runYaml(yamlString);
       }).rejects.toThrow(/TimeoutError/i);
     });
@@ -348,11 +348,14 @@ tasks:
       [
         [
           "RightClick",
-          "element to right click",
           {
-            "cacheable": false,
-            "deepThink": true,
             "foo": 123,
+            "locate": {
+              "cacheable": false,
+              "deepThink": true,
+              "prompt": "element to right click",
+              "xpath": undefined,
+            },
             "moreParam": null,
           },
         ],
@@ -367,11 +370,11 @@ target:
 tasks:
   - name: test_right_click_with_options
     flow:
-      - action_space_RightClick: "element to right click"
+      - RightClick: "element to right click"
         deepThink: true
         cacheable: false
         moreParam: 456
-      - action_space_Input: "input field 1"
+      - Input: "input field 1"
         value: "i am value 1"
       - aiRightClick: "item in menu"
 
@@ -387,8 +390,9 @@ tasks:
     await player.run();
 
     // Verify the player completed successfully
-    expect(player.status).toBe('done');
     expect(player.errorInSetup).toBeUndefined();
+    console.log(player.taskStatusList);
+    expect(player.status).toBe('done');
 
     expect(
       (mockAgent.agent.callActionInActionSpace as MockedFunction<any>).mock
@@ -397,24 +401,141 @@ tasks:
       [
         [
           "RightClick",
-          "element to right click",
           {
-            "cacheable": false,
-            "deepThink": true,
+            "locate": {
+              "cacheable": false,
+              "deepThink": true,
+              "prompt": "element to right click",
+              "xpath": undefined,
+            },
             "moreParam": 456,
           },
         ],
         [
           "Input",
-          "input field 1",
           {
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "input field 1",
+              "xpath": undefined,
+            },
             "value": "i am value 1",
           },
         ],
         [
           "RightClick",
-          "item in menu",
-          {},
+          {
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "item in menu",
+              "xpath": undefined,
+            },
+          },
+        ],
+      ]
+    `);
+  });
+
+  test('locate parameter with different style', async () => {
+    const yamlString = `
+target:
+  url: "https://example.com"
+tasks:
+  - name: test_aiTap_with_different_style
+    flow:
+      - aiTap: 'search input box'
+      - aiTap: 'search input box'
+        deepThink: true
+        cacheable: false
+      - aiTap:
+        prompt: 'search input box'
+      - aiTap:
+        prompt: 'search input box'
+        deepThink: true
+        cacheable: false
+      - aiKeyboardPress:
+        keyName: 'Enter'
+      - aiInput: ''
+        locate: 第一个搜索结果的天气信息卡片
+`;
+
+    const script = parseYamlScript(yamlString);
+    const mockAgent = await getMockAgent();
+    const player = new ScriptPlayer<MidsceneYamlScriptWebEnv>(
+      script,
+      async () => mockAgent,
+    );
+
+    await player.run();
+
+    // Verify the player completed successfully
+    expect(player.errorInSetup).toBeUndefined();
+    // console.log(player);
+    expect(player.status).toBe('done');
+
+    // Verify aiRightClick was called with correct parameters
+    expect(
+      (mockAgent.agent.callActionInActionSpace as MockedFunction<any>).mock
+        .calls,
+    ).toMatchInlineSnapshot(`
+      [
+        [
+          "Tap",
+          {
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "search input box",
+              "xpath": undefined,
+            },
+          },
+        ],
+        [
+          "Tap",
+          {
+            "locate": {
+              "cacheable": false,
+              "deepThink": true,
+              "prompt": "search input box",
+              "xpath": undefined,
+            },
+          },
+        ],
+        [
+          "Tap",
+          {
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "search input box",
+              "xpath": undefined,
+            },
+          },
+        ],
+        [
+          "Tap",
+          {
+            "locate": {
+              "cacheable": false,
+              "deepThink": true,
+              "prompt": "search input box",
+              "xpath": undefined,
+            },
+          },
+        ],
+        [
+          "KeyboardPress",
+          {
+            "keyName": "Enter",
+          },
+        ],
+        [
+          "Input",
+          {
+            "locate": "第一个搜索结果的天气信息卡片",
+          },
         ],
       ]
     `);
@@ -431,6 +552,9 @@ tasks:
         locate: 'input field 1'
       - aiInput: 'input field 2'
         value: 'i am value 2'
+      - aiInput:
+        locate: 'input field 3'
+        value: 'i am value 3'
       - aiScroll: 'scrollable area A'
         direction: 'down'
         scrollType: 'once'
@@ -441,9 +565,12 @@ tasks:
         scrollType: 'once'
         distance: 100
       - aiKeyboardPress: 'input field 3'
-        key: 'Enter'
+        keyName: 'Enter'
       - aiKeyboardPress: 'Control'
         locate: 'input field 4'
+      - aiKeyboardPress:
+        locate: 'input field 5'
+        keyName: 'Escape'
 `;
 
     const script = parseYamlScript(yamlString);
@@ -454,84 +581,91 @@ tasks:
     );
 
     await player.run();
-    console.log(player);
 
     // Verify the player completed successfully
     expect(player.errorInSetup).toBeUndefined();
+    // console.log(player.taskStatusList);
     expect(player.status).toBe('done');
 
     // Verify aiRightClick was called with correct parameters
-    expect(mockAgent.agent.callActionInActionSpace).not.toHaveBeenCalled();
     expect(
-      (mockAgent.agent.aiInput as MockedFunction<any>).mock.calls,
+      (mockAgent.agent.callActionInActionSpace as MockedFunction<any>).mock
+        .calls,
     ).toMatchInlineSnapshot(`
       [
         [
-          "input field 1",
+          "Input",
           {
-            "aiInput": "i am value 1",
             "locate": "input field 1",
             "value": "i am value 1",
           },
         ],
         [
-          "input field 2",
+          "Input",
           {
-            "aiInput": "input field 2",
+            "locate": "input field 2",
             "value": "i am value 2",
           },
         ],
-      ]
-    `);
-
-    expect(
-      (mockAgent.agent.aiScroll as MockedFunction<any>).mock.calls,
-    ).toMatchInlineSnapshot(`
-      [
         [
-          "scrollable area A",
+          "Input",
           {
-            "aiScroll": "scrollable area A",
+            "locate": "input field 3",
+            "value": "i am value 3",
+          },
+        ],
+        [
+          "Scroll",
+          {
             "direction": "down",
             "distance": 100,
+            "locate": "scrollable area A",
             "scrollType": "once",
           },
         ],
         [
-          "scrollable area B",
+          "Scroll",
           {
-            "aiScroll": null,
             "direction": "up",
             "distance": 100,
             "locate": "scrollable area B",
             "scrollType": "once",
           },
         ],
-      ]
-    `);
-
-    expect(
-      (mockAgent.agent.aiKeyboardPress as MockedFunction<any>).mock.calls,
-    ).toMatchInlineSnapshot(`
-      [
         [
-          "input field 3",
+          "KeyboardPress",
           {
-            "aiKeyboardPress": "input field 3",
-            "key": "Enter",
             "keyName": "Enter",
+            "locate": "input field 3",
           },
         ],
         [
-          "input field 4",
+          "KeyboardPress",
           {
-            "aiKeyboardPress": "Control",
             "keyName": "Control",
             "locate": "input field 4",
           },
         ],
+        [
+          "KeyboardPress",
+          {
+            "keyName": "Escape",
+            "locate": "input field 5",
+          },
+        ],
       ]
     `);
+    expect(
+      (mockAgent.agent.aiInput as MockedFunction<any>).mock.calls,
+    ).toHaveLength(0);
+
+    expect(
+      (mockAgent.agent.aiScroll as MockedFunction<any>).mock.calls,
+    ).toHaveLength(0);
+
+    expect(
+      (mockAgent.agent.aiKeyboardPress as MockedFunction<any>).mock.calls,
+    ).toHaveLength(0);
   });
 
   test('should handle errors in action space', async () => {
@@ -541,7 +675,7 @@ target:
 tasks:
   - name: test_right_click_error
     flow:
-      - action_space_no_such_action: "non-existent element"
+      - no_such_action: "non-existent element"
 `;
 
     const script = parseYamlScript(yamlString);
@@ -618,8 +752,14 @@ tasks:
       [
         [
           "aiTap",
-          "some button",
-          {},
+          {
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "some button",
+              "xpath": undefined,
+            },
+          },
         ],
       ]
     `);

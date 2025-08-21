@@ -19,7 +19,6 @@ import type {
   DetailedLocateParam,
   DumpSubscriber,
   InsightAction,
-  InsightAssertionResponse,
   InsightExtractOption,
   InsightExtractParam,
   InsightOptions,
@@ -27,19 +26,19 @@ import type {
   LocateResult,
   PartialInsightDumpFromSDK,
   Rect,
-  TMultimodalPrompt,
-  TUserPrompt,
   UIContext,
 } from '@/types';
 import {
+  type IModelPreferences,
   MIDSCENE_FORCE_DEEP_THINK,
-  MIDSCENE_USE_QWEN_VL,
   getAIConfigInBoolean,
+  getIsUseQwenVl,
   vlLocateMode,
 } from '@midscene/shared/env';
 import { compositeElementInfoImg, cropByRect } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
+import type { TMultimodalPrompt } from '../ai-model/common';
 import { emitInsightDump } from './utils';
 
 export interface LocateOpts {
@@ -109,8 +108,11 @@ export default class Insight<
     if (query.deepThink || globalDeepThinkSwitch) {
       searchAreaPrompt = query.prompt;
     }
+    const modelPreferences: IModelPreferences = {
+      intent: 'grounding',
+    };
 
-    if (searchAreaPrompt && !vlLocateMode()) {
+    if (searchAreaPrompt && !vlLocateMode(modelPreferences)) {
       console.warn(
         'The "deepThink" feature is not supported with multimodal LLM. Please config VL model for Midscene. https://midscenejs.com/choose-a-model',
       );
@@ -254,6 +256,10 @@ export default class Insight<
     const dumpSubscriber = this.onceDumpUpdatedFn;
     this.onceDumpUpdatedFn = undefined;
 
+    const modelPreferences: IModelPreferences = {
+      intent: 'VQA',
+    };
+
     const context = await this.contextRetrieverFn('extract');
 
     const startTime = Date.now();
@@ -262,6 +268,7 @@ export default class Insight<
       dataQuery: dataDemand,
       multimodalPrompt,
       extractOption: opt,
+      modelPreferences,
     });
 
     const timeCost = Date.now() - startTime;
@@ -319,7 +326,8 @@ export default class Insight<
     const context = await this.contextRetrieverFn('describe');
     const { screenshotBase64, size } = context;
     assert(screenshotBase64, 'screenshot is required for insight.describe');
-
+    // The result of the "describe" function will be used for positioning, so essentially it is a form of grounding.
+    const modelPreferences: IModelPreferences = { intent: 'grounding' };
     const systemPrompt = elementDescriberInstruction();
 
     // Convert [x,y] center point to Rect if needed
@@ -345,12 +353,16 @@ export default class Insight<
     });
 
     if (opt?.deepThink) {
-      const searchArea = expandSearchArea(targetRect, context.size);
+      const searchArea = expandSearchArea(
+        targetRect,
+        context.size,
+        modelPreferences,
+      );
       debug('describe: set searchArea', searchArea);
       imagePayload = await cropByRect(
         imagePayload,
         searchArea,
-        getAIConfigInBoolean(MIDSCENE_USE_QWEN_VL),
+        getIsUseQwenVl(modelPreferences),
       );
     }
 
@@ -373,7 +385,11 @@ export default class Insight<
     const callAIFn =
       this.aiVendorFn || callToGetJSONObject<AIDescribeElementResponse>;
 
-    const res = await callAIFn(msgs, AIActionType.DESCRIBE_ELEMENT);
+    const res = await callAIFn(
+      msgs,
+      AIActionType.DESCRIBE_ELEMENT,
+      modelPreferences,
+    );
 
     const { content } = res;
     assert(!content.error, `describe failed: ${content.error}`);

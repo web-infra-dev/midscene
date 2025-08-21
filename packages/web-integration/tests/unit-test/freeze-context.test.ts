@@ -135,10 +135,6 @@ describe('PageAgent freeze/unfreeze page context', () => {
       const frozenContext = (agent as any).frozenPageContext;
       expect(frozenContext._isFrozen).toBe(true);
 
-      // buildDetailedLocateParam no longer returns pageContext
-      const result = (agent as any).buildDetailedLocateParam('test');
-      expect(result.pageContext).toBeUndefined();
-
       // But frozen context should still be marked and available via getUIContext
       expect(frozenContext._isFrozen).toBe(true);
       const contextViaGetUIContext = await agent.getUIContext('locate');

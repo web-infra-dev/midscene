@@ -1,12 +1,11 @@
-import { existsSync } from 'node:fs';
-import path from 'node:path';
 import { AIActionType } from '@/ai-model/common';
 import { call } from '@/ai-model/service-caller';
 import { localImg2Base64 } from '@/image';
-import type { AIUsageInfo, CodeGenerationChunk } from '@/types';
+import type { CodeGenerationChunk } from '@/types';
+import type { IModelPreferences } from '@midscene/shared/env';
 import dotenv from 'dotenv';
 import { getFixture } from 'tests/utils';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 dotenv.config({
   debug: true,
@@ -17,8 +16,15 @@ vi.setConfig({
   testTimeout: 30 * 1000, // Increased timeout for streaming tests
 });
 
+const defaultModelPreferences: IModelPreferences = {
+  intent: 'default',
+};
+
 describe(
   'Streaming functionality',
+  {
+    timeout: 10 * 60 * 1000,
+  },
   () => {
     it('should stream text response with proper chunk structure', async () => {
       const chunks: CodeGenerationChunk[] = [];
@@ -38,7 +44,7 @@ describe(
           },
         ],
         AIActionType.EXTRACT_DATA,
-        undefined,
+        defaultModelPreferences,
         {
           stream: true,
           onChunk: (chunk: CodeGenerationChunk) => {
@@ -112,7 +118,7 @@ describe(
           },
         ],
         AIActionType.EXTRACT_DATA,
-        undefined,
+        defaultModelPreferences,
         {
           stream: true,
           onChunk: (chunk: CodeGenerationChunk) => {
@@ -155,7 +161,7 @@ describe(
           },
         ],
         AIActionType.EXTRACT_DATA,
-        undefined,
+        defaultModelPreferences,
         {
           stream: true,
           onChunk: (chunk: CodeGenerationChunk) => {
@@ -188,7 +194,7 @@ describe(
           },
         ],
         AIActionType.EXTRACT_DATA,
-        undefined,
+        defaultModelPreferences,
         {
           stream: true,
           onChunk: (chunk: CodeGenerationChunk) => {
@@ -225,7 +231,7 @@ describe(
           },
         ],
         AIActionType.EXTRACT_DATA,
-        undefined,
+        defaultModelPreferences,
         {
           stream: true,
           onChunk: (chunk: CodeGenerationChunk) => {
@@ -260,7 +266,7 @@ describe(
           },
         ],
         AIActionType.EXTRACT_DATA,
-        undefined,
+        defaultModelPreferences,
         {
           stream: true,
           onChunk: (chunk: CodeGenerationChunk) => {
@@ -300,7 +306,7 @@ describe(
           },
         ],
         AIActionType.EXTRACT_DATA,
-        undefined,
+        defaultModelPreferences,
         {
           stream: true,
           // onChunk is intentionally omitted
@@ -331,7 +337,7 @@ describe(
             },
           ],
           actionType,
-          undefined,
+          defaultModelPreferences,
           {
             stream: true,
             onChunk: (chunk: CodeGenerationChunk) => {
@@ -345,8 +351,5 @@ describe(
         expect(result.content).toBeDefined();
       }
     });
-  },
-  {
-    timeout: 10 * 60 * 1000,
   },
 );

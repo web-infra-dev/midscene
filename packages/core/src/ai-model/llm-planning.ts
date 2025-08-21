@@ -4,7 +4,7 @@ import type {
   PlanningAIResponse,
   UIContext,
 } from '@/types';
-import { vlLocateMode } from '@midscene/shared/env';
+import { type IModelPreferences, vlLocateMode } from '@midscene/shared/env';
 import { paddingToMatchBlockByBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
@@ -40,12 +40,18 @@ export async function plan(
 ): Promise<PlanningAIResponse> {
   const { callAI, context } = opts || {};
   const { screenshotBase64, size } = context;
-  const { description: pageDescription, elementById } =
-    await describeUserPage(context);
+
+  const modelPreferences: IModelPreferences = {
+    intent: 'planning',
+  };
+  const { description: pageDescription, elementById } = await describeUserPage(
+    context,
+    modelPreferences,
+  );
 
   const systemPrompt = await systemPromptToTaskPlanning({
     actionSpace: opts.actionSpace,
-    vlMode: vlLocateMode(),
+    vlMode: vlLocateMode(modelPreferences),
   });
   const taskBackgroundContextText = generateTaskBackgroundContext(
     userInstruction,
@@ -53,16 +59,16 @@ export async function plan(
     opts.actionContext,
   );
   const userInstructionPrompt = await automationUserPrompt(
-    vlLocateMode(),
+    vlLocateMode(modelPreferences),
   ).format({
     pageDescription,
     taskBackgroundContext: taskBackgroundContextText,
   });
 
   let imagePayload = screenshotBase64;
-  if (vlLocateMode() === 'qwen-vl') {
+  if (vlLocateMode(modelPreferences) === 'qwen-vl') {
     imagePayload = await paddingToMatchBlockByBase64(imagePayload);
-  } else if (!vlLocateMode()) {
+  } else if (!vlLocateMode(modelPreferences)) {
     imagePayload = await markupImageForLLM(
       screenshotBase64,
       context.tree,
@@ -70,7 +76,7 @@ export async function plan(
     );
   }
 
-  warnGPT4oSizeLimit(size);
+  warnGPT4oSizeLimit(size, modelPreferences);
 
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
@@ -93,7 +99,11 @@ export async function plan(
   ];
 
   const call = callAI || callAiFn;
-  const { content, usage } = await call(msgs, AIActionType.PLAN);
+  const { content, usage } = await call(
+    msgs,
+    AIActionType.PLAN,
+    modelPreferences,
+  );
   const rawResponse = JSON.stringify(content, undefined, 2);
   const planFromAI = content;
 
@@ -128,11 +138,12 @@ export async function plan(
     locateFields.forEach((field) => {
       const locateResult = action.param[field];
       if (locateResult) {
-        if (vlLocateMode()) {
+        if (vlLocateMode(modelPreferences)) {
           action.param[field] = fillBboxParam(
             locateResult,
             size.width,
             size.height,
+            modelPreferences,
           );
         } else {
           const element = elementById(locateResult);
@@ -141,9 +152,6 @@ export async function plan(
           }
         }
       }
-
-      // to be compatible with the web-integration
-      action.locate = action.param[field];
     });
   });
   // in Qwen-VL, error means error. In GPT-4o, error may mean more actions are needed.
