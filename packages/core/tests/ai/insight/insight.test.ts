@@ -13,7 +13,9 @@ const vlMode = vlLocateMode({ intent: 'grounding' });
 
 describe.skipIf(!vlMode)('insight locate with deep think', () => {
   test('insight locate with search area', async () => {
+    console.log('building insight context start');
     const { context } = await getContextFromFixture('taobao');
+    console.log('building insight context done');
 
     const insight = new Insight(context);
     const { element } = await insight.locate({
@@ -26,7 +28,9 @@ describe.skipIf(!vlMode)('insight locate with deep think', () => {
   });
 
   test('insight locate with search area - deep think', async () => {
+    console.log('building insight context start');
     const { context } = await getContextFromFixture('taobao');
+    console.log('building insight context done');
 
     const insight = new Insight(context);
     const { element, rect } = await insight.locate({
@@ -53,18 +57,6 @@ describe.skipIf(!vlMode)('insight locate with deep think', () => {
 
 vi.setConfig({
   testTimeout: 60 * 1000,
-});
-
-test.skip('insight locate with search area', async () => {
-  const { context } = await getContextFromFixture('image-only');
-
-  const insight = new Insight(context);
-  const { element, rect } = await insight.locate({
-    prompt: '-',
-    deepThink: true,
-  });
-  console.log(element, rect);
-  await sleep(3000);
 });
 
 describe(
@@ -95,3 +87,15 @@ describe(
     });
   },
 );
+
+test.skip('insight locate with search area', async () => {
+  const { context } = await getContextFromFixture('image-only');
+
+  const insight = new Insight(context);
+  const { element, rect } = await insight.locate({
+    prompt: '-',
+    deepThink: true,
+  });
+  console.log(element, rect);
+  await sleep(3000);
+});
