@@ -26,12 +26,7 @@ type ActionType =
   | 'hotkey'
   | 'finished'
   | 'scroll'
-  | 'wait'
-  | 'androidBackButton'
-  | 'androidHomeButton'
-  | 'androidRecentAppsButton'
-  | 'androidLongPress'
-  | 'androidPull';
+  | 'wait';
 
 const debug = getDebug('ui-tars-planning');
 const bboxSize = 10;
@@ -183,55 +178,6 @@ export async function vlmPlanning(options: {
         },
         thought: action.thought || '',
       });
-    } else if (action.action_type === 'androidBackButton') {
-      transformActions.push({
-        type: 'AndroidBackButton',
-        param: {},
-        thought: action.thought || '',
-      });
-    } else if (action.action_type === 'androidHomeButton') {
-      transformActions.push({
-        type: 'AndroidHomeButton',
-        param: {},
-        thought: action.thought || '',
-      });
-    } else if (action.action_type === 'androidRecentAppsButton') {
-      transformActions.push({
-        type: 'AndroidRecentAppsButton',
-        param: {},
-      });
-    } else if (action.action_type === 'androidLongPress') {
-      assert(
-        action.action_inputs.start_box,
-        'start_box is required for androidLongPress',
-      );
-      const start = getPoint(action.action_inputs.start_box, size);
-      transformActions.push({
-        type: 'AndroidLongPress',
-        param: {
-          locate: {
-            prompt: action.thought || '',
-            bbox: pointToBbox(
-              { x: start[0], y: start[1] },
-              size.width,
-              size.height,
-            ),
-          },
-          duration: 1000,
-        },
-        thought: action.thought || '',
-      });
-    } else if (action.action_type === 'androidPull') {
-      const pullDirection = action.action_inputs.direction || 'down';
-      transformActions.push({
-        type: 'AndroidPull',
-        param: {
-          direction: pullDirection as 'up' | 'down',
-          distance: (action.action_inputs as any).distance,
-          duration: (action.action_inputs as any).duration || 500,
-        },
-        thought: action.thought || '',
-      });
     }
   });
 
@@ -350,14 +296,6 @@ interface FinishedAction extends BaseAction {
   action_inputs: Record<string, never>;
 }
 
-interface AndroidLongPressAction extends BaseAction {
-  action_type: 'androidLongPress';
-  action_inputs: {
-    start_coords: [number, number]; // Coordinates for long press
-    duration?: number; // Duration in milliseconds
-  };
-}
-
 export type Action =
   | ClickAction
   | DragAction
@@ -365,8 +303,7 @@ export type Action =
   | HotkeyAction
   | ScrollAction
   | FinishedAction
-  | WaitAction
-  | AndroidLongPressAction;
+  | WaitAction;
 
 export async function resizeImageForUiTars(
   imageBase64: string,
