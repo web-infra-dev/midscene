@@ -1120,6 +1120,11 @@ export class PageTaskExecutor {
     assert(timeoutMs, 'No timeoutMs for waitFor');
     assert(checkIntervalMs, 'No checkIntervalMs for waitFor');
 
+    assert(
+      checkIntervalMs <= timeoutMs,
+      `wrong config for waitFor: checkIntervalMs must be less than timeoutMs, config: {checkIntervalMs: ${checkIntervalMs}, timeoutMs: ${timeoutMs}}`,
+    );
+
     const overallStartTime = Date.now();
     let startTime = Date.now();
     let errorThought = '';
