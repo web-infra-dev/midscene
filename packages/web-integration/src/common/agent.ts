@@ -753,6 +753,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
 
   async aiLocate(prompt: TUserPrompt, opt?: LocateOption) {
     const locateParam = buildDetailedLocateParam(prompt, opt);
+    assert(locateParam, 'cannot get locate param for aiLocate');
     const locatePlan = locatePlanForLocate(locateParam);
     const plans = [locatePlan];
     const { executor, output } = await this.taskExecutor.runPlans(
