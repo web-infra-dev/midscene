@@ -919,12 +919,7 @@ export class PageTaskExecutor {
     };
   }
 
-  async actionToGoal(
-    userPrompt: string,
-    opts?: {
-      cacheable?: boolean;
-    },
-  ): Promise<
+  async actionToGoal(userPrompt: string): Promise<
     ExecutionResult<
       | {
           yamlFlow?: MidsceneYamlFlowItem[]; // for cache use
@@ -937,12 +932,18 @@ export class PageTaskExecutor {
     });
     this.conversationHistory = [];
     const isCompleted = false;
-    let currentActionNumber = 0;
+    let currentActionCount = 0;
     const maxActionNumber = 40;
 
     const yamlFlow: MidsceneYamlFlowItem[] = [];
-    while (!isCompleted && currentActionNumber < maxActionNumber) {
-      currentActionNumber++;
+    while (!isCompleted && currentActionCount < maxActionNumber) {
+      currentActionCount++;
+      debug(
+        'actionToGoal, currentActionCount:',
+        currentActionCount,
+        'userPrompt:',
+        userPrompt,
+      );
       const planningTask: ExecutionTaskPlanningApply = this.planningTaskToGoal(
         userPrompt,
         {

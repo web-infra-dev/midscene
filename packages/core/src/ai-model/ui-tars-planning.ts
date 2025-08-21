@@ -26,12 +26,7 @@ type ActionType =
   | 'hotkey'
   | 'finished'
   | 'scroll'
-  | 'wait'
-  | 'androidBackButton'
-  | 'androidHomeButton'
-  | 'androidRecentAppsButton'
-  | 'androidLongPress'
-  | 'androidPull';
+  | 'wait';
 
 const debug = getDebug('ui-tars-planning');
 const bboxSize = 10;
@@ -90,7 +85,7 @@ export async function vlmPlanning(options: {
     modelVer: modelVer || undefined,
   });
 
-  debug('modelVer', modelVer, 'parsed', JSON.stringify(parsed));
+  debug('ui-tars modelVer', modelVer, ', parsed', JSON.stringify(parsed));
 
   const transformActions: PlanningAction[] = [];
   parsed.forEach((action) => {
@@ -98,28 +93,17 @@ export async function vlmPlanning(options: {
       assert(action.action_inputs.start_box, 'start_box is required');
       const point = getPoint(action.action_inputs.start_box, size);
       transformActions.push({
-        type: 'Locate',
-        param: {},
-        locate: {
-          prompt: action.thought || '',
-          bbox: pointToBbox(
-            { x: point[0], y: point[1] },
-            size.width,
-            size.height,
-          ),
-        },
-      });
-      transformActions.push({
         type: 'Tap',
-        locate: {
-          prompt: action.thought || '',
-          bbox: pointToBbox(
-            { x: point[0], y: point[1] },
-            size.width,
-            size.height,
-          ),
+        param: {
+          locate: {
+            prompt: action.thought || '',
+            bbox: pointToBbox(
+              { x: point[0], y: point[1] },
+              size.width,
+              size.height,
+            ),
+          },
         },
-        param: action.thought || '',
       });
     } else if (action.action_type === 'drag') {
       assert(action.action_inputs.start_box, 'start_box is required');
@@ -127,12 +111,25 @@ export async function vlmPlanning(options: {
       const startPoint = getPoint(action.action_inputs.start_box, size);
       const endPoint = getPoint(action.action_inputs.end_box, size);
       transformActions.push({
-        type: 'Drag',
+        type: 'DragAndDrop',
         param: {
-          start_box: { x: startPoint[0], y: startPoint[1] },
-          end_box: { x: endPoint[0], y: endPoint[1] },
+          from: {
+            prompt: action.thought || '',
+            bbox: pointToBbox(
+              { x: startPoint[0], y: startPoint[1] },
+              size.width,
+              size.height,
+            ),
+          },
+          to: {
+            prompt: action.thought || '',
+            bbox: pointToBbox(
+              { x: endPoint[0], y: endPoint[1] },
+              size.width,
+              size.height,
+            ),
+          },
         },
-        locate: null,
         thought: action.thought || '',
       });
     } else if (action.action_type === 'type') {
@@ -141,7 +138,6 @@ export async function vlmPlanning(options: {
         param: {
           value: action.action_inputs.content,
         },
-        locate: null,
         thought: action.thought || '',
       });
     } else if (action.action_type === 'scroll') {
@@ -150,14 +146,12 @@ export async function vlmPlanning(options: {
         param: {
           direction: action.action_inputs.direction,
         },
-        locate: null,
         thought: action.thought || '',
       });
     } else if (action.action_type === 'finished') {
       transformActions.push({
         type: 'Finished',
         param: {},
-        locate: null,
         thought: action.thought || '',
       });
     } else if (action.action_type === 'hotkey') {
@@ -171,9 +165,8 @@ export async function vlmPlanning(options: {
         transformActions.push({
           type: 'KeyboardPress',
           param: {
-            value: keys,
+            keyName: keys,
           },
-          locate: null,
           thought: action.thought || '',
         });
       }
@@ -183,62 +176,6 @@ export async function vlmPlanning(options: {
         param: {
           timeMs: 1000,
         },
-        locate: null,
-        thought: action.thought || '',
-      });
-    } else if (action.action_type === 'androidBackButton') {
-      transformActions.push({
-        type: 'AndroidBackButton',
-        param: {},
-        locate: null,
-        thought: action.thought || '',
-      });
-    } else if (action.action_type === 'androidHomeButton') {
-      transformActions.push({
-        type: 'AndroidHomeButton',
-        param: {},
-        locate: null,
-        thought: action.thought || '',
-      });
-    } else if (action.action_type === 'androidRecentAppsButton') {
-      transformActions.push({
-        type: 'AndroidRecentAppsButton',
-        param: {},
-      });
-    } else if (action.action_type === 'androidLongPress') {
-      assert(
-        action.action_inputs.start_coords,
-        'start_coords is required for androidLongPress',
-      );
-      const point = action.action_inputs.start_coords;
-      transformActions.push({
-        type: 'AndroidLongPress',
-        param: {
-          x: point[0],
-          y: point[1],
-          duration: 1000,
-        },
-        locate: null,
-        thought: action.thought || '',
-      });
-    } else if (action.action_type === 'androidPull') {
-      const pullDirection = action.action_inputs.direction || 'down';
-      const startPoint = action.action_inputs.start_coords
-        ? {
-            x: action.action_inputs.start_coords[0],
-            y: action.action_inputs.start_coords[1],
-          }
-        : undefined;
-
-      transformActions.push({
-        type: 'AndroidPull',
-        param: {
-          direction: pullDirection as 'up' | 'down',
-          startPoint,
-          distance: (action.action_inputs as any).distance,
-          duration: (action.action_inputs as any).duration || 500,
-        },
-        locate: null,
         thought: action.thought || '',
       });
     }
@@ -252,6 +189,8 @@ export async function vlmPlanning(options: {
       },
     });
   }
+
+  debug('transformActions', JSON.stringify(transformActions, null, 2));
 
   return {
     actions: transformActions,
@@ -357,14 +296,6 @@ interface FinishedAction extends BaseAction {
   action_inputs: Record<string, never>;
 }
 
-interface AndroidLongPressAction extends BaseAction {
-  action_type: 'androidLongPress';
-  action_inputs: {
-    start_coords: [number, number]; // Coordinates for long press
-    duration?: number; // Duration in milliseconds
-  };
-}
-
 export type Action =
   | ClickAction
   | DragAction
@@ -372,8 +303,7 @@ export type Action =
   | HotkeyAction
   | ScrollAction
   | FinishedAction
-  | WaitAction
-  | AndroidLongPressAction;
+  | WaitAction;
 
 export async function resizeImageForUiTars(
   imageBase64: string,
