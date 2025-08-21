@@ -5,8 +5,15 @@ import { vlLocateMode } from '@midscene/shared/env';
 import { getContextFromFixture } from 'tests/evaluation';
 import { expect, test } from 'vitest';
 
-test.skipIf(!vlLocateMode())(
+test.skipIf(
+  !vlLocateMode({
+    intent: 'default',
+  }),
+)(
   'locate section',
+  {
+    timeout: 60 * 1000,
+  },
   async () => {
     const { context } = await getContextFromFixture('antd-tooltip');
     const { rect, imageBase64 } = await AiLocateSection({
@@ -21,8 +28,5 @@ test.skipIf(!vlLocateMode())(
       base64Data: imageBase64!,
       outputPath: tmpFile!,
     });
-  },
-  {
-    timeout: 60 * 1000,
   },
 );

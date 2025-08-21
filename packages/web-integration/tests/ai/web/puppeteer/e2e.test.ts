@@ -106,7 +106,7 @@ describe(
       expect(names.length).toBeGreaterThan(5);
     });
 
-    it.skipIf(!vlLocateMode())(
+    it.skipIf(!vlLocateMode({ intent: 'default' }))(
       'search engine with specific actions',
       async () => {
         const { originPage, reset } = await launchPage(

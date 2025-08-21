@@ -326,7 +326,8 @@ export default class Insight<
     const context = await this.contextRetrieverFn('describe');
     const { screenshotBase64, size } = context;
     assert(screenshotBase64, 'screenshot is required for insight.describe');
-
+    // The result of the "describe" function will be used for positioning, so essentially it is a form of grounding.
+    const modelPreferences: IModelPreferences = { intent: 'grounding' };
     const systemPrompt = elementDescriberInstruction();
 
     // Convert [x,y] center point to Rect if needed
@@ -352,8 +353,6 @@ export default class Insight<
     });
 
     if (opt?.deepThink) {
-      // The result of the "describe" function will be used for positioning, so essentially it is a form of grounding.
-      const modelPreferences: IModelPreferences = { intent: 'grounding' };
       const searchArea = expandSearchArea(
         targetRect,
         context.size,
@@ -386,7 +385,11 @@ export default class Insight<
     const callAIFn =
       this.aiVendorFn || callToGetJSONObject<AIDescribeElementResponse>;
 
-    const res = await callAIFn(msgs, AIActionType.DESCRIBE_ELEMENT);
+    const res = await callAIFn(
+      msgs,
+      AIActionType.DESCRIBE_ELEMENT,
+      modelPreferences,
+    );
 
     const { content } = res;
     assert(!content.error, `describe failed: ${content.error}`);
