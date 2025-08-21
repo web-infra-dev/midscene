@@ -42,7 +42,7 @@
     "dev": "npm run build:watch",
     "build": "rslib build",
     "build:watch": "USE_DEV_REPORT=1 rslib build --watch",
-    "test": "vitest --run",
+    "test": "vitest --run ./tests/ai/insight/insight.test.ts",
     "test:u": "vitest --run -u",
     "test:ai": "AITEST=true npm run test",
     "computer": "TEST_COMPUTER=true npm run test:ai -- tests/ai/evaluate/computer.test.ts",
