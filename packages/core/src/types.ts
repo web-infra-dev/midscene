@@ -26,7 +26,8 @@ export type AIUsageInfo = Record<string, any> & {
   completion_tokens: number | undefined;
   total_tokens: number | undefined;
   time_cost: number | undefined;
-  model_name: string | undefined;
+  model_name: string | string;
+  model_description: string | string;
 };
 
 /**
@@ -515,8 +516,7 @@ Grouped dump
 export interface GroupedActionDump {
   groupName: string;
   groupDescription?: string;
-  modelName: string;
-  modelDescription: string;
+  modelBriefs: string[];
   executions: ExecutionDump[];
 }
 

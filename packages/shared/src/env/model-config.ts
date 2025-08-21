@@ -1,5 +1,5 @@
 import { globalConfigManger } from './global-config';
-import type { IModelPreferences, TIntent } from './types';
+import type { IModelPreferences, TIntent, TVlModeTypes } from './types';
 
 import {
   DEFAULT_MODEL_CONFIG_KEYS,
@@ -57,6 +57,7 @@ export interface IModelConfig {
   vlModeRaw?: string;
   vlMode?: string;
   uiTarsVersion?: UITarsModelVersion;
+  modelDescription: string;
   /**
    * for debug
    */
@@ -92,7 +93,10 @@ export const decideOpenaiSdkConfig = ({
     key: string,
     modelVendorFlag?: string,
   ) => void;
-}): Omit<IModelConfig, 'modelName' | 'from' | 'vlMode' | 'uiTarsVersion'> => {
+}): Omit<
+  IModelConfig,
+  'modelName' | 'from' | 'vlMode' | 'uiTarsVersion' | 'modelDescription'
+> => {
   initDebugConfig();
   const debugLog = getDebug('ai:decideModel');
 
@@ -199,6 +203,20 @@ export const decideOpenaiSdkConfig = ({
   }
 };
 
+const getModelDescription = (
+  vlMode: TVlModeTypes | undefined,
+  uiTarsVersion: UITarsModelVersion | undefined,
+) => {
+  if (vlMode) {
+    if (uiTarsVersion) {
+      return `UI-TARS=${uiTarsVersion}`;
+    } else {
+      return `${vlMode} mode`;
+    }
+  }
+  return '';
+};
+
 /**
  * get and validate model config for model client
  * priority order:
@@ -265,12 +283,14 @@ export const decideModelConfig = (
     const { vlMode, uiTarsVersion } = parseVlModeAndUiTarsFromRaw(
       result.vlModeRaw,
     );
+    const modelDescription = getModelDescription(vlMode, uiTarsVersion);
 
     const finalResult: IModelConfig = {
       ...result,
       modelName: modelConfigFromFn[chosenKeys.modelName]!,
       vlMode,
       uiTarsVersion,
+      modelDescription,
       from: 'modelConfig',
     };
 
@@ -311,12 +331,14 @@ export const decideModelConfig = (
     const { vlMode, uiTarsVersion } = parseVlModeAndUiTarsFromRaw(
       result.vlModeRaw,
     );
+    const modelDescription = getModelDescription(vlMode, uiTarsVersion);
 
     const finalResult: IModelConfig = {
       ...result,
       modelName,
       vlMode,
       uiTarsVersion,
+      modelDescription,
       from: 'env',
     };
 
@@ -340,6 +362,8 @@ export const decideModelConfig = (
   const { vlMode, uiTarsVersion } =
     parseVlModeAndUiTarsFromGlobalConfig(allConfig);
 
+  const modelDescription = getModelDescription(vlMode, uiTarsVersion);
+
   const finalResult: IModelConfig = {
     ...result,
     // In the legacy logic, GPT-4o is the default model.
@@ -347,6 +371,7 @@ export const decideModelConfig = (
       allConfig[DEFAULT_MODEL_CONFIG_KEYS_LEGACY.modelName] || 'gpt-4o',
     vlMode,
     uiTarsVersion,
+    modelDescription,
     from: 'legacy-env',
   };
 

@@ -63,6 +63,7 @@ describe('decideModelConfig from modelConfig fn', () => {
       {
         "from": "modelConfig",
         "httpProxy": undefined,
+        "modelDescription": "",
         "modelName": "vqa-model",
         "openaiApiKey": "mock-key",
         "openaiBaseURL": "mock-url",
@@ -89,6 +90,7 @@ describe('decideModelConfig from modelConfig fn', () => {
       {
         "from": "modelConfig",
         "httpProxy": undefined,
+        "modelDescription": "",
         "modelName": "default-model",
         "openaiApiKey": "mock-key",
         "openaiBaseURL": "mock-url",
@@ -133,6 +135,7 @@ describe('decideModelConfig from env', () => {
       {
         "from": "env",
         "httpProxy": undefined,
+        "modelDescription": "",
         "modelName": "planning-model",
         "openaiApiKey": "planning-key",
         "openaiBaseURL": "planning-url",
@@ -162,6 +165,7 @@ describe('decideModelConfig from env', () => {
       {
         "from": "legacy-env",
         "httpProxy": undefined,
+        "modelDescription": "",
         "modelName": "modelInEnv",
         "openaiApiKey": "keyInEnv",
         "openaiBaseURL": "urlInInEnv",
@@ -181,6 +185,7 @@ describe('decideModelConfig from env', () => {
       {
         "from": "legacy-env",
         "httpProxy": undefined,
+        "modelDescription": "",
         "modelName": "gpt-4o",
         "openaiApiKey": "keyInEnv",
         "openaiBaseURL": "urlInInEnv",
