@@ -19,11 +19,10 @@ describe('decideModelConfig from modelConfig fn', () => {
     globalConfigManger.reset();
   });
   it('return undefined config', () => {
-    globalConfigManger.registerModelConfigFn(({ intent }) => {
-      return undefined as any;
-    });
     expect(() =>
-      decideModelConfig({ intent: 'VQA' }, true),
+      globalConfigManger.registerModelConfigFn(({ intent }) => {
+        return undefined as any;
+      }),
     ).toThrowErrorMatchingInlineSnapshot(
       '[Error: The agent has an option named modelConfig is a function, but it return undefined when call with intent VQA, which should be a object.]',
     );
@@ -69,7 +68,9 @@ describe('decideModelConfig from modelConfig fn', () => {
         "openaiBaseURL": "mock-url",
         "openaiExtraConfig": undefined,
         "socksProxy": undefined,
+        "uiTarsVersion": undefined,
         "vlMode": undefined,
+        "vlModeRaw": undefined,
       }
     `);
   });
@@ -93,7 +94,9 @@ describe('decideModelConfig from modelConfig fn', () => {
         "openaiBaseURL": "mock-url",
         "openaiExtraConfig": undefined,
         "socksProxy": undefined,
+        "uiTarsVersion": undefined,
         "vlMode": undefined,
+        "vlModeRaw": undefined,
       }
     `);
   });
@@ -135,7 +138,9 @@ describe('decideModelConfig from env', () => {
         "openaiBaseURL": "planning-url",
         "openaiExtraConfig": undefined,
         "socksProxy": undefined,
+        "uiTarsVersion": undefined,
         "vlMode": undefined,
+        "vlModeRaw": undefined,
       }
     `);
   });
@@ -162,7 +167,9 @@ describe('decideModelConfig from env', () => {
         "openaiBaseURL": "urlInInEnv",
         "openaiExtraConfig": undefined,
         "socksProxy": undefined,
+        "uiTarsVersion": undefined,
         "vlMode": undefined,
+        "vlModeRaw": undefined,
       }
     `);
   });
@@ -179,7 +186,9 @@ describe('decideModelConfig from env', () => {
         "openaiBaseURL": "urlInInEnv",
         "openaiExtraConfig": undefined,
         "socksProxy": undefined,
+        "uiTarsVersion": undefined,
         "vlMode": undefined,
+        "vlModeRaw": undefined,
       }
     `);
   });
