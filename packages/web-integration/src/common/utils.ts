@@ -508,9 +508,9 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
       value: z
         .string()
         .describe('The final value that should be filled in the input box'),
-      locate: getMidsceneLocationSchema().describe(
-        'The input field to be filled',
-      ),
+      locate: getMidsceneLocationSchema()
+        .describe('The input field to be filled')
+        .optional(),
     }),
     call: async (param) => {
       const element = param.locate;
