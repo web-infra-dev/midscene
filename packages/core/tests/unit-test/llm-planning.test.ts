@@ -44,7 +44,6 @@ describe('llm planning - doubao', () => {
     vi.stubEnv(OPENAI_BASE_URL, 'http://mock');
     vi.stubEnv(OPENAI_API_KEY, 'mock');
     vi.stubEnv(MIDSCENE_USE_DOUBAO_VISION, 'true');
-    vi.stubEnv(MIDSCENE_USE_QWEN_VL, 'false');
   });
 
   afterEach(() => {

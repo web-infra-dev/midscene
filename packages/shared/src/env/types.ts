@@ -279,13 +279,20 @@ export const ENV_KEYS = [
 
 export type TEnvKeys = (typeof ENV_KEYS)[number];
 export type TGlobalConfig = Record<TEnvKeys, string | undefined>;
-export type TVlModeNames =
+
+export type TVlModeValues =
   | 'qwen-vl'
   | 'doubao-vision'
   | 'gemini'
   | 'vlm-ui-tars'
   | 'vlm-ui-tars-doubao'
   | 'vlm-ui-tars-doubao-1.5';
+
+export type TVlModeTypes =
+  | 'qwen-vl'
+  | 'doubao-vision'
+  | 'gemini'
+  | 'vlm-ui-tars';
 
 export interface IModelConfigForVQA {
   // model name
@@ -310,7 +317,7 @@ export interface IModelConfigForVQA {
   [MIDSCENE_VQA_USE_ANTHROPIC_SDK]?: string;
   [MIDSCENE_VQA_ANTHROPIC_API_KEY]?: string;
   // extra
-  [MIDSCENE_VQA_VL_MODE]?: TVlModeNames;
+  [MIDSCENE_VQA_VL_MODE]?: TVlModeValues;
 }
 
 export interface IModelConfigForPlanning {
@@ -336,7 +343,7 @@ export interface IModelConfigForPlanning {
   [MIDSCENE_PLANNING_USE_ANTHROPIC_SDK]?: string;
   [MIDSCENE_PLANNING_ANTHROPIC_API_KEY]?: string;
   // extra
-  [MIDSCENE_PLANNING_VL_MODE]?: TVlModeNames;
+  [MIDSCENE_PLANNING_VL_MODE]?: TVlModeValues;
 }
 
 export interface IModeConfigForGrounding {
@@ -362,7 +369,7 @@ export interface IModeConfigForGrounding {
   [MIDSCENE_GROUNDING_USE_ANTHROPIC_SDK]?: string;
   [MIDSCENE_GROUNDING_ANTHROPIC_API_KEY]?: string;
   // extra
-  [MIDSCENE_GROUNDING_VL_MODE]?: TVlModeNames;
+  [MIDSCENE_GROUNDING_VL_MODE]?: TVlModeValues;
 }
 
 export interface IModelConfigForDefault {
@@ -388,7 +395,7 @@ export interface IModelConfigForDefault {
   [MIDSCENE_USE_ANTHROPIC_SDK]?: string;
   [MIDSCENE_ANTHROPIC_API_KEY]?: string;
   // extra
-  [MIDSCENE_VL_MODE]?: TVlModeNames;
+  [MIDSCENE_VL_MODE]?: TVlModeValues;
 }
 
 export interface IModelConfigForDefaultLegacy {
@@ -414,7 +421,7 @@ export interface IModelConfigForDefaultLegacy {
   [MIDSCENE_USE_ANTHROPIC_SDK]?: string;
   [ANTHROPIC_API_KEY]?: string;
   // extra
-  [MIDSCENE_VL_MODE]?: TVlModeNames;
+  [MIDSCENE_VL_MODE]?: TVlModeValues;
 }
 
 /**

@@ -1,4 +1,4 @@
-import { maskConfig } from 'src/env/model-config';
+import { maskConfig } from 'src/env/helper';
 import type { IModelConfig } from 'src/env/model-config';
 import { describe, expect, it } from 'vitest';
 

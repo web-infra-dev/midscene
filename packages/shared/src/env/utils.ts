@@ -1,83 +1,27 @@
 import { globalConfigManger } from './global-config';
 import { decideModelConfig } from './model-config';
+import type { UITarsModelVersion } from './parse';
 import {
   type IModelPreferences,
   MIDSCENE_OPENAI_INIT_CONFIG_JSON,
   MIDSCENE_PREFERRED_LANGUAGE,
-  MIDSCENE_USE_VLM_UI_TARS,
   type TEnvKeys,
   type TGlobalConfig,
-  type TVlModeNames,
+  type TVlModeTypes,
 } from './types';
-
-export enum UITarsModelVersion {
-  V1_0 = '1.0',
-  V1_5 = '1.5',
-  DOUBAO_1_5_15B = 'doubao-1.5-15B',
-  DOUBAO_1_5_20B = 'doubao-1.5-20B',
-}
 
 export const uiTarsModelVersion = (
   modelPreferences: IModelPreferences,
-): UITarsModelVersion | false => {
-  if (vlLocateMode(modelPreferences) !== 'vlm-ui-tars') {
-    return false;
-  }
-
-  const modelConfig = decideModelConfig(modelPreferences, false);
-
-  const { vlMode } = modelConfig;
-  if (modelConfig.from === 'legacy-env') {
-    const versionConfig = globalConfigManger.getConfigValue(
-      MIDSCENE_USE_VLM_UI_TARS,
-    );
-    if (versionConfig === '1') {
-      return UITarsModelVersion.V1_0;
-    }
-    if (versionConfig === 'DOUBAO' || versionConfig === 'DOUBAO-1.5') {
-      return UITarsModelVersion.DOUBAO_1_5_20B;
-    }
-    return `${versionConfig}` as UITarsModelVersion;
-  } else {
-    if (vlMode === 'vlm-ui-tars') {
-      return UITarsModelVersion.V1_0;
-    }
-    if (
-      vlMode === 'vlm-ui-tars-doubao' ||
-      vlMode === 'vlm-ui-tars-doubao-1.5'
-    ) {
-      return UITarsModelVersion.DOUBAO_1_5_20B;
-    }
-    throw new Error(`vlMode ${vlMode} is not a expected value.`);
-  }
+): UITarsModelVersion | undefined => {
+  const { uiTarsVersion } = decideModelConfig(modelPreferences, false);
+  return uiTarsVersion;
 };
-
-const validModeNames: TVlModeNames[] = [
-  'doubao-vision',
-  'gemini',
-  'qwen-vl',
-  'vlm-ui-tars',
-  'vlm-ui-tars-doubao',
-  'vlm-ui-tars-doubao-1.5',
-];
 
 export const vlLocateMode = (
   modelPreferences: IModelPreferences,
-): TVlModeNames | false => {
-  const modelConfig = decideModelConfig(modelPreferences, false);
-  if (modelConfig.vlMode === undefined) {
-    return false;
-  }
-  const { vlMode } = modelConfig;
-  if (!validModeNames.includes(vlMode as TVlModeNames)) {
-    throw new Error(
-      `VL_MODE value ${vlMode} is not a valid VL_MODE value, must be one of ${validModeNames}`,
-    );
-  }
-  if (vlMode === 'vlm-ui-tars-doubao' || vlMode === 'vlm-ui-tars-doubao-1.5') {
-    return 'vlm-ui-tars';
-  }
-  return vlMode as TVlModeNames;
+): TVlModeTypes | undefined => {
+  const { vlMode } = decideModelConfig(modelPreferences, false);
+  return vlMode as TVlModeTypes;
 };
 
 export const getIsUseQwenVl = (modelPreferences: IModelPreferences) => {

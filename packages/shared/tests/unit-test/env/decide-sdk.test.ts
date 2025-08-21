@@ -10,10 +10,8 @@ import {
   MIDSCENE_USE_AZURE_OPENAI,
 } from '../../../src/env';
 import { DEFAULT_MODEL_CONFIG_KEYS } from '../../../src/env/constants';
-import {
-  createAssert,
-  decideOpenaiSdkConfig,
-} from '../../../src/env/model-config';
+import { createAssert } from '../../../src/env/helper';
+import { decideOpenaiSdkConfig } from '../../../src/env/model-config';
 
 describe('decideOpenaiSdkConfig', () => {
   it('openaiUseAzureDeprecated - fail', () => {
@@ -48,7 +46,7 @@ describe('decideOpenaiSdkConfig', () => {
         "openaiExtraConfig": undefined,
         "openaiUseAzureDeprecated": true,
         "socksProxy": undefined,
-        "vlMode": undefined,
+        "vlModeRaw": undefined,
       }
     `);
   });
@@ -88,7 +86,7 @@ describe('decideOpenaiSdkConfig', () => {
         "openaiExtraConfig": undefined,
         "socksProxy": undefined,
         "useAzureOpenai": true,
-        "vlMode": undefined,
+        "vlModeRaw": undefined,
       }
     `);
   });
@@ -152,7 +150,7 @@ describe('decideOpenaiSdkConfig', () => {
         "openaiBaseURL": "mock-url",
         "openaiExtraConfig": undefined,
         "socksProxy": undefined,
-        "vlMode": undefined,
+        "vlModeRaw": undefined,
       }
     `);
   });
