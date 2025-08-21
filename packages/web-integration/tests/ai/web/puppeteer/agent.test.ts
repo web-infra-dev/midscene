@@ -55,20 +55,6 @@ describe('puppeteer integration', () => {
     );
   });
 
-  it.skip('drag and drop', async () => {
-    const { originPage, reset } = await launchPage(
-      'https://codepen.io/Goldfsh/pen/zBbOqm',
-    );
-    resetFn = reset;
-    const agent = new PuppeteerAgent(originPage, {
-      cacheId: 'test-drag-and-drop',
-    });
-
-    await agent.aiAction(
-      'drag the element with text "this element is draggable" to the "Drop Zone 3"',
-    );
-  });
-
   it('agent with yaml script', async () => {
     const { originPage, reset } = await launchPage('https://www.bing.com/');
     resetFn = reset;
@@ -164,5 +150,19 @@ describe('puppeteer integration', () => {
     );
 
     expect(result.pageLoaded).toBeDefined();
+  });
+
+  it.skip('drag and drop', async () => {
+    const { originPage, reset } = await launchPage(
+      'https://codepen.io/Goldfsh/pen/zBbOqm',
+    );
+    resetFn = reset;
+    const agent = new PuppeteerAgent(originPage, {
+      cacheId: 'test-drag-and-drop',
+    });
+
+    await agent.aiAction(
+      'drag the element with text "this element is draggable" to the "Drop Zone 3"',
+    );
   });
 });

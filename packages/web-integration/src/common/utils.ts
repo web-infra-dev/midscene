@@ -628,20 +628,31 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
     duration?: number;
     locate: MidsceneLocationResultType;
   }>,
-  // {
-  //   name: 'DragAndDrop',
-  //   description: 'Drag and drop the element',
-  //   paramSchema: z.object({
-  //     from: getMidsceneLocationSchema().describe('The position to be dragged'),
-  //     to: getMidsceneLocationSchema().describe('The position to be dropped'),
-  //   }),
-  //   call: async (param) => {
-  //     const from = param.from;
-  //     const to = param.to;
-  //     console.log('drag and drop', from, to);
-  //   },
-  // } as DeviceAction<{
-  //   from: MidsceneLocationResultType;
-  //   to: MidsceneLocationResultType;
-  // }>,
+  {
+    name: 'DragAndDrop',
+    description: 'Drag and drop the element',
+    paramSchema: z.object({
+      from: getMidsceneLocationSchema().describe('The position to be dragged'),
+      to: getMidsceneLocationSchema().describe('The position to be dropped'),
+    }),
+    call: async (param) => {
+      const from = param.from;
+      const to = param.to;
+      assert(from, 'missing "from" param for drag and drop');
+      assert(to, 'missing "to" param for drag and drop');
+      await page.mouse.drag(
+        {
+          x: from.center[0],
+          y: from.center[1],
+        },
+        {
+          x: to.center[0],
+          y: to.center[1],
+        },
+      );
+    },
+  } as DeviceAction<{
+    from: MidsceneLocationResultType;
+    to: MidsceneLocationResultType;
+  }>,
 ];
