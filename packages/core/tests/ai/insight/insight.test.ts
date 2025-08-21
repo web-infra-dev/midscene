@@ -12,7 +12,7 @@ vi.setConfig({
 const vlMode = vlLocateMode({ intent: 'grounding' });
 
 // describe.skipIf(!vlMode)('insight locate with deep think', () => {
-describe.only('insight locate with deep think', () => {
+describe('insight locate with deep think', () => {
   test('insight locate with search area', async () => {
     console.log('building insight context start');
     const { context } = await getContextFromFixture('taobao');
