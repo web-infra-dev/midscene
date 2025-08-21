@@ -199,11 +199,6 @@ export class AndroidDevice implements AndroidDevicePage {
 
     this.deviceId = deviceId;
     this.options = options;
-    // Set URI with display information for unique device identification
-    this.uri =
-      typeof options?.activeDisplayId === 'number'
-        ? `android://${deviceId}/display-${options.activeDisplayId}`
-        : `android://${deviceId}`;
   }
 
   public async connect(): Promise<ADB> {
@@ -393,9 +388,12 @@ ${Object.keys(size)
           const stdout = await adb.shell('dumpsys display');
 
           // Use regex to find the line containing the target display's uniqueId
-          const lineRegex = new RegExp(`^.*uniqueId "local:${longDisplayId}".*$`, 'm');
+          const lineRegex = new RegExp(
+            `^.*uniqueId "local:${longDisplayId}".*$`,
+            'm',
+          );
           const lineMatch = stdout.match(lineRegex);
-          
+
           if (lineMatch) {
             const targetLine = lineMatch[0];
             // Extract real size and rotation from the found line
@@ -476,9 +474,12 @@ ${Object.keys(size)
           const stdout = await adb.shell('dumpsys display');
 
           // Use regex to find the line containing the target display's uniqueId
-          const lineRegex = new RegExp(`^.*uniqueId "local:${longDisplayId}".*$`, 'm');
+          const lineRegex = new RegExp(
+            `^.*uniqueId "local:${longDisplayId}".*$`,
+            'm',
+          );
           const lineMatch = stdout.match(lineRegex);
-          
+
           if (lineMatch) {
             const targetLine = lineMatch[0];
             const densityMatch = targetLine.match(/density (\d+)/);
@@ -660,7 +661,7 @@ ${Object.keys(size)
         debugPage(`adb.pull completed, local path: ${screenshotPath}`);
         screenshotBuffer = await fs.promises.readFile(screenshotPath);
       } finally {
-        // await adb.shell(`rm ${androidScreenshotPath}`);
+        await adb.shell(`rm ${androidScreenshotPath}`);
       }
     }
 
@@ -1244,7 +1245,7 @@ ${Object.keys(size)
 
     // Try each key code with waiting
     for (const keyCode of keyCodes) {
-      await adb.shell(`input${this.getDisplayArg()} keyevent ${keyCode}`);
+      await adb.keyevent(keyCode);
 
       // Wait for keyboard to be hidden with timeout
       const startTime = Date.now();
