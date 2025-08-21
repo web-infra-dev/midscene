@@ -9,6 +9,7 @@ import type {
 } from '@midscene/shared/types';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { z } from 'zod';
+import type { TUserPrompt } from './ai-model/common';
 import type { DetailedLocateParam, MidsceneYamlFlowItem } from './yaml';
 
 export type {
@@ -560,30 +561,6 @@ export interface StreamingAIResponse {
   /** Whether the response was streamed */
   isStreamed: boolean;
 }
-
-export type TMultimodalPrompt = {
-  /**
-   * Support use image to inspect elements.
-   * The "images" field is an object that uses image name as key and image url as value.
-   * The image url can be a local path, a http link , or a base64 string.
-   */
-  images?: {
-    name: string;
-    url: string;
-  }[];
-  /**
-   * By default, the image url in the "images" filed starts with `https://` or `http://` will be directly sent to the LLM.
-   * In case the images are not accessible to the LLM (One common case is that image url is internal network only.), you can enable this option.
-   * Then image will be download and convert to base64 format.
-   */
-  convertHttpImage2Base64?: boolean;
-};
-
-export type TUserPrompt =
-  | string
-  | ({
-      prompt: string;
-    } & Partial<TMultimodalPrompt>);
 
 // biome-ignore lint/complexity/noBannedTypes: <explanation>
 export interface DeviceAction<T = {}> {

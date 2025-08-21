@@ -3,6 +3,7 @@ import type { PuppeteerWebPage } from '@/puppeteer';
 import {
   type AIUsageInfo,
   type BaseElement,
+  type DetailedLocateParam,
   type DumpSubscriber,
   type ExecutionRecorderItem,
   type ExecutionTaskActionApply,
@@ -27,6 +28,7 @@ import {
   type PlanningActionParamError,
   type PlanningActionParamSleep,
   type PlanningActionParamWaitFor,
+  type PlanningLocateParam,
   type TMultimodalPrompt,
   type TUserPrompt,
   type UIContext,
@@ -35,6 +37,7 @@ import {
 import {
   type ChatCompletionMessageParam,
   elementByPositionWithElementInfo,
+  findAllMidsceneLocatorField,
   resizeImageForUiTars,
   vlmPlanning,
 } from '@midscene/core/ai-model';
@@ -64,6 +67,17 @@ interface ExecutionResult<OutputType = any> {
 
 const debug = getDebug('device-task-executor');
 const defaultReplanningCycleLimit = 10;
+
+export function locatePlanForLocate(param: string | DetailedLocateParam) {
+  const locate = typeof param === 'string' ? { prompt: param } : param;
+  const locatePlan: PlanningAction<PlanningLocateParam> = {
+    type: 'Locate',
+    locate,
+    param: locate,
+    thought: '',
+  };
+  return locatePlan;
+}
 
 export class PageTaskExecutor {
   page: WebPage;
@@ -192,191 +206,196 @@ export class PageTaskExecutor {
     return taskWithScreenshot;
   }
 
-  public async convertPlanToExecutable(
-    plans: PlanningAction[],
-    opts?: {
-      cacheable?: boolean;
-    },
-  ) {
+  public async convertPlanToExecutable(plans: PlanningAction[]) {
     const tasks: ExecutionTaskApply[] = [];
+
+    const taskForLocatePlan = (
+      plan: PlanningAction<PlanningLocateParam>,
+      detailedLocateParam: DetailedLocateParam,
+      onResult?: (result: LocateResultElement) => void,
+    ): ExecutionTaskInsightLocateApply => {
+      const taskFind: ExecutionTaskInsightLocateApply = {
+        type: 'Insight',
+        subType: 'Locate',
+        param: detailedLocateParam,
+        thought: plan.thought,
+        executor: async (param, taskContext) => {
+          const { task } = taskContext;
+          assert(
+            param?.prompt || param?.id || param?.bbox,
+            `No prompt or id or position or bbox to locate, param=${JSON.stringify(
+              param,
+            )}`,
+          );
+          let insightDump: InsightDump | undefined;
+          let usage: AIUsageInfo | undefined;
+          const dumpCollector: DumpSubscriber = (dump) => {
+            insightDump = dump;
+            usage = dump?.taskInfo?.usage;
+
+            task.log = {
+              dump: insightDump,
+            };
+
+            task.usage = usage;
+          };
+          this.insight.onceDumpUpdatedFn = dumpCollector;
+          const shotTime = Date.now();
+
+          // Get context through contextRetrieverFn which handles frozen context
+          const pageContext = await this.insight.contextRetrieverFn('locate');
+          task.pageContext = pageContext;
+
+          const recordItem: ExecutionRecorderItem = {
+            type: 'screenshot',
+            ts: shotTime,
+            screenshot: pageContext.screenshotBase64,
+            timing: 'before Insight',
+          };
+          task.recorder = [recordItem];
+
+          // try matching xpath
+          const elementFromXpath = param.xpath
+            ? await this.page.getElementInfoByXpath(param.xpath)
+            : undefined;
+          const userExpectedPathHitFlag = !!elementFromXpath;
+
+          // try matching cache
+          const cachePrompt = param.prompt;
+          const locateCacheRecord =
+            this.taskCache?.matchLocateCache(cachePrompt);
+          const xpaths = locateCacheRecord?.cacheContent?.xpaths;
+          const elementFromCache = userExpectedPathHitFlag
+            ? null
+            : await matchElementFromCache(
+                this,
+                xpaths,
+                cachePrompt,
+                param.cacheable,
+              );
+          const cacheHitFlag = !!elementFromCache;
+
+          // try matching plan
+          const elementFromPlan =
+            !userExpectedPathHitFlag && !cacheHitFlag
+              ? matchElementFromPlan(param, pageContext.tree)
+              : undefined;
+          const planHitFlag = !!elementFromPlan;
+
+          // try ai locate
+          const elementFromAiLocate =
+            !userExpectedPathHitFlag && !cacheHitFlag && !planHitFlag
+              ? (
+                  await this.insight.locate(param, {
+                    // fallback to ai locate
+                    context: pageContext,
+                  })
+                ).element
+              : undefined;
+          const aiLocateHitFlag = !!elementFromAiLocate;
+
+          const element =
+            elementFromXpath || // highest priority
+            elementFromCache || // second priority
+            elementFromPlan || // third priority
+            elementFromAiLocate;
+
+          // update cache
+          let currentXpaths: string[] | undefined;
+          if (
+            element &&
+            this.taskCache &&
+            !cacheHitFlag &&
+            param?.cacheable !== false
+          ) {
+            const elementXpaths = await this.getElementXpath(
+              pageContext,
+              element,
+            );
+            if (elementXpaths?.length) {
+              currentXpaths = elementXpaths;
+              this.taskCache.updateOrAppendCacheRecord(
+                {
+                  type: 'locate',
+                  prompt: cachePrompt,
+                  xpaths: elementXpaths,
+                },
+                locateCacheRecord,
+              );
+            } else {
+              debug(
+                'no xpaths found, will not update cache',
+                cachePrompt,
+                elementXpaths,
+              );
+            }
+          }
+          if (!element) {
+            throw new Error(`Element not found: ${param.prompt}`);
+          }
+
+          let hitBy: ExecutionTaskHitBy | undefined;
+
+          if (userExpectedPathHitFlag) {
+            hitBy = {
+              from: 'User expected path',
+              context: {
+                xpath: param.xpath,
+              },
+            };
+          } else if (cacheHitFlag) {
+            hitBy = {
+              from: 'Cache',
+              context: {
+                xpathsFromCache: xpaths,
+                xpathsToSave: currentXpaths,
+              },
+            };
+          } else if (planHitFlag) {
+            hitBy = {
+              from: 'Planning',
+              context: {
+                id: elementFromPlan?.id,
+                bbox: elementFromPlan?.bbox,
+              },
+            };
+          } else if (aiLocateHitFlag) {
+            hitBy = {
+              from: 'AI model',
+              context: {
+                prompt: param.prompt,
+              },
+            };
+          }
+
+          onResult?.(element);
+
+          return {
+            output: {
+              element,
+            },
+            pageContext,
+            hitBy,
+          };
+        },
+      };
+      return taskFind;
+    };
+
     for (const plan of plans) {
       if (plan.type === 'Locate') {
         if (
+          !plan.locate ||
           plan.locate === null ||
           plan.locate?.id === null ||
           plan.locate?.id === 'null'
         ) {
-          // console.warn('Locate action with id is null, will be ignored');
+          debug('Locate action with id is null, will be ignored', plan);
           continue;
         }
-        const taskFind: ExecutionTaskInsightLocateApply = {
-          type: 'Insight',
-          subType: 'Locate',
-          param: plan.locate
-            ? {
-                ...plan.locate,
-                cacheable: opts?.cacheable,
-              }
-            : undefined,
-          thought: plan.thought,
-          locate: plan.locate,
-          executor: async (param, taskContext) => {
-            const { task } = taskContext;
-            assert(
-              param?.prompt || param?.id || param?.bbox,
-              'No prompt or id or position or bbox to locate',
-            );
-            let insightDump: InsightDump | undefined;
-            let usage: AIUsageInfo | undefined;
-            const dumpCollector: DumpSubscriber = (dump) => {
-              insightDump = dump;
-              usage = dump?.taskInfo?.usage;
+        const taskLocate = taskForLocatePlan(plan, plan.locate);
 
-              task.log = {
-                dump: insightDump,
-              };
-
-              task.usage = usage;
-            };
-            this.insight.onceDumpUpdatedFn = dumpCollector;
-            const shotTime = Date.now();
-
-            // Get context through contextRetrieverFn which handles frozen context
-            const pageContext = await this.insight.contextRetrieverFn('locate');
-            task.pageContext = pageContext;
-
-            const recordItem: ExecutionRecorderItem = {
-              type: 'screenshot',
-              ts: shotTime,
-              screenshot: pageContext.screenshotBase64,
-              timing: 'before Insight',
-            };
-            task.recorder = [recordItem];
-
-            // try matching xpath
-            const elementFromXpath = param.xpath
-              ? await this.page.getElementInfoByXpath(param.xpath)
-              : undefined;
-            const userExpectedPathHitFlag = !!elementFromXpath;
-
-            // try matching cache
-            const cachePrompt = param.prompt;
-            const locateCacheRecord =
-              this.taskCache?.matchLocateCache(cachePrompt);
-            const xpaths = locateCacheRecord?.cacheContent?.xpaths;
-            const elementFromCache = userExpectedPathHitFlag
-              ? null
-              : await matchElementFromCache(
-                  this,
-                  xpaths,
-                  cachePrompt,
-                  param.cacheable,
-                );
-            const cacheHitFlag = !!elementFromCache;
-
-            // try matching plan
-            const elementFromPlan =
-              !userExpectedPathHitFlag && !cacheHitFlag
-                ? matchElementFromPlan(param, pageContext.tree)
-                : undefined;
-            const planHitFlag = !!elementFromPlan;
-
-            // try ai locate
-            const elementFromAiLocate =
-              !userExpectedPathHitFlag && !cacheHitFlag && !planHitFlag
-                ? (
-                    await this.insight.locate(param, {
-                      // fallback to ai locate
-                      context: pageContext,
-                    })
-                  ).element
-                : undefined;
-            const aiLocateHitFlag = !!elementFromAiLocate;
-
-            const element =
-              elementFromXpath || // highest priority
-              elementFromCache || // second priority
-              elementFromPlan || // third priority
-              elementFromAiLocate;
-
-            // update cache
-            let currentXpaths: string[] | undefined;
-            if (
-              element &&
-              this.taskCache &&
-              !cacheHitFlag &&
-              param?.cacheable !== false
-            ) {
-              const elementXpaths = await this.getElementXpath(
-                pageContext,
-                element,
-              );
-              if (elementXpaths?.length) {
-                currentXpaths = elementXpaths;
-                this.taskCache.updateOrAppendCacheRecord(
-                  {
-                    type: 'locate',
-                    prompt: cachePrompt,
-                    xpaths: elementXpaths,
-                  },
-                  locateCacheRecord,
-                );
-              } else {
-                debug(
-                  'no xpaths found, will not update cache',
-                  cachePrompt,
-                  elementXpaths,
-                );
-              }
-            }
-            if (!element) {
-              throw new Error(`Element not found: ${param.prompt}`);
-            }
-
-            let hitBy: ExecutionTaskHitBy | undefined;
-
-            if (userExpectedPathHitFlag) {
-              hitBy = {
-                from: 'User expected path',
-                context: {
-                  xpath: param.xpath,
-                },
-              };
-            } else if (cacheHitFlag) {
-              hitBy = {
-                from: 'Cache',
-                context: {
-                  xpathsFromCache: xpaths,
-                  xpathsToSave: currentXpaths,
-                },
-              };
-            } else if (planHitFlag) {
-              hitBy = {
-                from: 'Planning',
-                context: {
-                  id: elementFromPlan?.id,
-                  bbox: elementFromPlan?.bbox,
-                },
-              };
-            } else if (aiLocateHitFlag) {
-              hitBy = {
-                from: 'AI model',
-                context: {
-                  prompt: param.prompt,
-                },
-              };
-            }
-
-            return {
-              output: {
-                element,
-              },
-              pageContext,
-              hitBy,
-            };
-          },
-        };
-        tasks.push(taskFind);
+        tasks.push(taskLocate);
       } else if (plan.type === 'Error') {
         const taskActionError: ExecutionTaskActionApply<PlanningActionParamError> =
           {
@@ -435,7 +454,47 @@ export class PageTaskExecutor {
         };
         tasks.push(taskActionDrag);
       } else {
+        // action in action space
         const planType = plan.type;
+        const actionSpace = await this.page.actionSpace();
+        const action = actionSpace.find((action) => action.name === planType);
+        const param = plan.param;
+
+        // find all params that needs location
+        const locateFields = action
+          ? findAllMidsceneLocatorField(action.paramSchema)
+          : [];
+
+        const requiredLocateFields = action
+          ? findAllMidsceneLocatorField(action.paramSchema, true)
+          : [];
+
+        locateFields.forEach((field) => {
+          if (param[field]) {
+            const locatePlan = locatePlanForLocate(param[field]);
+            debug(
+              'will prepend locate param for field',
+              `action.type=${planType}`,
+              `param=${JSON.stringify(param[field])}`,
+              `locatePlan=${JSON.stringify(locatePlan)}`,
+            );
+            const locateTask = taskForLocatePlan(
+              locatePlan,
+              param[field],
+              (result) => {
+                param[field] = result;
+              },
+            );
+            tasks.push(locateTask);
+          } else {
+            assert(
+              !requiredLocateFields.includes(field),
+              `Required locate field '${field}' is not provided for action ${planType}`,
+            );
+            debug(`field '${field}' is not provided for action ${planType}`);
+          }
+        });
+
         const task: ExecutionTaskActionApply = {
           type: 'Action',
           subType: planType,
@@ -448,13 +507,13 @@ export class PageTaskExecutor {
               param,
               `context.element.center: ${context.element?.center}`,
             );
-            const actionSpace = await this.page.actionSpace();
-            const action = actionSpace.find(
-              (action) => action.name === planType,
-            );
+
             if (!action) {
               throw new Error(`Action type '${planType}' not found`);
             }
+
+            // TODO: check locate result
+
             const actionFn = action.call.bind(this.page);
             return await actionFn(param, context);
           },
@@ -592,34 +651,37 @@ export class PageTaskExecutor {
         };
         executorContext.task.usage = usage;
 
-        let bboxCollected = false;
-        const finalActions = (actions || []).reduce<PlanningAction[]>(
-          (acc, planningAction) => {
-            // TODO: magic field "locate" is used to indicate the action requires a locate
-            if (planningAction.locate) {
-              // we only collect bbox once, let qwen re-locate in the following steps
-              if (bboxCollected && planningAction.locate.bbox) {
-                // biome-ignore lint/performance/noDelete: <explanation>
-                delete planningAction.locate.bbox;
-              }
+        const finalActions = actions || [];
 
-              if (planningAction.locate.bbox) {
-                bboxCollected = true;
-              }
+        // TODO: check locate result
+        // let bboxCollected = false;
+        // (actions || []).reduce<PlanningAction[]>(
+        //   (acc, planningAction) => {
+        //     // TODO: magic field "locate" is used to indicate the action requires a locate
+        //     if (planningAction.locate) {
+        //       // we only collect bbox once, let qwen re-locate in the following steps
+        //       if (bboxCollected && planningAction.locate.bbox) {
+        //         // biome-ignore lint/performance/noDelete: <explanation>
+        //         delete planningAction.locate.bbox;
+        //       }
 
-              acc.push({
-                type: 'Locate',
-                locate: planningAction.locate,
-                param: null,
-                // thought is prompt created by ai, always a string
-                thought: planningAction.locate.prompt as string,
-              });
-            }
-            acc.push(planningAction);
-            return acc;
-          },
-          [],
-        );
+        //       if (planningAction.locate.bbox) {
+        //         bboxCollected = true;
+        //       }
+
+        //       acc.push({
+        //         type: 'Locate',
+        //         locate: planningAction.locate,
+        //         param: null,
+        //         // thought is prompt created by ai, always a string
+        //         thought: planningAction.locate.prompt as string,
+        //       });
+        //     }
+        //     acc.push(planningAction);
+        //     return acc;
+        //   },
+        //   [],
+        // );
 
         if (sleep) {
           const timeNow = Date.now();
@@ -737,14 +799,11 @@ export class PageTaskExecutor {
   async runPlans(
     title: string,
     plans: PlanningAction[],
-    opts?: {
-      cacheable?: boolean;
-    },
   ): Promise<ExecutionResult> {
     const taskExecutor = new Executor(title, {
       onTaskStart: this.onTaskStartCallback,
     });
-    const { tasks } = await this.convertPlanToExecutable(plans, opts);
+    const { tasks } = await this.convertPlanToExecutable(plans);
     await taskExecutor.append(tasks);
     const result = await taskExecutor.flush();
     const { output } = result!;
@@ -757,9 +816,6 @@ export class PageTaskExecutor {
   async action(
     userPrompt: string,
     actionContext?: string,
-    opts?: {
-      cacheable?: boolean;
-    },
   ): Promise<
     ExecutionResult<
       | {
@@ -805,7 +861,7 @@ export class PageTaskExecutor {
 
       let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
       try {
-        executables = await this.convertPlanToExecutable(plans, opts);
+        executables = await this.convertPlanToExecutable(plans);
         taskExecutor.append(executables.tasks);
       } catch (error) {
         return this.appendErrorPlan(
@@ -895,7 +951,7 @@ export class PageTaskExecutor {
       yamlFlow.push(...(output.yamlFlow || []));
       let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
       try {
-        executables = await this.convertPlanToExecutable(plans, opts);
+        executables = await this.convertPlanToExecutable(plans);
         taskExecutor.append(executables.tasks);
       } catch (error) {
         return this.appendErrorPlan(

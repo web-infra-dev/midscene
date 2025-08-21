@@ -15,7 +15,6 @@ import type {
   LocateResult,
   PartialInsightDumpFromSDK,
   Rect,
-  TMultimodalPrompt,
   UIContext,
 } from '@/types';
 import {
@@ -26,6 +25,7 @@ import {
 } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
+import type { TMultimodalPrompt } from '../ai-model/common';
 import { emitInsightDump } from './utils';
 
 export interface LocateOpts {

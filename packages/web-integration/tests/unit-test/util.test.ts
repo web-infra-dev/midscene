@@ -2,11 +2,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { getKeyCommands } from '@/common/ui-utils';
 import {
+  buildDetailedLocateParam,
   getCurrentExecutionFile,
   replaceIllegalPathCharsAndSpace,
   trimContextByViewport,
 } from '@/common/utils';
-import type { ExecutionDump } from '@midscene/core/.';
 import { describe, expect, it } from 'vitest';
 
 describe('TaskCache', () => {
@@ -167,5 +167,53 @@ describe('trimContextByViewport', () => {
     const result = trimContextByViewport(dump.executions[0]);
     expect(result.tasks[0].pageContext?.tree?.node).toBeNull();
     expect(result.tasks[0].pageContext?.tree?.children.length).toBe(28);
+  });
+});
+
+describe('buildDetailedLocateParam', () => {
+  it('should build basic detailed locate param from string prompt', () => {
+    const locatePrompt = 'Click on the login button';
+    const result = buildDetailedLocateParam(locatePrompt);
+
+    expect(result).toEqual({
+      prompt: 'Click on the login button',
+      deepThink: false,
+      cacheable: true,
+      xpath: undefined,
+    });
+  });
+
+  it('should build detailed locate param with options', () => {
+    const locatePrompt = 'Find the submit button';
+    const options = {
+      deepThink: true,
+      cacheable: false,
+      xpath: '//button[@type="submit"]',
+      prompt: 'Override prompt',
+    };
+    const result = buildDetailedLocateParam(locatePrompt, options);
+
+    expect(result).toEqual({
+      prompt: 'Override prompt',
+      deepThink: true,
+      cacheable: false,
+      xpath: '//button[@type="submit"]',
+    });
+  });
+
+  it('should handle partial options with defaults', () => {
+    const locatePrompt = 'Locate the search input';
+    const options = {
+      deepThink: true,
+      // cacheable and xpath not provided - should use defaults
+    };
+    const result = buildDetailedLocateParam(locatePrompt, options);
+
+    expect(result).toEqual({
+      prompt: 'Locate the search input',
+      deepThink: true,
+      cacheable: true, // default value
+      xpath: undefined, // default value
+    });
   });
 });

@@ -8,7 +8,7 @@ import {
 } from '@/ai-model/prompt/llm-planning';
 import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
 import { getUiTarsPlanningPrompt } from '@/ai-model/prompt/ui-tars-planning';
-import { MidsceneLocation } from '@/index';
+import { getMidsceneLocationSchema } from '@/index';
 import { mockActionSpace } from 'tests/common';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
@@ -67,10 +67,28 @@ describe('action space', () => {
         description: 'Tap the element',
         paramSchema: z.object({
           value: z.string().describe('The value to be tapped'),
-          locate: MidsceneLocation.describe('The element to be tapped'),
-          locate2: MidsceneLocation.describe(
+          value2: z.number().describe('The value to be tapped').optional(),
+          value3: z.number().describe('The value 3').optional().default(345),
+          locate: getMidsceneLocationSchema().describe(
             'The element to be tapped',
-          ).optional(),
+          ),
+          locate2: getMidsceneLocationSchema()
+            .describe('The element to be tapped for the second time')
+            .optional(),
+          scrollType: z
+            .enum([
+              'once',
+              'untilBottom',
+              'untilTop',
+              'untilRight',
+              'untilLeft',
+            ])
+            .describe('The scroll type'),
+          actionType: z
+            .enum(['Tap', 'DragAndDrop', 'Scroll', 'Input', 'Assert'])
+            .describe('The scroll type')
+            .optional(),
+          option: z.number().optional().describe('An optional option value'),
         }),
         call: async () => {},
       },
@@ -81,8 +99,13 @@ describe('action space', () => {
         - type: "Tap"
         - param:
           - value: string // The value to be tapped
+          - value2?: number // The value to be tapped
+          - value3?: number // The value 3
           - locate: {"bbox": [number, number, number, number], "prompt": string} // The element to be tapped
-          - locate2?: {"bbox": [number, number, number, number], "prompt": string} // The element to be tapped"
+          - locate2?: {"bbox": [number, number, number, number], "prompt": string} // The element to be tapped for the second time
+          - scrollType: enum('once', 'untilBottom', 'untilTop', 'untilRight', 'untilLeft') // The scroll type
+          - actionType?: enum('Tap', 'DragAndDrop', 'Scroll', 'Input', 'Assert') // The scroll type
+          - option?: number // An optional option value"
     `);
   });
 });
