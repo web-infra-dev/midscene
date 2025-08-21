@@ -279,10 +279,6 @@ export interface PlanningActionParamInputOrKeyPress {
   autoDismissKeyboard?: boolean;
 }
 
-export interface PlanningActionParamAssert {
-  assertion: TUserPrompt;
-}
-
 export interface PlanningActionParamSleep {
   timeMs: number;
 }
@@ -291,9 +287,7 @@ export interface PlanningActionParamError {
   thought: string;
 }
 
-export type PlanningActionParamWaitFor = AgentWaitForOpt & {
-  assertion: string;
-};
+export type PlanningActionParamWaitFor = AgentWaitForOpt & {};
 
 export interface AndroidLongPressParam {
   duration?: number;
