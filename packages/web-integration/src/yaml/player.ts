@@ -331,7 +331,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           value = inputTask.value;
         }
 
-        await agent.callActionInActionSpace('aiInput', {
+        await agent.callActionInActionSpace('Input', {
           ...inputTask,
           ...(value !== undefined ? { value } : {}),
           ...(locatePrompt ? { locate: locatePrompt } : {}),
@@ -358,7 +358,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           locatePrompt = aiKeyboardPress;
         }
 
-        await agent.callActionInActionSpace('aiKeyboardPress', {
+        await agent.callActionInActionSpace('KeyboardPress', {
           ...keyboardPressTask,
           ...(keyName ? { keyName } : {}),
           ...(locatePrompt ? { locate: locatePrompt } : {}),
@@ -380,7 +380,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           locatePrompt = aiScroll;
         }
 
-        await agent.callActionInActionSpace('aiScroll', {
+        await agent.callActionInActionSpace('Scroll', {
           ...scrollTask,
           ...(locatePrompt ? { locate: locatePrompt } : {}),
         });
