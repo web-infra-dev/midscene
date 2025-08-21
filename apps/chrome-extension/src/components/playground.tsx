@@ -3,7 +3,7 @@ import Icon, {
   LoadingOutlined,
   ArrowDownOutlined,
 } from '@ant-design/icons';
-import type { UIContext } from '@midscene/core';
+import type { DeviceAction, UIContext } from '@midscene/core';
 import {
   ContextPreview,
   type PlaygroundResult,
@@ -18,6 +18,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { EnvConfigReminder } from '.';
 import PlaygroundIcon from '../icons/playground.svg?react';
 import { getExtensionVersion } from '../utils/chrome';
+import {
+  createDisplayContent,
+  executeAction,
+  formatErrorMessage,
+  validateStructuredParams,
+} from '../utils/playground-helpers';
 import {
   clearStoredMessages,
   getMsgsFromStorage,
@@ -48,19 +54,6 @@ export interface InfoListItem {
   loadingProgressText?: string;
   verticalMode?: boolean;
 }
-
-const ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED = 'NOT_IMPLEMENTED_AS_DESIGNED';
-
-const formatErrorMessage = (e: any): string => {
-  const errorMessage = e?.message || '';
-  if (errorMessage.includes('of different extension')) {
-    return 'Conflicting extension detected. Please disable the suspicious plugins and refresh the page. Guide: https://midscenejs.com/quick-experience.html#faq';
-  }
-  if (!errorMessage?.includes(ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED)) {
-    return errorMessage;
-  }
-  return 'Unknown error';
-};
 
 // Blank result template
 const blankResult = {
@@ -122,6 +115,7 @@ export function BrowserExtensionPlayground({
   const [infoList, setInfoList] = useState<InfoListItem[]>([]);
   const [showScrollToBottomButton, setShowScrollToBottomButton] =
     useState(false);
+  const [actionSpace, setActionSpace] = useState<DeviceAction<any>[]>([]);
   const infoListRef = useRef<HTMLDivElement>(null);
 
   // Form and environment configuration
@@ -172,6 +166,23 @@ export function BrowserExtensionPlayground({
         console.error(e);
       });
   }, [uiContextPreview, showContextPreview, getAgent, forceSameTabNavigation]);
+
+  // Initialize actionSpace for dynamic parameter validation
+  useEffect(() => {
+    const loadActionSpace = async () => {
+      try {
+        const agent = getAgent(forceSameTabNavigation);
+        if (agent) {
+          const space = await agent.getActionSpace();
+          setActionSpace(space || []);
+        }
+      } catch (error) {
+        console.error('Failed to load actionSpace:', error);
+      }
+    };
+
+    loadActionSpace();
+  }, [getAgent, forceSameTabNavigation]);
 
   // store light messages to localStorage (big result data is stored separately)
   useEffect(() => {
@@ -248,18 +259,41 @@ export function BrowserExtensionPlayground({
   // Handle form submission
   const handleRun = useCallback(async () => {
     const value = form.getFieldsValue();
-    if (!value.prompt) {
+
+    // Dynamic validation using actionSpace
+    const action = actionSpace?.find(
+      (a: DeviceAction<any>) =>
+        a.interfaceAlias === value.type || a.name === value.type,
+    );
+
+    // Check if this action needs structured params (has paramSchema)
+    const needsStructuredParams = !!action?.paramSchema;
+
+    if (needsStructuredParams) {
+      const validation = validateStructuredParams(value, action);
+      if (!validation.valid) {
+        message.error(validation.errorMessage || 'Validation failed');
+        return;
+      }
+    } else if (!value.prompt) {
       message.error('Prompt is required');
       return;
     }
 
     const startTime = Date.now();
 
+    // Create display content for user input - dynamically from actionSpace
+    const displayContent = createDisplayContent(
+      value,
+      needsStructuredParams,
+      action,
+    );
+
     // add user input to info list
     const userItem: InfoListItem = {
       id: `user-${Date.now()}`,
       type: 'user',
-      content: value.prompt,
+      content: displayContent,
       timestamp: new Date(),
     };
     setInfoList((prev) => [...prev, userItem]);
@@ -304,90 +338,14 @@ export function BrowserExtensionPlayground({
         setInfoList((prev) => [...prev, progressItem]);
       };
 
-      // Extension mode always uses in-browser actions
-      if (actionType === 'aiAction') {
-        result.result = await activeAgent?.aiAction(value.prompt);
-      } else if (actionType === 'aiQuery') {
-        result.result = await activeAgent?.aiQuery(value.prompt);
-      } else if (actionType === 'aiAssert') {
-        const { pass, thought } =
-          (await activeAgent?.aiAssert(value.prompt, undefined, {
-            keepRawResponse: true,
-          })) || {};
-        result.result = {
-          pass,
-          thought,
-        };
-      } else if (actionType === 'aiTap') {
-        result.result = await activeAgent?.aiTap(value.prompt, {
-          deepThink,
-        });
-      } else if (actionType === 'aiHover') {
-        result.result = await activeAgent?.aiHover(value.prompt, {
-          deepThink,
-        });
-      } else if (actionType === 'aiInput') {
-        // Parse format: "value | element"
-        const parts = value.prompt.split('|').map((s: string) => s.trim());
-        if (parts.length !== 2) {
-          throw new Error('aiInput requires format: "value | element"');
-        }
-        result.result = await activeAgent?.aiInput(parts[0], parts[1], {
-          deepThink,
-        });
-      } else if (actionType === 'aiRightClick') {
-        result.result = await activeAgent?.aiRightClick(value.prompt, {
-          deepThink,
-        });
-      } else if (actionType === 'aiKeyboardPress') {
-        // Parse format: "key | element (optional)"
-        const parts = value.prompt.split('|').map((s: string) => s.trim());
-        const keyName = parts[0];
-        const element = parts[1] || undefined;
-        result.result = await activeAgent?.aiKeyboardPress(keyName, element, {
-          deepThink,
-        });
-      } else if (actionType === 'aiScroll') {
-        // Parse format: "direction amount | element (optional)"
-        const parts = value.prompt.split('|').map((s: string) => s.trim());
-        const scrollParts = parts[0].split(' ').map((s: string) => s.trim());
-
-        if (scrollParts.length < 2) {
-          throw new Error(
-            'aiScroll requires format: "direction amount | element (optional)"',
-          );
-        }
-        const direction = scrollParts[0];
-        const amount = Number.parseInt(scrollParts[1]);
-        const element = parts[1] || undefined;
-
-        const scrollParam = {
-          direction: direction as 'up' | 'down' | 'left' | 'right',
-          scrollType: 'once' as const,
-          distance: amount,
-        };
-
-        result.result = await activeAgent?.aiScroll(scrollParam, element);
-      } else if (actionType === 'aiLocate') {
-        result.result = await activeAgent?.aiLocate(value.prompt, {
-          deepThink,
-        });
-      } else if (actionType === 'aiBoolean') {
-        result.result = await activeAgent?.aiBoolean(value.prompt);
-      } else if (actionType === 'aiNumber') {
-        result.result = await activeAgent?.aiNumber(value.prompt);
-      } else if (actionType === 'aiString') {
-        result.result = await activeAgent?.aiString(value.prompt);
-      } else if (actionType === 'aiAsk') {
-        result.result = await activeAgent?.aiAsk(value.prompt);
-      } else if (actionType === 'aiWaitFor') {
-        result.result = await activeAgent?.aiWaitFor(value.prompt, {
-          timeoutMs: 15000,
-          checkIntervalMs: 3000,
-        });
-      } else {
-        throw new Error(`Unknown action type: ${actionType}`);
-      }
+      // Execute the action using the new helper function
+      result.result = await executeAction(
+        activeAgent,
+        actionType,
+        actionSpace,
+        value,
+        deepThink,
+      );
     } catch (e: any) {
       result.error = formatErrorMessage(e);
       console.error(e);
@@ -485,7 +443,15 @@ export function BrowserExtensionPlayground({
     // Reset hasNewMessage for future runs
 
     console.log(`time taken: ${Date.now() - startTime}ms`);
-  }, [form, getAgent, forceSameTabNavigation, replayCounter, verticalMode]);
+  }, [
+    form,
+    getAgent,
+    forceSameTabNavigation,
+    replayCounter,
+    verticalMode,
+    actionSpace,
+    deepThink,
+  ]);
 
   // Handle stop running - extension specific functionality
   const handleStop = async () => {
@@ -716,6 +682,7 @@ export function BrowserExtensionPlayground({
             loading={loading}
             onRun={handleRun}
             onStop={handleStop}
+            actionSpace={actionSpace}
           />
         </div>
 

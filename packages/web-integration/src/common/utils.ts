@@ -27,6 +27,10 @@ import {
 } from '@midscene/shared/extractor';
 import { resizeImgBase64 } from '@midscene/shared/img';
 import { type DebugFunction, getDebug } from '@midscene/shared/logger';
+import {
+  type KeyInput,
+  _keyDefinitions,
+} from '@midscene/shared/us-keyboard-layout';
 import { assert, logMsg, uuid } from '@midscene/shared/utils';
 import dayjs from 'dayjs';
 import type { Page as PlaywrightPage } from 'playwright';
@@ -469,6 +473,7 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
   {
     name: 'RightClick',
     description: 'Right click the element',
+    interfaceAlias: 'aiRightClick',
     paramSchema: z.object({
       locate: getMidsceneLocationSchema().describe(
         'The element to be right clicked',
@@ -531,7 +536,8 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
   }>,
   {
     name: 'KeyboardPress',
-    description: 'Press a key',
+    description:
+      'Press a key or type text. For single keys (like "Enter", "Tab", "Escape"), use the key name. For text input (like "hello"), the text will be typed character by character.',
     interfaceAlias: 'aiKeyboardPress',
     paramSchema: z.object({
       locate: getMidsceneLocationSchema()

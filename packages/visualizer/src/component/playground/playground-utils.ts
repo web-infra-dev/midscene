@@ -6,6 +6,8 @@ import {
   StaticPage,
   StaticPageAgent,
 } from '@midscene/web/playground';
+import type { ZodObjectSchema } from './types';
+import { isZodObjectSchema, unwrapZodType } from './types';
 
 // Server base URL
 export const serverBase = `http://localhost:${PLAYGROUND_SERVER_PORT}`;
@@ -96,7 +98,7 @@ export const actionNameForType = (type: string) => {
   if (type === 'aiHover') return 'Hover';
   if (type === 'aiInput') return 'Input';
   if (type === 'aiRightClick') return 'Right Click';
-  if (type === 'aiKeyboardPress') return 'Keyboard';
+  if (type === 'aiKeyboardPress') return 'Keyboard Press';
   if (type === 'aiScroll') return 'Scroll';
   if (type === 'aiLocate') return 'Locate';
   if (type === 'aiBoolean') return 'Boolean';
@@ -178,4 +180,38 @@ export const blankResult = {
   dump: null,
   reportHTML: null,
   error: null,
+};
+
+export const isRunButtonEnabled = (
+  runButtonEnabled: boolean,
+  needsStructuredParams: boolean,
+  params: any,
+  actionSpace: any[] | undefined,
+  selectedType: string,
+  promptValue: string,
+) => {
+  if (!runButtonEnabled) {
+    return false;
+  }
+  if (needsStructuredParams) {
+    const currentParams = params || {};
+    const action = actionSpace?.find(
+      (a) => a.interfaceAlias === selectedType || a.name === selectedType,
+    );
+    if (action?.paramSchema && isZodObjectSchema(action.paramSchema as any)) {
+      // Check if all required fields are filled
+      const schema = action.paramSchema as any as ZodObjectSchema;
+      return Object.keys(schema.shape).every((key) => {
+        const field = schema.shape[key];
+        const { isOptional } = unwrapZodType(field);
+        const value = currentParams[key];
+        // A field is valid if it's optional or has a non-empty value
+        return (
+          isOptional || (value !== undefined && value !== '' && value !== null)
+        );
+      });
+    }
+    return true; // Fallback for safety
+  }
+  return promptValue.trim().length > 0;
 };

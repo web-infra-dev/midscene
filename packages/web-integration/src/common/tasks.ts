@@ -500,7 +500,12 @@ export class PageTaskExecutor {
           }
         });
 
-        const task: ExecutionTaskActionApply = {
+        const task: ExecutionTaskApply<
+          'Action',
+          any,
+          { success: boolean; action: string; param: any },
+          void
+        > = {
           type: 'Action',
           subType: planType,
           thought: plan.thought,
@@ -513,6 +518,14 @@ export class PageTaskExecutor {
               `context.element.center: ${context.element?.center}`,
             );
 
+            // Get page context for actionSpace operations to ensure size info is available
+            const pageContext = await this.insight.contextRetrieverFn('locate');
+            context.task.pageContext = pageContext;
+
+            const actionSpace = await this.page.actionSpace();
+            const action = actionSpace.find(
+              (action) => action.name === planType,
+            );
             if (!action) {
               throw new Error(`Action type '${planType}' not found`);
             }
@@ -525,7 +538,15 @@ export class PageTaskExecutor {
             });
 
             const actionFn = action.call.bind(this.page);
-            return await actionFn(param, context);
+            await actionFn(param, context);
+            // Return a proper result for report generation
+            return {
+              output: {
+                success: true,
+                action: planType,
+                param: param,
+              },
+            };
           },
         };
         tasks.push(task);

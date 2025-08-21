@@ -48,24 +48,31 @@ body {
             color: #fff;
           }
         }
+      }
 
-        &.more-apis-button {
-          display: inline-flex;
-          align-items: center;
-          gap: 2px;
+      .more-apis-button {
+        height: 24px;
+        padding: 0 8px;
+        border-radius: 11px;
+        box-shadow: none;
+        border: none;
+        background-color: #F7F7F7;
+        font-size: 12px;
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
 
-          &:not(.ant-radio-button-wrapper-checked):hover {
-            background-color: #e6e6e6;
-          }
+        &:hover {
+          background-color: #e6e6e6;
+        }
 
-          &.selected-from-dropdown {
+        &.selected-from-dropdown {
+          background-color: #2B83FF;
+          color: #fff;
+          font-weight: 500;
+
+          &:hover {
             background-color: #2B83FF;
-            color: #fff;
-            font-weight: 500;
-
-            &:hover {
-              background-color: #2B83FF;
-            }
           }
         }
       }
@@ -147,6 +154,14 @@ body {
     }
   }
 
+  .ant-form-item-with-help + .form-controller-wrapper {
+    bottom: 22px; /* Move up to make space for the validation message */
+  }
+
+  .ant-form-item-with-help + .form-controller-wrapper {
+    bottom: 22px; /* Move up to make space for the validation message */
+  }
+
   .ant-input {
     padding-bottom: 40px;
   }
@@ -178,6 +193,129 @@ body {
     gap: 2px;
     color: @weak-text;
     flex-wrap: wrap;
+  }
+
+  // Structured parameters styling
+  .structured-params-container {
+    padding: 16px;
+    padding-bottom: 56px;
+    background: linear-gradient(white, white) padding-box,
+    linear-gradient(135deg, #4285f4 0%, #0066ff 25%, #7b02c5 50%, #ea4335 75%, #ff7043 100%) border-box;
+    border-radius: 12px;
+    border: 1px solid transparent;
+
+    .structured-params {
+      .ant-form-item {
+        // Force vertical layout - label above input
+        display: flex;
+        flex-direction: column;
+        
+        // Label positioning - above input with consistent spacing
+        .ant-form-item-label {
+          text-align: left;
+          padding-bottom: 4px;
+          flex-basis: auto;
+          
+          > label {
+            font-size: 12px;
+            font-weight: 500;
+            color: rgba(0, 0, 0, 0.85);
+            height: auto;
+            line-height: 1.5;
+            
+            // Red asterisk styling - positioned after label
+            &::after {
+              display: inline-block;
+              margin-inline-start: 4px;
+              color: #ff4d4f;
+              font-size: 12px;
+              font-family: SimSun, sans-serif;
+              line-height: 1;
+            }
+          }
+        }
+
+        // Control input positioning and spacing
+        .ant-form-item-control {
+          margin-top: 0;
+          flex: 1;
+        }
+
+        // Override Ant Design's default row layout for form items
+        .ant-form-item-row {
+          flex-direction: column;
+        }
+
+        .ant-form-item-control-input {
+          min-height: auto;
+        }
+      }
+
+      .ant-input, .ant-input-number, .ant-select {
+        width: 100%;
+        border-radius: 6px;
+        border: 1px solid #e1e5e9;
+        
+        &:hover {
+          border-color: #40a9ff;
+        }
+
+        &:focus, &:focus-within {
+          border-color: #40a9ff;
+          box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+        }
+      }
+
+      textarea.ant-input {
+        padding-bottom: 5px;
+      }
+      
+      .ant-input-number {
+        .ant-input-number-input {
+          border: none;
+          box-shadow: none;
+        }
+        
+        &:hover .ant-input-number-input {
+          box-shadow: none;
+        }
+      }
+      
+      .ant-select {
+        min-width: 120px;
+        .ant-select-selector {
+          border: none;
+          box-shadow: none;
+        }
+        
+        &:hover .ant-select-selector {
+          box-shadow: none;
+        }
+        
+        &.ant-select-focused .ant-select-selector {
+          box-shadow: none;
+        }
+      }
+
+      .ant-radio-group {
+        width: 100%;
+        
+        .ant-radio-button-wrapper {
+          height: 32px;
+          line-height: 30px;
+          border-radius: 6px;
+          border: 1px solid #e1e5e9;
+          margin-right: 4px;
+          font-size: 12px;
+
+          &.ant-radio-button-wrapper-checked {
+            background-color: #2B83FF;
+            border-color: #2B83FF;
+            color: white;
+          }
+        }
+      }
+    }
   }
 }
 

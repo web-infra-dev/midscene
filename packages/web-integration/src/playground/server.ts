@@ -142,7 +142,8 @@ export default class PlaygroundServer {
       '/execute',
       express.json({ limit: '30mb' }),
       async (req, res) => {
-        const { context, type, prompt, requestId, deepThink } = req.body;
+        const { context, type, prompt, params, requestId, deepThink } =
+          req.body;
 
         if (!context) {
           return res.status(400).json({
@@ -156,9 +157,9 @@ export default class PlaygroundServer {
           });
         }
 
-        if (!prompt) {
+        if (!prompt && !params) {
           return res.status(400).json({
-            error: 'prompt is required',
+            error: 'prompt or params is required',
           });
         }
 
@@ -189,91 +190,185 @@ export default class PlaygroundServer {
           requestId,
         };
 
-        const startTime = Date.now();
-        try {
-          // Parse parameters for certain methods
-          if (type === 'aiQuery') {
-            response.result = await agent.aiQuery(prompt);
-          } else if (type === 'aiAction') {
-            response.result = await agent.aiAction(prompt);
-          } else if (type === 'aiAssert') {
-            response.result = await agent.aiAssert(prompt, undefined, {
-              keepRawResponse: true,
-            });
-          } else if (type === 'aiTap') {
-            response.result = await agent.aiTap(prompt, {
-              deepThink,
-            });
-          } else if (type === 'aiHover') {
-            response.result = await agent.aiHover(prompt, {
-              deepThink,
-            });
-          } else if (type === 'aiRightClick') {
-            response.result = await agent.aiRightClick(prompt, {
-              deepThink,
-            });
-          } else if (type === 'aiLocate') {
-            response.result = await agent.aiLocate(prompt, {
-              deepThink,
-            });
-          } else if (type === 'aiInput') {
-            // Parse format: "value | element"
-            const parts = prompt.split('|').map((s: string) => s.trim());
-            if (parts.length !== 2) {
-              response.error = 'aiInput requires format: "value | element"';
-            } else {
-              response.result = await agent.aiInput(parts[0], parts[1], {
-                deepThink,
-              });
-            }
-          } else if (type === 'aiKeyboardPress') {
-            // Parse format: "key | element (optional)"
-            const parts = prompt.split('|').map((s: string) => s.trim());
-            const keyName = parts[0];
-            const element = parts[1] || undefined;
-            response.result = await agent.aiKeyboardPress(keyName, element, {
-              deepThink,
-            });
-          } else if (type === 'aiScroll') {
-            // Parse format: "direction amount | element (optional)"
-            // Example: "down 500 | main content"
-            const parts = prompt.split('|').map((s: string) => s.trim());
-            const scrollParts = parts[0]
-              .split(' ')
-              .map((s: string) => s.trim());
+        // Helper function to parse action parameters based on type
+        const parseActionParams = (
+          actionType: string,
+          inputPrompt: string | undefined,
+          inputParams: any | undefined,
+          options: { deepThink?: boolean } = {},
+        ): any[] => {
+          // If structured params are provided, use them directly
+          if (inputParams) {
+            switch (actionType) {
+              case 'aiInput': {
+                if (!inputParams.value || !inputParams.locate) {
+                  throw new Error(
+                    'aiInput requires both value and locate parameters',
+                  );
+                }
+                return [
+                  inputParams.locate,
+                  { value: inputParams.value, ...options },
+                ];
+              }
 
-            if (scrollParts.length < 2) {
-              response.error =
-                'aiScroll requires format: "direction amount | element (optional)"';
-            } else {
-              const direction = scrollParts[0];
-              const amount = Number.parseInt(scrollParts[1]);
-              const element = parts[1] || undefined;
+              case 'aiKeyboardPress': {
+                if (!inputParams.keyName) {
+                  throw new Error('aiKeyboardPress requires keyName parameter');
+                }
+                return [
+                  inputParams.locate,
+                  { keyName: inputParams.keyName, ...options },
+                ];
+              }
+
+              case 'aiScroll': {
+                if (!inputParams.direction || !inputParams.distance) {
+                  throw new Error(
+                    'aiScroll requires direction and distance parameters',
+                  );
+                }
+                const scrollParam = {
+                  direction: inputParams.direction as
+                    | 'up'
+                    | 'down'
+                    | 'left'
+                    | 'right',
+                  scrollType: inputParams.scrollType || 'once',
+                  distance: inputParams.distance,
+                  ...options,
+                };
+                return [inputParams.locate, scrollParam];
+              }
+
+              default:
+                // For other actions that only need locate prompt
+                return [
+                  inputParams.locate || inputParams.prompt || inputPrompt,
+                  options,
+                ];
+            }
+          }
+
+          // Fallback to legacy prompt parsing for backward compatibility
+          if (!inputPrompt) {
+            throw new Error(`Missing prompt for ${actionType}`);
+          }
+
+          switch (actionType) {
+            case 'aiInput': {
+              const inputParts = inputPrompt
+                .split('|')
+                .map((s: string) => s.trim());
+              if (inputParts.length !== 2) {
+                throw new Error('aiInput requires format: "value | element"');
+              }
+              return [inputParts[1], { value: inputParts[0], ...options }];
+            }
+
+            case 'aiKeyboardPress': {
+              const keyParts = inputPrompt
+                .split('|')
+                .map((s: string) => s.trim());
+              const keyName = keyParts[0];
+              const keyElement = keyParts[1] || undefined;
+              return [keyElement, { keyName, ...options }];
+            }
+
+            case 'aiScroll': {
+              const scrollParts = inputPrompt
+                .split('|')
+                .map((s: string) => s.trim());
+              const scrollArgs = scrollParts[0]
+                .split(' ')
+                .map((s: string) => s.trim());
+
+              if (scrollArgs.length < 2) {
+                throw new Error(
+                  'aiScroll requires format: "direction amount | element (optional)"',
+                );
+              }
+
+              const direction = scrollArgs[0] as
+                | 'up'
+                | 'down'
+                | 'left'
+                | 'right';
+              const amount = Number.parseInt(scrollArgs[1]);
+              const scrollElement = scrollParts[1] || undefined;
 
               const scrollParam = {
-                direction: direction as 'up' | 'down' | 'left' | 'right',
+                direction,
                 scrollType: 'once' as const,
                 distance: amount,
+                ...options,
               };
 
-              response.result = await agent.aiScroll(scrollParam, element);
+              return [scrollElement, scrollParam];
             }
-          } else if (type === 'aiBoolean') {
-            response.result = await agent.aiBoolean(prompt);
-          } else if (type === 'aiNumber') {
-            response.result = await agent.aiNumber(prompt);
-          } else if (type === 'aiString') {
-            response.result = await agent.aiString(prompt);
-          } else if (type === 'aiAsk') {
-            response.result = await agent.aiAsk(prompt);
-          } else if (type === 'aiWaitFor') {
-            // aiWaitFor with default timeout of 15 seconds
-            response.result = await agent.aiWaitFor(prompt, {
-              timeoutMs: 15000,
-              checkIntervalMs: 3000,
+
+            default:
+              return [inputPrompt, options];
+          }
+        };
+
+        const startTime = Date.now();
+        try {
+          // Get action space to check for dynamic actions
+          const actionSpace = await agent.getActionSpace();
+
+          // Check if this is an action in the actionSpace
+          const action = actionSpace.find(
+            (action) => action.interfaceAlias === type || action.name === type,
+          );
+
+          if (
+            action?.interfaceAlias &&
+            typeof (agent as any)[action.interfaceAlias] === 'function'
+          ) {
+            // Use actionSpace method dynamically
+            const parsedParams = parseActionParams(type, prompt, params, {
+              deepThink,
             });
+            response.result = await (agent as any)[action.interfaceAlias](
+              ...parsedParams,
+            );
           } else {
-            response.error = `Unknown type: ${type}`;
+            // Get the prompt from either prompt field or params.prompt
+            const actualPrompt = prompt || params?.prompt;
+
+            if (!actualPrompt) {
+              throw new Error(`Missing prompt for ${type}`);
+            }
+
+            if (type === 'aiQuery') {
+              response.result = await agent.aiQuery(actualPrompt);
+            } else if (type === 'aiAction') {
+              response.result = await agent.aiAction(actualPrompt);
+            } else if (type === 'aiAssert') {
+              response.result = await agent.aiAssert(actualPrompt, undefined, {
+                keepRawResponse: true,
+              });
+            } else if (type === 'aiBoolean') {
+              response.result = await agent.aiBoolean(actualPrompt);
+            } else if (type === 'aiNumber') {
+              response.result = await agent.aiNumber(actualPrompt);
+            } else if (type === 'aiString') {
+              response.result = await agent.aiString(actualPrompt);
+            } else if (type === 'aiAsk') {
+              response.result = await agent.aiAsk(actualPrompt);
+            } else if (type === 'aiWaitFor') {
+              response.result = await agent.aiWaitFor(actualPrompt, {
+                timeoutMs: 15000,
+                checkIntervalMs: 3000,
+              });
+            } else if (type === 'aiLocate') {
+              response.result = await agent.aiLocate(actualPrompt, {
+                deepThink,
+              });
+            } else {
+              response.error = `Unknown type: ${type}`;
+            }
           }
         } catch (error: any) {
           if (!error.message.includes(ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED)) {
