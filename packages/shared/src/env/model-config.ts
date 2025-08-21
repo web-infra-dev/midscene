@@ -362,7 +362,7 @@ export const decideModelConfig = (
 
     const keysForFn = KEYS_MAP[intent];
 
-    debugLog('ChooseOpenaiSdkConfig base on agent.modelConfig()');
+    debugLog('decideModelConfig base on agent.modelConfig()');
     const candidateModelNameFromConfig = modelConfigFromFn[keysForFn.modelName];
 
     debugLog('Got modelName from modelConfigFn', candidateModelNameFromConfig);
@@ -405,7 +405,7 @@ export const decideModelConfig = (
       from: 'modelConfig',
     };
 
-    debugLog('ChooseOpenaiSdkConfig result:', finalResult);
+    debugLog('decideModelConfig result:', finalResult);
     return finalResult;
   }
 
@@ -442,10 +442,11 @@ export const decideModelConfig = (
       from: 'env',
     };
 
-    debugLog('ChooseOpenaiSdkConfig result:', finalResult);
+    debugLog('decideModelConfig result:', finalResult);
+    return finalResult;
   }
 
-  debugLog(`ChooseOpenaiSdkConfig as legacy logic with intent ${intent}.`);
+  debugLog(`decideModelConfig as legacy logic with intent ${intent}.`);
   const result = decideOpenaiSdkConfig({
     keys: DEFAULT_MODEL_CONFIG_KEYS_LEGACY,
     provider: allConfig,
@@ -465,6 +466,6 @@ export const decideModelConfig = (
     from: 'legacy-env',
   };
 
-  debugLog('ChooseOpenaiSdkConfig result:', finalResult);
+  debugLog('decideModelConfig result:', finalResult);
   return finalResult;
 };
