@@ -288,6 +288,7 @@ export async function call(
                 time_cost: timeCost ?? 0,
                 model_name: modelName,
                 model_description: modelDescription,
+                intent: modelPreferences.intent,
               },
             };
             options.onChunk!(finalChunk);
@@ -392,6 +393,7 @@ export async function call(
                     time_cost: timeCost ?? 0,
                     model_name: modelName,
                     model_description: modelDescription,
+                    intent: modelPreferences.intent,
                   }
                 : undefined,
             };
@@ -444,6 +446,7 @@ export async function call(
             time_cost: timeCost ?? 0,
             model_name: modelName,
             model_description: modelDescription,
+            intent: modelPreferences.intent,
           }
         : undefined,
       isStreamed: !!isStreaming,
