@@ -199,6 +199,11 @@ export class AndroidDevice implements AndroidDevicePage {
 
     this.deviceId = deviceId;
     this.options = options;
+    // Set URI with display information for unique device identification
+    this.uri =
+      typeof options?.activeDisplayId === 'number'
+        ? `android://${deviceId}/display-${options.activeDisplayId}`
+        : `android://${deviceId}`;
   }
 
   public async connect(): Promise<ADB> {
@@ -356,7 +361,7 @@ ${Object.keys(size)
     const adb = await this.getAdb();
 
     await adb.shell(
-      `app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "${keyboardContent}"`,
+      `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "${keyboardContent}"`,
     );
   }
 
@@ -379,6 +384,54 @@ ${Object.keys(size)
     orientation: number; // 0=portrait, 1=landscape, 2=reverse portrait, 3=reverse landscape
   }> {
     const adb = await this.getAdb();
+
+    // If we have an activeDisplayId, try to get size from display info using long ID
+    if (typeof this.options?.activeDisplayId === 'number') {
+      try {
+        const longDisplayId = await this.getLongDisplayId();
+        if (longDisplayId) {
+          const stdout = await adb.shell('dumpsys display');
+
+          // Use regex to find the line containing the target display's uniqueId
+          const lineRegex = new RegExp(`^.*uniqueId "local:${longDisplayId}".*$`, 'm');
+          const lineMatch = stdout.match(lineRegex);
+          
+          if (lineMatch) {
+            const targetLine = lineMatch[0];
+            // Extract real size and rotation from the found line
+            const realMatch = targetLine.match(/real (\d+) x (\d+)/);
+            const rotationMatch = targetLine.match(/rotation (\d+)/);
+
+            if (realMatch && rotationMatch) {
+              const width = Number(realMatch[1]);
+              const height = Number(realMatch[2]);
+              const rotation = Number(rotationMatch[1]);
+              const sizeStr = `${width}x${height}`;
+
+              debugPage(
+                `Using display info for long ID ${longDisplayId}: ${sizeStr}, rotation: ${rotation}`,
+              );
+
+              return {
+                override: sizeStr,
+                physical: sizeStr,
+                orientation: rotation,
+              };
+            }
+          }
+        }
+
+        debugPage(
+          `Could not find display info for activeDisplayId ${this.options.activeDisplayId}`,
+        );
+      } catch (e) {
+        debugPage(
+          `Failed to get size from display info for display ${this.options.activeDisplayId}: ${e}`,
+        );
+      }
+    }
+
+    // Fallback to wm size (global screen size)
     const stdout = await adb.shell(['wm', 'size']);
     const size = {
       override: '',
@@ -403,10 +456,58 @@ ${Object.keys(size)
       size.physical = physicalSize[1].trim();
     }
 
+    const orientation = await this.getDisplayOrientation();
+
+    if (size.override || size.physical) {
+      return { ...size, orientation };
+    }
+
+    throw new Error(`Failed to get screen size, output: ${stdout}`);
+  }
+
+  private async getDisplayDensity(): Promise<number> {
+    const adb = await this.getAdb();
+
+    // If we have an activeDisplayId, try to get density from display info using long ID
+    if (typeof this.options?.activeDisplayId === 'number') {
+      try {
+        const longDisplayId = await this.getLongDisplayId();
+        if (longDisplayId) {
+          const stdout = await adb.shell('dumpsys display');
+
+          // Use regex to find the line containing the target display's uniqueId
+          const lineRegex = new RegExp(`^.*uniqueId "local:${longDisplayId}".*$`, 'm');
+          const lineMatch = stdout.match(lineRegex);
+          
+          if (lineMatch) {
+            const targetLine = lineMatch[0];
+            const densityMatch = targetLine.match(/density (\d+)/);
+            if (densityMatch) {
+              const density = Number(densityMatch[1]);
+              debugPage(
+                `Using display density for long ID ${longDisplayId}: ${density}`,
+              );
+              return density;
+            }
+          }
+        }
+      } catch (e) {
+        debugPage(`Failed to get density from display info: ${e}`);
+      }
+    }
+
+    // Fallback to global screen density
+    const density = await adb.getScreenDensity();
+    return density ?? 160; // Default to standard Android density if null
+  }
+
+  private async getDisplayOrientation(): Promise<number> {
+    const adb = await this.getAdb();
     let orientation = 0;
+
     try {
       const orientationStdout = await adb.shell(
-        'dumpsys input | grep SurfaceOrientation',
+        `dumpsys${this.getDisplayArg()} input | grep SurfaceOrientation`,
       );
       const orientationMatch = orientationStdout.match(
         /SurfaceOrientation:\s*(\d)/,
@@ -416,13 +517,12 @@ ${Object.keys(size)
       }
 
       orientation = Number(orientationMatch[1]);
-
       debugPage(`Screen orientation: ${orientation}`);
     } catch (e) {
       debugPage('Failed to get orientation from input, try display');
       try {
         const orientationStdout = await adb.shell(
-          'dumpsys display | grep mCurrentOrientation',
+          `dumpsys${this.getDisplayArg()} display | grep mCurrentOrientation`,
         );
         const orientationMatch = orientationStdout.match(
           /mCurrentOrientation=(\d)/,
@@ -432,7 +532,6 @@ ${Object.keys(size)
         }
 
         orientation = Number(orientationMatch[1]);
-
         debugPage(`Screen orientation (fallback): ${orientation}`);
       } catch (e2) {
         orientation = 0;
@@ -440,11 +539,7 @@ ${Object.keys(size)
       }
     }
 
-    if (size.override || size.physical) {
-      return { ...size, orientation };
-    }
-
-    throw new Error(`Failed to get screen size, output: ${stdout}`);
+    return orientation;
   }
 
   async size(): Promise<Size> {
@@ -467,8 +562,8 @@ ${Object.keys(size)
     const width = Number.parseInt(match[isLandscape ? 2 : 1], 10);
     const height = Number.parseInt(match[isLandscape ? 1 : 2], 10);
 
-    // Get device display density
-    const densityNum = await adb.getScreenDensity();
+    // Get device display density using custom method
+    const densityNum = await this.getDisplayDensity();
     // Standard density is 160, calculate the ratio
     this.devicePixelRatio = Number(densityNum) / 160;
 
@@ -546,10 +641,8 @@ ${Object.keys(size)
 
       try {
         debugPage('Fallback: taking screenshot via shell screencap');
-        const displayArg =
-          typeof this.options?.activeDisplayId === 'number'
-            ? `-d ${this.options?.activeDisplayId}`
-            : '';
+        const longDisplayId = await this.getLongDisplayId();
+        const displayArg = longDisplayId ? `-d ${longDisplayId}` : '';
         try {
           // Take a screenshot and save it locally
           await adb.shell(
@@ -567,7 +660,7 @@ ${Object.keys(size)
         debugPage(`adb.pull completed, local path: ${screenshotPath}`);
         screenshotBuffer = await fs.promises.readFile(screenshotPath);
       } finally {
-        await adb.shell(`rm ${androidScreenshotPath}`);
+        // await adb.shell(`rm ${androidScreenshotPath}`);
       }
     }
 
@@ -628,7 +721,7 @@ ${Object.keys(size)
 
     // Use the yadb tool to clear the input box
     await adb.shell(
-      'app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "~CLEAR~"',
+      `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "~CLEAR~"`,
     );
 
     if (await adb.isSoftKeyboardPresent()) {
@@ -882,7 +975,7 @@ ${Object.keys(size)
     // Use adjusted coordinates
     const { x: adjustedX, y: adjustedY } = this.adjustCoordinates(x, y);
     await adb.shell(
-      `input swipe ${adjustedX} ${adjustedY} ${adjustedX} ${adjustedY} 150`,
+      `input${this.getDisplayArg()} swipe ${adjustedX} ${adjustedY} ${adjustedX} ${adjustedY} 150`,
     );
   }
 
@@ -907,7 +1000,7 @@ ${Object.keys(size)
     const swipeDuration = duration ?? 300;
 
     await adb.shell(
-      `input swipe ${fromX} ${fromY} ${toX} ${toY} ${swipeDuration}`,
+      `input${this.getDisplayArg()} swipe ${fromX} ${fromY} ${toX} ${toY} ${swipeDuration}`,
     );
   }
 
@@ -959,7 +1052,7 @@ ${Object.keys(size)
 
     // Execute the swipe operation
     await adb.shell(
-      `input swipe ${adjustedStartX} ${adjustedStartY} ${adjustedEndX} ${adjustedEndY} ${swipeDuration}`,
+      `input${this.getDisplayArg()} swipe ${adjustedStartX} ${adjustedStartY} ${adjustedEndX} ${adjustedEndY} ${swipeDuration}`,
     );
   }
 
@@ -984,17 +1077,17 @@ ${Object.keys(size)
 
   async back(): Promise<void> {
     const adb = await this.getAdb();
-    await adb.shell('input keyevent 4');
+    await adb.shell(`input${this.getDisplayArg()} keyevent 4`);
   }
 
   async home(): Promise<void> {
     const adb = await this.getAdb();
-    await adb.shell('input keyevent 3');
+    await adb.shell(`input${this.getDisplayArg()} keyevent 3`);
   }
 
   async recentApps(): Promise<void> {
     const adb = await this.getAdb();
-    await adb.shell('input keyevent 187');
+    await adb.shell(`input${this.getDisplayArg()} keyevent 187`);
   }
 
   async longPress(x: number, y: number, duration = 1000): Promise<void> {
@@ -1003,7 +1096,7 @@ ${Object.keys(size)
     // Use adjusted coordinates
     const { x: adjustedX, y: adjustedY } = this.adjustCoordinates(x, y);
     await adb.shell(
-      `input swipe ${adjustedX} ${adjustedY} ${adjustedX} ${adjustedY} ${duration}`,
+      `input${this.getDisplayArg()} swipe ${adjustedX} ${adjustedY} ${adjustedX} ${adjustedY} ${duration}`,
     );
   }
 
@@ -1040,7 +1133,9 @@ ${Object.keys(size)
     const { x: toX, y: toY } = this.adjustCoordinates(to.x, to.y);
 
     // Use the specified duration for better pull gesture recognition
-    await adb.shell(`input swipe ${fromX} ${fromY} ${toX} ${toY} ${duration}`);
+    await adb.shell(
+      `input${this.getDisplayArg()} swipe ${fromX} ${fromY} ${toX} ${toY} ${duration}`,
+    );
   }
 
   async pullUp(
@@ -1079,6 +1174,46 @@ ${Object.keys(size)
     throw new Error('Not implemented');
   }
 
+  private getDisplayArg(): string {
+    return typeof this.options?.activeDisplayId === 'number'
+      ? ` -d ${this.options.activeDisplayId}`
+      : '';
+  }
+
+  private async getLongDisplayId(): Promise<string | null> {
+    if (typeof this.options?.activeDisplayId !== 'number') {
+      return null;
+    }
+
+    const adb = await this.getAdb();
+    try {
+      const stdout = await adb.shell(
+        `dumpsys SurfaceFlinger --display-id ${this.options.activeDisplayId}`,
+      );
+
+      // Parse the output to extract the long display ID
+      // Look for a pattern like "Display 123456789 (HWC display N):" where N matches our short ID
+      const regex = new RegExp(
+        `Display (\\d+) \\(HWC display ${this.options.activeDisplayId}\\):`,
+      );
+      const displayMatch = stdout.match(regex);
+      if (displayMatch?.[1]) {
+        debugPage(
+          `Found long display ID: ${displayMatch[1]} for short ID: ${this.options.activeDisplayId}`,
+        );
+        return displayMatch[1];
+      }
+
+      debugPage(
+        `Could not find long display ID for short ID: ${this.options.activeDisplayId}`,
+      );
+      return null;
+    } catch (error) {
+      debugPage(`Error getting long display ID: ${error}`);
+      return null;
+    }
+  }
+
   async hideKeyboard(
     options?: AndroidDeviceInputOpt,
     timeoutMs = 1000,
@@ -1109,7 +1244,7 @@ ${Object.keys(size)
 
     // Try each key code with waiting
     for (const keyCode of keyCodes) {
-      await adb.keyevent(keyCode);
+      await adb.shell(`input${this.getDisplayArg()} keyevent ${keyCode}`);
 
       // Wait for keyboard to be hidden with timeout
       const startTime = Date.now();
