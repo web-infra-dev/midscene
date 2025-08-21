@@ -48,6 +48,7 @@ export type AndroidDeviceOpt = {
   remoteAdbPort?: number;
   imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii';
   activeDisplayId?: number;
+  useLongDisplayIdForScreenshot?: boolean;
 } & AndroidDeviceInputOpt;
 
 export class AndroidDevice implements AndroidDevicePage {
@@ -642,8 +643,10 @@ ${Object.keys(size)
 
       try {
         debugPage('Fallback: taking screenshot via shell screencap');
-        const longDisplayId = await this.getLongDisplayId();
-        const displayArg = longDisplayId ? `-d ${longDisplayId}` : '';
+        const displayId = this.options?.useLongDisplayIdForScreenshot
+          ? await this.getLongDisplayId()
+          : this.options?.activeDisplayId;
+        const displayArg = displayId ? `-d ${displayId}` : '';
         try {
           // Take a screenshot and save it locally
           await adb.shell(

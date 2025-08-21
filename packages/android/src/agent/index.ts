@@ -52,6 +52,7 @@ export async function agentFromAdbDevice(
     remoteAdbPort: opts?.remoteAdbPort,
     imeStrategy: opts?.imeStrategy,
     activeDisplayId: opts?.activeDisplayId,
+    useLongDisplayIdForScreenshot: opts?.useLongDisplayIdForScreenshot,
   });
 
   await page.connect();
