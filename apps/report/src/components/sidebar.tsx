@@ -93,7 +93,7 @@ const SideItem = (props: {
   })();
 
   const titleTextIcon =
-    task.type === 'Planning' ? (
+    task.type === 'Planning' && task.subType !== 'LoadYaml' ? (
       <span
         style={{
           display: 'inline-flex',

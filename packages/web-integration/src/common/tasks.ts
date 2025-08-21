@@ -591,6 +591,12 @@ export class PageTaskExecutor {
           cache: {
             hit: true,
           },
+          hitBy: {
+            from: 'Cache',
+            context: {
+              yamlString,
+            },
+          },
         };
       },
     };
