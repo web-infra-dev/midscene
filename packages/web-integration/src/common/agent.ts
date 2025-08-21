@@ -1,6 +1,7 @@
 import type { WebPage } from '@/common/page';
 import {
   type AgentAssertOpt,
+  type AgentDescribeElementAtPointResult,
   type AgentWaitForOpt,
   type DetailedLocateParam,
   type DeviceAction,
@@ -667,6 +668,61 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     opt: InsightExtractOption = defaultInsightExtractOption,
   ) {
     return this.aiString(prompt, opt);
+  }
+
+  async describeElementAtPoint(
+    center: [number, number],
+    opt?: {
+      verifyPrompt?: boolean;
+      retryLimit?: number;
+      deepThink?: boolean;
+    } & LocatorValidatorOption,
+  ): Promise<AgentDescribeElementAtPointResult> {
+    const { verifyPrompt = true, retryLimit = 3 } = opt || {};
+
+    let success = false;
+    let retryCount = 0;
+    let resultPrompt = '';
+    let deepThink = opt?.deepThink || false;
+    let verifyResult: LocateValidatorResult | undefined;
+
+    while (!success && retryCount < retryLimit) {
+      if (retryCount >= 2) {
+        deepThink = true;
+      }
+      debug(
+        'aiDescribe',
+        center,
+        'verifyPrompt',
+        verifyPrompt,
+        'retryCount',
+        retryCount,
+        'deepThink',
+        deepThink,
+      );
+      const text = await this.insight.describe(center, { deepThink });
+      debug('aiDescribe text', text);
+      assert(text.description, `failed to describe element at [${center}]`);
+      resultPrompt = text.description;
+
+      verifyResult = await this.verifyLocator(
+        resultPrompt,
+        deepThink ? { deepThink: true } : undefined,
+        center,
+        opt,
+      );
+      if (verifyResult.pass) {
+        success = true;
+      } else {
+        retryCount++;
+      }
+    }
+
+    return {
+      prompt: resultPrompt,
+      deepThink,
+      verifyResult,
+    };
   }
 
   async verifyLocator(

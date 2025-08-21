@@ -1,7 +1,18 @@
-import { callAiFn } from '@/ai-model/common';
-import { AiExtractElementInfo, AiLocateElement } from '@/ai-model/index';
+import {
+  AIActionType,
+  type AIArgs,
+  callAiFn,
+  expandSearchArea,
+} from '@/ai-model/common';
+import {
+  AiExtractElementInfo,
+  AiLocateElement,
+  callToGetJSONObject,
+} from '@/ai-model/index';
 import { AiLocateSection } from '@/ai-model/inspect';
+import { elementDescriberInstruction } from '@/ai-model/prompt/describe';
 import type {
+  AIDescribeElementResponse,
   AIElementResponse,
   AIUsageInfo,
   BaseElement,
@@ -22,8 +33,10 @@ import {
   type IModelPreferences,
   MIDSCENE_FORCE_DEEP_THINK,
   getAIConfigInBoolean,
+  getIsUseQwenVl,
   vlLocateMode,
 } from '@midscene/shared/env';
+import { compositeElementInfoImg, cropByRect } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { emitInsightDump } from './utils';
@@ -301,5 +314,83 @@ export default class Insight<
       thought,
       usage,
     };
+  }
+
+  async describe(
+    target: Rect | [number, number],
+    opt?: {
+      deepThink?: boolean;
+    },
+  ): Promise<Pick<AIDescribeElementResponse, 'description'>> {
+    assert(target, 'target is required for insight.describe');
+    const context = await this.contextRetrieverFn('describe');
+    const { screenshotBase64, size } = context;
+    assert(screenshotBase64, 'screenshot is required for insight.describe');
+
+    const systemPrompt = elementDescriberInstruction();
+
+    // Convert [x,y] center point to Rect if needed
+    const defaultRectSize = 30;
+    const targetRect: Rect = Array.isArray(target)
+      ? {
+          left: Math.floor(target[0] - defaultRectSize / 2),
+          top: Math.floor(target[1] - defaultRectSize / 2),
+          width: defaultRectSize,
+          height: defaultRectSize,
+        }
+      : target;
+
+    let imagePayload = await compositeElementInfoImg({
+      inputImgBase64: screenshotBase64,
+      size,
+      elementsPositionInfo: [
+        {
+          rect: targetRect,
+        },
+      ],
+      borderThickness: 3,
+    });
+
+    if (opt?.deepThink) {
+      // The result of the "describe" function will be used for positioning, so essentially it is a form of grounding.
+      const modelPreferences: IModelPreferences = { intent: 'grounding' };
+      const searchArea = expandSearchArea(
+        targetRect,
+        context.size,
+        modelPreferences,
+      );
+      debug('describe: set searchArea', searchArea);
+      imagePayload = await cropByRect(
+        imagePayload,
+        searchArea,
+        getIsUseQwenVl(modelPreferences),
+      );
+    }
+
+    const msgs: AIArgs = [
+      { role: 'system', content: systemPrompt },
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'image_url',
+            image_url: {
+              url: imagePayload,
+              detail: 'high',
+            },
+          },
+        ],
+      },
+    ];
+
+    const callAIFn =
+      this.aiVendorFn || callToGetJSONObject<AIDescribeElementResponse>;
+
+    const res = await callAIFn(msgs, AIActionType.DESCRIBE_ELEMENT);
+
+    const { content } = res;
+    assert(!content.error, `describe failed: ${content.error}`);
+    assert(content.description, 'failed to describe the element');
+    return content;
   }
 }
