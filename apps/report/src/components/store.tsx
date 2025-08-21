@@ -48,8 +48,7 @@ export interface DumpStoreType {
   setReplayAllMode: (replayAllMode: boolean) => void;
   allExecutionAnimation: AnimationScript[] | null;
   sdkVersion: string | null;
-  modelName: string | null;
-  modelDescription: string | null;
+  modelBriefs: string[];
   insightWidth: number | null;
   insightHeight: number | null;
   activeExecution: ExecutionDump | null;
@@ -82,8 +81,7 @@ export const useExecutionDump = create<DumpStoreType>((set, get) => {
     replayAllMode: false,
     allExecutionAnimation: null,
     sdkVersion: null,
-    modelName: null,
-    modelDescription: null,
+    modelBriefs: [],
     insightWidth: null,
     insightHeight: null,
     activeTask: null,
@@ -148,8 +146,7 @@ export const useExecutionDump = create<DumpStoreType>((set, get) => {
           scripts: allScripts,
           width,
           height,
-          modelName,
-          modelDescription,
+          modelBriefs,
           sdkVersion,
         } = allScriptsInfo;
 
@@ -157,8 +154,7 @@ export const useExecutionDump = create<DumpStoreType>((set, get) => {
           _executionDumpLoadId: ++_executionDumpLoadId,
           insightWidth: width,
           insightHeight: height,
-          modelName,
-          modelDescription,
+          modelBriefs,
           sdkVersion,
         });
 

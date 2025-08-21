@@ -224,16 +224,11 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   }
 
   resetDump() {
-    const modelDescription = '<modelDescription>';
-
-    const modelName = '<modelName>';
-
     this.dump = {
       groupName: this.opts.groupName!,
       groupDescription: this.opts.groupDescription,
-      modelName,
-      modelDescription,
       executions: [],
+      modelBriefs: [],
     };
 
     return this.dump;
