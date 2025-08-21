@@ -117,6 +117,7 @@ describe('PageTaskExecutor waitFor method with doNotThrowError', () => {
         returnThought: true,
         doNotThrowError: true,
       },
+      undefined,
     );
 
     // Verify the result structure
@@ -173,6 +174,7 @@ describe('PageTaskExecutor waitFor method with doNotThrowError', () => {
         returnThought: true,
         doNotThrowError: true,
       },
+      undefined,
     );
 
     // Should have been called at least twice (first failed, second succeeded)
@@ -237,6 +239,7 @@ describe('PageTaskExecutor waitFor method with doNotThrowError', () => {
         returnThought: true,
         doNotThrowError: true,
       },
+      undefined,
     );
 
     // Verify that appendErrorPlan was called when timeout occurred
