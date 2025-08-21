@@ -38,7 +38,8 @@ import { debug as cacheDebug } from './task-cache';
 import type { PageTaskExecutor } from './tasks';
 import { getKeyCommands } from './ui-utils';
 
-const debug = getDebug('tool:profile');
+const debugProfile = getDebug('web:tool:profile');
+const debugUtils = getDebug('web:tool:utils');
 
 export async function parseContextFromWebPage(
   page: WebPage,
@@ -49,30 +50,30 @@ export async function parseContextFromWebPage(
     return await (page as any)._forceUsePageContext();
   }
 
-  debug('Getting page URL');
+  debugProfile('Getting page URL');
   const url = await page.url();
-  debug('URL end');
+  debugProfile('URL end');
 
-  debug('Uploading test info to server');
+  debugProfile('Uploading test info to server');
   uploadTestInfoToServer({ testUrl: url });
-  debug('UploadTestInfoToServer end');
+  debugProfile('UploadTestInfoToServer end');
 
   let screenshotBase64: string;
   let tree: ElementTreeNode<ElementInfo>;
 
-  debug('Starting parallel operations: screenshot and element tree');
+  debugProfile('Starting parallel operations: screenshot and element tree');
   await Promise.all([
     page.screenshotBase64().then((base64) => {
       screenshotBase64 = base64;
-      debug('ScreenshotBase64 end');
+      debugProfile('ScreenshotBase64 end');
     }),
     page.getElementsNodeTree().then(async (treeRoot) => {
       tree = treeRoot;
-      debug('GetElementsNodeTree end');
+      debugProfile('GetElementsNodeTree end');
     }),
   ]);
-  debug('ParseContextFromWebPage end');
-  debug('Traversing element tree');
+  debugProfile('ParseContextFromWebPage end');
+  debugProfile('Traversing element tree');
   const webTree = traverseTree(tree!, (elementInfo) => {
     const { rect, id, content, attributes, indexId, isVisible } = elementInfo;
     return new WebElementInfo({
@@ -84,20 +85,20 @@ export async function parseContextFromWebPage(
       isVisible,
     });
   });
-  debug('TraverseTree end');
+  debugProfile('TraverseTree end');
   assert(screenshotBase64!, 'screenshotBase64 is required');
 
   const size = await page.size();
 
-  debug(`size: ${size.width}x${size.height} dpr: ${size.dpr}`);
+  debugProfile(`size: ${size.width}x${size.height} dpr: ${size.dpr}`);
 
   if (size.dpr && size.dpr > 1) {
-    debug('Resizing screenshot for high DPR display');
+    debugProfile('Resizing screenshot for high DPR display');
     screenshotBase64 = await resizeImgBase64(screenshotBase64, {
       width: size.width,
       height: size.height,
     });
-    debug('ResizeImgBase64 end');
+    debugProfile('ResizeImgBase64 end');
   }
 
   return {
@@ -183,7 +184,7 @@ export function replaceIllegalPathCharsAndSpace(str: string) {
 
 export function forceClosePopup(
   page: PuppeteerPage | PlaywrightPage,
-  debug: DebugFunction,
+  debugProfile: DebugFunction,
 ) {
   page.on('popup', async (popup) => {
     if (!popup) {
@@ -196,20 +197,20 @@ export function forceClosePopup(
       try {
         await (popup as PuppeteerPage).close(); // Close the newly opened TAB
       } catch (error) {
-        debug(`failed to close popup ${url}, error: ${error}`);
+        debugProfile(`failed to close popup ${url}, error: ${error}`);
       }
     } else {
-      debug(`popup is already closed, skip close ${url}`);
+      debugProfile(`popup is already closed, skip close ${url}`);
     }
 
     if (!page.isClosed()) {
       try {
         await page.goto(url);
       } catch (error) {
-        debug(`failed to goto ${url}, error: ${error}`);
+        debugProfile(`failed to goto ${url}, error: ${error}`);
       }
     } else {
-      debug(`page is already closed, skip goto ${url}`);
+      debugProfile(`page is already closed, skip goto ${url}`);
     }
   });
 }
@@ -334,10 +335,9 @@ declare const __VERSION__: string | undefined;
 export function buildDetailedLocateParam(
   locatePrompt: TUserPrompt,
   opt?: LocateOption,
-): DetailedLocateParam {
-  assert(locatePrompt, 'missing locate prompt');
-
-  let prompt = locatePrompt;
+): DetailedLocateParam | undefined {
+  debugUtils('will call buildDetailedLocateParam', locatePrompt, opt);
+  let prompt = locatePrompt || opt?.prompt || (opt as any)?.locate; // as a shortcut
   let deepThink = false;
   let cacheable = true;
   let xpath = undefined;
@@ -346,7 +346,23 @@ export function buildDetailedLocateParam(
     deepThink = opt.deepThink ?? false;
     cacheable = opt.cacheable ?? true;
     xpath = opt.xpath;
-    prompt = opt.prompt || locatePrompt;
+    if (locatePrompt && opt.prompt && locatePrompt !== opt.prompt) {
+      console.warn(
+        'conflict prompt for item',
+        locatePrompt,
+        opt,
+        'maybe you put the prompt in the wrong place',
+      );
+    }
+    prompt = prompt || opt.prompt;
+  }
+
+  if (!prompt) {
+    debugUtils(
+      'no prompt, will return undefined in buildDetailedLocateParam',
+      opt,
+    );
+    return undefined;
   }
 
   return {
@@ -354,6 +370,44 @@ export function buildDetailedLocateParam(
     deepThink,
     cacheable,
     xpath,
+  };
+}
+
+export function buildDetailedLocateParamAndRestParams(
+  locatePrompt: TUserPrompt,
+  opt: LocateOption | undefined,
+  excludeKeys: string[] = [],
+): {
+  locateParam: DetailedLocateParam | undefined;
+  restParams: Record<string, any>;
+} {
+  const locateParam = buildDetailedLocateParam(locatePrompt, opt);
+
+  // Extract all keys from opt except the ones already included in locateParam
+  const restParams: Record<string, any> = {};
+
+  if (typeof opt === 'object' && opt !== null) {
+    // Get all keys from opt
+    const allKeys = Object.keys(opt);
+
+    // Keys already included in locateParam: prompt, deepThink, cacheable, xpath
+    const locateParamKeys = Object.keys(locateParam || {});
+
+    // Extract all other keys
+    for (const key of allKeys) {
+      if (
+        !locateParamKeys.includes(key) &&
+        !excludeKeys.includes(key) &&
+        key !== 'locate'
+      ) {
+        restParams[key] = opt[key as keyof LocateOption];
+      }
+    }
+  }
+
+  return {
+    locateParam,
+    restParams,
   };
 }
 

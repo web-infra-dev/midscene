@@ -349,8 +349,6 @@ tasks:
         [
           "RightClick",
           {
-            "cacheable": false,
-            "deepThink": true,
             "foo": 123,
             "locate": {
               "cacheable": false,
@@ -404,8 +402,6 @@ tasks:
         [
           "RightClick",
           {
-            "cacheable": false,
-            "deepThink": true,
             "locate": {
               "cacheable": false,
               "deepThink": true,
@@ -436,6 +432,109 @@ tasks:
               "prompt": "item in menu",
               "xpath": undefined,
             },
+          },
+        ],
+      ]
+    `);
+  });
+
+  test('locate parameter with different style', async () => {
+    const yamlString = `
+target:
+  url: "https://example.com"
+tasks:
+  - name: test_aiTap_with_different_style
+    flow:
+      - aiTap: 'search input box'
+      - aiTap: 'search input box'
+        deepThink: true
+        cacheable: false
+      - aiTap:
+        prompt: 'search input box'
+      - aiTap:
+        prompt: 'search input box'
+        deepThink: true
+        cacheable: false
+      - aiKeyboardPress:
+        keyName: 'Enter'
+      - aiInput: ''
+        locate: 第一个搜索结果的天气信息卡片
+`;
+
+    const script = parseYamlScript(yamlString);
+    const mockAgent = await getMockAgent();
+    const player = new ScriptPlayer<MidsceneYamlScriptWebEnv>(
+      script,
+      async () => mockAgent,
+    );
+
+    await player.run();
+
+    // Verify the player completed successfully
+    expect(player.errorInSetup).toBeUndefined();
+    // console.log(player);
+    expect(player.status).toBe('done');
+
+    // Verify aiRightClick was called with correct parameters
+    expect(
+      (mockAgent.agent.callActionInActionSpace as MockedFunction<any>).mock
+        .calls,
+    ).toMatchInlineSnapshot(`
+      [
+        [
+          "Tap",
+          {
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "search input box",
+              "xpath": undefined,
+            },
+          },
+        ],
+        [
+          "Tap",
+          {
+            "locate": {
+              "cacheable": false,
+              "deepThink": true,
+              "prompt": "search input box",
+              "xpath": undefined,
+            },
+          },
+        ],
+        [
+          "Tap",
+          {
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "search input box",
+              "xpath": undefined,
+            },
+          },
+        ],
+        [
+          "Tap",
+          {
+            "locate": {
+              "cacheable": false,
+              "deepThink": true,
+              "prompt": "search input box",
+              "xpath": undefined,
+            },
+          },
+        ],
+        [
+          "KeyboardPress",
+          {
+            "keyName": "Enter",
+          },
+        ],
+        [
+          "Input",
+          {
+            "locate": "第一个搜索结果的天气信息卡片",
           },
         ],
       ]
@@ -495,28 +594,28 @@ tasks:
     ).toMatchInlineSnapshot(`
       [
         [
-          "aiInput",
+          "Input",
           {
             "locate": "input field 1",
             "value": "i am value 1",
           },
         ],
         [
-          "aiInput",
+          "Input",
           {
             "locate": "input field 2",
             "value": "i am value 2",
           },
         ],
         [
-          "aiInput",
+          "Input",
           {
             "locate": "input field 3",
             "value": "i am value 3",
           },
         ],
         [
-          "aiScroll",
+          "Scroll",
           {
             "direction": "down",
             "distance": 100,
@@ -525,7 +624,7 @@ tasks:
           },
         ],
         [
-          "aiScroll",
+          "Scroll",
           {
             "direction": "up",
             "distance": 100,
@@ -534,21 +633,21 @@ tasks:
           },
         ],
         [
-          "aiKeyboardPress",
+          "KeyboardPress",
           {
             "keyName": "Enter",
             "locate": "input field 3",
           },
         ],
         [
-          "aiKeyboardPress",
+          "KeyboardPress",
           {
             "keyName": "Control",
             "locate": "input field 4",
           },
         ],
         [
-          "aiKeyboardPress",
+          "KeyboardPress",
           {
             "keyName": "Escape",
             "locate": "input field 5",
