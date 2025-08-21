@@ -47,10 +47,16 @@ export function locateParamStr(locate?: DetailedLocateParam) {
   if (typeof locate === 'string') {
     return locate;
   }
+  
+  if (typeof locate.prompt === 'string') {
+    return locate.prompt;
+  }
 
-  return typeof locate.prompt === 'string'
-    ? locate.prompt
-    : locate.prompt.prompt;
+  if (typeof locate.prompt === 'object' && locate.prompt.prompt) {
+    return locate.prompt.prompt;
+  }
+
+  return '';
 }
 
 export function scrollParamStr(scrollParam?: ScrollParam) {
