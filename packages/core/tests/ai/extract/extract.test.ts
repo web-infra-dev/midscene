@@ -1,4 +1,5 @@
 import { AiExtractElementInfo } from '@/ai-model';
+import type { IModelPreferences } from '@midscene/shared/env';
 import { getContextFromFixture } from 'tests/evaluation';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -7,6 +8,10 @@ vi.setConfig({
   hookTimeout: 30 * 1000,
 });
 
+const defaultModelPreferences: IModelPreferences = {
+  intent: 'default',
+};
+
 describe('extract', () => {
   it('todo', async () => {
     const { context } = await getContextFromFixture('todo-input-with-value');
@@ -14,6 +19,7 @@ describe('extract', () => {
     const { parseResult } = await AiExtractElementInfo({
       dataQuery: 'Array<string>, task list, task name as string',
       context,
+      modelPreferences: defaultModelPreferences,
     });
     expect(parseResult).toBeDefined();
     expect((parseResult.data as string[]).length).toBeGreaterThanOrEqual(3);
@@ -26,6 +32,7 @@ describe('extract', () => {
     const { parseResult } = await AiExtractElementInfo({
       dataQuery: '{name: string, price: string}[], 饮品名称和价格',
       context,
+      modelPreferences: defaultModelPreferences,
     });
 
     // Remove the thought field since it's generated dynamically by AI
@@ -44,6 +51,7 @@ describe('extract', () => {
       dataQuery:
         '{checked: boolean; text: string;}[], Task list with checkbox ahead of the task name (checkbox is a round box), task name as string and `checked` is true if the task is completed. Exclude the fist row if there is no round checkbox ahead of the task name.',
       context,
+      modelPreferences: defaultModelPreferences,
     });
 
     // Remove the thought field since it's generated dynamically by AI

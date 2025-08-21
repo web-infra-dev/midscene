@@ -10,7 +10,9 @@ vi.setConfig({
   hookTimeout: 30 * 1000,
 });
 
-const vlMode = vlLocateMode();
+const vlMode = vlLocateMode({
+  intent: 'default',
+});
 
 describe.skipIf(vlMode)('automation - llm planning', () => {
   it('basic run', async () => {
@@ -43,11 +45,11 @@ describe.skipIf(vlMode)('automation - llm planning', () => {
     expect(actions).toBeTruthy();
     expect(actions!.length).toBe(3);
     expect(actions![0].type).toBe('Scroll');
-    expect(actions![0].locate).toBeNull();
     expect(actions![0].param).toBeDefined();
+    expect(actions![0].param.locate).toBeNull();
 
-    expect(actions![2].locate).toBeTruthy();
     expect(actions![2].param).toBeDefined();
+    expect(actions![2].param.locate).toBeTruthy();
   });
 });
 
@@ -89,9 +91,12 @@ describe('planning', () => {
         pageType: 'puppeteer',
       });
       expect(actions).toBeTruthy();
-      expect(actions![0].locate).toBeTruthy();
-      expect(actions![0].locate?.prompt).toBeTruthy();
-      expect(actions![0].locate?.id || actions![0].locate?.bbox).toBeTruthy();
+      // console.log(actions);
+      expect(actions![0].param.locate).toBeTruthy();
+      expect(actions![0].param.locate?.prompt).toBeTruthy();
+      expect(
+        actions![0].param.locate?.id || actions![0].param.locate?.bbox,
+      ).toBeTruthy();
     });
   });
 
@@ -107,7 +112,8 @@ describe('planning', () => {
     );
     expect(actions).toBeTruthy();
     expect(actions![0].type).toBe('Scroll');
-    expect(actions![0].locate).toBeTruthy();
+    expect(actions![0].param).toBeDefined();
+    expect(actions![0].param.locate).toBeTruthy();
   });
 
   it('should not throw in an "if" statement', async () => {

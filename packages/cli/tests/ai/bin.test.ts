@@ -120,6 +120,7 @@ tasks:
         name: items
         domIncluded: true
       - aiAssert: The price of 'Sauce Labs Fleece Jacket' is 49.99
+        name: price-assert
 
   - name: run javascript code
     flow:
@@ -134,7 +135,10 @@ tasks:
     const result = JSON.parse(readFileSync(output!, 'utf-8'));
     expect(result.items.length).toBeGreaterThanOrEqual(2);
     expect(result.items[0].imageUrl).toContain('/static/media/');
-    expect(result).toMatchSnapshot();
+    expect(result.items).toMatchSnapshot();
+    expect(result['page-title']).toMatchSnapshot();
+    expect(result['price-assert'].thought).toBeTruthy();
+    expect(result['price-assert'].pass).toBeTruthy();
   });
 
   test.skip('run yaml scripts with keepWindow', async () => {

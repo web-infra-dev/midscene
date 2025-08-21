@@ -3,6 +3,7 @@ import path from 'node:path';
 import { getKeyCommands } from '@/common/ui-utils';
 import {
   buildDetailedLocateParam,
+  buildDetailedLocateParamAndRestParams,
   getCurrentExecutionFile,
   replaceIllegalPathCharsAndSpace,
   trimContextByViewport,
@@ -189,16 +190,18 @@ describe('buildDetailedLocateParam', () => {
       deepThink: true,
       cacheable: false,
       xpath: '//button[@type="submit"]',
-      prompt: 'Override prompt',
+      // prompt: 'Override prompt',
     };
     const result = buildDetailedLocateParam(locatePrompt, options);
 
-    expect(result).toEqual({
-      prompt: 'Override prompt',
-      deepThink: true,
-      cacheable: false,
-      xpath: '//button[@type="submit"]',
-    });
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "cacheable": false,
+        "deepThink": true,
+        "prompt": "Find the submit button",
+        "xpath": "//button[@type="submit"]",
+      }
+    `);
   });
 
   it('should handle partial options with defaults', () => {
@@ -215,5 +218,101 @@ describe('buildDetailedLocateParam', () => {
       cacheable: true, // default value
       xpath: undefined, // default value
     });
+  });
+});
+
+describe('buildDetailedLocateParamAndRestParams', () => {
+  it('should build detailed locate param and empty rest params when no extra options', () => {
+    const locatePrompt = 'Click on the login button';
+    const result = buildDetailedLocateParamAndRestParams(
+      locatePrompt,
+      undefined,
+    );
+
+    expect(result.locateParam).toEqual({
+      prompt: 'Click on the login button',
+      deepThink: false,
+      cacheable: true,
+      xpath: undefined,
+    });
+    expect(result.restParams).toEqual({});
+  });
+
+  it('should build detailed locate param and extract pageContext to restParams', () => {
+    const locatePrompt = 'Find the submit button';
+    const mockPageContext = {
+      tree: { node: null, children: [] },
+      size: { width: 800, height: 600 },
+      screenshotBase64: 'mock-base64-string',
+    };
+    const options = {
+      deepThink: true,
+      cacheable: false,
+      xpath: '//button[@type="submit"]',
+      prompt: 'Override prompt',
+      pageContext: mockPageContext,
+    };
+    const result = buildDetailedLocateParamAndRestParams(locatePrompt, options);
+
+    expect(result.locateParam).toMatchInlineSnapshot(`
+      {
+        "cacheable": false,
+        "deepThink": true,
+        "prompt": "Find the submit button",
+        "xpath": "//button[@type="submit"]",
+      }
+    `);
+    expect(result.restParams).toEqual({
+      pageContext: mockPageContext,
+    });
+  });
+
+  it('should handle multiple rest params', () => {
+    const locatePrompt = 'Locate the search input';
+    const options = {
+      deepThink: true,
+      pageContext: {
+        tree: { node: null, children: [] },
+        size: { width: 1024, height: 768 },
+        screenshotBase64: 'mock-base64-string',
+      },
+      customParam1: 'value1',
+      customParam2: 42,
+      customParam3: true,
+    } as any; // Using 'as any' because these custom params aren't in LocateOption type
+    const result = buildDetailedLocateParamAndRestParams(locatePrompt, options);
+
+    expect(result.locateParam).toEqual({
+      prompt: 'Locate the search input',
+      deepThink: true,
+      cacheable: true,
+      xpath: undefined,
+    });
+    expect(result.restParams).toEqual({
+      pageContext: {
+        tree: { node: null, children: [] },
+        size: { width: 1024, height: 768 },
+        screenshotBase64: 'mock-base64-string',
+      },
+      customParam1: 'value1',
+      customParam2: 42,
+      customParam3: true,
+    });
+  });
+
+  it('should handle null options', () => {
+    const locatePrompt = 'Test prompt';
+    const result = buildDetailedLocateParamAndRestParams(
+      locatePrompt,
+      null as any,
+    );
+
+    expect(result.locateParam).toEqual({
+      prompt: 'Test prompt',
+      deepThink: false,
+      cacheable: true,
+      xpath: undefined,
+    });
+    expect(result.restParams).toEqual({});
   });
 });

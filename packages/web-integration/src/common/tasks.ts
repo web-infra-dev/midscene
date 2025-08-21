@@ -211,9 +211,14 @@ export class PageTaskExecutor {
 
     const taskForLocatePlan = (
       plan: PlanningAction<PlanningLocateParam>,
-      detailedLocateParam: DetailedLocateParam,
+      detailedLocateParam: DetailedLocateParam | string,
       onResult?: (result: LocateResultElement) => void,
     ): ExecutionTaskInsightLocateApply => {
+      if (typeof detailedLocateParam === 'string') {
+        detailedLocateParam = {
+          prompt: detailedLocateParam,
+        };
+      }
       const taskFind: ExecutionTaskInsightLocateApply = {
         type: 'Insight',
         subType: 'Locate',
@@ -512,7 +517,12 @@ export class PageTaskExecutor {
               throw new Error(`Action type '${planType}' not found`);
             }
 
-            // TODO: check locate result
+            requiredLocateFields.forEach((field) => {
+              assert(
+                param[field],
+                `field '${field}' is required for action ${planType} but not provided. Cannot execute action ${planType}.`,
+              );
+            });
 
             const actionFn = action.call.bind(this.page);
             return await actionFn(param, context);
@@ -580,6 +590,12 @@ export class PageTaskExecutor {
           },
           cache: {
             hit: true,
+          },
+          hitBy: {
+            from: 'Cache',
+            context: {
+              yamlString,
+            },
           },
         };
       },

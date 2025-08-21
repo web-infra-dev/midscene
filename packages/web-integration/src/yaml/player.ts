@@ -3,7 +3,7 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { assert, ifInBrowser, ifInWorker } from '@midscene/shared/utils';
 
 import type { PageAgent } from '@/common/agent';
-import { buildDetailedLocateParam } from '@/common/utils';
+import { buildDetailedLocateParamAndRestParams } from '@/common/utils';
 import type {
   DeviceAction,
   FreeFn,
@@ -310,6 +310,23 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           `ms for sleep must be greater than 0, but got ${ms}`,
         );
         await new Promise((resolve) => setTimeout(resolve, msNumber));
+      } else if (
+        'javascript' in (flowItem as MidsceneYamlFlowItemEvaluateJavaScript)
+      ) {
+        const evaluateJavaScriptTask =
+          flowItem as MidsceneYamlFlowItemEvaluateJavaScript;
+
+        const result = await agent.evaluateJavaScript(
+          evaluateJavaScriptTask.javascript,
+        );
+        this.setResult(evaluateJavaScriptTask.name, result);
+      } else if (
+        'logScreenshot' in (flowItem as MidsceneYamlFlowItemLogScreenshot)
+      ) {
+        const logScreenshotTask = flowItem as MidsceneYamlFlowItemLogScreenshot;
+        await agent.logScreenshot(logScreenshotTask.logScreenshot, {
+          content: logScreenshotTask.content || '',
+        });
       } else if ('aiInput' in (flowItem as MidsceneYamlFlowItemAIInput)) {
         // may be input empty string ''
         const { aiInput, ...inputTask } =
@@ -331,7 +348,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           value = inputTask.value;
         }
 
-        await agent.callActionInActionSpace('aiInput', {
+        await agent.callActionInActionSpace('Input', {
           ...inputTask,
           ...(value !== undefined ? { value } : {}),
           ...(locatePrompt ? { locate: locatePrompt } : {}),
@@ -358,7 +375,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           locatePrompt = aiKeyboardPress;
         }
 
-        await agent.callActionInActionSpace('aiKeyboardPress', {
+        await agent.callActionInActionSpace('KeyboardPress', {
           ...keyboardPressTask,
           ...(keyName ? { keyName } : {}),
           ...(locatePrompt ? { locate: locatePrompt } : {}),
@@ -380,40 +397,38 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           locatePrompt = aiScroll;
         }
 
-        await agent.callActionInActionSpace('aiScroll', {
+        await agent.callActionInActionSpace('Scroll', {
           ...scrollTask,
           ...(locatePrompt ? { locate: locatePrompt } : {}),
         });
-      } else if (
-        'javascript' in (flowItem as MidsceneYamlFlowItemEvaluateJavaScript)
-      ) {
-        const evaluateJavaScriptTask =
-          flowItem as MidsceneYamlFlowItemEvaluateJavaScript;
-
-        const result = await agent.evaluateJavaScript(
-          evaluateJavaScriptTask.javascript,
-        );
-        this.setResult(evaluateJavaScriptTask.name, result);
-      } else if (
-        'logScreenshot' in (flowItem as MidsceneYamlFlowItemLogScreenshot)
-      ) {
-        const logScreenshotTask = flowItem as MidsceneYamlFlowItemLogScreenshot;
-        await agent.logScreenshot(logScreenshotTask.logScreenshot, {
-          content: logScreenshotTask.content || '',
-        });
       } else {
         // generic action, find the action in actionSpace
+
+        /* for aiTap, aiRightClick, the parameters are a flattened data for the 'locate', these are all valid data
+
+        - aiTap: 'search input box'
+        - aiTap: 'search input box'
+          deepThink: true
+          cacheable: false
+        - aiTap:
+          prompt: 'search input box'
+        - aiTap:
+          prompt: 'search input box'
+          deepThink: true
+          cacheable: false
+        */
+
         const actionSpace = this.actionSpace;
-        let locatePrompt: TUserPrompt | undefined;
+        let locatePromptShortcut: string | undefined;
         const matchedAction = actionSpace.find((action) => {
           const actionInterfaceAlias = action.interfaceAlias;
           if (
             actionInterfaceAlias &&
             Object.prototype.hasOwnProperty.call(flowItem, actionInterfaceAlias)
           ) {
-            locatePrompt = flowItem[
+            locatePromptShortcut = flowItem[
               actionInterfaceAlias as keyof typeof flowItem
-            ] as TUserPrompt;
+            ] as string;
             return true;
           }
 
@@ -424,9 +439,9 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
               keyOfActionInActionSpace,
             )
           ) {
-            locatePrompt = flowItem[
+            locatePromptShortcut = flowItem[
               keyOfActionInActionSpace as keyof typeof flowItem
-            ] as TUserPrompt;
+            ] as string;
             return true;
           }
 
@@ -438,19 +453,35 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           `unknown flowItem in yaml: ${JSON.stringify(flowItem)}`,
         );
 
-        const locateParam = locatePrompt
-          ? buildDetailedLocateParam(locatePrompt, flowItem as LocateOption)
-          : (flowItem as LocateOption);
+        assert(
+          !((flowItem as any).prompt && locatePromptShortcut),
+          `conflict locate prompt for item: ${JSON.stringify(flowItem)}`,
+        );
 
-        const {
-          [matchedAction.interfaceAlias as string]: _,
-          [matchedAction.name]: __,
-          ...restParams
-        } = flowItem as any;
-        await agent.callActionInActionSpace(matchedAction.name, {
+        if (locatePromptShortcut) {
+          (flowItem as any).prompt = locatePromptShortcut;
+        }
+
+        const { locateParam, restParams } =
+          buildDetailedLocateParamAndRestParams(
+            locatePromptShortcut || '',
+            flowItem as LocateOption,
+            [
+              matchedAction.name,
+              matchedAction.interfaceAlias || '_never_mind_',
+            ],
+          );
+
+        const flowParams = {
           ...restParams,
           locate: locateParam,
-        });
+        };
+
+        debug(
+          `matchedAction: ${matchedAction.name}`,
+          `flowParams: ${JSON.stringify(flowParams, null, 2)}`,
+        );
+        await agent.callActionInActionSpace(matchedAction.name, flowParams);
       }
     }
     this.reportFile = agent.reportFile;

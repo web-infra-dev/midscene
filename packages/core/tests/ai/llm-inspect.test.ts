@@ -8,6 +8,9 @@ vi.setConfig({
 
 test(
   'basic inspect',
+  {
+    timeout: 1000000,
+  },
   async () => {
     const { context } = await getContextFromFixture('todo');
 
@@ -17,9 +20,6 @@ test(
       targetElementDescription: 'input 输入框',
     });
     expect(parseResult.elements.length).toBe(1);
-  },
-  {
-    timeout: 1000000,
   },
 );
 
