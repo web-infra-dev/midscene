@@ -99,7 +99,7 @@ describe(
         'click the "icon" on the categories on the left, sleep 5s, in the newly loaded page, type "pause" in the icon search box(it shows "search icon here")',
       );
 
-      const names = await agent.aiQuery(
+      const names = await agent.aiQuery<string[]>(
         'find all component names in the page, return in string[]',
       );
 
@@ -188,6 +188,7 @@ describe(
       const describeResult = await agent.describeElementAtPoint(center, {
         deepThink: true,
       });
+      // console.log('describeResult', describeResult);
       expect(describeResult.verifyResult?.pass).toBe(true);
       expect(describeResult.verifyResult?.rect).toBeTruthy();
       expect(describeResult.verifyResult?.center).toBeTruthy();

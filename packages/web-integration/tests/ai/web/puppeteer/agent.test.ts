@@ -49,9 +49,23 @@ describe('puppeteer integration', () => {
           - aiAssert: 'the text in the input box is "weather tomorrow"'
           - aiInput:
             locate: 'search input box'
-            value: 'taobao'
-          - aiAssert: 'the text in the input box is "taobao"'
+            value: 'Amazon'
+          - aiAssert: 'the text in the input box is "Amazon"'
     `,
+    );
+  });
+
+  it.skip('drag and drop', async () => {
+    const { originPage, reset } = await launchPage(
+      'https://codepen.io/Goldfsh/pen/zBbOqm',
+    );
+    resetFn = reset;
+    const agent = new PuppeteerAgent(originPage, {
+      cacheId: 'test-drag-and-drop',
+    });
+
+    await agent.aiAction(
+      'drag the element with text "this element is draggable" to the "Drop Zone 3"',
     );
   });
 

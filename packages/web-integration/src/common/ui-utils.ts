@@ -47,7 +47,7 @@ export function locateParamStr(locate?: DetailedLocateParam) {
   if (typeof locate === 'string') {
     return locate;
   }
-  
+
   if (typeof locate.prompt === 'string') {
     return locate.prompt;
   }

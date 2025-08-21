@@ -604,20 +604,20 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     return output;
   }
 
-  async aiQuery(
+  async aiQuery<ReturnType = any>(
     demand: InsightExtractParam,
     opt: InsightExtractOption = defaultInsightExtractOption,
-  ) {
+  ): Promise<ReturnType> {
     const { output, executor } =
       await this.taskExecutor.createTypeQueryExecution('Query', demand, opt);
     await this.afterTaskRunning(executor);
-    return output;
+    return output as ReturnType;
   }
 
   async aiBoolean(
     prompt: TUserPrompt,
     opt: InsightExtractOption = defaultInsightExtractOption,
-  ) {
+  ): Promise<boolean> {
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
     const { output, executor } =
       await this.taskExecutor.createTypeQueryExecution(
@@ -627,13 +627,13 @@ export class PageAgent<PageType extends WebPage = WebPage> {
         multimodalPrompt,
       );
     await this.afterTaskRunning(executor);
-    return output;
+    return output as boolean;
   }
 
   async aiNumber(
     prompt: TUserPrompt,
     opt: InsightExtractOption = defaultInsightExtractOption,
-  ) {
+  ): Promise<number> {
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
     const { output, executor } =
       await this.taskExecutor.createTypeQueryExecution(
@@ -643,13 +643,13 @@ export class PageAgent<PageType extends WebPage = WebPage> {
         multimodalPrompt,
       );
     await this.afterTaskRunning(executor);
-    return output;
+    return output as number;
   }
 
   async aiString(
     prompt: TUserPrompt,
     opt: InsightExtractOption = defaultInsightExtractOption,
-  ) {
+  ): Promise<string> {
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
     const { output, executor } =
       await this.taskExecutor.createTypeQueryExecution(
@@ -659,13 +659,13 @@ export class PageAgent<PageType extends WebPage = WebPage> {
         multimodalPrompt,
       );
     await this.afterTaskRunning(executor);
-    return output;
+    return output as string;
   }
 
   async aiAsk(
     prompt: TUserPrompt,
     opt: InsightExtractOption = defaultInsightExtractOption,
-  ) {
+  ): Promise<string> {
     return this.aiString(prompt, opt);
   }
 
