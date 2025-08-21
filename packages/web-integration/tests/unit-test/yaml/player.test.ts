@@ -453,6 +453,9 @@ tasks:
         locate: 'input field 1'
       - aiInput: 'input field 2'
         value: 'i am value 2'
+      - aiInput:
+        locate: 'input field 3'
+        value: 'i am value 3'
       - aiScroll: 'scrollable area A'
         direction: 'down'
         scrollType: 'once'
@@ -466,6 +469,9 @@ tasks:
         keyName: 'Enter'
       - aiKeyboardPress: 'Control'
         locate: 'input field 4'
+      - aiKeyboardPress:
+        locate: 'input field 5'
+        keyName: 'Escape'
 `;
 
     const script = parseYamlScript(yamlString);
@@ -483,76 +489,84 @@ tasks:
     expect(player.status).toBe('done');
 
     // Verify aiRightClick was called with correct parameters
-    expect(mockAgent.agent.callActionInActionSpace).not.toHaveBeenCalled();
     expect(
-      (mockAgent.agent.aiInput as MockedFunction<any>).mock.calls,
+      (mockAgent.agent.callActionInActionSpace as MockedFunction<any>).mock
+        .calls,
     ).toMatchInlineSnapshot(`
       [
         [
-          "input field 1",
+          "aiInput",
           {
-            "aiInput": "i am value 1",
             "locate": "input field 1",
             "value": "i am value 1",
           },
         ],
         [
-          "input field 2",
+          "aiInput",
           {
-            "aiInput": "input field 2",
+            "locate": "input field 2",
             "value": "i am value 2",
           },
         ],
-      ]
-    `);
-
-    expect(
-      (mockAgent.agent.aiScroll as MockedFunction<any>).mock.calls,
-    ).toMatchInlineSnapshot(`
-      [
         [
-          "scrollable area A",
+          "aiInput",
           {
-            "aiScroll": "scrollable area A",
+            "locate": "input field 3",
+            "value": "i am value 3",
+          },
+        ],
+        [
+          "aiScroll",
+          {
             "direction": "down",
             "distance": 100,
+            "locate": "scrollable area A",
             "scrollType": "once",
           },
         ],
         [
-          "scrollable area B",
+          "aiScroll",
           {
-            "aiScroll": null,
             "direction": "up",
             "distance": 100,
             "locate": "scrollable area B",
             "scrollType": "once",
           },
         ],
-      ]
-    `);
-
-    expect(
-      (mockAgent.agent.aiKeyboardPress as MockedFunction<any>).mock.calls,
-    ).toMatchInlineSnapshot(`
-      [
         [
-          "input field 3",
+          "aiKeyboardPress",
           {
-            "aiKeyboardPress": "input field 3",
             "keyName": "Enter",
+            "locate": "input field 3",
           },
         ],
         [
-          "input field 4",
+          "aiKeyboardPress",
           {
-            "aiKeyboardPress": "Control",
             "keyName": "Control",
             "locate": "input field 4",
           },
         ],
+        [
+          "aiKeyboardPress",
+          {
+            "keyName": "Escape",
+            "locate": "input field 5",
+          },
+        ],
       ]
     `);
+    expect(
+      (mockAgent.agent.aiInput as MockedFunction<any>).mock.calls,
+    ).toHaveLength(0);
+
+    expect(
+      (mockAgent.agent.aiScroll as MockedFunction<any>).mock.calls,
+    ).toHaveLength(0);
+
+    expect(
+      (mockAgent.agent.aiKeyboardPress as MockedFunction<any>).mock.calls,
+    ).toHaveLength(0);
   });
 
   test('should handle errors in action space', async () => {
