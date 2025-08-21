@@ -756,11 +756,10 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     }
   }
 
-  async aiWaitFor(assertion: string, opt?: AgentWaitForOpt) {
+  async aiWaitFor(assertion: TUserPrompt, opt?: AgentWaitForOpt) {
     const { executor } = await this.taskExecutor.waitFor(assertion, {
       timeoutMs: opt?.timeoutMs || 15 * 1000,
       checkIntervalMs: opt?.checkIntervalMs || 3 * 1000,
-      assertion,
     });
     await this.afterTaskRunning(executor, true);
 
