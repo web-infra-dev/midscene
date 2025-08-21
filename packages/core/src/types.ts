@@ -26,8 +26,9 @@ export type AIUsageInfo = Record<string, any> & {
   completion_tokens: number | undefined;
   total_tokens: number | undefined;
   time_cost: number | undefined;
-  model_name: string | string;
-  model_description: string | string;
+  model_name: string | undefined;
+  model_description: string | undefined;
+  intent: string | undefined;
 };
 
 /**

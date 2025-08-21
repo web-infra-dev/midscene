@@ -125,6 +125,13 @@ export interface ReplayScriptsInfo {
   modelBriefs: string[];
 }
 
+const capitalizeFirstLetter = (str: string) => {
+  if (typeof str !== 'string' || str.length === 0) {
+    return str;
+  }
+  return str.charAt(0).toUpperCase() + str.slice(1);
+};
+
 export const allScriptsFromDump = (
   dump: GroupedActionDump,
 ): ReplayScriptsInfo | null => {
@@ -166,11 +173,11 @@ export const allScriptsFromDump = (
     }
     execution.tasks.forEach((task) => {
       if (task.usage) {
-        const { model_name, model_description } = task.usage;
-        if (model_name) {
+        const { model_name, model_description, intent } = task.usage;
+        if (intent && model_name) {
           modelBriefsSet.add(
             model_description
-              ? `${model_name}(${model_description})`
+              ? `${capitalizeFirstLetter(intent)}/${model_name}(${model_description})`
               : model_name,
           );
         }
