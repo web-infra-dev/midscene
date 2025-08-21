@@ -47,6 +47,10 @@ describe('puppeteer integration', () => {
           - aiInput: 'search input box'
             value: 'weather tomorrow'
           - aiAssert: 'the text in the input box is "weather tomorrow"'
+          - aiInput:
+            locate: 'search input box'
+            value: 'taobao'
+          - aiAssert: 'the text in the input box is "taobao"'
     `,
     );
   });
