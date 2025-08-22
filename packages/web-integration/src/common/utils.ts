@@ -218,11 +218,12 @@ export async function matchElementFromCache(
     if (
       xpaths?.length &&
       taskExecutor.taskCache?.isCacheResultUsed &&
-      cacheable !== false
+      cacheable !== false &&
+      (taskExecutor.page as any).getElementInfoByXpath
     ) {
       // hit cache, use new id
       for (let i = 0; i < xpaths.length; i++) {
-        const element = await taskExecutor.page.getElementInfoByXpath(
+        const element = await (taskExecutor.page as any).getElementInfoByXpath(
           xpaths[i],
         );
 
