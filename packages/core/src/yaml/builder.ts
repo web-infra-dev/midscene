@@ -1,9 +1,9 @@
+import yaml from 'js-yaml';
 import type {
   MidsceneYamlScript,
   MidsceneYamlScriptWebEnv,
   MidsceneYamlTask,
-} from '@midscene/core';
-import yaml from 'js-yaml';
+} from '../types';
 
 export function buildYaml(
   env: MidsceneYamlScriptWebEnv,

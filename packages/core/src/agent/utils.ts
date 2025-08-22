@@ -1,5 +1,5 @@
-import type { AbstractPage } from '@/page';
-import type { StaticPage } from '@/playground';
+import { elementByPositionWithElementInfo } from '@/ai-model';
+import type { AbstractPage } from '@/device';
 import type {
   BaseElement,
   DetailedLocateParam,
@@ -11,28 +11,23 @@ import type {
   LocateOption,
   MidsceneLocationResultType,
   PlanningLocateParam,
-  PlaywrightParserOpt,
   TMultimodalPrompt,
   TUserPrompt,
   UIContext,
-} from '@midscene/core';
-import { getMidsceneLocationSchema, z } from '@midscene/core';
-import { elementByPositionWithElementInfo } from '@midscene/core/ai-model';
-import { sleep, uploadTestInfoToServer } from '@midscene/core/utils';
+} from '@/index';
+import { getMidsceneLocationSchema, z } from '@/index';
+import { sleep, uploadTestInfoToServer } from '@/utils';
 import { MIDSCENE_REPORT_TAG_NAME, getAIConfig } from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import {
   generateElementByPosition,
   getNodeFromCacheList,
-  traverseTree,
 } from '@midscene/shared/extractor';
 import { resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 import { assert, logMsg, uuid } from '@midscene/shared/utils';
 import dayjs from 'dayjs';
-import { WebElementInfo, type WebUIContext } from '../web-element';
-import type { WebPage } from './page';
 import { debug as cacheDebug } from './task-cache';
 import type { PageTaskExecutor } from './tasks';
 import { getKeyCommands } from './ui-utils';
@@ -40,14 +35,10 @@ import { getKeyCommands } from './ui-utils';
 const debugProfile = getDebug('web:tool:profile');
 const debugUtils = getDebug('web:tool:utils');
 
-export async function parseContextFromWebPage(
-  page: WebPage,
-  _opt?: PlaywrightParserOpt,
-): Promise<WebUIContext> {
+export async function commonContextParser(
+  page: AbstractPage,
+): Promise<UIContext> {
   assert(page, 'page is required');
-  if ((page as StaticPage)._forceUsePageContext) {
-    return await (page as any)._forceUsePageContext();
-  }
 
   debugProfile('Getting page URL');
   const url = await page.url();
@@ -57,38 +48,10 @@ export async function parseContextFromWebPage(
   uploadTestInfoToServer({ testUrl: url });
   debugProfile('UploadTestInfoToServer end');
 
-  let screenshotBase64: string;
-  let tree: ElementTreeNode<ElementInfo>;
-
-  debugProfile('Starting parallel operations: screenshot and element tree');
-  await Promise.all([
-    page.screenshotBase64().then((base64) => {
-      screenshotBase64 = base64;
-      debugProfile('ScreenshotBase64 end');
-    }),
-    page.getElementsNodeTree().then(async (treeRoot) => {
-      tree = treeRoot;
-      debugProfile('GetElementsNodeTree end');
-    }),
-  ]);
-  debugProfile('ParseContextFromWebPage end');
-  debugProfile('Traversing element tree');
-  const webTree = traverseTree(tree!, (elementInfo) => {
-    const { rect, id, content, attributes, indexId, isVisible } = elementInfo;
-    return new WebElementInfo({
-      rect,
-      id,
-      content,
-      attributes,
-      indexId,
-      isVisible,
-    });
-  });
-  debugProfile('TraverseTree end');
+  let screenshotBase64 = await page.screenshotBase64();
   assert(screenshotBase64!, 'screenshotBase64 is required');
 
   const size = await page.size();
-
   debugProfile(`size: ${size.width}x${size.height} dpr: ${size.dpr}`);
 
   if (size.dpr && size.dpr > 1) {
@@ -101,7 +64,10 @@ export async function parseContextFromWebPage(
   }
 
   return {
-    tree: webTree,
+    tree: {
+      node: null,
+      children: [],
+    },
     size,
     screenshotBase64: screenshotBase64!,
     url,
@@ -171,14 +137,6 @@ export function generateCacheId(fileName?: string): string {
     testFileIndex.set(taskFile, 1);
   }
   return `${taskFile}-${testFileIndex.get(taskFile)}`;
-}
-
-export const ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED =
-  'NOT_IMPLEMENTED_AS_DESIGNED';
-
-export function replaceIllegalPathCharsAndSpace(str: string) {
-  // Only replace characters that are illegal in filenames, but preserve path separators
-  return str.replace(/[:*?"<>| ]/g, '-');
 }
 
 export function matchElementFromPlan(
@@ -298,85 +256,6 @@ export function trimContextByViewport(execution: ExecutionDump) {
 }
 
 declare const __VERSION__: string | undefined;
-
-export function buildDetailedLocateParam(
-  locatePrompt: TUserPrompt,
-  opt?: LocateOption,
-): DetailedLocateParam | undefined {
-  debugUtils('will call buildDetailedLocateParam', locatePrompt, opt);
-  let prompt = locatePrompt || opt?.prompt || (opt as any)?.locate; // as a shortcut
-  let deepThink = false;
-  let cacheable = true;
-  let xpath = undefined;
-
-  if (typeof opt === 'object' && opt !== null) {
-    deepThink = opt.deepThink ?? false;
-    cacheable = opt.cacheable ?? true;
-    xpath = opt.xpath;
-    if (locatePrompt && opt.prompt && locatePrompt !== opt.prompt) {
-      console.warn(
-        'conflict prompt for item',
-        locatePrompt,
-        opt,
-        'maybe you put the prompt in the wrong place',
-      );
-    }
-    prompt = prompt || opt.prompt;
-  }
-
-  if (!prompt) {
-    debugUtils(
-      'no prompt, will return undefined in buildDetailedLocateParam',
-      opt,
-    );
-    return undefined;
-  }
-
-  return {
-    prompt,
-    deepThink,
-    cacheable,
-    xpath,
-  };
-}
-
-export function buildDetailedLocateParamAndRestParams(
-  locatePrompt: TUserPrompt,
-  opt: LocateOption | undefined,
-  excludeKeys: string[] = [],
-): {
-  locateParam: DetailedLocateParam | undefined;
-  restParams: Record<string, any>;
-} {
-  const locateParam = buildDetailedLocateParam(locatePrompt, opt);
-
-  // Extract all keys from opt except the ones already included in locateParam
-  const restParams: Record<string, any> = {};
-
-  if (typeof opt === 'object' && opt !== null) {
-    // Get all keys from opt
-    const allKeys = Object.keys(opt);
-
-    // Keys already included in locateParam: prompt, deepThink, cacheable, xpath
-    const locateParamKeys = Object.keys(locateParam || {});
-
-    // Extract all other keys
-    for (const key of allKeys) {
-      if (
-        !locateParamKeys.includes(key) &&
-        !excludeKeys.includes(key) &&
-        key !== 'locate'
-      ) {
-        restParams[key] = opt[key as keyof LocateOption];
-      }
-    }
-  }
-
-  return {
-    locateParam,
-    restParams,
-  };
-}
 
 export const getMidsceneVersion = (): string => {
   if (typeof __VERSION__ !== 'undefined') {

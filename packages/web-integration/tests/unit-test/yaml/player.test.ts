@@ -5,12 +5,12 @@ import { randomUUID } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import type { PageAgent } from '@/index';
 import { puppeteerAgentForTarget } from '@/puppeteer/agent-launcher';
-import { ScriptPlayer, buildYaml, parseYamlScript } from '@/yaml';
 import type {
   DeviceAction,
   GroupedActionDump,
   MidsceneYamlScriptWebEnv,
 } from '@midscene/core';
+import { ScriptPlayer, buildYaml, parseYamlScript } from '@midscene/core/yaml';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { type MockedFunction, describe, expect, test, vi } from 'vitest';
 

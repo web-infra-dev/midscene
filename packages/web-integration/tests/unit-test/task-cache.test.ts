@@ -4,8 +4,8 @@ import {
   type LocateCache,
   type PlanningCache,
   TaskCache,
-} from '@/common/task-cache';
-import { cacheFileExt } from '@/common/task-cache';
+  cacheFileExt,
+} from '@midscene/core/agent';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { uuid } from '@midscene/shared/utils';
 import yaml from 'js-yaml';
@@ -49,7 +49,9 @@ describe('TaskCache', { timeout: 20000 }, () => {
       cacheId,
       'cacheId',
     );
-    expect(cacheContent).toMatchSnapshot();
+    expect(
+      cacheContent.replace(/\d+\.\d+\.\d+[-\w\d.]*/g, '0.999.0'),
+    ).toMatchSnapshot();
 
     expect(cache.isCacheResultUsed).toBe(true);
   });
@@ -212,7 +214,9 @@ describe('TaskCache', { timeout: 20000 }, () => {
       newTaskCache.cacheFilePath!,
       'utf-8',
     ).replace(newTaskCache.cacheId, 'cacheId');
-    expect(cacheFileContent).toMatchSnapshot();
+    expect(
+      cacheFileContent.replace(/\d+\.\d+\.\d+[-\w\d.]*/g, '0.999.0'),
+    ).toMatchSnapshot();
   });
 
   it('should sanitize cache ID for file path', () => {

@@ -3,8 +3,8 @@ import {
   DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
 } from '@midscene/shared/constants';
 import type { Page as PlaywrightPageType } from 'playwright';
-import type { WebPageOpt } from '../common/agent';
 import { Page as BasePage } from '../puppeteer/base-page';
+import type { WebPageOpt } from '../web-element';
 
 export class WebPage extends BasePage<'playwright', PlaywrightPageType> {
   waitForNavigationTimeout: number;

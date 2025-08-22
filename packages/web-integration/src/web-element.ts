@@ -1,5 +1,36 @@
-import type { BaseElement, Rect, UIContext } from '@midscene/core';
+import type {
+  BaseElement,
+  PageAgentOpt,
+  Rect,
+  UIContext,
+} from '@midscene/core';
+import type { AbstractPage, KeyInput } from '@midscene/core/device';
 import type { NodeType } from '@midscene/shared/constants';
+import { traverseTree } from '@midscene/shared/extractor';
+import { getDebug } from '@midscene/shared/logger';
+import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
+
+import { commonContextParser } from '@midscene/core/agent';
+import type ChromeExtensionProxyPage from './chrome-extension/page';
+import type { StaticPage } from './playground';
+import type { PlaywrightWebPage } from './playwright';
+import type { PuppeteerWebPage } from './puppeteer';
+
+export type WebKeyInput = KeyInput;
+
+export type WebPageAgentOpt = PageAgentOpt & WebPageOpt;
+export type WebPageOpt = {
+  waitForNavigationTimeout?: number;
+  waitForNetworkIdleTimeout?: number;
+  forceSameTabNavigation?: boolean /* if limit the new tab to the current page, default true */;
+};
+
+export type WebPage =
+  | PlaywrightWebPage
+  | PuppeteerWebPage
+  | StaticPage
+  | ChromeExtensionProxyPage;
+
 export interface WebElementInfoType extends BaseElement {
   id: string;
   attributes: {
@@ -62,6 +93,56 @@ export class WebElementInfo implements BaseElement {
   }
 }
 
-export type WebUIContext = UIContext<WebElementInfo> & {
-  url: string;
-};
+export type WebUIContext = UIContext<WebElementInfo>;
+
+const debug = getDebug('web:parse-context');
+export async function WebPageContextParser(
+  page: AbstractPage,
+  _opt?: any, // unused
+): Promise<UIContext> {
+  const basicContext = await commonContextParser(page);
+
+  debug('will traverse element tree');
+  const tree = await page.getElementsNodeTree();
+  const webTree = traverseTree(tree!, (elementInfo) => {
+    const { rect, id, content, attributes, indexId, isVisible } = elementInfo;
+    return new WebElementInfo({
+      rect,
+      id,
+      content,
+      attributes,
+      indexId,
+      isVisible,
+    });
+  });
+  debug('traverse element tree end');
+
+  return {
+    ...basicContext,
+    tree: webTree,
+  };
+}
+
+export const limitOpenNewTabScript = `
+if (!window.__MIDSCENE_NEW_TAB_INTERCEPTOR_INITIALIZED__) {
+  window.__MIDSCENE_NEW_TAB_INTERCEPTOR_INITIALIZED__ = true;
+
+  // Intercept the window.open method (only once)
+  window.open = function(url) {
+    console.log('Blocked window.open:', url);
+    window.location.href = url;
+    return null;
+  };
+
+  // Block all a tag clicks with target="_blank" (only once)
+  document.addEventListener('click', function(e) {
+    const target = e.target.closest('a');
+    if (target && target.target === '_blank') {
+      e.preventDefault();
+      console.log('Blocked new tab:', target.href);
+      window.location.href = target.href;
+      target.removeAttribute('target');
+    }
+  }, true);
+}
+`;

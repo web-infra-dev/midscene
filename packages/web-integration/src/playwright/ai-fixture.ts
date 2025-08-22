@@ -2,15 +2,15 @@ import { randomUUID } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { PageAgent, PageAgentOpt, WebPageAgentOpt } from '@/common/agent';
-import { replaceIllegalPathCharsAndSpace } from '@/common/utils';
-import { PlaywrightAgent } from '@/playwright/index';
-import type { AgentWaitForOpt } from '@midscene/core';
+import { PlaywrightAgent, type PlaywrightWebPage } from '@/playwright/index';
+import type { WebPageAgentOpt } from '@/web-element';
+import type { Agent as PageAgent, PageAgentOpt } from '@midscene/core/agent';
 import {
   DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
   DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
 } from '@midscene/shared/constants';
 import { getDebug } from '@midscene/shared/logger';
+import { replaceIllegalPathCharsAndSpace } from '@midscene/shared/utils';
 import { type TestInfo, type TestType, test } from '@playwright/test';
 import type { Page as OriginPlaywrightPage } from 'playwright';
 export type APITestType = Pick<TestType<any, any>, 'step'>;
@@ -55,7 +55,7 @@ export const PlaywrightAiFixture = (options?: {
     waitForNetworkIdleTimeout = DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
     waitForNavigationTimeout = DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
   } = options ?? {};
-  const pageAgentMap: Record<string, PageAgent> = {};
+  const pageAgentMap: Record<string, PageAgent<PlaywrightWebPage>> = {};
   const createOrReuseAgentForPage = (
     page: OriginPlaywrightPage,
     testInfo: TestInfo, // { testId: string; taskFile: string; taskTitle: string },
@@ -467,7 +467,10 @@ export const PlaywrightAiFixture = (options?: {
 };
 
 export type PlayWrightAiFixtureType = {
-  agentForPage: (page?: any, opts?: any) => Promise<PageAgent>;
+  agentForPage: (
+    page?: any,
+    opts?: any,
+  ) => Promise<PageAgent<PlaywrightWebPage>>;
   ai: <T = any>(prompt: string) => Promise<T>;
   aiAction: (taskPrompt: string) => ReturnType<PageAgent['aiAction']>;
   aiTap: (

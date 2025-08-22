@@ -1,4 +1,11 @@
-import type { AbstractPage } from '@/page';
+import {
+  type ChatCompletionMessageParam,
+  elementByPositionWithElementInfo,
+  findAllMidsceneLocatorField,
+  resizeImageForUiTars,
+  vlmPlanning,
+} from '@/ai-model';
+import type { AbstractPage } from '@/device';
 import {
   type AIUsageInfo,
   type BaseElement,
@@ -32,15 +39,8 @@ import {
   type TUserPrompt,
   type UIContext,
   plan,
-} from '@midscene/core';
-import {
-  type ChatCompletionMessageParam,
-  elementByPositionWithElementInfo,
-  findAllMidsceneLocatorField,
-  resizeImageForUiTars,
-  vlmPlanning,
-} from '@midscene/core/ai-model';
-import { sleep } from '@midscene/core/utils';
+} from '@/index';
+import { sleep } from '@/utils';
 import { NodeType } from '@midscene/shared/constants';
 import {
   type IModelPreferences,

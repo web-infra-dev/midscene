@@ -1,9 +1,13 @@
+import { type WebKeyInput, WebPageContextParser } from '@/web-element';
 import type {
   DeviceAction,
   ElementTreeNode,
   Point,
   Size,
+  UIContext,
 } from '@midscene/core';
+import { commonWebActionsForWebPage } from '@midscene/core/agent';
+import type { AbstractPage, MouseButton } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import { DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
@@ -17,9 +21,6 @@ import {
 import { assert } from '@midscene/shared/utils';
 import type { Page as PlaywrightPage } from 'playwright';
 import type { Page as PuppeteerPage } from 'puppeteer';
-import type { WebKeyInput } from '../common/page';
-import { commonWebActionsForWebPage } from '../common/utils';
-import type { AbstractPage, MouseButton } from '../page';
 
 export const debugPage = getDebug('web:page');
 
@@ -393,6 +394,10 @@ export class Page<
   }
 
   async destroy(): Promise<void> {}
+
+  async getContext(): Promise<UIContext> {
+    return await WebPageContextParser(this, {});
+  }
 }
 
 export function forceClosePopup(

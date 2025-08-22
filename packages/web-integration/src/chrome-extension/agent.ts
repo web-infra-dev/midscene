@@ -1,4 +1,4 @@
-import { PageAgent, type PageAgentOpt } from '@/common/agent';
+import { Agent as PageAgent, type PageAgentOpt } from '@midscene/core/agent';
 import type ChromeExtensionProxyPage from './page';
 
 export class ChromeExtensionProxyPageAgent extends PageAgent {

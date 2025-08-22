@@ -1,4 +1,3 @@
-import type { WebPage } from '@/common/page';
 import {
   type AgentAssertOpt,
   type AgentDescribeElementAtPointResult,
@@ -25,18 +24,23 @@ import {
   type ScrollParam,
   type TUserPrompt,
   type UIContext,
-} from '@midscene/core';
+} from '../index';
 
 import yaml from 'js-yaml';
 
-import { ScriptPlayer, parseYamlScript } from '@/yaml/index';
 import {
   groupedActionDumpFileExt,
   reportHTMLContent,
   stringifyDumpData,
   writeLogFile,
-} from '@midscene/core/utils';
+} from '@/utils';
+import {
+  ScriptPlayer,
+  buildDetailedLocateParam,
+  parseYamlScript,
+} from '../yaml/index';
 
+import type { AbstractPage } from '@/device';
 import {
   type IModelPreferences,
   type TModelConfigFn,
@@ -46,17 +50,16 @@ import {
 } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import { PageTaskExecutor, locatePlanForLocate } from '../common/tasks';
-import type { AndroidDeviceInputOpt } from './page';
+// import type { AndroidDeviceInputOpt } from '../device';
 import { TaskCache } from './task-cache';
+import { PageTaskExecutor, locatePlanForLocate } from './tasks';
 import { locateParamStr, paramStr, taskTitleStr, typeStr } from './ui-utils';
 import {
-  buildDetailedLocateParam,
+  commonContextParser,
   getReportFileName,
   parsePrompt,
   printReportMsg,
 } from './utils';
-import { parseContextFromWebPage } from './utils';
 import { trimContextByViewport } from './utils';
 
 const debug = getDebug('agent');
@@ -94,14 +97,7 @@ export interface PageAgentOpt {
   modelConfig?: TModelConfigFn;
 }
 
-export type WebPageAgentOpt = PageAgentOpt & WebPageOpt;
-export type WebPageOpt = {
-  waitForNavigationTimeout?: number;
-  waitForNetworkIdleTimeout?: number;
-  forceSameTabNavigation?: boolean /* if limit the new tab to the current page, default true */;
-};
-
-export class PageAgent<PageType extends WebPage = WebPage> {
+export class Agent<PageType extends AbstractPage = AbstractPage> {
   page: PageType;
 
   insight: Insight;
@@ -185,11 +181,13 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       return this.frozenPageContext;
     }
 
-    // Otherwise, get fresh context based on the action type
-    if (action && (action === 'extract' || action === 'assert')) {
-      return await parseContextFromWebPage(this.page, {});
+    if (this.page.getContext) {
+      debug('Using page.getContext for action:', action);
+      return await this.page.getContext();
+    } else {
+      debug('Using commonContextParser for action:', action);
+      return await commonContextParser(this.page);
     }
-    return await parseContextFromWebPage(this.page, {});
   }
 
   async _snapshotContext(): Promise<UIContext> {
@@ -337,7 +335,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   // New signature, always use locatePrompt as the first param
   async aiInput(
     locatePrompt: TUserPrompt,
-    opt: AndroidDeviceInputOpt & LocateOption & { value: string },
+    opt: LocateOption & { value: string }, // AndroidDeviceInputOpt &
   ): Promise<any>;
 
   // Legacy signature - deprecated
@@ -347,7 +345,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   async aiInput(
     value: string,
     locatePrompt: TUserPrompt,
-    opt?: AndroidDeviceInputOpt & LocateOption,
+    opt?: LocateOption, // AndroidDeviceInputOpt &
   ): Promise<any>;
 
   // Implementation
@@ -355,14 +353,14 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     locatePromptOrValue: TUserPrompt | string,
     locatePromptOrOpt:
       | TUserPrompt
-      | (AndroidDeviceInputOpt & LocateOption & { value: string })
+      | (LocateOption & { value: string }) // AndroidDeviceInputOpt &
       | undefined,
-    optOrUndefined?: AndroidDeviceInputOpt & LocateOption,
+    optOrUndefined?: LocateOption, // AndroidDeviceInputOpt &
   ) {
     let value: string;
     let locatePrompt: TUserPrompt;
     let opt:
-      | (AndroidDeviceInputOpt & LocateOption & { value: string })
+      | (LocateOption & { value: string }) // AndroidDeviceInputOpt &
       | undefined;
 
     // Check if using new signature (first param is locatePrompt, second has value)
@@ -373,8 +371,10 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     ) {
       // New signature: aiInput(locatePrompt, opt)
       locatePrompt = locatePromptOrValue as TUserPrompt;
-      const optWithValue = locatePromptOrOpt as AndroidDeviceInputOpt &
-        LocateOption & { value: string };
+      const optWithValue = locatePromptOrOpt as LocateOption & {
+        // AndroidDeviceInputOpt &
+        value: string;
+      };
       value = optWithValue.value;
       opt = optWithValue;
     } else {

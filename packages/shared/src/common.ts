@@ -59,3 +59,6 @@ export const getMidsceneRunSubDir = (
 
   return logPath;
 };
+
+export const ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED =
+  'NOT_IMPLEMENTED_AS_DESIGNED';
