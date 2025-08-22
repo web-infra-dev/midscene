@@ -2,11 +2,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { getKeyCommands } from '@midscene/core/agent';
 import {
-  buildDetailedLocateParam,
-  buildDetailedLocateParamAndRestParams,
   getCurrentExecutionFile,
   trimContextByViewport,
 } from '@midscene/core/agent';
+import {
+  buildDetailedLocateParam,
+  buildDetailedLocateParamAndRestParams,
+} from '@midscene/core/yaml';
 import { describe, expect, it } from 'vitest';
 
 describe('TaskCache', () => {
