@@ -5,6 +5,7 @@ import {
   resizeImageForUiTars,
   vlmPlanning,
 } from '@/ai-model';
+import type { AbstractPage } from '@/device';
 import {
   type AIUsageInfo,
   type BaseElement,
@@ -39,7 +40,6 @@ import {
   type UIContext,
   plan,
 } from '@/index';
-import type { AbstractPage } from '@/page';
 import { sleep } from '@/utils';
 import { NodeType } from '@midscene/shared/constants';
 import {

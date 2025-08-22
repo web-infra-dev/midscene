@@ -1,4 +1,5 @@
 import { elementByPositionWithElementInfo } from '@/ai-model';
+import type { AbstractPage } from '@/device';
 import type {
   BaseElement,
   DetailedLocateParam,
@@ -15,7 +16,6 @@ import type {
   UIContext,
 } from '@/index';
 import { getMidsceneLocationSchema, z } from '@/index';
-import type { AbstractPage } from '@/page';
 import { sleep, uploadTestInfoToServer } from '@/utils';
 import { MIDSCENE_REPORT_TAG_NAME, getAIConfig } from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
