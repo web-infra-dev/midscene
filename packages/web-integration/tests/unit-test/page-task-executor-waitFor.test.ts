@@ -1,4 +1,4 @@
-import { PageTaskExecutor } from '@/common/tasks';
+import { PageTaskExecutor } from '@midscene/core/agent';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 declare const __VERSION__: string;
