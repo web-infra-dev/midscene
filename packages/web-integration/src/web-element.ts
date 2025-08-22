@@ -102,7 +102,7 @@ export async function WebPageContextParser(
 ): Promise<UIContext> {
   const basicContext = await commonContextParser(page);
 
-  debug('Traversing element tree');
+  debug('will traverse element tree');
   const tree = await page.getElementsNodeTree();
   const webTree = traverseTree(tree!, (elementInfo) => {
     const { rect, id, content, attributes, indexId, isVisible } = elementInfo;
@@ -115,7 +115,7 @@ export async function WebPageContextParser(
       isVisible,
     });
   });
-  debug('TraverseTree end');
+  debug('traverse element tree end');
 
   return {
     ...basicContext,

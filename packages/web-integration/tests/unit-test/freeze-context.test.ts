@@ -1,5 +1,5 @@
-import { PageAgent } from '@/common/agent';
-import type { WebPage } from '@/common/page';
+import type { WebPage } from '@/web-element';
+import { Agent as PageAgent } from '@midscene/core/agent';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WebUIContext } from '../../src';
 
