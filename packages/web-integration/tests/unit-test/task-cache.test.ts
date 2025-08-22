@@ -49,7 +49,9 @@ describe('TaskCache', { timeout: 20000 }, () => {
       cacheId,
       'cacheId',
     );
-    expect(cacheContent.replace(/\d+\.\d+\.\d+[-\w\d.]*/g, '0.999.0')).toMatchSnapshot();
+    expect(
+      cacheContent.replace(/\d+\.\d+\.\d+[-\w\d.]*/g, '0.999.0'),
+    ).toMatchSnapshot();
 
     expect(cache.isCacheResultUsed).toBe(true);
   });

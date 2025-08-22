@@ -14,7 +14,7 @@ const mockPage = {
   evaluateJavaScript: vi.fn(),
   size: vi.fn().mockResolvedValue({ width: 1920, height: 1080, dpr: 1 }),
   url: vi.fn().mockResolvedValue('https://example.com'),
-  getContext: vi.fn().mockImplementation(async function() {
+  getContext: vi.fn().mockImplementation(async function () {
     return await WebPageContextParser(this);
   }),
 } as unknown as WebPage;
