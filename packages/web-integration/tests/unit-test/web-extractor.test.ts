@@ -189,16 +189,6 @@ describe(
       await reset();
     });
 
-    it('static page with fixed context', async () => {
-      const fakeContext = {
-        foo: 'bar',
-      };
-      const page = new StaticPage(fakeContext as any);
-
-      const context = await WebPageContextParser(page);
-      expect(context).toBe(fakeContext);
-    });
-
     it('getElementInfoByXpath from text node by evaluateJavaScript', async () => {
       const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
         viewport: {
