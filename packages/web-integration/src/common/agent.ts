@@ -1,4 +1,3 @@
-import type { WebPage } from '@/common/page';
 import {
   type AgentAssertOpt,
   type AgentDescribeElementAtPointResult,
@@ -37,6 +36,7 @@ import {
   writeLogFile,
 } from '@midscene/core/utils';
 
+import type { AbstractPage } from '@/page';
 import {
   type IModelPreferences,
   type TModelConfigFn,
@@ -52,11 +52,11 @@ import { TaskCache } from './task-cache';
 import { locateParamStr, paramStr, taskTitleStr, typeStr } from './ui-utils';
 import {
   buildDetailedLocateParam,
+  commonContextParser,
   getReportFileName,
   parsePrompt,
   printReportMsg,
 } from './utils';
-import { parseContextFromWebPage } from './utils';
 import { trimContextByViewport } from './utils';
 
 const debug = getDebug('agent');
@@ -101,7 +101,7 @@ export type WebPageOpt = {
   forceSameTabNavigation?: boolean /* if limit the new tab to the current page, default true */;
 };
 
-export class PageAgent<PageType extends WebPage = WebPage> {
+export class PageAgent<PageType extends AbstractPage = AbstractPage> {
   page: PageType;
 
   insight: Insight;
@@ -185,11 +185,13 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       return this.frozenPageContext;
     }
 
-    // Otherwise, get fresh context based on the action type
-    if (action && (action === 'extract' || action === 'assert')) {
-      return await parseContextFromWebPage(this.page, {});
+    if (this.page.getContext) {
+      debug('Using page.getContext for action:', action);
+      return await this.page.getContext();
+    } else {
+      debug('Using commonContextParser for action:', action);
+      return await commonContextParser(this.page);
     }
-    return await parseContextFromWebPage(this.page, {});
   }
 
   async _snapshotContext(): Promise<UIContext> {

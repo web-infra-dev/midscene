@@ -22,7 +22,13 @@ export class WebPage extends BasePage<'puppeteer', PuppeteerPageType> {
   }
 
   async beforeAction(): Promise<void> {
-    await this.waitUntilNetworkIdle();
+    try {
+      await this.waitUntilNetworkIdle();
+    } catch (error) {
+      console.warn(
+        '[midscene:warning] Waiting for network idle has timed out, but Midscene will continue execution. Please check https://midscenejs.com/faq.html#customize-the-network-timeout for more information on customizing the network timeout',
+      );
+    }
   }
 
   async waitUntilNetworkIdle(): Promise<void> {

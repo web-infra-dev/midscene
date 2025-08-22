@@ -14,4 +14,3 @@ export { PlaywrightAgent } from './playwright';
 export { StaticPageAgent } from './playground/agent';
 
 export { ScriptPlayer, parseYamlScript } from './yaml';
-export { parseContextFromWebPage } from './common/utils';

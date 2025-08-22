@@ -31,7 +31,7 @@ vi.mock('@/common/utils', async () => {
   const actual = await vi.importActual('@/common/utils');
   return {
     ...actual,
-    parseContextFromWebPage: vi.fn().mockResolvedValue({}),
+    WebPageContextParser: vi.fn().mockResolvedValue({}),
     trimContextByViewport: vi.fn((execution) => execution),
     printReportMsg: vi.fn(),
   };

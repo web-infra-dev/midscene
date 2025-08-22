@@ -1,5 +1,11 @@
+import type { AbstractPage } from '@/page';
 import type { BaseElement, Rect, UIContext } from '@midscene/core';
 import type { NodeType } from '@midscene/shared/constants';
+import { traverseTree } from '@midscene/shared/extractor';
+import { getDebug } from '@midscene/shared/logger';
+import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
+import { commonContextParser } from './common/utils';
+
 export interface WebElementInfoType extends BaseElement {
   id: string;
   attributes: {
@@ -62,6 +68,32 @@ export class WebElementInfo implements BaseElement {
   }
 }
 
-export type WebUIContext = UIContext<WebElementInfo> & {
-  url: string;
-};
+export type WebUIContext = UIContext<WebElementInfo>;
+
+const debug = getDebug('web:parse-context');
+export async function WebPageContextParser(
+  page: AbstractPage,
+  _opt?: any, // unused
+): Promise<UIContext> {
+  const basicContext = await commonContextParser(page);
+
+  debug('Traversing element tree');
+  const tree = await page.getElementsNodeTree();
+  const webTree = traverseTree(tree!, (elementInfo) => {
+    const { rect, id, content, attributes, indexId, isVisible } = elementInfo;
+    return new WebElementInfo({
+      rect,
+      id,
+      content,
+      attributes,
+      indexId,
+      isVisible,
+    });
+  });
+  debug('TraverseTree end');
+
+  return {
+    ...basicContext,
+    tree: webTree,
+  };
+}

@@ -131,6 +131,8 @@ export abstract class UIContext<ElementType extends BaseElement = BaseElement> {
   abstract size: Size;
 
   abstract _isFrozen?: boolean;
+
+  abstract url?: string;
 }
 
 /**
