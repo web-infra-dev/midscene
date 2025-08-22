@@ -1,4 +1,5 @@
 import type { DeviceAction } from '@midscene/core';
+import { findAllMidsceneLocatorField } from '@midscene/core/ai-model';
 
 const ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED = 'NOT_IMPLEMENTED_AS_DESIGNED';
 
@@ -25,25 +26,21 @@ export async function parseStructuredParams(
 
   const schema = action.paramSchema as any; // ZodObject type
   const keys = Object.keys(schema.shape);
+  const locatorFieldKeys = findAllMidsceneLocatorField(schema);
 
   // Find locate field (MidsceneLocation field)
   let locateField = null;
   const nonLocateFields: Record<string, unknown> = {};
 
+  // The original code implicitly uses the last one if multiple exist.
+  // We will use the first locator field found.
+  if (locatorFieldKeys.length > 0) {
+    locateField = params[locatorFieldKeys[0]];
+  }
+
   keys.forEach((key) => {
-    const field = schema.shape[key];
-    let actualField = field;
-    if (actualField._def?.typeName === 'ZodOptional') {
-      actualField = actualField._def.innerType;
-    }
-
-    const isLocateField =
-      actualField._def?.typeName === 'ZodObject' &&
-      actualField._def.shape()?.midscene_location_field_flag;
-
-    if (isLocateField) {
-      locateField = params[key];
-    } else if (
+    if (
+      !locatorFieldKeys.includes(key) &&
       params[key] !== undefined &&
       params[key] !== null &&
       params[key] !== ''
@@ -78,29 +75,17 @@ export function validateStructuredParams(
 
     // Find all MidsceneLocation fields in the schema
     const schema = action.paramSchema;
-    if (schema && 'shape' in schema) {
-      const zodSchema = schema as any; // ZodObject type
-      Object.keys(zodSchema.shape).forEach((key) => {
-        const field = zodSchema.shape[key];
-        // Check if this field is a MidsceneLocation field by looking for the special flag
-        let actualField = field;
-        if (actualField._def?.typeName === 'ZodOptional') {
-          actualField = actualField._def.innerType;
-        }
-
-        if (
-          actualField._def?.typeName === 'ZodObject' &&
-          actualField._def.shape()?.midscene_location_field_flag
-        ) {
-          // This is a MidsceneLocation field - convert string to object for validation
-          if (typeof paramsForValidation[key] === 'string') {
-            paramsForValidation[key] = {
-              midscene_location_field_flag: true,
-              prompt: paramsForValidation[key],
-              center: [0, 0], // dummy values for validation
-              rect: { left: 0, top: 0, width: 0, height: 0 },
-            };
-          }
+    if (schema) {
+      const locatorFieldKeys = findAllMidsceneLocatorField(schema);
+      locatorFieldKeys.forEach((key) => {
+        // This is a MidsceneLocation field - convert string to object for validation
+        if (typeof paramsForValidation[key] === 'string') {
+          paramsForValidation[key] = {
+            midscene_location_field_flag: true,
+            prompt: paramsForValidation[key],
+            center: [0, 0], // dummy values for validation
+            rect: { left: 0, top: 0, width: 0, height: 0 },
+          };
         }
       });
     }
@@ -163,6 +148,7 @@ export function createDisplayContent(
   const schema = action.paramSchema;
   if (schema && 'shape' in schema) {
     const zodSchema = schema as any; // ZodObject type
+    const locatorFieldKeys = findAllMidsceneLocatorField(schema);
     Object.keys(zodSchema.shape).forEach((key) => {
       const paramValue = value.params[key];
       if (
@@ -173,16 +159,7 @@ export function createDisplayContent(
         // Convert key to display name (capitalize first letter)
         const displayKey = key.charAt(0).toUpperCase() + key.slice(1);
 
-        // Check if this is a locate field (MidsceneLocation)
-        const field = zodSchema.shape[key];
-        let actualField = field;
-        if (actualField._def?.typeName === 'ZodOptional') {
-          actualField = actualField._def.innerType;
-        }
-
-        const isLocateField =
-          actualField._def?.typeName === 'ZodObject' &&
-          actualField._def.shape()?.midscene_location_field_flag;
+        const isLocateField = locatorFieldKeys.includes(key);
 
         // Format the value based on field type
         if (isLocateField) {
