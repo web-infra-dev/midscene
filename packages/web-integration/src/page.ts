@@ -1,7 +1,6 @@
 import type { DeviceAction, Point, Size, UIContext } from '@midscene/core';
 import type { ElementInfo, ElementNode } from '@midscene/shared/extractor';
 import type { WebKeyInput } from './common/page';
-import type { WebUIContext } from './web-element';
 
 export type MouseButton = 'left' | 'right' | 'middle';
 

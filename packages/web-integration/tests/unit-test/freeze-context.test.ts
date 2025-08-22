@@ -216,7 +216,7 @@ describe('PageAgent freeze/unfreeze page context', () => {
       // Mock WebPageContextParser to return a new context each time
       const mockParseContext = vi.fn().mockResolvedValue(mockContext2);
       vi.spyOn(
-        await import('@/common/utils'),
+        await import('@/web-element'),
         'WebPageContextParser',
       ).mockImplementation(mockParseContext);
 
@@ -253,7 +253,7 @@ describe('PageAgent freeze/unfreeze page context', () => {
         .mockResolvedValueOnce({ ...mockContext, fresh: 3 });
 
       vi.spyOn(
-        await import('@/common/utils'),
+        await import('@/web-element'),
         'WebPageContextParser',
       ).mockImplementation(mockParseContext);
 
@@ -279,7 +279,7 @@ describe('PageAgent freeze/unfreeze page context', () => {
         .mockResolvedValueOnce({ ...mockContext2, callNumber: 2 });
 
       vi.spyOn(
-        await import('@/common/utils'),
+        await import('@/web-element'),
         'WebPageContextParser',
       ).mockImplementation(mockParseContext);
 
@@ -310,7 +310,7 @@ describe('PageAgent freeze/unfreeze page context', () => {
       // Mock WebPageContextParser
       const mockParseContext = vi.fn().mockResolvedValue(mockContext2);
       vi.spyOn(
-        await import('@/common/utils'),
+        await import('@/web-element'),
         'WebPageContextParser',
       ).mockImplementation(mockParseContext);
 
