@@ -368,7 +368,8 @@ export class Agent<PageType extends AbstractPage = AbstractPage> {
     ) {
       // New signature: aiInput(locatePrompt, opt)
       locatePrompt = locatePromptOrValue as TUserPrompt;
-      const optWithValue = locatePromptOrOpt as LocateOption & { // AndroidDeviceInputOpt &
+      const optWithValue = locatePromptOrOpt as LocateOption & {
+        // AndroidDeviceInputOpt &
         value: string;
       };
       value = optWithValue.value;

@@ -29,7 +29,7 @@ vi.mock('@midscene/web/puppeteer-agent-launcher', () => ({
   puppeteerAgentForTarget: vi.fn(),
 }));
 
-import { ScriptPlayer, parseYamlScript } from '@midscene/web/yaml';
+import { ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
 import { createServer } from 'http-server';
 
 describe('create-yaml-player', () => {
