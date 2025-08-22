@@ -2,14 +2,15 @@ import { randomUUID } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { PageAgent, PageAgentOpt, WebPageAgentOpt } from '@/common/agent';
-import { replaceIllegalPathCharsAndSpace } from '@/common/utils';
 import { PlaywrightAgent, type PlaywrightWebPage } from '@/playwright/index';
+import type { WebPageAgentOpt } from '@/web-element';
+import type { Agent as PageAgent, PageAgentOpt } from '@midscene/core/agent';
 import {
   DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
   DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
 } from '@midscene/shared/constants';
 import { getDebug } from '@midscene/shared/logger';
+import { replaceIllegalPathCharsAndSpace } from '@midscene/shared/utils';
 import { type TestInfo, type TestType, test } from '@playwright/test';
 import type { Page as OriginPlaywrightPage } from 'playwright';
 export type APITestType = Pick<TestType<any, any>, 'step'>;

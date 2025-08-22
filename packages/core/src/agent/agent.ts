@@ -94,13 +94,6 @@ export interface PageAgentOpt {
   modelConfig?: TModelConfigFn;
 }
 
-export type WebPageAgentOpt = PageAgentOpt & WebPageOpt;
-export type WebPageOpt = {
-  waitForNavigationTimeout?: number;
-  waitForNetworkIdleTimeout?: number;
-  forceSameTabNavigation?: boolean /* if limit the new tab to the current page, default true */;
-};
-
 export class Agent<PageType extends AbstractPage = AbstractPage> {
   page: PageType;
 

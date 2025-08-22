@@ -139,14 +139,6 @@ export function generateCacheId(fileName?: string): string {
   return `${taskFile}-${testFileIndex.get(taskFile)}`;
 }
 
-export const ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED =
-  'NOT_IMPLEMENTED_AS_DESIGNED';
-
-export function replaceIllegalPathCharsAndSpace(str: string) {
-  // Only replace characters that are illegal in filenames, but preserve path separators
-  return str.replace(/[:*?"<>| ]/g, '-');
-}
-
 export function matchElementFromPlan(
   planLocateParam: PlanningLocateParam,
   tree: ElementTreeNode<BaseElement>,

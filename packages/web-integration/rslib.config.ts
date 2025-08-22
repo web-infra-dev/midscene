@@ -7,10 +7,10 @@ const copyDtsFiles: rsbuild.RsbuildPlugin = {
   name: 'copy-dts-files',
   setup(api) {
     api.onAfterBuild(() => {
-      const typesDir = path.join(process.cwd(), 'dist/types');
-      const sourcePath = path.join(process.cwd(), 'src', 'common', 'page.d.ts');
-      const destPath = path.join(typesDir, 'common', 'page.d.ts');
-      fs.copyFileSync(sourcePath, destPath);
+      // const typesDir = path.join(process.cwd(), 'dist/types');
+      // const sourcePath = path.join(process.cwd(), 'src', 'common', 'page.d.ts');
+      // const destPath = path.join(typesDir, 'common', 'page.d.ts');
+      // fs.copyFileSync(sourcePath, destPath);
     });
   },
 };

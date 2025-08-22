@@ -30,14 +30,14 @@
       "require": "./dist/lib/tree.js"
     },
     "./device": {
-      "types": "./dist/types/device.d.ts",
-      "import": "./dist/es/device.mjs",
-      "require": "./dist/lib/device.js"
+      "types": "./dist/types/device/index.d.ts",
+      "import": "./dist/es/device/index.mjs",
+      "require": "./dist/lib/device/index.js"
     },
     "./agent": {
-      "types": "./dist/types/agent.d.ts",
-      "import": "./dist/es/agent.mjs",
-      "require": "./dist/lib/agent.js"
+      "types": "./dist/types/agent/index.d.ts",
+      "import": "./dist/es/agent/index.mjs",
+      "require": "./dist/lib/agent/index.js"
     }
   },
   "typesVersions": {
@@ -45,7 +45,9 @@
       ".": ["./dist/types/index.d.ts"],
       "utils": ["./dist/types/utils.d.ts"],
       "ai-model": ["./dist/types/ai-model.d.ts"],
-      "tree": ["./dist/types/tree.d.ts"]
+      "tree": ["./dist/types/tree.d.ts"],
+      "device": ["./dist/types/device.d.ts"],
+      "agent": ["./dist/types/agent.d.ts"]
     }
   },
   "scripts": {

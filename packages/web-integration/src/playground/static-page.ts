@@ -1,6 +1,6 @@
-import { ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED } from '@/common/utils';
-import type { AbstractPage } from '@/page';
 import type { DeviceAction, Point, UIContext } from '@midscene/core';
+import type { AbstractPage } from '@midscene/core/device';
+import { ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED } from '@midscene/shared/common';
 import type { WebUIContext } from '../web-element';
 
 const ThrowNotImplemented: any = (methodName: string) => {

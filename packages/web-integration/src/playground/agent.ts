@@ -1,4 +1,4 @@
-import { PageAgent } from '@/common/agent';
+import { Agent as PageAgent } from '@midscene/core/agent';
 import type StaticPage from './static-page';
 
 export class StaticPageAgent extends PageAgent {

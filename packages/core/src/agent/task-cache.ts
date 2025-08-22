@@ -11,9 +11,10 @@ import {
 import { getDebug } from '@midscene/shared/logger';
 import { ifInBrowser, ifInWorker } from '@midscene/shared/utils';
 import { generateHashId } from '@midscene/shared/utils';
+import { replaceIllegalPathCharsAndSpace } from '@midscene/shared/utils';
 import yaml from 'js-yaml';
 import semver from 'semver';
-import { getMidsceneVersion, replaceIllegalPathCharsAndSpace } from './utils';
+import { getMidsceneVersion } from './utils';
 
 const DEFAULT_CACHE_MAX_FILENAME_LENGTH = 200;
 

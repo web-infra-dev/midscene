@@ -1,14 +1,13 @@
-import { PageAgent, type WebPageAgentOpt } from '@/common/agent';
+import type { WebPageAgentOpt } from '@/web-element';
+import { Agent as PageAgent } from '@midscene/core/agent';
 import { getDebug } from '@midscene/shared/logger';
 import type { Page as PuppeteerPage } from 'puppeteer';
-import type { AndroidDeviceInputOpt } from '../common/page';
 import { forceClosePopup } from './base-page';
 import { PuppeteerWebPage } from './page';
 
 const debug = getDebug('puppeteer:agent');
 
 export { PuppeteerWebPage } from './page';
-export type { AndroidDeviceInputOpt };
 
 export class PuppeteerAgent extends PageAgent<PuppeteerWebPage> {
   constructor(page: PuppeteerPage, opts?: WebPageAgentOpt) {
