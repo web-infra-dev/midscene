@@ -38,7 +38,7 @@ export abstract class AbstractPage {
   abstract getElementsInfo(): Promise<ElementInfo[]>;
   abstract getElementsNodeTree(): Promise<ElementNode>;
   abstract url(): string | Promise<string>;
-  abstract screenshotBase64?(): Promise<string>;
+  abstract screenshotBase64(): Promise<string>;
   abstract size(): Promise<Size>;
   abstract actionSpace(): DeviceAction[] | Promise<DeviceAction[]>;
 
