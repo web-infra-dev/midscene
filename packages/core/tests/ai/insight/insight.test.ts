@@ -56,6 +56,35 @@ describe('insight locate with deep think', () => {
   });
 });
 
+describe(
+  'insight describe',
+  {
+    timeout: 2 * 60 * 1000,
+  },
+  () => {
+    test('insight describe - by rect', async () => {
+      const { context } = await getContextFromFixture('taobao');
+      const insight = new Insight(context);
+      const { description } = await insight.describe({
+        left: 580,
+        top: 140,
+        width: 80,
+        height: 30,
+      });
+
+      expect(description).toBeDefined();
+    });
+
+    test('insight describe - by center point', async () => {
+      const { context } = await getContextFromFixture('taobao');
+      const insight = new Insight(context);
+      const { description } = await insight.describe([580, 140]);
+
+      expect(description).toBeDefined();
+    });
+  },
+);
+
 vi.setConfig({
   testTimeout: 60 * 1000,
 });
