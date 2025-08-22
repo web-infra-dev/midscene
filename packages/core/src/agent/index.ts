@@ -13,8 +13,6 @@ export { PageTaskExecutor } from './tasks';
 
 export { getKeyCommands } from './ui-utils';
 export {
-  buildDetailedLocateParam,
-  buildDetailedLocateParamAndRestParams,
   getCurrentExecutionFile,
   trimContextByViewport,
 } from './utils';

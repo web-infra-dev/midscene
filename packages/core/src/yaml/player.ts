@@ -3,7 +3,6 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { assert, ifInBrowser, ifInWorker } from '@midscene/shared/utils';
 
 import type { Agent } from '@/agent/agent';
-import { buildDetailedLocateParamAndRestParams } from '@/agent/utils';
 import type {
   DeviceAction,
   FreeFn,
@@ -31,6 +30,7 @@ import type {
 } from '@/index';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { getDebug } from '@midscene/shared/logger';
+import { buildDetailedLocateParamAndRestParams } from './utils';
 
 const debug = getDebug('yaml-player');
 export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {

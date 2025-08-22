@@ -34,7 +34,11 @@ import {
   stringifyDumpData,
   writeLogFile,
 } from '@/utils';
-import { ScriptPlayer, parseYamlScript } from '../yaml/index';
+import {
+  ScriptPlayer,
+  buildDetailedLocateParam,
+  parseYamlScript,
+} from '../yaml/index';
 
 import type { AbstractPage } from '@/device';
 import {
@@ -51,7 +55,6 @@ import { TaskCache } from './task-cache';
 import { PageTaskExecutor, locatePlanForLocate } from './tasks';
 import { locateParamStr, paramStr, taskTitleStr, typeStr } from './ui-utils';
 import {
-  buildDetailedLocateParam,
   commonContextParser,
   getReportFileName,
   parsePrompt,
