@@ -1,6 +1,6 @@
 import { join } from 'node:path';
-import { WebPageContextParser } from '@/common/utils';
 import StaticPage from '@/playground/static-page';
+import { WebPageContextParser } from '@/web-element';
 import type { WebElementInfo } from '@/web-element';
 import { traverseTree, treeToList } from '@midscene/shared/extractor';
 import {

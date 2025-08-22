@@ -7,7 +7,7 @@ import type { Page as PuppeteerPageType } from 'puppeteer';
 import type { WebPageOpt } from '../common/agent';
 import { Page as BasePage, debugPage } from './base-page';
 
-export class WebPage extends BasePage<'puppeteer', PuppeteerPageType> {
+export class PuppeteerWebPage extends BasePage<'puppeteer', PuppeteerPageType> {
   waitForNavigationTimeout: number;
   waitForNetworkIdleTimeout: number;
 
