@@ -17,6 +17,8 @@ import type {
 import { z } from 'zod';
 import { PuppeteerBrowserAgent, ensureBrowser } from './puppeteer';
 import { tools } from './tools';
+import { notifyConsoleLogsUpdated, consoleLogs, notifyMessage } from './resources';
+import { ConsoleMessage } from 'puppeteer-core';
 
 declare global {
   interface Window {
@@ -109,6 +111,11 @@ export class MidsceneManager {
     const { browser } = await ensureBrowser({});
     // Create a new, blank page (tab) in the browser.
     const newPage = await browser.newPage();
+
+     // Set up console listener BEFORE navigation
+     newPage.on('console', this.consoleListener);
+     notifyMessage(this.mcpServer.server, 'debug', 'Console listener attached to new page');
+
     // Navigate the new page to Google as a starting point.
     if (openNewTabWithUrl) {
       await newPage.goto(openNewTabWithUrl);
@@ -323,7 +330,97 @@ export class MidsceneManager {
         };
       },
     );
-
+    this.mcpServer.tool(
+      tools.midscene_get_resource.name,
+      tools.midscene_get_resource.description,
+      {
+        uri: z.string().describe('Resource URI (e.g., "console://logs", "screenshot://${name}")'),
+        options: z.object({
+          msgType: z.string().optional().describe('Filter console logs by message type (log, error, warn, info, debug, trace, dir, dirxml, table, clear, startGroup, startGroupCollapsed, endGroup, assert, profile, profileEnd, count, timeEnd)'),
+        }).optional(),
+      },
+      async ({ uri, options }) => {
+        try {
+          if (!uri) {
+            return {
+              content: [{
+                type: "text",
+                text: "Missing required parameter: uri",
+              }],
+              isError: true,
+            };
+          }
+  
+          // Handle console logs resource
+          if (uri === "console://logs") {
+            let logs = this.consoleLogs;
+  
+            // Filter by message type if specified
+            if (options?.msgType) {
+              const targetType = options.msgType;
+              logs = logs.filter(log => log.startsWith(`[${targetType}]`));
+            }
+  
+            const totalCount = this.consoleLogs.length;
+            const filteredCount = logs.length;
+            const filterInfo = options?.msgType ?
+              ` (filtered by ${options.msgType}: ${filteredCount} of ${totalCount})` :
+              ` (${totalCount} total)`;
+  
+            return {
+              content: [{
+                type: "text",
+                text: `Console logs${filterInfo}:\n\n${logs.join("\n")}`,
+              }],
+              isError: false,
+            };
+          }
+  
+          // Handle screenshot resources
+          if (uri.startsWith("screenshot://")) {
+            const name = uri.split("://")[1];
+            const screenshot = this.screenshots.get(name);
+            if (screenshot) {
+              return {
+                content: [{
+                  type: "text",
+                  text: `Screenshot '${name}' retrieved`,
+                }, {
+                  type: "image",
+                  data: screenshot,
+                  mimeType: "image/png",
+                }],
+                isError: false,
+              };
+            } else {
+              return {
+                content: [{
+                  type: "text",
+                  text: `Screenshot '${name}' not found. Available screenshots: ${Array.from(state.screenshots.keys()).join(", ") || "none"}`,
+                }],
+                isError: true,
+              };
+            }
+          }
+  
+          return {
+            content: [{
+              type: "text",
+              text: `Unknown resource URI: ${uri}. Available resources: console://logs, screenshot://<name>`,
+            }],
+            isError: true,
+          };
+        } catch (error) {
+          return {
+            content: [{
+              type: "text",
+              text: `Failed to get resource: ${(error as Error).message}`,
+            }],
+            isError: true,
+          };
+        }
+      },
+    );
     this.mcpServer.tool(
       tools.midscene_get_tabs.name,
       tools.midscene_get_tabs.description,
@@ -621,6 +718,50 @@ export class MidsceneManager {
     );
   }
 
+  // Set up console listener for navigation
+  private consoleListener = async (msg: ConsoleMessage) => {
+    try {
+      const args = msg.args();
+      const processedArgs = [];
+
+      notifyMessage(this.mcpServer.server, 'debug', 'consoleListener', { args });
+      for (const jsHandle of args) {
+        // Check remoteObject first for Error objects or other complex types
+        const remoteObject = jsHandle.remoteObject();
+        if (remoteObject && remoteObject.description && (remoteObject.className === 'Error' || remoteObject.subtype === 'error')) {
+          // Use the description from remoteObject which contains full error details
+          processedArgs.push(remoteObject.description);
+        } else {
+          try {
+            // Try jsonValue for simple values
+            const value = await jsHandle.jsonValue();
+            processedArgs.push(value);
+          } catch (e) {
+            // Fallback to remoteObject for other complex objects
+            if (remoteObject && remoteObject.description) {
+              processedArgs.push(remoteObject.description);
+            } else if (remoteObject && remoteObject.className) {
+              processedArgs.push(`[${remoteObject.className}]`);
+            } else {
+              processedArgs.push('[Object]');
+            }
+          }
+        }
+      }
+
+      const logEntry = `[${msg.type()}] ${processedArgs.join(' ')}`;
+      this.consoleLogs.push(logEntry);
+      consoleLogs.push(logEntry);
+      notifyConsoleLogsUpdated(this.mcpServer.server);
+    } catch (error) {
+      // Fallback to original text if processing fails
+      const logEntry = `[${msg.type()}] ${msg.text()}`;
+      this.consoleLogs.push(logEntry);
+      consoleLogs.push(logEntry);
+      notifyConsoleLogsUpdated(this.mcpServer.server);
+    }
+  };
+  
   public getConsoleLogs(): string {
     return this.consoleLogs.join('\n');
   }

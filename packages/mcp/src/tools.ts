@@ -10,6 +10,31 @@ export const tools = {
     description:
       'Navigates the browser to the specified URL. Always opens in the current tab.',
   },
+  midscene_get_resource: {
+    name: "midscene_get_resource",
+    description: "Get a resource by URI (console logs, screenshots, etc.)",
+    inputSchema: {
+      type: "object",
+      properties: {
+        uri: {
+          type: "string",
+          description: "Resource URI (e.g., 'console://logs', 'screenshot://${name}')"
+        },
+        options: {
+          type: "object",
+          description: "Optional parameters for resource retrieval",
+          properties: {
+            msgType: {
+              type: "string",
+              description: "Filter console logs by message type (log, error, warn, info, debug, trace, dir, dirxml, table, clear, startGroup, startGroupCollapsed, endGroup, assert, profile, profileEnd, count, timeEnd)",
+              enum: ["log", "error", "warn", "info", "debug", "trace", "dir", "dirxml", "table", "clear", "startGroup", "startGroupCollapsed", "endGroup", "assert", "profile", "profileEnd", "count", "timeEnd"]
+            }
+          }
+        }
+      },
+      required: ["uri"],
+    },
+  },
   midscene_get_tabs: {
     name: 'midscene_get_tabs',
     description:

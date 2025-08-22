@@ -4,8 +4,9 @@ import { PuppeteerAgent } from '@midscene/web/puppeteer';
 import type { Browser, LaunchOptions } from 'puppeteer-core';
 import type { Page } from 'puppeteer-core';
 import puppeteer from 'puppeteer-core';
-import { deepMerge } from './utils';
-
+import { deepMerge, getSystemChromePath } from './utils';
+import { getAIConfigInBoolean, MIDSCENE_MCP_USE_SYSTEM_BROWSER } from '@midscene/shared/env';
+ 
 // Global state
 let browser: Browser | null;
 let page: Page | null;
@@ -58,10 +59,12 @@ function getBrowserLaunchOptions(
     }
   }
 
+  const systemChromePath = getAIConfigInBoolean(MIDSCENE_MCP_USE_SYSTEM_BROWSER) ? getSystemChromePath() : undefined;
   const npx_args = {
     headless: false,
     defaultViewport: null,
     args: ['--window-size=1920,1080'],
+    ...(systemChromePath && { executablePath: systemChromePath }),
   };
   const docker_args = {
     headless: true,
