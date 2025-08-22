@@ -3,11 +3,11 @@ import { getDebug } from '@midscene/shared/logger';
 import type { Page as PuppeteerPage } from 'puppeteer';
 import type { AndroidDeviceInputOpt } from '../common/page';
 import { forceClosePopup } from './base-page';
-import { WebPage as PuppeteerWebPage } from './page';
+import { PuppeteerWebPage } from './page';
 
 const debug = getDebug('puppeteer:agent');
 
-export { WebPage as PuppeteerWebPage } from './page';
+export { PuppeteerWebPage } from './page';
 export type { AndroidDeviceInputOpt };
 
 export class PuppeteerAgent extends PageAgent<PuppeteerWebPage> {
