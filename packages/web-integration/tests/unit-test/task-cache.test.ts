@@ -4,8 +4,8 @@ import {
   type LocateCache,
   type PlanningCache,
   TaskCache,
-} from '@/common/task-cache';
-import { cacheFileExt } from '@/common/task-cache';
+  cacheFileExt,
+} from '@midscene/core/agent';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { uuid } from '@midscene/shared/utils';
 import yaml from 'js-yaml';
