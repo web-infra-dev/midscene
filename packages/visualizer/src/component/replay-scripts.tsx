@@ -1,7 +1,7 @@
 'use client';
 import './player.less';
 import { mousePointer } from '@/utils';
-import { paramStr, typeStr } from '@midscene/web/ui-utils';
+import { paramStr, typeStr } from '@midscene/core/agent';
 
 import type {
   ExecutionDump,
@@ -148,10 +148,10 @@ export const allScriptsFromDump = (
     }
 
     execution.tasks.forEach((task) => {
-      const insightTask = task as ExecutionTaskInsightLocate;
-      if (insightTask.pageContext?.size?.width) {
-        width = insightTask.pageContext.size.width;
-        height = insightTask.pageContext.size.height;
+      // Check for pageContext in any task type, not just insight tasks
+      if (task.pageContext?.size?.width) {
+        width = task.pageContext.size.width;
+        height = task.pageContext.size.height;
       }
     });
   });
@@ -194,12 +194,29 @@ export const allScriptsFromDump = (
     },
   );
 
+  const modelBriefs: string[] = (() => {
+    const list = [...modelBriefsSet];
+    if (!list.length) {
+      return list;
+    }
+    const firstOneInfo = list[0]?.split('/', 2)[1];
+    // merge same modelName and modelDescription
+    if (
+      firstOneInfo &&
+      list.slice(1).every((item) => item?.split('/', 2)[1] === firstOneInfo)
+    ) {
+      return [firstOneInfo];
+    }
+
+    return list;
+  })();
+
   return {
     scripts: allScriptsWithoutIntermediateDoneFrame,
     width,
     height,
     sdkVersion,
-    modelBriefs: [...modelBriefsSet],
+    modelBriefs,
   };
 };
 

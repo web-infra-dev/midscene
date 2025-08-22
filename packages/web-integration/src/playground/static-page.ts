@@ -1,6 +1,6 @@
-import { ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED } from '@/common/utils';
-import type { AbstractPage } from '@/page';
-import type { DeviceAction, ExecutorContext, Point } from '@midscene/core';
+import type { DeviceAction, Point, UIContext } from '@midscene/core';
+import type { AbstractPage } from '@midscene/core/device';
+import { ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED } from '@midscene/shared/common';
 import type { WebUIContext } from '../web-element';
 
 const ThrowNotImplemented: any = (methodName: string) => {
@@ -70,7 +70,7 @@ export default class StaticPage implements AbstractPage {
   }
 
   async url() {
-    return this.uiContext.url;
+    return Promise.resolve(this.uiContext.url || '');
   }
 
   async scrollUntilTop(startingPoint?: Point) {
@@ -121,11 +121,11 @@ export default class StaticPage implements AbstractPage {
     press: ThrowNotImplemented.bind(null, 'keyboard.press'),
   };
 
-  async _forceUsePageContext() {
-    return this.uiContext;
-  }
-
   async destroy(): Promise<void> {
     //
+  }
+
+  async getContext(): Promise<UIContext> {
+    return this.uiContext;
   }
 }

@@ -2,6 +2,28 @@
 
 > For the complete changelog, please refer to: [Midscene Releases](https://github.com/web-infra-dev/midscene/releases)
 
+## v0.27 - 🧠 Core Module Refactoring, Assertions and Reports Functionally Enhanced
+
+### ⚠️ Core Module Refactoring
+
+Based on the introduction of [Rslib](https://github.com/web-infra-dev/rslib) in v0.26 to improve development experience and reduce contribution thresholds, v0.27 takes it a step further by refactoring the core modules on a large scale. This makes it extremely easy to extend new devices and add new AI operations, and we sincerely welcome community developers to contribute!
+
+**Due to the wide scope of this refactoring, please feel free to report any issues you encounter after upgrading, and we will address them promptly.**
+
+### 🌐 API Enhancement
+
+- **`aiAssert` Functionally Enhanced**
+  - New `name` field allows naming different assertion tasks, making it easier to identify and parse in JSON output results
+  - New `domIncluded` and `screenshotIncluded` options allow flexible control over whether to send DOM snapshots and page screenshots to AI
+
+### 📊 Report Function Optimization
+- **New Marking Layer Switch**: The report player has added a switch to hide the marking layer, allowing users to view the original page view without obstruction when playing back.
+
+### 🐞 Bug Fixes
+- Fixed the problem that `aiWaitFor` sometimes caused the report to not be generated
+- Reduced memory consumption of Playwright plugin
+
+
 ## v0.26 - 🚀 Toolchain fully integrated [Rslib](https://github.com/web-infra-dev/rslib), greatly improving development experience and reducing contribution threshold
 
 ### 🌐 Web Integration Optimization

@@ -1,4 +1,3 @@
-import type { WebPage } from '@/common/page';
 import {
   type AgentAssertOpt,
   type AgentDescribeElementAtPointResult,
@@ -24,21 +23,24 @@ import {
   type Rect,
   type ScrollParam,
   type TUserPrompt,
-} from '@midscene/core';
+  type UIContext,
+} from '../index';
 
 import yaml from 'js-yaml';
 
-import { ScriptPlayer, parseYamlScript } from '@/yaml/index';
 import {
   groupedActionDumpFileExt,
   reportHTMLContent,
   stringifyDumpData,
   writeLogFile,
-} from '@midscene/core/utils';
+} from '@/utils';
 import {
-  DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
-  DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
-} from '@midscene/shared/constants';
+  ScriptPlayer,
+  buildDetailedLocateParam,
+  parseYamlScript,
+} from '../yaml/index';
+
+import type { AbstractPage } from '@/device';
 import {
   type IModelPreferences,
   type TModelConfigFn,
@@ -48,20 +50,16 @@ import {
 } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import { PageTaskExecutor, locatePlanForLocate } from '../common/tasks';
-import type { PlaywrightWebPage } from '../playwright';
-import type { PuppeteerWebPage } from '../puppeteer';
-import type { WebElementInfo, WebUIContext } from '../web-element';
-import type { AndroidDeviceInputOpt } from './page';
+// import type { AndroidDeviceInputOpt } from '../device';
 import { TaskCache } from './task-cache';
+import { PageTaskExecutor, locatePlanForLocate } from './tasks';
 import { locateParamStr, paramStr, taskTitleStr, typeStr } from './ui-utils';
 import {
-  buildDetailedLocateParam,
+  commonContextParser,
   getReportFileName,
   parsePrompt,
   printReportMsg,
 } from './utils';
-import { parseContextFromWebPage } from './utils';
 import { trimContextByViewport } from './utils';
 
 const debug = getDebug('agent');
@@ -84,7 +82,6 @@ const defaultInsightExtractOption: InsightExtractOption = {
 };
 
 export interface PageAgentOpt {
-  forceSameTabNavigation?: boolean /* if limit the new tab to the current page, default true */;
   testId?: string;
   cacheId?: string;
   groupName?: string;
@@ -100,16 +97,10 @@ export interface PageAgentOpt {
   modelConfig?: TModelConfigFn;
 }
 
-export type WebPageAgentOpt = PageAgentOpt & WebPageOpt;
-export type WebPageOpt = {
-  waitForNavigationTimeout?: number;
-  waitForNetworkIdleTimeout?: number;
-};
-
-export class PageAgent<PageType extends WebPage = WebPage> {
+export class Agent<PageType extends AbstractPage = AbstractPage> {
   page: PageType;
 
-  insight: Insight<WebElementInfo, WebUIContext>;
+  insight: Insight;
 
   dump: GroupedActionDump;
 
@@ -137,7 +128,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   /**
    * Frozen page context for consistent AI operations
    */
-  private frozenPageContext?: WebUIContext;
+  private frozenPageContext?: UIContext;
 
   constructor(page: PageType, opts?: PageAgentOpt) {
     this.page = page;
@@ -154,31 +145,13 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       globalConfigManger.registerModelConfigFn(opts?.modelConfig);
     }
 
-    if (
-      this.page.pageType === 'puppeteer' ||
-      this.page.pageType === 'playwright'
-    ) {
-      (
-        this.page as PuppeteerWebPage | PlaywrightWebPage
-      ).waitForNavigationTimeout =
-        (this.opts as WebPageAgentOpt).waitForNavigationTimeout ??
-        DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT;
-      (
-        this.page as PuppeteerWebPage | PlaywrightWebPage
-      ).waitForNetworkIdleTimeout =
-        (this.opts as WebPageAgentOpt).waitForNetworkIdleTimeout ??
-        DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT;
-    }
-
     this.onTaskStartTip = this.opts.onTaskStartTip;
     // get the parent browser of the puppeteer page
     // const browser = (this.page as PuppeteerWebPage).browser();
 
-    this.insight = new Insight<WebElementInfo, WebUIContext>(
-      async (action: InsightAction) => {
-        return this.getUIContext(action);
-      },
-    );
+    this.insight = new Insight(async (action: InsightAction) => {
+      return this.getUIContext(action);
+    });
 
     if (opts?.cacheId && this.page.pageType !== 'android') {
       this.taskCache = new TaskCache(
@@ -201,21 +174,23 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     return this.page.actionSpace();
   }
 
-  async getUIContext(action?: InsightAction): Promise<WebUIContext> {
+  async getUIContext(action?: InsightAction): Promise<UIContext> {
     // If page context is frozen, return the frozen context for all actions
     if (this.frozenPageContext) {
       debug('Using frozen page context for action:', action);
       return this.frozenPageContext;
     }
 
-    // Otherwise, get fresh context based on the action type
-    if (action && (action === 'extract' || action === 'assert')) {
-      return await parseContextFromWebPage(this.page, {});
+    if (this.page.getContext) {
+      debug('Using page.getContext for action:', action);
+      return await this.page.getContext();
+    } else {
+      debug('Using commonContextParser for action:', action);
+      return await commonContextParser(this.page);
     }
-    return await parseContextFromWebPage(this.page, {});
   }
 
-  async _snapshotContext(): Promise<WebUIContext> {
+  async _snapshotContext(): Promise<UIContext> {
     return await this.getUIContext('locate');
   }
 
@@ -322,8 +297,9 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       locateParamStr((opt as any)?.locate || {}),
     );
 
-    const { executor } = await this.taskExecutor.runPlans(title, plans);
+    const { output, executor } = await this.taskExecutor.runPlans(title, plans);
     await this.afterTaskRunning(executor);
+    return output;
   }
 
   async aiTap(locatePrompt: TUserPrompt, opt?: LocateOption) {
@@ -359,7 +335,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   // New signature, always use locatePrompt as the first param
   async aiInput(
     locatePrompt: TUserPrompt,
-    opt: AndroidDeviceInputOpt & LocateOption & { value: string },
+    opt: LocateOption & { value: string }, // AndroidDeviceInputOpt &
   ): Promise<any>;
 
   // Legacy signature - deprecated
@@ -369,7 +345,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   async aiInput(
     value: string,
     locatePrompt: TUserPrompt,
-    opt?: AndroidDeviceInputOpt & LocateOption,
+    opt?: LocateOption, // AndroidDeviceInputOpt &
   ): Promise<any>;
 
   // Implementation
@@ -377,14 +353,14 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     locatePromptOrValue: TUserPrompt | string,
     locatePromptOrOpt:
       | TUserPrompt
-      | (AndroidDeviceInputOpt & LocateOption & { value: string })
+      | (LocateOption & { value: string }) // AndroidDeviceInputOpt &
       | undefined,
-    optOrUndefined?: AndroidDeviceInputOpt & LocateOption,
+    optOrUndefined?: LocateOption, // AndroidDeviceInputOpt &
   ) {
     let value: string;
     let locatePrompt: TUserPrompt;
     let opt:
-      | (AndroidDeviceInputOpt & LocateOption & { value: string })
+      | (LocateOption & { value: string }) // AndroidDeviceInputOpt &
       | undefined;
 
     // Check if using new signature (first param is locatePrompt, second has value)
@@ -395,8 +371,10 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     ) {
       // New signature: aiInput(locatePrompt, opt)
       locatePrompt = locatePromptOrValue as TUserPrompt;
-      const optWithValue = locatePromptOrOpt as AndroidDeviceInputOpt &
-        LocateOption & { value: string };
+      const optWithValue = locatePromptOrOpt as LocateOption & {
+        // AndroidDeviceInputOpt &
+        value: string;
+      };
       value = optWithValue.value;
       opt = optWithValue;
     } else {

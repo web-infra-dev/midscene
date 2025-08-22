@@ -27,12 +27,14 @@ const maskKey = (key: string, maskChar = '*') => {
 
 export const maskConfig = (config: IModelConfig) => {
   return Object.fromEntries(
-    Object.entries(config).map(([key, value]) => [
-      key,
-      ['openaiApiKey', 'azureOpenaiKey', 'anthropicApiKey'].includes(key)
-        ? maskKey(value)
-        : value,
-    ]),
+    Object.entries(config).map(([key, value]) => {
+      if (['openaiApiKey', 'azureOpenaiKey', 'anthropicApiKey'].includes(key)) {
+        return [key, maskKey(value)];
+      } else if (['openaiExtraConfig', 'azureExtraConfig'].includes(key)) {
+        return [key, maskKey(JSON.stringify(value))];
+      }
+      return [key, value];
+    }),
   );
 };
 
@@ -67,7 +69,7 @@ export const initDebugConfig = () => {
 };
 
 export const parseJson = (key: string, value: string | undefined) => {
-  if (value !== undefined) {
+  if (value) {
     try {
       return JSON.parse(value);
     } catch (e) {

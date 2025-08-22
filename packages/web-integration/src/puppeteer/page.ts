@@ -1,13 +1,13 @@
+import type { WebPageOpt } from '@/web-element';
 import {
   DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
   DEFAULT_WAIT_FOR_NETWORK_IDLE_CONCURRENCY,
   DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
 } from '@midscene/shared/constants';
 import type { Page as PuppeteerPageType } from 'puppeteer';
-import type { WebPageOpt } from '../common/agent';
 import { Page as BasePage, debugPage } from './base-page';
 
-export class WebPage extends BasePage<'puppeteer', PuppeteerPageType> {
+export class PuppeteerWebPage extends BasePage<'puppeteer', PuppeteerPageType> {
   waitForNavigationTimeout: number;
   waitForNetworkIdleTimeout: number;
 
@@ -21,20 +21,25 @@ export class WebPage extends BasePage<'puppeteer', PuppeteerPageType> {
     this.waitForNetworkIdleTimeout = waitForNetworkIdleTimeout;
   }
 
-  async waitUntilNetworkIdle(options?: {
-    idleTime?: number;
-    concurrency?: number;
-    timeout?: number;
-  }): Promise<void> {
+  async beforeAction(): Promise<void> {
+    try {
+      await this.waitUntilNetworkIdle();
+    } catch (error) {
+      console.warn(
+        '[midscene:warning] Waiting for network idle has timed out, but Midscene will continue execution. Please check https://midscenejs.com/faq.html#customize-the-network-timeout for more information on customizing the network timeout',
+      );
+    }
+  }
+
+  async waitUntilNetworkIdle(): Promise<void> {
     if (this.waitForNetworkIdleTimeout === 0) {
       debugPage('waitUntilNetworkIdle timeout is 0, skip waiting');
       return;
     }
     await this.underlyingPage.waitForNetworkIdle({
-      idleTime: options?.idleTime ?? this.waitForNetworkIdleTimeout,
-      concurrency:
-        options?.concurrency ?? DEFAULT_WAIT_FOR_NETWORK_IDLE_CONCURRENCY,
-      timeout: options?.timeout ?? this.waitForNetworkIdleTimeout,
+      idleTime: this.waitForNetworkIdleTimeout,
+      concurrency: DEFAULT_WAIT_FOR_NETWORK_IDLE_CONCURRENCY,
+      timeout: this.waitForNetworkIdleTimeout,
     });
   }
 }

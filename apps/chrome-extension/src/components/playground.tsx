@@ -3,7 +3,7 @@ import Icon, {
   LoadingOutlined,
   ArrowDownOutlined,
 } from '@ant-design/icons';
-import type { UIContext } from '@midscene/core';
+import type { DeviceAction, UIContext } from '@midscene/core';
 import {
   ContextPreview,
   type PlaygroundResult,
@@ -18,6 +18,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { EnvConfigReminder } from '.';
 import PlaygroundIcon from '../icons/playground.svg?react';
 import { getExtensionVersion } from '../utils/chrome';
+import {
+  createDisplayContent,
+  executeAction,
+  formatErrorMessage,
+  validateStructuredParams,
+} from '../utils/playground-helpers';
 import {
   clearStoredMessages,
   getMsgsFromStorage,
@@ -48,19 +54,6 @@ export interface InfoListItem {
   loadingProgressText?: string;
   verticalMode?: boolean;
 }
-
-const ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED = 'NOT_IMPLEMENTED_AS_DESIGNED';
-
-const formatErrorMessage = (e: any): string => {
-  const errorMessage = e?.message || '';
-  if (errorMessage.includes('of different extension')) {
-    return 'Conflicting extension detected. Please disable the suspicious plugins and refresh the page. Guide: https://midscenejs.com/quick-experience.html#faq';
-  }
-  if (!errorMessage?.includes(ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED)) {
-    return errorMessage;
-  }
-  return 'Unknown error';
-};
 
 // Blank result template
 const blankResult = {
@@ -122,6 +115,7 @@ export function BrowserExtensionPlayground({
   const [infoList, setInfoList] = useState<InfoListItem[]>([]);
   const [showScrollToBottomButton, setShowScrollToBottomButton] =
     useState(false);
+  const [actionSpace, setActionSpace] = useState<DeviceAction<any>[]>([]);
   const infoListRef = useRef<HTMLDivElement>(null);
 
   // Form and environment configuration
@@ -172,6 +166,23 @@ export function BrowserExtensionPlayground({
         console.error(e);
       });
   }, [uiContextPreview, showContextPreview, getAgent, forceSameTabNavigation]);
+
+  // Initialize actionSpace for dynamic parameter validation
+  useEffect(() => {
+    const loadActionSpace = async () => {
+      try {
+        const agent = getAgent(forceSameTabNavigation);
+        if (agent) {
+          const space = await agent.getActionSpace();
+          setActionSpace(space || []);
+        }
+      } catch (error) {
+        console.error('Failed to load actionSpace:', error);
+      }
+    };
+
+    loadActionSpace();
+  }, [getAgent, forceSameTabNavigation]);
 
   // store light messages to localStorage (big result data is stored separately)
   useEffect(() => {
@@ -248,18 +259,41 @@ export function BrowserExtensionPlayground({
   // Handle form submission
   const handleRun = useCallback(async () => {
     const value = form.getFieldsValue();
-    if (!value.prompt) {
+
+    // Dynamic validation using actionSpace
+    const action = actionSpace?.find(
+      (a: DeviceAction<any>) =>
+        a.interfaceAlias === value.type || a.name === value.type,
+    );
+
+    // Check if this action needs structured params (has paramSchema)
+    const needsStructuredParams = !!action?.paramSchema;
+
+    if (needsStructuredParams) {
+      const validation = validateStructuredParams(value, action);
+      if (!validation.valid) {
+        message.error(validation.errorMessage || 'Validation failed');
+        return;
+      }
+    } else if (!value.prompt) {
       message.error('Prompt is required');
       return;
     }
 
     const startTime = Date.now();
 
+    // Create display content for user input - dynamically from actionSpace
+    const displayContent = createDisplayContent(
+      value,
+      needsStructuredParams,
+      action,
+    );
+
     // add user input to info list
     const userItem: InfoListItem = {
       id: `user-${Date.now()}`,
       type: 'user',
-      content: value.prompt,
+      content: displayContent,
       timestamp: new Date(),
     };
     setInfoList((prev) => [...prev, userItem]);
@@ -304,25 +338,14 @@ export function BrowserExtensionPlayground({
         setInfoList((prev) => [...prev, progressItem]);
       };
 
-      // Extension mode always uses in-browser actions
-      if (actionType === 'aiAction') {
-        result.result = await activeAgent?.aiAction(value.prompt);
-      } else if (actionType === 'aiQuery') {
-        result.result = await activeAgent?.aiQuery(value.prompt);
-      } else if (actionType === 'aiAssert') {
-        const { pass, thought } =
-          (await activeAgent?.aiAssert(value.prompt, undefined, {
-            keepRawResponse: true,
-          })) || {};
-        result.result = {
-          pass,
-          thought,
-        };
-      } else if (actionType === 'aiTap') {
-        result.result = await activeAgent?.aiTap(value.prompt, {
-          deepThink,
-        });
-      }
+      // Execute the action using the new helper function
+      result.result = await executeAction(
+        activeAgent,
+        actionType,
+        actionSpace,
+        value,
+        deepThink,
+      );
     } catch (e: any) {
       result.error = formatErrorMessage(e);
       console.error(e);
@@ -358,12 +381,22 @@ export function BrowserExtensionPlayground({
     let replayInfo: ReplayScriptsInfo | null = null;
     let counter = replayCounter;
 
-    if (result?.dump && !['aiQuery', 'aiAssert'].includes(actionType)) {
+    // Only generate replay info for interaction APIs, not for data extraction or validation APIs
+    const dataExtractionAPIs = [
+      'aiQuery',
+      'aiBoolean',
+      'aiNumber',
+      'aiString',
+      'aiAsk',
+    ];
+    const validationAPIs = ['aiAssert', 'aiWaitFor'];
+    const noReplayAPIs = [...dataExtractionAPIs, ...validationAPIs];
+
+    if (result?.dump && !noReplayAPIs.includes(actionType)) {
       const info = allScriptsFromDump(result.dump);
       setReplayCounter((c) => c + 1);
       replayInfo = info;
       counter = replayCounter + 1;
-    } else {
     }
 
     // update system message to completed, then add result to list
@@ -410,7 +443,15 @@ export function BrowserExtensionPlayground({
     // Reset hasNewMessage for future runs
 
     console.log(`time taken: ${Date.now() - startTime}ms`);
-  }, [form, getAgent, forceSameTabNavigation, replayCounter, verticalMode]);
+  }, [
+    form,
+    getAgent,
+    forceSameTabNavigation,
+    replayCounter,
+    verticalMode,
+    actionSpace,
+    deepThink,
+  ]);
 
   // Handle stop running - extension specific functionality
   const handleStop = async () => {
@@ -641,6 +682,7 @@ export function BrowserExtensionPlayground({
             loading={loading}
             onRun={handleRun}
             onStop={handleStop}
+            actionSpace={actionSpace}
           />
         </div>
 

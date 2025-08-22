@@ -7,7 +7,7 @@ import type {
   MidsceneYamlScriptIOSEnv,
   MidsceneYamlScriptWebEnv,
 } from '@midscene/core';
-import { interpolateEnvVars } from '@midscene/web/yaml';
+import { interpolateEnvVars } from '@midscene/core/yaml';
 import { load as yamlLoad } from 'js-yaml';
 import merge from 'lodash.merge';
 import type { BatchRunnerConfig } from './batch-runner';

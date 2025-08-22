@@ -129,6 +129,10 @@ export abstract class UIContext<ElementType extends BaseElement = BaseElement> {
   abstract tree: ElementTreeNode<ElementType>;
 
   abstract size: Size;
+
+  abstract _isFrozen?: boolean;
+
+  abstract url?: string;
 }
 
 /**

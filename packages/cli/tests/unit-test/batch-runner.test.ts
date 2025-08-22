@@ -13,8 +13,8 @@ import type {
   MidsceneYamlScriptEnv,
   ScriptPlayerStatusValue,
 } from '@midscene/core';
+import { type ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
-import { type ScriptPlayer, parseYamlScript } from '@midscene/web/yaml';
 import puppeteer from 'puppeteer';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -29,8 +29,8 @@ vi.mock('puppeteer', () => ({
 }));
 vi.mock('@/create-yaml-player');
 vi.mock('@midscene/shared/common');
-vi.mock('@midscene/web/yaml', async (importOriginal) => {
-  const original = await importOriginal<typeof import('@midscene/web/yaml')>();
+vi.mock('@midscene/core/yaml', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@midscene/core/yaml')>();
   return {
     ...original,
     parseYamlScript: vi.fn(),

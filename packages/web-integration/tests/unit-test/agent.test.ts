@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { PageAgent } from '@/common/agent';
-import type { WebPage } from '@/common/page';
+import type { WebPage } from '@/web-element';
 import type { GroupedActionDump } from '@midscene/core';
+import { Agent as PageAgent } from '@midscene/core/agent';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 declare const __VERSION__: string;
@@ -34,7 +34,7 @@ vi.mock('@/common/utils', async () => {
   const actual = await vi.importActual('@/common/utils');
   return {
     ...actual,
-    parseContextFromWebPage: vi.fn().mockResolvedValue({}),
+    WebPageContextParser: vi.fn().mockResolvedValue({}),
     trimContextByViewport: vi.fn((execution) => execution),
     printReportMsg: vi.fn(),
   };

@@ -2,7 +2,6 @@
 'use client';
 import './detail-side.less';
 import { timeStr } from '@midscene/visualizer';
-import { paramStr, typeStr } from '@midscene/web/ui-utils';
 
 import { RadiusSettingOutlined } from '@ant-design/icons';
 import type {
@@ -10,6 +9,7 @@ import type {
   ExecutionTaskInsightAssertion,
   ExecutionTaskPlanning,
 } from '@midscene/core';
+import { paramStr, typeStr } from '@midscene/core/agent';
 import {
   highlightColorForType,
   timeCostStrElement,

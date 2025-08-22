@@ -1,5 +1,11 @@
-import type { WebPage } from '@/common/page';
-import type { PuppeteerWebPage } from '@/puppeteer';
+import {
+  type ChatCompletionMessageParam,
+  elementByPositionWithElementInfo,
+  findAllMidsceneLocatorField,
+  resizeImageForUiTars,
+  vlmPlanning,
+} from '@/ai-model';
+import type { AbstractPage } from '@/device';
 import {
   type AIUsageInfo,
   type BaseElement,
@@ -33,15 +39,8 @@ import {
   type TUserPrompt,
   type UIContext,
   plan,
-} from '@midscene/core';
-import {
-  type ChatCompletionMessageParam,
-  elementByPositionWithElementInfo,
-  findAllMidsceneLocatorField,
-  resizeImageForUiTars,
-  vlmPlanning,
-} from '@midscene/core/ai-model';
-import { sleep } from '@midscene/core/utils';
+} from '@/index';
+import { sleep } from '@/utils';
 import { NodeType } from '@midscene/shared/constants';
 import {
   type IModelPreferences,
@@ -50,7 +49,6 @@ import {
 } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import type { WebElementInfo, WebUIContext } from '../web-element';
 import type { TaskCache } from './task-cache';
 import { taskTitleStr } from './ui-utils';
 import {
@@ -80,9 +78,9 @@ export function locatePlanForLocate(param: string | DetailedLocateParam) {
 }
 
 export class PageTaskExecutor {
-  page: WebPage;
+  page: AbstractPage;
 
-  insight: Insight<WebElementInfo, WebUIContext>;
+  insight: Insight;
 
   taskCache?: TaskCache;
 
@@ -91,8 +89,8 @@ export class PageTaskExecutor {
   onTaskStartCallback?: ExecutionTaskProgressOptions['onTaskStart'];
 
   constructor(
-    page: WebPage,
-    insight: Insight<WebElementInfo, WebUIContext>,
+    page: AbstractPage,
+    insight: Insight,
     opts: {
       taskCache?: TaskCache;
       onTaskStart?: ExecutionTaskProgressOptions['onTaskStart'];
@@ -119,9 +117,14 @@ export class PageTaskExecutor {
     pageContext: UIContext<BaseElement>,
     element: LocateResultElement,
   ): Promise<string[] | undefined> {
+    if (!(this.page as any).getXpathsByPoint) {
+      debug('getXpathsByPoint is not supported for this page');
+      return undefined;
+    }
+
     let elementId = element?.id;
     if (element?.isOrderSensitive !== undefined) {
-      const xpaths = await this.page.getXpathsByPoint(
+      const xpaths = await (this.page as any).getXpathsByPoint(
         {
           left: element.center[0],
           top: element.center[1],
@@ -160,7 +163,7 @@ export class PageTaskExecutor {
       return undefined;
     }
     try {
-      const result = await this.page.getXpathsById(elementId);
+      const result = await (this.page as any).getXpathsById(elementId);
       return result;
     } catch (error) {
       debug('getXpathsById error: ', error);
@@ -185,12 +188,9 @@ export class PageTaskExecutor {
           await Promise.all([
             (async () => {
               await sleep(100);
-              if ((this.page as PuppeteerWebPage).waitUntilNetworkIdle) {
-                try {
-                  await (this.page as PuppeteerWebPage).waitUntilNetworkIdle();
-                } catch (error) {
-                  // console.error('waitUntilNetworkIdle error', error);
-                }
+              if (this.page.beforeAction) {
+                debug('will call "beforeAction" for page');
+                await this.page.beforeAction();
               }
             })(),
             sleep(200),
@@ -260,9 +260,10 @@ export class PageTaskExecutor {
           task.recorder = [recordItem];
 
           // try matching xpath
-          const elementFromXpath = param.xpath
-            ? await this.page.getElementInfoByXpath(param.xpath)
-            : undefined;
+          const elementFromXpath =
+            param.xpath && (this.page as any).getElementInfoByXpath
+              ? await (this.page as any).getElementInfoByXpath(param.xpath)
+              : undefined;
           const userExpectedPathHitFlag = !!elementFromXpath;
 
           // try matching cache
@@ -465,6 +466,10 @@ export class PageTaskExecutor {
         const action = actionSpace.find((action) => action.name === planType);
         const param = plan.param;
 
+        if (!action) {
+          throw new Error(`Action type '${planType}' not found`);
+        }
+
         // find all params that needs location
         const locateFields = action
           ? findAllMidsceneLocatorField(action.paramSchema)
@@ -500,7 +505,12 @@ export class PageTaskExecutor {
           }
         });
 
-        const task: ExecutionTaskActionApply = {
+        const task: ExecutionTaskApply<
+          'Action',
+          any,
+          { success: boolean; action: string; param: any },
+          void
+        > = {
           type: 'Action',
           subType: planType,
           thought: plan.thought,
@@ -513,9 +523,9 @@ export class PageTaskExecutor {
               `context.element.center: ${context.element?.center}`,
             );
 
-            if (!action) {
-              throw new Error(`Action type '${planType}' not found`);
-            }
+            // Get page context for actionSpace operations to ensure size info is available
+            const pageContext = await this.insight.contextRetrieverFn('locate');
+            context.task.pageContext = pageContext;
 
             requiredLocateFields.forEach((field) => {
               assert(
@@ -525,7 +535,15 @@ export class PageTaskExecutor {
             });
 
             const actionFn = action.call.bind(this.page);
-            return await actionFn(param, context);
+            await actionFn(param, context);
+            // Return a proper result for report generation
+            return {
+              output: {
+                success: true,
+                action: planType,
+                param: param,
+              },
+            };
           },
         };
         tasks.push(task);

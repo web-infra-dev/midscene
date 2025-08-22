@@ -1,15 +1,19 @@
+import { type WebKeyInput, WebPageContextParser } from '@/web-element';
 import type {
   DeviceAction,
   ElementTreeNode,
   Point,
   Size,
+  UIContext,
 } from '@midscene/core';
+import { commonWebActionsForWebPage } from '@midscene/core/agent';
+import type { AbstractPage, MouseButton } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import { DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
-import { getDebug } from '@midscene/shared/logger';
+import { type DebugFunction, getDebug } from '@midscene/shared/logger';
 import {
   getElementInfosScriptContent,
   getExtraReturnLogic,
@@ -17,9 +21,6 @@ import {
 import { assert } from '@midscene/shared/utils';
 import type { Page as PlaywrightPage } from 'playwright';
 import type { Page as PuppeteerPage } from 'puppeteer';
-import type { WebKeyInput } from '../common/page';
-import { commonWebActionsForWebPage } from '../common/utils';
-import type { AbstractPage, MouseButton } from '../page';
 
 export const debugPage = getDebug('web:page');
 
@@ -388,5 +389,46 @@ export class Page<
     }
   }
 
+  async beforeAction(): Promise<void> {
+    await this.waitForNavigation();
+  }
+
   async destroy(): Promise<void> {}
+
+  async getContext(): Promise<UIContext> {
+    return await WebPageContextParser(this, {});
+  }
+}
+
+export function forceClosePopup(
+  page: PuppeteerPage | PlaywrightPage,
+  debugProfile: DebugFunction,
+) {
+  page.on('popup', async (popup) => {
+    if (!popup) {
+      console.warn('got a popup event, but the popup is not ready yet, skip');
+      return;
+    }
+    const url = await (popup as PuppeteerPage).url();
+    console.log(`Popup opened: ${url}`);
+    if (!(popup as PuppeteerPage).isClosed()) {
+      try {
+        await (popup as PuppeteerPage).close(); // Close the newly opened TAB
+      } catch (error) {
+        debugProfile(`failed to close popup ${url}, error: ${error}`);
+      }
+    } else {
+      debugProfile(`popup is already closed, skip close ${url}`);
+    }
+
+    if (!page.isClosed()) {
+      try {
+        await page.goto(url);
+      } catch (error) {
+        debugProfile(`failed to goto ${url}, error: ${error}`);
+      }
+    } else {
+      debugProfile(`page is already closed, skip goto ${url}`);
+    }
+  });
 }

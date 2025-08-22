@@ -4,7 +4,7 @@ import type {
   ScriptPlayerStatusValue,
   ScriptPlayerTaskStatus,
 } from '@midscene/core';
-import type { ScriptPlayer } from '@midscene/web/yaml';
+import type { ScriptPlayer } from '@midscene/core/yaml';
 import chalk from 'chalk';
 
 export interface MidsceneYamlFileContext {

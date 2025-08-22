@@ -5,16 +5,15 @@
   The page must be active when interacting with it.
 */
 
-import type { WebKeyInput } from '@/common/page';
-import { limitOpenNewTabScript } from '@/common/ui-utils';
-import { commonWebActionsForWebPage } from '@/common/utils';
-import type { AbstractPage, MouseButton } from '@/page';
+import { type WebKeyInput, limitOpenNewTabScript } from '@/web-element';
 import type {
   DeviceAction,
   ElementTreeNode,
   Point,
   Size,
 } from '@midscene/core';
+import { commonWebActionsForWebPage } from '@midscene/core/agent';
+import type { AbstractPage, MouseButton } from '@midscene/core/device';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
@@ -341,8 +340,16 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     });
   }
 
-  // current implementation is wait until domReadyState is complete
-  public async waitUntilNetworkIdle() {
+  async beforeAction(): Promise<void> {
+    // current implementation is wait until domReadyState is complete
+    try {
+      await this.waitUntilNetworkIdle();
+    } catch (error) {
+      // console.warn('Failed to wait until network idle', error);
+    }
+  }
+
+  private async waitUntilNetworkIdle() {
     const timeout = 10000;
     const startTime = Date.now();
     let lastReadyState = '';

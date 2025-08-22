@@ -1,4 +1,4 @@
-import { PageTaskExecutor } from '@/common/tasks';
+import { PageTaskExecutor } from '@midscene/core/agent';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 declare const __VERSION__: string;
@@ -31,7 +31,7 @@ vi.mock('@/common/utils', async () => {
   const actual = await vi.importActual('@/common/utils');
   return {
     ...actual,
-    parseContextFromWebPage: vi.fn().mockResolvedValue({}),
+    WebPageContextParser: vi.fn().mockResolvedValue({}),
     trimContextByViewport: vi.fn((execution) => execution),
     printReportMsg: vi.fn(),
   };

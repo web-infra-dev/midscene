@@ -1,12 +1,11 @@
-import type { ElementTreeNode } from '@midscene/core';
-import type { PageType, Point, Size } from '@midscene/core';
+import type { ElementTreeNode, PageType, Point, Size } from '@midscene/core';
+import type { AbstractPage } from '@midscene/core/device';
 import type { ElementInfo } from '@midscene/shared/extractor';
-import type { KeyInput } from 'puppeteer';
-import type ChromeExtensionProxyPage from '../chrome-extension/page';
-import type { AbstractPage } from '../page';
-import type { StaticPage } from '../playground';
-import type { PlaywrightWebPage } from '../playwright';
-import type { PuppeteerWebPage } from '../puppeteer';
+
+export type AndroidDeviceInputOpt = {
+  autoDismissKeyboard?: boolean;
+  keyboardDismissStrategy?: 'esc-first' | 'back-first';
+};
 
 export interface AndroidDevicePage extends AbstractPage {
   pageType: PageType;
@@ -46,17 +45,3 @@ export interface AndroidDevicePage extends AbstractPage {
     duration?: number,
   ): Promise<void>;
 }
-
-export type AndroidDeviceInputOpt = {
-  autoDismissKeyboard?: boolean;
-  keyboardDismissStrategy?: 'esc-first' | 'back-first';
-};
-
-export type WebPage =
-  | PlaywrightWebPage
-  | PuppeteerWebPage
-  | StaticPage
-  | ChromeExtensionProxyPage
-  | AndroidDevicePage;
-
-export type WebKeyInput = KeyInput;

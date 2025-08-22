@@ -1,7 +1,7 @@
 {
   "name": "@midscene/core",
   "description": "Automate browser actions, extract data, and perform assertions using AI. It offers JavaScript SDK, Chrome extension, and support for scripting in YAML. See https://midscenejs.com/ for details.",
-  "version": "0.27.0",
+  "version": "0.27.1",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "main": "./dist/lib/index.js",
@@ -28,6 +28,21 @@
       "types": "./dist/types/tree.d.ts",
       "import": "./dist/es/tree.mjs",
       "require": "./dist/lib/tree.js"
+    },
+    "./device": {
+      "types": "./dist/types/device/index.d.ts",
+      "import": "./dist/es/device/index.mjs",
+      "require": "./dist/lib/device/index.js"
+    },
+    "./agent": {
+      "types": "./dist/types/agent/index.d.ts",
+      "import": "./dist/es/agent/index.mjs",
+      "require": "./dist/lib/agent/index.js"
+    },
+    "./yaml": {
+      "types": "./dist/types/yaml/index.d.ts",
+      "import": "./dist/es/yaml/index.mjs",
+      "require": "./dist/lib/yaml/index.js"
     }
   },
   "typesVersions": {
@@ -35,7 +50,10 @@
       ".": ["./dist/types/index.d.ts"],
       "utils": ["./dist/types/utils.d.ts"],
       "ai-model": ["./dist/types/ai-model.d.ts"],
-      "tree": ["./dist/types/tree.d.ts"]
+      "tree": ["./dist/types/tree.d.ts"],
+      "device": ["./dist/types/device.d.ts"],
+      "agent": ["./dist/types/agent.d.ts"],
+      "yaml": ["./dist/types/yaml.d.ts"]
     }
   },
   "scripts": {
@@ -61,13 +79,17 @@
     "langsmith": "0.3.7",
     "openai": "4.81.0",
     "socks-proxy-agent": "8.0.4",
-    "zod": "3.24.3"
+    "zod": "3.24.3",
+    "semver": "7.5.2",
+    "js-yaml": "4.1.0"
   },
   "devDependencies": {
     "@microsoft/api-extractor": "^7.52.10",
     "@rslib/core": "^0.11.2",
     "@types/node": "^18.0.0",
     "@types/node-fetch": "2.6.11",
+    "@types/js-yaml": "4.0.9",
+    "@types/semver": "7.7.0",
     "typescript": "^5.8.3",
     "vitest": "3.0.5"
   },

@@ -2,8 +2,7 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { assert, ifInBrowser, ifInWorker } from '@midscene/shared/utils';
 
-import type { PageAgent } from '@/common/agent';
-import { buildDetailedLocateParamAndRestParams } from '@/common/utils';
+import type { Agent } from '@/agent/agent';
 import type {
   DeviceAction,
   FreeFn,
@@ -27,11 +26,11 @@ import type {
   MidsceneYamlScriptEnv,
   ScriptPlayerStatusValue,
   ScriptPlayerTaskStatus,
-  ScrollParam,
   TUserPrompt,
-} from '@midscene/core';
+} from '@/index';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { getDebug } from '@midscene/shared/logger';
+import { buildDetailedLocateParamAndRestParams } from './utils';
 
 const debug = getDebug('yaml-player');
 export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
@@ -44,7 +43,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
   public output?: string | null;
   public unstableLogContent?: string | null;
   public errorInSetup?: Error;
-  private pageAgent: PageAgent | null = null;
+  private pageAgent: Agent | null = null;
   public agentStatusTip?: string;
   public target?: MidsceneYamlScriptEnv;
   private actionSpace: DeviceAction[] = [];
@@ -52,7 +51,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
   constructor(
     private script: MidsceneYamlScript,
     private setupAgent: (platform: T) => Promise<{
-      agent: PageAgent;
+      agent: Agent;
       freeFn: FreeFn[];
     }>,
     public onTaskStatusChange?: (taskStatus: ScriptPlayerTaskStatus) => void,
@@ -167,7 +166,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
     }
   }
 
-  async playTask(taskStatus: ScriptPlayerTaskStatus, agent: PageAgent) {
+  async playTask(taskStatus: ScriptPlayerTaskStatus, agent: Agent) {
     const { flow } = taskStatus;
     assert(flow, 'missing flow in task');
 
@@ -496,7 +495,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
 
     this.setPlayerStatus('running');
 
-    let agent: PageAgent | null = null;
+    let agent: Agent | null = null;
     let freeFn: FreeFn[] = [];
     try {
       const { agent: newAgent, freeFn: newFreeFn } = await this.setupAgent(

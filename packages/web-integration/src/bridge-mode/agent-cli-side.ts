@@ -1,7 +1,9 @@
-import { PageAgent, type PageAgentOpt } from '@/common/agent';
-import { commonWebActionsForWebPage } from '@/common/utils';
-import type { KeyboardAction, MouseAction } from '@/page';
-import type { DeviceAction, ExecutorContext } from '@midscene/core';
+import {
+  Agent,
+  type PageAgentOpt,
+  commonWebActionsForWebPage,
+} from '@midscene/core/agent';
+import type { KeyboardAction, MouseAction } from '@midscene/core/device';
 import { assert } from '@midscene/shared/utils';
 import {
   type BridgeConnectTabOptions,
@@ -62,10 +64,6 @@ export const getBridgePageInCliSide = (
         return BridgePageType;
       }
 
-      if (prop === '_forceUsePageContext') {
-        return undefined;
-      }
-
       if (prop === 'actionSpace') {
         return () => commonWebActionsForWebPage(proxyPage);
       }
@@ -111,7 +109,7 @@ export const getBridgePageInCliSide = (
   return proxyPage;
 };
 
-export class AgentOverChromeBridge extends PageAgent<ChromeExtensionPageCliSide> {
+export class AgentOverChromeBridge extends Agent<ChromeExtensionPageCliSide> {
   private destroyAfterDisconnectFlag?: boolean;
 
   constructor(

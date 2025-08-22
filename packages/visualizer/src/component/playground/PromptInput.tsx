@@ -1,21 +1,54 @@
-import { BorderOutlined, SendOutlined } from '@ant-design/icons';
-import { Button, Form, Input, Radio, Space, Tooltip } from 'antd';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type React from 'react';
+import { BorderOutlined, DownOutlined, SendOutlined } from '@ant-design/icons';
+import type { z } from '@midscene/core';
+import {
+  Button,
+  Dropdown,
+  Form,
+  Input,
+  InputNumber,
+  Radio,
+  Select,
+  Space,
+  Tooltip,
+} from 'antd';
+import type { MenuProps } from 'antd';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import type { HistoryItem } from '../store/history';
 import { useHistoryStore } from '../store/history';
 import { ConfigSelector } from './ConfigSelector';
+import { EnumField, LocateField, NumberField, TextField } from './FormField';
 import { HistorySelector } from './HistorySelector';
+import { apiMetadata, defaultMainButtons } from './playground-constants';
 import type { RunType } from './playground-types';
 import type { ServiceModeType } from './playground-types';
-import { actionNameForType, getPlaceholderForType } from './playground-utils';
+import {
+  actionNameForType,
+  isRunButtonEnabled as calculateIsRunButtonEnabled,
+  getPlaceholderForType,
+} from './playground-utils';
+import {
+  type FormParams,
+  VALIDATION_CONSTANTS,
+  type ZodObjectSchema,
+  extractDefaultValue,
+  isLocateField,
+  isZodObjectSchema,
+  unwrapZodType,
+} from './types';
 import './index.less';
+import type { DeviceAction } from '@midscene/core';
 
 const { TextArea } = Input;
 
 interface PromptInputProps {
   runButtonEnabled: boolean;
-  form: any;
+  form: any; // Ant Design FormInstance - keeping as any since it's external library type
   serviceMode: ServiceModeType;
   selectedType: RunType;
   dryMode: boolean;
@@ -24,6 +57,7 @@ interface PromptInputProps {
   onRun: () => void;
   onStop: () => void;
   clearPromptAfterRun?: boolean;
+  actionSpace?: DeviceAction<any>[]; // Optional actionSpace for dynamic parameter detection
 }
 
 export const PromptInput: React.FC<PromptInputProps> = ({
@@ -37,33 +71,103 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   onRun,
   onStop,
   clearPromptAfterRun = true,
+  actionSpace,
 }) => {
   const [hoveringSettings, setHoveringSettings] = useState(false);
   const [promptValue, setPromptValue] = useState('');
   const placeholder = getPlaceholderForType(selectedType);
-  const textAreaRef = useRef<any>(null);
+  const textAreaRef = useRef<any>(null); // Ant Design TextArea ref - keeping as any since it's external library type
+  const params = Form.useWatch('params', form);
 
   // Get history from store
   const history = useHistoryStore((state) => state.history);
+  const lastSelectedType = useHistoryStore((state) => state.lastSelectedType);
   const addHistory = useHistoryStore((state) => state.addHistory);
-  const lastHistory = history[0];
+  const setLastSelectedType = useHistoryStore(
+    (state) => state.setLastSelectedType,
+  );
+  const historyForSelectedType = useMemo(
+    () => history[selectedType] || [],
+    [history, selectedType],
+  );
 
-  // Initialize form values from history only when lastHistory changes
+  // Check if current method needs structured parameters (dynamic based on actionSpace)
+  const needsStructuredParams = useMemo(() => {
+    if (actionSpace) {
+      // Use actionSpace to determine if method needs structured params
+      const action = actionSpace.find(
+        (a) => a.interfaceAlias === selectedType || a.name === selectedType,
+      );
+      return action?.paramSchema;
+    }
+    // Fallback to hardcoded list if actionSpace is not available
+    return ['aiInput', 'aiKeyboardPress', 'aiScroll'].includes(selectedType);
+  }, [selectedType, actionSpace]);
+
+  // Get default values for fields with defaults
+  const getDefaultParams = useCallback((): FormParams => {
+    if (!needsStructuredParams || !actionSpace) {
+      return {};
+    }
+    const action = actionSpace.find(
+      (a) => a.interfaceAlias === selectedType || a.name === selectedType,
+    );
+    if (action?.paramSchema && isZodObjectSchema(action.paramSchema as any)) {
+      const defaultParams: FormParams = {};
+      const schema = action.paramSchema as any as ZodObjectSchema;
+
+      Object.keys(schema.shape).forEach((key) => {
+        const field = schema.shape[key];
+        const defaultValue = extractDefaultValue(field);
+        if (defaultValue !== undefined) {
+          defaultParams[key] = defaultValue as
+            | string
+            | number
+            | boolean
+            | null
+            | undefined;
+        }
+      });
+
+      return defaultParams;
+    }
+    return {};
+  }, [selectedType, needsStructuredParams, actionSpace]);
+
+  // Initialize form with last selected type when component mounts
   useEffect(() => {
+    if (!form.getFieldValue('type') && lastSelectedType) {
+      form.setFieldValue('type', lastSelectedType);
+    }
+  }, [form, lastSelectedType]);
+
+  // Save selected type when it changes
+  useEffect(() => {
+    if (selectedType && selectedType !== lastSelectedType) {
+      setLastSelectedType(selectedType);
+    }
+  }, [selectedType, lastSelectedType, setLastSelectedType]);
+
+  // When the selectedType changes, populate the form with the last item from that type's history.
+  useEffect(() => {
+    const lastHistory = historyForSelectedType[0];
     if (lastHistory) {
       form.setFieldsValue({
-        type: lastHistory.type || 'aiAction',
+        type: lastHistory.type,
         prompt: lastHistory.prompt || '',
+        params: lastHistory.params,
       });
       setPromptValue(lastHistory.prompt || '');
     } else {
+      // If there's no history for this type, fill with default values
+      const defaultParams = getDefaultParams();
       form.setFieldsValue({
-        type: 'aiAction',
         prompt: '',
+        params: defaultParams,
       });
       setPromptValue('');
     }
-  }, []);
+  }, [selectedType, historyForSelectedType, form, getDefaultParams]);
 
   // Handle history selection internally
   const handleSelectHistory = useCallback(
@@ -71,6 +175,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       form.setFieldsValue({
         prompt: historyItem.prompt,
         type: historyItem.type,
+        params: historyItem.params,
       });
       setPromptValue(historyItem.prompt);
     },
@@ -87,26 +192,119 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     [form],
   );
 
+  const hasSingleStructuredParam = useMemo(() => {
+    if (!needsStructuredParams || !actionSpace) {
+      return false;
+    }
+    const action = actionSpace.find(
+      (a) => a.interfaceAlias === selectedType || a.name === selectedType,
+    );
+    if (action?.paramSchema && isZodObjectSchema(action.paramSchema as any)) {
+      const schema = action.paramSchema as unknown as ZodObjectSchema;
+      return Object.keys(schema.shape).length === 1;
+    }
+    return false;
+  }, [selectedType, needsStructuredParams, actionSpace]);
+
   // Calculate if run button should be enabled
-  const isRunButtonEnabled = runButtonEnabled && promptValue.trim().length > 0;
+  const isRunButtonEnabled = useMemo(
+    (): boolean =>
+      calculateIsRunButtonEnabled(
+        runButtonEnabled,
+        !!needsStructuredParams,
+        params,
+        actionSpace,
+        selectedType,
+        promptValue,
+      ),
+    [
+      runButtonEnabled,
+      needsStructuredParams,
+      selectedType,
+      actionSpace,
+      promptValue,
+      params,
+    ],
+  );
 
   // Handle run with history addition
   const handleRunWithHistory = useCallback(() => {
     const values = form.getFieldsValue();
-    if (values.prompt) {
-      addHistory({
-        type: values.type,
-        prompt: values.prompt,
-        timestamp: Date.now(),
-      });
+
+    // For structured params, create a display string for history - dynamically
+    let historyPrompt = '';
+    if (needsStructuredParams && values.params && actionSpace) {
+      const action = actionSpace.find(
+        (a) => a.interfaceAlias === selectedType || a.name === selectedType,
+      );
+
+      if (action?.paramSchema && isZodObjectSchema(action.paramSchema as any)) {
+        // Separate locate field from other fields for legacy format compatibility
+        let locateValue = '';
+        const otherValues: string[] = [];
+        const schema = action.paramSchema as any as ZodObjectSchema;
+
+        Object.keys(schema.shape).forEach((key) => {
+          const paramValue = values.params[key];
+          if (
+            paramValue !== undefined &&
+            paramValue !== null &&
+            paramValue !== ''
+          ) {
+            const field = schema.shape[key];
+            const { actualField } = unwrapZodType(field);
+
+            if (isLocateField(actualField)) {
+              locateValue = String(paramValue);
+            } else {
+              // Format based on field type
+              if (key === 'distance') {
+                otherValues.push(`${paramValue}`);
+              } else {
+                otherValues.push(String(paramValue));
+              }
+            }
+          }
+        });
+
+        // Create legacy-compatible format for history
+        const mainPart = otherValues.join(' ');
+        historyPrompt = locateValue ? `${mainPart} | ${locateValue}` : mainPart;
+      } else {
+        historyPrompt = values.prompt || '';
+      }
+    } else {
+      historyPrompt = values.prompt || '';
     }
+
+    addHistory({
+      type: values.type,
+      prompt: historyPrompt,
+      params: values.params,
+      timestamp: Date.now(),
+    });
+
     onRun();
 
     if (clearPromptAfterRun) {
       setPromptValue('');
-      form.setFieldValue('prompt', '');
+      if (needsStructuredParams) {
+        const defaultParams = getDefaultParams();
+        form.setFieldValue('params', defaultParams);
+      } else {
+        form.setFieldValue('prompt', '');
+      }
     }
-  }, [form, addHistory, onRun]);
+  }, [
+    form,
+    addHistory,
+    onRun,
+    needsStructuredParams,
+    selectedType,
+    clearPromptAfterRun,
+    actionSpace,
+    getDefaultParams,
+  ]);
 
   // Handle key events
   const handleKeyDown = useCallback(
@@ -137,6 +335,142 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     },
     [handleRunWithHistory, isRunButtonEnabled],
   );
+
+  // Handle key events for structured params
+  const handleStructuredKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === 'Enter' && e.metaKey && isRunButtonEnabled) {
+        handleRunWithHistory();
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    },
+    [handleRunWithHistory, isRunButtonEnabled],
+  );
+
+  // Render structured parameter inputs dynamically based on paramSchema
+  const renderStructuredParams = useCallback(() => {
+    if (!needsStructuredParams) return null;
+
+    // Try to get action from actionSpace first
+    if (actionSpace) {
+      const action = actionSpace.find(
+        (a) => a.interfaceAlias === selectedType || a.name === selectedType,
+      );
+
+      if (action?.paramSchema && isZodObjectSchema(action.paramSchema as any)) {
+        const schema = action.paramSchema as any as ZodObjectSchema;
+        const schemaKeys = Object.keys(schema.shape);
+
+        // If only one field, use traditional single input style without labels
+        if (schemaKeys.length === 1) {
+          const key = schemaKeys[0];
+          const field = schema.shape[key];
+          const { actualField, isOptional } = unwrapZodType(field);
+
+          // Check if it's a locate field
+          const isLocateFieldFlag = isLocateField(actualField);
+
+          let placeholderText = '';
+          if (isLocateFieldFlag) {
+            placeholderText = 'Describe the element you want to interact with';
+          } else {
+            placeholderText = `Enter ${key}`;
+            if (key === 'keyName')
+              placeholderText = 'Enter key name or text to type';
+            if (key === 'value') placeholderText = 'Enter text to input';
+          }
+
+          const message = isLocateFieldFlag
+            ? 'Please describe the element'
+            : `Please input ${key}`;
+
+          return (
+            <Form.Item name={['params', key]} style={{ margin: 0 }}>
+              <Input.TextArea
+                className="main-side-console-input-textarea"
+                rows={4}
+                placeholder={placeholderText}
+                autoFocus
+                onKeyDown={handleStructuredKeyDown}
+              />
+            </Form.Item>
+          );
+        }
+
+        // Multiple fields - use structured layout with labels
+        const fields: React.ReactNode[] = [];
+
+        // Dynamically render form fields based on paramSchema
+        schemaKeys.forEach((key, index) => {
+          const fieldSchema = schema.shape[key];
+          const { actualField, isOptional } = unwrapZodType(fieldSchema);
+          const isLocateFieldFlag = isLocateField(actualField);
+          const label = key.charAt(0).toUpperCase() + key.slice(1);
+          const isRequired = !isOptional;
+          const marginBottom = index === schemaKeys.length - 1 ? 0 : 12;
+
+          const fieldProps = {
+            name: key,
+            label,
+            fieldSchema: actualField as z.ZodTypeAny,
+            isRequired,
+            marginBottom,
+          };
+
+          if (isLocateFieldFlag) {
+            fields.push(<LocateField {...fieldProps} />);
+          } else if (actualField._def?.typeName === 'ZodEnum') {
+            fields.push(<EnumField {...fieldProps} />);
+          } else if (actualField._def?.typeName === 'ZodNumber') {
+            fields.push(<NumberField {...fieldProps} />);
+          } else {
+            fields.push(<TextField {...fieldProps} />);
+          }
+        });
+
+        // Special layout handling for scroll action with direction and distance
+        if (selectedType === 'aiScroll') {
+          const directionField = fields.find(
+            (field) =>
+              React.isValidElement(field) && field.props.name === 'direction',
+          );
+          const distanceField = fields.find(
+            (field) =>
+              React.isValidElement(field) && field.props.name === 'distance',
+          );
+          const otherFields = fields.filter(
+            (field) =>
+              React.isValidElement(field) &&
+              field.props.name !== 'direction' &&
+              field.props.name !== 'distance',
+          );
+
+          if (directionField && distanceField) {
+            return (
+              <div className="structured-params">
+                <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+                  {directionField}
+                  {distanceField}
+                </div>
+                {otherFields}
+              </div>
+            );
+          }
+        }
+
+        return <div className="structured-params">{fields}</div>;
+      }
+    }
+
+    // Fallback - should not be reached if actionSpace is properly loaded
+    return null;
+  }, [
+    selectedType,
+    needsStructuredParams,
+    actionSpace,
+    handleStructuredKeyDown,
+  ]);
 
   // Handle settings hover state
   const handleMouseEnter = useCallback(() => {
@@ -199,37 +533,120 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     <div className="prompt-input-wrapper">
       {/* top operation button area */}
       <Space className="mode-radio-group-wrapper">
-        <Form.Item name="type" style={{ margin: 0 }}>
-          <Radio.Group
-            buttonStyle="solid"
+        <div className="mode-radio-group">
+          <Form.Item name="type" style={{ margin: 0 }}>
+            <Radio.Group buttonStyle="solid" disabled={!runButtonEnabled}>
+              {defaultMainButtons.map((apiType) => (
+                <Tooltip
+                  key={apiType}
+                  title={
+                    apiMetadata[apiType as keyof typeof apiMetadata]?.title ||
+                    ''
+                  }
+                >
+                  <Radio.Button value={apiType}>
+                    {actionNameForType(apiType)}
+                  </Radio.Button>
+                </Tooltip>
+              ))}
+            </Radio.Group>
+          </Form.Item>
+          <Dropdown
+            menu={(() => {
+              // Get all APIs not currently shown in main buttons
+              const hiddenAPIs = Object.keys(apiMetadata).filter(
+                (api) => !defaultMainButtons.includes(api),
+              );
+
+              // Group hidden APIs by category
+              const groupedItems: any[] = [];
+
+              const interactionAPIs = hiddenAPIs.filter(
+                (api) =>
+                  apiMetadata[api as keyof typeof apiMetadata].group ===
+                  'interaction',
+              );
+              if (interactionAPIs.length > 0) {
+                groupedItems.push({
+                  key: 'interaction-group',
+                  type: 'group',
+                  label: 'Interaction APIs',
+                  children: interactionAPIs.map((api) => ({
+                    key: api,
+                    label: actionNameForType(api),
+                    title: apiMetadata[api as keyof typeof apiMetadata].title,
+                    onClick: () => {
+                      form.setFieldValue('type', api);
+                    },
+                  })),
+                });
+              }
+
+              const extractionAPIs = hiddenAPIs.filter(
+                (api) =>
+                  apiMetadata[api as keyof typeof apiMetadata].group ===
+                  'extraction',
+              );
+              if (extractionAPIs.length > 0) {
+                groupedItems.push({
+                  key: 'extraction-group',
+                  type: 'group',
+                  label: 'Data Extraction APIs',
+                  children: extractionAPIs.map((api) => ({
+                    key: api,
+                    label: actionNameForType(api),
+                    title: apiMetadata[api as keyof typeof apiMetadata].title,
+                    onClick: () => {
+                      form.setFieldValue('type', api);
+                    },
+                  })),
+                });
+              }
+
+              const validationAPIs = hiddenAPIs.filter(
+                (api) =>
+                  apiMetadata[api as keyof typeof apiMetadata].group ===
+                  'validation',
+              );
+              if (validationAPIs.length > 0) {
+                groupedItems.push({
+                  key: 'validation-group',
+                  type: 'group',
+                  label: 'Validation APIs',
+                  children: validationAPIs.map((api) => ({
+                    key: api,
+                    label: actionNameForType(api),
+                    title: apiMetadata[api as keyof typeof apiMetadata].title,
+                    onClick: () => {
+                      form.setFieldValue('type', api);
+                    },
+                  })),
+                });
+              }
+
+              return { items: groupedItems } as MenuProps;
+            })()}
+            placement="bottomLeft"
+            trigger={['click']}
             disabled={!runButtonEnabled}
-            className="mode-radio-group"
           >
-            <Tooltip title="Auto Planning: plan the steps and execute">
-              <Radio.Button value="aiAction">
-                {actionNameForType('aiAction')}
-              </Radio.Button>
-            </Tooltip>
-            <Tooltip title="Extract data directly from the UI">
-              <Radio.Button value="aiQuery">
-                {actionNameForType('aiQuery')}
-              </Radio.Button>
-            </Tooltip>
-            <Tooltip title="Understand the UI and determine if the assertion is true">
-              <Radio.Button value="aiAssert">
-                {actionNameForType('aiAssert')}
-              </Radio.Button>
-            </Tooltip>
-            <Tooltip title="Instant Action: click something">
-              <Radio.Button value="aiTap">
-                {actionNameForType('aiTap')}
-              </Radio.Button>
-            </Tooltip>
-          </Radio.Group>
-        </Form.Item>
+            <Button
+              className={`more-apis-button ${!defaultMainButtons.includes(selectedType) ? 'selected-from-dropdown' : ''}`}
+            >
+              {selectedType && !defaultMainButtons.includes(selectedType)
+                ? actionNameForType(selectedType)
+                : 'more'}
+              <DownOutlined style={{ fontSize: '10px', marginLeft: '2px' }} />
+            </Button>
+          </Dropdown>
+        </div>
 
         <div className="action-icons">
-          <HistorySelector onSelect={handleSelectHistory} />
+          <HistorySelector
+            onSelect={handleSelectHistory}
+            history={historyForSelectedType}
+            currentType={selectedType}
+          />
           <div
             className={
               hoveringSettings
@@ -241,7 +658,13 @@ export const PromptInput: React.FC<PromptInputProps> = ({
           >
             <ConfigSelector
               enableTracking={serviceMode === 'In-Browser-Extension'}
-              showDeepThinkOption={selectedType === 'aiTap'}
+              showDeepThinkOption={
+                selectedType === 'aiTap' ||
+                selectedType === 'aiHover' ||
+                selectedType === 'aiInput' ||
+                selectedType === 'aiRightClick' ||
+                selectedType === 'aiLocate'
+              }
             />
           </div>
         </div>
@@ -251,19 +674,31 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       <div
         className={`main-side-console-input ${!runButtonEnabled ? 'disabled' : ''} ${loading ? 'loading' : ''}`}
       >
-        <Form.Item name="prompt" style={{ margin: 0 }}>
-          <TextArea
-            className="main-side-console-input-textarea"
-            disabled={!runButtonEnabled}
-            rows={4}
-            placeholder={placeholder}
-            autoFocus
-            onKeyDown={handleKeyDown}
-            onChange={handlePromptChange}
-            value={promptValue}
-            ref={textAreaRef}
-          />
-        </Form.Item>
+        {needsStructuredParams ? (
+          hasSingleStructuredParam ? (
+            renderStructuredParams()
+          ) : (
+            // Render structured parameters for specific AI methods
+            <div className="structured-params-container">
+              {renderStructuredParams()}
+            </div>
+          )
+        ) : (
+          // Render traditional prompt input for other methods
+          <Form.Item name="prompt" style={{ margin: 0 }}>
+            <TextArea
+              className="main-side-console-input-textarea"
+              disabled={!runButtonEnabled}
+              rows={4}
+              placeholder={placeholder}
+              autoFocus
+              onKeyDown={handleKeyDown}
+              onChange={handlePromptChange}
+              value={promptValue}
+              ref={textAreaRef}
+            />
+          </Form.Item>
+        )}
 
         <div className="form-controller-wrapper">{renderActionButton()}</div>
       </div>
