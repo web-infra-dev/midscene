@@ -537,7 +537,7 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
   {
     name: 'KeyboardPress',
     description:
-      'Press a key or type text. For single keys (like "Enter", "Tab", "Escape"), use the key name. For text input (like "hello"), the text will be typed character by character.',
+      'Press a function key, like "Enter", "Tab", "Escape". Do not use this to type text.',
     interfaceAlias: 'aiKeyboardPress',
     paramSchema: z.object({
       locate: getMidsceneLocationSchema()
@@ -545,7 +545,7 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
         .optional(),
       keyName: z.string().describe('The key to be pressed'),
     }),
-    call: async (param, context) => {
+    call: async (param) => {
       const element = param.locate;
       if (element) {
         await page.mouse.click(element.center[0], element.center[1], {

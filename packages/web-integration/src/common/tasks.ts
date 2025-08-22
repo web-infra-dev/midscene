@@ -465,6 +465,10 @@ export class PageTaskExecutor {
         const action = actionSpace.find((action) => action.name === planType);
         const param = plan.param;
 
+        if (!action) {
+          throw new Error(`Action type '${planType}' not found`);
+        }
+
         // find all params that needs location
         const locateFields = action
           ? findAllMidsceneLocatorField(action.paramSchema)
@@ -521,14 +525,6 @@ export class PageTaskExecutor {
             // Get page context for actionSpace operations to ensure size info is available
             const pageContext = await this.insight.contextRetrieverFn('locate');
             context.task.pageContext = pageContext;
-
-            const actionSpace = await this.page.actionSpace();
-            const action = actionSpace.find(
-              (action) => action.name === planType,
-            );
-            if (!action) {
-              throw new Error(`Action type '${planType}' not found`);
-            }
 
             requiredLocateFields.forEach((field) => {
               assert(
