@@ -194,12 +194,29 @@ export const allScriptsFromDump = (
     },
   );
 
+  const modelBriefs: string[] = (() => {
+    const list = [...modelBriefsSet];
+    if (!list.length) {
+      return list;
+    }
+    const firstOneInfo = list[0]?.split('/', 2)[1];
+    // merge same modelName and modelDescription
+    if (
+      firstOneInfo &&
+      list.slice(1).every((item) => item?.split('/', 2)[1] === firstOneInfo)
+    ) {
+      return [firstOneInfo];
+    }
+
+    return list;
+  })();
+
   return {
     scripts: allScriptsWithoutIntermediateDoneFrame,
     width,
     height,
     sdkVersion,
-    modelBriefs: [...modelBriefsSet],
+    modelBriefs,
   };
 };
 
