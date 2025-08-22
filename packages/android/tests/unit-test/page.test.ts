@@ -77,8 +77,7 @@ describe('AndroidDevice', () => {
     mockAdb = new (ADB as any)() as Mocked<ADB>;
     device = new AndroidDevice('test-device');
     // Manually assign the mocked adb instance
-    (device as any).adb = mockAdb;
-    (device as any).connectingAdb = Promise.resolve(mockAdb);
+    vi.spyOn(device, 'getAdb').mockResolvedValue(mockAdb);
   });
 
   afterEach(() => {
@@ -865,7 +864,8 @@ describe('AndroidDevice', () => {
 
       // Manually assign the mocked adb instance
       (deviceWithDisplay as any).adb = mockAdbInstance;
-      (deviceWithDisplay as any).connectingAdb = Promise.resolve(mockAdbInstance);
+      (deviceWithDisplay as any).connectingAdb =
+        Promise.resolve(mockAdbInstance);
 
       // Mock fs.promises.readFile to return a valid PNG buffer
       const mockBuffer = Buffer.from('fake-png-data');
@@ -997,7 +997,8 @@ describe('AndroidDevice', () => {
 
       // Manually assign the mocked adb instance
       (deviceWithDisplay as any).adb = mockAdbInstance;
-      (deviceWithDisplay as any).connectingAdb = Promise.resolve(mockAdbInstance);
+      (deviceWithDisplay as any).connectingAdb =
+        Promise.resolve(mockAdbInstance);
 
       // Mock fs.promises.readFile to return a valid PNG buffer
       const mockBuffer = Buffer.from('fake-png-data');
@@ -1024,11 +1025,49 @@ describe('AndroidDevice', () => {
 
       // Verify that screencap command does not use any display ID (note the extra space)
       expect(mockAdbInstance.shell).toHaveBeenCalledWith(
-        expect.stringMatching(/screencap -p  \/data\/local\/tmp\/midscene_screenshot_/),
+        expect.stringMatching(
+          /screencap -p {2}\/data\/local\/tmp\/midscene_screenshot_/,
+        ),
       );
       expect(mockAdbInstance.shell).not.toHaveBeenCalledWith(
         expect.stringMatching(/screencap -p -d/),
       );
+    });
+
+    describe('useLongDisplayIdForDisplayLookup', () => {
+      const dumpsysOutput = `
+mViewports=[DisplayViewport{type=INTERNAL, valid=true, displayId=0, uniqueId='local:129', physicalPort=-127, orientation=0, logicalFrame=Rect(0, 0 - 2400, 1200), physicalFrame=Rect(0, 0 - 2400, 1200), deviceWidth=2400, deviceHeight=1200}, DisplayViewport{type=EXTERNAL, valid=true, displayId=1, uniqueId='local:130', physicalPort=-126, orientation=0, logicalFrame=Rect(0, 0 - 2400, 1200), physicalFrame=Rect(0, 0 - 2400, 1200), deviceWidth=2400, deviceHeight=1200}, DisplayViewport{type=EXTERNAL, valid=true, displayId=2, uniqueId='local:4', physicalPort=4, orientation=0, logicalFrame=Rect(0, 0 - 1920, 720), physicalFrame=Rect(0, 0 - 1920, 720), deviceWidth=1920, deviceHeight=720}]
+DisplayDevice: mDisplayId=2, mDisplayInfo=DisplayInfo{"内置屏幕", uniqueId "local:4", app 1920 x 720, real 1920 x 720, largest app 1920 x 720, smallest app 1920 x 720, mode 1, defaultMode 1, modes [{id=1, width=1920, height=720, fps=60.0}], colorMode 0, supportedColorModes [0], hdrCapabilities HdrCapabilities{mSupportedHdrTypes=[], mMaxLuminance=500.0, mMaxAverageLuminance=500.0, mMinLuminance=0.0}, allmSupported false, gameContentTypeSupported false, density 240, 240.0 x 240.0 dpi, appVsyncOff 1000000, presDeadline 16666666, cutout CutoutInfo{insets=Rect(0, 0 - 0, 0) waterfall=Insets{left=0, top=0, right=0, bottom=0} bounding_rects=[Rect(0, 0 - 0, 0)]}, rotation 0, defaultRotation 0, refreshRate 60.0, defaultRefreshRate 60.0, minRefreshRate 60.0, maxRefreshRate 60.0, appRequestModeId 0, appRequestRefreshRate {0.0, 0.0}, installedRefreshRate 60.0, policy RefreshRatePolicy{default=60.0, min=60.0, max=60.0, nonHighBrightnessMin=60.0, lowPowerMin=60.0}, state ON, committedState ON, brightness 0.5019608, brightnessMinimum 0.0, brightnessMaximum 1.0, defaultBrightness 0.5019608, hdrBrightnessSupport 0, brightnessRampFast 0.001, brightnessRampSlow 0.001, brightnessRampLoggingEnabled false, brightnessRampIncreaseMaxMillis 3000, brightnessRampDecreaseMaxMillis 3000, type INTERNAL, address {port=4}, FLAG_DEFAULT_DISPLAY, FLAG_PRIVATE, FLAG_SECURE, FLAG_SUPPORTS_PROTECTED_BUFFERS, removeMode 0}
+`;
+
+      it('should get screen size using displayId when useLongDisplayIdForDisplayLookup is false', async () => {
+        deviceWithDisplay = new AndroidDevice('test-device', {
+          activeDisplayId: 2,
+          useLongDisplayIdForDisplayLookup: false,
+        });
+        mockAdbInstance.shell.mockResolvedValue(dumpsysOutput);
+        (deviceWithDisplay as any).adb = mockAdbInstance;
+        (deviceWithDisplay as any).connectingAdb =
+          Promise.resolve(mockAdbInstance);
+
+        const screenSize = await (deviceWithDisplay as any).getScreenSize();
+        expect(screenSize.physical).toBe('1920x720');
+        expect(screenSize.orientation).toBe(0);
+      });
+
+      it('should get display density using displayId when useLongDisplayIdForDisplayLookup is false', async () => {
+        deviceWithDisplay = new AndroidDevice('test-device', {
+          activeDisplayId: 2,
+          useLongDisplayIdForDisplayLookup: false,
+        });
+        mockAdbInstance.shell.mockResolvedValue(dumpsysOutput);
+        (deviceWithDisplay as any).adb = mockAdbInstance;
+        (deviceWithDisplay as any).connectingAdb =
+          Promise.resolve(mockAdbInstance);
+
+        const density = await (deviceWithDisplay as any).getDisplayDensity();
+        expect(density).toBe(240);
+      });
     });
   });
 

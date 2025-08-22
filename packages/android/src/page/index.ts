@@ -49,6 +49,7 @@ export type AndroidDeviceOpt = {
   imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii';
   activeDisplayId?: number;
   useLongDisplayIdForScreenshot?: boolean;
+  useLongDisplayIdForDisplayLookup?: boolean;
 } & AndroidDeviceInputOpt;
 
 export class AndroidDevice implements AndroidDevicePage {
@@ -381,34 +382,67 @@ ${Object.keys(size)
   }> {
     const adb = await this.getAdb();
 
-    // If we have an activeDisplayId, try to get size from display info using long ID
+    // If we have an activeDisplayId, try to get size from display info
     if (typeof this.options?.activeDisplayId === 'number') {
       try {
-        const longDisplayId = await this.getLongDisplayId();
-        if (longDisplayId) {
-          const stdout = await adb.shell('dumpsys display');
+        const stdout = await adb.shell('dumpsys display');
 
-          // Use regex to find the line containing the target display's uniqueId
-          const lineRegex = new RegExp(
-            `^.*uniqueId "local:${longDisplayId}".*$`,
-            'm',
+        if (this.options?.useLongDisplayIdForDisplayLookup) {
+          const longDisplayId = await this.getLongDisplayId();
+          if (longDisplayId) {
+            // Use regex to find the line containing the target display's uniqueId
+            const lineRegex = new RegExp(
+              `^.*uniqueId \"local:${longDisplayId}\".*$
+`,
+              'm',
+            );
+            const lineMatch = stdout.match(lineRegex);
+
+            if (lineMatch) {
+              const targetLine = lineMatch[0];
+              // Extract real size and rotation from the found line
+              const realMatch = targetLine.match(/real (\d+) x (\d+)/);
+              const rotationMatch = targetLine.match(/rotation (\d+)/);
+
+              if (realMatch && rotationMatch) {
+                const width = Number(realMatch[1]);
+                const height = Number(realMatch[2]);
+                const rotation = Number(rotationMatch[1]);
+                const sizeStr = `${width}x${height}`;
+
+                debugPage(
+                  `Using display info for long ID ${longDisplayId}: ${sizeStr}, rotation: ${rotation}`,
+                );
+
+                return {
+                  override: sizeStr,
+                  physical: sizeStr,
+                  orientation: rotation,
+                };
+              }
+            }
+          }
+        } else {
+          // Use regex to find the DisplayViewport containing the target display's displayId
+          const viewportRegex = new RegExp(
+            `DisplayViewport{[^}]*displayId=${this.options.activeDisplayId}[^}]*}`,
+            'g',
           );
-          const lineMatch = stdout.match(lineRegex);
-
-          if (lineMatch) {
-            const targetLine = lineMatch[0];
-            // Extract real size and rotation from the found line
-            const realMatch = targetLine.match(/real (\d+) x (\d+)/);
-            const rotationMatch = targetLine.match(/rotation (\d+)/);
-
-            if (realMatch && rotationMatch) {
-              const width = Number(realMatch[1]);
-              const height = Number(realMatch[2]);
-              const rotation = Number(rotationMatch[1]);
+          const match = stdout.match(viewportRegex);
+          if (match) {
+            const targetLine = match[0];
+            const physicalFrameMatch = targetLine.match(
+              /physicalFrame=Rect\(\d+, \d+ - (\d+), (\d+)\)/,
+            );
+            const orientationMatch = targetLine.match(/orientation=(\d+)/);
+            if (physicalFrameMatch && orientationMatch) {
+              const width = Number(physicalFrameMatch[1]);
+              const height = Number(physicalFrameMatch[2]);
+              const rotation = Number(orientationMatch[1]);
               const sizeStr = `${width}x${height}`;
 
               debugPage(
-                `Using display info for long ID ${longDisplayId}: ${sizeStr}, rotation: ${rotation}`,
+                `Using display info for display ID ${this.options.activeDisplayId}: ${sizeStr}, rotation: ${rotation}`,
               );
 
               return {
@@ -467,30 +501,45 @@ ${Object.keys(size)
   private async getDisplayDensity(): Promise<number> {
     const adb = await this.getAdb();
 
-    // If we have an activeDisplayId, try to get density from display info using long ID
+    // If we have an activeDisplayId, try to get density from display info
     if (typeof this.options?.activeDisplayId === 'number') {
       try {
-        const longDisplayId = await this.getLongDisplayId();
-        if (longDisplayId) {
-          const stdout = await adb.shell('dumpsys display');
+        const stdout = await adb.shell('dumpsys display');
+        if (this.options?.useLongDisplayIdForDisplayLookup) {
+          const longDisplayId = await this.getLongDisplayId();
+          if (longDisplayId) {
+            // Use regex to find the line containing the target display's uniqueId
+            const lineRegex = new RegExp(
+              `^.*uniqueId \"local:${longDisplayId}\".*$
+`,
+              'm',
+            );
+            const lineMatch = stdout.match(lineRegex);
 
-          // Use regex to find the line containing the target display's uniqueId
-          const lineRegex = new RegExp(
-            `^.*uniqueId "local:${longDisplayId}".*$`,
+            if (lineMatch) {
+              const targetLine = lineMatch[0];
+              const densityMatch = targetLine.match(/density (\d+)/);
+              if (densityMatch) {
+                const density = Number(densityMatch[1]);
+                debugPage(
+                  `Using display density for long ID ${longDisplayId}: ${density}`,
+                );
+                return density;
+              }
+            }
+          }
+        } else {
+          const displayDeviceRegex = new RegExp(
+            `DisplayDevice:[\s\S]*?mDisplayId=${this.options.activeDisplayId}[\s\S]*?DisplayInfo{[^}]*density (\\d+)`,
             'm',
           );
-          const lineMatch = stdout.match(lineRegex);
-
-          if (lineMatch) {
-            const targetLine = lineMatch[0];
-            const densityMatch = targetLine.match(/density (\d+)/);
-            if (densityMatch) {
-              const density = Number(densityMatch[1]);
-              debugPage(
-                `Using display density for long ID ${longDisplayId}: ${density}`,
-              );
-              return density;
-            }
+          const deviceBlockMatch = stdout.match(displayDeviceRegex);
+          if (deviceBlockMatch) {
+            const density = Number(deviceBlockMatch[1]);
+            debugPage(
+              `Using display density for display ID ${this.options.activeDisplayId}: ${density}`,
+            );
+            return density;
           }
         }
       } catch (e) {
