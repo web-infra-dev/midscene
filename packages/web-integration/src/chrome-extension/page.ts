@@ -341,8 +341,16 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     });
   }
 
-  // current implementation is wait until domReadyState is complete
-  public async waitUntilNetworkIdle() {
+  async beforeAction(): Promise<void> {
+    // current implementation is wait until domReadyState is complete
+    try {
+      await this.waitUntilNetworkIdle();
+    } catch (error) {
+      // console.warn('Failed to wait until network idle', error);
+    }
+  }
+
+  private async waitUntilNetworkIdle() {
     const timeout = 10000;
     const startTime = Date.now();
     let lastReadyState = '';

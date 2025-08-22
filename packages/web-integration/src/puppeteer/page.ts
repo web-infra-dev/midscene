@@ -21,20 +21,19 @@ export class WebPage extends BasePage<'puppeteer', PuppeteerPageType> {
     this.waitForNetworkIdleTimeout = waitForNetworkIdleTimeout;
   }
 
-  async waitUntilNetworkIdle(options?: {
-    idleTime?: number;
-    concurrency?: number;
-    timeout?: number;
-  }): Promise<void> {
+  async beforeAction(): Promise<void> {
+    await this.waitUntilNetworkIdle();
+  }
+
+  async waitUntilNetworkIdle(): Promise<void> {
     if (this.waitForNetworkIdleTimeout === 0) {
       debugPage('waitUntilNetworkIdle timeout is 0, skip waiting');
       return;
     }
     await this.underlyingPage.waitForNetworkIdle({
-      idleTime: options?.idleTime ?? this.waitForNetworkIdleTimeout,
-      concurrency:
-        options?.concurrency ?? DEFAULT_WAIT_FOR_NETWORK_IDLE_CONCURRENCY,
-      timeout: options?.timeout ?? this.waitForNetworkIdleTimeout,
+      idleTime: this.waitForNetworkIdleTimeout,
+      concurrency: DEFAULT_WAIT_FOR_NETWORK_IDLE_CONCURRENCY,
+      timeout: this.waitForNetworkIdleTimeout,
     });
   }
 }

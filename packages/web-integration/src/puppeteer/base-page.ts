@@ -388,6 +388,10 @@ export class Page<
     }
   }
 
+  async beforeAction(): Promise<void> {
+    await this.waitForNavigation();
+  }
+
   async destroy(): Promise<void> {}
 }
 

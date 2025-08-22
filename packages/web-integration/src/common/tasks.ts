@@ -185,12 +185,9 @@ export class PageTaskExecutor {
           await Promise.all([
             (async () => {
               await sleep(100);
-              if ((this.page as PuppeteerWebPage).waitUntilNetworkIdle) {
-                try {
-                  await (this.page as PuppeteerWebPage).waitUntilNetworkIdle();
-                } catch (error) {
-                  // console.error('waitUntilNetworkIdle error', error);
-                }
+              if ((this.page as PuppeteerWebPage).beforeAction) {
+                debug('will call "beforeAction" for page');
+                await (this.page as PuppeteerWebPage).beforeAction();
               }
             })(),
             sleep(200),

@@ -1,3 +1,4 @@
+import type { AbstractPage } from '@/page';
 import type { StaticPage } from '@/playground';
 import type {
   BaseElement,
