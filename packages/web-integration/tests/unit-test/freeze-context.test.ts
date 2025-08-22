@@ -1,4 +1,5 @@
 import type { WebPage } from '@/web-element';
+import { WebPageContextParser } from '@/web-element';
 import { Agent as PageAgent } from '@midscene/core/agent';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WebUIContext } from '../../src';
@@ -12,6 +13,10 @@ const mockPage = {
   screenshotBase64: vi.fn().mockResolvedValue('mock-screenshot'),
   evaluateJavaScript: vi.fn(),
   size: vi.fn().mockResolvedValue({ width: 1920, height: 1080, dpr: 1 }),
+  url: vi.fn().mockResolvedValue('https://example.com'),
+  getContext: vi.fn().mockImplementation(async function() {
+    return await WebPageContextParser(this);
+  }),
 } as unknown as WebPage;
 
 describe('PageAgent freeze/unfreeze page context', () => {
