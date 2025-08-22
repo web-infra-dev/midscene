@@ -53,6 +53,7 @@ export async function agentFromAdbDevice(
     imeStrategy: opts?.imeStrategy,
     activeDisplayId: opts?.activeDisplayId,
     useLongDisplayIdForScreenshot: opts?.useLongDisplayIdForScreenshot,
+    useLongDisplayIdForDisplayLookup: opts?.useLongDisplayIdForDisplayLookup,
   });
 
   await page.connect();
