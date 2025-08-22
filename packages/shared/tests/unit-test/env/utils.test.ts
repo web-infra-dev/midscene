@@ -23,13 +23,12 @@ describe('maskConfig', () => {
       azureExtraConfig: { temperature: 0.7 },
       useAnthropicSdk: true,
       vlMode: 'auto',
+      modelDescription: '',
     };
     expect(maskConfig(config)).toMatchInlineSnapshot(`
       {
         "anthropicApiKey": "ant****************************ugh",
-        "azureExtraConfig": {
-          "temperature": 0.7,
-        },
+        "azureExtraConfig": "{"t*************.7}",
         "azureOpenaiApiVersion": "2023-07-01-preview",
         "azureOpenaiDeployment": "deployment-name",
         "azureOpenaiEndpoint": "https://example.openai.azure.com/",
@@ -37,12 +36,11 @@ describe('maskConfig', () => {
         "azureOpenaiScope": "scope",
         "from": "env",
         "httpProxy": "http://proxy.example.com:8080",
+        "modelDescription": "",
         "modelName": "test-model",
         "openaiApiKey": "sk-***************************ugh",
         "openaiBaseURL": "https://api.openai.com/v1",
-        "openaiExtraConfig": {
-          "top_p": 0.9,
-        },
+        "openaiExtraConfig": "{"t*******.9}",
         "openaiUseAzureDeprecated": false,
         "socksProxy": "socks://proxy.example.com:1080",
         "useAnthropicSdk": true,
