@@ -12,14 +12,17 @@ const { Text } = Typography;
 
 interface HistorySelectorProps {
   onSelect: (history: HistoryItem) => void;
+  history: HistoryItem[];
+  currentType: string;
 }
 
 export const HistorySelector: React.FC<HistorySelectorProps> = ({
   onSelect,
+  history,
+  currentType,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
-  const history = useHistoryStore((state) => state.history);
   const clearHistory = useHistoryStore((state) => state.clearHistory);
 
   // group history by time
@@ -51,7 +54,7 @@ export const HistorySelector: React.FC<HistorySelectorProps> = ({
   };
 
   const handleClearHistory = () => {
-    clearHistory();
+    clearHistory(currentType);
     setSearchText('');
     setIsModalOpen(false); // clear and close modal
   };

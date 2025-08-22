@@ -148,10 +148,10 @@ export const allScriptsFromDump = (
     }
 
     execution.tasks.forEach((task) => {
-      const insightTask = task as ExecutionTaskInsightLocate;
-      if (insightTask.pageContext?.size?.width) {
-        width = insightTask.pageContext.size.width;
-        height = insightTask.pageContext.size.height;
+      // Check for pageContext in any task type, not just insight tasks
+      if (task.pageContext?.size?.width) {
+        width = task.pageContext.size.width;
+        height = task.pageContext.size.height;
       }
     });
   });

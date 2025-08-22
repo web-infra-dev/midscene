@@ -299,8 +299,9 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       locateParamStr((opt as any)?.locate || {}),
     );
 
-    const { executor } = await this.taskExecutor.runPlans(title, plans);
+    const { output, executor } = await this.taskExecutor.runPlans(title, plans);
     await this.afterTaskRunning(executor);
+    return output;
   }
 
   async aiTap(locatePrompt: TUserPrompt, opt?: LocateOption) {
