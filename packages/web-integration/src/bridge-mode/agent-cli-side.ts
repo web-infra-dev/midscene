@@ -62,10 +62,6 @@ export const getBridgePageInCliSide = (
         return BridgePageType;
       }
 
-      if (prop === '_forceUsePageContext') {
-        return undefined;
-      }
-
       if (prop === 'actionSpace') {
         return () => commonWebActionsForWebPage(proxyPage);
       }

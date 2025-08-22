@@ -1,4 +1,4 @@
-import type { DeviceAction, Point, Size } from '@midscene/core';
+import type { DeviceAction, Point, Size, UIContext } from '@midscene/core';
 import type { ElementInfo, ElementNode } from '@midscene/shared/extractor';
 import type { WebKeyInput } from './common/page';
 import type { WebUIContext } from './web-element';
@@ -80,11 +80,11 @@ export abstract class AbstractPage {
   abstract scrollLeft(distance?: number, startingPoint?: Point): Promise<void>;
   abstract scrollRight(distance?: number, startingPoint?: Point): Promise<void>;
 
-  abstract _forceUsePageContext?(): Promise<WebUIContext>;
-
   abstract beforeAction?(): Promise<void>;
 
   abstract destroy(options?: ChromePageDestroyOptions): Promise<void>;
 
   abstract evaluateJavaScript?<T = any>(script: string): Promise<T>;
+
+  abstract getContext?(): Promise<UIContext>;
 }

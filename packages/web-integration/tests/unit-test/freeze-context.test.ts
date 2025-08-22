@@ -213,11 +213,11 @@ describe('PageAgent freeze/unfreeze page context', () => {
 
   describe('getUIContext with frozen context', () => {
     it('should return frozen context for all actions when frozen', async () => {
-      // Mock parseContextFromWebPage to return a new context each time
+      // Mock WebPageContextParser to return a new context each time
       const mockParseContext = vi.fn().mockResolvedValue(mockContext2);
       vi.spyOn(
         await import('@/common/utils'),
-        'parseContextFromWebPage',
+        'WebPageContextParser',
       ).mockImplementation(mockParseContext);
 
       // Freeze context
@@ -235,17 +235,17 @@ describe('PageAgent freeze/unfreeze page context', () => {
       for (const action of actions) {
         const context = await agent.getUIContext(action);
 
-        // Should return the frozen context, not call parseContextFromWebPage
+        // Should return the frozen context, not call WebPageContextParser
         expect(context).toBe(mockContext);
         expect(context._isFrozen).toBe(true);
       }
 
-      // parseContextFromWebPage should not be called when frozen
+      // WebPageContextParser should not be called when frozen
       expect(mockParseContext).not.toHaveBeenCalled();
     });
 
     it('should return fresh context for all actions when not frozen', async () => {
-      // Mock parseContextFromWebPage
+      // Mock WebPageContextParser
       const mockParseContext = vi
         .fn()
         .mockResolvedValueOnce({ ...mockContext, fresh: 1 })
@@ -254,7 +254,7 @@ describe('PageAgent freeze/unfreeze page context', () => {
 
       vi.spyOn(
         await import('@/common/utils'),
-        'parseContextFromWebPage',
+        'WebPageContextParser',
       ).mockImplementation(mockParseContext);
 
       // Test without freezing
@@ -267,12 +267,12 @@ describe('PageAgent freeze/unfreeze page context', () => {
       expect((context2 as any).fresh).toBe(2);
       expect((context3 as any).fresh).toBe(3);
 
-      // parseContextFromWebPage should be called for each
+      // WebPageContextParser should be called for each
       expect(mockParseContext).toHaveBeenCalledTimes(3);
     });
 
     it('should switch between frozen and fresh contexts correctly', async () => {
-      // Mock parseContextFromWebPage
+      // Mock WebPageContextParser
       const mockParseContext = vi
         .fn()
         .mockResolvedValueOnce({ ...mockContext2, callNumber: 1 })
@@ -280,7 +280,7 @@ describe('PageAgent freeze/unfreeze page context', () => {
 
       vi.spyOn(
         await import('@/common/utils'),
-        'parseContextFromWebPage',
+        'WebPageContextParser',
       ).mockImplementation(mockParseContext);
 
       // Get fresh context initially
@@ -307,11 +307,11 @@ describe('PageAgent freeze/unfreeze page context', () => {
     });
 
     it('should handle extract and assert actions correctly when frozen', async () => {
-      // Mock parseContextFromWebPage
+      // Mock WebPageContextParser
       const mockParseContext = vi.fn().mockResolvedValue(mockContext2);
       vi.spyOn(
         await import('@/common/utils'),
-        'parseContextFromWebPage',
+        'WebPageContextParser',
       ).mockImplementation(mockParseContext);
 
       // Freeze context
@@ -327,7 +327,7 @@ describe('PageAgent freeze/unfreeze page context', () => {
       expect(assertContext).toBe(mockContext);
       expect(assertContext._isFrozen).toBe(true);
 
-      // parseContextFromWebPage should not be called
+      // WebPageContextParser should not be called
       expect(mockParseContext).not.toHaveBeenCalled();
     });
   });

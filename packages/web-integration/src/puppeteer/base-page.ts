@@ -1,8 +1,10 @@
+import { WebPageContextParser } from '@/web-element';
 import type {
   DeviceAction,
   ElementTreeNode,
   Point,
   Size,
+  UIContext,
 } from '@midscene/core';
 import { sleep } from '@midscene/core/utils';
 import { DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT } from '@midscene/shared/constants';
@@ -393,6 +395,10 @@ export class Page<
   }
 
   async destroy(): Promise<void> {}
+
+  async getContext(): Promise<UIContext> {
+    return await WebPageContextParser(this, {});
+  }
 }
 
 export function forceClosePopup(
