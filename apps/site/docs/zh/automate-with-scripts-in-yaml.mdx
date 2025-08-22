@@ -80,27 +80,6 @@ tasks:
       - aiAssert: 结果显示天气信息
 ```
 
-或者驱动 iOS 设备的自动化任务（需要设置 PyAutoGUI 服务器和设备镜像）
-
-```yaml
-ios:
-  serverPort: 1412
-  mirrorConfig:
-    mirrorX: 100
-    mirrorY: 200
-    mirrorWidth: 400
-    mirrorHeight: 800
-
-tasks:
-  - name: 搜索天气
-    flow:
-      - ai: 打开 Safari 浏览器
-      - ai: 导航到 bing.com
-      - ai: 搜索 "今日天气"
-      - sleep: 3000
-      - aiAssert: 结果显示天气信息
-```
-
 运行脚本
 
 ```bash
@@ -192,37 +171,6 @@ android:
   deviceId: <device-id>
 
   # 启动 URL，可选，默认使用设备当前页面
-  launch: <url>
-
-  # 输出 aiQuery/aiAssert 结果的 JSON 文件路径，可选
-  output: <path-to-output-file>
-```
-
-### `ios` 部分
-
-```yaml
-ios:
-  # PyAutoGUI 服务器端口，可选，默认 1412
-  serverPort: <port>
-
-  # PyAutoGUI 服务器 URL，可选，默认 http://localhost:1412
-  serverUrl: <url>
-
-  # 输入后是否自动隐藏键盘，可选，默认 false
-  autoDismissKeyboard: <boolean>
-
-  # iOS 设备镜像配置，用于精确定位操作
-  mirrorConfig:
-    # 镜像在主显示器上的 X 位置
-    mirrorX: <number>
-    # 镜像在主显示器上的 Y 位置  
-    mirrorY: <number>
-    # 镜像的宽度
-    mirrorWidth: <number>
-    # 镜像的高度
-    mirrorHeight: <number>
-
-  # 启动 URL 或应用，可选，默认使用设备当前页面
   launch: <url>
 
   # 输出 aiQuery/aiAssert 结果的 JSON 文件路径，可选
@@ -360,11 +308,6 @@ midscene './scripts/**/*.yaml'
 - `--web.viewportWidth <width>`: 设置浏览器视口宽度，这将覆盖所有脚本文件中的 `web.viewportWidth` 参数。
 - `--web.viewportHeight <height>`: 设置浏览器视口高度，这将覆盖所有脚本文件中的 `web.viewportHeight` 参数。
 - `--android.deviceId <device-id>`: 设置安卓设备 ID，这将覆盖所有脚本文件中的 `android.deviceId` 参数。
-- `--ios.serverPort <port>`: 设置 iOS PyAutoGUI 服务器端口，这将覆盖所有脚本文件中的 `ios.serverPort` 参数。
-- `--ios.mirrorX <x>`: 设置 iOS 镜像 X 位置，这将覆盖所有脚本文件中的 `ios.mirrorConfig.mirrorX` 参数。
-- `--ios.mirrorY <y>`: 设置 iOS 镜像 Y 位置，这将覆盖所有脚本文件中的 `ios.mirrorConfig.mirrorY` 参数。
-- `--ios.mirrorWidth <width>`: 设置 iOS 镜像宽度，这将覆盖所有脚本文件中的 `ios.mirrorConfig.mirrorWidth` 参数。
-- `--ios.mirrorHeight <height>`: 设置 iOS 镜像高度，这将覆盖所有脚本文件中的 `ios.mirrorConfig.mirrorHeight` 参数。
 - `--dotenv-debug`: 设置 dotenv 的 debug 日志，默认关闭。
 - `--dotenv-override`: 设置 dotenv 是否覆盖同名的全局环境变量，默认关闭。
 
