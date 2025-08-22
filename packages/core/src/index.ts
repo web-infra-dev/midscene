@@ -36,3 +36,5 @@ export type {
   LocateOption,
   DetailedLocateParam,
 } from './yaml';
+
+export { PageAgent, type PageAgentOpt } from './common/agent';
