@@ -6,7 +6,7 @@ vi.setConfig({
 });
 
 describe(
-  'android integration',
+  'android settings page',
   async () => {
     await it('Android settings page demo for scroll', async () => {
       const devices = await getConnectedDevices();

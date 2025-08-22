@@ -144,7 +144,7 @@ If you use Midscene.js in your research or project, please cite:
 }
 ```
 
-## Star History
+## ✨ Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=web-infra-dev/midscene&type=Date)](https://www.star-history.com/#web-infra-dev/midscene&Date)
 
