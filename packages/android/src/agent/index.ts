@@ -51,6 +51,10 @@ export async function agentFromAdbDevice(
     remoteAdbHost: opts?.remoteAdbHost,
     remoteAdbPort: opts?.remoteAdbPort,
     imeStrategy: opts?.imeStrategy,
+    displayId: opts?.displayId,
+    usePhysicalDisplayIdForScreenshot: opts?.usePhysicalDisplayIdForScreenshot,
+    usePhysicalDisplayIdForDisplayLookup:
+      opts?.usePhysicalDisplayIdForDisplayLookup,
   });
 
   await page.connect();

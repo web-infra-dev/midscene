@@ -143,7 +143,7 @@ for (const record of recordList) {
 }
 ```
 
-## Star 趋势
+## ✨ Star 趋势
 
 [![Star History Chart](https://api.star-history.com/svg?repos=web-infra-dev/midscene&type=Date)](https://www.star-history.com/#web-infra-dev/midscene&Date)
 
