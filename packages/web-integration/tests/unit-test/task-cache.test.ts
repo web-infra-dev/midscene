@@ -49,7 +49,7 @@ describe('TaskCache', { timeout: 20000 }, () => {
       cacheId,
       'cacheId',
     );
-    expect(cacheContent).toMatchSnapshot();
+    expect(cacheContent.replace(/\d+\.\d+\.\d+/g, '0.999.0')).toMatchSnapshot();
 
     expect(cache.isCacheResultUsed).toBe(true);
   });
@@ -212,7 +212,9 @@ describe('TaskCache', { timeout: 20000 }, () => {
       newTaskCache.cacheFilePath!,
       'utf-8',
     ).replace(newTaskCache.cacheId, 'cacheId');
-    expect(cacheFileContent).toMatchSnapshot();
+    expect(
+      cacheFileContent.replace(/\d+\.\d+\.\d+/g, '0.999.0'),
+    ).toMatchSnapshot();
   });
 
   it('should sanitize cache ID for file path', () => {
