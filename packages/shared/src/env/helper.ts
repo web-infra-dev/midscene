@@ -67,7 +67,7 @@ export const initDebugConfig = () => {
 };
 
 export const parseJson = (key: string, value: string | undefined) => {
-  if (value !== undefined) {
+  if (value) {
     try {
       return JSON.parse(value);
     } catch (e) {
