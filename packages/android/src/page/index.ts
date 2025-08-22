@@ -530,7 +530,7 @@ ${Object.keys(size)
           }
         } else {
           const displayDeviceRegex = new RegExp(
-            `DisplayDevice:[\s\S]*?mDisplayId=${this.options.displayId}[\s\S]*?DisplayInfo{[^}]*density (\\d+)`,
+            `DisplayDevice:[\\s\\S]*?mDisplayId=${this.options.displayId}[\\s\\S]*?DisplayInfo{[^}]*density (\\d+)`,
             'm',
           );
           const deviceBlockMatch = stdout.match(displayDeviceRegex);

@@ -800,7 +800,7 @@ describe('AndroidDevice', () => {
       );
     });
 
-    it('should call dumpsys SurfaceFlinger with correct display ID for getLongDisplayId', async () => {
+    it('should call dumpsys SurfaceFlinger with correct display ID for getPhysicalDisplayId', async () => {
       deviceWithDisplay = new AndroidDevice('test-device', {
         displayId: 1,
       });
@@ -808,11 +808,11 @@ describe('AndroidDevice', () => {
       setupMockAdb(mockAdbInstance);
       await deviceWithDisplay.getAdb();
 
-      // Call a method that would trigger getLongDisplayId
-      const longDisplayIdMethod = (
+      // Call a method that would trigger getPhysicalDisplayId
+      const physicalDisplayIdMethod = (
         deviceWithDisplay as any
-      ).getLongDisplayId.bind(deviceWithDisplay);
-      const result = await longDisplayIdMethod();
+      ).getPhysicalDisplayId.bind(deviceWithDisplay);
+      const result = await physicalDisplayIdMethod();
 
       expect(mockAdbInstance.shell).toHaveBeenCalledWith(
         'dumpsys SurfaceFlinger --display-id 1',
@@ -836,7 +836,7 @@ describe('AndroidDevice', () => {
       expect(size.dpr).toBe(2.625); // 420 / 160 = 2.625
     });
 
-    it('should use short display ID for screenshots by default when displayId is set', async () => {
+    it('should use display ID for screenshots by default when displayId is set', async () => {
       deviceWithDisplay = new AndroidDevice('test-device', {
         displayId: 1,
       });
@@ -866,7 +866,7 @@ describe('AndroidDevice', () => {
 
       await deviceWithDisplay.screenshotBase64();
 
-      // Verify that screencap command uses the short display ID by default
+      // Verify that screencap command uses the display ID by default
       expect(mockAdbInstance.shell).toHaveBeenCalledWith(
         expect.stringMatching(/screencap -p -d 1/),
       );
@@ -875,7 +875,7 @@ describe('AndroidDevice', () => {
       );
     });
 
-    it('should use long display ID for screenshots when usePhysicalDisplayIdForScreenshot is true', async () => {
+    it('should use physical display ID for screenshots when usePhysicalDisplayIdForScreenshot is true', async () => {
       deviceWithDisplay = new AndroidDevice('test-device', {
         displayId: 1,
         usePhysicalDisplayIdForScreenshot: true,
@@ -906,13 +906,13 @@ describe('AndroidDevice', () => {
 
       await deviceWithDisplay.screenshotBase64();
 
-      // Verify that screencap command uses the long display ID
+      // Verify that screencap command uses the physical display ID
       expect(mockAdbInstance.shell).toHaveBeenCalledWith(
         expect.stringMatching(/screencap -p -d 4630946423637606531/),
       );
     });
 
-    it('should use short display ID for screenshots when usePhysicalDisplayIdForScreenshot is false', async () => {
+    it('should use display ID for screenshots when usePhysicalDisplayIdForScreenshot is false', async () => {
       deviceWithDisplay = new AndroidDevice('test-device', {
         displayId: 2,
         usePhysicalDisplayIdForScreenshot: false,
@@ -953,7 +953,7 @@ describe('AndroidDevice', () => {
 
       await deviceWithDisplay.screenshotBase64();
 
-      // Verify that screencap command uses the short display ID (2), not the long one
+      // Verify that screencap command uses the display ID (2), not the long one
       expect(mockAdbInstance.shell).toHaveBeenCalledWith(
         expect.stringMatching(/screencap -p -d 2/),
       );
