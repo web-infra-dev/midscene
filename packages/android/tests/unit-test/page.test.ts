@@ -738,7 +738,7 @@ describe('AndroidDevice', () => {
       );
     });
 
-    it.skip('should call dumpsys SurfaceFlinger with correct display ID for getLongDisplayId', async () => {
+    it('should call dumpsys SurfaceFlinger with correct display ID for getLongDisplayId', async () => {
       deviceWithDisplay = new AndroidDevice('test-device', {
         activeDisplayId: 1,
       });
@@ -758,7 +758,7 @@ describe('AndroidDevice', () => {
       expect(result).toBe('4630946423637606531');
     });
 
-    it.skip('should use display-specific size when activeDisplayId is set', async () => {
+    it('should use display-specific size when activeDisplayId is set', async () => {
       deviceWithDisplay = new AndroidDevice('test-device', {
         activeDisplayId: 1,
       });
@@ -774,7 +774,7 @@ describe('AndroidDevice', () => {
       expect(size.dpr).toBe(2.625); // 420 / 160 = 2.625
     });
 
-    it.skip('should use long display ID for screenshots when activeDisplayId is set', async () => {
+    it('should use short display ID for screenshots by default when activeDisplayId is set', async () => {
       deviceWithDisplay = new AndroidDevice('test-device', {
         activeDisplayId: 1,
       });
@@ -804,8 +804,97 @@ describe('AndroidDevice', () => {
 
       await deviceWithDisplay.screenshotBase64();
 
+      // Verify that screencap command uses the short display ID by default
+      expect(mockAdbInstance.shell).toHaveBeenCalledWith(
+        expect.stringMatching(/screencap -p -d 1/),
+      );
+      expect(mockAdbInstance.shell).not.toHaveBeenCalledWith(
+        expect.stringMatching(/screencap -p -d 4630946423637606531/),
+      );
+    });
+
+    it('should use long display ID for screenshots when useLongDisplayIdForScreenshot is true', async () => {
+      deviceWithDisplay = new AndroidDevice('test-device', {
+        activeDisplayId: 1,
+        useLongDisplayIdForScreenshot: true,
+      });
+
+      setupMockAdb(mockAdbInstance);
+
+      // Mock the scenario where takeScreenshot fails and we fall back to shell screencap
+      mockAdbInstance.takeScreenshot.mockRejectedValue(
+        new Error('Display 1 requires shell screencap'),
+      );
+
+      await deviceWithDisplay.getAdb();
+
+      // Mock fs.promises.readFile to return a valid PNG buffer
+      const mockBuffer = Buffer.from('fake-png-data');
+      (fs.promises.readFile as any).mockResolvedValue(mockBuffer);
+
+      // Mock image utilities
+      (ImgUtils.isValidPNGImageBuffer as any).mockReturnValue(true);
+      (ImgUtils.resizeAndConvertImgBuffer as any).mockResolvedValue({
+        buffer: mockBuffer,
+        format: 'png' as const,
+      });
+      (ImgUtils.createImgBase64ByFormat as any).mockReturnValue(
+        'data:image/png;base64,fake-data',
+      );
+
+      await deviceWithDisplay.screenshotBase64();
+
       // Verify that screencap command uses the long display ID
       expect(mockAdbInstance.shell).toHaveBeenCalledWith(
+        expect.stringMatching(/screencap -p -d 4630946423637606531/),
+      );
+    });
+
+    it('should use short display ID for screenshots when useLongDisplayIdForScreenshot is false', async () => {
+      deviceWithDisplay = new AndroidDevice('test-device', {
+        activeDisplayId: 2,
+        useLongDisplayIdForScreenshot: false,
+      });
+
+      setupMockAdb(mockAdbInstance);
+
+      // Mock the scenario where takeScreenshot fails and we fall back to shell screencap
+      mockAdbInstance.takeScreenshot.mockRejectedValue(
+        new Error('Display 2 requires shell screencap'),
+      );
+
+      // Manually assign the mocked adb instance
+      (deviceWithDisplay as any).adb = mockAdbInstance;
+      (deviceWithDisplay as any).connectingAdb = Promise.resolve(mockAdbInstance);
+
+      // Mock fs.promises.readFile to return a valid PNG buffer
+      const mockBuffer = Buffer.from('fake-png-data');
+      (fs.promises.readFile as any).mockResolvedValue(mockBuffer);
+
+      // Mock image utilities
+      (ImgUtils.isValidPNGImageBuffer as any).mockReturnValue(true);
+      (ImgUtils.resizeAndConvertImgBuffer as any).mockResolvedValue({
+        buffer: mockBuffer,
+        format: 'png' as const,
+      });
+      (ImgUtils.createImgBase64ByFormat as any).mockReturnValue(
+        'data:image/png;base64,fake-data',
+      );
+
+      // Mock size method
+      vi.spyOn(deviceWithDisplay, 'size').mockResolvedValue({
+        width: 1080,
+        height: 1920,
+        dpr: 2,
+      });
+
+      await deviceWithDisplay.screenshotBase64();
+
+      // Verify that screencap command uses the short display ID (2), not the long one
+      expect(mockAdbInstance.shell).toHaveBeenCalledWith(
+        expect.stringMatching(/screencap -p -d 2/),
+      );
+      expect(mockAdbInstance.shell).not.toHaveBeenCalledWith(
         expect.stringMatching(/screencap -p -d 4630946423637606531/),
       );
     });
@@ -848,7 +937,7 @@ describe('AndroidDevice', () => {
       expect(mockAdbInstance.keyevent).toHaveBeenCalledWith(111); // ESC key for hiding keyboard
     });
 
-    it.skip('should handle back, home, and recentApps operations with display argument', async () => {
+    it('should handle back, home, and recentApps operations with display argument', async () => {
       deviceWithDisplay = new AndroidDevice('test-device', {
         activeDisplayId: 1,
       });
@@ -891,6 +980,54 @@ describe('AndroidDevice', () => {
       await deviceWithDisplay.longPress(100, 200, 1500);
       expect(mockAdbInstance.shell).toHaveBeenCalledWith(
         'input -d 2 swipe 100 200 100 200 1500',
+      );
+    });
+
+    it('should not use display ID for screenshots when activeDisplayId is not set', async () => {
+      deviceWithDisplay = new AndroidDevice('test-device', {
+        useLongDisplayIdForScreenshot: true, // This should be ignored when no activeDisplayId
+      });
+
+      setupMockAdb(mockAdbInstance);
+
+      // Mock the scenario where takeScreenshot fails and we fall back to shell screencap
+      mockAdbInstance.takeScreenshot.mockRejectedValue(
+        new Error('takeScreenshot failed'),
+      );
+
+      // Manually assign the mocked adb instance
+      (deviceWithDisplay as any).adb = mockAdbInstance;
+      (deviceWithDisplay as any).connectingAdb = Promise.resolve(mockAdbInstance);
+
+      // Mock fs.promises.readFile to return a valid PNG buffer
+      const mockBuffer = Buffer.from('fake-png-data');
+      (fs.promises.readFile as any).mockResolvedValue(mockBuffer);
+
+      // Mock image utilities
+      (ImgUtils.isValidPNGImageBuffer as any).mockReturnValue(true);
+      (ImgUtils.resizeAndConvertImgBuffer as any).mockResolvedValue({
+        buffer: mockBuffer,
+        format: 'png' as const,
+      });
+      (ImgUtils.createImgBase64ByFormat as any).mockReturnValue(
+        'data:image/png;base64,fake-data',
+      );
+
+      // Mock size method
+      vi.spyOn(deviceWithDisplay, 'size').mockResolvedValue({
+        width: 1080,
+        height: 1920,
+        dpr: 2,
+      });
+
+      await deviceWithDisplay.screenshotBase64();
+
+      // Verify that screencap command does not use any display ID (note the extra space)
+      expect(mockAdbInstance.shell).toHaveBeenCalledWith(
+        expect.stringMatching(/screencap -p  \/data\/local\/tmp\/midscene_screenshot_/),
+      );
+      expect(mockAdbInstance.shell).not.toHaveBeenCalledWith(
+        expect.stringMatching(/screencap -p -d/),
       );
     });
   });

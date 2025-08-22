@@ -21,6 +21,24 @@ describe('agent with forceSameTabNavigation', () => {
     const agent = new PuppeteerAgent(originPage, {
       cacheId: 'puppeteer-open-new-tab',
     });
-    await agent.aiWaitFor('the page is about hahah');
+    const inputXpath = '//*[@id="sb_form_q"]';
+    await agent.aiInput('midscene github', 'The search input box', {
+      xpath: inputXpath,
+    });
+    const log = await agent._unstableLogContent();
+    expect(log.executions[0].tasks[0].hitBy?.from).toBe('User expected path');
+    expect(log.executions[0].tasks[0].hitBy?.context?.xpath).toBe(inputXpath);
+    await agent.aiKeyboardPress('Enter', 'The search input box', {
+      xpath: inputXpath,
+    });
+    await sleep(5000);
+    const log1 = await agent._unstableLogContent();
+    expect(log1.executions[1].tasks[0].hitBy?.from).toBe('User expected path');
+    expect(log1.executions[1].tasks[0].hitBy?.context?.xpath).toBe(inputXpath);
+    await agent.aiTap('The search result link for "midscene" project');
+    const log2 = await agent._unstableLogContent();
+    expect(log2.executions[2].tasks[0].hitBy?.from).toBe('AI model');
+    await sleep(5000);
+    await agent.aiAssert('the page is about "midscene" project');
   });
 });
