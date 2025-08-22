@@ -75,7 +75,7 @@ Midscene MCP provides the following Android device automation tools:
   ```
   Parameters:
   - deviceId: (Optional) Device ID to connect to. If not provided, uses the first available device.
-  - activeDisplayId: (Optional) Display ID for multi-display Android devices (e.g., 0, 1, 2). 
+  - displayId: (Optional) Display ID for multi-display Android devices (e.g., 0, 1, 2). 
     When specified, all ADB input operations will target this specific display.
   ```
 
@@ -207,59 +207,3 @@ open report_file_name.html
 ```
 
 ![image](https://lf3-static.bytednsdoc.com/obj/eden-cn/ozpmyhn_lm_hymuPild/ljhwZthlaukjlkulzlp/midscene/image.png)
-
-## Multi-Display Support
-
-Midscene MCP supports Android devices with multiple displays, such as foldable phones or devices with external displays.
-
-### Using activeDisplayId
-
-When connecting to an Android device with multiple displays, you can specify which display to target:
-
-```json
-{
-  "tool": "midscene_android_connect",
-  "parameters": {
-    "deviceId": "your-device-id",
-    "activeDisplayId": 1
-  }
-}
-```
-
-- `activeDisplayId`: Specifies the display ID (0, 1, 2, etc.) to target
-- All input operations (tap, swipe, keyboard) will be directed to this display
-- Screenshots will capture the specified display
-
-### Display ID Formats
-
-Android uses two types of display IDs:
-
-- **Short Display ID**: Simple numbers like 0, 1, 2 (used for input operations)
-- **Long Display ID**: Complex identifiers like 4630946423637606531 (used for some system operations)
-
-### Advanced Options
-
-- `useLongDisplayIdForScreenshot`: Controls whether screenshots use long or short display ID format
-- `useLongDisplayIdForDisplayLookup`: Controls whether display information queries use long or short ID format
-
-### Example: Testing Foldable Device
-
-```javascript
-// Connect to the inner display of a foldable device
-await midscene_android_connect({
-  deviceId: "foldable-device-id",
-  activeDisplayId: 0  // Inner display
-});
-
-// Take screenshot of inner display
-await midscene_screenshot({ name: "inner-display" });
-
-// Connect to the outer display
-await midscene_android_connect({
-  deviceId: "foldable-device-id", 
-  activeDisplayId: 1  // Outer display
-});
-
-// Take screenshot of outer display
-await midscene_screenshot({ name: "outer-display" });
-```

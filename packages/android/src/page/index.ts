@@ -47,9 +47,9 @@ export type AndroidDeviceOpt = {
   remoteAdbHost?: string;
   remoteAdbPort?: number;
   imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii';
-  activeDisplayId?: number;
-  useLongDisplayIdForScreenshot?: boolean;
-  useLongDisplayIdForDisplayLookup?: boolean;
+  displayId?: number;
+  usePhysicalDisplayIdForScreenshot?: boolean;
+  usePhysicalDisplayIdForDisplayLookup?: boolean;
 } & AndroidDeviceInputOpt;
 
 export class AndroidDevice implements AndroidDevicePage {
@@ -382,17 +382,17 @@ ${Object.keys(size)
   }> {
     const adb = await this.getAdb();
 
-    // If we have an activeDisplayId, try to get size from display info
-    if (typeof this.options?.activeDisplayId === 'number') {
+    // If we have an displayId, try to get size from display info
+    if (typeof this.options?.displayId === 'number') {
       try {
         const stdout = await adb.shell('dumpsys display');
 
-        if (this.options?.useLongDisplayIdForDisplayLookup) {
-          const longDisplayId = await this.getLongDisplayId();
-          if (longDisplayId) {
+        if (this.options?.usePhysicalDisplayIdForDisplayLookup) {
+          const physicalDisplayId = await this.getPhysicalDisplayId();
+          if (physicalDisplayId) {
             // Use regex to find the line containing the target display's uniqueId
             const lineRegex = new RegExp(
-              `^.*uniqueId \"local:${longDisplayId}\".*$
+              `^.*uniqueId \"local:${physicalDisplayId}\".*$
 `,
               'm',
             );
@@ -411,7 +411,7 @@ ${Object.keys(size)
                 const sizeStr = `${width}x${height}`;
 
                 debugPage(
-                  `Using display info for long ID ${longDisplayId}: ${sizeStr}, rotation: ${rotation}`,
+                  `Using display info for long ID ${physicalDisplayId}: ${sizeStr}, rotation: ${rotation}`,
                 );
 
                 return {
@@ -425,7 +425,7 @@ ${Object.keys(size)
         } else {
           // Use regex to find the DisplayViewport containing the target display's displayId
           const viewportRegex = new RegExp(
-            `DisplayViewport{[^}]*displayId=${this.options.activeDisplayId}[^}]*}`,
+            `DisplayViewport{[^}]*displayId=${this.options.displayId}[^}]*}`,
             'g',
           );
           const match = stdout.match(viewportRegex);
@@ -442,7 +442,7 @@ ${Object.keys(size)
               const sizeStr = `${width}x${height}`;
 
               debugPage(
-                `Using display info for display ID ${this.options.activeDisplayId}: ${sizeStr}, rotation: ${rotation}`,
+                `Using display info for display ID ${this.options.displayId}: ${sizeStr}, rotation: ${rotation}`,
               );
 
               return {
@@ -455,11 +455,11 @@ ${Object.keys(size)
         }
 
         debugPage(
-          `Could not find display info for activeDisplayId ${this.options.activeDisplayId}`,
+          `Could not find display info for displayId ${this.options.displayId}`,
         );
       } catch (e) {
         debugPage(
-          `Failed to get size from display info for display ${this.options.activeDisplayId}: ${e}`,
+          `Failed to get size from display info for display ${this.options.displayId}: ${e}`,
         );
       }
     }
@@ -501,16 +501,16 @@ ${Object.keys(size)
   private async getDisplayDensity(): Promise<number> {
     const adb = await this.getAdb();
 
-    // If we have an activeDisplayId, try to get density from display info
-    if (typeof this.options?.activeDisplayId === 'number') {
+    // If we have an displayId, try to get density from display info
+    if (typeof this.options?.displayId === 'number') {
       try {
         const stdout = await adb.shell('dumpsys display');
-        if (this.options?.useLongDisplayIdForDisplayLookup) {
-          const longDisplayId = await this.getLongDisplayId();
-          if (longDisplayId) {
+        if (this.options?.usePhysicalDisplayIdForDisplayLookup) {
+          const physicalDisplayId = await this.getPhysicalDisplayId();
+          if (physicalDisplayId) {
             // Use regex to find the line containing the target display's uniqueId
             const lineRegex = new RegExp(
-              `^.*uniqueId \"local:${longDisplayId}\".*$
+              `^.*uniqueId \"local:${physicalDisplayId}\".*$
 `,
               'm',
             );
@@ -522,7 +522,7 @@ ${Object.keys(size)
               if (densityMatch) {
                 const density = Number(densityMatch[1]);
                 debugPage(
-                  `Using display density for long ID ${longDisplayId}: ${density}`,
+                  `Using display density for physical ID ${physicalDisplayId}: ${density}`,
                 );
                 return density;
               }
@@ -530,14 +530,14 @@ ${Object.keys(size)
           }
         } else {
           const displayDeviceRegex = new RegExp(
-            `DisplayDevice:[\s\S]*?mDisplayId=${this.options.activeDisplayId}[\s\S]*?DisplayInfo{[^}]*density (\\d+)`,
+            `DisplayDevice:[\s\S]*?mDisplayId=${this.options.displayId}[\s\S]*?DisplayInfo{[^}]*density (\\d+)`,
             'm',
           );
           const deviceBlockMatch = stdout.match(displayDeviceRegex);
           if (deviceBlockMatch) {
             const density = Number(deviceBlockMatch[1]);
             debugPage(
-              `Using display density for display ID ${this.options.activeDisplayId}: ${density}`,
+              `Using display density for display ID ${this.options.displayId}: ${density}`,
             );
             return density;
           }
@@ -656,14 +656,14 @@ ${Object.keys(size)
     const adb = await this.getAdb();
     let screenshotBuffer;
     const androidScreenshotPath = `/data/local/tmp/midscene_screenshot_${randomUUID()}.png`;
-    const useShellScreencap = typeof this.options?.activeDisplayId === 'number';
+    const useShellScreencap = typeof this.options?.displayId === 'number';
 
     try {
       if (useShellScreencap) {
         // appium-adb's takeScreenshot does not support specifying a display.
         // Throw an error to jump directly to the shell-based screencap logic.
         throw new Error(
-          `Display ${this.options?.activeDisplayId} requires shell screencap`,
+          `Display ${this.options?.displayId} requires shell screencap`,
         );
       }
       debugPage('Taking screenshot via adb.takeScreenshot');
@@ -692,9 +692,9 @@ ${Object.keys(size)
 
       try {
         debugPage('Fallback: taking screenshot via shell screencap');
-        const displayId = this.options?.useLongDisplayIdForScreenshot
-          ? await this.getLongDisplayId()
-          : this.options?.activeDisplayId;
+        const displayId = this.options?.usePhysicalDisplayIdForScreenshot
+          ? await this.getPhysicalDisplayId()
+          : this.options?.displayId;
         const displayArg = displayId ? `-d ${displayId}` : '';
         try {
           // Take a screenshot and save it locally
@@ -1228,41 +1228,41 @@ ${Object.keys(size)
   }
 
   private getDisplayArg(): string {
-    return typeof this.options?.activeDisplayId === 'number'
-      ? ` -d ${this.options.activeDisplayId}`
+    return typeof this.options?.displayId === 'number'
+      ? ` -d ${this.options.displayId}`
       : '';
   }
 
-  private async getLongDisplayId(): Promise<string | null> {
-    if (typeof this.options?.activeDisplayId !== 'number') {
+  private async getPhysicalDisplayId(): Promise<string | null> {
+    if (typeof this.options?.displayId !== 'number') {
       return null;
     }
 
     const adb = await this.getAdb();
     try {
       const stdout = await adb.shell(
-        `dumpsys SurfaceFlinger --display-id ${this.options.activeDisplayId}`,
+        `dumpsys SurfaceFlinger --display-id ${this.options.displayId}`,
       );
 
-      // Parse the output to extract the long display ID
-      // Look for a pattern like "Display 123456789 (HWC display N):" where N matches our short ID
+      // Parse the output to extract the physical display ID
+      // Look for a pattern like "Display 123456789 (HWC display N):" where N matches our display ID
       const regex = new RegExp(
-        `Display (\\d+) \\(HWC display ${this.options.activeDisplayId}\\):`,
+        `Display (\\d+) \\(HWC display ${this.options.displayId}\\):`,
       );
       const displayMatch = stdout.match(regex);
       if (displayMatch?.[1]) {
         debugPage(
-          `Found long display ID: ${displayMatch[1]} for short ID: ${this.options.activeDisplayId}`,
+          `Found physical display ID: ${displayMatch[1]} for display ID: ${this.options.displayId}`,
         );
         return displayMatch[1];
       }
 
       debugPage(
-        `Could not find long display ID for short ID: ${this.options.activeDisplayId}`,
+        `Could not find physical display ID for display ID: ${this.options.displayId}`,
       );
       return null;
     } catch (error) {
-      debugPage(`Error getting long display ID: ${error}`);
+      debugPage(`Error getting physical display ID: ${error}`);
       return null;
     }
   }

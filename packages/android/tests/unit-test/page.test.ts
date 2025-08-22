@@ -651,7 +651,7 @@ describe('AndroidDevice', () => {
     });
   });
 
-  describe('activeDisplayId', () => {
+  describe('displayId', () => {
     let deviceWithDisplay: AndroidDevice;
 
     const setupMockAdb = (adbInstance: any) => {
@@ -702,7 +702,7 @@ describe('AndroidDevice', () => {
       vi.restoreAllMocks();
     });
 
-    describe('activeDisplayId', () => {
+    describe('displayId', () => {
       let deviceWithDisplay: AndroidDevice;
 
       const setupMockAdb = (adbInstance: any) => {
@@ -753,9 +753,9 @@ describe('AndroidDevice', () => {
         vi.restoreAllMocks();
       });
 
-      it('should include display argument in shell commands when activeDisplayId is set', async () => {
+      it('should include display argument in shell commands when displayId is set', async () => {
         deviceWithDisplay = new AndroidDevice('test-device', {
-          activeDisplayId: 2,
+          displayId: 2,
         });
 
         // Setup mock using global mockAdbInstance
@@ -776,7 +776,7 @@ describe('AndroidDevice', () => {
       });
     });
 
-    it('should not include display argument in shell commands when activeDisplayId is not set', async () => {
+    it('should not include display argument in shell commands when displayId is not set', async () => {
       deviceWithDisplay = new AndroidDevice('test-device');
 
       // Setup mock using global mockAdbInstance
@@ -802,7 +802,7 @@ describe('AndroidDevice', () => {
 
     it('should call dumpsys SurfaceFlinger with correct display ID for getLongDisplayId', async () => {
       deviceWithDisplay = new AndroidDevice('test-device', {
-        activeDisplayId: 1,
+        displayId: 1,
       });
 
       setupMockAdb(mockAdbInstance);
@@ -820,9 +820,9 @@ describe('AndroidDevice', () => {
       expect(result).toBe('4630946423637606531');
     });
 
-    it('should use display-specific size when activeDisplayId is set', async () => {
+    it('should use display-specific size when displayId is set', async () => {
       deviceWithDisplay = new AndroidDevice('test-device', {
-        activeDisplayId: 1,
+        displayId: 1,
       });
 
       setupMockAdb(mockAdbInstance);
@@ -836,9 +836,9 @@ describe('AndroidDevice', () => {
       expect(size.dpr).toBe(2.625); // 420 / 160 = 2.625
     });
 
-    it('should use short display ID for screenshots by default when activeDisplayId is set', async () => {
+    it('should use short display ID for screenshots by default when displayId is set', async () => {
       deviceWithDisplay = new AndroidDevice('test-device', {
-        activeDisplayId: 1,
+        displayId: 1,
       });
 
       setupMockAdb(mockAdbInstance);
@@ -875,10 +875,10 @@ describe('AndroidDevice', () => {
       );
     });
 
-    it('should use long display ID for screenshots when useLongDisplayIdForScreenshot is true', async () => {
+    it('should use long display ID for screenshots when usePhysicalDisplayIdForScreenshot is true', async () => {
       deviceWithDisplay = new AndroidDevice('test-device', {
-        activeDisplayId: 1,
-        useLongDisplayIdForScreenshot: true,
+        displayId: 1,
+        usePhysicalDisplayIdForScreenshot: true,
       });
 
       setupMockAdb(mockAdbInstance);
@@ -912,10 +912,10 @@ describe('AndroidDevice', () => {
       );
     });
 
-    it('should use short display ID for screenshots when useLongDisplayIdForScreenshot is false', async () => {
+    it('should use short display ID for screenshots when usePhysicalDisplayIdForScreenshot is false', async () => {
       deviceWithDisplay = new AndroidDevice('test-device', {
-        activeDisplayId: 2,
-        useLongDisplayIdForScreenshot: false,
+        displayId: 2,
+        usePhysicalDisplayIdForScreenshot: false,
       });
 
       setupMockAdb(mockAdbInstance);
@@ -962,9 +962,9 @@ describe('AndroidDevice', () => {
       );
     });
 
-    it('should handle keyboard operations with display argument when activeDisplayId is set', async () => {
+    it('should handle keyboard operations with display argument when displayId is set', async () => {
       deviceWithDisplay = new AndroidDevice('test-device', {
-        activeDisplayId: 2,
+        displayId: 2,
         imeStrategy: 'yadb-for-non-ascii', // Use strategy that will call inputText for ASCII
       });
 
@@ -1002,7 +1002,7 @@ describe('AndroidDevice', () => {
 
     it('should handle back, home, and recentApps operations with display argument', async () => {
       deviceWithDisplay = new AndroidDevice('test-device', {
-        activeDisplayId: 1,
+        displayId: 1,
       });
 
       setupMockAdb(mockAdbInstance);
@@ -1027,7 +1027,7 @@ describe('AndroidDevice', () => {
 
     it('should handle long press operations with display argument', async () => {
       deviceWithDisplay = new AndroidDevice('test-device', {
-        activeDisplayId: 2,
+        displayId: 2,
       });
 
       setupMockAdb(mockAdbInstance);
@@ -1046,9 +1046,9 @@ describe('AndroidDevice', () => {
       );
     });
 
-    it('should not use display ID for screenshots when activeDisplayId is not set', async () => {
+    it('should not use display ID for screenshots when displayId is not set', async () => {
       deviceWithDisplay = new AndroidDevice('test-device', {
-        useLongDisplayIdForScreenshot: true, // This should be ignored when no activeDisplayId
+        usePhysicalDisplayIdForScreenshot: true, // This should be ignored when no displayId
       });
 
       setupMockAdb(mockAdbInstance);

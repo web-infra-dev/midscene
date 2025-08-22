@@ -75,7 +75,7 @@ Midscene MCP 提供以下 Android 设备自动化工具：
   ```
   参数：
   - deviceId：（可选）要连接的设备 ID。如果未提供，使用第一个可用设备
-  - activeDisplayId：（可选）多屏 Android 设备的显示屏 ID（如 0、1、2）。
+  - displayId：（可选）多屏 Android 设备的显示屏 ID（如 0、1、2）。
     当指定时，所有 ADB 输入操作将针对此特定显示屏。
   ```
 
@@ -207,59 +207,3 @@ open report_file_name.html
 ```
 
 ![image](https://lf3-static.bytednsdoc.com/obj/eden-cn/ozpmyhn_lm_hymuPild/ljhwZthlaukjlkulzlp/midscene/image.png)
-
-## 多屏支持
-
-Midscene MCP 支持具有多个显示屏的 Android 设备，如折叠屏手机或带有外接显示器的设备。
-
-### 使用 activeDisplayId
-
-当连接到具有多个显示屏的 Android 设备时，可以指定要控制的显示屏：
-
-```json
-{
-  "tool": "midscene_android_connect",
-  "parameters": {
-    "deviceId": "your-device-id",
-    "activeDisplayId": 1
-  }
-}
-```
-
-- `activeDisplayId`：指定要控制的显示屏 ID（0、1、2 等）
-- 所有输入操作（点击、滑动、键盘）都将指向指定的显示屏
-- 截图将捕获指定的显示屏
-
-### 显示屏 ID 格式
-
-Android 使用两种类型的显示屏 ID：
-
-- **短显示屏 ID**：简单的数字，如 0、1、2（用于输入操作）
-- **长显示屏 ID**：复杂的标识符，如 4630946423637606531（用于某些系统操作）
-
-### 高级选项
-
-- `useLongDisplayIdForScreenshot`：控制截图是否使用长或短显示屏 ID 格式
-- `useLongDisplayIdForDisplayLookup`：控制显示信息查询是否使用长或短 ID 格式
-
-### 示例：测试折叠屏设备
-
-```javascript
-// 连接到折叠屏设备的内屏
-await midscene_android_connect({
-  deviceId: "foldable-device-id",
-  activeDisplayId: 0  // 内屏
-});
-
-// 对内屏截图
-await midscene_screenshot({ name: "inner-display" });
-
-// 连接到外屏
-await midscene_android_connect({
-  deviceId: "foldable-device-id", 
-  activeDisplayId: 1  // 外屏
-});
-
-// 对外屏截图
-await midscene_screenshot({ name: "outer-display" });
-```
