@@ -10,3 +10,11 @@ export { type LocateCache, type PlanningCache, TaskCache } from './task-cache';
 export { cacheFileExt } from './task-cache';
 
 export { PageTaskExecutor } from './tasks';
+
+export { getKeyCommands } from './ui-utils';
+export {
+  buildDetailedLocateParam,
+  buildDetailedLocateParamAndRestParams,
+  getCurrentExecutionFile,
+  trimContextByViewport,
+} from './utils';
