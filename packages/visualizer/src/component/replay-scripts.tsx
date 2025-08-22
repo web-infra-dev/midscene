@@ -1,7 +1,7 @@
 'use client';
 import './player.less';
 import { mousePointer } from '@/utils';
-import { paramStr, typeStr } from '@midscene/web/ui-utils';
+import { paramStr, typeStr } from '@midscene/core/agent';
 
 import type {
   ExecutionDump,

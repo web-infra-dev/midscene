@@ -1,13 +1,5 @@
-// import type { DeviceAction, Point, Size, UIContext } from '@/index';
 import type { ElementInfo, ElementNode } from '@midscene/shared/extractor';
-import type {
-  DeviceAction,
-  ElementTreeNode,
-  PageType,
-  Point,
-  Size,
-  UIContext,
-} from '../types';
+import type { DeviceAction, Point, Size, UIContext } from '../types';
 
 // this is copied from puppeteer, but we don't want to import puppeteer here
 export declare type KeyInput =
@@ -266,50 +258,6 @@ export declare type KeyInput =
   | 'EndCall'
   | 'VolumeDown'
   | 'VolumeUp';
-
-export interface AndroidDevicePage extends AbstractPage {
-  pageType: PageType;
-  connect(): Promise<any>;
-  launch(uri: string): Promise<any>;
-
-  screenshotBase64(): Promise<string>;
-  getElementsNodeTree(): Promise<ElementTreeNode<ElementInfo>>;
-  url(): string | Promise<string>;
-  size(): Promise<Size>;
-
-  scrollUntilTop(startingPoint?: Point): Promise<void>;
-  scrollUntilBottom(startingPoint?: Point): Promise<void>;
-  scrollUntilLeft(startingPoint?: Point): Promise<void>;
-  scrollUntilRight(startingPoint?: Point): Promise<void>;
-  scrollUp(distance?: number, startingPoint?: Point): Promise<void>;
-  scrollDown(distance?: number, startingPoint?: Point): Promise<void>;
-  scrollLeft(distance?: number, startingPoint?: Point): Promise<void>;
-  scrollRight(distance?: number): Promise<void>;
-
-  getXpathsById(id: string): Promise<string[]>;
-  getXpathsByPoint(point: Point, isOrderSensitive: boolean): Promise<string[]>;
-  getElementInfoByXpath(xpath: string): Promise<ElementInfo>;
-
-  back(): Promise<void>;
-  home(): Promise<void>;
-  recentApps(): Promise<void>;
-  longPress(x: number, y: number, duration?: number): Promise<void>;
-  pullDown(
-    startPoint?: Point,
-    distance?: number,
-    duration?: number,
-  ): Promise<void>;
-  pullUp(
-    startPoint?: Point,
-    distance?: number,
-    duration?: number,
-  ): Promise<void>;
-}
-
-export type AndroidDeviceInputOpt = {
-  autoDismissKeyboard?: boolean;
-  keyboardDismissStrategy?: 'esc-first' | 'back-first';
-};
 
 export type MouseButton = 'left' | 'right' | 'middle';
 

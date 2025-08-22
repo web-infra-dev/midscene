@@ -31,10 +31,13 @@ import {
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { repeat } from '@midscene/shared/utils';
-import type { AndroidDeviceInputOpt, AndroidDevicePage } from '@midscene/web';
-import { commonWebActionsForWebPage } from '@midscene/web/utils';
 
+import { commonWebActionsForWebPage } from '@midscene/core/agent';
 import { ADB } from 'appium-adb';
+import type {
+  AndroidDeviceInputOpt,
+  AndroidDevicePage,
+} from 'src/android-device';
 
 // only for Android, because it's impossible to scroll to the bottom, so we need to set a default scroll times
 const defaultScrollUntilTimes = 10;
