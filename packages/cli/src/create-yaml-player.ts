@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { basename, extname } from 'node:path';
-import { ScriptPlayer, parseYamlScript } from '@midscene/web/yaml';
+import { ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
 import { createServer } from 'http-server';
 
 import assert from 'node:assert';
