@@ -1,5 +1,5 @@
-import { PageTaskExecutor } from '@/common/tasks';
 import type { DeviceAction, PlanningAction } from '@midscene/core';
+import { PageTaskExecutor } from '@midscene/core/agent';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock page with mouse operations
