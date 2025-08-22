@@ -46,7 +46,7 @@ import {
 } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import type { AndroidDeviceInputOpt } from '../device';
+// import type { AndroidDeviceInputOpt } from '../device';
 import { TaskCache } from './task-cache';
 import { PageTaskExecutor, locatePlanForLocate } from './tasks';
 import { locateParamStr, paramStr, taskTitleStr, typeStr } from './ui-utils';
@@ -332,7 +332,7 @@ export class Agent<PageType extends AbstractPage = AbstractPage> {
   // New signature, always use locatePrompt as the first param
   async aiInput(
     locatePrompt: TUserPrompt,
-    opt: AndroidDeviceInputOpt & LocateOption & { value: string },
+    opt: LocateOption & { value: string }, // AndroidDeviceInputOpt &
   ): Promise<any>;
 
   // Legacy signature - deprecated
@@ -342,7 +342,7 @@ export class Agent<PageType extends AbstractPage = AbstractPage> {
   async aiInput(
     value: string,
     locatePrompt: TUserPrompt,
-    opt?: AndroidDeviceInputOpt & LocateOption,
+    opt?: LocateOption, // AndroidDeviceInputOpt &
   ): Promise<any>;
 
   // Implementation
@@ -350,14 +350,14 @@ export class Agent<PageType extends AbstractPage = AbstractPage> {
     locatePromptOrValue: TUserPrompt | string,
     locatePromptOrOpt:
       | TUserPrompt
-      | (AndroidDeviceInputOpt & LocateOption & { value: string })
+      | (LocateOption & { value: string }) // AndroidDeviceInputOpt &
       | undefined,
-    optOrUndefined?: AndroidDeviceInputOpt & LocateOption,
+    optOrUndefined?: LocateOption, // AndroidDeviceInputOpt &
   ) {
     let value: string;
     let locatePrompt: TUserPrompt;
     let opt:
-      | (AndroidDeviceInputOpt & LocateOption & { value: string })
+      | (LocateOption & { value: string }) // AndroidDeviceInputOpt &
       | undefined;
 
     // Check if using new signature (first param is locatePrompt, second has value)
@@ -368,8 +368,9 @@ export class Agent<PageType extends AbstractPage = AbstractPage> {
     ) {
       // New signature: aiInput(locatePrompt, opt)
       locatePrompt = locatePromptOrValue as TUserPrompt;
-      const optWithValue = locatePromptOrOpt as AndroidDeviceInputOpt &
-        LocateOption & { value: string };
+      const optWithValue = locatePromptOrOpt as LocateOption & { // AndroidDeviceInputOpt &
+        value: string;
+      };
       value = optWithValue.value;
       opt = optWithValue;
     } else {

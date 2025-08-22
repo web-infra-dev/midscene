@@ -1,4 +1,4 @@
-import { PageAgent, type PageAgentOpt } from '@midscene/web/agent';
+import { Agent as PageAgent, type PageAgentOpt } from '@midscene/core/agent';
 import { AndroidDevice, type AndroidDeviceOpt } from '../page';
 
 import { vlLocateMode } from '@midscene/shared/env';
