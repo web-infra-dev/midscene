@@ -152,7 +152,7 @@ describe('puppeteer integration', () => {
     expect(result.pageLoaded).toBeDefined();
   });
 
-  it.skip('drag and drop', async () => {
+  it('drag and drop', async () => {
     const { originPage, reset } = await launchPage(
       'https://the-internet.herokuapp.com/drag_and_drop',
     );
@@ -162,5 +162,6 @@ describe('puppeteer integration', () => {
     });
 
     await agent.aiAction('drag the element A to B');
+    await agent.aiAssert('the element A is on the right of the element B');
   });
 });
