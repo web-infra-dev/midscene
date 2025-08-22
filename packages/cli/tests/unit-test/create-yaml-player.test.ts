@@ -12,7 +12,7 @@ vi.mock('http-server', () => ({
   createServer: vi.fn(),
 }));
 
-vi.mock('@midscene/web/yaml', () => ({
+vi.mock('@midscene/core/yaml', () => ({
   ScriptPlayer: vi.fn(),
   parseYamlScript: vi.fn(),
 }));
