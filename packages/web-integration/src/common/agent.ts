@@ -24,6 +24,7 @@ import {
   type Rect,
   type ScrollParam,
   type TUserPrompt,
+  type UIContext,
 } from '@midscene/core';
 
 import yaml from 'js-yaml';
@@ -35,10 +36,7 @@ import {
   stringifyDumpData,
   writeLogFile,
 } from '@midscene/core/utils';
-import {
-  DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
-  DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
-} from '@midscene/shared/constants';
+
 import {
   type IModelPreferences,
   type TModelConfigFn,
@@ -49,9 +47,6 @@ import {
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { PageTaskExecutor, locatePlanForLocate } from '../common/tasks';
-import type { PlaywrightWebPage } from '../playwright';
-import type { PuppeteerWebPage } from '../puppeteer';
-import type { WebElementInfo, WebUIContext } from '../web-element';
 import type { AndroidDeviceInputOpt } from './page';
 import { TaskCache } from './task-cache';
 import { locateParamStr, paramStr, taskTitleStr, typeStr } from './ui-utils';
@@ -84,7 +79,6 @@ const defaultInsightExtractOption: InsightExtractOption = {
 };
 
 export interface PageAgentOpt {
-  forceSameTabNavigation?: boolean /* if limit the new tab to the current page, default true */;
   testId?: string;
   cacheId?: string;
   groupName?: string;
@@ -104,12 +98,13 @@ export type WebPageAgentOpt = PageAgentOpt & WebPageOpt;
 export type WebPageOpt = {
   waitForNavigationTimeout?: number;
   waitForNetworkIdleTimeout?: number;
+  forceSameTabNavigation?: boolean /* if limit the new tab to the current page, default true */;
 };
 
 export class PageAgent<PageType extends WebPage = WebPage> {
   page: PageType;
 
-  insight: Insight<WebElementInfo, WebUIContext>;
+  insight: Insight;
 
   dump: GroupedActionDump;
 
@@ -137,7 +132,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
   /**
    * Frozen page context for consistent AI operations
    */
-  private frozenPageContext?: WebUIContext;
+  private frozenPageContext?: UIContext;
 
   constructor(page: PageType, opts?: PageAgentOpt) {
     this.page = page;
@@ -154,31 +149,13 @@ export class PageAgent<PageType extends WebPage = WebPage> {
       globalConfigManger.registerModelConfigFn(opts?.modelConfig);
     }
 
-    if (
-      this.page.pageType === 'puppeteer' ||
-      this.page.pageType === 'playwright'
-    ) {
-      (
-        this.page as PuppeteerWebPage | PlaywrightWebPage
-      ).waitForNavigationTimeout =
-        (this.opts as WebPageAgentOpt).waitForNavigationTimeout ??
-        DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT;
-      (
-        this.page as PuppeteerWebPage | PlaywrightWebPage
-      ).waitForNetworkIdleTimeout =
-        (this.opts as WebPageAgentOpt).waitForNetworkIdleTimeout ??
-        DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT;
-    }
-
     this.onTaskStartTip = this.opts.onTaskStartTip;
     // get the parent browser of the puppeteer page
     // const browser = (this.page as PuppeteerWebPage).browser();
 
-    this.insight = new Insight<WebElementInfo, WebUIContext>(
-      async (action: InsightAction) => {
-        return this.getUIContext(action);
-      },
-    );
+    this.insight = new Insight(async (action: InsightAction) => {
+      return this.getUIContext(action);
+    });
 
     if (opts?.cacheId && this.page.pageType !== 'android') {
       this.taskCache = new TaskCache(
@@ -201,7 +178,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     return this.page.actionSpace();
   }
 
-  async getUIContext(action?: InsightAction): Promise<WebUIContext> {
+  async getUIContext(action?: InsightAction): Promise<UIContext> {
     // If page context is frozen, return the frozen context for all actions
     if (this.frozenPageContext) {
       debug('Using frozen page context for action:', action);
@@ -215,7 +192,7 @@ export class PageAgent<PageType extends WebPage = WebPage> {
     return await parseContextFromWebPage(this.page, {});
   }
 
-  async _snapshotContext(): Promise<WebUIContext> {
+  async _snapshotContext(): Promise<UIContext> {
     return await this.getUIContext('locate');
   }
 
