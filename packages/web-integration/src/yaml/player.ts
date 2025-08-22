@@ -27,7 +27,6 @@ import type {
   MidsceneYamlScriptEnv,
   ScriptPlayerStatusValue,
   ScriptPlayerTaskStatus,
-  ScrollParam,
   TUserPrompt,
 } from '@midscene/core';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';

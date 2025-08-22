@@ -61,13 +61,17 @@
     "langsmith": "0.3.7",
     "openai": "4.81.0",
     "socks-proxy-agent": "8.0.4",
-    "zod": "3.24.3"
+    "zod": "3.24.3",
+    "semver": "7.5.2",
+    "js-yaml": "4.1.0"
   },
   "devDependencies": {
     "@microsoft/api-extractor": "^7.52.10",
     "@rslib/core": "^0.11.2",
     "@types/node": "^18.0.0",
     "@types/node-fetch": "2.6.11",
+    "@types/js-yaml": "4.0.9",
+    "@types/semver": "7.7.0",
     "typescript": "^5.8.3",
     "vitest": "3.0.5"
   },
