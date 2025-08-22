@@ -28,6 +28,16 @@
       "types": "./dist/types/tree.d.ts",
       "import": "./dist/es/tree.mjs",
       "require": "./dist/lib/tree.js"
+    },
+    "./device": {
+      "types": "./dist/types/device.d.ts",
+      "import": "./dist/es/device.mjs",
+      "require": "./dist/lib/device.js"
+    },
+    "./agent": {
+      "types": "./dist/types/agent.d.ts",
+      "import": "./dist/es/agent.mjs",
+      "require": "./dist/lib/agent.js"
     }
   },
   "typesVersions": {

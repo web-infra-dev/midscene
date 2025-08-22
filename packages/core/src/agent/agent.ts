@@ -36,7 +36,7 @@ import {
 } from '@/utils';
 import { ScriptPlayer, parseYamlScript } from '../yaml/index';
 
-import type { AbstractPage } from '@/page';
+import type { AbstractPage } from '@/device';
 import {
   type IModelPreferences,
   type TModelConfigFn,
@@ -46,9 +46,9 @@ import {
 } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import { PageTaskExecutor, locatePlanForLocate } from '../common/tasks';
-import type { AndroidDeviceInputOpt } from './page';
+import type { AndroidDeviceInputOpt } from '../device';
 import { TaskCache } from './task-cache';
+import { PageTaskExecutor, locatePlanForLocate } from './tasks';
 import { locateParamStr, paramStr, taskTitleStr, typeStr } from './ui-utils';
 import {
   buildDetailedLocateParam,
@@ -101,7 +101,7 @@ export type WebPageOpt = {
   forceSameTabNavigation?: boolean /* if limit the new tab to the current page, default true */;
 };
 
-export class PageAgent<PageType extends AbstractPage = AbstractPage> {
+export class Agent<PageType extends AbstractPage = AbstractPage> {
   page: PageType;
 
   insight: Insight;
