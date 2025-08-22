@@ -27,6 +27,7 @@ test('prompting with images', async ({
         url: 'https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png',
       },
     ],
+    convertHttpImage2Base64: true,
   });
 
   expect(positiveCheck).toBe(true);
