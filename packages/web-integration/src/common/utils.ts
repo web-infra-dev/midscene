@@ -1,3 +1,4 @@
+import type { AbstractPage } from '@/page';
 import type { StaticPage } from '@/playground';
 import type {
   BaseElement,
@@ -26,16 +27,10 @@ import {
   traverseTree,
 } from '@midscene/shared/extractor';
 import { resizeImgBase64 } from '@midscene/shared/img';
-import { type DebugFunction, getDebug } from '@midscene/shared/logger';
-import {
-  type KeyInput,
-  _keyDefinitions,
-} from '@midscene/shared/us-keyboard-layout';
+import { getDebug } from '@midscene/shared/logger';
+import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 import { assert, logMsg, uuid } from '@midscene/shared/utils';
 import dayjs from 'dayjs';
-import type { Page as PlaywrightPage } from 'playwright';
-import type { Page as PuppeteerPage } from 'puppeteer';
-import type { AbstractPage } from '../page';
 import { WebElementInfo, type WebUIContext } from '../web-element';
 import type { WebPage } from './page';
 import { debug as cacheDebug } from './task-cache';
@@ -186,39 +181,6 @@ export function replaceIllegalPathCharsAndSpace(str: string) {
   return str.replace(/[:*?"<>| ]/g, '-');
 }
 
-export function forceClosePopup(
-  page: PuppeteerPage | PlaywrightPage,
-  debugProfile: DebugFunction,
-) {
-  page.on('popup', async (popup) => {
-    if (!popup) {
-      console.warn('got a popup event, but the popup is not ready yet, skip');
-      return;
-    }
-    const url = await (popup as PuppeteerPage).url();
-    console.log(`Popup opened: ${url}`);
-    if (!(popup as PuppeteerPage).isClosed()) {
-      try {
-        await (popup as PuppeteerPage).close(); // Close the newly opened TAB
-      } catch (error) {
-        debugProfile(`failed to close popup ${url}, error: ${error}`);
-      }
-    } else {
-      debugProfile(`popup is already closed, skip close ${url}`);
-    }
-
-    if (!page.isClosed()) {
-      try {
-        await page.goto(url);
-      } catch (error) {
-        debugProfile(`failed to goto ${url}, error: ${error}`);
-      }
-    } else {
-      debugProfile(`page is already closed, skip goto ${url}`);
-    }
-  });
-}
-
 export function matchElementFromPlan(
   planLocateParam: PlanningLocateParam,
   tree: ElementTreeNode<BaseElement>,
@@ -257,11 +219,12 @@ export async function matchElementFromCache(
     if (
       xpaths?.length &&
       taskExecutor.taskCache?.isCacheResultUsed &&
-      cacheable !== false
+      cacheable !== false &&
+      (taskExecutor.page as any).getElementInfoByXpath
     ) {
       // hit cache, use new id
       for (let i = 0; i < xpaths.length; i++) {
-        const element = await taskExecutor.page.getElementInfoByXpath(
+        const element = await (taskExecutor.page as any).getElementInfoByXpath(
           xpaths[i],
         );
 
@@ -513,9 +476,9 @@ export const commonWebActionsForWebPage = <T extends AbstractPage>(
       value: z
         .string()
         .describe('The final value that should be filled in the input box'),
-      locate: getMidsceneLocationSchema().describe(
-        'The input field to be filled',
-      ),
+      locate: getMidsceneLocationSchema()
+        .describe('The input field to be filled')
+        .optional(),
     }),
     call: async (param) => {
       const element = param.locate;

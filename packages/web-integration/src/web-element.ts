@@ -64,5 +64,4 @@ export class WebElementInfo implements BaseElement {
 
 export type WebUIContext = UIContext<WebElementInfo> & {
   url: string;
-  _isFrozen?: boolean;
 };

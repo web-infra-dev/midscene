@@ -19,11 +19,10 @@ describe('decideModelConfig from modelConfig fn', () => {
     globalConfigManger.reset();
   });
   it('return undefined config', () => {
-    globalConfigManger.registerModelConfigFn(({ intent }) => {
-      return undefined as any;
-    });
     expect(() =>
-      decideModelConfig({ intent: 'VQA' }, true),
+      globalConfigManger.registerModelConfigFn(({ intent }) => {
+        return undefined as any;
+      }),
     ).toThrowErrorMatchingInlineSnapshot(
       '[Error: The agent has an option named modelConfig is a function, but it return undefined when call with intent VQA, which should be a object.]',
     );
@@ -64,12 +63,15 @@ describe('decideModelConfig from modelConfig fn', () => {
       {
         "from": "modelConfig",
         "httpProxy": undefined,
+        "modelDescription": "",
         "modelName": "vqa-model",
         "openaiApiKey": "mock-key",
         "openaiBaseURL": "mock-url",
         "openaiExtraConfig": undefined,
         "socksProxy": undefined,
+        "uiTarsVersion": undefined,
         "vlMode": undefined,
+        "vlModeRaw": undefined,
       }
     `);
   });
@@ -88,12 +90,15 @@ describe('decideModelConfig from modelConfig fn', () => {
       {
         "from": "modelConfig",
         "httpProxy": undefined,
+        "modelDescription": "",
         "modelName": "default-model",
         "openaiApiKey": "mock-key",
         "openaiBaseURL": "mock-url",
         "openaiExtraConfig": undefined,
         "socksProxy": undefined,
+        "uiTarsVersion": undefined,
         "vlMode": undefined,
+        "vlModeRaw": undefined,
       }
     `);
   });
@@ -130,12 +135,15 @@ describe('decideModelConfig from env', () => {
       {
         "from": "env",
         "httpProxy": undefined,
+        "modelDescription": "",
         "modelName": "planning-model",
         "openaiApiKey": "planning-key",
         "openaiBaseURL": "planning-url",
         "openaiExtraConfig": undefined,
         "socksProxy": undefined,
+        "uiTarsVersion": undefined,
         "vlMode": undefined,
+        "vlModeRaw": undefined,
       }
     `);
   });
@@ -157,12 +165,15 @@ describe('decideModelConfig from env', () => {
       {
         "from": "legacy-env",
         "httpProxy": undefined,
+        "modelDescription": "",
         "modelName": "modelInEnv",
         "openaiApiKey": "keyInEnv",
         "openaiBaseURL": "urlInInEnv",
         "openaiExtraConfig": undefined,
         "socksProxy": undefined,
+        "uiTarsVersion": undefined,
         "vlMode": undefined,
+        "vlModeRaw": undefined,
       }
     `);
   });
@@ -174,12 +185,15 @@ describe('decideModelConfig from env', () => {
       {
         "from": "legacy-env",
         "httpProxy": undefined,
+        "modelDescription": "",
         "modelName": "gpt-4o",
         "openaiApiKey": "keyInEnv",
         "openaiBaseURL": "urlInInEnv",
         "openaiExtraConfig": undefined,
         "socksProxy": undefined,
+        "uiTarsVersion": undefined,
         "vlMode": undefined,
+        "vlModeRaw": undefined,
       }
     `);
   });

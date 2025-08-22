@@ -1,14 +1,5 @@
 import { globalConfigManger } from './global-config';
-import {
-  type IModelPreferences,
-  MIDSCENE_DEBUG_AI_PROFILE,
-  MIDSCENE_DEBUG_AI_RESPONSE,
-  MIDSCENE_USE_DOUBAO_VISION,
-  MIDSCENE_USE_GEMINI,
-  MIDSCENE_USE_QWEN_VL,
-  MIDSCENE_USE_VLM_UI_TARS,
-  type TIntent,
-} from './types';
+import type { IModelPreferences, TIntent, TVlModeTypes } from './types';
 
 import {
   DEFAULT_MODEL_CONFIG_KEYS,
@@ -18,113 +9,14 @@ import {
   VQA_MODEL_CONFIG_KEYS,
 } from './constants';
 
-import { enableDebug, getDebug } from '../logger';
+import { getDebug } from '../logger';
 import { assert } from '../utils';
-
-const maskKey = (key: string, maskChar = '*') => {
-  if (typeof key !== 'string' || key.length === 0) {
-    return key;
-  }
-
-  const prefixLen = 3;
-  const suffixLen = 3;
-  const keepLength = prefixLen + suffixLen;
-
-  if (key.length <= keepLength) {
-    return key;
-  }
-
-  const prefix = key.substring(0, prefixLen);
-  const suffix = key.substring(key.length - suffixLen);
-  const maskLength = key.length - keepLength;
-  const mask = maskChar.repeat(maskLength);
-
-  return `${prefix}${mask}${suffix}`;
-};
-
-export const maskConfig = (config: IModelConfig) => {
-  return Object.fromEntries(
-    Object.entries(config).map(([key, value]) => [
-      key,
-      ['openaiApiKey', 'azureOpenaiKey', 'anthropicApiKey'].includes(key)
-        ? maskKey(value)
-        : value,
-    ]),
-  );
-};
-
-const initDebugConfig = () => {
-  const shouldPrintTiming = globalConfigManger.getConfigValueInBoolean(
-    MIDSCENE_DEBUG_AI_PROFILE,
-  );
-  let debugConfig = '';
-  if (shouldPrintTiming) {
-    console.warn(
-      'MIDSCENE_DEBUG_AI_PROFILE is deprecated, use DEBUG=midscene:ai:profile instead',
-    );
-    debugConfig = 'ai:profile';
-  }
-  const shouldPrintAIResponse = globalConfigManger.getConfigValueInBoolean(
-    MIDSCENE_DEBUG_AI_RESPONSE,
-  );
-
-  if (shouldPrintAIResponse) {
-    console.warn(
-      'MIDSCENE_DEBUG_AI_RESPONSE is deprecated, use DEBUG=midscene:ai:response instead',
-    );
-    if (debugConfig) {
-      debugConfig = 'ai:*';
-    } else {
-      debugConfig = 'ai:call';
-    }
-  }
-  if (debugConfig) {
-    enableDebug(debugConfig);
-  }
-};
-
-export const createAssert =
-  (
-    modelNameKey: string,
-    provider: 'process.env' | 'modelConfig',
-    modelName?: string,
-  ) =>
-  (value: string | undefined, key: string, modelVendorFlag?: string) => {
-    if (modelName) {
-      if (modelVendorFlag) {
-        assert(
-          value,
-          `The ${key} must be a non-empty string because of the ${modelNameKey} is declared as ${modelName} and ${modelVendorFlag} has also been specified in ${provider}, but got: ${value}. Please check your config.`,
-        );
-      } else {
-        assert(
-          value,
-          `The ${key} must be a non-empty string because of the ${modelNameKey} is declared as ${modelName} in ${provider}, but got: ${value}. Please check your config.`,
-        );
-      }
-    } else {
-      assert(
-        value,
-        `The ${key} must be a non-empty string, but got: ${value}. Please check your config.`,
-      );
-    }
-  };
-
-export const parseJson = (key: string, value: string | undefined) => {
-  if (value !== undefined) {
-    try {
-      return JSON.parse(value);
-    } catch (e) {
-      throw new Error(
-        `Failed to parse ${key} as a JSON. ${(e as Error).message}`,
-        {
-          cause: e,
-        },
-      );
-    }
-  }
-  return undefined;
-};
+import { createAssert, initDebugConfig, maskConfig, parseJson } from './helper';
+import {
+  type UITarsModelVersion,
+  parseVlModeAndUiTarsFromGlobalConfig,
+  parseVlModeAndUiTarsFromRaw,
+} from './parse';
 
 export interface IModelConfig {
   /**
@@ -159,9 +51,16 @@ export interface IModelConfig {
   useAnthropicSdk?: boolean;
   anthropicApiKey?: string;
   /**
-   * vlm
+   * - vlModeRaw: exists only in non-legacy logic. value can be 'doubao-vision', 'gemini', 'qwen-vl', 'vlm-ui-tars', 'vlm-ui-tars-doubao', 'vlm-ui-tars-doubao-1.5'
+   * - vlMode: based on the results of the vlModoRaw classification，value can be 'doubao-vision', 'gemini', 'qwen-vl', 'vlm-ui-tars'
    */
+  vlModeRaw?: string;
   vlMode?: string;
+  uiTarsVersion?: UITarsModelVersion;
+  modelDescription: string;
+  /**
+   * for debug
+   */
   from: 'modelConfig' | 'env' | 'legacy-env';
 }
 
@@ -194,11 +93,16 @@ export const decideOpenaiSdkConfig = ({
     key: string,
     modelVendorFlag?: string,
   ) => void;
-}): Omit<IModelConfig, 'modelName' | 'from'> => {
+}): Omit<
+  IModelConfig,
+  'modelName' | 'from' | 'vlMode' | 'uiTarsVersion' | 'modelDescription'
+> => {
+  initDebugConfig();
+  const debugLog = getDebug('ai:decideModel');
+
   const socksProxy = provider[keys.socksProxy];
   const httpProxy = provider[keys.httpProxy];
   const vlMode = provider[keys.vlMode];
-  const debugLog = getDebug('ai:decideModel');
 
   debugLog('enter decideOpenaiSdkConfig with keys:', keys);
   if (provider[keys.openaiUseAzureDeprecated]) {
@@ -222,7 +126,7 @@ export const decideOpenaiSdkConfig = ({
     return {
       socksProxy,
       httpProxy,
-      vlMode,
+      vlModeRaw: vlMode,
       openaiUseAzureDeprecated: true,
       openaiApiKey,
       openaiBaseURL,
@@ -253,7 +157,7 @@ export const decideOpenaiSdkConfig = ({
     return {
       socksProxy,
       httpProxy,
-      vlMode,
+      vlModeRaw: vlMode,
       useAzureOpenai: true,
       azureOpenaiScope,
       azureOpenaiKey,
@@ -291,7 +195,7 @@ export const decideOpenaiSdkConfig = ({
     return {
       socksProxy,
       httpProxy,
-      vlMode,
+      vlModeRaw: vlMode,
       openaiBaseURL,
       openaiApiKey,
       openaiExtraConfig,
@@ -299,67 +203,18 @@ export const decideOpenaiSdkConfig = ({
   }
 };
 
-/**
- * legacy logic of how to detect vlMode from process.env without intent
- */
-const decideVlModelValueFromGlobalConfig = ():
-  | 'qwen-vl'
-  | 'doubao-vision'
-  | 'gemini'
-  | 'vlm-ui-tars'
-  | undefined => {
-  const debugLog = getDebug('ai:decideModel');
-
-  const isDoubao = globalConfigManger.getConfigValueInBoolean(
-    MIDSCENE_USE_DOUBAO_VISION,
-  );
-  const isQwen =
-    globalConfigManger.getConfigValueInBoolean(MIDSCENE_USE_QWEN_VL);
-
-  const isUiTars = globalConfigManger.getConfigValueInBoolean(
-    MIDSCENE_USE_VLM_UI_TARS,
-  );
-
-  const isGemini =
-    globalConfigManger.getConfigValueInBoolean(MIDSCENE_USE_GEMINI);
-
-  debugLog('decideVlModelValueFromGlobalConfig get enabledModes', {
-    isDoubao,
-    isQwen,
-    isUiTars,
-    isGemini,
-  });
-
-  const enabledModes = [
-    isDoubao && MIDSCENE_USE_DOUBAO_VISION,
-    isQwen && MIDSCENE_USE_QWEN_VL,
-    isUiTars && MIDSCENE_USE_VLM_UI_TARS,
-    isGemini && MIDSCENE_USE_GEMINI,
-  ].filter(Boolean);
-
-  if (enabledModes.length > 1) {
-    throw new Error(
-      `Only one vision mode can be enabled at a time. Currently enabled modes: ${enabledModes.join(', ')}. Please disable all but one mode.`,
-    );
+const getModelDescription = (
+  vlMode: TVlModeTypes | undefined,
+  uiTarsVersion: UITarsModelVersion | undefined,
+) => {
+  if (vlMode) {
+    if (uiTarsVersion) {
+      return `UI-TARS=${uiTarsVersion}`;
+    } else {
+      return `${vlMode} mode`;
+    }
   }
-
-  if (isQwen) {
-    return 'qwen-vl';
-  }
-
-  if (isDoubao) {
-    return 'doubao-vision';
-  }
-
-  if (isGemini) {
-    return 'gemini';
-  }
-
-  if (isUiTars) {
-    return 'vlm-ui-tars';
-  }
-
-  return undefined;
+  return '';
 };
 
 /**
@@ -380,19 +235,15 @@ export const decideModelConfig = (
 
   const { intent } = modelPreferences;
 
-  const { hasModelConfigFn, result: modelConfigFromFn } =
-    globalConfigManger.getModelConfig(intent);
+  const modelConfigFromFn = globalConfigManger.getModelConfigFromFn(
+    intent,
+  ) as unknown as Record<string, string | undefined>;
 
-  if (hasModelConfigFn) {
-    if (!modelConfigFromFn) {
-      throw new Error(
-        `The agent has an option named modelConfig is a function, but it return ${modelConfigFromFn} when call with intent ${intent}, which should be a object.`,
-      );
-    }
+  if (modelConfigFromFn) {
+    debugLog('decideModelConfig base on agent.modelConfig()');
 
     const keysForFn = KEYS_MAP[intent];
 
-    debugLog('decideModelConfig base on agent.modelConfig()');
     const candidateModelNameFromConfig = modelConfigFromFn[keysForFn.modelName];
 
     debugLog('Got modelName from modelConfigFn', candidateModelNameFromConfig);
@@ -429,9 +280,17 @@ export const decideModelConfig = (
         : () => {},
     });
 
+    const { vlMode, uiTarsVersion } = parseVlModeAndUiTarsFromRaw(
+      result.vlModeRaw,
+    );
+    const modelDescription = getModelDescription(vlMode, uiTarsVersion);
+
     const finalResult: IModelConfig = {
       ...result,
-      modelName: modelConfigFromFn[chosenKeys.modelName],
+      modelName: modelConfigFromFn[chosenKeys.modelName]!,
+      vlMode,
+      uiTarsVersion,
+      modelDescription,
       from: 'modelConfig',
     };
 
@@ -469,9 +328,17 @@ export const decideModelConfig = (
         : () => {},
     });
 
+    const { vlMode, uiTarsVersion } = parseVlModeAndUiTarsFromRaw(
+      result.vlModeRaw,
+    );
+    const modelDescription = getModelDescription(vlMode, uiTarsVersion);
+
     const finalResult: IModelConfig = {
       ...result,
       modelName,
+      vlMode,
+      uiTarsVersion,
+      modelDescription,
       from: 'env',
     };
 
@@ -483,6 +350,7 @@ export const decideModelConfig = (
   }
 
   debugLog(`decideModelConfig as legacy logic with intent ${intent}.`);
+
   const result = decideOpenaiSdkConfig({
     keys: DEFAULT_MODEL_CONFIG_KEYS_LEGACY,
     provider: allConfig,
@@ -491,7 +359,10 @@ export const decideModelConfig = (
       : () => {},
   });
 
-  const vlMode = decideVlModelValueFromGlobalConfig();
+  const { vlMode, uiTarsVersion } =
+    parseVlModeAndUiTarsFromGlobalConfig(allConfig);
+
+  const modelDescription = getModelDescription(vlMode, uiTarsVersion);
 
   const finalResult: IModelConfig = {
     ...result,
@@ -499,6 +370,8 @@ export const decideModelConfig = (
     modelName:
       allConfig[DEFAULT_MODEL_CONFIG_KEYS_LEGACY.modelName] || 'gpt-4o',
     vlMode,
+    uiTarsVersion,
+    modelDescription,
     from: 'legacy-env',
   };
 

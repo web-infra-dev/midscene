@@ -37,8 +37,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   const replayAllMode = useExecutionDump((store) => store.replayAllMode);
   const setGroupedDump = useExecutionDump((store) => store.setGroupedDump);
   const sdkVersion = useExecutionDump((store) => store.sdkVersion);
-  const modelName = useExecutionDump((store) => store.modelName);
-  const modelDescription = useExecutionDump((store) => store.modelDescription);
+  const modelBriefs = useExecutionDump((store) => store.modelBriefs);
   const reset = useExecutionDump((store) => store.reset);
   const [mainLayoutChangeFlag, setMainLayoutChangeFlag] = useState(0);
   const mainLayoutChangedRef = useRef(false);
@@ -212,11 +211,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
           <div className="page-nav-right">
             <div className="page-nav-version">
               v{sdkVersion}
-              {modelName || modelDescription
-                ? ` | ${[modelName, modelDescription]
-                    .filter(Boolean)
-                    .join(', ')}`
-                : ''}
+              {modelBriefs.length ? ` | ${modelBriefs.join(', ')}` : ''}
             </div>
           </div>
         </div>

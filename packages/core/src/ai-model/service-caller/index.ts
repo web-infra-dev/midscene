@@ -41,6 +41,7 @@ async function createChatClient({
   completion: OpenAI.Chat.Completions;
   style: 'openai' | 'anthropic';
   modelName: string;
+  modelDescription: string;
 }> {
   const {
     socksProxy,
@@ -59,6 +60,7 @@ async function createChatClient({
     azureExtraConfig,
     useAnthropicSdk,
     anthropicApiKey,
+    modelDescription,
   } = decideModelConfig(modelPreferences, true);
 
   let openai: OpenAI | AzureOpenAI | undefined;
@@ -143,6 +145,7 @@ async function createChatClient({
       completion: openai.chat.completions,
       style: 'openai',
       modelName,
+      modelDescription,
     };
   }
 
@@ -160,6 +163,7 @@ async function createChatClient({
       completion: (openai as any).messages,
       style: 'anthropic',
       modelName,
+      modelDescription,
     };
   }
 
@@ -175,10 +179,11 @@ export async function call(
     onChunk?: StreamingCallback;
   },
 ): Promise<{ content: string; usage?: AIUsageInfo; isStreamed: boolean }> {
-  const { completion, style, modelName } = await createChatClient({
-    AIActionTypeValue,
-    modelPreferences,
-  });
+  const { completion, style, modelName, modelDescription } =
+    await createChatClient({
+      AIActionTypeValue,
+      modelPreferences,
+    });
 
   const responseFormat = getResponseFormat(modelName, AIActionTypeValue);
 
@@ -282,6 +287,8 @@ export async function call(
                 total_tokens: usage.total_tokens ?? 0,
                 time_cost: timeCost ?? 0,
                 model_name: modelName,
+                model_description: modelDescription,
+                intent: modelPreferences.intent,
               },
             };
             options.onChunk!(finalChunk);
@@ -385,6 +392,8 @@ export async function call(
                       (anthropicUsage.output_tokens ?? 0),
                     time_cost: timeCost ?? 0,
                     model_name: modelName,
+                    model_description: modelDescription,
+                    intent: modelPreferences.intent,
                   }
                 : undefined,
             };
@@ -436,6 +445,8 @@ export async function call(
             total_tokens: usage.total_tokens ?? 0,
             time_cost: timeCost ?? 0,
             model_name: modelName,
+            model_description: modelDescription,
+            intent: modelPreferences.intent,
           }
         : undefined,
       isStreamed: !!isStreaming,

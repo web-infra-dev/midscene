@@ -122,9 +122,15 @@ export interface ReplayScriptsInfo {
   width?: number;
   height?: number;
   sdkVersion?: string;
-  modelName?: string;
-  modelDescription?: string;
+  modelBriefs: string[];
 }
+
+const capitalizeFirstLetter = (str: string) => {
+  if (typeof str !== 'string' || str.length === 0) {
+    return str;
+  }
+  return str.charAt(0).toUpperCase() + str.slice(1);
+};
 
 export const allScriptsFromDump = (
   dump: GroupedActionDump,
@@ -133,8 +139,8 @@ export const allScriptsFromDump = (
   let width: number | undefined = undefined;
   let height: number | undefined = undefined;
   let sdkVersion: string | undefined = undefined;
-  const modelName: string | undefined = dump.modelName;
-  const modelDescription: string | undefined = dump.modelDescription;
+
+  const modelBriefsSet = new Set<string>();
 
   dump.executions.forEach((execution) => {
     if (execution.sdkVersion) {
@@ -155,8 +161,7 @@ export const allScriptsFromDump = (
     return {
       scripts: [],
       sdkVersion,
-      modelName,
-      modelDescription,
+      modelBriefs: [],
     };
   }
 
@@ -166,6 +171,18 @@ export const allScriptsFromDump = (
     if (scripts) {
       allScripts.push(...scripts);
     }
+    execution.tasks.forEach((task) => {
+      if (task.usage) {
+        const { model_name, model_description, intent } = task.usage;
+        if (intent && model_name) {
+          modelBriefsSet.add(
+            model_description
+              ? `${capitalizeFirstLetter(intent)}/${model_name}(${model_description})`
+              : model_name,
+          );
+        }
+      }
+    });
   });
 
   const allScriptsWithoutIntermediateDoneFrame = allScripts.filter(
@@ -182,8 +199,7 @@ export const allScriptsFromDump = (
     width,
     height,
     sdkVersion,
-    modelName,
-    modelDescription,
+    modelBriefs: [...modelBriefsSet],
   };
 };
 

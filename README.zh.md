@@ -143,6 +143,10 @@ for (const record of recordList) {
 }
 ```
 
+## Star 趋势
+
+[![Star History Chart](https://api.star-history.com/svg?repos=web-infra-dev/midscene&type=Date)](https://www.star-history.com/#web-infra-dev/midscene&Date)
+
 ## 📝 授权许可
 
 Midscene.js 遵循 [MIT 许可协议](https://github.com/web-infra-dev/midscene/blob/main/LICENSE)。

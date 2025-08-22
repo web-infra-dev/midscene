@@ -27,6 +27,8 @@ export type AIUsageInfo = Record<string, any> & {
   total_tokens: number | undefined;
   time_cost: number | undefined;
   model_name: string | undefined;
+  model_description: string | undefined;
+  intent: string | undefined;
 };
 
 /**
@@ -127,6 +129,8 @@ export abstract class UIContext<ElementType extends BaseElement = BaseElement> {
   abstract tree: ElementTreeNode<ElementType>;
 
   abstract size: Size;
+
+  abstract _isFrozen?: boolean;
 }
 
 /**
@@ -515,8 +519,7 @@ Grouped dump
 export interface GroupedActionDump {
   groupName: string;
   groupDescription?: string;
-  modelName: string;
-  modelDescription: string;
+  modelBriefs: string[];
   executions: ExecutionDump[];
 }
 

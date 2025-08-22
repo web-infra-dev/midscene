@@ -9,7 +9,7 @@ import { DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT } from '@midscene/shared/constants'
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
-import { getDebug } from '@midscene/shared/logger';
+import { type DebugFunction, getDebug } from '@midscene/shared/logger';
 import {
   getElementInfosScriptContent,
   getExtraReturnLogic,
@@ -388,5 +388,42 @@ export class Page<
     }
   }
 
+  async beforeAction(): Promise<void> {
+    await this.waitForNavigation();
+  }
+
   async destroy(): Promise<void> {}
+}
+
+export function forceClosePopup(
+  page: PuppeteerPage | PlaywrightPage,
+  debugProfile: DebugFunction,
+) {
+  page.on('popup', async (popup) => {
+    if (!popup) {
+      console.warn('got a popup event, but the popup is not ready yet, skip');
+      return;
+    }
+    const url = await (popup as PuppeteerPage).url();
+    console.log(`Popup opened: ${url}`);
+    if (!(popup as PuppeteerPage).isClosed()) {
+      try {
+        await (popup as PuppeteerPage).close(); // Close the newly opened TAB
+      } catch (error) {
+        debugProfile(`failed to close popup ${url}, error: ${error}`);
+      }
+    } else {
+      debugProfile(`popup is already closed, skip close ${url}`);
+    }
+
+    if (!page.isClosed()) {
+      try {
+        await page.goto(url);
+      } catch (error) {
+        debugProfile(`failed to goto ${url}, error: ${error}`);
+      }
+    } else {
+      debugProfile(`page is already closed, skip goto ${url}`);
+    }
+  });
 }

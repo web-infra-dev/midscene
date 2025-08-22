@@ -26,12 +26,29 @@ class GlobalConfigManager {
       }
     | undefined;
 
-  private modelConfigFn?: TModelConfigFn;
+  private modelConfigByIntent: Record<
+    TIntent,
+    ReturnType<TModelConfigFn> | undefined
+  >;
+
+  constructor() {
+    this.modelConfigByIntent = {
+      VQA: undefined,
+      default: undefined,
+      grounding: undefined,
+      planning: undefined,
+    };
+  }
 
   // just for unit test
   reset() {
     this.override = undefined;
-    this.modelConfigFn = undefined;
+    this.modelConfigByIntent = {
+      VQA: undefined,
+      default: undefined,
+      grounding: undefined,
+      planning: undefined,
+    };
   }
 
   getAllConfig(): Record<string, string | undefined> {
@@ -104,24 +121,10 @@ class GlobalConfigManager {
     };
   }
 
-  getModelConfig(intent: TIntent): {
-    hasModelConfigFn: boolean;
-    result: Record<string, string> | undefined;
-  } {
-    if (this.modelConfigFn) {
-      const result = this.modelConfigFn({ intent }) as unknown as Record<
-        string,
-        string
-      >;
-      return {
-        hasModelConfigFn: true,
-        result,
-      };
-    }
-    return {
-      hasModelConfigFn: false,
-      result: undefined,
-    };
+  getModelConfigFromFn(
+    intent: TIntent,
+  ): ReturnType<TModelConfigFn> | undefined {
+    return this.modelConfigByIntent[intent];
   }
 
   registerModelConfigFn(modelConfigFn?: TModelConfigFn) {
@@ -130,7 +133,17 @@ class GlobalConfigManager {
         `modelConfigFn must be a function when registerModelConfigFn, but got with type ${typeof modelConfigFn}`,
       );
     }
-    this.modelConfigFn = modelConfigFn;
+    const intents: TIntent[] = ['VQA', 'default', 'grounding', 'planning'];
+
+    for (const i of intents) {
+      const result = modelConfigFn({ intent: i });
+      if (!result) {
+        throw new Error(
+          `The agent has an option named modelConfig is a function, but it return ${result} when call with intent ${i}, which should be a object.`,
+        );
+      }
+      this.modelConfigByIntent[i] = result;
+    }
   }
 }
 
