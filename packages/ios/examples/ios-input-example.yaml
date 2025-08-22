@@ -25,7 +25,8 @@ tasks:
       - aiInput: "Coldplay"
         locate: "底部Search input field"
       - sleep: 2000
-      - aiKeyboardPress: "Enter"
+      - aiKeyboardPress: "底部Search input field"
+        keyName: 'Enter'
       - sleep: 3000
       - aiWaitFor: "Search results are displayed"
       - aiAction: "播放第一首歌曲"

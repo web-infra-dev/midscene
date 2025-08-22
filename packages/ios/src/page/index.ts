@@ -1,30 +1,30 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {
-  MidsceneLocation,
   type Point,
   type Size,
+  getMidsceneLocationSchema,
 } from '@midscene/core';
 import type {
   DeviceAction,
   ExecutorContext,
-  MidsceneLocationType,
+  MidsceneLocationResultType,
   PageType,
 } from '@midscene/core';
 import { z } from '@midscene/core';
+import { commonWebActionsForWebPage } from '@midscene/core/agent';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
-import { 
+import {
   createImgBase64ByFormat,
-  resizeImgBuffer
- } from '@midscene/shared/img';
+  resizeAndConvertImgBuffer,
+} from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
-import type { AndroidDeviceInputOpt, AndroidDevicePage } from '@midscene/web';
-import { commonWebActionsForWebPage } from '@midscene/web/utils';
+import type { IOSDeviceInputOpt, IOSDevicePage } from 'src/ios-device';
 import { type ScreenInfo, getScreenSize } from '../utils';
 
 export const debugPage = getDebug('ios:device');
-export interface iOSDeviceOpt extends AndroidDeviceInputOpt {
+export interface iOSDeviceOpt extends IOSDeviceInputOpt {
   serverUrl?: string;
   serverPort?: number;
   autoDismissKeyboard?: boolean;
@@ -83,7 +83,7 @@ export interface PyAutoGUIResult {
   traceback?: string;
 }
 
-export class iOSDevice implements AndroidDevicePage {
+export class iOSDevice implements IOSDevicePage {
   private devicePixelRatio = 1;
   private screenInfo: ScreenInfo | null = null;
   private destroyed = false;
@@ -170,21 +170,21 @@ export class iOSDevice implements AndroidDevicePage {
             .number()
             .optional()
             .describe('The duration of the long press in milliseconds'),
-          locate: MidsceneLocation.describe('The element to be long pressed'),
+          locate: getMidsceneLocationSchema().describe(
+            'The element to be long pressed',
+          ),
         }),
         call: async (param, context) => {
           const { element } = context;
           if (!element) {
-            throw new Error(
-              'IOSLongPress requires an element to be located',
-            );
+            throw new Error('IOSLongPress requires an element to be located');
           }
           const [x, y] = element.center;
           await this.longPress(x, y, param?.duration);
         },
       } as DeviceAction<{
         duration?: number;
-        locate: MidsceneLocationType;
+        locate: MidsceneLocationResultType;
       }>,
       {
         name: 'IOSPull',
@@ -686,7 +686,7 @@ export class iOSDevice implements AndroidDevicePage {
           const { width, height } = await this.size();
 
           // Resize to match iOS device dimensions
-          const { buffer, format } = await resizeImgBuffer(
+          const { buffer, format } = await resizeAndConvertImgBuffer(
             'png',
             screenshotBuffer,
             {
@@ -703,7 +703,10 @@ export class iOSDevice implements AndroidDevicePage {
           }
 
           debugPage('screenshotBase64 end (via PyAutoGUI server)');
-          const image = createImgBase64ByFormat(format, buffer.toString('base64'));
+          const image = createImgBase64ByFormat(
+            format,
+            buffer.toString('base64'),
+          );
           return image;
         } else {
           throw new Error('PyAutoGUI screenshot failed: no path returned');
@@ -723,14 +726,11 @@ export class iOSDevice implements AndroidDevicePage {
         const screenshotBuffer = await fs.promises.readFile(tempPath);
         const { width, height } = await this.size();
 
-        const { buffer: resizedScreenshotBuffer } = await resizeImgBuffer(
-          'png',
-          screenshotBuffer,
-          {
+        const { buffer: resizedScreenshotBuffer } =
+          await resizeAndConvertImgBuffer('png', screenshotBuffer, {
             width,
             height,
-          },
-        );
+          });
 
         debugPage('screenshotBase64 end (via screencapture)');
         return `data:image/png;base64,${resizedScreenshotBuffer.toString('base64')}`;
@@ -813,7 +813,7 @@ export class iOSDevice implements AndroidDevicePage {
     }
   }
 
-  async input(text: string, options?: AndroidDeviceInputOpt): Promise<void> {
+  async keyboardType(text: string, options?: IOSDeviceInputOpt): Promise<void> {
     debugPage(`input text: ${text}`);
 
     // For iOS, we use the optimized type action with proper intervals
@@ -1041,8 +1041,8 @@ export class iOSDevice implements AndroidDevicePage {
 
   get keyboard(): any {
     return {
-      type: async (text: string, options?: AndroidDeviceInputOpt) => {
-        await this.input(text, options);
+      type: async (text: string, options?: IOSDeviceInputOpt) => {
+        await this.keyboardType(text, options);
       },
       press: async (action: any) => {
         if (Array.isArray(action)) {

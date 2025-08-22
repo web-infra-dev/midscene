@@ -1,4 +1,5 @@
-import { PageAgent, type PageAgentOpt } from '@midscene/web/agent';
+import { Agent as PageAgent, type PageAgentOpt } from '@midscene/core/agent';
+import { vlLocateMode } from '@midscene/shared/env';
 import { iOSDevice, type iOSDeviceOpt } from '../page';
 import { startPyAutoGUIServer } from '../utils';
 
@@ -10,6 +11,16 @@ export class iOSAgent extends PageAgent<iOSDevice> {
 
   constructor(page: iOSDevice, opts?: iOSAgentOpt) {
     super(page, opts);
+
+    if (
+      !vlLocateMode({ intent: 'grounding' }) ||
+      !vlLocateMode({ intent: 'planning' })
+    ) {
+      throw new Error(
+        'iOS Agent only supports vl-model. https://midscenejs.com/choose-a-model.html',
+      );
+    }
+
     this.ensureConnected();
   }
 
