@@ -1,10 +1,10 @@
+import type { WebPageOpt } from '@/web-element';
 import {
   DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
   DEFAULT_WAIT_FOR_NETWORK_IDLE_CONCURRENCY,
   DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
 } from '@midscene/shared/constants';
 import type { Page as PuppeteerPageType } from 'puppeteer';
-import type { WebPageOpt } from '../common/agent';
 import { Page as BasePage, debugPage } from './base-page';
 
 export class PuppeteerWebPage extends BasePage<'puppeteer', PuppeteerPageType> {

@@ -5,16 +5,15 @@
   The page must be active when interacting with it.
 */
 
-import type { WebKeyInput } from '@/common/page';
-import { limitOpenNewTabScript } from '@/common/ui-utils';
-import { commonWebActionsForWebPage } from '@/common/utils';
-import type { AbstractPage, MouseButton } from '@/page';
+import { type WebKeyInput, limitOpenNewTabScript } from '@/web-element';
 import type {
   DeviceAction,
   ElementTreeNode,
   Point,
   Size,
 } from '@midscene/core';
+import { commonWebActionsForWebPage } from '@midscene/core/agent';
+import type { AbstractPage, MouseButton } from '@midscene/core/device';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
 import { createImgBase64ByFormat } from '@midscene/shared/img';

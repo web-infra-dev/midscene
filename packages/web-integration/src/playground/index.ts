@@ -1,4 +1,4 @@
-import { ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED } from '../common/utils';
+import { ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED } from '@midscene/shared/common';
 import { StaticPageAgent } from './agent';
 import StaticPage from './static-page';
 

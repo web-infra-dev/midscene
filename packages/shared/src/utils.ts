@@ -119,3 +119,8 @@ export const antiEscapeScriptTag = (html: string) => {
 
   return html.replace(REGEXP_LT, '<').replace(REGEXP_GT, '>');
 };
+
+export function replaceIllegalPathCharsAndSpace(str: string) {
+  // Only replace characters that are illegal in filenames, but preserve path separators
+  return str.replace(/[:*?"<>| ]/g, '-');
+}

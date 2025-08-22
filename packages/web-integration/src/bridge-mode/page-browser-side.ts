@@ -2,7 +2,7 @@ import type {
   ChromePageDestroyOptions,
   KeyboardAction,
   MouseAction,
-} from '@/page';
+} from '@midscene/core/device';
 import { assert } from '@midscene/shared/utils';
 import ChromeExtensionProxyPage from '../chrome-extension/page';
 import {
