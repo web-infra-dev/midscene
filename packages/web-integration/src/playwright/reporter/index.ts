@@ -11,12 +11,6 @@ import type {
   TestResult,
 } from '@playwright/test/reporter';
 
-function logger(...message: any[]) {
-  if (process.env.DEBUG === 'true') {
-    console.log('Midscene e2e report:', ...message);
-  }
-}
-
 interface MidsceneReporterOptions {
   type?: 'merged' | 'separate';
 }
