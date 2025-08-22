@@ -8,8 +8,8 @@ import type {
   MidsceneYamlScriptEnv,
   MidsceneYamlScriptWebEnv,
 } from '@midscene/core';
+import { type ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
-import { type ScriptPlayer, parseYamlScript } from '@midscene/web/yaml';
 import merge from 'lodash.merge';
 import pLimit from 'p-limit';
 import puppeteer, { type Browser } from 'puppeteer';

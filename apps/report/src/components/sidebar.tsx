@@ -1,12 +1,12 @@
 import './sidebar.less';
 import { useAllCurrentTasks, useExecutionDump } from '@/components/store';
 import type { ExecutionTask, ExecutionTaskInsightLocate } from '@midscene/core';
+import { typeStr } from '@midscene/core/agent';
 import {
   type AnimationScript,
   iconForStatus,
   timeCostStrElement,
 } from '@midscene/visualizer';
-import { typeStr } from '@midscene/web/ui-utils';
 import { Checkbox, Tag, Tooltip } from 'antd';
 import { useEffect } from 'react';
 import CameraIcon from '../icons/camera.svg?react';

@@ -2,7 +2,7 @@ import type {
   MidsceneYamlFlowItemAIAction,
   MidsceneYamlScriptEnv,
 } from '@midscene/core';
-import type { ScriptPlayer } from '@midscene/web/yaml';
+import type { ScriptPlayer } from '@midscene/core/yaml';
 import { Steps } from 'antd';
 import { useState } from 'react';
 
