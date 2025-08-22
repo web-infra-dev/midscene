@@ -49,7 +49,7 @@ describe('TaskCache', { timeout: 20000 }, () => {
       cacheId,
       'cacheId',
     );
-    expect(cacheContent.replace(/\d+\.\d+\.\d+/g, '0.999.0')).toMatchSnapshot();
+    expect(cacheContent.replace(/\d+\.\d+\.\d+[-\w\d.]*/g, '0.999.0')).toMatchSnapshot();
 
     expect(cache.isCacheResultUsed).toBe(true);
   });
@@ -213,7 +213,7 @@ describe('TaskCache', { timeout: 20000 }, () => {
       'utf-8',
     ).replace(newTaskCache.cacheId, 'cacheId');
     expect(
-      cacheFileContent.replace(/\d+\.\d+\.\d+/g, '0.999.0'),
+      cacheFileContent.replace(/\d+\.\d+\.\d+[-\w\d.]*/g, '0.999.0'),
     ).toMatchSnapshot();
   });
 
