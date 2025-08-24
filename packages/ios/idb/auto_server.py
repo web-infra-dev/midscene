@@ -610,4 +610,4 @@ if __name__ == "__main__":
     print(f"Screen size: {pyautogui.size()}")
     print("Health check available at: http://localhost:{}/health".format(port))
     # use_threaded True and disable reloader to avoid duplicate startup logs
-    app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False, threaded=True)
+    app.run(host="0.0.0.0", port=port, debug=True, use_reloader=False, threaded=True)
