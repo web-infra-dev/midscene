@@ -1,7 +1,7 @@
 import { join } from 'node:path';
-import StaticPage from '@/playground/static-page';
 import { WebPageContextParser } from '@/web-element';
 import type { WebElementInfo } from '@/web-element';
+import { globalConfigManager } from '@midscene/shared/env';
 import { traverseTree, treeToList } from '@midscene/shared/extractor';
 import {
   compositeElementInfoImg,
@@ -18,6 +18,9 @@ const pagePath = join(pageDir, 'index.html');
 
 describe(
   'extractor',
+  {
+    timeout: 90 * 1000,
+  },
   () => {
     const port = 8082;
     beforeAll(async () => {
@@ -29,6 +32,12 @@ describe(
           resolve(server);
         });
       });
+
+      globalConfigManager.init(() => ({
+        MIDSCENE_MODEL_NAME: 'mock-model',
+        MIDSCENE_OPENAI_API_KEY: 'mock-api-key',
+        MIDSCENE_OPENAI_BASE_URL: 'mock-base-url',
+      }));
 
       return () => {
         (localServer as any).server.close();
@@ -385,8 +394,5 @@ describe(
         await reset();
       });
     });
-  },
-  {
-    timeout: 90 * 1000,
   },
 );

@@ -1,8 +1,5 @@
-import { enableDebug } from '../logger';
 import { assert } from '../utils';
-import { globalConfigManger } from './global-config';
 import type { IModelConfig } from './model-config';
-import { MIDSCENE_DEBUG_AI_PROFILE, MIDSCENE_DEBUG_AI_RESPONSE } from './types';
 
 const maskKey = (key: string, maskChar = '*') => {
   if (typeof key !== 'string' || key.length === 0) {
@@ -36,36 +33,6 @@ export const maskConfig = (config: IModelConfig) => {
       return [key, value];
     }),
   );
-};
-
-export const initDebugConfig = () => {
-  const shouldPrintTiming = globalConfigManger.getConfigValueInBoolean(
-    MIDSCENE_DEBUG_AI_PROFILE,
-  );
-  let debugConfig = '';
-  if (shouldPrintTiming) {
-    console.warn(
-      'MIDSCENE_DEBUG_AI_PROFILE is deprecated, use DEBUG=midscene:ai:profile instead',
-    );
-    debugConfig = 'ai:profile';
-  }
-  const shouldPrintAIResponse = globalConfigManger.getConfigValueInBoolean(
-    MIDSCENE_DEBUG_AI_RESPONSE,
-  );
-
-  if (shouldPrintAIResponse) {
-    console.warn(
-      'MIDSCENE_DEBUG_AI_RESPONSE is deprecated, use DEBUG=midscene:ai:response instead',
-    );
-    if (debugConfig) {
-      debugConfig = 'ai:*';
-    } else {
-      debugConfig = 'ai:call';
-    }
-  }
-  if (debugConfig) {
-    enableDebug(debugConfig);
-  }
 };
 
 export const parseJson = (key: string, value: string | undefined) => {

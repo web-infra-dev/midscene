@@ -1,6 +1,7 @@
 import type { WebPage } from '@/web-element';
 import { WebPageContextParser } from '@/web-element';
 import { Agent as PageAgent } from '@midscene/core/agent';
+import { globalConfigManager } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WebUIContext } from '../../src';
 
@@ -58,10 +59,18 @@ describe('PageAgent freeze/unfreeze page context', () => {
       ],
     } as unknown as WebUIContext;
 
+    globalConfigManager.reset();
     // Create agent instance
     agent = new PageAgent(mockPage, {
       generateReport: false,
       autoPrintReportMsg: false,
+      modelConfig: () => {
+        return {
+          MIDSCENE_MODEL_NAME: 'mock-model',
+          MIDSCENE_OPENAI_API_KEY: 'mock-api-key',
+          MIDSCENE_OPENAI_BASE_URL: 'mock-base-url',
+        };
+      },
     });
 
     // Mock _snapshotContext method to return different contexts on successive calls
@@ -149,9 +158,17 @@ describe('PageAgent freeze/unfreeze page context', () => {
 
   describe('Context isolation and lifecycle', () => {
     it('should not share context between different agents', async () => {
+      globalConfigManager.reset();
       const agent2 = new PageAgent(mockPage, {
         generateReport: false,
         autoPrintReportMsg: false,
+        modelConfig: () => {
+          return {
+            MIDSCENE_MODEL_NAME: 'mock-model',
+            MIDSCENE_OPENAI_API_KEY: 'mock-api-key',
+            MIDSCENE_OPENAI_BASE_URL: 'mock-base-url',
+          };
+        },
       });
 
       // Mock second agent's _snapshotContext

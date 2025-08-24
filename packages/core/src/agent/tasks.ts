@@ -45,7 +45,7 @@ import { NodeType } from '@midscene/shared/constants';
 import {
   type IModelPreferences,
   MIDSCENE_REPLANNING_CYCLE_LIMIT,
-  getAIConfigInNumber,
+  globalConfigManager,
 } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
@@ -869,8 +869,9 @@ export class PageTaskExecutor {
 
     const yamlFlow: MidsceneYamlFlowItem[] = [];
     const replanningCycleLimit =
-      getAIConfigInNumber(MIDSCENE_REPLANNING_CYCLE_LIMIT) ||
-      defaultReplanningCycleLimit;
+      globalConfigManager.getEnvConfigInNumber(
+        MIDSCENE_REPLANNING_CYCLE_LIMIT,
+      ) || defaultReplanningCycleLimit;
     while (planningTask) {
       if (replanCount > replanningCycleLimit) {
         const errorMsg =

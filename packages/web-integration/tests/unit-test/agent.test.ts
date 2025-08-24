@@ -3,6 +3,7 @@ import path from 'node:path';
 import type { WebPage } from '@/web-element';
 import type { GroupedActionDump } from '@midscene/core';
 import { Agent as PageAgent } from '@midscene/core/agent';
+import { globalConfigManager } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 declare const __VERSION__: string;
@@ -52,6 +53,12 @@ const mockPage = {
   destroy: vi.fn(),
 } as unknown as WebPage;
 
+const mockModelConfig = {
+  MIDSCENE_MODEL_NAME: 'mock-model',
+  MIDSCENE_OPENAI_API_KEY: 'mock-api-key',
+  MIDSCENE_OPENAI_BASE_URL: 'mock-base-url',
+};
+
 // Mock task executor
 const mockTaskExecutor = {
   runPlans: vi.fn(),
@@ -63,10 +70,12 @@ describe('PageAgent RightClick', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
+    globalConfigManager.reset();
     // Create agent instance
     agent = new PageAgent(mockPage, {
       generateReport: false,
       autoPrintReportMsg: false,
+      modelConfig: () => mockModelConfig,
     });
 
     // Replace the taskExecutor with our mock
@@ -133,7 +142,10 @@ describe('PageAgent logContent', () => {
   let agent: PageAgent;
 
   beforeEach(() => {
-    agent = new PageAgent(mockPage);
+    globalConfigManager.reset();
+    agent = new PageAgent(mockPage, {
+      modelConfig: () => mockModelConfig,
+    });
     const dumpPath = path.join(__dirname, 'fixtures', 'dump.json');
     agent.dump = JSON.parse(
       fs.readFileSync(dumpPath, 'utf-8'),
@@ -155,19 +167,23 @@ describe('PageAgent logContent', () => {
 describe('PageAgent reportFileName', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    globalConfigManager.reset();
   });
 
   it('should use external reportFileName when provided', () => {
     const customReportName = 'my-custom-report-name';
     const agent = new PageAgent(mockPage, {
       reportFileName: customReportName,
+      modelConfig: () => mockModelConfig,
     });
 
     expect(agent.reportFileName).toBe(customReportName);
   });
 
   it('should generate reportFileName when not provided', () => {
-    const agent = new PageAgent(mockPage);
+    const agent = new PageAgent(mockPage, {
+      modelConfig: () => mockModelConfig,
+    });
 
     // The generated name should contain puppeteer and follow the pattern
     // Note: uuid() generates base-36 strings (0-9, a-z)
@@ -179,6 +195,7 @@ describe('PageAgent reportFileName', () => {
   it('should use testId for generated reportFileName when provided', () => {
     const agent = new PageAgent(mockPage, {
       testId: 'test-123',
+      modelConfig: () => mockModelConfig,
     });
 
     // The generated name should contain test-123 and follow the pattern
@@ -193,6 +210,7 @@ describe('PageAgent reportFileName', () => {
     const agent = new PageAgent(mockPage, {
       reportFileName: customReportName,
       testId: 'test-456',
+      modelConfig: () => mockModelConfig,
     });
 
     expect(agent.reportFileName).toBe(customReportName);
@@ -204,7 +222,9 @@ describe('PageAgent reportFileName', () => {
       pageType: undefined,
     } as unknown as WebPage;
 
-    const agent = new PageAgent(mockPageWithoutType);
+    const agent = new PageAgent(mockPageWithoutType, {
+      modelConfig: () => mockModelConfig,
+    });
 
     // The generated name should contain web and follow the pattern
     // Note: uuid() generates base-36 strings (0-9, a-z)
@@ -221,10 +241,12 @@ describe('PageAgent aiWaitFor with doNotThrowError', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
+    globalConfigManager.reset();
     // Create agent instance
     agent = new PageAgent(mockPage, {
       generateReport: false,
       autoPrintReportMsg: false,
+      modelConfig: () => mockModelConfig,
     });
 
     // Mock the task executor with waitFor method
