@@ -59,7 +59,6 @@ export interface PyAutoGUIAction {
   direction?: 'up' | 'down' | 'left' | 'right';
   clicks?: number;
   distance?: number; // Original scroll distance in pixels
-  scroll_type?: 'wheel' | 'trackpad';
   interval?: number; // Interval between keystrokes for type action
 }
 
@@ -76,7 +75,6 @@ export interface PyAutoGUIResult {
   ios_region?: boolean; // For screenshot action
   direction?: string; // For scroll action
   clicks?: number; // For scroll action
-  method?: string; // For scroll action (wheel, trackpad, etc.)
   ios_coords?: [number, number]; // For coordinate transformation info
   mac_coords?: [number, number]; // For coordinate transformation info
   error?: string;
@@ -954,10 +952,9 @@ export class iOSDevice implements IOSDevicePage {
       direction: scrollType.direction,
       clicks: clicks,
       distance: distance, // Pass original distance for server-side fine-tuning
-      scroll_type: 'trackpad', // Default to trackpad for smooth scrolling
     };
 
-    // Always use mouse wheel/trackpad for scrolling (better compatibility)
+    // Always use mouse wheel for scrolling (better compatibility)
     if (this.options?.mirrorConfig) {
       // iOS mirroring mode: use iOS coordinates directly
       await this.executePyAutoGUIAction(scrollAction);
@@ -968,7 +965,6 @@ export class iOSDevice implements IOSDevicePage {
         ...scrollAction,
         x: adjusted.x,
         y: adjusted.y,
-        scroll_type: 'wheel', // Use wheel for non-iOS devices
       });
     }
   }

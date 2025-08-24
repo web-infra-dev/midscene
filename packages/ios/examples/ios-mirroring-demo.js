@@ -6,12 +6,12 @@
  * This example demonstrates:
  * 1. Setting up iOS device mirroring configuration
  * 2. Using coordinate transformation for accurate touch events
- * 3. Enhanced scrolling with mouse wheel/trackpad for iOS mirror compatibility
+ * 3. Enhanced scrolling with mouse wheel for iOS mirror compatibility
  * 4. Taking region-specific screenshots
  * 5. Automating iOS apps through macOS screen mirroring
  *
  * Key improvements:
- * - Uses mouse wheel/trackpad scrolling instead of drag for better iOS mirror compatibility
+ * - Uses mouse wheel scrolling instead of drag for better iOS mirror compatibility
  * - Proper coordinate handling that prevents focus loss
  * - Unified scrolling method that works for both iOS mirroring and regular modes
  */
@@ -120,10 +120,6 @@ async function demonstrateIOSMirroring() {
     console.log(
       '• Distance values (e.g., 200px) are automatically converted to appropriate scroll events',
     );
-    console.log(
-      '• Trackpad scrolling by default provides smooth, natural iOS experience',
-    );
-    console.log('• Mouse wheel scrolling available as fallback option');
     console.log('• All Midscene AI features work with iOS device mirroring');
     console.log('• Perfect for testing iOS apps through screen mirroring');
     console.log(
