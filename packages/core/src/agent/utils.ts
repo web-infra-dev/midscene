@@ -1,5 +1,5 @@
 import { elementByPositionWithElementInfo } from '@/ai-model';
-import type { AbstractPage } from '@/device';
+import type { AbstractDevice } from '@/device';
 import type {
   BaseElement,
   ElementTreeNode,
@@ -28,7 +28,7 @@ import type { PageTaskExecutor } from './tasks';
 const debugProfile = getDebug('web:tool:profile');
 
 export async function commonContextParser(
-  page: AbstractPage,
+  page: AbstractDevice,
 ): Promise<UIContext> {
   assert(page, 'page is required');
 

@@ -5,20 +5,24 @@
   The page must be active when interacting with it.
 */
 
-import { type WebKeyInput, limitOpenNewTabScript } from '@/web-element';
+import { limitOpenNewTabScript } from '@/web-element';
 import type {
   DeviceAction,
   ElementTreeNode,
   Point,
   Size,
 } from '@midscene/core';
-import { commonWebActionsForWebPage } from '@midscene/core/agent';
-import type { AbstractPage, MouseButton } from '@midscene/core/device';
+import type { AbstractDevice } from '@midscene/core';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { assert } from '@midscene/shared/utils';
 import type { Protocol as CDPTypes } from 'devtools-protocol';
+import {
+  type KeyInput,
+  type MouseButton,
+  commonWebActionsForWebPage,
+} from '../web-page';
 import { CdpKeyboard } from './cdpInput';
 import {
   getHtmlElementScript,
@@ -32,7 +36,7 @@ function sleep(ms: number) {
 
 declare const __VERSION__: string;
 
-export default class ChromeExtensionProxyPage implements AbstractPage {
+export default class ChromeExtensionProxyPage implements AbstractDevice {
   pageType = 'chrome-extension-proxy';
 
   public forceSameTabNavigation: boolean;
@@ -681,8 +685,8 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
     },
     press: async (
       action:
-        | { key: WebKeyInput; command?: string }
-        | { key: WebKeyInput; command?: string }[],
+        | { key: KeyInput; command?: string }
+        | { key: KeyInput; command?: string }[],
     ) => {
       const cdpKeyboard = new CdpKeyboard({
         send: this.sendCommandToDebugger.bind(this),

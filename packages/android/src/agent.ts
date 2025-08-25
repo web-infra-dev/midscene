@@ -1,10 +1,31 @@
 import { Agent as PageAgent, type PageAgentOpt } from '@midscene/core/agent';
-import { AndroidDevice, type AndroidDeviceOpt } from '../page';
-
 import { vlLocateMode } from '@midscene/shared/env';
-import { getConnectedDevices } from '../utils';
+import { getDebug } from '@midscene/shared/logger';
+import { ADB, type Device } from 'appium-adb';
+import { AndroidDevice, type AndroidDeviceOpt } from './device';
 
-import { debugPage } from '../page';
+const debugAgent = getDebug('android:agent');
+
+export async function getConnectedDevices(): Promise<Device[]> {
+  try {
+    const adb = await ADB.createADB({
+      adbExecTimeout: 60000,
+    });
+    const devices = await adb.getConnectedDevices();
+
+    debugAgent(`Found ${devices.length} connected devices: `, devices);
+
+    return devices;
+  } catch (error: any) {
+    console.error('Failed to get device list:', error);
+    throw new Error(
+      `Unable to get connected Android device list, please check https://midscenejs.com/integrate-with-android.html#faq : ${error.message}`,
+      {
+        cause: error,
+      },
+    );
+  }
+}
 
 type AndroidAgentOpt = PageAgentOpt;
 
@@ -39,13 +60,13 @@ export async function agentFromAdbDevice(
 
     deviceId = devices[0].udid;
 
-    debugPage(
+    debugAgent(
       'deviceId not specified, will use the first device (id = %s)',
       deviceId,
     );
   }
 
-  const page = new AndroidDevice(deviceId, {
+  const device = new AndroidDevice(deviceId, {
     autoDismissKeyboard: opts?.autoDismissKeyboard,
     androidAdbPath: opts?.androidAdbPath,
     remoteAdbHost: opts?.remoteAdbHost,
@@ -57,7 +78,7 @@ export async function agentFromAdbDevice(
       opts?.usePhysicalDisplayIdForDisplayLookup,
   });
 
-  await page.connect();
+  await device.connect();
 
-  return new AndroidAgent(page, opts);
+  return new AndroidAgent(device, opts);
 }
