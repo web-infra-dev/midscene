@@ -18,12 +18,7 @@ import {
 } from '@/ai-model/service-caller';
 import { type DeviceAction, getMidsceneLocationSchema } from '@/index';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
-import {
-  type IModelPreferences,
-  getAIConfig,
-  overrideAIConfig,
-  vlLocateMode,
-} from '@midscene/shared/env';
+import { type IModelPreferences, vlLocateMode } from '@midscene/shared/env';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 // @ts-ignore no types in es folder
@@ -636,23 +631,6 @@ describe('search area', () => {
         width: 174, // min(50 + 125*2, 1000 - 826) = min(300, 174) = 174
       });
     }
-  });
-});
-
-describe('env', () => {
-  it('getAIConfig', () => {
-    const result = getAIConfig('NEVER_EXIST_CONFIG' as any);
-    expect(result).toBeUndefined();
-  });
-
-  it('overrideAIConfig', () => {
-    expect(() =>
-      overrideAIConfig({
-        MIDSCENE_CACHE: {
-          foo: 123,
-        } as any,
-      }),
-    ).toThrow();
   });
 });
 

@@ -1,64 +1,29 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  MIDSCENE_MODEL_NAME,
-  MIDSCENE_PLANNING_MODEL_NAME,
-  MIDSCENE_PLANNING_OPENAI_API_KEY,
-  MIDSCENE_PLANNING_OPENAI_BASE_URL,
-  OPENAI_API_KEY,
-  OPENAI_BASE_URL,
-  decideModelConfig,
-  globalConfigManger,
-} from '../../../src/env';
+import { describe, expect, it } from 'vitest';
+import { decideModelConfig } from '../../../src/env/model-config';
 
 describe('decideModelConfig from modelConfig fn', () => {
-  beforeEach(() => {
-    globalConfigManger.reset();
-  });
-
-  afterEach(() => {
-    globalConfigManger.reset();
-  });
-  it('return undefined config', () => {
-    expect(() =>
-      globalConfigManger.registerModelConfigFn(({ intent }) => {
-        return undefined as any;
-      }),
-    ).toThrowErrorMatchingInlineSnapshot(
-      '[Error: The agent has an option named modelConfig is a function, but it return undefined when call with intent VQA, which should be a object.]',
-    );
-  });
-
   it('return lacking config for VQA', () => {
-    globalConfigManger.registerModelConfigFn(({ intent }) => {
-      if (intent === 'VQA') {
-        return {} as any;
-      }
-      return {
-        MIDSCENE_MODEL_NAME: 'not-to-matter',
-      };
-    });
     expect(() =>
-      decideModelConfig({ intent: 'VQA' }, true),
+      decideModelConfig({
+        intent: 'VQA',
+        modelConfigFromFn: {},
+        allConfig: {},
+      }),
     ).toThrowErrorMatchingInlineSnapshot(
       '[Error: The return value of agent.modelConfig do not have a valid value with key MIDSCENE_MODEL_NAME.]',
     );
   });
 
   it('return full config for VQA', () => {
-    globalConfigManger.registerModelConfigFn(({ intent }) => {
-      if (intent === 'VQA') {
-        return {
-          MIDSCENE_VQA_MODEL_NAME: 'vqa-model',
-          MIDSCENE_VQA_OPENAI_BASE_URL: 'mock-url',
-          MIDSCENE_VQA_OPENAI_API_KEY: 'mock-key',
-        };
-      }
-      return {
-        MIDSCENE_MODEL_NAME: 'not-to-matter',
-      };
+    const result = decideModelConfig({
+      intent: 'VQA',
+      modelConfigFromFn: {
+        MIDSCENE_VQA_MODEL_NAME: 'vqa-model',
+        MIDSCENE_VQA_OPENAI_BASE_URL: 'mock-url',
+        MIDSCENE_VQA_OPENAI_API_KEY: 'mock-key',
+      },
+      allConfig: {},
     });
-
-    const result = decideModelConfig({ intent: 'VQA' }, true);
     expect(result).toMatchInlineSnapshot(`
       {
         "from": "modelConfig",
@@ -77,15 +42,15 @@ describe('decideModelConfig from modelConfig fn', () => {
   });
 
   it('return default config', () => {
-    globalConfigManger.registerModelConfigFn(() => {
-      return {
+    const result = decideModelConfig({
+      intent: 'VQA',
+      modelConfigFromFn: {
         MIDSCENE_MODEL_NAME: 'default-model',
         MIDSCENE_OPENAI_BASE_URL: 'mock-url',
         MIDSCENE_OPENAI_API_KEY: 'mock-key',
-      };
+      },
+      allConfig: {},
     });
-
-    const result = decideModelConfig({ intent: 'VQA' }, true);
     expect(result).toMatchInlineSnapshot(`
       {
         "from": "modelConfig",
@@ -105,32 +70,38 @@ describe('decideModelConfig from modelConfig fn', () => {
 });
 
 describe('decideModelConfig from env', () => {
-  beforeEach(() => {
-    globalConfigManger.reset();
-    vi.stubEnv(OPENAI_API_KEY, 'keyInEnv');
-    vi.stubEnv(OPENAI_BASE_URL, 'urlInInEnv');
-    vi.stubEnv(MIDSCENE_MODEL_NAME, 'modelInEnv');
-  });
-
-  afterEach(() => {
-    globalConfigManger.reset();
-    vi.unstubAllEnvs();
-  });
+  const stubEnvConfig = {
+    OPENAI_API_KEY: 'keyInEnv',
+    OPENAI_BASE_URL: 'urlInInEnv',
+    MIDSCENE_MODEL_NAME: 'modelInEnv',
+  };
 
   it('declare lacking planning env', () => {
-    vi.stubEnv(MIDSCENE_PLANNING_MODEL_NAME, 'planning-model');
     expect(() =>
-      decideModelConfig({ intent: 'planning' }, true),
+      decideModelConfig({
+        intent: 'planning',
+        modelConfigFromFn: undefined,
+        allConfig: {
+          ...stubEnvConfig,
+          MIDSCENE_PLANNING_MODEL_NAME: 'planning-model',
+        },
+      }),
     ).toThrowErrorMatchingInlineSnapshot(
       '[Error: The MIDSCENE_PLANNING_OPENAI_BASE_URL must be a non-empty string because of the MIDSCENE_PLANNING_MODEL_NAME is declared as planning-model in process.env, but got: undefined. Please check your config.]',
     );
   });
 
   it('declare full planning env', () => {
-    vi.stubEnv(MIDSCENE_PLANNING_MODEL_NAME, 'planning-model');
-    vi.stubEnv(MIDSCENE_PLANNING_OPENAI_API_KEY, 'planning-key');
-    vi.stubEnv(MIDSCENE_PLANNING_OPENAI_BASE_URL, 'planning-url');
-    const result = decideModelConfig({ intent: 'planning' }, true);
+    const result = decideModelConfig({
+      intent: 'planning',
+      modelConfigFromFn: undefined,
+      allConfig: {
+        ...stubEnvConfig,
+        MIDSCENE_PLANNING_MODEL_NAME: 'planning-model',
+        MIDSCENE_PLANNING_OPENAI_API_KEY: 'planning-key',
+        MIDSCENE_PLANNING_OPENAI_BASE_URL: 'planning-url',
+      },
+    });
     expect(result).toMatchInlineSnapshot(`
       {
         "from": "env",
@@ -149,18 +120,25 @@ describe('decideModelConfig from env', () => {
   });
 
   it('declare no planning env and process.env has no config', () => {
-    vi.unstubAllEnvs();
-    // There are process.env.OPENAI_BASE_URL in the CI environment, which will cause case fail
-    vi.stubEnv(OPENAI_BASE_URL, undefined);
     expect(() =>
-      decideModelConfig({ intent: 'planning' }, true),
+      decideModelConfig({
+        intent: 'planning',
+        modelConfigFromFn: undefined,
+        allConfig: {},
+      }),
     ).toThrowErrorMatchingInlineSnapshot(
       '[Error: The OPENAI_BASE_URL must be a non-empty string, but got: undefined. Please check your config.]',
     );
   });
 
   it('declare no planning env and process.env has config', () => {
-    const result = decideModelConfig({ intent: 'planning' }, true);
+    const result = decideModelConfig({
+      intent: 'planning',
+      modelConfigFromFn: undefined,
+      allConfig: {
+        ...stubEnvConfig,
+      },
+    });
     expect(result).toMatchInlineSnapshot(`
       {
         "from": "legacy-env",
@@ -179,8 +157,14 @@ describe('decideModelConfig from env', () => {
   });
 
   it('default model is gpt-4o', () => {
-    vi.stubEnv(MIDSCENE_MODEL_NAME, '');
-    const result = decideModelConfig({ intent: 'planning' }, true);
+    const result = decideModelConfig({
+      intent: 'planning',
+      modelConfigFromFn: undefined,
+      allConfig: {
+        ...stubEnvConfig,
+        MIDSCENE_MODEL_NAME: '',
+      },
+    });
     expect(result).toMatchInlineSnapshot(`
       {
         "from": "legacy-env",

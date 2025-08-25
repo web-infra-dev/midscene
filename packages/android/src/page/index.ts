@@ -6,7 +6,6 @@ import path from 'node:path';
 import {
   type Point,
   type Size,
-  getAIConfig,
   getMidsceneLocationSchema,
 } from '@midscene/core';
 import type {
@@ -22,6 +21,7 @@ import {
   MIDSCENE_ADB_REMOTE_HOST,
   MIDSCENE_ADB_REMOTE_PORT,
   MIDSCENE_ANDROID_IME_STRATEGY,
+  globalConfigManager,
 } from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import {
@@ -82,9 +82,12 @@ export class AndroidDevice implements AndroidDevicePage {
             .describe(
               'If true, the keyboard will be dismissed after the input is completed. Do not set it unless the user asks you to do so.',
             ),
+          locate: getMidsceneLocationSchema()
+            .describe('The input field to be filled')
+            .optional(),
         });
-        action.call = async (param, context) => {
-          const { element } = context;
+        action.call = async (param) => {
+          const element = param.locate;
           if (element) {
             await this.clearInput(element as unknown as ElementInfo);
 
@@ -233,11 +236,14 @@ export class AndroidDevice implements AndroidDevicePage {
       debugPage(`Initializing ADB with device ID: ${this.deviceId}`);
       try {
         const androidAdbPath =
-          this.options?.androidAdbPath || getAIConfig(MIDSCENE_ADB_PATH);
+          this.options?.androidAdbPath ||
+          globalConfigManager.getEnvConfigValue(MIDSCENE_ADB_PATH);
         const remoteAdbHost =
-          this.options?.remoteAdbHost || getAIConfig(MIDSCENE_ADB_REMOTE_HOST);
+          this.options?.remoteAdbHost ||
+          globalConfigManager.getEnvConfigValue(MIDSCENE_ADB_REMOTE_HOST);
         const remoteAdbPort =
-          this.options?.remoteAdbPort || getAIConfig(MIDSCENE_ADB_REMOTE_PORT);
+          this.options?.remoteAdbPort ||
+          globalConfigManager.getEnvConfigValue(MIDSCENE_ADB_REMOTE_PORT);
 
         this.adb = await new ADB({
           udid: this.deviceId,
@@ -959,7 +965,7 @@ ${Object.keys(size)
     const isChinese = /[\p{Script=Han}\p{sc=Hani}]/u.test(text);
     const IME_STRATEGY =
       (this.options?.imeStrategy ||
-        getAIConfig(MIDSCENE_ANDROID_IME_STRATEGY)) ??
+        globalConfigManager.getEnvConfigValue(MIDSCENE_ANDROID_IME_STRATEGY)) ??
       'always-yadb';
     const shouldAutoDismissKeyboard =
       options?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard ?? true;

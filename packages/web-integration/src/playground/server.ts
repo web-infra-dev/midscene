@@ -341,29 +341,14 @@ export default class PlaygroundServer {
               throw new Error(`Missing prompt for ${type}`);
             }
 
-            if (type === 'aiQuery') {
-              response.result = await agent.aiQuery(actualPrompt);
-            } else if (type === 'aiAction') {
-              response.result = await agent.aiAction(actualPrompt);
-            } else if (type === 'aiAssert') {
+            // special handle for methods that need custom parameters or return format
+            if (type === 'aiAssert') {
               response.result = await agent.aiAssert(actualPrompt, undefined, {
                 keepRawResponse: true,
               });
-            } else if (type === 'aiBoolean') {
-              response.result = await agent.aiBoolean(actualPrompt);
-            } else if (type === 'aiNumber') {
-              response.result = await agent.aiNumber(actualPrompt);
-            } else if (type === 'aiString') {
-              response.result = await agent.aiString(actualPrompt);
-            } else if (type === 'aiAsk') {
-              response.result = await agent.aiAsk(actualPrompt);
-            } else if (type === 'aiWaitFor') {
-              response.result = await agent.aiWaitFor(actualPrompt, {
-                timeoutMs: 15000,
-                checkIntervalMs: 3000,
-              });
-            } else if (type === 'aiLocate') {
-              response.result = await agent.aiLocate(actualPrompt, {
+            } else if (agent && typeof (agent as any)[type] === 'function') {
+              // for other methods, check if the agent has the method
+              response.result = await (agent as any)[type](actualPrompt, {
                 deepThink,
               });
             } else {

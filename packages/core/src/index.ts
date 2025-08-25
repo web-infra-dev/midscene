@@ -18,7 +18,7 @@ export {
   type TUserPrompt,
 } from './ai-model/index';
 
-export { getAIConfig, MIDSCENE_MODEL_NAME } from '@midscene/shared/env';
+export { MIDSCENE_MODEL_NAME } from '@midscene/shared/env';
 
 export type * from './types';
 

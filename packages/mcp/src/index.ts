@@ -2,8 +2,14 @@
 import { setIsMcp } from '@midscene/shared/utils';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import {
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
+  SetLevelRequestSchema,
+} from '@modelcontextprotocol/sdk/types.js';
 import { MidsceneManager } from './midscene.js';
 import { PROMPTS } from './prompts.js';
+import { handleListResources, handleReadResource } from './resources.js';
 import { tools } from './tools.js';
 
 declare const __VERSION__: string;
@@ -37,6 +43,28 @@ server.tool(
 const midsceneManager = new MidsceneManager(server);
 
 async function runServer() {
+  server.server.registerCapabilities({
+    resources: {},
+    logging: {},
+  });
+
+  // Server capabilities are now properly registered
+
+  // Register resource handlers BEFORE connecting
+  server.server.setRequestHandler(
+    ListResourcesRequestSchema,
+    handleListResources,
+  );
+  server.server.setRequestHandler(
+    ReadResourceRequestSchema,
+    handleReadResource,
+  );
+
+  // Register logging handler
+  server.server.setRequestHandler(SetLevelRequestSchema, async () => {
+    // Store level for internal use - don't use console.log in MCP servers
+    return {};
+  });
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }

@@ -1,41 +1,84 @@
-import { globalConfigManger } from './global-config';
-import { decideModelConfig } from './model-config';
+import {
+  GLOBAL_CONFIG_MANAGER_UNINITIALIZED_FLAG,
+  GlobalConfigManager,
+} from './global-config';
 import type { UITarsModelVersion } from './parse';
 import {
+  type GLOBAL_ENV_KEYS,
   type IModelPreferences,
-  MIDSCENE_OPENAI_INIT_CONFIG_JSON,
   MIDSCENE_PREFERRED_LANGUAGE,
-  type TEnvKeys,
-  type TGlobalConfig,
+  type MODEL_ENV_KEYS,
   type TVlModeTypes,
 } from './types';
+
+export const globalConfigManager = new GlobalConfigManager();
 
 export const uiTarsModelVersion = (
   modelPreferences: IModelPreferences,
 ): UITarsModelVersion | undefined => {
-  const { uiTarsVersion } = decideModelConfig(modelPreferences, false);
-  return uiTarsVersion;
+  try {
+    const result = globalConfigManager.getModelConfigByIntent(
+      modelPreferences.intent,
+    );
+    return result.uiTarsVersion;
+  } catch (e) {
+    if ((e as any)?.[GLOBAL_CONFIG_MANAGER_UNINITIALIZED_FLAG]) {
+      console.warn(
+        "Call uiTarsModelVersion before globalConfig init, will return undefined. This warning should only appear in midscene's own unit tests.",
+      );
+      return undefined;
+    }
+    throw e;
+  }
 };
 
 export const vlLocateMode = (
   modelPreferences: IModelPreferences,
 ): TVlModeTypes | undefined => {
-  const { vlMode } = decideModelConfig(modelPreferences, false);
-  return vlMode as TVlModeTypes;
+  try {
+    const result = globalConfigManager.getModelConfigByIntent(
+      modelPreferences.intent,
+    );
+    return result.vlMode as TVlModeTypes;
+  } catch (e) {
+    if ((e as any)?.[GLOBAL_CONFIG_MANAGER_UNINITIALIZED_FLAG]) {
+      console.warn(
+        "Call vlLocateMode before globalConfig init, will return undefined. This warning should only appear in midscene's own unit tests.",
+      );
+      return undefined;
+    }
+    throw e;
+  }
 };
 
 export const getIsUseQwenVl = (modelPreferences: IModelPreferences) => {
-  const modelConfig = decideModelConfig(modelPreferences, false);
-  return modelConfig.vlMode === 'qwen-vl';
+  try {
+    const result = globalConfigManager.getModelConfigByIntent(
+      modelPreferences.intent,
+    );
+    return result.vlMode === 'qwen-vl';
+  } catch (e) {
+    if ((e as any)?.[GLOBAL_CONFIG_MANAGER_UNINITIALIZED_FLAG]) {
+      console.warn(
+        "Call getIsUseQwenVl before globalConfig init, will return false. This warning should only appear in midscene's own unit tests.",
+      );
+      return false;
+    }
+    throw e;
+  }
 };
 
 export function getModelName(modelPreferences: IModelPreferences) {
-  const modelConfig = decideModelConfig(modelPreferences, false);
-  return modelConfig.modelName;
+  const result = globalConfigManager.getModelConfigByIntent(
+    modelPreferences.intent,
+  );
+  return result?.modelName;
 }
 
 export const getPreferredLanguage = () => {
-  const prefer = globalConfigManger.getConfigValue(MIDSCENE_PREFERRED_LANGUAGE);
+  const prefer = globalConfigManager.getEnvConfigValue(
+    MIDSCENE_PREFERRED_LANGUAGE,
+  );
   if (prefer) {
     return prefer;
   }
@@ -46,39 +89,20 @@ export const getPreferredLanguage = () => {
 };
 
 export const getUploadTestServerUrl = (): string => {
-  const extraConfig = globalConfigManger.getConfigValueInJson(
-    MIDSCENE_OPENAI_INIT_CONFIG_JSON,
-  );
-  const serverUrl = extraConfig?.REPORT_SERVER_URL;
+  const { openaiExtraConfig } =
+    globalConfigManager.getModelConfigByIntent('default');
+  const serverUrl = openaiExtraConfig?.REPORT_SERVER_URL as string;
   return serverUrl;
 };
 
-export const getAIConfig = (configKey: TEnvKeys): string | undefined => {
-  return globalConfigManger.getConfigValue(configKey);
-};
-
-export const getAIConfigInBoolean = (configKey: TEnvKeys) => {
-  return globalConfigManger.getConfigValueInBoolean(configKey);
-};
-
-export const getAIConfigInNumber = (configKey: TEnvKeys) => {
-  return globalConfigManger.getConfigValueInNumber(configKey);
-};
-
 export const overrideAIConfig = (
-  newConfig: Partial<TGlobalConfig>,
+  newConfig: Partial<
+    Record<
+      (typeof GLOBAL_ENV_KEYS)[number] | (typeof MODEL_ENV_KEYS)[number],
+      string
+    >
+  >,
   extendMode = false, // true: merge with global config, false: override global config
 ) => {
-  for (const key in newConfig) {
-    if (typeof key !== 'string') {
-      throw new Error(`Failed to override AI config, invalid key: ${key}`);
-    }
-    const value = newConfig[key as keyof typeof newConfig];
-    if (typeof value !== 'string') {
-      throw new Error(
-        `Failed to override AI config, value for key ${key} must be a string, but got with type ${typeof value}`,
-      );
-    }
-  }
-  globalConfigManger.registerOverride(newConfig, extendMode);
+  globalConfigManager.registerOverride(newConfig, extendMode);
 };

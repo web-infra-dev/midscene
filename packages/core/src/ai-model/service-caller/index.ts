@@ -10,9 +10,7 @@ import {
   MIDSCENE_API_TYPE,
   MIDSCENE_LANGSMITH_DEBUG,
   OPENAI_MAX_TOKENS,
-  decideModelConfig,
-  getAIConfig,
-  getAIConfigInBoolean,
+  globalConfigManager,
   uiTarsModelVersion,
   vlLocateMode,
 } from '@midscene/shared/env';
@@ -61,7 +59,7 @@ async function createChatClient({
     useAnthropicSdk,
     anthropicApiKey,
     modelDescription,
-  } = decideModelConfig(modelPreferences, true);
+  } = globalConfigManager.getModelConfigByIntent(modelPreferences.intent);
 
   let openai: OpenAI | AzureOpenAI | undefined;
 
@@ -131,7 +129,10 @@ async function createChatClient({
     });
   }
 
-  if (openai && getAIConfigInBoolean(MIDSCENE_LANGSMITH_DEBUG)) {
+  if (
+    openai &&
+    globalConfigManager.getEnvConfigInBoolean(MIDSCENE_LANGSMITH_DEBUG)
+  ) {
     if (ifInBrowser) {
       throw new Error('langsmith is not supported in browser');
     }
@@ -187,7 +188,7 @@ export async function call(
 
   const responseFormat = getResponseFormat(modelName, AIActionTypeValue);
 
-  const maxTokens = getAIConfig(OPENAI_MAX_TOKENS);
+  const maxTokens = globalConfigManager.getEnvConfigInNumber(OPENAI_MAX_TOKENS);
   const debugCall = getDebug('ai:call');
   const debugProfileStats = getDebug('ai:profile:stats');
   const debugProfileDetail = getDebug('ai:profile:detail');

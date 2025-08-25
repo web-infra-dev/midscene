@@ -6,7 +6,7 @@ import type { TUserPrompt } from '@/index';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import {
   MIDSCENE_CACHE_MAX_FILENAME_LENGTH,
-  getAIConfigInNumber,
+  globalConfigManager,
 } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { ifInBrowser, ifInWorker } from '@midscene/shared/utils';
@@ -66,8 +66,9 @@ export class TaskCache {
     assert(cacheId, 'cacheId is required');
     let safeCacheId = replaceIllegalPathCharsAndSpace(cacheId);
     const cacheMaxFilenameLength =
-      getAIConfigInNumber(MIDSCENE_CACHE_MAX_FILENAME_LENGTH) ||
-      DEFAULT_CACHE_MAX_FILENAME_LENGTH;
+      globalConfigManager.getEnvConfigInNumber(
+        MIDSCENE_CACHE_MAX_FILENAME_LENGTH,
+      ) || DEFAULT_CACHE_MAX_FILENAME_LENGTH;
     if (Buffer.byteLength(safeCacheId, 'utf8') > cacheMaxFilenameLength) {
       const prefix = safeCacheId.slice(0, 32);
       const hash = generateHashId(undefined, safeCacheId);

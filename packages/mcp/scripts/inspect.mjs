@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ENV_KEYS } from '@midscene/shared/env';
+import { ALL_ENV_KEYS } from '@midscene/shared/env';
 import dotenv from 'dotenv';
 
 // Get the directory name in ES module scope
@@ -29,7 +29,7 @@ if (configResult.error) {
 
 // Prepare the command and arguments
 const command = 'npx';
-const keys = [...ENV_KEYS, ...['MCP_SERVER_REQUEST_TIMEOUT']];
+const keys = [...ALL_ENV_KEYS, ...['MCP_SERVER_REQUEST_TIMEOUT']];
 
 const envOverrides = {};
 for (const key of keys) {

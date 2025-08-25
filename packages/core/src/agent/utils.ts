@@ -2,13 +2,11 @@ import { elementByPositionWithElementInfo } from '@/ai-model';
 import type { AbstractPage } from '@/device';
 import type {
   BaseElement,
-  DetailedLocateParam,
   DeviceAction,
   ElementTreeNode,
   ExecutionDump,
   ExecutionTask,
   ExecutorContext,
-  LocateOption,
   MidsceneLocationResultType,
   PlanningLocateParam,
   TMultimodalPrompt,
@@ -17,7 +15,10 @@ import type {
 } from '@/index';
 import { getMidsceneLocationSchema, z } from '@/index';
 import { sleep, uploadTestInfoToServer } from '@/utils';
-import { MIDSCENE_REPORT_TAG_NAME, getAIConfig } from '@midscene/shared/env';
+import {
+  MIDSCENE_REPORT_TAG_NAME,
+  globalConfigManager,
+} from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import {
   generateElementByPosition,
@@ -75,7 +76,9 @@ export async function commonContextParser(
 }
 
 export function getReportFileName(tag = 'web') {
-  const reportTagName = getAIConfig(MIDSCENE_REPORT_TAG_NAME);
+  const reportTagName = globalConfigManager.getEnvConfigValue(
+    MIDSCENE_REPORT_TAG_NAME,
+  );
   const dateTimeInFileName = dayjs().format('YYYY-MM-DD_HH-mm-ss');
   // ensure uniqueness at the same time
   const uniqueId = uuid().substring(0, 8);
