@@ -4,7 +4,7 @@ import type {
   ReadResourceRequest,
   ReadResourceResult,
 } from '@modelcontextprotocol/sdk/types.js';
-import { ConsoleMessageType } from 'puppeteer-core';
+import type { ConsoleMessageType } from 'puppeteer-core';
 
 export const consoleLogs: string[] = [];
 export const screenshots = new Map<string, string>();
@@ -14,7 +14,6 @@ export function notifyResourceListChanged(server: Server) {
     method: 'notifications/resources/list_changed',
   });
 }
-
 
 export function notifyConsoleLogsUpdated(server: Server) {
   server.notification({
@@ -30,7 +29,12 @@ export function notifyScreenshotUpdated(server: Server) {
   });
 }
 
-export function notifyMessage(server: Server, level: ConsoleMessageType, message: string, data?: any) {
+export function notifyMessage(
+  server: Server,
+  level: ConsoleMessageType,
+  message: string,
+  data?: any,
+) {
   server.notification({
     method: 'notifications/message',
     params: {

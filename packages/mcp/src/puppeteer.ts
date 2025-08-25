@@ -5,7 +5,7 @@ import type { Browser, LaunchOptions } from 'puppeteer-core';
 import type { Page } from 'puppeteer-core';
 import puppeteer from 'puppeteer-core';
 import { deepMerge, getChromePathFromEnv } from './utils';
- 
+
 // Global state
 let browser: Browser | null;
 let page: Page | null;
@@ -57,7 +57,7 @@ function getBrowserLaunchOptions(
       );
     }
   }
-  
+
   const systemChromePath = getChromePathFromEnv();
   const npx_args = {
     headless: false,

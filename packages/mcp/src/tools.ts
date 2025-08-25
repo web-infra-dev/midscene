@@ -11,32 +11,33 @@ export const tools = {
       'Navigates the browser to the specified URL. Always opens in the current tab.',
   },
   midscene_get_console_logs: {
-    name: "midscene_get_console_logs",
-    description: "Get console logs from the current browser session",
+    name: 'midscene_get_console_logs',
+    description: 'Get console logs from the current browser session',
     inputSchema: {
-      type: "object",
+      type: 'object',
       properties: {
         msgType: {
-          type: "string",
-          description: "Filter console logs by message type (log, error, warn, info, debug)",
-          enum: ["log", "error", "warn", "info", "debug"]
-        }
+          type: 'string',
+          description:
+            'Filter console logs by message type (log, error, warn, info, debug)',
+          enum: ['log', 'error', 'warn', 'info', 'debug'],
+        },
       },
       required: [],
     },
   },
   midscene_get_screenshot: {
-    name: "midscene_get_screenshot",
-    description: "Get a previously taken screenshot by name",
+    name: 'midscene_get_screenshot',
+    description: 'Get a previously taken screenshot by name',
     inputSchema: {
-      type: "object",
+      type: 'object',
       properties: {
         name: {
-          type: "string",
-          description: "Name of the screenshot to retrieve"
-        }
+          type: 'string',
+          description: 'Name of the screenshot to retrieve',
+        },
       },
-      required: ["name"],
+      required: ['name'],
     },
   },
   midscene_get_tabs: {
