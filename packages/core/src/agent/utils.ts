@@ -12,7 +12,10 @@ import type {
   UIContext,
 } from '@/index';
 import { uploadTestInfoToServer } from '@/utils';
-import { MIDSCENE_REPORT_TAG_NAME, getAIConfig } from '@midscene/shared/env';
+import {
+  MIDSCENE_REPORT_TAG_NAME,
+  globalConfigManager,
+} from '@midscene/shared/env';
 import {
   generateElementByPosition,
   getNodeFromCacheList,
@@ -67,7 +70,9 @@ export async function commonContextParser(
 }
 
 export function getReportFileName(tag = 'web') {
-  const reportTagName = getAIConfig(MIDSCENE_REPORT_TAG_NAME);
+  const reportTagName = globalConfigManager.getEnvConfigValue(
+    MIDSCENE_REPORT_TAG_NAME,
+  );
   const dateTimeInFileName = dayjs().format('YYYY-MM-DD_HH-mm-ss');
   // ensure uniqueness at the same time
   const uniqueId = uuid().substring(0, 8);

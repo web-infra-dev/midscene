@@ -1,4 +1,3 @@
-import { getDebug } from '../logger';
 import {
   MIDSCENE_USE_DOUBAO_VISION,
   MIDSCENE_USE_GEMINI,

@@ -1,5 +1,4 @@
-import { globalConfigManger } from './global-config';
-import type { IModelPreferences, TIntent, TVlModeTypes } from './types';
+import type { TIntent, TVlModeTypes } from './types';
 
 import {
   DEFAULT_MODEL_CONFIG_KEYS,
@@ -11,7 +10,8 @@ import {
 
 import { getDebug } from '../logger';
 import { assert } from '../utils';
-import { createAssert, initDebugConfig, maskConfig, parseJson } from './helper';
+import { createAssert, maskConfig, parseJson } from './helper';
+import { initDebugConfig } from './init-debug';
 import {
   type UITarsModelVersion,
   parseVlModeAndUiTarsFromGlobalConfig,
@@ -98,7 +98,7 @@ export const decideOpenaiSdkConfig = ({
   'modelName' | 'from' | 'vlMode' | 'uiTarsVersion' | 'modelDescription'
 > => {
   initDebugConfig();
-  const debugLog = getDebug('ai:decideModel');
+  const debugLog = getDebug('ai:globalConfig');
 
   const socksProxy = provider[keys.socksProxy];
   const httpProxy = provider[keys.httpProxy];
@@ -224,20 +224,17 @@ const getModelDescription = (
  * - process.env.MIDSCENE_${intent}_MODEL_NAME
  * - PROCESS.ENV.MIDSCENE_MODEL_NAME
  */
-export const decideModelConfig = (
-  modelPreferences: IModelPreferences,
-  withAssert: boolean,
-): IModelConfig => {
+export const decideModelConfig = ({
+  intent,
+  modelConfigFromFn,
+  allConfig,
+}: {
+  intent: TIntent;
+  modelConfigFromFn: Record<string, string | undefined> | undefined;
+  allConfig: Record<string, string | undefined>;
+}): IModelConfig => {
   initDebugConfig();
-  const debugLog = getDebug('ai:decideModel');
-
-  debugLog('modelPreferences', modelPreferences);
-
-  const { intent } = modelPreferences;
-
-  const modelConfigFromFn = globalConfigManger.getModelConfigFromFn(
-    intent,
-  ) as unknown as Record<string, string | undefined>;
+  const debugLog = getDebug('ai:globalConfig');
 
   if (modelConfigFromFn) {
     debugLog('decideModelConfig base on agent.modelConfig()');
@@ -258,12 +255,10 @@ export const decideModelConfig = (
         debugLog(
           'query modelConfig from fn by intent got no corresponding modelName, will get other keys by default',
         );
-        if (withAssert) {
-          assert(
-            modelConfigFromFn[DEFAULT_MODEL_CONFIG_KEYS.modelName],
-            `The return value of agent.modelConfig do not have a valid value with key ${DEFAULT_MODEL_CONFIG_KEYS.modelName}.`,
-          );
-        }
+        assert(
+          modelConfigFromFn[DEFAULT_MODEL_CONFIG_KEYS.modelName],
+          `The return value of agent.modelConfig do not have a valid value with key ${DEFAULT_MODEL_CONFIG_KEYS.modelName}.`,
+        );
         return DEFAULT_MODEL_CONFIG_KEYS;
       }
     })();
@@ -271,13 +266,11 @@ export const decideModelConfig = (
     const result = decideOpenaiSdkConfig({
       keys: chosenKeys,
       provider: modelConfigFromFn,
-      valueAssert: withAssert
-        ? createAssert(
-            chosenKeys.modelName,
-            'modelConfig',
-            candidateModelNameFromConfig,
-          )
-        : () => {},
+      valueAssert: createAssert(
+        chosenKeys.modelName,
+        'modelConfig',
+        candidateModelNameFromConfig,
+      ),
     });
 
     const { vlMode, uiTarsVersion } = parseVlModeAndUiTarsFromRaw(
@@ -295,13 +288,11 @@ export const decideModelConfig = (
     };
 
     debugLog(
-      'decideModelConfig result by agent.modelConfig():',
+      `decideModelConfig result by agent.modelConfig() with intent ${intent}:`,
       maskConfig(finalResult),
     );
     return finalResult;
   }
-
-  const allConfig = globalConfigManger.getAllConfig();
 
   const keysForEnv =
     intent === 'default' ? DEFAULT_MODEL_CONFIG_KEYS_LEGACY : KEYS_MAP[intent];
@@ -323,9 +314,7 @@ export const decideModelConfig = (
     const result = decideOpenaiSdkConfig({
       keys: keysForEnv,
       provider: allConfig,
-      valueAssert: withAssert
-        ? createAssert(keysForEnv.modelName, 'process.env', modelName)
-        : () => {},
+      valueAssert: createAssert(keysForEnv.modelName, 'process.env', modelName),
     });
 
     const { vlMode, uiTarsVersion } = parseVlModeAndUiTarsFromRaw(
@@ -343,7 +332,7 @@ export const decideModelConfig = (
     };
 
     debugLog(
-      'decideModelConfig result by process.env with intent:',
+      `decideModelConfig result by process.env with intent ${intent}:`,
       maskConfig(finalResult),
     );
     return finalResult;
@@ -354,9 +343,10 @@ export const decideModelConfig = (
   const result = decideOpenaiSdkConfig({
     keys: DEFAULT_MODEL_CONFIG_KEYS_LEGACY,
     provider: allConfig,
-    valueAssert: withAssert
-      ? createAssert(DEFAULT_MODEL_CONFIG_KEYS_LEGACY.modelName, 'process.env')
-      : () => {},
+    valueAssert: createAssert(
+      DEFAULT_MODEL_CONFIG_KEYS_LEGACY.modelName,
+      'process.env',
+    ),
   });
 
   const { vlMode, uiTarsVersion } =
@@ -376,7 +366,7 @@ export const decideModelConfig = (
   };
 
   debugLog(
-    'decideModelConfig result by legacy logic:',
+    `decideModelConfig result by legacy logic with intent ${intent}:`,
     maskConfig(finalResult),
   );
   return finalResult;

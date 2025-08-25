@@ -4,8 +4,9 @@ import {
   getConnectedDevices,
 } from '@midscene/android';
 import {
+  MIDSCENE_MCP_ANDROID_MODE,
   MIDSCENE_MCP_USE_PUPPETEER_MODE,
-  getAIConfigInBoolean,
+  globalConfigManager,
 } from '@midscene/shared/env';
 import { parseBase64 } from '@midscene/shared/img';
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
@@ -14,8 +15,14 @@ import type {
   ImageContent,
   TextContent,
 } from '@modelcontextprotocol/sdk/types.js';
+import type { ConsoleMessage } from 'puppeteer-core';
 import { z } from 'zod';
 import { PuppeteerBrowserAgent, ensureBrowser } from './puppeteer';
+import {
+  consoleLogs,
+  notifyConsoleLogsUpdated,
+  notifyMessage,
+} from './resources';
 import { tools } from './tools';
 
 declare global {
@@ -32,8 +39,12 @@ export class MidsceneManager {
   private screenshots = new Map<string, string>();
   private mcpServer: McpServer; // Add server instance
   private agent?: AgentOverChromeBridge | PuppeteerBrowserAgent | AndroidAgent;
-  private puppeteerMode = getAIConfigInBoolean(MIDSCENE_MCP_USE_PUPPETEER_MODE);
-  private androidMode = getAIConfigInBoolean('MIDSCENE_MCP_ANDROID_MODE'); // Add Android mode flag
+  private puppeteerMode = globalConfigManager.getEnvConfigInBoolean(
+    MIDSCENE_MCP_USE_PUPPETEER_MODE,
+  );
+  private androidMode = globalConfigManager.getEnvConfigInBoolean(
+    MIDSCENE_MCP_ANDROID_MODE,
+  ); // Add Android mode flag
   private androidDeviceId?: string; // Add device ID storage
   constructor(server: McpServer) {
     this.mcpServer = server;
@@ -109,6 +120,15 @@ export class MidsceneManager {
     const { browser } = await ensureBrowser({});
     // Create a new, blank page (tab) in the browser.
     const newPage = await browser.newPage();
+
+    // Set up console listener BEFORE navigation
+    newPage.on('console', this.consoleListener);
+    notifyMessage(
+      this.mcpServer.server,
+      'debug',
+      'Console listener attached to new page',
+    );
+
     // Navigate the new page to Google as a starting point.
     if (openNewTabWithUrl) {
       await newPage.goto(openNewTabWithUrl);
@@ -323,7 +343,104 @@ export class MidsceneManager {
         };
       },
     );
+    this.mcpServer.tool(
+      tools.midscene_get_console_logs.name,
+      tools.midscene_get_console_logs.description,
+      {
+        msgType: z
+          .string()
+          .optional()
+          .describe(
+            'Filter console logs by message type (log, error, warn, info, debug, trace, dir, dirxml, table, clear, startGroup, startGroupCollapsed, endGroup, assert, profile, profileEnd, count, timeEnd)',
+          ),
+      },
+      async ({ msgType }) => {
+        try {
+          let logs = this.consoleLogs;
 
+          // Filter by message type if specified
+          if (msgType) {
+            logs = logs.filter((log) => log.startsWith(`[${msgType}]`));
+          }
+
+          const totalCount = this.consoleLogs.length;
+          const filteredCount = logs.length;
+          const filterInfo = msgType
+            ? ` (filtered by ${msgType}: ${filteredCount} of ${totalCount})`
+            : ` (${totalCount} total)`;
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Console logs${filterInfo}:\n\n${logs.join('\n')}`,
+              },
+            ],
+            isError: false,
+          };
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Failed to get console logs: ${(error as Error).message}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+      },
+    );
+
+    this.mcpServer.tool(
+      tools.midscene_get_screenshot.name,
+      tools.midscene_get_screenshot.description,
+      {
+        name: z.string().describe('Name of the screenshot to retrieve'),
+      },
+      async ({ name }) => {
+        try {
+          const screenshot = this.screenshots.get(name);
+          if (screenshot) {
+            const { mimeType, body } = parseBase64(screenshot);
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Screenshot '${name}' retrieved`,
+                },
+                {
+                  type: 'image',
+                  data: body,
+                  mimeType,
+                },
+              ],
+              isError: false,
+            };
+          } else {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Screenshot '${name}' not found. Available screenshots: ${Array.from(this.screenshots.keys()).join(', ') || 'none'}`,
+                },
+              ],
+              isError: true,
+            };
+          }
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Failed to get screenshot: ${(error as Error).message}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+      },
+    );
     this.mcpServer.tool(
       tools.midscene_get_tabs.name,
       tools.midscene_get_tabs.description,
@@ -620,6 +737,56 @@ export class MidsceneManager {
       },
     );
   }
+
+  // Set up console listener for navigation
+  private consoleListener = async (msg: ConsoleMessage) => {
+    try {
+      const args = msg.args();
+      const processedArgs = [];
+
+      notifyMessage(this.mcpServer.server, 'debug', 'consoleListener', {
+        args,
+      });
+      for (const jsHandle of args) {
+        // Check remoteObject first for Error objects or other complex types
+        const remoteObject = jsHandle.remoteObject();
+        if (
+          remoteObject?.description &&
+          (remoteObject.className === 'Error' ||
+            remoteObject.subtype === 'error')
+        ) {
+          // Use the description from remoteObject which contains full error details
+          processedArgs.push(remoteObject.description);
+        } else {
+          try {
+            // Try jsonValue for simple values
+            const value = await jsHandle.jsonValue();
+            processedArgs.push(value);
+          } catch (e) {
+            // Fallback to remoteObject for other complex objects
+            if (remoteObject?.description) {
+              processedArgs.push(remoteObject.description);
+            } else if (remoteObject?.className) {
+              processedArgs.push(`[${remoteObject.className}]`);
+            } else {
+              processedArgs.push('[Object]');
+            }
+          }
+        }
+      }
+
+      const logEntry = `[${msg.type()}] ${processedArgs.join(' ')}`;
+      this.consoleLogs.push(logEntry);
+      consoleLogs.push(logEntry);
+      notifyConsoleLogsUpdated(this.mcpServer.server);
+    } catch (error) {
+      // Fallback to original text if processing fails
+      const logEntry = `[${msg.type()}] ${msg.text()}`;
+      this.consoleLogs.push(logEntry);
+      consoleLogs.push(logEntry);
+      notifyConsoleLogsUpdated(this.mcpServer.server);
+    }
+  };
 
   public getConsoleLogs(): string {
     return this.consoleLogs.join('\n');

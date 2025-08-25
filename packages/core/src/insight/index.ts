@@ -31,8 +31,8 @@ import type {
 import {
   type IModelPreferences,
   MIDSCENE_FORCE_DEEP_THINK,
-  getAIConfigInBoolean,
   getIsUseQwenVl,
+  globalConfigManager,
   vlLocateMode,
 } from '@midscene/shared/env';
 import { compositeElementInfoImg, cropByRect } from '@midscene/shared/img';
@@ -98,7 +98,7 @@ export default class Insight<
 
     assert(typeof query === 'object', 'query should be an object for locate');
 
-    const globalDeepThinkSwitch = getAIConfigInBoolean(
+    const globalDeepThinkSwitch = globalConfigManager.getEnvConfigInBoolean(
       MIDSCENE_FORCE_DEEP_THINK,
     );
     if (globalDeepThinkSwitch) {

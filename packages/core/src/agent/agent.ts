@@ -43,9 +43,9 @@ import {
 import type { AbstractDevice } from '@/device';
 import {
   type IModelPreferences,
+  MIDSCENE_CACHE,
   type TModelConfigFn,
-  getAIConfigInBoolean,
-  globalConfigManger,
+  globalConfigManager,
   vlLocateMode,
 } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
@@ -141,9 +141,13 @@ export class Agent<PageType extends AbstractDevice = AbstractDevice> {
       },
       opts || {},
     );
-    if (typeof opts?.modelConfig === 'function') {
-      globalConfigManger.registerModelConfigFn(opts?.modelConfig);
+    if (opts?.modelConfig && typeof opts?.modelConfig !== 'function') {
+      throw new Error(
+        `opts.modelConfig must be one of function or undefined, but got ${typeof opts?.modelConfig}`,
+      );
     }
+
+    globalConfigManager.init(opts?.modelConfig);
 
     this.onTaskStartTip = this.opts.onTaskStartTip;
     // get the parent browser of the puppeteer page
@@ -156,7 +160,7 @@ export class Agent<PageType extends AbstractDevice = AbstractDevice> {
     if (opts?.cacheId && this.page.pageType !== 'android') {
       this.taskCache = new TaskCache(
         opts.cacheId,
-        getAIConfigInBoolean('MIDSCENE_CACHE'), // if we should use cache to match the element
+        globalConfigManager.getEnvConfigInBoolean(MIDSCENE_CACHE), // if we should use cache to match the element
       );
     }
 
