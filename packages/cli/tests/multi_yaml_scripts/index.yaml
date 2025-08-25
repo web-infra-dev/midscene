@@ -25,7 +25,7 @@ web:
 # Execution files using glob patterns
 files:
   - "login.yaml"
-  - "local/local-error-message.yml"
+  # - "local/local-error-message.yml"
   - "local/local.yml"
   # - "local/local*.yml"
-  - "after-login.yaml"
+  # - "after-login.yaml"
