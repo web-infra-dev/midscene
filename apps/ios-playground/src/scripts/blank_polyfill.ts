@@ -1,0 +1,2 @@
+const AsyncLocalStorage = {};
+export { AsyncLocalStorage };
