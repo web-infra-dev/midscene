@@ -634,17 +634,17 @@ describe('AndroidDevice', () => {
       });
     });
 
-    it('scrollUp should call mouseWheel with negative Y delta', async () => {
+    it('scrollUp should call scroll with negative Y delta', async () => {
       const wheelSpy = vi
-        .spyOn(device as any, 'mouseWheel')
+        .spyOn(device as any, 'scroll')
         .mockResolvedValue(undefined);
       await device.scrollUp(100);
       expect(wheelSpy).toHaveBeenCalledWith(0, -100);
     });
 
-    it('scrollDown should call mouseWheel with positive Y delta', async () => {
+    it('scrollDown should call scroll with positive Y delta', async () => {
       const wheelSpy = vi
-        .spyOn(device as any, 'mouseWheel')
+        .spyOn(device as any, 'scroll')
         .mockResolvedValue(undefined);
       await device.scrollDown(100);
       expect(wheelSpy).toHaveBeenCalledWith(0, 100);
