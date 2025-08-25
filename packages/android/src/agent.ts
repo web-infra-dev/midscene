@@ -1,31 +1,10 @@
 import { Agent as PageAgent, type PageAgentOpt } from '@midscene/core/agent';
 import { vlLocateMode } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
-import { ADB, type Device } from 'appium-adb';
 import { AndroidDevice, type AndroidDeviceOpt } from './device';
+import { getConnectedDevices } from './utils';
 
 const debugAgent = getDebug('android:agent');
-
-export async function getConnectedDevices(): Promise<Device[]> {
-  try {
-    const adb = await ADB.createADB({
-      adbExecTimeout: 60000,
-    });
-    const devices = await adb.getConnectedDevices();
-
-    debugAgent(`Found ${devices.length} connected devices: `, devices);
-
-    return devices;
-  } catch (error: any) {
-    console.error('Failed to get device list:', error);
-    throw new Error(
-      `Unable to get connected Android device list, please check https://midscenejs.com/integrate-with-android.html#faq : ${error.message}`,
-      {
-        cause: error,
-      },
-    );
-  }
-}
 
 type AndroidAgentOpt = PageAgentOpt;
 
