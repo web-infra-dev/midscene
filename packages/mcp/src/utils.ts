@@ -1,3 +1,4 @@
+import { getAIConfig, MIDSCENE_MCP_CHROME_PATH } from '@midscene/shared/env';
 import { existsSync } from 'fs';
 
 // Deep merge utility function
@@ -36,25 +37,56 @@ export function deepMerge(target: any, source: any): any {
 
 export function getSystemChromePath(): string | undefined {
   const platform = process.platform;
+  const isDocker = process.env.DOCKER_CONTAINER === 'true';
+  
+  // Priority 1: Use Docker's MIDSCENE_MCP_CHROME_PATH environment variable
+  if (isDocker && process.env.MIDSCENE_MCP_CHROME_PATH && existsSync(process.env.MIDSCENE_MCP_CHROME_PATH)) {
+    return process.env.MIDSCENE_MCP_CHROME_PATH;
+  }
+  
   const chromePaths = {
-    darwin: [
+    darwin: isDocker ? [
+      // Docker on macOS (rare but possible)
+      '/usr/bin/google-chrome',
+      '/usr/bin/chromium-browser',
+      '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+      '/Applications/Chromium.app/Contents/MacOS/Chromium',
+    ] : [
       '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
       '/Applications/Chromium.app/Contents/MacOS/Chromium',
     ],
-    win32: [
+    win32: isDocker ? [
+      // Docker Windows containers
+      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+      'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+    ] : [
       'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
       'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
       'C:\\Users\\' + (process.env.USERNAME || process.env.USER) + '\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe',
     ],
-    linux: [
+    linux: isDocker ? [
+      // Simplified Docker paths (fallback only)
+      '/usr/bin/google-chrome',
+      '/usr/bin/chromium-browser',
+    ] : [
       '/usr/bin/google-chrome',
       '/usr/bin/google-chrome-stable',
       '/usr/bin/chromium-browser',
       '/usr/bin/chromium',
       '/snap/bin/chromium',
+      '/opt/google/chrome/chrome',
+      '/opt/google/chrome/google-chrome',
     ],
   };
 
   const paths = chromePaths[platform as keyof typeof chromePaths] || [];
   return paths.find(path => existsSync(path));
+}
+
+export function getChromePathFromEnv(): string | undefined {
+  const envChromePath = getAIConfig(MIDSCENE_MCP_CHROME_PATH);
+  if(envChromePath !== 'auto' && envChromePath !== undefined && existsSync(envChromePath)) {
+    return envChromePath;
+  }
+  return getSystemChromePath();
 }

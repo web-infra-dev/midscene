@@ -10,29 +10,33 @@ export const tools = {
     description:
       'Navigates the browser to the specified URL. Always opens in the current tab.',
   },
-  midscene_get_resource: {
-    name: "midscene_get_resource",
-    description: "Get a resource by URI (console logs, screenshots, etc.)",
+  midscene_get_console_logs: {
+    name: "midscene_get_console_logs",
+    description: "Get console logs from the current browser session",
     inputSchema: {
       type: "object",
       properties: {
-        uri: {
+        msgType: {
           type: "string",
-          description: "Resource URI (e.g., 'console://logs', 'screenshot://${name}')"
-        },
-        options: {
-          type: "object",
-          description: "Optional parameters for resource retrieval",
-          properties: {
-            msgType: {
-              type: "string",
-              description: "Filter console logs by message type (log, error, warn, info, debug, trace, dir, dirxml, table, clear, startGroup, startGroupCollapsed, endGroup, assert, profile, profileEnd, count, timeEnd)",
-              enum: ["log", "error", "warn", "info", "debug", "trace", "dir", "dirxml", "table", "clear", "startGroup", "startGroupCollapsed", "endGroup", "assert", "profile", "profileEnd", "count", "timeEnd"]
-            }
-          }
+          description: "Filter console logs by message type (log, error, warn, info, debug)",
+          enum: ["log", "error", "warn", "info", "debug"]
         }
       },
-      required: ["uri"],
+      required: [],
+    },
+  },
+  midscene_get_screenshot: {
+    name: "midscene_get_screenshot",
+    description: "Get a previously taken screenshot by name",
+    inputSchema: {
+      type: "object",
+      properties: {
+        name: {
+          type: "string",
+          description: "Name of the screenshot to retrieve"
+        }
+      },
+      required: ["name"],
     },
   },
   midscene_get_tabs: {

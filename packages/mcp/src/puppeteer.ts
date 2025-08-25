@@ -4,8 +4,7 @@ import { PuppeteerAgent } from '@midscene/web/puppeteer';
 import type { Browser, LaunchOptions } from 'puppeteer-core';
 import type { Page } from 'puppeteer-core';
 import puppeteer from 'puppeteer-core';
-import { deepMerge, getSystemChromePath } from './utils';
-import { getAIConfigInBoolean, MIDSCENE_MCP_USE_SYSTEM_BROWSER } from '@midscene/shared/env';
+import { deepMerge, getChromePathFromEnv } from './utils';
  
 // Global state
 let browser: Browser | null;
@@ -58,8 +57,8 @@ function getBrowserLaunchOptions(
       );
     }
   }
-
-  const systemChromePath = getAIConfigInBoolean(MIDSCENE_MCP_USE_SYSTEM_BROWSER) ? getSystemChromePath() : undefined;
+  
+  const systemChromePath = getChromePathFromEnv();
   const npx_args = {
     headless: false,
     defaultViewport: null,
@@ -69,10 +68,11 @@ function getBrowserLaunchOptions(
   const docker_args = {
     headless: true,
     args: ['--no-sandbox', '--single-process', '--no-zygote'],
+    ...(systemChromePath && { executablePath: systemChromePath }),
   };
 
   return deepMerge(
-    process.env.DOCKER_CONTAINER ? docker_args : npx_args,
+    process.env.DOCKER_CONTAINER === 'true' ? docker_args : npx_args,
     mergedConfig,
   );
 }

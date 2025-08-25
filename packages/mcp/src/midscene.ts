@@ -331,90 +331,81 @@ export class MidsceneManager {
       },
     );
     this.mcpServer.tool(
-      tools.midscene_get_resource.name,
-      tools.midscene_get_resource.description,
+      tools.midscene_get_console_logs.name,
+      tools.midscene_get_console_logs.description,
       {
-        uri: z.string().describe('Resource URI (e.g., "console://logs", "screenshot://${name}")'),
-        options: z.object({
-          msgType: z.string().optional().describe('Filter console logs by message type (log, error, warn, info, debug, trace, dir, dirxml, table, clear, startGroup, startGroupCollapsed, endGroup, assert, profile, profileEnd, count, timeEnd)'),
-        }).optional(),
+        msgType: z.string().optional().describe('Filter console logs by message type (log, error, warn, info, debug, trace, dir, dirxml, table, clear, startGroup, startGroupCollapsed, endGroup, assert, profile, profileEnd, count, timeEnd)'),
       },
-      async ({ uri, options }) => {
+      async ({ msgType }) => {
         try {
-          if (!uri) {
-            return {
-              content: [{
-                type: "text",
-                text: "Missing required parameter: uri",
-              }],
-              isError: true,
-            };
+          let logs = this.consoleLogs;
+  
+          // Filter by message type if specified
+          if (msgType) {
+            logs = logs.filter(log => log.startsWith(`[${msgType}]`));
           }
   
-          // Handle console logs resource
-          if (uri === "console://logs") {
-            let logs = this.consoleLogs;
-  
-            // Filter by message type if specified
-            if (options?.msgType) {
-              const targetType = options.msgType;
-              logs = logs.filter(log => log.startsWith(`[${targetType}]`));
-            }
-  
-            const totalCount = this.consoleLogs.length;
-            const filteredCount = logs.length;
-            const filterInfo = options?.msgType ?
-              ` (filtered by ${options.msgType}: ${filteredCount} of ${totalCount})` :
-              ` (${totalCount} total)`;
-  
-            return {
-              content: [{
-                type: "text",
-                text: `Console logs${filterInfo}:\n\n${logs.join("\n")}`,
-              }],
-              isError: false,
-            };
-          }
-  
-          // Handle screenshot resources
-          if (uri.startsWith("screenshot://")) {
-            const name = uri.split("://")[1];
-            const screenshot = this.screenshots.get(name);
-            if (screenshot) {
-              return {
-                content: [{
-                  type: "text",
-                  text: `Screenshot '${name}' retrieved`,
-                }, {
-                  type: "image",
-                  data: screenshot,
-                  mimeType: "image/png",
-                }],
-                isError: false,
-              };
-            } else {
-              return {
-                content: [{
-                  type: "text",
-                  text: `Screenshot '${name}' not found. Available screenshots: ${Array.from(state.screenshots.keys()).join(", ") || "none"}`,
-                }],
-                isError: true,
-              };
-            }
-          }
+          const totalCount = this.consoleLogs.length;
+          const filteredCount = logs.length;
+          const filterInfo = msgType ?
+            ` (filtered by ${msgType}: ${filteredCount} of ${totalCount})` :
+            ` (${totalCount} total)`;
   
           return {
             content: [{
               type: "text",
-              text: `Unknown resource URI: ${uri}. Available resources: console://logs, screenshot://<name>`,
+              text: `Console logs${filterInfo}:\n\n${logs.join("\n")}`,
             }],
-            isError: true,
+            isError: false,
           };
         } catch (error) {
           return {
             content: [{
               type: "text",
-              text: `Failed to get resource: ${(error as Error).message}`,
+              text: `Failed to get console logs: ${(error as Error).message}`,
+            }],
+            isError: true,
+          };
+        }
+      },
+    );
+
+    this.mcpServer.tool(
+      tools.midscene_get_screenshot.name,
+      tools.midscene_get_screenshot.description,
+      {
+        name: z.string().describe('Name of the screenshot to retrieve'),
+      },
+      async ({ name }) => {
+        try {
+          const screenshot = this.screenshots.get(name);
+          if (screenshot) {
+            const { mimeType, body } = parseBase64(screenshot);
+            return {
+              content: [{
+                type: "text",
+                text: `Screenshot '${name}' retrieved`,
+              }, {
+                type: "image",
+                data: body,
+                mimeType,
+              }],
+              isError: false,
+            };
+          } else {
+            return {
+              content: [{
+                type: "text",
+                text: `Screenshot '${name}' not found. Available screenshots: ${Array.from(this.screenshots.keys()).join(", ") || "none"}`,
+              }],
+              isError: true,
+            };
+          }
+        } catch (error) {
+          return {
+            content: [{
+              type: "text",
+              text: `Failed to get screenshot: ${(error as Error).message}`,
             }],
             isError: true,
           };
