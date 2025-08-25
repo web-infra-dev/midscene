@@ -1,5 +1,15 @@
 export { Agent, type PageAgentOpt } from './agent';
-export { commonWebActionsForWebPage, commonContextParser } from './utils';
+export { commonContextParser } from './utils';
+export {
+  commonWebActionsForWebPage,
+  defineActionTap,
+  defineActionRightClick,
+  defineActionHover,
+  defineActionInput,
+  defineActionKeyboardPress,
+  defineActionScroll,
+  defineActionDragAndDrop,
+} from './common';
 export {
   getReportFileName,
   printReportMsg,

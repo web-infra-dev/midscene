@@ -2,21 +2,17 @@ import { elementByPositionWithElementInfo } from '@/ai-model';
 import type { AbstractPage } from '@/device';
 import type {
   BaseElement,
-  DeviceAction,
   ElementTreeNode,
   ExecutionDump,
   ExecutionTask,
   ExecutorContext,
-  MidsceneLocationResultType,
   PlanningLocateParam,
   TMultimodalPrompt,
   TUserPrompt,
   UIContext,
 } from '@/index';
-import { getMidsceneLocationSchema, z } from '@/index';
-import { sleep, uploadTestInfoToServer } from '@/utils';
+import { uploadTestInfoToServer } from '@/utils';
 import { MIDSCENE_REPORT_TAG_NAME, getAIConfig } from '@midscene/shared/env';
-import type { ElementInfo } from '@midscene/shared/extractor';
 import {
   generateElementByPosition,
   getNodeFromCacheList,
@@ -28,10 +24,8 @@ import { assert, logMsg, uuid } from '@midscene/shared/utils';
 import dayjs from 'dayjs';
 import { debug as cacheDebug } from './task-cache';
 import type { PageTaskExecutor } from './tasks';
-import { getKeyCommands } from './ui-utils';
 
 const debugProfile = getDebug('web:tool:profile');
-const debugUtils = getDebug('web:tool:utils');
 
 export async function commonContextParser(
   page: AbstractPage,
@@ -289,216 +283,3 @@ export const parsePrompt = (
       : undefined,
   };
 };
-
-export const commonWebActionsForWebPage = <T extends AbstractPage>(
-  page: T,
-): DeviceAction<any>[] => [
-  {
-    name: 'Tap',
-    description: 'Tap the element',
-    interfaceAlias: 'aiTap',
-    paramSchema: z.object({
-      locate: getMidsceneLocationSchema().describe('The element to be tapped'),
-    }),
-    call: async (param) => {
-      const element = param.locate;
-      assert(element, 'Element not found, cannot tap');
-      await page.mouse.click(element.center[0], element.center[1], {
-        button: 'left',
-      });
-    },
-  } as DeviceAction<{
-    locate: MidsceneLocationResultType;
-  }>,
-  {
-    name: 'RightClick',
-    description: 'Right click the element',
-    interfaceAlias: 'aiRightClick',
-    paramSchema: z.object({
-      locate: getMidsceneLocationSchema().describe(
-        'The element to be right clicked',
-      ),
-    }),
-    call: async (param) => {
-      const element = param.locate;
-      assert(element, 'Element not found, cannot right click');
-      await page.mouse.click(element.center[0], element.center[1], {
-        button: 'right',
-      });
-    },
-  } as DeviceAction<{
-    locate: MidsceneLocationResultType;
-  }>,
-  {
-    name: 'Hover',
-    description: 'Move the mouse to the element',
-    interfaceAlias: 'aiHover',
-    paramSchema: z.object({
-      locate: getMidsceneLocationSchema().describe('The element to be hovered'),
-    }),
-    call: async (param) => {
-      const element = param.locate;
-      assert(element, 'Element not found, cannot hover');
-      await page.mouse.move(element.center[0], element.center[1]);
-    },
-  } as DeviceAction<{
-    locate: MidsceneLocationResultType;
-  }>,
-  {
-    name: 'Input',
-    description:
-      'Replace the input field with a new value. `value` is the final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. Giving a blank string means clear the input field.',
-    interfaceAlias: 'aiInput',
-    paramSchema: z.object({
-      value: z
-        .string()
-        .describe('The final value that should be filled in the input box'),
-      locate: getMidsceneLocationSchema()
-        .describe('The input field to be filled')
-        .optional(),
-    }),
-    call: async (param) => {
-      const element = param.locate;
-      if (element) {
-        await page.clearInput(element as unknown as ElementInfo);
-
-        if (!param || !param.value) {
-          return;
-        }
-      }
-
-      // Note: there is another implementation in AndroidDevicePage, which is more complex
-      await page.keyboard.type(param.value);
-    },
-  } as DeviceAction<{
-    value: string;
-    locate: MidsceneLocationResultType;
-  }>,
-  {
-    name: 'KeyboardPress',
-    description:
-      'Press a function key, like "Enter", "Tab", "Escape". Do not use this to type text.',
-    interfaceAlias: 'aiKeyboardPress',
-    paramSchema: z.object({
-      locate: getMidsceneLocationSchema()
-        .describe('The element to be clicked before pressing the key')
-        .optional(),
-      keyName: z.string().describe('The key to be pressed'),
-    }),
-    call: async (param) => {
-      const element = param.locate;
-      if (element) {
-        await page.mouse.click(element.center[0], element.center[1], {
-          button: 'left',
-        });
-      }
-
-      const keys = getKeyCommands(param.keyName);
-      await page.keyboard.press(keys as any); // TODO: fix this type error
-    },
-  } as DeviceAction<{
-    keyName: string;
-    locate: MidsceneLocationResultType;
-  }>,
-  {
-    name: 'Scroll',
-    description:
-      'Scroll the page or an element. The direction to scroll, the scroll type, and the distance to scroll. The distance is the number of pixels to scroll. If not specified, use `down` direction, `once` scroll type, and `null` distance.',
-    interfaceAlias: 'aiScroll',
-    paramSchema: z.object({
-      direction: z
-        .enum(['down', 'up', 'right', 'left'])
-        .default('down')
-        .describe('The direction to scroll'),
-      scrollType: z
-        .enum(['once', 'untilBottom', 'untilTop', 'untilRight', 'untilLeft'])
-        .default('once')
-        .describe('The scroll type'),
-      distance: z
-        .number()
-        .nullable()
-        .optional()
-        .describe('The distance in pixels to scroll'),
-      locate: getMidsceneLocationSchema()
-        .optional()
-        .describe('The element to be scrolled'),
-    }),
-    call: async (param) => {
-      const element = param.locate;
-      const startingPoint = element
-        ? {
-            left: element.center[0],
-            top: element.center[1],
-          }
-        : undefined;
-      const scrollToEventName = param?.scrollType;
-      if (scrollToEventName === 'untilTop') {
-        await page.scrollUntilTop(startingPoint);
-      } else if (scrollToEventName === 'untilBottom') {
-        await page.scrollUntilBottom(startingPoint);
-      } else if (scrollToEventName === 'untilRight') {
-        await page.scrollUntilRight(startingPoint);
-      } else if (scrollToEventName === 'untilLeft') {
-        await page.scrollUntilLeft(startingPoint);
-      } else if (scrollToEventName === 'once' || !scrollToEventName) {
-        if (param?.direction === 'down' || !param || !param.direction) {
-          await page.scrollDown(param?.distance || undefined, startingPoint);
-        } else if (param.direction === 'up') {
-          await page.scrollUp(param.distance || undefined, startingPoint);
-        } else if (param.direction === 'left') {
-          await page.scrollLeft(param.distance || undefined, startingPoint);
-        } else if (param.direction === 'right') {
-          await page.scrollRight(param.distance || undefined, startingPoint);
-        } else {
-          throw new Error(`Unknown scroll direction: ${param.direction}`);
-        }
-        // until mouse event is done
-        await sleep(500);
-      } else {
-        throw new Error(
-          `Unknown scroll event type: ${scrollToEventName}, param: ${JSON.stringify(
-            param,
-          )}`,
-        );
-      }
-    },
-  } as DeviceAction<{
-    scrollType:
-      | 'once'
-      | 'untilBottom'
-      | 'untilTop'
-      | 'untilRight'
-      | 'untilLeft';
-    direction: 'up' | 'down';
-    distance?: number;
-    duration?: number;
-    locate: MidsceneLocationResultType;
-  }>,
-  {
-    name: 'DragAndDrop',
-    description: 'Drag and drop the element',
-    paramSchema: z.object({
-      from: getMidsceneLocationSchema().describe('The position to be dragged'),
-      to: getMidsceneLocationSchema().describe('The position to be dropped'),
-    }),
-    call: async (param) => {
-      const from = param.from;
-      const to = param.to;
-      assert(from, 'missing "from" param for drag and drop');
-      assert(to, 'missing "to" param for drag and drop');
-      await page.mouse.drag(
-        {
-          x: from.center[0],
-          y: from.center[1],
-        },
-        {
-          x: to.center[0],
-          y: to.center[1],
-        },
-      );
-    },
-  } as DeviceAction<{
-    from: MidsceneLocationResultType;
-    to: MidsceneLocationResultType;
-  }>,
-];
