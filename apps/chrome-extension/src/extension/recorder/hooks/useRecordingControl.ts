@@ -270,7 +270,11 @@ export const useRecordingControl = (
       }
 
       // Always ensure script is injected before starting
-      await ensureScriptInjected(currentTab);
+      const scriptsReady = await ensureScriptInjected(currentTab);
+      if (!scriptsReady) {
+        recordLogger.error('Cannot start recording - scripts not ready');
+        return;
+      }
 
       try {
         // Clean up any previous recording instances first
@@ -298,7 +302,7 @@ export const useRecordingControl = (
       } catch (error) {
         recordLogger.error('Failed to start recording', undefined, error);
         message.error(
-          'Failed to start recording. Please ensure you are on a regular web page (not Chrome internal pages) and try again.',
+          'Failed to start recording. Cannot inject script on this page, please click the Midscene extension icon again to authorize.',
         );
       }
     },
@@ -358,6 +362,37 @@ export const useRecordingControl = (
       });
     }
   }, [events.length, isRecording]);
+
+  // Listen for script injection status from service worker
+  useEffect(() => {
+    if (!isExtensionMode) return;
+
+    const handleRuntimeMessage = (msg: any) => {
+      if (msg.action === 'scriptsInjected' && msg.success) {
+        recordLogger.info(
+          'Scripts injected successfully from extension icon click',
+          {
+            tabId: msg.tabId,
+          },
+        );
+        message.success(
+          'Scripts injected! Recording is now available on this page.',
+        );
+      } else if (msg.action === 'scriptInjectionFailed') {
+        recordLogger.error('Script injection failed', {
+          tabId: msg.tabId,
+          error: msg.error,
+        });
+        message.error(`Script injection failed: ${msg.error}`);
+      }
+    };
+
+    chrome.runtime.onMessage.addListener(handleRuntimeMessage);
+
+    return () => {
+      chrome.runtime.onMessage.removeListener(handleRuntimeMessage);
+    };
+  }, [isExtensionMode]);
 
   // Set up message listener for content script with enhanced error handling
   useEffect(() => {
