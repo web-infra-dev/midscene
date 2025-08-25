@@ -144,6 +144,7 @@
     "@types/node": "^18.0.0",
     "playwright": "1.44.1",
     "puppeteer": "24.2.0",
+    "js-yaml": "4.1.0",
     "typescript": "^5.8.3",
     "vitest": "3.0.5"
   },
