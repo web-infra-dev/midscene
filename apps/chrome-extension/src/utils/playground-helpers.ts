@@ -219,34 +219,22 @@ export async function executeAction(
     // Fallback to traditional method calls for non-actionSpace methods
     const prompt = value.prompt;
 
-    if (actionType === 'aiAction') {
-      return await activeAgent?.aiAction(prompt);
-    } else if (actionType === 'aiQuery') {
-      return await activeAgent?.aiQuery(prompt);
-    } else if (actionType === 'aiAssert') {
+    // special handle for assert method
+    if (actionType === 'aiAssert') {
       const { pass, thought } =
         (await activeAgent?.aiAssert(prompt, undefined, {
           keepRawResponse: true,
         })) || {};
-      return {
-        pass,
-        thought,
-      };
-    } else if (actionType === 'aiBoolean') {
-      return await activeAgent?.aiBoolean(prompt);
-    } else if (actionType === 'aiNumber') {
-      return await activeAgent?.aiNumber(prompt);
-    } else if (actionType === 'aiString') {
-      return await activeAgent?.aiString(prompt);
-    } else if (actionType === 'aiAsk') {
-      return await activeAgent?.aiAsk(prompt);
-    } else if (actionType === 'aiWaitFor') {
-      return await activeAgent?.aiWaitFor(prompt, {
-        timeoutMs: 15000,
-        checkIntervalMs: 3000,
-      });
-    } else {
-      throw new Error(`Unknown action type: ${actionType}`);
+      return { pass, thought };
     }
+
+    // for other methods, check if the agent has the method
+    if (activeAgent && typeof activeAgent[actionType] === 'function') {
+      return await activeAgent[actionType](prompt, {
+        deepThink,
+      });
+    }
+
+    throw new Error(`Unknown action type: ${actionType}`);
   }
 }

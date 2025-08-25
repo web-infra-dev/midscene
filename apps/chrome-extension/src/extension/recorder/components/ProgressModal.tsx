@@ -13,15 +13,13 @@ import {
 } from '@ant-design/icons';
 import type { CodeGenerationChunk, StreamingCallback } from '@midscene/core';
 import type { ChromeRecordedEvent } from '@midscene/recorder';
-import { ShinyText } from '@midscene/visualizer';
-import { Button, Progress, Select, Tooltip, Typography, message } from 'antd';
+import { Button, Select, Tooltip, Typography, message } from 'antd';
 import type React from 'react';
 import { useEffect, useState } from 'react';
-import { useRecordStore, useRecordingSessionStore } from '../../../store';
+import { useRecordingSessionStore } from '../../../store';
 import { generateAIDescription } from '../../../utils/eventOptimizer';
 import {
   generatePlaywrightTestStream,
-  generateYamlTest,
   generateYamlTestStream,
 } from '../generators';
 import { recordLogger } from '../logger';
@@ -33,8 +31,6 @@ import {
 import { generateRecordTitle } from '../utils';
 import { CodeBlock } from './ProgressModal/CodeBlock';
 import { StepList } from './ProgressModal/StepList';
-
-const { Text } = Typography;
 
 export interface ProgressStep {
   id: string;
