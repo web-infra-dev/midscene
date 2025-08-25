@@ -1,6 +1,6 @@
 import path from 'node:path';
+import { sleep } from '@midscene/core/utils';
 import { expect } from '@playwright/test';
-import { sleep } from 'openai/core';
 import { test } from './fixture';
 
 test.beforeEach(async ({ page }) => {

@@ -33,7 +33,6 @@
   "dependencies": {
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
-    "@midscene/web": "workspace:*",
     "appium-adb": "12.12.1"
   },
   "devDependencies": {
