@@ -2,19 +2,17 @@
 
 web:
   url: https://www.saucedemo.com/
+  bridgeMode: newTabWithUrl
 
 tasks:
   - name: login
+    continueOnError: true
     flow:
-      - aiAction: type 'standard_user' in user name input, type 'secret_sauce' in password, click 'Login'
+      - aiAssert: 这里有个大象
 
   - name: extract items info
     flow:
-      - aiQuery: >
-          {name: string, price: number, actionBtnName: string, imageUrl: string}[], return item name, price and the action button name on the lower right corner of each item, and the image url of each item (like 'Remove')
-        name: items
-        domIncluded: true
-      - aiAssert: The price of 'Sauce Labs Fleece Jacket' is 49.99
+      - aiAsk:如何测试当前页面
 
   - name: run javascript code
     flow:

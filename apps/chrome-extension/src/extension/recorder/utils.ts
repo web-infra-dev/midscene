@@ -69,10 +69,10 @@ export const checkContentScriptInjected = async (
   }
 };
 
-// Re-inject script if needed
+// Ensure scripts are injected, inject if needed
 export const ensureScriptInjected = async (
   currentTab: chrome.tabs.Tab | null,
-) => {
+): Promise<boolean> => {
   if (!isChromeExtension() || !currentTab?.id) {
     recordLogger.error(
       'Cannot ensure script injection - invalid environment or tab',
@@ -83,25 +83,51 @@ export const ensureScriptInjected = async (
   const isInjected = await checkContentScriptInjected(currentTab.id);
 
   if (!isInjected) {
-    recordLogger.info('Injecting script', { tabId: currentTab.id });
-    await injectScript(currentTab);
+    recordLogger.info('Scripts not detected, attempting injection', {
+      tabId: currentTab.id,
+    });
+    const injectionSuccess = await injectScript(currentTab);
+    if (!injectionSuccess) {
+      return false;
+    }
+
+    // Wait a moment for scripts to initialize
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // Check again after injection
+    const isNowInjected = await checkContentScriptInjected(currentTab.id);
+    if (!isNowInjected) {
+      recordLogger.error(
+        'Script injection failed - content script not responding',
+        {
+          tabId: currentTab.id,
+        },
+      );
+      return false;
+    }
   }
+
+  recordLogger.success('Scripts are ready', { tabId: currentTab.id });
   return true;
 };
 
-// Inject content script
-export const injectScript = async (currentTab: chrome.tabs.Tab | null) => {
+// Inject content script directly (using host_permissions)
+export const injectScript = async (
+  currentTab: chrome.tabs.Tab | null,
+): Promise<boolean> => {
   if (!isChromeExtension()) {
     message.error('Chrome extension environment required for script injection');
-    return;
+    return false;
   }
 
   if (!currentTab?.id) {
     message.error('No active tab found');
-    return;
+    return false;
   }
 
   try {
+    recordLogger.info('Injecting scripts directly', { tabId: currentTab.id });
+
     // Inject the record script first
     await safeChromeAPI.scripting.executeScript({
       target: { tabId: currentTab.id },
@@ -114,16 +140,19 @@ export const injectScript = async (currentTab: chrome.tabs.Tab | null) => {
       files: ['scripts/event-recorder-bridge.js'],
     });
 
-    recordLogger.success('Script injected', { tabId: currentTab.id });
+    recordLogger.success('Scripts injected successfully', {
+      tabId: currentTab.id,
+    });
+    return true;
   } catch (error) {
     recordLogger.error(
-      'Failed to inject script',
+      'Failed to inject scripts',
       { tabId: currentTab.id },
       error,
     );
     if (error instanceof Error && error.message.includes('Cannot access')) {
       message.error(
-        'Cannot inject script on this page (Chrome internal pages are restricted)',
+        'Cannot inject script on this page, please click the Midscene extension icon again to authorize',
       );
     } else if (
       error instanceof Error &&
@@ -135,6 +164,7 @@ export const injectScript = async (currentTab: chrome.tabs.Tab | null) => {
     } else {
       message.error(`Failed to inject recording script: ${error}`);
     }
+    return false;
   }
 };
 
