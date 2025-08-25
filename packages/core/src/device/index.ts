@@ -39,7 +39,7 @@ export const defineAction = <TSchema extends z.ZodType>(
 };
 
 // Tap
-const actionTapParamSchema = z.object({
+export const actionTapParamSchema = z.object({
   locate: getMidsceneLocationSchema().describe('The element to be tapped'),
 });
 export type ActionTapParam = z.infer<typeof actionTapParamSchema>;
@@ -57,7 +57,7 @@ export const defineActionTap = (
 };
 
 // RightClick
-const actionRightClickParamSchema = z.object({
+export const actionRightClickParamSchema = z.object({
   locate: getMidsceneLocationSchema().describe(
     'The element to be right clicked',
   ),
@@ -77,7 +77,7 @@ export const defineActionRightClick = (
 };
 
 // Hover
-const actionHoverParamSchema = z.object({
+export const actionHoverParamSchema = z.object({
   locate: getMidsceneLocationSchema().describe('The element to be hovered'),
 });
 export type ActionHoverParam = z.infer<typeof actionHoverParamSchema>;
@@ -95,7 +95,7 @@ export const defineActionHover = (
 };
 
 // Input
-const actionInputParamSchema = z.object({
+export const actionInputParamSchema = z.object({
   value: z.string().describe('The value to be input'),
   locate: getMidsceneLocationSchema().describe('The element to be input'),
 });
@@ -114,7 +114,7 @@ export const defineActionInput = (
 };
 
 // KeyboardPress
-const actionKeyboardPressParamSchema = z.object({
+export const actionKeyboardPressParamSchema = z.object({
   locate: getMidsceneLocationSchema()
     .describe('The element to be clicked before pressing the key')
     .optional(),
@@ -138,7 +138,7 @@ export const defineActionKeyboardPress = (
 };
 
 // Scroll
-const actionScrollParamSchema = z.object({
+export const actionScrollParamSchema = z.object({
   direction: z
     .enum(['down', 'up', 'right', 'left'])
     .default('down')
@@ -172,7 +172,7 @@ export const defineActionScroll = (
 };
 
 // DragAndDrop
-const actionDragAndDropParamSchema = z.object({
+export const actionDragAndDropParamSchema = z.object({
   from: getMidsceneLocationSchema().describe('The position to be dragged'),
   to: getMidsceneLocationSchema().describe('The position to be dropped'),
 });

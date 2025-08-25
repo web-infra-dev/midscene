@@ -10,12 +10,12 @@ import {
   vi,
 } from 'vitest';
 import { AndroidAgent, agentFromAdbDevice } from '../../src/agent';
-import { AndroidDevice } from '../../src/page';
-import * as Utils from '../../src/utils';
+import * as Utils from '../../src/agent';
+import { AndroidDevice } from '../../src/device';
 
 vi.mock('appium-adb');
-vi.mock('../../src/page');
-vi.mock('../../src/utils');
+vi.mock('../../src/device');
+vi.mock('../../src/agent');
 vi.mock('@midscene/shared/env');
 
 describe('AndroidAgent', () => {

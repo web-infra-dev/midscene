@@ -1,8 +1,8 @@
 import assert from 'node:assert';
-import type { Point } from '@midscene/core';
 import {
   AbstractDevice,
   type DeviceAction,
+  type Point,
   defineActionDragAndDrop,
   defineActionHover,
   defineActionInput,
