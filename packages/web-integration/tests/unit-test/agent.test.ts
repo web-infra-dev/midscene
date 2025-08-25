@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type { WebPage } from '@/web-element';
+import type { AbstractWebPage } from '@/web-page';
 import type { GroupedActionDump } from '@midscene/core';
 import { Agent as PageAgent } from '@midscene/core/agent';
 import { globalConfigManager } from '@midscene/shared/env';
@@ -51,7 +51,7 @@ const mockPage = {
   evaluateJavaScript: vi.fn(),
   size: vi.fn().mockResolvedValue({ dpr: 1 }),
   destroy: vi.fn(),
-} as unknown as WebPage;
+} as unknown as AbstractWebPage;
 
 const mockModelConfig = {
   MIDSCENE_MODEL_NAME: 'mock-model',
@@ -220,7 +220,7 @@ describe('PageAgent reportFileName', () => {
     const mockPageWithoutType = {
       ...mockPage,
       pageType: undefined,
-    } as unknown as WebPage;
+    } as unknown as AbstractWebPage;
 
     const agent = new PageAgent(mockPageWithoutType, {
       modelConfig: () => mockModelConfig,

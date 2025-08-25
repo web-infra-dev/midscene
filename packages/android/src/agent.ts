@@ -1,10 +1,10 @@
 import { Agent as PageAgent, type PageAgentOpt } from '@midscene/core/agent';
-import { AndroidDevice, type AndroidDeviceOpt } from '../page';
-
 import { vlLocateMode } from '@midscene/shared/env';
-import { getConnectedDevices } from '../utils';
+import { getDebug } from '@midscene/shared/logger';
+import { AndroidDevice, type AndroidDeviceOpt } from './device';
+import { getConnectedDevices } from './utils';
 
-import { debugPage } from '../page';
+const debugAgent = getDebug('android:agent');
 
 type AndroidAgentOpt = PageAgentOpt;
 
@@ -39,13 +39,13 @@ export async function agentFromAdbDevice(
 
     deviceId = devices[0].udid;
 
-    debugPage(
+    debugAgent(
       'deviceId not specified, will use the first device (id = %s)',
       deviceId,
     );
   }
 
-  const page = new AndroidDevice(deviceId, {
+  const device = new AndroidDevice(deviceId, {
     autoDismissKeyboard: opts?.autoDismissKeyboard,
     androidAdbPath: opts?.androidAdbPath,
     remoteAdbHost: opts?.remoteAdbHost,
@@ -57,7 +57,7 @@ export async function agentFromAdbDevice(
       opts?.usePhysicalDisplayIdForDisplayLookup,
   });
 
-  await page.connect();
+  await device.connect();
 
-  return new AndroidAgent(page, opts);
+  return new AndroidAgent(device, opts);
 }

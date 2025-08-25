@@ -1,4 +1,4 @@
-import { type WebKeyInput, WebPageContextParser } from '@/web-element';
+import { WebPageContextParser } from '@/web-element';
 import type {
   DeviceAction,
   ElementTreeNode,
@@ -6,8 +6,7 @@ import type {
   Size,
   UIContext,
 } from '@midscene/core';
-import { commonWebActionsForWebPage } from '@midscene/core/agent';
-import type { AbstractPage, MouseButton } from '@midscene/core/device';
+import type { AbstractDevice } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import { DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
@@ -21,13 +20,18 @@ import {
 import { assert } from '@midscene/shared/utils';
 import type { Page as PlaywrightPage } from 'playwright';
 import type { Page as PuppeteerPage } from 'puppeteer';
+import {
+  type KeyInput,
+  type MouseButton,
+  commonWebActionsForWebPage,
+} from '../web-page';
 
 export const debugPage = getDebug('web:page');
 
 export class Page<
   AgentType extends 'puppeteer' | 'playwright',
   PageType extends PuppeteerPage | PlaywrightPage,
-> implements AbstractPage
+> implements AbstractDevice
 {
   underlyingPage: PageType;
   protected waitForNavigationTimeout: number;
@@ -256,8 +260,8 @@ export class Page<
       },
       press: async (
         action:
-          | { key: WebKeyInput; command?: string }
-          | { key: WebKeyInput; command?: string }[],
+          | { key: KeyInput; command?: string }
+          | { key: KeyInput; command?: string }[],
       ) => {
         const keys = Array.isArray(action) ? action : [action];
         debugPage('keyboard press', keys);
@@ -269,11 +273,11 @@ export class Page<
           await this.underlyingPage.keyboard.up(k.key);
         }
       },
-      down: async (key: WebKeyInput) => {
+      down: async (key: KeyInput) => {
         debugPage(`keyboard down ${key}`);
         this.underlyingPage.keyboard.down(key);
       },
-      up: async (key: WebKeyInput) => {
+      up: async (key: KeyInput) => {
         debugPage(`keyboard up ${key}`);
         this.underlyingPage.keyboard.up(key);
       },

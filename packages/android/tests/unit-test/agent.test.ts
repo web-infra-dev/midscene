@@ -10,13 +10,13 @@ import {
   vi,
 } from 'vitest';
 import { AndroidAgent, agentFromAdbDevice } from '../../src/agent';
-import { AndroidDevice } from '../../src/page';
+import { AndroidDevice } from '../../src/device';
 import * as Utils from '../../src/utils';
 
 vi.mock('appium-adb');
-vi.mock('../../src/page');
-vi.mock('../../src/utils');
+vi.mock('../../src/device');
 vi.mock('@midscene/shared/env');
+vi.mock('../../src/utils');
 
 describe('AndroidAgent', () => {
   let vlLocateModeSpy: any;

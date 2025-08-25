@@ -1,5 +1,7 @@
+import { getDebug } from '@midscene/shared/logger';
 import { ADB, type Device } from 'appium-adb';
-import { debugPage } from '../page';
+
+const debugUtils = getDebug('android:utils');
 
 export async function getConnectedDevices(): Promise<Device[]> {
   try {
@@ -8,7 +10,7 @@ export async function getConnectedDevices(): Promise<Device[]> {
     });
     const devices = await adb.getConnectedDevices();
 
-    debugPage(`Found ${devices.length} connected devices: `, devices);
+    debugUtils(`Found ${devices.length} connected devices: `, devices);
 
     return devices;
   } catch (error: any) {

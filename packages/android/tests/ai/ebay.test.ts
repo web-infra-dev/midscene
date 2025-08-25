@@ -1,5 +1,5 @@
 import { sleep } from '@midscene/core/utils';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, it, vi } from 'vitest';
 import { AndroidAgent, AndroidDevice, getConnectedDevices } from '../../src';
 
 vi.setConfig({

@@ -40,7 +40,7 @@ import {
   parseYamlScript,
 } from '../yaml/index';
 
-import type { AbstractPage } from '@/device';
+import type { AbstractDevice } from '@/device';
 import {
   type IModelPreferences,
   MIDSCENE_CACHE,
@@ -97,7 +97,7 @@ export interface PageAgentOpt {
   modelConfig?: TModelConfigFn;
 }
 
-export class Agent<PageType extends AbstractPage = AbstractPage> {
+export class Agent<PageType extends AbstractDevice = AbstractDevice> {
   page: PageType;
 
   insight: Insight;

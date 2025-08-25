@@ -1,10 +1,10 @@
+import { assert } from '@midscene/shared/utils';
+import ChromeExtensionProxyPage from '../chrome-extension/page';
 import type {
   ChromePageDestroyOptions,
   KeyboardAction,
   MouseAction,
-} from '@midscene/core/device';
-import { assert } from '@midscene/shared/utils';
-import ChromeExtensionProxyPage from '../chrome-extension/page';
+} from '../web-page';
 import {
   type BridgeConnectTabOptions,
   BridgeEvent,

@@ -1,4 +1,4 @@
-export { AndroidDevice } from './page';
+export { AndroidDevice } from './device';
 export { AndroidAgent, agentFromAdbDevice } from './agent';
-export { getConnectedDevices } from './utils';
 export { overrideAIConfig } from '@midscene/shared/env';
+export { getConnectedDevices } from './utils';

@@ -3,7 +3,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import type { Server } from 'node:http';
 import { join } from 'node:path';
 import type { Agent as PageAgent } from '@midscene/core/agent';
-import type { AbstractPage } from '@midscene/core/device';
+import type { AbstractDevice } from '@midscene/core/device';
 import { getTmpDir } from '@midscene/core/utils';
 import { ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED } from '@midscene/shared/common';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
@@ -36,7 +36,7 @@ export default class PlaygroundServer {
   port?: number | null;
   pageClass: new (
     ...args: any[]
-  ) => AbstractPage;
+  ) => AbstractDevice;
   agentClass: new (
     ...args: any[]
   ) => PageAgent;
@@ -45,7 +45,7 @@ export default class PlaygroundServer {
   activeAgents: Record<string, PageAgent>;
 
   constructor(
-    pageClass: new (...args: any[]) => AbstractPage,
+    pageClass: new (...args: any[]) => AbstractDevice,
     agentClass: new (...args: any[]) => PageAgent,
     staticPath?: string,
   ) {

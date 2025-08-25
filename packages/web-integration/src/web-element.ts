@@ -4,7 +4,7 @@ import type {
   Rect,
   UIContext,
 } from '@midscene/core';
-import type { AbstractPage, KeyInput } from '@midscene/core/device';
+import type { AbstractDevice } from '@midscene/core/device';
 import type { NodeType } from '@midscene/shared/constants';
 import { traverseTree } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
@@ -15,8 +15,6 @@ import type ChromeExtensionProxyPage from './chrome-extension/page';
 import type { StaticPage } from './playground';
 import type { PlaywrightWebPage } from './playwright';
 import type { PuppeteerWebPage } from './puppeteer';
-
-export type WebKeyInput = KeyInput;
 
 export type WebPageAgentOpt = PageAgentOpt & WebPageOpt;
 export type WebPageOpt = {
@@ -97,7 +95,7 @@ export type WebUIContext = UIContext<WebElementInfo>;
 
 const debug = getDebug('web:parse-context');
 export async function WebPageContextParser(
-  page: AbstractPage,
+  page: AbstractDevice,
   _opt?: any, // unused
 ): Promise<UIContext> {
   const basicContext = await commonContextParser(page);
