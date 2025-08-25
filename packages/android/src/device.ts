@@ -412,7 +412,7 @@ ${Object.keys(size)
     return this;
   }
 
-  private async execYadb(keyboardContent: string): Promise<void> {
+  async execYadb(keyboardContent: string): Promise<void> {
     await this.ensureYadb();
 
     const adb = await this.getAdb();
@@ -435,7 +435,7 @@ ${Object.keys(size)
     };
   }
 
-  private async getScreenSize(): Promise<{
+  async getScreenSize(): Promise<{
     override: string;
     physical: string;
     orientation: number; // 0=portrait, 1=landscape, 2=reverse portrait, 3=reverse landscape
@@ -558,7 +558,7 @@ ${Object.keys(size)
     throw new Error(`Failed to get screen size, output: ${stdout}`);
   }
 
-  private async getDisplayDensity(): Promise<number> {
+  async getDisplayDensity(): Promise<number> {
     const adb = await this.getAdb();
 
     // If we have an displayId, try to get density from display info
@@ -612,7 +612,7 @@ ${Object.keys(size)
     return density ?? 160; // Default to standard Android density if null
   }
 
-  private async getDisplayOrientation(): Promise<number> {
+  async getDisplayOrientation(): Promise<number> {
     const adb = await this.getAdb();
     let orientation = 0;
 
@@ -818,7 +818,7 @@ ${Object.keys(size)
     await this.mouseClick(element.center[0], element.center[1]);
   }
 
-  private async forceScreenshot(path: string): Promise<void> {
+  async forceScreenshot(path: string): Promise<void> {
     // screenshot which is forbidden by app
     await this.ensureYadb();
 
@@ -967,7 +967,7 @@ ${Object.keys(size)
     await this.scroll(scrollDistance, 0);
   }
 
-  private async ensureYadb() {
+  async ensureYadb() {
     // Push the YADB tool to the device only once
     if (!this.yadbPushed) {
       const adb = await this.getAdb();
@@ -981,7 +981,7 @@ ${Object.keys(size)
     }
   }
 
-  private async keyboardType(
+  async keyboardType(
     text: string,
     options?: AndroidDeviceInputOpt,
   ): Promise<void> {
@@ -1010,7 +1010,7 @@ ${Object.keys(size)
     }
   }
 
-  private async keyboardPress(key: string): Promise<void> {
+  async keyboardPress(key: string): Promise<void> {
     // Map web keys to Android key codes (numbers)
     const keyCodeMap: Record<string, number> = {
       Enter: 66,
@@ -1042,21 +1042,7 @@ ${Object.keys(size)
     }
   }
 
-  private async keyboardPressAction(
-    action:
-      | { key: string; command?: string }
-      | { key: string; command?: string }[],
-  ): Promise<void> {
-    if (Array.isArray(action)) {
-      for (const act of action) {
-        await this.keyboardPress(act.key);
-      }
-    } else {
-      await this.keyboardPress(action.key);
-    }
-  }
-
-  private async mouseClick(x: number, y: number): Promise<void> {
+  async mouseClick(x: number, y: number): Promise<void> {
     const adb = await this.getAdb();
 
     // Use adjusted coordinates
@@ -1066,13 +1052,13 @@ ${Object.keys(size)
     );
   }
 
-  private async mouseMove(x: number, y: number): Promise<void> {
+  async mouseMove(x: number, y: number): Promise<void> {
     // ADB doesn't have direct cursor movement functionality, but we can record the position for subsequent operations
     // This is a no-op, as ADB doesn't support direct mouse movement
     return Promise.resolve();
   }
 
-  private async mouseDrag(
+  async mouseDrag(
     from: { x: number; y: number },
     to: { x: number; y: number },
     duration?: number,
@@ -1091,7 +1077,7 @@ ${Object.keys(size)
     );
   }
 
-  private async scroll(
+  async scroll(
     deltaX: number,
     deltaY: number,
     duration?: number,
@@ -1208,7 +1194,7 @@ ${Object.keys(size)
     await sleep(200); // Give more time for refresh to start
   }
 
-  private async pullDrag(
+  async pullDrag(
     from: { x: number; y: number },
     to: { x: number; y: number },
     duration: number,
@@ -1267,7 +1253,7 @@ ${Object.keys(size)
       : '';
   }
 
-  private async getPhysicalDisplayId(): Promise<string | null> {
+  async getPhysicalDisplayId(): Promise<string | null> {
     if (typeof this.options?.displayId !== 'number') {
       return null;
     }
