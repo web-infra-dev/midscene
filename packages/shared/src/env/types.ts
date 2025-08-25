@@ -169,29 +169,65 @@ export const MIDSCENE_GROUNDING_VL_MODE = 'MIDSCENE_GROUNDING_VL_MODE';
 // @deprecated
 export const OPENAI_USE_AZURE = 'OPENAI_USE_AZURE';
 
-export const ENV_KEYS = [
-  MIDSCENE_MCP_ANDROID_MODE,
-  DOCKER_CONTAINER,
+/**
+ * env keys declared but unused
+ */
+export const UNUSED_ENV_KEYS = [MIDSCENE_DANGEROUSLY_PRINT_ALL_CONFIG];
+
+/**
+ * env keys for debug or basic run
+ * can not be override by overrideAIConfig
+ */
+export const BASIC_ENV_KEYS = [
   MIDSCENE_DEBUG_MODE,
-  MIDSCENE_FORCE_DEEP_THINK,
-  MIDSCENE_LANGSMITH_DEBUG,
   MIDSCENE_DEBUG_AI_PROFILE,
   MIDSCENE_DEBUG_AI_RESPONSE,
-  MIDSCENE_DANGEROUSLY_PRINT_ALL_CONFIG,
+  MIDSCENE_RUN_DIR,
+] as const;
+
+export const BOOLEAN_ENV_KEYS = [
+  MIDSCENE_CACHE,
+  MIDSCENE_LANGSMITH_DEBUG,
+  MIDSCENE_FORCE_DEEP_THINK,
+  MIDSCENE_MCP_USE_PUPPETEER_MODE,
+  MIDSCENE_MCP_ANDROID_MODE,
+] as const;
+
+export const NUMBER_ENV_KEYS = [
   OPENAI_MAX_TOKENS,
+  MIDSCENE_CACHE_MAX_FILENAME_LENGTH,
+  MIDSCENE_REPLANNING_CYCLE_LIMIT,
+] as const;
+
+export const STRING_ENV_KEYS = [
   MIDSCENE_ADB_PATH,
   MIDSCENE_ADB_REMOTE_HOST,
   MIDSCENE_ADB_REMOTE_PORT,
   MIDSCENE_ANDROID_IME_STRATEGY,
-  MIDSCENE_CACHE,
-  MATCH_BY_POSITION,
   MIDSCENE_REPORT_TAG_NAME,
-  MIDSCENE_MCP_USE_PUPPETEER_MODE,
-  MIDSCENE_MCP_CHROME_PATH,
-  MIDSCENE_RUN_DIR,
   MIDSCENE_PREFERRED_LANGUAGE,
-  MIDSCENE_REPLANNING_CYCLE_LIMIT,
-  MIDSCENE_CACHE_MAX_FILENAME_LENGTH,
+  MATCH_BY_POSITION,
+  MIDSCENE_MCP_CHROME_PATH,
+  DOCKER_CONTAINER,
+] as const;
+
+/**
+ * Non model related env keys, used for globally controlling the behavior of midscene
+ * Can not be override by agent.modelConfig but can be override by overrideAIConfig
+ * Can be access at any time
+ */
+export const GLOBAL_ENV_KEYS = [
+  ...BOOLEAN_ENV_KEYS,
+  ...NUMBER_ENV_KEYS,
+  ...STRING_ENV_KEYS,
+] as const;
+
+/**
+ * Model related eve keys, used for declare which model to use.
+ * Can be override by both agent.modelConfig and overrideAIConfig
+ * Can only be access after agent.constructor
+ */
+export const MODEL_ENV_KEYS = [
   // model default
   MIDSCENE_MODEL_NAME,
   MIDSCENE_OPENAI_INIT_CONFIG_JSON,
@@ -280,7 +316,14 @@ export const ENV_KEYS = [
   MIDSCENE_GROUNDING_VL_MODE,
 ] as const;
 
-export type TEnvKeys = (typeof ENV_KEYS)[number];
+export const ALL_ENV_KEYS = [
+  ...UNUSED_ENV_KEYS,
+  ...BASIC_ENV_KEYS,
+  ...GLOBAL_ENV_KEYS,
+  ...MODEL_ENV_KEYS,
+] as const;
+
+export type TEnvKeys = (typeof ALL_ENV_KEYS)[number];
 export type TGlobalConfig = Record<TEnvKeys, string | undefined>;
 
 export type TVlModeValues =

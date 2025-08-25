@@ -1,7 +1,10 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { MIDSCENE_RUN_DIR, getAIConfig } from './env';
+// do not import getBasicEnvValue and MIDSCENE_RUN_DIR directly from ./env,
+// because it will cause circular dependency
+import { getBasicEnvValue } from './env/basic';
+import { MIDSCENE_RUN_DIR } from './env/types';
 import { ifInNode } from './utils';
 
 export const defaultRunDirName = 'midscene_run';
@@ -12,7 +15,7 @@ export const getMidsceneRunDir = () => {
     return '';
   }
 
-  return getAIConfig(MIDSCENE_RUN_DIR) || defaultRunDirName;
+  return getBasicEnvValue(MIDSCENE_RUN_DIR) || defaultRunDirName;
 };
 
 export const getMidsceneRunBaseDir = () => {

@@ -1,5 +1,8 @@
 import { existsSync } from 'node:fs';
-import { MIDSCENE_MCP_CHROME_PATH, getAIConfig } from '@midscene/shared/env';
+import {
+  MIDSCENE_MCP_CHROME_PATH,
+  globalConfigManager,
+} from '@midscene/shared/env';
 
 // Deep merge utility function
 export function deepMerge(target: any, source: any): any {
@@ -94,7 +97,9 @@ export function getSystemChromePath(): string | undefined {
 }
 
 export function getChromePathFromEnv(): string | undefined {
-  const envChromePath = getAIConfig(MIDSCENE_MCP_CHROME_PATH);
+  const envChromePath = globalConfigManager.getEnvConfigValue(
+    MIDSCENE_MCP_CHROME_PATH,
+  );
   if (
     envChromePath !== 'auto' &&
     envChromePath !== undefined &&

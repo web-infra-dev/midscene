@@ -281,6 +281,7 @@ export function getVersion() {
 
 function debugLog(...message: any[]) {
   // always read from process.env, and cannot be override by modelConfig, overrideAIConfig, etc.
+  // also avoid circular dependency
   const debugMode = process.env[MIDSCENE_DEBUG_MODE];
   if (debugMode) {
     console.log('[Midscene]', ...message);

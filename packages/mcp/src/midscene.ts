@@ -4,8 +4,9 @@ import {
   getConnectedDevices,
 } from '@midscene/android';
 import {
+  MIDSCENE_MCP_ANDROID_MODE,
   MIDSCENE_MCP_USE_PUPPETEER_MODE,
-  getAIConfigInBoolean,
+  globalConfigManager,
 } from '@midscene/shared/env';
 import { parseBase64 } from '@midscene/shared/img';
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
@@ -38,8 +39,12 @@ export class MidsceneManager {
   private screenshots = new Map<string, string>();
   private mcpServer: McpServer; // Add server instance
   private agent?: AgentOverChromeBridge | PuppeteerBrowserAgent | AndroidAgent;
-  private puppeteerMode = getAIConfigInBoolean(MIDSCENE_MCP_USE_PUPPETEER_MODE);
-  private androidMode = getAIConfigInBoolean('MIDSCENE_MCP_ANDROID_MODE'); // Add Android mode flag
+  private puppeteerMode = globalConfigManager.getEnvConfigInBoolean(
+    MIDSCENE_MCP_USE_PUPPETEER_MODE,
+  );
+  private androidMode = globalConfigManager.getEnvConfigInBoolean(
+    MIDSCENE_MCP_ANDROID_MODE,
+  ); // Add Android mode flag
   private androidDeviceId?: string; // Add device ID storage
   constructor(server: McpServer) {
     this.mcpServer = server;
