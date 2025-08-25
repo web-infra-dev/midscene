@@ -2,13 +2,11 @@ import { elementByPositionWithElementInfo } from '@/ai-model';
 import type { AbstractPage } from '@/device';
 import type {
   BaseElement,
-  DetailedLocateParam,
   DeviceAction,
   ElementTreeNode,
   ExecutionDump,
   ExecutionTask,
   ExecutorContext,
-  LocateOption,
   MidsceneLocationResultType,
   PlanningLocateParam,
   TMultimodalPrompt,

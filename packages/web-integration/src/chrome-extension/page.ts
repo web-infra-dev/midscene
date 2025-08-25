@@ -645,6 +645,7 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
       to: { x: number; y: number },
     ) => {
       await this.mouse.move(from.x, from.y);
+
       await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
         type: 'mousePressed',
         x: from.x,
@@ -652,7 +653,13 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
         button: 'left',
         clickCount: 1,
       });
-      await this.mouse.move(to.x, to.y);
+
+      await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
+        type: 'mouseMoved',
+        x: to.x,
+        y: to.y,
+      });
+
       await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
         type: 'mouseReleased',
         x: to.x,
@@ -660,6 +667,8 @@ export default class ChromeExtensionProxyPage implements AbstractPage {
         button: 'left',
         clickCount: 1,
       });
+
+      await this.mouse.move(to.x, to.y);
     },
   };
 
