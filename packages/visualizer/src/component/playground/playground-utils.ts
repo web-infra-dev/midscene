@@ -91,22 +91,11 @@ export const getTaskProgress = async (requestId: string) => {
 
 // Get action name based on type
 export const actionNameForType = (type: string) => {
-  if (type === 'aiAction') return 'Action';
-  if (type === 'aiQuery') return 'Query';
-  if (type === 'aiAssert') return 'Assert';
-  if (type === 'aiTap') return 'Tap';
-  if (type === 'aiHover') return 'Hover';
-  if (type === 'aiInput') return 'Input';
-  if (type === 'aiRightClick') return 'Right Click';
-  if (type === 'aiKeyboardPress') return 'Keyboard Press';
-  if (type === 'aiScroll') return 'Scroll';
-  if (type === 'aiLocate') return 'Locate';
-  if (type === 'aiBoolean') return 'Boolean';
-  if (type === 'aiNumber') return 'Number';
-  if (type === 'aiString') return 'String';
-  if (type === 'aiAsk') return 'Ask';
-  if (type === 'aiWaitFor') return 'Wait For';
-  return type;
+  // Remove 'ai' prefix and convert camelCase to space-separated words
+  const typeWithoutAi = type.startsWith('ai') ? type.slice(2) : type;
+
+  // Convert camelCase to space-separated words
+  return typeWithoutAi.replace(/([A-Z])/g, ' $1').trim();
 };
 
 // Create static agent from context
