@@ -4,20 +4,22 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import {
-  type AbstractDevice,
-  type ActionTapParam,
   type DeviceAction,
   type PageType,
   type Point,
   type Size,
-  defineAction,
-  defineActionDragAndDrop,
-  defineActionScroll,
-  defineActionTap,
   getAIConfig,
   getMidsceneLocationSchema,
   z,
 } from '@midscene/core';
+import {
+  type AbstractDevice,
+  type ActionTapParam,
+  defineAction,
+  defineActionDragAndDrop,
+  defineActionScroll,
+  defineActionTap,
+} from '@midscene/core/device';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import {
   MIDSCENE_ADB_PATH,

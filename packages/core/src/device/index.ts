@@ -191,3 +191,5 @@ export const defineActionDragAndDrop = (
     call,
   });
 };
+
+export type { DeviceAction } from '../types';

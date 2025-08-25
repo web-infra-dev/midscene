@@ -1,8 +1,8 @@
 import assert from 'node:assert';
+import type { Point } from '@midscene/core';
 import {
   AbstractDevice,
   type DeviceAction,
-  type Point,
   defineActionDragAndDrop,
   defineActionHover,
   defineActionInput,
@@ -10,7 +10,8 @@ import {
   defineActionRightClick,
   defineActionScroll,
   defineActionTap,
-} from '@midscene/core';
+} from '@midscene/core/device';
+
 import { sleep } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
 

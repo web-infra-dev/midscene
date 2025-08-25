@@ -202,7 +202,7 @@ describe('PageAgent reportFileName', () => {
     const mockPageWithoutType = {
       ...mockPage,
       pageType: undefined,
-    } as unknown as WebPage;
+    } as unknown as AbstractWebPage;
 
     const agent = new PageAgent(mockPageWithoutType);
 

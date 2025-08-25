@@ -6,13 +6,8 @@
 */
 
 import { limitOpenNewTabScript } from '@/web-element';
-import type {
-  DeviceAction,
-  ElementTreeNode,
-  Point,
-  Size,
-} from '@midscene/core';
-import type { AbstractDevice } from '@midscene/core';
+import type { ElementTreeNode, Point, Size } from '@midscene/core';
+import type { AbstractDevice, DeviceAction } from '@midscene/core/device';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
 import { createImgBase64ByFormat } from '@midscene/shared/img';

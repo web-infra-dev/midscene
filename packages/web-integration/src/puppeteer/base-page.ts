@@ -6,7 +6,7 @@ import type {
   Size,
   UIContext,
 } from '@midscene/core';
-import type { AbstractDevice } from '@midscene/core';
+import type { AbstractDevice } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import { DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
