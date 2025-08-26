@@ -1,3 +1,4 @@
+import { commonWebActionsForWebPage } from '@/web-page';
 import type { DeviceAction, Point, UIContext } from '@midscene/core';
 import type { AbstractDevice } from '@midscene/core/device';
 import { ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED } from '@midscene/shared/common';
@@ -28,8 +29,8 @@ export default class StaticPage implements AbstractDevice {
   }
 
   actionSpace(): DeviceAction[] {
-    // no action space for static page
-    return [];
+    // Return common web actions for planning, but they won't actually execute
+    return commonWebActionsForWebPage(this);
   }
 
   async evaluateJavaScript<T = any>(script: string): Promise<T> {
