@@ -296,6 +296,56 @@ describe('AndroidDevice', () => {
       expect(mockAdb.keyevent).toHaveBeenCalledWith(66);
     });
 
+    it('press should handle case-insensitive key names', async () => {
+      // Test lowercase keys
+      await device.keyboardPress('enter');
+      expect(mockAdb.keyevent).toHaveBeenCalledWith(66);
+
+      await device.keyboardPress('escape');
+      expect(mockAdb.keyevent).toHaveBeenCalledWith(111);
+
+      await device.keyboardPress('tab');
+      expect(mockAdb.keyevent).toHaveBeenCalledWith(61);
+
+      // Test uppercase keys (should still work)
+      await device.keyboardPress('ENTER');
+      expect(mockAdb.keyevent).toHaveBeenCalledWith(66);
+
+      await device.keyboardPress('ESCAPE');
+      expect(mockAdb.keyevent).toHaveBeenCalledWith(111);
+    });
+
+    it('press should handle arrow key variations', async () => {
+      // Test full arrow key names (lowercase)
+      await device.keyboardPress('arrowup');
+      expect(mockAdb.keyevent).toHaveBeenCalledWith(19);
+
+      await device.keyboardPress('arrowdown');
+      expect(mockAdb.keyevent).toHaveBeenCalledWith(20);
+
+      // Test short arrow key names
+      await device.keyboardPress('up');
+      expect(mockAdb.keyevent).toHaveBeenCalledWith(19);
+
+      await device.keyboardPress('down');
+      expect(mockAdb.keyevent).toHaveBeenCalledWith(20);
+
+      await device.keyboardPress('left');
+      expect(mockAdb.keyevent).toHaveBeenCalledWith(21);
+
+      await device.keyboardPress('right');
+      expect(mockAdb.keyevent).toHaveBeenCalledWith(22);
+    });
+
+    it('press should handle common key abbreviations', async () => {
+      // Test 'esc' as abbreviation for 'Escape'
+      await device.keyboardPress('esc');
+      expect(mockAdb.keyevent).toHaveBeenCalledWith(111);
+
+      await device.keyboardPress('ESC');
+      expect(mockAdb.keyevent).toHaveBeenCalledWith(111);
+    });
+
     describe('autoDismissKeyboard option', () => {
       beforeEach(() => {
         vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);

@@ -16,6 +16,7 @@ import {
   type ActionTapParam,
   defineAction,
   defineActionDragAndDrop,
+  defineActionKeyboardPress,
   defineActionScroll,
   defineActionTap,
 } from '@midscene/core/device';
@@ -169,6 +170,10 @@ export class AndroidDevice implements AbstractDevice {
             y: to.center[1],
           },
         );
+      }),
+      defineActionKeyboardPress(async (param) => {
+        const key = param.keyName;
+        await this.keyboardPress(key);
       }),
       defineAction({
         name: 'AndroidBackButton',
@@ -1013,6 +1018,32 @@ ${Object.keys(size)
     }
   }
 
+  private normalizeKeyName(key: string): string {
+    // Handle case-insensitive key mapping
+    const keyMap: Record<string, string> = {
+      // Basic keys
+      enter: 'Enter',
+      backspace: 'Backspace',
+      tab: 'Tab',
+      escape: 'Escape',
+      esc: 'Escape', // Common abbreviation
+      home: 'Home',
+      end: 'End',
+      // Arrow keys
+      arrowup: 'ArrowUp',
+      arrowdown: 'ArrowDown',
+      arrowleft: 'ArrowLeft',
+      arrowright: 'ArrowRight',
+      up: 'ArrowUp', // Common shortcuts
+      down: 'ArrowDown',
+      left: 'ArrowLeft',
+      right: 'ArrowRight',
+    };
+
+    const lowerKey = key.toLowerCase();
+    return keyMap[lowerKey] || key; // Return original key if no mapping found
+  }
+
   async keyboardPress(key: string): Promise<void> {
     // Map web keys to Android key codes (numbers)
     const keyCodeMap: Record<string, number> = {
@@ -1030,7 +1061,9 @@ ${Object.keys(size)
 
     const adb = await this.getAdb();
 
-    const keyCode = keyCodeMap[key];
+    // Normalize key to handle case-insensitive matching
+    const normalizedKey = this.normalizeKeyName(key);
+    const keyCode = keyCodeMap[normalizedKey];
     if (keyCode !== undefined) {
       await adb.keyevent(keyCode);
     } else {
