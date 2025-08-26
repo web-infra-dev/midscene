@@ -1,5 +1,5 @@
 export { Agent, type PageAgentOpt } from './agent';
-export { commonWebActionsForWebPage, commonContextParser } from './utils';
+export { commonContextParser } from './utils';
 export {
   getReportFileName,
   printReportMsg,
@@ -11,7 +11,6 @@ export { cacheFileExt } from './task-cache';
 
 export { PageTaskExecutor } from './tasks';
 
-export { getKeyCommands } from './ui-utils';
 export {
   getCurrentExecutionFile,
   trimContextByViewport,

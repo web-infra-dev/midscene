@@ -12,7 +12,7 @@ import {
   it,
   vi,
 } from 'vitest';
-import { AndroidDevice } from '../../src/page';
+import { AndroidDevice } from '../../src/device';
 
 // Mock the entire appium-adb module
 const createMockAdb = () => ({
@@ -242,7 +242,7 @@ describe('AndroidDevice', () => {
         x: 200,
         y: 300,
       });
-      await device.mouse.click(100, 150);
+      await device.mouseClick(100, 150);
       expect(mockAdb.shell).toHaveBeenCalledWith(
         'input swipe 200 300 200 300 150',
       );
@@ -254,7 +254,7 @@ describe('AndroidDevice', () => {
       vi.spyOn(device as any, 'adjustCoordinates')
         .mockReturnValueOnce({ x: 20, y: 40 })
         .mockReturnValueOnce({ x: 60, y: 80 });
-      await device.mouse.drag(from, to);
+      await device.mouseDrag(from, to);
       expect(mockAdb.shell).toHaveBeenCalledWith('input swipe 20 40 60 80 300');
     });
   });
@@ -267,7 +267,7 @@ describe('AndroidDevice', () => {
         isKeyboardShown: false,
         canCloseKeyboard: true,
       }); // keyboard already hidden
-      await device.keyboard.type('hello');
+      await device.keyboardType('hello');
       expect(mockAdb.inputText).toHaveBeenCalledWith('hello');
       // Since keyboard is already hidden, no keyevent should be called
       expect(mockAdb.isSoftKeyboardPresent).toHaveBeenCalled();
@@ -286,14 +286,64 @@ describe('AndroidDevice', () => {
           isKeyboardShown: false,
           canCloseKeyboard: true,
         });
-      await device.keyboard.type('hello');
+      await device.keyboardType('hello');
       expect(mockAdb.inputText).toHaveBeenCalledWith('hello');
       expect(mockAdb.keyevent).toHaveBeenCalledWith(111); // ESC key
     });
 
     it('press should call keyevent for mapped keys', async () => {
-      await device.keyboard.press({ key: 'Enter' });
+      await device.keyboardPress('Enter');
       expect(mockAdb.keyevent).toHaveBeenCalledWith(66);
+    });
+
+    it('press should handle case-insensitive key names', async () => {
+      // Test lowercase keys
+      await device.keyboardPress('enter');
+      expect(mockAdb.keyevent).toHaveBeenCalledWith(66);
+
+      await device.keyboardPress('escape');
+      expect(mockAdb.keyevent).toHaveBeenCalledWith(111);
+
+      await device.keyboardPress('tab');
+      expect(mockAdb.keyevent).toHaveBeenCalledWith(61);
+
+      // Test uppercase keys (should still work)
+      await device.keyboardPress('ENTER');
+      expect(mockAdb.keyevent).toHaveBeenCalledWith(66);
+
+      await device.keyboardPress('ESCAPE');
+      expect(mockAdb.keyevent).toHaveBeenCalledWith(111);
+    });
+
+    it('press should handle arrow key variations', async () => {
+      // Test full arrow key names (lowercase)
+      await device.keyboardPress('arrowup');
+      expect(mockAdb.keyevent).toHaveBeenCalledWith(19);
+
+      await device.keyboardPress('arrowdown');
+      expect(mockAdb.keyevent).toHaveBeenCalledWith(20);
+
+      // Test short arrow key names
+      await device.keyboardPress('up');
+      expect(mockAdb.keyevent).toHaveBeenCalledWith(19);
+
+      await device.keyboardPress('down');
+      expect(mockAdb.keyevent).toHaveBeenCalledWith(20);
+
+      await device.keyboardPress('left');
+      expect(mockAdb.keyevent).toHaveBeenCalledWith(21);
+
+      await device.keyboardPress('right');
+      expect(mockAdb.keyevent).toHaveBeenCalledWith(22);
+    });
+
+    it('press should handle common key abbreviations', async () => {
+      // Test 'esc' as abbreviation for 'Escape'
+      await device.keyboardPress('esc');
+      expect(mockAdb.keyevent).toHaveBeenCalledWith(111);
+
+      await device.keyboardPress('ESC');
+      expect(mockAdb.keyevent).toHaveBeenCalledWith(111);
     });
 
     describe('autoDismissKeyboard option', () => {
@@ -313,7 +363,7 @@ describe('AndroidDevice', () => {
             canCloseKeyboard: true,
           }); // keyboard hidden after ESC
 
-        await device.keyboard.type('hello');
+        await device.keyboardType('hello');
 
         expect(mockAdb.inputText).toHaveBeenCalledWith('hello');
         expect(mockAdb.isSoftKeyboardPresent).toHaveBeenCalled();
@@ -335,7 +385,7 @@ describe('AndroidDevice', () => {
             canCloseKeyboard: true,
           }); // keyboard hidden after ESC
 
-        await device.keyboard.type('hello');
+        await device.keyboardType('hello');
 
         expect(mockAdb.inputText).toHaveBeenCalledWith('hello');
         expect(mockAdb.isSoftKeyboardPresent).toHaveBeenCalled();
@@ -350,7 +400,7 @@ describe('AndroidDevice', () => {
         mockAdb.isSoftKeyboardPresent.mockClear();
         mockAdb.keyevent.mockClear();
 
-        await device.keyboard.type('hello');
+        await device.keyboardType('hello');
 
         expect(mockAdb.inputText).toHaveBeenCalledWith('hello');
         expect(mockAdb.isSoftKeyboardPresent).not.toHaveBeenCalled();
@@ -366,7 +416,7 @@ describe('AndroidDevice', () => {
         mockAdb.keyevent.mockClear();
 
         // Override with false in method call
-        await device.keyboard.type('hello', { autoDismissKeyboard: false });
+        await device.keyboardType('hello', { autoDismissKeyboard: false });
 
         expect(mockAdb.inputText).toHaveBeenCalledWith('hello');
         expect(mockAdb.isSoftKeyboardPresent).not.toHaveBeenCalled();
@@ -393,7 +443,7 @@ describe('AndroidDevice', () => {
             canCloseKeyboard: true,
           }); // keyboard hidden after ESC
 
-        await device.keyboard.type('hello');
+        await device.keyboardType('hello');
 
         expect(mockAdb.keyevent).toHaveBeenCalledWith(111); // ESC key first
         expect(mockAdb.keyevent).toHaveBeenCalledTimes(1);
@@ -414,7 +464,7 @@ describe('AndroidDevice', () => {
             canCloseKeyboard: true,
           }); // keyboard hidden after BACK
 
-        await device.keyboard.type('hello');
+        await device.keyboardType('hello');
 
         expect(mockAdb.keyevent).toHaveBeenCalledWith(4); // BACK key first
         expect(mockAdb.keyevent).toHaveBeenCalledTimes(1);
@@ -479,7 +529,7 @@ describe('AndroidDevice', () => {
           });
         });
 
-        await device.keyboard.type('hello');
+        await device.keyboardType('hello');
 
         expect(mockAdb.keyevent).toHaveBeenNthCalledWith(1, 111); // ESC first
         expect(mockAdb.keyevent).toHaveBeenNthCalledWith(2, 4); // BACK second
@@ -545,7 +595,7 @@ describe('AndroidDevice', () => {
           });
         });
 
-        await device.keyboard.type('hello');
+        await device.keyboardType('hello');
 
         expect(mockAdb.keyevent).toHaveBeenNthCalledWith(1, 4); // BACK first
         expect(mockAdb.keyevent).toHaveBeenNthCalledWith(2, 111); // ESC second
@@ -568,7 +618,7 @@ describe('AndroidDevice', () => {
           }); // keyboard hidden after BACK
 
         // Override with back-first in method call
-        await device.keyboard.type('hello', {
+        await device.keyboardType('hello', {
           keyboardDismissStrategy: 'back-first',
         });
 
@@ -597,7 +647,7 @@ describe('AndroidDevice', () => {
         const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
         // Should not throw error anymore
-        await device.keyboard.type('hello', { autoDismissKeyboard: true });
+        await device.keyboardType('hello', { autoDismissKeyboard: true });
 
         // Verify warning was logged
         expect(warnSpy).toHaveBeenCalledWith(
@@ -616,7 +666,7 @@ describe('AndroidDevice', () => {
         }); // keyboard already hidden
         mockAdb.keyevent.mockClear();
 
-        await device.keyboard.type('hello');
+        await device.keyboardType('hello');
 
         expect(mockAdb.inputText).toHaveBeenCalledWith('hello');
         expect(mockAdb.isSoftKeyboardPresent).toHaveBeenCalled();
@@ -634,17 +684,17 @@ describe('AndroidDevice', () => {
       });
     });
 
-    it('scrollUp should call mouseWheel with negative Y delta', async () => {
+    it('scrollUp should call scroll with negative Y delta', async () => {
       const wheelSpy = vi
-        .spyOn(device as any, 'mouseWheel')
+        .spyOn(device as any, 'scroll')
         .mockResolvedValue(undefined);
       await device.scrollUp(100);
       expect(wheelSpy).toHaveBeenCalledWith(0, -100);
     });
 
-    it('scrollDown should call mouseWheel with positive Y delta', async () => {
+    it('scrollDown should call scroll with positive Y delta', async () => {
       const wheelSpy = vi
-        .spyOn(device as any, 'mouseWheel')
+        .spyOn(device as any, 'scroll')
         .mockResolvedValue(undefined);
       await device.scrollDown(100);
       expect(wheelSpy).toHaveBeenCalledWith(0, 100);
@@ -769,7 +819,7 @@ describe('AndroidDevice', () => {
         (deviceWithDisplay as any).devicePixelRatio = 1;
 
         // Test mouse click command
-        await deviceWithDisplay.mouse.click(100, 200);
+        await deviceWithDisplay.mouseClick(100, 200);
         expect(mockAdbInstance.shell).toHaveBeenCalledWith(
           expect.stringContaining('input -d 2 swipe'),
         );
@@ -791,7 +841,7 @@ describe('AndroidDevice', () => {
       (deviceWithDisplay as any).devicePixelRatio = 1;
 
       // Test mouse click command
-      await deviceWithDisplay.mouse.click(100, 200);
+      await deviceWithDisplay.mouseClick(100, 200);
       expect(mockAdbInstance.shell).toHaveBeenCalledWith(
         expect.stringContaining('input swipe'),
       );
@@ -994,7 +1044,7 @@ describe('AndroidDevice', () => {
         return Promise.resolve();
       });
 
-      await deviceWithDisplay.keyboard.type('test');
+      await deviceWithDisplay.keyboardType('test');
 
       expect(mockAdbInstance.inputText).toHaveBeenCalledWith('test');
       expect(mockAdbInstance.keyevent).toHaveBeenCalledWith(111); // ESC key for hiding keyboard

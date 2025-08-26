@@ -49,6 +49,7 @@ Midscene 默认集成了 OpenAI SDK 调用 AI 服务。使用这个 SDK 限定�
 | `MIDSCENE_OPENAI_HTTP_PROXY` | 可选。HTTP/HTTPS 代理配置 (如 `http://127.0.0.1:8080` 或 `https://proxy.example.com:8080`)。这个选项优先级高于 `MIDSCENE_OPENAI_SOCKS_PROXY` |
 | `MIDSCENE_OPENAI_SOCKS_PROXY` | 可选。SOCKS 代理配置 (如 "socks5://127.0.0.1:1080") |
 | `MIDSCENE_PREFERRED_LANGUAGE` | 可选。模型响应的语言。如果当前时区是 GMT+8 则默认是 `Chinese`，否则是 `English` |
+| `MIDSCENE_REPLANNING_CYCLE_LIMIT` | 可选。最大重规划次数限制，默认是 10 |
 | `OPENAI_MAX_TOKENS` | 可选。模型响应的 max_tokens 数，默认是 2048 |
 
 ### 调试配置
