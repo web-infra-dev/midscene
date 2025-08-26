@@ -28,6 +28,7 @@ const allConfigFromEnv = (): Record<string, string | undefined> => {
 export const GLOBAL_CONFIG_MANAGER_UNINITIALIZED_FLAG =
   'GLOBAL_CONFIG_MANAGER_UNINITIALIZED_FLAG';
 
+const ALL_INTENTS: TIntent[] = ['VQA', 'default', 'grounding', 'planning'];
 /**
  * Collect global configs from process.env, overrideAIConfig, modelConfig, etc.
  * And provider methods to get merged config value
@@ -54,6 +55,8 @@ export class GlobalConfigManager {
   private allConfig: Record<string, string | undefined> | undefined = undefined;
 
   private keysHaveBeenRead: Record<string, boolean> = {};
+
+  private latestModelConfigFn?: TModelConfigFn;
 
   constructor() {
     initDebugConfig();
@@ -84,6 +87,31 @@ export class GlobalConfigManager {
     })();
   }
 
+  private initIntentConfigFromFn() {
+    const intentConfigFromFn: Record<
+      TIntent,
+      ReturnType<TModelConfigFn> | undefined
+    > = {
+      VQA: undefined,
+      default: undefined,
+      grounding: undefined,
+      planning: undefined,
+    };
+
+    if (this.latestModelConfigFn) {
+      for (const i of ALL_INTENTS) {
+        const result = this.latestModelConfigFn({ intent: i });
+        if (!result) {
+          throw new Error(
+            `The agent has an option named modelConfig is a function, but it return ${result} when call with intent ${i}, which should be a object.`,
+          );
+        }
+        intentConfigFromFn[i] = result;
+      }
+    }
+    return intentConfigFromFn;
+  }
+
   private createUninitializedError(message: string) {
     const error = new Error(message);
     (error as any)[GLOBAL_CONFIG_MANAGER_UNINITIALIZED_FLAG] = true;
@@ -105,44 +133,13 @@ export class GlobalConfigManager {
       planning: undefined,
     };
   }
-
-  /**
-   * init and decide all global config value,
-   * should be called at Agent.constructor
-   */
-  init(modelConfigFn?: TModelConfigFn) {
-    if (this.initialized) {
-      throw new Error('GlobalConfigManager.init should be called only once');
-    }
-    const intents: TIntent[] = ['VQA', 'default', 'grounding', 'planning'];
+  private initModelConfigForIntent() {
     // init all config
     this.initAllEnvConfig();
-
     // get config from agent.modelConfig()
-    const intentConfigFromFn: Record<
-      TIntent,
-      ReturnType<TModelConfigFn> | undefined
-    > = {
-      VQA: undefined,
-      default: undefined,
-      grounding: undefined,
-      planning: undefined,
-    };
-
-    if (modelConfigFn) {
-      for (const i of intents) {
-        const result = modelConfigFn({ intent: i });
-        if (!result) {
-          throw new Error(
-            `The agent has an option named modelConfig is a function, but it return ${result} when call with intent ${i}, which should be a object.`,
-          );
-        }
-        intentConfigFromFn[i] = result;
-      }
-    }
-
+    const intentConfigFromFn = this.initIntentConfigFromFn();
     // decide model config
-    for (const i of intents) {
+    for (const i of ALL_INTENTS) {
       const result = decideModelConfig({
         intent: i,
         allConfig: this.allConfig!,
@@ -152,6 +149,21 @@ export class GlobalConfigManager {
       });
       this.modelConfigByIntent[i] = result;
     }
+  }
+
+  /**
+   * init and decide all global config value,
+   * should be called at Agent.constructor
+   */
+  init(modelConfigFn?: TModelConfigFn) {
+    // skip check temporarily because of globalConfigManager will be refactored to support multiple agents
+    // if (this.initialized) {
+    //   throw new Error('GlobalConfigManager.init should be called only once');
+    // }
+
+    this.latestModelConfigFn = modelConfigFn;
+
+    this.initModelConfigForIntent();
 
     this.initialized = true;
   }
@@ -235,11 +247,12 @@ export class GlobalConfigManager {
     >,
     extendMode = false, // true: merge with global config, false: override global config
   ) {
-    if (this.initialized) {
-      throw new Error(
-        'overrideAIConfig must be called before Agent.constructor',
-      );
-    }
+    // skip check temporarily because of globalConfigManager will be refactored to support multiple agents
+    // if (this.initialized) {
+    //   throw new Error(
+    //     'overrideAIConfig must be called before Agent.constructor',
+    //   );
+    // }
     for (const key in newConfig) {
       if (![...GLOBAL_ENV_KEYS, ...MODEL_ENV_KEYS].includes(key as never)) {
         throw new Error(`Failed to override AI config, invalid key: ${key}`);
@@ -256,20 +269,26 @@ export class GlobalConfigManager {
         );
       }
     }
-    // logic for override multiple times
-    // const savedNewConfig = extendMode
-    //   ? {
-    //       ...this.override?.newConfig,
-    //       ...newConfig,
-    //     }
-    //   : newConfig;
+    const savedNewConfig = extendMode
+      ? {
+          ...this.override?.newConfig,
+          ...newConfig,
+        }
+      : newConfig;
 
     this.override = {
       newConfig: {
-        ...newConfig,
+        ...savedNewConfig,
       },
       extendMode,
     };
-    this.initAllEnvConfig();
+
+    // initModelConfigForIntent will throw error if lack model related vars in process.env
+    // so call it after initialized
+    if (this.initialized) {
+      this.initModelConfigForIntent();
+    } else {
+      this.initAllEnvConfig();
+    }
   }
 }
