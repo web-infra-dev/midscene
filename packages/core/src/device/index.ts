@@ -5,7 +5,9 @@ import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 import type { Size, UIContext } from '../types';
 
 export abstract class AbstractInterface {
-  abstract pageType: string;
+  abstract interfaceType: string;
+
+  abstract describe?(): string;
 
   abstract getElementsNodeTree(): Promise<ElementNode>;
   abstract url(): string | Promise<string>;

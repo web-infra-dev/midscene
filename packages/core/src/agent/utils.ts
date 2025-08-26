@@ -35,12 +35,12 @@ export async function commonContextParser(
 ): Promise<UIContext> {
   assert(page, 'page is required');
 
-  debugProfile('Getting page URL');
-  const url = await page.url();
-  debugProfile('URL end');
+  debugProfile('Getting page description');
+  const description = page.describe?.() || '';
+  debugProfile('Page description end');
 
   debugProfile('Uploading test info to server');
-  uploadTestInfoToServer({ testUrl: url });
+  uploadTestInfoToServer({ testUrl: description });
   debugProfile('UploadTestInfoToServer end');
 
   let screenshotBase64 = await page.screenshotBase64();
@@ -65,7 +65,6 @@ export async function commonContextParser(
     },
     size,
     screenshotBase64: screenshotBase64!,
-    url,
   };
 }
 

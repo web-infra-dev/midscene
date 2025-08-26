@@ -43,7 +43,7 @@ vi.mock('@/common/utils', async () => {
 
 // Mock page implementation
 const mockPage = {
-  pageType: 'puppeteer',
+  interfaceType: 'puppeteer',
   mouse: {
     click: vi.fn(),
   },
@@ -216,10 +216,10 @@ describe('PageAgent reportFileName', () => {
     expect(agent.reportFileName).toBe(customReportName);
   });
 
-  it('should fallback to "web" when pageType is not available', () => {
+  it('should fallback to "web" when interfaceType is not available', () => {
     const mockPageWithoutType = {
       ...mockPage,
-      pageType: undefined,
+      interfaceType: undefined,
     } as unknown as AbstractWebPage;
 
     const agent = new PageAgent(mockPageWithoutType, {

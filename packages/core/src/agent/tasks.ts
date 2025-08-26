@@ -642,7 +642,7 @@ export class TaskExecutor {
         assert(Array.isArray(actionSpace), 'actionSpace must be an array');
         if (actionSpace.length === 0) {
           console.warn(
-            `ActionSpace for ${this.interface.pageType} is empty. This may lead to unexpected behavior.`,
+            `ActionSpace for ${this.interface.interfaceType} is empty. This may lead to unexpected behavior.`,
           );
         }
 
@@ -650,7 +650,7 @@ export class TaskExecutor {
           context: uiContext,
           log: param.log,
           actionContext,
-          pageType: this.interface.pageType as InterfaceType,
+          interfaceType: this.interface.interfaceType as InterfaceType,
           actionSpace,
         });
 

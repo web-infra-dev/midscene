@@ -68,7 +68,8 @@ export class AndroidDevice implements AbstractInterface {
   private adb: ADB | null = null;
   private connectingAdb: Promise<ADB> | null = null;
   private destroyed = false;
-  pageType: InterfaceType = 'android';
+  private description: string | undefined;
+  interfaceType: InterfaceType = 'android';
   uri: string | undefined;
   options?: AndroidDeviceOpt;
 
@@ -268,6 +269,10 @@ export class AndroidDevice implements AbstractInterface {
     this.options = options;
   }
 
+  describe(): string {
+    return this.description || `DeviceId: ${this.deviceId}`;
+  }
+
   public async connect(): Promise<ADB> {
     return this.getAdb();
   }
@@ -315,7 +320,7 @@ export class AndroidDevice implements AbstractInterface {
         });
 
         const size = await this.getScreenSize();
-        console.log(`
+        this.description = `
 DeviceId: ${this.deviceId}
 ScreenSize:
 ${Object.keys(size)
@@ -325,8 +330,8 @@ ${Object.keys(size)
       `  ${key} size: ${size[key as keyof typeof size]}${key === 'override' && size[key as keyof typeof size] ? ' ✅' : ''}`,
   )
   .join('\n')}
-`);
-        debugDevice('ADB initialized successfully');
+`;
+        debugDevice('ADB initialized successfully', this.description);
         return this.adb;
       } catch (e) {
         debugDevice(`Failed to initialize ADB: ${e}`);

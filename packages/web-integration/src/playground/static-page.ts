@@ -11,7 +11,7 @@ const ThrowNotImplemented: any = (methodName: string) => {
 };
 
 export default class StaticPage implements AbstractInterface {
-  pageType = 'static';
+  interfaceType = 'static';
 
   private uiContext: WebUIContext;
 
@@ -71,7 +71,7 @@ export default class StaticPage implements AbstractInterface {
   }
 
   async url() {
-    return Promise.resolve(this.uiContext.url || '');
+    return Promise.resolve('https://static_page_without_url');
   }
 
   async scrollUntilTop(startingPoint?: Point) {

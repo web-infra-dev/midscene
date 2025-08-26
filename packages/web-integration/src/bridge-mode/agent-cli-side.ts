@@ -52,7 +52,7 @@ export const getBridgePageInCliSide = (
       if (prop === 'toJSON') {
         return () => {
           return {
-            pageType: BridgePageType,
+            interfaceType: BridgePageType,
           };
         };
       }
@@ -61,7 +61,7 @@ export const getBridgePageInCliSide = (
         return undefined;
       }
 
-      if (prop === 'pageType') {
+      if (prop === 'interfaceType') {
         return BridgePageType;
       }
 

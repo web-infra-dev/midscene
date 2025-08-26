@@ -47,7 +47,7 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
 
     // Create mock page
     mockPage = {
-      pageType: 'test',
+      interfaceType: 'test',
       size: vi.fn().mockResolvedValue({ width: 1024, height: 768, dpr: 1 }),
       screenshotBase64: vi.fn().mockResolvedValue('mock-screenshot-base64'),
       url: vi.fn().mockResolvedValue('https://example.com'),

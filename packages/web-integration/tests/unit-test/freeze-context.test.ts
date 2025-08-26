@@ -7,7 +7,7 @@ import type { WebUIContext } from '../../src';
 
 // Mock page implementation
 const mockPage = {
-  pageType: 'puppeteer',
+  interfaceType: 'puppeteer',
   mouse: {
     click: vi.fn(),
   },

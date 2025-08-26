@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock page with mouse operations
 const mockPage = {
-  pageType: 'puppeteer',
+  interfaceType: 'puppeteer',
   mouse: {
     click: vi.fn().mockResolvedValue(undefined),
   },

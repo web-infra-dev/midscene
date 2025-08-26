@@ -32,7 +32,7 @@ function sleep(ms: number) {
 declare const __VERSION__: string;
 
 export default class ChromeExtensionProxyPage implements AbstractInterface {
-  pageType = 'chrome-extension-proxy';
+  interfaceType = 'chrome-extension-proxy';
 
   public forceSameTabNavigation: boolean;
   private version: string = __VERSION__;

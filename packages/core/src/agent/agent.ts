@@ -164,7 +164,7 @@ export class Agent<
       return this.getUIContext(action);
     });
 
-    if (opts?.cacheId && this.interface.pageType !== 'android') {
+    if (opts?.cacheId && this.interface.interfaceType !== 'android') {
       this.taskCache = new TaskCache(
         opts.cacheId,
         globalConfigManager.getEnvConfigInBoolean(MIDSCENE_CACHE), // if we should use cache to match the element
@@ -178,7 +178,7 @@ export class Agent<
     this.dump = this.resetDump();
     this.reportFileName =
       opts?.reportFileName ||
-      getReportFileName(opts?.testId || this.interface.pageType || 'web');
+      getReportFileName(opts?.testId || this.interface.interfaceType || 'web');
   }
 
   async getActionSpace(): Promise<DeviceAction[]> {

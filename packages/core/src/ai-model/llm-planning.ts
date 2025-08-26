@@ -31,7 +31,7 @@ export async function plan(
   userInstruction: string,
   opts: {
     context: UIContext;
-    pageType: InterfaceType;
+    interfaceType: InterfaceType;
     actionSpace: DeviceAction<any>[];
     callAI?: typeof callAiFn<PlanningAIResponse>;
     log?: string;
