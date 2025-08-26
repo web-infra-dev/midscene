@@ -100,8 +100,31 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       );
       return action?.paramSchema;
     }
+  }, [selectedType, actionSpace]);
+
+  // Check if current method supports deep think option (dynamic based on actionSpace)
+  const showDeepThinkOption = useMemo(() => {
+    if (actionSpace) {
+      // Use actionSpace to determine if method supports deep think
+      const action = actionSpace.find(
+        (a) => a.interfaceAlias === selectedType || a.name === selectedType,
+      );
+
+      if (action?.paramSchema && isZodObjectSchema(action.paramSchema as any)) {
+        const schema = action.paramSchema as any as ZodObjectSchema;
+        // Check if any parameter is a locate field
+        return Object.keys(schema.shape).some((key) => {
+          const field = schema.shape[key];
+          const { actualField } = unwrapZodType(field);
+          return isLocateField(actualField);
+        });
+      }
+      return false;
+    }
     // Fallback to hardcoded list if actionSpace is not available
-    return ['aiInput', 'aiKeyboardPress', 'aiScroll'].includes(selectedType);
+    return ['aiTap', 'aiHover', 'aiInput', 'aiRightClick', 'aiLocate'].includes(
+      selectedType,
+    );
   }, [selectedType, actionSpace]);
 
   // Get default values for fields with defaults
@@ -366,7 +389,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
         if (schemaKeys.length === 1) {
           const key = schemaKeys[0];
           const field = schema.shape[key];
-          const { actualField, isOptional } = unwrapZodType(field);
+          const { actualField } = unwrapZodType(field);
 
           // Check if it's a locate field
           const isLocateFieldFlag = isLocateField(actualField);
@@ -654,13 +677,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
           >
             <ConfigSelector
               enableTracking={serviceMode === 'In-Browser-Extension'}
-              showDeepThinkOption={
-                selectedType === 'aiTap' ||
-                selectedType === 'aiHover' ||
-                selectedType === 'aiInput' ||
-                selectedType === 'aiRightClick' ||
-                selectedType === 'aiLocate'
-              }
+              showDeepThinkOption={showDeepThinkOption}
             />
           </div>
         </div>
