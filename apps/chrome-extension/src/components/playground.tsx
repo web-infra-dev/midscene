@@ -10,9 +10,9 @@ import {
   PlaygroundResultView,
   PromptInput,
   type ReplayScriptsInfo,
+  allScriptsFromDump,
   useEnvConfig,
 } from '@midscene/visualizer';
-import { allScriptsFromDump } from '@midscene/visualizer';
 import { Button, Form, List, Tooltip, Typography, message } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { EnvConfigReminder } from '.';
@@ -31,6 +31,7 @@ import {
   storeResult,
 } from '../utils/playgroundDB';
 import './playground.less';
+import { ChromeExtensionProxyPage } from '@midscene/web/chrome-extension';
 
 declare const __SDK_VERSION__: string;
 
@@ -176,16 +177,10 @@ export function BrowserExtensionPlayground({
   useEffect(() => {
     const loadActionSpace = async () => {
       try {
-        // Only load actionSpace when configuration is ready
-        if (!config || Object.keys(config).length === 0) {
-          return;
-        }
+        const page = new ChromeExtensionProxyPage(forceSameTabNavigation);
+        const space = await page.actionSpace();
 
-        const agent = getAgent(forceSameTabNavigation);
-        if (agent) {
-          const space = await agent.getActionSpace();
-          setActionSpace(space || []);
-        }
+        setActionSpace(space || []);
       } catch (error) {
         setActionSpace([]);
       }
