@@ -120,7 +120,7 @@ export function BrowserExtensionPlayground({
 
   // Form and environment configuration
   const [form] = Form.useForm();
-  const { config, deepThink } = useEnvConfig();
+  const { config, deepThink, syncFromStorage } = useEnvConfig();
   const forceSameTabNavigation = useEnvConfig(
     (state) => state.forceSameTabNavigation,
   );
@@ -130,6 +130,11 @@ export function BrowserExtensionPlayground({
   const currentAgentRef = useRef<any>(null);
   const currentRunningIdRef = useRef<number | null>(0);
   const interruptedFlagRef = useRef<Record<number, boolean>>({});
+
+  // Sync config from storage on component mount
+  useEffect(() => {
+    syncFromStorage();
+  }, []); // Empty dependency array - only run once on mount
 
   // Responsive layout settings
   useEffect(() => {
@@ -171,18 +176,23 @@ export function BrowserExtensionPlayground({
   useEffect(() => {
     const loadActionSpace = async () => {
       try {
+        // Only load actionSpace when configuration is ready
+        if (!config || Object.keys(config).length === 0) {
+          return;
+        }
+
         const agent = getAgent(forceSameTabNavigation);
         if (agent) {
           const space = await agent.getActionSpace();
           setActionSpace(space || []);
         }
       } catch (error) {
-        console.error('Failed to load actionSpace:', error);
+        setActionSpace([]);
       }
     };
 
     loadActionSpace();
-  }, [getAgent, forceSameTabNavigation]);
+  }, [getAgent, forceSameTabNavigation, config]);
 
   // store light messages to localStorage (big result data is stored separately)
   useEffect(() => {
