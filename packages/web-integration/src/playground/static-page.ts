@@ -1,6 +1,6 @@
 import { commonWebActionsForWebPage } from '@/web-page';
 import type { DeviceAction, Point, UIContext } from '@midscene/core';
-import type { AbstractDevice } from '@midscene/core/device';
+import type { AbstractInterface } from '@midscene/core/device';
 import { ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED } from '@midscene/shared/common';
 import type { WebUIContext } from '../web-element';
 
@@ -10,7 +10,7 @@ const ThrowNotImplemented: any = (methodName: string) => {
   );
 };
 
-export default class StaticPage implements AbstractDevice {
+export default class StaticPage implements AbstractInterface {
   pageType = 'static';
 
   private uiContext: WebUIContext;

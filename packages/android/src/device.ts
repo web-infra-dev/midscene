@@ -5,14 +5,14 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import {
   type DeviceAction,
-  type PageType,
+  type InterfaceType,
   type Point,
   type Size,
   getMidsceneLocationSchema,
   z,
 } from '@midscene/core';
 import {
-  type AbstractDevice,
+  type AbstractInterface,
   type ActionTapParam,
   defineAction,
   defineActionDragAndDrop,
@@ -61,14 +61,14 @@ export type AndroidDeviceOpt = {
   usePhysicalDisplayIdForDisplayLookup?: boolean;
 } & AndroidDeviceInputOpt;
 
-export class AndroidDevice implements AbstractDevice {
+export class AndroidDevice implements AbstractInterface {
   private deviceId: string;
   private yadbPushed = false;
   private devicePixelRatio = 1;
   private adb: ADB | null = null;
   private connectingAdb: Promise<ADB> | null = null;
   private destroyed = false;
-  pageType: PageType = 'android';
+  pageType: InterfaceType = 'android';
   uri: string | undefined;
   options?: AndroidDeviceOpt;
 

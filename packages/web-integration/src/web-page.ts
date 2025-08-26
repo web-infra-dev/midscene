@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import type { Point } from '@midscene/core';
 import {
-  AbstractDevice,
+  AbstractInterface,
   type DeviceAction,
   defineActionDragAndDrop,
   defineActionHover,
@@ -325,7 +325,7 @@ export interface ChromePageDestroyOptions {
   closeTab?: boolean; // should close the tab when the page object is destroyed
 }
 
-export abstract class AbstractWebPage extends AbstractDevice {
+export abstract class AbstractWebPage extends AbstractInterface {
   get mouse(): MouseAction {
     return {
       click: async (

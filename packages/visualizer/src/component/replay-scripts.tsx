@@ -148,10 +148,9 @@ export const allScriptsFromDump = (
     }
 
     execution.tasks.forEach((task) => {
-      // Check for pageContext in any task type, not just insight tasks
-      if (task.pageContext?.size?.width) {
-        width = task.pageContext.size.width;
-        height = task.pageContext.size.height;
+      if (task.uiContext?.size?.width) {
+        width = task.uiContext.size.width;
+        height = task.uiContext.size.height;
       }
     });
   });
@@ -323,7 +322,7 @@ export const generateAnimationScripts = (
           pointerTop: resultElement.center[1],
         };
       }
-      const context = insightTask.pageContext;
+      const context = insightTask.uiContext;
       if (context?.screenshotBase64) {
         const insightDump = insightTask.log?.dump;
         const insightContentLength = context.tree

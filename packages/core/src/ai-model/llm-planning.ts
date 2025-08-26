@@ -1,6 +1,6 @@
 import type {
   DeviceAction,
-  PageType,
+  InterfaceType,
   PlanningAIResponse,
   UIContext,
 } from '@/types';
@@ -31,7 +31,7 @@ export async function plan(
   userInstruction: string,
   opts: {
     context: UIContext;
-    pageType: PageType;
+    pageType: InterfaceType;
     actionSpace: DeviceAction<any>[];
     callAI?: typeof callAiFn<PlanningAIResponse>;
     log?: string;

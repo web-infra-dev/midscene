@@ -1,4 +1,4 @@
-import { Agent, type PageAgentOpt } from '@midscene/core/agent';
+import { Agent, type AgentOpt } from '@midscene/core/agent';
 import { assert } from '@midscene/shared/utils';
 import { commonWebActionsForWebPage } from '../web-page';
 import type { KeyboardAction, MouseAction } from '../web-page';
@@ -114,7 +114,7 @@ export class AgentOverChromeBridge extends Agent<ChromeExtensionPageCliSide> {
   private destroyAfterDisconnectFlag?: boolean;
 
   constructor(
-    opts?: PageAgentOpt & {
+    opts?: AgentOpt & {
       closeNewTabsAfterDisconnect?: boolean;
       serverListeningTimeout?: number | false;
       closeConflictServer?: boolean;

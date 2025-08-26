@@ -1,4 +1,4 @@
-import { Agent as PageAgent, type PageAgentOpt } from '@midscene/core/agent';
+import { type AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
 import { vlLocateMode } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { AndroidDevice, type AndroidDeviceOpt } from './device';
@@ -6,13 +6,11 @@ import { getConnectedDevices } from './utils';
 
 const debugAgent = getDebug('android:agent');
 
-type AndroidAgentOpt = PageAgentOpt;
+type AndroidAgentOpt = AgentOpt;
 
 export class AndroidAgent extends PageAgent<AndroidDevice> {
-  declare page: AndroidDevice;
-
-  constructor(page: AndroidDevice, opts?: AndroidAgentOpt) {
-    super(page, opts);
+  constructor(interfaceInstance: AndroidDevice, opts?: AndroidAgentOpt) {
+    super(interfaceInstance, opts);
 
     if (
       !vlLocateMode({ intent: 'grounding' }) ||

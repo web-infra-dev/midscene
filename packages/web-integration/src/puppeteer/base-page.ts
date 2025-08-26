@@ -6,7 +6,7 @@ import type {
   Size,
   UIContext,
 } from '@midscene/core';
-import type { AbstractDevice } from '@midscene/core/device';
+import type { AbstractInterface } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import { DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
@@ -30,10 +30,10 @@ export const debugPage = getDebug('web:page');
 
 export class Page<
   AgentType extends 'puppeteer' | 'playwright',
-  PageType extends PuppeteerPage | PlaywrightPage,
-> implements AbstractDevice
+  InterfaceType extends PuppeteerPage | PlaywrightPage,
+> implements AbstractInterface
 {
-  underlyingPage: PageType;
+  underlyingPage: InterfaceType;
   protected waitForNavigationTimeout: number;
   private viewportSize?: Size;
 
@@ -65,7 +65,7 @@ export class Page<
   }
 
   constructor(
-    underlyingPage: PageType,
+    underlyingPage: InterfaceType,
     pageType: AgentType,
     opts?: {
       waitForNavigationTimeout?: number;

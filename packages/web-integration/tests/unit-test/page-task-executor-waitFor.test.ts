@@ -1,4 +1,4 @@
-import { PageTaskExecutor } from '@midscene/core/agent';
+import { TaskExecutor } from '@midscene/core/agent';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 declare const __VERSION__: string;
@@ -37,8 +37,8 @@ vi.mock('@/common/utils', async () => {
   };
 });
 
-describe('PageTaskExecutor waitFor method with doNotThrowError', () => {
-  let taskExecutor: PageTaskExecutor;
+describe('TaskExecutor waitFor method with doNotThrowError', () => {
+  let taskExecutor: TaskExecutor;
   let mockInsight: any;
   let mockPage: any;
 
@@ -69,7 +69,7 @@ describe('PageTaskExecutor waitFor method with doNotThrowError', () => {
       }),
     };
 
-    taskExecutor = new PageTaskExecutor(mockPage, mockInsight, {
+    taskExecutor = new TaskExecutor(mockPage, mockInsight, {
       onTaskStart: vi.fn(),
     });
   });

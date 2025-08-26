@@ -1,5 +1,5 @@
 import type { DeviceAction, PlanningAction } from '@midscene/core';
-import { PageTaskExecutor } from '@midscene/core/agent';
+import { TaskExecutor } from '@midscene/core/agent';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock page with mouse operations
@@ -38,12 +38,12 @@ const mockInsight = {
   onceDumpUpdatedFn: undefined,
 } as any;
 
-describe('PageTaskExecutor RightClick Action', () => {
-  let taskExecutor: PageTaskExecutor;
+describe('TaskExecutor RightClick Action', () => {
+  let taskExecutor: TaskExecutor;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    taskExecutor = new PageTaskExecutor(mockPage, mockInsight, {});
+    taskExecutor = new TaskExecutor(mockPage, mockInsight, {});
   });
 
   it('should execute RightClick action correctly', async () => {

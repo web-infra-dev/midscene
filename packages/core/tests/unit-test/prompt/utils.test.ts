@@ -161,7 +161,7 @@ describe('prompt utils - elementByPositionWithElementInfo', () => {
       y: targetNode.node.rect.top + targetNode.node.rect.height / 2,
     };
     const element = elementByPositionWithElementInfo(
-      dump.executions[0].tasks[0].pageContext.tree,
+      dump.executions[0].tasks[0].uiContext.tree,
       rectCenter,
       {
         requireStrictDistance: false,
@@ -209,7 +209,7 @@ describe('prompt utils - elementByPositionWithElementInfo', () => {
       y: targetNode.node.rect.top + targetNode.node.rect.height / 2,
     };
     const element = elementByPositionWithElementInfo(
-      dump.executions[0].tasks[0].pageContext.tree,
+      dump.executions[0].tasks[0].uiContext.tree,
       rectCenter,
       {
         requireStrictDistance: false,
@@ -258,7 +258,7 @@ describe('prompt utils - elementByPositionWithElementInfo', () => {
       y: targetNode.node.rect.top + targetNode.node.rect.height / 2,
     };
     const element = elementByPositionWithElementInfo(
-      dump.executions[0].tasks[0].pageContext.tree,
+      dump.executions[0].tasks[0].uiContext.tree,
       rectCenter,
       {
         requireStrictDistance: true,

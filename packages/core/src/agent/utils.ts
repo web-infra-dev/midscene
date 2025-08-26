@@ -1,5 +1,5 @@
 import { elementByPositionWithElementInfo } from '@/ai-model';
-import type { AbstractDevice } from '@/device';
+import type { AbstractInterface } from '@/device';
 import type {
   BaseElement,
   ElementTreeNode,
@@ -26,12 +26,12 @@ import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 import { assert, logMsg, uuid } from '@midscene/shared/utils';
 import dayjs from 'dayjs';
 import { debug as cacheDebug } from './task-cache';
-import type { PageTaskExecutor } from './tasks';
+import type { TaskExecutor } from './tasks';
 
 const debugProfile = getDebug('web:tool:profile');
 
 export async function commonContextParser(
-  page: AbstractDevice,
+  page: AbstractInterface,
 ): Promise<UIContext> {
   assert(page, 'page is required');
 
@@ -165,7 +165,7 @@ export function matchElementFromPlan(
 }
 
 export async function matchElementFromCache(
-  taskExecutor: PageTaskExecutor,
+  taskExecutor: TaskExecutor,
   xpaths: string[] | undefined,
   cachePrompt: TUserPrompt,
   cacheable: boolean | undefined,
@@ -237,10 +237,10 @@ export function trimContextByViewport(execution: ExecutionDump) {
     tasks: Array.isArray(execution.tasks)
       ? execution.tasks.map((task: ExecutionTask) => {
           const newTask = { ...task };
-          if (task.pageContext?.tree) {
-            newTask.pageContext = {
-              ...task.pageContext,
-              tree: filterVisibleTree(task.pageContext.tree) || {
+          if (task.uiContext?.tree) {
+            newTask.uiContext = {
+              ...task.uiContext,
+              tree: filterVisibleTree(task.uiContext.tree) || {
                 node: null,
                 children: [],
               },

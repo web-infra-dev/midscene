@@ -42,7 +42,7 @@ const DetailPanel = (): JSX.Element => {
     (store) => store._executionDumpLoadId,
   );
   const activeTask = useExecutionDump((store) => store.activeTask);
-  const blackboardViewAvailable = Boolean(activeTask?.pageContext);
+  const blackboardViewAvailable = Boolean(activeTask?.uiContext);
   const [preferredViewType, setViewType] = useState(VIEW_TYPE_REPLAY);
   const animationScripts = useExecutionDump(
     (store) => store.activeExecutionAnimation,
@@ -52,7 +52,7 @@ const DetailPanel = (): JSX.Element => {
 
   // Check if page context is frozen
   const isPageContextFrozen = Boolean(
-    (activeTask?.pageContext as WebUIContext)?._isFrozen,
+    (activeTask?.uiContext as WebUIContext)?._isFrozen,
   );
 
   let availableViewTypes = [VIEW_TYPE_SCREENSHOT, VIEW_TYPE_JSON];
@@ -108,7 +108,7 @@ const DetailPanel = (): JSX.Element => {
       }
       content = (
         <Blackboard
-          uiContext={activeTask.pageContext}
+          uiContext={activeTask.uiContext}
           highlightElements={highlightElements}
           highlightRect={insightDump?.taskInfo?.searchArea}
           key={`${_contextLoadId}`}
@@ -170,7 +170,7 @@ const DetailPanel = (): JSX.Element => {
     if (type === VIEW_TYPE_BLACKBOARD) {
       return {
         label: isPageContextFrozen ? (
-          <Tooltip title="Current pageContext is frozen">Insight 🧊</Tooltip>
+          <Tooltip title="Current uiContext is frozen">Insight 🧊</Tooltip>
         ) : (
           'Insight'
         ),
@@ -211,7 +211,7 @@ const DetailPanel = (): JSX.Element => {
         />
 
         <OpenInPlayground
-          context={(activeTask as ExecutionTaskPlanning)?.pageContext}
+          context={(activeTask as ExecutionTaskPlanning)?.uiContext}
         />
       </div>
       <div className="detail-content">{content}</div>

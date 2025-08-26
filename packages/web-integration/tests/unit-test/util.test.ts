@@ -29,7 +29,7 @@ describe('TaskCache', () => {
         at getCurrentExecutionFile (/Users/user/workspace/midscene-example/puppeteer-demo/node_modules/@midscene/web/dist/es/puppeteer.js:561:11)
     at generateCacheId (/Users/user/workspace/midscene-example/puppeteer-demo/node_modules/@midscene/web/dist/es/puppeteer.js:568:32)
     at TaskCache (/Users/user/workspace/midscene-example/puppeteer-demo/node_modules/@midscene/web/dist/es/puppeteer.js:590:24)
-    at PageTaskExecutor (/Users/user/workspace/midscene-example/puppeteer-demo/node_modules/@midscene/web/dist/es/puppeteer.js:711:26)
+    at TaskExecutor (/Users/user/workspace/midscene-example/puppeteer-demo/node_modules/@midscene/web/dist/es/puppeteer.js:711:26)
     at PageAgent (/Users/user/workspace/midscene-example/puppeteer-demo/node_modules/@midscene/web/dist/es/puppeteer.js:1147:29)
     at PuppeteerAgent (/Users/user/workspace/midscene-example/puppeteer-demo/node_modules/@midscene/web/dist/es/puppeteer.js:1352:9)
     at <anonymous> (/Users/user/workspace/midscene-example/puppeteer-demo/demo.ts:24:17)
@@ -88,8 +88,8 @@ describe('trimContextByViewport', () => {
     );
     const dump = JSON.parse(fs.readFileSync(dumpPath, 'utf8'));
     const result = trimContextByViewport(dump.executions[0]);
-    expect(result.tasks[0].pageContext?.tree?.node).toBeNull();
-    expect(result.tasks[0].pageContext?.tree?.children.length).toBe(28);
+    expect(result.tasks[0].uiContext?.tree?.node).toBeNull();
+    expect(result.tasks[0].uiContext?.tree?.children.length).toBe(28);
   });
 });
 
@@ -160,7 +160,7 @@ describe('buildDetailedLocateParamAndRestParams', () => {
     expect(result.restParams).toEqual({});
   });
 
-  it('should build detailed locate param and extract pageContext to restParams', () => {
+  it('should build detailed locate param and extract uiContext to restParams', () => {
     const locatePrompt = 'Find the submit button';
     const mockPageContext = {
       tree: { node: null, children: [] },
@@ -172,7 +172,7 @@ describe('buildDetailedLocateParamAndRestParams', () => {
       cacheable: false,
       xpath: '//button[@type="submit"]',
       prompt: 'Override prompt',
-      pageContext: mockPageContext,
+      uiContext: mockPageContext,
     };
     const result = buildDetailedLocateParamAndRestParams(locatePrompt, options);
 
@@ -185,7 +185,7 @@ describe('buildDetailedLocateParamAndRestParams', () => {
       }
     `);
     expect(result.restParams).toEqual({
-      pageContext: mockPageContext,
+      uiContext: mockPageContext,
     });
   });
 
@@ -193,7 +193,7 @@ describe('buildDetailedLocateParamAndRestParams', () => {
     const locatePrompt = 'Locate the search input';
     const options = {
       deepThink: true,
-      pageContext: {
+      uiContext: {
         tree: { node: null, children: [] },
         size: { width: 1024, height: 768 },
         screenshotBase64: 'mock-base64-string',
@@ -211,7 +211,7 @@ describe('buildDetailedLocateParamAndRestParams', () => {
       xpath: undefined,
     });
     expect(result.restParams).toEqual({
-      pageContext: {
+      uiContext: {
         tree: { node: null, children: [] },
         size: { width: 1024, height: 768 },
         screenshotBase64: 'mock-base64-string',

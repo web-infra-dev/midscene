@@ -360,7 +360,7 @@ export interface ExecutionTaskApply<
   param?: TaskParam;
   thought?: string;
   locate?: PlanningLocateParam | null;
-  pageContext?: UIContext;
+  uiContext?: UIContext;
   executor: (
     param: TaskParam,
     context: ExecutorContext,
@@ -525,7 +525,7 @@ export interface GroupedActionDump {
   executions: ExecutionDump[];
 }
 
-export type PageType =
+export type InterfaceType =
   | 'puppeteer'
   | 'playwright'
   | 'static'

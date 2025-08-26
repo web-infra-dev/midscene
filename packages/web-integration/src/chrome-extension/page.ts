@@ -7,7 +7,7 @@
 
 import { limitOpenNewTabScript } from '@/web-element';
 import type { ElementTreeNode, Point, Size } from '@midscene/core';
-import type { AbstractDevice, DeviceAction } from '@midscene/core/device';
+import type { AbstractInterface, DeviceAction } from '@midscene/core/device';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
@@ -31,7 +31,7 @@ function sleep(ms: number) {
 
 declare const __VERSION__: string;
 
-export default class ChromeExtensionProxyPage implements AbstractDevice {
+export default class ChromeExtensionProxyPage implements AbstractInterface {
   pageType = 'chrome-extension-proxy';
 
   public forceSameTabNavigation: boolean;
