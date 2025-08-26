@@ -60,6 +60,10 @@ export const getBridgePageInCliSide = (
         };
       }
 
+      if (prop === 'getContext') {
+        return undefined;
+      }
+
       if (prop === 'pageType') {
         return BridgePageType;
       }
