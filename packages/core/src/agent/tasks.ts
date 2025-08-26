@@ -194,7 +194,7 @@ export class TaskExecutor {
             (async () => {
               await sleep(100);
               if (this.interface.beforeAction) {
-                debug('will call "beforeAction" for page');
+                debug('will call "beforeAction" for interface');
                 await this.interface.beforeAction();
               }
             })(),
@@ -509,7 +509,7 @@ export class TaskExecutor {
               `context.element.center: ${context.element?.center}`,
             );
 
-            // Get page context for actionSpace operations to ensure size info is available
+            // Get context for actionSpace operations to ensure size info is available
             const uiContext = await this.insight.contextRetrieverFn('locate');
             context.task.uiContext = uiContext;
 
@@ -636,7 +636,7 @@ export class TaskExecutor {
         );
         const actionSpace = await this.interface.actionSpace();
         debug(
-          'actionSpace for page is:',
+          'actionSpace for this interface is:',
           actionSpace.map((action) => action.name).join(', '),
         );
         assert(Array.isArray(actionSpace), 'actionSpace must be an array');
@@ -1030,7 +1030,7 @@ export class TaskExecutor {
         };
         this.insight.onceDumpUpdatedFn = dumpCollector;
 
-        // Get page context for query operations
+        // Get context for query operations
         const shotTime = Date.now();
         const uiContext = await this.insight.contextRetrieverFn('extract');
         task.uiContext = uiContext;

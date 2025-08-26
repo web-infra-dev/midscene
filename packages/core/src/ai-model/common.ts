@@ -264,7 +264,7 @@ export function warnGPT4oSizeLimit(
 ) {
   if (warned) return;
   if (getModelName(modelPreferences)?.toLowerCase().includes('gpt-4o')) {
-    const warningMsg = `GPT-4o has a maximum image input size of 2000x768 or 768x2000, but got ${size.width}x${size.height}. Please set your page to a smaller resolution. Otherwise, the result may be inaccurate.`;
+    const warningMsg = `GPT-4o has a maximum image input size of 2000x768 or 768x2000, but got ${size.width}x${size.height}. Please set your interface to a smaller resolution. Otherwise, the result may be inaccurate.`;
 
     if (
       Math.max(size.width, size.height) > 2000 ||

@@ -157,8 +157,6 @@ export class Agent<
     globalConfigManager.init(opts?.modelConfig);
 
     this.onTaskStartTip = this.opts.onTaskStartTip;
-    // get the parent browser of the puppeteer page
-    // const browser = (this.page as PuppeteerWebPage).browser();
 
     this.insight = new Insight(async (action: InsightAction) => {
       return this.getUIContext(action);

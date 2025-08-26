@@ -31,22 +31,22 @@ import type { TaskExecutor } from './tasks';
 const debugProfile = getDebug('web:tool:profile');
 
 export async function commonContextParser(
-  page: AbstractInterface,
+  interfaceInstance: AbstractInterface,
 ): Promise<UIContext> {
-  assert(page, 'page is required');
+  assert(interfaceInstance, 'interfaceInstance is required');
 
-  debugProfile('Getting page description');
-  const description = page.describe?.() || '';
-  debugProfile('Page description end');
+  debugProfile('Getting interface description');
+  const description = interfaceInstance.describe?.() || '';
+  debugProfile('Interface description end');
 
   debugProfile('Uploading test info to server');
   uploadTestInfoToServer({ testUrl: description });
   debugProfile('UploadTestInfoToServer end');
 
-  let screenshotBase64 = await page.screenshotBase64();
+  let screenshotBase64 = await interfaceInstance.screenshotBase64();
   assert(screenshotBase64!, 'screenshotBase64 is required');
 
-  const size = await page.size();
+  const size = await interfaceInstance.size();
   debugProfile(`size: ${size.width}x${size.height} dpr: ${size.dpr}`);
 
   if (size.dpr && size.dpr > 1) {
@@ -174,13 +174,13 @@ export async function matchElementFromCache(
       xpaths?.length &&
       taskExecutor.taskCache?.isCacheResultUsed &&
       cacheable !== false &&
-      (taskExecutor.page as any).getElementInfoByXpath
+      (taskExecutor.interface as any).getElementInfoByXpath
     ) {
       // hit cache, use new id
       for (let i = 0; i < xpaths.length; i++) {
-        const element = await (taskExecutor.page as any).getElementInfoByXpath(
-          xpaths[i],
-        );
+        const element = await (
+          taskExecutor.interface as any
+        ).getElementInfoByXpath(xpaths[i]);
 
         if (element?.id) {
           cacheDebug('cache hit, prompt: %s', cachePrompt);
