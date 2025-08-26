@@ -568,8 +568,7 @@ export interface StreamingAIResponse {
   isStreamed: boolean;
 }
 
-// biome-ignore lint/complexity/noBannedTypes: <explanation>
-export interface DeviceAction<T = {}> {
+export interface DeviceAction<T = any> {
   name: string;
   description?: string;
   interfaceAlias?: string;

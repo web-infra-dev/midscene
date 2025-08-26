@@ -5,7 +5,7 @@ import {
   resizeImageForUiTars,
   vlmPlanning,
 } from '@/ai-model';
-import type { AbstractPage } from '@/device';
+import type { AbstractDevice } from '@/device';
 import {
   type AIUsageInfo,
   type BaseElement,
@@ -78,7 +78,7 @@ export function locatePlanForLocate(param: string | DetailedLocateParam) {
 }
 
 export class PageTaskExecutor {
-  page: AbstractPage;
+  page: AbstractDevice;
 
   insight: Insight;
 
@@ -89,7 +89,7 @@ export class PageTaskExecutor {
   onTaskStartCallback?: ExecutionTaskProgressOptions['onTaskStart'];
 
   constructor(
-    page: AbstractPage,
+    page: AbstractDevice,
     insight: Insight,
     opts: {
       taskCache?: TaskCache;
@@ -440,25 +440,6 @@ export class PageTaskExecutor {
             },
           };
         tasks.push(taskActionSleep);
-      } else if (plan.type === 'Drag') {
-        const taskActionDrag: ExecutionTaskActionApply<{
-          start_box: { x: number; y: number };
-          end_box: { x: number; y: number };
-        }> = {
-          type: 'Action',
-          subType: 'Drag',
-          param: plan.param,
-          thought: plan.thought,
-          locate: plan.locate,
-          executor: async (taskParam) => {
-            assert(
-              taskParam?.start_box && taskParam?.end_box,
-              'No start_box or end_box to drag',
-            );
-            await this.page.mouse.drag(taskParam.start_box, taskParam.end_box);
-          },
-        };
-        tasks.push(taskActionDrag);
       } else {
         // action in action space
         const planType = plan.type;

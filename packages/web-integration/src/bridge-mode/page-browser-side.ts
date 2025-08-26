@@ -1,10 +1,10 @@
+import { assert } from '@midscene/shared/utils';
+import ChromeExtensionProxyPage from '../chrome-extension/page';
 import type {
   ChromePageDestroyOptions,
   KeyboardAction,
   MouseAction,
-} from '@midscene/core/device';
-import { assert } from '@midscene/shared/utils';
-import ChromeExtensionProxyPage from '../chrome-extension/page';
+} from '../web-page';
 import {
   type BridgeConnectTabOptions,
   BridgeEvent,
@@ -83,6 +83,11 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
             return this.keyboard[actionName].apply(this.keyboard, args as any);
           }
           return this.keyboard[actionName].apply(this.keyboard, args as any);
+        }
+
+        if (!this[method as keyof ChromeExtensionProxyPage]) {
+          console.warn('method not found', method);
+          return undefined;
         }
 
         try {

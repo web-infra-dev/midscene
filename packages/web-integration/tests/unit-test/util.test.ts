@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { getKeyCommands } from '@midscene/core/agent';
+import { getKeyCommands } from '@/web-page';
 import {
   getCurrentExecutionFile,
   trimContextByViewport,

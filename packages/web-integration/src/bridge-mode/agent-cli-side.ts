@@ -1,10 +1,7 @@
-import {
-  Agent,
-  type PageAgentOpt,
-  commonWebActionsForWebPage,
-} from '@midscene/core/agent';
-import type { KeyboardAction, MouseAction } from '@midscene/core/device';
+import { Agent, type PageAgentOpt } from '@midscene/core/agent';
 import { assert } from '@midscene/shared/utils';
+import { commonWebActionsForWebPage } from '../web-page';
+import type { KeyboardAction, MouseAction } from '../web-page';
 import {
   type BridgeConnectTabOptions,
   BridgeEvent,
@@ -58,6 +55,10 @@ export const getBridgePageInCliSide = (
             pageType: BridgePageType,
           };
         };
+      }
+
+      if (prop === 'getContext') {
+        return undefined;
       }
 
       if (prop === 'pageType') {
