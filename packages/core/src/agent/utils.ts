@@ -34,7 +34,6 @@ import type { PageTaskExecutor } from './tasks';
 import { getKeyCommands } from './ui-utils';
 
 const debugProfile = getDebug('web:tool:profile');
-const debugUtils = getDebug('web:tool:utils');
 
 export async function commonContextParser(
   page: AbstractPage,

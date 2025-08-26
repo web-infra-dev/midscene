@@ -85,6 +85,11 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
           return this.keyboard[actionName].apply(this.keyboard, args as any);
         }
 
+        if (!this[method as keyof ChromeExtensionProxyPage]) {
+          console.warn('method not found', method);
+          return undefined;
+        }
+
         try {
           // @ts-expect-error
           const result = await this[method as keyof ChromeExtensionProxyPage](
