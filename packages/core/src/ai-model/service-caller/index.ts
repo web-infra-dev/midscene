@@ -188,7 +188,7 @@ export async function call(
 
   const responseFormat = getResponseFormat(modelName, AIActionTypeValue);
 
-  const maxTokens = globalConfigManager.getEnvConfigInNumber(OPENAI_MAX_TOKENS);
+  const maxTokens = globalConfigManager.getEnvConfigValue(OPENAI_MAX_TOKENS);
   const debugCall = getDebug('ai:call');
   const debugProfileStats = getDebug('ai:profile:stats');
   const debugProfileDetail = getDebug('ai:profile:detail');
