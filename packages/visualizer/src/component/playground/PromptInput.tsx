@@ -381,10 +381,6 @@ export const PromptInput: React.FC<PromptInputProps> = ({
             if (key === 'value') placeholderText = 'Enter text to input';
           }
 
-          const message = isLocateFieldFlag
-            ? 'Please describe the element'
-            : `Please input ${key}`;
-
           return (
             <Form.Item name={['params', key]} style={{ margin: 0 }}>
               <Input.TextArea
@@ -419,13 +415,13 @@ export const PromptInput: React.FC<PromptInputProps> = ({
           };
 
           if (isLocateFieldFlag) {
-            fields.push(<LocateField {...fieldProps} />);
+            fields.push(<LocateField key={key} {...fieldProps} />);
           } else if (actualField._def?.typeName === 'ZodEnum') {
-            fields.push(<EnumField {...fieldProps} />);
+            fields.push(<EnumField key={key} {...fieldProps} />);
           } else if (actualField._def?.typeName === 'ZodNumber') {
-            fields.push(<NumberField {...fieldProps} />);
+            fields.push(<NumberField key={key} {...fieldProps} />);
           } else {
-            fields.push(<TextField {...fieldProps} />);
+            fields.push(<TextField key={key} {...fieldProps} />);
           }
         });
 

@@ -10,9 +10,9 @@ import {
   PlaygroundResultView,
   PromptInput,
   type ReplayScriptsInfo,
+  allScriptsFromDump,
   useEnvConfig,
 } from '@midscene/visualizer';
-import { allScriptsFromDump } from '@midscene/visualizer';
 import { Button, Form, List, Tooltip, Typography, message } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { EnvConfigReminder } from '.';
@@ -31,6 +31,7 @@ import {
   storeResult,
 } from '../utils/playgroundDB';
 import './playground.less';
+import { ChromeExtensionProxyPage } from '@midscene/web/chrome-extension';
 
 declare const __SDK_VERSION__: string;
 
@@ -120,7 +121,7 @@ export function BrowserExtensionPlayground({
 
   // Form and environment configuration
   const [form] = Form.useForm();
-  const { config, deepThink } = useEnvConfig();
+  const { config, deepThink, syncFromStorage } = useEnvConfig();
   const forceSameTabNavigation = useEnvConfig(
     (state) => state.forceSameTabNavigation,
   );
@@ -130,6 +131,11 @@ export function BrowserExtensionPlayground({
   const currentAgentRef = useRef<any>(null);
   const currentRunningIdRef = useRef<number | null>(0);
   const interruptedFlagRef = useRef<Record<number, boolean>>({});
+
+  // Sync config from storage on component mount
+  useEffect(() => {
+    syncFromStorage();
+  }, []); // Empty dependency array - only run once on mount
 
   // Responsive layout settings
   useEffect(() => {
@@ -171,18 +177,17 @@ export function BrowserExtensionPlayground({
   useEffect(() => {
     const loadActionSpace = async () => {
       try {
-        const agent = getAgent(forceSameTabNavigation);
-        if (agent) {
-          const space = await agent.getActionSpace();
-          setActionSpace(space || []);
-        }
+        const page = new ChromeExtensionProxyPage(forceSameTabNavigation);
+        const space = await page.actionSpace();
+
+        setActionSpace(space || []);
       } catch (error) {
-        console.error('Failed to load actionSpace:', error);
+        setActionSpace([]);
       }
     };
 
     loadActionSpace();
-  }, [getAgent, forceSameTabNavigation]);
+  }, [getAgent, forceSameTabNavigation, config]);
 
   // store light messages to localStorage (big result data is stored separately)
   useEffect(() => {
