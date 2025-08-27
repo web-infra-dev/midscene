@@ -7,3 +7,4 @@ export { Agent as PageAgent, type AgentOpt } from '@midscene/core/agent';
 export { PuppeteerAgent } from './puppeteer';
 export { PlaywrightAgent } from './playwright';
 export { StaticPageAgent } from './playground/agent';
+export { WebPageContextParser } from './web-element';

@@ -169,11 +169,14 @@ export class GlobalConfigManager {
   }
 
   getModelConfigByIntent(intent: TIntent) {
-    if (!this.initialized) {
-      throw this.createUninitializedError(
-        `globalConfigManager is not initialized when call getModelConfigByIntent with intent ${intent}`,
-      );
-    }
+    this.debugLog(
+      `globalConfigManager is not initialized when call getModelConfigByIntent with intent ${intent}`,
+    );
+    // if (!this.initialized) {
+    //   throw this.createUninitializedError(
+    //     `globalConfigManager is not initialized when call getModelConfigByIntent with intent ${intent}`,
+    //   );
+    // }
     return this.modelConfigByIntent[intent]!;
   }
 
