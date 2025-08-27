@@ -269,7 +269,9 @@ export class Agent<
     this.appendExecutionDump(executor.dump());
 
     try {
-      await this.onDumpUpdate?.(this.dumpDataString());
+      if (this.onDumpUpdate) {
+        this.onDumpUpdate(this.dumpDataString());
+      }
     } catch (error) {
       console.error('Error in onDumpUpdate', error);
     }
@@ -550,7 +552,7 @@ export class Agent<
         matchedCache.cacheContent?.yamlWorkflow,
       );
 
-      await await this.afterTaskRunning(executor);
+      await this.afterTaskRunning(executor);
 
       debug('matched cache, will call .runYaml to run the action');
       const yaml = matchedCache.cacheContent?.yamlWorkflow;
@@ -837,7 +839,7 @@ export class Agent<
     result: Record<string, any>;
   }> {
     const script = parseYamlScript(yamlScriptContent, 'yaml', true);
-    const player = new ScriptPlayer(script, async (target) => {
+    const player = new ScriptPlayer(script, async () => {
       return { agent: this, freeFn: [] };
     });
     await player.run();

@@ -142,8 +142,16 @@ export default class PlaygroundServer {
       '/execute',
       express.json({ limit: '30mb' }),
       async (req, res) => {
-        const { context, type, prompt, params, requestId, deepThink } =
-          req.body;
+        const {
+          context,
+          type,
+          prompt,
+          params,
+          requestId,
+          deepThink,
+          screenshotIncluded,
+          domIncluded,
+        } = req.body;
 
         if (!context) {
           return res.status(400).json({
@@ -195,7 +203,11 @@ export default class PlaygroundServer {
           actionType: string,
           inputPrompt: string | undefined,
           inputParams: any | undefined,
-          options: { deepThink?: boolean } = {},
+          options: {
+            deepThink?: boolean;
+            screenshotIncluded?: boolean;
+            domIncluded?: boolean | 'visible-only';
+          } = {},
         ): any[] => {
           // If structured params are provided, use them directly
           if (inputParams) {
@@ -329,6 +341,8 @@ export default class PlaygroundServer {
             // Use actionSpace method dynamically
             const parsedParams = parseActionParams(type, prompt, params, {
               deepThink,
+              screenshotIncluded,
+              domIncluded,
             });
             response.result = await (agent as any)[action.interfaceAlias](
               ...parsedParams,
@@ -345,12 +359,34 @@ export default class PlaygroundServer {
             if (type === 'aiAssert') {
               response.result = await agent.aiAssert(actualPrompt, undefined, {
                 keepRawResponse: true,
+                screenshotIncluded,
+                domIncluded,
               });
             } else if (agent && typeof (agent as any)[type] === 'function') {
               // for other methods, check if the agent has the method
-              response.result = await (agent as any)[type](actualPrompt, {
-                deepThink,
-              });
+              const callOptions: any = { deepThink };
+
+              // Add screenshot and DOM options for data extraction methods
+              const dataExtractionMethods = [
+                'aiQuery',
+                'aiBoolean',
+                'aiNumber',
+                'aiString',
+                'aiAsk',
+              ];
+              if (dataExtractionMethods.includes(type)) {
+                if (screenshotIncluded !== undefined) {
+                  callOptions.screenshotIncluded = screenshotIncluded;
+                }
+                if (domIncluded !== undefined) {
+                  callOptions.domIncluded = domIncluded;
+                }
+              }
+
+              response.result = await (agent as any)[type](
+                actualPrompt,
+                callOptions,
+              );
             } else {
               response.error = `Unknown type: ${type}`;
             }
