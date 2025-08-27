@@ -76,7 +76,6 @@ export const ServiceModeControl: React.FC<ServiceModeControlProps> = ({
 
   useEffect(() => {
     overrideAIConfig(config);
-
     if (serviceMode === 'Server') {
       overrideServerConfig(config);
     }
