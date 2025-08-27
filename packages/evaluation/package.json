@@ -20,7 +20,6 @@
     "format": "cd ../.. && npm run lint"
   },
   "files": ["dist", "README.md"],
-  "type": "module",
   "dependencies": {
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",

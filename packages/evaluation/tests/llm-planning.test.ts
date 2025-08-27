@@ -3,15 +3,24 @@ import {
   MIDSCENE_MODEL_NAME,
   type PlanningAIResponse,
   type Rect,
-  getAIConfig,
   plan,
 } from '@midscene/core';
 import { adaptBboxToRect } from '@midscene/core/ai-model';
+import {
+  type DeviceAction,
+  defineActionInput,
+  defineActionKeyboardPress,
+  defineActionTap,
+} from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
-import { vlLocateMode } from '@midscene/shared/env';
+import {
+  getModelName,
+  globalConfigManager,
+  vlLocateMode,
+} from '@midscene/shared/env';
 import { saveBase64Image } from '@midscene/shared/img';
 import dotenv from 'dotenv';
-import { afterEach, describe, expect, test } from 'vitest';
+import { afterEach, beforeAll, describe, expect, test } from 'vitest';
 import { TestResultCollector } from '../src/test-analyzer';
 import { annotateRects, buildContext, getCases } from './util';
 dotenv.config({
@@ -19,14 +28,33 @@ dotenv.config({
   override: true,
 });
 
-if (process.env.MIDSCENE_EVALUATION_EXPECT_VL) {
-  expect(vlLocateMode()).toBeTruthy();
-}
-
 const failCaseThreshold = process.env.CI ? 2 : 0;
 const testSources = ['todo'];
 
-const vlMode = vlLocateMode();
+let actionSpace: DeviceAction[] = [];
+
+let vlMode = false;
+beforeAll(async () => {
+  await globalConfigManager.init();
+
+  vlMode = !!vlLocateMode({
+    intent: 'grounding',
+  });
+
+  if (process.env.MIDSCENE_EVALUATION_EXPECT_VL) {
+    expect(
+      vlLocateMode({
+        intent: 'grounding',
+      }),
+    ).toBeTruthy();
+  }
+
+  actionSpace = [
+    defineActionTap(async () => {}),
+    defineActionInput(async () => {}),
+    defineActionKeyboardPress(async () => {}),
+  ];
+});
 
 describe.skipIf(vlMode)('ai planning - by element', () => {
   testSources.forEach((source) => {
@@ -42,7 +70,7 @@ describe.skipIf(vlMode)('ai planning - by element', () => {
 
         const resultCollector = new TestResultCollector(
           `${caseGroupName}-planning`,
-          getAIConfig(MIDSCENE_MODEL_NAME) || 'unspecified',
+          getModelName({ intent: 'planning' }) || 'unspecified',
         );
 
         for (const [, testCase] of cases.testCases.entries()) {
@@ -54,6 +82,7 @@ describe.skipIf(vlMode)('ai planning - by element', () => {
           const res = await plan(prompt, {
             context,
             interfaceType: 'puppeteer',
+            actionSpace,
           });
 
           if (process.env.UPDATE_ANSWER_DATA) {
@@ -87,7 +116,7 @@ const vlCases = [
 
 const resultCollector = new TestResultCollector(
   'planning',
-  getAIConfig(MIDSCENE_MODEL_NAME) || 'unspecified',
+  getModelName({ intent: 'planning' }) || 'unspecified',
 );
 
 afterEach(async () => {
@@ -124,6 +153,7 @@ describe.skipIf(!vlMode)('ai planning - by coordinates', () => {
               context,
               actionContext: testCase.action_context,
               interfaceType: 'puppeteer',
+              actionSpace,
             });
           } catch (error) {
             res = error as Error;
@@ -142,6 +172,7 @@ describe.skipIf(!vlMode)('ai planning - by coordinates', () => {
                   res.action.locate.bbox,
                   context.size.width,
                   context.size.height,
+                  { intent: 'planning' },
                 );
                 testCase.annotation_index_id = indexId;
                 annotations.push({

@@ -109,6 +109,7 @@ midscene_run
 midscene_run/report
 midscene_run/dump
 
+*.ignore.png
 extension_output
 .cursor
 android-playground/static/

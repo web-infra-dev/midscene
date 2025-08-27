@@ -89,7 +89,7 @@ describe('overrideAIConfig', () => {
     // because of the OPENAI_BASE_URL in process.env is override by the override mode
     expect(() => globalConfigManager.init()).toThrowErrorMatchingInlineSnapshot(
       // biome-ignore lint/style/noUnusedTemplateLiteral: <explanation>
-      `[Error: The OPENAI_BASE_URL must be a non-empty string, but got: undefined. Please check your config.]`,
+      `[Error: The OPENAI_API_KEY must be a non-empty string, but got: undefined. Please check your config.]`,
     );
   });
 

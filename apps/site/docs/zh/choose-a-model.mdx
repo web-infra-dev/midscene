@@ -42,7 +42,7 @@ MIDSCENE_USE_QWEN_VL=1
 ```bash
 OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" 
 OPENAI_API_KEY="...."
-MIDSCENE_MODEL_NAME="ep-..." # 火山引擎的推理接入点ID
+MIDSCENE_MODEL_NAME="ep-..." # 火山引擎模型名称或推理接入点 ID
 MIDSCENE_USE_DOUBAO_VISION=1
 ```
 
@@ -53,7 +53,7 @@ MIDSCENE_USE_DOUBAO_VISION=1
 ```bash
 OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" 
 OPENAI_API_KEY="...."
-MIDSCENE_MODEL_NAME="ep-2025..." # 火山引擎的推理接入点ID
+MIDSCENE_MODEL_NAME="ep-2025..." # 火山引擎模型名称或推理接入点 ID
 MIDSCENE_USE_VLM_UI_TARS=DOUBAO
 ```
 
@@ -132,7 +132,7 @@ Qwen-2.5-VL 具备操作规划（action planning）能力，可以自主控制�
 **在 Midscene.js 中使用时的限制**
 
 - **小图标识别能力较差**：为了准确识别小图标、小元素，你可能需要[开启 `deepThink` 参数](./blog-introducing-instant-actions-and-deep-think)并调优描述，否则识别效果无法保证。
-- **断言能力不足**：在某些情况下，Qwen-2.5-VL 的断言能力可能不如 `gpt-4o`。
+- **断言能力不足**：在某些情况下，Qwen-2.5-VL 的断言能力不如 `gpt-4o`。
 
 **配置**
 
@@ -185,7 +185,7 @@ UI-TARS 是一个专为 UI 自动化设计的开源模型。它仅以截图作�
 **在 Midscene.js 中使用时的限制**
 
 - **断言能力较差**：在某些情况下，UI-TARS 的断言能力可能不如 `gpt-4o`。
-- **无法固定操作路径**：UI-TARS 具备较强的探索能力，它可能会主动多次尝试不同的操作路径，这可能会导致每次调用时操作路径不固定。
+- **无法固定操作路径**：UI-TARS 具备较强的探索能力，它可能会主动多次尝试不同的操作路径，继而导致每次调用时操作路径不固定。
 
 **配置**
 
@@ -202,7 +202,7 @@ MIDSCENE_USE_VLM_UI_TARS=1 # 别忘了配置这项用于 UI-TARS 模式！
 
 在火山引擎平台上，有一个已经部署完成的 `doubao-1.5-ui-tars` 模型，开发者可以通过 API 调用、按使用量付费。模型文档帮助：https://www.volcengine.com/docs/82379/1536429
 
-在使用火山引擎版本模型时，需要创建推理接入点（形如 `ep-2025...`）。集齐 API Key 和推理点信息后，配置文件类似如下：
+在使用火山引擎版本模型时，可能需要创建推理接入点（形如 `ep-2025...`）。集齐 API Key 和推理点信息后，配置文件类似如下：
 
 ```bash
 # 注意 URL 最后填写到 /v3 结束即可

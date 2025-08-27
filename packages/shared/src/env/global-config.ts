@@ -28,6 +28,17 @@ const allConfigFromEnv = (): Record<string, string | undefined> => {
 export const GLOBAL_CONFIG_MANAGER_UNINITIALIZED_FLAG =
   'GLOBAL_CONFIG_MANAGER_UNINITIALIZED_FLAG';
 
+declare global {
+  const chrome: {
+    runtime: {
+      id: string;
+    };
+  };
+}
+
+const isInChromeExtension = () =>
+  typeof chrome !== 'undefined' && chrome.runtime.id;
+
 const ALL_INTENTS: TIntent[] = ['VQA', 'default', 'grounding', 'planning'];
 /**
  * Collect global configs from process.env, overrideAIConfig, modelConfig, etc.
@@ -52,11 +63,14 @@ export class GlobalConfigManager {
     planning: undefined,
   };
 
-  private allConfig: Record<string, string | undefined> | undefined = undefined;
+  private allEnvConfig: Record<string, string | undefined> | undefined =
+    undefined;
 
   private keysHaveBeenRead: Record<string, boolean> = {};
 
   private latestModelConfigFn?: TModelConfigFn;
+
+  private modelConfigForChromeExtension: IModelConfig | undefined = undefined;
 
   constructor() {
     initDebugConfig();
@@ -66,7 +80,7 @@ export class GlobalConfigManager {
 
   private initAllEnvConfig() {
     const envConfig = allConfigFromEnv();
-    this.allConfig = (() => {
+    this.allEnvConfig = (() => {
       if (this.override) {
         this.debugLog('initAllConfig with override from overrideAIConfig');
         const { newConfig, extendMode } = this.override;
@@ -124,7 +138,7 @@ export class GlobalConfigManager {
     );
     this.initialized = false;
     this.override = undefined;
-    this.allConfig = undefined;
+    this.allEnvConfig = undefined;
     this.keysHaveBeenRead = {};
     this.modelConfigByIntent = {
       VQA: undefined,
@@ -134,7 +148,7 @@ export class GlobalConfigManager {
     };
   }
   private initModelConfigForIntent() {
-    // init all config
+    // init all env config
     this.initAllEnvConfig();
     // get config from agent.modelConfig()
     const intentConfigFromFn = this.initIntentConfigFromFn();
@@ -142,13 +156,22 @@ export class GlobalConfigManager {
     for (const i of ALL_INTENTS) {
       const result = decideModelConfig({
         intent: i,
-        allConfig: this.allConfig!,
+        allConfig: this.allEnvConfig!,
         modelConfigFromFn: intentConfigFromFn[i] as unknown as
           | Record<string, string | undefined>
           | undefined,
       });
       this.modelConfigByIntent[i] = result;
     }
+  }
+
+  private initModelConfigForChromeExtension() {
+    this.initAllEnvConfig();
+    this.modelConfigForChromeExtension = decideModelConfig({
+      intent: 'default',
+      allConfig: this.allEnvConfig!,
+      modelConfigFromFn: undefined,
+    });
   }
 
   /**
@@ -170,6 +193,16 @@ export class GlobalConfigManager {
 
   getModelConfigByIntent(intent: TIntent) {
     if (!this.initialized) {
+      // chrome extension will call llm with new Agent()
+      if (isInChromeExtension()) {
+        console.warn(
+          'globalConfigManager is not initialized but was called in chrome Extension, will get model config from env',
+        );
+        if (!this.modelConfigForChromeExtension) {
+          this.initModelConfigForChromeExtension();
+        }
+        return this.modelConfigForChromeExtension!;
+      }
       throw this.createUninitializedError(
         `globalConfigManager is not initialized when call getModelConfigByIntent with intent ${intent}`,
       );
@@ -178,7 +211,7 @@ export class GlobalConfigManager {
   }
 
   getEnvConfigValue(key: (typeof STRING_ENV_KEYS)[number]) {
-    const allConfig = this.allConfig || process.env;
+    const allConfig = this.allEnvConfig || process.env;
 
     if (!STRING_ENV_KEYS.includes(key)) {
       throw new Error(`getEnvConfigValue with key ${key} is not supported.`);
@@ -200,7 +233,7 @@ export class GlobalConfigManager {
    * read number only from process.env
    */
   getEnvConfigInNumber(key: (typeof NUMBER_ENV_KEYS)[number]): number {
-    const allConfig = this.allConfig || process.env;
+    const allConfig = this.allEnvConfig || process.env;
     if (!NUMBER_ENV_KEYS.includes(key)) {
       throw new Error(`getEnvConfigInNumber with key ${key} is not supported`);
     }
@@ -213,7 +246,7 @@ export class GlobalConfigManager {
    * read boolean only from process.env
    */
   getEnvConfigInBoolean(key: (typeof BOOLEAN_ENV_KEYS)[number]): boolean {
-    const allConfig = this.allConfig || process.env;
+    const allConfig = this.allEnvConfig || process.env;
 
     if (!BOOLEAN_ENV_KEYS.includes(key)) {
       throw new Error(`getEnvConfigInBoolean with key ${key} is not supported`);

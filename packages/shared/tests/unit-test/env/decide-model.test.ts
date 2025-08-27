@@ -87,7 +87,7 @@ describe('decideModelConfig from env', () => {
         },
       }),
     ).toThrowErrorMatchingInlineSnapshot(
-      '[Error: The MIDSCENE_PLANNING_OPENAI_BASE_URL must be a non-empty string because of the MIDSCENE_PLANNING_MODEL_NAME is declared as planning-model in process.env, but got: undefined. Please check your config.]',
+      '[Error: The MIDSCENE_PLANNING_OPENAI_API_KEY must be a non-empty string because of the MIDSCENE_PLANNING_MODEL_NAME is declared as planning-model in process.env, but got: undefined. Please check your config.]',
     );
   });
 
@@ -127,7 +127,7 @@ describe('decideModelConfig from env', () => {
         allConfig: {},
       }),
     ).toThrowErrorMatchingInlineSnapshot(
-      '[Error: The OPENAI_BASE_URL must be a non-empty string, but got: undefined. Please check your config.]',
+      '[Error: The OPENAI_API_KEY must be a non-empty string, but got: undefined. Please check your config.]',
     );
   });
 
