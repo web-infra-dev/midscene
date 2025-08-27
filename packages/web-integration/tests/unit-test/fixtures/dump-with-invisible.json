@@ -30,7 +30,7 @@
                   "timing": "before Planning"
                 }
               ],
-              "pageContext": {
+              "uiContext": {
                 "tree": {
                   "node": null,
                   "children": [
@@ -4269,7 +4269,7 @@
                 "end": 1750075588459,
                 "cost": 1463
               },
-              "pageContext": {
+              "uiContext": {
                 "tree": {
                   "node": null,
                   "children": [
@@ -8524,7 +8524,7 @@
                   "timing": "before Planning"
                 }
               ],
-              "pageContext": {
+              "uiContext": {
                 "tree": {
                   "node": null,
                   "children": [
@@ -12838,7 +12838,7 @@
                 "end": 1750075599557,
                 "cost": 1238
               },
-              "pageContext": {
+              "uiContext": {
                 "tree": {
                   "node": null,
                   "children": [

@@ -26,7 +26,7 @@
               "timing": "before planning"
             }
           ],
-          "pageContext": {
+          "uiContext": {
             "content": [],
             "tree": {
               "node": null,
