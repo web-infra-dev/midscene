@@ -18,7 +18,11 @@ export const formatErrorMessage = (e: any): string => {
 export async function parseStructuredParams(
   action: DeviceAction<any>,
   params: Record<string, any>,
-  options: { deepThink?: boolean } = {},
+  options: {
+    deepThink?: boolean;
+    screenshotIncluded?: boolean;
+    domIncluded?: boolean | 'visible-only';
+  } = {},
 ): Promise<any[]> {
   if (!action?.paramSchema || !('shape' in action.paramSchema)) {
     return [params.prompt || '', options];
@@ -190,6 +194,8 @@ export async function executeAction(
   actionSpace: DeviceAction<any>[],
   value: any,
   deepThink: boolean,
+  screenshotIncluded?: boolean,
+  domIncluded?: boolean | 'visible-only',
 ): Promise<any> {
   const action = actionSpace?.find(
     (a: DeviceAction<any>) =>
@@ -208,10 +214,15 @@ export async function executeAction(
       // Use structured parameters - dynamically parse from actionSpace
       parsedParams = await parseStructuredParams(action, value.params, {
         deepThink,
+        screenshotIncluded,
+        domIncluded,
       });
     } else {
       // Fallback to legacy prompt parsing
-      parsedParams = [value.prompt, { deepThink }];
+      parsedParams = [
+        value.prompt,
+        { deepThink, screenshotIncluded, domIncluded },
+      ];
     }
 
     return await (activeAgent as any)[action.interfaceAlias](...parsedParams);
@@ -224,15 +235,34 @@ export async function executeAction(
       const { pass, thought } =
         (await activeAgent?.aiAssert(prompt, undefined, {
           keepRawResponse: true,
+          screenshotIncluded,
+          domIncluded,
         })) || {};
       return { pass, thought };
     }
 
     // for other methods, check if the agent has the method
     if (activeAgent && typeof activeAgent[actionType] === 'function') {
-      return await activeAgent[actionType](prompt, {
-        deepThink,
-      });
+      const callOptions: any = { deepThink };
+
+      // Add screenshot and DOM options for data extraction methods
+      const dataExtractionMethods = [
+        'aiQuery',
+        'aiBoolean',
+        'aiNumber',
+        'aiString',
+        'aiAsk',
+      ];
+      if (dataExtractionMethods.includes(actionType)) {
+        if (screenshotIncluded !== undefined) {
+          callOptions.screenshotIncluded = screenshotIncluded;
+        }
+        if (domIncluded !== undefined) {
+          callOptions.domIncluded = domIncluded;
+        }
+      }
+
+      return await activeAgent[actionType](prompt, callOptions);
     }
 
     throw new Error(`Unknown action type: ${actionType}`);

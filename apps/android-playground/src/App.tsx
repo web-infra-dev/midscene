@@ -400,6 +400,7 @@ export default function App() {
                           loading={loading}
                           onRun={handleRun}
                           onStop={handleStop}
+                          hideDomAndScreenshotOptions={true}
                         />
                       </div>
                       <div

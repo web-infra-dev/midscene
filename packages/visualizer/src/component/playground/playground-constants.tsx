@@ -43,6 +43,12 @@ export const trackingTip = 'limit popup to current tab';
 // deep think tip
 export const deepThinkTip = 'deep think';
 
+// screenshot included tip
+export const screenshotIncludedTip = 'include screenshot in request';
+
+// dom included tip
+export const domIncludedTip = 'include DOM info in request';
+
 export const apiMetadata = {
   aiAction: {
     group: 'interaction',

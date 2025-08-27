@@ -1060,8 +1060,13 @@ export class TaskExecutor {
 
         let outputResult = data;
         if (ifTypeRestricted) {
-          assert(data?.result !== undefined, 'No result in query data');
-          outputResult = (data as any).result;
+          // If AI returned a plain string instead of structured format, use it directly
+          if (typeof data === 'string') {
+            outputResult = data;
+          } else {
+            assert(data?.result !== undefined, 'No result in query data');
+            outputResult = (data as any).result;
+          }
         }
 
         return {

@@ -121,7 +121,13 @@ export function BrowserExtensionPlayground({
 
   // Form and environment configuration
   const [form] = Form.useForm();
-  const { config, deepThink, syncFromStorage } = useEnvConfig();
+  const {
+    config,
+    deepThink,
+    screenshotIncluded,
+    domIncluded,
+    syncFromStorage,
+  } = useEnvConfig();
   const forceSameTabNavigation = useEnvConfig(
     (state) => state.forceSameTabNavigation,
   );
@@ -350,6 +356,8 @@ export function BrowserExtensionPlayground({
         actionSpace,
         value,
         deepThink,
+        screenshotIncluded,
+        domIncluded,
       );
     } catch (e: any) {
       result.error = formatErrorMessage(e);

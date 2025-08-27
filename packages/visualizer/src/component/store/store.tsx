@@ -42,6 +42,8 @@ const CONFIG_KEY = 'midscene-env-config';
 const SERVICE_MODE_KEY = 'midscene-service-mode';
 const TRACKING_ACTIVE_TAB_KEY = 'midscene-tracking-active-tab';
 const DEEP_THINK_KEY = 'midscene-deep-think';
+const SCREENSHOT_INCLUDED_KEY = 'midscene-screenshot-included';
+const DOM_INCLUDED_KEY = 'midscene-dom-included';
 const getConfigStringFromLocalStorage = () => {
   const configString = localStorage.getItem(CONFIG_KEY);
   return configString || '';
@@ -96,6 +98,10 @@ export const useEnvConfig = create<{
   setForceSameTabNavigation: (forceSameTabNavigation: boolean) => void;
   deepThink: boolean;
   setDeepThink: (deepThink: boolean) => void;
+  screenshotIncluded: boolean;
+  setScreenshotIncluded: (screenshotIncluded: boolean) => void;
+  domIncluded: boolean | 'visible-only';
+  setDomIncluded: (domIncluded: boolean | 'visible-only') => void;
   popupTab: 'playground' | 'bridge' | 'recorder';
   setPopupTab: (tab: 'playground' | 'bridge' | 'recorder') => void;
 }>((set, get) => {
@@ -108,6 +114,9 @@ export const useEnvConfig = create<{
   const savedForceSameTabNavigation =
     localStorage.getItem(TRACKING_ACTIVE_TAB_KEY) !== 'false';
   const savedDeepThink = localStorage.getItem(DEEP_THINK_KEY) === 'true';
+  const savedScreenshotIncluded =
+    localStorage.getItem(SCREENSHOT_INCLUDED_KEY) !== 'false';
+  const savedDomIncluded = localStorage.getItem(DOM_INCLUDED_KEY) || 'false';
   return {
     serviceMode: ifInExtension
       ? 'In-Browser-Extension'
@@ -143,6 +152,22 @@ export const useEnvConfig = create<{
     setDeepThink: (deepThink: boolean) => {
       set({ deepThink });
       localStorage.setItem(DEEP_THINK_KEY, deepThink.toString());
+    },
+    screenshotIncluded: savedScreenshotIncluded,
+    setScreenshotIncluded: (screenshotIncluded: boolean) => {
+      set({ screenshotIncluded });
+      localStorage.setItem(
+        SCREENSHOT_INCLUDED_KEY,
+        screenshotIncluded.toString(),
+      );
+    },
+    domIncluded:
+      savedDomIncluded === 'visible-only'
+        ? 'visible-only'
+        : savedDomIncluded === 'true',
+    setDomIncluded: (domIncluded: boolean | 'visible-only') => {
+      set({ domIncluded });
+      localStorage.setItem(DOM_INCLUDED_KEY, domIncluded.toString());
     },
     popupTab: 'playground',
     setPopupTab: (tab: 'playground' | 'bridge' | 'recorder') => {
