@@ -24,7 +24,7 @@ describe('decideOpenaiSdkConfig', () => {
         valueAssert: createAssert('', 'modelConfig'),
       }),
     ).toThrowErrorMatchingInlineSnapshot(
-      '[Error: The MIDSCENE_OPENAI_BASE_URL must be a non-empty string, but got: undefined. Please check your config.]',
+      '[Error: The MIDSCENE_OPENAI_API_KEY must be a non-empty string, but got: undefined. Please check your config.]',
     );
   });
 
@@ -131,7 +131,7 @@ describe('decideOpenaiSdkConfig', () => {
         valueAssert: createAssert('', 'modelConfig'),
       }),
     ).toThrowErrorMatchingInlineSnapshot(
-      '[Error: The MIDSCENE_OPENAI_BASE_URL must be a non-empty string, but got: undefined. Please check your config.]',
+      '[Error: The MIDSCENE_OPENAI_API_KEY must be a non-empty string, but got: undefined. Please check your config.]',
     );
   });
   it('default', () => {

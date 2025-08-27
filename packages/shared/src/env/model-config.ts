@@ -116,11 +116,6 @@ export const decideOpenaiSdkConfig = ({
       provider[keys.openaiExtraConfig],
     );
 
-    valueAssert(
-      openaiBaseURL,
-      keys.openaiBaseURL,
-      keys.openaiUseAzureDeprecated,
-    );
     valueAssert(openaiApiKey, keys.openaiApiKey, keys.openaiUseAzureDeprecated);
 
     return {
@@ -189,7 +184,6 @@ export const decideOpenaiSdkConfig = ({
       provider[keys.openaiExtraConfig],
     );
 
-    valueAssert(openaiBaseURL, keys.openaiBaseURL);
     valueAssert(openaiApiKey, keys.openaiApiKey);
 
     return {
