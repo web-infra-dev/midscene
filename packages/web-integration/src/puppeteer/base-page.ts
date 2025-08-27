@@ -247,15 +247,23 @@ export class Page<
         from: { x: number; y: number },
         to: { x: number; y: number },
       ) => {
-        debugPage(`mouse drag from ${from.x}, ${from.y} to ${to.x}, ${to.y}`);
+        debugPage(
+          `begin mouse drag from ${from.x}, ${from.y} to ${to.x}, ${to.y}`,
+        );
         await (this.underlyingPage as PlaywrightPage).mouse.move(
           from.x,
           from.y,
         );
+        await sleep(200);
         await (this.underlyingPage as PlaywrightPage).mouse.down();
+        await sleep(300);
         await (this.underlyingPage as PlaywrightPage).mouse.move(to.x, to.y);
+        await sleep(500);
         await (this.underlyingPage as PlaywrightPage).mouse.up();
-        // }
+        await sleep(200);
+        debugPage(
+          `end mouse drag from ${from.x}, ${from.y} to ${to.x}, ${to.y}`,
+        );
       },
     };
   }
