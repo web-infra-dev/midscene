@@ -1,6 +1,5 @@
 import type { DeviceAction } from '@midscene/core';
 import { findAllMidsceneLocatorField } from '@midscene/core/ai-model';
-import { ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED } from '@midscene/shared/common';
 
 // APIs that should not generate replay scripts
 export const dataExtractionAPIs = [
@@ -160,6 +159,7 @@ export async function executeAction(
       return { pass, thought };
     }
 
+    // Fallback for methods not found in actionSpace
     if (activeAgent && typeof activeAgent[actionType] === 'function') {
       return await activeAgent[actionType](prompt, {
         deepThink,

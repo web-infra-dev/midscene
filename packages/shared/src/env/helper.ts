@@ -71,9 +71,9 @@ export const createAssert =
         );
       }
     } else {
-      // assert(
-      //   value,
-      //   `The ${key} must be a non-empty string, but got: ${value}. Please check your config.`,
-      // );
+      assert(
+        value,
+        `The ${key} must be a non-empty string, but got: ${value}. Please check your config.`,
+      );
     }
   };

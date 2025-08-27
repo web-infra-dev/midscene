@@ -1,7 +1,6 @@
 import type { DeviceAction } from '@midscene/core';
 import { findAllMidsceneLocatorField } from '@midscene/core/ai-model';
-
-const ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED = 'NOT_IMPLEMENTED_AS_DESIGNED';
+import { dataExtractionAPIs } from '@midscene/web/playground';
 
 export const formatErrorMessage = (e: any): string => {
   const errorMessage = e?.message || '';
@@ -201,29 +200,27 @@ export async function executeAction(
   );
 
   // Try to use actionSpace method first
-  if (
-    action?.interfaceAlias &&
-    typeof (activeAgent as any)[action.interfaceAlias] === 'function'
-  ) {
-    // Parse parameters based on whether we have structured params or legacy format
-    let parsedParams: any[];
-
+  if (action && typeof activeAgent.callActionInActionSpace === 'function') {
     if (value.params) {
       // Use structured parameters - dynamically parse from actionSpace
-      parsedParams = await parseStructuredParams(action, value.params, {
+      const parsedParams = await parseStructuredParams(action, value.params, {
         deepThink,
         screenshotIncluded,
         domIncluded,
       });
+      return await activeAgent.callActionInActionSpace(
+        action.name,
+        parsedParams[0],
+      );
     } else {
       // Fallback to legacy prompt parsing
-      parsedParams = [
-        value.prompt,
-        { deepThink, screenshotIncluded, domIncluded },
-      ];
+      return await activeAgent.callActionInActionSpace(action.name, {
+        prompt: value.prompt,
+        deepThink,
+        screenshotIncluded,
+        domIncluded,
+      });
     }
-
-    return await (activeAgent as any)[action.interfaceAlias](...parsedParams);
   } else {
     // Fallback to traditional method calls for non-actionSpace methods
     const prompt = value.prompt;
@@ -239,19 +236,11 @@ export async function executeAction(
       return { pass, thought };
     }
 
-    // for other methods, check if the agent has the method
+    // Fallback for methods not found in actionSpace
     if (activeAgent && typeof activeAgent[actionType] === 'function') {
       const callOptions: any = { deepThink };
 
-      // Add screenshot and DOM options for data extraction methods
-      const dataExtractionMethods = [
-        'aiQuery',
-        'aiBoolean',
-        'aiNumber',
-        'aiString',
-        'aiAsk',
-      ];
-      if (dataExtractionMethods.includes(actionType)) {
+      if (dataExtractionAPIs.includes(actionType)) {
         if (screenshotIncluded !== undefined) {
           callOptions.screenshotIncluded = screenshotIncluded;
         }

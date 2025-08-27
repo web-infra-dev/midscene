@@ -147,6 +147,7 @@ export async function executeAction(
       return { pass, thought };
     }
 
+    // Fallback for methods not found in actionSpace
     if (activeAgent && typeof activeAgent[actionType] === 'function') {
       return await activeAgent[actionType](prompt, {
         deepThink,
