@@ -1,10 +1,5 @@
-import type {
-  BaseElement,
-  PageAgentOpt,
-  Rect,
-  UIContext,
-} from '@midscene/core';
-import type { AbstractDevice } from '@midscene/core/device';
+import type { AgentOpt, BaseElement, Rect, UIContext } from '@midscene/core';
+import type { AbstractInterface } from '@midscene/core/device';
 import type { NodeType } from '@midscene/shared/constants';
 import { traverseTree } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
@@ -16,7 +11,7 @@ import type { StaticPage } from './playground';
 import type { PlaywrightWebPage } from './playwright';
 import type { PuppeteerWebPage } from './puppeteer';
 
-export type WebPageAgentOpt = PageAgentOpt & WebPageOpt;
+export type WebPageAgentOpt = AgentOpt & WebPageOpt;
 export type WebPageOpt = {
   waitForNavigationTimeout?: number;
   waitForNetworkIdleTimeout?: number;
@@ -95,7 +90,7 @@ export type WebUIContext = UIContext<WebElementInfo>;
 
 const debug = getDebug('web:parse-context');
 export async function WebPageContextParser(
-  page: AbstractDevice,
+  page: AbstractInterface,
   _opt?: any, // unused
 ): Promise<UIContext> {
   const basicContext = await commonContextParser(page);

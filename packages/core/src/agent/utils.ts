@@ -1,5 +1,5 @@
 import { elementByPositionWithElementInfo } from '@/ai-model';
-import type { AbstractDevice } from '@/device';
+import type { AbstractInterface } from '@/device';
 import type {
   BaseElement,
   ElementTreeNode,
@@ -26,27 +26,27 @@ import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 import { assert, logMsg, uuid } from '@midscene/shared/utils';
 import dayjs from 'dayjs';
 import { debug as cacheDebug } from './task-cache';
-import type { PageTaskExecutor } from './tasks';
+import type { TaskExecutor } from './tasks';
 
 const debugProfile = getDebug('web:tool:profile');
 
 export async function commonContextParser(
-  page: AbstractDevice,
+  interfaceInstance: AbstractInterface,
 ): Promise<UIContext> {
-  assert(page, 'page is required');
+  assert(interfaceInstance, 'interfaceInstance is required');
 
-  debugProfile('Getting page URL');
-  const url = await page.url();
-  debugProfile('URL end');
+  debugProfile('Getting interface description');
+  const description = interfaceInstance.describe?.() || '';
+  debugProfile('Interface description end');
 
   debugProfile('Uploading test info to server');
-  uploadTestInfoToServer({ testUrl: url });
+  uploadTestInfoToServer({ testUrl: description });
   debugProfile('UploadTestInfoToServer end');
 
-  let screenshotBase64 = await page.screenshotBase64();
+  let screenshotBase64 = await interfaceInstance.screenshotBase64();
   assert(screenshotBase64!, 'screenshotBase64 is required');
 
-  const size = await page.size();
+  const size = await interfaceInstance.size();
   debugProfile(`size: ${size.width}x${size.height} dpr: ${size.dpr}`);
 
   if (size.dpr && size.dpr > 1) {
@@ -65,7 +65,6 @@ export async function commonContextParser(
     },
     size,
     screenshotBase64: screenshotBase64!,
-    url,
   };
 }
 
@@ -165,7 +164,7 @@ export function matchElementFromPlan(
 }
 
 export async function matchElementFromCache(
-  taskExecutor: PageTaskExecutor,
+  taskExecutor: TaskExecutor,
   xpaths: string[] | undefined,
   cachePrompt: TUserPrompt,
   cacheable: boolean | undefined,
@@ -175,13 +174,13 @@ export async function matchElementFromCache(
       xpaths?.length &&
       taskExecutor.taskCache?.isCacheResultUsed &&
       cacheable !== false &&
-      (taskExecutor.page as any).getElementInfoByXpath
+      (taskExecutor.interface as any).getElementInfoByXpath
     ) {
       // hit cache, use new id
       for (let i = 0; i < xpaths.length; i++) {
-        const element = await (taskExecutor.page as any).getElementInfoByXpath(
-          xpaths[i],
-        );
+        const element = await (
+          taskExecutor.interface as any
+        ).getElementInfoByXpath(xpaths[i]);
 
         if (element?.id) {
           cacheDebug('cache hit, prompt: %s', cachePrompt);
@@ -237,10 +236,10 @@ export function trimContextByViewport(execution: ExecutionDump) {
     tasks: Array.isArray(execution.tasks)
       ? execution.tasks.map((task: ExecutionTask) => {
           const newTask = { ...task };
-          if (task.pageContext?.tree) {
-            newTask.pageContext = {
-              ...task.pageContext,
-              tree: filterVisibleTree(task.pageContext.tree) || {
+          if (task.uiContext?.tree) {
+            newTask.uiContext = {
+              ...task.uiContext,
+              tree: filterVisibleTree(task.uiContext.tree) || {
                 node: null,
                 children: [],
               },

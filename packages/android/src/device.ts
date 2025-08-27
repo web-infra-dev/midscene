@@ -5,14 +5,14 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import {
   type DeviceAction,
-  type PageType,
+  type InterfaceType,
   type Point,
   type Size,
   getMidsceneLocationSchema,
   z,
 } from '@midscene/core';
 import {
-  type AbstractDevice,
+  type AbstractInterface,
   type ActionTapParam,
   defineAction,
   defineActionDragAndDrop,
@@ -61,14 +61,15 @@ export type AndroidDeviceOpt = {
   usePhysicalDisplayIdForDisplayLookup?: boolean;
 } & AndroidDeviceInputOpt;
 
-export class AndroidDevice implements AbstractDevice {
+export class AndroidDevice implements AbstractInterface {
   private deviceId: string;
   private yadbPushed = false;
   private devicePixelRatio = 1;
   private adb: ADB | null = null;
   private connectingAdb: Promise<ADB> | null = null;
   private destroyed = false;
-  pageType: PageType = 'android';
+  private description: string | undefined;
+  interfaceType: InterfaceType = 'android';
   uri: string | undefined;
   options?: AndroidDeviceOpt;
 
@@ -268,6 +269,10 @@ export class AndroidDevice implements AbstractDevice {
     this.options = options;
   }
 
+  describe(): string {
+    return this.description || `DeviceId: ${this.deviceId}`;
+  }
+
   public async connect(): Promise<ADB> {
     return this.getAdb();
   }
@@ -315,7 +320,7 @@ export class AndroidDevice implements AbstractDevice {
         });
 
         const size = await this.getScreenSize();
-        console.log(`
+        this.description = `
 DeviceId: ${this.deviceId}
 ScreenSize:
 ${Object.keys(size)
@@ -325,8 +330,8 @@ ${Object.keys(size)
       `  ${key} size: ${size[key as keyof typeof size]}${key === 'override' && size[key as keyof typeof size] ? ' ✅' : ''}`,
   )
   .join('\n')}
-`);
-        debugDevice('ADB initialized successfully');
+`;
+        debugDevice('ADB initialized successfully', this.description);
         return this.adb;
       } catch (e) {
         debugDevice(`Failed to initialize ADB: ${e}`);

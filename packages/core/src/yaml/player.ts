@@ -43,7 +43,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
   public output?: string | null;
   public unstableLogContent?: string | null;
   public errorInSetup?: Error;
-  private pageAgent: Agent | null = null;
+  private interfaceAgent: Agent | null = null;
   public agentStatusTip?: string;
   public target?: MidsceneYamlScriptEnv;
   private actionSpace: DeviceAction[] = [];
@@ -156,7 +156,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
 
   private flushUnstableLogContent() {
     if (this.unstableLogContent) {
-      const content = this.pageAgent?._unstableLogContent();
+      const content = this.interfaceAgent?._unstableLogContent();
       const filePath = resolve(process.cwd(), this.unstableLogContent);
       const outputDir = dirname(filePath);
       if (!existsSync(outputDir)) {
@@ -525,7 +525,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       this.setPlayerStatus('error', e as Error);
       return;
     }
-    this.pageAgent = agent;
+    this.interfaceAgent = agent;
 
     let taskIndex = 0;
     this.setPlayerStatus('running');
@@ -536,7 +536,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       this.setTaskIndex(taskIndex);
 
       try {
-        await this.playTask(taskStatus, this.pageAgent);
+        await this.playTask(taskStatus, this.interfaceAgent);
         this.setTaskStatus(taskIndex, 'done' as any);
       } catch (e) {
         this.setTaskStatus(taskIndex, 'error' as any, e as Error);

@@ -33,7 +33,7 @@ describe('automation - planning input', () => {
       const { actions } = await plan(instruction, {
         context,
         actionSpace: mockActionSpace,
-        pageType: 'puppeteer',
+        interfaceType: 'puppeteer',
       });
       expect(actions).toBeDefined();
       expect(actions?.length).toBeGreaterThan(0);
@@ -52,7 +52,7 @@ describe('automation - planning input', () => {
       const { actions } = await plan(instruction, {
         context,
         actionSpace: mockActionSpace,
-        pageType: 'puppeteer',
+        interfaceType: 'puppeteer',
       });
       expect(actions).toBeDefined();
       expect(actions?.length).toBeGreaterThan(0);

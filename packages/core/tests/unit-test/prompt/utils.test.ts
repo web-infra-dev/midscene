@@ -13,6 +13,7 @@ import {
   describeUserPage,
   elementByPositionWithElementInfo,
 } from '@/ai-model/prompt/util';
+import type { GroupedActionDump } from '@/types';
 import { vlLocateMode } from '@midscene/shared/env';
 
 describe('prompt utils - describeUserPage', () => {
@@ -90,7 +91,7 @@ describe('prompt utils - describeUserPage', () => {
 
   it('describe context with non-vl mode', async () => {
     // Mock vlLocateMode to return false for this test
-    vi.mocked(vlLocateMode).mockReturnValue(false);
+    vi.mocked(vlLocateMode).mockReturnValue(undefined);
 
     const context = await getContextFromFixture('taobao');
     const { description } = await describeUserPage(
@@ -161,7 +162,7 @@ describe('prompt utils - elementByPositionWithElementInfo', () => {
       y: targetNode.node.rect.top + targetNode.node.rect.height / 2,
     };
     const element = elementByPositionWithElementInfo(
-      dump.executions[0].tasks[0].pageContext.tree,
+      dump.executions[0].tasks[0].uiContext.tree,
       rectCenter,
       {
         requireStrictDistance: false,
@@ -179,7 +180,9 @@ describe('prompt utils - elementByPositionWithElementInfo', () => {
       'fixtures',
       'dump-for-utils-test.json',
     );
-    const dump = JSON.parse(fs.readFileSync(dumpPath, 'utf8'));
+    const dump: GroupedActionDump = JSON.parse(
+      fs.readFileSync(dumpPath, 'utf8'),
+    );
     const targetNode = {
       node: {
         content: '选好了',
@@ -209,7 +212,7 @@ describe('prompt utils - elementByPositionWithElementInfo', () => {
       y: targetNode.node.rect.top + targetNode.node.rect.height / 2,
     };
     const element = elementByPositionWithElementInfo(
-      dump.executions[0].tasks[0].pageContext.tree,
+      dump.executions[0].tasks[0].uiContext?.tree!,
       rectCenter,
       {
         requireStrictDistance: false,
@@ -258,7 +261,7 @@ describe('prompt utils - elementByPositionWithElementInfo', () => {
       y: targetNode.node.rect.top + targetNode.node.rect.height / 2,
     };
     const element = elementByPositionWithElementInfo(
-      dump.executions[0].tasks[0].pageContext.tree,
+      dump.executions[0].tasks[0].uiContext?.tree,
       rectCenter,
       {
         requireStrictDistance: true,

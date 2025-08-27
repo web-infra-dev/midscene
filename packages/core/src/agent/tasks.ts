@@ -5,7 +5,7 @@ import {
   resizeImageForUiTars,
   vlmPlanning,
 } from '@/ai-model';
-import type { AbstractDevice } from '@/device';
+import type { AbstractInterface } from '@/device';
 import {
   type AIUsageInfo,
   type BaseElement,
@@ -26,9 +26,9 @@ import {
   type InsightDump,
   type InsightExtractOption,
   type InsightExtractParam,
+  type InterfaceType,
   type LocateResultElement,
   type MidsceneYamlFlowItem,
-  type PageType,
   type PlanningAIResponse,
   type PlanningAction,
   type PlanningActionParamError,
@@ -77,8 +77,8 @@ export function locatePlanForLocate(param: string | DetailedLocateParam) {
   return locatePlan;
 }
 
-export class PageTaskExecutor {
-  page: AbstractDevice;
+export class TaskExecutor {
+  interface: AbstractInterface;
 
   insight: Insight;
 
@@ -88,22 +88,27 @@ export class PageTaskExecutor {
 
   onTaskStartCallback?: ExecutionTaskProgressOptions['onTaskStart'];
 
+  // @deprecated use .interface instead
+  get page() {
+    return this.interface;
+  }
+
   constructor(
-    page: AbstractDevice,
+    interfaceInstance: AbstractInterface,
     insight: Insight,
     opts: {
       taskCache?: TaskCache;
       onTaskStart?: ExecutionTaskProgressOptions['onTaskStart'];
     },
   ) {
-    this.page = page;
+    this.interface = interfaceInstance;
     this.insight = insight;
     this.taskCache = opts.taskCache;
     this.onTaskStartCallback = opts?.onTaskStart;
   }
 
   private async recordScreenshot(timing: ExecutionRecorderItem['timing']) {
-    const base64 = await this.page.screenshotBase64();
+    const base64 = await this.interface.screenshotBase64();
     const item: ExecutionRecorderItem = {
       type: 'screenshot',
       ts: Date.now(),
@@ -114,17 +119,17 @@ export class PageTaskExecutor {
   }
 
   private async getElementXpath(
-    pageContext: UIContext<BaseElement>,
+    uiContext: UIContext<BaseElement>,
     element: LocateResultElement,
   ): Promise<string[] | undefined> {
-    if (!(this.page as any).getXpathsByPoint) {
-      debug('getXpathsByPoint is not supported for this page');
+    if (!(this.interface as any).getXpathsByPoint) {
+      debug('getXpathsByPoint is not supported for this interface');
       return undefined;
     }
 
     let elementId = element?.id;
     if (element?.isOrderSensitive !== undefined) {
-      const xpaths = await (this.page as any).getXpathsByPoint(
+      const xpaths = await (this.interface as any).getXpathsByPoint(
         {
           left: element.center[0],
           top: element.center[1],
@@ -139,7 +144,7 @@ export class PageTaskExecutor {
     if (element?.attributes?.nodeType === NodeType.POSITION) {
       await this.insight.contextRetrieverFn('locate');
       const info = elementByPositionWithElementInfo(
-        pageContext.tree,
+        uiContext.tree,
         {
           x: element.center[0],
           y: element.center[1],
@@ -163,7 +168,7 @@ export class PageTaskExecutor {
       return undefined;
     }
     try {
-      const result = await (this.page as any).getXpathsById(elementId);
+      const result = await (this.interface as any).getXpathsById(elementId);
       return result;
     } catch (error) {
       debug('getXpathsById error: ', error);
@@ -188,9 +193,9 @@ export class PageTaskExecutor {
           await Promise.all([
             (async () => {
               await sleep(100);
-              if (this.page.beforeAction) {
-                debug('will call "beforeAction" for page');
-                await this.page.beforeAction();
+              if (this.interface.beforeAction) {
+                debug('will call "beforeAction" for interface');
+                await this.interface.beforeAction();
               }
             })(),
             sleep(200),
@@ -248,21 +253,21 @@ export class PageTaskExecutor {
           const shotTime = Date.now();
 
           // Get context through contextRetrieverFn which handles frozen context
-          const pageContext = await this.insight.contextRetrieverFn('locate');
-          task.pageContext = pageContext;
+          const uiContext = await this.insight.contextRetrieverFn('locate');
+          task.uiContext = uiContext;
 
           const recordItem: ExecutionRecorderItem = {
             type: 'screenshot',
             ts: shotTime,
-            screenshot: pageContext.screenshotBase64,
+            screenshot: uiContext.screenshotBase64,
             timing: 'before Insight',
           };
           task.recorder = [recordItem];
 
           // try matching xpath
           const elementFromXpath =
-            param.xpath && (this.page as any).getElementInfoByXpath
-              ? await (this.page as any).getElementInfoByXpath(param.xpath)
+            param.xpath && (this.interface as any).getElementInfoByXpath
+              ? await (this.interface as any).getElementInfoByXpath(param.xpath)
               : undefined;
           const userExpectedPathHitFlag = !!elementFromXpath;
 
@@ -284,7 +289,7 @@ export class PageTaskExecutor {
           // try matching plan
           const elementFromPlan =
             !userExpectedPathHitFlag && !cacheHitFlag
-              ? matchElementFromPlan(param, pageContext.tree)
+              ? matchElementFromPlan(param, uiContext.tree)
               : undefined;
           const planHitFlag = !!elementFromPlan;
 
@@ -294,7 +299,7 @@ export class PageTaskExecutor {
               ? (
                   await this.insight.locate(param, {
                     // fallback to ai locate
-                    context: pageContext,
+                    context: uiContext,
                   })
                 ).element
               : undefined;
@@ -315,7 +320,7 @@ export class PageTaskExecutor {
             param?.cacheable !== false
           ) {
             const elementXpaths = await this.getElementXpath(
-              pageContext,
+              uiContext,
               element,
             );
             if (elementXpaths?.length) {
@@ -380,7 +385,7 @@ export class PageTaskExecutor {
             output: {
               element,
             },
-            pageContext,
+            uiContext,
             hitBy,
           };
         },
@@ -443,7 +448,7 @@ export class PageTaskExecutor {
       } else {
         // action in action space
         const planType = plan.type;
-        const actionSpace = await this.page.actionSpace();
+        const actionSpace = await this.interface.actionSpace();
         const action = actionSpace.find((action) => action.name === planType);
         const param = plan.param;
 
@@ -504,9 +509,9 @@ export class PageTaskExecutor {
               `context.element.center: ${context.element?.center}`,
             );
 
-            // Get page context for actionSpace operations to ensure size info is available
-            const pageContext = await this.insight.contextRetrieverFn('locate');
-            context.task.pageContext = pageContext;
+            // Get context for actionSpace operations to ensure size info is available
+            const uiContext = await this.insight.contextRetrieverFn('locate');
+            context.task.uiContext = uiContext;
 
             requiredLocateFields.forEach((field) => {
               assert(
@@ -515,7 +520,7 @@ export class PageTaskExecutor {
               );
             });
 
-            const actionFn = action.call.bind(this.page);
+            const actionFn = action.call.bind(this.interface);
             await actionFn(param, context);
             // Return a proper result for report generation
             return {
@@ -550,19 +555,19 @@ export class PageTaskExecutor {
 
   private async setupPlanningContext(executorContext: ExecutorContext) {
     const shotTime = Date.now();
-    const pageContext = await this.insight.contextRetrieverFn('locate');
+    const uiContext = await this.insight.contextRetrieverFn('locate');
     const recordItem: ExecutionRecorderItem = {
       type: 'screenshot',
       ts: shotTime,
-      screenshot: pageContext.screenshotBase64,
+      screenshot: uiContext.screenshotBase64,
       timing: 'before Planning',
     };
 
     executorContext.task.recorder = [recordItem];
-    (executorContext.task as ExecutionTaskPlanning).pageContext = pageContext;
+    (executorContext.task as ExecutionTaskPlanning).uiContext = uiContext;
 
     return {
-      pageContext,
+      uiContext,
     };
   }
 
@@ -623,30 +628,29 @@ export class PageTaskExecutor {
       },
       executor: async (param, executorContext) => {
         const startTime = Date.now();
-        const { pageContext } =
-          await this.setupPlanningContext(executorContext);
+        const { uiContext } = await this.setupPlanningContext(executorContext);
 
         assert(
-          this.page.actionSpace,
+          this.interface.actionSpace,
           'actionSpace for device is not implemented',
         );
-        const actionSpace = await this.page.actionSpace();
+        const actionSpace = await this.interface.actionSpace();
         debug(
-          'actionSpace for page is:',
+          'actionSpace for this interface is:',
           actionSpace.map((action) => action.name).join(', '),
         );
         assert(Array.isArray(actionSpace), 'actionSpace must be an array');
         if (actionSpace.length === 0) {
           console.warn(
-            `ActionSpace for ${this.page.pageType} is empty. This may lead to unexpected behavior.`,
+            `ActionSpace for ${this.interface.interfaceType} is empty. This may lead to unexpected behavior.`,
           );
         }
 
         const planResult = await plan(param.userInstruction, {
-          context: pageContext,
+          context: uiContext,
           log: param.log,
           actionContext,
-          pageType: this.page.pageType as PageType,
+          interfaceType: this.interface.interfaceType as InterfaceType,
           actionSpace,
         });
 
@@ -729,7 +733,7 @@ export class PageTaskExecutor {
           cache: {
             hit: false,
           },
-          pageContext,
+          uiContext,
         };
       },
     };
@@ -749,12 +753,11 @@ export class PageTaskExecutor {
         userInstruction,
       },
       executor: async (param, executorContext) => {
-        const { pageContext } =
-          await this.setupPlanningContext(executorContext);
+        const { uiContext } = await this.setupPlanningContext(executorContext);
 
         const imagePayload = await resizeImageForUiTars(
-          pageContext.screenshotBase64,
-          pageContext.size,
+          uiContext.screenshotBase64,
+          uiContext.size,
           modelPreferences,
         );
 
@@ -778,7 +781,7 @@ export class PageTaskExecutor {
         } = await vlmPlanning({
           userInstruction: param.userInstruction,
           conversationHistory: this.conversationHistory,
-          size: pageContext.size,
+          size: uiContext.size,
           modelPreferences,
         });
 
@@ -1027,15 +1030,15 @@ export class PageTaskExecutor {
         };
         this.insight.onceDumpUpdatedFn = dumpCollector;
 
-        // Get page context for query operations
+        // Get context for query operations
         const shotTime = Date.now();
-        const pageContext = await this.insight.contextRetrieverFn('extract');
-        task.pageContext = pageContext;
+        const uiContext = await this.insight.contextRetrieverFn('extract');
+        task.uiContext = uiContext;
 
         const recordItem: ExecutionRecorderItem = {
           type: 'screenshot',
           ts: shotTime,
-          screenshot: pageContext.screenshotBase64,
+          screenshot: uiContext.screenshotBase64,
           timing: 'before Extract',
         };
         task.recorder = [recordItem];
