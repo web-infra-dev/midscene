@@ -363,15 +363,6 @@ export function BrowserExtensionPlayground({
     } catch (e: any) {
       result.error = formatErrorMessage(e);
       console.error(e);
-
-      // Show user-friendly message for static UI context limitations
-      if (e.message?.includes('NOT_IMPLEMENTED_AS_DESIGNED')) {
-        message.error({
-          content:
-            'This operation is not supported in static UI context. Interactive actions like scrolling, clicking, and typing require a live page environment.',
-          duration: 5,
-        });
-      }
     }
 
     if (interruptedFlagRef.current[thisRunningId]) {

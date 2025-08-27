@@ -221,15 +221,6 @@ export function StandardPlayground({
     } catch (e: any) {
       result.error = formatErrorMessage(e);
       console.error(e);
-
-      // Show user-friendly message for static UI context limitations
-      if (e.message?.includes('NOT_IMPLEMENTED_AS_DESIGNED')) {
-        message.error({
-          content:
-            'This operation is not supported in static UI context. Interactive actions like scrolling, clicking, and typing require a live page environment.',
-          duration: 5,
-        });
-      }
     }
 
     if (interruptedFlagRef.current[thisRunningId]) {
@@ -258,20 +249,6 @@ export function StandardPlayground({
     }
 
     currentAgentRef.current = null;
-
-    // Show error message if the execute API returned an error
-    if (result?.error) {
-      // Extract only the first line of error message, avoid showing full stack trace
-      const errorMessage =
-        typeof result.error === 'string'
-          ? result.error.split('\n')[0]
-          : String(result.error);
-
-      message.error({
-        content: errorMessage,
-        duration: 6,
-      });
-    }
 
     setResult(result);
     setLoading(false);

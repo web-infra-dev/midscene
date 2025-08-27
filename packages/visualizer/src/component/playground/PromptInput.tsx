@@ -101,9 +101,61 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       const action = actionSpace.find(
         (a) => a.interfaceAlias === selectedType || a.name === selectedType,
       );
-      return !!action?.paramSchema;
+
+      if (!action?.paramSchema) return false;
+
+      // Check if paramSchema actually has fields
+      if (isZodObjectSchema(action.paramSchema as any)) {
+        const schema = action.paramSchema as any as ZodObjectSchema;
+        const shape = schema.shape || {};
+        const shapeKeys = Object.keys(shape);
+        return shapeKeys.length > 0; // Only need structured params if there are actual fields
+      }
+
+      // If paramSchema exists but not in expected format, assume it needs params
+      return true;
     }
     return false;
+  }, [selectedType, actionSpace]);
+
+  // Check if current method needs any input (either prompt or parameters)
+  const needsAnyInput = useMemo(() => {
+    if (actionSpace && actionSpace.length > 0) {
+      // Use actionSpace to determine if method needs any input
+      const action = actionSpace.find(
+        (a) => a.interfaceAlias === selectedType || a.name === selectedType,
+      );
+
+      // If action exists in actionSpace, check if it has required parameters
+      if (action) {
+        // Check if the paramSchema has any required fields
+        if (
+          action.paramSchema &&
+          isZodObjectSchema(action.paramSchema as any)
+        ) {
+          const schema = action.paramSchema as any as ZodObjectSchema;
+          const shape = schema.shape || {};
+
+          // Check if any field is required (not optional)
+          const hasRequiredFields = Object.keys(shape).some((key) => {
+            const field = shape[key];
+            const { isOptional } = unwrapZodType(field);
+            return !isOptional;
+          });
+
+          return hasRequiredFields;
+        }
+
+        // If has paramSchema but not a ZodObject, assume it needs input
+        return !!action.paramSchema;
+      }
+
+      // If not found in actionSpace, assume most methods need input
+      return true;
+    }
+
+    // Fallback when actionSpace is not loaded yet - assume most methods need input
+    return true;
   }, [selectedType, actionSpace]);
 
   // Check if current method supports data extraction options
@@ -134,16 +186,77 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       if (action?.paramSchema && isZodObjectSchema(action.paramSchema as any)) {
         const schema = action.paramSchema as any as ZodObjectSchema;
         // Check if any parameter is a locate field
-        return Object.keys(schema.shape).some((key) => {
+        const hasLocateField = Object.keys(schema.shape).some((key) => {
           const field = schema.shape[key];
           const { actualField } = unwrapZodType(field);
           return isLocateField(actualField);
         });
+
+        return hasLocateField;
       }
       return false;
     }
     return false;
   }, [selectedType, actionSpace]);
+
+  // Check if ConfigSelector will actually have options to show
+  const hasConfigOptions = useMemo(() => {
+    const hasTracking = serviceMode === 'In-Browser-Extension';
+    const hasDeepThink = showDeepThinkOption;
+    const hasDataExtraction =
+      showDataExtractionOptions && !hideDomAndScreenshotOptions;
+    return hasTracking || hasDeepThink || hasDataExtraction;
+  }, [
+    serviceMode,
+    showDeepThinkOption,
+    showDataExtractionOptions,
+    hideDomAndScreenshotOptions,
+  ]);
+
+  // Get available methods for dropdown (filtered by actionSpace)
+  const availableDropdownMethods = useMemo(() => {
+    const metadataMethods = Object.keys(apiMetadata);
+
+    if (!actionSpace || actionSpace.length === 0) {
+      // Fallback to metadata methods if actionSpace is not available
+      return metadataMethods;
+    }
+
+    // Extract available methods from actionSpace
+    const availableMethods = actionSpace.map(
+      (action) => action.interfaceAlias || action.name,
+    );
+
+    // Combine methods from two sources:
+    // 1. Methods from apiMetadata (filtered by rules)
+    // 2. Methods from actionSpace (even if not in apiMetadata)
+    const finalMethods = new Set<string>();
+
+    // Add filtered apiMetadata methods
+    metadataMethods.forEach((method) => {
+      const methodInfo = apiMetadata[method as keyof typeof apiMetadata];
+
+      // Always include extraction and validation methods
+      if (
+        methodInfo?.group === 'extraction' ||
+        methodInfo?.group === 'validation'
+      ) {
+        finalMethods.add(method);
+      } else {
+        // For interaction methods, check if they're available in actionSpace
+        if (availableMethods.includes(method)) {
+          finalMethods.add(method);
+        }
+      }
+    });
+
+    // Add all methods from actionSpace (including Android-specific ones)
+    availableMethods.forEach((method) => {
+      finalMethods.add(method);
+    });
+
+    return Array.from(finalMethods);
+  }, [actionSpace]);
 
   // Get default values for fields with defaults
   const getDefaultParams = useCallback((): FormParams => {
@@ -444,15 +557,50 @@ export const PromptInput: React.FC<PromptInputProps> = ({
           // Check if it's a locate field
           const isLocateFieldFlag = isLocateField(actualField);
 
-          let placeholderText = '';
-          if (isLocateFieldFlag) {
-            placeholderText = 'Describe the element you want to interact with';
-          } else {
-            placeholderText = `Enter ${key}`;
-            if (key === 'keyName')
-              placeholderText = 'Enter key name or text to type';
-            if (key === 'value') placeholderText = 'Enter text to input';
-          }
+          // Extract placeholder from fieldSchema if available, otherwise use defaults
+          const placeholderText = (() => {
+            const fieldAsAny = actualField as any;
+
+            // Try to get description from the field schema
+            if (fieldAsAny._def?.description) {
+              return fieldAsAny._def.description;
+            }
+
+            if (fieldAsAny.description) {
+              return fieldAsAny.description;
+            }
+
+            // Try to get from action's paramSchema directly
+            if (actionSpace) {
+              const action = actionSpace.find(
+                (a) =>
+                  a.interfaceAlias === selectedType || a.name === selectedType,
+              );
+              if (
+                action?.paramSchema &&
+                typeof action.paramSchema === 'object' &&
+                'shape' in action.paramSchema
+              ) {
+                const shape = (action.paramSchema as any).shape || {};
+                const fieldDef = shape[key];
+                if (fieldDef?._def?.description) {
+                  return fieldDef._def.description;
+                }
+                if (fieldDef?.description) {
+                  return fieldDef.description;
+                }
+              }
+            }
+
+            // Fallback to default placeholders
+            if (isLocateFieldFlag) {
+              return 'Describe the element you want to interact with';
+            } else {
+              if (key === 'keyName') return 'Enter key name or text to type';
+              if (key === 'value') return 'Enter text to input';
+              return `Enter ${key}`;
+            }
+          })();
 
           return (
             <Form.Item name={['params', key]} style={{ margin: 0 }}>
@@ -479,12 +627,56 @@ export const PromptInput: React.FC<PromptInputProps> = ({
           const isRequired = !isOptional;
           const marginBottom = index === schemaKeys.length - 1 ? 0 : 12;
 
+          // Extract placeholder from fieldSchema if available
+          const placeholder = (() => {
+            // Try to get placeholder from field description or other metadata
+            const fieldAsAny = actualField as any;
+            if (fieldAsAny._def?.description) {
+              return fieldAsAny._def.description;
+            }
+
+            // Try to get from field metadata/annotations
+            if (fieldAsAny.description) {
+              return fieldAsAny.description;
+            }
+
+            // Try to get from action's paramSchema directly
+            if (actionSpace) {
+              const action = actionSpace.find(
+                (a) =>
+                  a.interfaceAlias === selectedType || a.name === selectedType,
+              );
+              if (
+                action?.paramSchema &&
+                typeof action.paramSchema === 'object' &&
+                'shape' in action.paramSchema
+              ) {
+                const shape = (action.paramSchema as any).shape || {};
+                const fieldDef = shape[key];
+                if (fieldDef?._def?.description) {
+                  return fieldDef._def.description;
+                }
+                if (fieldDef?.description) {
+                  return fieldDef.description;
+                }
+              }
+            }
+
+            // For locate fields, provide a default placeholder
+            if (isLocateFieldFlag) {
+              return 'Describe the element you want to interact with';
+            }
+
+            return undefined;
+          })();
+
           const fieldProps = {
             name: key,
             label,
             fieldSchema: actualField as z.ZodTypeAny,
             isRequired,
             marginBottom,
+            placeholder,
           };
 
           if (isLocateFieldFlag) {
@@ -622,8 +814,8 @@ export const PromptInput: React.FC<PromptInputProps> = ({
           </Form.Item>
           <Dropdown
             menu={(() => {
-              // Get all APIs not currently shown in main buttons
-              const hiddenAPIs = Object.keys(apiMetadata).filter(
+              // Get all APIs not currently shown in main buttons, filtered by actionSpace
+              const hiddenAPIs = availableDropdownMethods.filter(
                 (api) => !defaultMainButtons.includes(api),
               );
 
@@ -632,7 +824,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
               const interactionAPIs = hiddenAPIs.filter(
                 (api) =>
-                  apiMetadata[api as keyof typeof apiMetadata].group ===
+                  apiMetadata[api as keyof typeof apiMetadata]?.group ===
                   'interaction',
               );
               if (interactionAPIs.length > 0) {
@@ -643,7 +835,8 @@ export const PromptInput: React.FC<PromptInputProps> = ({
                   children: interactionAPIs.map((api) => ({
                     key: api,
                     label: actionNameForType(api),
-                    title: apiMetadata[api as keyof typeof apiMetadata].title,
+                    title:
+                      apiMetadata[api as keyof typeof apiMetadata]?.title || '',
                     onClick: () => {
                       form.setFieldValue('type', api);
                     },
@@ -653,7 +846,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
               const extractionAPIs = hiddenAPIs.filter(
                 (api) =>
-                  apiMetadata[api as keyof typeof apiMetadata].group ===
+                  apiMetadata[api as keyof typeof apiMetadata]?.group ===
                   'extraction',
               );
               if (extractionAPIs.length > 0) {
@@ -664,7 +857,8 @@ export const PromptInput: React.FC<PromptInputProps> = ({
                   children: extractionAPIs.map((api) => ({
                     key: api,
                     label: actionNameForType(api),
-                    title: apiMetadata[api as keyof typeof apiMetadata].title,
+                    title:
+                      apiMetadata[api as keyof typeof apiMetadata]?.title || '',
                     onClick: () => {
                       form.setFieldValue('type', api);
                     },
@@ -674,7 +868,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
               const validationAPIs = hiddenAPIs.filter(
                 (api) =>
-                  apiMetadata[api as keyof typeof apiMetadata].group ===
+                  apiMetadata[api as keyof typeof apiMetadata]?.group ===
                   'validation',
               );
               if (validationAPIs.length > 0) {
@@ -685,7 +879,28 @@ export const PromptInput: React.FC<PromptInputProps> = ({
                   children: validationAPIs.map((api) => ({
                     key: api,
                     label: actionNameForType(api),
-                    title: apiMetadata[api as keyof typeof apiMetadata].title,
+                    title:
+                      apiMetadata[api as keyof typeof apiMetadata]?.title || '',
+                    onClick: () => {
+                      form.setFieldValue('type', api);
+                    },
+                  })),
+                });
+              }
+
+              // Add device-specific APIs (those not in apiMetadata)
+              const deviceSpecificAPIs = hiddenAPIs.filter(
+                (api) => !apiMetadata[api as keyof typeof apiMetadata],
+              );
+              if (deviceSpecificAPIs.length > 0) {
+                groupedItems.push({
+                  key: 'device-specific-group',
+                  type: 'group',
+                  label: 'Device-Specific APIs',
+                  children: deviceSpecificAPIs.map((api) => ({
+                    key: api,
+                    label: actionNameForType(api),
+                    title: '',
                     onClick: () => {
                       form.setFieldValue('type', api);
                     },
@@ -716,22 +931,24 @@ export const PromptInput: React.FC<PromptInputProps> = ({
             history={historyForSelectedType}
             currentType={selectedType}
           />
-          <div
-            className={
-              hoveringSettings
-                ? 'settings-wrapper settings-wrapper-hover'
-                : 'settings-wrapper'
-            }
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
-          >
-            <ConfigSelector
-              enableTracking={serviceMode === 'In-Browser-Extension'}
-              showDeepThinkOption={showDeepThinkOption}
-              showDataExtractionOptions={showDataExtractionOptions}
-              hideDomAndScreenshotOptions={hideDomAndScreenshotOptions}
-            />
-          </div>
+          {hasConfigOptions && (
+            <div
+              className={
+                hoveringSettings
+                  ? 'settings-wrapper settings-wrapper-hover'
+                  : 'settings-wrapper'
+              }
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
+            >
+              <ConfigSelector
+                enableTracking={serviceMode === 'In-Browser-Extension'}
+                showDeepThinkOption={showDeepThinkOption}
+                showDataExtractionOptions={showDataExtractionOptions}
+                hideDomAndScreenshotOptions={hideDomAndScreenshotOptions}
+              />
+            </div>
+          )}
         </div>
       </Space>
 
@@ -739,29 +956,44 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       <div
         className={`main-side-console-input ${!runButtonEnabled ? 'disabled' : ''} ${loading ? 'loading' : ''}`}
       >
-        {needsStructuredParams ? (
-          hasSingleStructuredParam ? (
-            renderStructuredParams()
+        {needsAnyInput ? (
+          needsStructuredParams ? (
+            hasSingleStructuredParam ? (
+              renderStructuredParams()
+            ) : (
+              // Render structured parameters for specific AI methods
+              <div className="structured-params-container">
+                {renderStructuredParams()}
+              </div>
+            )
           ) : (
-            // Render structured parameters for specific AI methods
-            <div className="structured-params-container">
-              {renderStructuredParams()}
-            </div>
+            // Render traditional prompt input for other methods
+            <Form.Item name="prompt" style={{ margin: 0 }}>
+              <TextArea
+                className="main-side-console-input-textarea"
+                disabled={!runButtonEnabled}
+                rows={4}
+                placeholder={placeholder}
+                autoFocus
+                onKeyDown={handleKeyDown}
+                onChange={handlePromptChange}
+                ref={textAreaRef}
+              />
+            </Form.Item>
           )
         ) : (
-          // Render traditional prompt input for other methods
-          <Form.Item name="prompt" style={{ margin: 0 }}>
-            <TextArea
-              className="main-side-console-input-textarea"
-              disabled={!runButtonEnabled}
-              rows={4}
-              placeholder={placeholder}
-              autoFocus
-              onKeyDown={handleKeyDown}
-              onChange={handlePromptChange}
-              ref={textAreaRef}
-            />
-          </Form.Item>
+          // Methods that don't need any input - show a message or empty state
+          <div
+            className="no-input-method"
+            style={{
+              padding: '20px',
+              textAlign: 'center',
+              color: '#666',
+              fontSize: '14px',
+            }}
+          >
+            Click "Run" to execute {actionNameForType(selectedType)}
+          </div>
         )}
 
         <div className="form-controller-wrapper">{renderActionButton()}</div>

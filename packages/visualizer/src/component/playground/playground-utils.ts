@@ -133,9 +133,15 @@ export const getActionSpace = async (context?: string) => {
 export const actionNameForType = (type: string) => {
   // Remove 'ai' prefix and convert camelCase to space-separated words
   const typeWithoutAi = type.startsWith('ai') ? type.slice(2) : type;
+  const fullName = typeWithoutAi.replace(/([A-Z])/g, ' $1').trim();
 
-  // Convert camelCase to space-separated words
-  return typeWithoutAi.replace(/([A-Z])/g, ' $1').trim();
+  // For long names, keep the last 3 words to make them shorter
+  const words = fullName.split(' ');
+  if (words.length > 3) {
+    return words.slice(-3).join(' ');
+  }
+
+  return fullName;
 };
 
 // Create static agent from context
@@ -220,6 +226,46 @@ export const isRunButtonEnabled = (
   if (!runButtonEnabled) {
     return false;
   }
+
+  // Check if this method needs any input
+  const needsAnyInput = (() => {
+    if (actionSpace) {
+      // Use actionSpace to determine if method needs any input
+      const action = actionSpace.find(
+        (a) => a.interfaceAlias === selectedType || a.name === selectedType,
+      );
+
+      // If action exists in actionSpace, check if it has paramSchema with actual fields
+      if (action) {
+        if (!action.paramSchema) return false;
+
+        // Check if paramSchema actually has fields
+        if (
+          typeof action.paramSchema === 'object' &&
+          'shape' in action.paramSchema
+        ) {
+          const shape = (action.paramSchema as any).shape || {};
+          const shapeKeys = Object.keys(shape);
+          return shapeKeys.length > 0; // Only need input if there are actual fields
+        }
+
+        // If paramSchema exists but not in expected format, assume it needs input
+        return true;
+      }
+
+      // If not found in actionSpace, assume most methods need input
+      return true;
+    }
+
+    // Fallback: most methods need some input
+    return true;
+  })();
+
+  // If method doesn't need any input, button is always enabled (when runButtonEnabled is true)
+  if (!needsAnyInput) {
+    return true;
+  }
+
   if (needsStructuredParams) {
     const currentParams = params || {};
     const action = actionSpace?.find(

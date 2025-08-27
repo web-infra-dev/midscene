@@ -321,16 +321,65 @@ export default function App() {
       (a: DeviceAction<any>) => a.interfaceAlias === type || a.name === type,
     );
 
-    // Check if this action needs structured params (has paramSchema)
-    const needsStructuredParams = !!action?.paramSchema;
+    // Check if this action needs structured params (has paramSchema with actual fields)
+    const needsStructuredParams = (() => {
+      if (!action?.paramSchema) return false;
 
+      // Check if paramSchema actually has fields
+      if (
+        typeof action.paramSchema === 'object' &&
+        'shape' in action.paramSchema
+      ) {
+        const shape = (action.paramSchema as any).shape || {};
+        const shapeKeys = Object.keys(shape);
+        return shapeKeys.length > 0; // Only need structured params if there are actual fields
+      }
+
+      // If paramSchema exists but not in expected format, assume it needs params
+      return true;
+    })();
+
+    // Check if this method needs any input at all
+    const needsAnyInput = (() => {
+      // If action exists in actionSpace, check if it has required parameters
+      if (action) {
+        // Check if the paramSchema has any required fields
+        if (
+          action.paramSchema &&
+          typeof action.paramSchema === 'object' &&
+          'shape' in action.paramSchema
+        ) {
+          const shape = (action.paramSchema as any).shape || {};
+
+          // Check if any field is required (not optional)
+          // For this we need to implement the unwrapZodType logic here or import it
+          // For now, let's assume if shape is empty, no input is needed
+          const shapeKeys = Object.keys(shape);
+          if (shapeKeys.length === 0) {
+            return false; // No parameters = no input needed
+          }
+
+          // If has parameters, assume input is needed (can be refined later)
+          return true;
+        }
+
+        // If has paramSchema but not a proper object, assume it needs input
+        return !!action.paramSchema;
+      }
+
+      // If not found in actionSpace, assume most methods need input
+      return true;
+    })();
+
+    // Validate inputs based on method requirements
     if (needsStructuredParams && !params) {
       messageApi.error('Structured parameters are required for this action');
       return;
-    } else if (!needsStructuredParams && !prompt) {
+    } else if (needsAnyInput && !needsStructuredParams && !prompt) {
       messageApi.error('Prompt is required');
       return;
     }
+    // Note: methods that don't need any input (needsAnyInput = false) skip validation
 
     const thisRunningId = Date.now().toString();
 
@@ -353,20 +402,6 @@ export default function App() {
 
       // stop polling
       clearPollingInterval();
-
-      // Show error message if the execute API returned an error
-      if (res?.error) {
-        // Extract only the first line of error message, avoid showing full stack trace
-        const errorMessage =
-          typeof res.error === 'string'
-            ? res.error.split('\n')[0]
-            : String(res.error);
-
-        message.error({
-          content: errorMessage,
-          duration: 6,
-        });
-      }
 
       setResult(res);
       setLoading(false);
