@@ -455,6 +455,8 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
     const to = param.to;
     assert(from, 'missing "from" param for drag and drop');
     assert(to, 'missing "to" param for drag and drop');
+    await page.mouse.move(from.center[0], from.center[1]);
+    await sleep(300);
     await page.mouse.drag(
       {
         x: from.center[0],
