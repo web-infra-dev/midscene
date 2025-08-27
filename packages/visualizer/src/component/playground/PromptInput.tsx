@@ -57,8 +57,8 @@ interface PromptInputProps {
   onRun: () => void;
   onStop: () => void;
   clearPromptAfterRun?: boolean;
-  actionSpace?: DeviceAction<any>[]; // Optional actionSpace for dynamic parameter detection
   hideDomAndScreenshotOptions?: boolean; // Hide domIncluded and screenshotIncluded options
+  actionSpace: DeviceAction<any>[]; // Required actionSpace for dynamic parameter detection
 }
 
 export const PromptInput: React.FC<PromptInputProps> = ({
@@ -153,12 +153,14 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     const action = actionSpace.find(
       (a) => a.interfaceAlias === selectedType || a.name === selectedType,
     );
+
     if (action?.paramSchema && isZodObjectSchema(action.paramSchema as any)) {
       const defaultParams: FormParams = {};
       const schema = action.paramSchema as any as ZodObjectSchema;
+      const shape = schema.shape || {};
 
-      Object.keys(schema.shape).forEach((key) => {
-        const field = schema.shape[key];
+      Object.keys(shape).forEach((key) => {
+        const field = shape[key];
         const defaultValue = extractDefaultValue(field);
         if (defaultValue !== undefined) {
           defaultParams[key] = defaultValue as
@@ -261,9 +263,11 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     const action = actionSpace.find(
       (a) => a.interfaceAlias === selectedType || a.name === selectedType,
     );
+
     if (action?.paramSchema && isZodObjectSchema(action.paramSchema as any)) {
       const schema = action.paramSchema as unknown as ZodObjectSchema;
-      return Object.keys(schema.shape).length === 1;
+      const shape = schema.shape || {};
+      return Object.keys(shape).length === 1;
     }
     return false;
   }, [selectedType, needsStructuredParams, actionSpace]);
@@ -305,15 +309,16 @@ export const PromptInput: React.FC<PromptInputProps> = ({
         let locateValue = '';
         const otherValues: string[] = [];
         const schema = action.paramSchema as any as ZodObjectSchema;
+        const shape = schema.shape || {};
 
-        Object.keys(schema.shape).forEach((key) => {
+        Object.keys(shape).forEach((key) => {
           const paramValue = values.params[key];
           if (
             paramValue !== undefined &&
             paramValue !== null &&
             paramValue !== ''
           ) {
-            const field = schema.shape[key];
+            const field = shape[key];
             const { actualField } = unwrapZodType(field);
 
             if (isLocateField(actualField)) {
@@ -426,12 +431,14 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
       if (action?.paramSchema && isZodObjectSchema(action.paramSchema as any)) {
         const schema = action.paramSchema as any as ZodObjectSchema;
-        const schemaKeys = Object.keys(schema.shape);
+        // Handle both runtime and serialized schemas
+        const shape = schema.shape || {};
+        const schemaKeys = Object.keys(shape);
 
         // If only one field, use traditional single input style without labels
         if (schemaKeys.length === 1) {
           const key = schemaKeys[0];
-          const field = schema.shape[key];
+          const field = shape[key];
           const { actualField } = unwrapZodType(field);
 
           // Check if it's a locate field
@@ -465,7 +472,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
         // Dynamically render form fields based on paramSchema
         schemaKeys.forEach((key, index) => {
-          const fieldSchema = schema.shape[key];
+          const fieldSchema = shape[key];
           const { actualField, isOptional } = unwrapZodType(fieldSchema);
           const isLocateFieldFlag = isLocateField(actualField);
           const label = key.charAt(0).toUpperCase() + key.slice(1);

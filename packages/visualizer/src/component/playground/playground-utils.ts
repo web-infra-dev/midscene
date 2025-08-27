@@ -1,11 +1,7 @@
 import type { UIContext } from '@midscene/core';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import type { WebUIContext } from '@midscene/web';
-import {
-  ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED,
-  StaticPage,
-  StaticPageAgent,
-} from '@midscene/web/playground';
+import { StaticPage, StaticPageAgent } from '@midscene/web/playground';
 import type { ZodObjectSchema } from './types';
 import { isZodObjectSchema, unwrapZodType } from './types';
 
@@ -30,11 +26,13 @@ export const requestPlaygroundServer = async (
   {
     requestId,
     deepThink,
+    params,
     screenshotIncluded,
     domIncluded,
   }: {
     requestId?: string;
     deepThink?: boolean;
+    params?: any;
     screenshotIncluded?: boolean;
     domIncluded?: boolean | 'visible-only';
   } = {},
@@ -56,6 +54,11 @@ export const requestPlaygroundServer = async (
 
   if (domIncluded !== undefined) {
     payload.domIncluded = domIncluded;
+  }
+
+  // If params is provided, add it to the request for structured parameters
+  if (params) {
+    payload.params = params;
   }
 
   const res = await fetch(`${serverBase}/execute`, {
@@ -101,6 +104,31 @@ export const getTaskProgress = async (requestId: string) => {
   }
 };
 
+// Get action space from server
+export const getActionSpace = async (context?: string) => {
+  try {
+    if (!context) {
+      return [];
+    }
+
+    const response = await fetch(`${serverBase}/action-space`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ context }),
+    });
+
+    if (response.ok) {
+      return await response.json();
+    }
+    return [];
+  } catch (error) {
+    console.error('Failed to get action space:', error);
+    return [];
+  }
+};
+
 // Get action name based on type
 export const actionNameForType = (type: string) => {
   // Remove 'ai' prefix and convert camelCase to space-separated words
@@ -122,10 +150,8 @@ export const formatErrorMessage = (e: any): string => {
   if (errorMessage.includes('of different extension')) {
     return 'Conflicting extension detected. Please disable the suspicious plugins and refresh the page. Guide: https://midscenejs.com/quick-experience.html#faq';
   }
-  if (!errorMessage?.includes(ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED)) {
-    return errorMessage;
-  }
-  return 'Unknown error';
+  // Always return the actual error message, including NOT_IMPLEMENTED_AS_DESIGNED errors
+  return errorMessage || 'Unknown error';
 };
 
 // Get placeholder text based on run type
@@ -201,9 +227,10 @@ export const isRunButtonEnabled = (
     );
     if (action?.paramSchema && isZodObjectSchema(action.paramSchema as any)) {
       // Check if all required fields are filled
-      const schema = action.paramSchema as any as ZodObjectSchema;
-      return Object.keys(schema.shape).every((key) => {
-        const field = schema.shape[key];
+      const schema = action.paramSchema as unknown as ZodObjectSchema;
+      const shape = schema.shape || {};
+      return Object.keys(shape).every((key) => {
+        const field = shape[key];
         const { isOptional } = unwrapZodType(field);
         const value = currentParams[key];
         // A field is valid if it's optional or has a non-empty value

@@ -8,10 +8,8 @@ export const formatErrorMessage = (e: any): string => {
   if (errorMessage.includes('of different extension')) {
     return 'Conflicting extension detected. Please disable the suspicious plugins and refresh the page. Guide: https://midscenejs.com/quick-experience.html#faq';
   }
-  if (!errorMessage?.includes(ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED)) {
-    return errorMessage;
-  }
-  return 'Unknown error';
+  // Always return the actual error message, including NOT_IMPLEMENTED_AS_DESIGNED errors
+  return errorMessage || 'Unknown error';
 };
 
 // Dynamic parameter parsing function based on actionSpace

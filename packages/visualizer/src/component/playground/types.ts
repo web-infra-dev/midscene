@@ -72,13 +72,7 @@ export const VALIDATION_CONSTANTS = {
 export const isZodObjectSchema = (
   schema: unknown,
 ): schema is ZodObjectSchema => {
-  return (
-    typeof schema === 'object' &&
-    schema !== null &&
-    'shape' in schema &&
-    'parse' in schema &&
-    typeof (schema as any).parse === 'function'
-  );
+  return typeof schema === 'object' && schema !== null && 'shape' in schema;
 };
 
 export const isLocateField = (field: ZodType): boolean => {

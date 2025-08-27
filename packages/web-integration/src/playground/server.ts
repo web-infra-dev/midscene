@@ -5,13 +5,13 @@ import { join } from 'node:path';
 import type { Agent as PageAgent } from '@midscene/core/agent';
 import type { AbstractInterface } from '@midscene/core/device';
 import { getTmpDir } from '@midscene/core/utils';
-import { ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED } from '@midscene/shared/common';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import { overrideAIConfig } from '@midscene/shared/env';
 import { ifInBrowser, ifInWorker } from '@midscene/shared/utils';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
+import { executeAction, formatErrorMessage } from './common';
 
 const defaultPort = PLAYGROUND_SERVER_PORT;
 // const staticPath = join(__dirname, '../../static');
@@ -81,16 +81,12 @@ export default class PlaygroundServer {
       }),
     );
 
-    this.app.get('/status', cors(), async (req, res) => {
+    this.app.get('/status', async (req, res) => {
       // const modelName = g
       res.send({
         status: 'ok',
       });
     });
-
-    // this.app.get('/playground/:uuid', async (req, res) => {
-    //   res.sendFile(join(staticPath, 'index.html'));
-    // });
 
     this.app.get('/context/:uuid', async (req, res) => {
       const { uuid } = req.params;
@@ -108,12 +104,72 @@ export default class PlaygroundServer {
       });
     });
 
-    this.app.get('/task-progress/:requestId', cors(), async (req, res) => {
+    this.app.get('/task-progress/:requestId', async (req, res) => {
       const { requestId } = req.params;
       res.json({
         tip: this.taskProgressTips[requestId] || '',
       });
     });
+
+    this.app.post(
+      '/action-space',
+      express.json({ limit: '30mb' }),
+      async (req, res) => {
+        const { context } = req.body;
+
+        if (!context) {
+          return res.status(400).json({
+            error: 'context is required',
+          });
+        }
+
+        try {
+          // Create agent with context like in /execute
+          const page = new this.pageClass(context);
+          const actionSpace = await page.actionSpace();
+
+          // Process actionSpace to make paramSchema serializable
+          const processedActionSpace = actionSpace.map((action: any) => {
+            if (action.paramSchema && typeof action.paramSchema === 'object') {
+              // Extract shape information from Zod schema
+              let processedSchema = null;
+
+              try {
+                // Extract shape from runtime Zod object
+                if (
+                  action.paramSchema.shape &&
+                  typeof action.paramSchema.shape === 'object'
+                ) {
+                  processedSchema = {
+                    type: 'ZodObject',
+                    shape: action.paramSchema.shape,
+                  };
+                }
+              } catch (e) {
+                console.warn(
+                  'Failed to process paramSchema for action:',
+                  action.name,
+                  e,
+                );
+              }
+
+              return {
+                ...action,
+                paramSchema: processedSchema,
+              };
+            }
+            return action;
+          });
+
+          res.json(processedActionSpace);
+        } catch (error: any) {
+          console.error('Failed to get action space:', error);
+          res.status(500).json({
+            error: error.message,
+          });
+        }
+      },
+    );
 
     // -------------------------
     // actions from report file
@@ -165,12 +221,6 @@ export default class PlaygroundServer {
           });
         }
 
-        if (!prompt && !params) {
-          return res.status(400).json({
-            error: 'prompt or params is required',
-          });
-        }
-
         // build an agent with context
         const page = new this.pageClass(context);
         const agent = new this.agentClass(page);
@@ -198,203 +248,26 @@ export default class PlaygroundServer {
           requestId,
         };
 
-        // Helper function to parse action parameters based on type
-        const parseActionParams = (
-          actionType: string,
-          inputPrompt: string | undefined,
-          inputParams: any | undefined,
-          options: {
-            deepThink?: boolean;
-            screenshotIncluded?: boolean;
-            domIncluded?: boolean | 'visible-only';
-          } = {},
-        ): any[] => {
-          // If structured params are provided, use them directly
-          if (inputParams) {
-            switch (actionType) {
-              case 'aiInput': {
-                if (!inputParams.value || !inputParams.locate) {
-                  throw new Error(
-                    'aiInput requires both value and locate parameters',
-                  );
-                }
-                return [
-                  inputParams.locate,
-                  { value: inputParams.value, ...options },
-                ];
-              }
-
-              case 'aiKeyboardPress': {
-                if (!inputParams.keyName) {
-                  throw new Error('aiKeyboardPress requires keyName parameter');
-                }
-                return [
-                  inputParams.locate,
-                  { keyName: inputParams.keyName, ...options },
-                ];
-              }
-
-              case 'aiScroll': {
-                if (!inputParams.direction || !inputParams.distance) {
-                  throw new Error(
-                    'aiScroll requires direction and distance parameters',
-                  );
-                }
-                const scrollParam = {
-                  direction: inputParams.direction as
-                    | 'up'
-                    | 'down'
-                    | 'left'
-                    | 'right',
-                  scrollType: inputParams.scrollType || 'once',
-                  distance: inputParams.distance,
-                  ...options,
-                };
-                return [inputParams.locate, scrollParam];
-              }
-
-              default:
-                // For other actions that only need locate prompt
-                return [
-                  inputParams.locate || inputParams.prompt || inputPrompt,
-                  options,
-                ];
-            }
-          }
-
-          // Fallback to legacy prompt parsing for backward compatibility
-          if (!inputPrompt) {
-            throw new Error(`Missing prompt for ${actionType}`);
-          }
-
-          switch (actionType) {
-            case 'aiInput': {
-              const inputParts = inputPrompt
-                .split('|')
-                .map((s: string) => s.trim());
-              if (inputParts.length !== 2) {
-                throw new Error('aiInput requires format: "value | element"');
-              }
-              return [inputParts[1], { value: inputParts[0], ...options }];
-            }
-
-            case 'aiKeyboardPress': {
-              const keyParts = inputPrompt
-                .split('|')
-                .map((s: string) => s.trim());
-              const keyName = keyParts[0];
-              const keyElement = keyParts[1] || undefined;
-              return [keyElement, { keyName, ...options }];
-            }
-
-            case 'aiScroll': {
-              const scrollParts = inputPrompt
-                .split('|')
-                .map((s: string) => s.trim());
-              const scrollArgs = scrollParts[0]
-                .split(' ')
-                .map((s: string) => s.trim());
-
-              if (scrollArgs.length < 2) {
-                throw new Error(
-                  'aiScroll requires format: "direction amount | element (optional)"',
-                );
-              }
-
-              const direction = scrollArgs[0] as
-                | 'up'
-                | 'down'
-                | 'left'
-                | 'right';
-              const amount = Number.parseInt(scrollArgs[1]);
-              const scrollElement = scrollParts[1] || undefined;
-
-              const scrollParam = {
-                direction,
-                scrollType: 'once' as const,
-                distance: amount,
-                ...options,
-              };
-
-              return [scrollElement, scrollParam];
-            }
-
-            default:
-              return [inputPrompt, options];
-          }
-        };
-
         const startTime = Date.now();
         try {
           // Get action space to check for dynamic actions
-          const actionSpace = await agent.getActionSpace();
+          const actionSpace = await page.actionSpace();
 
-          // Check if this is an action in the actionSpace
-          const action = actionSpace.find(
-            (action) => action.interfaceAlias === type || action.name === type,
+          // Prepare value object for executeAction
+          const value = {
+            prompt,
+            params,
+          };
+
+          response.result = await executeAction(
+            agent,
+            type,
+            actionSpace,
+            value,
+            deepThink || false,
           );
-
-          if (
-            action?.interfaceAlias &&
-            typeof (agent as any)[action.interfaceAlias] === 'function'
-          ) {
-            // Use actionSpace method dynamically
-            const parsedParams = parseActionParams(type, prompt, params, {
-              deepThink,
-              screenshotIncluded,
-              domIncluded,
-            });
-            response.result = await (agent as any)[action.interfaceAlias](
-              ...parsedParams,
-            );
-          } else {
-            // Get the prompt from either prompt field or params.prompt
-            const actualPrompt = prompt || params?.prompt;
-
-            if (!actualPrompt) {
-              throw new Error(`Missing prompt for ${type}`);
-            }
-
-            // special handle for methods that need custom parameters or return format
-            if (type === 'aiAssert') {
-              response.result = await agent.aiAssert(actualPrompt, undefined, {
-                keepRawResponse: true,
-                screenshotIncluded,
-                domIncluded,
-              });
-            } else if (agent && typeof (agent as any)[type] === 'function') {
-              // for other methods, check if the agent has the method
-              const callOptions: any = { deepThink };
-
-              // Add screenshot and DOM options for data extraction methods
-              const dataExtractionMethods = [
-                'aiQuery',
-                'aiBoolean',
-                'aiNumber',
-                'aiString',
-                'aiAsk',
-              ];
-              if (dataExtractionMethods.includes(type)) {
-                if (screenshotIncluded !== undefined) {
-                  callOptions.screenshotIncluded = screenshotIncluded;
-                }
-                if (domIncluded !== undefined) {
-                  callOptions.domIncluded = domIncluded;
-                }
-              }
-
-              response.result = await (agent as any)[type](
-                actualPrompt,
-                callOptions,
-              );
-            } else {
-              response.error = `Unknown type: ${type}`;
-            }
-          }
         } catch (error: any) {
-          if (!error.message.includes(ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED)) {
-            response.error = error.message;
-          }
+          response.error = formatErrorMessage(error);
         }
 
         try {
@@ -487,7 +360,7 @@ export default class PlaygroundServer {
 
     // Set up static file serving after all API routes are defined
     if (this.staticPath) {
-      this.app.get('/', (req, res) => {
+      this.app.get('/', (_req, res) => {
         // compatible with windows
         res.redirect('/index.html');
       });
@@ -502,7 +375,7 @@ export default class PlaygroundServer {
       });
     }
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const port = this.port;
       this.server = this.app.listen(port, () => {
         resolve(this);

@@ -1,4 +1,4 @@
-import type { UIContext } from '@midscene/core';
+import type { DeviceAction, UIContext } from '@midscene/core';
 import { overrideAIConfig } from '@midscene/shared/env';
 import {
   ContextPreview,
@@ -9,10 +9,14 @@ import {
   type ReplayScriptsInfo,
   ServiceModeControl,
   allScriptsFromDump,
+  executeAction,
+  formatErrorMessage,
+  getActionSpace,
   requestPlaygroundServer,
   useEnvConfig,
   useServerValid,
 } from '@midscene/visualizer';
+import { noReplayAPIs } from '@midscene/web/playground';
 import type { StaticPageAgent } from '@midscene/web/playground';
 import { Form, message } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -26,20 +30,8 @@ const blankResult = {
   reportHTML: null,
   error: null,
 };
-const ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED = 'NOT_IMPLEMENTED_AS_DESIGNED';
 
 export const serverBase = 'http://localhost:5800';
-
-const formatErrorMessage = (e: any): string => {
-  const errorMessage = e?.message || '';
-  if (errorMessage.includes('of different extension')) {
-    return 'Conflicting extension detected. Please disable the suspicious plugins and refresh the page. Guide: https://midscenejs.com/quick-experience.html#faq';
-  }
-  if (!errorMessage?.includes(ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED)) {
-    return errorMessage;
-  }
-  return 'Unknown error';
-};
 
 // Utility function to determine if the run button should be enabled
 function getRunButtonEnabled(
@@ -79,6 +71,8 @@ export function StandardPlayground({
   const [replayScriptsInfo, setReplayScriptsInfo] =
     useState<ReplayScriptsInfo | null>(null);
   const [replayCounter, setReplayCounter] = useState(0);
+  const [actionSpace, setActionSpace] = useState<DeviceAction<any>[]>([]);
+  const [actionSpaceLoading, setActionSpaceLoading] = useState(true);
 
   // Form and environment configuration
   const [form] = Form.useForm();
@@ -113,10 +107,65 @@ export function StandardPlayground({
       });
   }, [uiContextPreview, showContextPreview, getAgent]);
 
+  // Initialize actionSpace
+  useEffect(() => {
+    const loadActionSpace = async () => {
+      setActionSpaceLoading(true);
+      try {
+        if (serviceMode === 'Server') {
+          // For server mode, get from API with context
+          const agent = getAgent();
+          if (agent?.getUIContext) {
+            const uiContext = await agent.getUIContext();
+            const space = await getActionSpace(uiContext.toString());
+            setActionSpace(space || []);
+          } else {
+            setActionSpace([]);
+          }
+        } else {
+          // For in-browser mode, get from agent
+          const agent = getAgent();
+          if (agent?.getActionSpace) {
+            const space = await agent.getActionSpace();
+            setActionSpace(space || []);
+          } else {
+            setActionSpace([]);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load actionSpace:', error);
+        setActionSpace([]);
+      } finally {
+        setActionSpaceLoading(false);
+      }
+    };
+
+    loadActionSpace();
+  }, [serviceMode, getAgent, serverValid, configAlreadySet]);
+
   // Handle form submission
   const handleRun = useCallback(async () => {
     const value = form.getFieldsValue();
-    if (!value.prompt) {
+    const { type, prompt, params } = value;
+
+    // Dynamic validation using actionSpace like Chrome Extension
+    const action = actionSpace?.find(
+      (a: DeviceAction<any>) => a.interfaceAlias === type || a.name === type,
+    );
+
+    // Wait for actionSpace to load before validating
+    if (actionSpaceLoading) {
+      message.error('Loading action definitions, please wait...');
+      return;
+    }
+
+    // Check if this action needs structured params (has paramSchema)
+    const needsStructuredParams = !!action?.paramSchema;
+
+    if (needsStructuredParams && !params) {
+      message.error('Structured parameters are required for this action');
+      return;
+    } else if (!needsStructuredParams && !prompt) {
       message.error('Prompt is required');
       return;
     }
@@ -160,28 +209,27 @@ export function StandardPlayground({
           },
         );
       } else {
-        if (actionType === 'aiAction') {
-          result.result = await activeAgent?.aiAction(value.prompt);
-        } else if (actionType === 'aiQuery') {
-          result.result = await activeAgent?.aiQuery(value.prompt, {
-            screenshotIncluded,
-            domIncluded,
-          });
-        } else if (actionType === 'aiAssert') {
-          result.result = await activeAgent?.aiAssert(value.prompt, undefined, {
-            keepRawResponse: true,
-            screenshotIncluded,
-            domIncluded,
-          });
-        } else if (actionType === 'aiTap') {
-          result.result = await activeAgent?.aiTap(value.prompt, {
-            deepThink,
-          });
-        }
+        // Use the same executeAction logic as Chrome Extension for In-Browser mode
+        result.result = await executeAction(
+          activeAgent,
+          actionType,
+          actionSpace,
+          value,
+          deepThink,
+        );
       }
     } catch (e: any) {
       result.error = formatErrorMessage(e);
       console.error(e);
+
+      // Show user-friendly message for static UI context limitations
+      if (e.message?.includes('NOT_IMPLEMENTED_AS_DESIGNED')) {
+        message.error({
+          content:
+            'This operation is not supported in static UI context. Interactive actions like scrolling, clicking, and typing require a live page environment.',
+          duration: 5,
+        });
+      }
     }
 
     if (interruptedFlagRef.current[thisRunningId]) {
@@ -210,9 +258,27 @@ export function StandardPlayground({
     }
 
     currentAgentRef.current = null;
+
+    // Show error message if the execute API returned an error
+    if (result?.error) {
+      // Extract only the first line of error message, avoid showing full stack trace
+      const errorMessage =
+        typeof result.error === 'string'
+          ? result.error.split('\n')[0]
+          : String(result.error);
+
+      message.error({
+        content: errorMessage,
+        duration: 6,
+      });
+    }
+
     setResult(result);
     setLoading(false);
-    if (result?.dump && !['aiQuery', 'aiAssert'].includes(actionType)) {
+
+    // Only generate replay info for interaction APIs, not for data extraction or validation APIs
+
+    if (result?.dump && !noReplayAPIs.includes(actionType)) {
       const info = allScriptsFromDump(result.dump);
       setReplayScriptsInfo(info);
       setReplayCounter((c) => c + 1);
@@ -220,7 +286,7 @@ export function StandardPlayground({
       setReplayScriptsInfo(null);
     }
     console.log(`time taken: ${Date.now() - startTime}ms`);
-  }, [form, getAgent, serviceMode, deepThink]);
+  }, [form, getAgent, serviceMode, deepThink, actionSpace, actionSpaceLoading]);
 
   // Dummy handleStop for Standard mode (no real stopping functionality)
   const handleStop = async () => {
@@ -228,12 +294,9 @@ export function StandardPlayground({
   };
 
   // Validate if it can run
-  const runButtonEnabled = getRunButtonEnabled(
-    serviceMode,
-    getAgent,
-    configAlreadySet,
-    serverValid,
-  );
+  const runButtonEnabled =
+    getRunButtonEnabled(serviceMode, getAgent, configAlreadySet, serverValid) &&
+    !actionSpaceLoading;
 
   // Always false for standard modes
   const stoppable = false;
@@ -268,6 +331,7 @@ export function StandardPlayground({
           onRun={handleRun}
           onStop={handleStop}
           clearPromptAfterRun={false}
+          actionSpace={actionSpace}
         />
       </div>
     </Form>

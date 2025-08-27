@@ -13,6 +13,7 @@ import {
   allScriptsFromDump,
   useEnvConfig,
 } from '@midscene/visualizer';
+import { noReplayAPIs } from '@midscene/web/playground';
 import { Button, Form, List, Tooltip, Typography, message } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { EnvConfigReminder } from '.';
@@ -362,6 +363,15 @@ export function BrowserExtensionPlayground({
     } catch (e: any) {
       result.error = formatErrorMessage(e);
       console.error(e);
+
+      // Show user-friendly message for static UI context limitations
+      if (e.message?.includes('NOT_IMPLEMENTED_AS_DESIGNED')) {
+        message.error({
+          content:
+            'This operation is not supported in static UI context. Interactive actions like scrolling, clicking, and typing require a live page environment.',
+          duration: 5,
+        });
+      }
     }
 
     if (interruptedFlagRef.current[thisRunningId]) {
@@ -395,15 +405,6 @@ export function BrowserExtensionPlayground({
     let counter = replayCounter;
 
     // Only generate replay info for interaction APIs, not for data extraction or validation APIs
-    const dataExtractionAPIs = [
-      'aiQuery',
-      'aiBoolean',
-      'aiNumber',
-      'aiString',
-      'aiAsk',
-    ];
-    const validationAPIs = ['aiAssert', 'aiWaitFor'];
-    const noReplayAPIs = [...dataExtractionAPIs, ...validationAPIs];
 
     if (result?.dump && !noReplayAPIs.includes(actionType)) {
       const info = allScriptsFromDump(result.dump);
