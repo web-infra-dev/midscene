@@ -1,7 +1,6 @@
-import type { UIContext } from '@midscene/core';
+import type { UIContext, WebUIContext } from '@midscene/core';
+import { StaticPage, StaticPageAgent } from '@midscene/playground';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
-import type { WebUIContext } from '@midscene/web';
-import { StaticPage, StaticPageAgent } from '@midscene/web/playground';
 import type { ZodObjectSchema } from './types';
 import { isZodObjectSchema, unwrapZodType } from './types';
 

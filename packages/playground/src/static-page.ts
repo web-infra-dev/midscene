@@ -1,10 +1,22 @@
-import { commonWebActionsForWebPage } from '@/web-page';
 import type { DeviceAction, Point, UIContext } from '@midscene/core';
 import type { AbstractInterface } from '@midscene/core/device';
+import {
+  defineActionDragAndDrop,
+  defineActionHover,
+  defineActionInput,
+  defineActionKeyboardPress,
+  defineActionRightClick,
+  defineActionScroll,
+  defineActionTap,
+} from '@midscene/core/device';
 import { ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED } from '@midscene/shared/common';
-import type { WebUIContext } from '../web-element';
 
-const ThrowNotImplemented: any = (methodName: string) => {
+type WebUIContext = UIContext & {
+  screenshotBase64?: string;
+  size: { width: number; height: number; dpr?: number };
+};
+
+const ThrowNotImplemented = (methodName: string) => {
   throw new Error(
     `The method "${methodName}" is not implemented as designed since this is a static UI context. (${ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED})`,
   );
@@ -29,11 +41,34 @@ export default class StaticPage implements AbstractInterface {
   }
 
   actionSpace(): DeviceAction[] {
-    // Return common web actions for planning, but they won't actually execute
-    return commonWebActionsForWebPage(this);
+    // Return available actions for static page - they will throw "not implemented" errors when executed
+    // but need to be available for planning phase
+    return [
+      defineActionTap(async (param) => {
+        ThrowNotImplemented('Tap');
+      }),
+      defineActionRightClick(async (param) => {
+        ThrowNotImplemented('RightClick');
+      }),
+      defineActionHover(async (param) => {
+        ThrowNotImplemented('Hover');
+      }),
+      defineActionInput(async (param) => {
+        ThrowNotImplemented('Input');
+      }),
+      defineActionKeyboardPress(async (param) => {
+        ThrowNotImplemented('KeyboardPress');
+      }),
+      defineActionScroll(async (param) => {
+        ThrowNotImplemented('Scroll');
+      }),
+      defineActionDragAndDrop(async (param) => {
+        ThrowNotImplemented('DragAndDrop');
+      }),
+    ];
   }
 
-  async evaluateJavaScript<T = any>(script: string): Promise<T> {
+  async evaluateJavaScript<T = unknown>(script: string): Promise<T> {
     return ThrowNotImplemented('evaluateJavaScript');
   }
 
@@ -59,7 +94,10 @@ export default class StaticPage implements AbstractInterface {
   }
 
   async size() {
-    return this.uiContext.size;
+    return {
+      ...this.uiContext.size,
+      dpr: this.uiContext.size.dpr || 1,
+    };
   }
 
   async screenshotBase64() {

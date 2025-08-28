@@ -36,6 +36,9 @@
     },
     {
       "path": "../../packages/web-integration"
+    },
+    {
+      "path": "../../packages/playground"
     }
   ]
 }

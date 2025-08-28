@@ -4,6 +4,7 @@ import Icon, {
   ArrowDownOutlined,
 } from '@ant-design/icons';
 import type { DeviceAction, UIContext } from '@midscene/core';
+import { noReplayAPIs } from '@midscene/playground';
 import {
   ContextPreview,
   type PlaygroundResult,
@@ -13,7 +14,6 @@ import {
   allScriptsFromDump,
   useEnvConfig,
 } from '@midscene/visualizer';
-import { noReplayAPIs } from '@midscene/web/playground';
 import { Button, Form, List, Tooltip, Typography, message } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { EnvConfigReminder } from '.';
@@ -356,9 +356,11 @@ export function BrowserExtensionPlayground({
         actionType,
         actionSpace,
         value,
-        deepThink,
-        screenshotIncluded,
-        domIncluded,
+        {
+          deepThink,
+          screenshotIncluded,
+          domIncluded,
+        },
       );
     } catch (e: any) {
       result.error = formatErrorMessage(e);

@@ -12,9 +12,9 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
 import { executeAction, formatErrorMessage } from './common';
+import type { PlaygroundAgent } from './types';
 
 const defaultPort = PLAYGROUND_SERVER_PORT;
-// const staticPath = join(__dirname, '../../static');
 
 const errorHandler = (err: any, req: any, res: any, next: any) => {
   console.error(err);
@@ -255,16 +255,21 @@ export default class PlaygroundServer {
 
           // Prepare value object for executeAction
           const value = {
+            type,
             prompt,
             params,
           };
 
           response.result = await executeAction(
-            agent,
+            agent as unknown as PlaygroundAgent,
             type,
             actionSpace,
             value,
-            deepThink || false,
+            {
+              deepThink: deepThink || false,
+              screenshotIncluded,
+              domIncluded,
+            },
           );
         } catch (error: any) {
           response.error = formatErrorMessage(error);
