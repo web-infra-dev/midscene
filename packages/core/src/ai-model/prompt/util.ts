@@ -168,8 +168,12 @@ export async function describeUserPage<
   });
 
   let pageDescription = '';
-  const visibleOnly = opt?.visibleOnly ?? opt?.domIncluded === 'visible-only';
-  if (opt?.domIncluded || !vlLocateMode(modelPreferences)) {
+
+  const visibleOnly =
+    opt?.domIncluded === 'visible-only' ? true : (opt?.visibleOnly ?? false);
+  const shouldIncludeDOM = opt?.domIncluded || !vlLocateMode(modelPreferences);
+
+  if (shouldIncludeDOM) {
     // non-vl mode must provide the page description
     const contentTree = await descriptionOfTree(
       treeRoot,

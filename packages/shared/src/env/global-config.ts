@@ -28,6 +28,18 @@ const allConfigFromEnv = (): Record<string, string | undefined> => {
 export const GLOBAL_CONFIG_MANAGER_UNINITIALIZED_FLAG =
   'GLOBAL_CONFIG_MANAGER_UNINITIALIZED_FLAG';
 
+declare global {
+  const chrome: {
+    runtime: {
+      id: string;
+    };
+  };
+}
+
+const isInChromeExtension = () =>
+  typeof chrome !== 'undefined' && chrome.runtime.id;
+
+const ALL_INTENTS: TIntent[] = ['VQA', 'default', 'grounding', 'planning'];
 /**
  * Collect global configs from process.env, overrideAIConfig, modelConfig, etc.
  * And provider methods to get merged config value
@@ -51,9 +63,14 @@ export class GlobalConfigManager {
     planning: undefined,
   };
 
-  private allConfig: Record<string, string | undefined> | undefined = undefined;
+  private allEnvConfig: Record<string, string | undefined> | undefined =
+    undefined;
 
   private keysHaveBeenRead: Record<string, boolean> = {};
+
+  private latestModelConfigFn?: TModelConfigFn;
+
+  private modelConfigForChromeExtension: IModelConfig | undefined = undefined;
 
   constructor() {
     initDebugConfig();
@@ -63,7 +80,7 @@ export class GlobalConfigManager {
 
   private initAllEnvConfig() {
     const envConfig = allConfigFromEnv();
-    this.allConfig = (() => {
+    this.allEnvConfig = (() => {
       if (this.override) {
         this.debugLog('initAllConfig with override from overrideAIConfig');
         const { newConfig, extendMode } = this.override;
@@ -84,6 +101,31 @@ export class GlobalConfigManager {
     })();
   }
 
+  private initIntentConfigFromFn() {
+    const intentConfigFromFn: Record<
+      TIntent,
+      ReturnType<TModelConfigFn> | undefined
+    > = {
+      VQA: undefined,
+      default: undefined,
+      grounding: undefined,
+      planning: undefined,
+    };
+
+    if (this.latestModelConfigFn) {
+      for (const i of ALL_INTENTS) {
+        const result = this.latestModelConfigFn({ intent: i });
+        if (!result) {
+          throw new Error(
+            `The agent has an option named modelConfig is a function, but it return ${result} when call with intent ${i}, which should be a object.`,
+          );
+        }
+        intentConfigFromFn[i] = result;
+      }
+    }
+    return intentConfigFromFn;
+  }
+
   private createUninitializedError(message: string) {
     const error = new Error(message);
     (error as any)[GLOBAL_CONFIG_MANAGER_UNINITIALIZED_FLAG] = true;
@@ -96,7 +138,7 @@ export class GlobalConfigManager {
     );
     this.initialized = false;
     this.override = undefined;
-    this.allConfig = undefined;
+    this.allEnvConfig = undefined;
     this.keysHaveBeenRead = {};
     this.modelConfigByIntent = {
       VQA: undefined,
@@ -105,59 +147,62 @@ export class GlobalConfigManager {
       planning: undefined,
     };
   }
-
-  /**
-   * init and decide all global config value,
-   * should be called at Agent.constructor
-   */
-  init(modelConfigFn?: TModelConfigFn) {
-    if (this.initialized) {
-      throw new Error('GlobalConfigManager.init should be called only once');
-    }
-    const intents: TIntent[] = ['VQA', 'default', 'grounding', 'planning'];
-    // init all config
+  private initModelConfigForIntent() {
+    // init all env config
     this.initAllEnvConfig();
-
     // get config from agent.modelConfig()
-    const intentConfigFromFn: Record<
-      TIntent,
-      ReturnType<TModelConfigFn> | undefined
-    > = {
-      VQA: undefined,
-      default: undefined,
-      grounding: undefined,
-      planning: undefined,
-    };
-
-    if (modelConfigFn) {
-      for (const i of intents) {
-        const result = modelConfigFn({ intent: i });
-        if (!result) {
-          throw new Error(
-            `The agent has an option named modelConfig is a function, but it return ${result} when call with intent ${i}, which should be a object.`,
-          );
-        }
-        intentConfigFromFn[i] = result;
-      }
-    }
-
+    const intentConfigFromFn = this.initIntentConfigFromFn();
     // decide model config
-    for (const i of intents) {
+    for (const i of ALL_INTENTS) {
       const result = decideModelConfig({
         intent: i,
-        allConfig: this.allConfig!,
+        allConfig: this.allEnvConfig!,
         modelConfigFromFn: intentConfigFromFn[i] as unknown as
           | Record<string, string | undefined>
           | undefined,
       });
       this.modelConfigByIntent[i] = result;
     }
+  }
+
+  private initModelConfigForChromeExtension() {
+    this.initAllEnvConfig();
+    this.modelConfigForChromeExtension = decideModelConfig({
+      intent: 'default',
+      allConfig: this.allEnvConfig!,
+      modelConfigFromFn: undefined,
+    });
+  }
+
+  /**
+   * init and decide all global config value,
+   * should be called at Agent.constructor
+   */
+  init(modelConfigFn?: TModelConfigFn) {
+    // skip check temporarily because of globalConfigManager will be refactored to support multiple agents
+    // if (this.initialized) {
+    //   throw new Error('GlobalConfigManager.init should be called only once');
+    // }
+
+    this.latestModelConfigFn = modelConfigFn;
+
+    this.initModelConfigForIntent();
 
     this.initialized = true;
   }
 
   getModelConfigByIntent(intent: TIntent) {
     if (!this.initialized) {
+      // chrome extension will call llm with new Agent()
+      if (isInChromeExtension()) {
+        console.warn(
+          'globalConfigManager is not initialized but was called in chrome Extension, will get model config from env',
+        );
+        if (!this.modelConfigForChromeExtension) {
+          this.initModelConfigForChromeExtension();
+        }
+        return this.modelConfigForChromeExtension!;
+      }
       throw this.createUninitializedError(
         `globalConfigManager is not initialized when call getModelConfigByIntent with intent ${intent}`,
       );
@@ -166,7 +211,7 @@ export class GlobalConfigManager {
   }
 
   getEnvConfigValue(key: (typeof STRING_ENV_KEYS)[number]) {
-    const allConfig = this.allConfig || process.env;
+    const allConfig = this.allEnvConfig || process.env;
 
     if (!STRING_ENV_KEYS.includes(key)) {
       throw new Error(`getEnvConfigValue with key ${key} is not supported.`);
@@ -188,7 +233,7 @@ export class GlobalConfigManager {
    * read number only from process.env
    */
   getEnvConfigInNumber(key: (typeof NUMBER_ENV_KEYS)[number]): number {
-    const allConfig = this.allConfig || process.env;
+    const allConfig = this.allEnvConfig || process.env;
     if (!NUMBER_ENV_KEYS.includes(key)) {
       throw new Error(`getEnvConfigInNumber with key ${key} is not supported`);
     }
@@ -201,7 +246,7 @@ export class GlobalConfigManager {
    * read boolean only from process.env
    */
   getEnvConfigInBoolean(key: (typeof BOOLEAN_ENV_KEYS)[number]): boolean {
-    const allConfig = this.allConfig || process.env;
+    const allConfig = this.allEnvConfig || process.env;
 
     if (!BOOLEAN_ENV_KEYS.includes(key)) {
       throw new Error(`getEnvConfigInBoolean with key ${key} is not supported`);
@@ -235,11 +280,12 @@ export class GlobalConfigManager {
     >,
     extendMode = false, // true: merge with global config, false: override global config
   ) {
-    if (this.initialized) {
-      throw new Error(
-        'overrideAIConfig must be called before Agent.constructor',
-      );
-    }
+    // skip check temporarily because of globalConfigManager will be refactored to support multiple agents
+    // if (this.initialized) {
+    //   throw new Error(
+    //     'overrideAIConfig must be called before Agent.constructor',
+    //   );
+    // }
     for (const key in newConfig) {
       if (![...GLOBAL_ENV_KEYS, ...MODEL_ENV_KEYS].includes(key as never)) {
         throw new Error(`Failed to override AI config, invalid key: ${key}`);
@@ -256,20 +302,26 @@ export class GlobalConfigManager {
         );
       }
     }
-    // logic for override multiple times
-    // const savedNewConfig = extendMode
-    //   ? {
-    //       ...this.override?.newConfig,
-    //       ...newConfig,
-    //     }
-    //   : newConfig;
+    const savedNewConfig = extendMode
+      ? {
+          ...this.override?.newConfig,
+          ...newConfig,
+        }
+      : newConfig;
 
     this.override = {
       newConfig: {
-        ...newConfig,
+        ...savedNewConfig,
       },
       extendMode,
     };
-    this.initAllEnvConfig();
+
+    // initModelConfigForIntent will throw error if lack model related vars in process.env
+    // so call it after initialized
+    if (this.initialized) {
+      this.initModelConfigForIntent();
+    } else {
+      this.initAllEnvConfig();
+    }
   }
 }

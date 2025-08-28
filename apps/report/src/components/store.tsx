@@ -212,7 +212,7 @@ export const useExecutionDump = create<DumpStoreType>((set, get) => {
         set({ insightDump: null });
       }
 
-      if (task.pageContext) {
+      if (task.uiContext) {
         set({
           _contextLoadId: ++state._contextLoadId,
         });

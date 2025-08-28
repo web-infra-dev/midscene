@@ -26,7 +26,7 @@
             "cost": 5089,
             "aiCost": 3846
           },
-          "pageContext": {
+          "uiContext": {
             "content": [
               {
                 "content": "Swag Labs",
@@ -1093,7 +1093,7 @@
             "cost": 4644,
             "aiCost": 3461
           },
-          "pageContext": {
+          "uiContext": {
             "content": [
               {
                 "content": "Swag Labs",
@@ -2162,7 +2162,7 @@
             "cost": 5153,
             "aiCost": 3990
           },
-          "pageContext": {
+          "uiContext": {
             "content": [
               {
                 "content": "Swag Labs",
@@ -3292,7 +3292,7 @@
             "cost": 6051,
             "aiCost": 4893
           },
-          "pageContext": {
+          "uiContext": {
             "content": [
               {
                 "content": "Open Menu",
@@ -7088,7 +7088,7 @@
             "cost": 8405,
             "aiCost": 7017
           },
-          "pageContext": {
+          "uiContext": {
             "content": [
               {
                 "content": "Open Menu",

@@ -4,8 +4,10 @@ import type { ElementNode } from '@midscene/shared/extractor';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 import type { Size, UIContext } from '../types';
 
-export abstract class AbstractDevice {
-  abstract pageType: string;
+export abstract class AbstractInterface {
+  abstract interfaceType: string;
+
+  abstract describe?(): string;
 
   abstract getElementsNodeTree(): Promise<ElementNode>;
   abstract url(): string | Promise<string>;

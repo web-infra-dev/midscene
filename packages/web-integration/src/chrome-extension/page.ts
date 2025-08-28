@@ -6,13 +6,14 @@
 */
 
 import { limitOpenNewTabScript } from '@/web-element';
-import type { ElementTreeNode, Point, Size } from '@midscene/core';
-import type { AbstractDevice, DeviceAction } from '@midscene/core/device';
+import type { ElementTreeNode, Point, Size, UIContext } from '@midscene/core';
+import type { AbstractInterface, DeviceAction } from '@midscene/core/device';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { assert } from '@midscene/shared/utils';
 import type { Protocol as CDPTypes } from 'devtools-protocol';
+import { WebPageContextParser } from '../web-element';
 import {
   type KeyInput,
   type MouseButton,
@@ -29,13 +30,10 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-declare const __VERSION__: string;
-
-export default class ChromeExtensionProxyPage implements AbstractDevice {
-  pageType = 'chrome-extension-proxy';
+export default class ChromeExtensionProxyPage implements AbstractInterface {
+  interfaceType = 'chrome-extension-proxy';
 
   public forceSameTabNavigation: boolean;
-  private version: string = __VERSION__;
 
   private viewportSize?: Size;
 
@@ -299,8 +297,12 @@ export default class ChromeExtensionProxyPage implements AbstractDevice {
     const expression = () => {
       (window as any).midscene_element_inspector.setNodeHashCacheListOnWindow();
 
+      const tree = (
+        window as any
+      ).midscene_element_inspector.webExtractNodeTree();
+
       return {
-        tree: (window as any).midscene_element_inspector.webExtractNodeTree(),
+        tree,
         size: {
           width: document.documentElement.clientWidth,
           height: document.documentElement.clientHeight,
@@ -326,7 +328,7 @@ export default class ChromeExtensionProxyPage implements AbstractDevice {
         `Failed to get page content from page, error: ${errorDescription}`,
       );
     }
-    // console.log('returnValue', returnValue.result.value);
+
     return returnValue.result.value as {
       tree: ElementTreeNode<ElementInfo>;
       size: Size;
@@ -434,6 +436,10 @@ export default class ChromeExtensionProxyPage implements AbstractDevice {
     }
 
     return content?.tree || { node: null, children: [] };
+  }
+
+  async getContext(): Promise<UIContext> {
+    return await WebPageContextParser(this, {});
   }
 
   async size() {

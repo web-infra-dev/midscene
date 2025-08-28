@@ -43,7 +43,7 @@ vi.mock('@/common/utils', async () => {
 
 // Mock page implementation
 const mockPage = {
-  pageType: 'puppeteer',
+  interfaceType: 'puppeteer',
   mouse: {
     click: vi.fn(),
   },
@@ -153,13 +153,13 @@ describe('PageAgent logContent', () => {
   });
 
   it('should return correct content', async () => {
-    expect(agent.dump.executions[0].tasks[0].pageContext).toBeDefined();
+    expect(agent.dump.executions[0].tasks[0].uiContext).toBeDefined();
     expect(agent.dump.executions[0].tasks[0].log).toBeDefined();
     const content = agent._unstableLogContent() as GroupedActionDump;
     expect(content).matchSnapshot();
-    expect(content.executions[0].tasks[0].pageContext).toBeUndefined();
+    expect(content.executions[0].tasks[0].uiContext).toBeUndefined();
     expect(content.executions[0].tasks[0].log).toBeUndefined();
-    expect(agent.dump.executions[0].tasks[0].pageContext).toBeDefined();
+    expect(agent.dump.executions[0].tasks[0].uiContext).toBeDefined();
     expect(agent.dump.executions[0].tasks[0].log).toBeDefined();
   });
 });
@@ -216,10 +216,10 @@ describe('PageAgent reportFileName', () => {
     expect(agent.reportFileName).toBe(customReportName);
   });
 
-  it('should fallback to "web" when pageType is not available', () => {
+  it('should fallback to "web" when interfaceType is not available', () => {
     const mockPageWithoutType = {
       ...mockPage,
-      pageType: undefined,
+      interfaceType: undefined,
     } as unknown as AbstractWebPage;
 
     const agent = new PageAgent(mockPageWithoutType, {

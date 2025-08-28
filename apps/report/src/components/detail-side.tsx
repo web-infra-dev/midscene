@@ -226,7 +226,7 @@ const DetailSide = (): JSX.Element => {
   let taskInput: JSX.Element | null = null;
   if (task?.type === 'Planning') {
     const planningTask = task as ExecutionTaskPlanning;
-    const isPageContextFrozen = Boolean((task?.pageContext as any)?._isFrozen);
+    const isPageContextFrozen = Boolean((task?.uiContext as any)?._isFrozen);
     if (planningTask.param?.userInstruction) {
       taskInput = MetaKV({
         data: [
@@ -269,7 +269,7 @@ const DetailSide = (): JSX.Element => {
       });
     }
   } else if (task?.type === 'Insight') {
-    const isPageContextFrozen = Boolean((task?.pageContext as any)?._isFrozen);
+    const isPageContextFrozen = Boolean((task?.uiContext as any)?._isFrozen);
     taskInput = MetaKV({
       data: [
         { key: 'type', content: (task && typeStr(task)) || '' },

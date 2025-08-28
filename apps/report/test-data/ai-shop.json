@@ -21,7 +21,7 @@
             "end": 1753082897882,
             "cost": 1432
           },
-          "pageContext": {
+          "uiContext": {
             "tree": {
               "node": null,
               "children": [
@@ -463,7 +463,7 @@
             "end": 1753082900606,
             "cost": 1201
           },
-          "pageContext": {
+          "uiContext": {
             "tree": {
               "node": null,
               "children": [
@@ -906,7 +906,7 @@
             "end": 1753082903123,
             "cost": 1102
           },
-          "pageContext": {
+          "uiContext": {
             "tree": {
               "node": null,
               "children": [
@@ -1354,7 +1354,7 @@
               "timing": "before Insight"
             }
           ],
-          "pageContext": {
+          "uiContext": {
             "tree": {
               "node": null,
               "children": [
@@ -2860,7 +2860,7 @@
             "end": 1753082910295,
             "cost": 1380
           },
-          "pageContext": {
+          "uiContext": {
             "tree": {
               "node": null,
               "children": [
@@ -4406,7 +4406,7 @@
             "end": 1753082912098,
             "cost": 1495
           },
-          "pageContext": {
+          "uiContext": {
             "tree": {
               "node": null,
               "children": [

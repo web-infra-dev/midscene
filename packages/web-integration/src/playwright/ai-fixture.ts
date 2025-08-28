@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PlaywrightAgent, type PlaywrightWebPage } from '@/playwright/index';
 import type { WebPageAgentOpt } from '@/web-element';
-import type { Agent as PageAgent, PageAgentOpt } from '@midscene/core/agent';
+import type { AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
 import {
   DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
   DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
@@ -188,7 +188,7 @@ export const PlaywrightAiFixture = (options?: {
       await use(
         async (
           propsPage?: OriginPlaywrightPage | undefined,
-          opts?: PageAgentOpt,
+          opts?: AgentOpt,
         ) => {
           const agent = createOrReuseAgentForPage(propsPage || page, testInfo, {
             waitForNavigationTimeout,

@@ -131,8 +131,6 @@ export abstract class UIContext<ElementType extends BaseElement = BaseElement> {
   abstract size: Size;
 
   abstract _isFrozen?: boolean;
-
-  abstract url?: string;
 }
 
 /**
@@ -360,7 +358,7 @@ export interface ExecutionTaskApply<
   param?: TaskParam;
   thought?: string;
   locate?: PlanningLocateParam | null;
-  pageContext?: UIContext;
+  uiContext?: UIContext;
   executor: (
     param: TaskParam,
     context: ExecutorContext,
@@ -525,7 +523,7 @@ export interface GroupedActionDump {
   executions: ExecutionDump[];
 }
 
-export type PageType =
+export type InterfaceType =
   | 'puppeteer'
   | 'playwright'
   | 'static'

@@ -40,7 +40,7 @@ import {
   parseYamlScript,
 } from '../yaml/index';
 
-import type { AbstractDevice } from '@/device';
+import type { AbstractInterface } from '@/device';
 import {
   type IModelPreferences,
   MIDSCENE_CACHE,
@@ -52,7 +52,7 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 // import type { AndroidDeviceInputOpt } from '../device';
 import { TaskCache } from './task-cache';
-import { PageTaskExecutor, locatePlanForLocate } from './tasks';
+import { TaskExecutor, locatePlanForLocate } from './tasks';
 import { locateParamStr, paramStr, taskTitleStr, typeStr } from './ui-utils';
 import {
   commonContextParser,
@@ -81,7 +81,7 @@ const defaultInsightExtractOption: InsightExtractOption = {
   screenshotIncluded: true,
 };
 
-export interface PageAgentOpt {
+export interface AgentOpt {
   testId?: string;
   cacheId?: string;
   groupName?: string;
@@ -97,8 +97,10 @@ export interface PageAgentOpt {
   modelConfig?: TModelConfigFn;
 }
 
-export class Agent<PageType extends AbstractDevice = AbstractDevice> {
-  page: PageType;
+export class Agent<
+  InterfaceType extends AbstractInterface = AbstractInterface,
+> {
+  interface: InterfaceType;
 
   insight: Insight;
 
@@ -108,9 +110,9 @@ export class Agent<PageType extends AbstractDevice = AbstractDevice> {
 
   reportFileName?: string;
 
-  taskExecutor: PageTaskExecutor;
+  taskExecutor: TaskExecutor;
 
-  opts: PageAgentOpt;
+  opts: AgentOpt;
 
   /**
    * If true, the agent will not perform any actions
@@ -128,10 +130,15 @@ export class Agent<PageType extends AbstractDevice = AbstractDevice> {
   /**
    * Frozen page context for consistent AI operations
    */
-  private frozenPageContext?: UIContext;
+  private frozenUIContext?: UIContext;
 
-  constructor(page: PageType, opts?: PageAgentOpt) {
-    this.page = page;
+  // @deprecated use .interface instead
+  get page() {
+    return this.interface;
+  }
+
+  constructor(interfaceInstance: InterfaceType, opts?: AgentOpt) {
+    this.interface = interfaceInstance;
     this.opts = Object.assign(
       {
         generateReport: true,
@@ -150,47 +157,45 @@ export class Agent<PageType extends AbstractDevice = AbstractDevice> {
     globalConfigManager.init(opts?.modelConfig);
 
     this.onTaskStartTip = this.opts.onTaskStartTip;
-    // get the parent browser of the puppeteer page
-    // const browser = (this.page as PuppeteerWebPage).browser();
 
     this.insight = new Insight(async (action: InsightAction) => {
       return this.getUIContext(action);
     });
 
-    if (opts?.cacheId && this.page.pageType !== 'android') {
+    if (opts?.cacheId && this.interface.interfaceType !== 'android') {
       this.taskCache = new TaskCache(
         opts.cacheId,
         globalConfigManager.getEnvConfigInBoolean(MIDSCENE_CACHE), // if we should use cache to match the element
       );
     }
 
-    this.taskExecutor = new PageTaskExecutor(this.page, this.insight, {
+    this.taskExecutor = new TaskExecutor(this.interface, this.insight, {
       taskCache: this.taskCache,
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
     });
     this.dump = this.resetDump();
     this.reportFileName =
       opts?.reportFileName ||
-      getReportFileName(opts?.testId || this.page.pageType || 'web');
+      getReportFileName(opts?.testId || this.interface.interfaceType || 'web');
   }
 
   async getActionSpace(): Promise<DeviceAction[]> {
-    return this.page.actionSpace();
+    return this.interface.actionSpace();
   }
 
   async getUIContext(action?: InsightAction): Promise<UIContext> {
     // If page context is frozen, return the frozen context for all actions
-    if (this.frozenPageContext) {
+    if (this.frozenUIContext) {
       debug('Using frozen page context for action:', action);
-      return this.frozenPageContext;
+      return this.frozenUIContext;
     }
 
-    if (this.page.getContext) {
+    if (this.interface.getContext) {
       debug('Using page.getContext for action:', action);
-      return await this.page.getContext();
+      return await this.interface.getContext();
     } else {
       debug('Using commonContextParser for action:', action);
-      return await commonContextParser(this.page);
+      return await commonContextParser(this.interface);
     }
   }
 
@@ -264,7 +269,9 @@ export class Agent<PageType extends AbstractDevice = AbstractDevice> {
     this.appendExecutionDump(executor.dump());
 
     try {
-      await this.onDumpUpdate?.(this.dumpDataString());
+      if (this.onDumpUpdate) {
+        this.onDumpUpdate(this.dumpDataString());
+      }
     } catch (error) {
       console.error('Error in onDumpUpdate', error);
     }
@@ -545,7 +552,7 @@ export class Agent<PageType extends AbstractDevice = AbstractDevice> {
         matchedCache.cacheContent?.yamlWorkflow,
       );
 
-      await await this.afterTaskRunning(executor);
+      await this.afterTaskRunning(executor);
 
       debug('matched cache, will call .runYaml to run the action');
       const yaml = matchedCache.cacheContent?.yamlWorkflow;
@@ -744,7 +751,7 @@ export class Agent<PageType extends AbstractDevice = AbstractDevice> {
     return {
       rect: element?.rect,
       center: element?.center,
-      scale: (await this.page.size()).dpr,
+      scale: (await this.interface.size()).dpr,
     } as Pick<LocateResultElement, 'rect' | 'center'> & {
       scale: number;
     };
@@ -832,7 +839,7 @@ export class Agent<PageType extends AbstractDevice = AbstractDevice> {
     result: Record<string, any>;
   }> {
     const script = parseYamlScript(yamlScriptContent, 'yaml', true);
-    const player = new ScriptPlayer(script, async (target) => {
+    const player = new ScriptPlayer(script, async () => {
       return { agent: this, freeFn: [] };
     });
     await player.run();
@@ -854,14 +861,14 @@ export class Agent<PageType extends AbstractDevice = AbstractDevice> {
 
   async evaluateJavaScript(script: string) {
     assert(
-      this.page.evaluateJavaScript,
+      this.interface.evaluateJavaScript,
       'evaluateJavaScript is not supported in current agent',
     );
-    return this.page.evaluateJavaScript(script);
+    return this.interface.evaluateJavaScript(script);
   }
 
   async destroy() {
-    await this.page.destroy();
+    await this.interface.destroy();
     this.resetDump(); // reset dump to release memory
     this.destroyed = true;
   }
@@ -873,7 +880,7 @@ export class Agent<PageType extends AbstractDevice = AbstractDevice> {
     },
   ) {
     // 1. screenshot
-    const base64 = await this.page.screenshotBase64();
+    const base64 = await this.interface.screenshotBase64();
     const now = Date.now();
     // 2. build recorder
     const recorder: ExecutionRecorderItem[] = [
@@ -927,8 +934,8 @@ export class Agent<PageType extends AbstractDevice = AbstractDevice> {
           let newTasks = tasks;
           if (Array.isArray(tasks)) {
             newTasks = tasks.map((task: any) => {
-              // only remove pageContext and log from task
-              const { pageContext, log, ...restTask } = task;
+              // only remove uiContext and log from task
+              const { uiContext, log, ...restTask } = task;
               return restTask;
             });
           }
@@ -951,7 +958,7 @@ export class Agent<PageType extends AbstractDevice = AbstractDevice> {
     const context = await this._snapshotContext();
     // Mark the context as frozen
     context._isFrozen = true;
-    this.frozenPageContext = context;
+    this.frozenUIContext = context;
     debug('Page context frozen successfully');
   }
 
@@ -960,7 +967,7 @@ export class Agent<PageType extends AbstractDevice = AbstractDevice> {
    */
   async unfreezePageContext(): Promise<void> {
     debug('Unfreezing page context');
-    this.frozenPageContext = undefined;
+    this.frozenUIContext = undefined;
     debug('Page context unfrozen successfully');
   }
 }

@@ -30,9 +30,13 @@ export const requestPlaygroundServer = async (
   {
     requestId,
     deepThink,
+    screenshotIncluded,
+    domIncluded,
   }: {
     requestId?: string;
     deepThink?: boolean;
+    screenshotIncluded?: boolean;
+    domIncluded?: boolean | 'visible-only';
   } = {},
 ) => {
   const payload: any = { context, type, prompt };
@@ -44,6 +48,14 @@ export const requestPlaygroundServer = async (
 
   if (deepThink) {
     payload.deepThink = deepThink;
+  }
+
+  if (screenshotIncluded !== undefined) {
+    payload.screenshotIncluded = screenshotIncluded;
+  }
+
+  if (domIncluded !== undefined) {
+    payload.domIncluded = domIncluded;
   }
 
   const res = await fetch(`${serverBase}/execute`, {

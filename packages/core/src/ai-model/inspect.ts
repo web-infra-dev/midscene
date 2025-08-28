@@ -420,6 +420,7 @@ export async function AiExtractElementInfo<
   const systemPrompt = systemPromptToExtract();
 
   const { screenshotBase64 } = context;
+
   const { description, elementById } = await describeUserPage(
     context,
     modelPreferences,

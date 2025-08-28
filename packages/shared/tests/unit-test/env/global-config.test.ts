@@ -4,6 +4,8 @@ import {
   MIDSCENE_CACHE,
   MIDSCENE_CACHE_MAX_FILENAME_LENGTH,
   MIDSCENE_MODEL_NAME,
+  MIDSCENE_OPENAI_API_KEY,
+  MIDSCENE_OPENAI_BASE_URL,
   MIDSCENE_PREFERRED_LANGUAGE,
   OPENAI_API_KEY,
   OPENAI_BASE_URL,
@@ -21,7 +23,8 @@ describe('overrideAIConfig', () => {
     vi.unstubAllEnvs();
   });
 
-  it('should throw if called after init', () => {
+  // skip check temporarily because of globalConfigManager will be refactored to support multiple agents
+  it.skip('should throw if called after init', () => {
     const globalConfigManager = new GlobalConfigManager();
     globalConfigManager.init();
 
@@ -86,7 +89,7 @@ describe('overrideAIConfig', () => {
     // because of the OPENAI_BASE_URL in process.env is override by the override mode
     expect(() => globalConfigManager.init()).toThrowErrorMatchingInlineSnapshot(
       // biome-ignore lint/style/noUnusedTemplateLiteral: <explanation>
-      `[Error: The OPENAI_BASE_URL must be a non-empty string, but got: undefined. Please check your config.]`,
+      `[Error: The OPENAI_API_KEY must be a non-empty string, but got: undefined. Please check your config.]`,
     );
   });
 
@@ -123,13 +126,58 @@ describe('init', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
   });
-  it('init can not be called twice', () => {
+  // skip check temporarily because of globalConfigManager will be refactored to support multiple agents
+  it.skip('init can not be called twice', () => {
     const globalConfigManager = new GlobalConfigManager();
 
     globalConfigManager.init();
     expect(() => globalConfigManager.init()).toThrowErrorMatchingInlineSnapshot(
       '[Error: GlobalConfigManager.init should be called only once]',
     );
+  });
+
+  it('multiple init', () => {
+    const globalConfigManager = new GlobalConfigManager();
+
+    globalConfigManager.init();
+    expect(
+      globalConfigManager.getModelConfigByIntent('default').modelName,
+    ).toBe('<test-model>');
+
+    globalConfigManager.registerOverride(
+      {
+        [MIDSCENE_MODEL_NAME]: 'override-model-name',
+      },
+      true,
+    );
+
+    expect(
+      globalConfigManager.getModelConfigByIntent('default').modelName,
+    ).toBe('override-model-name');
+
+    globalConfigManager.init(() => {
+      return {
+        [MIDSCENE_MODEL_NAME]: 'override-model-name-2',
+        [MIDSCENE_OPENAI_API_KEY]: 'override-openai-api-key-2',
+        [MIDSCENE_OPENAI_BASE_URL]: 'override-openai-base-url-2',
+      };
+    });
+
+    expect(
+      globalConfigManager.getModelConfigByIntent('default').modelName,
+    ).toBe('override-model-name-2');
+
+    globalConfigManager.registerOverride(
+      {
+        [MIDSCENE_MODEL_NAME]: 'override-model-name-3',
+      },
+      true,
+    );
+
+    // modelConfigFn in init has higher priority than registerOverride
+    expect(
+      globalConfigManager.getModelConfigByIntent('default').modelName,
+    ).toBe('override-model-name-2');
   });
 });
 

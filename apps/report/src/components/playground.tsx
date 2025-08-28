@@ -82,7 +82,7 @@ export function StandardPlayground({
 
   // Form and environment configuration
   const [form] = Form.useForm();
-  const { config, deepThink } = useEnvConfig();
+  const { config, deepThink, screenshotIncluded, domIncluded } = useEnvConfig();
 
   const currentAgentRef = useRef<any>(null);
   const currentRunningIdRef = useRef<string | null>(null);
@@ -155,16 +155,23 @@ export function StandardPlayground({
           {
             requestId: thisRunningId,
             deepThink,
+            screenshotIncluded,
+            domIncluded,
           },
         );
       } else {
         if (actionType === 'aiAction') {
           result.result = await activeAgent?.aiAction(value.prompt);
         } else if (actionType === 'aiQuery') {
-          result.result = await activeAgent?.aiQuery(value.prompt);
+          result.result = await activeAgent?.aiQuery(value.prompt, {
+            screenshotIncluded,
+            domIncluded,
+          });
         } else if (actionType === 'aiAssert') {
           result.result = await activeAgent?.aiAssert(value.prompt, undefined, {
             keepRawResponse: true,
+            screenshotIncluded,
+            domIncluded,
           });
         } else if (actionType === 'aiTap') {
           result.result = await activeAgent?.aiTap(value.prompt, {

@@ -230,7 +230,7 @@ ${errorMsg ? `Error: ${errorMsg}` : ''}
     }
 
     // compare coordinates
-    if (testCase.response_rect && vlLocateMode()) {
+    if (testCase.response_rect && vlLocateMode({ intent: 'grounding' })) {
       const resultRect = (result as LocateResult).rect;
       if (!resultRect) {
         throw new Error(

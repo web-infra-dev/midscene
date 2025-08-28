@@ -58,6 +58,7 @@ interface PromptInputProps {
   onStop: () => void;
   clearPromptAfterRun?: boolean;
   actionSpace?: DeviceAction<any>[]; // Optional actionSpace for dynamic parameter detection
+  hideDomAndScreenshotOptions?: boolean; // Hide domIncluded and screenshotIncluded options
 }
 
 export const PromptInput: React.FC<PromptInputProps> = ({
@@ -72,12 +73,14 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   onStop,
   clearPromptAfterRun = true,
   actionSpace,
+  hideDomAndScreenshotOptions = false,
 }) => {
   const [hoveringSettings, setHoveringSettings] = useState(false);
   const [promptValue, setPromptValue] = useState('');
   const placeholder = getPlaceholderForType(selectedType);
   const textAreaRef = useRef<any>(null); // Ant Design TextArea ref - keeping as any since it's external library type
   const params = Form.useWatch('params', form);
+  const lastHistoryRef = useRef<HistoryItem | null>(null);
 
   // Get history from store
   const history = useHistoryStore((state) => state.history);
@@ -98,10 +101,48 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       const action = actionSpace.find(
         (a) => a.interfaceAlias === selectedType || a.name === selectedType,
       );
-      return action?.paramSchema;
+      return !!action?.paramSchema;
     }
-    // Fallback to hardcoded list if actionSpace is not available
-    return ['aiInput', 'aiKeyboardPress', 'aiScroll'].includes(selectedType);
+    return false;
+  }, [selectedType, actionSpace]);
+
+  // Check if current method supports data extraction options
+  const showDataExtractionOptions = useMemo(() => {
+    const dataExtractionMethods = [
+      'aiQuery',
+      'aiBoolean',
+      'aiNumber',
+      'aiString',
+      'aiAsk',
+      'aiAssert',
+    ];
+    return dataExtractionMethods.includes(selectedType);
+  }, [selectedType]);
+
+  // Check if current method supports deep think option (dynamic based on actionSpace)
+  const showDeepThinkOption = useMemo(() => {
+    if (selectedType === 'aiLocate') {
+      return true;
+    }
+
+    if (actionSpace) {
+      // Use actionSpace to determine if method supports deep think
+      const action = actionSpace.find(
+        (a) => a.interfaceAlias === selectedType || a.name === selectedType,
+      );
+
+      if (action?.paramSchema && isZodObjectSchema(action.paramSchema as any)) {
+        const schema = action.paramSchema as any as ZodObjectSchema;
+        // Check if any parameter is a locate field
+        return Object.keys(schema.shape).some((key) => {
+          const field = schema.shape[key];
+          const { actualField } = unwrapZodType(field);
+          return isLocateField(actualField);
+        });
+      }
+      return false;
+    }
+    return false;
   }, [selectedType, actionSpace]);
 
   // Get default values for fields with defaults
@@ -151,6 +192,16 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   // When the selectedType changes, populate the form with the last item from that type's history.
   useEffect(() => {
     const lastHistory = historyForSelectedType[0];
+
+    // Skip auto-filling if this is the same history item we just added
+    if (
+      lastHistory &&
+      lastHistoryRef.current &&
+      lastHistory.timestamp === lastHistoryRef.current.timestamp
+    ) {
+      return;
+    }
+
     if (lastHistory) {
       form.setFieldsValue({
         type: lastHistory.type,
@@ -158,6 +209,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
         params: lastHistory.params,
       });
       setPromptValue(lastHistory.prompt || '');
+      lastHistoryRef.current = lastHistory;
     } else {
       // If there's no history for this type, fill with default values
       const defaultParams = getDefaultParams();
@@ -166,8 +218,19 @@ export const PromptInput: React.FC<PromptInputProps> = ({
         params: defaultParams,
       });
       setPromptValue('');
+      lastHistoryRef.current = null;
     }
   }, [selectedType, historyForSelectedType, form, getDefaultParams]);
+
+  // Watch form prompt value changes
+  const formPromptValue = Form.useWatch('prompt', form);
+
+  // Sync promptValue with form field value when form changes
+  useEffect(() => {
+    if (formPromptValue !== promptValue) {
+      setPromptValue(formPromptValue || '');
+    }
+  }, [formPromptValue, promptValue]);
 
   // Handle history selection internally
   const handleSelectHistory = useCallback(
@@ -187,9 +250,8 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       const value = e.target.value;
       setPromptValue(value);
-      form.setFieldValue('prompt', value);
     },
-    [form],
+    [],
   );
 
   const hasSingleStructuredParam = useMemo(() => {
@@ -277,16 +339,20 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       historyPrompt = values.prompt || '';
     }
 
-    addHistory({
+    const newHistoryItem = {
       type: values.type,
       prompt: historyPrompt,
       params: values.params,
       timestamp: Date.now(),
-    });
+    };
+
+    addHistory(newHistoryItem);
 
     onRun();
 
     if (clearPromptAfterRun) {
+      // Remember the history item we just added to avoid auto-filling with it
+      lastHistoryRef.current = newHistoryItem;
       setPromptValue('');
       if (needsStructuredParams) {
         const defaultParams = getDefaultParams();
@@ -366,7 +432,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
         if (schemaKeys.length === 1) {
           const key = schemaKeys[0];
           const field = schema.shape[key];
-          const { actualField, isOptional } = unwrapZodType(field);
+          const { actualField } = unwrapZodType(field);
 
           // Check if it's a locate field
           const isLocateFieldFlag = isLocateField(actualField);
@@ -380,10 +446,6 @@ export const PromptInput: React.FC<PromptInputProps> = ({
               placeholderText = 'Enter key name or text to type';
             if (key === 'value') placeholderText = 'Enter text to input';
           }
-
-          const message = isLocateFieldFlag
-            ? 'Please describe the element'
-            : `Please input ${key}`;
 
           return (
             <Form.Item name={['params', key]} style={{ margin: 0 }}>
@@ -419,13 +481,13 @@ export const PromptInput: React.FC<PromptInputProps> = ({
           };
 
           if (isLocateFieldFlag) {
-            fields.push(<LocateField {...fieldProps} />);
+            fields.push(<LocateField key={key} {...fieldProps} />);
           } else if (actualField._def?.typeName === 'ZodEnum') {
-            fields.push(<EnumField {...fieldProps} />);
+            fields.push(<EnumField key={key} {...fieldProps} />);
           } else if (actualField._def?.typeName === 'ZodNumber') {
-            fields.push(<NumberField {...fieldProps} />);
+            fields.push(<NumberField key={key} {...fieldProps} />);
           } else {
-            fields.push(<TextField {...fieldProps} />);
+            fields.push(<TextField key={key} {...fieldProps} />);
           }
         });
 
@@ -658,13 +720,9 @@ export const PromptInput: React.FC<PromptInputProps> = ({
           >
             <ConfigSelector
               enableTracking={serviceMode === 'In-Browser-Extension'}
-              showDeepThinkOption={
-                selectedType === 'aiTap' ||
-                selectedType === 'aiHover' ||
-                selectedType === 'aiInput' ||
-                selectedType === 'aiRightClick' ||
-                selectedType === 'aiLocate'
-              }
+              showDeepThinkOption={showDeepThinkOption}
+              showDataExtractionOptions={showDataExtractionOptions}
+              hideDomAndScreenshotOptions={hideDomAndScreenshotOptions}
             />
           </div>
         </div>
@@ -694,7 +752,6 @@ export const PromptInput: React.FC<PromptInputProps> = ({
               autoFocus
               onKeyDown={handleKeyDown}
               onChange={handlePromptChange}
-              value={promptValue}
               ref={textAreaRef}
             />
           </Form.Item>

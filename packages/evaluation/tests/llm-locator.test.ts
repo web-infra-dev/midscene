@@ -1,14 +1,15 @@
 import { writeFileSync } from 'node:fs';
-import Insight, {
-  type Rect,
-  MIDSCENE_MODEL_NAME,
-  getAIConfig,
-} from '@midscene/core';
+import Insight, { type Rect } from '@midscene/core';
 import { sleep } from '@midscene/core/utils';
-import { vlLocateMode } from '@midscene/shared/env';
+import {
+  getModelName,
+  globalConfigManager,
+  vlLocateMode,
+} from '@midscene/shared/env';
 import { saveBase64Image } from '@midscene/shared/img';
+
 import dotenv from 'dotenv';
-import { afterAll, expect, test } from 'vitest';
+import { afterAll, beforeAll, expect, test } from 'vitest';
 import { TestResultCollector } from '../src/test-analyzer';
 import { annotateRects, buildContext, getCases } from './util';
 
@@ -27,20 +28,34 @@ const testSources = [
   'aweme-play',
 ];
 
-const positionModeTag = vlLocateMode() ? 'by_coordinates' : 'by_element';
-const resultCollector = new TestResultCollector(
-  positionModeTag,
-  getAIConfig(MIDSCENE_MODEL_NAME) || 'unspecified',
-);
+let resultCollector: TestResultCollector;
 
 let failCaseThreshold = 2;
 if (process.env.CI) {
-  failCaseThreshold = vlLocateMode() ? 2 : 3;
+  failCaseThreshold = vlLocateMode({
+    intent: 'grounding',
+  })
+    ? 2
+    : 3;
 }
 
-if (process.env.MIDSCENE_EVALUATION_EXPECT_VL) {
-  expect(vlLocateMode()).toBeTruthy();
-}
+beforeAll(async () => {
+  await globalConfigManager.init();
+  const positionModeTag = vlLocateMode({
+    intent: 'grounding',
+  })
+    ? 'by_coordinates'
+    : 'by_element';
+
+  resultCollector = new TestResultCollector(
+    positionModeTag,
+    getModelName({ intent: 'grounding' }),
+  );
+
+  if (process.env.MIDSCENE_EVALUATION_EXPECT_VL) {
+    expect(vlLocateMode({ intent: 'grounding' })).toBeTruthy();
+  }
+});
 
 afterAll(async () => {
   await resultCollector.printSummary();
@@ -60,6 +75,9 @@ testSources.forEach((source) => {
         rect: Rect;
       }> = [];
       for (const [index, testCase] of cases.testCases.entries()) {
+        console.log(
+          `Processing ${source} ${index + 1} of ${cases.testCases.length}`,
+        );
         const context = await buildContext(source);
 
         const prompt = testCase.prompt;
@@ -72,7 +90,7 @@ testSources.forEach((source) => {
           result = await insight.locate({
             prompt,
             deepThink:
-              vlLocateMode() === 'doubao-vision'
+              vlLocateMode({ intent: 'grounding' }) === 'doubao-vision'
                 ? undefined
                 : testCase.deepThink,
           });
@@ -91,31 +109,29 @@ testSources.forEach((source) => {
 
         const { element, rect } = result;
 
-        if (process.env.UPDATE_ANSWER_DATA) {
-          // const { elementById } = context;
+        const shouldUpdateAnswerData = process.env.UPDATE_ANSWER_DATA;
+        if (rect) {
+          const indexId = index + 1;
+          testCase.response_rect = rect;
+          testCase.annotation_index_id = indexId;
+          annotations.push({
+            indexId,
+            rect,
+          });
 
-          if (rect) {
-            const indexId = index + 1;
-            testCase.response_rect = rect;
-            testCase.annotation_index_id = indexId;
-            annotations.push({
-              indexId,
-              rect,
-            });
+          // // biome-ignore lint/performance/noDelete: <explanation>
+          // delete (testCase as any).response_bbox;
+          // // biome-ignore lint/performance/noDelete: <explanation>
+          // delete (testCase as any).response;
+        }
 
-            // // biome-ignore lint/performance/noDelete: <explanation>
-            // delete (testCase as any).response_bbox;
-            // // biome-ignore lint/performance/noDelete: <explanation>
-            // delete (testCase as any).response;
-          }
-
-          if (element) {
-            testCase.response_element = {
-              id: element.id,
-              indexId: element.indexId,
-            };
-          }
-
+        if (element) {
+          testCase.response_element = {
+            id: element.id,
+            indexId: element.indexId,
+          };
+        }
+        if (shouldUpdateAnswerData) {
           // write testCase to file
           writeFileSync(aiDataPath, JSON.stringify(cases, null, 2));
         }
@@ -124,10 +140,14 @@ testSources.forEach((source) => {
             context.screenshotBase64,
             annotations.map((item) => item.rect),
           );
+          const outputPath = shouldUpdateAnswerData
+            ? `${aiDataPath}-coordinates-annotated.png`
+            : `${aiDataPath}-coordinates-annotated.ignore.png`;
           await saveBase64Image({
             base64Data: markedImage,
-            outputPath: `${aiDataPath}-coordinates-annotated.png`,
+            outputPath,
           });
+          console.log(`Saved to ${outputPath}`);
         }
 
         resultCollector.addResult(

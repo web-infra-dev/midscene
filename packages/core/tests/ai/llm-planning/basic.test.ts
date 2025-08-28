@@ -23,7 +23,7 @@ describe.skipIf(vlMode)('automation - llm planning', () => {
       {
         context,
         actionSpace: mockActionSpace,
-        pageType: 'puppeteer',
+        interfaceType: 'puppeteer',
       },
     );
     expect(actions).toBeTruthy();
@@ -40,7 +40,7 @@ describe.skipIf(vlMode)('automation - llm planning', () => {
     const { context } = await getContextFromFixture('todo');
     const { actions } = await plan(
       'Scroll down the page by 200px, scroll up the page by 100px, scroll right the second item of the task list by 300px',
-      { context, actionSpace: mockActionSpace, pageType: 'puppeteer' },
+      { context, actionSpace: mockActionSpace, interfaceType: 'puppeteer' },
     );
     expect(actions).toBeTruthy();
     expect(actions!.length).toBe(3);
@@ -88,7 +88,7 @@ describe('planning', () => {
       const { actions } = await plan(instruction, {
         context,
         actionSpace: mockActionSpace,
-        pageType: 'puppeteer',
+        interfaceType: 'puppeteer',
       });
       expect(actions).toBeTruthy();
       // console.log(actions);
@@ -107,7 +107,7 @@ describe('planning', () => {
       {
         context,
         actionSpace: mockActionSpace,
-        pageType: 'puppeteer',
+        interfaceType: 'puppeteer',
       },
     );
     expect(actions).toBeTruthy();
@@ -120,7 +120,7 @@ describe('planning', () => {
     const { context } = await getContextFromFixture('todo');
     const { actions, error } = await plan(
       'If there is a cookie prompt, close it',
-      { context, actionSpace: mockActionSpace, pageType: 'puppeteer' },
+      { context, actionSpace: mockActionSpace, interfaceType: 'puppeteer' },
     );
 
     expect(error).toBeFalsy();
@@ -131,7 +131,7 @@ describe('planning', () => {
     const { context } = await getContextFromFixture('todo');
     const res = await plan(
       'click the input box, wait 300ms. After that, the page will be redirected to the home page, click the close button of the cookie prompt on the home page',
-      { context, actionSpace: mockActionSpace, pageType: 'puppeteer' },
+      { context, actionSpace: mockActionSpace, interfaceType: 'puppeteer' },
     );
 
     expect(res.more_actions_needed_by_instruction).toBeTruthy();
