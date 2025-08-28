@@ -3,9 +3,14 @@ import { call } from '@/ai-model/service-caller';
 import { localImg2Base64 } from '@/image';
 import type { CodeGenerationChunk } from '@/types';
 import type { IModelPreferences } from '@midscene/shared/env';
+import { globalConfigManager } from '@midscene/shared/env';
 import dotenv from 'dotenv';
 import { getFixture } from 'tests/utils';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
+
+beforeAll(async () => {
+  await globalConfigManager.init();
+});
 
 dotenv.config({
   debug: true,
