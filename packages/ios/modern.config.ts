@@ -6,7 +6,7 @@ export default defineConfig({
   buildConfig: {
     input: {
       index: './src/index.ts',
-      agent: './src/agent/index.ts',
+      agent: './src/agent.ts',
     },
     target: 'es2020',
     dts: {

@@ -288,7 +288,16 @@ def handle_action(action):
             
             pyautogui.click(mac_x, mac_y)
             return {"status": "ok", "action": "click", "ios_coords": [x, y], "mac_coords": [mac_x, mac_y]}
-
+        elif act == "longpress":
+            x = int(action["x"])
+            y = int(action["y"])
+            # Transform coordinates if iOS mapping is enabled
+            mac_x, mac_y = transform_ios_coordinates(x, y)
+            duration = float(action.get("duration", 1.0))
+            pyautogui.mouseDown(mac_x, mac_y)
+            time.sleep(duration)
+            pyautogui.mouseUp()
+            return {"status": "ok", "action": "longpress", "ios_coords": [x, y], "duration": duration}
         elif act == "move":
             x = int(action["x"])
             y = int(action["y"])

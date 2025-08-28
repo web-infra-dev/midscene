@@ -1,16 +1,16 @@
-import { Agent as PageAgent, type PageAgentOpt } from '@midscene/core/agent';
+import { type AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
 import { vlLocateMode } from '@midscene/shared/env';
-import { iOSDevice, type iOSDeviceOpt } from '../page';
-import { startPyAutoGUIServer } from '../utils';
+import { iOSDevice, type iOSDeviceOpt } from './device';
+import { startPyAutoGUIServer } from './utils';
 
-type iOSAgentOpt = PageAgentOpt;
+type iOSAgentOpt = AgentOpt;
 
 export class iOSAgent extends PageAgent<iOSDevice> {
-  declare page: iOSDevice;
+  declare interfaceInstance: iOSDevice;
   private connectionPromise: Promise<void> | null = null;
 
-  constructor(page: iOSDevice, opts?: iOSAgentOpt) {
-    super(page, opts);
+  constructor(interfaceInstance: iOSDevice, opts?: iOSAgentOpt) {
+    super(interfaceInstance, opts);
 
     if (
       !vlLocateMode({ intent: 'grounding' }) ||

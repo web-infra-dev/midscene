@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { iOSAgent } from '../../src/agent';
-import type { iOSDevice } from '../../src/page';
+import type { iOSDevice } from '../../src/device';
 
 describe('iOS Agent', () => {
   describe('constructor', () => {

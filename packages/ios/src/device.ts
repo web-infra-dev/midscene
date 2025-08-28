@@ -1,18 +1,23 @@
+import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
 import {
+  type DeviceAction,
+  type InterfaceType,
   type Point,
   type Size,
   getMidsceneLocationSchema,
+  z,
 } from '@midscene/core';
-import type {
-  DeviceAction,
-  ExecutorContext,
-  MidsceneLocationResultType,
-  PageType,
-} from '@midscene/core';
-import { z } from '@midscene/core';
-import { commonWebActionsForWebPage } from '@midscene/core/agent';
+import {
+  type AbstractInterface,
+  type ActionTapParam,
+  defineAction,
+  defineActionDragAndDrop,
+  defineActionKeyboardPress,
+  defineActionScroll,
+  defineActionTap,
+} from '@midscene/core/device';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import {
@@ -20,8 +25,7 @@ import {
   resizeAndConvertImgBuffer,
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
-import type { IOSDeviceInputOpt, IOSDevicePage } from 'src/ios-device';
-import { type ScreenInfo, getScreenSize } from '../utils';
+import { type ScreenInfo, getScreenSize } from './utils';
 
 export const debugPage = getDebug('ios:device');
 export interface iOSDeviceOpt extends IOSDeviceInputOpt {
@@ -37,9 +41,14 @@ export interface iOSDeviceOpt extends IOSDeviceInputOpt {
   };
 }
 
+export type IOSDeviceInputOpt = {
+  autoDismissKeyboard?: boolean;
+};
+
 export interface PyAutoGUIAction {
   action:
     | 'click'
+    | 'longpress'
     | 'move'
     | 'drag'
     | 'type'
@@ -60,6 +69,7 @@ export interface PyAutoGUIAction {
   clicks?: number;
   distance?: number; // Original scroll distance in pixels
   interval?: number; // Interval between keystrokes for type action
+  duration?: number; // Duration of the action in milliseconds
 }
 
 export interface PyAutoGUIResult {
@@ -81,11 +91,11 @@ export interface PyAutoGUIResult {
   traceback?: string;
 }
 
-export class iOSDevice implements IOSDevicePage {
+export class iOSDevice implements AbstractInterface {
   private devicePixelRatio = 1;
   private screenInfo: ScreenInfo | null = null;
   private destroyed = false;
-  pageType: PageType = 'ios';
+  interfaceType: InterfaceType = 'ios';
   uri: string | undefined;
   options?: iOSDeviceOpt;
   private serverUrl: string;
@@ -99,11 +109,18 @@ export class iOSDevice implements IOSDevicePage {
       options?.serverUrl || `http://localhost:${this.serverPort}`;
   }
 
-  actionSpace(): DeviceAction[] {
-    const commonActions = commonWebActionsForWebPage(this);
-    commonActions.forEach((action) => {
-      if (action.name === 'Input') {
-        action.paramSchema = z.object({
+  actionSpace(): DeviceAction<any>[] {
+    return [
+      defineActionTap(async (param: ActionTapParam) => {
+        const element = param.locate;
+        assert(element, 'Element not found, cannot tap');
+        await this.mouseClick(element.center[0], element.center[1]);
+      }),
+      defineAction({
+        name: 'Input',
+        description: 'Input text into the input field',
+        interfaceAlias: 'aiInput',
+        paramSchema: z.object({
           value: z
             .string()
             .describe(
@@ -115,9 +132,12 @@ export class iOSDevice implements IOSDevicePage {
             .describe(
               'If true, the keyboard will be dismissed after the input is completed. Do not set it unless the user asks you to do so.',
             ),
-        });
-        action.call = async (param, context) => {
-          const { element } = context;
+          locate: getMidsceneLocationSchema()
+            .describe('The input field to be filled')
+            .optional(),
+        }),
+        call: async (param) => {
+          const element = param.locate;
           if (element) {
             await this.clearInput(element as unknown as ElementInfo);
 
@@ -128,38 +148,96 @@ export class iOSDevice implements IOSDevicePage {
 
           const autoDismissKeyboard =
             param.autoDismissKeyboard ?? this.options?.autoDismissKeyboard;
-          await this.keyboard.type(param.value, {
+          await this.keyboardType(param.value, {
             autoDismissKeyboard,
           });
-        };
-      }
-    });
-
-    const allActions: DeviceAction<any>[] = [
-      ...commonActions,
-      {
+        },
+      }),
+      defineActionScroll(async (param) => {
+        const element = param.locate;
+        const startingPoint = element
+          ? {
+              left: element.center[0],
+              top: element.center[1],
+            }
+          : undefined;
+        const scrollToEventName = param?.scrollType;
+        if (scrollToEventName === 'untilTop') {
+          await this.scrollUntilTop(startingPoint);
+        } else if (scrollToEventName === 'untilBottom') {
+          await this.scrollUntilBottom(startingPoint);
+        } else if (scrollToEventName === 'untilRight') {
+          await this.scrollUntilRight(startingPoint);
+        } else if (scrollToEventName === 'untilLeft') {
+          await this.scrollUntilLeft(startingPoint);
+        } else if (scrollToEventName === 'once' || !scrollToEventName) {
+          if (param?.direction === 'down' || !param || !param.direction) {
+            await this.scrollDown(param?.distance || undefined, startingPoint);
+          } else if (param.direction === 'up') {
+            await this.scrollUp(param.distance || undefined, startingPoint);
+          } else if (param.direction === 'left') {
+            await this.scrollLeft(param.distance || undefined, startingPoint);
+          } else if (param.direction === 'right') {
+            await this.scrollRight(param.distance || undefined, startingPoint);
+          } else {
+            throw new Error(`Unknown scroll direction: ${param.direction}`);
+          }
+          // until mouse event is done
+          await sleep(500);
+        } else {
+          throw new Error(
+            `Unknown scroll event type: ${scrollToEventName}, param: ${JSON.stringify(
+              param,
+            )}`,
+          );
+        }
+      }),
+      defineActionDragAndDrop(async (param) => {
+        const from = param.from;
+        const to = param.to;
+        assert(from, 'missing "from" param for drag and drop');
+        assert(to, 'missing "to" param for drag and drop');
+        await this.mouseDrag(
+          {
+            x: from.center[0],
+            y: from.center[1],
+          },
+          {
+            x: to.center[0],
+            y: to.center[1],
+          },
+        );
+      }),
+      defineActionKeyboardPress(async (param) => {
+        const key = param.keyName;
+        await this.keyboardPress(key);
+      }),
+      defineAction({
         name: 'IOSBackButton',
         description: 'Trigger the system "back" operation on iOS devices',
-        call: async (param, context) => {
+        paramSchema: z.object({}),
+        call: async () => {
           await this.back();
         },
-      },
-      {
+      }),
+      defineAction({
         name: 'IOSHomeButton',
         description: 'Trigger the system "home" operation on iOS devices',
-        call: async (param, context) => {
+        paramSchema: z.object({}),
+        call: async () => {
           await this.home();
         },
-      },
-      {
+      }),
+      defineAction({
         name: 'IOSRecentAppsButton',
         description:
           'Trigger the system "recent apps" operation on iOS devices',
-        call: async (param, context) => {
+        paramSchema: z.object({}),
+        call: async () => {
           await this.recentApps();
         },
-      },
-      {
+      }),
+      defineAction({
         name: 'IOSLongPress',
         description:
           'Trigger a long press on the screen at specified coordinates on iOS devices',
@@ -172,19 +250,18 @@ export class iOSDevice implements IOSDevicePage {
             'The element to be long pressed',
           ),
         }),
-        call: async (param, context) => {
-          const { element } = context;
+        call: async (param) => {
+          const element = param.locate;
           if (!element) {
-            throw new Error('IOSLongPress requires an element to be located');
+            throw new Error(
+              'IOSLongPress requires an element to be located',
+            );
           }
           const [x, y] = element.center;
           await this.longPress(x, y, param?.duration);
         },
-      } as DeviceAction<{
-        duration?: number;
-        locate: MidsceneLocationResultType;
-      }>,
-      {
+      }),
+      defineAction({
         name: 'IOSPull',
         description: 'Trigger pull down to refresh or pull up actions',
         paramSchema: z.object({
@@ -197,16 +274,12 @@ export class iOSDevice implements IOSDevicePage {
             .number()
             .optional()
             .describe('The duration of the pull (in milliseconds)'),
+          locate: getMidsceneLocationSchema()
+            .optional()
+            .describe('The element to start the pull from (optional)'),
         }),
-        call: async (
-          param: {
-            direction: 'up' | 'down';
-            distance?: number;
-            duration?: number;
-          },
-          context: ExecutorContext,
-        ) => {
-          const { element } = context;
+        call: async (param) => {
+          const element = param.locate;
           const startPoint = element
             ? { left: element.center[0], top: element.center[1] }
             : undefined;
@@ -221,13 +294,8 @@ export class iOSDevice implements IOSDevicePage {
             throw new Error(`Unknown pull direction: ${param.direction}`);
           }
         },
-      } as DeviceAction<{
-        direction: 'up' | 'down';
-        distance?: number;
-        duration?: number;
-      }>,
+      }),
     ];
-    return allActions;
   }
 
   public async connect(): Promise<void> {
@@ -773,17 +841,17 @@ export class iOSDevice implements IOSDevicePage {
     }
   }
 
-  async tap(point: Point): Promise<void> {
-    debugPage(`tap at (${point.left}, ${point.top})`);
+  async mouseClick(x: number, y: number): Promise<void> {
+    debugPage(`mouse click at (${x}, ${y})`);
 
     if (this.options?.mirrorConfig) {
       await this.executePyAutoGUIAction({
         action: 'click',
-        x: point.left,
-        y: point.top,
+        x,
+        y,
       });
     } else {
-      const adjusted = this.adjustCoordinates(point.left, point.top);
+      const adjusted = this.adjustCoordinates(x, y);
       await this.executePyAutoGUIAction({
         action: 'click',
         x: adjusted.x,
@@ -845,7 +913,7 @@ export class iOSDevice implements IOSDevicePage {
         const tapX = width / 2;
         const tapY = height / 4; // Tap in the upper quarter of the screen
 
-        await this.tap({ left: tapX, top: tapY });
+        await this.mouseClick(tapX, tapY);
         debugPage('Dismissed keyboard by tapping outside');
       } catch (fallbackError) {
         debugPage('Failed to dismiss keyboard:', fallbackError);
@@ -904,6 +972,28 @@ export class iOSDevice implements IOSDevicePage {
         key: mappedKey,
       });
     }
+  }
+
+  async mouseDrag(
+    from: { x: number; y: number },
+    to: { x: number; y: number },
+    duration?: number,
+  ): Promise<void> {
+    // Use adjusted coordinates
+    const { x: fromX, y: fromY } = this.adjustCoordinates(from.x, from.y);
+    const { x: toX, y: toY } = this.adjustCoordinates(to.x, to.y);
+
+    // Ensure duration has a default value
+    const swipeDuration = duration ?? 300;
+
+    this.executePyAutoGUIAction({
+        action: 'drag',
+        x: fromX,
+        y: fromY,
+        x2: toX,
+        y2: toY,
+        duration: swipeDuration / 1000,
+      });
   }
 
   async scroll(scrollType: {
@@ -1058,7 +1148,7 @@ export class iOSDevice implements IOSDevicePage {
       debugPage(
         `Focusing input field at (${element.center[0]}, ${element.center[1]})`,
       );
-      await this.tap({ left: element.center[0], top: element.center[1] });
+      await this.mouseClick(element.center[0], element.center[1]);
       await sleep(300); // Wait for focus and potential keyboard animation
     }
 
@@ -1143,7 +1233,7 @@ export class iOSDevice implements IOSDevicePage {
     await this.scroll({ direction: 'left', distance });
   }
 
-  async scrollRight(distance?: number): Promise<void> {
+  async scrollRight(distance?: number, startingPoint?: Point): Promise<void> {
     await this.scroll({ direction: 'right', distance });
   }
 
@@ -1182,9 +1272,10 @@ export class iOSDevice implements IOSDevicePage {
   async longPress(x: number, y: number, duration?: number): Promise<void> {
     if (this.options?.mirrorConfig) {
       await this.executePyAutoGUIAction({
-        action: 'click',
+        action: 'longpress',
         x: x,
         y: y,
+        duration: (duration || 1000) / 1000,
       });
     } else {
       const adjustedPoint = this.adjustCoordinates(x, y);
@@ -1192,12 +1283,8 @@ export class iOSDevice implements IOSDevicePage {
         action: 'click',
         x: adjustedPoint.x,
         y: adjustedPoint.y,
+        duration: (duration || 1000) / 1000,
       });
-    }
-
-    // Simulate long press by holding for duration
-    if (duration) {
-      await sleep(duration);
     }
   }
 
@@ -1223,6 +1310,7 @@ export class iOSDevice implements IOSDevicePage {
         y: start.top,
         x2: end.left,
         y2: end.top,
+        duration: (duration || 500) / 1000,
       });
     } else {
       const startAdjusted = this.adjustCoordinates(start.left, start.top);
@@ -1271,6 +1359,7 @@ export class iOSDevice implements IOSDevicePage {
         y: startAdjusted.y,
         x2: endAdjusted.x,
         y2: endAdjusted.y,
+        duration: (duration || 500) / 1000,
       });
     }
   }
