@@ -1,4 +1,5 @@
 import './App.less';
+import type { DeviceAction } from '@midscene/core';
 import { SCRCPY_SERVER_PORT } from '@midscene/shared/constants';
 import { overrideAIConfig } from '@midscene/shared/env';
 import {
@@ -10,6 +11,7 @@ import {
   type ReplayScriptsInfo,
   allScriptsFromDump,
   cancelTask,
+  getActionSpace,
   getTaskProgress,
   globalThemeConfig,
   overrideServerConfig,
@@ -56,6 +58,7 @@ export default function App() {
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const configAlreadySet = Object.keys(config || {}).length >= 1;
   const serverValid = useServerValid(true);
+  const [actionSpace, setActionSpace] = useState<DeviceAction<any>[]>([]);
 
   // Socket connection and device management
   const socketRef = useRef<Socket | null>(null);
@@ -270,6 +273,27 @@ export default function App() {
     overrideServerConfig(config);
   }, [config]);
 
+  // Initialize actionSpace
+  useEffect(() => {
+    const loadActionSpace = async () => {
+      try {
+        if (selectedDeviceId) {
+          const space = await getActionSpace(selectedDeviceId);
+          setActionSpace(space || []);
+        } else {
+          setActionSpace([]);
+        }
+      } catch (error) {
+        console.error('Failed to load actionSpace:', error);
+        setActionSpace([]);
+      }
+    };
+
+    if (serverValid) {
+      loadActionSpace();
+    }
+  }, [serverValid, selectedDeviceId]);
+
   // handle run button click
   const handleRun = useCallback(async () => {
     if (!selectedDeviceId) {
@@ -289,7 +313,73 @@ export default function App() {
     setReplayScriptsInfo(null);
     setLoadingProgressText('');
 
-    const { type, prompt } = form.getFieldsValue();
+    const value = form.getFieldsValue();
+    const { type, prompt, params } = value;
+
+    // Dynamic validation using actionSpace like Chrome Extension
+    const action = actionSpace?.find(
+      (a: DeviceAction<any>) => a.interfaceAlias === type || a.name === type,
+    );
+
+    // Check if this action needs structured params (has paramSchema with actual fields)
+    const needsStructuredParams = (() => {
+      if (!action?.paramSchema) return false;
+
+      // Check if paramSchema actually has fields
+      if (
+        typeof action.paramSchema === 'object' &&
+        'shape' in action.paramSchema
+      ) {
+        const shape = (action.paramSchema as any).shape || {};
+        const shapeKeys = Object.keys(shape);
+        return shapeKeys.length > 0; // Only need structured params if there are actual fields
+      }
+
+      // If paramSchema exists but not in expected format, assume it needs params
+      return true;
+    })();
+
+    // Check if this method needs any input at all
+    const needsAnyInput = (() => {
+      // If action exists in actionSpace, check if it has required parameters
+      if (action) {
+        // Check if the paramSchema has any required fields
+        if (
+          action.paramSchema &&
+          typeof action.paramSchema === 'object' &&
+          'shape' in action.paramSchema
+        ) {
+          const shape = (action.paramSchema as any).shape || {};
+
+          // Check if any field is required (not optional)
+          // For this we need to implement the unwrapZodType logic here or import it
+          // For now, let's assume if shape is empty, no input is needed
+          const shapeKeys = Object.keys(shape);
+          if (shapeKeys.length === 0) {
+            return false; // No parameters = no input needed
+          }
+
+          // If has parameters, assume input is needed (can be refined later)
+          return true;
+        }
+
+        // If has paramSchema but not a proper object, assume it needs input
+        return !!action.paramSchema;
+      }
+
+      // If not found in actionSpace, assume most methods need input
+      return true;
+    })();
+
+    // Validate inputs based on method requirements
+    if (needsStructuredParams && !params) {
+      messageApi.error('Structured parameters are required for this action');
+      return;
+    } else if (needsAnyInput && !needsStructuredParams && !prompt) {
+      messageApi.error('Prompt is required');
+      return;
+    }
+    // Note: methods that don't need any input (needsAnyInput = false) skip validation
 
     const thisRunningId = Date.now().toString();
 
@@ -306,6 +396,7 @@ export default function App() {
         {
           requestId: thisRunningId,
           deepThink,
+          params, // Pass params to server
         },
       );
 
@@ -401,6 +492,7 @@ export default function App() {
                           onRun={handleRun}
                           onStop={handleStop}
                           hideDomAndScreenshotOptions={true}
+                          actionSpace={actionSpace}
                         />
                       </div>
                       <div

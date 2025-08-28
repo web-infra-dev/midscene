@@ -13,6 +13,7 @@ import {
   allScriptsFromDump,
   useEnvConfig,
 } from '@midscene/visualizer';
+import { noReplayAPIs } from '@midscene/web/playground';
 import { Button, Form, List, Tooltip, Typography, message } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { EnvConfigReminder } from '.';
@@ -395,15 +396,6 @@ export function BrowserExtensionPlayground({
     let counter = replayCounter;
 
     // Only generate replay info for interaction APIs, not for data extraction or validation APIs
-    const dataExtractionAPIs = [
-      'aiQuery',
-      'aiBoolean',
-      'aiNumber',
-      'aiString',
-      'aiAsk',
-    ];
-    const validationAPIs = ['aiAssert', 'aiWaitFor'];
-    const noReplayAPIs = [...dataExtractionAPIs, ...validationAPIs];
 
     if (result?.dump && !noReplayAPIs.includes(actionType)) {
       const info = allScriptsFromDump(result.dump);
