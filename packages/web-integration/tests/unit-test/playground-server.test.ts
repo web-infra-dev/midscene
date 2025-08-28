@@ -1,5 +1,8 @@
-import { StaticPage, StaticPageAgent } from '@/playground';
-import PlaygroundServer from '@/playground/server';
+import {
+  PlaygroundServer,
+  StaticPage,
+  StaticPageAgent,
+} from '@midscene/playground';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 describe('Playground Server', () => {

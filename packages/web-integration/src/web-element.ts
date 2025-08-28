@@ -1,13 +1,13 @@
-import type { AgentOpt, BaseElement, Rect, UIContext } from '@midscene/core';
+import type { AgentOpt, Rect, UIContext, WebElementInfo } from '@midscene/core';
 import type { AbstractInterface } from '@midscene/core/device';
-import type { NodeType } from '@midscene/shared/constants';
 import { traverseTree } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 
 import { commonContextParser } from '@midscene/core/agent';
+import type { StaticPage } from '@midscene/playground';
+import type { NodeType } from '@midscene/shared/constants';
 import type ChromeExtensionProxyPage from './chrome-extension/page';
-import type { StaticPage } from './playground';
 import type { PlaywrightWebPage } from './playwright';
 import type { PuppeteerWebPage } from './puppeteer';
 
@@ -24,15 +24,7 @@ export type WebPage =
   | StaticPage
   | ChromeExtensionProxyPage;
 
-export interface WebElementInfoType extends BaseElement {
-  id: string;
-  attributes: {
-    nodeType: NodeType;
-    [key: string]: string;
-  };
-}
-
-export class WebElementInfo implements BaseElement {
+export class WebElementInfoImpl implements WebElementInfo {
   content: string;
 
   rect: Rect;
@@ -86,8 +78,6 @@ export class WebElementInfo implements BaseElement {
   }
 }
 
-export type WebUIContext = UIContext<WebElementInfo>;
-
 const debug = getDebug('web:parse-context');
 export async function WebPageContextParser(
   page: AbstractInterface,
@@ -99,7 +89,7 @@ export async function WebPageContextParser(
   const tree = await page.getElementsNodeTree();
   const webTree = traverseTree(tree!, (elementInfo) => {
     const { rect, id, content, attributes, indexId, isVisible } = elementInfo;
-    return new WebElementInfo({
+    return new WebElementInfoImpl({
       rect,
       id,
       content,

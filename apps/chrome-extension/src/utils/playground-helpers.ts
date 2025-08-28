@@ -1,6 +1,12 @@
 import type { DeviceAction } from '@midscene/core';
 import { findAllMidsceneLocatorField } from '@midscene/core/ai-model';
-import { dataExtractionAPIs } from '@midscene/web/playground';
+import { dataExtractionAPIs } from '@midscene/playground';
+import type {
+  ExecutionOptions,
+  FormValue,
+  PlaygroundAgent,
+  ValidationResult,
+} from '@midscene/playground';
 
 export const formatErrorMessage = (e: any): string => {
   const errorMessage = e?.message || '';
@@ -13,20 +19,21 @@ export const formatErrorMessage = (e: any): string => {
 
 // Dynamic parameter parsing function based on actionSpace
 export async function parseStructuredParams(
-  action: DeviceAction<any>,
-  params: Record<string, any>,
+  action: DeviceAction<unknown>,
+  params: Record<string, unknown>,
   options: {
     deepThink?: boolean;
     screenshotIncluded?: boolean;
     domIncluded?: boolean | 'visible-only';
   } = {},
-): Promise<any[]> {
+): Promise<unknown[]> {
   if (!action?.paramSchema || !('shape' in action.paramSchema)) {
     return [params.prompt || '', options];
   }
 
-  const schema = action.paramSchema as any; // ZodObject type
-  const keys = Object.keys(schema.shape);
+  const schema = action.paramSchema;
+  const keys =
+    schema && 'shape' in schema ? Object.keys((schema as any).shape) : [];
   const locatorFieldKeys = findAllMidsceneLocatorField(schema);
 
   // Find locate field (MidsceneLocation field)
@@ -59,9 +66,9 @@ export async function parseStructuredParams(
 
 // Validate form parameters for structured params
 export function validateStructuredParams(
-  value: any,
-  action: DeviceAction<any> | undefined,
-): { valid: boolean; errorMessage?: string } {
+  value: FormValue,
+  action: DeviceAction<unknown> | undefined,
+): ValidationResult {
   if (!value.params) {
     return { valid: false, errorMessage: 'Parameters are required' };
   }
@@ -135,9 +142,9 @@ export function validateStructuredParams(
 
 // Create display content for user input based on actionSpace
 export function createDisplayContent(
-  value: any,
+  value: FormValue,
   needsStructuredParams: boolean,
-  action: DeviceAction<any> | undefined,
+  action: DeviceAction<unknown> | undefined,
 ): string {
   if (!needsStructuredParams || !value.params || !action?.paramSchema) {
     return value.prompt || '';
@@ -148,10 +155,9 @@ export function createDisplayContent(
   // Dynamically generate display content from actionSpace paramSchema
   const schema = action.paramSchema;
   if (schema && 'shape' in schema) {
-    const zodSchema = schema as any; // ZodObject type
     const locatorFieldKeys = findAllMidsceneLocatorField(schema);
-    Object.keys(zodSchema.shape).forEach((key) => {
-      const paramValue = value.params[key];
+    Object.keys((schema as any).shape).forEach((key) => {
+      const paramValue = value.params?.[key];
       if (
         paramValue !== undefined &&
         paramValue !== null &&
@@ -186,16 +192,18 @@ export function createDisplayContent(
 
 // Execute action using actionSpace method or fallback to traditional methods
 export async function executeAction(
-  activeAgent: any,
+  activeAgent: PlaygroundAgent,
   actionType: string,
-  actionSpace: DeviceAction<any>[],
-  value: any,
-  deepThink: boolean,
-  screenshotIncluded?: boolean,
-  domIncluded?: boolean | 'visible-only',
-): Promise<any> {
+  actionSpace: DeviceAction<unknown>[],
+  value: FormValue,
+  options: ExecutionOptions & {
+    screenshotIncluded?: boolean;
+    domIncluded?: boolean | 'visible-only';
+  },
+): Promise<unknown> {
+  const { deepThink, screenshotIncluded, domIncluded } = options;
   const action = actionSpace?.find(
-    (a: DeviceAction<any>) =>
+    (a: DeviceAction<unknown>) =>
       a.interfaceAlias === actionType || a.name === actionType,
   );
 
@@ -228,7 +236,7 @@ export async function executeAction(
     // special handle for assert method
     if (actionType === 'aiAssert') {
       const { pass, thought } =
-        (await activeAgent?.aiAssert(prompt, undefined, {
+        (await activeAgent?.aiAssert?.(prompt || '', undefined, {
           keepRawResponse: true,
           screenshotIncluded,
           domIncluded,
@@ -238,7 +246,7 @@ export async function executeAction(
 
     // Fallback for methods not found in actionSpace
     if (activeAgent && typeof activeAgent[actionType] === 'function') {
-      const callOptions: any = { deepThink };
+      const callOptions: Record<string, unknown> = { deepThink };
 
       if (dataExtractionAPIs.includes(actionType)) {
         if (screenshotIncluded !== undefined) {
@@ -249,7 +257,11 @@ export async function executeAction(
         }
       }
 
-      return await activeAgent[actionType](prompt, callOptions);
+      const methodFunc = activeAgent[actionType] as (
+        prompt: string,
+        options?: Record<string, unknown>,
+      ) => Promise<unknown>;
+      return await methodFunc.call(activeAgent, prompt || '', callOptions);
     }
 
     throw new Error(`Unknown action type: ${actionType}`);

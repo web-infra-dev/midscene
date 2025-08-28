@@ -1,4 +1,4 @@
-import { defineConfig } from '@rslib/core';
+import { defineConfig, type rsbuild } from '@rslib/core';
 import { version } from './package.json';
 
 export default defineConfig({

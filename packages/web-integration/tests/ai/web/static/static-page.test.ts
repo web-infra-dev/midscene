@@ -1,8 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { StaticPageAgent } from '@/playground/agent';
-import PlaygroundServer from '@/playground/server';
-import StaticPage from '@/playground/static-page';
+import { StaticPageAgent, PlaygroundServer, StaticPage } from '@midscene/playground';
 import { afterEach, describe, expect, it } from 'vitest';
 
 const dumpFilePath = join(__dirname, '../../fixtures/ui-context.json');

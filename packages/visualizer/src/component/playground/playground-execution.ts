@@ -1,6 +1,11 @@
 import type { DeviceAction } from '@midscene/core';
 import { findAllMidsceneLocatorField } from '@midscene/core/ai-model';
-import { ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED } from '@midscene/shared/common';
+import type {
+  ExecutionOptions,
+  FormValue,
+  PlaygroundAgent,
+  ValidationResult,
+} from '@midscene/playground';
 
 export const formatErrorMessage = (e: any): string => {
   const errorMessage = e?.message || '';
@@ -13,15 +18,15 @@ export const formatErrorMessage = (e: any): string => {
 
 // Parse structured parameters for callActionInActionSpace
 async function parseStructuredParams(
-  action: DeviceAction<any>,
-  params: Record<string, any>,
-  options: { deepThink?: boolean } = {},
-): Promise<any[]> {
+  action: DeviceAction<unknown>,
+  params: Record<string, unknown>,
+  options: ExecutionOptions = {},
+): Promise<unknown[]> {
   if (!action?.paramSchema || !('shape' in action.paramSchema)) {
     return [params.prompt || '', options];
   }
 
-  const schema = action.paramSchema as any;
+  const schema = action.paramSchema as { shape: Record<string, unknown> };
   const keys = Object.keys(schema.shape);
 
   const paramObj: Record<string, unknown> = { ...options };
@@ -40,9 +45,9 @@ async function parseStructuredParams(
 }
 
 export function validateStructuredParams(
-  value: any,
-  action: DeviceAction<any> | undefined,
-): { valid: boolean; errorMessage?: string } {
+  value: FormValue,
+  action: DeviceAction<unknown> | undefined,
+): ValidationResult {
   if (!value.params) {
     return { valid: false, errorMessage: 'Parameters are required' };
   }
@@ -110,22 +115,24 @@ export function validateStructuredParams(
 }
 
 export async function executeAction(
-  activeAgent: any,
+  activeAgent: PlaygroundAgent,
   actionType: string,
-  actionSpace: DeviceAction<any>[],
-  value: any,
-  deepThink: boolean,
-): Promise<any> {
+  actionSpace: DeviceAction<unknown>[],
+  value: FormValue,
+  options: ExecutionOptions,
+): Promise<unknown> {
   const action = actionSpace?.find(
-    (a: DeviceAction<any>) =>
+    (a: DeviceAction<unknown>) =>
       a.interfaceAlias === actionType || a.name === actionType,
   );
 
   if (action && typeof activeAgent.callActionInActionSpace === 'function') {
     if (value.params) {
-      const parsedParams = await parseStructuredParams(action, value.params, {
-        deepThink,
-      });
+      const parsedParams = await parseStructuredParams(
+        action,
+        value.params,
+        options,
+      );
       return await activeAgent.callActionInActionSpace(
         action.name,
         parsedParams[0],
@@ -133,7 +140,7 @@ export async function executeAction(
     } else {
       return await activeAgent.callActionInActionSpace(action.name, {
         prompt: value.prompt,
-        deepThink,
+        ...options,
       });
     }
   } else {
@@ -141,17 +148,16 @@ export async function executeAction(
 
     if (actionType === 'aiAssert') {
       const { pass, thought } =
-        (await activeAgent?.aiAssert(prompt, undefined, {
+        (await activeAgent?.aiAssert?.(prompt || '', undefined, {
           keepRawResponse: true,
+          ...options,
         })) || {};
-      return { pass, thought };
+      return { pass: pass || false, thought: thought || '' };
     }
 
     // Fallback for methods not found in actionSpace
     if (activeAgent && typeof activeAgent[actionType] === 'function') {
-      return await activeAgent[actionType](prompt, {
-        deepThink,
-      });
+      return await activeAgent[actionType](prompt, options);
     }
 
     throw new Error(`Unknown action type: ${actionType}`);

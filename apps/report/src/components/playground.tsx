@@ -1,4 +1,6 @@
 import type { DeviceAction, UIContext } from '@midscene/core';
+import { noReplayAPIs } from '@midscene/playground';
+import type { PlaygroundAgent, StaticPageAgent } from '@midscene/playground';
 import { overrideAIConfig } from '@midscene/shared/env';
 import {
   ContextPreview,
@@ -16,8 +18,6 @@ import {
   useEnvConfig,
   useServerValid,
 } from '@midscene/visualizer';
-import { noReplayAPIs } from '@midscene/web/playground';
-import type { StaticPageAgent } from '@midscene/web/playground';
 import { Form, message } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
@@ -211,11 +211,15 @@ export function StandardPlayground({
       } else {
         // Use the same executeAction logic as Chrome Extension for In-Browser mode
         result.result = await executeAction(
-          activeAgent,
+          activeAgent as unknown as PlaygroundAgent,
           actionType,
           actionSpace,
           value,
-          deepThink,
+          {
+            deepThink,
+            screenshotIncluded,
+            domIncluded,
+          },
         );
       }
     } catch (e: any) {
