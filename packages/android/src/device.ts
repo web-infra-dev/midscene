@@ -825,10 +825,20 @@ ${Object.keys(size)
 
     await this.mouseClick(element.center[0], element.center[1]);
 
-    // Use the yadb tool to clear the input box
-    await adb.shell(
-      `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "~CLEAR~"`,
-    );
+    const IME_STRATEGY =
+      (this.options?.imeStrategy ||
+        globalConfigManager.getEnvConfigValue(MIDSCENE_ANDROID_IME_STRATEGY)) ??
+      'always-yadb';
+
+    if (IME_STRATEGY === 'yadb-for-non-ascii') {
+      // For yadb-for-non-ascii mode, use continuous deletion of 100 characters with keyevent
+      await repeat(100, () => adb.keyevent(67)); // KEYCODE_DEL (Backspace)
+    } else {
+      // Use the yadb tool to clear the input box
+      await adb.shell(
+        `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "~CLEAR~"`,
+      );
+    }
 
     if (await adb.isSoftKeyboardPresent()) {
       return;
