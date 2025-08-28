@@ -333,6 +333,9 @@ export default defineConfig({
     },
   ],
   builderConfig: {
+    performance: {
+      buildCache: false,
+    },
     tools: {
       rspack: {
         watchOptions: {
