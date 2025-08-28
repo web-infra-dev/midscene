@@ -1,7 +1,10 @@
 import { AiExtractElementInfo } from '@/ai-model';
-import type { IModelPreferences } from '@midscene/shared/env';
+import {
+  type IModelPreferences,
+  globalConfigManager,
+} from '@midscene/shared/env';
 import { getContextFromFixture } from 'tests/evaluation';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 vi.setConfig({
   testTimeout: 180 * 1000,
@@ -11,6 +14,10 @@ vi.setConfig({
 const defaultModelPreferences: IModelPreferences = {
   intent: 'default',
 };
+
+beforeAll(async () => {
+  await globalConfigManager.init();
+});
 
 describe('extract', () => {
   it('todo', async () => {

@@ -1,13 +1,16 @@
 import { plan } from '@/ai-model';
-import { vlLocateMode } from '@midscene/shared/env';
+import { globalConfigManager, vlLocateMode } from '@midscene/shared/env';
 import { mockActionSpace } from 'tests/common';
 import { getContextFromFixture } from 'tests/evaluation';
-/* eslint-disable max-lines-per-function */
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 vi.setConfig({
   testTimeout: 180 * 1000,
   hookTimeout: 30 * 1000,
+});
+
+beforeAll(async () => {
+  await globalConfigManager.init();
 });
 
 const vlMode = vlLocateMode({
