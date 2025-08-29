@@ -3,6 +3,21 @@ import { describe, expect, it } from 'vitest';
 import { preProcessImageUrl } from '../../src/img/transform';
 
 describe('preapareImageUrl', () => {
+  it('url is not a string will throw an error', async () => {
+    await expect(preProcessImageUrl(1 as any, false)).rejects.toThrowError(
+      'url must be a string, but got 1 with type number',
+    );
+    await expect(preProcessImageUrl({} as any, false)).rejects.toThrowError(
+      'url must be a string, but got [object Object] with type object',
+    );
+    await expect(preProcessImageUrl(null as any, false)).rejects.toThrow(
+      'url must be a string, but got null with type object',
+    );
+    await expect(preProcessImageUrl(undefined as any, false)).rejects.toThrow(
+      'url must be a string, but got undefined with type undefined',
+    );
+  });
+
   it('base64 string will not be converted', async () => {
     expect(await preProcessImageUrl('data:image/png;base64,aaa', false)).toBe(
       'data:image/png;base64,aaa',
