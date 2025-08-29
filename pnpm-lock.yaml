@@ -150,6 +150,9 @@ importers:
       '@midscene/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@midscene/playground':
+        specifier: workspace:*
+        version: link:../../packages/playground
       '@midscene/recorder':
         specifier: workspace:*
         version: link:../../packages/recorder
@@ -357,6 +360,9 @@ importers:
       '@midscene/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@midscene/playground':
+        specifier: workspace:*
+        version: link:../../packages/playground
       '@midscene/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -486,12 +492,12 @@ importers:
       '@midscene/android':
         specifier: workspace:*
         version: link:../android
+      '@midscene/playground':
+        specifier: workspace:*
+        version: link:../playground
       '@midscene/shared':
         specifier: workspace:*
         version: link:../shared
-      '@midscene/web':
-        specifier: workspace:*
-        version: link:../web-integration
       '@yume-chan/adb':
         specifier: ^1.1.0
         version: 1.1.0
@@ -854,6 +860,43 @@ importers:
         specifier: 3.24.3
         version: 3.24.3
 
+  packages/playground:
+    dependencies:
+      '@midscene/core':
+        specifier: workspace:*
+        version: link:../core
+      '@midscene/shared':
+        specifier: workspace:*
+        version: link:../shared
+      cors:
+        specifier: 2.8.5
+        version: 2.8.5
+      dotenv:
+        specifier: 16.4.5
+        version: 16.4.5
+      express:
+        specifier: ^4.21.2
+        version: 4.21.2
+    devDependencies:
+      '@rslib/core':
+        specifier: ^0.11.2
+        version: 0.11.2(@microsoft/api-extractor@7.52.10(@types/node@18.19.62))(typescript@5.8.3)
+      '@types/cors':
+        specifier: 2.8.12
+        version: 2.8.12
+      '@types/express':
+        specifier: ^4.17.21
+        version: 4.17.21
+      '@types/node':
+        specifier: ^18.0.0
+        version: 18.19.62
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
+      vitest:
+        specifier: 3.0.5
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.62)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5))(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.43.1)
+
   packages/recorder:
     dependencies:
       '@ant-design/icons':
@@ -942,12 +985,12 @@ importers:
       '@midscene/core':
         specifier: workspace:*
         version: link:../core
+      '@midscene/playground':
+        specifier: workspace:*
+        version: link:../playground
       '@midscene/shared':
         specifier: workspace:*
         version: link:../shared
-      '@midscene/web':
-        specifier: workspace:*
-        version: link:../web-integration
       antd:
         specifier: ^5.21.6
         version: 5.21.6(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -1033,21 +1076,18 @@ importers:
       '@midscene/core':
         specifier: workspace:*
         version: link:../core
+      '@midscene/playground':
+        specifier: workspace:*
+        version: link:../playground
       '@midscene/shared':
         specifier: workspace:*
         version: link:../shared
-      cors:
-        specifier: 2.8.5
-        version: 2.8.5
       dayjs:
         specifier: ^1.11.11
         version: 1.11.13
       dotenv:
         specifier: 16.4.5
         version: 16.4.5
-      express:
-        specifier: ^4.21.2
-        version: 4.21.2
       http-server:
         specifier: 14.1.1
         version: 14.1.1
@@ -1067,12 +1107,6 @@ importers:
       '@types/chrome':
         specifier: 0.0.279
         version: 0.0.279
-      '@types/cors':
-        specifier: 2.8.12
-        version: 2.8.12
-      '@types/express':
-        specifier: ^4.17.21
-        version: 4.17.21
       '@types/http-server':
         specifier: ^0.12.4
         version: 0.12.4
@@ -5751,10 +5785,6 @@ packages:
     resolution: {integrity: sha512-ZSW3ma5GkcQBIpwZTSRAI8N71Uuwgs93IezB7mf7R60tC8ZbJideoDNKjHn2O9KIlx6rkGTTEk1xUCK2E1Y2Yg==}
     engines: {node: '>=10.13.0'}
 
-  enhanced-resolve@5.18.2:
-    resolution: {integrity: sha512-6Jw4sE1maoRJo3q8MsSIn2onJFbLTOjY9hlx4DZXmOKvLRd1Ok2kXmAGXaafL2+ijsJZ1ClYbl/pmqr9+k4iUQ==}
-    engines: {node: '>=10.13.0'}
-
   enhanced-resolve@5.18.3:
     resolution: {integrity: sha512-d4lC8xfavMeBjzGr2vECC3fsGXziXZQyJxD868h2M/mBI3PwAuODxAkLkq5HYuvrPYcUtiLzsTo8U3PgX3Ocww==}
     engines: {node: '>=10.13.0'}
@@ -5805,9 +5835,6 @@ packages:
   es-errors@1.3.0:
     resolution: {integrity: sha512-Zf5H2Kxt2xjTvbJvP2ZWLEICxA6j+hAmMzIlypy4xcBg1vKVnx89Wy0GbS+kf5cwCVFFzdCFh2XSCFNULS6csw==}
     engines: {node: '>= 0.4'}
-
-  es-module-lexer@1.6.0:
-    resolution: {integrity: sha512-qqnD1yMU6tk/jnaMosogGySTZP8YtUgAffA9nMN+E/rjxcfRQ6IEk7IiozUjgxKoFHBGjTLnrHB/YC45r/59EQ==}
 
   es-module-lexer@1.7.0:
     resolution: {integrity: sha512-jEQoCwk8hyb2AZziIOLhDqpm5+2ww5uIE6lkO/6jcOCusfk6LhMHpXXfBLXTZ7Ydyt0j4VoUQv6uGNYbdW+kBA==}
@@ -7821,10 +7848,6 @@ packages:
     resolution: {integrity: sha512-rJgTQnkUnH1sFw8yT6VSU3zD3sWmu6sZhIseY8VX+GRu3P6F7Fu+JNDoXfklElbLJSnc3FUQHVe4cU5hj+BcUg==}
     engines: {node: '>=0.10.0'}
 
-  object-inspect@1.13.2:
-    resolution: {integrity: sha512-IRZSRuzJiynemAXPYtPe5BoI/RESNYR7TYm50MC5Mqbd3Jmw5y790sErYw3V6SryFJD64b74qQQs9wn5Bg/k3g==}
-    engines: {node: '>= 0.4'}
-
   object-inspect@1.13.4:
     resolution: {integrity: sha512-W67iLl4J2EXEGTbfeHCffrjDfitvLANg0UlX3wFUUSTx92KXRFegMHUVgSqE+wvhAbi4WqjGg9czysTV2Epbew==}
     engines: {node: '>= 0.4'}
@@ -9254,10 +9277,6 @@ packages:
     resolution: {integrity: sha512-WPS/HvHQTYnHisLo9McqBHOJk2FkHO/tlpvldyrnem4aeQp4hai3gythswg6p01oSoTl58rcpiFAjF2br2Ak2A==}
     engines: {node: '>= 0.4'}
 
-  side-channel@1.0.6:
-    resolution: {integrity: sha512-fDW/EZ6Q9RiO8eFG8Hj+7u/oW+XrPTIChwCOM2+th2A6OblDtYYIpve9m+KvI9Z4C9qSEXlaGR6bTEYHReuglA==}
-    engines: {node: '>= 0.4'}
-
   side-channel@1.1.0:
     resolution: {integrity: sha512-ZX99e6tRweoUXqR+VBrslhda51Nh5MTQwou5tnUDgbtyM0dBgmhEDtWGP/xbKn6hqfPRHujUNwz5fy/wbbhnpw==}
     engines: {node: '>= 0.4'}
@@ -9686,10 +9705,6 @@ packages:
 
   tinyh264@0.0.7:
     resolution: {integrity: sha512-etkBRgYkSFBdAi2Cqk4sZgi+xWs/vhzNgvjO3z2i4WILeEmORiNqxuQ4URJatrWQ9LPNV3WPWAtzsh/LA/XL/g==}
-
-  tinypool@1.0.2:
-    resolution: {integrity: sha512-al6n+QEANGFOMf/dmUMsuS5/r9B06uwlyNjZZql/zv8J7ybHCgoihBNORZCY2mzUuAnomQa2JdhyHKzZxPCrFA==}
-    engines: {node: ^18.0.0 || >=20.0.0}
 
   tinypool@1.1.1:
     resolution: {integrity: sha512-Zba82s87IFq9A9XmjiX5uZA/ARWDrB03OHlq+Vw1fSdt0I+4/Kutwy8BP4Y/y/aORMo61FQ0vIb5j44vSo5Pkg==}
@@ -15937,11 +15952,6 @@ snapshots:
       graceful-fs: 4.2.11
       tapable: 2.2.1
 
-  enhanced-resolve@5.18.2:
-    dependencies:
-      graceful-fs: 4.2.11
-      tapable: 2.2.2
-
   enhanced-resolve@5.18.3:
     dependencies:
       graceful-fs: 4.2.11
@@ -16034,8 +16044,6 @@ snapshots:
   es-define-property@1.0.1: {}
 
   es-errors@1.3.0: {}
-
-  es-module-lexer@1.6.0: {}
 
   es-module-lexer@1.7.0: {}
 
@@ -18651,8 +18659,6 @@ snapshots:
 
   object-assign@4.1.1: {}
 
-  object-inspect@1.13.2: {}
-
   object-inspect@1.13.4: {}
 
   object-is@1.1.6:
@@ -19225,7 +19231,7 @@ snapshots:
 
   qs@6.13.0:
     dependencies:
-      side-channel: 1.0.6
+      side-channel: 1.1.0
 
   qs@6.14.0:
     dependencies:
@@ -20393,13 +20399,6 @@ snapshots:
       object-inspect: 1.13.4
       side-channel-map: 1.0.1
 
-  side-channel@1.0.6:
-    dependencies:
-      call-bind: 1.0.8
-      es-errors: 1.3.0
-      get-intrinsic: 1.3.0
-      object-inspect: 1.13.2
-
   side-channel@1.1.0:
     dependencies:
       es-errors: 1.3.0
@@ -20875,8 +20874,6 @@ snapshots:
 
   tinyh264@0.0.7: {}
 
-  tinypool@1.0.2: {}
-
   tinypool@1.1.1: {}
 
   tinyrainbow@1.2.0: {}
@@ -20980,7 +20977,7 @@ snapshots:
   tsconfig-paths-webpack-plugin@4.1.0:
     dependencies:
       chalk: 4.1.2
-      enhanced-resolve: 5.18.2
+      enhanced-resolve: 5.18.3
       tsconfig-paths: 4.2.0
 
   tsconfig-paths@4.2.0:
@@ -21263,7 +21260,7 @@ snapshots:
     dependencies:
       cac: 6.7.14
       debug: 4.4.0(supports-color@5.5.0)
-      es-module-lexer: 1.6.0
+      es-module-lexer: 1.7.0
       pathe: 2.0.3
       vite: 5.4.10(@types/node@18.19.62)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.43.1)
     transitivePeerDependencies:
@@ -21281,7 +21278,7 @@ snapshots:
     dependencies:
       cac: 6.7.14
       debug: 4.4.0(supports-color@5.5.0)
-      es-module-lexer: 1.6.0
+      es-module-lexer: 1.7.0
       pathe: 2.0.3
       vite: 5.4.10(@types/node@22.15.3)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.43.1)
     transitivePeerDependencies:
@@ -21338,7 +21335,7 @@ snapshots:
       std-env: 3.9.0
       tinybench: 2.9.0
       tinyexec: 0.3.2
-      tinypool: 1.0.2
+      tinypool: 1.1.1
       tinyrainbow: 1.2.0
       vite: 5.4.10(@types/node@22.15.3)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.43.1)
       vite-node: 2.1.9(@types/node@22.15.3)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.43.1)
@@ -21374,7 +21371,7 @@ snapshots:
       std-env: 3.9.0
       tinybench: 2.9.0
       tinyexec: 0.3.2
-      tinypool: 1.0.2
+      tinypool: 1.1.1
       tinyrainbow: 2.0.0
       vite: 5.4.10(@types/node@18.19.62)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.43.1)
       vite-node: 3.0.5(@types/node@18.19.62)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.43.1)
@@ -21411,7 +21408,7 @@ snapshots:
       std-env: 3.9.0
       tinybench: 2.9.0
       tinyexec: 0.3.2
-      tinypool: 1.0.2
+      tinypool: 1.1.1
       tinyrainbow: 2.0.0
       vite: 5.4.10(@types/node@22.15.3)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.43.1)
       vite-node: 3.0.5(@types/node@22.15.3)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.43.1)

@@ -61,6 +61,14 @@ body {
         display: inline-flex;
         align-items: center;
         gap: 2px;
+        max-width: 160px; // 设置合理的最大宽度
+        
+        // 按钮内容样式，处理长文本
+        .ant-btn-content {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
 
         &:hover {
           background-color: #e6e6e6;

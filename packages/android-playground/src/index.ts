@@ -1,10 +1,10 @@
 import path from 'node:path';
 import { AndroidAgent, AndroidDevice } from '@midscene/android';
+import { PlaygroundServer } from '@midscene/playground';
 import {
   PLAYGROUND_SERVER_PORT,
   SCRCPY_SERVER_PORT,
 } from '@midscene/shared/constants';
-import PlaygroundServer from '@midscene/web/midscene-server';
 import ScrcpyServer from './scrcpy-server';
 
 const staticDir = path.join(__dirname, '../../static');

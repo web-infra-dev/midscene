@@ -17,6 +17,7 @@
     "@midscene/shared": "workspace:*",
     "@midscene/visualizer": "workspace:*",
     "@midscene/web": "workspace:*",
+    "@midscene/playground": "workspace:*",
     "@types/file-saver": "2.0.7",
     "antd": "^5.21.6",
     "canvas-confetti": "1.9.3",

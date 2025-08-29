@@ -16,6 +16,7 @@
     "@midscene/shared": "workspace:*",
     "@midscene/visualizer": "workspace:*",
     "@midscene/web": "workspace:*",
+    "@midscene/playground": "workspace:*",
     "@rsbuild/core": "^1.3.22",
     "@rsbuild/plugin-less": "^1.2.4",
     "@rsbuild/plugin-react": "^1.3.1",

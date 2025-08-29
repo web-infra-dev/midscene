@@ -8,15 +8,12 @@
     "Browser use",
     "Android use"
   ],
-  "version": "0.27.4",
+  "version": "0.27.5",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",
   "module": "./dist/es/index.mjs",
-  "bin": {
-    "midscene-playground": "./bin/midscene-playground"
-  },
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
@@ -68,21 +65,6 @@
       "require": "./dist/lib/playwright/reporter/index.js",
       "import": "./dist/es/playwright/reporter/index.mjs"
     },
-    "./playground": {
-      "types": "./dist/types/playground/index.d.ts",
-      "require": "./dist/lib/playground/index.js",
-      "import": "./dist/es/playground/index.mjs"
-    },
-    "./midscene-playground": {
-      "types": "./dist/types/playground/bin.d.ts",
-      "require": "./dist/lib/playground/bin.js",
-      "import": "./dist/es/playground/bin.mjs"
-    },
-    "./midscene-server": {
-      "types": "./dist/types/playground/server.d.ts",
-      "require": "./dist/lib/playground/server.js",
-      "import": "./dist/es/playground/server.mjs"
-    },
     "./chrome-extension": {
       "types": "./dist/types/chrome-extension/index.d.ts",
       "require": "./dist/lib/chrome-extension/index.js",
@@ -121,14 +103,16 @@
     "e2e:ui": "playwright test --config=tests/playwright.config.ts --ui",
     "e2e:ui:cache": "MIDSCENE_CACHE=true playwright test --config=tests/playwright.config.ts --ui"
   },
+  "bin": {
+    "midscene-playground": "./bin/midscene-playground"
+  },
   "files": ["static", "dist", "iife-script", "README.md", "bin"],
   "dependencies": {
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
-    "cors": "2.8.5",
+    "@midscene/playground": "workspace:*",
     "dayjs": "^1.11.11",
     "dotenv": "16.4.5",
-    "express": "^4.21.2",
     "http-server": "14.1.1",
     "socket.io": "^4.8.1",
     "socket.io-client": "4.8.1"
@@ -138,8 +122,6 @@
     "@playwright/test": "^1.44.1",
     "@rslib/core": "^0.11.2",
     "@types/chrome": "0.0.279",
-    "@types/cors": "2.8.12",
-    "@types/express": "^4.17.21",
     "@types/http-server": "^0.12.4",
     "@types/node": "^18.0.0",
     "playwright": "1.44.1",

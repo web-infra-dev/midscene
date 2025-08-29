@@ -1,6 +1,6 @@
 {
   "name": "@midscene/android-playground",
-  "version": "0.27.4",
+  "version": "0.27.5",
   "description": "Android playground for Midscene",
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",
@@ -19,7 +19,7 @@
   "dependencies": {
     "@midscene/android": "workspace:*",
     "@midscene/shared": "workspace:*",
-    "@midscene/web": "workspace:*",
+    "@midscene/playground": "workspace:*",
     "@yume-chan/adb": "^1.1.0",
     "@yume-chan/adb-scrcpy": "^1.1.0",
     "@yume-chan/adb-server-node-tcp": "^1.1.0",

@@ -1,5 +1,8 @@
-import { StaticPage, StaticPageAgent } from './';
-import PlaygroundServer from './server';
+import {
+  PlaygroundServer,
+  StaticPage,
+  StaticPageAgent,
+} from '@midscene/playground';
 
 const server = new PlaygroundServer(StaticPage, StaticPageAgent);
 Promise.resolve()

@@ -75,18 +75,84 @@ export const isZodObjectSchema = (
   return (
     typeof schema === 'object' &&
     schema !== null &&
-    'shape' in schema &&
-    'parse' in schema &&
-    typeof (schema as any).parse === 'function'
+    ('shape' in schema || (schema as any).type === 'ZodObject')
   );
 };
 
 export const isLocateField = (field: ZodType): boolean => {
-  return !!(
-    field._def?.typeName === VALIDATION_CONSTANTS.ZOD_TYPES.OBJECT &&
-    field._def.shape?.() &&
-    VALIDATION_CONSTANTS.FIELD_FLAGS.LOCATION in (field._def.shape?.() || {})
-  );
+  // Handle both runtime Zod objects and processed schema objects from server
+  const fieldAsAny = field as any;
+
+  // Check if it's a runtime ZodObject
+  if (field._def?.typeName === VALIDATION_CONSTANTS.ZOD_TYPES.OBJECT) {
+    // Try different ways to access the shape for runtime Zod objects
+    let shape;
+    if (field._def.shape) {
+      if (typeof field._def.shape === 'function') {
+        shape = field._def.shape();
+      } else {
+        shape = field._def.shape;
+      }
+    }
+
+    // Also try accessing shape directly from the field object
+    if (!shape && fieldAsAny.shape) {
+      shape = fieldAsAny.shape;
+    }
+
+    // Check for the location flag in shape
+    if (shape && VALIDATION_CONSTANTS.FIELD_FLAGS.LOCATION in shape) {
+      return true;
+    }
+
+    // Check description contains location-related keywords
+    const description =
+      (field._def as any)?.description || fieldAsAny.description || '';
+    if (
+      typeof description === 'string' &&
+      description.toLowerCase().includes('input field')
+    ) {
+      return true;
+    }
+  }
+
+  // Handle processed schema objects from server (these don't have _def)
+  // For these, we need to check if the field represents a location input
+  // Since the server processing loses the original Zod metadata, we use heuristics
+
+  // If it's an object-like structure, check for location indicators
+  if (typeof field === 'object' && field !== null) {
+    // Check if it has properties that suggest it's a location field
+    // In processed schemas, location fields typically have specific characteristics
+
+    // Check for description patterns
+    const description =
+      fieldAsAny.description || (fieldAsAny._def as any)?.description || '';
+    if (typeof description === 'string') {
+      const desc = description.toLowerCase();
+      if (
+        desc.includes('input field') ||
+        desc.includes('element') ||
+        desc.includes('locate')
+      ) {
+        return true;
+      }
+    }
+
+    // Check for type patterns that suggest location fields
+    if (
+      fieldAsAny.typeName === 'ZodObject' ||
+      fieldAsAny.type === 'ZodObject'
+    ) {
+      // For processed schemas, location fields are often described as input fields
+      return (
+        typeof description === 'string' &&
+        description.toLowerCase().includes('input field')
+      );
+    }
+  }
+
+  return false;
 };
 
 // Helper function to unwrap nested Zod types

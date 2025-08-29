@@ -14,7 +14,6 @@ const ongoingDescriptionRequests = new Map<string, Promise<string>>();
 const pendingCallbacks = new Map<string, (description: string) => void>();
 
 // Debounce mechanism for AI description generation
-const DEBOUNCE_DELAY = 1000;
 const debounceTimeouts = new Map<string, NodeJS.Timeout>();
 
 // Add an item to cache with size limiting

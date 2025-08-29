@@ -4,6 +4,7 @@ import Icon, {
   ArrowDownOutlined,
 } from '@ant-design/icons';
 import type { DeviceAction, UIContext } from '@midscene/core';
+import { noReplayAPIs } from '@midscene/playground';
 import {
   ContextPreview,
   type PlaygroundResult,
@@ -355,9 +356,11 @@ export function BrowserExtensionPlayground({
         actionType,
         actionSpace,
         value,
-        deepThink,
-        screenshotIncluded,
-        domIncluded,
+        {
+          deepThink,
+          screenshotIncluded,
+          domIncluded,
+        },
       );
     } catch (e: any) {
       result.error = formatErrorMessage(e);
@@ -395,15 +398,6 @@ export function BrowserExtensionPlayground({
     let counter = replayCounter;
 
     // Only generate replay info for interaction APIs, not for data extraction or validation APIs
-    const dataExtractionAPIs = [
-      'aiQuery',
-      'aiBoolean',
-      'aiNumber',
-      'aiString',
-      'aiAsk',
-    ];
-    const validationAPIs = ['aiAssert', 'aiWaitFor'];
-    const noReplayAPIs = [...dataExtractionAPIs, ...validationAPIs];
 
     if (result?.dump && !noReplayAPIs.includes(actionType)) {
       const info = allScriptsFromDump(result.dump);

@@ -83,7 +83,8 @@ const SideItem = (props: {
       return iconForStatus('finishedWithWarning');
     }
 
-    const isAssertFailed = isFinished && task.output === false;
+    const isAssertFailed =
+      task.subType === 'Assert' && isFinished && task.output === false;
 
     if (isAssertFailed) {
       return iconForStatus('failed');

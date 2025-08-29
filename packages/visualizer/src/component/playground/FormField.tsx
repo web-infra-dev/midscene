@@ -11,6 +11,7 @@ interface FormFieldProps {
   isRequired: boolean;
   isLocateField: boolean;
   marginBottom: number;
+  placeholder?: string; // Add optional placeholder prop
 }
 
 const renderLabel = (label: string, isOptional: boolean) => {
@@ -22,8 +23,9 @@ export const TextField: React.FC<Omit<FormFieldProps, 'isLocateField'>> = ({
   label,
   isRequired,
   marginBottom,
+  placeholder: customPlaceholder,
 }) => {
-  const placeholder = `Enter ${name}`;
+  const placeholder = customPlaceholder || `Enter ${name}`;
   return (
     <Form.Item
       key={name}
@@ -44,7 +46,10 @@ export const LocateField: React.FC<Omit<FormFieldProps, 'isLocateField'>> = ({
   label,
   isRequired,
   marginBottom,
+  placeholder: customPlaceholder,
 }) => {
+  const placeholder =
+    customPlaceholder || `Describe the ${name}, use natural language`;
   return (
     <Form.Item
       key={name}
@@ -55,17 +60,14 @@ export const LocateField: React.FC<Omit<FormFieldProps, 'isLocateField'>> = ({
           ? [
               {
                 required: true,
-                message: `Please describe the ${name}`,
+                message: `The ${name} is required`,
               },
             ]
           : []
       }
       style={{ marginBottom }}
     >
-      <TextArea
-        rows={2}
-        placeholder={`Describe the ${name}, use natural language`}
-      />
+      <TextArea rows={2} placeholder={placeholder} />
     </Form.Item>
   );
 };
@@ -76,6 +78,7 @@ export const EnumField: React.FC<Omit<FormFieldProps, 'isLocateField'>> = ({
   fieldSchema,
   isRequired,
   marginBottom,
+  placeholder: customPlaceholder,
 }) => {
   const enumValues = (fieldSchema._def as any).values || [];
   const selectOptions = enumValues.map((value: string) => ({
@@ -93,7 +96,10 @@ export const EnumField: React.FC<Omit<FormFieldProps, 'isLocateField'>> = ({
       }
       style={{ marginBottom }}
     >
-      <Select placeholder={`Select ${name}`} options={selectOptions} />
+      <Select
+        placeholder={customPlaceholder || `Select ${name}`}
+        options={selectOptions}
+      />
     </Form.Item>
   );
 };
@@ -103,8 +109,12 @@ export const NumberField: React.FC<Omit<FormFieldProps, 'isLocateField'>> = ({
   label,
   isRequired,
   marginBottom,
+  placeholder: customPlaceholder,
 }) => {
-  const placeholder = name === 'distance' ? 500 : 0;
+  const defaultPlaceholder = name === 'distance' ? 500 : 0;
+  const placeholderValue = customPlaceholder
+    ? Number(customPlaceholder) || defaultPlaceholder
+    : defaultPlaceholder;
   const min = 0;
   const max = name === 'distance' ? 10000 : undefined;
 
@@ -137,7 +147,7 @@ export const NumberField: React.FC<Omit<FormFieldProps, 'isLocateField'>> = ({
       }}
     >
       <InputNumber
-        placeholder={placeholder.toString()}
+        placeholder={placeholderValue.toString()}
         min={min}
         max={max}
         step={name === 'distance' ? 10 : 1}

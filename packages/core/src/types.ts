@@ -573,3 +573,16 @@ export interface DeviceAction<T = any> {
   paramSchema?: z.ZodType<T>;
   call: (param: T, context: ExecutorContext) => Promise<void> | void;
 }
+
+/**
+ * Web-specific types
+ */
+export interface WebElementInfo extends BaseElement {
+  id: string;
+  attributes: {
+    nodeType: NodeType;
+    [key: string]: string;
+  };
+}
+
+export type WebUIContext = UIContext<WebElementInfo>;

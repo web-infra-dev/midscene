@@ -1,10 +1,9 @@
 import { plan } from '@/ai-model';
-import type { DeviceAction, PlanningAction } from '@/types';
+import type { DeviceAction } from '@/types';
+import { globalConfigManager } from '@midscene/shared/env';
 import { getContextFromFixture } from 'tests/evaluation';
-/* eslint-disable max-lines-per-function */
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
-
 vi.setConfig({
   testTimeout: 180 * 1000,
   hookTimeout: 30 * 1000,
@@ -20,6 +19,10 @@ const mockActionSpace: DeviceAction[] = [
     call: () => {},
   },
 ];
+
+beforeAll(async () => {
+  await globalConfigManager.init();
+});
 
 describe('automation - planning input', () => {
   it('input value', async () => {
