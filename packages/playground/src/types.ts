@@ -1,4 +1,4 @@
-import type { WebUIContext } from '@midscene/core';
+import type { DeviceAction, WebUIContext } from '@midscene/core';
 
 export interface PlaygroundAgent {
   callActionInActionSpace?: (
@@ -38,3 +38,43 @@ export type PlaygroundWebUIContext = WebUIContext & {
   screenshotBase64?: string;
   size: { width: number; height: number; dpr?: number };
 };
+
+// SDK types - execution model based
+export type ExecutionType = 'local-execution' | 'remote-execution';
+
+export interface PlaygroundConfig {
+  type: ExecutionType;
+  serverUrl?: string; // For remote-execution protocol
+}
+
+export interface PlaygroundAdapter {
+  parseStructuredParams(
+    action: DeviceAction<unknown>,
+    params: Record<string, unknown>,
+    options: ExecutionOptions,
+  ): Promise<unknown[]>;
+
+  formatErrorMessage(error: any): string;
+
+  validateParams(
+    value: FormValue,
+    action: DeviceAction<unknown> | undefined,
+  ): ValidationResult;
+
+  createDisplayContent(
+    value: FormValue,
+    needsStructuredParams: boolean,
+    action: DeviceAction<unknown> | undefined,
+  ): string;
+
+  // New server communication methods
+  executeAction(
+    activeAgent: PlaygroundAgent,
+    actionType: string,
+    actionSpace: DeviceAction<unknown>[],
+    value: FormValue,
+    options: ExecutionOptions,
+  ): Promise<unknown>;
+
+  getActionSpace?(context: any): Promise<DeviceAction<unknown>[]>;
+}
