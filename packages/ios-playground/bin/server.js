@@ -2,7 +2,7 @@ const path = require('node:path');
 const { spawn } = require('node:child_process');
 const { iOSDevice, iOSAgent } = require('@midscene/ios');
 const { PLAYGROUND_SERVER_PORT } = require('@midscene/shared/constants');
-const PlaygroundServer = require('@midscene/web/midscene-server').default;
+const { PlaygroundServer } = require('@midscene/playground');
 
 const staticDir = path.join(
   __dirname,

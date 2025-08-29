@@ -1,4 +1,5 @@
 import './App.less';
+import type { DeviceAction } from '@midscene/core';
 import { overrideAIConfig } from '@midscene/shared/env';
 import {
   EnvConfig,
@@ -9,6 +10,7 @@ import {
   type ReplayScriptsInfo,
   allScriptsFromDump,
   cancelTask,
+  getActionSpace,
   getTaskProgress,
   globalThemeConfig,
   overrideServerConfig,
@@ -44,6 +46,7 @@ export default function App() {
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const configAlreadySet = Object.keys(config || {}).length >= 1;
   const serverValid = useServerValid(true);
+  const [actionSpace, setActionSpace] = useState<DeviceAction<any>[]>([]);
 
   // iOS Player ref
   const iosPlayerRef = useRef<IOSPlayerRefMethods>(null);
@@ -89,6 +92,23 @@ export default function App() {
     overrideAIConfig(config);
     overrideServerConfig(config);
   }, [config]);
+
+  // Initialize actionSpace
+  useEffect(() => {
+    const loadActionSpace = async () => {
+      try {
+        const space = await getActionSpace('ios-device');
+        setActionSpace(space || []);
+      } catch (error) {
+        console.error('Failed to load actionSpace:', error);
+        setActionSpace([]);
+      }
+    };
+
+    if (serverValid) {
+      loadActionSpace();
+    }
+  }, [serverValid]);
 
   // handle run button click
   const handleRun = useCallback(async () => {
@@ -208,6 +228,7 @@ export default function App() {
                           loading={loading}
                           onRun={handleRun}
                           onStop={handleStop}
+                          actionSpace={actionSpace}
                         />
                       </div>
                       <div

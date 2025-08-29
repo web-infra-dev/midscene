@@ -253,9 +253,7 @@ export class iOSDevice implements AbstractInterface {
         call: async (param) => {
           const element = param.locate;
           if (!element) {
-            throw new Error(
-              'IOSLongPress requires an element to be located',
-            );
+            throw new Error('IOSLongPress requires an element to be located');
           }
           const [x, y] = element.center;
           await this.longPress(x, y, param?.duration);
@@ -987,13 +985,13 @@ export class iOSDevice implements AbstractInterface {
     const swipeDuration = duration ?? 300;
 
     this.executePyAutoGUIAction({
-        action: 'drag',
-        x: fromX,
-        y: fromY,
-        x2: toX,
-        y2: toY,
-        duration: swipeDuration / 1000,
-      });
+      action: 'drag',
+      x: fromX,
+      y: fromY,
+      x2: toX,
+      y2: toY,
+      duration: swipeDuration / 1000,
+    });
   }
 
   async scroll(scrollType: {

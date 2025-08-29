@@ -773,6 +773,9 @@ importers:
       '@midscene/ios':
         specifier: workspace:*
         version: link:../ios
+      '@midscene/playground':
+        specifier: workspace:*
+        version: link:../playground
       '@midscene/shared':
         specifier: workspace:*
         version: link:../shared

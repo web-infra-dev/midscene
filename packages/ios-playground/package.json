@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@midscene/ios": "workspace:*",
+    "@midscene/playground": "workspace:*",
     "@midscene/shared": "workspace:*",
     "@midscene/web": "workspace:*",
     "cors": "2.8.5",

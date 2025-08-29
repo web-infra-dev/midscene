@@ -1,11 +1,37 @@
 {
-  "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "outDir": "./dist",
-    "moduleResolution": "node",
+    "baseUrl": ".",
+    "declaration": true,
+    "emitDeclarationOnly": true,
     "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "lib": ["ESNext"],
+    "moduleResolution": "node",
+    "target": "es6",
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "module": "CommonJS",
+    "composite": true,
+    "declarationDir": "dist/types",
+    "outDir": "./dist",
     "allowSyntheticDefaultImports": true
   },
+  "exclude": ["node_modules", "dist"],
   "include": ["bin/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "references": [
+    {
+      "path": "../ios"
+    },
+    {
+      "path": "../shared"
+    },
+    {
+      "path": "../playground"
+    },
+    {
+      "path": "../web-integration"
+    }
+  ]
 }
