@@ -4,11 +4,11 @@ import {
   ClearOutlined,
   LoadingOutlined,
 } from '@ant-design/icons';
-import { ExtensionBridgePageBrowserSide } from '@midscene/web/bridge-mode-browser';
 import { Button, List, Spin } from 'antd';
 import dayjs from 'dayjs';
 import { useEffect, useRef, useState } from 'react';
 import PlayIcon from '../icons/play.svg?react';
+import { BridgeConnector, type BridgeStatus } from '../utils/bridgeConnector';
 import {
   clearStoredBridgeMessages,
   getBridgeMsgsFromStorage,
@@ -24,92 +24,6 @@ interface BridgeMessageItem {
   content: string;
   timestamp: Date;
   time: string;
-}
-
-const connectRetryInterval = 300;
-
-type BridgeStatus =
-  | 'listening'
-  | 'connected'
-  | 'disconnected' /* disconnected unintentionally */
-  | 'closed';
-
-class BridgeConnector {
-  status: BridgeStatus = 'closed';
-
-  activeBridgePage: ExtensionBridgePageBrowserSide | null = null;
-
-  constructor(
-    private onMessage: (message: string, type: 'log' | 'status') => void,
-    private onBridgeStatusChange: (status: BridgeStatus) => void,
-  ) {
-    this.status = 'closed';
-  }
-
-  setStatus(status: BridgeStatus) {
-    this.status = status;
-    this.onBridgeStatusChange(status);
-  }
-
-  keepListening() {
-    if (this.status === 'listening' || this.status === 'connected') {
-      return;
-    }
-
-    this.setStatus('listening');
-
-    (async () => {
-      while (true) {
-        if (this.status === 'connected') {
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          continue;
-        }
-
-        if (this.status === 'closed') {
-          break;
-        }
-
-        if (this.status !== 'listening' && this.status !== 'disconnected') {
-          throw new Error(`unexpected status: ${this.status}`);
-        }
-
-        let activeBridgePage: ExtensionBridgePageBrowserSide | null = null;
-        try {
-          activeBridgePage = new ExtensionBridgePageBrowserSide(() => {
-            if (this.status !== 'closed') {
-              this.setStatus('disconnected');
-              this.activeBridgePage = null;
-            }
-          }, this.onMessage);
-          await activeBridgePage.connect();
-          this.activeBridgePage = activeBridgePage;
-
-          this.setStatus('connected');
-        } catch (e) {
-          this.activeBridgePage?.destroy();
-          this.activeBridgePage = null;
-          console.warn('failed to setup connection', e);
-          await new Promise((resolve) =>
-            setTimeout(resolve, connectRetryInterval),
-          );
-        }
-      }
-    })();
-  }
-
-  async stopConnection() {
-    if (this.status === 'closed') {
-      console.warn('Cannot stop connection if not connected');
-      return;
-    }
-
-    if (this.activeBridgePage) {
-      await this.activeBridgePage.destroy();
-      this.activeBridgePage = null;
-    }
-
-    this.setStatus('closed');
-  }
 }
 
 export default function Bridge() {
@@ -196,10 +110,9 @@ export default function Bridge() {
     }
   };
 
-  const activeBridgeConnectorRef = useRef<BridgeConnector | null>(
+  const bridgeConnectorRef = useRef<BridgeConnector | null>(
     new BridgeConnector(
       (message, type) => {
-        // all bridge messages are treated as status messages, appended to the current connection session
         appendBridgeMessage(message);
         if (type === 'status') {
           console.log('status tip changed event', type, message);
@@ -209,7 +122,6 @@ export default function Bridge() {
         console.log('status changed event', status);
         setBridgeStatus(status);
 
-        // all
         if (status !== 'connected') {
           appendBridgeMessage(`Bridge status changed to ${status}`);
         }
@@ -219,12 +131,12 @@ export default function Bridge() {
 
   useEffect(() => {
     return () => {
-      activeBridgeConnectorRef.current?.stopConnection();
+      bridgeConnectorRef.current?.disconnect();
     };
   }, []);
 
   const stopConnection = () => {
-    activeBridgeConnectorRef.current?.stopConnection();
+    bridgeConnectorRef.current?.disconnect();
   };
 
   const startConnection = async () => {
@@ -232,7 +144,7 @@ export default function Bridge() {
     if (bridgeStatus === 'closed') {
       connectionStatusMessageId.current = null;
     }
-    activeBridgeConnectorRef.current?.keepListening();
+    bridgeConnectorRef.current?.connect();
   };
 
   // clear the message list
