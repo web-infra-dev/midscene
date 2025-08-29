@@ -10,6 +10,12 @@ export {
 } from './common';
 export { default as StaticPage } from './static-page';
 
+// SDK exports (all browser-safe)
+export { PlaygroundSDK } from './sdk/PlaygroundSDK';
+export { BasePlaygroundAdapter } from './adapters/base';
+export { LocalExecutionAdapter } from './adapters/local-execution';
+export { RemoteExecutionAdapter } from './adapters/remote-execution';
+
 // PlaygroundServer is not available in browser environments
 export const PlaygroundServer = undefined;
 
@@ -18,4 +24,7 @@ export type {
   FormValue,
   PlaygroundAgent,
   ValidationResult,
+  PlaygroundConfig,
+  ExecutionType,
+  PlaygroundAdapter,
 } from './types';
