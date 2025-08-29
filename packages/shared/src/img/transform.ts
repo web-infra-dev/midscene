@@ -323,6 +323,11 @@ export const preProcessImageUrl = async (
   url: string,
   convertHttpImage2Base64: boolean,
 ) => {
+  if (typeof url !== 'string') {
+    throw new Error(
+      `url must be a string, but got ${url} with type ${typeof url}`,
+    );
+  }
   if (url.startsWith('data:')) {
     return url;
   } else if (url.startsWith('http://') || url.startsWith('https://')) {
