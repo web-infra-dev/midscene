@@ -4,7 +4,7 @@ import Icon, {
   ArrowDownOutlined,
 } from '@ant-design/icons';
 import type { DeviceAction, UIContext } from '@midscene/core';
-import { noReplayAPIs } from '@midscene/playground';
+import { PlaygroundSDK, noReplayAPIs } from '@midscene/playground';
 import {
   ContextPreview,
   type PlaygroundResult,
@@ -19,12 +19,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { EnvConfigReminder } from '.';
 import PlaygroundIcon from '../icons/playground.svg?react';
 import { getExtensionVersion } from '../utils/chrome';
-import {
-  createDisplayContent,
-  executeAction,
-  formatErrorMessage,
-  validateStructuredParams,
-} from '../utils/playground-helpers';
 import {
   clearStoredMessages,
   getMsgsFromStorage,
@@ -133,6 +127,12 @@ export function BrowserExtensionPlayground({
     (state) => state.forceSameTabNavigation,
   );
 
+  // Initialize SDK for Local Execution type (stable instance to avoid re-creating per render)
+  const sdkRef = useRef<PlaygroundSDK | null>(null);
+  if (!sdkRef.current) {
+    sdkRef.current = new PlaygroundSDK({ type: 'local-execution' });
+  }
+
   // References
   const runResultRef = useRef<HTMLHeadingElement>(null);
   const currentAgentRef = useRef<any>(null);
@@ -185,7 +185,7 @@ export function BrowserExtensionPlayground({
     const loadActionSpace = async () => {
       try {
         const page = new ChromeExtensionProxyPage(forceSameTabNavigation);
-        const space = await page.actionSpace();
+        const space = await sdkRef.current?.getActionSpace(page);
 
         setActionSpace(space || []);
       } catch (error) {
@@ -194,7 +194,7 @@ export function BrowserExtensionPlayground({
     };
 
     loadActionSpace();
-  }, [getAgent, forceSameTabNavigation, config]);
+  }, [forceSameTabNavigation, config]);
 
   // store light messages to localStorage (big result data is stored separately)
   useEffect(() => {
@@ -282,7 +282,10 @@ export function BrowserExtensionPlayground({
     const needsStructuredParams = !!action?.paramSchema;
 
     if (needsStructuredParams) {
-      const validation = validateStructuredParams(value, action);
+      const validation = sdkRef.current!.validateStructuredParams(
+        value,
+        action,
+      );
       if (!validation.valid) {
         message.error(validation.errorMessage || 'Validation failed');
         return;
@@ -295,7 +298,7 @@ export function BrowserExtensionPlayground({
     const startTime = Date.now();
 
     // Create display content for user input - dynamically from actionSpace
-    const displayContent = createDisplayContent(
+    const displayContent = sdkRef.current!.createDisplayContent(
       value,
       needsStructuredParams,
       action,
@@ -350,8 +353,8 @@ export function BrowserExtensionPlayground({
         setInfoList((prev) => [...prev, progressItem]);
       };
 
-      // Execute the action using the new helper function
-      result.result = await executeAction(
+      // Execute the action using the SDK
+      result.result = await sdkRef.current!.executeAction(
         activeAgent,
         actionType,
         actionSpace,
@@ -363,7 +366,7 @@ export function BrowserExtensionPlayground({
         },
       );
     } catch (e: any) {
-      result.error = formatErrorMessage(e);
+      result.error = sdkRef.current!.formatErrorMessage(e);
       console.error(e);
     }
 
@@ -705,3 +708,5 @@ export function BrowserExtensionPlayground({
     </div>
   );
 }
+
+export default BrowserExtensionPlayground;
