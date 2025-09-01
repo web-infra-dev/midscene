@@ -17,53 +17,6 @@ export const formatErrorMessage = (e: any): string => {
   return errorMessage || 'Unknown error';
 };
 
-// Dynamic parameter parsing function based on actionSpace
-export async function parseStructuredParams(
-  action: DeviceAction<unknown>,
-  params: Record<string, unknown>,
-  options: {
-    deepThink?: boolean;
-    screenshotIncluded?: boolean;
-    domIncluded?: boolean | 'visible-only';
-  } = {},
-): Promise<unknown[]> {
-  if (!action?.paramSchema || !('shape' in action.paramSchema)) {
-    return [params.prompt || '', options];
-  }
-
-  const schema = action.paramSchema;
-  const keys =
-    schema && 'shape' in schema ? Object.keys((schema as any).shape) : [];
-  const locatorFieldKeys = findAllMidsceneLocatorField(schema);
-
-  // Find locate field (MidsceneLocation field)
-  let locateField = null;
-  const nonLocateFields: Record<string, unknown> = {};
-
-  // The original code implicitly uses the last one if multiple exist.
-  // We will use the first locator field found.
-  if (locatorFieldKeys.length > 0) {
-    locateField = params[locatorFieldKeys[0]];
-  }
-
-  keys.forEach((key) => {
-    if (
-      !locatorFieldKeys.includes(key) &&
-      params[key] !== undefined &&
-      params[key] !== null &&
-      params[key] !== ''
-    ) {
-      nonLocateFields[key] = params[key];
-    }
-  });
-
-  // Build the parameters array based on the pattern used in the methods
-  // Most methods follow: [locate, { ...otherParams, ...options }]
-  const paramObj = { ...nonLocateFields, ...options };
-
-  return [locateField, paramObj];
-}
-
 // Validate form parameters for structured params
 export function validateStructuredParams(
   value: FormValue,
@@ -210,16 +163,21 @@ export async function executeAction(
   // Try to use actionSpace method first
   if (action && typeof activeAgent.callActionInActionSpace === 'function') {
     if (value.params) {
-      // Use structured parameters - dynamically parse from actionSpace
-      const parsedParams = await parseStructuredParams(action, value.params, {
+      // Use structured parameters
+      const paramObj: Record<string, any> = {
         deepThink,
         screenshotIncluded,
         domIncluded,
-      });
-      return await activeAgent.callActionInActionSpace(
-        action.name,
-        parsedParams[0],
-      );
+      };
+      for (const key in value.params) {
+        if (Object.prototype.hasOwnProperty.call(value.params, key)) {
+          const element = value.params[key];
+          if (element !== undefined && element !== null && element !== '') {
+            paramObj[key] = element;
+          }
+        }
+      }
+      return await activeAgent.callActionInActionSpace(action.name, paramObj);
     } else {
       // Fallback to legacy prompt parsing
       return await activeAgent.callActionInActionSpace(action.name, {
