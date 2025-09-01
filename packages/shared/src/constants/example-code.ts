@@ -6,7 +6,8 @@ IMPORTANT: Follow these exact type signatures for AI functions:
 
 // Type signatures for AI functions:
 aiInput(value: string, locator: string): Promise<void>
-aiTap(locator: string): Promise<void>  
+aiTap(locator: string): Promise<void>
+aiDoubleClick(locator: string): Promise<void>
 aiScroll(scrollParam: {
   direction: 'up' | 'down' | 'left' | 'right',
   scrollType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft',
@@ -121,11 +122,17 @@ tasks:
       - aiAction: <prompt>
         cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
 
-      # Instant Action (.aiTap, .aiHover, .aiInput, .aiKeyboardPress, .aiScroll)
+      # Instant Action (.aiTap, .aiDoubleClick, .aiHover, .aiInput, .aiKeyboardPress, .aiScroll)
       # ----------------
 
       # Tap an element described by a prompt.
       - aiTap: <prompt>
+        deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
+        xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
+        cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
+
+      # Double click an element described by a prompt.
+      - aiDoubleClick: <prompt>
         deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
         xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
         cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.

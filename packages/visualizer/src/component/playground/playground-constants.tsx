@@ -55,6 +55,7 @@ export const apiMetadata = {
     title: 'Auto Planning: plan the steps and execute',
   },
   aiTap: { group: 'interaction', title: 'Click an element' },
+  aiDoubleClick: { group: 'interaction', title: 'Double-click an element' },
   aiHover: { group: 'interaction', title: 'Hover over an element' },
   aiInput: { group: 'interaction', title: 'Input text into an element' },
   aiRightClick: { group: 'interaction', title: 'Right-click an element' },

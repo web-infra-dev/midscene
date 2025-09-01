@@ -15,6 +15,7 @@ import {
   type AbstractInterface,
   type ActionTapParam,
   defineAction,
+  defineActionDoubleClick,
   defineActionDragAndDrop,
   defineActionKeyboardPress,
   defineActionScroll,
@@ -79,6 +80,11 @@ export class AndroidDevice implements AbstractInterface {
         const element = param.locate;
         assert(element, 'Element not found, cannot tap');
         await this.mouseClick(element.center[0], element.center[1]);
+      }),
+      defineActionDoubleClick(async (param) => {
+        const element = param.locate;
+        assert(element, 'Element not found, cannot double click');
+        await this.mouseDoubleClick(element.center[0], element.center[1]);
       }),
       defineAction({
         name: 'Input',
@@ -1091,6 +1097,19 @@ ${Object.keys(size)
     await adb.shell(
       `input${this.getDisplayArg()} swipe ${adjustedX} ${adjustedY} ${adjustedX} ${adjustedY} 150`,
     );
+  }
+
+  async mouseDoubleClick(x: number, y: number): Promise<void> {
+    const adb = await this.getAdb();
+    const { x: adjustedX, y: adjustedY } = this.adjustCoordinates(x, y);
+
+    // Use input tap for double-click as it generates proper touch events
+    // that Android can recognize as a double-click gesture
+    const tapCommand = `input${this.getDisplayArg()} tap ${adjustedX} ${adjustedY}`;
+    await adb.shell(tapCommand);
+    // Short delay between taps for double-click recognition
+    await sleep(50);
+    await adb.shell(tapCommand);
   }
 
   async mouseMove(x: number, y: number): Promise<void> {
