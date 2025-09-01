@@ -129,15 +129,20 @@ export class TaskExecutor {
 
     let elementId = element?.id;
     if (element?.isOrderSensitive !== undefined) {
-      const xpaths = await (this.interface as any).getXpathsByPoint(
-        {
-          left: element.center[0],
-          top: element.center[1],
-        },
-        element?.isOrderSensitive,
-      );
+      try {
+        const xpaths = await (this.interface as any).getXpathsByPoint(
+          {
+            left: element.center[0],
+            top: element.center[1],
+          },
+          element?.isOrderSensitive,
+        );
 
-      return xpaths;
+        return xpaths;
+      } catch (error) {
+        debug('getXpathsByPoint failed: %s', error);
+        return undefined;
+      }
     }
 
     // find the nearest xpath for the element
