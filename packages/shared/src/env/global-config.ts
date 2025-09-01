@@ -322,6 +322,8 @@ export class GlobalConfigManager {
       this.initModelConfigForIntent();
     } else {
       this.initAllEnvConfig();
+      // reset modelConfigForChromeExtension to force re-init when overrideAIConfig is called
+      this.modelConfigForChromeExtension = undefined;
     }
   }
 }
