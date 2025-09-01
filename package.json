@@ -1,7 +1,7 @@
 {
   "name": "midscene",
   "private": true,
-  "version": "0.27.5",
+  "version": "0.27.6",
   "scripts": {
     "dev": "nx run-many --target=build:watch --exclude=android-playground,chrome-extension,@midscene/report,doc --verbose --parallel=9",
     "build": "nx run-many --target=build --exclude=doc --verbose",
