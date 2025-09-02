@@ -78,6 +78,28 @@ export const defineActionRightClick = (
   });
 };
 
+// DoubleClick
+export const actionDoubleClickParamSchema = z.object({
+  locate: getMidsceneLocationSchema().describe(
+    'The element to be double clicked',
+  ),
+});
+export type ActionDoubleClickParam = z.infer<
+  typeof actionDoubleClickParamSchema
+>;
+
+export const defineActionDoubleClick = (
+  call: (param: ActionDoubleClickParam) => Promise<void>,
+): DeviceAction<ActionDoubleClickParam> => {
+  return defineAction({
+    name: 'DoubleClick',
+    description: 'Double click the element',
+    interfaceAlias: 'aiDoubleClick',
+    paramSchema: actionDoubleClickParamSchema,
+    call,
+  });
+};
+
 // Hover
 export const actionHoverParamSchema = z.object({
   locate: getMidsceneLocationSchema().describe('The element to be hovered'),

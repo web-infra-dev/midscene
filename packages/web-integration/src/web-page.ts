@@ -3,6 +3,7 @@ import type { Point } from '@midscene/core';
 import {
   AbstractInterface,
   type DeviceAction,
+  defineActionDoubleClick,
   defineActionDragAndDrop,
   defineActionHover,
   defineActionInput,
@@ -380,6 +381,22 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
     assert(element, 'Element not found, cannot right click');
     await page.mouse.click(element.center[0], element.center[1], {
       button: 'right',
+    });
+  }),
+  defineActionDoubleClick(async (param) => {
+    const element = param.locate;
+    assert(element, 'Element not found, cannot double click');
+
+    // Use two separate clicks with a short delay to simulate double-click
+    await page.mouse.click(element.center[0], element.center[1], {
+      button: 'left',
+    });
+
+    // Short delay between clicks for double-click recognition
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    await page.mouse.click(element.center[0], element.center[1], {
+      button: 'left',
     });
   }),
   defineActionHover(async (param) => {
