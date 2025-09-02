@@ -162,7 +162,7 @@ export class Agent<
       return this.getUIContext(action);
     });
 
-    if (opts?.cacheId && this.interface.interfaceType !== 'android') {
+    if (opts?.cacheId) {
       this.taskCache = new TaskCache(
         opts.cacheId,
         globalConfigManager.getEnvConfigInBoolean(MIDSCENE_CACHE), // if we should use cache to match the element
