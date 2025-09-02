@@ -1108,7 +1108,7 @@ ${Object.keys(size)
     const tapCommand = `input${this.getDisplayArg()} tap ${adjustedX} ${adjustedY}`;
     await adb.shell(tapCommand);
     // Short delay between taps for double-click recognition
-    await sleep(200);
+    await sleep(50);
     await adb.shell(tapCommand);
   }
 
