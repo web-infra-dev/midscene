@@ -167,6 +167,10 @@ export interface MidsceneYamlFlowItemAIRightClick extends LocateOption {
   aiRightClick: TUserPrompt;
 }
 
+export interface MidsceneYamlFlowItemAIDoubleClick extends LocateOption {
+  aiDoubleClick: TUserPrompt;
+}
+
 export interface MidsceneYamlFlowItemAIHover extends LocateOption {
   aiHover: TUserPrompt;
 }
@@ -217,6 +221,7 @@ export type MidsceneYamlFlowItem =
   | MidsceneYamlFlowItemAIWaitFor
   | MidsceneYamlFlowItemAITap
   | MidsceneYamlFlowItemAIRightClick
+  | MidsceneYamlFlowItemAIDoubleClick
   | MidsceneYamlFlowItemAIHover
   | MidsceneYamlFlowItemAIInput
   | MidsceneYamlFlowItemAIKeyboardPress

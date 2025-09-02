@@ -33,7 +33,7 @@ Below are the main APIs available for the various Agents in Midscene.
 In Midscene, you can choose to use either auto planning or instant action.
 
 - `agent.ai()` is for Auto Planning: Midscene will automatically plan the steps and execute them. It's more smart and looks like more fashionable style for AI agents. But it may be slower and heavily rely on the quality of the AI model.
-- `agent.aiTap()`, `agent.aiHover()`, `agent.aiInput()`, `agent.aiKeyboardPress()`, `agent.aiScroll()`, `agent.aiRightClick()` are for Instant Action: Midscene will directly perform the specified action, while the AI model is responsible for basic tasks such as locating elements. It's faster and more reliable if you are certain about the action you want to perform.
+- `agent.aiTap()`, `agent.aiHover()`, `agent.aiInput()`, `agent.aiKeyboardPress()`, `agent.aiScroll()`, `agent.aiDoubleClick()`, `agent.aiRightClick()` are for Instant Action: Midscene will directly perform the specified action, while the AI model is responsible for basic tasks such as locating elements. It's faster and more reliable if you are certain about the action you want to perform.
 
 :::
 
@@ -259,6 +259,39 @@ await agent.aiScroll(
   { direction: 'up', distance: 100, scrollType: 'once' },
   'The form panel',
 );
+```
+
+### `agent.aiDoubleClick()`
+
+Double-click on an element.
+
+- Type
+
+```typescript
+function aiDoubleClick(locate: string | Object, options?: Object): Promise<void>;
+```
+
+- Parameters:
+
+  - `locate: string | Object` - A natural language description of the element to double-click on, or [prompting with images](#prompting-with-images).
+  - `options?: Object` - Optional, a configuration object containing:
+    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. False by default.
+    - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
+    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+
+- Return Value:
+
+  - Returns a `Promise<void>`
+
+- Examples:
+
+```typescript
+await agent.aiDoubleClick('The file name at the top of the page');
+
+// Use deepThink feature to precisely locate the element
+await agent.aiDoubleClick('The file name at the top of the page', {
+  deepThink: true,
+});
 ```
 
 ### `agent.aiRightClick()`

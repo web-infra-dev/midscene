@@ -104,6 +104,7 @@ export const PlaywrightAiFixture = (options?: {
       | 'aiScroll'
       | 'aiTap'
       | 'aiRightClick'
+      | 'aiDoubleClick'
       | 'aiQuery'
       | 'aiAssert'
       | 'aiWaitFor'
@@ -245,6 +246,18 @@ export const PlaywrightAiFixture = (options?: {
         testInfo,
         use,
         aiActionType: 'aiRightClick',
+      });
+    },
+    aiDoubleClick: async (
+      { page }: { page: OriginPlaywrightPage },
+      use: any,
+      testInfo: TestInfo,
+    ) => {
+      await generateAiFunction({
+        page,
+        testInfo,
+        use,
+        aiActionType: 'aiDoubleClick',
       });
     },
     aiHover: async (
@@ -479,6 +492,9 @@ export type PlayWrightAiFixtureType = {
   aiRightClick: (
     ...args: Parameters<PageAgent['aiRightClick']>
   ) => ReturnType<PageAgent['aiRightClick']>;
+  aiDoubleClick: (
+    ...args: Parameters<PageAgent['aiDoubleClick']>
+  ) => ReturnType<PageAgent['aiDoubleClick']>;
   aiHover: (
     ...args: Parameters<PageAgent['aiHover']>
   ) => ReturnType<PageAgent['aiHover']>;

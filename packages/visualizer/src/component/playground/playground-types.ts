@@ -31,6 +31,7 @@ export type RunType =
   | 'aiQuery'
   | 'aiAssert'
   | 'aiTap'
+  | 'aiDoubleClick'
   | 'aiHover'
   | 'aiInput'
   | 'aiRightClick'

@@ -170,6 +170,9 @@ export const getPlaceholderForType = (type: string): string => {
   if (type === 'aiTap') {
     return 'What element do you want to tap?';
   }
+  if (type === 'aiDoubleClick') {
+    return 'What element do you want to double-click?';
+  }
   if (type === 'aiHover') {
     return 'What element do you want to hover over?';
   }

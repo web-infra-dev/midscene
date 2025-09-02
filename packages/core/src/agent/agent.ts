@@ -333,6 +333,16 @@ export class Agent<
     });
   }
 
+  async aiDoubleClick(locatePrompt: TUserPrompt, opt?: LocateOption) {
+    assert(locatePrompt, 'missing locate prompt for double click');
+
+    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+
+    return this.callActionInActionSpace('DoubleClick', {
+      locate: detailedLocateParam,
+    });
+  }
+
   async aiHover(locatePrompt: TUserPrompt, opt?: LocateOption) {
     assert(locatePrompt, 'missing locate prompt for hover');
 
@@ -830,8 +840,12 @@ export class Agent<
       return this.aiRightClick(taskPrompt);
     }
 
+    if (type === 'doubleClick') {
+      return this.aiDoubleClick(taskPrompt);
+    }
+
     throw new Error(
-      `Unknown type: ${type}, only support 'action', 'query', 'assert', 'tap', 'rightClick'`,
+      `Unknown type: ${type}, only support 'action', 'query', 'assert', 'tap', 'rightClick', 'doubleClick'`,
     );
   }
 

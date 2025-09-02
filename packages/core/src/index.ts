@@ -32,6 +32,7 @@ export type {
   MidsceneYamlTask,
   MidsceneYamlFlowItem,
   MidsceneYamlFlowItemAIRightClick,
+  MidsceneYamlFlowItemAIDoubleClick,
   MidsceneYamlConfigResult,
   MidsceneYamlScriptWebEnv,
   MidsceneYamlScriptAndroidEnv,
