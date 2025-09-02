@@ -8,7 +8,6 @@ import {
   PlayCircleOutlined,
   RightOutlined,
 } from '@ant-design/icons';
-import type { ChromeRecordedEvent } from '@midscene/recorder';
 import { RecordTimeline } from '@midscene/recorder';
 import { Alert, Button, Empty, Spin } from 'antd';
 import type React from 'react';
@@ -49,7 +48,7 @@ export const RecordDetail: React.FC<RecordDetailProps> = ({
   const { sessions } = useRecordingSessionStore();
   const session = sessions.find((s) => s.id === sessionId);
 
-  // 新增：sessionId 变化时重置 tab
+  // reset tab when sessionId changes
   useEffect(() => {
     setTab('timeline');
     setIsFromStopRecording(false);
