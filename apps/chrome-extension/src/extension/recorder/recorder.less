@@ -1,18 +1,17 @@
 .popup-record-container {
-  // min-height: 500px;
   height: 100%;
   overflow-y: auto;
-  overflow-x: hidden; // 禁用横向滚动条
+  overflow-x: hidden; // Disable horizontal scrollbar
   padding: 16px 0;
   box-sizing: border-box;
   width: 100%;
   
-  // 丝滑滚动优化
+  // Smooth scrolling optimization
   scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch; // iOS Safari 滚动优化
-  overscroll-behavior: contain; // 防止滚动传播
+  -webkit-overflow-scrolling: touch; // iOS Safari scrolling optimization
+  overscroll-behavior: contain; // Prevent scroll propagation
   
-  // 统一滚动条样式
+  // Unified scrollbar style
   &::-webkit-scrollbar {
     width: 6px;
   }
@@ -32,7 +31,7 @@
     }
   }
   
-  // 防止所有子元素超出容器宽度
+  // Prevent all child elements from exceeding container width
   * {
     max-width: 100%;
     box-sizing: border-box;
@@ -263,7 +262,7 @@
   }
   
   .record-timeline {
-    // 移除内部滚动条和固定高度，让内容自然展开
+    // remove internal scrollbar and fixed height, let content expand naturally
     width: 100%;
     max-width: 100%;
     padding: 16px;
@@ -273,11 +272,11 @@
     overflow: visible;
     box-sizing: border-box;
     
-    // 丝滑动画优化
+    // smooth animation optimization
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    will-change: transform; // 优化GPU加速
+    will-change: transform; // optimize GPU acceleration
     
-    // 确保内部组件也不产生滚动条并充分利用宽度
+    // ensure internal components do not generate scrollbars and fully utilize width
     .ant-timeline {
       width: 100%;
       max-width: 100%;
@@ -287,7 +286,7 @@
         width: 100%;
         max-width: 100%;
         
-        // 丝滑入场动画
+        // smooth entry animation
         animation: slideInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         
         &:last-child {
@@ -413,7 +412,7 @@
     }
   }
 
-  // 丝滑滑入动画
+  // smooth slide-in animation
   @keyframes slideInUp {
     0% {
       opacity: 0;
@@ -425,7 +424,7 @@
     }
   }
 
-  // 更丝滑的淡入动画
+  // smoother fade-in animation
   @keyframes fadeInScale {
     0% {
       opacity: 0;
@@ -459,7 +458,7 @@
     border-color: #e8e8e8;
   }
   
-  // 全局禁用可能产生滚动条的 Ant Design 组件
+  // disable scrollbar in all Ant Design components
   .ant-list {
     overflow: visible !important;
     max-width: 100% !important;
@@ -500,14 +499,14 @@
     max-width: 100% !important;
   }
   
-  // 防止文本和 URL 导致横向滚动
+  // prevent text and URL from causing horizontal scrolling
   .ant-typography {
     word-break: break-all !important;
     white-space: normal !important;
     max-width: 100% !important;
   }
   
-  // 确保输入框和按钮不超出容器
+  // ensure input and button do not exceed container
   .ant-input {
     max-width: 100% !important;
   }
@@ -517,7 +516,7 @@
     word-break: break-all;
   }
   
-  // 特别针对 RecordTimeline 的样式优化
+  // special styles optimization for RecordTimeline
   .record-timeline {
     overflow: visible !important;
     max-width: 100% !important;
@@ -528,7 +527,7 @@
       max-width: 100% !important;
     }
     
-    // 如果内容很长，确保可以完整显示
+    // if content is long, ensure it can be displayed completely
     .ant-timeline-item-content {
       overflow: visible !important;
       word-break: break-word;
@@ -536,13 +535,13 @@
       max-width: 100% !important;
     }
     
-    // 确保时间轴项目充分利用宽度
+    // ensure timeline items fully utilize width
     .ant-timeline-item {
       width: 100% !important;
       max-width: 100% !important;
     }
     
-    // 卡片样式优化
+    // card style optimization
     .ant-card {
       margin-bottom: 8px;
       width: 100% !important;
@@ -555,14 +554,14 @@
       }
     }
     
-    // 特别处理长文本和 URL
+    // special handling of long text and URL
     .ant-space-item {
       word-break: break-all;
       white-space: normal;
       max-width: 100%;
     }
     
-    // Timeline 组件内部的 Space 组件优化
+    // optimize Space component inside Timeline component
     .ant-space {
       width: 100% !important;
       max-width: 100% !important;
@@ -575,7 +574,7 @@
       }
     }
     
-    // 处理 RecordTimeline 内部的 Typography 组件
+    // handle Typography component inside RecordTimeline
     .ant-typography {
       word-break: break-all !important;
       white-space: normal !important;
@@ -583,7 +582,7 @@
       overflow-wrap: break-word !important;
     }
     
-    // 特别处理可能的长 URL 显示
+    // special handling of long URL display
     .ant-typography[type="secondary"] {
       word-break: break-all !important;
       white-space: normal !important;
@@ -591,20 +590,20 @@
       overflow-wrap: anywhere !important;
     }
     
-    // 处理 Tag 组件
+    // handle Tag component
     .ant-tag {
       max-width: 100% !important;
       word-break: break-all !important;
       white-space: normal !important;
     }
     
-    // 处理 Button 组件
+    // handle Button component
     .ant-btn {
       max-width: 100% !important;
       word-break: break-all !important;
     }
     
-    // 处理 Code 文本
+    // handle Code text
     code {
       word-break: break-all !important;
       white-space: normal !important;
@@ -612,13 +611,13 @@
       overflow-wrap: break-word !important;
     }
     
-    // 处理可能的固定宽度元素
+    // handle fixed-width elements
     img {
       max-width: 100% !important;
       height: auto !important;
     }
     
-    // 确保所有文本内容都能正确换行
+    // ensure all text content can wrap correctly
     * {
       word-wrap: break-word !important;
       overflow-wrap: break-word !important;

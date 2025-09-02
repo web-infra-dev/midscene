@@ -103,12 +103,13 @@ export function createDisplayContent(
     return value.prompt || '';
   }
 
-  const paramsList: string[] = [];
-
   // Dynamically generate display content from actionSpace paramSchema
   const schema = action.paramSchema;
   if (schema && 'shape' in schema) {
     const locatorFieldKeys = findAllMidsceneLocatorField(schema);
+    let locateValue = '';
+    const otherValues: string[] = [];
+
     Object.keys((schema as any).shape).forEach((key) => {
       const paramValue = value.params?.[key];
       if (
@@ -116,31 +117,35 @@ export function createDisplayContent(
         paramValue !== null &&
         paramValue !== ''
       ) {
-        // Convert key to display name (capitalize first letter)
-        const displayKey = key.charAt(0).toUpperCase() + key.slice(1);
-
         const isLocateField = locatorFieldKeys.includes(key);
 
-        // Format the value based on field type
+        // Separate locate field from other fields, similar to ui-utils.ts paramStr format
         if (isLocateField) {
-          paramsList.push(`${displayKey}: "${paramValue}"`);
-        } else if (typeof paramValue === 'string') {
-          paramsList.push(`${displayKey}: "${paramValue}"`);
-        } else if (typeof paramValue === 'number') {
-          // Special handling for distance in scroll
-          if (key === 'distance') {
-            paramsList.push(`${displayKey}: ${paramValue}px`);
-          } else {
-            paramsList.push(`${displayKey}: ${paramValue}`);
-          }
+          locateValue = String(paramValue);
         } else {
-          paramsList.push(`${displayKey}: ${paramValue}`);
+          // Format the value based on field type
+          if (typeof paramValue === 'string') {
+            otherValues.push(`"${paramValue}"`);
+          } else if (typeof paramValue === 'number') {
+            // Special handling for distance in scroll
+            if (key === 'distance') {
+              otherValues.push(`${paramValue}px`);
+            } else {
+              otherValues.push(String(paramValue));
+            }
+          } else {
+            otherValues.push(String(paramValue));
+          }
         }
       }
     });
+
+    // Create format similar to ui-utils.ts paramStr: ${locate} - ${value}
+    const mainPart = otherValues.join(' ');
+    return locateValue ? `${locateValue} - ${mainPart}` : mainPart;
   }
 
-  return paramsList.join('\n') || value.prompt || '';
+  return value.prompt || '';
 }
 
 // Execute action using actionSpace method or fallback to traditional methods

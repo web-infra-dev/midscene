@@ -32,7 +32,7 @@ export const ThinkingProcessSection: React.FC<ThinkingProcessSectionProps> = ({
     }
   }, [actualCode]);
 
-  // 滚动到最新思考内容
+  // scroll to latest thinking content
   useEffect(() => {
     if (showThinking && contentRef.current) {
       contentRef.current.scrollTop = contentRef.current.scrollHeight;
