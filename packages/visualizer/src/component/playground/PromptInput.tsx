@@ -449,7 +449,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
         // Create legacy-compatible format for history
         const mainPart = otherValues.join(' ');
-        historyPrompt = locateValue ? `${mainPart} | ${locateValue}` : mainPart;
+        historyPrompt = locateValue ? `${locateValue} - ${mainPart}` : mainPart;
       } else {
         historyPrompt = values.prompt || '';
       }
