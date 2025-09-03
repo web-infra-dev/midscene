@@ -1,12 +1,12 @@
 import type { DeviceAction } from '@midscene/core';
 import { findAllMidsceneLocatorField } from '@midscene/core/ai-model';
-import { dataExtractionAPIs } from '@midscene/playground';
+import { dataExtractionAPIs } from '@midscene/core/playground';
 import type {
   ExecutionOptions,
   FormValue,
   PlaygroundAgent,
   ValidationResult,
-} from '@midscene/playground';
+} from '@midscene/core/playground';
 
 export const formatErrorMessage = (e: any): string => {
   const errorMessage = e?.message || '';
@@ -110,7 +110,7 @@ export function createDisplayContent(
     let locateValue = '';
     const otherValues: string[] = [];
 
-    Object.keys((schema as any).shape).forEach((key) => {
+    Object.keys((schema as { shape: Record<string, unknown> }).shape).forEach((key) => {
       const paramValue = value.params?.[key];
       if (
         paramValue !== undefined &&

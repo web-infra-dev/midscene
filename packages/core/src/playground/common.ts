@@ -1,18 +1,36 @@
-import type { DeviceAction } from '@midscene/core';
-import { findAllMidsceneLocatorField } from '@midscene/core/ai-model';
+import { findAllMidsceneLocatorField } from '../ai-model';
+import type { DeviceAction } from '../types';
 import type {
   ExecutionOptions,
   FormValue,
   PlaygroundAgent,
   ValidationResult,
-} from '@midscene/playground';
+} from './types';
+
+// APIs that should not generate replay scripts
+export const dataExtractionAPIs = [
+  'aiQuery',
+  'aiBoolean',
+  'aiNumber',
+  'aiString',
+  'aiAsk',
+];
+
+export const validationAPIs = ['aiAssert', 'aiWaitFor'];
+
+export const noReplayAPIs = [...dataExtractionAPIs, ...validationAPIs];
 
 export const formatErrorMessage = (e: any): string => {
   const errorMessage = e?.message || '';
+  
   if (errorMessage.includes('of different extension')) {
     return 'Conflicting extension detected. Please disable the suspicious plugins and refresh the page. Guide: https://midscenejs.com/quick-experience.html#faq';
   }
-  // Always return the actual error message, including NOT_IMPLEMENTED_AS_DESIGNED errors
+  
+  if (errorMessage.includes('NOT_IMPLEMENTED_AS_DESIGNED')) {
+    return 'Further actions cannot be performed in the current environment';
+  }
+  
   return errorMessage || 'Unknown error';
 };
 
@@ -26,8 +44,11 @@ async function parseStructuredParams(
     return [params.prompt || '', options];
   }
 
-  const schema = action.paramSchema as { shape: Record<string, unknown> };
-  const keys = Object.keys(schema.shape);
+  const schema = action.paramSchema;
+  const keys =
+    schema && 'shape' in schema
+      ? Object.keys((schema as { shape: Record<string, unknown> }).shape)
+      : [];
 
   const paramObj: Record<string, unknown> = { ...options };
 
@@ -62,7 +83,7 @@ export function validateStructuredParams(
     const schema = action.paramSchema;
     if (schema) {
       const locatorFieldKeys = findAllMidsceneLocatorField(schema);
-      locatorFieldKeys.forEach((key) => {
+      locatorFieldKeys.forEach((key: string) => {
         if (typeof paramsForValidation[key] === 'string') {
           paramsForValidation[key] = {
             midscene_location_field_flag: true,

@@ -4,7 +4,7 @@ import Icon, {
   ArrowDownOutlined,
 } from '@ant-design/icons';
 import type { DeviceAction, UIContext } from '@midscene/core';
-import { PlaygroundSDK, noReplayAPIs } from '@midscene/playground';
+import { PlaygroundSDK, noReplayAPIs } from '@midscene/core/playground';
 import {
   ContextPreview,
   type PlaygroundResult,
@@ -29,6 +29,9 @@ import './playground.less';
 import { ChromeExtensionProxyPage } from '@midscene/web/chrome-extension';
 
 declare const __SDK_VERSION__: string;
+
+// Constants
+const DEFAULT_AGENT_ERROR = 'Agent is required for local execution mode';
 
 const { Text } = Typography;
 
@@ -129,9 +132,25 @@ export function BrowserExtensionPlayground({
 
   // Initialize SDK for Local Execution type (stable instance to avoid re-creating per render)
   const sdkRef = useRef<PlaygroundSDK | null>(null);
-  if (!sdkRef.current) {
-    sdkRef.current = new PlaygroundSDK({ type: 'local-execution' });
-  }
+  const currentAgent = useRef<any>(null);
+
+  // Initialize SDK with agent when needed - optimized to cache based on agent
+  const initializeSDK = useCallback((agent?: any) => {
+    const targetAgent = agent || getAgent();
+    if (!targetAgent) {
+      throw new Error(DEFAULT_AGENT_ERROR);
+    }
+
+    // Only recreate if agent has changed or SDK doesn't exist
+    if (!sdkRef.current || currentAgent.current !== targetAgent) {
+      sdkRef.current = new PlaygroundSDK({
+        type: 'local-execution',
+        agent: targetAgent,
+      });
+      currentAgent.current = targetAgent;
+    }
+    return sdkRef.current;
+  }, [getAgent]);
 
   // References
   const runResultRef = useRef<HTMLHeadingElement>(null);
@@ -185,7 +204,9 @@ export function BrowserExtensionPlayground({
     const loadActionSpace = async () => {
       try {
         const page = new ChromeExtensionProxyPage(forceSameTabNavigation);
-        const space = await sdkRef.current?.getActionSpace(page);
+        // Use a temporary agent for actionSpace loading - this doesn't need to match execution agent
+        const sdk = initializeSDK();
+        const space = await sdk.getActionSpace(page);
 
         setActionSpace(space || []);
       } catch (error) {
@@ -282,10 +303,10 @@ export function BrowserExtensionPlayground({
     const needsStructuredParams = !!action?.paramSchema;
 
     if (needsStructuredParams) {
-      const validation = sdkRef.current!.validateStructuredParams(
-        value,
-        action,
-      );
+      // Get the agent that will be used for execution
+      const agent = getAgent(forceSameTabNavigation);
+      const sdk = initializeSDK(agent);
+      const validation = sdk.validateStructuredParams(value, action);
       if (!validation.valid) {
         message.error(validation.errorMessage || 'Validation failed');
         return;
@@ -297,8 +318,11 @@ export function BrowserExtensionPlayground({
 
     const startTime = Date.now();
 
+    const activeAgent = getAgent(forceSameTabNavigation);
+    
     // Create display content for user input - dynamically from actionSpace
-    const displayContent = sdkRef.current!.createDisplayContent(
+    const sdk = initializeSDK(activeAgent);
+    const displayContent = sdk.createDisplayContent(
       value,
       needsStructuredParams,
       action,
@@ -315,7 +339,6 @@ export function BrowserExtensionPlayground({
     setLoading(true);
 
     const result: PlaygroundResult = { ...blankResult };
-    const activeAgent = getAgent(forceSameTabNavigation);
     const thisRunningId = Date.now();
     const actionType = value.type;
 
@@ -353,20 +376,16 @@ export function BrowserExtensionPlayground({
         setInfoList((prev) => [...prev, progressItem]);
       };
 
-      // Execute the action using the SDK
-      result.result = await sdkRef.current!.executeAction(
-        activeAgent,
-        actionType,
-        actionSpace,
-        value,
-        {
-          deepThink,
-          screenshotIncluded,
-          domIncluded,
-        },
-      );
+      // Execute the action using the SDK with the same agent
+      const sdk = initializeSDK(activeAgent);
+      result.result = await sdk.executeAction(actionType, value, {
+        deepThink,
+        screenshotIncluded,
+        domIncluded,
+      });
     } catch (e: any) {
-      result.error = sdkRef.current!.formatErrorMessage(e);
+      const sdk = initializeSDK(activeAgent);
+      result.error = sdk.formatErrorMessage(e);
       console.error(e);
     }
 
@@ -382,14 +401,6 @@ export function BrowserExtensionPlayground({
         : null;
 
       result.reportHTML = activeAgent?.reportHTMLString() || null;
-    } catch (e) {
-      console.error(e);
-    }
-
-    try {
-      console.log('destroy agent.page', activeAgent?.page);
-      await activeAgent?.page?.destroy();
-      console.log('destroy agent.page done', activeAgent?.page);
     } catch (e) {
       console.error(e);
     }
@@ -452,7 +463,13 @@ export function BrowserExtensionPlayground({
 
     // Reset hasNewMessage for future runs
 
-    console.log(`time taken: ${Date.now() - startTime}ms`);
+    console.log('Chrome Extension playground execution completed:', {
+      timeTaken: `${Date.now() - startTime}ms`,
+      actionType,
+      hasResult: !!result.result,
+      hasDump: !!result.dump,
+      hasError: !!result.error,
+    });
   }, [
     form,
     getAgent,

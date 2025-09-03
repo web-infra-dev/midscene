@@ -1,6 +1,6 @@
 import type { DeviceAction } from '@midscene/core';
 
-// Zod schema related types
+// Zod schema related types - compatible with actual zod types
 export interface ZodType {
   _def?: {
     typeName:
@@ -10,12 +10,15 @@ export interface ZodType {
       | 'ZodObject'
       | 'ZodEnum'
       | 'ZodNumber'
-      | 'ZodString';
+      | 'ZodString'
+      | 'ZodBoolean';
     innerType?: ZodType;
     defaultValue?: () => unknown;
     shape?: () => Record<string, ZodType>;
     values?: string[];
+    description?: string;
   };
+  description?: string; // For direct access to description
 }
 
 export interface ZodObjectSchema extends ZodType {
@@ -34,6 +37,20 @@ export interface ZodNumberSchema extends ZodType {
   _def: {
     typeName: 'ZodNumber';
   };
+}
+
+export interface ZodBooleanSchema extends ZodType {
+  _def: {
+    typeName: 'ZodBoolean';
+  };
+}
+
+// Interface for accessing Zod objects at runtime
+export interface ZodRuntimeAccess extends ZodType {
+  shape?: Record<string, ZodType>;
+  description?: string;
+  typeName?: string;
+  type?: string;
 }
 
 // ActionSpace related types - compatible with DeviceAction
@@ -57,6 +74,7 @@ export const VALIDATION_CONSTANTS = {
     ENUM: 'ZodEnum',
     NUMBER: 'ZodNumber',
     STRING: 'ZodString',
+    BOOLEAN: 'ZodBoolean',
   },
   FIELD_FLAGS: {
     LOCATION: 'midscene_location_field_flag',
@@ -75,13 +93,13 @@ export const isZodObjectSchema = (
   return (
     typeof schema === 'object' &&
     schema !== null &&
-    ('shape' in schema || (schema as any).type === 'ZodObject')
+    ('shape' in schema || (schema as { type?: string }).type === 'ZodObject')
   );
 };
 
 export const isLocateField = (field: ZodType): boolean => {
   // Handle both runtime Zod objects and processed schema objects from server
-  const fieldAsAny = field as any;
+  const fieldWithRuntime = field as ZodRuntimeAccess;
 
   // Check if it's a runtime ZodObject
   if (field._def?.typeName === VALIDATION_CONSTANTS.ZOD_TYPES.OBJECT) {
@@ -96,8 +114,8 @@ export const isLocateField = (field: ZodType): boolean => {
     }
 
     // Also try accessing shape directly from the field object
-    if (!shape && fieldAsAny.shape) {
-      shape = fieldAsAny.shape;
+    if (!shape && fieldWithRuntime.shape) {
+      shape = fieldWithRuntime.shape;
     }
 
     // Check for the location flag in shape
@@ -107,7 +125,7 @@ export const isLocateField = (field: ZodType): boolean => {
 
     // Check description contains location-related keywords
     const description =
-      (field._def as any)?.description || fieldAsAny.description || '';
+      (field._def as { description?: string })?.description || fieldWithRuntime.description || '';
     if (
       typeof description === 'string' &&
       description.toLowerCase().includes('input field')
@@ -127,7 +145,7 @@ export const isLocateField = (field: ZodType): boolean => {
 
     // Check for description patterns
     const description =
-      fieldAsAny.description || (fieldAsAny._def as any)?.description || '';
+      fieldWithRuntime.description || (fieldWithRuntime._def as { description?: string })?.description || '';
     if (typeof description === 'string') {
       const desc = description.toLowerCase();
       if (
@@ -141,8 +159,8 @@ export const isLocateField = (field: ZodType): boolean => {
 
     // Check for type patterns that suggest location fields
     if (
-      fieldAsAny.typeName === 'ZodObject' ||
-      fieldAsAny.type === 'ZodObject'
+      (fieldWithRuntime as { typeName?: string }).typeName === 'ZodObject' ||
+      (fieldWithRuntime as { type?: string }).type === 'ZodObject'
     ) {
       // For processed schemas, location fields are often described as input fields
       return (

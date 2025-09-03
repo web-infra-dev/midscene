@@ -33,7 +33,7 @@ export const ContextPreview: React.FC<ContextPreviewProps> = ({
             type="link"
             onClick={(e) => {
               e.preventDefault();
-              setUiContextPreview(DemoData as any);
+              setUiContextPreview(DemoData as unknown as UIContext);
             }}
           >
             Load Demo

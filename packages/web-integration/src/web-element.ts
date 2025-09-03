@@ -5,11 +5,11 @@ import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 
 import { commonContextParser } from '@midscene/core/agent';
-import type { StaticPage } from '@midscene/playground';
 import type { NodeType } from '@midscene/shared/constants';
 import type ChromeExtensionProxyPage from './chrome-extension/page';
 import type { PlaywrightWebPage } from './playwright';
 import type { PuppeteerWebPage } from './puppeteer';
+import type { StaticPage } from './static';
 
 export type WebPageAgentOpt = AgentOpt & WebPageOpt;
 export type WebPageOpt = {

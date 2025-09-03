@@ -1,132 +1,7 @@
-import type { UIContext, WebUIContext } from '@midscene/core';
-import { StaticPage, StaticPageAgent } from '@midscene/playground';
-import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
+import type { WebUIContext } from '@midscene/core';
+import { StaticPage, StaticPageAgent } from '@midscene/web/static';
 import type { ZodObjectSchema } from './types';
 import { isZodObjectSchema, unwrapZodType } from './types';
-
-// Server base URL
-export const serverBase = `http://localhost:${PLAYGROUND_SERVER_PORT}`;
-
-// Check server status
-export const checkServerStatus = async () => {
-  try {
-    const res = await fetch(`${serverBase}/status`);
-    return res.status === 200;
-  } catch (e) {
-    return false;
-  }
-};
-
-// Send request to server
-export const requestPlaygroundServer = async (
-  context: UIContext | string,
-  type: string,
-  prompt: string,
-  {
-    requestId,
-    deepThink,
-    params,
-    screenshotIncluded,
-    domIncluded,
-  }: {
-    requestId?: string;
-    deepThink?: boolean;
-    params?: any;
-    screenshotIncluded?: boolean;
-    domIncluded?: boolean | 'visible-only';
-  } = {},
-) => {
-  const payload: any = { context, type, prompt };
-
-  // If requestId is provided, add it to the request
-  if (requestId) {
-    payload.requestId = requestId;
-  }
-
-  if (deepThink) {
-    payload.deepThink = deepThink;
-  }
-
-  if (screenshotIncluded !== undefined) {
-    payload.screenshotIncluded = screenshotIncluded;
-  }
-
-  if (domIncluded !== undefined) {
-    payload.domIncluded = domIncluded;
-  }
-
-  // If params is provided, add it to the request for structured parameters
-  if (params) {
-    payload.params = params;
-  }
-
-  const res = await fetch(`${serverBase}/execute`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  });
-  return res.json();
-};
-
-// Send configuration to server
-export const overrideServerConfig = async (aiConfig: any) => {
-  return fetch(`${serverBase}/config`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ aiConfig }),
-  });
-};
-
-// Cancel task
-export const cancelTask = async (requestId: string) => {
-  try {
-    const res = await fetch(`${serverBase}/cancel/${requestId}`);
-    return res.json();
-  } catch (error) {
-    console.error('Failed to cancel task:', error);
-    return { error: 'Failed to cancel task' };
-  }
-};
-
-// Get task progress
-export const getTaskProgress = async (requestId: string) => {
-  try {
-    const response = await fetch(`${serverBase}/task-progress/${requestId}`);
-    return await response.json();
-  } catch (error) {
-    console.error('Failed to poll task progress:', error);
-    return { tip: null };
-  }
-};
-
-// Get action space from server
-export const getActionSpace = async (context?: string) => {
-  try {
-    if (!context) {
-      return [];
-    }
-
-    const response = await fetch(`${serverBase}/action-space`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ context }),
-    });
-
-    if (response.ok) {
-      return await response.json();
-    }
-    return [];
-  } catch (error) {
-    console.error('Failed to get action space:', error);
-    return [];
-  }
-};
 
 // Get action name based on type
 export const actionNameForType = (type: string) => {
@@ -147,16 +22,6 @@ export const actionNameForType = (type: string) => {
 export const staticAgentFromContext = (context: WebUIContext) => {
   const page = new StaticPage(context);
   return new StaticPageAgent(page);
-};
-
-// Format error message
-export const formatErrorMessage = (e: any): string => {
-  const errorMessage = e?.message || '';
-  if (errorMessage.includes('of different extension')) {
-    return 'Conflicting extension detected. Please disable the suspicious plugins and refresh the page. Guide: https://midscenejs.com/quick-experience.html#faq';
-  }
-  // Always return the actual error message, including NOT_IMPLEMENTED_AS_DESIGNED errors
-  return errorMessage || 'Unknown error';
 };
 
 // Get placeholder text based on run type
@@ -209,14 +74,6 @@ export const getPlaceholderForType = (type: string): string => {
   return 'What do you want to do?';
 };
 
-// Blank result template
-export const blankResult = {
-  result: null,
-  dump: null,
-  reportHTML: null,
-  error: null,
-};
-
 export const isRunButtonEnabled = (
   runButtonEnabled: boolean,
   needsStructuredParams: boolean,
@@ -246,7 +103,7 @@ export const isRunButtonEnabled = (
           typeof action.paramSchema === 'object' &&
           'shape' in action.paramSchema
         ) {
-          const shape = (action.paramSchema as any).shape || {};
+          const shape = (action.paramSchema as { shape: Record<string, unknown> }).shape || {};
           const shapeKeys = Object.keys(shape);
           return shapeKeys.length > 0; // Only need input if there are actual fields
         }
@@ -273,7 +130,7 @@ export const isRunButtonEnabled = (
     const action = actionSpace?.find(
       (a) => a.interfaceAlias === selectedType || a.name === selectedType,
     );
-    if (action?.paramSchema && isZodObjectSchema(action.paramSchema as any)) {
+    if (action?.paramSchema && isZodObjectSchema(action.paramSchema)) {
       // Check if all required fields are filled
       const schema = action.paramSchema as unknown as ZodObjectSchema;
       const shape = schema.shape || {};

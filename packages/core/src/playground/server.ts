@@ -2,15 +2,15 @@ import { randomUUID } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import type { Server } from 'node:http';
 import { join } from 'node:path';
-import type { Agent as PageAgent } from '@midscene/core/agent';
-import type { AbstractInterface } from '@midscene/core/device';
-import { getTmpDir } from '@midscene/core/utils';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import { overrideAIConfig } from '@midscene/shared/env';
 import { ifInBrowser, ifInWorker } from '@midscene/shared/utils';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import express from 'express';
+import express, { type Request, type Response } from 'express';
+import type { Agent as PageAgent } from '../agent';
+import type { AbstractInterface } from '../device';
+import { getTmpDir } from '../utils';
 import { executeAction, formatErrorMessage } from './common';
 import type { PlaygroundAgent } from './types';
 
@@ -81,14 +81,14 @@ export default class PlaygroundServer {
       }),
     );
 
-    this.app.get('/status', async (req, res) => {
+    this.app.get('/status', async (req: Request, res: Response) => {
       // const modelName = g
       res.send({
         status: 'ok',
       });
     });
 
-    this.app.get('/context/:uuid', async (req, res) => {
+    this.app.get('/context/:uuid', async (req: Request, res: Response) => {
       const { uuid } = req.params;
       const contextFile = this.filePathForUuid(uuid);
 
@@ -104,17 +104,20 @@ export default class PlaygroundServer {
       });
     });
 
-    this.app.get('/task-progress/:requestId', async (req, res) => {
-      const { requestId } = req.params;
-      res.json({
-        tip: this.taskProgressTips[requestId] || '',
-      });
-    });
+    this.app.get(
+      '/task-progress/:requestId',
+      async (req: Request, res: Response) => {
+        const { requestId } = req.params;
+        res.json({
+          tip: this.taskProgressTips[requestId] || '',
+        });
+      },
+    );
 
     this.app.post(
       '/action-space',
       express.json({ limit: '30mb' }),
-      async (req, res) => {
+      async (req: Request, res: Response) => {
         const { context } = req.body;
 
         if (!context) {
@@ -176,7 +179,7 @@ export default class PlaygroundServer {
     this.app.post(
       '/playground-with-context',
       express.json({ limit: '50mb' }),
-      async (req, res) => {
+      async (req: Request, res: Response) => {
         const context = req.body.context;
 
         if (!context) {
@@ -197,7 +200,7 @@ export default class PlaygroundServer {
     this.app.post(
       '/execute',
       express.json({ limit: '30mb' }),
-      async (req, res) => {
+      async (req: Request, res: Response) => {
         const {
           context,
           type,
@@ -307,7 +310,7 @@ export default class PlaygroundServer {
       },
     );
 
-    this.app.get('/cancel/:requestId', async (req, res) => {
+    this.app.get('/cancel/:requestId', async (req: Request, res: Response) => {
       const { requestId } = req.params;
 
       if (!requestId) {
@@ -338,7 +341,7 @@ export default class PlaygroundServer {
     this.app.post(
       '/config',
       express.json({ limit: '1mb' }),
-      async (req, res) => {
+      async (req: Request, res: Response) => {
         const { aiConfig } = req.body;
 
         if (!aiConfig || typeof aiConfig !== 'object') {
@@ -365,12 +368,12 @@ export default class PlaygroundServer {
 
     // Set up static file serving after all API routes are defined
     if (this.staticPath) {
-      this.app.get('/', (_req, res) => {
+      this.app.get('/', (_req: Request, res: Response) => {
         // compatible with windows
         res.redirect('/index.html');
       });
 
-      this.app.get('*', (req, res) => {
+      this.app.get('*', (req: Request, res: Response) => {
         const requestedPath = join(this.staticPath!, req.path);
         if (existsSync(requestedPath)) {
           res.sendFile(requestedPath);

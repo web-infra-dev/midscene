@@ -1,4 +1,5 @@
 import type { z } from '@midscene/core';
+import type { ZodRuntimeAccess } from './types';
 import { Form, Input, InputNumber, Select } from 'antd';
 import type React from 'react';
 
@@ -35,6 +36,7 @@ export const TextField: React.FC<Omit<FormFieldProps, 'isLocateField'>> = ({
         isRequired ? [{ required: true, message: `Please input ${name}` }] : []
       }
       style={{ marginBottom }}
+      colon={false}
     >
       <Input placeholder={placeholder} />
     </Form.Item>
@@ -66,6 +68,7 @@ export const LocateField: React.FC<Omit<FormFieldProps, 'isLocateField'>> = ({
           : []
       }
       style={{ marginBottom }}
+      colon={false}
     >
       <TextArea rows={2} placeholder={placeholder} />
     </Form.Item>
@@ -80,7 +83,7 @@ export const EnumField: React.FC<Omit<FormFieldProps, 'isLocateField'>> = ({
   marginBottom,
   placeholder: customPlaceholder,
 }) => {
-  const enumValues = (fieldSchema._def as any).values || [];
+  const enumValues = (fieldSchema as ZodRuntimeAccess)._def?.values || [];
   const selectOptions = enumValues.map((value: string) => ({
     value,
     label: value.charAt(0).toUpperCase() + value.slice(1),
@@ -95,6 +98,7 @@ export const EnumField: React.FC<Omit<FormFieldProps, 'isLocateField'>> = ({
         isRequired ? [{ required: true, message: `Please select ${name}` }] : []
       }
       style={{ marginBottom }}
+      colon={false}
     >
       <Select
         placeholder={customPlaceholder || `Select ${name}`}
@@ -145,6 +149,7 @@ export const NumberField: React.FC<Omit<FormFieldProps, 'isLocateField'>> = ({
         flex: name === 'distance' ? 1 : undefined,
         marginBottom,
       }}
+      colon={false}
     >
       <InputNumber
         placeholder={placeholderValue.toString()}
@@ -152,6 +157,37 @@ export const NumberField: React.FC<Omit<FormFieldProps, 'isLocateField'>> = ({
         max={max}
         step={name === 'distance' ? 10 : 1}
         style={{ width: '100%' }}
+      />
+    </Form.Item>
+  );
+};
+
+export const BooleanField: React.FC<Omit<FormFieldProps, 'isLocateField'>> = ({
+  name,
+  label,
+  isRequired,
+  marginBottom,
+  placeholder: customPlaceholder,
+}) => {
+  const selectOptions = [
+    { value: true, label: 'True' },
+    { value: false, label: 'False' },
+  ];
+
+  return (
+    <Form.Item
+      key={name}
+      name={['params', name]}
+      label={renderLabel(label, !isRequired)}
+      rules={
+        isRequired ? [{ required: true, message: `Please select ${name}` }] : []
+      }
+      style={{ marginBottom }}
+      colon={false}
+    >
+      <Select
+        placeholder={customPlaceholder || `Select ${name}`}
+        options={selectOptions}
       />
     </Form.Item>
   );

@@ -1,6 +1,6 @@
+import { PlaygroundSDK } from '@midscene/core/playground';
 import { useEffect, useState } from 'react';
 import { useEnvConfig } from '../store/store';
-import { checkServerStatus } from './playground-utils';
 
 export const useServerValid = (shouldRun = true) => {
   const [serverValid, setServerValid] = useState(true);
@@ -13,7 +13,10 @@ export const useServerValid = (shouldRun = true) => {
     Promise.resolve(
       (async () => {
         while (!interruptFlag) {
-          const status = await checkServerStatus();
+          const playgroundSDK = new PlaygroundSDK({
+            type: 'remote-execution',
+          });
+          const status = await playgroundSDK.checkStatus();
           if (status) {
             setServerValid(true);
           } else {
