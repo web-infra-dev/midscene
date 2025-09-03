@@ -1,5 +1,6 @@
 import './App.less';
 import type { DeviceAction } from '@midscene/core';
+import { PlaygroundSDK } from '@midscene/core/playground';
 import { SCRCPY_SERVER_PORT } from '@midscene/shared/constants';
 import { overrideAIConfig } from '@midscene/shared/env';
 import {
@@ -10,17 +11,12 @@ import {
   PromptInput,
   type ReplayScriptsInfo,
   allScriptsFromDump,
-  cancelTask,
-  getActionSpace,
-  getTaskProgress,
   globalThemeConfig,
-  overrideServerConfig,
-  requestPlaygroundServer,
   useEnvConfig,
   useServerValid,
 } from '@midscene/visualizer';
 import { Col, ConfigProvider, Form, Layout, Row, message } from 'antd';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { type Socket, io } from 'socket.io-client';
 import AdbDevice from './adb-device';
 import ScrcpyPlayer, { type ScrcpyRefMethods } from './scrcpy-player';
@@ -59,6 +55,13 @@ export default function App() {
   const configAlreadySet = Object.keys(config || {}).length >= 1;
   const serverValid = useServerValid(true);
   const [actionSpace, setActionSpace] = useState<DeviceAction<any>[]>([]);
+
+  // Initialize PlaygroundSDK only once
+  const playgroundSDK = useMemo(() => {
+    return new PlaygroundSDK({
+      type: 'remote-execution',
+    });
+  }, []);
 
   // Socket connection and device management
   const socketRef = useRef<Socket | null>(null);
@@ -216,7 +219,7 @@ export default function App() {
       // set polling interval to 500ms
       pollIntervalRef.current = setInterval(async () => {
         try {
-          const data = await getTaskProgress(requestId);
+          const data = await playgroundSDK.getTaskProgress(requestId);
 
           if (data.tip) {
             setLoadingProgressText(data.tip);
@@ -226,7 +229,7 @@ export default function App() {
         }
       }, 500);
     },
-    [clearPollingInterval],
+    [clearPollingInterval, playgroundSDK],
   );
 
   // clean up the polling when the component unmounts
@@ -270,15 +273,15 @@ export default function App() {
   // Override AI configuration
   useEffect(() => {
     overrideAIConfig(config);
-    overrideServerConfig(config);
-  }, [config]);
+    playgroundSDK.overrideConfig(config);
+  }, [config, playgroundSDK]);
 
   // Initialize actionSpace
   useEffect(() => {
     const loadActionSpace = async () => {
       try {
         if (selectedDeviceId) {
-          const space = await getActionSpace(selectedDeviceId);
+          const space = await playgroundSDK.getActionSpace(selectedDeviceId);
           setActionSpace(space || []);
         } else {
           setActionSpace([]);
@@ -292,7 +295,7 @@ export default function App() {
     if (serverValid) {
       loadActionSpace();
     }
-  }, [serverValid, selectedDeviceId]);
+  }, [serverValid, selectedDeviceId, playgroundSDK]);
 
   // handle run button click
   const handleRun = useCallback(async () => {
@@ -330,7 +333,9 @@ export default function App() {
         typeof action.paramSchema === 'object' &&
         'shape' in action.paramSchema
       ) {
-        const shape = (action.paramSchema as any).shape || {};
+        const shape =
+          (action.paramSchema as { shape: Record<string, unknown> }).shape ||
+          {};
         const shapeKeys = Object.keys(shape);
         return shapeKeys.length > 0; // Only need structured params if there are actual fields
       }
@@ -349,7 +354,9 @@ export default function App() {
           typeof action.paramSchema === 'object' &&
           'shape' in action.paramSchema
         ) {
-          const shape = (action.paramSchema as any).shape || {};
+          const shape =
+            (action.paramSchema as { shape: Record<string, unknown> }).shape ||
+            {};
 
           // Check if any field is required (not optional)
           // For this we need to implement the unwrapZodType logic here or import it
@@ -389,16 +396,19 @@ export default function App() {
     startPollingProgress(thisRunningId);
 
     try {
-      const res = await requestPlaygroundServer(
-        selectedDeviceId,
+      const res = (await playgroundSDK.executeAction(
         type,
-        prompt,
         {
+          type,
+          prompt,
+          params,
+        },
+        {
+          context: selectedDeviceId,
           requestId: thisRunningId,
           deepThink,
-          params, // Pass params to server
         },
-      );
+      )) as PlaygroundResult;
 
       // stop polling
       clearPollingInterval();
@@ -449,10 +459,10 @@ export default function App() {
     setLoading(false);
     resetResult();
     if (currentRequestIdRef.current) {
-      await cancelTask(currentRequestIdRef.current);
+      await playgroundSDK.cancelTask(currentRequestIdRef.current);
     }
     messageApi.info('Operation stopped');
-  }, [messageApi, clearPollingInterval]);
+  }, [messageApi, clearPollingInterval, playgroundSDK]);
 
   return (
     <ConfigProvider theme={globalThemeConfig()}>

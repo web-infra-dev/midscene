@@ -1,5 +1,4 @@
 // Browser-safe version of playground exports (excludes server)
-export { StaticPageAgent } from './static-agent';
 export {
   dataExtractionAPIs,
   noReplayAPIs,
@@ -8,10 +7,9 @@ export {
   validateStructuredParams,
   executeAction,
 } from './common';
-export { default as StaticPage } from './static-page';
 
 // SDK exports (all browser-safe)
-export { PlaygroundSDK } from './sdk/PlaygroundSDK';
+export { PlaygroundSDK } from './sdk';
 export { BasePlaygroundAdapter } from './adapters/base';
 export { LocalExecutionAdapter } from './adapters/local-execution';
 export { RemoteExecutionAdapter } from './adapters/remote-execution';

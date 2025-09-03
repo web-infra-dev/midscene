@@ -1,4 +1,4 @@
-import type { DeviceAction, WebUIContext } from '@midscene/core';
+import type { DeviceAction, WebUIContext } from '../types';
 
 export interface PlaygroundAgent {
   callActionInActionSpace?: (
@@ -10,9 +10,12 @@ export interface PlaygroundAgent {
     locatePrompt?: string,
     options?: Record<string, unknown>,
   ) => Promise<{ pass: boolean; thought: string }>;
+  getActionSpace?: () => Promise<DeviceAction<unknown>[]>;
+  onTaskStartTip?: (tip: string) => void;
   [key: string]:
     | ((prompt: string, options?: Record<string, unknown>) => Promise<unknown>)
     | unknown;
+  destroy?: () => Promise<void>;
 }
 
 export interface FormValue {
@@ -26,10 +29,19 @@ export interface ValidationResult {
   errorMessage?: string;
 }
 
+export interface ServerResponse {
+  result?: unknown;
+  dump?: any;
+  reportHTML?: string;
+  error?: string;
+}
+
 export interface ExecutionOptions {
   deepThink?: boolean;
   screenshotIncluded?: boolean;
   domIncluded?: boolean | 'visible-only';
+  context?: any;
+  requestId?: string;
 }
 
 // Extended web types for playground
@@ -45,6 +57,7 @@ export type ExecutionType = 'local-execution' | 'remote-execution';
 export interface PlaygroundConfig {
   type: ExecutionType;
   serverUrl?: string; // For remote-execution protocol
+  agent?: PlaygroundAgent; // For local-execution
 }
 
 export interface PlaygroundAdapter {

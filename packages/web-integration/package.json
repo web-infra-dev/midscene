@@ -79,6 +79,11 @@
       "types": "./dist/types/common/agent.d.ts",
       "require": "./dist/lib/common/agent.js",
       "import": "./dist/es/common/agent.mjs"
+    },
+    "./static": {
+      "types": "./dist/types/static/index.d.ts",
+      "require": "./dist/lib/static/index.js",
+      "import": "./dist/es/static/index.mjs"
     }
   },
   "watch": {
@@ -110,7 +115,7 @@
   "dependencies": {
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
-    "@midscene/playground": "workspace:*",
+
     "dayjs": "^1.11.11",
     "dotenv": "16.4.5",
     "http-server": "14.1.1",
