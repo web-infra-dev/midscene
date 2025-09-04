@@ -1,5 +1,5 @@
 import type { TUserPrompt } from './ai-model/common';
-import type { Rect } from './types';
+import type { Rect, PlanningActionParamLongPress, PlanningActionParamSwipe } from './types';
 import type { BaseElement, UIContext } from './types';
 
 export interface LocateOption {
@@ -174,6 +174,17 @@ export interface MidsceneYamlFlowItemAIScroll
   // aiScroll: null;
   // locate?: TUserPrompt; // which area to scroll, optional
   aiScroll: TUserPrompt | undefined; // which area to scroll
+}
+
+export interface MidsceneYamlFlowItemAILongPress
+  extends LocateOption,
+    PlanningActionParamLongPress {
+  aiLongPress: TUserPrompt;
+}
+export interface MidsceneYamlFlowItemAISwipe
+  extends LocateOption,
+    PlanningActionParamSwipe {
+  aiSwipe: TUserPrompt | undefined; // which area to swip
 }
 
 export interface MidsceneYamlFlowItemEvaluateJavaScript {

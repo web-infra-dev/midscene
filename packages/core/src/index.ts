@@ -32,6 +32,8 @@ export type {
   MidsceneYamlTask,
   MidsceneYamlFlowItem,
   MidsceneYamlFlowItemAIRightClick,
+  MidsceneYamlFlowItemAILongPress,
+  MidsceneYamlFlowItemAISwipe,
   MidsceneYamlConfigResult,
   LocateOption,
   DetailedLocateParam,
