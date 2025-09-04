@@ -11,7 +11,7 @@ export abstract class AbstractInterface {
   abstract size(): Promise<Size>;
   abstract actionSpace(): DeviceAction[] | Promise<DeviceAction[]>;
 
-  abstract destroy(): Promise<void>;
+  abstract destroy?(): Promise<void>;
 
   abstract describe?(): string;
   abstract getElementsNodeTree?: () => Promise<ElementNode>;
