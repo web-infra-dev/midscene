@@ -673,8 +673,6 @@ ${Object.keys(size)
   }
 
   async size(): Promise<Size> {
-    const adb = await this.getAdb();
-
     // Use custom getScreenSize method instead of adb.getScreenSize()
     const screenSize = await this.getScreenSize();
     // screenSize is a string like "width x height"
@@ -727,6 +725,49 @@ ${Object.keys(size)
       x: Math.round(x / ratio),
       y: Math.round(y / ratio),
     };
+  }
+
+  private calculateScrollEndPoint(
+    start: { x: number; y: number },
+    deltaX: number,
+    deltaY: number,
+    maxWidth: number,
+    maxHeight: number,
+  ): { x: number; y: number } {
+    const minScrollDistance = 50;
+
+    let actualScrollDistanceX = 0;
+    let actualScrollDistanceY = 0;
+
+    if (deltaX !== 0) {
+      const maxAvailableX = deltaX > 0 ? maxWidth - start.x : start.x;
+      actualScrollDistanceX = Math.min(Math.abs(deltaX), maxAvailableX);
+      const minScrollX = Math.min(minScrollDistance, actualScrollDistanceX);
+      actualScrollDistanceX = Math.max(minScrollX, actualScrollDistanceX);
+    }
+
+    if (deltaY !== 0) {
+      const maxAvailableY = deltaY > 0 ? maxHeight - start.y : start.y;
+      actualScrollDistanceY = Math.min(Math.abs(deltaY), maxAvailableY);
+      const minScrollY = Math.min(minScrollDistance, actualScrollDistanceY);
+      actualScrollDistanceY = Math.max(minScrollY, actualScrollDistanceY);
+    }
+
+    const endX =
+      deltaX === 0
+        ? start.x
+        : deltaX > 0
+          ? Math.min(maxWidth, start.x + actualScrollDistanceX)
+          : Math.max(0, start.x - actualScrollDistanceX);
+
+    const endY =
+      deltaY === 0
+        ? start.y
+        : deltaY > 0
+          ? Math.min(maxHeight, start.y + actualScrollDistanceY)
+          : Math.max(0, start.y - actualScrollDistanceY);
+
+    return { x: endX, y: endY };
   }
 
   async screenshotBase64(): Promise<string> {
@@ -932,8 +973,13 @@ ${Object.keys(size)
 
     if (startPoint) {
       const start = { x: startPoint.left, y: startPoint.top };
-      const endY = Math.min(height, start.y + scrollDistance);
-      const end = { x: start.x, y: endY };
+      const end = this.calculateScrollEndPoint(
+        start,
+        0,
+        scrollDistance,
+        0,
+        height,
+      );
       await this.mouseDrag(start, end);
       return;
     }
@@ -947,8 +993,13 @@ ${Object.keys(size)
 
     if (startPoint) {
       const start = { x: startPoint.left, y: startPoint.top };
-      const endY = Math.max(0, start.y - scrollDistance);
-      const end = { x: start.x, y: endY };
+      const end = this.calculateScrollEndPoint(
+        start,
+        0,
+        -scrollDistance,
+        0,
+        height,
+      );
       await this.mouseDrag(start, end);
       return;
     }
@@ -962,8 +1013,13 @@ ${Object.keys(size)
 
     if (startPoint) {
       const start = { x: startPoint.left, y: startPoint.top };
-      const endX = Math.min(width, start.x + scrollDistance);
-      const end = { x: endX, y: start.y };
+      const end = this.calculateScrollEndPoint(
+        start,
+        scrollDistance,
+        0,
+        width,
+        0,
+      );
       await this.mouseDrag(start, end);
       return;
     }
@@ -977,8 +1033,13 @@ ${Object.keys(size)
 
     if (startPoint) {
       const start = { x: startPoint.left, y: startPoint.top };
-      const endX = Math.max(0, start.x - scrollDistance);
-      const end = { x: endX, y: start.y };
+      const end = this.calculateScrollEndPoint(
+        start,
+        -scrollDistance,
+        0,
+        width,
+        0,
+      );
       await this.mouseDrag(start, end);
       return;
     }
@@ -1112,8 +1173,8 @@ ${Object.keys(size)
     await adb.shell(tapCommand);
   }
 
-  async mouseMove(x: number, y: number): Promise<void> {
-    // ADB doesn't have direct cursor movement functionality, but we can record the position for subsequent operations
+  async mouseMove(): Promise<void> {
+    // ADB doesn't have direct cursor movement functionality
     // This is a no-op, as ADB doesn't support direct mouse movement
     return Promise.resolve();
   }
@@ -1130,7 +1191,7 @@ ${Object.keys(size)
     const { x: toX, y: toY } = this.adjustCoordinates(to.x, to.y);
 
     // Ensure duration has a default value
-    const swipeDuration = duration ?? 300;
+    const swipeDuration = duration ?? defaultNormalScrollDuration;
 
     await adb.shell(
       `input${this.getDisplayArg()} swipe ${fromX} ${fromY} ${toX} ${toY} ${swipeDuration}`,
@@ -1142,6 +1203,11 @@ ${Object.keys(size)
     deltaY: number,
     duration?: number,
   ): Promise<void> {
+    // Input validation
+    if (deltaX === 0 && deltaY === 0) {
+      throw new Error('Scroll distance cannot be zero in both directions');
+    }
+
     const { width, height } = await this.size();
 
     // Calculate the starting and ending points of the swipe
@@ -1179,8 +1245,6 @@ ${Object.keys(size)
     );
 
     const adb = await this.getAdb();
-
-    // Ensure duration has a default value
     const swipeDuration = duration ?? defaultNormalScrollDuration;
 
     // Execute the swipe operation
@@ -1292,18 +1356,15 @@ ${Object.keys(size)
     await sleep(100);
   }
 
-  async getXpathsById(id: string): Promise<string[]> {
+  async getXpathsById(): Promise<string[]> {
     throw new Error('Not implemented');
   }
 
-  async getXpathsByPoint(
-    point: Point,
-    isOrderSensitive: boolean,
-  ): Promise<string[]> {
+  async getXpathsByPoint(): Promise<string[]> {
     throw new Error('Not implemented');
   }
 
-  async getElementInfoByXpath(xpath: string): Promise<ElementInfo> {
+  async getElementInfoByXpath(): Promise<ElementInfo> {
     throw new Error('Not implemented');
   }
 

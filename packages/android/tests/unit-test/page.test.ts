@@ -255,7 +255,9 @@ describe('AndroidDevice', () => {
         .mockReturnValueOnce({ x: 20, y: 40 })
         .mockReturnValueOnce({ x: 60, y: 80 });
       await device.mouseDrag(from, to);
-      expect(mockAdb.shell).toHaveBeenCalledWith('input swipe 20 40 60 80 300');
+      expect(mockAdb.shell).toHaveBeenCalledWith(
+        'input swipe 20 40 60 80 1000',
+      );
     });
   });
 
