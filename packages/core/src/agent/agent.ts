@@ -164,7 +164,7 @@ export class Agent<
       return this.getUIContext(action);
     });
 
-    if (opts?.cacheId && this.interface.interfaceType !== 'android') {
+    if (opts?.cacheId) {
       this.taskCache = new TaskCache(
         opts.cacheId,
         globalConfigManager.getEnvConfigInBoolean(MIDSCENE_CACHE), // if we should use cache to match the element
@@ -331,6 +331,16 @@ export class Agent<
     const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
 
     return this.callActionInActionSpace('RightClick', {
+      locate: detailedLocateParam,
+    });
+  }
+
+  async aiDoubleClick(locatePrompt: TUserPrompt, opt?: LocateOption) {
+    assert(locatePrompt, 'missing locate prompt for double click');
+
+    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+
+    return this.callActionInActionSpace('DoubleClick', {
       locate: detailedLocateParam,
     });
   }
@@ -857,8 +867,12 @@ export class Agent<
       return this.aiRightClick(taskPrompt);
     }
 
+    if (type === 'doubleClick') {
+      return this.aiDoubleClick(taskPrompt);
+    }
+
     throw new Error(
-      `Unknown type: ${type}, only support 'action', 'query', 'assert', 'tap', 'rightClick'`,
+      `Unknown type: ${type}, only support 'action', 'query', 'assert', 'tap', 'rightClick', 'doubleClick'`,
     );
   }
 

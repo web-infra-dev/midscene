@@ -35,7 +35,7 @@ export const RecordTimeline = ({
   const [expandedEvents, setExpandedEvents] = useState<Set<number>>(new Set());
   console.log('events', events);
   useEffect(() => {
-    // 方案二：用 className 和 querySelector 获取内部 div
+    // use className and querySelector to get internal div
     if (events.length > 0) {
       const timeline = document.querySelector(
         '.ant-timeline',

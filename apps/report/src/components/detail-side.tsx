@@ -436,7 +436,6 @@ const DetailSide = (): JSX.Element => {
               : null;
 
           return {
-            color: '#06B1AB',
             children: (
               <>
                 <p>
@@ -457,7 +456,6 @@ const DetailSide = (): JSX.Element => {
 
       if ((task as ExecutionTaskPlanning).output?.log) {
         timelineData.push({
-          color: '#06B1AB',
           children: (
             <>
               <p>
@@ -474,7 +472,6 @@ const DetailSide = (): JSX.Element => {
           ?.more_actions_needed_by_instruction === 'boolean'
       ) {
         timelineData.push({
-          color: '#06B1AB',
           children: (
             <>
               <p>

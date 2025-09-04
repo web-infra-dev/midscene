@@ -82,24 +82,24 @@ const App: React.FC = () => {
 
   const onFinish = (values: FormData) => {
     if (values.password !== values.confirmPassword) {
-      message.error('两次输入的密码不一致！');
+      message.error('Password confirmation does not match!');
       return;
     }
     console.log('Form Data:', values);
     console.log('Optimized Events:', optimizedEvents);
-    message.success('注册成功！');
+    message.success('Registration successful!');
   };
 
   const onFinishFailed = (errorInfo: any) => {
     console.log('Failed:', errorInfo);
-    message.error('请检查表单信息！');
+    message.error('Please check the form information!');
   };
 
   return (
     <div className="app-container">
       <Card className="form-card">
         <Title level={2} style={{ textAlign: 'center', marginBottom: 30 }}>
-          用户注册
+          User Registration
         </Title>
 
         <Form
@@ -112,102 +112,105 @@ const App: React.FC = () => {
           size="large"
         >
           <Form.Item
-            label="用户名"
+            label="Username"
             name="username"
             rules={[
-              { required: true, message: '请输入用户名!' },
-              { min: 3, message: '用户名至少3个字符!' },
+              { required: true, message: 'Please enter username!' },
+              { min: 3, message: 'Username must be at least 3 characters!' },
             ]}
           >
-            <Input placeholder="请输入用户名" />
+            <Input placeholder="Please enter username" />
           </Form.Item>
 
           <Form.Item
-            label="密码"
+            label="Password"
             name="password"
             rules={[
-              { required: true, message: '请输入密码!' },
-              { min: 6, message: '密码至少6个字符!' },
+              { required: true, message: 'Please enter password!' },
+              { min: 6, message: 'Password must be at least 6 characters!' },
             ]}
           >
-            <Input.Password placeholder="请输入密码" />
+            <Input.Password placeholder="Please enter password" />
           </Form.Item>
 
           <Form.Item
-            label="确认密码"
+            label="Confirm Password"
             name="confirmPassword"
-            rules={[{ required: true, message: '请确认密码!' }]}
+            rules={[{ required: true, message: 'Please confirm password!' }]}
           >
-            <Input.Password placeholder="请再次输入密码" />
+            <Input.Password placeholder="Please enter password again" />
           </Form.Item>
 
           <Form.Item
-            label="电子邮箱"
+            label="Email"
             name="email"
             rules={[
-              { required: true, message: '请输入电子邮箱!' },
-              { type: 'email', message: '请输入有效的邮箱地址!' },
+              { required: true, message: 'Please enter email!' },
+              { type: 'email', message: 'Please enter a valid email address!' },
             ]}
           >
-            <Input placeholder="请输入电子邮箱" />
+            <Input placeholder="Please enter email" />
           </Form.Item>
 
           <Form.Item
-            label="手机号码"
+            label="Phone Number"
             name="phone"
             rules={[
-              { pattern: /^1[3-9]\d{9}$/, message: '请输入有效的手机号码!' },
+              {
+                pattern: /^1[3-9]\d{9}$/,
+                message: 'Please enter a valid phone number!',
+              },
             ]}
           >
-            <Input placeholder="请输入手机号码" />
+            <Input placeholder="Please enter phone number" />
           </Form.Item>
 
-          <Form.Item label="性别" name="gender">
-            <Select placeholder="请选择性别" allowClear>
-              <Option value="male">男</Option>
-              <Option value="female">女</Option>
-              <Option value="other">其他</Option>
+          <Form.Item label="Gender" name="gender">
+            <Select placeholder="Please select gender" allowClear>
+              <Option value="male">Male</Option>
+              <Option value="female">Female</Option>
+              <Option value="other">Other</Option>
             </Select>
           </Form.Item>
 
-          <Form.Item label="出生日期" name="birthday">
+          <Form.Item label="Birthday" name="birthday">
             <DatePicker
-              placeholder="请选择出生日期"
+              placeholder="Please select birthday"
               style={{ width: '100%' }}
               format="YYYY-MM-DD"
             />
           </Form.Item>
 
-          <Form.Item label="地址" name="address">
+          <Form.Item label="Address" name="address">
             <TextArea
               rows={3}
-              placeholder="请输入详细地址"
+              placeholder="Please enter detailed address"
               showCount
               maxLength={200}
             />
           </Form.Item>
 
           <Form.Item
-            label="兴趣爱好（画布）"
+            label="Hobbies (Canvas)"
             name="canvasElements"
-            tooltip="在画布上添加输入框和复选框"
+            tooltip="Add input boxes and checkboxes on the canvas"
           >
             <CanvasSelector />
           </Form.Item>
 
           <div className="horizontal-scroll-container">
             <div className="horizontal-form-row">
-              <Form.Item label="公司" name="company">
-                <Input placeholder="请输入公司名称" />
+              <Form.Item label="Company" name="company">
+                <Input placeholder="Please enter company name" />
               </Form.Item>
-              <Form.Item label="职位" name="position">
-                <Input placeholder="请输入职位" />
+              <Form.Item label="Position" name="position">
+                <Input placeholder="Please enter position" />
               </Form.Item>
-              <Form.Item label="兴趣" name="hobby">
-                <Input placeholder="请输入兴趣爱好" />
+              <Form.Item label="Hobby" name="hobby">
+                <Input placeholder="Please enter hobbies" />
               </Form.Item>
-              <Form.Item label="个人简介" name="bio">
-                <Input placeholder="请输入个人简介" />
+              <Form.Item label="Bio" name="bio">
+                <Input placeholder="Please enter bio" />
               </Form.Item>
             </div>
           </div>
@@ -215,23 +218,28 @@ const App: React.FC = () => {
           <Form.Item
             name="agreement"
             valuePropName="checked"
-            rules={[{ required: true, message: '请同意用户协议!' }]}
+            rules={[
+              {
+                required: true,
+                message: 'Please agree to the user agreement!',
+              },
+            ]}
           >
             <Checkbox>
-              我已阅读并同意
+              I have read and agree to the
               <a href="#" style={{ marginLeft: 4 }}>
-                用户协议
+                User Agreement
               </a>
-              和
+              and
               <a href="#" style={{ marginLeft: 4 }}>
-                隐私政策
+                Privacy Policy
               </a>
             </Checkbox>
           </Form.Item>
 
           <Form.Item>
             <Button type="primary" htmlType="submit" block>
-              注册
+              Register
             </Button>
           </Form.Item>
         </Form>
@@ -247,11 +255,13 @@ const App: React.FC = () => {
             borderRadius: '4px',
           }}
         >
-          <p style={{ margin: '4px 0' }}>📊 录制统计</p>
-          <p style={{ margin: '4px 0' }}>原始事件: {rawEventsCount}</p>
-          <p style={{ margin: '4px 0' }}>优化后事件: {mergedEventsCount}</p>
+          <p style={{ margin: '4px 0' }}>📊 Recording Statistics</p>
+          <p style={{ margin: '4px 0' }}>Raw Events: {rawEventsCount}</p>
+          <p style={{ margin: '4px 0' }}>
+            Optimized Events: {mergedEventsCount}
+          </p>
           <p style={{ margin: '4px 0', fontSize: '10px', color: '#999' }}>
-            优化率:{' '}
+            Optimization Rate:{' '}
             {rawEventsCount > 0
               ? Math.round((1 - mergedEventsCount / rawEventsCount) * 100)
               : 0}

@@ -23,7 +23,7 @@ const DEFAULT_ELEMENTS: CanvasElement[] = [
     width: 180,
     height: 32,
     clicked: false,
-    label: '阅读',
+    label: 'Reading',
   },
   {
     id: '2',
@@ -32,7 +32,7 @@ const DEFAULT_ELEMENTS: CanvasElement[] = [
     width: 180,
     height: 32,
     clicked: false,
-    label: '音乐',
+    label: 'Music',
   },
   {
     id: '3',
@@ -41,7 +41,7 @@ const DEFAULT_ELEMENTS: CanvasElement[] = [
     width: 180,
     height: 32,
     clicked: false,
-    label: '运动',
+    label: 'Sports',
   },
   {
     id: '4',
@@ -50,7 +50,7 @@ const DEFAULT_ELEMENTS: CanvasElement[] = [
     width: 180,
     height: 32,
     clicked: false,
-    label: '摄影',
+    label: 'Photography',
   },
 ];
 
@@ -267,7 +267,7 @@ const CanvasSelector: React.FC<CanvasSelectorProps> = ({
         width: Math.abs(width),
         height: Math.abs(height),
         clicked: false,
-        label: `选项 ${elements.length + 1}`,
+        label: `Option ${elements.length + 1}`,
       };
       const newElements = [...elements, newElement];
       setElements(newElements);
