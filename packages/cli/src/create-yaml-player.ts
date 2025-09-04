@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { basename, extname } from 'node:path';
+import path, { basename, extname, join } from 'node:path';
 import { ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
 import { createServer } from 'http-server';
 
@@ -189,14 +189,30 @@ export async function createYamlPlayer(
       if (typeof yamlScript.interface !== 'undefined') {
         const interfaceTarget = yamlScript.interface;
 
+        const moduleSpecifier = interfaceTarget.module;
+        let finalModuleSpecifier: string;
+        if (
+          moduleSpecifier.startsWith('./') ||
+          moduleSpecifier.startsWith('../') ||
+          path.isAbsolute(moduleSpecifier)
+        ) {
+          const resolvedPath = join(process.cwd(), moduleSpecifier);
+          finalModuleSpecifier = resolvedPath;
+        } else {
+          finalModuleSpecifier = moduleSpecifier;
+        }
+
         // import the module dynamically
         debug(
-          'importing module',
+          'importing module config',
           interfaceTarget.module,
-          'with export',
+          'with export config',
           interfaceTarget.export,
+          'final module specifier',
+          finalModuleSpecifier,
         );
-        const importedModule = await import(interfaceTarget.module);
+
+        const importedModule = await import(finalModuleSpecifier);
 
         // get the specific export or use default export
         const DeviceClass = interfaceTarget.export

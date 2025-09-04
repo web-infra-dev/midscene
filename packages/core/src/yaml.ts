@@ -57,9 +57,8 @@ export interface MidsceneYamlScriptEnvBase {
   aiActionContext?: string;
 }
 
-export interface MidsceneYamlScriptEnvGeneralInterface
-  extends MidsceneYamlScriptEnvBase {
-  // this will work as `const {...} = import('...')`
+export interface MidsceneYamlScriptEnvGeneralInterface {
+  // this will work as `const {...} = import('...'); const interface = new ...(param)`
   module: string;
   export?: string;
   param?: Record<string, any>;
