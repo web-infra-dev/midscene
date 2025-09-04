@@ -882,7 +882,7 @@ export class Agent<
   }
 
   async destroy() {
-    await this.interface.destroy();
+    await this.interface.destroy?.();
     this.resetDump(); // reset dump to release memory
     this.destroyed = true;
   }

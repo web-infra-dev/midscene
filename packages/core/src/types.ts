@@ -528,7 +528,8 @@ export type InterfaceType =
   | 'playwright'
   | 'static'
   | 'chrome-extension-proxy'
-  | 'android';
+  | 'android'
+  | string;
 
 export interface StreamingCodeGenerationOptions {
   /** Whether to enable streaming output */
