@@ -297,6 +297,37 @@ describe(
         'Type "AI 101" in search box, hit Enter, wait 2s. If there is a cookie prompt, close it',
       );
     });
+
+    it('swipe', async () => {
+      const { originPage, reset } = await launchPage('https://m.baidu.com/s?word=%E5%A4%A7%E4%BC%97%E8%BD%A6%E5%9E%8Bid4', {
+        viewport: {
+          width: 393,
+          height: 808,
+        },
+      });
+      resetFn = reset;
+      const agent = new PuppeteerAgent(originPage);
+      await agent.aiAction(
+        '向右滑动一屏',
+      );
+      await agent.aiAction(
+        '向左滑动一屏',
+      );
+    });
+
+    it('longPress', async () => {
+      const { originPage, reset } = await launchPage('https://m.baidu.com/from=0/ssid=0/s?word=%E5%A6%82%E6%9D%A5%E7%A5%9E%E6%B6%A8&sa=tb&ts=0&t_kt=0&ie=utf-8&rsv_t=62bcq4PxoQqNwE8k4KOIBgUFF1bZTuF4rSCYiho4tfMUcLopBczbgw&rsv_pq=11619249566711746686&ss=110&sugid=206020460001898&rfrom=1024439f&rchannel=1024439j&rqid=11619249566711746686', {
+        viewport: {
+          width: 393,
+          height: 808,
+        },
+      });
+      resetFn = reset;
+      const agent = new PuppeteerAgent(originPage);
+      await agent.aiAction(
+        '长按进入新空间按钮',
+      );
+    });
   },
   4 * 60 * 1000,
 );

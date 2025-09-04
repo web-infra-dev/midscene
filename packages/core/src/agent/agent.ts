@@ -20,6 +20,8 @@ import {
   type MidsceneYamlScript,
   type OnTaskStartTip,
   type PlanningAction,
+  type PlanningActionParamSwipe,
+  type PlanningActionParamLongPress,
   type Rect,
   type ScrollParam,
   type TUserPrompt,
@@ -541,6 +543,31 @@ export class Agent<
     });
   }
 
+  async aiLongPress(locatePrompt: TUserPrompt, opt?: LocateOption & PlanningActionParamLongPress) {
+    const detailedLocateParam = buildDetailedLocateParam(
+      locatePrompt,
+      opt,
+    );
+
+    return this.callActionInActionSpace('LongPress', {
+      ...(opt || {}),
+      locate: detailedLocateParam,
+    });
+  }
+
+  async aiSwipe(
+    locatePrompt?: TUserPrompt,
+    opt?: LocateOption & PlanningActionParamSwipe,
+  ) {
+    const detailedLocateParam = locatePrompt
+      ? buildDetailedLocateParam(locatePrompt, opt)
+      : undefined;
+
+    return this.callActionInActionSpace('Swipe', {
+      ...(opt || {}),
+      locate: detailedLocateParam,
+    });
+  }
   async aiAction(
     taskPrompt: string,
     opt?: {
