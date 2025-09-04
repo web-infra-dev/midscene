@@ -86,7 +86,10 @@ export async function WebPageContextParser(
   const basicContext = await commonContextParser(page);
 
   debug('will traverse element tree');
-  const tree = await page.getElementsNodeTree();
+  const tree = (await page.getElementsNodeTree?.()) || {
+    node: null,
+    children: [],
+  };
   const webTree = traverseTree(tree!, (elementInfo) => {
     const { rect, id, content, attributes, indexId, isVisible } = elementInfo;
     return new WebElementInfoImpl({

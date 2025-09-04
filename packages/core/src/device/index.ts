@@ -7,16 +7,15 @@ import type { Size, UIContext } from '../types';
 export abstract class AbstractInterface {
   abstract interfaceType: string;
 
-  abstract describe?(): string;
-
-  abstract getElementsNodeTree(): Promise<ElementNode>;
-  abstract url(): string | Promise<string>;
   abstract screenshotBase64(): Promise<string>;
   abstract size(): Promise<Size>;
   abstract actionSpace(): DeviceAction[] | Promise<DeviceAction[]>;
 
   abstract destroy(): Promise<void>;
 
+  abstract describe?(): string;
+  abstract getElementsNodeTree?: () => Promise<ElementNode>;
+  abstract url?: () => string | Promise<string>;
   abstract evaluateJavaScript?<T = any>(script: string): Promise<T>;
   abstract beforeAction?(): Promise<void>;
   abstract getContext?(): Promise<UIContext>;
