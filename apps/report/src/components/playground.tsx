@@ -378,7 +378,7 @@ export function StandardPlayground({
 
     try {
       console.log('destroy agent.page', activeAgent?.page);
-      await activeAgent?.page?.destroy();
+      await activeAgent?.page?.destroy?.();
       console.log('destroy agent.page done', activeAgent?.page);
     } catch (e) {
       console.error(e);
