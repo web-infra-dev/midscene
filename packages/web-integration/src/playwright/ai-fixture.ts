@@ -104,6 +104,8 @@ export const PlaywrightAiFixture = (options?: {
       | 'aiScroll'
       | 'aiTap'
       | 'aiRightClick'
+      | 'aiLongPress'
+      | 'aiSwipe'
       | 'aiDoubleClick'
       | 'aiQuery'
       | 'aiAssert'
@@ -306,6 +308,30 @@ export const PlaywrightAiFixture = (options?: {
         testInfo,
         use,
         aiActionType: 'aiScroll',
+      });
+    },
+    aiLongPress: async(
+      { page }: { page: OriginPlaywrightPage },
+      use: any,
+      testInfo: TestInfo,
+    ) => {
+      await generateAiFunction({
+        page,
+        testInfo,
+        use,
+        aiActionType: 'aiLongPress',
+      });
+    },
+    aiSwipe: async (
+      { page }: { page: OriginPlaywrightPage },
+      use: any,
+      testInfo: TestInfo,
+    ) => {
+      await generateAiFunction({
+        page,
+        testInfo,
+        use,
+        aiActionType: 'aiSwipe',
       });
     },
     aiQuery: async (

@@ -215,4 +215,78 @@ export const defineActionDragAndDrop = (
   });
 };
 
+export const ActionLongPressParamSchema = z.object({
+  locate: getMidsceneLocationSchema().describe('The element to be long pressed'),
+  duration: z
+    .number()
+    .default(500)
+    .optional()
+    .describe('Long press duration in milliseconds'),
+});
+
+export type ActionLongPressParam = z.infer<
+  typeof ActionLongPressParamSchema
+>;
+export const defineActionLongPress = (
+  call: (param: ActionLongPressParam) => Promise<void>
+): DeviceAction<ActionLongPressParam> => {
+  return defineAction({
+    name: 'LongPress',
+    description: 'Long press the element',
+    interfaceAlias: 'aiLongPress',
+    paramSchema: ActionLongPressParamSchema,
+    call,
+  });
+};
+export const ActionSwipeParamSchema = z.object({
+  locate: getMidsceneLocationSchema()
+    .optional()
+    .describe('The element to swipe on'),
+  direction: z
+    .enum(['up', 'down', 'left', 'right'])
+    .optional()
+    .describe('The direction to swipe (required for swipeType "once")'),
+  swipeType: z
+    .enum(['once', 'untilTop', 'untilBottom', 'untilLeft', 'untilRight'])
+    .default('untilLeft')
+    .describe('The swipe type'),
+  distance: z
+    .number()
+    .nullable()
+    .optional()
+    .describe('The distance in pixels to swipe'),
+  duration: z
+    .number()
+    .default(300)
+    .describe('Duration of the swipe gesture in milliseconds'),
+  from: z
+    .object({
+      x: z.number(),
+      y: z.number()
+    })
+    .optional()
+    .describe('Starting point coordinates'),
+  to: z
+    .object({
+      x: z.number(),
+      y: z.number()
+    })
+    .optional()
+    .describe('Ending point coordinates (overrides direction/distance)'),
+});
+
+export type ActionSwipeParam = z.infer<typeof ActionSwipeParamSchema>;
+
+export const defineActionSwipe = (
+  call: (param: ActionSwipeParam) => Promise<void>
+): DeviceAction<ActionSwipeParam> => {
+  return defineAction({
+    name: 'Swipe',
+    description: 'Perform a swipe gesture on an element',
+    interfaceAlias: 'aiSwipe',
+    paramSchema: ActionSwipeParamSchema,
+    call,
+  });
+};
+
 export type { DeviceAction } from '../types';
