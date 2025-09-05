@@ -11,6 +11,8 @@ import {
   defineActionRightClick,
   defineActionScroll,
   defineActionTap,
+  defineActionLongPress,
+  defineActionSwipe,
 } from '@midscene/core/device';
 
 import { sleep } from '@midscene/core/utils';
@@ -364,6 +366,12 @@ export abstract class AbstractWebPage extends AbstractInterface {
   abstract scrollDown(distance?: number, startingPoint?: Point): Promise<void>;
   abstract scrollLeft(distance?: number, startingPoint?: Point): Promise<void>;
   abstract scrollRight(distance?: number, startingPoint?: Point): Promise<void>;
+  abstract longPress(x: number, y: number, duration?: number): Promise<void>;
+  abstract swipe(
+    from: {x: number; y: number},
+    to: {x: number; y: number},
+    duration?: number
+  ): Promise<void>;
 }
 
 export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
@@ -482,5 +490,86 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
         y: to.center[1],
       },
     );
+  }),
+
+  defineActionLongPress(async (param) => {
+    const element = param.locate;
+    assert(element, 'Element not found, cannot long press');
+    const duration = param?.duration;
+    await page.longPress(element.center[0], element.center[1], duration);
+  }),
+
+  defineActionSwipe(async (param) => {
+    const element = param.locate;
+
+    const {
+      direction,
+      swipeType = 'untilLeft',
+      distance,
+      duration = 300,
+      from: fromParam,
+      to: toParam,
+    } = param || {};
+
+    const { width, height } = await page.size();
+    const from = element
+      ? { x: element.center[0], y: element.center[1] }
+      : (fromParam ?? { x: width / 2, y: height / 2 });
+    if (toParam) {
+      await page.swipe(from, toParam, duration);
+      return;
+    }
+
+    const moveDistance = (() => {
+      if (distance != null) {
+        return distance;
+      }
+      if (swipeType === 'once') {
+        if (!direction) {
+          throw new Error('direction is required for swipeType "once"')
+        };
+        return direction === 'up' || direction === 'down' ? height / 2 : width / 2;
+      }
+      return width / 2;
+    })();
+
+    let to: { x: number; y: number };
+    switch (swipeType) {
+      case 'once':
+        switch (direction) {
+          case 'up':
+            to = { x: from.x, y: from.y - moveDistance };
+            break;
+          case 'down':
+            to = { x: from.x, y: from.y + moveDistance };
+            break;
+          case 'left':
+            to = { x: from.x - moveDistance, y: from.y };
+            break;
+          case 'right': 
+            to = { x: from.x + moveDistance, y: from.y };
+            break;
+          default: throw new Error(`Unknown direction: ${direction}`);
+        }
+        break;
+      case 'untilTop':
+        to = { x: from.x, y: 0 };
+        break;
+      case 'untilBottom':
+        to = { x: from.x, y: height };
+        break;
+      case 'untilLeft':
+        to = { x: 0, y: from.y };
+        break;
+      case 'untilRight':
+        to = { x: width, y: from.y };
+        break;
+      default: throw new Error(`Unknown swipeType: ${swipeType}`);
+    }
+    const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
+    to.x = clamp(to.x, 1, width - 1);
+    to.y = clamp(to.y, 1, height - 1);
+
+    await page.swipe(from, to, duration);
   }),
 ];

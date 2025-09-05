@@ -17,6 +17,8 @@ import type {
   MidsceneYamlFlowItemAINumber,
   MidsceneYamlFlowItemAIQuery,
   MidsceneYamlFlowItemAIScroll,
+  MidsceneYamlFlowItemAILongPress,
+  MidsceneYamlFlowItemAISwipe,
   MidsceneYamlFlowItemAIString,
   MidsceneYamlFlowItemAIWaitFor,
   MidsceneYamlFlowItemEvaluateJavaScript,
@@ -400,6 +402,14 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           ...scrollTask,
           ...(locatePrompt ? { locate: locatePrompt } : {}),
         });
+      } else if ('aiLongPress' in (flowItem as MidsceneYamlFlowItemAILongPress)) {
+        const longPressTask = flowItem as MidsceneYamlFlowItemAILongPress;
+        const {aiLongPress, ...restLongPressTask} = longPressTask;
+        await agent.aiLongPress(aiLongPress, restLongPressTask);
+      } else if ('aiSwipe' in (flowItem as MidsceneYamlFlowItemAISwipe)) {
+        const swipeTask = flowItem as MidsceneYamlFlowItemAISwipe;
+        const {aiSwipe, ...restSwipeTask} = swipeTask;
+        await agent.aiSwipe(aiSwipe, restSwipeTask);
       } else {
         // generic action, find the action in actionSpace
 

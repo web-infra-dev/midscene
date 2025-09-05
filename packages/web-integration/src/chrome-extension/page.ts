@@ -715,4 +715,145 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     await this.detachDebugger();
     this.destroyed = true;
   }
+
+  async longPress (
+    x: number,
+    y: number,
+    duration?: number,
+  ) {
+  duration = duration || 500;
+  const LONG_PRESS_THRESHOLD = 600;
+  const MIN_PRESS_THRESHOLD = 300;
+  if (duration > LONG_PRESS_THRESHOLD) {
+    duration = LONG_PRESS_THRESHOLD;
+  }
+  if (duration < MIN_PRESS_THRESHOLD) {
+    duration = MIN_PRESS_THRESHOLD;
+  }
+    await this.mouse.move(x, y);
+
+    if (this.isMobileEmulation === null) {
+      const result = await this.sendCommandToDebugger('Runtime.evaluate', {
+        expression: `(() => {
+          return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+        })()`,
+        returnByValue: true,
+      });
+      this.isMobileEmulation = result?.result?.value;
+    }
+
+    if (this.isMobileEmulation) {
+      const touchPoints = [{ x: Math.round(x), y: Math.round(y) }];
+      await this.sendCommandToDebugger('Input.dispatchTouchEvent', {
+        type: 'touchStart',
+        touchPoints,
+        modifiers: 0,
+      });
+      await new Promise((res) => setTimeout(res, duration));
+      await this.sendCommandToDebugger('Input.dispatchTouchEvent', {
+        type: 'touchEnd',
+        touchPoints: [],
+        modifiers: 0,
+      });
+    } else {
+      await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
+        type: 'mousePressed',
+        x,
+        y,
+        button: 'left',
+        clickCount: 1,
+      });
+      await new Promise((res) => setTimeout(res, duration));
+      await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
+        type: 'mouseReleased',
+        x,
+        y,
+        button: 'left',
+        clickCount: 1,
+      });
+    }
+    this.latestMouseX = x;
+    this.latestMouseY = y;
+  };
+
+  async swipe(
+    from: { x: number; y: number },
+    to: { x: number; y: number },
+    duration?: number
+  ) {
+    const LONG_PRESS_THRESHOLD = 500;
+    const MIN_PRESS_THRESHOLD = 150;
+    duration = duration || 300;
+    if (duration < MIN_PRESS_THRESHOLD) {
+      duration = MIN_PRESS_THRESHOLD;
+    }
+    if (duration > LONG_PRESS_THRESHOLD) {
+      duration = LONG_PRESS_THRESHOLD;
+    }
+
+    if (this.isMobileEmulation === null) {
+      const result = await this.sendCommandToDebugger('Runtime.evaluate', {
+        expression: `(() => {
+          return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+        })()`,
+        returnByValue: true,
+      });
+      this.isMobileEmulation = result?.result?.value;
+    }
+
+    const steps = 30;
+    const delay = duration / steps;
+
+    if (this.isMobileEmulation) {
+      await this.sendCommandToDebugger('Input.dispatchTouchEvent', {
+        type: 'touchStart',
+        touchPoints: [{ x: Math.round(from.x), y: Math.round(from.y) }],
+        modifiers: 0,
+      });
+
+      for (let i = 1; i <= steps; i++) {
+        const x = from.x + (to.x - from.x) * (i / steps);
+        const y = from.y + (to.y - from.y) * (i / steps);
+        await this.sendCommandToDebugger('Input.dispatchTouchEvent', {
+          type: 'touchMove',
+          touchPoints: [{ x: Math.round(x), y: Math.round(y) }],
+          modifiers: 0,
+        });
+        await new Promise((res) => setTimeout(res, delay));
+      }
+
+      await this.sendCommandToDebugger('Input.dispatchTouchEvent', {
+        type: 'touchEnd',
+        touchPoints: [],
+        modifiers: 0,
+      });
+    } else {
+      await this.mouse.move(from.x, from.y);
+      await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
+        type: 'mousePressed',
+        x: from.x,
+        y: from.y,
+        button: 'left',
+        clickCount: 1,
+      });
+
+      for (let i = 1; i <= steps; i++) {
+        const x = from.x + (to.x - from.x) * (i / steps);
+        const y = from.y + (to.y - from.y) * (i / steps);
+        await this.mouse.move(x, y);
+        await new Promise((res) => setTimeout(res, delay));
+      }
+
+      await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
+        type: 'mouseReleased',
+        x: to.x,
+        y: to.y,
+        button: 'left',
+        clickCount: 1,
+      });
+    }
+
+    this.latestMouseX = to.x;
+    this.latestMouseY = to.y;
+  };
 }

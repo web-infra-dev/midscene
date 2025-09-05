@@ -288,6 +288,25 @@ export interface PlanningActionParamSleep {
   timeMs: number;
 }
 
+export interface PlanningActionParamSwipe {
+  from?: {
+    x: number;
+    y: number;
+  };
+  to?: {
+    x: number;
+    y: number;
+  };
+  duration?: number;
+  direction?: 'down' | 'up' | 'right' | 'left';
+  swipeType?: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft';
+  distance?: number;
+}
+
+export interface PlanningActionParamLongPress {
+  duration?: number;
+}
+
 export interface PlanningActionParamError {
   thought: string;
 }
