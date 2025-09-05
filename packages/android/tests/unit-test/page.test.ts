@@ -701,6 +701,464 @@ describe('AndroidDevice', () => {
       await device.scrollDown(100);
       expect(wheelSpy).toHaveBeenCalledWith(0, 100);
     });
+
+    describe('scroll input validation', () => {
+      it('should throw error when both deltaX and deltaY are zero', async () => {
+        await expect((device as any).scroll(0, 0)).rejects.toThrow(
+          'Scroll distance cannot be zero in both directions',
+        );
+      });
+
+      it('should allow scrolling with non-zero deltaX and zero deltaY', async () => {
+        vi.spyOn(device as any, 'adjustCoordinates')
+          .mockReturnValueOnce({ x: 270, y: 480 })
+          .mockReturnValueOnce({ x: 540, y: 480 });
+
+        await expect((device as any).scroll(100, 0)).resolves.not.toThrow();
+
+        expect(mockAdb.shell).toHaveBeenCalledWith(
+          expect.stringContaining('input swipe'),
+        );
+      });
+
+      it('should allow scrolling with zero deltaX and non-zero deltaY', async () => {
+        vi.spyOn(device as any, 'adjustCoordinates')
+          .mockReturnValueOnce({ x: 270, y: 480 })
+          .mockReturnValueOnce({ x: 270, y: 240 });
+
+        await expect((device as any).scroll(0, 100)).resolves.not.toThrow();
+
+        expect(mockAdb.shell).toHaveBeenCalledWith(
+          expect.stringContaining('input swipe'),
+        );
+      });
+
+      it('should allow scrolling with both deltaX and deltaY non-zero', async () => {
+        vi.spyOn(device as any, 'adjustCoordinates')
+          .mockReturnValueOnce({ x: 270, y: 480 })
+          .mockReturnValueOnce({ x: 540, y: 240 });
+
+        await expect((device as any).scroll(50, 75)).resolves.not.toThrow();
+
+        expect(mockAdb.shell).toHaveBeenCalledWith(
+          expect.stringContaining('input swipe'),
+        );
+      });
+    });
+
+    describe('calculateScrollEndPoint', () => {
+      it('should calculate end point for horizontal scroll within bounds', () => {
+        const start = { x: 100, y: 200 };
+        const deltaX = 50;
+        const deltaY = 0;
+        const maxWidth = 1080;
+        const maxHeight = 1920;
+
+        const result = (device as any).calculateScrollEndPoint(
+          start,
+          deltaX,
+          deltaY,
+          maxWidth,
+          maxHeight,
+        );
+
+        expect(result).toEqual({ x: 150, y: 200 });
+      });
+
+      it('should calculate end point for vertical scroll within bounds', () => {
+        const start = { x: 100, y: 200 };
+        const deltaX = 0;
+        const deltaY = 100;
+        const maxWidth = 1080;
+        const maxHeight = 1920;
+
+        const result = (device as any).calculateScrollEndPoint(
+          start,
+          deltaX,
+          deltaY,
+          maxWidth,
+          maxHeight,
+        );
+
+        expect(result).toEqual({ x: 100, y: 300 });
+      });
+
+      it('should limit scroll to screen boundaries - right edge', () => {
+        const start = { x: 1000, y: 200 };
+        const deltaX = 200; // Would go beyond maxWidth
+        const deltaY = 0;
+        const maxWidth = 1080;
+        const maxHeight = 1920;
+
+        const result = (device as any).calculateScrollEndPoint(
+          start,
+          deltaX,
+          deltaY,
+          maxWidth,
+          maxHeight,
+        );
+
+        expect(result).toEqual({ x: 1080, y: 200 }); // Capped at maxWidth
+      });
+
+      it('should limit scroll to screen boundaries - left edge', () => {
+        const start = { x: 100, y: 200 };
+        const deltaX = -200; // Would go beyond left edge
+        const deltaY = 0;
+        const maxWidth = 1080;
+        const maxHeight = 1920;
+
+        const result = (device as any).calculateScrollEndPoint(
+          start,
+          deltaX,
+          deltaY,
+          maxWidth,
+          maxHeight,
+        );
+
+        expect(result).toEqual({ x: 0, y: 200 }); // Capped at 0
+      });
+
+      it('should limit scroll to screen boundaries - bottom edge', () => {
+        const start = { x: 100, y: 1800 };
+        const deltaX = 0;
+        const deltaY = 300; // Would go beyond maxHeight
+        const maxWidth = 1080;
+        const maxHeight = 1920;
+
+        const result = (device as any).calculateScrollEndPoint(
+          start,
+          deltaX,
+          deltaY,
+          maxWidth,
+          maxHeight,
+        );
+
+        expect(result).toEqual({ x: 100, y: 1920 }); // Capped at maxHeight
+      });
+
+      it('should limit scroll to screen boundaries - top edge', () => {
+        const start = { x: 100, y: 100 };
+        const deltaX = 0;
+        const deltaY = -200; // Would go beyond top edge
+        const maxWidth = 1080;
+        const maxHeight = 1920;
+
+        const result = (device as any).calculateScrollEndPoint(
+          start,
+          deltaX,
+          deltaY,
+          maxWidth,
+          maxHeight,
+        );
+
+        expect(result).toEqual({ x: 100, y: 0 }); // Capped at 0
+      });
+
+      it('should maintain minimum scroll distance when available space is large', () => {
+        const start = { x: 500, y: 500 };
+        const deltaX = 10; // Small delta, but current logic doesn't enforce minimum
+        const deltaY = 0;
+        const maxWidth = 1080;
+        const maxHeight = 1920;
+
+        const result = (device as any).calculateScrollEndPoint(
+          start,
+          deltaX,
+          deltaY,
+          maxWidth,
+          maxHeight,
+        );
+
+        // Current implementation doesn't enforce minimum scroll distance
+        // when delta is smaller than minimum, it just uses the delta
+        expect(result.x).toBe(start.x + deltaX);
+        expect(result.y).toBe(start.y);
+      });
+
+      it('should respect available space when smaller than minimum scroll distance', () => {
+        const start = { x: 1070, y: 200 }; // Very close to right edge
+        const deltaX = 50;
+        const deltaY = 0;
+        const maxWidth = 1080;
+        const maxHeight = 1920;
+
+        const result = (device as any).calculateScrollEndPoint(
+          start,
+          deltaX,
+          deltaY,
+          maxWidth,
+          maxHeight,
+        );
+
+        // Should only move to the edge, not enforce minimum distance
+        expect(result).toEqual({ x: 1080, y: 200 });
+      });
+
+      it('should handle diagonal scrolling correctly', () => {
+        const start = { x: 100, y: 100 };
+        const deltaX = 50;
+        const deltaY = 75;
+        const maxWidth = 1080;
+        const maxHeight = 1920;
+
+        const result = (device as any).calculateScrollEndPoint(
+          start,
+          deltaX,
+          deltaY,
+          maxWidth,
+          maxHeight,
+        );
+
+        expect(result).toEqual({ x: 150, y: 175 });
+      });
+
+      it('should handle negative deltas correctly', () => {
+        const start = { x: 500, y: 600 };
+        const deltaX = -100;
+        const deltaY = -150;
+        const maxWidth = 1080;
+        const maxHeight = 1920;
+
+        const result = (device as any).calculateScrollEndPoint(
+          start,
+          deltaX,
+          deltaY,
+          maxWidth,
+          maxHeight,
+        );
+
+        expect(result).toEqual({ x: 400, y: 450 });
+      });
+
+      it('should not modify coordinates when delta is zero', () => {
+        const start = { x: 500, y: 600 };
+        const deltaX = 0;
+        const deltaY = 0;
+        const maxWidth = 1080;
+        const maxHeight = 1920;
+
+        const result = (device as any).calculateScrollEndPoint(
+          start,
+          deltaX,
+          deltaY,
+          maxWidth,
+          maxHeight,
+        );
+
+        expect(result).toEqual({ x: 500, y: 600 });
+      });
+
+      it('should handle edge case when start point is at boundary', () => {
+        const start = { x: 0, y: 0 };
+        const deltaX = -50; // Trying to scroll left from left edge
+        const deltaY = -50; // Trying to scroll up from top edge
+        const maxWidth = 1080;
+        const maxHeight = 1920;
+
+        const result = (device as any).calculateScrollEndPoint(
+          start,
+          deltaX,
+          deltaY,
+          maxWidth,
+          maxHeight,
+        );
+
+        expect(result).toEqual({ x: 0, y: 0 }); // Should stay at boundary
+      });
+
+      it('should handle edge case when start point is at max boundary', () => {
+        const start = { x: 1080, y: 1920 };
+        const deltaX = 50; // Trying to scroll right from right edge
+        const deltaY = 50; // Trying to scroll down from bottom edge
+        const maxWidth = 1080;
+        const maxHeight = 1920;
+
+        const result = (device as any).calculateScrollEndPoint(
+          start,
+          deltaX,
+          deltaY,
+          maxWidth,
+          maxHeight,
+        );
+
+        expect(result).toEqual({ x: 1080, y: 1920 }); // Should stay at boundary
+      });
+    });
+
+    describe('scroll methods with calculateScrollEndPoint integration', () => {
+      beforeEach(() => {
+        vi.spyOn(device as any, 'mouseDrag').mockResolvedValue(undefined);
+      });
+
+      it('scrollDown with startPoint should use calculateScrollEndPoint', async () => {
+        const startPoint = { left: 100, top: 200 };
+        const scrollDistance = 300;
+
+        const calculateScrollEndPointSpy = vi.spyOn(
+          device as any,
+          'calculateScrollEndPoint',
+        );
+
+        await device.scrollDown(scrollDistance, startPoint);
+
+        expect(calculateScrollEndPointSpy).toHaveBeenCalledWith(
+          { x: 100, y: 200 },
+          0,
+          -scrollDistance,
+          0,
+          1920, // height from mocked size()
+        );
+      });
+
+      it('scrollUp with startPoint should use calculateScrollEndPoint', async () => {
+        const startPoint = { left: 100, top: 200 };
+        const scrollDistance = 300;
+
+        const calculateScrollEndPointSpy = vi.spyOn(
+          device as any,
+          'calculateScrollEndPoint',
+        );
+
+        await device.scrollUp(scrollDistance, startPoint);
+
+        expect(calculateScrollEndPointSpy).toHaveBeenCalledWith(
+          { x: 100, y: 200 },
+          0,
+          scrollDistance,
+          0,
+          1920, // height from mocked size()
+        );
+      });
+
+      it('scrollLeft with startPoint should use calculateScrollEndPoint', async () => {
+        const startPoint = { left: 100, top: 200 };
+        const scrollDistance = 150;
+
+        const calculateScrollEndPointSpy = vi.spyOn(
+          device as any,
+          'calculateScrollEndPoint',
+        );
+
+        await device.scrollLeft(scrollDistance, startPoint);
+
+        expect(calculateScrollEndPointSpy).toHaveBeenCalledWith(
+          { x: 100, y: 200 },
+          scrollDistance,
+          0,
+          1080, // width from mocked size()
+          0,
+        );
+      });
+
+      it('scrollRight with startPoint should use calculateScrollEndPoint', async () => {
+        const startPoint = { left: 100, top: 200 };
+        const scrollDistance = 150;
+
+        const calculateScrollEndPointSpy = vi.spyOn(
+          device as any,
+          'calculateScrollEndPoint',
+        );
+
+        await device.scrollRight(scrollDistance, startPoint);
+
+        expect(calculateScrollEndPointSpy).toHaveBeenCalledWith(
+          { x: 100, y: 200 },
+          -scrollDistance,
+          0,
+          1080, // width from mocked size()
+          0,
+        );
+      });
+
+      it('scrollDown with startPoint should call mouseDrag with calculated end point', async () => {
+        const startPoint = { left: 100, top: 200 };
+        const scrollDistance = 300;
+        const mockEndPoint = { x: 100, y: 100 }; // Mocked calculated end point
+
+        vi.spyOn(device as any, 'calculateScrollEndPoint').mockReturnValue(
+          mockEndPoint,
+        );
+
+        await device.scrollDown(scrollDistance, startPoint);
+
+        expect((device as any).mouseDrag).toHaveBeenCalledWith(
+          { x: 100, y: 200 },
+          mockEndPoint,
+        );
+      });
+
+      it('scrollUp with startPoint should call mouseDrag with calculated end point', async () => {
+        const startPoint = { left: 150, top: 400 };
+        const scrollDistance = 200;
+        const mockEndPoint = { x: 150, y: 600 }; // Mocked calculated end point
+
+        vi.spyOn(device as any, 'calculateScrollEndPoint').mockReturnValue(
+          mockEndPoint,
+        );
+
+        await device.scrollUp(scrollDistance, startPoint);
+
+        expect((device as any).mouseDrag).toHaveBeenCalledWith(
+          { x: 150, y: 400 },
+          mockEndPoint,
+        );
+      });
+
+      it('scrollLeft with startPoint should call mouseDrag with calculated end point', async () => {
+        const startPoint = { left: 500, top: 300 };
+        const scrollDistance = 100;
+        const mockEndPoint = { x: 600, y: 300 }; // Mocked calculated end point
+
+        vi.spyOn(device as any, 'calculateScrollEndPoint').mockReturnValue(
+          mockEndPoint,
+        );
+
+        await device.scrollLeft(scrollDistance, startPoint);
+
+        expect((device as any).mouseDrag).toHaveBeenCalledWith(
+          { x: 500, y: 300 },
+          mockEndPoint,
+        );
+      });
+
+      it('scrollRight with startPoint should call mouseDrag with calculated end point', async () => {
+        const startPoint = { left: 200, top: 250 };
+        const scrollDistance = 80;
+        const mockEndPoint = { x: 120, y: 250 }; // Mocked calculated end point
+
+        vi.spyOn(device as any, 'calculateScrollEndPoint').mockReturnValue(
+          mockEndPoint,
+        );
+
+        await device.scrollRight(scrollDistance, startPoint);
+
+        expect((device as any).mouseDrag).toHaveBeenCalledWith(
+          { x: 200, y: 250 },
+          mockEndPoint,
+        );
+      });
+
+      it('scroll methods should use default scroll distance when not provided', async () => {
+        const startPoint = { left: 100, top: 200 };
+
+        const calculateScrollEndPointSpy = vi.spyOn(
+          device as any,
+          'calculateScrollEndPoint',
+        );
+
+        // scrollDown without distance should use screen height
+        await device.scrollDown(undefined, startPoint);
+
+        expect(calculateScrollEndPointSpy).toHaveBeenCalledWith(
+          { x: 100, y: 200 },
+          0,
+          -1920, // negative screen height for scrollDown
+          0,
+          1920,
+        );
+      });
+    });
   });
 
   describe('displayId', () => {
