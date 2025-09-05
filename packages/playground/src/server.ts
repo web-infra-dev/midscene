@@ -2,15 +2,15 @@ import { randomUUID } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import type { Server } from 'node:http';
 import { join } from 'node:path';
+import type { Agent as PageAgent } from '@midscene/core/agent';
+import type { AbstractInterface } from '@midscene/core/device';
+import { getTmpDir } from '@midscene/core/utils';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import { overrideAIConfig } from '@midscene/shared/env';
 import { ifInBrowser, ifInWorker } from '@midscene/shared/utils';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express, { type Request, type Response } from 'express';
-import type { Agent as PageAgent } from '../agent';
-import type { AbstractInterface } from '../device';
-import { getTmpDir } from '../utils';
 import { executeAction, formatErrorMessage } from './common';
 import type { PlaygroundAgent } from './types';
 

@@ -1,6 +1,6 @@
+import type { DeviceAction } from '@midscene/core';
+import { findAllMidsceneLocatorField } from '@midscene/core/ai-model';
 import { overrideAIConfig } from '@midscene/shared/env';
-import { findAllMidsceneLocatorField } from '../../ai-model';
-import type { DeviceAction } from '../../types';
 import { executeAction } from '../common';
 import type { ExecutionOptions, FormValue, PlaygroundAgent } from '../types';
 import { BasePlaygroundAdapter } from './base';

@@ -1,4 +1,4 @@
-import { PlaygroundSDK } from '@midscene/core/playground';
+import { PlaygroundSDK } from '@midscene/playground';
 import { overrideAIConfig } from '@midscene/shared/env';
 import { Button, Tooltip } from 'antd';
 import type React from 'react';

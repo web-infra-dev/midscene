@@ -12,6 +12,7 @@
   "dependencies": {
     "@ant-design/icons": "^5.3.1",
     "@midscene/core": "workspace:*",
+    "@midscene/playground": "workspace:*",
     "@midscene/recorder": "workspace:*",
     "@midscene/report": "workspace:*",
     "@midscene/shared": "workspace:*",

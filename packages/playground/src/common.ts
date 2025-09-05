@@ -1,5 +1,5 @@
-import { findAllMidsceneLocatorField } from '../ai-model';
-import type { DeviceAction } from '../types';
+import type { DeviceAction } from '@midscene/core';
+import { findAllMidsceneLocatorField } from '@midscene/core/ai-model';
 import type {
   ExecutionOptions,
   FormValue,

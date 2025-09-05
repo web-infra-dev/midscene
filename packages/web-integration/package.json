@@ -114,6 +114,7 @@
   "files": ["static", "dist", "iife-script", "README.md", "bin"],
   "dependencies": {
     "@midscene/core": "workspace:*",
+    "@midscene/playground": "workspace:*",
     "@midscene/shared": "workspace:*",
 
     "dayjs": "^1.11.11",

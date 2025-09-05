@@ -1,6 +1,6 @@
 import { PlayCircleOutlined } from '@ant-design/icons';
 import type { UIContext } from '@midscene/core';
-import { PlaygroundSDK } from '@midscene/core/playground';
+import { PlaygroundSDK } from '@midscene/playground';
 import { staticAgentFromContext, useEnvConfig } from '@midscene/visualizer';
 import type { WebUIContext } from '@midscene/web';
 import {

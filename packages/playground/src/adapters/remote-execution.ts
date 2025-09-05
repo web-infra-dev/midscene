@@ -1,5 +1,5 @@
+import type { DeviceAction } from '@midscene/core';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
-import type { DeviceAction } from '../../types';
 import type { ExecutionOptions, FormValue } from '../types';
 import { BasePlaygroundAdapter } from './base';
 

@@ -1,4 +1,4 @@
-import type { DeviceAction, WebUIContext } from '../types';
+import type { DeviceAction, WebUIContext } from '@midscene/core';
 
 export interface PlaygroundAgent {
   callActionInActionSpace?: (

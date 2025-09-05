@@ -1,6 +1,6 @@
 import './App.less';
 import type { DeviceAction } from '@midscene/core';
-import { PlaygroundSDK } from '@midscene/core/playground';
+import { PlaygroundSDK } from '@midscene/playground';
 import { SCRCPY_SERVER_PORT } from '@midscene/shared/constants';
 import { overrideAIConfig } from '@midscene/shared/env';
 import {

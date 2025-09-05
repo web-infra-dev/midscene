@@ -1,5 +1,5 @@
 import type { GroupedActionDump, WebUIContext } from '@midscene/core';
-import type { PlaygroundAgent } from '@midscene/core/playground';
+import type { PlaygroundAgent } from '@midscene/playground';
 
 // result type
 export interface PlaygroundResult {

@@ -43,15 +43,6 @@
       "types": "./dist/types/yaml/index.d.ts",
       "import": "./dist/es/yaml/index.mjs",
       "require": "./dist/lib/yaml/index.js"
-    },
-    "./playground": {
-      "types": "./dist/types/playground/index.d.ts",
-      "browser": {
-        "require": "./dist/lib/playground/index.browser.js",
-        "import": "./dist/es/playground/index.browser.mjs"
-      },
-      "require": "./dist/lib/playground/index.js",
-      "import": "./dist/es/playground/index.mjs"
     }
   },
   "typesVersions": {
@@ -62,8 +53,7 @@
       "tree": ["./dist/types/tree.d.ts"],
       "device": ["./dist/types/device.d.ts"],
       "agent": ["./dist/types/agent.d.ts"],
-      "yaml": ["./dist/types/yaml.d.ts"],
-      "playground": ["./dist/types/playground.d.ts"]
+      "yaml": ["./dist/types/yaml.d.ts"]
     }
   },
   "scripts": {
@@ -83,9 +73,7 @@
     "@midscene/recorder": "workspace:*",
     "@midscene/shared": "workspace:*",
     "@ui-tars/action-parser": "1.2.3",
-    "cors": "2.8.5",
     "dotenv": "16.4.5",
-    "express": "^4.21.2",
     "https-proxy-agent": "7.0.2",
     "jsonrepair": "3.12.0",
     "langsmith": "0.3.7",
@@ -98,8 +86,6 @@
   "devDependencies": {
     "@microsoft/api-extractor": "^7.52.10",
     "@rslib/core": "^0.11.2",
-    "@types/cors": "2.8.12",
-    "@types/express": "^4.17.21",
     "@types/node": "^18.0.0",
     "@types/node-fetch": "2.6.11",
     "@types/js-yaml": "4.0.9",

@@ -1,6 +1,6 @@
 import type { DeviceAction, UIContext } from '@midscene/core';
-import { PlaygroundSDK, noReplayAPIs } from '@midscene/core/playground';
-import type { ServerResponse } from '@midscene/core/playground';
+import { PlaygroundSDK, noReplayAPIs } from '@midscene/playground';
+import type { ServerResponse } from '@midscene/playground';
 import { overrideAIConfig } from '@midscene/shared/env';
 import {
   ContextPreview,

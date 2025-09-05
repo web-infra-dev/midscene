@@ -4,7 +4,7 @@ import Icon, {
   ArrowDownOutlined,
 } from '@ant-design/icons';
 import type { DeviceAction, UIContext } from '@midscene/core';
-import { PlaygroundSDK, noReplayAPIs } from '@midscene/core/playground';
+import { PlaygroundSDK, noReplayAPIs } from '@midscene/playground';
 import {
   ContextPreview,
   type PlaygroundResult,

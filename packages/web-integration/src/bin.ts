@@ -1,4 +1,4 @@
-import { PlaygroundServer } from '@midscene/core/playground';
+import { PlaygroundServer } from '@midscene/playground';
 import { StaticPage, StaticPageAgent } from './static';
 
 const server = new PlaygroundServer(StaticPage, StaticPageAgent);

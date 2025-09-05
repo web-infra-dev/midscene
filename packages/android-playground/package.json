@@ -20,6 +20,7 @@
     "@midscene/android": "workspace:*",
     "@midscene/shared": "workspace:*",
     "@midscene/core": "workspace:*",
+    "@midscene/playground": "workspace:*",
     "@yume-chan/adb": "^1.1.0",
     "@yume-chan/adb-scrcpy": "^1.1.0",
     "@yume-chan/adb-server-node-tcp": "^1.1.0",

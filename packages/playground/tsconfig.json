@@ -1,0 +1,37 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "lib": ["DOM", "ESNext"],
+    "moduleResolution": "bundler",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "target": "es6",
+    "resolveJsonModule": true,
+    "rootDir": "./src",
+    "skipLibCheck": true,
+    "strict": true,
+    "module": "ESNext",
+    "composite": true,
+    "declarationDir": "dist/types"
+  },
+  "exclude": ["node_modules"],
+  "include": ["src", "./vitest.config"],
+  "references": [
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../shared"
+    },
+    {
+      "path": "../visualizer"
+    }
+  ]
+}

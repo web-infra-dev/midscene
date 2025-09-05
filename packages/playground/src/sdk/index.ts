@@ -1,4 +1,4 @@
-import type { DeviceAction } from '../../types';
+import type { DeviceAction } from '@midscene/core';
 import type { BasePlaygroundAdapter } from '../adapters/base';
 import { LocalExecutionAdapter } from '../adapters/local-execution';
 import { RemoteExecutionAdapter } from '../adapters/remote-execution';

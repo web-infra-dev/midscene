@@ -63,6 +63,7 @@
   "dependencies": {
     "@ant-design/icons": "^5.3.1",
     "@midscene/core": "workspace:*",
+    "@midscene/playground": "workspace:*",
     "@midscene/shared": "workspace:*",
 
     "@midscene/web": "workspace:*",

@@ -1,12 +1,12 @@
 import type { DeviceAction } from '@midscene/core';
 import { findAllMidsceneLocatorField } from '@midscene/core/ai-model';
-import { dataExtractionAPIs } from '@midscene/core/playground';
+import { dataExtractionAPIs } from '@midscene/playground';
 import type {
   ExecutionOptions,
   FormValue,
   PlaygroundAgent,
   ValidationResult,
-} from '@midscene/core/playground';
+} from '@midscene/playground';
 
 export const formatErrorMessage = (e: any): string => {
   const errorMessage = e?.message || '';

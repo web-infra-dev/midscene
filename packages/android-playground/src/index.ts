@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { AndroidAgent, AndroidDevice } from '@midscene/android';
-import { PlaygroundServer } from '@midscene/core/playground';
+import { PlaygroundServer } from '@midscene/playground';
 import {
   PLAYGROUND_SERVER_PORT,
   SCRCPY_SERVER_PORT,
