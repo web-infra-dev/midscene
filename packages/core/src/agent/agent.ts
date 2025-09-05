@@ -985,3 +985,10 @@ export class Agent<
     debug('Page context unfrozen successfully');
   }
 }
+
+export const createAgent = (
+  interfaceInstance: AbstractInterface,
+  opts?: AgentOpt,
+) => {
+  return new Agent(interfaceInstance, opts);
+};

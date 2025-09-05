@@ -38,8 +38,10 @@ export interface ScrollParam {
 export interface MidsceneYamlScript {
   // @deprecated
   target?: MidsceneYamlScriptWebEnv;
+
   web?: MidsceneYamlScriptWebEnv;
   android?: MidsceneYamlScriptAndroidEnv;
+  interface?: MidsceneYamlScriptEnvGeneralInterface;
   tasks: MidsceneYamlTask[];
 }
 
@@ -53,6 +55,13 @@ export interface MidsceneYamlScriptEnvBase {
   output?: string;
   unstableLogContent?: boolean | string;
   aiActionContext?: string;
+}
+
+export interface MidsceneYamlScriptEnvGeneralInterface {
+  // this will work as `const {...} = import('...'); const interface = new ...(param)`
+  module: string;
+  export?: string;
+  param?: Record<string, any>;
 }
 
 export interface MidsceneYamlScriptWebEnv extends MidsceneYamlScriptEnvBase {
