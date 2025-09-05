@@ -153,6 +153,10 @@ export default defineConfig({
           text: 'More',
           items: [
             {
+              text: 'Awesome Midscene',
+              link: '/awesome-midscene',
+            },
+            {
               text: 'FAQ',
               link: '/faq',
             },
@@ -277,6 +281,10 @@ export default defineConfig({
         {
           text: '更多',
           items: [
+            {
+              text: 'Awesome Midscene',
+              link: '/zh/awesome-midscene',
+            },
             {
               text: '常见问题 FAQ',
               link: '/zh/faq',
