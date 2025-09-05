@@ -727,6 +727,18 @@ ${Object.keys(size)
     };
   }
 
+  /**
+   * Calculate the end point for scroll operations based on start point, scroll delta, and screen boundaries.
+   * This method ensures that scroll operations stay within screen bounds and maintain a minimum scroll distance
+   * for effective scrolling gestures on Android devices.
+   *
+   * @param start - The starting point of the scroll gesture
+   * @param deltaX - The horizontal scroll distance (positive = scroll right, negative = scroll left)
+   * @param deltaY - The vertical scroll distance (positive = scroll down, negative = scroll up)
+   * @param maxWidth - The maximum width boundary (screen width)
+   * @param maxHeight - The maximum height boundary (screen height)
+   * @returns The calculated end point for the scroll gesture
+   */
   private calculateScrollEndPoint(
     start: { x: number; y: number },
     deltaX: number,
@@ -734,38 +746,48 @@ ${Object.keys(size)
     maxWidth: number,
     maxHeight: number,
   ): { x: number; y: number } {
+    // Minimum scroll distance to ensure gesture is recognized by Android
     const minScrollDistance = 50;
 
     let actualScrollDistanceX = 0;
     let actualScrollDistanceY = 0;
 
+    // Calculate horizontal scroll distance
     if (deltaX !== 0) {
+      // Determine maximum available distance in the scroll direction
       const maxAvailableX = deltaX > 0 ? maxWidth - start.x : start.x;
+      // Limit scroll distance to available space
       actualScrollDistanceX = Math.min(Math.abs(deltaX), maxAvailableX);
+      // Ensure minimum scroll distance for gesture recognition
       const minScrollX = Math.min(minScrollDistance, actualScrollDistanceX);
       actualScrollDistanceX = Math.max(minScrollX, actualScrollDistanceX);
     }
 
+    // Calculate vertical scroll distance
     if (deltaY !== 0) {
+      // Determine maximum available distance in the scroll direction
       const maxAvailableY = deltaY > 0 ? maxHeight - start.y : start.y;
+      // Limit scroll distance to available space
       actualScrollDistanceY = Math.min(Math.abs(deltaY), maxAvailableY);
+      // Ensure minimum scroll distance for gesture recognition
       const minScrollY = Math.min(minScrollDistance, actualScrollDistanceY);
       actualScrollDistanceY = Math.max(minScrollY, actualScrollDistanceY);
     }
 
+    // Calculate final end coordinates, ensuring they stay within screen bounds
     const endX =
       deltaX === 0
-        ? start.x
+        ? start.x // No horizontal movement
         : deltaX > 0
-          ? Math.min(maxWidth, start.x + actualScrollDistanceX)
-          : Math.max(0, start.x - actualScrollDistanceX);
+          ? Math.min(maxWidth, start.x + actualScrollDistanceX) // Scroll right, cap at maxWidth
+          : Math.max(0, start.x - actualScrollDistanceX); // Scroll left, cap at 0
 
     const endY =
       deltaY === 0
-        ? start.y
+        ? start.y // No vertical movement
         : deltaY > 0
-          ? Math.min(maxHeight, start.y + actualScrollDistanceY)
-          : Math.max(0, start.y - actualScrollDistanceY);
+          ? Math.min(maxHeight, start.y + actualScrollDistanceY) // Scroll down, cap at maxHeight
+          : Math.max(0, start.y - actualScrollDistanceY); // Scroll up, cap at 0
 
     return { x: endX, y: endY };
   }
