@@ -116,6 +116,13 @@ for (const record of recordList) {
 
   <img src="https://github.com/user-attachments/assets/211b05c9-3ccd-4f52-b798-f3a7f51330ed" alt="lark group link" width="300" />
 
+## 🌟 Awesome Midscene
+
+基于 Midscene.js 开发的社区项目：
+
+* [midscene-ios](https://github.com/lhuanyu/midscene-ios) - iOS 设备自动化工具
+* [Midscene-Python](https://github.com/Python51888/Midscene-Python) - Python 版本的 Midscene SDK
+
 ## 📝 致谢
 
 我们感谢以下项目：
@@ -129,7 +136,7 @@ for (const record of recordList) {
 - [Puppeteer](https://github.com/puppeteer/puppeteer) 用于浏览器自动化与控制。
 - [Playwright](https://github.com/microsoft/playwright) 用于浏览器自动化与控制和测试。
 
-## 📝 引用
+## 📖 引用
 
 如果您在研究或项目中使用了 Midscene.js，请引用：
 
