@@ -1,6 +1,6 @@
 import type { DeviceAction, UIContext } from '@midscene/core';
-import { noReplayAPIs } from '@midscene/playground';
-import type { PlaygroundAgent, StaticPageAgent } from '@midscene/playground';
+import { PlaygroundSDK, noReplayAPIs } from '@midscene/playground';
+import type { ServerResponse } from '@midscene/playground';
 import { overrideAIConfig } from '@midscene/shared/env';
 import {
   ContextPreview,
@@ -11,18 +11,19 @@ import {
   type ReplayScriptsInfo,
   ServiceModeControl,
   allScriptsFromDump,
-  executeAction,
-  formatErrorMessage,
-  getActionSpace,
-  requestPlaygroundServer,
   useEnvConfig,
   useServerValid,
 } from '@midscene/visualizer';
+import type { StaticPageAgent } from '@midscene/web/static';
 import { Form, message } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 type ServiceModeType = 'Server' | 'In-Browser' | 'In-Browser-Extension';
+
+// Constants
+const PROGRESS_POLL_INTERVAL = 500;
+const DEFAULT_AGENT_ERROR = 'PlaygroundSDK not initialized';
 
 const blankResult = {
   result: null,
@@ -31,7 +32,22 @@ const blankResult = {
   error: null,
 };
 
-export const serverBase = 'http://localhost:5800';
+// Initialize PlaygroundSDK instances for different service modes
+const getPlaygroundSDK = (serviceMode: ServiceModeType, agent?: any) => {
+  if (serviceMode === 'Server') {
+    return new PlaygroundSDK({
+      type: 'remote-execution',
+    });
+  }
+  // For In-Browser and In-Browser-Extension modes, use local execution
+  if (!agent) {
+    throw new Error('Agent is required for local execution mode');
+  }
+  return new PlaygroundSDK({
+    type: 'local-execution',
+    agent,
+  });
+};
 
 // Utility function to determine if the run button should be enabled
 function getRunButtonEnabled(
@@ -86,6 +102,36 @@ export function StandardPlayground({
   const configAlreadySet = Object.keys(config || {}).length >= 1;
   const serverValid = useServerValid(serviceMode === 'Server');
 
+  // Get PlaygroundSDK instance based on service mode
+  const playgroundSDK = useRef<PlaygroundSDK | null>(null);
+  const currentAgent = useRef<any>(null);
+
+  // Initialize PlaygroundSDK when service mode or agent changes
+  useEffect(() => {
+    if (serviceMode === 'Server') {
+      // For server mode, we don't need agent initially
+      playgroundSDK.current = getPlaygroundSDK(serviceMode as ServiceModeType);
+    }
+    // For In-Browser mode, we'll initialize PlaygroundSDK when we actually need it
+    // to ensure we use the same agent instance
+  }, [serviceMode]);
+
+  // Optimized PlaygroundSDK getter that caches instances based on agent
+  const getOrCreatePlaygroundSDK = useCallback(
+    (agent: any) => {
+      // Only recreate if agent has changed or SDK doesn't exist
+      if (!playgroundSDK.current || currentAgent.current !== agent) {
+        playgroundSDK.current = getPlaygroundSDK(
+          serviceMode as ServiceModeType,
+          agent,
+        );
+        currentAgent.current = agent;
+      }
+      return playgroundSDK.current;
+    },
+    [serviceMode],
+  );
+
   // Override AI configuration
   useEffect(() => {
     overrideAIConfig(config);
@@ -107,17 +153,18 @@ export function StandardPlayground({
       });
   }, [uiContextPreview, showContextPreview, getAgent]);
 
-  // Initialize actionSpace
+  // Initialize actionSpace using PlaygroundSDK
   useEffect(() => {
     const loadActionSpace = async () => {
       setActionSpaceLoading(true);
       try {
         if (serviceMode === 'Server') {
-          // For server mode, get from API with context
+          // For server mode, get from SDK with context
           const agent = getAgent();
-          if (agent?.getUIContext) {
+          if (agent?.getUIContext && playgroundSDK.current) {
             const uiContext = await agent.getUIContext();
-            const space = await getActionSpace(uiContext.toString());
+            // Pass the context object directly, not as string
+            const space = await playgroundSDK.current.getActionSpace(uiContext);
             setActionSpace(space || []);
           } else {
             setActionSpace([]);
@@ -140,7 +187,12 @@ export function StandardPlayground({
       }
     };
 
-    loadActionSpace();
+    if (serviceMode === 'Server' && playgroundSDK.current) {
+      loadActionSpace();
+    } else if (serviceMode === 'In-Browser') {
+      // For In-Browser mode, we don't need PlaygroundSDK for actionSpace loading
+      loadActionSpace();
+    }
   }, [serviceMode, getAgent, serverValid, configAlreadySet]);
 
   // Handle form submission
@@ -148,38 +200,46 @@ export function StandardPlayground({
     const value = form.getFieldsValue();
     const { type, prompt, params } = value;
 
-    // Dynamic validation using actionSpace like Chrome Extension
+    // Dynamic validation using PlaygroundSDK
     const action = actionSpace?.find(
       (a: DeviceAction<any>) => a.interfaceAlias === type || a.name === type,
     );
 
-    // Wait for actionSpace to load before validating
-    if (actionSpaceLoading) {
-      message.error('Loading action definitions, please wait...');
-      return;
-    }
+    // Use PlaygroundSDK for validation if available
+    if (playgroundSDK.current) {
+      const validationResult = playgroundSDK.current.validateStructuredParams(
+        { type, prompt, params },
+        action,
+      );
 
-    // Check if this action needs structured params (has paramSchema)
-    const needsStructuredParams = !!action?.paramSchema;
-
-    if (needsStructuredParams && !params) {
-      message.error('Structured parameters are required for this action');
-      return;
-    } else if (!needsStructuredParams && !prompt) {
-      message.error('Prompt is required');
-      return;
+      if (!validationResult.valid) {
+        message.error(validationResult.errorMessage || 'Validation failed');
+        return;
+      }
+    } else {
+      // Fallback validation logic
+      const needsStructuredParams = !!action?.paramSchema;
+      if (needsStructuredParams && !params) {
+        message.error('Structured parameters are required for this action');
+        return;
+      } else if (!needsStructuredParams && !prompt) {
+        message.error('Prompt is required');
+        return;
+      }
     }
 
     const startTime = Date.now();
 
     setLoading(true);
     setResult(null);
-    let result: PlaygroundResult = { ...blankResult };
+    const result: PlaygroundResult = { ...blankResult };
 
     const activeAgent = getAgent();
     const thisRunningId = Date.now().toString();
 
     const actionType = value.type;
+    let progressInterval: NodeJS.Timeout | null = null;
+
     try {
       if (!activeAgent) {
         throw new Error('No agent found');
@@ -189,42 +249,114 @@ export function StandardPlayground({
       currentRunningIdRef.current = thisRunningId;
       interruptedFlagRef.current[thisRunningId] = false;
       activeAgent.resetDump();
+
+      // Set up progress callback for direct agent execution
       activeAgent.onTaskStartTip = (tip: string) => {
         if (interruptedFlagRef.current[thisRunningId]) {
           return;
         }
         setLoadingProgressText(tip);
       };
-      if (serviceMode === 'Server') {
+
+      // Set up progress polling for PlaygroundSDK execution
+      const pollProgress = () => {
+        if (
+          playgroundSDK.current &&
+          !interruptedFlagRef.current[thisRunningId]
+        ) {
+          playgroundSDK.current
+            .getTaskProgress(thisRunningId)
+            .then((progressInfo) => {
+              if (
+                progressInfo.tip &&
+                !interruptedFlagRef.current[thisRunningId]
+              ) {
+                setLoadingProgressText(progressInfo.tip);
+              }
+            })
+            .catch(() => {
+              // Ignore progress polling errors
+            });
+        }
+      };
+
+      // Start progress polling if using PlaygroundSDK
+      if (playgroundSDK.current) {
+        progressInterval = setInterval(pollProgress, PROGRESS_POLL_INTERVAL);
+      }
+
+      if (serviceMode === 'Server' && playgroundSDK.current) {
+        // Use PlaygroundSDK for server mode
         const uiContext = await activeAgent?.getUIContext();
-        result = await requestPlaygroundServer(
-          uiContext!,
+        const serverResponse = await playgroundSDK.current.executeAction(
           actionType,
-          value.prompt,
+          { type: actionType, prompt: value.prompt, params: value.params },
           {
-            requestId: thisRunningId,
+            context: uiContext,
             deepThink,
             screenshotIncluded,
             domIncluded,
+            requestId: thisRunningId,
           },
         );
+
+        // Handle server response properly
+        if (serverResponse && typeof serverResponse === 'object') {
+          const response = serverResponse as ServerResponse;
+          result.result = response.result;
+          result.dump = response.dump;
+          result.reportHTML = response.reportHTML;
+          if (response.error) {
+            result.error = response.error;
+          }
+          console.log('Server response:', {
+            hasResult: !!response.result,
+            hasDump: !!response.dump,
+            hasReportHTML: !!response.reportHTML,
+            hasError: !!response.error,
+            actionType,
+            requestId: thisRunningId,
+          });
+        } else {
+          result.result = serverResponse;
+        }
       } else {
-        // Use the same executeAction logic as Chrome Extension for In-Browser mode
-        result.result = await executeAction(
-          activeAgent as unknown as PlaygroundAgent,
+        // Use PlaygroundSDK for In-Browser mode as well
+        // Use optimized SDK getter to prevent unnecessary recreation
+        const sdk = getOrCreatePlaygroundSDK(activeAgent);
+
+        result.result = await sdk.executeAction(
           actionType,
-          actionSpace,
-          value,
+          { type: actionType, prompt: value.prompt, params: value.params },
           {
             deepThink,
             screenshotIncluded,
             domIncluded,
+            requestId: thisRunningId,
           },
         );
       }
     } catch (e: any) {
-      result.error = formatErrorMessage(e);
-      console.error(e);
+      const errorMessage = playgroundSDK.current
+        ? playgroundSDK.current.formatErrorMessage(e)
+        : DEFAULT_AGENT_ERROR;
+      result.error = errorMessage;
+      console.error('Playground execution error:', {
+        error: e,
+        actionType,
+        requestId: thisRunningId,
+        serviceMode,
+      });
+
+      // Clear progress polling interval on error
+      if (progressInterval) {
+        clearInterval(progressInterval);
+      }
+    }
+
+    // Clear progress polling interval
+    if (progressInterval) {
+      clearInterval(progressInterval);
     }
 
     if (interruptedFlagRef.current[thisRunningId]) {
@@ -234,19 +366,19 @@ export function StandardPlayground({
 
     try {
       if (serviceMode === 'In-Browser') {
+        // For In-Browser mode, get dump and reportHTML from agent after execution (even if there was an error)
         result.dump = activeAgent?.dumpDataString()
           ? JSON.parse(activeAgent.dumpDataString())
           : null;
-
         result.reportHTML = activeAgent?.reportHTMLString() || null;
       }
     } catch (e) {
-      console.error(e);
+      console.error('Error getting dump/reportHTML:', e);
     }
 
     try {
       console.log('destroy agent.page', activeAgent?.page);
-      await activeAgent?.page?.destroy();
+      await activeAgent?.page?.destroy?.();
       console.log('destroy agent.page done', activeAgent?.page);
     } catch (e) {
       console.error(e);
@@ -256,6 +388,7 @@ export function StandardPlayground({
 
     setResult(result);
     setLoading(false);
+    setLoadingProgressText(''); // Clear progress text when done
 
     // Only generate replay info for interaction APIs, not for data extraction or validation APIs
 
@@ -266,7 +399,14 @@ export function StandardPlayground({
     } else {
       setReplayScriptsInfo(null);
     }
-    console.log(`time taken: ${Date.now() - startTime}ms`);
+    console.log('Playground execution completed:', {
+      timeTaken: `${Date.now() - startTime}ms`,
+      actionType,
+      requestId: thisRunningId,
+      hasResult: !!result.result,
+      hasDump: !!result.dump,
+      hasError: !!result.error,
+    });
   }, [form, getAgent, serviceMode, deepThink, actionSpace, actionSpaceLoading]);
 
   // Dummy handleStop for Standard mode (no real stopping functionality)

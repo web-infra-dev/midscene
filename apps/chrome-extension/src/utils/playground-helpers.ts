@@ -110,35 +110,37 @@ export function createDisplayContent(
     let locateValue = '';
     const otherValues: string[] = [];
 
-    Object.keys((schema as any).shape).forEach((key) => {
-      const paramValue = value.params?.[key];
-      if (
-        paramValue !== undefined &&
-        paramValue !== null &&
-        paramValue !== ''
-      ) {
-        const isLocateField = locatorFieldKeys.includes(key);
+    Object.keys((schema as { shape: Record<string, unknown> }).shape).forEach(
+      (key) => {
+        const paramValue = value.params?.[key];
+        if (
+          paramValue !== undefined &&
+          paramValue !== null &&
+          paramValue !== ''
+        ) {
+          const isLocateField = locatorFieldKeys.includes(key);
 
-        // Separate locate field from other fields, similar to ui-utils.ts paramStr format
-        if (isLocateField) {
-          locateValue = String(paramValue);
-        } else {
-          // Format the value based on field type
-          if (typeof paramValue === 'string') {
-            otherValues.push(`"${paramValue}"`);
-          } else if (typeof paramValue === 'number') {
-            // Special handling for distance in scroll
-            if (key === 'distance') {
-              otherValues.push(`${paramValue}px`);
+          // Separate locate field from other fields, similar to ui-utils.ts paramStr format
+          if (isLocateField) {
+            locateValue = String(paramValue);
+          } else {
+            // Format the value based on field type
+            if (typeof paramValue === 'string') {
+              otherValues.push(`"${paramValue}"`);
+            } else if (typeof paramValue === 'number') {
+              // Special handling for distance in scroll
+              if (key === 'distance') {
+                otherValues.push(`${paramValue}px`);
+              } else {
+                otherValues.push(String(paramValue));
+              }
             } else {
               otherValues.push(String(paramValue));
             }
-          } else {
-            otherValues.push(String(paramValue));
           }
         }
-      }
-    });
+      },
+    );
 
     // Create format similar to ui-utils.ts paramStr: ${locate} - ${value}
     const mainPart = otherValues.join(' ');

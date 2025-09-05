@@ -39,7 +39,7 @@ const ReportOverview = (props: {
       stats.total++;
       const status = dump.attributes?.playwright_test_status;
       const testName =
-        (dump as any).groupName ||
+        (dump as { groupName?: string }).groupName ||
         dump.attributes?.playwright_test_title ||
         `Test ${stats.total}`;
 

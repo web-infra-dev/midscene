@@ -108,7 +108,7 @@ const DetailPanel = (): JSX.Element => {
       }
       content = (
         <Blackboard
-          uiContext={activeTask.uiContext}
+          uiContext={activeTask.uiContext as WebUIContext}
           highlightElements={highlightElements}
           highlightRect={insightDump?.taskInfo?.searchArea}
           key={`${_contextLoadId}`}

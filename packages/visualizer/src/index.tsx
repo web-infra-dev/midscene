@@ -30,24 +30,10 @@ export { GithubStar } from './component/github-star';
 
 // Export playground utilities
 export {
-  requestPlaygroundServer,
-  cancelTask,
-  overrideServerConfig,
-  getTaskProgress,
-  getActionSpace,
-  checkServerStatus,
   actionNameForType,
   staticAgentFromContext,
   getPlaceholderForType,
-  blankResult,
 } from './component/playground/playground-utils';
-
-// Export playground execution utilities
-export {
-  executeAction,
-  validateStructuredParams,
-  formatErrorMessage,
-} from './component/playground/playground-execution';
 
 export { timeStr, filterBase64Value } from './utils';
 
