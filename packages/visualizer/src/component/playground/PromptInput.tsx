@@ -22,7 +22,13 @@ import React, {
 import type { HistoryItem } from '../store/history';
 import { useHistoryStore } from '../store/history';
 import { ConfigSelector } from './ConfigSelector';
-import { EnumField, LocateField, NumberField, TextField } from './FormField';
+import {
+  BooleanField,
+  EnumField,
+  LocateField,
+  NumberField,
+  TextField,
+} from './FormField';
 import { HistorySelector } from './HistorySelector';
 import { apiMetadata, defaultMainButtons } from './playground-constants';
 import type { RunType } from './playground-types';
@@ -34,8 +40,9 @@ import {
 } from './playground-utils';
 import {
   type FormParams,
-  VALIDATION_CONSTANTS,
   type ZodObjectSchema,
+  type ZodRuntimeAccess,
+  type ZodType,
   extractDefaultValue,
   isLocateField,
   isZodObjectSchema,
@@ -78,7 +85,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   const [hoveringSettings, setHoveringSettings] = useState(false);
   const [promptValue, setPromptValue] = useState('');
   const placeholder = getPlaceholderForType(selectedType);
-  const textAreaRef = useRef<any>(null); // Ant Design TextArea ref - keeping as any since it's external library type
+  const textAreaRef = useRef<any>(null); // Ant Design TextArea ref with internal structure
   const params = Form.useWatch('params', form);
   const lastHistoryRef = useRef<HistoryItem | null>(null);
 
@@ -105,9 +112,9 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       if (!action?.paramSchema) return false;
 
       // Check if paramSchema actually has fields
-      if (isZodObjectSchema(action.paramSchema as any)) {
-        const schema = action.paramSchema as any as ZodObjectSchema;
-        const shape = schema.shape || {};
+      if (isZodObjectSchema(action.paramSchema)) {
+        const schema = action.paramSchema as ZodObjectSchema;
+        const shape: Record<string, ZodType> = schema.shape || {};
         const shapeKeys = Object.keys(shape);
         return shapeKeys.length > 0; // Only need structured params if there are actual fields
       }
@@ -129,12 +136,9 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       // If action exists in actionSpace, check if it has required parameters
       if (action) {
         // Check if the paramSchema has any required fields
-        if (
-          action.paramSchema &&
-          isZodObjectSchema(action.paramSchema as any)
-        ) {
-          const schema = action.paramSchema as any as ZodObjectSchema;
-          const shape = schema.shape || {};
+        if (action.paramSchema && isZodObjectSchema(action.paramSchema)) {
+          const schema = action.paramSchema as ZodObjectSchema;
+          const shape: Record<string, ZodType> = schema.shape || {};
 
           // Check if any field is required (not optional)
           const hasRequiredFields = Object.keys(shape).some((key) => {
@@ -183,11 +187,12 @@ export const PromptInput: React.FC<PromptInputProps> = ({
         (a) => a.interfaceAlias === selectedType || a.name === selectedType,
       );
 
-      if (action?.paramSchema && isZodObjectSchema(action.paramSchema as any)) {
-        const schema = action.paramSchema as any as ZodObjectSchema;
+      if (action?.paramSchema && isZodObjectSchema(action.paramSchema)) {
+        const schema = action.paramSchema as ZodObjectSchema;
+        const shape: Record<string, ZodType> = schema.shape || {};
         // Check if any parameter is a locate field
-        const hasLocateField = Object.keys(schema.shape).some((key) => {
-          const field = schema.shape[key];
+        const hasLocateField = Object.keys(shape).some((key) => {
+          const field = shape[key];
           const { actualField } = unwrapZodType(field);
           return isLocateField(actualField);
         });
@@ -267,10 +272,10 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       (a) => a.interfaceAlias === selectedType || a.name === selectedType,
     );
 
-    if (action?.paramSchema && isZodObjectSchema(action.paramSchema as any)) {
+    if (action?.paramSchema && isZodObjectSchema(action.paramSchema)) {
       const defaultParams: FormParams = {};
-      const schema = action.paramSchema as any as ZodObjectSchema;
-      const shape = schema.shape || {};
+      const schema = action.paramSchema as ZodObjectSchema;
+      const shape: Record<string, ZodType> = schema.shape || {};
 
       Object.keys(shape).forEach((key) => {
         const field = shape[key];
@@ -377,9 +382,9 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       (a) => a.interfaceAlias === selectedType || a.name === selectedType,
     );
 
-    if (action?.paramSchema && isZodObjectSchema(action.paramSchema as any)) {
-      const schema = action.paramSchema as unknown as ZodObjectSchema;
-      const shape = schema.shape || {};
+    if (action?.paramSchema && isZodObjectSchema(action.paramSchema)) {
+      const schema = action.paramSchema as ZodObjectSchema;
+      const shape: Record<string, ZodType> = schema.shape || {};
       return Object.keys(shape).length === 1;
     }
     return false;
@@ -408,7 +413,11 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
   // Handle run with history addition
   const handleRunWithHistory = useCallback(() => {
-    const values = form.getFieldsValue();
+    const values = form.getFieldsValue() as {
+      type: string;
+      prompt?: string;
+      params?: Record<string, unknown>;
+    };
 
     // For structured params, create a display string for history - dynamically
     let historyPrompt = '';
@@ -417,15 +426,15 @@ export const PromptInput: React.FC<PromptInputProps> = ({
         (a) => a.interfaceAlias === selectedType || a.name === selectedType,
       );
 
-      if (action?.paramSchema && isZodObjectSchema(action.paramSchema as any)) {
+      if (action?.paramSchema && isZodObjectSchema(action.paramSchema)) {
         // Separate locate field from other fields for legacy format compatibility
         let locateValue = '';
         const otherValues: string[] = [];
-        const schema = action.paramSchema as any as ZodObjectSchema;
-        const shape = schema.shape || {};
+        const schema = action.paramSchema as ZodObjectSchema;
+        const shape: Record<string, ZodType> = schema.shape || {};
 
         Object.keys(shape).forEach((key) => {
-          const paramValue = values.params[key];
+          const paramValue = values.params?.[key];
           if (
             paramValue !== undefined &&
             paramValue !== null &&
@@ -500,18 +509,22 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       } else if (e.key === 'Enter') {
         setTimeout(() => {
           if (textAreaRef.current) {
-            const textarea = textAreaRef.current.resizableTextArea.textArea;
-            const selectionStart = textarea.selectionStart;
-            const value = textarea.value;
+            // Access the internal textarea element (Ant Design specific structure)
+            const textarea = (textAreaRef.current as any).resizableTextArea
+              ?.textArea;
+            if (textarea) {
+              const selectionStart = textarea.selectionStart;
+              const value = textarea.value;
 
-            // check if cursor is at the end of the text
-            const lastNewlineIndex = value.lastIndexOf('\n');
-            const isAtLastLine =
-              lastNewlineIndex === -1 || selectionStart > lastNewlineIndex;
+              // check if cursor is at the end of the text
+              const lastNewlineIndex = value.lastIndexOf('\n');
+              const isAtLastLine =
+                lastNewlineIndex === -1 || selectionStart > lastNewlineIndex;
 
-            // only scroll to bottom when cursor is at the end of the text
-            if (isAtLastLine) {
-              textarea.scrollTop = textarea.scrollHeight;
+              // only scroll to bottom when cursor is at the end of the text
+              if (isAtLastLine) {
+                textarea.scrollTop = textarea.scrollHeight;
+              }
             }
           }
         }, 0);
@@ -542,10 +555,10 @@ export const PromptInput: React.FC<PromptInputProps> = ({
         (a) => a.interfaceAlias === selectedType || a.name === selectedType,
       );
 
-      if (action?.paramSchema && isZodObjectSchema(action.paramSchema as any)) {
-        const schema = action.paramSchema as any as ZodObjectSchema;
+      if (action?.paramSchema && isZodObjectSchema(action.paramSchema)) {
+        const schema = action.paramSchema as ZodObjectSchema;
         // Handle both runtime and serialized schemas
-        const shape = schema.shape || {};
+        const shape: Record<string, ZodType> = schema.shape || {};
         const schemaKeys = Object.keys(shape);
 
         // If only one field, use traditional single input style without labels
@@ -559,15 +572,15 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
           // Extract placeholder from fieldSchema if available, otherwise use defaults
           const placeholderText = (() => {
-            const fieldAsAny = actualField as any;
+            const fieldWithRuntime = actualField as ZodRuntimeAccess;
 
             // Try to get description from the field schema
-            if (fieldAsAny._def?.description) {
-              return fieldAsAny._def.description;
+            if (fieldWithRuntime._def?.description) {
+              return fieldWithRuntime._def.description;
             }
 
-            if (fieldAsAny.description) {
-              return fieldAsAny.description;
+            if (fieldWithRuntime.description) {
+              return fieldWithRuntime.description;
             }
 
             // Try to get from action's paramSchema directly
@@ -581,7 +594,9 @@ export const PromptInput: React.FC<PromptInputProps> = ({
                 typeof action.paramSchema === 'object' &&
                 'shape' in action.paramSchema
               ) {
-                const shape = (action.paramSchema as any).shape || {};
+                const shape: Record<string, ZodType> =
+                  (action.paramSchema as unknown as ZodObjectSchema).shape ||
+                  {};
                 const fieldDef = shape[key];
                 if (fieldDef?._def?.description) {
                   return fieldDef._def.description;
@@ -618,26 +633,39 @@ export const PromptInput: React.FC<PromptInputProps> = ({
         // Multiple fields - use structured layout with labels
         const fields: React.ReactNode[] = [];
 
+        // Sort fields: required fields first, then optional fields
+        const sortedKeys = schemaKeys.sort((keyA, keyB) => {
+          const fieldSchemaA = shape[keyA];
+          const fieldSchemaB = shape[keyB];
+          const { isOptional: isOptionalA } = unwrapZodType(fieldSchemaA);
+          const { isOptional: isOptionalB } = unwrapZodType(fieldSchemaB);
+
+          // Required fields (isOptional = false) come first
+          if (!isOptionalA && isOptionalB) return -1;
+          if (isOptionalA && !isOptionalB) return 1;
+          return 0;
+        });
+
         // Dynamically render form fields based on paramSchema
-        schemaKeys.forEach((key, index) => {
+        sortedKeys.forEach((key, index) => {
           const fieldSchema = shape[key];
           const { actualField, isOptional } = unwrapZodType(fieldSchema);
           const isLocateFieldFlag = isLocateField(actualField);
           const label = key.charAt(0).toUpperCase() + key.slice(1);
           const isRequired = !isOptional;
-          const marginBottom = index === schemaKeys.length - 1 ? 0 : 12;
+          const marginBottom = index === sortedKeys.length - 1 ? 0 : 12;
 
           // Extract placeholder from fieldSchema if available
           const placeholder = (() => {
             // Try to get placeholder from field description or other metadata
-            const fieldAsAny = actualField as any;
-            if (fieldAsAny._def?.description) {
-              return fieldAsAny._def.description;
+            const fieldWithRuntime = actualField as ZodRuntimeAccess;
+            if (fieldWithRuntime._def?.description) {
+              return fieldWithRuntime._def.description;
             }
 
             // Try to get from field metadata/annotations
-            if (fieldAsAny.description) {
-              return fieldAsAny.description;
+            if (fieldWithRuntime.description) {
+              return fieldWithRuntime.description;
             }
 
             // Try to get from action's paramSchema directly
@@ -651,7 +679,9 @@ export const PromptInput: React.FC<PromptInputProps> = ({
                 typeof action.paramSchema === 'object' &&
                 'shape' in action.paramSchema
               ) {
-                const shape = (action.paramSchema as any).shape || {};
+                const shape: Record<string, ZodType> =
+                  (action.paramSchema as { shape?: Record<string, ZodType> })
+                    .shape || {};
                 const fieldDef = shape[key];
                 if (fieldDef?._def?.description) {
                   return fieldDef._def.description;
@@ -681,10 +711,18 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
           if (isLocateFieldFlag) {
             fields.push(<LocateField key={key} {...fieldProps} />);
-          } else if (actualField._def?.typeName === 'ZodEnum') {
+          } else if (
+            (actualField as ZodRuntimeAccess)._def?.typeName === 'ZodEnum'
+          ) {
             fields.push(<EnumField key={key} {...fieldProps} />);
-          } else if (actualField._def?.typeName === 'ZodNumber') {
+          } else if (
+            (actualField as ZodRuntimeAccess)._def?.typeName === 'ZodNumber'
+          ) {
             fields.push(<NumberField key={key} {...fieldProps} />);
+          } else if (
+            (actualField as ZodRuntimeAccess)._def?.typeName === 'ZodBoolean'
+          ) {
+            fields.push(<BooleanField key={key} {...fieldProps} />);
           } else {
             fields.push(<TextField key={key} {...fieldProps} />);
           }
