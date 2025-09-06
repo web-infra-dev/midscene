@@ -116,6 +116,13 @@ There are so many UI automation tools out there, and each one seems to be all-po
 * [Follow us on X](https://x.com/midscene_ai)
 * [Lark Group(飞书交流群)](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=291q2b25-e913-411a-8c51-191e59aab14d)
 
+## 🌟 Awesome Midscene
+
+Community projects that extend Midscene.js capabilities:
+
+* [midscene-ios](https://github.com/lhuanyu/midscene-ios) - iOS automation support for Midscene
+* [Midscene-Python](https://github.com/Python51888/Midscene-Python) - Python SDK for Midscene automation
+
 
 ## 📝 Credits
 
@@ -130,7 +137,7 @@ We would like to thank the following projects:
 - [Puppeteer](https://github.com/puppeteer/puppeteer) for browser automation and control.
 - [Playwright](https://github.com/microsoft/playwright) for browser automation and control and testing.
 
-## 📝 Citation
+## 📖 Citation
 
 If you use Midscene.js in your research or project, please cite:
 

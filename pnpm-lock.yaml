@@ -77,6 +77,9 @@ importers:
       '@midscene/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@midscene/playground':
+        specifier: workspace:*
+        version: link:../../packages/playground
       '@midscene/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -104,6 +107,9 @@ importers:
       react-dom:
         specifier: 18.3.1
         version: 18.3.1(react@18.3.1)
+      react-resizable-panels:
+        specifier: 2.0.22
+        version: 2.0.22(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       socket.io-client:
         specifier: 4.8.1
         version: 4.8.1(bufferutil@4.0.9)(utf-8-validate@6.0.5)
@@ -259,6 +265,9 @@ importers:
       '@midscene/ios':
         specifier: workspace:*
         version: link:../../packages/ios
+      '@midscene/playground':
+        specifier: workspace:*
+        version: link:../../packages/playground
       '@midscene/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -492,6 +501,9 @@ importers:
       '@midscene/android':
         specifier: workspace:*
         version: link:../android
+      '@midscene/core':
+        specifier: workspace:*
+        version: link:../core
       '@midscene/playground':
         specifier: workspace:*
         version: link:../playground
@@ -994,6 +1006,9 @@ importers:
       '@midscene/shared':
         specifier: workspace:*
         version: link:../shared
+      '@midscene/web':
+        specifier: workspace:*
+        version: link:../web-integration
       antd:
         specifier: ^5.21.6
         version: 5.21.6(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -14238,7 +14253,7 @@ snapshots:
 
   '@types/node-fetch@2.6.11':
     dependencies:
-      '@types/node': 18.19.62
+      '@types/node': 22.15.3
       form-data: 4.0.1
 
   '@types/node@12.20.55': {}

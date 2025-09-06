@@ -529,7 +529,7 @@ export type InterfaceType =
   | 'static'
   | 'chrome-extension-proxy'
   | 'android'
-  | 'ios';
+  | string;
 
 export interface StreamingCodeGenerationOptions {
   /** Whether to enable streaming output */
