@@ -34,6 +34,10 @@ export type {
   MidsceneYamlFlowItemAIRightClick,
   MidsceneYamlFlowItemAIDoubleClick,
   MidsceneYamlConfigResult,
+  MidsceneYamlScriptWebEnv,
+  MidsceneYamlScriptAndroidEnv,
+  MidsceneYamlScriptIOSEnv,
+  MidsceneYamlConfig,
   LocateOption,
   DetailedLocateParam,
 } from './yaml';
