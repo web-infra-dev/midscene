@@ -1,19 +1,13 @@
-import {
-  AIActionType,
-  type AIArgs,
-  callAiFn,
-  expandSearchArea,
-} from '@/ai-model/common';
+import { AIActionType, type AIArgs, expandSearchArea } from '@/ai-model/common';
 import {
   AiExtractElementInfo,
   AiLocateElement,
-  callToGetJSONObject,
+  callAIWithObjectResponse,
 } from '@/ai-model/index';
 import { AiLocateSection } from '@/ai-model/inspect';
 import { elementDescriberInstruction } from '@/ai-model/prompt/describe';
 import type {
   AIDescribeElementResponse,
-  AIElementResponse,
   AIUsageInfo,
   BaseElement,
   DetailedLocateParam,
@@ -21,7 +15,6 @@ import type {
   InsightAction,
   InsightExtractOption,
   InsightExtractParam,
-  InsightOptions,
   InsightTaskInfo,
   LocateResult,
   PartialInsightDumpFromSDK,
@@ -43,12 +36,16 @@ import { emitInsightDump } from './utils';
 
 export interface LocateOpts {
   context?: UIContext<BaseElement>;
-  callAI?: typeof callAiFn<AIElementResponse>;
 }
 
 export type AnyValue<T> = {
   [K in keyof T]: unknown extends T[K] ? any : T[K];
 };
+
+interface InsightOptions {
+  taskInfo?: Omit<InsightTaskInfo, 'durationMs'>;
+  aiVendorFn?: typeof callAIWithObjectResponse;
+}
 
 const debug = getDebug('ai:insight');
 export default class Insight<
@@ -59,7 +56,8 @@ export default class Insight<
     action: InsightAction,
   ) => Promise<ContextType> | ContextType;
 
-  aiVendorFn: (...args: Array<any>) => Promise<any> = callAiFn;
+  aiVendorFn: Exclude<InsightOptions['aiVendorFn'], undefined> =
+    callAIWithObjectResponse;
 
   onceDumpUpdatedFn?: DumpSubscriber;
 
@@ -78,6 +76,7 @@ export default class Insight<
       this.contextRetrieverFn = () => Promise.resolve(context);
     }
 
+    // just for unit test, aiVendorFn is callAIWithObjectResponse by default
     if (typeof opt?.aiVendorFn !== 'undefined') {
       this.aiVendorFn = opt.aiVendorFn;
     }
@@ -90,7 +89,6 @@ export default class Insight<
     query: DetailedLocateParam,
     opt?: LocateOpts,
   ): Promise<LocateResult> {
-    const { callAI } = opt || {};
     const queryPrompt = typeof query === 'string' ? query : query.prompt;
     assert(queryPrompt, 'query is required for locate');
     const dumpSubscriber = this.onceDumpUpdatedFn;
@@ -152,7 +150,7 @@ export default class Insight<
       usage,
       isOrderSensitive,
     } = await AiLocateElement({
-      callAI: callAI || this.aiVendorFn,
+      callAIFn: this.aiVendorFn,
       context,
       targetElementDescription: queryPrompt,
       searchConfig: searchAreaResponse,
@@ -382,8 +380,8 @@ export default class Insight<
       },
     ];
 
-    const callAIFn =
-      this.aiVendorFn || callToGetJSONObject<AIDescribeElementResponse>;
+    const callAIFn = this
+      .aiVendorFn as typeof callAIWithObjectResponse<AIDescribeElementResponse>;
 
     const res = await callAIFn(
       msgs,

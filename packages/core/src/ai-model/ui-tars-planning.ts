@@ -18,7 +18,7 @@ import { actionParser } from '@ui-tars/action-parser';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { AIActionType } from './common';
 import { getSummary, getUiTarsPlanningPrompt } from './prompt/ui-tars-planning';
-import { call } from './service-caller/index';
+import { callAI } from './service-caller/index';
 type ActionType =
   | 'click'
   | 'drag'
@@ -60,7 +60,7 @@ export async function vlmPlanning(options: {
     options;
   const systemPrompt = getUiTarsPlanningPrompt() + userInstruction;
 
-  const res = await call(
+  const res = await callAI(
     [
       {
         role: 'user',

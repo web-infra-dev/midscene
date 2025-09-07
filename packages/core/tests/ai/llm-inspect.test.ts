@@ -1,4 +1,8 @@
-import { AiLocateElement, AiLocateSection } from '@/ai-model';
+import {
+  AiLocateElement,
+  AiLocateSection,
+  callAIWithObjectResponse,
+} from '@/ai-model';
 import { globalConfigManager } from '@midscene/shared/env';
 import { getContextFromFixture } from 'tests/evaluation';
 import { beforeAll, expect, test, vi } from 'vitest';
@@ -23,6 +27,7 @@ test(
     const { parseResult } = await AiLocateElement({
       context,
       targetElementDescription: 'input 输入框',
+      callAIFn: callAIWithObjectResponse,
     });
     expect(parseResult.elements.length).toBe(1);
   },

@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { AIActionType } from '@/ai-model/common';
-import { call, callToGetJSONObject } from '@/ai-model/service-caller';
+import { callAI, callAIWithObjectResponse } from '@/ai-model/service-caller';
 import { localImg2Base64 } from '@/image';
 import dotenv from 'dotenv';
 import { getFixture } from 'tests/utils';
@@ -44,7 +44,7 @@ vi.setConfig({
     });
 
     it('text only', async () => {
-      const result = await call(
+      const result = await callAi(
         [
           {
             role: 'system',
@@ -63,7 +63,7 @@ vi.setConfig({
     });
 
     it.skipIf(isUiTars)('call to get json result', async () => {
-      const result = await callToGetJSONObject<{ answer: number }>(
+      const result = await callAIWithObjectResponse<{ answer: number }>(
         [
           {
             role: 'system',
@@ -80,7 +80,7 @@ vi.setConfig({
     });
 
     it.skipIf(!isUiTars)('for ui-tars, call to get json result', async () => {
-      const result = await callToGetJSONObject<{ answer: number }>(
+      const result = await callAIWithObjectResponse<{ answer: number }>(
         [
           {
             role: 'system',
@@ -109,7 +109,7 @@ vi.setConfig({
 
     it('image input', async () => {
       const imagePath = getFixture('baidu.png');
-      const result = await call(
+      const result = await callAI(
         [
           {
             role: 'user',

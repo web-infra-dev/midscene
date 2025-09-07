@@ -1,6 +1,6 @@
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { callAiFn } from '@/ai-model/common';
+import type { callAIWithObjectResponse } from '@/ai-model/service-caller/index';
 import { localImg2Base64 } from '@/image';
 import Insight from '@/insight';
 import type { AIElementLocatorResponse, BaseElement, UIContext } from '@/types';
@@ -68,13 +68,14 @@ export function fakeInsight(content: string) {
     ...basicContext,
   };
 
-  const aiVendor: typeof callAiFn<AIElementLocatorResponse> = async () => ({
-    content: {
-      elements: [{ id: '0', reason: '', text: '' }],
-      errors: [],
-    },
-    usage: undefined,
-  });
+  const aiVendor: typeof callAIWithObjectResponse<AIElementLocatorResponse> =
+    async () => ({
+      content: {
+        elements: [{ id: '0', reason: '', text: '' }],
+        errors: [],
+      },
+      usage: undefined,
+    });
 
   const insight = new Insight(context, {
     aiVendorFn: aiVendor as any,

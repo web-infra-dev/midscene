@@ -171,7 +171,7 @@ async function createChatClient({
   throw new Error('Openai SDK or Anthropic SDK is not initialized');
 }
 
-export async function call(
+export async function callAI(
   messages: ChatCompletionMessageParam[],
   AIActionTypeValue: AIActionType,
   modelPreferences: IModelPreferences,
@@ -501,23 +501,23 @@ export const getResponseFormat = (
   return responseFormat;
 };
 
-export async function callToGetJSONObject<T>(
+export async function callAIWithObjectResponse<T>(
   messages: ChatCompletionMessageParam[],
   AIActionTypeValue: AIActionType,
   modelPreferences: IModelPreferences,
 ): Promise<{ content: T; usage?: AIUsageInfo }> {
-  const response = await call(messages, AIActionTypeValue, modelPreferences);
+  const response = await callAI(messages, AIActionTypeValue, modelPreferences);
   assert(response, 'empty response');
   const jsonContent = safeParseJson(response.content, modelPreferences);
   return { content: jsonContent, usage: response.usage };
 }
 
-export async function callAiFnWithStringResponse<T>(
+export async function callAIWithStringResponse<T>(
   msgs: AIArgs,
   AIActionTypeValue: AIActionType,
   modelPreferences: IModelPreferences,
 ): Promise<{ content: string; usage?: AIUsageInfo }> {
-  const { content, usage } = await call(
+  const { content, usage } = await callAI(
     msgs,
     AIActionTypeValue,
     modelPreferences,

@@ -14,7 +14,6 @@ import type {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
 } from 'openai/resources/index';
-import { callToGetJSONObject } from './service-caller/index';
 
 import type { PlanningLocateParam } from '@/types';
 import { NodeType } from '@midscene/shared/constants';
@@ -39,23 +38,6 @@ export enum AIActionType {
   EXTRACT_DATA = 2,
   PLAN = 3,
   DESCRIBE_ELEMENT = 4,
-}
-
-export async function callAiFn<T>(
-  msgs: AIArgs,
-  AIActionTypeValue: AIActionType,
-  modelPreferences: IModelPreferences,
-): Promise<{ content: T; usage?: AIUsageInfo }> {
-  const jsonObject = await callToGetJSONObject<T>(
-    msgs,
-    AIActionTypeValue,
-    modelPreferences,
-  );
-
-  return {
-    content: jsonObject.content,
-    usage: jsonObject.usage,
-  };
 }
 
 const defaultBboxSize = 20; // must be even number

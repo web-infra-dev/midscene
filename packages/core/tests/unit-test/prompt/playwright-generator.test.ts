@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { AIActionType, callAi } from '../../../src/ai-model';
+import { AIActionType, callAI } from '../../../src/ai-model';
 import {
   type ChromeRecordedEvent,
   type PlaywrightGenerationOptions,
@@ -16,13 +16,13 @@ import {
 
 // Mock the callAi function
 vi.mock('../../../src/ai-model', () => ({
-  callAi: vi.fn(),
+  callAI: vi.fn(),
   AIActionType: {
     EXTRACT_DATA: 'EXTRACT_DATA',
   },
 }));
 
-const mockCallAi = vi.mocked(callAi);
+const mockCallAi = vi.mocked(callAI);
 
 describe('playwright-generator', () => {
   beforeEach(() => {

@@ -6,7 +6,7 @@ import { YAML_EXAMPLE_CODE } from '@midscene/shared/constants';
 import {
   AIActionType,
   type ChatCompletionMessageParam,
-  callAi,
+  callAI,
 } from '../index';
 
 // Common interfaces for test generation (shared between YAML and Playwright)
@@ -339,7 +339,7 @@ Respond with YAML only, no explanations.`,
       });
     }
 
-    const response = await callAi(prompt, AIActionType.EXTRACT_DATA, {
+    const response = await callAI(prompt, AIActionType.EXTRACT_DATA, {
       intent: 'default',
     });
 
@@ -427,7 +427,7 @@ Respond with YAML only, no explanations.`,
 
     if (options.stream && options.onChunk) {
       // Use streaming
-      return await callAi(
+      return await callAI(
         prompt,
         AIActionType.EXTRACT_DATA,
         {
@@ -440,7 +440,7 @@ Respond with YAML only, no explanations.`,
       );
     } else {
       // Fallback to non-streaming
-      const response = await callAi(prompt, AIActionType.EXTRACT_DATA, {
+      const response = await callAI(prompt, AIActionType.EXTRACT_DATA, {
         intent: 'default',
       });
 

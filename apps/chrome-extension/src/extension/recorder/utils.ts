@@ -1,8 +1,8 @@
 import {
   AIActionType,
   type AIArgs,
-  callAiFn,
-  callAiFnWithStringResponse,
+  callAIWithObjectResponse,
+  callAIWithStringResponse,
 } from '@midscene/core/ai-model';
 import type { ChromeRecordedEvent } from '@midscene/recorder';
 import { message } from 'antd';
@@ -316,7 +316,7 @@ export const generateRecordTitle = async (
         },
       ] as const;
 
-      const response = await callAiFn(
+      const response = await callAIWithObjectResponse(
         [prompt[0], prompt[1]],
         AIActionType.EXTRACT_DATA,
         {
@@ -624,7 +624,7 @@ const generateAIMindmap = async (
       },
     ];
 
-    const response = await callAiFnWithStringResponse(
+    const response = await callAIWithStringResponse(
       prompt,
       AIActionType.EXTRACT_DATA,
       {

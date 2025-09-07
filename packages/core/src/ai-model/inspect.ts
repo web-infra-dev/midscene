@@ -31,7 +31,6 @@ import type { TMultimodalPrompt, TUserPrompt } from './common';
 import {
   AIActionType,
   adaptBboxToRect,
-  callAiFn,
   expandSearchArea,
   markupImageForLLM,
   mergeRects,
@@ -54,7 +53,7 @@ import {
   distanceThreshold,
   elementByPositionWithElementInfo,
 } from './prompt/util';
-import { callToGetJSONObject } from './service-caller/index';
+import { callAIWithObjectResponse } from './service-caller/index';
 
 export type AIArgs = [
   ChatCompletionSystemMessageParam,
@@ -126,7 +125,9 @@ export async function AiLocateElement<
   context: UIContext<ElementType>;
   targetElementDescription: TUserPrompt;
   referenceImage?: ReferenceImage;
-  callAI?: typeof callAiFn<AIElementResponse | [number, number]>;
+  callAIFn: typeof callAIWithObjectResponse<
+    AIElementResponse | [number, number]
+  >;
   searchConfig?: Awaited<ReturnType<typeof AiLocateSection>>;
 }): Promise<{
   parseResult: AIElementLocatorResponse;
@@ -136,7 +137,7 @@ export async function AiLocateElement<
   usage?: AIUsageInfo;
   isOrderSensitive?: boolean;
 }> {
-  const { context, targetElementDescription, callAI } = options;
+  const { context, targetElementDescription, callAIFn } = options;
   const { screenshotBase64 } = context;
 
   const modelPreferences: IModelPreferences = {
@@ -209,9 +210,6 @@ export async function AiLocateElement<
     });
     msgs.push(...addOns);
   }
-
-  const callAIFn =
-    callAI || callToGetJSONObject<AIElementResponse | [number, number]>;
 
   const res = await callAIFn(msgs, AIActionType.INSPECT_ELEMENT, {
     intent: 'grounding',
@@ -288,7 +286,6 @@ export async function AiLocateElement<
 export async function AiLocateSection(options: {
   context: UIContext<BaseElement>;
   sectionDescription: TUserPrompt;
-  callAI?: typeof callAiFn<AISectionLocatorResponse>;
 }): Promise<{
   rect?: Rect;
   imageBase64?: string;
@@ -337,7 +334,7 @@ export async function AiLocateSection(options: {
     msgs.push(...addOns);
   }
 
-  const result = await callAiFn<AISectionLocatorResponse>(
+  const result = await callAIWithObjectResponse<AISectionLocatorResponse>(
     msgs,
     AIActionType.EXTRACT_DATA,
     {
@@ -477,7 +474,7 @@ export async function AiExtractElementInfo<
     msgs.push(...addOns);
   }
 
-  const result = await callAiFn<AIDataExtractionResponse<T>>(
+  const result = await callAIWithObjectResponse<AIDataExtractionResponse<T>>(
     msgs,
     AIActionType.EXTRACT_DATA,
     modelPreferences,

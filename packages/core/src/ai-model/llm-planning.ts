@@ -12,7 +12,6 @@ import {
   AIActionType,
   type AIArgs,
   buildYamlFlowFromPlans,
-  callAiFn,
   fillBboxParam,
   findAllMidsceneLocatorField,
   markupImageForLLM,
@@ -24,6 +23,7 @@ import {
   systemPromptToTaskPlanning,
 } from './prompt/llm-planning';
 import { describeUserPage } from './prompt/util';
+import { callAIWithObjectResponse } from './service-caller/index';
 
 const debug = getDebug('planning');
 
@@ -33,12 +33,11 @@ export async function plan(
     context: UIContext;
     interfaceType: InterfaceType;
     actionSpace: DeviceAction<any>[];
-    callAI?: typeof callAiFn<PlanningAIResponse>;
     log?: string;
     actionContext?: string;
   },
 ): Promise<PlanningAIResponse> {
-  const { callAI, context } = opts || {};
+  const { context } = opts || {};
   const { screenshotBase64, size } = context;
 
   const modelPreferences: IModelPreferences = {
@@ -98,8 +97,7 @@ export async function plan(
     },
   ];
 
-  const call = callAI || callAiFn;
-  const { content, usage } = await call(
+  const { content, usage } = await callAIWithObjectResponse<PlanningAIResponse>(
     msgs,
     AIActionType.PLAN,
     modelPreferences,
