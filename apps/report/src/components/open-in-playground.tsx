@@ -1,5 +1,6 @@
 import { PlayCircleOutlined } from '@ant-design/icons';
 import type { UIContext } from '@midscene/core';
+import { PlaygroundSDK } from '@midscene/playground';
 import { staticAgentFromContext, useEnvConfig } from '@midscene/visualizer';
 import type { WebUIContext } from '@midscene/web';
 import {
@@ -15,19 +16,20 @@ import { StandardPlayground } from './playground';
 
 declare const __VERSION__: string;
 
-export const serverBase = 'http://localhost:5800';
+// Create PlaygroundSDK instance for server communication
+const getPlaygroundSDK = () => {
+  return new PlaygroundSDK({
+    type: 'remote-execution',
+  });
+};
 
 const errorMessageNoContext = `No context info found. 
 Try to select another task like 'Locate'
 `;
 
-const checkServerStatus = async () => {
-  try {
-    const res = await fetch(`${serverBase}/status`);
-    return res.status === 200;
-  } catch (e) {
-    return false;
-  }
+const checkStatus = async () => {
+  const sdk = getPlaygroundSDK();
+  return sdk.checkStatus();
 };
 
 const tabKeys = {
@@ -45,7 +47,7 @@ export const useServerValid = (shouldRun = true) => {
     Promise.resolve(
       (async () => {
         while (!interruptFlag) {
-          const status = await checkServerStatus();
+          const status = await checkStatus();
           if (status) {
             setServerValid(true);
           } else {

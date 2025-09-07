@@ -1,3 +1,4 @@
+import { PlaygroundSDK } from '@midscene/playground';
 import { overrideAIConfig } from '@midscene/shared/env';
 import { Button, Tooltip } from 'antd';
 import type React from 'react';
@@ -5,7 +6,6 @@ import { useEffect } from 'react';
 import { EnvConfig } from '../env-config';
 import { iconForStatus } from '../misc';
 import { useEnvConfig } from '../store/store';
-import { overrideServerConfig } from './playground-utils';
 import { useServerValid } from './useServerValid';
 import './index.less';
 
@@ -77,7 +77,10 @@ export const ServiceModeControl: React.FC<ServiceModeControlProps> = ({
   useEffect(() => {
     overrideAIConfig(config);
     if (serviceMode === 'Server') {
-      overrideServerConfig(config);
+      const playgroundSDK = new PlaygroundSDK({
+        type: 'remote-execution',
+      });
+      playgroundSDK.overrideConfig(config);
     }
   }, [config, serviceMode, serverValid]);
 

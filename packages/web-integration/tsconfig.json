@@ -29,9 +29,6 @@
     },
     {
       "path": "../shared"
-    },
-    {
-      "path": "../playground"
     }
   ]
 }
