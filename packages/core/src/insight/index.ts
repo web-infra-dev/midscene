@@ -109,8 +109,9 @@ export default class Insight<
     const modelPreferences: IModelPreferences = {
       intent: 'grounding',
     };
+    const vlMode = vlLocateMode(modelPreferences);
 
-    if (searchAreaPrompt && !vlLocateMode(modelPreferences)) {
+    if (searchAreaPrompt && !vlMode) {
       console.warn(
         'The "deepThink" feature is not supported with multimodal LLM. Please config VL model for Midscene. https://midscenejs.com/choose-a-model',
       );
@@ -129,6 +130,7 @@ export default class Insight<
       searchAreaResponse = await AiLocateSection({
         context,
         sectionDescription: searchAreaPrompt,
+        vlMode,
       });
       assert(
         searchAreaResponse.rect,
@@ -154,6 +156,7 @@ export default class Insight<
       context,
       targetElementDescription: queryPrompt,
       searchConfig: searchAreaResponse,
+      vlMode,
     });
 
     const timeCost = Date.now() - startTime;
@@ -257,16 +260,19 @@ export default class Insight<
     const modelPreferences: IModelPreferences = {
       intent: 'VQA',
     };
+    const vlMode = vlLocateMode(modelPreferences);
 
     const context = await this.contextRetrieverFn('extract');
 
     const startTime = Date.now();
+
     const { parseResult, usage } = await AiExtractElementInfo<T>({
       context,
       dataQuery: dataDemand,
       multimodalPrompt,
       extractOption: opt,
       modelPreferences,
+      vlMode,
     });
 
     const timeCost = Date.now() - startTime;
@@ -326,6 +332,7 @@ export default class Insight<
     assert(screenshotBase64, 'screenshot is required for insight.describe');
     // The result of the "describe" function will be used for positioning, so essentially it is a form of grounding.
     const modelPreferences: IModelPreferences = { intent: 'grounding' };
+    const vlMode = vlLocateMode(modelPreferences);
     const systemPrompt = elementDescriberInstruction();
 
     // Convert [x,y] center point to Rect if needed
@@ -351,11 +358,7 @@ export default class Insight<
     });
 
     if (opt?.deepThink) {
-      const searchArea = expandSearchArea(
-        targetRect,
-        context.size,
-        modelPreferences,
-      );
+      const searchArea = expandSearchArea(targetRect, context.size, vlMode);
       debug('describe: set searchArea', searchArea);
       imagePayload = await cropByRect(
         imagePayload,

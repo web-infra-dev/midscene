@@ -19,8 +19,8 @@ import type { PlanningLocateParam } from '@/types';
 import { NodeType } from '@midscene/shared/constants';
 import {
   type IModelPreferences,
+  type TVlModeTypes,
   getModelName,
-  vlLocateMode,
 } from '@midscene/shared/env';
 import { treeToList } from '@midscene/shared/extractor';
 import { compositeElementInfoImg } from '@midscene/shared/img';
@@ -48,7 +48,7 @@ export function fillBboxParam(
   locate: PlanningLocateParam,
   width: number,
   height: number,
-  modelPreferences: IModelPreferences,
+  vlMode: TVlModeTypes | undefined,
 ) {
   // The Qwen model might have hallucinations of naming bbox as bbox_2d.
   if ((locate as any).bbox_2d && !locate?.bbox) {
@@ -58,7 +58,7 @@ export function fillBboxParam(
   }
 
   if (locate?.bbox) {
-    locate.bbox = adaptBbox(locate.bbox, width, height, modelPreferences);
+    locate.bbox = adaptBbox(locate.bbox, width, height, vlMode);
   }
 
   return locate;
@@ -186,16 +186,13 @@ export function adaptBbox(
   bbox: number[],
   width: number,
   height: number,
-  modelPreferences: IModelPreferences,
+  vlMode: TVlModeTypes | undefined,
 ): [number, number, number, number] {
-  if (
-    vlLocateMode(modelPreferences) === 'doubao-vision' ||
-    vlLocateMode(modelPreferences) === 'vlm-ui-tars'
-  ) {
+  if (vlMode === 'doubao-vision' || vlMode === 'vlm-ui-tars') {
     return adaptDoubaoBbox(bbox, width, height);
   }
 
-  if (vlLocateMode(modelPreferences) === 'gemini') {
+  if (vlMode === 'gemini') {
     return adaptGeminiBbox(bbox, width, height);
   }
 
@@ -218,17 +215,12 @@ export function adaptBboxToRect(
   bbox: number[],
   width: number,
   height: number,
-  modelPreferences: IModelPreferences,
   offsetX = 0,
   offsetY = 0,
+  vlMode?: TVlModeTypes | undefined,
 ): Rect {
   debugInspectUtils('adaptBboxToRect', bbox, width, height, offsetX, offsetY);
-  const [left, top, right, bottom] = adaptBbox(
-    bbox,
-    width,
-    height,
-    modelPreferences,
-  );
+  const [left, top, right, bottom] = adaptBbox(bbox, width, height, vlMode);
 
   // Calculate initial rect dimensions
   const rectLeft = left;
@@ -302,10 +294,9 @@ export function mergeRects(rects: Rect[]) {
 export function expandSearchArea(
   rect: Rect,
   screenSize: Size,
-  modelPreferences: IModelPreferences,
+  vlMode: TVlModeTypes | undefined,
 ) {
-  const minEdgeSize =
-    vlLocateMode(modelPreferences) === 'doubao-vision' ? 500 : 300;
+  const minEdgeSize = vlMode === 'doubao-vision' ? 500 : 300;
   const defaultPadding = 160;
 
   const paddingSizeHorizontal =

@@ -43,31 +43,30 @@ export async function plan(
   const modelPreferences: IModelPreferences = {
     intent: 'planning',
   };
+  const vlMode = vlLocateMode(modelPreferences);
+
   const { description: pageDescription, elementById } = await describeUserPage(
     context,
-    modelPreferences,
+    { vlMode },
   );
-
   const systemPrompt = await systemPromptToTaskPlanning({
     actionSpace: opts.actionSpace,
-    vlMode: vlLocateMode(modelPreferences),
+    vlMode: vlMode,
   });
   const taskBackgroundContextText = generateTaskBackgroundContext(
     userInstruction,
     opts.log,
     opts.actionContext,
   );
-  const userInstructionPrompt = await automationUserPrompt(
-    vlLocateMode(modelPreferences),
-  ).format({
+  const userInstructionPrompt = await automationUserPrompt(vlMode).format({
     pageDescription,
     taskBackgroundContext: taskBackgroundContextText,
   });
 
   let imagePayload = screenshotBase64;
-  if (vlLocateMode(modelPreferences) === 'qwen-vl') {
+  if (vlMode === 'qwen-vl') {
     imagePayload = await paddingToMatchBlockByBase64(imagePayload);
-  } else if (!vlLocateMode(modelPreferences)) {
+  } else if (!vlMode) {
     imagePayload = await markupImageForLLM(
       screenshotBase64,
       context.tree,
@@ -138,12 +137,12 @@ export async function plan(
     locateFields.forEach((field) => {
       const locateResult = action.param[field];
       if (locateResult) {
-        if (vlLocateMode(modelPreferences)) {
+        if (vlMode) {
           action.param[field] = fillBboxParam(
             locateResult,
             size.width,
             size.height,
-            modelPreferences,
+            vlMode,
           );
         } else {
           const element = elementById(locateResult);

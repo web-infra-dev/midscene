@@ -13,8 +13,8 @@ import type {
 } from '@/types';
 import {
   type IModelPreferences,
+  type TVlModeTypes,
   getIsUseQwenVl,
-  vlLocateMode,
 } from '@midscene/shared/env';
 import {
   cropByRect,
@@ -129,6 +129,7 @@ export async function AiLocateElement<
     AIElementResponse | [number, number]
   >;
   searchConfig?: Awaited<ReturnType<typeof AiLocateSection>>;
+  vlMode: TVlModeTypes | undefined;
 }): Promise<{
   parseResult: AIElementLocatorResponse;
   rect?: Rect;
@@ -137,28 +138,21 @@ export async function AiLocateElement<
   usage?: AIUsageInfo;
   isOrderSensitive?: boolean;
 }> {
-  const { context, targetElementDescription, callAIFn } = options;
+  const { context, targetElementDescription, callAIFn, vlMode } = options;
   const { screenshotBase64 } = context;
 
-  const modelPreferences: IModelPreferences = {
-    intent: 'grounding',
-  };
-
   const { description, elementById, insertElementByPosition } =
-    await describeUserPage(context, modelPreferences);
+    await describeUserPage(context, { vlMode });
 
   assert(
     targetElementDescription,
     'cannot find the target element description',
   );
-
   const userInstructionPrompt = await findElementPrompt.format({
     pageDescription: description,
     targetElementDescription: extraTextFromUserPrompt(targetElementDescription),
   });
-  const systemPrompt = systemPromptToLocateElement(
-    vlLocateMode(modelPreferences),
-  );
+  const systemPrompt = systemPromptToLocateElement(vlMode);
 
   let imagePayload = screenshotBase64;
 
@@ -173,9 +167,9 @@ export async function AiLocateElement<
     );
 
     imagePayload = options.searchConfig.imageBase64;
-  } else if (vlLocateMode(modelPreferences) === 'qwen-vl') {
+  } else if (vlMode === 'qwen-vl') {
     imagePayload = await paddingToMatchBlockByBase64(imagePayload);
-  } else if (!vlLocateMode(modelPreferences)) {
+  } else if (!vlMode) {
     imagePayload = await markupImageForLLM(
       screenshotBase64,
       context.tree,
@@ -228,9 +222,9 @@ export async function AiLocateElement<
         res.content.bbox,
         options.searchConfig?.rect?.width || context.size.width,
         options.searchConfig?.rect?.height || context.size.height,
-        modelPreferences,
         options.searchConfig?.rect?.left,
         options.searchConfig?.rect?.top,
+        vlMode,
       );
       debugInspect('resRect', resRect);
 
@@ -286,6 +280,7 @@ export async function AiLocateElement<
 export async function AiLocateSection(options: {
   context: UIContext<BaseElement>;
   sectionDescription: TUserPrompt;
+  vlMode: TVlModeTypes | undefined;
 }): Promise<{
   rect?: Rect;
   imageBase64?: string;
@@ -293,16 +288,10 @@ export async function AiLocateSection(options: {
   rawResponse: string;
   usage?: AIUsageInfo;
 }> {
-  const { context, sectionDescription } = options;
+  const { context, sectionDescription, vlMode } = options;
   const { screenshotBase64 } = context;
 
-  const modelPreferences: IModelPreferences = {
-    intent: 'grounding',
-  };
-
-  const systemPrompt = systemPromptToLocateSection(
-    vlLocateMode(modelPreferences),
-  );
+  const systemPrompt = systemPromptToLocateSection(vlMode);
   const sectionLocatorInstructionText = await sectionLocatorInstruction.format({
     sectionDescription: extraTextFromUserPrompt(sectionDescription),
   });
@@ -349,7 +338,9 @@ export async function AiLocateSection(options: {
       sectionBbox,
       context.size.width,
       context.size.height,
-      modelPreferences,
+      0,
+      0,
+      vlMode,
     );
     debugSection('original targetRect %j', targetRect);
 
@@ -363,7 +354,9 @@ export async function AiLocateSection(options: {
           bbox,
           context.size.width,
           context.size.height,
-          modelPreferences,
+          0,
+          0,
+          vlMode,
         );
       });
     debugSection('referenceRects %j', referenceRects);
@@ -373,7 +366,7 @@ export async function AiLocateSection(options: {
     debugSection('mergedRect %j', mergedRect);
 
     // expand search area to at least 200 x 200
-    sectionRect = expandSearchArea(mergedRect, context.size, modelPreferences);
+    sectionRect = expandSearchArea(mergedRect, context.size, vlMode);
     debugSection('expanded sectionRect %j', sectionRect);
   }
 
@@ -406,6 +399,7 @@ export async function AiExtractElementInfo<
   context: UIContext<ElementType>;
   extractOption?: InsightExtractOption;
   modelPreferences: IModelPreferences;
+  vlMode: TVlModeTypes | undefined;
 }) {
   const {
     dataQuery,
@@ -413,21 +407,19 @@ export async function AiExtractElementInfo<
     extractOption,
     multimodalPrompt,
     modelPreferences,
+    vlMode,
   } = options;
   const systemPrompt = systemPromptToExtract();
 
   const { screenshotBase64 } = context;
 
-  const { description, elementById } = await describeUserPage(
-    context,
-    modelPreferences,
-    {
-      truncateTextLength: 200,
-      filterNonTextContent: false,
-      visibleOnly: false,
-      domIncluded: extractOption?.domIncluded,
-    },
-  );
+  const { description, elementById } = await describeUserPage(context, {
+    truncateTextLength: 200,
+    filterNonTextContent: false,
+    visibleOnly: false,
+    domIncluded: extractOption?.domIncluded,
+    vlMode,
+  });
 
   const extractDataPromptText = await extractDataQueryPrompt(
     description,

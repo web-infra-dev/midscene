@@ -608,14 +608,15 @@ describe('search area', () => {
   });
 
   it('expandSearchArea', () => {
+    const vlMode = vlLocateMode(defaultIntent);
     const result = expandSearchArea(
       { left: 100, top: 100, width: 100, height: 100 },
       { width: 1000, height: 1000 },
-      defaultIntent,
+      vlMode,
     );
 
     // Dynamic expectation based on vlLocateMode
-    const isDoubaoVision = vlLocateMode(defaultIntent) === 'doubao-vision';
+    const isDoubaoVision = vlMode === 'doubao-vision';
     const expectedSize = isDoubaoVision ? 500 : 300;
 
     expect(result).toEqual({
@@ -630,7 +631,7 @@ describe('search area', () => {
     const result = expandSearchArea(
       { left: 100, top: 100, width: 500, height: 500 },
       { width: 1000, height: 1000 },
-      defaultIntent,
+      vlLocateMode(defaultIntent),
     );
     expect(result).toMatchInlineSnapshot(`
       {
@@ -643,14 +644,16 @@ describe('search area', () => {
   });
 
   it('expandSearchArea with a right-most rect', () => {
+    const vlMode = vlLocateMode(defaultIntent);
+
     const result = expandSearchArea(
       { left: 951, top: 800, width: 50, height: 50 },
       { width: 1000, height: 1000 },
-      defaultIntent,
+      vlMode,
     );
 
     // Dynamic expectation based on vlLocateMode
-    const isDoubaoVision = vlLocateMode(defaultIntent) === 'doubao-vision';
+    const isDoubaoVision = vlMode === 'doubao-vision';
 
     if (isDoubaoVision) {
       // minEdgeSize = 500, paddingSize = 225

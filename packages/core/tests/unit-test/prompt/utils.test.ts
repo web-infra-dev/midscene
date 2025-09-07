@@ -1,11 +1,6 @@
 import { treeToList } from '@midscene/shared/extractor';
 import { getContextFromFixture } from 'tests/evaluation';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-// Mock the env module before importing the function that uses it
-vi.mock('@midscene/shared/env', () => ({
-  vlLocateMode: vi.fn(() => 'qwen-vl' as const), // default to 'qwen-vl'
-}));
+import { describe, expect, it, vi } from 'vitest';
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -14,55 +9,38 @@ import {
   elementByPositionWithElementInfo,
 } from '@/ai-model/prompt/util';
 import type { GroupedActionDump } from '@/types';
-import { vlLocateMode } from '@midscene/shared/env';
+import type { TVlModeTypes } from '@midscene/shared/env';
 
 describe('prompt utils - describeUserPage', () => {
   let lengthOfDescription: number;
 
-  beforeEach(() => {
-    vi.clearAllMocks();
+  const vlMode: TVlModeTypes = 'qwen-vl';
+
+  it('describe context ', { timeout: 10000 }, async () => {
+    const context = await getContextFromFixture('taobao');
+    const { description } = await describeUserPage(context.context, {
+      domIncluded: true,
+      visibleOnly: false,
+      vlMode,
+    });
+
+    lengthOfDescription = description.length;
+    const stringLengthOfEachItem =
+      lengthOfDescription / treeToList(context.context.tree).length;
+    expect(description).toBeTruthy();
+    expect(stringLengthOfEachItem).toBeLessThan(250);
   });
-
-  afterEach(() => {
-    // Reset to default value
-    vi.mocked(vlLocateMode).mockReturnValue('qwen-vl');
-  });
-
-  it(
-    'describe context ',
-    async () => {
-      const context = await getContextFromFixture('taobao');
-      const { description } = await describeUserPage(
-        context.context,
-        { intent: 'default' },
-        {
-          domIncluded: true,
-          visibleOnly: false,
-        },
-      );
-
-      lengthOfDescription = description.length;
-      const stringLengthOfEachItem =
-        lengthOfDescription / treeToList(context.context.tree).length;
-      expect(description).toBeTruthy();
-      expect(stringLengthOfEachItem).toBeLessThan(250);
-    },
-    { timeout: 10000 },
-  );
 
   it('describe context, truncateTextLength = 100, filterNonTextContent = true', async () => {
     const context = await getContextFromFixture('taobao');
 
-    const { description } = await describeUserPage(
-      context.context,
-      { intent: 'default' },
-      {
-        truncateTextLength: 100,
-        filterNonTextContent: true,
-        domIncluded: true,
-        visibleOnly: false,
-      },
-    );
+    const { description } = await describeUserPage(context.context, {
+      truncateTextLength: 100,
+      filterNonTextContent: true,
+      domIncluded: true,
+      visibleOnly: false,
+      vlMode,
+    });
 
     const stringLengthOfEachItem =
       description.length / treeToList(context.context.tree).length;
@@ -74,14 +52,11 @@ describe('prompt utils - describeUserPage', () => {
   it('describe context, domIncluded = "visible-only"', async () => {
     const context = await getContextFromFixture('taobao');
 
-    const { description } = await describeUserPage(
-      context.context,
-      { intent: 'default' },
-      {
-        filterNonTextContent: true,
-        domIncluded: 'visible-only',
-      },
-    );
+    const { description } = await describeUserPage(context.context, {
+      filterNonTextContent: true,
+      domIncluded: 'visible-only',
+      vlMode,
+    });
 
     expect(description).toBeTruthy();
     expect(description.length).toBeLessThan(
@@ -90,34 +65,22 @@ describe('prompt utils - describeUserPage', () => {
   });
 
   it('describe context with non-vl mode', async () => {
-    // Mock vlLocateMode to return false for this test
-    vi.mocked(vlLocateMode).mockReturnValue(undefined);
-
     const context = await getContextFromFixture('taobao');
-    const { description } = await describeUserPage(
-      context.context,
-      { intent: 'default' },
-      {
-        domIncluded: false,
-      },
-    );
+    const { description } = await describeUserPage(context.context, {
+      domIncluded: false,
+      vlMode: undefined,
+    });
 
     // In non-vl mode, description should include page elements even when domIncluded is false
     expect(description).toBeTruthy();
   });
 
   it('describe context with vl mode', async () => {
-    // Mock vlLocateMode to return a VL mode for this test
-    vi.mocked(vlLocateMode).mockReturnValue('qwen-vl');
-
     const context = await getContextFromFixture('taobao');
-    const { description } = await describeUserPage(
-      context.context,
-      { intent: 'default' },
-      {
-        domIncluded: false,
-      },
-    );
+    const { description } = await describeUserPage(context.context, {
+      domIncluded: false,
+      vlMode,
+    });
 
     // In vl mode, description should be empty if domIncluded is false
     expect(description).toBeFalsy();

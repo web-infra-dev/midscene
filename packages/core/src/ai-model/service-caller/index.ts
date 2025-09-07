@@ -10,6 +10,7 @@ import {
   MIDSCENE_API_TYPE,
   MIDSCENE_LANGSMITH_DEBUG,
   OPENAI_MAX_TOKENS,
+  type TVlModeTypes,
   type UITarsModelVersion,
   globalConfigManager,
   vlLocateMode,
@@ -41,6 +42,7 @@ async function createChatClient({
   modelName: string;
   modelDescription: string;
   uiTarsVersion?: UITarsModelVersion;
+  vlMode: TVlModeTypes | undefined;
 }> {
   const {
     socksProxy,
@@ -61,6 +63,7 @@ async function createChatClient({
     anthropicApiKey,
     modelDescription,
     uiTarsVersion,
+    vlMode,
   } = globalConfigManager.getModelConfigByIntent(modelPreferences.intent);
 
   let openai: OpenAI | AzureOpenAI | undefined;
@@ -150,6 +153,7 @@ async function createChatClient({
       modelName,
       modelDescription,
       uiTarsVersion,
+      vlMode: vlMode as TVlModeTypes | undefined,
     };
   }
 
@@ -169,6 +173,7 @@ async function createChatClient({
       modelName,
       modelDescription,
       uiTarsVersion,
+      vlMode: vlMode as TVlModeTypes | undefined,
     };
   }
 
@@ -184,11 +189,17 @@ export async function callAI(
     onChunk?: StreamingCallback;
   },
 ): Promise<{ content: string; usage?: AIUsageInfo; isStreamed: boolean }> {
-  const { completion, style, modelName, modelDescription, uiTarsVersion } =
-    await createChatClient({
-      AIActionTypeValue,
-      modelPreferences,
-    });
+  const {
+    completion,
+    style,
+    modelName,
+    modelDescription,
+    uiTarsVersion,
+    vlMode,
+  } = await createChatClient({
+    AIActionTypeValue,
+    modelPreferences,
+  });
 
   const responseFormat = getResponseFormat(modelName, AIActionTypeValue);
 
@@ -206,13 +217,13 @@ export async function callAI(
   let timeCost: number | undefined;
 
   const commonConfig = {
-    temperature: vlLocateMode(modelPreferences) === 'vlm-ui-tars' ? 0.0 : 0.1,
+    temperature: vlMode === 'vlm-ui-tars' ? 0.0 : 0.1,
     stream: !!isStreaming,
     max_tokens:
       typeof maxTokens === 'number'
         ? maxTokens
         : Number.parseInt(maxTokens || '2048', 10),
-    ...(vlLocateMode(modelPreferences) === 'qwen-vl' // qwen specific config
+    ...(vlMode === 'qwen-vl' // qwen specific config
       ? {
           vl_high_resolution_images: true,
         }
@@ -302,7 +313,7 @@ export async function callAI(
         }
         content = accumulated;
         debugProfileStats(
-          `streaming model, ${modelName}, mode, ${vlLocateMode(modelPreferences) || 'default'}, cost-ms, ${timeCost}`,
+          `streaming model, ${modelName}, mode, ${vlMode || 'default'}, cost-ms, ${timeCost}`,
         );
       } else {
         const result = await completion.create({
@@ -314,7 +325,7 @@ export async function callAI(
         timeCost = Date.now() - startTime;
 
         debugProfileStats(
-          `model, ${modelName}, mode, ${vlLocateMode(modelPreferences) || 'default'}, ui-tars-version, ${uiTarsVersion}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${timeCost}, requestId, ${result._request_id || ''}`,
+          `model, ${modelName}, mode, ${vlMode || 'default'}, ui-tars-version, ${uiTarsVersion}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${timeCost}, requestId, ${result._request_id || ''}`,
         );
 
         debugProfileDetail(
@@ -512,7 +523,8 @@ export async function callAIWithObjectResponse<T>(
 ): Promise<{ content: T; usage?: AIUsageInfo }> {
   const response = await callAI(messages, AIActionTypeValue, modelPreferences);
   assert(response, 'empty response');
-  const jsonContent = safeParseJson(response.content, modelPreferences);
+  const vlMode = vlLocateMode(modelPreferences);
+  const jsonContent = safeParseJson(response.content, vlMode);
   return { content: jsonContent, usage: response.usage };
 }
 
@@ -565,10 +577,7 @@ export function preprocessDoubaoBboxJson(input: string) {
   return input;
 }
 
-export function safeParseJson(
-  input: string,
-  modelPreferences: IModelPreferences,
-) {
+export function safeParseJson(input: string, vlMode: TVlModeTypes | undefined) {
   const cleanJsonString = extractJSONFromCodeBlock(input);
   // match the point
   if (cleanJsonString?.match(/\((\d+),(\d+)\)/)) {
@@ -584,10 +593,7 @@ export function safeParseJson(
     return JSON.parse(jsonrepair(cleanJsonString));
   } catch (e) {}
 
-  if (
-    vlLocateMode(modelPreferences) === 'doubao-vision' ||
-    vlLocateMode(modelPreferences) === 'vlm-ui-tars'
-  ) {
+  if (vlMode === 'doubao-vision' || vlMode === 'vlm-ui-tars') {
     const jsonString = preprocessDoubaoBboxJson(cleanJsonString);
     return JSON.parse(jsonrepair(jsonString));
   }

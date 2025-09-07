@@ -565,9 +565,11 @@ export class Agent<
     },
   ) {
     const modelPreferences: IModelPreferences = { intent: 'planning' };
+    const vlMode = vlLocateMode(modelPreferences);
+
     const cacheable = opt?.cacheable;
     // if vlm-ui-tars, plan cache is not used
-    const isVlmUiTars = vlLocateMode(modelPreferences) === 'vlm-ui-tars';
+    const isVlmUiTars = vlMode === 'vlm-ui-tars';
     const matchedCache =
       isVlmUiTars || cacheable === false
         ? undefined

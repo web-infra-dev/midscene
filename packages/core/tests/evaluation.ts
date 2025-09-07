@@ -29,6 +29,12 @@ export async function buildContext(targetDir: string): Promise<{
   const snapshotJsonPath = path.join(targetDir, 'element-snapshot.json');
   const elementTreeJsonPath = path.join(targetDir, 'element-tree.json');
 
+  const defaultModelPreferences = {
+    intent: 'default',
+  } as const;
+
+  const vlMode = vlLocateMode(defaultModelPreferences);
+
   if (!existsSync(snapshotJsonPath)) {
     console.warn(
       'element-snapshot.json not found, will use input.png to generate context.',
@@ -43,12 +49,13 @@ export async function buildContext(targetDir: string): Promise<{
       screenshotBase64: originalScreenshotBase64,
       originalScreenshotBase64,
     };
+
     const result = {
       context: {
         ...baseContext,
         describer: async () => {
           return describeUserPage(baseContext, {
-            intent: 'default',
+            vlMode,
           });
         },
       },
@@ -63,9 +70,7 @@ export async function buildContext(targetDir: string): Promise<{
   const elementTree = JSON.parse(
     readFileSync(elementTreeJsonPath, { encoding: 'utf-8' }),
   );
-  const screenshotBase64 = vlLocateMode({
-    intent: 'default',
-  })
+  const screenshotBase64 = vlMode
     ? originalScreenshotBase64
     : localImg2Base64(resizeOutputImgP);
 
@@ -82,7 +87,7 @@ export async function buildContext(targetDir: string): Promise<{
       ...baseContext,
       describer: async () => {
         return describeUserPage(baseContext, {
-          intent: 'default',
+          vlMode,
         });
       },
     },
