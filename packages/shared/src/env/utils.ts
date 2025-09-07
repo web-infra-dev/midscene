@@ -13,7 +13,7 @@ import {
 
 export const globalConfigManager = new GlobalConfigManager();
 
-export const uiTarsModelVersion = (
+export const getUiTarsModelVersion = (
   modelPreferences: IModelPreferences,
 ): UITarsModelVersion | undefined => {
   try {
@@ -24,7 +24,7 @@ export const uiTarsModelVersion = (
   } catch (e) {
     if ((e as any)?.[GLOBAL_CONFIG_MANAGER_UNINITIALIZED_FLAG]) {
       console.warn(
-        "Call uiTarsModelVersion before globalConfig init, will return undefined. This warning should only appear in midscene's own unit tests.",
+        "Call getUiTarsModelVersion before globalConfig init, will return undefined. This warning should only appear in midscene's own unit tests.",
       );
       return undefined;
     }

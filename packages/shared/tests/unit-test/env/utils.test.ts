@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MIDSCENE_RUN_DIR } from '../../../src/env';
 import {
   getIsUseQwenVl,
-  uiTarsModelVersion,
+  getUiTarsModelVersion,
   vlLocateMode,
 } from '../../../src/env/utils';
 
@@ -26,9 +26,9 @@ describe('getBasicEnvValue', () => {
   });
 });
 
-describe('uiTarsModelVersion', () => {
-  it('uiTarsModelVersion will return undefined if globalConfig is not initialized', () => {
-    expect(uiTarsModelVersion({ intent: 'planning' })).toBeUndefined();
+describe('getUiTarsModelVersion', () => {
+  it('getUiTarsModelVersion will return undefined if globalConfig is not initialized', () => {
+    expect(getUiTarsModelVersion({ intent: 'planning' })).toBeUndefined();
   });
 });
 

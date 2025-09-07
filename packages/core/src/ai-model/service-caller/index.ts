@@ -10,8 +10,8 @@ import {
   MIDSCENE_API_TYPE,
   MIDSCENE_LANGSMITH_DEBUG,
   OPENAI_MAX_TOKENS,
+  type UITarsModelVersion,
   globalConfigManager,
-  uiTarsModelVersion,
   vlLocateMode,
 } from '@midscene/shared/env';
 import { parseBase64 } from '@midscene/shared/img';
@@ -40,6 +40,7 @@ async function createChatClient({
   style: 'openai' | 'anthropic';
   modelName: string;
   modelDescription: string;
+  uiTarsVersion?: UITarsModelVersion;
 }> {
   const {
     socksProxy,
@@ -59,6 +60,7 @@ async function createChatClient({
     useAnthropicSdk,
     anthropicApiKey,
     modelDescription,
+    uiTarsVersion,
   } = globalConfigManager.getModelConfigByIntent(modelPreferences.intent);
 
   let openai: OpenAI | AzureOpenAI | undefined;
@@ -147,6 +149,7 @@ async function createChatClient({
       style: 'openai',
       modelName,
       modelDescription,
+      uiTarsVersion,
     };
   }
 
@@ -165,6 +168,7 @@ async function createChatClient({
       style: 'anthropic',
       modelName,
       modelDescription,
+      uiTarsVersion,
     };
   }
 
@@ -180,7 +184,7 @@ export async function callAI(
     onChunk?: StreamingCallback;
   },
 ): Promise<{ content: string; usage?: AIUsageInfo; isStreamed: boolean }> {
-  const { completion, style, modelName, modelDescription } =
+  const { completion, style, modelName, modelDescription, uiTarsVersion } =
     await createChatClient({
       AIActionTypeValue,
       modelPreferences,
@@ -310,7 +314,7 @@ export async function callAI(
         timeCost = Date.now() - startTime;
 
         debugProfileStats(
-          `model, ${modelName}, mode, ${vlLocateMode(modelPreferences) || 'default'}, ui-tars-version, ${uiTarsModelVersion(modelPreferences)}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${timeCost}, requestId, ${result._request_id || ''}`,
+          `model, ${modelName}, mode, ${vlLocateMode(modelPreferences) || 'default'}, ui-tars-version, ${uiTarsVersion}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${timeCost}, requestId, ${result._request_id || ''}`,
         );
 
         debugProfileDetail(

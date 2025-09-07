@@ -23,11 +23,6 @@ const vlModeRawValidValues: TVlModeValues[] = [
   'vlm-ui-tars-doubao-1.5',
 ];
 
-/**
- *
- * @param vlModeRaw
- * @returns
- */
 export const parseVlModeAndUiTarsFromRaw = (
   vlModeRaw?: string,
 ): {

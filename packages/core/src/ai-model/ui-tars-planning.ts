@@ -7,8 +7,6 @@ import type {
 import {
   type IModelPreferences,
   UITarsModelVersion,
-  uiTarsModelVersion,
-  vlLocateMode,
 } from '@midscene/shared/env';
 import { resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
@@ -48,6 +46,7 @@ export async function vlmPlanning(options: {
   conversationHistory: ChatCompletionMessageParam[];
   size: { width: number; height: number };
   modelPreferences: IModelPreferences;
+  uiTarsModelVersion: UITarsModelVersion | undefined;
 }): Promise<{
   actions: PlanningAction<any>[];
   actionsFromModel: ReturnType<typeof actionParser>['parsed'];
@@ -56,8 +55,13 @@ export async function vlmPlanning(options: {
   usage?: AIUsageInfo;
   rawResponse?: string;
 }> {
-  const { conversationHistory, userInstruction, size, modelPreferences } =
-    options;
+  const {
+    conversationHistory,
+    userInstruction,
+    size,
+    modelPreferences,
+    uiTarsModelVersion,
+  } = options;
   const systemPrompt = getUiTarsPlanningPrompt() + userInstruction;
 
   const res = await callAI(
@@ -73,8 +77,6 @@ export async function vlmPlanning(options: {
   );
   const convertedText = convertBboxToCoordinates(res.content);
 
-  const modelVer = uiTarsModelVersion(modelPreferences);
-
   const { parsed } = actionParser({
     prediction: convertedText,
     factor: [1000, 1000],
@@ -82,10 +84,15 @@ export async function vlmPlanning(options: {
       width: size.width,
       height: size.height,
     },
-    modelVer: modelVer || undefined,
+    modelVer: uiTarsModelVersion,
   });
 
-  debug('ui-tars modelVer', modelVer, ', parsed', JSON.stringify(parsed));
+  debug(
+    'ui-tars modelVer',
+    uiTarsModelVersion,
+    ', parsed',
+    JSON.stringify(parsed),
+  );
 
   const transformActions: PlanningAction[] = [];
   parsed.forEach((action) => {
@@ -308,12 +315,9 @@ export type Action =
 export async function resizeImageForUiTars(
   imageBase64: string,
   size: Size,
-  modelPreferences: IModelPreferences,
+  uiTarsVersion: UITarsModelVersion | undefined,
 ) {
-  if (
-    vlLocateMode(modelPreferences) === 'vlm-ui-tars' &&
-    uiTarsModelVersion(modelPreferences) === UITarsModelVersion.V1_5
-  ) {
+  if (uiTarsVersion === UITarsModelVersion.V1_5) {
     debug('ui-tars-v1.5, will check image size', size);
     const currentPixels = size.width * size.height;
     const maxPixels = 16384 * 28 * 28; //

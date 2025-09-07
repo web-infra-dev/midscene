@@ -45,6 +45,7 @@ import { NodeType } from '@midscene/shared/constants';
 import {
   type IModelPreferences,
   MIDSCENE_REPLANNING_CYCLE_LIMIT,
+  getUiTarsModelVersion,
   globalConfigManager,
 } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
@@ -787,10 +788,12 @@ export class TaskExecutor {
       executor: async (param, executorContext) => {
         const { uiContext } = await this.setupPlanningContext(executorContext);
 
+        const uiTarsModelVersion = getUiTarsModelVersion(modelPreferences);
+
         const imagePayload = await resizeImageForUiTars(
           uiContext.screenshotBase64,
           uiContext.size,
-          modelPreferences,
+          uiTarsModelVersion,
         );
 
         this.appendConversationHistory({
@@ -815,6 +818,7 @@ export class TaskExecutor {
           conversationHistory: this.conversationHistory,
           size: uiContext.size,
           modelPreferences,
+          uiTarsModelVersion,
         });
 
         const { actions, action_summary, usage } = planResult;
