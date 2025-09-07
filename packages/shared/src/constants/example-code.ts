@@ -13,15 +13,6 @@ aiScroll(scrollParam: {
   scrollType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft',
   distance: number - scroll distance, px is the unit
 }): Promise<void>
-aiLongPress(locator: string, longPressParam: {duration?: number}): Promise<void>
-aiSwipe(locator?: string, swipeParam: {
-  from?: { x: number, y: number },
-  to?: { x: number, y: number },
-  direction?: 'up' | 'down' | 'left' | 'right',
-  swipeType?: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft',
-  distance?: number,
-  duration?: number,
-}): Promise<void>
 aiAssert(assertion: string): Promise<void>
 aiQuery<T>(queryObject: Record<string, string>): Promise<T> // Extracts data from page based on descriptions
 
@@ -172,25 +163,6 @@ tasks:
         scrollType: 'once' # or 'untilTop' | 'untilBottom' | 'untilLeft' | 'untilRight'
         distance: <number> # Optional, the scroll distance in pixels.
         locate: <prompt> # Optional, the element to scroll on.
-        deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
-        xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
-        cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
-
-      # Long press on an element described by a prompt.
-      - aiLongPress: <prompt>
-        duration: <number> # Optional, long press duration in milliseconds. Defaults to 500.
-        deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
-        xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
-        cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
-
-      # Swipe globally or on an element described by a prompt.
-      - aiSwipe: <prompt> # Optional, the element to swipe on.
-        from: <x, y> # Optional, the starting point of the swipe. Defaults to the center of the element.
-        to: <x, y> # Optional, the ending point of the swipe. Defaults to the center of the element.
-        direction: 'left' # or 'up' | 'down' | 'right'
-        swipeType: 'once' # or 'untilTop' | 'untilBottom' | 'untilLeft' | 'untilRight'
-        distance: <number> # Optional, the swipe distance in pixels.
-        duration: <number> # Optional, long press duration in milliseconds. Defaults to 300.
         deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
         xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
         cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.

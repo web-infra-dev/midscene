@@ -16,6 +16,7 @@ import {
   preprocessDoubaoBboxJson,
   safeParseJson,
 } from '@/ai-model/service-caller';
+import { actionDragAndDropParamSchema } from '@/device';
 import { type DeviceAction, getMidsceneLocationSchema } from '@/index';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { type IModelPreferences, vlLocateMode } from '@midscene/shared/env';

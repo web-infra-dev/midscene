@@ -8,15 +8,18 @@ import {
   defineActionHover,
   defineActionInput,
   defineActionKeyboardPress,
+  defineActionLongPress,
   defineActionRightClick,
   defineActionScroll,
-  defineActionTap,
-  defineActionLongPress,
   defineActionSwipe,
+  defineActionTap,
 } from '@midscene/core/device';
 
 import { sleep } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
+import { getDebug } from '@midscene/shared/logger';
+
+const debug = getDebug('web:page');
 
 export function getKeyCommands(
   value: string | string[],
@@ -368,9 +371,9 @@ export abstract class AbstractWebPage extends AbstractInterface {
   abstract scrollRight(distance?: number, startingPoint?: Point): Promise<void>;
   abstract longPress(x: number, y: number, duration?: number): Promise<void>;
   abstract swipe(
-    from: {x: number; y: number},
-    to: {x: number; y: number},
-    duration?: number
+    from: { x: number; y: number },
+    to: { x: number; y: number },
+    duration?: number,
   ): Promise<void>;
 }
 
@@ -500,76 +503,72 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
   }),
 
   defineActionSwipe(async (param) => {
-    const element = param.locate;
-
-    const {
-      direction,
-      swipeType = 'untilLeft',
-      distance,
-      duration = 300,
-      from: fromParam,
-      to: toParam,
-    } = param || {};
-
     const { width, height } = await page.size();
-    const from = element
-      ? { x: element.center[0], y: element.center[1] }
-      : (fromParam ?? { x: width / 2, y: height / 2 });
-    if (toParam) {
-      await page.swipe(from, toParam, duration);
-      return;
-    }
+    const { start, end } = param;
 
-    const moveDistance = (() => {
-      if (distance != null) {
-        return distance;
-      }
-      if (swipeType === 'once') {
-        if (!direction) {
-          throw new Error('direction is required for swipeType "once"')
-        };
-        return direction === 'up' || direction === 'down' ? height / 2 : width / 2;
-      }
-      return width / 2;
-    })();
-
-    let to: { x: number; y: number };
-    switch (swipeType) {
-      case 'once':
-        switch (direction) {
-          case 'up':
-            to = { x: from.x, y: from.y - moveDistance };
-            break;
-          case 'down':
-            to = { x: from.x, y: from.y + moveDistance };
-            break;
-          case 'left':
-            to = { x: from.x - moveDistance, y: from.y };
-            break;
-          case 'right': 
-            to = { x: from.x + moveDistance, y: from.y };
-            break;
-          default: throw new Error(`Unknown direction: ${direction}`);
+    const startPoint = start
+      ? {
+          x: start.center[0],
+          y: start.center[1],
         }
-        break;
-      case 'untilTop':
-        to = { x: from.x, y: 0 };
-        break;
-      case 'untilBottom':
-        to = { x: from.x, y: height };
-        break;
-      case 'untilLeft':
-        to = { x: 0, y: from.y };
-        break;
-      case 'untilRight':
-        to = { x: width, y: from.y };
-        break;
-      default: throw new Error(`Unknown swipeType: ${swipeType}`);
-    }
-    const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
-    to.x = clamp(to.x, 1, width - 1);
-    to.y = clamp(to.y, 1, height - 1);
+      : {
+          x: width / 2,
+          y: height / 2,
+        };
 
-    await page.swipe(from, to, duration);
+    let endPoint: {
+      x: number;
+      y: number;
+    };
+
+    if (end) {
+      endPoint = {
+        x: end.center[0],
+        y: end.center[1],
+      };
+    } else if (param.distance) {
+      const direction = param.direction;
+      if (!direction) {
+        throw new Error('direction is required for swipe gesture');
+      }
+
+      endPoint = {
+        x:
+          startPoint.x +
+          (direction === 'right'
+            ? param.distance
+            : direction === 'left'
+              ? -param.distance
+              : 0),
+        y:
+          startPoint.y +
+          (direction === 'down'
+            ? param.distance
+            : direction === 'up'
+              ? -param.distance
+              : 0),
+      };
+    } else {
+      throw new Error(
+        'Either end or distance must be specified for swipe gesture',
+      );
+    }
+
+    // Ensure end coordinates are within bounds
+    endPoint.x = Math.max(0, Math.min(endPoint.x, width));
+    endPoint.y = Math.max(0, Math.min(endPoint.y, height));
+
+    const duration = param.duration;
+
+    debug(
+      `swipe from ${startPoint.x}, ${startPoint.y} to ${endPoint.x}, ${endPoint.y} with duration ${duration}ms, repeat is set to ${param.repeat}`,
+    );
+    let repeat = typeof param.repeat === 'number' ? param.repeat : 1;
+    if (repeat === 0) {
+      repeat = 10; // 10 times is enough for infinite swipe
+    }
+    for (let i = 0; i < repeat; i++) {
+      await page.swipe(startPoint, endPoint, duration);
+    }
   }),
 ];
