@@ -129,6 +129,8 @@ export async function plan(
     const actionInActionSpace = opts.actionSpace.find(
       (action) => action.name === type,
     );
+
+    debug('actionInActionSpace matched', actionInActionSpace);
     const locateFields = actionInActionSpace
       ? findAllMidsceneLocatorField(actionInActionSpace.paramSchema)
       : [];
