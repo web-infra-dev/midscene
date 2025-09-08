@@ -1,4 +1,4 @@
-import { WebPageContextParser } from '@/web-element';
+import { type WebPageAgentOpt, WebPageContextParser } from '@/web-element';
 import type {
   DeviceAction,
   ElementTreeNode,
@@ -8,7 +8,11 @@ import type {
 } from '@midscene/core';
 import type { AbstractInterface } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
-import { DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT } from '@midscene/shared/constants';
+import {
+  DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
+  DEFAULT_WAIT_FOR_NETWORK_IDLE_CONCURRENCY,
+  DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
+} from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
@@ -35,7 +39,10 @@ export class Page<
 {
   underlyingPage: InterfaceType;
   protected waitForNavigationTimeout: number;
+  protected waitForNetworkIdleTimeout: number;
   private viewportSize?: Size;
+  private onBeforeInvokeAction?: AbstractInterface['beforeInvokeAction'];
+  private onAfterInvokeAction?: AbstractInterface['afterInvokeAction'];
 
   interfaceType: AgentType;
 
@@ -67,14 +74,16 @@ export class Page<
   constructor(
     underlyingPage: InterfaceType,
     interfaceType: AgentType,
-    opts?: {
-      waitForNavigationTimeout?: number;
-    },
+    opts?: WebPageAgentOpt,
   ) {
     this.underlyingPage = underlyingPage;
     this.interfaceType = interfaceType;
     this.waitForNavigationTimeout =
       opts?.waitForNavigationTimeout ?? DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT;
+    this.waitForNetworkIdleTimeout =
+      opts?.waitForNetworkIdleTimeout ?? DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT;
+    this.onBeforeInvokeAction = opts?.beforeInvokeAction;
+    this.onAfterInvokeAction = opts?.afterInvokeAction;
   }
 
   async evaluateJavaScript<T = any>(script: string): Promise<T> {
@@ -105,6 +114,23 @@ export class Page<
         );
       }
       debugPage('waitForNavigation end');
+    }
+  }
+
+  async waitForNetworkIdle(): Promise<void> {
+    if (this.interfaceType === 'puppeteer') {
+      if (this.waitForNetworkIdleTimeout === 0) {
+        debugPage('waitForNetworkIdle timeout is 0, skip waiting');
+        return;
+      }
+
+      await (this.underlyingPage as PuppeteerPage).waitForNetworkIdle({
+        idleTime: 200,
+        concurrency: DEFAULT_WAIT_FOR_NETWORK_IDLE_CONCURRENCY,
+        timeout: this.waitForNetworkIdleTimeout,
+      });
+    } else {
+      // TODO: implement playwright waitForNetworkIdle
     }
   }
 
@@ -409,8 +435,18 @@ export class Page<
     }
   }
 
-  async beforeAction(): Promise<void> {
+  async beforeInvokeAction(name: string, param: any): Promise<void> {
     await this.waitForNavigation();
+    await this.waitForNetworkIdle();
+    if (this.onBeforeInvokeAction) {
+      await this.onBeforeInvokeAction(name, param);
+    }
+  }
+
+  async afterInvokeAction(name: string, param: any): Promise<void> {
+    if (this.onAfterInvokeAction) {
+      await this.onAfterInvokeAction(name, param);
+    }
   }
 
   async destroy(): Promise<void> {}

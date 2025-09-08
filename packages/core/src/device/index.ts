@@ -17,7 +17,8 @@ export abstract class AbstractInterface {
   abstract getElementsNodeTree?: () => Promise<ElementNode>;
   abstract url?: () => string | Promise<string>;
   abstract evaluateJavaScript?<T = any>(script: string): Promise<T>;
-  abstract beforeAction?(): Promise<void>;
+  abstract beforeInvokeAction?(actionName: string, param: any): Promise<void>;
+  abstract afterInvokeAction?(actionName: string, param: any): Promise<void>;
   abstract getContext?(): Promise<UIContext>;
 }
 

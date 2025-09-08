@@ -341,7 +341,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     });
   }
 
-  async beforeAction(): Promise<void> {
+  async beforeInvokeAction(): Promise<void> {
     // current implementation is wait until domReadyState is complete
     try {
       await this.waitUntilNetworkIdle();

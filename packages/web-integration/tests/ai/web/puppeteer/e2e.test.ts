@@ -26,9 +26,13 @@ describe(
       );
       resetFn = reset;
       const onTaskStartTip = vi.fn();
+      const beforeInvokeAction = vi.fn();
+      const afterInvokeAction = vi.fn();
       const agent = new PuppeteerAgent(originPage, {
         cacheId: 'puppeteer(Sauce Demo by Swag Lab)',
         onTaskStartTip,
+        beforeInvokeAction,
+        afterInvokeAction,
       });
 
       await sleep(10 * 1000);
@@ -41,6 +45,23 @@ describe(
       );
 
       await agent.aiTap('Login');
+
+      console.log(beforeInvokeAction.mock.calls);
+      console.log(afterInvokeAction.mock.calls);
+
+      expect(beforeInvokeAction.mock.calls.length).toBeGreaterThan(1);
+      expect(beforeInvokeAction.mock.calls.length).toEqual(
+        afterInvokeAction.mock.calls.length,
+      );
+      expect(
+        beforeInvokeAction.mock.calls.map((call) => call[0]),
+      ).toMatchInlineSnapshot(`
+        [
+          "Input",
+          "Input",
+          "Tap",
+        ]
+      `);
 
       expect(onTaskStartTip.mock.calls.length).toBeGreaterThan(1);
 
