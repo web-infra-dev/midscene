@@ -17,11 +17,7 @@ import type {
 
 import type { PlanningLocateParam } from '@/types';
 import { NodeType } from '@midscene/shared/constants';
-import {
-  type IModelPreferences,
-  type TVlModeTypes,
-  getModelName,
-} from '@midscene/shared/env';
+import type { TVlModeTypes } from '@midscene/shared/env';
 import { treeToList } from '@midscene/shared/extractor';
 import { compositeElementInfoImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
@@ -254,12 +250,9 @@ export function adaptBboxToRect(
 }
 
 let warned = false;
-export function warnGPT4oSizeLimit(
-  size: Size,
-  modelPreferences: IModelPreferences,
-) {
+export function warnGPT4oSizeLimit(size: Size, modelName: string) {
   if (warned) return;
-  if (getModelName(modelPreferences)?.toLowerCase().includes('gpt-4o')) {
+  if (modelName.toLowerCase().includes('gpt-4o')) {
     const warningMsg = `GPT-4o has a maximum image input size of 2000x768 or 768x2000, but got ${size.width}x${size.height}. Please set your interface to a smaller resolution. Otherwise, the result may be inaccurate.`;
 
     if (

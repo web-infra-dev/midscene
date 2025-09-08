@@ -11,10 +11,7 @@ import type {
   ReferenceImage,
   UIContext,
 } from '@/types';
-import {
-  type IModelPreferences,
-  type TVlModeTypes,
-} from '@midscene/shared/env';
+import type { IModelPreferences, TVlModeTypes } from '@midscene/shared/env';
 import {
   cropByRect,
   paddingToMatchBlockByBase64,

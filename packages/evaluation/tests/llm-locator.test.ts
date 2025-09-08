@@ -1,11 +1,7 @@
 import { writeFileSync } from 'node:fs';
 import Insight, { type Rect } from '@midscene/core';
 import { sleep } from '@midscene/core/utils';
-import {
-  getModelName,
-  globalConfigManager,
-  vlLocateMode,
-} from '@midscene/shared/env';
+import { globalConfigManager, vlLocateMode } from '@midscene/shared/env';
 import { saveBase64Image } from '@midscene/shared/img';
 
 import dotenv from 'dotenv';
@@ -41,16 +37,19 @@ if (process.env.CI) {
 
 beforeAll(async () => {
   await globalConfigManager.init();
-  const positionModeTag = vlLocateMode({
+  const modelPreferences = {
     intent: 'grounding',
-  })
+  } as const;
+
+  const positionModeTag = vlLocateMode(modelPreferences)
     ? 'by_coordinates'
     : 'by_element';
 
-  resultCollector = new TestResultCollector(
-    positionModeTag,
-    getModelName({ intent: 'grounding' }),
+  const { modelName } = globalConfigManager.getModelConfigByIntent(
+    modelPreferences.intent,
   );
+
+  resultCollector = new TestResultCollector(positionModeTag, modelName);
 
   if (process.env.MIDSCENE_EVALUATION_EXPECT_VL) {
     expect(vlLocateMode({ intent: 'grounding' })).toBeTruthy();

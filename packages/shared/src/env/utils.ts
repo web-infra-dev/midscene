@@ -51,25 +51,6 @@ export const vlLocateMode = (
   }
 };
 
-export function getModelName(
-  modelPreferences: IModelPreferences,
-): string | undefined {
-  try {
-    const result = globalConfigManager.getModelConfigByIntent(
-      modelPreferences.intent,
-    );
-    return result?.modelName;
-  } catch (e) {
-    if ((e as any)?.[GLOBAL_CONFIG_MANAGER_UNINITIALIZED_FLAG]) {
-      console.warn(
-        "Call getModelName before globalConfig init, will return undefined. This warning should only appear in midscene's own unit tests.",
-      );
-      return undefined;
-    }
-    throw e;
-  }
-}
-
 export const getPreferredLanguage = () => {
   const prefer = globalConfigManager.getEnvConfigValue(
     MIDSCENE_PREFERRED_LANGUAGE,

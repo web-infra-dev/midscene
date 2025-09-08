@@ -8,11 +8,7 @@ import {
   defineActionTap,
 } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
-import {
-  getModelName,
-  globalConfigManager,
-  vlLocateMode,
-} from '@midscene/shared/env';
+import { globalConfigManager, vlLocateMode } from '@midscene/shared/env';
 import { saveBase64Image } from '@midscene/shared/img';
 import dotenv from 'dotenv';
 import { afterEach, beforeAll, describe, expect, test } from 'vitest';
@@ -63,9 +59,12 @@ describe.skipIf(vlMode)('ai planning - by element', () => {
 
         const caseGroupName = aiDataPath.split('/').pop() || '';
 
+        const { modelName } =
+          globalConfigManager.getModelConfigByIntent('planning');
+
         const resultCollector = new TestResultCollector(
           `${caseGroupName}-planning`,
-          getModelName({ intent: 'planning' }) || 'unspecified',
+          modelName || 'unspecified',
         );
 
         for (const [, testCase] of cases.testCases.entries()) {
@@ -109,9 +108,11 @@ const vlCases = [
   'antd-tooltip-vl',
 ];
 
+const { modelName } = globalConfigManager.getModelConfigByIntent('planning');
+
 const resultCollector = new TestResultCollector(
   'planning',
-  getModelName({ intent: 'planning' }) || 'unspecified',
+  modelName || 'unspecified',
 );
 
 afterEach(async () => {

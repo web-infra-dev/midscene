@@ -4,7 +4,11 @@ import type {
   PlanningAIResponse,
   UIContext,
 } from '@/types';
-import { type IModelPreferences, vlLocateMode } from '@midscene/shared/env';
+import {
+  type IModelPreferences,
+  globalConfigManager,
+  vlLocateMode,
+} from '@midscene/shared/env';
 import { paddingToMatchBlockByBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
@@ -43,6 +47,11 @@ export async function plan(
   const modelPreferences: IModelPreferences = {
     intent: 'planning',
   };
+
+  const { modelName } = globalConfigManager.getModelConfigByIntent(
+    modelPreferences.intent,
+  );
+
   const vlMode = vlLocateMode(modelPreferences);
 
   const { description: pageDescription, elementById } = await describeUserPage(
@@ -74,7 +83,7 @@ export async function plan(
     );
   }
 
-  warnGPT4oSizeLimit(size, modelPreferences);
+  warnGPT4oSizeLimit(size, modelName);
 
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
