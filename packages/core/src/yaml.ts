@@ -69,7 +69,9 @@ export interface MidsceneYamlScriptEnvGeneralInterface {
   param?: Record<string, any>;
 }
 
-export interface MidsceneYamlScriptWebEnv extends MidsceneYamlScriptConfig {
+export interface MidsceneYamlScriptWebEnv
+  extends MidsceneYamlScriptConfig,
+    MidsceneYamlScriptAgentOpt {
   // for web only
   serve?: string;
   url: string;
