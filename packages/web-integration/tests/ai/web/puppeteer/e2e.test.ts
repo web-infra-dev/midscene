@@ -46,9 +46,6 @@ describe(
 
       await agent.aiTap('Login');
 
-      console.log(beforeInvokeAction.mock.calls);
-      console.log(afterInvokeAction.mock.calls);
-
       expect(beforeInvokeAction.mock.calls.length).toBeGreaterThan(1);
       expect(beforeInvokeAction.mock.calls.length).toEqual(
         afterInvokeAction.mock.calls.length,
