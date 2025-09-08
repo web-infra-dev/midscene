@@ -41,6 +41,7 @@ import {
 } from '../yaml/index';
 
 import type { AbstractInterface } from '@/device';
+import type { AgentOpt } from '@/types';
 import {
   type IModelPreferences,
   MIDSCENE_CACHE,
@@ -80,22 +81,6 @@ const defaultInsightExtractOption: InsightExtractOption = {
   domIncluded: false,
   screenshotIncluded: true,
 };
-
-export interface AgentOpt {
-  testId?: string;
-  cacheId?: string;
-  groupName?: string;
-  groupDescription?: string;
-  /* if auto generate report, default true */
-  generateReport?: boolean;
-  /* if auto print report msg, default true */
-  autoPrintReportMsg?: boolean;
-  onTaskStartTip?: OnTaskStartTip;
-  aiActionContext?: string;
-  /* custom report file name */
-  reportFileName?: string;
-  modelConfig?: TModelConfigFn;
-}
 
 export class Agent<
   InterfaceType extends AbstractInterface = AbstractInterface,

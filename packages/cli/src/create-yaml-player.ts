@@ -228,7 +228,7 @@ export async function createYamlPlayer(
 
         // create agent from device
         debug('creating agent from device', device);
-        const agent = createAgent(device);
+        const agent = createAgent(device, yamlScript.agent || {});
 
         freeFn.push({
           name: 'destroy_general_interface_agent',

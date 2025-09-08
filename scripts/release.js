@@ -53,12 +53,20 @@ async function main() {
     await build();
 
     // Check if this is a prepatch version
-    const isPrepatchVersion = selectVersion?.newVersion && 
-      (selectVersion.newVersion.includes('beta') || args.version === 'prepatch');
+    const isPrepatchVersion =
+      selectVersion?.newVersion &&
+      (selectVersion.newVersion.includes('beta') ||
+        args.version === 'prepatch');
 
     if (isPrepatchVersion) {
-      step(chalk.yellow('\nSkipping tests and linting for prepatch version...'));
-      console.log(chalk.yellow(`Prepatch version detected: ${selectVersion.newVersion}. Tests and linting will be skipped to speed up the release process.`));
+      step(
+        chalk.yellow('\nSkipping tests and linting for prepatch version...'),
+      );
+      console.log(
+        chalk.yellow(
+          `Prepatch version detected: ${selectVersion.newVersion}. Tests and linting will be skipped to speed up the release process.`,
+        ),
+      );
     } else {
       step('\nRunning tests...');
       await test();
