@@ -24,7 +24,6 @@ import type {
 import {
   type IModelPreferences,
   MIDSCENE_FORCE_DEEP_THINK,
-  getIsUseQwenVl,
   globalConfigManager,
   vlLocateMode,
 } from '@midscene/shared/env';
@@ -363,7 +362,7 @@ export default class Insight<
       imagePayload = await cropByRect(
         imagePayload,
         searchArea,
-        getIsUseQwenVl(modelPreferences),
+        vlMode === 'qwen-vl',
       );
     }
 

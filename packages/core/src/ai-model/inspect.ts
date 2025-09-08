@@ -14,7 +14,6 @@ import type {
 import {
   type IModelPreferences,
   type TVlModeTypes,
-  getIsUseQwenVl,
 } from '@midscene/shared/env';
 import {
   cropByRect,
@@ -375,9 +374,7 @@ export async function AiLocateSection(options: {
     imageBase64 = await cropByRect(
       screenshotBase64,
       sectionRect,
-      getIsUseQwenVl({
-        intent: 'grounding',
-      }),
+      vlMode === 'qwen-vl',
     );
   }
 

@@ -1,11 +1,7 @@
 import { getBasicEnvValue } from 'src/env/basic';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MIDSCENE_RUN_DIR } from '../../../src/env';
-import {
-  getIsUseQwenVl,
-  getUiTarsModelVersion,
-  vlLocateMode,
-} from '../../../src/env/utils';
+import { getUiTarsModelVersion, vlLocateMode } from '../../../src/env/utils';
 
 describe('getBasicEnvValue', () => {
   afterEach(() => {
@@ -35,11 +31,5 @@ describe('getUiTarsModelVersion', () => {
 describe('vlLocateMode', () => {
   it('vlLocateMode will return undefined if globalConfig is not initialized', () => {
     expect(vlLocateMode({ intent: 'planning' })).toBeUndefined();
-  });
-});
-
-describe('getIsUseQwenVl', () => {
-  it('getIsUseQwenVl will return false if globalConfig is not initialized', () => {
-    expect(getIsUseQwenVl({ intent: 'planning' })).toBe(false);
   });
 });
