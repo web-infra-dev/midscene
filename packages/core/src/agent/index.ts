@@ -1,4 +1,4 @@
-export { Agent, type AgentOpt, createAgent } from './agent';
+export { Agent, createAgent } from './agent';
 export { commonContextParser } from './utils';
 export {
   getReportFileName,
@@ -15,3 +15,5 @@ export {
   getCurrentExecutionFile,
   trimContextByViewport,
 } from './utils';
+
+export type { AgentOpt } from '../types';
