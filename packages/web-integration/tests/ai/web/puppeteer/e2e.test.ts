@@ -26,9 +26,13 @@ describe(
       );
       resetFn = reset;
       const onTaskStartTip = vi.fn();
+      const beforeInvokeAction = vi.fn();
+      const afterInvokeAction = vi.fn();
       const agent = new PuppeteerAgent(originPage, {
         cacheId: 'puppeteer(Sauce Demo by Swag Lab)',
         onTaskStartTip,
+        beforeInvokeAction,
+        afterInvokeAction,
       });
 
       await sleep(10 * 1000);
@@ -41,6 +45,20 @@ describe(
       );
 
       await agent.aiTap('Login');
+
+      expect(beforeInvokeAction.mock.calls.length).toBeGreaterThan(1);
+      expect(beforeInvokeAction.mock.calls.length).toEqual(
+        afterInvokeAction.mock.calls.length,
+      );
+      expect(
+        beforeInvokeAction.mock.calls.map((call) => call[0]),
+      ).toMatchInlineSnapshot(`
+        [
+          "Input",
+          "Input",
+          "Tap",
+        ]
+      `);
 
       expect(onTaskStartTip.mock.calls.length).toBeGreaterThan(1);
 
@@ -278,6 +296,61 @@ describe(
       await agent.aiAction(
         'Type "AI 101" in search box, hit Enter, wait 2s. If there is a cookie prompt, close it',
       );
+    });
+
+    it('swipe', async () => {
+      const { originPage, reset } = await launchPage(
+        'https://m.baidu.com/s?word=%E5%A4%A7%E4%BC%97%E8%BD%A6%E5%9E%8Bid4',
+        {
+          viewport: {
+            width: 393,
+            height: 808,
+          },
+        },
+      );
+      resetFn = reset;
+      const agent = new PuppeteerAgent(originPage);
+      const screenshot1 = await agent.page.screenshotBase64();
+      await sleep(2000);
+      await agent.aiAction('Swipe right one screen');
+
+      await agent.aiAssert({
+        prompt: 'The content of the page is different from the reference',
+        images: [
+          {
+            name: 'reference screenshot',
+            url: screenshot1,
+          },
+        ],
+      });
+
+      const screenshot2 = await agent.page.screenshotBase64();
+      await agent.aiAction('Swipe left one screen');
+      await sleep(2000);
+      await agent.aiAssert({
+        prompt: 'The content of the page is different from the reference',
+        images: [
+          {
+            name: 'reference screenshot',
+            url: screenshot2,
+          },
+        ],
+      });
+    });
+
+    it('longPress', async () => {
+      const { originPage, reset } = await launchPage(
+        'https://m.baidu.com/from=0/ssid=0/s?word=%E5%A6%82%E6%9D%A5%E7%A5%9E%E6%B6%A8&sa=tb&ts=0&t_kt=0&ie=utf-8&rsv_t=62bcq4PxoQqNwE8k4KOIBgUFF1bZTuF4rSCYiho4tfMUcLopBczbgw&rsv_pq=11619249566711746686&ss=110&sugid=206020460001898&rfrom=1024439f&rchannel=1024439j&rqid=11619249566711746686',
+        {
+          viewport: {
+            width: 393,
+            height: 808,
+          },
+        },
+      );
+      resetFn = reset;
+      const agent = new PuppeteerAgent(originPage);
+      await agent.aiAction('长按进入新空间按钮');
     });
   },
   4 * 60 * 1000,

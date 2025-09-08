@@ -16,6 +16,8 @@ export type WebPageOpt = {
   waitForNavigationTimeout?: number;
   waitForNetworkIdleTimeout?: number;
   forceSameTabNavigation?: boolean /* if limit the new tab to the current page, default true */;
+  beforeInvokeAction?: () => Promise<void>;
+  afterInvokeAction?: () => Promise<void>;
 };
 
 export type WebPage =

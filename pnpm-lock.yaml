@@ -678,6 +678,12 @@ importers:
 
   packages/mcp:
     dependencies:
+      '@silvia-odwyer/photon':
+        specifier: 0.3.3
+        version: 0.3.3
+      '@silvia-odwyer/photon-node':
+        specifier: 0.3.3
+        version: 0.3.3
       bufferutil:
         specifier: 4.0.9
         version: 4.0.9

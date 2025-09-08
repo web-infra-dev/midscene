@@ -17,7 +17,8 @@ export abstract class AbstractInterface {
   abstract getElementsNodeTree?: () => Promise<ElementNode>;
   abstract url?: () => string | Promise<string>;
   abstract evaluateJavaScript?<T = any>(script: string): Promise<T>;
-  abstract beforeAction?(): Promise<void>;
+  abstract beforeInvokeAction?(actionName: string, param: any): Promise<void>;
+  abstract afterInvokeAction?(actionName: string, param: any): Promise<void>;
   abstract getContext?(): Promise<UIContext>;
 }
 
@@ -211,6 +212,75 @@ export const defineActionDragAndDrop = (
     description: 'Drag and drop the element',
     interfaceAlias: 'aiDragAndDrop',
     paramSchema: actionDragAndDropParamSchema,
+    call,
+  });
+};
+
+export const ActionLongPressParamSchema = z.object({
+  locate: getMidsceneLocationSchema().describe(
+    'The element to be long pressed',
+  ),
+  duration: z
+    .number()
+    .default(500)
+    .optional()
+    .describe('Long press duration in milliseconds'),
+});
+
+export type ActionLongPressParam = z.infer<typeof ActionLongPressParamSchema>;
+export const defineActionLongPress = (
+  call: (param: ActionLongPressParam) => Promise<void>,
+): DeviceAction<ActionLongPressParam> => {
+  return defineAction({
+    name: 'LongPress',
+    description: 'Long press the element',
+    paramSchema: ActionLongPressParamSchema,
+    call,
+  });
+};
+
+export const ActionSwipeParamSchema = z.object({
+  start: getMidsceneLocationSchema()
+    .optional()
+    .describe(
+      'Starting point of the swipe gesture, if not specified, use the center of the page',
+    ),
+  direction: z
+    .enum(['up', 'down', 'left', 'right'])
+    .optional()
+    .describe(
+      'The direction to swipe (required when using distance). The direction means the direction of the finger swipe.',
+    ),
+  distance: z
+    .number()
+    .optional()
+    .describe('The distance in pixels to swipe (mutually exclusive with end)'),
+  end: getMidsceneLocationSchema()
+    .optional()
+    .describe(
+      'Ending point of the swipe gesture (mutually exclusive with distance)',
+    ),
+  duration: z
+    .number()
+    .default(300)
+    .describe('Duration of the swipe gesture in milliseconds'),
+  repeat: z
+    .number()
+    .optional()
+    .describe(
+      'The number of times to repeat the swipe gesture. 1 for default, 0 for infinite (e.g. endless swipe until the end of the page)',
+    ),
+});
+
+export type ActionSwipeParam = z.infer<typeof ActionSwipeParamSchema>;
+
+export const defineActionSwipe = (
+  call: (param: ActionSwipeParam) => Promise<void>,
+): DeviceAction<ActionSwipeParam> => {
+  return defineAction({
+    name: 'Swipe',
+    description: 'Perform a swipe gesture on an element',
+    paramSchema: ActionSwipeParamSchema,
     call,
   });
 };

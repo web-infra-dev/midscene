@@ -1,4 +1,4 @@
-import { WebPageContextParser } from '@/web-element';
+import { type WebPageAgentOpt, WebPageContextParser } from '@/web-element';
 import type {
   DeviceAction,
   ElementTreeNode,
@@ -8,7 +8,11 @@ import type {
 } from '@midscene/core';
 import type { AbstractInterface } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
-import { DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT } from '@midscene/shared/constants';
+import {
+  DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
+  DEFAULT_WAIT_FOR_NETWORK_IDLE_CONCURRENCY,
+  DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
+} from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
@@ -35,7 +39,10 @@ export class Page<
 {
   underlyingPage: InterfaceType;
   protected waitForNavigationTimeout: number;
+  protected waitForNetworkIdleTimeout: number;
   private viewportSize?: Size;
+  private onBeforeInvokeAction?: AbstractInterface['beforeInvokeAction'];
+  private onAfterInvokeAction?: AbstractInterface['afterInvokeAction'];
 
   interfaceType: AgentType;
 
@@ -67,14 +74,16 @@ export class Page<
   constructor(
     underlyingPage: InterfaceType,
     interfaceType: AgentType,
-    opts?: {
-      waitForNavigationTimeout?: number;
-    },
+    opts?: WebPageAgentOpt,
   ) {
     this.underlyingPage = underlyingPage;
     this.interfaceType = interfaceType;
     this.waitForNavigationTimeout =
       opts?.waitForNavigationTimeout ?? DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT;
+    this.waitForNetworkIdleTimeout =
+      opts?.waitForNetworkIdleTimeout ?? DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT;
+    this.onBeforeInvokeAction = opts?.beforeInvokeAction;
+    this.onAfterInvokeAction = opts?.afterInvokeAction;
   }
 
   async evaluateJavaScript<T = any>(script: string): Promise<T> {
@@ -105,6 +114,23 @@ export class Page<
         );
       }
       debugPage('waitForNavigation end');
+    }
+  }
+
+  async waitForNetworkIdle(): Promise<void> {
+    if (this.interfaceType === 'puppeteer') {
+      if (this.waitForNetworkIdleTimeout === 0) {
+        debugPage('waitForNetworkIdle timeout is 0, skip waiting');
+        return;
+      }
+
+      await (this.underlyingPage as PuppeteerPage).waitForNetworkIdle({
+        idleTime: 200,
+        concurrency: DEFAULT_WAIT_FOR_NETWORK_IDLE_CONCURRENCY,
+        timeout: this.waitForNetworkIdleTimeout,
+      });
+    } else {
+      // TODO: implement playwright waitForNetworkIdle
     }
   }
 
@@ -409,14 +435,99 @@ export class Page<
     }
   }
 
-  async beforeAction(): Promise<void> {
+  async beforeInvokeAction(name: string, param: any): Promise<void> {
     await this.waitForNavigation();
+    await this.waitForNetworkIdle();
+    if (this.onBeforeInvokeAction) {
+      await this.onBeforeInvokeAction(name, param);
+    }
+  }
+
+  async afterInvokeAction(name: string, param: any): Promise<void> {
+    if (this.onAfterInvokeAction) {
+      await this.onAfterInvokeAction(name, param);
+    }
   }
 
   async destroy(): Promise<void> {}
 
   async getContext(): Promise<UIContext> {
     return await WebPageContextParser(this, {});
+  }
+  async swipe(
+    from: { x: number; y: number },
+    to: { x: number; y: number },
+    duration?: number,
+  ) {
+    const LONG_PRESS_THRESHOLD = 500;
+    const MIN_PRESS_THRESHOLD = 150;
+    duration = duration || 100;
+    if (duration < MIN_PRESS_THRESHOLD) {
+      duration = MIN_PRESS_THRESHOLD;
+    }
+    if (duration > LONG_PRESS_THRESHOLD) {
+      duration = LONG_PRESS_THRESHOLD;
+    }
+    debugPage(
+      `mouse swipe from ${from.x}, ${from.y} to ${to.x}, ${to.y} with duration ${duration}ms`,
+    );
+
+    if (this.interfaceType === 'puppeteer') {
+      const page = this.underlyingPage as PuppeteerPage;
+      await page.mouse.move(from.x, from.y);
+      await page.mouse.down({ button: 'left' });
+
+      const steps = 30;
+      const delay = duration / steps;
+      for (let i = 1; i <= steps; i++) {
+        const x = from.x + (to.x - from.x) * (i / steps);
+        const y = from.y + (to.y - from.y) * (i / steps);
+        await page.mouse.move(x, y);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+
+      await page.mouse.up({ button: 'left' });
+    } else if (this.interfaceType === 'playwright') {
+      const page = this.underlyingPage as PlaywrightPage;
+      await page.mouse.move(from.x, from.y);
+      await page.mouse.down();
+
+      const steps = 30;
+      const delay = duration / steps;
+      for (let i = 1; i <= steps; i++) {
+        const x = from.x + (to.x - from.x) * (i / steps);
+        const y = from.y + (to.y - from.y) * (i / steps);
+        await page.mouse.move(x, y);
+        await page.waitForTimeout(delay);
+      }
+
+      await page.mouse.up({ button: 'left' });
+    }
+  }
+  async longPress(x: number, y: number, duration?: number) {
+    duration = duration || 500;
+    const LONG_PRESS_THRESHOLD = 600;
+    const MIN_PRESS_THRESHOLD = 300;
+    if (duration > LONG_PRESS_THRESHOLD) {
+      duration = LONG_PRESS_THRESHOLD;
+    }
+    if (duration < MIN_PRESS_THRESHOLD) {
+      duration = MIN_PRESS_THRESHOLD;
+    }
+    debugPage(`mouse longPress at ${x}, ${y} for ${duration}ms`);
+    if (this.interfaceType === 'puppeteer') {
+      const page = this.underlyingPage as PuppeteerPage;
+      await page.mouse.move(x, y);
+      await page.mouse.down({ button: 'left' });
+      await new Promise((res) => setTimeout(res, duration));
+      await page.mouse.up({ button: 'left' });
+    } else if (this.interfaceType === 'playwright') {
+      const page = this.underlyingPage as PlaywrightPage;
+      await page.mouse.move(x, y);
+      await page.mouse.down({ button: 'left' });
+      await page.waitForTimeout(duration);
+      await page.mouse.up({ button: 'left' });
+    }
   }
 }
 
