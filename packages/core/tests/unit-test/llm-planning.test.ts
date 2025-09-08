@@ -6,7 +6,6 @@ import {
 import { buildYamlFlowFromPlans } from '@/ai-model/common';
 import {
   MIDSCENE_USE_DOUBAO_VISION,
-  MIDSCENE_USE_QWEN_VL,
   OPENAI_API_KEY,
   OPENAI_BASE_URL,
 } from '@midscene/shared/env';

@@ -8,13 +8,18 @@ import {
   defineActionHover,
   defineActionInput,
   defineActionKeyboardPress,
+  defineActionLongPress,
   defineActionRightClick,
   defineActionScroll,
+  defineActionSwipe,
   defineActionTap,
 } from '@midscene/core/device';
 
 import { sleep } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
+import { getDebug } from '@midscene/shared/logger';
+
+const debug = getDebug('web:page');
 
 export function getKeyCommands(
   value: string | string[],
@@ -364,6 +369,12 @@ export abstract class AbstractWebPage extends AbstractInterface {
   abstract scrollDown(distance?: number, startingPoint?: Point): Promise<void>;
   abstract scrollLeft(distance?: number, startingPoint?: Point): Promise<void>;
   abstract scrollRight(distance?: number, startingPoint?: Point): Promise<void>;
+  abstract longPress(x: number, y: number, duration?: number): Promise<void>;
+  abstract swipe(
+    from: { x: number; y: number },
+    to: { x: number; y: number },
+    duration?: number,
+  ): Promise<void>;
 }
 
 export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
@@ -482,5 +493,82 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
         y: to.center[1],
       },
     );
+  }),
+
+  defineActionLongPress(async (param) => {
+    const element = param.locate;
+    assert(element, 'Element not found, cannot long press');
+    const duration = param?.duration;
+    await page.longPress(element.center[0], element.center[1], duration);
+  }),
+
+  defineActionSwipe(async (param) => {
+    const { width, height } = await page.size();
+    const { start, end } = param;
+
+    const startPoint = start
+      ? {
+          x: start.center[0],
+          y: start.center[1],
+        }
+      : {
+          x: width / 2,
+          y: height / 2,
+        };
+
+    let endPoint: {
+      x: number;
+      y: number;
+    };
+
+    if (end) {
+      endPoint = {
+        x: end.center[0],
+        y: end.center[1],
+      };
+    } else if (param.distance) {
+      const direction = param.direction;
+      if (!direction) {
+        throw new Error('direction is required for swipe gesture');
+      }
+
+      endPoint = {
+        x:
+          startPoint.x +
+          (direction === 'right'
+            ? param.distance
+            : direction === 'left'
+              ? -param.distance
+              : 0),
+        y:
+          startPoint.y +
+          (direction === 'down'
+            ? param.distance
+            : direction === 'up'
+              ? -param.distance
+              : 0),
+      };
+    } else {
+      throw new Error(
+        'Either end or distance must be specified for swipe gesture',
+      );
+    }
+
+    // Ensure end coordinates are within bounds
+    endPoint.x = Math.max(0, Math.min(endPoint.x, width));
+    endPoint.y = Math.max(0, Math.min(endPoint.y, height));
+
+    const duration = param.duration;
+
+    debug(
+      `swipe from ${startPoint.x}, ${startPoint.y} to ${endPoint.x}, ${endPoint.y} with duration ${duration}ms, repeat is set to ${param.repeat}`,
+    );
+    let repeat = typeof param.repeat === 'number' ? param.repeat : 1;
+    if (repeat === 0) {
+      repeat = 10; // 10 times is enough for infinite swipe
+    }
+    for (let i = 0; i < repeat; i++) {
+      await page.swipe(startPoint, endPoint, duration);
+    }
   }),
 ];

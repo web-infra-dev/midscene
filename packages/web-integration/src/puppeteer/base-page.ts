@@ -454,6 +454,81 @@ export class Page<
   async getContext(): Promise<UIContext> {
     return await WebPageContextParser(this, {});
   }
+  async swipe(
+    from: { x: number; y: number },
+    to: { x: number; y: number },
+    duration?: number,
+  ) {
+    const LONG_PRESS_THRESHOLD = 500;
+    const MIN_PRESS_THRESHOLD = 150;
+    duration = duration || 100;
+    if (duration < MIN_PRESS_THRESHOLD) {
+      duration = MIN_PRESS_THRESHOLD;
+    }
+    if (duration > LONG_PRESS_THRESHOLD) {
+      duration = LONG_PRESS_THRESHOLD;
+    }
+    debugPage(
+      `mouse swipe from ${from.x}, ${from.y} to ${to.x}, ${to.y} with duration ${duration}ms`,
+    );
+
+    if (this.interfaceType === 'puppeteer') {
+      const page = this.underlyingPage as PuppeteerPage;
+      await page.mouse.move(from.x, from.y);
+      await page.mouse.down({ button: 'left' });
+
+      const steps = 30;
+      const delay = duration / steps;
+      for (let i = 1; i <= steps; i++) {
+        const x = from.x + (to.x - from.x) * (i / steps);
+        const y = from.y + (to.y - from.y) * (i / steps);
+        await page.mouse.move(x, y);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+
+      await page.mouse.up({ button: 'left' });
+    } else if (this.interfaceType === 'playwright') {
+      const page = this.underlyingPage as PlaywrightPage;
+      await page.mouse.move(from.x, from.y);
+      await page.mouse.down();
+
+      const steps = 30;
+      const delay = duration / steps;
+      for (let i = 1; i <= steps; i++) {
+        const x = from.x + (to.x - from.x) * (i / steps);
+        const y = from.y + (to.y - from.y) * (i / steps);
+        await page.mouse.move(x, y);
+        await page.waitForTimeout(delay);
+      }
+
+      await page.mouse.up({ button: 'left' });
+    }
+  }
+  async longPress(x: number, y: number, duration?: number) {
+    duration = duration || 500;
+    const LONG_PRESS_THRESHOLD = 600;
+    const MIN_PRESS_THRESHOLD = 300;
+    if (duration > LONG_PRESS_THRESHOLD) {
+      duration = LONG_PRESS_THRESHOLD;
+    }
+    if (duration < MIN_PRESS_THRESHOLD) {
+      duration = MIN_PRESS_THRESHOLD;
+    }
+    debugPage(`mouse longPress at ${x}, ${y} for ${duration}ms`);
+    if (this.interfaceType === 'puppeteer') {
+      const page = this.underlyingPage as PuppeteerPage;
+      await page.mouse.move(x, y);
+      await page.mouse.down({ button: 'left' });
+      await new Promise((res) => setTimeout(res, duration));
+      await page.mouse.up({ button: 'left' });
+    } else if (this.interfaceType === 'playwright') {
+      const page = this.underlyingPage as PlaywrightPage;
+      await page.mouse.move(x, y);
+      await page.mouse.down({ button: 'left' });
+      await page.waitForTimeout(duration);
+      await page.mouse.up({ button: 'left' });
+    }
+  }
 }
 
 export function forceClosePopup(

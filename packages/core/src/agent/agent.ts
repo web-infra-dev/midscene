@@ -541,6 +541,32 @@ export class Agent<
     });
   }
 
+  // async aiLongPress(locatePrompt: TUserPrompt, opt?: LocateOption & PlanningActionParamLongPress) {
+  //   const detailedLocateParam = buildDetailedLocateParam(
+  //     locatePrompt,
+  //     opt,
+  //   );
+
+  //   return this.callActionInActionSpace('LongPress', {
+  //     ...(opt || {}),
+  //     locate: detailedLocateParam,
+  //   });
+  // }
+
+  // async aiSwipe(
+  //   locatePrompt?: TUserPrompt,
+  //   opt?: LocateOption & PlanningActionParamSwipe,
+  // ) {
+  //   const detailedLocateParam = locatePrompt
+  //     ? buildDetailedLocateParam(locatePrompt, opt)
+  //     : undefined;
+
+  //   return this.callActionInActionSpace('Swipe', {
+  //     ...(opt || {}),
+  //     locate: detailedLocateParam,
+  //   });
+  // }
+
   async aiAction(
     taskPrompt: string,
     opt?: {
@@ -790,7 +816,7 @@ export class Agent<
 
     const message = output
       ? undefined
-      : `Assertion failed: ${msg || assertion}\nReason: ${
+      : `Assertion failed: ${msg || (typeof assertion === 'string' ? assertion : assertion.prompt)}\nReason: ${
           thought || executor.latestErrorTask()?.error || '(no_reason)'
         }`;
 
