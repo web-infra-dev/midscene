@@ -241,7 +241,7 @@ export async function createYamlPlayer(
       }
 
       throw new Error(
-        'No valid target configuration found in the yaml script, should be either "web", "android", or "interface"',
+        'No valid interface configuration found in the yaml script, should be either "web", "android", or "interface"',
       );
     },
     undefined,
