@@ -59,7 +59,8 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
   ) {
     this.scriptPath = scriptPath;
     this.result = {};
-    this.target = script.target || script.web || script.android;
+    this.target =
+      script.target || script.web || script.android || script.config;
 
     if (ifInBrowser || ifInWorker) {
       this.output = undefined;
