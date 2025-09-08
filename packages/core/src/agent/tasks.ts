@@ -193,19 +193,9 @@ export class TaskExecutor {
         task.recorder = recorder;
         const shot = await this.recordScreenshot(`before ${task.type}`);
         recorder.push(shot);
+
         const result = await taskApply.executor(param, context, ...args);
-        if (taskApply.type === 'Action') {
-          await Promise.all([
-            (async () => {
-              await sleep(100);
-              if (this.interface.beforeAction) {
-                debug('will call "beforeAction" for interface');
-                await this.interface.beforeAction();
-              }
-            })(),
-            sleep(200),
-          ]);
-        }
+
         if (appendAfterExecution) {
           const shot2 = await this.recordScreenshot('after Action');
           recorder.push(shot2);
@@ -525,8 +515,25 @@ export class TaskExecutor {
               );
             });
 
+            await Promise.all([
+              (async () => {
+                if (this.interface.beforeInvokeAction) {
+                  debug('will call "beforeInvokeAction" for interface');
+                  await this.interface.beforeInvokeAction(action.name, param);
+                  debug('called "beforeInvokeAction" for interface');
+                }
+              })(),
+              sleep(200),
+            ]);
+
             const actionFn = action.call.bind(this.interface);
             await actionFn(param, context);
+
+            if (this.interface.afterInvokeAction) {
+              debug('will call "afterInvokeAction" for interface');
+              await this.interface.afterInvokeAction(action.name, param);
+              debug('called "afterInvokeAction" for interface');
+            }
             // Return a proper result for report generation
             return {
               output: {
