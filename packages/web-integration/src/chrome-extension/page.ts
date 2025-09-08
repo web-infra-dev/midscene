@@ -716,20 +716,16 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     this.destroyed = true;
   }
 
-  async longPress (
-    x: number,
-    y: number,
-    duration?: number,
-  ) {
-  duration = duration || 500;
-  const LONG_PRESS_THRESHOLD = 600;
-  const MIN_PRESS_THRESHOLD = 300;
-  if (duration > LONG_PRESS_THRESHOLD) {
-    duration = LONG_PRESS_THRESHOLD;
-  }
-  if (duration < MIN_PRESS_THRESHOLD) {
-    duration = MIN_PRESS_THRESHOLD;
-  }
+  async longPress(x: number, y: number, duration?: number) {
+    duration = duration || 500;
+    const LONG_PRESS_THRESHOLD = 600;
+    const MIN_PRESS_THRESHOLD = 300;
+    if (duration > LONG_PRESS_THRESHOLD) {
+      duration = LONG_PRESS_THRESHOLD;
+    }
+    if (duration < MIN_PRESS_THRESHOLD) {
+      duration = MIN_PRESS_THRESHOLD;
+    }
     await this.mouse.move(x, y);
 
     if (this.isMobileEmulation === null) {
@@ -774,12 +770,12 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     }
     this.latestMouseX = x;
     this.latestMouseY = y;
-  };
+  }
 
   async swipe(
     from: { x: number; y: number },
     to: { x: number; y: number },
-    duration?: number
+    duration?: number,
   ) {
     const LONG_PRESS_THRESHOLD = 500;
     const MIN_PRESS_THRESHOLD = 150;
@@ -855,5 +851,5 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
 
     this.latestMouseX = to.x;
     this.latestMouseY = to.y;
-  };
+  }
 }
