@@ -11,6 +11,11 @@
       "types": "./dist/types/index.d.ts",
       "import": "./dist/es/index.mjs",
       "require": "./dist/es/index.js"
+    },
+    "./browser": {
+      "types": "./dist/types/browser.d.ts",
+      "import": "./dist/es/browser.mjs",
+      "require": "./dist/lib/browser.js"
     }
   },
   "files": ["dist", "html", "README.md"],

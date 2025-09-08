@@ -1,12 +1,8 @@
 import './component/playground/index.less';
 import './component/universal-playground.less';
 
-export {
-  type AnimationScript,
-  type ReplayScriptsInfo,
-  allScriptsFromDump,
-  generateAnimationScripts,
-} from './component/replay-scripts';
+// Re-export components that are safe for browser use (excluding Node.js dependent components)
+// NOTE: replay-scripts not exported here as it has Node.js dependencies
 export { useEnvConfig } from './component/store/store';
 
 export {
@@ -19,23 +15,18 @@ export { EnvConfig } from './component/env-config';
 
 export { Logo } from './component/logo';
 export { iconForStatus, timeCostStrElement } from './component/misc';
-export { useServerValid } from './component/playground/useServerValid';
+// NOTE: useServerValid is not exported here as it has Node.js dependencies
 
 export { PlaygroundResultView } from './component/playground/PlaygroundResult';
 export type { PlaygroundResult } from './component/playground/playground-types';
-export { ServiceModeControl } from './component/playground/ServiceModeControl';
+// NOTE: ServiceModeControl is not exported here as it has Node.js dependencies
 export { ContextPreview } from './component/playground/ContextPreview';
-export { PromptInput } from './component/playground/PromptInput';
+// NOTE: PromptInput is not exported here as it has Node.js dependencies through playground-utils
 export { Player } from './component/player';
 export { Blackboard } from './component/blackboard';
 export { GithubStar } from './component/github-star';
 
-// Export playground utilities
-export {
-  actionNameForType,
-  staticAgentFromContext,
-  getPlaceholderForType,
-} from './component/playground/playground-utils';
+// NOTE: playground-utils is not exported here as it has Node.js dependencies through @midscene/web-integration
 
 export { timeStr, filterBase64Value } from './utils';
 
@@ -57,9 +48,10 @@ export type {
   FormValue,
   ExecutionOptions,
   ProgressCallback,
+  // NOTE: ReplayScriptsInfo not exported here as it has Node.js dependencies
 } from './component/universal-playground/types';
 
-// Export providers
+// Export providers - ONLY BROWSER-SAFE ONES
 export {
   LocalStorageProvider,
   MemoryStorageProvider,
@@ -67,7 +59,6 @@ export {
 } from './component/universal-playground/providers/storage-provider';
 export {
   BaseContextProvider,
-  AgentContextProvider,
   StaticContextProvider,
   NoOpContextProvider,
 } from './component/universal-playground/providers/context-provider';

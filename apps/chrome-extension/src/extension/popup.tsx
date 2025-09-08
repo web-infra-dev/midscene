@@ -14,7 +14,7 @@ import {
 } from '@midscene/visualizer';
 import { ConfigProvider, Dropdown, Typography } from 'antd';
 import { useEffect, useState } from 'react';
-import { BrowserExtensionPlayground } from '../components/playground';
+import { BrowserExtensionUniversalPlayground } from '../components/playground-universal';
 import Bridge from './bridge';
 import Recorder from './recorder';
 import './popup.less';
@@ -37,11 +37,24 @@ export function PlaygroundPopup() {
 
   const { config, deepThink } = useEnvConfig();
 
-  // Override AI configuration
+  // Track when AI config has been properly applied
+  const [aiConfigReady, setAiConfigReady] = useState(false);
+
+  // Override AI configuration and mark as ready
   useEffect(() => {
     console.log('Chrome Extension - Overriding AI config:', config);
     console.log('OPENAI_API_KEY exists:', !!OPENAI_API_KEY);
-    overrideAIConfig(config);
+
+    if (config && Object.keys(config).length >= 1) {
+      overrideAIConfig(config);
+      // Add a small delay to ensure the config takes effect
+      setTimeout(() => {
+        console.log('AI config marked as ready');
+        setAiConfigReady(true);
+      }, 100);
+    } else {
+      setAiConfigReady(false);
+    }
   }, [config]);
 
   const menuItems = [
@@ -92,16 +105,38 @@ export function PlaygroundPopup() {
       );
     }
 
+    // Check if configuration is ready
+    const configReady = config && Object.keys(config).length >= 1;
+    console.log('Playground mode - config:', {
+      config,
+      configReady,
+      aiConfigReady,
+    });
+
     return (
       <div className="popup-content">
         {/* Playground Component */}
         <div className="playground-component">
-          <BrowserExtensionPlayground
-            getAgent={(forceSameTabNavigation?: boolean) => {
-              return extensionAgentForTab(forceSameTabNavigation);
-            }}
-            showContextPreview={false}
-          />
+          {configReady && aiConfigReady ? (
+            <BrowserExtensionUniversalPlayground
+              getAgent={(forceSameTabNavigation?: boolean) => {
+                console.log(
+                  'getAgent called with forceSameTabNavigation:',
+                  forceSameTabNavigation,
+                );
+                return extensionAgentForTab(forceSameTabNavigation);
+              }}
+              showContextPreview={false}
+            />
+          ) : (
+            <div style={{ padding: '20px', textAlign: 'center' }}>
+              <p>
+                {!configReady
+                  ? 'Please configure your AI settings to use the playground.'
+                  : 'Initializing AI configuration...'}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     );
