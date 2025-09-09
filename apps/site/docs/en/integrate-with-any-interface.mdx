@@ -1,0 +1,201 @@
+# Integrate with any interface (preview)
+
+From Midscene v0.28.0, we have launched the feature to integrate with any interface. Just define a class that extends the `AbstractInterface` class, and you can get a fully-featured Midscene AI Agent, including the interaction methods, data extraction methods, the report, the GUI playground, the cli, the yaml script runner, the MCP server...
+
+:::warning This is a preview feature
+This feature is still in preview. We have finished these work:
+- [x] Allow user to define a class that extends the `AbstractInterface` class
+- [x] Allow user to use yaml script to drive the interface
+
+And the next work is:
+- Allow user to use the playground
+- Allow user to use the MCP server
+
+:::
+
+
+## Demo and Community Project
+
+We have prepared a demo project for you to learn how to define your own interface class. It's highly recommended to check it out.
+
+* [Demo Project](https://github.com/web-infra-dev/midscene-example/tree/main/custom-interface)
+
+There are also some community projects that use this feature:
+
+* [midscene-ios](https://github.com/lhuanyu/midscene-ios) - iOS Mirror Automation Support for Midscene
+
+
+## Implement your own interface class
+
+### Step 1. clone and setup from the demo project
+
+This is the fastest way to get started.
+
+```bash
+git clone https://github.com/web-infra-dev/midscene-example.git
+cd midscene-example/custom-interface
+npm install
+npm run build
+```
+
+### Step 2. implement your interface class
+
+Define a class that extends the `AbstractInterface` class, and implement the required methods.
+
+You can get the sample implementation from the `./src/device/sample-device.ts` file.
+
+The key methods that you need to implement are:
+- `screenshotBase64()`: take a screenshot of the interface and return the base64 string
+- `size()`: get the size and dpr of the interface
+- `actionSpace()`: define the action space of the interface, which is an array of `DeviceAction` objects. AI model will use these actions to perform the actions.
+
+Use these commands to run the agent:
+
+- `npm run demo` to run the agent with javascript
+- `npm run demo:yaml` to run the agent with yaml script
+
+
+### Step 3. test the agent with the playground
+
+(coming soon...)
+
+### Step 4. test the MCP server
+
+(still in progress...)
+
+### Step 5. release the npm package, and let your users to use it
+
+Fill the `name` and `version` in the `package.json` file, and then run the following command:
+
+```bash
+npm publish
+```
+
+A typical usage of your npm package is like this:
+
+```typescript
+import { midsceneAgentForSampleDevice } from '...';
+
+const agent = midsceneAgentForSampleDevice({
+  foo: 'bar',
+});
+
+await agent.aiAction('click the button');
+```
+
+## API Reference
+
+### `AbstractInterface` class
+
+```typescript
+import { AbstractInterface } from '@midscene/core';
+```
+
+`AbstractInterface` is the key class for the agent to control the interface. 
+
+These are the required methods that you need to implement:
+
+- `interfaceType: string`: define a name for the interface
+- `screenshotBase64()`: take a screenshot of the interface and return the base64 string with the `'data:image/` prefix
+- `size()`: the size and dpr of the interface, which is an object with the `width`, `height`, and `dpr` properties
+- `actionSpace()`: the action space of the interface, which is an array of `DeviceAction` objects
+
+These are the optional methods that you can implement:
+
+- `destroy?()`: destroy the interface
+- `describe?()`: describe the interface, this may be used for the report and the playground
+- `beforeInvokeAction?()`: a hook function before invoke an action in action space
+- `afterInvokeAction?()`: a hook function after invoke an action
+
+### The action space
+
+Action space is a set of actions that describe the actions that can be performed on the interface. 
+
+To help you easily define the action space, Midscene has provided a set of predefined action spaces for the most common interfaces and devices. And there is also a method to define any custom action.
+
+This is how you can import the utils to define the action space:
+
+```typescript
+import {
+	type ActionTapParam,
+	defineAction,
+	defineActionTap,
+} from "@midscene/core/device";
+```
+
+#### The predefined action space
+
+These are the predefined action spaces for the most common interfaces and devices. You can expose them to the customized interface by implementing the call method of the action.
+
+You can find the parameters of the actions in the type definition of these functions.
+
+* `defineActionTap()`: define the tap action. This is also the function to invoke for the `aiTap` method.
+* `defineActionDoubleClick()`: define the double click action
+* `defineActionInput()`: define the input action. This is also the function to invoke for the `aiInput` method. This is also the function to invoke for the `aiInput` method.
+* `defineActionKeyboardPress()`: define the keyboard press action. This is also the function to invoke for the `aiKeyboardPress` method.
+* `defineActionScroll()`: define the scroll action. This is also the function to invoke for the `aiScroll` method.
+* `defineActionDragAndDrop()`: define the drag and drop action
+* `defineActionLongPress()`: define the long press action
+* `defineActionSwipe()`: define the swipe action
+
+#### The custom action space
+
+You can define your own action by using the `defineAction()` function.
+
+API Signature:
+
+```typescript
+import { defineAction } from "@midscene/core/device";
+
+defineAction(
+  {
+    name: string,
+    description: string,
+    paramSchema: z.ZodType<T>;
+    call: (param: z.infer<z.ZodType<T>>) => Promise<void>;
+  }
+)
+```
+
+* `name`: the name of the action, AI model will use this name to invoke the action
+* `description`: the description of the action, AI model will use this description to understand what the action is doing
+* `paramSchema`: the [Zod](https://www.npmjs.com/package/zod) schema of the parameters of the action, AI model will help to fill the parameters according to this schema
+* `call`: the function to invoke the action, you can get the parameters from the `param` parameter which conforms to the `paramSchema`
+
+
+Example:
+
+```typescript
+defineAction({
+  name: 'MyAction',
+  description: 'My action',
+  paramSchema: z.object({
+    name: z.string(),
+  }),
+  call: async (param) => {
+    console.log(param.name);
+  },
+});
+```
+
+If you want to get a param about the location of the element, you can use the `getMidsceneLocationSchema()` function to get the specific zod schema.
+
+A more complex example:
+
+```typescript
+import { getMidsceneLocationSchema } from "@midscene/core/device";
+
+defineAction({
+  name: 'LaunchApp',
+  description: 'A an app on screen',
+  paramSchema: z.object({
+    name: z.string().describe('The name of the app to launch'),
+    locate: getMidsceneLocationSchema().describe('The app icon to be launched'),
+  }),
+  call: async (param) => {
+    console.log(`launching app: ${param.name}, located at: ${JSON.stringify(param.locate.center)}`);
+  },
+});
+```
+
+
