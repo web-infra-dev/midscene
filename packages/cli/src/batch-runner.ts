@@ -396,7 +396,7 @@ class BatchRunner {
 
   private async loadFileConfig(file: string): Promise<MidsceneYamlScript> {
     const content = readFileSync(file, 'utf8');
-    return parseYamlScript(content, file, true);
+    return parseYamlScript(content, file);
   }
 
   private getSummaryAbsolutePath(): string {
