@@ -189,6 +189,11 @@ export class Agent<
   }
 
   async setAIActionContext(prompt: string) {
+    if (this.opts.aiActionContext) {
+      console.warn(
+        'aiActionContext is already set, and it is called again, will override the previous setting',
+      );
+    }
     this.opts.aiActionContext = prompt;
   }
 
@@ -863,7 +868,7 @@ export class Agent<
   async runYaml(yamlScriptContent: string): Promise<{
     result: Record<string, any>;
   }> {
-    const script = parseYamlScript(yamlScriptContent, 'yaml', true);
+    const script = parseYamlScript(yamlScriptContent, 'yaml');
     const player = new ScriptPlayer(script, async () => {
       return { agent: this, freeFn: [] };
     });

@@ -8,7 +8,7 @@
     "Browser use",
     "Android use"
   ],
-  "version": "0.27.6",
+  "version": "0.28.0",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "main": "./dist/lib/index.js",
@@ -116,7 +116,6 @@
     "@midscene/core": "workspace:*",
     "@midscene/playground": "workspace:*",
     "@midscene/shared": "workspace:*",
-
     "dayjs": "^1.11.11",
     "dotenv": "16.4.5",
     "http-server": "14.1.1",
