@@ -113,6 +113,7 @@ midscene_run/dump
 extension_output
 .cursor
 android-playground/static/
+playground/static/
 .cursor
 CLAUDE.md
 .claude

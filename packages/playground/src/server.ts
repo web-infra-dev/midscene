@@ -120,16 +120,26 @@ export default class PlaygroundServer {
       async (req: Request, res: Response) => {
         const { context } = req.body;
 
-        if (!context) {
-          return res.status(400).json({
-            error: 'context is required',
-          });
-        }
-
         try {
-          // Create agent with context like in /execute
-          const page = new this.pageClass(context);
-          const actionSpace = await page.actionSpace();
+          let actionSpace: any[];
+
+          // Check if we have an active agent to get action space from
+          const activeAgentIds = Object.keys(this.activeAgents);
+          if (activeAgentIds.length === 1) {
+            // Use existing agent's action space
+            const agentId = activeAgentIds[0];
+            const agent = this.activeAgents[agentId];
+            const page = (agent as any).interface;
+            actionSpace = await page.actionSpace();
+          } else if (context) {
+            // Create temporary agent with context
+            const page = new this.pageClass(context);
+            actionSpace = await page.actionSpace();
+          } else {
+            return res.status(400).json({
+              error: 'context is required when no active agent is available',
+            });
+          }
 
           // Process actionSpace to make paramSchema serializable
           const processedActionSpace = actionSpace.map((action: any) => {
@@ -212,21 +222,37 @@ export default class PlaygroundServer {
           domIncluded,
         } = req.body;
 
-        if (!context) {
-          return res.status(400).json({
-            error: 'context is required',
-          });
-        }
-
         if (!type) {
           return res.status(400).json({
             error: 'type is required',
           });
         }
 
-        // build an agent with context
-        const page = new this.pageClass(context);
-        const agent = new this.agentClass(page);
+        // If we have exactly one active agent, use it directly (common case for playgroundForAgent)
+        const activeAgentIds = Object.keys(this.activeAgents);
+        let agent: PageAgent;
+        let page: AbstractInterface;
+
+        let isTemporaryAgent = false;
+        if (activeAgentIds.length === 1) {
+          // Single agent case - use it directly (ignore frontend requestId)
+          const agentId = activeAgentIds[0];
+          agent = this.activeAgents[agentId];
+          page = (agent as any).interface as AbstractInterface;
+        } else if (requestId && this.activeAgents[requestId]) {
+          // Multi-agent case with specific requestId
+          agent = this.activeAgents[requestId];
+          page = (agent as any).interface as AbstractInterface;
+        } else if (context) {
+          // Create new agent with context
+          page = new this.pageClass(context);
+          agent = new this.agentClass(page);
+          isTemporaryAgent = true;
+        } else {
+          return res.status(400).json({
+            error: 'context is required when no active agent is available',
+          });
+        }
 
         if (requestId) {
           this.taskProgressTips[requestId] = '';
@@ -283,7 +309,12 @@ export default class PlaygroundServer {
           response.reportHTML = agent.reportHTMLString() || null;
 
           agent.writeOutActionDumps();
-          agent.destroy();
+
+          // Only destroy temporary agents, keep pre-registered agents alive
+          if (isTemporaryAgent) {
+            agent.destroy();
+          } else {
+          }
         } catch (error: any) {
           console.error(
             `write out dump failed: requestId: ${requestId}, ${error.message}`,

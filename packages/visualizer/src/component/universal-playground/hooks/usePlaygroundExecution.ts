@@ -8,15 +8,15 @@ import type {
 } from '../types';
 import { BLANK_RESULT } from '../types';
 
-// Import functions that may not be available in self-import
-// These should be imported from a stable external source
-const noReplayAPIs = ['aiQuery', 'aiAssert'];
+import { allScriptsFromDump } from '../../replay-scripts';
 
-// Placeholder for allScriptsFromDump - should be imported differently
-const allScriptsFromDump = (dump: any) => {
-  // This is a simplified implementation - the real one should be imported properly
-  return null;
-};
+// Import noReplayAPIs - use hardcoded list that matches playground package
+const noReplayAPIs = [
+  // Data extraction APIs
+  'aiQuery',
+  // Validation APIs  
+  'aiAssert',
+];
 
 /**
  * Hook for handling playground execution logic
@@ -121,7 +121,6 @@ export function usePlaygroundExecution(
       }
 
       if (interruptedFlagRef.current[thisRunningId]) {
-        console.log('Execution was interrupted, result is:', result);
         return;
       }
 
@@ -187,13 +186,6 @@ export function usePlaygroundExecution(
       };
       setInfoList((prev) => [...prev, separatorItem]);
 
-      console.log('Playground execution completed:', {
-        timeTaken: `${Date.now() - startTime}ms`,
-        actionType,
-        hasResult: !!result.result,
-        hasDump: !!result.dump,
-        hasError: !!result.error,
-      });
     },
     [
       playgroundSDK,
@@ -241,7 +233,6 @@ export function usePlaygroundExecution(
         };
         setInfoList((prev) => [...prev, separatorItem]);
 
-        console.log('Execution stopped successfully');
       } catch (error) {
         console.error('Failed to stop execution:', error);
       }

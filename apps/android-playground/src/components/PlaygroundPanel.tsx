@@ -4,8 +4,9 @@ import {
   Logo,
   MemoryStorageProvider,
   UniversalPlayground,
+  useEnvConfig,
 } from '@midscene/visualizer';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 
 interface PlaygroundPanelProps {
   selectedDeviceId: string | null;
@@ -24,12 +25,24 @@ export default function PlaygroundPanel({
   configAlreadySet,
   connectionReady,
 }: PlaygroundPanelProps) {
+  // Get config from the global state
+  const { config } = useEnvConfig();
+
   // Initialize PlaygroundSDK for remote execution
   const playgroundSDK = useMemo(() => {
     return new PlaygroundSDK({
       type: 'remote-execution',
     });
   }, []);
+
+  // Override SDK config when configuration changes
+  useEffect(() => {
+    if (playgroundSDK.overrideConfig && config) {
+      playgroundSDK.overrideConfig(config).catch((error) => {
+        console.error('Failed to override SDK config:', error);
+      });
+    }
+  }, [playgroundSDK, config]);
 
   // Memory storage for non-persistent mode
   const storage = useMemo(() => new MemoryStorageProvider(), []);
@@ -80,7 +93,12 @@ export default function PlaygroundPanel({
       overrideConfig: originalOverrideConfig,
       checkStatus: originalCheckStatus,
       cancelExecution: originalCancelExecution,
-      onProgressUpdate: undefined, // Will be set up by the universal playground if needed
+      onProgressUpdate: (callback: (tip: string) => void) => {
+        // For remote execution, pass the callback directly to the underlying PlaygroundSDK
+        if (playgroundSDK.onProgressUpdate) {
+          playgroundSDK.onProgressUpdate(callback);
+        }
+      },
     };
   }, [
     playgroundSDK,

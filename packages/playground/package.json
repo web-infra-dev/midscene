@@ -15,7 +15,11 @@
       "import": "./dist/es/index.mjs"
     }
   },
-  "files": ["dist"],
+  "files": ["dist", "bin", "static"],
+  "bin": {
+    "midscene-playground": "./bin/playground",
+    "@midscene/playground": "./bin/playground"
+  },
   "scripts": {
     "build": "rslib build",
     "build:watch": "rslib build --watch",
@@ -29,7 +33,8 @@
     "@midscene/shared": "workspace:*",
     "cors": "2.8.5",
     "dotenv": "16.4.5",
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "open": "10.1.0"
   },
   "devDependencies": {
     "@rslib/core": "^0.11.2",

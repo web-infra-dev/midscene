@@ -1,5 +1,6 @@
 import './App.less';
 import { SCRCPY_SERVER_PORT } from '@midscene/shared/constants';
+import { overrideAIConfig } from '@midscene/shared/env';
 import {
   globalThemeConfig,
   useEnvConfig,
@@ -34,6 +35,11 @@ export default function App() {
   const { config } = useEnvConfig();
   const configAlreadySet = Object.keys(config || {}).length >= 1;
   const serverValid = useServerValid(true);
+
+  // Override AI configuration when config changes
+  useEffect(() => {
+    overrideAIConfig(config);
+  }, [config]);
 
   // Socket connection and device management
   const socketRef = useRef<Socket | null>(null);

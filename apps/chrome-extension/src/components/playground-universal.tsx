@@ -24,11 +24,6 @@ export function BrowserExtensionUniversalPlayground({
   showContextPreview = true,
   dryMode = false,
 }: PlaygroundProps) {
-  console.log('BrowserExtensionUniversalPlayground rendering...', {
-    getAgent,
-    showContextPreview,
-    dryMode,
-  });
 
   const extensionVersion = getExtensionVersion();
   const { forceSameTabNavigation } = useEnvConfig((state) => ({
@@ -51,23 +46,24 @@ export function BrowserExtensionUniversalPlayground({
 
   // Create SDK only when needed, following original playground pattern
   const getOrCreateSDK = useCallback(() => {
-    console.log('getOrCreateSDK called - checking agent availability');
     const agent = getAgent(forceSameTabNavigation);
     if (!agent) {
-      console.error('getOrCreateSDK: No agent available');
       throw new Error('Please configure AI settings first');
     }
 
     // Only recreate if agent has changed or SDK doesn't exist
     if (!sdkRef.current || currentAgent.current !== agent) {
-      console.log('Creating new PlaygroundSDK with agent:', !!agent);
       try {
         sdkRef.current = new PlaygroundSDK({
           type: 'local-execution',
           agent: agent,
         });
         currentAgent.current = agent;
-        console.log('PlaygroundSDK created successfully');
+        
+        // If we have a stored progress callback, re-apply it to the new SDK
+        if (progressCallbackRef.current) {
+          sdkRef.current.onProgressUpdate(progressCallbackRef.current);
+        }
       } catch (error) {
         console.error('Failed to create PlaygroundSDK:', error);
         throw error;
@@ -76,19 +72,29 @@ export function BrowserExtensionUniversalPlayground({
     return sdkRef.current;
   }, [getAgent, forceSameTabNavigation]);
 
+  // Store the current progress callback
+  const progressCallbackRef = useRef<((tip: string) => void) | null>(null);
+
   // Create a wrapper SDK that uses the original pattern
   const wrappedSDK = useMemo(() => {
     return {
-      executeAction: (actionType: string, value: any, options?: any) => {
-        const sdk = getOrCreateSDK(); // Only create SDK when actually needed
+      executeAction: async (actionType: string, value: any, options?: any) => {
+        const sdk = getOrCreateSDK();
+        
+        // Get agent and reset dump like the original playground does
+        const agent = getAgent(forceSameTabNavigation);
+        if (agent) {
+          // Reset dump before execution
+          if (agent.resetDump) {
+            agent.resetDump();
+          }
+        }
+        
         return sdk.executeAction(actionType, value, options || {});
       },
       getActionSpace: (context?: any) => {
         // Don't create SDK immediately for getActionSpace - return empty array until config is confirmed ready
         if (!runEnabled) {
-          console.log(
-            'getActionSpace: config not ready, returning empty array',
-          );
           return Promise.resolve([]);
         }
         try {
@@ -111,9 +117,18 @@ export function BrowserExtensionUniversalPlayground({
         const sdk = getOrCreateSDK();
         return sdk.cancelTask?.(requestId);
       },
-      onProgressUpdate: undefined,
+      onProgressUpdate: (callback: (tip: string) => void) => {
+        // Store the callback for our own use
+        progressCallbackRef.current = callback;
+        
+        // Also call the underlying PlaygroundSDK's onProgressUpdate
+        const sdk = getOrCreateSDK();
+        if (sdk && sdk.onProgressUpdate) {
+          sdk.onProgressUpdate(callback);
+        }
+      },
     };
-  }, [getOrCreateSDK, runEnabled]);
+  }, [getOrCreateSDK, runEnabled, getAgent, forceSameTabNavigation]);
 
   // Context provider - delay creation until actually needed
   const contextProvider = useMemo(() => {
@@ -140,14 +155,6 @@ export function BrowserExtensionUniversalPlayground({
     };
   }, [showContextPreview, getAgent, forceSameTabNavigation]);
 
-  console.log('About to render UniversalPlayground with:', {
-    wrappedSDK: !!wrappedSDK,
-    storage: !!storage,
-    contextProvider: !!contextProvider,
-    runEnabled,
-    config,
-    extensionVersion,
-  });
 
   return (
     <UniversalPlayground

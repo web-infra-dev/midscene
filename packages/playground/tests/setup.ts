@@ -17,6 +17,11 @@ vi.mock('@midscene/shared/img/get-photon', () => ({
 vi.mock('@midscene/shared/env', () => ({
   overrideAIConfig: vi.fn(),
   resetAIConfig: vi.fn(),
+  globalConfigManager: {
+    get: vi.fn(() => ({})),
+    set: vi.fn(),
+    reset: vi.fn(),
+  },
 }));
 
 vi.mock('@midscene/core/ai-model', () => ({
@@ -29,14 +34,45 @@ vi.mock('@midscene/core', () => ({
   createPage: vi.fn(),
 }));
 
+vi.mock('@midscene/core/agent', () => ({
+  Agent: class MockAgent {
+    constructor(device: any) {
+      this.device = device;
+    }
+    
+    async aiAssert(prompt: string) {
+      console.log(`Mock AI Assert: ${prompt}`);
+      return { pass: true, thought: 'Mock assertion passed' };
+    }
+    
+    async aiQuery(prompt: string) {
+      console.log(`Mock AI Query: ${prompt}`);
+      return ['mock', 'query', 'result'];
+    }
+    
+    async aiAction(prompt: string) {
+      console.log(`Mock AI Action: ${prompt}`);
+      return 'Mock action completed';
+    }
+  },
+}));
+
 vi.mock('express', () => {
   const mockExpress = () => ({
     use: vi.fn(),
     get: vi.fn(),
     post: vi.fn(),
-    listen: vi.fn(),
+    listen: vi.fn((port: number, callback?: () => void) => {
+      setTimeout(() => callback && callback(), 0);
+      return {
+        close: vi.fn((callback?: () => void) => {
+          setTimeout(() => callback && callback(), 0);
+        }),
+      };
+    }),
   });
   mockExpress.static = vi.fn();
+  mockExpress.json = vi.fn(() => (req: any, res: any, next: any) => next());
   return { default: mockExpress };
 });
 

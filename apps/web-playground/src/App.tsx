@@ -12,7 +12,10 @@ import { ConfigProvider } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import './App.less';
 
-const SERVER_URL = `http://localhost:${PLAYGROUND_SERVER_PORT}`;
+// Use current page port if available, fallback to default port
+const currentPort = typeof window !== 'undefined' ? window.location.port : '';
+const SERVER_PORT = currentPort || PLAYGROUND_SERVER_PORT;
+const SERVER_URL = `http://localhost:${SERVER_PORT}`;
 
 export default function App() {
   const { config } = useEnvConfig();

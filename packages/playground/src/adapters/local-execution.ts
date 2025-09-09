@@ -8,10 +8,15 @@ import { BasePlaygroundAdapter } from './base';
 export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   private agent: PlaygroundAgent;
   private taskProgressTips: Record<string, string> = {};
+  private progressCallback?: (tip: string) => void;
 
   constructor(agent: PlaygroundAgent) {
     super();
     this.agent = agent;
+  }
+
+  setProgressCallback(callback: (tip: string) => void): void {
+    this.progressCallback = callback;
   }
 
   private cleanup(requestId: string): void {
@@ -55,8 +60,27 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   // (inherits default executeAction from BasePlaygroundAdapter)
 
   // Local execution gets actionSpace directly from local agent
-  async getActionSpace(page: any): Promise<DeviceAction<unknown>[]> {
-    return await page.actionSpace();
+  async getActionSpace(context?: any): Promise<DeviceAction<unknown>[]> {
+    // For local execution, we get actionSpace from the stored agent
+    if (this.agent && this.agent.getActionSpace) {
+      return await this.agent.getActionSpace();
+    }
+    
+    // Fallback: try to get actionSpace from agent's interface (page)
+    if (this.agent && (this.agent as any).interface) {
+      const page = (this.agent as any).interface;
+      if (page && page.actionSpace) {
+        return await page.actionSpace();
+      }
+    }
+    
+    // If context is provided and has actionSpace method, use it
+    if (context && context.actionSpace) {
+      return await context.actionSpace();
+    }
+    
+    console.warn('No actionSpace method available in LocalExecutionAdapter');
+    return [];
   }
 
   // Local execution doesn't use a server, so always return true
@@ -74,21 +98,34 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     value: FormValue,
     options: ExecutionOptions,
   ): Promise<unknown> {
-    // Get actionSpace from the stored agent
-    const actionSpace = this.agent.getActionSpace
-      ? await this.agent.getActionSpace()
-      : [];
+    // Get actionSpace using the same logic as getActionSpace method
+    let actionSpace: any[] = [];
+    
+    if (this.agent && this.agent.getActionSpace) {
+      actionSpace = await this.agent.getActionSpace();
+    } else if (this.agent && (this.agent as any).interface) {
+      const page = (this.agent as any).interface;
+      if (page && page.actionSpace) {
+        actionSpace = await page.actionSpace();
+      }
+    }
 
     // Setup progress tracking if requestId is provided
     if (options.requestId && this.agent) {
-      // Store the original callback if exists
+      // Store the original callback if exists (this preserves chrome extension callbacks)
       const originalCallback = this.agent.onTaskStartTip;
 
       // Override with our callback that stores tips and calls original
       this.agent.onTaskStartTip = (tip: string) => {
         // Store tip for our progress tracking
         this.taskProgressTips[options.requestId!] = tip;
-        // Call original callback if it existed
+        
+        // Call the direct progress callback set via setProgressCallback
+        if (this.progressCallback) {
+          this.progressCallback(tip);
+        }
+        
+        // Call original callback if it existed (this will call chrome extension callbacks)
         if (originalCallback && typeof originalCallback === 'function') {
           originalCallback(tip);
         }
@@ -97,13 +134,45 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
 
     try {
       // Call the base implementation with the original signature
-      return await executeAction(
+      const result = await executeAction(
         this.agent,
         actionType,
         actionSpace,
         value,
         options,
       );
+
+      // For local execution, we need to package the result with dump and reportHTML
+      // similar to how the server does it
+      const response = {
+        result,
+        dump: null as any,
+        reportHTML: null as string | null,
+        error: null as string | null,
+      };
+
+      try {
+        // Get dump and reportHTML from agent like the server does
+        if (this.agent.dumpDataString) {
+          const dumpString = this.agent.dumpDataString();
+          if (dumpString) {
+            response.dump = JSON.parse(dumpString);
+          }
+        }
+
+        if (this.agent.reportHTMLString) {
+          response.reportHTML = this.agent.reportHTMLString() || null;
+        }
+
+        // Write out action dumps
+        if (this.agent.writeOutActionDumps) {
+          this.agent.writeOutActionDumps();
+        }
+      } catch (error: any) {
+        console.error('Failed to get dump/reportHTML from agent:', error);
+      }
+
+      return response;
     } finally {
       // Always clean up progress tracking to prevent memory leaks
       if (options.requestId) {

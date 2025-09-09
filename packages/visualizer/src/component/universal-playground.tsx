@@ -40,14 +40,14 @@ export function UniversalPlayground({
   playgroundSDK,
   storage,
   contextProvider,
-  config = {},
+  config: componentConfig = {},
   branding = {},
   className = '',
   dryMode = false,
   showContextPreview = true,
 }: UniversalPlaygroundProps) {
   const [form] = Form.useForm();
-  const { deepThink, screenshotIncluded, domIncluded } = useEnvConfig();
+  const { deepThink, screenshotIncluded, domIncluded, config } = useEnvConfig();
 
   // Use custom hooks for state management
   const {
@@ -93,13 +93,19 @@ export function UniversalPlayground({
 
   // Override SDK config when environment config changes
   useEffect(() => {
-    const envConfig = { deepThink, screenshotIncluded, domIncluded };
+    // Pass the complete config, not just the UI-specific fields
+    const completeConfig = {
+      ...config,
+      deepThink,
+      screenshotIncluded,
+      domIncluded,
+    };
     if (playgroundSDK.overrideConfig) {
-      playgroundSDK.overrideConfig(envConfig).catch((error) => {
+      playgroundSDK.overrideConfig(completeConfig).catch((error) => {
         console.error('Failed to override SDK config:', error);
       });
     }
-  }, [playgroundSDK, deepThink, screenshotIncluded, domIncluded]);
+  }, [playgroundSDK, config, deepThink, screenshotIncluded, domIncluded]);
 
   // Handle form submission with error handling
   const handleFormRun = useCallback(async () => {
@@ -119,10 +125,10 @@ export function UniversalPlayground({
 
   // Apply configuration
   const finalShowContextPreview =
-    showContextPreview && config.showContextPreview !== false;
-  const enablePersistence = config.enablePersistence !== false;
-  const layout = config.layout || 'vertical';
-  const showVersionInfo = config.showVersionInfo !== false;
+    showContextPreview && componentConfig.showContextPreview !== false;
+  const enablePersistence = componentConfig.enablePersistence !== false;
+  const layout = componentConfig.layout || 'vertical';
+  const showVersionInfo = componentConfig.showVersionInfo !== false;
 
   return (
     <div className={`playground-container ${layout}-mode ${className}`.trim()}>
@@ -255,7 +261,7 @@ export function UniversalPlayground({
                               result={item.result || null}
                               loading={item.loading || false}
                               serverValid={true}
-                              serviceMode={'In-Browser-Extension'}
+                              serviceMode={'Server'}
                               replayScriptsInfo={item.replayScriptsInfo || null}
                               replayCounter={item.replayCounter || 0}
                               loadingProgressText={
@@ -287,7 +293,7 @@ export function UniversalPlayground({
 
           {/* Scroll to Bottom Button */}
           {showScrollToBottomButton &&
-            config.enableScrollToBottom !== false && (
+            componentConfig.enableScrollToBottom !== false && (
               <Button
                 className="scroll-to-bottom-button"
                 type="primary"
@@ -304,7 +310,7 @@ export function UniversalPlayground({
           <PromptInput
             runButtonEnabled={runButtonEnabled}
             form={form}
-            serviceMode={'In-Browser-Extension'} // This will be configurable
+            serviceMode={'Server'}
             selectedType={selectedType}
             dryMode={dryMode}
             stoppable={canStop}
