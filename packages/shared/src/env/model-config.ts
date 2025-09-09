@@ -98,7 +98,7 @@ export const decideOpenaiSdkConfig = ({
   'modelName' | 'from' | 'vlMode' | 'uiTarsVersion' | 'modelDescription'
 > => {
   initDebugConfig();
-  const debugLog = getDebug('ai:globalConfig');
+  const debugLog = getDebug('ai:global:config');
 
   const socksProxy = provider[keys.socksProxy];
   const httpProxy = provider[keys.httpProxy];

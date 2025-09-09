@@ -20,6 +20,24 @@ describe(
       }
     });
 
+    it('error in beforeInvokeAction', async () => {
+      const { originPage, reset } = await launchPage(
+        'https://www.saucedemo.com/',
+      );
+      resetFn = reset;
+      const agent = new PuppeteerAgent(originPage, {
+        beforeInvokeAction: () => {
+          throw new Error('this is an error in beforeInvokeAction');
+        },
+      });
+
+      await expect(async () => {
+        await agent.aiAction(
+          'type "standard_user" in user name input, type "secret_sauce" in password',
+        );
+      }).rejects.toThrowError();
+    });
+
     it('Sauce Demo by Swag Lab', async () => {
       const { originPage, reset } = await launchPage(
         'https://www.saucedemo.com/',
