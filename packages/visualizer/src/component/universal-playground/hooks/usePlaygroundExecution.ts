@@ -8,13 +8,13 @@ import type {
 } from '../types';
 import { BLANK_RESULT } from '../types';
 
-import { allScriptsFromDump } from '../../replay-scripts';
+import { allScriptsFromDump } from '../../../utils/replay-scripts';
 
 // Import noReplayAPIs - use hardcoded list that matches playground package
 const noReplayAPIs = [
   // Data extraction APIs
   'aiQuery',
-  // Validation APIs  
+  // Validation APIs
   'aiAssert',
 ];
 
@@ -185,7 +185,6 @@ export function usePlaygroundExecution(
         timestamp: new Date(),
       };
       setInfoList((prev) => [...prev, separatorItem]);
-
     },
     [
       playgroundSDK,
@@ -232,7 +231,6 @@ export function usePlaygroundExecution(
           timestamp: new Date(),
         };
         setInfoList((prev) => [...prev, separatorItem]);
-
       } catch (error) {
         console.error('Failed to stop execution:', error);
       }

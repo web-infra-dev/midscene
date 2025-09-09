@@ -1,19 +1,19 @@
 import './component/playground/index.less';
-import './component/universal-playground.less';
+import './component/universal-playground/index.less';
 
 export {
   type AnimationScript,
   type ReplayScriptsInfo,
   allScriptsFromDump,
   generateAnimationScripts,
-} from './component/replay-scripts';
+} from './utils/replay-scripts';
 export { useEnvConfig } from './component/store/store';
 
 export {
   colorForName,
   highlightColorForType,
   globalThemeConfig,
-} from './component/color';
+} from './utils/color';
 
 export { EnvConfig } from './component/env-config';
 

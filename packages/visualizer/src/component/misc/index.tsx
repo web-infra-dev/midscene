@@ -1,15 +1,10 @@
 import {
   ArrowRightOutlined,
-  CheckCircleFilled,
-  CheckCircleOutlined,
   CheckOutlined,
-  ClockCircleFilled,
   ClockCircleOutlined,
-  CloseCircleFilled,
   CloseOutlined,
   LogoutOutlined,
   MinusOutlined,
-  WarningFilled,
   WarningOutlined,
 } from '@ant-design/icons';
 

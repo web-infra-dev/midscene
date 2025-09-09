@@ -1,5 +1,4 @@
 'use client';
-import './player.less';
 import { mousePointer } from '@/utils';
 import { paramStr, typeStr } from '@midscene/core/agent';
 

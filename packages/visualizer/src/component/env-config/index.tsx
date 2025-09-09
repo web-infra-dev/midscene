@@ -1,7 +1,7 @@
 import { SettingOutlined } from '@ant-design/icons';
 import { Input, Modal, Tooltip } from 'antd';
 import { useEffect, useRef, useState } from 'react';
-import { useEnvConfig } from './store/store';
+import { useEnvConfig } from '../store/store';
 
 export function EnvConfig({
   showTooltipWhenEmpty = true,

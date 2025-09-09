@@ -11,14 +11,14 @@ export interface ReplayScriptsInfo {
   modelBriefs: string[];
 }
 
-// 表单值类型
+// form value type
 export interface FormValue {
   type: string;
   prompt?: string;
   params?: Record<string, unknown>;
 }
 
-// 执行选项类型
+// execution options type
 export interface ExecutionOptions {
   requestId?: string;
   deepThink?: boolean;
@@ -27,13 +27,13 @@ export interface ExecutionOptions {
   context?: string | object;
 }
 
-// 进度回调类型
+// progress callback type
 export type ProgressCallback = (
   step: string,
   status?: 'loading' | 'completed' | 'error',
 ) => void;
 
-// PlaygroundSDK 接口（简化版，用于类型定义）
+// PlaygroundSDK interface (simplified version, for type definition)
 export interface PlaygroundSDKLike {
   executeAction(
     actionType: string,
@@ -47,7 +47,7 @@ export interface PlaygroundSDKLike {
   checkStatus?(): Promise<boolean>;
 }
 
-// 存储提供者接口
+// storage provider interface
 export interface StorageProvider {
   saveMessages?(messages: InfoListItem[]): Promise<void>;
   loadMessages?(): Promise<InfoListItem[]>;
@@ -55,13 +55,13 @@ export interface StorageProvider {
   saveResult?(id: string, result: InfoListItem): Promise<void>;
 }
 
-// 上下文提供者接口
+// context provider interface
 export interface ContextProvider {
   getUIContext?(): Promise<UIContext>;
   refreshContext?(): Promise<UIContext>;
 }
 
-// 信息列表项类型（基于 Chrome Extension 的设计）
+// info list item type (based on Chrome Extension design)
 export interface InfoListItem {
   id: string;
   type: 'user' | 'system' | 'result' | 'progress' | 'separator';
@@ -75,7 +75,7 @@ export interface InfoListItem {
   verticalMode?: boolean;
 }
 
-// 主组件配置接口
+// main component config interface
 export interface UniversalPlaygroundConfig {
   showContextPreview?: boolean;
   enablePersistence?: boolean;
@@ -84,35 +84,35 @@ export interface UniversalPlaygroundConfig {
   enableScrollToBottom?: boolean;
 }
 
-// 品牌定制接口
+// branding interface
 export interface PlaygroundBranding {
   title?: string;
   icon?: ComponentType<any>;
   version?: string;
 }
 
-// 主组件 Props 接口
+// main component props interface
 export interface UniversalPlaygroundProps {
-  // 核心 SDK
+  // core SDK
   playgroundSDK: PlaygroundSDKLike;
 
-  // 可选功能提供者
+  // optional features provider
   storage?: StorageProvider;
   contextProvider?: ContextProvider;
 
-  // UI 配置
+  // UI config
   config?: UniversalPlaygroundConfig;
 
-  // 品牌定制
+  // branding
   branding?: PlaygroundBranding;
 
-  // 其他 props
+  // other props
   className?: string;
   dryMode?: boolean;
   showContextPreview?: boolean;
 }
 
-// 欢迎消息模板
+// welcome message template
 export const WELCOME_MESSAGE_TEMPLATE: Omit<InfoListItem, 'id' | 'timestamp'> =
   {
     type: 'system',
@@ -131,7 +131,7 @@ export const WELCOME_MESSAGE_TEMPLATE: Omit<InfoListItem, 'id' | 'timestamp'> =
     verticalMode: false,
   };
 
-// 空结果模板
+// blank result template
 export const BLANK_RESULT: PlaygroundResult = {
   result: undefined,
   dump: null,

@@ -1,4 +1,4 @@
-import './logo.less';
+import './index.less';
 
 export const LogoUrl =
   'https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/Midscene.png';

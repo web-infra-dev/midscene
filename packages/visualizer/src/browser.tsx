@@ -1,5 +1,5 @@
 import './component/playground/index.less';
-import './component/universal-playground.less';
+import './component/universal-playground/index.less';
 
 // Re-export components that are safe for browser use (excluding Node.js dependent components)
 // NOTE: replay-scripts not exported here as it has Node.js dependencies
@@ -9,7 +9,7 @@ export {
   colorForName,
   highlightColorForType,
   globalThemeConfig,
-} from './component/color';
+} from './utils/color';
 
 export { EnvConfig } from './component/env-config';
 

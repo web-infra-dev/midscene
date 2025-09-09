@@ -1,8 +1,8 @@
-// 扩展 Window 接口以包含 global 和 Buffer 属性
+// Extend the Window interface to include global and Buffer properties
 interface Window {
   global: typeof globalThis;
   Buffer: any;
 }
 
-// 版本变量
+// version variable
 declare const __VERSION__: string;

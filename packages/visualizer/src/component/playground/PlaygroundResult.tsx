@@ -1,8 +1,8 @@
 import { LoadingOutlined } from '@ant-design/icons';
 import { Spin } from 'antd';
 import type React from 'react';
+import type { ReplayScriptsInfo } from '../../utils/replay-scripts';
 import { Player } from '../player';
-import type { ReplayScriptsInfo } from '../replay-scripts';
 import ShinyText from '../shiny-text';
 import { emptyResultTip, serverLaunchTip } from './playground-constants';
 import type { PlaygroundResult as PlaygroundResultType } from './playground-types';
