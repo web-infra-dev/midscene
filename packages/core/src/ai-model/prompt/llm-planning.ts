@@ -3,7 +3,7 @@ import type { DeviceAction } from '@/types';
 import { PromptTemplate } from '@langchain/core/prompts';
 import type { vlLocateMode } from '@midscene/shared/env';
 import type { ResponseFormatJSONSchema } from 'openai/resources/index';
-import { z } from 'zod';
+import type { ZodObject, z } from 'zod';
 import { ifMidsceneLocatorField } from '../common';
 import { bboxDescription } from './common';
 
@@ -31,12 +31,12 @@ export const descriptionForAction = (
   // Handle paramSchema if it exists
   if (action.paramSchema) {
     assert(
-      action.paramSchema instanceof z.ZodObject,
+      action.paramSchema.constructor.name === 'ZodObject',
       'paramSchema must be a zod object',
     );
     // Try to extract parameter information from the zod schema
     // For zod object schemas, extract type information and descriptions
-    const shape = action.paramSchema.shape;
+    const shape = (action.paramSchema as ZodObject<any>).shape;
     const paramLines: string[] = [];
 
     // Helper function to get type name from zod schema

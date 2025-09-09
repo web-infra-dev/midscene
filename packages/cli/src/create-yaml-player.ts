@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { basename, extname } from 'node:path';
+import path, { basename, extname, join } from 'node:path';
 import { ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
 import { createServer } from 'http-server';
 
@@ -10,6 +10,9 @@ import type {
   MidsceneYamlScript,
   MidsceneYamlScriptEnv,
 } from '@midscene/core';
+import { createAgent } from '@midscene/core/agent';
+import type { AbstractInterface } from '@midscene/core/device';
+import { getDebug } from '@midscene/shared/logger';
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
 import { puppeteerAgentForTarget } from '@midscene/web/puppeteer-agent-launcher';
 import type { Browser } from 'puppeteer';
@@ -19,6 +22,8 @@ export interface SingleYamlExecutionResult {
   file: string;
   player: ScriptPlayer<MidsceneYamlScriptEnv>;
 }
+
+const debug = getDebug('create-yaml-player');
 
 export const launchServer = async (
   dir: string,
@@ -58,6 +63,25 @@ export async function createYamlPlayer(
     async () => {
       const freeFn: FreeFn[] = [];
       const webTarget = yamlScript.web || yamlScript.target;
+
+      // Validate that only one target type is specified
+      const targetCount = [
+        typeof webTarget !== 'undefined',
+        typeof yamlScript.android !== 'undefined',
+        typeof yamlScript.interface !== 'undefined',
+      ].filter(Boolean).length;
+
+      if (targetCount > 1) {
+        const specifiedTargets = [
+          typeof webTarget !== 'undefined' ? 'web' : null,
+          typeof yamlScript.android !== 'undefined' ? 'android' : null,
+          typeof yamlScript.interface !== 'undefined' ? 'interface' : null,
+        ].filter(Boolean);
+
+        throw new Error(
+          `Only one target type can be specified, but found multiple: ${specifiedTargets.join(', ')}. Please specify only one of: web, android, or interface.`,
+        );
+      }
 
       // handle new web config
       if (typeof webTarget !== 'undefined') {
@@ -161,8 +185,63 @@ export async function createYamlPlayer(
         return { agent, freeFn };
       }
 
+      // handle general interface
+      if (typeof yamlScript.interface !== 'undefined') {
+        const interfaceTarget = yamlScript.interface;
+
+        const moduleSpecifier = interfaceTarget.module;
+        let finalModuleSpecifier: string;
+        if (
+          moduleSpecifier.startsWith('./') ||
+          moduleSpecifier.startsWith('../') ||
+          path.isAbsolute(moduleSpecifier)
+        ) {
+          const resolvedPath = join(process.cwd(), moduleSpecifier);
+          finalModuleSpecifier = resolvedPath;
+        } else {
+          finalModuleSpecifier = moduleSpecifier;
+        }
+
+        // import the module dynamically
+        debug(
+          'importing module config',
+          interfaceTarget.module,
+          'with export config',
+          interfaceTarget.export,
+          'final module specifier',
+          finalModuleSpecifier,
+        );
+
+        const importedModule = await import(finalModuleSpecifier);
+
+        // get the specific export or use default export
+        const DeviceClass = interfaceTarget.export
+          ? importedModule[interfaceTarget.export]
+          : importedModule.default || importedModule;
+
+        debug('DeviceClass', DeviceClass, 'with param', interfaceTarget.param);
+
+        // create device instance with parameters
+        const device: AbstractInterface = new DeviceClass(
+          interfaceTarget.param || {},
+        );
+
+        // create agent from device
+        debug('creating agent from device', device);
+        const agent = createAgent(device, yamlScript.agent || {});
+
+        freeFn.push({
+          name: 'destroy_general_interface_agent',
+          fn: () => {
+            agent.destroy();
+          },
+        });
+
+        return { agent, freeFn };
+      }
+
       throw new Error(
-        'No valid target configuration found in the yaml script, should be either "web" or "android"',
+        'No valid interface configuration found in the yaml script, should be either "web", "android", or "interface"',
       );
     },
     undefined,

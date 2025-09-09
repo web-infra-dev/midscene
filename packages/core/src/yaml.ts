@@ -1,5 +1,5 @@
 import type { TUserPrompt } from './ai-model/common';
-import type { Rect } from './types';
+import type { AgentOpt, Rect } from './types';
 import type { BaseElement, UIContext } from './types';
 
 export interface LocateOption {
@@ -38,8 +38,14 @@ export interface ScrollParam {
 export interface MidsceneYamlScript {
   // @deprecated
   target?: MidsceneYamlScriptWebEnv;
+
   web?: MidsceneYamlScriptWebEnv;
   android?: MidsceneYamlScriptAndroidEnv;
+
+  interface?: MidsceneYamlScriptEnvGeneralInterface;
+  config?: MidsceneYamlScriptConfig;
+  agent?: MidsceneYamlScriptAgentOpt;
+
   tasks: MidsceneYamlTask[];
 }
 
@@ -49,13 +55,23 @@ export interface MidsceneYamlTask {
   continueOnError?: boolean;
 }
 
-export interface MidsceneYamlScriptEnvBase {
+export type MidsceneYamlScriptAgentOpt = Pick<AgentOpt, 'aiActionContext'>;
+
+export interface MidsceneYamlScriptConfig {
   output?: string;
   unstableLogContent?: boolean | string;
-  aiActionContext?: string;
 }
 
-export interface MidsceneYamlScriptWebEnv extends MidsceneYamlScriptEnvBase {
+export interface MidsceneYamlScriptEnvGeneralInterface {
+  // this will work as `const {...} = import('...'); const interface = new ...(param)`
+  module: string;
+  export?: string;
+  param?: Record<string, any>;
+}
+
+export interface MidsceneYamlScriptWebEnv
+  extends MidsceneYamlScriptConfig,
+    MidsceneYamlScriptAgentOpt {
   // for web only
   serve?: string;
   url: string;
@@ -78,8 +94,7 @@ export interface MidsceneYamlScriptWebEnv extends MidsceneYamlScriptEnvBase {
   closeNewTabsAfterDisconnect?: boolean;
 }
 
-export interface MidsceneYamlScriptAndroidEnv
-  extends MidsceneYamlScriptEnvBase {
+export interface MidsceneYamlScriptAndroidEnv extends MidsceneYamlScriptConfig {
   // The Android device ID to connect to, optional, will use the first device if not specified
   deviceId?: string;
 

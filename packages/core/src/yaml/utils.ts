@@ -23,7 +23,6 @@ export function interpolateEnvVars(content: string): string {
 export function parseYamlScript(
   content: string,
   filePath?: string,
-  ignoreCheckingTarget?: boolean,
 ): MidsceneYamlScript {
   let processedContent = content;
   if (content.indexOf('android') !== -1 && content.match(/deviceId:\s*(\d+)/)) {
@@ -45,38 +44,6 @@ export function parseYamlScript(
   }) as MidsceneYamlScript;
 
   const pathTip = filePath ? `, failed to load ${filePath}` : '';
-  const android =
-    typeof obj.android !== 'undefined'
-      ? Object.assign({}, obj.android || {})
-      : undefined;
-  const webConfig = obj.web || obj.target; // no need to handle null case, because web has required parameters url
-  const web =
-    typeof webConfig !== 'undefined'
-      ? Object.assign({}, webConfig || {})
-      : undefined;
-
-  if (!ignoreCheckingTarget) {
-    // make sure at least one of target/web/android is provided
-    assert(
-      web || android,
-      `at least one of "target", "web", or "android" properties is required in yaml script${pathTip}`,
-    );
-
-    // make sure only one of target/web/android is provided
-    assert(
-      (web && !android) || (!web && android),
-      `only one of "target", "web", or "android" properties is allowed in yaml script${pathTip}`,
-    );
-
-    // make sure the config is valid
-    if (web || android) {
-      assert(
-        typeof web === 'object' || typeof android === 'object',
-        `property "target/web/android" must be an object${pathTip}`,
-      );
-    }
-  }
-
   assert(obj.tasks, `property "tasks" is required in yaml script ${pathTip}`);
   assert(
     Array.isArray(obj.tasks),

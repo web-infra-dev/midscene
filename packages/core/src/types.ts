@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type { NodeType } from '@midscene/shared/constants';
+import type { TModelConfigFn } from '@midscene/shared/env';
 import type {
   BaseElement,
   ElementTreeNode,
@@ -586,3 +587,23 @@ export interface WebElementInfo extends BaseElement {
 }
 
 export type WebUIContext = UIContext<WebElementInfo>;
+
+/**
+ * Agent
+ */
+
+export interface AgentOpt {
+  testId?: string;
+  cacheId?: string;
+  groupName?: string;
+  groupDescription?: string;
+  /* if auto generate report, default true */
+  generateReport?: boolean;
+  /* if auto print report msg, default true */
+  autoPrintReportMsg?: boolean;
+  onTaskStartTip?: OnTaskStartTip;
+  aiActionContext?: string;
+  /* custom report file name */
+  reportFileName?: string;
+  modelConfig?: TModelConfigFn;
+}

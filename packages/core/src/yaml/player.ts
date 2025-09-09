@@ -59,12 +59,15 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
   ) {
     this.scriptPath = scriptPath;
     this.result = {};
-    this.target = script.target || script.web || script.android;
+    this.target =
+      script.target || script.web || script.android || script.config;
 
     if (ifInBrowser || ifInWorker) {
       this.output = undefined;
+      debug('output is undefined in browser or worker');
     } else if (this.target?.output) {
       this.output = resolve(process.cwd(), this.target.output);
+      debug('setting output by config.output', this.output);
     } else {
       const scriptName = this.scriptPath
         ? basename(this.scriptPath, '.yaml').replace(/\.(ya?ml)$/i, '')
@@ -73,6 +76,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         getMidsceneRunSubDir('output'),
         `${scriptName}-${Date.now()}.json`,
       );
+      debug('setting output by script path', this.output);
     }
 
     if (ifInBrowser || ifInWorker) {

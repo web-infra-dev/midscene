@@ -41,6 +41,7 @@ import {
 } from '../yaml/index';
 
 import type { AbstractInterface } from '@/device';
+import type { AgentOpt } from '@/types';
 import {
   type IModelPreferences,
   MIDSCENE_CACHE,
@@ -80,22 +81,6 @@ const defaultInsightExtractOption: InsightExtractOption = {
   domIncluded: false,
   screenshotIncluded: true,
 };
-
-export interface AgentOpt {
-  testId?: string;
-  cacheId?: string;
-  groupName?: string;
-  groupDescription?: string;
-  /* if auto generate report, default true */
-  generateReport?: boolean;
-  /* if auto print report msg, default true */
-  autoPrintReportMsg?: boolean;
-  onTaskStartTip?: OnTaskStartTip;
-  aiActionContext?: string;
-  /* custom report file name */
-  reportFileName?: string;
-  modelConfig?: TModelConfigFn;
-}
 
 export class Agent<
   InterfaceType extends AbstractInterface = AbstractInterface,
@@ -204,6 +189,11 @@ export class Agent<
   }
 
   async setAIActionContext(prompt: string) {
+    if (this.opts.aiActionContext) {
+      console.warn(
+        'aiActionContext is already set, and it is called again, will override the previous setting',
+      );
+    }
     this.opts.aiActionContext = prompt;
   }
 
@@ -878,7 +868,7 @@ export class Agent<
   async runYaml(yamlScriptContent: string): Promise<{
     result: Record<string, any>;
   }> {
-    const script = parseYamlScript(yamlScriptContent, 'yaml', true);
+    const script = parseYamlScript(yamlScriptContent, 'yaml');
     const player = new ScriptPlayer(script, async () => {
       return { agent: this, freeFn: [] };
     });
@@ -1011,3 +1001,10 @@ export class Agent<
     debug('Page context unfrozen successfully');
   }
 }
+
+export const createAgent = (
+  interfaceInstance: AbstractInterface,
+  opts?: AgentOpt,
+) => {
+  return new Agent(interfaceInstance, opts);
+};
