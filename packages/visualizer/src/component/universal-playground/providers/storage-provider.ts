@@ -1,4 +1,4 @@
-import type { InfoListItem, StorageProvider } from '../types';
+import type { InfoListItem, StorageProvider } from '../../../types';
 
 /**
  * Local Storage implementation for playground message persistence

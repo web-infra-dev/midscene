@@ -1,8 +1,6 @@
 import { Alert } from 'antd';
 import type React from 'react';
-import ShinyText from '../shiny-text';
-
-import './index.less';
+import ShinyText from '../component/shiny-text';
 
 // server not ready error message
 export const errorMessageServerNotReady = (

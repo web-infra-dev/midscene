@@ -1,12 +1,12 @@
 // Re-export playground components for internal use
-export { ContextPreview } from './ContextPreview';
-export { PlaygroundResultView } from './PlaygroundResult';
-export { PromptInput } from './PromptInput';
-export { useServerValid } from './useServerValid';
-export { ServiceModeControl } from './ServiceModeControl';
+export { ContextPreview } from '../context-preview';
+export { PlaygroundResultView } from '../playground-result';
+export { PromptInput } from '../prompt-input';
+export { useServerValid } from '../../hooks/useServerValid';
+export { ServiceModeControl } from '../service-mode-control';
 
-// Re-export types from correct files
-export type { PlaygroundResult } from './playground-types';
+// Re-export types
+export * from '../../types';
 
-// Re-export store hook - need to import from parent directory
-export { useEnvConfig } from '../store/store';
+// Re-export store hook
+export { useEnvConfig } from '../../store/store';

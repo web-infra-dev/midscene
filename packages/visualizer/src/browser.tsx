@@ -1,9 +1,9 @@
-import './component/playground/index.less';
+import './component/index.less';
 import './component/universal-playground/index.less';
 
 // Re-export components that are safe for browser use (excluding Node.js dependent components)
 // NOTE: replay-scripts not exported here as it has Node.js dependencies
-export { useEnvConfig } from './component/store/store';
+export { useEnvConfig } from './store/store';
 
 export {
   colorForName,
@@ -17,10 +17,10 @@ export { Logo } from './component/logo';
 export { iconForStatus, timeCostStrElement } from './component/misc';
 // NOTE: useServerValid is not exported here as it has Node.js dependencies
 
-export { PlaygroundResultView } from './component/playground/PlaygroundResult';
-export type { PlaygroundResult } from './component/playground/playground-types';
+export { PlaygroundResultView } from './component/playground-result';
+export type { PlaygroundResult } from './types';
 // NOTE: ServiceModeControl is not exported here as it has Node.js dependencies
-export { ContextPreview } from './component/playground/ContextPreview';
+export { ContextPreview } from './component/context-preview';
 // NOTE: PromptInput is not exported here as it has Node.js dependencies through playground-utils
 export { Player } from './component/player';
 export { Blackboard } from './component/blackboard';
@@ -49,7 +49,7 @@ export type {
   ExecutionOptions,
   ProgressCallback,
   // NOTE: ReplayScriptsInfo not exported here as it has Node.js dependencies
-} from './component/universal-playground/types';
+} from './types';
 
 // Export providers - ONLY BROWSER-SAFE ONES
 export {

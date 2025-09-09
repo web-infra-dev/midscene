@@ -62,23 +62,23 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   // Local execution gets actionSpace directly from local agent
   async getActionSpace(context?: any): Promise<DeviceAction<unknown>[]> {
     // For local execution, we get actionSpace from the stored agent
-    if (this.agent && this.agent.getActionSpace) {
+    if (this.agent?.getActionSpace) {
       return await this.agent.getActionSpace();
     }
-    
+
     // Fallback: try to get actionSpace from agent's interface (page)
     if (this.agent && (this.agent as any).interface) {
       const page = (this.agent as any).interface;
-      if (page && page.actionSpace) {
+      if (page?.actionSpace) {
         return await page.actionSpace();
       }
     }
-    
+
     // If context is provided and has actionSpace method, use it
-    if (context && context.actionSpace) {
+    if (context?.actionSpace) {
       return await context.actionSpace();
     }
-    
+
     console.warn('No actionSpace method available in LocalExecutionAdapter');
     return [];
   }
@@ -100,12 +100,12 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   ): Promise<unknown> {
     // Get actionSpace using the same logic as getActionSpace method
     let actionSpace: any[] = [];
-    
-    if (this.agent && this.agent.getActionSpace) {
+
+    if (this.agent?.getActionSpace) {
       actionSpace = await this.agent.getActionSpace();
     } else if (this.agent && (this.agent as any).interface) {
       const page = (this.agent as any).interface;
-      if (page && page.actionSpace) {
+      if (page?.actionSpace) {
         actionSpace = await page.actionSpace();
       }
     }
@@ -119,12 +119,12 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       this.agent.onTaskStartTip = (tip: string) => {
         // Store tip for our progress tracking
         this.taskProgressTips[options.requestId!] = tip;
-        
+
         // Call the direct progress callback set via setProgressCallback
         if (this.progressCallback) {
           this.progressCallback(tip);
         }
-        
+
         // Call original callback if it existed (this will call chrome extension callbacks)
         if (originalCallback && typeof originalCallback === 'function') {
           originalCallback(tip);

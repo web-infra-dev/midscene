@@ -7,9 +7,7 @@ export {
   executeAction,
 } from './common';
 export { default as PlaygroundServer } from './server';
-export {
-  playgroundForAgent,
-} from './launcher';
+export { playgroundForAgent } from './launcher';
 
 // SDK exports
 export { PlaygroundSDK } from './sdk';

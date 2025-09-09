@@ -39,17 +39,17 @@ vi.mock('@midscene/core/agent', () => ({
     constructor(device: any) {
       this.device = device;
     }
-    
+
     async aiAssert(prompt: string) {
       console.log(`Mock AI Assert: ${prompt}`);
       return { pass: true, thought: 'Mock assertion passed' };
     }
-    
+
     async aiQuery(prompt: string) {
       console.log(`Mock AI Query: ${prompt}`);
       return ['mock', 'query', 'result'];
     }
-    
+
     async aiAction(prompt: string) {
       console.log(`Mock AI Action: ${prompt}`);
       return 'Mock action completed';
@@ -63,10 +63,10 @@ vi.mock('express', () => {
     get: vi.fn(),
     post: vi.fn(),
     listen: vi.fn((port: number, callback?: () => void) => {
-      setTimeout(() => callback && callback(), 0);
+      setTimeout(() => callback?.(), 0);
       return {
         close: vi.fn((callback?: () => void) => {
-          setTimeout(() => callback && callback(), 0);
+          setTimeout(() => callback?.(), 0);
         }),
       };
     }),

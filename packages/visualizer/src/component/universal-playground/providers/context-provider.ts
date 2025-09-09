@@ -1,5 +1,5 @@
 import type { UIContext } from '@midscene/core';
-import type { ContextProvider } from '../types';
+import type { ContextProvider } from '../../../types';
 
 /**
  * Base context provider implementation

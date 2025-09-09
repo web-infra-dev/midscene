@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { join } from 'node:path';
-import type { Agent as PageAgent, Agent } from '@midscene/core/agent';
+import type { Agent, Agent as PageAgent } from '@midscene/core/agent';
 import type { AbstractInterface } from '@midscene/core/device';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import PlaygroundServer from './server';

@@ -1,14 +1,13 @@
 import { Checkbox, Dropdown, type MenuProps, Radio } from 'antd';
 import type React from 'react';
 import SettingOutlined from '../../icons/setting.svg';
-import { useEnvConfig } from '../store/store';
+import { useEnvConfig } from '../../store/store';
 import {
   deepThinkTip,
   domIncludedTip,
   screenshotIncludedTip,
   trackingTip,
-} from './playground-constants';
-import './index.less';
+} from '../../utils/constants';
 
 interface ConfigSelectorProps {
   showDeepThinkOption: boolean;

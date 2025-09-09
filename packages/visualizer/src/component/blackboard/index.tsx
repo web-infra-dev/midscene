@@ -9,7 +9,7 @@ import { colorForName, highlightColorForType } from '../../utils/color';
 import './index.less';
 import { treeToList } from '@midscene/shared/extractor';
 import { DropShadowFilter } from 'pixi-filters';
-import { useBlackboardPreference } from '../store/store';
+import { useBlackboardPreference } from '../../store/store';
 
 const itemFillAlpha = 0.4;
 const highlightAlpha = 0.4;

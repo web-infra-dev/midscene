@@ -7,7 +7,7 @@ export {
   allScriptsFromDump,
   generateAnimationScripts,
 } from './utils/replay-scripts';
-export { useEnvConfig } from './component/store/store';
+export { useEnvConfig } from './store/store';
 
 export {
   colorForName,
@@ -19,13 +19,13 @@ export { EnvConfig } from './component/env-config';
 
 export { Logo } from './component/logo';
 export { iconForStatus, timeCostStrElement } from './component/misc';
-export { useServerValid } from './component/playground/useServerValid';
+export { useServerValid } from './hooks/useServerValid';
 
-export { PlaygroundResultView } from './component/playground/PlaygroundResult';
-export type { PlaygroundResult } from './component/playground/playground-types';
-export { ServiceModeControl } from './component/playground/ServiceModeControl';
-export { ContextPreview } from './component/playground/ContextPreview';
-export { PromptInput } from './component/playground/PromptInput';
+export { PlaygroundResultView } from './component/playground-result';
+export type { PlaygroundResult } from './types';
+export { ServiceModeControl } from './component/service-mode-control';
+export { ContextPreview } from './component/context-preview';
+export { PromptInput } from './component/prompt-input';
 export { Player } from './component/player';
 export { Blackboard } from './component/blackboard';
 export { GithubStar } from './component/github-star';
@@ -35,7 +35,7 @@ export {
   actionNameForType,
   staticAgentFromContext,
   getPlaceholderForType,
-} from './component/playground/playground-utils';
+} from './utils/playground-utils';
 
 export { timeStr, filterBase64Value } from './utils';
 
@@ -57,7 +57,7 @@ export type {
   FormValue,
   ExecutionOptions,
   ProgressCallback,
-} from './component/universal-playground/types';
+} from './types';
 
 // Export providers
 export {

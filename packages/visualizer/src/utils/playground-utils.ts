@@ -1,7 +1,7 @@
 import type { WebUIContext } from '@midscene/core';
 import { StaticPage, StaticPageAgent } from '@midscene/web/static';
-import type { ZodObjectSchema } from './types';
-import { isZodObjectSchema, unwrapZodType } from './types';
+import type { ZodObjectSchema } from '../types';
+import { isZodObjectSchema, unwrapZodType } from '../types';
 
 // Get action name based on type
 export const actionNameForType = (type: string) => {

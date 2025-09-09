@@ -4,8 +4,8 @@ import { useMemo, useState } from 'react';
 import CloseOutlined from '../../icons/close.svg';
 import HistoryOutlined from '../../icons/history.svg';
 import MagnifyingGlass from '../../icons/magnifying-glass.svg';
-import { useHistoryStore } from '../store/history';
-import type { HistoryItem } from '../store/history';
+import { useHistoryStore } from '../../store/history';
+import type { HistoryItem } from '../../store/history';
 import './index.less';
 
 const { Text } = Typography;

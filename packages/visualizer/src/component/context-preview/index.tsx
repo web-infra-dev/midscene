@@ -3,8 +3,7 @@ import { Button } from 'antd';
 import type React from 'react';
 import Blackboard from '../blackboard';
 import { iconForStatus } from '../misc';
-import DemoData from '../playground-demo-ui-context.json';
-import './index.less';
+import DemoData from '../playground/playground-demo-ui-context.json';
 
 interface ContextPreviewProps {
   uiContextPreview: UIContext | undefined;

@@ -803,9 +803,6 @@ importers:
       '@midscene/shared':
         specifier: workspace:*
         version: link:../shared
-      '@midscene/web':
-        specifier: workspace:*
-        version: link:../web-integration
       cors:
         specifier: 2.8.5
         version: 2.8.5

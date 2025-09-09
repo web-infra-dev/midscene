@@ -8,7 +8,7 @@ import type {
 } from '../types';
 import { BLANK_RESULT } from '../types';
 
-import { allScriptsFromDump } from '../../../utils/replay-scripts';
+import { allScriptsFromDump } from '../utils/replay-scripts';
 
 // Import noReplayAPIs - use hardcoded list that matches playground package
 const noReplayAPIs = [

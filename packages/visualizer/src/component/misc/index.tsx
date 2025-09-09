@@ -7,6 +7,9 @@ import {
   MinusOutlined,
   WarningOutlined,
 } from '@ant-design/icons';
+import { Alert } from 'antd';
+import type React from 'react';
+import ShinyText from '../shiny-text';
 
 export function timeCostStrElement(timeCost?: number) {
   let str: string;
@@ -65,3 +68,36 @@ export const iconForStatus = (status: string) => {
       return <MinusOutlined />;
   }
 };
+
+// server not ready error message
+export const errorMessageServerNotReady = (
+  <span>
+    Don&apos;t worry, just one more step to launch the playground server.
+    <br />
+    Please run one of the commands under the midscene project directory:
+    <br />
+    a. <strong>npx midscene-playground</strong>
+    <br />
+    b. <strong>npx --yes @midscene/web</strong>
+  </span>
+);
+
+// server launch tip
+export const serverLaunchTip = (
+  notReadyMessage: React.ReactNode | string = errorMessageServerNotReady,
+) => (
+  <div className="server-tip">
+    <Alert
+      message="Playground Server Not Ready"
+      description={notReadyMessage}
+      type="warning"
+    />
+  </div>
+);
+
+// empty result tip
+export const emptyResultTip = (
+  <div className="result-empty-tip" style={{ textAlign: 'center' }}>
+    <ShinyText disabled text="The result will be shown here" />
+  </div>
+);

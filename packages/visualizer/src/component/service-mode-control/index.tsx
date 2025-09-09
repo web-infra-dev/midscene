@@ -3,11 +3,10 @@ import { overrideAIConfig } from '@midscene/shared/env';
 import { Button, Tooltip } from 'antd';
 import type React from 'react';
 import { useEffect } from 'react';
+import { useServerValid } from '../../hooks/useServerValid';
+import { useEnvConfig } from '../../store/store';
 import { EnvConfig } from '../env-config';
 import { iconForStatus } from '../misc';
-import { useEnvConfig } from '../store/store';
-import { useServerValid } from './useServerValid';
-import './index.less';
 
 interface ServiceModeControlProps {
   serviceMode: 'Server' | 'In-Browser';

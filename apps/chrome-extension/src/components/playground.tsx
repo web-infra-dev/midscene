@@ -121,7 +121,7 @@ export function BrowserExtensionPlayground({
 
         // Also call the underlying PlaygroundSDK's onProgressUpdate
         const sdk = getOrCreateSDK();
-        if (sdk && sdk.onProgressUpdate) {
+        if (sdk?.onProgressUpdate) {
           sdk.onProgressUpdate(callback);
         }
       },

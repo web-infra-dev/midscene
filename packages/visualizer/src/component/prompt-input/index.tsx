@@ -1,16 +1,7 @@
 import { BorderOutlined, DownOutlined, SendOutlined } from '@ant-design/icons';
+import './index.less';
 import type { z } from '@midscene/core';
-import {
-  Button,
-  Dropdown,
-  Form,
-  Input,
-  InputNumber,
-  Radio,
-  Select,
-  Space,
-  Tooltip,
-} from 'antd';
+import { Button, Dropdown, Form, Input, Radio, Space, Tooltip } from 'antd';
 import type { MenuProps } from 'antd';
 import React, {
   useCallback,
@@ -19,25 +10,10 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import type { HistoryItem } from '../store/history';
-import { useHistoryStore } from '../store/history';
-import { ConfigSelector } from './ConfigSelector';
-import {
-  BooleanField,
-  EnumField,
-  LocateField,
-  NumberField,
-  TextField,
-} from './FormField';
-import { HistorySelector } from './HistorySelector';
-import { apiMetadata, defaultMainButtons } from './playground-constants';
-import type { RunType } from './playground-types';
-import type { ServiceModeType } from './playground-types';
-import {
-  actionNameForType,
-  isRunButtonEnabled as calculateIsRunButtonEnabled,
-  getPlaceholderForType,
-} from './playground-utils';
+import type { HistoryItem } from '../../store/history';
+import { useHistoryStore } from '../../store/history';
+import type { RunType } from '../../types';
+import type { ServiceModeType } from '../../types';
 import {
   type FormParams,
   type ZodObjectSchema,
@@ -47,7 +23,22 @@ import {
   isLocateField,
   isZodObjectSchema,
   unwrapZodType,
-} from './types';
+} from '../../types';
+import { apiMetadata, defaultMainButtons } from '../../utils/constants';
+import {
+  actionNameForType,
+  isRunButtonEnabled as calculateIsRunButtonEnabled,
+  getPlaceholderForType,
+} from '../../utils/playground-utils';
+import { ConfigSelector } from '../config-selector';
+import {
+  BooleanField,
+  EnumField,
+  LocateField,
+  NumberField,
+  TextField,
+} from '../form-field';
+import { HistorySelector } from '../history-selector';
 import './index.less';
 import type { DeviceAction } from '@midscene/core';
 

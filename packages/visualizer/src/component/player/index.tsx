@@ -13,17 +13,17 @@ import {
 import type { BaseElement, LocateResultElement, Rect } from '@midscene/core';
 import { treeToList } from '@midscene/shared/extractor';
 import { Dropdown, Spin, Switch, Tooltip } from 'antd';
-import { rectMarkForItem } from '../blackboard';
-import GlobalPerspectiveIcon from '../icons/global-perspective.svg';
-import PlayerSettingIcon from '../icons/player-setting.svg';
-import ShowMarkerIcon from '../icons/show-marker.svg';
+import GlobalPerspectiveIcon from '../../icons/global-perspective.svg';
+import PlayerSettingIcon from '../../icons/player-setting.svg';
+import ShowMarkerIcon from '../../icons/show-marker.svg';
+import { useBlackboardPreference } from '../../store/store';
 import { getTextureFromCache, loadTexture } from '../../utils/pixi-loader';
 import type {
   AnimationScript,
   CameraState,
   TargetCameraState,
 } from '../../utils/replay-scripts';
-import { useBlackboardPreference } from '../store/store';
+import { rectMarkForItem } from '../blackboard';
 
 const canvasPaddingLeft = 0;
 const canvasPaddingTop = 0;

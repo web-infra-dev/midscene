@@ -107,12 +107,12 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
       }
 
       const result = await response.json();
-      
+
       // Stop progress polling when execution completes
       if (options.requestId) {
         this.stopProgressPolling(options.requestId);
       }
-      
+
       return result;
     } catch (error) {
       // Stop progress polling on error
@@ -221,7 +221,7 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
       deepThink: 'MIDSCENE_FORCE_DEEP_THINK',
       // screenshotIncluded and domIncluded are execution options, not global config
       // They will be passed through ExecutionOptions in executeAction
-      
+
       // Most config keys are already in the correct environment variable format
       // so we don't need to map them. The frontend stores config as OPENAI_API_KEY, etc.
     };
@@ -291,7 +291,7 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
   ): Promise<{ error?: string; success?: boolean }> {
     // Stop progress polling
     this.stopProgressPolling(requestId);
-    
+
     if (!this.serverUrl) {
       return { error: 'No server URL configured' };
     }
@@ -323,7 +323,10 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
   }
 
   // Start progress polling
-  private startProgressPolling(requestId: string, callback: (tip: string) => void): void {
+  private startProgressPolling(
+    requestId: string,
+    callback: (tip: string) => void,
+  ): void {
     // Don't start multiple polling for the same request
     if (this.progressPolling.has(requestId)) {
       return;
@@ -333,7 +336,7 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
     const interval = setInterval(async () => {
       try {
         const progress = await this.getTaskProgress(requestId);
-        if (progress.tip && progress.tip.trim() && progress.tip !== lastTip) {
+        if (progress?.tip?.trim?.() && progress.tip !== lastTip) {
           lastTip = progress.tip;
           callback(progress.tip);
         }

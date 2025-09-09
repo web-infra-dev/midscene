@@ -5,15 +5,15 @@ import Icon, {
 } from '@ant-design/icons';
 import { Button, Form, List, Tooltip, Typography, message } from 'antd';
 import { useCallback, useEffect } from 'react';
-import { ContextPreview } from '../playground/ContextPreview';
-import { PlaygroundResultView } from '../playground/PlaygroundResult';
-import { useEnvConfig } from '../store/store';
-import { usePlaygroundExecution } from './hooks/usePlaygroundExecution';
-import { usePlaygroundState } from './hooks/usePlaygroundState';
-import type { FormValue, UniversalPlaygroundProps } from './types';
+import { usePlaygroundExecution } from '../../hooks/usePlaygroundExecution';
+import { usePlaygroundState } from '../../hooks/usePlaygroundState';
+import { useEnvConfig } from '../../store/store';
+import type { FormValue, UniversalPlaygroundProps } from '../../types';
+import { ContextPreview } from '../context-preview';
+import { PlaygroundResultView } from '../playground-result';
 import './index.less';
-import PlaygroundIcon from '../icons/avatar.svg';
-import { PromptInput } from '../playground';
+import PlaygroundIcon from '../../icons/avatar.svg';
+import { PromptInput } from '../prompt-input';
 
 const { Text } = Typography;
 
