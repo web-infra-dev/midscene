@@ -1,7 +1,6 @@
 import { getBasicEnvValue } from 'src/env/basic';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MIDSCENE_RUN_DIR } from '../../../src/env';
-import { getUiTarsModelVersion, vlLocateMode } from '../../../src/env/utils';
 
 describe('getBasicEnvValue', () => {
   afterEach(() => {
@@ -19,17 +18,5 @@ describe('getBasicEnvValue', () => {
     ).toThrowErrorMatchingInlineSnapshot(
       '[Error: getBasicEnvValue with key NOT_EXIST_KEY is not supported.]',
     );
-  });
-});
-
-describe('getUiTarsModelVersion', () => {
-  it('getUiTarsModelVersion will return undefined if globalConfig is not initialized', () => {
-    expect(getUiTarsModelVersion({ intent: 'planning' })).toBeUndefined();
-  });
-});
-
-describe('vlLocateMode', () => {
-  it('vlLocateMode will return undefined if globalConfig is not initialized', () => {
-    expect(vlLocateMode({ intent: 'planning' })).toBeUndefined();
   });
 });

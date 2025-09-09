@@ -1,4 +1,5 @@
 import { TaskExecutor } from '@midscene/core/agent';
+import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 declare const __VERSION__: string;
@@ -36,6 +37,13 @@ vi.mock('@/common/utils', async () => {
     printReportMsg: vi.fn(),
   };
 });
+
+const mockedModelConfig: IModelConfig = {
+  modelName: 'mock-model',
+  modelDescription: 'mock-model-description',
+  intent: 'default',
+  from: 'legacy-env',
+};
 
 describe('TaskExecutor waitFor method with doNotThrowError', () => {
   let taskExecutor: TaskExecutor;
@@ -103,15 +111,20 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
     ).mockImplementation((task) => task);
 
     // Call waitFor method directly
-    const result = await taskExecutor.waitFor('test assertion', {
-      timeoutMs: 5000,
-      checkIntervalMs: 1000,
-    });
+    const result = await taskExecutor.waitFor(
+      'test assertion',
+      {
+        timeoutMs: 5000,
+        checkIntervalMs: 1000,
+      },
+      mockedModelConfig,
+    );
 
     // Verify that createTypeQueryTask was called with doNotThrowError: true
     expect(createTypeQueryTaskSpy).toHaveBeenCalledWith(
       'Assert',
       'test assertion',
+      mockedModelConfig,
       {
         isWaitForAssert: true,
         returnThought: true,
@@ -160,15 +173,20 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
     ).mockImplementation((task) => task);
 
     // Call waitFor method with short timeouts to test the retry mechanism
-    const result = await taskExecutor.waitFor('test assertion', {
-      timeoutMs: 5000,
-      checkIntervalMs: 1000,
-    });
+    const result = await taskExecutor.waitFor(
+      'test assertion',
+      {
+        timeoutMs: 5000,
+        checkIntervalMs: 1000,
+      },
+      mockedModelConfig,
+    );
 
     // Verify that createTypeQueryTask was called multiple times with doNotThrowError: true
     expect(createTypeQueryTaskSpy).toHaveBeenCalledWith(
       'Assert',
       'test assertion',
+      mockedModelConfig,
       {
         isWaitForAssert: true,
         returnThought: true,
@@ -225,15 +243,20 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
     ).mockImplementation((task) => task);
 
     // Call waitFor method with very short timeout to trigger timeout quickly
-    const result = await taskExecutor.waitFor('test assertion', {
-      timeoutMs: 100, // Very short timeout
-      checkIntervalMs: 50,
-    });
+    const result = await taskExecutor.waitFor(
+      'test assertion',
+      {
+        timeoutMs: 100, // Very short timeout
+        checkIntervalMs: 50,
+      },
+      mockedModelConfig,
+    );
 
     // Verify that createTypeQueryTask was called with doNotThrowError: true
     expect(createTypeQueryTaskSpy).toHaveBeenCalledWith(
       'Assert',
       'test assertion',
+      mockedModelConfig,
       {
         isWaitForAssert: true,
         returnThought: true,
@@ -248,6 +271,7 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
       expect.stringMatching(
         /waitFor timeout.*Assertion failed - element not found/,
       ),
+      mockedModelConfig,
     );
 
     // Verify the result

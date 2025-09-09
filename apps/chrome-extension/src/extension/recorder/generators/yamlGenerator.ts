@@ -7,6 +7,7 @@ import {
   generateYamlTestStream as generateYamlTestStreamCore,
 } from '@midscene/core/ai-model';
 import type { ChromeRecordedEvent } from '@midscene/recorder';
+import type { IModelConfig } from '@midscene/shared/env';
 import { recordLogger } from '../logger';
 import { extractNavigationAndViewportInfo } from './playwrightGenerator';
 import { handleTestGenerationError } from './shared/testGenerationUtils';
@@ -18,7 +19,8 @@ import type { YamlGenerationOptions } from './shared/types';
  */
 export const generateYamlTest = async (
   events: ChromeRecordedEvent[],
-  options: YamlGenerationOptions = {},
+  options: YamlGenerationOptions,
+  modelConfig: IModelConfig,
 ): Promise<string> => {
   try {
     // Extract navigation and viewport information
@@ -36,7 +38,11 @@ export const generateYamlTest = async (
       navigationInfo,
     };
 
-    const yamlContent = await generateYamlTestCore(events, enhancedOptions);
+    const yamlContent = await generateYamlTestCore(
+      events,
+      enhancedOptions,
+      modelConfig,
+    );
 
     recordLogger.success('AI-powered YAML test generated successfully', {
       eventsCount: events.length,
@@ -56,6 +62,7 @@ export const generateYamlTest = async (
 export const exportEventsToYaml = async (
   events: ChromeRecordedEvent[],
   sessionName: string,
+  modelConfig: IModelConfig,
   options: YamlGenerationOptions = {},
 ): Promise<void> => {
   try {
@@ -63,11 +70,15 @@ export const exportEventsToYaml = async (
       eventsCount: events.length,
     });
 
-    const yamlContent = await generateYamlTest(events, {
-      testName: sessionName,
-      description: `Test session recorded on ${new Date().toLocaleDateString()}`,
-      ...options,
-    });
+    const yamlContent = await generateYamlTest(
+      events,
+      {
+        testName: sessionName,
+        description: `Test session recorded on ${new Date().toLocaleDateString()}`,
+        ...options,
+      },
+      modelConfig,
+    );
 
     const dataBlob = new Blob([yamlContent], {
       type: 'application/x-yaml',
@@ -95,7 +106,8 @@ export const exportEventsToYaml = async (
  */
 export const generateYamlTestStream = async (
   events: ChromeRecordedEvent[],
-  options: YamlGenerationOptions & StreamingCodeGenerationOptions = {},
+  options: YamlGenerationOptions & StreamingCodeGenerationOptions,
+  modelConfig: IModelConfig,
 ): Promise<StreamingAIResponse> => {
   try {
     // Extract navigation and viewport information
@@ -116,7 +128,11 @@ export const generateYamlTestStream = async (
       navigationInfo,
     };
 
-    const result = await generateYamlTestStreamCore(events, enhancedOptions);
+    const result = await generateYamlTestStreamCore(
+      events,
+      enhancedOptions,
+      modelConfig,
+    );
 
     recordLogger.success(
       'AI-powered YAML test generated successfully with streaming',

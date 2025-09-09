@@ -1,10 +1,16 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describeUserPage } from '@/index';
-import { vlLocateMode } from '@midscene/shared/env';
+import {
+  type TVlModeTypes,
+  globalModelConfigManager,
+} from '@midscene/shared/env';
 import { imageInfoOfBase64, localImg2Base64 } from '@midscene/shared/img';
 
-export async function buildContext(targetDir: string): Promise<{
+export async function buildContext(
+  targetDir: string,
+  vlMode?: TVlModeTypes | undefined,
+): Promise<{
   context: {
     size: {
       width: number;
@@ -28,12 +34,6 @@ export async function buildContext(targetDir: string): Promise<{
   const resizeOutputImgP = path.join(targetDir, 'output_without_text.png');
   const snapshotJsonPath = path.join(targetDir, 'element-snapshot.json');
   const elementTreeJsonPath = path.join(targetDir, 'element-tree.json');
-
-  const defaultModelPreferences = {
-    intent: 'default',
-  } as const;
-
-  const vlMode = vlLocateMode(defaultModelPreferences);
 
   if (!existsSync(snapshotJsonPath)) {
     console.warn(
@@ -97,10 +97,15 @@ export async function buildContext(targetDir: string): Promise<{
   };
 }
 
-export async function getContextFromFixture(pageName: string) {
+export async function getContextFromFixture(
+  pageName: string,
+  opts?: {
+    vlMode?: TVlModeTypes | undefined;
+  },
+) {
   const targetDir = path.join(
     __dirname,
     `../../evaluation/page-data/${pageName}`,
   );
-  return await buildContext(targetDir);
+  return await buildContext(targetDir, opts?.vlMode);
 }

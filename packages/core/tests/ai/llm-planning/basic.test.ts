@@ -1,5 +1,8 @@
 import { plan } from '@/ai-model';
-import { globalConfigManager, vlLocateMode } from '@midscene/shared/env';
+import {
+  globalConfigManager,
+  globalModelConfigManager,
+} from '@midscene/shared/env';
 import { mockActionSpace } from 'tests/common';
 import { getContextFromFixture } from 'tests/evaluation';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
@@ -9,15 +12,9 @@ vi.setConfig({
   hookTimeout: 30 * 1000,
 });
 
-beforeAll(async () => {
-  await globalConfigManager.init();
-});
+const modelConfig = globalModelConfigManager.getModelConfig('default');
 
-const vlMode = vlLocateMode({
-  intent: 'default',
-});
-
-describe.skipIf(vlMode)('automation - llm planning', () => {
+describe.skipIf(modelConfig.vlMode)('automation - llm planning', () => {
   it('basic run', async () => {
     const { context } = await getContextFromFixture('todo');
 
@@ -27,6 +24,7 @@ describe.skipIf(vlMode)('automation - llm planning', () => {
         context,
         actionSpace: mockActionSpace,
         interfaceType: 'puppeteer',
+        modelConfig,
       },
     );
     expect(actions).toBeTruthy();
@@ -43,7 +41,12 @@ describe.skipIf(vlMode)('automation - llm planning', () => {
     const { context } = await getContextFromFixture('todo');
     const { actions } = await plan(
       'Scroll down the page by 200px, scroll up the page by 100px, scroll right the second item of the task list by 300px',
-      { context, actionSpace: mockActionSpace, interfaceType: 'puppeteer' },
+      {
+        context,
+        actionSpace: mockActionSpace,
+        interfaceType: 'puppeteer',
+        modelConfig,
+      },
     );
     expect(actions).toBeTruthy();
     expect(actions!.length).toBe(3);
@@ -92,6 +95,7 @@ describe('planning', () => {
         context,
         actionSpace: mockActionSpace,
         interfaceType: 'puppeteer',
+        modelConfig,
       });
       expect(actions).toBeTruthy();
       // console.log(actions);
@@ -111,6 +115,7 @@ describe('planning', () => {
         context,
         actionSpace: mockActionSpace,
         interfaceType: 'puppeteer',
+        modelConfig,
       },
     );
     expect(actions).toBeTruthy();
@@ -123,7 +128,12 @@ describe('planning', () => {
     const { context } = await getContextFromFixture('todo');
     const { actions, error } = await plan(
       'If there is a cookie prompt, close it',
-      { context, actionSpace: mockActionSpace, interfaceType: 'puppeteer' },
+      {
+        context,
+        actionSpace: mockActionSpace,
+        interfaceType: 'puppeteer',
+        modelConfig,
+      },
     );
 
     expect(error).toBeFalsy();
@@ -134,7 +144,12 @@ describe('planning', () => {
     const { context } = await getContextFromFixture('todo');
     const res = await plan(
       'click the input box, wait 300ms. After that, the page will be redirected to the home page, click the close button of the cookie prompt on the home page',
-      { context, actionSpace: mockActionSpace, interfaceType: 'puppeteer' },
+      {
+        context,
+        actionSpace: mockActionSpace,
+        interfaceType: 'puppeteer',
+        modelConfig,
+      },
     );
 
     expect(res.more_actions_needed_by_instruction).toBeTruthy();

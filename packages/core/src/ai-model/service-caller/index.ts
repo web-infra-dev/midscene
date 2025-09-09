@@ -6,15 +6,15 @@ import {
   getBearerTokenProvider,
 } from '@azure/identity';
 import {
-  type IModelPreferences,
+  type IModelConfig,
   MIDSCENE_API_TYPE,
   MIDSCENE_LANGSMITH_DEBUG,
   OPENAI_MAX_TOKENS,
   type TVlModeTypes,
   type UITarsModelVersion,
   globalConfigManager,
-  vlLocateMode,
 } from '@midscene/shared/env';
+
 import { parseBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
@@ -32,10 +32,10 @@ import { planSchema } from '../prompt/llm-planning';
 
 async function createChatClient({
   AIActionTypeValue,
-  modelPreferences,
+  modelConfig,
 }: {
   AIActionTypeValue: AIActionType;
-  modelPreferences: IModelPreferences;
+  modelConfig: IModelConfig;
 }): Promise<{
   completion: OpenAI.Chat.Completions;
   style: 'openai' | 'anthropic';
@@ -62,9 +62,9 @@ async function createChatClient({
     useAnthropicSdk,
     anthropicApiKey,
     modelDescription,
-    uiTarsVersion,
+    uiTarsModelVersion: uiTarsVersion,
     vlMode,
-  } = globalConfigManager.getModelConfigByIntent(modelPreferences.intent);
+  } = modelConfig;
 
   let openai: OpenAI | AzureOpenAI | undefined;
 
@@ -153,7 +153,7 @@ async function createChatClient({
       modelName,
       modelDescription,
       uiTarsVersion,
-      vlMode: vlMode as TVlModeTypes | undefined,
+      vlMode,
     };
   }
 
@@ -173,7 +173,7 @@ async function createChatClient({
       modelName,
       modelDescription,
       uiTarsVersion,
-      vlMode: vlMode as TVlModeTypes | undefined,
+      vlMode,
     };
   }
 
@@ -183,7 +183,7 @@ async function createChatClient({
 export async function callAI(
   messages: ChatCompletionMessageParam[],
   AIActionTypeValue: AIActionType,
-  modelPreferences: IModelPreferences,
+  modelConfig: IModelConfig,
   options?: {
     stream?: boolean;
     onChunk?: StreamingCallback;
@@ -198,7 +198,7 @@ export async function callAI(
     vlMode,
   } = await createChatClient({
     AIActionTypeValue,
-    modelPreferences,
+    modelConfig,
   });
 
   const responseFormat = getResponseFormat(modelName, AIActionTypeValue);
@@ -304,7 +304,7 @@ export async function callAI(
                 time_cost: timeCost ?? 0,
                 model_name: modelName,
                 model_description: modelDescription,
-                intent: modelPreferences.intent,
+                intent: modelConfig.intent,
               },
             };
             options.onChunk!(finalChunk);
@@ -409,7 +409,7 @@ export async function callAI(
                     time_cost: timeCost ?? 0,
                     model_name: modelName,
                     model_description: modelDescription,
-                    intent: modelPreferences.intent,
+                    intent: modelConfig.intent,
                   }
                 : undefined,
             };
@@ -462,7 +462,7 @@ export async function callAI(
             time_cost: timeCost ?? 0,
             model_name: modelName,
             model_description: modelDescription,
-            intent: modelPreferences.intent,
+            intent: modelConfig.intent,
           }
         : undefined,
       isStreamed: !!isStreaming,
@@ -517,27 +517,23 @@ export const getResponseFormat = (
 };
 
 export async function callAIWithObjectResponse<T>(
-  messages: ChatCompletionMessageParam[],
+  messages: AIArgs,
   AIActionTypeValue: AIActionType,
-  modelPreferences: IModelPreferences,
+  modelConfig: IModelConfig,
 ): Promise<{ content: T; usage?: AIUsageInfo }> {
-  const response = await callAI(messages, AIActionTypeValue, modelPreferences);
+  const response = await callAI(messages, AIActionTypeValue, modelConfig);
   assert(response, 'empty response');
-  const vlMode = vlLocateMode(modelPreferences);
+  const vlMode = modelConfig.vlMode;
   const jsonContent = safeParseJson(response.content, vlMode);
   return { content: jsonContent, usage: response.usage };
 }
 
-export async function callAIWithStringResponse<T>(
+export async function callAIWithStringResponse(
   msgs: AIArgs,
   AIActionTypeValue: AIActionType,
-  modelPreferences: IModelPreferences,
+  modelConfig: IModelConfig,
 ): Promise<{ content: string; usage?: AIUsageInfo }> {
-  const { content, usage } = await callAI(
-    msgs,
-    AIActionTypeValue,
-    modelPreferences,
-  );
+  const { content, usage } = await callAI(msgs, AIActionTypeValue, modelConfig);
   return { content, usage };
 }
 

@@ -17,7 +17,9 @@ describe('prompt utils - describeUserPage', () => {
   const vlMode: TVlModeTypes = 'qwen-vl';
 
   it('describe context ', { timeout: 10000 }, async () => {
-    const context = await getContextFromFixture('taobao');
+    const context = await getContextFromFixture('taobao', {
+      vlMode,
+    });
     const { description } = await describeUserPage(context.context, {
       domIncluded: true,
       visibleOnly: false,
@@ -32,7 +34,9 @@ describe('prompt utils - describeUserPage', () => {
   });
 
   it('describe context, truncateTextLength = 100, filterNonTextContent = true', async () => {
-    const context = await getContextFromFixture('taobao');
+    const context = await getContextFromFixture('taobao', {
+      vlMode,
+    });
 
     const { description } = await describeUserPage(context.context, {
       truncateTextLength: 100,
@@ -50,7 +54,9 @@ describe('prompt utils - describeUserPage', () => {
   });
 
   it('describe context, domIncluded = "visible-only"', async () => {
-    const context = await getContextFromFixture('taobao');
+    const context = await getContextFromFixture('taobao', {
+      vlMode,
+    });
 
     const { description } = await describeUserPage(context.context, {
       filterNonTextContent: true,
@@ -65,7 +71,9 @@ describe('prompt utils - describeUserPage', () => {
   });
 
   it('describe context with non-vl mode', async () => {
-    const context = await getContextFromFixture('taobao');
+    const context = await getContextFromFixture('taobao', {
+      vlMode: undefined,
+    });
     const { description } = await describeUserPage(context.context, {
       domIncluded: false,
       vlMode: undefined,
@@ -76,7 +84,9 @@ describe('prompt utils - describeUserPage', () => {
   });
 
   it('describe context with vl mode', async () => {
-    const context = await getContextFromFixture('taobao');
+    const context = await getContextFromFixture('taobao', {
+      vlMode,
+    });
     const { description } = await describeUserPage(context.context, {
       domIncluded: false,
       vlMode,

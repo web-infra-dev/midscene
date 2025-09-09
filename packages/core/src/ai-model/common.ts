@@ -10,10 +10,7 @@ import type {
 } from '@/types';
 import { assert } from '@midscene/shared/utils';
 
-import type {
-  ChatCompletionSystemMessageParam,
-  ChatCompletionUserMessageParam,
-} from 'openai/resources/index';
+import type { ChatCompletionMessageParam } from 'openai/resources/index';
 
 import type { PlanningLocateParam } from '@/types';
 import { NodeType } from '@midscene/shared/constants';
@@ -23,10 +20,7 @@ import { compositeElementInfoImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { z } from 'zod';
 
-export type AIArgs = [
-  ChatCompletionSystemMessageParam,
-  ...ChatCompletionUserMessageParam[],
-];
+export type AIArgs = ChatCompletionMessageParam[];
 
 export enum AIActionType {
   ASSERT = 0,

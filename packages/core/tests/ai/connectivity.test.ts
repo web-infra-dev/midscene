@@ -3,6 +3,7 @@ import path from 'node:path';
 import { AIActionType } from '@/ai-model/common';
 import { callAI, callAIWithObjectResponse } from '@/ai-model/service-caller';
 import { localImg2Base64 } from '@/image';
+import { globalModelConfigManager } from '@midscene/shared/env';
 import dotenv from 'dotenv';
 import { getFixture } from 'tests/utils';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
@@ -11,6 +12,8 @@ dotenv.config({
   debug: true,
   override: true,
 });
+
+const defaultModelConfig = globalModelConfigManager.getModelConfig('default');
 
 vi.setConfig({
   testTimeout: 20 * 1000,
@@ -44,7 +47,7 @@ vi.setConfig({
     });
 
     it('text only', async () => {
-      const result = await callAi(
+      const result = await callAI(
         [
           {
             role: 'system',
@@ -57,6 +60,7 @@ vi.setConfig({
           },
         ],
         AIActionType.EXTRACT_DATA,
+        defaultModelConfig,
       );
 
       expect(result.content.length).toBeGreaterThan(1);
@@ -75,6 +79,7 @@ vi.setConfig({
           },
         ],
         AIActionType.INSPECT_ELEMENT,
+        defaultModelConfig,
       );
       expect(result.content).toEqual({ answer: 15 });
     });
@@ -103,6 +108,7 @@ vi.setConfig({
           },
         ],
         AIActionType.INSPECT_ELEMENT,
+        defaultModelConfig,
       );
       expect(result.content).toEqual({ answer: 15 });
     });
@@ -129,6 +135,7 @@ vi.setConfig({
           },
         ],
         AIActionType.EXTRACT_DATA,
+        defaultModelConfig,
       );
 
       expect(result.content.length).toBeGreaterThan(10);

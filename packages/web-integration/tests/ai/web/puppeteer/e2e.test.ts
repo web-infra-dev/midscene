@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { PuppeteerAgent } from '@/puppeteer';
 import { sleep } from '@midscene/core/utils';
-import { vlLocateMode } from '@midscene/shared/env';
+import { globalModelConfigManager } from '@midscene/shared/env';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { launchPage } from './utils';
 
@@ -142,48 +142,45 @@ describe(
       expect(names.length).toBeGreaterThan(5);
     });
 
-    it.skipIf(!vlLocateMode({ intent: 'default' }))(
-      'search engine with specific actions',
-      async () => {
-        const { originPage, reset } = await launchPage(
-          'https://www.baidu.com/',
-        );
-        resetFn = reset;
-        const agent = new PuppeteerAgent(originPage);
+    const vlMode = globalModelConfigManager.getModelConfig('default').vlMode;
 
-        await agent.aiInput('AI 101', 'the search bar input');
-        await agent.aiTap('the search button');
+    it.skipIf(!vlMode)('search engine with specific actions', async () => {
+      const { originPage, reset } = await launchPage('https://www.baidu.com/');
+      resetFn = reset;
+      const agent = new PuppeteerAgent(originPage);
 
-        await sleep(3000);
+      await agent.aiInput('AI 101', 'the search bar input');
+      await agent.aiTap('the search button');
 
-        await agent.aiScroll({
-          direction: 'down',
-          scrollType: 'untilBottom',
+      await sleep(3000);
+
+      await agent.aiScroll({
+        direction: 'down',
+        scrollType: 'untilBottom',
+      });
+
+      await sleep(3000);
+
+      const settingsButton = await agent.aiBoolean(
+        'there is a settings button in the page',
+      );
+
+      if (settingsButton) {
+        await agent.aiTap('the settings button', {
+          deepThink: true,
         });
 
-        await sleep(3000);
+        await agent.aiTap('搜索设置', {
+          deepThink: true,
+        });
 
-        const settingsButton = await agent.aiBoolean(
-          'there is a settings button in the page',
-        );
+        await agent.aiTap('the close button of the popup', {
+          deepThink: true,
+        });
 
-        if (settingsButton) {
-          await agent.aiTap('the settings button', {
-            deepThink: true,
-          });
-
-          await agent.aiTap('搜索设置', {
-            deepThink: true,
-          });
-
-          await agent.aiTap('the close button of the popup', {
-            deepThink: true,
-          });
-
-          await agent.aiAssert('there is NOT a popup shown in the page');
-        }
-      },
-    );
+        await agent.aiAssert('there is NOT a popup shown in the page');
+      }
+    });
 
     it(
       'search engine',

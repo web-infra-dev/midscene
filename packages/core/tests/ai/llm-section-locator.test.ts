@@ -1,15 +1,13 @@
 import { AiLocateSection } from '@/ai-model/inspect';
 import { saveBase64Image } from '@/image';
 import { getTmpFile } from '@/utils';
-import { vlLocateMode } from '@midscene/shared/env';
+import { globalModelConfigManager } from '@midscene/shared/env';
 import { getContextFromFixture } from 'tests/evaluation';
 import { expect, test } from 'vitest';
 
-test.skipIf(
-  !vlLocateMode({
-    intent: 'default',
-  }),
-)(
+const modelConfig = globalModelConfigManager.getModelConfig('default');
+
+test.skipIf(!modelConfig.vlMode)(
   'locate section',
   {
     timeout: 60 * 1000,
@@ -19,6 +17,7 @@ test.skipIf(
     const { rect, imageBase64 } = await AiLocateSection({
       context,
       sectionDescription: 'the version info on the top right corner',
+      modelConfig,
     });
     expect(rect).toBeDefined();
     expect(imageBase64).toBeDefined();

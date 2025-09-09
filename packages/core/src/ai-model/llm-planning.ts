@@ -4,11 +4,7 @@ import type {
   PlanningAIResponse,
   UIContext,
 } from '@/types';
-import {
-  type IModelPreferences,
-  globalConfigManager,
-  vlLocateMode,
-} from '@midscene/shared/env';
+import type { IModelConfig } from '@midscene/shared/env';
 import { paddingToMatchBlockByBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
@@ -39,20 +35,13 @@ export async function plan(
     actionSpace: DeviceAction<any>[];
     log?: string;
     actionContext?: string;
+    modelConfig: IModelConfig;
   },
 ): Promise<PlanningAIResponse> {
-  const { context } = opts || {};
+  const { context, modelConfig } = opts;
   const { screenshotBase64, size } = context;
 
-  const modelPreferences: IModelPreferences = {
-    intent: 'planning',
-  };
-
-  const { modelName } = globalConfigManager.getModelConfigByIntent(
-    modelPreferences.intent,
-  );
-
-  const vlMode = vlLocateMode(modelPreferences);
+  const { modelName, vlMode } = modelConfig;
 
   const { description: pageDescription, elementById } = await describeUserPage(
     context,
@@ -108,7 +97,7 @@ export async function plan(
   const { content, usage } = await callAIWithObjectResponse<PlanningAIResponse>(
     msgs,
     AIActionType.PLAN,
-    modelPreferences,
+    modelConfig,
   );
   const rawResponse = JSON.stringify(content, undefined, 2);
   const planFromAI = content;

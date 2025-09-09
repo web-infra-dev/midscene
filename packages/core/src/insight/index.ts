@@ -22,10 +22,9 @@ import type {
   UIContext,
 } from '@/types';
 import {
-  type IModelPreferences,
+  type IModelConfig,
   MIDSCENE_FORCE_DEEP_THINK,
   globalConfigManager,
-  vlLocateMode,
 } from '@midscene/shared/env';
 import { compositeElementInfoImg, cropByRect } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
@@ -86,7 +85,8 @@ export default class Insight<
 
   async locate(
     query: DetailedLocateParam,
-    opt?: LocateOpts,
+    opt: LocateOpts,
+    modelConfig: IModelConfig,
   ): Promise<LocateResult> {
     const queryPrompt = typeof query === 'string' ? query : query.prompt;
     assert(queryPrompt, 'query is required for locate');
@@ -105,10 +105,8 @@ export default class Insight<
     if (query.deepThink || globalDeepThinkSwitch) {
       searchAreaPrompt = query.prompt;
     }
-    const modelPreferences: IModelPreferences = {
-      intent: 'grounding',
-    };
-    const vlMode = vlLocateMode(modelPreferences);
+
+    const { vlMode } = modelConfig;
 
     if (searchAreaPrompt && !vlMode) {
       console.warn(
@@ -129,7 +127,7 @@ export default class Insight<
       searchAreaResponse = await AiLocateSection({
         context,
         sectionDescription: searchAreaPrompt,
-        vlMode,
+        modelConfig,
       });
       assert(
         searchAreaResponse.rect,
@@ -155,7 +153,7 @@ export default class Insight<
       context,
       targetElementDescription: queryPrompt,
       searchConfig: searchAreaResponse,
-      vlMode,
+      modelConfig,
     });
 
     const timeCost = Date.now() - startTime;
@@ -242,6 +240,7 @@ export default class Insight<
 
   async extract<T>(
     dataDemand: InsightExtractParam,
+    modelConfig: IModelConfig,
     opt?: InsightExtractOption,
     multimodalPrompt?: TMultimodalPrompt,
   ): Promise<{
@@ -256,11 +255,6 @@ export default class Insight<
     const dumpSubscriber = this.onceDumpUpdatedFn;
     this.onceDumpUpdatedFn = undefined;
 
-    const modelPreferences: IModelPreferences = {
-      intent: 'VQA',
-    };
-    const vlMode = vlLocateMode(modelPreferences);
-
     const context = await this.contextRetrieverFn('extract');
 
     const startTime = Date.now();
@@ -270,8 +264,7 @@ export default class Insight<
       dataQuery: dataDemand,
       multimodalPrompt,
       extractOption: opt,
-      modelPreferences,
-      vlMode,
+      modelConfig,
     });
 
     const timeCost = Date.now() - startTime;
@@ -321,6 +314,7 @@ export default class Insight<
 
   async describe(
     target: Rect | [number, number],
+    modelConfig: IModelConfig,
     opt?: {
       deepThink?: boolean;
     },
@@ -330,8 +324,7 @@ export default class Insight<
     const { screenshotBase64, size } = context;
     assert(screenshotBase64, 'screenshot is required for insight.describe');
     // The result of the "describe" function will be used for positioning, so essentially it is a form of grounding.
-    const modelPreferences: IModelPreferences = { intent: 'grounding' };
-    const vlMode = vlLocateMode(modelPreferences);
+    const { vlMode } = modelConfig;
     const systemPrompt = elementDescriberInstruction();
 
     // Convert [x,y] center point to Rect if needed
@@ -388,7 +381,7 @@ export default class Insight<
     const res = await callAIFn(
       msgs,
       AIActionType.DESCRIBE_ELEMENT,
-      modelPreferences,
+      modelConfig,
     );
 
     const { content } = res;

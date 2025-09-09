@@ -1,16 +1,11 @@
 import { AIActionType } from '@/ai-model/common';
-import { call } from '@/ai-model/service-caller';
+import { callAI } from '@/ai-model/service-caller';
 import { localImg2Base64 } from '@/image';
 import type { CodeGenerationChunk } from '@/types';
-import type { IModelPreferences } from '@midscene/shared/env';
-import { globalConfigManager } from '@midscene/shared/env';
+import { globalModelConfigManager } from '@midscene/shared/env';
 import dotenv from 'dotenv';
 import { getFixture } from 'tests/utils';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-
-beforeAll(async () => {
-  await globalConfigManager.init();
-});
 
 dotenv.config({
   debug: true,
@@ -21,9 +16,7 @@ vi.setConfig({
   testTimeout: 30 * 1000, // Increased timeout for streaming tests
 });
 
-const defaultModelPreferences: IModelPreferences = {
-  intent: 'default',
-};
+const defaultModelConfig = globalModelConfigManager.getModelConfig('default');
 
 describe(
   'Streaming functionality',
@@ -36,7 +29,7 @@ describe(
       let chunkCount = 0;
       let totalContent = '';
 
-      const result = await call(
+      const result = await callAI(
         [
           {
             role: 'system',
@@ -49,7 +42,7 @@ describe(
           },
         ],
         AIActionType.EXTRACT_DATA,
-        defaultModelPreferences,
+        defaultModelConfig,
         {
           stream: true,
           onChunk: (chunk: CodeGenerationChunk) => {
@@ -103,7 +96,7 @@ describe(
       const chunks: CodeGenerationChunk[] = [];
       const imagePath = getFixture('baidu.png');
 
-      const result = await call(
+      const result = await callAI(
         [
           {
             role: 'user',
@@ -123,7 +116,7 @@ describe(
           },
         ],
         AIActionType.EXTRACT_DATA,
-        defaultModelPreferences,
+        defaultModelConfig,
         {
           stream: true,
           onChunk: (chunk: CodeGenerationChunk) => {
@@ -154,7 +147,7 @@ describe(
       const chunks: CodeGenerationChunk[] = [];
       let hasReasoningContent = false;
 
-      const result = await call(
+      const result = await callAI(
         [
           {
             role: 'system',
@@ -166,7 +159,7 @@ describe(
           },
         ],
         AIActionType.EXTRACT_DATA,
-        defaultModelPreferences,
+        defaultModelConfig,
         {
           stream: true,
           onChunk: (chunk: CodeGenerationChunk) => {
@@ -191,7 +184,7 @@ describe(
     it('should accumulate content correctly across all chunks', async () => {
       const chunks: CodeGenerationChunk[] = [];
 
-      await call(
+      await callAI(
         [
           {
             role: 'user',
@@ -199,7 +192,7 @@ describe(
           },
         ],
         AIActionType.EXTRACT_DATA,
-        defaultModelPreferences,
+        defaultModelConfig,
         {
           stream: true,
           onChunk: (chunk: CodeGenerationChunk) => {
@@ -228,7 +221,7 @@ describe(
     it('should handle empty chunks gracefully', async () => {
       const chunks: CodeGenerationChunk[] = [];
 
-      const result = await call(
+      const result = await callAI(
         [
           {
             role: 'user',
@@ -236,7 +229,7 @@ describe(
           },
         ],
         AIActionType.EXTRACT_DATA,
-        defaultModelPreferences,
+        defaultModelConfig,
         {
           stream: true,
           onChunk: (chunk: CodeGenerationChunk) => {
@@ -263,7 +256,7 @@ describe(
       let firstChunkTime: number | undefined;
       let lastChunkTime: number | undefined;
 
-      const result = await call(
+      const result = await callAI(
         [
           {
             role: 'user',
@@ -271,7 +264,7 @@ describe(
           },
         ],
         AIActionType.EXTRACT_DATA,
-        defaultModelPreferences,
+        defaultModelConfig,
         {
           stream: true,
           onChunk: (chunk: CodeGenerationChunk) => {
@@ -303,7 +296,7 @@ describe(
     });
 
     it('should fallback to non-streaming when onChunk is missing', async () => {
-      const result = await call(
+      const result = await callAI(
         [
           {
             role: 'user',
@@ -311,7 +304,7 @@ describe(
           },
         ],
         AIActionType.EXTRACT_DATA,
-        defaultModelPreferences,
+        defaultModelConfig,
         {
           stream: true,
           // onChunk is intentionally omitted
@@ -334,7 +327,7 @@ describe(
       for (const actionType of actionTypes) {
         const chunks: CodeGenerationChunk[] = [];
 
-        const result = await call(
+        const result = await callAI(
           [
             {
               role: 'user',
@@ -342,7 +335,7 @@ describe(
             },
           ],
           actionType,
-          defaultModelPreferences,
+          defaultModelConfig,
           {
             stream: true,
             onChunk: (chunk: CodeGenerationChunk) => {

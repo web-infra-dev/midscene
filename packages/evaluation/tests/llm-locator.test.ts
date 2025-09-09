@@ -1,7 +1,10 @@
 import { writeFileSync } from 'node:fs';
 import Insight, { type Rect } from '@midscene/core';
 import { sleep } from '@midscene/core/utils';
-import { globalConfigManager, vlLocateMode } from '@midscene/shared/env';
+import {
+  globalConfigManager,
+  globalModelConfigManager,
+} from '@midscene/shared/env';
 import { saveBase64Image } from '@midscene/shared/img';
 
 import dotenv from 'dotenv';
@@ -28,31 +31,26 @@ let resultCollector: TestResultCollector;
 
 let failCaseThreshold = 2;
 if (process.env.CI) {
-  failCaseThreshold = vlLocateMode({
-    intent: 'grounding',
-  })
+  failCaseThreshold = globalModelConfigManager.getModelConfig('grounding')
+    .vlMode
     ? 2
     : 3;
 }
 
 beforeAll(async () => {
-  await globalConfigManager.init();
-  const modelPreferences = {
-    intent: 'grounding',
-  } as const;
+  const modelConfig = globalModelConfigManager.getModelConfig('grounding');
 
-  const positionModeTag = vlLocateMode(modelPreferences)
+  const { vlMode, modelName } = modelConfig;
+
+  const positionModeTag = globalModelConfigManager.getModelConfig('grounding')
+    .vlMode
     ? 'by_coordinates'
     : 'by_element';
-
-  const { modelName } = globalConfigManager.getModelConfigByIntent(
-    modelPreferences.intent,
-  );
 
   resultCollector = new TestResultCollector(positionModeTag, modelName);
 
   if (process.env.MIDSCENE_EVALUATION_EXPECT_VL) {
-    expect(vlLocateMode({ intent: 'grounding' })).toBeTruthy();
+    expect(vlMode).toBeTruthy();
   }
 });
 
@@ -86,13 +84,20 @@ testSources.forEach((source) => {
 
         let result: Awaited<ReturnType<typeof insight.locate>> | Error;
         try {
-          result = await insight.locate({
-            prompt,
-            deepThink:
-              vlLocateMode({ intent: 'grounding' }) === 'doubao-vision'
-                ? undefined
-                : testCase.deepThink,
-          });
+          const modelConfig =
+            globalModelConfigManager.getModelConfig('grounding');
+
+          result = await insight.locate(
+            {
+              prompt,
+              deepThink:
+                modelConfig.vlMode === 'doubao-vision'
+                  ? undefined
+                  : testCase.deepThink,
+            },
+            {},
+            modelConfig,
+          );
         } catch (error) {
           result = error as Error;
         }

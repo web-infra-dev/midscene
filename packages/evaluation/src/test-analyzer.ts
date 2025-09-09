@@ -7,7 +7,7 @@ import type {
   plan,
 } from '@midscene/core';
 import type { AiLocateSection } from '@midscene/core/ai-model';
-import { vlLocateMode } from '@midscene/shared/env';
+import { globalModelConfigManager } from '@midscene/shared/env';
 import type { TestCase } from '../tests/util';
 
 type ActualResult =
@@ -230,7 +230,10 @@ ${errorMsg ? `Error: ${errorMsg}` : ''}
     }
 
     // compare coordinates
-    if (testCase.response_rect && vlLocateMode({ intent: 'grounding' })) {
+    if (
+      testCase.response_rect &&
+      globalModelConfigManager.getModelConfig('grounding').vlMode
+    ) {
       const resultRect = (result as LocateResult).rect;
       if (!resultRect) {
         throw new Error(

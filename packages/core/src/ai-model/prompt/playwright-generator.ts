@@ -3,9 +3,9 @@ import type {
   StreamingCodeGenerationOptions,
 } from '@/types';
 import { PLAYWRIGHT_EXAMPLE_CODE } from '@midscene/shared/constants';
+import type { IModelConfig } from '@midscene/shared/env';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
-import { AIActionType, callAI } from '../index';
-
+import { AIActionType, callAI, callAIWithStringResponse } from '../index';
 // Import shared utilities and types from yaml-generator
 import {
   type ChromeRecordedEvent,
@@ -61,7 +61,8 @@ export {
  */
 export const generatePlaywrightTest = async (
   events: ChromeRecordedEvent[],
-  options: PlaywrightGenerationOptions = {},
+  options: PlaywrightGenerationOptions,
+  modelConfig: IModelConfig,
 ): Promise<string> => {
   // Validate input
   validateEvents(events);
@@ -125,9 +126,11 @@ ${PLAYWRIGHT_EXAMPLE_CODE}`;
     },
   ];
 
-  const response = await callAI(prompt, AIActionType.EXTRACT_DATA, {
-    intent: 'default',
-  });
+  const response = await callAIWithStringResponse(
+    prompt,
+    AIActionType.EXTRACT_DATA,
+    modelConfig,
+  );
 
   if (response?.content && typeof response.content === 'string') {
     return response.content;
@@ -141,7 +144,8 @@ ${PLAYWRIGHT_EXAMPLE_CODE}`;
  */
 export const generatePlaywrightTestStream = async (
   events: ChromeRecordedEvent[],
-  options: PlaywrightGenerationOptions & StreamingCodeGenerationOptions = {},
+  options: PlaywrightGenerationOptions & StreamingCodeGenerationOptions,
+  modelConfig: IModelConfig,
 ): Promise<StreamingAIResponse> => {
   // Validate input
   validateEvents(events);
@@ -208,22 +212,17 @@ ${PLAYWRIGHT_EXAMPLE_CODE}`;
 
   if (options.stream && options.onChunk) {
     // Use streaming
-    return await callAI(
-      prompt,
-      AIActionType.EXTRACT_DATA,
-      {
-        intent: 'default',
-      },
-      {
-        stream: true,
-        onChunk: options.onChunk,
-      },
-    );
+    return await callAI(prompt, AIActionType.EXTRACT_DATA, modelConfig, {
+      stream: true,
+      onChunk: options.onChunk,
+    });
   } else {
     // Fallback to non-streaming
-    const response = await callAI(prompt, AIActionType.EXTRACT_DATA, {
-      intent: 'default',
-    });
+    const response = await callAIWithStringResponse(
+      prompt,
+      AIActionType.EXTRACT_DATA,
+      modelConfig,
+    );
 
     if (response?.content && typeof response.content === 'string') {
       return {

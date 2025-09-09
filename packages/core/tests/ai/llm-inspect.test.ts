@@ -3,7 +3,10 @@ import {
   AiLocateSection,
   callAIWithObjectResponse,
 } from '@/ai-model';
-import { globalConfigManager, vlLocateMode } from '@midscene/shared/env';
+import {
+  globalConfigManager,
+  globalModelConfigManager,
+} from '@midscene/shared/env';
 import { getContextFromFixture } from 'tests/evaluation';
 import { beforeAll, expect, test, vi } from 'vitest';
 
@@ -11,9 +14,7 @@ vi.setConfig({
   testTimeout: 60 * 1000,
 });
 
-beforeAll(async () => {
-  await globalConfigManager.init();
-});
+const defaultModelConfig = globalModelConfigManager.getModelConfig('default');
 
 test(
   'basic inspect',
@@ -28,7 +29,7 @@ test(
       context,
       targetElementDescription: 'input 输入框',
       callAIFn: callAIWithObjectResponse,
-      vlMode: vlLocateMode({ intent: 'default' }),
+      modelConfig: defaultModelConfig,
     });
     expect(parseResult.elements.length).toBe(1);
   },
@@ -39,7 +40,7 @@ test('locate section', async () => {
   const { rect } = await AiLocateSection({
     context,
     sectionDescription: '搜索框',
-    vlMode: vlLocateMode({ intent: 'default' }),
+    modelConfig: defaultModelConfig,
   });
   expect(rect).toBeDefined();
 });

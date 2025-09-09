@@ -5,6 +5,7 @@ import {
   callAIWithStringResponse,
 } from '@midscene/core/ai-model';
 import type { ChromeRecordedEvent } from '@midscene/recorder';
+import type { IModelConfig } from '@midscene/shared/env';
 import { message } from 'antd';
 import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
@@ -220,6 +221,7 @@ const getScreenshotsForLLM = (
 // Generate a title and description for recording using AI based on events
 export const generateRecordTitle = async (
   events: ChromeRecordedEvent[],
+  modelConfig: IModelConfig,
 ): Promise<{
   title?: string;
   description?: string;
@@ -319,9 +321,7 @@ export const generateRecordTitle = async (
       const response = await callAIWithObjectResponse(
         [prompt[0], prompt[1]],
         AIActionType.EXTRACT_DATA,
-        {
-          intent: 'default',
-        },
+        modelConfig,
       );
       if (response?.content) {
         return {
@@ -479,6 +479,7 @@ export const diagnoseRecordingChain = async (
 // Generate AI-powered mindmap based on session events
 const generateAIMindmap = async (
   sessions: RecordingSession[],
+  modelConfig: IModelConfig,
 ): Promise<string> => {
   try {
     // Prepare detailed sequential event data for AI
@@ -627,9 +628,7 @@ const generateAIMindmap = async (
     const response = await callAIWithStringResponse(
       prompt,
       AIActionType.EXTRACT_DATA,
-      {
-        intent: 'default',
-      },
+      modelConfig,
     );
 
     if (response?.content && typeof response.content === 'string') {

@@ -10,8 +10,8 @@ import {
   MIDSCENE_USE_AZURE_OPENAI,
 } from '../../../src/env';
 import { DEFAULT_MODEL_CONFIG_KEYS } from '../../../src/env/constants';
+import { decideOpenaiSdkConfig } from '../../../src/env/decide-model-config';
 import { createAssert } from '../../../src/env/helper';
-import { decideOpenaiSdkConfig } from '../../../src/env/model-config';
 
 describe('decideOpenaiSdkConfig', () => {
   it('openaiUseAzureDeprecated - fail', () => {

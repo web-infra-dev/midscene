@@ -11,7 +11,7 @@ import type {
   ReferenceImage,
   UIContext,
 } from '@/types';
-import type { IModelPreferences, TVlModeTypes } from '@midscene/shared/env';
+import type { IModelConfig } from '@midscene/shared/env';
 import {
   cropByRect,
   paddingToMatchBlockByBase64,
@@ -125,7 +125,7 @@ export async function AiLocateElement<
     AIElementResponse | [number, number]
   >;
   searchConfig?: Awaited<ReturnType<typeof AiLocateSection>>;
-  vlMode: TVlModeTypes | undefined;
+  modelConfig: IModelConfig;
 }): Promise<{
   parseResult: AIElementLocatorResponse;
   rect?: Rect;
@@ -134,7 +134,8 @@ export async function AiLocateElement<
   usage?: AIUsageInfo;
   isOrderSensitive?: boolean;
 }> {
-  const { context, targetElementDescription, callAIFn, vlMode } = options;
+  const { context, targetElementDescription, callAIFn, modelConfig } = options;
+  const { vlMode } = modelConfig;
   const { screenshotBase64 } = context;
 
   const { description, elementById, insertElementByPosition } =
@@ -201,9 +202,7 @@ export async function AiLocateElement<
     msgs.push(...addOns);
   }
 
-  const res = await callAIFn(msgs, AIActionType.INSPECT_ELEMENT, {
-    intent: 'grounding',
-  });
+  const res = await callAIFn(msgs, AIActionType.INSPECT_ELEMENT, modelConfig);
 
   const rawResponse = JSON.stringify(res.content);
 
@@ -276,7 +275,7 @@ export async function AiLocateElement<
 export async function AiLocateSection(options: {
   context: UIContext<BaseElement>;
   sectionDescription: TUserPrompt;
-  vlMode: TVlModeTypes | undefined;
+  modelConfig: IModelConfig;
 }): Promise<{
   rect?: Rect;
   imageBase64?: string;
@@ -284,7 +283,8 @@ export async function AiLocateSection(options: {
   rawResponse: string;
   usage?: AIUsageInfo;
 }> {
-  const { context, sectionDescription, vlMode } = options;
+  const { context, sectionDescription, modelConfig } = options;
+  const { vlMode } = modelConfig;
   const { screenshotBase64 } = context;
 
   const systemPrompt = systemPromptToLocateSection(vlMode);
@@ -322,9 +322,7 @@ export async function AiLocateSection(options: {
   const result = await callAIWithObjectResponse<AISectionLocatorResponse>(
     msgs,
     AIActionType.EXTRACT_DATA,
-    {
-      intent: 'grounding',
-    },
+    modelConfig,
   );
 
   let sectionRect: Rect | undefined;
@@ -392,17 +390,11 @@ export async function AiExtractElementInfo<
   multimodalPrompt?: TMultimodalPrompt;
   context: UIContext<ElementType>;
   extractOption?: InsightExtractOption;
-  modelPreferences: IModelPreferences;
-  vlMode: TVlModeTypes | undefined;
+  modelConfig: IModelConfig;
 }) {
-  const {
-    dataQuery,
-    context,
-    extractOption,
-    multimodalPrompt,
-    modelPreferences,
-    vlMode,
-  } = options;
+  const { dataQuery, context, extractOption, multimodalPrompt, modelConfig } =
+    options;
+  const { vlMode } = modelConfig;
   const systemPrompt = systemPromptToExtract();
 
   const { screenshotBase64 } = context;
@@ -463,7 +455,7 @@ export async function AiExtractElementInfo<
   const result = await callAIWithObjectResponse<AIDataExtractionResponse<T>>(
     msgs,
     AIActionType.EXTRACT_DATA,
-    modelPreferences,
+    modelConfig,
   );
   return {
     parseResult: result.content,

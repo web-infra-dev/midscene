@@ -4,10 +4,7 @@ import type {
   PlanningAction,
   Size,
 } from '@/types';
-import {
-  type IModelPreferences,
-  UITarsModelVersion,
-} from '@midscene/shared/env';
+import { type IModelConfig, UITarsModelVersion } from '@midscene/shared/env';
 import { resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { transformHotkeyInput } from '@midscene/shared/us-keyboard-layout';
@@ -16,7 +13,7 @@ import { actionParser } from '@ui-tars/action-parser';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { AIActionType } from './common';
 import { getSummary, getUiTarsPlanningPrompt } from './prompt/ui-tars-planning';
-import { callAI } from './service-caller/index';
+import { callAIWithStringResponse } from './service-caller/index';
 type ActionType =
   | 'click'
   | 'drag'
@@ -45,8 +42,7 @@ export async function vlmPlanning(options: {
   userInstruction: string;
   conversationHistory: ChatCompletionMessageParam[];
   size: { width: number; height: number };
-  modelPreferences: IModelPreferences;
-  uiTarsModelVersion: UITarsModelVersion | undefined;
+  modelConfig: IModelConfig;
 }): Promise<{
   actions: PlanningAction<any>[];
   actionsFromModel: ReturnType<typeof actionParser>['parsed'];
@@ -55,16 +51,11 @@ export async function vlmPlanning(options: {
   usage?: AIUsageInfo;
   rawResponse?: string;
 }> {
-  const {
-    conversationHistory,
-    userInstruction,
-    size,
-    modelPreferences,
-    uiTarsModelVersion,
-  } = options;
+  const { conversationHistory, userInstruction, size, modelConfig } = options;
+  const { uiTarsModelVersion } = modelConfig;
   const systemPrompt = getUiTarsPlanningPrompt() + userInstruction;
 
-  const res = await callAI(
+  const res = await callAIWithStringResponse(
     [
       {
         role: 'user',
@@ -73,7 +64,7 @@ export async function vlmPlanning(options: {
       ...conversationHistory,
     ],
     AIActionType.INSPECT_ELEMENT,
-    modelPreferences,
+    modelConfig,
   );
   const convertedText = convertBboxToCoordinates(res.content);
 
