@@ -683,7 +683,9 @@ console.log(result);
 
 ### `agent.setAIActionContext()`
 
-设置在调用 `agent.aiAction()` 时，发送给 AI 模型的背景知识。
+设置在调用 `agent.aiAction()` 或 `agent.ai()` 时，发送给 AI 模型的背景知识。这个设置会覆盖之前的设置。
+
+对于即时操作类型的 API，比如 `aiTap()`，这个设置不会生效。
 
 - 类型
 

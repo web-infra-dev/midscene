@@ -691,7 +691,9 @@ For more information about YAML scripts, please refer to [Automate with Scripts 
 
 ### `agent.setAIActionContext()`
 
-Set the background knowledge that should be sent to the AI model when calling `agent.aiAction()`.
+Set the background knowledge that should be sent to the AI model when calling `agent.aiAction()` or `agent.ai()`. This will override the previous setting.
+
+For instant action type APIs, like `aiTap()`, this setting will not take effect.
 
 - Type
 
