@@ -1,21 +1,21 @@
-# 与任意接口集成（预览版）
+# 与任意界面集成（预览特性）
 
-从 Midscene v0.28.0 开始，我们推出了与任意接口集成的功能。只需定义一个继承 `AbstractInterface` 类的类，就可以获得一个功能齐全的 Midscene AI 智能体，包括交互方法、数据提取方法、报告、GUI 操场、CLI、yaml 脚本运行器、MCP 服务器等。
+从 Midscene v0.28.0 开始，我们推出了与任意界面集成的功能。只需定义一个继承 `AbstractInterface` 类的类，就可以获得一个功能齐全的 Midscene AI 智能体，包括交互方法、数据提取方法、报告、GUI 操场、CLI、yaml 脚本运行器、MCP 服务器等。
 
-:::warning 这是一个预览功能
-此功能仍在预览阶段。我们已经完成了以下工作：
+:::warning
+此功能仍在预览阶段。目前我们已经完成了以下工作：
 - [x] 允许用户定义继承 `AbstractInterface` 类的类
-- [x] 允许用户使用 yaml 脚本驱动接口
+- [x] 允许用户使用 yaml 脚本驱动界面
 
-下一步的工作是：
-- 允许用户使用操场
+尚未完成的工作是：
+- 允许用户使用 Playground
 - 允许用户使用 MCP 服务器
 :::
 
 
 ## 演示和社区项目
 
-我们已经为你准备了一个演示项目，帮助你学习如何定义自己的接口类。强烈建议你查看一下。
+我们已经为你准备了一个演示项目，帮助你学习如何定义自己的界面类。强烈建议你查看一下。
 
 * [演示项目](https://github.com/web-infra-dev/midscene-example/tree/main/custom-interface)
 
@@ -24,9 +24,9 @@
 * [midscene-ios](https://github.com/lhuanyu/midscene-ios) - 为 Midscene 提供 iOS 镜像自动化支持
 
 
-## 实现你自己的接口类
+## 实现你自己的界面类
 
-### 步骤 1. 从演示项目克隆并设置
+### 步骤 1. 从 demo 项目开始
 
 这是最快的入门方式。
 
@@ -37,16 +37,16 @@ npm install
 npm run build
 ```
 
-### 步骤 2. 实现你的接口类
+### 步骤 2. 实现你的界面类
 
 定义一个继承 `AbstractInterface` 类的类，并实现所需的方法。
 
 你可以从 `./src/device/sample-device.ts` 文件中获取示例实现。
 
 需要实现的关键方法有：
-- `screenshotBase64()`：截取接口的屏幕截图并返回 base64 字符串
-- `size()`：获取接口的大小和 dpr
-- `actionSpace()`：定义接口的动作空间，它是一个 `DeviceAction` 对象数组。AI 模型将使用这些动作来执行操作。
+- `screenshotBase64()`：截取界面的屏幕截图并返回 base64 字符串
+- `size()`：获取界面的大小和 dpr
+- `actionSpace()`：定义界面的动作空间，它是一个 `DeviceAction` 对象数组。AI 模型将使用这些动作来执行操作。
 
 使用这些命令运行智能体：
 
@@ -54,11 +54,11 @@ npm run build
 - `npm run demo:yaml` 使用 yaml 脚本运行智能体
 
 
-### 步骤 3. 使用操场测试智能体
+### 步骤 3. 使用 Playground 测试 Agent
 
 （即将推出...）
 
-### 步骤 4. 测试 MCP 服务器
+### 步骤 4. 测试 MCP 服务
 
 （正在进行中...）
 
@@ -90,27 +90,27 @@ await agent.aiAction('click the button');
 import { AbstractInterface } from '@midscene/core';
 ```
 
-`AbstractInterface` 是智能体控制接口的关键类。
+`AbstractInterface` 是智能体控制界面的关键类。
 
 以下是你需要实现的必需方法：
 
-- `interfaceType: string`：为接口定义一个名称
-- `screenshotBase64()`：截取接口的屏幕截图并返回带有 `'data:image/` 前缀的 base64 字符串
-- `size()`：接口的大小和 dpr，它是一个具有 `width`、`height` 和 `dpr` 属性的对象
-- `actionSpace()`：接口的动作空间，它是一个 `DeviceAction` 对象数组
+- `interfaceType: string`：为界面定义一个名称
+- `screenshotBase64()`：截取界面的屏幕截图并返回带有 `'data:image/` 前缀的 base64 字符串
+- `size()`：界面的大小和 dpr，它是一个具有 `width`、`height` 和 `dpr` 属性的对象
+- `actionSpace()`：界面的动作空间，它是一个 `DeviceAction` 对象数组
 
 以下是你可以实现的可选方法：
 
-- `destroy?()`：销毁接口
-- `describe?()`：描述接口，这可能用于报告和操场
+- `destroy?()`：销毁
+- `describe?()`：描述界面，这可能用于报告和 Playground
 - `beforeInvokeAction?()`：在动作空间中调用动作之前的钩子函数
 - `afterInvokeAction?()`：调用动作之后的钩子函数
 
-### 动作空间
+### 动作空间（Action Space）
 
-动作空间是描述可以在接口上执行的动作的动作集合。
+动作空间是描述可以在界面上执行的动作的动作集合。
 
-为了帮助你轻松定义动作空间，Midscene 为最常见的接口和设备提供了一组预定义的动作空间。还有一种方法可以定义任何自定义动作。
+为了帮助你轻松定义动作空间，Midscene 为最常见的界面和设备提供了一组预定义的动作空间。还有一种方法可以定义任何自定义动作。
 
 以下是如何导入工具来定义动作空间：
 
@@ -124,7 +124,7 @@ import {
 
 #### 预定义的动作空间
 
-这些是最常见接口和设备的预定义动作空间。你可以通过实现动作的调用方法将它们暴露给定制化接口。
+这些是最常见界面和设备的预定义动作空间。你可以通过实现动作的调用方法将它们暴露给定制化界面。
 
 你可以在这些函数的类型定义中找到动作的参数。
 
@@ -137,7 +137,7 @@ import {
 * `defineActionLongPress()`：定义长按动作
 * `defineActionSwipe()`：定义滑动动作
 
-#### 自定义动作空间
+#### 自定义动作空间（Action Space）
 
 你可以使用 `defineAction()` 函数定义自己的动作。
 
