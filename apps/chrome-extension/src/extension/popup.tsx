@@ -14,7 +14,7 @@ import {
 } from '@midscene/visualizer';
 import { ConfigProvider, Dropdown, Typography } from 'antd';
 import { useEffect, useState } from 'react';
-import { BrowserExtensionUniversalPlayground } from '../components/playground-universal';
+import { BrowserExtensionPlayground } from '../components/playground';
 import Bridge from './bridge';
 import Recorder from './recorder';
 import './popup.less';
@@ -118,7 +118,7 @@ export function PlaygroundPopup() {
         {/* Playground Component */}
         <div className="playground-component">
           {configReady && aiConfigReady ? (
-            <BrowserExtensionUniversalPlayground
+            <BrowserExtensionPlayground
               getAgent={(forceSameTabNavigation?: boolean) => {
                 console.log(
                   'getAgent called with forceSameTabNavigation:',

@@ -1,15 +1,15 @@
 'use client';
 import 'pixi.js/unsafe-eval';
+import type { BaseElement, Rect, UIContext } from '@midscene/core';
 import { Checkbox } from 'antd';
 import type { CheckboxProps } from 'antd';
 import * as PIXI from 'pixi.js';
 import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
-import type { BaseElement, Rect, UIContext } from '../../../core';
-import { colorForName, highlightColorForType } from './color';
-import './blackboard.less';
+import { colorForName, highlightColorForType } from '../color';
+import './index.less';
 import { treeToList } from '@midscene/shared/extractor';
 import { DropShadowFilter } from 'pixi-filters';
-import { useBlackboardPreference } from './store/store';
+import { useBlackboardPreference } from '../store/store';
 
 const itemFillAlpha = 0.4;
 const highlightAlpha = 0.4;

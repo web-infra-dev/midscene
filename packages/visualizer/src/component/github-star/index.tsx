@@ -1,4 +1,4 @@
-import './github-star.less';
+import './index.less';
 
 export const GithubStar = () => {
   return (
