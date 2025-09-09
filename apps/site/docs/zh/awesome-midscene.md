@@ -5,7 +5,7 @@
 ## 社区项目
 
 ### iOS 自动化
-- **[midscene-ios](https://github.com/lhuanyu/midscene-ios)** - iOS 设备自动化工具
+- **[midscene-ios](https://github.com/lhuanyu/midscene-ios)** - iOS Mirror 应用的自动化支持工具
   - 支持 iOS 应用程序的自动化测试和交互
   - 将 Midscene 的跨平台能力扩展到苹果移动生态系统
 
