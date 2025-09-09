@@ -515,24 +515,44 @@ export class TaskExecutor {
               );
             });
 
-            await Promise.all([
-              (async () => {
-                if (this.interface.beforeInvokeAction) {
-                  debug('will call "beforeInvokeAction" for interface');
-                  await this.interface.beforeInvokeAction(action.name, param);
-                  debug('called "beforeInvokeAction" for interface');
-                }
-              })(),
-              sleep(200),
-            ]);
+            try {
+              await Promise.all([
+                (async () => {
+                  if (this.interface.beforeInvokeAction) {
+                    debug('will call "beforeInvokeAction" for interface');
+                    await this.interface.beforeInvokeAction(action.name, param);
+                    debug('called "beforeInvokeAction" for interface');
+                  }
+                })(),
+                sleep(200),
+              ]);
+            } catch (originalError: any) {
+              const originalMessage =
+                originalError?.message || String(originalError);
+              throw new Error(
+                `error in running beforeInvokeAction for ${action.name}: ${originalMessage}`,
+                { cause: originalError },
+              );
+            }
 
+            debug('calling action', action.name);
             const actionFn = action.call.bind(this.interface);
             await actionFn(param, context);
+            debug('called action', action.name);
 
-            if (this.interface.afterInvokeAction) {
-              debug('will call "afterInvokeAction" for interface');
-              await this.interface.afterInvokeAction(action.name, param);
-              debug('called "afterInvokeAction" for interface');
+            try {
+              if (this.interface.afterInvokeAction) {
+                debug('will call "afterInvokeAction" for interface');
+                await this.interface.afterInvokeAction(action.name, param);
+                debug('called "afterInvokeAction" for interface');
+              }
+            } catch (originalError: any) {
+              const originalMessage =
+                originalError?.message || String(originalError);
+              throw new Error(
+                `error in running afterInvokeAction for ${action.name}: ${originalMessage}`,
+                { cause: originalError },
+              );
             }
             // Return a proper result for report generation
             return {
