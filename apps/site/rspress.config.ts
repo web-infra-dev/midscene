@@ -287,7 +287,7 @@ export default defineConfig({
           items: [
             {
               text: '与任何界面集成（预览特性 ）',
-              link: '/integrate-with-any-interface',
+              link: '/zh/integrate-with-any-interface',
             },
             {
               text: 'Awesome Midscene',

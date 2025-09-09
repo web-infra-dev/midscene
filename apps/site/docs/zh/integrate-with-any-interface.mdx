@@ -1,0 +1,200 @@
+# 与任意接口集成（预览版）
+
+从 Midscene v0.28.0 开始，我们推出了与任意接口集成的功能。只需定义一个继承 `AbstractInterface` 类的类，就可以获得一个功能齐全的 Midscene AI 智能体，包括交互方法、数据提取方法、报告、GUI 操场、CLI、yaml 脚本运行器、MCP 服务器等。
+
+:::warning 这是一个预览功能
+此功能仍在预览阶段。我们已经完成了以下工作：
+- [x] 允许用户定义继承 `AbstractInterface` 类的类
+- [x] 允许用户使用 yaml 脚本驱动接口
+
+下一步的工作是：
+- 允许用户使用操场
+- 允许用户使用 MCP 服务器
+:::
+
+
+## 演示和社区项目
+
+我们已经为你准备了一个演示项目，帮助你学习如何定义自己的接口类。强烈建议你查看一下。
+
+* [演示项目](https://github.com/web-infra-dev/midscene-example/tree/main/custom-interface)
+
+还有一些使用此功能的社区项目：
+
+* [midscene-ios](https://github.com/lhuanyu/midscene-ios) - 为 Midscene 提供 iOS 镜像自动化支持
+
+
+## 实现你自己的接口类
+
+### 步骤 1. 从演示项目克隆并设置
+
+这是最快的入门方式。
+
+```bash
+git clone https://github.com/web-infra-dev/midscene-example.git
+cd midscene-example/custom-interface
+npm install
+npm run build
+```
+
+### 步骤 2. 实现你的接口类
+
+定义一个继承 `AbstractInterface` 类的类，并实现所需的方法。
+
+你可以从 `./src/device/sample-device.ts` 文件中获取示例实现。
+
+需要实现的关键方法有：
+- `screenshotBase64()`：截取接口的屏幕截图并返回 base64 字符串
+- `size()`：获取接口的大小和 dpr
+- `actionSpace()`：定义接口的动作空间，它是一个 `DeviceAction` 对象数组。AI 模型将使用这些动作来执行操作。
+
+使用这些命令运行智能体：
+
+- `npm run demo` 使用 JavaScript 运行智能体
+- `npm run demo:yaml` 使用 yaml 脚本运行智能体
+
+
+### 步骤 3. 使用操场测试智能体
+
+（即将推出...）
+
+### 步骤 4. 测试 MCP 服务器
+
+（正在进行中...）
+
+### 步骤 5. 发布 npm 包，让你的用户使用它
+
+在 `package.json` 文件中填写 `name` 和 `version`，然后运行以下命令：
+
+```bash
+npm publish
+```
+
+你的 npm 包的典型用法如下：
+
+```typescript
+import { midsceneAgentForSampleDevice } from '...';
+
+const agent = midsceneAgentForSampleDevice({
+  foo: 'bar',
+});
+
+await agent.aiAction('click the button');
+```
+
+## API 参考
+
+### `AbstractInterface` 类
+
+```typescript
+import { AbstractInterface } from '@midscene/core';
+```
+
+`AbstractInterface` 是智能体控制接口的关键类。
+
+以下是你需要实现的必需方法：
+
+- `interfaceType: string`：为接口定义一个名称
+- `screenshotBase64()`：截取接口的屏幕截图并返回带有 `'data:image/` 前缀的 base64 字符串
+- `size()`：接口的大小和 dpr，它是一个具有 `width`、`height` 和 `dpr` 属性的对象
+- `actionSpace()`：接口的动作空间，它是一个 `DeviceAction` 对象数组
+
+以下是你可以实现的可选方法：
+
+- `destroy?()`：销毁接口
+- `describe?()`：描述接口，这可能用于报告和操场
+- `beforeInvokeAction?()`：在动作空间中调用动作之前的钩子函数
+- `afterInvokeAction?()`：调用动作之后的钩子函数
+
+### 动作空间
+
+动作空间是描述可以在接口上执行的动作的动作集合。
+
+为了帮助你轻松定义动作空间，Midscene 为最常见的接口和设备提供了一组预定义的动作空间。还有一种方法可以定义任何自定义动作。
+
+以下是如何导入工具来定义动作空间：
+
+```typescript
+import {
+	type ActionTapParam,
+	defineAction,
+	defineActionTap,
+} from "@midscene/core/device";
+```
+
+#### 预定义的动作空间
+
+这些是最常见接口和设备的预定义动作空间。你可以通过实现动作的调用方法将它们暴露给定制化接口。
+
+你可以在这些函数的类型定义中找到动作的参数。
+
+* `defineActionTap()`：定义点击动作。这也是调用 `aiTap` 方法的函数。
+* `defineActionDoubleClick()`：定义双击动作
+* `defineActionInput()`：定义输入动作。这也是调用 `aiInput` 方法的函数。
+* `defineActionKeyboardPress()`：定义键盘按下动作。这也是调用 `aiKeyboardPress` 方法的函数。
+* `defineActionScroll()`：定义滚动动作。这也是调用 `aiScroll` 方法的函数。
+* `defineActionDragAndDrop()`：定义拖放动作
+* `defineActionLongPress()`：定义长按动作
+* `defineActionSwipe()`：定义滑动动作
+
+#### 自定义动作空间
+
+你可以使用 `defineAction()` 函数定义自己的动作。
+
+API 签名：
+
+```typescript
+import { defineAction } from "@midscene/core/device";
+
+defineAction(
+  {
+    name: string,
+    description: string,
+    paramSchema: z.ZodType<T>;
+    call: (param: z.infer<z.ZodType<T>>) => Promise<void>;
+  }
+)
+```
+
+* `name`：动作的名称，AI 模型将使用此名称调用动作
+* `description`：动作的描述，AI 模型将使用此描述来理解动作的作用
+* `paramSchema`：动作参数的 [Zod](https://www.npmjs.com/package/zod) 模式，AI 模型将根据此模式帮助填充参数
+* `call`：调用动作的函数，你可以从符合 `paramSchema` 的 `param` 参数中获取参数
+
+
+示例：
+
+```typescript
+defineAction({
+  name: 'MyAction',
+  description: 'My action',
+  paramSchema: z.object({
+    name: z.string(),
+  }),
+  call: async (param) => {
+    console.log(param.name);
+  },
+});
+```
+
+如果你想要获取关于元素位置的参数，可以使用 `getMidsceneLocationSchema()` 函数获取特定的 zod 模式。
+
+一个更复杂的示例：
+
+```typescript
+import { getMidsceneLocationSchema } from "@midscene/core/device";
+
+defineAction({
+  name: 'LaunchApp',
+  description: 'A an app on screen',
+  paramSchema: z.object({
+    name: z.string().describe('The name of the app to launch'),
+    locate: getMidsceneLocationSchema().describe('The app icon to be launched'),
+  }),
+  call: async (param) => {
+    console.log(`launching app: ${param.name}, located at: ${JSON.stringify(param.locate.center)}`);
+  },
+});
+```
+
+
