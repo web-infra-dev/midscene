@@ -94,6 +94,25 @@ class PlaygroundServer {
   private initializeApp(): void {
     if (this._initialized) return;
 
+    // Built-in middleware to parse JSON bodies
+    this._app.use(express.json({ limit: '50mb' }));
+
+    // Context update middleware (after JSON parsing)
+    this._app.use(
+      (req: Request, _res: Response, next: express.NextFunction) => {
+        const { context } = req.body || {};
+        if (
+          context &&
+          'updateContext' in this.page &&
+          typeof this.page.updateContext === 'function'
+        ) {
+          this.page.updateContext(context);
+          console.log('Context updated by PlaygroundServer middleware');
+        }
+        next();
+      },
+    );
+
     // NOTE: CORS middleware should be added externally via server.app.use()
     // before calling server.launch() if needed
 
@@ -156,83 +175,73 @@ class PlaygroundServer {
       },
     );
 
-    this._app.post(
-      '/action-space',
-      express.json({ limit: '30mb' }),
-      async (req: Request, res: Response) => {
-        try {
-          let actionSpace = [];
+    this._app.post('/action-space', async (req: Request, res: Response) => {
+      try {
+        let actionSpace = [];
 
-          actionSpace = await this.page.actionSpace();
+        actionSpace = await this.page.actionSpace();
 
-          // Process actionSpace to make paramSchema serializable
-          const processedActionSpace = actionSpace.map((action: unknown) => {
+        // Process actionSpace to make paramSchema serializable
+        const processedActionSpace = actionSpace.map((action: unknown) => {
+          if (action && typeof action === 'object' && 'paramSchema' in action) {
+            const typedAction = action as {
+              paramSchema?: { shape?: object; [key: string]: unknown };
+              [key: string]: unknown;
+            };
             if (
-              action &&
-              typeof action === 'object' &&
-              'paramSchema' in action
+              typedAction.paramSchema &&
+              typeof typedAction.paramSchema === 'object'
             ) {
-              const typedAction = action as {
-                paramSchema?: { shape?: object; [key: string]: unknown };
-                [key: string]: unknown;
-              };
-              if (
-                typedAction.paramSchema &&
-                typeof typedAction.paramSchema === 'object'
-              ) {
-                // Extract shape information from Zod schema
-                let processedSchema = null;
+              // Extract shape information from Zod schema
+              let processedSchema = null;
 
-                try {
-                  // Extract shape from runtime Zod object
-                  if (
-                    typedAction.paramSchema.shape &&
-                    typeof typedAction.paramSchema.shape === 'object'
-                  ) {
-                    processedSchema = {
-                      type: 'ZodObject',
-                      shape: typedAction.paramSchema.shape,
-                    };
-                  }
-                } catch (e) {
-                  const actionName =
-                    'name' in typedAction &&
-                    typeof typedAction.name === 'string'
-                      ? typedAction.name
-                      : 'unknown';
-                  console.warn(
-                    'Failed to process paramSchema for action:',
-                    actionName,
-                    e,
-                  );
+              try {
+                // Extract shape from runtime Zod object
+                if (
+                  typedAction.paramSchema.shape &&
+                  typeof typedAction.paramSchema.shape === 'object'
+                ) {
+                  processedSchema = {
+                    type: 'ZodObject',
+                    shape: typedAction.paramSchema.shape,
+                  };
                 }
-
-                return {
-                  ...typedAction,
-                  paramSchema: processedSchema,
-                };
+              } catch (e) {
+                const actionName =
+                  'name' in typedAction && typeof typedAction.name === 'string'
+                    ? typedAction.name
+                    : 'unknown';
+                console.warn(
+                  'Failed to process paramSchema for action:',
+                  actionName,
+                  e,
+                );
               }
-            }
-            return action;
-          });
 
-          res.json(processedActionSpace);
-        } catch (error: unknown) {
-          const errorMessage =
-            error instanceof Error ? error.message : 'Unknown error';
-          console.error('Failed to get action space:', error);
-          res.status(500).json({
-            error: errorMessage,
-          });
-        }
-      },
-    );
+              return {
+                ...typedAction,
+                paramSchema: processedSchema,
+              };
+            }
+          }
+          return action;
+        });
+
+        res.json(processedActionSpace);
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        console.error('Failed to get action space:', error);
+        res.status(500).json({
+          error: errorMessage,
+        });
+      }
+    });
 
     // -------------------------
     // actions from report file
     this._app.post(
       '/playground-with-context',
-      express.json({ limit: '50mb' }),
       async (req: Request, res: Response) => {
         const context = req.body.context;
 
@@ -251,108 +260,104 @@ class PlaygroundServer {
       },
     );
 
-    this._app.post(
-      '/execute',
-      express.json({ limit: '30mb' }),
-      async (req: Request, res: Response) => {
-        const {
+    this._app.post('/execute', async (req: Request, res: Response) => {
+      const {
+        type,
+        prompt,
+        params,
+        requestId,
+        deepThink,
+        screenshotIncluded,
+        domIncluded,
+      } = req.body;
+
+      if (!type) {
+        return res.status(400).json({
+          error: 'type is required',
+        });
+      }
+
+      if (requestId) {
+        this.taskProgressTips[requestId] = '';
+
+        this.agent.onTaskStartTip = (tip: string) => {
+          this.taskProgressTips[requestId] = tip;
+        };
+      }
+
+      const response: {
+        result: unknown;
+        dump: string | null;
+        error: string | null;
+        reportHTML: string | null;
+        requestId?: string;
+      } = {
+        result: null,
+        dump: null,
+        error: null,
+        reportHTML: null,
+        requestId,
+      };
+
+      const startTime = Date.now();
+      try {
+        // Get action space to check for dynamic actions
+        const actionSpace = await this.page.actionSpace();
+
+        // Prepare value object for executeAction
+        const value = {
           type,
           prompt,
           params,
-          requestId,
-          deepThink,
-          screenshotIncluded,
-          domIncluded,
-        } = req.body;
-
-        if (!type) {
-          return res.status(400).json({
-            error: 'type is required',
-          });
-        }
-
-        if (requestId) {
-          this.taskProgressTips[requestId] = '';
-
-          this.agent.onTaskStartTip = (tip: string) => {
-            this.taskProgressTips[requestId] = tip;
-          };
-        }
-
-        const response: {
-          result: unknown;
-          dump: string | null;
-          error: string | null;
-          reportHTML: string | null;
-          requestId?: string;
-        } = {
-          result: null,
-          dump: null,
-          error: null,
-          reportHTML: null,
-          requestId,
         };
 
-        const startTime = Date.now();
-        try {
-          // Get action space to check for dynamic actions
-          const actionSpace = await this.page.actionSpace();
+        response.result = await executeAction(
+          this.agent,
+          type,
+          actionSpace,
+          value,
+          {
+            deepThink: deepThink || false,
+            screenshotIncluded,
+            domIncluded,
+          },
+        );
+      } catch (error: unknown) {
+        response.error = formatErrorMessage(error);
+      }
 
-          // Prepare value object for executeAction
-          const value = {
-            type,
-            prompt,
-            params,
-          };
+      try {
+        response.dump = JSON.parse(this.agent.dumpDataString());
+        response.reportHTML = this.agent.reportHTMLString() || null;
 
-          response.result = await executeAction(
-            this.agent,
-            type,
-            actionSpace,
-            value,
-            {
-              deepThink: deepThink || false,
-              screenshotIncluded,
-              domIncluded,
-            },
-          );
-        } catch (error: unknown) {
-          response.error = formatErrorMessage(error);
-        }
+        this.agent.writeOutActionDumps();
+        this.agent.resetDump();
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        console.error(
+          `write out dump failed: requestId: ${requestId}, ${errorMessage}`,
+        );
+      }
 
-        try {
-          response.dump = JSON.parse(this.agent.dumpDataString());
-          response.reportHTML = this.agent.reportHTMLString() || null;
+      res.send(response);
+      const timeCost = Date.now() - startTime;
 
-          this.agent.writeOutActionDumps();
-          this.agent.resetDump();
-        } catch (error: unknown) {
-          const errorMessage =
-            error instanceof Error ? error.message : 'Unknown error';
-          console.error(
-            `write out dump failed: requestId: ${requestId}, ${errorMessage}`,
-          );
-        }
+      if (response.error) {
+        console.error(
+          `handle request failed after ${timeCost}ms: requestId: ${requestId}, ${response.error}`,
+        );
+      } else {
+        console.log(
+          `handle request done after ${timeCost}ms: requestId: ${requestId}`,
+        );
+      }
 
-        res.send(response);
-        const timeCost = Date.now() - startTime;
-
-        if (response.error) {
-          console.error(
-            `handle request failed after ${timeCost}ms: requestId: ${requestId}, ${response.error}`,
-          );
-        } else {
-          console.log(
-            `handle request done after ${timeCost}ms: requestId: ${requestId}`,
-          );
-        }
-
-        // Clean up task progress tip after execution completes
-        if (requestId) {
-          delete this.taskProgressTips[requestId];
-        }
-      },
-    );
+      // Clean up task progress tip after execution completes
+      if (requestId) {
+        delete this.taskProgressTips[requestId];
+      }
+    });
 
     this._app.post(
       '/cancel/:requestId',
@@ -408,35 +413,31 @@ class PlaygroundServer {
       }
     });
 
-    this.app.post(
-      '/config',
-      express.json({ limit: '1mb' }),
-      async (req: Request, res: Response) => {
-        const { aiConfig } = req.body;
+    this.app.post('/config', async (req: Request, res: Response) => {
+      const { aiConfig } = req.body;
 
-        if (!aiConfig || typeof aiConfig !== 'object') {
-          return res.status(400).json({
-            error: 'aiConfig is required and must be an object',
-          });
-        }
+      if (!aiConfig || typeof aiConfig !== 'object') {
+        return res.status(400).json({
+          error: 'aiConfig is required and must be an object',
+        });
+      }
 
-        try {
-          overrideAIConfig(aiConfig);
+      try {
+        overrideAIConfig(aiConfig);
 
-          return res.json({
-            status: 'ok',
-            message: 'AI config updated successfully',
-          });
-        } catch (error: unknown) {
-          const errorMessage =
-            error instanceof Error ? error.message : 'Unknown error';
-          console.error(`Failed to update AI config: ${errorMessage}`);
-          return res.status(500).json({
-            error: `Failed to update AI config: ${errorMessage}`,
-          });
-        }
-      },
-    );
+        return res.json({
+          status: 'ok',
+          message: 'AI config updated successfully',
+        });
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        console.error(`Failed to update AI config: ${errorMessage}`);
+        return res.status(500).json({
+          error: `Failed to update AI config: ${errorMessage}`,
+        });
+      }
+    });
   }
 
   /**

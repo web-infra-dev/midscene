@@ -3,9 +3,12 @@ import cors from 'cors';
 import { StaticPage, StaticPageAgent } from './static';
 import 'dotenv/config';
 
-// Create page and agent instances
+// Create page and agent instances with minimal valid data
 const page = new StaticPage({
-  tree: { node: null, children: [] },
+  tree: {
+    node: null,
+    children: [],
+  },
   size: { width: 800, height: 600 },
   screenshotBase64: '',
 });
@@ -14,26 +17,13 @@ const agent = new StaticPageAgent(page);
 // Create server
 const server = new PlaygroundServer(page, agent);
 
-// Register CORS middleware as the very first middleware
+// Register CORS middleware
 server.app.use(
   cors({
     origin: '*',
     credentials: true,
   }),
 );
-
-// Add context update middleware
-server.app.use((req, _res, next) => {
-  const { context } = req.body || {};
-  if (
-    context &&
-    'updateContext' in page &&
-    typeof page.updateContext === 'function'
-  ) {
-    page.updateContext(context);
-  }
-  next();
-});
 
 Promise.resolve()
   .then(() => server.launch())
