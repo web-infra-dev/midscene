@@ -2,6 +2,30 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { assert, ifInBrowser, ifInWorker } from '@midscene/shared/utils';
 
+// previous defined yaml flow, as a helper
+interface MidsceneYamlFlowItemAIInput extends LocateOption {
+  // previous version
+  // aiInput: string; // value to input
+  // locate: TUserPrompt; // where to input
+  aiInput: TUserPrompt | undefined; // where to input
+  value: string; // value to input
+}
+
+interface MidsceneYamlFlowItemAIKeyboardPress extends LocateOption {
+  // previous version
+  // aiKeyboardPress: string;
+  // locate?: TUserPrompt; // where to press, optional
+  aiKeyboardPress: TUserPrompt | undefined; // where to press
+  keyName: string; // key to press
+}
+
+interface MidsceneYamlFlowItemAIScroll extends LocateOption, ScrollParam {
+  // previous version
+  // aiScroll: null;
+  // locate?: TUserPrompt; // which area to scroll, optional
+  aiScroll: TUserPrompt | undefined; // which area to scroll
+}
+
 import type { Agent } from '@/agent/agent';
 import type {
   DeviceAction,
@@ -11,12 +35,9 @@ import type {
   MidsceneYamlFlowItemAIAsk,
   MidsceneYamlFlowItemAIAssert,
   MidsceneYamlFlowItemAIBoolean,
-  MidsceneYamlFlowItemAIInput,
-  MidsceneYamlFlowItemAIKeyboardPress,
   MidsceneYamlFlowItemAILocate,
   MidsceneYamlFlowItemAINumber,
   MidsceneYamlFlowItemAIQuery,
-  MidsceneYamlFlowItemAIScroll,
   MidsceneYamlFlowItemAIString,
   MidsceneYamlFlowItemAIWaitFor,
   MidsceneYamlFlowItemEvaluateJavaScript,
@@ -26,6 +47,7 @@ import type {
   MidsceneYamlScriptEnv,
   ScriptPlayerStatusValue,
   ScriptPlayerTaskStatus,
+  ScrollParam,
   TUserPrompt,
 } from '@/index';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';

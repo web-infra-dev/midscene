@@ -14,11 +14,19 @@ export abstract class AbstractInterface {
   abstract destroy?(): Promise<void>;
 
   abstract describe?(): string;
-  abstract getElementsNodeTree?: () => Promise<ElementNode>;
-  abstract url?: () => string | Promise<string>;
-  abstract evaluateJavaScript?<T = any>(script: string): Promise<T>;
   abstract beforeInvokeAction?(actionName: string, param: any): Promise<void>;
   abstract afterInvokeAction?(actionName: string, param: any): Promise<void>;
+
+  // @deprecated do NOT extend this method
+  abstract getElementsNodeTree?: () => Promise<ElementNode>;
+
+  // @deprecated do NOT extend this method
+  abstract url?: () => string | Promise<string>;
+
+  // @deprecated do NOT extend this method
+  abstract evaluateJavaScript?<T = any>(script: string): Promise<T>;
+
+  // @deprecated do NOT extend this method
   abstract getContext?(): Promise<UIContext>;
 }
 
@@ -243,7 +251,7 @@ export const ActionSwipeParamSchema = z.object({
   start: getMidsceneLocationSchema()
     .optional()
     .describe(
-      'Starting point of the swipe gesture, if not specified, use the center of the page',
+      'Starting point of the swipe gesture, if not specified, the center of the page will be used',
     ),
   direction: z
     .enum(['up', 'down', 'left', 'right'])
@@ -279,7 +287,8 @@ export const defineActionSwipe = (
 ): DeviceAction<ActionSwipeParam> => {
   return defineAction({
     name: 'Swipe',
-    description: 'Perform a swipe gesture on an element',
+    description:
+      'Perform a swipe gesture. You must specify either "end" (target location) or "distance" + "direction" - they are mutually exclusive. Use "end" for precise location-based swipes, or "distance" + "direction" for relative movement.',
     paramSchema: ActionSwipeParamSchema,
     call,
   });
