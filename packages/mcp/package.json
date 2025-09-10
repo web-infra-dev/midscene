@@ -1,6 +1,6 @@
 {
   "name": "@midscene/mcp",
-  "version": "0.28.1",
+  "version": "0.28.2",
   "bin": "dist/index.js",
   "files": ["dist"],
   "scripts": {
