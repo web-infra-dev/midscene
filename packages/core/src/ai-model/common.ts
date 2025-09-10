@@ -286,6 +286,7 @@ export function expandSearchArea(
   const minEdgeSize = vlMode === 'doubao-vision' ? 500 : 300;
   const defaultPadding = 160;
 
+  // Calculate padding needed to reach minimum edge size
   const paddingSizeHorizontal =
     rect.width < minEdgeSize
       ? Math.ceil((minEdgeSize - rect.width) / 2)
@@ -294,16 +295,44 @@ export function expandSearchArea(
     rect.height < minEdgeSize
       ? Math.ceil((minEdgeSize - rect.height) / 2)
       : defaultPadding;
-  rect.left = Math.max(0, rect.left - paddingSizeHorizontal);
-  rect.width = Math.min(
-    rect.width + paddingSizeHorizontal * 2,
-    screenSize.width - rect.left,
-  );
-  rect.top = Math.max(0, rect.top - paddingSizeVertical);
-  rect.height = Math.min(
-    rect.height + paddingSizeVertical * 2,
-    screenSize.height - rect.top,
-  );
+
+  // Calculate new dimensions (ensure minimum edge size)
+  let newWidth = Math.max(minEdgeSize, rect.width + paddingSizeHorizontal * 2);
+  let newHeight = Math.max(minEdgeSize, rect.height + paddingSizeVertical * 2);
+
+  // Calculate initial position with padding
+  let newLeft = rect.left - paddingSizeHorizontal;
+  let newTop = rect.top - paddingSizeVertical;
+
+  // Ensure the rect doesn't exceed screen boundaries by adjusting position
+  // If the rect goes beyond the right edge, shift it left
+  if (newLeft + newWidth > screenSize.width) {
+    newLeft = screenSize.width - newWidth;
+  }
+
+  // If the rect goes beyond the bottom edge, shift it up
+  if (newTop + newHeight > screenSize.height) {
+    newTop = screenSize.height - newHeight;
+  }
+
+  // Ensure the rect doesn't go beyond the left/top edges
+  newLeft = Math.max(0, newLeft);
+  newTop = Math.max(0, newTop);
+
+  // If after position adjustment, the rect still exceeds screen boundaries,
+  // clamp the dimensions to fit within screen
+  if (newLeft + newWidth > screenSize.width) {
+    newWidth = screenSize.width - newLeft;
+  }
+  if (newTop + newHeight > screenSize.height) {
+    newHeight = screenSize.height - newTop;
+  }
+
+  rect.left = newLeft;
+  rect.top = newTop;
+  rect.width = newWidth;
+  rect.height = newHeight;
+
   return rect;
 }
 

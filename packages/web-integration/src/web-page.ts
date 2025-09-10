@@ -404,7 +404,7 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
     });
 
     // Short delay between clicks for double-click recognition
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 200));
 
     await page.mouse.click(element.center[0], element.center[1], {
       button: 'left',
