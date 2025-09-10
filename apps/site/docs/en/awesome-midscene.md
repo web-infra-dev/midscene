@@ -5,7 +5,7 @@ A curated list of community projects that extend Midscene.js capabilities across
 ## Community Projects
 
 ### iOS Automation
-- **[midscene-ios](https://github.com/lhuanyu/midscene-ios)** - iOS automation support for Midscene
+- **[midscene-ios](https://github.com/lhuanyu/midscene-ios)** - iOS Mirror Automation Support for Midscene
   - Enables automated testing and interaction with iOS applications
   - Extends Midscene's cross-platform capabilities to Apple's mobile ecosystem
 
