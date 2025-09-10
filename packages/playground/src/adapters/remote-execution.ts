@@ -361,4 +361,25 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
       this.progressPolling.delete(requestId);
     }
   }
+
+  // Get screenshot from server
+  async getScreenshot(): Promise<{ screenshot: string; timestamp: number } | null> {
+    if (!this.serverUrl) {
+      return null;
+    }
+
+    try {
+      const response = await fetch(`${this.serverUrl}/screenshot`);
+      
+      if (!response.ok) {
+        console.warn(`Screenshot request failed: ${response.statusText}`);
+        return null;
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to get screenshot:', error);
+      return null;
+    }
+  }
 }

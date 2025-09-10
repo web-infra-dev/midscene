@@ -116,7 +116,6 @@ export default function PlaygroundPanel({
           <Logo />
           <EnvConfig />
         </div>
-        <h2>Command input</h2>
       </div>
 
       {/* Main playground area */}

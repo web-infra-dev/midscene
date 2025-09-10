@@ -425,7 +425,49 @@ class PlaygroundServer {
       }
     });
 
-    this._app.post(
+    // Screenshot API for real-time screenshot polling
+    this._app.get('/screenshot', async (_req: Request, res: Response) => {
+      try {
+        // If we have exactly one active agent, use it directly
+        const activeAgentIds = Object.keys(this.activeAgents);
+        let page: AbstractInterface;
+
+        if (activeAgentIds.length === 1) {
+          // Single agent case - use it directly
+          const agentId = activeAgentIds[0];
+          const agent = this.activeAgents[agentId];
+          page = (agent as PlaygroundAgent & { interface: AbstractInterface })
+            .interface;
+        } else {
+          return res.status(400).json({
+            error: 'No active agent available for screenshot',
+          });
+        }
+
+        // Check if page has screenshotBase64 method
+        if (typeof page.screenshotBase64 !== 'function') {
+          return res.status(500).json({
+            error: 'Screenshot method not available on current interface',
+          });
+        }
+
+        const base64Screenshot = await page.screenshotBase64();
+
+        res.json({
+          screenshot: base64Screenshot,
+          timestamp: Date.now(),
+        });
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        console.error(`Failed to take screenshot: ${errorMessage}`);
+        res.status(500).json({
+          error: `Failed to take screenshot: ${errorMessage}`,
+        });
+      }
+    });
+
+    this.app.post(
       '/config',
       express.json({ limit: '1mb' }),
       async (req: Request, res: Response) => {

@@ -58,7 +58,7 @@ export default defineConfig({
     },
   },
   html: {
-    title: 'Midscene Web Playground',
+    title: 'Midscene Playground',
     favicon: './src/favicon.ico',
   },
   source: {

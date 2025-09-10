@@ -164,4 +164,12 @@ export class PlaygroundSDK {
       console.warn('Local execution cancellation not fully implemented');
     }
   }
+
+  // Screenshot method for remote execution
+  async getScreenshot(): Promise<{ screenshot: string; timestamp: number } | null> {
+    if (this.adapter instanceof RemoteExecutionAdapter) {
+      return this.adapter.getScreenshot();
+    }
+    return null; // For local execution, not supported yet
+  }
 }

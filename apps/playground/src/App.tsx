@@ -1,32 +1,42 @@
 import { PlaygroundSDK } from '@midscene/playground';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import {
-  EnvConfig,
   LocalStorageProvider,
   Logo,
   UniversalPlayground,
   globalThemeConfig,
-  useEnvConfig,
 } from '@midscene/visualizer';
-import { ConfigProvider } from 'antd';
+import { Col, ConfigProvider, Layout, Row } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import './App.less';
+import ScreenshotViewer from './components/ScreenshotViewer';
 
-// Use current page port if available, fallback to default port
-const currentPort = typeof window !== 'undefined' ? window.location.port : '';
-const SERVER_PORT = currentPort || PLAYGROUND_SERVER_PORT;
-const SERVER_URL = `http://localhost:${SERVER_PORT}`;
+// Use current page origin for server URL
+const SERVER_URL =
+  typeof window !== 'undefined'
+    ? window.location.origin
+    : `http://localhost:${PLAYGROUND_SERVER_PORT}`;
+
+const { Content } = Layout;
 
 export default function App() {
-  const { config } = useEnvConfig();
   const [serverOnline, setServerOnline] = useState(false);
+  const [isUserOperating, setIsUserOperating] = useState(false);
 
   // Create PlaygroundSDK and storage provider
   const playgroundSDK = useMemo(() => {
-    return new PlaygroundSDK({
+    const sdk = new PlaygroundSDK({
       type: 'remote-execution',
       serverUrl: SERVER_URL,
     });
+
+    // Set progress callback to monitor user operation status
+    sdk.onProgressUpdate((tip: string) => {
+      // When there's a progress tip, it means user is operating
+      setIsUserOperating(!!tip);
+    });
+
+    return sdk;
   }, []);
 
   const storage = useMemo(() => {
@@ -52,64 +62,87 @@ export default function App() {
     return () => clearInterval(interval);
   }, [playgroundSDK]);
 
-  return (
-    <ConfigProvider theme={globalThemeConfig()}>
-      <div className="web-playground-app">
-        {/* Header */}
-        <div className="web-playground-header">
-          <div className="header-content">
+  if (!serverOnline) {
+    return (
+      <ConfigProvider theme={globalThemeConfig()}>
+        <div className="server-offline-container">
+          <div className="server-offline-message">
             <Logo />
-            <div className="header-title">
-              <h1>Midscene Web Playground</h1>
-              <div
-                className={`server-status ${serverOnline ? 'online' : 'offline'}`}
-              >
-                <span className="status-dot" />
-                {serverOnline ? 'Server Online' : 'Server Offline'}
-              </div>
+            <h1>Midscene Playground</h1>
+            <div className="server-status offline">
+              <span className="status-dot" />
+              Server Offline
             </div>
-            <div className="header-config">
-              <EnvConfig showTooltipWhenEmpty={false} />
+            {/* <h2>🚀 Ready to start?</h2>
+            <p>Please start the playground server to begin:</p>
+            <div className="start-command">
+              <code>npx @midscene/playground</code>
             </div>
+            <p className="server-info">
+              The server will be available at{' '}
+              <a href={SERVER_URL} target="_blank" rel="noopener noreferrer">
+                {SERVER_URL}
+              </a>
+            </p> */}
           </div>
         </div>
+      </ConfigProvider>
+    );
+  }
 
-        {/* Main Content */}
-        <div className="web-playground-main">
-          {!serverOnline ? (
-            <div className="server-offline-message">
-              <h2>🚀 Ready to start?</h2>
-              <p>Please start the playground server to begin:</p>
-              <div className="start-command">
-                <code>npx @midscene/playground</code>
-              </div>
-              <p className="server-info">
-                The server will be available at{' '}
-                <a href={SERVER_URL} target="_blank" rel="noopener noreferrer">
-                  {SERVER_URL}
-                </a>
-              </p>
-            </div>
-          ) : (
-            <UniversalPlayground
-              playgroundSDK={playgroundSDK}
-              storage={storage}
-              config={{
-                showContextPreview: false, // Web playground doesn't need context preview initially
-                enablePersistence: true,
-                layout: 'vertical',
-                showVersionInfo: true,
-                enableScrollToBottom: true,
-              }}
-              branding={{
-                title: 'Web Playground',
-                version: process.env.npm_package_version || '1.0.0',
-              }}
-              className="web-playground-container"
-            />
-          )}
-        </div>
-      </div>
+  return (
+    <ConfigProvider theme={globalThemeConfig()}>
+      <Layout className="app-container playground-container">
+        <Content className="app-content">
+          <div className="app-grid-layout">
+            <Row className="app-grid-layout">
+              {/* Left panel: UniversalPlayground */}
+              <Col className="app-panel left-panel">
+                <div className="panel-content left-panel-content">
+                  {/* Header with Logo and Config */}
+                  <div className="playground-panel-header">
+                    <div className="header-row">
+                      <Logo />
+                      {/* <EnvConfig /> */}
+                    </div>
+                  </div>
+
+                  {/* Main playground area */}
+                  <div className="playground-panel-playground">
+                    <UniversalPlayground
+                      playgroundSDK={playgroundSDK}
+                      storage={storage}
+                      config={{
+                        showContextPreview: false,
+                        enablePersistence: true,
+                        layout: 'vertical',
+                        showVersionInfo: true,
+                        enableScrollToBottom: true,
+                      }}
+                      branding={{
+                        title: 'Web Playground',
+                        version: process.env.npm_package_version || '1.0.0',
+                      }}
+                      className="web-playground-container"
+                    />
+                  </div>
+                </div>
+              </Col>
+
+              {/* Right panel: Screenshot Viewer */}
+              <Col className="app-panel right-panel">
+                <div className="panel-content right-panel-content">
+                  <ScreenshotViewer
+                    playgroundSDK={playgroundSDK}
+                    serverOnline={serverOnline}
+                    isUserOperating={isUserOperating}
+                  />
+                </div>
+              </Col>
+            </Row>
+          </div>
+        </Content>
+      </Layout>
     </ConfigProvider>
   );
 }
