@@ -1,6 +1,6 @@
 # Integrate with any interface (preview)
 
-From Midscene v0.28.0, we have launched the feature to integrate with any interface. Just define a class that extends the `AbstractInterface` class, and you can get a fully-featured Midscene AI Agent, including the interaction methods, data extraction methods, the report, the GUI playground, the cli, the yaml script runner, the MCP server...
+From Midscene v0.28.0, we have launched the feature to integrate with any interface. By inheriting the `AbstractInterface` class and tell Midscene how to interact with the interface, a fully-featured Midscene AI Agent will be created. All these popular tools are included by default: the interaction methods, data extraction methods, the report, the GUI playground, the cli, the yaml script runner, the MCP server...
 
 :::tip This is a preview feature
 
@@ -25,14 +25,18 @@ We have prepared a demo project for you to learn how to define your own interfac
 
 * [Demo Project](https://github.com/web-infra-dev/midscene-example/tree/main/custom-interface) - A simple demo project that shows how to define your own interface class
 
-* [Android (adb) Agent](https://github.com/web-infra-dev/midscene/blob/main/packages/android/src/device.ts) - The implementation of the Midscene Android (adb) Agent conforms to this feature
+* [Android (adb) Agent](https://github.com/web-infra-dev/midscene/blob/main/packages/android/src/device.ts) - This is the Android (adb) Agent for Midscene that implements this feature
 
 There are also some community projects that use this feature:
 
 * [midscene-ios](https://github.com/lhuanyu/midscene-ios) - A project driving the "iPhone Mirror" app with Midscene
 
-
 ## Implement your own interface class
+
+### Key concepts
+
+* The `AbstractInterface` class: a predefined abstract class that can connect to the Midscene Agent
+* The **action space**: a set of actions that describe the actions that can be performed on the interface. This will affect how the AI model plans the actions and executes them
 
 ### Step 1. clone and setup from the demo project
 
@@ -58,6 +62,7 @@ The key methods that you need to implement are:
 
 Use these commands to run the agent:
 
+- `npm run build` to rebuild the agent
 - `npm run demo` to run the agent with javascript
 - `npm run demo:yaml` to run the agent with yaml script
 
@@ -115,8 +120,6 @@ These are the optional methods that you can implement:
 - `afterInvokeAction?()`: a hook function after invoke an action
 
 ### The action space
-
-Action space is a set of actions that describe the actions that can be performed on the interface. 
 
 To help you easily define the action space, Midscene has provided a set of predefined action spaces for the most common interfaces and devices. And there is also a method to define any custom action.
 

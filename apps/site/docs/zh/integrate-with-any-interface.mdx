@@ -1,6 +1,6 @@
 # 与任意界面集成（预览特性）
 
-从 Midscene v0.28.0 开始，我们推出了与任意界面集成的功能。只需定义一个继承 `AbstractInterface` 类的类，就可以获得一个功能齐全的 Midscene AI 智能体，包括交互方法、数据提取方法、报告、GUI 操场、CLI、yaml 脚本运行器、MCP 服务器等。
+从 Midscene v0.28.0 开始，我们推出了与任意界面集成的功能。通过继承 `AbstractInterface` 类并告诉 Midscene 如何与界面交互，就可以创建一个功能齐全的 Midscene AI Agent。你会默认拥有这些工具：交互方法、数据提取方法、报告、GUI Playground、CLI 命令行工具、yaml 脚本运行器、MCP 服务器等。
 
 :::tip
 此功能仍在预览阶段。目前我们已经完成了以下工作
@@ -19,14 +19,21 @@
 
 我们已经为你准备了一个演示项目，帮助你学习如何定义自己的界面类。强烈建议你查看一下。
 
-* [演示项目](https://github.com/web-infra-dev/midscene-example/tree/main/custom-interface)
+* [演示项目](https://github.com/web-infra-dev/midscene-example/tree/main/custom-interface) - 一个简单的演示项目，展示如何定义自己的界面类
+
+* [Android (adb) Agent](https://github.com/web-infra-dev/midscene/blob/main/packages/android/src/device.ts) - 这是 Midscene Android (adb) Agent，同样依赖此特性实现
 
 还有一些使用此功能的社区项目：
 
-* [midscene-ios](https://github.com/lhuanyu/midscene-ios) - 为 Midscene 提供 iOS 镜像自动化支持
+* [midscene-ios](https://github.com/lhuanyu/midscene-ios) - 使用 Midscene 驱动 "iPhone 镜像" 应用的项目
 
 
 ## 实现你自己的界面类
+
+### 关键概念
+
+* `AbstractInterface` 类：一个预定义的抽象类，可以连接到 Midscene 智能体
+* **动作空间**：描述可以在界面上执行的动作集合。这将影响 AI 模型如何规划和执行动作
 
 ### 步骤 1. 从 demo 项目开始
 
@@ -50,8 +57,9 @@ npm run build
 - `size()`：获取界面的大小和 dpr
 - `actionSpace()`：定义界面的动作空间，它是一个 `DeviceAction` 对象数组。AI 模型将使用这些动作来执行操作。
 
-使用这些命令运行智能体：
+使用这些命令运行 Demo：
 
+- `npm run build` 重新编译 Agent 代码
 - `npm run demo` 使用 JavaScript 运行智能体
 - `npm run demo:yaml` 使用 yaml 脚本运行智能体
 
@@ -109,8 +117,6 @@ import { AbstractInterface } from '@midscene/core';
 - `afterInvokeAction?()`：调用动作之后的钩子函数
 
 ### 动作空间（Action Space）
-
-动作空间是描述可以在界面上执行的动作的动作集合。
 
 为了帮助你轻松定义动作空间，Midscene 为最常见的界面和设备提供了一组预定义的动作空间。还有一种方法可以定义任何自定义动作。
 
