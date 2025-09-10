@@ -56,9 +56,7 @@ describe('llm planning - doubao', () => {
       bbox_2d: [923, 123, 123, 123] as [number, number, number, number],
     };
 
-    const filledLocate = fillBboxParam(locate, 1000, 1000, {
-      intent: 'grounding',
-    });
+    const filledLocate = fillBboxParam(locate, 1000, 1000, 'doubao-vision');
     expect(filledLocate).toEqual({
       id: 'test',
       prompt: 'test',

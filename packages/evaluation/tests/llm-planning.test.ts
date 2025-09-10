@@ -9,9 +9,8 @@ import {
 } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import {
-  getModelName,
   globalConfigManager,
-  vlLocateMode,
+  globalModelConfigManager,
 } from '@midscene/shared/env';
 import { saveBase64Image } from '@midscene/shared/img';
 import dotenv from 'dotenv';
@@ -28,20 +27,16 @@ const testSources = ['todo'];
 
 let actionSpace: DeviceAction[] = [];
 
-let vlMode = false;
-beforeAll(async () => {
-  await globalConfigManager.init();
+let globalVlMode = false;
 
-  vlMode = !!vlLocateMode({
-    intent: 'grounding',
-  });
+beforeAll(async () => {
+  const defaultModelConfig =
+    globalModelConfigManager.getModelConfig('planning');
+  const { vlMode } = defaultModelConfig;
+  globalVlMode = !!vlMode;
 
   if (process.env.MIDSCENE_EVALUATION_EXPECT_VL) {
-    expect(
-      vlLocateMode({
-        intent: 'grounding',
-      }),
-    ).toBeTruthy();
+    expect(globalVlMode).toBeTruthy();
   }
 
   actionSpace = [
@@ -51,7 +46,7 @@ beforeAll(async () => {
   ];
 });
 
-describe.skipIf(vlMode)('ai planning - by element', () => {
+describe.skipIf(globalVlMode)('ai planning - by element', () => {
   testSources.forEach((source) => {
     test(
       `${source}: planning`,
@@ -63,9 +58,12 @@ describe.skipIf(vlMode)('ai planning - by element', () => {
 
         const caseGroupName = aiDataPath.split('/').pop() || '';
 
+        const modelConfig = globalModelConfigManager.getModelConfig('planning');
+        const { modelName } = modelConfig;
+
         const resultCollector = new TestResultCollector(
           `${caseGroupName}-planning`,
-          getModelName({ intent: 'planning' }) || 'unspecified',
+          modelName || 'unspecified',
         );
 
         for (const [, testCase] of cases.testCases.entries()) {
@@ -78,6 +76,7 @@ describe.skipIf(vlMode)('ai planning - by element', () => {
             context,
             interfaceType: 'puppeteer',
             actionSpace,
+            modelConfig,
           });
 
           if (process.env.UPDATE_ANSWER_DATA) {
@@ -109,16 +108,18 @@ const vlCases = [
   'antd-tooltip-vl',
 ];
 
+const { modelName } = globalModelConfigManager.getModelConfig('planning');
+
 const resultCollector = new TestResultCollector(
   'planning',
-  getModelName({ intent: 'planning' }) || 'unspecified',
+  modelName || 'unspecified',
 );
 
 afterEach(async () => {
   await resultCollector.printSummary();
 });
 
-describe.skipIf(!vlMode)('ai planning - by coordinates', () => {
+describe.skipIf(!globalVlMode)('ai planning - by coordinates', () => {
   vlCases.forEach((source) => {
     test(
       `${source}: planning`,
@@ -135,6 +136,8 @@ describe.skipIf(!vlMode)('ai planning - by coordinates', () => {
           rect: Rect;
         }> = [];
 
+        const modelConfig = globalModelConfigManager.getModelConfig('planning');
+
         for (const [index, testCase] of cases.testCases.entries()) {
           const context = await buildContext(source.replace('-vl', ''));
 
@@ -149,6 +152,7 @@ describe.skipIf(!vlMode)('ai planning - by coordinates', () => {
               actionContext: testCase.action_context,
               interfaceType: 'puppeteer',
               actionSpace,
+              modelConfig,
             });
           } catch (error) {
             res = error as Error;
@@ -167,7 +171,9 @@ describe.skipIf(!vlMode)('ai planning - by coordinates', () => {
                   res.action.locate.bbox,
                   context.size.width,
                   context.size.height,
-                  { intent: 'planning' },
+                  0,
+                  0,
+                  modelConfig.vlMode,
                 );
                 testCase.annotation_index_id = indexId;
                 annotations.push({

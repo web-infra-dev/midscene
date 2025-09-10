@@ -1,5 +1,4 @@
 import { type AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
-import { vlLocateMode } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { AndroidDevice, type AndroidDeviceOpt } from './device';
 import { getConnectedDevices } from './utils';
@@ -13,8 +12,8 @@ export class AndroidAgent extends PageAgent<AndroidDevice> {
     super(interfaceInstance, opts);
 
     if (
-      !vlLocateMode({ intent: 'grounding' }) ||
-      !vlLocateMode({ intent: 'planning' })
+      !this.modelConfigManager.getModelConfig('grounding').vlMode ||
+      !this.modelConfigManager.getModelConfig('planning').vlMode
     ) {
       throw new Error(
         'Android Agent only supports vl-model. https://midscenejs.com/choose-a-model.html',

@@ -1,5 +1,5 @@
 import { assert } from '../utils';
-import type { IModelConfig } from './model-config';
+import type { IModelConfig } from './types';
 
 const maskKey = (key: string, maskChar = '*') => {
   if (typeof key !== 'string' || key.length === 0) {

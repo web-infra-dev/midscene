@@ -134,19 +134,6 @@ export abstract class UIContext<ElementType extends BaseElement = BaseElement> {
   abstract _isFrozen?: boolean;
 }
 
-/**
- * insight
- */
-
-export type CallAIFn = <T>(
-  messages: ChatCompletionMessageParam[],
-) => Promise<T>;
-
-export interface InsightOptions {
-  taskInfo?: Omit<InsightTaskInfo, 'durationMs'>;
-  aiVendorFn?: CallAIFn;
-}
-
 export type EnsureObject<T> = { [K in keyof T]: any };
 
 export type InsightAction = 'locate' | 'extract' | 'assert' | 'describe';

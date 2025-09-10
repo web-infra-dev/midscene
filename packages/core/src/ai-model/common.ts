@@ -10,28 +10,17 @@ import type {
 } from '@/types';
 import { assert } from '@midscene/shared/utils';
 
-import type {
-  ChatCompletionSystemMessageParam,
-  ChatCompletionUserMessageParam,
-} from 'openai/resources/index';
-import { callToGetJSONObject } from './service-caller/index';
+import type { ChatCompletionMessageParam } from 'openai/resources/index';
 
 import type { PlanningLocateParam } from '@/types';
 import { NodeType } from '@midscene/shared/constants';
-import {
-  type IModelPreferences,
-  getModelName,
-  vlLocateMode,
-} from '@midscene/shared/env';
+import type { TVlModeTypes } from '@midscene/shared/env';
 import { treeToList } from '@midscene/shared/extractor';
 import { compositeElementInfoImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { z } from 'zod';
 
-export type AIArgs = [
-  ChatCompletionSystemMessageParam,
-  ...ChatCompletionUserMessageParam[],
-];
+export type AIArgs = ChatCompletionMessageParam[];
 
 export enum AIActionType {
   ASSERT = 0,
@@ -39,23 +28,6 @@ export enum AIActionType {
   EXTRACT_DATA = 2,
   PLAN = 3,
   DESCRIBE_ELEMENT = 4,
-}
-
-export async function callAiFn<T>(
-  msgs: AIArgs,
-  AIActionTypeValue: AIActionType,
-  modelPreferences: IModelPreferences,
-): Promise<{ content: T; usage?: AIUsageInfo }> {
-  const jsonObject = await callToGetJSONObject<T>(
-    msgs,
-    AIActionTypeValue,
-    modelPreferences,
-  );
-
-  return {
-    content: jsonObject.content,
-    usage: jsonObject.usage,
-  };
 }
 
 const defaultBboxSize = 20; // must be even number
@@ -66,7 +38,7 @@ export function fillBboxParam(
   locate: PlanningLocateParam,
   width: number,
   height: number,
-  modelPreferences: IModelPreferences,
+  vlMode: TVlModeTypes | undefined,
 ) {
   // The Qwen model might have hallucinations of naming bbox as bbox_2d.
   if ((locate as any).bbox_2d && !locate?.bbox) {
@@ -76,7 +48,7 @@ export function fillBboxParam(
   }
 
   if (locate?.bbox) {
-    locate.bbox = adaptBbox(locate.bbox, width, height, modelPreferences);
+    locate.bbox = adaptBbox(locate.bbox, width, height, vlMode);
   }
 
   return locate;
@@ -204,16 +176,13 @@ export function adaptBbox(
   bbox: number[],
   width: number,
   height: number,
-  modelPreferences: IModelPreferences,
+  vlMode: TVlModeTypes | undefined,
 ): [number, number, number, number] {
-  if (
-    vlLocateMode(modelPreferences) === 'doubao-vision' ||
-    vlLocateMode(modelPreferences) === 'vlm-ui-tars'
-  ) {
+  if (vlMode === 'doubao-vision' || vlMode === 'vlm-ui-tars') {
     return adaptDoubaoBbox(bbox, width, height);
   }
 
-  if (vlLocateMode(modelPreferences) === 'gemini') {
+  if (vlMode === 'gemini') {
     return adaptGeminiBbox(bbox, width, height);
   }
 
@@ -236,17 +205,12 @@ export function adaptBboxToRect(
   bbox: number[],
   width: number,
   height: number,
-  modelPreferences: IModelPreferences,
   offsetX = 0,
   offsetY = 0,
+  vlMode?: TVlModeTypes | undefined,
 ): Rect {
   debugInspectUtils('adaptBboxToRect', bbox, width, height, offsetX, offsetY);
-  const [left, top, right, bottom] = adaptBbox(
-    bbox,
-    width,
-    height,
-    modelPreferences,
-  );
+  const [left, top, right, bottom] = adaptBbox(bbox, width, height, vlMode);
 
   // Calculate initial rect dimensions
   const rectLeft = left;
@@ -280,12 +244,9 @@ export function adaptBboxToRect(
 }
 
 let warned = false;
-export function warnGPT4oSizeLimit(
-  size: Size,
-  modelPreferences: IModelPreferences,
-) {
+export function warnGPT4oSizeLimit(size: Size, modelName: string) {
   if (warned) return;
-  if (getModelName(modelPreferences)?.toLowerCase().includes('gpt-4o')) {
+  if (modelName.toLowerCase().includes('gpt-4o')) {
     const warningMsg = `GPT-4o has a maximum image input size of 2000x768 or 768x2000, but got ${size.width}x${size.height}. Please set your interface to a smaller resolution. Otherwise, the result may be inaccurate.`;
 
     if (
@@ -320,10 +281,9 @@ export function mergeRects(rects: Rect[]) {
 export function expandSearchArea(
   rect: Rect,
   screenSize: Size,
-  modelPreferences: IModelPreferences,
+  vlMode: TVlModeTypes | undefined,
 ) {
-  const minEdgeSize =
-    vlLocateMode(modelPreferences) === 'doubao-vision' ? 500 : 300;
+  const minEdgeSize = vlMode === 'doubao-vision' ? 500 : 300;
   const defaultPadding = 160;
 
   const paddingSizeHorizontal =

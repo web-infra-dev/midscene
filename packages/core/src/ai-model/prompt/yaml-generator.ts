@@ -3,10 +3,12 @@ import type {
   StreamingCodeGenerationOptions,
 } from '@/types';
 import { YAML_EXAMPLE_CODE } from '@midscene/shared/constants';
+import type { IModelConfig } from '@midscene/shared/env';
 import {
   AIActionType,
   type ChatCompletionMessageParam,
-  callAi,
+  callAI,
+  callAIWithStringResponse,
 } from '../index';
 
 // Common interfaces for test generation (shared between YAML and Playwright)
@@ -272,7 +274,8 @@ export const validateEvents = (events: ChromeRecordedEvent[]): void => {
  */
 export const generateYamlTest = async (
   events: ChromeRecordedEvent[],
-  options: YamlGenerationOptions = {},
+  options: YamlGenerationOptions,
+  modelConfig: IModelConfig,
 ): Promise<string> => {
   try {
     // Validate input
@@ -339,9 +342,11 @@ Respond with YAML only, no explanations.`,
       });
     }
 
-    const response = await callAi(prompt, AIActionType.EXTRACT_DATA, {
-      intent: 'default',
-    });
+    const response = await callAIWithStringResponse(
+      prompt,
+      AIActionType.EXTRACT_DATA,
+      modelConfig,
+    );
 
     if (response?.content && typeof response.content === 'string') {
       return response.content;
@@ -358,7 +363,8 @@ Respond with YAML only, no explanations.`,
  */
 export const generateYamlTestStream = async (
   events: ChromeRecordedEvent[],
-  options: YamlGenerationOptions & StreamingCodeGenerationOptions = {},
+  options: YamlGenerationOptions & StreamingCodeGenerationOptions,
+  modelConfig: IModelConfig,
 ): Promise<StreamingAIResponse> => {
   try {
     // Validate input
@@ -427,22 +433,17 @@ Respond with YAML only, no explanations.`,
 
     if (options.stream && options.onChunk) {
       // Use streaming
-      return await callAi(
-        prompt,
-        AIActionType.EXTRACT_DATA,
-        {
-          intent: 'default',
-        },
-        {
-          stream: true,
-          onChunk: options.onChunk,
-        },
-      );
+      return await callAI(prompt, AIActionType.EXTRACT_DATA, modelConfig, {
+        stream: true,
+        onChunk: options.onChunk,
+      });
     } else {
       // Fallback to non-streaming
-      const response = await callAi(prompt, AIActionType.EXTRACT_DATA, {
-        intent: 'default',
-      });
+      const response = await callAIWithStringResponse(
+        prompt,
+        AIActionType.EXTRACT_DATA,
+        modelConfig,
+      );
 
       if (response?.content && typeof response.content === 'string') {
         return {

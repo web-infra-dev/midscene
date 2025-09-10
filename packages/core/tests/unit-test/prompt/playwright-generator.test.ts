@@ -1,5 +1,6 @@
+import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { AIActionType, callAi } from '../../../src/ai-model';
+import { AIActionType, callAIWithStringResponse } from '../../../src/ai-model';
 import {
   type ChromeRecordedEvent,
   type PlaywrightGenerationOptions,
@@ -16,13 +17,13 @@ import {
 
 // Mock the callAi function
 vi.mock('../../../src/ai-model', () => ({
-  callAi: vi.fn(),
+  callAIWithStringResponse: vi.fn(),
   AIActionType: {
     EXTRACT_DATA: 'EXTRACT_DATA',
   },
 }));
 
-const mockCallAi = vi.mocked(callAi);
+const mockCallAiWithStringResponse = vi.mocked(callAIWithStringResponse);
 
 describe('playwright-generator', () => {
   beforeEach(() => {
@@ -264,19 +265,29 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
 });`;
 
     beforeEach(() => {
-      mockCallAi.mockResolvedValue({
+      mockCallAiWithStringResponse.mockResolvedValue({
         content: mockPlaywrightCode,
         usage: undefined,
-        isStreamed: false,
       });
     });
 
+    const mockedModelConfig = {
+      modelName: 'mock',
+      modelDescription: 'mock',
+      intent: 'default',
+      from: 'modelConfig',
+    } as const satisfies IModelConfig;
+
     test('should generate Playwright test successfully', async () => {
-      const result = await generatePlaywrightTest(mockEvents);
+      const result = await generatePlaywrightTest(
+        mockEvents,
+        {},
+        mockedModelConfig,
+      );
 
       expect(result).toBe(mockPlaywrightCode);
-      expect(mockCallAi).toHaveBeenCalledTimes(1);
-      expect(mockCallAi).toHaveBeenCalledWith(
+      expect(mockCallAiWithStringResponse).toHaveBeenCalledTimes(1);
+      expect(mockCallAiWithStringResponse).toHaveBeenCalledWith(
         expect.arrayContaining([
           expect.objectContaining({
             role: 'system',
@@ -290,9 +301,7 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
           }),
         ]),
         AIActionType.EXTRACT_DATA,
-        {
-          intent: 'default',
-        },
+        mockedModelConfig,
       );
     });
 
@@ -305,9 +314,9 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
         maxScreenshots: 2,
       };
 
-      await generatePlaywrightTest(mockEvents, options);
+      await generatePlaywrightTest(mockEvents, options, mockedModelConfig);
 
-      const callArgs = mockCallAi.mock.calls[0];
+      const callArgs = mockCallAiWithStringResponse.mock.calls[0];
       const userMessage = callArgs[0][1];
       const messageContent = userMessage.content as any[];
 
@@ -331,9 +340,9 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
         maxScreenshots: 2,
       };
 
-      await generatePlaywrightTest(mockEvents, options);
+      await generatePlaywrightTest(mockEvents, options, mockedModelConfig);
 
-      const callArgs = mockCallAi.mock.calls[0];
+      const callArgs = mockCallAiWithStringResponse.mock.calls[0];
       const userMessage = callArgs[0][1];
       const messageContent = userMessage.content as any[];
 
@@ -344,17 +353,19 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
     });
 
     test('should throw error for empty events', async () => {
-      await expect(generatePlaywrightTest([])).rejects.toThrow(
-        'No events provided for test generation',
-      );
+      await expect(
+        generatePlaywrightTest([], {}, mockedModelConfig),
+      ).rejects.toThrow('No events provided for test generation');
     });
 
     test('should handle AI call failure', async () => {
-      mockCallAi.mockRejectedValue(new Error('AI service unavailable'));
-
-      await expect(generatePlaywrightTest(mockEvents)).rejects.toThrow(
-        'AI service unavailable',
+      mockCallAiWithStringResponse.mockRejectedValue(
+        new Error('AI service unavailable'),
       );
+
+      await expect(
+        generatePlaywrightTest(mockEvents, {}, mockedModelConfig),
+      ).rejects.toThrow('AI service unavailable');
     });
   });
 });

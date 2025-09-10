@@ -1,7 +1,7 @@
 export {
-  callAiFnWithStringResponse,
-  callToGetJSONObject,
-  call as callAi,
+  callAIWithStringResponse,
+  callAIWithObjectResponse,
+  callAI,
 } from './service-caller/index';
 export { systemPromptToLocateElement } from './prompt/llm-locator';
 export {
@@ -26,10 +26,7 @@ export {
 } from './inspect';
 
 export { plan } from './llm-planning';
-export {
-  callAiFn,
-  adaptBboxToRect,
-} from './common';
+export { adaptBboxToRect } from './common';
 export { vlmPlanning, resizeImageForUiTars } from './ui-tars-planning';
 
 export { AIActionType, type AIArgs } from './common';

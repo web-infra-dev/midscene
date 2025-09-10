@@ -1,8 +1,9 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { AIActionType } from '@/ai-model/common';
-import { call, callToGetJSONObject } from '@/ai-model/service-caller';
+import { callAI, callAIWithObjectResponse } from '@/ai-model/service-caller';
 import { localImg2Base64 } from '@/image';
+import { globalModelConfigManager } from '@midscene/shared/env';
 import dotenv from 'dotenv';
 import { getFixture } from 'tests/utils';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
@@ -11,6 +12,8 @@ dotenv.config({
   debug: true,
   override: true,
 });
+
+const defaultModelConfig = globalModelConfigManager.getModelConfig('default');
 
 vi.setConfig({
   testTimeout: 20 * 1000,
@@ -44,7 +47,7 @@ vi.setConfig({
     });
 
     it('text only', async () => {
-      const result = await call(
+      const result = await callAI(
         [
           {
             role: 'system',
@@ -57,13 +60,14 @@ vi.setConfig({
           },
         ],
         AIActionType.EXTRACT_DATA,
+        defaultModelConfig,
       );
 
       expect(result.content.length).toBeGreaterThan(1);
     });
 
     it.skipIf(isUiTars)('call to get json result', async () => {
-      const result = await callToGetJSONObject<{ answer: number }>(
+      const result = await callAIWithObjectResponse<{ answer: number }>(
         [
           {
             role: 'system',
@@ -75,12 +79,13 @@ vi.setConfig({
           },
         ],
         AIActionType.INSPECT_ELEMENT,
+        defaultModelConfig,
       );
       expect(result.content).toEqual({ answer: 15 });
     });
 
     it.skipIf(!isUiTars)('for ui-tars, call to get json result', async () => {
-      const result = await callToGetJSONObject<{ answer: number }>(
+      const result = await callAIWithObjectResponse<{ answer: number }>(
         [
           {
             role: 'system',
@@ -103,13 +108,14 @@ vi.setConfig({
           },
         ],
         AIActionType.INSPECT_ELEMENT,
+        defaultModelConfig,
       );
       expect(result.content).toEqual({ answer: 15 });
     });
 
     it('image input', async () => {
       const imagePath = getFixture('baidu.png');
-      const result = await call(
+      const result = await callAI(
         [
           {
             role: 'user',
@@ -129,6 +135,7 @@ vi.setConfig({
           },
         ],
         AIActionType.EXTRACT_DATA,
+        defaultModelConfig,
       );
 
       expect(result.content.length).toBeGreaterThan(10);

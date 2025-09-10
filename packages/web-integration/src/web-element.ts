@@ -10,6 +10,7 @@ import type ChromeExtensionProxyPage from './chrome-extension/page';
 import type { PlaywrightWebPage } from './playwright';
 import type { PuppeteerWebPage } from './puppeteer';
 import type { StaticPage } from './static';
+export type { WebElementInfo };
 
 export type WebPageAgentOpt = AgentOpt & WebPageOpt;
 export type WebPageOpt = {
@@ -83,9 +84,11 @@ export class WebElementInfoImpl implements WebElementInfo {
 const debug = getDebug('web:parse-context');
 export async function WebPageContextParser(
   page: AbstractInterface,
-  _opt?: any, // unused
+  _opt: { uploadServerUrl?: string },
 ): Promise<UIContext> {
-  const basicContext = await commonContextParser(page);
+  const basicContext = await commonContextParser(page, {
+    uploadServerUrl: _opt.uploadServerUrl,
+  });
 
   debug('will traverse element tree');
   const tree = (await page.getElementsNodeTree?.()) || {

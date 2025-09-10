@@ -19,7 +19,6 @@ import {
 } from '@/ai-model/service-caller';
 import { type DeviceAction, getMidsceneLocationSchema } from '@/index';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
-import { type IModelPreferences, vlLocateMode } from '@midscene/shared/env';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 // @ts-ignore no types in es folder
@@ -39,8 +38,6 @@ function createTempHtmlFile(content: string): string {
   fs.writeFileSync(filePath, content, 'utf8');
   return filePath;
 }
-
-const defaultIntent: IModelPreferences = { intent: 'default' };
 
 describe('utils', () => {
   it('tmpDir', () => {
@@ -307,31 +304,31 @@ describe('extractJSONFromCodeBlock', () => {
 
   it('should handle JSON with point coordinates', () => {
     const input = '(123,456)';
-    const result = safeParseJson(input, defaultIntent);
+    const result = safeParseJson(input, undefined);
     expect(result).toEqual([123, 456]);
   });
 
   it('should parse valid JSON string using JSON.parse', () => {
     const input = '{"key": "value"}';
-    const result = safeParseJson(input, defaultIntent);
+    const result = safeParseJson(input, undefined);
     expect(result).toEqual({ key: 'value' });
   });
 
   it('should parse dirty JSON using dirty-json parser', () => {
     const input = "{key: 'value'}"; // Invalid JSON but valid dirty-json
-    const result = safeParseJson(input, defaultIntent);
+    const result = safeParseJson(input, undefined);
     expect(result).toEqual({ key: 'value' });
   });
 
   it('should throw error for unparseable content', () => {
     const input = 'not a json at all';
-    const result = safeParseJson(input, defaultIntent);
+    const result = safeParseJson(input, undefined);
     expect(result).toEqual(input);
   });
 
   it('should parse JSON from code block', () => {
     const input = '```json\n{"key": "value"}\n```';
-    const result = safeParseJson(input, defaultIntent);
+    const result = safeParseJson(input, undefined);
     expect(result).toEqual({ key: 'value' });
   });
 
@@ -345,7 +342,7 @@ describe('extractJSONFromCodeBlock', () => {
         "nested": "value"
       }
     }`;
-    const result = safeParseJson(input, defaultIntent);
+    const result = safeParseJson(input, undefined);
     expect(result).toEqual({
       string: 'value',
       number: 123,
@@ -374,12 +371,7 @@ describe('qwen-vl', () => {
   });
 
   it('adaptBboxToRect - size exceed image size', () => {
-    const result = adaptBboxToRect(
-      [100, 200, 1000, 2000],
-      1000,
-      1000,
-      defaultIntent,
-    );
+    const result = adaptBboxToRect([100, 200, 1000, 2000], 1000, 1000);
     expect(result).toMatchInlineSnapshot(`
       {
         "height": 800,
@@ -392,14 +384,7 @@ describe('qwen-vl', () => {
 
   it('adaptBboxToRect - size exceed image size - 2', () => {
     // [ 158, 114, 526, 179 ] 684 301 611 221
-    const result = adaptBboxToRect(
-      [158, 114, 526, 179],
-      684,
-      301,
-      defaultIntent,
-      611,
-      221,
-    );
+    const result = adaptBboxToRect([158, 114, 526, 179], 684, 301, 611, 221);
     expect(result).toMatchInlineSnapshot(`
       {
         "height": 65,
@@ -608,14 +593,15 @@ describe('search area', () => {
   });
 
   it('expandSearchArea', () => {
+    const vlMode = undefined;
     const result = expandSearchArea(
       { left: 100, top: 100, width: 100, height: 100 },
       { width: 1000, height: 1000 },
-      defaultIntent,
+      vlMode,
     );
 
     // Dynamic expectation based on vlLocateMode
-    const isDoubaoVision = vlLocateMode(defaultIntent) === 'doubao-vision';
+    const isDoubaoVision = vlMode === 'doubao-vision';
     const expectedSize = isDoubaoVision ? 500 : 300;
 
     expect(result).toEqual({
@@ -627,10 +613,12 @@ describe('search area', () => {
   });
 
   it('expandSearchArea with a big rect', () => {
+    const vlMode = undefined;
+
     const result = expandSearchArea(
       { left: 100, top: 100, width: 500, height: 500 },
       { width: 1000, height: 1000 },
-      defaultIntent,
+      vlMode,
     );
     expect(result).toMatchInlineSnapshot(`
       {
@@ -643,14 +631,16 @@ describe('search area', () => {
   });
 
   it('expandSearchArea with a right-most rect', () => {
+    const vlMode = undefined;
+
     const result = expandSearchArea(
       { left: 951, top: 800, width: 50, height: 50 },
       { width: 1000, height: 1000 },
-      defaultIntent,
+      vlMode,
     );
 
     // Dynamic expectation based on vlLocateMode
-    const isDoubaoVision = vlLocateMode(defaultIntent) === 'doubao-vision';
+    const isDoubaoVision = vlMode === 'doubao-vision';
 
     if (isDoubaoVision) {
       // minEdgeSize = 500, paddingSize = 225

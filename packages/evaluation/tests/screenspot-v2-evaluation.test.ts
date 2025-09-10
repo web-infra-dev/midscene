@@ -1,12 +1,8 @@
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path, { resolve, join } from 'node:path';
-import Insight, {
-  type Rect,
-  MIDSCENE_MODEL_NAME,
-  getAIConfig,
-} from '@midscene/core';
+import Insight, { type Rect, MIDSCENE_MODEL_NAME } from '@midscene/core';
 import { sleep } from '@midscene/core/utils';
-import { vlLocateMode } from '@midscene/shared/env';
+import { globalModelConfigManager } from '@midscene/shared/env';
 import { imageInfoOfBase64, saveBase64Image } from '@midscene/shared/img';
 import dotenv from 'dotenv';
 import sharp from 'sharp';
@@ -155,7 +151,11 @@ async function processSample(
 
     const prompt = sample.instruction;
     const insight = new Insight(mockContext);
-    const result = await insight.locate({ prompt });
+    const result = await insight.locate(
+      { prompt },
+      {},
+      globalModelConfigManager.getModelConfig('default'),
+    );
     const { element, rect } = result;
 
     if (element && rect) {

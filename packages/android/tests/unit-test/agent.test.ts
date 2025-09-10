@@ -1,4 +1,9 @@
-import * as Env from '@midscene/shared/env';
+import {
+  MIDSCENE_MODEL_NAME,
+  MIDSCENE_USE_DOUBAO_VISION,
+  OPENAI_API_KEY,
+  OPENAI_BASE_URL,
+} from '@midscene/shared/env';
 import { ADB } from 'appium-adb';
 import {
   type Mock,
@@ -15,41 +20,53 @@ import * as Utils from '../../src/utils';
 
 vi.mock('appium-adb');
 vi.mock('../../src/device');
-vi.mock('@midscene/shared/env');
 vi.mock('../../src/utils');
 
+const mockedModelConfigFnResult = {
+  MIDSCENE_MODEL_NAME: 'mock',
+  MIDSCENE_OPENAI_API_KEY: 'mock',
+  MIDSCENE_OPENAI_BASE_URL: 'mock',
+  MIDSCENE_VL_MODE: 'doubao-vision',
+} as const;
+
 describe('AndroidAgent', () => {
-  let vlLocateModeSpy: any;
-
-  beforeEach(() => {
-    vlLocateModeSpy = vi.spyOn(Env, 'vlLocateMode');
-  });
-
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
   describe('constructor', () => {
     it('should throw an error if vlLocateMode is false', () => {
-      vlLocateModeSpy.mockReturnValue(false);
       const mockPage = new AndroidDevice('test-device');
-      expect(() => new AndroidAgent(mockPage)).toThrow(
+      expect(
+        () =>
+          new AndroidAgent(mockPage, {
+            modelConfig: () => ({
+              ...mockedModelConfigFnResult,
+              MIDSCENE_VL_MODE: undefined,
+            }),
+          }),
+      ).toThrow(
         'Android Agent only supports vl-model. https://midscenejs.com/choose-a-model.html',
       );
     });
 
     it('should not throw an error if vlLocateMode is true', () => {
-      vlLocateModeSpy.mockReturnValue(true);
       const mockPage = new AndroidDevice('test-device');
-      expect(() => new AndroidAgent(mockPage)).not.toThrow();
+      expect(
+        () =>
+          new AndroidAgent(mockPage, {
+            modelConfig: () => mockedModelConfigFnResult,
+          }),
+      ).not.toThrow();
     });
   });
 
   describe('launch', () => {
     it('should call page.launch with the given uri', async () => {
-      vlLocateModeSpy.mockReturnValue(true);
       const mockPage = new AndroidDevice('test-device');
-      const agent = new AndroidAgent(mockPage);
+      const agent = new AndroidAgent(mockPage, {
+        modelConfig: () => mockedModelConfigFnResult,
+      });
       const launchSpy = vi.spyOn(mockPage, 'launch');
       const uri = 'https://example.com';
 
@@ -60,8 +77,18 @@ describe('AndroidAgent', () => {
   });
 
   describe('agentFromAdbDevice', () => {
+    beforeEach(() => {
+      vi.stubEnv(MIDSCENE_USE_DOUBAO_VISION, 'true');
+      vi.stubEnv(MIDSCENE_MODEL_NAME, 'mock');
+      vi.stubEnv(OPENAI_API_KEY, 'mock');
+      vi.stubEnv(OPENAI_BASE_URL, 'mock');
+    });
+
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
     it('should use the first device if no deviceId is provided', async () => {
-      vlLocateModeSpy.mockReturnValue(true);
       const mockDevices = [{ udid: 'device-1' }, { udid: 'device-2' }];
       vi.spyOn(Utils, 'getConnectedDevices').mockResolvedValue(
         mockDevices as any,
@@ -86,7 +113,6 @@ describe('AndroidAgent', () => {
     });
 
     it('should use the specified deviceId', async () => {
-      vlLocateModeSpy.mockReturnValue(true);
       const mockConnect = vi.fn().mockResolvedValue(new ADB());
       (AndroidDevice as Mock).mockImplementation((deviceId, options) => {
         return {
@@ -106,7 +132,6 @@ describe('AndroidAgent', () => {
     });
 
     it('should pass options to AndroidDevice', async () => {
-      vlLocateModeSpy.mockReturnValue(true);
       const mockConnect = vi.fn().mockResolvedValue(new ADB());
       (AndroidDevice as Mock).mockImplementation((deviceId, options) => {
         return {

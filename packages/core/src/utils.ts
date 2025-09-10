@@ -7,10 +7,7 @@ import {
   defaultRunDirName,
   getMidsceneRunSubDir,
 } from '@midscene/shared/common';
-import {
-  MIDSCENE_DEBUG_MODE,
-  getUploadTestServerUrl,
-} from '@midscene/shared/env';
+import { MIDSCENE_DEBUG_MODE } from '@midscene/shared/env';
 import { getRunningPkgInfo } from '@midscene/shared/node';
 import { assert, logMsg } from '@midscene/shared/utils';
 import {
@@ -289,11 +286,12 @@ function debugLog(...message: any[]) {
 }
 
 let lastReportedRepoUrl = '';
-export function uploadTestInfoToServer({ testUrl }: { testUrl: string }) {
+export function uploadTestInfoToServer({
+  testUrl,
+  serverUrl,
+}: { testUrl: string; serverUrl?: string }) {
   let repoUrl = '';
   let userEmail = '';
-
-  const serverUrl = getUploadTestServerUrl();
 
   try {
     repoUrl = execSync('git config --get remote.origin.url').toString().trim();

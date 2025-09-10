@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { UITarsModelVersion } from '../../../src/env/';
 import {
   parseVlModeAndUiTarsFromGlobalConfig,
-  parseVlModeAndUiTarsFromRaw,
+  parseVlModeAndUiTarsModelVersionFromRawValue,
 } from '../../../src/env/parse';
-import { UITarsModelVersion } from '../../../src/env/parse';
 import {
   MIDSCENE_USE_DOUBAO_VISION,
   MIDSCENE_USE_GEMINI,
@@ -13,55 +13,65 @@ import {
 
 describe('parseVlModeAndUiTarsFromRaw', () => {
   it('should return undefined for both vlMode and uiTarsVersion when raw value is empty', () => {
-    expect(parseVlModeAndUiTarsFromRaw(undefined)).toEqual({
+    expect(parseVlModeAndUiTarsModelVersionFromRawValue(undefined)).toEqual({
       vlMode: undefined,
       uiTarsVersion: undefined,
     });
   });
 
   it('should throw an error for invalid raw value', () => {
-    expect(() => parseVlModeAndUiTarsFromRaw('invalid-mode')).toThrow(
+    expect(() =>
+      parseVlModeAndUiTarsModelVersionFromRawValue('invalid-mode'),
+    ).toThrow(
       'the value invalid-mode is not a valid VL_MODE value, must be one of doubao-vision,gemini,qwen-vl,vlm-ui-tars,vlm-ui-tars-doubao,vlm-ui-tars-doubao-1.5',
     );
   });
 
   it('should correctly parse "vlm-ui-tars"', () => {
-    expect(parseVlModeAndUiTarsFromRaw('vlm-ui-tars')).toEqual({
-      vlMode: 'vlm-ui-tars',
-      uiTarsVersion: UITarsModelVersion.V1_0,
-    });
+    expect(parseVlModeAndUiTarsModelVersionFromRawValue('vlm-ui-tars')).toEqual(
+      {
+        vlMode: 'vlm-ui-tars',
+        uiTarsVersion: UITarsModelVersion.V1_0,
+      },
+    );
   });
 
   it('should correctly parse "vlm-ui-tars-doubao"', () => {
-    expect(parseVlModeAndUiTarsFromRaw('vlm-ui-tars-doubao')).toEqual({
+    expect(
+      parseVlModeAndUiTarsModelVersionFromRawValue('vlm-ui-tars-doubao'),
+    ).toEqual({
       vlMode: 'vlm-ui-tars',
       uiTarsVersion: UITarsModelVersion.DOUBAO_1_5_20B,
     });
   });
 
   it('should correctly parse "vlm-ui-tars-doubao-1.5"', () => {
-    expect(parseVlModeAndUiTarsFromRaw('vlm-ui-tars-doubao-1.5')).toEqual({
+    expect(
+      parseVlModeAndUiTarsModelVersionFromRawValue('vlm-ui-tars-doubao-1.5'),
+    ).toEqual({
       vlMode: 'vlm-ui-tars',
       uiTarsVersion: UITarsModelVersion.DOUBAO_1_5_20B,
     });
   });
 
   it('should correctly parse "doubao-vision"', () => {
-    expect(parseVlModeAndUiTarsFromRaw('doubao-vision')).toEqual({
+    expect(
+      parseVlModeAndUiTarsModelVersionFromRawValue('doubao-vision'),
+    ).toEqual({
       vlMode: 'doubao-vision',
       uiTarsVersion: undefined,
     });
   });
 
   it('should correctly parse "gemini"', () => {
-    expect(parseVlModeAndUiTarsFromRaw('gemini')).toEqual({
+    expect(parseVlModeAndUiTarsModelVersionFromRawValue('gemini')).toEqual({
       vlMode: 'gemini',
       uiTarsVersion: undefined,
     });
   });
 
   it('should correctly parse "qwen-vl"', () => {
-    expect(parseVlModeAndUiTarsFromRaw('qwen-vl')).toEqual({
+    expect(parseVlModeAndUiTarsModelVersionFromRawValue('qwen-vl')).toEqual({
       vlMode: 'qwen-vl',
       uiTarsVersion: undefined,
     });

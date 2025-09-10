@@ -11,11 +11,7 @@ import type {
   ReferenceImage,
   UIContext,
 } from '@/types';
-import {
-  type IModelPreferences,
-  getIsUseQwenVl,
-  vlLocateMode,
-} from '@midscene/shared/env';
+import type { IModelConfig } from '@midscene/shared/env';
 import {
   cropByRect,
   paddingToMatchBlockByBase64,
@@ -31,7 +27,6 @@ import type { TMultimodalPrompt, TUserPrompt } from './common';
 import {
   AIActionType,
   adaptBboxToRect,
-  callAiFn,
   expandSearchArea,
   markupImageForLLM,
   mergeRects,
@@ -54,7 +49,7 @@ import {
   distanceThreshold,
   elementByPositionWithElementInfo,
 } from './prompt/util';
-import { callToGetJSONObject } from './service-caller/index';
+import { callAIWithObjectResponse } from './service-caller/index';
 
 export type AIArgs = [
   ChatCompletionSystemMessageParam,
@@ -126,8 +121,11 @@ export async function AiLocateElement<
   context: UIContext<ElementType>;
   targetElementDescription: TUserPrompt;
   referenceImage?: ReferenceImage;
-  callAI?: typeof callAiFn<AIElementResponse | [number, number]>;
+  callAIFn: typeof callAIWithObjectResponse<
+    AIElementResponse | [number, number]
+  >;
   searchConfig?: Awaited<ReturnType<typeof AiLocateSection>>;
+  modelConfig: IModelConfig;
 }): Promise<{
   parseResult: AIElementLocatorResponse;
   rect?: Rect;
@@ -136,28 +134,22 @@ export async function AiLocateElement<
   usage?: AIUsageInfo;
   isOrderSensitive?: boolean;
 }> {
-  const { context, targetElementDescription, callAI } = options;
+  const { context, targetElementDescription, callAIFn, modelConfig } = options;
+  const { vlMode } = modelConfig;
   const { screenshotBase64 } = context;
 
-  const modelPreferences: IModelPreferences = {
-    intent: 'grounding',
-  };
-
   const { description, elementById, insertElementByPosition } =
-    await describeUserPage(context, modelPreferences);
+    await describeUserPage(context, { vlMode });
 
   assert(
     targetElementDescription,
     'cannot find the target element description',
   );
-
   const userInstructionPrompt = await findElementPrompt.format({
     pageDescription: description,
     targetElementDescription: extraTextFromUserPrompt(targetElementDescription),
   });
-  const systemPrompt = systemPromptToLocateElement(
-    vlLocateMode(modelPreferences),
-  );
+  const systemPrompt = systemPromptToLocateElement(vlMode);
 
   let imagePayload = screenshotBase64;
 
@@ -172,9 +164,9 @@ export async function AiLocateElement<
     );
 
     imagePayload = options.searchConfig.imageBase64;
-  } else if (vlLocateMode(modelPreferences) === 'qwen-vl') {
+  } else if (vlMode === 'qwen-vl') {
     imagePayload = await paddingToMatchBlockByBase64(imagePayload);
-  } else if (!vlLocateMode(modelPreferences)) {
+  } else if (!vlMode) {
     imagePayload = await markupImageForLLM(
       screenshotBase64,
       context.tree,
@@ -210,12 +202,7 @@ export async function AiLocateElement<
     msgs.push(...addOns);
   }
 
-  const callAIFn =
-    callAI || callToGetJSONObject<AIElementResponse | [number, number]>;
-
-  const res = await callAIFn(msgs, AIActionType.INSPECT_ELEMENT, {
-    intent: 'grounding',
-  });
+  const res = await callAIFn(msgs, AIActionType.INSPECT_ELEMENT, modelConfig);
 
   const rawResponse = JSON.stringify(res.content);
 
@@ -230,9 +217,9 @@ export async function AiLocateElement<
         res.content.bbox,
         options.searchConfig?.rect?.width || context.size.width,
         options.searchConfig?.rect?.height || context.size.height,
-        modelPreferences,
         options.searchConfig?.rect?.left,
         options.searchConfig?.rect?.top,
+        vlMode,
       );
       debugInspect('resRect', resRect);
 
@@ -288,7 +275,7 @@ export async function AiLocateElement<
 export async function AiLocateSection(options: {
   context: UIContext<BaseElement>;
   sectionDescription: TUserPrompt;
-  callAI?: typeof callAiFn<AISectionLocatorResponse>;
+  modelConfig: IModelConfig;
 }): Promise<{
   rect?: Rect;
   imageBase64?: string;
@@ -296,16 +283,11 @@ export async function AiLocateSection(options: {
   rawResponse: string;
   usage?: AIUsageInfo;
 }> {
-  const { context, sectionDescription } = options;
+  const { context, sectionDescription, modelConfig } = options;
+  const { vlMode } = modelConfig;
   const { screenshotBase64 } = context;
 
-  const modelPreferences: IModelPreferences = {
-    intent: 'grounding',
-  };
-
-  const systemPrompt = systemPromptToLocateSection(
-    vlLocateMode(modelPreferences),
-  );
+  const systemPrompt = systemPromptToLocateSection(vlMode);
   const sectionLocatorInstructionText = await sectionLocatorInstruction.format({
     sectionDescription: extraTextFromUserPrompt(sectionDescription),
   });
@@ -337,12 +319,10 @@ export async function AiLocateSection(options: {
     msgs.push(...addOns);
   }
 
-  const result = await callAiFn<AISectionLocatorResponse>(
+  const result = await callAIWithObjectResponse<AISectionLocatorResponse>(
     msgs,
     AIActionType.EXTRACT_DATA,
-    {
-      intent: 'grounding',
-    },
+    modelConfig,
   );
 
   let sectionRect: Rect | undefined;
@@ -352,7 +332,9 @@ export async function AiLocateSection(options: {
       sectionBbox,
       context.size.width,
       context.size.height,
-      modelPreferences,
+      0,
+      0,
+      vlMode,
     );
     debugSection('original targetRect %j', targetRect);
 
@@ -366,7 +348,9 @@ export async function AiLocateSection(options: {
           bbox,
           context.size.width,
           context.size.height,
-          modelPreferences,
+          0,
+          0,
+          vlMode,
         );
       });
     debugSection('referenceRects %j', referenceRects);
@@ -376,7 +360,7 @@ export async function AiLocateSection(options: {
     debugSection('mergedRect %j', mergedRect);
 
     // expand search area to at least 200 x 200
-    sectionRect = expandSearchArea(mergedRect, context.size, modelPreferences);
+    sectionRect = expandSearchArea(mergedRect, context.size, vlMode);
     debugSection('expanded sectionRect %j', sectionRect);
   }
 
@@ -385,9 +369,7 @@ export async function AiLocateSection(options: {
     imageBase64 = await cropByRect(
       screenshotBase64,
       sectionRect,
-      getIsUseQwenVl({
-        intent: 'grounding',
-      }),
+      vlMode === 'qwen-vl',
     );
   }
 
@@ -408,29 +390,22 @@ export async function AiExtractElementInfo<
   multimodalPrompt?: TMultimodalPrompt;
   context: UIContext<ElementType>;
   extractOption?: InsightExtractOption;
-  modelPreferences: IModelPreferences;
+  modelConfig: IModelConfig;
 }) {
-  const {
-    dataQuery,
-    context,
-    extractOption,
-    multimodalPrompt,
-    modelPreferences,
-  } = options;
+  const { dataQuery, context, extractOption, multimodalPrompt, modelConfig } =
+    options;
+  const { vlMode } = modelConfig;
   const systemPrompt = systemPromptToExtract();
 
   const { screenshotBase64 } = context;
 
-  const { description, elementById } = await describeUserPage(
-    context,
-    modelPreferences,
-    {
-      truncateTextLength: 200,
-      filterNonTextContent: false,
-      visibleOnly: false,
-      domIncluded: extractOption?.domIncluded,
-    },
-  );
+  const { description, elementById } = await describeUserPage(context, {
+    truncateTextLength: 200,
+    filterNonTextContent: false,
+    visibleOnly: false,
+    domIncluded: extractOption?.domIncluded,
+    vlMode,
+  });
 
   const extractDataPromptText = await extractDataQueryPrompt(
     description,
@@ -477,10 +452,10 @@ export async function AiExtractElementInfo<
     msgs.push(...addOns);
   }
 
-  const result = await callAiFn<AIDataExtractionResponse<T>>(
+  const result = await callAIWithObjectResponse<AIDataExtractionResponse<T>>(
     msgs,
     AIActionType.EXTRACT_DATA,
-    modelPreferences,
+    modelConfig,
   );
   return {
     parseResult: result.content,

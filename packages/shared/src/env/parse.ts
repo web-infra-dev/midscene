@@ -5,30 +5,11 @@ import {
   MIDSCENE_USE_VLM_UI_TARS,
   type TVlModeTypes,
   type TVlModeValues,
+  UITarsModelVersion,
+  VL_MODE_RAW_VALID_VALUES,
 } from './types';
 
-export enum UITarsModelVersion {
-  V1_0 = '1.0',
-  V1_5 = '1.5',
-  DOUBAO_1_5_15B = 'doubao-1.5-15B',
-  DOUBAO_1_5_20B = 'doubao-1.5-20B',
-}
-
-const vlModeRawValidValues: TVlModeValues[] = [
-  'doubao-vision',
-  'gemini',
-  'qwen-vl',
-  'vlm-ui-tars',
-  'vlm-ui-tars-doubao',
-  'vlm-ui-tars-doubao-1.5',
-];
-
-/**
- *
- * @param vlModeRaw
- * @returns
- */
-export const parseVlModeAndUiTarsFromRaw = (
+export const parseVlModeAndUiTarsModelVersionFromRawValue = (
   vlModeRaw?: string,
 ): {
   vlMode?: TVlModeTypes;
@@ -41,9 +22,9 @@ export const parseVlModeAndUiTarsFromRaw = (
     };
   }
 
-  if (!vlModeRawValidValues.includes(vlModeRaw as never)) {
+  if (!VL_MODE_RAW_VALID_VALUES.includes(vlModeRaw as never)) {
     throw new Error(
-      `the value ${vlModeRaw} is not a valid VL_MODE value, must be one of ${vlModeRawValidValues}`,
+      `the value ${vlModeRaw} is not a valid VL_MODE value, must be one of ${VL_MODE_RAW_VALID_VALUES}`,
     );
   }
   const raw = vlModeRaw as TVlModeValues;

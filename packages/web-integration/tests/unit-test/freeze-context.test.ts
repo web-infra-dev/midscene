@@ -59,7 +59,6 @@ describe('PageAgent freeze/unfreeze page context', () => {
       ],
     } as unknown as WebUIContext;
 
-    globalConfigManager.reset();
     // Create agent instance
     agent = new PageAgent(mockPage, {
       generateReport: false,
@@ -158,7 +157,6 @@ describe('PageAgent freeze/unfreeze page context', () => {
 
   describe('Context isolation and lifecycle', () => {
     it('should not share context between different agents', async () => {
-      globalConfigManager.reset();
       const agent2 = new PageAgent(mockPage, {
         generateReport: false,
         autoPrintReportMsg: false,

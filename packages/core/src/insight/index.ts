@@ -1,19 +1,13 @@
-import {
-  AIActionType,
-  type AIArgs,
-  callAiFn,
-  expandSearchArea,
-} from '@/ai-model/common';
+import { AIActionType, type AIArgs, expandSearchArea } from '@/ai-model/common';
 import {
   AiExtractElementInfo,
   AiLocateElement,
-  callToGetJSONObject,
+  callAIWithObjectResponse,
 } from '@/ai-model/index';
 import { AiLocateSection } from '@/ai-model/inspect';
 import { elementDescriberInstruction } from '@/ai-model/prompt/describe';
 import type {
   AIDescribeElementResponse,
-  AIElementResponse,
   AIUsageInfo,
   BaseElement,
   DetailedLocateParam,
@@ -21,7 +15,6 @@ import type {
   InsightAction,
   InsightExtractOption,
   InsightExtractParam,
-  InsightOptions,
   InsightTaskInfo,
   LocateResult,
   PartialInsightDumpFromSDK,
@@ -29,11 +22,9 @@ import type {
   UIContext,
 } from '@/types';
 import {
-  type IModelPreferences,
+  type IModelConfig,
   MIDSCENE_FORCE_DEEP_THINK,
-  getIsUseQwenVl,
   globalConfigManager,
-  vlLocateMode,
 } from '@midscene/shared/env';
 import { compositeElementInfoImg, cropByRect } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
@@ -43,12 +34,16 @@ import { emitInsightDump } from './utils';
 
 export interface LocateOpts {
   context?: UIContext<BaseElement>;
-  callAI?: typeof callAiFn<AIElementResponse>;
 }
 
 export type AnyValue<T> = {
   [K in keyof T]: unknown extends T[K] ? any : T[K];
 };
+
+interface InsightOptions {
+  taskInfo?: Omit<InsightTaskInfo, 'durationMs'>;
+  aiVendorFn?: typeof callAIWithObjectResponse;
+}
 
 const debug = getDebug('ai:insight');
 export default class Insight<
@@ -59,7 +54,8 @@ export default class Insight<
     action: InsightAction,
   ) => Promise<ContextType> | ContextType;
 
-  aiVendorFn: (...args: Array<any>) => Promise<any> = callAiFn;
+  aiVendorFn: Exclude<InsightOptions['aiVendorFn'], undefined> =
+    callAIWithObjectResponse;
 
   onceDumpUpdatedFn?: DumpSubscriber;
 
@@ -78,6 +74,7 @@ export default class Insight<
       this.contextRetrieverFn = () => Promise.resolve(context);
     }
 
+    // just for unit test, aiVendorFn is callAIWithObjectResponse by default
     if (typeof opt?.aiVendorFn !== 'undefined') {
       this.aiVendorFn = opt.aiVendorFn;
     }
@@ -88,9 +85,9 @@ export default class Insight<
 
   async locate(
     query: DetailedLocateParam,
-    opt?: LocateOpts,
+    opt: LocateOpts,
+    modelConfig: IModelConfig,
   ): Promise<LocateResult> {
-    const { callAI } = opt || {};
     const queryPrompt = typeof query === 'string' ? query : query.prompt;
     assert(queryPrompt, 'query is required for locate');
     const dumpSubscriber = this.onceDumpUpdatedFn;
@@ -108,11 +105,10 @@ export default class Insight<
     if (query.deepThink || globalDeepThinkSwitch) {
       searchAreaPrompt = query.prompt;
     }
-    const modelPreferences: IModelPreferences = {
-      intent: 'grounding',
-    };
 
-    if (searchAreaPrompt && !vlLocateMode(modelPreferences)) {
+    const { vlMode } = modelConfig;
+
+    if (searchAreaPrompt && !vlMode) {
       console.warn(
         'The "deepThink" feature is not supported with multimodal LLM. Please config VL model for Midscene. https://midscenejs.com/choose-a-model',
       );
@@ -131,6 +127,7 @@ export default class Insight<
       searchAreaResponse = await AiLocateSection({
         context,
         sectionDescription: searchAreaPrompt,
+        modelConfig,
       });
       assert(
         searchAreaResponse.rect,
@@ -152,10 +149,11 @@ export default class Insight<
       usage,
       isOrderSensitive,
     } = await AiLocateElement({
-      callAI: callAI || this.aiVendorFn,
+      callAIFn: this.aiVendorFn,
       context,
       targetElementDescription: queryPrompt,
       searchConfig: searchAreaResponse,
+      modelConfig,
     });
 
     const timeCost = Date.now() - startTime;
@@ -242,6 +240,7 @@ export default class Insight<
 
   async extract<T>(
     dataDemand: InsightExtractParam,
+    modelConfig: IModelConfig,
     opt?: InsightExtractOption,
     multimodalPrompt?: TMultimodalPrompt,
   ): Promise<{
@@ -256,19 +255,16 @@ export default class Insight<
     const dumpSubscriber = this.onceDumpUpdatedFn;
     this.onceDumpUpdatedFn = undefined;
 
-    const modelPreferences: IModelPreferences = {
-      intent: 'VQA',
-    };
-
     const context = await this.contextRetrieverFn('extract');
 
     const startTime = Date.now();
+
     const { parseResult, usage } = await AiExtractElementInfo<T>({
       context,
       dataQuery: dataDemand,
       multimodalPrompt,
       extractOption: opt,
-      modelPreferences,
+      modelConfig,
     });
 
     const timeCost = Date.now() - startTime;
@@ -318,6 +314,7 @@ export default class Insight<
 
   async describe(
     target: Rect | [number, number],
+    modelConfig: IModelConfig,
     opt?: {
       deepThink?: boolean;
     },
@@ -327,7 +324,7 @@ export default class Insight<
     const { screenshotBase64, size } = context;
     assert(screenshotBase64, 'screenshot is required for insight.describe');
     // The result of the "describe" function will be used for positioning, so essentially it is a form of grounding.
-    const modelPreferences: IModelPreferences = { intent: 'grounding' };
+    const { vlMode } = modelConfig;
     const systemPrompt = elementDescriberInstruction();
 
     // Convert [x,y] center point to Rect if needed
@@ -353,16 +350,12 @@ export default class Insight<
     });
 
     if (opt?.deepThink) {
-      const searchArea = expandSearchArea(
-        targetRect,
-        context.size,
-        modelPreferences,
-      );
+      const searchArea = expandSearchArea(targetRect, context.size, vlMode);
       debug('describe: set searchArea', searchArea);
       imagePayload = await cropByRect(
         imagePayload,
         searchArea,
-        getIsUseQwenVl(modelPreferences),
+        vlMode === 'qwen-vl',
       );
     }
 
@@ -382,13 +375,13 @@ export default class Insight<
       },
     ];
 
-    const callAIFn =
-      this.aiVendorFn || callToGetJSONObject<AIDescribeElementResponse>;
+    const callAIFn = this
+      .aiVendorFn as typeof callAIWithObjectResponse<AIDescribeElementResponse>;
 
     const res = await callAIFn(
       msgs,
       AIActionType.DESCRIBE_ELEMENT,
-      modelPreferences,
+      modelConfig,
     );
 
     const { content } = res;

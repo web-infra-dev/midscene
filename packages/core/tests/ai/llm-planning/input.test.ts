@@ -1,6 +1,6 @@
 import { plan } from '@/ai-model';
 import type { DeviceAction } from '@/types';
-import { globalConfigManager } from '@midscene/shared/env';
+import { globalModelConfigManager } from '@midscene/shared/env';
 import { getContextFromFixture } from 'tests/evaluation';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
@@ -20,9 +20,7 @@ const mockActionSpace: DeviceAction[] = [
   },
 ];
 
-beforeAll(async () => {
-  await globalConfigManager.init();
-});
+const defaultModelConfig = globalModelConfigManager.getModelConfig('default');
 
 describe('automation - planning input', () => {
   it('input value', async () => {
@@ -37,6 +35,7 @@ describe('automation - planning input', () => {
         context,
         actionSpace: mockActionSpace,
         interfaceType: 'puppeteer',
+        modelConfig: defaultModelConfig,
       });
       expect(actions).toBeDefined();
       expect(actions?.length).toBeGreaterThan(0);
@@ -56,6 +55,7 @@ describe('automation - planning input', () => {
         context,
         actionSpace: mockActionSpace,
         interfaceType: 'puppeteer',
+        modelConfig: defaultModelConfig,
       });
       expect(actions).toBeDefined();
       expect(actions?.length).toBeGreaterThan(0);

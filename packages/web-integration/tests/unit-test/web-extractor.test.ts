@@ -1,7 +1,6 @@
 import { join } from 'node:path';
 import { WebPageContextParser } from '@/web-element';
 import type { WebElementInfo } from '@/web-element';
-import { globalConfigManager } from '@midscene/shared/env';
 import { traverseTree, treeToList } from '@midscene/shared/extractor';
 import {
   compositeElementInfoImg,
@@ -33,12 +32,6 @@ describe(
         });
       });
 
-      globalConfigManager.init(() => ({
-        MIDSCENE_MODEL_NAME: 'mock-model',
-        MIDSCENE_OPENAI_API_KEY: 'mock-api-key',
-        MIDSCENE_OPENAI_BASE_URL: 'mock-base-url',
-      }));
-
       return () => {
         (localServer as any).server.close();
       };
@@ -53,7 +46,7 @@ describe(
         },
       });
 
-      const { tree, screenshotBase64 } = await WebPageContextParser(page);
+      const { tree, screenshotBase64 } = await WebPageContextParser(page, {});
       const content = treeToList(tree);
       const markedImg = await compositeElementInfoImg({
         inputImgBase64: await page.screenshotBase64(),
@@ -101,7 +94,7 @@ describe(
         },
       );
 
-      const { tree } = await WebPageContextParser(page);
+      const { tree } = await WebPageContextParser(page, {});
       const content = treeToList(tree);
       // Merge children rects of html element
       expect(content[0].rect.width).toBeGreaterThan(25);
@@ -135,7 +128,7 @@ describe(
         return items.find((item) => item.attributes?.id === 'J_resize');
       };
 
-      const { tree } = await WebPageContextParser(page);
+      const { tree } = await WebPageContextParser(page, {});
       const content = treeToList(tree);
       const item = filterTargetElement(content);
       expect(item).toBeDefined();
@@ -146,7 +139,7 @@ describe(
 
       await new Promise((resolve) => setTimeout(resolve, 3000 + 1000));
 
-      const { tree: tree2 } = await WebPageContextParser(page);
+      const { tree: tree2 } = await WebPageContextParser(page, {});
       const content2 = treeToList(tree2);
       const item2 = filterTargetElement(content2);
       expect(item2).toBeDefined();
@@ -193,7 +186,7 @@ describe(
       const { page, reset } = await launchPage('https://www.bytedance.com');
       await new Promise((resolve) => setTimeout(resolve, 1000));
       console.time('total - WebPageContextParser');
-      await WebPageContextParser(page);
+      await WebPageContextParser(page, {});
       console.timeEnd('total - WebPageContextParser');
       await reset();
     });

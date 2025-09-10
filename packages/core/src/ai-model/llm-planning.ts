@@ -4,7 +4,7 @@ import type {
   PlanningAIResponse,
   UIContext,
 } from '@/types';
-import { type IModelPreferences, vlLocateMode } from '@midscene/shared/env';
+import type { IModelConfig } from '@midscene/shared/env';
 import { paddingToMatchBlockByBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
@@ -12,7 +12,6 @@ import {
   AIActionType,
   type AIArgs,
   buildYamlFlowFromPlans,
-  callAiFn,
   fillBboxParam,
   findAllMidsceneLocatorField,
   markupImageForLLM,
@@ -24,6 +23,7 @@ import {
   systemPromptToTaskPlanning,
 } from './prompt/llm-planning';
 import { describeUserPage } from './prompt/util';
+import { callAIWithObjectResponse } from './service-caller/index';
 
 const debug = getDebug('planning');
 
@@ -33,42 +33,38 @@ export async function plan(
     context: UIContext;
     interfaceType: InterfaceType;
     actionSpace: DeviceAction<any>[];
-    callAI?: typeof callAiFn<PlanningAIResponse>;
     log?: string;
     actionContext?: string;
+    modelConfig: IModelConfig;
   },
 ): Promise<PlanningAIResponse> {
-  const { callAI, context } = opts || {};
+  const { context, modelConfig } = opts;
   const { screenshotBase64, size } = context;
 
-  const modelPreferences: IModelPreferences = {
-    intent: 'planning',
-  };
+  const { modelName, vlMode } = modelConfig;
+
   const { description: pageDescription, elementById } = await describeUserPage(
     context,
-    modelPreferences,
+    { vlMode },
   );
-
   const systemPrompt = await systemPromptToTaskPlanning({
     actionSpace: opts.actionSpace,
-    vlMode: vlLocateMode(modelPreferences),
+    vlMode: vlMode,
   });
   const taskBackgroundContextText = generateTaskBackgroundContext(
     userInstruction,
     opts.log,
     opts.actionContext,
   );
-  const userInstructionPrompt = await automationUserPrompt(
-    vlLocateMode(modelPreferences),
-  ).format({
+  const userInstructionPrompt = await automationUserPrompt(vlMode).format({
     pageDescription,
     taskBackgroundContext: taskBackgroundContextText,
   });
 
   let imagePayload = screenshotBase64;
-  if (vlLocateMode(modelPreferences) === 'qwen-vl') {
+  if (vlMode === 'qwen-vl') {
     imagePayload = await paddingToMatchBlockByBase64(imagePayload);
-  } else if (!vlLocateMode(modelPreferences)) {
+  } else if (!vlMode) {
     imagePayload = await markupImageForLLM(
       screenshotBase64,
       context.tree,
@@ -76,7 +72,7 @@ export async function plan(
     );
   }
 
-  warnGPT4oSizeLimit(size, modelPreferences);
+  warnGPT4oSizeLimit(size, modelName);
 
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
@@ -98,11 +94,10 @@ export async function plan(
     },
   ];
 
-  const call = callAI || callAiFn;
-  const { content, usage } = await call(
+  const { content, usage } = await callAIWithObjectResponse<PlanningAIResponse>(
     msgs,
     AIActionType.PLAN,
-    modelPreferences,
+    modelConfig,
   );
   const rawResponse = JSON.stringify(content, undefined, 2);
   const planFromAI = content;
@@ -140,12 +135,12 @@ export async function plan(
     locateFields.forEach((field) => {
       const locateResult = action.param[field];
       if (locateResult) {
-        if (vlLocateMode(modelPreferences)) {
+        if (vlMode) {
           action.param[field] = fillBboxParam(
             locateResult,
             size.width,
             size.height,
-            modelPreferences,
+            vlMode,
           );
         } else {
           const element = elementById(locateResult);

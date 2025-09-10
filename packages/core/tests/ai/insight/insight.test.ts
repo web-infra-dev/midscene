@@ -1,8 +1,10 @@
 import { distance } from '@/ai-model/prompt/util';
 import Insight from '@/insight';
 import { sleep } from '@/utils';
-import { vlLocateMode } from '@midscene/shared/env';
-import { globalConfigManager } from '@midscene/shared/env';
+import {
+  globalConfigManager,
+  globalModelConfigManager,
+} from '@midscene/shared/env';
 import { getContextFromFixture } from 'tests/evaluation';
 import { beforeAll, describe, expect, test, vi } from 'vitest';
 
@@ -10,21 +12,21 @@ vi.setConfig({
   testTimeout: 60 * 1000,
 });
 
-const vlMode = vlLocateMode({ intent: 'grounding' });
+const modelConfig = globalModelConfigManager.getModelConfig('grounding');
 
-beforeAll(async () => {
-  await globalConfigManager.init();
-});
-
-describe.skipIf(!vlMode)('insight locate with deep think', () => {
+describe.skipIf(!modelConfig.vlMode)('insight locate with deep think', () => {
   test('insight locate with search area', async () => {
     const { context } = await getContextFromFixture('taobao');
 
     const insight = new Insight(context);
-    const { element } = await insight.locate({
-      prompt: '购物车 icon',
-      deepThink: true,
-    });
+    const { element } = await insight.locate(
+      {
+        prompt: '购物车 icon',
+        deepThink: true,
+      },
+      {},
+      modelConfig,
+    );
     expect(element).toBeDefined();
 
     await sleep(3000);
@@ -34,10 +36,14 @@ describe.skipIf(!vlMode)('insight locate with deep think', () => {
     const { context } = await getContextFromFixture('taobao');
 
     const insight = new Insight(context);
-    const { element, rect } = await insight.locate({
-      prompt: '顶部购物车 icon',
-      deepThink: true,
-    });
+    const { element, rect } = await insight.locate(
+      {
+        prompt: '顶部购物车 icon',
+        deepThink: true,
+      },
+      {},
+      modelConfig,
+    );
     expect(element).toBeDefined();
     expect(rect).toBeDefined();
     expect(
@@ -64,10 +70,14 @@ test.skip('insight locate with search area', async () => {
   const { context } = await getContextFromFixture('image-only');
 
   const insight = new Insight(context);
-  const { element, rect } = await insight.locate({
-    prompt: '-',
-    deepThink: true,
-  });
+  const { element, rect } = await insight.locate(
+    {
+      prompt: '-',
+      deepThink: true,
+    },
+    {},
+    modelConfig,
+  );
   console.log(element, rect);
   await sleep(3000);
 });
@@ -81,12 +91,15 @@ describe(
     test('insight describe - by rect', async () => {
       const { context } = await getContextFromFixture('taobao');
       const insight = new Insight(context);
-      const { description } = await insight.describe({
-        left: 580,
-        top: 140,
-        width: 80,
-        height: 30,
-      });
+      const { description } = await insight.describe(
+        {
+          left: 580,
+          top: 140,
+          width: 80,
+          height: 30,
+        },
+        modelConfig,
+      );
 
       expect(description).toBeDefined();
     });
@@ -94,7 +107,7 @@ describe(
     test('insight describe - by center point', async () => {
       const { context } = await getContextFromFixture('taobao');
       const insight = new Insight(context);
-      const { description } = await insight.describe([580, 140]);
+      const { description } = await insight.describe([580, 140], modelConfig);
 
       expect(description).toBeDefined();
     });

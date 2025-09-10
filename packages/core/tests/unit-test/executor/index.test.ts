@@ -6,6 +6,7 @@ import type {
   ExecutionTaskInsightLocateApply,
   InsightDump,
 } from '@/index';
+import { globalModelConfigManager } from '@midscene/shared/env';
 import { fakeInsight } from 'tests/utils';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -31,9 +32,18 @@ const insightFindTask = (shouldThrow?: boolean) => {
         await new Promise((resolve) => setTimeout(resolve, 100));
         throw new Error('test-error');
       }
-      const { element } = await insight.locate({
-        prompt: param.prompt,
-      });
+      const { element } = await insight.locate(
+        {
+          prompt: param.prompt,
+        },
+        {},
+        {
+          modelName: 'mock-model',
+          modelDescription: 'mock-model-description',
+          intent: 'default',
+          from: 'legacy-env',
+        },
+      );
       return {
         output: {
           element,

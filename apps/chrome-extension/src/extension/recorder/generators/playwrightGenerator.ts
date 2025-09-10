@@ -7,6 +7,7 @@ import type {
 } from '@midscene/core';
 // Note: Streaming support will be added once the core package exports are updated
 import { generatePlaywrightTestStream as coreGeneratePlaywrightTestStream } from '@midscene/core/ai-model';
+import type { IModelConfig } from '@midscene/shared/env';
 import { recordLogger } from '../logger';
 import { handleTestGenerationError } from './shared/testGenerationUtils';
 
@@ -71,7 +72,8 @@ export const extractNavigationAndViewportInfo = (
 // TODO: Add streaming support once core package exports are updated
 export const generatePlaywrightTestStream = async (
   events: ChromeRecordedEvent[],
-  options: StreamingCodeGenerationOptions = {},
+  options: StreamingCodeGenerationOptions,
+  modelConfig: IModelConfig,
 ): Promise<StreamingAIResponse> => {
   try {
     recordLogger.info('Starting streaming Playwright test generation', {
@@ -96,6 +98,7 @@ export const generatePlaywrightTestStream = async (
     const result = await coreGeneratePlaywrightTestStream(
       events,
       enhancedOptions,
+      modelConfig,
     );
 
     recordLogger.success('Streaming Playwright test generated successfully', {

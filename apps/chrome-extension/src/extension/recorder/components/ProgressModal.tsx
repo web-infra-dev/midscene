@@ -13,6 +13,7 @@ import {
 } from '@ant-design/icons';
 import type { CodeGenerationChunk, StreamingCallback } from '@midscene/core';
 import type { ChromeRecordedEvent } from '@midscene/recorder';
+import { globalModelConfigManager } from '@midscene/shared/env';
 import { Button, Select, Tooltip, Typography, message } from 'antd';
 import type React from 'react';
 import { useEffect, useState } from 'react';
@@ -194,6 +195,8 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
     );
   };
 
+  const defaultModelConfig = globalModelConfigManager.getModelConfig('default');
+
   // Generate session title and description using AI
   const generateSessionTitleAndDescription = async (
     finalEvents: ChromeRecordedEvent[],
@@ -216,7 +219,10 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
           details: 'Analyzing session content...',
         });
 
-        const { title, description } = await generateRecordTitle(finalEvents);
+        const { title, description } = await generateRecordTitle(
+          finalEvents,
+          defaultModelConfig,
+        );
 
         if (title || description) {
           updateSession(sessionId, {
@@ -504,17 +510,22 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
             stream: true,
             onChunk: createStreamingChunkHandler(type),
           },
+          defaultModelConfig,
         );
         generatedCode = streamingResult.content;
       } else {
         // Use streaming for YAML
-        const streamingResult = await generateYamlTestStream(finalEvents, {
-          stream: true,
-          onChunk: createStreamingChunkHandler(type),
-          testName: currentSessionName,
-          description: `Test session recorded on ${new Date().toLocaleDateString()}`,
-          includeTimestamps: true,
-        });
+        const streamingResult = await generateYamlTestStream(
+          finalEvents,
+          {
+            stream: true,
+            onChunk: createStreamingChunkHandler(type),
+            testName: currentSessionName,
+            description: `Test session recorded on ${new Date().toLocaleDateString()}`,
+            includeTimestamps: true,
+          },
+          defaultModelConfig,
+        );
         generatedCode = streamingResult.content;
       }
 

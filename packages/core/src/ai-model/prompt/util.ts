@@ -1,7 +1,7 @@
 import { imageInfoOfBase64 } from '@/image/index';
 import type { BaseElement, ElementTreeNode, Size, UIContext } from '@/types';
 import { NodeType } from '@midscene/shared/constants';
-import { type IModelPreferences, vlLocateMode } from '@midscene/shared/env';
+import type { TVlModeTypes } from '@midscene/shared/env';
 import {
   descriptionOfTree,
   generateElementByPosition,
@@ -130,12 +130,12 @@ export async function describeUserPage<
   ElementType extends BaseElement = BaseElement,
 >(
   context: Omit<UIContext<ElementType>, 'describer'>,
-  modelPreferences: IModelPreferences,
-  opt?: {
+  opt: {
     truncateTextLength?: number;
     filterNonTextContent?: boolean;
     domIncluded?: boolean | 'visible-only';
     visibleOnly?: boolean;
+    vlMode: TVlModeTypes | undefined;
   },
 ) {
   const { screenshotBase64 } = context;
@@ -171,7 +171,8 @@ export async function describeUserPage<
 
   const visibleOnly =
     opt?.domIncluded === 'visible-only' ? true : (opt?.visibleOnly ?? false);
-  const shouldIncludeDOM = opt?.domIncluded || !vlLocateMode(modelPreferences);
+  const resolvedVlMode = opt?.vlMode;
+  const shouldIncludeDOM = opt?.domIncluded || !resolvedVlMode;
 
   if (shouldIncludeDOM) {
     // non-vl mode must provide the page description

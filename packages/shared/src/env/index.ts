@@ -1,3 +1,4 @@
 export * from './utils';
 export * from './types';
-export { UITarsModelVersion } from './parse';
+export { ModelConfigManager } from './model-config-manager';
+export { GlobalConfigManager } from './global-config-manager';

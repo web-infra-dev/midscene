@@ -1,4 +1,5 @@
 import type { ChromeRecordedEvent } from '@midscene/recorder';
+import { globalModelConfigManager } from '@midscene/shared/env';
 import { message } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { type RecordingSession, useRecordStore } from '../../../store';
@@ -137,7 +138,10 @@ export const useRecordingControl = (
               0,
             );
             try {
-              const { title, description } = await generateRecordTitle(events);
+              const { title, description } = await generateRecordTitle(
+                events,
+                globalModelConfigManager.getModelConfig('default'),
+              );
 
               if (title) {
                 updateData.name = title;

@@ -4,12 +4,7 @@ import type {
   PlanningAction,
   Size,
 } from '@/types';
-import {
-  type IModelPreferences,
-  UITarsModelVersion,
-  uiTarsModelVersion,
-  vlLocateMode,
-} from '@midscene/shared/env';
+import { type IModelConfig, UITarsModelVersion } from '@midscene/shared/env';
 import { resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { transformHotkeyInput } from '@midscene/shared/us-keyboard-layout';
@@ -18,7 +13,7 @@ import { actionParser } from '@ui-tars/action-parser';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { AIActionType } from './common';
 import { getSummary, getUiTarsPlanningPrompt } from './prompt/ui-tars-planning';
-import { call } from './service-caller/index';
+import { callAIWithStringResponse } from './service-caller/index';
 type ActionType =
   | 'click'
   | 'drag'
@@ -47,7 +42,7 @@ export async function vlmPlanning(options: {
   userInstruction: string;
   conversationHistory: ChatCompletionMessageParam[];
   size: { width: number; height: number };
-  modelPreferences: IModelPreferences;
+  modelConfig: IModelConfig;
 }): Promise<{
   actions: PlanningAction<any>[];
   actionsFromModel: ReturnType<typeof actionParser>['parsed'];
@@ -56,11 +51,11 @@ export async function vlmPlanning(options: {
   usage?: AIUsageInfo;
   rawResponse?: string;
 }> {
-  const { conversationHistory, userInstruction, size, modelPreferences } =
-    options;
+  const { conversationHistory, userInstruction, size, modelConfig } = options;
+  const { uiTarsModelVersion } = modelConfig;
   const systemPrompt = getUiTarsPlanningPrompt() + userInstruction;
 
-  const res = await call(
+  const res = await callAIWithStringResponse(
     [
       {
         role: 'user',
@@ -69,11 +64,9 @@ export async function vlmPlanning(options: {
       ...conversationHistory,
     ],
     AIActionType.INSPECT_ELEMENT,
-    modelPreferences,
+    modelConfig,
   );
   const convertedText = convertBboxToCoordinates(res.content);
-
-  const modelVer = uiTarsModelVersion(modelPreferences);
 
   const { parsed } = actionParser({
     prediction: convertedText,
@@ -82,10 +75,15 @@ export async function vlmPlanning(options: {
       width: size.width,
       height: size.height,
     },
-    modelVer: modelVer || undefined,
+    modelVer: uiTarsModelVersion,
   });
 
-  debug('ui-tars modelVer', modelVer, ', parsed', JSON.stringify(parsed));
+  debug(
+    'ui-tars modelVer',
+    uiTarsModelVersion,
+    ', parsed',
+    JSON.stringify(parsed),
+  );
 
   const transformActions: PlanningAction[] = [];
   parsed.forEach((action) => {
@@ -308,12 +306,9 @@ export type Action =
 export async function resizeImageForUiTars(
   imageBase64: string,
   size: Size,
-  modelPreferences: IModelPreferences,
+  uiTarsVersion: UITarsModelVersion | undefined,
 ) {
-  if (
-    vlLocateMode(modelPreferences) === 'vlm-ui-tars' &&
-    uiTarsModelVersion(modelPreferences) === UITarsModelVersion.V1_5
-  ) {
+  if (uiTarsVersion === UITarsModelVersion.V1_5) {
     debug('ui-tars-v1.5, will check image size', size);
     const currentPixels = size.width * size.height;
     const maxPixels = 16384 * 28 * 28; //

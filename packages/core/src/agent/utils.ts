@@ -32,6 +32,7 @@ const debugProfile = getDebug('web:tool:profile');
 
 export async function commonContextParser(
   interfaceInstance: AbstractInterface,
+  _opt: { uploadServerUrl?: string },
 ): Promise<UIContext> {
   assert(interfaceInstance, 'interfaceInstance is required');
 
@@ -40,7 +41,10 @@ export async function commonContextParser(
   debugProfile('Interface description end');
 
   debugProfile('Uploading test info to server');
-  uploadTestInfoToServer({ testUrl: description });
+  uploadTestInfoToServer({
+    testUrl: description,
+    serverUrl: _opt.uploadServerUrl,
+  });
   debugProfile('UploadTestInfoToServer end');
 
   let screenshotBase64 = await interfaceInstance.screenshotBase64();

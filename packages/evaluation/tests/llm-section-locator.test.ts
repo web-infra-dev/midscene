@@ -1,8 +1,8 @@
 import { writeFileSync } from 'node:fs';
-import { MIDSCENE_MODEL_NAME, type Rect, getAIConfig } from '@midscene/core';
+import type { Rect } from '@midscene/core';
 import { AiLocateSection } from '@midscene/core/ai-model';
 import { sleep } from '@midscene/core/utils';
-import { vlLocateMode } from '@midscene/shared/env';
+import { globalModelConfigManager } from '@midscene/shared/env';
 import { saveBase64Image } from '@midscene/shared/img';
 import dotenv from 'dotenv';
 import { afterAll, expect, test } from 'vitest';
@@ -16,13 +16,14 @@ dotenv.config({
 
 const testSources = ['antd-tooltip'];
 
-const resultCollector = new TestResultCollector(
-  'section-locator',
-  getAIConfig(MIDSCENE_MODEL_NAME) || 'unspecified',
-);
+const defaultModelConfig = globalModelConfigManager.getModelConfig('default');
+
+const { modelName, vlMode } = defaultModelConfig;
+const resultCollector = new TestResultCollector('section-locator', modelName);
 
 let failCaseThreshold = 0;
-if (process.env.CI && !vlLocateMode()) {
+
+if (process.env.CI && !vlMode) {
   failCaseThreshold = 3;
 }
 
@@ -50,6 +51,7 @@ testSources.forEach((source) => {
         const result = await AiLocateSection({
           context,
           sectionDescription: prompt,
+          modelConfig: defaultModelConfig,
         });
 
         if (process.env.UPDATE_ANSWER_DATA) {

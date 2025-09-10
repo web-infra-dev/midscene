@@ -1,10 +1,8 @@
 import { PromptTemplate } from '@langchain/core/prompts';
-import type { vlLocateMode } from '@midscene/shared/env';
+import type { TVlModeTypes } from '@midscene/shared/env';
 import { bboxDescription } from './common';
 
-export function systemPromptToLocateSection(
-  vlMode: ReturnType<typeof vlLocateMode>,
-) {
+export function systemPromptToLocateSection(vlMode: TVlModeTypes | undefined) {
   return `
 You goal is to find out one section containing the target element in the screenshot, put it in the \`bbox\` field. If the user describe the target element with some reference elements, you should also find the section containing the reference elements, put it in the \`references_bbox\` field.
 

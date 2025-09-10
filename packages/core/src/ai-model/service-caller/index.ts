@@ -6,14 +6,15 @@ import {
   getBearerTokenProvider,
 } from '@azure/identity';
 import {
-  type IModelPreferences,
+  type IModelConfig,
   MIDSCENE_API_TYPE,
   MIDSCENE_LANGSMITH_DEBUG,
   OPENAI_MAX_TOKENS,
+  type TVlModeTypes,
+  type UITarsModelVersion,
   globalConfigManager,
-  uiTarsModelVersion,
-  vlLocateMode,
 } from '@midscene/shared/env';
+
 import { parseBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
@@ -31,15 +32,17 @@ import { planSchema } from '../prompt/llm-planning';
 
 async function createChatClient({
   AIActionTypeValue,
-  modelPreferences,
+  modelConfig,
 }: {
   AIActionTypeValue: AIActionType;
-  modelPreferences: IModelPreferences;
+  modelConfig: IModelConfig;
 }): Promise<{
   completion: OpenAI.Chat.Completions;
   style: 'openai' | 'anthropic';
   modelName: string;
   modelDescription: string;
+  uiTarsVersion?: UITarsModelVersion;
+  vlMode: TVlModeTypes | undefined;
 }> {
   const {
     socksProxy,
@@ -59,7 +62,9 @@ async function createChatClient({
     useAnthropicSdk,
     anthropicApiKey,
     modelDescription,
-  } = globalConfigManager.getModelConfigByIntent(modelPreferences.intent);
+    uiTarsModelVersion: uiTarsVersion,
+    vlMode,
+  } = modelConfig;
 
   let openai: OpenAI | AzureOpenAI | undefined;
 
@@ -147,6 +152,8 @@ async function createChatClient({
       style: 'openai',
       modelName,
       modelDescription,
+      uiTarsVersion,
+      vlMode,
     };
   }
 
@@ -165,26 +172,34 @@ async function createChatClient({
       style: 'anthropic',
       modelName,
       modelDescription,
+      uiTarsVersion,
+      vlMode,
     };
   }
 
   throw new Error('Openai SDK or Anthropic SDK is not initialized');
 }
 
-export async function call(
+export async function callAI(
   messages: ChatCompletionMessageParam[],
   AIActionTypeValue: AIActionType,
-  modelPreferences: IModelPreferences,
+  modelConfig: IModelConfig,
   options?: {
     stream?: boolean;
     onChunk?: StreamingCallback;
   },
 ): Promise<{ content: string; usage?: AIUsageInfo; isStreamed: boolean }> {
-  const { completion, style, modelName, modelDescription } =
-    await createChatClient({
-      AIActionTypeValue,
-      modelPreferences,
-    });
+  const {
+    completion,
+    style,
+    modelName,
+    modelDescription,
+    uiTarsVersion,
+    vlMode,
+  } = await createChatClient({
+    AIActionTypeValue,
+    modelConfig,
+  });
 
   const responseFormat = getResponseFormat(modelName, AIActionTypeValue);
 
@@ -202,13 +217,13 @@ export async function call(
   let timeCost: number | undefined;
 
   const commonConfig = {
-    temperature: vlLocateMode(modelPreferences) === 'vlm-ui-tars' ? 0.0 : 0.1,
+    temperature: vlMode === 'vlm-ui-tars' ? 0.0 : 0.1,
     stream: !!isStreaming,
     max_tokens:
       typeof maxTokens === 'number'
         ? maxTokens
         : Number.parseInt(maxTokens || '2048', 10),
-    ...(vlLocateMode(modelPreferences) === 'qwen-vl' // qwen specific config
+    ...(vlMode === 'qwen-vl' // qwen specific config
       ? {
           vl_high_resolution_images: true,
         }
@@ -289,7 +304,7 @@ export async function call(
                 time_cost: timeCost ?? 0,
                 model_name: modelName,
                 model_description: modelDescription,
-                intent: modelPreferences.intent,
+                intent: modelConfig.intent,
               },
             };
             options.onChunk!(finalChunk);
@@ -298,7 +313,7 @@ export async function call(
         }
         content = accumulated;
         debugProfileStats(
-          `streaming model, ${modelName}, mode, ${vlLocateMode(modelPreferences) || 'default'}, cost-ms, ${timeCost}`,
+          `streaming model, ${modelName}, mode, ${vlMode || 'default'}, cost-ms, ${timeCost}`,
         );
       } else {
         const result = await completion.create({
@@ -310,7 +325,7 @@ export async function call(
         timeCost = Date.now() - startTime;
 
         debugProfileStats(
-          `model, ${modelName}, mode, ${vlLocateMode(modelPreferences) || 'default'}, ui-tars-version, ${uiTarsModelVersion(modelPreferences)}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${timeCost}, requestId, ${result._request_id || ''}`,
+          `model, ${modelName}, mode, ${vlMode || 'default'}, ui-tars-version, ${uiTarsVersion}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${timeCost}, requestId, ${result._request_id || ''}`,
         );
 
         debugProfileDetail(
@@ -394,7 +409,7 @@ export async function call(
                     time_cost: timeCost ?? 0,
                     model_name: modelName,
                     model_description: modelDescription,
-                    intent: modelPreferences.intent,
+                    intent: modelConfig.intent,
                   }
                 : undefined,
             };
@@ -447,7 +462,7 @@ export async function call(
             time_cost: timeCost ?? 0,
             model_name: modelName,
             model_description: modelDescription,
-            intent: modelPreferences.intent,
+            intent: modelConfig.intent,
           }
         : undefined,
       isStreamed: !!isStreaming,
@@ -501,27 +516,24 @@ export const getResponseFormat = (
   return responseFormat;
 };
 
-export async function callToGetJSONObject<T>(
-  messages: ChatCompletionMessageParam[],
+export async function callAIWithObjectResponse<T>(
+  messages: AIArgs,
   AIActionTypeValue: AIActionType,
-  modelPreferences: IModelPreferences,
+  modelConfig: IModelConfig,
 ): Promise<{ content: T; usage?: AIUsageInfo }> {
-  const response = await call(messages, AIActionTypeValue, modelPreferences);
+  const response = await callAI(messages, AIActionTypeValue, modelConfig);
   assert(response, 'empty response');
-  const jsonContent = safeParseJson(response.content, modelPreferences);
+  const vlMode = modelConfig.vlMode;
+  const jsonContent = safeParseJson(response.content, vlMode);
   return { content: jsonContent, usage: response.usage };
 }
 
-export async function callAiFnWithStringResponse<T>(
+export async function callAIWithStringResponse(
   msgs: AIArgs,
   AIActionTypeValue: AIActionType,
-  modelPreferences: IModelPreferences,
+  modelConfig: IModelConfig,
 ): Promise<{ content: string; usage?: AIUsageInfo }> {
-  const { content, usage } = await call(
-    msgs,
-    AIActionTypeValue,
-    modelPreferences,
-  );
+  const { content, usage } = await callAI(msgs, AIActionTypeValue, modelConfig);
   return { content, usage };
 }
 
@@ -561,10 +573,7 @@ export function preprocessDoubaoBboxJson(input: string) {
   return input;
 }
 
-export function safeParseJson(
-  input: string,
-  modelPreferences: IModelPreferences,
-) {
+export function safeParseJson(input: string, vlMode: TVlModeTypes | undefined) {
   const cleanJsonString = extractJSONFromCodeBlock(input);
   // match the point
   if (cleanJsonString?.match(/\((\d+),(\d+)\)/)) {
@@ -580,10 +589,7 @@ export function safeParseJson(
     return JSON.parse(jsonrepair(cleanJsonString));
   } catch (e) {}
 
-  if (
-    vlLocateMode(modelPreferences) === 'doubao-vision' ||
-    vlLocateMode(modelPreferences) === 'vlm-ui-tars'
-  ) {
+  if (vlMode === 'doubao-vision' || vlMode === 'vlm-ui-tars') {
     const jsonString = preprocessDoubaoBboxJson(cleanJsonString);
     return JSON.parse(jsonrepair(jsonString));
   }

@@ -53,10 +53,25 @@ const mockPage = {
   destroy: vi.fn(),
 } as unknown as AbstractWebPage;
 
-const mockModelConfig = {
+const mockedModelConfigFnResult = {
   MIDSCENE_MODEL_NAME: 'mock-model',
   MIDSCENE_OPENAI_API_KEY: 'mock-api-key',
   MIDSCENE_OPENAI_BASE_URL: 'mock-base-url',
+};
+
+const modelConfigCalcByMockedModelConfigFnResult = {
+  from: 'modelConfig',
+  httpProxy: undefined,
+  intent: 'default',
+  modelDescription: '',
+  modelName: 'mock-model',
+  openaiApiKey: 'mock-api-key',
+  openaiBaseURL: 'mock-base-url',
+  openaiExtraConfig: undefined,
+  socksProxy: undefined,
+  uiTarsModelVersion: undefined,
+  vlMode: undefined,
+  vlModeRaw: undefined,
 };
 
 // Mock task executor
@@ -70,12 +85,11 @@ describe('PageAgent RightClick', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    globalConfigManager.reset();
     // Create agent instance
     agent = new PageAgent(mockPage, {
       generateReport: false,
       autoPrintReportMsg: false,
-      modelConfig: () => mockModelConfig,
+      modelConfig: () => mockedModelConfigFnResult,
     });
 
     // Replace the taskExecutor with our mock
@@ -142,9 +156,8 @@ describe('PageAgent logContent', () => {
   let agent: PageAgent;
 
   beforeEach(() => {
-    globalConfigManager.reset();
     agent = new PageAgent(mockPage, {
-      modelConfig: () => mockModelConfig,
+      modelConfig: () => mockedModelConfigFnResult,
     });
     const dumpPath = path.join(__dirname, 'fixtures', 'dump.json');
     agent.dump = JSON.parse(
@@ -167,14 +180,13 @@ describe('PageAgent logContent', () => {
 describe('PageAgent reportFileName', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    globalConfigManager.reset();
   });
 
   it('should use external reportFileName when provided', () => {
     const customReportName = 'my-custom-report-name';
     const agent = new PageAgent(mockPage, {
       reportFileName: customReportName,
-      modelConfig: () => mockModelConfig,
+      modelConfig: () => mockedModelConfigFnResult,
     });
 
     expect(agent.reportFileName).toBe(customReportName);
@@ -182,7 +194,7 @@ describe('PageAgent reportFileName', () => {
 
   it('should generate reportFileName when not provided', () => {
     const agent = new PageAgent(mockPage, {
-      modelConfig: () => mockModelConfig,
+      modelConfig: () => mockedModelConfigFnResult,
     });
 
     // The generated name should contain puppeteer and follow the pattern
@@ -195,7 +207,7 @@ describe('PageAgent reportFileName', () => {
   it('should use testId for generated reportFileName when provided', () => {
     const agent = new PageAgent(mockPage, {
       testId: 'test-123',
-      modelConfig: () => mockModelConfig,
+      modelConfig: () => mockedModelConfigFnResult,
     });
 
     // The generated name should contain test-123 and follow the pattern
@@ -210,7 +222,7 @@ describe('PageAgent reportFileName', () => {
     const agent = new PageAgent(mockPage, {
       reportFileName: customReportName,
       testId: 'test-456',
-      modelConfig: () => mockModelConfig,
+      modelConfig: () => mockedModelConfigFnResult,
     });
 
     expect(agent.reportFileName).toBe(customReportName);
@@ -223,7 +235,7 @@ describe('PageAgent reportFileName', () => {
     } as unknown as AbstractWebPage;
 
     const agent = new PageAgent(mockPageWithoutType, {
-      modelConfig: () => mockModelConfig,
+      modelConfig: () => mockedModelConfigFnResult,
     });
 
     // The generated name should contain web and follow the pattern
@@ -241,12 +253,11 @@ describe('PageAgent aiWaitFor with doNotThrowError', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    globalConfigManager.reset();
     // Create agent instance
     agent = new PageAgent(mockPage, {
       generateReport: false,
       autoPrintReportMsg: false,
-      modelConfig: () => mockModelConfig,
+      modelConfig: () => mockedModelConfigFnResult,
     });
 
     // Mock the task executor with waitFor method
@@ -277,10 +288,14 @@ describe('PageAgent aiWaitFor with doNotThrowError', () => {
     });
 
     // Verify that waitFor was called with the correct parameters
-    expect(mockTaskExecutor.waitFor).toHaveBeenCalledWith('test assertion', {
-      timeoutMs: 5000,
-      checkIntervalMs: 1000,
-    });
+    expect(mockTaskExecutor.waitFor).toHaveBeenCalledWith(
+      'test assertion',
+      {
+        timeoutMs: 5000,
+        checkIntervalMs: 1000,
+      },
+      modelConfigCalcByMockedModelConfigFnResult,
+    );
   });
 
   it('should handle executor error state and still generate report', async () => {
@@ -322,10 +337,14 @@ describe('PageAgent aiWaitFor with doNotThrowError', () => {
     await agent.aiWaitFor('test assertion');
 
     // Verify that waitFor was called with default values
-    expect(mockTaskExecutor.waitFor).toHaveBeenCalledWith('test assertion', {
-      timeoutMs: 15000, // 15 * 1000
-      checkIntervalMs: 3000, // 3 * 1000
-    });
+    expect(mockTaskExecutor.waitFor).toHaveBeenCalledWith(
+      'test assertion',
+      {
+        timeoutMs: 15000, // 15 * 1000
+        checkIntervalMs: 3000, // 3 * 1000
+      },
+      modelConfigCalcByMockedModelConfigFnResult,
+    );
   });
 
   it('should pass through custom timeout and checkInterval values', async () => {
@@ -348,10 +367,14 @@ describe('PageAgent aiWaitFor with doNotThrowError', () => {
     await agent.aiWaitFor('test assertion', customOptions);
 
     // Verify that waitFor was called with custom values
-    expect(mockTaskExecutor.waitFor).toHaveBeenCalledWith('test assertion', {
-      timeoutMs: 30000,
-      checkIntervalMs: 5000,
-    });
+    expect(mockTaskExecutor.waitFor).toHaveBeenCalledWith(
+      'test assertion',
+      {
+        timeoutMs: 30000,
+        checkIntervalMs: 5000,
+      },
+      modelConfigCalcByMockedModelConfigFnResult,
+    );
   });
 
   it('should call afterTaskRunning with doNotThrowError=true', async () => {

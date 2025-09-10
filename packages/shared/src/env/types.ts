@@ -484,9 +484,67 @@ export type TModelConfigFn = (options: {
   | IModelConfigForVQA
   | IModelConfigForPlanning
   | IModeConfigForGrounding
-  | IModelConfigForDefault
-  | IModelConfigForDefaultLegacy;
+  | IModelConfigForDefault;
 
-export interface IModelPreferences {
+export enum UITarsModelVersion {
+  V1_0 = '1.0',
+  V1_5 = '1.5',
+  DOUBAO_1_5_15B = 'doubao-1.5-15B',
+  DOUBAO_1_5_20B = 'doubao-1.5-20B',
+}
+
+export const VL_MODE_RAW_VALID_VALUES: TVlModeValues[] = [
+  'doubao-vision',
+  'gemini',
+  'qwen-vl',
+  'vlm-ui-tars',
+  'vlm-ui-tars-doubao',
+  'vlm-ui-tars-doubao-1.5',
+];
+
+export interface IModelConfig {
+  /**
+   * proxy
+   */
+  socksProxy?: string;
+  httpProxy?: string;
+  /**
+   * model
+   */
+  modelName: string;
+  /**
+   * OpenAI
+   */
+  openaiBaseURL?: string;
+  openaiApiKey?: string;
+  openaiExtraConfig?: Record<string, unknown>;
+  /**
+   * Azure
+   */
+  openaiUseAzureDeprecated?: boolean;
+  useAzureOpenai?: boolean;
+  azureOpenaiScope?: string;
+  azureOpenaiKey?: string;
+  azureOpenaiEndpoint?: string;
+  azureOpenaiApiVersion?: string;
+  azureOpenaiDeployment?: string;
+  azureExtraConfig?: Record<string, unknown>;
+  /**
+   * Anthropic
+   */
+  useAnthropicSdk?: boolean;
+  anthropicApiKey?: string;
+  /**
+   * - vlModeRaw: exists only in non-legacy logic. value can be 'doubao-vision', 'gemini', 'qwen-vl', 'vlm-ui-tars', 'vlm-ui-tars-doubao', 'vlm-ui-tars-doubao-1.5'
+   * - vlMode: based on the results of the vlModoRaw classification，value can be 'doubao-vision', 'gemini', 'qwen-vl', 'vlm-ui-tars'
+   */
+  vlModeRaw?: string;
+  vlMode?: TVlModeTypes;
+  uiTarsModelVersion?: UITarsModelVersion;
+  modelDescription: string;
+  /**
+   * for debug
+   */
   intent: TIntent;
+  from: 'modelConfig' | 'env' | 'legacy-env';
 }
