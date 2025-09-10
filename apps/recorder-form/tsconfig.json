@@ -17,7 +17,13 @@
     /* type checking */
     "strict": true,
     "noUnusedLocals": true,
-    "noUnusedParameters": true
+    "noUnusedParameters": true,
+    "composite": true
   },
-  "include": ["src", "../../packages/record/src/RecordTimeline.tsx"]
+  "include": ["src", "../../packages/record/src/RecordTimeline.tsx"],
+  "references": [
+    {
+      "path": "../../packages/recorder"
+    }
+  ]
 }

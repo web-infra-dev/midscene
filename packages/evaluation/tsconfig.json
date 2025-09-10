@@ -22,5 +22,16 @@
     "target": "es2018"
   },
   "exclude": ["node_modules"],
-  "include": ["src", "tests", "./playwright.config.ts", "./vitest.config"]
+  "include": ["src", "tests", "./playwright.config.ts", "./vitest.config"],
+  "references": [
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../shared"
+    },
+    {
+      "path": "../web-integration"
+    }
+  ]
 }
