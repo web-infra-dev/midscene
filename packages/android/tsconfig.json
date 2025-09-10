@@ -1,26 +1,11 @@
 {
+  "extends": "../shared/tsconfig.base.json",
   "compilerOptions": {
-    "allowJs": true,
-    "baseUrl": ".",
-    "declaration": true,
-    "emitDeclarationOnly": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "lib": ["DOM", "ESNext"],
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
     "rootDir": "src",
-    "skipLibCheck": true,
-    "strict": true,
     "module": "ES2020",
-    "target": "es2020",
-    "types": ["node"],
-    "composite": true,
-    "declarationDir": "dist/types"
+    "declarationDir": "dist/types",
+    "types": ["node"]
   },
-  "exclude": ["**/node_modules"],
   "include": ["src"],
   "references": [
     {
