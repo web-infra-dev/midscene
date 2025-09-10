@@ -181,7 +181,7 @@ class PlaygroundServer {
 
         actionSpace = await this.page.actionSpace();
 
-        // Process actionSpace to make paramSchema serializable
+        // Process actionSpace to make paramSchema serializable with shape info
         const processedActionSpace = actionSpace.map((action: unknown) => {
           if (action && typeof action === 'object' && 'paramSchema' in action) {
             const typedAction = action as {

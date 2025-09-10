@@ -1,6 +1,6 @@
 import type { DeviceAction } from '@midscene/core';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
-import type { ExecutionOptions, FormValue } from '../types';
+import type { ExecutionOptions, FormValue, ValidationResult } from '../types';
 import { BasePlaygroundAdapter } from './base';
 
 export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
@@ -12,6 +12,58 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
     super();
     this.serverUrl = serverUrl;
   }
+
+  // Override validateParams for remote execution
+  // Since schemas from server are JSON-serialized and lack .parse() method
+  validateParams(
+    value: FormValue,
+    action: DeviceAction<unknown> | undefined,
+  ): ValidationResult {
+    if (!action?.paramSchema) {
+      return { valid: true };
+    }
+
+    const needsStructuredParams = this.actionNeedsStructuredParams(action);
+
+    if (!needsStructuredParams) {
+      return { valid: true };
+    }
+
+    if (!value.params) {
+      return { valid: false, errorMessage: 'Parameters are required' };
+    }
+
+    // For remote execution, perform basic validation without .parse()
+    // Check if required fields are present
+    if (action.paramSchema && typeof action.paramSchema === 'object') {
+      const schema = action.paramSchema as any;
+      if (schema.shape || schema.type === 'ZodObject') {
+        const shape = schema.shape || {};
+        const missingFields = Object.keys(shape).filter((key) => {
+          const fieldDef = shape[key];
+          // Check if field is required (not optional)
+          const isOptional =
+            fieldDef?.isOptional ||
+            fieldDef?._def?.innerType || // ZodOptional
+            fieldDef?._def?.typeName === 'ZodOptional';
+          return (
+            !isOptional &&
+            (value.params![key] === undefined || value.params![key] === '')
+          );
+        });
+
+        if (missingFields.length > 0) {
+          return {
+            valid: false,
+            errorMessage: `Missing required parameters: ${missingFields.join(', ')}`,
+          };
+        }
+      }
+    }
+
+    return { valid: true };
+  }
+
   async parseStructuredParams(
     action: DeviceAction<unknown>,
     params: Record<string, unknown>,
