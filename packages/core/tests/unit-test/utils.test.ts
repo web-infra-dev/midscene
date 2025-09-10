@@ -389,6 +389,26 @@ describe('qwen-vl', () => {
       }
     `);
   });
+
+  it('adaptBboxToRect - size exceed image size - 2', () => {
+    // [ 158, 114, 526, 179 ] 684 301 611 221
+    const result = adaptBboxToRect(
+      [158, 114, 526, 179],
+      684,
+      301,
+      defaultIntent,
+      611,
+      221,
+    );
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "height": 65,
+        "left": 769,
+        "top": 335,
+        "width": 368,
+      }
+    `);
+  });
 });
 
 describe('doubao-vision', () => {

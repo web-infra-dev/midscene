@@ -249,8 +249,8 @@ export function adaptBboxToRect(
   );
 
   // Calculate initial rect dimensions
-  const rectLeft = left + offsetX;
-  const rectTop = top + offsetY;
+  const rectLeft = left;
+  const rectTop = top;
   let rectWidth = right - left;
   let rectHeight = bottom - top;
 
@@ -270,8 +270,8 @@ export function adaptBboxToRect(
   rectHeight = Math.max(1, rectHeight);
 
   const rect = {
-    left: rectLeft,
-    top: rectTop,
+    left: rectLeft + offsetX,
+    top: rectTop + offsetY,
     width: rectWidth,
     height: rectHeight,
   };
