@@ -177,8 +177,8 @@ export async function executeAction(
     }
 
     // Fallback for methods not found in actionSpace
-    if (activeAgent && typeof (activeAgent as any)[actionType] === 'function') {
-      return await (activeAgent as any)[actionType](prompt, options);
+    if (activeAgent && typeof activeAgent[actionType] === 'function') {
+      return await activeAgent[actionType](prompt, options);
     }
 
     throw new Error(`Unknown action type: ${actionType}`);

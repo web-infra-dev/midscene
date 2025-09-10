@@ -16,10 +16,17 @@ import type { PlaygroundAgent } from './types';
 
 const defaultPort = PLAYGROUND_SERVER_PORT;
 
-const errorHandler = (err: any, req: any, res: any, next: any) => {
+const errorHandler = (
+  err: unknown,
+  req: Request,
+  res: Response,
+  next: express.NextFunction,
+) => {
   console.error(err);
+  const errorMessage =
+    err instanceof Error ? err.message : 'Internal server error';
   res.status(500).json({
-    error: err.message,
+    error: errorMessage,
   });
 };
 
@@ -121,7 +128,7 @@ export default class PlaygroundServer {
         const { context } = req.body;
 
         try {
-          let actionSpace: any[];
+          let actionSpace = [];
 
           // Check if we have an active agent to get action space from
           const activeAgentIds = Object.keys(this.activeAgents);
@@ -129,7 +136,7 @@ export default class PlaygroundServer {
             // Use existing agent's action space
             const agentId = activeAgentIds[0];
             const agent = this.activeAgents[agentId];
-            const page = (agent as any).interface;
+            const page = agent.interface;
             actionSpace = await page.actionSpace();
           } else if (context) {
             // Create temporary agent with context
@@ -142,43 +149,63 @@ export default class PlaygroundServer {
           }
 
           // Process actionSpace to make paramSchema serializable
-          const processedActionSpace = actionSpace.map((action: any) => {
-            if (action.paramSchema && typeof action.paramSchema === 'object') {
-              // Extract shape information from Zod schema
-              let processedSchema = null;
-
-              try {
-                // Extract shape from runtime Zod object
-                if (
-                  action.paramSchema.shape &&
-                  typeof action.paramSchema.shape === 'object'
-                ) {
-                  processedSchema = {
-                    type: 'ZodObject',
-                    shape: action.paramSchema.shape,
-                  };
-                }
-              } catch (e) {
-                console.warn(
-                  'Failed to process paramSchema for action:',
-                  action.name,
-                  e,
-                );
-              }
-
-              return {
-                ...action,
-                paramSchema: processedSchema,
+          const processedActionSpace = actionSpace.map((action: unknown) => {
+            if (
+              action &&
+              typeof action === 'object' &&
+              'paramSchema' in action
+            ) {
+              const typedAction = action as {
+                paramSchema?: { shape?: object; [key: string]: unknown };
+                [key: string]: unknown;
               };
+              if (
+                typedAction.paramSchema &&
+                typeof typedAction.paramSchema === 'object'
+              ) {
+                // Extract shape information from Zod schema
+                let processedSchema = null;
+
+                try {
+                  // Extract shape from runtime Zod object
+                  if (
+                    typedAction.paramSchema.shape &&
+                    typeof typedAction.paramSchema.shape === 'object'
+                  ) {
+                    processedSchema = {
+                      type: 'ZodObject',
+                      shape: typedAction.paramSchema.shape,
+                    };
+                  }
+                } catch (e) {
+                  const actionName =
+                    'name' in typedAction &&
+                    typeof typedAction.name === 'string'
+                      ? typedAction.name
+                      : 'unknown';
+                  console.warn(
+                    'Failed to process paramSchema for action:',
+                    actionName,
+                    e,
+                  );
+                }
+
+                return {
+                  ...typedAction,
+                  paramSchema: processedSchema,
+                };
+              }
             }
             return action;
           });
 
           res.json(processedActionSpace);
-        } catch (error: any) {
+        } catch (error: unknown) {
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error';
           console.error('Failed to get action space:', error);
           res.status(500).json({
-            error: error.message,
+            error: errorMessage,
           });
         }
       },
@@ -238,11 +265,13 @@ export default class PlaygroundServer {
           // Single agent case - use it directly (ignore frontend requestId)
           const agentId = activeAgentIds[0];
           agent = this.activeAgents[agentId];
-          page = (agent as any).interface as AbstractInterface;
+          page = (agent as PlaygroundAgent & { interface: AbstractInterface })
+            .interface;
         } else if (requestId && this.activeAgents[requestId]) {
           // Multi-agent case with specific requestId
           agent = this.activeAgents[requestId];
-          page = (agent as any).interface as AbstractInterface;
+          page = (agent as PlaygroundAgent & { interface: AbstractInterface })
+            .interface;
         } else if (context) {
           // Create new agent with context
           page = new this.pageClass(context);
@@ -264,7 +293,7 @@ export default class PlaygroundServer {
         }
 
         const response: {
-          result: any;
+          result: unknown;
           dump: string | null;
           error: string | null;
           reportHTML: string | null;
@@ -300,7 +329,7 @@ export default class PlaygroundServer {
               domIncluded,
             },
           );
-        } catch (error: any) {
+        } catch (error: unknown) {
           response.error = formatErrorMessage(error);
         }
 
@@ -315,9 +344,11 @@ export default class PlaygroundServer {
             agent.destroy();
           } else {
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error';
           console.error(
-            `write out dump failed: requestId: ${requestId}, ${error.message}`,
+            `write out dump failed: requestId: ${requestId}, ${errorMessage}`,
           );
         }
 
@@ -361,10 +392,12 @@ export default class PlaygroundServer {
         await agent.destroy();
         delete this.activeAgents[requestId];
         res.json({ status: 'cancelled' });
-      } catch (error: any) {
-        console.error(`Failed to cancel agent: ${error.message}`);
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        console.error(`Failed to cancel agent: ${errorMessage}`);
         res.status(500).json({
-          error: `Failed to cancel: ${error.message}`,
+          error: `Failed to cancel: ${errorMessage}`,
         });
       }
     });
@@ -388,10 +421,12 @@ export default class PlaygroundServer {
             status: 'ok',
             message: 'AI config updated successfully',
           });
-        } catch (error: any) {
-          console.error(`Failed to update AI config: ${error.message}`);
+        } catch (error: unknown) {
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error';
+          console.error(`Failed to update AI config: ${errorMessage}`);
           return res.status(500).json({
-            error: `Failed to update AI config: ${error.message}`,
+            error: `Failed to update AI config: ${errorMessage}`,
           });
         }
       },

@@ -60,15 +60,19 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   // (inherits default executeAction from BasePlaygroundAdapter)
 
   // Local execution gets actionSpace directly from local agent
-  async getActionSpace(context?: any): Promise<DeviceAction<unknown>[]> {
+  async getActionSpace(context?: {
+    actionSpace?: () => Promise<DeviceAction<unknown>[]>;
+  }): Promise<DeviceAction<unknown>[]> {
     // For local execution, we get actionSpace from the stored agent
     if (this.agent?.getActionSpace) {
       return await this.agent.getActionSpace();
     }
 
     // Fallback: try to get actionSpace from agent's interface (page)
-    if (this.agent && (this.agent as any).interface) {
-      const page = (this.agent as any).interface;
+    if (this.agent && 'interface' in this.agent) {
+      const page = this.agent.interface as {
+        actionSpace?: () => Promise<DeviceAction<unknown>[]>;
+      };
       if (page?.actionSpace) {
         return await page.actionSpace();
       }
@@ -88,7 +92,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     return true;
   }
 
-  async overrideConfig(aiConfig: any): Promise<void> {
+  async overrideConfig(aiConfig: Record<string, unknown>): Promise<void> {
     // For local execution, use the shared env override function
     overrideAIConfig(aiConfig);
   }
@@ -99,12 +103,14 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     options: ExecutionOptions,
   ): Promise<unknown> {
     // Get actionSpace using the same logic as getActionSpace method
-    let actionSpace: any[] = [];
+    let actionSpace: DeviceAction<unknown>[] = [];
 
     if (this.agent?.getActionSpace) {
       actionSpace = await this.agent.getActionSpace();
-    } else if (this.agent && (this.agent as any).interface) {
-      const page = (this.agent as any).interface;
+    } else if (this.agent && 'interface' in this.agent) {
+      const page = this.agent.interface as {
+        actionSpace?: () => Promise<DeviceAction<unknown>[]>;
+      };
       if (page?.actionSpace) {
         actionSpace = await page.actionSpace();
       }
@@ -146,7 +152,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       // similar to how the server does it
       const response = {
         result,
-        dump: null as any,
+        dump: null as unknown,
         reportHTML: null as string | null,
         error: null as string | null,
       };
@@ -168,7 +174,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
         if (this.agent.writeOutActionDumps) {
           this.agent.writeOutActionDumps();
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Failed to get dump/reportHTML from agent:', error);
       }
 
@@ -197,9 +203,11 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     try {
       await this.agent.destroy?.();
       return { success: true };
-    } catch (error: any) {
-      console.error(`Failed to cancel agent: ${error.message}`);
-      return { error: `Failed to cancel: ${error.message}` };
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      console.error(`Failed to cancel agent: ${errorMessage}`);
+      return { error: `Failed to cancel: ${errorMessage}` };
     }
   }
 }

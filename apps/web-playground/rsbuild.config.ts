@@ -49,11 +49,11 @@ export default defineConfig({
       // Polyfill Node.js modules for browser environment
       async_hooks: path.join(
         __dirname,
-        '../chrome-extension/src/scripts/blank_polyfill.ts',
+        '../../packages/shared/src/polyfills/async-hooks.ts',
       ),
       'node:async_hooks': path.join(
         __dirname,
-        '../chrome-extension/src/scripts/blank_polyfill.ts',
+        '../../packages/shared/src/polyfills/async-hooks.ts',
       ),
     },
   },

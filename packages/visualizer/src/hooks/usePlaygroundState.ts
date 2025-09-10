@@ -6,7 +6,7 @@ import type {
   PlaygroundSDKLike,
   StorageProvider,
 } from '../types';
-import { WELCOME_MESSAGE_TEMPLATE } from '../types';
+import { WELCOME_MESSAGE_TEMPLATE } from '../utils/constants';
 
 /**
  * Hook for managing playground state
@@ -40,20 +40,28 @@ export function usePlaygroundState(
   const currentRunningIdRef = useRef<number | null>(null);
   const interruptedFlagRef = useRef<Record<number, boolean>>({});
 
-  // Welcome message with unique ID
-  const welcomeMessage: InfoListItem = {
-    ...WELCOME_MESSAGE_TEMPLATE,
-    id: 'welcome',
-    timestamp: new Date(),
-  };
-
-  // Initialize messages from storage
+  // Initialize messages from storage (runs only once)
   useEffect(() => {
     const initializeMessages = async () => {
+      // Create welcome message only once during initialization
+      const welcomeMessage: InfoListItem = {
+        ...WELCOME_MESSAGE_TEMPLATE,
+        id: 'welcome',
+        timestamp: new Date(),
+      };
+
       if (storage?.loadMessages) {
         try {
           const storedMessages = await storage.loadMessages();
-          setInfoList([welcomeMessage, ...storedMessages]);
+          // Check if welcome message already exists in stored messages
+          const hasWelcomeMessage = storedMessages.some(
+            (msg) => msg.id === 'welcome',
+          );
+          if (hasWelcomeMessage) {
+            setInfoList(storedMessages);
+          } else {
+            setInfoList([welcomeMessage, ...storedMessages]);
+          }
         } catch (error) {
           console.error('Failed to load messages:', error);
           setInfoList([welcomeMessage]);
@@ -63,8 +71,11 @@ export function usePlaygroundState(
       }
     };
 
-    initializeMessages();
-  }, [storage]);
+    // Only initialize once when component mounts
+    if (infoList.length === 0) {
+      initializeMessages();
+    }
+  }, []);
 
   // Save messages to storage when they change
   useEffect(() => {
@@ -170,6 +181,12 @@ export function usePlaygroundState(
 
   // Clear messages
   const clearInfoList = useCallback(async () => {
+    const welcomeMessage: InfoListItem = {
+      ...WELCOME_MESSAGE_TEMPLATE,
+      id: 'welcome',
+      timestamp: new Date(),
+    };
+
     setInfoList([welcomeMessage]);
     if (storage?.clearMessages) {
       try {
@@ -178,7 +195,7 @@ export function usePlaygroundState(
         console.error('Failed to clear stored messages:', error);
       }
     }
-  }, [storage, welcomeMessage]);
+  }, [storage]);
 
   // Refresh context
   const refreshContext = useCallback(async () => {

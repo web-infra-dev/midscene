@@ -6,8 +6,8 @@ import type {
   PlaygroundSDKLike,
   StorageProvider,
 } from '../types';
-import { BLANK_RESULT } from '../types';
 
+import { BLANK_RESULT } from '../utils/constants';
 import { allScriptsFromDump } from '../utils/replay-scripts';
 
 // Import noReplayAPIs - use hardcoded list that matches playground package
@@ -38,14 +38,6 @@ export function usePlaygroundExecution(
   // Handle form submission and execution
   const handleRun = useCallback(
     async (value: FormValue) => {
-      const startTime = Date.now();
-
-      // Dynamic validation using actionSpace
-      const action = actionSpace?.find(
-        (a: DeviceAction<unknown>) =>
-          a.interfaceAlias === value.type || a.name === value.type,
-      );
-
       // Basic validation - specific validation logic would need to be moved to the SDK or passed as a separate function
       const thisRunningId = Date.now();
       const actionType = value.type;
@@ -105,7 +97,7 @@ export function usePlaygroundExecution(
 
         // For some adapters, result might already include dump and reportHTML
         if (typeof result.result === 'object' && result.result !== null) {
-          const resultObj = result.result as any;
+          const resultObj = result.result;
           if (resultObj.dump) result.dump = resultObj.dump;
           if (resultObj.reportHTML) result.reportHTML = resultObj.reportHTML;
           if (resultObj.error) result.error = resultObj.error;

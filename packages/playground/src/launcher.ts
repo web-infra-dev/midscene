@@ -4,7 +4,6 @@ import type { Agent, Agent as PageAgent } from '@midscene/core/agent';
 import type { AbstractInterface } from '@midscene/core/device';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import PlaygroundServer from './server';
-import type { PlaygroundAgent } from './types';
 
 export interface LaunchPlaygroundOptions {
   /**
@@ -88,7 +87,7 @@ export function playgroundForAgent(agent: Agent) {
       } = options;
 
       // Extract agent components - Agent has interface property
-      const webPage = (agent as any).interface;
+      const webPage = agent.interface;
       if (!webPage) {
         throw new Error('Agent must have an interface property');
       }

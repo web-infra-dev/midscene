@@ -3,8 +3,8 @@ import { Spin } from 'antd';
 import type React from 'react';
 import type { PlaygroundResult as PlaygroundResultType } from '../../types';
 import type { ServiceModeType } from '../../types';
-import { emptyResultTip, serverLaunchTip } from '../../utils/constants';
 import type { ReplayScriptsInfo } from '../../utils/replay-scripts';
+import { emptyResultTip, serverLaunchTip } from '../misc';
 import { Player } from '../player';
 import ShinyText from '../shiny-text';
 

@@ -377,30 +377,3 @@ export interface UniversalPlaygroundProps {
   dryMode?: boolean;
   showContextPreview?: boolean;
 }
-
-// welcome message template
-export const WELCOME_MESSAGE_TEMPLATE: Omit<InfoListItem, 'id' | 'timestamp'> =
-  {
-    type: 'system',
-    content: `
-      Welcome to Midscene.js Playground!
-      
-      This is a panel for experimenting and testing Midscene.js features. You can use natural language instructions to operate the web page, such as clicking buttons, filling in forms, querying information, etc.
-      
-      Please enter your instructions in the input box below to start experiencing.
-    `,
-    loading: false,
-    result: undefined,
-    replayScriptsInfo: null,
-    replayCounter: 0,
-    loadingProgressText: '',
-    verticalMode: false,
-  };
-
-// blank result template
-export const BLANK_RESULT: PlaygroundResult = {
-  result: undefined,
-  dump: null,
-  reportHTML: null,
-  error: null,
-};

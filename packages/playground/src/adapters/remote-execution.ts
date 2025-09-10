@@ -155,7 +155,7 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
   }
 
   // Get action space from server
-  async getActionSpace(context: any): Promise<DeviceAction<unknown>[]> {
+  async getActionSpace(context: unknown): Promise<DeviceAction<unknown>[]> {
     if (this.serverUrl && typeof window !== 'undefined') {
       try {
         const response = await fetch(`${this.serverUrl}/action-space`, {
@@ -179,9 +179,12 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
     }
 
     // Fallback to local implementation (if page object available)
-    if (context && typeof context.actionSpace === 'function') {
+    if (context && typeof context === 'object' && 'actionSpace' in context) {
       try {
-        const result = await context.actionSpace();
+        const actionSpaceMethod = (
+          context as { actionSpace: () => Promise<DeviceAction<unknown>[]> }
+        ).actionSpace;
+        const result = await actionSpaceMethod();
         return Array.isArray(result) ? result : [];
       } catch (error) {
         console.error('Failed to get action space from context:', error);
@@ -208,13 +211,13 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
     }
   }
 
-  async overrideConfig(aiConfig: any): Promise<void> {
+  async overrideConfig(aiConfig: Record<string, unknown>): Promise<void> {
     if (!this.serverUrl) {
       throw new Error('Server URL not configured');
     }
 
     // Map visualizer config keys to environment variable names
-    const mappedConfig: Record<string, any> = {};
+    const mappedConfig: Record<string, unknown> = {};
 
     // Map visualizer config keys to their corresponding environment variable names
     const configKeyMapping: Record<string, string> = {

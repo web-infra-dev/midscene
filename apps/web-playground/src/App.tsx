@@ -69,7 +69,7 @@ export default function App() {
               </div>
             </div>
             <div className="header-config">
-              <EnvConfig />
+              <EnvConfig showTooltipWhenEmpty={false} />
             </div>
           </div>
         </div>

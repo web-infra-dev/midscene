@@ -1,39 +1,4 @@
-import { Alert } from 'antd';
-import type React from 'react';
-import ShinyText from '../component/shiny-text';
-
-// server not ready error message
-export const errorMessageServerNotReady = (
-  <span>
-    Don&apos;t worry, just one more step to launch the playground server.
-    <br />
-    Please run one of the commands under the midscene project directory:
-    <br />
-    a. <strong>npx midscene-playground</strong>
-    <br />
-    b. <strong>npx --yes @midscene/web</strong>
-  </span>
-);
-
-// server launch tip
-export const serverLaunchTip = (
-  notReadyMessage: React.ReactNode | string = errorMessageServerNotReady,
-) => (
-  <div className="server-tip">
-    <Alert
-      message="Playground Server Not Ready"
-      description={notReadyMessage}
-      type="warning"
-    />
-  </div>
-);
-
-// empty result tip
-export const emptyResultTip = (
-  <div className="result-empty-tip" style={{ textAlign: 'center' }}>
-    <ShinyText disabled text="The result will be shown here" />
-  </div>
-);
+import type { InfoListItem, PlaygroundResult } from '../types';
 
 // tracking popup tip
 export const trackingTip = 'limit popup to current tab';
@@ -73,3 +38,30 @@ export const apiMetadata = {
 };
 
 export const defaultMainButtons = ['aiAction', 'aiTap', 'aiQuery', 'aiAssert'];
+
+// welcome message template
+export const WELCOME_MESSAGE_TEMPLATE: Omit<InfoListItem, 'id' | 'timestamp'> =
+  {
+    type: 'system',
+    content: `
+      Welcome to Midscene.js Playground!
+      
+      This is a panel for experimenting and testing Midscene.js features. You can use natural language instructions to operate the web page, such as clicking buttons, filling in forms, querying information, etc.
+      
+      Please enter your instructions in the input box below to start experiencing.
+    `,
+    loading: false,
+    result: undefined,
+    replayScriptsInfo: null,
+    replayCounter: 0,
+    loadingProgressText: '',
+    verticalMode: false,
+  };
+
+// blank result template
+export const BLANK_RESULT: PlaygroundResult = {
+  result: undefined,
+  dump: null,
+  reportHTML: null,
+  error: null,
+};

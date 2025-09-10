@@ -15,11 +15,7 @@
       "import": "./dist/es/index.mjs"
     }
   },
-  "files": ["dist", "bin", "static"],
-  "bin": {
-    "midscene-playground": "./bin/playground",
-    "@midscene/playground": "./bin/playground"
-  },
+  "files": ["dist", "static"],
   "scripts": {
     "build": "rslib build",
     "build:watch": "rslib build --watch",
