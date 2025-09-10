@@ -3,6 +3,7 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import * as fs from 'node:fs';
 import {
   type MidsceneLocationResultType,
+  adaptBboxToRect,
   adaptDoubaoBbox,
   adaptQwenBbox,
   dumpActionParam,
@@ -16,7 +17,6 @@ import {
   preprocessDoubaoBboxJson,
   safeParseJson,
 } from '@/ai-model/service-caller';
-import { actionDragAndDropParamSchema } from '@/device';
 import { type DeviceAction, getMidsceneLocationSchema } from '@/index';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { type IModelPreferences, vlLocateMode } from '@midscene/shared/env';
@@ -371,6 +371,23 @@ describe('qwen-vl', () => {
 
   it('adaptQwenBbox with invalid bbox data', () => {
     expect(() => adaptQwenBbox([100])).toThrow();
+  });
+
+  it('adaptBboxToRect - size exceed image size', () => {
+    const result = adaptBboxToRect(
+      [100, 200, 1000, 2000],
+      1000,
+      1000,
+      defaultIntent,
+    );
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "height": 800,
+        "left": 100,
+        "top": 200,
+        "width": 900,
+      }
+    `);
   });
 });
 
