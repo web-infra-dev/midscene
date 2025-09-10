@@ -448,13 +448,12 @@ class PlaygroundServer {
       res.redirect('/index.html');
     });
 
-    this._app.get('*', (req: Request, res: Response) => {
-      const requestedPath = join(this.staticPath, req.path);
-      if (existsSync(requestedPath)) {
-        res.sendFile(requestedPath);
-      } else {
-        res.sendFile(join(this.staticPath, 'index.html'));
-      }
+    // Use express.static middleware for secure static file serving
+    this._app.use(express.static(this.staticPath));
+
+    // Fallback to index.html for SPA routing
+    this._app.get('*', (_req: Request, res: Response) => {
+      res.sendFile(join(this.staticPath, 'index.html'));
     });
   }
 

@@ -6,7 +6,11 @@ describe('Playground Server', () => {
   let server: PlaygroundServer;
   let serverBase: string;
   beforeAll(async () => {
-    const page = new StaticPage();
+    const page = new StaticPage({
+      tree: { node: null, children: [] },
+      size: { width: 800, height: 600 },
+      screenshotBase64: '',
+    });
     const agent = new StaticPageAgent(page);
     server = new PlaygroundServer(page, agent);
     await server.launch();
