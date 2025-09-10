@@ -167,4 +167,8 @@ export default class StaticPage implements AbstractInterface {
   async getContext(): Promise<UIContext> {
     return this.uiContext;
   }
+
+  updateContext(newContext: WebUIContext): void {
+    this.uiContext = newContext;
+  }
 }

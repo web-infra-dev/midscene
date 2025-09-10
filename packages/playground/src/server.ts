@@ -40,35 +40,48 @@ class PlaygroundServer {
   tmpDir: string;
   server?: Server;
   port?: number | null;
-  pageClass: new (
-    ...args: any[]
-  ) => AbstractInterface;
-  agentClass: new (
-    ...args: any[]
-  ) => PageAgent;
+  page: AbstractInterface;
+  agent: PageAgent;
   staticPath: string;
   taskProgressTips: Record<string, string>;
-  activeAgents: Record<string, PageAgent>;
+
+  private _initialized = false;
 
   constructor(
-    pageClass: new (...args: any[]) => AbstractInterface,
-    agentClass: new (...args: any[]) => PageAgent,
+    page: AbstractInterface,
+    agent: PageAgent,
     staticPath = STATIC_PATH,
   ) {
     this._app = express();
     this.tmpDir = getTmpDir()!;
-    this.pageClass = pageClass;
-    this.agentClass = agentClass;
+    this.page = page;
+    this.agent = agent;
     this.staticPath = staticPath;
     this.taskProgressTips = {};
-    this.activeAgents = {};
-
-    // Initialize app routes and middleware in constructor
-    this.initializeApp();
   }
 
   /**
    * Get the Express app instance for custom configuration
+   *
+   * IMPORTANT: Add middleware (like CORS) BEFORE calling launch()
+   * The routes are initialized when launch() is called, so middleware
+   * added after launch() will not affect the API routes.
+   *
+   * @example
+   * ```typescript
+   * import cors from 'cors';
+   *
+   * const server = new PlaygroundServer(page, agent);
+   *
+   * // Add CORS middleware before launch
+   * server.app.use(cors({
+   *   origin: true,
+   *   credentials: true,
+   *   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+   * }));
+   *
+   * await server.launch();
+   * ```
    */
   get app(): express.Application {
     return this._app;
@@ -76,16 +89,24 @@ class PlaygroundServer {
 
   /**
    * Initialize Express app with all routes and middleware
+   * Called automatically by launch() if not already initialized
    */
   private initializeApp(): void {
-    // Error handler middleware
-    this._app.use(errorHandler);
+    if (this._initialized) return;
+
+    // NOTE: CORS middleware should be added externally via server.app.use()
+    // before calling server.launch() if needed
 
     // API routes
     this.setupRoutes();
 
     // Static file serving (if staticPath is provided)
     this.setupStaticRoutes();
+
+    // Error handler middleware (must be last)
+    this._app.use(errorHandler);
+
+    this._initialized = true;
   }
 
   filePathForUuid(uuid: string) {
@@ -139,28 +160,10 @@ class PlaygroundServer {
       '/action-space',
       express.json({ limit: '30mb' }),
       async (req: Request, res: Response) => {
-        const { context } = req.body;
-
         try {
           let actionSpace = [];
 
-          // Check if we have an active agent to get action space from
-          const activeAgentIds = Object.keys(this.activeAgents);
-          if (activeAgentIds.length === 1) {
-            // Use existing agent's action space
-            const agentId = activeAgentIds[0];
-            const agent = this.activeAgents[agentId];
-            const page = agent.interface;
-            actionSpace = await page.actionSpace();
-          } else if (context) {
-            // Create temporary agent with context
-            const page = new this.pageClass(context);
-            actionSpace = await page.actionSpace();
-          } else {
-            return res.status(400).json({
-              error: 'context is required when no active agent is available',
-            });
-          }
+          actionSpace = await this.page.actionSpace();
 
           // Process actionSpace to make paramSchema serializable
           const processedActionSpace = actionSpace.map((action: unknown) => {
@@ -253,7 +256,6 @@ class PlaygroundServer {
       express.json({ limit: '30mb' }),
       async (req: Request, res: Response) => {
         const {
-          context,
           type,
           prompt,
           params,
@@ -269,39 +271,10 @@ class PlaygroundServer {
           });
         }
 
-        // If we have exactly one active agent, use it directly (common case for playgroundForAgent)
-        const activeAgentIds = Object.keys(this.activeAgents);
-        let agent: PageAgent;
-        let page: AbstractInterface;
-
-        let isTemporaryAgent = false;
-        if (activeAgentIds.length === 1) {
-          // Single agent case - use it directly (ignore frontend requestId)
-          const agentId = activeAgentIds[0];
-          agent = this.activeAgents[agentId];
-          page = (agent as PlaygroundAgent & { interface: AbstractInterface })
-            .interface;
-        } else if (requestId && this.activeAgents[requestId]) {
-          // Multi-agent case with specific requestId
-          agent = this.activeAgents[requestId];
-          page = (agent as PlaygroundAgent & { interface: AbstractInterface })
-            .interface;
-        } else if (context) {
-          // Create new agent with context
-          page = new this.pageClass(context);
-          agent = new this.agentClass(page);
-          isTemporaryAgent = true;
-        } else {
-          return res.status(400).json({
-            error: 'context is required when no active agent is available',
-          });
-        }
-
         if (requestId) {
           this.taskProgressTips[requestId] = '';
-          this.activeAgents[requestId] = agent;
 
-          agent.onTaskStartTip = (tip: string) => {
+          this.agent.onTaskStartTip = (tip: string) => {
             this.taskProgressTips[requestId] = tip;
           };
         }
@@ -323,7 +296,7 @@ class PlaygroundServer {
         const startTime = Date.now();
         try {
           // Get action space to check for dynamic actions
-          const actionSpace = await page.actionSpace();
+          const actionSpace = await this.page.actionSpace();
 
           // Prepare value object for executeAction
           const value = {
@@ -333,7 +306,7 @@ class PlaygroundServer {
           };
 
           response.result = await executeAction(
-            agent as unknown as PlaygroundAgent,
+            this.agent,
             type,
             actionSpace,
             value,
@@ -348,17 +321,11 @@ class PlaygroundServer {
         }
 
         try {
-          response.dump = JSON.parse(agent.dumpDataString());
-          response.reportHTML = agent.reportHTMLString() || null;
+          response.dump = JSON.parse(this.agent.dumpDataString());
+          response.reportHTML = this.agent.reportHTMLString() || null;
 
-          agent.writeOutActionDumps();
-          agent.resetDump();
-
-          // Only destroy temporary agents, keep pre-registered agents alive
-          if (isTemporaryAgent) {
-            agent.destroy();
-          } else {
-          }
+          this.agent.writeOutActionDumps();
+          this.agent.resetDump();
         } catch (error: unknown) {
           const errorMessage =
             error instanceof Error ? error.message : 'Unknown error';
@@ -380,9 +347,9 @@ class PlaygroundServer {
           );
         }
 
-        // Clean up the agent from activeAgents after execution completes
-        if (requestId && this.activeAgents[requestId]) {
-          delete this.activeAgents[requestId];
+        // Clean up task progress tip after execution completes
+        if (requestId) {
+          delete this.taskProgressTips[requestId];
         }
       },
     );
@@ -398,21 +365,16 @@ class PlaygroundServer {
           });
         }
 
-        const agent = this.activeAgents[requestId];
-        if (!agent) {
-          return res.status(404).json({
-            error: 'No active agent found for this requestId',
-          });
-        }
-
         try {
-          await agent.destroy();
-          delete this.activeAgents[requestId];
+          // Since we only have one agent, just clear the task progress tip
+          if (this.taskProgressTips[requestId]) {
+            delete this.taskProgressTips[requestId];
+          }
           res.json({ status: 'cancelled' });
         } catch (error: unknown) {
           const errorMessage =
             error instanceof Error ? error.message : 'Unknown error';
-          console.error(`Failed to cancel agent: ${errorMessage}`);
+          console.error(`Failed to cancel: ${errorMessage}`);
           res.status(500).json({
             error: `Failed to cancel: ${errorMessage}`,
           });
@@ -423,30 +385,14 @@ class PlaygroundServer {
     // Screenshot API for real-time screenshot polling
     this._app.get('/screenshot', async (_req: Request, res: Response) => {
       try {
-        // If we have exactly one active agent, use it directly
-        const activeAgentIds = Object.keys(this.activeAgents);
-        let page: AbstractInterface;
-
-        if (activeAgentIds.length === 1) {
-          // Single agent case - use it directly
-          const agentId = activeAgentIds[0];
-          const agent = this.activeAgents[agentId];
-          page = (agent as PlaygroundAgent & { interface: AbstractInterface })
-            .interface;
-        } else {
-          return res.status(400).json({
-            error: 'No active agent available for screenshot',
-          });
-        }
-
         // Check if page has screenshotBase64 method
-        if (typeof page.screenshotBase64 !== 'function') {
+        if (typeof this.page.screenshotBase64 !== 'function') {
           return res.status(500).json({
             error: 'Screenshot method not available on current interface',
           });
         }
 
-        const base64Screenshot = await page.screenshotBase64();
+        const base64Screenshot = await this.page.screenshotBase64();
 
         res.json({
           screenshot: base64Screenshot,
@@ -516,6 +462,9 @@ class PlaygroundServer {
    * Launch the server on specified port
    */
   async launch(port?: number): Promise<PlaygroundServer> {
+    // Initialize routes now, after any middleware has been added
+    this.initializeApp();
+
     this.port = port || defaultPort;
 
     return new Promise((resolve) => {
@@ -532,15 +481,12 @@ class PlaygroundServer {
   async close(): Promise<void> {
     return new Promise((resolve, reject) => {
       if (this.server) {
-        // Clean up all active agents
-        for (const [requestId, agent] of Object.entries(this.activeAgents)) {
-          try {
-            agent.destroy();
-          } catch (error) {
-            console.warn(`Failed to destroy agent ${requestId}:`, error);
-          }
+        // Clean up the single agent
+        try {
+          this.agent.destroy();
+        } catch (error) {
+          console.warn('Failed to destroy agent:', error);
         }
-        this.activeAgents = {};
         this.taskProgressTips = {};
 
         // Close the server

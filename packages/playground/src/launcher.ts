@@ -90,24 +90,19 @@ export function playgroundForAgent(agent: Agent) {
       if (!webPage) {
         throw new Error('Agent must have an interface property');
       }
-      const pageClass = webPage.constructor as new (
-        ...args: any[]
-      ) => AbstractInterface;
-      const agentClass = agent.constructor as new (...args: any[]) => PageAgent;
 
       if (verbose) {
         console.log('🚀 Starting Midscene Playground...');
-        console.log(`📱 Agent: ${agentClass.name}`);
-        console.log(`🖥️ Page: ${pageClass.name}`);
+        console.log(`📱 Agent: ${agent.constructor.name}`);
+        console.log(`🖥️ Page: ${webPage.constructor.name}`);
         console.log(`🌐 Port: ${port}`);
       }
 
-      // Create and launch the server
-      const server = new PlaygroundServer(pageClass, agentClass);
-
-      // Store the agent instance for server to use with a unique ID
-      const defaultAgentId = 'launcher-default-agent';
-      server.activeAgents[defaultAgentId] = agent as unknown as PageAgent;
+      // Create and launch the server with agent instances
+      const server = new PlaygroundServer(
+        webPage,
+        agent as unknown as PageAgent,
+      );
 
       const launchedServer = (await server.launch(port)) as PlaygroundServer;
 

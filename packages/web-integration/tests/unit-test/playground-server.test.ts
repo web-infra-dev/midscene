@@ -6,7 +6,9 @@ describe('Playground Server', () => {
   let server: PlaygroundServer;
   let serverBase: string;
   beforeAll(async () => {
-    server = new PlaygroundServer(StaticPage, StaticPageAgent);
+    const page = new StaticPage();
+    const agent = new StaticPageAgent(page);
+    server = new PlaygroundServer(page, agent);
     await server.launch();
     serverBase = `http://localhost:${server.port}`;
   });

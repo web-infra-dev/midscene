@@ -19,14 +19,12 @@
   }
 }
 
-.device-dropdown-button {
-  border: none;
-  padding: 4px 12px 4px 8px;
+.device-info-display {
   display: flex;
   align-items: center;
+  padding: 4px 12px 4px 8px;
   background: #f0f0f0;
   border-radius: 20px;
-  box-shadow: none;
   height: 32px;
 
   .device-icon-container {
@@ -57,25 +55,17 @@
     font-weight: bold;
     font-size: 16px;
     color: #333;
-    max-width: 120px;
+    max-width: 200px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     margin-left: 8px;
-    margin-right: 4px;
 
     &.no-device {
       color: #999;
       font-weight: normal;
       font-style: italic;
     }
-  }
-
-  .dropdown-arrow {
-    color: #666;
-    font-size: 12px;
-    transform: scaleY(0.6);
-    font-weight: bold;
   }
 }
 
