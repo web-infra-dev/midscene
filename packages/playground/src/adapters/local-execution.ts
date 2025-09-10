@@ -59,8 +59,8 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   // Local execution - use base implementation
   // (inherits default executeAction from BasePlaygroundAdapter)
 
-  // Local execution gets actionSpace from internal agent (ignores parameters)
-  async getActionSpace(): Promise<DeviceAction<unknown>[]> {
+  // Local execution gets actionSpace from internal agent (parameter is for backward compatibility)
+  async getActionSpace(context?: unknown): Promise<DeviceAction<unknown>[]> {
     // Priority 1: Use agent's getActionSpace method
     if (this.agent?.getActionSpace) {
       return await this.agent.getActionSpace();
@@ -78,6 +78,12 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       if (page?.actionSpace) {
         return await page.actionSpace();
       }
+    }
+
+    // Priority 3: Fallback to context parameter (for backward compatibility with tests)
+    if (context && typeof context === 'object' && 'actionSpace' in context) {
+      const contextPage = context as { actionSpace: () => Promise<DeviceAction<unknown>[]> };
+      return await contextPage.actionSpace();
     }
 
     return [];
