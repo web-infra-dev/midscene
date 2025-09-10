@@ -7,12 +7,12 @@ import type { AbstractInterface } from '@midscene/core/device';
 import { getTmpDir } from '@midscene/core/utils';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import { overrideAIConfig } from '@midscene/shared/env';
-import { ifInBrowser, ifInWorker } from '@midscene/shared/utils';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import express, { type Request, type Response } from 'express';
 import { executeAction, formatErrorMessage } from './common';
 import type { PlaygroundAgent } from './types';
+
+import 'dotenv/config';
 
 const defaultPort = PLAYGROUND_SERVER_PORT;
 
@@ -28,12 +28,6 @@ const errorHandler = (
   res.status(500).json({
     error: errorMessage,
   });
-};
-
-const setup = async () => {
-  if (!ifInBrowser && !ifInWorker) {
-    dotenv.config();
-  }
 };
 
 class PlaygroundServer {
@@ -63,7 +57,6 @@ class PlaygroundServer {
     this.staticPath = staticPath;
     this.taskProgressTips = {};
     this.activeAgents = {};
-    setup();
   }
 
   filePathForUuid(uuid: string) {
