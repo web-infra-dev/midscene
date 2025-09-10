@@ -171,6 +171,8 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
         console.error('Failed to get dump/reportHTML from agent:', error);
       }
 
+      this.agent.resetDump();
+
       return response;
     } finally {
       // Always clean up progress tracking to prevent memory leaks

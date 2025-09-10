@@ -338,6 +338,7 @@ class PlaygroundServer {
           response.reportHTML = agent.reportHTMLString() || null;
 
           agent.writeOutActionDumps();
+          agent.resetDump();
 
           // Only destroy temporary agents, keep pre-registered agents alive
           if (isTemporaryAgent) {
