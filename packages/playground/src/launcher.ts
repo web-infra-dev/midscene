@@ -44,9 +44,9 @@ export interface LaunchPlaygroundResult {
   port: number;
 
   /**
-   * The web-playground URL
+   * The server host
    */
-  url: string;
+  host: string;
 
   /**
    * Function to gracefully shutdown the playground
@@ -100,7 +100,7 @@ export function playgroundForAgent(agent: Agent) {
       if (verbose) {
         console.log('🚀 Starting Midscene Playground...');
         console.log(`📱 Agent: ${agentClass.name}`);
-        console.log(`🖥️  Page: ${pageClass.name}`);
+        console.log(`🖥️ Page: ${pageClass.name}`);
         console.log(`🌐 Port: ${port}`);
       }
 
@@ -120,7 +120,7 @@ export function playgroundForAgent(agent: Agent) {
         console.log(`✅ Playground server started on port ${port}`);
       }
 
-      const url = `http://localhost:${port}`;
+      const url = `http://127.0.0.1:${port}`;
 
       // Open browser if requested
       if (openBrowser) {
@@ -130,7 +130,7 @@ export function playgroundForAgent(agent: Agent) {
       return {
         server: launchedServer,
         port,
-        url,
+        host: '127.0.0.1',
         close: () => {
           if (verbose) {
             console.log('🛑 Shutting down Midscene Playground...');
