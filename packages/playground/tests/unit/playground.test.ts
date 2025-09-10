@@ -89,9 +89,14 @@ describe('Playground Integration Tests', () => {
       const result = await sdk.executeAction('click', value, options);
 
       expect(result).toEqual({
-        success: true,
-        action: 'clicked',
-        params: { deepThink: true, locateField: 'button' },
+        result: {
+          success: true,
+          action: 'clicked',
+          params: { deepThink: true, locateField: 'button' },
+        },
+        dump: null,
+        reportHTML: null,
+        error: null,
       });
     });
 
@@ -105,11 +110,16 @@ describe('Playground Integration Tests', () => {
       const result = await sdk.executeAction('aiQuery', value, options);
 
       expect(result).toEqual({
-        result: 'query result',
-        params: {
-          prompt: 'What is the page title?',
-          screenshotIncluded: true,
+        result: {
+          result: 'query result',
+          params: {
+            prompt: 'What is the page title?',
+            screenshotIncluded: true,
+          },
         },
+        dump: null,
+        reportHTML: null,
+        error: null,
       });
     });
 

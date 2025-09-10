@@ -140,9 +140,12 @@ describe('LocalExecutionAdapter', () => {
         actionSpace: vi.fn().mockResolvedValue(mockActions),
       };
 
+      // Make sure the agent doesn't have getActionSpace, so it falls back to context
+      (mockAgent as any).getActionSpace = undefined;
+
       const result = await adapter.getActionSpace(mockPage);
 
-      expect(result).toBe(mockActions);
+      expect(result).toEqual(mockActions);
       expect(mockPage.actionSpace).toHaveBeenCalled();
     });
   });
@@ -180,7 +183,12 @@ describe('LocalExecutionAdapter', () => {
 
       const result = await adapter.executeAction('click', value, options);
 
-      expect(result).toBe('test result');
+      expect(result).toEqual({
+        result: 'test result',
+        dump: null,
+        reportHTML: null,
+        error: null,
+      });
       expect(common.executeAction).toHaveBeenCalledWith(
         mockAgent,
         'click',
