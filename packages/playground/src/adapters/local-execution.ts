@@ -82,7 +82,9 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
 
     // Priority 3: Fallback to context parameter (for backward compatibility with tests)
     if (context && typeof context === 'object' && 'actionSpace' in context) {
-      const contextPage = context as { actionSpace: () => Promise<DeviceAction<unknown>[]> };
+      const contextPage = context as {
+        actionSpace: () => Promise<DeviceAction<unknown>[]>;
+      };
       return await contextPage.actionSpace();
     }
 

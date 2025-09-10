@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { Agent, Agent as PageAgent } from '@midscene/core/agent';
 import type { AbstractInterface } from '@midscene/core/device';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
@@ -104,6 +105,8 @@ export function playgroundForAgent(agent: Agent) {
       }
 
       // Create and launch the server with web-playground static files
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = dirname(__filename);
       const staticDir = join(__dirname, '..', '..', 'static');
       const server = new PlaygroundServer(pageClass, agentClass, staticDir);
 

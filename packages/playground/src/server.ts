@@ -36,7 +36,7 @@ const setup = async () => {
   }
 };
 
-export default class PlaygroundServer {
+class PlaygroundServer {
   app: express.Application;
   tmpDir: string;
   server?: Server;
@@ -464,3 +464,6 @@ export default class PlaygroundServer {
     }
   }
 }
+
+export default PlaygroundServer;
+export { PlaygroundServer };
