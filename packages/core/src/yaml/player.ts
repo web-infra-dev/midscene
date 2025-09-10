@@ -376,6 +376,8 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           // New format - aiKeyboardPress is the prompt, key is the key
           keyName = keyboardPressTask.keyName;
           locatePrompt = aiKeyboardPress;
+        } else {
+          keyName = aiKeyboardPress as string;
         }
 
         await agent.callActionInActionSpace('KeyboardPress', {
