@@ -2,14 +2,20 @@
 
 From Midscene v0.28.0, we have launched the feature to integrate with any interface. Just define a class that extends the `AbstractInterface` class, and you can get a fully-featured Midscene AI Agent, including the interaction methods, data extraction methods, the report, the GUI playground, the cli, the yaml script runner, the MCP server...
 
-:::warning This is a preview feature
-This feature is still in preview. We have finished these work:
-- [x] Allow user to define a class that extends the `AbstractInterface` class
-- [x] Allow user to use yaml script to drive the interface
+:::tip This is a preview feature
 
-And the next work is:
-- Allow user to use the playground
-- Allow user to use the MCP server
+This feature is still in preview. We have finished the following work
+
+✅ Allow developers to define a class that extends the `AbstractInterface` class
+
+✅ Allow developers to use yaml script to drive the interface
+
+And the next work is
+
+- Allow developers to use the playground
+
+- Allow developers to use the MCP server
+
 :::
 
 
@@ -17,11 +23,13 @@ And the next work is:
 
 We have prepared a demo project for you to learn how to define your own interface class. It's highly recommended to check it out.
 
-* [Demo Project](https://github.com/web-infra-dev/midscene-example/tree/main/custom-interface)
+* [Demo Project](https://github.com/web-infra-dev/midscene-example/tree/main/custom-interface) - A simple demo project that shows how to define your own interface class
+
+* [Android (adb) Agent](https://github.com/web-infra-dev/midscene/blob/main/packages/android/src/device.ts) - The implementation of the Midscene Android (adb) Agent conforms to this feature
 
 There are also some community projects that use this feature:
 
-* [midscene-ios](https://github.com/lhuanyu/midscene-ios) - iOS Mirror Automation Support for Midscene
+* [midscene-ios](https://github.com/lhuanyu/midscene-ios) - A project driving the "iPhone Mirror" app with Midscene
 
 
 ## Implement your own interface class

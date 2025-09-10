@@ -152,10 +152,10 @@ export default defineConfig({
         {
           text: 'More',
           items: [
-            {
-              text: 'Integrate with Any Interface (Preview)',
-              link: '/integrate-with-any-interface',
-            },
+            // {
+            //   text: 'Integrate with Any Interface (Preview)',
+            //   link: '/integrate-with-any-interface',
+            // },
             {
               text: 'Awesome Midscene',
               link: '/awesome-midscene',
@@ -285,10 +285,10 @@ export default defineConfig({
         {
           text: '更多',
           items: [
-            {
-              text: '与任何界面集成（预览特性 ）',
-              link: '/zh/integrate-with-any-interface',
-            },
+            // {
+            //   text: '与任何界面集成（预览特性 ）',
+            //   link: '/zh/integrate-with-any-interface',
+            // },
             {
               text: 'Awesome Midscene',
               link: '/zh/awesome-midscene',
