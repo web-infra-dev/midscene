@@ -154,47 +154,6 @@ export interface MidsceneYamlFlowItemAIWaitFor {
   timeout?: number;
 }
 
-export interface MidsceneYamlFlowItemAITap extends LocateOption {
-  aiTap: TUserPrompt;
-}
-
-export interface MidsceneYamlFlowItemAIRightClick extends LocateOption {
-  aiRightClick: TUserPrompt;
-}
-
-export interface MidsceneYamlFlowItemAIDoubleClick extends LocateOption {
-  aiDoubleClick: TUserPrompt;
-}
-
-export interface MidsceneYamlFlowItemAIHover extends LocateOption {
-  aiHover: TUserPrompt;
-}
-
-export interface MidsceneYamlFlowItemAIInput extends LocateOption {
-  // previous version
-  // aiInput: string; // value to input
-  // locate: TUserPrompt; // where to input
-  aiInput: TUserPrompt | undefined; // where to input
-  value: string; // value to input
-}
-
-export interface MidsceneYamlFlowItemAIKeyboardPress extends LocateOption {
-  // previous version
-  // aiKeyboardPress: string;
-  // locate?: TUserPrompt; // where to press, optional
-  aiKeyboardPress: TUserPrompt | undefined; // where to press
-  keyName: string; // key to press
-}
-
-export interface MidsceneYamlFlowItemAIScroll
-  extends LocateOption,
-    ScrollParam {
-  // previous version
-  // aiScroll: null;
-  // locate?: TUserPrompt; // which area to scroll, optional
-  aiScroll: TUserPrompt | undefined; // which area to scroll
-}
-
 export interface MidsceneYamlFlowItemEvaluateJavaScript {
   javascript: string;
   name?: string;
@@ -214,13 +173,6 @@ export type MidsceneYamlFlowItem =
   | MidsceneYamlFlowItemAIAssert
   | MidsceneYamlFlowItemAIQuery
   | MidsceneYamlFlowItemAIWaitFor
-  | MidsceneYamlFlowItemAITap
-  | MidsceneYamlFlowItemAIRightClick
-  | MidsceneYamlFlowItemAIDoubleClick
-  | MidsceneYamlFlowItemAIHover
-  | MidsceneYamlFlowItemAIInput
-  | MidsceneYamlFlowItemAIKeyboardPress
-  | MidsceneYamlFlowItemAIScroll
   | MidsceneYamlFlowItemSleep
   | MidsceneYamlFlowItemLogScreenshot;
 
