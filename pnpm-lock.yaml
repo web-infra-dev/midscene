@@ -803,9 +803,6 @@ importers:
       '@midscene/shared':
         specifier: workspace:*
         version: link:../shared
-      cors:
-        specifier: 2.8.5
-        version: 2.8.5
       dotenv:
         specifier: 16.4.5
         version: 16.4.5
@@ -819,9 +816,6 @@ importers:
       '@rslib/core':
         specifier: ^0.11.2
         version: 0.11.2(@microsoft/api-extractor@7.52.10(@types/node@18.19.118))(typescript@5.8.3)
-      '@types/cors':
-        specifier: 2.8.12
-        version: 2.8.12
       '@types/express':
         specifier: ^4.17.21
         version: 4.17.21
@@ -1023,6 +1017,9 @@ importers:
       '@midscene/shared':
         specifier: workspace:*
         version: link:../shared
+      cors:
+        specifier: 2.8.5
+        version: 2.8.5
       dayjs:
         specifier: ^1.11.11
         version: 1.11.13
@@ -1048,6 +1045,9 @@ importers:
       '@types/chrome':
         specifier: 0.0.279
         version: 0.0.279
+      '@types/cors':
+        specifier: 2.8.12
+        version: 2.8.12
       '@types/http-server':
         specifier: ^0.12.4
         version: 0.12.4

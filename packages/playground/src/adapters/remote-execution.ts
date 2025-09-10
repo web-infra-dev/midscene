@@ -307,6 +307,9 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
     try {
       const res = await fetch(
         `${this.serverUrl}/cancel/${encodeURIComponent(requestId)}`,
+        {
+          method: 'POST',
+        },
       );
 
       if (!res.ok) {
@@ -363,14 +366,17 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
   }
 
   // Get screenshot from server
-  async getScreenshot(): Promise<{ screenshot: string; timestamp: number } | null> {
+  async getScreenshot(): Promise<{
+    screenshot: string;
+    timestamp: number;
+  } | null> {
     if (!this.serverUrl) {
       return null;
     }
 
     try {
       const response = await fetch(`${this.serverUrl}/screenshot`);
-      
+
       if (!response.ok) {
         console.warn(`Screenshot request failed: ${response.statusText}`);
         return null;

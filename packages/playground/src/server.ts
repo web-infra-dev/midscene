@@ -8,7 +8,6 @@ import type { AbstractInterface } from '@midscene/core/device';
 import { getTmpDir } from '@midscene/core/utils';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import { overrideAIConfig } from '@midscene/shared/env';
-import cors from 'cors';
 import express, { type Request, type Response } from 'express';
 import { executeAction, formatErrorMessage } from './common';
 import type { PlaygroundAgent } from './types';
@@ -54,12 +53,13 @@ class PlaygroundServer {
   constructor(
     pageClass: new (...args: any[]) => AbstractInterface,
     agentClass: new (...args: any[]) => PageAgent,
+    staticPath = STATIC_PATH,
   ) {
     this._app = express();
     this.tmpDir = getTmpDir()!;
     this.pageClass = pageClass;
     this.agentClass = agentClass;
-    this.staticPath = STATIC_PATH;
+    this.staticPath = staticPath;
     this.taskProgressTips = {};
     this.activeAgents = {};
 
@@ -80,14 +80,6 @@ class PlaygroundServer {
   private initializeApp(): void {
     // Error handler middleware
     this._app.use(errorHandler);
-
-    // CORS middleware
-    this._app.use(
-      cors({
-        origin: '*',
-        credentials: true,
-      }),
-    );
 
     // API routes
     this.setupRoutes();
@@ -395,35 +387,38 @@ class PlaygroundServer {
       },
     );
 
-    this._app.get('/cancel/:requestId', async (req: Request, res: Response) => {
-      const { requestId } = req.params;
+    this._app.post(
+      '/cancel/:requestId',
+      async (req: Request, res: Response) => {
+        const { requestId } = req.params;
 
-      if (!requestId) {
-        return res.status(400).json({
-          error: 'requestId is required',
-        });
-      }
+        if (!requestId) {
+          return res.status(400).json({
+            error: 'requestId is required',
+          });
+        }
 
-      const agent = this.activeAgents[requestId];
-      if (!agent) {
-        return res.status(404).json({
-          error: 'No active agent found for this requestId',
-        });
-      }
+        const agent = this.activeAgents[requestId];
+        if (!agent) {
+          return res.status(404).json({
+            error: 'No active agent found for this requestId',
+          });
+        }
 
-      try {
-        await agent.destroy();
-        delete this.activeAgents[requestId];
-        res.json({ status: 'cancelled' });
-      } catch (error: unknown) {
-        const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error';
-        console.error(`Failed to cancel agent: ${errorMessage}`);
-        res.status(500).json({
-          error: `Failed to cancel: ${errorMessage}`,
-        });
-      }
-    });
+        try {
+          await agent.destroy();
+          delete this.activeAgents[requestId];
+          res.json({ status: 'cancelled' });
+        } catch (error: unknown) {
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error';
+          console.error(`Failed to cancel agent: ${errorMessage}`);
+          res.status(500).json({
+            error: `Failed to cancel: ${errorMessage}`,
+          });
+        }
+      },
+    );
 
     // Screenshot API for real-time screenshot polling
     this._app.get('/screenshot', async (_req: Request, res: Response) => {

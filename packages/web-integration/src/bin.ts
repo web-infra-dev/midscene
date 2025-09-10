@@ -1,7 +1,17 @@
 import { PlaygroundServer } from '@midscene/playground';
+import cors from 'cors';
 import { StaticPage, StaticPageAgent } from './static';
 
 const server = new PlaygroundServer(StaticPage, StaticPageAgent);
+
+// Register CORS middleware before launching the server
+server.app.use(
+  cors({
+    origin: '*',
+    credentials: true,
+  }),
+);
+
 Promise.resolve()
   .then(() => server.launch())
   .then(() => {
