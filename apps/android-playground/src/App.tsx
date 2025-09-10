@@ -9,12 +9,11 @@ import {
 import { Col, ConfigProvider, Layout, Row, message } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { type Socket, io } from 'socket.io-client';
-import AdbDevice from './adb-device';
-import PlaygroundPanel from './components/PlaygroundPanel';
-import ScrcpyPlayer, { type ScrcpyRefMethods } from './scrcpy-player';
-
-import './adb-device/index.less';
-import './components/PlaygroundPanel.less';
+import AdbDevice from './components/adb-device';
+import PlaygroundPanel from './components/playground-panel';
+import ScrcpyPlayer, {
+  type ScrcpyRefMethods,
+} from './components/scrcpy-player';
 
 const { Content } = Layout;
 const SERVER_URL = `http://localhost:${SCRCPY_SERVER_PORT}`;

@@ -14,10 +14,10 @@ import {
 } from '@midscene/visualizer';
 import { ConfigProvider, Dropdown, Typography } from 'antd';
 import { useEffect, useState } from 'react';
-import { BrowserExtensionPlayground } from '../components/playground';
-import Bridge from './bridge';
-import Recorder from './recorder';
-import './popup.less';
+import { BrowserExtensionPlayground } from '../../components/playground';
+import Bridge from '../bridge';
+import Recorder from '../recorder';
+import './index.less';
 import { OPENAI_API_KEY, overrideAIConfig } from '@midscene/shared/env';
 import {
   ChromeExtensionProxyPage,

@@ -20,7 +20,7 @@ export default defineConfig({
       source: {
         entry: {
           index: './src/index.tsx',
-          popup: './src/extension/popup.tsx',
+          popup: './src/extension/popup/index.tsx',
         },
       },
       output: {

@@ -7,16 +7,19 @@ import {
 import { Button, List, Spin } from 'antd';
 import dayjs from 'dayjs';
 import { useEffect, useRef, useState } from 'react';
-import PlayIcon from '../icons/play.svg?react';
-import { BridgeConnector, type BridgeStatus } from '../utils/bridgeConnector';
+import PlayIcon from '../../icons/play.svg?react';
+import {
+  BridgeConnector,
+  type BridgeStatus,
+} from '../../utils/bridgeConnector';
 import {
   clearStoredBridgeMessages,
   getBridgeMsgsFromStorage,
   storeBridgeMsgsToStorage,
-} from '../utils/bridgeDB';
-import { iconForStatus } from './misc';
+} from '../../utils/bridgeDB';
+import { iconForStatus } from '../misc';
 
-import './bridge.less';
+import './index.less';
 
 interface BridgeMessageItem {
   id: string;

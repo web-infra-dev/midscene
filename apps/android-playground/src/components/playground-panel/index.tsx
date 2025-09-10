@@ -7,6 +7,7 @@ import {
   useEnvConfig,
 } from '@midscene/visualizer';
 import { useEffect, useMemo } from 'react';
+import './index.less';
 
 interface PlaygroundPanelProps {
   selectedDeviceId: string | null;

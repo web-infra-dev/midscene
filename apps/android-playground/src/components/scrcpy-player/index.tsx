@@ -27,9 +27,9 @@ import {
 } from 'react';
 import type { Socket } from 'socket.io-client';
 import { io } from 'socket.io-client';
-import LinkedIcon from '../icons/linked.svg?react';
-import ScreenshotIcon from '../icons/screenshot.svg?react';
-import UnlinkIcon from '../icons/unlink.svg?react';
+import LinkedIcon from '../../icons/linked.svg?react';
+import ScreenshotIcon from '../../icons/screenshot.svg?react';
+import UnlinkIcon from '../../icons/unlink.svg?react';
 import './index.less';
 
 const { Text } = Typography;
