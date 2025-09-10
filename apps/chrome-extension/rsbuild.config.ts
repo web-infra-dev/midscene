@@ -20,7 +20,7 @@ export default defineConfig({
       source: {
         entry: {
           index: './src/index.tsx',
-          popup: './src/extension/popup.tsx',
+          popup: './src/extension/popup/index.tsx',
         },
       },
       output: {
@@ -76,10 +76,13 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      async_hooks: path.join(__dirname, './src/scripts/blank_polyfill.ts'),
+      async_hooks: path.join(
+        __dirname,
+        '../../packages/shared/src/polyfills/async-hooks.ts',
+      ),
       'node:async_hooks': path.join(
         __dirname,
-        './src/scripts/blank_polyfill.ts',
+        '../../packages/shared/src/polyfills/async-hooks.ts',
       ),
       react: path.resolve(__dirname, 'node_modules/react'),
       'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),

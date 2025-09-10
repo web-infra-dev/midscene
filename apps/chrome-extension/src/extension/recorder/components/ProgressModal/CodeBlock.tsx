@@ -80,7 +80,6 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
 
   return (
     <div className="flex flex-col mt-5">
-      {/* 按钮区域已移除，只在外部渲染 */}
       {/* Thinking Process Section */}
       <ThinkingProcessSection
         accumulatedThinking={accumulatedThinking}

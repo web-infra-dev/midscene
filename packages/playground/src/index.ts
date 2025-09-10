@@ -6,7 +6,8 @@ export {
   validateStructuredParams,
   executeAction,
 } from './common';
-export { default as PlaygroundServer } from './server';
+export { PlaygroundServer } from './server';
+export { playgroundForAgent } from './launcher';
 
 // SDK exports
 export { PlaygroundSDK } from './sdk';
@@ -24,3 +25,7 @@ export type {
   PlaygroundAdapter,
   ServerResponse,
 } from './types';
+export type {
+  LaunchPlaygroundOptions,
+  LaunchPlaygroundResult,
+} from './launcher';

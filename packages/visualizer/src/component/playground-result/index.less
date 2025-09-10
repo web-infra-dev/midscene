@@ -1,0 +1,38 @@
+@import '../common.less';
+
+/* Playground result area styles */
+.result-wrapper {
+  display: flex;
+  height: 100%;
+  justify-content: center;
+  align-items: center;
+  margin: 4px 0;
+
+  .loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+
+    .loading-progress-text {
+      margin-top: 8px;
+      color: #888;
+      font-size: 12px;
+    }
+  }
+
+  pre {
+    margin: 4px 0;
+    margin: 0;
+    white-space: pre-wrap;
+    text-wrap: unset;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    background: #F2F4F7;
+    border-radius: 8px;
+    padding: 14px;
+    overflow: scroll;
+  }
+}

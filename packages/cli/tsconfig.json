@@ -1,26 +1,16 @@
 {
+  "extends": "../shared/tsconfig.base.json",
   "compilerOptions": {
     "baseUrl": ".",
-    "declaration": true,
-    "emitDeclarationOnly": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
     "lib": ["ESNext", "DOM"],
-    "moduleResolution": "bundler",
     "module": "esnext",
     "paths": {
       "@/*": ["./src/*"]
     },
-    "resolveJsonModule": true,
     "rootDir": ".",
-    "skipLibCheck": true,
-    "strict": true,
-    "composite": true,
-    "declarationDir": "dist/types"
+    "declarationDir": "dist/types",
+    "types": ["node"]
   },
-  "exclude": ["**/node_modules"],
   "include": ["src", "tests"],
   "references": [
     {

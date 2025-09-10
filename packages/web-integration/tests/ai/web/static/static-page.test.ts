@@ -35,7 +35,9 @@ describe(
     });
 
     it('server should work', async () => {
-      server = new PlaygroundServer(StaticPage, StaticPageAgent);
+      const page = new StaticPage();
+      const agent = new StaticPageAgent(page);
+      server = new PlaygroundServer(page, agent);
 
       await server.launch();
 

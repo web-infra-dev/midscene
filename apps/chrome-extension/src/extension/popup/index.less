@@ -1,0 +1,151 @@
+@import '../common.less';
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans",
+    Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  font-size: 14px;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+}
+
+html {
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+}
+
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+@footer-height: 40px;
+
+.ant-dropdown-menu {
+  width: auto !important;
+}
+
+.popup-wrapper {
+  width: 100%;
+  height: 100vh;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  .playground-component {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  /* top navigation bar */
+  .popup-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f0f0f0;
+    background: #ffffff;
+
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .nav-icon {
+        font-size: 16px;
+        color: #333333;
+
+        &.menu-trigger {
+          cursor: pointer;
+          padding: 4px;
+          border-radius: 4px;
+          transition: all 0.2s;
+
+          &:hover {
+            background: #f5f5f5;
+            color: #1890ff;
+          }
+        }
+      }
+
+      .nav-title {
+        font-size: 14px;
+        color: #000;
+        font-weight: bold;
+      }
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+
+      .nav-icon {
+        font-size: 16px;
+        color: #333333;
+        cursor: pointer;
+
+        &:hover {
+          color: #1890ff;
+        }
+      }
+    }
+  }
+
+  /* main content area */
+  .popup-content {
+    flex: 1;
+    padding: 0px 16px 0px 16px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+/* dropdown menu style */
+.mode-selector-dropdown {
+  .ant-dropdown-menu {
+    background: #f8f9fa;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    border: none;
+    padding: 4px 8px;
+    width: 132px;
+
+    .ant-dropdown-menu-item {
+      height: 20px;
+      border-radius: 8px;
+      padding: 8px;
+      transition: all 0.2s;
+      margin: 2px 0;
+
+      .ant-dropdown-menu-title-content {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        color: #333333;
+      }
+
+      svg {
+        transition: fill 0.2s, stroke 0.2s, color 0.2s;
+        color: #575758;
+      }
+
+      &:hover {
+        background: #fff;
+        color: #1890ff;
+
+        svg {
+          color: #2B83FF;
+        }
+      }
+    }
+  }
+}

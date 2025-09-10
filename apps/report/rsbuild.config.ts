@@ -127,7 +127,10 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      async_hooks: path.join(__dirname, './src/blank_polyfill.ts'),
+      async_hooks: path.join(
+        __dirname,
+        '../../packages/shared/src/polyfills/async-hooks.ts',
+      ),
     },
   },
   dev: {
