@@ -112,8 +112,8 @@ import { AbstractInterface } from '@midscene/core';
 以下是你可以实现的可选方法：
 
 - `destroy?()`：销毁
-- `describe?()`：描述界面，这可能用于报告和 Playground
-- `beforeInvokeAction?()`：在动作空间中调用动作之前的钩子函数
+- `describe?()`：描述这个界面，返回值用于报告和 Playground，但不会提供给 AI 模型
+- `beforeInvokeAction?()`：调用动作之前的钩子函数
 - `afterInvokeAction?()`：调用动作之后的钩子函数
 
 ### 动作空间（Action Space）
