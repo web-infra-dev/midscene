@@ -92,7 +92,6 @@ for (const record of recordList) {
 
 > For more details about the workflow style, please refer to [Blog - Use JavaScript to Optimize the AI Automation Code](https://midscenejs.com/blog-programming-practice-using-structured-api.html)
 
-
 ## 👀 Comparing to other projects
 
 There are so many UI automation tools out there, and each one seems to be all-powerful. What's special about Midscene.js?
