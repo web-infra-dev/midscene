@@ -155,43 +155,30 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
   }
 
   // Get action space from server
-  async getActionSpace(context: unknown): Promise<DeviceAction<unknown>[]> {
-    if (this.serverUrl && typeof window !== 'undefined') {
-      try {
-        const response = await fetch(`${this.serverUrl}/action-space`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ context }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to get action space: ${response.statusText}`);
-        }
-
-        const result = await response.json();
-        return Array.isArray(result) ? result : [];
-      } catch (error) {
-        console.error('Failed to get action space from server:', error);
-        // Fall through to local implementation
-      }
+  async getActionSpace(context?: unknown): Promise<DeviceAction<unknown>[]> {
+    if (!this.serverUrl || typeof window === 'undefined') {
+      return [];
     }
 
-    // Fallback to local implementation (if page object available)
-    if (context && typeof context === 'object' && 'actionSpace' in context) {
-      try {
-        const actionSpaceMethod = (
-          context as { actionSpace: () => Promise<DeviceAction<unknown>[]> }
-        ).actionSpace;
-        const result = await actionSpaceMethod();
-        return Array.isArray(result) ? result : [];
-      } catch (error) {
-        console.error('Failed to get action space from context:', error);
-      }
-    }
+    try {
+      const response = await fetch(`${this.serverUrl}/action-space`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ context }),
+      });
 
-    return [];
+      if (!response.ok) {
+        throw new Error(`Failed to get action space: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      return Array.isArray(result) ? result : [];
+    } catch (error) {
+      console.error('Failed to get action space from server:', error);
+      return [];
+    }
   }
 
   // Uses base implementation for validateParams and createDisplayContent

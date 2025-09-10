@@ -59,17 +59,19 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   // Local execution - use base implementation
   // (inherits default executeAction from BasePlaygroundAdapter)
 
-  // Local execution gets actionSpace directly from local agent
-  async getActionSpace(context?: {
-    actionSpace?: () => Promise<DeviceAction<unknown>[]>;
-  }): Promise<DeviceAction<unknown>[]> {
-    // For local execution, we get actionSpace from the stored agent
+  // Local execution gets actionSpace from internal agent (ignores parameters)
+  async getActionSpace(): Promise<DeviceAction<unknown>[]> {
+    // Priority 1: Use agent's getActionSpace method
     if (this.agent?.getActionSpace) {
       return await this.agent.getActionSpace();
     }
 
-    // Fallback: try to get actionSpace from agent's interface (page)
-    if (this.agent && 'interface' in this.agent) {
+    // Priority 2: Use agent's interface.actionSpace method
+    if (
+      this.agent &&
+      'interface' in this.agent &&
+      typeof this.agent.interface === 'object'
+    ) {
       const page = this.agent.interface as {
         actionSpace?: () => Promise<DeviceAction<unknown>[]>;
       };
@@ -78,12 +80,6 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       }
     }
 
-    // If context is provided and has actionSpace method, use it
-    if (context?.actionSpace) {
-      return await context.actionSpace();
-    }
-
-    console.warn('No actionSpace method available in LocalExecutionAdapter');
     return [];
   }
 
@@ -102,19 +98,8 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     value: FormValue,
     options: ExecutionOptions,
   ): Promise<unknown> {
-    // Get actionSpace using the same logic as getActionSpace method
-    let actionSpace: DeviceAction<unknown>[] = [];
-
-    if (this.agent?.getActionSpace) {
-      actionSpace = await this.agent.getActionSpace();
-    } else if (this.agent && 'interface' in this.agent) {
-      const page = this.agent.interface as {
-        actionSpace?: () => Promise<DeviceAction<unknown>[]>;
-      };
-      if (page?.actionSpace) {
-        actionSpace = await page.actionSpace();
-      }
-    }
+    // Get actionSpace using our simplified getActionSpace method
+    const actionSpace = await this.getActionSpace();
 
     // Setup progress tracking if requestId is provided
     if (options.requestId && this.agent) {

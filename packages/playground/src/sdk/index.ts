@@ -59,8 +59,15 @@ export class PlaygroundSDK {
     return result;
   }
 
-  async getActionSpace(context: any): Promise<DeviceAction<unknown>[]> {
-    return this.adapter.getActionSpace(context);
+  async getActionSpace(context?: unknown): Promise<DeviceAction<unknown>[]> {
+    // Different adapters need different approaches
+    if (this.adapter instanceof LocalExecutionAdapter) {
+      // Local execution doesn't need context, uses internal agent
+      return this.adapter.getActionSpace();
+    } else {
+      // Remote execution needs context for server communication
+      return this.adapter.getActionSpace(context);
+    }
   }
 
   validateStructuredParams(

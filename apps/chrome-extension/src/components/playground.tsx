@@ -5,7 +5,6 @@ import {
 } from '@midscene/visualizer';
 import { useEnvConfig } from '@midscene/visualizer';
 import { useCallback, useMemo, useRef } from 'react';
-import PlaygroundIcon from '../icons/playground.svg?react';
 import { getExtensionVersion } from '../utils/chrome';
 import './playground.less';
 
@@ -167,7 +166,6 @@ export function BrowserExtensionPlayground({
       }}
       branding={{
         title: 'Playground',
-        icon: PlaygroundIcon,
         version: `${extensionVersion}(SDK v${__SDK_VERSION__})`,
       }}
       className="chrome-extension-playground"
