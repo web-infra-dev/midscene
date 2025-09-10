@@ -280,7 +280,7 @@ export class Agent<
     type: string,
     opt?: T, // and all other action params
   ) {
-    debug('callActionInActionSpace', type, ',', opt, ',', opt);
+    debug('callActionInActionSpace', type, ',', opt);
 
     const actionPlan: PlanningAction<T> = {
       type: type as any,

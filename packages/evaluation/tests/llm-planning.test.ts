@@ -1,10 +1,5 @@
 import { writeFileSync } from 'node:fs';
-import {
-  MIDSCENE_MODEL_NAME,
-  type PlanningAIResponse,
-  type Rect,
-  plan,
-} from '@midscene/core';
+import { type PlanningAIResponse, type Rect, plan } from '@midscene/core';
 import { adaptBboxToRect } from '@midscene/core/ai-model';
 import {
   type DeviceAction,

@@ -247,11 +247,33 @@ export function adaptBboxToRect(
     height,
     modelPreferences,
   );
+
+  // Calculate initial rect dimensions
+  const rectLeft = left + offsetX;
+  const rectTop = top + offsetY;
+  let rectWidth = right - left;
+  let rectHeight = bottom - top;
+
+  // Ensure the rect doesn't exceed image boundaries
+  // If right edge exceeds width, adjust the width
+  if (rectLeft + rectWidth > width) {
+    rectWidth = width - rectLeft;
+  }
+
+  // If bottom edge exceeds height, adjust the height
+  if (rectTop + rectHeight > height) {
+    rectHeight = height - rectTop;
+  }
+
+  // Ensure minimum dimensions (width and height should be at least 1)
+  rectWidth = Math.max(1, rectWidth);
+  rectHeight = Math.max(1, rectHeight);
+
   const rect = {
-    left: left + offsetX,
-    top: top + offsetY,
-    width: right - left,
-    height: bottom - top,
+    left: rectLeft,
+    top: rectTop,
+    width: rectWidth,
+    height: rectHeight,
   };
   debugInspectUtils('adaptBboxToRect, result=', rect);
   return rect;

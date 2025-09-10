@@ -110,7 +110,7 @@ export class Page<
       } catch (error) {
         // Ignore timeout error, continue execution
         console.warn(
-          '[midscene:warning] Waiting for the navigation has timed out, but Midscene will continue execution. Please check https://midscenejs.com/faq.html#customize-the-network-timeout for more information on customizing the network timeout',
+          '[midscene:warning] Waiting for the "navigation" has timed out, but Midscene will continue execution. Please check https://midscenejs.com/faq.html#customize-the-network-timeout for more information on customizing the network timeout',
         );
       }
       debugPage('waitForNavigation end');
@@ -124,11 +124,18 @@ export class Page<
         return;
       }
 
-      await (this.underlyingPage as PuppeteerPage).waitForNetworkIdle({
-        idleTime: 200,
-        concurrency: DEFAULT_WAIT_FOR_NETWORK_IDLE_CONCURRENCY,
-        timeout: this.waitForNetworkIdleTimeout,
-      });
+      try {
+        await (this.underlyingPage as PuppeteerPage).waitForNetworkIdle({
+          idleTime: 200,
+          concurrency: DEFAULT_WAIT_FOR_NETWORK_IDLE_CONCURRENCY,
+          timeout: this.waitForNetworkIdleTimeout,
+        });
+      } catch (error) {
+        // Ignore timeout error, continue execution
+        console.warn(
+          '[midscene:warning] Waiting for the "network idle" has timed out, but Midscene will continue execution. Please check https://midscenejs.com/faq.html#customize-the-network-timeout for more information on customizing the network timeout',
+        );
+      }
     } else {
       // TODO: implement playwright waitForNetworkIdle
     }
