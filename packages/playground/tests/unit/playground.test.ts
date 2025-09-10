@@ -56,7 +56,11 @@ describe('Playground Integration Tests', () => {
         aiQuery: async (prompt: string, options?: any) => {
           return { result: `Query result for: ${prompt}`, options };
         },
-      };
+        dumpDataString: () => '{}',
+        reportHTMLString: () => '',
+        writeOutActionDumps: () => {},
+        resetDump: () => {},
+      } as unknown as PlaygroundAgent;
 
       const config: PlaygroundConfig = {
         type: 'local-execution',
@@ -94,7 +98,7 @@ describe('Playground Integration Tests', () => {
           action: 'clicked',
           params: { deepThink: true, locateField: 'button' },
         },
-        dump: null,
+        dump: {},
         reportHTML: null,
         error: null,
       });
@@ -117,7 +121,7 @@ describe('Playground Integration Tests', () => {
             screenshotIncluded: true,
           },
         },
-        dump: null,
+        dump: {},
         reportHTML: null,
         error: null,
       });
@@ -196,6 +200,10 @@ describe('Playground Integration Tests', () => {
         aiQuery: async (prompt: string, options?: any) => {
           return { result: `Query result for: ${prompt}`, options };
         },
+        dumpDataString: () => '{}',
+        reportHTMLString: () => '',
+        writeOutActionDumps: () => {},
+        resetDump: () => {},
       };
 
       adapter = new LocalExecutionAdapter(mockAgent);

@@ -27,7 +27,11 @@ describe('LocalExecutionAdapter', () => {
       callActionInActionSpace: vi.fn(),
       onTaskStartTip: vi.fn(),
       destroy: vi.fn(),
-    };
+      dumpDataString: vi.fn().mockReturnValue('{}'),
+      reportHTMLString: vi.fn().mockReturnValue(''),
+      writeOutActionDumps: vi.fn(),
+      resetDump: vi.fn(),
+    } as unknown as PlaygroundAgent;
     adapter = new LocalExecutionAdapter(mockAgent);
   });
 
@@ -185,7 +189,7 @@ describe('LocalExecutionAdapter', () => {
 
       expect(result).toEqual({
         result: 'test result',
-        dump: null,
+        dump: {},
         reportHTML: null,
         error: null,
       });
@@ -199,7 +203,12 @@ describe('LocalExecutionAdapter', () => {
     });
 
     it('should use empty actionSpace when agent has no getActionSpace', async () => {
-      const agentWithoutActionSpace: PlaygroundAgent = {};
+      const agentWithoutActionSpace: PlaygroundAgent = {
+        dumpDataString: () => '{}',
+        reportHTMLString: () => '',
+        writeOutActionDumps: () => {},
+        resetDump: () => {},
+      };
       const localAdapter = new LocalExecutionAdapter(agentWithoutActionSpace);
 
       const value: FormValue = { type: 'click', prompt: 'click button' };
