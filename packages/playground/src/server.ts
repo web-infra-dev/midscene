@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import type { Server } from 'node:http';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { Agent as PageAgent } from '@midscene/core/agent';
 import type { AbstractInterface } from '@midscene/core/device';
 import { getTmpDir } from '@midscene/core/utils';
@@ -15,6 +16,11 @@ import type { PlaygroundAgent } from './types';
 import 'dotenv/config';
 
 const defaultPort = PLAYGROUND_SERVER_PORT;
+
+// Static path for playground files
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const STATIC_PATH = join(__dirname, '..', '..', 'static');
 
 const errorHandler = (
   err: unknown,
@@ -31,7 +37,7 @@ const errorHandler = (
 };
 
 class PlaygroundServer {
-  app: express.Application;
+  private _app: express.Application;
   tmpDir: string;
   server?: Server;
   port?: number | null;
@@ -41,22 +47,53 @@ class PlaygroundServer {
   agentClass: new (
     ...args: any[]
   ) => PageAgent;
-  staticPath?: string;
+  staticPath: string;
   taskProgressTips: Record<string, string>;
   activeAgents: Record<string, PageAgent>;
 
   constructor(
     pageClass: new (...args: any[]) => AbstractInterface,
     agentClass: new (...args: any[]) => PageAgent,
-    staticPath?: string,
   ) {
-    this.app = express();
+    this._app = express();
     this.tmpDir = getTmpDir()!;
     this.pageClass = pageClass;
     this.agentClass = agentClass;
-    this.staticPath = staticPath;
+    this.staticPath = STATIC_PATH;
     this.taskProgressTips = {};
     this.activeAgents = {};
+
+    // Initialize app routes and middleware in constructor
+    this.initializeApp();
+  }
+
+  /**
+   * Get the Express app instance for custom configuration
+   */
+  get app(): express.Application {
+    return this._app;
+  }
+
+  /**
+   * Initialize Express app with all routes and middleware
+   */
+  private initializeApp(): void {
+    // Error handler middleware
+    this._app.use(errorHandler);
+
+    // CORS middleware
+    this._app.use(
+      cors({
+        origin: '*',
+        credentials: true,
+      }),
+    );
+
+    // API routes
+    this.setupRoutes();
+
+    // Static file serving (if staticPath is provided)
+    this.setupStaticRoutes();
   }
 
   filePathForUuid(uuid: string) {
@@ -70,25 +107,17 @@ class PlaygroundServer {
     return tmpFile;
   }
 
-  async launch(port?: number) {
-    this.port = port || defaultPort;
-    this.app.use(errorHandler);
-
-    this.app.use(
-      cors({
-        origin: '*',
-        credentials: true,
-      }),
-    );
-
-    this.app.get('/status', async (req: Request, res: Response) => {
-      // const modelName = g
+  /**
+   * Setup all API routes
+   */
+  private setupRoutes(): void {
+    this._app.get('/status', async (req: Request, res: Response) => {
       res.send({
         status: 'ok',
       });
     });
 
-    this.app.get('/context/:uuid', async (req: Request, res: Response) => {
+    this._app.get('/context/:uuid', async (req: Request, res: Response) => {
       const { uuid } = req.params;
       const contextFile = this.filePathForUuid(uuid);
 
@@ -104,7 +133,7 @@ class PlaygroundServer {
       });
     });
 
-    this.app.get(
+    this._app.get(
       '/task-progress/:requestId',
       async (req: Request, res: Response) => {
         const { requestId } = req.params;
@@ -114,7 +143,7 @@ class PlaygroundServer {
       },
     );
 
-    this.app.post(
+    this._app.post(
       '/action-space',
       express.json({ limit: '30mb' }),
       async (req: Request, res: Response) => {
@@ -206,7 +235,7 @@ class PlaygroundServer {
 
     // -------------------------
     // actions from report file
-    this.app.post(
+    this._app.post(
       '/playground-with-context',
       express.json({ limit: '50mb' }),
       async (req: Request, res: Response) => {
@@ -227,7 +256,7 @@ class PlaygroundServer {
       },
     );
 
-    this.app.post(
+    this._app.post(
       '/execute',
       express.json({ limit: '30mb' }),
       async (req: Request, res: Response) => {
@@ -366,7 +395,7 @@ class PlaygroundServer {
       },
     );
 
-    this.app.get('/cancel/:requestId', async (req: Request, res: Response) => {
+    this._app.get('/cancel/:requestId', async (req: Request, res: Response) => {
       const { requestId } = req.params;
 
       if (!requestId) {
@@ -396,7 +425,7 @@ class PlaygroundServer {
       }
     });
 
-    this.app.post(
+    this._app.post(
       '/config',
       express.json({ limit: '1mb' }),
       async (req: Request, res: Response) => {
@@ -425,37 +454,71 @@ class PlaygroundServer {
         }
       },
     );
+  }
 
-    // Set up static file serving after all API routes are defined
-    if (this.staticPath) {
-      this.app.get('/', (_req: Request, res: Response) => {
-        // compatible with windows
-        res.redirect('/index.html');
-      });
+  /**
+   * Setup static file serving routes
+   */
+  private setupStaticRoutes(): void {
+    this._app.get('/', (_req: Request, res: Response) => {
+      // compatible with windows
+      res.redirect('/index.html');
+    });
 
-      this.app.get('*', (req: Request, res: Response) => {
-        const requestedPath = join(this.staticPath!, req.path);
-        if (existsSync(requestedPath)) {
-          res.sendFile(requestedPath);
-        } else {
-          res.sendFile(join(this.staticPath!, 'index.html'));
-        }
-      });
-    }
+    this._app.get('*', (req: Request, res: Response) => {
+      const requestedPath = join(this.staticPath, req.path);
+      if (existsSync(requestedPath)) {
+        res.sendFile(requestedPath);
+      } else {
+        res.sendFile(join(this.staticPath, 'index.html'));
+      }
+    });
+  }
+
+  /**
+   * Launch the server on specified port
+   */
+  async launch(port?: number): Promise<PlaygroundServer> {
+    this.port = port || defaultPort;
 
     return new Promise((resolve) => {
-      const port = this.port;
-      this.server = this.app.listen(port, () => {
+      const serverPort = this.port;
+      this.server = this._app.listen(serverPort, () => {
         resolve(this);
       });
     });
   }
 
-  close() {
-    // close the server
-    if (this.server) {
-      return this.server.close();
-    }
+  /**
+   * Close the server and clean up resources
+   */
+  async close(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (this.server) {
+        // Clean up all active agents
+        for (const [requestId, agent] of Object.entries(this.activeAgents)) {
+          try {
+            agent.destroy();
+          } catch (error) {
+            console.warn(`Failed to destroy agent ${requestId}:`, error);
+          }
+        }
+        this.activeAgents = {};
+        this.taskProgressTips = {};
+
+        // Close the server
+        this.server.close((error) => {
+          if (error) {
+            reject(error);
+          } else {
+            this.server = undefined;
+            resolve();
+          }
+        });
+      } else {
+        resolve();
+      }
+    });
   }
 }
 

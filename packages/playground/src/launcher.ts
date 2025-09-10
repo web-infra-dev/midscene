@@ -1,6 +1,4 @@
 import { spawn } from 'node:child_process';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import type { Agent, Agent as PageAgent } from '@midscene/core/agent';
 import type { AbstractInterface } from '@midscene/core/device';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
@@ -51,7 +49,7 @@ export interface LaunchPlaygroundResult {
   /**
    * Function to gracefully shutdown the playground
    */
-  close: () => void;
+  close: () => Promise<void>;
 }
 
 /**
@@ -104,11 +102,8 @@ export function playgroundForAgent(agent: Agent) {
         console.log(`🌐 Port: ${port}`);
       }
 
-      // Create and launch the server with web-playground static files
-      const __filename = fileURLToPath(import.meta.url);
-      const __dirname = dirname(__filename);
-      const staticDir = join(__dirname, '..', '..', 'static');
-      const server = new PlaygroundServer(pageClass, agentClass, staticDir);
+      // Create and launch the server
+      const server = new PlaygroundServer(pageClass, agentClass);
 
       // Store the agent instance for server to use with a unique ID
       const defaultAgentId = 'launcher-default-agent';
@@ -131,25 +126,21 @@ export function playgroundForAgent(agent: Agent) {
         server: launchedServer,
         port,
         host: '127.0.0.1',
-        close: () => {
+        close: async () => {
           if (verbose) {
             console.log('🛑 Shutting down Midscene Playground...');
           }
 
-          // Close the server
-          if (launchedServer.server) {
-            launchedServer.server.close(() => {
-              if (verbose) {
-                console.log('✅ Playground server stopped');
-              }
-            });
-          }
-
-          // Clean up active agents
-          launchedServer.activeAgents = {};
-
-          if (verbose) {
-            console.log('✅ Playground shutdown complete');
+          try {
+            await launchedServer.close();
+            if (verbose) {
+              console.log('✅ Playground shutdown complete');
+            }
+          } catch (error) {
+            if (verbose) {
+              console.error('❌ Error during playground shutdown:', error);
+            }
+            throw error;
           }
         },
       };
