@@ -1,21 +1,8 @@
 import type { DeviceAction, WebUIContext } from '@midscene/core';
+import type { Agent } from '@midscene/core/agent';
 
-export interface PlaygroundAgent {
-  callActionInActionSpace?: (
-    actionName: string,
-    params: unknown,
-  ) => Promise<unknown>;
-  aiAssert?: (
-    prompt: string,
-    locatePrompt?: string,
-    options?: Record<string, unknown>,
-  ) => Promise<{ pass: boolean; thought: string }>;
-  getActionSpace?: () => Promise<DeviceAction<unknown>[]>;
-  onTaskStartTip?: (tip: string) => void;
-  [key: string]:
-    | ((prompt: string, options?: Record<string, unknown>) => Promise<unknown>)
-    | unknown;
-  destroy?: () => Promise<void>;
+export interface PlaygroundAgent extends Agent {
+  [key: string]: any; // Allow dynamic method access for backward compatibility
 }
 
 export interface FormValue {

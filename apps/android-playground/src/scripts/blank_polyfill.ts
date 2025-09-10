@@ -1,2 +1,0 @@
-const AsyncLocalStorage = {};
-export { AsyncLocalStorage };

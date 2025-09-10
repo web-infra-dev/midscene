@@ -56,7 +56,11 @@ describe('Playground Integration Tests', () => {
         aiQuery: async (prompt: string, options?: any) => {
           return { result: `Query result for: ${prompt}`, options };
         },
-      };
+        dumpDataString: () => '{}',
+        reportHTMLString: () => '',
+        writeOutActionDumps: () => {},
+        resetDump: () => {},
+      } as unknown as PlaygroundAgent;
 
       const config: PlaygroundConfig = {
         type: 'local-execution',
@@ -89,9 +93,14 @@ describe('Playground Integration Tests', () => {
       const result = await sdk.executeAction('click', value, options);
 
       expect(result).toEqual({
-        success: true,
-        action: 'clicked',
-        params: { deepThink: true, locateField: 'button' },
+        result: {
+          success: true,
+          action: 'clicked',
+          params: { deepThink: true, locateField: 'button' },
+        },
+        dump: {},
+        reportHTML: null,
+        error: null,
       });
     });
 
@@ -105,11 +114,16 @@ describe('Playground Integration Tests', () => {
       const result = await sdk.executeAction('aiQuery', value, options);
 
       expect(result).toEqual({
-        result: 'query result',
-        params: {
-          prompt: 'What is the page title?',
-          screenshotIncluded: true,
+        result: {
+          result: 'query result',
+          params: {
+            prompt: 'What is the page title?',
+            screenshotIncluded: true,
+          },
         },
+        dump: {},
+        reportHTML: null,
+        error: null,
       });
     });
 
@@ -186,6 +200,10 @@ describe('Playground Integration Tests', () => {
         aiQuery: async (prompt: string, options?: any) => {
           return { result: `Query result for: ${prompt}`, options };
         },
+        dumpDataString: () => '{}',
+        reportHTMLString: () => '',
+        writeOutActionDumps: () => {},
+        resetDump: () => {},
       };
 
       adapter = new LocalExecutionAdapter(mockAgent);

@@ -4,14 +4,12 @@ import {
   EditOutlined,
   PlusOutlined,
 } from '@ant-design/icons';
-import { Alert, Button, Empty, List, Popconfirm, Typography } from 'antd';
+import { Alert, Button, Empty, List, Popconfirm } from 'antd';
 import type React from 'react';
 import type { RecordingSession } from '../../../store';
-import './Record-List.css';
+import './RecordList.less';
 import { useEnvConfig } from '@midscene/visualizer';
-import { EnvConfigReminder } from '../../../components';
-
-const { Title } = Typography;
+import { EnvConfigReminder } from '../../../components/env-config-reminder';
 
 interface RecordListProps {
   sessions: RecordingSession[];

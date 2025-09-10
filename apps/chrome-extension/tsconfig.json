@@ -1,24 +1,8 @@
 {
+  "extends": "../../packages/shared/tsconfig.app.base.json",
   "compilerOptions": {
-    "lib": ["DOM", "ES2020"],
-    "jsx": "react-jsx",
-    "target": "ES2020",
-    "skipLibCheck": true,
-    "useDefineForClassFields": true,
-
-    /* modules */
-    "module": "ESNext",
-    "isolatedModules": true,
-    "resolveJsonModule": true,
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
-    "noEmit": true,
-
-    /* type checking */
-    "strict": true,
     "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "composite": true
+    "noUnusedParameters": false
   },
   "include": ["src"],
   "references": [
@@ -36,6 +20,9 @@
     },
     {
       "path": "../../packages/web-integration"
+    },
+    {
+      "path": "../../packages/playground"
     }
   ]
 }

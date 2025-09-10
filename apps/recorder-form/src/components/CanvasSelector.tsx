@@ -85,14 +85,14 @@ const CanvasSelector: React.FC<CanvasSelectorProps> = ({
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     elements.forEach((element) => {
-      // 选中高亮边框
+      // highlight selected element
       ctx.save();
       ctx.strokeStyle = element === selectedElement ? '#1890ff' : '#d9d9d9';
       ctx.lineWidth = element === selectedElement ? 2 : 1;
       ctx.strokeRect(element.x, element.y, element.width, element.height);
       ctx.restore();
 
-      // 复选框
+      // checkbox
       const cbX = element.x + CHECKBOX_MARGIN;
       const cbY = element.y + (element.height - CHECKBOX_SIZE) / 2;
       ctx.save();
@@ -103,7 +103,7 @@ const CanvasSelector: React.FC<CanvasSelectorProps> = ({
       ctx.rect(cbX, cbY, CHECKBOX_SIZE, CHECKBOX_SIZE);
       ctx.fill();
       ctx.stroke();
-      // 勾选
+      // check
       if (element.clicked) {
         ctx.strokeStyle = '#1890ff';
         ctx.lineWidth = 2.5;
@@ -115,7 +115,7 @@ const CanvasSelector: React.FC<CanvasSelectorProps> = ({
       }
       ctx.restore();
 
-      // 文本
+      // text
       ctx.save();
       ctx.fillStyle = '#333';
       ctx.font = '15px Arial';
@@ -136,7 +136,7 @@ const CanvasSelector: React.FC<CanvasSelectorProps> = ({
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    // 检查是否点击了复选框区域
+    // check if clicked checkbox area
     const clickedElement = elements.find((element) => {
       const cbX = element.x + CHECKBOX_MARGIN;
       const cbY = element.y + (element.height - CHECKBOX_SIZE) / 2;
@@ -157,7 +157,7 @@ const CanvasSelector: React.FC<CanvasSelectorProps> = ({
       return;
     }
 
-    // 检查是否点击了选项区域（高亮）
+    // check if clicked option area (hilight)
     const optionElement = elements.find(
       (element) =>
         x >= element.x &&
@@ -170,7 +170,7 @@ const CanvasSelector: React.FC<CanvasSelectorProps> = ({
       return;
     }
 
-    // 开始绘制新元素
+    // start drawing new element
     setIsDrawing(true);
     setStartPoint({ x, y });
     setSelectedElement(null);
@@ -183,7 +183,7 @@ const CanvasSelector: React.FC<CanvasSelectorProps> = ({
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    // 检查鼠标是否在选项上
+    // check if mouse is over option
     const isOverOption = elements.some(
       (element) =>
         x >= element.x &&
@@ -207,7 +207,7 @@ const CanvasSelector: React.FC<CanvasSelectorProps> = ({
       ctx.lineWidth = element === selectedElement ? 2 : 1;
       ctx.strokeRect(element.x, element.y, element.width, element.height);
       ctx.restore();
-      // 复选框
+      // checkbox
       const cbX = element.x + CHECKBOX_MARGIN;
       const cbY = element.y + (element.height - CHECKBOX_SIZE) / 2;
       ctx.save();
@@ -228,7 +228,7 @@ const CanvasSelector: React.FC<CanvasSelectorProps> = ({
         ctx.stroke();
       }
       ctx.restore();
-      // 文本
+      // text
       ctx.save();
       ctx.fillStyle = '#333';
       ctx.font = '15px Arial';
@@ -240,7 +240,7 @@ const CanvasSelector: React.FC<CanvasSelectorProps> = ({
       );
       ctx.restore();
     });
-    // 绘制新的选择框
+    // draw new selection box
     const width = currentX - startPoint.x;
     const height = currentY - startPoint.y;
     ctx.save();

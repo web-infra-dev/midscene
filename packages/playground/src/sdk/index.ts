@@ -12,6 +12,11 @@ import type {
 
 export class PlaygroundSDK {
   private adapter: BasePlaygroundAdapter;
+  private progressCallback?: (tip: string) => void;
+  private activePolling = new Map<
+    string,
+    { interval: NodeJS.Timeout; callback: (tip: string) => void }
+  >();
 
   constructor(config: PlaygroundConfig) {
     this.adapter = this.createAdapter(
@@ -44,10 +49,19 @@ export class PlaygroundSDK {
     value: FormValue,
     options: ExecutionOptions,
   ): Promise<unknown> {
-    return this.adapter.executeAction(actionType, value, options);
+    const result = await this.adapter.executeAction(actionType, value, options);
+
+    // Stop any active polling for this request after execution completes
+    if (options.requestId) {
+      this.stopProgressPolling(options.requestId);
+    }
+
+    return result;
   }
 
-  async getActionSpace(context: any): Promise<DeviceAction<unknown>[]> {
+  async getActionSpace(context?: unknown): Promise<DeviceAction<unknown>[]> {
+    // Both adapters now accept context parameter
+    // Local will prioritize internal agent, Remote will use server + fallback
     return this.adapter.getActionSpace(context);
   }
 
@@ -101,9 +115,64 @@ export class PlaygroundSDK {
 
   // Cancel task (for remote execution)
   async cancelTask(requestId: string): Promise<any> {
+    // Stop progress polling for this request
+    this.stopProgressPolling(requestId);
+
     if (this.adapter instanceof RemoteExecutionAdapter) {
       return this.adapter.cancelTask(requestId);
     }
     return { error: 'Cancel task not supported in local execution mode' };
+  }
+
+  // Progress callback management
+  onProgressUpdate(callback: (tip: string) => void): void {
+    this.progressCallback = callback;
+
+    // Pass the callback to the adapter if it supports it
+    if (this.adapter instanceof RemoteExecutionAdapter) {
+      this.adapter.setProgressCallback(callback);
+    } else if (this.adapter instanceof LocalExecutionAdapter) {
+      this.adapter.setProgressCallback(callback);
+    }
+  }
+
+  // Start progress polling for remote execution (deprecated - now handled by adapter)
+  startProgressPolling(requestId: string): void {
+    // This method is now handled by the RemoteExecutionAdapter automatically
+    // when executeAction is called with a requestId
+    console.warn(
+      'startProgressPolling is deprecated - polling is now automatic',
+    );
+  }
+
+  // Stop progress polling for a specific request (deprecated - now handled by adapter)
+  stopProgressPolling(requestId: string): void {
+    // This method is now handled by the RemoteExecutionAdapter automatically
+    console.warn(
+      'stopProgressPolling is deprecated - polling cleanup is now automatic',
+    );
+  }
+
+  // Cancel execution - supports both remote and local
+  async cancelExecution(requestId: string): Promise<void> {
+    this.stopProgressPolling(requestId);
+
+    if (this.adapter instanceof RemoteExecutionAdapter) {
+      await this.adapter.cancelTask(requestId);
+    } else if (this.adapter instanceof LocalExecutionAdapter) {
+      // For local execution, we might need to implement agent cancellation
+      console.warn('Local execution cancellation not fully implemented');
+    }
+  }
+
+  // Screenshot method for remote execution
+  async getScreenshot(): Promise<{
+    screenshot: string;
+    timestamp: number;
+  } | null> {
+    if (this.adapter instanceof RemoteExecutionAdapter) {
+      return this.adapter.getScreenshot();
+    }
+    return null; // For local execution, not supported yet
   }
 }

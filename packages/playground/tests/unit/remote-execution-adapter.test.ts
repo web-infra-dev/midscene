@@ -422,7 +422,12 @@ describe('RemoteExecutionAdapter', () => {
       const result = await adapter.cancelTask('req-123');
 
       expect(result).toEqual({ success: true, cancelled: true });
-      expect(mockFetch).toHaveBeenCalledWith(`${mockServerUrl}/cancel/req-123`);
+      expect(mockFetch).toHaveBeenCalledWith(
+        `${mockServerUrl}/cancel/req-123`,
+        {
+          method: 'POST',
+        },
+      );
     });
 
     it('should return error when no server URL', async () => {

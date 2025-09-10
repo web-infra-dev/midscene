@@ -1,0 +1,137 @@
+@import '../common.less';
+
+.history-modal-container {
+  height: 70vh;
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px 12px 0 0;
+  overflow: hidden;
+
+  /* top title bar */
+  .history-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 48px;
+    line-height: 48px;
+    padding: 0 25px;
+
+    .close-button {
+      margin-right: -4px;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      .anticon {
+        font-size: 18px;
+        color: #999999;
+      }
+
+      &:hover .anticon {
+        color: #666666;
+      }
+    }
+  }
+
+  /* search bar */
+  .history-search-section {
+    padding: 16px 20px;
+    background: #ffffff;
+
+    .search-input-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: rgba(0, 0, 0, 0.25);
+
+      .search-input {
+        flex: 1;
+        height: 36px;
+        border-radius: 16px;
+        background: rgba(241, 242, 243, 1);
+        border: none;
+
+        .ant-input {
+          background: transparent;
+          border: none;
+          box-shadow: none;
+        }
+
+        &:hover,
+        &:focus-within {
+          border-color: #d9d9d9;
+          background: #ffffff;
+        }
+      }
+
+      .clear-button {
+        color: #1890ff;
+        padding: 0;
+        height: auto;
+
+        &:hover {
+          color: #40a9ff;
+        }
+      }
+    }
+  }
+
+  /* history content */
+  .history-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 25px 25px 25px;
+
+    .history-group {
+      margin-bottom: 10px;
+
+      .history-group-title {
+        font-size: 12px;
+        color: rgba(0, 0, 0, 0.45);
+        height: 40px;
+        line-height: 40px;
+        font-weight: 400;
+      }
+
+      .history-item {
+        cursor: pointer;
+        height: 40px;
+        line-height: 40px;
+        font-size: 14px;
+        color: rgba(0, 0, 0, 0.85);
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+
+        &:hover {
+          background: rgba(242, 244, 247, 1);
+          padding: 0 8px;
+          margin: 0 -8px;
+        }
+      }
+    }
+
+    .no-results {
+      text-align: center;
+      padding: 40px 20px;
+      color: #999999;
+    }
+  }
+}
+
+.ant-modal-wrap .ant-modal-content {
+  animation: slideUpFromBottom 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+}
+
+@keyframes slideUpFromBottom {
+  0% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

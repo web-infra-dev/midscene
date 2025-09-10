@@ -42,6 +42,11 @@
       "import": "./dist/es/env/index.mjs",
       "require": "./dist/lib/env/index.js"
     },
+    "./polyfills": {
+      "types": "./dist/types/polyfills/index.d.ts",
+      "import": "./dist/es/polyfills/index.mjs",
+      "require": "./dist/lib/polyfills/index.js"
+    },
     "./*": {
       "types": "./dist/types/*.d.ts",
       "import": "./dist/es/*.mjs",

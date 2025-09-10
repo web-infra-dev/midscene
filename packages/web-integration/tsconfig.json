@@ -1,25 +1,14 @@
 {
+  "extends": "../shared/tsconfig.base.json",
   "compilerOptions": {
     "baseUrl": ".",
-    "declaration": true,
-    "emitDeclarationOnly": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "lib": ["DOM", "ESNext"],
-    "moduleResolution": "bundler",
     "paths": {
       "@/*": ["./src/*"]
     },
     "target": "es6",
-    "resolveJsonModule": true,
     "rootDir": "./src",
-    "skipLibCheck": true,
-    "strict": true,
-    "module": "ESNext",
-    "composite": true,
-    "declarationDir": "dist/types"
+    "declarationDir": "dist/types",
+    "types": ["node"]
   },
   "exclude": ["node_modules"],
   "include": ["src", "./vitest.config"],
@@ -29,6 +18,9 @@
     },
     {
       "path": "../shared"
+    },
+    {
+      "path": "../playground"
     }
   ]
 }
