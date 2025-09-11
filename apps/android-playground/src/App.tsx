@@ -16,7 +16,6 @@ import ScrcpyPlayer, {
 } from './components/scrcpy-player';
 
 const { Content } = Layout;
-const SERVER_URL = `http://localhost:${SCRCPY_SERVER_PORT}`;
 
 export default function App() {
   // Device and connection state - now simplified since device is pre-selected
@@ -24,6 +23,9 @@ export default function App() {
   const [connectToDevice, setConnectToDevice] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
   const [connectionReady, setConnectionReady] = useState(false);
+  const [serverUrl, setServerUrl] = useState(
+    `http://localhost:${SCRCPY_SERVER_PORT}`,
+  );
 
   // Configuration state
   const { config } = useEnvConfig();
@@ -35,13 +37,23 @@ export default function App() {
     overrideAIConfig(config);
   }, [config]);
 
+  // Get scrcpy port from injected window variable
+  useEffect(() => {
+    const scrcpyPort = (window as any).SCRCPY_PORT;
+    if (scrcpyPort) {
+      setServerUrl(`http://localhost:${scrcpyPort}`);
+    }
+  }, []);
+
   // Socket connection and device management
   const socketRef = useRef<Socket | null>(null);
   const scrcpyPlayerRef = useRef<ScrcpyRefMethods>(null);
 
   // connect to device server - simplified since device is pre-selected
   useEffect(() => {
-    const socket = io(SERVER_URL, {
+    if (!serverUrl) return;
+
+    const socket = io(serverUrl, {
       withCredentials: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
@@ -85,7 +97,7 @@ export default function App() {
     return () => {
       socket.disconnect();
     };
-  }, [messageApi]);
+  }, [messageApi, serverUrl]);
 
   // listen to the connection status change
   const handleConnectionStatusChange = useCallback((status: boolean) => {
@@ -132,7 +144,7 @@ export default function App() {
                   />
                   <ScrcpyPlayer
                     ref={scrcpyPlayerRef}
-                    serverUrl={SERVER_URL}
+                    serverUrl={serverUrl}
                     autoConnect={connectToDevice}
                     onConnectionStatusChange={handleConnectionStatusChange}
                   />

@@ -11,12 +11,6 @@ import { useEffect, useMemo, useState } from 'react';
 import './App.less';
 import ScreenshotViewer from './components/ScreenshotViewer';
 
-// Use current page origin for server URL
-const SERVER_URL =
-  typeof window !== 'undefined'
-    ? window.location.origin
-    : `http://localhost:${PLAYGROUND_SERVER_PORT}`;
-
 const { Content } = Layout;
 
 export default function App() {
@@ -27,7 +21,6 @@ export default function App() {
   const playgroundSDK = useMemo(() => {
     const sdk = new PlaygroundSDK({
       type: 'remote-execution',
-      serverUrl: SERVER_URL,
     });
 
     // Set progress callback to monitor user operation status

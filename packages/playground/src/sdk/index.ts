@@ -1,4 +1,5 @@
 import type { DeviceAction } from '@midscene/core';
+import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import type { BasePlaygroundAdapter } from '../adapters/base';
 import { LocalExecutionAdapter } from '../adapters/local-execution';
 import { RemoteExecutionAdapter } from '../adapters/remote-execution';
@@ -37,8 +38,15 @@ export class PlaygroundSDK {
           throw new Error('Agent is required for local execution');
         }
         return new LocalExecutionAdapter(agent);
-      case 'remote-execution':
-        return new RemoteExecutionAdapter(serverUrl);
+      case 'remote-execution': {
+        // Use current page origin for server URL
+        const SERVER_URL =
+          typeof window !== 'undefined'
+            ? window.location.origin
+            : `http://localhost:${PLAYGROUND_SERVER_PORT}`;
+
+        return new RemoteExecutionAdapter(SERVER_URL);
+      }
       default:
         throw new Error(`Unsupported execution type: ${type}`);
     }
