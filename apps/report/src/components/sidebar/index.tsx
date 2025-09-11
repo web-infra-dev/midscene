@@ -1,4 +1,4 @@
-import './sidebar.less';
+import './index.less';
 import { useAllCurrentTasks, useExecutionDump } from '@/components/store';
 import type { ExecutionTask, ExecutionTaskInsightLocate } from '@midscene/core';
 import { typeStr } from '@midscene/core/agent';
@@ -9,11 +9,11 @@ import {
 } from '@midscene/visualizer';
 import { Checkbox, Tag, Tooltip } from 'antd';
 import { useEffect } from 'react';
-import CameraIcon from '../icons/camera.svg?react';
-import MessageIcon from '../icons/message.svg?react';
-import PlayIcon from '../icons/play.svg?react';
-import type { PlaywrightTasks } from '../types';
-import ReportOverview from './report-overview';
+import CameraIcon from '../../icons/camera.svg?react';
+import MessageIcon from '../../icons/message.svg?react';
+import PlayIcon from '../../icons/play.svg?react';
+import type { PlaywrightTasks } from '../../types';
+import ReportOverview from '../report-overview';
 
 const SideItem = (props: {
   task: ExecutionTask;

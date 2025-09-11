@@ -1,9 +1,9 @@
 import { Tooltip } from 'antd';
 import { useMemo } from 'react';
-import type { PlaywrightTasks } from '../types';
-import { PlaywrightCaseSelector } from './PlaywrightCaseSelector';
+import type { PlaywrightTasks } from '../../types';
+import { PlaywrightCaseSelector } from '../playwright-case-selector';
 
-import './report-overview.less';
+import './index.less';
 import { iconForStatus } from '@midscene/visualizer';
 
 const ReportOverview = (props: {

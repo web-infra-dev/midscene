@@ -1,5 +1,5 @@
 'use client';
-import './detail-panel.less';
+import './index.less';
 import { useExecutionDump } from '@/components/store';
 import {
   CameraOutlined,
@@ -16,7 +16,7 @@ import { Blackboard, Player } from '@midscene/visualizer';
 import type { WebUIContext } from '@midscene/web';
 import { Segmented, Tooltip } from 'antd';
 import { useEffect, useState } from 'react';
-import OpenInPlayground from './open-in-playground';
+import OpenInPlayground from '../open-in-playground';
 
 const ScreenshotItem = (props: { time: string; img: string }) => {
   return (

@@ -4,9 +4,9 @@ import { iconForStatus, timeCostStrElement } from '@midscene/visualizer';
 import { Input, Select } from 'antd';
 import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { PlaywrightTasks } from '../types';
-import './PlaywrightCaseSelector.less';
-import { type DumpStoreType, useExecutionDump } from './store';
+import type { PlaywrightTasks } from '../../types';
+import './index.less';
+import { type DumpStoreType, useExecutionDump } from '../store';
 
 // define all possible test statuses
 const TEST_STATUS_OPTIONS = [

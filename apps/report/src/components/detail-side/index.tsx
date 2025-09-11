@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 'use client';
-import './detail-side.less';
+import './index.less';
 import { timeStr } from '@midscene/visualizer';
 
 import { RadiusSettingOutlined } from '@ant-design/icons';
@@ -15,7 +15,7 @@ import {
   timeCostStrElement,
 } from '@midscene/visualizer';
 import { Tag, Timeline, type TimelineItemProps, Tooltip } from 'antd';
-import { useExecutionDump } from './store';
+import { useExecutionDump } from '../store';
 
 const noop = () => {};
 const Card = (props: {
