@@ -325,7 +325,7 @@ export function StandardPlayground({
         // Use optimized SDK getter to prevent unnecessary recreation
         const sdk = getOrCreatePlaygroundSDK(activeAgent);
 
-        result.result = await sdk.executeAction(
+        const response = await sdk.executeAction(
           actionType,
           { type: actionType, prompt: value.prompt, params: value.params },
           {
@@ -335,6 +335,13 @@ export function StandardPlayground({
             requestId: thisRunningId,
           },
         );
+        if (response && typeof response === 'object' && 'result' in response) {
+          result.result = response.result;
+          result.dump = response.dump;
+          result.reportHTML = response.reportHTML;
+        } else {
+          result.result = response;
+        }
       }
     } catch (e: any) {
       const errorMessage = playgroundSDK.current
@@ -367,10 +374,15 @@ export function StandardPlayground({
     try {
       if (serviceMode === 'In-Browser') {
         // For In-Browser mode, get dump and reportHTML from agent after execution (even if there was an error)
-        result.dump = activeAgent?.dumpDataString()
-          ? JSON.parse(activeAgent.dumpDataString())
-          : null;
-        result.reportHTML = activeAgent?.reportHTMLString() || null;
+        // Only override if not already set by PlaygroundSDK response
+        if (!result.dump) {
+          result.dump = activeAgent?.dumpDataString()
+            ? JSON.parse(activeAgent.dumpDataString())
+            : null;
+        }
+        if (!result.reportHTML) {
+          result.reportHTML = activeAgent?.reportHTMLString() || null;
+        }
       }
     } catch (e) {
       console.error('Error getting dump/reportHTML:', e);
@@ -477,7 +489,9 @@ export function StandardPlayground({
             className="playground-result-view-container"
             style={
               result
-                ? {}
+                ? {
+                    height: '90vh',
+                  }
                 : {
                     border: '1px solid #0000001f',
                     borderRadius: '8px',
