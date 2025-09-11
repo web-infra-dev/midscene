@@ -251,10 +251,11 @@ export class Page<
         options?: { button?: MouseButton; count?: number },
       ) => {
         await this.mouse.move(x, y);
-        debugPage(`mouse click ${x}, ${y}`);
+        const { button = 'left', count = 1 } = options || {};
+        debugPage(`mouse click ${x}, ${y}, ${button}, ${count}`);
         this.underlyingPage.mouse.click(x, y, {
-          button: options?.button || 'left',
-          count: options?.count || 1,
+          button,
+          count,
         });
       },
       wheel: async (deltaX: number, deltaY: number) => {
