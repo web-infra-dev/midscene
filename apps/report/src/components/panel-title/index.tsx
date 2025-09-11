@@ -1,4 +1,4 @@
-import './panel-title.less';
+import './index.less';
 
 const PanelTitle = (props: {
   title: string;

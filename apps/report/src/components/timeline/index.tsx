@@ -2,10 +2,10 @@ import * as PIXI from 'pixi.js';
 /* eslint-disable max-lines */
 import { useEffect, useMemo, useRef } from 'react';
 
-import './timeline.less';
+import './index.less';
 import type { ExecutionRecorderItem, ExecutionTask } from '@midscene/core';
-import { getTextureFromCache, loadTexture } from './pixi-loader';
-import { useAllCurrentTasks, useExecutionDump } from './store';
+import { getTextureFromCache, loadTexture } from '../pixi-loader';
+import { useAllCurrentTasks, useExecutionDump } from '../store';
 
 interface TimelineItem {
   id: string;

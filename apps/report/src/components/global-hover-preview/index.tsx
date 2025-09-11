@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
-import { useExecutionDump } from './store';
-import './global-hover-preview.less';
+import { useExecutionDump } from '../store';
+import './index.less';
 
 const size = 400; // @max-size
 const GlobalHoverPreview = () => {

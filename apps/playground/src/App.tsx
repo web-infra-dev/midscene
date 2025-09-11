@@ -7,7 +7,7 @@ import {
 } from '@midscene/visualizer';
 import { Col, ConfigProvider, Layout, Row } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
-import ScreenshotViewer from './components/ScreenshotViewer';
+import ScreenshotViewer from './components/screenshot-viewer';
 
 import './App.less';
 

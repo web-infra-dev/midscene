@@ -12,7 +12,7 @@ import {
   Tooltip,
 } from 'antd';
 import { useEffect, useState } from 'react';
-import { StandardPlayground } from './playground';
+import { StandardPlayground } from '../playground';
 
 declare const __VERSION__: string;
 
