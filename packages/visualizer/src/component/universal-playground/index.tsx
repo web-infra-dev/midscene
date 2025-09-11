@@ -10,6 +10,7 @@ import { usePlaygroundState } from '../../hooks/usePlaygroundState';
 import { useEnvConfig } from '../../store/store';
 import type { FormValue, UniversalPlaygroundProps } from '../../types';
 import { ContextPreview } from '../context-preview';
+import { EnvConfigReminder } from '../env-config-reminder';
 import { PlaygroundResultView } from '../playground-result';
 import './index.less';
 import PlaygroundIcon from '../../icons/avatar.svg';
@@ -64,7 +65,6 @@ export function UniversalPlayground({
     currentRunningIdRef,
     interruptedFlagRef,
     clearInfoList,
-    refreshContext,
     handleScrollToBottom,
   } = usePlaygroundState(playgroundSDK, storage, contextProvider);
 
@@ -115,7 +115,8 @@ export function UniversalPlayground({
   }, [form, executeAction]);
 
   // Check if run button should be enabled
-  const runButtonEnabled = !dryMode && !actionSpaceLoading;
+  const configAlreadySet = Object.keys(config || {}).length >= 1;
+  const runButtonEnabled = !dryMode && !actionSpaceLoading && configAlreadySet;
 
   // Get the currently selected type
   const selectedType = Form.useWatch('type', form);
@@ -304,6 +305,7 @@ export function UniversalPlayground({
 
         {/* Bottom Input Section */}
         <div className="bottom-input-section">
+          <EnvConfigReminder />
           <PromptInput
             runButtonEnabled={runButtonEnabled}
             form={form}

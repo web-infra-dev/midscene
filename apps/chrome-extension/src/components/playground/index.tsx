@@ -90,11 +90,11 @@ export function BrowserExtensionPlayground({
         return sdk.executeAction(actionType, value, options || {});
       },
       getActionSpace: (context?: any) => {
-        // Don't create SDK immediately for getActionSpace - return empty array until config is confirmed ready
-        if (!runEnabled) {
-          return Promise.resolve([]);
-        }
+        // Only try to get action space when config is ready
         try {
+          if (!runEnabled) {
+            return Promise.resolve([]);
+          }
           const sdk = getOrCreateSDK();
           return sdk.getActionSpace(context);
         } catch (error) {
@@ -136,18 +136,30 @@ export function BrowserExtensionPlayground({
     // Return a lazy context provider that only creates agent when needed
     return {
       async getUIContext() {
-        const agent = getAgent(forceSameTabNavigation);
-        if (!agent) {
-          throw new Error('Please configure AI settings first');
+        try {
+          const agent = getAgent(forceSameTabNavigation);
+          if (!agent) {
+            throw new Error('Please configure AI settings first');
+          }
+          return agent.page.screenshot();
+        } catch (error) {
+          console.warn('Failed to get UI context:', error);
+          // Return null context instead of throwing to allow UI to initialize
+          return null;
         }
-        return agent.page.screenshot();
       },
       async refreshContext() {
-        const agent = getAgent(forceSameTabNavigation);
-        if (!agent) {
-          throw new Error('Please configure AI settings first');
+        try {
+          const agent = getAgent(forceSameTabNavigation);
+          if (!agent) {
+            throw new Error('Please configure AI settings first');
+          }
+          return agent.page.screenshot();
+        } catch (error) {
+          console.warn('Failed to refresh context:', error);
+          // Return null context instead of throwing to allow UI to initialize
+          return null;
         }
-        return agent.page.screenshot();
       },
     };
   }, [showContextPreview, getAgent, forceSameTabNavigation]);

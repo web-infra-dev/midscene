@@ -8,8 +8,7 @@ import { Alert, Button, Empty, List, Popconfirm } from 'antd';
 import type React from 'react';
 import type { RecordingSession } from '../../../store';
 import './RecordList.less';
-import { useEnvConfig } from '@midscene/visualizer';
-import { EnvConfigReminder } from '../../../components/env-config-reminder';
+import { useEnvConfig, EnvConfigReminder } from '@midscene/visualizer';
 
 interface RecordListProps {
   sessions: RecordingSession[];

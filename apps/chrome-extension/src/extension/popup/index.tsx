@@ -117,26 +117,16 @@ export function PlaygroundPopup() {
       <div className="popup-content">
         {/* Playground Component */}
         <div className="playground-component">
-          {configReady && aiConfigReady ? (
-            <BrowserExtensionPlayground
-              getAgent={(forceSameTabNavigation?: boolean) => {
-                console.log(
-                  'getAgent called with forceSameTabNavigation:',
-                  forceSameTabNavigation,
-                );
-                return extensionAgentForTab(forceSameTabNavigation);
-              }}
-              showContextPreview={false}
-            />
-          ) : (
-            <div style={{ padding: '20px', textAlign: 'center' }}>
-              <p>
-                {!configReady
-                  ? 'Please configure your AI settings to use the playground.'
-                  : 'Initializing AI configuration...'}
-              </p>
-            </div>
-          )}
+          <BrowserExtensionPlayground
+            getAgent={(forceSameTabNavigation?: boolean) => {
+              console.log(
+                'getAgent called with forceSameTabNavigation:',
+                forceSameTabNavigation,
+              );
+              return extensionAgentForTab(forceSameTabNavigation);
+            }}
+            showContextPreview={false}
+          />
         </div>
       </div>
     );

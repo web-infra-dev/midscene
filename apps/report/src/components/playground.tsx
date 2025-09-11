@@ -1,6 +1,7 @@
 import type { DeviceAction, UIContext } from '@midscene/core';
 import { PlaygroundSDK, noReplayAPIs } from '@midscene/playground';
 import type { ServerResponse } from '@midscene/playground';
+import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import { overrideAIConfig } from '@midscene/shared/env';
 import {
   ContextPreview,
@@ -37,6 +38,7 @@ const getPlaygroundSDK = (serviceMode: ServiceModeType, agent?: any) => {
   if (serviceMode === 'Server') {
     return new PlaygroundSDK({
       type: 'remote-execution',
+      serverUrl: `http://localhost:${PLAYGROUND_SERVER_PORT}`,
     });
   }
   // For In-Browser and In-Browser-Extension modes, use local execution

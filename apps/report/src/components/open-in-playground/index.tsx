@@ -13,6 +13,7 @@ import {
 } from 'antd';
 import { useEffect, useState } from 'react';
 import { StandardPlayground } from '../playground';
+import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 
 declare const __VERSION__: string;
 
@@ -20,6 +21,7 @@ declare const __VERSION__: string;
 const getPlaygroundSDK = () => {
   return new PlaygroundSDK({
     type: 'remote-execution',
+    serverUrl: `http://localhost:${PLAYGROUND_SERVER_PORT}`,
   });
 };
 
