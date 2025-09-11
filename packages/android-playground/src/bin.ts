@@ -1,4 +1,5 @@
 import { exec } from 'node:child_process';
+import { createServer } from 'node:net';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { AndroidAgent, AndroidDevice } from '@midscene/android';
@@ -11,6 +12,34 @@ import inquirer from 'inquirer';
 import ScrcpyServer from './scrcpy-server';
 
 const promiseExec = promisify(exec);
+
+async function isPortAvailable(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const server = createServer();
+    server.on('error', () => resolve(false));
+    server.listen(port, () => {
+      server.close(() => resolve(true));
+    });
+  });
+}
+
+async function findAvailablePort(startPort: number): Promise<number> {
+  let port = startPort;
+  let attempts = 0;
+  const maxAttempts = 15;
+
+  while (!(await isPortAvailable(port))) {
+    attempts++;
+    if (attempts >= maxAttempts) {
+      console.error(
+        `❌ Unable to find available port after ${maxAttempts} attempts starting from ${startPort}`,
+      );
+      process.exit(1);
+    }
+    port++;
+  }
+  return port;
+}
 
 // Function to get available devices
 async function getAdbDevices() {
@@ -92,7 +121,7 @@ const main = async () => {
   try {
     // First, let user select device
     const selectedDeviceId = await selectDevice();
-    console.log(`\u2705 Selected device: ${selectedDeviceId}`);
+    console.log(`✅ Selected device: ${selectedDeviceId}`);
 
     // Create device and agent instances with selected device
     const device = new AndroidDevice(selectedDeviceId);
@@ -104,19 +133,37 @@ const main = async () => {
     // Set the selected device in scrcpy server
     scrcpyServer.currentDeviceId = selectedDeviceId;
 
-    console.log('\ud83d\ude80 Starting servers...');
+    console.log('🚀 Starting servers...');
+
+    // Find available ports
+    const availablePlaygroundPort = await findAvailablePort(
+      PLAYGROUND_SERVER_PORT,
+    );
+    const availableScrcpyPort = await findAvailablePort(SCRCPY_SERVER_PORT);
+
+    if (availablePlaygroundPort !== PLAYGROUND_SERVER_PORT) {
+      console.log(
+        `⚠️  Port ${PLAYGROUND_SERVER_PORT} is busy, using port ${availablePlaygroundPort} instead`,
+      );
+    }
+    if (availableScrcpyPort !== SCRCPY_SERVER_PORT) {
+      console.log(
+        `⚠️  Port ${SCRCPY_SERVER_PORT} is busy, using port ${availableScrcpyPort} instead`,
+      );
+    }
 
     await Promise.all([
-      playgroundServer.launch(PLAYGROUND_SERVER_PORT),
-      scrcpyServer.launch(SCRCPY_SERVER_PORT),
+      playgroundServer.launch(availablePlaygroundPort),
+      scrcpyServer.launch(availableScrcpyPort),
     ]);
 
+    // Store scrcpy server port in global for playground server to access
+    (global as any).scrcpyServerPort = availableScrcpyPort;
+
     console.log('');
-    console.log('\u2728 Midscene Android Playground is ready!');
-    console.log(
-      `\ud83c\udfae Playground: http://localhost:${playgroundServer.port}`,
-    );
-    console.log(`\ud83d\udcf1 Device: ${selectedDeviceId}`);
+    console.log('✨ Midscene Android Playground is ready!');
+    console.log(`🎮 Playground: http://localhost:${playgroundServer.port}`);
+    console.log(`📱 Device: ${selectedDeviceId}`);
     console.log('');
 
     open(`http://localhost:${playgroundServer.port}`);

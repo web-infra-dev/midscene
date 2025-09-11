@@ -6,6 +6,7 @@ import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
 import { pluginReact } from '@rsbuild/plugin-react';
 import { pluginSvgr } from '@rsbuild/plugin-svgr';
 import { pluginTypeCheck } from '@rsbuild/plugin-type-check';
+import { version as playgroundVersion } from '../../packages/playground/package.json';
 
 const copyAndroidPlaygroundStatic = () => ({
   name: 'copy-android-playground-static',
@@ -41,6 +42,9 @@ export default defineConfig({
       source: {
         entry: {
           index: './src/index.tsx',
+        },
+        define: {
+          __APP_VERSION__: JSON.stringify(playgroundVersion),
         },
       },
       output: {

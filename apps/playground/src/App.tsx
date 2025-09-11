@@ -1,5 +1,4 @@
 import { PlaygroundSDK } from '@midscene/playground';
-import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import {
   LocalStorageProvider,
   Logo,
@@ -8,14 +7,11 @@ import {
 } from '@midscene/visualizer';
 import { Col, ConfigProvider, Layout, Row } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
-import './App.less';
 import ScreenshotViewer from './components/ScreenshotViewer';
 
-// Use current page origin for server URL
-const SERVER_URL =
-  typeof window !== 'undefined'
-    ? window.location.origin
-    : `http://localhost:${PLAYGROUND_SERVER_PORT}`;
+import './App.less';
+
+declare const __APP_VERSION__: string;
 
 const { Content } = Layout;
 
@@ -27,7 +23,6 @@ export default function App() {
   const playgroundSDK = useMemo(() => {
     const sdk = new PlaygroundSDK({
       type: 'remote-execution',
-      serverUrl: SERVER_URL,
     });
 
     // Set progress callback to monitor user operation status
@@ -40,7 +35,7 @@ export default function App() {
   }, []);
 
   const storage = useMemo(() => {
-    return new LocalStorageProvider('web-playground');
+    return new LocalStorageProvider('playground');
   }, []);
 
   // Check server status on mount
@@ -120,10 +115,10 @@ export default function App() {
                         enableScrollToBottom: true,
                       }}
                       branding={{
-                        title: 'Web Playground',
-                        version: process.env.npm_package_version || '1.0.0',
+                        title: 'Playground',
+                        version: __APP_VERSION__,
                       }}
-                      className="web-playground-container"
+                      className="playground-container"
                     />
                   </div>
                 </div>

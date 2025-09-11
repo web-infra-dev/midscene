@@ -1,24 +1,23 @@
 import { spawn } from 'node:child_process';
 import type { Agent, Agent as PageAgent } from '@midscene/core/agent';
-import type { AbstractInterface } from '@midscene/core/device';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import PlaygroundServer from './server';
 
 export interface LaunchPlaygroundOptions {
   /**
    * Port to start the playground server on
-   * @default 3456
+   * @default 5800
    */
   port?: number;
 
   /**
-   * Whether to automatically open the web-playground in browser
+   * Whether to automatically open the playground in browser
    * @default true
    */
   openBrowser?: boolean;
 
   /**
-   * Custom browser command to open web-playground
+   * Custom browser command to open playground
    * @default 'open' on macOS, 'start' on Windows, 'xdg-open' on Linux
    */
   browserCommand?: string;

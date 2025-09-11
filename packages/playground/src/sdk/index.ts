@@ -1,4 +1,5 @@
 import type { DeviceAction } from '@midscene/core';
+import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import type { BasePlaygroundAdapter } from '../adapters/base';
 import { LocalExecutionAdapter } from '../adapters/local-execution';
 import { RemoteExecutionAdapter } from '../adapters/remote-execution';
@@ -12,11 +13,6 @@ import type {
 
 export class PlaygroundSDK {
   private adapter: BasePlaygroundAdapter;
-  private progressCallback?: (tip: string) => void;
-  private activePolling = new Map<
-    string,
-    { interval: NodeJS.Timeout; callback: (tip: string) => void }
-  >();
 
   constructor(config: PlaygroundConfig) {
     this.adapter = this.createAdapter(
@@ -37,8 +33,16 @@ export class PlaygroundSDK {
           throw new Error('Agent is required for local execution');
         }
         return new LocalExecutionAdapter(agent);
-      case 'remote-execution':
-        return new RemoteExecutionAdapter(serverUrl);
+      case 'remote-execution': {
+        // Use provided serverUrl first, then fallback to current page origin or default
+        const finalServerUrl =
+          serverUrl ||
+          (typeof window !== 'undefined'
+            ? window.location.origin
+            : `http://localhost:${PLAYGROUND_SERVER_PORT}`);
+
+        return new RemoteExecutionAdapter(finalServerUrl);
+      }
       default:
         throw new Error(`Unsupported execution type: ${type}`);
     }
@@ -126,8 +130,6 @@ export class PlaygroundSDK {
 
   // Progress callback management
   onProgressUpdate(callback: (tip: string) => void): void {
-    this.progressCallback = callback;
-
     // Pass the callback to the adapter if it supports it
     if (this.adapter instanceof RemoteExecutionAdapter) {
       this.adapter.setProgressCallback(callback);

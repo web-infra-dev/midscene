@@ -444,9 +444,13 @@ class PlaygroundServer {
    * Setup static file serving routes
    */
   private setupStaticRoutes(): void {
+    // Handle index.html with port injection
     this._app.get('/', (_req: Request, res: Response) => {
-      // compatible with windows
-      res.redirect('/index.html');
+      this.serveHtmlWithPorts(res);
+    });
+
+    this._app.get('/index.html', (_req: Request, res: Response) => {
+      this.serveHtmlWithPorts(res);
     });
 
     // Use express.static middleware for secure static file serving
@@ -454,8 +458,37 @@ class PlaygroundServer {
 
     // Fallback to index.html for SPA routing
     this._app.get('*', (_req: Request, res: Response) => {
-      res.sendFile(join(this.staticPath, 'index.html'));
+      this.serveHtmlWithPorts(res);
     });
+  }
+
+  /**
+   * Serve HTML with injected port configuration
+   */
+  private serveHtmlWithPorts(res: Response): void {
+    try {
+      const htmlPath = join(this.staticPath, 'index.html');
+      let html = readFileSync(htmlPath, 'utf8');
+
+      // Get scrcpy server port from global
+      const scrcpyPort = (global as any).scrcpyServerPort || this.port! + 1;
+
+      // Inject scrcpy port configuration script into HTML head
+      const configScript = `
+        <script>
+          window.SCRCPY_PORT = ${scrcpyPort};
+        </script>
+      `;
+
+      // Insert the script before closing </head> tag
+      html = html.replace('</head>', `${configScript}</head>`);
+
+      res.setHeader('Content-Type', 'text/html');
+      res.send(html);
+    } catch (error) {
+      console.error('Error serving HTML with ports:', error);
+      res.status(500).send('Internal Server Error');
+    }
   }
 
   /**

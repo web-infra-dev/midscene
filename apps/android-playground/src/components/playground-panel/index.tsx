@@ -9,6 +9,8 @@ import {
 import { useEffect, useMemo } from 'react';
 import './index.less';
 
+declare const __APP_VERSION__: string;
+
 interface PlaygroundPanelProps {
   selectedDeviceId: string | null;
   serverValid: boolean;
@@ -152,11 +154,12 @@ export default function PlaygroundPanel({
               showContextPreview: false, // Android doesn't need context preview
               enablePersistence: false, // Use memory storage for android
               layout: 'vertical',
-              showVersionInfo: false, // Version shown in main app
+              showVersionInfo: true,
               enableScrollToBottom: true,
             }}
             branding={{
               title: 'Android Playground',
+              version: __APP_VERSION__,
             }}
             className="android-universal-playground"
           />

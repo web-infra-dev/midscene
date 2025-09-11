@@ -6,9 +6,10 @@ import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
 import { pluginReact } from '@rsbuild/plugin-react';
 import { pluginSvgr } from '@rsbuild/plugin-svgr';
 import { pluginTypeCheck } from '@rsbuild/plugin-type-check';
+import { version as playgroundVersion } from '../../packages/playground/package.json';
 
 const copyWebPlaygroundStatic = () => ({
-  name: 'copy-web-playground-static',
+  name: 'copy-playground-static',
   setup(api) {
     api.onAfterBuild(async () => {
       const srcDir = path.join(__dirname, 'dist');
@@ -64,6 +65,9 @@ export default defineConfig({
   source: {
     entry: {
       index: './src/index.tsx',
+    },
+    define: {
+      __APP_VERSION__: JSON.stringify(playgroundVersion),
     },
   },
   output: {

@@ -1,4 +1,4 @@
-# Midscene Web Playground
+# Midscene Playground
 
 A universal web-based playground for testing and experimenting with Midscene.js features.
 
@@ -59,7 +59,7 @@ The playground connects to `http://localhost:8080` by default. You can modify th
 
 ## Comparison with Other Playgrounds
 
-| Feature | Web Playground | Chrome Extension | Android Playground |
+| Feature | Playground | Chrome Extension | Android Playground |
 |---------|----------------|------------------|-------------------|
 | Execution Mode | Remote | Local | Remote |
 | UI Style | Chat Interface | Chat Interface | Form + Results |

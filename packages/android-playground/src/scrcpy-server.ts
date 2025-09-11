@@ -149,11 +149,16 @@ export default class ScrcpyServer {
         return null;
       }
 
-      // if specific device id is provided, use it
-      if (deviceId) {
-        this.currentDeviceId = deviceId;
+      // determine which device to use
+      const targetDeviceId = deviceId || this.currentDeviceId;
+
+      if (targetDeviceId) {
+        // if specific device id is provided or we have a current device selected, use it
+        this.currentDeviceId = targetDeviceId;
         // use device id as DeviceSelector
-        return new Adb(await client.createTransport({ serial: deviceId }));
+        return new Adb(
+          await client.createTransport({ serial: targetDeviceId }),
+        );
       }
 
       // otherwise, get devices list and use the first online device
