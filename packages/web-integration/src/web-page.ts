@@ -308,7 +308,7 @@ export interface MouseAction {
   click: (
     x: number,
     y: number,
-    options: { button: MouseButton },
+    options: { button: MouseButton; count?: number },
   ) => Promise<void>;
   wheel: (deltaX: number, deltaY: number) => Promise<void>;
   move: (x: number, y: number) => Promise<void>;
@@ -401,13 +401,7 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
     // Use two separate clicks with a short delay to simulate double-click
     await page.mouse.click(element.center[0], element.center[1], {
       button: 'left',
-    });
-
-    // Short delay between clicks for double-click recognition
-    await new Promise((resolve) => setTimeout(resolve, 200));
-
-    await page.mouse.click(element.center[0], element.center[1], {
-      button: 'left',
+      count: 2,
     });
   }),
   defineActionHover(async (param) => {
