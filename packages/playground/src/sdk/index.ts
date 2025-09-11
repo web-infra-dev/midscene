@@ -13,11 +13,6 @@ import type {
 
 export class PlaygroundSDK {
   private adapter: BasePlaygroundAdapter;
-  private progressCallback?: (tip: string) => void;
-  private activePolling = new Map<
-    string,
-    { interval: NodeJS.Timeout; callback: (tip: string) => void }
-  >();
 
   constructor(config: PlaygroundConfig) {
     this.adapter = this.createAdapter(
@@ -39,13 +34,13 @@ export class PlaygroundSDK {
         }
         return new LocalExecutionAdapter(agent);
       case 'remote-execution': {
-        // Use current page origin for server URL
-        const SERVER_URL =
-          typeof window !== 'undefined'
+        // Use provided serverUrl first, then fallback to current page origin or default
+        const finalServerUrl = serverUrl || 
+          (typeof window !== 'undefined'
             ? window.location.origin
-            : `http://localhost:${PLAYGROUND_SERVER_PORT}`;
+            : `http://localhost:${PLAYGROUND_SERVER_PORT}`);
 
-        return new RemoteExecutionAdapter(SERVER_URL);
+        return new RemoteExecutionAdapter(finalServerUrl);
       }
       default:
         throw new Error(`Unsupported execution type: ${type}`);
@@ -134,8 +129,6 @@ export class PlaygroundSDK {
 
   // Progress callback management
   onProgressUpdate(callback: (tip: string) => void): void {
-    this.progressCallback = callback;
-
     // Pass the callback to the adapter if it supports it
     if (this.adapter instanceof RemoteExecutionAdapter) {
       this.adapter.setProgressCallback(callback);

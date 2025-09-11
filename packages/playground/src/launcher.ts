@@ -11,13 +11,13 @@ export interface LaunchPlaygroundOptions {
   port?: number;
 
   /**
-   * Whether to automatically open the web-playground in browser
+   * Whether to automatically open the playground in browser
    * @default true
    */
   openBrowser?: boolean;
 
   /**
-   * Custom browser command to open web-playground
+   * Custom browser command to open playground
    * @default 'open' on macOS, 'start' on Windows, 'xdg-open' on Linux
    */
   browserCommand?: string;
