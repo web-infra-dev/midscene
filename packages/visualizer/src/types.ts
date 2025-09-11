@@ -1,4 +1,9 @@
-import type { DeviceAction, UIContext } from '@midscene/core';
+import type {
+  AIActionDecomposition,
+  DeviceAction,
+  GeneratedCode,
+  UIContext,
+} from '@midscene/core';
 import type { ComponentType } from 'react';
 
 // Zod schema related types - compatible with actual zod types
@@ -231,6 +236,11 @@ export interface PlaygroundResult {
   dump?: GroupedActionDump | null;
   reportHTML?: string | null;
   error: string | null;
+  // Code generation fields
+  generatedCode?: GeneratedCode;
+  actionType?: string;
+  parameters?: Record<string, any>;
+  decomposition?: AIActionDecomposition;
 }
 
 // Playground component props type

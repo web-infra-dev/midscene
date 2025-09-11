@@ -7,6 +7,7 @@ import type { ReplayScriptsInfo } from '../../utils/replay-scripts';
 import { emptyResultTip, serverLaunchTip } from '../misc';
 import { Player } from '../player';
 import ShinyText from '../shiny-text';
+import { CodeDisplay } from '../code-display';
 import './index.less';
 
 interface PlaygroundResultProps {
@@ -78,12 +79,28 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
   } else if (result?.error) {
     resultDataToShow = <pre>{result?.error}</pre>;
   } else if (result?.result !== undefined) {
-    resultDataToShow =
+    const originalResult =
       typeof result?.result === 'string' ? (
         <pre>{result?.result}</pre>
       ) : (
         <pre>{JSON.stringify(result?.result, null, 2)}</pre>
       );
+
+    // Show code generation if available (for non-chat interfaces like report app)
+    if (result?.generatedCode && result?.actionType) {
+      resultDataToShow = (
+        <div>
+          {originalResult}
+          <CodeDisplay
+            generatedCode={result.generatedCode}
+            decomposition={result.decomposition}
+            actionType={result.actionType}
+          />
+        </div>
+      );
+    } else {
+      resultDataToShow = originalResult;
+    }
   }
 
   return (
