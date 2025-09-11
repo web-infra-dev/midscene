@@ -1,4 +1,3 @@
-import exp from 'constants';
 import './component/playground/index.less';
 import './component/universal-playground/index.less';
 

@@ -1,8 +1,11 @@
 import { playgroundForAgent } from '@midscene/playground';
+import dotenv from 'dotenv';
 import { PuppeteerAgent } from '../src/puppeteer';
 import { launchPuppeteerPage } from '../src/puppeteer/agent-launcher';
 
-import 'dotenv/config';
+dotenv.config({
+  path: '../../.env',
+});
 
 async function main() {
   await Promise.resolve(

@@ -15,6 +15,7 @@ export function usePlaygroundState(
   playgroundSDK: PlaygroundSDKLike,
   storage?: StorageProvider,
   contextProvider?: ContextProvider,
+  enablePersistence = true,
 ) {
   // Core state
   const [loading, setLoading] = useState(false);
@@ -50,7 +51,7 @@ export function usePlaygroundState(
         timestamp: new Date(),
       };
 
-      if (storage?.loadMessages) {
+      if (enablePersistence && storage?.loadMessages) {
         try {
           const storedMessages = await storage.loadMessages();
           // Check if welcome message already exists in stored messages
@@ -79,13 +80,13 @@ export function usePlaygroundState(
 
   // Save messages to storage when they change
   useEffect(() => {
-    if (storage?.saveMessages && infoList.length > 1) {
+    if (enablePersistence && storage?.saveMessages && infoList.length > 1) {
       // Skip if only welcome message
       storage.saveMessages(infoList).catch((error) => {
         console.error('Failed to save messages:', error);
       });
     }
-  }, [infoList, storage]);
+  }, [infoList, storage, enablePersistence]);
 
   // Initialize context preview
   useEffect(() => {
@@ -188,14 +189,14 @@ export function usePlaygroundState(
     };
 
     setInfoList([welcomeMessage]);
-    if (storage?.clearMessages) {
+    if (enablePersistence && storage?.clearMessages) {
       try {
         await storage.clearMessages();
       } catch (error) {
         console.error('Failed to clear stored messages:', error);
       }
     }
-  }, [storage]);
+  }, [storage, enablePersistence]);
 
   // Refresh context
   const refreshContext = useCallback(async () => {

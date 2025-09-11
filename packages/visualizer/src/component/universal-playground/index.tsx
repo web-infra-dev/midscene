@@ -48,6 +48,9 @@ export function UniversalPlayground({
   const { deepThink, screenshotIncluded, domIncluded, config } = useEnvConfig();
 
   // Use custom hooks for state management
+  // Apply configuration
+  const enablePersistence = componentConfig.enablePersistence !== false;
+
   const {
     loading,
     setLoading,
@@ -66,7 +69,12 @@ export function UniversalPlayground({
     interruptedFlagRef,
     clearInfoList,
     handleScrollToBottom,
-  } = usePlaygroundState(playgroundSDK, storage, contextProvider);
+  } = usePlaygroundState(
+    playgroundSDK,
+    storage,
+    contextProvider,
+    enablePersistence,
+  );
 
   // Use execution hook
   const {
@@ -116,7 +124,9 @@ export function UniversalPlayground({
 
   // Check if run button should be enabled
   const configAlreadySet = Object.keys(config || {}).length >= 1;
-  const runButtonEnabled = !dryMode && !actionSpaceLoading && configAlreadySet;
+  const runButtonEnabled =
+    componentConfig.serverMode ||
+    (!dryMode && !actionSpaceLoading && configAlreadySet);
 
   // Get the currently selected type
   const selectedType = Form.useWatch('type', form);
@@ -124,7 +134,6 @@ export function UniversalPlayground({
   // Apply configuration
   const finalShowContextPreview =
     showContextPreview && componentConfig.showContextPreview !== false;
-  const enablePersistence = componentConfig.enablePersistence !== false;
   const layout = componentConfig.layout || 'vertical';
   const showVersionInfo = componentConfig.showVersionInfo !== false;
 
@@ -145,7 +154,7 @@ export function UniversalPlayground({
         {/* Main Dialog Area */}
         <div className="middle-dialog-area">
           {/* Clear Button */}
-          {infoList.length > 1 && enablePersistence && (
+          {infoList.length > 1 && (
             <div className="clear-button-container">
               <Button
                 size="small"
@@ -305,7 +314,7 @@ export function UniversalPlayground({
 
         {/* Bottom Input Section */}
         <div className="bottom-input-section">
-          <EnvConfigReminder />
+          {!componentConfig.serverMode && <EnvConfigReminder />}
           <PromptInput
             runButtonEnabled={runButtonEnabled}
             form={form}
