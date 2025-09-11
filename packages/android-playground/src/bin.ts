@@ -25,7 +25,17 @@ async function isPortAvailable(port: number): Promise<boolean> {
 
 async function findAvailablePort(startPort: number): Promise<number> {
   let port = startPort;
+  let attempts = 0;
+  const maxAttempts = 15;
+
   while (!(await isPortAvailable(port))) {
+    attempts++;
+    if (attempts >= maxAttempts) {
+      console.error(
+        `❌ Unable to find available port after ${maxAttempts} attempts starting from ${startPort}`,
+      );
+      process.exit(1);
+    }
     port++;
   }
   return port;
