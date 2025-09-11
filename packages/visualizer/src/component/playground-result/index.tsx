@@ -7,6 +7,7 @@ import type { ReplayScriptsInfo } from '../../utils/replay-scripts';
 import { emptyResultTip, serverLaunchTip } from '../misc';
 import { Player } from '../player';
 import ShinyText from '../shiny-text';
+import './index.less';
 
 interface PlaygroundResultProps {
   result: PlaygroundResultType | null;
@@ -95,7 +96,6 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
         flex: '1 1 auto',
         justifyContent: 'center',
         alignItems: 'center',
-        textAlign: 'center',
       }}
     >
       {resultDataToShow}

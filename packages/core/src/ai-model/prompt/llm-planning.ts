@@ -30,13 +30,16 @@ export const descriptionForAction = (
 
   // Handle paramSchema if it exists
   if (action.paramSchema) {
-    assert(
-      action.paramSchema.constructor.name === 'ZodObject',
-      'paramSchema must be a zod object',
-    );
     // Try to extract parameter information from the zod schema
     // For zod object schemas, extract type information and descriptions
     const shape = (action.paramSchema as ZodObject<any>).shape;
+
+    if (!shape) {
+      console.warn(
+        `action.paramSchema is not a ZodObject, may lead to unexpected behavior, action name: ${action.name}`,
+      );
+    }
+
     const paramLines: string[] = [];
 
     // Helper function to get type name from zod schema
