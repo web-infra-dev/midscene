@@ -31,6 +31,14 @@ export type { PlaygroundResult } from './types';
 export { ServiceModeControl } from './component/service-mode-control';
 export { ContextPreview } from './component/context-preview';
 export { PromptInput } from './component/prompt-input';
+export { CodeDisplay } from './component/code-display';
+export { CodeBlock } from './component/code-block';
+export { useCodeHighlight } from './hooks/useCodeHighlight';
+export type {
+  SupportedLanguage,
+  CodeHighlightOptions,
+} from './hooks/useCodeHighlight';
+export type { CodeBlockProps } from './component/code-block';
 export { Player } from './component/player';
 export { Blackboard } from './component/blackboard';
 export { GithubStar } from './component/github-star';

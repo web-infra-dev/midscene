@@ -1,19 +1,11 @@
-import {
-  CopyOutlined,
-  DownloadOutlined,
-  FileTextOutlined,
-  ReloadOutlined,
-} from '@ant-design/icons';
-import { Button, Typography } from 'antd';
+import { CodeBlock as BaseCodeBlock } from '@midscene/visualizer';
+import type { SupportedLanguage } from '@midscene/visualizer';
+import { Typography } from 'antd';
 import type React from 'react';
 import { useEffect, useRef } from 'react';
 import { ThinkingProcessSection } from './ThinkingProcessSection';
 import { triggerConfetti } from './confetti';
 import './CodeBlock.css';
-//@ts-ignore
-import Highlight from 'react-highlight';
-
-import 'highlight.js/styles/github.css';
 
 const { Text } = Typography;
 
@@ -43,12 +35,23 @@ function CodeBlockContainer({
   accumulatedThinking?: string;
   isStreaming: boolean;
 }) {
+  // Map language types
+  const mappedLanguage: SupportedLanguage =
+    language === 'javascript' ? 'javascript' : 'yaml';
+
   return (
-    <pre
-      className={`bg-gray-50 rounded-[8px] border text-sm overflow-auto font-mono border-radius-[8px] border-[#F2F4F7] ${accumulatedThinking ? 'max-h-[calc(100vh-380px)]' : 'max-h-[calc(100vh-340px)]'} !mt-0 !p-0`}
-    >
-      <Highlight className={`language-${language} !mt-0`}>{code}</Highlight>
-    </pre>
+    <BaseCodeBlock
+      code={code}
+      language={mappedLanguage}
+      showHeader={false}
+      showCopy={false}
+      maxHeight={
+        accumulatedThinking ? 'calc(100vh - 380px)' : 'calc(100vh - 340px)'
+      }
+      style={{
+        marginBottom: 0,
+      }}
+    />
   );
 }
 
@@ -91,7 +94,6 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({
         <div className="relative flex-1">
           {!displayContent && isStreaming && (
             <pre
-              // {(<pre
               className={
                 'relative bg-gray-50 rounded-[8px] border text-sm overflow-auto max-h-128 font-mono border-radius-[8px] p-4 border-[#F2F4F7]'
               }

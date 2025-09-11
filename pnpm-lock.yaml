@@ -189,9 +189,6 @@ importers:
       file-saver:
         specifier: 2.0.5
         version: 2.0.5
-      highlight.js:
-        specifier: 11.11.1
-        version: 11.11.1
       jszip:
         specifier: 3.10.1
         version: 3.10.1
@@ -201,9 +198,6 @@ importers:
       react-dom:
         specifier: 18.3.1
         version: 18.3.1(react@18.3.1)
-      react-highlight:
-        specifier: 0.15.0
-        version: 0.15.0
       zustand:
         specifier: 4.5.2
         version: 4.5.2(@types/react@18.3.23)(immer@10.1.1)(react@18.3.1)
@@ -950,6 +944,9 @@ importers:
       dayjs:
         specifier: ^1.11.11
         version: 1.11.13
+      highlight.js:
+        specifier: 11.11.1
+        version: 11.11.1
     devDependencies:
       '@pixi/unsafe-eval':
         specifier: 7.4.2
@@ -5923,9 +5920,6 @@ packages:
     resolution: {integrity: sha512-F/1DnUGPopORZi0ni+CvrCgHQ5FyEAHRLSApuYWMmrbSwoN2Mn/7k+Gl38gJnR7yyDZk6WLXwiGod1JOWNDKGw==}
     hasBin: true
 
-  highlight.js@10.7.3:
-    resolution: {integrity: sha512-tzcUFauisWKNHaRkN4Wjl/ZA07gENAjFl3J/c480dprkGTg5EQstgaNFqBfUqCq54kZRIEcreTsAgF/m2quD7A==}
-
   highlight.js@11.11.1:
     resolution: {integrity: sha512-Xwwo44whKBVCYoliBQwaPvtd/2tYFkRQtXDWj1nackaV2JPXx3L0+Jvd8/qCJ2p+ML0/XVkJ2q+Mr+UVdpJK5w==}
     engines: {node: '>=12.0.0'}
@@ -8040,9 +8034,6 @@ packages:
     resolution: {integrity: sha512-Dlq/5LAZgF0Gaz6yiqZCf6VCcZs1ghAJyrsu84Q/GT0gV+mCxbfmKNoGRKBYMJ8IEdGPqu49YWXD02GCknEDkw==}
     peerDependencies:
       react: ^19.1.1
-
-  react-highlight@0.15.0:
-    resolution: {integrity: sha512-5uV/b/N4Z421GSVVe05fz+OfTsJtFzx/fJBdafZyw4LS70XjIZwgEx3Lrkfc01W/RzZ2Dtfb0DApoaJFAIKBtA==}
 
   react-is@18.3.1:
     resolution: {integrity: sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg==}
@@ -15856,8 +15847,6 @@ snapshots:
 
   he@1.2.0: {}
 
-  highlight.js@10.7.3: {}
-
   highlight.js@11.11.1: {}
 
   hmac-drbg@1.0.1:
@@ -18411,10 +18400,6 @@ snapshots:
     dependencies:
       react: 19.1.1
       scheduler: 0.26.0
-
-  react-highlight@0.15.0:
-    dependencies:
-      highlight.js: 10.7.3
 
   react-is@18.3.1: {}
 

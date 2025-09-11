@@ -1,6 +1,7 @@
 import type { DeviceAction, UIContext } from '@midscene/core';
 import { PlaygroundSDK, noReplayAPIs } from '@midscene/playground';
 import type { ServerResponse } from '@midscene/playground';
+import { decomposeAIAction, generateCode } from '@midscene/core';
 import {
   ContextPreview,
   Logo,
@@ -205,6 +206,9 @@ export function StandardPlayground({
       (a: DeviceAction<any>) => a.interfaceAlias === type || a.name === type,
     );
 
+    // Define needsStructuredParams outside of validation blocks for later use
+    const needsStructuredParams = !!action?.paramSchema;
+
     // Use PlaygroundSDK for validation if available
     if (playgroundSDK.current) {
       const validationResult = playgroundSDK.current.validateStructuredParams(
@@ -218,7 +222,6 @@ export function StandardPlayground({
       }
     } else {
       // Fallback validation logic
-      const needsStructuredParams = !!action?.paramSchema;
       if (needsStructuredParams && !params) {
         message.error('Structured parameters are required for this action');
         return;
@@ -382,6 +385,21 @@ export function StandardPlayground({
         }
         if (!result.reportHTML) {
           result.reportHTML = activeAgent?.reportHTMLString() || null;
+        }
+      }
+
+      // Generate code if execution was successful
+      if (!result.error && result.result !== undefined) {
+        const parameters = needsStructuredParams
+          ? value.params || {}
+          : { prompt: value.prompt };
+        result.generatedCode = generateCode(actionType, parameters);
+        result.actionType = actionType;
+        result.parameters = parameters;
+
+        // For aiAction, also generate decomposition
+        if (actionType === 'aiAction' && value.prompt) {
+          result.decomposition = decomposeAIAction(value.prompt, result.result);
         }
       }
     } catch (e) {

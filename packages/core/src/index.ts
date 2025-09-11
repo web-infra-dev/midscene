@@ -37,3 +37,19 @@ export type {
 } from './yaml';
 
 export { Agent, type AgentOpt, createAgent } from './agent';
+
+export {
+  generateCode,
+  generateJavaScriptCode,
+  generateYAMLCode,
+  generateCodeFromActionSpace,
+  generateCodeFromProgressSteps,
+  parseProgressStepsFromInfoList,
+  getAvailableActions,
+  decomposeAIAction,
+  generateDecomposedCode,
+  type CodeGenerationOptions,
+  type GeneratedCode,
+  type AIActionDecomposition,
+  type ProgressStep,
+} from './code-generator';
