@@ -216,13 +216,22 @@ export async function callAI(
   let usage: OpenAI.CompletionUsage | undefined;
   let timeCost: number | undefined;
 
+  // Check if model is GPT-5 series (needs to use Responses API)
+  const isGPT5Model = modelName.toLowerCase().includes('gpt-5');
+  
+  const maxTokensValue = typeof maxTokens === 'number'
+    ? maxTokens
+    : Number.parseInt(maxTokens || '2048', 10);
+  
+  if (isGPT5Model) {
+    debugCall(`GPT-5 mode detected for model: ${modelName}, will use Responses API with max_completion_tokens`);
+    debugCall(`Using max_completion_tokens: ${maxTokensValue}`);
+  }
+  
   const commonConfig = {
     temperature: vlMode === 'vlm-ui-tars' ? 0.0 : 0.1,
     stream: !!isStreaming,
-    max_tokens:
-      typeof maxTokens === 'number'
-        ? maxTokens
-        : Number.parseInt(maxTokens || '2048', 10),
+    max_tokens: maxTokensValue,
     ...(vlMode === 'qwen-vl' // qwen specific config
       ? {
           vl_high_resolution_images: true,
@@ -237,13 +246,25 @@ export async function callAI(
       );
 
       if (isStreaming) {
+        // Prepare config based on whether it's GPT-5 (uses max_completion_tokens) or not
+        const requestConfig = isGPT5Model
+          ? {
+              model: modelName,
+              messages,
+              response_format: responseFormat,
+              // GPT-5 only supports default temperature (1)
+              stream: true,
+              max_completion_tokens: maxTokensValue, // GPT-5 uses max_completion_tokens
+            }
+          : {
+              model: modelName,
+              messages,
+              response_format: responseFormat,
+              ...commonConfig,
+            };
+
         const stream = (await completion.create(
-          {
-            model: modelName,
-            messages,
-            response_format: responseFormat,
-            ...commonConfig,
-          },
+          requestConfig,
           {
             stream: true,
           },
@@ -251,14 +272,36 @@ export async function callAI(
           _request_id?: string | null;
         };
 
-        for await (const chunk of stream) {
-          const content = chunk.choices?.[0]?.delta?.content || '';
-          const reasoning_content =
-            (chunk.choices?.[0]?.delta as any)?.reasoning_content || '';
+          for await (const chunk of stream) {
+          let content = '';
+          let reasoning_content = '';
+          
+          // Handle GPT-5 streaming format if it's different
+          if (isGPT5Model && (chunk as any).output) {
+            const outputMessage = (chunk as any).output?.[0];
+            if (outputMessage?.content?.[0]?.text) {
+              content = outputMessage.content[0].text;
+            } else if (outputMessage?.content?.[0]?.output_text) {
+              content = outputMessage.content[0].output_text.text;
+            }
+          } else {
+            // Standard format
+            content = chunk.choices?.[0]?.delta?.content || '';
+            reasoning_content = (chunk.choices?.[0]?.delta as any)?.reasoning_content || '';
+          }
 
-          // Check for usage info in any chunk (OpenAI provides usage in separate chunks)
+          // Check for usage info in any chunk
           if (chunk.usage) {
-            usage = chunk.usage;
+            if (isGPT5Model) {
+              // Map GPT-5 usage format
+              usage = {
+                prompt_tokens: (chunk.usage as any).input_tokens || 0,
+                completion_tokens: (chunk.usage as any).output_tokens || 0,
+                total_tokens: (chunk.usage as any).total_tokens || 0,
+              };
+            } else {
+              usage = chunk.usage;
+            }
           }
 
           if (content || reasoning_content) {
@@ -274,7 +317,11 @@ export async function callAI(
           }
 
           // Check if stream is complete
-          if (chunk.choices?.[0]?.finish_reason) {
+          const isComplete = isGPT5Model 
+            ? ((chunk as any).status === 'completed' || (chunk as any).object === 'response')
+            : chunk.choices?.[0]?.finish_reason;
+          
+          if (isComplete) {
             timeCost = Date.now() - startTime;
 
             // If usage is not available from the stream, provide a basic usage info
@@ -316,28 +363,70 @@ export async function callAI(
           `streaming model, ${modelName}, mode, ${vlMode || 'default'}, cost-ms, ${timeCost}`,
         );
       } else {
-        const result = await completion.create({
-          model: modelName,
-          messages,
-          response_format: responseFormat,
-          ...commonConfig,
-        } as any);
+        // Prepare config based on whether it's GPT-5 (uses max_completion_tokens) or not
+        const requestConfig = isGPT5Model
+          ? {
+              model: modelName,
+              messages,
+              response_format: responseFormat,
+              // GPT-5 only supports default temperature (1)
+              max_completion_tokens: maxTokensValue, // GPT-5 uses max_completion_tokens
+            }
+          : {
+              model: modelName,
+              messages,
+              response_format: responseFormat,
+              ...commonConfig,
+            };
+
+        const result = await completion.create(requestConfig as any);
         timeCost = Date.now() - startTime;
 
+        if (isGPT5Model) {
+          debugCall(`GPT-5 raw response: ${JSON.stringify(result).substring(0, 500)}`);
+        }
+
+        // Handle GPT-5 Responses API response format
+        if (isGPT5Model && (result as any).output) {
+          // GPT-5 Responses API has a different structure
+          debugCall(`GPT-5 Responses API response received`);
+          
+          const outputMessage = (result as any).output?.[0];
+          if (outputMessage?.content?.[0]?.text) {
+            content = outputMessage.content[0].text;
+          } else if (outputMessage?.content?.[0]?.output_text) {
+            content = outputMessage.content[0].output_text.text;
+          }
+          
+          // Map usage from Responses API format
+          if ((result as any).usage) {
+            usage = {
+              prompt_tokens: (result as any).usage.input_tokens || 0,
+              completion_tokens: (result as any).usage.output_tokens || 0,
+              total_tokens: (result as any).usage.total_tokens || 0,
+            };
+          }
+          
+          debugCall(`GPT-5 content extracted: ${content?.substring(0, 100)}...`);
+        } else {
+          // Standard OpenAI completions API response
+          debugCall(`Standard response received, choices: ${result.choices?.length}`);
+          
+          assert(
+            result.choices,
+            `invalid response from LLM service: ${JSON.stringify(result)}`,
+          );
+          content = result.choices[0].message.content || result.choices[0].message?.function_call?.arguments || '';
+          usage = result.usage;
+        }
+
         debugProfileStats(
-          `model, ${modelName}, mode, ${vlMode || 'default'}, ui-tars-version, ${uiTarsVersion}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${timeCost}, requestId, ${result._request_id || ''}`,
+          `model, ${modelName}, mode, ${vlMode || 'default'}, ui-tars-version, ${uiTarsVersion}, prompt-tokens, ${usage?.prompt_tokens || ''}, completion-tokens, ${usage?.completion_tokens || ''}, total-tokens, ${usage?.total_tokens || ''}, cost-ms, ${timeCost}, requestId, ${result.id || result._request_id || ''}`,
         );
 
         debugProfileDetail(
-          `model usage detail: ${JSON.stringify(result.usage)}`,
+          `model usage detail: ${JSON.stringify(usage)}`,
         );
-
-        assert(
-          result.choices,
-          `invalid response from LLM service: ${JSON.stringify(result)}`,
-        );
-        content = result.choices[0].message.content!;
-        usage = result.usage;
       }
 
       debugCall(`response: ${content}`);
@@ -490,7 +579,8 @@ export const getResponseFormat = (
     | OpenAI.ResponseFormatJSONObject
     | undefined;
 
-  if (modelName.includes('gpt-4')) {
+  // Check for GPT-4 or GPT-5 models
+  if (modelName.includes('gpt-4') || modelName.includes('gpt-5')) {
     switch (AIActionTypeValue) {
       case AIActionType.ASSERT:
         responseFormat = assertSchema;
