@@ -7,7 +7,6 @@ import { useServerValid } from '../../hooks/useServerValid';
 import { useEnvConfig } from '../../store/store';
 import { EnvConfig } from '../env-config';
 import { iconForStatus } from '../misc';
-
 interface ServiceModeControlProps {
   serviceMode: 'Server' | 'In-Browser';
 }

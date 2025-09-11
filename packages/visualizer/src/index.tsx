@@ -16,6 +16,7 @@ export {
 } from './utils/color';
 
 export { EnvConfig } from './component/env-config';
+export { EnvConfigReminder } from './component/env-config-reminder';
 
 export { Logo } from './component/logo';
 export { iconForStatus, timeCostStrElement } from './component/misc';

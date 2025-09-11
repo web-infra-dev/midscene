@@ -109,10 +109,11 @@ export default function App() {
                       storage={storage}
                       config={{
                         showContextPreview: false,
-                        enablePersistence: true,
+                        enablePersistence: false,
                         layout: 'vertical',
                         showVersionInfo: true,
                         enableScrollToBottom: true,
+                        serverMode: true,
                       }}
                       branding={{
                         title: 'Playground',

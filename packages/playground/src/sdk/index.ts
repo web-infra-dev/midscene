@@ -34,10 +34,11 @@ export class PlaygroundSDK {
         }
         return new LocalExecutionAdapter(agent);
       case 'remote-execution': {
-        // Use provided serverUrl first, then fallback to current page origin or default
+        // Use provided serverUrl first, then fallback to localhost if current page origin is file:// or default
         const finalServerUrl =
           serverUrl ||
-          (typeof window !== 'undefined'
+          (typeof window !== 'undefined' &&
+          window.location.protocol.includes('http')
             ? window.location.origin
             : `http://localhost:${PLAYGROUND_SERVER_PORT}`);
 

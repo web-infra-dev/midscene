@@ -1,5 +1,7 @@
 import { ExclamationCircleFilled } from '@ant-design/icons';
-import { EnvConfig, useEnvConfig } from '@midscene/visualizer';
+import { useEnvConfig } from '../../store/store';
+import { EnvConfig } from '../env-config';
+
 import './index.less';
 
 interface EnvConfigReminderProps {

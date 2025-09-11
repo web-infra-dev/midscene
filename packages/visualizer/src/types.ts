@@ -348,6 +348,7 @@ export interface UniversalPlaygroundConfig {
   layout?: 'vertical' | 'horizontal';
   showVersionInfo?: boolean;
   enableScrollToBottom?: boolean;
+  serverMode?: boolean;
 }
 
 // branding interface

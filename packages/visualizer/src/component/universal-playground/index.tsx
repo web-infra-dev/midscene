@@ -10,6 +10,7 @@ import { usePlaygroundState } from '../../hooks/usePlaygroundState';
 import { useEnvConfig } from '../../store/store';
 import type { FormValue, UniversalPlaygroundProps } from '../../types';
 import { ContextPreview } from '../context-preview';
+import { EnvConfigReminder } from '../env-config-reminder';
 import { PlaygroundResultView } from '../playground-result';
 import './index.less';
 import PlaygroundIcon from '../../icons/avatar.svg';
@@ -47,6 +48,9 @@ export function UniversalPlayground({
   const { deepThink, screenshotIncluded, domIncluded, config } = useEnvConfig();
 
   // Use custom hooks for state management
+  // Apply configuration
+  const enablePersistence = componentConfig.enablePersistence !== false;
+
   const {
     loading,
     setLoading,
@@ -64,9 +68,13 @@ export function UniversalPlayground({
     currentRunningIdRef,
     interruptedFlagRef,
     clearInfoList,
-    refreshContext,
     handleScrollToBottom,
-  } = usePlaygroundState(playgroundSDK, storage, contextProvider);
+  } = usePlaygroundState(
+    playgroundSDK,
+    storage,
+    contextProvider,
+    enablePersistence,
+  );
 
   // Use execution hook
   const {
@@ -115,7 +123,10 @@ export function UniversalPlayground({
   }, [form, executeAction]);
 
   // Check if run button should be enabled
-  const runButtonEnabled = !dryMode && !actionSpaceLoading;
+  const configAlreadySet = Object.keys(config || {}).length >= 1;
+  const runButtonEnabled =
+    componentConfig.serverMode ||
+    (!dryMode && !actionSpaceLoading && configAlreadySet);
 
   // Get the currently selected type
   const selectedType = Form.useWatch('type', form);
@@ -123,7 +134,6 @@ export function UniversalPlayground({
   // Apply configuration
   const finalShowContextPreview =
     showContextPreview && componentConfig.showContextPreview !== false;
-  const enablePersistence = componentConfig.enablePersistence !== false;
   const layout = componentConfig.layout || 'vertical';
   const showVersionInfo = componentConfig.showVersionInfo !== false;
 
@@ -144,7 +154,7 @@ export function UniversalPlayground({
         {/* Main Dialog Area */}
         <div className="middle-dialog-area">
           {/* Clear Button */}
-          {infoList.length > 1 && enablePersistence && (
+          {infoList.length > 1 && (
             <div className="clear-button-container">
               <Button
                 size="small"
@@ -304,6 +314,7 @@ export function UniversalPlayground({
 
         {/* Bottom Input Section */}
         <div className="bottom-input-section">
+          {!componentConfig.serverMode && <EnvConfigReminder />}
           <PromptInput
             runButtonEnabled={runButtonEnabled}
             form={form}

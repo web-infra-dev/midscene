@@ -1,5 +1,4 @@
 import type { DeviceAction } from '@midscene/core';
-import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import type { ExecutionOptions, FormValue, ValidationResult } from '../types';
 import { BasePlaygroundAdapter } from './base';
 
@@ -8,7 +7,7 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
   private progressPolling = new Map<string, NodeJS.Timeout>();
   private progressCallback?: (tip: string) => void;
 
-  constructor(serverUrl = `http://localhost:${PLAYGROUND_SERVER_PORT}`) {
+  constructor(serverUrl: string) {
     super();
     this.serverUrl = serverUrl;
   }
