@@ -122,7 +122,10 @@ export default function App() {
       {contextHolder}
       <Layout className="app-container playground-container vertical-mode">
         <Content className="app-content">
-          <PanelGroup autoSaveId="android-playground-layout" direction="horizontal">
+          <PanelGroup
+            autoSaveId="android-playground-layout"
+            direction="horizontal"
+          >
             {/* left panel: PlaygroundPanel with Universal Playground */}
             <Panel
               defaultSize={32}
@@ -139,9 +142,9 @@ export default function App() {
                 />
               </div>
             </Panel>
-            
+
             <PanelResizeHandle className="panel-resize-handle" />
-            
+
             {/* right panel: ScrcpyPlayer */}
             <Panel className="app-panel right-panel">
               <div className="panel-content right-panel-content">

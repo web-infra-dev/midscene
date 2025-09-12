@@ -5,8 +5,8 @@ import {
   globalThemeConfig,
 } from '@midscene/visualizer';
 import { ConfigProvider, Layout } from 'antd';
-import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { useEffect, useMemo, useState } from 'react';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import ScreenshotViewer from './components/screenshot-viewer';
 
 import './App.less';

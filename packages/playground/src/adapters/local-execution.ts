@@ -226,7 +226,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     try {
       const type = this.agent.interface.interfaceType || 'Unknown';
       const description = this.agent.interface.describe?.() || undefined;
-      
+
       return {
         type,
         description,

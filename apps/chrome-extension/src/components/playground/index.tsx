@@ -6,6 +6,7 @@ import {
 import { useEnvConfig } from '@midscene/visualizer';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { getExtensionVersion } from '../../utils/chrome';
+import './index.less';
 
 declare const __SDK_VERSION__: string;
 
@@ -40,6 +41,24 @@ export function BrowserExtensionPlayground({
   const sdkRef = useRef<PlaygroundSDK | null>(null);
   const currentAgent = useRef<any>(null);
 
+  // Helper function to detach all debuggers
+  const detachAllDebuggers = async () => {
+    try {
+      const targets = await chrome.debugger.getTargets();
+      for (const target of targets) {
+        if (target.attached && target.tabId) {
+          try {
+            await chrome.debugger.detach({ tabId: target.tabId });
+          } catch (e) {
+            // Ignore errors, debugger might already be detached
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to detach debuggers:', e);
+    }
+  };
+
   // Create SDK only when needed, following original playground pattern
   const getOrCreateSDK = useCallback(() => {
     const agent = getAgent(forceSameTabNavigation);
@@ -49,18 +68,28 @@ export function BrowserExtensionPlayground({
 
     // Only recreate if agent has changed or SDK doesn't exist
     if (!sdkRef.current || currentAgent.current !== agent) {
+      // Clean up previous agent and detach debugger if exists
+      if (currentAgent.current && currentAgent.current !== agent) {
+        try {
+          // Call destroy to detach chrome.debugger
+          currentAgent.current.page?.destroy?.();
+          currentAgent.current.destroy?.();
+        } catch (error) {
+          console.warn('Failed to cleanup previous agent:', error);
+        }
+      }
+
+      // Detach all debuggers before creating new SDK to ensure clean state
+      detachAllDebuggers().then(() => {
+        console.log('[DEBUG] Detached all debuggers before creating SDK');
+      });
+
       try {
         sdkRef.current = new PlaygroundSDK({
           type: 'local-execution',
           agent: agent,
         });
         currentAgent.current = agent;
-
-
-        console.log(
-          '[DEBUG] Chrome extension PlaygroundSDK created, ID:',
-          sdkRef.current.id,
-        );
       } catch (error) {
         console.error('Failed to create PlaygroundSDK:', error);
         throw error;
@@ -85,15 +114,16 @@ export function BrowserExtensionPlayground({
   // Use effect to ensure progress callbacks are properly forwarded
   useEffect(() => {
     if (playgroundSDK && !(playgroundSDK as any)._progressCallbackSetup) {
-      const originalOnProgressUpdate = playgroundSDK.onProgressUpdate?.bind(playgroundSDK);
-      
+      const originalOnProgressUpdate =
+        playgroundSDK.onProgressUpdate?.bind(playgroundSDK);
+
       playgroundSDK.onProgressUpdate = (callback: (tip: string) => void) => {
         // Forward to original method if it exists
         if (originalOnProgressUpdate) {
           originalOnProgressUpdate(callback);
         }
       };
-      
+
       (playgroundSDK as any)._progressCallbackSetup = true;
     }
   }, [playgroundSDK]);
@@ -134,6 +164,29 @@ export function BrowserExtensionPlayground({
       },
     };
   }, [showContextPreview, getAgent, forceSameTabNavigation]);
+
+  // Cleanup effect to detach chrome.debugger when component unmounts
+  useEffect(() => {
+    return () => {
+      // When component unmounts, clean up agent and detach all debuggers
+      if (currentAgent.current) {
+        try {
+          // Destroy the page first (which detaches debugger)
+          if (currentAgent.current.page?.destroy) {
+            currentAgent.current.page.destroy();
+          }
+          // Then destroy the agent
+          if (currentAgent.current.destroy) {
+            currentAgent.current.destroy();
+          }
+          currentAgent.current = null;
+          sdkRef.current = null;
+        } catch (error) {
+          console.warn('Failed to cleanup on unmount:', error);
+        }
+      }
+    };
+  }, []);
 
   return (
     <UniversalPlayground

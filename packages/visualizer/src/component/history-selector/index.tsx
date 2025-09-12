@@ -1,4 +1,4 @@
-import { Button, Input, Modal, Typography } from 'antd';
+import { Button, Input, Typography } from 'antd';
 import type React from 'react';
 import { useMemo, useState } from 'react';
 import CloseOutlined from '../../icons/close.svg';
@@ -84,113 +84,85 @@ export const HistorySelector: React.FC<HistorySelectorProps> = ({
         <HistoryOutlined width={24} height={24} />
       </div>
 
-      <Modal
-        open={isModalOpen}
-        onCancel={() => setIsModalOpen(false)}
-        footer={null}
-        width="100%"
-        closable={false}
-        centered={false}
-        transitionName=""
-        maskTransitionName=""
-        style={{
-          margin: 0,
-          padding: 0,
-          maxWidth: 'none',
-          top: 'auto',
-          bottom: 0,
-        }}
-        styles={{
-          wrapper: {
-            alignItems: 'flex-end',
-            justifyContent: 'center',
-            paddingBottom: 0,
-            display: 'flex',
-          },
-          body: {
-            height: '70vh',
-            padding: 0,
-            margin: 0,
-          },
-          content: {
-            height: '70vh',
-            borderRadius: '12px 12px 0 0',
-            margin: 0,
-            padding: 0,
-            marginBottom: 0,
-            position: 'fixed',
-            bottom: 0,
-            left: 0,
-            right: 0,
-          },
-        }}
-        maskClosable={true}
-        destroyOnClose
-      >
-        <div className="history-modal-container">
-          {/* top title bar */}
-          <div className="history-modal-header">
-            <Text strong style={{ fontSize: '16px' }}>
-              History ({history.length})
-            </Text>
-            <Button
-              size="small"
-              type="text"
-              icon={<CloseOutlined width={16} height={16} />}
-              onClick={() => setIsModalOpen(false)}
-              className="close-button"
-            />
-          </div>
-
-          {/* search bar */}
-          <div className="history-search-section">
-            <div className="search-input-wrapper">
-              <Input
-                placeholder="Search"
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                prefix={<MagnifyingGlass width={18} height={18} />}
-                className="search-input"
-                allowClear
-              />
+      {isModalOpen && (
+        <div
+          className="history-modal-overlay"
+          onClick={() => setIsModalOpen(false)}
+        >
+          <div
+            className="history-modal-container"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* top title bar */}
+            <div className="history-modal-header">
+              <Text strong style={{ fontSize: '16px' }}>
+                History ({history.length})
+              </Text>
               <Button
-                type="link"
-                onClick={handleClearHistory}
-                className="clear-button"
-                disabled={history.length === 0}
-              >
-                Clear
-              </Button>
+                size="small"
+                type="text"
+                icon={<CloseOutlined width={16} height={16} />}
+                onClick={() => setIsModalOpen(false)}
+                className="close-button"
+              />
+            </div>
+
+            {/* search bar */}
+            <div className="history-search-section">
+              <div className="search-input-wrapper">
+                <Input
+                  placeholder="Search"
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  prefix={<MagnifyingGlass width={18} height={18} />}
+                  className="search-input"
+                  allowClear
+                />
+                <Button
+                  type="link"
+                  onClick={handleClearHistory}
+                  className="clear-button"
+                  disabled={history.length === 0}
+                >
+                  Clear
+                </Button>
+              </div>
+            </div>
+
+            {/* history content */}
+            <div className="history-content">
+              {history.length === 0 ? (
+                /* no history record */
+                <div className="no-results">
+                  <Text type="secondary">No history record</Text>
+                </div>
+              ) : (
+                <>
+                  {renderHistoryGroup(
+                    'Last 7 days',
+                    groupedHistory.recent7Days,
+                  )}
+                  {renderHistoryGroup(
+                    'Last 1 year',
+                    groupedHistory.recent1Year,
+                  )}
+                  {renderHistoryGroup('Earlier', groupedHistory.older)}
+
+                  {/* no search result */}
+                  {searchText &&
+                    groupedHistory.recent7Days.length === 0 &&
+                    groupedHistory.recent1Year.length === 0 &&
+                    groupedHistory.older.length === 0 && (
+                      <div className="no-results">
+                        <Text type="secondary">No matching history record</Text>
+                      </div>
+                    )}
+                </>
+              )}
             </div>
           </div>
-
-          {/* history content */}
-          <div className="history-content">
-            {history.length === 0 ? (
-              /* no history record */
-              <div className="no-results">
-                <Text type="secondary">No history record</Text>
-              </div>
-            ) : (
-              <>
-                {renderHistoryGroup('Last 7 days', groupedHistory.recent7Days)}
-                {renderHistoryGroup('Last 1 year', groupedHistory.recent1Year)}
-                {renderHistoryGroup('Earlier', groupedHistory.older)}
-
-                {/* no search result */}
-                {searchText &&
-                  groupedHistory.recent7Days.length === 0 &&
-                  groupedHistory.recent1Year.length === 0 &&
-                  groupedHistory.older.length === 0 && (
-                    <div className="no-results">
-                      <Text type="secondary">No matching history record</Text>
-                    </div>
-                  )}
-              </>
-            )}
-          </div>
         </div>
-      </Modal>
+      )}
     </>
   );
 };
