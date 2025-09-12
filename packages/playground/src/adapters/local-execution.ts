@@ -120,14 +120,13 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   ): Promise<unknown> {
     // Get actionSpace using our simplified getActionSpace method
     const actionSpace = await this.getActionSpace();
+    let originalOnTaskStartTip: ((tip: string) => void) | undefined;
 
     // Setup progress tracking if requestId is provided
     if (options.requestId && this.agent) {
       // Track current request ID to prevent stale callbacks
       this.currentRequestId = options.requestId;
-
-      // Clear any existing callback first
-      this.agent.onTaskStartTip = undefined;
+      originalOnTaskStartTip = this.agent.onTaskStartTip;
 
       // Set up a fresh callback
       this.agent.onTaskStartTip = (tip: string) => {
@@ -142,6 +141,10 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
         // Call the direct progress callback set via setProgressCallback
         if (this.progressCallback) {
           this.progressCallback(tip);
+        }
+
+        if (typeof originalOnTaskStartTip === 'function') {
+          originalOnTaskStartTip(tip);
         }
       };
     }
@@ -195,7 +198,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
         this.cleanup(options.requestId);
         // Clear the agent callback to prevent accumulation
         if (this.agent) {
-          this.agent.onTaskStartTip = undefined;
+          this.agent.onTaskStartTip = originalOnTaskStartTip;
         }
       }
     }
