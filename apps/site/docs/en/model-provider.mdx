@@ -13,7 +13,25 @@ These are the most common configs, in which `OPENAI_API_KEY` is required.
 |------|-------------|
 | `OPENAI_API_KEY` | Required. Your OpenAI API key (e.g. "sk-abcdefghijklmnopqrstuvwxyz") |
 | `OPENAI_BASE_URL` | Optional. Custom endpoint URL for API endpoint. Use it to switch to a provider other than OpenAI (e.g. "https://some_service_name.com/v1") |
-| `MIDSCENE_MODEL_NAME` | Optional. Specify a different model name other than `gpt-4o` |
+| `MIDSCENE_MODEL_NAME` | Optional. Specify a different model name other than `gpt-4o`. Supports GPT-5 models (e.g., `gpt-5`, `gpt-5-turbo`) which automatically use `max_completion_tokens` parameter |
+
+### GPT-5 Model Support
+
+Midscene automatically detects GPT-5 models and uses the OpenAI Responses API with the `max_completion_tokens` parameter. When you specify a GPT-5 model, Midscene will:
+
+1. Automatically detect GPT-5 model names (any model containing "gpt-5")
+2. Use the OpenAI Responses API if available
+3. Send `max_completion_tokens` instead of `max_tokens` in the request
+
+Example configuration:
+```bash
+export MIDSCENE_MODEL_NAME="gpt-5-turbo"
+export OPENAI_API_KEY="your-api-key"
+# The max tokens value will be used as max_completion_tokens for GPT-5
+export OPENAI_MAX_TOKENS="4096"
+```
+
+This ensures compatibility with the new GPT-5 Responses API requirements while maintaining backward compatibility with GPT-4 and earlier models.
 
 Extra configs to use `Qwen 2.5 VL` model:
 
