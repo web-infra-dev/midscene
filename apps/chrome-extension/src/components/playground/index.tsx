@@ -111,22 +111,8 @@ export function BrowserExtensionPlayground({
     }
   }, [getOrCreateSDK, runEnabled]);
 
-  // Use effect to ensure progress callbacks are properly forwarded
-  useEffect(() => {
-    if (playgroundSDK && !(playgroundSDK as any)._progressCallbackSetup) {
-      const originalOnProgressUpdate =
-        playgroundSDK.onProgressUpdate?.bind(playgroundSDK);
-
-      playgroundSDK.onProgressUpdate = (callback: (tip: string) => void) => {
-        // Forward to original method if it exists
-        if (originalOnProgressUpdate) {
-          originalOnProgressUpdate(callback);
-        }
-      };
-
-      (playgroundSDK as any)._progressCallbackSetup = true;
-    }
-  }, [playgroundSDK]);
+  // Progress callback handling is now managed in usePlaygroundExecution hook
+  // No need to override onProgressUpdate here
 
   // Context provider - delay creation until actually needed
   const contextProvider = useMemo(() => {

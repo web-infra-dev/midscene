@@ -11,6 +11,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   private taskProgressTips: Record<string, string> = {};
   private progressCallback?: (tip: string) => void;
   private readonly _id: string; // Unique identifier for this local adapter instance
+  private currentRequestId?: string; // Track current request to prevent stale callbacks
 
   constructor(agent: PlaygroundAgent) {
     super();
@@ -24,6 +25,9 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   }
 
   setProgressCallback(callback: (tip: string) => void): void {
+    // Clear any existing callback before setting new one
+    this.progressCallback = undefined;
+    // Set the new callback
     this.progressCallback = callback;
   }
 
@@ -119,22 +123,25 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
 
     // Setup progress tracking if requestId is provided
     if (options.requestId && this.agent) {
-      // Store the original callback if exists (this preserves chrome extension callbacks)
-      const originalCallback = this.agent.onTaskStartTip;
+      // Track current request ID to prevent stale callbacks
+      this.currentRequestId = options.requestId;
 
-      // Override with our callback that stores tips and calls original
+      // Clear any existing callback first
+      this.agent.onTaskStartTip = undefined;
+
+      // Set up a fresh callback
       this.agent.onTaskStartTip = (tip: string) => {
+        // Only process if this is still the current request
+        if (this.currentRequestId !== options.requestId) {
+          return;
+        }
+
         // Store tip for our progress tracking
         this.taskProgressTips[options.requestId!] = tip;
 
         // Call the direct progress callback set via setProgressCallback
         if (this.progressCallback) {
           this.progressCallback(tip);
-        }
-
-        // Call original callback if it existed (this will call chrome extension callbacks)
-        if (originalCallback && typeof originalCallback === 'function') {
-          originalCallback(tip);
         }
       };
     }
@@ -186,6 +193,10 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       // Always clean up progress tracking to prevent memory leaks
       if (options.requestId) {
         this.cleanup(options.requestId);
+        // Clear the agent callback to prevent accumulation
+        if (this.agent) {
+          this.agent.onTaskStartTip = undefined;
+        }
       }
     }
   }
