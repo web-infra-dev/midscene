@@ -398,7 +398,6 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
     const element = param.locate;
     assert(element, 'Element not found, cannot double click');
 
-    // Use two separate clicks with a short delay to simulate double-click
     await page.mouse.click(element.center[0], element.center[1], {
       button: 'left',
       count: 2,

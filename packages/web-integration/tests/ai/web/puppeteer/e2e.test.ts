@@ -367,6 +367,19 @@ describe(
       const agent = new PuppeteerAgent(originPage);
       await agent.aiAction('长按进入新空间按钮');
     });
+
+    it('double click', async () => {
+      const { originPage, reset } = await launchPage(
+        'https://cpstest.us/double-click-test/',
+      );
+      resetFn = reset;
+      const agent = new PuppeteerAgent(originPage);
+      await agent.aiAction('double click the "Click Me" button');
+
+      await agent.aiAssert(
+        'the "Double" field in the "Left" section shows Double:1 instead of Double:0',
+      );
+    });
   },
   4 * 60 * 1000,
 );

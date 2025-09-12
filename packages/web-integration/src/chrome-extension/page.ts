@@ -600,20 +600,23 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
         });
       } else {
         // standard mousePressed + mouseReleased
-        await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
-          type: 'mousePressed',
-          x,
-          y,
-          button,
-          clickCount: count,
-        });
-        await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
-          type: 'mouseReleased',
-          x,
-          y,
-          button,
-          clickCount: count,
-        });
+        for (let i = 0; i < count; i++) {
+          await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
+            type: 'mousePressed',
+            x,
+            y,
+            button,
+            clickCount: 1,
+          });
+          await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
+            type: 'mouseReleased',
+            x,
+            y,
+            button,
+            clickCount: 1,
+          });
+          await sleep(50);
+        }
       }
     },
     wheel: async (
