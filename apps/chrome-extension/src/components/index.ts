@@ -1,1 +1,1 @@
-export { EnvConfigReminder } from './EnvConfigReminder';
+export { EnvConfigReminder } from './env-config-reminder';

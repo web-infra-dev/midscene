@@ -1,7 +1,7 @@
 import type { DeviceAction, UIContext } from '@midscene/core';
+import { decomposeAIAction, generateCode } from '@midscene/core';
 import { PlaygroundSDK, noReplayAPIs } from '@midscene/playground';
 import type { ServerResponse } from '@midscene/playground';
-import { decomposeAIAction, generateCode } from '@midscene/core';
 import {
   ContextPreview,
   Logo,

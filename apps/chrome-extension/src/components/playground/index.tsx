@@ -1,3 +1,4 @@
+import { decomposeAIAction, generateCode } from '@midscene/core';
 import { PlaygroundSDK } from '@midscene/playground';
 import {
   LocalStorageProvider,
@@ -87,11 +88,95 @@ export function BrowserExtensionPlayground({
         return agentInfoRef.current.sdk;
       }
 
+<<<<<<< HEAD
       // Need to create new SDK
       // Clean up previous agent if it exists
       if (agentInfoRef.current) {
         cleanupAgent(agentInfoRef.current.agent);
       }
+=======
+        // Execute the action
+        const result = await sdk.executeAction(
+          actionType,
+          value,
+          options || {},
+        );
+
+        // Generate code if execution was successful and result exists
+        if (
+          result &&
+          typeof result === 'object' &&
+          'result' in result &&
+          !(result as any).error &&
+          (result as any).result !== undefined
+        ) {
+          try {
+            const actionSpace = await sdk.getActionSpace();
+
+            // Check if this action needs structured params
+            const action = actionSpace?.find(
+              (a: any) =>
+                a.interfaceAlias === actionType || a.name === actionType,
+            );
+            const needsStructuredParams = !!action?.paramSchema;
+
+            // Generate code from parameters
+            const parameters = needsStructuredParams
+              ? value.params || {}
+              : { prompt: value.prompt };
+            const generatedCode = generateCode(actionType, parameters);
+
+            // For aiAction, also generate decomposition
+            const decomposition =
+              actionType === 'aiAction' && value.prompt
+                ? decomposeAIAction(value.prompt, (result as any).result)
+                : undefined;
+
+            // Add code generation data to result
+            return {
+              ...result,
+              generatedCode,
+              decomposition,
+              actionType,
+            };
+          } catch (codeGenError) {
+            console.warn('Code generation failed:', codeGenError);
+            // Return result without code generation if it fails
+            return result;
+          }
+        }
+
+        return result;
+      },
+      getActionSpace: (context?: any) => {
+        // Only try to get action space when config is ready
+        try {
+          if (!runEnabled) {
+            return Promise.resolve([]);
+          }
+          const sdk = getOrCreateSDK();
+          return sdk.getActionSpace(context);
+        } catch (error) {
+          console.error('getActionSpace failed:', error);
+          return Promise.resolve([]);
+        }
+      },
+      overrideConfig: (aiConfig: any) => {
+        const sdk = getOrCreateSDK();
+        return sdk.overrideConfig?.(aiConfig);
+      },
+      checkStatus: () => {
+        const sdk = getOrCreateSDK();
+        return sdk.checkStatus?.();
+      },
+      cancelExecution: (requestId: string) => {
+        const sdk = getOrCreateSDK();
+        return sdk.cancelTask?.(requestId);
+      },
+      onProgressUpdate: (callback: (tip: string) => void) => {
+        // Store the callback for our own use
+        progressCallbackRef.current = callback;
+>>>>>>> 330854ea (fix(chrome-extension): correct import path for EnvConfigReminder and remove unused playground component)
 
       // Detach all debuggers before creating new SDK
       detachAllDebuggers().then(() => {
