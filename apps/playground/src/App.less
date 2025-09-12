@@ -46,8 +46,6 @@ body {
   }
 
   &.left-panel {
-    width: 480px;
-    flex: none;
     overflow: hidden;
     height: 100%;
     display: flex;
@@ -305,6 +303,27 @@ body {
   }
 }
 
+// PanelResizeHandle styles
+.panel-resize-handle {
+  width: 2px;
+  background-color: #f0f0f0;
+  cursor: col-resize;
+  transition: background-color 0.2s;
+  position: relative;
+
+  &:hover {
+    background-color: #1677ff;
+  }
+
+  &:active {
+    background-color: #1677ff;
+  }
+
+  &[data-resize-handle-active] {
+    background-color: #1677ff;
+  }
+}
+
 // Global styles for better integration
 .playground-container {
   .playground-container {
@@ -318,17 +337,7 @@ body {
 }
 
 // Responsive design
-@media (max-width: 1200px) {
-  .app-panel.left-panel {
-    width: 420px;
-  }
-}
-
 @media (max-width: 768px) {
-  .app-grid-layout .ant-row {
-    flex-direction: column;
-  }
-
   .app-panel {
     &.left-panel {
       width: 100%;
@@ -343,6 +352,10 @@ body {
       border-left: none;
       border-top: 1px solid rgba(0, 0, 0, 0.08);
     }
+  }
+
+  .panel-resize-handle {
+    display: none;
   }
 
   .server-offline-container {

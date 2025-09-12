@@ -6,8 +6,9 @@ import {
   useEnvConfig,
   useServerValid,
 } from '@midscene/visualizer';
-import { Col, ConfigProvider, Layout, Row, message } from 'antd';
+import { ConfigProvider, Layout, message } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { type Socket, io } from 'socket.io-client';
 import AdbDevice from './components/adb-device';
 import PlaygroundPanel from './components/playground-panel';
@@ -121,37 +122,42 @@ export default function App() {
       {contextHolder}
       <Layout className="app-container playground-container vertical-mode">
         <Content className="app-content">
-          <div className="app-grid-layout">
-            <Row className="app-grid-layout">
-              {/* left panel: PlaygroundPanel with Universal Playground */}
-              <Col className="app-panel left-panel">
-                <div className="panel-content left-panel-content">
-                  <PlaygroundPanel
-                    selectedDeviceId={selectedDeviceId}
-                    serverValid={serverValid}
-                    configAlreadySet={configAlreadySet}
-                    connectionReady={connectionReady}
-                  />
-                </div>
-              </Col>
-
-              {/* right panel: ScrcpyPlayer */}
-              <Col className="app-panel right-panel">
-                <div className="panel-content right-panel-content">
-                  <AdbDevice
-                    selectedDeviceId={selectedDeviceId}
-                    scrcpyPlayerRef={scrcpyPlayerRef}
-                  />
-                  <ScrcpyPlayer
-                    ref={scrcpyPlayerRef}
-                    serverUrl={serverUrl}
-                    autoConnect={connectToDevice}
-                    onConnectionStatusChange={handleConnectionStatusChange}
-                  />
-                </div>
-              </Col>
-            </Row>
-          </div>
+          <PanelGroup autoSaveId="android-playground-layout" direction="horizontal">
+            {/* left panel: PlaygroundPanel with Universal Playground */}
+            <Panel
+              defaultSize={32}
+              maxSize={60}
+              minSize={20}
+              className="app-panel left-panel"
+            >
+              <div className="panel-content left-panel-content">
+                <PlaygroundPanel
+                  selectedDeviceId={selectedDeviceId}
+                  serverValid={serverValid}
+                  configAlreadySet={configAlreadySet}
+                  connectionReady={connectionReady}
+                />
+              </div>
+            </Panel>
+            
+            <PanelResizeHandle className="panel-resize-handle" />
+            
+            {/* right panel: ScrcpyPlayer */}
+            <Panel className="app-panel right-panel">
+              <div className="panel-content right-panel-content">
+                <AdbDevice
+                  selectedDeviceId={selectedDeviceId}
+                  scrcpyPlayerRef={scrcpyPlayerRef}
+                />
+                <ScrcpyPlayer
+                  ref={scrcpyPlayerRef}
+                  serverUrl={serverUrl}
+                  autoConnect={connectToDevice}
+                  onConnectionStatusChange={handleConnectionStatusChange}
+                />
+              </div>
+            </Panel>
+          </PanelGroup>
         </Content>
       </Layout>
     </ConfigProvider>

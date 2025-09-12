@@ -4,7 +4,8 @@ import {
   UniversalPlayground,
   globalThemeConfig,
 } from '@midscene/visualizer';
-import { Col, ConfigProvider, Layout, Row } from 'antd';
+import { ConfigProvider, Layout } from 'antd';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { useEffect, useMemo, useState } from 'react';
 import ScreenshotViewer from './components/screenshot-viewer';
 
@@ -84,53 +85,58 @@ export default function App() {
     <ConfigProvider theme={globalThemeConfig()}>
       <Layout className="app-container playground-container">
         <Content className="app-content">
-          <div className="app-grid-layout">
-            <Row className="app-grid-layout">
-              {/* Left panel: UniversalPlayground */}
-              <Col className="app-panel left-panel">
-                <div className="panel-content left-panel-content">
-                  {/* Header with Logo and Config */}
-                  <div className="playground-panel-header">
-                    <div className="header-row">
-                      <Logo />
-                      {/* <EnvConfig /> */}
-                    </div>
-                  </div>
-
-                  {/* Main playground area */}
-                  <div className="playground-panel-playground">
-                    <UniversalPlayground
-                      playgroundSDK={playgroundSDK}
-                      config={{
-                        showContextPreview: false,
-                        layout: 'vertical',
-                        showVersionInfo: true,
-                        enableScrollToBottom: true,
-                        serverMode: true,
-                        showEnvConfigReminder: false,
-                      }}
-                      branding={{
-                        title: 'Playground',
-                        version: __APP_VERSION__,
-                      }}
-                      className="playground-container"
-                    />
+          <PanelGroup autoSaveId="playground-layout" direction="horizontal">
+            {/* Left panel: UniversalPlayground */}
+            <Panel
+              defaultSize={32}
+              maxSize={60}
+              minSize={20}
+              className="app-panel left-panel"
+            >
+              <div className="panel-content left-panel-content">
+                {/* Header with Logo and Config */}
+                <div className="playground-panel-header">
+                  <div className="header-row">
+                    <Logo />
+                    {/* <EnvConfig /> */}
                   </div>
                 </div>
-              </Col>
 
-              {/* Right panel: Screenshot Viewer */}
-              <Col className="app-panel right-panel">
-                <div className="panel-content right-panel-content">
-                  <ScreenshotViewer
+                {/* Main playground area */}
+                <div className="playground-panel-playground">
+                  <UniversalPlayground
                     playgroundSDK={playgroundSDK}
-                    serverOnline={serverOnline}
-                    isUserOperating={isUserOperating}
+                    config={{
+                      showContextPreview: false,
+                      layout: 'vertical',
+                      showVersionInfo: true,
+                      enableScrollToBottom: true,
+                      serverMode: true,
+                      showEnvConfigReminder: false,
+                    }}
+                    branding={{
+                      title: 'Playground',
+                      version: __APP_VERSION__,
+                    }}
+                    className="playground-container"
                   />
                 </div>
-              </Col>
-            </Row>
-          </div>
+              </div>
+            </Panel>
+
+            <PanelResizeHandle className="panel-resize-handle" />
+
+            {/* Right panel: Screenshot Viewer */}
+            <Panel className="app-panel right-panel">
+              <div className="panel-content right-panel-content">
+                <ScreenshotViewer
+                  playgroundSDK={playgroundSDK}
+                  serverOnline={serverOnline}
+                  isUserOperating={isUserOperating}
+                />
+              </div>
+            </Panel>
+          </PanelGroup>
         </Content>
       </Layout>
     </ConfigProvider>
