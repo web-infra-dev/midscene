@@ -88,6 +88,8 @@ export class TaskExecutor {
 
   onTaskStartCallback?: ExecutionTaskProgressOptions['onTaskStart'];
 
+  replanningCycleLimit?: number;
+
   // @deprecated use .interface instead
   get page() {
     return this.interface;
@@ -99,12 +101,14 @@ export class TaskExecutor {
     opts: {
       taskCache?: TaskCache;
       onTaskStart?: ExecutionTaskProgressOptions['onTaskStart'];
+      replanningCycleLimit?: number;
     },
   ) {
     this.interface = interfaceInstance;
     this.insight = insight;
     this.taskCache = opts.taskCache;
     this.onTaskStartCallback = opts?.onTaskStart;
+    this.replanningCycleLimit = opts.replanningCycleLimit;
   }
 
   private async recordScreenshot(timing: ExecutionRecorderItem['timing']) {
@@ -907,9 +911,11 @@ export class TaskExecutor {
 
     const yamlFlow: MidsceneYamlFlowItem[] = [];
     const replanningCycleLimit =
+      this.replanningCycleLimit ||
       globalConfigManager.getEnvConfigInNumber(
         MIDSCENE_REPLANNING_CYCLE_LIMIT,
-      ) || defaultReplanningCycleLimit;
+      ) ||
+      defaultReplanningCycleLimit;
     while (planningTask) {
       if (replanCount > replanningCycleLimit) {
         const errorMsg =
