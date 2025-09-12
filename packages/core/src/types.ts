@@ -593,4 +593,6 @@ export interface AgentOpt {
   /* custom report file name */
   reportFileName?: string;
   modelConfig?: TModelConfigFn;
+  useCache?: boolean;
+  replanningCycleLimit?: number;
 }
