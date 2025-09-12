@@ -3,7 +3,6 @@ import { UniversalPlayground } from '@midscene/visualizer';
 import { useEnvConfig } from '@midscene/visualizer';
 import { useCallback, useMemo, useRef } from 'react';
 import { getExtensionVersion } from '../../utils/chrome';
-import './index.less';
 
 declare const __SDK_VERSION__: string;
 

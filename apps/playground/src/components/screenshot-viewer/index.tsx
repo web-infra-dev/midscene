@@ -193,13 +193,13 @@ export default function ScreenshotViewer({
       <div className="screenshot-header">
         <div className="screenshot-title">
           <h3>📱 Screen Preview</h3>
+        </div>
+        <div className="screenshot-controls">
           {lastUpdateTime > 0 && (
             <span className="last-update-time">
               Updated {formatLastUpdateTime(lastUpdateTime)}
             </span>
           )}
-        </div>
-        <div className="screenshot-controls">
           <Tooltip title="Refresh screenshot">
             <Button
               icon={<ReloadOutlined />}
