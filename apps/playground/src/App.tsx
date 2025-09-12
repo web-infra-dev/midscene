@@ -1,6 +1,5 @@
 import { PlaygroundSDK } from '@midscene/playground';
 import {
-  LocalStorageProvider,
   Logo,
   UniversalPlayground,
   globalThemeConfig,
@@ -32,10 +31,6 @@ export default function App() {
     });
 
     return sdk;
-  }, []);
-
-  const storage = useMemo(() => {
-    return new LocalStorageProvider('playground');
   }, []);
 
   // Check server status on mount
@@ -106,14 +101,13 @@ export default function App() {
                   <div className="playground-panel-playground">
                     <UniversalPlayground
                       playgroundSDK={playgroundSDK}
-                      storage={storage}
                       config={{
                         showContextPreview: false,
-                        enablePersistence: false,
                         layout: 'vertical',
                         showVersionInfo: true,
                         enableScrollToBottom: true,
                         serverMode: true,
+                        showEnvConfigReminder: false,
                       }}
                       branding={{
                         title: 'Playground',

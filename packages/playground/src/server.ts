@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import type { Server } from 'node:http';
 import { dirname, join } from 'node:path';
@@ -9,6 +8,7 @@ import { getTmpDir } from '@midscene/core/utils';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import { overrideAIConfig } from '@midscene/shared/env';
 import express, { type Request, type Response } from 'express';
+import { v4 as generateUUID } from 'uuid';
 import { executeAction, formatErrorMessage } from './common';
 import type { PlaygroundAgent } from './types';
 
@@ -44,6 +44,7 @@ class PlaygroundServer {
   agent: PageAgent;
   staticPath: string;
   taskProgressTips: Record<string, string>;
+  id: string; // Unique identifier for this server instance
 
   private _initialized = false;
 
@@ -51,6 +52,7 @@ class PlaygroundServer {
     page: AbstractInterface,
     agent: PageAgent,
     staticPath = STATIC_PATH,
+    id?: string, // Optional override ID
   ) {
     this._app = express();
     this.tmpDir = getTmpDir()!;
@@ -58,6 +60,8 @@ class PlaygroundServer {
     this.agent = agent;
     this.staticPath = staticPath;
     this.taskProgressTips = {};
+    // Use provided ID, or generate random UUID for each startup
+    this.id = id || generateUUID();
   }
 
   /**
@@ -146,6 +150,7 @@ class PlaygroundServer {
     this._app.get('/status', async (req: Request, res: Response) => {
       res.send({
         status: 'ok',
+        id: this.id,
       });
     });
 
@@ -251,7 +256,7 @@ class PlaygroundServer {
           });
         }
 
-        const uuid = randomUUID();
+        const uuid = generateUUID();
         this.saveContextFile(uuid, context);
         return res.json({
           location: `/playground/${uuid}`,
@@ -499,6 +504,8 @@ class PlaygroundServer {
     this.initializeApp();
 
     this.port = port || defaultPort;
+
+    // Keep the random UUID as-is, no need to regenerate
 
     return new Promise((resolve) => {
       const serverPort = this.port;

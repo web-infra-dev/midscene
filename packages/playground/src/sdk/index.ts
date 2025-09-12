@@ -93,6 +93,17 @@ export class PlaygroundSDK {
     );
   }
 
+  // Get adapter ID (works for both remote and local execution)
+  get id(): string | undefined {
+    if (this.adapter instanceof RemoteExecutionAdapter) {
+      return this.adapter.id;
+    }
+    if (this.adapter instanceof LocalExecutionAdapter) {
+      return this.adapter.id;
+    }
+    return undefined;
+  }
+
   // Server communication methods (for remote execution)
   async checkStatus(): Promise<boolean> {
     if (this.adapter instanceof RemoteExecutionAdapter) {

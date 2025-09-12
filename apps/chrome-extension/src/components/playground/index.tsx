@@ -1,8 +1,5 @@
 import { PlaygroundSDK } from '@midscene/playground';
-import {
-  LocalStorageProvider,
-  UniversalPlayground,
-} from '@midscene/visualizer';
+import { UniversalPlayground } from '@midscene/visualizer';
 import { useEnvConfig } from '@midscene/visualizer';
 import { useCallback, useMemo, useRef } from 'react';
 import { getExtensionVersion } from '../../utils/chrome';
@@ -31,12 +28,6 @@ export function BrowserExtensionPlayground({
   const { config } = useEnvConfig();
   const runEnabled = !!getAgent && Object.keys(config || {}).length >= 1;
 
-  // Create storage provider for persistence
-  const storage = useMemo(
-    () => new LocalStorageProvider('chrome-extension-playground'),
-    [],
-  );
-
   // Use the same pattern as original BrowserExtensionPlayground
   const sdkRef = useRef<PlaygroundSDK | null>(null);
   const currentAgent = useRef<any>(null);
@@ -57,10 +48,10 @@ export function BrowserExtensionPlayground({
         });
         currentAgent.current = agent;
 
-        // If we have a stored progress callback, re-apply it to the new SDK
-        if (progressCallbackRef.current) {
-          sdkRef.current.onProgressUpdate(progressCallbackRef.current);
-        }
+        console.log(
+          '[DEBUG] Chrome extension PlaygroundSDK created, ID:',
+          sdkRef.current.id,
+        );
       } catch (error) {
         console.error('Failed to create PlaygroundSDK:', error);
         throw error;
@@ -69,63 +60,18 @@ export function BrowserExtensionPlayground({
     return sdkRef.current;
   }, [getAgent, forceSameTabNavigation]);
 
-  // Store the current progress callback
-  const progressCallbackRef = useRef<((tip: string) => void) | null>(null);
-
-  // Create a wrapper SDK that uses the original pattern
-  const wrappedSDK = useMemo(() => {
-    return {
-      executeAction: async (actionType: string, value: any, options?: any) => {
-        const sdk = getOrCreateSDK();
-
-        // Get agent and reset dump like the original playground does
-        const agent = getAgent(forceSameTabNavigation);
-        if (agent) {
-          // Reset dump before execution
-          if (agent.resetDump) {
-            agent.resetDump();
-          }
-        }
-
-        return sdk.executeAction(actionType, value, options || {});
-      },
-      getActionSpace: (context?: any) => {
-        // Only try to get action space when config is ready
-        try {
-          if (!runEnabled) {
-            return Promise.resolve([]);
-          }
-          const sdk = getOrCreateSDK();
-          return sdk.getActionSpace(context);
-        } catch (error) {
-          console.error('getActionSpace failed:', error);
-          return Promise.resolve([]);
-        }
-      },
-      overrideConfig: (aiConfig: any) => {
-        const sdk = getOrCreateSDK();
-        return sdk.overrideConfig?.(aiConfig);
-      },
-      checkStatus: () => {
-        const sdk = getOrCreateSDK();
-        return sdk.checkStatus?.();
-      },
-      cancelExecution: (requestId: string) => {
-        const sdk = getOrCreateSDK();
-        return sdk.cancelTask?.(requestId);
-      },
-      onProgressUpdate: (callback: (tip: string) => void) => {
-        // Store the callback for our own use
-        progressCallbackRef.current = callback;
-
-        // Also call the underlying PlaygroundSDK's onProgressUpdate
-        const sdk = getOrCreateSDK();
-        if (sdk?.onProgressUpdate) {
-          sdk.onProgressUpdate(callback);
-        }
-      },
-    };
-  }, [getOrCreateSDK, runEnabled, getAgent, forceSameTabNavigation]);
+  // Get the current SDK - create it lazily when needed
+  const playgroundSDK = useMemo(() => {
+    try {
+      if (!runEnabled) {
+        return null;
+      }
+      return getOrCreateSDK();
+    } catch (error) {
+      console.error('Failed to initialize PlaygroundSDK:', error);
+      return null;
+    }
+  }, [getOrCreateSDK, runEnabled]);
 
   // Context provider - delay creation until actually needed
   const contextProvider = useMemo(() => {
@@ -166,15 +112,15 @@ export function BrowserExtensionPlayground({
 
   return (
     <UniversalPlayground
-      playgroundSDK={wrappedSDK}
-      storage={storage}
+      playgroundSDK={playgroundSDK}
       contextProvider={contextProvider}
       config={{
         showContextPreview,
-        enablePersistence: true,
         layout: 'vertical',
         showVersionInfo: true,
         enableScrollToBottom: true,
+        storageNamespace: 'chrome-extension-playground',
+        showEnvConfigReminder: true,
       }}
       branding={{
         title: 'Playground',

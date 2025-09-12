@@ -164,6 +164,7 @@ const main = async () => {
     console.log('✨ Midscene Android Playground is ready!');
     console.log(`🎮 Playground: http://localhost:${playgroundServer.port}`);
     console.log(`📱 Device: ${selectedDeviceId}`);
+    console.log(`🔑 Generated Server ID: ${playgroundServer.id}`);
     console.log('');
 
     open(`http://localhost:${playgroundServer.port}`);

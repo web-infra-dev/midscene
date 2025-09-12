@@ -22,7 +22,7 @@ const noReplayAPIs = [
  * Hook for handling playground execution logic
  */
 export function usePlaygroundExecution(
-  playgroundSDK: PlaygroundSDKLike,
+  playgroundSDK: PlaygroundSDKLike | null,
   storage: StorageProvider | undefined,
   actionSpace: DeviceAction<unknown>[],
   loading: boolean,
@@ -38,6 +38,12 @@ export function usePlaygroundExecution(
   // Handle form submission and execution
   const handleRun = useCallback(
     async (value: FormValue) => {
+      // Check if SDK is available
+      if (!playgroundSDK) {
+        console.warn('PlaygroundSDK is not available');
+        return;
+      }
+
       // Basic validation - specific validation logic would need to be moved to the SDK or passed as a separate function
       const thisRunningId = Date.now();
       const actionType = value.type;
@@ -195,7 +201,7 @@ export function usePlaygroundExecution(
   // Handle stop execution
   const handleStop = useCallback(async () => {
     const thisRunningId = currentRunningIdRef.current;
-    if (thisRunningId && playgroundSDK.cancelExecution) {
+    if (thisRunningId && playgroundSDK && playgroundSDK.cancelExecution) {
       try {
         await playgroundSDK.cancelExecution(thisRunningId.toString());
         interruptedFlagRef.current[thisRunningId] = true;
@@ -237,7 +243,10 @@ export function usePlaygroundExecution(
 
   // Check if execution can be stopped
   const canStop =
-    loading && !!currentRunningIdRef.current && !!playgroundSDK.cancelExecution;
+    loading &&
+    !!currentRunningIdRef.current &&
+    !!playgroundSDK &&
+    !!playgroundSDK.cancelExecution;
 
   return {
     handleRun,

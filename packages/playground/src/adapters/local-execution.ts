@@ -1,6 +1,7 @@
 import type { DeviceAction } from '@midscene/core';
 import { findAllMidsceneLocatorField } from '@midscene/core/ai-model';
 import { overrideAIConfig } from '@midscene/shared/env';
+import { v4 as generateUUID } from 'uuid';
 import { executeAction } from '../common';
 import type { ExecutionOptions, FormValue, PlaygroundAgent } from '../types';
 import { BasePlaygroundAdapter } from './base';
@@ -9,10 +10,17 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   private agent: PlaygroundAgent;
   private taskProgressTips: Record<string, string> = {};
   private progressCallback?: (tip: string) => void;
+  private readonly _id: string; // Unique identifier for this local adapter instance
 
   constructor(agent: PlaygroundAgent) {
     super();
     this.agent = agent;
+    this._id = generateUUID(); // Generate unique ID for local adapter
+  }
+
+  // Get adapter ID
+  get id(): string {
+    return this._id;
   }
 
   setProgressCallback(callback: (tip: string) => void): void {

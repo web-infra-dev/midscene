@@ -6,10 +6,16 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
   private serverUrl?: string;
   private progressPolling = new Map<string, NodeJS.Timeout>();
   private progressCallback?: (tip: string) => void;
+  private _id?: string;
 
   constructor(serverUrl: string) {
     super();
     this.serverUrl = serverUrl;
+  }
+
+  // Get adapter ID (cached after first status check for remote)
+  get id(): string | undefined {
+    return this._id;
   }
 
   // Override validateParams for remote execution
@@ -256,7 +262,20 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
 
     try {
       const res = await fetch(`${this.serverUrl}/status`);
-      return res.status === 200;
+      if (res.status === 200) {
+        // Try to extract id from response
+        try {
+          const data = await res.json();
+          if (data.id && typeof data.id === 'string') {
+            this._id = data.id;
+          }
+        } catch (jsonError) {
+          // If JSON parsing fails, id remains undefined but status is still OK
+          console.debug('Failed to parse status response:', jsonError);
+        }
+        return true;
+      }
+      return false;
     } catch (error) {
       console.warn('Server status check failed:', error);
       return false;

@@ -24,7 +24,7 @@
       "outputs": ["{projectRoot}/dist"]
     },
     "build:watch": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build", "^build:watch"]
     },
     "test": {
       "cache": false
