@@ -8,22 +8,50 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 8px;
 
     .mode-radio-group {
       display: flex;
       align-items: center;
       height: 100%;
+      width: 350px;
+      min-width: 350px;
+      max-width: 350px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE and Edge */
+      gap: 8px; /* Space between Form.Item and Dropdown */
+      
+      /* Hide scrollbar for WebKit browsers */
+      &::-webkit-scrollbar {
+        display: none;
+      }
+
+      /* Ensure Form.Item doesn't shrink and stays in one line */
+      .ant-form-item {
+        margin: 0 !important;
+        flex-shrink: 0;
+        
+        .ant-radio-group {
+          display: flex;
+          flex-wrap: nowrap; /* Prevent wrapping */
+          gap: 8px;
+        }
+      }
 
       .ant-radio-button-wrapper {
         height: 24px;
         padding: 0 8px;
         line-height: 24px;
         border-radius: 11px;
-        margin-right: 8px;
+        margin-right: 0; /* Remove margin, use gap instead */
         box-shadow: none;
         border: none;
         background-color: #F7F7F7;
         font-size: 12px;
+        flex-shrink: 0; /* Prevent buttons from shrinking */
+        white-space: nowrap; /* Prevent text wrapping */
 
         &:before {
           display: none;
@@ -44,6 +72,11 @@
         }
       }
 
+      /* Ensure dropdown button also doesn't shrink */
+      .ant-dropdown-trigger {
+        flex-shrink: 0;
+      }
+
       .more-apis-button {
         height: 24px;
         padding: 0 8px;
@@ -55,9 +88,10 @@
         display: inline-flex;
         align-items: center;
         gap: 2px;
-        max-width: 160px; // 设置合理的最大宽度
+        max-width: 160px;
+        flex-shrink: 0; /* Prevent button from shrinking */
+        white-space: nowrap; /* Prevent text wrapping */
         
-        // 按钮内容样式，处理长文本
         .ant-btn-content {
           overflow: hidden;
           text-overflow: ellipsis;
@@ -83,6 +117,7 @@
     .action-icons {
       display: flex;
       align-items: center;
+      flex-shrink: 0; /* Prevent action icons from shrinking */
     }
   }
 

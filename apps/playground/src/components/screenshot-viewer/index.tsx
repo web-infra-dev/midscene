@@ -203,7 +203,6 @@ export default function ScreenshotViewer({
     );
   }
 
-  // 格式化时间显示
   const formatLastUpdateTime = (timestamp: number) => {
     if (!timestamp) return '';
     const now = Date.now();
