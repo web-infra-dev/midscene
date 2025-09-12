@@ -1,7 +1,10 @@
 import { PlaygroundSDK } from '@midscene/playground';
-import { UniversalPlayground } from '@midscene/visualizer';
+import {
+  LocalStorageProvider,
+  UniversalPlayground,
+} from '@midscene/visualizer';
 import { useEnvConfig } from '@midscene/visualizer';
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { getExtensionVersion } from '../../utils/chrome';
 
 declare const __SDK_VERSION__: string;
@@ -27,6 +30,12 @@ export function BrowserExtensionPlayground({
   const { config } = useEnvConfig();
   const runEnabled = !!getAgent && Object.keys(config || {}).length >= 1;
 
+  // Create storage provider for persistence
+  const storage = useMemo(
+    () => new LocalStorageProvider('chrome-extension-playground'),
+    [],
+  );
+
   // Use the same pattern as original BrowserExtensionPlayground
   const sdkRef = useRef<PlaygroundSDK | null>(null);
   const currentAgent = useRef<any>(null);
@@ -46,6 +55,7 @@ export function BrowserExtensionPlayground({
           agent: agent,
         });
         currentAgent.current = agent;
+
 
         console.log(
           '[DEBUG] Chrome extension PlaygroundSDK created, ID:',
@@ -71,6 +81,22 @@ export function BrowserExtensionPlayground({
       return null;
     }
   }, [getOrCreateSDK, runEnabled]);
+
+  // Use effect to ensure progress callbacks are properly forwarded
+  useEffect(() => {
+    if (playgroundSDK && !(playgroundSDK as any)._progressCallbackSetup) {
+      const originalOnProgressUpdate = playgroundSDK.onProgressUpdate?.bind(playgroundSDK);
+      
+      playgroundSDK.onProgressUpdate = (callback: (tip: string) => void) => {
+        // Forward to original method if it exists
+        if (originalOnProgressUpdate) {
+          originalOnProgressUpdate(callback);
+        }
+      };
+      
+      (playgroundSDK as any)._progressCallbackSetup = true;
+    }
+  }, [playgroundSDK]);
 
   // Context provider - delay creation until actually needed
   const contextProvider = useMemo(() => {
@@ -112,14 +138,13 @@ export function BrowserExtensionPlayground({
   return (
     <UniversalPlayground
       playgroundSDK={playgroundSDK}
+      storage={storage}
       contextProvider={contextProvider}
       config={{
         showContextPreview,
         layout: 'vertical',
         showVersionInfo: true,
         enableScrollToBottom: true,
-        storageNamespace: 'chrome-extension-playground',
-        showEnvConfigReminder: true,
       }}
       branding={{
         title: 'Playground',
