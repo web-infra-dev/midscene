@@ -259,10 +259,17 @@ export class Page<
             button,
           });
         } else {
-          this.underlyingPage.mouse.click(x, y, {
-            button,
-            count,
-          });
+          if (this.interfaceType === 'puppeteer') {
+            (this.underlyingPage as PuppeteerPage).mouse.click(x, y, {
+              button,
+              count,
+            });
+          } else if (this.interfaceType === 'playwright') {
+            (this.underlyingPage as PlaywrightPage).mouse.click(x, y, {
+              button,
+              clickCount: count,
+            });
+          }
         }
       },
       wheel: async (deltaX: number, deltaY: number) => {
