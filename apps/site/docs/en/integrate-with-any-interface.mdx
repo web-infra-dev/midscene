@@ -1,6 +1,16 @@
+import SetupEnv from './common/setup-env.mdx';
+
 # Integrate with any interface (preview)
 
-From Midscene v0.28.0, we have launched the feature to integrate with any interface. By inheriting the `AbstractInterface` class and tell Midscene how to interact with the interface, a fully-featured Midscene AI Agent will be created. All these popular tools are included by default: the interaction methods, data extraction methods, the report, the GUI playground, the cli, the yaml script runner, the MCP server...
+From Midscene v0.28.0, we have launched the feature to integrate with any interface. Define your own interface controller class conforming to the `AbstractInterface` class, and you can get a fully-featured Midscene Agent. All these popular tools are included by default: 
+
+- the GUI Automation Agent SDK for TypeScript
+- the playground for debugging
+- control this interface by yaml script
+- the MCP server
+- all the features of Midscene Agent
+
+Please note that only models with visual grounding capabilities can be used to control the interface. Read this doc to [choose a model](./choose-a-model).
 
 :::tip This is a preview feature
 
@@ -10,14 +20,13 @@ This feature is still in preview. We have finished the following work
 
 ✅ Allow developers to use yaml script to drive the interface
 
-And the next work is
+✅ Allow developers to use the playground
 
-- Allow developers to use the playground
+And the next work is
 
 - Allow developers to use the MCP server
 
 :::
-
 
 ## Demo and Community Project
 
@@ -29,7 +38,9 @@ We have prepared a demo project for you to learn how to define your own interfac
 
 There are also some community projects that use this feature:
 
-* [midscene-ios](https://github.com/lhuanyu/midscene-ios) - A project driving the "iPhone Mirror" app with Midscene
+* [midscene-ios](https://github.com/lhuanyu/midscene-ios) - A project driving the OSX "iPhone Mirroring" app with Midscene
+
+<SetupEnv />
 
 ## Implement your own interface class
 
@@ -53,12 +64,112 @@ npm run build
 
 Define a class that extends the `AbstractInterface` class, and implement the required methods.
 
-You can get the sample implementation from the `./src/device/sample-device.ts` file.
+You can get the sample implementation from the [`./src/sample-device.ts`](https://github.com/web-infra-dev/midscene-example/blob/main/custom-interface/src/sample-device.ts) file. Let's take a glance at it.
+
+```typescript
+import type { DeviceAction, Size } from '@midscene/core';
+import { getMidsceneLocationSchema, z } from '@midscene/core';
+import {
+  type AbstractInterface,
+  defineAction,
+  defineActionTap,
+  defineActionInput,
+  // ... other action imports
+} from '@midscene/core/device';
+
+export interface SampleDeviceConfig {
+  deviceName?: string;
+  width?: number;
+  height?: number;
+  dpr?: number;
+}
+
+/**
+ * SampleDevice - A template implementation of AbstractInterface
+ */
+export class SampleDevice implements AbstractInterface {
+  interfaceType = 'sample-device';
+  private config: Required<SampleDeviceConfig>;
+
+  constructor(config: SampleDeviceConfig = {}) {
+    this.config = {
+      deviceName: config.deviceName || 'Sample Device',
+      width: config.width || 1920,
+      height: config.height || 1080,
+      dpr: config.dpr || 1,
+    };
+  }
+
+  /**
+   * Required: Take a screenshot and return base64 string
+   */
+  async screenshotBase64(): Promise<string> {
+    // TODO: Implement actual screenshot capture
+    console.log('📸 Taking screenshot...');
+    return 'data:image/png;base64,...'; // Your screenshot implementation
+  }
+
+  /**
+   * Required: Get interface dimensions
+   */
+  async size(): Promise<Size> {
+    return {
+      width: this.config.width,
+      height: this.config.height,
+      dpr: this.config.dpr,
+    };
+  }
+
+  /**
+   * Required: Define available actions for AI model
+   */
+  actionSpace(): DeviceAction[] {
+    return [
+      // Basic tap action
+      defineActionTap(async (param) => {
+        // TODO: Implement tap at param.locate.center coordinates
+        await this.performTap(param.locate.center[0], param.locate.center[1]);
+      }),
+
+      // Text input action  
+      defineActionInput(async (param) => {
+        // TODO: Implement text input
+        await this.performInput(param.locate.center[0], param.locate.center[1], param.value);
+      }),
+
+      // Custom action example
+      defineAction({
+        name: 'CustomAction',
+        description: 'Your custom device-specific action',
+        paramSchema: z.object({
+          locate: getMidsceneLocationSchema(),
+          // ... custom parameters
+        }),
+        call: async (param) => {
+          // TODO: Implement custom action
+        },
+      }),
+    ];
+  }
+
+  async destroy(): Promise<void> {
+    // TODO: Cleanup resources
+  }
+
+  // Private implementation methods
+  private async performTap(x: number, y: number): Promise<void> {
+    // TODO: Your actual tap implementation
+  }
+
+  private async performInput(x: number, y: number, text: string): Promise<void> {
+    // TODO: Your actual input implementation  
+  }
+}
+```
 
 The key methods that you need to implement are:
-- `screenshotBase64()`: take a screenshot of the interface and return the base64 string
-- `size()`: get the size and dpr of the interface
-- `actionSpace()`: define the action space of the interface, which is an array of `DeviceAction` objects. AI model will use these actions to perform the actions.
+- `screenshotBase64()`, `size()`: help the AI model to get the context of the interface
+- `actionSpace()`: an array of `DeviceAction` objects defining the actions that can be performed on the interface. AI model will use these actions to perform the actions. Midscene has provided a set of predefined action spaces for the most common interfaces and devices. And there is also a method to define any custom action.
 
 Use these commands to run the agent:
 
@@ -69,6 +180,8 @@ Use these commands to run the agent:
 
 ### Step 3. test the agent with the playground
 
+Attach a playground server to the agent, and you can test the agent in the web browser.
+
 (coming soon...)
 
 ### Step 4. test the MCP server
@@ -76,6 +189,8 @@ Use these commands to run the agent:
 (still in progress...)
 
 ### Step 5. release the npm package, and let your users to use it
+
+The agent and interface class have been exported in `./index.ts` file. Now you can publish it to npm.
 
 Fill the `name` and `version` in the `package.json` file, and then run the following command:
 
@@ -95,6 +210,30 @@ const agent = midsceneAgentForSampleDevice({
 await agent.aiAction('click the button');
 ```
 
+### Step 6. invoke your class in Midscene cli and yaml script
+
+Write a yaml script with the `interface` section to invoke your class.
+
+```yaml
+interface:
+  module: 'my-pkg-name'
+  # export: 'MyDeviceClass' # use this if this is a named export
+
+config: 
+  output: './data.json'
+```
+
+This config works same as this:
+```typescript
+import MyDeviceClass from 'my-pkg-name';
+const device = new MyDeviceClass();
+const agent = new Agent(device, {
+  output: './data.json',
+});
+```
+
+Other fields in the yaml script are the same as the [yaml script](./automate-with-scripts-in-yaml.html).
+
 ## API Reference
 
 ### `AbstractInterface` class
@@ -107,10 +246,10 @@ import { AbstractInterface } from '@midscene/core';
 
 These are the required methods that you need to implement:
 
-- `interfaceType: string`: define a name for the interface
+- `interfaceType: string`: define a name for the interface, this will not be provided to the AI model
 - `screenshotBase64()`: take a screenshot of the interface and return the base64 string with the `'data:image/` prefix
 - `size()`: the size and dpr of the interface, which is an object with the `width`, `height`, and `dpr` properties
-- `actionSpace()`: the action space of the interface, which is an array of `DeviceAction` objects
+- `actionSpace()`: the action space of the interface, which is an array of `DeviceAction` objects. Use predefined action spaces or define any custom action.
 
 These are the optional methods that you can implement:
 
@@ -120,6 +259,8 @@ These are the optional methods that you can implement:
 - `afterInvokeAction?()`: a hook function after invoke an action
 
 ### The action space
+
+Action space is the set of actions that can be performed on the interface. AI model will use these actions to perform the actions. All the descriptions and parameter schemas of the actions will be provided to the AI model.
 
 To help you easily define the action space, Midscene has provided a set of predefined action spaces for the most common interfaces and devices. And there is also a method to define any custom action.
 
@@ -148,7 +289,7 @@ You can find the parameters of the actions in the type definition of these funct
 * `defineActionLongPress()`: define the long press action
 * `defineActionSwipe()`: define the swipe action
 
-#### The custom action space
+#### Define a custom action
 
 You can define your own action by using the `defineAction()` function.
 
@@ -168,7 +309,7 @@ defineAction(
 ```
 
 * `name`: the name of the action, AI model will use this name to invoke the action
-* `description`: the description of the action, AI model will use this description to understand what the action is doing
+* `description`: the description of the action, AI model will use this description to understand what the action is doing. For complex actions, you can provide a more detailed example here.
 * `paramSchema`: the [Zod](https://www.npmjs.com/package/zod) schema of the parameters of the action, AI model will help to fill the parameters according to this schema
 * `call`: the function to invoke the action, you can get the parameters from the `param` parameter which conforms to the `paramSchema`
 
@@ -188,9 +329,9 @@ defineAction({
 });
 ```
 
-If you want to get a param about the location of the element, you can use the `getMidsceneLocationSchema()` function to get the specific zod schema.
+If you want to get a param about the location of some element, you can use the `getMidsceneLocationSchema()` function to get the specific zod schema.
 
-A more complex example:
+A more complex example about defining a custom action:
 
 ```typescript
 import { getMidsceneLocationSchema } from "@midscene/core/device";
@@ -203,9 +344,22 @@ defineAction({
     locate: getMidsceneLocationSchema().describe('The app icon to be launched'),
   }),
   call: async (param) => {
-    console.log(`launching app: ${param.name}, located at: ${JSON.stringify(param.locate.center)}`);
+    console.log(`launching app: ${param.name}, ui located at: ${JSON.stringify(param.locate.center)}`);
   },
 });
 ```
 
 
+## FAQ 
+
+**Can i use normal LLM models like GPT-4o to control the interface?**
+
+No, you cannot use normal LLM models like GPT-4o to control the interface. You must use a model with visual grounding capabilities. Models with visual grounding capabilities can locate the target elements on the page and return the coordinates of the elements, and they can dramatically improve the stability of the automation.
+
+Read this doc to [choose a model](./choose-a-model).
+
+**Can my interface-controller be recommended in this document?**
+
+Yes, we are happy to gather creative projects and list them in this document.
+
+[Raise an issue](https://github.com/web-infra-dev/midscene/issues) to us when it's ready.
