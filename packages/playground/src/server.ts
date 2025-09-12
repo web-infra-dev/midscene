@@ -418,6 +418,26 @@ class PlaygroundServer {
       }
     });
 
+    // Interface info API for getting interface type and description
+    this._app.get('/interface-info', async (_req: Request, res: Response) => {
+      try {
+        const type = this.page.interfaceType || 'Unknown';
+        const description = this.page.describe?.() || undefined;
+
+        res.json({
+          type,
+          description,
+        });
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        console.error(`Failed to get interface info: ${errorMessage}`);
+        res.status(500).json({
+          error: `Failed to get interface info: ${errorMessage}`,
+        });
+      }
+    });
+
     this.app.post('/config', async (req: Request, res: Response) => {
       const { aiConfig } = req.body;
 

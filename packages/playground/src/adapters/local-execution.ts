@@ -213,4 +213,27 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       return { error: `Failed to cancel: ${errorMessage}` };
     }
   }
+
+  // Get interface information from the agent
+  async getInterfaceInfo(): Promise<{
+    type: string;
+    description?: string;
+  } | null> {
+    if (!this.agent?.interface) {
+      return null;
+    }
+
+    try {
+      const type = this.agent.interface.interfaceType || 'Unknown';
+      const description = this.agent.interface.describe?.() || undefined;
+      
+      return {
+        type,
+        description,
+      };
+    } catch (error: unknown) {
+      console.error('Failed to get interface info:', error);
+      return null;
+    }
+  }
 }

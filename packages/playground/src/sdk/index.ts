@@ -189,4 +189,18 @@ export class PlaygroundSDK {
     }
     return null; // For local execution, not supported yet
   }
+
+  // Get interface information (type and description)
+  async getInterfaceInfo(): Promise<{
+    type: string;
+    description?: string;
+  } | null> {
+    if (this.adapter instanceof LocalExecutionAdapter) {
+      return this.adapter.getInterfaceInfo();
+    }
+    if (this.adapter instanceof RemoteExecutionAdapter) {
+      return this.adapter.getInterfaceInfo();
+    }
+    return null;
+  }
 }

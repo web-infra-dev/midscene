@@ -458,4 +458,28 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
       return null;
     }
   }
+
+  // Get interface information from server
+  async getInterfaceInfo(): Promise<{
+    type: string;
+    description?: string;
+  } | null> {
+    if (!this.serverUrl) {
+      return null;
+    }
+
+    try {
+      const response = await fetch(`${this.serverUrl}/interface-info`);
+
+      if (!response.ok) {
+        console.warn(`Interface info request failed: ${response.statusText}`);
+        return null;
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to get interface info:', error);
+      return null;
+    }
+  }
 }
