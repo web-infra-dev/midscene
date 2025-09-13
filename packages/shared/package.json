@@ -47,6 +47,16 @@
       "import": "./dist/es/polyfills/index.mjs",
       "require": "./dist/lib/polyfills/index.js"
     },
+    "./utils": {
+      "types": "./dist/types/utils.d.ts",
+      "import": "./dist/es/utils.mjs",
+      "require": "./dist/lib/utils.js"
+    },
+    "./common": {
+      "types": "./dist/types/common.d.ts",
+      "import": "./dist/es/common.mjs",
+      "require": "./dist/lib/common.js"
+    },
     "./*": {
       "types": "./dist/types/*.d.ts",
       "import": "./dist/es/*.mjs",

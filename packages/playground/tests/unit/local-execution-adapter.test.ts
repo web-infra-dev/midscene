@@ -244,19 +244,22 @@ describe('LocalExecutionAdapter', () => {
       const originalCallback = vi.fn();
       mockAgent.onTaskStartTip = originalCallback;
 
+      let progress: { tip?: string };
+      vi.mocked(common.executeAction).mockImplementation(async (agent) => {
+        if (agent.onTaskStartTip) {
+          agent.onTaskStartTip('Processing...');
+        }
+        progress = await adapter.getTaskProgress('request-123');
+        return 'test result';
+      });
+
       const value: FormValue = { type: 'click', prompt: 'click button' };
       const options: ExecutionOptions = { requestId: 'request-123' };
 
       await adapter.executeAction('click', value, options);
 
-      // Simulate a task tip being called
-      if (mockAgent.onTaskStartTip) {
-        mockAgent.onTaskStartTip('Processing...');
-      }
-
       // Check that the tip is stored
-      const progress = await adapter.getTaskProgress('request-123');
-      expect(progress.tip).toBe('Processing...');
+      expect(progress!.tip).toBe('Processing...');
 
       // Check that original callback was called
       expect(originalCallback).toHaveBeenCalledWith('Processing...');

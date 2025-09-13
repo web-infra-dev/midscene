@@ -15,8 +15,19 @@ import { PlaygroundResultView } from '../playground-result';
 import './index.less';
 import PlaygroundIcon from '../../icons/avatar.svg';
 import { PromptInput } from '../prompt-input';
+import { LocalStorageProvider } from './providers/storage-provider';
 
 const { Text } = Typography;
+
+// Function to get stable ID for SDK (adapter-driven)
+function getSDKId(sdk: any): string {
+  // Primary: Use adapter ID if available (works for both remote and local)
+  if (sdk.id && typeof sdk.id === 'string') {
+    return `agent-${sdk.id}`;
+  }
+  // Fallback: Use default when ID is not available
+  return 'playground-default';
+}
 
 function ErrorMessage({ error }: { error: string }) {
   if (!error) return null;
@@ -48,8 +59,19 @@ export function UniversalPlayground({
   const { deepThink, screenshotIncluded, domIncluded, config } = useEnvConfig();
 
   // Use custom hooks for state management
-  // Apply configuration
-  const enablePersistence = componentConfig.enablePersistence !== false;
+  // Determine the storage provider based on configuration
+  const effectiveStorage = (() => {
+    // If external storage is provided, use it
+    if (storage) {
+      return storage;
+    }
+
+    // Otherwise, create LocalStorageProvider with unique namespace
+    // Priority: explicit storageNamespace > auto-generated SDK ID
+    const namespace =
+      componentConfig.storageNamespace || getSDKId(playgroundSDK);
+    return new LocalStorageProvider(namespace);
+  })();
 
   const {
     loading,
@@ -69,12 +91,7 @@ export function UniversalPlayground({
     interruptedFlagRef,
     clearInfoList,
     handleScrollToBottom,
-  } = usePlaygroundState(
-    playgroundSDK,
-    storage,
-    contextProvider,
-    enablePersistence,
-  );
+  } = usePlaygroundState(playgroundSDK, effectiveStorage, contextProvider);
 
   // Use execution hook
   const {
@@ -83,7 +100,7 @@ export function UniversalPlayground({
     canStop,
   } = usePlaygroundExecution(
     playgroundSDK,
-    storage,
+    effectiveStorage,
     actionSpace,
     loading,
     setLoading,
@@ -105,7 +122,7 @@ export function UniversalPlayground({
       screenshotIncluded,
       domIncluded,
     };
-    if (playgroundSDK.overrideConfig) {
+    if (playgroundSDK?.overrideConfig) {
       playgroundSDK.overrideConfig(completeConfig).catch((error) => {
         console.error('Failed to override SDK config:', error);
       });
@@ -314,7 +331,7 @@ export function UniversalPlayground({
 
         {/* Bottom Input Section */}
         <div className="bottom-input-section">
-          {!componentConfig.serverMode && <EnvConfigReminder />}
+          {componentConfig.showEnvConfigReminder ? <EnvConfigReminder /> : null}
           <PromptInput
             runButtonEnabled={runButtonEnabled}
             form={form}

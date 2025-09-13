@@ -41,6 +41,33 @@ html {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    
+    /* Ensure UniversalPlayground takes full height */
+    .playground-container {
+      height: 100%;
+      min-height: 0;
+      
+      /* Ensure the middle dialog area can scroll properly */
+      .middle-dialog-area {
+        min-height: 0;
+        
+        .info-list-container {
+          /* Ensure smooth scrolling and stable scrollbar */
+          scroll-behavior: smooth;
+          scrollbar-gutter: stable;
+        }
+      }
+      
+      /* Ensure bottom input section is fixed and not scrollable */
+      .bottom-input-section {
+        position: relative;
+        flex-shrink: 0;
+        background: #fff;
+        z-index: 10;
+        /* Prevent this section from being included in scroll */
+        overflow: visible;
+      }
+    }
   }
 
   /* top navigation bar */
@@ -102,7 +129,7 @@ html {
   .popup-content {
     flex: 1;
     padding: 0px 16px 0px 16px;
-    overflow-y: auto;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
   }

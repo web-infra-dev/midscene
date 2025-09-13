@@ -311,6 +311,7 @@ export interface PlaygroundSDKLike {
   cancelExecution?(requestId: string): Promise<void>;
   overrideConfig?(config: any): Promise<void>;
   checkStatus?(): Promise<boolean>;
+  id?: string; // unique ID for SDK instances
 }
 
 // storage provider interface
@@ -344,11 +345,12 @@ export interface InfoListItem {
 // main component config interface
 export interface UniversalPlaygroundConfig {
   showContextPreview?: boolean;
-  enablePersistence?: boolean;
+  storageNamespace?: string;
   layout?: 'vertical' | 'horizontal';
   showVersionInfo?: boolean;
   enableScrollToBottom?: boolean;
   serverMode?: boolean;
+  showEnvConfigReminder?: boolean;
 }
 
 // branding interface
@@ -361,7 +363,7 @@ export interface PlaygroundBranding {
 // main component props interface
 export interface UniversalPlaygroundProps {
   // core SDK
-  playgroundSDK: PlaygroundSDKLike;
+  playgroundSDK: PlaygroundSDKLike | null;
 
   // optional features provider
   storage?: StorageProvider;

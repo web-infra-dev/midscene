@@ -1,6 +1,7 @@
 import type { DeviceAction } from '@midscene/core';
 import { findAllMidsceneLocatorField } from '@midscene/core/ai-model';
 import { overrideAIConfig } from '@midscene/shared/env';
+import { v4 as generateUUID } from 'uuid';
 import { executeAction } from '../common';
 import type { ExecutionOptions, FormValue, PlaygroundAgent } from '../types';
 import { BasePlaygroundAdapter } from './base';
@@ -9,13 +10,24 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   private agent: PlaygroundAgent;
   private taskProgressTips: Record<string, string> = {};
   private progressCallback?: (tip: string) => void;
+  private readonly _id: string; // Unique identifier for this local adapter instance
+  private currentRequestId?: string; // Track current request to prevent stale callbacks
 
   constructor(agent: PlaygroundAgent) {
     super();
     this.agent = agent;
+    this._id = generateUUID(); // Generate unique ID for local adapter
+  }
+
+  // Get adapter ID
+  get id(): string {
+    return this._id;
   }
 
   setProgressCallback(callback: (tip: string) => void): void {
+    // Clear any existing callback before setting new one
+    this.progressCallback = undefined;
+    // Set the new callback
     this.progressCallback = callback;
   }
 
@@ -108,14 +120,21 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   ): Promise<unknown> {
     // Get actionSpace using our simplified getActionSpace method
     const actionSpace = await this.getActionSpace();
+    let originalOnTaskStartTip: ((tip: string) => void) | undefined;
 
     // Setup progress tracking if requestId is provided
     if (options.requestId && this.agent) {
-      // Store the original callback if exists (this preserves chrome extension callbacks)
-      const originalCallback = this.agent.onTaskStartTip;
+      // Track current request ID to prevent stale callbacks
+      this.currentRequestId = options.requestId;
+      originalOnTaskStartTip = this.agent.onTaskStartTip;
 
-      // Override with our callback that stores tips and calls original
+      // Set up a fresh callback
       this.agent.onTaskStartTip = (tip: string) => {
+        // Only process if this is still the current request
+        if (this.currentRequestId !== options.requestId) {
+          return;
+        }
+
         // Store tip for our progress tracking
         this.taskProgressTips[options.requestId!] = tip;
 
@@ -124,9 +143,8 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
           this.progressCallback(tip);
         }
 
-        // Call original callback if it existed (this will call chrome extension callbacks)
-        if (originalCallback && typeof originalCallback === 'function') {
-          originalCallback(tip);
+        if (typeof originalOnTaskStartTip === 'function') {
+          originalOnTaskStartTip(tip);
         }
       };
     }
@@ -178,6 +196,10 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       // Always clean up progress tracking to prevent memory leaks
       if (options.requestId) {
         this.cleanup(options.requestId);
+        // Clear the agent callback to prevent accumulation
+        if (this.agent) {
+          this.agent.onTaskStartTip = originalOnTaskStartTip;
+        }
       }
     }
   }
@@ -203,6 +225,29 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
         error instanceof Error ? error.message : 'Unknown error';
       console.error(`Failed to cancel agent: ${errorMessage}`);
       return { error: `Failed to cancel: ${errorMessage}` };
+    }
+  }
+
+  // Get interface information from the agent
+  async getInterfaceInfo(): Promise<{
+    type: string;
+    description?: string;
+  } | null> {
+    if (!this.agent?.interface) {
+      return null;
+    }
+
+    try {
+      const type = this.agent.interface.interfaceType || 'Unknown';
+      const description = this.agent.interface.describe?.() || undefined;
+
+      return {
+        type,
+        description,
+      };
+    } catch (error: unknown) {
+      console.error('Failed to get interface info:', error);
+      return null;
     }
   }
 }

@@ -4,7 +4,7 @@ import {
   UniversalPlayground,
 } from '@midscene/visualizer';
 import { useEnvConfig } from '@midscene/visualizer';
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { getExtensionVersion } from '../../utils/chrome';
 import './index.less';
 
@@ -37,95 +37,84 @@ export function BrowserExtensionPlayground({
     [],
   );
 
-  // Use the same pattern as original BrowserExtensionPlayground
-  const sdkRef = useRef<PlaygroundSDK | null>(null);
-  const currentAgent = useRef<any>(null);
+  // Simplified agent tracking using a single ref for both agent and SDK
+  const agentInfoRef = useRef<{ agent: any; sdk: PlaygroundSDK } | null>(null);
 
-  // Create SDK only when needed, following original playground pattern
-  const getOrCreateSDK = useCallback(() => {
-    const agent = getAgent(forceSameTabNavigation);
-    if (!agent) {
-      throw new Error('Please configure AI settings first');
-    }
-
-    // Only recreate if agent has changed or SDK doesn't exist
-    if (!sdkRef.current || currentAgent.current !== agent) {
-      try {
-        sdkRef.current = new PlaygroundSDK({
-          type: 'local-execution',
-          agent: agent,
-        });
-        currentAgent.current = agent;
-
-        // If we have a stored progress callback, re-apply it to the new SDK
-        if (progressCallbackRef.current) {
-          sdkRef.current.onProgressUpdate(progressCallbackRef.current);
+  // Helper function to detach all debuggers
+  const detachAllDebuggers = async () => {
+    try {
+      const targets = await chrome.debugger.getTargets();
+      for (const target of targets) {
+        if (target.attached && target.tabId) {
+          try {
+            await chrome.debugger.detach({ tabId: target.tabId });
+          } catch (e) {
+            // Ignore errors, debugger might already be detached
+          }
         }
+      }
+    } catch (e) {
+      console.warn('Failed to detach debuggers:', e);
+    }
+  };
+
+  // Helper to cleanup agent
+  const cleanupAgent = useCallback((agent: any) => {
+    if (agent) {
+      try {
+        agent.page?.destroy?.();
+        agent.destroy?.();
       } catch (error) {
-        console.error('Failed to create PlaygroundSDK:', error);
-        throw error;
+        console.warn('Failed to cleanup agent:', error);
       }
     }
-    return sdkRef.current;
-  }, [getAgent, forceSameTabNavigation]);
+  }, []);
 
-  // Store the current progress callback
-  const progressCallbackRef = useRef<((tip: string) => void) | null>(null);
+  // Create SDK when needed
+  const playgroundSDK = useMemo(() => {
+    if (!runEnabled) {
+      return null;
+    }
 
-  // Create a wrapper SDK that uses the original pattern
-  const wrappedSDK = useMemo(() => {
-    return {
-      executeAction: async (actionType: string, value: any, options?: any) => {
-        const sdk = getOrCreateSDK();
+    try {
+      const agent = getAgent(forceSameTabNavigation);
+      if (!agent) {
+        throw new Error('Please configure AI settings first');
+      }
 
-        // Get agent and reset dump like the original playground does
-        const agent = getAgent(forceSameTabNavigation);
-        if (agent) {
-          // Reset dump before execution
-          if (agent.resetDump) {
-            agent.resetDump();
-          }
-        }
+      // Check if we can reuse existing SDK
+      if (agentInfoRef.current && agentInfoRef.current.agent === agent) {
+        return agentInfoRef.current.sdk;
+      }
 
-        return sdk.executeAction(actionType, value, options || {});
-      },
-      getActionSpace: (context?: any) => {
-        // Only try to get action space when config is ready
-        try {
-          if (!runEnabled) {
-            return Promise.resolve([]);
-          }
-          const sdk = getOrCreateSDK();
-          return sdk.getActionSpace(context);
-        } catch (error) {
-          console.error('getActionSpace failed:', error);
-          return Promise.resolve([]);
-        }
-      },
-      overrideConfig: (aiConfig: any) => {
-        const sdk = getOrCreateSDK();
-        return sdk.overrideConfig?.(aiConfig);
-      },
-      checkStatus: () => {
-        const sdk = getOrCreateSDK();
-        return sdk.checkStatus?.();
-      },
-      cancelExecution: (requestId: string) => {
-        const sdk = getOrCreateSDK();
-        return sdk.cancelTask?.(requestId);
-      },
-      onProgressUpdate: (callback: (tip: string) => void) => {
-        // Store the callback for our own use
-        progressCallbackRef.current = callback;
+      // Need to create new SDK
+      // Clean up previous agent if it exists
+      if (agentInfoRef.current) {
+        cleanupAgent(agentInfoRef.current.agent);
+      }
 
-        // Also call the underlying PlaygroundSDK's onProgressUpdate
-        const sdk = getOrCreateSDK();
-        if (sdk?.onProgressUpdate) {
-          sdk.onProgressUpdate(callback);
-        }
-      },
-    };
-  }, [getOrCreateSDK, runEnabled, getAgent, forceSameTabNavigation]);
+      // Detach all debuggers before creating new SDK
+      detachAllDebuggers().then(() => {
+        console.log('[DEBUG] Detached all debuggers before creating SDK');
+      });
+
+      // Create new SDK
+      const newSdk = new PlaygroundSDK({
+        type: 'local-execution',
+        agent: agent,
+      });
+
+      // Store the new agent and SDK
+      agentInfoRef.current = { agent, sdk: newSdk };
+      return newSdk;
+    } catch (error) {
+      console.error('Failed to initialize PlaygroundSDK:', error);
+      return null;
+    }
+  }, [runEnabled, getAgent, forceSameTabNavigation, cleanupAgent]);
+
+  // Progress callback handling is now managed in usePlaygroundExecution hook
+  // No need to override onProgressUpdate here
 
   // Context provider - delay creation until actually needed
   const contextProvider = useMemo(() => {
@@ -164,14 +153,24 @@ export function BrowserExtensionPlayground({
     };
   }, [showContextPreview, getAgent, forceSameTabNavigation]);
 
+  // Cleanup effect to detach chrome.debugger when component unmounts
+  useEffect(() => {
+    return () => {
+      // When component unmounts, clean up agent and detach all debuggers
+      if (agentInfoRef.current) {
+        cleanupAgent(agentInfoRef.current.agent);
+        agentInfoRef.current = null;
+      }
+    };
+  }, [cleanupAgent]);
+
   return (
     <UniversalPlayground
-      playgroundSDK={wrappedSDK}
+      playgroundSDK={playgroundSDK}
       storage={storage}
       contextProvider={contextProvider}
       config={{
         showContextPreview,
-        enablePersistence: true,
         layout: 'vertical',
         showVersionInfo: true,
         enableScrollToBottom: true,

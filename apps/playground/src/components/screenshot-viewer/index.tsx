@@ -18,6 +18,10 @@ export default function ScreenshotViewer({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdateTime, setLastUpdateTime] = useState<number>(0);
+  const [interfaceInfo, setInterfaceInfo] = useState<{
+    type: string;
+    description?: string;
+  } | null>(null);
 
   // Refs for managing polling
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -60,6 +64,20 @@ export default function ScreenshotViewer({
     },
     [playgroundSDK, serverOnline],
   );
+
+  // Function to fetch interface info
+  const fetchInterfaceInfo = useCallback(async () => {
+    if (!serverOnline) return;
+
+    try {
+      const info = await playgroundSDK.getInterfaceInfo();
+      if (info) {
+        setInterfaceInfo(info);
+      }
+    } catch (err) {
+      console.error('Interface info fetch error:', err);
+    }
+  }, [playgroundSDK, serverOnline]);
 
   // Start polling
   const startPolling = useCallback(() => {
@@ -106,18 +124,26 @@ export default function ScreenshotViewer({
     if (!serverOnline) {
       setScreenshot(null);
       setError(null);
+      setInterfaceInfo(null);
       stopPolling();
       return;
     }
 
-    // When server comes online, fetch screenshot immediately and start polling
+    // When server comes online, fetch screenshot and interface info immediately, then start polling
     fetchScreenshot(false);
+    fetchInterfaceInfo();
     startPolling();
 
     return () => {
       stopPolling();
     };
-  }, [serverOnline, startPolling, stopPolling, fetchScreenshot]);
+  }, [
+    serverOnline,
+    startPolling,
+    stopPolling,
+    fetchScreenshot,
+    fetchInterfaceInfo,
+  ]);
 
   // Manage user operation status changes
   useEffect(() => {
@@ -177,7 +203,6 @@ export default function ScreenshotViewer({
     );
   }
 
-  // 格式化时间显示
   const formatLastUpdateTime = (timestamp: number) => {
     if (!timestamp) return '';
     const now = Date.now();
@@ -192,14 +217,21 @@ export default function ScreenshotViewer({
     <div className="screenshot-viewer">
       <div className="screenshot-header">
         <div className="screenshot-title">
-          <h3>📱 Screen Preview</h3>
+          <h3>
+            {interfaceInfo?.type
+              ? `📱 ${interfaceInfo.type}`
+              : '📱 Screen Preview'}
+          </h3>
+          {interfaceInfo?.description && (
+            <p className="screenshot-subtitle">{interfaceInfo.description}</p>
+          )}
+        </div>
+        <div className="screenshot-controls">
           {lastUpdateTime > 0 && (
             <span className="last-update-time">
               Updated {formatLastUpdateTime(lastUpdateTime)}
             </span>
           )}
-        </div>
-        <div className="screenshot-controls">
           <Tooltip title="Refresh screenshot">
             <Button
               icon={<ReloadOutlined />}
