@@ -37,9 +37,8 @@ export function BrowserExtensionPlayground({
     [],
   );
 
-  // Use the same pattern as original BrowserExtensionPlayground
-  const sdkRef = useRef<PlaygroundSDK | null>(null);
-  const currentAgent = useRef<any>(null);
+  // Simplified agent tracking using a single ref for both agent and SDK
+  const agentInfoRef = useRef<{ agent: any; sdk: PlaygroundSDK } | null>(null);
 
   // Helper function to detach all debuggers
   const detachAllDebuggers = async () => {
@@ -59,57 +58,60 @@ export function BrowserExtensionPlayground({
     }
   };
 
-  // Create SDK only when needed, following original playground pattern
-  const getOrCreateSDK = useCallback(() => {
-    const agent = getAgent(forceSameTabNavigation);
-    if (!agent) {
-      throw new Error('Please configure AI settings first');
+  // Helper to cleanup agent
+  const cleanupAgent = useCallback((agent: any) => {
+    if (agent) {
+      try {
+        agent.page?.destroy?.();
+        agent.destroy?.();
+      } catch (error) {
+        console.warn('Failed to cleanup agent:', error);
+      }
+    }
+  }, []);
+
+  // Create SDK when needed
+  const playgroundSDK = useMemo(() => {
+    if (!runEnabled) {
+      return null;
     }
 
-    // Only recreate if agent has changed or SDK doesn't exist
-    if (!sdkRef.current || currentAgent.current !== agent) {
-      // Clean up previous agent and detach debugger if exists
-      if (currentAgent.current && currentAgent.current !== agent) {
-        try {
-          // Call destroy to detach chrome.debugger
-          currentAgent.current.page?.destroy?.();
-          currentAgent.current.destroy?.();
-        } catch (error) {
-          console.warn('Failed to cleanup previous agent:', error);
-        }
+    try {
+      const agent = getAgent(forceSameTabNavigation);
+      if (!agent) {
+        throw new Error('Please configure AI settings first');
       }
 
-      // Detach all debuggers before creating new SDK to ensure clean state
+      // Check if we can reuse existing SDK
+      if (agentInfoRef.current && agentInfoRef.current.agent === agent) {
+        return agentInfoRef.current.sdk;
+      }
+
+      // Need to create new SDK
+      // Clean up previous agent if it exists
+      if (agentInfoRef.current) {
+        cleanupAgent(agentInfoRef.current.agent);
+      }
+
+      // Detach all debuggers before creating new SDK
       detachAllDebuggers().then(() => {
         console.log('[DEBUG] Detached all debuggers before creating SDK');
       });
 
-      try {
-        sdkRef.current = new PlaygroundSDK({
-          type: 'local-execution',
-          agent: agent,
-        });
-        currentAgent.current = agent;
-      } catch (error) {
-        console.error('Failed to create PlaygroundSDK:', error);
-        throw error;
-      }
-    }
-    return sdkRef.current;
-  }, [getAgent, forceSameTabNavigation]);
+      // Create new SDK
+      const newSdk = new PlaygroundSDK({
+        type: 'local-execution',
+        agent: agent,
+      });
 
-  // Get the current SDK - create it lazily when needed
-  const playgroundSDK = useMemo(() => {
-    try {
-      if (!runEnabled) {
-        return null;
-      }
-      return getOrCreateSDK();
+      // Store the new agent and SDK
+      agentInfoRef.current = { agent, sdk: newSdk };
+      return newSdk;
     } catch (error) {
       console.error('Failed to initialize PlaygroundSDK:', error);
       return null;
     }
-  }, [getOrCreateSDK, runEnabled]);
+  }, [runEnabled, getAgent, forceSameTabNavigation, cleanupAgent]);
 
   // Progress callback handling is now managed in usePlaygroundExecution hook
   // No need to override onProgressUpdate here
@@ -155,24 +157,12 @@ export function BrowserExtensionPlayground({
   useEffect(() => {
     return () => {
       // When component unmounts, clean up agent and detach all debuggers
-      if (currentAgent.current) {
-        try {
-          // Destroy the page first (which detaches debugger)
-          if (currentAgent.current.page?.destroy) {
-            currentAgent.current.page.destroy();
-          }
-          // Then destroy the agent
-          if (currentAgent.current.destroy) {
-            currentAgent.current.destroy();
-          }
-          currentAgent.current = null;
-          sdkRef.current = null;
-        } catch (error) {
-          console.warn('Failed to cleanup on unmount:', error);
-        }
+      if (agentInfoRef.current) {
+        cleanupAgent(agentInfoRef.current.agent);
+        agentInfoRef.current = null;
       }
     };
-  }, []);
+  }, [cleanupAgent]);
 
   return (
     <UniversalPlayground
