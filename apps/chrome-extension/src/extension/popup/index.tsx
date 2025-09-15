@@ -12,13 +12,14 @@ import {
   globalThemeConfig,
   useEnvConfig,
 } from '@midscene/visualizer';
-import { ConfigProvider, Dropdown, Typography } from 'antd';
+import { ConfigProvider, Dropdown, Typography, message } from 'antd';
 import { useEffect, useState } from 'react';
 import { BrowserExtensionPlayground } from '../../components/playground';
 import Bridge from '../bridge';
 import Recorder from '../recorder';
 import './index.less';
-import { OPENAI_API_KEY, overrideAIConfig } from '@midscene/shared/env';
+import { OPENAI_API_KEY } from '@midscene/shared/env';
+import { safeOverrideAIConfig } from '@midscene/visualizer';
 import {
   ChromeExtensionProxyPage,
   ChromeExtensionProxyPageAgent,
@@ -35,25 +36,15 @@ export function PlaygroundPopup() {
     'playground' | 'bridge' | 'recorder'
   >('playground');
 
-  const { config, deepThink } = useEnvConfig();
+  const { config } = useEnvConfig();
 
-  // Track when AI config has been properly applied
-  const [aiConfigReady, setAiConfigReady] = useState(false);
-
-  // Override AI configuration and mark as ready
+  // Override AI configuration
   useEffect(() => {
     console.log('Chrome Extension - Overriding AI config:', config);
     console.log('OPENAI_API_KEY exists:', !!OPENAI_API_KEY);
 
     if (config && Object.keys(config).length >= 1) {
-      overrideAIConfig(config);
-      // Add a small delay to ensure the config takes effect
-      setTimeout(() => {
-        console.log('AI config marked as ready');
-        setAiConfigReady(true);
-      }, 100);
-    } else {
-      setAiConfigReady(false);
+      safeOverrideAIConfig(config);
     }
   }, [config]);
 
@@ -110,7 +101,6 @@ export function PlaygroundPopup() {
     console.log('Playground mode - config:', {
       config,
       configReady,
-      aiConfigReady,
     });
 
     return (

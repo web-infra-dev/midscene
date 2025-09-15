@@ -21,6 +21,10 @@ export { EnvConfigReminder } from './component/env-config-reminder';
 export { Logo } from './component/logo';
 export { iconForStatus, timeCostStrElement } from './component/misc';
 export { useServerValid } from './hooks/useServerValid';
+export {
+  useSafeOverrideAIConfig,
+  safeOverrideAIConfig,
+} from './hooks/useSafeOverrideAIConfig';
 
 export { PlaygroundResultView } from './component/playground-result';
 export type { PlaygroundResult } from './types';

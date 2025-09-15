@@ -1,7 +1,6 @@
 import type { DeviceAction, UIContext } from '@midscene/core';
 import { PlaygroundSDK, noReplayAPIs } from '@midscene/playground';
 import type { ServerResponse } from '@midscene/playground';
-import { overrideAIConfig } from '@midscene/shared/env';
 import {
   ContextPreview,
   Logo,
@@ -11,6 +10,7 @@ import {
   type ReplayScriptsInfo,
   ServiceModeControl,
   allScriptsFromDump,
+  safeOverrideAIConfig,
   useEnvConfig,
   useServerValid,
 } from '@midscene/visualizer';
@@ -134,7 +134,7 @@ export function StandardPlayground({
 
   // Override AI configuration
   useEffect(() => {
-    overrideAIConfig(config);
+    safeOverrideAIConfig(config);
   }, [config]);
 
   // Initialize context preview
