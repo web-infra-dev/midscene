@@ -10,7 +10,6 @@ import { overrideAIConfig } from '@midscene/shared/env';
 import express, { type Request, type Response } from 'express';
 import { v4 as generateUUID } from 'uuid';
 import { executeAction, formatErrorMessage } from './common';
-import type { PlaygroundAgent } from './types';
 
 import 'dotenv/config';
 
@@ -322,7 +321,7 @@ class PlaygroundServer {
           actionSpace,
           value,
           {
-            deepThink: deepThink || false,
+            deepThink,
             screenshotIncluded,
             domIncluded,
           },
@@ -444,6 +443,13 @@ class PlaygroundServer {
       if (!aiConfig || typeof aiConfig !== 'object') {
         return res.status(400).json({
           error: 'aiConfig is required and must be an object',
+        });
+      }
+
+      if (Object.keys(aiConfig).length === 0) {
+        return res.json({
+          status: 'ok',
+          message: 'AI config not changed due to empty object',
         });
       }
 

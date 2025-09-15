@@ -10,11 +10,19 @@ import type {
 } from '../../src/types';
 
 // Mock dependencies
-vi.mock('../../src/common');
 vi.mock('@midscene/shared/env');
 vi.mock('@midscene/core/ai-model', () => ({
   findAllMidsceneLocatorField: vi.fn(() => ['locateField']),
 }));
+
+// Import the real parseStructuredParams function for use in adapter
+vi.mock('../../src/common', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/common')>();
+  return {
+    ...actual,
+    executeAction: vi.fn(),
+  };
+});
 
 describe('LocalExecutionAdapter', () => {
   let mockAgent: PlaygroundAgent;
@@ -80,9 +88,13 @@ describe('LocalExecutionAdapter', () => {
         options,
       );
 
+      // The actual implementation merges all params and options into a single object
       expect(result).toEqual([
-        'button', // locate field
-        { otherField: 'value', deepThink: true, prompt: 'test prompt' }, // other params + options
+        {
+          deepThink: true,
+          locateField: expect.any(Object), // This will be a detailed locate param object
+          otherField: 'value',
+        },
       ]);
     });
 
@@ -112,8 +124,11 @@ describe('LocalExecutionAdapter', () => {
       );
 
       expect(result).toEqual([
-        null, // no locate field
-        { field1: 'value1', field2: 'value2', deepThink: true },
+        {
+          deepThink: true,
+          field1: 'value1',
+          field2: 'value2',
+        },
       ]);
     });
   });

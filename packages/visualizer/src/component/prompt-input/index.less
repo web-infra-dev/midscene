@@ -7,21 +7,21 @@
   .mode-radio-group-wrapper {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    position: relative;
     gap: 8px;
 
     .mode-radio-group {
       display: flex;
       align-items: center;
       height: 100%;
-      width: 350px;
-      min-width: 350px;
-      max-width: 350px;
+      flex: 1;
+      min-width: 0;
       overflow-x: auto;
       overflow-y: hidden;
       scrollbar-width: none; /* Firefox */
       -ms-overflow-style: none; /* IE and Edge */
       gap: 8px; /* Space between Form.Item and Dropdown */
+      margin-right: 80px; /* Reserve space for action-icons */
       
       /* Hide scrollbar for WebKit browsers */
       &::-webkit-scrollbar {
@@ -118,6 +118,13 @@
       display: flex;
       align-items: center;
       flex-shrink: 0; /* Prevent action icons from shrinking */
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      background: white;
+      padding-left: 8px;
+      z-index: 10;
     }
   }
 

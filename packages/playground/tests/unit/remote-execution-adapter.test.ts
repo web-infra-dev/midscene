@@ -82,7 +82,6 @@ describe('RemoteExecutionAdapter', () => {
         {
           deepThink: true,
           field: 'value',
-          prompt: 'test prompt',
         },
       ]);
     });

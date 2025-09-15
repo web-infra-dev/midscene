@@ -90,7 +90,7 @@ export default function App() {
             <Panel
               defaultSize={32}
               maxSize={60}
-              minSize={20}
+              minSize={25}
               className="app-panel left-panel"
             >
               <div className="panel-content left-panel-content">

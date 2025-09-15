@@ -1,4 +1,5 @@
 import type { DeviceAction } from '@midscene/core';
+import { parseStructuredParams } from '../common';
 import type { ExecutionOptions, FormValue, ValidationResult } from '../types';
 import { BasePlaygroundAdapter } from './base';
 
@@ -74,12 +75,8 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
     params: Record<string, unknown>,
     options: ExecutionOptions,
   ): Promise<unknown[]> {
-    if (!this.hasValidSchema(action)) {
-      return [params.prompt || '', options];
-    }
-
-    // Remote execution format: merge options and valid params into a single object
-    return [{ ...options, ...this.filterValidParams(params) }];
+    // Use shared implementation from common.ts
+    return await parseStructuredParams(action, params, options);
   }
 
   formatErrorMessage(error: any): string {
@@ -206,11 +203,6 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
     return optionalParams;
   }
 
-  // Helper method to check if action has a valid schema
-  private hasValidSchema(action: DeviceAction<unknown>): boolean {
-    return !!(action?.paramSchema && 'shape' in action.paramSchema);
-  }
-
   // Get action space from server with fallback
   async getActionSpace(context?: unknown): Promise<DeviceAction<unknown>[]> {
     // Try server first if available
@@ -287,38 +279,13 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
       throw new Error('Server URL not configured');
     }
 
-    // Map visualizer config keys to environment variable names
-    const mappedConfig: Record<string, unknown> = {};
-
-    // Map visualizer config keys to their corresponding environment variable names
-    const configKeyMapping: Record<string, string> = {
-      deepThink: 'MIDSCENE_FORCE_DEEP_THINK',
-      // screenshotIncluded and domIncluded are execution options, not global config
-      // They will be passed through ExecutionOptions in executeAction
-
-      // Most config keys are already in the correct environment variable format
-      // so we don't need to map them. The frontend stores config as OPENAI_API_KEY, etc.
-    };
-
-    // Convert visualizer config to environment variable format
-    Object.entries(aiConfig).forEach(([key, value]) => {
-      if (key === 'screenshotIncluded' || key === 'domIncluded') {
-        // These are execution options, not global config - skip them here
-        return;
-      }
-
-      const mappedKey = configKeyMapping[key] || key;
-      // Environment variables must be strings - convert all values to strings
-      mappedConfig[mappedKey] = String(value);
-    });
-
     try {
       const response = await fetch(`${this.serverUrl}/config`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ aiConfig: mappedConfig }),
+        body: JSON.stringify({ aiConfig }),
       });
 
       if (!response.ok) {

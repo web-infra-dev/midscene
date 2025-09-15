@@ -11,8 +11,13 @@ async function main() {
   await Promise.resolve(
     (async () => {
       const { page } = await launchPuppeteerPage({
-        url: 'https://example.com',
+        url: 'https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/contacts3.html',
       });
+      await page.setViewport({
+        width: 1280,
+        height: 768,
+      });
+
       const agent = new PuppeteerAgent(page, {
         cacheId: 'playground-workflow-test',
       });

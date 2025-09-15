@@ -80,12 +80,42 @@ vi.mock('cors', () => ({
   default: vi.fn(() => (req: any, res: any, next: any) => next()),
 }));
 
-vi.mock('fs', () => ({
-  existsSync: vi.fn(() => true),
-  readFileSync: vi.fn(() => '{}'),
-  writeFileSync: vi.fn(),
-  mkdirSync: vi.fn(),
-}));
+vi.mock('fs', () => {
+  const mockFs = {
+    existsSync: vi.fn(() => true),
+    readFileSync: vi.fn(() => '{}'),
+    writeFileSync: vi.fn(),
+    mkdirSync: vi.fn(),
+    createWriteStream: vi.fn(() => ({
+      write: vi.fn(),
+      end: vi.fn(),
+      close: vi.fn(),
+    })),
+  };
+  return {
+    default: mockFs,
+    ...mockFs,
+  };
+});
+
+// Also mock 'node:fs' since some imports use the new node: protocol
+vi.mock('node:fs', () => {
+  const mockFs = {
+    existsSync: vi.fn(() => true),
+    readFileSync: vi.fn(() => '{}'),
+    writeFileSync: vi.fn(),
+    mkdirSync: vi.fn(),
+    createWriteStream: vi.fn(() => ({
+      write: vi.fn(),
+      end: vi.fn(),
+      close: vi.fn(),
+    })),
+  };
+  return {
+    default: mockFs,
+    ...mockFs,
+  };
+});
 
 // Global test setup
 beforeEach(() => {

@@ -178,7 +178,12 @@ describe('common utilities', () => {
 
       expect(result).toBe('action result');
       expect(mockCallAction).toHaveBeenCalledWith('testAction', {
-        prompt: 'test prompt',
+        locate: {
+          prompt: 'test prompt',
+          deepThink: false,
+          cacheable: true,
+          xpath: undefined,
+        },
       });
     });
 
@@ -278,7 +283,12 @@ describe('common utilities', () => {
 
       expect(result).toBe('alias result');
       expect(mockCallAction).toHaveBeenCalledWith('realName', {
-        prompt: 'test prompt',
+        locate: {
+          prompt: 'test prompt',
+          deepThink: false,
+          cacheable: true,
+          xpath: undefined,
+        },
       });
     });
   });

@@ -1,8 +1,7 @@
 import type { DeviceAction } from '@midscene/core';
-import { findAllMidsceneLocatorField } from '@midscene/core/ai-model';
 import { overrideAIConfig } from '@midscene/shared/env';
 import { v4 as generateUUID } from 'uuid';
-import { executeAction } from '../common';
+import { executeAction, parseStructuredParams } from '../common';
 import type { ExecutionOptions, FormValue, PlaygroundAgent } from '../types';
 import { BasePlaygroundAdapter } from './base';
 
@@ -40,24 +39,8 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     params: Record<string, unknown>,
     options: ExecutionOptions,
   ): Promise<unknown[]> {
-    if (!action?.paramSchema || !('shape' in action.paramSchema)) {
-      return [params.prompt || '', options];
-    }
-
-    const locatorFieldKeys = findAllMidsceneLocatorField(action.paramSchema);
-
-    // Find locate field (MidsceneLocation field)
-    let locateField = null;
-    if (locatorFieldKeys.length > 0) {
-      locateField = params[locatorFieldKeys[0]];
-    }
-
-    // Filter non-locate fields
-    const nonLocateFields = this.filterValidParams(params, locatorFieldKeys);
-
-    // Local execution format: [locateField, { ...otherParams, ...options }]
-    const paramObj = { ...nonLocateFields, ...options };
-    return [locateField, paramObj];
+    // Use shared implementation from common.ts
+    return await parseStructuredParams(action, params, options);
   }
 
   formatErrorMessage(error: any): string {

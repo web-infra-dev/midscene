@@ -96,7 +96,15 @@ describe('Playground Integration Tests', () => {
         result: {
           success: true,
           action: 'clicked',
-          params: { deepThink: true, locateField: 'button' },
+          params: {
+            deepThink: true,
+            locateField: {
+              prompt: 'button',
+              deepThink: true,
+              cacheable: true,
+              xpath: undefined,
+            },
+          },
         },
         dump: {},
         reportHTML: null,
@@ -117,7 +125,12 @@ describe('Playground Integration Tests', () => {
         result: {
           result: 'query result',
           params: {
-            prompt: 'What is the page title?',
+            locate: {
+              prompt: 'What is the page title?',
+              deepThink: false,
+              cacheable: true,
+              xpath: undefined,
+            },
             screenshotIncluded: true,
           },
         },
