@@ -93,6 +93,17 @@ export class PlaygroundSDK {
     );
   }
 
+  // Get adapter ID (works for both remote and local execution)
+  get id(): string | undefined {
+    if (this.adapter instanceof RemoteExecutionAdapter) {
+      return this.adapter.id;
+    }
+    if (this.adapter instanceof LocalExecutionAdapter) {
+      return this.adapter.id;
+    }
+    return undefined;
+  }
+
   // Server communication methods (for remote execution)
   async checkStatus(): Promise<boolean> {
     if (this.adapter instanceof RemoteExecutionAdapter) {
@@ -177,5 +188,19 @@ export class PlaygroundSDK {
       return this.adapter.getScreenshot();
     }
     return null; // For local execution, not supported yet
+  }
+
+  // Get interface information (type and description)
+  async getInterfaceInfo(): Promise<{
+    type: string;
+    description?: string;
+  } | null> {
+    if (this.adapter instanceof LocalExecutionAdapter) {
+      return this.adapter.getInterfaceInfo();
+    }
+    if (this.adapter instanceof RemoteExecutionAdapter) {
+      return this.adapter.getInterfaceInfo();
+    }
+    return null;
   }
 }

@@ -12,10 +12,9 @@ import { WELCOME_MESSAGE_TEMPLATE } from '../utils/constants';
  * Hook for managing playground state
  */
 export function usePlaygroundState(
-  playgroundSDK: PlaygroundSDKLike,
+  playgroundSDK: PlaygroundSDKLike | null,
   storage?: StorageProvider,
   contextProvider?: ContextProvider,
-  enablePersistence = true,
 ) {
   // Core state
   const [loading, setLoading] = useState(false);
@@ -51,7 +50,7 @@ export function usePlaygroundState(
         timestamp: new Date(),
       };
 
-      if (enablePersistence && storage?.loadMessages) {
+      if (storage?.loadMessages) {
         try {
           const storedMessages = await storage.loadMessages();
           // Check if welcome message already exists in stored messages
@@ -80,13 +79,13 @@ export function usePlaygroundState(
 
   // Save messages to storage when they change
   useEffect(() => {
-    if (enablePersistence && storage?.saveMessages && infoList.length > 1) {
+    if (storage?.saveMessages && infoList.length > 1) {
       // Skip if only welcome message
       storage.saveMessages(infoList).catch((error) => {
         console.error('Failed to save messages:', error);
       });
     }
-  }, [infoList, storage, enablePersistence]);
+  }, [infoList, storage]);
 
   // Initialize context preview
   useEffect(() => {
@@ -105,6 +104,10 @@ export function usePlaygroundState(
     const loadActionSpace = async () => {
       setActionSpaceLoading(true);
       try {
+        if (!playgroundSDK) {
+          setActionSpace([]);
+          return;
+        }
         const context =
           uiContextPreview || (await contextProvider?.getUIContext?.());
         const space = await playgroundSDK.getActionSpace(context);
@@ -189,14 +192,14 @@ export function usePlaygroundState(
     };
 
     setInfoList([welcomeMessage]);
-    if (enablePersistence && storage?.clearMessages) {
+    if (storage?.clearMessages) {
       try {
         await storage.clearMessages();
       } catch (error) {
         console.error('Failed to clear stored messages:', error);
       }
     }
-  }, [storage, enablePersistence]);
+  }, [storage]);
 
   // Refresh context
   const refreshContext = useCallback(async () => {

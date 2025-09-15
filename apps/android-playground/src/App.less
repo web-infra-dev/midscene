@@ -46,8 +46,6 @@ body {
   }
 
   &.left-panel {
-    width: 480px;
-    flex: none;
     overflow: hidden;
     height: 100%;
     display: flex;
@@ -177,6 +175,26 @@ body {
   transition: background-color 0.2s;
 
   &:hover {
+    background-color: #1677ff;
+  }
+}
+
+.panel-resize-handle {
+  width: 2px;
+  background-color: #f0f0f0;
+  cursor: col-resize;
+  transition: background-color 0.2s;
+  position: relative;
+
+  &:hover {
+    background-color: #1677ff;
+  }
+
+  &:active {
+    background-color: #1677ff;
+  }
+
+  &[data-resize-handle-active] {
     background-color: #1677ff;
   }
 }

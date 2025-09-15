@@ -22,7 +22,7 @@ const noReplayAPIs = [
  * Hook for handling playground execution logic
  */
 export function usePlaygroundExecution(
-  playgroundSDK: PlaygroundSDKLike,
+  playgroundSDK: PlaygroundSDKLike | null,
   storage: StorageProvider | undefined,
   actionSpace: DeviceAction<unknown>[],
   loading: boolean,
@@ -38,6 +38,12 @@ export function usePlaygroundExecution(
   // Handle form submission and execution
   const handleRun = useCallback(
     async (value: FormValue) => {
+      // Check if SDK is available
+      if (!playgroundSDK) {
+        console.warn('PlaygroundSDK is not available');
+        return;
+      }
+
       // Basic validation - specific validation logic would need to be moved to the SDK or passed as a separate function
       const thisRunningId = Date.now();
       const actionType = value.type;
@@ -72,21 +78,37 @@ export function usePlaygroundExecution(
         currentRunningIdRef.current = thisRunningId;
         interruptedFlagRef.current[thisRunningId] = false;
 
-        // Set up progress tracking
+        // Clear any existing progress callback first to prevent duplicates
+        if (playgroundSDK.onProgressUpdate) {
+          playgroundSDK.onProgressUpdate(() => {}); // Clear callback
+        }
+
+        // Set up fresh progress tracking
         if (playgroundSDK.onProgressUpdate) {
           playgroundSDK.onProgressUpdate((tip: string) => {
             if (interruptedFlagRef.current[thisRunningId]) {
               return;
             }
 
-            // Add new progress message to info list
-            const progressItem: InfoListItem = {
-              id: `progress-${thisRunningId}-${Date.now()}`,
-              type: 'progress',
-              content: tip,
-              timestamp: new Date(),
-            };
-            setInfoList((prev) => [...prev, progressItem]);
+            setInfoList((prev) => {
+              const lastItem = prev[prev.length - 1];
+              // Prevent duplicate progress tips
+              if (
+                lastItem &&
+                lastItem.type === 'progress' &&
+                lastItem.content === tip
+              ) {
+                return prev;
+              }
+
+              const progressItem: InfoListItem = {
+                id: `progress-${thisRunningId}-${Date.now()}`,
+                type: 'progress',
+                content: tip,
+                timestamp: new Date(),
+              };
+              return [...prev, progressItem];
+            });
           });
         }
 
@@ -195,11 +217,16 @@ export function usePlaygroundExecution(
   // Handle stop execution
   const handleStop = useCallback(async () => {
     const thisRunningId = currentRunningIdRef.current;
-    if (thisRunningId && playgroundSDK.cancelExecution) {
+    if (thisRunningId && playgroundSDK && playgroundSDK.cancelExecution) {
       try {
         await playgroundSDK.cancelExecution(thisRunningId.toString());
         interruptedFlagRef.current[thisRunningId] = true;
         setLoading(false);
+
+        // Clear progress callback on stop to prevent stray tips
+        if (playgroundSDK.onProgressUpdate) {
+          playgroundSDK.onProgressUpdate(() => {});
+        }
 
         // Update info list to mark as stopped
         setInfoList((prev) =>
@@ -237,7 +264,10 @@ export function usePlaygroundExecution(
 
   // Check if execution can be stopped
   const canStop =
-    loading && !!currentRunningIdRef.current && !!playgroundSDK.cancelExecution;
+    loading &&
+    !!currentRunningIdRef.current &&
+    !!playgroundSDK &&
+    !!playgroundSDK.cancelExecution;
 
   return {
     handleRun,

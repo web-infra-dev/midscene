@@ -30,49 +30,6 @@
     min-height: 0;
     padding: 0 16px 16px 16px;
 
-    .placeholder-message {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 32px;
-      border: 1px solid #0000001f;
-      border-radius: 8px;
-      background: #fafafa;
-
-      h3 {
-        font-size: 20px;
-        color: #1890ff;
-        margin-bottom: 8px;
-      }
-
-      p {
-        color: #666;
-        margin-bottom: 16px;
-        line-height: 1.6;
-      }
-
-      .server-start-tip {
-        background: #f6f8fa;
-        border: 1px solid #e1e4e8;
-        border-radius: 6px;
-        padding: 16px;
-        margin-top: 16px;
-
-        p {
-          margin-bottom: 8px;
-        }
-
-        strong {
-          color: #1890ff;
-          font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-          font-size: 14px;
-        }
-      }
-    }
-
     .android-universal-playground {
       flex: 1;
       border: 1px solid #0000001f;
@@ -85,6 +42,8 @@
 
 // Override some playground styles for better integration
 .android-universal-playground {
+  padding: 0 16px;
+
   .playground-container {
     height: 100%;
     

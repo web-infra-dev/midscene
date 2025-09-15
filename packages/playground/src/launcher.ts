@@ -27,6 +27,14 @@ export interface LaunchPlaygroundOptions {
    * @default true
    */
   verbose?: boolean;
+
+  /**
+   * Fixed ID for the playground server instance
+   * If provided, the same ID will be used across restarts,
+   * allowing chat history to persist
+   * @default undefined (generates random UUID)
+   */
+  id?: string;
 }
 
 export interface LaunchPlaygroundResult {
@@ -82,6 +90,7 @@ export function playgroundForAgent(agent: Agent) {
         openBrowser = true,
         browserCommand,
         verbose = true,
+        id,
       } = options;
 
       // Extract agent components - Agent has interface property
@@ -101,6 +110,8 @@ export function playgroundForAgent(agent: Agent) {
       const server = new PlaygroundServer(
         webPage,
         agent as unknown as PageAgent,
+        undefined, // staticPath - use default
+        id, // Optional override ID (usually not needed now)
       );
 
       const launchedServer = (await server.launch(port)) as PlaygroundServer;

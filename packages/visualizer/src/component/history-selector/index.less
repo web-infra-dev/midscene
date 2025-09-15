@@ -1,11 +1,28 @@
 @import '../common.less';
 
+.history-modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: stretch;
+  z-index: 1000;
+}
+
 .history-modal-container {
-  height: 70vh;
+  width: 100%;
+  height: 400px;
+  background: white;
   display: flex;
   flex-direction: column;
   border-radius: 12px 12px 0 0;
   overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  z-index: 1001;
 
   /* top title bar */
   .history-modal-header {
@@ -120,18 +137,3 @@
   }
 }
 
-.ant-modal-wrap .ant-modal-content {
-  animation: slideUpFromBottom 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
-}
-
-@keyframes slideUpFromBottom {
-  0% {
-    transform: translateY(100%);
-    opacity: 0;
-  }
-
-  100% {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
