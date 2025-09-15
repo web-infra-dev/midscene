@@ -8,19 +8,6 @@ const debugAgent = getDebug('android:agent');
 type AndroidAgentOpt = AgentOpt;
 
 export class AndroidAgent extends PageAgent<AndroidDevice> {
-  constructor(interfaceInstance: AndroidDevice, opts?: AndroidAgentOpt) {
-    super(interfaceInstance, opts);
-
-    if (
-      !this.modelConfigManager.getModelConfig('grounding').vlMode ||
-      !this.modelConfigManager.getModelConfig('planning').vlMode
-    ) {
-      throw new Error(
-        'Android Agent only supports vl-model. https://midscenejs.com/choose-a-model.html',
-      );
-    }
-  }
-
   async launch(uri: string): Promise<void> {
     const device = this.page;
     await device.launch(uri);

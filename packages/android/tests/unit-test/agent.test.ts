@@ -35,22 +35,7 @@ describe('AndroidAgent', () => {
   });
 
   describe('constructor', () => {
-    it('should throw an error if vlLocateMode is false', () => {
-      const mockPage = new AndroidDevice('test-device');
-      expect(
-        () =>
-          new AndroidAgent(mockPage, {
-            modelConfig: () => ({
-              ...mockedModelConfigFnResult,
-              MIDSCENE_VL_MODE: undefined,
-            }),
-          }),
-      ).toThrow(
-        'Android Agent only supports vl-model. https://midscenejs.com/choose-a-model.html',
-      );
-    });
-
-    it('should not throw an error if vlLocateMode is true', () => {
+    it('should create AndroidAgent successfully', () => {
       const mockPage = new AndroidDevice('test-device');
       expect(
         () =>
