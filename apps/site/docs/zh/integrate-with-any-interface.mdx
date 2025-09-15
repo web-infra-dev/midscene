@@ -4,15 +4,15 @@ import SetupEnv from './common/setup-env.mdx';
 
 从 Midscene v0.28.0 开始，我们推出了与任意界面集成的功能。定义符合 `AbstractInterface` 定义的界面控制器类，即可获得一个功能齐全的 Midscene Agent。
 
-它默认包含了以下工具：
+该功能的典型用途是控制你自己应用的界面，比如 IoT 设备、内部应用、车载显示器等。你也可以使用它来运行针对特定应用的界面交互。
+
+在实现了 UI 操作的类之后，你可以获得以下特性：
 
 - TypeScript 的 GUI 自动化 Agent SDK
 - 用于调试的 Playground
 - 通过 yaml 脚本控制界面
 - MCP 服务器
 - Midscene Agent 的全部特性
-
-该功能的典型用途是控制你自己应用的界面，比如 IoT 设备、内部应用、车载显示器等。你也可以使用它来运行针对特定应用的界面交互。
 
 请注意：只有具备视觉定位（visual grounding）能力的模型才能用于操作 UI 界面。请阅读文档以[选择合适的模型](./choose-a-model)。
 
