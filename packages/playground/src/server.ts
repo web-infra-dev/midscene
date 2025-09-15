@@ -448,7 +448,7 @@ class PlaygroundServer {
       }
 
       try {
-        overrideAIConfig(aiConfig, true);
+        overrideAIConfig(aiConfig);
 
         return res.json({
           status: 'ok',

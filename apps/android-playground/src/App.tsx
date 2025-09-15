@@ -1,8 +1,8 @@
 import './App.less';
 import { SCRCPY_SERVER_PORT } from '@midscene/shared/constants';
-import { overrideAIConfig } from '@midscene/shared/env';
 import {
   globalThemeConfig,
+  safeOverrideAIConfig,
   useEnvConfig,
   useServerValid,
 } from '@midscene/visualizer';
@@ -35,7 +35,7 @@ export default function App() {
 
   // Override AI configuration when config changes
   useEffect(() => {
-    overrideAIConfig(config);
+    safeOverrideAIConfig(config);
   }, [config]);
 
   // Get scrcpy port from injected window variable
