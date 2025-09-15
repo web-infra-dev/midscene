@@ -1,109 +1,47 @@
+import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connectivity.mdx';
+
 # Choose a Model
-
-In this article, we will talk about what kind of models are supported by Midscene.js and the features of each model.
-
-## Quick Config for using Midscene.js
 
 Choose one of the following models, obtain the API key, complete the configuration, and you are ready to go. Choose the model that is easiest to obtain if you are a beginner.
 
+## Adapted models for using Midscene.js
+
+Midscene.js supports two types of models, which are:
+
+### LLM models
+
+Models that can understand text and image input. GPT-4o is this kind of model.
+
+LLM models can only be used in web automation.
+
+* [`GPT-4o`](#gpt-4o)
+* [Other LLM models](#other-llm-models)
+
+### VL models (✨ recommended)
+
+Besides the ability to understand text and image input, VL(Visual-Language) models can also locate the target elements on the page. 
+
+These models are recommended for UI automation since they can natively "see" the screenshot and return the coordinates of target elements on the page, which is much more reliable and efficient in complex scenarios.
+
+VL models can be used in UI automation of any kind of interfaces.
+
+These are the adapted VL models:
+
+* [`Qwen-2.5-VL`](#qwen-25-vl)
+* [`Doubao-1.5-thinking-vision-pro`](#doubao-15-thinking-vision-pro)
+* [`Gemini-2.5-Pro`](#gemini-25-pro)
+* [`UI-TARS`](#ui-tars)
+
 If you want to see the detailed configuration of model services, see [Config Model and Provider](./model-provider).
-
-### GPT-4o (can't be used in Android automation)
-
-```bash
-OPENAI_API_KEY="......"
-OPENAI_BASE_URL="https://custom-endpoint.com/compatible-mode/v1" # optional, if you want an endpoint other than the default one from OpenAI.
-MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # optional. The default is "gpt-4o".
-```
-
-### Qwen-2.5-VL on Openrouter or Aliyun
-
-After applying for the API key on [Openrouter](https://openrouter.ai) or [Aliyun](https://aliyun.com), you can use the following config:
-
-```bash
-# openrouter.ai
-export OPENAI_BASE_URL="https://openrouter.ai/api/v1"
-export OPENAI_API_KEY="......"
-export MIDSCENE_MODEL_NAME="qwen/qwen2.5-vl-72b-instruct"
-export MIDSCENE_USE_QWEN_VL=1
-
-# or from Aliyun.com
-OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
-export OPENAI_API_KEY="......"
-MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
-MIDSCENE_USE_QWEN_VL=1
-```
-
-
-### Gemini-2.5-Pro on Google Gemini
-
-After applying for the API key on [Google Gemini](https://gemini.google.com/), you can use the following config:
-
-```bash
-OPENAI_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
-OPENAI_API_KEY="......"
-MIDSCENE_MODEL_NAME="gemini-2.5-pro-preview-05-06"
-MIDSCENE_USE_GEMINI=1
-```
-
-### Doubao-1.5-thinking-vision-pro on Volcano Engine
-
-You can use the `Doubao-1.5-thinking-vision-pro` model on [Volcano Engine](https://volcengine.com). After obtaining an API key from Volcano Engine, you can use the following configuration:
-
-```bash
-OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" 
-OPENAI_API_KEY="...."
-MIDSCENE_MODEL_NAME="ep-..." # Inference endpoint ID or model name from Volcano Engine
-MIDSCENE_USE_DOUBAO_VISION=1
-```
-
-### UI-TARS on volcengine.com
-
-You can use `doubao-1.5-ui-tars` on [Volcengine](https://www.volcengine.com):
-
-```bash
-OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" 
-OPENAI_API_KEY="...."
-MIDSCENE_MODEL_NAME="ep-2025..." # Inference endpoint ID or model name from Volcano Engine
-MIDSCENE_USE_VLM_UI_TARS=DOUBAO
-```
 
 ## Models in Depth
 
-Midscene supports two types of models, which are:
-
-1. **general-purpose multimodal LLMs**: Models that can understand text and image input. *GPT-4o* is this kind of model.
-2. **models with visual grounding capabilities (VL models)**: Besides the ability to understand text and image input, these models can also return the coordinates of target elements on the page. We have adapted *Qwen-2.5-VL-72B*, *Gemini-2.5-Pro* and *UI-TARS* as VL models.
-
-And we are primarily concerned with two features of the model:
-
-1. The ability to understand the screenshot and *plan* the steps to achieve the goal.
-2. The ability to *locate* the target elements on the page.
-
-The main difference between different models is the way they handle the *locating* capability.
-
-When using LLMs like GPT-4o, locating is accomplished through the model's understanding of the UI hierarchy tree and the markup on the screenshot, which consumes more tokens and does not always yield accurate results. In contrast, when using VL models, locating relies on the model's visual grounding capabilities, providing a more native and reliable solution in complex situations.
-
-In the Android automation scenario, we decided to use the VL models since the infrastructure of the App in the real world is so complex that we don't want to do any adaptive work on the App UI stack any more. The VL models can provide us with more reliable results, and it should be a better approach to this type of work.
-
-## The Recommended Models
-
-### GPT-4o
+<div id="gpt-4o"></div>
+### `GPT-4o`
 
 GPT-4o is a multimodal LLM by OpenAI, which supports image input. This is the default model for Midscene.js. When using GPT-4o, a step-by-step prompting is preferred.
 
-**Features**
-
-- **Easy to achieve**: you can get the stable API service from many providers and just pay for the token.
-- **Performing steadily**: it performs well on interaction, assertion, and query.
-
-**Limitations when used in Midscene.js**
-
-- **High token cost**: dom tree and screenshot will be sent together to the model. For example, it will use 6k input tokens for ebay homepage under 1280x800 resolution, and 9k for search result page. As a result, the cost will be higher than other models. And it will also take longer time to generate the response.
-- **Content limitation**: it will not work if the target element is inside a cross-origin `<iframe />` or `<canvas />`.
-- **Low resolution support**: the upper limit of the resolution is 2000 x 768. For images larger than this, the output quality will be lower.
-- **Not good at small icon recognition**: it may not work well if the target element is a small icon.
-- **Not supported for Android automation**: it does not support Android automation.
+The token cost of using GPT-4o is higher since Midscene needs to send some dom info and screenshot to the model, and it's not stable in complex scenarios.
 
 **Config**
 
@@ -113,28 +51,16 @@ OPENAI_BASE_URL="https://custom-endpoint.com/compatible-mode/v1" # optional, if 
 MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # optional. The default is "gpt-4o".
 ```
 
-### Qwen-2.5-VL 72B Instruct
+<div id="qwen-25-vl"></div>
+### `Qwen-2.5-VL` on Openrouter or Alibaba Cloud
 
-From 0.12.0 version, Midscene.js supports Qwen-2.5-VL-72B-Instruct model.
+From 0.12.0 version, Midscene.js supports Qwen-2.5-VL-72B-Instruct model series.
 
-Qwen-2.5-VL is an open-source model published by Alibaba. It provides Visual Grounding ability, which can accurately return the coordinates of target elements on the page. When using it for interaction, assertion and query, it performs quite well. We recommend using the largest version (72B) for reliable output.
+Qwen-2.5-VL is an open-source model series published by Alibaba. It provides Visual Grounding ability, which can accurately return the coordinates of target elements on the page. When using it for interaction, assertion and query, it performs quite well. We recommend using the largest version (72B) for reliable output.
 
-Qwen-2.5-VL indeed has an action planning feature to control the application, but we still recommend using detailed prompts to provide a more stable and reliable result.
+**config**
 
-**Features**
-
-- **Low cost**: the model can accurately tell the exact coordinates of target elements on the page(Visual Grounding), so we don't have to send the DOM tree to the model. You will achieve a token saving of 30% to 50% compared to GPT-4o.
-- **Higher resolution support**: Qwen-2.5-VL supports higher resolution input than GPT-4o. It's enough for most of the cases.
-- **Open-source**: this is an open-source model, so you can both use the API already deployed by cloud providers or deploy it on your own server.
-
-**Limitations when used in Midscene.js**
-
-- **Not good at small icon recognition**: to recognize small icons, you may need to [enable the `deepThink` parameter](./blog-introducing-instant-actions-and-deep-think) and optimize the description, otherwise the recognition result may not be accurate.
-- **Perform not that good on assertion**: it may not work as well as GPT-4o on assertion. 
-
-**Config**
-
-Except for the regular config, you need to include the `MIDSCENE_USE_QWEN_VL=1` config to turn on Qwen-2.5-VL mode. Otherwise, it will be the default GPT-4o mode (much more tokens used).
+After applying for the API key on [Openrouter](https://openrouter.ai) you can use the following config:
 
 ```bash
 OPENAI_BASE_URL="https://openrouter.ai/api/v1"
@@ -143,7 +69,21 @@ MIDSCENE_MODEL_NAME="qwen/qwen2.5-vl-72b-instruct"
 MIDSCENE_USE_QWEN_VL=1
 ```
 
-**Note about the model name on Aliyun.com**
+Or from Alibaba Cloud:
+
+```bash
+OPENAI_BASE_URL="https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
+OPENAI_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
+MIDSCENE_USE_QWEN_VL=1
+```
+
+**Limitations when used in Midscene.js**
+
+- **Not good at small icon recognition**: to recognize small icons, you may need to [enable the `deepThink` parameter](./blog-introducing-instant-actions-and-deep-think) and optimize the description, otherwise the recognition result may not be accurate.
+- **Perform not that good on assertion**: we observed that it may not work as well as `GPT-4o` or `Doubao-1.5-thinking-vision-pro` on assertion. 
+
+**Note about the model deployment on Aliyun.com**
 
 ⁠While the open-source version of Qwen-2.5-VL (72B) is named `qwen2.5-vl-72b-instruct`, there is also an enhanced and more stable version named `qwen-vl-max-latest` officially hosted on Aliyun.com. When using the `qwen-vl-max-latest` model on Aliyun, you will get larger context support and a much lower price (likely only 19% of the open-source version).
 
@@ -155,17 +95,20 @@ In short, if you want to use the Aliyun service, use `qwen-vl-max-latest`.
 - [Qwen 2.5 on Aliyun](https://bailian.console.aliyun.com/#/model-market/detail/qwen-vl-max-latest)
 - [Qwen 2.5 on openrouter.ai](https://openrouter.ai/qwen/qwen2.5-vl-72b-instruct)
 
-### Gemini-2.5-Pro
+<div id="gemini-25-pro"></div>
+### `Gemini-2.5-Pro` on Google Gemini
 
-Gemini-2.5-Pro is a model provided by Google Cloud. It works somehow similar to Qwen-2.5-VL, but it's not open-source.
-
-From 0.15.1 version, Midscene.js supports Gemini-2.5-Pro model.
+From 0.15.1 version, Midscene.js supports Gemini-2.5-Pro model. Gemini 2.5 Pro is a closed-source model provided by Google Cloud.
 
 When using Gemini-2.5-Pro, you should use the `MIDSCENE_USE_GEMINI=1` config to turn on the Gemini-2.5-Pro mode. 
 
+**Config**
+
+After applying for the API key on [Google Gemini](https://gemini.google.com/), you can use the following config:
+
 ```bash
 OPENAI_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
-OPENAI_API_KEY="...."
+OPENAI_API_KEY="......"
 MIDSCENE_MODEL_NAME="gemini-2.5-pro-preview-05-06"
 MIDSCENE_USE_GEMINI=1
 ```
@@ -173,62 +116,66 @@ MIDSCENE_USE_GEMINI=1
 **Links**
 - [Gemini 2.5 on Google Cloud](https://cloud.google.com/gemini-api/docs/gemini-25-overview)
 
+<div id="doubao-15-thinking-vision-pro"></div>
 
-### Doubao-1.5-thinking-vision-pro
+### `Doubao-1.5-thinking-vision-pro` on Volcano Engine
 
 Doubao-1.5-thinking-vision-pro is a model provided by Volcano Engine. It works better on visual grounding and assertion.
+
+**Config**
+
+You can use the `Doubao-1.5-thinking-vision-pro` model on [Volcano Engine](https://volcengine.com). After obtaining an API key from Volcano Engine, you can use the following configuration:
+
+```bash
+OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" 
+OPENAI_API_KEY="...."
+MIDSCENE_MODEL_NAME="ep-..." # Inference endpoint ID or model name from Volcano Engine
+MIDSCENE_USE_DOUBAO_VISION=1
+```
 
 **Links**
 - [Doubao-1.5-thinking-vision-pro on Volcano Engine](https://www.volcengine.com/docs/82379/1536428)
 
 
-### UI-TARS
+<div id="ui-tars"></div>
+
+### `UI-TARS` on  Volcano Engine
 
 UI-TARS is an end-to-end GUI agent model based on VLM architecture. It solely perceives screenshots as input and performs human-like interactions (e.g., keyboard and mouse operations), achieving state-of-the-art performance on 10+ GUI benchmarks. UI-TARS is an open-source model, and provides different versions of size. 
 
 When using UI-TARS, you can use target-driven style prompts, like "Login with user name foo and password bar", and it will plan the steps to achieve the goal.
 
-**Features**
-
-- **Exploratory**: it performs well on exploratory tasks, like "Help me send a tweet". It can try different paths to achieve the goal.
-- **Speed**: Take the `doubao-1.5-ui-tars` deployed on volcengine as an example, its response time is obviously faster than other models.
-- **Native image recognition**: Like Qwen-2.5-VL, UI-TARS can recognize the image directly from the screenshot, so Midscene.js does not need to extract the dom tree.
-- **Open-source**: you can deploy it on your own server and your data will no longer be sent to the cloud.
-
-**Limitations when used in Midscene.js**
-
-- **Perform not good on assertion**: it may not work as well as GPT-4o and Qwen 2.5 on assertion and query.
-- **Not stable on action path**: It may try different paths to achieve the goal, so the action path is not stable each time you call it.
-
 **Config**
 
-Except for the regular config, you need to include the `MIDSCENE_USE_VLM_UI_TARS` parameter to specify the UI-TARS version, supported values are `1.0` `1.5` `DOUBAO` (volcengine version). Otherwise, you will get some JSON parsing error.
-
-```bash
-OPENAI_BASE_URL="....."
-OPENAI_API_KEY="......" 
-MIDSCENE_MODEL_NAME="ui-tars-72b-sft"
-MIDSCENE_USE_VLM_UI_TARS=1 # remember to include this for UI-TARS mode !
-```
-
-**Use the version provided by Volcengine**
-
-On the Volcengine, there is a `doubao-1.5-ui-tars` model that has been deployed. Developers can access the model directly via API calls and pay based on usage. Docs link: https://www.volcengine.com/docs/82379/1536429
-
-When using the Volcengine version of the model, you need to create an inference access point(like `ep-2025...`). After collecting the API Key and inference access point ID, configure should look like this:
+You can use the deployed `doubao-1.5-ui-tars` on  [Volcano Engine](https://volcengine.com).
 
 ```bash
 OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" 
 OPENAI_API_KEY="...."
-MIDSCENE_MODEL_NAME="ep-2025..."
+MIDSCENE_MODEL_NAME="ep-2025..." # Inference endpoint ID or model name from Volcano Engine
 MIDSCENE_USE_VLM_UI_TARS=DOUBAO
 ```
 
-Links:
+**Limitations**
+
+- **Perform not good on assertion**: it may not work as well as GPT-4o and Qwen 2.5 on assertion and query.
+- **Not stable on action path**: It may try different paths to achieve the goal, so the action path is not stable each time you call it.
+
+**About the `MIDSCENE_USE_VLM_UI_TARS` config**
+
+The `MIDSCENE_USE_VLM_UI_TARS` config is used to specify the UI-TARS version, use one of these values:
+- `1.0` - for the model version `1.0`
+- `1.5` - for the model version `1.5`
+- `DOUBAO` - for the model deployed on Volcano Engine
+
+**Links**
 - [UI-TARS on 🤗 HuggingFace](https://huggingface.co/bytedance-research/UI-TARS-72B-SFT)
 - [UI-TARS on Github](https://github.com/bytedance/ui-tars)
 - [UI-TARS - Model Deployment Guide](https://juniper-switch-f10.notion.site/UI-TARS-Model-Deployment-Guide-17b5350241e280058e98cea60317de71)
+- [UI-TARS on Volcengine](https://www.volcengine.com/docs/82379/1536429)
 
+
+<div id="other-llm-models"></div>
 ## Choose other multimodal LLMs
 
 Other models are also supported by Midscene.js. Midscene will use the same prompt and strategy as GPT-4o for these models. If you want to use other models, please follow these steps:
@@ -240,7 +187,7 @@ Other models are also supported by Midscene.js. Midscene will use the same promp
 1. Remember to follow the terms of use of each model and provider.
 1. Don't include the `MIDSCENE_USE_VLM_UI_TARS` and `MIDSCENE_USE_QWEN_VL` config unless you know what you are doing.
 
-### Config
+**Config**
 
 ```bash
 MIDSCENE_MODEL_NAME="....."
@@ -252,11 +199,15 @@ For more details and sample config, see [Config Model and Provider](./model-prov
 
 ## FAQ
 
-### How can i check the model's token usage?
+### How can I check the model's token usage?
 
 By setting `DEBUG=midscene:ai:profile:stats` in the environment variables, you can print the model's usage info and response time.
+
+You can also see your model's usage info in the report file.
 
 ## More
 
 * [Config Model and Provider](./model-provider)
 * [Prompting Tips](./prompting-tips)
+
+<TroubleshootingLLMConnectivity />

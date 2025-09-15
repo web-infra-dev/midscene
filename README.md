@@ -41,9 +41,10 @@ English | [简体中文](./README.zh.md)
 - Describe your goals and steps, and Midscene will plan and operate the user interface for you.
 - Use Javascript SDK or YAML to write your automation script.
 
-### Web & Mobile App
+### Web & Mobile App & Any Interface
 - **Web Automation 🖥️**: Either integrate with [Puppeteer](https://midscenejs.com/integrate-with-puppeteer.html), [Playwright](https://midscenejs.com/integrate-with-playwright.html) or use [Bridge Mode](https://midscenejs.com/bridge-mode-by-chrome-extension.html) to control your desktop browser.
 - **Android Automation 📱**: Use [Javascript SDK](https://midscenejs.com/integrate-with-android.html) with adb to control your local Android device.
+- **Any Interface Automation 🌐**: Use [Javascript SDK](https://midscenejs.com/integrate-with-any-interface.html) to control your own interface.
 
 ### Tools
 - **Visual Reports for Debugging 🎞️**: Through our test reports and Playground, you can easily understand, replay and debug the entire process.
@@ -64,7 +65,7 @@ English | [简体中文](./README.zh.md)
 
 Midscene.js supports both multimodal LLMs like `gpt-4o`, and visual-language models like `Qwen2.5-VL`, `Doubao-1.5-thinking-vision-pro`, `gemini-2.5-pro` and `UI-TARS`. 
 
-Visual-language models are recommended for UI automation.
+Visual-language models are recommended for UI automation. For interfaces other than web scenario, visual-language models are required.
 
 Read more about [Choose a model](https://midscenejs.com/choose-a-model)
 
@@ -94,6 +95,13 @@ for (const record of recordList) {
 
 > For more details about the workflow style, please refer to [Blog - Use JavaScript to Optimize the AI Automation Code](https://midscenejs.com/blog-programming-practice-using-structured-api.html)
 
+## 📄 Resources 
+
+* Home Page and Documentation: [https://midscenejs.com](https://midscenejs.com/)
+* Sample Projects: [https://github.com/web-infra-dev/midscene-example](https://github.com/web-infra-dev/midscene-example)
+* API Reference: [https://midscenejs.com/api.html](https://midscenejs.com/api.html)
+* GitHub: [https://github.com/web-infra-dev/midscene](https://github.com/web-infra-dev/midscene)
+
 ## 👀 Comparing to other projects
 
 There are so many UI automation tools out there, and each one seems to be all-powerful. What's special about Midscene.js?
@@ -103,13 +111,6 @@ There are so many UI automation tools out there, and each one seems to be all-po
 * **Open Source, Free, Deploy as you want**: Midscene.js is an open-source project. It's decoupled from any cloud service and model provider, you can choose either public or private deployment. There is always a suitable plan for your business.
 
 * **Integrate with Javascript**: You can always bet on Javascript 😎
-
-## 📄 Resources 
-
-* Home Page and Documentation: [https://midscenejs.com](https://midscenejs.com/)
-* Sample Projects: [https://github.com/web-infra-dev/midscene-example](https://github.com/web-infra-dev/midscene-example)
-* API Reference: [https://midscenejs.com/api.html](https://midscenejs.com/api.html)
-* GitHub: [https://github.com/web-infra-dev/midscene](https://github.com/web-infra-dev/midscene)
 
 ## 🤝 Community
 

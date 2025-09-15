@@ -41,9 +41,10 @@
 - 描述你的目标和步骤，Midscene 会为你规划和操作用户界面。
 - 使用 Javascript SDK 或 YAML 格式编写自动化脚本。
 
-### Web & Mobile App
+### Web & Mobile App & 任意界面
 - **Web 自动化 🖥️**: 可以[与 Puppeteer 集成](https://midscenejs.com/integrate-with-puppeteer.html)，[与 Playwright 集成](https://midscenejs.com/integrate-with-playwright.html)或使用[桥接模式](https://midscenejs.com/bridge-mode-by-chrome-extension.html)来控制桌面浏览器。
 - **Android 自动化 📱**: 使用 [Javascript SDK](https://midscenejs.com/integrate-with-android.html) 配合 adb 来控制本地 Android 设备。
+- **任意界面自动化 🌐**: 使用 [Javascript SDK](https://midscenejs.com/integrate-with-any-interface.html) 来控制你自己的界面。
 
 ### 工具
 - **用于调试的可视化报告**: 通过我们的测试报告和 Playground，你可以轻松理解、回放和调试整个过程。
@@ -62,9 +63,9 @@
 
 ## ✨ 选择 AI 模型
 
-Midscene.js 支持多模态 LLM 模型，如 `gpt-4o`，以及视觉语言模型，如 `Qwen2.5-VL`，`gemini-2.5-pro` 和 `UI-TARS`。
+Midscene.js 支持多模态 LLM 模型，如 `gpt-4o`，以及视觉语言模型，如 `Qwen2.5-VL`，`Doubao-1.5-thinking-vision-pro`，`gemini-2.5-pro` 和 `UI-TARS`。
 
-视觉语言模型是 UI 自动化场景的首选。
+视觉语言模型是 UI 自动化场景的首选。对于 Web 场景之外的界面，视觉语言模型是必需的。
 
 更多信息请查看 [选择 AI 模型](https://midscenejs.com/zh/choose-a-model)。
 
@@ -95,6 +96,13 @@ for (const record of recordList) {
 > 有关工作流风格的更多详细信息，请参阅 [Blog - 使用 JavaScript 优化 AI 自动化代码
 ](https://midscenejs.com/zh/blog-programming-practice-using-structured-api.html)
 
+## 📄 资源 
+
+* 官网和文档: [https://midscenejs.com](https://midscenejs.com/zh)
+* 示例项目: [https://github.com/web-infra-dev/midscene-example](https://github.com/web-infra-dev/midscene-example)
+* API 文档: [https://midscenejs.com/zh/api.html](https://midscenejs.com/zh/api.html)
+* GitHub: [https://github.com/web-infra-dev/midscene](https://github.com/web-infra-dev/midscene)
+
 
 ## 👀 与其它工具比较
 
@@ -103,12 +111,6 @@ for (const record of recordList) {
 * **开源、免费、部署灵活**: Midscene.js 是一个开源项目。它与云服务和模型提供商解耦，你可以选择公共或私有部署。总会有一个适合你的方案。
 
 * **与 Javascript 集成**: 你可以永远相信 Javascript 😎
-
-## 📄 资源
-
-* 官网和文档: [https://midscenejs.com](https://midscenejs.com/zh)
-* API 文档: [https://midscenejs.com/zh/api.html](https://midscenejs.com/zh/api.html)
-* GitHub: [https://github.com/web-infra-dev/midscene](https://github.com/web-infra-dev/midscene)
 
 ## 🤝 社区
 
