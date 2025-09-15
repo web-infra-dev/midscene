@@ -1,5 +1,6 @@
 import type { DeviceAction } from '@midscene/core';
 import { findAllMidsceneLocatorField } from '@midscene/core/ai-model';
+import { buildDetailedLocateParam } from '@midscene/core/yaml';
 import type {
   ExecutionOptions,
   FormValue,
@@ -34,6 +35,7 @@ export const formatErrorMessage = (e: any): string => {
   return errorMessage || 'Unknown error';
 };
 
+
 // Parse structured parameters for callActionInActionSpace
 async function parseStructuredParams(
   action: DeviceAction<unknown>,
@@ -61,6 +63,24 @@ async function parseStructuredParams(
       paramObj[key] = params[key];
     }
   });
+
+  // Check if there's a locate field that needs detailed locate param processing
+  if (schema) {
+    const locatorFieldKeys = findAllMidsceneLocatorField(schema);
+    locatorFieldKeys.forEach((locateKey: string) => {
+      const locatePrompt = params[locateKey];
+      if (locatePrompt && typeof locatePrompt === 'string') {
+        // Build detailed locate param using the locate prompt and options
+        const detailedLocateParam = buildDetailedLocateParam(locatePrompt, {
+          deepThink: options.deepThink,
+          cacheable: true, // Default to true for playground
+        });
+        if (detailedLocateParam) {
+          paramObj[locateKey] = detailedLocateParam;
+        }
+      }
+    });
+  }
 
   return [paramObj];
 }
@@ -159,8 +179,16 @@ export async function executeAction(
         parsedParams[0],
       );
     } else {
+      // For prompt-based actions, we need to build the detailed locate param
+      const detailedLocateParam = value.prompt 
+        ? buildDetailedLocateParam(value.prompt, {
+            deepThink: options.deepThink,
+            cacheable: true,
+          })
+        : undefined;
+      
       return await activeAgent.callActionInActionSpace(action.name, {
-        prompt: value.prompt,
+        locate: detailedLocateParam,
         ...options,
       });
     }

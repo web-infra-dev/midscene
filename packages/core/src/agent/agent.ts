@@ -293,28 +293,12 @@ export class Agent<
   ) {
     debug('callActionInActionSpace', type, ',', opt);
 
-    // Extract execution options from opt
-    const optAny = opt as any;
-    const { deepThink, locate, ...otherParams } = optAny || {};
-
-    // Build proper locate param with deepThink option
-    let actionParam: any = otherParams;
-    if (locate) {
-      const detailedLocateParam = buildDetailedLocateParam(locate, {
-        deepThink,
-      });
-      actionParam = {
-        ...otherParams,
-        locate: detailedLocateParam,
-      };
-    }
-
     const actionPlan: PlanningAction<T> = {
       type: type as any,
-      param: (actionParam || {}) as T,
+      param: (opt as any) || {},
       thought: '',
     };
-    debug('actionPlan with processed locate param', actionPlan);
+    debug('actionPlan', actionPlan); // , ', in which the locateParam is', locateParam);
 
     const plans: PlanningAction[] = [actionPlan].filter(
       Boolean,
@@ -322,7 +306,7 @@ export class Agent<
 
     const title = taskTitleStr(
       type as any,
-      locateParamStr(actionParam?.locate || {}),
+      locateParamStr((opt as any)?.locate || {}),
     );
 
     // assume all operation in action space is related to locating

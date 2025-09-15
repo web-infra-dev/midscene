@@ -1,5 +1,6 @@
 import type { DeviceAction } from '@midscene/core';
 import { findAllMidsceneLocatorField } from '@midscene/core/ai-model';
+import { buildDetailedLocateParam } from '@midscene/core/yaml';
 import { overrideAIConfig } from '@midscene/shared/env';
 import { v4 as generateUUID } from 'uuid';
 import { executeAction } from '../common';
@@ -44,20 +45,43 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       return [params.prompt || '', options];
     }
 
-    const locatorFieldKeys = findAllMidsceneLocatorField(action.paramSchema);
+    const schema = action.paramSchema;
+    const keys =
+      schema && 'shape' in schema
+        ? Object.keys((schema as { shape: Record<string, unknown> }).shape)
+        : [];
 
-    // Find locate field (MidsceneLocation field)
-    let locateField = null;
-    if (locatorFieldKeys.length > 0) {
-      locateField = params[locatorFieldKeys[0]];
+    const paramObj: Record<string, unknown> = { ...options };
+
+    keys.forEach((key) => {
+      if (
+        params[key] !== undefined &&
+        params[key] !== null &&
+        params[key] !== ''
+      ) {
+        paramObj[key] = params[key];
+      }
+    });
+
+    // Check if there's a locate field that needs detailed locate param processing
+    if (schema) {
+      const locatorFieldKeys = findAllMidsceneLocatorField(schema);
+      locatorFieldKeys.forEach((locateKey: string) => {
+        const locatePrompt = params[locateKey];
+        if (locatePrompt && typeof locatePrompt === 'string') {
+          // Build detailed locate param using the locate prompt and options
+          const detailedLocateParam = buildDetailedLocateParam(locatePrompt, {
+            deepThink: options.deepThink,
+            cacheable: true, // Default to true for playground
+          });
+          if (detailedLocateParam) {
+            paramObj[locateKey] = detailedLocateParam;
+          }
+        }
+      });
     }
 
-    // Filter non-locate fields
-    const nonLocateFields = this.filterValidParams(params, locatorFieldKeys);
-
-    // Local execution format: [locateField, { ...otherParams, ...options }]
-    const paramObj = { ...nonLocateFields, ...options };
-    return [locateField, paramObj];
+    return [paramObj];
   }
 
   formatErrorMessage(error: any): string {

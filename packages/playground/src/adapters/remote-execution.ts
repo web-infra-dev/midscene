@@ -1,4 +1,6 @@
 import type { DeviceAction } from '@midscene/core';
+import { findAllMidsceneLocatorField } from '@midscene/core/ai-model';
+import { buildDetailedLocateParam } from '@midscene/core/yaml';
 import type { ExecutionOptions, FormValue, ValidationResult } from '../types';
 import { BasePlaygroundAdapter } from './base';
 
@@ -78,8 +80,44 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
       return [params.prompt || '', options];
     }
 
-    // Remote execution format: merge options and valid params into a single object
-    return [{ ...options, ...this.filterValidParams(params) }];
+    const schema = action.paramSchema;
+    const keys =
+      schema && 'shape' in schema
+        ? Object.keys((schema as { shape: Record<string, unknown> }).shape)
+        : [];
+
+    const paramObj: Record<string, unknown> = { ...options };
+
+    keys.forEach((key) => {
+      if (
+        params[key] !== undefined &&
+        params[key] !== null &&
+        params[key] !== ''
+      ) {
+        paramObj[key] = params[key];
+      }
+    });
+
+    // Check if there's a locate field that needs detailed locate param processing
+    if (schema) {
+      const locatorFieldKeys = findAllMidsceneLocatorField(schema);
+      locatorFieldKeys.forEach((locateKey: string) => {
+        const locatePrompt = params[locateKey];
+        if (locatePrompt && typeof locatePrompt === 'string') {
+          // Build detailed locate param using the locate prompt and options
+          const detailedLocateParam = buildDetailedLocateParam(locatePrompt, {
+            deepThink: options.deepThink,
+            cacheable: true, // Default to true for playground
+          });
+          if (detailedLocateParam) {
+            paramObj[locateKey] = detailedLocateParam;
+          }
+        }
+      });
+    }
+
+    // Remote execution format: return single merged object
+    return [paramObj];
   }
 
   formatErrorMessage(error: any): string {
