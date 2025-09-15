@@ -28,6 +28,7 @@ export enum AIActionType {
   EXTRACT_DATA = 2,
   PLAN = 3,
   DESCRIBE_ELEMENT = 4,
+  TEXT = 5,
 }
 
 const defaultBboxSize = 20; // must be even number
