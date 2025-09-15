@@ -17,7 +17,7 @@ LLM 模型只能在 Web 自动化中使用。
 * [`GPT-4o`](#gpt-4o)
 * [其他 LLM 模型](#其他-llm-模型)
 
-### VL 模型（✨ 推荐）
+### 视觉语言模型（VL 模型，✨ 推荐）
 
 除了能够理解文本和图像输入外，VL（Visual-Language，视觉语言）模型还可以定位页面上目标元素的坐标。
 
@@ -27,8 +27,8 @@ VL 模型可用于任何类型界面的 UI 自动化。
 
 以下是已适配的 VL 模型：
 
-* [`Doubao-1.5-thinking-vision-pro`](#doubao-15-thinking-vision-pro)
-* [`Qwen-2.5-VL`](#qwen-25-vl)
+* [豆包系列视觉语言模型](#doubao-vision)
+* [千问2.5-VL](#qwen-25-vl)
 * [`Gemini-2.5-Pro`](#gemini-25-pro)
 * [`UI-TARS`](#ui-tars)
 
@@ -52,15 +52,19 @@ MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # 可选，默认是 "gpt-4o"
 ```
 
 
-<div id="doubao-15-thinking-vision-pro"></div>
+<div id="doubao-vision"></div>
 
-### `Doubao-1.5-thinking-vision-pro` （火山引擎）
+### 豆包系列视觉语言模型（✨ 推荐）
 
-Doubao-1.5-thinking-vision-pro 是火山引擎提供的模型。它在视觉定位和断言方面表现更好。
+火山引擎提供了多个视觉语言模型，包括：
+* `Doubao-1.5-thinking-vision-pro`
+* `Doubao-seed-1.6-vision`
+
+它们在复杂场景的视觉定位和断言方面表现相当出色。在指令清晰的情况下，能满足绝大多数业务场景需求，是目前 Midscene 最推荐的视觉语言模型。
 
 **配置**
 
-你可以在 [火山引擎](https://volcengine.com) 上使用 `Doubao-1.5-thinking-vision-pro` 模型。从火山引擎获取 API 密钥后，可以使用以下配置：
+从 [火山引擎](https://volcengine.com) 获取 API 密钥后，可以使用以下配置：
 
 ```bash
 OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" 
@@ -70,11 +74,12 @@ MIDSCENE_USE_DOUBAO_VISION=1
 ```
 
 **链接**
-- [Doubao-1.5-thinking-vision-pro on Volcano Engine](https://www.volcengine.com/docs/82379/1536428)
+- [火山引擎 - Doubao-1.5-thinking-vision-pro](https://www.volcengine.com/docs/82379/1536428)
+- [火山引擎 - Doubao-Seed-1.6-Vision](https://www.volcengine.com/docs/82379/1799865)
 
 
 <div id="qwen-25-vl"></div>
-### `Qwen-2.5-VL` （Openrouter 或阿里云）
+### 千问 2.5-VL （Openrouter 或阿里云）
 
 从 0.12.0 版本开始，Midscene.js 支持 Qwen-2.5-VL-72B-Instruct 模型系列。
 
@@ -102,8 +107,8 @@ MIDSCENE_USE_QWEN_VL=1
 
 **在 Midscene.js 中使用的限制**
 
-- **小图标识别能力不佳**：识别小图标时，你可能需要[启用 `deepThink` 参数](./blog-introducing-instant-actions-and-deep-think)并优化描述，否则识别结果可能不准确。
-- **断言表现不佳**：我们观察到它在断言方面可能不如 `GPT-4o` 或 `Doubao-1.5-thinking-vision-pro`。
+- 小图标识别能力不佳：识别小图标时，你可能需要[启用 `deepThink` 参数](./blog-introducing-instant-actions-and-deep-think)并优化描述，否则识别结果可能不准确。
+- 断言表现不佳：我们观察到它在断言方面可能不如 `GPT-4o` 或 `Doubao-1.5-thinking-vision-pro`。
 
 **关于在阿里云上部署模型的说明**
 

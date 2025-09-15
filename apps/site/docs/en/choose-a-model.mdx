@@ -17,18 +17,18 @@ LLM models can only be used in web automation.
 * [`GPT-4o`](#gpt-4o)
 * [Other LLM models](#other-llm-models)
 
-### VL models (✨ recommended)
+### Visual-Language models (VL models, ✨ recommended)
 
-Besides the ability to understand text and image input, VL(Visual-Language) models can also locate the target elements on the page. 
+Besides the ability to understand text and image input, VL(Visual-Language) models can also locate the coordinates of target elements on the page.
 
-These models are recommended for UI automation since they can natively "see" the screenshot and return the coordinates of target elements on the page, which is much more reliable and efficient in complex scenarios.
+We recommend using VL models for UI automation because they can natively "see" screenshots and return the coordinates of target elements on the page, making them more reliable and efficient in complex scenarios.
 
 VL models can be used in UI automation of any kind of interfaces.
 
 These are the adapted VL models:
 
-* [`Qwen-2.5-VL`](#qwen-25-vl)
-* [`Doubao-1.5-thinking-vision-pro`](#doubao-15-thinking-vision-pro)
+* [Qwen-2.5-VL](#qwen-25-vl)
+* [Doubao series visual language models](#doubao-vision-models)
 * [`Gemini-2.5-Pro`](#gemini-25-pro)
 * [`UI-TARS`](#ui-tars)
 
@@ -52,11 +52,11 @@ MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # optional. The default is "gpt-4o".
 ```
 
 <div id="qwen-25-vl"></div>
-### `Qwen-2.5-VL` on Openrouter or Alibaba Cloud
+### Qwen 2.5-VL (Openrouter or Alibaba Cloud)
 
-From 0.12.0 version, Midscene.js supports Qwen-2.5-VL-72B-Instruct model series.
+Starting from version 0.12.0, Midscene.js supports the Qwen-2.5-VL-72B-Instruct model series.
 
-Qwen-2.5-VL is an open-source model series published by Alibaba. It provides Visual Grounding ability, which can accurately return the coordinates of target elements on the page. When using it for interaction, assertion and query, it performs quite well. We recommend using the largest version (72B) for reliable output.
+Qwen-2.5-VL is an open-source model series published by Alibaba. It provides visual grounding capability and can accurately return the coordinates of target elements on the page. It performs quite well when used for interaction, assertion, and query. We recommend using the largest version (72B) for reliable output.
 
 **config**
 
@@ -69,7 +69,7 @@ MIDSCENE_MODEL_NAME="qwen/qwen2.5-vl-72b-instruct"
 MIDSCENE_USE_QWEN_VL=1
 ```
 
-Or from Alibaba Cloud:
+Or using Alibaba Cloud:
 
 ```bash
 OPENAI_BASE_URL="https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
@@ -80,14 +80,14 @@ MIDSCENE_USE_QWEN_VL=1
 
 **Limitations when used in Midscene.js**
 
-- **Not good at small icon recognition**: to recognize small icons, you may need to [enable the `deepThink` parameter](./blog-introducing-instant-actions-and-deep-think) and optimize the description, otherwise the recognition result may not be accurate.
-- **Perform not that good on assertion**: we observed that it may not work as well as `GPT-4o` or `Doubao-1.5-thinking-vision-pro` on assertion. 
+- **Not good at recognizing small icons**: When recognizing small icons, you may need to [enable the `deepThink` parameter](./blog-introducing-instant-actions-and-deep-think) and optimize the description, otherwise the recognition results may not be accurate.
+- **Unstable assertion performance**: We observed that it may not perform as well as `GPT-4o` or `Doubao-1.5-thinking-vision-pro` in assertion.
 
-**Note about the model deployment on Aliyun.com**
+**Note about model deployment on Alibaba Cloud**
 
-⁠While the open-source version of Qwen-2.5-VL (72B) is named `qwen2.5-vl-72b-instruct`, there is also an enhanced and more stable version named `qwen-vl-max-latest` officially hosted on Aliyun.com. When using the `qwen-vl-max-latest` model on Aliyun, you will get larger context support and a much lower price (likely only 19% of the open-source version).
+While the open-source version of Qwen-2.5-VL (72B) is named `qwen2.5-vl-72b-instruct`, there is also an enhanced and more stable version named `qwen-vl-max-latest` officially hosted on Alibaba Cloud. When using the `qwen-vl-max-latest` model on Alibaba Cloud, you will get larger context support and a much lower price (possibly only 19% of the open-source version).
 
-In short, if you want to use the Aliyun service, use `qwen-vl-max-latest`.
+In short, if you want to use Alibaba Cloud service, please use `qwen-vl-max-latest`.
 
 **Links**
 - [Qwen 2.5 on 🤗 HuggingFace](https://huggingface.co/Qwen/Qwen2.5-VL-72B-Instruct)
@@ -96,11 +96,11 @@ In short, if you want to use the Aliyun service, use `qwen-vl-max-latest`.
 - [Qwen 2.5 on openrouter.ai](https://openrouter.ai/qwen/qwen2.5-vl-72b-instruct)
 
 <div id="gemini-25-pro"></div>
-### `Gemini-2.5-Pro` on Google Gemini
+### `Gemini-2.5-Pro` (Google Gemini)
 
-From 0.15.1 version, Midscene.js supports Gemini-2.5-Pro model. Gemini 2.5 Pro is a closed-source model provided by Google Cloud.
+Starting from version 0.15.1, Midscene.js supports the Gemini-2.5-Pro model. Gemini 2.5 Pro is a closed-source model provided by Google Cloud.
 
-When using Gemini-2.5-Pro, you should use the `MIDSCENE_USE_GEMINI=1` config to turn on the Gemini-2.5-Pro mode. 
+When using Gemini-2.5-Pro, you should use the `MIDSCENE_USE_GEMINI=1` configuration to enable Gemini-2.5-Pro mode. 
 
 **Config**
 
@@ -116,15 +116,19 @@ MIDSCENE_USE_GEMINI=1
 **Links**
 - [Gemini 2.5 on Google Cloud](https://cloud.google.com/gemini-api/docs/gemini-25-overview)
 
-<div id="doubao-15-thinking-vision-pro"></div>
+<div id="doubao-vision-models"></div>
 
-### `Doubao-1.5-thinking-vision-pro` on Volcano Engine
+### Doubao series visual language models (Volcano Engine, ✨ recommended)
 
-Doubao-1.5-thinking-vision-pro is a model provided by Volcano Engine. It works better on visual grounding and assertion.
+Volcano Engine provides multiple visual language models, including:
+* `Doubao-1.5-thinking-vision-pro`
+* `Doubao-seed-1.6-vision`
+
+They perform quite well in visual grounding and assertion in complex scenarios. With clear instructions, they can meet most business scenario requirements and are currently the most recommended visual language models for Midscene.
 
 **Config**
 
-You can use the `Doubao-1.5-thinking-vision-pro` model on [Volcano Engine](https://volcengine.com). After obtaining an API key from Volcano Engine, you can use the following configuration:
+After obtaining API key from [Volcano Engine](https://volcengine.com), you can use the following configuration:
 
 ```bash
 OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" 
@@ -134,20 +138,21 @@ MIDSCENE_USE_DOUBAO_VISION=1
 ```
 
 **Links**
-- [Doubao-1.5-thinking-vision-pro on Volcano Engine](https://www.volcengine.com/docs/82379/1536428)
+- [Volcano Engine - Doubao-1.5-thinking-vision-pro](https://www.volcengine.com/docs/82379/1536428)
+- [Volcano Engine - Doubao-Seed-1.6-Vision](https://www.volcengine.com/docs/82379/1799865)
 
 
 <div id="ui-tars"></div>
 
-### `UI-TARS` on  Volcano Engine
+### `UI-TARS` (Volcano Engine)
 
-UI-TARS is an end-to-end GUI agent model based on VLM architecture. It solely perceives screenshots as input and performs human-like interactions (e.g., keyboard and mouse operations), achieving state-of-the-art performance on 10+ GUI benchmarks. UI-TARS is an open-source model, and provides different versions of size. 
+UI-TARS is an end-to-end GUI agent model based on VLM architecture. It only perceives screenshots as input and performs human-like interactions (e.g., keyboard and mouse operations), achieving state-of-the-art performance on 10+ GUI benchmarks. UI-TARS is an open-source model and provides different size versions.
 
 When using UI-TARS, you can use target-driven style prompts, like "Login with user name foo and password bar", and it will plan the steps to achieve the goal.
 
 **Config**
 
-You can use the deployed `doubao-1.5-ui-tars` on  [Volcano Engine](https://volcengine.com).
+You can use the deployed `doubao-1.5-ui-tars` on [Volcano Engine](https://volcengine.com).
 
 ```bash
 OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" 
@@ -158,14 +163,14 @@ MIDSCENE_USE_VLM_UI_TARS=DOUBAO
 
 **Limitations**
 
-- **Perform not good on assertion**: it may not work as well as GPT-4o and Qwen 2.5 on assertion and query.
-- **Not stable on action path**: It may try different paths to achieve the goal, so the action path is not stable each time you call it.
+- **Poor assertion performance**: It may not perform as well as GPT-4o and Qwen 2.5 in assertion and query.
+- **Unstable operation path**: It may try different paths to achieve the goal, so the operation path is unstable each time you call it.
 
-**About the `MIDSCENE_USE_VLM_UI_TARS` config**
+**About the `MIDSCENE_USE_VLM_UI_TARS` configuration**
 
-The `MIDSCENE_USE_VLM_UI_TARS` config is used to specify the UI-TARS version, use one of these values:
-- `1.0` - for the model version `1.0`
-- `1.5` - for the model version `1.5`
+The `MIDSCENE_USE_VLM_UI_TARS` configuration is used to specify the UI-TARS version, using one of the following values:
+- `1.0` - for model version `1.0`
+- `1.5` - for model version `1.5`
 - `DOUBAO` - for the model deployed on Volcano Engine
 
 **Links**
