@@ -1,6 +1,5 @@
 import type { DeviceAction } from '@midscene/core';
-import { findAllMidsceneLocatorField } from '@midscene/core/ai-model';
-import { buildDetailedLocateParam } from '@midscene/core/yaml';
+import { parseStructuredParams } from '../common';
 import type { ExecutionOptions, FormValue, ValidationResult } from '../types';
 import { BasePlaygroundAdapter } from './base';
 
@@ -76,48 +75,8 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
     params: Record<string, unknown>,
     options: ExecutionOptions,
   ): Promise<unknown[]> {
-    if (!this.hasValidSchema(action)) {
-      return [params.prompt || '', options];
-    }
-
-    const schema = action.paramSchema;
-    const keys =
-      schema && 'shape' in schema
-        ? Object.keys((schema as { shape: Record<string, unknown> }).shape)
-        : [];
-
-    const paramObj: Record<string, unknown> = { ...options };
-
-    keys.forEach((key) => {
-      if (
-        params[key] !== undefined &&
-        params[key] !== null &&
-        params[key] !== ''
-      ) {
-        paramObj[key] = params[key];
-      }
-    });
-
-    // Check if there's a locate field that needs detailed locate param processing
-    if (schema) {
-      const locatorFieldKeys = findAllMidsceneLocatorField(schema);
-      locatorFieldKeys.forEach((locateKey: string) => {
-        const locatePrompt = params[locateKey];
-        if (locatePrompt && typeof locatePrompt === 'string') {
-          // Build detailed locate param using the locate prompt and options
-          const detailedLocateParam = buildDetailedLocateParam(locatePrompt, {
-            deepThink: options.deepThink,
-            cacheable: true, // Default to true for playground
-          });
-          if (detailedLocateParam) {
-            paramObj[locateKey] = detailedLocateParam;
-          }
-        }
-      });
-    }
-
-    // Remote execution format: return single merged object
-    return [paramObj];
+    // Use shared implementation from common.ts
+    return await parseStructuredParams(action, params, options);
   }
 
   formatErrorMessage(error: any): string {
@@ -242,11 +201,6 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
     });
 
     return optionalParams;
-  }
-
-  // Helper method to check if action has a valid schema
-  private hasValidSchema(action: DeviceAction<unknown>): boolean {
-    return !!(action?.paramSchema && 'shape' in action.paramSchema);
   }
 
   // Get action space from server with fallback

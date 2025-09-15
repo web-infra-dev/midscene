@@ -35,9 +35,8 @@ export const formatErrorMessage = (e: any): string => {
   return errorMessage || 'Unknown error';
 };
 
-
 // Parse structured parameters for callActionInActionSpace
-async function parseStructuredParams(
+export async function parseStructuredParams(
   action: DeviceAction<unknown>,
   params: Record<string, unknown>,
   options: ExecutionOptions = {},
@@ -180,13 +179,13 @@ export async function executeAction(
       );
     } else {
       // For prompt-based actions, we need to build the detailed locate param
-      const detailedLocateParam = value.prompt 
+      const detailedLocateParam = value.prompt
         ? buildDetailedLocateParam(value.prompt, {
             deepThink: options.deepThink,
             cacheable: true,
           })
         : undefined;
-      
+
       return await activeAgent.callActionInActionSpace(action.name, {
         locate: detailedLocateParam,
         ...options,
