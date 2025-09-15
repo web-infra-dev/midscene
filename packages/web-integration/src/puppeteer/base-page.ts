@@ -253,10 +253,24 @@ export class Page<
         await this.mouse.move(x, y);
         const { button = 'left', count = 1 } = options || {};
         debugPage(`mouse click ${x}, ${y}, ${button}, ${count}`);
-        this.underlyingPage.mouse.click(x, y, {
-          button,
-          count,
-        });
+
+        if (count === 2 && this.interfaceType === 'playwright') {
+          await (this.underlyingPage as PlaywrightPage).mouse.dblclick(x, y, {
+            button,
+          });
+        } else {
+          if (this.interfaceType === 'puppeteer') {
+            (this.underlyingPage as PuppeteerPage).mouse.click(x, y, {
+              button,
+              count,
+            });
+          } else if (this.interfaceType === 'playwright') {
+            (this.underlyingPage as PlaywrightPage).mouse.click(x, y, {
+              button,
+              clickCount: count,
+            });
+          }
+        }
       },
       wheel: async (deltaX: number, deltaY: number) => {
         debugPage(`mouse wheel ${deltaX}, ${deltaY}`);
