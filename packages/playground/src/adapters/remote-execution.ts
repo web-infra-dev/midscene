@@ -287,38 +287,13 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
       throw new Error('Server URL not configured');
     }
 
-    // Map visualizer config keys to environment variable names
-    const mappedConfig: Record<string, unknown> = {};
-
-    // Map visualizer config keys to their corresponding environment variable names
-    const configKeyMapping: Record<string, string> = {
-      deepThink: 'MIDSCENE_FORCE_DEEP_THINK',
-      // screenshotIncluded and domIncluded are execution options, not global config
-      // They will be passed through ExecutionOptions in executeAction
-
-      // Most config keys are already in the correct environment variable format
-      // so we don't need to map them. The frontend stores config as OPENAI_API_KEY, etc.
-    };
-
-    // Convert visualizer config to environment variable format
-    Object.entries(aiConfig).forEach(([key, value]) => {
-      if (key === 'screenshotIncluded' || key === 'domIncluded') {
-        // These are execution options, not global config - skip them here
-        return;
-      }
-
-      const mappedKey = configKeyMapping[key] || key;
-      // Environment variables must be strings - convert all values to strings
-      mappedConfig[mappedKey] = String(value);
-    });
-
     try {
       const response = await fetch(`${this.serverUrl}/config`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ aiConfig: mappedConfig }),
+        body: JSON.stringify({ aiConfig }),
       });
 
       if (!response.ok) {

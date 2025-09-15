@@ -1,5 +1,6 @@
 import type { DeviceAction } from '@midscene/core';
 import { useCallback } from 'react';
+import { useEnvConfig } from '../store/store';
 import type {
   FormValue,
   InfoListItem,
@@ -35,6 +36,8 @@ export function usePlaygroundExecution(
   currentRunningIdRef: React.MutableRefObject<number | null>,
   interruptedFlagRef: React.MutableRefObject<Record<number, boolean>>,
 ) {
+  // Get execution options from environment config
+  const { deepThink, screenshotIncluded, domIncluded } = useEnvConfig();
   // Handle form submission and execution
   const handleRun = useCallback(
     async (value: FormValue) => {
@@ -115,6 +118,9 @@ export function usePlaygroundExecution(
         // Execute the action using the SDK
         result.result = await playgroundSDK.executeAction(actionType, value, {
           requestId: thisRunningId.toString(),
+          deepThink,
+          screenshotIncluded,
+          domIncluded,
         });
 
         // For some adapters, result might already include dump and reportHTML
@@ -211,6 +217,9 @@ export function usePlaygroundExecution(
       verticalMode,
       currentRunningIdRef,
       interruptedFlagRef,
+      deepThink,
+      screenshotIncluded,
+      domIncluded,
     ],
   );
 

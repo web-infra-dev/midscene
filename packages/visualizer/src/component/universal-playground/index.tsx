@@ -56,7 +56,7 @@ export function UniversalPlayground({
   showContextPreview = true,
 }: UniversalPlaygroundProps) {
   const [form] = Form.useForm();
-  const { deepThink, screenshotIncluded, domIncluded, config } = useEnvConfig();
+  const { config } = useEnvConfig();
 
   // Use custom hooks for state management
   // Determine the storage provider based on configuration
@@ -115,19 +115,14 @@ export function UniversalPlayground({
 
   // Override SDK config when environment config changes
   useEffect(() => {
-    // Pass the complete config, not just the UI-specific fields
-    const completeConfig = {
-      ...config,
-      deepThink,
-      screenshotIncluded,
-      domIncluded,
-    };
-    if (playgroundSDK?.overrideConfig) {
-      playgroundSDK.overrideConfig(completeConfig).catch((error) => {
+    // Only pass global config, not execution options like deepThink, screenshotIncluded, domIncluded
+    // These execution options will be passed through ExecutionOptions during execution
+    if (playgroundSDK?.overrideConfig && config) {
+      playgroundSDK.overrideConfig(config).catch((error) => {
         console.error('Failed to override SDK config:', error);
       });
     }
-  }, [playgroundSDK, config, deepThink, screenshotIncluded, domIncluded]);
+  }, [playgroundSDK, config]);
 
   // Handle form submission with error handling
   const handleFormRun = useCallback(async () => {

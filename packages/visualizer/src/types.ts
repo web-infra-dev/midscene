@@ -223,7 +223,7 @@ export const extractDefaultValue = (field: ZodType): unknown => {
 };
 
 import type { GroupedActionDump, WebUIContext } from '@midscene/core';
-import type { PlaygroundAgent } from '@midscene/playground';
+import type { ExecutionOptions, PlaygroundAgent } from '@midscene/playground';
 
 // result type
 export interface PlaygroundResult {
@@ -284,14 +284,8 @@ export interface FormValue {
   params?: Record<string, unknown>;
 }
 
-// execution options type
-export interface ExecutionOptions {
-  requestId?: string;
-  deepThink?: boolean;
-  screenshotIncluded?: boolean;
-  domIncluded?: boolean;
-  context?: string | object;
-}
+// ExecutionOptions is imported from playground package to ensure consistency
+export type { ExecutionOptions };
 
 // progress callback type
 export type ProgressCallback = (
