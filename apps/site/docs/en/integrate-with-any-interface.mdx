@@ -2,7 +2,11 @@ import SetupEnv from './common/setup-env.mdx';
 
 # Integrate with any interface (preview)
 
-From Midscene v0.28.0, we have launched the feature to integrate with any interface. Define your own interface controller class conforming to the `AbstractInterface` class, and you can get a fully-featured Midscene Agent. All these popular tools are included by default: 
+From Midscene v0.28.0, we have launched the feature to integrate with any interface. Define your own interface controller class conforming to the `AbstractInterface` class, and you can get a fully-featured Midscene Agent.
+
+A typical usage of this feature is to control the interface of your own app, like an IoT device, an in-house app, a display in car, etc. And you can also use it to run interface-specific interactions with your own app.
+
+ All these popular tools are included by default: 
 
 - the GUI Automation Agent SDK for TypeScript
 - the playground for debugging
@@ -249,7 +253,7 @@ These are the required methods that you need to implement:
 - `interfaceType: string`: define a name for the interface, this will not be provided to the AI model
 - `screenshotBase64()`: take a screenshot of the interface and return the base64 string with the `'data:image/` prefix
 - `size()`: the size and dpr of the interface, which is an object with the `width`, `height`, and `dpr` properties
-- `actionSpace()`: the action space of the interface, which is an array of `DeviceAction` objects. Use predefined action spaces or define any custom action.
+- `actionSpace()`: the action space of the interface, which is an array of `DeviceAction` objects. Use predefined actions or define any custom action.
 
 These are the optional methods that you can implement:
 

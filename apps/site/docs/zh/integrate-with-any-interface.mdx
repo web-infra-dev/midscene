@@ -2,13 +2,17 @@ import SetupEnv from './common/setup-env.mdx';
 
 # 与任意界面集成（预览特性）
 
-从 Midscene v0.28.0 开始，我们推出了与任意界面集成的功能。通过继承 `AbstractInterface` 类并告诉 Midscene 如何与界面交互，就可以创建一个功能齐全的 Midscene Agent。默认包含以下能力：
+从 Midscene v0.28.0 开始，我们推出了与任意界面集成的功能。定义符合 `AbstractInterface` 定义的界面控制器类，即可获得一个功能齐全的 Midscene Agent。
+
+它默认包含了以下工具：
 
 - TypeScript 的 GUI 自动化 Agent SDK
-- Playground 调试面板
+- 用于调试的 Playground
 - 通过 yaml 脚本控制界面
 - MCP 服务器
-- Midscene Agent 的全部能力
+- Midscene Agent 的全部特性
+
+该功能的典型用途是控制你自己应用的界面，比如 IoT 设备、内部应用、车载显示器等。你也可以使用它来运行针对特定应用的界面交互。
 
 请注意：只有具备视觉锚定（visual grounding）能力的模型才能用于控制界面。请阅读文档以[选择合适的模型](./choose-a-model)。
 
@@ -65,11 +69,112 @@ npm run build
 
 定义一个继承 `AbstractInterface` 类的类，并实现所需的方法。
 
-你可以从 [`./src/sample-device.ts`](https://github.com/web-infra-dev/midscene-example/blob/main/custom-interface/src/sample-device.ts) 文件中获取示例实现。下面是你需要特别关注的关键点：
+你可以从 [`./src/sample-device.ts`](https://github.com/web-infra-dev/midscene-example/blob/main/custom-interface/src/sample-device.ts) 文件中获取示例实现。让我们快速浏览一下。
+
+```typescript
+import type { DeviceAction, Size } from '@midscene/core';
+import { getMidsceneLocationSchema, z } from '@midscene/core';
+import {
+  type AbstractInterface,
+  defineAction,
+  defineActionTap,
+  defineActionInput,
+  // ... 其他动作导入
+} from '@midscene/core/device';
+
+export interface SampleDeviceConfig {
+  deviceName?: string;
+  width?: number;
+  height?: number;
+  dpr?: number;
+}
+
+/**
+ * SampleDevice - AbstractInterface 的模板实现
+ */
+export class SampleDevice implements AbstractInterface {
+  interfaceType = 'sample-device';
+  private config: Required<SampleDeviceConfig>;
+
+  constructor(config: SampleDeviceConfig = {}) {
+    this.config = {
+      deviceName: config.deviceName || 'Sample Device',
+      width: config.width || 1920,
+      height: config.height || 1080,
+      dpr: config.dpr || 1,
+    };
+  }
+
+  /**
+   * 必需：截取屏幕截图并返回 base64 字符串
+   */
+  async screenshotBase64(): Promise<string> {
+    // TODO：实现实际的屏幕截图捕获
+    console.log('📸 Taking screenshot...');
+    return 'data:image/png;base64,...'; // 你的屏幕截图实现
+  }
+
+  /**
+   * 必需：获取界面尺寸
+   */
+  async size(): Promise<Size> {
+    return {
+      width: this.config.width,
+      height: this.config.height,
+      dpr: this.config.dpr,
+    };
+  }
+
+  /**
+   * 必需：定义 AI 模型的可用动作
+   */
+  actionSpace(): DeviceAction[] {
+    return [
+      // 基础点击动作
+      defineActionTap(async (param) => {
+        // TODO：实现在 param.locate.center 坐标的点击
+        await this.performTap(param.locate.center[0], param.locate.center[1]);
+      }),
+
+      // 文本输入动作  
+      defineActionInput(async (param) => {
+        // TODO：实现文本输入
+        await this.performInput(param.locate.center[0], param.locate.center[1], param.value);
+      }),
+
+      // 自定义动作示例
+      defineAction({
+        name: 'CustomAction',
+        description: '你的自定义设备特定动作',
+        paramSchema: z.object({
+          locate: getMidsceneLocationSchema(),
+          // ... 自定义参数
+        }),
+        call: async (param) => {
+          // TODO：实现自定义动作
+        },
+      }),
+    ];
+  }
+
+  async destroy(): Promise<void> {
+    // TODO：清理资源
+  }
+
+  // 私有实现方法
+  private async performTap(x: number, y: number): Promise<void> {
+    // TODO：你的实际点击实现
+  }
+
+  private async performInput(x: number, y: number, text: string): Promise<void> {
+    // TODO：你的实际输入实现  
+  }
+}
+```
 
 需要实现的关键方法有：
 - `screenshotBase64()`、`size()`：帮助 AI 模型获取界面上下文
-- `actionSpace()`：一个由 `DeviceAction` 组成的数组，定义了在界面上可以执行的动作。AI 模型将依赖这些动作来执行具体操作。Midscene 已为常见界面与设备提供了预定义动作空间，同时也支持自定义动作。
+- `actionSpace()`：一个由 `DeviceAction` 组成的数组，定义了在界面上可以执行的动作。AI 模型将使用这些动作来执行操作。Midscene 已为常见界面与设备提供了预定义动作空间，同时也支持定义任何自定义动作。
 
 使用这些命令运行 Agent：
 
@@ -147,21 +252,21 @@ import { AbstractInterface } from '@midscene/core';
 
 以下是你需要实现的必需方法：
 
-- `interfaceType: string`：为界面定义一个名称（不会提供给 AI 模型）
+- `interfaceType: string`：为界面定义一个名称，这不会提供给 AI 模型
 - `screenshotBase64()`：截取界面的屏幕截图并返回带有 `'data:image/` 前缀的 base64 字符串
 - `size()`：界面的大小和 dpr，它是一个具有 `width`、`height` 和 `dpr` 属性的对象
-- `actionSpace()`：界面的动作空间，它是一个 `DeviceAction` 对象数组。可使用预定义动作空间，或定义任意自定义动作。
+- `actionSpace()`：界面的动作空间，它是一个 `DeviceAction` 对象数组。在这里你可以使用预定义动作，或是自定义交互操作。
 
 以下是你可以实现的可选方法：
 
 - `destroy?()`：销毁
-- `describe?()`：描述这个界面，返回值用于报告和 Playground，但不会提供给 AI 模型
-- `beforeInvokeAction?()`：调用动作之前的钩子函数
-- `afterInvokeAction?()`：调用动作之后的钩子函数
+- `describe?()`：界面描述，这可能会用于报告和 Playground，但不会提供给 AI 模型
+- `beforeInvokeAction?()`：在动作空间中调用动作之前的钩子函数
+- `afterInvokeAction?()`：在调用动作之后的钩子函数
 
 ### 动作空间（Action Space）
 
-动作空间是界面上可执行动作的集合。AI 模型将基于这些动作来计划并执行操作。动作的描述与参数模式都会提供给 AI 模型。
+动作空间是界面上可执行动作的集合。AI 模型将使用这些动作来执行操作。所有动作的描述和参数模式都会提供给 AI 模型。
 
 为了帮助你轻松定义动作空间，Midscene 为最常见的界面和设备提供了一组预定义的动作空间，同时也支持定义任意自定义动作。
 
@@ -181,11 +286,11 @@ import {
 
 你可以在这些函数的类型定义中找到动作的参数。
 
-* `defineActionTap()`：定义点击动作。这也是调用 `aiTap` 方法的函数。
+* `defineActionTap()`：定义点击动作。这也是 `aiTap` 方法的调用函数。
 * `defineActionDoubleClick()`：定义双击动作
-* `defineActionInput()`：定义输入动作。这也是调用 `aiInput` 方法的函数。这也是调用 `aiInput` 方法的函数。
-* `defineActionKeyboardPress()`：定义键盘按下动作。这也是调用 `aiKeyboardPress` 方法的函数。
-* `defineActionScroll()`：定义滚动动作。这也是调用 `aiScroll` 方法的函数。
+* `defineActionInput()`：定义输入动作。这也是 `aiInput` 方法的调用函数。这也是 `aiInput` 方法的调用函数。
+* `defineActionKeyboardPress()`：定义键盘按下动作。这也是 `aiKeyboardPress` 方法的调用函数。
+* `defineActionScroll()`：定义滚动动作。这也是 `aiScroll` 方法的调用函数。
 * `defineActionDragAndDrop()`：定义拖放动作
 * `defineActionLongPress()`：定义长按动作
 * `defineActionSwipe()`：定义滑动动作
@@ -239,10 +344,10 @@ import { getMidsceneLocationSchema } from "@midscene/core/device";
 
 defineAction({
   name: 'LaunchApp',
-  description: 'A an app on screen',
+  description: '启动屏幕上的应用',
   paramSchema: z.object({
-    name: z.string().describe('The name of the app to launch'),
-    locate: getMidsceneLocationSchema().describe('The app icon to be launched'),
+    name: z.string().describe('要启动的应用名称'),
+    locate: getMidsceneLocationSchema().describe('要启动的应用图标'),
   }),
   call: async (param) => {
     console.log(`launching app: ${param.name}, ui located at: ${JSON.stringify(param.locate.center)}`);
@@ -253,14 +358,14 @@ defineAction({
 
 ## 常见问题（FAQ）
 
-**我可以使用普通的 LLM（如 GPT-4o）来控制界面吗？**
+**我可以使用普通的 LLM 模型（如 GPT-4o）来控制界面吗？**
 
-不可以。你必须使用具备视觉锚定能力的模型。具备视觉锚定能力的模型可以在页面上定位目标元素并返回其坐标，这能显著提升自动化的稳定性。
+不可以，你不能使用普通的 LLM 模型（如 GPT-4o）来控制界面。你必须使用具备视觉锚定能力的模型。具备视觉锚定能力的模型可以在页面上定位目标元素并返回元素的坐标，这能显著提升自动化的稳定性。
 
 请阅读文档以[选择合适的模型](./choose-a-model)。
 
 **我的 interface-controller 可以在本文档中被推荐吗？**
 
-可以。我们欢迎收集有创意的项目并在本文档中列出它们。
+可以，我们很乐意收集有创意的项目并将它们列在本文档中。
 
-[当你的项目准备好后，给我们提一个 issue](https://github.com/web-infra-dev/midscene/issues)。
+当项目准备好后，[给我们提一个 issue](https://github.com/web-infra-dev/midscene/issues)。
