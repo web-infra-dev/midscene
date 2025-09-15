@@ -174,6 +174,7 @@ export function BrowserExtensionPlayground({
         layout: 'vertical',
         showVersionInfo: true,
         enableScrollToBottom: true,
+        showEnvConfigReminder: true,
       }}
       branding={{
         title: 'Playground',
