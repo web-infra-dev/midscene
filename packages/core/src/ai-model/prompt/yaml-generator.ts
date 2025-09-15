@@ -319,7 +319,7 @@ Convert events:
 - scroll → aiScroll with appropriate direction
 - Add aiAssert for important state changes
 
-Respond with YAML only, no explanations.`,
+Important: Return ONLY the raw YAML content. Do NOT wrap the response in markdown code blocks (no \`\`\`yaml or \`\`\`). Start directly with the YAML content.`,
       },
     ];
 
@@ -344,7 +344,7 @@ Respond with YAML only, no explanations.`,
 
     const response = await callAIWithStringResponse(
       prompt,
-      AIActionType.EXTRACT_DATA,
+      AIActionType.TEXT,
       modelConfig,
     );
 
@@ -408,7 +408,7 @@ Convert events:
 - scroll → aiScroll with appropriate direction
 - Add aiAssert for important state changes
 
-Respond with YAML only, no explanations.`,
+Important: Return ONLY the raw YAML content. Do NOT wrap the response in markdown code blocks (no \`\`\`yaml or \`\`\`). Start directly with the YAML content.`,
       },
     ];
 
@@ -433,7 +433,7 @@ Respond with YAML only, no explanations.`,
 
     if (options.stream && options.onChunk) {
       // Use streaming
-      return await callAI(prompt, AIActionType.EXTRACT_DATA, modelConfig, {
+      return await callAI(prompt, AIActionType.TEXT, modelConfig, {
         stream: true,
         onChunk: options.onChunk,
       });
@@ -441,7 +441,7 @@ Respond with YAML only, no explanations.`,
       // Fallback to non-streaming
       const response = await callAIWithStringResponse(
         prompt,
-        AIActionType.EXTRACT_DATA,
+        AIActionType.TEXT,
         modelConfig,
       );
 

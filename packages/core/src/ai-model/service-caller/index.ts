@@ -505,11 +505,19 @@ export const getResponseFormat = (
       case AIActionType.DESCRIBE_ELEMENT:
         responseFormat = { type: AIResponseFormat.JSON };
         break;
+      case AIActionType.TEXT:
+        // No response format for plain text - return as-is
+        responseFormat = undefined;
+        break;
     }
   }
 
   // gpt-4o-2024-05-13 only supports json_object response format
-  if (modelName === 'gpt-4o-2024-05-13') {
+  // Skip for plain text to allow string output
+  if (
+    modelName === 'gpt-4o-2024-05-13' &&
+    AIActionTypeValue !== AIActionType.TEXT
+  ) {
     responseFormat = { type: AIResponseFormat.JSON };
   }
 

@@ -99,7 +99,7 @@ Generated code should:
 6. Follow best practices for Playwright tests
 7. Be ready to execute without further modification
 
-Respond ONLY with the complete Playwright test code, no explanations.`;
+Important: Return ONLY the raw Playwright test code. Do NOT wrap the response in markdown code blocks (no \`\`\`typescript, \`\`\`javascript or \`\`\`). Start directly with the code content.`;
 
   // Create message content with screenshots
   const messageContent = createMessageContent(
@@ -128,7 +128,7 @@ ${PLAYWRIGHT_EXAMPLE_CODE}`;
 
   const response = await callAIWithStringResponse(
     prompt,
-    AIActionType.EXTRACT_DATA,
+    AIActionType.TEXT,
     modelConfig,
   );
 
@@ -183,7 +183,7 @@ Generated code should:
 7. Be ready to execute without further modification
 8. can't wrap this test code in markdown code block
 
-Respond ONLY with the complete Playwright test code, no explanations.`;
+Important: Return ONLY the raw Playwright test code. Do NOT wrap the response in markdown code blocks (no \`\`\`typescript, \`\`\`javascript or \`\`\`). Start directly with the code content.`;
 
   // Create message content with screenshots
   const messageContent = createMessageContent(
@@ -212,7 +212,7 @@ ${PLAYWRIGHT_EXAMPLE_CODE}`;
 
   if (options.stream && options.onChunk) {
     // Use streaming
-    return await callAI(prompt, AIActionType.EXTRACT_DATA, modelConfig, {
+    return await callAI(prompt, AIActionType.TEXT, modelConfig, {
       stream: true,
       onChunk: options.onChunk,
     });
@@ -220,7 +220,7 @@ ${PLAYWRIGHT_EXAMPLE_CODE}`;
     // Fallback to non-streaming
     const response = await callAIWithStringResponse(
       prompt,
-      AIActionType.EXTRACT_DATA,
+      AIActionType.TEXT,
       modelConfig,
     );
 
