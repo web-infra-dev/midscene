@@ -150,16 +150,22 @@ export class Agent<
       return this.getUIContext(action);
     });
 
+    const useCache =
+      typeof opts?.useCache === 'boolean'
+        ? opts.useCache
+        : globalConfigManager.getEnvConfigInBoolean(MIDSCENE_CACHE);
+
     if (opts?.cacheId) {
       this.taskCache = new TaskCache(
         opts.cacheId,
-        globalConfigManager.getEnvConfigInBoolean(MIDSCENE_CACHE), // if we should use cache to match the element
+        useCache, // if we should use cache to match the element
       );
     }
 
     this.taskExecutor = new TaskExecutor(this.interface, this.insight, {
       taskCache: this.taskCache,
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
+      replanningCycleLimit: this.opts.replanningCycleLimit,
     });
     this.dump = this.resetDump();
     this.reportFileName =
