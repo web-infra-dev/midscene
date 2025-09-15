@@ -300,7 +300,7 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
             content: expect.any(Array),
           }),
         ]),
-        AIActionType.EXTRACT_DATA,
+        AIActionType.TEXT,
         mockedModelConfig,
       );
     });

@@ -12,7 +12,7 @@ import {
   globalThemeConfig,
   useEnvConfig,
 } from '@midscene/visualizer';
-import { ConfigProvider, Dropdown, Typography, message } from 'antd';
+import { ConfigProvider, Dropdown, Typography } from 'antd';
 import { useEffect, useState } from 'react';
 import { BrowserExtensionPlayground } from '../../components/playground';
 import Bridge from '../bridge';
