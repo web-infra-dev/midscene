@@ -318,15 +318,14 @@ export const generateRecordTitle = async (
         },
       ] as const;
 
-      const response = await callAIWithObjectResponse(
-        [prompt[0], prompt[1]],
-        AIActionType.EXTRACT_DATA,
-        modelConfig,
-      );
+      const response = await callAIWithObjectResponse<{
+        title: string;
+        description: string;
+      }>([prompt[0], prompt[1]], AIActionType.EXTRACT_DATA, modelConfig);
       if (response?.content) {
         return {
-          title: (response.content as any).title as string,
-          description: (response.content as any).description as string,
+          title: response.content.title as string,
+          description: response.content.description as string,
         };
       }
     } catch (llmError) {
