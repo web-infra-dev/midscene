@@ -1,4 +1,4 @@
-# Use JavaScript to Optimize the AI Automation Code
+# Use JavaScript to optimize the AI automation code
 
 Many developers love using `ai` or `aiAction` to accomplish complex tasks, and even describe all logic in a single natural language instruction. Although it may seem 'intelligent', in practice, this approach may not provide a reliable and efficient experience, and results in an endless loop of Prompt tuning.
 
@@ -21,7 +21,7 @@ Another common misconception is that the complex workflow can be effectively con
 aiAction('click all the records one by one. If one record contains the text "completed", skip it')
 ```
 
-## One Path to Optimize the Automation Code: Use JavaScript and Structured API
+## One path to optimize the automation code: use JavaScript and structured API
 
 From v0.16.10, Midscene provides data extraction methods like `aiBoolean` `aiString` `aiNumber`, which can be used to control the workflow. 
 
@@ -48,7 +48,7 @@ for (const record of recordList) {
 
 After modifying the coding style, the whole process can be much more reliable and easier to maintain.
 
-## A More Complex Example
+## A more complex example
 
 Here is another example, this is what it looks like before rewriting: 
 
@@ -96,11 +96,11 @@ while (user.length > 0) {
 }
 ```
 
-## Commonly-used Structured API Methods
+## Commonly-used structured API methods
 
 Here are some commonly-used structured API methods:
 
-### `aiBoolean` - Conditional Decision
+### `aiBoolean` - conditional decision
 
 * Use Case: Condition Judgment, State Detection
 * Advantage: Convert fuzzy descriptions into clear boolean values
@@ -113,7 +113,7 @@ if (hasAlreadyChat) {
 }
 ```
 
-### `aiString` - Text Extraction
+### `aiString` - text extraction
 
 * Use Case: Text Content Retrieval
 * Advantage: Avoid Ambiguity in Natural Language Descriptions
@@ -124,7 +124,7 @@ const username = await agent.aiString('the nickname of the first user in the lis
 console.log('username is', username)
 ```
 
-### `aiNumber` - Numerical Extraction
+### `aiNumber` - numerical extraction
 
 * Use Case: Counting, Numerical Comparison, Loop Control
 * Advantage: Ensure Return Standard Numeric Types
@@ -137,7 +137,7 @@ for (let i = 0; i < unreadCount; i++) {
 }
 ```
 
-### `aiQuery` - General Data Extraction
+### `aiQuery` - general data extraction
 
 * Use Case: Extract any data type
 * Advantage: Flexible Data Type Handling
@@ -147,11 +147,11 @@ Example:
 const userList = await agent.aiQuery('string[], the user list')
 ```
 
-### Instant Action Methods
+### Instant action methods
 
 Midscene provides some instant action methods, like `aiTap`, `aiInput`, `aiScroll`, `aiHover`, etc., They are also commonly used in the automation code. You can check them in the [API](./api.mdx) page.
 
-## Want to Write Structured Code Easily ?
+## Want to write structured code easily?
 
 If you think the javascript code is hard to write, then this is the right time to use the AI IDE.
 
@@ -185,7 +185,7 @@ After you input the prompt, the AI IDE will convert the prompt into structured j
 
 Enjoy it!
 
-## `aiAction` vs Structured Code: Which is the Best Solution ?
+## Which approach is best: `aiAction` or structured code?
 
 There is no standard answer. It depends on the model's ability, the complexity of the actual business.
 
@@ -195,7 +195,7 @@ Generally, if you encounter the following situations, you should consider abando
 - You have already felt tired and spent too much time repeatedly tuning the `aiAction` prompt
 - You need to debug the script step by step
 
-## What's Next ?
+## What's next?
 
 To achieve better performance, you can check the [Midscene caching feature](./caching) to cache the planning and xpath results.
 

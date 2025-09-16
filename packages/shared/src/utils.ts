@@ -1,4 +1,5 @@
 import { sha256 } from 'js-sha256';
+import { v4 as generateUUID } from 'uuid';
 
 declare const WorkerGlobalScope: any;
 
@@ -8,7 +9,7 @@ export const ifInNode =
   typeof process !== 'undefined' && process.versions?.node;
 
 export function uuid(): string {
-  return Math.random().toString(36).substring(2, 15);
+  return generateUUID();
 }
 
 const hashMap: Record<string, string> = {}; // id - combined

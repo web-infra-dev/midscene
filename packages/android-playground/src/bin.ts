@@ -2,13 +2,13 @@ import { exec } from 'node:child_process';
 import { createServer } from 'node:net';
 import path from 'node:path';
 import { promisify } from 'node:util';
+import { select } from '@inquirer/prompts';
 import { AndroidAgent, AndroidDevice } from '@midscene/android';
 import { PlaygroundServer } from '@midscene/playground';
 import {
   PLAYGROUND_SERVER_PORT,
   SCRCPY_SERVER_PORT,
 } from '@midscene/shared/constants';
-import inquirer from 'inquirer';
 import ScrcpyServer from './scrcpy-server';
 
 const promiseExec = promisify(exec);
@@ -101,14 +101,10 @@ async function selectDevice() {
     value: device.id,
   }));
 
-  const { selectedDevice } = await inquirer.prompt([
-    {
-      type: 'list',
-      name: 'selectedDevice',
-      message: '📱 Multiple devices found. Please select one:',
-      choices,
-    },
-  ]);
+  const selectedDevice = await select({
+    message: '📱 Multiple devices found. Please select one:',
+    choices,
+  });
 
   return selectedDevice;
 }

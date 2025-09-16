@@ -1,5 +1,4 @@
 import assert from 'node:assert';
-import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
@@ -36,6 +35,7 @@ import {
   resizeAndConvertImgBuffer,
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
+import { uuid } from '@midscene/shared/utils';
 import { repeat } from '@midscene/shared/utils';
 
 import { ADB } from 'appium-adb';
@@ -803,7 +803,7 @@ ${Object.keys(size)
     const { width, height } = await this.size();
     const adb = await this.getAdb();
     let screenshotBuffer;
-    const androidScreenshotPath = `/data/local/tmp/midscene_screenshot_${randomUUID()}.png`;
+    const androidScreenshotPath = `/data/local/tmp/midscene_screenshot_${uuid()}.png`;
     const useShellScreencap = typeof this.options?.displayId === 'number';
 
     try {

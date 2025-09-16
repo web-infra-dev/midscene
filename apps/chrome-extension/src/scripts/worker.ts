@@ -1,5 +1,6 @@
 /// <reference types="chrome" />
 
+import { uuid } from '@midscene/shared/utils';
 import type { WebUIContext } from '@midscene/web';
 
 const workerMessageTypes = {
@@ -25,9 +26,6 @@ chrome.sidePanel
   .catch((error) => console.error(error));
 
 // cache data between sidepanel and fullscreen playground
-const randomUUID = () => {
-  return Math.random().toString(36).substring(2, 15);
-};
 const cacheMap = new Map<string, WebUIContext>();
 
 // Store connected ports for message forwarding
@@ -99,7 +97,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     case workerMessageTypes.SAVE_CONTEXT: {
       const payload: WorkerRequestSaveContext = request.payload;
       const { context } = payload;
-      const id = randomUUID();
+      const id = uuid();
       cacheMap.set(id, context);
       sendResponse({ id });
       break;

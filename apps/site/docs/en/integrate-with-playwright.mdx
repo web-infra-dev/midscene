@@ -12,7 +12,7 @@ There are two ways to integrate with Playwright:
 
 <SetupEnv />
 
-## Direct Integration with Midscene Agent
+## Direct integration with Midscene agent
 
 :::info Example Project
 You can find an example project of direct Playwright integration here: [https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo)
@@ -131,7 +131,7 @@ const mid = new PlaywrightAgent(page, {
 });
 ```
 
-## Integration in Playwright Test Cases
+## Integration in Playwright test cases
 
 Here we assume you already have a repository with Playwright integration.
 
@@ -139,7 +139,7 @@ Here we assume you already have a repository with Playwright integration.
 You can find an example project of Playwright test integration here: [https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo)
 :::
 
-### Step 1: add dependencies and update configuration
+### Step 1: Add dependencies and update configuration
 
 Add dependencies
 
@@ -157,7 +157,7 @@ export default defineConfig({
 
 The `type` option of the `reporter` configuration can be `merged` or `separate`. The default value is `merged`, which indicates that one merged report for all test cases; the optional value is `separate`, indicating that the report is separated for each test case.
 
-### Step 2: extend the `test` instance
+### Step 2: Extend the `test` instance
 
 Save the following code as `./e2e/fixture.ts`:
 
@@ -173,9 +173,9 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 );
 ```
 
-### Step 3: write test cases
+### Step 3: Write test cases
 
-#### Basic AI Operation APIs
+#### Basic AI operation APIs
 
 - `ai` or `aiAction` - General AI interaction
 - `aiTap` - Click operation
@@ -217,7 +217,7 @@ test('case demo', async ({ agentForPage, page }) => {
 });
 ```
 
-#### Example Code
+#### Example code
 
 ```typescript title="./e2e/ebay-search.spec.ts"
 import { expect } from '@playwright/test';
@@ -278,13 +278,13 @@ test('search headphone on ebay', async ({
 
 For more Agent API details, please refer to [API Reference](./api.mdx).
 
-### Step 4. run test cases
+### Step 4. Run test cases
 
 ```bash
 npx playwright test ./e2e/ebay-search.spec.ts
 ```
 
-### Step 5. view test report
+### Step 5. View test report
 
 After the command executes successfully, it will output: `Midscene - report file updated: ./current_cwd/midscene_run/report/some_id.html`. Open this file in your browser to view the report.
 

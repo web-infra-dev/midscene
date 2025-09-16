@@ -1,4 +1,4 @@
-# Prompting Tips
+# Prompting tips
 
 The natural language parameter passed to Midscene will be part of the prompt sent to the AI model. There are certain techniques in prompt engineering that can help improve the understanding of user interfaces.
 
@@ -108,7 +108,7 @@ Fill the form with 'test' in the password field
 Click Sign up button
 ```
 
-### LLMs can NOT tell the exact number like coords or hex-style color, give it some choices
+### LLMs can not tell the exact number like coords or hex-style color, give it some choices
 
 For example:
 

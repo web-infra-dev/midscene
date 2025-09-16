@@ -1,6 +1,6 @@
 import SetupEnv from './common/setup-env.mdx';
 
-# Automate with Scripts in YAML
+# Automate with scripts in YAML
 
 In most cases, developers write automation scripts just to perform some smoke tests, like checking for the appearance of certain content or verifying that a key user path is accessible. In such situations, maintaining a large test project is unnecessary.
 
@@ -40,7 +40,7 @@ Alternatively, you can use a `.env` file in the same directory where you run the
 OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 ```
 
-## Install the Command-Line Tool
+## Install the command-line tool
 
 Install `@midscene/cli` globally:
 
@@ -84,13 +84,13 @@ Run the script:
 
 ```bash
 midscene ./bing-search.yaml
-# Or if you installed midscene in your project
+# Or if you installed Midscene in your project
 npx midscene ./bing-search.yaml
 ```
 
 You will see the script's execution progress and the visual report file.
 
-## Script File Structure
+## Script file structure
 
 Script files use YAML format to describe automation tasks. It defines the target to be manipulated (like a webpage or an Android app) and the series of steps to perform.
 
@@ -273,11 +273,11 @@ tasks:
       # ...
 ```
 
-## Advanced Usage of the Command-Line Tool
+## Advanced usage of the command-line tool
 
 `@midscene/cli` provides flexible ways to run your automation scripts.
 
-### Run One or More Scripts
+### Run one or more scripts
 
 You can pass a single `.yaml` script file or use a glob pattern to match multiple `.yaml` files to the `midscene` command. This is a shorthand for the `--files` argument.
 
@@ -289,7 +289,7 @@ midscene ./bing-search.yaml
 midscene './scripts/**/*.yaml'
 ```
 
-### Command-Line Options
+### Command-line options
 
 The command-line tool provides several options to control the execution behavior of your scripts.
 
@@ -322,7 +322,7 @@ Run all scripts with a concurrency of 4 and continue on any file error.
 midscene --files './scripts/**/*.yaml' --concurrent 4 --continue-on-error
 ```
 
-### Writing Command-Line Arguments in a File
+### Writing command-line arguments in a file
 
 You can write a configuration file in YAML format and reference it with `--config`. When invoking the command-line tool, command-line arguments have higher priority than the configuration file.
 
@@ -343,9 +343,9 @@ Usage:
 midscene --config ./config.yaml
 ```
 
-## More Features
+## More features
 
-### Using Environment Variables in `.yaml` Files
+### Using environment variables in `.yaml` files
 
 You can use environment variables in your `.yaml` files with the `${variable-name}` syntax.
 
@@ -363,7 +363,7 @@ You can use the environment variable in your `.yaml` file like this:
 #...
 ```
 
-### Running in Headed Mode
+### Running in headed mode
 
 > `web` scenarios only
 
@@ -381,7 +381,7 @@ midscene /path/to/yaml --headed
 midscene /path/to/yaml --keep-window
 ```
 
-### Using Bridge Mode
+### Using bridge mode
 
 > `web` scenarios only
 
@@ -397,11 +397,11 @@ web:
 
 Please refer to [Bridge Mode via Chrome Extension](./bridge-mode-by-chrome-extension) for more details.
 
-### Running YAML Scripts with JavaScript
+### Running YAML scripts with JavaScript
 
 You can also run a YAML script using JavaScript by calling the [`runYaml`](./api.html#runyaml) method on the Agent. Note that this method will only execute the `tasks` part of the YAML script.
 
-### Analyzing Command-Line Tool Results
+### Analyzing command-line tool results
 
 After execution is complete, the following files will be generated in the output directory:
 
@@ -409,11 +409,11 @@ After execution is complete, the following files will be generated in the output
 - The individual execution results of each YAML file (in JSON format).
 - The visual reports for each file (in HTML format).
 
-## Configure dotenv's Default Behavior
+## Configure dotenv's default behavior
 
 Midscene uses [`dotenv`](https://github.com/motdotla/dotenv) to load environment variables from a `.env` file.
 
-### Disable dotenv's Debug Logs
+### Disable dotenv's debug logs
 
 By default, Midscene prints debug information from dotenv. If you don't want to see this information, you can use the `--dotenv-debug` option to disable it.
 
@@ -421,7 +421,7 @@ By default, Midscene prints debug information from dotenv. If you don't want to 
 midscene /path/to/yaml --dotenv-debug=false
 ```
 
-### Use .env to Override Global Environment Variables
+### Use .env to override global environment variables
 
 By default, `dotenv` will not override global environment variables with the same name found in the `.env` file. If you want to override them, you can use the `--dotenv-override` option.
 

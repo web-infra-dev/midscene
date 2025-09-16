@@ -43,7 +43,7 @@ There are also some community projects that use this feature:
 * The `AbstractInterface` class: a predefined abstract class that can connect to the Midscene Agent
 * The **action space**: a set of actions that describe the actions that can be performed on the interface. This will affect how the AI model plans the actions and executes them
 
-### Step 1. clone and setup from the demo project
+### Step 1. Clone and setup from the demo project
 
 We provide a demo project that runs all the features of this document below. It's the fastest way to get started.
 
@@ -58,7 +58,7 @@ npm run build
 npm run demo
 ```
 
-### Step 2. implement your interface class
+### Step 2. Implement your interface class
 
 Define a class that extends the `AbstractInterface` class, and implement the required methods.
 
@@ -176,7 +176,7 @@ Use these commands to run the agent:
 - `npm run demo:yaml` to run the agent with yaml script
 
 
-### Step 3. test the agent with the playground
+### Step 3. Test the agent with the playground
 
 Attach a playground server to the agent, and you can test the agent in the web browser.
 
@@ -200,11 +200,11 @@ await server.close();
 console.log('Playground closed!');
 ```
 
-### Step 4. test the MCP server
+### Step 4. Test the MCP server
 
 (still in progress)
 
-### Step 5. release the npm package, and let your users to use it
+### Step 5. Release the npm package, and let your users use it
 
 The agent and interface class have been exported in `./index.ts` file. Now you can publish it to npm.
 
@@ -230,7 +230,7 @@ const agent = new Agent(device);
 await agent.aiAction('click the button');
 ```
 
-### Step 6. invoke your class in Midscene cli and yaml script
+### Step 6. Invoke your class in Midscene CLI and YAML script
 
 Write a yaml script with the `interface` section to invoke your class.
 
@@ -254,7 +254,7 @@ const agent = new Agent(device, {
 
 Other fields in the yaml script are the same as the [yaml script](./automate-with-scripts-in-yaml.html).
 
-## API Reference
+## API reference
 
 ### `AbstractInterface` class
 
@@ -398,7 +398,7 @@ import { playgroundForAgent } from '@midscene/playground';
 
 The `playgroundForAgent` function creates a playground launcher for a specific Agent, allowing you to test and debug your custom interface Agent in a web browser.
 
-#### Function Signature
+#### Function signature
 
 ```typescript
 function playgroundForAgent(agent: Agent): {
@@ -410,11 +410,11 @@ function playgroundForAgent(agent: Agent): {
 
 - `agent: Agent`: The Agent instance to launch the playground for
 
-#### Return Value
+#### Return value
 
 Returns an object containing a `launch` method.
 
-#### `launch` Method Options
+#### `launch` method options
 
 ```typescript
 interface LaunchPlaygroundOptions {
@@ -451,7 +451,7 @@ interface LaunchPlaygroundOptions {
 }
 ```
 
-#### `launch` Method Return Value
+#### `launch` method return value
 
 ```typescript
 interface LaunchPlaygroundResult {
@@ -477,7 +477,7 @@ interface LaunchPlaygroundResult {
 }
 ```
 
-#### Usage Example
+#### Usage example
 
 ```typescript
 import 'dotenv/config';
