@@ -210,7 +210,15 @@ export function adaptBboxToRect(
   offsetY = 0,
   vlMode?: TVlModeTypes | undefined,
 ): Rect {
-  debugInspectUtils('adaptBboxToRect', bbox, width, height, offsetX, offsetY);
+  debugInspectUtils(
+    'adaptBboxToRect',
+    bbox,
+    width,
+    height,
+    offsetX,
+    offsetY,
+    vlMode,
+  );
   const [left, top, right, bottom] = adaptBbox(bbox, width, height, vlMode);
 
   // Calculate initial rect dimensions

@@ -53,8 +53,8 @@ export async function commonContextParser(
   const size = await interfaceInstance.size();
   debugProfile(`size: ${size.width}x${size.height} dpr: ${size.dpr}`);
 
-  if (size.dpr && size.dpr > 1) {
-    debugProfile('Resizing screenshot for high DPR display');
+  if (size.dpr && size.dpr !== 1) {
+    debugProfile('Resizing screenshot for non-1 dpr');
     screenshotBase64 = await resizeImgBase64(screenshotBase64, {
       width: size.width,
       height: size.height,
