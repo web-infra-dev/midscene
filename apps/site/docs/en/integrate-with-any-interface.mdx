@@ -4,7 +4,7 @@ import SetupEnv from './common/setup-env.mdx';
 
 From Midscene v0.28.0, we have launched the feature to integrate with any interface. Define your own interface controller class conforming to the `AbstractInterface` class, and you can get a fully-featured Midscene Agent.
 
-A typical usage of this feature is to control the interface of your own app, like an IoT device, an in-house app, a display in car, etc. And you can also use it to run interface-specific interactions with your own app.
+A typical usage of this feature is to build a GUI Automation Agent for your own interface, like an IoT device, an in-house app, a display in car, etc. 
 
 After implementing the class, you can have all these popular features:
 
@@ -18,17 +18,7 @@ Please note that only models with visual grounding capabilities can be used to c
 
 :::tip This is a preview feature
 
-This feature is still in preview. We have finished the following work
-
-✅ Allow developers to define a class that extends the `AbstractInterface` class
-
-✅ Allow developers to use yaml script to drive the interface
-
-✅ Allow developers to use the playground
-
-And the next work is
-
-- Allow developers to use the MCP server
+This feature is still in the preview stage, and we welcome your feedback and suggestions on [GitHub](https://github.com/web-infra-dev/midscene/issues).
 
 :::
 
@@ -191,22 +181,6 @@ import 'dotenv/config'; // read environment variables from .env file
 import { midsceneAgentForSampleDevice } from '../src';
 import { playgroundForAgent } from '@midscene/playground';
 
-// run a sample script to interact with the custom interface
-Promise.resolve(
-  (async () => {
-    const agent = await midsceneAgentForSampleDevice({ foo: 'bar' });
-
-    // 👀 assert by AI
-    await agent.aiAssert('This is an app panel');
-
-    // 👀 query data
-    await agent.aiQuery('the name of the apps on the first row, string[]');
-
-    // 👀 perform action based on the action space
-    await agent.aiAction('launch the "1 password" app');
-  })()
-);
-
 // launch playground to interact with the agent
 Promise.resolve(
   (async () => {
@@ -224,7 +198,7 @@ Promise.resolve(
 
 ### Step 4. test the MCP server
 
-(still in progress...)
+(still in progress)
 
 ### Step 5. release the npm package, and let your users to use it
 
@@ -312,7 +286,7 @@ import {
 } from "@midscene/core/device";
 ```
 
-#### The predefined action space
+#### The predefined actions
 
 These are the predefined action spaces for the most common interfaces and devices. You can expose them to the customized interface by implementing the call method of the action.
 

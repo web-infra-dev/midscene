@@ -4,33 +4,22 @@ import SetupEnv from './common/setup-env.mdx';
 
 从 Midscene v0.28.0 开始，我们推出了与任意界面集成的功能。定义符合 `AbstractInterface` 定义的界面控制器类，即可获得一个功能齐全的 Midscene Agent。
 
-该功能的典型用途是控制你自己应用的界面，比如 IoT 设备、内部应用、车载显示器等。你也可以使用它来运行针对特定应用的界面交互。
+该功能的典型用途是构建一个针对你自己界面的 GUI 自动化 Agent，比如 IoT 设备、内部应用、车载显示器等。
 
 在实现了 UI 操作的类之后，你可以获得以下特性：
 
 - TypeScript 的 GUI 自动化 Agent SDK
 - 用于调试的 Playground
 - 通过 yaml 脚本控制界面
-- MCP 服务器
 - Midscene Agent 的全部特性
+- MCP 服务器 (仍在开发中...)
 
 请注意：只有具备视觉定位（visual grounding）能力的模型才能用于操作 UI 界面。请阅读文档以[选择合适的模型](./choose-a-model)。
 
+
 :::tip 预览功能说明
-此功能仍在预览阶段。目前我们已经完成了以下工作：
-
-✅ 允许开发者定义继承 `AbstractInterface` 的类
-
-✅ 允许开发者使用 yaml 脚本驱动界面
-
-✅ 允许开发者使用 Playground
-
-接下来将要完成：
-
-- 允许开发者使用 MCP 服务器
-
+此功能仍在预览阶段，欢迎你在 [GitHub](https://github.com/web-infra-dev/midscene/issues) 上给我们提建议。
 :::
-
 
 ## 演示和社区项目
 
@@ -185,7 +174,7 @@ export class SampleDevice implements AbstractInterface {
 
 ### 步骤 3. 使用 Playground 测试 Agent
 
-将 Playground 服务附加到 Agent，即可在浏览器中测试。
+为 Agent 附加一个 Playground 服务，即可在浏览器中测试你的 Agent。
 
 ```ts 
 import 'dotenv/config'; // read environment variables from .env file
@@ -225,7 +214,7 @@ Promise.resolve(
 
 ### 步骤 4. 测试 MCP 服务
 
-（正在进行中...）
+（仍在开发中）
 
 ### 步骤 5. 发布 npm 包，让你的用户使用它
 
@@ -302,7 +291,7 @@ import { AbstractInterface } from '@midscene/core';
 
 动作空间是界面上可执行动作的集合。AI 模型将使用这些动作来执行操作。所有动作的描述和参数模式都会提供给 AI 模型。
 
-为了帮助你轻松定义动作空间，Midscene 为最常见的界面和设备提供了一组预定义的动作空间，同时也支持定义任意自定义动作。
+为了帮助你轻松定义动作空间，Midscene 为最常见的界面和设备提供了一组预定义的动作，同时也支持定义任意自定义动作。
 
 以下是如何导入工具来定义动作空间：
 
@@ -314,7 +303,7 @@ import {
 } from "@midscene/core/device";
 ```
 
-#### 预定义的动作空间
+#### 预定义的动作
 
 这些是最常见界面和设备的预定义动作空间。你可以通过实现动作的调用方法将它们暴露给定制化界面。
 
