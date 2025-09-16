@@ -129,7 +129,9 @@ export const defineActionHover = (
 // Input
 export const actionInputParamSchema = z.object({
   value: z.string().describe('The value to be input'),
-  locate: getMidsceneLocationSchema().describe('The element to be input'),
+  locate: getMidsceneLocationSchema()
+    .describe('The element to be input')
+    .optional(),
 });
 export type ActionInputParam = z.infer<typeof actionInputParamSchema>;
 
