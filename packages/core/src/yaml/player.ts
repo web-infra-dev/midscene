@@ -52,7 +52,10 @@ import type {
 } from '@/index';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { getDebug } from '@midscene/shared/logger';
-import { buildDetailedLocateParamAndRestParams } from './utils';
+import {
+  buildDetailedLocateParam,
+  buildDetailedLocateParamAndRestParams,
+} from './utils';
 
 const debug = getDebug('yaml-player');
 export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
@@ -405,7 +408,14 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         await agent.callActionInActionSpace('KeyboardPress', {
           ...keyboardPressTask,
           ...(keyName ? { keyName } : {}),
-          ...(locatePrompt ? { locate: locatePrompt } : {}),
+          ...(locatePrompt
+            ? {
+                locate: buildDetailedLocateParam(
+                  locatePrompt,
+                  keyboardPressTask,
+                ),
+              }
+            : {}),
         });
       } else if ('aiScroll' in (flowItem as MidsceneYamlFlowItemAIScroll)) {
         const { aiScroll, ...scrollTask } =
@@ -426,7 +436,9 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
 
         await agent.callActionInActionSpace('Scroll', {
           ...scrollTask,
-          ...(locatePrompt ? { locate: locatePrompt } : {}),
+          ...(locatePrompt
+            ? { locate: buildDetailedLocateParam(locatePrompt, scrollTask) }
+            : {}),
         });
       } else {
         // generic action, find the action in actionSpace

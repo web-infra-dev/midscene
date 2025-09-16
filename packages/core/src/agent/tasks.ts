@@ -330,6 +330,11 @@ export class TaskExecutor {
               element,
             );
             if (elementXpaths?.length) {
+              debug(
+                'update cache, prompt: %s, xpaths: %s',
+                cachePrompt,
+                elementXpaths,
+              );
               currentXpaths = elementXpaths;
               this.taskCache.updateOrAppendCacheRecord(
                 {
