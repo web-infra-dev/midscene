@@ -181,39 +181,25 @@ export class SampleDevice implements AbstractInterface {
 为 Agent 附加一个 Playground 服务，即可在浏览器中测试你的 Agent。
 
 ```ts 
-import 'dotenv/config'; // read environment variables from .env file
-import { midsceneAgentForSampleDevice } from '../src';
+import 'dotenv/config'; // 从 .env 文件里读取 Midscene 环境变量
 import { playgroundForAgent } from '@midscene/playground';
 
-// run a sample script to interact with the custom interface
-Promise.resolve(
-  (async () => {
-    const agent = await midsceneAgentForSampleDevice({ foo: 'bar' });
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-    // 👀 assert by AI
-    await agent.aiAssert('This is an app panel');
+// 实例化 device 和 agent
+const device = new SampleDevice();
+await device.launch();
+const agent new Agent({
+  foo: 'bar',
+});
 
-    // 👀 query data
-    await agent.aiQuery('the name of the apps on the first row, string[]');
+// 启动 playground
+const server = await playgroundForAgent(agent).launch();
 
-    // 👀 perform action based on the action space
-    await agent.aiAction('launch the "1 password" app');
-  })()
-);
-
-// launch playground to interact with the agent
-Promise.resolve(
-  (async () => {
-    const agent = await midsceneAgentForSampleDevice({ foo: 'bar' });
-    // 👀 launch playground for the agent
-    const server = await playgroundForAgent(agent).launch();
-    setTimeout(() => {
-      console.log('closing playground');
-      server.close();
-    }, 10 * 60 * 1000);
-  })()
-);
-
+// 关闭 Playground
+await sleep(10 * 60 * 1000);
+await server.close();
+console.log('Playground 已关闭！');
 ```
 
 ### 步骤 4. 测试 MCP 服务
@@ -233,9 +219,15 @@ npm publish
 你的 npm 包的典型用法如下：
 
 ```typescript
-import { midsceneAgentForSampleDevice } from '...';
+import 'dotenv/config'; // 从 .env 文件里读取 Midscene 环境变量
+import { playgroundForAgent } from '@midscene/playground';
 
-const agent = midsceneAgentForSampleDevice({
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// 实例化 device 和 agent
+const device = new SampleDevice();
+await device.launch();
+const agent new Agent({
   foo: 'bar',
 });
 
@@ -380,6 +372,122 @@ defineAction({
     console.log(`launching app: ${param.name}, ui located at: ${JSON.stringify(param.locate.center)}`);
   },
 });
+```
+
+### `playgroundForAgent` 函数
+
+```typescript
+import { playgroundForAgent } from '@midscene/playground';
+```
+
+`playgroundForAgent` 函数用于为特定的 Agent 创建一个 Playground 启动器，让你可以在浏览器中测试和调试你的自定义界面 Agent。
+
+#### 函数签名
+
+```typescript
+function playgroundForAgent(agent: Agent): {
+  launch(options?: LaunchPlaygroundOptions): Promise<LaunchPlaygroundResult>
+}
+```
+
+#### 参数
+
+- `agent: Agent`：要为其启动 Playground 的 Agent 实例
+
+#### 返回值
+
+返回一个包含 `launch` 方法的对象。
+
+#### `launch` 方法选项
+
+```typescript
+interface LaunchPlaygroundOptions {
+  /**
+   * Playground 服务器端口
+   * @default 5800
+   */
+  port?: number;
+
+  /**
+   * 是否自动在浏览器中打开 Playground
+   * @default true
+   */
+  openBrowser?: boolean;
+
+  /**
+   * 自定义浏览器打开命令
+   * @default macOS 使用 'open'，Windows 使用 'start'，Linux 使用 'xdg-open'
+   */
+  browserCommand?: string;
+
+  /**
+   * 是否显示服务器日志
+   * @default true
+   */
+  verbose?: boolean;
+
+  /**
+   * Playground 服务器实例的唯一标识 ID
+   * 同一个 ID 共用 Playground 对话历史
+   * @default undefined（生成随机 UUID）
+   */
+  id?: string;
+}
+```
+
+#### `launch` 方法返回值
+
+```typescript
+interface LaunchPlaygroundResult {
+  /**
+   * Playground 服务器实例
+   */
+  server: PlaygroundServer;
+
+  /**
+   * 服务器端口
+   */
+  port: number;
+
+  /**
+   * 服务器主机地址
+   */
+  host: string;
+
+  /**
+   * 关闭 Playground 的函数
+   */
+  close: () => Promise<void>;
+}
+```
+
+#### 使用示例
+
+```typescript
+import 'dotenv/config';
+import { playgroundForAgent } from '@midscene/playground';
+import { SampleDevice } from './sample-device';
+import { Agent } from '@midscene/core/agent';
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// 创建设备和 Agent 实例
+const device = new SampleDevice();
+const agent = new Agent(device);
+
+// 启动 Playground
+const result = await playgroundForAgent(agent).launch({
+  port: 5800,
+  openBrowser: true,
+  verbose: true
+});
+
+console.log(`Playground 已启动：http://${result.host}:${result.port}`);
+
+// 在需要时关闭 Playground
+await sleep(10 * 60 * 1000); // 等待 10 分钟
+await result.close();
+console.log('Playground 已关闭！');
 ```
 
 ## 常见问题（FAQ）

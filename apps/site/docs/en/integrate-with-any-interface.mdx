@@ -181,23 +181,25 @@ Use these commands to run the agent:
 Attach a playground server to the agent, and you can test the agent in the web browser.
 
 ```ts 
-import 'dotenv/config'; // read environment variables from .env file
-import { midsceneAgentForSampleDevice } from '../src';
+import 'dotenv/config'; // read Midscene environment variables from .env file
 import { playgroundForAgent } from '@midscene/playground';
 
-// launch playground to interact with the agent
-Promise.resolve(
-  (async () => {
-    const agent = await midsceneAgentForSampleDevice({ foo: 'bar' });
-    // 👀 launch playground for the agent
-    const server = await playgroundForAgent(agent).launch();
-    setTimeout(() => {
-      console.log('closing playground');
-      server.close();
-    }, 10 * 60 * 1000);
-  })()
-);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// instantiate device and agent
+const device = new SampleDevice();
+await device.launch();
+const agent new Agent({
+  foo: 'bar',
+});
+
+// launch playground
+const server = await playgroundForAgent(agent).launch();
+
+// close playground
+await sleep(10 * 60 * 1000);
+await server.close();
+console.log('Playground closed!');
 ```
 
 ### Step 4. test the MCP server
@@ -217,9 +219,15 @@ npm publish
 A typical usage of your npm package is like this:
 
 ```typescript
-import { midsceneAgentForSampleDevice } from '...';
+import 'dotenv/config'; // read Midscene environment variables from .env file
+import { playgroundForAgent } from '@midscene/playground';
 
-const agent = midsceneAgentForSampleDevice({
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// instantiate device and agent
+const device = new SampleDevice();
+await device.launch();
+const agent new Agent({
   foo: 'bar',
 });
 
@@ -365,6 +373,121 @@ defineAction({
 });
 ```
 
+### `playgroundForAgent` function
+
+```typescript
+import { playgroundForAgent } from '@midscene/playground';
+```
+
+The `playgroundForAgent` function creates a playground launcher for a specific Agent, allowing you to test and debug your custom interface Agent in a web browser.
+
+#### Function Signature
+
+```typescript
+function playgroundForAgent(agent: Agent): {
+  launch(options?: LaunchPlaygroundOptions): Promise<LaunchPlaygroundResult>
+}
+```
+
+#### Parameters
+
+- `agent: Agent`: The Agent instance to launch the playground for
+
+#### Return Value
+
+Returns an object containing a `launch` method.
+
+#### `launch` Method Options
+
+```typescript
+interface LaunchPlaygroundOptions {
+  /**
+   * Port to start the playground server on
+   * @default 5800
+   */
+  port?: number;
+
+  /**
+   * Whether to automatically open the playground in browser
+   * @default true
+   */
+  openBrowser?: boolean;
+
+  /**
+   * Custom browser command to open playground
+   * @default 'open' on macOS, 'start' on Windows, 'xdg-open' on Linux
+   */
+  browserCommand?: string;
+
+  /**
+   * Whether to show server logs
+   * @default true
+   */
+  verbose?: boolean;
+
+  /**
+   * Unique identifier for the playground server instance
+   * Same ID shares playground chat history
+   * @default undefined (generates random UUID)
+   */
+  id?: string;
+}
+```
+
+#### `launch` Method Return Value
+
+```typescript
+interface LaunchPlaygroundResult {
+  /**
+   * The playground server instance
+   */
+  server: PlaygroundServer;
+
+  /**
+   * The server port
+   */
+  port: number;
+
+  /**
+   * The server host
+   */
+  host: string;
+
+  /**
+   * Function to close the playground
+   */
+  close: () => Promise<void>;
+}
+```
+
+#### Usage Example
+
+```typescript
+import 'dotenv/config';
+import { playgroundForAgent } from '@midscene/playground';
+import { SampleDevice } from './sample-device';
+import { Agent } from '@midscene/core/agent';
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Create device and agent instances
+const device = new SampleDevice();
+const agent = new Agent(device);
+
+// Launch playground
+const result = await playgroundForAgent(agent).launch({
+  port: 5800,
+  openBrowser: true,
+  verbose: true
+});
+
+console.log(`Playground started: http://${result.host}:${result.port}`);
+
+// Close playground when needed
+await sleep(10 * 60 * 1000); // Wait 10 minutes
+await result.close();
+console.log('Playground closed!');
+```
 
 ## FAQ 
 
