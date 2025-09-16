@@ -2,6 +2,42 @@
 
 > For the complete changelog, please refer to: [Midscene Releases](https://github.com/web-infra-dev/midscene/releases)
 
+## v0.28 - 📱 Support for Integration with Any Interface (Preview Feature)
+
+### 🚀 Support for Integration with Any Interface (Preview Feature)
+
+v0.28 introduces the capability to integrate with any interface. Define an interface controller class that conforms to the `AbstractInterface` definition, and you can get a fully-featured Midscene Agent.
+
+The typical use case for this feature is to build a GUI automation Agent for your own interface, such as IoT devices, in-house applications, car displays, etc.!
+
+Combined with the universal Playground architecture and SDK enhancement features, developers can conveniently debug custom devices.
+
+For more information, please refer to [Integrate with Any Interface (Preview Feature)](./integrate-with-any-interface.mdx)
+
+### 📱 Android Platform Optimization
+- **Planning Cache Support**: Added planning cache functionality for Android platform, improving execution efficiency
+- **Input Strategy Enhancement**: Optimized input clearing strategy based on IME settings, improving Android platform input experience
+- **Scroll Calculation Improvement**: Optimized scroll endpoint calculation algorithm for Android platform
+
+### 👆 Gesture Operation Extension
+- **Double-Click Operation Support**: Added support for double-click actions
+- **Long Press and Swipe Gestures**: Added support for long press and swipe gestures
+
+### ⚙️ Core Function Enhancement
+- **Agent Configuration Isolation**: Implemented model configuration isolation between different agents, avoiding configuration conflicts
+- **Execution Option Extension**: Added useCache and replanningCycleLimit configuration options for Agent, providing more fine-grained control
+- **YAML Script Support**: Support for running universal custom devices through YAML scripts, enhancing automation capabilities
+
+### 🐞 Bug Fixes
+- Fixed Qwen model search region size issues
+- Optimized deepThink parameter handling and rectangle size calculation
+- Resolved issues related to Playwright double-click operations
+- Improved TEXT action type processing logic
+
+### 📚 Documentation and Community
+- Added custom interface documentation to help developers better extend functionality
+- Added [Awesome Midscene](./awesome-midscene.md) section in README to showcase community projects
+
 ## v0.27 - 🧠 Core Module Refactoring, Assertions and Reports Functionally Enhanced
 
 ### ⚠️ Core Module Refactoring
