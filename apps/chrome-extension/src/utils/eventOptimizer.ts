@@ -1,6 +1,7 @@
 import Insight from '@midscene/core';
-import type { BaseElement, UIContext } from '@midscene/core';
+import type { BaseElement, Rect, UIContext } from '@midscene/core';
 import type { RecordedEvent } from '@midscene/recorder';
+import { globalModelConfigManager } from '@midscene/shared/env';
 import { compositeElementInfoImg } from '@midscene/shared/img';
 
 // Caches for element descriptions and boxed screenshots to improve performance
@@ -81,11 +82,16 @@ export const generateAIDescription = async (
   }
 
   // New addition: describe call with retry
-  async function describeWithRetry(insight: any, rect: any, maxRetries = 3) {
+  async function describeWithRetry(
+    insight: Insight,
+    rect: Rect | [number, number],
+    maxRetries = 3,
+  ) {
     let lastError;
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        return await insight.describe(rect);
+        const modelConfig = globalModelConfigManager.getModelConfig('default');
+        return await insight.describe(rect, modelConfig);
       } catch (err) {
         lastError = err;
         if (attempt < maxRetries) {
@@ -150,27 +156,38 @@ export const generateBoxedImage = async (
     }
 
     const elementsPositionInfo = [];
-    if (hasValidRect(event)) {
-      elementsPositionInfo.push({
-        rect: {
-          left: event.elementRect?.left,
-          top: event.elementRect?.top,
-          width: event.elementRect?.width,
-          height: event.elementRect?.height,
-        },
-        indexId: 1,
-      });
-    }
-
-    if (event.elementRect?.x && event.elementRect?.y) {
-      elementsPositionInfo.push({
-        rect: {
-          left: event.elementRect.x,
-          top: event.elementRect.y,
-          width: 4,
-          height: 4,
-        },
-      } as any);
+    if (hasValidRect(event) && event.elementRect) {
+      // Check if we have left/top/width/height properties
+      if (
+        event.elementRect.width &&
+        event.elementRect.height &&
+        (event.elementRect.left !== undefined ||
+          event.elementRect.top !== undefined)
+      ) {
+        elementsPositionInfo.push({
+          rect: {
+            left: event.elementRect.left || 0,
+            top: event.elementRect.top || 0,
+            width: event.elementRect.width,
+            height: event.elementRect.height,
+          },
+          indexId: 1,
+        });
+      }
+      // Check if we have x/y coordinates
+      else if (
+        event.elementRect.x !== undefined &&
+        event.elementRect.y !== undefined
+      ) {
+        elementsPositionInfo.push({
+          rect: {
+            left: event.elementRect.x,
+            top: event.elementRect.y,
+            width: 4,
+            height: 4,
+          },
+        });
+      }
     }
 
     const boxedImageBase64 = await compositeElementInfoImg({
