@@ -144,6 +144,15 @@ export class Agent<
       ? new ModelConfigManager(opts.modelConfig)
       : globalModelConfigManager;
 
+    if (
+      this.interface.interfaceType !== 'puppeteer' &&
+      this.interface.interfaceType !== 'playwright' &&
+      this.interface.interfaceType !== 'static' &&
+      this.interface.interfaceType !== 'chrome-extension-proxy'
+    ) {
+      this.modelConfigManager.warnIfNonVLModel();
+    }
+
     this.onTaskStartTip = this.opts.onTaskStartTip;
 
     this.insight = new Insight(async (action: InsightAction) => {
