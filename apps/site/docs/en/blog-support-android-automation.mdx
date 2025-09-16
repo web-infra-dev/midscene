@@ -1,4 +1,4 @@
-# Support Android Automation
+# Support Android automation
 
 From Midscene v0.15, we are happy to announce the support for Android automation. The era for AI-driven Android automation is here!
 
@@ -16,13 +16,13 @@ Open Twitter, auto-like the first tweet by [@midscene_ai](https://x.com/midscene
 
 <video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/android-twitter.mp4" controls/>
 
-## Suitable for ALL apps
+## Suitable for all apps
 
 For our developers, all you need is the adb connection and a visual-language model (vl-model) service. Everything is ready!
 
 Behind the scenes, we utilize the visual grounding capabilities of vl-model to locate target elements on the screen. So, regardless of whether it's a native app, a [Lynx](https://github.com/lynx-family/lynx) page, or a hybrid app with a webview, it makes no difference. Developers can write automation scripts without the burden of worrying about the technology stack of the app.
 
-## With ALL the power of Midscene
+## With all the power of Midscene
 
 When using Midscene to do web automation, our users loves the tools like playgrounds and reports. Now, we bring the same power to Android automation!
 
@@ -34,12 +34,12 @@ When using Midscene to do web automation, our users loves the tools like playgro
 
 <video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/android-ebay.mp4" controls/>
 
-### Write the automation scripts by yaml file
+### Write the automation scripts by YAML file
 
 Connect to the device, open ebay.com, and get some items info.
 
 ```yaml 
-# search headphone on ebay, extract the items info into a json file, and assert the shopping cart icon
+# Search headphone on eBay, extract the items info into a JSON file, and assert the shopping cart icon
 
 android:
   deviceId: s4ey59
@@ -63,7 +63,7 @@ tasks:
       - aiAssert: There is a Filter button on the page
 ```
 
-### Use the javascript SDK
+### Use the JavaScript SDK
 
 Use the javascript SDK to do the automation by code.
 
@@ -160,4 +160,3 @@ We would like to thank the following projects:
 - [scrcpy](https://github.com/Genymobile/scrcpy) and [yume-chan](https://github.com/yume-chan) allow us to control Android devices with browser.
 - [appium-adb](https://github.com/appium/appium-adb) for the javascript bridge of adb.
 - [YADB](https://github.com/ysbing/YADB) for the yadb tool which improves the performance of text input.
-

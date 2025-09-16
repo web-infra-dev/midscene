@@ -1,4 +1,4 @@
-# API Reference
+# API reference
 
 > In the documentation below, you might see function calls prefixed with `agent.`. If you utilize destructuring in Playwright (e.g., `async ({ ai, aiQuery }) => { /* ... */ }`), you can call these functions without the `agent.` prefix. This is merely a syntactical difference.
 
@@ -27,7 +27,7 @@ In Puppeteer, there is also a parameter:
 
 - `waitForNetworkIdleTimeout: number`: The timeout for waiting for network idle between each action. (Default: 2000ms, set to 0 means not waiting for network idle)
 
-## Interaction Methods
+## Interaction methods
 
 Below are the main APIs available for the various Agents in Midscene.
 
@@ -338,7 +338,7 @@ The `deepThink` feature is a powerful feature that allows Midscene to call AI mo
 
 :::
 
-## Data Extraction
+## Data extraction
 
 ### `agent.aiAsk()`
 
@@ -829,9 +829,9 @@ function unfreezePageContext(): Promise<void>;
 
 The path to the report file.
 
-## Additional Configurations
+## Additional configurations
 
-### Setting Environment Variables at Runtime
+### Setting environment variables at runtime
 
 You can override environment variables at runtime by calling the `overrideAIConfig` method.
 
