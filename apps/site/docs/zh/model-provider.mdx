@@ -1,3 +1,5 @@
+import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connectivity.mdx';
+
 # 配置模型和服务商
 
 Midscene 默认集成了 OpenAI SDK 调用 AI 服务。使用这个 SDK 限定了 AI 服务出入参的形式，但并不意味着你只能使用 OpenAI 的模型，你可以使用任何兼容此类接口的模型服务（绝大多数平台或工具都支持）。
@@ -196,8 +198,5 @@ export ANTHROPIC_API_KEY="....."
 export MIDSCENE_MODEL_NAME="claude-3-opus-20240229"
 ```
 
-## 调试 LLM 服务连接问题
 
-如果你想要调试 LLM 服务连接问题，可以使用示例项目中的 `connectivity-test` 目录：[https://github.com/web-infra-dev/midscene-example/tree/main/connectivity-test](https://github.com/web-infra-dev/midscene-example/tree/main/connectivity-test)
-
-将你的 `.env` 文件放在 `connectivity-test` 文件夹中，然后运行 `npm i && npm run test` 来查看问题。
+<TroubleshootingLLMConnectivity />

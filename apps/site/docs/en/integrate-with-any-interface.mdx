@@ -2,9 +2,13 @@ import SetupEnv from './common/setup-env.mdx';
 
 # Integrate with any interface (preview)
 
-From Midscene v0.28.0, we have launched the feature to integrate with any interface. Define your own interface controller class conforming to the `AbstractInterface` class, and you can get a fully-featured Midscene Agent. All these popular tools are included by default: 
+From Midscene v0.28.0, we have launched the feature to integrate with any interface. Define your own interface controller class conforming to the `AbstractInterface` class, and you can get a fully-featured Midscene Agent.
 
-- the GUI Automation Agent SDK for TypeScript
+A typical usage of this feature is to build a GUI Automation Agent for your own interface, like an IoT device, an in-house app, a display in car, etc. 
+
+After implementing the class, you can have all these popular features:
+
+- the GUI Automation Agent SDK
 - the playground for debugging
 - control this interface by yaml script
 - the MCP server
@@ -14,21 +18,11 @@ Please note that only models with visual grounding capabilities can be used to c
 
 :::tip This is a preview feature
 
-This feature is still in preview. We have finished the following work
-
-✅ Allow developers to define a class that extends the `AbstractInterface` class
-
-✅ Allow developers to use yaml script to drive the interface
-
-✅ Allow developers to use the playground
-
-And the next work is
-
-- Allow developers to use the MCP server
+This feature is still in the preview stage, and we welcome your feedback and suggestions on [GitHub](https://github.com/web-infra-dev/midscene/issues).
 
 :::
 
-## Demo and Community Project
+## Demo and community project
 
 We have prepared a demo project for you to learn how to define your own interface class. It's highly recommended to check it out.
 
@@ -51,13 +45,17 @@ There are also some community projects that use this feature:
 
 ### Step 1. clone and setup from the demo project
 
-This is the fastest way to get started.
+We provide a demo project that runs all the features of this document below. It's the fastest way to get started.
 
 ```bash
+# prepare the environment
 git clone https://github.com/web-infra-dev/midscene-example.git
 cd midscene-example/custom-interface
 npm install
 npm run build
+
+# run the demo
+npm run demo
 ```
 
 ### Step 2. implement your interface class
@@ -182,11 +180,29 @@ Use these commands to run the agent:
 
 Attach a playground server to the agent, and you can test the agent in the web browser.
 
-(coming soon...)
+```ts 
+import 'dotenv/config'; // read Midscene environment variables from .env file
+import { playgroundForAgent } from '@midscene/playground';
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// instantiate device and agent
+const device = new SampleDevice();
+await device.launch();
+const agent = new Agent(device);
+
+// launch playground
+const server = await playgroundForAgent(agent).launch();
+
+// close playground
+await sleep(10 * 60 * 1000);
+await server.close();
+console.log('Playground closed!');
+```
 
 ### Step 4. test the MCP server
 
-(still in progress...)
+(still in progress)
 
 ### Step 5. release the npm package, and let your users to use it
 
@@ -201,11 +217,15 @@ npm publish
 A typical usage of your npm package is like this:
 
 ```typescript
-import { midsceneAgentForSampleDevice } from '...';
+import 'dotenv/config'; // read Midscene environment variables from .env file
+import { playgroundForAgent } from '@midscene/playground';
 
-const agent = midsceneAgentForSampleDevice({
-  foo: 'bar',
-});
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// instantiate device and agent
+const device = new SampleDevice();
+await device.launch();
+const agent = new Agent(device);
 
 await agent.aiAction('click the button');
 ```
@@ -247,16 +267,37 @@ import { AbstractInterface } from '@midscene/core';
 These are the required methods that you need to implement:
 
 - `interfaceType: string`: define a name for the interface, this will not be provided to the AI model
-- `screenshotBase64()`: take a screenshot of the interface and return the base64 string with the `'data:image/` prefix
-- `size()`: the size and dpr of the interface, which is an object with the `width`, `height`, and `dpr` properties
-- `actionSpace()`: the action space of the interface, which is an array of `DeviceAction` objects. Use predefined action spaces or define any custom action.
+- `screenshotBase64(): Promise<string>`: take a screenshot of the interface and return the base64 string with the `'data:image/` prefix
+- `size(): Promise<Size>`: the size and dpr of the interface, which is an object with the `width`, `height`, and `dpr` properties
+- `actionSpace(): DeviceAction[] | Promise<DeviceAction[]>`: the action space of the interface, which is an array of `DeviceAction` objects. Use predefined actions or define any custom action.
+
+Type signatures:
+
+```ts
+import type { DeviceAction, Size, UIContext } from '@midscene/core';
+import type { ElementNode } from '@midscene/shared/extractor';
+
+abstract class AbstractInterface {
+  // Required
+  abstract interfaceType: string;
+  abstract screenshotBase64(): Promise<string>;
+  abstract size(): Promise<Size>;
+  abstract actionSpace(): DeviceAction[] | Promise<DeviceAction[]>;
+
+  // Optional lifecycle/hooks
+  abstract destroy?(): Promise<void>;
+  abstract describe?(): string;
+  abstract beforeInvokeAction?(actionName: string, param: any): Promise<void>;
+  abstract afterInvokeAction?(actionName: string, param: any): Promise<void>;
+}
+```
 
 These are the optional methods that you can implement:
 
-- `destroy?()`: destroy the interface
-- `describe?()`: describe the interface, this may be used for the report and the playground. But it will not be provided to the AI model.
-- `beforeInvokeAction?()`: a hook function before invoke an action in action space
-- `afterInvokeAction?()`: a hook function after invoke an action
+- `destroy?(): Promise<void>`: destroy the interface
+- `describe?(): string`: describe the interface, this may be used for the report and the playground. But it will not be provided to the AI model.
+- `beforeInvokeAction?(actionName: string, param: any): Promise<void>`: a hook function before invoking an action in action space
+- `afterInvokeAction?(actionName: string, param: any): Promise<void>`: a hook function after invoking an action
 
 ### The action space
 
@@ -274,7 +315,7 @@ import {
 } from "@midscene/core/device";
 ```
 
-#### The predefined action space
+#### The predefined actions
 
 These are the predefined action spaces for the most common interfaces and devices. You can expose them to the customized interface by implementing the call method of the action.
 
@@ -349,6 +390,121 @@ defineAction({
 });
 ```
 
+### `playgroundForAgent` function
+
+```typescript
+import { playgroundForAgent } from '@midscene/playground';
+```
+
+The `playgroundForAgent` function creates a playground launcher for a specific Agent, allowing you to test and debug your custom interface Agent in a web browser.
+
+#### Function Signature
+
+```typescript
+function playgroundForAgent(agent: Agent): {
+  launch(options?: LaunchPlaygroundOptions): Promise<LaunchPlaygroundResult>
+}
+```
+
+#### Parameters
+
+- `agent: Agent`: The Agent instance to launch the playground for
+
+#### Return Value
+
+Returns an object containing a `launch` method.
+
+#### `launch` Method Options
+
+```typescript
+interface LaunchPlaygroundOptions {
+  /**
+   * Port to start the playground server on
+   * @default 5800
+   */
+  port?: number;
+
+  /**
+   * Whether to automatically open the playground in browser
+   * @default true
+   */
+  openBrowser?: boolean;
+
+  /**
+   * Custom browser command to open playground
+   * @default 'open' on macOS, 'start' on Windows, 'xdg-open' on Linux
+   */
+  browserCommand?: string;
+
+  /**
+   * Whether to show server logs
+   * @default true
+   */
+  verbose?: boolean;
+
+  /**
+   * Unique identifier for the playground server instance
+   * Same ID shares playground chat history
+   * @default undefined (generates random UUID)
+   */
+  id?: string;
+}
+```
+
+#### `launch` Method Return Value
+
+```typescript
+interface LaunchPlaygroundResult {
+  /**
+   * The playground server instance
+   */
+  server: PlaygroundServer;
+
+  /**
+   * The server port
+   */
+  port: number;
+
+  /**
+   * The server host
+   */
+  host: string;
+
+  /**
+   * Function to close the playground
+   */
+  close: () => Promise<void>;
+}
+```
+
+#### Usage Example
+
+```typescript
+import 'dotenv/config';
+import { playgroundForAgent } from '@midscene/playground';
+import { SampleDevice } from './sample-device';
+import { Agent } from '@midscene/core/agent';
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Create device and agent instances
+const device = new SampleDevice();
+const agent = new Agent(device);
+
+// Launch playground
+const result = await playgroundForAgent(agent).launch({
+  port: 5800,
+  openBrowser: true,
+  verbose: true
+});
+
+console.log(`Playground started: http://${result.host}:${result.port}`);
+
+// Close playground when needed
+await sleep(10 * 60 * 1000); // Wait 10 minutes
+await result.close();
+console.log('Playground closed!');
+```
 
 ## FAQ 
 
