@@ -12,7 +12,7 @@ export default defineConfig({
   icon: '/midscene-icon.png',
   logo: {
     light: '/midscene_with_text_light.png',
-    dark: '/midscene_with_text_light.png',
+    dark: '/midscene_with_text_dark.png',
   },
   themeConfig: {
     lastUpdated: true,
