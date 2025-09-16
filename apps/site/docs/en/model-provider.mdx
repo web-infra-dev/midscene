@@ -1,3 +1,5 @@
+import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connectivity.mdx';
+
 # Config Model and Provider
 
 Midscene uses the OpenAI SDK to call AI services. Using this SDK limits the input and output schema of AI services, but it doesn't mean you can only use OpenAI's services. You can use any model service that supports the same interface (most platforms or tools support this).
@@ -207,8 +209,4 @@ export MIDSCENE_MODEL_NAME="..."
 export MIDSCENE_OPENAI_INIT_CONFIG_JSON='{"defaultHeaders":{"HTTP-Referer":"...","X-Title":"..."}}'
 ```
 
-## Troubleshooting LLM Service Connectivity Issues
-
-If you want to troubleshoot connectivity issues, you can use the 'connectivity-test' folder in our example project: [https://github.com/web-infra-dev/midscene-example/tree/main/connectivity-test](https://github.com/web-infra-dev/midscene-example/tree/main/connectivity-test)
-
-Put your `.env` file in the `connectivity-test` folder, and run the test with `npm i && npm run test`.
+<TroubleshootingLLMConnectivity />
