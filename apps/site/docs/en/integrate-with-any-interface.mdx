@@ -271,16 +271,37 @@ import { AbstractInterface } from '@midscene/core';
 These are the required methods that you need to implement:
 
 - `interfaceType: string`: define a name for the interface, this will not be provided to the AI model
-- `screenshotBase64()`: take a screenshot of the interface and return the base64 string with the `'data:image/` prefix
-- `size()`: the size and dpr of the interface, which is an object with the `width`, `height`, and `dpr` properties
-- `actionSpace()`: the action space of the interface, which is an array of `DeviceAction` objects. Use predefined actions or define any custom action.
+- `screenshotBase64(): Promise<string>`: take a screenshot of the interface and return the base64 string with the `'data:image/` prefix
+- `size(): Promise<Size>`: the size and dpr of the interface, which is an object with the `width`, `height`, and `dpr` properties
+- `actionSpace(): DeviceAction[] | Promise<DeviceAction[]>`: the action space of the interface, which is an array of `DeviceAction` objects. Use predefined actions or define any custom action.
+
+Type signatures:
+
+```ts
+import type { DeviceAction, Size, UIContext } from '@midscene/core';
+import type { ElementNode } from '@midscene/shared/extractor';
+
+abstract class AbstractInterface {
+  // Required
+  abstract interfaceType: string;
+  abstract screenshotBase64(): Promise<string>;
+  abstract size(): Promise<Size>;
+  abstract actionSpace(): DeviceAction[] | Promise<DeviceAction[]>;
+
+  // Optional lifecycle/hooks
+  abstract destroy?(): Promise<void>;
+  abstract describe?(): string;
+  abstract beforeInvokeAction?(actionName: string, param: any): Promise<void>;
+  abstract afterInvokeAction?(actionName: string, param: any): Promise<void>;
+}
+```
 
 These are the optional methods that you can implement:
 
-- `destroy?()`: destroy the interface
-- `describe?()`: describe the interface, this may be used for the report and the playground. But it will not be provided to the AI model.
-- `beforeInvokeAction?()`: a hook function before invoke an action in action space
-- `afterInvokeAction?()`: a hook function after invoke an action
+- `destroy?(): Promise<void>`: destroy the interface
+- `describe?(): string`: describe the interface, this may be used for the report and the playground. But it will not be provided to the AI model.
+- `beforeInvokeAction?(actionName: string, param: any): Promise<void>`: a hook function before invoking an action in action space
+- `afterInvokeAction?(actionName: string, param: any): Promise<void>`: a hook function after invoking an action
 
 ### The action space
 

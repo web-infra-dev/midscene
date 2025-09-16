@@ -272,16 +272,37 @@ import { AbstractInterface } from '@midscene/core';
 以下是你需要实现的必需方法：
 
 - `interfaceType: string`：为界面定义一个名称，这不会提供给 AI 模型
-- `screenshotBase64()`：截取界面的屏幕截图并返回带有 `'data:image/` 前缀的 base64 字符串
-- `size()`：界面的大小和 dpr，它是一个具有 `width`、`height` 和 `dpr` 属性的对象
-- `actionSpace()`：界面的动作空间，它是一个 `DeviceAction` 对象数组。在这里你可以使用预定义动作，或是自定义交互操作。
+- `screenshotBase64(): Promise<string>`：截取界面的屏幕截图并返回带有 `'data:image/` 前缀的 base64 字符串
+- `size(): Promise<Size>`：界面的大小和 dpr，它是一个具有 `width`、`height` 和 `dpr` 属性的对象
+- `actionSpace(): DeviceAction[] | Promise<DeviceAction[]>`：界面的动作空间，它是一个 `DeviceAction` 对象数组。在这里你可以使用预定义动作，或是自定义交互操作。
+
+类型签名：
+
+```ts
+import type { DeviceAction, Size, UIContext } from '@midscene/core';
+import type { ElementNode } from '@midscene/shared/extractor';
+
+abstract class AbstractInterface {
+  // 必选
+  abstract interfaceType: string;
+  abstract screenshotBase64(): Promise<string>;
+  abstract size(): Promise<Size>;
+  abstract actionSpace(): DeviceAction[] | Promise<DeviceAction[]>;
+
+  // 可选：生命周期/钩子
+  abstract destroy?(): Promise<void>;
+  abstract describe?(): string;
+  abstract beforeInvokeAction?(actionName: string, param: any): Promise<void>;
+  abstract afterInvokeAction?(actionName: string, param: any): Promise<void>;
+}
+```
 
 以下是你可以实现的可选方法：
 
-- `destroy?()`：销毁
-- `describe?()`：界面描述，这可能会用于报告和 Playground，但不会提供给 AI 模型
-- `beforeInvokeAction?()`：在动作空间中调用动作之前的钩子函数
-- `afterInvokeAction?()`：在调用动作之后的钩子函数
+- `destroy?(): Promise<void>`：销毁
+- `describe?(): string`：界面描述，这可能会用于报告和 Playground，但不会提供给 AI 模型
+- `beforeInvokeAction?(actionName: string, param: any): Promise<void>`：在动作空间中调用动作之前的钩子函数
+- `afterInvokeAction?(actionName: string, param: any): Promise<void>`：在调用动作之后的钩子函数
 
 ### 动作空间（Action Space）
 
