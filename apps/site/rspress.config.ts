@@ -16,7 +16,6 @@ export default defineConfig({
   },
   themeConfig: {
     lastUpdated: true,
-    darkMode: false,
     socialLinks: [
       {
         icon: 'github',
