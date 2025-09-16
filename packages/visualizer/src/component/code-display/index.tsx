@@ -11,6 +11,20 @@ interface CodeDisplayProps {
   actionType: string;
 }
 
+// Helper function to generate decomposed YAML in flow format
+function generateDecomposedYAMLFlow(steps: AIActionDecomposition['steps']): string {
+  if (!steps || steps.length === 0) return '';
+
+  const yamlLines = ['- name: step by step execution', '  flow:'];
+  
+  steps.forEach((step) => {
+    const actionLine = `${step.action}: ${JSON.stringify(step.parameters?.prompt || '')}`;
+    yamlLines.push(`    - ${actionLine}`);
+  });
+
+  return yamlLines.join('\n');
+}
+
 export const CodeDisplay: React.FC<CodeDisplayProps> = ({
   generatedCode,
   decomposition,
@@ -63,7 +77,7 @@ export const CodeDisplay: React.FC<CodeDisplayProps> = ({
                     .map(
                       (step, index) =>
                         `// Step ${index + 1}: ${step.description}\n` +
-                        `await page.${step.action}(${JSON.stringify(step.parameters?.prompt || '')});`,
+                        `await agent.${step.action}(${JSON.stringify(step.parameters?.prompt || '')});`,
                     )
                     .join('\n\n'),
                   'javascript',
@@ -92,15 +106,8 @@ export const CodeDisplay: React.FC<CodeDisplayProps> = ({
                   Step-by-step breakdown:
                 </h4>
                 {renderCodeBlock(
-                  // Generate decomposed YAML code here
-                  decomposition.steps
-                    .map(
-                      (step, index) =>
-                        `# Step ${index + 1}: ${step.description}\n` +
-                        `- name: ${step.description}\n` +
-                        `  ${step.action}: ${JSON.stringify(step.parameters?.prompt || '')}`,
-                    )
-                    .join('\n\n'),
+                  // Generate decomposed YAML code in flow format
+                  generateDecomposedYAMLFlow(decomposition.steps),
                   'yaml',
                   'Decomposed steps',
                 )}

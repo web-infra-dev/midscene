@@ -129,6 +129,11 @@ export function usePlaygroundExecution(
           if (resultObj.dump) result.dump = resultObj.dump;
           if (resultObj.reportHTML) result.reportHTML = resultObj.reportHTML;
           if (resultObj.error) result.error = resultObj.error;
+          
+          // Preserve code generation data
+          if (resultObj.generatedCode) result.generatedCode = resultObj.generatedCode;
+          if (resultObj.decomposition) result.decomposition = resultObj.decomposition;
+          if (resultObj.actionType) result.actionType = resultObj.actionType;
 
           // If result was wrapped, extract the actual result
           if (resultObj.result !== undefined) {

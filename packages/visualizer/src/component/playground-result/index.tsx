@@ -4,10 +4,10 @@ import type React from 'react';
 import type { PlaygroundResult as PlaygroundResultType } from '../../types';
 import type { ServiceModeType } from '../../types';
 import type { ReplayScriptsInfo } from '../../utils/replay-scripts';
+import { CodeDisplay } from '../code-display';
 import { emptyResultTip, serverLaunchTip } from '../misc';
 import { Player } from '../player';
 import ShinyText from '../shiny-text';
-import { CodeDisplay } from '../code-display';
 import './index.less';
 
 interface PlaygroundResultProps {
@@ -59,23 +59,51 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
       </div>
     );
   } else if (replayScriptsInfo) {
-    resultDataToShow = (
-      <Player
-        key={replayCounter}
-        replayScripts={replayScriptsInfo.scripts}
-        imageWidth={replayScriptsInfo.width}
-        imageHeight={replayScriptsInfo.height}
-        reportFileContent={
-          (serviceMode === 'In-Browser-Extension' ||
-            serviceMode === 'Server') &&
-          result?.reportHTML
-            ? result?.reportHTML
-            : null
-        }
-        fitMode={fitMode}
-        autoZoom={autoZoom}
-      />
-    );
+    // Check if we have code generation data to show alongside replay
+    if (result?.generatedCode && result?.actionType) {
+      resultDataToShow = (
+        <div>
+          <Player
+            key={replayCounter}
+            replayScripts={replayScriptsInfo.scripts}
+            imageWidth={replayScriptsInfo.width}
+            imageHeight={replayScriptsInfo.height}
+            reportFileContent={
+              (serviceMode === 'In-Browser-Extension' ||
+                serviceMode === 'Server') &&
+              result?.reportHTML
+                ? result?.reportHTML
+                : null
+            }
+            fitMode={fitMode}
+            autoZoom={autoZoom}
+          />
+          <CodeDisplay
+            generatedCode={result.generatedCode}
+            decomposition={result.decomposition}
+            actionType={result.actionType}
+          />
+        </div>
+      );
+    } else {
+      resultDataToShow = (
+        <Player
+          key={replayCounter}
+          replayScripts={replayScriptsInfo.scripts}
+          imageWidth={replayScriptsInfo.width}
+          imageHeight={replayScriptsInfo.height}
+          reportFileContent={
+            (serviceMode === 'In-Browser-Extension' ||
+              serviceMode === 'Server') &&
+            result?.reportHTML
+              ? result?.reportHTML
+              : null
+          }
+          fitMode={fitMode}
+          autoZoom={autoZoom}
+        />
+      );
+    }
   } else if (result?.error) {
     resultDataToShow = <pre>{result?.error}</pre>;
   } else if (result?.result !== undefined) {
@@ -87,6 +115,15 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
       );
 
     // Show code generation if available (for non-chat interfaces like report app)
+    console.log('[DEBUG] PlaygroundResult - checking code generation:', {
+      hasGeneratedCode: !!result?.generatedCode,
+      hasActionType: !!result?.actionType,
+      hasDecomposition: !!result?.decomposition,
+      actionType: result?.actionType,
+      generatedCode: result?.generatedCode,
+      decomposition: result?.decomposition,
+    });
+
     if (result?.generatedCode && result?.actionType) {
       resultDataToShow = (
         <div>

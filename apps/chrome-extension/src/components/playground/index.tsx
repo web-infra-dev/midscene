@@ -88,30 +88,64 @@ export function BrowserExtensionPlayground({
         return agentInfoRef.current.sdk;
       }
 
-<<<<<<< HEAD
       // Need to create new SDK
       // Clean up previous agent if it exists
       if (agentInfoRef.current) {
         cleanupAgent(agentInfoRef.current.agent);
       }
-=======
+
+      // Detach all debuggers before creating new SDK
+      detachAllDebuggers().then(() => {
+        console.log('[DEBUG] Detached all debuggers before creating SDK');
+      });
+
+      // Create new SDK
+      const baseSdk = new PlaygroundSDK({
+        type: 'local-execution',
+        agent: agent,
+      });
+
+      // Create enhanced SDK with code generation
+      const enhancedSdk = Object.create(baseSdk);
+
+      // Override the executeAction method to add code generation
+      enhancedSdk.executeAction = async (
+        actionType: string,
+        value: any,
+        options?: any,
+      ) => {
+        console.log('[DEBUG] Enhanced SDK executeAction called:', {
+          actionType,
+          value,
+          options,
+        });
+
         // Execute the action
-        const result = await sdk.executeAction(
+        const result = await baseSdk.executeAction(
           actionType,
           value,
           options || {},
         );
 
+        console.log('[DEBUG] Base SDK result:', result);
+
         // Generate code if execution was successful and result exists
+        console.log('[DEBUG] Checking code generation conditions:', {
+          hasResult: !!result,
+          resultType: typeof result,
+          hasResultProperty: result && 'result' in result,
+          hasError: result && (result as any).error,
+          resultValue: result && (result as any).result,
+          resultUndefined: result && (result as any).result === undefined,
+        });
+
         if (
           result &&
           typeof result === 'object' &&
-          'result' in result &&
-          !(result as any).error &&
-          (result as any).result !== undefined
+          !(result as any).error
         ) {
           try {
-            const actionSpace = await sdk.getActionSpace();
+            const actionSpace = await baseSdk.getActionSpace();
 
             // Check if this action needs structured params
             const action = actionSpace?.find(
@@ -129,8 +163,16 @@ export function BrowserExtensionPlayground({
             // For aiAction, also generate decomposition
             const decomposition =
               actionType === 'aiAction' && value.prompt
-                ? decomposeAIAction(value.prompt, (result as any).result)
+                ? decomposeAIAction(value.prompt, result)
                 : undefined;
+
+            console.log('[DEBUG] Code generation result:', {
+              actionType,
+              hasGeneratedCode: !!generatedCode,
+              hasDecomposition: !!decomposition,
+              decomposition,
+              prompt: value.prompt,
+            });
 
             // Add code generation data to result
             return {
@@ -147,51 +189,11 @@ export function BrowserExtensionPlayground({
         }
 
         return result;
-      },
-      getActionSpace: (context?: any) => {
-        // Only try to get action space when config is ready
-        try {
-          if (!runEnabled) {
-            return Promise.resolve([]);
-          }
-          const sdk = getOrCreateSDK();
-          return sdk.getActionSpace(context);
-        } catch (error) {
-          console.error('getActionSpace failed:', error);
-          return Promise.resolve([]);
-        }
-      },
-      overrideConfig: (aiConfig: any) => {
-        const sdk = getOrCreateSDK();
-        return sdk.overrideConfig?.(aiConfig);
-      },
-      checkStatus: () => {
-        const sdk = getOrCreateSDK();
-        return sdk.checkStatus?.();
-      },
-      cancelExecution: (requestId: string) => {
-        const sdk = getOrCreateSDK();
-        return sdk.cancelTask?.(requestId);
-      },
-      onProgressUpdate: (callback: (tip: string) => void) => {
-        // Store the callback for our own use
-        progressCallbackRef.current = callback;
->>>>>>> 330854ea (fix(chrome-extension): correct import path for EnvConfigReminder and remove unused playground component)
-
-      // Detach all debuggers before creating new SDK
-      detachAllDebuggers().then(() => {
-        console.log('[DEBUG] Detached all debuggers before creating SDK');
-      });
-
-      // Create new SDK
-      const newSdk = new PlaygroundSDK({
-        type: 'local-execution',
-        agent: agent,
-      });
+      };
 
       // Store the new agent and SDK
-      agentInfoRef.current = { agent, sdk: newSdk };
-      return newSdk;
+      agentInfoRef.current = { agent, sdk: enhancedSdk };
+      return enhancedSdk;
     } catch (error) {
       console.error('Failed to initialize PlaygroundSDK:', error);
       return null;

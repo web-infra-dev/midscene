@@ -177,10 +177,10 @@ export function generateJavaScriptCode(
 
   let code = '';
 
-  // Add imports if requested
-  if (includeImports) {
-    code += "import { page } from '@midscene/web-integration';\n\n";
-  }
+  // Add imports if requested - imports are not needed for agent-based code
+  // if (includeImports) {
+  //   code += "// Agent instance should be available in your context\n\n";
+  // }
 
   // Add comment if requested
   if (includeComments) {
@@ -191,9 +191,39 @@ export function generateJavaScriptCode(
   // Generate the API call using actionSpace information
   if (action) {
     code += generateJavaScriptCallFromAction(action, cleanParameters);
+  } else {
+    // Fallback generation when action is not found in actionSpace
+    code += generateFallbackJavaScriptCall(actionType, cleanParameters);
   }
 
   return code;
+}
+
+/**
+ * Generate fallback JavaScript call when action is not found in actionSpace
+ */
+function generateFallbackJavaScriptCall(
+  actionType: string,
+  parameters: Record<string, any>,
+): string {
+  // For aiAction, use the prompt directly
+  if (actionType === 'aiAction' && parameters.prompt) {
+    return `await agent.aiAction(${JSON.stringify(parameters.prompt)});`;
+  }
+  
+  // For other actions, generate based on common patterns
+  if (Object.keys(parameters).length === 0) {
+    return `await agent.${actionType}();`;
+  } else if (Object.keys(parameters).length === 1) {
+    const [key, value] = Object.entries(parameters)[0];
+    if (key === 'prompt' || key === 'locate' || key === 'query') {
+      return `await agent.${actionType}(${JSON.stringify(value)});`;
+    }
+  }
+  
+  // Fallback to object notation
+  const paramStr = JSON.stringify(parameters, null, 2).replace(/\n/g, '\n  ');
+  return `await agent.${actionType}(${paramStr});`;
 }
 
 /**
@@ -207,7 +237,7 @@ function generateJavaScriptCallFromAction(
 
   // Handle different parameter patterns based on method name
   if (Object.keys(parameters).length === 0) {
-    return `await page.${methodName}();`;
+    return `await agent.${methodName}();`;
   }
 
   // Special handling for specific methods
@@ -215,12 +245,12 @@ function generateJavaScriptCallFromAction(
     case 'aiInput': {
       // aiInput(locate, value) or aiInput(locate, { value: "text" })
       if (parameters.locate && parameters.value) {
-        return `await page.aiInput(${JSON.stringify(parameters.locate)}, {\n    "value": ${JSON.stringify(parameters.value)}\n  });`;
+        return `await agent.aiInput(${JSON.stringify(parameters.locate)}, {\n    "value": ${JSON.stringify(parameters.value)}\n  });`;
       } else if (parameters.value) {
         // Only value provided, use object notation
-        return `await page.aiInput({\n    "value": ${JSON.stringify(parameters.value)}\n  });`;
+        return `await agent.aiInput({\n    "value": ${JSON.stringify(parameters.value)}\n  });`;
       } else if (parameters.locate) {
-        return `await page.aiInput(${JSON.stringify(parameters.locate)});`;
+        return `await agent.aiInput(${JSON.stringify(parameters.locate)});`;
       }
       break;
     }
@@ -232,7 +262,7 @@ function generateJavaScriptCallFromAction(
     case 'aiLocate': {
       // These methods take locate as first parameter
       if (parameters.locate) {
-        return `await page.${methodName}(${JSON.stringify(parameters.locate)});`;
+        return `await agent.${methodName}(${JSON.stringify(parameters.locate)});`;
       }
       break;
     }
@@ -240,11 +270,11 @@ function generateJavaScriptCallFromAction(
     case 'aiScroll': {
       // aiScroll(locate, options) or aiScroll(options)
       if (parameters.locate && parameters.direction) {
-        return `await page.aiScroll(${JSON.stringify(parameters.locate)}, { direction: ${JSON.stringify(parameters.direction)} });`;
+        return `await agent.aiScroll(${JSON.stringify(parameters.locate)}, { direction: ${JSON.stringify(parameters.direction)} });`;
       } else if (parameters.direction) {
-        return `await page.aiScroll({ direction: ${JSON.stringify(parameters.direction)} });`;
+        return `await agent.aiScroll({ direction: ${JSON.stringify(parameters.direction)} });`;
       } else if (parameters.locate) {
-        return `await page.aiScroll(${JSON.stringify(parameters.locate)});`;
+        return `await agent.aiScroll(${JSON.stringify(parameters.locate)});`;
       }
       break;
     }
@@ -252,9 +282,9 @@ function generateJavaScriptCallFromAction(
     case 'aiKeyboardPress': {
       // aiKeyboardPress(key, locate) or aiKeyboardPress(key)
       if (parameters.locate && parameters.key) {
-        return `await page.aiKeyboardPress(${JSON.stringify(parameters.key)}, ${JSON.stringify(parameters.locate)});`;
+        return `await agent.aiKeyboardPress(${JSON.stringify(parameters.key)}, ${JSON.stringify(parameters.locate)});`;
       } else if (parameters.key) {
-        return `await page.aiKeyboardPress(${JSON.stringify(parameters.key)});`;
+        return `await agent.aiKeyboardPress(${JSON.stringify(parameters.key)});`;
       }
       break;
     }
@@ -264,7 +294,7 @@ function generateJavaScriptCallFromAction(
       if (Object.keys(parameters).length === 1) {
         const [key, value] = Object.entries(parameters)[0];
         if (key === 'locate' || key === 'query' || key === 'assertion') {
-          return `await page.${methodName}(${JSON.stringify(value)});`;
+          return `await agent.${methodName}(${JSON.stringify(value)});`;
         }
       }
 
@@ -273,13 +303,13 @@ function generateJavaScriptCallFromAction(
         /\n/g,
         '\n  ',
       );
-      return `await page.${methodName}(${paramStr});`;
+      return `await agent.${methodName}(${paramStr});`;
     }
   }
 
   // Fallback
   const paramStr = JSON.stringify(parameters, null, 2).replace(/\n/g, '\n  ');
-  return `await page.${methodName}(${paramStr});`;
+  return `await agent.${methodName}(${paramStr});`;
 }
 
 /**
@@ -310,18 +340,73 @@ export function generateYAMLCode(
     yaml += `# ${description}\n`;
   }
 
-  // Generate YAML structure
-  yaml += '- name: Execute action\n';
-
-  // Generate the YAML using actionSpace information
-  if (action) {
-    yaml += generateYAMLFromAction(action, cleanParameters);
-  } else {
-    // Fallback to legacy generation for unknown actions
-    yaml += generateLegacyYAMLCall(actionType, cleanParameters);
-  }
+  // Generate YAML structure in flow format
+  yaml += generateYAMLFlowStructure(actionType, cleanParameters, action);
 
   return yaml;
+}
+
+/**
+ * Generate YAML flow structure based on action type and parameters
+ */
+function generateYAMLFlowStructure(
+  actionType: string,
+  parameters: Record<string, any>,
+  action?: DeviceAction,
+): string {
+  // Create a descriptive name based on the action and prompt
+  let taskName = 'execute action';
+  if (actionType === 'aiAction' && parameters.prompt) {
+    // Keep original prompt for non-English text like Chinese
+    taskName = parameters.prompt.trim();
+    if (!taskName) taskName = 'ai action'; // fallback if prompt is empty
+  } else if (parameters.prompt) {
+    taskName = `${actionType.replace('ai', '').toLowerCase()} - ${parameters.prompt}`;
+  } else {
+    taskName = actionType.replace('ai', '').toLowerCase() + ' action';
+  }
+
+  let yaml = `- name: ${taskName}\n`;
+  yaml += '  flow:\n';
+  
+  // Generate the action in flow format
+  const actionLine = generateYAMLActionLine(actionType, parameters, action);
+  yaml += `    - ${actionLine}`;
+  
+  return yaml;
+}
+
+/**
+ * Generate a single YAML action line for flow structure
+ */
+function generateYAMLActionLine(
+  actionType: string,
+  parameters: Record<string, any>,
+  action?: DeviceAction,
+): string {
+  // For aiAction, use the prompt directly
+  if (actionType === 'aiAction' && parameters.prompt) {
+    return `aiAction: ${JSON.stringify(parameters.prompt)}`;
+  }
+  
+  // Handle other action types
+  const methodName = action?.interfaceAlias || action?.name || actionType;
+  
+  if (Object.keys(parameters).length === 0) {
+    return `${methodName}: null`;
+  }
+  
+  // Single parameter (most common case)
+  if (Object.keys(parameters).length === 1) {
+    const [key, value] = Object.entries(parameters)[0];
+    if (key === 'prompt' || key === 'locate' || key === 'query') {
+      return `${methodName}: ${JSON.stringify(value)}`;
+    }
+  }
+  
+  // Multiple parameters - use object notation
+  const paramStr = JSON.stringify(parameters);
+  return `${methodName}: ${paramStr}`;
 }
 
 /**
@@ -476,17 +561,17 @@ export function decomposeAIAction(
       parameters: { prompt },
     });
   } else {
-    // Generic decomposition
+    // Generic decomposition - most AI actions involve locating then interacting
     steps.push({
       action: 'aiLocate',
       description: `Locate element for: ${prompt}`,
-      parameters: { prompt: `locate element for ${prompt}` },
+      parameters: { prompt },
     });
 
     steps.push({
       action: 'aiTap',
       description: `Interact with element: ${prompt}`,
-      parameters: { prompt: 'interact with the located element' },
+      parameters: { prompt },
     });
   }
 
