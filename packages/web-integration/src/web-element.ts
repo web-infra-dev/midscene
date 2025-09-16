@@ -1,4 +1,10 @@
-import type { AgentOpt, Rect, UIContext, WebElementInfo, DeviceAction } from '@midscene/core';
+import type {
+  AgentOpt,
+  DeviceAction,
+  Rect,
+  UIContext,
+  WebElementInfo,
+} from '@midscene/core';
 import type { AbstractInterface } from '@midscene/core/device';
 import { traverseTree } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
