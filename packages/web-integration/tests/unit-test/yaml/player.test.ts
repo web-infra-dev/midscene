@@ -1,7 +1,6 @@
 import path, { join, resolve } from 'node:path';
 import { assert } from '@midscene/shared/utils';
 
-import { randomUUID } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import type { PageAgent } from '@/index';
 import { puppeteerAgentForTarget } from '@/puppeteer/agent-launcher';
@@ -12,6 +11,7 @@ import type {
 } from '@midscene/core';
 import { ScriptPlayer, buildYaml, parseYamlScript } from '@midscene/core/yaml';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
+import { uuid } from '@midscene/shared/utils';
 import { type MockedFunction, describe, expect, test, vi } from 'vitest';
 
 const serverRoot = join(__dirname, 'server_root');
@@ -163,7 +163,7 @@ describe.skipIf(!shouldRunAITest)(
   'player - e2e',
   () => {
     test('flush output even if assertion failed', async () => {
-      const outputPath = `./midscene_run/output/${randomUUID()}.json`;
+      const outputPath = `./midscene_run/output/${uuid()}.json`;
       const yamlString = `
       target:
         url: https://www.bing.com

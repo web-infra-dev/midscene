@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -10,6 +9,7 @@ import {
   DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
 } from '@midscene/shared/constants';
 import { getDebug } from '@midscene/shared/logger';
+import { uuid } from '@midscene/shared/utils';
 import { replaceIllegalPathCharsAndSpace } from '@midscene/shared/utils';
 import { type TestInfo, type TestType, test } from '@playwright/test';
 import type { Page as OriginPlaywrightPage } from 'playwright';
@@ -63,7 +63,7 @@ export const PlaywrightAiFixture = (options?: {
   ) => {
     let idForPage = (page as any)[midsceneAgentKeyId];
     if (!idForPage) {
-      idForPage = randomUUID();
+      idForPage = uuid();
       (page as any)[midsceneAgentKeyId] = idForPage;
       const { testId } = testInfo;
       const { file, id, title } = groupAndCaseForTest(testInfo);
@@ -159,7 +159,7 @@ export const PlaywrightAiFixture = (options?: {
 
   const updateDumpAnnotation = (test: TestInfo, dump: string) => {
     // Write dump to temporary file
-    const tempFileName = `midscene-dump-${test.testId || randomUUID()}-${Date.now()}.json`;
+    const tempFileName = `midscene-dump-${test.testId || uuid()}-${Date.now()}.json`;
     const tempFilePath = join(tmpdir(), tempFileName);
 
     writeFileSync(tempFilePath, dump, 'utf-8');

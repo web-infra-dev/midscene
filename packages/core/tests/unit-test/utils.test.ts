@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import * as fs from 'node:fs';
 import {
@@ -19,6 +18,7 @@ import {
 } from '@/ai-model/service-caller';
 import { type DeviceAction, getMidsceneLocationSchema } from '@/index';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
+import { uuid } from '@midscene/shared/utils';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 // @ts-ignore no types in es folder
@@ -54,7 +54,7 @@ describe('utils', () => {
   });
 
   it('write report file', () => {
-    const content = randomUUID();
+    const content = uuid();
     const reportPath = writeDumpReport('test', `{"foo": "${content}"}`);
     expect(reportPath).toBeTruthy();
     const reportContent = readFileSync(reportPath!, 'utf-8');
@@ -69,7 +69,7 @@ describe('utils', () => {
   });
 
   it('write report file with attributes', () => {
-    const content = randomUUID();
+    const content = uuid();
     const reportPath = writeDumpReport('test', {
       dumpString: content,
       attributes: {
@@ -99,7 +99,7 @@ describe('utils', () => {
       '<script type="midscene_web_dump" type="application/json">\n\n</script>',
     );
 
-    const content = randomUUID();
+    const content = uuid();
     const reportB = reportHTMLContent(content);
     expect(reportB).toContain(
       `<script type="midscene_web_dump" type="application/json">\n${content}\n</script>`,
@@ -118,7 +118,7 @@ describe('utils', () => {
     );
 
     // test string content
-    const content = JSON.stringify({ test: randomUUID() });
+    const content = JSON.stringify({ test: uuid() });
     const reportPathB = reportHTMLContent(content, tmpFile);
     expect(reportPathB).toBe(tmpFile);
     const fileContentB = readFileSync(tmpFile, 'utf-8');
@@ -127,7 +127,7 @@ describe('utils', () => {
     );
 
     // test array with attributes
-    const uuid1 = randomUUID();
+    const uuid1 = uuid();
     const dumpArray = {
       dumpString: JSON.stringify({ id: uuid1 }),
       attributes: {
