@@ -12,11 +12,10 @@ export default defineConfig({
   icon: '/midscene-icon.png',
   logo: {
     light: '/midscene_with_text_light.png',
-    dark: '/midscene_with_text_light.png',
+    dark: '/midscene_with_text_dark.png',
   },
   themeConfig: {
     lastUpdated: true,
-    darkMode: false,
     socialLinks: [
       {
         icon: 'github',
@@ -110,11 +109,11 @@ export default defineConfig({
               link: '/mcp-android',
             },
             {
-              text: 'Quick Experience by Android Playground',
+              text: 'Quick Experience with Android',
               link: '/quick-experience-with-android',
             },
             {
-              text: 'Integrate with Android(adb)',
+              text: 'Integrate with Android (adb)',
               link: '/integrate-with-android',
             },
           ],
@@ -153,7 +152,7 @@ export default defineConfig({
           text: 'More',
           items: [
             {
-              text: 'Integrate with Any Interface (Preview)',
+              text: 'Integrate with any interface (preview)',
               link: '/integrate-with-any-interface',
             },
             {
@@ -165,7 +164,7 @@ export default defineConfig({
               link: '/faq',
             },
             {
-              text: 'LLMs.txt',
+              text: 'LLMs.txt Documentation',
               link: '/llm-txt',
             },
             {
@@ -286,7 +285,7 @@ export default defineConfig({
           text: '更多',
           items: [
             {
-              text: '与任何界面集成（预览特性 ）',
+              text: '与任意界面集成（预览特性）',
               link: '/zh/integrate-with-any-interface',
             },
             {
@@ -298,7 +297,7 @@ export default defineConfig({
               link: '/zh/faq',
             },
             {
-              text: 'LLMs.txt',
+              text: 'LLMs.txt 文档',
               link: '/zh/llm-txt',
             },
             {
