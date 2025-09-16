@@ -1,6 +1,6 @@
 import SetupEnv from './common/setup-env.mdx';
 
-# MCP Server
+# MCP server
 
 Midscene provides a MCP server that allows AI assistants to control browsers, automate web tasks and write automation scripts for Midscene.
 
@@ -8,7 +8,7 @@ Midscene provides a MCP server that allows AI assistants to control browsers, au
 MCP ([Model Context Protocol](https://modelcontextprotocol.io/introduction)) is a standardized way for AI models to interact with external tools and capabilities. MCP servers expose a set of tools that AI models can invoke to perform various tasks. In Midscene's case, these tools allow AI models to control browsers, navigate web pages, interact with UI elements, and more.
 :::
 
-## Use Cases
+## Use cases
 
 * Control browsers to execute automation tasks
 * Automatically generate Midscene automation scripts
@@ -20,7 +20,7 @@ MCP ([Model Context Protocol](https://modelcontextprotocol.io/introduction)) is 
 <video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/ozpmyhn_lm_hymuPild/ljhwZthlaukjlkulzlp/midscene/en-midscene-mcp-Sauce-Demo.mp4" controls/>
 
 
-## Setting Up Midscene MCP
+## Setting up Midscene MCP
 
 ### Prerequisites
 
@@ -51,7 +51,7 @@ Add the Midscene MCP server to your MCP configuration:
 
 For more information about configuring AI models, see [Choosing an AI Model](./choose-a-model).
 
-## Available Tools
+## Available tools
 
 Midscene MCP provides the following browser automation tools:
 
@@ -78,7 +78,7 @@ Midscene MCP provides the following browser automation tools:
   - url: The URL to navigate to
   ```
 
-### Tab Management
+### Tab management
 
 - **midscene_get_tabs**: Get a list of all open browser tabs, including their IDs, titles, and URLs
   ```
@@ -91,7 +91,7 @@ Midscene MCP provides the following browser automation tools:
   - tabId: The ID of the tab to activate
   ```
 
-### Page Interaction
+### Page interaction
 
 - **midscene_aiTap**: Click on an element described in natural language
   ```
@@ -130,7 +130,7 @@ Midscene MCP provides the following browser automation tools:
   - deepThink: (Optional) If true, uses more precise element location
   ```
 
-### Verification and Observation
+### Verification and observation
 
 - **midscene_aiWaitFor**: Wait for a condition to be true on the page
   ```
@@ -152,7 +152,7 @@ Midscene MCP provides the following browser automation tools:
   - name: Name for the screenshot
   ```
 
-## Common Issues
+## Common issues
 
 ### What advantages does Midscene MCP have over other browser MCPs?
 
@@ -160,7 +160,7 @@ Midscene MCP provides the following browser automation tools:
 - Midscene MCP includes built-in optimal prompt templates and operation execution practices for browser page control, providing **more stable and reliable browser automation experiences** compared to other MCP implementations
 - Midscene MCP automatically generates execution case reports after completing tasks, allowing you to **view the execution process at any time**
 
-### Local port conflicts when multiple Clients are used
+### Local port conflicts when multiple clients are used
 
 > Problem description
 
@@ -180,7 +180,7 @@ FOR /F "tokens=5" %i IN ('netstat -ano ^| findstr :3766') DO taskkill /F /PID %i
 ```
 
 
-### How to Access Midscene Execution Reports
+### How to access Midscene execution reports
 
 After each task execution, a Midscene task report is generated. You can open this HTML report directly from the command line:
 

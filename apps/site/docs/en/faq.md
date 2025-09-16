@@ -1,6 +1,6 @@
 # FAQ
 
-## Can Midscene smartly plan the actions according to my one-line goal? Like executing "Tweet 'hello world'"
+## Can Midscene smartly plan the actions according to my one-line goal, like executing "Tweet 'hello world'"?
 
 It's only recommended to use this kind of goal-oriented prompt when you are using GUI agent models like *UI-TARS*.
 

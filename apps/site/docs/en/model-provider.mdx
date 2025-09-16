@@ -1,6 +1,6 @@
 import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connectivity.mdx';
 
-# Config Model and Provider
+# Configure model and provider
 
 Midscene uses the OpenAI SDK to call AI services. Using this SDK limits the input and output schema of AI services, but it doesn't mean you can only use OpenAI's services. You can use any model service that supports the same interface (most platforms or tools support this).
 
@@ -62,7 +62,7 @@ By setting the following configs, you can see more logs for debugging. And also,
 | `DEBUG=midscene:ai:call` | Optional. Set this to print the AI response details |
 | `DEBUG=midscene:android:adb` | Optional. Set this to print the adb command calling details |
 
-## Two ways to config environment variables
+## Two ways to configure environment variables
 
 Pick one of the following ways to config environment variables.
 
@@ -127,7 +127,7 @@ export AZURE_OPENAI_API_VERSION="2024-05-01-preview"
 export AZURE_OPENAI_DEPLOYMENT="gpt-4o"
 ```
 
-## Set Config by Javascript
+## Set config by JavaScript
 
 You can also override the config by javascript. Remember to call this before running Midscene codes.
 
@@ -143,7 +143,7 @@ overrideAIConfig({
 });
 ```
 
-## Example: Using `gpt-4o` from OpenAI
+## Example: using `gpt-4o` from OpenAI
 
 Configure the environment variables:
 
@@ -153,7 +153,7 @@ export OPENAI_BASE_URL="https://endpoint.some_other_provider.com/v1" # config th
 export MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # optional, the default is "gpt-4o"
 ```
 
-## Example: Using `qwen-vl-max-latest` from Aliyun
+## Example: using `qwen-vl-max-latest` from Aliyun
 
 Configure the environment variables:
 
@@ -165,7 +165,7 @@ export MIDSCENE_USE_QWEN_VL=1
 ```
 
 
-## Example: Using `Doubao-1.5-thinking-vision-pro` from Volcano Engine
+## Example: using `Doubao-1.5-thinking-vision-pro` from Volcano Engine
 
 Configure the environment variables:
 
@@ -177,7 +177,7 @@ export MIDSCENE_MODEL_NAME='ep-...'
 export MIDSCENE_USE_DOUBAO_VISION=1
 ```
 
-## Example: Using `ui-tars-72b-sft` hosted by yourself
+## Example: using `ui-tars-72b-sft` hosted by yourself
 
 Configure the environment variables:
 
@@ -188,7 +188,7 @@ export MIDSCENE_MODEL_NAME="ui-tars-72b-sft"
 export MIDSCENE_USE_VLM_UI_TARS=1
 ```
 
-## Example: Config `claude-3-opus-20240229` from Anthropic
+## Example: config `claude-3-opus-20240229` from Anthropic
 
 When configuring `MIDSCENE_USE_ANTHROPIC_SDK=1`, Midscene will use Anthropic SDK (`@anthropic-ai/sdk`) to call the model.
 

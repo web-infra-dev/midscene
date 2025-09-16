@@ -1,6 +1,6 @@
 import SetupEnv from './common/setup-env.mdx';
 
-# Bridge Mode by Chrome Extension
+# Bridge mode by Chrome extension
 
 import { PackageManagerTabs } from '@theme';
 
@@ -22,11 +22,11 @@ check the demo project of bridge mode: [https://github.com/web-infra-dev/midscen
 
 Install [Midscene extension from Chrome web store](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief)
 
-## Step 2. install dependencies
+## Step 2. Install dependencies
 
 <PackageManagerTabs command="install @midscene/web tsx --save-dev" />
 
-## Step 3. write scripts
+## Step 3. Write scripts
 
 Write and save the following code as `./demo-new-tab.ts`.
 
@@ -52,7 +52,7 @@ Promise.resolve(
 );
 ```
 
-## Step 4. start the chrome extension
+## Step 4. Start the Chrome extension
 
 Start the chrome extension and switch to 'Bridge Mode' tab. Click "Allow connection".
 
@@ -60,7 +60,7 @@ Start the chrome extension and switch to 'Bridge Mode' tab. Click "Allow connect
   <img src="/bridge_in_extension.jpg" alt="bridge in extension" width="400"/>
 </p>
 
-## Step 5. run the script
+## Step 5. Run the script
 
 Run your scripts
 
@@ -181,7 +181,7 @@ await agent.ai('Perform final operation...');
 await agent.destroy();
 ```
 
-## Use bridge mode in yaml-script
+## Use bridge mode in YAML script
 
 [Yaml scripts](./automate-with-scripts-in-yaml) is a way for developers to write automation scripts in yaml format, which is easy to read and write comparing to javascript.
 
@@ -222,7 +222,6 @@ In bridge mode, these options will be ignored (they will follow your desktop bro
 * Where should I config the `OPENAI_API_KEY`, in the browser or in the terminal?
 
 When using bridge mode, you should config the `OPENAI_API_KEY` in the terminal.
-
 
 
 
