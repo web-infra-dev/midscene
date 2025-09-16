@@ -7,8 +7,8 @@ import type { AbstractInterface } from '@midscene/core/device';
 import { getTmpDir } from '@midscene/core/utils';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import { overrideAIConfig } from '@midscene/shared/env';
+import { uuid } from '@midscene/shared/utils';
 import express, { type Request, type Response } from 'express';
-import { v4 as generateUUID } from 'uuid';
 import { executeAction, formatErrorMessage } from './common';
 
 import 'dotenv/config';
@@ -60,7 +60,7 @@ class PlaygroundServer {
     this.staticPath = staticPath;
     this.taskProgressTips = {};
     // Use provided ID, or generate random UUID for each startup
-    this.id = id || generateUUID();
+    this.id = id || uuid();
   }
 
   /**
@@ -255,11 +255,11 @@ class PlaygroundServer {
           });
         }
 
-        const uuid = generateUUID();
-        this.saveContextFile(uuid, context);
+        const requestId = uuid();
+        this.saveContextFile(requestId, context);
         return res.json({
-          location: `/playground/${uuid}`,
-          uuid,
+          location: `/playground/${requestId}`,
+          uuid: requestId,
         });
       },
     );

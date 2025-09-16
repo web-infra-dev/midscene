@@ -80,7 +80,8 @@
     "debug": "4.4.0",
     "jimp": "0.22.12",
     "js-sha256": "0.11.0",
-    "sharp": "^0.34.3"
+    "sharp": "^0.34.3",
+    "uuid": "11.1.0"
   },
   "devDependencies": {
     "@rslib/core": "^0.11.2",

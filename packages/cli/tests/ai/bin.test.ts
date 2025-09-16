@@ -1,8 +1,8 @@
-import { randomUUID } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { getTmpFile } from '@midscene/core/utils';
+import { uuid } from '@midscene/shared/utils';
 import { execa } from 'execa';
 import { describe, expect, test, vi } from 'vitest';
 
@@ -18,7 +18,7 @@ const serverRoot = join(__dirname, '../server_root');
 
 const saveYaml = async (yamlString: string) => {
   const tmpDir = tmpdir();
-  const yamlPath = join(tmpDir, `ci_yaml_${randomUUID()}.yml`);
+  const yamlPath = join(tmpDir, `ci_yaml_${uuid()}.yml`);
   writeFileSync(yamlPath, yamlString);
   return yamlPath;
 };

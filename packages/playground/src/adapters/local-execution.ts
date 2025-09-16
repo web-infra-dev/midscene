@@ -1,6 +1,6 @@
 import type { DeviceAction } from '@midscene/core';
 import { overrideAIConfig } from '@midscene/shared/env';
-import { v4 as generateUUID } from 'uuid';
+import { uuid } from '@midscene/shared/utils';
 import { executeAction, parseStructuredParams } from '../common';
 import type { ExecutionOptions, FormValue, PlaygroundAgent } from '../types';
 import { BasePlaygroundAdapter } from './base';
@@ -15,7 +15,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   constructor(agent: PlaygroundAgent) {
     super();
     this.agent = agent;
-    this._id = generateUUID(); // Generate unique ID for local adapter
+    this._id = uuid(); // Generate unique ID for local adapter
   }
 
   // Get adapter ID
