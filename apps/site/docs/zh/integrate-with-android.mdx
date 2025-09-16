@@ -216,6 +216,44 @@ console.log(devices);
 const agent = await agentFromAdbDevice(devices[0].udid);
 ```
 
+## 扩展自定义交互动作
+
+使用 `customActions` 选项，结合 `defineAction` 定义的自定义交互动作，可以扩展 Agent 的动作空间。这些动作会追加在内置动作之后，方便 Agent 在规划阶段调用。
+
+```typescript
+import { getMidsceneLocationSchema, z } from '@midscene/core';
+import { defineAction } from '@midscene/core/device';
+import { AndroidAgent, AndroidDevice } from '@midscene/android';
+
+const ContinuousClick = defineAction({
+  name: 'continuousClick',
+  description: 'Click the same target repeatedly',
+  paramSchema: z.object({
+    locate: getMidsceneLocationSchema(),
+    count: z
+      .number()
+      .int()
+      .positive()
+      .describe('How many times to click'),
+  }),
+  async call(param) {
+    const { locate, count } = param;
+    console.log('click target center', locate.center);
+    console.log('click count', count);
+    // 在这里结合 locate + count 实现自定义点击逻辑
+  },
+});
+
+const page = new AndroidDevice('your-device-id');
+const agent = new AndroidAgent(page, {
+  customActions: [ContinuousClick],
+});
+
+await agent.aiAction('点击红色按钮五次');
+```
+
+更多关于自定义动作的细节，请参考 [集成到任意界面](./integrate-with-any-interface)。
+
 ## 更多
 
 - 更多 Agent 上的 API 接口请参考 [API 参考](./api.mdx)。

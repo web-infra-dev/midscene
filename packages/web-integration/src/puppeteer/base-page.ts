@@ -43,11 +43,14 @@ export class Page<
   private viewportSize?: Size;
   private onBeforeInvokeAction?: AbstractInterface['beforeInvokeAction'];
   private onAfterInvokeAction?: AbstractInterface['afterInvokeAction'];
+  private customActions?: DeviceAction<any>[];
 
   interfaceType: AgentType;
 
   actionSpace(): DeviceAction[] {
-    return commonWebActionsForWebPage(this);
+    const defaultActions = commonWebActionsForWebPage(this);
+    const customActions = this.customActions || [];
+    return [...defaultActions, ...customActions];
   }
 
   private async evaluate<R>(
@@ -84,6 +87,7 @@ export class Page<
       opts?.waitForNetworkIdleTimeout ?? DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT;
     this.onBeforeInvokeAction = opts?.beforeInvokeAction;
     this.onAfterInvokeAction = opts?.afterInvokeAction;
+    this.customActions = opts?.customActions;
   }
 
   async evaluateJavaScript<T = any>(script: string): Promise<T> {
