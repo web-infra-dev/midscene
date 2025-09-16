@@ -189,9 +189,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // instantiate device and agent
 const device = new SampleDevice();
 await device.launch();
-const agent = new Agent({
-  foo: 'bar',
-});
+const agent = new Agent(device);
 
 // launch playground
 const server = await playgroundForAgent(agent).launch();
@@ -227,9 +225,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // instantiate device and agent
 const device = new SampleDevice();
 await device.launch();
-const agent = new Agent({
-  foo: 'bar',
-});
+const agent = new Agent(device);
 
 await agent.aiAction('click the button');
 ```

@@ -189,9 +189,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // 实例化 device 和 agent
 const device = new SampleDevice();
 await device.launch();
-const agent = new Agent({
-  foo: 'bar',
-});
+const agent = new Agent(device);
 
 // 启动 playground
 const server = await playgroundForAgent(agent).launch();
@@ -227,9 +225,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // 实例化 device 和 agent
 const device = new SampleDevice();
 await device.launch();
-const agent = new Agent({
-  foo: 'bar',
-});
+const agent = new Agent(device);
 
 await agent.aiAction('click the button');
 ```
