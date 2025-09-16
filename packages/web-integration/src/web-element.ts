@@ -1,4 +1,4 @@
-import type { AgentOpt, Rect, UIContext, WebElementInfo } from '@midscene/core';
+import type { AgentOpt, Rect, UIContext, WebElementInfo, DeviceAction } from '@midscene/core';
 import type { AbstractInterface } from '@midscene/core/device';
 import { traverseTree } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
@@ -19,6 +19,7 @@ export type WebPageOpt = {
   forceSameTabNavigation?: boolean /* if limit the new tab to the current page, default true */;
   beforeInvokeAction?: () => Promise<void>;
   afterInvokeAction?: () => Promise<void>;
+  customActions?: DeviceAction<any>[];
 };
 
 export type WebPage =

@@ -1,5 +1,7 @@
 import path from 'node:path';
 import { PuppeteerAgent } from '@/puppeteer';
+import { z } from '@midscene/core';
+import { defineAction } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import { globalModelConfigManager } from '@midscene/shared/env';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -238,6 +240,34 @@ describe(
       await agent.aiAssert(
         'the "Horizontal 2", "Horizontal 4" and "Vertical 5" elements are visible',
       );
+    });
+
+    it('append custom action - UploadFile is invoked', async () => {
+      const { originPage, reset } = await launchPage('https://www.baidu.com/');
+      resetFn = reset;
+
+      const uploadCalled = vi.fn();
+      const UploadFile = defineAction({
+        name: 'UploadFile',
+        description: 'Upload a local file to current page',
+        paramSchema: z.object({
+          filePath: z.string().describe('Absolute or relative local file path'),
+        }),
+        call: async (param) => {
+          uploadCalled(param.filePath);
+        },
+      });
+
+      const agent = new PuppeteerAgent(originPage, {
+        customActions: [UploadFile],
+      });
+
+      await agent.aiAction(
+        'Upload a local file to current page, which path is /tmp/demo.txt',
+      );
+
+      expect(uploadCalled).toHaveBeenCalledTimes(1);
+      expect(uploadCalled).toHaveBeenCalledWith('/tmp/demo.txt');
     });
 
     it('not tracking active tab', async () => {

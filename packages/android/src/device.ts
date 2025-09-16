@@ -60,6 +60,7 @@ export type AndroidDeviceOpt = {
   displayId?: number;
   usePhysicalDisplayIdForScreenshot?: boolean;
   usePhysicalDisplayIdForDisplayLookup?: boolean;
+  customActions?: DeviceAction<any>[];
 } & AndroidDeviceInputOpt;
 
 export class AndroidDevice implements AbstractInterface {
@@ -70,12 +71,13 @@ export class AndroidDevice implements AbstractInterface {
   private connectingAdb: Promise<ADB> | null = null;
   private destroyed = false;
   private description: string | undefined;
+  private customActions?: DeviceAction<any>[];
   interfaceType: InterfaceType = 'android';
   uri: string | undefined;
   options?: AndroidDeviceOpt;
 
   actionSpace(): DeviceAction<any>[] {
-    return [
+    const defaultActions = [
       defineActionTap(async (param: ActionTapParam) => {
         const element = param.locate;
         assert(element, 'Element not found, cannot tap');
@@ -266,6 +268,9 @@ export class AndroidDevice implements AbstractInterface {
         },
       }),
     ];
+
+    const customActions = this.customActions || [];
+    return [...defaultActions, ...customActions];
   }
 
   constructor(deviceId: string, options?: AndroidDeviceOpt) {
@@ -273,6 +278,7 @@ export class AndroidDevice implements AbstractInterface {
 
     this.deviceId = deviceId;
     this.options = options;
+    this.customActions = options?.customActions;
   }
 
   describe(): string {

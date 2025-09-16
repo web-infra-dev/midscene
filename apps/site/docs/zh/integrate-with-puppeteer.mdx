@@ -65,8 +65,6 @@ Promise.resolve(
 );
 ```
 
-更多 Agent 的 API 讲解请参考 [API 参考](./api.mdx)。
-
 ## 第三步：运行
 
 使用 `tsx` 来运行，你会看到命令行打印出了耳机的商品信息：
@@ -78,21 +76,25 @@ npx tsx demo.ts
 # 命令行应该有如下输出
 #  [
 #   {
-#     itemTitle: 'JBL Tour Pro 2 - True wireless Noise Cancelling earbuds with Smart Charging Case',
-#     price: 551.21
+#     itemTitle: 'Beats by Dr. Dre Studio Buds Totally Wireless Noise Cancelling In Ear + OPEN BOX',
+#     price: 505.15
 #   },
 #   {
-#     itemTitle: 'Soundcore Space One无线耳机40H ANC播放时间2XStronger语音还原',
-#     price: 543.94
+#     itemTitle: 'Skullcandy Indy Truly Wireless Earbuds-Headphones Green Mint',
+#     price: 186.69
 #   }
 # ]
 ```
+
+更多 Agent 的 API 讲解请参考 [API 参考](./api.mdx)。
 
 ## 第四步：查看运行报告
 
 当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: /path/to/report/some_id.html`， 通过浏览器打开该文件即可看到报告。
 
-## 如何限制页面在当前 tab 打开
+## PuppeteerAgent 构造函数的更多选项
+
+### 限制弹窗在当前页面
 
 如果你想要限制页面在当前 tab 打开（比如点击一个带有 `target="_blank"` 属性的链接），你可以设置 `forceSameTabNavigation` 选项为 `true`：
 
@@ -101,6 +103,42 @@ const mid = new PuppeteerAgent(page, {
   forceSameTabNavigation: true,
 });
 ```
+
+### 提供自定义动作
+
+可以使用 `customActions` 选项，通过 `defineAction` 来扩展 Agent 的动作空间。传入该选项后，这些动作会追加到内置动作中，Agent 在规划（Planning）时就可以调用它们。
+
+```typescript
+import { getMidsceneLocationSchema, z } from '@midscene/core';
+import { defineAction } from '@midscene/core/device';
+
+const ContinuousClick = defineAction({
+  name: 'continuousClick',
+  description: 'Click the same target repeatedly',
+  paramSchema: z.object({
+    locate: getMidsceneLocationSchema(),
+    count: z
+      .number()
+      .int()
+      .positive()
+      .describe('How many times to click'),
+  }),
+  async call(param) {
+    const { locate, count } = param;
+    console.log('click target center', locate.center);
+    console.log('click count', count);
+    // 在这里结合 locate + count 实现自定义点击逻辑
+  },
+});
+
+const agent = new PuppeteerAgent(page, {
+  customActions: [ContinuousClick],
+});
+
+await agent.aiAction('点击红色按钮五次');
+```
+
+更多关于自定义动作的细节，请参考 [集成到任意界面](./integrate-with-any-interface)。
 
 ## 更多
 

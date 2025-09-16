@@ -9,6 +9,7 @@ Midscene 中每个 Agent 都有自己的构造函数。
 - 在 Puppeteer 中，使用 [PuppeteerAgent](./integrate-with-puppeteer)
 - 在桥接模式（Bridge Mode）中，使用 [AgentOverChromeBridge](./bridge-mode-by-chrome-extension#constructor)
 - 在 Android 中，使用 [AndroidAgent](./integrate-with-android)
+- 如果你为自定义界面创建 GUI Agent，请参考 [集成到任意界面](./integrate-with-any-interface)
 
 这些 Agent 有一些相同的构造参数：
 
@@ -49,7 +50,7 @@ Midscene 中每个 Agent 都有自己的构造函数。
 ```typescript
 function aiAction(
   prompt: string,
-  opt?: {
+  options?: {
     cacheable?: boolean;
   },
 ): Promise<void>;
@@ -59,7 +60,7 @@ function ai(prompt: string): Promise<void>; // 简写形式
 - 参数：
 
   - `prompt: string` - 用自然语言描述的操作内容
-  - `opt?: Object` - 可选，一个配置对象，包含：
+  - `options?: Object` - 可选，一个配置对象，包含：
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
 
 - 返回值：
@@ -158,8 +159,8 @@ await agent.aiHover('页面顶部的登录按钮');
 
 ```typescript
 function aiInput(
-  text: string,
-  locate: string | Object,
+  text: string | Object,
+  locate: string,
   options?: Object,
 ): Promise<void>;
 ```
@@ -167,7 +168,7 @@ function aiInput(
 - 参数：
 
   - `text: string` - 要输入的文本内容。使用空字符串可以清空输入框。
-  - `locate: string | Object` - 用自然语言描述的元素定位，，或[使用图片作为提示词](#使用图片作为提示词)。
+  - `locate: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: Object` - 可选，一个配置对象，包含：
     - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。默认值为 false
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
@@ -564,9 +565,7 @@ expect(onesieItem.price).toBe(7.99);
 ```typescript
 function aiLocate(
   locate: string | Object,
-  options?: {
-    cacheable?: boolean;
-  },
+  options?: Object,
 ): Promise<{
   rect: {
     left: number;

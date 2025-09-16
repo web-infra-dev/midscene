@@ -38,14 +38,14 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 Promise.resolve(
   (async () => {
     const devices = await getConnectedDevices();
-    const page = new AndroidDevice(devices[0].udid);
+    const device = new AndroidDevice(devices[0].udid);
 
     // 👀 init Midscene agent
-    const agent = new AndroidAgent(page, {
+    const agent = new AndroidAgent(device, {
       aiActionContext:
         'If any location, permission, user agreement, etc. popup, click agree. If login page pops up, close it.',
     });
-    await page.connect();
+    await device.connect();
 
     // 👀 open browser and navigate to ebay.com (Please ensure that the current page has a browser app)
     await agent.aiAction('open browser and navigate to ebay.com');
@@ -141,8 +141,8 @@ function launch(uri: string): Promise<void>;
 ```typescript
 import { AndroidAgent, AndroidDevice } from '@midscene/android';
 
-const page = new AndroidDevice('s4ey59');
-const agent = new AndroidAgent(page);
+const device = new AndroidDevice('s4ey59');
+const agent = new AndroidAgent(device);
 
 await agent.launch('https://www.ebay.com'); // open a webpage
 await agent.launch('com.android.settings'); // open a native page
@@ -215,6 +215,44 @@ const devices = await getConnectedDevices();
 console.log(devices);
 const agent = await agentFromAdbDevice(devices[0].udid);
 ```
+
+## Provide custom actions
+
+Use the `customActions` option to extend the agent's action space with your own actions defined via `defineAction`. When provided, these actions will be appended to the built-in ones so the agent can call them during planning.
+
+```typescript
+import { getMidsceneLocationSchema, z } from '@midscene/core';
+import { defineAction } from '@midscene/core/device';
+import { AndroidAgent, AndroidDevice } from '@midscene/android';
+
+const ContinuousClick = defineAction({
+  name: 'continuousClick',
+  description: 'Click the same target repeatedly',
+  paramSchema: z.object({
+    locate: getMidsceneLocationSchema(),
+    count: z
+      .number()
+      .int()
+      .positive()
+      .describe('How many times to click'),
+  }),
+  async call(param) {
+    const { locate, count } = param;
+    console.log('click target center', locate.center);
+    console.log('click count', count);
+    // carry out your clicking logic using locate + count
+  },
+});
+
+const device = new AndroidDevice('your-device-id', {
+  customActions: [ContinuousClick],
+});
+const agent = new AndroidAgent(device);
+
+await agent.aiAction('click the red button five times');
+```
+
+Check [Integrate with any interface](./integrate-with-any-interface#define-a-custom-action) for more details about defining custom actions.
 
 ## More
 

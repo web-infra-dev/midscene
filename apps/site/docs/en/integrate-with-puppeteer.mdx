@@ -104,6 +104,42 @@ const mid = new PuppeteerAgent(page, {
 });
 ```
 
+### Provide custom actions
+
+Use the `customActions` option to extend the agent's action space with your own actions defined via `defineAction`. When provided, these actions will be appended to the built-in ones so the agent can call them during planning.
+
+```typescript
+import { getMidsceneLocationSchema, z } from '@midscene/core';
+import { defineAction } from '@midscene/core/device';
+
+const ContinuousClick = defineAction({
+  name: 'continuousClick',
+  description: 'Click the same target repeatedly',
+  paramSchema: z.object({
+    locate: getMidsceneLocationSchema(),
+    count: z
+      .number()
+      .int()
+      .positive()
+      .describe('How many times to click'),
+  }),
+  async call(param) {
+    const { locate, count } = param;
+    console.log('click target center', locate.center);
+    console.log('click count', count);
+    // carry out your clicking logic using locate + count
+  },
+});
+
+const agent = new PuppeteerAgent(page, {
+  customActions: [ContinuousClick],
+});
+
+await agent.aiAction('click the red button five times');
+```
+
+Check [Integrate with any interface](./integrate-with-any-interface#define-a-custom-action) for more details about defining custom actions.
+
 ## More
 
 * For all the APIs on the Agent, please refer to [API Reference](./api.mdx).
