@@ -228,12 +228,20 @@ export async function callAI(
           vl_high_resolution_images: true,
         }
       : {}),
+
+    ...(process.env.MIDSCENE_MODEL_THINKING
+      ? {
+          thinking: {
+            type: process.env.MIDSCENE_MODEL_THINKING,
+          },
+        }
+      : {}),
   };
 
   try {
     if (style === 'openai') {
       debugCall(
-        `sending ${isStreaming ? 'streaming ' : ''}request to ${modelName}`,
+        `sending ${isStreaming ? 'streaming ' : ''}request to ${modelName}, config: ${JSON.stringify(commonConfig)}`,
       );
 
       if (isStreaming) {
