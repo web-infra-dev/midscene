@@ -118,9 +118,30 @@ export class Agent<
    */
   private frozenUIContext?: UIContext;
 
+  /**
+   * Flag to track if VL model warning has been shown
+   */
+  private hasWarnedNonVLModel = false;
+
   // @deprecated use .interface instead
   get page() {
     return this.interface;
+  }
+
+  /**
+   * Ensures VL model warning is shown once when needed
+   */
+  private ensureVLModelWarning() {
+    if (
+      !this.hasWarnedNonVLModel &&
+      this.interface.interfaceType !== 'puppeteer' &&
+      this.interface.interfaceType !== 'playwright' &&
+      this.interface.interfaceType !== 'static' &&
+      this.interface.interfaceType !== 'chrome-extension-proxy'
+    ) {
+      this.modelConfigManager.warnIfNonVLModel();
+      this.hasWarnedNonVLModel = true;
+    }
   }
 
   constructor(interfaceInstance: InterfaceType, opts?: AgentOpt) {
@@ -143,15 +164,6 @@ export class Agent<
     this.modelConfigManager = opts?.modelConfig
       ? new ModelConfigManager(opts.modelConfig)
       : globalModelConfigManager;
-
-    if (
-      this.interface.interfaceType !== 'puppeteer' &&
-      this.interface.interfaceType !== 'playwright' &&
-      this.interface.interfaceType !== 'static' &&
-      this.interface.interfaceType !== 'chrome-extension-proxy'
-    ) {
-      this.modelConfigManager.warnIfNonVLModel();
-    }
 
     this.onTaskStartTip = this.opts.onTaskStartTip;
 
@@ -187,6 +199,9 @@ export class Agent<
   }
 
   async getUIContext(action?: InsightAction): Promise<UIContext> {
+    // Check VL model configuration when UI context is first needed
+    this.ensureVLModelWarning();
+
     // If page context is frozen, return the frozen context for all actions
     if (this.frozenUIContext) {
       debug('Using frozen page context for action:', action);
