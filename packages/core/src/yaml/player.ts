@@ -379,7 +379,9 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         await agent.callActionInActionSpace('Input', {
           ...inputTask,
           ...(value !== undefined ? { value } : {}),
-          ...(locatePrompt ? { locate: locatePrompt } : {}),
+          ...(locatePrompt
+            ? { locate: buildDetailedLocateParam(locatePrompt, inputTask) }
+            : {}),
         });
       } else if (
         'aiKeyboardPress' in (flowItem as MidsceneYamlFlowItemAIKeyboardPress)

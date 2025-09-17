@@ -202,29 +202,6 @@ describe(
       3 * 60 * 1000,
     );
 
-    it.only(
-      'search engine',
-      async () => {
-        const { originPage, reset } = await launchPage(
-          'https://news.baidu.com/',
-        );
-        resetFn = reset;
-        const agent = new PuppeteerAgent(originPage, { cacheId: 'news' });
-        await agent.runYaml(
-          `
-          tasks:
-            - name: scroll down 100px
-              flow:
-                - aiScroll: 第一条新闻标题
-                  direction: down
-                  scrollType: once
-                  cacheable: false
-        `,
-        );
-      },
-      3 * 60 * 1000,
-    );
-
     it('element describer', async () => {
       const { originPage, reset } = await launchPage('https://www.baidu.com/');
       resetFn = reset;
