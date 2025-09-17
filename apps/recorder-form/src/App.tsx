@@ -16,7 +16,7 @@ import {
   RecordTimeline,
   type RecordedEvent,
 } from '@midscene/recorder';
-import CanvasSelector from './components/CanvasSelector';
+import CanvasSelector from './components/canvas-selector';
 
 const { Title } = Typography;
 const { Option } = Select;

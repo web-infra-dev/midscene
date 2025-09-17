@@ -1,6 +1,6 @@
 import { Button, Input, Typography } from 'antd';
 import type React from 'react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import CloseOutlined from '../../icons/close.svg';
 import HistoryOutlined from '../../icons/history.svg';
 import MagnifyingGlass from '../../icons/magnifying-glass.svg';
@@ -24,6 +24,7 @@ export const HistorySelector: React.FC<HistorySelectorProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
   const clearHistory = useHistoryStore((state) => state.clearHistory);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   // group history by time
   const groupedHistory = useMemo(() => {
@@ -59,6 +60,31 @@ export const HistorySelector: React.FC<HistorySelectorProps> = ({
     setIsModalOpen(false); // clear and close modal
   };
 
+  // Handle click outside to close modal
+  useEffect(() => {
+    if (!isModalOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      // Check if click is outside the modal
+      if (
+        modalRef.current &&
+        !modalRef.current.contains(event.target as Node)
+      ) {
+        setIsModalOpen(false);
+      }
+    };
+
+    // Add listener after a short delay to avoid closing immediately when opening
+    const timer = setTimeout(() => {
+      document.addEventListener('click', handleClickOutside);
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [isModalOpen]);
+
   const renderHistoryGroup = (title: string, items: HistoryItem[]) => {
     if (items.length === 0) return null;
 
@@ -79,20 +105,14 @@ export const HistorySelector: React.FC<HistorySelectorProps> = ({
   };
 
   return (
-    <>
+    <div className="history-selector-wrapper">
       <div className="selector-trigger" onClick={() => setIsModalOpen(true)}>
         <HistoryOutlined width={24} height={24} />
       </div>
 
       {isModalOpen && (
-        <div
-          className="history-modal-overlay"
-          onClick={() => setIsModalOpen(false)}
-        >
-          <div
-            className="history-modal-container"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className="history-modal-overlay" ref={modalRef}>
+          <div className="history-modal-container">
             {/* top title bar */}
             <div className="history-modal-header">
               <Text strong style={{ fontSize: '16px' }}>
@@ -163,6 +183,6 @@ export const HistorySelector: React.FC<HistorySelectorProps> = ({
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 };

@@ -4,10 +4,9 @@ import {
   globalThemeConfig,
   safeOverrideAIConfig,
   useEnvConfig,
-  useServerValid,
 } from '@midscene/visualizer';
 import { ConfigProvider, Layout, message } from 'antd';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { type Socket, io } from 'socket.io-client';
 import AdbDevice from './components/adb-device';
@@ -23,15 +22,13 @@ export default function App() {
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [connectToDevice, setConnectToDevice] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
-  const [connectionReady, setConnectionReady] = useState(false);
   const [serverUrl, setServerUrl] = useState(
     `http://localhost:${SCRCPY_SERVER_PORT}`,
   );
+  const [isNarrowScreen, setIsNarrowScreen] = useState(false);
 
   // Configuration state
   const { config } = useEnvConfig();
-  const configAlreadySet = Object.keys(config || {}).length >= 1;
-  const serverValid = useServerValid(true);
 
   // Override AI configuration when config changes
   useEffect(() => {
@@ -100,11 +97,6 @@ export default function App() {
     };
   }, [messageApi, serverUrl]);
 
-  // listen to the connection status change
-  const handleConnectionStatusChange = useCallback((status: boolean) => {
-    setConnectionReady(status);
-  }, []);
-
   // reset the connection flag
   useEffect(() => {
     if (connectToDevice) {
@@ -117,6 +109,22 @@ export default function App() {
     }
   }, [connectToDevice]);
 
+  // Handle window resize to detect narrow screens
+  useEffect(() => {
+    const handleResize = () => {
+      setIsNarrowScreen(window.innerWidth <= 1024);
+    };
+
+    // Set initial value
+    handleResize();
+
+    // Add event listener
+    window.addEventListener('resize', handleResize);
+
+    // Cleanup
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   return (
     <ConfigProvider theme={globalThemeConfig()}>
       {contextHolder}
@@ -124,26 +132,23 @@ export default function App() {
         <Content className="app-content">
           <PanelGroup
             autoSaveId="android-playground-layout"
-            direction="horizontal"
+            direction={isNarrowScreen ? 'vertical' : 'horizontal'}
           >
             {/* left panel: PlaygroundPanel with Universal Playground */}
             <Panel
-              defaultSize={32}
-              maxSize={60}
-              minSize={25}
+              defaultSize={isNarrowScreen ? 67 : 32}
+              maxSize={isNarrowScreen ? 85 : 60}
+              minSize={isNarrowScreen ? 67 : 25}
               className="app-panel left-panel"
             >
               <div className="panel-content left-panel-content">
-                <PlaygroundPanel
-                  selectedDeviceId={selectedDeviceId}
-                  serverValid={serverValid}
-                  configAlreadySet={configAlreadySet}
-                  connectionReady={connectionReady}
-                />
+                <PlaygroundPanel />
               </div>
             </Panel>
 
-            <PanelResizeHandle className="panel-resize-handle" />
+            <PanelResizeHandle
+              className={`panel-resize-handle ${isNarrowScreen ? 'vertical' : 'horizontal'}`}
+            />
 
             {/* right panel: ScrcpyPlayer */}
             <Panel className="app-panel right-panel">
@@ -156,7 +161,6 @@ export default function App() {
                   ref={scrcpyPlayerRef}
                   serverUrl={serverUrl}
                   autoConnect={connectToDevice}
-                  onConnectionStatusChange={handleConnectionStatusChange}
                 />
               </div>
             </Panel>

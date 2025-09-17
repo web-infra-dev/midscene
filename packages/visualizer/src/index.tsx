@@ -17,6 +17,8 @@ export {
 
 export { EnvConfig } from './component/env-config';
 export { EnvConfigReminder } from './component/env-config-reminder';
+export { NavActions } from './component/nav-actions';
+export type { NavActionsProps } from './component/nav-actions';
 
 export { Logo } from './component/logo';
 export { iconForStatus, timeCostStrElement } from './component/misc';
@@ -33,7 +35,6 @@ export { ContextPreview } from './component/context-preview';
 export { PromptInput } from './component/prompt-input';
 export { Player } from './component/player';
 export { Blackboard } from './component/blackboard';
-export { GithubStar } from './component/github-star';
 
 // Export playground utilities
 export {

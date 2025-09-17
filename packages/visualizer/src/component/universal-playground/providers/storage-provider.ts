@@ -6,23 +6,81 @@ import type { InfoListItem, StorageProvider } from '../../../types';
 export class LocalStorageProvider implements StorageProvider {
   private readonly messagesKey: string;
   private readonly resultsKey: string;
+  private readonly maxStorageItems = 50; // Limit stored items to prevent quota issues
 
   constructor(namespace = 'playground') {
     this.messagesKey = `${namespace}-messages`;
     this.resultsKey = `${namespace}-results`;
   }
 
+  /**
+   * Check available storage space
+   */
+  private checkStorageSpace(): boolean {
+    try {
+      const testKey = 'storage-test';
+      const testData = 'x'.repeat(1024 * 100); // 100KB test
+      localStorage.setItem(testKey, testData);
+      localStorage.removeItem(testKey);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async saveMessages(messages: InfoListItem[]): Promise<void> {
     try {
+      // Check storage space before attempting to save
+      if (!this.checkStorageSpace()) {
+        console.warn('Low storage space detected, clearing old data...');
+        await this.handleQuotaExceeded();
+      }
+
+      // Limit messages to prevent quota issues - keep only recent messages
+      const messagesToSave = messages.slice(-this.maxStorageItems);
+
       // Only save light message data (exclude heavy result data)
-      const lightMessages = messages.map((msg) => ({
+      const lightMessages = messagesToSave.map((msg) => ({
         ...msg,
         result: undefined, // Remove heavy result data
       }));
 
-      localStorage.setItem(this.messagesKey, JSON.stringify(lightMessages));
+      const messageData = JSON.stringify(lightMessages);
+      localStorage.setItem(this.messagesKey, messageData);
     } catch (error) {
-      console.error('Failed to save messages to localStorage:', error);
+      if (
+        error instanceof DOMException &&
+        error.name === 'QuotaExceededError'
+      ) {
+        console.warn(
+          'LocalStorage quota exceeded, attempting to clear old data and retry...',
+        );
+        await this.handleQuotaExceeded();
+
+        try {
+          // Retry with only recent messages
+          const recentMessages = messages.slice(-10); // Keep only last 10 messages
+          const lightRecentMessages = recentMessages.map((msg) => ({
+            ...msg,
+            result: undefined,
+          }));
+
+          const messageData = JSON.stringify(lightRecentMessages);
+          localStorage.setItem(this.messagesKey, messageData);
+          console.info(
+            'Successfully saved recent messages after clearing storage',
+          );
+        } catch (retryError) {
+          console.error(
+            'Failed to save even after clearing storage:',
+            retryError,
+          );
+          // Fallback: clear all messages and start fresh
+          await this.clearMessages();
+        }
+      } else {
+        console.error('Failed to save messages to localStorage:', error);
+      }
     }
   }
 
@@ -80,7 +138,79 @@ export class LocalStorageProvider implements StorageProvider {
       const resultKey = `${this.resultsKey}-${id}`;
       localStorage.setItem(resultKey, JSON.stringify(result));
     } catch (error) {
-      console.error('Failed to save result to localStorage:', error);
+      if (
+        error instanceof DOMException &&
+        error.name === 'QuotaExceededError'
+      ) {
+        console.warn(
+          'LocalStorage quota exceeded when saving result, clearing old results...',
+        );
+        await this.handleQuotaExceeded();
+
+        try {
+          // Retry saving the result
+          const resultKey = `${this.resultsKey}-${id}`;
+          localStorage.setItem(resultKey, JSON.stringify(result));
+        } catch (retryError) {
+          console.error(
+            'Failed to save result even after clearing storage:',
+            retryError,
+          );
+        }
+      } else {
+        console.error('Failed to save result to localStorage:', error);
+      }
+    }
+  }
+
+  /**
+   * Handle quota exceeded by clearing old data
+   */
+  private async handleQuotaExceeded(): Promise<void> {
+    try {
+      // Clear old result data first (usually the largest)
+      const keys = Object.keys(localStorage);
+      const resultKeys = keys.filter((key) => key.startsWith(this.resultsKey));
+
+      // Sort by timestamp if possible, otherwise clear half of them
+      const keysToRemove = resultKeys.slice(
+        0,
+        Math.max(1, Math.floor(resultKeys.length / 2)),
+      );
+
+      keysToRemove.forEach((key) => {
+        localStorage.removeItem(key);
+      });
+
+      console.info(
+        `Cleared ${keysToRemove.length} old result entries to free up storage space`,
+      );
+
+      // If still having issues, clear other playground-related data
+      const playgroundKeys = keys.filter(
+        (key) =>
+          key.includes('playground') ||
+          key.includes('agent') ||
+          key.startsWith('midscene'),
+      );
+
+      if (playgroundKeys.length > 10) {
+        const additionalKeysToRemove = playgroundKeys.slice(
+          0,
+          Math.floor(playgroundKeys.length / 3),
+        );
+        additionalKeysToRemove.forEach((key) => {
+          if (key !== this.messagesKey) {
+            // Don't remove current messages
+            localStorage.removeItem(key);
+          }
+        });
+        console.info(
+          `Cleared ${additionalKeysToRemove.length} additional playground-related entries`,
+        );
+      }
+    } catch (error) {
+      console.error('Failed to handle quota exceeded:', error);
     }
   }
 }

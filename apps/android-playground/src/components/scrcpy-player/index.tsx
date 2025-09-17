@@ -40,7 +40,6 @@ interface ScrcpyProps {
   autoConnect?: boolean;
   autoReconnect?: boolean;
   reconnectInterval?: number;
-  onConnectionStatusChange?: (status: boolean) => void;
 }
 
 interface VideoMetadata {
@@ -62,7 +61,6 @@ export const ScrcpyPlayer = forwardRef<ScrcpyRefMethods, ScrcpyProps>(
       autoConnect = true,
       autoReconnect = true,
       reconnectInterval = 5000,
-      onConnectionStatusChange,
     },
     ref,
   ) => {
@@ -408,7 +406,6 @@ export const ScrcpyPlayer = forwardRef<ScrcpyRefMethods, ScrcpyProps>(
         if (!serverUrl) {
           console.error('Cannot connect: missing server URL');
           setConnecting(false);
-          onConnectionStatusChange?.(false);
           return;
         }
 
@@ -432,14 +429,11 @@ export const ScrcpyPlayer = forwardRef<ScrcpyRefMethods, ScrcpyProps>(
                 setupMetadataTimeout();
               } catch (err) {
                 console.error('Failed to request connection:', err);
-                onConnectionStatusChange?.(false); // notify connection request failed
                 message.error(
                   'connection request failed, please refresh the page',
                 );
               }
             } else {
-              onConnectionStatusChange?.(false); // notify connection status change
-
               try {
                 if (socketRef.current) {
                   setTimeout(() => {
@@ -470,8 +464,6 @@ export const ScrcpyPlayer = forwardRef<ScrcpyRefMethods, ScrcpyProps>(
 
             // notify parent component after connection is successful
             socketRef.current.on('connect', () => {
-              onConnectionStatusChange?.(true);
-
               // get device id from socket
               if (socketRef.current?.id) {
                 setDeviceId(socketRef.current.id);
@@ -549,18 +541,15 @@ export const ScrcpyPlayer = forwardRef<ScrcpyRefMethods, ScrcpyProps>(
                     .pipeTo(decoderRef.current.writable)
                     .catch((error: Error) => {
                       console.error('video stream processing error:', error);
-                      onConnectionStatusChange?.(false);
                     });
 
                   // update UI status
                   setConnected(true);
                   setConnecting(false);
                   // video metadata received successfully, device connected
-                  onConnectionStatusChange?.(true);
                 } catch (error: any) {
                   console.error('Failed to initialize decoder:', error);
                   setConnecting(false);
-                  onConnectionStatusChange?.(false);
                 }
               },
             );
@@ -570,7 +559,6 @@ export const ScrcpyPlayer = forwardRef<ScrcpyRefMethods, ScrcpyProps>(
               console.error('server error:', error);
               message.error('server error');
               setConnecting(false);
-              onConnectionStatusChange?.(false);
 
               // clear metadata timeout
               if (metadataTimeoutRef.current) {
@@ -582,7 +570,6 @@ export const ScrcpyPlayer = forwardRef<ScrcpyRefMethods, ScrcpyProps>(
             // handle disconnection event
             socketRef.current.on('disconnect', () => {
               setConnected(false);
-              onConnectionStatusChange?.(false);
 
               // clear metadata timeout
               if (metadataTimeoutRef.current) {
@@ -613,7 +600,6 @@ export const ScrcpyPlayer = forwardRef<ScrcpyRefMethods, ScrcpyProps>(
           } catch (error: any) {
             console.error('Failed to create socket connection:', error);
             setConnecting(false);
-            onConnectionStatusChange?.(false);
 
             if (autoReconnect && !reconnectTimerRef.current) {
               reconnectTimerRef.current = setTimeout(() => {
@@ -636,7 +622,6 @@ export const ScrcpyPlayer = forwardRef<ScrcpyRefMethods, ScrcpyProps>(
         }
       } catch (error: any) {
         setConnecting(false);
-        onConnectionStatusChange?.(false);
         console.error(`Failed to connect: ${error.message}`);
         message.error('connection failed');
 
@@ -652,7 +637,6 @@ export const ScrcpyPlayer = forwardRef<ScrcpyRefMethods, ScrcpyProps>(
       maxSize,
       autoReconnect,
       reconnectInterval,
-      onConnectionStatusChange,
       disconnectDevice,
     ]);
 
@@ -672,8 +656,6 @@ export const ScrcpyPlayer = forwardRef<ScrcpyRefMethods, ScrcpyProps>(
     useEffect(() => {
       // return cleanup function, called when component unmounts
       return () => {
-        onConnectionStatusChange?.(false);
-
         // dispose decoder
         if (decoderRef.current) {
           try {
@@ -718,7 +700,7 @@ export const ScrcpyPlayer = forwardRef<ScrcpyRefMethods, ScrcpyProps>(
           metadataTimeoutRef.current = null;
         }
       };
-    }, [onConnectionStatusChange]);
+    }, []);
 
     return (
       <div className="scrcpy-container">

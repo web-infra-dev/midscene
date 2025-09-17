@@ -1,0 +1,41 @@
+@import '../common.less';
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .nav-icon {
+    font-size: 16px;
+    color: rgba(0, 0, 0, 0.65);
+    cursor: pointer;
+    transition: color 0.3s;
+
+    &:hover {
+      color: @primary-color;
+    }
+  }
+
+  a {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+
+    &:hover {
+      .nav-icon {
+        color: @primary-color;
+      }
+    }
+  }
+}
+
+// Dark mode support
+[data-theme='dark'] .nav-actions {
+  .nav-icon {
+    color: rgba(255, 255, 255, 0.65);
+
+    &:hover {
+      color: @primary-color;
+    }
+  }
+}
