@@ -1,7 +1,7 @@
 import { PlaygroundSDK } from '@midscene/playground';
 import {
-  EnvConfig,
   Logo,
+  NavActions,
   UniversalPlayground,
   useEnvConfig,
 } from '@midscene/visualizer';
@@ -21,12 +21,7 @@ interface PlaygroundPanelProps {
  * Playground panel component for Android Playground using Universal Playground
  * Replaces the left panel with form and results
  */
-export default function PlaygroundPanel({
-  selectedDeviceId,
-  serverValid,
-  configAlreadySet,
-  connectionReady,
-}: PlaygroundPanelProps) {
+export default function PlaygroundPanel() {
   // Get config from the global state
   const { config } = useEnvConfig();
 
@@ -74,12 +69,16 @@ export default function PlaygroundPanel({
       <div className="playground-panel-header">
         <div className="header-row">
           <Logo />
-          <EnvConfig showTooltipWhenEmpty={false} showModelName={false} />
+          <NavActions
+            showEnvConfig={false}
+            showTooltipWhenEmpty={false}
+            showModelName={false}
+          />
         </div>
       </div>
 
       {/* Main playground area */}
-      <div className="playground-panel-content">
+      <div className="playground-panel-playground">
         <UniversalPlayground
           playgroundSDK={playgroundSDK}
           config={{
@@ -94,7 +93,7 @@ export default function PlaygroundPanel({
             title: 'Android Playground',
             version: __APP_VERSION__,
           }}
-          className="android-universal-playground"
+          className="playground-container"
         />
       </div>
     </div>

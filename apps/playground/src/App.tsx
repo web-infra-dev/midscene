@@ -1,6 +1,7 @@
 import { PlaygroundSDK } from '@midscene/playground';
 import {
   Logo,
+  NavActions,
   UniversalPlayground,
   globalThemeConfig,
 } from '@midscene/visualizer';
@@ -18,12 +19,19 @@ const { Content } = Layout;
 export default function App() {
   const [serverOnline, setServerOnline] = useState(false);
   const [isUserOperating, setIsUserOperating] = useState(false);
+  const [isNarrowScreen, setIsNarrowScreen] = useState(false);
 
   // Create PlaygroundSDK and storage provider
   const playgroundSDK = useMemo(() => {
+    // Support environment variable for serverUrl, fallback to default
+    const serverUrl =
+      process.env.REACT_APP_SERVER_URL || 'http://localhost:5870';
     const sdk = new PlaygroundSDK({
       type: 'remote-execution',
+      serverUrl,
     });
+
+    console.log('🌐 Connecting to playground server:', serverUrl);
 
     // Set progress callback to monitor user operation status
     sdk.onProgressUpdate((tip: string) => {
@@ -52,6 +60,22 @@ export default function App() {
     const interval = setInterval(checkServer, 5000);
     return () => clearInterval(interval);
   }, [playgroundSDK]);
+
+  // Handle window resize to detect narrow screens
+  useEffect(() => {
+    const handleResize = () => {
+      setIsNarrowScreen(window.innerWidth <= 1024);
+    };
+
+    // Set initial value
+    handleResize();
+
+    // Add event listener
+    window.addEventListener('resize', handleResize);
+
+    // Cleanup
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   if (!serverOnline) {
     return (
@@ -85,12 +109,15 @@ export default function App() {
     <ConfigProvider theme={globalThemeConfig()}>
       <Layout className="app-container playground-container">
         <Content className="app-content">
-          <PanelGroup autoSaveId="playground-layout" direction="horizontal">
+          <PanelGroup
+            autoSaveId="playground-layout"
+            direction={isNarrowScreen ? 'vertical' : 'horizontal'}
+          >
             {/* Left panel: UniversalPlayground */}
             <Panel
-              defaultSize={32}
-              maxSize={60}
-              minSize={25}
+              defaultSize={isNarrowScreen ? 60 : 32}
+              maxSize={isNarrowScreen ? 80 : 60}
+              minSize={isNarrowScreen ? 40 : 25}
               className="app-panel left-panel"
             >
               <div className="panel-content left-panel-content">
@@ -98,7 +125,7 @@ export default function App() {
                 <div className="playground-panel-header">
                   <div className="header-row">
                     <Logo />
-                    {/* <EnvConfig /> */}
+                    <NavActions showEnvConfig={false} />
                   </div>
                 </div>
 
@@ -124,7 +151,9 @@ export default function App() {
               </div>
             </Panel>
 
-            <PanelResizeHandle className="panel-resize-handle" />
+            <PanelResizeHandle
+              className={`panel-resize-handle ${isNarrowScreen ? 'vertical' : 'horizontal'}`}
+            />
 
             {/* Right panel: Screenshot Viewer */}
             <Panel className="app-panel right-panel">

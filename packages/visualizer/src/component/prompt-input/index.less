@@ -16,23 +16,36 @@
       height: 100%;
       flex: 1;
       min-width: 0;
-      overflow-x: auto;
+      overflow-x: auto; /* 只有这个容器可以滚动 */
       overflow-y: hidden;
-      scrollbar-width: none; /* Firefox */
-      -ms-overflow-style: none; /* IE and Edge */
+      scrollbar-width: thin; /* Show thin scrollbar for Firefox */
       gap: 8px; /* Space between Form.Item and Dropdown */
-      margin-right: 80px; /* Reserve space for action-icons */
-      
-      /* Hide scrollbar for WebKit browsers */
+      margin-right: 60px; /* Reserve space for action-icons while allowing overflow into gradient */
+
+      /* Show scrollbar for WebKit browsers */
       &::-webkit-scrollbar {
-        display: none;
+        height: 6px;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 3px;
+
+        &:hover {
+          background: #a8a8a8;
+        }
       }
 
       /* Ensure Form.Item doesn't shrink and stays in one line */
       .ant-form-item {
         margin: 0 !important;
         flex-shrink: 0;
-        
+
         .ant-radio-group {
           display: flex;
           flex-wrap: nowrap; /* Prevent wrapping */
@@ -48,7 +61,7 @@
         margin-right: 0; /* Remove margin, use gap instead */
         box-shadow: none;
         border: none;
-        background-color: #F7F7F7;
+        background-color: #f7f7f7;
         font-size: 12px;
         flex-shrink: 0; /* Prevent buttons from shrinking */
         white-space: nowrap; /* Prevent text wrapping */
@@ -62,8 +75,8 @@
         }
 
         &.ant-radio-button-wrapper-checked {
-          background-color: #2B83FF;
-          border-color: #2B83FF;
+          background-color: #2b83ff;
+          border-color: #2b83ff;
           color: white;
 
           &:hover {
@@ -83,7 +96,7 @@
         border-radius: 11px;
         box-shadow: none;
         border: none;
-        background-color: #F7F7F7;
+        background-color: #f7f7f7;
         font-size: 12px;
         display: inline-flex;
         align-items: center;
@@ -91,7 +104,7 @@
         max-width: 160px;
         flex-shrink: 0; /* Prevent button from shrinking */
         white-space: nowrap; /* Prevent text wrapping */
-        
+
         .ant-btn-content {
           overflow: hidden;
           text-overflow: ellipsis;
@@ -103,12 +116,12 @@
         }
 
         &.selected-from-dropdown {
-          background-color: #2B83FF;
+          background-color: #2b83ff;
           color: #fff;
           font-weight: 500;
 
           &:hover {
-            background-color: #2B83FF;
+            background-color: #2b83ff;
           }
         }
       }
@@ -122,8 +135,16 @@
       right: 0;
       top: 50%;
       transform: translateY(-50%);
-      background: white;
-      padding-left: 8px;
+      background: linear-gradient(
+        to right,
+        transparent 0%,
+        rgba(255, 255, 255, 0.5) 20%,
+        rgba(255, 255, 255, 0.8) 40%,
+        rgba(255, 255, 255, 0.95) 60%,
+        white 70%
+      );
+      padding-left: 20px;
+      width: 80px;
       z-index: 10;
     }
   }
@@ -134,7 +155,7 @@
 
     .main-side-console-input-textarea {
       border-radius: 12px;
-      border: 1px solid #F2F4F7;
+      border: 1px solid #f2f4f7;
       background: white;
 
       @keyframes hue-shift {
@@ -151,7 +172,15 @@
         border: 1px solid transparent;
         background:
           linear-gradient(white, white) padding-box,
-          linear-gradient(135deg, #4285f4 0%, #0066FF 25%, #7B02C5 50%, #ea4335 75%, #ff7043 100%) border-box;
+          linear-gradient(
+              135deg,
+              #4285f4 0%,
+              #0066ff 25%,
+              #7b02c5 50%,
+              #ea4335 75%,
+              #ff7043 100%
+            )
+            border-box;
       }
 
       padding: 12px 16px;
@@ -176,7 +205,15 @@
       border: 1px solid transparent;
       background:
         linear-gradient(white, white) padding-box,
-        linear-gradient(135deg, #4285f4 0%, #0066FF 25%, #7B02C5 50%, #ea4335 75%, #ff7043 100%) border-box;
+        linear-gradient(
+            135deg,
+            #4285f4 0%,
+            #0066ff 25%,
+            #7b02c5 50%,
+            #ea4335 75%,
+            #ff7043 100%
+          )
+          border-box;
       animation: hue-shift 5s linear infinite;
     }
 
@@ -214,7 +251,7 @@
     box-sizing: border-box;
     align-items: flex-end;
     gap: 8px;
-    background-color: #FFF;
+    background-color: #fff;
     left: 16px;
     bottom: 1px;
     padding: 12px 0;
@@ -238,8 +275,17 @@
   .structured-params-container {
     padding: 16px;
     padding-bottom: 56px;
-    background: linear-gradient(white, white) padding-box,
-    linear-gradient(135deg, #4285f4 0%, #0066ff 25%, #7b02c5 50%, #ea4335 75%, #ff7043 100%) border-box;
+    background:
+      linear-gradient(white, white) padding-box,
+      linear-gradient(
+          135deg,
+          #4285f4 0%,
+          #0066ff 25%,
+          #7b02c5 50%,
+          #ea4335 75%,
+          #ff7043 100%
+        )
+        border-box;
     border-radius: 12px;
     border: 1px solid transparent;
 
@@ -248,20 +294,20 @@
         // Force vertical layout - label above input
         display: flex;
         flex-direction: column;
-        
+
         // Label positioning - above input with consistent spacing
         .ant-form-item-label {
           text-align: left;
           padding-bottom: 4px;
           flex-basis: auto;
-          
+
           > label {
             font-size: 12px;
             font-weight: 500;
             color: rgba(0, 0, 0, 0.85);
             height: auto;
             line-height: 1.5;
-            
+
             // Red asterisk styling - positioned after label
             &::after {
               display: inline-block;
@@ -290,16 +336,19 @@
         }
       }
 
-      .ant-input, .ant-input-number, .ant-select {
+      .ant-input,
+      .ant-input-number,
+      .ant-select {
         width: 100%;
         border-radius: 6px;
         border: 1px solid #e1e5e9;
-        
+
         &:hover {
           border-color: #40a9ff;
         }
 
-        &:focus, &:focus-within {
+        &:focus,
+        &:focus-within {
           border-color: #40a9ff;
           box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
         }
@@ -308,29 +357,29 @@
       textarea.ant-input {
         padding-bottom: 5px;
       }
-      
+
       .ant-input-number {
         .ant-input-number-input {
           border: none;
           box-shadow: none;
         }
-        
+
         &:hover .ant-input-number-input {
           box-shadow: none;
         }
       }
-      
+
       .ant-select {
         min-width: 120px;
         .ant-select-selector {
           border: none;
           box-shadow: none;
         }
-        
+
         &:hover .ant-select-selector {
           box-shadow: none;
         }
-        
+
         &.ant-select-focused .ant-select-selector {
           box-shadow: none;
         }
@@ -338,7 +387,7 @@
 
       .ant-radio-group {
         width: 100%;
-        
+
         .ant-radio-button-wrapper {
           height: 32px;
           line-height: 30px;
@@ -348,8 +397,8 @@
           font-size: 12px;
 
           &.ant-radio-button-wrapper-checked {
-            background-color: #2B83FF;
-            border-color: #2B83FF;
+            background-color: #2b83ff;
+            border-color: #2b83ff;
             color: white;
           }
         }
@@ -370,7 +419,7 @@
     transition: all 0.2s;
 
     &:hover {
-      color: #2B83FF;
+      color: #2b83ff;
     }
   }
 }

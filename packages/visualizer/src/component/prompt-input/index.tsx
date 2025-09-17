@@ -1,7 +1,7 @@
 import { BorderOutlined, DownOutlined, SendOutlined } from '@ant-design/icons';
 import './index.less';
 import type { z } from '@midscene/core';
-import { Button, Dropdown, Form, Input, Radio, Space, Tooltip } from 'antd';
+import { Button, Dropdown, Form, Input, Radio, Tooltip } from 'antd';
 import type { MenuProps } from 'antd';
 import React, {
   useCallback,
@@ -77,6 +77,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   const [promptValue, setPromptValue] = useState('');
   const placeholder = getPlaceholderForType(selectedType);
   const textAreaRef = useRef<any>(null); // Ant Design TextArea ref with internal structure
+  const modeRadioGroupRef = useRef<HTMLDivElement>(null); // Ref for the mode-radio-group container
   const params = Form.useWatch('params', form);
   const lastHistoryRef = useRef<HistoryItem | null>(null);
 
@@ -300,6 +301,51 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     }
   }, [selectedType, lastSelectedType, setLastSelectedType]);
 
+  // Scroll to selected item in mode-radio-group
+  const scrollToSelectedItem = useCallback(() => {
+    const container = modeRadioGroupRef.current;
+    if (!container) return;
+
+    let targetElement: HTMLElement | null = null;
+
+    // Find the selected radio button
+    const selectedRadioButton = container.querySelector(
+      '.ant-radio-button-wrapper-checked',
+    ) as HTMLElement;
+
+    // Find the dropdown button if it's selected (showing a non-default item)
+    const dropdownButton = container.querySelector(
+      '.more-apis-button.selected-from-dropdown',
+    ) as HTMLElement;
+
+    // Determine which element to scroll to
+    if (selectedRadioButton) {
+      targetElement = selectedRadioButton;
+    } else if (dropdownButton) {
+      targetElement = dropdownButton;
+    }
+
+    if (targetElement) {
+      const containerRect = container.getBoundingClientRect();
+      const targetRect = targetElement.getBoundingClientRect();
+
+      // Calculate the relative position of the target within the container
+      const targetLeft =
+        targetRect.left - containerRect.left + container.scrollLeft;
+      const targetWidth = targetRect.width;
+      const containerWidth = containerRect.width;
+
+      // Calculate the optimal scroll position to center the target
+      const optimalScrollLeft = targetLeft - (containerWidth - targetWidth) / 2;
+
+      // Smooth scroll to the target
+      container.scrollTo({
+        left: Math.max(0, optimalScrollLeft),
+        behavior: 'smooth',
+      });
+    }
+  }, []);
+
   // When the selectedType changes, populate the form with the last item from that type's history.
   useEffect(() => {
     const lastHistory = historyForSelectedType[0];
@@ -332,6 +378,16 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       lastHistoryRef.current = null;
     }
   }, [selectedType, historyForSelectedType, form, getDefaultParams]);
+
+  // Scroll to selected item when selectedType changes
+  useEffect(() => {
+    // Use a timeout to ensure the DOM has been updated with the new selection
+    const timeoutId = setTimeout(() => {
+      scrollToSelectedItem();
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, [selectedType, scrollToSelectedItem]);
 
   // Watch form prompt value changes
   const formPromptValue = Form.useWatch('prompt', form);
@@ -822,8 +878,8 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   return (
     <div className="prompt-input-wrapper">
       {/* top operation button area */}
-      <Space className="mode-radio-group-wrapper">
-        <div className="mode-radio-group">
+      <div className="mode-radio-group-wrapper">
+        <div className="mode-radio-group" ref={modeRadioGroupRef}>
           <Form.Item name="type" style={{ margin: 0 }}>
             <Radio.Group buttonStyle="solid" disabled={!runButtonEnabled}>
               {defaultMainButtons.map((apiType) => (
@@ -979,7 +1035,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
             </div>
           )}
         </div>
-      </Space>
+      </div>
 
       {/* input box area */}
       <div

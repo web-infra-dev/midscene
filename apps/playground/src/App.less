@@ -1,9 +1,14 @@
 body {
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans',
-    Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica,
+    Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
   font-size: 14px;
+}
+
+h3 {
+  text-transform: capitalize;
 }
 
 .app-container {
@@ -56,12 +61,11 @@ body {
     border-radius: 0;
     flex: 1;
     overflow: hidden;
-    box-shadow: -4px 0px 20px 0px #0000000A;
+    box-shadow: -4px 0px 20px 0px #0000000a;
   }
 }
 
 .panel-content {
-  padding: 12px 24px 24px 24px;
   height: 100%;
   overflow: auto;
   display: flex;
@@ -75,7 +79,8 @@ body {
 
     .playground-panel-header {
       flex-shrink: 0;
-      padding: 16px 16px 0 16px;
+      padding: 12px 16px 0 24px;
+      border-bottom: rgba(0, 0, 0, 0.06) solid 1px;
 
       .header-row {
         display: flex;
@@ -98,7 +103,7 @@ body {
       display: flex;
       flex-direction: column;
       min-height: 0;
-      padding: 0 16px 16px 16px;
+      padding: 0 24px 0 24px;
 
       .playground-container {
         flex: 1;
@@ -106,13 +111,14 @@ body {
         border: 1px solid #0000001f;
         border-radius: 8px;
         overflow: hidden;
-        padding: 0 16px;        
+        border: none;
       }
     }
   }
 
   &.right-panel-content {
     border-radius: 0;
+    padding: 0 24px 24px 24px;
   }
 }
 
@@ -225,6 +231,7 @@ body {
         font-size: 18px;
         margin-bottom: 12px;
         color: #1890ff;
+        text-transform: capitalize;
       }
 
       p {
@@ -239,12 +246,10 @@ body {
   }
 
   .screenshot-header {
-    display: flex;
-    align-items: center;
     justify-content: space-between;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid #e8e8e8;
+    align-items: center;
+    display: flex;
+    height: 56px;
 
     .screenshot-title {
       display: flex;
@@ -253,20 +258,42 @@ body {
 
       h3 {
         margin: 0;
-        font-size: 16px;
-        color: #1890ff;
+        font-size: 14px;
+        color: #000;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        text-transform: capitalize;
+
+        &::before {
+          content: '';
+          width: 16px;
+          height: 16px;
+          background-image: url('./icons/device.svg');
+          background-size: contain;
+          background-repeat: no-repeat;
+          background-position: center;
+        }
       }
 
-      .last-update-time {
+      .screenshot-subtitle {
         font-size: 12px;
         color: #999;
+        margin: 0;
       }
     }
 
     .screenshot-controls {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 12px;
+
+      .last-update-time {
+        font-size: 12px;
+        color: #666;
+        white-space: nowrap;
+      }
 
       .operation-indicator {
         display: flex;
@@ -275,41 +302,146 @@ body {
         font-size: 12px;
         color: #1890ff;
       }
+
+      .ant-btn {
+        border: none;
+        box-shadow: none;
+        color: #666;
+
+        &:hover {
+          color: #1890ff;
+          background: rgba(24, 144, 255, 0.06);
+        }
+      }
     }
   }
 
   .screenshot-container {
     flex: 1;
     display: flex;
-    align-items: center;
-    justify-content: center;
+    flex-direction: column;
     overflow: hidden;
-    border-radius: 8px;
-    border: 1px solid #e8e8e8;
-    background: #fafafa;
+    background: #f2f4f7;
+    border-radius: 16px;
+    padding: 0 15px;
 
-    .screenshot-image {
-      max-width: 100%;
-      max-height: 100%;
-      height: auto;
-      object-fit: contain;
-      border-radius: 4px;
+    .screenshot-overlay {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 12px 5px 8px 5px;
+      z-index: 10;
+
+      .device-name-overlay {
+        color: rgba(0, 0, 0, 0.85);
+        font-size: 12px;
+        font-weight: 500;
+        text-transform: capitalize;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .info-icon {
+          font-size: 12px;
+          opacity: 0.8;
+          cursor: pointer;
+
+          &:hover {
+            opacity: 1;
+          }
+        }
+      }
+
+      .screenshot-controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        height: 18px;
+        border-radius: 4px;
+        background-color: rgba(0, 0, 0, 0.06);
+        opacity: 1;
+        padding: 4px 8px;
+        box-sizing: border-box;
+
+        .last-update-time {
+          font-size: 12px;
+          color: #666;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .operation-indicator {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 12px;
+          color: #1890ff;
+        }
+
+        .ant-btn {
+          border: none;
+          box-shadow: none;
+          background: transparent;
+          padding: 0;
+          width: 16px;
+          height: 16px;
+          min-width: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          &:hover {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 2px;
+          }
+
+          .anticon {
+            font-size: 12px;
+            color: #666;
+          }
+        }
+      }
     }
 
-    .screenshot-placeholder {
-      text-align: center;
-      color: #999;
+    .screenshot-content {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 0;
+
+      .screenshot-image {
+        max-width: 100%;
+        max-height: 100%;
+        height: auto;
+        object-fit: contain;
+        border-radius: 12px;
+      }
+
+      .screenshot-placeholder {
+        text-align: center;
+        color: #999;
+      }
     }
   }
 }
 
 // PanelResizeHandle styles
 .panel-resize-handle {
-  width: 2px;
   background-color: #f0f0f0;
-  cursor: col-resize;
   transition: background-color 0.2s;
   position: relative;
+
+  &.horizontal {
+    width: 1px;
+    cursor: col-resize;
+  }
+
+  &.vertical {
+    height: 1px;
+    cursor: row-resize;
+  }
 
   &:hover {
     background-color: #1677ff;
@@ -321,63 +453,5 @@ body {
 
   &[data-resize-handle-active] {
     background-color: #1677ff;
-  }
-}
-
-// Global styles for better integration
-.playground-container {
-  .playground-container {
-    height: 100%;
-
-    .bottom-input-section,
-    .version-info-section {
-      background: white;
-    }
-  }
-}
-
-// Responsive design
-@media (max-width: 768px) {
-  .app-panel {
-    &.left-panel {
-      width: 100%;
-      height: 60%;
-      flex: none;
-    }
-
-    &.right-panel {
-      width: 100%;
-      height: 40%;
-      flex: none;
-      border-left: none;
-      border-top: 1px solid rgba(0, 0, 0, 0.08);
-    }
-  }
-
-  .panel-resize-handle {
-    display: none;
-  }
-
-  .server-offline-container {
-    .server-offline-message {
-      margin: 16px;
-      padding: 32px 16px;
-
-      h1 {
-        font-size: 20px;
-      }
-
-      h2 {
-        font-size: 24px;
-      }
-
-      .start-command {
-        padding: 12px 16px;
-
-        code {
-          font-size: 14px;
-        }
-      }
-    }
   }
 }

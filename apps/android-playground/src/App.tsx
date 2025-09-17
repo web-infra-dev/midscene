@@ -27,6 +27,7 @@ export default function App() {
   const [serverUrl, setServerUrl] = useState(
     `http://localhost:${SCRCPY_SERVER_PORT}`,
   );
+  const [isNarrowScreen, setIsNarrowScreen] = useState(false);
 
   // Configuration state
   const { config } = useEnvConfig();
@@ -117,6 +118,22 @@ export default function App() {
     }
   }, [connectToDevice]);
 
+  // Handle window resize to detect narrow screens
+  useEffect(() => {
+    const handleResize = () => {
+      setIsNarrowScreen(window.innerWidth <= 1024);
+    };
+
+    // Set initial value
+    handleResize();
+
+    // Add event listener
+    window.addEventListener('resize', handleResize);
+
+    // Cleanup
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   return (
     <ConfigProvider theme={globalThemeConfig()}>
       {contextHolder}
@@ -124,26 +141,23 @@ export default function App() {
         <Content className="app-content">
           <PanelGroup
             autoSaveId="android-playground-layout"
-            direction="horizontal"
+            direction={isNarrowScreen ? 'vertical' : 'horizontal'}
           >
             {/* left panel: PlaygroundPanel with Universal Playground */}
             <Panel
-              defaultSize={32}
-              maxSize={60}
-              minSize={25}
+              defaultSize={isNarrowScreen ? 60 : 32}
+              maxSize={isNarrowScreen ? 80 : 60}
+              minSize={isNarrowScreen ? 40 : 25}
               className="app-panel left-panel"
             >
               <div className="panel-content left-panel-content">
-                <PlaygroundPanel
-                  selectedDeviceId={selectedDeviceId}
-                  serverValid={serverValid}
-                  configAlreadySet={configAlreadySet}
-                  connectionReady={connectionReady}
-                />
+                <PlaygroundPanel />
               </div>
             </Panel>
 
-            <PanelResizeHandle className="panel-resize-handle" />
+            <PanelResizeHandle
+              className={`panel-resize-handle ${isNarrowScreen ? 'vertical' : 'horizontal'}`}
+            />
 
             {/* right panel: ScrcpyPlayer */}
             <Panel className="app-panel right-panel">

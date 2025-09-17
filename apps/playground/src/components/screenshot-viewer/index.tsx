@@ -1,4 +1,4 @@
-import { ReloadOutlined } from '@ant-design/icons';
+import { InfoCircleOutlined, ReloadOutlined } from '@ant-design/icons';
 import type { PlaygroundSDK } from '@midscene/playground';
 import { Button, Spin, Tooltip } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -217,61 +217,64 @@ export default function ScreenshotViewer({
     <div className="screenshot-viewer">
       <div className="screenshot-header">
         <div className="screenshot-title">
-          <h3>
-            {interfaceInfo?.type
-              ? `📱 ${interfaceInfo.type}`
-              : '📱 Screen Preview'}
-          </h3>
-          {interfaceInfo?.description && (
-            <p className="screenshot-subtitle">{interfaceInfo.description}</p>
-          )}
-        </div>
-        <div className="screenshot-controls">
-          {lastUpdateTime > 0 && (
-            <span className="last-update-time">
-              Updated {formatLastUpdateTime(lastUpdateTime)}
-            </span>
-          )}
-          <Tooltip title="Refresh screenshot">
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={handleManualRefresh}
-              loading={loading}
-              size="small"
-            />
-          </Tooltip>
-          {isUserOperating && (
-            <span className="operation-indicator">
-              <Spin size="small" /> Operating...
-            </span>
-          )}
+          <h3>{interfaceInfo?.type ? interfaceInfo.type : 'Device Name'}</h3>
         </div>
       </div>
       <div className="screenshot-container">
-        {screenshot ? (
-          <img
-            src={
-              screenshot.startsWith('data:image/')
-                ? screenshot
-                : `data:image/png;base64,${screenshot}`
-            }
-            alt="Device Screenshot"
-            className="screenshot-image"
-            onLoad={() => console.log('Screenshot image loaded successfully')}
-            onError={(e) => {
-              console.error('Screenshot image load error:', e);
-              console.error(
-                'Screenshot data preview:',
-                screenshot.substring(0, 100),
-              );
-              setError('Failed to load screenshot image');
-            }}
-          />
-        ) : (
-          <div className="screenshot-placeholder">
-            <p>No screenshot available</p>
+        <div className="screenshot-overlay">
+          <div className="device-name-overlay">
+            Device Name
+            <Tooltip title={interfaceInfo?.description}>
+              <InfoCircleOutlined size={16} className="info-icon" />
+            </Tooltip>
           </div>
-        )}
+          <div className="screenshot-controls">
+            {lastUpdateTime > 0 && (
+              <span className="last-update-time">
+                Last updated {formatLastUpdateTime(lastUpdateTime)}
+              </span>
+            )}
+            <Tooltip title="Refresh screenshot">
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={handleManualRefresh}
+                loading={loading}
+                size="small"
+              />
+            </Tooltip>
+            {isUserOperating && (
+              <span className="operation-indicator">
+                <Spin size="small" /> Operating...
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="screenshot-content">
+          {screenshot ? (
+            <img
+              src={
+                screenshot.startsWith('data:image/')
+                  ? screenshot
+                  : `data:image/png;base64,${screenshot}`
+              }
+              alt="Device Screenshot"
+              className="screenshot-image"
+              onLoad={() => console.log('Screenshot image loaded successfully')}
+              onError={(e) => {
+                console.error('Screenshot image load error:', e);
+                console.error(
+                  'Screenshot data preview:',
+                  screenshot.substring(0, 100),
+                );
+                setError('Failed to load screenshot image');
+              }}
+            />
+          ) : (
+            <div className="screenshot-placeholder">
+              <p>No screenshot available</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
