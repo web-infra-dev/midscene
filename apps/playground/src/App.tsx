@@ -9,6 +9,8 @@ import { ConfigProvider, Layout } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import ScreenshotViewer from './components/screenshot-viewer';
+import serverOfflineBackground from './icons/server-offline-background.svg';
+import serverOfflineForeground from './icons/server-offline-foreground.svg';
 
 import './App.less';
 
@@ -83,22 +85,22 @@ export default function App() {
         <div className="server-offline-container">
           <div className="server-offline-message">
             <Logo />
-            <h1>Midscene Playground</h1>
-            <div className="server-status offline">
-              <span className="status-dot" />
-              Server Offline
+            <div className="server-offline-content">
+              <div className="server-offline-icon">
+                <img
+                  src={serverOfflineBackground}
+                  className="icon-background"
+                  alt=""
+                />
+                <img
+                  src={serverOfflineForeground}
+                  className="icon-foreground"
+                  alt=""
+                />
+              </div>
+              <h1>Midscene Playground</h1>
+              <p className="connection-status">Server offline...</p>
             </div>
-            {/* <h2>🚀 Ready to start?</h2>
-            <p>Please start the playground server to begin:</p>
-            <div className="start-command">
-              <code>npx @midscene/playground</code>
-            </div>
-            <p className="server-info">
-              The server will be available at{' '}
-              <a href={SERVER_URL} target="_blank" rel="noopener noreferrer">
-                {SERVER_URL}
-              </a>
-            </p> */}
           </div>
         </div>
       </ConfigProvider>

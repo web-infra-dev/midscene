@@ -324,7 +324,7 @@ importers:
         specifier: 24.2.0
         version: 24.2.0(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@6.0.5)
       tsx:
-        specifier: ^4.16.0
+        specifier: ^4.19.2
         version: 4.19.2
       typescript:
         specifier: ^5.8.3
@@ -496,14 +496,14 @@ importers:
         specifier: ^18.0.0
         version: 18.19.62
       dotenv:
-        specifier: 16.4.5
+        specifier: ^16.4.5
         version: 16.4.5
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
       vitest:
         specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.62)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.43.1)
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.62)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5))(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.43.1)
 
   packages/android-playground:
     dependencies:
@@ -538,7 +538,7 @@ importers:
         specifier: ^1.0.0
         version: 1.0.0
       cors:
-        specifier: 2.8.5
+        specifier: ^2.8.5
         version: 2.8.5
       express:
         specifier: ^4.21.2
@@ -557,8 +557,8 @@ importers:
         specifier: ^0.11.2
         version: 0.11.2(@microsoft/api-extractor@7.52.10(@types/node@18.19.62))(typescript@5.8.3)
       '@types/cors':
-        specifier: 2.8.12
-        version: 2.8.12
+        specifier: ^2.8.17
+        version: 2.8.19
       '@types/express':
         specifier: ^4.17.21
         version: 4.17.21
@@ -621,7 +621,7 @@ importers:
         specifier: 3.2.0
         version: 3.2.0
       dotenv:
-        specifier: 16.4.5
+        specifier: ^16.4.5
         version: 16.4.5
       execa:
         specifier: 9.3.0
@@ -643,7 +643,7 @@ importers:
         version: 5.8.3
       vitest:
         specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.62)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.43.1)
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.62)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5))(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.43.1)
       yargs:
         specifier: 17.7.2
         version: 17.7.2
@@ -669,7 +669,7 @@ importers:
         specifier: 1.2.3
         version: 1.2.3
       dotenv:
-        specifier: 16.4.5
+        specifier: ^16.4.5
         version: 16.4.5
       https-proxy-agent:
         specifier: 7.0.2
@@ -719,7 +719,7 @@ importers:
         version: 5.8.3
       vitest:
         specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.62)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.43.1)
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.62)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5))(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.43.1)
 
   packages/evaluation:
     dependencies:
@@ -740,7 +740,7 @@ importers:
         specifier: 3.12.0
         version: 3.12.0
       dotenv:
-        specifier: 16.4.5
+        specifier: ^16.4.5
         version: 16.4.5
       playwright:
         specifier: 1.44.1
@@ -801,7 +801,7 @@ importers:
         specifier: ^18.0.0
         version: 18.19.62
       dotenv:
-        specifier: 16.4.5
+        specifier: ^16.4.5
         version: 16.4.5
       puppeteer-core:
         specifier: 24.2.0
@@ -811,7 +811,7 @@ importers:
         version: 5.8.3
       vitest:
         specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.62)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.43.1)
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.62)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5))(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.43.1)
       zod:
         specifier: 3.24.3
         version: 3.24.3
@@ -828,7 +828,7 @@ importers:
         specifier: ^2.8.5
         version: 2.8.5
       dotenv:
-        specifier: 16.4.5
+        specifier: ^16.4.5
         version: 16.4.5
       express:
         specifier: ^4.21.2
@@ -933,7 +933,7 @@ importers:
         specifier: 1.2.0
         version: 1.2.0
       dotenv:
-        specifier: 16.4.5
+        specifier: ^16.4.5
         version: 16.4.5
       rimraf:
         specifier: ~3.0.2
@@ -943,7 +943,7 @@ importers:
         version: 5.8.3
       vitest:
         specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.62)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.43.1)
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.62)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5))(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.43.1)
 
   packages/visualizer:
     dependencies:
@@ -1033,7 +1033,7 @@ importers:
         specifier: ~3.0.2
         version: 3.0.2
       tsx:
-        specifier: 4.19.2
+        specifier: ^4.19.2
         version: 4.19.2
       typescript:
         specifier: ^5.8.3
@@ -1054,13 +1054,13 @@ importers:
         specifier: workspace:*
         version: link:../shared
       cors:
-        specifier: 2.8.5
+        specifier: ^2.8.5
         version: 2.8.5
       dayjs:
         specifier: ^1.11.11
         version: 1.11.13
       dotenv:
-        specifier: 16.4.5
+        specifier: ^16.4.5
         version: 16.4.5
       http-server:
         specifier: 14.1.1
@@ -1082,8 +1082,8 @@ importers:
         specifier: 0.0.279
         version: 0.0.279
       '@types/cors':
-        specifier: 2.8.12
-        version: 2.8.12
+        specifier: ^2.8.17
+        version: 2.8.19
       '@types/http-server':
         specifier: ^0.12.4
         version: 0.12.4
@@ -1107,7 +1107,7 @@ importers:
         version: 5.8.3
       vitest:
         specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.62)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.43.1)
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.62)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5))(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.43.1)
 
 packages:
 
@@ -3879,9 +3879,6 @@ packages:
 
   '@types/cookie@0.4.1':
     resolution: {integrity: sha512-XW/Aa8APYr6jSVVA1y/DEIZX0/GMKLEVekNG727R8cs56ahETkRAy/3DR7+fJyh7oUgGwNQaRfXCun0+KbWY7Q==}
-
-  '@types/cors@2.8.12':
-    resolution: {integrity: sha512-vt+kDhq/M2ayberEtJcIN/hxXy1Pk+59g2FV/ZQceeaTyCtCucjL2Q7FXlFjtWn4n15KCr1NE2lNNFhp0lEThw==}
 
   '@types/cors@2.8.19':
     resolution: {integrity: sha512-mFNylyeyqN93lfe/9CSxOGREz8cpzAhH+E93xJ4xWQf62V8sQ/24reV2nyzUWM6H6Xji+GGHpkbLe7pVoUEskg==}
@@ -13364,8 +13361,6 @@ snapshots:
 
   '@types/cookie@0.4.1': {}
 
-  '@types/cors@2.8.12': {}
-
   '@types/cors@2.8.19':
     dependencies:
       '@types/node': 18.19.118
@@ -20421,7 +20416,7 @@ snapshots:
       - supports-color
       - terser
 
-  vitest@3.0.5(@types/debug@4.1.12)(@types/node@18.19.62)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.43.1):
+  vitest@3.0.5(@types/debug@4.1.12)(@types/node@18.19.62)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5))(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.43.1):
     dependencies:
       '@vitest/expect': 3.0.5
       '@vitest/mocker': 3.0.5(vite@5.4.10(@types/node@18.19.62)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.43.1))

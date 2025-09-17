@@ -28,7 +28,7 @@
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
     "cors": "^2.8.5",
-    "dotenv": "16.4.5",
+    "dotenv": "^16.4.5",
     "express": "^4.21.2",
     "open": "10.1.0",
     "uuid": "11.1.0"
