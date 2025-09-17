@@ -99,7 +99,7 @@ MIDSCENE_USE_QWEN_VL=1
 或使用阿里云：
 
 ```bash
-OPENAI_BASE_URL="https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
+OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
 OPENAI_API_KEY="......"
 MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
 MIDSCENE_USE_QWEN_VL=1
@@ -210,6 +210,10 @@ OPENAI_API_KEY="......"
 通过在环境变量中设置 `DEBUG=midscene:ai:profile:stats`，你可以打印模型的使用信息和响应时间。
 
 你也可以在报告文件中查看模型的使用信息。
+
+### 收到了 "No visual language model (VL model) detected" 错误
+
+请确保你正确配置了 VL 模型，特别是 `MIDSCENE_USE_...` 配置是否正确。
 
 ## 更多信息
 
