@@ -139,7 +139,7 @@ export class Agent<
       this.interface.interfaceType !== 'static' &&
       this.interface.interfaceType !== 'chrome-extension-proxy'
     ) {
-      this.modelConfigManager.warnIfNonVLModel();
+      this.modelConfigManager.throwErrorIfNonVLModel();
       this.hasWarnedNonVLModel = true;
     }
   }

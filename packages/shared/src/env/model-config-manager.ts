@@ -133,11 +133,11 @@ export class ModelConfigManager {
     this.globalConfigManager = globalConfigManager;
   }
 
-  warnIfNonVLModel(intent: TIntent = 'grounding') {
+  throwErrorIfNonVLModel(intent: TIntent = 'grounding') {
     const modelConfig = this.getModelConfig(intent);
 
     if (!modelConfig.vlMode) {
-      console.warn(
+      throw new Error(
         'No visual language model (VL model) detected for the current scenario. Element localization may be inaccurate. Please verify your model configuration. Learn more: https://midscenejs.com/choose-a-model',
       );
     }
