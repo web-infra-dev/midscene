@@ -104,9 +104,9 @@ export class AndroidDevice implements AbstractInterface {
             .describe(
               'If true, the keyboard will be dismissed after the input is completed. Do not set it unless the user asks you to do so.',
             ),
-          locate: getMidsceneLocationSchema().describe(
-            'The input field to be filled',
-          ),
+          locate: getMidsceneLocationSchema()
+            .describe('The input field to be filled')
+            .optional(),
         }),
         call: async (param) => {
           const element = param.locate;
