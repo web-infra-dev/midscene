@@ -68,6 +68,7 @@ export default defineConfig({
     },
     define: {
       __APP_VERSION__: JSON.stringify(playgroundVersion),
+      __SERVER_URL__: JSON.stringify(process.env.__SERVER_URL__ || ''),
     },
   },
   output: {

@@ -15,6 +15,7 @@ import serverOfflineForeground from './icons/server-offline-foreground.svg';
 import './App.less';
 
 declare const __APP_VERSION__: string;
+declare const __SERVER_URL__: string;
 
 const { Content } = Layout;
 
@@ -26,8 +27,7 @@ export default function App() {
   // Create PlaygroundSDK and storage provider
   const playgroundSDK = useMemo(() => {
     // Support environment variable for serverUrl, fallback to default
-    const serverUrl =
-      process.env.REACT_APP_SERVER_URL || 'http://localhost:5870';
+    const serverUrl = __SERVER_URL__;
     const sdk = new PlaygroundSDK({
       type: 'remote-execution',
       serverUrl,
