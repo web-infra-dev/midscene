@@ -507,9 +507,7 @@ export type PlayWrightAiFixtureType = {
   aiScroll: (
     ...args: Parameters<PageAgent['aiScroll']>
   ) => ReturnType<PageAgent['aiScroll']>;
-  aiQuery: <T = any>(
-    ...args: Parameters<PageAgent['aiQuery']>
-  ) => ReturnType<PageAgent['aiQuery']>;
+  aiQuery: <T = any>(...args: Parameters<PageAgent['aiQuery']>) => Promise<T>;
   aiAssert: (
     ...args: Parameters<PageAgent['aiAssert']>
   ) => ReturnType<PageAgent['aiAssert']>;
