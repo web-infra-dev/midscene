@@ -104,6 +104,15 @@ Build all packages:
 pnpm run build
 ```
 
+### `REPLACE_ME_WITH_REPORT_HTML` error in the report file
+
+If you see `REPLACE_ME_WITH_REPORT_HTML` in the report file, it's usually because of the circular dependency issue of Midscene. You can rebuild the entire project without nx cache to solve this issue.
+
+```sh
+# Rebuild the entire project without cache
+pnpm run build:skip-cache
+```
+
 ---
 
 ### Testing
