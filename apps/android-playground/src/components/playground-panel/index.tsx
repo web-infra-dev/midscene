@@ -10,13 +10,6 @@ import './index.less';
 
 declare const __APP_VERSION__: string;
 
-interface PlaygroundPanelProps {
-  selectedDeviceId: string | null;
-  serverValid: boolean;
-  configAlreadySet: boolean;
-  connectionReady: boolean;
-}
-
 /**
  * Playground panel component for Android Playground using Universal Playground
  * Replaces the left panel with form and results
@@ -69,11 +62,7 @@ export default function PlaygroundPanel() {
       <div className="playground-panel-header">
         <div className="header-row">
           <Logo />
-          <NavActions
-            showEnvConfig={false}
-            showTooltipWhenEmpty={false}
-            showModelName={false}
-          />
+          <NavActions showTooltipWhenEmpty={false} showModelName={false} />
         </div>
       </div>
 

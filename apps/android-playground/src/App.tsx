@@ -4,10 +4,9 @@ import {
   globalThemeConfig,
   safeOverrideAIConfig,
   useEnvConfig,
-  useServerValid,
 } from '@midscene/visualizer';
 import { ConfigProvider, Layout, message } from 'antd';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { type Socket, io } from 'socket.io-client';
 import AdbDevice from './components/adb-device';
@@ -23,7 +22,6 @@ export default function App() {
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [connectToDevice, setConnectToDevice] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
-  const [connectionReady, setConnectionReady] = useState(false);
   const [serverUrl, setServerUrl] = useState(
     `http://localhost:${SCRCPY_SERVER_PORT}`,
   );
@@ -31,8 +29,6 @@ export default function App() {
 
   // Configuration state
   const { config } = useEnvConfig();
-  const configAlreadySet = Object.keys(config || {}).length >= 1;
-  const serverValid = useServerValid(true);
 
   // Override AI configuration when config changes
   useEffect(() => {
@@ -101,11 +97,6 @@ export default function App() {
     };
   }, [messageApi, serverUrl]);
 
-  // listen to the connection status change
-  const handleConnectionStatusChange = useCallback((status: boolean) => {
-    setConnectionReady(status);
-  }, []);
-
   // reset the connection flag
   useEffect(() => {
     if (connectToDevice) {
@@ -170,7 +161,6 @@ export default function App() {
                   ref={scrcpyPlayerRef}
                   serverUrl={serverUrl}
                   autoConnect={connectToDevice}
-                  onConnectionStatusChange={handleConnectionStatusChange}
                 />
               </div>
             </Panel>
