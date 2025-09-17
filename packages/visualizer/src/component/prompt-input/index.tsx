@@ -1011,11 +1011,6 @@ export const PromptInput: React.FC<PromptInputProps> = ({
         </div>
 
         <div className="action-icons">
-          <HistorySelector
-            onSelect={handleSelectHistory}
-            history={historyForSelectedType}
-            currentType={selectedType}
-          />
           {hasConfigOptions && (
             <div
               className={
@@ -1034,6 +1029,11 @@ export const PromptInput: React.FC<PromptInputProps> = ({
               />
             </div>
           )}
+          <HistorySelector
+            onSelect={handleSelectHistory}
+            history={historyForSelectedType}
+            currentType={selectedType}
+          />
         </div>
       </div>
 

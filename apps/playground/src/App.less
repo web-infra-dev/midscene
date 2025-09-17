@@ -79,15 +79,18 @@ h3 {
 
     .playground-panel-header {
       flex-shrink: 0;
-      padding: 12px 16px 0 24px;
+      height: 60px;
+      padding: 0 16px 0 24px;
       border-bottom: rgba(0, 0, 0, 0.06) solid 1px;
+      display: flex;
+      align-items: center;
 
       .header-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 10px;
-        margin-bottom: 16px;
+        width: 100%;
       }
 
       h2 {
@@ -138,7 +141,7 @@ h3 {
     background: #f2f4f7;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-    padding: 24px;
+    padding: 14px 24px 0 24px;
 
     .server-offline-content {
       flex: 1;
@@ -257,8 +260,8 @@ h3 {
 
         &::before {
           content: '';
-          width: 16px;
-          height: 16px;
+          width: 24px;
+          height: 24px;
           background-image: url('./icons/device.svg');
           background-size: contain;
           background-repeat: no-repeat;
@@ -443,4 +446,9 @@ h3 {
   &[data-resize-handle-active] {
     background-color: #1677ff;
   }
+}
+
+.clear-button-container {
+  top: 20px !important;
+  right: -4px !important;
 }

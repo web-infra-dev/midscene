@@ -136,9 +136,9 @@ export default function App() {
           >
             {/* left panel: PlaygroundPanel with Universal Playground */}
             <Panel
-              defaultSize={isNarrowScreen ? 60 : 32}
-              maxSize={isNarrowScreen ? 80 : 60}
-              minSize={isNarrowScreen ? 40 : 25}
+              defaultSize={isNarrowScreen ? 67 : 32}
+              maxSize={isNarrowScreen ? 85 : 60}
+              minSize={isNarrowScreen ? 67 : 25}
               className="app-panel left-panel"
             >
               <div className="panel-content left-panel-content">
