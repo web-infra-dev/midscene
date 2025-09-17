@@ -534,7 +534,12 @@ tasks:
         [
           "Input",
           {
-            "locate": "第一个搜索结果的天气信息卡片",
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "第一个搜索结果的天气信息卡片",
+              "xpath": undefined,
+            },
           },
         ],
       ]
@@ -596,21 +601,36 @@ tasks:
         [
           "Input",
           {
-            "locate": "input field 1",
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "input field 1",
+              "xpath": undefined,
+            },
             "value": "i am value 1",
           },
         ],
         [
           "Input",
           {
-            "locate": "input field 2",
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "input field 2",
+              "xpath": undefined,
+            },
             "value": "i am value 2",
           },
         ],
         [
           "Input",
           {
-            "locate": "input field 3",
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "input field 3",
+              "xpath": undefined,
+            },
             "value": "i am value 3",
           },
         ],
@@ -619,7 +639,12 @@ tasks:
           {
             "direction": "down",
             "distance": 100,
-            "locate": "scrollable area A",
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "scrollable area A",
+              "xpath": undefined,
+            },
             "scrollType": "once",
           },
         ],
@@ -628,7 +653,12 @@ tasks:
           {
             "direction": "up",
             "distance": 100,
-            "locate": "scrollable area B",
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "scrollable area B",
+              "xpath": undefined,
+            },
             "scrollType": "once",
           },
         ],
@@ -636,21 +666,36 @@ tasks:
           "KeyboardPress",
           {
             "keyName": "Enter",
-            "locate": "input field 3",
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "input field 3",
+              "xpath": undefined,
+            },
           },
         ],
         [
           "KeyboardPress",
           {
             "keyName": "Control",
-            "locate": "input field 4",
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "input field 4",
+              "xpath": undefined,
+            },
           },
         ],
         [
           "KeyboardPress",
           {
             "keyName": "Escape",
-            "locate": "input field 5",
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "input field 5",
+              "xpath": undefined,
+            },
           },
         ],
       ]
