@@ -4,7 +4,7 @@ import Icon, {
   ArrowDownOutlined,
 } from '@ant-design/icons';
 import { Button, Form, List, Tooltip, Typography, message } from 'antd';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { usePlaygroundExecution } from '../../hooks/usePlaygroundExecution';
 import { usePlaygroundState } from '../../hooks/usePlaygroundState';
 import { useEnvConfig } from '../../store/store';
@@ -15,7 +15,10 @@ import { PlaygroundResultView } from '../playground-result';
 import './index.less';
 import PlaygroundIcon from '../../icons/avatar.svg';
 import { PromptInput } from '../prompt-input';
-import { LocalStorageProvider } from './providers/storage-provider';
+import {
+  createStorageProvider,
+  detectBestStorageType,
+} from './providers/storage-provider';
 
 const { Text } = Typography;
 
@@ -57,21 +60,54 @@ export function UniversalPlayground({
 }: UniversalPlaygroundProps) {
   const [form] = Form.useForm();
   const { config } = useEnvConfig();
+  const [sdkReady, setSdkReady] = useState(false);
+
+  // Initialize SDK ID on mount for remote execution
+  useEffect(() => {
+    const initializeSDK = async () => {
+      if (playgroundSDK && typeof playgroundSDK.checkStatus === 'function') {
+        try {
+          await playgroundSDK.checkStatus();
+          setSdkReady(true);
+        } catch (error) {
+          console.warn(
+            'Failed to initialize SDK, using default namespace:',
+            error,
+          );
+          setSdkReady(true); // Still proceed with default
+        }
+      } else {
+        setSdkReady(true); // For local execution, no need to wait
+      }
+    };
+
+    initializeSDK();
+  }, [playgroundSDK]);
 
   // Use custom hooks for state management
   // Determine the storage provider based on configuration
-  const effectiveStorage = (() => {
+  const effectiveStorage = useMemo(() => {
     // If external storage is provided, use it
     if (storage) {
       return storage;
     }
 
-    // Otherwise, create LocalStorageProvider with unique namespace
+    // Wait for SDK to be ready before creating storage
+    if (!sdkReady) {
+      return null;
+    }
+
+    // Otherwise, create the best available storage provider with unique namespace
     // Priority: explicit storageNamespace > auto-generated SDK ID
     const namespace =
       componentConfig.storageNamespace || getSDKId(playgroundSDK);
-    return new LocalStorageProvider(namespace);
-  })();
+
+    // Detect and use the best available storage type
+    const bestStorageType = detectBestStorageType();
+    console.log(`Using ${bestStorageType} storage for namespace: ${namespace}`);
+
+    return createStorageProvider(bestStorageType, namespace);
+  }, [storage, sdkReady, componentConfig.storageNamespace, playgroundSDK]);
 
   const {
     loading,

@@ -80,7 +80,7 @@ h3 {
     .playground-panel-header {
       flex-shrink: 0;
       height: 60px;
-      padding: 0 16px 0 24px;
+      padding: 0 24px 0 24px;
       border-bottom: rgba(0, 0, 0, 0.06) solid 1px;
       display: flex;
       align-items: center;
@@ -275,37 +275,6 @@ h3 {
         margin: 0;
       }
     }
-
-    .screenshot-controls {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-
-      .last-update-time {
-        font-size: 12px;
-        color: #666;
-        white-space: nowrap;
-      }
-
-      .operation-indicator {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        font-size: 12px;
-        color: #1890ff;
-      }
-
-      .ant-btn {
-        border: none;
-        box-shadow: none;
-        color: #666;
-
-        &:hover {
-          color: #1890ff;
-          background: rgba(24, 144, 255, 0.06);
-        }
-      }
-    }
   }
 
   .screenshot-container {
@@ -350,7 +319,6 @@ h3 {
         gap: 10px;
         height: 18px;
         border-radius: 4px;
-        background-color: rgba(0, 0, 0, 0.06);
         opacity: 1;
         padding: 4px 8px;
         box-sizing: border-box;
@@ -368,7 +336,6 @@ h3 {
           align-items: center;
           gap: 4px;
           font-size: 12px;
-          color: #1890ff;
         }
 
         .ant-btn {
@@ -384,13 +351,19 @@ h3 {
           justify-content: center;
 
           &:hover {
-            background: rgba(0, 0, 0, 0.1);
+            background-color: rgba(0, 0, 0, 0.06);
             border-radius: 2px;
+            transform: scale(1.1);
+            transition: all 0.2s ease;
           }
 
           .anticon {
             font-size: 12px;
             color: #666;
+            transition: color 0.2s ease;
+          }
+
+          &:hover .anticon {
           }
         }
       }

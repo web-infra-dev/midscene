@@ -65,11 +65,15 @@ export type {
   ProgressCallback,
 } from './types';
 
-// Export providers
+// Export storage providers (both legacy and new)
 export {
   LocalStorageProvider,
   MemoryStorageProvider,
   NoOpStorageProvider,
+  IndexedDBStorageProvider,
+  createStorageProvider,
+  detectBestStorageType,
+  StorageType,
 } from './component/universal-playground/providers/storage-provider';
 export {
   BaseContextProvider,
