@@ -59,7 +59,7 @@ const ReportOverview = (props: {
   }, [props.dumps]);
 
   const testStatsEl =
-    props.dumps && props.dumps.length > 1 ? (
+    props.dumps && props.dumps.length > 0 ? (
       <div className="test-case-stats">
         <div className="stats-card">
           <div className="stats-value">{testStats.total}</div>
