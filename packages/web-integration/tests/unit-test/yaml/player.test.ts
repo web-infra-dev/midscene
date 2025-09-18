@@ -576,7 +576,25 @@ tasks:
       - aiKeyboardPress:
         locate: 'input field 5'
         keyName: 'Escape'
-`;
+      - aiInput:
+        locate:
+          prompt: Please determine whether there is a specific on the page.
+      - aiInput:
+        locate:
+          prompt: Please determine whether there is a specific on the page.
+          images:
+            - name: The specific logo
+              url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
+            - name: The specific logo
+              url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
+      - aiInput:
+        locate:
+          prompt: Please determine whether there is a specific on the page.
+          images:
+            - name: The specific logo
+              url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
+          convertHttpImage2Base64: true
+        `;
 
     const script = parseYamlScript(yamlString);
     const mockAgent = await getMockAgent();
@@ -694,6 +712,62 @@ tasks:
               "cacheable": true,
               "deepThink": false,
               "prompt": "input field 5",
+              "xpath": undefined,
+            },
+          },
+        ],
+        [
+          "Input",
+          {
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": {
+                "prompt": "Please determine whether there is a specific on the page.",
+              },
+              "xpath": undefined,
+            },
+          },
+        ],
+        [
+          "Input",
+          {
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": {
+                "images": [
+                  {
+                    "name": "The specific logo",
+                    "url": "https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png",
+                  },
+                  {
+                    "name": "The specific logo",
+                    "url": "https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png",
+                  },
+                ],
+                "prompt": "Please determine whether there is a specific on the page.",
+              },
+              "xpath": undefined,
+            },
+          },
+        ],
+        [
+          "Input",
+          {
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": {
+                "convertHttpImage2Base64": true,
+                "images": [
+                  {
+                    "name": "The specific logo",
+                    "url": "https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png",
+                  },
+                ],
+                "prompt": "Please determine whether there is a specific on the page.",
+              },
               "xpath": undefined,
             },
           },

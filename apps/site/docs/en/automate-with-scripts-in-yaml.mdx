@@ -183,6 +183,30 @@ The `tasks` part is an array that defines the steps of the script. Remember to a
 
 The interfaces in the `flow` section are almost identical to the [API](./api.html), with some differences in parameter nesting levels.
 
+#### Prompting with images
+
+For steps that accept prompts as `string | Object` (see the [API reference](./api.html#prompting-with-images)), you can provide an object containing the text prompt and an `images` array. This applies to `aiTap`, `aiHover`, `aiInput.locate`, `aiKeyboardPress.locate`, `aiScroll.locate`, `aiDoubleClick`, `aiRightClick`, `aiAsk`, `aiQuery`, `aiBoolean`, `aiNumber`, `aiString`, `aiAssert`.
+
+```yaml
+tasks:
+  - name: Verify branding
+    flow:
+      - aiTap:
+          locate:
+            prompt: Tap the primary call-to-action button that matches the highlighted design.
+            images:
+              - name: primary button reference
+                url: https://example.com/button.png
+            convertHttpImage2Base64: true
+      - aiAssert:
+          prompt: Confirm the primary button matches the supplied design reference.
+          images:
+            - name: primary button reference
+              url: https://example.com/button.png
+```
+
+Image URLs can be local paths, Base64 strings, or remote links. When using image links that cannot be accessed for the model, set `convertHttpImage2Base64: true` so Midscene will download the image and send the base64 string to the model.
+
 ```yaml
 tasks:
   - name: <name>

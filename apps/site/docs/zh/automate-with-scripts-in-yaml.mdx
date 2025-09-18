@@ -183,6 +183,30 @@ android:
 
 `flow` 部分的接口与 [API](./api.html) 几乎相同，除了一些参数的嵌套层级。
 
+#### 使用图像提示
+
+对于接受 `string | Object` 提示词的步骤（参见 [API 参考](./api.html#prompting-with-images)），你可以提供一个对象，其中包含文本提示词以及 `images` 数组。适用于 `aiTap`、`aiHover`、`aiInput.locate`、`aiKeyboardPress.locate`、`aiScroll.locate`、`aiDoubleClick`、`aiRightClick`、`aiAsk`、`aiQuery`、`aiBoolean`、`aiNumber`、`aiString`、`aiAssert`。
+
+```yaml
+tasks:
+  - name: 校验品牌一致性
+    flow:
+      - aiTap:
+          locate:
+            prompt: 点击参考图中的按钮
+            images:
+              - name: 主按钮参考图
+                url: https://example.com/button.png
+            convertHttpImage2Base64: true
+      - aiAssert:
+          prompt: 确认主要按钮与提供的设计参考保持一致。
+          images:
+            - name: 主按钮参考图
+              url: https://example.com/button.png
+```
+
+图片 URL 可以是本地路径、Base64 字符串或远程链接。如果图片链接无法被模型访问，请设置 `convertHttpImage2Base64: true`，Midscene 会将图像下载后以 base64 字符串的形式发送给模型。
+
 ```yaml
 tasks:
   - name: <name>

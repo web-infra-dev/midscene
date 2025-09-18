@@ -1,0 +1,12 @@
+web:
+  url: https://github.com/
+
+tasks:
+  - name: assert Github logo
+    flow:
+      - aiAssert:
+          prompt: Please determine whether there is a specific on the page.
+          images:
+            - name: The specific logo
+              url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
+          convertHttpImage2Base64: true
