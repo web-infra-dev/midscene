@@ -171,15 +171,20 @@ export class Agent<
       return this.getUIContext(action);
     });
 
-    const useCache =
-      typeof opts?.useCache === 'boolean'
-        ? opts.useCache
+    const cache =
+      opts?.cache !== undefined
+        ? opts.cache
         : globalConfigManager.getEnvConfigInBoolean(MIDSCENE_CACHE);
+
+    const isCacheResultUsed = cache === true || cache === 'read-only';
+    const cacheReadOnly = cache === 'read-only';
 
     if (opts?.cacheId) {
       this.taskCache = new TaskCache(
         opts.cacheId,
-        useCache, // if we should use cache to match the element
+        isCacheResultUsed, // if we should use cache to match the element
+        undefined, // cacheFilePath
+        cacheReadOnly, // readOnlyMode
       );
     }
 

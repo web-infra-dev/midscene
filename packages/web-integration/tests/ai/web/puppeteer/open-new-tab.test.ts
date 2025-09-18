@@ -20,6 +20,7 @@ describe('agent with forceSameTabNavigation', () => {
     resetFn = reset;
     const agent = new PuppeteerAgent(originPage, {
       cacheId: 'puppeteer-open-new-tab',
+      cacheStrategy: true,
     });
     const inputXpath = '//*[@id="sb_form_q"]';
     await agent.aiInput('midscene github', 'The search input box', {
