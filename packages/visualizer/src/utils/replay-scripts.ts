@@ -45,6 +45,8 @@ export interface AnimationScript {
   insightCameraDuration?: number;
   title?: string;
   subTitle?: string;
+  imageWidth?: number;
+  imageHeight?: number;
 }
 
 const stillDuration = 900;
@@ -134,9 +136,10 @@ const capitalizeFirstLetter = (str: string) => {
 export const allScriptsFromDump = (
   dump: GroupedActionDump,
 ): ReplayScriptsInfo | null => {
-  // find out the width and height of the screenshot
-  let width: number | undefined = undefined;
-  let height: number | undefined = undefined;
+  // find out the width and height of the screenshot - collect all unique dimensions
+  const dimensionsSet = new Set<string>();
+  let firstWidth: number | undefined = undefined;
+  let firstHeight: number | undefined = undefined;
   let sdkVersion: string | undefined = undefined;
 
   const modelBriefsSet = new Set<string>();
@@ -148,13 +151,18 @@ export const allScriptsFromDump = (
 
     execution.tasks.forEach((task) => {
       if (task.uiContext?.size?.width) {
-        width = task.uiContext.size.width;
-        height = task.uiContext.size.height;
+        const w = task.uiContext.size.width;
+        const h = task.uiContext.size.height;
+        if (!firstWidth) {
+          firstWidth = w;
+          firstHeight = h;
+        }
+        dimensionsSet.add(`${w}x${h}`);
       }
     });
   });
 
-  if (!width || !height) {
+  if (!firstWidth || !firstHeight) {
     console.warn('width or height is missing in dump file');
     return {
       scripts: [],
@@ -163,9 +171,15 @@ export const allScriptsFromDump = (
     };
   }
 
+  // Use first dimensions as default for the overall player size
   const allScripts: AnimationScript[] = [];
   dump.executions.forEach((execution) => {
-    const scripts = generateAnimationScripts(execution, -1, width!, height!);
+    const scripts = generateAnimationScripts(
+      execution,
+      -1,
+      firstWidth!,
+      firstHeight!,
+    );
     if (scripts) {
       allScripts.push(...scripts);
     }
@@ -211,8 +225,8 @@ export const allScriptsFromDump = (
 
   return {
     scripts: allScriptsWithoutIntermediateDoneFrame,
-    width,
-    height,
+    width: firstWidth,
+    height: firstHeight,
     sdkVersion,
     modelBriefs,
   };
@@ -307,6 +321,8 @@ export const generateAnimationScripts = (
           duration: stillDuration,
           title: typeStr(task),
           subTitle: paramStr(task),
+          imageWidth: task.uiContext?.size?.width || imageWidth,
+          imageHeight: task.uiContext?.size?.height || imageHeight,
         });
       }
     } else if (task.type === 'Insight' && task.subType === 'Locate') {
@@ -336,6 +352,8 @@ export const generateAnimationScripts = (
             duration: stillAfterInsightDuration,
             title,
             subTitle,
+            imageWidth: context.size?.width || imageWidth,
+            imageHeight: context.size?.height || imageHeight,
           });
         }
 
@@ -363,6 +381,8 @@ export const generateAnimationScripts = (
           insightCameraDuration: locateDuration,
           title,
           subTitle,
+          imageWidth: context.size?.width || imageWidth,
+          imageHeight: context.size?.height || imageHeight,
         });
 
         scripts.push({
@@ -390,6 +410,8 @@ export const generateAnimationScripts = (
           task.subType === 'Sleep' ? fullPageCameraState : insightCameraState,
         title,
         subTitle,
+        imageWidth: task.uiContext?.size?.width || imageWidth,
+        imageHeight: task.uiContext?.size?.height || imageHeight,
       });
 
       if (insightOnTop) {
@@ -420,6 +442,8 @@ export const generateAnimationScripts = (
           duration: imgStillDuration,
           title,
           subTitle,
+          imageWidth: task.uiContext?.size?.width || imageWidth,
+          imageHeight: task.uiContext?.size?.height || imageHeight,
         });
       } else {
         scripts.push({
@@ -443,6 +467,8 @@ export const generateAnimationScripts = (
           camera: fullPageCameraState,
           title,
           subTitle,
+          imageWidth: task.uiContext?.size?.width || imageWidth,
+          imageHeight: task.uiContext?.size?.height || imageHeight,
         });
       }
     }
@@ -464,6 +490,8 @@ export const generateAnimationScripts = (
         duration: stillDuration,
         title: errorTitle,
         subTitle: errorSubTitle,
+        imageWidth: task.uiContext?.size?.width || imageWidth,
+        imageHeight: task.uiContext?.size?.height || imageHeight,
       });
       return;
     }

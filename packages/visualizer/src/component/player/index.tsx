@@ -242,12 +242,52 @@ export function Player(props?: {
 
   const cameraState = useRef<CameraState>({ ...basicCameraState });
 
-  const repaintImage = async (): Promise<void> => {
+  const resizeCanvasIfNeeded = async (
+    newWidth: number,
+    newHeight: number,
+  ): Promise<void> => {
+    if (app.screen.width !== newWidth || app.screen.height !== newHeight) {
+      // Update renderer size
+      app.renderer.resize(newWidth, newHeight);
+
+      // Update container aspect ratio
+      if (divContainerRef.current) {
+        const aspectRatio = newWidth / newHeight;
+        divContainerRef.current.style.setProperty(
+          '--canvas-aspect-ratio',
+          aspectRatio.toString(),
+        );
+      }
+
+      // Update basic camera state for new dimensions
+      const newBasicCameraState = {
+        left: 0,
+        top: 0,
+        width: newWidth,
+        pointerLeft: Math.round(newWidth / 2),
+        pointerTop: Math.round(newHeight / 2),
+      };
+      cameraState.current = newBasicCameraState;
+    }
+  };
+
+  const repaintImage = async (
+    scriptWidth?: number,
+    scriptHeight?: number,
+  ): Promise<void> => {
     const imgToUpdate = currentImg.current;
     if (!imgToUpdate) {
       console.warn('no image to update');
       return;
     }
+
+    // Use script-specific dimensions if provided, otherwise default to original
+    const targetWidth = scriptWidth || imageWidth;
+    const targetHeight = scriptHeight || imageHeight;
+
+    // Resize canvas if dimensions changed
+    await resizeCanvasIfNeeded(targetWidth, targetHeight);
+
     if (!getTextureFromCache(imgToUpdate)) {
       console.warn('image not loaded', imgToUpdate);
       await loadTexture(imgToUpdate!);
@@ -269,9 +309,9 @@ export function Player(props?: {
     sprite.label = mainImgLabel;
     sprite.zIndex = LAYER_ORDER_IMG;
 
-    // use original size, keep image quality
-    sprite.width = imageWidth;
-    sprite.height = imageHeight;
+    // use current canvas size, keep image quality
+    sprite.width = targetWidth;
+    sprite.height = targetHeight;
 
     windowContentContainer.addChild(sprite);
   };
@@ -364,11 +404,14 @@ export function Player(props?: {
     windowContentContainer.addChild(pointerSprite.current);
   };
 
-  const updateCamera = (state: CameraState): void => {
+  const updateCamera = (state: CameraState, currentWidth?: number): void => {
     cameraState.current = state;
 
+    // Use current canvas width if provided, otherwise fall back to original imageWidth
+    const effectiveWidth = currentWidth || app.screen.width || imageWidth;
+
     // If auto zoom is enabled, apply zoom
-    const newScale = autoZoom ? Math.max(1, imageWidth / state.width) : 1;
+    const newScale = autoZoom ? Math.max(1, effectiveWidth / state.width) : 1;
     windowContentContainer.scale.set(newScale);
 
     // If auto zoom is enabled, pan the camera
@@ -398,6 +441,10 @@ export function Player(props?: {
     duration: number,
     frame: FrameFn,
   ): Promise<void> => {
+    // Get current canvas dimensions
+    const currentCanvasWidth = app.screen.width || imageWidth;
+    const currentCanvasHeight = app.screen.height || imageHeight;
+
     // If auto zoom is disabled, skip camera animation (only animate pointer)
     if (!autoZoom) {
       const currentState = { ...cameraState.current };
@@ -429,7 +476,7 @@ export function Player(props?: {
               (targetState.pointerTop! - startPointerTop) * progress,
           };
 
-          updateCamera(nextState);
+          updateCamera(nextState, currentCanvasWidth);
 
           if (elapsedTime < duration) {
             frame(animate);
@@ -447,7 +494,7 @@ export function Player(props?: {
     const startTop = currentState.top;
     const startPointerLeft = currentState.pointerLeft;
     const startPointerTop = currentState.pointerTop;
-    const startScale = currentState.width / imageWidth;
+    const startScale = currentState.width / currentCanvasWidth;
 
     const startTime = performance.now();
     const shouldMovePointer =
@@ -496,11 +543,11 @@ export function Player(props?: {
           const cameraProgress = cubicImage(rawCameraProgress);
 
           // get the target scale
-          const targetScale = targetState.width / imageWidth;
+          const targetScale = targetState.width / currentCanvasWidth;
           const progressScale =
             startScale + (targetScale - startScale) * cameraProgress;
-          const progressWidth = imageWidth * progressScale;
-          const progressHeight = imageHeight * progressScale;
+          const progressWidth = currentCanvasWidth * progressScale;
+          const progressHeight = currentCanvasHeight * progressScale;
           nextState.width = progressWidth;
 
           const progressLeft =
@@ -508,8 +555,10 @@ export function Player(props?: {
           const progressTop =
             startTop + (targetState.top - startTop) * cameraProgress;
 
-          const horizontalExceed = progressLeft + progressWidth - imageWidth;
-          const verticalExceed = progressTop + progressHeight - imageHeight;
+          const horizontalExceed =
+            progressLeft + progressWidth - currentCanvasWidth;
+          const verticalExceed =
+            progressTop + progressHeight - currentCanvasHeight;
 
           nextState.left =
             horizontalExceed > 0
@@ -519,7 +568,7 @@ export function Player(props?: {
             verticalExceed > 0 ? progressTop + verticalExceed : progressTop;
         }
 
-        updateCamera(nextState);
+        updateCamera(nextState, currentCanvasWidth);
 
         if (elapsedTime < duration) {
           frame(animate);
@@ -764,7 +813,7 @@ export function Player(props?: {
               throw new Error('img is required');
             }
             currentImg.current = item.img;
-            await repaintImage();
+            await repaintImage(item.imageWidth, item.imageHeight);
             const elements = item.context?.tree
               ? treeToList(item.context.tree)
               : [];
@@ -795,7 +844,7 @@ export function Player(props?: {
           } else if (item.type === 'img') {
             if (item.img && item.img !== currentImg.current) {
               currentImg.current = item.img!;
-              await repaintImage();
+              await repaintImage(item.imageWidth, item.imageHeight);
             }
             if (item.camera) {
               await cameraAnimation(item.camera, item.duration, frame);
