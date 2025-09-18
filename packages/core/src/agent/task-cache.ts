@@ -56,12 +56,15 @@ export class TaskCache {
   isCacheResultUsed: boolean; // a flag to indicate if the cache result should be used
   cacheOriginalLength: number;
 
+  readOnlyMode: boolean; // a flag to indicate if the cache is in read-only mode
+
   private matchedCacheIndices: Set<string> = new Set(); // Track matched records
 
   constructor(
     cacheId: string,
     isCacheResultUsed: boolean,
     cacheFilePath?: string,
+    readOnlyMode = false,
   ) {
     assert(cacheId, 'cacheId is required');
     let safeCacheId = replaceIllegalPathCharsAndSpace(cacheId);
@@ -82,6 +85,7 @@ export class TaskCache {
         : cacheFilePath ||
           join(getMidsceneRunSubDir('cache'), `${this.cacheId}${cacheFileExt}`);
     this.isCacheResultUsed = isCacheResultUsed;
+    this.readOnlyMode = readOnlyMode;
 
     let cacheContent;
     if (this.cacheFilePath) {
@@ -123,6 +127,10 @@ export class TaskCache {
         return {
           cacheContent: item,
           updateFn: (cb: (cache: PlanningCache | LocateCache) => void) => {
+            if (this.readOnlyMode) {
+              debug('read-only mode, skip updating cache');
+              return;
+            }
             debug(
               'will call updateFn to update cache, type: %s, prompt: %s, index: %d',
               type,
@@ -160,6 +168,10 @@ export class TaskCache {
   }
 
   appendCache(cache: PlanningCache | LocateCache) {
+    if (this.readOnlyMode) {
+      debug('read-only mode, skip appending cache');
+      return;
+    }
     debug('will append cache', cache);
     this.cache.caches.push(cache);
     this.flushCacheToFile();
@@ -222,6 +234,11 @@ export class TaskCache {
   }
 
   flushCacheToFile() {
+    if (this.readOnlyMode) {
+      debug('read-only mode, skip flushing cache to file');
+      return;
+    }
+
     const version = getMidsceneVersion();
     if (!version) {
       debug('no midscene version info, will not write cache to file');

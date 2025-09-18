@@ -578,6 +578,8 @@ export type WebUIContext = UIContext<WebElementInfo>;
  * Agent
  */
 
+export type Cache = true | false | 'read-only';
+
 export interface AgentOpt {
   testId?: string;
   cacheId?: string;
@@ -592,6 +594,6 @@ export interface AgentOpt {
   /* custom report file name */
   reportFileName?: string;
   modelConfig?: TModelConfigFn;
-  useCache?: boolean;
+  cache?: Cache;
   replanningCycleLimit?: number;
 }
