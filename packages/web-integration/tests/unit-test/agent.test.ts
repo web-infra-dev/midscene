@@ -400,3 +400,147 @@ describe('PageAgent aiWaitFor with doNotThrowError', () => {
     );
   });
 });
+
+describe('PageAgent cache configuration', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should handle cache as true', () => {
+    const agent = new PageAgent(mockPage, {
+      cacheId: 'test-cache-id',
+      cache: true,
+      modelConfig: () => mockedModelConfigFnResult,
+    });
+
+    expect(agent.taskCache).toBeDefined();
+    expect(agent.taskCache?.isCacheResultUsed).toBe(true);
+    expect(agent.taskCache?.readOnlyMode).toBe(false);
+  });
+
+  it('should handle cache as false', () => {
+    const agent = new PageAgent(mockPage, {
+      cacheId: 'test-cache-id',
+      cache: false,
+      modelConfig: () => mockedModelConfigFnResult,
+    });
+
+    expect(agent.taskCache).toBeDefined();
+    expect(agent.taskCache?.isCacheResultUsed).toBe(false);
+    expect(agent.taskCache?.readOnlyMode).toBe(false);
+  });
+
+  it('should handle cache as "read-only"', () => {
+    const agent = new PageAgent(mockPage, {
+      cacheId: 'test-cache-id',
+      cache: 'read-only',
+      modelConfig: () => mockedModelConfigFnResult,
+    });
+
+    expect(agent.taskCache).toBeDefined();
+    expect(agent.taskCache?.isCacheResultUsed).toBe(true);
+    expect(agent.taskCache?.readOnlyMode).toBe(true);
+  });
+
+  it('should not create taskCache when cacheId is not provided', () => {
+    const agent = new PageAgent(mockPage, {
+      cache: true,
+      modelConfig: () => mockedModelConfigFnResult,
+    });
+
+    expect(agent.taskCache).toBeUndefined();
+  });
+
+  it('should use global config when cache is not specified', () => {
+    // Mock global config to return true
+    const globalConfigSpy = vi
+      .spyOn(globalConfigManager, 'getEnvConfigInBoolean')
+      .mockReturnValue(true);
+
+    const agent = new PageAgent(mockPage, {
+      cacheId: 'test-cache-id',
+      modelConfig: () => mockedModelConfigFnResult,
+    });
+
+    expect(agent.taskCache).toBeDefined();
+    expect(agent.taskCache?.isCacheResultUsed).toBe(true);
+    expect(agent.taskCache?.readOnlyMode).toBe(false);
+
+    globalConfigSpy.mockRestore();
+  });
+
+  it('should prefer local cache over global config', () => {
+    // Mock global config to return true
+    const globalConfigSpy = vi
+      .spyOn(globalConfigManager, 'getEnvConfigInBoolean')
+      .mockReturnValue(true);
+
+    const agent = new PageAgent(mockPage, {
+      cacheId: 'test-cache-id',
+      cache: 'read-only',
+      modelConfig: () => mockedModelConfigFnResult,
+    });
+
+    expect(agent.taskCache).toBeDefined();
+    expect(agent.taskCache?.isCacheResultUsed).toBe(true);
+    expect(agent.taskCache?.readOnlyMode).toBe(true);
+
+    globalConfigSpy.mockRestore();
+  });
+
+  it('should handle undefined cache with global config false', () => {
+    // Mock global config to return false
+    const globalConfigSpy = vi
+      .spyOn(globalConfigManager, 'getEnvConfigInBoolean')
+      .mockReturnValue(false);
+
+    const agent = new PageAgent(mockPage, {
+      cacheId: 'test-cache-id',
+      modelConfig: () => mockedModelConfigFnResult,
+    });
+
+    expect(agent.taskCache).toBeDefined();
+    expect(agent.taskCache?.isCacheResultUsed).toBe(false);
+    expect(agent.taskCache?.readOnlyMode).toBe(false);
+
+    globalConfigSpy.mockRestore();
+  });
+
+  it('should ignore global config when cache is explicitly set', () => {
+    // Mock global config to return false (disabled)
+    const globalConfigSpy = vi
+      .spyOn(globalConfigManager, 'getEnvConfigInBoolean')
+      .mockReturnValue(false);
+
+    const agent = new PageAgent(mockPage, {
+      cacheId: 'test-cache-id',
+      cache: true, // Should override global config
+      modelConfig: () => mockedModelConfigFnResult,
+    });
+
+    expect(agent.taskCache).toBeDefined();
+    expect(agent.taskCache?.isCacheResultUsed).toBe(true);
+    expect(agent.taskCache?.readOnlyMode).toBe(false);
+
+    globalConfigSpy.mockRestore();
+  });
+
+  it('should enable read-only cache even when global config is false', () => {
+    // Mock global config to return false (disabled)
+    const globalConfigSpy = vi
+      .spyOn(globalConfigManager, 'getEnvConfigInBoolean')
+      .mockReturnValue(false);
+
+    const agent = new PageAgent(mockPage, {
+      cacheId: 'test-cache-id',
+      cache: 'read-only', // Should override global config
+      modelConfig: () => mockedModelConfigFnResult,
+    });
+
+    expect(agent.taskCache).toBeDefined();
+    expect(agent.taskCache?.isCacheResultUsed).toBe(true);
+    expect(agent.taskCache?.readOnlyMode).toBe(true);
+
+    globalConfigSpy.mockRestore();
+  });
+});
