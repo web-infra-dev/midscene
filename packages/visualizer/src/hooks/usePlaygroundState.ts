@@ -1,5 +1,9 @@
 import type { DeviceAction, UIContext } from '@midscene/core';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  createStorageProvider,
+  detectBestStorageType,
+} from '../component/universal-playground/providers/storage-provider';
 import type {
   ContextProvider,
   InfoListItem,
@@ -13,7 +17,7 @@ import { WELCOME_MESSAGE_TEMPLATE } from '../utils/constants';
  */
 export function usePlaygroundState(
   playgroundSDK: PlaygroundSDKLike | null,
-  storage?: StorageProvider,
+  storage?: StorageProvider | null,
   contextProvider?: ContextProvider,
 ) {
   // Core state
@@ -39,9 +43,44 @@ export function usePlaygroundState(
   const infoListRef = useRef<HTMLDivElement>(null);
   const currentRunningIdRef = useRef<number | null>(null);
   const interruptedFlagRef = useRef<Record<number, boolean>>({});
+  const initializedRef = useRef<boolean>(false);
 
-  // Initialize messages from storage (runs only once)
+  // Initialize messages from storage (runs when storage becomes available)
   useEffect(() => {
+    const migrateFromOldNamespace = async (): Promise<InfoListItem[]> => {
+      // Try to load from old default namespace
+      const oldStorage = createStorageProvider(
+        detectBestStorageType(),
+        'playground-default',
+      );
+
+      try {
+        if (oldStorage?.loadMessages) {
+          const oldMessages = await oldStorage.loadMessages();
+          if (oldMessages.length > 1) {
+            // More than just welcome message
+            console.log('Found data in old namespace, migrating...');
+
+            // Save to new storage
+            if (storage?.saveMessages) {
+              await storage.saveMessages(oldMessages);
+            }
+
+            // Clear old storage to avoid confusion
+            if (oldStorage.clearMessages) {
+              await oldStorage.clearMessages();
+            }
+
+            return oldMessages;
+          }
+        }
+      } catch (error) {
+        console.debug('No data found in old namespace:', error);
+      }
+
+      return [];
+    };
+
     const initializeMessages = async () => {
       // Create welcome message only once during initialization
       const welcomeMessage: InfoListItem = {
@@ -52,7 +91,13 @@ export function usePlaygroundState(
 
       if (storage?.loadMessages) {
         try {
-          const storedMessages = await storage.loadMessages();
+          let storedMessages = await storage.loadMessages();
+
+          // If no messages found in current namespace, try migration
+          if (storedMessages.length === 0) {
+            storedMessages = await migrateFromOldNamespace();
+          }
+
           // Check if welcome message already exists in stored messages
           const hasWelcomeMessage = storedMessages.some(
             (msg) => msg.id === 'welcome',
@@ -71,11 +116,15 @@ export function usePlaygroundState(
       }
     };
 
-    // Only initialize once when component mounts
-    if (infoList.length === 0) {
+    // Initialize when storage becomes available, avoid duplicate initialization
+    if (storage && !initializedRef.current) {
+      initializedRef.current = true;
+      initializeMessages();
+    } else if (!storage && infoList.length === 0) {
+      // Fallback: initialize without storage if none provided
       initializeMessages();
     }
-  }, []);
+  }, [storage]); // Add storage to dependency array
 
   // Save messages to storage when they change
   useEffect(() => {

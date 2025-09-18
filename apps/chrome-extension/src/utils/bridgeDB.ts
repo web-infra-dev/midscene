@@ -1,4 +1,4 @@
-import { IndexedDBManager, withErrorHandling } from './baseDB';
+import { IndexedDBManager, withErrorHandling } from '@midscene/shared/baseDB';
 
 // Database configuration
 const DB_NAME = 'midscene_bridge';

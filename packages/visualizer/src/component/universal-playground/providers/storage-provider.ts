@@ -1,4 +1,9 @@
 import type { InfoListItem, StorageProvider } from '../../../types';
+import {
+  MemoryStorageProvider as IndexedDBMemoryStorageProvider,
+  NoOpStorageProvider as IndexedDBNoOpStorageProvider,
+  IndexedDBStorageProvider,
+} from './indexeddb-storage-provider';
 
 /**
  * Local Storage implementation for playground message persistence
@@ -260,3 +265,85 @@ export class NoOpStorageProvider implements StorageProvider {
     // No-op
   }
 }
+
+/**
+ * Storage type enumeration
+ */
+export enum StorageType {
+  INDEXEDDB = 'indexeddb',
+  LOCALSTORAGE = 'localStorage',
+  MEMORY = 'memory',
+  NONE = 'none',
+}
+
+/**
+ * Factory function to create the appropriate storage provider
+ */
+export function createStorageProvider(
+  type: StorageType = StorageType.INDEXEDDB,
+  namespace = 'playground',
+): StorageProvider {
+  switch (type) {
+    case StorageType.INDEXEDDB:
+      if (typeof indexedDB !== 'undefined') {
+        return new IndexedDBStorageProvider(namespace);
+      }
+      // Fallback to localStorage if IndexedDB is not available
+      console.warn('IndexedDB not available, falling back to localStorage');
+      return createStorageProvider(StorageType.LOCALSTORAGE, namespace);
+
+    case StorageType.LOCALSTORAGE:
+      if (typeof localStorage !== 'undefined') {
+        return new LocalStorageProvider(namespace);
+      }
+      // Fallback to memory if localStorage is not available
+      console.warn(
+        'localStorage not available, falling back to memory storage',
+      );
+      return createStorageProvider(StorageType.MEMORY, namespace);
+
+    case StorageType.MEMORY:
+      return new MemoryStorageProvider();
+
+    case StorageType.NONE:
+      return new NoOpStorageProvider();
+
+    default:
+      throw new Error(`Unknown storage type: ${type}`);
+  }
+}
+
+// Helper function to detect best available storage
+export function detectBestStorageType(): StorageType {
+  // Check IndexedDB availability
+  if (typeof indexedDB !== 'undefined') {
+    try {
+      // Try to access IndexedDB
+      indexedDB.open('test', 1).onerror = () => {}; // Silent test
+      return StorageType.INDEXEDDB;
+    } catch {
+      // IndexedDB blocked or unavailable
+    }
+  }
+
+  // Check localStorage availability
+  if (typeof localStorage !== 'undefined') {
+    try {
+      localStorage.setItem('test', 'test');
+      localStorage.removeItem('test');
+      return StorageType.LOCALSTORAGE;
+    } catch {
+      // localStorage blocked or unavailable
+    }
+  }
+
+  // Fallback to memory storage
+  return StorageType.MEMORY;
+}
+
+// Export the new IndexedDB providers as primary options
+export {
+  IndexedDBStorageProvider,
+  IndexedDBMemoryStorageProvider,
+  IndexedDBNoOpStorageProvider,
+};

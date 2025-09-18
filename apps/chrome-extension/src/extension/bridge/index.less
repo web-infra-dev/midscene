@@ -70,7 +70,7 @@
     .mode-icon {
       width: 20px;
       height: 20px;
-      background: #FFA53C;
+      background: #ffa53c;
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -99,7 +99,7 @@
   }
 
   .message-body {
-    background: #F2F4F7;
+    background: #f2f4f7;
     border-radius: 8px;
     padding: 12px 16px;
   }
@@ -130,9 +130,11 @@
     font-style: italic;
   }
 
-  .bridge-log-container {}
+  .bridge-log-container {
+  }
 
-  .bridge-log-item {}
+  .bridge-log-item {
+  }
 
   .bottom-button-container {
     position: absolute;
@@ -162,7 +164,15 @@
     border: 1px solid transparent;
     background:
       linear-gradient(white, white) padding-box,
-      linear-gradient(135deg, #4285f4 0%, #0066FF 25%, #7B02C5 50%, #ea4335 75%, #ff7043 100%) border-box;
+      linear-gradient(
+          135deg,
+          #4285f4 0%,
+          #0066ff 25%,
+          #7b02c5 50%,
+          #ea4335 75%,
+          #ff7043 100%
+        )
+        border-box;
     animation: hue-shift 5s linear infinite;
     display: flex;
     flex-direction: row;
@@ -251,31 +261,71 @@
     0% {
       background:
         linear-gradient(white, white) padding-box,
-        linear-gradient(135deg, #4285f4 0%, #0066FF 25%, #7B02C5 50%, #ea4335 75%, #ff7043 100%) border-box;
+        linear-gradient(
+            135deg,
+            #4285f4 0%,
+            #0066ff 25%,
+            #7b02c5 50%,
+            #ea4335 75%,
+            #ff7043 100%
+          )
+          border-box;
     }
 
     25% {
       background:
         linear-gradient(white, white) padding-box,
-        linear-gradient(135deg, #0066FF 0%, #7B02C5 25%, #ea4335 50%, #ff7043 75%, #4285f4 100%) border-box;
+        linear-gradient(
+            135deg,
+            #0066ff 0%,
+            #7b02c5 25%,
+            #ea4335 50%,
+            #ff7043 75%,
+            #4285f4 100%
+          )
+          border-box;
     }
 
     50% {
       background:
         linear-gradient(white, white) padding-box,
-        linear-gradient(135deg, #7B02C5 0%, #ea4335 25%, #ff7043 50%, #4285f4 75%, #0066FF 100%) border-box;
+        linear-gradient(
+            135deg,
+            #7b02c5 0%,
+            #ea4335 25%,
+            #ff7043 50%,
+            #4285f4 75%,
+            #0066ff 100%
+          )
+          border-box;
     }
 
     75% {
       background:
         linear-gradient(white, white) padding-box,
-        linear-gradient(135deg, #ea4335 0%, #ff7043 25%, #4285f4 50%, #0066FF 75%, #7B02C5 100%) border-box;
+        linear-gradient(
+            135deg,
+            #ea4335 0%,
+            #ff7043 25%,
+            #4285f4 50%,
+            #0066ff 75%,
+            #7b02c5 100%
+          )
+          border-box;
     }
 
     100% {
       background:
         linear-gradient(white, white) padding-box,
-        linear-gradient(135deg, #ff7043 0%, #4285f4 25%, #0066FF 50%, #7B02C5 75%, #ea4335 100%) border-box;
+        linear-gradient(
+            135deg,
+            #ff7043 0%,
+            #4285f4 25%,
+            #0066ff 50%,
+            #7b02c5 75%,
+            #ea4335 100%
+          )
+          border-box;
     }
   }
 
@@ -285,7 +335,7 @@
     right: 10px;
     z-index: 1001;
     background: #fff;
-    box-shadow: 0px 4px 8px 0px #0000000A;
+    border: 1px solid rgba(0, 0, 0, 0.08);
 
     &:hover {
       background: #1890ff;

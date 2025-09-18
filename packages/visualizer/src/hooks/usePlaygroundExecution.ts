@@ -24,7 +24,7 @@ const noReplayAPIs = [
  */
 export function usePlaygroundExecution(
   playgroundSDK: PlaygroundSDKLike | null,
-  storage: StorageProvider | undefined,
+  storage: StorageProvider | undefined | null,
   actionSpace: DeviceAction<unknown>[],
   loading: boolean,
   setLoading: (loading: boolean) => void,
