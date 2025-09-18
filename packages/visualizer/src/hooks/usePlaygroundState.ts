@@ -82,7 +82,17 @@ export function usePlaygroundState(
     if (storage?.saveMessages && infoList.length > 1) {
       // Skip if only welcome message
       storage.saveMessages(infoList).catch((error) => {
-        console.error('Failed to save messages:', error);
+        // Handle quota exceeded errors gracefully - don't break the UI
+        if (
+          error instanceof DOMException &&
+          error.name === 'QuotaExceededError'
+        ) {
+          console.warn(
+            'Storage quota exceeded - some messages may not be saved persistently',
+          );
+        } else {
+          console.error('Failed to save messages:', error);
+        }
       });
     }
   }, [infoList, storage]);

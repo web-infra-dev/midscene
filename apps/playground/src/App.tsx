@@ -1,6 +1,7 @@
 import { PlaygroundSDK } from '@midscene/playground';
 import {
   Logo,
+  NavActions,
   UniversalPlayground,
   globalThemeConfig,
 } from '@midscene/visualizer';
@@ -8,22 +9,31 @@ import { ConfigProvider, Layout } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import ScreenshotViewer from './components/screenshot-viewer';
+import serverOfflineBackground from './icons/server-offline-background.svg';
+import serverOfflineForeground from './icons/server-offline-foreground.svg';
 
 import './App.less';
 
 declare const __APP_VERSION__: string;
+declare const __SERVER_URL__: string;
 
 const { Content } = Layout;
 
 export default function App() {
   const [serverOnline, setServerOnline] = useState(false);
   const [isUserOperating, setIsUserOperating] = useState(false);
+  const [isNarrowScreen, setIsNarrowScreen] = useState(false);
 
   // Create PlaygroundSDK and storage provider
   const playgroundSDK = useMemo(() => {
+    // Support environment variable for serverUrl, fallback to default
+    const serverUrl = __SERVER_URL__;
     const sdk = new PlaygroundSDK({
       type: 'remote-execution',
+      serverUrl,
     });
+
+    console.log('🌐 Connecting to playground server:', serverUrl);
 
     // Set progress callback to monitor user operation status
     sdk.onProgressUpdate((tip: string) => {
@@ -53,28 +63,44 @@ export default function App() {
     return () => clearInterval(interval);
   }, [playgroundSDK]);
 
+  // Handle window resize to detect narrow screens
+  useEffect(() => {
+    const handleResize = () => {
+      setIsNarrowScreen(window.innerWidth <= 1024);
+    };
+
+    // Set initial value
+    handleResize();
+
+    // Add event listener
+    window.addEventListener('resize', handleResize);
+
+    // Cleanup
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   if (!serverOnline) {
     return (
       <ConfigProvider theme={globalThemeConfig()}>
         <div className="server-offline-container">
           <div className="server-offline-message">
             <Logo />
-            <h1>Midscene Playground</h1>
-            <div className="server-status offline">
-              <span className="status-dot" />
-              Server Offline
+            <div className="server-offline-content">
+              <div className="server-offline-icon">
+                <img
+                  src={serverOfflineBackground}
+                  className="icon-background"
+                  alt=""
+                />
+                <img
+                  src={serverOfflineForeground}
+                  className="icon-foreground"
+                  alt=""
+                />
+              </div>
+              <h1>Midscene Playground</h1>
+              <p className="connection-status">Server offline...</p>
             </div>
-            {/* <h2>🚀 Ready to start?</h2>
-            <p>Please start the playground server to begin:</p>
-            <div className="start-command">
-              <code>npx @midscene/playground</code>
-            </div>
-            <p className="server-info">
-              The server will be available at{' '}
-              <a href={SERVER_URL} target="_blank" rel="noopener noreferrer">
-                {SERVER_URL}
-              </a>
-            </p> */}
           </div>
         </div>
       </ConfigProvider>
@@ -85,12 +111,15 @@ export default function App() {
     <ConfigProvider theme={globalThemeConfig()}>
       <Layout className="app-container playground-container">
         <Content className="app-content">
-          <PanelGroup autoSaveId="playground-layout" direction="horizontal">
+          <PanelGroup
+            autoSaveId="playground-layout"
+            direction={isNarrowScreen ? 'vertical' : 'horizontal'}
+          >
             {/* Left panel: UniversalPlayground */}
             <Panel
-              defaultSize={32}
-              maxSize={60}
-              minSize={25}
+              defaultSize={isNarrowScreen ? 67 : 32}
+              maxSize={isNarrowScreen ? 85 : 60}
+              minSize={isNarrowScreen ? 67 : 25}
               className="app-panel left-panel"
             >
               <div className="panel-content left-panel-content">
@@ -98,7 +127,7 @@ export default function App() {
                 <div className="playground-panel-header">
                   <div className="header-row">
                     <Logo />
-                    {/* <EnvConfig /> */}
+                    <NavActions showEnvConfig={false} />
                   </div>
                 </div>
 
@@ -124,7 +153,9 @@ export default function App() {
               </div>
             </Panel>
 
-            <PanelResizeHandle className="panel-resize-handle" />
+            <PanelResizeHandle
+              className={`panel-resize-handle ${isNarrowScreen ? 'vertical' : 'horizontal'}`}
+            />
 
             {/* Right panel: Screenshot Viewer */}
             <Panel className="app-panel right-panel">

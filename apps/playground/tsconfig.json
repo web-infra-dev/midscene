@@ -11,7 +11,7 @@
       "@/*": ["*"]
     }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "demo/**/*"],
   "references": [
     {
       "path": "../../packages/core"
@@ -24,6 +24,9 @@
     },
     {
       "path": "../../packages/visualizer"
+    },
+    {
+      "path": "../../packages/web-integration"
     }
   ]
 }

@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import type { Agent, Agent as PageAgent } from '@midscene/core/agent';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
+import cors from 'cors';
 import PlaygroundServer from './server';
 
 export interface LaunchPlaygroundOptions {
@@ -35,6 +36,23 @@ export interface LaunchPlaygroundOptions {
    * @default undefined (generates random UUID)
    */
   id?: string;
+
+  /**
+   * Whether to enable CORS (Cross-Origin Resource Sharing)
+   * @default false
+   */
+  enableCors?: boolean;
+
+  /**
+   * CORS configuration options
+   * @default { origin: '*', credentials: true } when enableCors is true
+   */
+  corsOptions?: {
+    origin?: string | boolean | string[];
+    credentials?: boolean;
+    methods?: string[];
+    allowedHeaders?: string[];
+  };
 }
 
 export interface LaunchPlaygroundResult {
@@ -73,6 +91,15 @@ export interface LaunchPlaygroundResult {
  * // Launch playground for the agent
  * const server = await playgroundForAgent(agent).launch();
  *
+ * // Launch with CORS enabled
+ * const serverWithCors = await playgroundForAgent(agent).launch({
+ *   enableCors: true,
+ *   corsOptions: {
+ *     origin: ['http://localhost:3000', 'http://localhost:8080'],
+ *     credentials: true
+ *   }
+ * });
+ *
  * // Later, when you want to shutdown:
  * server.close();
  * ```
@@ -91,6 +118,8 @@ export function playgroundForAgent(agent: Agent) {
         browserCommand,
         verbose = true,
         id,
+        enableCors = false,
+        corsOptions = { origin: '*', credentials: true },
       } = options;
 
       // Extract agent components - Agent has interface property
@@ -104,6 +133,9 @@ export function playgroundForAgent(agent: Agent) {
         console.log(`📱 Agent: ${agent.constructor.name}`);
         console.log(`🖥️ Page: ${webPage.constructor.name}`);
         console.log(`🌐 Port: ${port}`);
+        if (enableCors) {
+          console.log('🔓 CORS enabled');
+        }
       }
 
       // Create and launch the server with agent instances
@@ -113,6 +145,11 @@ export function playgroundForAgent(agent: Agent) {
         undefined, // staticPath - use default
         id, // Optional override ID (usually not needed now)
       );
+
+      // Register CORS middleware if enabled
+      if (enableCors) {
+        server.app.use(cors(corsOptions));
+      }
 
       const launchedServer = (await server.launch(port)) as PlaygroundServer;
 

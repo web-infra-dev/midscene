@@ -15,9 +15,9 @@
   max-width: 100%;
   max-height: 100%;
   padding: 12px;
-  background: #F2F4F7;
+  background: #f2f4f7;
   box-sizing: border-box;
-  border: 1px solid #F2F4F7;
+  border: 1px solid #f2f4f7;
   border-radius: @radius;
   line-height: 100%;
   margin: 0 auto;
@@ -28,11 +28,11 @@
   position: relative;
 
   // height adaptive mode: swap background colors
-  &[data-fit-mode="height"] {
+  &[data-fit-mode='height'] {
     background: #fff;
 
     .canvas-container {
-      background-color: #F2F4F7;
+      background-color: #f2f4f7;
     }
   }
 
@@ -46,8 +46,8 @@
     overflow: hidden;
     position: relative;
     background-color: #fff;
-    border-top-right-radius: 16px;
-    border-top-left-radius: 16px;
+    border-top-right-radius: 4px;
+    border-top-left-radius: 4px;
 
     // default to width adaptive mode
     aspect-ratio: var(--canvas-aspect-ratio, 16/9); // use dynamic ratio
@@ -65,7 +65,7 @@
     }
 
     // height adaptive mode
-    &[data-fit-mode="height"] {
+    &[data-fit-mode='height'] {
       flex: 1 1 auto; // allow container to stretch to fill available space
       aspect-ratio: unset; // cancel fixed aspect ratio
       min-height: 0; // allow container to shrink
@@ -80,7 +80,7 @@
     }
 
     // width adaptive mode (current default behavior)
-    &[data-fit-mode="width"] {
+    &[data-fit-mode='width'] {
       aspect-ratio: var(--canvas-aspect-ratio, 16/9);
 
       canvas {
@@ -153,7 +153,7 @@
     }
 
     .status-icon {
-      transition: .2s;
+      transition: 0.2s;
       width: 32px;
       height: 32px;
       border-radius: @radius;
@@ -165,7 +165,7 @@
 
       &:hover {
         cursor: pointer;
-        background: #F0f0f0;
+        background: #f0f0f0;
       }
     }
 

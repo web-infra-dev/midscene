@@ -1,14 +1,12 @@
 /// <reference types="chrome" />
 import {
   ApiOutlined,
-  GithubOutlined,
   MenuOutlined,
-  QuestionCircleOutlined,
   SendOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons';
 import {
-  EnvConfig,
+  NavActions,
   globalThemeConfig,
   useEnvConfig,
 } from '@midscene/visualizer';
@@ -145,19 +143,7 @@ export function PlaygroundPopup() {
             </span>
           </div>
           <div className="nav-right">
-            <Typography.Link
-              href="https://github.com/web-infra-dev/midscene"
-              target="_blank"
-            >
-              <GithubOutlined className="nav-icon" />
-            </Typography.Link>
-            <Typography.Link
-              href="https://midscenejs.com/quick-experience.html"
-              target="_blank"
-            >
-              <QuestionCircleOutlined className="nav-icon" />
-            </Typography.Link>
-            <EnvConfig showTooltipWhenEmpty={false} showModelName={false} />
+            <NavActions showTooltipWhenEmpty={false} showModelName={false} />
           </div>
         </div>
 

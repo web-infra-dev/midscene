@@ -1,8 +1,9 @@
 body {
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans',
-    Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica,
+    Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
   font-size: 14px;
 }
 
@@ -56,12 +57,11 @@ body {
     border-radius: 0;
     flex: 1;
     overflow: hidden;
-    box-shadow: -4px 0px 20px 0px #0000000A;
+    box-shadow: -4px 0px 20px 0px #0000000a;
   }
 }
 
 .panel-content {
-  padding: 12px 24px 24px 24px;
   height: 100%;
   overflow: auto;
   display: flex;
@@ -76,6 +76,7 @@ body {
 
   &.right-panel-content {
     border-radius: 0;
+    padding: 12px 24px 24px 24px;
   }
 
   h2 {
@@ -121,54 +122,6 @@ body {
   height: 100%;
 }
 
-@media (max-width: 768px) {
-  .app-container {
-    height: auto;
-    min-height: 100vh;
-  }
-
-  .app-grid-layout .ant-row {
-    flex-wrap: wrap !important;
-  }
-
-  .app-panel {
-    margin-bottom: 16px;
-    height: auto;
-    min-height: 200px;
-    width: 100% !important;
-    flex: 0 0 100% !important;
-
-    &:first-child {
-      border-radius: 20px;
-
-      .panel-content {
-        border-radius: 20px;
-      }
-    }
-  }
-
-  .panel-content {
-    padding: 12px;
-
-    h2 {
-      font-size: 16px;
-      margin-bottom: 12px;
-      padding-bottom: 6px;
-    }
-
-    textarea {
-      min-height: 100px;
-    }
-  }
-}
-
-@media (min-width: 769px) and (max-width: 992px) {
-  .app-panel {
-    margin-bottom: 16px;
-    min-height: 300px;
-  }
-}
-
 .resize-handle {
   width: 2px;
   background-color: #f0f0f0;
@@ -180,11 +133,19 @@ body {
 }
 
 .panel-resize-handle {
-  width: 2px;
   background-color: #f0f0f0;
-  cursor: col-resize;
   transition: background-color 0.2s;
   position: relative;
+
+  &.horizontal {
+    width: 1px;
+    cursor: col-resize;
+  }
+
+  &.vertical {
+    height: 1px;
+    cursor: row-resize;
+  }
 
   &:hover {
     background-color: #1677ff;
