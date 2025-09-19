@@ -16,7 +16,7 @@ export function typeStr(task: ExecutionTask) {
     : task.type;
 }
 
-export function locateParamStr(locate?: DetailedLocateParam) {
+export function locateParamStr(locate?: DetailedLocateParam | string): string {
   if (!locate) {
     return '';
   }
@@ -25,12 +25,32 @@ export function locateParamStr(locate?: DetailedLocateParam) {
     return locate;
   }
 
-  if (typeof locate.prompt === 'string') {
-    return locate.prompt;
-  }
+  if (typeof locate === 'object') {
+    if (typeof locate.prompt === 'string') {
+      return locate.prompt;
+    }
 
-  if (typeof locate.prompt === 'object' && locate.prompt.prompt) {
-    return locate.prompt.prompt;
+    if (typeof locate.prompt === 'object' && locate.prompt.prompt) {
+      const prompt = locate.prompt.prompt;
+      const images = locate.prompt.images || [];
+
+      if (images.length === 0) return prompt;
+
+      const imagesStr = images
+        .map((image) => {
+          let url = image.url;
+          if (
+            url.startsWith('data:image/') ||
+            (url.startsWith('data:') && url.includes('base64'))
+          ) {
+            url = `${url.substring(0, 15)}...`;
+          }
+          return `[${image.name}: ${url}]`;
+        })
+        .join(', ');
+
+      return `${prompt}, ${imagesStr}`;
+    }
   }
 
   return '';
@@ -128,7 +148,12 @@ export function paramStr(task: ExecutionTask) {
   }
 
   if (typeof value === 'undefined') return '';
-  return typeof value === 'string'
-    ? value
-    : JSON.stringify(value, undefined, 2);
+
+  if (typeof value === 'string') return value;
+
+  if (typeof value === 'object' && locateParamStr(value as any)) {
+    return locateParamStr(value as any);
+  }
+
+  return JSON.stringify(value, undefined, 2);
 }
