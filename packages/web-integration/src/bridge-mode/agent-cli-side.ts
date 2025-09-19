@@ -121,11 +121,15 @@ export class AgentOverChromeBridge extends Agent<ChromeExtensionPageCliSide> {
     },
   ) {
     const page = getBridgePageInCliSide(opts?.serverListeningTimeout);
+    const originalOnTaskStartTip = opts?.onTaskStartTip;
     super(
       page,
       Object.assign(opts || {}, {
         onTaskStartTip: (tip: string) => {
           this.page.showStatusMessage(tip);
+          if (originalOnTaskStartTip) {
+            originalOnTaskStartTip?.call(this, tip);
+          }
         },
       }),
     );
