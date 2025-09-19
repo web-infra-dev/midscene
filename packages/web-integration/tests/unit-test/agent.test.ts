@@ -406,141 +406,174 @@ describe('PageAgent cache configuration', () => {
     vi.clearAllMocks();
   });
 
-  it('should handle cache as true', () => {
-    const agent = new PageAgent(mockPage, {
-      cacheId: 'test-cache-id',
-      cache: true,
-      modelConfig: () => mockedModelConfigFnResult,
+  describe('new cache object API', () => {
+    it('should handle cache: true (auto read-write)', () => {
+      const agent = new PageAgent(mockPage, {
+        cache: true,
+        testId: 'auto-test', // 提供 testId 以避免自动生成失败
+        modelConfig: () => mockedModelConfigFnResult,
+      });
+
+      expect(agent.taskCache).toBeDefined();
+      expect(agent.taskCache?.isCacheResultUsed).toBe(true);
+      expect(agent.taskCache?.readOnlyMode).toBe(false);
+      expect(agent.taskCache?.cacheId).toBe('auto-test');
     });
 
-    expect(agent.taskCache).toBeDefined();
-    expect(agent.taskCache?.isCacheResultUsed).toBe(true);
-    expect(agent.taskCache?.readOnlyMode).toBe(false);
+    it('should handle cache: false (disabled)', () => {
+      const agent = new PageAgent(mockPage, {
+        cache: false,
+        modelConfig: () => mockedModelConfigFnResult,
+      });
+
+      expect(agent.taskCache).toBeUndefined();
+    });
+
+    it('should handle cache: { strategy: "read-only" }', () => {
+      const agent = new PageAgent(mockPage, {
+        cache: { strategy: 'read-only' },
+        testId: 'readonly-test', // 提供 testId 以避免自动生成失败
+        modelConfig: () => mockedModelConfigFnResult,
+      });
+
+      expect(agent.taskCache).toBeDefined();
+      expect(agent.taskCache?.isCacheResultUsed).toBe(true);
+      expect(agent.taskCache?.readOnlyMode).toBe(true);
+      expect(agent.taskCache?.cacheId).toBe('readonly-test');
+    });
+
+    it('should handle cache: { id: "custom-id" }', () => {
+      const agent = new PageAgent(mockPage, {
+        cache: { id: 'custom-cache-id' },
+        modelConfig: () => mockedModelConfigFnResult,
+      });
+
+      expect(agent.taskCache).toBeDefined();
+      expect(agent.taskCache?.isCacheResultUsed).toBe(true);
+      expect(agent.taskCache?.readOnlyMode).toBe(false);
+      expect(agent.taskCache?.cacheId).toBe('custom-cache-id');
+    });
+
+    it('should handle cache: { strategy: "read-only", id: "custom-id" }', () => {
+      const agent = new PageAgent(mockPage, {
+        cache: { 
+          strategy: 'read-only',
+          id: 'custom-readonly-cache'
+        },
+        modelConfig: () => mockedModelConfigFnResult,
+      });
+
+      expect(agent.taskCache).toBeDefined();
+      expect(agent.taskCache?.isCacheResultUsed).toBe(true);
+      expect(agent.taskCache?.readOnlyMode).toBe(true);
+      expect(agent.taskCache?.cacheId).toBe('custom-readonly-cache');
+    });
+
+    it('should use testId for auto-generated cache ID', () => {
+      const agent = new PageAgent(mockPage, {
+        testId: 'my-test-case',
+        cache: true,
+        modelConfig: () => mockedModelConfigFnResult,
+      });
+
+      expect(agent.taskCache).toBeDefined();
+      expect(agent.taskCache?.cacheId).toBe('my-test-case');
+    });
   });
 
-  it('should handle cache as false', () => {
-    const agent = new PageAgent(mockPage, {
-      cacheId: 'test-cache-id',
-      cache: false,
-      modelConfig: () => mockedModelConfigFnResult,
+  describe('backward compatibility with cacheId', () => {
+    it('should work with cacheId when MIDSCENE_CACHE=true', () => {
+      const globalConfigSpy = vi
+        .spyOn(globalConfigManager, 'getEnvConfigInBoolean')
+        .mockReturnValue(true);
+
+      const agent = new PageAgent(mockPage, {
+        cacheId: 'legacy-cache-id',
+        modelConfig: () => mockedModelConfigFnResult,
+      });
+
+      expect(agent.taskCache).toBeDefined();
+      expect(agent.taskCache?.isCacheResultUsed).toBe(true);
+      expect(agent.taskCache?.readOnlyMode).toBe(false);
+      expect(agent.taskCache?.cacheId).toBe('legacy-cache-id');
+
+      globalConfigSpy.mockRestore();
     });
 
-    expect(agent.taskCache).toBeDefined();
-    expect(agent.taskCache?.isCacheResultUsed).toBe(false);
-    expect(agent.taskCache?.readOnlyMode).toBe(false);
+    it('should not create cache with cacheId when MIDSCENE_CACHE=false', () => {
+      const globalConfigSpy = vi
+        .spyOn(globalConfigManager, 'getEnvConfigInBoolean')
+        .mockReturnValue(false);
+
+      const agent = new PageAgent(mockPage, {
+        cacheId: 'legacy-cache-id',
+        modelConfig: () => mockedModelConfigFnResult,
+      });
+
+      expect(agent.taskCache).toBeUndefined();
+
+      globalConfigSpy.mockRestore();
+    });
+
+    it('should prefer new cache config over cacheId', () => {
+      const globalConfigSpy = vi
+        .spyOn(globalConfigManager, 'getEnvConfigInBoolean')
+        .mockReturnValue(true);
+
+      const agent = new PageAgent(mockPage, {
+        cacheId: 'legacy-cache-id',  // Should be ignored
+        cache: { id: 'new-cache-id' },
+        modelConfig: () => mockedModelConfigFnResult,
+      });
+
+      expect(agent.taskCache).toBeDefined();
+      expect(agent.taskCache?.cacheId).toBe('new-cache-id');
+
+      globalConfigSpy.mockRestore();
+    });
   });
 
-  it('should handle cache as "read-only"', () => {
-    const agent = new PageAgent(mockPage, {
-      cacheId: 'test-cache-id',
-      cache: 'read-only',
-      modelConfig: () => mockedModelConfigFnResult,
+  describe('flushCache method', () => {
+    it('should throw error when cache is not configured', async () => {
+      const agent = new PageAgent(mockPage, {
+        cache: false,
+        modelConfig: () => mockedModelConfigFnResult,
+      });
+
+      await expect(agent.flushCache()).rejects.toThrow('Cache is not configured');
     });
 
-    expect(agent.taskCache).toBeDefined();
-    expect(agent.taskCache?.isCacheResultUsed).toBe(true);
-    expect(agent.taskCache?.readOnlyMode).toBe(true);
-  });
+    it('should throw error when not in read-only mode', async () => {
+      const agent = new PageAgent(mockPage, {
+        cache: true,  // read-write mode
+        modelConfig: () => mockedModelConfigFnResult,
+      });
 
-  it('should not create taskCache when cacheId is not provided', () => {
-    const agent = new PageAgent(mockPage, {
-      cache: true,
-      modelConfig: () => mockedModelConfigFnResult,
+      await expect(agent.flushCache()).rejects.toThrow('flushCache() can only be called in read-only mode');
     });
 
-    expect(agent.taskCache).toBeUndefined();
-  });
+    it('should work in read-only mode', async () => {
+      const agent = new PageAgent(mockPage, {
+        cache: { strategy: 'read-only' },
+        testId: 'flush-test', // 提供 testId 以避免自动生成失败
+        modelConfig: () => mockedModelConfigFnResult,
+      });
 
-  it('should use global config when cache is not specified', () => {
-    // Mock global config to return true
-    const globalConfigSpy = vi
-      .spyOn(globalConfigManager, 'getEnvConfigInBoolean')
-      .mockReturnValue(true);
+      // Mock the flushCacheToFile method
+      const flushSpy = vi.spyOn(agent.taskCache!, 'flushCacheToFile');
 
-    const agent = new PageAgent(mockPage, {
-      cacheId: 'test-cache-id',
-      modelConfig: () => mockedModelConfigFnResult,
+      await agent.flushCache();
+
+      expect(flushSpy).toHaveBeenCalled();
     });
 
-    expect(agent.taskCache).toBeDefined();
-    expect(agent.taskCache?.isCacheResultUsed).toBe(true);
-    expect(agent.taskCache?.readOnlyMode).toBe(false);
-
-    globalConfigSpy.mockRestore();
-  });
-
-  it('should prefer local cache over global config', () => {
-    // Mock global config to return true
-    const globalConfigSpy = vi
-      .spyOn(globalConfigManager, 'getEnvConfigInBoolean')
-      .mockReturnValue(true);
-
-    const agent = new PageAgent(mockPage, {
-      cacheId: 'test-cache-id',
-      cache: 'read-only',
-      modelConfig: () => mockedModelConfigFnResult,
+    it('should throw error when unable to auto-generate cache ID', () => {
+      expect(() => {
+        new PageAgent(mockPage, {
+          cache: true, // 没有 testId，也无法从调用栈获取文件名
+          modelConfig: () => mockedModelConfigFnResult,
+        });
+      }).toThrow('Unable to auto-generate cache ID');
     });
-
-    expect(agent.taskCache).toBeDefined();
-    expect(agent.taskCache?.isCacheResultUsed).toBe(true);
-    expect(agent.taskCache?.readOnlyMode).toBe(true);
-
-    globalConfigSpy.mockRestore();
-  });
-
-  it('should handle undefined cache with global config false', () => {
-    // Mock global config to return false
-    const globalConfigSpy = vi
-      .spyOn(globalConfigManager, 'getEnvConfigInBoolean')
-      .mockReturnValue(false);
-
-    const agent = new PageAgent(mockPage, {
-      cacheId: 'test-cache-id',
-      modelConfig: () => mockedModelConfigFnResult,
-    });
-
-    expect(agent.taskCache).toBeDefined();
-    expect(agent.taskCache?.isCacheResultUsed).toBe(false);
-    expect(agent.taskCache?.readOnlyMode).toBe(false);
-
-    globalConfigSpy.mockRestore();
-  });
-
-  it('should ignore global config when cache is explicitly set', () => {
-    // Mock global config to return false (disabled)
-    const globalConfigSpy = vi
-      .spyOn(globalConfigManager, 'getEnvConfigInBoolean')
-      .mockReturnValue(false);
-
-    const agent = new PageAgent(mockPage, {
-      cacheId: 'test-cache-id',
-      cache: true, // Should override global config
-      modelConfig: () => mockedModelConfigFnResult,
-    });
-
-    expect(agent.taskCache).toBeDefined();
-    expect(agent.taskCache?.isCacheResultUsed).toBe(true);
-    expect(agent.taskCache?.readOnlyMode).toBe(false);
-
-    globalConfigSpy.mockRestore();
-  });
-
-  it('should enable read-only cache even when global config is false', () => {
-    // Mock global config to return false (disabled)
-    const globalConfigSpy = vi
-      .spyOn(globalConfigManager, 'getEnvConfigInBoolean')
-      .mockReturnValue(false);
-
-    const agent = new PageAgent(mockPage, {
-      cacheId: 'test-cache-id',
-      cache: 'read-only', // Should override global config
-      modelConfig: () => mockedModelConfigFnResult,
-    });
-
-    expect(agent.taskCache).toBeDefined();
-    expect(agent.taskCache?.isCacheResultUsed).toBe(true);
-    expect(agent.taskCache?.readOnlyMode).toBe(true);
-
-    globalConfigSpy.mockRestore();
   });
 });

@@ -64,6 +64,40 @@ import { trimContextByViewport } from './utils';
 
 const debug = getDebug('agent');
 
+// Auto-generate cache ID function
+const generateCacheId = (): string => {
+  // Extract filename from call stack
+  try {
+    const stack = new Error().stack;
+    if (stack) {
+      const lines = stack.split('\n');
+      // Skip current function and Agent constructor calls
+      for (let i = 3; i < lines.length; i++) {
+        const line = lines[i];
+        const match = line.match(/\s+at.*?\(?(.*?):(\d+):(\d+)\)?$/);
+        if (match) {
+          const filePath = match[1];
+          // Exclude node_modules and internal files
+          if (filePath && !filePath.includes('node_modules') && !filePath.includes('agent.ts')) {
+            const fileName = filePath.split('/').pop()?.replace(/\.(js|ts|jsx|tsx)$/, '') || '';
+            if (fileName) {
+              return fileName;
+            }
+          }
+        }
+      }
+    }
+  } catch (error) {
+    debug('Failed to extract filename from stack:', error);
+  }
+  
+  // Unable to auto-generate, throw error
+  throw new Error(
+    'Unable to auto-generate cache ID. Please provide an explicit cache ID:\n' +
+    'Example: cache: { id: "my-cache-id" }'
+  );
+};
+
 const distanceOfTwoPoints = (p1: [number, number], p2: [number, number]) => {
   const [x1, y1] = p1;
   const [x2, y2] = p2;
@@ -171,20 +205,14 @@ export class Agent<
       return this.getUIContext(action);
     });
 
-    const cache =
-      opts?.cache !== undefined
-        ? opts.cache
-        : globalConfigManager.getEnvConfigInBoolean(MIDSCENE_CACHE);
-
-    const isCacheResultUsed = cache === true || cache === 'read-only';
-    const cacheReadOnly = cache === 'read-only';
-
-    if (opts?.cacheId) {
+    // Process cache configuration
+    const cacheConfig = this.processCacheConfig(opts || {});
+    if (cacheConfig) {
       this.taskCache = new TaskCache(
-        opts.cacheId,
-        isCacheResultUsed, // if we should use cache to match the element
+        cacheConfig.id,
+        cacheConfig.enabled,
         undefined, // cacheFilePath
-        cacheReadOnly, // readOnlyMode
+        cacheConfig.readOnly,
       );
     }
 
@@ -1054,6 +1082,78 @@ export class Agent<
     debug('Unfreezing page context');
     this.frozenUIContext = undefined;
     debug('Page context unfrozen successfully');
+  }
+
+  /**
+   * Process cache configuration and return normalized cache settings
+   */
+  private processCacheConfig(opts: AgentOpt): { id: string; enabled: boolean; readOnly: boolean } | null {
+    // 1. New cache object configuration (highest priority)
+    if (opts.cache !== undefined) {
+      if (opts.cache === false) {
+        return null; // Completely disable cache
+      }
+      
+      if (opts.cache === true) {
+        return {
+          id: generateCacheId(),
+          enabled: true,
+          readOnly: false
+        };
+      }
+      
+      // cache is object configuration
+      if (typeof opts.cache === 'object') {
+        const config = opts.cache;
+        const id = config.id || generateCacheId();
+        const isReadOnly = config.strategy === 'read-only';
+        
+        return {
+          id,
+          enabled: true,
+          readOnly: isReadOnly
+        };
+      }
+    }
+    
+    // 2. Backward compatibility: support old cacheId (requires environment variable)
+    if (opts.cacheId) {
+      const envEnabled = globalConfigManager.getEnvConfigInBoolean(MIDSCENE_CACHE);
+      if (envEnabled) {
+        return {
+          id: opts.cacheId,
+          enabled: true,
+          readOnly: false
+        };
+      }
+    }
+    
+    // 3. No cache configuration
+    return null;
+  }
+
+  /**
+   * Manually flush cache to file
+   * Only meaningful in read-only mode, other modes will throw error
+   */
+  async flushCache(): Promise<void> {
+    if (!this.taskCache) {
+      throw new Error('Cache is not configured');
+    }
+    
+    if (!this.taskCache.readOnlyMode) {
+      throw new Error('flushCache() can only be called in read-only mode');
+    }
+    
+    // Temporarily allow writing
+    const originalMode = this.taskCache.readOnlyMode;
+    this.taskCache.readOnlyMode = false;
+    
+    try {
+      this.taskCache.flushCacheToFile();
+    } finally {
+      this.taskCache.readOnlyMode = originalMode;
+    }
   }
 }
 
