@@ -594,6 +594,15 @@ tasks:
             - name: The specific logo
               url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
           convertHttpImage2Base64: true
+      - aiHover:
+        locate: move the area contains the logo
+      - aiHover:
+        locate:
+          prompt: move the area contains the image.
+          images:
+            - name: target image
+              url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
+          convertHttpImage2Base64: true
         `;
 
     const script = parseYamlScript(yamlString);
@@ -767,6 +776,37 @@ tasks:
                   },
                 ],
                 "prompt": "Please determine whether there is a specific on the page.",
+              },
+              "xpath": undefined,
+            },
+          },
+        ],
+        [
+          "Hover",
+          {
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "move the area contains the logo",
+              "xpath": undefined,
+            },
+          },
+        ],
+        [
+          "Hover",
+          {
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": {
+                "convertHttpImage2Base64": true,
+                "images": [
+                  {
+                    "name": "target image",
+                    "url": "https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png",
+                  },
+                ],
+                "prompt": "move the area contains the image.",
               },
               "xpath": undefined,
             },
