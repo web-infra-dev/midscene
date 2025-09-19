@@ -18,6 +18,7 @@ Midscene 中每个 Agent 都有自己的构造函数。
 - `autoPrintReportMsg: boolean`: 如果为 true，则打印报告消息。默认值为 true。
 - `cacheId: string | undefined`: 如果配置，则使用此 cacheId 保存或匹配缓存。默认值为 undefined，也就是不启用缓存。
 - `actionContext: string`: 调用 `agent.aiAction()` 时，发送给 AI 模型的背景知识，比如 '有 cookie 对话框时先关闭它'，默认值为空。
+- `onTaskStartTip: (tip: string) => void | Promise<void>`：可选回调，在每个子任务执行开始前收到一条可读的任务描述提示。默认值为 undefined。
 
 在 Playwright 和 Puppeteer 中，有以下共同的参数：
 
