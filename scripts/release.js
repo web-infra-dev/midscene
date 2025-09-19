@@ -111,6 +111,9 @@ async function main() {
     if (selectVersion) {
       step('\nPublishing...');
       await publish(selectVersion.newVersion);
+
+      step('\nWriting version marker file...');
+      await createVersionMarkerFile(selectVersion.newVersion);
     } else {
       console.log('No new version:', selectVersion);
     }
@@ -233,6 +236,24 @@ async function publish(version) {
     await run('pnpm', publishArgs);
   } catch (error) {
     console.error(chalk.red(`Error publishing version ${version}`));
+    throw error;
+  }
+}
+
+async function createVersionMarkerFile(version) {
+  const extensionOutputDir = path.join(
+    __dirname,
+    '../apps/chrome-extension/extension_output',
+  );
+  const versionFilePath = path.join(extensionOutputDir, version);
+
+  try {
+    // Ensure the output directory exists before writing the version marker
+    fs.mkdirSync(extensionOutputDir, { recursive: true });
+    fs.writeFileSync(versionFilePath, version, 'utf8');
+    console.log(`Version marker file created at: ${versionFilePath}`);
+  } catch (error) {
+    console.error(chalk.red('Error creating version marker file'));
     throw error;
   }
 }

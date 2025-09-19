@@ -1,0 +1,29 @@
+web:
+  url: https://github.com/
+  output: ./output/demo.json
+
+tasks:
+  - name: assert Github logo
+    flow:
+      - aiAssert:
+          prompt: Please determine whether there is a specific on the page.
+          images:
+            - name: The specific logo
+              url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
+          convertHttpImage2Base64: true
+
+      - aiHover:
+        locate:
+          prompt: the area contains the image.
+          images:
+            - name: target image
+              url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
+          convertHttpImage2Base64: true
+
+      - aiTap:
+        locate:
+          prompt: the area contains the image.
+          images:
+            - name: target image
+              url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
+          convertHttpImage2Base64: true
