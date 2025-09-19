@@ -183,53 +183,6 @@ android:
 
 `flow` 部分的接口与 [API](./api.html) 几乎相同，除了一些参数的嵌套层级。
 
-#### 使用图像提示
-
-对于支持在提示词中附带图像的步骤（参见 [API 参考](./api.html#prompting-with-images)），可以把提示词改写为对象，并通过设置 `images` 字段（一个包含 `name` 和 `url` 的对象数组）来附加图像。该对象包含以下字段：
-
-- `prompt`：发送给模型的文本描述。
-- `images`（可选）：提示词引用的参考图像，每一项需要提供 `name` 和 `url`。
-- `convertHttpImage2Base64`（可选）：在图片链接无法公开访问时，将 HTTP 链接转换为 Base64 再发送给模型。
-
-图片 URL 可以是本地路径、Base64 字符串或远程链接。如果图片链接无法被模型访问，请设置 `convertHttpImage2Base64: true`，Midscene 会将图像下载后以 Base64 字符串的形式发送给模型。
-
-对于 `aiTap`、`aiHover`、`aiDoubleClick`、`aiRightClick` 等交互操作，请把文本和图像配置写在 `locate` 字段中。
-
-```yaml
-tasks:
-  - name: 校验品牌一致性
-    flow:
-      - aiHover:
-          locate:
-            prompt: 将鼠标移动到包含 GitHub 标志的区域。
-            images:
-              - name: GitHub 标志
-                url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
-            convertHttpImage2Base64: true
-
-      - aiTap:
-          locate:
-            prompt: 点击包含 GitHub 标志的区域。
-            images:
-              - name: GitHub 标志
-                url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
-            convertHttpImage2Base64: true
-```
-
-对于视觉问答类步骤，例如 `aiAsk`、`aiQuery`、`aiBoolean`、`aiNumber`、`aiString`、`aiAssert`，可以直接设置 `prompt` 和 `images` 字段。
-
-```yaml
-tasks:
-  - name: 校验品牌一致性
-    flow:
-      - aiAssert:
-          prompt: 判断页面上是否出现该图像。
-          images:
-            - name: 目标标志
-              url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
-          convertHttpImage2Base64: true
-```
-
 ```yaml
 tasks:
   - name: <name>
@@ -322,6 +275,55 @@ tasks:
     flow:
       # ...
 ```
+
+
+#### 使用图像提示
+
+对于支持在提示词中附带图像的步骤（参见 [API 参考](./api.html#prompting-with-images)），可以把提示词改写为对象，并通过设置 `images` 字段（一个包含 `name` 和 `url` 的对象数组）来附加图像。该对象包含以下字段：
+
+- `prompt`：发送给模型的文本描述。
+- `images`（可选）：提示词引用的参考图像，每一项需要提供 `name` 和 `url`。
+- `convertHttpImage2Base64`（可选）：在图片链接无法公开访问时，将 HTTP 链接转换为 Base64 再发送给模型。
+
+图片 URL 可以是本地路径、Base64 字符串或远程链接。如果图片链接无法被模型访问，请设置 `convertHttpImage2Base64: true`，Midscene 会将图像下载后以 Base64 字符串的形式发送给模型。
+
+对于 `aiTap`、`aiHover`、`aiDoubleClick`、`aiRightClick` 等交互操作，请把文本和图像配置写在 `locate` 字段中。
+
+```yaml
+tasks:
+  - name: 校验品牌一致性
+    flow:
+      - aiHover:
+          locate:
+            prompt: 将鼠标移动到包含 GitHub 标志的区域。
+            images:
+              - name: GitHub 标志
+                url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
+            convertHttpImage2Base64: true
+
+      - aiTap:
+          locate:
+            prompt: 点击包含 GitHub 标志的区域。
+            images:
+              - name: GitHub 标志
+                url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
+            convertHttpImage2Base64: true
+```
+
+对于视觉问答类步骤，例如 `aiAsk`、`aiQuery`、`aiBoolean`、`aiNumber`、`aiString`、`aiAssert`，可以直接设置 `prompt` 和 `images` 字段。
+
+```yaml
+tasks:
+  - name: 校验品牌一致性
+    flow:
+      - aiAssert:
+          prompt: 判断页面上是否出现该图像。
+          images:
+            - name: 目标标志
+              url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
+          convertHttpImage2Base64: true
+```
+
 
 ## 命令行工具的高级用法
 
