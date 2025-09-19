@@ -126,6 +126,9 @@ export class AgentOverChromeBridge extends Agent<ChromeExtensionPageCliSide> {
       Object.assign(opts || {}, {
         onTaskStartTip: (tip: string) => {
           this.page.showStatusMessage(tip);
+          if (opts?.onTaskStartTip) {
+            opts.onTaskStartTip.call(this, tip);
+          }
         },
       }),
     );
