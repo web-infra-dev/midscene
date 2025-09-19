@@ -185,24 +185,40 @@ android:
 
 #### 使用图像提示
 
-对于接受 `string | Object` 提示词的步骤（参见 [API 参考](./api.html#prompting-with-images)），你可以提供一个对象，其中包含文本提示词以及 `images` 数组。适用于 `aiTap`、`aiHover`、`aiInput.locate`、`aiKeyboardPress.locate`、`aiScroll.locate`、`aiDoubleClick`、`aiRightClick`、`aiAsk`、`aiQuery`、`aiBoolean`、`aiNumber`、`aiString`、`aiAssert`。
+对于提示词支持 `string | Object` 的步骤（参见 [API 参考](./api.html#prompting-with-images)），可以将原本的字符串替换为一个对象，该对象包含以下字段：
+
+- `prompt`：发送给模型的文本描述。
+- `images`（可选）：提示词中引用的参考图片，每一项需要提供 `name` 和 `url`。
+- `convertHttpImage2Base64`（可选）：在图片链接无法公开访问时，将 HTTP 链接转换为 Base64 再发送给模型。
+
+这适用于 `aiTap`、`aiHover`、`aiDoubleClick`、`aiRightClick` 的 `prompt` 参数、`aiInput`、`aiKeyboardPress`、`aiScroll` 的 `locate` 提示词，以及 `aiAsk`、`aiQuery`、`aiBoolean`、`aiNumber`、`aiString`、`aiAssert` 等需要提示词的能力。
 
 ```yaml
 tasks:
   - name: 校验品牌一致性
     flow:
-      - aiTap:
-          locate:
-            prompt: 点击参考图中的按钮
-            images:
-              - name: 主按钮参考图
-                url: https://example.com/button.png
-            convertHttpImage2Base64: true
       - aiAssert:
-          prompt: 确认主要按钮与提供的设计参考保持一致。
+          prompt: 判断页面上是否出现 GitHub 的标志。
           images:
-            - name: 主按钮参考图
-              url: https://example.com/button.png
+            - name: GitHub 标志
+              url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
+          convertHttpImage2Base64: true
+
+      - aiHover:
+          prompt:
+            prompt: 将鼠标移动到包含 GitHub 标志的区域。
+            images:
+              - name: GitHub 标志
+                url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
+            convertHttpImage2Base64: true
+
+      - aiTap:
+          prompt:
+            prompt: 点击包含 GitHub 标志的区域。
+            images:
+              - name: GitHub 标志
+                url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
+            convertHttpImage2Base64: true
 ```
 
 图片 URL 可以是本地路径、Base64 字符串或远程链接。如果图片链接无法被模型访问，请设置 `convertHttpImage2Base64: true`，Midscene 会将图像下载后以 base64 字符串的形式发送给模型。

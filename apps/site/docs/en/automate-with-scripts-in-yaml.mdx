@@ -185,24 +185,40 @@ The interfaces in the `flow` section are almost identical to the [API](./api.htm
 
 #### Prompting with images
 
-For steps that accept prompts as `string | Object` (see the [API reference](./api.html#prompting-with-images)), you can provide an object containing the text prompt and an `images` array. This applies to `aiTap`, `aiHover`, `aiInput.locate`, `aiKeyboardPress.locate`, `aiScroll.locate`, `aiDoubleClick`, `aiRightClick`, `aiAsk`, `aiQuery`, `aiBoolean`, `aiNumber`, `aiString`, `aiAssert`.
+For steps whose prompt accepts `string | Object` (see the [API reference](./api.html#prompting-with-images)), replace the string value with an object that contains:
+
+- `prompt`: The text description sent to the model.
+- `images`: (Optional) The reference images used in the prompt. Each image needs a `name` and a `url`.
+- `convertHttpImage2Base64`: (Optional) Converts HTTP image links to Base64 before sending them to the model, which is useful when the link is not publicly accessible.
+
+This applies to prompt parameters on `aiTap`, `aiHover`, `aiDoubleClick`, `aiRightClick`, and the `prompt` field on `aiInput`, `aiKeyboardPress`, `aiScroll`, as well as prompt-based utilities like `aiAsk`, `aiQuery`, `aiBoolean`, `aiNumber`, `aiString`, and `aiAssert`.
 
 ```yaml
 tasks:
   - name: Verify branding
     flow:
-      - aiTap:
-          locate:
-            prompt: Tap the primary call-to-action button that matches the highlighted design.
-            images:
-              - name: primary button reference
-                url: https://example.com/button.png
-            convertHttpImage2Base64: true
       - aiAssert:
-          prompt: Confirm the primary button matches the supplied design reference.
+          prompt: Check whether the GitHub logo appears on the page.
           images:
-            - name: primary button reference
-              url: https://example.com/button.png
+            - name: GitHub logo
+              url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
+          convertHttpImage2Base64: true
+
+      - aiHover:
+          prompt:
+            prompt: Move the cursor to the region containing the GitHub logo.
+            images:
+              - name: GitHub logo
+                url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
+            convertHttpImage2Base64: true
+
+      - aiTap:
+          prompt:
+            prompt: Tap the region containing the GitHub logo.
+            images:
+              - name: GitHub logo
+                url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
+            convertHttpImage2Base64: true
 ```
 
 Image URLs can be local paths, Base64 strings, or remote links. When using image links that cannot be accessed for the model, set `convertHttpImage2Base64: true` so Midscene will download the image and send the base64 string to the model.
