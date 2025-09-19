@@ -14,7 +14,7 @@ tasks:
 
       - aiHover:
         locate:
-          prompt: move the area contains the image.
+          prompt: the area contains the image.
           images:
             - name: target image
               url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
@@ -22,7 +22,7 @@ tasks:
 
       - aiTap:
         locate:
-          prompt: move the area contains the image.
+          prompt: the area contains the image.
           images:
             - name: target image
               url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png

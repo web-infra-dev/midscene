@@ -45,7 +45,7 @@ export function locateParamStr(locate?: DetailedLocateParam | string): string {
           ) {
             url = `${url.substring(0, 15)}...`;
           }
-          return `[${image.name}: ${url}]`;
+          return `[${image.name}](${url})`;
         })
         .join(', ');
 
@@ -110,7 +110,7 @@ export function paramStr(task: ExecutionTask) {
 
   if (task.type === 'Insight') {
     value =
-      (task as ExecutionTaskInsightLocate)?.param?.prompt ||
+      locateParamStr((task as ExecutionTaskInsightLocate)?.param) ||
       (task as ExecutionTaskInsightLocate)?.param?.id ||
       (task as ExecutionTaskInsightQuery)?.param?.dataDemand ||
       (task as ExecutionTaskInsightAssertion)?.param?.assertion;
