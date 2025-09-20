@@ -19,6 +19,15 @@ export async function checkIOSEnvironment(): Promise<{ available: boolean; error
     // Check if simctl is available
     await execAsync('xcrun simctl help');
     
+    // Check if idb is available (required for gesture automation)
+    const { stdout: idbPath } = await execAsync('which idb');
+    if (!idbPath.trim()) {
+      return { 
+        available: false, 
+        error: 'idb (iOS Development Bridge) not found. Please install idb: brew install idb' 
+      };
+    }
+    
     debugUtils('iOS environment is available');
     return { available: true };
   } catch (error) {

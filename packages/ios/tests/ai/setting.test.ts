@@ -1,5 +1,9 @@
 import { describe, it, vi } from 'vitest';
-import { agentFromIOSDevice, getConnectedDevices, checkIOSEnvironment } from '../../src';
+import {
+  agentFromIOSDevice,
+  getConnectedDevices,
+  checkIOSEnvironment,
+} from '../../src';
 
 vi.setConfig({
   testTimeout: 90 * 1000,
@@ -17,11 +21,13 @@ describe(
 
       const devices = await getConnectedDevices();
       if (devices.length === 0) {
-        throw new Error('No iOS devices/simulators available. Please ensure you have iOS simulators installed and available.');
+        throw new Error(
+          'No iOS devices/simulators available. Please ensure you have iOS simulators installed and available.',
+        );
       }
 
       // Find a booted device or use the first available one
-      const device = devices.find(d => d.state === 'Booted') || devices[0];
+      const device = devices.find((d) => d.state === 'Booted') || devices[0];
       console.log(`Using iOS device: ${device.name} (${device.udid})`);
 
       const agent = await agentFromIOSDevice(device.udid, {
@@ -30,20 +36,9 @@ describe(
       });
 
       await agent.launch('com.apple.Preferences');
-      await agent.aiAction('pull down to refresh');
-      await agent.aiAction('long press first settings item');
-      await agent.aiAction('click app switcher button');
-      await agent.aiAction('click iOS home button');
-      await agent.aiAction('scroll list to bottom');
-      await agent.aiAction('open "General"');
-      await agent.aiAction('scroll left until left edge');
-      await agent.aiAction('scroll right until right edge');
-      await agent.aiAction('scroll list to top');
-      await agent.aiAction('scroll list to bottom');
-      await agent.aiAction('scroll down one screen');
-      await agent.aiAction('scroll up one screen');
-      await agent.aiAction('scroll right one screen');
-      await agent.aiAction('scroll left one screen');
+      await agent.aiAction('搜索 develop');
+      await agent.aiAction('点击 Developer');
+      await agent.aiAction('滚动到最底部');
     });
   },
   360 * 1000,

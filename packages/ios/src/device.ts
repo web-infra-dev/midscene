@@ -332,8 +332,8 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
     try {
       const tempFile = `/tmp/midscene_screenshot_${uuid()}.png`;
       
-      // Take screenshot using simctl
-      await this.execSimctl(['io', this.udid, 'screenshot', tempFile]);
+      // Take screenshot using idb
+      await this.execIdb(['screenshot', tempFile]);
       
       debugDevice('Screenshot taken, processing...');
       
@@ -376,7 +376,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
   // Core interaction methods
   async tap(x: number, y: number): Promise<void> {
     const adjustedCoords = this.adjustCoordinates(x, y);
-    await this.execSimctl(['io', this.udid, 'tap', adjustedCoords.x.toString(), adjustedCoords.y.toString()]);
+    await this.execIdb(['ui', 'tap', adjustedCoords.x.toString(), adjustedCoords.y.toString()]);
   }
 
   async doubleTap(x: number, y: number): Promise<void> {
@@ -388,19 +388,23 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
 
   async longPress(x: number, y: number, duration = 1000): Promise<void> {
     const adjustedCoords = this.adjustCoordinates(x, y);
-    // simctl doesn't have direct long press, simulate with touch and hold
-    await this.execSimctl(['io', this.udid, 'touch', adjustedCoords.x.toString(), adjustedCoords.y.toString()]);
-    await sleep(duration);
+    // Use idb tap with duration for long press
+    await this.execIdb([
+      'ui', 'tap', 
+      adjustedCoords.x.toString(), adjustedCoords.y.toString(),
+      '--duration', (duration / 1000).toString()
+    ]);
   }
 
   async swipe(fromX: number, fromY: number, toX: number, toY: number, duration = 500): Promise<void> {
     const fromCoords = this.adjustCoordinates(fromX, fromY);
     const toCoords = this.adjustCoordinates(toX, toY);
     
-    await this.execSimctl([
-      'io', this.udid, 'swipe',
+    await this.execIdb([
+      'ui', 'swipe',
       fromCoords.x.toString(), fromCoords.y.toString(),
-      toCoords.x.toString(), toCoords.y.toString()
+      toCoords.x.toString(), toCoords.y.toString(),
+      '--duration', (duration / 1000).toString() // idb expects duration in seconds
     ]);
   }
 
@@ -410,7 +414,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
     const shouldAutoDismissKeyboard =
       options?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard ?? true;
 
-    await this.execSimctl(['io', this.udid, 'type', text]);
+    await this.execIdb(['ui', 'text', text]);
 
     if (shouldAutoDismissKeyboard) {
       await this.hideKeyboard(options);
@@ -441,7 +445,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
         await this.execSimctl(['io', this.udid, 'keyboardInput', `--modifier=${parts[0]}`, parts[1]]);
       }
     } else {
-      await this.execSimctl(['io', this.udid, 'type', mappedKey]);
+      await this.execIdb(['ui', 'text', mappedKey]);
     }
   }
 
@@ -508,7 +512,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
 
   // iOS specific methods
   async home(): Promise<void> {
-    await this.execSimctl(['io', this.udid, 'home']);
+    await this.execIdb(['ui', 'button', 'HOME']);
   }
 
   async appSwitcher(): Promise<void> {
@@ -549,10 +553,20 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
 
   // Utility methods
   private adjustCoordinates(x: number, y: number): { x: number; y: number } {
-    const ratio = this.devicePixelRatio;
+    // iOS simulators use a logical coordinate system that's different from physical pixels
+    // We need to convert from physical coordinates to logical coordinates
+    // Physical coordinates come from screenshots (1206x2622 for iPhone 16 Pro)
+    // Logical coordinates for idb are (402x874 for iPhone 16 Pro)
+    debugDevice(`Original coordinates: (${x}, ${y}), DPR: ${this.devicePixelRatio}`);
+    
+    // Convert from physical to logical coordinates by dividing by devicePixelRatio
+    const adjustedX = Math.round(x / this.devicePixelRatio);
+    const adjustedY = Math.round(y / this.devicePixelRatio);
+    
+    debugDevice(`Adjusted coordinates: (${adjustedX}, ${adjustedY})`);
     return {
-      x: Math.round(x * ratio),
-      y: Math.round(y * ratio),
+      x: adjustedX,
+      y: adjustedY,
     };
   }
 
@@ -571,6 +585,25 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
     } catch (error: any) {
       debugDevice(`Command failed: ${command}, error: ${error}`);
       throw new Error(`simctl command failed: ${command}, error: ${error.message}`);
+    }
+  }
+
+  private async execIdb(args: string[]): Promise<{ stdout: string; stderr: string }> {
+    if (this.destroyed) {
+      throw new Error(`IOSDevice ${this.udid} has been destroyed and cannot execute commands`);
+    }
+    // idb expects --udid to be passed with the subcommands that support it
+    const argsWithUdid = [...args, '--udid', this.udid];
+    const command = `idb ${argsWithUdid.join(' ')}`;
+    debugDevice(`Executing: ${command}`);
+    
+    try {
+      const result = await execAsync(command);
+      debugDevice(`Command completed: ${command}`);
+      return result;
+    } catch (error: any) {
+      debugDevice(`Command failed: ${command}, error: ${error}`);
+      throw new Error(`idb command failed: ${command}, error: ${error.message}`);
     }
   }
 
