@@ -755,6 +755,37 @@ importers:
         specifier: 3.0.5
         version: 3.0.5(@types/debug@4.1.12)(@types/node@22.15.3)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.43.1)
 
+  packages/ios:
+    dependencies:
+      '@midscene/core':
+        specifier: workspace:*
+        version: link:../core
+      '@midscene/shared':
+        specifier: workspace:*
+        version: link:../shared
+      teen_process:
+        specifier: ^2.0.0
+        version: 2.3.1
+    devDependencies:
+      '@microsoft/api-extractor':
+        specifier: ^7.52.10
+        version: 7.52.10(@types/node@18.19.118)
+      '@rslib/core':
+        specifier: ^0.11.2
+        version: 0.11.2(@microsoft/api-extractor@7.52.10(@types/node@18.19.118))(typescript@5.8.3)
+      '@types/node':
+        specifier: ^18.0.0
+        version: 18.19.118
+      dotenv:
+        specifier: ^16.4.5
+        version: 16.4.5
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
+      vitest:
+        specifier: 3.0.5
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.43.1)
+
   packages/mcp:
     dependencies:
       '@silvia-odwyer/photon':
@@ -11576,7 +11607,6 @@ snapshots:
       '@rushstack/node-core-library': 5.14.0(@types/node@18.19.118)
     transitivePeerDependencies:
       - '@types/node'
-    optional: true
 
   '@microsoft/api-extractor-model@7.30.7(@types/node@18.19.62)':
     dependencies:
@@ -11612,7 +11642,6 @@ snapshots:
       typescript: 5.8.2
     transitivePeerDependencies:
       - '@types/node'
-    optional: true
 
   '@microsoft/api-extractor@7.52.10(@types/node@18.19.62)':
     dependencies:
@@ -13014,7 +13043,6 @@ snapshots:
       semver: 7.5.4
     optionalDependencies:
       '@types/node': 18.19.118
-    optional: true
 
   '@rushstack/node-core-library@5.14.0(@types/node@18.19.62)':
     dependencies:
@@ -13054,7 +13082,6 @@ snapshots:
       supports-color: 8.1.1
     optionalDependencies:
       '@types/node': 18.19.118
-    optional: true
 
   '@rushstack/terminal@0.15.4(@types/node@18.19.62)':
     dependencies:
@@ -13079,7 +13106,6 @@ snapshots:
       string-argv: 0.3.2
     transitivePeerDependencies:
       - '@types/node'
-    optional: true
 
   '@rushstack/ts-command-line@5.0.2(@types/node@18.19.62)':
     dependencies:
@@ -19876,7 +19902,7 @@ snapshots:
     dependencies:
       bluebird: 3.7.2
       lodash: 4.17.21
-      shell-quote: 1.8.2
+      shell-quote: 1.8.3
       source-map-support: 0.5.21
 
   term-size@2.2.1: {}

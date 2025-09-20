@@ -44,6 +44,7 @@ English | [简体中文](./README.zh.md)
 ### Web & Mobile App & Any Interface
 - **Web Automation 🖥️**: Either integrate with [Puppeteer](https://midscenejs.com/integrate-with-puppeteer.html), [Playwright](https://midscenejs.com/integrate-with-playwright.html) or use [Bridge Mode](https://midscenejs.com/bridge-mode-by-chrome-extension.html) to control your desktop browser.
 - **Android Automation 📱**: Use [Javascript SDK](https://midscenejs.com/integrate-with-android.html) with adb to control your local Android device.
+- **iOS Automation 🍎**: Use [Javascript SDK](https://midscenejs.com/integrate-with-ios.html) with iOS Simulator to control your local iOS devices and simulators.
 - **Any Interface Automation 🌐**: Use [Javascript SDK](https://midscenejs.com/integrate-with-any-interface.html) to control your own interface.
 
 ### Tools
