@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "rspress dev",
-    "build": "rspress build",
+    "build": "rspress build && ./config_deploy.sh",
     "preview": "rspress preview"
   },
   "engines": {
