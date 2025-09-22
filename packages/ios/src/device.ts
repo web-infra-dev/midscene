@@ -1,6 +1,4 @@
 import assert from 'node:assert';
-import { exec } from 'node:child_process';
-import { promisify } from 'node:util';
 import {
   type DeviceAction,
   type InterfaceType,
@@ -20,17 +18,12 @@ import {
   defineActionTap,
 } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
-// Note: These env variables are defined in @midscene/shared/env but we'll use them directly for now
-const MIDSCENE_IOS_DEVICE_UDID = 'MIDSCENE_IOS_DEVICE_UDID';
-const MIDSCENE_IOS_SIMULATOR_UDID = 'MIDSCENE_IOS_SIMULATOR_UDID';
 import type { ElementInfo } from '@midscene/shared/extractor';
-import {
-  createImgBase64ByFormat,
-} from '@midscene/shared/img';
+import { NodeType } from '@midscene/shared/constants';
+import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
-import { uuid } from '@midscene/shared/utils';
-
-const execAsync = promisify(exec);
+import { WebDriverAgentBackend } from './wda-backend';
+import { WDAManager } from './wda-manager';
 
 const debugDevice = getDebug('ios:device');
 
@@ -42,6 +35,8 @@ export type IOSDeviceInputOpt = {
 export type IOSDeviceOpt = {
   udid?: string;
   customActions?: DeviceAction<any>[];
+  wdaPort?: number;
+  useWDA?: boolean;
 } & IOSDeviceInputOpt;
 
 export class IOSDevice implements AbstractInterface {
@@ -50,6 +45,8 @@ export class IOSDevice implements AbstractInterface {
   private destroyed = false;
   private description: string | undefined;
   private customActions?: DeviceAction<any>[];
+  private wdaBackend: WebDriverAgentBackend;
+  private wdaManager: WDAManager;
   interfaceType: InterfaceType = 'ios';
   uri: string | undefined;
   options?: IOSDeviceOpt;
@@ -59,7 +56,7 @@ export class IOSDevice implements AbstractInterface {
       defineActionTap(async (param: ActionTapParam) => {
         const element = param.locate;
         assert(element, 'Element not found, cannot tap');
-        await this.tap(element.center[0], element.center[1]);
+        await this.mouseClick(element.center[0], element.center[1]);
       }),
       defineActionDoubleClick(async (param) => {
         const element = param.locate;
@@ -167,7 +164,8 @@ export class IOSDevice implements AbstractInterface {
       }),
       defineAction({
         name: 'IOSAppSwitcher',
-        description: 'Trigger the system "app switcher" operation on iOS devices',
+        description:
+          'Trigger the system "app switcher" operation on iOS devices',
         paramSchema: z.object({}),
         call: async () => {
           await this.appSwitcher();
@@ -189,9 +187,7 @@ export class IOSDevice implements AbstractInterface {
         call: async (param) => {
           const element = param.locate;
           if (!element) {
-            throw new Error(
-              'IOSLongPress requires an element to be located',
-            );
+            throw new Error('IOSLongPress requires an element to be located');
           }
           const [x, y] = element.center;
           await this.longPress(x, y, param?.duration);
@@ -209,6 +205,10 @@ export class IOSDevice implements AbstractInterface {
     this.udid = udid;
     this.options = options;
     this.customActions = options?.customActions;
+
+    const wdaPort = options?.wdaPort || 8100;
+    this.wdaBackend = new WebDriverAgentBackend(udid, wdaPort);
+    this.wdaManager = WDAManager.getInstance(udid, wdaPort);
   }
 
   describe(): string {
@@ -223,15 +223,19 @@ export class IOSDevice implements AbstractInterface {
     }
 
     debugDevice(`Connecting to iOS device: ${this.udid}`);
-    
+
     try {
-      // Check if device exists and is available
-      await this.execSimctl(['list', 'devices', this.udid]);
-      
-      // Try to get device info for description
+      // Start WebDriverAgent
+      await this.wdaManager.start();
+
+      // Create WDA session
+      await this.wdaBackend.createSession();
+
+      // Get device screen size for description
       const size = await this.getScreenSize();
       this.description = `
 UDID: ${this.udid}
+Type: WebDriverAgent
 ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
 `;
       debugDevice('iOS device connected successfully', this.description);
@@ -251,11 +255,12 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
         uri.startsWith('https://') ||
         uri.includes('://')
       ) {
-        // If it's a URL, use openurl
-        await this.execSimctl(['openurl', this.udid, uri]);
+        throw new Error(
+          'URL launching not supported with WebDriverAgent backend',
+        );
       } else {
-        // Assume it's a bundle ID
-        await this.execSimctl(['launch', this.udid, uri]);
+        // Launch app using bundle ID
+        await this.wdaBackend.launchApp(uri);
       }
       debugDevice(`Successfully launched: ${uri}`);
     } catch (error: any) {
@@ -267,14 +272,163 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
   }
 
   async getElementsInfo(): Promise<ElementInfo[]> {
-    return [];
+    try {
+      const pageSource = await this.wdaBackend.getPageSource();
+      return this.parseElementsFromXML(pageSource);
+    } catch (error) {
+      debugDevice(`Failed to get elements info: ${error}`);
+      return [];
+    }
+  }
+
+  private parseElementsFromXML(xmlSource: string): ElementInfo[] {
+    const elements: ElementInfo[] = [];
+
+    try {
+      // Parse XML and extract element information
+      // This is a simplified parser - in production you might want to use a proper XML parser
+      const elementMatches = xmlSource.matchAll(/<XCUIElementType[^>]*>/g);
+
+      for (const match of elementMatches) {
+        const elementTag = match[0];
+
+        // Extract attributes
+        const nameMatch = elementTag.match(/name="([^"]*)"/);
+        const labelMatch = elementTag.match(/label="([^"]*)"/);
+        const valueMatch = elementTag.match(/value="([^"]*)"/);
+        const enabledMatch = elementTag.match(/enabled="([^"]*)"/);
+        const visibleMatch = elementTag.match(/visible="([^"]*)"/);
+        const xMatch = elementTag.match(/x="([^"]*)"/);
+        const yMatch = elementTag.match(/y="([^"]*)"/);
+        const widthMatch = elementTag.match(/width="([^"]*)"/);
+        const heightMatch = elementTag.match(/height="([^"]*)"/);
+
+        // Only include visible and enabled elements
+        const isVisible = visibleMatch?.[1] === 'true';
+        const isEnabled = enabledMatch?.[1] === 'true';
+
+        if (!isVisible) continue;
+
+        const x = Number.parseFloat(xMatch?.[1] || '0');
+        const y = Number.parseFloat(yMatch?.[1] || '0');
+        const width = Number.parseFloat(widthMatch?.[1] || '0');
+        const height = Number.parseFloat(heightMatch?.[1] || '0');
+
+        // Skip elements with zero dimensions
+        if (width === 0 || height === 0) continue;
+
+        const text = labelMatch?.[1] || nameMatch?.[1] || valueMatch?.[1] || '';
+
+        elements.push({
+          id: `${x}-${y}-${width}-${height}`, // Generate a unique ID
+          indexId: elements.length,
+          nodeHashId: `${x}-${y}-${width}-${height}`,
+          attributes: {
+            name: nameMatch?.[1] || '',
+            label: labelMatch?.[1] || '',
+            value: valueMatch?.[1] || '',
+            enabled: isEnabled.toString(),
+            visible: isVisible.toString(),
+            nodeType: NodeType.FORM_ITEM,
+          },
+          nodeType: NodeType.FORM_ITEM,
+          content: text,
+          rect: {
+            left: x,
+            top: y,
+            width,
+            height,
+          },
+          center: [x + width / 2, y + height / 2] as [number, number],
+          isVisible: isVisible,
+        });
+      }
+    } catch (error) {
+      debugDevice(`Failed to parse XML elements: ${error}`);
+    }
+
+    return elements;
   }
 
   async getElementsNodeTree(): Promise<any> {
-    return {
-      node: null,
-      children: [],
-    };
+    try {
+      const pageSource = await this.wdaBackend.getPageSource();
+      return this.parseXMLToTree(pageSource);
+    } catch (error) {
+      debugDevice(`Failed to get elements node tree: ${error}`);
+      return {
+        node: null,
+        children: [],
+      };
+    }
+  }
+
+  private parseXMLToTree(xmlSource: string): any {
+    try {
+      // Simple XML tree parser
+      // This creates a basic tree structure from the XML
+      const root = {
+        tagName: 'Application',
+        attributes: {},
+        children: [],
+        text: '',
+      };
+
+      // Find the root application element
+      const appMatch = xmlSource.match(
+        /<XCUIElementTypeApplication[^>]*>([\s\S]*)<\/XCUIElementTypeApplication>/,
+      );
+      if (appMatch) {
+        const appContent = appMatch[1];
+        root.children = this.parseXMLChildren(appContent) as any;
+      }
+
+      return root;
+    } catch (error) {
+      debugDevice(`Failed to parse XML tree: ${error}`);
+      return {
+        tagName: 'Application',
+        attributes: {},
+        children: [] as any[],
+        text: '',
+      };
+    }
+  }
+
+  private parseXMLChildren(xmlContent: string): any[] {
+    const children: any[] = [];
+
+    // Simple regex to find child elements
+    const elementRegex =
+      /<(XCUIElementType\w+)([^>]*?)(?:\/>|>([\s\S]*?)<\/\1>)/g;
+    let match;
+
+    match = elementRegex.exec(xmlContent);
+    while (match !== null) {
+      const [, tagName, attributesStr, innerContent] = match;
+
+      // Parse attributes
+      const attributes: Record<string, string> = {};
+      const attrRegex = /(\w+)="([^"]*)"/g;
+      let attrMatch = attrRegex.exec(attributesStr);
+
+      while (attrMatch !== null) {
+        attributes[attrMatch[1]] = attrMatch[2];
+        attrMatch = attrRegex.exec(attributesStr);
+      }
+
+      const element = {
+        tagName,
+        attributes,
+        children: innerContent ? this.parseXMLChildren(innerContent) : [],
+        text: attributes.label || attributes.name || attributes.value || '',
+      };
+
+      children.push(element);
+      match = elementRegex.exec(xmlContent);
+    }
+
+    return children;
   }
 
   async getScreenSize(): Promise<{
@@ -283,34 +437,24 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
     scale: number;
   }> {
     try {
-      const { stdout } = await this.execSimctl(['getenv', this.udid, 'SIMULATOR_MAINSCREEN_HEIGHT']);
-      const height = Number.parseInt(stdout.trim(), 10);
-      
-      const { stdout: widthStdout } = await this.execSimctl(['getenv', this.udid, 'SIMULATOR_MAINSCREEN_WIDTH']);
-      const width = Number.parseInt(widthStdout.trim(), 10);
-      
-      const { stdout: scaleStdout } = await this.execSimctl(['getenv', this.udid, 'SIMULATOR_MAINSCREEN_SCALE']);
-      const scale = Number.parseFloat(scaleStdout.trim()) || 1;
+      const windowSize = await this.wdaBackend.getWindowSize();
+      // WDA returns logical points, for our coordinate system we use scale = 1
+      // This means we work directly with the logical coordinates that WDA provides
+      const scale = 1; // Use 1 to work with WDA's logical coordinate system directly
 
-      if (width && height) {
-        return { width, height, scale };
-      }
-    } catch (e) {
-      debugDevice(`Failed to get screen size from env: ${e}`);
-    }
-
-    // Fallback: use device info
-    try {
-      const { stdout } = await this.execSimctl(['list', 'devicetypes']);
-      // This is a simplified fallback - in reality, we'd parse device types
-      // For now, return a default size
       return {
-        width: 375,
-        height: 667,
-        scale: 2,
+        width: windowSize.width,
+        height: windowSize.height,
+        scale,
       };
     } catch (e) {
-      throw new Error(`Failed to get screen size: ${e}`);
+      debugDevice(`Failed to get screen size: ${e}`);
+      // Fallback to default iPhone size with scale 1
+      return {
+        width: 402,
+        height: 874,
+        scale: 1,
+      };
     }
   }
 
@@ -326,29 +470,11 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
   }
 
   async screenshotBase64(): Promise<string> {
-    debugDevice('screenshotBase64 begin');
-    const { width, height } = await this.size();
-    
+    debugDevice('Taking screenshot via WDA');
     try {
-      const tempFile = `/tmp/midscene_screenshot_${uuid()}.png`;
-      
-      // Take screenshot using idb
-      await this.execIdb(['screenshot', tempFile]);
-      
-      debugDevice('Screenshot taken, processing...');
-      
-      // Read the file and convert to base64
-      const { stdout } = await execAsync(`base64 -i "${tempFile}"`);
-      
-      // Clean up temp file
-      await execAsync(`rm "${tempFile}"`).catch(() => {
-        // Ignore cleanup errors
-      });
-      
-      const base64Data = stdout.replace(/\n/g, '');
+      const base64Data = await this.wdaBackend.takeScreenshot();
       const result = createImgBase64ByFormat('png', base64Data);
-      
-      debugDevice('screenshotBase64 end');
+      debugDevice('Screenshot taken successfully');
       return result;
     } catch (error) {
       debugDevice(`Screenshot failed: ${error}`);
@@ -364,22 +490,31 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
     // Tap on the input field to focus it
     await this.tap(element.center[0], element.center[1]);
     await sleep(100);
-    
-    // For iOS, we can try multiple approaches to clear input
+
+    // For iOS, we need to use different methods to clear text
     try {
-      // Method 1: Try triple-tap to select all text, then use idb text with empty string
-      await this.tap(element.center[0], element.center[1]); // First tap
-      await sleep(50);
-      await this.tap(element.center[0], element.center[1]); // Second tap  
-      await sleep(50);
-      await this.tap(element.center[0], element.center[1]); // Third tap (should select all)
-      await sleep(100);
-      
-      // Now type empty string or a single space and then clear it
-      await this.execIdb(['ui', 'text', '']);
+      // Method 1: Try to use WDA's element clear if available
+      await this.wdaBackend.clearElement();
     } catch (error) {
-      debugDevice(`Failed to clear input: ${error}`);
-      // If triple-tap doesn't work, just continue - the typeText should replace content
+      debugDevice(`Method 1 failed, trying method 2: ${error}`);
+      try {
+        // Method 2: Long press to select all, then delete
+        await this.longPress(element.center[0], element.center[1], 800);
+        await sleep(200);
+        
+        // Type empty string to replace selected text
+        await this.wdaBackend.typeText('');
+      } catch (error2) {
+        debugDevice(`Method 2 failed, trying method 3: ${error2}`);
+        try {
+          // Method 3: Send multiple backspace characters
+          const backspaces = Array(30).fill('\u0008').join(''); // Unicode backspace
+          await this.wdaBackend.typeText(backspaces);
+        } catch (error3) {
+          debugDevice(`All clear methods failed: ${error3}`);
+          // Continue anyway, maybe there was no text to clear
+        }
+      }
     }
   }
 
@@ -389,59 +524,48 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
 
   // Core interaction methods
   async tap(x: number, y: number): Promise<void> {
-    const adjustedCoords = this.adjustCoordinates(x, y);
-    await this.execIdb(['ui', 'tap', adjustedCoords.x.toString(), adjustedCoords.y.toString()]);
+    await this.wdaBackend.tap(x, y);
+  }
+
+  // Android-compatible method name
+  async mouseClick(x: number, y: number): Promise<void> {
+    debugDevice(`mouseClick at coordinates (${x}, ${y})`);
+    await this.tap(x, y);
   }
 
   async doubleTap(x: number, y: number): Promise<void> {
-    const adjustedCoords = this.adjustCoordinates(x, y);
-    await this.tap(adjustedCoords.x, adjustedCoords.y);
-    await sleep(100);
-    await this.tap(adjustedCoords.x, adjustedCoords.y);
+    await this.wdaBackend.doubleTap(x, y);
   }
 
   async longPress(x: number, y: number, duration = 1000): Promise<void> {
-    const adjustedCoords = this.adjustCoordinates(x, y);
-    // Use idb tap with duration for long press
-    await this.execIdb([
-      'ui', 'tap', 
-      adjustedCoords.x.toString(), adjustedCoords.y.toString(),
-      '--duration', (duration / 1000).toString()
-    ]);
+    await this.wdaBackend.longPress(x, y, duration);
   }
 
-  async swipe(fromX: number, fromY: number, toX: number, toY: number, duration = 500): Promise<void> {
-    const fromCoords = this.adjustCoordinates(fromX, fromY);
-    const toCoords = this.adjustCoordinates(toX, toY);
-    
-    await this.execIdb([
-      'ui', 'swipe',
-      fromCoords.x.toString(), fromCoords.y.toString(),
-      toCoords.x.toString(), toCoords.y.toString(),
-      '--duration', (duration / 1000).toString() // idb expects duration in seconds
-    ]);
+  async swipe(
+    fromX: number,
+    fromY: number,
+    toX: number,
+    toY: number,
+    duration = 500,
+  ): Promise<void> {
+    await this.wdaBackend.swipe(fromX, fromY, toX, toY, duration);
   }
 
   async typeText(text: string, options?: IOSDeviceInputOpt): Promise<void> {
     if (!text) return;
-    
+
     const shouldAutoDismissKeyboard =
       options?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard ?? true;
 
     debugDevice(`Typing text: "${text}"`);
-    
-    // Clean the text to avoid unwanted characters
-    const cleanText = text.trim();
-    
+
     try {
-      // Use idb ui text to input the clean text
-      // This should replace existing content in most input fields
-      await this.execIdb(['ui', 'text', cleanText]);
-      
-      // Add a small delay after typing
-      await sleep(100);
+      // Wait a bit to ensure keyboard is ready
+      await sleep(200);
+      await this.wdaBackend.typeText(text);
+      await sleep(300); // Give more time for text to appear
     } catch (error) {
-      debugDevice(`Failed to type text with idb: ${error}`);
+      debugDevice(`Failed to type text with WDA: ${error}`);
       throw error;
     }
 
@@ -450,108 +574,48 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
     }
   }
 
-  async clearAndTypeText(text: string, options?: IOSDeviceInputOpt): Promise<void> {
-    if (!text) return;
-    
-    debugDevice(`Clearing field and typing text: "${text}"`);
-    
-    try {
-      // Simply use typeText - we need to find why extra text is being added
-      await this.typeText(text.trim(), options);
-    } catch (error) {
-      debugDevice(`Failed to clear and type text: ${error}`);
-      throw error;
-    }
-  }
-
   async pressKey(key: string): Promise<void> {
-    // Map common keys to iOS key codes or names
-    const keyMap: Record<string, string> = {
-      'Enter': '\\n',
-      'Return': '\\n',
-      'Backspace': '\\b',
-      'Delete': '\\b',
-      'Tab': '\\t',
-      'Escape': '\\e',
-      'Space': ' ',
-      'cmd+a': 'cmd+a',
-      'cmd+c': 'cmd+c',
-      'cmd+v': 'cmd+v',
-    };
-
-    const mappedKey = keyMap[key] || key;
-    
-    if (mappedKey.includes('cmd+')) {
-      // Handle command combinations - idb doesn't support modifier keys well
-      // For common shortcuts, we can try alternative approaches
-      const parts = mappedKey.split('+');
-      if (parts.length === 2) {
-        const modifier = parts[0];
-        const key = parts[1];
-        
-        // Try to use idb key sequence for simple cases
-        if (modifier === 'cmd' && key === 'a') {
-          // For Cmd+A (select all), we can try using key sequence
-          // But since idb doesn't support modifiers well, we'll log and skip
-          debugDevice(`Skipping unsupported modifier key combination: ${mappedKey}`);
-          debugDevice('Consider using alternative UI actions for this operation');
-          return;
-        } else {
-          debugDevice(`Unsupported modifier key combination: ${mappedKey}`);
-          return;
-        }
-      }
-    } else {
-      // For non-modifier keys, we need to distinguish between actual text and key presses
-      // System keys like 'delete', 'escape', etc. should not be sent as text
-      const systemKeys = ['delete', 'backspace', 'escape', 'enter', 'return', 'tab', 'done'];
-      
-      if (systemKeys.includes(mappedKey.toLowerCase())) {
-        // Try to use idb ui key for system keys
-        try {
-          await this.execIdb(['ui', 'key', mappedKey]);
-        } catch (error) {
-          debugDevice(`Failed to press system key "${mappedKey}": ${error}`);
-          // For keys that don't work with idb key, we'll skip them
-          debugDevice(`Skipping unsupported system key: ${mappedKey}`);
-        }
-      } else {
-        // For regular text/characters, use ui text
-        await this.execIdb(['ui', 'text', mappedKey]);
-      }
-    }
+    await this.wdaBackend.pressKey(key);
   }
 
   // Scroll methods
   async scrollUp(distance?: number, startPoint?: Point): Promise<void> {
     const { width, height } = await this.size();
-    const start = startPoint ? { x: startPoint.left, y: startPoint.top } : { x: width / 2, y: height / 2 };
+    const start = startPoint
+      ? { x: startPoint.left, y: startPoint.top }
+      : { x: width / 2, y: height / 2 };
     const scrollDistance = distance || height / 3;
-    
+
     await this.swipe(start.x, start.y, start.x, start.y + scrollDistance);
   }
 
   async scrollDown(distance?: number, startPoint?: Point): Promise<void> {
     const { width, height } = await this.size();
-    const start = startPoint ? { x: startPoint.left, y: startPoint.top } : { x: width / 2, y: height / 2 };
+    const start = startPoint
+      ? { x: startPoint.left, y: startPoint.top }
+      : { x: width / 2, y: height / 2 };
     const scrollDistance = distance || height / 3;
-    
+
     await this.swipe(start.x, start.y, start.x, start.y - scrollDistance);
   }
 
   async scrollLeft(distance?: number, startPoint?: Point): Promise<void> {
     const { width, height } = await this.size();
-    const start = startPoint ? { x: startPoint.left, y: startPoint.top } : { x: width / 2, y: height / 2 };
+    const start = startPoint
+      ? { x: startPoint.left, y: startPoint.top }
+      : { x: width / 2, y: height / 2 };
     const scrollDistance = distance || width / 3;
-    
+
     await this.swipe(start.x, start.y, start.x + scrollDistance, start.y);
   }
 
   async scrollRight(distance?: number, startPoint?: Point): Promise<void> {
     const { width, height } = await this.size();
-    const start = startPoint ? { x: startPoint.left, y: startPoint.top } : { x: width / 2, y: height / 2 };
+    const start = startPoint
+      ? { x: startPoint.left, y: startPoint.top }
+      : { x: width / 2, y: height / 2 };
     const scrollDistance = distance || width / 3;
-    
+
     await this.swipe(start.x, start.y, start.x - scrollDistance, start.y);
   }
 
@@ -585,43 +649,27 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
 
   // iOS specific methods
   async home(): Promise<void> {
-    await this.execIdb(['ui', 'button', 'HOME']);
+    await this.wdaBackend.homeButton();
   }
 
   async appSwitcher(): Promise<void> {
-    // Double tap home button (for older iOS) or swipe up gesture
+    // Double tap home button or use gesture for app switcher
     await this.home();
     await sleep(100);
     await this.home();
   }
 
-  async hideKeyboard(options?: IOSDeviceInputOpt): Promise<boolean> {
-    const strategy = options?.keyboardDismissStrategy ?? this.options?.keyboardDismissStrategy ?? 'done-first';
-    
+  async hideKeyboard(_options?: IOSDeviceInputOpt): Promise<boolean> {
     try {
-      // For iOS, we can try tapping outside the keyboard area or using specific gestures
-      // Since we don't have direct "done" button support in idb, we'll try alternative methods
-      
-      if (strategy === 'done-first') {
-        // Try tapping at the bottom of the screen to dismiss keyboard
-        const { width, height } = await this.size();
-        const centerX = Math.round(width / 2 / this.devicePixelRatio);
-        const bottomY = Math.round((height - 100) / this.devicePixelRatio); // Near bottom but not edge
-        debugDevice(`Attempting to hide keyboard by tapping at (${centerX}, ${bottomY})`);
-        await this.tap(centerX, bottomY);
-      } else {
-        // Try using idb key with escape if available
-        try {
-          await this.execIdb(['ui', 'key', 'escape']);
-        } catch {
-          // If escape doesn't work, fall back to tapping
-          const { width, height } = await this.size();
-          const centerX = Math.round(width / 2 / this.devicePixelRatio);
-          const bottomY = Math.round((height - 100) / this.devicePixelRatio);
-          await this.tap(centerX, bottomY);
-        }
-      }
-      
+      // Try tapping at the bottom of the screen to dismiss keyboard
+      const { width, height } = await this.size();
+      const centerX = width / 2;
+      const bottomY = height - 100; // Near bottom but not edge
+      debugDevice(
+        `Attempting to hide keyboard by tapping at (${centerX}, ${bottomY})`,
+      );
+      await this.tap(centerX, bottomY);
+
       await sleep(300);
       return true;
     } catch (e) {
@@ -635,66 +683,21 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
       return;
     }
 
+    try {
+      // Delete WDA session
+      await this.wdaBackend.deleteSession();
+
+      // Stop WDA manager
+      await this.wdaManager.stop();
+    } catch (error) {
+      debugDevice(`Error during cleanup: ${error}`);
+    }
+
     this.destroyed = true;
     debugDevice(`iOS device ${this.udid} destroyed`);
   }
 
-  // Utility methods
-  private adjustCoordinates(x: number, y: number): { x: number; y: number } {
-    // iOS simulators use a logical coordinate system that's different from physical pixels
-    // We need to convert from physical coordinates to logical coordinates
-    // Physical coordinates come from screenshots (1206x2622 for iPhone 16 Pro)
-    // Logical coordinates for idb are (402x874 for iPhone 16 Pro)
-    debugDevice(`Original coordinates: (${x}, ${y}), DPR: ${this.devicePixelRatio}`);
-    
-    // Convert from physical to logical coordinates by dividing by devicePixelRatio
-    const adjustedX = Math.round(x / this.devicePixelRatio);
-    const adjustedY = Math.round(y / this.devicePixelRatio);
-    
-    debugDevice(`Adjusted coordinates: (${adjustedX}, ${adjustedY})`);
-    return {
-      x: adjustedX,
-      y: adjustedY,
-    };
-  }
-
-  private async execSimctl(args: string[]): Promise<{ stdout: string; stderr: string }> {
-    if (this.destroyed) {
-      throw new Error(`IOSDevice ${this.udid} has been destroyed and cannot execute commands`);
-    }
-
-    const command = `xcrun simctl ${args.join(' ')}`;
-    debugDevice(`Executing: ${command}`);
-    
-    try {
-      const result = await execAsync(command);
-      debugDevice(`Command completed: ${command}`);
-      return result;
-    } catch (error: any) {
-      debugDevice(`Command failed: ${command}, error: ${error}`);
-      throw new Error(`simctl command failed: ${command}, error: ${error.message}`);
-    }
-  }
-
-  private async execIdb(args: string[]): Promise<{ stdout: string; stderr: string }> {
-    if (this.destroyed) {
-      throw new Error(`IOSDevice ${this.udid} has been destroyed and cannot execute commands`);
-    }
-    // idb expects --udid to be passed with the subcommands that support it
-    const argsWithUdid = [...args, '--udid', this.udid];
-    const command = `idb ${argsWithUdid.join(' ')}`;
-    debugDevice(`Executing: ${command}`);
-    
-    try {
-      const result = await execAsync(command);
-      debugDevice(`Command completed: ${command}`);
-      return result;
-    } catch (error: any) {
-      debugDevice(`Command failed: ${command}, error: ${error}`);
-      throw new Error(`idb command failed: ${command}, error: ${error.message}`);
-    }
-  }
-
+  // Legacy methods (not applicable for WDA)
   async getXpathsById(): Promise<string[]> {
     throw new Error('Not implemented');
   }

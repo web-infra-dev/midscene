@@ -1,0 +1,54 @@
+{
+  "name": "@midscene/ios",
+  "version": "0.28.10",
+  "description": "iOS automation library for Midscene",
+  "keywords": [
+    "iOS UI automation",
+    "iOS AI testing",
+    "iOS automation library",
+    "iOS automation tool",
+    "iOS testing",
+    "simulator automation"
+  ],
+  "main": "./dist/lib/index.js",
+  "module": "./dist/es/index.mjs",
+  "types": "./dist/types/index.d.ts",
+  "files": ["dist", "bin", "README.md"],
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/es/index.mjs",
+      "require": "./dist/lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "midscene-ios-prepare": "./bin/prepare",
+    "@midscene/ios": "./bin/prepare"
+  },
+  "scripts": {
+    "dev": "npm run build:watch",
+    "build": "rslib build",
+    "build:watch": "rslib build --watch",
+    "prepare": "node bin/prepare",
+    "test": "vitest --run",
+    "test:u": "vitest --run -u",
+    "test:ai": "AI_TEST_TYPE=iOS npm run test",
+    "test:ai:cache": "MIDSCENE_CACHE=true AI_TEST_TYPE=iOS npm run test"
+  },
+  "dependencies": {
+    "@midscene/core": "workspace:*",
+    "@midscene/shared": "workspace:*",
+    "appium-webdriveragent": "^10.1.1",
+    "teen_process": "^2.0.0"
+  },
+  "devDependencies": {
+    "@microsoft/api-extractor": "^7.52.10",
+    "@rslib/core": "^0.11.2",
+    "@types/node": "^18.0.0",
+    "dotenv": "^16.4.5",
+    "typescript": "^5.8.3",
+    "vitest": "3.0.5"
+  },
+  "license": "MIT"
+}

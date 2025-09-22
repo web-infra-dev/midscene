@@ -129,7 +129,7 @@ describe('IOSDevice', () => {
       await device.destroy();
       // Most operations should throw after destroy, but we test one representative method
       try {
-        await (device as any).execSimctl(['list']);
+        await device.connect();
         // If this doesn't throw, the test should fail
         expect(true).toBe(false);
       } catch (error) {

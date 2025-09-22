@@ -19,16 +19,27 @@ export async function checkIOSEnvironment(): Promise<{ available: boolean; error
     // Check if simctl is available
     await execAsync('xcrun simctl help');
     
-    // Check if idb is available (required for gesture automation)
-    const { stdout: idbPath } = await execAsync('which idb');
-    if (!idbPath.trim()) {
-      return { 
-        available: false, 
-        error: 'idb (iOS Development Bridge) not found. Please install idb: brew install idb' 
+    // Check if xcodebuild is available (required for WebDriverAgent)
+    try {
+      await execAsync('xcodebuild -version');
+    } catch (error) {
+      return {
+        available: false,
+        error: 'xcodebuild not found. Please install Xcode from the App Store'
       };
     }
     
-    debugUtils('iOS environment is available');
+    // Check if curl is available (required for WDA HTTP requests)
+    const { stdout: curlPath } = await execAsync('which curl');
+    if (!curlPath.trim()) {
+      return {
+        available: false,
+        error: 'curl not found. Please install curl or update your system'
+      };
+    }
+
+    
+    debugUtils('iOS environment is available for WebDriverAgent');
     return { available: true };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
@@ -70,14 +81,15 @@ export async function getConnectedDevices(): Promise<IOSDeviceInfo[]> {
     throw new Error(`iOS environment not available: ${envCheck.error}`);
   }
 
+  const devices: IOSDeviceInfo[] = [];
+
   try {
-    const { stdout } = await execAsync('xcrun simctl list devices --json');
-    const data = JSON.parse(stdout);
-    
-    const devices: IOSDeviceInfo[] = [];
+    // Get simulators from simctl
+    const { stdout: simctlOutput } = await execAsync('xcrun simctl list devices --json');
+    const simctlData = JSON.parse(simctlOutput);
     
     // Parse simulators
-    for (const [runtime, deviceList] of Object.entries(data.devices)) {
+    for (const [runtime, deviceList] of Object.entries(simctlData.devices)) {
       if (Array.isArray(deviceList)) {
         for (const device of deviceList) {
           const deviceInfo = device as any;
@@ -94,32 +106,69 @@ export async function getConnectedDevices(): Promise<IOSDeviceInfo[]> {
       }
     }
     
-    // TODO: Add real device detection using instruments or other tools
-    // For now, we only support simulators
-    
-    debugUtils(`Found ${devices.length} iOS devices/simulators`);
-    return devices;
+    debugUtils(`Found ${devices.filter(d => d.isSimulator).length} simulators`);
   } catch (error) {
-    debugUtils(`Failed to get connected devices: ${error}`);
-    throw new Error(`Failed to get iOS devices: ${error}`);
+    debugUtils(`Failed to get simulators: ${error}`);
+    throw new Error(`Failed to get iOS simulators: ${error}`);
   }
+
+  // Try to get real devices using instruments (basic detection)
+  try {
+    const { stdout: instrumentsOutput } = await execAsync('instruments -s devices');
+    const lines = instrumentsOutput.split('\n');
+    
+    for (const line of lines) {
+      const match = line.match(/^(.+?)\s+\((.+?)\)\s+\[([A-F0-9-]+)\](?:\s+\(Simulator\))?$/);
+      if (match) {
+        const [, name, version, udid] = match;
+        const isSimulator = line.includes('(Simulator)');
+        
+        if (!isSimulator && !devices.find(d => d.udid === udid)) {
+          devices.push({
+            udid: udid,
+            name: name.trim(),
+            state: 'Connected',
+            isSimulator: false,
+            isAvailable: true,
+            deviceType: 'Physical Device',
+            runtime: version,
+          });
+        }
+      }
+    }
+    
+    debugUtils(`Found ${devices.filter(d => !d.isSimulator).length} real devices via instruments`);
+  } catch (instrumentsError) {
+    debugUtils(`Failed to get real devices via instruments: ${instrumentsError}`);
+    // Don't throw error here - real device detection is optional
+  }
+  
+  debugUtils(`Total found ${devices.length} iOS devices (${devices.filter(d => d.isSimulator).length} simulators, ${devices.filter(d => !d.isSimulator).length} real devices)`);
+  return devices;
 }
 
 export async function getDefaultDevice(): Promise<IOSDeviceInfo> {
   const devices = await getConnectedDevices();
   
-  // Prefer booted simulators
-  const bootedDevice = devices.find(d => d.state === 'Booted' && d.isAvailable);
-  if (bootedDevice) {
-    debugUtils(`Using booted device: ${bootedDevice.name}`);
-    return bootedDevice;
+  // Prefer booted simulators first (most reliable for WebDriverAgent)
+  const bootedSimulator = devices.find(d => d.isSimulator && d.state === 'Booted' && d.isAvailable);
+  if (bootedSimulator) {
+    debugUtils(`Using booted simulator: ${bootedSimulator.name}`);
+    return bootedSimulator;
   }
   
   // Fall back to any available simulator
-  const availableDevice = devices.find(d => d.isAvailable);
-  if (availableDevice) {
-    debugUtils(`Using available device: ${availableDevice.name}`);
-    return availableDevice;
+  const availableSimulator = devices.find(d => d.isSimulator && d.isAvailable);
+  if (availableSimulator) {
+    debugUtils(`Using available simulator: ${availableSimulator.name}`);
+    return availableSimulator;
+  }
+  
+  // Finally try real devices (requires manual WebDriverAgent setup)
+  const realDevice = devices.find(d => !d.isSimulator && d.isAvailable);
+  if (realDevice) {
+    debugUtils(`Using real device: ${realDevice.name} (WebDriverAgent setup required)`);
+    return realDevice;
   }
   
   // If no devices available, throw error
@@ -205,46 +254,3 @@ export async function getSimulatorsByRuntime(runtime?: string): Promise<IOSDevic
   );
 }
 
-export async function installApp(udid: string, appPath: string): Promise<void> {
-  try {
-    debugUtils(`Installing app ${appPath} on device ${udid}`);
-    await execAsync(`xcrun simctl install ${udid} "${appPath}"`);
-    debugUtils(`App installed successfully on ${udid}`);
-  } catch (error) {
-    debugUtils(`Failed to install app: ${error}`);
-    throw new Error(`Failed to install app on ${udid}: ${error}`);
-  }
-}
-
-export async function uninstallApp(udid: string, bundleId: string): Promise<void> {
-  try {
-    debugUtils(`Uninstalling app ${bundleId} from device ${udid}`);
-    await execAsync(`xcrun simctl uninstall ${udid} ${bundleId}`);
-    debugUtils(`App uninstalled successfully from ${udid}`);
-  } catch (error) {
-    debugUtils(`Failed to uninstall app: ${error}`);
-    throw new Error(`Failed to uninstall app from ${udid}: ${error}`);
-  }
-}
-
-export async function launchApp(udid: string, bundleId: string): Promise<void> {
-  try {
-    debugUtils(`Launching app ${bundleId} on device ${udid}`);
-    await execAsync(`xcrun simctl launch ${udid} ${bundleId}`);
-    debugUtils(`App launched successfully on ${udid}`);
-  } catch (error) {
-    debugUtils(`Failed to launch app: ${error}`);
-    throw new Error(`Failed to launch app on ${udid}: ${error}`);
-  }
-}
-
-export async function terminateApp(udid: string, bundleId: string): Promise<void> {
-  try {
-    debugUtils(`Terminating app ${bundleId} on device ${udid}`);
-    await execAsync(`xcrun simctl terminate ${udid} ${bundleId}`);
-    debugUtils(`App terminated successfully on ${udid}`);
-  } catch (error) {
-    debugUtils(`Failed to terminate app: ${error}`);
-    // Don't throw error for terminate, as app might not be running
-  }
-}
