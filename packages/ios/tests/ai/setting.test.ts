@@ -1,8 +1,8 @@
 import { describe, it, vi } from 'vitest';
 import {
   agentFromIOSDevice,
-  getConnectedDevices,
   checkIOSEnvironment,
+  getConnectedDevices,
 } from '../../src';
 
 vi.setConfig({

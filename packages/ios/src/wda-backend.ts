@@ -1,6 +1,5 @@
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
-import type { ElementInfo } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 
 const execAsync = promisify(exec);
@@ -37,7 +36,7 @@ export class WebDriverAgentBackend {
   private udid: string;
 
   constructor(udid: string, port = 8100) {
-    this.udid = udid;
+    this.udid = udid; // Store for potential future use in debugging/logging
     this.baseURL = `http://localhost:${port}`;
     debugWDA(`Initialized WDA backend for device ${udid} on port ${port}`);
   }
@@ -259,32 +258,139 @@ export class WebDriverAgentBackend {
 
   async pressKey(key: string): Promise<void> {
     this.ensureSession();
-    try {
-      // Map common keys to WDA key codes
-      const keyMap: Record<string, string> = {
-        Enter: '\n',
-        Return: '\n',
-        Backspace: '\b',
-        Delete: '\b',
-        Tab: '\t',
-        Escape: '\u001b',
-        Space: ' ',
-      };
 
-      const mappedKey = keyMap[key] || key;
+    // Special handling for Enter/Return key
+    if (key === 'Enter' || key === 'Return' || key === 'return') {
+      debugWDA('Pressing Enter/Return key');
 
-      await this.makeRequest(
-        'POST',
-        `/session/${this.session!.sessionId}/wda/keys`,
-        {
-          value: [mappedKey],
-        },
-      );
-      debugWDA(`Pressed key: "${key}" (mapped to "${mappedKey}")`);
-    } catch (error) {
-      debugWDA(`Failed to press key "${key}": ${error}`);
-      throw new Error(`Failed to press key: ${error}`);
+      // WebDriverAgent uses XCUIKeyboardKey names for iOS
+      // The correct way to send Return key in WebDriverAgent
+      try {
+        // Method 1: Use the /wda/keyboard/key endpoint with iOS key name
+        await this.makeRequest(
+          'POST',
+          `/session/${this.session!.sessionId}/wda/keyboard/key`,
+          {
+            key: 'XCUIKeyboardKeyReturn', // iOS native keyboard key constant
+          },
+        );
+        debugWDA('Successfully pressed Enter using XCUIKeyboardKeyReturn');
+        return;
+      } catch (error) {
+        debugWDA(`XCUIKeyboardKey method failed: ${error}`);
+      }
+
+      // Method 2: Try using the standard WebDriver keyboard action
+      try {
+        await this.makeRequest(
+          'POST',
+          `/session/${this.session!.sessionId}/wda/keys`,
+          {
+            value: ['\r\n'], // Try both carriage return and newline
+          },
+        );
+        debugWDA('Successfully pressed Enter using \\r\\n');
+        return;
+      } catch (error) {
+        debugWDA(`Carriage return + newline failed: ${error}`);
+      }
+
+      // Method 3: Send just newline
+      try {
+        await this.makeRequest(
+          'POST',
+          `/session/${this.session!.sessionId}/wda/keys`,
+          {
+            value: ['\n'],
+          },
+        );
+        debugWDA('Successfully pressed Enter using \\n');
+        return;
+      } catch (error) {
+        debugWDA(`Newline method failed: ${error}`);
+      }
+
+      // Method 4: As last resort, try to find and click the keyboard button
+      const possibleButtonNames = [
+        'Return',
+        'Go',
+        'Search',
+        'Done',
+        'Send',
+        'Next',
+      ];
+      for (const buttonName of possibleButtonNames) {
+        try {
+          const button = await this.makeRequest(
+            'POST',
+            `/session/${this.session!.sessionId}/element`,
+            {
+              using: 'accessibility id',
+              value: buttonName,
+            },
+          );
+
+          if (button?.ELEMENT) {
+            await this.makeRequest(
+              'POST',
+              `/session/${this.session!.sessionId}/element/${button.ELEMENT}/click`,
+            );
+            debugWDA(
+              `Successfully pressed Enter by clicking ${buttonName} button`,
+            );
+            return;
+          }
+        } catch (error) {
+          // Continue trying other button names
+        }
+      }
+
+      throw new Error('Failed to press Enter key - all methods failed');
     }
+
+    // For other special keys, map to XCUIKeyboardKey constants
+    const keyMap: Record<string, string> = {
+      Backspace: 'XCUIKeyboardKeyDelete',
+      Delete: 'XCUIKeyboardKeyDelete',
+      Tab: 'XCUIKeyboardKeyTab',
+      Escape: 'XCUIKeyboardKeyEscape',
+      Space: 'XCUIKeyboardKeySpace',
+      ArrowUp: 'XCUIKeyboardKeyUpArrow',
+      ArrowDown: 'XCUIKeyboardKeyDownArrow',
+      ArrowLeft: 'XCUIKeyboardKeyLeftArrow',
+      ArrowRight: 'XCUIKeyboardKeyRightArrow',
+    };
+
+    const normalizedKey =
+      key.charAt(0).toUpperCase() + key.slice(1).toLowerCase();
+    const xcuiKey = keyMap[normalizedKey] || keyMap[key];
+
+    if (xcuiKey) {
+      try {
+        // Use the keyboard key endpoint for special keys
+        await this.makeRequest(
+          'POST',
+          `/session/${this.session!.sessionId}/wda/keyboard/key`,
+          {
+            key: xcuiKey,
+          },
+        );
+        debugWDA(`Successfully pressed key: ${key} -> ${xcuiKey}`);
+        return;
+      } catch (error) {
+        debugWDA(`Failed to press ${xcuiKey}: ${error}`);
+      }
+    }
+
+    // Fallback: send as character
+    await this.makeRequest(
+      'POST',
+      `/session/${this.session!.sessionId}/wda/keys`,
+      {
+        value: [key],
+      },
+    );
+    debugWDA(`Pressed key as character: ${key}`);
   }
 
   async clearElement(): Promise<void> {

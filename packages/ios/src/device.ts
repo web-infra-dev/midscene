@@ -19,7 +19,6 @@ import {
 } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
-import { NodeType } from '@midscene/shared/constants';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { WebDriverAgentBackend } from './wda-backend';
@@ -271,164 +270,17 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
     return this;
   }
 
+  // @deprecated
   async getElementsInfo(): Promise<ElementInfo[]> {
-    try {
-      const pageSource = await this.wdaBackend.getPageSource();
-      return this.parseElementsFromXML(pageSource);
-    } catch (error) {
-      debugDevice(`Failed to get elements info: ${error}`);
-      return [];
-    }
-  }
-
-  private parseElementsFromXML(xmlSource: string): ElementInfo[] {
-    const elements: ElementInfo[] = [];
-
-    try {
-      // Parse XML and extract element information
-      // This is a simplified parser - in production you might want to use a proper XML parser
-      const elementMatches = xmlSource.matchAll(/<XCUIElementType[^>]*>/g);
-
-      for (const match of elementMatches) {
-        const elementTag = match[0];
-
-        // Extract attributes
-        const nameMatch = elementTag.match(/name="([^"]*)"/);
-        const labelMatch = elementTag.match(/label="([^"]*)"/);
-        const valueMatch = elementTag.match(/value="([^"]*)"/);
-        const enabledMatch = elementTag.match(/enabled="([^"]*)"/);
-        const visibleMatch = elementTag.match(/visible="([^"]*)"/);
-        const xMatch = elementTag.match(/x="([^"]*)"/);
-        const yMatch = elementTag.match(/y="([^"]*)"/);
-        const widthMatch = elementTag.match(/width="([^"]*)"/);
-        const heightMatch = elementTag.match(/height="([^"]*)"/);
-
-        // Only include visible and enabled elements
-        const isVisible = visibleMatch?.[1] === 'true';
-        const isEnabled = enabledMatch?.[1] === 'true';
-
-        if (!isVisible) continue;
-
-        const x = Number.parseFloat(xMatch?.[1] || '0');
-        const y = Number.parseFloat(yMatch?.[1] || '0');
-        const width = Number.parseFloat(widthMatch?.[1] || '0');
-        const height = Number.parseFloat(heightMatch?.[1] || '0');
-
-        // Skip elements with zero dimensions
-        if (width === 0 || height === 0) continue;
-
-        const text = labelMatch?.[1] || nameMatch?.[1] || valueMatch?.[1] || '';
-
-        elements.push({
-          id: `${x}-${y}-${width}-${height}`, // Generate a unique ID
-          indexId: elements.length,
-          nodeHashId: `${x}-${y}-${width}-${height}`,
-          attributes: {
-            name: nameMatch?.[1] || '',
-            label: labelMatch?.[1] || '',
-            value: valueMatch?.[1] || '',
-            enabled: isEnabled.toString(),
-            visible: isVisible.toString(),
-            nodeType: NodeType.FORM_ITEM,
-          },
-          nodeType: NodeType.FORM_ITEM,
-          content: text,
-          rect: {
-            left: x,
-            top: y,
-            width,
-            height,
-          },
-          center: [x + width / 2, y + height / 2] as [number, number],
-          isVisible: isVisible,
-        });
-      }
-    } catch (error) {
-      debugDevice(`Failed to parse XML elements: ${error}`);
-    }
-
-    return elements;
+    return [];
   }
 
   async getElementsNodeTree(): Promise<any> {
-    try {
-      const pageSource = await this.wdaBackend.getPageSource();
-      return this.parseXMLToTree(pageSource);
-    } catch (error) {
-      debugDevice(`Failed to get elements node tree: ${error}`);
-      return {
-        node: null,
-        children: [],
-      };
-    }
-  }
-
-  private parseXMLToTree(xmlSource: string): any {
-    try {
-      // Simple XML tree parser
-      // This creates a basic tree structure from the XML
-      const root = {
-        tagName: 'Application',
-        attributes: {},
-        children: [],
-        text: '',
-      };
-
-      // Find the root application element
-      const appMatch = xmlSource.match(
-        /<XCUIElementTypeApplication[^>]*>([\s\S]*)<\/XCUIElementTypeApplication>/,
-      );
-      if (appMatch) {
-        const appContent = appMatch[1];
-        root.children = this.parseXMLChildren(appContent) as any;
-      }
-
-      return root;
-    } catch (error) {
-      debugDevice(`Failed to parse XML tree: ${error}`);
-      return {
-        tagName: 'Application',
-        attributes: {},
-        children: [] as any[],
-        text: '',
-      };
-    }
-  }
-
-  private parseXMLChildren(xmlContent: string): any[] {
-    const children: any[] = [];
-
-    // Simple regex to find child elements
-    const elementRegex =
-      /<(XCUIElementType\w+)([^>]*?)(?:\/>|>([\s\S]*?)<\/\1>)/g;
-    let match;
-
-    match = elementRegex.exec(xmlContent);
-    while (match !== null) {
-      const [, tagName, attributesStr, innerContent] = match;
-
-      // Parse attributes
-      const attributes: Record<string, string> = {};
-      const attrRegex = /(\w+)="([^"]*)"/g;
-      let attrMatch = attrRegex.exec(attributesStr);
-
-      while (attrMatch !== null) {
-        attributes[attrMatch[1]] = attrMatch[2];
-        attrMatch = attrRegex.exec(attributesStr);
-      }
-
-      const element = {
-        tagName,
-        attributes,
-        children: innerContent ? this.parseXMLChildren(innerContent) : [],
-        text: attributes.label || attributes.name || attributes.value || '',
-      };
-
-      children.push(element);
-      match = elementRegex.exec(xmlContent);
-    }
-
-    return children;
+    // Simplified implementation, returns an empty node tree
+    return {
+      node: null,
+      children: [],
+    };
   }
 
   async getScreenSize(): Promise<{
@@ -501,7 +353,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
         // Method 2: Long press to select all, then delete
         await this.longPress(element.center[0], element.center[1], 800);
         await sleep(200);
-        
+
         // Type empty string to replace selected text
         await this.wdaBackend.typeText('');
       } catch (error2) {

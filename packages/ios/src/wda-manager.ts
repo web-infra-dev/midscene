@@ -1,6 +1,4 @@
-import { type ChildProcess, exec, spawn } from 'node:child_process';
-import fs from 'node:fs';
-import path from 'node:path';
+import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import { getDebug } from '@midscene/shared/logger';
 
@@ -17,7 +15,6 @@ export interface WDAConfig {
 
 export class WDAManager {
   private static instances = new Map<string, WDAManager>();
-  private process: ChildProcess | null = null;
   private config: WDAConfig;
   private isStarted = false;
 
@@ -82,12 +79,7 @@ export class WDAManager {
     }
 
     try {
-      if (this.process) {
-        this.process.kill('SIGTERM');
-        this.process = null;
-      }
-
-      // Kill any remaining WDA processes
+      // Kill any remaining WDA processes (external ones)
       await this.killWDAProcesses();
 
       // Stop port forwarding for real devices
@@ -190,175 +182,27 @@ export class WDAManager {
   }
 
   private async startWDA(): Promise<void> {
-    const isSimulator = await this.isSimulator();
-
-    if (isSimulator) {
-      // For simulators, use xcodebuild
-      await this.startWDAForSimulator();
-    } else {
-      // For real devices, use xcodebuild with device destination
-      await this.startWDAForDevice();
-    }
+    // We no longer start WDA automatically - just check if it's running
+    await this.checkWDAPreparation();
+    debugWDA('WebDriverAgent verification completed');
   }
 
-  private async startWDAForSimulator(): Promise<void> {
-    const xcodebuildArgs = [
-      '-project',
-      'WebDriverAgent.xcodeproj',
-      '-scheme',
-      'WebDriverAgentRunner',
-      '-destination',
-      `id=${this.config.udid}`,
-      'test',
-    ];
+  private async checkWDAPreparation(): Promise<void> {
+    // Check if WebDriverAgent is already running on the expected port
+    if (await this.isWDARunning()) {
+      debugWDA(`WebDriverAgent is already running on port ${this.config.port}`);
+      return;
+    }
 
-    debugWDA(
-      `Starting WDA for simulator with: xcodebuild ${xcodebuildArgs.join(' ')}`,
+    // If not running, throw error with setup instructions
+    throw new Error(
+      `WebDriverAgent is not running on port ${this.config.port}. Please start WebDriverAgent manually:
+1. Install: npm install appium-webdriveragent
+2. Build and run WebDriverAgent using Xcode or xcodebuild  
+3. Ensure it's listening on port ${this.config.port}
+4. For simulators: Use iOS Simulator
+5. For real devices: Configure signing and trust certificates`,
     );
-
-    this.process = spawn('xcodebuild', xcodebuildArgs, {
-      cwd: this.getWDAPath(),
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
-
-    this.process.stdout?.on('data', (data) => {
-      const output = data.toString();
-      if (output.includes('ServerURLHere->')) {
-        debugWDA('WDA server started successfully');
-      }
-    });
-
-    this.process.stderr?.on('data', (data) => {
-      debugWDA(`WDA stderr: ${data.toString()}`);
-    });
-
-    this.process.on('error', (error) => {
-      debugWDA(`WDA process error: ${error}`);
-    });
-
-    this.process.on('exit', (code) => {
-      debugWDA(`WDA process exited with code ${code}`);
-      this.isStarted = false;
-    });
-  }
-
-  private async startWDAForDevice(): Promise<void> {
-    // Check if WebDriverAgentRunner is installed and properly signed
-    await this.checkWDAInstallation();
-
-    const xcodebuildArgs = [
-      '-project',
-      'WebDriverAgent.xcodeproj',
-      '-scheme',
-      'WebDriverAgentRunner',
-      '-destination',
-      `id=${this.config.udid}`,
-      'test',
-    ];
-
-    debugWDA(
-      `Starting WDA for real device with: xcodebuild ${xcodebuildArgs.join(' ')}`,
-    );
-
-    this.process = spawn('xcodebuild', xcodebuildArgs, {
-      cwd: this.getWDAPath(),
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
-
-    this.process.stdout?.on('data', (data) => {
-      const output = data.toString();
-      if (output.includes('ServerURLHere->')) {
-        debugWDA('WDA server started successfully');
-      }
-      if (
-        output.includes('Code Signing Error') ||
-        output.includes('Signing certificate')
-      ) {
-        debugWDA(
-          'WDA signing error detected - please configure development team in Xcode',
-        );
-      }
-      if (
-        output.includes('could not launch') ||
-        output.includes('Installation failed')
-      ) {
-        debugWDA(
-          'WDA installation failed - app may need to be trusted on device',
-        );
-      }
-    });
-
-    this.process.stderr?.on('data', (data) => {
-      const stderr = data.toString();
-      debugWDA(`WDA stderr: ${stderr}`);
-
-      if (stderr.includes('untrusted developer')) {
-        debugWDA(
-          'Device needs to trust developer certificate. Go to Settings > General > VPN & Device Management',
-        );
-      }
-    });
-
-    this.process.on('error', (error) => {
-      debugWDA(`WDA process error: ${error}`);
-    });
-
-    this.process.on('exit', (code) => {
-      debugWDA(`WDA process exited with code ${code}`);
-      this.isStarted = false;
-    });
-  }
-
-  private async checkWDAInstallation(): Promise<void> {
-    try {
-      // Skip app installation check - let WebDriverAgent build/install handle this
-      debugWDA(
-        'Skipping WebDriverAgent installation check - will be handled during build',
-      );
-
-      debugWDA('Note: For real devices, you may need to:');
-      debugWDA('1. Configure Development Team in WebDriverAgent.xcodeproj');
-      debugWDA('2. Trust the developer certificate on the device');
-      debugWDA(
-        '3. Go to Settings > General > VPN & Device Management on the device',
-      );
-    } catch (error) {
-      debugWDA(`Could not check WDA installation status: ${error}`);
-      // Continue anyway, xcodebuild will handle installation
-    }
-  }
-
-  private getWDAPath(): string {
-    if (this.config.wdaPath) {
-      return this.config.wdaPath;
-    }
-
-    // Use require.resolve to find the appium-webdriveragent package reliably
-    let wdaPath: string;
-    try {
-      // Try to resolve the package from this module's context
-      const packageJsonPath = require.resolve(
-        'appium-webdriveragent/package.json',
-      );
-      wdaPath = path.dirname(packageJsonPath);
-    } catch (error) {
-      // Fallback to relative path resolution
-      wdaPath = path.resolve(
-        __dirname,
-        '../../node_modules/appium-webdriveragent',
-      );
-    }
-
-    const projectPath = path.join(wdaPath, 'WebDriverAgent.xcodeproj');
-
-    if (fs.existsSync(projectPath)) {
-      debugWDA(`Found WebDriverAgent at: ${wdaPath}`);
-    } else {
-      debugWDA(`WebDriverAgent not found at: ${wdaPath}`);
-      debugWDA('Run "npx @midscene/ios prepare" to install WebDriverAgent');
-    }
-
-    return wdaPath;
   }
 
   private async isWDARunning(): Promise<boolean> {

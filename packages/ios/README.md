@@ -17,8 +17,9 @@ iOS automation library for Midscene, providing AI-powered testing and automation
 - **macOS** (required for iOS development)
 - **Xcode** and Xcode Command Line Tools
 - **iOS Simulator** or physical iOS device
+- **WebDriverAgent** (required for automation)
 
-### Installation
+### Environment Setup
 
 ```bash
 # Install Xcode Command Line Tools
@@ -26,7 +27,69 @@ xcode-select --install
 
 # Verify simctl is available
 xcrun simctl list devices
+
+# Install WebDriverAgent dependency
+npm install appium-webdriveragent
 ```
+
+### WebDriverAgent Setup
+
+Midscene iOS uses WebDriverAgent for device automation. You need to prepare WebDriverAgent before using the library:
+
+#### For iOS Simulators
+
+1. **Install WebDriverAgent dependency:**
+   ```bash
+   npm install appium-webdriveragent
+   ```
+
+2. **Build and start WebDriverAgent:**
+   ```bash
+   # Navigate to WebDriverAgent project
+   cd node_modules/appium-webdriveragent
+   
+   # Build and run for simulator
+   xcodebuild -project WebDriverAgent.xcodeproj \
+             -scheme WebDriverAgentRunner \
+             -destination 'platform=iOS Simulator,name=iPhone 15' \
+             test
+   ```
+
+#### For Physical iOS Devices
+
+1. **Configure Development Team:**
+   - Open `node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj` in Xcode
+   - Select your Development Team for both `WebDriverAgentLib` and `WebDriverAgentRunner` targets
+   - Ensure proper code signing is configured
+
+2. **Build and deploy to device:**
+   ```bash
+   # Replace DEVICE_UDID with your device's UDID
+   xcodebuild -project WebDriverAgent.xcodeproj \
+             -scheme WebDriverAgentRunner \
+             -destination 'id=YOUR_DEVICE_UDID' \
+             test
+   ```
+
+3. **Trust Developer Certificate:**
+   - On your iOS device, go to Settings > General > VPN & Device Management
+   - Trust your developer certificate
+
+4. **Set up port forwarding (for real devices):**
+   ```bash
+   # Install iproxy (if needed)
+   brew install libimobiledevice
+   
+   # Forward local port 8100 to device port 8100
+   iproxy 8100 8100 YOUR_DEVICE_UDID
+   ```
+
+#### Alternative Setup Methods
+
+For more advanced setup options and troubleshooting, refer to the official WebDriverAgent documentation:
+**📖 [WebDriverAgent Setup Guide](https://appium.github.io/appium-xcuitest-driver/4.25/wda-custom-server/)**
+
+> **⚠️ Important:** WebDriverAgent must be running on port 8100 (default) before using Midscene iOS. If WebDriverAgent is not detected, you'll receive setup instructions.
 
 ## Installation
 
@@ -130,20 +193,19 @@ import {
   getConnectedDevices,
   getDefaultDevice,
   ensureSimulatorBooted,
-  installApp,
-  launchApp,
+  checkIOSEnvironment,
 } from '@midscene/ios';
 
 // Device discovery
 const devices = await getConnectedDevices();
 const defaultDevice = await getDefaultDevice();
 
+// Environment check
+const envStatus = await checkIOSEnvironment();
+console.log('iOS environment available:', envStatus.available);
+
 // Simulator management
 await ensureSimulatorBooted('device-udid');
-
-// App management
-await installApp('device-udid', '/path/to/app.app');
-await launchApp('device-udid', 'com.yourapp.bundleid');
 ```
 
 ## Configuration
