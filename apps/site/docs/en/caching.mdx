@@ -25,7 +25,7 @@ There are two key points to use caching:
 
 ### Playwright
 
-In playwright mode, you can use the `MIDSCENE_CACHE=1` environment variable to enable caching.
+When using Playwright integration, you can use the `MIDSCENE_CACHE=1` environment variable to enable caching.
 
 The `cacheId` will be automatically set to the test file name.
 
@@ -36,8 +36,8 @@ The `cacheId` will be automatically set to the test file name.
 
 ### JavaScript agent, like PuppeteerAgent, AgentOverChromeBridge
 
-Enable caching by setting the `MIDSCENE_CACHE=1` environment variable.
-And also, you should set the `cacheId` to specify the cache identifier.
+You should set the `cacheId` to specify the cache identifier.
+And also, you should enable cache-matching by setting the `MIDSCENE_CACHE=1` environment variable.
 
 ```diff
 - tsx demo.ts 
@@ -52,7 +52,7 @@ const mid = new PuppeteerAgent(originPage, {
 
 ### YAML
 
-Enable caching by setting the `MIDSCENE_CACHE=1` environment variable.
+Enable cache-matching by setting the `MIDSCENE_CACHE=1` environment variable.
 The `cacheId` will be automatically set to the yaml filename.
 
 ```diff
@@ -76,6 +76,10 @@ If the cache is not hit, Midscene will call AI model again and the result in cac
 
 ## Common issues
 
+### No cache file is generated
+
+Make sure you have set the `cacheId` in the constructor.
+
 ### How to check if the cache is hit?
 
 You can view the report file. If the cache is hit, you will see the `cache` tip and the time cost is obviously reduced.
@@ -90,7 +94,7 @@ No. Caching is the way to accelerate the execution, but it's not a tool for ensu
 
 ### How to manually remove the cache?
 
-You can remove the cache file in the `cache` directory, or edit the contents in the cache file.
+You can remove the cache file in the `./midscene_run/cache` directory, or edit the contents in the cache file.
 
 ### How to disable the cache for a single API?
 
