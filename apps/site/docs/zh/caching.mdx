@@ -21,11 +21,11 @@ Android 自动化任务支持 planning 缓存，但不支持元素定位缓存�
 想要启用缓存特性，有两个关键点：
 
 1. 设置 `MIDSCENE_CACHE=1` 环境变量，用以启用缓存匹配
-2. 设置 `cacheId` 来指定缓存文件名。在 Playwright 和 Yaml 模式下，`cacheId` 会自动设置为测试文件名，在 Javascript 模式下，需要手动设置 `cacheId`。
+2. 设置 `cacheId` 来指定缓存文件名。在 Playwright 和 Yaml 模式下，`cacheId` 会自动设置为测试文件名，在 Javascript Agent 模式下，需要手动设置 `cacheId`。
 
 ### Playwright
 
-在 Playwright 模式下，只需要设置 `MIDSCENE_CACHE=1` 环境变量即可。
+在集成 Playwright 时，可以通过设置 `MIDSCENE_CACHE=1` 环境变量来启用缓存匹配。
 
 `cacheId` 会自动设置为测试文件名。
 
@@ -34,9 +34,10 @@ Android 自动化任务支持 planning 缓存，但不支持元素定位缓存�
 + MIDSCENE_CACHE=1 playwright test --config=playwright.config.ts
 ```
 
-### Javascript agent, 例如 PuppeteerAgent, AgentOverChromeBridge
+### Javascript Agent, 例如 PuppeteerAgent, AgentOverChromeBridge
 
-在 Javascript 模式下，需要设置 `MIDSCENE_CACHE=1` 环境变量，并且需要手动设置 `cacheId`。
+在 Javascript agent 模式下，需要手动设置 `cacheId` 来指定缓存标识。
+同时，通过设置 `MIDSCENE_CACHE=1` 环境变量来启用缓存匹配。
 
 ```diff
 - tsx demo.ts 
@@ -51,7 +52,7 @@ const mid = new PuppeteerAgent(originPage, {
 
 ### Yaml
 
-在 Yaml 模式下，需要设置 `MIDSCENE_CACHE=1` 环境变量。
+在 Yaml 模式下，需要通过设置 `MIDSCENE_CACHE=1` 环境变量来启用缓存匹配。
 
 `cacheId` 会自动设置为 yaml 文件名。
 
@@ -76,6 +77,10 @@ const mid = new PuppeteerAgent(originPage, {
 
 ## 常见问题
 
+### 没有生成缓存文件
+
+请确认你在构造函数中设置了 `cacheId`。
+
 ### 如何检查缓存是否命中？
 
 你可以查看报告文件。如果缓存命中，你将看到 `cache` 提示，并且执行时间大幅降低。
@@ -92,7 +97,7 @@ const mid = new PuppeteerAgent(originPage, {
 
 ### 如何手动删除缓存？
 
-你可以删除缓存文件，或者编辑缓存文件的内容。
+你可以删除 `./midscene_run/cache` 目录中的缓存文件，或者编辑缓存文件的内容。
 
 ### 如果我想禁用单个 API 的缓存，怎么办？
 
