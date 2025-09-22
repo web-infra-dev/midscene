@@ -1,7 +1,7 @@
 import { type AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
 import { getDebug } from '@midscene/shared/logger';
-import { IOSDevice, type IOSDeviceOpt } from './device';
-import { getConnectedDevices, getDefaultDevice } from './utils';
+import { IOSDevice, type IOSDeviceOpt } from './device-wda';
+import { getConnectedDevices, getDefaultDevice } from './utils-wda';
 
 const debugAgent = getDebug('ios:agent');
 
@@ -32,6 +32,8 @@ export async function agentFromIOSDevice(
     autoDismissKeyboard: opts?.autoDismissKeyboard,
     keyboardDismissStrategy: opts?.keyboardDismissStrategy,
     customActions: opts?.customActions,
+    wdaPort: opts?.wdaPort,
+    useWDA: opts?.useWDA,
   });
 
   await device.connect();
