@@ -141,6 +141,11 @@ tasks:
     expect(result['price-assert'].pass).toBeTruthy();
   });
 
+  test('yaml with image prompt', async () => {
+    const params = ['./tests/midscene_scripts/online/image-prompting.yaml'];
+    await execa(cliBin, params);
+  });
+
   test.skip('run yaml scripts with keepWindow', async () => {
     const params = [
       './tests/midscene_scripts/online/online.yaml',

@@ -273,6 +273,53 @@ tasks:
       # ...
 ```
 
+#### Prompting with images
+
+For steps whose prompt accepts images, you can attach images to the prompt by setting the `images` field to an array of objects, each containing a `name` and a `url`. (see the [API reference](./api.html#prompting-with-images)), replace the string value with an object that contains:
+
+- `prompt`: The text prompt.
+- `images`: (Optional) The reference images used in the prompt. Each image needs a `name` and a `url`.
+- `convertHttpImage2Base64`: (Optional) Converts HTTP image links to Base64 before sending them to the model, which is useful when the link is not publicly accessible.
+
+Image URLs can be local paths, Base64 strings, or remote links. When using image links that cannot be accessed for the model, set `convertHttpImage2Base64: true` so Midscene will download the image and send the base64 string to the model.
+
+For interactions like `aiTap`, `aiHover`, `aiDoubleClick`, `aiRightClick`, put the text and images in the `locate` field.
+
+```yaml
+tasks:
+  - name: Verify branding
+    flow:
+      - aiHover:
+          locate:
+            prompt: Move the cursor to the region containing the GitHub logo.
+            images:
+              - name: GitHub logo
+                url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
+            convertHttpImage2Base64: true
+
+      - aiTap:
+          locate:
+            prompt: Tap the region containing the GitHub logo.
+            images:
+              - name: GitHub logo
+                url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
+            convertHttpImage2Base64: true
+```
+
+For VQA steps like `aiAsk`, `aiQuery`, `aiBoolean`, `aiNumber`, `aiString`, and `aiAssert`, you can set the `prompt` and `images` fields directly.
+
+```yaml
+tasks:
+  - name: Verify branding
+    flow:
+      - aiAssert:
+          prompt: Check whether the image appears on the page.
+          images:
+            - name: target logo
+              url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
+          convertHttpImage2Base64: true
+```
+
 ## Advanced usage of the command-line tool
 
 `@midscene/cli` provides flexible ways to run your automation scripts.
