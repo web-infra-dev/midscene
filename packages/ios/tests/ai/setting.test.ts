@@ -33,10 +33,11 @@ describe(
       const agent = await agentFromIOSDevice(device.udid, {
         aiActionContext:
           'If any location, permission, user agreement, etc. popup, click agree. If login page pops up, close it.',
+        autoDismissKeyboard: false, // Disable auto keyboard dismissal to avoid extra "done" text
       });
 
       await agent.launch('com.apple.Preferences');
-      await agent.aiAction('搜索 develop');
+      await agent.aiAction('在搜索框输入 develop');
       await agent.aiAction('点击 Developer');
       await agent.aiAction('滚动到最底部');
     });

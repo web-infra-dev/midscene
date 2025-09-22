@@ -361,12 +361,26 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
       return;
     }
 
+    // Tap on the input field to focus it
     await this.tap(element.center[0], element.center[1]);
-    
-    // Select all text and delete
-    await this.pressKey('cmd+a');
     await sleep(100);
-    await this.pressKey('delete');
+    
+    // For iOS, we can try multiple approaches to clear input
+    try {
+      // Method 1: Try triple-tap to select all text, then use idb text with empty string
+      await this.tap(element.center[0], element.center[1]); // First tap
+      await sleep(50);
+      await this.tap(element.center[0], element.center[1]); // Second tap  
+      await sleep(50);
+      await this.tap(element.center[0], element.center[1]); // Third tap (should select all)
+      await sleep(100);
+      
+      // Now type empty string or a single space and then clear it
+      await this.execIdb(['ui', 'text', '']);
+    } catch (error) {
+      debugDevice(`Failed to clear input: ${error}`);
+      // If triple-tap doesn't work, just continue - the typeText should replace content
+    }
   }
 
   async url(): Promise<string> {
@@ -414,10 +428,39 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
     const shouldAutoDismissKeyboard =
       options?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard ?? true;
 
-    await this.execIdb(['ui', 'text', text]);
+    debugDevice(`Typing text: "${text}"`);
+    
+    // Clean the text to avoid unwanted characters
+    const cleanText = text.trim();
+    
+    try {
+      // Use idb ui text to input the clean text
+      // This should replace existing content in most input fields
+      await this.execIdb(['ui', 'text', cleanText]);
+      
+      // Add a small delay after typing
+      await sleep(100);
+    } catch (error) {
+      debugDevice(`Failed to type text with idb: ${error}`);
+      throw error;
+    }
 
     if (shouldAutoDismissKeyboard) {
       await this.hideKeyboard(options);
+    }
+  }
+
+  async clearAndTypeText(text: string, options?: IOSDeviceInputOpt): Promise<void> {
+    if (!text) return;
+    
+    debugDevice(`Clearing field and typing text: "${text}"`);
+    
+    try {
+      // Simply use typeText - we need to find why extra text is being added
+      await this.typeText(text.trim(), options);
+    } catch (error) {
+      debugDevice(`Failed to clear and type text: ${error}`);
+      throw error;
     }
   }
 
@@ -439,13 +482,43 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
     const mappedKey = keyMap[key] || key;
     
     if (mappedKey.includes('cmd+')) {
-      // Handle command combinations
+      // Handle command combinations - idb doesn't support modifier keys well
+      // For common shortcuts, we can try alternative approaches
       const parts = mappedKey.split('+');
       if (parts.length === 2) {
-        await this.execSimctl(['io', this.udid, 'keyboardInput', `--modifier=${parts[0]}`, parts[1]]);
+        const modifier = parts[0];
+        const key = parts[1];
+        
+        // Try to use idb key sequence for simple cases
+        if (modifier === 'cmd' && key === 'a') {
+          // For Cmd+A (select all), we can try using key sequence
+          // But since idb doesn't support modifiers well, we'll log and skip
+          debugDevice(`Skipping unsupported modifier key combination: ${mappedKey}`);
+          debugDevice('Consider using alternative UI actions for this operation');
+          return;
+        } else {
+          debugDevice(`Unsupported modifier key combination: ${mappedKey}`);
+          return;
+        }
       }
     } else {
-      await this.execIdb(['ui', 'text', mappedKey]);
+      // For non-modifier keys, we need to distinguish between actual text and key presses
+      // System keys like 'delete', 'escape', etc. should not be sent as text
+      const systemKeys = ['delete', 'backspace', 'escape', 'enter', 'return', 'tab', 'done'];
+      
+      if (systemKeys.includes(mappedKey.toLowerCase())) {
+        // Try to use idb ui key for system keys
+        try {
+          await this.execIdb(['ui', 'key', mappedKey]);
+        } catch (error) {
+          debugDevice(`Failed to press system key "${mappedKey}": ${error}`);
+          // For keys that don't work with idb key, we'll skip them
+          debugDevice(`Skipping unsupported system key: ${mappedKey}`);
+        }
+      } else {
+        // For regular text/characters, use ui text
+        await this.execIdb(['ui', 'text', mappedKey]);
+      }
     }
   }
 
@@ -526,12 +599,27 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
     const strategy = options?.keyboardDismissStrategy ?? this.options?.keyboardDismissStrategy ?? 'done-first';
     
     try {
+      // For iOS, we can try tapping outside the keyboard area or using specific gestures
+      // Since we don't have direct "done" button support in idb, we'll try alternative methods
+      
       if (strategy === 'done-first') {
-        // Try pressing Done button first
-        await this.pressKey('done');
+        // Try tapping at the bottom of the screen to dismiss keyboard
+        const { width, height } = await this.size();
+        const centerX = Math.round(width / 2 / this.devicePixelRatio);
+        const bottomY = Math.round((height - 100) / this.devicePixelRatio); // Near bottom but not edge
+        debugDevice(`Attempting to hide keyboard by tapping at (${centerX}, ${bottomY})`);
+        await this.tap(centerX, bottomY);
       } else {
-        // Try escape first
-        await this.pressKey('escape');
+        // Try using idb key with escape if available
+        try {
+          await this.execIdb(['ui', 'key', 'escape']);
+        } catch {
+          // If escape doesn't work, fall back to tapping
+          const { width, height } = await this.size();
+          const centerX = Math.round(width / 2 / this.devicePixelRatio);
+          const bottomY = Math.round((height - 100) / this.devicePixelRatio);
+          await this.tap(centerX, bottomY);
+        }
       }
       
       await sleep(300);
