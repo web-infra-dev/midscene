@@ -489,6 +489,9 @@ importers:
       '@microsoft/api-extractor':
         specifier: ^7.52.10
         version: 7.52.10(@types/node@18.19.62)
+      '@midscene/playground':
+        specifier: workspace:*
+        version: link:../playground
       '@rslib/core':
         specifier: ^0.11.2
         version: 0.11.2(@microsoft/api-extractor@7.52.10(@types/node@18.19.62))(typescript@5.8.3)
@@ -498,6 +501,9 @@ importers:
       dotenv:
         specifier: ^16.4.5
         version: 16.4.5
+      tsx:
+        specifier: ^4.19.2
+        version: 4.19.2
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
@@ -763,9 +769,6 @@ importers:
       '@midscene/shared':
         specifier: workspace:*
         version: link:../shared
-      appium-webdriveragent:
-        specifier: ^10.1.1
-        version: 10.1.1
       teen_process:
         specifier: ^2.0.0
         version: 2.3.1
@@ -773,15 +776,24 @@ importers:
       '@microsoft/api-extractor':
         specifier: ^7.52.10
         version: 7.52.10(@types/node@18.19.118)
+      '@midscene/playground':
+        specifier: workspace:*
+        version: link:../playground
       '@rslib/core':
         specifier: ^0.11.2
         version: 0.11.2(@microsoft/api-extractor@7.52.10(@types/node@18.19.118))(typescript@5.8.3)
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.118
+      appium-webdriveragent:
+        specifier: ^10.1.1
+        version: 10.1.1
       dotenv:
         specifier: ^16.4.5
         version: 16.4.5
+      tsx:
+        specifier: ^4.19.2
+        version: 4.19.2
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
@@ -1136,6 +1148,9 @@ importers:
       puppeteer:
         specifier: 24.2.0
         version: 24.2.0(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@6.0.5)
+      tsx:
+        specifier: ^4.19.2
+        version: 4.19.2
       typescript:
         specifier: ^5.8.3
         version: 5.8.3

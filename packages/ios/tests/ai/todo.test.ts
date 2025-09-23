@@ -28,7 +28,9 @@ describe('Test todo list', () => {
       throw new Error('No iOS devices available');
     }
 
-    agent = await agentFromIOSDevice(devices[0].udid, {
+    agent = await agentFromIOSDevice('00008120-0012144121E0201E', {
+      wdaPort: 8100,
+      wdaHost: 'localhost', // Using port forwarding via iproxy
       aiActionContext:
         'If any location, permission, user agreement, cookies popup, click agree or allow. If login page pops up, close it.',
     });

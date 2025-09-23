@@ -98,6 +98,7 @@
     "dev:server": "npm run build && ./bin/midscene-playground",
     "build": "rslib build",
     "build:watch": "rslib build --watch",
+    "playground": "tsx demo/playground.ts",
     "test": "vitest --run",
     "test:u": "vitest --run -u",
     "test:ai": "AI_TEST_TYPE=web npm run test",
@@ -134,6 +135,7 @@
     "playwright": "1.44.1",
     "puppeteer": "24.2.0",
     "js-yaml": "4.1.0",
+    "tsx": "^4.19.2",
     "typescript": "^5.8.3",
     "vitest": "3.0.5"
   },

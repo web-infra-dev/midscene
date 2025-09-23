@@ -8,6 +8,7 @@ const debugWDA = getDebug('ios:wda-manager');
 export interface WDAConfig {
   udid: string;
   port: number;
+  host?: string;
   wdaPath?: string;
   bundleId?: string;
   usePrebuiltWDA?: boolean;
@@ -22,15 +23,16 @@ export class WDAManager {
     this.config = {
       bundleId: 'com.apple.WebDriverAgentRunner.xctrunner',
       usePrebuiltWDA: true,
+      host: 'localhost',
       ...config,
       port: config.port || 8100,
     };
   }
 
-  static getInstance(udid: string, port = 8100): WDAManager {
-    const key = `${udid}:${port}`;
+  static getInstance(udid: string, port = 8100, host?: string): WDAManager {
+    const key = `${host || 'localhost'}:${udid}:${port}`;
     if (!WDAManager.instances.has(key)) {
-      WDAManager.instances.set(key, new WDAManager({ udid, port }));
+      WDAManager.instances.set(key, new WDAManager({ udid, port, host }));
     }
     return WDAManager.instances.get(key)!;
   }
@@ -208,7 +210,7 @@ export class WDAManager {
   private async isWDARunning(): Promise<boolean> {
     try {
       const { stdout } = await execAsync(
-        `curl -s http://localhost:${this.config.port}/status || echo "FAILED"`,
+        `curl -s http://${this.config.host}:${this.config.port}/status || echo "FAILED"`,
       );
       return !stdout.includes('FAILED') && stdout.includes('sessionId');
     } catch (error) {

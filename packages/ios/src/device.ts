@@ -35,6 +35,7 @@ export type IOSDeviceOpt = {
   udid?: string;
   customActions?: DeviceAction<any>[];
   wdaPort?: number;
+  wdaHost?: string;
   useWDA?: boolean;
 } & IOSDeviceInputOpt;
 
@@ -206,8 +207,9 @@ export class IOSDevice implements AbstractInterface {
     this.customActions = options?.customActions;
 
     const wdaPort = options?.wdaPort || 8100;
-    this.wdaBackend = new WebDriverAgentBackend(udid, wdaPort);
-    this.wdaManager = WDAManager.getInstance(udid, wdaPort);
+    const wdaHost = options?.wdaHost || 'localhost';
+    this.wdaBackend = new WebDriverAgentBackend(udid, wdaPort, wdaHost);
+    this.wdaManager = WDAManager.getInstance(udid, wdaPort, wdaHost);
   }
 
   describe(): string {
@@ -489,7 +491,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
   private compareScreenshots(
     screenshot1: string,
     screenshot2: string,
-    tolerancePercent: number = 2, // Allow 2% difference
+    tolerancePercent = 2, // Allow 2% difference
   ): boolean {
     // Identical screenshots are the ideal case
     if (screenshot1 === screenshot2) {
@@ -520,12 +522,16 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
       }
 
       const diffPercent = (diffCount / sampleSize) * 100;
-      debugDevice(`Character differences: ${diffCount}/${sampleSize} (${diffPercent.toFixed(2)}%)`);
+      debugDevice(
+        `Character differences: ${diffCount}/${sampleSize} (${diffPercent.toFixed(2)}%)`,
+      );
 
       // If difference is within tolerance, consider screenshots similar (no substantial content change)
       const isSimilar = diffPercent <= tolerancePercent;
       if (isSimilar) {
-        debugDevice(`Screenshots are similar enough (${diffPercent.toFixed(2)}% <= ${tolerancePercent}%)`);
+        debugDevice(
+          `Screenshots are similar enough (${diffPercent.toFixed(2)}% <= ${tolerancePercent}%)`,
+        );
       }
       return isSimilar;
     }
@@ -596,14 +602,18 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
         } else {
           // Content changed, reset counter
           if (lastScreenshot) {
-            debugDevice(`Content changed, resetting counter (was ${unchangedCount})`);
+            debugDevice(
+              `Content changed, resetting counter (was ${unchangedCount})`,
+            );
           }
           unchangedCount = 0;
         }
 
         // Safety measure to prevent infinite scrolling: if consecutive attempts have large differences, may be too much dynamic content
         if (i >= 15 && unchangedCount === 0) {
-          debugDevice(`Too many attempts with dynamic content, stopping scroll to ${direction}`);
+          debugDevice(
+            `Too many attempts with dynamic content, stopping scroll to ${direction}`,
+          );
           break;
         }
 
@@ -615,7 +625,9 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
             ? width * 0.6
             : height * 0.6;
 
-        debugDevice(`Performing scroll: ${direction}, distance: ${scrollDistance}`);
+        debugDevice(
+          `Performing scroll: ${direction}, distance: ${scrollDistance}`,
+        );
 
         switch (direction) {
           case 'up':

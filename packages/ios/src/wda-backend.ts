@@ -39,10 +39,10 @@ export class WebDriverAgentBackend {
     return this.session;
   }
 
-  constructor(udid: string, port = 8100) {
+  constructor(udid: string, port = 8100, host = 'localhost') {
     this.udid = udid; // Store for potential future use in debugging/logging
-    this.baseURL = `http://localhost:${port}`;
-    debugWDA(`Initialized WDA backend for device ${udid} on port ${port}`);
+    this.baseURL = `http://${host}:${port}`;
+    debugWDA(`Initialized WDA backend for device ${udid} on ${host}:${port}`);
   }
 
   async createSession(): Promise<WDASession> {
@@ -280,14 +280,22 @@ export class WebDriverAgentBackend {
         debugWDA('Sent newline character for Enter key');
 
         // In iOS, newline character may not immediately trigger submission, need to wait
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
         return;
       } catch (error) {
         debugWDA(`Newline method failed: ${error}`);
       }
 
       // Method 2: Try to click submit button on the keyboard
-      const submitButtons = ['Search', 'Go', 'Done', 'Return', 'Send', 'Next', 'Join'];
+      const submitButtons = [
+        'Search',
+        'Go',
+        'Done',
+        'Return',
+        'Send',
+        'Next',
+        'Join',
+      ];
       for (const buttonText of submitButtons) {
         try {
           // Find keyboard button
@@ -324,14 +332,18 @@ export class WebDriverAgentBackend {
         const submitY = windowSize.height * 0.75; // Keyboard area
 
         await this.tap(submitX, submitY);
-        debugWDA(`Attempted coordinate tap for Enter at (${submitX}, ${submitY})`);
+        debugWDA(
+          `Attempted coordinate tap for Enter at (${submitX}, ${submitY})`,
+        );
         return;
       } catch (error) {
         debugWDA(`Coordinate tap failed: ${error}`);
       }
 
       // If all methods failed, log warning but don't throw error
-      debugWDA('Warning: Enter key press may not have worked as expected on iOS');
+      debugWDA(
+        'Warning: Enter key press may not have worked as expected on iOS',
+      );
       return;
     }
 
@@ -601,7 +613,7 @@ export class WebDriverAgentBackend {
       const scrollableTypes = [
         'XCUIElementTypeScrollView',
         'XCUIElementTypeTable',
-        'XCUIElementTypeCollectionView'
+        'XCUIElementTypeCollectionView',
       ];
 
       const allScrollableElements: WDAElement[] = [];
@@ -622,10 +634,14 @@ export class WebDriverAgentBackend {
     }
   }
 
-  async canElementScroll(element: WDAElement, direction: 'up' | 'down' | 'left' | 'right'): Promise<boolean> {
+  async canElementScroll(
+    element: WDAElement,
+    direction: 'up' | 'down' | 'left' | 'right',
+  ): Promise<boolean> {
     this.ensureSession();
     try {
-      const elementId = element.ELEMENT || element['element-6066-11e4-a52e-4f735466cecf'];
+      const elementId =
+        element.ELEMENT || element['element-6066-11e4-a52e-4f735466cecf'];
 
       // Get current page source as baseline
       const initialSource = await this.makeRequest(
@@ -639,13 +655,15 @@ export class WebDriverAgentBackend {
         `/session/${this.sessionInfo!.sessionId}/execute`,
         {
           script: 'mobile: scroll',
-          args: [{
-            direction: direction,
-            element: elementId,
-            distance: 0.1, // Very small distance for testing
-            duration: 0.5 // Short duration
-          }]
-        }
+          args: [
+            {
+              direction: direction,
+              element: elementId,
+              distance: 0.1, // Very small distance for testing
+              duration: 0.5, // Short duration
+            },
+          ],
+        },
       );
 
       // Get page source after scroll attempt
@@ -659,9 +677,14 @@ export class WebDriverAgentBackend {
 
       // Try to scroll back to original position if content changed
       if (canScroll) {
-        const oppositeDirection = direction === 'up' ? 'down' :
-                                 direction === 'down' ? 'up' :
-                                 direction === 'left' ? 'right' : 'left';
+        const oppositeDirection =
+          direction === 'up'
+            ? 'down'
+            : direction === 'down'
+              ? 'up'
+              : direction === 'left'
+                ? 'right'
+                : 'left';
 
         try {
           await this.makeRequest(
@@ -669,13 +692,15 @@ export class WebDriverAgentBackend {
             `/session/${this.sessionInfo!.sessionId}/execute`,
             {
               script: 'mobile: scroll',
-              args: [{
-                direction: oppositeDirection,
-                element: elementId,
-                distance: 0.1,
-                duration: 0.5
-              }]
-            }
+              args: [
+                {
+                  direction: oppositeDirection,
+                  element: elementId,
+                  distance: 0.1,
+                  duration: 0.5,
+                },
+              ],
+            },
           );
         } catch (error) {
           debugWDA(`Failed to scroll back: ${error}`);
@@ -708,7 +733,9 @@ export class WebDriverAgentBackend {
       const curlCommand = this.buildCurlCommand(method, url, data);
 
       debugWDA(`Making ${method} request to ${endpoint}`);
-      const { stdout } = await execAsync(curlCommand);
+      const { stdout } = await execAsync(curlCommand, {
+        maxBuffer: 50 * 1024 * 1024, // 50MB buffer for large screenshots
+      });
 
       // Handle empty responses
       if (!stdout || stdout.trim() === '') {

@@ -33,6 +33,7 @@ export async function agentFromIOSDevice(
     keyboardDismissStrategy: opts?.keyboardDismissStrategy,
     customActions: opts?.customActions,
     wdaPort: opts?.wdaPort,
+    wdaHost: opts?.wdaHost,
     useWDA: opts?.useWDA,
   });
 
