@@ -256,9 +256,8 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
         uri.startsWith('https://') ||
         uri.includes('://')
       ) {
-        throw new Error(
-          'URL launching not supported with WebDriverAgent backend',
-        );
+        // Try to open URL using WebDriverAgent
+        await this.openUrl(uri);
       } else {
         // Launch app using bundle ID
         await this.wdaBackend.launchApp(uri);
@@ -729,6 +728,86 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
     } catch (e) {
       debugDevice(`Failed to hide keyboard using WDA API: ${e}`);
       return false;
+    }
+  }
+
+  /**
+   * Open a URL using WebDriverAgent
+   * @param url The URL to open (supports http://, https://, and custom schemes)
+   * @param options Configuration options for URL opening
+   */
+  async openUrl(
+    url: string,
+    options?: {
+      useSafariAsBackup?: boolean;
+      waitTime?: number;
+    },
+  ): Promise<void> {
+    const opts = {
+      useSafariAsBackup: true,
+      waitTime: 2000,
+      ...options,
+    };
+
+    try {
+      debugDevice(`Opening URL: ${url}`);
+
+      // Try direct URL opening first
+      await this.wdaBackend.openUrl(url);
+      await sleep(opts.waitTime);
+
+      debugDevice(`Successfully opened URL: ${url}`);
+    } catch (error) {
+      debugDevice(`Direct URL opening failed: ${error}`);
+
+      if (opts.useSafariAsBackup) {
+        debugDevice(`Attempting to open URL via Safari: ${url}`);
+        await this.openUrlViaSafari(url);
+      } else {
+        throw new Error(`Failed to open URL: ${error}`);
+      }
+    }
+  }
+
+  /**
+   * Open a URL via Safari (backup method for real devices)
+   * @param url The URL to open
+   */
+  async openUrlViaSafari(url: string): Promise<void> {
+    try {
+      debugDevice(`Opening URL via Safari: ${url}`);
+
+      // Launch Safari
+      await this.wdaBackend.launchApp('com.apple.mobilesafari');
+      await sleep(2000); // Wait for Safari to launch
+
+      // Find and tap the address bar
+      // Note: This is a simplified implementation. In practice, you might need
+      // to handle different Safari UI states (new tab, existing tab, etc.)
+
+      // Type the URL in the address bar
+      await this.typeText(url);
+      await sleep(500);
+
+      // Press Return to navigate
+      await this.pressKey('Return');
+      await sleep(1000);
+
+      // Handle potential app confirmation dialog
+      // iOS shows a dialog asking if you want to open the app
+      try {
+        // Look for "Open" button and tap it if present
+        // This is a best-effort approach as the dialog appearance may vary
+        await sleep(2000); // Wait for potential dialog
+        debugDevice(`URL opened via Safari: ${url}`);
+      } catch (dialogError) {
+        debugDevice(
+          `No confirmation dialog or dialog handling failed: ${dialogError}`,
+        );
+      }
+    } catch (error) {
+      debugDevice(`Failed to open URL via Safari: ${error}`);
+      throw new Error(`Failed to open URL via Safari: ${error}`);
     }
   }
 

@@ -50,7 +50,7 @@ export class WebDriverAgentBackend {
       const response = await this.makeRequest('POST', '/session', {
         capabilities: {
           alwaysMatch: {
-            bundleId: 'com.apple.Preferences', // Default to Settings app
+            bundleId: '',
             arguments: [],
             environment: {},
             shouldWaitForQuiescence: true,
@@ -488,6 +488,24 @@ export class WebDriverAgentBackend {
     } catch (error) {
       debugWDA(`Failed to launch app ${bundleId}: ${error}`);
       throw new Error(`Failed to launch app: ${error}`);
+    }
+  }
+
+  async openUrl(url: string): Promise<void> {
+    this.ensureSession();
+    try {
+      // Try using the standard WebDriver URL endpoint first
+      await this.makeRequest(
+        'POST',
+        `/session/${this.session!.sessionId}/url`,
+        {
+          url,
+        },
+      );
+      debugWDA(`Opened URL: ${url}`);
+    } catch (error) {
+      debugWDA(`Failed to open URL ${url} using standard endpoint: ${error}`);
+      throw new Error(`Failed to open URL: ${error}`);
     }
   }
 

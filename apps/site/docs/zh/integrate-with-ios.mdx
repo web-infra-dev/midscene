@@ -130,12 +130,12 @@ Promise.resolve(
     });
     await page.connect();
 
-    // 👀 启动 Safari 并导航到 ebay.com
-    await page.launch('com.apple.mobilesafari');
+    // 👀 打开 ebay.com 网页
+    await page.launch('https://ebay.com');
     await sleep(3000);
 
     // 👀 输入关键词，执行搜索
-    await agent.aiAction('导航到 ebay.com 并搜索 "Headphones"');
+    await agent.aiAction('在搜索框输入 "Headphones" ，敲回车');
 
     // 👀 等待加载完成
     await agent.aiWaitFor('页面中至少有一个耳机商品');
@@ -202,17 +202,17 @@ IOSDevice 的构造函数支持以下参数：
 
 ### `agent.launch()`
 
-启动一个 iOS 应用。
+启动一个网页或原生 iOS 应用。
 
 - 类型
 
 ```typescript
-function launch(bundleId: string): Promise<void>;
+function launch(uri: string): Promise<void>;
 ```
 
 - 参数：
 
-  - `bundleId: string` - 要启动的 iOS 应用包标识符
+  - `uri: string` - 要打开的 uri，可以是网页 url、原生 app 的 bundle identifier 或自定义 URL scheme
 
 - 返回值：
 
@@ -226,9 +226,12 @@ import { IOSAgent, IOSDevice } from '@midscene/ios';
 const page = new IOSDevice('00008120-001234567890123E');
 const agent = new IOSAgent(page);
 
+await agent.launch('https://www.apple.com'); // 打开网页
 await agent.launch('com.apple.mobilesafari'); // 启动 Safari
 await agent.launch('com.apple.Preferences'); // 启动设置应用
-await agent.launch('com.apple.camera'); // 启动相机应用
+await agent.launch('myapp://profile/user/123'); // 打开应用深度链接
+await agent.launch('tel:+1234567890'); // 拨打电话
+await agent.launch('mailto:example@email.com'); // 发送邮件
 ```
 
 ### `agentFromIOSDevice()`

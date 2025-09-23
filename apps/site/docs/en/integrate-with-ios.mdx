@@ -129,12 +129,12 @@ Promise.resolve(
     });
     await page.connect();
 
-    // 👀 Launch Safari and navigate to ebay.com
-    await page.launch('com.apple.mobilesafari');
+    // 👀 Directly open ebay.com webpage (recommended approach)
+    await page.launch('https://ebay.com');
     await sleep(3000);
 
     // 👀 Enter keywords and perform search
-    await agent.aiAction('Navigate to ebay.com and search for "Headphones"');
+    await agent.aiAction('Search for "Headphones"');
 
     // 👀 Wait for loading to complete
     await agent.aiWaitFor('At least one headphone product is displayed on the page');
@@ -201,17 +201,17 @@ In addition to the common Agent interfaces in [API Reference](./api.mdx), IOSAge
 
 ### `agent.launch()`
 
-Launch an iOS application.
+Launch a web page or native iOS application.
 
 - Type
 
 ```typescript
-function launch(bundleId: string): Promise<void>;
+function launch(uri: string): Promise<void>;
 ```
 
 - Parameters:
 
-  - `bundleId: string` - Bundle identifier of the iOS app to launch
+  - `uri: string` - URI to open, can be a web url, native app bundle identifier, or custom URL scheme
 
 - Return Value:
 
@@ -225,9 +225,12 @@ import { IOSAgent, IOSDevice } from '@midscene/ios';
 const page = new IOSDevice('00008120-001234567890123E');
 const agent = new IOSAgent(page);
 
+await agent.launch('https://www.apple.com'); // Open web page
 await agent.launch('com.apple.mobilesafari'); // Launch Safari
 await agent.launch('com.apple.Preferences'); // Launch Settings app
-await agent.launch('com.apple.camera'); // Launch Camera app
+await agent.launch('myapp://profile/user/123'); // Open app deep link
+await agent.launch('tel:+1234567890'); // Make a phone call
+await agent.launch('mailto:example@email.com'); // Send an email
 ```
 
 ### `agentFromIOSDevice()`
