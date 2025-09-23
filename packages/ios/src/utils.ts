@@ -1,8 +1,9 @@
-import { exec } from 'node:child_process';
+import { exec, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { getDebug } from '@midscene/shared/logger';
 
 const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 const debugUtils = getDebug('ios:utils');
 
 export async function checkIOSEnvironment(): Promise<{
@@ -228,7 +229,7 @@ export async function ensureSimulatorBooted(udid: string): Promise<void> {
     }
 
     debugUtils(`Booting simulator ${udid}...`);
-    await execAsync(`xcrun simctl boot ${udid}`);
+    await execFileAsync('xcrun', ['simctl', 'boot', udid]);
 
     // Wait for simulator to boot
     let attempts = 0;

@@ -1,9 +1,10 @@
 import type { ExecException } from 'node:child_process';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-// Mock the exec function
+// Mock the exec and execFile functions
 vi.mock('node:child_process', () => ({
   exec: vi.fn(),
+  execFile: vi.fn(),
 }));
 
 import { exec } from 'node:child_process';

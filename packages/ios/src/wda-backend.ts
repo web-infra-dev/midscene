@@ -1,8 +1,8 @@
-import { exec } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { getDebug } from '@midscene/shared/logger';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 const debugWDA = getDebug('ios:wda');
 
 export interface WDASession {
@@ -33,14 +33,12 @@ export interface WDAElementInfo {
 export class WebDriverAgentBackend {
   private baseURL: string;
   private session: WDASession | null = null;
-  private udid: string;
 
   get sessionInfo(): WDASession | null {
     return this.session;
   }
 
   constructor(udid: string, port = 8100, host = 'localhost') {
-    this.udid = udid; // Store for potential future use in debugging/logging
     this.baseURL = `http://${host}:${port}`;
     debugWDA(`Initialized WDA backend for device ${udid} on ${host}:${port}`);
   }
@@ -791,10 +789,10 @@ export class WebDriverAgentBackend {
   ): Promise<any> {
     try {
       const url = `${this.baseURL}${endpoint}`;
-      const curlCommand = this.buildCurlCommand(method, url, data);
+      const curlArgs = this.buildCurlArgs(method, url, data);
 
       debugWDA(`Making ${method} request to ${endpoint}`);
-      const { stdout } = await execAsync(curlCommand, {
+      const { stdout } = await execFileAsync('curl', curlArgs, {
         maxBuffer: 50 * 1024 * 1024, // 50MB buffer for large screenshots
       });
 
@@ -835,15 +833,15 @@ export class WebDriverAgentBackend {
     }
   }
 
-  private buildCurlCommand(method: string, url: string, data?: any): string {
-    let command = `curl -s -X ${method}`;
+  private buildCurlArgs(method: string, url: string, data?: any): string[] {
+    const args = ['-s', '-X', method];
 
     if (data) {
-      command += ` -H "Content-Type: application/json"`;
-      command += ` -d '${JSON.stringify(data)}'`;
+      args.push('-H', 'Content-Type: application/json');
+      args.push('-d', JSON.stringify(data));
     }
 
-    command += ` "${url}"`;
-    return command;
+    args.push(url);
+    return args;
   }
 }
