@@ -235,10 +235,6 @@ const DetailSide = (): JSX.Element => {
             key: 'instruction',
             content: planningTask.param.userInstruction,
           },
-          {
-            key: 'log',
-            content: planningTask.param.log,
-          },
           ...(isPageContextFrozen
             ? [
                 {

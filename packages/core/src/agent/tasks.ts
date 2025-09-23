@@ -824,8 +824,7 @@ export class TaskExecutor {
     // Main planning loop - unified plan/replan logic
     while (true) {
       if (replanCount > replanningCycleLimit) {
-        const errorMsg =
-          'Replanning too many times, please split the task into multiple steps';
+        const errorMsg = `Replanning ${replanningCycleLimit} times, which is more than the limit, please split the task into multiple steps`;
 
         return this.appendErrorPlan(taskExecutor, errorMsg, modelConfig);
       }

@@ -494,7 +494,6 @@ export type ExecutionTaskPlanningApply = ExecutionTaskApply<
   'Planning',
   {
     userInstruction: string;
-    log?: string;
   },
   PlanningAIResponse
 >;
