@@ -65,6 +65,7 @@ interface ExecutionResult<OutputType = any> {
 
 const debug = getDebug('device-task-executor');
 const defaultReplanningCycleLimit = 10;
+const defaultMaxActionNumberForUITars = 40;
 
 export function locatePlanForLocate(param: string | DetailedLocateParam) {
   const locate = typeof param === 'string' ? { prompt: param } : param;
@@ -1005,7 +1006,12 @@ export class TaskExecutor {
     this.conversationHistory = [];
     const isCompleted = false;
     let currentActionCount = 0;
-    const maxActionNumber = 40;
+    const maxActionNumber =
+      this.replanningCycleLimit ||
+      globalConfigManager.getEnvConfigInNumber(
+        MIDSCENE_REPLANNING_CYCLE_LIMIT,
+      ) ||
+      defaultMaxActionNumberForUITars;
 
     const yamlFlow: MidsceneYamlFlowItem[] = [];
     while (!isCompleted && currentActionCount < maxActionNumber) {
