@@ -25,7 +25,7 @@
     "dev": "npm run build:watch",
     "build": "rslib build",
     "build:watch": "rslib build --watch",
-    "playground": "tsx demo/playground.ts",
+    "playground": "DEBUG=midscene:* tsx demo/playground.ts",
     "test": "vitest --run",
     "test:u": "vitest --run -u",
     "test:ai": "AI_TEST_TYPE=android npm run test",

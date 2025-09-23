@@ -8,16 +8,9 @@ import type {
   StorageProvider,
 } from '../types';
 
+import { noReplayAPIs } from '@midscene/playground';
 import { BLANK_RESULT } from '../utils/constants';
 import { allScriptsFromDump } from '../utils/replay-scripts';
-
-// Import noReplayAPIs - use hardcoded list that matches playground package
-const noReplayAPIs = [
-  // Data extraction APIs
-  'aiQuery',
-  // Validation APIs
-  'aiAssert',
-];
 
 /**
  * Hook for handling playground execution logic

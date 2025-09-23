@@ -229,13 +229,15 @@ export class WebDriverAgentBackend {
   async typeText(text: string): Promise<void> {
     this.ensureSession();
     try {
+      // Clean the text to avoid unwanted trailing spaces
+      const cleanText = text.trim();
       // Use the working method: /wda/keys with array value
       // WDA expects an array of characters, not a string
       await this.makeRequest(
         'POST',
         `/session/${this.session!.sessionId}/wda/keys`,
         {
-          value: text.split(''), // Must be an array of characters
+          value: cleanText.split(''), // Must be an array of characters
         },
       );
       debugWDA(`Typed text: "${text}"`);
@@ -245,11 +247,12 @@ export class WebDriverAgentBackend {
       try {
         debugWDA('Trying alternative text input method...');
         // Find the active element and send text to it
+        const cleanAltText = text.trim();
         await this.makeRequest(
           'POST',
           `/session/${this.session!.sessionId}/element/active/value`,
           {
-            value: text.split(''), // Also needs to be an array
+            value: cleanAltText.split(''), // Also needs to be an array
           },
         );
         debugWDA(`Typed text using alternative method: "${text}"`);
@@ -382,23 +385,62 @@ export class WebDriverAgentBackend {
       }
     }
 
-    // For other special keys (Tab, Escape, arrow keys, etc.), iOS basically doesn't support them
-    // Log warning and try to send as regular character
-    debugWDA(`Warning: Key "${key}" may not be supported on iOS platform`);
+    // Enhanced key support similar to Android
+    const normalizedKey = this.normalizeKeyName(key);
 
-    try {
-      await this.makeRequest(
-        'POST',
-        `/session/${this.session!.sessionId}/wda/keys`,
-        {
-          value: [key],
-        },
-      );
-      debugWDA(`Sent "${key}" as character (may not work as expected)`);
-    } catch (error) {
-      debugWDA(`Failed to send key "${key}": ${error}`);
-      throw new Error(`Key "${key}" is not supported on iOS platform`);
+    // iOS key mapping - expanded support
+    const iosKeyMap: Record<string, string> = {
+      Tab: '\t',
+      ArrowUp: '\uE013', // WebDriver arrow keys
+      ArrowDown: '\uE015',
+      ArrowLeft: '\uE012',
+      ArrowRight: '\uE014',
+      Home: '\uE011',
+      End: '\uE010',
+    };
+
+    // Try mapped keys first
+    if (iosKeyMap[normalizedKey]) {
+      try {
+        await this.makeRequest(
+          'POST',
+          `/session/${this.session!.sessionId}/wda/keys`,
+          {
+            value: [iosKeyMap[normalizedKey]],
+          },
+        );
+        debugWDA(`Sent WebDriver key code for: ${key}`);
+        return;
+      } catch (error) {
+        debugWDA(`WebDriver key failed for "${key}": ${error}`);
+      }
     }
+
+    // For single characters, send as regular text
+    if (key.length === 1) {
+      try {
+        await this.makeRequest(
+          'POST',
+          `/session/${this.session!.sessionId}/wda/keys`,
+          {
+            value: [key],
+          },
+        );
+        debugWDA(`Sent single character: "${key}"`);
+        return;
+      } catch (error) {
+        debugWDA(`Failed to send character "${key}": ${error}`);
+      }
+    }
+
+    // If nothing worked, log warning and throw error
+    debugWDA(`Warning: Key "${key}" is not supported on iOS platform`);
+    throw new Error(`Key "${key}" is not supported on iOS platform`);
+  }
+
+  private normalizeKeyName(key: string): string {
+    // Convert to proper case for mapping (first letter uppercase, rest lowercase)
+    return key.charAt(0).toUpperCase() + key.slice(1).toLowerCase();
   }
 
   async clearElement(): Promise<void> {
@@ -422,9 +464,10 @@ export class WebDriverAgentBackend {
     try {
       await this.makeRequest(
         'POST',
-        `/session/${this.session!.sessionId}/wda/homescreen`,
+        `/session/${this.session!.sessionId}/wda/pressButton`,
+        { name: 'home' },
       );
-      debugWDA('Pressed home button');
+      debugWDA('Home button pressed using hardware key');
     } catch (error) {
       debugWDA(`Failed to press home button: ${error}`);
       throw new Error(`Failed to press home button: ${error}`);

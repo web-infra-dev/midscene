@@ -272,7 +272,6 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
     return this;
   }
 
-  // @deprecated
   async getElementsInfo(): Promise<ElementInfo[]> {
     return [];
   }
@@ -696,27 +695,39 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
   }
 
   async appSwitcher(): Promise<void> {
-    // Double tap home button or use gesture for app switcher
-    await this.home();
-    await sleep(100);
-    await this.home();
+    try {
+      // For iOS, use swipe up with slower/longer duration to trigger app switcher
+      debugDevice('Triggering app switcher with slow swipe up gesture');
+      const { width, height } = await this.size();
+
+      // Swipe up from the very bottom of the screen to trigger app switcher
+      const centerX = width / 2;
+      const startY = height - 5; // Start from very bottom
+      const endY = height * 0.5; // Swipe to middle of screen
+
+      // Use a slower, longer swipe to trigger app switcher without additional tapping
+      // Longer duration mimics the "hold" behavior during the swipe itself
+      await this.wdaBackend.swipe(centerX, startY, centerX, endY, 1500); // Slower swipe
+
+      await sleep(800); // Wait for app switcher to appear and stabilize
+    } catch (error) {
+      debugDevice(`App switcher failed: ${error}`);
+      throw new Error(`Failed to trigger app switcher: ${error}`);
+    }
   }
 
   async hideKeyboard(_options?: IOSDeviceInputOpt): Promise<boolean> {
     try {
-      // Try tapping at the bottom of the screen to dismiss keyboard
-      const { width, height } = await this.size();
-      const centerX = width / 2;
-      const bottomY = height - 100; // Near bottom but not edge
-      debugDevice(
-        `Attempting to hide keyboard by tapping at (${centerX}, ${bottomY})`,
+      // Use WebDriverAgent's dedicated keyboard dismiss API
+      await this.wdaBackend.makeRequest(
+        'POST',
+        `/session/${this.wdaBackend.sessionInfo!.sessionId}/wda/keyboard/dismiss`,
       );
-      await this.tap(centerX, bottomY);
-
+      debugDevice('Successfully dismissed keyboard using WDA API');
       await sleep(300);
       return true;
     } catch (e) {
-      debugDevice(`Failed to hide keyboard: ${e}`);
+      debugDevice(`Failed to hide keyboard using WDA API: ${e}`);
       return false;
     }
   }
