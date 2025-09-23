@@ -32,7 +32,7 @@ export type IOSDeviceInputOpt = {
 };
 
 export type IOSDeviceOpt = {
-  udid?: string;
+  deviceId?: string;
   customActions?: DeviceAction<any>[];
   wdaPort?: number;
   wdaHost?: string;
@@ -40,7 +40,7 @@ export type IOSDeviceOpt = {
 } & IOSDeviceInputOpt;
 
 export class IOSDevice implements AbstractInterface {
-  private udid: string;
+  private deviceId: string;
   private devicePixelRatio = 1;
   private destroyed = false;
   private description: string | undefined;
@@ -199,31 +199,31 @@ export class IOSDevice implements AbstractInterface {
     return [...defaultActions, ...customActions];
   }
 
-  constructor(udid: string, options?: IOSDeviceOpt) {
-    assert(udid, 'udid is required for IOSDevice');
+  constructor(deviceId: string, options?: IOSDeviceOpt) {
+    assert(deviceId, 'deviceId is required for IOSDevice');
 
-    this.udid = udid;
+    this.deviceId = deviceId;
     this.options = options;
     this.customActions = options?.customActions;
 
     const wdaPort = options?.wdaPort || 8100;
     const wdaHost = options?.wdaHost || 'localhost';
-    this.wdaBackend = new WebDriverAgentBackend(udid, wdaPort, wdaHost);
-    this.wdaManager = WDAManager.getInstance(udid, wdaPort, wdaHost);
+    this.wdaBackend = new WebDriverAgentBackend(deviceId, wdaPort, wdaHost);
+    this.wdaManager = WDAManager.getInstance(deviceId, wdaPort, wdaHost);
   }
 
   describe(): string {
-    return this.description || `UDID: ${this.udid}`;
+    return this.description || `Device ID: ${this.deviceId}`;
   }
 
   public async connect(): Promise<void> {
     if (this.destroyed) {
       throw new Error(
-        `IOSDevice ${this.udid} has been destroyed and cannot execute commands`,
+        `IOSDevice ${this.deviceId} has been destroyed and cannot execute commands`,
       );
     }
 
-    debugDevice(`Connecting to iOS device: ${this.udid}`);
+    debugDevice(`Connecting to iOS device: ${this.deviceId}`);
 
     try {
       // Start WebDriverAgent
@@ -235,14 +235,14 @@ export class IOSDevice implements AbstractInterface {
       // Get device screen size for description
       const size = await this.getScreenSize();
       this.description = `
-UDID: ${this.udid}
+UDID: ${this.deviceId}
 Type: WebDriverAgent
 ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
 `;
       debugDevice('iOS device connected successfully', this.description);
     } catch (e) {
       debugDevice(`Failed to connect to iOS device: ${e}`);
-      throw new Error(`Unable to connect to iOS device ${this.udid}: ${e}`);
+      throw new Error(`Unable to connect to iOS device ${this.deviceId}: ${e}`);
     }
   }
 
@@ -827,7 +827,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
     }
 
     this.destroyed = true;
-    debugDevice(`iOS device ${this.udid} destroyed`);
+    debugDevice(`iOS device ${this.deviceId} destroyed`);
   }
 
   // Legacy methods (not applicable for WDA)

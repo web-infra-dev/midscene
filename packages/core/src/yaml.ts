@@ -41,6 +41,7 @@ export interface MidsceneYamlScript {
 
   web?: MidsceneYamlScriptWebEnv;
   android?: MidsceneYamlScriptAndroidEnv;
+  ios?: MidsceneYamlScriptIOSEnv;
 
   interface?: MidsceneYamlScriptEnvGeneralInterface;
   config?: MidsceneYamlScriptConfig;
@@ -102,9 +103,26 @@ export interface MidsceneYamlScriptAndroidEnv extends MidsceneYamlScriptConfig {
   launch?: string;
 }
 
+export interface MidsceneYamlScriptIOSEnv extends MidsceneYamlScriptConfig {
+  // The iOS device ID to connect to, optional, will use the first device if not specified
+  deviceId?: string;
+
+  // WebDriverAgent configuration
+  wdaPort?: number;
+  wdaHost?: string;
+
+  // Keyboard behavior configuration
+  autoDismissKeyboard?: boolean;
+  keyboardDismissStrategy?: 'done-first' | 'escape-first';
+
+  // The URL or app bundle ID to launch, optional, will use the current screen if not specified
+  launch?: string;
+}
+
 export type MidsceneYamlScriptEnv =
   | MidsceneYamlScriptWebEnv
-  | MidsceneYamlScriptAndroidEnv;
+  | MidsceneYamlScriptAndroidEnv
+  | MidsceneYamlScriptIOSEnv;
 
 export interface MidsceneYamlFlowItemAIAction {
   ai?: string; // this is the shortcut for aiAction
@@ -198,6 +216,7 @@ export interface MidsceneYamlConfig {
   shareBrowserContext?: boolean;
   web?: MidsceneYamlScriptWebEnv;
   android?: MidsceneYamlScriptAndroidEnv;
+  ios?: MidsceneYamlScriptIOSEnv;
   files: string[];
   headed?: boolean;
   keepWindow?: boolean;

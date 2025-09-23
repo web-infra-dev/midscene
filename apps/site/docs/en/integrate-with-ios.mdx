@@ -66,10 +66,10 @@ Midscene iOS uses WebDriverAgent for device automation. You need to prepare WebD
 
 2. **Build and deploy to device**:
    ```bash
-   # Replace YOUR_DEVICE_UDID with your device's UDID
+   # Replace YOUR_DEVICE_ID with your device's ID
    xcodebuild -project WebDriverAgent.xcodeproj \
              -scheme WebDriverAgentRunner \
-             -destination 'id=YOUR_DEVICE_UDID' \
+             -destination 'id=YOUR_DEVICE_ID' \
              test
    ```
 
@@ -84,7 +84,7 @@ Midscene iOS uses WebDriverAgent for device automation. You need to prepare WebD
 5. **Set up port forwarding (for real devices)**:
    ```bash
    # Forward local port 8100 to device port 8100
-   iproxy 8100 8100 YOUR_DEVICE_UDID
+   iproxy 8100 8100 YOUR_DEVICE_ID
    ```
 
    Keep this command running in a separate terminal window.
@@ -187,7 +187,7 @@ When the above command executes successfully, it will output in the console: `Mi
 
 The IOSDevice constructor supports the following parameters:
 
-- `udid: string` - Device UDID or simulator identifier
+- `deviceId: string` - Device ID or simulator identifier
 - `opts?: IOSDeviceOpt` - Optional parameters for IOSDevice configuration
   - `wdaPort?: number` - Optional, WebDriverAgent port. Default is 8100.
   - `wdaHost?: string` - Optional, WebDriverAgent host. Default is 'localhost'.
@@ -241,14 +241,14 @@ Create an IOSAgent from a connected iOS device.
 
 ```typescript
 function agentFromIOSDevice(
-  udid?: string,
+  deviceId?: string,
   opts?: PageAgentOpt,
 ): Promise<IOSAgent>;
 ```
 
 - Parameters:
 
-  - `udid?: string` - Optional, UDID of the iOS device to connect to. If not provided, uses the first connected device
+  - `deviceId?: string` - Optional, device ID of the iOS device to connect to. If not provided, uses the first connected device
   - `opts?: PageAgentOpt & IOSDeviceOpt` - Optional, configuration for initializing IOSAgent. PageAgentOpt refers to [Constructor](./api.mdx), IOSDeviceOpt configuration values refer to [IOSDevice Constructor](./integrate-with-ios#iosdevice-constructor)
 
 - Return Value:
@@ -260,8 +260,8 @@ function agentFromIOSDevice(
 ```typescript
 import { agentFromIOSDevice } from '@midscene/ios';
 
-const agent = await agentFromIOSDevice('00008120-001234567890123E'); // Pass UDID
-const agent = await agentFromIOSDevice(); // No UDID, uses first connected device
+const agent = await agentFromIOSDevice('00008120-001234567890123E'); // Pass Device ID
+const agent = await agentFromIOSDevice(); // No Device ID, uses first connected device
 ```
 
 ### `getConnectedDevices()`
@@ -274,9 +274,9 @@ Get all connected iOS devices and simulators.
 function getConnectedDevices(): Promise<Device[]>;
 interface Device {
   /**
-   * The device udid or simulator identifier.
+   * The device deviceId or simulator identifier.
    */
-  udid: string;
+  deviceId: string;
   /**
    * Device name
    */
@@ -330,7 +330,7 @@ const ContinuousClick = defineAction({
   },
 });
 
-const page = new IOSDevice('your-device-udid');
+const page = new IOSDevice('your-device-id');
 const agent = new IOSAgent(page, {
   customActions: [ContinuousClick],
 });
@@ -379,7 +379,7 @@ const device = new IOSDevice('00008120-001234567890123E', {
 For remote devices, you also need to set up port forwarding accordingly:
 
 ```bash
-iproxy -u DEVICE_UDID 8200:8100
+iproxy -u DEVICE_ID 8200:8100
 ```
 
 ## iOS-Specific Actions
@@ -499,7 +499,7 @@ If you encounter WebDriverAgent connection issues:
 
 **"Device not found"**:
 - Verify device is connected via USB
-- Check UDID with `idevice_id -l`
+- Check Device Id with `idevice_id -l`
 - Ensure port forwarding is active
 
 **"WebDriverAgent session failed"**:

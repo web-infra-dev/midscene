@@ -1,8 +1,8 @@
 # search headphone on ebay, extract the items info into a json file, and assert the shopping cart icon
 
-android:
+ios:
   launch: https://www.ebay.com
-  deviceId: s4ey59ytbitot4yp
+  deviceId: 00008120-0012144121E0201E
 
 tasks:
   - name: search headphones

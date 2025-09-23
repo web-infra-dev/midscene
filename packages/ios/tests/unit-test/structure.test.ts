@@ -11,7 +11,9 @@ describe('iOS Package Structure', () => {
     });
 
     it('should throw error for empty UDID', () => {
-      expect(() => new IOSDevice('')).toThrow('udid is required for IOSDevice');
+      expect(() => new IOSDevice('')).toThrow(
+        'deviceId is required for IOSDevice',
+      );
     });
 
     it('should have correct interface type', () => {
@@ -50,7 +52,7 @@ describe('iOS Package Structure', () => {
     it('should provide device description', () => {
       const device = new IOSDevice('test-udid-123');
       const description = device.describe();
-      expect(description).toContain('UDID');
+      expect(description).toContain('Device ID');
       expect(description).toContain('test-udid-123');
     });
   });

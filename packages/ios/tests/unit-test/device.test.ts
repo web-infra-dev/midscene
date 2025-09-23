@@ -81,7 +81,9 @@ describe('IOSDevice', () => {
     });
 
     it('should throw error without udid', () => {
-      expect(() => new IOSDevice('')).toThrow('udid is required for IOSDevice');
+      expect(() => new IOSDevice('')).toThrow(
+        'deviceId is required for IOSDevice',
+      );
     });
 
     it('should create device with custom options', () => {
@@ -125,7 +127,7 @@ describe('IOSDevice', () => {
 
     it('should provide device description', () => {
       const description = device.describe();
-      expect(description).toContain('UDID');
+      expect(description).toContain('Device ID');
       expect(description).toContain(testUdid);
     });
   });

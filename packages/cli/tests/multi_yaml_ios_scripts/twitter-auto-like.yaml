@@ -1,0 +1,24 @@
+# search headphone on ebay, extract the items info into a json file, and assert the shopping cart icon
+
+ios:
+  # launch: https://www.ebay.com
+  deviceId: 00008120-0012144121E0201E
+
+tasks:
+  - name: like tweets
+    flow:
+      - aiAction: open x app
+      - aiAction: search 'midscene ai'
+      - aiAction: click the user called 'midscene ai'
+      - aiAction: click the first tweet
+      - aiAction: click the like button
+
+  - name: extract tweets info
+    flow:
+      - aiQuery: >
+          {time: string, content: string}[], return time and content of each tweet
+        name: tweets
+
+  - name: assert @midscene_ai account
+    flow:
+      - aiAssert: There is a @midscene_ai account on the page

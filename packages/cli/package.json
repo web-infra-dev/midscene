@@ -21,6 +21,7 @@
   "dependencies": {
     "@midscene/android": "workspace:*",
     "@midscene/core": "workspace:*",
+    "@midscene/ios": "workspace:*",
     "@midscene/shared": "workspace:*",
     "@midscene/web": "workspace:*",
     "http-server": "14.1.1",

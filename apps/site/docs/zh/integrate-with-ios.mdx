@@ -67,10 +67,10 @@ Midscene iOS 使用 WebDriverAgent 进行设备自动化。你需要在使用库
 
 2. **构建并部署到设备**：
    ```bash
-   # 将 YOUR_DEVICE_UDID 替换为你的设备 UDID
+   # 将 YOUR_DEVICE_ID 替换为你的设备 ID
    xcodebuild -project WebDriverAgent.xcodeproj \
              -scheme WebDriverAgentRunner \
-             -destination 'id=YOUR_DEVICE_UDID' \
+             -destination 'id=YOUR_DEVICE_ID' \
              test
    ```
 
@@ -85,7 +85,7 @@ Midscene iOS 使用 WebDriverAgent 进行设备自动化。你需要在使用库
 5. **设置端口转发（真机设备）**：
    ```bash
    # 将本地端口 8100 转发到设备端口 8100
-   iproxy 8100 8100 YOUR_DEVICE_UDID
+   iproxy 8100 8100 YOUR_DEVICE_ID
    ```
 
    保持此命令在单独的终端窗口中运行。
@@ -188,7 +188,7 @@ npx tsx demo.ts
 
 IOSDevice 的构造函数支持以下参数：
 
-- `udid: string` - 设备 UDID 或模拟器标识符
+- `deviceId: string` - 设备 device Id 或模拟器标识符
 - `opts?: IOSDeviceOpt` - 可选参数，用于初始化 IOSDevice 的配置
   - `wdaPort?: number` - 可选参数，WebDriverAgent 端口。默认值为 8100。
   - `wdaHost?: string` - 可选参数，WebDriverAgent 主机。默认值为 'localhost'。
@@ -242,14 +242,14 @@ await agent.launch('mailto:example@email.com'); // 发送邮件
 
 ```typescript
 function agentFromIOSDevice(
-  udid?: string,
+  deviceId?: string,
   opts?: PageAgentOpt,
 ): Promise<IOSAgent>;
 ```
 
 - 参数：
 
-  - `udid?: string` - 可选参数，要连接的 iOS 设备 UDID，如果未传入，则使用第一个连接的设备
+  - `deviceId?: string` - 可选参数，要连接的 iOS 设备 ID，如果未传入，则使用第一个连接的设备
   - `opts?: PageAgentOpt & IOSDeviceOpt` - 可选参数，用于初始化 IOSAgent 的配置，其中 PageAgentOpt 参考 [构造器](./api.mdx)，IOSDeviceOpt 的配置值参考 [IOSDevice 的构造函数](./integrate-with-ios#iosdevice-%E7%9A%84%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0)
 
 - 返回值：
@@ -261,8 +261,8 @@ function agentFromIOSDevice(
 ```typescript
 import { agentFromIOSDevice } from '@midscene/ios';
 
-const agent = await agentFromIOSDevice('00008120-001234567890123E'); // 传入 UDID
-const agent = await agentFromIOSDevice(); // 不传入 UDID，则使用第一个连接的设备
+const agent = await agentFromIOSDevice('00008120-001234567890123E'); // 传入 deviceId
+const agent = await agentFromIOSDevice(); // 不传入 deviceId，则使用第一个连接的设备
 ```
 
 ### `getConnectedDevices()`
@@ -275,9 +275,9 @@ const agent = await agentFromIOSDevice(); // 不传入 UDID，则使用第一个
 function getConnectedDevices(): Promise<Device[]>;
 interface Device {
   /**
-   * The device udid or simulator identifier.
+   * The device deviceId or simulator identifier.
    */
-  udid: string;
+  deviceId: string;
   /**
    * Device name
    */
@@ -331,7 +331,7 @@ const ContinuousClick = defineAction({
   },
 });
 
-const page = new IOSDevice('your-device-udid');
+const page = new IOSDevice('your-device-id');
 const agent = new IOSAgent(page, {
   customActions: [ContinuousClick],
 });
@@ -380,5 +380,5 @@ const device = new IOSDevice('00008120-001234567890123E', {
 对于远程设备，还需要相应地设置端口转发：
 
 ```bash
-iproxy -u DEVICE_UDID 8200:8100
+iproxy -u DEVICE_ID 8200:8100
 ```

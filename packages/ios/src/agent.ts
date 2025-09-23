@@ -15,20 +15,20 @@ export class IOSAgent extends PageAgent<IOSDevice> {
 }
 
 export async function agentFromIOSDevice(
-  udid?: string,
+  deviceId?: string,
   opts?: IOSAgentOpt & IOSDeviceOpt,
 ) {
-  if (!udid) {
+  if (!deviceId) {
     const defaultDevice = await getDefaultDevice();
-    udid = defaultDevice.udid;
+    deviceId = defaultDevice.udid;
 
     debugAgent(
-      'udid not specified, will use the default device (udid = %s)',
-      udid,
+      'deviceId not specified, will use the default device (deviceId = %s)',
+      deviceId,
     );
   }
 
-  const device = new IOSDevice(udid, {
+  const device = new IOSDevice(deviceId, {
     autoDismissKeyboard: opts?.autoDismissKeyboard,
     keyboardDismissStrategy: opts?.keyboardDismissStrategy,
     customActions: opts?.customActions,
@@ -75,7 +75,7 @@ export async function agentFromIOSSimulator(
   }
 
   debugAgent(
-    'Using iOS simulator: %s (udid = %s)',
+    'Using iOS simulator: %s (deviceId = %s)',
     targetDevice.name,
     targetDevice.udid,
   );
