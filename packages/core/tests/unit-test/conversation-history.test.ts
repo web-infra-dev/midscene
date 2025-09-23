@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import { ConversationHistory } from '@/ai-model';
+import { describe, expect, it } from 'vitest';
 
 const userMessage = (content: string) => ({
   role: 'user' as const,
@@ -33,10 +33,7 @@ describe('ConversationHistory', () => {
     history.append(assistantMessage('greet'));
     history.append(userMessage('question'));
 
-    history.seed([
-      assistantMessage('seeded'),
-      userMessage('follow-up'),
-    ]);
+    history.seed([assistantMessage('seeded'), userMessage('follow-up')]);
 
     expect(history.snapshot()).toEqual([
       assistantMessage('seeded'),
