@@ -48,10 +48,10 @@ export class WebDriverAgentBackend {
       const response = await this.makeRequest('POST', '/session', {
         capabilities: {
           alwaysMatch: {
-            bundleId: '',
+            // No bundleId specified - connects to currently active app
             arguments: [],
             environment: {},
-            shouldWaitForQuiescence: true,
+            shouldWaitForQuiescence: false, // Don't wait for app to be idle
             shouldUseTestManagerForVisibilityDetection: false,
             maxTypingFrequency: 60,
             shouldUseSingletonTestManager: true,
