@@ -1120,7 +1120,7 @@ export class TaskExecutor {
         if (ifTypeRestricted && type === 'Assert') {
           keyOfResult = 'StatementIsTruthy';
           demandInput = {
-            [keyOfResult]: `Boolean, ${demand}`,
+            [keyOfResult]: `Boolean, whether the following statement is true: ${demand}`,
           };
         } else if (ifTypeRestricted) {
           demandInput = {
