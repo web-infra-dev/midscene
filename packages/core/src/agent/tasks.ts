@@ -1086,7 +1086,6 @@ export class TaskExecutor {
       subType: type,
       locate: null,
       param: {
-        // TODO: display image thumbnail in report
         dataDemand: multimodalPrompt
           ? ({
               demand,
@@ -1117,10 +1116,15 @@ export class TaskExecutor {
 
         const ifTypeRestricted = type !== 'Query';
         let demandInput = demand;
-        if (ifTypeRestricted) {
-          const returnType = type === 'Assert' ? 'Boolean' : type;
+        let keyOfResult = 'result';
+        if (ifTypeRestricted && type === 'Assert') {
+          keyOfResult = 'StatementIsTruthy';
           demandInput = {
-            result: `${returnType}, ${demand}`,
+            [keyOfResult]: `Boolean, whether the following statement is true: ${demand}`,
+          };
+        } else if (ifTypeRestricted) {
+          demandInput = {
+            [keyOfResult]: `${type}, ${demand}`,
           };
         }
 
@@ -1137,8 +1141,11 @@ export class TaskExecutor {
           if (typeof data === 'string') {
             outputResult = data;
           } else {
-            assert(data?.result !== undefined, 'No result in query data');
-            outputResult = (data as any).result;
+            assert(
+              data?.[keyOfResult] !== undefined,
+              'No result in query data',
+            );
+            outputResult = (data as any)[keyOfResult];
           }
         }
 
@@ -1269,6 +1276,22 @@ export class TaskExecutor {
     };
   }
 
+  async taskForSleep(timeMs: number, modelConfig: IModelConfig) {
+    const sleepPlan: PlanningAction<PlanningActionParamSleep> = {
+      type: 'Sleep',
+      param: {
+        timeMs,
+      },
+      locate: null,
+    };
+    const { tasks: sleepTasks } = await this.convertPlanToExecutable(
+      [sleepPlan],
+      modelConfig,
+    );
+
+    return this.prependExecutorWithScreenshot(sleepTasks[0]);
+  }
+
   async waitFor(
     assertion: TUserPrompt,
     opt: PlanningActionParamWaitFor,
@@ -1333,21 +1356,8 @@ export class TaskExecutor {
       const now = Date.now();
       if (now - startTime < checkIntervalMs) {
         const timeRemaining = checkIntervalMs - (now - startTime);
-        const sleepPlan: PlanningAction<PlanningActionParamSleep> = {
-          type: 'Sleep',
-          param: {
-            timeMs: timeRemaining,
-          },
-          locate: null,
-        };
-        const { tasks: sleepTasks } = await this.convertPlanToExecutable(
-          [sleepPlan],
-          modelConfig,
-        );
-        await taskExecutor.append(
-          this.prependExecutorWithScreenshot(sleepTasks[0]),
-        );
-        await taskExecutor.flush();
+        const sleepTask = await this.taskForSleep(timeRemaining, modelConfig);
+        await taskExecutor.append(sleepTask);
       }
     }
 

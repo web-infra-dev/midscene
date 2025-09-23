@@ -1,10 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describeUserPage } from '@/index';
-import {
-  type TVlModeTypes,
-  globalModelConfigManager,
-} from '@midscene/shared/env';
+import type { TVlModeTypes } from '@midscene/shared/env';
 import { imageInfoOfBase64, localImg2Base64 } from '@midscene/shared/img';
 
 export async function buildContext(

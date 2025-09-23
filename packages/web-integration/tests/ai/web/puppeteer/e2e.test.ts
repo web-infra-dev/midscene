@@ -60,6 +60,8 @@ describe(
       const flag = await agent.aiBoolean('this is a login page');
       expect(flag).toBe(true);
 
+      await agent.aiAssert('this is a login page');
+
       await agent.aiAction(
         'type "standard_user" in user name input, type "secret_sauce" in password',
       );

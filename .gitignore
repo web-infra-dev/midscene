@@ -123,3 +123,4 @@ CLAUDE.md
 .github/instructions/nx.instructions.md
 .gemini-clipboard
 tsconfig.build.tsbuildinfo
+.webx
