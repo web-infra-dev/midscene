@@ -8,7 +8,10 @@ import type { IModelConfig } from '@midscene/shared/env';
 import { paddingToMatchBlockByBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import type { ChatCompletionMessageParam } from 'openai/resources/index';
+import type {
+  ChatCompletionContentPart,
+  ChatCompletionMessageParam,
+} from 'openai/resources/index';
 import {
   AIActionType,
   type AIArgs,
@@ -19,11 +22,7 @@ import {
   warnGPT4oSizeLimit,
 } from './common';
 import type { ConversationHistory } from './conversation-history';
-import {
-  automationUserPrompt,
-  generateTaskBackgroundContext,
-  systemPromptToTaskPlanning,
-} from './prompt/llm-planning';
+import { systemPromptToTaskPlanning } from './prompt/llm-planning';
 import { describeUserPage } from './prompt/util';
 import { callAIWithObjectResponse } from './service-caller/index';
 
@@ -35,7 +34,6 @@ export async function plan(
     context: UIContext;
     interfaceType: InterfaceType;
     actionSpace: DeviceAction<any>[];
-    log?: string;
     actionContext?: string;
     modelConfig: IModelConfig;
     conversationHistory?: ConversationHistory;
@@ -54,19 +52,6 @@ export async function plan(
     actionSpace: opts.actionSpace,
     vlMode: vlMode,
   });
-  const historyLog = getLogFromConversationHistory(
-    opts.conversationHistory?.snapshot(),
-  );
-  const logForContext = historyLog ?? opts.log;
-  const taskBackgroundContextText = generateTaskBackgroundContext(
-    userInstruction,
-    logForContext,
-    opts.actionContext,
-  );
-  const userInstructionPrompt = await automationUserPrompt(vlMode).format({
-    pageDescription,
-    taskBackgroundContext: taskBackgroundContextText,
-  });
 
   let imagePayload = screenshotBase64;
   if (vlMode === 'qwen-vl') {
@@ -81,8 +66,42 @@ export async function plan(
 
   warnGPT4oSizeLimit(size, modelName);
 
-  const msgs: AIArgs = [
+  const historyLog =
+    opts.conversationHistory
+      ?.snapshot()
+      .filter((item) => item.role === 'assistant') || [];
+
+  const knowledgeContext: ChatCompletionMessageParam[] = opts.actionContext
+    ? [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: `<high_priority_knowledge>${opts.actionContext}</high_priority_knowledge>`,
+            },
+          ],
+        },
+      ]
+    : [];
+
+  const instruction: ChatCompletionMessageParam[] = [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: `<user_instruction>${userInstruction}</user_instruction>`,
+        },
+      ],
+    },
+  ];
+
+  const msgs: ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
+    ...knowledgeContext,
+    ...instruction,
+    ...historyLog,
     {
       role: 'user',
       content: [
@@ -93,10 +112,14 @@ export async function plan(
             detail: 'high',
           },
         },
-        {
-          type: 'text',
-          text: userInstructionPrompt,
-        },
+        ...(vlMode
+          ? []
+          : ([
+              {
+                type: 'text',
+                text: pageDescription,
+              },
+            ] as ChatCompletionContentPart[])),
       ],
     },
   ];
@@ -174,51 +197,13 @@ export async function plan(
 
   conversationHistory?.append({
     role: 'assistant',
-    content: returnValue.log,
+    content: [
+      {
+        type: 'text',
+        text: rawResponse,
+      },
+    ],
   });
 
   return returnValue;
-}
-
-function getLogFromConversationHistory(
-  conversationHistory?: ChatCompletionMessageParam[],
-): string | undefined {
-  if (!conversationHistory?.length) {
-    return undefined;
-  }
-
-  const assistantMessages = conversationHistory
-    .filter((message) => message.role === 'assistant')
-    .map((message) => {
-      if (typeof message.content === 'string') {
-        return message.content.trim();
-      }
-
-      if (Array.isArray(message.content)) {
-        return message.content
-          .map((part) => {
-            if (part.type === 'text' && typeof part.text === 'string') {
-              return part.text.trim();
-            }
-
-            if (typeof (part as any).text === 'string') {
-              return (part as any).text.trim();
-            }
-
-            return '';
-          })
-          .filter(Boolean)
-          .join('\n');
-      }
-
-      return '';
-    })
-    .map((content) => content.trim())
-    .filter(Boolean);
-
-  if (assistantMessages.length === 0) {
-    return undefined;
-  }
-
-  return `- ${assistantMessages.join('\n- ')}`;
 }

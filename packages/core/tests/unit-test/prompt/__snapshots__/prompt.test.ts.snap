@@ -604,7 +604,7 @@ Wrong output:
 
 exports[`system prompts > planning - android 1`] = `
 "
-Target: User will give you a screenshot, an instruction and some previous logs indicating what have been done. Please tell what the next one action is (or null if no action should be done) to do the tasks the instruction requires. 
+Target: User will give you a latest screenshot, an instruction and some previous logs indicating what have been done. Please tell what the next one action is (or null if no action should be done) to do the tasks the instruction requires. 
 
 Restriction:
 - Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
@@ -643,8 +643,7 @@ Field description:
 
 Return in JSON format:
 {
-  "what_the_user_wants_to_do_next_by_instruction": string, // What the user wants to do according to the instruction and previous logs. 
-  "log": string, // Log what the next one action (ONLY ONE!) you can do according to the screenshot and the instruction. The typical log looks like "Now i want to use action '{ action-type }' to do .. first". If no action should be done, log the reason. ". Use the same language as the user's instruction.
+  "log": string, // Log your thoughts and what the next one action (ONLY ONE!) you can do according to the screenshot and the instruction. The typical log looks like "The user wants to do ... . According to the instruction and the previous logs, i think the next action should be ....". If no action should be done, log the reason. Use the same language as the user's instruction.
   "error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not foreseeable according to the instruction. Use the same language as the user's instruction.
   "more_actions_needed_by_instruction": boolean, // Consider if there is still more action(s) to do after the action in "Log" is done, according to the instruction. If so, set this field to true. Otherwise, set it to false.
   "action": 
@@ -655,14 +654,12 @@ Return in JSON format:
   "sleep"?: number, // The sleep time after the action, in milliseconds.
 }
 
-For example, when the instruction is "click 'Confirm' button, and click 'Yes' in popup" and the log is "I will use action Tap to click 'Confirm' button", by viewing the screenshot and previous logs, you should consider: We have already clicked the 'Confirm' button, so next we should find and click 'Yes' in popup.
+For example, when the instruction is "click 'Confirm' button, and click 'Yes' in popup" and the previous log shows "The 'Confirm' button has been clicked", by viewing the screenshot and previous logs, you should consider: We have already clicked the 'Confirm' button, so next we should find and click 'Yes' in popup.
 
 this and output the JSON:
 
 {
-  "what_the_user_wants_to_do_next_by_instruction": "We have already clicked the 'Confirm' button, so next we should find and click 'Yes' in popup",
-  "log": "I will use action Tap to click 'Yes' in popup",
-  "more_actions_needed_by_instruction": false,
+  "log": "The user wants to do click 'Confirm' button, and click 'Yes' in popup. According to the instruction and the previous logs, i think the next action should be click 'Yes' in popup.",
   "action": {
     "type": "Tap",
     "param": {
@@ -671,33 +668,15 @@ this and output the JSON:
         "prompt": "The 'Yes' button in popup"
       }
     }
-  }
+  },
+  "more_actions_needed_by_instruction": false,
 }
-"
-`;
-
-exports[`system prompts > planning - background context 1`] = `
-"
-Here is the user's instruction:
-
-<high_priority_knowledge>
-  THIS IS BACKGROUND PROMPT
-</high_priority_knowledge>
-<instruction>
-  THIS IS USER INSTRUCTION
-</instruction>
-
-These are the logs from previous executions, which indicate what was done in the previous actions.
-Do NOT repeat these actions.
-<previous_logs>
-THIS IS WHAT HAS BEEN DONE
-</previous_logs>
 "
 `;
 
 exports[`system prompts > planning - gemini 1`] = `
 "
-Target: User will give you a screenshot, an instruction and some previous logs indicating what have been done. Please tell what the next one action is (or null if no action should be done) to do the tasks the instruction requires. 
+Target: User will give you a latest screenshot, an instruction and some previous logs indicating what have been done. Please tell what the next one action is (or null if no action should be done) to do the tasks the instruction requires. 
 
 Restriction:
 - Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
@@ -736,8 +715,7 @@ Field description:
 
 Return in JSON format:
 {
-  "what_the_user_wants_to_do_next_by_instruction": string, // What the user wants to do according to the instruction and previous logs. 
-  "log": string, // Log what the next one action (ONLY ONE!) you can do according to the screenshot and the instruction. The typical log looks like "Now i want to use action '{ action-type }' to do .. first". If no action should be done, log the reason. ". Use the same language as the user's instruction.
+  "log": string, // Log your thoughts and what the next one action (ONLY ONE!) you can do according to the screenshot and the instruction. The typical log looks like "The user wants to do ... . According to the instruction and the previous logs, i think the next action should be ....". If no action should be done, log the reason. Use the same language as the user's instruction.
   "error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not foreseeable according to the instruction. Use the same language as the user's instruction.
   "more_actions_needed_by_instruction": boolean, // Consider if there is still more action(s) to do after the action in "Log" is done, according to the instruction. If so, set this field to true. Otherwise, set it to false.
   "action": 
@@ -748,14 +726,12 @@ Return in JSON format:
   "sleep"?: number, // The sleep time after the action, in milliseconds.
 }
 
-For example, when the instruction is "click 'Confirm' button, and click 'Yes' in popup" and the log is "I will use action Tap to click 'Confirm' button", by viewing the screenshot and previous logs, you should consider: We have already clicked the 'Confirm' button, so next we should find and click 'Yes' in popup.
+For example, when the instruction is "click 'Confirm' button, and click 'Yes' in popup" and the previous log shows "The 'Confirm' button has been clicked", by viewing the screenshot and previous logs, you should consider: We have already clicked the 'Confirm' button, so next we should find and click 'Yes' in popup.
 
 this and output the JSON:
 
 {
-  "what_the_user_wants_to_do_next_by_instruction": "We have already clicked the 'Confirm' button, so next we should find and click 'Yes' in popup",
-  "log": "I will use action Tap to click 'Yes' in popup",
-  "more_actions_needed_by_instruction": false,
+  "log": "The user wants to do click 'Confirm' button, and click 'Yes' in popup. According to the instruction and the previous logs, i think the next action should be click 'Yes' in popup.",
   "action": {
     "type": "Tap",
     "param": {
@@ -764,14 +740,15 @@ this and output the JSON:
         "prompt": "The 'Yes' button in popup"
       }
     }
-  }
+  },
+  "more_actions_needed_by_instruction": false,
 }
 "
 `;
 
 exports[`system prompts > planning - qwen 1`] = `
 "
-Target: User will give you a screenshot, an instruction and some previous logs indicating what have been done. Please tell what the next one action is (or null if no action should be done) to do the tasks the instruction requires. 
+Target: User will give you a latest screenshot, an instruction and some previous logs indicating what have been done. Please tell what the next one action is (or null if no action should be done) to do the tasks the instruction requires. 
 
 Restriction:
 - Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
@@ -810,8 +787,7 @@ Field description:
 
 Return in JSON format:
 {
-  "what_the_user_wants_to_do_next_by_instruction": string, // What the user wants to do according to the instruction and previous logs. 
-  "log": string, // Log what the next one action (ONLY ONE!) you can do according to the screenshot and the instruction. The typical log looks like "Now i want to use action '{ action-type }' to do .. first". If no action should be done, log the reason. ". Use the same language as the user's instruction.
+  "log": string, // Log your thoughts and what the next one action (ONLY ONE!) you can do according to the screenshot and the instruction. The typical log looks like "The user wants to do ... . According to the instruction and the previous logs, i think the next action should be ....". If no action should be done, log the reason. Use the same language as the user's instruction.
   "error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not foreseeable according to the instruction. Use the same language as the user's instruction.
   "more_actions_needed_by_instruction": boolean, // Consider if there is still more action(s) to do after the action in "Log" is done, according to the instruction. If so, set this field to true. Otherwise, set it to false.
   "action": 
@@ -822,14 +798,12 @@ Return in JSON format:
   "sleep"?: number, // The sleep time after the action, in milliseconds.
 }
 
-For example, when the instruction is "click 'Confirm' button, and click 'Yes' in popup" and the log is "I will use action Tap to click 'Confirm' button", by viewing the screenshot and previous logs, you should consider: We have already clicked the 'Confirm' button, so next we should find and click 'Yes' in popup.
+For example, when the instruction is "click 'Confirm' button, and click 'Yes' in popup" and the previous log shows "The 'Confirm' button has been clicked", by viewing the screenshot and previous logs, you should consider: We have already clicked the 'Confirm' button, so next we should find and click 'Yes' in popup.
 
 this and output the JSON:
 
 {
-  "what_the_user_wants_to_do_next_by_instruction": "We have already clicked the 'Confirm' button, so next we should find and click 'Yes' in popup",
-  "log": "I will use action Tap to click 'Yes' in popup",
-  "more_actions_needed_by_instruction": false,
+  "log": "The user wants to do click 'Confirm' button, and click 'Yes' in popup. According to the instruction and the previous logs, i think the next action should be click 'Yes' in popup.",
   "action": {
     "type": "Tap",
     "param": {
@@ -838,22 +812,11 @@ this and output the JSON:
         "prompt": "The 'Yes' button in popup"
       }
     }
-  }
+  },
+  "more_actions_needed_by_instruction": false,
 }
 "
 `;
-
-exports[`system prompts > planning - user prompt - 4o 1`] = `
-"
-pageDescription:
-=====================================
-THIS IS PAGE DESCRIPTION
-=====================================
-
-THIS IS BACKGROUND CONTEXT"
-`;
-
-exports[`system prompts > planning - user prompt - qwen 1`] = `"THIS IS BACKGROUND CONTEXT"`;
 
 exports[`system prompts > section locator - gemini 1`] = `
 "

@@ -1,8 +1,6 @@
 import { systemPromptToLocateElement } from '@/ai-model';
 import {
-  automationUserPrompt,
   descriptionForAction,
-  generateTaskBackgroundContext,
   planSchema,
   systemPromptToTaskPlanning,
 } from '@/ai-model/prompt/llm-planning';
@@ -146,34 +144,6 @@ describe('system prompts', () => {
       vlMode: 'qwen-vl',
     });
     expect(prompt).toMatchSnapshot();
-  });
-
-  it('planning - background context', () => {
-    const context = generateTaskBackgroundContext(
-      'THIS IS USER INSTRUCTION',
-      'THIS IS WHAT HAS BEEN DONE',
-      'THIS IS BACKGROUND PROMPT',
-    );
-    expect(context).toMatchSnapshot();
-  });
-
-  it('planning - user prompt - 4o', async () => {
-    const prompt = automationUserPrompt(undefined);
-    const result = await prompt.format({
-      pageDescription: 'THIS IS PAGE DESCRIPTION',
-      taskBackgroundContext: 'THIS IS BACKGROUND CONTEXT',
-      userActionContext: 'THIS IS BACKGROUND PROMPT',
-    });
-    expect(result).toMatchSnapshot();
-  });
-
-  it('planning - user prompt - qwen', async () => {
-    const prompt = automationUserPrompt('qwen-vl');
-    const result = await prompt.format({
-      pageDescription: 'THIS IS PAGE DESCRIPTION',
-      taskBackgroundContext: 'THIS IS BACKGROUND CONTEXT',
-    });
-    expect(result).toMatchSnapshot();
   });
 
   it('section locator - gemini', () => {

@@ -701,7 +701,6 @@ export class TaskExecutor {
           param.userInstruction,
           {
             context: uiContext,
-            log: param.log,
             actionContext,
             interfaceType: this.interface.interfaceType as InterfaceType,
             actionSpace,

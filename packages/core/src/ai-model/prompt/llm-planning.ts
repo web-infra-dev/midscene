@@ -8,8 +8,7 @@ import { ifMidsceneLocatorField } from '../common';
 import { bboxDescription } from './common';
 
 // Note: put the log field first to trigger the CoT
-const vlCoTLog = `"what_the_user_wants_to_do_next_by_instruction": string, // What the user wants to do according to the instruction and previous logs. `;
-const vlCurrentLog = `"log": string, // Log what the next one action (ONLY ONE!) you can do according to the screenshot and the instruction. The typical log looks like "Now i want to use action '{ action-type }' to do .. first". If no action should be done, log the reason. ". Use the same language as the user's instruction.`;
+const vlCurrentLog = `"log": string, // Log your thoughts and what the next one action (ONLY ONE!) you can do according to the screenshot and the instruction. The typical log looks like "The user wants to do ... . According to the instruction and the previous logs, i think the next action should be ....". If no action should be done, log the reason. Use the same language as the user's instruction.`;
 const llmCurrentLog = `"log": string, // Log what the next actions you can do according to the screenshot and the instruction. The typical log looks like "Now i want to use action '{ action-type }' to do ..". If no action should be done, log the reason. ". Use the same language as the user's instruction.`;
 
 const commonOutputFields = `"error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not foreseeable according to the instruction. Use the same language as the user's instruction.
@@ -185,7 +184,7 @@ const systemTemplateOfVLPlanning = ({
   const actionList = actionDescriptionList.join('\n');
 
   return `
-Target: User will give you a screenshot, an instruction and some previous logs indicating what have been done. Please tell what the next one action is (or null if no action should be done) to do the tasks the instruction requires. 
+Target: User will give you a latest screenshot, an instruction and some previous logs indicating what have been done. Please tell what the next one action is (or null if no action should be done) to do the tasks the instruction requires. 
 
 Restriction:
 - Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
@@ -201,7 +200,6 @@ Field description:
 
 Return in JSON format:
 {
-  ${vlCoTLog}
   ${vlCurrentLog}
   ${commonOutputFields}
   "action": 
@@ -212,14 +210,12 @@ Return in JSON format:
   "sleep"?: number, // The sleep time after the action, in milliseconds.
 }
 
-For example, when the instruction is "click 'Confirm' button, and click 'Yes' in popup" and the log is "I will use action Tap to click 'Confirm' button", by viewing the screenshot and previous logs, you should consider: We have already clicked the 'Confirm' button, so next we should find and click 'Yes' in popup.
+For example, when the instruction is "click 'Confirm' button, and click 'Yes' in popup" and the previous log shows "The 'Confirm' button has been clicked", by viewing the screenshot and previous logs, you should consider: We have already clicked the 'Confirm' button, so next we should find and click 'Yes' in popup.
 
 this and output the JSON:
 
 {
-  "what_the_user_wants_to_do_next_by_instruction": "We have already clicked the 'Confirm' button, so next we should find and click 'Yes' in popup",
-  "log": "I will use action Tap to click 'Yes' in popup",
-  "more_actions_needed_by_instruction": false,
+  "log": "The user wants to do click 'Confirm' button, and click 'Yes' in popup. According to the instruction and the previous logs, i think the next action should be click 'Yes' in popup.",
   "action": {
     "type": "Tap",
     "param": {
@@ -228,7 +224,8 @@ this and output the JSON:
         "prompt": "The 'Yes' button in popup"
       }
     }
-  }
+  },
+  "more_actions_needed_by_instruction": false,
 }
 `;
 };
@@ -450,60 +447,4 @@ export const planSchema: ResponseFormatJSONSchema = {
       additionalProperties: false,
     },
   },
-};
-
-export const generateTaskBackgroundContext = (
-  userInstruction: string,
-  log?: string,
-  userActionContext?: string,
-) => {
-  if (log) {
-    return `
-Here is the user's instruction:
-
-<high_priority_knowledge>
-  ${userActionContext || ''}
-</high_priority_knowledge>
-<instruction>
-  ${userInstruction}
-</instruction>
-
-These are the logs from previous executions, which indicate what was done in the previous actions.
-Do NOT repeat these actions.
-<previous_logs>
-${log}
-</previous_logs>
-`;
-  }
-
-  return `
-Here is the user's instruction:
-<instruction>
-  <high_priority_knowledge>
-    ${userActionContext}
-  </high_priority_knowledge>
-
-  ${userInstruction}
-</instruction>
-`;
-};
-
-export const automationUserPrompt = (vlMode: TVlModeTypes | undefined) => {
-  if (vlMode) {
-    return new PromptTemplate({
-      template: '{taskBackgroundContext}',
-      inputVariables: ['taskBackgroundContext'],
-    });
-  }
-
-  return new PromptTemplate({
-    template: `
-pageDescription:
-=====================================
-{pageDescription}
-=====================================
-
-{taskBackgroundContext}`,
-    inputVariables: ['pageDescription', 'taskBackgroundContext'],
-  });
 };
