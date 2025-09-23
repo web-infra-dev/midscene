@@ -709,6 +709,7 @@ export class TaskExecutor {
             conversationHistory: this.conversationHistory,
           },
         );
+        debug('planResult', JSON.stringify(planResult, null, 2));
 
         const {
           actions,

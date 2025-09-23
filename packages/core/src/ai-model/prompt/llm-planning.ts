@@ -461,11 +461,10 @@ export const generateTaskBackgroundContext = (
     return `
 Here is the user's instruction:
 
+<high_priority_knowledge>
+  ${userActionContext || ''}
+</high_priority_knowledge>
 <instruction>
-  <high_priority_knowledge>
-    ${userActionContext}
-  </high_priority_knowledge>
-
   ${userInstruction}
 </instruction>
 

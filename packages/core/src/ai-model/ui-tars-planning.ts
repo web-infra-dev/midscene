@@ -102,7 +102,8 @@ export async function vlmPlanning(
   const transformActions: PlanningAction[] = [];
   let shouldContinue = true;
   parsed.forEach((action) => {
-    if (action.action_type === 'click') {
+    const actionType = (action.action_type || '').toLowerCase();
+    if (actionType === 'click') {
       assert(action.action_inputs.start_box, 'start_box is required');
       const point = getPoint(action.action_inputs.start_box, size);
       transformActions.push({
@@ -118,7 +119,7 @@ export async function vlmPlanning(
           },
         },
       });
-    } else if (action.action_type === 'drag') {
+    } else if (actionType === 'drag') {
       assert(action.action_inputs.start_box, 'start_box is required');
       assert(action.action_inputs.end_box, 'end_box is required');
       const startPoint = getPoint(action.action_inputs.start_box, size);
@@ -145,7 +146,7 @@ export async function vlmPlanning(
         },
         thought: action.thought || '',
       });
-    } else if (action.action_type === 'type') {
+    } else if (actionType === 'type') {
       transformActions.push({
         type: 'Input',
         param: {
@@ -153,7 +154,7 @@ export async function vlmPlanning(
         },
         thought: action.thought || '',
       });
-    } else if (action.action_type === 'scroll') {
+    } else if (actionType === 'scroll') {
       transformActions.push({
         type: 'Scroll',
         param: {
@@ -161,13 +162,14 @@ export async function vlmPlanning(
         },
         thought: action.thought || '',
       });
-    } else if (action.action_type === 'finished') {
+    } else if (actionType === 'finished') {
+      shouldContinue = false;
       transformActions.push({
         type: 'Finished',
         param: {},
         thought: action.thought || '',
       });
-    } else if (action.action_type === 'hotkey') {
+    } else if (actionType === 'hotkey') {
       if (!action.action_inputs.key) {
         console.warn(
           'No key found in action: hotkey. Will not perform action.',
@@ -183,7 +185,7 @@ export async function vlmPlanning(
           thought: action.thought || '',
         });
       }
-    } else if (action.action_type === 'wait') {
+    } else if (actionType === 'wait') {
       transformActions.push({
         type: 'Sleep',
         param: {
@@ -191,8 +193,6 @@ export async function vlmPlanning(
         },
         thought: action.thought || '',
       });
-    } else if (action.action_type === 'finished') {
-      shouldContinue = false;
     }
   });
 
