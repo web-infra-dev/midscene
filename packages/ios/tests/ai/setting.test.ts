@@ -37,9 +37,21 @@ describe(
       });
 
       await agent.launch('com.apple.Preferences');
-      await agent.aiAction('在搜索框输入 develop');
-      await agent.aiAction('点击 Developer');
-      await agent.aiAction('滚动到最底部');
+      await agent.aiAction('点击设置隐私遇安全性');
+      // await agent.aiAction('pull down to refresh');
+      // await agent.aiAction('long press chat list first chat');
+      // await agent.aiAction('click recent apps button');
+      // await agent.aiAction('click android home button');
+      await agent.aiAction('scroll list to bottom');
+      // await agent.aiAction('open "More settings"');
+      // await agent.aiAction('scroll left until left edge');
+      // await agent.aiAction('scroll right until right edge');
+      await agent.aiAction('scroll list to top');
+      // await agent.aiAction('scroll list to bottom');
+      await agent.aiAction('scroll down one screen');
+      await agent.aiAction('scroll up one screen');
+      // await agent.aiAction('scroll right one screen');
+      // await agent.aiAction('scroll left one screen');
     });
   },
   360 * 1000,

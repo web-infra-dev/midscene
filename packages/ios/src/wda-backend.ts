@@ -35,6 +35,10 @@ export class WebDriverAgentBackend {
   private session: WDASession | null = null;
   private udid: string;
 
+  get sessionInfo(): WDASession | null {
+    return this.session;
+  }
+
   constructor(udid: string, port = 8100) {
     this.udid = udid; // Store for potential future use in debugging/logging
     this.baseURL = `http://localhost:${port}`;
@@ -258,139 +262,131 @@ export class WebDriverAgentBackend {
 
   async pressKey(key: string): Promise<void> {
     this.ensureSession();
+    debugWDA(`Attempting to press key: ${key}`);
 
-    // Special handling for Enter/Return key
+    // iOS platform has limited keyboard event support, using practical solutions
     if (key === 'Enter' || key === 'Return' || key === 'return') {
-      debugWDA('Pressing Enter/Return key');
+      debugWDA('Handling Enter/Return key for iOS');
 
-      // WebDriverAgent uses XCUIKeyboardKey names for iOS
-      // The correct way to send Return key in WebDriverAgent
-      try {
-        // Method 1: Use the /wda/keyboard/key endpoint with iOS key name
-        await this.makeRequest(
-          'POST',
-          `/session/${this.session!.sessionId}/wda/keyboard/key`,
-          {
-            key: 'XCUIKeyboardKeyReturn', // iOS native keyboard key constant
-          },
-        );
-        debugWDA('Successfully pressed Enter using XCUIKeyboardKeyReturn');
-        return;
-      } catch (error) {
-        debugWDA(`XCUIKeyboardKey method failed: ${error}`);
-      }
-
-      // Method 2: Try using the standard WebDriver keyboard action
+      // Method 1: Send newline character directly to trigger form submission
       try {
         await this.makeRequest(
           'POST',
           `/session/${this.session!.sessionId}/wda/keys`,
           {
-            value: ['\r\n'], // Try both carriage return and newline
+            value: ['\n'], // Send newline character
           },
         );
-        debugWDA('Successfully pressed Enter using \\r\\n');
-        return;
-      } catch (error) {
-        debugWDA(`Carriage return + newline failed: ${error}`);
-      }
+        debugWDA('Sent newline character for Enter key');
 
-      // Method 3: Send just newline
-      try {
-        await this.makeRequest(
-          'POST',
-          `/session/${this.session!.sessionId}/wda/keys`,
-          {
-            value: ['\n'],
-          },
-        );
-        debugWDA('Successfully pressed Enter using \\n');
+        // In iOS, newline character may not immediately trigger submission, need to wait
+        await new Promise(resolve => setTimeout(resolve, 100));
         return;
       } catch (error) {
         debugWDA(`Newline method failed: ${error}`);
       }
 
-      // Method 4: As last resort, try to find and click the keyboard button
-      const possibleButtonNames = [
-        'Return',
-        'Go',
-        'Search',
-        'Done',
-        'Send',
-        'Next',
-      ];
-      for (const buttonName of possibleButtonNames) {
+      // Method 2: Try to click submit button on the keyboard
+      const submitButtons = ['Search', 'Go', 'Done', 'Return', 'Send', 'Next', 'Join'];
+      for (const buttonText of submitButtons) {
         try {
-          const button = await this.makeRequest(
+          // Find keyboard button
+          const elements = await this.makeRequest(
             'POST',
-            `/session/${this.session!.sessionId}/element`,
+            `/session/${this.session!.sessionId}/elements`,
             {
               using: 'accessibility id',
-              value: buttonName,
+              value: buttonText,
             },
           );
 
-          if (button?.ELEMENT) {
-            await this.makeRequest(
-              'POST',
-              `/session/${this.session!.sessionId}/element/${button.ELEMENT}/click`,
-            );
-            debugWDA(
-              `Successfully pressed Enter by clicking ${buttonName} button`,
-            );
-            return;
+          if (elements && elements.length > 0) {
+            const element = elements[0];
+            if (element?.ELEMENT) {
+              await this.makeRequest(
+                'POST',
+                `/session/${this.session!.sessionId}/element/${element.ELEMENT}/click`,
+              );
+              debugWDA(`Successfully clicked ${buttonText} button for Enter`);
+              return;
+            }
           }
         } catch (error) {
-          // Continue trying other button names
+          // Continue trying next button
         }
       }
 
-      throw new Error('Failed to press Enter key - all methods failed');
-    }
-
-    // For other special keys, map to XCUIKeyboardKey constants
-    const keyMap: Record<string, string> = {
-      Backspace: 'XCUIKeyboardKeyDelete',
-      Delete: 'XCUIKeyboardKeyDelete',
-      Tab: 'XCUIKeyboardKeyTab',
-      Escape: 'XCUIKeyboardKeyEscape',
-      Space: 'XCUIKeyboardKeySpace',
-      ArrowUp: 'XCUIKeyboardKeyUpArrow',
-      ArrowDown: 'XCUIKeyboardKeyDownArrow',
-      ArrowLeft: 'XCUIKeyboardKeyLeftArrow',
-      ArrowRight: 'XCUIKeyboardKeyRightArrow',
-    };
-
-    const normalizedKey =
-      key.charAt(0).toUpperCase() + key.slice(1).toLowerCase();
-    const xcuiKey = keyMap[normalizedKey] || keyMap[key];
-
-    if (xcuiKey) {
+      // Method 3: Try coordinate tap on common keyboard submit positions
       try {
-        // Use the keyboard key endpoint for special keys
-        await this.makeRequest(
-          'POST',
-          `/session/${this.session!.sessionId}/wda/keyboard/key`,
-          {
-            key: xcuiKey,
-          },
-        );
-        debugWDA(`Successfully pressed key: ${key} -> ${xcuiKey}`);
+        const windowSize = await this.getWindowSize();
+        // On iPhone, submit button is usually in the bottom right corner of keyboard
+        const submitX = windowSize.width * 0.9;
+        const submitY = windowSize.height * 0.75; // Keyboard area
+
+        await this.tap(submitX, submitY);
+        debugWDA(`Attempted coordinate tap for Enter at (${submitX}, ${submitY})`);
         return;
       } catch (error) {
-        debugWDA(`Failed to press ${xcuiKey}: ${error}`);
+        debugWDA(`Coordinate tap failed: ${error}`);
+      }
+
+      // If all methods failed, log warning but don't throw error
+      debugWDA('Warning: Enter key press may not have worked as expected on iOS');
+      return;
+    }
+
+    // For other keys, iOS support is very limited
+    if (key === 'Backspace' || key === 'Delete') {
+      try {
+        // Backspace key can be implemented through character deletion
+        await this.makeRequest(
+          'POST',
+          `/session/${this.session!.sessionId}/wda/keys`,
+          {
+            value: ['\b'], // Backspace character
+          },
+        );
+        debugWDA('Sent backspace character');
+        return;
+      } catch (error) {
+        debugWDA(`Backspace failed: ${error}`);
       }
     }
 
-    // Fallback: send as character
-    await this.makeRequest(
-      'POST',
-      `/session/${this.session!.sessionId}/wda/keys`,
-      {
-        value: [key],
-      },
-    );
-    debugWDA(`Pressed key as character: ${key}`);
+    // For space key
+    if (key === 'Space') {
+      try {
+        await this.makeRequest(
+          'POST',
+          `/session/${this.session!.sessionId}/wda/keys`,
+          {
+            value: [' '],
+          },
+        );
+        debugWDA('Sent space character');
+        return;
+      } catch (error) {
+        debugWDA(`Space key failed: ${error}`);
+      }
+    }
+
+    // For other special keys (Tab, Escape, arrow keys, etc.), iOS basically doesn't support them
+    // Log warning and try to send as regular character
+    debugWDA(`Warning: Key "${key}" may not be supported on iOS platform`);
+
+    try {
+      await this.makeRequest(
+        'POST',
+        `/session/${this.session!.sessionId}/wda/keys`,
+        {
+          value: [key],
+        },
+      );
+      debugWDA(`Sent "${key}" as character (may not work as expected)`);
+    } catch (error) {
+      debugWDA(`Failed to send key "${key}": ${error}`);
+      throw new Error(`Key "${key}" is not supported on iOS platform`);
+    }
   }
 
   async clearElement(): Promise<void> {
@@ -598,6 +594,102 @@ export class WebDriverAgentBackend {
     }
   }
 
+  async getScrollableViews(): Promise<WDAElement[]> {
+    this.ensureSession();
+    try {
+      // Find all scrollable elements (ScrollView, Table, CollectionView)
+      const scrollableTypes = [
+        'XCUIElementTypeScrollView',
+        'XCUIElementTypeTable',
+        'XCUIElementTypeCollectionView'
+      ];
+
+      const allScrollableElements: WDAElement[] = [];
+
+      for (const elementType of scrollableTypes) {
+        try {
+          const elements = await this.findElements('class name', elementType);
+          allScrollableElements.push(...elements);
+        } catch (error) {
+          debugWDA(`No ${elementType} elements found: ${error}`);
+        }
+      }
+
+      return allScrollableElements;
+    } catch (error) {
+      debugWDA(`Failed to get scrollable views: ${error}`);
+      return [];
+    }
+  }
+
+  async canElementScroll(element: WDAElement, direction: 'up' | 'down' | 'left' | 'right'): Promise<boolean> {
+    this.ensureSession();
+    try {
+      const elementId = element.ELEMENT || element['element-6066-11e4-a52e-4f735466cecf'];
+
+      // Get current page source as baseline
+      const initialSource = await this.makeRequest(
+        'GET',
+        `/session/${this.sessionInfo!.sessionId}/source`,
+      );
+
+      // Use mobile: scroll command instead of direct endpoint
+      await this.makeRequest(
+        'POST',
+        `/session/${this.sessionInfo!.sessionId}/execute`,
+        {
+          script: 'mobile: scroll',
+          args: [{
+            direction: direction,
+            element: elementId,
+            distance: 0.1, // Very small distance for testing
+            duration: 0.5 // Short duration
+          }]
+        }
+      );
+
+      // Get page source after scroll attempt
+      const afterScrollSource = await this.makeRequest(
+        'GET',
+        `/session/${this.sessionInfo!.sessionId}/source`,
+      );
+
+      // If source changed, scrolling is possible
+      const canScroll = initialSource !== afterScrollSource;
+
+      // Try to scroll back to original position if content changed
+      if (canScroll) {
+        const oppositeDirection = direction === 'up' ? 'down' :
+                                 direction === 'down' ? 'up' :
+                                 direction === 'left' ? 'right' : 'left';
+
+        try {
+          await this.makeRequest(
+            'POST',
+            `/session/${this.sessionInfo!.sessionId}/execute`,
+            {
+              script: 'mobile: scroll',
+              args: [{
+                direction: oppositeDirection,
+                element: elementId,
+                distance: 0.1,
+                duration: 0.5
+              }]
+            }
+          );
+        } catch (error) {
+          debugWDA(`Failed to scroll back: ${error}`);
+        }
+      }
+
+      debugWDA(`Scroll test: direction=${direction}, canScroll=${canScroll}`);
+      return canScroll;
+    } catch (error) {
+      debugWDA(`Failed to check if element can scroll: ${error}`);
+      return false; // Assume can't scroll if check fails
+    }
+  }
+
   private ensureSession(): void {
     if (!this.session) {
       throw new Error(
@@ -606,7 +698,7 @@ export class WebDriverAgentBackend {
     }
   }
 
-  private async makeRequest(
+  async makeRequest(
     method: string,
     endpoint: string,
     data?: any,

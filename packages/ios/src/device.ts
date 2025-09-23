@@ -472,31 +472,210 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
   }
 
   async scrollUntilTop(startPoint?: Point): Promise<void> {
-    for (let i = 0; i < 10; i++) {
-      await this.scrollUp(undefined, startPoint);
-      await sleep(500);
-    }
+    debugDevice(
+      'Using screenshot-based scroll detection for better reliability',
+    );
+    await this.scrollUntilBoundary('up', startPoint, 1);
   }
 
   async scrollUntilBottom(startPoint?: Point): Promise<void> {
-    for (let i = 0; i < 10; i++) {
-      await this.scrollDown(undefined, startPoint);
-      await sleep(500);
+    debugDevice(
+      'Using screenshot-based scroll detection for better reliability',
+    );
+    await this.scrollUntilBoundary('down', startPoint, 1);
+  }
+
+  // Smart screenshot comparison method that tolerates minor dynamic changes
+  private compareScreenshots(
+    screenshot1: string,
+    screenshot2: string,
+    tolerancePercent: number = 2, // Allow 2% difference
+  ): boolean {
+    // Identical screenshots are the ideal case
+    if (screenshot1 === screenshot2) {
+      debugDevice('Screenshots are identical');
+      return true;
     }
+
+    const len1 = screenshot1.length;
+    const len2 = screenshot2.length;
+    debugDevice(`Screenshots differ: length1=${len1}, length2=${len2}`);
+
+    // If length difference is too large, content is genuinely different
+    if (Math.abs(len1 - len2) > Math.min(len1, len2) * 0.1) {
+      debugDevice('Screenshots have significant length difference');
+      return false;
+    }
+
+    // For screenshots with similar length, calculate character difference percentage
+    if (len1 > 0 && len2 > 0) {
+      const minLength = Math.min(len1, len2);
+      const sampleSize = Math.min(2000, minLength); // Check first 2000 characters
+      let diffCount = 0;
+
+      for (let i = 0; i < sampleSize; i++) {
+        if (screenshot1[i] !== screenshot2[i]) {
+          diffCount++;
+        }
+      }
+
+      const diffPercent = (diffCount / sampleSize) * 100;
+      debugDevice(`Character differences: ${diffCount}/${sampleSize} (${diffPercent.toFixed(2)}%)`);
+
+      // If difference is within tolerance, consider screenshots similar (no substantial content change)
+      const isSimilar = diffPercent <= tolerancePercent;
+      if (isSimilar) {
+        debugDevice(`Screenshots are similar enough (${diffPercent.toFixed(2)}% <= ${tolerancePercent}%)`);
+      }
+      return isSimilar;
+    }
+
+    return false;
+  }
+
+  // Generic scroll-to-boundary detection method
+  private async scrollUntilBoundary(
+    direction: 'up' | 'down' | 'left' | 'right',
+    startPoint?: Point,
+    maxUnchangedCount = 1,
+  ): Promise<void> {
+    const maxAttempts = 20;
+    const { width, height } = await this.size();
+
+    // Determine starting position based on scroll direction
+    let start: { x: number; y: number };
+    if (startPoint) {
+      start = { x: startPoint.left, y: startPoint.top };
+    } else {
+      switch (direction) {
+        case 'up':
+          start = { x: width / 2, y: height * 0.2 };
+          break;
+        case 'down':
+          start = { x: width / 2, y: height * 0.8 };
+          break;
+        case 'left':
+          start = { x: width * 0.8, y: height / 2 };
+          break;
+        case 'right':
+          start = { x: width * 0.2, y: height / 2 };
+          break;
+      }
+    }
+
+    let lastScreenshot: string | null = null;
+    let unchangedCount = 0;
+
+    debugDevice(`Starting scroll to ${direction} with content detection`);
+
+    for (let i = 0; i < maxAttempts; i++) {
+      try {
+        debugDevice(`Scroll attempt ${i + 1}/${maxAttempts}`);
+
+        // Wait for any previous scroll to stabilize
+        await sleep(500);
+
+        // Take a single stable screenshot
+        const currentScreenshot = await this.screenshotBase64();
+
+        if (
+          lastScreenshot &&
+          this.compareScreenshots(lastScreenshot, currentScreenshot, 10) // Tolerate 10% difference for dynamic content
+        ) {
+          unchangedCount++;
+          debugDevice(
+            `Screen content unchanged (${unchangedCount}/${maxUnchangedCount})`,
+          );
+
+          if (unchangedCount >= maxUnchangedCount) {
+            debugDevice(
+              `Reached ${direction}: screen content no longer changes`,
+            );
+            break;
+          }
+        } else {
+          // Content changed, reset counter
+          if (lastScreenshot) {
+            debugDevice(`Content changed, resetting counter (was ${unchangedCount})`);
+          }
+          unchangedCount = 0;
+        }
+
+        // Safety measure to prevent infinite scrolling: if consecutive attempts have large differences, may be too much dynamic content
+        if (i >= 15 && unchangedCount === 0) {
+          debugDevice(`Too many attempts with dynamic content, stopping scroll to ${direction}`);
+          break;
+        }
+
+        lastScreenshot = currentScreenshot;
+
+        // Execute scroll action
+        const scrollDistance =
+          direction === 'left' || direction === 'right'
+            ? width * 0.6
+            : height * 0.6;
+
+        debugDevice(`Performing scroll: ${direction}, distance: ${scrollDistance}`);
+
+        switch (direction) {
+          case 'up':
+            await this.swipe(
+              start.x,
+              start.y,
+              start.x,
+              start.y + scrollDistance,
+              300,
+            );
+            break;
+          case 'down':
+            await this.swipe(
+              start.x,
+              start.y,
+              start.x,
+              start.y - scrollDistance,
+              300,
+            );
+            break;
+          case 'left':
+            await this.swipe(
+              start.x,
+              start.y,
+              start.x + scrollDistance,
+              start.y,
+              300,
+            );
+            break;
+          case 'right':
+            await this.swipe(
+              start.x,
+              start.y,
+              start.x - scrollDistance,
+              start.y,
+              300,
+            );
+            break;
+        }
+
+        // Critical: wait for scroll action completion + inertia scrolling to stop
+        debugDevice('Waiting for scroll and inertia to complete...');
+        await sleep(2000); // 300ms scroll + inertia time + page stabilization time
+      } catch (error) {
+        debugDevice(`Error during scroll attempt ${i + 1}: ${error}`);
+        await sleep(300);
+      }
+    }
+
+    debugDevice(
+      `Scroll to ${direction} completed after ${maxAttempts} attempts`,
+    );
   }
 
   async scrollUntilLeft(startPoint?: Point): Promise<void> {
-    for (let i = 0; i < 10; i++) {
-      await this.scrollLeft(undefined, startPoint);
-      await sleep(500);
-    }
+    await this.scrollUntilBoundary('left', startPoint, 1); // 1 detection is enough for horizontal scrolling
   }
 
   async scrollUntilRight(startPoint?: Point): Promise<void> {
-    for (let i = 0; i < 10; i++) {
-      await this.scrollRight(undefined, startPoint);
-      await sleep(500);
-    }
+    await this.scrollUntilBoundary('right', startPoint, 3);
   }
 
   // iOS specific methods
