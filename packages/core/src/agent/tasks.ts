@@ -2,7 +2,7 @@ import {
   ConversationHistory,
   elementByPositionWithElementInfo,
   findAllMidsceneLocatorField,
-  vlmPlanning,
+  uiTarsPlanning,
 } from '@/ai-model';
 import type { AbstractInterface } from '@/device';
 import {
@@ -697,7 +697,7 @@ export class TaskExecutor {
           );
         }
 
-        const planResult = await (uiTarsModelVersion ? vlmPlanning : plan)(
+        const planResult = await (uiTarsModelVersion ? uiTarsPlanning : plan)(
           param.userInstruction,
           {
             context: uiContext,

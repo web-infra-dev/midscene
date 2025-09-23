@@ -38,7 +38,7 @@ const pointToBbox = (
   ];
 };
 
-export async function vlmPlanning(
+export async function uiTarsPlanning(
   userInstruction: string,
   options: {
     conversationHistory: ConversationHistory;

@@ -680,11 +680,10 @@ exports[`system prompts > planning - background context 1`] = `
 "
 Here is the user's instruction:
 
+<high_priority_knowledge>
+  THIS IS BACKGROUND PROMPT
+</high_priority_knowledge>
 <instruction>
-  <high_priority_knowledge>
-    THIS IS BACKGROUND PROMPT
-  </high_priority_knowledge>
-
   THIS IS USER INSTRUCTION
 </instruction>
 

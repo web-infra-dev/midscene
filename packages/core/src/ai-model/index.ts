@@ -27,7 +27,7 @@ export {
 
 export { plan } from './llm-planning';
 export { adaptBboxToRect } from './common';
-export { vlmPlanning, resizeImageForUiTars } from './ui-tars-planning';
+export { uiTarsPlanning, resizeImageForUiTars } from './ui-tars-planning';
 export {
   ConversationHistory,
   type ConversationHistoryOptions,

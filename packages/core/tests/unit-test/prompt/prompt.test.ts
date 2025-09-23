@@ -114,7 +114,7 @@ describe('system prompts', () => {
   it('planning - 4o', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      vlMode: false,
+      vlMode: undefined,
     });
     expect(prompt).toMatchSnapshot();
   });
@@ -158,7 +158,7 @@ describe('system prompts', () => {
   });
 
   it('planning - user prompt - 4o', async () => {
-    const prompt = automationUserPrompt(false);
+    const prompt = automationUserPrompt(undefined);
     const result = await prompt.format({
       pageDescription: 'THIS IS PAGE DESCRIPTION',
       taskBackgroundContext: 'THIS IS BACKGROUND CONTEXT',
@@ -187,7 +187,7 @@ describe('system prompts', () => {
   });
 
   it('locator - 4o', () => {
-    const prompt = systemPromptToLocateElement(false);
+    const prompt = systemPromptToLocateElement(undefined);
     expect(prompt).toMatchSnapshot();
   });
 
