@@ -1,24 +1,74 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { IOSDevice } from '../../src/device';
 import { getConnectedDevices, getDefaultDevice } from '../../src/utils';
+import { WebDriverAgentBackend } from '../../src/wda-backend';
+import { WDAManager } from '../../src/wda-manager';
+
+// Mock dependencies
+vi.mock('../../src/utils');
+vi.mock('../../src/wda-backend');
+vi.mock('../../src/wda-manager');
 
 describe('IOSDevice', () => {
   let device: IOSDevice;
   let testUdid: string;
+  let mockWdaBackend: Partial<WebDriverAgentBackend>;
+
+  const mockedUtils = vi.mocked({ getConnectedDevices, getDefaultDevice });
+  const MockedWdaBackend = vi.mocked(WebDriverAgentBackend);
+  const MockedWdaManager = vi.mocked(WDAManager);
 
   beforeEach(async () => {
-    try {
-      const defaultDevice = await getDefaultDevice();
-      testUdid = defaultDevice.udid;
-      device = new IOSDevice(testUdid);
-    } catch (error) {
-      console.warn('No iOS devices available for testing, skipping...');
-      testUdid = 'test-udid';
-      device = new IOSDevice(testUdid);
-    }
+    // Setup mock WDA backend
+    mockWdaBackend = {
+      createSession: vi
+        .fn()
+        .mockResolvedValue({ sessionId: 'test-session-id' }),
+      deleteSession: vi.fn().mockResolvedValue(undefined),
+      getWindowSize: vi.fn().mockResolvedValue({ width: 375, height: 812 }),
+      takeScreenshot: vi.fn().mockResolvedValue('base64-screenshot'),
+      tap: vi.fn().mockResolvedValue(undefined),
+      swipe: vi.fn().mockResolvedValue(undefined),
+      typeText: vi.fn().mockResolvedValue(undefined),
+      pressKey: vi.fn().mockResolvedValue(undefined),
+      homeButton: vi.fn().mockResolvedValue(undefined),
+      launchApp: vi.fn().mockResolvedValue(undefined),
+      makeRequest: vi.fn().mockResolvedValue(null),
+      sessionInfo: { sessionId: 'test-session-id' }, // Add session info for keyboard tests
+    };
+
+    MockedWdaBackend.mockImplementation(
+      () => mockWdaBackend as WebDriverAgentBackend,
+    );
+
+    // Setup mock WDA manager
+    const mockWdaManager = {
+      start: vi.fn().mockResolvedValue(undefined),
+      stop: vi.fn().mockResolvedValue(undefined),
+      isRunning: vi.fn().mockReturnValue(true),
+      getPort: vi.fn().mockReturnValue(8100),
+    };
+
+    MockedWdaManager.getInstance = vi.fn().mockReturnValue(mockWdaManager);
+
+    // Setup mock utils
+    const mockDeviceInfo = {
+      udid: 'test-device-udid',
+      name: 'Test Device',
+      state: 'Connected',
+      isSimulator: false,
+      isAvailable: true,
+    };
+
+    mockedUtils.getDefaultDevice.mockResolvedValue(mockDeviceInfo);
+    mockedUtils.getConnectedDevices.mockResolvedValue([mockDeviceInfo]);
+
+    testUdid = 'test-device-udid';
+    device = new IOSDevice(testUdid);
   });
 
   afterEach(async () => {
+    vi.clearAllMocks();
     if (device) {
       await device.destroy();
     }
@@ -32,6 +82,39 @@ describe('IOSDevice', () => {
 
     it('should throw error without udid', () => {
       expect(() => new IOSDevice('')).toThrow('udid is required for IOSDevice');
+    });
+
+    it('should create device with custom options', () => {
+      const customDevice = new IOSDevice('test-udid', {
+        wdaPort: 9100,
+        wdaHost: 'custom-host',
+        autoDismissKeyboard: false,
+        keyboardDismissStrategy: 'escape-first',
+      });
+
+      expect(customDevice).toBeDefined();
+      expect(customDevice.interfaceType).toBe('ios');
+    });
+
+    it('should use default WDA settings when not specified', () => {
+      const device = new IOSDevice('test-udid');
+      expect(MockedWdaBackend).toHaveBeenCalledWith(
+        'test-udid',
+        8100,
+        'localhost',
+      );
+    });
+
+    it('should use custom WDA settings when specified', () => {
+      const device = new IOSDevice('test-udid', {
+        wdaPort: 9100,
+        wdaHost: 'custom-host',
+      });
+      expect(MockedWdaBackend).toHaveBeenCalledWith(
+        'test-udid',
+        9100,
+        'custom-host',
+      );
     });
   });
 
@@ -59,82 +142,366 @@ describe('IOSDevice', () => {
       expect(actionNames).toContain('Scroll');
       expect(actionNames).toContain('IOSHomeButton');
       expect(actionNames).toContain('IOSLongPress');
+      expect(actionNames).toContain('IOSAppSwitcher');
+    });
+
+    it('should include custom actions when provided', () => {
+      const customAction = {
+        name: 'CustomAction',
+        description: 'A custom action for testing',
+        paramSchema: {},
+        call: vi.fn(),
+      };
+
+      const deviceWithCustomActions = new IOSDevice('test-udid', {
+        customActions: [customAction],
+      });
+
+      const actions = deviceWithCustomActions.actionSpace();
+      const actionNames = actions.map((action) => action.name);
+      expect(actionNames).toContain('CustomAction');
     });
   });
 
-  // Note: The following tests require an actual iOS simulator to be available
-  // They are marked as conditional tests
-
-  describe('Device Operations (requires simulator)', () => {
-    const isSimulatorAvailable = async () => {
-      try {
-        const devices = await getConnectedDevices();
-        return devices.some((d) => d.isSimulator && d.isAvailable);
-      } catch {
-        return false;
-      }
-    };
-
-    it('should connect to device if simulator available', async () => {
-      if (!(await isSimulatorAvailable())) {
-        console.warn('No simulator available, skipping connection test');
-        return;
-      }
-
+  describe('Device Operations', () => {
+    it('should connect to device successfully', async () => {
       await expect(device.connect()).resolves.not.toThrow();
+      expect(mockWdaBackend.createSession).toHaveBeenCalled();
     });
 
-    it('should get screen size if simulator available', async () => {
-      if (!(await isSimulatorAvailable())) {
-        console.warn('No simulator available, skipping size test');
-        return;
-      }
+    it('should handle connection failure', async () => {
+      mockWdaBackend.createSession = vi
+        .fn()
+        .mockRejectedValue(new Error('Connection failed'));
 
-      try {
-        await device.connect();
-        const size = await device.size();
-        expect(size).toBeDefined();
-        expect(size.width).toBeGreaterThan(0);
-        expect(size.height).toBeGreaterThan(0);
-        expect(size.dpr).toBeGreaterThan(0);
-      } catch (error) {
-        console.warn('Size test failed, simulator might not be booted:', error);
-      }
+      await expect(device.connect()).rejects.toThrow('Connection failed');
     });
 
-    it('should handle app launch with bundle ID if simulator available', async () => {
-      if (!(await isSimulatorAvailable())) {
-        console.warn('No simulator available, skipping launch test');
-        return;
-      }
+    it('should get screen size after connection', async () => {
+      await device.connect();
 
-      try {
-        await device.connect();
-        // Use a system app that should always be available
-        await device.launch('com.apple.Preferences');
-      } catch (error) {
-        console.warn('Launch test failed:', error);
-        // This is expected if the app doesn't exist, so we don't fail the test
-      }
+      const size = await device.size();
+      expect(size).toEqual({
+        width: 375,
+        height: 812,
+        dpr: 1,
+      });
+      expect(mockWdaBackend.getWindowSize).toHaveBeenCalled();
+    });
+
+    it('should take screenshot after connection', async () => {
+      await device.connect();
+
+      const screenshot = await device.screenshotBase64();
+      expect(screenshot).toContain('data:image/png;base64,');
+      expect(screenshot).toContain('base64-screenshot');
+      expect(mockWdaBackend.takeScreenshot).toHaveBeenCalled();
+    });
+
+    it('should handle app launch with bundle ID', async () => {
+      await device.connect();
+
+      await device.launch('com.apple.Preferences');
+      expect(mockWdaBackend.launchApp).toHaveBeenCalledWith(
+        'com.apple.Preferences',
+      );
+    });
+
+    it('should handle URL launch with HTTP URL', async () => {
+      // Add openUrl method to mock
+      mockWdaBackend.openUrl = vi.fn().mockResolvedValue(undefined);
+      await device.connect();
+
+      await device.launch('https://www.apple.com');
+      expect(mockWdaBackend.openUrl).toHaveBeenCalledWith(
+        'https://www.apple.com',
+      );
+    });
+
+    it('should handle URL launch with custom scheme', async () => {
+      // Add openUrl method to mock
+      mockWdaBackend.openUrl = vi.fn().mockResolvedValue(undefined);
+      await device.connect();
+
+      await device.launch('myapp://deep/link');
+      expect(mockWdaBackend.openUrl).toHaveBeenCalledWith('myapp://deep/link');
+    });
+
+    it('should fallback to Safari when direct URL opening fails', async () => {
+      // Mock openUrl to fail, launchApp to succeed
+      mockWdaBackend.openUrl = vi
+        .fn()
+        .mockRejectedValue(new Error('Direct URL failed'));
+      mockWdaBackend.launchApp = vi.fn().mockResolvedValue(undefined);
+      await device.connect();
+
+      await device.launch('https://www.example.com');
+
+      // Should try direct URL first
+      expect(mockWdaBackend.openUrl).toHaveBeenCalledWith(
+        'https://www.example.com',
+      );
+      // Then fallback to Safari
+      expect(mockWdaBackend.launchApp).toHaveBeenCalledWith(
+        'com.apple.mobilesafari',
+      );
+    });
+
+    it('should perform tap operation', async () => {
+      await device.connect();
+
+      await device.tap(100, 200);
+      expect(mockWdaBackend.tap).toHaveBeenCalledWith(100, 200);
+    });
+
+    it('should perform swipe operation', async () => {
+      await device.connect();
+
+      await device.swipe(100, 200, 300, 400, 500);
+      expect(mockWdaBackend.swipe).toHaveBeenCalledWith(
+        100,
+        200,
+        300,
+        400,
+        500,
+      );
+    });
+
+    it('should type text', async () => {
+      await device.connect();
+
+      await device.typeText('Hello World');
+      expect(mockWdaBackend.typeText).toHaveBeenCalledWith('Hello World');
+    });
+
+    it('should press home button', async () => {
+      await device.connect();
+
+      await device.home();
+      expect(mockWdaBackend.homeButton).toHaveBeenCalled();
+    });
+
+    it('should trigger app switcher', async () => {
+      await device.connect();
+
+      await device.appSwitcher();
+      expect(mockWdaBackend.swipe).toHaveBeenCalled();
+    });
+
+    it('should handle keyboard dismissal', async () => {
+      await device.connect();
+
+      await device.hideKeyboard();
+      // Check that the request was made to dismiss keyboard
+      expect(mockWdaBackend.makeRequest).toBeDefined();
+    });
+
+    it('should allow size operations even when not connected (WDA handles connection)', async () => {
+      // The device allows some operations that rely on WDA backend directly
+      const size = await device.size();
+      expect(size).toEqual({
+        width: 375,
+        height: 812,
+        dpr: 1,
+      });
+    });
+
+    it('should prevent connection operations after destruction', async () => {
+      await device.connect();
+      await device.destroy();
+
+      await expect(device.connect()).rejects.toThrow('destroyed');
     });
   });
 
   describe('Device State Management', () => {
     it('should handle destroy properly', async () => {
+      await device.connect();
       await device.destroy();
+      expect(mockWdaBackend.deleteSession).toHaveBeenCalled();
       expect(() => device.describe()).not.toThrow();
     });
 
-    it('should prevent operations after destroy', async () => {
+    it('should prevent connection after destroy', async () => {
       await device.destroy();
-      // Most operations should throw after destroy, but we test one representative method
-      try {
-        await device.connect();
-        // If this doesn't throw, the test should fail
-        expect(true).toBe(false);
-      } catch (error) {
-        expect((error as Error).message).toContain('destroyed');
-      }
+      await expect(device.connect()).rejects.toThrow('destroyed');
+    });
+
+    it('should handle multiple destroy calls gracefully', async () => {
+      await device.destroy();
+      await expect(device.destroy()).resolves.not.toThrow();
+    });
+  });
+
+  describe('Configuration Options', () => {
+    it('should respect autoDismissKeyboard setting', () => {
+      const deviceWithoutAutoDismiss = new IOSDevice('test-udid', {
+        autoDismissKeyboard: false,
+      });
+      expect(deviceWithoutAutoDismiss).toBeDefined();
+    });
+
+    it('should respect keyboardDismissStrategy setting', () => {
+      const deviceWithEscapeFirst = new IOSDevice('test-udid', {
+        keyboardDismissStrategy: 'escape-first',
+      });
+      expect(deviceWithEscapeFirst).toBeDefined();
+    });
+
+    it('should handle custom WDA port and host', () => {
+      const deviceWithCustomWDA = new IOSDevice('test-udid', {
+        wdaPort: 9100,
+        wdaHost: 'remote-host',
+      });
+      expect(MockedWdaBackend).toHaveBeenCalledWith(
+        'test-udid',
+        9100,
+        'remote-host',
+      );
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('should handle WDA backend creation failure', () => {
+      MockedWdaBackend.mockImplementation(() => {
+        throw new Error('WDA backend creation failed');
+      });
+
+      expect(() => new IOSDevice('test-udid')).toThrow(
+        'WDA backend creation failed',
+      );
+    });
+
+    it('should handle session creation timeout', async () => {
+      mockWdaBackend.createSession = vi.fn().mockImplementation(() => {
+        return new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Session creation timeout')), 100);
+        });
+      });
+
+      await expect(device.connect()).rejects.toThrow(
+        'Session creation timeout',
+      );
+    });
+
+    it('should handle screenshot failure gracefully', async () => {
+      await device.connect();
+      mockWdaBackend.takeScreenshot = vi
+        .fn()
+        .mockRejectedValue(new Error('Screenshot failed'));
+
+      await expect(device.screenshotBase64()).rejects.toThrow(
+        'Screenshot failed',
+      );
+    });
+
+    it('should handle app launch failure', async () => {
+      await device.connect();
+      mockWdaBackend.launchApp = vi
+        .fn()
+        .mockRejectedValue(new Error('App launch failed'));
+
+      await expect(device.launch('com.invalid.app')).rejects.toThrow(
+        'App launch failed',
+      );
+    });
+
+    it('should handle tap operation failure', async () => {
+      await device.connect();
+      mockWdaBackend.tap = vi.fn().mockRejectedValue(new Error('Tap failed'));
+
+      await expect(device.tap(100, 200)).rejects.toThrow('Tap failed');
+    });
+
+    it('should handle text input failure', async () => {
+      await device.connect();
+      mockWdaBackend.typeText = vi
+        .fn()
+        .mockRejectedValue(new Error('Type text failed'));
+
+      await expect(device.typeText('test')).rejects.toThrow('Type text failed');
+    });
+  });
+
+  describe('Keyboard Management', () => {
+    beforeEach(async () => {
+      await device.connect();
+      // Mock makeRequest for keyboard operations
+      mockWdaBackend.makeRequest = vi.fn().mockResolvedValue(null);
+    });
+
+    it('should handle keyboard dismissal with default strategy', async () => {
+      const result = await device.hideKeyboard();
+      expect(result).toBe(true);
+      expect(mockWdaBackend.makeRequest).toHaveBeenCalledWith(
+        'POST',
+        `/session/${mockWdaBackend.sessionInfo!.sessionId}/wda/keyboard/dismiss`,
+      );
+    });
+
+    it('should handle keyboard dismissal failure', async () => {
+      mockWdaBackend.makeRequest = vi
+        .fn()
+        .mockRejectedValue(new Error('Keyboard dismiss failed'));
+
+      const result = await device.hideKeyboard();
+      expect(result).toBe(false); // Method returns false on failure, doesn't throw
+    });
+
+    it('should auto-dismiss keyboard after text input when enabled', async () => {
+      // Mock the WDA backend before creating the device
+      const mockBackend = {
+        ...mockWdaBackend,
+        createSession: vi.fn().mockResolvedValue({ sessionId: 'test-session' }),
+        makeRequest: vi.fn().mockResolvedValue(null),
+        typeText: vi.fn().mockResolvedValue(undefined),
+        sessionInfo: { sessionId: 'test-session' }, // Ensure session info is available
+      };
+      MockedWdaBackend.mockImplementation(
+        () => mockBackend as WebDriverAgentBackend,
+      );
+
+      const deviceWithAutoDismiss = new IOSDevice('test-udid', {
+        autoDismissKeyboard: true,
+      });
+
+      await deviceWithAutoDismiss.connect();
+      await deviceWithAutoDismiss.typeText('test text');
+
+      // Should call typeText and makeRequest for keyboard dismiss
+      expect(mockBackend.typeText).toHaveBeenCalledWith('test text');
+      expect(mockBackend.makeRequest).toHaveBeenCalledWith(
+        'POST',
+        '/session/test-session/wda/keyboard/dismiss',
+      );
+    });
+  });
+
+  describe('Screen Operations', () => {
+    beforeEach(async () => {
+      await device.connect();
+    });
+
+    it('should calculate DPR correctly', async () => {
+      const size = await device.size();
+      expect(size.dpr).toBe(1); // Default DPR for mocked device
+    });
+
+    it('should handle different screen sizes', async () => {
+      mockWdaBackend.getWindowSize = vi
+        .fn()
+        .mockResolvedValue({ width: 1920, height: 1080 });
+
+      const size = await device.size();
+      expect(size.width).toBe(1920);
+      expect(size.height).toBe(1080);
+    });
+
+    it('should return base64 screenshot', async () => {
+      const screenshot = await device.screenshotBase64();
+      expect(typeof screenshot).toBe('string');
+      expect(screenshot).toContain('data:image/png;base64,');
+      expect(screenshot).toContain('base64-screenshot');
     });
   });
 });

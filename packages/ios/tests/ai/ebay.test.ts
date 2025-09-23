@@ -11,8 +11,6 @@ vi.setConfig({
   hookTimeout: 240 * 1000, // Add hook timeout for beforeAll
 });
 
-const bundleId = 'com.apple.mobilesafari'; // Using Safari to browse eBay
-
 describe('Test eBay search', () => {
   let agent: any;
 
@@ -36,13 +34,7 @@ describe('Test eBay search', () => {
         aiActionContext:
           'If any location, permission, user agreement, cookies popup, click agree or allow. If login page pops up, close it.',
       });
-      await agent.launch(bundleId);
-      await sleep(3000);
-
-      // Navigate to eBay website
-      await agent.aiAction('tap on the address bar');
-      await agent.aiAction('type "https://www.ebay.com"');
-      await agent.aiAction('press Enter or tap Go');
+      await agent.launch('https://www.ebay.com');
       await sleep(5000); // Wait for page to load
     } catch (error) {
       console.warn(`Setup failed, skipping test: ${error}`);

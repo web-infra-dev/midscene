@@ -11,8 +11,6 @@ vi.setConfig({
   hookTimeout: 240 * 1000, // Add hook timeout for beforeAll
 });
 
-const bundleId = 'com.apple.mobilesafari'; // Using Safari to browse TodoMVC
-
 describe('Test todo list', () => {
   let agent: any;
 
@@ -34,13 +32,7 @@ describe('Test todo list', () => {
       aiActionContext:
         'If any location, permission, user agreement, cookies popup, click agree or allow. If login page pops up, close it.',
     });
-    await agent.launch(bundleId);
-    await sleep(3000);
-
-    // Navigate to TodoMVC website
-    await agent.aiAction('tap on the address bar');
-    await agent.aiAction('type "https://todomvc.com/examples/react/dist/"');
-    await agent.aiAction('press Enter or tap Go');
+    await agent.launch('https://todomvc.com/examples/react/dist/');
     await sleep(5000); // Wait for page to load
   }, 240 * 1000); // Explicit timeout for beforeAll
 
