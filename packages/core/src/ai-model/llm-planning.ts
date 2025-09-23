@@ -8,6 +8,7 @@ import type { IModelConfig } from '@midscene/shared/env';
 import { paddingToMatchBlockByBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
+import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import {
   AIActionType,
   type AIArgs,
@@ -17,6 +18,7 @@ import {
   markupImageForLLM,
   warnGPT4oSizeLimit,
 } from './common';
+import type { ConversationHistory } from './conversation-history';
 import {
   automationUserPrompt,
   generateTaskBackgroundContext,
@@ -36,9 +38,10 @@ export async function plan(
     log?: string;
     actionContext?: string;
     modelConfig: IModelConfig;
+    conversationHistory?: ConversationHistory;
   },
 ): Promise<PlanningAIResponse> {
-  const { context, modelConfig } = opts;
+  const { context, modelConfig, conversationHistory } = opts;
   const { screenshotBase64, size } = context;
 
   const { modelName, vlMode } = modelConfig;
@@ -51,9 +54,13 @@ export async function plan(
     actionSpace: opts.actionSpace,
     vlMode: vlMode,
   });
+  const historyLog = getLogFromConversationHistory(
+    opts.conversationHistory?.snapshot(),
+  );
+  const logForContext = historyLog ?? opts.log;
   const taskBackgroundContextText = generateTaskBackgroundContext(
     userInstruction,
-    opts.log,
+    logForContext,
     opts.actionContext,
   );
   const userInstructionPrompt = await automationUserPrompt(vlMode).format({
@@ -165,5 +172,53 @@ export async function plan(
     );
   }
 
+  conversationHistory?.append({
+    role: 'assistant',
+    content: returnValue.log,
+  });
+
   return returnValue;
+}
+
+function getLogFromConversationHistory(
+  conversationHistory?: ChatCompletionMessageParam[],
+): string | undefined {
+  if (!conversationHistory?.length) {
+    return undefined;
+  }
+
+  const assistantMessages = conversationHistory
+    .filter((message) => message.role === 'assistant')
+    .map((message) => {
+      if (typeof message.content === 'string') {
+        return message.content.trim();
+      }
+
+      if (Array.isArray(message.content)) {
+        return message.content
+          .map((part) => {
+            if (part.type === 'text' && typeof part.text === 'string') {
+              return part.text.trim();
+            }
+
+            if (typeof (part as any).text === 'string') {
+              return (part as any).text.trim();
+            }
+
+            return '';
+          })
+          .filter(Boolean)
+          .join('\n');
+      }
+
+      return '';
+    })
+    .map((content) => content.trim())
+    .filter(Boolean);
+
+  if (assistantMessages.length === 0) {
+    return undefined;
+  }
+
+  return `- ${assistantMessages.join('\n- ')}`;
 }

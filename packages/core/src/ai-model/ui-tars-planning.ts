@@ -1,8 +1,8 @@
 import type {
-  AIUsageInfo,
-  MidsceneYamlFlowItem,
+  PlanningAIResponse,
   PlanningAction,
   Size,
+  UIContext,
 } from '@/types';
 import { type IModelConfig, UITarsModelVersion } from '@midscene/shared/env';
 import { resizeImgBase64 } from '@midscene/shared/img';
@@ -10,8 +10,8 @@ import { getDebug } from '@midscene/shared/logger';
 import { transformHotkeyInput } from '@midscene/shared/us-keyboard-layout';
 import { assert } from '@midscene/shared/utils';
 import { actionParser } from '@ui-tars/action-parser';
-import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import { AIActionType } from './common';
+import type { ConversationHistory } from './conversation-history';
 import { getSummary, getUiTarsPlanningPrompt } from './prompt/ui-tars-planning';
 import { callAIWithStringResponse } from './service-caller/index';
 type ActionType =
@@ -38,22 +38,35 @@ const pointToBbox = (
   ];
 };
 
-export async function vlmPlanning(options: {
-  userInstruction: string;
-  conversationHistory: ChatCompletionMessageParam[];
-  size: { width: number; height: number };
-  modelConfig: IModelConfig;
-}): Promise<{
-  actions: PlanningAction<any>[];
-  actionsFromModel: ReturnType<typeof actionParser>['parsed'];
-  action_summary: string;
-  yamlFlow?: MidsceneYamlFlowItem[];
-  usage?: AIUsageInfo;
-  rawResponse?: string;
-}> {
-  const { conversationHistory, userInstruction, size, modelConfig } = options;
+export async function vlmPlanning(
+  userInstruction: string,
+  options: {
+    conversationHistory: ConversationHistory;
+    context: UIContext;
+    modelConfig: IModelConfig;
+  },
+): Promise<PlanningAIResponse> {
+  const { conversationHistory, context, modelConfig } = options;
   const { uiTarsModelVersion } = modelConfig;
   const systemPrompt = getUiTarsPlanningPrompt() + userInstruction;
+
+  const imagePayload = await resizeImageForUiTars(
+    context.screenshotBase64,
+    context.size,
+    uiTarsModelVersion,
+  );
+
+  conversationHistory.append({
+    role: 'user',
+    content: [
+      {
+        type: 'image_url',
+        image_url: {
+          url: imagePayload,
+        },
+      },
+    ],
+  });
 
   const res = await callAIWithStringResponse(
     [
@@ -61,13 +74,14 @@ export async function vlmPlanning(options: {
         role: 'user',
         content: systemPrompt,
       },
-      ...conversationHistory,
+      ...conversationHistory.snapshot(),
     ],
     AIActionType.INSPECT_ELEMENT,
     modelConfig,
   );
   const convertedText = convertBboxToCoordinates(res.content);
 
+  const { size } = context;
   const { parsed } = actionParser({
     prediction: convertedText,
     factor: [1000, 1000],
@@ -86,6 +100,7 @@ export async function vlmPlanning(options: {
   );
 
   const transformActions: PlanningAction[] = [];
+  let shouldContinue = true;
   parsed.forEach((action) => {
     if (action.action_type === 'click') {
       assert(action.action_inputs.start_box, 'start_box is required');
@@ -176,6 +191,8 @@ export async function vlmPlanning(options: {
         },
         thought: action.thought || '',
       });
+    } else if (action.action_type === 'finished') {
+      shouldContinue = false;
     }
   });
 
@@ -189,13 +206,19 @@ export async function vlmPlanning(options: {
   }
 
   debug('transformActions', JSON.stringify(transformActions, null, 2));
+  const log = getSummary(res.content);
+
+  conversationHistory.append({
+    role: 'assistant',
+    content: log,
+  });
 
   return {
     actions: transformActions,
-    actionsFromModel: parsed,
-    action_summary: getSummary(res.content),
+    log,
     usage: res.usage,
     rawResponse: JSON.stringify(res.content, undefined, 2),
+    more_actions_needed_by_instruction: shouldContinue,
   };
 }
 

@@ -28,6 +28,10 @@ export {
 export { plan } from './llm-planning';
 export { adaptBboxToRect } from './common';
 export { vlmPlanning, resizeImageForUiTars } from './ui-tars-planning';
+export {
+  ConversationHistory,
+  type ConversationHistoryOptions,
+} from './conversation-history';
 
 export { AIActionType, type AIArgs } from './common';
 
