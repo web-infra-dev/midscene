@@ -63,7 +63,7 @@ describe(
       await agent.aiAssert('this is a login page');
 
       await agent.aiAction(
-        'type "standard_user" in user name input, type "secret_sauce" in password, login, add the first two items to the cart',
+        'type "standard_user" in user name input, type "secret_sauce" in password',
       );
 
       await agent.aiTap('Login');
