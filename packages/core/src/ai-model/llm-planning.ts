@@ -219,7 +219,7 @@ export async function plan(
     content: [
       {
         type: 'text',
-        text: 'I have finished the task',
+        text: 'I have finished the action previously planned',
       },
     ],
   });
