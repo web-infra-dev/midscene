@@ -187,9 +187,28 @@ export function adaptBbox(
     return adaptGeminiBbox(bbox, width, height);
   }
 
+  if (vlMode === 'qwen3-vl') {
+    return normalized01000(bbox, width, height);
+  }
+
   return adaptQwenBbox(bbox);
 }
 
+// x1, y1, x2, y2 -> 0-1000
+export function normalized01000(
+  bbox: number[],
+  width: number,
+  height: number,
+): [number, number, number, number] {
+  return [
+    Math.round((bbox[0] * width) / 1000),
+    Math.round((bbox[1] * height) / 1000),
+    Math.round((bbox[2] * width) / 1000),
+    Math.round((bbox[3] * height) / 1000),
+  ];
+}
+
+// y1, x1, y2, x2 -> 0-1000
 export function adaptGeminiBbox(
   bbox: number[],
   width: number,

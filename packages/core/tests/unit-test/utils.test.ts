@@ -4,12 +4,14 @@ import {
   type MidsceneLocationResultType,
   adaptBboxToRect,
   adaptDoubaoBbox,
+  adaptGeminiBbox,
   adaptQwenBbox,
   dumpActionParam,
   expandSearchArea,
   findAllMidsceneLocatorField,
   loadActionParam,
   mergeRects,
+  normalized01000,
 } from '@/ai-model/common';
 import {
   extractJSONFromCodeBlock,
@@ -355,7 +357,7 @@ describe('extractJSONFromCodeBlock', () => {
   });
 });
 
-describe('qwen-vl', () => {
+describe('qwen-vl-2.5', () => {
   it('adaptQwenBbox', () => {
     const result = adaptQwenBbox([100.3, 200.4, 301, 401]);
     expect(result).toEqual([100, 200, 301, 401]);
@@ -584,6 +586,32 @@ describe('doubao-vision', () => {
 
   it('adaptDoubaoBbox with invalid bbox data', () => {
     expect(() => adaptDoubaoBbox([100], 1000, 2000)).toThrow();
+  });
+});
+
+describe('normalized-0-1000 and gemini', () => {
+  it('normalized-0-1000', () => {
+    const result = normalized01000([100, 150, 200, 250], 2000, 2000);
+    expect(result).toMatchInlineSnapshot(`
+      [
+        200,
+        300,
+        400,
+        500,
+      ]
+    `);
+  });
+
+  it('gemini', () => {
+    const result = adaptGeminiBbox([100, 150, 200, 250], 2000, 2000);
+    expect(result).toMatchInlineSnapshot(`
+      [
+        300,
+        200,
+        500,
+        400,
+      ]
+    `);
   });
 });
 

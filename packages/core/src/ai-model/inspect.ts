@@ -166,6 +166,8 @@ export async function AiLocateElement<
     imagePayload = options.searchConfig.imageBase64;
   } else if (vlMode === 'qwen-vl') {
     imagePayload = await paddingToMatchBlockByBase64(imagePayload);
+  } else if (vlMode === 'qwen3-vl') {
+    imagePayload = await paddingToMatchBlockByBase64(imagePayload, 32);
   } else if (!vlMode) {
     imagePayload = await markupImageForLLM(
       screenshotBase64,

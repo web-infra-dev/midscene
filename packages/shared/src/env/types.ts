@@ -29,6 +29,7 @@ export const MIDSCENE_ANDROID_IME_STRATEGY = 'MIDSCENE_ANDROID_IME_STRATEGY';
 export const MIDSCENE_CACHE = 'MIDSCENE_CACHE';
 export const MIDSCENE_USE_VLM_UI_TARS = 'MIDSCENE_USE_VLM_UI_TARS';
 export const MIDSCENE_USE_QWEN_VL = 'MIDSCENE_USE_QWEN_VL';
+export const MIDSCENE_USE_QWEN3_VL = 'MIDSCENE_USE_QWEN3_VL';
 export const MIDSCENE_USE_DOUBAO_VISION = 'MIDSCENE_USE_DOUBAO_VISION';
 export const MIDSCENE_USE_GEMINI = 'MIDSCENE_USE_GEMINI';
 export const MIDSCENE_USE_VL_MODEL = 'MIDSCENE_USE_VL_MODEL';
@@ -242,6 +243,7 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_USE_ANTHROPIC_SDK,
   MIDSCENE_USE_VLM_UI_TARS,
   MIDSCENE_USE_QWEN_VL,
+  MIDSCENE_USE_QWEN3_VL,
   MIDSCENE_USE_DOUBAO_VISION,
   MIDSCENE_USE_GEMINI,
   MIDSCENE_USE_VL_MODEL,
@@ -328,6 +330,7 @@ export type TGlobalConfig = Record<TEnvKeys, string | undefined>;
 
 export type TVlModeValues =
   | 'qwen-vl'
+  | 'qwen3-vl'
   | 'doubao-vision'
   | 'gemini'
   | 'vlm-ui-tars'
@@ -336,6 +339,7 @@ export type TVlModeValues =
 
 export type TVlModeTypes =
   | 'qwen-vl'
+  | 'qwen3-vl'
   | 'doubao-vision'
   | 'gemini'
   | 'vlm-ui-tars';
@@ -497,6 +501,7 @@ export const VL_MODE_RAW_VALID_VALUES: TVlModeValues[] = [
   'doubao-vision',
   'gemini',
   'qwen-vl',
+  'qwen3-vl',
   'vlm-ui-tars',
   'vlm-ui-tars-doubao',
   'vlm-ui-tars-doubao-1.5',
