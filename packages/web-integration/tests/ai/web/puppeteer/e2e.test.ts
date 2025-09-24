@@ -40,7 +40,7 @@ describe(
       }).rejects.toThrowError();
     });
 
-    it.only('Sauce Demo by Swag Lab', async () => {
+    it('Sauce Demo by Swag Lab', async () => {
       const { originPage, reset } = await launchPage(
         'https://www.saucedemo.com/',
       );
@@ -66,7 +66,6 @@ describe(
         'type "standard_user" in user name input, type "secret_sauce" in password, login, add the first two items to the cart',
       );
 
-      return;
       await agent.aiTap('Login');
 
       expect(beforeInvokeAction.mock.calls.length).toBeGreaterThan(1);
