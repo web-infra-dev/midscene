@@ -1,6 +1,7 @@
 import {
   MIDSCENE_USE_DOUBAO_VISION,
   MIDSCENE_USE_GEMINI,
+  MIDSCENE_USE_QWEN3_VL,
   MIDSCENE_USE_QWEN_VL,
   MIDSCENE_USE_VLM_UI_TARS,
   type TVlModeTypes,
@@ -58,12 +59,14 @@ export const parseVlModeAndUiTarsFromGlobalConfig = (
 } => {
   const isDoubao = provider[MIDSCENE_USE_DOUBAO_VISION];
   const isQwen = provider[MIDSCENE_USE_QWEN_VL];
+  const isQwen3 = provider[MIDSCENE_USE_QWEN3_VL];
   const isUiTars = provider[MIDSCENE_USE_VLM_UI_TARS];
   const isGemini = provider[MIDSCENE_USE_GEMINI];
 
   const enabledModes = [
     isDoubao && MIDSCENE_USE_DOUBAO_VISION,
     isQwen && MIDSCENE_USE_QWEN_VL,
+    isQwen3 && MIDSCENE_USE_QWEN3_VL,
     isUiTars && MIDSCENE_USE_VLM_UI_TARS,
     isGemini && MIDSCENE_USE_GEMINI,
   ].filter(Boolean);
@@ -72,6 +75,13 @@ export const parseVlModeAndUiTarsFromGlobalConfig = (
     throw new Error(
       `Only one vision mode can be enabled at a time. Currently enabled modes: ${enabledModes.join(', ')}. Please disable all but one mode.`,
     );
+  }
+
+  if (isQwen3) {
+    return {
+      vlMode: 'qwen3-vl',
+      uiTarsVersion: undefined,
+    };
   }
 
   if (isQwen) {

@@ -5,84 +5,78 @@
       "prompt": "左下角暂停按钮",
       "annotation_index_id": 1,
       "response_rect": {
-        "left": 17,
-        "top": 769,
-        "width": 15,
-        "height": 15
+        "left": 13,
+        "top": 766,
+        "width": 23,
+        "height": 24
       },
       "response_element": {
-        "id": "fmbcn",
-        "indexId": 4
+        "id": "aldlc"
       }
     },
     {
       "prompt": "点赞（爱心）按钮",
       "annotation_index_id": 2,
       "response_rect": {
-        "left": 1204,
-        "top": 352,
-        "width": 23,
-        "height": 19
+        "left": 1192,
+        "top": 342,
+        "width": 46,
+        "height": 64
       },
       "response_element": {
-        "id": "ebgie",
-        "indexId": 23
+        "id": "gdbmj"
       }
     },
     {
       "prompt": "评论按钮",
       "annotation_index_id": 3,
       "response_rect": {
-        "left": 1205,
-        "top": 426,
-        "width": 22,
-        "height": 17
+        "left": 1192,
+        "top": 416,
+        "width": 46,
+        "height": 51
       },
       "response_element": {
-        "id": "cjmim",
-        "indexId": 25
+        "id": "oihlk"
       }
     },
     {
       "prompt": "书签收藏按钮",
       "annotation_index_id": 4,
       "response_rect": {
-        "left": 1203,
-        "top": 498,
-        "width": 27,
-        "height": 22
+        "left": 1197,
+        "top": 491,
+        "width": 41,
+        "height": 55
       },
       "response_element": {
-        "id": "moimk",
-        "indexId": 27
+        "id": "foleg"
       }
     },
     {
       "prompt": "分享按钮",
       "annotation_index_id": 5,
       "response_rect": {
-        "left": 1203,
-        "top": 576,
-        "width": 25,
-        "height": 18
+        "left": 1197,
+        "top": 565,
+        "width": 41,
+        "height": 60
       },
       "response_element": {
-        "id": "mgcne",
-        "indexId": 29
+        "id": "mffdf"
       }
     },
     {
       "prompt": "右下角区域声音按钮",
       "annotation_index_id": 6,
       "response_rect": {
-        "left": 1203,
-        "top": 769,
-        "width": 22,
-        "height": 15
+        "left": 1197,
+        "top": 766,
+        "width": 27,
+        "height": 21
       },
       "response_element": {
-        "id": "djknm",
-        "indexId": 10
+        "id": "pddkj"
       }
     }
   ]

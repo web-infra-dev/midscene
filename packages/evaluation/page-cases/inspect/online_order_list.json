@@ -7,13 +7,12 @@
       "annotation_index_id": 1,
       "response_rect": {
         "left": 187,
-        "top": 276,
-        "width": 83,
+        "top": 275,
+        "width": 56,
         "height": 19
       },
       "response_element": {
-        "id": "eabha",
-        "indexId": 20
+        "id": "fphfp"
       }
     },
     {
@@ -21,14 +20,13 @@
       "multi": false,
       "annotation_index_id": 2,
       "response_rect": {
-        "left": 324,
-        "top": 801,
-        "width": 62,
-        "height": 16
+        "left": 319,
+        "top": 797,
+        "width": 65,
+        "height": 26
       },
       "response_element": {
-        "id": "kmdfd",
-        "indexId": 39
+        "id": "imapj"
       }
     },
     {
@@ -36,14 +34,13 @@
       "multi": false,
       "annotation_index_id": 3,
       "response_rect": {
-        "left": 189,
-        "top": 802,
-        "width": 40,
-        "height": 15
+        "left": 187,
+        "top": 805,
+        "width": 31,
+        "height": 22
       },
       "response_element": {
-        "id": "eommc",
-        "indexId": 38
+        "id": "gnghc"
       }
     },
     {
@@ -51,14 +48,13 @@
       "multi": false,
       "annotation_index_id": 4,
       "response_rect": {
-        "left": 6,
-        "top": 382,
-        "width": 34,
-        "height": 13
+        "left": 0,
+        "top": 363,
+        "width": 76,
+        "height": 50
       },
       "response_element": {
-        "id": "lalae",
-        "indexId": 9
+        "id": "ldgkn"
       }
     }
   ]

@@ -152,6 +152,10 @@ export async function AiLocateElement<
   const systemPrompt = systemPromptToLocateElement(vlMode);
 
   let imagePayload = screenshotBase64;
+  let imageWidth = context.size.width;
+  let imageHeight = context.size.height;
+  let originalImageWidth = imageWidth;
+  let originalImageHeight = imageHeight;
 
   if (options.searchConfig) {
     assert(
@@ -164,8 +168,20 @@ export async function AiLocateElement<
     );
 
     imagePayload = options.searchConfig.imageBase64;
+    imageWidth = options.searchConfig.rect?.width;
+    imageHeight = options.searchConfig.rect?.height;
+    originalImageWidth = imageWidth;
+    originalImageHeight = imageHeight;
   } else if (vlMode === 'qwen-vl') {
-    imagePayload = await paddingToMatchBlockByBase64(imagePayload);
+    const paddedResult = await paddingToMatchBlockByBase64(imagePayload);
+    imageWidth = paddedResult.width;
+    imageHeight = paddedResult.height;
+    imagePayload = paddedResult.imageBase64;
+  } else if (vlMode === 'qwen3-vl') {
+    const paddedResult = await paddingToMatchBlockByBase64(imagePayload, 32);
+    imageWidth = paddedResult.width;
+    imageHeight = paddedResult.height;
+    imagePayload = paddedResult.imageBase64;
   } else if (!vlMode) {
     imagePayload = await markupImageForLLM(
       screenshotBase64,
@@ -215,12 +231,15 @@ export async function AiLocateElement<
     if ('bbox' in res.content && Array.isArray(res.content.bbox)) {
       resRect = adaptBboxToRect(
         res.content.bbox,
-        options.searchConfig?.rect?.width || context.size.width,
-        options.searchConfig?.rect?.height || context.size.height,
+        imageWidth,
+        imageHeight,
         options.searchConfig?.rect?.left,
         options.searchConfig?.rect?.top,
+        originalImageWidth,
+        originalImageHeight,
         vlMode,
       );
+
       debugInspect('resRect', resRect);
 
       const rectCenter = {
@@ -334,6 +353,8 @@ export async function AiLocateSection(options: {
       context.size.height,
       0,
       0,
+      context.size.width,
+      context.size.height,
       vlMode,
     );
     debugSection('original targetRect %j', targetRect);
@@ -350,6 +371,8 @@ export async function AiLocateSection(options: {
           context.size.height,
           0,
           0,
+          context.size.width,
+          context.size.height,
           vlMode,
         );
       });
@@ -366,11 +389,14 @@ export async function AiLocateSection(options: {
 
   let imageBase64 = screenshotBase64;
   if (sectionRect) {
-    imageBase64 = await cropByRect(
+    const croppedResult = await cropByRect(
       screenshotBase64,
       sectionRect,
       vlMode === 'qwen-vl',
     );
+    imageBase64 = croppedResult.imageBase64;
+    sectionRect.width = croppedResult.width;
+    sectionRect.height = croppedResult.height;
   }
 
   return {

@@ -5,126 +5,117 @@
       "prompt": "'最简单的用法'下方有五个 icon，左侧第一个 icon",
       "annotation_index_id": 1,
       "response_rect": {
-        "left": 486,
-        "top": 859,
-        "width": 21,
-        "height": 14
+        "left": 482,
+        "top": 854,
+        "width": 23,
+        "height": 23
       },
       "response_element": {
-        "id": "nkpld",
-        "indexId": 104
+        "id": "opibk"
       }
     },
     {
       "prompt": "'最简单的用法'下方有五个 icon，左侧第二个 icon",
       "annotation_index_id": 2,
       "response_rect": {
-        "left": 519,
-        "top": 860,
-        "width": 15,
-        "height": 12
+        "left": 513,
+        "top": 854,
+        "width": 21,
+        "height": 21
       },
       "response_element": {
-        "id": "hdbbh",
-        "indexId": 105
+        "id": "idgli"
       }
     },
     {
       "prompt": "'最简单的用法'下方有五个 icon，左侧第三个 icon",
       "annotation_index_id": 3,
       "response_rect": {
-        "left": 549,
-        "top": 860,
-        "width": 18,
-        "height": 12
+        "left": 545,
+        "top": 854,
+        "width": 21,
+        "height": 21
       },
       "response_element": {
-        "id": "ncono",
-        "indexId": 106
+        "id": "jehhn"
       }
     },
     {
       "prompt": "'最简单的用法'下方有五个 icon，左侧第四个 icon",
       "annotation_index_id": 4,
       "response_rect": {
-        "left": 584,
-        "top": 860,
-        "width": 13,
-        "height": 12
+        "left": 580,
+        "top": 854,
+        "width": 20,
+        "height": 20
       },
       "response_element": {
-        "id": "jkeam",
-        "indexId": 107
+        "id": "ecbaj"
       }
     },
     {
       "prompt": "'最简单的用法'下方有五个 icon，最右侧的 icon",
       "annotation_index_id": 5,
       "response_rect": {
-        "left": 617,
-        "top": 862,
-        "width": 13,
-        "height": 9
+        "left": 605,
+        "top": 850,
+        "width": 29,
+        "height": 27
       },
       "response_element": {
-        "id": "nnkcf",
-        "indexId": 108
+        "id": "pdedl"
       }
     },
     {
       "prompt": "全屏幕右上角、版本号右侧有三个 icon ，查找左侧第一个",
       "annotation_index_id": 6,
       "response_rect": {
-        "left": 1269,
-        "top": 24,
-        "width": 20,
-        "height": 13
+        "left": 1260,
+        "top": 18,
+        "width": 30,
+        "height": 29
       },
       "response_element": {
-        "id": "dinoj",
-        "indexId": 13
+        "id": "micki"
       }
     },
     {
       "prompt": "全屏幕右上角有三个 icon ，查找左侧第二个",
       "annotation_index_id": 7,
       "response_rect": {
-        "left": 1309,
-        "top": 24,
-        "width": 26,
-        "height": 16
+        "left": 1307,
+        "top": 18,
+        "width": 31,
+        "height": 29
       },
       "response_element": {
-        "id": "nfpha",
-        "indexId": 14
+        "id": "cdgli"
       }
     },
     {
       "prompt": "屏幕右上角有三个 icon ，左侧第三个",
       "annotation_index_id": 8,
       "response_rect": {
-        "left": 1356,
-        "top": 24,
-        "width": 20,
-        "height": 16
+        "left": 1324,
+        "top": 18,
+        "width": 28,
+        "height": 29
       },
       "response_element": {
-        "id": "hmbld",
-        "indexId": 15
+        "id": "eekil"
       }
     },
     {
       "prompt": "在‘代码演示’右侧有三个 icon 按钮中，查找最中间的按钮",
       "annotation_index_id": 9,
       "response_rect": {
-        "left": 1184,
-        "top": 497,
-        "width": 16,
-        "height": 16
+        "left": 1178,
+        "top": 492,
+        "width": 27,
+        "height": 25
       },
       "response_element": {
-        "id": "pkafb",
-        "indexId": 94
+        "id": "llgnp"
       }
     }
   ]

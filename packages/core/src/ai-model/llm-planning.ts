@@ -14,7 +14,6 @@ import type {
 } from 'openai/resources/index';
 import {
   AIActionType,
-  type AIArgs,
   buildYamlFlowFromPlans,
   fillBboxParam,
   findAllMidsceneLocatorField,
@@ -54,22 +53,31 @@ export async function plan(
   });
 
   let imagePayload = screenshotBase64;
+  let imageWidth = size.width;
+  let imageHeight = size.height;
+  const rightLimit = imageWidth;
+  const bottomLimit = imageHeight;
   if (vlMode === 'qwen-vl') {
-    imagePayload = await paddingToMatchBlockByBase64(imagePayload);
+    const paddedResult = await paddingToMatchBlockByBase64(imagePayload);
+    imageWidth = paddedResult.width;
+    imageHeight = paddedResult.height;
+    imagePayload = paddedResult.imageBase64;
+  } else if (vlMode === 'qwen3-vl') {
+    const paddedResult = await paddingToMatchBlockByBase64(imagePayload, 32);
+    imageWidth = paddedResult.width;
+    imageHeight = paddedResult.height;
+    imagePayload = paddedResult.imageBase64;
   } else if (!vlMode) {
-    imagePayload = await markupImageForLLM(
-      screenshotBase64,
-      context.tree,
-      context.size,
-    );
+    imagePayload = await markupImageForLLM(screenshotBase64, context.tree, {
+      width: imageWidth,
+      height: imageHeight,
+    });
   }
 
   warnGPT4oSizeLimit(size, modelName);
 
-  const historyLog =
-    opts.conversationHistory
-      ?.snapshot()
-      .filter((item) => item.role === 'assistant') || [];
+  const historyLog = opts.conversationHistory?.snapshot() || [];
+  // .filter((item) => item.role === 'assistant') || [];
 
   const knowledgeContext: ChatCompletionMessageParam[] = opts.actionContext
     ? [
@@ -168,8 +176,10 @@ export async function plan(
         if (vlMode) {
           action.param[field] = fillBboxParam(
             locateResult,
-            size.width,
-            size.height,
+            imageWidth,
+            imageHeight,
+            rightLimit,
+            bottomLimit,
             vlMode,
           );
         } else {
@@ -201,6 +211,15 @@ export async function plan(
       {
         type: 'text',
         text: rawResponse,
+      },
+    ],
+  });
+  conversationHistory?.append({
+    role: 'user',
+    content: [
+      {
+        type: 'text',
+        text: 'I have finished the action previously planned',
       },
     ],
   });

@@ -228,14 +228,18 @@ export async function jimpFromBase64(base64: string): Promise<Jimp> {
 export async function paddingToMatchBlock(
   image: Jimp,
   blockSize = 28,
-): Promise<Jimp> {
+): Promise<{
+  width: number;
+  height: number;
+  image: Jimp;
+}> {
   const { width, height } = image.bitmap;
 
   const targetWidth = Math.ceil(width / blockSize) * blockSize;
   const targetHeight = Math.ceil(height / blockSize) * blockSize;
 
   if (targetWidth === width && targetHeight === height) {
-    return image;
+    return { width, height, image };
   }
 
   const Jimp = await getJimp();
@@ -243,31 +247,52 @@ export async function paddingToMatchBlock(
 
   // Composite the original image onto the new canvas
   paddedImage.composite(image, 0, 0);
-  return paddedImage;
+  return { width: targetWidth, height: targetHeight, image: paddedImage };
 }
 
 export async function paddingToMatchBlockByBase64(
   imageBase64: string,
   blockSize = 28,
-): Promise<string> {
+): Promise<{
+  width: number;
+  height: number;
+  imageBase64: string;
+}> {
   const jimpImage = await jimpFromBase64(imageBase64);
-  const paddedImage = await paddingToMatchBlock(jimpImage, blockSize);
-  return jimpToBase64(paddedImage);
+  const paddedResult = await paddingToMatchBlock(jimpImage, blockSize);
+  return {
+    width: paddedResult.width,
+    height: paddedResult.height,
+    imageBase64: await jimpToBase64(paddedResult.image),
+  };
 }
+
 export async function cropByRect(
   imageBase64: string,
   rect: Rect,
   paddingImage: boolean,
-): Promise<string> {
+): Promise<{
+  width: number;
+  height: number;
+  imageBase64: string;
+}> {
   const jimpImage = await jimpFromBase64(imageBase64);
   const { left, top, width, height } = rect;
   jimpImage.crop(left, top, width, height);
 
   if (paddingImage) {
-    const paddedImage = await paddingToMatchBlock(jimpImage);
-    return jimpToBase64(paddedImage);
+    const paddedResult = await paddingToMatchBlock(jimpImage);
+    return {
+      width: paddedResult.width,
+      height: paddedResult.height,
+      imageBase64: await jimpToBase64(paddedResult.image),
+    };
   }
-  return jimpToBase64(jimpImage);
+  return {
+    width: jimpImage.bitmap.width,
+    height: jimpImage.bitmap.height,
+    imageBase64: await jimpToBase64(jimpImage),
+  };
 }
 
 export async function jimpToBase64(image: Jimp): Promise<string> {

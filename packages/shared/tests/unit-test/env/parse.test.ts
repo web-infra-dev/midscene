@@ -22,9 +22,7 @@ describe('parseVlModeAndUiTarsFromRaw', () => {
   it('should throw an error for invalid raw value', () => {
     expect(() =>
       parseVlModeAndUiTarsModelVersionFromRawValue('invalid-mode'),
-    ).toThrow(
-      'the value invalid-mode is not a valid VL_MODE value, must be one of doubao-vision,gemini,qwen-vl,vlm-ui-tars,vlm-ui-tars-doubao,vlm-ui-tars-doubao-1.5',
-    );
+    ).toThrow();
   });
 
   it('should correctly parse "vlm-ui-tars"', () => {

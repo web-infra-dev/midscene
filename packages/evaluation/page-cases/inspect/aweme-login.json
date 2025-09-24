@@ -6,14 +6,13 @@
       "multi": false,
       "annotation_index_id": 1,
       "response_rect": {
-        "left": 721,
-        "top": 245,
-        "width": 72,
-        "height": 15
+        "left": 717,
+        "top": 234,
+        "width": 74,
+        "height": 44
       },
       "response_element": {
-        "id": "fobmb",
-        "indexId": 7
+        "id": "eagbb"
       }
     },
     {
@@ -21,14 +20,13 @@
       "multi": false,
       "annotation_index_id": 2,
       "response_rect": {
-        "left": 485,
-        "top": 246,
-        "width": 72,
-        "height": 15
+        "left": 481,
+        "top": 238,
+        "width": 76,
+        "height": 33
       },
       "response_element": {
-        "id": "aonmh",
-        "indexId": 5
+        "id": "hihhk"
       }
     },
     {
@@ -37,13 +35,12 @@
       "annotation_index_id": 3,
       "response_rect": {
         "left": 492,
-        "top": 341,
+        "top": 340,
         "width": 294,
-        "height": 49
+        "height": 52
       },
       "response_element": {
-        "id": "mfodf",
-        "indexId": 10
+        "id": "fcgao"
       }
     },
     {
@@ -52,13 +49,12 @@
       "annotation_index_id": 4,
       "response_rect": {
         "left": 492,
-        "top": 418,
-        "width": 294,
-        "height": 50
+        "top": 421,
+        "width": 172,
+        "height": 46
       },
       "response_element": {
-        "id": "nhbof",
-        "indexId": 12
+        "id": "eemfo"
       }
     },
     {
@@ -66,14 +62,13 @@
       "multi": false,
       "annotation_index_id": 5,
       "response_rect": {
-        "left": 697,
-        "top": 435,
-        "width": 71,
-        "height": 14
+        "left": 681,
+        "top": 422,
+        "width": 105,
+        "height": 42
       },
       "response_element": {
-        "id": "kdbdc",
-        "indexId": 11
+        "id": "dbjjf"
       }
     },
     {
@@ -82,13 +77,12 @@
       "annotation_index_id": 6,
       "response_rect": {
         "left": 492,
-        "top": 558,
+        "top": 556,
         "width": 294,
-        "height": 45
+        "height": 50
       },
       "response_element": {
-        "id": "bjnpl",
-        "indexId": 18
+        "id": "aofel"
       }
     },
     {
@@ -96,14 +90,13 @@
       "multi": false,
       "annotation_index_id": 7,
       "response_rect": {
-        "left": 845,
-        "top": 120,
-        "width": 15,
-        "height": 15
+        "left": 842,
+        "top": 118,
+        "width": 19,
+        "height": 18
       },
       "response_element": {
-        "id": "aigcl",
-        "indexId": 4
+        "id": "elpoj"
       }
     }
   ]
