@@ -28,7 +28,7 @@ VL 模型可用于任何类型界面的 UI 自动化。
 以下是已适配的 VL 模型：
 
 * [豆包系列视觉语言模型](#doubao-vision)
-* [千问2.5-VL](#qwen-25-vl)
+* [千问3-VL或千问2.5-VL](#qwen3-vl-or-qwen-25-vl)
 * [`Gemini-2.5-Pro`](#gemini-25-pro)
 * [`UI-TARS`](#ui-tars)
 
@@ -78,14 +78,32 @@ MIDSCENE_USE_DOUBAO_VISION=1
 - [火山引擎 - Doubao-Seed-1.6-Vision](https://www.volcengine.com/docs/82379/1799865)
 
 
-<div id="qwen-25-vl"></div>
-### 千问 2.5-VL （Openrouter 或阿里云）
+<div id="qwen3-vl-or-qwen-25-vl"></div>
+### 千问3-VL或千问2.5-VL （Openrouter 或阿里云）
 
-从 0.12.0 版本开始，Midscene.js 支持 Qwen-2.5-VL-72B-Instruct 模型系列。
+从 0.29.1 版本开始，Midscene.js 支持 Qwen3-VL 模型系列。
 
-Qwen-2.5-VL 是阿里巴巴发布的开源模型系列。它提供视觉定位能力，可以准确返回页面上目标元素的坐标。在用于交互、断言和查询时表现相当出色。我们建议使用最大版本（72B）以获得可靠的输出。
+Qwen-VL 是阿里巴巴发布的开源模型系列。它提供视觉定位能力，可以准确返回页面上目标元素的坐标。在用于交互、断言和查询时表现相当出色。使用千问系列模型时，我们建议使用最新的 Qwen3-VL 模型。
 
-**配置**
+**使用阿里云 `qwen3-vl-plus` 模型的配置**
+
+```bash
+OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+OPENAI_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen3-vl-plus"
+MIDSCENE_USE_QWEN3_VL=1 # 注意，这个参数与 MIDSCENE_USE_QWEN_VL 不能同时使用
+```
+
+**使用阿里云 `qwen-vl-max-latest` 模型的配置**
+
+```bash
+OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+OPENAI_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
+MIDSCENE_USE_QWEN_VL=1 # 注意，这个参数与 MIDSCENE_USE_QWEN3_VL 不能同时使用
+```
+
+**使用 Openrouter `qwen-vl-max-latest` 模型的配置**
 
 在 [Openrouter](https://openrouter.ai) 上申请 API 密钥后，可以使用以下配置：
 
@@ -93,32 +111,12 @@ Qwen-2.5-VL 是阿里巴巴发布的开源模型系列。它提供视觉定位�
 OPENAI_BASE_URL="https://openrouter.ai/api/v1"
 OPENAI_API_KEY="......"
 MIDSCENE_MODEL_NAME="qwen/qwen2.5-vl-72b-instruct"
-MIDSCENE_USE_QWEN_VL=1
+MIDSCENE_USE_QWEN_VL=1 # 注意，这个参数与 MIDSCENE_USE_QWEN3_VL 不能同时使用
 ```
-
-或使用阿里云：
-
-```bash
-OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
-OPENAI_API_KEY="......"
-MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
-MIDSCENE_USE_QWEN_VL=1
-```
-
-**在 Midscene.js 中使用的限制**
-
-- 小图标识别能力不佳：识别小图标时，你可能需要[启用 `deepThink` 参数](./blog-introducing-instant-actions-and-deep-think)并优化描述，否则识别结果可能不准确。
-- 断言表现不佳：我们观察到它在断言方面可能不如 `GPT-4o` 或 `Doubao-1.5-thinking-vision-pro`。
-
-**关于在阿里云上部署模型的说明**
-
-虽然开源版本的 Qwen-2.5-VL (72B) 名为 `qwen2.5-vl-72b-instruct`，但阿里云上还托管着一个名为 `qwen-vl-max-latest` 的增强且更稳定的版本。在阿里云上使用 `qwen-vl-max-latest` 模型时，你将获得更大的上下文支持和低得多的价格（可能只有开源版本的 19%）。
-
-简而言之，如果你想要使用阿里云服务，请使用 `qwen-vl-max-latest`。
 
 **链接**
-- [Qwen 2.5 on 🤗 HuggingFace](https://huggingface.co/Qwen/Qwen2.5-VL-72B-Instruct)
-- [Qwen 2.5 on Github](https://github.com/QwenLM/Qwen2.5-VL)
+- [Qwen on 🤗 HuggingFace](https://huggingface.co/Qwen)
+- [Qwen on Github](https://github.com/QwenLM/)
 - [Qwen 2.5 on Aliyun](https://bailian.console.aliyun.com/#/model-market/detail/qwen-vl-max-latest)
 - [Qwen 2.5 on openrouter.ai](https://openrouter.ai/qwen/qwen2.5-vl-72b-instruct)
 
