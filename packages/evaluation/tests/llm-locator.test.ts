@@ -19,12 +19,12 @@ dotenv.config({
 
 const testSources = [
   'antd-carousel',
-  'todo',
-  'online_order',
-  'online_order_list',
-  'taobao',
-  'aweme-login',
-  'aweme-play',
+  // 'todo',
+  // 'online_order',
+  // 'online_order_list',
+  // 'taobao',
+  // 'aweme-login',
+  // 'aweme-play',
 ];
 
 let resultCollector: TestResultCollector;

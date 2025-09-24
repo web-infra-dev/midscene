@@ -39,6 +39,8 @@ export function fillBboxParam(
   locate: PlanningLocateParam,
   width: number,
   height: number,
+  rightLimit: number,
+  bottomLimit: number,
   vlMode: TVlModeTypes | undefined,
 ) {
   // The Qwen model might have hallucinations of naming bbox as bbox_2d.
@@ -49,7 +51,14 @@ export function fillBboxParam(
   }
 
   if (locate?.bbox) {
-    locate.bbox = adaptBbox(locate.bbox, width, height, vlMode);
+    locate.bbox = adaptBbox(
+      locate.bbox,
+      width,
+      height,
+      rightLimit,
+      bottomLimit,
+      vlMode,
+    );
   }
 
   return locate;
@@ -177,21 +186,25 @@ export function adaptBbox(
   bbox: number[],
   width: number,
   height: number,
+  rightLimit: number,
+  bottomLimit: number,
   vlMode: TVlModeTypes | undefined,
 ): [number, number, number, number] {
+  let result: [number, number, number, number] = [0, 0, 0, 0];
   if (vlMode === 'doubao-vision' || vlMode === 'vlm-ui-tars') {
-    return adaptDoubaoBbox(bbox, width, height);
+    result = adaptDoubaoBbox(bbox, width, height);
+  } else if (vlMode === 'gemini') {
+    result = adaptGeminiBbox(bbox, width, height);
+  } else if (vlMode === 'qwen3-vl') {
+    result = normalized01000(bbox, width, height);
+  } else {
+    result = adaptQwenBbox(bbox);
   }
 
-  if (vlMode === 'gemini') {
-    return adaptGeminiBbox(bbox, width, height);
-  }
+  result[2] = Math.min(result[2], rightLimit);
+  result[3] = Math.min(result[3], bottomLimit);
 
-  if (vlMode === 'qwen3-vl') {
-    return normalized01000(bbox, width, height);
-  }
-
-  return adaptQwenBbox(bbox);
+  return result;
 }
 
 // x1, y1, x2, y2 -> 0-1000
@@ -227,6 +240,8 @@ export function adaptBboxToRect(
   height: number,
   offsetX = 0,
   offsetY = 0,
+  rightLimit = width,
+  bottomLimit = height,
   vlMode?: TVlModeTypes | undefined,
 ): Rect {
   debugInspectUtils(
@@ -234,11 +249,23 @@ export function adaptBboxToRect(
     bbox,
     width,
     height,
+    'offset',
     offsetX,
     offsetY,
+    'limit',
+    rightLimit,
+    bottomLimit,
+    'vlMode',
     vlMode,
   );
-  const [left, top, right, bottom] = adaptBbox(bbox, width, height, vlMode);
+  const [left, top, right, bottom] = adaptBbox(
+    bbox,
+    width,
+    height,
+    rightLimit,
+    bottomLimit,
+    vlMode,
+  );
 
   // Calculate initial rect dimensions
   const rectLeft = left;
@@ -268,6 +295,7 @@ export function adaptBboxToRect(
     height: rectHeight,
   };
   debugInspectUtils('adaptBboxToRect, result=', rect);
+
   return rect;
 }
 

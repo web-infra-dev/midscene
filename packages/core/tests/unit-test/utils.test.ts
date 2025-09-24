@@ -407,6 +407,26 @@ describe('qwen-vl-2.5', () => {
       }
     `);
   });
+
+  it('adaptBboxToRect - size exceed image size - 4', () => {
+    const result = adaptBboxToRect(
+      [25, 154, 153, 186],
+      301,
+      164,
+      0,
+      752,
+      140,
+      910,
+    );
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "height": 10,
+        "left": 25,
+        "top": 906,
+        "width": 115,
+      }
+    `);
+  });
 });
 
 describe('doubao-vision', () => {

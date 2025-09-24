@@ -352,11 +352,12 @@ export default class Insight<
     if (opt?.deepThink) {
       const searchArea = expandSearchArea(targetRect, context.size, vlMode);
       debug('describe: set searchArea', searchArea);
-      imagePayload = await cropByRect(
+      const croppedResult = await cropByRect(
         imagePayload,
         searchArea,
         vlMode === 'qwen-vl',
       );
+      imagePayload = croppedResult.imageBase64;
     }
 
     const msgs: AIArgs = [

@@ -8,7 +8,7 @@ import { ifMidsceneLocatorField } from '../common';
 import { bboxDescription } from './common';
 
 // Note: put the log field first to trigger the CoT
-const vlCurrentLog = `"log": string, // Log your thoughts and what the next one action (ONLY ONE!) you can do according to the screenshot and the instruction. The typical log looks like "The user wants to do ... . According to the instruction and the previous logs, i think the next action should be ....". If no action should be done, log the reason. Use the same language as the user's instruction.`;
+const vlCurrentLog = `"log": string, // Log your thoughts and what the next one action (ONLY ONE!) you can do according to the screenshot and the instruction. The typical log looks like "The user wants to do ... . According to the instruction and the previous logs, now i should use action '{ action-type }' to do ....". If no action should be done, log the reason. Use the same language as the user's instruction.`;
 const llmCurrentLog = `"log": string, // Log what the next actions you can do according to the screenshot and the instruction. The typical log looks like "Now i want to use action '{ action-type }' to do ..". If no action should be done, log the reason. ". Use the same language as the user's instruction.`;
 
 const commonOutputFields = `"error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not foreseeable according to the instruction. Use the same language as the user's instruction.
@@ -215,7 +215,7 @@ For example, when the instruction is "click 'Confirm' button, and click 'Yes' in
 this and output the JSON:
 
 {
-  "log": "The user wants to do click 'Confirm' button, and click 'Yes' in popup. According to the instruction and the previous logs, i think the next action should be click 'Yes' in popup.",
+  "log": "The user wants to do click 'Confirm' button, and click 'Yes' in popup. According to the instruction and the previous logs, now i should use action 'Tap' to click 'Yes' in popup.",
   "action": {
     "type": "Tap",
     "param": {

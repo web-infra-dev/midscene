@@ -6,14 +6,13 @@
       "multi": false,
       "annotation_index_id": 1,
       "response_rect": {
-        "left": 512,
-        "top": 127,
-        "width": 556,
-        "height": 71
+        "left": 521,
+        "top": 136,
+        "width": 540,
+        "height": 58
       },
       "response_element": {
-        "id": "okgbn",
-        "indexId": 18
+        "id": "icpei"
       }
     },
     {
@@ -21,14 +20,13 @@
       "multi": false,
       "annotation_index_id": 2,
       "response_rect": {
-        "left": 512,
-        "top": 127,
-        "width": 556,
-        "height": 71
+        "left": 521,
+        "top": 136,
+        "width": 540,
+        "height": 55
       },
       "response_element": {
-        "id": "okgbn",
-        "indexId": 18
+        "id": "kdpkc"
       }
     },
     {
@@ -36,14 +34,13 @@
       "multi": false,
       "annotation_index_id": 3,
       "response_rect": {
-        "left": 574,
-        "top": 276,
-        "width": 117,
-        "height": 17
+        "left": 572,
+        "top": 269,
+        "width": 120,
+        "height": 31
       },
       "response_element": {
-        "id": "idmhb",
-        "indexId": 24
+        "id": "liikn"
       }
     },
     {
@@ -51,14 +48,13 @@
       "multi": false,
       "annotation_index_id": 4,
       "response_rect": {
-        "left": 1028,
-        "top": 279,
-        "width": 15,
-        "height": 12
+        "left": 1021,
+        "top": 269,
+        "width": 25,
+        "height": 29
       },
       "response_element": {
-        "id": "jicbk",
-        "indexId": 25
+        "id": "oknce"
       }
     },
     {
@@ -67,13 +63,12 @@
       "annotation_index_id": 5,
       "response_rect": {
         "left": 521,
-        "top": 334,
-        "width": 33,
-        "height": 26
+        "top": 328,
+        "width": 32,
+        "height": 30
       },
       "response_element": {
-        "id": "kjccf",
-        "indexId": 26
+        "id": "declc"
       }
     },
     {
@@ -81,14 +76,13 @@
       "multi": false,
       "annotation_index_id": 6,
       "response_rect": {
-        "left": 802,
-        "top": 391,
-        "width": 69,
-        "height": 12
+        "left": 800,
+        "top": 383,
+        "width": 74,
+        "height": 25
       },
       "response_element": {
-        "id": "ddapc",
-        "indexId": 30
+        "id": "kolee"
       }
     }
   ]

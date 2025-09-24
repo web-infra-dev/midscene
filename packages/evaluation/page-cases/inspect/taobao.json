@@ -6,13 +6,13 @@
       "multi": false,
       "annotation_index_id": 1,
       "response_rect": {
-        "left": 319,
+        "left": 321,
         "top": 54,
-        "width": 533,
-        "height": 40
+        "width": 451,
+        "height": 38
       },
       "response_element": {
-        "id": "aljah"
+        "id": "hlgpm"
       }
     },
     {
@@ -20,14 +20,13 @@
       "multi": false,
       "annotation_index_id": 2,
       "response_rect": {
-        "left": 792,
-        "top": 65,
-        "width": 38,
-        "height": 16
+        "left": 774,
+        "top": 54,
+        "width": 76,
+        "height": 38
       },
       "response_element": {
-        "id": "ondpi",
-        "indexId": 26
+        "id": "nlfnm"
       }
     },
     {
@@ -36,14 +35,13 @@
       "multi": false,
       "annotation_index_id": 3,
       "response_rect": {
-        "left": 118,
-        "top": 428,
-        "width": 53,
-        "height": 12
+        "left": 137,
+        "top": 426,
+        "width": 35,
+        "height": 16
       },
       "response_element": {
-        "id": "cjfcl",
-        "indexId": 99
+        "id": "hkcje"
       }
     },
     {
@@ -52,14 +50,13 @@
       "multi": false,
       "annotation_index_id": 4,
       "response_rect": {
-        "left": 1065,
-        "top": 385,
-        "width": 21,
-        "height": 19
+        "left": 1055,
+        "top": 380,
+        "width": 46,
+        "height": 45
       },
       "response_element": {
-        "id": "fkfdl",
-        "indexId": 190
+        "id": "jdhon"
       }
     },
     {
@@ -68,29 +65,27 @@
       "multi": false,
       "annotation_index_id": 5,
       "response_rect": {
-        "left": 1251,
-        "top": 352,
-        "width": 22,
-        "height": 22
+        "left": 1242,
+        "top": 345,
+        "width": 37,
+        "height": 41
       },
       "response_element": {
-        "id": "iegkg",
-        "indexId": 212
+        "id": "llbjl"
       }
     },
     {
       "prompt": "顶部工具栏的购物车 icon",
       "deepThink": true,
       "response_rect": {
-        "left": 837,
-        "top": 12,
-        "width": 17,
+        "left": 842,
+        "top": 10,
+        "width": 45,
         "height": 14
       },
       "annotation_index_id": 6,
       "response_element": {
-        "id": "aefln",
-        "indexId": 12
+        "id": "ejbgf"
       }
     }
   ]
