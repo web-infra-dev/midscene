@@ -603,13 +603,11 @@ export class Agent<
       return this.runYaml(yaml);
     }
 
-    const { output, executor } = await (isVlmUiTars
-      ? this.taskExecutor.actionToGoal(taskPrompt, modelConfig)
-      : this.taskExecutor.action(
-          taskPrompt,
-          modelConfig,
-          this.opts.aiActionContext,
-        ));
+    const { output, executor } = await this.taskExecutor.action(
+      taskPrompt,
+      modelConfig,
+      this.opts.aiActionContext,
+    );
 
     // update cache
     if (this.taskCache && output?.yamlFlow && cacheable !== false) {

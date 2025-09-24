@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { vlmPlanning } from '@/ai-model/ui-tars-planning';
+import { uiTarsPlanning } from '@/ai-model/ui-tars-planning';
 import { savePositionImg } from '@midscene/shared/img';
 import { getContextFromFixture } from 'tests/evaluation';
 import { assert, describe, expect, it } from 'vitest';
@@ -12,7 +12,7 @@ describe.skipIf(!isUiTars)('only run in ui-tars', () => {
 
     const { width, height } = context.size;
     const startTime = Date.now();
-    const { actionsFromModel } = await vlmPlanning({
+    const { actionsFromModel } = await uiTarsPlanning({
       userInstruction: '删除第二条任务',
       conversationHistory: [
         {

@@ -8,6 +8,10 @@ import type { IModelConfig } from '@midscene/shared/env';
 import { paddingToMatchBlockByBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
+import type {
+  ChatCompletionContentPart,
+  ChatCompletionMessageParam,
+} from 'openai/resources/index';
 import {
   AIActionType,
   type AIArgs,
@@ -17,11 +21,8 @@ import {
   markupImageForLLM,
   warnGPT4oSizeLimit,
 } from './common';
-import {
-  automationUserPrompt,
-  generateTaskBackgroundContext,
-  systemPromptToTaskPlanning,
-} from './prompt/llm-planning';
+import type { ConversationHistory } from './conversation-history';
+import { systemPromptToTaskPlanning } from './prompt/llm-planning';
 import { describeUserPage } from './prompt/util';
 import { callAIWithObjectResponse } from './service-caller/index';
 
@@ -33,12 +34,12 @@ export async function plan(
     context: UIContext;
     interfaceType: InterfaceType;
     actionSpace: DeviceAction<any>[];
-    log?: string;
     actionContext?: string;
     modelConfig: IModelConfig;
+    conversationHistory?: ConversationHistory;
   },
 ): Promise<PlanningAIResponse> {
-  const { context, modelConfig } = opts;
+  const { context, modelConfig, conversationHistory } = opts;
   const { screenshotBase64, size } = context;
 
   const { modelName, vlMode } = modelConfig;
@@ -50,15 +51,6 @@ export async function plan(
   const systemPrompt = await systemPromptToTaskPlanning({
     actionSpace: opts.actionSpace,
     vlMode: vlMode,
-  });
-  const taskBackgroundContextText = generateTaskBackgroundContext(
-    userInstruction,
-    opts.log,
-    opts.actionContext,
-  );
-  const userInstructionPrompt = await automationUserPrompt(vlMode).format({
-    pageDescription,
-    taskBackgroundContext: taskBackgroundContextText,
   });
 
   let imagePayload = screenshotBase64;
@@ -74,8 +66,42 @@ export async function plan(
 
   warnGPT4oSizeLimit(size, modelName);
 
-  const msgs: AIArgs = [
+  const historyLog =
+    opts.conversationHistory
+      ?.snapshot()
+      .filter((item) => item.role === 'assistant') || [];
+
+  const knowledgeContext: ChatCompletionMessageParam[] = opts.actionContext
+    ? [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: `<high_priority_knowledge>${opts.actionContext}</high_priority_knowledge>`,
+            },
+          ],
+        },
+      ]
+    : [];
+
+  const instruction: ChatCompletionMessageParam[] = [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: `<user_instruction>${userInstruction}</user_instruction>`,
+        },
+      ],
+    },
+  ];
+
+  const msgs: ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
+    ...knowledgeContext,
+    ...instruction,
+    ...historyLog,
     {
       role: 'user',
       content: [
@@ -86,10 +112,14 @@ export async function plan(
             detail: 'high',
           },
         },
-        {
-          type: 'text',
-          text: userInstructionPrompt,
-        },
+        ...(vlMode
+          ? []
+          : ([
+              {
+                type: 'text',
+                text: pageDescription,
+              },
+            ] as ChatCompletionContentPart[])),
       ],
     },
   ];
@@ -164,6 +194,16 @@ export async function plan(
       userInstruction,
     );
   }
+
+  conversationHistory?.append({
+    role: 'assistant',
+    content: [
+      {
+        type: 'text',
+        text: rawResponse,
+      },
+    ],
+  });
 
   return returnValue;
 }

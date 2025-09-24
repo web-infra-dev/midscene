@@ -525,7 +525,7 @@ export const getResponseFormat = (
 };
 
 export async function callAIWithObjectResponse<T>(
-  messages: AIArgs,
+  messages: ChatCompletionMessageParam[],
   AIActionTypeValue: AIActionType,
   modelConfig: IModelConfig,
 ): Promise<{ content: T; usage?: AIUsageInfo }> {

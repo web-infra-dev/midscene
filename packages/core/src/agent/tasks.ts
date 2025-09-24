@@ -1,9 +1,8 @@
 import {
-  type ChatCompletionMessageParam,
+  ConversationHistory,
   elementByPositionWithElementInfo,
   findAllMidsceneLocatorField,
-  resizeImageForUiTars,
-  vlmPlanning,
+  uiTarsPlanning,
 } from '@/ai-model';
 import type { AbstractInterface } from '@/device';
 import {
@@ -65,6 +64,7 @@ interface ExecutionResult<OutputType = any> {
 
 const debug = getDebug('device-task-executor');
 const defaultReplanningCycleLimit = 10;
+const defaultVlmUiTarsReplanningCycleLimit = 40;
 
 export function locatePlanForLocate(param: string | DetailedLocateParam) {
   const locate = typeof param === 'string' ? { prompt: param } : param;
@@ -84,7 +84,7 @@ export class TaskExecutor {
 
   taskCache?: TaskCache;
 
-  conversationHistory: ChatCompletionMessageParam[] = [];
+  private conversationHistory: ConversationHistory;
 
   onTaskStartCallback?: ExecutionTaskProgressOptions['onTaskStart'];
 
@@ -109,6 +109,7 @@ export class TaskExecutor {
     this.taskCache = opts.taskCache;
     this.onTaskStartCallback = opts?.onTaskStart;
     this.replanningCycleLimit = opts.replanningCycleLimit;
+    this.conversationHistory = new ConversationHistory();
   }
 
   private async recordScreenshot(timing: ExecutionRecorderItem['timing']) {
@@ -661,26 +662,24 @@ export class TaskExecutor {
     };
   }
 
-  private planningTaskFromPrompt(
+  private createPlanningTask(
     userInstruction: string,
-    opts: {
-      log?: string;
-      actionContext?: string;
-      modelConfig: IModelConfig;
-    },
-  ) {
-    const { log, actionContext, modelConfig } = opts;
+    actionContext: string | undefined,
+    modelConfig: IModelConfig,
+  ): ExecutionTaskPlanningApply {
     const task: ExecutionTaskPlanningApply = {
       type: 'Planning',
       subType: 'Plan',
       locate: null,
       param: {
         userInstruction,
-        log,
       },
       executor: async (param, executorContext) => {
         const startTime = Date.now();
         const { uiContext } = await this.setupPlanningContext(executorContext);
+        const { vlMode } = modelConfig;
+        const uiTarsModelVersion =
+          vlMode === 'vlm-ui-tars' ? modelConfig.uiTarsModelVersion : undefined;
 
         assert(
           this.interface.actionSpace,
@@ -698,14 +697,18 @@ export class TaskExecutor {
           );
         }
 
-        const planResult = await plan(param.userInstruction, {
-          context: uiContext,
-          log: param.log,
-          actionContext,
-          interfaceType: this.interface.interfaceType as InterfaceType,
-          actionSpace,
-          modelConfig,
-        });
+        const planResult = await (uiTarsModelVersion ? uiTarsPlanning : plan)(
+          param.userInstruction,
+          {
+            context: uiContext,
+            actionContext,
+            interfaceType: this.interface.interfaceType as InterfaceType,
+            actionSpace,
+            modelConfig,
+            conversationHistory: this.conversationHistory,
+          },
+        );
+        debug('planResult', JSON.stringify(planResult, null, 2));
 
         const {
           actions,
@@ -724,36 +727,6 @@ export class TaskExecutor {
         executorContext.task.usage = usage;
 
         const finalActions = actions || [];
-
-        // TODO: check locate result
-        // let bboxCollected = false;
-        // (actions || []).reduce<PlanningAction[]>(
-        //   (acc, planningAction) => {
-        //     // TODO: magic field "locate" is used to indicate the action requires a locate
-        //     if (planningAction.locate) {
-        //       // we only collect bbox once, let qwen re-locate in the following steps
-        //       if (bboxCollected && planningAction.locate.bbox) {
-        //         // biome-ignore lint/performance/noDelete: <explanation>
-        //         delete planningAction.locate.bbox;
-        //       }
-
-        //       if (planningAction.locate.bbox) {
-        //         bboxCollected = true;
-        //       }
-
-        //       acc.push({
-        //         type: 'Locate',
-        //         locate: planningAction.locate,
-        //         param: null,
-        //         // thought is prompt created by ai, always a string
-        //         thought: planningAction.locate.prompt as string,
-        //       });
-        //     }
-        //     acc.push(planningAction);
-        //     return acc;
-        //   },
-        //   [],
-        // );
 
         if (sleep) {
           const timeNow = Date.now();
@@ -794,83 +767,6 @@ export class TaskExecutor {
     return task;
   }
 
-  private planningTaskToGoal(
-    userInstruction: string,
-    opts: {
-      modelConfig: IModelConfig;
-    },
-  ) {
-    const task: ExecutionTaskPlanningApply = {
-      type: 'Planning',
-      subType: 'Plan',
-      locate: null,
-      param: {
-        userInstruction,
-      },
-      executor: async (param, executorContext) => {
-        const { uiContext } = await this.setupPlanningContext(executorContext);
-        const { modelConfig } = opts;
-        const { uiTarsModelVersion } = modelConfig;
-
-        const imagePayload = await resizeImageForUiTars(
-          uiContext.screenshotBase64,
-          uiContext.size,
-          uiTarsModelVersion,
-        );
-
-        this.appendConversationHistory({
-          role: 'user',
-          content: [
-            {
-              type: 'image_url',
-              image_url: {
-                url: imagePayload,
-              },
-            },
-          ],
-        });
-        const planResult: {
-          actions: PlanningAction<any>[];
-          action_summary: string;
-          usage?: AIUsageInfo;
-          yamlFlow?: MidsceneYamlFlowItem[];
-          rawResponse?: string;
-        } = await vlmPlanning({
-          userInstruction: param.userInstruction,
-          conversationHistory: this.conversationHistory,
-          size: uiContext.size,
-          modelConfig,
-        });
-
-        const { actions, action_summary, usage } = planResult;
-        executorContext.task.log = {
-          ...(executorContext.task.log || {}),
-          rawResponse: planResult.rawResponse,
-        };
-        executorContext.task.usage = usage;
-        this.appendConversationHistory({
-          role: 'assistant',
-          content: action_summary,
-        });
-        return {
-          output: {
-            actions,
-            thought: actions[0]?.thought,
-            actionType: actions[0].type,
-            more_actions_needed_by_instruction: true,
-            log: '',
-            yamlFlow: planResult.yamlFlow,
-          },
-          cache: {
-            hit: false,
-          },
-        };
-      },
-    };
-
-    return task;
-  }
-
   async runPlans(
     title: string,
     plans: PlanningAction[],
@@ -889,6 +785,18 @@ export class TaskExecutor {
     };
   }
 
+  private getReplanningCycleLimit(isVlmUiTars: boolean) {
+    return (
+      this.replanningCycleLimit ||
+      globalConfigManager.getEnvConfigInNumber(
+        MIDSCENE_REPLANNING_CYCLE_LIMIT,
+      ) ||
+      (isVlmUiTars
+        ? defaultVlmUiTarsReplanningCycleLimit
+        : defaultReplanningCycleLimit)
+    );
+  }
+
   async action(
     userPrompt: string,
     modelConfig: IModelConfig,
@@ -901,35 +809,33 @@ export class TaskExecutor {
       | undefined
     >
   > {
+    this.conversationHistory.reset();
+
     const taskExecutor = new Executor(taskTitleStr('Action', userPrompt), {
       onTaskStart: this.onTaskStartCallback,
     });
 
-    let planningTask: ExecutionTaskPlanningApply | null =
-      this.planningTaskFromPrompt(userPrompt, {
-        log: undefined,
-        actionContext,
-        modelConfig,
-      });
     let replanCount = 0;
-    const logList: string[] = [];
-
     const yamlFlow: MidsceneYamlFlowItem[] = [];
-    const replanningCycleLimit =
-      this.replanningCycleLimit ||
-      globalConfigManager.getEnvConfigInNumber(
-        MIDSCENE_REPLANNING_CYCLE_LIMIT,
-      ) ||
-      defaultReplanningCycleLimit;
-    while (planningTask) {
+    const replanningCycleLimit = this.getReplanningCycleLimit(
+      modelConfig.vlMode === 'vlm-ui-tars',
+    );
+
+    // Main planning loop - unified plan/replan logic
+    while (true) {
       if (replanCount > replanningCycleLimit) {
-        const errorMsg =
-          'Replanning too many times, please split the task into multiple steps';
+        const errorMsg = `Replanning ${replanningCycleLimit} times, which is more than the limit, please split the task into multiple steps`;
 
         return this.appendErrorPlan(taskExecutor, errorMsg, modelConfig);
       }
 
-      // plan
+      // Create planning task (automatically includes execution history if available)
+      const planningTask = this.createPlanningTask(
+        userPrompt,
+        actionContext,
+        modelConfig,
+      );
+
       await taskExecutor.append(planningTask);
       const result = await taskExecutor.flush();
       const planResult: PlanningAIResponse = result?.output;
@@ -940,6 +846,7 @@ export class TaskExecutor {
         };
       }
 
+      // Execute planned actions
       const plans = planResult.actions || [];
       yamlFlow.push(...(planResult.yamlFlow || []));
 
@@ -964,108 +871,16 @@ export class TaskExecutor {
           executor: taskExecutor,
         };
       }
-      if (planResult?.log) {
-        logList.push(planResult.log);
-      }
 
+      // Check if task is complete
       if (!planResult.more_actions_needed_by_instruction) {
-        planningTask = null;
         break;
       }
-      planningTask = this.planningTaskFromPrompt(userPrompt, {
-        log: logList.length > 0 ? `- ${logList.join('\n- ')}` : undefined,
-        actionContext,
-        modelConfig,
-      });
+
+      // Increment replan count for next iteration
       replanCount++;
     }
 
-    return {
-      output: {
-        yamlFlow,
-      },
-      executor: taskExecutor,
-    };
-  }
-
-  async actionToGoal(
-    userPrompt: string,
-    modelConfig: IModelConfig,
-  ): Promise<
-    ExecutionResult<
-      | {
-          yamlFlow?: MidsceneYamlFlowItem[]; // for cache use
-        }
-      | undefined
-    >
-  > {
-    const taskExecutor = new Executor(taskTitleStr('Action', userPrompt), {
-      onTaskStart: this.onTaskStartCallback,
-    });
-    this.conversationHistory = [];
-    const isCompleted = false;
-    let currentActionCount = 0;
-    const maxActionNumber = 40;
-
-    const yamlFlow: MidsceneYamlFlowItem[] = [];
-    while (!isCompleted && currentActionCount < maxActionNumber) {
-      currentActionCount++;
-      debug(
-        'actionToGoal, currentActionCount:',
-        currentActionCount,
-        'userPrompt:',
-        userPrompt,
-      );
-
-      const planningTask: ExecutionTaskPlanningApply = this.planningTaskToGoal(
-        userPrompt,
-        {
-          modelConfig,
-        },
-      );
-      await taskExecutor.append(planningTask);
-      const result = await taskExecutor.flush();
-      if (taskExecutor.isInErrorState()) {
-        return {
-          output: undefined,
-          executor: taskExecutor,
-        };
-      }
-      if (!result) {
-        throw new Error(
-          'result of taskExecutor.flush() is undefined in function actionToGoal',
-        );
-      }
-      const { output } = result;
-      const plans = output.actions;
-      yamlFlow.push(...(output.yamlFlow || []));
-      let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
-      try {
-        executables = await this.convertPlanToExecutable(plans, modelConfig);
-        taskExecutor.append(executables.tasks);
-      } catch (error) {
-        return this.appendErrorPlan(
-          taskExecutor,
-          `Error converting plans to executable tasks: ${error}, plans: ${JSON.stringify(
-            plans,
-          )}`,
-          modelConfig,
-        );
-      }
-
-      await taskExecutor.flush();
-
-      if (taskExecutor.isInErrorState()) {
-        return {
-          output: undefined,
-          executor: taskExecutor,
-        };
-      }
-
-      if (plans[0].type === 'Finished') {
-        break;
-      }
-    }
     return {
       output: {
         yamlFlow,
@@ -1216,39 +1031,6 @@ export class TaskExecutor {
       opt,
       multimodalPrompt,
     );
-  }
-
-  /**
-   * Append a message to the conversation history
-   * For user messages with images:
-   * - Keep max 4 user image messages in history
-   * - Remove oldest user image message when limit reached
-   * For assistant messages:
-   * - Simply append to history
-   * @param conversationHistory Message to append
-   */
-  private appendConversationHistory(
-    conversationHistory: ChatCompletionMessageParam,
-  ) {
-    if (conversationHistory.role === 'user') {
-      // Get all existing user messages with images
-      const userImgItems = this.conversationHistory.filter(
-        (item) => item.role === 'user',
-      );
-
-      // If we already have 4 user image messages
-      if (userImgItems.length >= 4 && conversationHistory.role === 'user') {
-        // Remove first user image message when we already have 4, before adding new one
-        const firstUserImgIndex = this.conversationHistory.findIndex(
-          (item) => item.role === 'user',
-        );
-        if (firstUserImgIndex >= 0) {
-          this.conversationHistory.splice(firstUserImgIndex, 1);
-        }
-      }
-    }
-    // For non-user messages, simply append to history
-    this.conversationHistory.push(conversationHistory);
   }
 
   private async appendErrorPlan(
