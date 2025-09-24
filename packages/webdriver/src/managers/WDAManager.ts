@@ -2,9 +2,10 @@ import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import { getDebug } from '@midscene/shared/logger';
+import { BaseServiceManager } from './ServiceManager';
 
 const execAsync = promisify(exec);
-const debugWDA = getDebug('ios:wda-manager');
+const debugWDA = getDebug('webdriver:wda-manager');
 
 export interface WDAConfig {
   port: number;
@@ -14,12 +15,13 @@ export interface WDAConfig {
   usePrebuiltWDA?: boolean;
 }
 
-export class WDAManager {
+export class WDAManager extends BaseServiceManager {
   private static instances = new Map<string, WDAManager>();
   private config: WDAConfig;
   private isStarted = false;
 
   private constructor(config: WDAConfig) {
+    super(config.port, config.host);
     this.config = {
       bundleId: 'com.apple.WebDriverAgentRunner.xctrunner',
       usePrebuiltWDA: true,
@@ -86,18 +88,8 @@ export class WDAManager {
     }
   }
 
-  async restart(): Promise<void> {
-    await this.stop();
-    await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2 seconds
-    await this.start();
-  }
-
   isRunning(): boolean {
     return this.isStarted;
-  }
-
-  getPort(): number {
-    return this.config.port;
   }
 
   private async startWDA(): Promise<void> {

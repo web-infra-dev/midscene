@@ -17,15 +17,9 @@
     "build:watch": "rslib build --watch"
   },
   "dependencies": {
-    "@midscene/ios": "workspace:*",
-    "@midscene/core": "workspace:*",
-    "@midscene/playground": "workspace:*",
-    "@midscene/shared": "workspace:*",
-    "@inquirer/prompts": "^7.8.6",
-    "open": "10.1.0"
+    "@midscene/ios": "workspace:*"
   },
   "devDependencies": {
-    "@microsoft/api-extractor": "^7.52.10",
     "@rslib/core": "^0.11.2",
     "@types/node": "^18.0.0",
     "typescript": "^5.8.3"

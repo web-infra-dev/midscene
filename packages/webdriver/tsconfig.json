@@ -13,9 +13,6 @@
     },
     {
       "path": "../shared"
-    },
-    {
-      "path": "../webdriver"
     }
   ]
 }

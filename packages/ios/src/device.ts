@@ -22,8 +22,8 @@ import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
-import { WebDriverAgentBackend } from './wda-backend';
-import { WDAManager } from './wda-manager';
+import { WDAManager } from '@midscene/webdriver';
+import { IOSWebDriverClient as WebDriverAgentBackend } from './ios-webdriver-client';
 
 const debugDevice = getDebug('ios:device');
 
@@ -207,7 +207,10 @@ export class IOSDevice implements AbstractInterface {
 
     const wdaPort = options?.wdaPort || DEFAULT_WDA_PORT;
     const wdaHost = options?.wdaHost || 'localhost';
-    this.wdaBackend = new WebDriverAgentBackend(wdaPort, wdaHost);
+    this.wdaBackend = new WebDriverAgentBackend({
+      port: wdaPort,
+      host: wdaHost,
+    });
     this.wdaManager = WDAManager.getInstance(wdaPort, wdaHost);
   }
 
@@ -366,27 +369,21 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
 
     // For iOS, we need to use different methods to clear text
     try {
-      // Method 1: Try to use WDA's element clear if available
-      await this.wdaBackend.clearElement();
-    } catch (error) {
-      debugDevice(`Method 1 failed, trying method 2: ${error}`);
-      try {
-        // Method 2: Long press to select all, then delete
-        await this.longPress(element.center[0], element.center[1], 800);
-        await sleep(200);
+      // Method 1: Long press to select all, then delete
+      await this.longPress(element.center[0], element.center[1], 800);
+      await sleep(200);
 
-        // Type empty string to replace selected text
-        await this.wdaBackend.typeText('');
-      } catch (error2) {
-        debugDevice(`Method 2 failed, trying method 3: ${error2}`);
-        try {
-          // Method 3: Send multiple backspace characters
-          const backspaces = Array(30).fill('\u0008').join(''); // Unicode backspace
-          await this.wdaBackend.typeText(backspaces);
-        } catch (error3) {
-          debugDevice(`All clear methods failed: ${error3}`);
-          // Continue anyway, maybe there was no text to clear
-        }
+      // Type empty string to replace selected text
+      await this.wdaBackend.typeText('');
+    } catch (error2) {
+      debugDevice(`Method 1 failed, trying method 2: ${error2}`);
+      try {
+        // Method 2: Send multiple backspace characters
+        const backspaces = Array(30).fill('\u0008').join(''); // Unicode backspace
+        await this.wdaBackend.typeText(backspaces);
+      } catch (error3) {
+        debugDevice(`All clear methods failed: ${error3}`);
+        // Continue anyway, maybe there was no text to clear
       }
     }
   }
@@ -711,7 +708,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
 
   // iOS specific methods
   async home(): Promise<void> {
-    await this.wdaBackend.homeButton();
+    await this.wdaBackend.pressHomeButton();
   }
 
   async appSwitcher(): Promise<void> {
@@ -739,13 +736,10 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
   async hideKeyboard(_options?: IOSDeviceInputOpt): Promise<boolean> {
     try {
       // Use WebDriverAgent's dedicated keyboard dismiss API
-      await this.wdaBackend.makeRequest(
-        'POST',
-        `/session/${this.wdaBackend.sessionInfo!.sessionId}/wda/keyboard/dismiss`,
-      );
+      const result = await this.wdaBackend.dismissKeyboard();
       debugDevice('Successfully dismissed keyboard using WDA API');
       await sleep(300);
-      return true;
+      return result;
     } catch (e) {
       debugDevice(`Failed to hide keyboard using WDA API: ${e}`);
       return false;

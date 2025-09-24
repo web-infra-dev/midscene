@@ -43,13 +43,12 @@
   "dependencies": {
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
+    "@midscene/webdriver": "workspace:*",
     "@inquirer/prompts": "^7.8.6",
     "open": "10.1.0"
   },
   "devDependencies": {
-    "@microsoft/api-extractor": "^7.52.10",
     "@midscene/playground": "workspace:*",
-    "appium-webdriveragent": "^10.1.1",
     "@rslib/core": "^0.11.2",
     "@types/node": "^18.0.0",
     "dotenv": "^16.4.5",
