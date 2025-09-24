@@ -76,10 +76,8 @@ export async function plan(
 
   warnGPT4oSizeLimit(size, modelName);
 
-  const historyLog =
-    opts.conversationHistory
-      ?.snapshot()
-      .filter((item) => item.role === 'assistant') || [];
+  const historyLog = opts.conversationHistory?.snapshot() || [];
+  // .filter((item) => item.role === 'assistant') || [];
 
   const knowledgeContext: ChatCompletionMessageParam[] = opts.actionContext
     ? [
@@ -213,6 +211,15 @@ export async function plan(
       {
         type: 'text',
         text: rawResponse,
+      },
+    ],
+  });
+  conversationHistory?.append({
+    role: 'user',
+    content: [
+      {
+        type: 'text',
+        text: 'I have finished the task',
       },
     ],
   });
