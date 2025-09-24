@@ -93,15 +93,15 @@ describe('image utils', () => {
     const jimpImage = await jimpFromBase64(base64);
     const result = await paddingToMatchBlock(jimpImage);
 
-    const width = result.bitmap.width;
+    const width = result.image.bitmap.width;
     expect(width).toMatchSnapshot();
 
-    const height = result.bitmap.height;
+    const height = result.image.bitmap.height;
     expect(height).toMatchSnapshot();
 
     const tmpFile = join(tmpdir(), 'heytea-padded.jpeg');
     await saveBase64Image({
-      base64Data: await jimpToBase64(result),
+      base64Data: await jimpToBase64(result.image),
       outputPath: tmpFile,
     });
     // console.log('tmpFile', tmpFile);
@@ -123,7 +123,7 @@ describe('image utils', () => {
 
     expect(croppedBase64).toBeTruthy();
 
-    const info = await imageInfoOfBase64(croppedBase64);
+    const info = await imageInfoOfBase64(croppedBase64.imageBase64);
     // biome-ignore lint/style/noUnusedTemplateLiteral: by intention
     expect(info.width).toMatchInlineSnapshot(`112`);
     // biome-ignore lint/style/noUnusedTemplateLiteral: by intention
@@ -131,7 +131,7 @@ describe('image utils', () => {
 
     const tmpFile = join(tmpdir(), 'heytea-cropped.jpeg');
     await saveBase64Image({
-      base64Data: croppedBase64,
+      base64Data: croppedBase64.imageBase64,
       outputPath: tmpFile,
     });
     console.log('cropped image saved to', tmpFile);
@@ -153,7 +153,7 @@ describe('image utils', () => {
 
     expect(croppedBase64).toBeTruthy();
 
-    const info = await imageInfoOfBase64(croppedBase64);
+    const info = await imageInfoOfBase64(croppedBase64.imageBase64);
     // biome-ignore lint/style/noUnusedTemplateLiteral: by intention
     expect(info.width).toMatchInlineSnapshot(`100`);
     // biome-ignore lint/style/noUnusedTemplateLiteral: by intention
@@ -161,7 +161,7 @@ describe('image utils', () => {
 
     const tmpFile = join(tmpdir(), 'heytea-cropped-2.jpeg');
     await saveBase64Image({
-      base64Data: croppedBase64,
+      base64Data: croppedBase64.imageBase64,
       outputPath: tmpFile,
     });
     console.log('cropped image saved to', tmpFile);
