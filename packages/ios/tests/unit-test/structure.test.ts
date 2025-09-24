@@ -1,9 +1,9 @@
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
+import { WDAManager } from '@midscene/webdriver';
 import { describe, expect, it } from 'vitest';
 import { IOSAgent } from '../../src/agent';
 import { IOSDevice } from '../../src/device';
-import { WebDriverAgentBackend } from '../../src/wda-backend';
-import { WDAManager } from '../../src/wda-manager';
+import { IOSWebDriverClient } from '../../src/ios-webdriver-client';
 
 describe('iOS Package Structure', () => {
   describe('IOSDevice', () => {
@@ -71,33 +71,33 @@ describe('iOS Package Structure', () => {
     });
   });
 
-  describe('WebDriverAgentBackend', () => {
+  describe('IOSWebDriverClient', () => {
     it('should be constructable with parameters', () => {
-      expect(() => new WebDriverAgentBackend()).not.toThrow();
-      expect(() => new WebDriverAgentBackend(9100)).not.toThrow();
+      expect(() => new IOSWebDriverClient()).not.toThrow();
+      expect(() => new IOSWebDriverClient({ port: 9100 })).not.toThrow();
       expect(
-        () => new WebDriverAgentBackend(9100, 'custom-host'),
+        () => new IOSWebDriverClient({ port: 9100, host: 'custom-host' }),
       ).not.toThrow();
     });
 
     it('should have proper initial state', () => {
-      const backend = new WebDriverAgentBackend();
-      expect(backend.sessionInfo).toBeNull();
+      const client = new IOSWebDriverClient();
+      expect(client.sessionInfo).toBeNull();
     });
 
     it('should have required methods', () => {
-      const backend = new WebDriverAgentBackend();
-      expect(typeof backend.createSession).toBe('function');
-      expect(typeof backend.deleteSession).toBe('function');
-      expect(typeof backend.getWindowSize).toBe('function');
-      expect(typeof backend.takeScreenshot).toBe('function');
-      expect(typeof backend.tap).toBe('function');
-      expect(typeof backend.swipe).toBe('function');
-      expect(typeof backend.typeText).toBe('function');
-      expect(typeof backend.pressKey).toBe('function');
-      expect(typeof backend.homeButton).toBe('function');
-      expect(typeof backend.launchApp).toBe('function');
-      expect(typeof backend.getDeviceInfo).toBe('function');
+      const client = new IOSWebDriverClient();
+      expect(typeof client.createSession).toBe('function');
+      expect(typeof client.deleteSession).toBe('function');
+      expect(typeof client.getWindowSize).toBe('function');
+      expect(typeof client.takeScreenshot).toBe('function');
+      expect(typeof client.tap).toBe('function');
+      expect(typeof client.swipe).toBe('function');
+      expect(typeof client.typeText).toBe('function');
+      expect(typeof client.pressKey).toBe('function');
+      expect(typeof client.pressHomeButton).toBe('function');
+      expect(typeof client.launchApp).toBe('function');
+      expect(typeof client.getDeviceInfo).toBe('function');
     });
   });
 
@@ -156,12 +156,12 @@ describe('iOS Package Structure', () => {
     it('should have consistent device handling', () => {
       const device = new IOSDevice();
       const agent = new IOSAgent(device);
-      const backend = new WebDriverAgentBackend();
+      const client = new IOSWebDriverClient();
       const manager = WDAManager.getInstance();
 
       expect(device.describe()).toContain('pending-connection');
       expect(agent.page).toBe(device);
-      expect(backend).toBeDefined();
+      expect(client).toBeDefined();
       expect(manager).toBeDefined();
     });
 

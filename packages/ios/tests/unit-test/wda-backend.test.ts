@@ -1,59 +1,69 @@
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import { describe, expect, it } from 'vitest';
 
-describe('WebDriverAgentBackend - Simple Tests', () => {
+describe('IOSWebDriverClient - Simple Tests', () => {
   describe('Module Structure', () => {
-    it('should export WebDriverAgentBackend class', async () => {
-      const module = await import('../../src/wda-backend');
-      expect(module.WebDriverAgentBackend).toBeDefined();
-      expect(typeof module.WebDriverAgentBackend).toBe('function'); // Constructor is a function
+    it('should export IOSWebDriverClient class', async () => {
+      const module = await import('../../src/ios-webdriver-client');
+      expect(module.IOSWebDriverClient).toBeDefined();
+      expect(typeof module.IOSWebDriverClient).toBe('function'); // Constructor is a function
     });
 
     it('should be constructible with basic parameters', async () => {
-      const { WebDriverAgentBackend } = await import('../../src/wda-backend');
+      const { IOSWebDriverClient } = await import(
+        '../../src/ios-webdriver-client'
+      );
 
       expect(() => {
-        new WebDriverAgentBackend(DEFAULT_WDA_PORT, 'localhost');
+        new IOSWebDriverClient({ port: DEFAULT_WDA_PORT, host: 'localhost' });
       }).not.toThrow();
     });
 
     it('should have expected public methods', async () => {
-      const { WebDriverAgentBackend } = await import('../../src/wda-backend');
-      const backend = new WebDriverAgentBackend(DEFAULT_WDA_PORT, 'localhost');
+      const { IOSWebDriverClient } = await import(
+        '../../src/ios-webdriver-client'
+      );
+      const client = new IOSWebDriverClient({
+        port: DEFAULT_WDA_PORT,
+        host: 'localhost',
+      });
 
       // Check that expected methods exist
       const expectedMethods = [
         'createSession',
         'deleteSession',
-        'makeRequest',
         'getWindowSize',
         'takeScreenshot',
         'tap',
         'swipe',
         'typeText',
         'pressKey',
-        'homeButton',
         'launchApp',
         'openUrl',
         'getDeviceInfo',
+        'pressHomeButton',
+        'activateApp',
+        'terminateApp',
       ];
 
       for (const method of expectedMethods) {
-        expect(backend[method]).toBeDefined();
-        expect(typeof backend[method]).toBe('function');
+        expect(client[method]).toBeDefined();
+        expect(typeof client[method]).toBe('function');
       }
     });
 
     it('should store initialization parameters correctly', async () => {
-      const { WebDriverAgentBackend } = await import('../../src/wda-backend');
+      const { IOSWebDriverClient } = await import(
+        '../../src/ios-webdriver-client'
+      );
       const port = 9876;
       const host = 'test-host';
 
-      const backend = new WebDriverAgentBackend(port, host);
+      const client = new IOSWebDriverClient({ port, host });
 
-      // Check that the backend stores the parameters (these are likely private but we can test behavior)
-      expect(backend).toBeDefined();
-      expect(backend.constructor.name).toBe('WebDriverAgentBackend');
+      // Check that the client stores the parameters (these are likely private but we can test behavior)
+      expect(client).toBeDefined();
+      expect(client.constructor.name).toBe('IOSWebDriverClient');
     });
   });
 });
