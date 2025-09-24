@@ -1,3 +1,4 @@
+import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import { describe, expect, it } from 'vitest';
 
 describe('WebDriverAgentBackend - Simple Tests', () => {
@@ -12,13 +13,13 @@ describe('WebDriverAgentBackend - Simple Tests', () => {
       const { WebDriverAgentBackend } = await import('../../src/wda-backend');
 
       expect(() => {
-        new WebDriverAgentBackend('test-udid', 8100, 'localhost');
+        new WebDriverAgentBackend(DEFAULT_WDA_PORT, 'localhost');
       }).not.toThrow();
     });
 
     it('should have expected public methods', async () => {
       const { WebDriverAgentBackend } = await import('../../src/wda-backend');
-      const backend = new WebDriverAgentBackend('test-udid', 8100, 'localhost');
+      const backend = new WebDriverAgentBackend(DEFAULT_WDA_PORT, 'localhost');
 
       // Check that expected methods exist
       const expectedMethods = [
@@ -34,6 +35,7 @@ describe('WebDriverAgentBackend - Simple Tests', () => {
         'homeButton',
         'launchApp',
         'openUrl',
+        'getDeviceInfo',
       ];
 
       for (const method of expectedMethods) {
@@ -44,11 +46,10 @@ describe('WebDriverAgentBackend - Simple Tests', () => {
 
     it('should store initialization parameters correctly', async () => {
       const { WebDriverAgentBackend } = await import('../../src/wda-backend');
-      const udid = 'test-device-123';
       const port = 9876;
       const host = 'test-host';
 
-      const backend = new WebDriverAgentBackend(udid, port, host);
+      const backend = new WebDriverAgentBackend(port, host);
 
       // Check that the backend stores the parameters (these are likely private but we can test behavior)
       expect(backend).toBeDefined();

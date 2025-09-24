@@ -136,6 +136,7 @@ for (const record of recordList) {
 - [Qwen2.5-VL](https://github.com/QwenLM/Qwen2.5-VL) 用于开源的视觉语言模型 Qwen2.5-VL。
 - [scrcpy](https://github.com/Genymobile/scrcpy) 和 [yume-chan](https://github.com/yume-chan) 允许我们使用浏览器控制 Android 设备。
 - [appium-adb](https://github.com/appium/appium-adb) 用于 javascript 桥接 adb。
+- [appium-webdriveragent](https://github.com/appium/WebDriverAgent) 用于 javascript 操作 XCTest。
 - [YADB](https://github.com/ysbing/YADB) 用于提高文本输入的兼容性。
 - [Puppeteer](https://github.com/puppeteer/puppeteer) 用于浏览器自动化与控制。
 - [Playwright](https://github.com/microsoft/playwright) 用于浏览器自动化与控制和测试。

@@ -18,6 +18,7 @@ import {
   defineActionTap,
 } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
+import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
@@ -28,7 +29,6 @@ const debugDevice = getDebug('ios:device');
 
 export type IOSDeviceInputOpt = {
   autoDismissKeyboard?: boolean;
-  keyboardDismissStrategy?: 'done-first' | 'escape-first';
 };
 
 export type IOSDeviceOpt = {
@@ -199,21 +199,28 @@ export class IOSDevice implements AbstractInterface {
     return [...defaultActions, ...customActions];
   }
 
-  constructor(deviceId: string, options?: IOSDeviceOpt) {
-    assert(deviceId, 'deviceId is required for IOSDevice');
-
-    this.deviceId = deviceId;
+  constructor(options?: IOSDeviceOpt) {
+    // deviceId will be auto-detected from WebDriverAgent connection
+    this.deviceId = 'pending-connection';
     this.options = options;
     this.customActions = options?.customActions;
 
-    const wdaPort = options?.wdaPort || 8100;
+    const wdaPort = options?.wdaPort || DEFAULT_WDA_PORT;
     const wdaHost = options?.wdaHost || 'localhost';
-    this.wdaBackend = new WebDriverAgentBackend(deviceId, wdaPort, wdaHost);
-    this.wdaManager = WDAManager.getInstance(deviceId, wdaPort, wdaHost);
+    this.wdaBackend = new WebDriverAgentBackend(wdaPort, wdaHost);
+    this.wdaManager = WDAManager.getInstance(wdaPort, wdaHost);
   }
 
   describe(): string {
     return this.description || `Device ID: ${this.deviceId}`;
+  }
+
+  async getConnectedDeviceInfo(): Promise<{
+    udid: string;
+    name: string;
+    model: string;
+  } | null> {
+    return await this.wdaBackend.getDeviceInfo();
   }
 
   public async connect(): Promise<void> {
@@ -232,10 +239,24 @@ export class IOSDevice implements AbstractInterface {
       // Create WDA session
       await this.wdaBackend.createSession();
 
+      // Try to get real device info from WebDriverAgent
+      const deviceInfo = await this.wdaBackend.getDeviceInfo();
+      if (deviceInfo?.udid) {
+        // Update deviceId with real UDID from WebDriverAgent
+        this.deviceId = deviceInfo.udid;
+        debugDevice(`Updated device ID to real UDID: ${this.deviceId}`);
+      }
+
       // Get device screen size for description
       const size = await this.getScreenSize();
       this.description = `
-UDID: ${this.deviceId}
+UDID: ${this.deviceId}${
+        deviceInfo
+          ? `
+Name: ${deviceInfo.name}
+Model: ${deviceInfo.model}`
+          : ''
+      }
 Type: WebDriverAgent
 ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
 `;
@@ -828,18 +849,5 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
 
     this.destroyed = true;
     debugDevice(`iOS device ${this.deviceId} destroyed`);
-  }
-
-  // Legacy methods (not applicable for WDA)
-  async getXpathsById(): Promise<string[]> {
-    throw new Error('Not implemented');
-  }
-
-  async getXpathsByPoint(): Promise<string[]> {
-    throw new Error('Not implemented');
-  }
-
-  async getElementInfoByXpath(): Promise<ElementInfo> {
-    throw new Error('Not implemented');
   }
 }

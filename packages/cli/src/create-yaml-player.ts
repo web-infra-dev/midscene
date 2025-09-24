@@ -12,7 +12,7 @@ import type {
 } from '@midscene/core';
 import { createAgent } from '@midscene/core/agent';
 import type { AbstractInterface } from '@midscene/core/device';
-import { agentFromIOSDevice } from '@midscene/ios';
+import { agentFromWebDriverAgent } from '@midscene/ios';
 import { getDebug } from '@midscene/shared/logger';
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
 import { puppeteerAgentForTarget } from '@midscene/web/puppeteer-agent-launcher';
@@ -191,11 +191,9 @@ export async function createYamlPlayer(
       // handle iOS
       if (typeof yamlScript.ios !== 'undefined') {
         const iosTarget = yamlScript.ios;
-        const agent = await agentFromIOSDevice(iosTarget?.deviceId, {
+        const agent = await agentFromWebDriverAgent({
           wdaPort: iosTarget?.wdaPort,
           wdaHost: iosTarget?.wdaHost,
-          autoDismissKeyboard: iosTarget?.autoDismissKeyboard,
-          keyboardDismissStrategy: iosTarget?.keyboardDismissStrategy,
         });
 
         if (iosTarget?.launch) {

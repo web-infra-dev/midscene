@@ -1,5 +1,4 @@
 ios:
-  deviceId: 00008120-0012144121E0201E
 
 tasks:
   - name: dummy task

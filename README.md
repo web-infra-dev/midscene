@@ -136,6 +136,7 @@ We would like to thank the following projects:
 - [Qwen2.5-VL](https://github.com/QwenLM/Qwen2.5-VL) for the open-source VL model Qwen2.5-VL.
 - [scrcpy](https://github.com/Genymobile/scrcpy) and [yume-chan](https://github.com/yume-chan) allow us to control Android devices with browser.
 - [appium-adb](https://github.com/appium/appium-adb) for the javascript bridge of adb.
+- [appium-webdriveragent](https://github.com/appium/WebDriverAgent) for the javascript operate XCTest。
 - [YADB](https://github.com/ysbing/YADB) for the yadb tool which improves the performance of text input.
 - [Puppeteer](https://github.com/puppeteer/puppeteer) for browser automation and control.
 - [Playwright](https://github.com/microsoft/playwright) for browser automation and control and testing.

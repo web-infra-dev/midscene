@@ -1,10 +1,7 @@
 import { sleep } from '@midscene/core/utils';
+import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import {
-  agentFromIOSDevice,
-  checkIOSEnvironment,
-  getConnectedDevices,
-} from '../../src';
+import { agentFromWebDriverAgent, checkIOSEnvironment } from '../../src';
 
 vi.setConfig({
   testTimeout: 240 * 1000,
@@ -21,13 +18,9 @@ describe('Test todo list', () => {
       throw new Error(`iOS environment check failed: ${envCheck.error}`);
     }
 
-    const devices = await getConnectedDevices();
-    if (devices.length === 0) {
-      throw new Error('No iOS devices available');
-    }
-
-    agent = await agentFromIOSDevice('00008120-0012144121E0201E', {
-      wdaPort: 8100,
+    // Connect to WebDriverAgent (should be running on localhost:${DEFAULT_WDA_PORT})
+    agent = await agentFromWebDriverAgent({
+      wdaPort: DEFAULT_WDA_PORT,
       wdaHost: 'localhost', // Using port forwarding via iproxy
       aiActionContext:
         'If any location, permission, user agreement, cookies popup, click agree or allow. If login page pops up, close it.',

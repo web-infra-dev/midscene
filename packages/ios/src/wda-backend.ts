@@ -1,8 +1,9 @@
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
+import {
+  DEFAULT_WDA_PORT,
+  WEBDRIVER_ELEMENT_ID_KEY,
+} from '@midscene/shared/constants';
 import { getDebug } from '@midscene/shared/logger';
 
-const execFileAsync = promisify(execFile);
 const debugWDA = getDebug('ios:wda');
 
 export interface WDASession {
@@ -12,7 +13,7 @@ export interface WDASession {
 
 export interface WDAElement {
   ELEMENT: string;
-  'element-6066-11e4-a52e-4f735466cecf': string;
+  [WEBDRIVER_ELEMENT_ID_KEY]: string;
 }
 
 export interface WDAElementInfo {
@@ -38,9 +39,57 @@ export class WebDriverAgentBackend {
     return this.session;
   }
 
-  constructor(udid: string, port = 8100, host = 'localhost') {
+  async getDeviceInfo(): Promise<{
+    udid: string;
+    name: string;
+    model: string;
+  } | null> {
+    try {
+      // Try to get device info from status endpoint first
+      const statusResponse = await this.makeRequest('GET', '/status');
+      if (statusResponse?.device) {
+        return {
+          udid:
+            statusResponse.device.udid ||
+            statusResponse.device.identifier ||
+            '',
+          name: statusResponse.device.name || '',
+          model:
+            statusResponse.device.model ||
+            statusResponse.device.productName ||
+            '',
+        };
+      }
+
+      // If no session exists, we can't get detailed device info
+      if (!this.session) {
+        debugWDA('No session available for device info');
+        return null;
+      }
+
+      // Try alternative WDA device info endpoint
+      const deviceResponse = await this.makeRequest(
+        'GET',
+        `/session/${this.session.sessionId}/wda/device/info`,
+      );
+      if (deviceResponse) {
+        return {
+          udid: deviceResponse.udid || deviceResponse.identifier || '',
+          name: deviceResponse.name || '',
+          model: deviceResponse.model || deviceResponse.productName || '',
+        };
+      }
+
+      return null;
+    } catch (error) {
+      debugWDA(`Failed to get device info: ${error}`);
+      return null;
+    }
+  }
+
+  constructor(port = DEFAULT_WDA_PORT, host = 'localhost') {
     this.baseURL = `http://${host}:${port}`;
-    debugWDA(`Initialized WDA backend for device ${udid} on ${host}:${port}`);
+    debugWDA(`Initialized WDA backend on ${host}:${port}`);
   }
 
   async createSession(): Promise<WDASession> {
@@ -569,8 +618,7 @@ export class WebDriverAgentBackend {
   async getElementInfo(element: WDAElement): Promise<WDAElementInfo> {
     this.ensureSession();
     try {
-      const elementId =
-        element.ELEMENT || element['element-6066-11e4-a52e-4f735466cecf'];
+      const elementId = element.ELEMENT || element[WEBDRIVER_ELEMENT_ID_KEY];
       const response = await this.makeRequest(
         'GET',
         `/session/${this.session!.sessionId}/element/${elementId}/rect`,
@@ -605,8 +653,7 @@ export class WebDriverAgentBackend {
 
   async clickElement(element: WDAElement): Promise<void> {
     this.ensureSession();
-    const elementId =
-      element.ELEMENT || element['element-6066-11e4-a52e-4f735466cecf'];
+    const elementId = element.ELEMENT || element[WEBDRIVER_ELEMENT_ID_KEY];
 
     // Try multiple click methods
     const clickMethods = [
@@ -699,8 +746,7 @@ export class WebDriverAgentBackend {
   ): Promise<boolean> {
     this.ensureSession();
     try {
-      const elementId =
-        element.ELEMENT || element['element-6066-11e4-a52e-4f735466cecf'];
+      const elementId = element.ELEMENT || element[WEBDRIVER_ELEMENT_ID_KEY];
 
       // Get current page source as baseline
       const initialSource = await this.makeRequest(
@@ -789,29 +835,43 @@ export class WebDriverAgentBackend {
   ): Promise<any> {
     try {
       const url = `${this.baseURL}${endpoint}`;
-      const curlArgs = this.buildCurlArgs(method, url, data);
 
       debugWDA(`Making ${method} request to ${endpoint}`);
-      const { stdout } = await execFileAsync('curl', curlArgs, {
-        maxBuffer: 50 * 1024 * 1024, // 50MB buffer for large screenshots
-      });
+
+      const requestOptions: RequestInit = {
+        method: method.toUpperCase(),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      };
+
+      if (data) {
+        requestOptions.body = JSON.stringify(data);
+      }
+
+      const response = await fetch(url, requestOptions);
+
+      // Get response text
+      const responseText = await response.text();
 
       // Handle empty responses
-      if (!stdout || stdout.trim() === '') {
+      if (!responseText || responseText.trim() === '') {
         debugWDA(`Empty response from ${endpoint}`);
         return null;
       }
 
-      let response;
+      let parsedResponse;
       try {
-        response = JSON.parse(stdout);
+        parsedResponse = JSON.parse(responseText);
       } catch (parseError) {
-        debugWDA(`JSON parse failed for ${endpoint}, response: "${stdout}"`);
+        debugWDA(
+          `JSON parse failed for ${endpoint}, response: "${responseText}"`,
+        );
         // For some endpoints that return plain text or no content, treat as success
         if (
-          stdout.trim() === 'OK' ||
-          stdout.trim() === 'true' ||
-          stdout.trim() === ''
+          responseText.trim() === 'OK' ||
+          responseText.trim() === 'true' ||
+          responseText.trim() === ''
         ) {
           return null;
         }
@@ -820,28 +880,18 @@ export class WebDriverAgentBackend {
         );
       }
 
-      if (response.error) {
+      if (parsedResponse.error) {
         throw new Error(
-          response.error.message || 'WebDriverAgent request failed',
+          parsedResponse.error.message || 'WebDriverAgent request failed',
         );
       }
 
-      return response.value !== undefined ? response.value : response;
+      return parsedResponse.value !== undefined
+        ? parsedResponse.value
+        : parsedResponse;
     } catch (error) {
       debugWDA(`Request failed: ${error}`);
       throw error;
     }
-  }
-
-  private buildCurlArgs(method: string, url: string, data?: any): string[] {
-    const args = ['-s', '-X', method];
-
-    if (data) {
-      args.push('-H', 'Content-Type: application/json');
-      args.push('-d', JSON.stringify(data));
-    }
-
-    args.push(url);
-    return args;
   }
 }

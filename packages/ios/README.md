@@ -101,16 +101,13 @@ pnpm add @midscene/ios
 
 ## Quick Start
 
-### Using iOS Simulator
+### Basic Usage (Recommended)
 
 ```typescript
-import { agentFromIOSSimulator } from '@midscene/ios';
+import { agentFromWebDriverAgent } from '@midscene/ios';
 
-// Connect to default booted simulator
-const agent = await agentFromIOSSimulator();
-
-// Or specify a simulator by name
-const agent = await agentFromIOSSimulator('iPhone 15');
+// Connect to WebDriverAgent (auto-detects device)
+const agent = await agentFromWebDriverAgent();
 
 // Launch an app
 await agent.launch('com.apple.MobileSafari');
@@ -121,17 +118,17 @@ await agent.aiAction('type "https://example.com"');
 await agent.aiAction('tap the go button');
 ```
 
-### Using Specific Device
+### Using Custom WebDriverAgent Configuration
 
 ```typescript
-import { agentFromIOSDevice, getConnectedDevices } from '@midscene/ios';
+import { agentFromWebDriverAgent } from '@midscene/ios';
 
-// List available devices
-const devices = await getConnectedDevices();
-console.log('Available devices:', devices);
-
-// Connect to specific device
-const agent = await agentFromIOSDevice('your-device-udid');
+// Connect to WebDriverAgent on custom host/port
+const agent = await agentFromWebDriverAgent({
+  wdaHost: 'localhost',
+  wdaPort: 8200,  // Custom port
+  aiActionContext: 'If any popup appears, click agree',
+});
 
 // Launch app and interact
 await agent.launch('com.yourapp.bundleid');
@@ -147,7 +144,11 @@ Core device automation class implementing the AbstractInterface.
 ```typescript
 import { IOSDevice } from '@midscene/ios';
 
-const device = new IOSDevice('device-udid');
+// Create device (deviceId is auto-detected from WebDriverAgent)
+const device = new IOSDevice({
+  wdaHost: 'localhost',
+  wdaPort: 8100,
+});
 await device.connect();
 
 // Basic interactions
@@ -173,9 +174,10 @@ await device.destroy();
 High-level agent for AI-powered automation.
 
 ```typescript
-import { IOSAgent, agentFromIOSDevice } from '@midscene/ios';
+import { IOSAgent, agentFromWebDriverAgent } from '@midscene/ios';
 
-const agent = await agentFromIOSDevice('udid');
+// Recommended approach
+const agent = await agentFromWebDriverAgent();
 
 // AI actions
 await agent.aiAction('tap the settings icon');
@@ -190,19 +192,18 @@ await agent.launch('com.apple.Preferences');
 
 ```typescript
 import {
-  getConnectedDevices,
-  getDefaultDevice,
-  ensureSimulatorBooted,
   checkIOSEnvironment,
+  ensureSimulatorBooted,
+  // Note: getConnectedDevices and getDefaultDevice are deprecated
+  // Use agentFromWebDriverAgent() instead
 } from '@midscene/ios';
-
-// Device discovery
-const devices = await getConnectedDevices();
-const defaultDevice = await getDefaultDevice();
 
 // Environment check
 const envStatus = await checkIOSEnvironment();
 console.log('iOS environment available:', envStatus.available);
+
+// Simulator management (if needed)
+await ensureSimulatorBooted('simulator-udid');
 
 // Simulator management
 await ensureSimulatorBooted('device-udid');
@@ -265,11 +266,12 @@ export MIDSCENE_IOS_SIMULATOR_UDID=your-simulator-udid
 
 ```typescript
 import { describe, it } from 'vitest';
-import { agentFromIOSSimulator } from '@midscene/ios';
+import { agentFromWebDriverAgent } from '@midscene/ios';
 
 describe('iOS App Test', () => {
   it('should login to app', async () => {
-    const agent = await agentFromIOSSimulator('iPhone 15');
+    // WebDriverAgent auto-detects the connected device
+    const agent = await agentFromWebDriverAgent();
     
     // Launch your app
     await agent.launch('com.yourcompany.yourapp');

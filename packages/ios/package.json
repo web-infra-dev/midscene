@@ -13,12 +13,20 @@
   "main": "./dist/lib/index.js",
   "module": "./dist/es/index.mjs",
   "types": "./dist/types/index.d.ts",
-  "files": ["dist", "README.md"],
+  "files": ["dist", "bin", "README.md"],
+  "bin": {
+    "midscene-ios-playground": "./bin/ios-playground"
+  },
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
       "import": "./dist/es/index.mjs",
       "require": "./dist/lib/index.js"
+    },
+    "./src/bin": {
+      "types": "./dist/types/bin.d.ts",
+      "import": "./dist/es/bin.mjs",
+      "require": "./dist/lib/bin.js"
     },
     "./package.json": "./package.json"
   },
@@ -35,7 +43,8 @@
   "dependencies": {
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
-    "teen_process": "^2.0.0"
+    "@inquirer/prompts": "^7.8.6",
+    "open": "10.1.0"
   },
   "devDependencies": {
     "@microsoft/api-extractor": "^7.52.10",

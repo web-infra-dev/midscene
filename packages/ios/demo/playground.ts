@@ -1,10 +1,7 @@
 import { playgroundForAgent } from '@midscene/playground';
+import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import dotenv from 'dotenv';
-import {
-  agentFromIOSDevice,
-  checkIOSEnvironment,
-  getConnectedDevices,
-} from '../src';
+import { agentFromWebDriverAgent } from '../src';
 
 dotenv.config({
   path: '../../.env',
@@ -13,34 +10,19 @@ dotenv.config({
 async function main() {
   await Promise.resolve(
     (async () => {
-      // Check if iOS environment is available
-      const envCheck = await checkIOSEnvironment();
-      if (!envCheck.available) {
-        throw new Error(`iOS environment check failed: ${envCheck.error}`);
-      }
+      console.log(
+        `🔌 Connecting to WebDriverAgent at localhost:${DEFAULT_WDA_PORT}...`,
+      );
 
-      // Get connected devices
-      const devices = await getConnectedDevices();
-      if (devices.length === 0) {
-        throw new Error('No iOS devices available');
-      }
-
-      console.log(`Found ${devices.length} iOS device(s):`);
-      devices.forEach((device, index) => {
-        console.log(`  ${index + 1}. ${device.name} (${device.udid})`);
-      });
-
-      // Use the first available device
-      const targetDevice = devices[0];
-      console.log(`Using device: ${targetDevice.name} (${targetDevice.udid})`);
-
-      // Create iOS agent
-      const agent = await agentFromIOSDevice(targetDevice.udid, {
-        wdaPort: 8100,
+      // Create iOS agent (will auto-detect connected device)
+      const agent = await agentFromWebDriverAgent({
+        wdaPort: DEFAULT_WDA_PORT,
         wdaHost: 'localhost', // Assumes iproxy is running for real devices
         aiActionContext:
           'If any location, permission, user agreement, cookies popup, click agree or allow. If login page pops up, close it.',
       });
+
+      console.log('✅ Connected to iOS device via WebDriverAgent');
 
       // 👀 launch playground for the agent
       const server = await playgroundForAgent(agent).launch({
@@ -52,7 +34,7 @@ async function main() {
       // Log the generated server ID for debugging
       console.log(`🔑 Generated Server ID: ${server.server.id}`);
       console.log('🚀 iOS Playground running at http://localhost:5808');
-      console.log(`📱 Connected to: ${targetDevice.name}`);
+      console.log('📱 Connected to iOS device via WebDriverAgent');
 
       // Keep the server running
       console.log('Press Ctrl+C to stop the playground...');
@@ -68,7 +50,9 @@ main().catch((err) => {
   console.error(err);
   console.error('\n💡 Make sure:');
   console.error('1. WebDriverAgent is running on your iOS device');
-  console.error('2. Port forwarding is set up (iproxy -u <UDID> 8100:8100)');
+  console.error(
+    `2. Port forwarding is set up (iproxy -u <UDID> ${DEFAULT_WDA_PORT}:${DEFAULT_WDA_PORT})`,
+  );
   console.error('3. Device is unlocked and trusted');
   process.exit(1);
 });

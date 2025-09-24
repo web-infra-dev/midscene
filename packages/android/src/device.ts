@@ -1394,18 +1394,6 @@ ${Object.keys(size)
     await sleep(100);
   }
 
-  async getXpathsById(): Promise<string[]> {
-    throw new Error('Not implemented');
-  }
-
-  async getXpathsByPoint(): Promise<string[]> {
-    throw new Error('Not implemented');
-  }
-
-  async getElementInfoByXpath(): Promise<ElementInfo> {
-    throw new Error('Not implemented');
-  }
-
   private getDisplayArg(): string {
     return typeof this.options?.displayId === 'number'
       ? ` -d ${this.options.displayId}`

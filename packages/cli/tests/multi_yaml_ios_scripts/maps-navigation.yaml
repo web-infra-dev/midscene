@@ -2,7 +2,6 @@
 
 ios:
   # launch: https://www.ebay.com
-  deviceId: 00008120-0012144121E0201E
 
 tasks:
   - name: travel

@@ -1,10 +1,6 @@
 import { sleep } from '@midscene/core/utils';
 import { beforeAll, describe, it, vi } from 'vitest';
-import {
-  agentFromIOSDevice,
-  checkIOSEnvironment,
-  getConnectedDevices,
-} from '../../src';
+import { agentFromWebDriverAgent, checkIOSEnvironment } from '../../src';
 
 vi.setConfig({
   testTimeout: 240 * 1000,
@@ -24,13 +20,7 @@ describe('Test eBay search', () => {
         return;
       }
 
-      const devices = await getConnectedDevices();
-      if (devices.length === 0) {
-        console.warn('No iOS devices available, skipping test');
-        return;
-      }
-
-      agent = await agentFromIOSDevice(devices[0].udid, {
+      agent = await agentFromWebDriverAgent({
         aiActionContext:
           'If any location, permission, user agreement, cookies popup, click agree or allow. If login page pops up, close it.',
       });

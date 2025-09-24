@@ -1,6 +1,6 @@
+import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { IOSDevice } from '../../src/device';
-import { getConnectedDevices, getDefaultDevice } from '../../src/utils';
 import { WebDriverAgentBackend } from '../../src/wda-backend';
 import { WDAManager } from '../../src/wda-manager';
 
@@ -11,10 +11,8 @@ vi.mock('../../src/wda-manager');
 
 describe('IOSDevice', () => {
   let device: IOSDevice;
-  let testUdid: string;
   let mockWdaBackend: Partial<WebDriverAgentBackend>;
 
-  const mockedUtils = vi.mocked({ getConnectedDevices, getDefaultDevice });
   const MockedWdaBackend = vi.mocked(WebDriverAgentBackend);
   const MockedWdaManager = vi.mocked(WDAManager);
 
@@ -34,8 +32,18 @@ describe('IOSDevice', () => {
       homeButton: vi.fn().mockResolvedValue(undefined),
       launchApp: vi.fn().mockResolvedValue(undefined),
       makeRequest: vi.fn().mockResolvedValue(null),
-      sessionInfo: { sessionId: 'test-session-id' }, // Add session info for keyboard tests
+      sessionInfo: {
+        sessionId: 'test-session-id',
+        capabilities: {},
+      }, // Add session info for keyboard tests
     };
+
+    // Add getDeviceInfo mock
+    mockWdaBackend.getDeviceInfo = vi.fn().mockResolvedValue({
+      udid: 'test-device-udid',
+      name: 'Test Device',
+      model: 'iPhone 15',
+    });
 
     MockedWdaBackend.mockImplementation(
       () => mockWdaBackend as WebDriverAgentBackend,
@@ -46,25 +54,16 @@ describe('IOSDevice', () => {
       start: vi.fn().mockResolvedValue(undefined),
       stop: vi.fn().mockResolvedValue(undefined),
       isRunning: vi.fn().mockReturnValue(true),
-      getPort: vi.fn().mockReturnValue(8100),
+      getPort: vi.fn().mockReturnValue(DEFAULT_WDA_PORT),
     };
 
     MockedWdaManager.getInstance = vi.fn().mockReturnValue(mockWdaManager);
 
-    // Setup mock utils
-    const mockDeviceInfo = {
-      udid: 'test-device-udid',
-      name: 'Test Device',
-      state: 'Connected',
-      isSimulator: false,
-      isAvailable: true,
-    };
-
-    mockedUtils.getDefaultDevice.mockResolvedValue(mockDeviceInfo);
-    mockedUtils.getConnectedDevices.mockResolvedValue([mockDeviceInfo]);
-
     testUdid = 'test-device-udid';
-    device = new IOSDevice(testUdid);
+    device = new IOSDevice({
+      wdaPort: DEFAULT_WDA_PORT,
+      wdaHost: 'localhost',
+    });
   });
 
   afterEach(async () => {
@@ -75,23 +74,22 @@ describe('IOSDevice', () => {
   });
 
   describe('Constructor', () => {
-    it('should create device with udid', () => {
+    it('should create device with options', () => {
       expect(device).toBeDefined();
       expect(device.interfaceType).toBe('ios');
     });
 
-    it('should throw error without udid', () => {
-      expect(() => new IOSDevice('')).toThrow(
-        'deviceId is required for IOSDevice',
-      );
+    it('should create device with default options', () => {
+      const defaultDevice = new IOSDevice();
+      expect(defaultDevice).toBeDefined();
+      expect(defaultDevice.interfaceType).toBe('ios');
     });
 
     it('should create device with custom options', () => {
-      const customDevice = new IOSDevice('test-udid', {
+      const customDevice = new IOSDevice({
         wdaPort: 9100,
         wdaHost: 'custom-host',
         autoDismissKeyboard: false,
-        keyboardDismissStrategy: 'escape-first',
       });
 
       expect(customDevice).toBeDefined();
@@ -99,24 +97,19 @@ describe('IOSDevice', () => {
     });
 
     it('should use default WDA settings when not specified', () => {
-      const device = new IOSDevice('test-udid');
+      const device = new IOSDevice();
       expect(MockedWdaBackend).toHaveBeenCalledWith(
-        'test-udid',
-        8100,
+        DEFAULT_WDA_PORT,
         'localhost',
       );
     });
 
     it('should use custom WDA settings when specified', () => {
-      const device = new IOSDevice('test-udid', {
+      const device = new IOSDevice({
         wdaPort: 9100,
         wdaHost: 'custom-host',
       });
-      expect(MockedWdaBackend).toHaveBeenCalledWith(
-        'test-udid',
-        9100,
-        'custom-host',
-      );
+      expect(MockedWdaBackend).toHaveBeenCalledWith(9100, 'custom-host');
     });
   });
 
@@ -125,10 +118,12 @@ describe('IOSDevice', () => {
       expect(device.interfaceType).toBe('ios');
     });
 
-    it('should provide device description', () => {
+    it('should provide device description', async () => {
+      await device.connect(); // Connect first to get device info
       const description = device.describe();
-      expect(description).toContain('Device ID');
-      expect(description).toContain(testUdid);
+      expect(description).toContain('UDID: test-device-udid');
+      expect(description).toContain('Name: Test Device');
+      expect(description).toContain('Model: iPhone 15');
     });
   });
 
@@ -155,7 +150,7 @@ describe('IOSDevice', () => {
         call: vi.fn(),
       };
 
-      const deviceWithCustomActions = new IOSDevice('test-udid', {
+      const deviceWithCustomActions = new IOSDevice({
         customActions: [customAction],
       });
 
@@ -337,29 +332,18 @@ describe('IOSDevice', () => {
 
   describe('Configuration Options', () => {
     it('should respect autoDismissKeyboard setting', () => {
-      const deviceWithoutAutoDismiss = new IOSDevice('test-udid', {
+      const deviceWithoutAutoDismiss = new IOSDevice({
         autoDismissKeyboard: false,
       });
       expect(deviceWithoutAutoDismiss).toBeDefined();
     });
 
-    it('should respect keyboardDismissStrategy setting', () => {
-      const deviceWithEscapeFirst = new IOSDevice('test-udid', {
-        keyboardDismissStrategy: 'escape-first',
-      });
-      expect(deviceWithEscapeFirst).toBeDefined();
-    });
-
     it('should handle custom WDA port and host', () => {
-      const deviceWithCustomWDA = new IOSDevice('test-udid', {
+      const deviceWithCustomWDA = new IOSDevice({
         wdaPort: 9100,
         wdaHost: 'remote-host',
       });
-      expect(MockedWdaBackend).toHaveBeenCalledWith(
-        'test-udid',
-        9100,
-        'remote-host',
-      );
+      expect(MockedWdaBackend).toHaveBeenCalledWith(9100, 'remote-host');
     });
   });
 
@@ -369,9 +353,7 @@ describe('IOSDevice', () => {
         throw new Error('WDA backend creation failed');
       });
 
-      expect(() => new IOSDevice('test-udid')).toThrow(
-        'WDA backend creation failed',
-      );
+      expect(() => new IOSDevice()).toThrow('WDA backend creation failed');
     });
 
     it('should handle session creation timeout', async () => {
@@ -463,7 +445,7 @@ describe('IOSDevice', () => {
         () => mockBackend as WebDriverAgentBackend,
       );
 
-      const deviceWithAutoDismiss = new IOSDevice('test-udid', {
+      const deviceWithAutoDismiss = new IOSDevice({
         autoDismissKeyboard: true,
       });
 

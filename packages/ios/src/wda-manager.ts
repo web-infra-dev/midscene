@@ -1,12 +1,12 @@
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
+import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import { getDebug } from '@midscene/shared/logger';
 
 const execAsync = promisify(exec);
 const debugWDA = getDebug('ios:wda-manager');
 
 export interface WDAConfig {
-  udid: string;
   port: number;
   host?: string;
   wdaPath?: string;
@@ -25,21 +25,23 @@ export class WDAManager {
       usePrebuiltWDA: true,
       host: 'localhost',
       ...config,
-      port: config.port || 8100,
+      port: config.port || DEFAULT_WDA_PORT,
     };
   }
 
-  static getInstance(udid: string, port = 8100, host?: string): WDAManager {
-    const key = `${host || 'localhost'}:${udid}:${port}`;
+  static getInstance(port = DEFAULT_WDA_PORT, host?: string): WDAManager {
+    const key = `${host || 'localhost'}:${port}`;
     if (!WDAManager.instances.has(key)) {
-      WDAManager.instances.set(key, new WDAManager({ udid, port, host }));
+      WDAManager.instances.set(key, new WDAManager({ port, host }));
     }
     return WDAManager.instances.get(key)!;
   }
 
   async start(): Promise<void> {
     if (this.isStarted) {
-      debugWDA(`WDA already started for device ${this.config.udid}`);
+      debugWDA(
+        `WDA already started on ${this.config.host}:${this.config.port}`,
+      );
       return;
     }
 
@@ -51,13 +53,8 @@ export class WDAManager {
         return;
       }
 
-      // Check device connection
-      await this.ensureDeviceConnected();
-
-      // Setup port forwarding for real devices
-      if (!(await this.isSimulator())) {
-        await this.setupPortForwarding();
-      }
+      // Note: Device connection and port forwarding are handled externally
+      // We only check if WebDriverAgent is running
 
       // Start WebDriverAgent
       await this.startWDA();
@@ -67,7 +64,7 @@ export class WDAManager {
 
       this.isStarted = true;
       debugWDA(
-        `WDA started successfully for device ${this.config.udid} on port ${this.config.port}`,
+        `WDA started successfully on ${this.config.host}:${this.config.port}`,
       );
     } catch (error) {
       debugWDA(`Failed to start WDA: ${error}`);
@@ -81,16 +78,8 @@ export class WDAManager {
     }
 
     try {
-      // Kill any remaining WDA processes (external ones)
-      await this.killWDAProcesses();
-
-      // Stop port forwarding for real devices
-      if (!(await this.isSimulator())) {
-        await this.stopPortForwarding();
-      }
-
       this.isStarted = false;
-      debugWDA(`WDA stopped for device ${this.config.udid}`);
+      debugWDA(`WDA stopped on ${this.config.host}:${this.config.port}`);
     } catch (error) {
       debugWDA(`Error stopping WDA: ${error}`);
       // Don't throw, cleanup should be best-effort
@@ -111,80 +100,8 @@ export class WDAManager {
     return this.config.port;
   }
 
-  private async ensureDeviceConnected(): Promise<void> {
-    try {
-      if (await this.isSimulator()) {
-        // Check simulator is booted
-        const { stdout } = await execAsync('xcrun simctl list devices --json');
-        const devices = JSON.parse(stdout);
-
-        let found = false;
-        for (const [runtime, deviceList] of Object.entries(devices.devices)) {
-          if (Array.isArray(deviceList)) {
-            for (const device of deviceList) {
-              const deviceInfo = device as any;
-              if (
-                deviceInfo.udid === this.config.udid &&
-                deviceInfo.state === 'Booted'
-              ) {
-                found = true;
-                break;
-              }
-            }
-          }
-        }
-
-        if (!found) {
-          throw new Error(`Simulator ${this.config.udid} is not booted`);
-        }
-      } else {
-        // For real devices, assume they are connected if we reach this point
-        // WebDriverAgent will validate the connection when it starts
-        debugWDA(`Assuming real device ${this.config.udid} is connected`);
-      }
-    } catch (error) {
-      throw new Error(`Device ${this.config.udid} is not available: ${error}`);
-    }
-  }
-
-  private async isSimulator(): Promise<boolean> {
-    try {
-      // Try to find device in simulator list
-      const { stdout } = await execAsync('xcrun simctl list devices --json');
-      const devices = JSON.parse(stdout);
-
-      for (const [runtime, deviceList] of Object.entries(devices.devices)) {
-        if (Array.isArray(deviceList)) {
-          for (const device of deviceList) {
-            const deviceInfo = device as any;
-            if (deviceInfo.udid === this.config.udid) {
-              return true;
-            }
-          }
-        }
-      }
-      return false;
-    } catch (error) {
-      return false;
-    }
-  }
-
-  private async setupPortForwarding(): Promise<void> {
-    // For real devices, assume port forwarding is handled externally
-    // Users can set up port forwarding manually using:
-    // iproxy <local_port> 8100 <device_udid>
-    debugWDA(`Skipping automatic port forwarding for ${this.config.udid}`);
-    debugWDA('For real devices, set up port forwarding manually if needed:');
-    debugWDA(`iproxy ${this.config.port} 8100 ${this.config.udid}`);
-  }
-
-  private async stopPortForwarding(): Promise<void> {
-    // Port forwarding is handled externally, nothing to stop
-    debugWDA(`Port forwarding cleanup skipped for ${this.config.udid}`);
-  }
-
   private async startWDA(): Promise<void> {
-    // We no longer start WDA automatically - just check if it's running
+    // We require WebDriverAgent to be started manually
     await this.checkWDAPreparation();
     debugWDA('WebDriverAgent verification completed');
   }
@@ -198,21 +115,30 @@ export class WDAManager {
 
     // If not running, throw error with setup instructions
     throw new Error(
-      `WebDriverAgent is not running on port ${this.config.port}. Please start WebDriverAgent manually:
-1. Install: npm install appium-webdriveragent
-2. Build and run WebDriverAgent using Xcode or xcodebuild  
-3. Ensure it's listening on port ${this.config.port}
-4. For simulators: Use iOS Simulator
-5. For real devices: Configure signing and trust certificates`,
+      `WebDriverAgent is not running on ${this.config.host}:${this.config.port}. Please start WebDriverAgent manually:
+
+🔧 Setup Instructions:
+1. Install WebDriverAgent: npm install appium-webdriveragent
+2. Build and run WebDriverAgent:
+   - For simulators: Use Xcode to run WebDriverAgentRunner on your target simulator
+   - For real devices: Build WebDriverAgentRunner and install on your device
+3. Ensure WebDriverAgent is listening on ${this.config.host}:${this.config.port}
+
+💡 Alternative: You can also specify a different host/port where WebDriverAgent is running.`,
     );
   }
 
   private async isWDARunning(): Promise<boolean> {
     try {
-      const { stdout } = await execAsync(
-        `curl -s http://${this.config.host}:${this.config.port}/status || echo "FAILED"`,
-      );
-      return !stdout.includes('FAILED') && stdout.includes('sessionId');
+      const url = `http://${this.config.host}:${this.config.port}/status`;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        return false;
+      }
+
+      const responseText = await response.text();
+      return responseText.includes('sessionId');
     } catch (error) {
       return false;
     }

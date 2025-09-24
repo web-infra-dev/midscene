@@ -2,6 +2,26 @@ import SetupEnv from './common/setup-env.mdx';
 
 # Integrate with iOS (WebDriverAgent)
 
+## About WebDriver and Midscene's Relationship
+
+WebDriver is a standard protocol established by W3C for browser automation, providing a unified API to control different browsers and applications. The WebDriver protocol defines the communication method between client and server, enabling automation tools to control various user interfaces across platforms.
+
+Through the efforts of the Appium team and other open source communities, the industry now has many excellent libraries that convert desktop and mobile device automation operations into WebDriver protocol. These tools include:
+- **Appium** - Cross-platform mobile automation framework
+- **WebDriverAgent** - Service dedicated to iOS device automation
+- **Selenium** - Web browser automation tool
+- **WinAppDriver** - Windows application automation tool
+
+**Midscene adapts to the WebDriver protocol**, which means developers can use AI models to perform intelligent automated operations on any device that supports WebDriver. Through this design, Midscene can not only control traditional operations like clicking and typing, but also:
+- Understand interface content and context
+- Execute complex multi-step operations
+- Perform intelligent assertions and validations
+- Extract and analyze interface data
+
+On iOS platform, Midscene connects to iOS devices through WebDriverAgent, allowing you to control iOS apps and system using natural language descriptions.
+
+---
+
 After connecting iOS devices using WebDriverAgent, you can use Midscene javascript SDK to control iOS devices.
 
 import { PackageManagerTabs } from '@theme';
@@ -110,14 +130,14 @@ Write the following code and save it as `./demo.ts`
 import {
   IOSAgent,
   IOSDevice,
-  getConnectedDevices,
+  agentFromWebDriverAgent,
 } from '@midscene/ios';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 Promise.resolve(
   (async () => {
-    const devices = await getConnectedDevices();
-    const page = new IOSDevice(devices[0].udid, {
+    // Method 1: Create device and agent directly
+    const page = new IOSDevice({
       wdaPort: 8100,
       wdaHost: 'localhost',
     });
@@ -128,6 +148,13 @@ Promise.resolve(
         'If any location, permission, user agreement, etc. popup appears, click agree. If login page appears, close it.',
     });
     await page.connect();
+
+    // Method 2: Or use convenience function (recommended)
+    // const agent = await agentFromWebDriverAgent({
+    //   wdaPort: 8100,
+    //   wdaHost: 'localhost',
+    //   aiActionContext: 'If any location, permission, user agreement, etc. popup appears, click agree. If login page appears, close it.',
+    // });
 
     // 👀 Directly open ebay.com webpage (recommended approach)
     await page.launch('https://ebay.com');
@@ -187,12 +214,10 @@ When the above command executes successfully, it will output in the console: `Mi
 
 The IOSDevice constructor supports the following parameters:
 
-- `deviceId: string` - Device ID or simulator identifier
 - `opts?: IOSDeviceOpt` - Optional parameters for IOSDevice configuration
   - `wdaPort?: number` - Optional, WebDriverAgent port. Default is 8100.
   - `wdaHost?: string` - Optional, WebDriverAgent host. Default is 'localhost'.
   - `autoDismissKeyboard?: boolean` - Optional, whether to automatically dismiss keyboard after text input. Default is true.
-  - `keyboardDismissStrategy?: 'done-first' | 'escape-first'` - Optional, strategy for dismissing keyboard. 'done-first' tries Done key first, then Escape if keyboard persists. 'escape-first' tries Escape key first, then Done if keyboard persists. Default is 'done-first'.
   - `customActions?: DeviceAction<any>[]` - Optional, list of custom device actions.
 
 ## Additional iOS Agent Interfaces
@@ -220,10 +245,15 @@ function launch(uri: string): Promise<void>;
 - Example:
 
 ```typescript
-import { IOSAgent, IOSDevice } from '@midscene/ios';
+import { IOSAgent, IOSDevice, agentFromWebDriverAgent } from '@midscene/ios';
 
-const page = new IOSDevice('00008120-001234567890123E');
+// Method 1: Create device and agent manually
+const page = new IOSDevice();
 const agent = new IOSAgent(page);
+await page.connect();
+
+// Method 2: Use convenience function (recommended)
+const agent = await agentFromWebDriverAgent();
 
 await agent.launch('https://www.apple.com'); // Open web page
 await agent.launch('com.apple.mobilesafari'); // Launch Safari
@@ -233,22 +263,20 @@ await agent.launch('tel:+1234567890'); // Make a phone call
 await agent.launch('mailto:example@email.com'); // Send an email
 ```
 
-### `agentFromIOSDevice()`
+### `agentFromWebDriverAgent()` (Recommended)
 
-Create an IOSAgent from a connected iOS device.
+Create an IOSAgent by connecting to WebDriverAgent service. This is the most convenient way.
 
 - Type
 
 ```typescript
-function agentFromIOSDevice(
-  deviceId?: string,
-  opts?: PageAgentOpt,
+function agentFromWebDriverAgent(
+  opts?: PageAgentOpt & IOSDeviceOpt,
 ): Promise<IOSAgent>;
 ```
 
 - Parameters:
 
-  - `deviceId?: string` - Optional, device ID of the iOS device to connect to. If not provided, uses the first connected device
   - `opts?: PageAgentOpt & IOSDeviceOpt` - Optional, configuration for initializing IOSAgent. PageAgentOpt refers to [Constructor](./api.mdx), IOSDeviceOpt configuration values refer to [IOSDevice Constructor](./integrate-with-ios#iosdevice-constructor)
 
 - Return Value:
@@ -258,49 +286,20 @@ function agentFromIOSDevice(
 - Example:
 
 ```typescript
-import { agentFromIOSDevice } from '@midscene/ios';
+import { agentFromWebDriverAgent } from '@midscene/ios';
 
-const agent = await agentFromIOSDevice('00008120-001234567890123E'); // Pass Device ID
-const agent = await agentFromIOSDevice(); // No Device ID, uses first connected device
+// Use default WebDriverAgent address (localhost:8100)
+const agent = await agentFromWebDriverAgent();
+
+// Use custom WebDriverAgent address
+const agent = await agentFromWebDriverAgent({
+  wdaHost: 'localhost',
+  wdaPort: 8200,
+  aiActionContext: 'If popups appear, click agree',
+});
 ```
 
-### `getConnectedDevices()`
 
-Get all connected iOS devices and simulators.
-
-- Type
-
-```typescript
-function getConnectedDevices(): Promise<Device[]>;
-interface Device {
-  /**
-   * The device deviceId or simulator identifier.
-   */
-  deviceId: string;
-  /**
-   * Device name
-   */
-  name: string;
-  /**
-   * Device type: 'device' for real device, 'simulator' for simulator
-   */
-  type: 'device' | 'simulator';
-}
-```
-
-- Return Value:
-
-  - `Promise<Device[]>` Returns an array of Device objects
-
-- Example:
-
-```typescript
-import { agentFromIOSDevice, getConnectedDevices } from '@midscene/ios';
-
-const devices = await getConnectedDevices();
-console.log(devices);
-const agent = await agentFromIOSDevice(devices[0].udid);
-```
 
 ## Extending Custom Interaction Actions
 
@@ -330,8 +329,7 @@ const ContinuousClick = defineAction({
   },
 });
 
-const page = new IOSDevice('your-device-id');
-const agent = new IOSAgent(page, {
+const agent = await agentFromWebDriverAgent({
   customActions: [ContinuousClick],
 });
 
@@ -367,10 +365,17 @@ Please check the following:
 
 ### How to use custom WebDriverAgent port and host?
 
-You can specify WebDriverAgent port and host through the IOSDevice constructor:
+You can specify WebDriverAgent port and host through the IOSDevice constructor or agentFromWebDriverAgent:
 
 ```typescript
-const device = new IOSDevice('00008120-001234567890123E', {
+// Method 1: Using IOSDevice
+const device = new IOSDevice({
+  wdaPort: 8200,        // Custom port
+  wdaHost: '192.168.1.100', // Custom host
+});
+
+// Method 2: Using convenience function (recommended)
+const agent = await agentFromWebDriverAgent({
   wdaPort: 8200,        // Custom port
   wdaHost: '192.168.1.100', // Custom host
 });
@@ -451,17 +456,19 @@ Common iOS app bundle identifiers:
 
 ```typescript title="test/ios.test.ts"
 import { describe, it, beforeAll, afterAll } from 'vitest';
-import { IOSDevice, IOSAgent, getConnectedDevices } from '@midscene/ios';
+import { IOSDevice, IOSAgent } from '@midscene/ios';
 
 describe('iOS App Tests', () => {
   let device: IOSDevice;
   let agent: IOSAgent;
 
   beforeAll(async () => {
-    const devices = await getConnectedDevices();
-    device = new IOSDevice(devices[0].udid);
+    device = new IOSDevice();
     agent = new IOSAgent(device);
     await device.connect();
+
+    // Or use the convenience function (recommended):
+    // agent = await agentFromWebDriverAgent();
   });
 
   afterAll(async () => {

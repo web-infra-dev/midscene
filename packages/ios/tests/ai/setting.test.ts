@@ -1,9 +1,5 @@
 import { describe, it, vi } from 'vitest';
-import {
-  agentFromIOSDevice,
-  checkIOSEnvironment,
-  getConnectedDevices,
-} from '../../src';
+import { agentFromWebDriverAgent, checkIOSEnvironment } from '../../src';
 
 vi.setConfig({
   testTimeout: 90 * 1000,
@@ -19,22 +15,13 @@ describe(
         throw new Error(`iOS environment check failed: ${envCheck.error}`);
       }
 
-      const devices = await getConnectedDevices();
-      if (devices.length === 0) {
-        throw new Error(
-          'No iOS devices/simulators available. Please ensure you have iOS simulators installed and available.',
-        );
-      }
-
-      // Find a booted device or use the first available one
-      const device = devices.find((d) => d.state === 'Booted') || devices[0];
-      console.log(`Using iOS device: ${device.name} (${device.udid})`);
-
-      const agent = await agentFromIOSDevice(device.udid, {
+      const agent = await agentFromWebDriverAgent({
         aiActionContext:
           'If any location, permission, user agreement, etc. popup, click agree. If login page pops up, close it.',
         autoDismissKeyboard: false, // Disable auto keyboard dismissal to avoid extra "done" text
       });
+
+      console.log('Connected to WebDriverAgent successfully');
 
       await agent.launch('com.apple.Preferences');
       await agent.aiAction('pull down to refresh');

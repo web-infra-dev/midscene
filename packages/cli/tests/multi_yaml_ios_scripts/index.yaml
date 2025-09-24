@@ -8,8 +8,7 @@ concurrent: 1
 continueOnError: true
 
 # Global android environment configuration (applied to all files)
-android: 
-  deviceId: 00008120-0012144121E0201E
+ios: 
 
 # Execution files using glob patterns
 files:

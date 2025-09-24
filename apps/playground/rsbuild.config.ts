@@ -1,5 +1,5 @@
-import fs from 'node:fs';
 import path from 'node:path';
+import { createPlaygroundCopyPlugin } from '@midscene/shared';
 import { defineConfig } from '@rsbuild/core';
 import { pluginLess } from '@rsbuild/plugin-less';
 import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
@@ -8,41 +8,24 @@ import { pluginSvgr } from '@rsbuild/plugin-svgr';
 import { pluginTypeCheck } from '@rsbuild/plugin-type-check';
 import { version as playgroundVersion } from '../../packages/playground/package.json';
 
-const copyWebPlaygroundStatic = () => ({
-  name: 'copy-playground-static',
-  setup(api) {
-    api.onAfterBuild(async () => {
-      const srcDir = path.join(__dirname, 'dist');
-      const destDir = path.join(
-        __dirname,
-        '..',
-        '..',
-        'packages',
-        'playground',
-        'static',
-      );
-      const faviconSrc = path.join(__dirname, 'src', 'favicon.ico');
-      const faviconDest = path.join(destDir, 'favicon.ico');
-
-      await fs.promises.mkdir(destDir, { recursive: true });
-      // Copy directory contents recursively
-      await fs.promises.cp(srcDir, destDir, { recursive: true });
-      // Copy favicon
-      await fs.promises.copyFile(faviconSrc, faviconDest);
-
-      console.log(`Copied build artifacts to ${destDir}`);
-      console.log(`Copied favicon to ${faviconDest}`);
-    });
-  },
-});
-
 export default defineConfig({
   plugins: [
     pluginReact(),
     pluginLess(),
     pluginNodePolyfill(),
     pluginSvgr(),
-    copyWebPlaygroundStatic(),
+    createPlaygroundCopyPlugin(
+      path.join(__dirname, 'dist'),
+      path.join(__dirname, '../../packages/playground/static'),
+      'copy-playground-static',
+      path.join(__dirname, 'src', 'favicon.ico'),
+    ),
+    createPlaygroundCopyPlugin(
+      path.join(__dirname, 'dist'),
+      path.join(__dirname, '../../packages/ios/static'),
+      'copy-ios-playground-static',
+      path.join(__dirname, 'src', 'favicon.ico'),
+    ),
     pluginTypeCheck(),
   ],
   resolve: {

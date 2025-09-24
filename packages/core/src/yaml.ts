@@ -113,7 +113,6 @@ export interface MidsceneYamlScriptIOSEnv extends MidsceneYamlScriptConfig {
 
   // Keyboard behavior configuration
   autoDismissKeyboard?: boolean;
-  keyboardDismissStrategy?: 'done-first' | 'escape-first';
 
   // The URL or app bundle ID to launch, optional, will use the current screen if not specified
   launch?: string;

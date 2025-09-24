@@ -2,6 +2,26 @@ import SetupEnv from './common/setup-env.mdx';
 
 # 与 iOS(WebDriverAgent) 集成
 
+## 关于 WebDriver 和 Midscene 的关系
+
+WebDriver 是一套由 W3C 制定的用于浏览器自动化的标准协议，它提供了一个统一的 API 来控制不同的浏览器和应用程序。WebDriver 协议定义了客户端和服务器之间的通信方式，使得自动化工具能够跨平台地控制各种用户界面。
+
+在 Appium 团队及其他开源社区的努力下，业界已经有了许多优秀的库将桌面、移动端等设备的自动化操作转化为 WebDriver 协议。这些工具包括：
+- **Appium** - 跨平台移动自动化框架
+- **WebDriverAgent** - 专门用于 iOS 设备自动化的服务
+- **Selenium** - Web 浏览器自动化工具
+- **WinAppDriver** - Windows 应用程序自动化工具
+
+**Midscene 适配了 WebDriver 协议**，这意味着开发者可以使用 AI 模型对支持 WebDriver 的任何设备进行智能化的自动化操作。通过这种设计，Midscene 不仅能够控制传统的点击、输入等基础操作，还能够：
+- 理解界面内容和上下文
+- 执行复杂的多步骤操作
+- 进行智能断言和验证
+- 提取和分析界面数据
+
+在 iOS 平台上，Midscene 通过 WebDriverAgent 连接 iOS 设备，让你能够使用自然语言描述的方式来控制 iOS 应用和系统。
+
+---
+
 在使用 WebDriverAgent 连接 iOS 设备后，你可以使用 Midscene javascript SDK 来控制 iOS 设备。
 
 import { PackageManagerTabs } from '@theme';
@@ -111,14 +131,14 @@ Midscene iOS 使用 WebDriverAgent 进行设备自动化。你需要在使用库
 import {
   IOSAgent,
   IOSDevice,
-  getConnectedDevices,
+  agentFromWebDriverAgent,
 } from '@midscene/ios';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 Promise.resolve(
   (async () => {
-    const devices = await getConnectedDevices();
-    const page = new IOSDevice(devices[0].udid, {
+    // 方法一：直接创建设备和代理
+    const page = new IOSDevice({
       wdaPort: 8100,
       wdaHost: 'localhost',
     });
@@ -129,6 +149,13 @@ Promise.resolve(
         '如果出现位置、权限、用户协议等弹窗，点击同意。如果出现登录页面，关闭它。',
     });
     await page.connect();
+
+    // 方法二：或者使用便捷函数（推荐）
+    // const agent = await agentFromWebDriverAgent({
+    //   wdaPort: 8100,
+    //   wdaHost: 'localhost',
+    //   aiActionContext: '如果出现位置、权限、用户协议等弹窗，点击同意。如果出现登录页面，关闭它。',
+    // });
 
     // 👀 打开 ebay.com 网页
     await page.launch('https://ebay.com');
@@ -188,12 +215,10 @@ npx tsx demo.ts
 
 IOSDevice 的构造函数支持以下参数：
 
-- `deviceId: string` - 设备 device Id 或模拟器标识符
 - `opts?: IOSDeviceOpt` - 可选参数，用于初始化 IOSDevice 的配置
   - `wdaPort?: number` - 可选参数，WebDriverAgent 端口。默认值为 8100。
   - `wdaHost?: string` - 可选参数，WebDriverAgent 主机。默认值为 'localhost'。
   - `autoDismissKeyboard?: boolean` - 可选参数，是否在输入文本后自动关闭键盘。默认值为 true。
-  - `keyboardDismissStrategy?: 'done-first' | 'escape-first'` - 可选参数，关闭键盘的策略。'done-first' 优先尝试 Done 键，如果键盘仍存在则尝试 Escape 键。'escape-first' 优先尝试 Escape 键，如果键盘仍存在则尝试 Done 键。默认值为 'done-first'。
   - `customActions?: DeviceAction<any>[]` - 可选参数，自定义设备动作列表。
 
 ## iOS Agent 上的更多接口
@@ -221,10 +246,15 @@ function launch(uri: string): Promise<void>;
 - 示例：
 
 ```typescript
-import { IOSAgent, IOSDevice } from '@midscene/ios';
+import { IOSAgent, IOSDevice, agentFromWebDriverAgent } from '@midscene/ios';
 
-const page = new IOSDevice('00008120-001234567890123E');
+// 方法一：手动创建设备和代理
+const page = new IOSDevice();
 const agent = new IOSAgent(page);
+await page.connect();
+
+// 方法二：使用便捷函数（推荐）
+const agent = await agentFromWebDriverAgent();
 
 await agent.launch('https://www.apple.com'); // 打开网页
 await agent.launch('com.apple.mobilesafari'); // 启动 Safari
@@ -234,22 +264,20 @@ await agent.launch('tel:+1234567890'); // 拨打电话
 await agent.launch('mailto:example@email.com'); // 发送邮件
 ```
 
-### `agentFromIOSDevice()`
+### `agentFromWebDriverAgent()` (推荐)
 
-从已连接的 iOS 设备中，创建一个 IOSAgent。
+通过连接 WebDriverAgent 服务创建 IOSAgent，这是最简便的方式。
 
 - 类型
 
 ```typescript
-function agentFromIOSDevice(
-  deviceId?: string,
-  opts?: PageAgentOpt,
+function agentFromWebDriverAgent(
+  opts?: PageAgentOpt & IOSDeviceOpt,
 ): Promise<IOSAgent>;
 ```
 
 - 参数：
 
-  - `deviceId?: string` - 可选参数，要连接的 iOS 设备 ID，如果未传入，则使用第一个连接的设备
   - `opts?: PageAgentOpt & IOSDeviceOpt` - 可选参数，用于初始化 IOSAgent 的配置，其中 PageAgentOpt 参考 [构造器](./api.mdx)，IOSDeviceOpt 的配置值参考 [IOSDevice 的构造函数](./integrate-with-ios#iosdevice-%E7%9A%84%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0)
 
 - 返回值：
@@ -259,49 +287,20 @@ function agentFromIOSDevice(
 - 示例：
 
 ```typescript
-import { agentFromIOSDevice } from '@midscene/ios';
+import { agentFromWebDriverAgent } from '@midscene/ios';
 
-const agent = await agentFromIOSDevice('00008120-001234567890123E'); // 传入 deviceId
-const agent = await agentFromIOSDevice(); // 不传入 deviceId，则使用第一个连接的设备
+// 使用默认 WebDriverAgent 地址 (localhost:8100)
+const agent = await agentFromWebDriverAgent();
+
+// 使用自定义 WebDriverAgent 地址
+const agent = await agentFromWebDriverAgent({
+  wdaHost: 'localhost',
+  wdaPort: 8200,
+  aiActionContext: '如果出现弹窗，点击同意',
+});
 ```
 
-### `getConnectedDevices()`
 
-获取所有连接的 iOS 设备和模拟器。
-
-- 类型
-
-```typescript
-function getConnectedDevices(): Promise<Device[]>;
-interface Device {
-  /**
-   * The device deviceId or simulator identifier.
-   */
-  deviceId: string;
-  /**
-   * Device name
-   */
-  name: string;
-  /**
-   * Device type: 'device' for real device, 'simulator' for simulator
-   */
-  type: 'device' | 'simulator';
-}
-```
-
-- 返回值：
-
-  - `Promise<Device[]>` 返回一个 Device 数组
-
-- 示例：
-
-```typescript
-import { agentFromIOSDevice, getConnectedDevices } from '@midscene/ios';
-
-const devices = await getConnectedDevices();
-console.log(devices);
-const agent = await agentFromIOSDevice(devices[0].udid);
-```
 
 ## 扩展自定义交互动作
 
@@ -331,8 +330,7 @@ const ContinuousClick = defineAction({
   },
 });
 
-const page = new IOSDevice('your-device-id');
-const agent = new IOSAgent(page, {
+const agent = await agentFromWebDriverAgent({
   customActions: [ContinuousClick],
 });
 
@@ -368,10 +366,17 @@ await agent.aiAction('点击红色按钮五次');
 
 ### 如何使用自定义的 WebDriverAgent 端口和主机？
 
-你可以通过 IOSDevice 的构造函数来指定 WebDriverAgent 的端口和主机：
+你可以通过 IOSDevice 的构造函数或 agentFromWebDriverAgent 来指定 WebDriverAgent 的端口和主机：
 
 ```typescript
-const device = new IOSDevice('00008120-001234567890123E', {
+// 方法一：使用 IOSDevice
+const device = new IOSDevice({
+  wdaPort: 8200,        // 自定义端口
+  wdaHost: '192.168.1.100', // 自定义主机
+});
+
+// 方法二：使用便捷函数（推荐）
+const agent = await agentFromWebDriverAgent({
   wdaPort: 8200,        // 自定义端口
   wdaHost: '192.168.1.100', // 自定义主机
 });

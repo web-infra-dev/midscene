@@ -1,3 +1,4 @@
+import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import { describe, expect, it } from 'vitest';
 import { IOSAgent } from '../../src/agent';
 import { IOSDevice } from '../../src/device';
@@ -6,23 +7,18 @@ import { WDAManager } from '../../src/wda-manager';
 
 describe('iOS Package Structure', () => {
   describe('IOSDevice', () => {
-    it('should be constructable with valid UDID', () => {
-      expect(() => new IOSDevice('test-udid')).not.toThrow();
-    });
-
-    it('should throw error for empty UDID', () => {
-      expect(() => new IOSDevice('')).toThrow(
-        'deviceId is required for IOSDevice',
-      );
+    it('should be constructable with options', () => {
+      expect(() => new IOSDevice()).not.toThrow();
+      expect(() => new IOSDevice({ wdaPort: DEFAULT_WDA_PORT })).not.toThrow();
     });
 
     it('should have correct interface type', () => {
-      const device = new IOSDevice('test-udid');
+      const device = new IOSDevice();
       expect(device.interfaceType).toBe('ios');
     });
 
     it('should have proper action space', () => {
-      const device = new IOSDevice('test-udid');
+      const device = new IOSDevice();
       const actions = device.actionSpace();
       expect(Array.isArray(actions)).toBe(true);
       expect(actions.length).toBeGreaterThan(0);
@@ -37,40 +33,39 @@ describe('iOS Package Structure', () => {
     });
 
     it('should respect configuration options', () => {
-      const device1 = new IOSDevice('test-udid', {
+      const device1 = new IOSDevice({
         wdaPort: 9100,
         autoDismissKeyboard: false,
       });
       expect(device1).toBeDefined();
 
-      const device2 = new IOSDevice('test-udid', {
-        keyboardDismissStrategy: 'escape-first',
+      const device2 = new IOSDevice({
+        wdaHost: 'custom-host',
       });
       expect(device2).toBeDefined();
     });
 
     it('should provide device description', () => {
-      const device = new IOSDevice('test-udid-123');
+      const device = new IOSDevice();
       const description = device.describe();
-      expect(description).toContain('Device ID');
-      expect(description).toContain('test-udid-123');
+      expect(description).toContain('pending-connection');
     });
   });
 
   describe('IOSAgent', () => {
     it('should be constructable with device', () => {
-      const device = new IOSDevice('test-udid');
+      const device = new IOSDevice();
       expect(() => new IOSAgent(device)).not.toThrow();
     });
 
     it('should extend base Agent functionality', () => {
-      const device = new IOSDevice('test-udid');
+      const device = new IOSDevice();
       const agent = new IOSAgent(device);
       expect(agent.page).toBe(device);
     });
 
     it('should have launch method', () => {
-      const device = new IOSDevice('test-udid');
+      const device = new IOSDevice();
       const agent = new IOSAgent(device);
       expect(typeof agent.launch).toBe('function');
     });
@@ -78,20 +73,20 @@ describe('iOS Package Structure', () => {
 
   describe('WebDriverAgentBackend', () => {
     it('should be constructable with parameters', () => {
-      expect(() => new WebDriverAgentBackend('test-udid')).not.toThrow();
-      expect(() => new WebDriverAgentBackend('test-udid', 9100)).not.toThrow();
+      expect(() => new WebDriverAgentBackend()).not.toThrow();
+      expect(() => new WebDriverAgentBackend(9100)).not.toThrow();
       expect(
-        () => new WebDriverAgentBackend('test-udid', 9100, 'custom-host'),
+        () => new WebDriverAgentBackend(9100, 'custom-host'),
       ).not.toThrow();
     });
 
     it('should have proper initial state', () => {
-      const backend = new WebDriverAgentBackend('test-udid');
+      const backend = new WebDriverAgentBackend();
       expect(backend.sessionInfo).toBeNull();
     });
 
     it('should have required methods', () => {
-      const backend = new WebDriverAgentBackend('test-udid');
+      const backend = new WebDriverAgentBackend();
       expect(typeof backend.createSession).toBe('function');
       expect(typeof backend.deleteSession).toBe('function');
       expect(typeof backend.getWindowSize).toBe('function');
@@ -102,22 +97,24 @@ describe('iOS Package Structure', () => {
       expect(typeof backend.pressKey).toBe('function');
       expect(typeof backend.homeButton).toBe('function');
       expect(typeof backend.launchApp).toBe('function');
+      expect(typeof backend.getDeviceInfo).toBe('function');
     });
   });
 
   describe('WDAManager', () => {
     it('should be constructable via getInstance', () => {
-      expect(() => WDAManager.getInstance('test-udid')).not.toThrow();
+      expect(() => WDAManager.getInstance()).not.toThrow();
+      expect(() => WDAManager.getInstance(DEFAULT_WDA_PORT)).not.toThrow();
     });
 
     it('should return same instance for same parameters', () => {
-      const manager1 = WDAManager.getInstance('test-udid', 8100);
-      const manager2 = WDAManager.getInstance('test-udid', 8100);
+      const manager1 = WDAManager.getInstance(DEFAULT_WDA_PORT, 'localhost');
+      const manager2 = WDAManager.getInstance(DEFAULT_WDA_PORT, 'localhost');
       expect(manager1).toBe(manager2);
     });
 
     it('should have required methods', () => {
-      const manager = WDAManager.getInstance('test-udid');
+      const manager = WDAManager.getInstance();
       expect(typeof manager.start).toBe('function');
       expect(typeof manager.stop).toBe('function');
       expect(typeof manager.restart).toBe('function');
@@ -126,12 +123,12 @@ describe('iOS Package Structure', () => {
     });
 
     it('should track running state', () => {
-      const manager = WDAManager.getInstance('test-udid-2');
+      const manager = WDAManager.getInstance(8200);
       expect(typeof manager.isRunning()).toBe('boolean');
     });
 
     it('should return correct port', () => {
-      const manager = WDAManager.getInstance('test-udid-3', 9100);
+      const manager = WDAManager.getInstance(9100);
       expect(manager.getPort()).toBe(9100);
     });
   });
@@ -145,7 +142,7 @@ describe('iOS Package Structure', () => {
         call: () => Promise.resolve(),
       };
 
-      const device = new IOSDevice('test-udid', {
+      const device = new IOSDevice({
         customActions: [customAction],
       });
 
@@ -156,30 +153,29 @@ describe('iOS Package Structure', () => {
   });
 
   describe('Integration Points', () => {
-    it('should have consistent UDID handling', () => {
-      const udid = 'consistent-test-udid';
-      const device = new IOSDevice(udid);
+    it('should have consistent device handling', () => {
+      const device = new IOSDevice();
       const agent = new IOSAgent(device);
-      const backend = new WebDriverAgentBackend(udid);
-      const manager = WDAManager.getInstance(udid);
+      const backend = new WebDriverAgentBackend();
+      const manager = WDAManager.getInstance();
 
-      expect(device.describe()).toContain(udid);
+      expect(device.describe()).toContain('pending-connection');
       expect(agent.page).toBe(device);
       expect(backend).toBeDefined();
       expect(manager).toBeDefined();
     });
 
     it('should support different WDA configurations', () => {
-      const port1 = 8100;
+      const port1 = DEFAULT_WDA_PORT;
       const port2 = 9100;
       const host1 = 'localhost';
       const host2 = 'custom-host';
 
-      const device1 = new IOSDevice('udid1', {
+      const device1 = new IOSDevice({
         wdaPort: port1,
         wdaHost: host1,
       });
-      const device2 = new IOSDevice('udid2', {
+      const device2 = new IOSDevice({
         wdaPort: port2,
         wdaHost: host2,
       });
@@ -187,8 +183,8 @@ describe('iOS Package Structure', () => {
       expect(device1).toBeDefined();
       expect(device2).toBeDefined();
 
-      const manager1 = WDAManager.getInstance('udid1', port1, host1);
-      const manager2 = WDAManager.getInstance('udid2', port2, host2);
+      const manager1 = WDAManager.getInstance(port1, host1);
+      const manager2 = WDAManager.getInstance(port2, host2);
 
       expect(manager1.getPort()).toBe(port1);
       expect(manager2.getPort()).toBe(port2);
