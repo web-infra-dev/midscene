@@ -579,17 +579,17 @@ export type WebUIContext = UIContext<WebElementInfo>;
  */
 
 export type CacheConfig =
-  | { strategy: 'read-only'; id?: string }
+  | { strategy: 'read-only'; id: string }
   | { strategy?: undefined; id: string };
 
-export type Cache = 
-  | false           // No read, no write
-  | true            // Auto read + write  
-  | CacheConfig;    // Object configuration
+export type Cache =
+  | false // No read, no write
+  | true  // Will throw error at runtime - deprecated
+  | CacheConfig; // Object configuration (requires explicit id)
 
 export interface AgentOpt {
   testId?: string;
-  cacheId?: string;  // Keep backward compatibility, but marked as deprecated
+  cacheId?: string; // Keep backward compatibility, but marked as deprecated
   groupName?: string;
   groupDescription?: string;
   /* if auto generate report, default true */

@@ -3,7 +3,7 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 
 import { PuppeteerAgent } from '@/puppeteer/index';
-import type { MidsceneYamlScriptWebEnv } from '@midscene/core';
+import type { MidsceneYamlScriptWebEnv, Cache } from '@midscene/core';
 import { DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT } from '@midscene/shared/constants';
 import puppeteer, { type Browser } from 'puppeteer';
 
@@ -187,7 +187,7 @@ export async function puppeteerAgentForTarget(
     headed?: boolean;
     keepWindow?: boolean;
     testId?: string;
-    cacheId?: string;
+    cache?: Cache;
   },
   browser?: Browser,
 ) {
@@ -201,7 +201,7 @@ export async function puppeteerAgentForTarget(
   const agent = new PuppeteerAgent(page, {
     autoPrintReportMsg: false,
     testId: preference?.testId,
-    cacheId: preference?.cacheId,
+    cache: preference?.cache,
     aiActionContext: target.aiActionContext,
     forceSameTabNavigation:
       typeof target.forceSameTabNavigation !== 'undefined'
