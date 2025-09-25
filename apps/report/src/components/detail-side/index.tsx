@@ -285,14 +285,6 @@ const DetailSide = (): JSX.Element => {
               },
             ]
           : []),
-        ...(task?.thought
-          ? [
-              {
-                key: 'thought',
-                content: task.thought,
-              },
-            ]
-          : []),
         ...(isPageContextFrozen
           ? [
               {
@@ -385,22 +377,33 @@ const DetailSide = (): JSX.Element => {
       />
     );
   } else if (task?.type === 'Insight' && task.subType === 'Assert') {
+    const assertTask = task as ExecutionTaskInsightAssertion;
+    const thought = assertTask.thought;
+    const output = assertTask.output;
     outputDataContent = (
-      <Card
-        liteMode={true}
-        title="Assert"
-        onMouseEnter={noop}
-        onMouseLeave={noop}
-        content={
-          <pre className="description-content">
-            {JSON.stringify(
-              (task as ExecutionTaskInsightAssertion).output,
-              undefined,
-              2,
-            )}
-          </pre>
-        }
-      />
+      <>
+        {thought && (
+          <Card
+            liteMode={true}
+            title="thought"
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={<pre className="description-content">{thought}</pre>}
+          />
+        )}
+
+        <Card
+          liteMode={true}
+          title="assertion result"
+          onMouseEnter={noop}
+          onMouseLeave={noop}
+          content={
+            <pre className="description-content">
+              {JSON.stringify(output, undefined, 2)}
+            </pre>
+          }
+        />
+      </>
     );
   } else if (plans) {
     if (task?.subType === 'LoadYaml') {
@@ -419,6 +422,20 @@ const DetailSide = (): JSX.Element => {
       );
     } else {
       let timelineData: TimelineItemProps[] = [];
+
+      if ((task as ExecutionTaskPlanning).output?.log) {
+        timelineData.push({
+          children: (
+            <>
+              <p>
+                <b>Thought</b>
+              </p>
+              <p>{(task as ExecutionTaskPlanning).output?.log}</p>
+            </>
+          ),
+        });
+      }
+
       timelineData = timelineData.concat(
         plans.map((item) => {
           const paramToShow = item.param || {};
@@ -449,19 +466,6 @@ const DetailSide = (): JSX.Element => {
           };
         }),
       );
-
-      if ((task as ExecutionTaskPlanning).output?.log) {
-        timelineData.push({
-          children: (
-            <>
-              <p>
-                <b>Log - What have been done</b>
-              </p>
-              <p>{(task as ExecutionTaskPlanning).output?.log}</p>
-            </>
-          ),
-        });
-      }
 
       if (
         typeof (task as ExecutionTaskPlanning).output
