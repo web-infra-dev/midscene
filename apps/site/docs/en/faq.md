@@ -64,9 +64,9 @@ The report files are saved in `./midscene-run/report/` by default.
 
 ⁠By reviewing the report file after running the script, you can gain an overview of how Midscene works.
 
-## How do I control the default replay options?
+## How do I control the report player's default replay style via a link?
 
-You can override the default values of the **Focus on cursor** and **Show element markers** toggles by adding query parameters to the report URL. Use `focusOnCursor` and `showElementMarkers` with values such as `true`, `false`, `1`, or `0`. For example: `...?focusOnCursor=false&showElementMarkers=true`.
+You can override the default values of the **Focus on cursor** and **Show element markers** toggles by adding query parameters to the report URL, which determines whether the report highlights the cursor position and element markers. Use `focusOnCursor` and `showElementMarkers` with values such as `true`, `false`, `1`, or `0`. For example: `...?focusOnCursor=false&showElementMarkers=true`.
  
 
 ## Customize the network timeout

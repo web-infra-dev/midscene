@@ -60,10 +60,9 @@ await page.setViewport({
 
 在运行脚本后，通过查看报告文件，你可以了解 Midscene 的大致运行原理。
 
-## 如何通过链接控制默认的回放选项？
+## 如何通过链接控制报告中播放器的默认回放样式？
 
-在报告页面的链接后添加查询参数即可覆盖 **Focus on cursor** 和 **Show element markers** 开关的默认值。使用 `focusOnCursor` 和 `showElementMarkers`，参数值支持 `true`、`false`、`1` 或 `0`，例如：`...?focusOnCursor=false&showElementMarkers=true`。
-
+在报告页面的链接后添加查询参数即可覆盖 **Focus on cursor** 和 **Show element markers** 开关的默认值，决定是否在报告中聚焦鼠标位置和元素标记。使用 `focusOnCursor` 和 `showElementMarkers`，参数值支持 `true`、`false`、`1` 或 `0`，例如：`...?focusOnCursor=false&showElementMarkers=true`。
 
 ## 自定义网络超时
 
