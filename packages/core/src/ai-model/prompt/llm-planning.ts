@@ -1,6 +1,4 @@
-import assert from 'node:assert';
 import type { DeviceAction } from '@/types';
-import { PromptTemplate } from '@langchain/core/prompts';
 import type { TVlModeTypes } from '@midscene/shared/env';
 import type { ResponseFormatJSONSchema } from 'openai/resources/index';
 import type { ZodObject, z } from 'zod';
@@ -8,7 +6,7 @@ import { ifMidsceneLocatorField } from '../common';
 import { bboxDescription } from './common';
 
 // Note: put the log field first to trigger the CoT
-const vlCurrentLog = `"log": string, // Log your thoughts and what the next one action (ONLY ONE!) you can do according to the screenshot and the instruction. The typical log looks like "The user wants to do ... . According to the instruction and the previous logs, now i should use action '{ action-type }' to do ....". If no action should be done, log the reason. Use the same language as the user's instruction.`;
+const vlCurrentLog = `"log": string, // Log your thoughts and what the next one action (ONLY ONE!) you can do according to the screenshot and the instruction. The log should contain the following information: "The user wants to do ... . According to the instruction and the previous logs, next step is to .... Now i am going to use action '{ action-type }' to do ....". If no action should be done, log the reason. Use the same language as the user's instruction.`;
 const llmCurrentLog = `"log": string, // Log what the next actions you can do according to the screenshot and the instruction. The typical log looks like "Now i want to use action '{ action-type }' to do ..". If no action should be done, log the reason. ". Use the same language as the user's instruction.`;
 
 const commonOutputFields = `"error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not foreseeable according to the instruction. Use the same language as the user's instruction.

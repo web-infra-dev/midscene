@@ -1,10 +1,7 @@
 import { writeFileSync } from 'node:fs';
 import Insight, { type Rect } from '@midscene/core';
 import { sleep } from '@midscene/core/utils';
-import {
-  globalConfigManager,
-  globalModelConfigManager,
-} from '@midscene/shared/env';
+import { globalModelConfigManager } from '@midscene/shared/env';
 import { saveBase64Image } from '@midscene/shared/img';
 
 import dotenv from 'dotenv';
@@ -19,12 +16,12 @@ dotenv.config({
 
 const testSources = [
   'antd-carousel',
-  // 'todo',
-  // 'online_order',
-  // 'online_order_list',
-  // 'taobao',
-  // 'aweme-login',
-  // 'aweme-play',
+  'todo',
+  'online_order',
+  'online_order_list',
+  'taobao',
+  'aweme-login',
+  'aweme-play',
 ];
 
 let resultCollector: TestResultCollector;
