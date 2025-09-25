@@ -500,20 +500,35 @@ const DetailSide = (): JSX.Element => {
     } else if (dump?.data !== undefined) {
       data = dump.data;
     }
+
+    const thought = task?.thought;
+
     if (data !== undefined) {
       outputDataContent = (
-        <Card
-          liteMode={true}
-          onMouseEnter={noop}
-          onMouseLeave={noop}
-          content={
-            <pre>
-              {typeof data === 'object'
-                ? JSON.stringify(data, undefined, 2)
-                : String(data)}
-            </pre>
-          }
-        />
+        <>
+          {thought && (
+            <Card
+              liteMode={true}
+              onMouseEnter={noop}
+              onMouseLeave={noop}
+              content={<pre>{thought}</pre>}
+              title="thought"
+            />
+          )}
+          <Card
+            liteMode={true}
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            title="output"
+            content={
+              <pre>
+                {typeof data === 'object'
+                  ? JSON.stringify(data, undefined, 2)
+                  : String(data)}
+              </pre>
+            }
+          />
+        </>
       );
     }
   }
