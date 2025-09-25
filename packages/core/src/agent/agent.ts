@@ -1061,11 +1061,11 @@ export class Agent<
       if (opts.cache === false) {
         return null; // Completely disable cache
       }
-      
+
       if (opts.cache === true) {
         throw new Error(
           'cache: true requires an explicit cache ID. Please provide:\n' +
-          'Example: cache: { id: "my-cache-id" }'
+            'Example: cache: { id: "my-cache-id" }',
         );
       }
 

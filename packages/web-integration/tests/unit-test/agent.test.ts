@@ -3,6 +3,7 @@ import path from 'node:path';
 import type { AbstractWebPage } from '@/web-page';
 import type { GroupedActionDump } from '@midscene/core';
 import { Agent as PageAgent } from '@midscene/core/agent';
+import { globalConfigManager } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 declare const __VERSION__: string;

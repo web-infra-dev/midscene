@@ -12,8 +12,8 @@ import type {
 } from '@midscene/core';
 import { createAgent } from '@midscene/core/agent';
 import type { AbstractInterface } from '@midscene/core/device';
-import { agentFromWebDriverAgent } from '@midscene/ios';
 import { processCacheConfig } from '@midscene/core/utils';
+import { agentFromWebDriverAgent } from '@midscene/ios';
 import { getDebug } from '@midscene/shared/logger';
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
 import { puppeteerAgentForTarget } from '@midscene/web/puppeteer-agent-launcher';
