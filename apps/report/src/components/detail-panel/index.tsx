@@ -34,7 +34,13 @@ const VIEW_TYPE_BLACKBOARD = 'blackboard';
 const VIEW_TYPE_SCREENSHOT = 'screenshot';
 const VIEW_TYPE_JSON = 'json';
 
-const DetailPanel = (): JSX.Element => {
+const DetailPanel = ({
+  focusOnCursor,
+  showElementMarkers,
+}: {
+  focusOnCursor?: boolean;
+  showElementMarkers?: boolean;
+}): JSX.Element => {
   const insightDump = useExecutionDump((store) => store.insightDump);
   const _contextLoadId = useExecutionDump((store) => store._contextLoadId);
   const activeExecution = useExecutionDump((store) => store.activeExecution);
@@ -84,6 +90,8 @@ const DetailPanel = (): JSX.Element => {
         replayScripts={animationScripts || []}
         imageWidth={imageWidth || 0}
         imageHeight={imageHeight || 0}
+        autoZoom={focusOnCursor}
+        elementsVisible={showElementMarkers}
       />
     );
   } else if (!activeTask) {

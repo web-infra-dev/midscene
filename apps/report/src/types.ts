@@ -17,4 +17,6 @@ export interface PlaywrightTasks {
 export interface VisualizerProps {
   logoAction?: () => void;
   dumps?: PlaywrightTasks[];
+  focusOnCursor?: boolean;
+  showElementMarkers?: boolean;
 }

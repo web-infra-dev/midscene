@@ -177,6 +177,7 @@ export function Player(props?: {
   key?: string | number;
   fitMode?: 'width' | 'height'; // 'width': width adaptive, 'height': height adaptive, default to 'height'
   autoZoom?: boolean; // enable auto zoom when playing, default to true
+  elementsVisible?: boolean; // show element markers when playing, default to true
 }) {
   const [titleText, setTitleText] = useState('');
   const [subTitleText, setSubTitleText] = useState('');
@@ -189,6 +190,12 @@ export function Player(props?: {
       setAutoZoom(props.autoZoom);
     }
   }, [props?.autoZoom, setAutoZoom]);
+
+  useEffect(() => {
+    if (props?.elementsVisible !== undefined) {
+      setElementsVisible(props.elementsVisible);
+    }
+  }, [props?.elementsVisible, setElementsVisible]);
 
   const scripts = props?.replayScripts;
   const imageWidth = props?.imageWidth || 1920;
@@ -1078,7 +1085,7 @@ export function Player(props?: {
                           <span
                             style={{ fontSize: '12px', marginRight: '16px' }}
                           >
-                            Focus on Cursor
+                            Focus on cursor
                           </span>
                         </div>
                         <Switch
@@ -1123,7 +1130,7 @@ export function Player(props?: {
                           <span
                             style={{ fontSize: '12px', marginRight: '16px' }}
                           >
-                            Show Element Markers
+                            Show element markers
                           </span>
                         </div>
                         <Switch
