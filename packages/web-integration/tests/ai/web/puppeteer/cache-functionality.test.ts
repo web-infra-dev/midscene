@@ -4,7 +4,6 @@ import { sleep } from '@midscene/core/utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { launchPage } from './utils';
 
-
 vi.setConfig({
   testTimeout: 60 * 1000,
 });

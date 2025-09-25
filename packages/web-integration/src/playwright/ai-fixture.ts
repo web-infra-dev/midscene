@@ -3,8 +3,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PlaywrightAgent, type PlaywrightWebPage } from '@/playwright/index';
 import type { WebPageAgentOpt } from '@/web-element';
-import type { AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
 import type { Cache } from '@midscene/core';
+import type { AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
 import { processCacheConfig } from '@midscene/core/utils';
 import {
   DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
@@ -63,10 +63,10 @@ export const PlaywrightAiFixture = (options?: {
   // Helper function to process cache configuration and auto-generate ID from test info
   const processTestCacheConfig = (testInfo: TestInfo): Cache | undefined => {
     if (!cache) return undefined;
-    
+
     // Generate ID from test info
     const { id } = groupAndCaseForTest(testInfo);
-    
+
     // Use shared processCacheConfig with generated ID
     return processCacheConfig(cache as Cache, id);
   };
@@ -84,7 +84,7 @@ export const PlaywrightAiFixture = (options?: {
       const { testId } = testInfo;
       const { file, title } = groupAndCaseForTest(testInfo);
       const cacheConfig = processTestCacheConfig(testInfo);
-      
+
       pageAgentMap[idForPage] = new PlaywrightAgent(page, {
         testId: `playwright-${testId}-${idForPage}`,
         forceSameTabNavigation,
@@ -210,7 +210,7 @@ export const PlaywrightAiFixture = (options?: {
           opts?: AgentOpt,
         ) => {
           const cacheConfig = processTestCacheConfig(testInfo);
-          
+
           // Handle cache configuration priority:
           // 1. If user provides cache in opts, use it (but auto-generate ID if missing)
           // 2. Otherwise use fixture's cache config
@@ -233,7 +233,7 @@ export const PlaywrightAiFixture = (options?: {
               }
             }
           }
-          
+
           const agent = createOrReuseAgentForPage(propsPage || page, testInfo, {
             waitForNavigationTimeout,
             waitForNetworkIdleTimeout,

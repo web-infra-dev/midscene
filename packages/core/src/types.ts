@@ -584,7 +584,7 @@ export type CacheConfig =
 
 export type Cache =
   | false // No read, no write
-  | true  // Will throw error at runtime - deprecated
+  | true // Will throw error at runtime - deprecated
   | CacheConfig; // Object configuration (requires explicit id)
 
 export interface AgentOpt {
