@@ -6,6 +6,33 @@ const AUTO_ZOOM_KEY = 'midscene-auto-zoom';
 const BACKGROUND_VISIBLE_KEY = 'midscene-background-visible';
 const ELEMENTS_VISIBLE_KEY = 'midscene-elements-visible';
 
+const parseBooleanParam = (value: string | null): boolean | undefined => {
+  if (value === null) {
+    return undefined;
+  }
+
+  const normalized = value.trim().toLowerCase();
+
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) {
+    return true;
+  }
+
+  if (['0', 'false', 'no', 'off'].includes(normalized)) {
+    return false;
+  }
+
+  return undefined;
+};
+
+const getQueryPreference = (paramName: string): boolean | undefined => {
+  if (typeof window === 'undefined') {
+    return undefined;
+  }
+
+  const searchParams = new URLSearchParams(window.location.search);
+  return parseBooleanParam(searchParams.get(paramName));
+};
+
 export const useBlackboardPreference = create<{
   backgroundVisible: boolean;
   elementsVisible: boolean;
@@ -19,10 +46,16 @@ export const useBlackboardPreference = create<{
     localStorage.getItem(BACKGROUND_VISIBLE_KEY) !== 'false';
   const savedElementsVisible =
     localStorage.getItem(ELEMENTS_VISIBLE_KEY) !== 'false';
+  const autoZoomFromQuery = getQueryPreference('focusOnCursor');
+  const elementsVisibleFromQuery = getQueryPreference('showElementMarkers');
   return {
     backgroundVisible: savedBackgroundVisible,
-    elementsVisible: savedElementsVisible,
-    autoZoom: savedAutoZoom,
+    elementsVisible:
+      elementsVisibleFromQuery === undefined
+        ? savedElementsVisible
+        : elementsVisibleFromQuery,
+    autoZoom:
+      autoZoomFromQuery === undefined ? savedAutoZoom : autoZoomFromQuery,
     setBackgroundVisible: (visible: boolean) => {
       set({ backgroundVisible: visible });
       localStorage.setItem(BACKGROUND_VISIBLE_KEY, visible.toString());

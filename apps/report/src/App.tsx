@@ -1,7 +1,7 @@
 import './App.less';
 
 import { Alert, ConfigProvider, Empty } from 'antd';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
@@ -21,7 +21,7 @@ import type {
 let globalRenderCount = 1;
 
 function Visualizer(props: VisualizerProps): JSX.Element {
-  const { dumps, focusOnCursor, showElementMarkers } = props;
+  const { dumps } = props;
 
   const executionDump = useExecutionDump((store: DumpStoreType) => store.dump);
   const executionDumpLoadId = useExecutionDump(
@@ -107,18 +107,13 @@ function Visualizer(props: VisualizerProps): JSX.Element {
           replayScripts={replayAllScripts!}
           imageWidth={insightWidth!}
           imageHeight={insightHeight!}
-          autoZoom={focusOnCursor}
-          elementsVisible={showElementMarkers}
         />
       </div>
     ) : (
       <PanelGroup autoSaveId="page-detail-layout-v2" direction="horizontal">
         <Panel defaultSize={75} maxSize={95}>
           <div className="main-content-container">
-            <DetailPanel
-              focusOnCursor={focusOnCursor}
-              showElementMarkers={showElementMarkers}
-            />
+            <DetailPanel />
           </div>
         </Panel>
         <PanelResizeHandle className="resize-handle" />
@@ -201,46 +196,6 @@ function Visualizer(props: VisualizerProps): JSX.Element {
       globalRenderCount += 1;
     };
   }, []);
-
-  const querySettings = useMemo(() => {
-    if (typeof window === 'undefined') {
-      return {
-        focusOnCursor: undefined,
-        showElementMarkers: undefined,
-      } satisfies Pick<VisualizerProps, 'focusOnCursor' | 'showElementMarkers'>;
-    }
-
-    const searchParams = new URLSearchParams(window.location.search);
-    const parseBooleanParam = (value: string | null): boolean | undefined => {
-      if (value === null) {
-        return undefined;
-      }
-
-      const normalized = value.trim().toLowerCase();
-
-      if (['1', 'true', 'yes', 'on'].includes(normalized)) {
-        return true;
-      }
-
-      if (['0', 'false', 'no', 'off'].includes(normalized)) {
-        return false;
-      }
-
-      return undefined;
-    };
-
-    return {
-      focusOnCursor: parseBooleanParam(searchParams.get('focusOnCursor')),
-      showElementMarkers: parseBooleanParam(
-        searchParams.get('showElementMarkers'),
-      ),
-    } satisfies Pick<VisualizerProps, 'focusOnCursor' | 'showElementMarkers'>;
-  }, []);
-
-  const {
-    focusOnCursor: focusOnCursorFromQuery,
-    showElementMarkers: showElementMarkersFromQuery,
-  } = querySettings;
 
   return (
     <ConfigProvider theme={globalThemeConfig()}>
@@ -412,11 +367,5 @@ export function App() {
       </div>
     );
   }
-  return (
-    <Visualizer
-      dumps={reportDump}
-      focusOnCursor={focusOnCursorFromQuery}
-      showElementMarkers={showElementMarkersFromQuery}
-    />
-  );
+  return <Visualizer dumps={reportDump} />;
 }
