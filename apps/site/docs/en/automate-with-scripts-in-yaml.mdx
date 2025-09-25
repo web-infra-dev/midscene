@@ -80,6 +80,22 @@ tasks:
       - aiAssert: The results show weather information
 ```
 
+Or, to drive an iOS device automation task (requires WebDriverAgent configuration):
+
+```yaml
+ios:
+  # launch: com.apple.mobilesafari
+  wdaPort: 8100
+
+tasks:
+  - name: Search for weather
+    flow:
+      - ai: Open the browser and navigate to bing.com
+      - ai: Search for "today's weather"
+      - sleep: 3000
+      - aiAssert: The results show weather information
+```
+
 Run the script:
 
 ```bash
@@ -94,7 +110,7 @@ You will see the script's execution progress and the visual report file.
 
 Script files use YAML format to describe automation tasks. It defines the target to be manipulated (like a webpage or an Android app) and the series of steps to perform.
 
-A standard `.yaml` script file includes a `web` or `android` section to configure the environment, and a `tasks` section to define the automation tasks.
+A standard `.yaml` script file includes a `web`, `android`, or `ios` section to configure the environment, and a `tasks` section to define the automation tasks.
 
 ```yaml
 web:
@@ -175,6 +191,29 @@ android:
 
   # The path to the JSON file for outputting aiQuery/aiAssert results, optional.
   output: <path-to-output-file>
+```
+
+### The `ios` part
+
+```yaml
+ios:
+  # WebDriverAgent port, optional, defaults to 8100.
+  wdaPort: <port>
+
+  # WebDriverAgent host address, optional, defaults to localhost.
+  wdaHost: <host>
+
+  # Whether to auto dismiss keyboard, optional, defaults to false.
+  autoDismissKeyboard: <boolean>
+
+  # Launch URL or app bundle ID, optional, defaults to the device's current page.
+  launch: <url-or-bundle-id>
+
+  # The path to the JSON file for outputting aiQuery/aiAssert results, optional.
+  output: <path-to-output-file>
+
+  # Whether to save log content to a JSON file, optional, defaults to `false`. If true, saves to `unstableLogContent.json`. If a string, saves to the specified path. The log content structure may change in the future.
+  unstableLogContent: <boolean | path-to-unstable-log-file>
 ```
 
 ### The `tasks` part
@@ -352,6 +391,8 @@ The command-line tool provides several options to control the execution behavior
 - `--web.viewportWidth <width>`: Sets the browser viewport width, which will override the `web.viewportWidth` parameter in all script files.
 - `--web.viewportHeight <height>`: Sets the browser viewport height, which will override the `web.viewportHeight` parameter in all script files.
 - `--android.deviceId <device-id>`: Sets the Android device ID, which will override the `android.deviceId` parameter in all script files.
+- `--ios.wdaPort <port>`: Sets the WebDriverAgent port, which will override the `ios.wdaPort` parameter in all script files.
+- `--ios.wdaHost <host>`: Sets the WebDriverAgent host address, which will override the `ios.wdaHost` parameter in all script files.
 - `--dotenv-debug`: Sets the debug log for dotenv, disabled by default.
 - `--dotenv-override`: Sets whether dotenv overrides global environment variables with the same name, disabled by default.
 

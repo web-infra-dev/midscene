@@ -104,7 +104,7 @@ Midscene iOS uses WebDriverAgent for device automation. You need to prepare WebD
 5. **Set up port forwarding (for real devices)**:
    ```bash
    # Forward local port 8100 to device port 8100
-   iproxy 8100 8100 YOUR_DEVICE_ID
+   iproxy -u YOUR_DEVICE_ID 8100:8100
    ```
 
    Keep this command running in a separate terminal window.
@@ -294,7 +294,7 @@ const agent = await agentFromWebDriverAgent();
 // Use custom WebDriverAgent address
 const agent = await agentFromWebDriverAgent({
   wdaHost: 'localhost',
-  wdaPort: 8200,
+  wdaPort: 8100,
   aiActionContext: 'If popups appear, click agree',
 });
 ```
@@ -370,13 +370,13 @@ You can specify WebDriverAgent port and host through the IOSDevice constructor o
 ```typescript
 // Method 1: Using IOSDevice
 const device = new IOSDevice({
-  wdaPort: 8200,        // Custom port
+  wdaPort: 8100,        // Custom port
   wdaHost: '192.168.1.100', // Custom host
 });
 
 // Method 2: Using convenience function (recommended)
 const agent = await agentFromWebDriverAgent({
-  wdaPort: 8200,        // Custom port
+  wdaPort: 8100,        // Custom port
   wdaHost: '192.168.1.100', // Custom host
 });
 ```
@@ -384,7 +384,7 @@ const agent = await agentFromWebDriverAgent({
 For remote devices, you also need to set up port forwarding accordingly:
 
 ```bash
-iproxy -u DEVICE_ID 8200:8100
+iproxy 8100 8100 YOUR_DEVICE_ID
 ```
 
 ## iOS-Specific Actions

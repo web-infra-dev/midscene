@@ -104,9 +104,6 @@ export interface MidsceneYamlScriptAndroidEnv extends MidsceneYamlScriptConfig {
 }
 
 export interface MidsceneYamlScriptIOSEnv extends MidsceneYamlScriptConfig {
-  // The iOS device ID to connect to, optional, will use the first device if not specified
-  deviceId?: string;
-
   // WebDriverAgent configuration
   wdaPort?: number;
   wdaHost?: string;

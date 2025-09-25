@@ -81,7 +81,7 @@ Midscene iOS uses WebDriverAgent for device automation. You need to prepare WebD
    brew install libimobiledevice
    
    # Forward local port 8100 to device port 8100
-   iproxy 8100 8100 YOUR_DEVICE_UDID
+   iproxy -u YOUR_DEVICE_ID 8100:8100
    ```
 
 #### Alternative Setup Methods
@@ -126,7 +126,7 @@ import { agentFromWebDriverAgent } from '@midscene/ios';
 // Connect to WebDriverAgent on custom host/port
 const agent = await agentFromWebDriverAgent({
   wdaHost: 'localhost',
-  wdaPort: 8200,  // Custom port
+  wdaPort: 8100,  // Custom port
   aiActionContext: 'If any popup appears, click agree',
 });
 

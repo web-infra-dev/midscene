@@ -105,7 +105,7 @@ Midscene iOS 使用 WebDriverAgent 进行设备自动化。你需要在使用库
 5. **设置端口转发（真机设备）**：
    ```bash
    # 将本地端口 8100 转发到设备端口 8100
-   iproxy 8100 8100 YOUR_DEVICE_ID
+   iproxy -u YOUR_DEVICE_ID 8100:8100
    ```
 
    保持此命令在单独的终端窗口中运行。
@@ -295,7 +295,7 @@ const agent = await agentFromWebDriverAgent();
 // 使用自定义 WebDriverAgent 地址
 const agent = await agentFromWebDriverAgent({
   wdaHost: 'localhost',
-  wdaPort: 8200,
+  wdaPort: 8100,
   aiActionContext: '如果出现弹窗，点击同意',
 });
 ```
@@ -371,13 +371,13 @@ await agent.aiAction('点击红色按钮五次');
 ```typescript
 // 方法一：使用 IOSDevice
 const device = new IOSDevice({
-  wdaPort: 8200,        // 自定义端口
+  wdaPort: 8100,        // 自定义端口
   wdaHost: '192.168.1.100', // 自定义主机
 });
 
 // 方法二：使用便捷函数（推荐）
 const agent = await agentFromWebDriverAgent({
-  wdaPort: 8200,        // 自定义端口
+  wdaPort: 8100,        // 自定义端口
   wdaHost: '192.168.1.100', // 自定义主机
 });
 ```
@@ -385,5 +385,5 @@ const agent = await agentFromWebDriverAgent({
 对于远程设备，还需要相应地设置端口转发：
 
 ```bash
-iproxy -u DEVICE_ID 8200:8100
+iproxy 8100 8100 YOUR_DEVICE_ID
 ```
