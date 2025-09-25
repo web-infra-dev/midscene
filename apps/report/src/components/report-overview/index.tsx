@@ -59,7 +59,9 @@ const ReportOverview = (props: {
   }, [props.dumps]);
 
   const testStatsEl =
-    props.dumps && props.dumps.length > 0 ? (
+    props.dumps &&
+    props.dumps.length > 0 &&
+    props.dumps.every((dump) => dump.attributes?.playwright_test_id) ? (
       <div className="test-case-stats">
         <div className="stats-card">
           <div className="stats-value">{testStats.total}</div>
