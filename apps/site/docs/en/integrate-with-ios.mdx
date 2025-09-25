@@ -34,85 +34,45 @@ Integrate with Vitest for testing: [https://github.com/web-infra-dev/midscene-ex
 
 ## Environment Setup
 
-Before getting started, you need to set up your iOS development environment:
+Before using Midscene iOS, you need to prepare the WebDriverAgent server. Please refer to the official documentation for setup:
 
-### Prerequisites
+- **Simulator Configuration**: [Run Prebuilt WDA](https://appium.github.io/appium-xcuitest-driver/5.12/run-prebuilt-wda/)
+- **Real Device Configuration**: [Real Device Configuration](https://appium.github.io/appium-xcuitest-driver/5.12/real-device-config/)
 
-- **macOS** (required for iOS development)
-- **Xcode** and Xcode Command Line Tools
-- **iOS Simulator** or physical iOS device
-- **WebDriverAgent** (required for automation)
+## Verify Environment Configuration
 
-### 1. Basic Environment Installation
+After completing the configuration, you can verify whether the server is working properly by accessing WebDriverAgent's status endpoint:
 
-```bash
-# Install Xcode Command Line Tools
-xcode-select --install
+**Access URL**: `http://localhost:8100/status`
 
-# Verify simctl is available (required for simulators)
-xcrun simctl list devices
-
-# Install libimobiledevice (required for real devices)
-brew install libimobiledevice
+**Correct Response Example**:
+```json
+{
+  "value": {
+    "build": {
+      "version": "10.1.1",
+      "time": "Sep 24 2025 18:56:41",
+      "productBundleIdentifier": "com.facebook.WebDriverAgentRunner"
+    },
+    "os": {
+      "testmanagerdVersion": 65535,
+      "name": "iOS",
+      "sdkVersion": "26.0",
+      "version": "26.0"
+    },
+    "device": "iphone",
+    "ios": {
+      "ip": "10.91.115.63"
+    },
+    "message": "WebDriverAgent is ready to accept commands",
+    "state": "success",
+    "ready": true
+  },
+  "sessionId": "BCAD9603-F714-447C-A9E6-07D58267966B"
+}
 ```
 
-### 2. WebDriverAgent Setup
-
-Midscene iOS uses WebDriverAgent for device automation. You need to prepare WebDriverAgent before using the library:
-
-#### Simulator Setup
-
-1. **Install WebDriverAgent dependency**:
-   ```bash
-   npm install appium-webdriveragent
-   ```
-
-2. **Build and start WebDriverAgent**:
-   ```bash
-   # Navigate to WebDriverAgent project directory
-   cd node_modules/appium-webdriveragent
-
-   # Build and run for simulator (using iPhone 15 as example)
-   xcodebuild -project WebDriverAgent.xcodeproj \
-             -scheme WebDriverAgentRunner \
-             -destination 'platform=iOS Simulator,name=iPhone 15' \
-             test
-   ```
-
-#### Real Device Setup
-
-1. **Configure Development Team**:
-   Open `node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj` in Xcode, and refer to the following documentation to build the app for your real iOS device: [Real Device Configuration](https://appium.github.io/appium-xcuitest-driver/4.25/real-device-config) and [WebDriverAgent](https://appium.github.io/appium-xcuitest-driver/4.25/wda-custom-server)
-
-2. **Build and deploy to device**:
-   ```bash
-   # Replace YOUR_DEVICE_ID with your device's ID
-   xcodebuild -project WebDriverAgent.xcodeproj \
-             -scheme WebDriverAgentRunner \
-             -destination 'id=YOUR_DEVICE_ID' \
-             test
-   ```
-
-3. **Trust Developer Certificate**:
-   - On your iOS device, go to Settings > General > VPN & Device Management
-   - Trust your developer certificate
-
-4. **Enable Developer Mode and UI Automation**:
-   - Go to Settings > Privacy & Security > Developer Mode, enable and restart device
-   - Go to Settings > Developer > UI Automation, enable UI Automation
-
-5. **Set up port forwarding (for real devices)**:
-   ```bash
-   # Forward local port 8100 to device port 8100
-   iproxy -u YOUR_DEVICE_ID 8100:8100
-   ```
-
-   Keep this command running in a separate terminal window.
-
-#### Advanced Setup Methods
-
-For more advanced setup options and troubleshooting, refer to the official WebDriverAgent documentation:
-**📖 [WebDriverAgent Setup Guide](https://appium.github.io/appium-xcuitest-driver/4.25/wda-custom-server/)**
+If you can successfully access this endpoint and receive a similar JSON response as shown above, it indicates that WebDriverAgent is properly configured and running.
 
 <SetupEnv />
 

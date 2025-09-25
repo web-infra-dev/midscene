@@ -34,86 +34,45 @@ import { PackageManagerTabs } from '@theme';
 
 ## 准备环境
 
-在开始之前，你需要先设置 iOS 开发环境：
+在使用 Midscene iOS 之前，需要先准备 WebDriverAgent 服务。请参考官方文档进行设置：
 
-### 前置要求
+- **模拟器配置**：[Run Prebuilt WDA](https://appium.github.io/appium-xcuitest-driver/5.12/run-prebuilt-wda/)
+- **真机配置**：[Real Device Configuration](https://appium.github.io/appium-xcuitest-driver/5.12/real-device-config/)
 
-- **macOS**（iOS 开发必需）
-- **Xcode** 和 Xcode 命令行工具
-- **iOS 模拟器** 或真机设备
-- **WebDriverAgent**（自动化必需）
+## 验证环境配置
 
-### 1. 基础环境安装
+配置完成后，可以通过访问 WebDriverAgent 的状态接口来验证 服务是否启动：
 
-```bash
-# 安装 Xcode 命令行工具
-xcode-select --install
+**访问地址**：`http://localhost:8100/status`
 
-# 验证 simctl 可用（模拟器需要）
-xcrun simctl list devices
-
-# 安装 libimobiledevice（真机设备需要）
-brew install libimobiledevice
+**正确响应示例**：
+```json
+{
+  "value": {
+    "build": {
+      "version": "10.1.1",
+      "time": "Sep 24 2025 18:56:41",
+      "productBundleIdentifier": "com.facebook.WebDriverAgentRunner"
+    },
+    "os": {
+      "testmanagerdVersion": 65535,
+      "name": "iOS",
+      "sdkVersion": "26.0",
+      "version": "26.0"
+    },
+    "device": "iphone",
+    "ios": {
+      "ip": "10.91.115.63"
+    },
+    "message": "WebDriverAgent is ready to accept commands",
+    "state": "success",
+    "ready": true
+  },
+  "sessionId": "BCAD9603-F714-447C-A9E6-07D58267966B"
+}
 ```
 
-### 2. WebDriverAgent 设置
-
-Midscene iOS 使用 WebDriverAgent 进行设备自动化。你需要在使用库之前准备 WebDriverAgent：
-
-#### 模拟器设置
-
-1. **安装 WebDriverAgent 依赖**：
-   ```bash
-   npm install appium-webdriveragent
-   ```
-
-2. **构建并启动 WebDriverAgent**：
-   ```bash
-   # 进入 WebDriverAgent 项目目录
-   cd node_modules/appium-webdriveragent
-
-   # 为模拟器构建并运行（以 iPhone 15 为例）
-   xcodebuild -project WebDriverAgent.xcodeproj \
-             -scheme WebDriverAgentRunner \
-             -destination 'platform=iOS Simulator,name=iPhone 15' \
-             test
-   ```
-
-#### 真机设备设置
-
-1. **配置开发团队**：
-   在 Xcode 中打开 `node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj`，参考下面文档为你的 iOS 真机构建应用：[Real Device Configuration](https://appium.github.io/appium-xcuitest-driver/4.25/real-device-config) 和 [WebDriverAgent](https://appium.github.io/appium-xcuitest-driver/4.25/wda-custom-server)
-
-
-2. **构建并部署到设备**：
-   ```bash
-   # 将 YOUR_DEVICE_ID 替换为你的设备 ID
-   xcodebuild -project WebDriverAgent.xcodeproj \
-             -scheme WebDriverAgentRunner \
-             -destination 'id=YOUR_DEVICE_ID' \
-             test
-   ```
-
-3. **信任开发者证书**：
-   - 在 iOS 设备上，进入 设置 > 通用 > VPN 与设备管理
-   - 信任你的开发者证书
-
-4. **启用开发者模式和 UI 自动化**：
-   - 进入 设置 > 隐私与安全性 > 开发者模式，开启并重启设备
-   - 进入 设置 > 开发者 > UI 自动化，启用 UI 自动化
-
-5. **设置端口转发（真机设备）**：
-   ```bash
-   # 将本地端口 8100 转发到设备端口 8100
-   iproxy -u YOUR_DEVICE_ID 8100:8100
-   ```
-
-   保持此命令在单独的终端窗口中运行。
-
-#### 高级设置方法
-
-更多高级设置选项和故障排除，请参考官方 WebDriverAgent 文档：
-**📖 [WebDriverAgent 设置指南](https://appium.github.io/appium-xcuitest-driver/4.25/wda-custom-server/)**
+如果能够正常访问该端点并返回类似上述的 JSON 响应，说明 WebDriverAgent 已经正确配置并运行。
 
 <SetupEnv />
 

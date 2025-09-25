@@ -440,7 +440,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
     }
 
     if (shouldAutoDismissKeyboard) {
-      await this.hideKeyboard(options);
+      await this.hideKeyboard();
     }
   }
 
@@ -733,15 +733,37 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
     }
   }
 
-  async hideKeyboard(_options?: IOSDeviceInputOpt): Promise<boolean> {
+  async hideKeyboard(keyNames?: string[]): Promise<boolean> {
     try {
-      // Use WebDriverAgent's dedicated keyboard dismiss API
-      const result = await this.wdaBackend.dismissKeyboard();
-      debugDevice('Successfully dismissed keyboard using WDA API');
+      // If keyNames are provided, use them instead of manual swipe down
+      if (keyNames && keyNames.length > 0) {
+        debugDevice(
+          `Using keyNames to dismiss keyboard: ${keyNames.join(', ')}`,
+        );
+        await this.wdaBackend.dismissKeyboard(keyNames);
+        debugDevice('Dismissed keyboard using provided keyNames');
+        await sleep(300);
+        return true;
+      }
+
+      // Default behavior: Get window size for swipe coordinates
+      const windowSize = await this.wdaBackend.getWindowSize();
+
+      // Calculate swipe coordinates at one-third position of the screen
+      const centerX = windowSize.width / 2;
+      const startY = windowSize.height * 0.33; // Start at one-third from top
+      const endY = windowSize.height * 0.33 + 10; // Swipe down
+
+      // Perform swipe down gesture to dismiss keyboard
+      await this.swipe(centerX, startY, centerX, endY, 50);
+      debugDevice(
+        'Dismissed keyboard with swipe down gesture at screen one-third position',
+      );
+
       await sleep(300);
-      return result;
-    } catch (e) {
-      debugDevice(`Failed to hide keyboard using WDA API: ${e}`);
+      return true;
+    } catch (error) {
+      debugDevice(`Failed to hide keyboard: ${error}`);
       return false;
     }
   }
