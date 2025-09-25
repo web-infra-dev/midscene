@@ -239,13 +239,13 @@ describe('AndroidDevice', () => {
       const customDevice = new AndroidDevice('test-device', {
         screenshotResizeRatio: 0.5,
       });
-      
+
       vi.spyOn(customDevice, 'size').mockResolvedValue({
         width: 1080,
         height: 1920,
         dpr: 2,
       });
-      
+
       const mockBuffer = Buffer.from('test-screenshot');
       mockAdb.takeScreenshot.mockResolvedValue(mockBuffer);
       vi.spyOn(customDevice, 'getAdb').mockResolvedValue(mockAdb);
@@ -294,13 +294,13 @@ describe('AndroidDevice', () => {
       const customDevice = new AndroidDevice('test-device', {
         screenshotResizeRatio: undefined,
       });
-      
+
       vi.spyOn(customDevice, 'size').mockResolvedValue({
         width: 1080,
         height: 1920,
         dpr: 2,
       });
-      
+
       const mockBuffer = Buffer.from('test-screenshot');
       mockAdb.takeScreenshot.mockResolvedValue(mockBuffer);
       vi.spyOn(customDevice, 'getAdb').mockResolvedValue(mockAdb);

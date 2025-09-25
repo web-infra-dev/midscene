@@ -20,7 +20,10 @@ import {
 import { sleep } from '@midscene/core/utils';
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
-import { createImgBase64ByFormat } from '@midscene/shared/img';
+import {
+  createImgBase64ByFormat,
+  resizeAndConvertImgBuffer,
+} from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { WDAManager } from '@midscene/webdriver';
 import { IOSWebDriverClient as WebDriverAgentBackend } from './ios-webdriver-client';
@@ -37,6 +40,7 @@ export type IOSDeviceOpt = {
   wdaPort?: number;
   wdaHost?: string;
   useWDA?: boolean;
+  screenshotResizeRatio?: number;
 } & IOSDeviceInputOpt;
 
 export class IOSDevice implements AbstractInterface {
@@ -353,7 +357,36 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   async screenshotBase64(): Promise<string> {
     debugDevice('Taking screenshot via WDA');
     try {
+      const { width, height } = await this.size();
       const base64Data = await this.wdaBackend.takeScreenshot();
+
+      // Apply custom resize ratio if specified
+      const resizeRatio = this.options?.screenshotResizeRatio ?? 1.0;
+
+      if (resizeRatio !== 1.0) {
+        debugDevice(`Applying custom resize ratio: ${resizeRatio}`);
+        const targetWidth = Math.round(width * resizeRatio);
+        const targetHeight = Math.round(height * resizeRatio);
+        debugDevice(`Target size: ${targetWidth}x${targetHeight}`);
+
+        const screenshotBuffer = Buffer.from(base64Data, 'base64');
+        const { buffer, format } = await resizeAndConvertImgBuffer(
+          'png',
+          screenshotBuffer,
+          {
+            width: targetWidth,
+            height: targetHeight,
+          },
+        );
+
+        const result = createImgBase64ByFormat(
+          format,
+          buffer.toString('base64'),
+        );
+        debugDevice('Screenshot taken and resized successfully');
+        return result;
+      }
+
       const result = createImgBase64ByFormat('png', base64Data);
       debugDevice('Screenshot taken successfully');
       return result;
