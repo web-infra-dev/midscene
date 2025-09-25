@@ -416,17 +416,19 @@ describe('IOSDevice', () => {
     });
 
     it('should handle keyboard dismissal with default strategy', async () => {
-      // Mock dismissKeyboard method
-      mockWdaClient.dismissKeyboard = vi.fn().mockResolvedValue(true);
+      // Mock getWindowSize and swipe methods since hideKeyboard uses swipe gesture by default
+      mockWdaClient.getWindowSize = vi.fn().mockResolvedValue({ width: 375, height: 812 });
+      mockWdaClient.swipe = vi.fn().mockResolvedValue(undefined);
 
       const result = await device.hideKeyboard();
       expect(result).toBe(true);
-      expect(mockWdaClient.dismissKeyboard).toHaveBeenCalled();
+      expect(mockWdaClient.swipe).toHaveBeenCalled();
     });
 
     it('should handle keyboard dismissal failure', async () => {
-      // Mock dismissKeyboard to return false (failure)
-      mockWdaClient.dismissKeyboard = vi.fn().mockResolvedValue(false);
+      // Mock swipe to throw an error to simulate failure
+      mockWdaClient.getWindowSize = vi.fn().mockResolvedValue({ width: 375, height: 812 });
+      mockWdaClient.swipe = vi.fn().mockRejectedValue(new Error('Swipe failed'));
 
       const result = await device.hideKeyboard();
       expect(result).toBe(false); // Method returns false on failure, doesn't throw
@@ -438,11 +440,12 @@ describe('IOSDevice', () => {
         ...mockWdaClient,
         createSession: vi.fn().mockResolvedValue({ sessionId: 'test-session' }),
         typeText: vi.fn().mockResolvedValue(undefined),
-        dismissKeyboard: vi.fn().mockResolvedValue(true),
+        getWindowSize: vi.fn().mockResolvedValue({ width: 375, height: 812 }),
+        swipe: vi.fn().mockResolvedValue(undefined),
         sessionInfo: { sessionId: 'test-session' }, // Ensure session info is available
       };
       MockedWdaClient.mockImplementation(
-        () => mockBackend as IOSWebDriverClient,
+        () => mockBackend as unknown as IOSWebDriverClient,
       );
 
       const deviceWithAutoDismiss = new IOSDevice({
@@ -452,9 +455,9 @@ describe('IOSDevice', () => {
       await deviceWithAutoDismiss.connect();
       await deviceWithAutoDismiss.typeText('test text');
 
-      // Should call typeText and dismissKeyboard for keyboard dismiss
+      // Should call typeText and swipe (for keyboard dismiss)
       expect(mockBackend.typeText).toHaveBeenCalledWith('test text');
-      expect(mockBackend.dismissKeyboard).toHaveBeenCalled();
+      expect(mockBackend.swipe).toHaveBeenCalled();
     });
   });
 
