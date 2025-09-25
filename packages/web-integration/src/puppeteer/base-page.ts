@@ -264,10 +264,14 @@ export class Page<
           });
         } else {
           if (this.interfaceType === 'puppeteer') {
-            (this.underlyingPage as PuppeteerPage).mouse.click(x, y, {
-              button,
-              count,
-            });
+            if (button === 'left' && count === 1) {
+              await (this.underlyingPage as PuppeteerPage).mouse.click(x, y);
+            } else {
+              await (this.underlyingPage as PuppeteerPage).mouse.click(x, y, {
+                button,
+                count,
+              });
+            }
           } else if (this.interfaceType === 'playwright') {
             (this.underlyingPage as PlaywrightPage).mouse.click(x, y, {
               button,
