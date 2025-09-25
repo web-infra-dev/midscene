@@ -871,9 +871,11 @@ ${Object.keys(size)
     const resizeRatio = this.options?.screenshotResizeRatio ?? 1.0;
     const targetWidth = Math.round(width * resizeRatio);
     const targetHeight = Math.round(height * resizeRatio);
-    
+
     if (resizeRatio !== 1.0) {
-      debugDevice(`Applying custom resize ratio: ${resizeRatio}, target size: ${targetWidth}x${targetHeight}`);
+      debugDevice(
+        `Applying custom resize ratio: ${resizeRatio}, target size: ${targetWidth}x${targetHeight}`,
+      );
     }
 
     const { buffer, format } = await resizeAndConvertImgBuffer(
