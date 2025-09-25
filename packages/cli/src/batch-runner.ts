@@ -6,6 +6,7 @@ import type {
   MidsceneYamlScript,
   MidsceneYamlScriptAndroidEnv,
   MidsceneYamlScriptEnv,
+  MidsceneYamlScriptIOSEnv,
   MidsceneYamlScriptWebEnv,
 } from '@midscene/core';
 import { type ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
@@ -32,6 +33,7 @@ export interface BatchRunnerConfig {
   globalConfig?: {
     web?: MidsceneYamlScriptWebEnv;
     android?: MidsceneYamlScriptAndroidEnv;
+    ios?: MidsceneYamlScriptIOSEnv;
     target?: MidsceneYamlScriptWebEnv;
   };
   headed: boolean;

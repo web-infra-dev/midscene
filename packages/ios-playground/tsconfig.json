@@ -1,0 +1,27 @@
+{
+  "extends": "../shared/tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "module": "ES2020",
+    "declarationDir": "dist/types",
+    "types": ["node"]
+  },
+  "include": ["src"],
+  "references": [
+    {
+      "path": "../ios"
+    },
+    {
+      "path": "../shared"
+    },
+    {
+      "path": "../web-integration"
+    },
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../playground"
+    }
+  ]
+}

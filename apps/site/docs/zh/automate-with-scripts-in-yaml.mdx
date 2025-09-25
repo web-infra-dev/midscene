@@ -80,6 +80,22 @@ tasks:
       - aiAssert: 结果显示天气信息
 ```
 
+或者驱动 iOS 设备的自动化任务（需要配置 WebDriverAgent）
+
+```yaml
+ios:
+  # launch: com.apple.mobilesafari
+  wdaPort: 8100
+
+tasks:
+  - name: 搜索天气
+    flow:
+      - ai: 打开浏览器并导航到 bing.com
+      - ai: 搜索 "今日天气"
+      - sleep: 3000
+      - aiAssert: 结果显示天气信息
+```
+
 运行脚本
 
 ```bash
@@ -94,7 +110,7 @@ npx midscene ./bing-search.yaml
 
 脚本文件使用 YAML 格式来描述自动化任务。它定义了要操作的目标（如网页或安卓应用）以及一系列要执行的步骤。
 
-一个标准的 `.yaml` 脚本文件包含 `web` 或 `android` 部分配置环境，以及一个 `tasks` 部分来定义自动化任务。
+一个标准的 `.yaml` 脚本文件包含 `web`、`android` 或 `ios` 部分配置环境，以及一个 `tasks` 部分来定义自动化任务。
 
 ```yaml
 web:
@@ -175,6 +191,29 @@ android:
 
   # 输出 aiQuery/aiAssert 结果的 JSON 文件路径，可选
   output: <path-to-output-file>
+```
+
+### `ios` 部分
+
+```yaml
+ios:
+  # WebDriverAgent 端口，可选，默认 8100
+  wdaPort: <port>
+
+  # WebDriverAgent 主机地址，可选，默认 localhost
+  wdaHost: <host>
+
+  # 是否自动关闭键盘，可选，默认 false
+  autoDismissKeyboard: <boolean>
+
+  # 启动 URL 或应用包名，可选，默认使用设备当前页面
+  launch: <url-or-bundle-id>
+
+  # 输出 aiQuery/aiAssert 结果的 JSON 文件路径，可选
+  output: <path-to-output-file>
+
+  # 是否保存日志内容到 JSON 文件，可选，默认 `false`。如果为 true，保存到 `unstableLogContent.json` 文件中。如果为字符串，则保存到该字符串指定的路径中。日志内容的结构可能会在未来发生变化。
+  unstableLogContent: <boolean | path-to-unstable-log-file>
 ```
 
 ### `tasks` 部分
@@ -357,6 +396,8 @@ midscene './scripts/**/*.yaml'
 - `--web.viewportWidth <width>`: 设置浏览器视口宽度，这将覆盖所有脚本文件中的 `web.viewportWidth` 参数。
 - `--web.viewportHeight <height>`: 设置浏览器视口高度，这将覆盖所有脚本文件中的 `web.viewportHeight` 参数。
 - `--android.deviceId <device-id>`: 设置安卓设备 ID，这将覆盖所有脚本文件中的 `android.deviceId` 参数。
+- `--ios.wdaPort <port>`: 设置 WebDriverAgent 端口，这将覆盖所有脚本文件中的 `ios.wdaPort` 参数。
+- `--ios.wdaHost <host>`: 设置 WebDriverAgent 主机地址，这将覆盖所有脚本文件中的 `ios.wdaHost` 参数。
 - `--dotenv-debug`: 设置 dotenv 的 debug 日志，默认关闭。
 - `--dotenv-override`: 设置 dotenv 是否覆盖同名的全局环境变量，默认关闭。
 

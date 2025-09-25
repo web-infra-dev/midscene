@@ -1,0 +1,28 @@
+{
+  "name": "@midscene/ios-playground",
+  "version": "0.28.11",
+  "description": "iOS playground for Midscene",
+  "main": "./dist/lib/index.js",
+  "types": "./dist/types/index.d.ts",
+  "module": "./dist/es/index.mjs",
+  "files": ["dist", "static", "bin", "README.md"],
+  "bin": {
+    "midscene-ios-playground": "./bin/ios-playground",
+    "@midscene/ios-playground": "./bin/ios-playground"
+  },
+  "scripts": {
+    "dev": "npm run build:watch",
+    "dev:server": "npm run build && ./bin/ios-playground",
+    "build": "rslib build",
+    "build:watch": "rslib build --watch"
+  },
+  "dependencies": {
+    "@midscene/ios": "workspace:*"
+  },
+  "devDependencies": {
+    "@rslib/core": "^0.11.2",
+    "@types/node": "^18.0.0",
+    "typescript": "^5.8.3"
+  },
+  "license": "MIT"
+}

@@ -84,7 +84,6 @@
     "js-yaml": "4.1.0"
   },
   "devDependencies": {
-    "@microsoft/api-extractor": "^7.52.10",
     "@rslib/core": "^0.11.2",
     "@types/node": "^18.0.0",
     "@types/node-fetch": "2.6.11",

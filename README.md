@@ -44,6 +44,7 @@ English | [简体中文](./README.zh.md)
 ### Web & Mobile App & Any Interface
 - **Web Automation 🖥️**: Either integrate with [Puppeteer](https://midscenejs.com/integrate-with-puppeteer.html), [Playwright](https://midscenejs.com/integrate-with-playwright.html) or use [Bridge Mode](https://midscenejs.com/bridge-mode-by-chrome-extension.html) to control your desktop browser.
 - **Android Automation 📱**: Use [Javascript SDK](https://midscenejs.com/integrate-with-android.html) with adb to control your local Android device.
+- **iOS Automation 🍎**: Use [Javascript SDK](https://midscenejs.com/integrate-with-ios.html) with iOS Simulator to control your local iOS devices and simulators.
 - **Any Interface Automation 🌐**: Use [Javascript SDK](https://midscenejs.com/integrate-with-any-interface.html) to control your own interface.
 
 ### Tools
@@ -135,6 +136,7 @@ We would like to thank the following projects:
 - [Qwen2.5-VL](https://github.com/QwenLM/Qwen2.5-VL) for the open-source VL model Qwen2.5-VL.
 - [scrcpy](https://github.com/Genymobile/scrcpy) and [yume-chan](https://github.com/yume-chan) allow us to control Android devices with browser.
 - [appium-adb](https://github.com/appium/appium-adb) for the javascript bridge of adb.
+- [appium-webdriveragent](https://github.com/appium/WebDriverAgent) for the javascript operate XCTest。
 - [YADB](https://github.com/ysbing/YADB) for the yadb tool which improves the performance of text input.
 - [Puppeteer](https://github.com/puppeteer/puppeteer) for browser automation and control.
 - [Playwright](https://github.com/microsoft/playwright) for browser automation and control and testing.

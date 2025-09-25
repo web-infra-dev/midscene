@@ -17,11 +17,13 @@ Integrate Vitest for testing: [https://github.com/web-infra-dev/midscene-example
 
 <SetupEnv />
 
-## Step 1. Install dependencies
+## Integrate Midscene
+
+### Step 1: Install dependencies
 
 <PackageManagerTabs command="install @midscene/android --save-dev" />
 
-## Step 2. Write scripts
+### Step 2: Write scripts
 
 Let's take a simple example: search for headphones on eBay using the browser in the Android device. （Of course, you can also use any other apps on the Android device.）
 
@@ -72,7 +74,7 @@ Promise.resolve(
 );
 ```
 
-## Step 3. Run
+### Step 3: Run
 
 Using `tsx` to run
 
@@ -96,11 +98,13 @@ After a while, you will see the following output:
 ]
 ```
 
-## Step 4: View the report
+### Step 4: View the report
 
 After the above command executes successfully, the console will output: `Midscene - report file updated: /path/to/report/some_id.html`. You can open this file in a browser to view the report.
 
-## `AndroidDevice` constructor
+## Constructor and Interface
+
+### `AndroidDevice` Constructor
 
 The AndroidDevice constructor supports the following parameters:
 
@@ -114,11 +118,11 @@ The AndroidDevice constructor supports the following parameters:
   - `imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii'` - Optional, when should Midscene invoke [yadb](https://github.com/ysbing/YADB) to input texts. (Default: 'always-yadb')
   - `displayId?: number` - Optional, the display id to use. (Default: undefined, means use the current display)
 
-## More interfaces in AndroidAgent
+### Additional Android Agent Interfaces
 
 Except the common agent interfaces in [API Reference](./api.mdx), AndroidAgent also provides some other interfaces:
 
-### `agent.launch()`
+#### `agent.launch()`
 
 Launch a webpage or native page.
 
@@ -149,7 +153,7 @@ await agent.launch('com.android.settings'); // open a native page
 await agent.launch('com.android.settings/.Settings'); // open a native page
 ```
 
-### `agentFromAdbDevice()`
+#### `agentFromAdbDevice()`
 
 Create a AndroidAgent from a connected adb device.
 
@@ -180,7 +184,7 @@ const agent = await agentFromAdbDevice('s4ey59'); // create a AndroidAgent from 
 const agent = await agentFromAdbDevice(); // no deviceId, use the first connected device
 ```
 
-### `getConnectedDevices()`
+#### `getConnectedDevices()`
 
 Get all connected Android devices.
 
@@ -216,7 +220,7 @@ console.log(devices);
 const agent = await agentFromAdbDevice(devices[0].udid);
 ```
 
-## Provide custom actions
+## Extending Custom Interaction Actions
 
 Use the `customActions` option to extend the agent's action space with your own actions defined via `defineAction`. When provided, these actions will be appended to the built-in ones so the agent can call them during planning.
 

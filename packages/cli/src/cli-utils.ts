@@ -89,6 +89,21 @@ Usage:
         type: 'string',
         description: 'Override device ID for Android environments.',
       },
+      'ios.device-id': {
+        alias: 'ios.deviceId',
+        type: 'string',
+        description: 'Override device ID for iOS environments.',
+      },
+      'ios.wda-port': {
+        alias: 'ios.wdaPort',
+        type: 'number',
+        description: 'Override WebDriverAgent port for iOS environments.',
+      },
+      'ios.wda-host': {
+        alias: 'ios.wdaHost',
+        type: 'string',
+        description: 'Override WebDriverAgent host for iOS environments.',
+      },
     })
     .version('version', 'Show version number', __VERSION__)
     .help()
@@ -97,10 +112,47 @@ Usage:
   const argv = await args.argv;
   debug('argv', argv);
 
+  // Transform kebab-case to camelCase for nested objects
+  const transformedArgv: any = { ...argv };
+
+  // Handle web arguments
+  if (argv['web.user-agent']) {
+    transformedArgv.web = transformedArgv.web || {};
+    transformedArgv.web.userAgent = argv['web.user-agent'];
+  }
+  if (argv['web.viewport-width']) {
+    transformedArgv.web = transformedArgv.web || {};
+    transformedArgv.web.viewportWidth = argv['web.viewport-width'];
+  }
+  if (argv['web.viewport-height']) {
+    transformedArgv.web = transformedArgv.web || {};
+    transformedArgv.web.viewportHeight = argv['web.viewport-height'];
+  }
+
+  // Handle android arguments
+  if (argv['android.device-id']) {
+    transformedArgv.android = transformedArgv.android || {};
+    transformedArgv.android.deviceId = argv['android.device-id'];
+  }
+
+  // Handle iOS arguments
+  if (argv['ios.device-id']) {
+    transformedArgv.ios = transformedArgv.ios || {};
+    transformedArgv.ios.deviceId = argv['ios.device-id'];
+  }
+  if (argv['ios.wda-port']) {
+    transformedArgv.ios = transformedArgv.ios || {};
+    transformedArgv.ios.wdaPort = argv['ios.wda-port'];
+  }
+  if (argv['ios.wda-host']) {
+    transformedArgv.ios = transformedArgv.ios || {};
+    transformedArgv.ios.wdaHost = argv['ios.wda-host'];
+  }
+
   return {
     path: argv._[0] as string | undefined,
     files: argv.files as string[] | undefined,
-    options: argv,
+    options: transformedArgv,
   };
 };
 

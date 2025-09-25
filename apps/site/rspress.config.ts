@@ -119,6 +119,15 @@ export default defineConfig({
           ],
         },
         {
+          text: 'iOS Automation',
+          items: [
+            {
+              text: 'Integrate with iOS (WebDriverAgent)',
+              link: '/integrate-with-ios',
+            },
+          ],
+        },
+        {
           text: 'API and Usage',
           items: [
             {
@@ -248,6 +257,15 @@ export default defineConfig({
             {
               text: '与 Android(adb) 集成',
               link: '/zh/integrate-with-android',
+            },
+          ],
+        },
+        {
+          text: 'iOS 自动化',
+          items: [
+            {
+              text: '与 iOS(WebDriverAgent) 集成',
+              link: '/zh/integrate-with-ios',
             },
           ],
         },

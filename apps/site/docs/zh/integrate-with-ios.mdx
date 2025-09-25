@@ -1,0 +1,360 @@
+import SetupEnv from './common/setup-env.mdx';
+
+# 与 iOS(WebDriverAgent) 集成
+
+## 关于 WebDriver 和 Midscene 的关系
+
+WebDriver 是一套由 W3C 制定的用于浏览器自动化的标准协议，它提供了一个统一的 API 来控制不同的浏览器和应用程序。WebDriver 协议定义了客户端和服务器之间的通信方式，使得自动化工具能够跨平台地控制各种用户界面。
+
+在 Appium 团队及其他开源社区的努力下，业界已经有了许多优秀的库将桌面、移动端等设备的自动化操作转化为 WebDriver 协议。这些工具包括：
+- **Appium** - 跨平台移动自动化框架
+- **WebDriverAgent** - 专门用于 iOS 设备自动化的服务
+- **Selenium** - Web 浏览器自动化工具
+- **WinAppDriver** - Windows 应用程序自动化工具
+
+**Midscene 适配了 WebDriver 协议**，这意味着开发者可以使用 AI 模型对支持 WebDriver 的任何设备进行智能化的自动化操作。通过这种设计，Midscene 不仅能够控制传统的点击、输入等基础操作，还能够：
+- 理解界面内容和上下文
+- 执行复杂的多步骤操作
+- 进行智能断言和验证
+- 提取和分析界面数据
+
+在 iOS 平台上，Midscene 通过 WebDriverAgent 连接 iOS 设备，让你能够使用自然语言描述的方式来控制 iOS 应用和系统。
+
+---
+
+在使用 WebDriverAgent 连接 iOS 设备后，你可以使用 Midscene javascript SDK 来控制 iOS 设备。
+
+import { PackageManagerTabs } from '@theme';
+
+:::info 样例项目
+使用 javascript SDK 控制 iOS 设备：[https://github.com/web-infra-dev/midscene-example/blob/main/ios/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/ios/javascript-sdk-demo)
+
+与 Vitest 集成和测试：[https://github.com/web-infra-dev/midscene-example/tree/main/ios/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/ios/vitest-demo)
+:::
+
+## 准备 WebDriver 服务
+
+在开始之前，你需要先设置 iOS 开发环境：
+
+- macOS（iOS 开发必需）
+- Xcode 和 Xcode 命令行工具
+- iOS 模拟器或真机设备
+
+### 配置环境
+
+在使用 Midscene iOS 之前，需要先准备 WebDriverAgent 服务。请参考官方文档进行设置：
+
+- **模拟器配置**：[Run Prebuilt WDA](https://appium.github.io/appium-xcuitest-driver/5.12/run-prebuilt-wda/)
+- **真机配置**：[Real Device Configuration](https://appium.github.io/appium-xcuitest-driver/5.12/real-device-config/)
+
+### 验证环境配置
+
+配置完成后，可以通过访问 WebDriverAgent 的状态接口来验证 服务是否启动：
+
+**访问地址**：`http://localhost:8100/status`
+
+**正确响应示例**：
+```json
+{
+  "value": {
+    "build": {
+      "version": "10.1.1",
+      "time": "Sep 24 2025 18:56:41",
+      "productBundleIdentifier": "com.facebook.WebDriverAgentRunner"
+    },
+    "os": {
+      "testmanagerdVersion": 65535,
+      "name": "iOS",
+      "sdkVersion": "26.0",
+      "version": "26.0"
+    },
+    "device": "iphone",
+    "ios": {
+      "ip": "10.91.115.63"
+    },
+    "message": "WebDriverAgent is ready to accept commands",
+    "state": "success",
+    "ready": true
+  },
+  "sessionId": "BCAD9603-F714-447C-A9E6-07D58267966B"
+}
+```
+
+如果能够正常访问该端点并返回类似上述的 JSON 响应，说明 WebDriverAgent 已经正确配置并运行。
+
+<SetupEnv />
+
+## 集成 Midscene
+
+### 第一步：安装依赖
+
+<PackageManagerTabs command="install @midscene/ios --save-dev" />
+
+### 第二步：编写脚本
+
+这里以使用 iOS Safari 浏览器搜索耳机为例。
+
+编写下方代码，保存为 `./demo.ts`
+
+```typescript title="./demo.ts"
+import {
+  IOSAgent,
+  IOSDevice,
+  agentFromWebDriverAgent,
+} from '@midscene/ios';
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+Promise.resolve(
+  (async () => {
+    // 方法一：直接创建设备和代理
+    const page = new IOSDevice({
+      wdaPort: 8100,
+      wdaHost: 'localhost',
+    });
+
+    // 👀 初始化 Midscene agent
+    const agent = new IOSAgent(page, {
+      aiActionContext:
+        '如果出现位置、权限、用户协议等弹窗，点击同意。如果出现登录页面，关闭它。',
+    });
+    await page.connect();
+
+    // 方法二：或者使用便捷函数（推荐）
+    // const agent = await agentFromWebDriverAgent({
+    //   wdaPort: 8100,
+    //   wdaHost: 'localhost',
+    //   aiActionContext: '如果出现位置、权限、用户协议等弹窗，点击同意。如果出现登录页面，关闭它。',
+    // });
+
+    // 👀 打开 ebay.com 网页
+    await page.launch('https://ebay.com');
+    await sleep(3000);
+
+    // 👀 输入关键词，执行搜索
+    await agent.aiAction('在搜索框输入 "Headphones" ，敲回车');
+
+    // 👀 等待加载完成
+    await agent.aiWaitFor('页面中至少有一个耳机商品');
+    // 或者你也可以使用一个普通的 sleep:
+    // await sleep(5000);
+
+    // 👀 理解页面内容，提取数据
+    const items = await agent.aiQuery(
+      '{itemTitle: string, price: Number}[], 找到列表里的商品标题和价格',
+    );
+    console.log('耳机商品信息', items);
+
+    // 👀 用 AI 断言
+    await agent.aiAssert('界面中有多个耳机产品');
+
+    await page.destroy();
+  })(),
+);
+```
+
+### 第三步：运行
+
+使用 `tsx` 来运行
+
+```bash
+# run
+npx tsx demo.ts
+```
+
+稍等片刻，你会看到如下输出：
+
+```log
+[
+ {
+   itemTitle: 'AirPods Pro (2nd generation) with MagSafe Charging Case (USB-C)',
+   price: 249
+ },
+ {
+   itemTitle: 'Sony WH-1000XM4 Wireless Premium Noise Canceling Overhead Headphones',
+   price: 278
+ }
+]
+```
+
+### 第四步：查看运行报告
+
+当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: /path/to/report/some_id.html`， 通过浏览器打开该文件即可看到报告。
+
+## 构造函数与接口
+
+### `IOSDevice` 的构造函数
+
+IOSDevice 的构造函数支持以下参数：
+
+- `opts?: IOSDeviceOpt` - 可选参数，用于初始化 IOSDevice 的配置
+  - `wdaPort?: number` - 可选参数，WebDriverAgent 端口。默认值为 8100。
+  - `wdaHost?: string` - 可选参数，WebDriverAgent 主机。默认值为 'localhost'。
+  - `autoDismissKeyboard?: boolean` - 可选参数，是否在输入文本后自动关闭键盘。默认值为 true。
+  - `customActions?: DeviceAction<any>[]` - 可选参数，自定义设备动作列表。
+
+### iOS Agent 上的更多接口
+
+除了 [API 参考](./api.mdx) 中的通用 Agent 接口，IOSAgent 还提供了一些其他接口：
+
+#### `agent.launch()`
+
+启动一个网页或原生 iOS 应用。
+
+- 类型
+
+```typescript
+function launch(uri: string): Promise<void>;
+```
+
+- 参数：
+
+  - `uri: string` - 要打开的 uri，可以是网页 url、原生 app 的 bundle identifier 或自定义 URL scheme
+
+- 返回值：
+
+  - `Promise<void>`
+
+- 示例：
+
+```typescript
+import { IOSAgent, IOSDevice, agentFromWebDriverAgent } from '@midscene/ios';
+
+// 方法一：手动创建设备和代理
+const page = new IOSDevice();
+const agent = new IOSAgent(page);
+await page.connect();
+
+// 方法二：使用便捷函数（推荐）
+const agent = await agentFromWebDriverAgent();
+
+await agent.launch('https://www.apple.com'); // 打开网页
+await agent.launch('com.apple.mobilesafari'); // 启动 Safari
+await agent.launch('com.apple.Preferences'); // 启动设置应用
+await agent.launch('myapp://profile/user/123'); // 打开应用深度链接
+await agent.launch('tel:+1234567890'); // 拨打电话
+await agent.launch('mailto:example@email.com'); // 发送邮件
+```
+
+#### `agentFromWebDriverAgent()` (推荐)
+
+通过连接 WebDriverAgent 服务创建 IOSAgent，这是最简便的方式。
+
+- 类型
+
+```typescript
+function agentFromWebDriverAgent(
+  opts?: PageAgentOpt & IOSDeviceOpt,
+): Promise<IOSAgent>;
+```
+
+- 参数：
+
+  - `opts?: PageAgentOpt & IOSDeviceOpt` - 可选参数，用于初始化 IOSAgent 的配置，其中 PageAgentOpt 参考 [构造器](./api.mdx)，IOSDeviceOpt 的配置值参考 [IOSDevice 的构造函数](./integrate-with-ios#iosdevice-%E7%9A%84%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0)
+
+- 返回值：
+
+  - `Promise<IOSAgent>` 返回一个 IOSAgent 实例
+
+- 示例：
+
+```typescript
+import { agentFromWebDriverAgent } from '@midscene/ios';
+
+// 使用默认 WebDriverAgent 地址 (localhost:8100)
+const agent = await agentFromWebDriverAgent();
+
+// 使用自定义 WebDriverAgent 地址
+const agent = await agentFromWebDriverAgent({
+  wdaHost: 'localhost',
+  wdaPort: 8100,
+  aiActionContext: '如果出现弹窗，点击同意',
+});
+```
+
+
+
+## 扩展自定义交互动作
+
+使用 `customActions` 选项，结合 `defineAction` 定义的自定义交互动作，可以扩展 Agent 的动作空间。这些动作会追加在内置动作之后，方便 Agent 在规划阶段调用。
+
+```typescript
+import { getMidsceneLocationSchema, z } from '@midscene/core';
+import { defineAction } from '@midscene/core/device';
+import { IOSAgent, IOSDevice } from '@midscene/ios';
+
+const ContinuousClick = defineAction({
+  name: 'continuousClick',
+  description: 'Click the same target repeatedly',
+  paramSchema: z.object({
+    locate: getMidsceneLocationSchema(),
+    count: z
+      .number()
+      .int()
+      .positive()
+      .describe('How many times to click'),
+  }),
+  async call(param) {
+    const { locate, count } = param;
+    console.log('click target center', locate.center);
+    console.log('click count', count);
+    // 在这里结合 locate + count 实现自定义点击逻辑
+  },
+});
+
+const agent = await agentFromWebDriverAgent({
+  customActions: [ContinuousClick],
+});
+
+await agent.aiAction('点击红色按钮五次');
+```
+
+更多关于自定义动作的细节，请参考 [集成到任意界面](./integrate-with-any-interface)。
+
+## 更多
+
+- 更多 Agent 上的 API 接口请参考 [API 参考](./api.mdx)。
+- 更多关于提示词的技巧请参考 [提示词技巧](./prompting-tips)
+
+## FAQ
+
+### 为什么我连接了设备，但是通过 WebDriverAgent 仍然无法控制？
+
+请检查以下几点：
+
+1. **开发者模式**：确保在设置 > 隐私与安全性 > 开发者模式 中已开启
+2. **UI 自动化**：确保在设置 > 开发者 > UI 自动化，启用 UI 自动化
+3. **设备信任**：确保设备已信任当前 Mac
+
+### 模拟器和真机有什么区别？
+
+| 特性 | 真机 | 模拟器 |
+|------|------|---------|
+| 端口转发 | 需要 iproxy | 不需要 |
+| 开发者模式 | 需要启用 | 自动启用 |
+| UI 自动化设置 | 需要手动启用 | 自动启用 |
+| 性能 | 真实设备性能 | 依赖 Mac 性能 |
+| 传感器 | 真实硬件 | 模拟数据 |
+
+### 如何使用自定义的 WebDriverAgent 端口和主机？
+
+你可以通过 IOSDevice 的构造函数或 agentFromWebDriverAgent 来指定 WebDriverAgent 的端口和主机：
+
+```typescript
+// 方法一：使用 IOSDevice
+const device = new IOSDevice({
+  wdaPort: 8100,        // 自定义端口
+  wdaHost: '192.168.1.100', // 自定义主机
+});
+
+// 方法二：使用便捷函数（推荐）
+const agent = await agentFromWebDriverAgent({
+  wdaPort: 8100,        // 自定义端口
+  wdaHost: '192.168.1.100', // 自定义主机
+});
+```
+
+对于远程设备，还需要相应地设置端口转发：
+
+```bash
+iproxy 8100 8100 YOUR_DEVICE_ID
+```

@@ -21,6 +21,7 @@
   "dependencies": {
     "@midscene/android": "workspace:*",
     "@midscene/core": "workspace:*",
+    "@midscene/ios": "workspace:*",
     "@midscene/shared": "workspace:*",
     "@midscene/web": "workspace:*",
     "http-server": "14.1.1",
@@ -28,7 +29,6 @@
     "puppeteer": "24.2.0"
   },
   "devDependencies": {
-    "@microsoft/api-extractor": "^7.52.10",
     "@rslib/core": "^0.11.2",
     "@types/js-yaml": "4.0.9",
     "@types/lodash.merge": "4.6.9",

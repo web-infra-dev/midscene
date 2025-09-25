@@ -17,11 +17,13 @@ import { PackageManagerTabs } from '@theme';
 
 <SetupEnv />
 
-## 第一步：安装依赖
+## 集成 Midscene
+
+### 第一步：安装依赖
 
 <PackageManagerTabs command="install @midscene/android --save-dev" />
 
-## 第二步：编写脚本
+### 第二步：编写脚本
 
 这里以使用安卓浏览器搜索耳机为例。(当然，你也可以使用设备上的其他任何应用)
 
@@ -72,7 +74,7 @@ Promise.resolve(
 );
 ```
 
-## 第三步：运行
+### 第三步：运行
 
 使用 `tsx` 来运行
 
@@ -96,11 +98,13 @@ npx tsx demo.ts
 ]
 ```
 
-## 第四步：查看运行报告
+### 第四步：查看运行报告
 
 当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: /path/to/report/some_id.html`， 通过浏览器打开该文件即可看到报告。
 
-## `AndroidDevice` 的构造函数
+## 构造函数与接口
+
+### `AndroidDevice` 的构造函数
 
 AndroidDevice 的构造函数支持以下参数：
 
@@ -114,11 +118,11 @@ AndroidDevice 的构造函数支持以下参数：
   - `imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii'` - 可选参数，控制 Midscene 何时调用 [yadb](https://github.com/ysbing/YADB) 来输入文本。默认值为 'always-yadb'。
   - `displayId?: number` - 可选参数，用于指定要使用的显示器 ID。默认值为 undefined，表示使用当前显示器。
 
-## Android Agent 上的更多接口
+### Android Agent 上的更多接口
 
 除了 [API 参考](./api.mdx) 中的通用 Agent 接口，AndroidAgent 还提供了一些其他接口：
 
-### `agent.launch()`
+#### `agent.launch()`
 
 启动一个网页或原生页面。
 
@@ -149,7 +153,7 @@ await agent.launch('com.android.settings'); // 打开系统设置 app(package na
 await agent.launch('com.android.settings/.Settings'); // 打开系统设置 app(package name) 的 .Settings(activity name) 页面
 ```
 
-### `agentFromAdbDevice()`
+#### `agentFromAdbDevice()`
 
 从已连接的 adb 设备中，创建一个 AndroidAgent。
 
@@ -180,7 +184,7 @@ const agent = await agentFromAdbDevice('s4ey59'); // 传入 deviceId
 const agent = await agentFromAdbDevice(); // 不传入 deviceId，则使用第一个连接的设备
 ```
 
-### `getConnectedDevices()`
+#### `getConnectedDevices()`
 
 获取所有连接的 Android 设备。
 
