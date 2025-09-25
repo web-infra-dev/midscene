@@ -63,10 +63,10 @@ export async function plan(
     imageHeight = paddedResult.height;
     imagePayload = paddedResult.imageBase64;
   } else if (vlMode === 'qwen3-vl') {
-    const paddedResult = await paddingToMatchBlockByBase64(imagePayload, 32);
-    imageWidth = paddedResult.width;
-    imageHeight = paddedResult.height;
-    imagePayload = paddedResult.imageBase64;
+    // const paddedResult = await paddingToMatchBlockByBase64(imagePayload, 32);
+    // imageWidth = paddedResult.width;
+    // imageHeight = paddedResult.height;
+    // imagePayload = paddedResult.imageBase64;
   } else if (!vlMode) {
     imagePayload = await markupImageForLLM(screenshotBase64, context.tree, {
       width: imageWidth,

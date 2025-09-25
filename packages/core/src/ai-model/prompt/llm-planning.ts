@@ -1,6 +1,4 @@
-import assert from 'node:assert';
 import type { DeviceAction } from '@/types';
-import { PromptTemplate } from '@langchain/core/prompts';
 import type { TVlModeTypes } from '@midscene/shared/env';
 import type { ResponseFormatJSONSchema } from 'openai/resources/index';
 import type { ZodObject, z } from 'zod';
@@ -8,7 +6,8 @@ import { ifMidsceneLocatorField } from '../common';
 import { bboxDescription } from './common';
 
 // Note: put the log field first to trigger the CoT
-const vlCurrentLog = `"log": string, // Log your thoughts and what the next one action (ONLY ONE!) you can do according to the screenshot and the instruction. The typical log looks like "The user wants to do ... . According to the instruction and the previous logs, now i should use action '{ action-type }' to do ....". If no action should be done, log the reason. Use the same language as the user's instruction.`;
+
+const vlCurrentLog = `"log": string, // Log your thoughts and what the next one action (ONLY ONE!) you can do according to the screenshot and the instruction. The log should contain the following information: "The user wants to do ... . According to the instruction and the previous logs, next step is to .... Now i am going to compose an action '{ action-type }' to do ....". If no action should be done, log the reason. Use the same language as the user's instruction.`;
 const llmCurrentLog = `"log": string, // Log what the next actions you can do according to the screenshot and the instruction. The typical log looks like "Now i want to use action '{ action-type }' to do ..". If no action should be done, log the reason. ". Use the same language as the user's instruction.`;
 
 const commonOutputFields = `"error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not foreseeable according to the instruction. Use the same language as the user's instruction.
@@ -215,7 +214,7 @@ For example, when the instruction is "click 'Confirm' button, and click 'Yes' in
 this and output the JSON:
 
 {
-  "log": "The user wants to do click 'Confirm' button, and click 'Yes' in popup. According to the instruction and the previous logs, now i should use action 'Tap' to click 'Yes' in popup.",
+  "log": "The user wants to do click 'Confirm' button, and click 'Yes' in popup. According to the instruction and the previous logs, next step is to tap the 'Yes' button in the popup. Now i am going to compose an action 'Tap' to click 'Yes' in popup.",
   "action": {
     "type": "Tap",
     "param": {
@@ -312,7 +311,7 @@ By viewing the page screenshot and description, you should consider this and out
 * The language switch button is shown in the screenshot, and can be located by the page description or the id marked with a rectangle. So we can plan a Tap action to do this.
 * Plan a Sleep action to wait for 1 second to ensure the language options are displayed.
 * The "English" option button is not shown in the screenshot now, it means it may only show after the previous actions are finished. So don't plan any action to do this.
-* Log what these action do: Click the language switch button to open the language options. Wait for 1 second.
+* Compose the log: The user wants to do click the language switch button, wait 1s, click "English". According to the instruction and the previous logs, next step is to tap the language switch button to open the language options. Now i am going to compose an action 'Tap' to click the language switch button.
 * The task cannot be accomplished (because the last tapping action is not finished yet), so the \`more_actions_needed_by_instruction\` field is true. The \`error\` field is null.
 
 {
@@ -332,7 +331,7 @@ By viewing the page screenshot and description, you should consider this and out
   ],
   "error": null,
   "more_actions_needed_by_instruction": true,
-  "log": "Click the language switch button to open the language options. Wait for 1 second",
+  "log": "The user wants to do click the language switch button, wait 1s, click \"English\". According to the instruction and the previous logs, next step is to tap the language switch button to open the language options. Now i am going to compose an action 'Tap' to click the language switch button.",
 }
 
 ### Example: What NOT to do
@@ -355,7 +354,7 @@ Wrong output:
     }
   ],
   "more_actions_needed_by_instruction": false, // WRONG: should be true
-  "log": "Click the language switch button to open the language options",
+  "log": "The user wants to do click the language switch button, wait 1s, click \"English\". According to the instruction and the previous logs, next step is to tap the language switch button to open the language options. Now i am going to compose an action 'Tap' to click the language switch button.",
 }
 `;
 
