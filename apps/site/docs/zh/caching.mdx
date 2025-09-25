@@ -18,16 +18,35 @@ Android 自动化任务支持 planning 缓存，但不支持元素定位缓存�
 
 ## 使用方式
 
-想要启用缓存特性，有两个关键点：
+想要启用缓存特性，需要在创建 Agent 时配置 `cache` 选项，缓存配置支持以下模式：
 
-1. 设置 `MIDSCENE_CACHE=1` 环境变量，用以启用缓存匹配
-2. 设置 `cacheId` 来指定缓存文件名。在 Playwright 和 Yaml 模式下，`cacheId` 会自动设置为测试文件名，在 Javascript Agent 模式下，需要手动设置 `cacheId`。
+1. **禁用缓存**: `cache: false` 
+2. **读写模式**: `cache: { id: "my-cache-id" }` - 自动读取和写入缓存
+3. **只读模式**: `cache: { strategy: "read-only", id: "my-cache-id" }` - 只读取缓存，需要手动调用 `agent.flushCache()` 写入
 
 ### Playwright
 
-在集成 Playwright 时，可以通过设置 `MIDSCENE_CACHE=1` 环境变量来启用缓存匹配。
+在 Playwright 模式下，需要在测试中配置 cache 选项：
 
-`cacheId` 会自动设置为测试文件名。
+```javascript
+// 启用缓存（读写模式）
+const page = await context.newPage();
+const agent = new PuppeteerAgent(page, {
+  cache: { id: "login-test" }
+});
+
+// 只读模式
+const agent = new PuppeteerAgent(page, {
+  cache: { strategy: "read-only", id: "login-test" }
+});
+
+// 禁用缓存
+const agent = new PuppeteerAgent(page, {
+  cache: false
+});
+```
+
+**向后兼容**: 仍支持旧的 `cacheId` + `MIDSCENE_CACHE=1` 环境变量方式：
 
 ```diff
 - playwright test --config=playwright.config.ts
@@ -36,8 +55,29 @@ Android 自动化任务支持 planning 缓存，但不支持元素定位缓存�
 
 ### Javascript Agent, 例如 PuppeteerAgent, AgentOverChromeBridge
 
-在 Javascript agent 模式下，需要手动设置 `cacheId` 来指定缓存标识。
-同时，通过设置 `MIDSCENE_CACHE=1` 环境变量来启用缓存匹配。
+使用 cache 配置方式：
+
+```javascript
+// 读写模式 - 自动读取和写入缓存
+const agent = new PuppeteerAgent(originPage, {
+  cache: { id: 'puppeteer-swag-sab' }
+});
+
+// 只读模式 - 只读取缓存，需要手动写入
+const agent = new PuppeteerAgent(originPage, {
+  cache: { strategy: "read-only", id: 'puppeteer-swag-sab' }
+});
+
+// 手动写入缓存（仅在只读模式下）
+await agent.flushCache();
+
+// 禁用缓存
+const agent = new PuppeteerAgent(originPage, {
+  cache: false
+});
+```
+
+**向后兼容**: 仍支持旧的方式，需要设置环境变量：
 
 ```diff
 - tsx demo.ts 
@@ -46,21 +86,61 @@ Android 自动化任务支持 planning 缓存，但不支持元素定位缓存�
 
 ```javascript
 const mid = new PuppeteerAgent(originPage, {
-  cacheId: 'puppeteer-swag-sab', // 增加缓存标识
+  cacheId: 'puppeteer-swag-sab', // 旧方式，需要 MIDSCENE_CACHE=1
 });
 ```
 
 ### Yaml
 
-在 Yaml 模式下，需要通过设置 `MIDSCENE_CACHE=1` 环境变量来启用缓存匹配。
-
-`cacheId` 会自动设置为 yaml 文件名。
+在 Yaml 模式下，仍需要设置 `MIDSCENE_CACHE=1` 环境变量，`cacheId` 会自动设置为 yaml 文件名。
 
 ```diff
 - npx midscene ./bing-search.yaml
-+ # 增加缓存标识, cacheId 为 yaml 文件名
++ # 启用缓存, cacheId 自动设置为 yaml 文件名
 + MIDSCENE_CACHE=1 npx midscene ./bing-search.yaml
 ```
+
+注意：Yaml 模式暂时仍使用旧的缓存配置方式，未来版本将支持新的配置格式。
+
+## 缓存模式
+
+### 读写模式（默认）
+
+```javascript
+const agent = new PuppeteerAgent(page, {
+  cache: { id: "my-cache-id" }
+});
+```
+
+- 自动读取已有缓存
+- 执行过程中自动更新缓存文件
+- 适合开发和调试阶段
+
+### 只读模式
+
+```javascript
+const agent = new PuppeteerAgent(page, {
+  cache: { strategy: "read-only", id: "my-cache-id" }
+});
+
+// 需要手动写入缓存
+await agent.flushCache();
+```
+
+- 只读取缓存，不自动写入
+- 需要手动调用 `flushCache()` 写入缓存
+- 适合生产环境，确保缓存的一致性
+
+### 禁用缓存
+
+```javascript
+const agent = new PuppeteerAgent(page, {
+  cache: false
+});
+```
+
+- 完全禁用缓存功能
+- 每次都重新调用 AI 模型
 
 ## 缓存策略
 
