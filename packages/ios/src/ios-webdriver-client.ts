@@ -210,10 +210,20 @@ export class IOSWebDriverClient extends WebDriverClient {
     }
 
     try {
-      await this.makeRequest(
-        'POST',
-        `/session/${this.sessionId}/wda/keyboard/dismiss`,
+      // Get window size for swipe coordinates
+      const windowSize = await this.getWindowSize();
+
+      // Calculate swipe coordinates at one-third position of the screen
+      const centerX = windowSize.width / 2;
+      const startY = windowSize.height * 0.33; // Start at one-third from top
+      const endY = windowSize.height * 0.33 + 10; // Swipe down
+
+      // Perform swipe down gesture to dismiss keyboard
+      await this.swipe(centerX, startY, centerX, endY, 50);
+      debugIOS(
+        'Dismissed keyboard with swipe down gesture at screen one-third position',
       );
+
       return true;
     } catch (error) {
       debugIOS(`Failed to dismiss keyboard: ${error}`);
