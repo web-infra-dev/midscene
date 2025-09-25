@@ -1107,7 +1107,6 @@ export class TaskExecutor {
         modelConfig,
         {
           isWaitForAssert: true,
-          returnThought: true,
           doNotThrowError: true,
         },
         multimodalPrompt,

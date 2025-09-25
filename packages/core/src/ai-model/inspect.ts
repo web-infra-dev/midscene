@@ -463,13 +463,6 @@ export async function AiExtractElementInfo<
     },
   ];
 
-  if (options.extractOption?.returnThought) {
-    msgs.push({
-      role: 'user',
-      content: 'Please provide reasons.',
-    });
-  }
-
   if (multimodalPrompt) {
     const addOns = await promptsToChatParam({
       images: multimodalPrompt.images,
