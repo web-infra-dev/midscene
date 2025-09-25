@@ -234,6 +234,94 @@ describe('AndroidDevice', () => {
       expect(result).toContain(mockBuffer.toString('base64'));
       expect(mockAdb.shell).toHaveBeenCalledWith(expect.stringMatching(/rm/));
     });
+
+    it('should apply custom resize ratio when screenshotResizeRatio is set', async () => {
+      const customDevice = new AndroidDevice('test-device', {
+        screenshotResizeRatio: 0.5,
+      });
+      
+      vi.spyOn(customDevice, 'size').mockResolvedValue({
+        width: 1080,
+        height: 1920,
+        dpr: 2,
+      });
+      
+      const mockBuffer = Buffer.from('test-screenshot');
+      mockAdb.takeScreenshot.mockResolvedValue(mockBuffer);
+      vi.spyOn(customDevice, 'getAdb').mockResolvedValue(mockAdb);
+
+      // Mock createImgBase64ByFormat
+      vi.spyOn(ImgUtils, 'createImgBase64ByFormat').mockReturnValue(
+        `data:image/png;base64,${mockBuffer.toString('base64')}`,
+      );
+
+      await customDevice.screenshotBase64();
+
+      // Verify that resizeAndConvertImgBuffer was called with half the original size
+      expect(ImgUtils.resizeAndConvertImgBuffer).toHaveBeenCalledWith(
+        'png',
+        mockBuffer,
+        {
+          width: 540, // 1080 * 0.5
+          height: 960, // 1920 * 0.5
+        },
+      );
+    });
+
+    it('should use original size when screenshotResizeRatio is not set', async () => {
+      const mockBuffer = Buffer.from('test-screenshot');
+      mockAdb.takeScreenshot.mockResolvedValue(mockBuffer);
+
+      // Mock createImgBase64ByFormat
+      vi.spyOn(ImgUtils, 'createImgBase64ByFormat').mockReturnValue(
+        `data:image/png;base64,${mockBuffer.toString('base64')}`,
+      );
+
+      await device.screenshotBase64();
+
+      // Verify that resizeAndConvertImgBuffer was called with original size
+      expect(ImgUtils.resizeAndConvertImgBuffer).toHaveBeenCalledWith(
+        'png',
+        mockBuffer,
+        {
+          width: 1080, // original width
+          height: 1920, // original height
+        },
+      );
+    });
+
+    it('should use default ratio of 1.0 when screenshotResizeRatio is undefined', async () => {
+      const customDevice = new AndroidDevice('test-device', {
+        screenshotResizeRatio: undefined,
+      });
+      
+      vi.spyOn(customDevice, 'size').mockResolvedValue({
+        width: 1080,
+        height: 1920,
+        dpr: 2,
+      });
+      
+      const mockBuffer = Buffer.from('test-screenshot');
+      mockAdb.takeScreenshot.mockResolvedValue(mockBuffer);
+      vi.spyOn(customDevice, 'getAdb').mockResolvedValue(mockAdb);
+
+      // Mock createImgBase64ByFormat
+      vi.spyOn(ImgUtils, 'createImgBase64ByFormat').mockReturnValue(
+        `data:image/png;base64,${mockBuffer.toString('base64')}`,
+      );
+
+      await customDevice.screenshotBase64();
+
+      // Verify that resizeAndConvertImgBuffer was called with original size (ratio 1.0)
+      expect(ImgUtils.resizeAndConvertImgBuffer).toHaveBeenCalledWith(
+        'png',
+        mockBuffer,
+        {
+          width: 1080, // 1080 * 1.0
+          height: 1920, // 1920 * 1.0
+        },
+      );
+    });
   });
 
   describe('mouse', () => {

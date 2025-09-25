@@ -60,6 +60,7 @@ export type AndroidDeviceOpt = {
   usePhysicalDisplayIdForScreenshot?: boolean;
   usePhysicalDisplayIdForDisplayLookup?: boolean;
   customActions?: DeviceAction<any>[];
+  screenshotResizeRatio?: number;
 } & AndroidDeviceInputOpt;
 
 export class AndroidDevice implements AbstractInterface {
