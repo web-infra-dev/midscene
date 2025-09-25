@@ -32,16 +32,24 @@ Control iOS devices with javascript SDK: [https://github.com/web-infra-dev/midsc
 Integrate with Vitest for testing: [https://github.com/web-infra-dev/midscene-example/tree/main/ios/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/ios/vitest-demo)
 :::
 
-## Environment Setup
+## Prepare WebDriver Service
+
+Before getting started, you need to set up the iOS development environment:
+
+- macOS (required for iOS development)
+- Xcode and Xcode command line tools
+- iOS Simulator or real device
+
+### Environment Configuration
 
 Before using Midscene iOS, you need to prepare the WebDriverAgent server. Please refer to the official documentation for setup:
 
 - **Simulator Configuration**: [Run Prebuilt WDA](https://appium.github.io/appium-xcuitest-driver/5.12/run-prebuilt-wda/)
 - **Real Device Configuration**: [Real Device Configuration](https://appium.github.io/appium-xcuitest-driver/5.12/real-device-config/)
 
-## Verify Environment Configuration
+### Verify Environment Configuration
 
-After completing the configuration, you can verify whether the server is working properly by accessing WebDriverAgent's status endpoint:
+After completing the configuration, you can verify whether the service is working properly by accessing WebDriverAgent's status endpoint:
 
 **Access URL**: `http://localhost:8100/status`
 
@@ -76,11 +84,13 @@ If you can successfully access this endpoint and receive a similar JSON response
 
 <SetupEnv />
 
-## Step 1. Install dependencies
+## Integrate Midscene
+
+### Step 1: Install dependencies
 
 <PackageManagerTabs command="install @midscene/ios --save-dev" />
 
-## Step 2. Write scripts
+### Step 2: Write scripts
 
 Here's an example using iOS Safari browser to search for headphones.
 
@@ -142,7 +152,7 @@ Promise.resolve(
 );
 ```
 
-## Step 3. Run
+### Step 3: Run
 
 Use `tsx` to run the script
 
@@ -166,11 +176,13 @@ Shortly after, you will see output like this:
 ]
 ```
 
-## Step 4. View execution report
+### Step 4: View execution report
 
 When the above command executes successfully, it will output in the console: `Midscene - report file updated: /path/to/report/some_id.html`. Open this file in a browser to view the report.
 
-## IOSDevice Constructor
+## Constructor and Interface
+
+### `IOSDevice` Constructor
 
 The IOSDevice constructor supports the following parameters:
 
@@ -180,7 +192,7 @@ The IOSDevice constructor supports the following parameters:
   - `autoDismissKeyboard?: boolean` - Optional, whether to automatically dismiss keyboard after text input. Default is true.
   - `customActions?: DeviceAction<any>[]` - Optional, list of custom device actions.
 
-## Additional iOS Agent Interfaces
+### Additional iOS Agent Interfaces
 
 In addition to the common Agent interfaces in [API Reference](./api.mdx), IOSAgent provides some additional interfaces:
 

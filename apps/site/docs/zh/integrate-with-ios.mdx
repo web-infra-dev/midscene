@@ -32,14 +32,22 @@ import { PackageManagerTabs } from '@theme';
 与 Vitest 集成和测试：[https://github.com/web-infra-dev/midscene-example/tree/main/ios/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/ios/vitest-demo)
 :::
 
-## 准备环境
+## 准备 WebDriver 服务
+
+在开始之前，你需要先设置 iOS 开发环境：
+
+- macOS（iOS 开发必需）
+- Xcode 和 Xcode 命令行工具
+- iOS 模拟器或真机设备
+
+### 配置环境
 
 在使用 Midscene iOS 之前，需要先准备 WebDriverAgent 服务。请参考官方文档进行设置：
 
 - **模拟器配置**：[Run Prebuilt WDA](https://appium.github.io/appium-xcuitest-driver/5.12/run-prebuilt-wda/)
 - **真机配置**：[Real Device Configuration](https://appium.github.io/appium-xcuitest-driver/5.12/real-device-config/)
 
-## 验证环境配置
+### 验证环境配置
 
 配置完成后，可以通过访问 WebDriverAgent 的状态接口来验证 服务是否启动：
 
@@ -76,11 +84,13 @@ import { PackageManagerTabs } from '@theme';
 
 <SetupEnv />
 
-## 第一步：安装依赖
+## 集成 Midscene
+
+### 第一步：安装依赖
 
 <PackageManagerTabs command="install @midscene/ios --save-dev" />
 
-## 第二步：编写脚本
+### 第二步：编写脚本
 
 这里以使用 iOS Safari 浏览器搜索耳机为例。
 
@@ -142,7 +152,7 @@ Promise.resolve(
 );
 ```
 
-## 第三步：运行
+### 第三步：运行
 
 使用 `tsx` 来运行
 
@@ -166,11 +176,13 @@ npx tsx demo.ts
 ]
 ```
 
-## 第四步：查看运行报告
+### 第四步：查看运行报告
 
 当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: /path/to/report/some_id.html`， 通过浏览器打开该文件即可看到报告。
 
-## `IOSDevice` 的构造函数
+## 构造函数与接口
+
+### `IOSDevice` 的构造函数
 
 IOSDevice 的构造函数支持以下参数：
 
@@ -180,11 +192,11 @@ IOSDevice 的构造函数支持以下参数：
   - `autoDismissKeyboard?: boolean` - 可选参数，是否在输入文本后自动关闭键盘。默认值为 true。
   - `customActions?: DeviceAction<any>[]` - 可选参数，自定义设备动作列表。
 
-## iOS Agent 上的更多接口
+### iOS Agent 上的更多接口
 
 除了 [API 参考](./api.mdx) 中的通用 Agent 接口，IOSAgent 还提供了一些其他接口：
 
-### `agent.launch()`
+#### `agent.launch()`
 
 启动一个网页或原生 iOS 应用。
 
@@ -223,7 +235,7 @@ await agent.launch('tel:+1234567890'); // 拨打电话
 await agent.launch('mailto:example@email.com'); // 发送邮件
 ```
 
-### `agentFromWebDriverAgent()` (推荐)
+#### `agentFromWebDriverAgent()` (推荐)
 
 通过连接 WebDriverAgent 服务创建 IOSAgent，这是最简便的方式。
 

@@ -11,7 +11,7 @@ vi.mock('@midscene/webdriver');
 
 describe('IOSDevice', () => {
   let device: IOSDevice;
-  let mockWdaClient: Partial<IOSWebDriverClient>;
+  let mockWdaClient: any;
 
   const MockedWdaClient = vi.mocked(IOSWebDriverClient);
   const MockedWdaManager = vi.mocked(WDAManager);
@@ -47,9 +47,7 @@ describe('IOSDevice', () => {
       model: 'iPhone 15',
     });
 
-    MockedWdaClient.mockImplementation(
-      () => mockWdaClient as IOSWebDriverClient,
-    );
+    MockedWdaClient.mockImplementation(() => mockWdaClient);
 
     // Setup mock WDA manager
     const mockWdaManager = {
@@ -417,7 +415,9 @@ describe('IOSDevice', () => {
 
     it('should handle keyboard dismissal with default strategy', async () => {
       // Mock getWindowSize and swipe methods since hideKeyboard uses swipe gesture by default
-      mockWdaClient.getWindowSize = vi.fn().mockResolvedValue({ width: 375, height: 812 });
+      mockWdaClient.getWindowSize = vi
+        .fn()
+        .mockResolvedValue({ width: 375, height: 812 });
       mockWdaClient.swipe = vi.fn().mockResolvedValue(undefined);
 
       const result = await device.hideKeyboard();
@@ -427,8 +427,12 @@ describe('IOSDevice', () => {
 
     it('should handle keyboard dismissal failure', async () => {
       // Mock swipe to throw an error to simulate failure
-      mockWdaClient.getWindowSize = vi.fn().mockResolvedValue({ width: 375, height: 812 });
-      mockWdaClient.swipe = vi.fn().mockRejectedValue(new Error('Swipe failed'));
+      mockWdaClient.getWindowSize = vi
+        .fn()
+        .mockResolvedValue({ width: 375, height: 812 });
+      mockWdaClient.swipe = vi
+        .fn()
+        .mockRejectedValue(new Error('Swipe failed'));
 
       const result = await device.hideKeyboard();
       expect(result).toBe(false); // Method returns false on failure, doesn't throw
@@ -444,9 +448,7 @@ describe('IOSDevice', () => {
         swipe: vi.fn().mockResolvedValue(undefined),
         sessionInfo: { sessionId: 'test-session' }, // Ensure session info is available
       };
-      MockedWdaClient.mockImplementation(
-        () => mockBackend as unknown as IOSWebDriverClient,
-      );
+      MockedWdaClient.mockImplementation(() => mockBackend);
 
       const deviceWithAutoDismiss = new IOSDevice({
         autoDismissKeyboard: true,
