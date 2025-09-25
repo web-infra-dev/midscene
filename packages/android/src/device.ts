@@ -61,6 +61,7 @@ export type AndroidDeviceOpt = {
   usePhysicalDisplayIdForScreenshot?: boolean;
   usePhysicalDisplayIdForDisplayLookup?: boolean;
   customActions?: DeviceAction<any>[];
+  screenshotResizeRatio?: number;
 } & AndroidDeviceInputOpt;
 
 export class AndroidDevice implements AbstractInterface {
@@ -866,13 +867,22 @@ ${Object.keys(size)
     }
 
     debugDevice('Resizing screenshot image');
+    // Apply custom resize ratio if specified
+    const resizeRatio = this.options?.screenshotResizeRatio ?? 1.0;
+    const targetWidth = Math.round(width * resizeRatio);
+    const targetHeight = Math.round(height * resizeRatio);
+    
+    if (resizeRatio !== 1.0) {
+      debugDevice(`Applying custom resize ratio: ${resizeRatio}, target size: ${targetWidth}x${targetHeight}`);
+    }
+
     const { buffer, format } = await resizeAndConvertImgBuffer(
       // both "adb.takeScreenshot" and "shell screencap" result are png format
       'png',
       screenshotBuffer,
       {
-        width,
-        height,
+        width: targetWidth,
+        height: targetHeight,
       },
     );
     debugDevice('Image resize completed');
