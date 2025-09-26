@@ -317,22 +317,17 @@ export class IOSWebDriverClient extends WebDriverClient {
   }
 
   async getScreenScale(): Promise<number | null> {
-    try {
-      // Use the WDA-specific screen endpoint which we confirmed works
-      const screenResponse = await this.makeRequest('GET', '/wda/screen');
-      if (screenResponse?.value?.scale) {
-        debugIOS(
-          `Got screen scale from WDA screen endpoint: ${screenResponse.value.scale}`,
-        );
-        return screenResponse.value.scale;
-      }
-
-      debugIOS('No screen scale found in WDA screen response');
-      return null;
-    } catch (error) {
-      debugIOS(`Failed to get screen scale from WDA API: ${error}`);
-      return null;
+    // Use the WDA-specific screen endpoint which we confirmed works
+    const screenResponse = await this.makeRequest('GET', '/wda/screen');
+    if (screenResponse?.value?.scale) {
+      debugIOS(
+        `Got screen scale from WDA screen endpoint: ${screenResponse.value.scale}`,
+      );
+      return screenResponse.value.scale;
     }
+
+    debugIOS('No screen scale found in WDA screen response');
+    return null;
   }
 
   async createSession(capabilities?: any): Promise<any> {

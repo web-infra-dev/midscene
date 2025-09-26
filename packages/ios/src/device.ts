@@ -308,22 +308,15 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
   }
 
   async getDevicePixelRatio(): Promise<number> {
-    try {
-      // Get real device pixel ratio from WebDriverAgent /wda/screen endpoint
-      const apiScale = await this.wdaBackend.getScreenScale();
-      if (apiScale && apiScale > 0) {
-        debugDevice(`Got screen scale from WebDriverAgent API: ${apiScale}`);
-        return apiScale;
-      }
+    // Get real device pixel ratio from WebDriverAgent /wda/screen endpoint
+    const apiScale = await this.wdaBackend.getScreenScale();
 
-      debugDevice('Using default scale 2 for iOS device');
-      return 2; // Default to 2 for most iOS devices
-    } catch (error) {
-      debugDevice(
-        `Failed to get device pixel ratio: ${error}, using default scale 2`,
-      );
-      return 2; // Safe default for most iOS devices
+    if (apiScale && apiScale > 0) {
+      debugDevice(`Got screen scale from WebDriverAgent API: ${apiScale}`);
+      return apiScale;
     }
+
+    throw new Error('Unable to determine device pixel ratio');
   }
 
   async getScreenSize(): Promise<{
