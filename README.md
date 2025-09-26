@@ -12,7 +12,7 @@ English | [简体中文](./README.zh.md)
 </div>
 
 <p align="center">
-  Open-source AI Operator for Web, Android, Automation & Testing
+  Open-source AI Operator for Web, Android, iOS, Automation & Testing
 </p>
 
 <p align="center">
@@ -61,6 +61,7 @@ English | [简体中文](./README.zh.md)
 
 - **[Chrome Extension](https://midscenejs.com/quick-experience.html)**: Start in-browser experience immediately through [the Chrome Extension](https://midscenejs.com/quick-experience.html), without writing any code.
 - **[Android Playground](https://midscenejs.com/quick-experience-with-android.html)**: There is also a built-in Android playground to control your local Android device.
+- **[iOS Playground](https://midscenejs.com/quick-experience-with-ios.html)**: There is also a built-in iOS playground to control your local iOS device.
 
 ## ✨ Model Choices
 
@@ -148,7 +149,7 @@ If you use Midscene.js in your research or project, please cite:
 ```bibtex
 @software{Midscene.js,
   author = {Xiao Zhou, Tao Yu, YiBing Lin},
-  title = {Midscene.js: Your AI Operator for Web, Android, Automation & Testing.},
+  title = {Midscene.js: Your AI Operator for Web, Android, iOS, Automation & Testing.},
   year = {2025},
   publisher = {GitHub},
   url = {https://github.com/web-infra-dev/midscene}

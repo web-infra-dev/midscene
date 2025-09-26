@@ -1,0 +1,61 @@
+## Preparation
+
+### Install Node.js
+
+Install [Node.js 18 or higher](https://nodejs.org/en/download/).
+
+### Prepare API Key
+
+Prepare an API Key for a visual language (VL) model.
+
+You can find supported models and configurations for Midscene.js in the [Choose a Model](../choose-a-model) documentation.
+
+### Prepare WebDriver Server
+
+Before getting started, you need to set up the iOS development environment:
+
+- macOS (required for iOS development)
+- Xcode and Xcode command line tools
+- iOS Simulator or real device
+
+#### Environment Configuration
+
+Before using Midscene iOS, you need to prepare the WebDriverAgent service. Please refer to the official documentation for setup:
+
+- **Simulator Configuration**: [Run Prebuilt WDA](https://appium.github.io/appium-xcuitest-driver/5.12/run-prebuilt-wda/)
+- **Real Device Configuration**: [Real Device Configuration](https://appium.github.io/appium-xcuitest-driver/5.12/real-device-config/)
+
+#### Verify Environment Configuration
+
+After completing the configuration, you can verify whether the service is working properly by accessing WebDriverAgent's status endpoint:
+
+**Access URL**: `http://localhost:8100/status`
+
+**Correct Response Example**:
+```json
+{
+  "value": {
+    "build": {
+      "version": "10.1.1",
+      "time": "Sep 24 2025 18:56:41",
+      "productBundleIdentifier": "com.facebook.WebDriverAgentRunner"
+    },
+    "os": {
+      "testmanagerdVersion": 65535,
+      "name": "iOS",
+      "sdkVersion": "26.0",
+      "version": "26.0"
+    },
+    "device": "iphone",
+    "ios": {
+      "ip": "10.91.115.63"
+    },
+    "message": "WebDriverAgent is ready to accept commands",
+    "state": "success",
+    "ready": true
+  },
+  "sessionId": "BCAD9603-F714-447C-A9E6-07D58267966B"
+}
+```
+
+If you can successfully access this endpoint and receive a similar JSON response as shown above, it indicates that WebDriverAgent is properly configured and running.
