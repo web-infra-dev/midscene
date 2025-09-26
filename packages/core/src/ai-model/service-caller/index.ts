@@ -223,7 +223,7 @@ export async function callAI(
       typeof maxTokens === 'number'
         ? maxTokens
         : Number.parseInt(maxTokens || '2048', 10),
-    ...(vlMode === 'qwen-vl' // qwen specific config
+    ...(vlMode === 'qwen-vl' || vlMode === 'qwen3-vl' // qwen specific config
       ? {
           vl_high_resolution_images: true,
         }
