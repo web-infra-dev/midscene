@@ -42,6 +42,7 @@ export type IOSDeviceOpt = {
 export class IOSDevice implements AbstractInterface {
   private deviceId: string;
   private devicePixelRatio = 1;
+  private devicePixelRatioInitialized = false;
   private destroyed = false;
   private description: string | undefined;
   private customActions?: DeviceAction<any>[];
@@ -261,7 +262,7 @@ Model: ${deviceInfo.model}`
           : ''
       }
 Type: WebDriverAgent
-ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
+ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 `;
       debugDevice('iOS device connected successfully', this.description);
     } catch (e) {
@@ -307,41 +308,59 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
     };
   }
 
+  private async initializeDevicePixelRatio(): Promise<void> {
+    if (this.devicePixelRatioInitialized) {
+      return;
+    }
+
+    // Get real device pixel ratio from WebDriverAgent /wda/screen endpoint
+    const apiScale = await this.wdaBackend.getScreenScale();
+
+    if (apiScale && apiScale > 0) {
+      debugDevice(`Got screen scale from WebDriverAgent API: ${apiScale}`);
+      this.devicePixelRatio = apiScale;
+      this.devicePixelRatioInitialized = true;
+    } else {
+      throw new Error(
+        'Failed to get device pixel ratio from WebDriverAgent API',
+      );
+    }
+  }
+
   async getScreenSize(): Promise<{
     width: number;
     height: number;
     scale: number;
   }> {
     try {
+      // Ensure device pixel ratio is initialized
+      await this.initializeDevicePixelRatio();
+
       const windowSize = await this.wdaBackend.getWindowSize();
-      // WDA returns logical points, for our coordinate system we use scale = 1
-      // This means we work directly with the logical coordinates that WDA provides
-      const scale = 1; // Use 1 to work with WDA's logical coordinate system directly
 
       return {
         width: windowSize.width,
         height: windowSize.height,
-        scale,
+        scale: this.devicePixelRatio,
       };
     } catch (e) {
       debugDevice(`Failed to get screen size: ${e}`);
-      // Fallback to default iPhone size with scale 1
+      // Fallback to default iPhone size with typical iPhone scale
       return {
         width: 402,
         height: 874,
-        scale: 1,
+        scale: 2, // Most iPhones have 2x scale, iPhone X+ series have 3x
       };
     }
   }
 
   async size(): Promise<Size> {
     const screenSize = await this.getScreenSize();
-    this.devicePixelRatio = screenSize.scale;
 
     return {
       width: screenSize.width,
       height: screenSize.height,
-      dpr: this.devicePixelRatio,
+      dpr: screenSize.scale,
     };
   }
 
