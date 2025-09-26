@@ -19,7 +19,7 @@ VL 模型可用于任何类型界面的 UI 自动化。
 以下是已适配的 VL 模型：
 
 * [豆包系列视觉语言模型](#doubao-vision)
-* [千问3-VL或千问2.5-VL](#qwen3-vl-or-qwen-25-vl)
+* [千问 VL](#qwen3-vl-or-qwen-25-vl)
 * [`Gemini-2.5-Pro`](#gemini-25-pro)
 * [`UI-TARS`](#ui-tars)
 
@@ -72,7 +72,7 @@ Midscene.js 支持使用以下版本的模型：
 * Qwen2.5-VL 系列，参数越大，效果越好
 * Qwen3-VL 系列，包括 `qwen3-vl-plus` (商业版) 和 `qwen3-vl-235b-a22b-instruct` (开源版)
 
-我们推荐使用 Qwen3-VL 系列的模型，它的性能明显优于 Qwen2.5-VL 系列。使用 Qwen3-VL 系列的模型要求搭配 Midscene v0.29.3 及以上的版本。
+我们推荐使用 Qwen3-VL 系列的模型，它的性能大幅领先于其他所有模型，能带来更好的研发体验。使用 Qwen3-VL 系列的模型要求搭配 Midscene v0.29.3 及以上的版本。
 
 **使用 Qwen3-VL 模型的配置**
 
@@ -176,7 +176,6 @@ OPENAI_API_KEY="......"
 OPENAI_BASE_URL="https://custom-endpoint.com/compatible-mode/v1" # 可选，如果你想要使用不同于 OpenAI 默认的接入点
 MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # 可选，默认是 "gpt-4o"
 ```
-
 
 <div id="其他-llm-模型"></div>
 ## 选择其他多模态 LLM
