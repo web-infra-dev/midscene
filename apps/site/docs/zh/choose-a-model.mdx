@@ -8,15 +8,6 @@ import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connect
 
 Midscene.js 支持两种类型的模型：
 
-### LLM 模型
-
-能够理解文本和图像输入的模型。GPT-4o 就是这种类型的模型。
-
-LLM 模型只能在 Web 自动化中使用。
-
-* [`GPT-4o`](#gpt-4o)
-* [其他 LLM 模型](#其他-llm-模型)
-
 ### 视觉语言模型（VL 模型，✨ 推荐）
 
 除了能够理解文本和图像输入外，VL（Visual-Language，视觉语言）模型还可以定位页面上目标元素的坐标。
@@ -34,33 +25,25 @@ VL 模型可用于任何类型界面的 UI 自动化。
 
 如果你想了解模型服务的详细配置，请参见[配置模型和服务商](./model-provider)。
 
+### LLM 模型
+
+能够理解文本和图像输入的模型。GPT-4o 就是这种类型的模型。
+
+LLM 模型只能在 Web 自动化中使用。
+
+* [`GPT-4o`](#gpt-4o)
+* [其他 LLM 模型](#其他-llm-模型)
+
 ## 深入了解模型
-
-<div id="gpt-4o"></div>
-### `GPT-4o`
-
-GPT-4o 是 OpenAI 的多模态 LLM，支持图像输入。这是 Midscene.js 的默认模型。使用 GPT-4o 时，建议使用逐步提示。
-
-由于 Midscene 需要向模型发送一些 DOM 信息和截图，使用 GPT-4o 的 token 成本较高，并且在复杂场景中不够稳定。
-
-**配置**
-
-```bash
-OPENAI_API_KEY="......"
-OPENAI_BASE_URL="https://custom-endpoint.com/compatible-mode/v1" # 可选，如果你想要使用不同于 OpenAI 默认的接入点
-MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # 可选，默认是 "gpt-4o"
-```
-
-
-<div id="doubao-vision"></div>
 
 ### 豆包系列视觉语言模型（✨ 推荐）
 
 火山引擎提供了多个视觉语言模型，包括：
+
 * `Doubao-1.5-thinking-vision-pro`
 * `Doubao-seed-1.6-vision`
 
-它们在复杂场景的视觉定位和断言方面表现相当出色。在指令清晰的情况下，能满足绝大多数业务场景需求，是目前 Midscene 最推荐的视觉语言模型。
+它们在复杂场景的视觉定位和断言方面表现相当出色。在指令清晰的情况下，能满足绝大多数业务场景需求。
 
 **配置**
 
@@ -77,15 +60,21 @@ MIDSCENE_USE_DOUBAO_VISION=1
 - [火山引擎 - Doubao-1.5-thinking-vision-pro](https://www.volcengine.com/docs/82379/1536428)
 - [火山引擎 - Doubao-Seed-1.6-Vision](https://www.volcengine.com/docs/82379/1799865)
 
-
 <div id="qwen3-vl-or-qwen-25-vl"></div>
-### 千问3-VL或千问2.5-VL （Openrouter 或阿里云）
 
-从 0.29.1 版本开始，Midscene.js 支持 Qwen3-VL 模型系列。
+### 千问 VL（✨ 推荐）
 
-Qwen-VL 是阿里巴巴发布的开源模型系列。它提供视觉定位能力，可以准确返回页面上目标元素的坐标。在用于交互、断言和查询时表现相当出色。使用千问系列模型时，我们建议使用最新的 Qwen3-VL 模型。
+Qwen-VL（千问 VL）是阿里巴巴发布的开源模型系列。它提供视觉定位能力，可以准确返回页面上目标元素的坐标。在用于交互、断言和查询时的综合表现相当出色。你可以在 [阿里云](https://help.aliyun.com/zh/model-studio/vision) 或 [OpenRouter](https://openrouter.ai/qwen) 上找到 Qwen 系列的已部署版本。
 
-**使用阿里云 `qwen3-vl-plus` 模型的配置**
+Midscene.js 支持使用以下版本的模型：
+* Qwen2.5-VL 系列，参数越大，效果越好
+* Qwen3-VL 系列，包括 `qwen3-vl-plus` (商业版) 和 `qwen3-vl-235b-a22b-instruct` (开源版)
+
+我们推荐使用 Qwen3-VL 系列的模型，它的性能明显优于 Qwen2.5-VL 系列。使用 Qwen3-VL 系列的模型要求搭配 Midscene v0.29.3 及以上的版本。
+
+**使用 Qwen3-VL 模型的配置**
+
+以阿里云 `qwen3-vl-plus` 模型为例：
 
 ```bash
 OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
@@ -94,7 +83,9 @@ MIDSCENE_MODEL_NAME="qwen3-vl-plus"
 MIDSCENE_USE_QWEN3_VL=1 # 注意，这个参数与 MIDSCENE_USE_QWEN_VL 不能同时使用
 ```
 
-**使用阿里云 `qwen-vl-max-latest` 模型的配置**
+**使用 Qwen2.5-VL 模型的配置**
+
+以阿里云 `qwen-vl-max-latest` 模型为例：
 
 ```bash
 OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
@@ -103,25 +94,15 @@ MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
 MIDSCENE_USE_QWEN_VL=1 # 注意，这个参数与 MIDSCENE_USE_QWEN3_VL 不能同时使用
 ```
 
-**使用 Openrouter `qwen-vl-max-latest` 模型的配置**
-
-在 [Openrouter](https://openrouter.ai) 上申请 API 密钥后，可以使用以下配置：
-
-```bash
-OPENAI_BASE_URL="https://openrouter.ai/api/v1"
-OPENAI_API_KEY="......"
-MIDSCENE_MODEL_NAME="qwen/qwen2.5-vl-72b-instruct"
-MIDSCENE_USE_QWEN_VL=1 # 注意，这个参数与 MIDSCENE_USE_QWEN3_VL 不能同时使用
-```
-
 **链接**
+- [阿里云 - Qwen-VL 系列](https://help.aliyun.com/zh/model-studio/vision)
 - [Qwen on 🤗 HuggingFace](https://huggingface.co/Qwen)
 - [Qwen on Github](https://github.com/QwenLM/)
-- [Qwen 2.5 on Aliyun](https://bailian.console.aliyun.com/#/model-market/detail/qwen-vl-max-latest)
-- [Qwen 2.5 on openrouter.ai](https://openrouter.ai/qwen/qwen2.5-vl-72b-instruct)
+- [Qwen on openrouter.ai](https://openrouter.ai/qwen)
 
 <div id="gemini-25-pro"></div>
-### `Gemini-2.5-Pro` （Google Gemini）
+
+### `Gemini-2.5-Pro`
 
 从 0.15.1 版本开始，Midscene.js 支持 Gemini-2.5-Pro 模型。Gemini 2.5 Pro 是 Google Cloud 提供的闭源模型。
 
@@ -143,7 +124,7 @@ MIDSCENE_USE_GEMINI=1
 
 <div id="ui-tars"></div>
 
-### `UI-TARS` （火山引擎）
+### `UI-TARS`
 
 UI-TARS 是基于 VLM 架构的端到端 GUI 代理模型。它仅感知截图作为输入，并执行类似人类的交互（例如键盘和鼠标操作），在 10 多个 GUI 基准测试中实现了最先进的性能。UI-TARS 是一个开源模型，并提供不同大小的版本。
 
@@ -151,7 +132,7 @@ UI-TARS 是基于 VLM 架构的端到端 GUI 代理模型。它仅感知截图�
 
 **配置**
 
-你可以在 [火山引擎](https://volcengine.com) 上使用部署的 `doubao-1.5-ui-tars`。
+你可以在 [火山引擎](https://volcengine.com) 上使用已部署的 `doubao-1.5-ui-tars`。
 
 ```bash
 OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" 
@@ -178,6 +159,24 @@ MIDSCENE_USE_VLM_UI_TARS=DOUBAO
 - [UI-TARS - Model Deployment Guide](https://juniper-switch-f10.notion.site/UI-TARS-Model-Deployment-Guide-17b5350241e280058e98cea60317de71)
 - [UI-TARS on Volcengine](https://www.volcengine.com/docs/82379/1536429)
 
+
+<div id="gpt-4o"></div>
+### `GPT-4o`
+
+GPT-4o 是 OpenAI 的多模态 LLM，支持图像输入。这是 Midscene.js 的默认模型。使用 GPT-4o 时，建议使用逐步提示。
+
+由于 Midscene 需要向模型发送一些 DOM 信息和截图，使用 GPT-4o 的 token 成本较高，并且在复杂场景中不够稳定。
+
+**配置**
+
+```bash
+OPENAI_API_KEY="......"
+OPENAI_BASE_URL="https://custom-endpoint.com/compatible-mode/v1" # 可选，如果你想要使用不同于 OpenAI 默认的接入点
+MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # 可选，默认是 "gpt-4o"
+```
+
+
+<div id="doubao-vision"></div>
 
 <div id="其他-llm-模型"></div>
 ## 选择其他多模态 LLM
