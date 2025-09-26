@@ -19,7 +19,7 @@ VL models can be used for UI automation across any kind of interface.
 These VL models are already adapted for Midscene.js:
 
 * [Doubao visual-language models](#doubao-vision)
-* [Qwen3-VL or Qwen2.5-VL](#qwen3-vl-or-qwen-25-vl)
+* [Qwen VL](#qwen3-vl-or-qwen-25-vl)
 * [`Gemini-2.5-Pro`](#gemini-25-pro)
 * [`UI-TARS`](#ui-tars)
 
@@ -35,30 +35,6 @@ LLM models can only be used in web automation.
 * [Other LLM models](#other-llm-models)
 
 ## Models in depth
-
-<div id="doubao-vision"></div>
-### Doubao visual-language models (✨ recommended)
-
-Volcano Engine provides multiple visual-language models, including:
-* `Doubao-1.5-thinking-vision-pro`
-* `Doubao-seed-1.6-vision`
-
-They perform strongly for visual grounding and assertion in complex scenarios. With clear instructions they can handle most business needs, and they are currently the most recommended visual-language models for Midscene.
-
-**Config**
-
-After obtaining an API key from [Volcano Engine](https://volcengine.com), you can use the following configuration:
-
-```bash
-OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
-OPENAI_API_KEY="...."
-MIDSCENE_MODEL_NAME="ep-..." # Inference endpoint ID or model name from Volcano Engine
-MIDSCENE_USE_DOUBAO_VISION=1
-```
-
-**Links**
-- [Volcano Engine - Doubao-1.5-thinking-vision-pro](https://www.volcengine.com/docs/82379/1536428)
-- [Volcano Engine - Doubao-Seed-1.6-Vision](https://www.volcengine.com/docs/82379/1799865)
 
 <div id="qwen3-vl-or-qwen-25-vl"></div>
 
@@ -99,6 +75,32 @@ MIDSCENE_USE_QWEN_VL=1 # Note: cannot be set together with MIDSCENE_USE_QWEN3_VL
 - [Qwen on 🤗 HuggingFace](https://huggingface.co/Qwen)
 - [Qwen on GitHub](https://github.com/QwenLM/)
 - [Qwen on openrouter.ai](https://openrouter.ai/qwen)
+
+
+<div id="doubao-vision"></div>
+
+### Doubao visual-language models
+
+Volcano Engine provides multiple visual-language models, including:
+* `Doubao-1.5-thinking-vision-pro`
+* `Doubao-seed-1.6-vision`
+
+They perform strongly for visual grounding and assertion in complex scenarios. With clear instructions they can handle most business needs, and they are currently the most recommended visual-language models for Midscene.
+
+**Config**
+
+After obtaining an API key from [Volcano Engine](https://volcengine.com), you can use the following configuration:
+
+```bash
+OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
+OPENAI_API_KEY="...."
+MIDSCENE_MODEL_NAME="ep-..." # Inference endpoint ID or model name from Volcano Engine
+MIDSCENE_USE_DOUBAO_VISION=1
+```
+
+**Links**
+- [Volcano Engine - Doubao-1.5-thinking-vision-pro](https://www.volcengine.com/docs/82379/1536428)
+- [Volcano Engine - Doubao-Seed-1.6-Vision](https://www.volcengine.com/docs/82379/1799865)
 
 <div id="gemini-25-pro"></div>
 
