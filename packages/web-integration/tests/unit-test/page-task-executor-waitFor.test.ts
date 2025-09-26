@@ -127,7 +127,6 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
       mockedModelConfig,
       {
         isWaitForAssert: true,
-        returnThought: true,
         doNotThrowError: true,
       },
       undefined,
@@ -189,7 +188,6 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
       mockedModelConfig,
       {
         isWaitForAssert: true,
-        returnThought: true,
         doNotThrowError: true,
       },
       undefined,
@@ -259,7 +257,6 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
       mockedModelConfig,
       {
         isWaitForAssert: true,
-        returnThought: true,
         doNotThrowError: true,
       },
       undefined,

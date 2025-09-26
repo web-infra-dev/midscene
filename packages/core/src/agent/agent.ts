@@ -838,7 +838,6 @@ export class Agent<
       screenshotIncluded:
         opt?.screenshotIncluded ??
         defaultInsightExtractOption.screenshotIncluded,
-      returnThought: opt?.returnThought ?? true,
       isWaitForAssert: opt?.isWaitForAssert,
       doNotThrowError: opt?.doNotThrowError,
     };
