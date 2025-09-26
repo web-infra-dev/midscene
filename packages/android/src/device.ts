@@ -589,18 +589,11 @@ ${Object.keys(size)
       return;
     }
 
-    try {
-      // Get device display density using custom method
-      const densityNum = await this.getDisplayDensity();
-      // Standard density is 160, calculate the ratio
-      this.devicePixelRatio = Number(densityNum) / 160;
-      debugDevice(`Initialized device pixel ratio: ${this.devicePixelRatio}`);
-    } catch (error) {
-      debugDevice(
-        `Failed to get device pixel ratio: ${error}, using default value 1`,
-      );
-      this.devicePixelRatio = 1; // Safe default
-    }
+    // Get device display density using custom method
+    const densityNum = await this.getDisplayDensity();
+    // Standard density is 160, calculate the ratio
+    this.devicePixelRatio = Number(densityNum) / 160;
+    debugDevice(`Initialized device pixel ratio: ${this.devicePixelRatio}`);
 
     this.devicePixelRatioInitialized = true;
   }
