@@ -170,12 +170,25 @@ export default defineConfig({
           ],
         },
         {
-          text: 'More',
+          text: 'Advanced',
           items: [
             {
               text: 'Integrate with any interface (preview)',
               link: '/integrate-with-any-interface',
             },
+            {
+              text: 'Introducing instant actions and deep think',
+              link: '/blog-introducing-instant-actions-and-deep-think',
+            },
+            {
+              text: 'Use JavaScript to optimize the AI automation code',
+              link: '/blog-programming-practice-using-structured-api',
+            },
+          ],
+        },
+        {
+          text: 'More',
+          items: [
             {
               text: 'Awesome Midscene',
               link: '/awesome-midscene',
@@ -185,29 +198,16 @@ export default defineConfig({
               link: '/faq',
             },
             {
+              text: 'Changelog',
+              link: '/changelog',
+            },
+            {
               text: 'LLMs.txt documentation',
               link: '/llm-txt',
             },
             {
               text: 'Data privacy',
               link: '/data-privacy',
-            },
-          ],
-        },
-        {
-          text: 'Blog',
-          items: [
-            {
-              text: 'Introducing instant actions and deep think',
-              link: '/blog-introducing-instant-actions-and-deep-think',
-            },
-            {
-              text: 'Use JavaScript to optimize the AI automation code',
-              link: '/blog-programming-practice-using-structured-api',
-            },
-            {
-              text: 'Changelog',
-              link: '/changelog',
             },
           ],
         },
@@ -320,12 +320,25 @@ export default defineConfig({
           ],
         },
         {
-          text: '更多',
+          text: '进阶',
           items: [
             {
               text: '与任意界面集成（预览特性）',
               link: '/zh/integrate-with-any-interface',
             },
+            {
+              text: '即时操作和深度思考',
+              link: '/zh/blog-introducing-instant-actions-and-deep-think',
+            },
+            {
+              text: '使用 JavaScript 优化 AI 自动化代码',
+              link: '/zh/blog-programming-practice-using-structured-api',
+            },
+          ],
+        },
+        {
+          text: '更多',
+          items: [
             {
               text: 'Awesome Midscene',
               link: '/zh/awesome-midscene',
@@ -335,29 +348,16 @@ export default defineConfig({
               link: '/zh/faq',
             },
             {
+              text: '更新日志',
+              link: '/zh/changelog',
+            },
+            {
               text: 'LLMs.txt 文档',
               link: '/zh/llm-txt',
             },
             {
               text: '数据隐私',
               link: '/zh/data-privacy',
-            },
-          ],
-        },
-        {
-          text: 'Blog',
-          items: [
-            {
-              text: '即时操作和深度思考',
-              link: '/zh/blog-introducing-instant-actions-and-deep-think',
-            },
-            {
-              text: '使用 JavaScript 优化 AI 自动化代码',
-              link: '/zh/blog-programming-practice-using-structured-api',
-            },
-            {
-              text: '更新日志',
-              link: '/zh/changelog',
             },
           ],
         },
