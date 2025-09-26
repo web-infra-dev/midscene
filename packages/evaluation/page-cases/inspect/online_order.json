@@ -8,11 +8,11 @@
       "response_rect": {
         "left": 0,
         "top": 0,
-        "width": 51,
-        "height": 58
+        "width": 49,
+        "height": 57
       },
       "response_element": {
-        "id": "cgaeb"
+        "id": "pagdc"
       }
     },
     {
@@ -20,13 +20,13 @@
       "multi": false,
       "annotation_index_id": 2,
       "response_rect": {
-        "left": 57,
+        "left": 59,
         "top": 14,
-        "width": 87,
+        "width": 85,
         "height": 31
       },
       "response_element": {
-        "id": "ddiab"
+        "id": "ppdjj"
       }
     },
     {
@@ -34,13 +34,13 @@
       "multi": false,
       "annotation_index_id": 3,
       "response_rect": {
-        "left": 345,
-        "top": 11,
-        "width": 35,
+        "left": 343,
+        "top": 12,
+        "width": 33,
         "height": 35
       },
       "response_element": {
-        "id": "bfkga"
+        "id": "cjbmn"
       }
     },
     {
@@ -48,13 +48,13 @@
       "multi": false,
       "annotation_index_id": 4,
       "response_rect": {
-        "left": 188,
-        "top": 714,
-        "width": 36,
-        "height": 27
+        "left": 191,
+        "top": 719,
+        "width": 34,
+        "height": 26
       },
       "response_element": {
-        "id": "opmpd"
+        "id": "gjifj"
       }
     },
     {
@@ -62,13 +62,13 @@
       "multi": false,
       "annotation_index_id": 5,
       "response_rect": {
-        "left": 300,
-        "top": 858,
-        "width": 89,
-        "height": 27
+        "left": 303,
+        "top": 856,
+        "width": 82,
+        "height": 30
       },
       "response_element": {
-        "id": "ofcid"
+        "id": "pempn"
       }
     },
     {
@@ -76,13 +76,13 @@
       "multi": false,
       "annotation_index_id": 6,
       "response_rect": {
-        "left": 364,
+        "left": 365,
         "top": 821,
-        "width": 30,
-        "height": 32
+        "width": 29,
+        "height": 35
       },
       "response_element": {
-        "id": "kedek"
+        "id": "nikae"
       }
     }
   ]

@@ -9,10 +9,10 @@
         "left": 321,
         "top": 54,
         "width": 451,
-        "height": 38
+        "height": 41
       },
       "response_element": {
-        "id": "hlgpm"
+        "id": "janbp"
       }
     },
     {
@@ -20,13 +20,13 @@
       "multi": false,
       "annotation_index_id": 2,
       "response_rect": {
-        "left": 774,
+        "left": 777,
         "top": 54,
-        "width": 76,
+        "width": 72,
         "height": 38
       },
       "response_element": {
-        "id": "nlfnm"
+        "id": "eiipp"
       }
     },
     {
@@ -35,13 +35,13 @@
       "multi": false,
       "annotation_index_id": 3,
       "response_rect": {
-        "left": 137,
-        "top": 426,
-        "width": 35,
-        "height": 16
+        "left": 139,
+        "top": 423,
+        "width": 28,
+        "height": 22
       },
       "response_element": {
-        "id": "hkcje"
+        "id": "gonbf"
       }
     },
     {
@@ -50,13 +50,13 @@
       "multi": false,
       "annotation_index_id": 4,
       "response_rect": {
-        "left": 1055,
-        "top": 380,
-        "width": 46,
-        "height": 45
+        "left": 1056,
+        "top": 378,
+        "width": 35,
+        "height": 48
       },
       "response_element": {
-        "id": "jdhon"
+        "id": "lhelm"
       }
     },
     {
@@ -66,26 +66,26 @@
       "annotation_index_id": 5,
       "response_rect": {
         "left": 1242,
-        "top": 345,
-        "width": 37,
-        "height": 41
+        "top": 336,
+        "width": 38,
+        "height": 28
       },
       "response_element": {
-        "id": "llbjl"
+        "id": "aofkl"
       }
     },
     {
       "prompt": "顶部工具栏的购物车 icon",
       "deepThink": true,
       "response_rect": {
-        "left": 842,
-        "top": 10,
-        "width": 45,
-        "height": 14
+        "left": 849,
+        "top": 9,
+        "width": 38,
+        "height": 20
       },
       "annotation_index_id": 6,
       "response_element": {
-        "id": "ejbgf"
+        "id": "goagp"
       }
     }
   ]

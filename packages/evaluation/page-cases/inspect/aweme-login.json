@@ -6,13 +6,13 @@
       "multi": false,
       "annotation_index_id": 1,
       "response_rect": {
-        "left": 717,
-        "top": 234,
-        "width": 74,
-        "height": 44
+        "left": 701,
+        "top": 233,
+        "width": 105,
+        "height": 53
       },
       "response_element": {
-        "id": "eagbb"
+        "id": "emgnj"
       }
     },
     {
@@ -48,13 +48,13 @@
       "multi": false,
       "annotation_index_id": 4,
       "response_rect": {
-        "left": 492,
+        "left": 493,
         "top": 421,
-        "width": 172,
+        "width": 171,
         "height": 46
       },
       "response_element": {
-        "id": "eemfo"
+        "id": "epmah"
       }
     },
     {
