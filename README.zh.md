@@ -44,6 +44,7 @@
 ### Web & Mobile App & 任意界面
 - **Web 自动化 🖥️**: 可以[与 Puppeteer 集成](https://midscenejs.com/integrate-with-puppeteer.html)，[与 Playwright 集成](https://midscenejs.com/integrate-with-playwright.html)或使用[桥接模式](https://midscenejs.com/bridge-mode-by-chrome-extension.html)来控制桌面浏览器。
 - **Android 自动化 📱**: 使用 [Javascript SDK](https://midscenejs.com/integrate-with-android.html) 配合 adb 来控制本地 Android 设备。
+- **iOS 自动化 🍎**: 使用 [Javascript SDK](https://midscenejs.com/zh/integrate-with-ios.html) 配合 WebDriverAgent 来控制本地 iOS 设备。
 - **任意界面自动化 🌐**: 使用 [Javascript SDK](https://midscenejs.com/integrate-with-any-interface.html) 来控制你自己的界面。
 
 ### 工具
@@ -60,6 +61,7 @@
 
 - **[Chrome 插件](https://midscenejs.com/zh/quick-experience.html)**: 通过 [Chrome 插件](https://midscenejs.com/zh/quick-experience.html) 立即开始体验，无需编写代码。
 - **[Android Playground](https://midscenejs.com/zh/quick-experience-with-android.html)**: 内置的 Android Playground 可以控制你的本地 Android 设备。
+- **[iOS Playground](https://midscenejs.com/zh/quick-experience-with-ios.html)**: 内置的 iOS Playground 可以控制你的本地 iOS 设备。
 
 ## ✨ 选择 AI 模型
 
@@ -148,7 +150,7 @@ for (const record of recordList) {
 ```bibtex
 @software{Midscene.js,
   author = {Xiao Zhou, Tao Yu, YiBing Lin},
-  title = {Midscene.js: Your AI Operator for Web, Android, Automation & Testing.},
+  title = {Midscene.js: Your AI Operator for Web, Android, iOS, Automation & Testing.},
   year = {2025},
   publisher = {GitHub},
   url = {https://github.com/web-infra-dev/midscene}

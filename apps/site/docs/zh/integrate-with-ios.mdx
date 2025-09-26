@@ -2,6 +2,27 @@ import SetupEnv from './common/setup-env.mdx';
 
 # 与 iOS(WebDriverAgent) 集成
 
+在使用 WebDriverAgent 连接 iOS 设备后，你可以使用 Midscene javascript SDK 来控制 iOS 设备。
+
+import { PackageManagerTabs } from '@theme';
+
+:::info 样例项目
+使用 javascript SDK 控制 iOS 设备：[https://github.com/web-infra-dev/midscene-example/blob/main/ios/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/ios/javascript-sdk-demo)
+
+与 Vitest 集成和测试：[https://github.com/web-infra-dev/midscene-example/tree/main/ios/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/ios/vitest-demo)
+:::
+
+
+:::info 案例展示
+
+[查看更多案例](./blog-support-ios-automation.mdx)
+
+<p align="center">
+  <img src="/ios.png" alt="ios" width="400" />
+</p>
+
+:::
+
 ## 关于 WebDriver 和 Midscene 的关系
 
 WebDriver 是一套由 W3C 制定的用于浏览器自动化的标准协议，它提供了一个统一的 API 来控制不同的浏览器和应用程序。WebDriver 协议定义了客户端和服务器之间的通信方式，使得自动化工具能够跨平台地控制各种用户界面。
@@ -19,18 +40,6 @@ WebDriver 是一套由 W3C 制定的用于浏览器自动化的标准协议，�
 - 提取和分析界面数据
 
 在 iOS 平台上，Midscene 通过 WebDriverAgent 连接 iOS 设备，让你能够使用自然语言描述的方式来控制 iOS 应用和系统。
-
----
-
-在使用 WebDriverAgent 连接 iOS 设备后，你可以使用 Midscene javascript SDK 来控制 iOS 设备。
-
-import { PackageManagerTabs } from '@theme';
-
-:::info 样例项目
-使用 javascript SDK 控制 iOS 设备：[https://github.com/web-infra-dev/midscene-example/blob/main/ios/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/ios/javascript-sdk-demo)
-
-与 Vitest 集成和测试：[https://github.com/web-infra-dev/midscene-example/tree/main/ios/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/ios/vitest-demo)
-:::
 
 ## 准备 WebDriver 服务
 

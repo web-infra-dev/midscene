@@ -130,33 +130,3 @@ You can use the playground to experience the Android automation without any code
 After the experience, you can integrate with the Android device by javascript code. Please refer to [Integrate with Android(adb)](./integrate-with-android) for more details.
 
 If you prefer the yaml file for automation scripts, please refer to [Automate with scripts in yaml](./automate-with-scripts-in-yaml).
-
-### Demo projects
-
-We have prepared a demo project for javascript SDK:
-
-[JavaScript demo project](https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo)
-
-If you want to use the automation for testing purpose, you can use the javascript with vitest. We have setup a demo project for you to see how it works:
-
-[Vitest demo project](https://github.com/web-infra-dev/midscene-example/blob/main/android/vitest-demo)
-
-You can also write the automation scripts by yaml file:
-
-[YAML demo project](https://github.com/web-infra-dev/midscene-example/blob/main/android/yaml-scripts-demo)
-
-## Limitations
-
-1. Element location caching is not supported due to lack of XPath support. However, planning cache (for `.ai` and `.aiAction` methods) is fully supported to improve execution efficiency.
-2. LLMs like gpt-4o or deepseek are not supported. Only some known vl models with visual grounding ability are supported for now. If you want to introduce other vl models, please let us know.
-3. The performance is not good enough for now. We are still working on it.
-4. The vl model may not perform well on `.aiQuery` and `.aiAssert`. We will give a way to switch model for different kinds of tasks.
-5. Due to some security restrictions, you may got a blank screenshot for the password input and Midscene will not be able to work for that.
-
-## Credits
-
-We would like to thank the following projects:
-
-- [scrcpy](https://github.com/Genymobile/scrcpy) and [yume-chan](https://github.com/yume-chan) allow us to control Android devices with browser.
-- [appium-adb](https://github.com/appium/appium-adb) for the javascript bridge of adb.
-- [YADB](https://github.com/ysbing/YADB) for the yadb tool which improves the performance of text input.

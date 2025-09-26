@@ -141,7 +141,7 @@ export default function App() {
                       showVersionInfo: true,
                       enableScrollToBottom: true,
                       serverMode: true,
-                      showEnvConfigReminder: false,
+                      showEnvConfigReminder: true,
                     }}
                     branding={{
                       title: 'Playground',

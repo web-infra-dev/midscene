@@ -42,8 +42,8 @@ export default defineConfig({
     locales: [
       {
         lang: 'en',
-        outlineTitle: 'On This Page',
-        label: 'On This Page',
+        outlineTitle: 'On this page',
+        label: 'On this page',
         editLink: {
           docRepoBaseUrl:
             'https://github.com/web-infra-dev/midscene/tree/main/apps/site/docs',
@@ -64,23 +64,23 @@ export default defineConfig({
     sidebar: {
       '/': [
         {
-          text: 'Getting Started',
+          text: 'Getting started',
           items: [
             {
               text: 'Introduction',
               link: '/',
             },
             {
-              text: 'Quick Experience by Chrome Extension',
+              text: 'Quick experience by Chrome extension',
               link: '/quick-experience',
             },
           ],
         },
         {
-          text: 'Web Browser Automation',
+          text: 'Web browser automation',
           items: [
             {
-              text: 'MCP Server',
+              text: 'MCP server',
               link: '/web-mcp',
             },
             {
@@ -92,7 +92,7 @@ export default defineConfig({
               link: '/integrate-with-puppeteer',
             },
             {
-              text: 'Bridge Mode by Chrome Extension',
+              text: 'Bridge mode by Chrome extension',
               link: '/bridge-mode-by-chrome-extension',
             },
             {
@@ -102,14 +102,18 @@ export default defineConfig({
           ],
         },
         {
-          text: 'Android Automation',
+          text: 'Android automation',
           items: [
             {
-              text: 'MCP Server',
+              text: 'Intro',
+              link: '/blog-support-android-automation',
+            },
+            {
+              text: 'MCP server',
               link: '/mcp-android',
             },
             {
-              text: 'Quick Experience with Android',
+              text: 'Quick experience with Android',
               link: '/quick-experience-with-android',
             },
             {
@@ -119,8 +123,16 @@ export default defineConfig({
           ],
         },
         {
-          text: 'iOS Automation',
+          text: 'iOS automation',
           items: [
+            {
+              text: 'Intro',
+              link: '/blog-support-ios-automation',
+            },
+            {
+              text: 'Quick experience with iOS',
+              link: '/quick-experience-with-ios',
+            },
             {
               text: 'Integrate with iOS (WebDriverAgent)',
               link: '/integrate-with-ios',
@@ -128,31 +140,31 @@ export default defineConfig({
           ],
         },
         {
-          text: 'API and Usage',
+          text: 'API and usage',
           items: [
             {
-              text: 'Automate with Scripts in YAML',
+              text: 'Automate with scripts in YAML',
               link: '/automate-with-scripts-in-yaml',
             },
             {
-              text: 'API Reference',
+              text: 'API reference',
               link: '/api',
             },
           ],
         },
         {
-          text: 'AI Model',
+          text: 'AI model',
           items: [
             {
-              text: 'Choose a Model 🔥',
+              text: 'Choose a model 🔥',
               link: '/choose-a-model',
             },
             {
-              text: 'Config Model and Provider',
+              text: 'Config model and provider',
               link: '/model-provider',
             },
             {
-              text: 'Prompting Tips',
+              text: 'Prompting tips',
               link: '/prompting-tips',
             },
           ],
@@ -173,11 +185,11 @@ export default defineConfig({
               link: '/faq',
             },
             {
-              text: 'LLMs.txt Documentation',
+              text: 'LLMs.txt documentation',
               link: '/llm-txt',
             },
             {
-              text: 'Data Privacy',
+              text: 'Data privacy',
               link: '/data-privacy',
             },
           ],
@@ -186,15 +198,11 @@ export default defineConfig({
           text: 'Blog',
           items: [
             {
-              text: 'Support Android Automation',
-              link: '/blog-support-android-automation',
-            },
-            {
-              text: 'Introducing Instant Actions and Deep Think',
+              text: 'Introducing instant actions and deep think',
               link: '/blog-introducing-instant-actions-and-deep-think',
             },
             {
-              text: 'Use JavaScript to Optimize the AI Automation Code',
+              text: 'Use JavaScript to optimize the AI automation code',
               link: '/blog-programming-practice-using-structured-api',
             },
             {
@@ -247,6 +255,10 @@ export default defineConfig({
           text: 'Android 自动化',
           items: [
             {
+              text: '介绍',
+              link: '/zh/blog-support-android-automation',
+            },
+            {
               text: 'MCP 服务',
               link: '/zh/mcp-android',
             },
@@ -263,6 +275,14 @@ export default defineConfig({
         {
           text: 'iOS 自动化',
           items: [
+            {
+              text: '介绍',
+              link: '/zh/blog-support-ios-automation',
+            },
+            {
+              text: '使用 iOS Playground 快速体验',
+              link: '/zh/quick-experience-with-ios',
+            },
             {
               text: '与 iOS(WebDriverAgent) 集成',
               link: '/zh/integrate-with-ios',
@@ -327,10 +347,6 @@ export default defineConfig({
         {
           text: 'Blog',
           items: [
-            {
-              text: '支持 Android 自动化',
-              link: '/zh/blog-support-android-automation',
-            },
             {
               text: '即时操作和深度思考',
               link: '/zh/blog-introducing-instant-actions-and-deep-think',
