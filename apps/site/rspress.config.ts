@@ -105,6 +105,10 @@ export default defineConfig({
           text: 'Android Automation',
           items: [
             {
+              text: 'Intro',
+              link: '/blog-support-android-automation',
+            },
+            {
               text: 'MCP Server',
               link: '/mcp-android',
             },
@@ -121,6 +125,10 @@ export default defineConfig({
         {
           text: 'iOS Automation',
           items: [
+            {
+              text: 'Intro',
+              link: '/blog-support-ios-automation',
+            },
             {
               text: 'Quick Experience with iOS',
               link: '/quick-experience-with-ios',
@@ -190,14 +198,6 @@ export default defineConfig({
           text: 'Blog',
           items: [
             {
-              text: 'Support iOS Automation',
-              link: '/blog-support-ios-automation',
-            },
-            {
-              text: 'Support Android Automation',
-              link: '/blog-support-android-automation',
-            },
-            {
               text: 'Introducing Instant Actions and Deep Think',
               link: '/blog-introducing-instant-actions-and-deep-think',
             },
@@ -255,6 +255,10 @@ export default defineConfig({
           text: 'Android 自动化',
           items: [
             {
+              text: '介绍',
+              link: '/zh/blog-support-android-automation',
+            },
+            {
               text: 'MCP 服务',
               link: '/zh/mcp-android',
             },
@@ -271,6 +275,10 @@ export default defineConfig({
         {
           text: 'iOS 自动化',
           items: [
+            {
+              text: '介绍',
+              link: '/zh/blog-support-ios-automation',
+            },
             {
               text: '使用 iOS Playground 快速体验',
               link: '/zh/quick-experience-with-ios',
@@ -339,14 +347,6 @@ export default defineConfig({
         {
           text: 'Blog',
           items: [
-            {
-              text: '支持 iOS 自动化',
-              link: '/zh/blog-support-ios-automation',
-            },
-            {
-              text: '支持 Android 自动化',
-              link: '/zh/blog-support-android-automation',
-            },
             {
               text: '即时操作和深度思考',
               link: '/zh/blog-introducing-instant-actions-and-deep-think',
