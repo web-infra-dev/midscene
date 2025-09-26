@@ -1,6 +1,6 @@
 {
   "name": "@midscene/recorder",
-  "version": "0.29.3",
+  "version": "0.29.4",
   "type": "module",
   "exports": {
     ".": {
