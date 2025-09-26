@@ -6,13 +6,13 @@
       "multi": false,
       "annotation_index_id": 1,
       "response_rect": {
-        "left": 521,
-        "top": 136,
-        "width": 540,
-        "height": 58
+        "left": 513,
+        "top": 132,
+        "width": 552,
+        "height": 63
       },
       "response_element": {
-        "id": "icpei"
+        "id": "dmlei"
       }
     },
     {
@@ -20,13 +20,13 @@
       "multi": false,
       "annotation_index_id": 2,
       "response_rect": {
-        "left": 521,
-        "top": 136,
-        "width": 540,
-        "height": 55
+        "left": 518,
+        "top": 132,
+        "width": 547,
+        "height": 63
       },
       "response_element": {
-        "id": "kdpkc"
+        "id": "ehffl"
       }
     },
     {
@@ -35,12 +35,12 @@
       "annotation_index_id": 3,
       "response_rect": {
         "left": 572,
-        "top": 269,
-        "width": 120,
-        "height": 31
+        "top": 266,
+        "width": 119,
+        "height": 35
       },
       "response_element": {
-        "id": "liikn"
+        "id": "jnimg"
       }
     },
     {
@@ -49,12 +49,12 @@
       "annotation_index_id": 4,
       "response_rect": {
         "left": 1021,
-        "top": 269,
+        "top": 271,
         "width": 25,
-        "height": 29
+        "height": 24
       },
       "response_element": {
-        "id": "oknce"
+        "id": "lniid"
       }
     },
     {
@@ -62,13 +62,13 @@
       "multi": false,
       "annotation_index_id": 5,
       "response_rect": {
-        "left": 521,
+        "left": 522,
         "top": 328,
-        "width": 32,
+        "width": 31,
         "height": 30
       },
       "response_element": {
-        "id": "declc"
+        "id": "mjllg"
       }
     },
     {
@@ -76,13 +76,13 @@
       "multi": false,
       "annotation_index_id": 6,
       "response_rect": {
-        "left": 800,
-        "top": 383,
-        "width": 74,
-        "height": 25
+        "left": 795,
+        "top": 382,
+        "width": 84,
+        "height": 24
       },
       "response_element": {
-        "id": "kolee"
+        "id": "ahckf"
       }
     }
   ]

@@ -18,13 +18,13 @@
       "prompt": "点赞（爱心）按钮",
       "annotation_index_id": 2,
       "response_rect": {
-        "left": 1192,
+        "left": 1197,
         "top": 342,
-        "width": 46,
+        "width": 41,
         "height": 64
       },
       "response_element": {
-        "id": "gdbmj"
+        "id": "mdihp"
       }
     },
     {
@@ -44,13 +44,13 @@
       "prompt": "书签收藏按钮",
       "annotation_index_id": 4,
       "response_rect": {
-        "left": 1197,
-        "top": 491,
-        "width": 41,
-        "height": 55
+        "left": 1201,
+        "top": 494,
+        "width": 34,
+        "height": 34
       },
       "response_element": {
-        "id": "foleg"
+        "id": "iochj"
       }
     },
     {
@@ -58,12 +58,12 @@
       "annotation_index_id": 5,
       "response_rect": {
         "left": 1197,
-        "top": 565,
+        "top": 568,
         "width": 41,
-        "height": 60
+        "height": 43
       },
       "response_element": {
-        "id": "mffdf"
+        "id": "jdnap"
       }
     },
     {
@@ -73,10 +73,10 @@
         "left": 1197,
         "top": 766,
         "width": 27,
-        "height": 21
+        "height": 24
       },
       "response_element": {
-        "id": "pddkj"
+        "id": "impeo"
       }
     }
   ]

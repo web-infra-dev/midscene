@@ -7,12 +7,12 @@
       "annotation_index_id": 1,
       "response_rect": {
         "left": 187,
-        "top": 275,
-        "width": 56,
-        "height": 19
+        "top": 276,
+        "width": 72,
+        "height": 22
       },
       "response_element": {
-        "id": "fphfp"
+        "id": "ghadi"
       }
     },
     {
@@ -20,13 +20,13 @@
       "multi": false,
       "annotation_index_id": 2,
       "response_rect": {
-        "left": 319,
-        "top": 797,
-        "width": 65,
-        "height": 26
+        "left": 321,
+        "top": 795,
+        "width": 61,
+        "height": 29
       },
       "response_element": {
-        "id": "imapj"
+        "id": "pgkce"
       }
     },
     {
@@ -34,13 +34,13 @@
       "multi": false,
       "annotation_index_id": 3,
       "response_rect": {
-        "left": 187,
-        "top": 805,
-        "width": 31,
-        "height": 22
+        "left": 188,
+        "top": 738,
+        "width": 89,
+        "height": 25
       },
       "response_element": {
-        "id": "gnghc"
+        "id": "lhndp"
       }
     },
     {
@@ -49,12 +49,12 @@
       "annotation_index_id": 4,
       "response_rect": {
         "left": 0,
-        "top": 363,
-        "width": 76,
-        "height": 50
+        "top": 376,
+        "width": 77,
+        "height": 54
       },
       "response_element": {
-        "id": "ldgkn"
+        "id": "aenkb"
       }
     }
   ]
