@@ -40,7 +40,7 @@ describe(
       }).rejects.toThrowError();
     });
 
-    it.only('Sauce Demo by Swag Lab', async () => {
+    it('Sauce Demo by Swag Lab', async () => {
       const { originPage, reset } = await launchPage(
         'https://www.saucedemo.com/',
       );
