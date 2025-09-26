@@ -32,7 +32,6 @@ import type { ElementInfo } from '@midscene/shared/extractor';
 import {
   createImgBase64ByFormat,
   isValidPNGImageBuffer,
-  resizeAndConvertImgBuffer,
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { uuid } from '@midscene/shared/utils';
@@ -716,15 +715,11 @@ ${Object.keys(size)
 
     // Use cached device pixel ratio instead of calling getDisplayDensity() every time
 
-    // calculate logical pixel size using reverseAdjustCoordinates function
-    const { x: logicalWidth, y: logicalHeight } = this.reverseAdjustCoordinates(
+    // Return physical pixels directly instead of converting to logical pixels
+    // The coordinate adjustment will be handled by adjustCoordinates() when needed
+    return {
       width,
       height,
-    );
-
-    return {
-      width: logicalWidth,
-      height: logicalHeight,
       dpr: this.devicePixelRatio,
     };
   }
@@ -734,17 +729,6 @@ ${Object.keys(size)
     return {
       x: Math.round(x * ratio),
       y: Math.round(y * ratio),
-    };
-  }
-
-  private reverseAdjustCoordinates(
-    x: number,
-    y: number,
-  ): { x: number; y: number } {
-    const ratio = this.devicePixelRatio;
-    return {
-      x: Math.round(x / ratio),
-      y: Math.round(y / ratio),
     };
   }
 
@@ -815,7 +799,6 @@ ${Object.keys(size)
 
   async screenshotBase64(): Promise<string> {
     debugDevice('screenshotBase64 begin');
-    const { width, height } = await this.size();
     const adb = await this.getAdb();
     let screenshotBuffer;
     const androidScreenshotPath = `/data/local/tmp/midscene_screenshot_${uuid()}.png`;
@@ -880,20 +863,11 @@ ${Object.keys(size)
       }
     }
 
-    debugDevice('Resizing screenshot image');
-    const { buffer, format } = await resizeAndConvertImgBuffer(
-      // both "adb.takeScreenshot" and "shell screencap" result are png format
-      'png',
-      screenshotBuffer,
-      {
-        width,
-        height,
-      },
-    );
-    debugDevice('Image resize completed');
-
     debugDevice('Converting to base64');
-    const result = createImgBase64ByFormat(format, buffer.toString('base64'));
+    const result = createImgBase64ByFormat(
+      'png',
+      screenshotBuffer.toString('base64'),
+    );
     debugDevice('screenshotBase64 end');
     return result;
   }
