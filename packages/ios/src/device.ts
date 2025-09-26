@@ -307,6 +307,25 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
     };
   }
 
+  async getDevicePixelRatio(): Promise<number> {
+    try {
+      // Get real device pixel ratio from WebDriverAgent /wda/screen endpoint
+      const apiScale = await this.wdaBackend.getScreenScale();
+      if (apiScale && apiScale > 0) {
+        debugDevice(`Got screen scale from WebDriverAgent API: ${apiScale}`);
+        return apiScale;
+      }
+
+      debugDevice('Using default scale 2 for iOS device');
+      return 2; // Default to 2 for most iOS devices
+    } catch (error) {
+      debugDevice(
+        `Failed to get device pixel ratio: ${error}, using default scale 2`,
+      );
+      return 2; // Safe default for most iOS devices
+    }
+  }
+
   async getScreenSize(): Promise<{
     width: number;
     height: number;
@@ -314,9 +333,8 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
   }> {
     try {
       const windowSize = await this.wdaBackend.getWindowSize();
-      // WDA returns logical points, for our coordinate system we use scale = 1
-      // This means we work directly with the logical coordinates that WDA provides
-      const scale = 1; // Use 1 to work with WDA's logical coordinate system directly
+      // Get real device pixel ratio like Android does
+      const scale = await this.getDevicePixelRatio();
 
       return {
         width: windowSize.width,
@@ -325,11 +343,11 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
       };
     } catch (e) {
       debugDevice(`Failed to get screen size: ${e}`);
-      // Fallback to default iPhone size with scale 1
+      // Fallback to default iPhone size with typical iPhone scale
       return {
         width: 402,
         height: 874,
-        scale: 1,
+        scale: 2, // Most iPhones have 2x scale, iPhone X+ series have 3x
       };
     }
   }
