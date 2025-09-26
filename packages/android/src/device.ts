@@ -67,6 +67,7 @@ export class AndroidDevice implements AbstractInterface {
   private deviceId: string;
   private yadbPushed = false;
   private devicePixelRatio = 1;
+  private devicePixelRatioInitialized = false;
   private adb: ADB | null = null;
   private connectingAdb: Promise<ADB> | null = null;
   private destroyed = false;
@@ -583,6 +584,27 @@ ${Object.keys(size)
     throw new Error(`Failed to get screen size, output: ${stdout}`);
   }
 
+  private async initializeDevicePixelRatio(): Promise<void> {
+    if (this.devicePixelRatioInitialized) {
+      return;
+    }
+
+    try {
+      // Get device display density using custom method
+      const densityNum = await this.getDisplayDensity();
+      // Standard density is 160, calculate the ratio
+      this.devicePixelRatio = Number(densityNum) / 160;
+      debugDevice(`Initialized device pixel ratio: ${this.devicePixelRatio}`);
+    } catch (error) {
+      debugDevice(
+        `Failed to get device pixel ratio: ${error}, using default value 1`,
+      );
+      this.devicePixelRatio = 1; // Safe default
+    }
+
+    this.devicePixelRatioInitialized = true;
+  }
+
   async getDisplayDensity(): Promise<number> {
     const adb = await this.getAdb();
 
@@ -679,6 +701,9 @@ ${Object.keys(size)
   }
 
   async size(): Promise<Size> {
+    // Ensure device pixel ratio is initialized first
+    await this.initializeDevicePixelRatio();
+
     // Use custom getScreenSize method instead of adb.getScreenSize()
     const screenSize = await this.getScreenSize();
     // screenSize is a string like "width x height"
@@ -696,10 +721,7 @@ ${Object.keys(size)
     const width = Number.parseInt(match[isLandscape ? 2 : 1], 10);
     const height = Number.parseInt(match[isLandscape ? 1 : 2], 10);
 
-    // Get device display density using custom method
-    const densityNum = await this.getDisplayDensity();
-    // Standard density is 160, calculate the ratio
-    this.devicePixelRatio = Number(densityNum) / 160;
+    // Use cached device pixel ratio instead of calling getDisplayDensity() every time
 
     // calculate logical pixel size using reverseAdjustCoordinates function
     const { x: logicalWidth, y: logicalHeight } = this.reverseAdjustCoordinates(
