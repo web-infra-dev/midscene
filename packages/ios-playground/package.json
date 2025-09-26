@@ -5,7 +5,7 @@
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",
   "module": "./dist/es/index.mjs",
-  "files": ["dist", "static", "bin", "README.md"],
+  "files": ["dist", "bin", "README.md"],
   "bin": {
     "midscene-ios-playground": "./bin/ios-playground",
     "@midscene/ios-playground": "./bin/ios-playground"

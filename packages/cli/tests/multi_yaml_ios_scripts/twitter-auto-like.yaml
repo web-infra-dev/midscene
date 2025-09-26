@@ -10,7 +10,7 @@ tasks:
       - aiAction: search 'midscene ai'
       - aiAction: click the user called 'midscene ai'
       - aiAction: click the first tweet
-      - aiAction: click the like button
+      - aiAction: click the like button when the tweet is not liked
 
   - name: extract tweets info
     flow:
@@ -18,6 +18,6 @@ tasks:
           {time: string, content: string}[], return time and content of each tweet
         name: tweets
 
-  - name: assert @midscene_ai account
+  - name: assert liked the tweet
     flow:
-      - aiAssert: There is a @midscene_ai account on the page
+      - aiAssert: The tweet is liked
