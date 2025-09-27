@@ -3,7 +3,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PlaywrightAgent, type PlaywrightWebPage } from '@/playwright/index';
 import type { WebPageAgentOpt } from '@/web-element';
+import type { Cache } from '@midscene/core';
 import type { AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
+import { processCacheConfig } from '@midscene/core/utils';
 import {
   DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
   DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
@@ -49,12 +51,26 @@ export const PlaywrightAiFixture = (options?: {
   forceSameTabNavigation?: boolean;
   waitForNetworkIdleTimeout?: number;
   waitForNavigationTimeout?: number;
+  cache?: Cache;
 }) => {
   const {
     forceSameTabNavigation = true,
     waitForNetworkIdleTimeout = DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
     waitForNavigationTimeout = DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
+    cache,
   } = options ?? {};
+
+  // Helper function to process cache configuration and auto-generate ID from test info
+  const processTestCacheConfig = (testInfo: TestInfo): Cache | undefined => {
+    if (!cache) return undefined;
+
+    // Generate ID from test info
+    const { id } = groupAndCaseForTest(testInfo);
+
+    // Use shared processCacheConfig with generated ID
+    return processCacheConfig(cache as Cache, id);
+  };
+
   const pageAgentMap: Record<string, PageAgent<PlaywrightWebPage>> = {};
   const createOrReuseAgentForPage = (
     page: OriginPlaywrightPage,
@@ -66,11 +82,13 @@ export const PlaywrightAiFixture = (options?: {
       idForPage = uuid();
       (page as any)[midsceneAgentKeyId] = idForPage;
       const { testId } = testInfo;
-      const { file, id, title } = groupAndCaseForTest(testInfo);
+      const { file, title } = groupAndCaseForTest(testInfo);
+      const cacheConfig = processTestCacheConfig(testInfo);
+
       pageAgentMap[idForPage] = new PlaywrightAgent(page, {
         testId: `playwright-${testId}-${idForPage}`,
         forceSameTabNavigation,
-        cacheId: id,
+        cache: cacheConfig,
         groupName: title,
         groupDescription: file,
         generateReport: false, // we will generate it in the reporter
@@ -191,9 +209,35 @@ export const PlaywrightAiFixture = (options?: {
           propsPage?: OriginPlaywrightPage | undefined,
           opts?: AgentOpt,
         ) => {
+          const cacheConfig = processTestCacheConfig(testInfo);
+
+          // Handle cache configuration priority:
+          // 1. If user provides cache in opts, use it (but auto-generate ID if missing)
+          // 2. Otherwise use fixture's cache config
+          let finalCacheConfig = cacheConfig;
+          if (opts?.cache !== undefined) {
+            const userCache = opts.cache;
+            if (userCache === false) {
+              finalCacheConfig = false;
+            } else if (userCache === true) {
+              // Auto-generate ID for user's cache: true
+              const { id } = groupAndCaseForTest(testInfo);
+              finalCacheConfig = { id };
+            } else if (typeof userCache === 'object') {
+              if (!userCache.id) {
+                // Auto-generate ID for user's cache object without ID
+                const { id } = groupAndCaseForTest(testInfo);
+                finalCacheConfig = { ...userCache, id };
+              } else {
+                finalCacheConfig = userCache;
+              }
+            }
+          }
+
           const agent = createOrReuseAgentForPage(propsPage || page, testInfo, {
             waitForNavigationTimeout,
             waitForNetworkIdleTimeout,
+            cache: finalCacheConfig,
             ...opts,
           });
           return agent;

@@ -16,11 +16,45 @@ import {
   ifInWorker,
   uuid,
 } from '@midscene/shared/utils';
-import type { Rect, ReportDumpWithAttributes } from './types';
+import type { Cache, Rect, ReportDumpWithAttributes } from './types';
 
 let logEnvReady = false;
 
 export const groupedActionDumpFileExt = 'web-dump.json';
+
+/**
+ * Process cache configuration, auto-generating ID if cache is enabled but no ID is provided.
+ *
+ * @param cache - The original cache configuration
+ * @param fallbackId - The fallback ID to use when cache is enabled but no ID is specified
+ * @returns Processed cache configuration
+ */
+export function processCacheConfig(
+  cache: Cache | undefined,
+  fallbackId: string,
+): Cache | undefined {
+  if (!cache) return undefined;
+
+  // Use type assertion to handle TypeScript type checking issue
+  const cacheValue = cache as Cache;
+
+  if (cacheValue === false) return false;
+
+  if (cacheValue === true) {
+    // Auto-generate ID using fallback
+    return { id: fallbackId };
+  }
+
+  if (typeof cacheValue === 'object' && cacheValue !== null) {
+    if (!cacheValue.id) {
+      // Auto-generate ID using fallback when missing
+      return { ...cacheValue, id: fallbackId };
+    }
+    return cacheValue;
+  }
+
+  return undefined;
+}
 
 const reportInitializedMap = new Map<string, boolean>();
 
