@@ -35,17 +35,7 @@ describe('Cache Configuration Tests', () => {
     expect(agent.taskCache?.readOnlyMode).toBe(false);
 
     // Perform an action that should be cached
-    await agent.aiAssert('this is the example.com page');
-
-    // Also perform an aiAction to generate planning cache
-    try {
-      await agent.aiAction('verify the page title shows Example Domain');
-    } catch (error) {
-      // If aiAction fails due to AI parsing, that's ok for this test
-      console.log(
-        'aiAction failed, but cache configuration test is still valid',
-      );
-    }
+    await agent.aiAction('click the title');
 
     // Verify cache file path is set correctly
     const cacheFilePath = agent.taskCache?.cacheFilePath;
@@ -64,11 +54,15 @@ describe('Cache Configuration Tests', () => {
       cache: false,
     });
 
-    // Verify cache is disabled
+    // Verify cache is configured correctly
     expect(agent.taskCache).toBeUndefined();
 
-    // Perform an action - should work without cache
-    await agent.aiAssert('this is the example.com page');
+    // Perform an action that should be cached
+    await agent.aiAction('click the title');
+
+    // Verify cache file path is set correctly
+    const cacheFilePath = agent.taskCache?.cacheFilePath;
+    expect(cacheFilePath).toBeUndefined();
   });
 
   it('should work with cache: { strategy: "read-only" } mode', async () => {
@@ -76,89 +70,28 @@ describe('Cache Configuration Tests', () => {
     resetFn = reset;
 
     const agent = new PuppeteerAgent(originPage, {
-      cache: { id: 'readonly-test-001' }, // Temporarily remove read-only to generate cache
+      cache: {
+        id: 'cache-functionality-test',
+        strategy: 'read-only',
+      },
+      testId: 'explicit-cache-test-001',
     });
 
-    // Verify cache is in read-write mode (temporarily)
+    // Verify cache is configured correctly
     expect(agent.taskCache).toBeDefined();
-    expect(agent.taskCache?.cacheId).toBe('readonly-test-001');
+    // Cache ID should be explicitly provided
+    expect(agent.taskCache?.cacheId).toBe('cache-functionality-test');
     expect(agent.taskCache?.isCacheResultUsed).toBe(true);
-
-    // Perform an action
+    expect(agent.taskCache?.readOnlyMode).toBe(true);
 
     // Perform an action that should be cached
-    await agent.aiAssert('this is a the example.com page');
+    await agent.aiAction('click the title');
 
-    // Also perform an aiAction to generate planning cache
-    try {
-      await agent.aiAction('verify the page title shows Example Domain 111');
-    } catch (error) {
-      // If aiAction fails due to AI parsing, that's ok for this test
-      console.log(
-        'aiAction failed, but cache configuration test is still valid',
-      );
-    }
-
-    // Now in read-write mode, cache should be created
+    // Verify cache file path is set correctly
     const cacheFilePath = agent.taskCache?.cacheFilePath;
     expect(cacheFilePath).toBeDefined();
     if (cacheFilePath) {
-      expect(cacheFilePath).toContain('readonly-test-001');
-      expect(cacheFilePath).toContain('.cache.yaml');
-    }
-  });
-
-  it('should work with cache: { id: "custom-id" } (custom ID with read-write)', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
-    resetFn = reset;
-
-    const agent = new PuppeteerAgent(originPage, {
-      cache: { id: 'custom-cache-id-001' },
-    });
-
-    // Verify cache configuration
-    expect(agent.taskCache).toBeDefined();
-    expect(agent.taskCache?.cacheId).toBe('custom-cache-id-001');
-    expect(agent.taskCache?.isCacheResultUsed).toBe(true);
-    expect(agent.taskCache?.readOnlyMode).toBe(false);
-
-    // Perform an action
-    await agent.aiAssert('this is the example.com page');
-
-    // Also test other operations to generate more cache content
-    await agent.aiQuery('What is the main heading text on this page?');
-
-    // Verify cache file path contains custom ID
-    const cacheFilePath = agent.taskCache?.cacheFilePath;
-    expect(cacheFilePath).toBeDefined();
-    if (cacheFilePath) {
-      expect(cacheFilePath).toContain('custom-cache-id-001');
-      expect(cacheFilePath).toContain('.cache.yaml');
-    }
-  });
-
-  it('should work with cache: { strategy: "read-only", id: "custom-readonly" }', async () => {
-    const { originPage, reset } = await launchPage('https://example.com/');
-    resetFn = reset;
-
-    const agent = new PuppeteerAgent(originPage, {
-      cache: { id: 'custom-readonly-001' }, // Temporarily remove read-only to generate cache
-    });
-
-    // Verify cache configuration (temporarily in read-write mode)
-    expect(agent.taskCache).toBeDefined();
-    expect(agent.taskCache?.cacheId).toBe('custom-readonly-001');
-    expect(agent.taskCache?.isCacheResultUsed).toBe(true);
-    expect(agent.taskCache?.readOnlyMode).toBe(false); // Now in read-write mode
-
-    // Perform an action
-    await agent.aiAssert('this is the example.com page');
-
-    // Now in read-write mode, cache should be written automatically
-    const cacheFilePath = agent.taskCache?.cacheFilePath;
-    expect(cacheFilePath).toBeDefined();
-    if (cacheFilePath) {
-      expect(cacheFilePath).toContain('custom-readonly-001');
+      expect(cacheFilePath).toContain('cache-functionality-test'); // Explicit ID
       expect(cacheFilePath).toContain('.cache.yaml');
     }
   });
@@ -171,6 +104,9 @@ describe('Cache Configuration Tests', () => {
       cacheId: 'legacy-cache-id', // This should be ignored
       cache: { id: 'new-cache-id-001' }, // This should take priority
     });
+
+    // Perform an action that should be cached
+    await agent.aiAction('click the title');
 
     // Verify new cache config takes priority
     expect(agent.taskCache).toBeDefined();
@@ -192,6 +128,9 @@ describe('Cache Configuration Tests', () => {
         // No new cache config, should fall back to legacy
       });
 
+      // Perform an action that should be cached
+      await agent.aiAction('click the title');
+
       // Verify legacy cache works
       expect(agent.taskCache).toBeDefined();
       expect(agent.taskCache?.cacheId).toBe('legacy-cache-test-001');
@@ -211,7 +150,7 @@ describe('Cache Configuration Tests', () => {
   it('should not create cache with legacy cacheId when MIDSCENE_CACHE is disabled', async () => {
     // Mock environment variable
     const originalEnv = process.env.MIDSCENE_CACHE;
-    process.env.MIDSCENE_CACHE = 'true';
+    process.env.MIDSCENE_CACHE = 'false';
 
     try {
       const { originPage, reset } = await launchPage('https://example.com/');
@@ -222,15 +161,10 @@ describe('Cache Configuration Tests', () => {
         // No new cache config and env var is false
       });
 
-      // Verify cache is not created
-      // expect(agent.taskCache).toBeUndefined();
-
-      // Perform an action that should be cached
-      await agent.aiAssert('this is the example.com page');
-
       // Also perform an aiAction to generate planning cache
       try {
-        await agent.aiAction('verify the page title shows Example Domain');
+        // Perform an action that should be cached
+        await agent.aiAction('click the title');
       } catch (error) {
         // If aiAction fails due to AI parsing, that's ok for this test
         console.log(

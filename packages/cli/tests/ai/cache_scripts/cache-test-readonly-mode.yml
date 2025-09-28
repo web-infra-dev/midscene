@@ -1,0 +1,14 @@
+target:
+  url: https://example.com/
+  viewportWidth: 800
+  viewportHeight: 600
+
+agent:
+  cache:
+    id: "cli-readonly-test-001"
+    strategy: "read-only"
+
+tasks:
+  - name: "Test read-only cache mode"
+    flow:
+      - aiAction: "click the title"

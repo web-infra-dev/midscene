@@ -1,65 +1,216 @@
-# Caching
+# Caching AI planning & locate
 
-Midscene supports caching the planning steps and DOM XPaths to reduce calls to AI models and greatly improve execution efficiency.
+Midscene supports caching Plan steps and matched DOM element information to reduce AI model calls and greatly improve execution efficiency.
 
-Android automation supports planning cache but not element location cache (due to lack of XPath support).
+Android/iOS automation tasks support planning cache but not element location cache (due to lack of XPath support).
 
 **Effect**
 
-After enabling the cache, the execution time of AI service related steps can be significantly reduced.
+With caching enabled, test execution time is significantly reduced. For example, in the following case, execution time was reduced from 51 seconds to 28 seconds.
 
-* **before using cache, 39s**
+* **before**
 
 ![](/cache/no-cache-time.png)
 
-* **after using cache, 13s**
+* **after**
 
 ![](/cache/use-cache-time.png)
 
-## Instructions
+## Usage
 
-There are two key points to use caching:
+To enable caching features, you need to configure the `cache` option when creating an Agent or configuring YAML files. Cache configuration supports the following modes:
 
-1. Set `MIDSCENE_CACHE=1` in the environment variable to enable matching cache.
-2. Set `cacheId` to specify the cache file name. It's automatically set in Playwright and Yaml mode. If you are using javascript SDK, you should set it manually.
+1. **Disable cache**: `cache: false`
+2. **Auto ID mode**: `cache: true` - automatically generates cache ID from test information (Playwright AI Fixture only)
+3. **Read-write mode**: `cache: { id: "my-cache-id" }` - automatically read and write cache
+4. **Read-only mode**: `cache: { strategy: "read-only", id: "my-cache-id" }` - read cache only, requires manual `agent.flushCache()` call
 
-### Playwright
+These configuration methods are supported across different usage modes:
+- **Playwright AI Fixture mode**: supports convenient auto-generated cache ID functionality
+- **Direct Agent creation mode**: requires explicit cache ID setting
+- **YAML script mode**: set cache options in configuration files
 
-When using Playwright integration, you can use the `MIDSCENE_CACHE=1` environment variable to enable caching.
+### Playwright AI Fixture mode
 
-The `cacheId` will be automatically set to the test file name.
+When using Playwright AI Fixture, it supports auto-generated cache ID without manual configuration:
+
+```javascript
+// Configure fixture-level caching (auto-generate ID from test information)
+export const test = base.extend<PlayWrightAiFixtureType>(
+  PlaywrightAiFixture({
+    cache: true  // Auto-generate cache ID from test case name
+  }),
+);
+
+// Or explicitly set cache ID
+export const test = base.extend<PlayWrightAiFixtureType>(
+  PlaywrightAiFixture({
+    cache: { id: "my-fixture-cache" }
+  }),
+);
+
+// Read-only mode
+export const test = base.extend<PlayWrightAiFixtureType>(
+  PlaywrightAiFixture({
+    cache: { strategy: "read-only", id: "readonly-cache" }
+  }),
+);
+
+// Disable caching
+export const test = base.extend<PlayWrightAiFixtureType>(
+  PlaywrightAiFixture({
+    cache: false
+  }),
+);
+```
+
+Usage in tests:
+
+```javascript
+test('my test case', async ({ ai, aiAction, agentForPage }) => {
+  // Use fixture-provided AI methods, cache configuration is automatically applied
+  await aiAction('click the button');
+
+  // Or get agent instance
+  const agent = await agentForPage();
+  await agent.aiAction('click the button');
+});
+```
+
+**Backward compatibility (not recommended)**: Still supports the old `cacheId` + `MIDSCENE_CACHE=1` environment variable approach:
 
 ```diff
 - playwright test --config=playwright.config.ts
 + MIDSCENE_CACHE=1 playwright test --config=playwright.config.ts
 ```
 
-### JavaScript agent, like PuppeteerAgent, AgentOverChromeBridge
+### Direct Agent creation mode
+> For example PuppeteerAgent, PlaywrightAgent, iosAgent, androidAgent, AgentOverChromeBridge
 
-You should set the `cacheId` to specify the cache identifier.
-And also, you should enable cache-matching by setting the `MIDSCENE_CACHE=1` environment variable.
+When creating Agent instances directly, you need to explicitly set the cache ID:
+
+```javascript
+// Read-write mode - automatically read and write cache
+const agent = new PuppeteerAgent(originPage, {
+  cache: { id: 'puppeteer-swag-sab' }
+});
+
+// Playwright Agent also supports this
+const agent = new PlaywrightAgent(page, {
+  cache: { id: 'playwright-login-test' }
+});
+
+// Read-only mode - read cache only, requires manual write
+const agent = new PuppeteerAgent(originPage, {
+  cache: { strategy: "read-only", id: 'puppeteer-swag-sab' }
+});
+
+// Manual cache write (read-only mode only)
+await agent.flushCache();
+
+// Disable caching
+const agent = new PuppeteerAgent(originPage, {
+  cache: false
+});
+```
+
+**Backward compatibility (not recommended)**: Still supports the old approach with environment variables:
 
 ```diff
-- tsx demo.ts 
+- tsx demo.ts
 + MIDSCENE_CACHE=1 tsx demo.ts
 ```
 
 ```javascript
 const mid = new PuppeteerAgent(originPage, {
-  cacheId: 'puppeteer-swag-sab', // specify cache id
+  cacheId: 'puppeteer-swag-sab', // Old way, requires MIDSCENE_CACHE=1
 });
 ```
 
-### YAML
+### YAML script mode
 
-Enable cache-matching by setting the `MIDSCENE_CACHE=1` environment variable.
-The `cacheId` will be automatically set to the yaml filename.
+Set cache options in `agent.cache` in the YAML file:
+
+**Configuration approach**:
+
+```yaml
+# Read-write mode - automatically read and write cache
+target:
+  url: https://example.com/
+  viewportWidth: 800
+  viewportHeight: 600
+
+agent:
+  cache:
+    id: "my-cache-test"
+
+tasks:
+  - name: "Test cache functionality"
+    flow:
+      - aiAction: "click the title"
+```
+
+```yaml
+# Read-only mode - read cache only, requires manual write
+agent:
+  cache:
+    id: "my-cache-test"
+    strategy: "read-only"
+```
+
+```yaml
+# Disable caching
+agent:
+  cache: false
+```
+
+**Backward compatibility (not recommended)**: Still supports the old environment variable approach, `cacheId` is automatically set to the yaml filename:
 
 ```diff
 - npx midscene ./bing-search.yaml
-+ # Add cache identifier, cacheId is the yaml filename
++ # Enable caching, cacheId is automatically set to yaml filename
 + MIDSCENE_CACHE=1 npx midscene ./bing-search.yaml
 ```
+
+## Cache modes
+
+### Read-write mode (default)
+
+```javascript
+const agent = new PuppeteerAgent(page, {
+  cache: { id: "my-cache-id" }
+});
+```
+
+- Automatically read existing cache
+- Automatically update cache files during execution
+- Suitable for development and debugging stages
+
+### Read-only mode
+
+```javascript
+const agent = new PuppeteerAgent(page, {
+  cache: { strategy: "read-only", id: "my-cache-id" }
+});
+
+// Manual cache write required
+await agent.flushCache();
+```
+
+- Only read cache, no automatic writing
+- Requires manual `flushCache()` call to write cache
+- Suitable for production environments to ensure cache consistency
+
+### Disable cache
+
+```javascript
+const agent = new PuppeteerAgent(page, {
+  cache: false
+});
+```
+
+- Completely disable cache functionality
+- Always call AI model for every operation
 
 ## Cache strategy
 
@@ -78,7 +229,13 @@ If the cache is not hit, Midscene will call AI model again and the result in cac
 
 ### No cache file is generated
 
-Make sure you have set the `cacheId` in the constructor.
+Please ensure you have correctly configured caching:
+
+1. **Direct Agent creation**: Set `cache: { id: "your-cache-id" }` in the constructor
+2. **Playwright AI Fixture mode**: Set `cache: true` or `cache: { id: "your-cache-id" }` in fixture configuration
+3. **YAML script mode**: Set `agent.cache.id` in the YAML file
+4. **Read-only mode**: Ensure you called the `agent.flushCache()` method
+5. **Legacy approach**: Set `cacheId` and enable `MIDSCENE_CACHE=1` environment variable
 
 ### How to check if the cache is hit?
 
@@ -86,7 +243,7 @@ You can view the report file. If the cache is hit, you will see the `cache` tip 
 
 ### Why the cache is missed on CI?
 
-You should commit the cache file to the repository (which is in the `./midscene_run/cache` directory). And also, check whether the prompt is the same as the one in the cache file.
+You need to commit the cache files to the repository in CI and recheck the cache hit conditions.
 
 ### Does it mean that AI services are no longer needed after using cache?
 
