@@ -149,6 +149,7 @@ export async function createYamlPlayer(
         const agent = new AgentOverChromeBridge({
           closeNewTabsAfterDisconnect: webTarget.closeNewTabsAfterDisconnect,
           cacheId: fileName,
+          continuousScreenshot: webTarget.continuousScreenshot,
         });
 
         if (webTarget.bridgeMode === 'newTabWithUrl') {

@@ -48,6 +48,7 @@ import {
   globalConfigManager,
   globalModelConfigManager,
 } from '@midscene/shared/env';
+import { resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 // import type { AndroidDeviceInputOpt } from '../device';
@@ -63,6 +64,8 @@ import {
 import { trimContextByViewport } from './utils';
 
 const debug = getDebug('agent');
+const DEFAULT_CONTINUOUS_SCREENSHOT_INTERVAL_MS = 5000;
+const DEFAULT_CONTINUOUS_SCREENSHOT_MAX_COUNT = 10;
 
 const distanceOfTwoPoints = (p1: [number, number], p2: [number, number]) => {
   const [x1, y1] = p1;
@@ -79,6 +82,7 @@ const includedInRect = (point: [number, number], rect: Rect) => {
 const defaultInsightExtractOption: InsightExtractOption = {
   domIncluded: false,
   screenshotIncluded: true,
+  screenshotListIncluded: false,
 };
 
 export class Agent<
@@ -122,6 +126,12 @@ export class Agent<
    * Flag to track if VL model warning has been shown
    */
   private hasWarnedNonVLModel = false;
+
+  private continuousScreenshotTimer?: NodeJS.Timeout;
+
+  private continuousScreenshots: string[] = [];
+
+  private isCapturingContinuousScreenshot = false;
 
   // @deprecated use .interface instead
   get page() {
@@ -192,6 +202,141 @@ export class Agent<
     this.reportFileName =
       opts?.reportFileName ||
       getReportFileName(opts?.testId || this.interface.interfaceType || 'web');
+
+    if (this.isContinuousScreenshotEnabled()) {
+      this.startContinuousScreenshot();
+    }
+  }
+
+  private isContinuousScreenshotEnabled(): boolean {
+    const config = this.opts.continuousScreenshot;
+    if (!config) {
+      return false;
+    }
+    if (config.enabled === false) {
+      return false;
+    }
+    return typeof this.interface.screenshotBase64 === 'function';
+  }
+
+  private getContinuousScreenshotConfig() {
+    const config = this.opts.continuousScreenshot ?? {};
+    const intervalMs =
+      typeof config.intervalMs === 'number' && config.intervalMs > 0
+        ? config.intervalMs
+        : DEFAULT_CONTINUOUS_SCREENSHOT_INTERVAL_MS;
+    const maxCount =
+      typeof config.maxCount === 'number' && config.maxCount > 0
+        ? Math.floor(config.maxCount)
+        : DEFAULT_CONTINUOUS_SCREENSHOT_MAX_COUNT;
+    return { intervalMs, maxCount };
+  }
+
+  private startContinuousScreenshot() {
+    this.stopContinuousScreenshot();
+    const { intervalMs } = this.getContinuousScreenshotConfig();
+    this.continuousScreenshots = this.mergeScreenshotLists(
+      this.continuousScreenshots,
+    );
+    void this.captureContinuousScreenshot();
+    this.continuousScreenshotTimer = setInterval(() => {
+      void this.captureContinuousScreenshot();
+    }, intervalMs);
+    // this.continuousScreenshotTimer.unref?.();
+  }
+
+  private stopContinuousScreenshot() {
+    if (this.continuousScreenshotTimer) {
+      clearInterval(this.continuousScreenshotTimer);
+      this.continuousScreenshotTimer = undefined;
+    }
+  }
+
+  private mergeScreenshotLists(...lists: (string[] | undefined)[]): string[] {
+    const { maxCount } = this.getContinuousScreenshotConfig();
+    const unique = new Set<string>();
+    for (const list of lists) {
+      if (!list) continue;
+      for (const item of list) {
+        if (!item) continue;
+        if (unique.has(item)) {
+          unique.delete(item);
+        }
+        unique.add(item);
+      }
+    }
+    if (!unique.size) {
+      return [];
+    }
+    const merged = Array.from(unique);
+    if (merged.length > maxCount) {
+      return merged.slice(merged.length - maxCount);
+    }
+    return merged;
+  }
+
+  private async captureContinuousScreenshot() {
+    if (
+      !this.isContinuousScreenshotEnabled() ||
+      this.isCapturingContinuousScreenshot ||
+      this.destroyed
+    ) {
+      return;
+    }
+    if (typeof this.interface.screenshotBase64 !== 'function') {
+      return;
+    }
+    this.isCapturingContinuousScreenshot = true;
+    try {
+      let screenshot = await this.interface.screenshotBase64();
+      if (!screenshot) {
+        return;
+      }
+      if (typeof this.interface.size === 'function') {
+        try {
+          const size = await this.interface.size();
+          if (size?.dpr && size.dpr !== 1) {
+            screenshot = await resizeImgBase64(screenshot, {
+              width: size.width,
+              height: size.height,
+            });
+          }
+        } catch (error) {
+          debug('Failed to get size for continuous screenshot', error);
+        }
+      }
+      this.continuousScreenshots = this.mergeScreenshotLists(
+        this.continuousScreenshots,
+        [screenshot],
+      );
+    } catch (error) {
+      debug('Failed to capture continuous screenshot', error);
+    } finally {
+      this.isCapturingContinuousScreenshot = false;
+    }
+  }
+
+  private mergeContinuousScreenshotsIntoContext(context: UIContext): UIContext {
+    if (!context) {
+      return context;
+    }
+
+    if (!this.isContinuousScreenshotEnabled()) {
+      if (!context.screenshotBase64List?.length && context.screenshotBase64) {
+        context.screenshotBase64List = [context.screenshotBase64];
+      }
+      return context;
+    }
+
+    const merged = this.mergeScreenshotLists(
+      this.continuousScreenshots,
+      context.screenshotBase64List,
+      context.screenshotBase64 ? [context.screenshotBase64] : undefined,
+    );
+
+    context.screenshotBase64List = merged;
+    this.continuousScreenshots = merged;
+    return context;
   }
 
   async getActionSpace(): Promise<DeviceAction[]> {
@@ -210,12 +355,19 @@ export class Agent<
 
     if (this.interface.getContext) {
       debug('Using page.getContext for action:', action);
-      return await this.interface.getContext();
+      const context = await this.interface.getContext();
+      return this.mergeContinuousScreenshotsIntoContext(context);
     } else {
-      debug('Using commonContextParser for action:', action);
-      return await commonContextParser(this.interface, {
+      const context = await commonContextParser(this.interface, {
         uploadServerUrl: this.modelConfigManager.getUploadTestServerUrl(),
+        screenshotBase64List: this.isContinuousScreenshotEnabled()
+          ? this.continuousScreenshots
+          : undefined,
+        screenshotMaxCount: this.isContinuousScreenshotEnabled()
+          ? this.getContinuousScreenshotConfig().maxCount
+          : undefined,
       });
+      return this.mergeContinuousScreenshotsIntoContext(context);
     }
   }
 
@@ -838,6 +990,9 @@ export class Agent<
       screenshotIncluded:
         opt?.screenshotIncluded ??
         defaultInsightExtractOption.screenshotIncluded,
+      screenshotListIncluded:
+        opt?.screenshotListIncluded ??
+        defaultInsightExtractOption.screenshotListIncluded,
       isWaitForAssert: opt?.isWaitForAssert,
       doNotThrowError: opt?.doNotThrowError,
     };
@@ -949,6 +1104,9 @@ export class Agent<
 
   async destroy() {
     await this.interface.destroy?.();
+    this.stopContinuousScreenshot();
+    this.continuousScreenshots = [];
+    this.isCapturingContinuousScreenshot = false;
     this.resetDump(); // reset dump to release memory
     this.destroyed = true;
   }

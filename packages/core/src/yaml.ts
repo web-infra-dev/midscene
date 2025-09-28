@@ -13,6 +13,7 @@ export interface LocateOption {
 export interface InsightExtractOption {
   domIncluded?: boolean | 'visible-only';
   screenshotIncluded?: boolean;
+  screenshotListIncluded?: boolean;
   // To make the assert in the "waitfor" section display the warning icon in report
   isWaitForAssert?: boolean;
   doNotThrowError?: boolean;
@@ -60,6 +61,11 @@ export type MidsceneYamlScriptAgentOpt = Pick<AgentOpt, 'aiActionContext'>;
 export interface MidsceneYamlScriptConfig {
   output?: string;
   unstableLogContent?: boolean | string;
+  continuousScreenshot?: {
+    enabled: boolean;
+    intervalMs: number;
+    maxCount?: number;
+  };
 }
 
 export interface MidsceneYamlScriptEnvGeneralInterface {
@@ -126,7 +132,7 @@ export interface MidsceneYamlFlowItemAIAction {
   cacheable?: boolean;
 }
 
-export interface MidsceneYamlFlowItemAIAssert {
+export interface MidsceneYamlFlowItemAIAssert extends InsightExtractOption {
   aiAssert: string;
   errorMessage?: string;
   name?: string;

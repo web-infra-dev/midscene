@@ -32,7 +32,11 @@ const debugProfile = getDebug('web:tool:profile');
 
 export async function commonContextParser(
   interfaceInstance: AbstractInterface,
-  _opt: { uploadServerUrl?: string },
+  _opt: {
+    uploadServerUrl?: string;
+    screenshotBase64List?: string[];
+    screenshotMaxCount?: number;
+  } = {},
 ): Promise<UIContext> {
   assert(interfaceInstance, 'interfaceInstance is required');
 
@@ -47,8 +51,24 @@ export async function commonContextParser(
   });
   debugProfile('UploadTestInfoToServer end');
 
+  const existingScreenshots = Array.isArray(_opt.screenshotBase64List)
+    ? _opt.screenshotBase64List.filter(
+        (item): item is string => typeof item === 'string' && item.length > 0,
+      )
+    : [];
+  const maxCount =
+    typeof _opt.screenshotMaxCount === 'number' &&
+    Number.isFinite(_opt.screenshotMaxCount) &&
+    _opt.screenshotMaxCount > 0
+      ? Math.floor(_opt.screenshotMaxCount)
+      : undefined;
+
   let screenshotBase64 = await interfaceInstance.screenshotBase64();
   assert(screenshotBase64!, 'screenshotBase64 is required');
+  let screenshotBase64List = existingScreenshots.slice();
+  if (screenshotBase64) {
+    screenshotBase64List.push(screenshotBase64);
+  }
 
   const size = await interfaceInstance.size();
   debugProfile(`size: ${size.width}x${size.height} dpr: ${size.dpr}`);
@@ -60,6 +80,29 @@ export async function commonContextParser(
       height: size.height,
     });
     debugProfile('ResizeImgBase64 end');
+    if (screenshotBase64List.length) {
+      screenshotBase64List[screenshotBase64List.length - 1] = screenshotBase64!;
+    } else if (screenshotBase64) {
+      screenshotBase64List.push(screenshotBase64);
+    }
+  }
+
+  if (screenshotBase64List.length) {
+    const uniqueScreenshots = new Set<string>();
+    for (const item of screenshotBase64List) {
+      if (!item) continue;
+      if (uniqueScreenshots.has(item)) {
+        uniqueScreenshots.delete(item);
+      }
+      uniqueScreenshots.add(item);
+    }
+    screenshotBase64List = Array.from(uniqueScreenshots);
+  }
+
+  if (maxCount && screenshotBase64List.length > maxCount) {
+    screenshotBase64List = screenshotBase64List.slice(
+      screenshotBase64List.length - maxCount,
+    );
   }
 
   return {
@@ -69,6 +112,7 @@ export async function commonContextParser(
     },
     size,
     screenshotBase64: screenshotBase64!,
+    screenshotBase64List,
   };
 }
 
