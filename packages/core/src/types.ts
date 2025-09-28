@@ -8,7 +8,6 @@ import type {
   Rect,
   Size,
 } from '@midscene/shared/types';
-import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { z } from 'zod';
 import type { TUserPrompt } from './ai-model/common';
 import type { DetailedLocateParam, MidsceneYamlFlowItem } from './yaml';
@@ -589,6 +588,7 @@ export type Cache =
 
 export interface AgentOpt {
   testId?: string;
+  // @deprecated
   cacheId?: string; // Keep backward compatibility, but marked as deprecated
   groupName?: string;
   groupDescription?: string;

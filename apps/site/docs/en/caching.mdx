@@ -16,57 +16,127 @@ With caching enabled, test execution time is significantly reduced. For example,
 
 ![](/cache/use-cache-time.png)
 
-## Usage
+## Cache strategies
 
-To enable caching features, you need to configure the `cache` option when creating an Agent or configuring YAML files. Cache configuration supports the following modes:
+### Disable cache
 
-1. **Disable cache**: `cache: false`
-2. **Auto ID mode**: `cache: true` - automatically generates cache ID from test information (Playwright AI Fixture only)
-3. **Read-write mode**: `cache: { id: "my-cache-id" }` - automatically read and write cache
-4. **Read-only mode**: `cache: { strategy: "read-only", id: "my-cache-id" }` - read cache only, requires manual `agent.flushCache()` call
+Configuration: `cache: false` or not configuring the `cache` option
 
-These configuration methods are supported across different usage modes:
-- **Playwright AI Fixture mode**: supports convenient auto-generated cache ID functionality
-- **Direct Agent creation mode**: requires explicit cache ID setting
-- **YAML script mode**: set cache options in configuration files
-
-### Playwright AI Fixture mode
-
-When using Playwright AI Fixture, it supports auto-generated cache ID without manual configuration:
+Completely disable cache functionality, always call AI model for every operation. Suitable when you need real-time results or for debugging. By default, if you don't configure the `cache` option, caching is disabled.
 
 ```javascript
-// Configure fixture-level caching (auto-generate ID from test information)
+// Direct Agent creation
+const agent = new PuppeteerAgent(page, {
+  cache: false
+});
+
+// Playwright AI Fixture
+export const test = base.extend<PlayWrightAiFixtureType>(
+  PlaywrightAiFixture({
+    cache: false
+  }),
+);
+
+// YAML configuration
+// agent:
+//   cache: false
+```
+
+### Read-write mode
+
+Configuration: `cache: { id: "my-cache-id" }`
+
+Automatically read existing cache and update cache files during execution. Additionally, the following two scenarios support configuring `cache: true` to auto-generate cache ID:
+- Playwright AI Fixture automatically generates cache ID from test information
+- YAML mode automatically uses filename as cache ID
+
+```javascript
+// Direct Agent creation - explicit cache ID
+const agent = new PuppeteerAgent(page, {
+  cache: { id: "my-cache-id" }
+});
+
+// Playwright AI Fixture - auto-generate cache ID
 export const test = base.extend<PlayWrightAiFixtureType>(
   PlaywrightAiFixture({
     cache: true  // Auto-generate cache ID from test case name
   }),
 );
 
-// Or explicitly set cache ID
+// Playwright AI Fixture - explicit cache ID
 export const test = base.extend<PlayWrightAiFixtureType>(
   PlaywrightAiFixture({
     cache: { id: "my-fixture-cache" }
   }),
 );
 
-// Read-only mode
+// YAML configuration - explicit cache ID
+agent:
+  cache:
+    id: "my-cache-test"
+
+// YAML configuration - auto-generate cache ID
+agent:
+  cache: true
+
+```
+
+### Read-only, manual write
+
+Configuration: `cache: { strategy: "read-only", id: "my-cache-id" }`
+
+Only read cache, no automatic writing to cache files. Requires manual `agent.flushCache()` call to write cache files. Suitable for production environments to ensure cache consistency.
+
+```javascript
+// Direct Agent creation
+const agent = new PuppeteerAgent(page, {
+  cache: { strategy: "read-only", id: "my-cache-id" }
+});
+
+// Manual cache write required
+await agent.flushCache();
+
+// Playwright AI Fixture
 export const test = base.extend<PlayWrightAiFixtureType>(
   PlaywrightAiFixture({
     cache: { strategy: "read-only", id: "readonly-cache" }
   }),
 );
 
-// Disable caching
-export const test = base.extend<PlayWrightAiFixtureType>(
-  PlaywrightAiFixture({
-    cache: false
-  }),
-);
+// YAML configuration
+agent:
+  cache:
+    id: "my-cache-test"
+    strategy: "read-only"
 ```
 
-Usage in tests:
+### Compatibility mode (not recommended)
+
+Configuration via `MIDSCENE_CACHE=1` environment variable with cacheId, equivalent to read-write mode.
 
 ```javascript
+// Old way, requires MIDSCENE_CACHE=1 environment variable and cacheId
+const agent = new PuppeteerAgent(originPage, {
+  cacheId: 'puppeteer-swag-sab'
+});
+```
+
+```bash
+MIDSCENE_CACHE=1 tsx demo.ts
+```
+
+## In Playwright test scenarios
+
+Using Midscene Playwright AI Fixture, Midscene will automatically generate cacheId and enable read-write cache by default.
+
+```javascript
+// Simplest configuration: auto-generate cache ID, enable read-write cache
+export const test = base.extend<PlayWrightAiFixtureType>(
+  PlaywrightAiFixture({
+    cache: true
+  }),
+);
+
 test('my test case', async ({ ai, aiAction, agentForPage }) => {
   // Use fixture-provided AI methods, cache configuration is automatically applied
   await aiAction('click the button');
@@ -77,72 +147,44 @@ test('my test case', async ({ ai, aiAction, agentForPage }) => {
 });
 ```
 
-**Backward compatibility (not recommended)**: Still supports the old `cacheId` + `MIDSCENE_CACHE=1` environment variable approach:
-
-```diff
-- playwright test --config=playwright.config.ts
-+ MIDSCENE_CACHE=1 playwright test --config=playwright.config.ts
-```
-
-### Direct Agent creation mode
-> For example PuppeteerAgent, PlaywrightAgent, iosAgent, androidAgent, AgentOverChromeBridge
-
-When creating Agent instances directly, you need to explicitly set the cache ID:
+You can also configure manually:
 
 ```javascript
-// Read-write mode - automatically read and write cache
-const agent = new PuppeteerAgent(originPage, {
-  cache: { id: 'puppeteer-swag-sab' }
-});
+// Explicit cache ID
+export const test = base.extend<PlayWrightAiFixtureType>(
+  PlaywrightAiFixture({
+    cache: { id: "my-fixture-cache" }
+  }),
+);
 
-// Playwright Agent also supports this
-const agent = new PlaywrightAgent(page, {
-  cache: { id: 'playwright-login-test' }
-});
+// Read-only cache, suitable for production
+export const test = base.extend<PlayWrightAiFixtureType>(
+  PlaywrightAiFixture({
+    cache: { strategy: "read-only", id: "readonly-cache" }
+  }),
+);
 
-// Read-only mode - read cache only, requires manual write
-const agent = new PuppeteerAgent(originPage, {
-  cache: { strategy: "read-only", id: 'puppeteer-swag-sab' }
-});
-
-// Manual cache write (read-only mode only)
-await agent.flushCache();
-
-// Disable caching
-const agent = new PuppeteerAgent(originPage, {
-  cache: false
-});
+// Disable cache
+export const test = base.extend<PlayWrightAiFixtureType>(
+  PlaywrightAiFixture({
+    cache: false
+  }),
+);
 ```
 
-**Backward compatibility (not recommended)**: Still supports the old approach with environment variables:
-
-```diff
-- tsx demo.ts
-+ MIDSCENE_CACHE=1 tsx demo.ts
-```
-
-```javascript
-const mid = new PuppeteerAgent(originPage, {
-  cacheId: 'puppeteer-swag-sab', // Old way, requires MIDSCENE_CACHE=1
-});
-```
-
-### YAML script mode
+## In command line tools and YAML files
 
 Set cache options in `agent.cache` in the YAML file:
 
-**Configuration approach**:
-
 ```yaml
-# Read-write mode - automatically read and write cache
+# Read-write cache - auto-use filename as cache ID
 target:
   url: https://example.com/
   viewportWidth: 800
   viewportHeight: 600
 
 agent:
-  cache:
-    id: "my-cache-test"
+  cache: true
 
 tasks:
   - name: "Test cache functionality"
@@ -151,7 +193,14 @@ tasks:
 ```
 
 ```yaml
-# Read-only mode - read cache only, requires manual write
+# Read-write cache - explicit cache ID
+agent:
+  cache:
+    id: "my-cache-test"
+```
+
+```yaml
+# Read-only cache - read cache only, requires manual write
 agent:
   cache:
     id: "my-cache-test"
@@ -164,55 +213,36 @@ agent:
   cache: false
 ```
 
-**Backward compatibility (not recommended)**: Still supports the old environment variable approach, `cacheId` is automatically set to the yaml filename:
+## In direct Agent creation scenarios
 
-```diff
-- npx midscene ./bing-search.yaml
-+ # Enable caching, cacheId is automatically set to yaml filename
-+ MIDSCENE_CACHE=1 npx midscene ./bing-search.yaml
-```
-
-## Cache modes
-
-### Read-write mode (default)
+When creating Agent instances directly (such as PuppeteerAgent, PlaywrightAgent, iosAgent, androidAgent, etc.), you need to explicitly set cache configuration:
 
 ```javascript
-const agent = new PuppeteerAgent(page, {
-  cache: { id: "my-cache-id" }
-});
-```
-
-- Automatically read existing cache
-- Automatically update cache files during execution
-- Suitable for development and debugging stages
-
-### Read-only mode
-
-```javascript
-const agent = new PuppeteerAgent(page, {
-  cache: { strategy: "read-only", id: "my-cache-id" }
+// Read-write cache - automatically read and write cache
+const agent = new PuppeteerAgent(originPage, {
+  cache: { id: 'puppeteer-swag-sab' }
 });
 
-// Manual cache write required
+// Playwright Agent also supports this
+const agent = new PlaywrightAgent(page, {
+  cache: { id: 'playwright-login-test' }
+});
+
+// Read-only cache - read cache only, requires manual write
+const agent = new PuppeteerAgent(originPage, {
+  cache: { strategy: "read-only", id: 'puppeteer-swag-sab' }
+});
+
+// Manual cache write (read-only strategy only)
 await agent.flushCache();
-```
 
-- Only read cache, no automatic writing
-- Requires manual `flushCache()` call to write cache
-- Suitable for production environments to ensure cache consistency
-
-### Disable cache
-
-```javascript
-const agent = new PuppeteerAgent(page, {
+// Disable caching
+const agent = new PuppeteerAgent(originPage, {
   cache: false
 });
 ```
 
-- Completely disable cache functionality
-- Always call AI model for every operation
-
-## Cache strategy
+## Cache files and storage
 
 Cache contents will be saved in the `./midscene_run/cache` directory with the `.cache.yaml` as the extension name.
 
@@ -225,7 +255,7 @@ The query results like `aiBoolean`, `aiQuery`, `aiAssert` will never be cached.
 
 If the cache is not hit, Midscene will call AI model again and the result in cache file will be updated.
 
-## Common issues
+## FAQ
 
 ### No cache file is generated
 

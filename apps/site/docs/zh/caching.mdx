@@ -16,40 +16,147 @@ Android/iOS 自动化任务支持 planning 缓存，但不支持元素定位缓�
 
 ![](/cache/use-cache-time.png)
 
-## 使用方式
+## 缓存策略
 
-想要启用缓存特性，需要在创建 Agent 或配置 YAML 文件时设置 `cache` 选项，缓存配置支持以下模式：
+### 禁用缓存
 
-1. **禁用缓存**: `cache: false`
-2. **自动 ID 模式**: `cache: true` - 自动从测试信息生成 cache ID（仅 Playwright AI Fixture 支持）
-3. **读写模式**: `cache: { id: "my-cache-id" }` - 自动读取和写入缓存
-4. **只读模式**: `cache: { strategy: "read-only", id: "my-cache-id" }` - 只读取缓存，需要手动调用 `agent.flushCache()` 写入
+配置方式：`cache: false` 或不配置 `cache` 选项
 
-这些配置方式在不同的使用模式下都得到支持：
-- **Playwright AI Fixture 模式**: 支持自动生成 cache ID 的便捷功能
-- **直接创建 Agent 模式**: 需要显式设置 cache ID
-- **YAML 脚本模式**: 在配置文件中设置缓存选项
-
-### Playwright AI Fixture（测试集成模式）
-
-使用 Playwright AI Fixture 时，支持自动生成 cache ID，无需手动设置：
+完全禁用缓存功能，每次都重新调用 AI 模型。适合需要实时结果或调试时使用。默认情况下，如果不配置 `cache` 选项，缓存是禁用状态。
 
 ```javascript
-// 配置 fixture 级别的缓存（自动从测试信息生成 ID）
+// 直接创建 Agent
+const agent = new PuppeteerAgent(page, {
+  cache: false
+});
+
+// Playwright AI Fixture
+export const test = base.extend<PlayWrightAiFixtureType>(
+  PlaywrightAiFixture({
+    cache: false
+  }),
+);
+
+// YAML 配置
+// agent:
+//   cache: false
+```
+
+### 读写模式
+
+配置方式：`cache: { id: "my-cache-id" }`
+
+自动读取已有缓存，执行过程中自动更新缓存文件，此外，下面两种场景支持配置 `cache: true` 自动生成 cache ID：
+- Playwright AI Fixture 自动从测试信息生成 cache ID
+- YAML 模式支持自动使用文件名作为 cache ID
+
+```javascript
+// 直接创建 Agent - 显式设置 cache ID
+const agent = new PuppeteerAgent(page, {
+  cache: { id: "my-cache-id" }
+});
+
+// Playwright AI Fixture - 自动生成 cache ID
 export const test = base.extend<PlayWrightAiFixtureType>(
   PlaywrightAiFixture({
     cache: true  // 自动从测试用例名称生成 cache ID
   }),
 );
 
-// 或者显式设置 cache ID
+// Playwright AI Fixture - 显式设置 cache ID
 export const test = base.extend<PlayWrightAiFixtureType>(
   PlaywrightAiFixture({
     cache: { id: "my-fixture-cache" }
   }),
 );
 
-// 只读模式
+// YAML 配置 - 显式设置 cache ID
+agent:
+  cache:
+    id: "my-cache-test"
+
+// YAML 配置 - 自动生成 cache ID
+agent:
+  cache: true
+
+```
+
+### 只读，手动写入
+
+配置方式：`cache: { strategy: "read-only", id: "my-cache-id" }`
+
+只读取缓存，不自动写入缓存文件，需要手动调用 `agent.flushCache()` 写入缓存文件，适合生产环境，确保缓存的一致性
+
+```javascript
+// 直接创建 Agent
+const agent = new PuppeteerAgent(page, {
+  cache: { strategy: "read-only", id: "my-cache-id" }
+});
+
+// 需要手动写入缓存
+await agent.flushCache();
+
+// Playwright AI Fixture
+export const test = base.extend<PlayWrightAiFixtureType>(
+  PlaywrightAiFixture({
+    cache: { strategy: "read-only"}
+  }),
+);
+
+// YAML 配置
+agent:
+  cache:
+    strategy: "read-only"
+```
+
+### 兼容方式（不推荐）
+
+通过环境变量 `MIDSCENE_CACHE=1` 配合 cacheId 配置，等同于读写模式。
+
+```javascript
+// 旧方式，需要 MIDSCENE_CACHE=1 环境变量和 cacheId
+const agent = new PuppeteerAgent(originPage, {
+  cacheId: 'puppeteer-swag-sab'
+});
+```
+
+```bash
+MIDSCENE_CACHE=1 tsx demo.ts
+```
+
+## 在 Playwright 测试场景中使用
+
+使用 Midscene Playwright AI Fixture，Midscene 会自动生成 cacheId，并默认开启读写缓存。
+
+```javascript
+// 最简配置：自动生成 cache ID，开启读写缓存
+export const test = base.extend<PlayWrightAiFixtureType>(
+  PlaywrightAiFixture({
+    cache: true
+  }),
+);
+
+test('my test case', async ({ ai, aiAction, agentForPage }) => {
+  // 使用 fixture 提供的 AI 方法，缓存配置已自动应用
+  await aiAction('click the button');
+
+  // 或者获取 agent 实例
+  const agent = await agentForPage();
+  await agent.aiAction('click the button');
+});
+```
+
+你也可以手动配置：
+
+```javascript
+// 显式设置 cache ID
+export const test = base.extend<PlayWrightAiFixtureType>(
+  PlaywrightAiFixture({
+    cache: { id: "my-fixture-cache" }
+  }),
+);
+
+// 只读缓存，适合生产环境
 export const test = base.extend<PlayWrightAiFixtureType>(
   PlaywrightAiFixture({
     cache: { strategy: "read-only", id: "readonly-cache" }
@@ -64,33 +171,53 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 );
 ```
 
-在测试中使用：
+## 在命令行工具及 Yaml 文件中使用
 
-```javascript
-test('my test case', async ({ ai, aiAction, agentForPage }) => {
-  // 使用 fixture 提供的 AI 方法，缓存配置已自动应用
-  await aiAction('click the button');
+在 YAML 文件中的 `agent.cache` 配置缓存选项：
 
-  // 或者获取 agent 实例
-  const agent = await agentForPage();
-  await agent.aiAction('click the button');
-});
+```bash
+# 读写缓存 - 自动使用文件名作为 cache ID
+target:
+  url: https://example.com/
+  viewportWidth: 800
+  viewportHeight: 600
+
+agent:
+  cache: true
+
+tasks:
+  - name: "测试缓存功能"
+    flow:
+      - aiAction: "click the title"
 ```
 
-**向后兼容（不推荐）**: 仍支持旧的 `cacheId` + `MIDSCENE_CACHE=1` 环境变量方式：
-
-```diff
-- playwright test --config=playwright.config.ts
-+ MIDSCENE_CACHE=1 playwright test --config=playwright.config.ts
+```bash
+# 读写缓存 - 显式设置 cache ID
+agent:
+  cache:
+    id: "my-cache-test"
 ```
 
-### Javascript Agent（直接创建模式）
-> 例如 PuppeteerAgent, PlaywrightAgent, iosAgent, androidAgent, AgentOverChromeBridge
+```bash
+# 只读缓存 - 只读取缓存，需要手动写入
+agent:
+  cache:
+    id: "my-cache-test"
+    strategy: "read-only"
+```
 
-直接创建 Agent 实例时，需要显式设置 cache ID：
+```bash
+# 禁用缓存
+agent:
+  cache: false
+```
+
+## 在直接创建 Agent 场景中使用
+
+直接创建 Agent 实例时（如 PuppeteerAgent, PlaywrightAgent, iosAgent, androidAgent 等），需要显式设置缓存配置：
 
 ```javascript
-// 读写模式 - 自动读取和写入缓存
+// 读写缓存 - 自动读取和写入缓存
 const agent = new PuppeteerAgent(originPage, {
   cache: { id: 'puppeteer-swag-sab' }
 });
@@ -100,12 +227,12 @@ const agent = new PlaywrightAgent(page, {
   cache: { id: 'playwright-login-test' }
 });
 
-// 只读模式 - 只读取缓存，需要手动写入
+// 只读缓存 - 只读取缓存，需要手动写入
 const agent = new PuppeteerAgent(originPage, {
   cache: { strategy: "read-only", id: 'puppeteer-swag-sab' }
 });
 
-// 手动写入缓存（仅在只读模式下）
+// 手动写入缓存（仅在只读策略下）
 await agent.flushCache();
 
 // 禁用缓存
@@ -114,105 +241,7 @@ const agent = new PuppeteerAgent(originPage, {
 });
 ```
 
-**向后兼容（不推荐）**: 仍支持旧的方式，需要设置环境变量：
-
-```diff
-- tsx demo.ts 
-+ MIDSCENE_CACHE=1 tsx demo.ts
-```
-
-```javascript
-const mid = new PuppeteerAgent(originPage, {
-  cacheId: 'puppeteer-swag-sab', // 旧方式，需要 MIDSCENE_CACHE=1
-});
-```
-
-### Yaml
-
-在 YAML 文件中的 `agent.cache` 配置缓存选项：
-
-**配置方式**：
-
-```yaml
-# 读写模式 - 自动读取和写入缓存
-target:
-  url: https://example.com/
-  viewportWidth: 800
-  viewportHeight: 600
-
-agent:
-  cache:
-    id: "my-cache-test"
-
-tasks:
-  - name: "测试缓存功能"
-    flow:
-      - aiAction: "click the title"
-```
-
-```yaml
-# 只读模式 - 只读取缓存，需要手动写入
-agent:
-  cache:
-    id: "my-cache-test"
-    strategy: "read-only"
-```
-
-```yaml
-# 禁用缓存
-agent:
-  cache: false
-```
-
-**向后兼容（不推荐）**: 仍支持旧的环境变量方式，`cacheId` 会自动设置为 yaml 文件名：
-
-```diff
-- npx midscene ./bing-search.yaml
-+ # 启用缓存, cacheId 自动设置为 yaml 文件名
-+ MIDSCENE_CACHE=1 npx midscene ./bing-search.yaml
-```
-
-## 缓存模式
-
-### 读写模式（默认）
-
-```javascript
-const agent = new PuppeteerAgent(page, {
-  cache: { id: "my-cache-id" }
-});
-```
-
-- 自动读取已有缓存
-- 执行过程中自动更新缓存文件
-- 适合开发和调试阶段
-
-### 只读模式
-
-```javascript
-const agent = new PuppeteerAgent(page, {
-  cache: { strategy: "read-only", id: "my-cache-id" }
-});
-
-// 需要手动写入缓存
-await agent.flushCache();
-```
-
-- 只读取缓存，不自动写入
-- 需要手动调用 `flushCache()` 写入缓存
-- 适合生产环境，确保缓存的一致性
-
-### 禁用缓存
-
-```javascript
-const agent = new PuppeteerAgent(page, {
-  cache: false
-});
-```
-
-- 完全禁用缓存功能
-- 每次都重新调用 AI 模型
-
-## 缓存策略
+## 缓存文件和存储
 
 缓存内容会保存到 `./midscene_run/cache` 目录下，以 `.cache.yaml` 为扩展名。
 
@@ -225,7 +254,7 @@ const agent = new PuppeteerAgent(page, {
 
 如果缓存未命中，Midscene 将会重新调用 AI 模型，并更新缓存文件。
 
-## 常见问题
+## FAQ
 
 ### 没有生成缓存文件
 
