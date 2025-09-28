@@ -393,6 +393,7 @@ export type ExecutionTask<
       cost?: number;
     };
     usage?: AIUsageInfo;
+    searchAreaUsage?: AIUsageInfo;
   };
 
 export interface ExecutionDump extends DumpMeta {
