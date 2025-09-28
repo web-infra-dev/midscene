@@ -16,6 +16,30 @@ With caching enabled, test execution time is significantly reduced. For example,
 
 ![](/cache/use-cache-time.png)
 
+## Cache files and storage
+
+### Cache principles
+
+Midscene's caching mechanism is based on input stability and output reusability. When the same task instructions are repeatedly executed in similar page environments, Midscene will prioritize using cached results to avoid repeated AI model calls, significantly improving execution efficiency.
+
+The core caching mechanisms include:
+- **Task instruction caching**: For planning operations (such as `ai`, `aiAction`), Midscene uses the prompt instruction as the cache key to store the execution plan returned by AI
+- **Element location caching**: For location operations (such as `aiLocate`, `aiTap`), the system uses the location prompt as the cache key to store element XPath information, and verifies whether the XPath is still valid on the next execution
+- **Invalidation mechanism**: When cache becomes invalid, the system automatically falls back to AI model for re-analysis
+
+### Storage format
+
+Cache contents will be saved in the `./midscene_run/cache` directory with the `.cache.yaml` as the extension name.
+
+These two types of content will be cached:
+
+1. the result of planning, like calls to `.ai` `.aiAction`
+2. The XPaths for elements located by AI, such as `.aiLocate`, `.aiTap`, etc.
+
+The query results like `aiBoolean`, `aiQuery`, `aiAssert` will never be cached. 
+
+If the cache is not hit, Midscene will call AI model again and the result in cache file will be updated.
+
 ## Cache strategies
 
 ### Disable cache
@@ -124,136 +148,6 @@ const agent = new PuppeteerAgent(originPage, {
 ```bash
 MIDSCENE_CACHE=1 tsx demo.ts
 ```
-
-## In Playwright test scenarios
-
-Using Midscene Playwright AI Fixture, Midscene will automatically generate cacheId and enable read-write cache by default.
-
-```javascript
-// Simplest configuration: auto-generate cache ID, enable read-write cache
-export const test = base.extend<PlayWrightAiFixtureType>(
-  PlaywrightAiFixture({
-    cache: true
-  }),
-);
-
-test('my test case', async ({ ai, aiAction, agentForPage }) => {
-  // Use fixture-provided AI methods, cache configuration is automatically applied
-  await aiAction('click the button');
-
-  // Or get agent instance
-  const agent = await agentForPage();
-  await agent.aiAction('click the button');
-});
-```
-
-You can also configure manually:
-
-```javascript
-// Explicit cache ID
-export const test = base.extend<PlayWrightAiFixtureType>(
-  PlaywrightAiFixture({
-    cache: { id: "my-fixture-cache" }
-  }),
-);
-
-// Read-only cache, suitable for production
-export const test = base.extend<PlayWrightAiFixtureType>(
-  PlaywrightAiFixture({
-    cache: { strategy: "read-only", id: "readonly-cache" }
-  }),
-);
-
-// Disable cache
-export const test = base.extend<PlayWrightAiFixtureType>(
-  PlaywrightAiFixture({
-    cache: false
-  }),
-);
-```
-
-## In command line tools and YAML files
-
-Set cache options in `agent.cache` in the YAML file:
-
-```yaml
-# Read-write cache - auto-use filename as cache ID
-target:
-  url: https://example.com/
-  viewportWidth: 800
-  viewportHeight: 600
-
-agent:
-  cache: true
-
-tasks:
-  - name: "Test cache functionality"
-    flow:
-      - aiAction: "click the title"
-```
-
-```yaml
-# Read-write cache - explicit cache ID
-agent:
-  cache:
-    id: "my-cache-test"
-```
-
-```yaml
-# Read-only cache - read cache only, requires manual write
-agent:
-  cache:
-    id: "my-cache-test"
-    strategy: "read-only"
-```
-
-```yaml
-# Disable caching
-agent:
-  cache: false
-```
-
-## In direct Agent creation scenarios
-
-When creating Agent instances directly (such as PuppeteerAgent, PlaywrightAgent, iosAgent, androidAgent, etc.), you need to explicitly set cache configuration:
-
-```javascript
-// Read-write cache - automatically read and write cache
-const agent = new PuppeteerAgent(originPage, {
-  cache: { id: 'puppeteer-swag-sab' }
-});
-
-// Playwright Agent also supports this
-const agent = new PlaywrightAgent(page, {
-  cache: { id: 'playwright-login-test' }
-});
-
-// Read-only cache - read cache only, requires manual write
-const agent = new PuppeteerAgent(originPage, {
-  cache: { strategy: "read-only", id: 'puppeteer-swag-sab' }
-});
-
-// Manual cache write (read-only strategy only)
-await agent.flushCache();
-
-// Disable caching
-const agent = new PuppeteerAgent(originPage, {
-  cache: false
-});
-```
-
-## Cache files and storage
-
-Cache contents will be saved in the `./midscene_run/cache` directory with the `.cache.yaml` as the extension name.
-
-These two types of content will be cached:
-
-1. the result of planning, like calls to `.ai` `.aiAction`
-2. The XPaths for elements located by AI, such as `.aiLocate`, `.aiTap`, etc.
-
-The query results like `aiBoolean`, `aiQuery`, `aiAssert` will never be cached. 
-
-If the cache is not hit, Midscene will call AI model again and the result in cache file will be updated.
 
 ## FAQ
 
