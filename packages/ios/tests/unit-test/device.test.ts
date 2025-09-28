@@ -47,6 +47,9 @@ describe('IOSDevice', () => {
       model: 'iPhone 15',
     });
 
+    // Add getScreenScale mock for new DPR detection
+    mockWdaClient.getScreenScale = vi.fn().mockResolvedValue(2);
+
     MockedWdaClient.mockImplementation(() => mockWdaClient);
 
     // Setup mock WDA manager
@@ -183,7 +186,7 @@ describe('IOSDevice', () => {
       expect(size).toEqual({
         width: 375,
         height: 812,
-        dpr: 1,
+        dpr: 2,
       });
       expect(mockWdaClient.getWindowSize).toHaveBeenCalled();
     });
@@ -295,7 +298,7 @@ describe('IOSDevice', () => {
       expect(size).toEqual({
         width: 375,
         height: 812,
-        dpr: 1,
+        dpr: 2,
       });
     });
 
@@ -445,6 +448,7 @@ describe('IOSDevice', () => {
         createSession: vi.fn().mockResolvedValue({ sessionId: 'test-session' }),
         typeText: vi.fn().mockResolvedValue(undefined),
         getWindowSize: vi.fn().mockResolvedValue({ width: 375, height: 812 }),
+        getScreenScale: vi.fn().mockResolvedValue(2),
         swipe: vi.fn().mockResolvedValue(undefined),
         sessionInfo: { sessionId: 'test-session' }, // Ensure session info is available
       };
@@ -470,7 +474,7 @@ describe('IOSDevice', () => {
 
     it('should calculate DPR correctly', async () => {
       const size = await device.size();
-      expect(size.dpr).toBe(1); // Default DPR for mocked device
+      expect(size.dpr).toBe(2); // DPR from mocked getScreenScale
     });
 
     it('should handle different screen sizes', async () => {
@@ -479,7 +483,7 @@ describe('IOSDevice', () => {
         .mockResolvedValue({ width: 1920, height: 1080 });
 
       const size = await device.size();
-      expect(size.width).toBe(1920);
+      expect(size.width).toBe(1920); // iOS returns logical pixels directly from WDA
       expect(size.height).toBe(1080);
     });
 
