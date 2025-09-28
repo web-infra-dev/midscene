@@ -1,0 +1,20 @@
+web:
+  url: https://www.bilibili.com
+  headless: false
+  continuousScreenshot: 
+    enabled: true
+    intervalMs: 1000
+    maxCount: 10
+
+
+
+tasks:
+  - name: 随机播放视频
+    flow:
+      - ai: 随机选择一个视频播放
+      - sleep: 3000
+
+  - name: 检查结果
+    flow:
+      - aiAssert: 视频播放区域有控制面板浮层
+        screenshotListIncluded: true

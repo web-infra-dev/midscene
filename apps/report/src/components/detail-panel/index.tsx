@@ -49,6 +49,36 @@ const DetailPanel = (): JSX.Element => {
   );
   const imageWidth = useExecutionDump((store) => store.insightWidth);
   const imageHeight = useExecutionDump((store) => store.insightHeight);
+  type RecorderScreenshotEntry = {
+    img: string;
+    ts: number;
+    order: number;
+    timing?: string;
+  };
+  const screenshotEntries: RecorderScreenshotEntry[] =
+    activeTask?.recorder?.flatMap((item) => {
+      const entries: RecorderScreenshotEntry[] = [];
+      const seen = new Set<string>();
+      const addImage = (img: string | undefined, order: number) => {
+        if (!img || seen.has(img)) {
+          return;
+        }
+        seen.add(img);
+        entries.push({
+          img,
+          ts: item.ts,
+          order,
+          timing: item.timing,
+        });
+      };
+
+      addImage(item.screenshot, 0);
+      item.screenshots?.forEach((img, idx) => {
+        addImage(img, idx + 1);
+      });
+
+      return entries;
+    }) || [];
 
   // Check if page context is frozen
   const isPageContextFrozen = Boolean(
@@ -118,20 +148,23 @@ const DetailPanel = (): JSX.Element => {
       content = <div>invalid view</div>;
     }
   } else if (viewType === VIEW_TYPE_SCREENSHOT) {
-    if (activeTask.recorder?.length) {
+    if (screenshotEntries.length) {
       content = (
         <div className="screenshot-item-wrapper scrollable">
-          {activeTask.recorder
-            .filter((item) => item.screenshot)
-            .map((item, index) => {
-              const fullTime = timeStr(item.ts);
-              const str = item.timing
-                ? `${fullTime} / ${item.timing}`
-                : fullTime;
-              return (
-                <ScreenshotItem key={index} time={str} img={item.screenshot!} />
-              );
-            })}
+          {screenshotEntries.map((entry, index) => {
+            const baseTime = timeStr(entry.ts);
+            const label = entry.timing
+              ? `${baseTime} / ${entry.timing}`
+              : baseTime;
+            const suffix = entry.order > 0 ? ` (#${entry.order + 1})` : '';
+            return (
+              <ScreenshotItem
+                key={`${entry.ts}-${entry.order}-${index}`}
+                time={`${label}${suffix}`}
+                img={entry.img}
+              />
+            );
+          })}
         </div>
       );
     } else {

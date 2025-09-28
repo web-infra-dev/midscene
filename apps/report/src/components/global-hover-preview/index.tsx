@@ -16,13 +16,27 @@ const GlobalHoverPreview = () => {
 
   const images = hoverTask?.recorder
     ?.filter((item) => {
-      let valid = Boolean(item.screenshot);
+      let valid = Boolean(item.screenshot || item.screenshots?.length);
       if (hoverTimestamp) {
         valid = valid && item.ts >= hoverTimestamp;
       }
       return valid;
     })
-    .map((item) => item.screenshot);
+    .flatMap((item) => {
+      const list: string[] = [];
+      const seen = new Set<string>();
+      const addImage = (img?: string) => {
+        if (!img || seen.has(img)) {
+          return;
+        }
+        seen.add(img);
+        list.push(img);
+      };
+
+      addImage(item.screenshot);
+      item.screenshots?.forEach((img) => addImage(img));
+      return list;
+    });
 
   const { x, y } = hoverPreviewConfig || {};
   let left = 0;

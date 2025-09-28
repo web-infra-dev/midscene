@@ -66,6 +66,41 @@ const debug = getDebug('device-task-executor');
 const defaultReplanningCycleLimit = 10;
 const defaultVlmUiTarsReplanningCycleLimit = 40;
 
+interface ScreenshotExtractionResult {
+  primary?: string;
+  extras: string[];
+}
+
+const extractScreenshotsFromContext = (
+  uiContext: UIContext,
+): ScreenshotExtractionResult => {
+  const uniqueScreenshots = new Set<string>();
+  const orderedScreenshots: string[] = [];
+
+  const pushUnique = (img?: string) => {
+    if (!img || uniqueScreenshots.has(img)) {
+      return;
+    }
+    uniqueScreenshots.add(img);
+    orderedScreenshots.push(img);
+  };
+
+  pushUnique(uiContext.screenshotBase64);
+  (uiContext.screenshotBase64List || []).forEach((img) => {
+    pushUnique(img);
+  });
+
+  if (!orderedScreenshots.length && uiContext.screenshotBase64) {
+    orderedScreenshots.push(uiContext.screenshotBase64);
+  }
+
+  const [primary, ...extras] = orderedScreenshots;
+  return {
+    primary,
+    extras,
+  };
+};
+
 export function locatePlanForLocate(param: string | DetailedLocateParam) {
   const locate = typeof param === 'string' ? { prompt: param } : param;
   const locatePlan: PlanningAction<PlanningLocateParam> = {
@@ -259,10 +294,12 @@ export class TaskExecutor {
           const uiContext = await this.insight.contextRetrieverFn('locate');
           task.uiContext = uiContext;
 
+          const { primary, extras } = extractScreenshotsFromContext(uiContext);
           const recordItem: ExecutionRecorderItem = {
             type: 'screenshot',
             ts: shotTime,
-            screenshot: uiContext.screenshotBase64,
+            screenshot: primary ?? uiContext.screenshotBase64,
+            screenshots: extras.length ? extras : undefined,
             timing: 'before Insight',
           };
           task.recorder = [recordItem];
@@ -605,10 +642,12 @@ export class TaskExecutor {
   private async setupPlanningContext(executorContext: ExecutorContext) {
     const shotTime = Date.now();
     const uiContext = await this.insight.contextRetrieverFn('locate');
+    const { primary, extras } = extractScreenshotsFromContext(uiContext);
     const recordItem: ExecutionRecorderItem = {
       type: 'screenshot',
       ts: shotTime,
-      screenshot: uiContext.screenshotBase64,
+      screenshot: primary ?? uiContext.screenshotBase64,
+      screenshots: extras.length ? extras : undefined,
       timing: 'before Planning',
     };
 
@@ -921,10 +960,12 @@ export class TaskExecutor {
         const uiContext = await this.insight.contextRetrieverFn('extract');
         task.uiContext = uiContext;
 
+        const { primary, extras } = extractScreenshotsFromContext(uiContext);
         const recordItem: ExecutionRecorderItem = {
           type: 'screenshot',
           ts: shotTime,
-          screenshot: uiContext.screenshotBase64,
+          screenshot: primary ?? uiContext.screenshotBase64,
+          screenshots: extras.length ? extras : undefined,
           timing: 'before Extract',
         };
         task.recorder = [recordItem];

@@ -3,7 +3,7 @@ import * as PIXI from 'pixi.js';
 import { useEffect, useMemo, useRef } from 'react';
 
 import './index.less';
-import type { ExecutionRecorderItem, ExecutionTask } from '@midscene/core';
+import type { ExecutionTask } from '@midscene/core';
 import { getTextureFromCache, loadTexture } from '../pixi-loader';
 import { useAllCurrentTasks, useExecutionDump } from '../store';
 
@@ -11,6 +11,9 @@ interface TimelineItem {
   id: string;
   img: string;
   timeOffset: number;
+  order?: number;
+  overlapIndex?: number;
+  overlapCount?: number;
   x?: number;
   y?: number;
   width?: number;
@@ -254,8 +257,21 @@ const TimelineWidget = (props: {
                 (screenshotHeight / originalHeight) * originalWidth,
               );
 
-              const screenshotX = leftForTimeOffset(screenshot.timeOffset);
-              allScreenshots[index].x = screenshotX;
+              const baseX = leftForTimeOffset(screenshot.timeOffset);
+              let overlapX = baseX;
+
+              if ((screenshot.overlapCount ?? 1) > 1) {
+                const overlapCount = screenshot.overlapCount ?? 1;
+                const overlapIndex = screenshot.overlapIndex ?? 0;
+                const centeredIndex = overlapIndex - (overlapCount - 1) / 2;
+                const overlapGap = Math.min(
+                  Math.max(Math.floor(screenshotWidth * 0.25), 10 * sizeRatio),
+                  Math.max(screenshotWidth, 30 * sizeRatio),
+                );
+                overlapX = baseX + centeredIndex * overlapGap;
+              }
+
+              allScreenshots[index].x = overlapX;
               allScreenshots[index].y = screenshotTop;
               allScreenshots[index].width = screenshotWidth;
               allScreenshots[index].height = screenshotMaxHeight;
@@ -263,7 +279,7 @@ const TimelineWidget = (props: {
               const border = new PIXI.Graphics();
               border.lineStyle(sizeRatio, shotBorderColor, 1);
               border.drawRect(
-                screenshotX,
+                overlapX,
                 screenshotTop,
                 screenshotWidth,
                 screenshotMaxHeight,
@@ -271,7 +287,7 @@ const TimelineWidget = (props: {
               border.endFill();
               container.addChild(border);
 
-              screenshotSprite.x = screenshotX;
+              screenshotSprite.x = overlapX;
               screenshotSprite.y = screenshotTop;
               screenshotSprite.width = screenshotWidth;
               screenshotSprite.height = screenshotMaxHeight;
@@ -392,7 +408,9 @@ const TimelineWidget = (props: {
           indicatorContainer.addChild(indicator);
 
           // time string
-          const text = pixiTextForNumber(timeOffsetForLeft(x));
+          const timeToDisplay =
+            closestScreenshot?.timeOffset ?? timeOffsetForLeft(x);
+          const text = pixiTextForNumber(timeToDisplay);
           text.x = x + 5;
           text.y = timeTextTop;
           const textBg = new PIXI.Graphics();
@@ -459,41 +477,79 @@ const Timeline = () => {
   let startingTime = -1;
   let idCount = 1;
   const idTaskMap: Record<string, ExecutionTask> = {};
-  const allScreenshots: TimelineItem[] = allTasks
-    .reduce<(ExecutionRecorderItem & { id: string })[]>((acc, current) => {
-      const recorders = current.recorder || [];
-      recorders.forEach((item) => {
-        if (startingTime === -1 || startingTime > item.ts) {
-          startingTime = item.ts;
-        }
-      });
-      if (
-        current.timing?.start &&
-        (startingTime === -1 || startingTime > current.timing.start)
-      ) {
-        startingTime = current.timing.start;
+  type RecorderEntry = {
+    id: string;
+    img: string;
+    ts: number;
+    order: number;
+    overlapIndex: number;
+    overlapCount: number;
+  };
+
+  const recorderEntries = allTasks.reduce<RecorderEntry[]>((acc, current) => {
+    const recorders = current.recorder || [];
+    recorders.forEach((item) => {
+      if (startingTime === -1 || startingTime > item.ts) {
+        startingTime = item.ts;
       }
-      const recorderItemWithId = recorders.map((item) => {
+    });
+    if (
+      current.timing?.start &&
+      (startingTime === -1 || startingTime > current.timing.start)
+    ) {
+      startingTime = current.timing.start;
+    }
+
+    recorders.forEach((item) => {
+      const imageCandidates = [
+        item.screenshot,
+        ...(item.screenshots ?? []),
+      ].filter((img): img is string => Boolean(img));
+      if (!imageCandidates.length) {
+        return;
+      }
+      const uniqueImages = Array.from(new Set(imageCandidates));
+      const overlapCount = uniqueImages.length;
+      uniqueImages.forEach((img, idx) => {
         const idStr = `id_${idCount++}`;
         idTaskMap[idStr] = current;
-        return {
-          ...item,
+        acc.push({
           id: idStr,
-        };
+          img,
+          ts: item.ts,
+          order: idx,
+          overlapIndex: idx,
+          overlapCount,
+        });
       });
-      return acc.concat(recorderItemWithId || []);
-    }, [])
-    .filter((item) => {
-      return item.screenshot;
-    })
-    .map((recorderItem) => {
-      return {
-        id: recorderItem.id,
-        img: recorderItem.screenshot!,
-        timeOffset: recorderItem.ts - startingTime,
-      };
-    })
-    .sort((a, b) => a.timeOffset - b.timeOffset);
+    });
+
+    return acc;
+  }, []);
+
+  if (startingTime === -1 && recorderEntries.length) {
+    startingTime = recorderEntries[0]!.ts;
+  }
+
+  if (startingTime === -1) {
+    startingTime = 0;
+  }
+
+  const allScreenshots: TimelineItem[] = recorderEntries
+    .map((entry) => ({
+      id: entry.id,
+      img: entry.img,
+      timeOffset: entry.ts - startingTime,
+      order: entry.order,
+      overlapIndex: entry.overlapIndex,
+      overlapCount: entry.overlapCount,
+    }))
+    .sort((a, b) => {
+      if (a.timeOffset === b.timeOffset) {
+        return (a.order ?? 0) - (b.order ?? 0);
+      }
+      return a.timeOffset - b.timeOffset;
+    });
 
   const itemOnTap = (item: TimelineItem) => {
     const task = idTaskMap[item.id];

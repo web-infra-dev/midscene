@@ -137,6 +137,13 @@ export async function AiLocateElement<
   const { context, targetElementDescription, callAIFn, modelConfig } = options;
   const { vlMode } = modelConfig;
   const { screenshotBase64 } = context;
+  const additionalScreenshots = Array.from(
+    new Set(
+      (context.screenshotBase64List || [])
+        .filter((img): img is string => Boolean(img))
+        .filter((img) => img !== screenshotBase64),
+    ),
+  );
 
   const { description, elementById, insertElementByPosition } =
     await describeUserPage(context, { vlMode });
@@ -190,23 +197,36 @@ export async function AiLocateElement<
     );
   }
 
+  const imageContents: ChatCompletionUserMessageParam['content'] = [
+    {
+      type: 'image_url',
+      image_url: {
+        url: imagePayload,
+        detail: 'high',
+      },
+    },
+  ];
+
+  for (const extraScreenshot of additionalScreenshots) {
+    imageContents.push({
+      type: 'image_url',
+      image_url: {
+        url: extraScreenshot,
+        detail: 'high',
+      },
+    });
+  }
+
+  imageContents.push({
+    type: 'text',
+    text: userInstructionPrompt,
+  });
+
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
     {
       role: 'user',
-      content: [
-        {
-          type: 'image_url',
-          image_url: {
-            url: imagePayload,
-            detail: 'high',
-          },
-        },
-        {
-          type: 'text',
-          text: userInstructionPrompt,
-        },
-      ],
+      content: imageContents,
     },
   ];
 
@@ -305,28 +325,48 @@ export async function AiLocateSection(options: {
   const { context, sectionDescription, modelConfig } = options;
   const { vlMode } = modelConfig;
   const { screenshotBase64 } = context;
+  const additionalScreenshots = Array.from(
+    new Set(
+      (context.screenshotBase64List || [])
+        .filter((img): img is string => Boolean(img))
+        .filter((img) => img !== screenshotBase64),
+    ),
+  );
 
   const systemPrompt = systemPromptToLocateSection(vlMode);
   const sectionLocatorInstructionText = await sectionLocatorInstruction.format({
     sectionDescription: extraTextFromUserPrompt(sectionDescription),
   });
+  const sectionContents: ChatCompletionUserMessageParam['content'] = [
+    {
+      type: 'image_url',
+      image_url: {
+        url: screenshotBase64,
+        detail: 'high',
+      },
+    },
+  ];
+
+  for (const extraScreenshot of additionalScreenshots) {
+    sectionContents.push({
+      type: 'image_url',
+      image_url: {
+        url: extraScreenshot,
+        detail: 'high',
+      },
+    });
+  }
+
+  sectionContents.push({
+    type: 'text',
+    text: sectionLocatorInstructionText,
+  });
+
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
     {
       role: 'user',
-      content: [
-        {
-          type: 'image_url',
-          image_url: {
-            url: screenshotBase64,
-            detail: 'high',
-          },
-        },
-        {
-          type: 'text',
-          text: sectionLocatorInstructionText,
-        },
-      ],
+      content: sectionContents,
     },
   ];
 
@@ -424,6 +464,17 @@ export async function AiExtractElementInfo<
   const systemPrompt = systemPromptToExtract();
 
   const { screenshotBase64 } = context;
+  const allowAdditionalScreenshots =
+    extractOption?.screenshotListIncluded === true;
+  const additionalScreenshots = allowAdditionalScreenshots
+    ? Array.from(
+        new Set(
+          (context.screenshotBase64List || [])
+            .filter((img): img is string => Boolean(img))
+            .filter((img) => img !== screenshotBase64),
+        ),
+      )
+    : [];
 
   const { description, elementById } = await describeUserPage(context, {
     truncateTextLength: 200,
@@ -445,6 +496,16 @@ export async function AiExtractElementInfo<
       type: 'image_url',
       image_url: {
         url: screenshotBase64,
+        detail: 'high',
+      },
+    });
+  }
+
+  for (const extraScreenshot of additionalScreenshots) {
+    userContent.push({
+      type: 'image_url',
+      image_url: {
+        url: extraScreenshot,
         detail: 'high',
       },
     });
