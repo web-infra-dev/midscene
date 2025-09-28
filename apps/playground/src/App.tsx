@@ -127,7 +127,10 @@ export default function App() {
                 <div className="playground-panel-header">
                   <div className="header-row">
                     <Logo />
-                    <NavActions showEnvConfig={false} />
+                    <NavActions
+                      showTooltipWhenEmpty={false}
+                      showModelName={false}
+                    />
                   </div>
                 </div>
 

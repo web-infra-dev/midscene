@@ -42,6 +42,7 @@ export type IOSDeviceOpt = {
 export class IOSDevice implements AbstractInterface {
   private deviceId: string;
   private devicePixelRatio = 1;
+  private devicePixelRatioInitialized = false;
   private destroyed = false;
   private description: string | undefined;
   private customActions?: DeviceAction<any>[];
@@ -186,9 +187,7 @@ export class IOSDevice implements AbstractInterface {
         }),
         call: async (param) => {
           const element = param.locate;
-          if (!element) {
-            throw new Error('IOSLongPress requires an element to be located');
-          }
+          assert(element, 'IOSLongPress requires an element to be located');
           const [x, y] = element.center;
           await this.longPress(x, y, param?.duration);
         },
@@ -227,11 +226,10 @@ export class IOSDevice implements AbstractInterface {
   }
 
   public async connect(): Promise<void> {
-    if (this.destroyed) {
-      throw new Error(
-        `IOSDevice ${this.deviceId} has been destroyed and cannot execute commands`,
-      );
-    }
+    assert(
+      !this.destroyed,
+      `IOSDevice ${this.deviceId} has been destroyed and cannot execute commands`,
+    );
 
     debugDevice(`Connecting to iOS device: ${this.deviceId}`);
 
@@ -261,7 +259,7 @@ Model: ${deviceInfo.model}`
           : ''
       }
 Type: WebDriverAgent
-ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
+ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 `;
       debugDevice('iOS device connected successfully', this.description);
     } catch (e) {
@@ -307,41 +305,48 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${this.devicePixelRatio})
     };
   }
 
+  private async initializeDevicePixelRatio(): Promise<void> {
+    if (this.devicePixelRatioInitialized) {
+      return;
+    }
+
+    // Get real device pixel ratio from WebDriverAgent /wda/screen endpoint
+    const apiScale = await this.wdaBackend.getScreenScale();
+
+    assert(
+      apiScale && apiScale > 0,
+      'Failed to get device pixel ratio from WebDriverAgent API',
+    );
+
+    debugDevice(`Got screen scale from WebDriverAgent API: ${apiScale}`);
+    this.devicePixelRatio = apiScale;
+    this.devicePixelRatioInitialized = true;
+  }
+
   async getScreenSize(): Promise<{
     width: number;
     height: number;
     scale: number;
   }> {
-    try {
-      const windowSize = await this.wdaBackend.getWindowSize();
-      // WDA returns logical points, for our coordinate system we use scale = 1
-      // This means we work directly with the logical coordinates that WDA provides
-      const scale = 1; // Use 1 to work with WDA's logical coordinate system directly
+    // Ensure device pixel ratio is initialized
+    await this.initializeDevicePixelRatio();
 
-      return {
-        width: windowSize.width,
-        height: windowSize.height,
-        scale,
-      };
-    } catch (e) {
-      debugDevice(`Failed to get screen size: ${e}`);
-      // Fallback to default iPhone size with scale 1
-      return {
-        width: 402,
-        height: 874,
-        scale: 1,
-      };
-    }
+    const windowSize = await this.wdaBackend.getWindowSize();
+
+    return {
+      width: windowSize.width,
+      height: windowSize.height,
+      scale: this.devicePixelRatio,
+    };
   }
 
   async size(): Promise<Size> {
     const screenSize = await this.getScreenSize();
-    this.devicePixelRatio = screenSize.scale;
 
     return {
       width: screenSize.width,
       height: screenSize.height,
-      dpr: this.devicePixelRatio,
+      dpr: screenSize.scale,
     };
   }
 

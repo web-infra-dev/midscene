@@ -32,7 +32,6 @@ import type { ElementInfo } from '@midscene/shared/extractor';
 import {
   createImgBase64ByFormat,
   isValidPNGImageBuffer,
-  resizeAndConvertImgBuffer,
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { uuid } from '@midscene/shared/utils';
@@ -67,6 +66,7 @@ export class AndroidDevice implements AbstractInterface {
   private deviceId: string;
   private yadbPushed = false;
   private devicePixelRatio = 1;
+  private devicePixelRatioInitialized = false;
   private adb: ADB | null = null;
   private connectingAdb: Promise<ADB> | null = null;
   private destroyed = false;
@@ -583,6 +583,20 @@ ${Object.keys(size)
     throw new Error(`Failed to get screen size, output: ${stdout}`);
   }
 
+  private async initializeDevicePixelRatio(): Promise<void> {
+    if (this.devicePixelRatioInitialized) {
+      return;
+    }
+
+    // Get device display density using custom method
+    const densityNum = await this.getDisplayDensity();
+    // Standard density is 160, calculate the ratio
+    this.devicePixelRatio = Number(densityNum) / 160;
+    debugDevice(`Initialized device pixel ratio: ${this.devicePixelRatio}`);
+
+    this.devicePixelRatioInitialized = true;
+  }
+
   async getDisplayDensity(): Promise<number> {
     const adb = await this.getAdb();
 
@@ -679,6 +693,9 @@ ${Object.keys(size)
   }
 
   async size(): Promise<Size> {
+    // Ensure device pixel ratio is initialized first
+    await this.initializeDevicePixelRatio();
+
     // Use custom getScreenSize method instead of adb.getScreenSize()
     const screenSize = await this.getScreenSize();
     // screenSize is a string like "width x height"
@@ -696,16 +713,12 @@ ${Object.keys(size)
     const width = Number.parseInt(match[isLandscape ? 2 : 1], 10);
     const height = Number.parseInt(match[isLandscape ? 1 : 2], 10);
 
-    // Get device display density using custom method
-    const densityNum = await this.getDisplayDensity();
-    // Standard density is 160, calculate the ratio
-    this.devicePixelRatio = Number(densityNum) / 160;
+    // Use cached device pixel ratio instead of calling getDisplayDensity() every time
 
-    // calculate logical pixel size using reverseAdjustCoordinates function
-    const { x: logicalWidth, y: logicalHeight } = this.reverseAdjustCoordinates(
-      width,
-      height,
-    );
+    // Convert physical pixels to logical pixels for consistent coordinate system
+    // adjustCoordinates() will convert back to physical pixels when needed for touch operations
+    const logicalWidth = Math.round(width / this.devicePixelRatio);
+    const logicalHeight = Math.round(height / this.devicePixelRatio);
 
     return {
       width: logicalWidth,
@@ -719,17 +732,6 @@ ${Object.keys(size)
     return {
       x: Math.round(x * ratio),
       y: Math.round(y * ratio),
-    };
-  }
-
-  private reverseAdjustCoordinates(
-    x: number,
-    y: number,
-  ): { x: number; y: number } {
-    const ratio = this.devicePixelRatio;
-    return {
-      x: Math.round(x / ratio),
-      y: Math.round(y / ratio),
     };
   }
 
@@ -800,7 +802,6 @@ ${Object.keys(size)
 
   async screenshotBase64(): Promise<string> {
     debugDevice('screenshotBase64 begin');
-    const { width, height } = await this.size();
     const adb = await this.getAdb();
     let screenshotBuffer;
     const androidScreenshotPath = `/data/local/tmp/midscene_screenshot_${uuid()}.png`;
@@ -865,20 +866,11 @@ ${Object.keys(size)
       }
     }
 
-    debugDevice('Resizing screenshot image');
-    const { buffer, format } = await resizeAndConvertImgBuffer(
-      // both "adb.takeScreenshot" and "shell screencap" result are png format
-      'png',
-      screenshotBuffer,
-      {
-        width,
-        height,
-      },
-    );
-    debugDevice('Image resize completed');
-
     debugDevice('Converting to base64');
-    const result = createImgBase64ByFormat(format, buffer.toString('base64'));
+    const result = createImgBase64ByFormat(
+      'png',
+      screenshotBuffer.toString('base64'),
+    );
     debugDevice('screenshotBase64 end');
     return result;
   }
