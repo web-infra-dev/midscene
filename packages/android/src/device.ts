@@ -715,11 +715,14 @@ ${Object.keys(size)
 
     // Use cached device pixel ratio instead of calling getDisplayDensity() every time
 
-    // Return physical pixels directly instead of converting to logical pixels
-    // The coordinate adjustment will be handled by adjustCoordinates() when needed
+    // Convert physical pixels to logical pixels for consistent coordinate system
+    // adjustCoordinates() will convert back to physical pixels when needed for touch operations
+    const logicalWidth = Math.round(width / this.devicePixelRatio);
+    const logicalHeight = Math.round(height / this.devicePixelRatio);
+
     return {
-      width,
-      height,
+      width: logicalWidth,
+      height: logicalHeight,
       dpr: this.devicePixelRatio,
     };
   }
