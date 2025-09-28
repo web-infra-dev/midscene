@@ -251,6 +251,11 @@ export class TaskExecutor {
             };
 
             task.usage = usage;
+
+            // Store searchAreaUsage in task metadata
+            if (dump?.taskInfo?.searchAreaUsage) {
+              task.searchAreaUsage = dump.taskInfo.searchAreaUsage;
+            }
           };
           this.insight.onceDumpUpdatedFn = dumpCollector;
           const shotTime = Date.now();

@@ -73,7 +73,7 @@
 
   .task-meta-tokens {
     display: grid;
-    grid-template-columns: 1fr auto 112px 26px;
+    grid-template-columns: 1fr auto minmax(100px, 1fr) 55px 65px;
     gap: 8px;
     align-items: center;
     font-size: 12px;
@@ -91,11 +91,11 @@
       justify-content: center;
 
       &:nth-child(2) {
-        grid-column: 3;
+        grid-column: 4;
       }
 
       &:nth-child(3) {
-        grid-column: 4;
+        grid-column: 5;
       }
 
       .token-value {
@@ -168,7 +168,7 @@
 
 
     &.pro-mode {
-      grid-template-columns: 1fr auto 100px 55px 65px;
+      grid-template-columns: 1fr auto minmax(100px, 1fr) 55px 65px;
     }
 
     .status-icon {
@@ -230,7 +230,7 @@
     flex-shrink: 0;
 
     &.pro-mode {
-      grid-template-columns: 1fr auto 100px 55px 65px;
+      grid-template-columns: 1fr auto minmax(100px, 1fr) 55px 65px;
     }
 
     .header-name {
