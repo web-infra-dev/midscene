@@ -187,9 +187,7 @@ export class IOSDevice implements AbstractInterface {
         }),
         call: async (param) => {
           const element = param.locate;
-          if (!element) {
-            throw new Error('IOSLongPress requires an element to be located');
-          }
+          assert(element, 'IOSLongPress requires an element to be located');
           const [x, y] = element.center;
           await this.longPress(x, y, param?.duration);
         },
@@ -228,11 +226,10 @@ export class IOSDevice implements AbstractInterface {
   }
 
   public async connect(): Promise<void> {
-    if (this.destroyed) {
-      throw new Error(
-        `IOSDevice ${this.deviceId} has been destroyed and cannot execute commands`,
-      );
-    }
+    assert(
+      !this.destroyed,
+      `IOSDevice ${this.deviceId} has been destroyed and cannot execute commands`,
+    );
 
     debugDevice(`Connecting to iOS device: ${this.deviceId}`);
 
