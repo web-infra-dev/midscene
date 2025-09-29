@@ -675,6 +675,90 @@ describe('AndroidDevice', () => {
         expect(mockAdb.keyevent).not.toHaveBeenCalled(); // No key events needed
       });
     });
+
+    describe('duplicatePaste option', () => {
+      beforeEach(() => {
+        vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
+        mockAdb.shell.mockClear();
+        mockAdb.isSoftKeyboardPresent.mockResolvedValue({
+          isKeyboardShown: false,
+          canCloseKeyboard: true,
+        });
+      });
+
+      it('should perform second paste when duplicatePaste is true for Chinese text', async () => {
+        device.options = {
+          imeStrategy: 'always-yadb',
+          duplicatePaste: true,
+        };
+
+        await device.keyboardType('天安门');
+
+        // Check that yadb was called
+        expect(mockAdb.shell).toHaveBeenCalledWith(
+          expect.stringContaining(
+            'app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "天安门"',
+          ),
+        );
+
+        // Check that second paste (keyevent 279) was called
+        expect(mockAdb.shell).toHaveBeenCalledWith('input keyevent 279');
+      });
+
+      it('should not perform second paste when duplicatePaste is false', async () => {
+        device.options = {
+          imeStrategy: 'always-yadb',
+          duplicatePaste: false,
+        };
+
+        await device.keyboardType('天安门');
+
+        // Check that yadb was called
+        expect(mockAdb.shell).toHaveBeenCalledWith(
+          expect.stringContaining(
+            'app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "天安门"',
+          ),
+        );
+
+        // Check that second paste (keyevent 279) was NOT called
+        expect(mockAdb.shell).not.toHaveBeenCalledWith('input keyevent 279');
+      });
+
+      it('should not perform second paste for ASCII text even when duplicatePaste is true', async () => {
+        device.options = {
+          imeStrategy: 'yadb-for-non-ascii',
+          duplicatePaste: true,
+        };
+
+        await device.keyboardType('hello');
+
+        // Check that inputText was called for ASCII
+        expect(mockAdb.inputText).toHaveBeenCalledWith('hello');
+
+        // Check that second paste (keyevent 279) was NOT called for ASCII text
+        expect(mockAdb.shell).not.toHaveBeenCalledWith('input keyevent 279');
+      });
+
+      it('should use duplicatePaste option from method parameter over device option', async () => {
+        device.options = {
+          imeStrategy: 'always-yadb',
+          duplicatePaste: false, // device default is false
+        };
+
+        // Override with true in method call
+        await device.keyboardType('中文', { duplicatePaste: true });
+
+        // Check that yadb was called
+        expect(mockAdb.shell).toHaveBeenCalledWith(
+          expect.stringContaining(
+            'app_process -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "中文"',
+          ),
+        );
+
+        // Check that second paste (keyevent 279) was called (from method parameter)
+        expect(mockAdb.shell).toHaveBeenCalledWith('input keyevent 279');
+      });
+    });
   });
 
   describe('scrolling', () => {

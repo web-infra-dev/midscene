@@ -49,6 +49,7 @@ const debugDevice = getDebug('android:device');
 export type AndroidDeviceInputOpt = {
   autoDismissKeyboard?: boolean;
   keyboardDismissStrategy?: 'esc-first' | 'back-first';
+  duplicatePaste?: boolean;
 };
 
 export type AndroidDeviceOpt = {
@@ -104,6 +105,12 @@ export class AndroidDevice implements AbstractInterface {
             .describe(
               'If true, the keyboard will be dismissed after the input is completed. Do not set it unless the user asks you to do so.',
             ),
+          duplicatePaste: z
+            .boolean()
+            .optional()
+            .describe(
+              'If true, performs a second paste operation after Chinese text input to improve input reliability on some Android devices.',
+            ),
           locate: getMidsceneLocationSchema()
             .describe('The input field to be filled')
             .optional(),
@@ -120,8 +127,11 @@ export class AndroidDevice implements AbstractInterface {
 
           const autoDismissKeyboard =
             param.autoDismissKeyboard ?? this.options?.autoDismissKeyboard;
+          const duplicatePaste =
+            param.duplicatePaste ?? this.options?.duplicatePaste;
           await this.keyboardType(param.value, {
             autoDismissKeyboard,
+            duplicatePaste,
           });
         },
       }),
@@ -1104,12 +1114,20 @@ ${Object.keys(size)
       'always-yadb';
     const shouldAutoDismissKeyboard =
       options?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard ?? true;
+    const shouldDuplicatePaste =
+      options?.duplicatePaste ?? this.options?.duplicatePaste ?? false;
 
     if (
       IME_STRATEGY === 'always-yadb' ||
       (IME_STRATEGY === 'yadb-for-non-ascii' && isChinese)
     ) {
       await this.execYadb(text);
+
+      // If duplicatePaste is enabled, perform a second paste operation
+      // This helps with Chinese input issues on some Android devices
+      if (shouldDuplicatePaste) {
+        await adb.shell(`input${this.getDisplayArg()} keyevent 279`);
+      }
     } else {
       // for pure ASCII characters, directly use inputText
       await adb.inputText(text);
