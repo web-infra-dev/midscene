@@ -1,33 +1,37 @@
-import type { Executor } from '@/ai-model/action-executor';
-import type { TUserPrompt } from '@/ai-model/common';
-import Insight from '@/insight';
-import type {
-  AgentAssertOpt,
-  AgentDescribeElementAtPointResult,
-  AgentOpt,
-  AgentWaitForOpt,
-  CacheConfig,
-  DeviceAction,
-  ExecutionDump,
-  ExecutionRecorderItem,
-  ExecutionTask,
-  ExecutionTaskLog,
-  GroupedActionDump,
-  InsightAction,
-  InsightExtractOption,
-  InsightExtractParam,
-  LocateOption,
-  LocateResultElement,
-  LocateValidatorResult,
-  LocatorValidatorOption,
-  MidsceneYamlScript,
-  OnTaskStartTip,
-  PlanningAction,
-  Rect,
-  ScrollParam,
-  UIContext,
-} from '@/types';
-
+import {
+  type AgentAssertOpt,
+  type AgentDescribeElementAtPointResult,
+  type AgentWaitForOpt,
+  type CacheConfig,
+  type DeviceAction,
+  type ExecutionDump,
+  type ExecutionRecorderItem,
+  type ExecutionTask,
+  type ExecutionTaskLog,
+  type Executor,
+  type GroupedActionDump,
+  Insight,
+  type InsightAction,
+  type InsightExtractOption,
+  type InsightExtractParam,
+  type LocateOption,
+  type LocateResultElement,
+  type LocateValidatorResult,
+  type LocatorValidatorOption,
+  type MidsceneYamlScript,
+  type OnTaskStartTip,
+  type PlanningAction,
+  type Rect,
+  type ScrollParam,
+  type TUserPrompt,
+  type UIContext,
+} from '../index';
+export type TestStatus =
+  | 'passed'
+  | 'failed'
+  | 'timedOut'
+  | 'skipped'
+  | 'interrupted';
 import yaml from 'js-yaml';
 
 import {
@@ -35,6 +39,8 @@ import {
   reportHTMLContent,
   stringifyDumpData,
   writeLogFile,
+  getHtmlScripts,
+  appendFileSync,
 } from '@/utils';
 import {
   ScriptPlayer,
@@ -357,6 +363,26 @@ export class Agent<
 
   reportHTMLString() {
     return reportHTMLContent(this.dumpDataString());
+  }
+  teardownTestAgent(teardownOpts: {
+    testId: string;
+    testTitle: string;
+    testDescription: string;
+    testDuration: number;
+    testStatus: TestStatus;
+    cacheFilePath: string;
+  }) {
+    const s = `${getHtmlScripts({
+      dumpString: this.dumpDataString(),
+      attributes: {
+        playwright_test_duration: teardownOpts.testDuration,
+        playwright_test_status: teardownOpts.testStatus,
+        playwright_test_title: teardownOpts.testTitle,
+        playwright_test_id: teardownOpts.testId,
+        playwright_test_description: teardownOpts.testDescription,
+      },
+    })}\n`;
+    appendFileSync(teardownOpts.cacheFilePath, s);
   }
 
   writeOutActionDumps() {
