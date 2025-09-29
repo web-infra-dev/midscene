@@ -174,9 +174,46 @@ web:
 
   # Whether to ignore HTTPS certificate errors, optional, defaults to false.
   acceptInsecureCerts: <boolean>
+```
 
+### Global agent configuration
+
+If you need to use the `aiActionContext` parameter, you can set it through the global `agent` configuration:
+
+```yaml
+# Global AI agent configuration
+agent:
   # Background knowledge to send to the AI model when calling aiAction, optional.
   aiActionContext: <string>
+```
+
+:::tip aiActionContext configuration
+- **Applicable environments**: Web, iOS, and Android environments can all use the global `agent` configuration to set `aiActionContext`
+- **Purpose**: Provides background knowledge to the AI model to help handle popups, login pages, and other common scenarios
+:::
+
+#### Usage example
+
+```yaml
+# Global agent configuration, applies to all environments
+agent:
+  aiActionContext: "If any popup appears, click agree. If login page appears, skip it."
+
+# iOS environment configuration
+ios:
+  launch: https://www.bing.com
+  wdaPort: 8100
+
+# Or Android environment configuration
+android:
+  deviceId: s4ey59
+  launch: https://www.bing.com
+
+tasks:
+  - name: Search for weather
+    flow:
+      - ai: Search for "today's weather"
+      - aiAssert: The results show weather information
 ```
 
 ### The `android` part
