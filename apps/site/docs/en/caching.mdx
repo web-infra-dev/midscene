@@ -117,6 +117,7 @@ When using `PlaywrightAiFixture` from `@midscene/web/playwright`, pass the same 
 ### Disable cache
 
 ```typescript
+// fixture.ts in sample code
 export const test = base.extend<PlayWrightAiFixtureType>(
   PlaywrightAiFixture({
     cache: false,
@@ -127,6 +128,7 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 ### Read-write mode
 
 ```typescript
+// fixture.ts in sample code
 // Auto-generate cache ID from test metadata
 export const test = base.extend<PlayWrightAiFixtureType>(
   PlaywrightAiFixture({
@@ -134,6 +136,7 @@ export const test = base.extend<PlayWrightAiFixtureType>(
   }),
 );
 
+// fixture.ts in sample code
 // Explicitly provide cache ID
 export const test = base.extend<PlayWrightAiFixtureType>(
   PlaywrightAiFixture({
@@ -145,11 +148,26 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 ### Read-only, manual write
 
 ```typescript
+// fixture.ts in sample code
 export const test = base.extend<PlayWrightAiFixtureType>(
   PlaywrightAiFixture({
     cache: { strategy: "read-only", id: "readonly-cache" },
   }),
 );
+```
+
+When you run the fixture in read-only mode you need to manually persist the cache after your test steps. Use the `agentForPage` helper provided by the fixture to fetch the underlying agent, then call `agent.flushCache()` at the point where you want to write the cache file:
+
+```typescript
+// fixture.ts in sample code
+test('manual cache flush', async ({ agentForPage, page, aiTap, aiWaitFor }) => {
+  const agent = await agentForPage(page);
+
+  await aiTap('first highlighted link in the hero section');
+  await aiWaitFor('the detail page loads completely');
+
+  await agent.flushCache();
+});
 ```
 
 ## FAQ
