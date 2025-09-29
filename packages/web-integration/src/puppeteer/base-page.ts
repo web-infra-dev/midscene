@@ -177,7 +177,7 @@ export class Page<
     const elementInfosScriptContent = getElementInfosScriptContent();
 
     return this.evaluateJavaScript(
-      `${elementInfosScriptContent}midscene_element_inspector.getXpathsById('${id}')`,
+      `${elementInfosScriptContent}midscene_element_inspector.getXpathsById(${JSON.stringify(id)})`,
     );
   }
 
@@ -193,7 +193,7 @@ export class Page<
     const elementInfosScriptContent = getElementInfosScriptContent();
 
     return this.evaluateJavaScript(
-      `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('${xpath}')`,
+      `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath(${JSON.stringify(xpath)})`,
     );
   }
 

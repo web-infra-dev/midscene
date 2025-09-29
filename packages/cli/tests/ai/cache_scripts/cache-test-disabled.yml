@@ -1,0 +1,12 @@
+target:
+  url: https://example.com/
+  viewportWidth: 800
+  viewportHeight: 600
+
+agent:
+  cache: false
+
+tasks:
+  - name: "Test with cache disabled"
+    flow:
+      - aiAction: "click the title"

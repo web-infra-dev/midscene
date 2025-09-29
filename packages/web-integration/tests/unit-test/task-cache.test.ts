@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, unlinkSync } from 'node:fs';
 import path, { join } from 'node:path';
 import {
   type LocateCache,
@@ -454,6 +454,168 @@ describe('TaskCache', { timeout: 20000 }, () => {
     // Verify that locate entries maintain their relative order
     expect(diskCaches[2].feature.xpaths).toEqual(['xpath-1']);
     expect(diskCaches[3].feature.xpaths).toEqual(['xpath-2']);
+  });
+});
+
+describe('TaskCache read-only mode', () => {
+  it('should append cache to memory but not flush to file in read-only mode', () => {
+    const cacheId = uuid();
+    const cache = new TaskCache(cacheId, true, undefined, true); // read-only mode
+
+    const initialLength = cache.cache.caches.length;
+
+    cache.appendCache({
+      type: 'plan',
+      prompt: 'test-prompt',
+      yamlWorkflow: 'test-workflow',
+    });
+
+    // Cache should be appended to memory in read-only mode
+    expect(cache.cache.caches.length).toBe(initialLength + 1);
+
+    // But file should not be created
+    expect(existsSync(cache.cacheFilePath!)).toBe(false);
+  });
+
+  it('should allow manual flush to file in read-only mode', () => {
+    const cacheId = uuid();
+    const cache = new TaskCache(cacheId, true, undefined, true); // read-only mode
+
+    // Ensure file doesn't exist initially
+    if (existsSync(cache.cacheFilePath!)) {
+      unlinkSync(cache.cacheFilePath!);
+    }
+
+    // Manually add cache to simulate existing cache
+    cache.cache.caches.push({
+      type: 'plan',
+      prompt: 'test-prompt',
+      yamlWorkflow: 'test-workflow',
+    });
+
+    // Manual flush should work even in read-only mode
+    cache.flushCacheToFile();
+
+    expect(existsSync(cache.cacheFilePath!)).toBe(true);
+
+    // Verify the content was written
+    const content = readFileSync(cache.cacheFilePath!, 'utf-8');
+    expect(content).toContain('test-prompt');
+    expect(content).toContain('test-workflow');
+  });
+
+  it('should update cache in memory but not flush to file in read-only mode', () => {
+    // First create a cache file with existing data
+    const cacheFilePath = prepareCache([
+      {
+        type: 'plan',
+        prompt: 'test-prompt',
+        yamlWorkflow: 'original-workflow',
+      },
+    ]);
+
+    // Load cache in read-only mode
+    const cache = new TaskCache(uuid(), true, cacheFilePath, true);
+
+    const matchedCache = cache.matchPlanCache('test-prompt');
+    expect(matchedCache).toBeDefined();
+
+    // Try to update via updateFn - should update in memory
+    matchedCache!.updateFn((cacheItem) => {
+      (cacheItem as PlanningCache).yamlWorkflow = 'updated-workflow';
+    });
+
+    // Content should be updated in memory
+    expect(matchedCache!.cacheContent.yamlWorkflow).toBe('updated-workflow');
+
+    // But the original file should remain unchanged
+    const fileContent = readFileSync(cacheFilePath!, 'utf-8');
+    expect(fileContent).toContain('original-workflow');
+    expect(fileContent).not.toContain('updated-workflow');
+  });
+
+  it('should still be able to match cache in read-only mode', () => {
+    // First create a cache file with existing data
+    const cacheFilePath = prepareCache([
+      {
+        type: 'plan',
+        prompt: 'test-prompt',
+        yamlWorkflow: 'test-workflow',
+      },
+      {
+        type: 'locate',
+        prompt: 'locate-prompt',
+        xpaths: ['test-xpath'],
+      },
+    ]);
+
+    // Load cache in read-only mode
+    const cache = new TaskCache(uuid(), true, cacheFilePath, true);
+
+    // Should still be able to match existing cache
+    const planCache = cache.matchPlanCache('test-prompt');
+    expect(planCache).toBeDefined();
+    expect(planCache!.cacheContent.yamlWorkflow).toBe('test-workflow');
+
+    const locateCache = cache.matchLocateCache('locate-prompt');
+    expect(locateCache).toBeDefined();
+    expect(locateCache!.cacheContent.xpaths).toEqual(['test-xpath']);
+  });
+
+  it('should set readOnlyMode property correctly', () => {
+    const normalCache = new TaskCache(uuid(), true, undefined, false);
+    expect(normalCache.readOnlyMode).toBe(false);
+
+    const readOnlyCache = new TaskCache(uuid(), true, undefined, true);
+    expect(readOnlyCache.readOnlyMode).toBe(true);
+
+    // Default should be false
+    const defaultCache = new TaskCache(uuid(), true);
+    expect(defaultCache.readOnlyMode).toBe(false);
+  });
+
+  it('should handle updateOrAppendCacheRecord in memory but not flush to file in read-only mode', () => {
+    const cacheFilePath = prepareCache([
+      {
+        type: 'plan',
+        prompt: 'existing-prompt',
+        yamlWorkflow: 'existing-workflow',
+      },
+    ]);
+
+    const cache = new TaskCache(uuid(), true, cacheFilePath, true);
+    const initialLength = cache.cache.caches.length;
+
+    // Try to append new record - should append to memory
+    cache.updateOrAppendCacheRecord({
+      type: 'plan',
+      prompt: 'new-prompt',
+      yamlWorkflow: 'new-workflow',
+    });
+
+    // Should append to memory in read-only mode
+    expect(cache.cache.caches.length).toBe(initialLength + 1);
+
+    // Try to update existing record
+    const existingRecord = cache.matchPlanCache('existing-prompt');
+    cache.updateOrAppendCacheRecord(
+      {
+        type: 'plan',
+        prompt: 'existing-prompt',
+        yamlWorkflow: 'updated-workflow',
+      },
+      existingRecord,
+    );
+
+    // Should update in memory
+    expect(cache.cache.caches.length).toBe(initialLength + 1);
+    expect(existingRecord!.cacheContent.yamlWorkflow).toBe('updated-workflow');
+
+    // But file should remain unchanged
+    const fileContent = readFileSync(cacheFilePath!, 'utf-8');
+    expect(fileContent).toContain('existing-workflow');
+    expect(fileContent).not.toContain('updated-workflow');
+    expect(fileContent).not.toContain('new-workflow');
   });
 });
 

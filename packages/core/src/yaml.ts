@@ -55,7 +55,10 @@ export interface MidsceneYamlTask {
   continueOnError?: boolean;
 }
 
-export type MidsceneYamlScriptAgentOpt = Pick<AgentOpt, 'aiActionContext'>;
+export type MidsceneYamlScriptAgentOpt = Pick<
+  AgentOpt,
+  'aiActionContext' | 'cache'
+>;
 
 export interface MidsceneYamlScriptConfig {
   output?: string;

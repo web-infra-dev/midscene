@@ -188,6 +188,11 @@ export class TaskExecutor {
             };
 
             task.usage = usage;
+
+            // Store searchAreaUsage in task metadata
+            if (dump?.taskInfo?.searchAreaUsage) {
+              task.searchAreaUsage = dump.taskInfo.searchAreaUsage;
+            }
           };
           this.insight.onceDumpUpdatedFn = dumpCollector;
           const shotTime = Date.now();
@@ -1012,6 +1017,7 @@ export class TaskExecutor {
       },
       locate: null,
     };
+    // The convertPlanToExecutable requires modelConfig as a parameter but will not consume it when type is Sleep
     const { tasks: sleepTasks } = await this.convertPlanToExecutable(
       [sleepPlan],
       modelConfig,

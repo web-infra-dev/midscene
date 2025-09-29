@@ -66,7 +66,9 @@ describe(
         'type "standard_user" in user name input, type "secret_sauce" in password',
       );
 
-      await agent.aiTap('Login');
+      await agent.aiTap('Login', {
+        deepThink: true,
+      });
 
       expect(beforeInvokeAction.mock.calls.length).toBeGreaterThan(1);
       expect(beforeInvokeAction.mock.calls.length).toEqual(
