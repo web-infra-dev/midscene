@@ -2,7 +2,8 @@ import assert from 'node:assert';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
-import type { TUserPrompt } from '@/index';
+import type { TUserPrompt } from '@/ai-model';
+import type { ElementCacheFeature } from '@/types';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import {
   MIDSCENE_CACHE_MAX_FILENAME_LENGTH,
@@ -29,7 +30,9 @@ export interface PlanningCache {
 export interface LocateCache {
   type: 'locate';
   prompt: TUserPrompt;
-  xpaths: string[];
+  feature?: ElementCacheFeature;
+  /** @deprecated kept for backward compatibility */
+  xpaths?: string[];
 }
 
 export interface MatchCacheResult<T extends PlanningCache | LocateCache> {
@@ -113,6 +116,12 @@ export class TaskCache {
         isDeepStrictEqual(item.prompt, prompt) &&
         !this.matchedCacheIndices.has(key)
       ) {
+        if (item.type === 'locate') {
+          const locateItem = item as LocateCache;
+          if (!locateItem.feature && Array.isArray(locateItem.xpaths)) {
+            locateItem.feature = { xpaths: locateItem.xpaths };
+          }
+        }
         this.matchedCacheIndices.add(key);
         debug(
           'cache found and marked as used, type: %s, prompt: %s, index: %d',
@@ -276,7 +285,11 @@ export class TaskCache {
         });
       } else {
         cachedRecord.updateFn((cache) => {
-          (cache as LocateCache).xpaths = newRecord.xpaths;
+          const locateCache = cache as LocateCache;
+          locateCache.feature = newRecord.feature;
+          if ('xpaths' in locateCache) {
+            locateCache.xpaths = undefined;
+          }
         });
       }
     } else {
