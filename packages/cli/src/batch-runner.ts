@@ -355,7 +355,12 @@ class BatchRunner {
 
     for (const context of executedContexts) {
       const { file, player, duration } = context;
-      const success = player.status !== 'error';
+      // A file is successful only if:
+      // 1. Player status is not 'error', AND
+      // 2. No individual tasks have failed status
+      const hasFailedTasks =
+        player.taskStatusList?.some((task) => task.status === 'error') ?? false;
+      const success = player.status !== 'error' && !hasFailedTasks;
       let reportFile: string | undefined;
 
       if (player.reportFile) {
@@ -377,7 +382,8 @@ class BatchRunner {
         duration,
         error:
           player.errorInSetup?.message ||
-          (player.status === 'error' ? 'Execution failed' : undefined),
+          (player.status === 'error' ? 'Execution failed' : undefined) ||
+          (hasFailedTasks ? 'Some tasks failed' : undefined),
       });
     }
 

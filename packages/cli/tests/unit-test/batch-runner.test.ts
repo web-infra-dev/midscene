@@ -369,6 +369,63 @@ describe('BatchRunner', () => {
       );
       consoleSpy.mockRestore();
     });
+
+    test('continueOnError: failed tasks should be counted as failed files', async () => {
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      
+      // Create a mock player that simulates continueOnError behavior:
+      // - player.status = 'done' (execution completed)
+      // - but taskStatusList contains failed tasks
+      const createMockPlayerWithFailedTasks = (
+        fileName: string,
+      ): ScriptPlayer<MidsceneYamlScriptEnv> => {
+        const isFile1 = fileName === 'file1.yml';
+        const mockPlayer = {
+          status: 'done' as ScriptPlayerStatusValue, // Always 'done' with continueOnError
+          output: '/test/output/file.json',
+          reportFile: '/test/report.html',
+          result: { test: 'data' },
+          errorInSetup: null,
+          taskStatusList: isFile1 
+            ? [
+                { status: 'error', error: new Error('Assertion failed: this is not a search engine') },
+                { status: 'done' }
+              ]
+            : [{ status: 'done' }],
+          run: vi.fn().mockImplementation(async () => {
+            return undefined;
+          }),
+          script: mockYamlScript,
+          setupAgent: vi.fn(),
+          unnamedResultIndex: 0,
+          pageAgent: null,
+          currentTaskIndex: undefined,
+          agentStatusTip: '',
+        };
+        return mockPlayer as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      };
+
+      vi.mocked(createYamlPlayer).mockImplementation(async (file) =>
+        createMockPlayerWithFailedTasks(file),
+      );
+      
+      const config = { ...mockBatchConfig, continueOnError: true };
+      const executor = new BatchRunner(config);
+      await executor.run();
+      
+      const summary = executor.getExecutionSummary();
+      const success = executor.printExecutionSummary();
+      
+      // This currently fails - demonstrates the bug
+      // Should show 1 failed file, but currently shows 0
+      expect(summary.failed).toBe(1); // This test will fail, showing the bug
+      expect(success).toBe(false);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('❌ Failed files'),
+      );
+      
+      consoleSpy.mockRestore();
+    });
   });
 
   describe('BatchRunner output file existence check', () => {
