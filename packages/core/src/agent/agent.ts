@@ -171,15 +171,14 @@ export class Agent<
       return this.getUIContext(action);
     });
 
-    const useCache =
-      typeof opts?.useCache === 'boolean'
-        ? opts.useCache
-        : globalConfigManager.getEnvConfigInBoolean(MIDSCENE_CACHE);
-
-    if (opts?.cacheId) {
+    // Process cache configuration
+    const cacheConfig = this.processCacheConfig(opts || {});
+    if (cacheConfig) {
       this.taskCache = new TaskCache(
-        opts.cacheId,
-        useCache, // if we should use cache to match the element
+        cacheConfig.id,
+        cacheConfig.enabled,
+        undefined, // cacheFilePath
+        cacheConfig.readOnly,
       );
     }
 
@@ -1049,6 +1048,74 @@ export class Agent<
     debug('Unfreezing page context');
     this.frozenUIContext = undefined;
     debug('Page context unfrozen successfully');
+  }
+
+  /**
+   * Process cache configuration and return normalized cache settings
+   */
+  private processCacheConfig(
+    opts: AgentOpt,
+  ): { id: string; enabled: boolean; readOnly: boolean } | null {
+    // 1. New cache object configuration (highest priority)
+    if (opts.cache !== undefined) {
+      if (opts.cache === false) {
+        return null; // Completely disable cache
+      }
+
+      if (opts.cache === true) {
+        throw new Error(
+          'cache: true requires an explicit cache ID. Please provide:\n' +
+            'Example: cache: { id: "my-cache-id" }',
+        );
+      }
+
+      // cache is object configuration
+      if (typeof opts.cache === 'object') {
+        const config = opts.cache;
+        if (!config.id) {
+          throw new Error(
+            'cache configuration requires an explicit id. Please provide:\n' +
+              'Example: cache: { id: "my-cache-id" }',
+          );
+        }
+        const id = config.id;
+        const isReadOnly = config.strategy === 'read-only';
+
+        return {
+          id,
+          enabled: true,
+          readOnly: isReadOnly,
+        };
+      }
+    }
+
+    // 2. Backward compatibility: support old cacheId (requires environment variable)
+    if (opts.cacheId) {
+      const envEnabled =
+        globalConfigManager.getEnvConfigInBoolean(MIDSCENE_CACHE);
+      if (envEnabled) {
+        return {
+          id: opts.cacheId,
+          enabled: true,
+          readOnly: false,
+        };
+      }
+    }
+
+    // 3. No cache configuration
+    return null;
+  }
+
+  /**
+   * Manually flush cache to file
+   * Only meaningful in read-only mode, other modes will throw error
+   */
+  async flushCache(): Promise<void> {
+    if (!this.taskCache) {
+      throw new Error('Cache is not configured');
+    }
+
+    this.taskCache.flushCacheToFile();
   }
 }
 

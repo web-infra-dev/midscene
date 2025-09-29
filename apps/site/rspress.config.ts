@@ -95,10 +95,6 @@ export default defineConfig({
               text: 'Bridge mode by Chrome extension',
               link: '/bridge-mode-by-chrome-extension',
             },
-            {
-              text: 'Caching',
-              link: '/caching',
-            },
           ],
         },
         {
@@ -173,6 +169,10 @@ export default defineConfig({
           text: 'Advanced',
           items: [
             {
+              text: 'Caching AI planning & locate',
+              link: '/caching',
+            },
+            {
               text: 'Integrate with any interface (preview)',
               link: '/integrate-with-any-interface',
             },
@@ -244,10 +244,6 @@ export default defineConfig({
             {
               text: 'Chrome 桥接模式（Bridge Mode）',
               link: '/zh/bridge-mode-by-chrome-extension',
-            },
-            {
-              text: '缓存',
-              link: '/zh/caching',
             },
           ],
         },
@@ -322,6 +318,10 @@ export default defineConfig({
         {
           text: '进阶',
           items: [
+            {
+              text: '缓存 AI 规划和定位',
+              link: '/zh/caching',
+            },
             {
               text: '与任意界面集成（预览特性）',
               link: '/zh/integrate-with-any-interface',

@@ -56,12 +56,15 @@ export class TaskCache {
   isCacheResultUsed: boolean; // a flag to indicate if the cache result should be used
   cacheOriginalLength: number;
 
+  readOnlyMode: boolean; // a flag to indicate if the cache is in read-only mode
+
   private matchedCacheIndices: Set<string> = new Set(); // Track matched records
 
   constructor(
     cacheId: string,
     isCacheResultUsed: boolean,
     cacheFilePath?: string,
+    readOnlyMode = false,
   ) {
     assert(cacheId, 'cacheId is required');
     let safeCacheId = replaceIllegalPathCharsAndSpace(cacheId);
@@ -82,6 +85,7 @@ export class TaskCache {
         : cacheFilePath ||
           join(getMidsceneRunSubDir('cache'), `${this.cacheId}${cacheFileExt}`);
     this.isCacheResultUsed = isCacheResultUsed;
+    this.readOnlyMode = readOnlyMode;
 
     let cacheContent;
     if (this.cacheFilePath) {
@@ -130,6 +134,14 @@ export class TaskCache {
               i,
             );
             cb(item);
+
+            if (this.readOnlyMode) {
+              debug(
+                'read-only mode, cache updated in memory but not flushed to file',
+              );
+              return;
+            }
+
             debug(
               'cache updated, will flush to file, type: %s, prompt: %s, index: %d',
               type,
@@ -162,6 +174,12 @@ export class TaskCache {
   appendCache(cache: PlanningCache | LocateCache) {
     debug('will append cache', cache);
     this.cache.caches.push(cache);
+
+    if (this.readOnlyMode) {
+      debug('read-only mode, cache appended to memory but not flushed to file');
+      return;
+    }
+
     this.flushCacheToFile();
   }
 

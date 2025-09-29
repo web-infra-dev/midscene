@@ -8,7 +8,6 @@ import type {
   Rect,
   Size,
 } from '@midscene/shared/types';
-import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { z } from 'zod';
 import type { TUserPrompt } from './ai-model/common';
 import type { DetailedLocateParam, MidsceneYamlFlowItem } from './yaml';
@@ -579,9 +578,19 @@ export type WebUIContext = UIContext<WebElementInfo>;
  * Agent
  */
 
+export type CacheConfig =
+  | { strategy: 'read-only'; id: string }
+  | { strategy?: undefined; id: string };
+
+export type Cache =
+  | false // No read, no write
+  | true // Will throw error at runtime - deprecated
+  | CacheConfig; // Object configuration (requires explicit id)
+
 export interface AgentOpt {
   testId?: string;
-  cacheId?: string;
+  // @deprecated
+  cacheId?: string; // Keep backward compatibility, but marked as deprecated
   groupName?: string;
   groupDescription?: string;
   /* if auto generate report, default true */
@@ -593,6 +602,6 @@ export interface AgentOpt {
   /* custom report file name */
   reportFileName?: string;
   modelConfig?: TModelConfigFn;
-  useCache?: boolean;
+  cache?: Cache;
   replanningCycleLimit?: number;
 }

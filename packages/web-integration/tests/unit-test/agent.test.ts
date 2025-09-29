@@ -3,6 +3,7 @@ import path from 'node:path';
 import type { AbstractWebPage } from '@/web-page';
 import type { GroupedActionDump } from '@midscene/core';
 import { Agent as PageAgent } from '@midscene/core/agent';
+import { globalConfigManager } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 declare const __VERSION__: string;
@@ -398,5 +399,175 @@ describe('PageAgent aiWaitFor with doNotThrowError', () => {
       mockExecutorResult.executor,
       true,
     );
+  });
+});
+
+describe('PageAgent cache configuration', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('new cache object API', () => {
+    it('should throw error for cache: true (no longer supported)', () => {
+      expect(() => {
+        new PageAgent(mockPage, {
+          cache: true,
+          modelConfig: () => mockedModelConfigFnResult,
+        });
+      }).toThrow('cache: true requires an explicit cache ID');
+    });
+
+    it('should handle cache: false (disabled)', () => {
+      const agent = new PageAgent(mockPage, {
+        cache: false,
+        modelConfig: () => mockedModelConfigFnResult,
+      });
+
+      expect(agent.taskCache).toBeUndefined();
+    });
+
+    it('should throw error for cache: { strategy: "read-only" } without id', () => {
+      expect(() => {
+        new PageAgent(mockPage, {
+          cache: { strategy: 'read-only' },
+          modelConfig: () => mockedModelConfigFnResult,
+        });
+      }).toThrow('cache configuration requires an explicit id');
+    });
+
+    it('should handle cache: { id: "custom-id" }', () => {
+      const agent = new PageAgent(mockPage, {
+        cache: { id: 'custom-cache-id' },
+        modelConfig: () => mockedModelConfigFnResult,
+      });
+
+      expect(agent.taskCache).toBeDefined();
+      expect(agent.taskCache?.isCacheResultUsed).toBe(true);
+      expect(agent.taskCache?.readOnlyMode).toBe(false);
+      expect(agent.taskCache?.cacheId).toBe('custom-cache-id');
+    });
+
+    it('should handle cache: { strategy: "read-only", id: "custom-id" }', () => {
+      const agent = new PageAgent(mockPage, {
+        cache: {
+          strategy: 'read-only',
+          id: 'custom-readonly-cache',
+        },
+        modelConfig: () => mockedModelConfigFnResult,
+      });
+
+      expect(agent.taskCache).toBeDefined();
+      expect(agent.taskCache?.isCacheResultUsed).toBe(true);
+      expect(agent.taskCache?.readOnlyMode).toBe(true);
+      expect(agent.taskCache?.cacheId).toBe('custom-readonly-cache');
+    });
+
+    it('should throw error for cache: true even with testId', () => {
+      expect(() => {
+        new PageAgent(mockPage, {
+          testId: 'my-test-case',
+          cache: true,
+          modelConfig: () => mockedModelConfigFnResult,
+        });
+      }).toThrow('cache: true requires an explicit cache ID');
+    });
+  });
+
+  describe('backward compatibility with cacheId', () => {
+    it('should work with cacheId when MIDSCENE_CACHE=true', () => {
+      const globalConfigSpy = vi
+        .spyOn(globalConfigManager, 'getEnvConfigInBoolean')
+        .mockReturnValue(true);
+
+      const agent = new PageAgent(mockPage, {
+        cacheId: 'legacy-cache-id',
+        modelConfig: () => mockedModelConfigFnResult,
+      });
+
+      expect(agent.taskCache).toBeDefined();
+      expect(agent.taskCache?.isCacheResultUsed).toBe(true);
+      expect(agent.taskCache?.readOnlyMode).toBe(false);
+      expect(agent.taskCache?.cacheId).toBe('legacy-cache-id');
+
+      globalConfigSpy.mockRestore();
+    });
+
+    it('should not create cache with cacheId when MIDSCENE_CACHE=false', () => {
+      const globalConfigSpy = vi
+        .spyOn(globalConfigManager, 'getEnvConfigInBoolean')
+        .mockReturnValue(false);
+
+      const agent = new PageAgent(mockPage, {
+        cacheId: 'legacy-cache-id',
+        modelConfig: () => mockedModelConfigFnResult,
+      });
+
+      expect(agent.taskCache).toBeUndefined();
+
+      globalConfigSpy.mockRestore();
+    });
+
+    it('should prefer new cache config over cacheId', () => {
+      const globalConfigSpy = vi
+        .spyOn(globalConfigManager, 'getEnvConfigInBoolean')
+        .mockReturnValue(true);
+
+      const agent = new PageAgent(mockPage, {
+        cacheId: 'legacy-cache-id', // Should be ignored
+        cache: { id: 'new-cache-id' },
+        modelConfig: () => mockedModelConfigFnResult,
+      });
+
+      expect(agent.taskCache).toBeDefined();
+      expect(agent.taskCache?.cacheId).toBe('new-cache-id');
+
+      globalConfigSpy.mockRestore();
+    });
+  });
+
+  describe('flushCache method', () => {
+    it('should throw error when cache is not configured', async () => {
+      const agent = new PageAgent(mockPage, {
+        cache: false,
+        modelConfig: () => mockedModelConfigFnResult,
+      });
+
+      await expect(agent.flushCache()).rejects.toThrow(
+        'Cache is not configured',
+      );
+    });
+
+    it('should flush cache in read-write mode', async () => {
+      const agent = new PageAgent(mockPage, {
+        cache: { id: 'test-cache' }, // read-write mode
+        modelConfig: () => mockedModelConfigFnResult,
+      });
+
+      // Should not throw error, flushCache works in both modes
+      await expect(agent.flushCache()).resolves.not.toThrow();
+    });
+
+    it('should work in read-only mode', async () => {
+      const agent = new PageAgent(mockPage, {
+        cache: { strategy: 'read-only', id: 'flush-test' },
+        modelConfig: () => mockedModelConfigFnResult,
+      });
+
+      // Mock the flushCacheToFile method
+      const flushSpy = vi.spyOn(agent.taskCache!, 'flushCacheToFile');
+
+      await agent.flushCache();
+
+      expect(flushSpy).toHaveBeenCalled();
+    });
+
+    it('should throw error for cache: true without explicit ID', () => {
+      expect(() => {
+        new PageAgent(mockPage, {
+          cache: true, // Not supported anymore
+          modelConfig: () => mockedModelConfigFnResult,
+        });
+      }).toThrow('cache: true requires an explicit cache ID');
+    });
   });
 });
