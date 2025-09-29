@@ -1,12 +1,10 @@
 # Caching AI planning & locate
 
-Midscene supports caching Plan steps and matched DOM element information to reduce AI model calls and greatly improve execution efficiency.
-
-Android/iOS automation tasks support planning cache but not element location cache (due to lack of XPath support).
+Midscene supports caching Plan steps and matched DOM element information to reduce AI model calls and greatly improve execution efficiency. Please note that DOM element cache is only supported for web automation tasks.
 
 **Effect**
 
-With caching enabled, test execution time is significantly reduced. For example, in the following case, execution time was reduced from 51 seconds to 28 seconds.
+With caching hit, time cost is significantly reduced. For example, in the following case, execution time was reduced from 51 seconds to 28 seconds.
 
 * **before**
 
@@ -18,29 +16,19 @@ With caching enabled, test execution time is significantly reduced. For example,
 
 ## Cache files and storage
 
-### Cache principles
-
 Midscene's caching mechanism is based on input stability and output reusability. When the same task instructions are repeatedly executed in similar page environments, Midscene will prioritize using cached results to avoid repeated AI model calls, significantly improving execution efficiency.
 
 The core caching mechanisms include:
 - **Task instruction caching**: For planning operations (such as `ai`, `aiAction`), Midscene uses the prompt instruction as the cache key to store the execution plan returned by AI
 - **Element location caching**: For location operations (such as `aiLocate`, `aiTap`), the system uses the location prompt as the cache key to store element XPath information, and verifies whether the XPath is still valid on the next execution
 - **Invalidation mechanism**: When cache becomes invalid, the system automatically falls back to AI model for re-analysis
-
-### Storage format
+- **Never cache query results**: The query results like `aiBoolean`, `aiQuery`, `aiAssert` will never be cached.
 
 Cache contents will be saved in the `./midscene_run/cache` directory with the `.cache.yaml` as the extension name.
 
-These two types of content will be cached:
-
-1. the result of planning, like calls to `.ai` `.aiAction`
-2. The XPaths for elements located by AI, such as `.aiLocate`, `.aiTap`, etc.
-
-The query results like `aiBoolean`, `aiQuery`, `aiAssert` will never be cached. 
-
-If the cache is not hit, Midscene will call AI model again and the result in cache file will be updated.
-
 ## Cache strategies
+
+By configuring the `cache` option, you can enable caching for your agent.
 
 ### Disable cache
 
@@ -51,59 +39,37 @@ Completely disable cache functionality, always call AI model for every operation
 ```javascript
 // Direct Agent creation
 const agent = new PuppeteerAgent(page, {
-  cache: false
+  cache: false,
 });
+```
 
-// Playwright AI Fixture
-export const test = base.extend<PlayWrightAiFixtureType>(
-  PlaywrightAiFixture({
-    cache: false
-  }),
-);
-
-// YAML configuration
-// agent:
-//   cache: false
+```yaml
+# YAML configuration
+agent:
+  cache: false
 ```
 
 ### Read-write mode
 
 Configuration: `cache: { id: "my-cache-id" }`
 
-Automatically read existing cache and update cache files during execution. Additionally, the following two scenarios support configuring `cache: true` to auto-generate cache ID:
-- Playwright AI Fixture automatically generates cache ID from test information
-- YAML mode automatically uses filename as cache ID
+Automatically read existing cache and update cache files during execution.
 
 ```javascript
 // Direct Agent creation - explicit cache ID
 const agent = new PuppeteerAgent(page, {
-  cache: { id: "my-cache-id" }
+  cache: { id: "my-cache-id" },
 });
+```
 
-// Playwright AI Fixture - auto-generate cache ID
-export const test = base.extend<PlayWrightAiFixtureType>(
-  PlaywrightAiFixture({
-    cache: true  // Auto-generate cache ID from test case name
-  }),
-);
-
-// Playwright AI Fixture - explicit cache ID
-export const test = base.extend<PlayWrightAiFixtureType>(
-  PlaywrightAiFixture({
-    cache: { id: "my-fixture-cache" }
-  }),
-);
-
-// YAML configuration - explicit cache ID
+```yaml
+# YAML configuration - explicit cache ID
 agent:
   cache:
     id: "my-cache-test"
-
-// YAML configuration - auto-generate cache ID
-agent:
-  cache: true
-
 ```
+
+YAML mode also supports `cache: true` to automatically use the file name as the cache ID.
 
 ### Read-only, manual write
 
@@ -114,20 +80,15 @@ Only read cache, no automatic writing to cache files. Requires manual `agent.flu
 ```javascript
 // Direct Agent creation
 const agent = new PuppeteerAgent(page, {
-  cache: { strategy: "read-only", id: "my-cache-id" }
+  cache: { strategy: "read-only", id: "my-cache-id" },
 });
 
 // Manual cache write required
 await agent.flushCache();
+```
 
-// Playwright AI Fixture
-export const test = base.extend<PlayWrightAiFixtureType>(
-  PlaywrightAiFixture({
-    cache: { strategy: "read-only", id: "readonly-cache" }
-  }),
-);
-
-// YAML configuration
+```yaml
+# YAML configuration
 agent:
   cache:
     id: "my-cache-test"
@@ -147,6 +108,48 @@ const agent = new PuppeteerAgent(originPage, {
 
 ```bash
 MIDSCENE_CACHE=1 tsx demo.ts
+```
+
+## Using Playwright AI Fixture from `@midscene/web/playwright`
+
+When using `PlaywrightAiFixture` from `@midscene/web/playwright`, pass the same `cache` options to control caching behaviour.
+
+### Disable cache
+
+```typescript
+export const test = base.extend<PlayWrightAiFixtureType>(
+  PlaywrightAiFixture({
+    cache: false,
+  }),
+);
+```
+
+### Read-write mode
+
+```typescript
+// Auto-generate cache ID from test metadata
+export const test = base.extend<PlayWrightAiFixtureType>(
+  PlaywrightAiFixture({
+    cache: true,
+  }),
+);
+
+// Explicitly provide cache ID
+export const test = base.extend<PlayWrightAiFixtureType>(
+  PlaywrightAiFixture({
+    cache: { id: "my-fixture-cache" },
+  }),
+);
+```
+
+### Read-only, manual write
+
+```typescript
+export const test = base.extend<PlayWrightAiFixtureType>(
+  PlaywrightAiFixture({
+    cache: { strategy: "read-only", id: "readonly-cache" },
+  }),
+);
 ```
 
 ## FAQ

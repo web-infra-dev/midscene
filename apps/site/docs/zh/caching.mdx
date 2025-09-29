@@ -1,12 +1,10 @@
 # 缓存 AI 规划和定位
 
-Midscene 支持缓存 Plan 的步骤与匹配到的元素位置信息，减少 AI 模型的调用次数，从而大幅提升执行效率。
-
-Android/iOS 自动化任务支持 planning 缓存，但不支持元素定位缓存（因为没有 XPath 支持）。
+Midscene 支持缓存 Plan 的步骤与匹配到的元素位置信息，减少 AI 模型的调用次数，从而大幅提升执行效率。请注意，DOM 元素缓存仅在 Web 自动化任务中支持。
 
 **效果**
 
-通过引入缓存后，用例的执行时间大幅降低了，例如在如下案例中，执行耗时从51秒降低到了28秒。
+当缓存命中时，脚本的执行时间会显著降低。例如在如下案例中，执行耗时从51秒降低到了28秒。
 
 * **before**
 
@@ -18,30 +16,22 @@ Android/iOS 自动化任务支持 planning 缓存，但不支持元素定位缓�
 
 ## 缓存文件和存储
 
-### 缓存原理
-
 Midscene 的缓存机制基于输入的稳定性和输出的可复用性。当相同的任务指令在相似的页面环境下重复执行时，Midscene 会优先使用已缓存的结果，避免重复调用 AI 模型，从而显著提升执行效率。
 
 缓存的核心机制包括：
 - **任务指令缓存**：对于规划类操作（如 `ai`、`aiAction`），Midscene 会将 prompt 指令作为缓存键，存储 AI 返回的执行计划
 - **元素定位缓存**：对于定位类操作（如 `aiLocate`、`aiTap`），系统会将定位 prompt 作为缓存键，存储元素的 XPath 信息，下次执行时先验证 XPath 是否仍然有效
 - **失效机制**：当缓存失效时，系统会自动回退到 AI 模型重新分析
-
-### 存储格式
+- **永不缓存查询结果**：查询类操作（如 `aiBoolean`、`aiQuery`、`aiAssert`）不会被缓存
 
 缓存内容会保存到 `./midscene_run/cache` 目录下，以 `.cache.yaml` 为扩展名。
-
-缓存内容分为两类：
-
-1. 任务规划结果，例如 `ai` 和 `aiAction` 方法的结果
-2. 元素定位后的 XPath 数据，例如 `.aiLocate`, `.aiTap` 等方法的结果
-
-查询类方法，例如 `aiBoolean`, `aiQuery`, `aiAssert` 的内容不会被缓存。
 
 如果缓存未命中，Midscene 将会重新调用 AI 模型，并更新缓存文件。
 
 
 ## 缓存策略
+
+通过配置 `cache` 选项，你可以为 Agent 启用缓存。
 
 ### 禁用缓存
 
@@ -52,59 +42,37 @@ Midscene 的缓存机制基于输入的稳定性和输出的可复用性。当�
 ```javascript
 // 直接创建 Agent
 const agent = new PuppeteerAgent(page, {
-  cache: false
+  cache: false,
 });
+```
 
-// Playwright AI Fixture
-export const test = base.extend<PlayWrightAiFixtureType>(
-  PlaywrightAiFixture({
-    cache: false
-  }),
-);
-
-// YAML 配置
-// agent:
-//   cache: false
+```yaml
+# YAML 配置
+agent:
+  cache: false
 ```
 
 ### 读写模式
 
 配置方式：`cache: { id: "my-cache-id" }`
 
-自动读取已有缓存，执行过程中自动更新缓存文件，此外，下面两种场景支持配置 `cache: true` 自动生成 cache ID：
-- Playwright AI Fixture 自动从测试信息生成 cache ID
-- YAML 模式支持自动使用文件名作为 cache ID
+自动读取已有缓存，执行过程中自动更新缓存文件。
 
 ```javascript
 // 直接创建 Agent - 显式设置 cache ID
 const agent = new PuppeteerAgent(page, {
-  cache: { id: "my-cache-id" }
+  cache: { id: "my-cache-id" },
 });
+```
 
-// Playwright AI Fixture - 自动生成 cache ID
-export const test = base.extend<PlayWrightAiFixtureType>(
-  PlaywrightAiFixture({
-    cache: true  // 自动从测试用例名称生成 cache ID
-  }),
-);
-
-// Playwright AI Fixture - 显式设置 cache ID
-export const test = base.extend<PlayWrightAiFixtureType>(
-  PlaywrightAiFixture({
-    cache: { id: "my-fixture-cache" }
-  }),
-);
-
-// YAML 配置 - 显式设置 cache ID
+```yaml
+# YAML 配置 - 显式设置 cache ID
 agent:
   cache:
     id: "my-cache-test"
-
-// YAML 配置 - 自动生成 cache ID
-agent:
-  cache: true
-
 ```
+
+YAML 模式还支持配置 `cache: true`，自动使用文件名作为 cache ID。
 
 ### 只读，手动写入
 
@@ -115,22 +83,18 @@ agent:
 ```javascript
 // 直接创建 Agent
 const agent = new PuppeteerAgent(page, {
-  cache: { strategy: "read-only", id: "my-cache-id" }
+  cache: { strategy: "read-only", id: "my-cache-id" },
 });
 
 // 需要手动写入缓存
 await agent.flushCache();
+```
 
-// Playwright AI Fixture
-export const test = base.extend<PlayWrightAiFixtureType>(
-  PlaywrightAiFixture({
-    cache: { strategy: "read-only"}
-  }),
-);
-
-// YAML 配置
+```yaml
+# YAML 配置
 agent:
   cache:
+    id: "my-cache-test"
     strategy: "read-only"
 ```
 
@@ -147,6 +111,48 @@ const agent = new PuppeteerAgent(originPage, {
 
 ```bash
 MIDSCENE_CACHE=1 tsx demo.ts
+```
+
+## 使用 Midscene 的 Playwright AI Fixture
+
+在使用 `@midscene/web/playwright` 中的 `PlaywrightAiFixture` 时，可以通过相同的 `cache` 配置来管理缓存行为。
+
+### 禁用缓存
+
+```typescript
+export const test = base.extend<PlayWrightAiFixtureType>(
+  PlaywrightAiFixture({
+    cache: false,
+  }),
+);
+```
+
+### 读写模式
+
+```typescript
+// 自动生成 cache ID（基于测试信息）
+export const test = base.extend<PlayWrightAiFixtureType>(
+  PlaywrightAiFixture({
+    cache: true,
+  }),
+);
+
+// 显式指定 cache ID
+export const test = base.extend<PlayWrightAiFixtureType>(
+  PlaywrightAiFixture({
+    cache: { id: "my-fixture-cache" },
+  }),
+);
+```
+
+### 只读，手动写入
+
+```typescript
+export const test = base.extend<PlayWrightAiFixtureType>(
+  PlaywrightAiFixture({
+    cache: { strategy: "read-only", id: "readonly-cache" },
+  }),
+);
 ```
 
 ## FAQ
