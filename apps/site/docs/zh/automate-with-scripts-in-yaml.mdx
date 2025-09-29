@@ -174,9 +174,48 @@ web:
 
   # 是否忽略 HTTPS 证书错误，可选，默认 false
   acceptInsecureCerts: <boolean>
+```
 
+### 全局 agent 配置
+
+如需使用 `aiActionContext` 参数，可以通过全局的 `agent` 配置来设置：
+
+```yaml
+# 全局 AI agent 配置
+agent:
   # 在调用 aiAction 时发送给 AI 模型的背景知识，可选
   aiActionContext: <string>
+```
+
+:::tip aiActionContext 配置说明
+
+- **适用环境**：Web、iOS 和 Android 环境都可以通过全局的 `agent` 配置来设置 `aiActionContext`
+- **作用**：为 AI 模型提供背景知识，例如处理弹窗、业务介绍等常见场景
+
+:::
+
+#### 使用示例
+
+```yaml
+# 全局 agent 配置，适用于所有环境
+agent:
+  aiActionContext: "如果出现弹窗，点击同意。如果出现登录页面，跳过它。"
+
+# iOS 环境配置
+ios:
+  launch: https://www.bing.com
+  wdaPort: 8100
+
+# 或 Android 环境配置
+android:
+  deviceId: s4ey59
+  launch: https://www.bing.com
+
+tasks:
+  - name: 搜索天气
+    flow:
+      - ai: 搜索 "今日天气"
+      - aiAssert: 结果显示天气信息
 ```
 
 ### `android` 部分
