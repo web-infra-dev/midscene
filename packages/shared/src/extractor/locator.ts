@@ -106,46 +106,64 @@ export const getElementXpath = (
 };
 
 export function getXpathsById(id: string): string[] | null {
-  const node = getNodeFromCacheList(id);
+  try {
+    const node = getNodeFromCacheList(id);
 
-  if (!node) {
+    if (!node) {
+      return null;
+    }
+
+    const fullXPath = getElementXpath(node, false, true);
+    return [fullXPath];
+  } catch (error) {
+    // Handle cases where getElementXpath fails
+    console.warn('XPath generation by ID failed:', error);
     return null;
   }
-
-  const fullXPath = getElementXpath(node, false, true);
-  return [fullXPath];
 }
 
 export function getXpathsByPoint(
   point: Point,
   isOrderSensitive: boolean,
 ): string[] | null {
-  const element = document.elementFromPoint(point.left, point.top);
+  try {
+    const element = document.elementFromPoint(point.left, point.top);
 
-  if (!element) {
+    if (!element) {
+      return null;
+    }
+
+    const fullXPath = getElementXpath(element, isOrderSensitive, true);
+    return [fullXPath];
+  } catch (error) {
+    // Handle cases where document.elementFromPoint fails or getElementXpath fails
+    console.warn('XPath generation by point failed:', error);
     return null;
   }
-
-  const fullXPath = getElementXpath(element, isOrderSensitive, true);
-  return [fullXPath];
 }
 
 export function getNodeInfoByXpath(xpath: string): Node | null {
-  const xpathResult = document.evaluate(
-    xpath,
-    document,
-    null,
-    XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
-    null,
-  );
+  try {
+    const xpathResult = document.evaluate(
+      xpath,
+      document,
+      null,
+      XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+      null,
+    );
 
-  if (xpathResult.snapshotLength !== 1) {
+    if (xpathResult.snapshotLength !== 1) {
+      return null;
+    }
+
+    const node = xpathResult.snapshotItem(0);
+
+    return node;
+  } catch (error) {
+    // Handle malformed XPath expressions or evaluation errors
+    console.warn('XPath evaluation failed:', error);
     return null;
   }
-
-  const node = xpathResult.snapshotItem(0);
-
-  return node;
 }
 
 export function getElementInfoByXpath(xpath: string): ElementInfo | null {
