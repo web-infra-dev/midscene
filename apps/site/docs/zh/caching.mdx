@@ -162,7 +162,14 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 在只读模式下，需要在测试步骤完成后手动将缓存写入文件。可以通过 fixture 提供的 `agentForPage` 方法获取底层 agent，然后在需要持久化的时刻调用 `agent.flushCache()`：
 
 ```typescript
-// 对应样例代码中的 fixture.ts
+test.afterEach(async ({ page, agentForPage }, testInfo) => {
+  // Only flush cache if the test passed
+  if (testInfo.status === 'passed') {
+    const agent = await agentForPage(page);
+    await agent.flushCache();
+  }
+});
+
 test('manual cache flush', async ({ agentForPage, page, aiTap, aiWaitFor }) => {
   const agent = await agentForPage(page);
 
