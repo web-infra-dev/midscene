@@ -25,7 +25,7 @@ import {
   type TUserPrompt,
   type UIContext,
 } from '../index';
-
+export type TestStatus = "passed" | "failed" | "timedOut" | "skipped" | "interrupted";
 import yaml from 'js-yaml';
 
 import {
@@ -33,6 +33,8 @@ import {
   reportHTMLContent,
   stringifyDumpData,
   writeLogFile,
+  getHtmlScripts,
+  appendFileSync
 } from '@/utils';
 import {
   ScriptPlayer,
@@ -258,6 +260,29 @@ export class Agent<
 
   reportHTMLString() {
     return reportHTMLContent(this.dumpDataString());
+  }
+  teardownTestAgent(
+    teardownOpts: {
+      testId: string,
+      testTitle: string,
+      testDescription: string,
+      testDuration: number,
+      testStatus: TestStatus
+      cacheFilePath: string
+    }
+  ) {
+
+    const s = getHtmlScripts({
+      dumpString: this.dumpDataString(),
+      attributes: {
+        playwright_test_duration: teardownOpts.testDuration,
+        playwright_test_status: teardownOpts.testStatus,
+        playwright_test_title: teardownOpts.testTitle,
+        playwright_test_id: teardownOpts.testId,
+        playwright_test_description: teardownOpts.testDescription
+      },
+    }) + '\n';
+    appendFileSync(teardownOpts.cacheFilePath, s);
   }
 
   writeOutActionDumps() {
@@ -850,9 +875,8 @@ export class Agent<
 
     const message = output
       ? undefined
-      : `Assertion failed: ${msg || (typeof assertion === 'string' ? assertion : assertion.prompt)}\nReason: ${
-          thought || executor.latestErrorTask()?.error || '(no_reason)'
-        }`;
+      : `Assertion failed: ${msg || (typeof assertion === 'string' ? assertion : assertion.prompt)}\nReason: ${thought || executor.latestErrorTask()?.error || '(no_reason)'
+      }`;
 
     if (opt?.keepRawResponse) {
       return {
@@ -983,7 +1007,7 @@ export class Agent<
       param: {
         content: opt?.content || '',
       },
-      executor: async () => {},
+      executor: async () => { },
     };
     // 4. build ExecutionDump
     const executionDump: ExecutionDump = {
@@ -1009,17 +1033,17 @@ export class Agent<
     const { groupName, groupDescription, executions } = this.dump;
     const newExecutions = Array.isArray(executions)
       ? executions.map((execution: any) => {
-          const { tasks, ...restExecution } = execution;
-          let newTasks = tasks;
-          if (Array.isArray(tasks)) {
-            newTasks = tasks.map((task: any) => {
-              // only remove uiContext and log from task
-              const { uiContext, log, ...restTask } = task;
-              return restTask;
-            });
-          }
-          return { ...restExecution, ...(newTasks ? { tasks: newTasks } : {}) };
-        })
+        const { tasks, ...restExecution } = execution;
+        let newTasks = tasks;
+        if (Array.isArray(tasks)) {
+          newTasks = tasks.map((task: any) => {
+            // only remove uiContext and log from task
+            const { uiContext, log, ...restTask } = task;
+            return restTask;
+          });
+        }
+        return { ...restExecution, ...(newTasks ? { tasks: newTasks } : {}) };
+      })
       : [];
     return {
       groupName,
@@ -1065,7 +1089,7 @@ export class Agent<
       if (opts.cache === true) {
         throw new Error(
           'cache: true requires an explicit cache ID. Please provide:\n' +
-            'Example: cache: { id: "my-cache-id" }',
+          'Example: cache: { id: "my-cache-id" }',
         );
       }
 
@@ -1075,7 +1099,7 @@ export class Agent<
         if (!config.id) {
           throw new Error(
             'cache configuration requires an explicit id. Please provide:\n' +
-              'Example: cache: { id: "my-cache-id" }',
+            'Example: cache: { id: "my-cache-id" }',
           );
         }
         const id = config.id;
