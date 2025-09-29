@@ -342,11 +342,11 @@ describe('TaskCache', { timeout: 20000 }, () => {
       join(getMidsceneRunSubDir('cache'), `${customPath}${cacheFileExt}`),
     );
 
-  cache.appendCache({
-    type: 'locate',
-    prompt: 'test-locate',
-    feature: { xpaths: ['test-xpath'] },
-  });
+    cache.appendCache({
+      type: 'locate',
+      prompt: 'test-locate',
+      feature: { xpaths: ['test-xpath'] },
+    });
 
     expect(existsSync(cache.cacheFilePath!)).toBe(true);
 

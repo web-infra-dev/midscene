@@ -7,9 +7,9 @@ import type { AbstractInterface } from '@/device';
 import {
   type AIUsageInfo,
   type BaseElement,
-  type ElementCacheFeature,
   type DetailedLocateParam,
   type DumpSubscriber,
+  type ElementCacheFeature,
   type ExecutionRecorderItem,
   type ExecutionTaskActionApply,
   type ExecutionTaskApply,
@@ -272,7 +272,11 @@ export class TaskExecutor {
                     : undefined,
                 );
                 if (feature && Object.keys(feature).length > 0) {
-                  debug('update cache, prompt: %s, feature: %o', cachePrompt, feature);
+                  debug(
+                    'update cache, prompt: %s, feature: %o',
+                    cachePrompt,
+                    feature,
+                  );
                   currentCacheFeature = feature;
                   this.taskCache.updateOrAppendCacheRecord(
                     {
@@ -283,7 +287,10 @@ export class TaskExecutor {
                     locateCacheRecord,
                   );
                 } else {
-                  debug('no cache feature returned, skip cache update, prompt: %s', cachePrompt);
+                  debug(
+                    'no cache feature returned, skip cache update, prompt: %s',
+                    cachePrompt,
+                  );
                 }
               } catch (error) {
                 debug('cacheFeatureForRect failed: %s', error);
