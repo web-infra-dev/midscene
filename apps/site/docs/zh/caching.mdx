@@ -165,8 +165,11 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 test.afterEach(async ({ page, agentForPage }, testInfo) => {
   // Only flush cache if the test passed
   if (testInfo.status === 'passed') {
+    console.log('Test passed, flushing Midscene cache...');
     const agent = await agentForPage(page);
     await agent.flushCache();
+  } else {
+    console.log(`Test ${testInfo.status}, skipping Midscene cache flush.`);
   }
 });
 
