@@ -5,6 +5,7 @@ import type { KeyboardAction, MouseAction } from '../web-page';
 import {
   type BridgeConnectTabOptions,
   BridgeEvent,
+  type BridgeGetBrowserTabListOptions,
   BridgePageType,
   DefaultBridgeServerPort,
   KeyboardEvent,
@@ -150,8 +151,8 @@ export class AgentOverChromeBridge extends Agent<ChromeExtensionPageCliSide> {
     await this.setDestroyOptionsAfterConnect();
   }
 
-  async getBrowserTabList() {
-    return await this.page.getBrowserTabList();
+  async getBrowserTabList(options?: BridgeGetBrowserTabListOptions) {
+    return await this.page.getBrowserTabList(options);
   }
 
   async setActiveTabId(tabId: string) {

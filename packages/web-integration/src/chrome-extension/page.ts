@@ -75,10 +75,12 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
    * Get a list of current tabs
    * @returns {Promise<Array<{id: number, title: string, url: string}>>}
    */
-  public async getBrowserTabList(): Promise<
+  public async getBrowserTabList(
+    option: { currentWindow?: boolean } = { currentWindow: true },
+  ): Promise<
     { id: string; title: string; url: string; currentActiveTab: boolean }[]
   > {
-    const tabs = await chrome.tabs.query({ currentWindow: true });
+    const tabs = await chrome.tabs.query(option);
     return tabs
       .map((tab) => ({
         id: `${tab.id}`,

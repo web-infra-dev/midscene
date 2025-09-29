@@ -69,3 +69,7 @@ export interface BridgeCallResponse {
 export interface BridgeConnectedEventPayload {
   version: string;
 }
+
+export interface BridgeGetBrowserTabListOptions {
+  currentWindow?: boolean;
+}
