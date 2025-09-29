@@ -868,7 +868,7 @@ export class Agent<
   }
 
   async aiWaitFor(assertion: TUserPrompt, opt?: AgentWaitForOpt) {
-    const modelConfig = this.modelConfigManager.getModelConfig('default');
+    const modelConfig = this.modelConfigManager.getModelConfig('VQA');
     const { executor } = await this.taskExecutor.waitFor(
       assertion,
       {

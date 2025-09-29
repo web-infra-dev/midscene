@@ -1071,6 +1071,7 @@ export class TaskExecutor {
       },
       locate: null,
     };
+    // The convertPlanToExecutable requires modelConfig as a parameter but will not consume it when type is Sleep
     const { tasks: sleepTasks } = await this.convertPlanToExecutable(
       [sleepPlan],
       modelConfig,
