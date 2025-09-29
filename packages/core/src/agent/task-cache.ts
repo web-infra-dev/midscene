@@ -127,10 +127,6 @@ export class TaskCache {
         return {
           cacheContent: item,
           updateFn: (cb: (cache: PlanningCache | LocateCache) => void) => {
-            if (this.readOnlyMode) {
-              debug('read-only mode, skip updating cache');
-              return;
-            }
             debug(
               'will call updateFn to update cache, type: %s, prompt: %s, index: %d',
               type,
@@ -138,6 +134,14 @@ export class TaskCache {
               i,
             );
             cb(item);
+
+            if (this.readOnlyMode) {
+              debug(
+                'read-only mode, cache updated in memory but not flushed to file',
+              );
+              return;
+            }
+
             debug(
               'cache updated, will flush to file, type: %s, prompt: %s, index: %d',
               type,
@@ -168,12 +172,14 @@ export class TaskCache {
   }
 
   appendCache(cache: PlanningCache | LocateCache) {
-    if (this.readOnlyMode) {
-      debug('read-only mode, skip appending cache');
-      return;
-    }
     debug('will append cache', cache);
     this.cache.caches.push(cache);
+
+    if (this.readOnlyMode) {
+      debug('read-only mode, cache appended to memory but not flushed to file');
+      return;
+    }
+
     this.flushCacheToFile();
   }
 
@@ -234,11 +240,6 @@ export class TaskCache {
   }
 
   flushCacheToFile() {
-    if (this.readOnlyMode) {
-      debug('read-only mode, skip flushing cache to file');
-      return;
-    }
-
     const version = getMidsceneVersion();
     if (!version) {
       debug('no midscene version info, will not write cache to file');

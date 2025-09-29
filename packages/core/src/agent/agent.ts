@@ -1115,19 +1115,7 @@ export class Agent<
       throw new Error('Cache is not configured');
     }
 
-    if (!this.taskCache.readOnlyMode) {
-      throw new Error('flushCache() can only be called in read-only mode');
-    }
-
-    // Temporarily allow writing
-    const originalMode = this.taskCache.readOnlyMode;
-    this.taskCache.readOnlyMode = false;
-
-    try {
-      this.taskCache.flushCacheToFile();
-    } finally {
-      this.taskCache.readOnlyMode = originalMode;
-    }
+    this.taskCache.flushCacheToFile();
   }
 }
 
