@@ -7,9 +7,9 @@ export interface Point {
 }
 
 export interface Size {
-  width: number; // logical pixel size
-  height: number;
-  dpr?: number; // dpr is the ratio of the physical pixel to the logical pixel. For example, the dpr is 2 when the screenshotBase64 returned is 2000x1000 when the logical width and height are 1000x500 here. Overriding the dpr will affect how the screenshotBase64 is resized before being sent to the AI model.
+  width: number; // The image sent to AI model will be resized to this width. usually you should set it to the logical pixel size
+  height: number; // The image sent to AI model will be resized to this height. usually you should set it to the logical pixel size
+  dpr?: number; // this is deprecated, do NOT use it
 }
 
 export type Rect = Point & Size & { zoom?: number };
