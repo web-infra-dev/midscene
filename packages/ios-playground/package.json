@@ -1,6 +1,6 @@
 {
   "name": "@midscene/ios-playground",
-  "version": "0.30.0",
+  "version": "0.30.1",
   "description": "iOS playground for Midscene",
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",

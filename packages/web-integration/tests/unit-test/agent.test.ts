@@ -447,6 +447,19 @@ describe('PageAgent cache configuration', () => {
       expect(agent.taskCache?.cacheId).toBe('custom-cache-id');
     });
 
+    it('should throw error for cache: { strategy: "invalid" }', () => {
+      expect(() => {
+        new PageAgent(mockPage, {
+          cache: {
+            // @ts-expect-error invalid strategy provided intentionally for runtime validation
+            strategy: 'invalid',
+            id: 'invalid-strategy-cache',
+          },
+          modelConfig: () => mockedModelConfigFnResult,
+        });
+      }).toThrow('cache.strategy must be one of "read-only", "read-write"');
+    });
+
     it('should handle cache: { strategy: "read-write", id: "custom-id" }', () => {
       const agent = new PageAgent(mockPage, {
         cache: {

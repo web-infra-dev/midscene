@@ -41,7 +41,7 @@ import {
 } from '../yaml/index';
 
 import type { AbstractInterface } from '@/device';
-import type { AgentOpt } from '@/types';
+import type { AgentOpt, CacheConfig } from '@/types';
 import {
   MIDSCENE_CACHE,
   ModelConfigManager,
@@ -80,6 +80,17 @@ const defaultInsightExtractOption: InsightExtractOption = {
   domIncluded: false,
   screenshotIncluded: true,
 };
+
+type CacheStrategy = NonNullable<CacheConfig['strategy']>;
+
+const CACHE_STRATEGIES: readonly CacheStrategy[] = ['read-only', 'read-write'];
+
+const isValidCacheStrategy = (strategy: string): strategy is CacheStrategy =>
+  CACHE_STRATEGIES.some((value) => value === strategy);
+
+const CACHE_STRATEGY_VALUES = CACHE_STRATEGIES.map(
+  (value) => `"${value}"`,
+).join(', ');
 
 export class Agent<
   InterfaceType extends AbstractInterface = AbstractInterface,
@@ -1079,9 +1090,26 @@ export class Agent<
           );
         }
         const id = config.id;
-        // Default strategy is 'read-write'
-        const strategy = config.strategy ?? 'read-write';
-        const isReadOnly = strategy === 'read-only';
+        const rawStrategy = config.strategy as unknown;
+        let strategyValue: string;
+
+        if (rawStrategy === undefined) {
+          strategyValue = 'read-write';
+        } else if (typeof rawStrategy === 'string') {
+          strategyValue = rawStrategy;
+        } else {
+          throw new Error(
+            `cache.strategy must be a string when provided, but received type ${typeof rawStrategy}`,
+          );
+        }
+
+        if (!isValidCacheStrategy(strategyValue)) {
+          throw new Error(
+            `cache.strategy must be one of ${CACHE_STRATEGY_VALUES}, but received "${strategyValue}"`,
+          );
+        }
+
+        const isReadOnly = strategyValue === 'read-only';
 
         return {
           id,

@@ -63,6 +63,11 @@ agent:
 const agent = new PuppeteerAgent(page, {
   cache: { strategy: "read-write", id: "my-cache-id" },
 });
+
+// 显式指定 strategy
+const agent = new PuppeteerAgent(page, {
+  cache: { strategy: "read-write", id: "my-cache-id" },
+});
 ```
 
 ```yaml

@@ -60,6 +60,11 @@ Automatically read existing cache and update cache files during execution. If yo
 const agent = new PuppeteerAgent(page, {
   cache: { strategy: "read-write", id: "my-cache-id" },
 });
+
+// Explicitly specify strategy
+const agent = new PuppeteerAgent(page, {
+  cache: { strategy: "read-write", id: "my-cache-id" },
+});
 ```
 
 ```yaml
