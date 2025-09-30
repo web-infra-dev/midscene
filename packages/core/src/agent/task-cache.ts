@@ -30,7 +30,7 @@ export interface PlanningCache {
 export interface LocateCache {
   type: 'locate';
   prompt: TUserPrompt;
-  feature?: ElementCacheFeature;
+  cache?: ElementCacheFeature;
   /** @deprecated kept for backward compatibility */
   xpaths?: string[];
 }
@@ -122,8 +122,11 @@ export class TaskCache {
       ) {
         if (item.type === 'locate') {
           const locateItem = item as LocateCache;
-          if (!locateItem.feature && Array.isArray(locateItem.xpaths)) {
-            locateItem.feature = { xpaths: locateItem.xpaths };
+          if (!locateItem.cache && Array.isArray(locateItem.xpaths)) {
+            locateItem.cache = { xpaths: locateItem.xpaths };
+          }
+          if ('xpaths' in locateItem) {
+            locateItem.xpaths = undefined;
           }
         }
         this.matchedCacheIndices.add(key);
@@ -304,7 +307,7 @@ export class TaskCache {
       } else {
         cachedRecord.updateFn((cache) => {
           const locateCache = cache as LocateCache;
-          locateCache.feature = newRecord.feature;
+          locateCache.cache = newRecord.cache;
           if ('xpaths' in locateCache) {
             locateCache.xpaths = undefined;
           }

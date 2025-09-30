@@ -8,7 +8,7 @@ exports[`TaskCache > save and retrieve cache from file 1`] = `
     "yamlWorkflow": "test-yaml-workflow",
   },
   {
-    "feature": {
+    "cache": {
       "xpaths": [
         "test-xpath-1",
         "test-xpath-2",
@@ -28,7 +28,7 @@ exports[`TaskCache > save and retrieve cache from file 2`] = `
     "yamlWorkflow": "test-yaml-workflow",
   },
   {
-    "feature": {
+    "cache": {
       "xpaths": [
         "test-xpath-3",
         "test-xpath-4",
@@ -49,7 +49,7 @@ caches:
     yamlWorkflow: test-yaml-workflow
   - type: locate
     prompt: test-locate
-    feature:
+    cache:
       xpaths:
         - test-xpath-3
         - test-xpath-4

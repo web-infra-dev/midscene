@@ -220,12 +220,12 @@ export class TaskExecutor {
           const cachePrompt = param.prompt;
           const locateCacheRecord =
             this.taskCache?.matchLocateCache(cachePrompt);
-          const cacheFeature = locateCacheRecord?.cacheContent?.feature;
+          const cacheEntry = locateCacheRecord?.cacheContent?.cache;
           const elementFromCache = userExpectedPathHitFlag
             ? null
             : await matchElementFromCache(
                 this,
-                cacheFeature,
+                cacheEntry,
                 cachePrompt,
                 param.cacheable,
               );
@@ -261,7 +261,7 @@ export class TaskExecutor {
             elementFromAiLocate;
 
           // update cache
-          let currentCacheFeature: ElementCacheFeature | undefined;
+          let currentCacheEntry: ElementCacheFeature | undefined;
           if (
             element &&
             this.taskCache &&
@@ -278,22 +278,22 @@ export class TaskExecutor {
                 );
                 if (feature && Object.keys(feature).length > 0) {
                   debug(
-                    'update cache, prompt: %s, feature: %o',
+                    'update cache, prompt: %s, cache: %o',
                     cachePrompt,
                     feature,
                   );
-                  currentCacheFeature = feature;
+                  currentCacheEntry = feature;
                   this.taskCache.updateOrAppendCacheRecord(
                     {
                       type: 'locate',
                       prompt: cachePrompt,
-                      feature,
+                      cache: feature,
                     },
                     locateCacheRecord,
                   );
                 } else {
                   debug(
-                    'no cache feature returned, skip cache update, prompt: %s',
+                    'no cache data returned, skip cache update, prompt: %s',
                     cachePrompt,
                   );
                 }
@@ -321,8 +321,8 @@ export class TaskExecutor {
             hitBy = {
               from: 'Cache',
               context: {
-                cacheFeature,
-                featureToSave: currentCacheFeature,
+                cacheEntry,
+                cacheToSave: currentCacheEntry,
               },
             };
           } else if (planHitFlag) {

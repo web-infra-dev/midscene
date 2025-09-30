@@ -172,11 +172,11 @@ export function matchElementFromPlan(
 
 export async function matchElementFromCache(
   taskExecutor: TaskExecutor,
-  feature: ElementCacheFeature | undefined,
+  cacheEntry: ElementCacheFeature | undefined,
   cachePrompt: TUserPrompt,
   cacheable: boolean | undefined,
 ): Promise<LocateResultElement | undefined> {
-  if (!feature) {
+  if (!cacheEntry) {
     return undefined;
   }
 
@@ -197,7 +197,7 @@ export async function matchElementFromCache(
   }
 
   try {
-    const rect = await taskExecutor.interface.rectMatchesCacheFeature(feature);
+    const rect = await taskExecutor.interface.rectMatchesCacheFeature(cacheEntry);
     const element: LocateResultElement = {
       id: uuid(),
       center: [
