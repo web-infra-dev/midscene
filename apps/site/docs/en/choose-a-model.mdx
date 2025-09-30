@@ -12,7 +12,7 @@ Midscene.js supports two types of models:
 
 In addition to understanding text and image input, VL (Visual-Language) models can locate the coordinates of target elements on the page.
 
-We recommend VL models for UI automation because they can natively "see" screenshots and return the coordinates of target elements, which is more reliable and efficient in complex scenarios.
+We recommend VL models for UI automation because they can natively "see" screenshots, which is more reliable and efficient in complex scenarios.
 
 VL models can be used for UI automation across any kind of interface.
 
@@ -25,11 +25,11 @@ These VL models are already adapted for Midscene.js:
 
 If you want to learn the detailed configuration for each model provider, see [Config Model and Provider](./model-provider).
 
-### LLM models
+### LLM models (will soon be deprecated)
 
-Models that can understand text and image input. GPT-4o is this kind of model.
+Multimodal LLMs that can understand text and image input. GPT-4o is this kind of model.
 
-LLM models can only be used in web automation.
+Multimodal LLMs can only be used in web automation.
 
 * [`GPT-4o`](#gpt-4o)
 * [Other LLM models](#other-llm-models)
@@ -82,8 +82,8 @@ MIDSCENE_USE_QWEN_VL=1 # Note: cannot be set together with MIDSCENE_USE_QWEN3_VL
 ### Doubao visual-language models
 
 Volcano Engine provides multiple visual-language models, including:
+* `Doubao-seed-1.6-vision` (newer and better)
 * `Doubao-1.5-thinking-vision-pro`
-* `Doubao-seed-1.6-vision`
 
 They perform strongly for visual grounding and assertion in complex scenarios. With clear instructions they can handle most business needs.
 

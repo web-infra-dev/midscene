@@ -12,7 +12,7 @@ English | [简体中文](./README.zh.md)
 </div>
 
 <p align="center">
-  Open-source AI Operator for Web, Android, iOS, Automation & Testing
+  Visual-driven AI Operator for Web, Android, iOS, Automation & Testing. Open-source and MIT licensed.
 </p>
 
 <p align="center">
@@ -63,11 +63,14 @@ English | [简体中文](./README.zh.md)
 - **[Android Playground](https://midscenejs.com/quick-experience-with-android.html)**: There is also a built-in Android playground to control your local Android device.
 - **[iOS Playground](https://midscenejs.com/quick-experience-with-ios.html)**: There is also a built-in iOS playground to control your local iOS device.
 
-## ✨ Model Choices
+## ✨ Driven by Visual Language Model
 
-Midscene.js supports both multimodal LLMs like `gpt-4o`, and visual-language models like `Qwen2.5-VL`, `Doubao-1.5-thinking-vision-pro`, `gemini-2.5-pro` and `UI-TARS`. 
+Midscene.js supports visual-language models like `Qwen3-VL`, `Doubao-1.6-vision`, `gemini-2.5-pro` and `UI-TARS`. 
 
-Visual-language models are recommended for UI automation. For interfaces other than web scenario, visual-language models are required.
+* Capable of finding and understanding the target element on the page by just providing the screenshot.
+* No dom or semantic markups are required.
+* Less tokens and money cost compared to generalLLM models.
+* Support open-source models.
 
 Read more about [Choose a model](https://midscenejs.com/choose-a-model)
 
@@ -134,7 +137,7 @@ We would like to thank the following projects:
 
 - [Rsbuild](https://github.com/web-infra-dev/rsbuild) and [Rslib](https://github.com/web-infra-dev/rslib) for the build tool.
 - [UI-TARS](https://github.com/bytedance/ui-tars) for the open-source agent model UI-TARS.
-- [Qwen2.5-VL](https://github.com/QwenLM/Qwen2.5-VL) for the open-source VL model Qwen2.5-VL.
+- [Qwen-VL](https://github.com/QwenLM/Qwen-VL) for the open-source VL model Qwen-VL.
 - [scrcpy](https://github.com/Genymobile/scrcpy) and [yume-chan](https://github.com/yume-chan) allow us to control Android devices with browser.
 - [appium-adb](https://github.com/appium/appium-adb) for the javascript bridge of adb.
 - [appium-webdriveragent](https://github.com/appium/WebDriverAgent) for the javascript operate XCTest。

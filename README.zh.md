@@ -12,7 +12,7 @@
 </div>
 
 <p align="center">
-  开源的 AI 操作助手，适用于 Web、移动端、自动化和测试
+  视觉驱动的 AI 操作助手，适用于 Web、Android、iOS、自动化和测试。开源并采用 MIT 许可协议。
 </p>
 
 <p align="center">
@@ -63,11 +63,14 @@
 - **[Android Playground](https://midscenejs.com/zh/quick-experience-with-android.html)**: 内置的 Android Playground 可以控制你的本地 Android 设备。
 - **[iOS Playground](https://midscenejs.com/zh/quick-experience-with-ios.html)**: 内置的 iOS Playground 可以控制你的本地 iOS 设备。
 
-## ✨ 选择 AI 模型
+## ✨ 视觉语言模型驱动
 
-Midscene.js 支持多模态 LLM 模型，如 `gpt-4o`，以及视觉语言模型，如 `Qwen2.5-VL`，`Doubao-1.5-thinking-vision-pro`，`gemini-2.5-pro` 和 `UI-TARS`。
+Midscene.js 支持视觉语言模型，例如 `Qwen3-VL`、`Doubao-1.6-vision`、`gemini-2.5-pro` 和 `UI-TARS`。
 
-视觉语言模型是 UI 自动化场景的首选。对于 Web 场景之外的界面，视觉语言模型是必需的。
+* 只需提供截图即可定位并理解页面上的目标元素。
+* 无需依赖 DOM 或语义标注。
+* 相比通用 LLM 模型，Token 使用量更少、成本更低。
+* 支持开源模型。
 
 更多信息请查看 [选择 AI 模型](https://midscenejs.com/zh/choose-a-model)。
 
@@ -136,7 +139,7 @@ for (const record of recordList) {
 
 - [Rsbuild](https://github.com/web-infra-dev/rsbuild) 和 [Rslib](https://github.com/web-infra-dev/rslib) 用于构建工具。
 - [UI-TARS](https://github.com/bytedance/ui-tars) 用于开源的 AI 模型 UI-TARS。
-- [Qwen2.5-VL](https://github.com/QwenLM/Qwen2.5-VL) 用于开源的视觉语言模型 Qwen2.5-VL。
+- [Qwen-VL](https://github.com/QwenLM/Qwen-VL) 用于开源的视觉语言模型 Qwen-VL。
 - [scrcpy](https://github.com/Genymobile/scrcpy) 和 [yume-chan](https://github.com/yume-chan) 允许我们使用浏览器控制 Android 设备。
 - [appium-adb](https://github.com/appium/appium-adb) 用于 javascript 桥接 adb。
 - [appium-webdriveragent](https://github.com/appium/WebDriverAgent) 用于 javascript 操作 XCTest。
