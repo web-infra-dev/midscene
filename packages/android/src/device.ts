@@ -60,6 +60,7 @@ export type AndroidDeviceOpt = {
   usePhysicalDisplayIdForScreenshot?: boolean;
   usePhysicalDisplayIdForDisplayLookup?: boolean;
   customActions?: DeviceAction<any>[];
+  screenshotResizeScale?: number;
 } & AndroidDeviceInputOpt;
 
 export class AndroidDevice implements AbstractInterface {
@@ -67,6 +68,7 @@ export class AndroidDevice implements AbstractInterface {
   private yadbPushed = false;
   private devicePixelRatio = 1;
   private devicePixelRatioInitialized = false;
+  private scalingRatio = 1; // Record scaling ratio for coordinate adjustment
   private adb: ADB | null = null;
   private connectingAdb: Promise<ADB> | null = null;
   private destroyed = false;
@@ -713,12 +715,28 @@ ${Object.keys(size)
     const width = Number.parseInt(match[isLandscape ? 2 : 1], 10);
     const height = Number.parseInt(match[isLandscape ? 1 : 2], 10);
 
-    // Return physical pixels to match screenshot dimensions
-    // This ensures AI coordinate conversion uses the same dimensions as the screenshot
+    // Determine scaling: use screenshotResizeScale if provided, otherwise use 1/devicePixelRatio
+    // Default is 1/dpr to scale down by device pixel ratio (e.g., dpr=3 -> scale=1/3)
+    const scale =
+      this.options?.screenshotResizeScale ?? 1 / this.devicePixelRatio;
+    this.scalingRatio = scale;
+
+    // Apply scale to get logical dimensions for AI processing
+    // adjustCoordinates() will convert back to physical pixels when needed for touch operations
+    const logicalWidth = Math.round(width * scale);
+    const logicalHeight = Math.round(height * scale);
+
     return {
-      width,
-      height,
-      dpr: this.devicePixelRatio,
+      width: logicalWidth,
+      height: logicalHeight,
+    };
+  }
+
+  private adjustCoordinates(x: number, y: number): { x: number; y: number } {
+    const scale = this.scalingRatio;
+    return {
+      x: Math.round(x / scale),
+      y: Math.round(y / scale),
     };
   }
 
@@ -1170,17 +1188,20 @@ ${Object.keys(size)
   async mouseClick(x: number, y: number): Promise<void> {
     const adb = await this.getAdb();
 
+    // Use adjusted coordinates
+    const { x: adjustedX, y: adjustedY } = this.adjustCoordinates(x, y);
     await adb.shell(
-      `input${this.getDisplayArg()} swipe ${x} ${y} ${x} ${y} 150`,
+      `input${this.getDisplayArg()} swipe ${adjustedX} ${adjustedY} ${adjustedX} ${adjustedY} 150`,
     );
   }
 
   async mouseDoubleClick(x: number, y: number): Promise<void> {
     const adb = await this.getAdb();
+    const { x: adjustedX, y: adjustedY } = this.adjustCoordinates(x, y);
 
     // Use input tap for double-click as it generates proper touch events
     // that Android can recognize as a double-click gesture
-    const tapCommand = `input${this.getDisplayArg()} tap ${x} ${y}`;
+    const tapCommand = `input${this.getDisplayArg()} tap ${adjustedX} ${adjustedY}`;
     await adb.shell(tapCommand);
     // Short delay between taps for double-click recognition
     await sleep(50);
@@ -1200,11 +1221,15 @@ ${Object.keys(size)
   ): Promise<void> {
     const adb = await this.getAdb();
 
+    // Use adjusted coordinates
+    const { x: fromX, y: fromY } = this.adjustCoordinates(from.x, from.y);
+    const { x: toX, y: toY } = this.adjustCoordinates(to.x, to.y);
+
     // Ensure duration has a default value
     const swipeDuration = duration ?? defaultNormalScrollDuration;
 
     await adb.shell(
-      `input${this.getDisplayArg()} swipe ${from.x} ${from.y} ${to.x} ${to.y} ${swipeDuration}`,
+      `input${this.getDisplayArg()} swipe ${fromX} ${fromY} ${toX} ${toY} ${swipeDuration}`,
     );
   }
 
@@ -1244,12 +1269,22 @@ ${Object.keys(size)
     const endX = startX - deltaX;
     const endY = startY - deltaY;
 
+    // Adjust coordinates to fit device ratio
+    const { x: adjustedStartX, y: adjustedStartY } = this.adjustCoordinates(
+      startX,
+      startY,
+    );
+    const { x: adjustedEndX, y: adjustedEndY } = this.adjustCoordinates(
+      endX,
+      endY,
+    );
+
     const adb = await this.getAdb();
     const swipeDuration = duration ?? defaultNormalScrollDuration;
 
     // Execute the swipe operation
     await adb.shell(
-      `input${this.getDisplayArg()} swipe ${startX} ${startY} ${endX} ${endY} ${swipeDuration}`,
+      `input${this.getDisplayArg()} swipe ${adjustedStartX} ${adjustedStartY} ${adjustedEndX} ${adjustedEndY} ${swipeDuration}`,
     );
   }
 
@@ -1290,8 +1325,10 @@ ${Object.keys(size)
   async longPress(x: number, y: number, duration = 1000): Promise<void> {
     const adb = await this.getAdb();
 
+    // Use adjusted coordinates
+    const { x: adjustedX, y: adjustedY } = this.adjustCoordinates(x, y);
     await adb.shell(
-      `input${this.getDisplayArg()} swipe ${x} ${y} ${x} ${y} ${duration}`,
+      `input${this.getDisplayArg()} swipe ${adjustedX} ${adjustedY} ${adjustedX} ${adjustedY} ${duration}`,
     );
   }
 
@@ -1323,9 +1360,13 @@ ${Object.keys(size)
   ): Promise<void> {
     const adb = await this.getAdb();
 
+    // Use adjusted coordinates
+    const { x: fromX, y: fromY } = this.adjustCoordinates(from.x, from.y);
+    const { x: toX, y: toY } = this.adjustCoordinates(to.x, to.y);
+
     // Use the specified duration for better pull gesture recognition
     await adb.shell(
-      `input${this.getDisplayArg()} swipe ${from.x} ${from.y} ${to.x} ${to.y} ${duration}`,
+      `input${this.getDisplayArg()} swipe ${fromX} ${fromY} ${toX} ${toY} ${duration}`,
     );
   }
 
