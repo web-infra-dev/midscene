@@ -594,4 +594,6 @@ export interface AgentOpt {
   modelConfig?: TModelConfigFn;
   useCache?: boolean;
   replanningCycleLimit?: number;
+  /* scale factor for screenshot processing, applied uniformly by Agent */
+  scale?: number;
 }

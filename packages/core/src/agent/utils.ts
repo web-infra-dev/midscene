@@ -6,6 +6,7 @@ import type {
   ExecutionDump,
   ExecutionTask,
   ExecutorContext,
+  LocateResultElement,
   PlanningLocateParam,
   TMultimodalPrompt,
   TUserPrompt,
@@ -32,7 +33,7 @@ const debugProfile = getDebug('web:tool:profile');
 
 export async function commonContextParser(
   interfaceInstance: AbstractInterface,
-  _opt: { uploadServerUrl?: string },
+  _opt: { uploadServerUrl?: string; customScale?: number },
 ): Promise<UIContext> {
   assert(interfaceInstance, 'interfaceInstance is required');
 
@@ -53,13 +54,27 @@ export async function commonContextParser(
   const size = await interfaceInstance.size();
   debugProfile(`size: ${size.width}x${size.height} dpr: ${size.dpr}`);
 
-  if (size.dpr && size.dpr !== 1) {
+  // Handle DPR scaling (original logic) and custom scaling
+  const customScale = _opt.customScale;
+
+  if (customScale && customScale !== 1) {
+    // Custom scale: scale the logical size
+    debugProfile(`Resizing screenshot with custom scale: ${customScale}`);
+    const targetWidth = Math.round(size.width * customScale);
+    const targetHeight = Math.round(size.height * customScale);
+    screenshotBase64 = await resizeImgBase64(screenshotBase64, {
+      width: targetWidth,
+      height: targetHeight,
+    });
+    debugProfile('Custom scale ResizeImgBase64 end');
+  } else if (size.dpr && size.dpr !== 1) {
+    // DPR scaling: resize physical screenshot to logical size
     debugProfile('Resizing screenshot for non-1 dpr');
     screenshotBase64 = await resizeImgBase64(screenshotBase64, {
       width: size.width,
       height: size.height,
     });
-    debugProfile('ResizeImgBase64 end');
+    debugProfile('DPR ResizeImgBase64 end');
   }
 
   return {
@@ -291,3 +306,39 @@ export const parsePrompt = (
       : undefined,
   };
 };
+
+/**
+ * Scale element coordinates from custom scaled screenshot space to device logical space
+ *
+ * This is only needed when a custom scale was explicitly provided. When no custom scale
+ * is set, devices handle DPR coordinate scaling naturally.
+ */
+export function scaleElementCoordinates(
+  element: LocateResultElement,
+  scale: number | undefined,
+  _deviceDpr: number | undefined,
+): LocateResultElement {
+  // Only apply coordinate scaling when a custom scale was explicitly provided
+  if (!scale || scale === 1) return element;
+
+  // Calculate coordinate scaling factor to convert back to logical space
+  const coordinateScale = 1 / scale;
+
+  return {
+    ...element,
+    rect: element.rect
+      ? {
+          left: Math.round(element.rect.left * coordinateScale),
+          top: Math.round(element.rect.top * coordinateScale),
+          width: Math.round(element.rect.width * coordinateScale),
+          height: Math.round(element.rect.height * coordinateScale),
+        }
+      : element.rect,
+    center: element.center
+      ? ([
+          Math.round(element.center[0] * coordinateScale),
+          Math.round(element.center[1] * coordinateScale),
+        ] as [number, number])
+      : element.center,
+  };
+}

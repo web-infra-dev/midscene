@@ -54,6 +54,7 @@ import {
   matchElementFromCache,
   matchElementFromPlan,
   parsePrompt,
+  scaleElementCoordinates,
 } from './utils';
 
 interface ExecutionResult<OutputType = any> {
@@ -90,6 +91,8 @@ export class TaskExecutor {
 
   replanningCycleLimit?: number;
 
+  scale?: number;
+
   // @deprecated use .interface instead
   get page() {
     return this.interface;
@@ -102,11 +105,13 @@ export class TaskExecutor {
       taskCache?: TaskCache;
       onTaskStart?: ExecutionTaskProgressOptions['onTaskStart'];
       replanningCycleLimit?: number;
+      scale?: number;
     },
   ) {
     this.interface = interfaceInstance;
     this.insight = insight;
     this.taskCache = opts.taskCache;
+    this.scale = opts.scale;
     this.onTaskStartCallback = opts?.onTaskStart;
     this.replanningCycleLimit = opts.replanningCycleLimit;
     this.conversationHistory = new ConversationHistory();
@@ -357,6 +362,15 @@ export class TaskExecutor {
             throw new Error(`Element not found: ${param.prompt}`);
           }
 
+          // Apply coordinate scaling using shared utility function
+          // At this point, element is guaranteed to be non-null due to the check above
+          const deviceSize = await this.interface.size();
+          const scaledElement = scaleElementCoordinates(
+            element!,
+            this.scale,
+            deviceSize.dpr,
+          );
+
           let hitBy: ExecutionTaskHitBy | undefined;
 
           if (userExpectedPathHitFlag) {
@@ -391,11 +405,11 @@ export class TaskExecutor {
             };
           }
 
-          onResult?.(element);
+          onResult?.(scaledElement);
 
           return {
             output: {
-              element,
+              element: scaledElement,
             },
             uiContext,
             hitBy,

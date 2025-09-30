@@ -50,7 +50,6 @@ import {
 } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-// import type { AndroidDeviceInputOpt } from '../device';
 import { TaskCache } from './task-cache';
 import { TaskExecutor, locatePlanForLocate } from './tasks';
 import { locateParamStr, paramStr, taskTitleStr, typeStr } from './ui-utils';
@@ -59,6 +58,7 @@ import {
   getReportFileName,
   parsePrompt,
   printReportMsg,
+  scaleElementCoordinates,
 } from './utils';
 import { trimContextByViewport } from './utils';
 
@@ -114,6 +114,11 @@ export class Agent<
   modelConfigManager: ModelConfigManager;
 
   /**
+   * Scale factor for screenshot processing
+   */
+  private scale: number | undefined;
+
+  /**
    * Frozen page context for consistent AI operations
    */
   private frozenUIContext?: UIContext;
@@ -165,6 +170,8 @@ export class Agent<
       ? new ModelConfigManager(opts.modelConfig)
       : globalModelConfigManager;
 
+    this.scale = opts?.scale;
+
     this.onTaskStartTip = this.opts.onTaskStartTip;
 
     this.insight = new Insight(async (action: InsightAction) => {
@@ -187,6 +194,7 @@ export class Agent<
       taskCache: this.taskCache,
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
       replanningCycleLimit: this.opts.replanningCycleLimit,
+      scale: this.scale,
     });
     this.dump = this.resetDump();
     this.reportFileName =
@@ -215,6 +223,7 @@ export class Agent<
       debug('Using commonContextParser for action:', action);
       return await commonContextParser(this.interface, {
         uploadServerUrl: this.modelConfigManager.getUploadTestServerUrl(),
+        customScale: this.scale,
       });
     }
   }
@@ -817,10 +826,28 @@ export class Agent<
 
     const { element } = output;
 
+    if (!element) {
+      return {
+        rect: undefined,
+        center: undefined,
+        scale: (await this.interface.size()).dpr,
+      } as Pick<LocateResultElement, 'rect' | 'center'> & {
+        scale: number;
+      };
+    }
+
+    // Apply coordinate scaling using shared utility function
+    const deviceSize = await this.interface.size();
+    const scaledElement = scaleElementCoordinates(
+      element,
+      this.scale,
+      deviceSize.dpr,
+    );
+
     return {
-      rect: element?.rect,
-      center: element?.center,
-      scale: (await this.interface.size()).dpr,
+      rect: scaledElement.rect,
+      center: scaledElement.center,
+      scale: deviceSize.dpr,
     } as Pick<LocateResultElement, 'rect' | 'center'> & {
       scale: number;
     };
