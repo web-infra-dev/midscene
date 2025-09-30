@@ -48,7 +48,7 @@ import {
   globalConfigManager,
   globalModelConfigManager,
 } from '@midscene/shared/env';
-import { resizeImgBase64 } from '@midscene/shared/img';
+import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 // import type { AndroidDeviceInputOpt } from '../device';
@@ -136,9 +136,14 @@ export class Agent<
   private hasWarnedNonVLModel = false;
 
   /**
-   * Screenshot scale factor for AI model processing
+   * Screenshot scale factor derived from actual screenshot dimensions
    */
   private screenshotScale?: number;
+
+  /**
+   * Internal promise to deduplicate screenshot scale computation
+   */
+  private screenshotScalePromise?: Promise<number>;
 
   // @deprecated use .interface instead
   get page() {
@@ -158,6 +163,52 @@ export class Agent<
     ) {
       this.modelConfigManager.throwErrorIfNonVLModel();
       this.hasWarnedNonVLModel = true;
+    }
+  }
+
+  /**
+   * Lazily compute the ratio between the physical screenshot width and the logical page width
+   */
+  private async getScreenshotScale(context: UIContext): Promise<number> {
+    if (this.screenshotScale !== undefined) {
+      return this.screenshotScale;
+    }
+
+    if (!this.screenshotScalePromise) {
+      this.screenshotScalePromise = (async () => {
+        const pageWidth = context.size?.width;
+        assert(
+          pageWidth && pageWidth > 0,
+          `Invalid page width when computing screenshot scale: ${pageWidth}`,
+        );
+
+        const { width: screenshotWidth } = await imageInfoOfBase64(
+          context.screenshotBase64,
+        );
+
+        assert(
+          Number.isFinite(screenshotWidth) && screenshotWidth > 0,
+          `Invalid screenshot width when computing screenshot scale: ${screenshotWidth}`,
+        );
+
+        const computedScale = screenshotWidth / pageWidth;
+        assert(
+          Number.isFinite(computedScale) && computedScale > 0,
+          `Invalid computed screenshot scale: ${computedScale}`,
+        );
+
+        debug(
+          `Computed screenshot scale ${computedScale} from screenshot width ${screenshotWidth} and page width ${pageWidth}`,
+        );
+        return computedScale;
+      })();
+    }
+
+    try {
+      this.screenshotScale = await this.screenshotScalePromise;
+      return this.screenshotScale;
+    } finally {
+      this.screenshotScalePromise = undefined;
     }
   }
 
@@ -182,7 +233,6 @@ export class Agent<
       ? new ModelConfigManager(opts.modelConfig)
       : globalModelConfigManager;
 
-    this.screenshotScale = opts?.screenshotScale;
     this.onTaskStartTip = this.opts.onTaskStartTip;
 
     this.insight = new Insight(async (action: InsightAction) => {
@@ -237,33 +287,22 @@ export class Agent<
       });
     }
 
-    // Unified screenshot scaling: prioritize screenshotScale, otherwise use DPR
-    let targetWidth = context.size.width;
-    let targetHeight = context.size.height;
-    let needResize = false;
+    const computedScreenshotScale = await this.getScreenshotScale(context);
 
-    if (this.screenshotScale && this.screenshotScale !== 1) {
-      // User-specified scaling ratio
-      debug(`Applying user screenshot scale: ${this.screenshotScale}`);
-      targetWidth = Math.round(context.size.width * this.screenshotScale);
-      targetHeight = Math.round(context.size.height * this.screenshotScale);
-      needResize = true;
-    } else if (context.size.dpr && context.size.dpr !== 1) {
-      // No user-specified scaling, use DPR scaling to logical size
+    if (computedScreenshotScale !== 1) {
+      const scaleForLog = Number.parseFloat(computedScreenshotScale.toFixed(4));
       debug(
-        `Applying DPR scaling: ${context.size.dpr} (resize to logical size)`,
+        `Applying computed screenshot scale: ${scaleForLog} (resize to logical size)`,
       );
-      // Target is logical size, no need to change targetWidth/targetHeight
-      needResize = true;
-    }
-
-    // Execute scaling
-    if (needResize) {
+      const targetWidth = Math.round(context.size.width);
+      const targetHeight = Math.round(context.size.height);
       debug(`Resizing screenshot to ${targetWidth}x${targetHeight}`);
       context.screenshotBase64 = await resizeImgBase64(
         context.screenshotBase64,
         { width: targetWidth, height: targetHeight },
       );
+    } else {
+      debug(`screenshot scale=${computedScreenshotScale}`);
     }
 
     return context;
@@ -867,12 +906,18 @@ export class Agent<
 
     const { element } = output;
 
+    const dprValue = await (this.interface.size() as any).dpr;
+    const dprEntry = dprValue
+      ? {
+          dpr: dprValue,
+        }
+      : {};
     return {
       rect: element?.rect,
       center: element?.center,
-      dpr: (await this.interface.size()).dpr,
+      ...dprEntry,
     } as Pick<LocateResultElement, 'rect' | 'center'> & {
-      dpr: number;
+      dpr?: number; // this field is deprecated
     };
   }
 
