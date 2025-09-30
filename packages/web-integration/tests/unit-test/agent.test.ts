@@ -62,7 +62,7 @@ const mockedModelConfigFnResult = {
 const modelConfigCalcByMockedModelConfigFnResult = {
   from: 'modelConfig',
   httpProxy: undefined,
-  intent: 'default',
+  intent: 'VQA',
   modelDescription: '',
   modelName: 'mock-model',
   openaiApiKey: 'mock-api-key',
@@ -429,7 +429,7 @@ describe('PageAgent cache configuration', () => {
     it('should throw error for cache: { strategy: "read-only" } without id', () => {
       expect(() => {
         new PageAgent(mockPage, {
-          cache: { strategy: 'read-only' },
+          cache: { strategy: 'read-only', id: undefined as unknown as string },
           modelConfig: () => mockedModelConfigFnResult,
         });
       }).toThrow('cache configuration requires an explicit id');
