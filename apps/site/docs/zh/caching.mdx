@@ -52,33 +52,50 @@ agent:
   cache: false
 ```
 
-### 读写模式
+### 读写模式（默认）
 
-配置方式：`cache: { id: "my-cache-id" }`
+配置方式：`cache: { id: "my-cache-id" }` 或 `cache: { strategy: "read-write", id: "my-cache-id" }`
 
-自动读取已有缓存，执行过程中自动更新缓存文件。
+自动读取已有缓存，执行过程中自动更新缓存文件。这是推荐的使用方式，适合开发和测试阶段。
 
 ```javascript
-// 直接创建 Agent - 显式设置 cache ID
+// 直接创建 Agent - 显式设置 cache ID（默认为 read-write 策略）
 const agent = new PuppeteerAgent(page, {
   cache: { id: "my-cache-id" },
+});
+
+// 或者显式指定 strategy（效果相同）
+const agent = new PuppeteerAgent(page, {
+  cache: { strategy: "read-write", id: "my-cache-id" },
 });
 ```
 
 ```yaml
-# YAML 配置 - 显式设置 cache ID
+# YAML 配置 - 显式设置 cache ID（默认为 read-write 策略）
 agent:
   cache:
     id: "my-cache-test"
+
+# 或者显式指定 strategy（效果相同）
+agent:
+  cache:
+    id: "my-cache-test"
+    strategy: "read-write"
 ```
 
 YAML 模式还支持配置 `cache: true`，自动使用文件名作为 cache ID。
 
-### 只读，手动写入
+**特点：**
+- ✅ 自动读取已有缓存
+- ✅ 执行过程中自动写入更新
+- ✅ 无需手动管理缓存文件
+- ✅ 适合开发和测试环境
+
+### 只读模式，手动写入
 
 配置方式：`cache: { strategy: "read-only", id: "my-cache-id" }`
 
-只读取缓存，不自动写入缓存文件，需要手动调用 `agent.flushCache()` 写入缓存文件，适合生产环境，确保缓存的一致性
+只读取缓存，不自动写入缓存文件，需要手动调用 `agent.flushCache()` 写入缓存文件。适合生产环境或 CI/CD 场景，确保缓存的一致性和可控性。
 
 ```javascript
 // 直接创建 Agent
@@ -97,6 +114,12 @@ agent:
     id: "my-cache-test"
     strategy: "read-only"
 ```
+
+**特点：**
+- ✅ 读取已有缓存
+- ⚠️ 不自动写入，需手动调用 `flushCache()`
+- ✅ 精确控制缓存写入时机
+- ✅ 适合 CI/CD 和生产环境
 
 ### 兼容方式（不推荐）
 

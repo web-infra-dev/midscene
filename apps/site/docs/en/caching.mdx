@@ -49,33 +49,50 @@ agent:
   cache: false
 ```
 
-### Read-write mode
+### Read-write mode (Default)
 
-Configuration: `cache: { id: "my-cache-id" }`
+Configuration: `cache: { id: "my-cache-id" }` or `cache: { strategy: "read-write", id: "my-cache-id" }`
 
-Automatically read existing cache and update cache files during execution.
+Automatically read existing cache and update cache files during execution. This is the recommended approach for development and testing phases.
 
 ```javascript
-// Direct Agent creation - explicit cache ID
+// Direct Agent creation - explicit cache ID (defaults to read-write strategy)
 const agent = new PuppeteerAgent(page, {
   cache: { id: "my-cache-id" },
+});
+
+// Or explicitly specify strategy (same effect)
+const agent = new PuppeteerAgent(page, {
+  cache: { strategy: "read-write", id: "my-cache-id" },
 });
 ```
 
 ```yaml
-# YAML configuration - explicit cache ID
+# YAML configuration - explicit cache ID (defaults to read-write strategy)
 agent:
   cache:
     id: "my-cache-test"
+
+# Or explicitly specify strategy (same effect)
+agent:
+  cache:
+    id: "my-cache-test"
+    strategy: "read-write"
 ```
 
 YAML mode also supports `cache: true` to automatically use the file name as the cache ID.
 
-### Read-only, manual write
+**Features:**
+- ✅ Automatically read existing cache
+- ✅ Automatically write updates during execution
+- ✅ No manual cache management needed
+- ✅ Suitable for development and testing
+
+### Read-only mode, manual write
 
 Configuration: `cache: { strategy: "read-only", id: "my-cache-id" }`
 
-Only read cache, no automatic writing to cache files. Requires manual `agent.flushCache()` call to write cache files. Suitable for production environments to ensure cache consistency.
+Only read cache, no automatic writing to cache files. Requires manual `agent.flushCache()` call to write cache files. Suitable for production environments or CI/CD scenarios to ensure cache consistency and control.
 
 ```javascript
 // Direct Agent creation
@@ -94,6 +111,12 @@ agent:
     id: "my-cache-test"
     strategy: "read-only"
 ```
+
+**Features:**
+- ✅ Read existing cache
+- ⚠️ No automatic write, requires manual `flushCache()` call
+- ✅ Precise control over cache write timing
+- ✅ Suitable for CI/CD and production
 
 ### Compatibility mode (not recommended)
 
