@@ -164,6 +164,40 @@ await agent.launch('com.android.settings'); // open a native page
 await agent.launch('com.android.settings/.Settings'); // open a native page
 ```
 
+#### `agent.runAdbShell()`
+
+Execute a command through `adb shell` on the connected device.
+
+> Note: This method wraps `adb shell` and forwards the command directly to the device.
+
+- Type
+
+```typescript
+function runAdbShell(command: string): Promise<string>;
+```
+
+- Parameters:
+
+  - `command: string` - The adb shell command to execute.
+
+- Return Value:
+
+  - `Promise<string>` - Returns a Promise that resolves to the command output.
+
+- Examples:
+
+```typescript
+import { AndroidAgent, AndroidDevice } from '@midscene/android';
+
+const device = new AndroidDevice('s4ey59');
+const agent = new AndroidAgent(device);
+await device.connect();
+
+const result = await agent.runAdbShell('dumpsys battery');
+// Equivalent to running `adb shell dumpsys battery`
+console.log(result);
+```
+
 #### `agentFromAdbDevice()`
 
 Create a AndroidAgent from a connected adb device.
