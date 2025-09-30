@@ -139,6 +139,8 @@ export type InsightAction = 'locate' | 'extract' | 'assert' | 'describe';
 
 export type InsightExtractParam = string | Record<string, string>;
 
+export type ElementCacheFeature = Record<string, unknown>;
+
 export type LocateResultElement = {
   center: [number, number];
   rect: Rect;
