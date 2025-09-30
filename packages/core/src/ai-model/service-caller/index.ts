@@ -131,29 +131,6 @@ async function createChatClient({
         [MIDSCENE_API_TYPE]: AIActionTypeValue.toString(),
       },
       dangerouslyAllowBrowser: true,
-      /**
-       * By default, OpenAI uses the built-in fetch function of Node.js as the implementation of fetch.
-       * However, the built-in error handling logic of OpenAI does not throw out all the text in the HTTP response.
-       * This will prevent users from seeing the most crucial error messages, especially when using third-party models.
-       */
-      fetch: async (...args) => {
-        const result = await fetch(...args);
-        if (!result.ok) {
-          const clone = result.clone();
-          try {
-            const text = await clone.text();
-            console.log(
-              `call AI model service error with status code ${result.status} and response text: ${text}`,
-            );
-          } catch (e) {
-            console.log(
-              `call AI model service error with status code ${result.status} but get response text failed.`,
-              e,
-            );
-          }
-        }
-        return result;
-      },
     });
   }
 
@@ -491,7 +468,7 @@ export async function callAI(
       isStreamed: !!isStreaming,
     };
   } catch (e: any) {
-    console.error('call AI model service error', e);
+    console.error(' call AI error', e);
     const newError = new Error(
       `failed to call ${isStreaming ? 'streaming ' : ''}AI model service: ${e.message}. Trouble shooting: https://midscenejs.com/model-provider.html`,
       {
