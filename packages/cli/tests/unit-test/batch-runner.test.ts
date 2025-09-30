@@ -369,6 +369,69 @@ describe('BatchRunner', () => {
       );
       consoleSpy.mockRestore();
     });
+
+    test('continueOnError: failed tasks should be counted as failed files', async () => {
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      // Create a mock player that simulates continueOnError behavior:
+      // - player.status = 'done' (execution completed)
+      // - but taskStatusList contains failed tasks
+      const createMockPlayerWithFailedTasks = (
+        fileName: string,
+      ): ScriptPlayer<MidsceneYamlScriptEnv> => {
+        const isFile1 = fileName === 'file1.yml';
+        const mockPlayer = {
+          status: 'done' as ScriptPlayerStatusValue, // Always 'done' with continueOnError
+          output: '/test/output/file.json',
+          reportFile: '/test/report.html',
+          result: { test: 'data' },
+          errorInSetup: null,
+          taskStatusList: isFile1
+            ? [
+                {
+                  status: 'error',
+                  error: new Error(
+                    'Assertion failed: this is not a search engine',
+                  ),
+                },
+                { status: 'done' },
+              ]
+            : [{ status: 'done' }],
+          run: vi.fn().mockImplementation(async () => {
+            return undefined;
+          }),
+          script: mockYamlScript,
+          setupAgent: vi.fn(),
+          unnamedResultIndex: 0,
+          pageAgent: null,
+          currentTaskIndex: undefined,
+          agentStatusTip: '',
+        };
+        return mockPlayer as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      };
+
+      vi.mocked(createYamlPlayer).mockImplementation(async (file) =>
+        createMockPlayerWithFailedTasks(file),
+      );
+
+      const config = { ...mockBatchConfig, continueOnError: true };
+      const executor = new BatchRunner(config);
+      await executor.run();
+
+      const summary = executor.getExecutionSummary();
+      const success = executor.printExecutionSummary();
+
+      // Files with failed tasks and continueOnError should be counted as partialFailed
+      expect(summary.partialFailed).toBe(1);
+      expect(summary.failed).toBe(0); // No complete failures
+      expect(summary.successful).toBe(2); // The other two files succeeded
+      expect(success).toBe(false); // Overall should still be false due to partial failure
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('⚠️  Partial failed files'),
+      );
+
+      consoleSpy.mockRestore();
+    });
   });
 
   describe('BatchRunner output file existence check', () => {
