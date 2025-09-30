@@ -197,7 +197,8 @@ export async function matchElementFromCache(
   }
 
   try {
-    const rect = await taskExecutor.interface.rectMatchesCacheFeature(cacheEntry);
+    const rect =
+      await taskExecutor.interface.rectMatchesCacheFeature(cacheEntry);
     const element: LocateResultElement = {
       id: uuid(),
       center: [
