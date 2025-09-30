@@ -20,6 +20,8 @@ import type { Cache, Rect, ReportDumpWithAttributes } from './types';
 
 let logEnvReady = false;
 
+export { appendFileSync } from 'fs'
+
 export const groupedActionDumpFileExt = 'web-dump.json';
 
 /**
@@ -160,6 +162,39 @@ export function reportHTMLContent(
   return tpl + dumpContent;
 }
 
+export function getHtmlScripts(
+  dumpData: ReportDumpWithAttributes,
+): string {
+
+  // if reportPath is set, it means we are in write to file mode
+  let dumpContent = '';
+
+  if (typeof dumpData === 'string') {
+    // do not use template string here, will cause bundle error
+    dumpContent =
+      // biome-ignore lint/style/useTemplate: <explanation>
+      '<script type="midscene_web_dump" type="application/json">\n' +
+      escapeScriptTag(dumpData) +
+      '\n</script>';
+  } else {
+    const { dumpString, attributes } = dumpData;
+    const attributesArr = Object.keys(attributes || {}).map((key) => {
+      return `${key}="${encodeURIComponent(attributes![key])}"`;
+    });
+
+    dumpContent =
+      // do not use template string here, will cause bundle error
+      // biome-ignore lint/style/useTemplate: <explanation>
+      '<script type="midscene_web_dump" type="application/json" ' +
+      attributesArr.join(' ') +
+      '>\n' +
+      escapeScriptTag(dumpString) +
+      '\n</script>';
+  }
+
+  return dumpContent;
+}
+
 export function writeDumpReport(
   fileName: string,
   dumpData: string | ReportDumpWithAttributes,
@@ -200,7 +235,7 @@ export function writeDumpReport(
 export function writeLogFile(opts: {
   fileName: string;
   fileExt: string;
-  fileContent: string;
+  fileContent: string | ReportDumpWithAttributes;
   type: 'dump' | 'cache' | 'report' | 'tmp';
   generateReport?: boolean;
   appendReport?: boolean;
@@ -242,7 +277,7 @@ export function writeLogFile(opts: {
 
   if (type !== 'dump') {
     // do not write dump file any more
-    writeFileSync(filePath, fileContent);
+    writeFileSync(filePath, JSON.stringify(fileContent));
   }
 
   if (opts?.generateReport) {
