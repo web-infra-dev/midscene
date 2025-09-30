@@ -164,14 +164,16 @@ await agent.launch('com.android.settings'); // open a native page
 await agent.launch('com.android.settings/.Settings'); // open a native page
 ```
 
-#### `agent.runAdbCommand()`
+#### `agent.runAdbShell()`
 
-Execute an adb shell command.
+Execute a command through `adb shell` on the connected device.
+
+> Note: This method wraps `adb shell` and forwards the command directly to the device.
 
 - Type
 
 ```typescript
-function runAdbCommand(command: string): Promise<string>;
+function runAdbShell(command: string): Promise<string>;
 ```
 
 - Parameters:
@@ -191,7 +193,8 @@ const device = new AndroidDevice('s4ey59');
 const agent = new AndroidAgent(device);
 await device.connect();
 
-const result = await agent.runAdbCommand('dumpsys battery');
+const result = await agent.runAdbShell('dumpsys battery');
+// Equivalent to running `adb shell dumpsys battery`
 console.log(result);
 ```
 

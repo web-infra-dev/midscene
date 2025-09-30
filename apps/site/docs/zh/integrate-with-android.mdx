@@ -163,14 +163,16 @@ await agent.launch('com.android.settings'); // 打开系统设置 app(package na
 await agent.launch('com.android.settings/.Settings'); // 打开系统设置 app(package name) 的 .Settings(activity name) 页面
 ```
 
-#### `agent.runAdbCommand()`
+#### `agent.runAdbShell()`
 
-执行 adb shell 命令。
+执行 `adb shell` 命令。
+
+> 注意：该方法本质上是调用 `adb shell` 执行传入的命令。
 
 - 类型
 
 ```typescript
-function runAdbCommand(command: string): Promise<string>;
+function runAdbShell(command: string): Promise<string>;
 ```
 
 - 参数：
@@ -190,7 +192,8 @@ const page = new AndroidDevice('s4ey59');
 const agent = new AndroidAgent(page);
 await page.connect();
 
-const result = await agent.runAdbCommand('dumpsys battery');
+const result = await agent.runAdbShell('dumpsys battery');
+// 等同于执行 `adb shell dumpsys battery`
 console.log(result);
 ```
 

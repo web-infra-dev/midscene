@@ -13,7 +13,7 @@ export class AndroidAgent extends PageAgent<AndroidDevice> {
     await device.launch(uri);
   }
 
-  async runAdbCommand(command: string): Promise<string> {
+  async runAdbShell(command: string): Promise<string> {
     const adb = await this.page.getAdb();
     return await adb.shell(command);
   }
