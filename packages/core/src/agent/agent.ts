@@ -48,6 +48,7 @@ import {
   globalConfigManager,
   globalModelConfigManager,
 } from '@midscene/shared/env';
+import { resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 // import type { AndroidDeviceInputOpt } from '../device';
@@ -134,6 +135,11 @@ export class Agent<
    */
   private hasWarnedNonVLModel = false;
 
+  /**
+   * Screenshot scale factor for AI model processing
+   */
+  private screenshotScale?: number;
+
   // @deprecated use .interface instead
   get page() {
     return this.interface;
@@ -176,6 +182,7 @@ export class Agent<
       ? new ModelConfigManager(opts.modelConfig)
       : globalModelConfigManager;
 
+    this.screenshotScale = opts?.screenshotScale;
     this.onTaskStartTip = this.opts.onTaskStartTip;
 
     this.insight = new Insight(async (action: InsightAction) => {
@@ -218,15 +225,48 @@ export class Agent<
       return this.frozenUIContext;
     }
 
+    // Get original context
+    let context: UIContext;
     if (this.interface.getContext) {
       debug('Using page.getContext for action:', action);
-      return await this.interface.getContext();
+      context = await this.interface.getContext();
     } else {
       debug('Using commonContextParser for action:', action);
-      return await commonContextParser(this.interface, {
+      context = await commonContextParser(this.interface, {
         uploadServerUrl: this.modelConfigManager.getUploadTestServerUrl(),
       });
     }
+
+    // Unified screenshot scaling: prioritize screenshotScale, otherwise use DPR
+    let targetWidth = context.size.width;
+    let targetHeight = context.size.height;
+    let needResize = false;
+
+    if (this.screenshotScale && this.screenshotScale !== 1) {
+      // User-specified scaling ratio
+      debug(`Applying user screenshot scale: ${this.screenshotScale}`);
+      targetWidth = Math.round(context.size.width * this.screenshotScale);
+      targetHeight = Math.round(context.size.height * this.screenshotScale);
+      needResize = true;
+    } else if (context.size.dpr && context.size.dpr !== 1) {
+      // No user-specified scaling, use DPR scaling to logical size
+      debug(
+        `Applying DPR scaling: ${context.size.dpr} (resize to logical size)`,
+      );
+      // Target is logical size, no need to change targetWidth/targetHeight
+      needResize = true;
+    }
+
+    // Execute scaling
+    if (needResize) {
+      debug(`Resizing screenshot to ${targetWidth}x${targetHeight}`);
+      context.screenshotBase64 = await resizeImgBase64(
+        context.screenshotBase64,
+        { width: targetWidth, height: targetHeight },
+      );
+    }
+
+    return context;
   }
 
   async _snapshotContext(): Promise<UIContext> {
@@ -830,9 +870,9 @@ export class Agent<
     return {
       rect: element?.rect,
       center: element?.center,
-      scale: (await this.interface.size()).dpr,
+      dpr: (await this.interface.size()).dpr,
     } as Pick<LocateResultElement, 'rect' | 'center'> & {
-      scale: number;
+      dpr: number;
     };
   }
 

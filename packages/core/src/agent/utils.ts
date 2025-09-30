@@ -50,20 +50,11 @@ export async function commonContextParser(
   });
   debugProfile('UploadTestInfoToServer end');
 
-  let screenshotBase64 = await interfaceInstance.screenshotBase64();
+  const screenshotBase64 = await interfaceInstance.screenshotBase64();
   assert(screenshotBase64!, 'screenshotBase64 is required');
 
   const size = await interfaceInstance.size();
   debugProfile(`size: ${size.width}x${size.height} dpr: ${size.dpr}`);
-
-  if (size.dpr && size.dpr !== 1) {
-    debugProfile('Resizing screenshot for non-1 dpr');
-    screenshotBase64 = await resizeImgBase64(screenshotBase64, {
-      width: size.width,
-      height: size.height,
-    });
-    debugProfile('ResizeImgBase64 end');
-  }
 
   return {
     tree: {
