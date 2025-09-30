@@ -435,7 +435,7 @@ describe('PageAgent cache configuration', () => {
       }).toThrow('cache configuration requires an explicit id');
     });
 
-    it('should handle cache: { id: "custom-id" }', () => {
+    it('should handle cache: { id: "custom-id" } with default read-write strategy', () => {
       const agent = new PageAgent(mockPage, {
         cache: { id: 'custom-cache-id' },
         modelConfig: () => mockedModelConfigFnResult,
@@ -445,6 +445,21 @@ describe('PageAgent cache configuration', () => {
       expect(agent.taskCache?.isCacheResultUsed).toBe(true);
       expect(agent.taskCache?.readOnlyMode).toBe(false);
       expect(agent.taskCache?.cacheId).toBe('custom-cache-id');
+    });
+
+    it('should handle cache: { strategy: "read-write", id: "custom-id" }', () => {
+      const agent = new PageAgent(mockPage, {
+        cache: {
+          strategy: 'read-write',
+          id: 'custom-readwrite-cache',
+        },
+        modelConfig: () => mockedModelConfigFnResult,
+      });
+
+      expect(agent.taskCache).toBeDefined();
+      expect(agent.taskCache?.isCacheResultUsed).toBe(true);
+      expect(agent.taskCache?.readOnlyMode).toBe(false);
+      expect(agent.taskCache?.cacheId).toBe('custom-readwrite-cache');
     });
 
     it('should handle cache: { strategy: "read-only", id: "custom-id" }', () => {

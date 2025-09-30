@@ -1079,7 +1079,9 @@ export class Agent<
           );
         }
         const id = config.id;
-        const isReadOnly = config.strategy === 'read-only';
+        // Default strategy is 'read-write'
+        const strategy = config.strategy ?? 'read-write';
+        const isReadOnly = strategy === 'read-only';
 
         return {
           id,

@@ -207,7 +207,7 @@ export class Page<
     };
 
     try {
-      const orderSensitive = opt?._orderSensitive ?? true;
+      const orderSensitive = opt?._orderSensitive ?? false;
       const xpaths = await this.getXpathsByPoint(center, orderSensitive);
       const sanitized = sanitizeXpaths(xpaths);
       if (!sanitized.length) {

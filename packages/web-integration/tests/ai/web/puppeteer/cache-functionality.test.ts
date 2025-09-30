@@ -23,6 +23,7 @@ describe('Cache Configuration Tests', () => {
     const agent = new PuppeteerAgent(originPage, {
       cache: {
         id: 'cache-functionality-test',
+        strategy: 'read-write',
       },
       testId: 'explicit-cache-test-001',
     });
