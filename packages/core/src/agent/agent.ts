@@ -88,9 +88,9 @@ const CACHE_STRATEGIES: readonly CacheStrategy[] = ['read-only', 'read-write'];
 const isValidCacheStrategy = (strategy: string): strategy is CacheStrategy =>
   CACHE_STRATEGIES.some((value) => value === strategy);
 
-const CACHE_STRATEGY_VALUES = CACHE_STRATEGIES.map((value) => `"${value}"`).join(
-  ', ',
-);
+const CACHE_STRATEGY_VALUES = CACHE_STRATEGIES.map(
+  (value) => `"${value}"`,
+).join(', ');
 
 export class Agent<
   InterfaceType extends AbstractInterface = AbstractInterface,
