@@ -62,7 +62,7 @@ const mockedModelConfigFnResult = {
 const modelConfigCalcByMockedModelConfigFnResult = {
   from: 'modelConfig',
   httpProxy: undefined,
-  intent: 'default',
+  intent: 'VQA',
   modelDescription: '',
   modelName: 'mock-model',
   openaiApiKey: 'mock-api-key',
@@ -429,13 +429,13 @@ describe('PageAgent cache configuration', () => {
     it('should throw error for cache: { strategy: "read-only" } without id', () => {
       expect(() => {
         new PageAgent(mockPage, {
-          cache: { strategy: 'read-only' },
+          cache: { strategy: 'read-only', id: undefined as unknown as string },
           modelConfig: () => mockedModelConfigFnResult,
         });
       }).toThrow('cache configuration requires an explicit id');
     });
 
-    it('should handle cache: { id: "custom-id" }', () => {
+    it('should handle cache: { id: "custom-id" } with default read-write strategy', () => {
       const agent = new PageAgent(mockPage, {
         cache: { id: 'custom-cache-id' },
         modelConfig: () => mockedModelConfigFnResult,
@@ -445,6 +445,34 @@ describe('PageAgent cache configuration', () => {
       expect(agent.taskCache?.isCacheResultUsed).toBe(true);
       expect(agent.taskCache?.readOnlyMode).toBe(false);
       expect(agent.taskCache?.cacheId).toBe('custom-cache-id');
+    });
+
+    it('should throw error for cache: { strategy: "invalid" }', () => {
+      expect(() => {
+        new PageAgent(mockPage, {
+          cache: {
+            // @ts-expect-error invalid strategy provided intentionally for runtime validation
+            strategy: 'invalid',
+            id: 'invalid-strategy-cache',
+          },
+          modelConfig: () => mockedModelConfigFnResult,
+        });
+      }).toThrow('cache.strategy must be one of "read-only", "read-write"');
+    });
+
+    it('should handle cache: { strategy: "read-write", id: "custom-id" }', () => {
+      const agent = new PageAgent(mockPage, {
+        cache: {
+          strategy: 'read-write',
+          id: 'custom-readwrite-cache',
+        },
+        modelConfig: () => mockedModelConfigFnResult,
+      });
+
+      expect(agent.taskCache).toBeDefined();
+      expect(agent.taskCache?.isCacheResultUsed).toBe(true);
+      expect(agent.taskCache?.readOnlyMode).toBe(false);
+      expect(agent.taskCache?.cacheId).toBe('custom-readwrite-cache');
     });
 
     it('should handle cache: { strategy: "read-only", id: "custom-id" }', () => {

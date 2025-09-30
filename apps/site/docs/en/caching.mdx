@@ -51,14 +51,19 @@ agent:
 
 ### Read-write mode
 
-Configuration: `cache: { id: "my-cache-id" }`
+Configuration: `cache: { id: "my-cache-id" }` or `cache: { strategy: "read-write", id: "my-cache-id" }`
 
-Automatically read existing cache and update cache files during execution.
+Automatically read existing cache and update cache files during execution. The default value of `strategy` is `read-write`.
 
 ```javascript
 // Direct Agent creation - explicit cache ID
 const agent = new PuppeteerAgent(page, {
   cache: { id: "my-cache-id" },
+});
+
+// Explicitly specify strategy
+const agent = new PuppeteerAgent(page, {
+  cache: { strategy: "read-write", id: "my-cache-id" },
 });
 ```
 
@@ -67,6 +72,12 @@ const agent = new PuppeteerAgent(page, {
 agent:
   cache:
     id: "my-cache-test"
+
+# Explicitly specify strategy
+agent:
+  cache:
+    id: "my-cache-test"
+    strategy: "read-write"
 ```
 
 YAML mode also supports `cache: true` to automatically use the file name as the cache ID.

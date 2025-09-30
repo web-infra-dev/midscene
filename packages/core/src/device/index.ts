@@ -2,7 +2,7 @@ import type { DeviceAction } from '@/index';
 import { getMidsceneLocationSchema, z } from '@/index';
 import type { ElementNode } from '@midscene/shared/extractor';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
-import type { Size, UIContext } from '../types';
+import type { ElementCacheFeature, Rect, Size, UIContext } from '../types';
 
 export abstract class AbstractInterface {
   abstract interfaceType: string;
@@ -10,6 +10,14 @@ export abstract class AbstractInterface {
   abstract screenshotBase64(): Promise<string>;
   abstract size(): Promise<Size>;
   abstract actionSpace(): DeviceAction[] | Promise<DeviceAction[]>;
+
+  abstract cacheFeatureForRect?(
+    rect: Rect,
+    opt?: { _orderSensitive: boolean },
+  ): Promise<ElementCacheFeature>;
+  abstract rectMatchesCacheFeature?(
+    feature: ElementCacheFeature,
+  ): Promise<Rect>;
 
   abstract destroy?(): Promise<void>;
 

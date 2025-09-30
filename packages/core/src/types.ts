@@ -139,6 +139,8 @@ export type InsightAction = 'locate' | 'extract' | 'assert' | 'describe';
 
 export type InsightExtractParam = string | Record<string, string>;
 
+export type ElementCacheFeature = Record<string, unknown>;
+
 export type LocateResultElement = {
   center: [number, number];
   rect: Rect;
@@ -578,9 +580,7 @@ export type WebUIContext = UIContext<WebElementInfo>;
  * Agent
  */
 
-export type CacheConfig =
-  | { strategy: 'read-only'; id: string }
-  | { strategy?: undefined; id: string };
+export type CacheConfig = { strategy?: 'read-only' | 'read-write'; id: string };
 
 export type Cache =
   | false // No read, no write
