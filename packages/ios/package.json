@@ -1,6 +1,6 @@
 {
   "name": "@midscene/ios",
-  "version": "0.30.0",
+  "version": "0.30.1",
   "description": "iOS automation library for Midscene",
   "keywords": [
     "iOS UI automation",
