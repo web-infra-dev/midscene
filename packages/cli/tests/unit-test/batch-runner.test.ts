@@ -372,7 +372,7 @@ describe('BatchRunner', () => {
 
     test('continueOnError: failed tasks should be counted as failed files', async () => {
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-      
+
       // Create a mock player that simulates continueOnError behavior:
       // - player.status = 'done' (execution completed)
       // - but taskStatusList contains failed tasks
@@ -386,10 +386,15 @@ describe('BatchRunner', () => {
           reportFile: '/test/report.html',
           result: { test: 'data' },
           errorInSetup: null,
-          taskStatusList: isFile1 
+          taskStatusList: isFile1
             ? [
-                { status: 'error', error: new Error('Assertion failed: this is not a search engine') },
-                { status: 'done' }
+                {
+                  status: 'error',
+                  error: new Error(
+                    'Assertion failed: this is not a search engine',
+                  ),
+                },
+                { status: 'done' },
               ]
             : [{ status: 'done' }],
           run: vi.fn().mockImplementation(async () => {
@@ -408,22 +413,23 @@ describe('BatchRunner', () => {
       vi.mocked(createYamlPlayer).mockImplementation(async (file) =>
         createMockPlayerWithFailedTasks(file),
       );
-      
+
       const config = { ...mockBatchConfig, continueOnError: true };
       const executor = new BatchRunner(config);
       await executor.run();
-      
+
       const summary = executor.getExecutionSummary();
       const success = executor.printExecutionSummary();
-      
-      // This currently fails - demonstrates the bug
-      // Should show 1 failed file, but currently shows 0
-      expect(summary.failed).toBe(1); // This test will fail, showing the bug
-      expect(success).toBe(false);
+
+      // Files with failed tasks and continueOnError should be counted as partialFailed
+      expect(summary.partialFailed).toBe(1);
+      expect(summary.failed).toBe(0); // No complete failures
+      expect(summary.successful).toBe(2); // The other two files succeeded
+      expect(success).toBe(false); // Overall should still be false due to partial failure
       expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('❌ Failed files'),
+        expect.stringContaining('⚠️  Partial failed files'),
       );
-      
+
       consoleSpy.mockRestore();
     });
   });
