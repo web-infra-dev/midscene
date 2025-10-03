@@ -10,6 +10,7 @@ import {
   MIDSCENE_API_TYPE,
   MIDSCENE_LANGSMITH_DEBUG,
   OPENAI_MAX_TOKENS,
+  MIDSCENE_MODEL_TEMPERATURE,
   type TVlModeTypes,
   type UITarsModelVersion,
   globalConfigManager,
@@ -204,6 +205,8 @@ export async function callAI(
   const responseFormat = getResponseFormat(modelName, AIActionTypeValue);
 
   const maxTokens = globalConfigManager.getEnvConfigValue(OPENAI_MAX_TOKENS);
+  const temperatureConfig =
+    globalConfigManager.getEnvConfigValue(MIDSCENE_MODEL_TEMPERATURE);
   const debugCall = getDebug('ai:call');
   const debugProfileStats = getDebug('ai:profile:stats');
   const debugProfileDetail = getDebug('ai:profile:detail');
@@ -216,8 +219,16 @@ export async function callAI(
   let usage: OpenAI.CompletionUsage | undefined;
   let timeCost: number | undefined;
 
+  const defaultTemperature = vlMode === 'vlm-ui-tars' ? 0.0 : 0.1;
+  const parsedTemperature =
+    temperatureConfig && temperatureConfig.trim() !== ''
+      ? Number.parseFloat(temperatureConfig)
+      : undefined;
   const commonConfig = {
-    temperature: vlMode === 'vlm-ui-tars' ? 0.0 : 0.1,
+    temperature:
+      typeof parsedTemperature === 'number' && Number.isFinite(parsedTemperature)
+        ? parsedTemperature
+        : defaultTemperature,
     stream: !!isStreaming,
     max_tokens:
       typeof maxTokens === 'number'
