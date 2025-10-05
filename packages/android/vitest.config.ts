@@ -20,7 +20,7 @@ const testFiles = (() => {
     case 'android':
       return [...aiAndroidTests];
     case 'report-aggregation':
-      return ['tests/report-aggregation/cases/**/*.test.ts']
+      return ['tests/multi-tasks/**/*.test.ts']
     default:
       return unitTests;
   }

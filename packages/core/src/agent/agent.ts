@@ -25,7 +25,6 @@ import {
   type TUserPrompt,
   type UIContext,
 } from '../index';
-export type TestStatus = "passed" | "failed" | "timedOut" | "skipped" | "interrupted";
 import yaml from 'js-yaml';
 
 import {
@@ -33,8 +32,6 @@ import {
   reportHTMLContent,
   stringifyDumpData,
   writeLogFile,
-  getHtmlScripts,
-  appendFileSync
 } from '@/utils';
 import {
   ScriptPlayer,
@@ -260,29 +257,6 @@ export class Agent<
 
   reportHTMLString() {
     return reportHTMLContent(this.dumpDataString());
-  }
-  teardownTestAgent(
-    teardownOpts: {
-      testId: string,
-      testTitle: string,
-      testDescription: string,
-      testDuration: number,
-      testStatus: TestStatus
-      cacheFilePath: string
-    }
-  ) {
-
-    const s = getHtmlScripts({
-      dumpString: this.dumpDataString(),
-      attributes: {
-        playwright_test_duration: teardownOpts.testDuration,
-        playwright_test_status: teardownOpts.testStatus,
-        playwright_test_title: teardownOpts.testTitle,
-        playwright_test_id: teardownOpts.testId,
-        playwright_test_description: teardownOpts.testDescription
-      },
-    }) + '\n';
-    appendFileSync(teardownOpts.cacheFilePath, s);
   }
 
   writeOutActionDumps() {

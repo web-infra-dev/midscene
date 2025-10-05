@@ -303,10 +303,10 @@ export interface BaseAgentParserOpt {
   selector?: string;
 }
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface PuppeteerParserOpt extends BaseAgentParserOpt {}
+export interface PuppeteerParserOpt extends BaseAgentParserOpt { }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface PlaywrightParserOpt extends BaseAgentParserOpt {}
+export interface PlaywrightParserOpt extends BaseAgentParserOpt { }
 
 /*
 action
@@ -376,11 +376,11 @@ export type ExecutionTask<
 > = E &
   ExecutionTaskReturn<
     E extends ExecutionTaskApply<any, any, infer TaskOutput, any>
-      ? TaskOutput
-      : unknown,
+    ? TaskOutput
+    : unknown,
     E extends ExecutionTaskApply<any, any, any, infer TaskLog>
-      ? TaskLog
-      : unknown
+    ? TaskLog
+    : unknown
   > & {
     status: 'pending' | 'running' | 'finished' | 'failed' | 'cancelled';
     error?: Error;
@@ -604,4 +604,17 @@ export interface AgentOpt {
   modelConfig?: TModelConfigFn;
   cache?: Cache;
   replanningCycleLimit?: number;
+}
+
+export type TestStatus = "passed" | "failed" | "timedOut" | "skipped" | "interrupted";
+
+export interface ReportFileWithAttributes {
+  reportFilePath: string;
+  reportAttributes: {
+    testDuration: number;
+    testStatus: TestStatus;
+    testTitle: string;
+    testId: string;
+    testDescription: string;
+  };
 }

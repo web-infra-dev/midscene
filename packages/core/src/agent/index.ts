@@ -1,5 +1,4 @@
 export { Agent, createAgent } from './agent';
-export type { TestStatus } from './agent'
 export { commonContextParser } from './utils';
 export {
   getReportFileName,
