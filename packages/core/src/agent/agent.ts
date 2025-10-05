@@ -26,12 +26,15 @@ import {
   type TUserPrompt,
   type UIContext,
 } from '../index';
+<<<<<<< HEAD
 export type TestStatus =
   | 'passed'
   | 'failed'
   | 'timedOut'
   | 'skipped'
   | 'interrupted';
+=======
+>>>>>>> 1a63542c (feat(core): add ReportMergingTool into core/utils with its unit-tests, remove agent.teardownTestAgent, add one case in android project to show the usage of ReportMergingTool)
 import yaml from 'js-yaml';
 
 import {
@@ -39,8 +42,11 @@ import {
   reportHTMLContent,
   stringifyDumpData,
   writeLogFile,
+<<<<<<< HEAD
   getHtmlScripts,
   appendFileSync,
+=======
+>>>>>>> 1a63542c (feat(core): add ReportMergingTool into core/utils with its unit-tests, remove agent.teardownTestAgent, add one case in android project to show the usage of ReportMergingTool)
 } from '@/utils';
 import {
   ScriptPlayer,

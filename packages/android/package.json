@@ -29,8 +29,7 @@
     "test": "vitest --run",
     "test:u": "vitest --run -u",
     "test:ai": "AI_TEST_TYPE=android npm run test",
-    "test:ai:cache": "MIDSCENE_CACHE=true AI_TEST_TYPE=android npm run test",
-    "test:rep-agg": "AI_TEST_TYPE=report-aggregation npx tsx ./tests/report-aggregation/run-tests.ts"
+    "test:ai:cache": "MIDSCENE_CACHE=true AI_TEST_TYPE=android npm run test"
   },
   "dependencies": {
     "@midscene/core": "workspace:*",

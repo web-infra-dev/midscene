@@ -16,8 +16,8 @@ import {
   ifInWorker,
   uuid,
 } from '@midscene/shared/utils';
-import type { Cache, Rect, ReportDumpWithAttributes } from './types';
-
+import type { Cache, Rect, ReportDumpWithAttributes, ReportFileWithAttributes } from './types';
+import { getReportFileName } from './agent';
 let logEnvReady = false;
 
 export { appendFileSync } from 'fs'
@@ -405,4 +405,114 @@ export function uploadTestInfoToServer({
       );
     lastReportedRepoUrl = repoUrl;
   }
+}
+
+
+export class ReportMergingTool {
+  private reportInfos: ReportFileWithAttributes[] = [];
+  constructor() {
+
+  }
+  public append(reportInfo: ReportFileWithAttributes) {
+    this.reportInfos.push(reportInfo);
+  }
+
+  private extractLastScriptContentFromEnd(filePath: string): string {
+    const INITIAL_CHUNK_SIZE = 1024 * 1024; // Initial chunk size 1MB (adjustable based on content)
+    const fd = fs.openSync(filePath, 'r');
+    const fileSize = fs.statSync(filePath).size;
+    let position = fileSize;
+    let buffer = Buffer.alloc(INITIAL_CHUNK_SIZE);
+    let lastScriptContent: string | null = null;
+    let isInsideScript = false; // Flag indicating whether <script> start tag has been found
+    let accumulatedContent = ''; // Complete accumulated content
+
+    while (position > 0 && lastScriptContent === null) {
+      position = Math.max(0, position - INITIAL_CHUNK_SIZE);
+      const bytesRead = fs.readSync(fd, buffer, 0, Math.min(INITIAL_CHUNK_SIZE, fileSize - position), position);
+      const chunk = buffer.toString('utf-8', 0, bytesRead);
+      accumulatedContent = chunk + accumulatedContent; // Accumulate all data
+
+      // If <script> hasn't been found yet, continue searching backwards
+      if (!isInsideScript) {
+        const scriptStartIdx = accumulatedContent.lastIndexOf('<script');
+        if (scriptStartIdx !== -1) {
+          isInsideScript = true;
+          // Extract content starting from <script>
+          accumulatedContent = accumulatedContent.slice(scriptStartIdx);
+        }
+      }
+
+      // If <script> has been found, try to match </script>
+      if (isInsideScript) {
+        const scriptEndIdx = accumulatedContent.indexOf('</script>');
+        if (scriptEndIdx !== -1) {
+          // Extract complete content (from <script> to </script>)
+          const fullScriptTag = accumulatedContent.slice(0, scriptEndIdx + '</script>'.length);
+          const contentStartIdx = fullScriptTag.indexOf('>') + 1;
+          lastScriptContent = fullScriptTag.slice(contentStartIdx, scriptEndIdx).trim();
+          break;
+        }
+      }
+    }
+
+    fs.closeSync(fd);
+    return lastScriptContent ?? '';
+  }
+
+  public mergeReports(rmOriginalReports: boolean = false): string | null {
+    if (this.reportInfos.length <= 1) {
+      console.log(`Not enough report to merge`);
+      return null;
+    }
+    const outputFilePath = path.resolve(`${getMidsceneRunSubDir('report')}`, `${getReportFileName('merged-report')}.html`);
+    console.log(`Start merging ${this.reportInfos.length} reports...\nCreating template file...`);
+
+    try {
+      // Write template
+      fs.appendFileSync(outputFilePath, getReportTpl());
+
+      // Process all reports one by one
+      for (let i = 0; i < this.reportInfos.length; i++) {
+        const reportInfo = this.reportInfos[i];
+        console.log(`Processing report ${i + 1}/${this.reportInfos.length}`);
+
+        const dumpString = this.extractLastScriptContentFromEnd(reportInfo.reportFilePath);
+        const reportAttributes = reportInfo.reportAttributes;
+
+        const reportHtmlStr = getHtmlScripts({
+          dumpString,
+          attributes: {
+            playwright_test_duration: reportAttributes.testDuration,
+            playwright_test_status: reportAttributes.testStatus,
+            playwright_test_title: reportAttributes.testTitle,
+            playwright_test_id: reportAttributes.testId,
+            playwright_test_description: reportAttributes.testDescription,
+          },
+        }) + '\n';
+
+        fs.appendFileSync(outputFilePath, reportHtmlStr);
+      }
+
+      console.log(`Successfully merged new report: ${outputFilePath}`);
+
+      // Remove original reports if needed
+      if (rmOriginalReports) {
+        for (const info of this.reportInfos) {
+          try {
+            fs.unlinkSync(info.reportFilePath);
+          } catch (error) {
+            console.error(`Error deleting report ${info.reportFilePath}:`, error);
+          }
+        }
+        console.log(`Removed ${this.reportInfos.length} original reports`);
+      }
+      return outputFilePath;
+    } catch (error) {
+      console.error('Error in mergeReports:', error);
+      throw error;
+    }
+
+  }
+
 }
