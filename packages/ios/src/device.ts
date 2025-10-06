@@ -37,12 +37,14 @@ export type IOSDeviceOpt = {
   wdaPort?: number;
   wdaHost?: string;
   useWDA?: boolean;
+  screenshotResizeScale?: number;
 } & IOSDeviceInputOpt;
 
 export class IOSDevice implements AbstractInterface {
   private deviceId: string;
   private devicePixelRatio = 1;
   private devicePixelRatioInitialized = false;
+  private scalingRatio = 1; // Record scaling ratio for coordinate adjustment
   private destroyed = false;
   private description: string | undefined;
   private customActions?: DeviceAction<any>[];
@@ -341,12 +343,35 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   }
 
   async size(): Promise<Size> {
+    // Ensure device pixel ratio is initialized first
+    await this.initializeDevicePixelRatio();
+
     const screenSize = await this.getScreenSize();
 
+    // Determine scaling: use screenshotResizeScale if provided, otherwise use 1/devicePixelRatio
+    // Default is 1
+    const scale = this.options?.screenshotResizeScale ?? 1;
+    this.scalingRatio = scale;
+
+    // Apply scale to get logical dimensions for AI processing
+    const logicalWidth = Math.round(screenSize.width * scale);
+    const logicalHeight = Math.round(screenSize.height * scale);
+
+    debugDevice(
+      `size() - screenSize: ${screenSize.width}x${screenSize.height}, scale: ${scale}, logicalSize: ${logicalWidth}x${logicalHeight}`,
+    );
+
     return {
-      width: screenSize.width,
-      height: screenSize.height,
-      dpr: screenSize.scale,
+      width: logicalWidth,
+      height: logicalHeight,
+    };
+  }
+
+  private adjustCoordinates(x: number, y: number): { x: number; y: number } {
+    const scale = this.scalingRatio;
+    return {
+      x: Math.round(x / scale),
+      y: Math.round(y / scale),
     };
   }
 
@@ -399,7 +424,11 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 
   // Core interaction methods
   async tap(x: number, y: number): Promise<void> {
-    await this.wdaBackend.tap(x, y);
+    const adjusted = this.adjustCoordinates(x, y);
+    debugDevice(
+      `tap at coordinates - input: (${x}, ${y}), adjusted: (${adjusted.x}, ${adjusted.y}), scale: ${this.scalingRatio}`,
+    );
+    await this.wdaBackend.tap(adjusted.x, adjusted.y);
   }
 
   // Android-compatible method name
@@ -409,11 +438,13 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   }
 
   async doubleTap(x: number, y: number): Promise<void> {
-    await this.wdaBackend.doubleTap(x, y);
+    const adjusted = this.adjustCoordinates(x, y);
+    await this.wdaBackend.doubleTap(adjusted.x, adjusted.y);
   }
 
   async longPress(x: number, y: number, duration = 1000): Promise<void> {
-    await this.wdaBackend.longPress(x, y, duration);
+    const adjusted = this.adjustCoordinates(x, y);
+    await this.wdaBackend.longPress(adjusted.x, adjusted.y, duration);
   }
 
   async swipe(
@@ -423,7 +454,15 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     toY: number,
     duration = 500,
   ): Promise<void> {
-    await this.wdaBackend.swipe(fromX, fromY, toX, toY, duration);
+    const adjustedFrom = this.adjustCoordinates(fromX, fromY);
+    const adjustedTo = this.adjustCoordinates(toX, toY);
+    await this.wdaBackend.swipe(
+      adjustedFrom.x,
+      adjustedFrom.y,
+      adjustedTo.x,
+      adjustedTo.y,
+      duration,
+    );
   }
 
   async typeText(text: string, options?: IOSDeviceInputOpt): Promise<void> {

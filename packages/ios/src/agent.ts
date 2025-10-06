@@ -31,6 +31,7 @@ export async function agentFromWebDriverAgent(
     wdaPort: opts?.wdaPort,
     wdaHost: opts?.wdaHost,
     useWDA: opts?.useWDA,
+    screenshotResizeScale: opts?.screenshotResizeScale,
   });
 
   await device.connect();
