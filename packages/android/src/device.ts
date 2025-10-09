@@ -60,6 +60,7 @@ export type AndroidDeviceOpt = {
   usePhysicalDisplayIdForScreenshot?: boolean;
   usePhysicalDisplayIdForDisplayLookup?: boolean;
   customActions?: DeviceAction<any>[];
+  screenshotResizeScale?: number;
 } & AndroidDeviceInputOpt;
 
 export class AndroidDevice implements AbstractInterface {
@@ -67,6 +68,7 @@ export class AndroidDevice implements AbstractInterface {
   private yadbPushed = false;
   private devicePixelRatio = 1;
   private devicePixelRatioInitialized = false;
+  private scalingRatio = 1; // Record scaling ratio for coordinate adjustment
   private adb: ADB | null = null;
   private connectingAdb: Promise<ADB> | null = null;
   private destroyed = false;
@@ -713,25 +715,28 @@ ${Object.keys(size)
     const width = Number.parseInt(match[isLandscape ? 2 : 1], 10);
     const height = Number.parseInt(match[isLandscape ? 1 : 2], 10);
 
-    // Use cached device pixel ratio instead of calling getDisplayDensity() every time
+    // Determine scaling: use screenshotResizeScale if provided, otherwise use 1/devicePixelRatio
+    // Default is 1/dpr to scale down by device pixel ratio (e.g., dpr=3 -> scale=1/3)
+    const scale =
+      this.options?.screenshotResizeScale ?? 1 / this.devicePixelRatio;
+    this.scalingRatio = scale;
 
-    // Convert physical pixels to logical pixels for consistent coordinate system
+    // Apply scale to get logical dimensions for AI processing
     // adjustCoordinates() will convert back to physical pixels when needed for touch operations
-    const logicalWidth = Math.round(width / this.devicePixelRatio);
-    const logicalHeight = Math.round(height / this.devicePixelRatio);
+    const logicalWidth = Math.round(width * scale);
+    const logicalHeight = Math.round(height * scale);
 
     return {
       width: logicalWidth,
       height: logicalHeight,
-      dpr: this.devicePixelRatio,
     };
   }
 
   private adjustCoordinates(x: number, y: number): { x: number; y: number } {
-    const ratio = this.devicePixelRatio;
+    const scale = this.scalingRatio;
     return {
-      x: Math.round(x * ratio),
-      y: Math.round(y * ratio),
+      x: Math.round(x / scale),
+      y: Math.round(y / scale),
     };
   }
 

@@ -41,13 +41,14 @@ import {
 } from '../yaml/index';
 
 import type { AbstractInterface } from '@/device';
-import type { AgentOpt } from '@/types';
+import type { AgentOpt, CacheConfig } from '@/types';
 import {
   MIDSCENE_CACHE,
   ModelConfigManager,
   globalConfigManager,
   globalModelConfigManager,
 } from '@midscene/shared/env';
+import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 // import type { AndroidDeviceInputOpt } from '../device';
@@ -80,6 +81,17 @@ const defaultInsightExtractOption: InsightExtractOption = {
   domIncluded: false,
   screenshotIncluded: true,
 };
+
+type CacheStrategy = NonNullable<CacheConfig['strategy']>;
+
+const CACHE_STRATEGIES: readonly CacheStrategy[] = ['read-only', 'read-write'];
+
+const isValidCacheStrategy = (strategy: string): strategy is CacheStrategy =>
+  CACHE_STRATEGIES.some((value) => value === strategy);
+
+const CACHE_STRATEGY_VALUES = CACHE_STRATEGIES.map(
+  (value) => `"${value}"`,
+).join(', ');
 
 export class Agent<
   InterfaceType extends AbstractInterface = AbstractInterface,
@@ -123,6 +135,16 @@ export class Agent<
    */
   private hasWarnedNonVLModel = false;
 
+  /**
+   * Screenshot scale factor derived from actual screenshot dimensions
+   */
+  private screenshotScale?: number;
+
+  /**
+   * Internal promise to deduplicate screenshot scale computation
+   */
+  private screenshotScalePromise?: Promise<number>;
+
   // @deprecated use .interface instead
   get page() {
     return this.interface;
@@ -141,6 +163,52 @@ export class Agent<
     ) {
       this.modelConfigManager.throwErrorIfNonVLModel();
       this.hasWarnedNonVLModel = true;
+    }
+  }
+
+  /**
+   * Lazily compute the ratio between the physical screenshot width and the logical page width
+   */
+  private async getScreenshotScale(context: UIContext): Promise<number> {
+    if (this.screenshotScale !== undefined) {
+      return this.screenshotScale;
+    }
+
+    if (!this.screenshotScalePromise) {
+      this.screenshotScalePromise = (async () => {
+        const pageWidth = context.size?.width;
+        assert(
+          pageWidth && pageWidth > 0,
+          `Invalid page width when computing screenshot scale: ${pageWidth}`,
+        );
+
+        const { width: screenshotWidth } = await imageInfoOfBase64(
+          context.screenshotBase64,
+        );
+
+        assert(
+          Number.isFinite(screenshotWidth) && screenshotWidth > 0,
+          `Invalid screenshot width when computing screenshot scale: ${screenshotWidth}`,
+        );
+
+        const computedScale = screenshotWidth / pageWidth;
+        assert(
+          Number.isFinite(computedScale) && computedScale > 0,
+          `Invalid computed screenshot scale: ${computedScale}`,
+        );
+
+        debug(
+          `Computed screenshot scale ${computedScale} from screenshot width ${screenshotWidth} and page width ${pageWidth}`,
+        );
+        return computedScale;
+      })();
+    }
+
+    try {
+      this.screenshotScale = await this.screenshotScalePromise;
+      return this.screenshotScale;
+    } finally {
+      this.screenshotScalePromise = undefined;
     }
   }
 
@@ -207,15 +275,37 @@ export class Agent<
       return this.frozenUIContext;
     }
 
+    // Get original context
+    let context: UIContext;
     if (this.interface.getContext) {
       debug('Using page.getContext for action:', action);
-      return await this.interface.getContext();
+      context = await this.interface.getContext();
     } else {
       debug('Using commonContextParser for action:', action);
-      return await commonContextParser(this.interface, {
+      context = await commonContextParser(this.interface, {
         uploadServerUrl: this.modelConfigManager.getUploadTestServerUrl(),
       });
     }
+
+    const computedScreenshotScale = await this.getScreenshotScale(context);
+
+    if (computedScreenshotScale !== 1) {
+      const scaleForLog = Number.parseFloat(computedScreenshotScale.toFixed(4));
+      debug(
+        `Applying computed screenshot scale: ${scaleForLog} (resize to logical size)`,
+      );
+      const targetWidth = Math.round(context.size.width);
+      const targetHeight = Math.round(context.size.height);
+      debug(`Resizing screenshot to ${targetWidth}x${targetHeight}`);
+      context.screenshotBase64 = await resizeImgBase64(
+        context.screenshotBase64,
+        { width: targetWidth, height: targetHeight },
+      );
+    } else {
+      debug(`screenshot scale=${computedScreenshotScale}`);
+    }
+
+    return context;
   }
 
   async _snapshotContext(): Promise<UIContext> {
@@ -816,12 +906,18 @@ export class Agent<
 
     const { element } = output;
 
+    const dprValue = await (this.interface.size() as any).dpr;
+    const dprEntry = dprValue
+      ? {
+          dpr: dprValue,
+        }
+      : {};
     return {
       rect: element?.rect,
       center: element?.center,
-      scale: (await this.interface.size()).dpr,
+      ...dprEntry,
     } as Pick<LocateResultElement, 'rect' | 'center'> & {
-      scale: number;
+      dpr?: number; // this field is deprecated
     };
   }
 
@@ -1079,9 +1175,26 @@ export class Agent<
           );
         }
         const id = config.id;
-        // Default strategy is 'read-write'
-        const strategy = config.strategy ?? 'read-write';
-        const isReadOnly = strategy === 'read-only';
+        const rawStrategy = config.strategy as unknown;
+        let strategyValue: string;
+
+        if (rawStrategy === undefined) {
+          strategyValue = 'read-write';
+        } else if (typeof rawStrategy === 'string') {
+          strategyValue = rawStrategy;
+        } else {
+          throw new Error(
+            `cache.strategy must be a string when provided, but received type ${typeof rawStrategy}`,
+          );
+        }
+
+        if (!isValidCacheStrategy(strategyValue)) {
+          throw new Error(
+            `cache.strategy must be one of ${CACHE_STRATEGY_VALUES}, but received "${strategyValue}"`,
+          );
+        }
+
+        const isReadOnly = strategyValue === 'read-only';
 
         return {
           id,

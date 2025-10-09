@@ -15,8 +15,8 @@ const mockPage = {
   evaluateJavaScript: vi.fn(),
   size: vi.fn().mockResolvedValue({ width: 1920, height: 1080, dpr: 1 }),
   url: vi.fn().mockResolvedValue('https://example.com'),
-  getContext: vi.fn().mockImplementation(async function () {
-    return await WebPageContextParser(this);
+  getContext: vi.fn().mockImplementation(async function (this: WebPage) {
+    return await WebPageContextParser(this, {});
   }),
 } as unknown as WebPage;
 
@@ -31,7 +31,8 @@ describe('PageAgent freeze/unfreeze page context', () => {
     // Create mock contexts
     mockContext = {
       size: { width: 1920, height: 1080, dpr: 1 },
-      screenshotBase64: 'mock-screenshot-base64-1',
+      screenshotBase64:
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
       tree: [
         {
           id: 'element1',
@@ -46,7 +47,8 @@ describe('PageAgent freeze/unfreeze page context', () => {
 
     mockContext2 = {
       size: { width: 1920, height: 1080, dpr: 1 },
-      screenshotBase64: 'mock-screenshot-base64-2',
+      screenshotBase64:
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
       tree: [
         {
           id: 'element2',
@@ -138,7 +140,9 @@ describe('PageAgent freeze/unfreeze page context', () => {
       // Frozen context should be marked
       const frozenContext = (agent as any).frozenUIContext;
       expect(frozenContext._isFrozen).toBe(true);
-      expect(frozenContext.screenshotBase64).toBe(mockContext.screenshotBase64);
+      expect(frozenContext.screenshotBase64).toBe(
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      );
       expect(frozenContext.tree).toBe(mockContext.tree);
     });
 

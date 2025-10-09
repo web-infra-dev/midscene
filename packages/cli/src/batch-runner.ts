@@ -355,7 +355,28 @@ class BatchRunner {
 
     for (const context of executedContexts) {
       const { file, player, duration } = context;
-      const success = player.status !== 'error';
+      // Determine result type based on player and task statuses
+      const hasFailedTasks =
+        player.taskStatusList?.some((task) => task.status === 'error') ?? false;
+      const hasPlayerError = player.status === 'error';
+
+      let success: boolean;
+      let resultType: 'success' | 'failed' | 'partialFailed';
+
+      if (hasPlayerError) {
+        // Complete failure - player itself failed
+        success = false;
+        resultType = 'failed';
+      } else if (hasFailedTasks) {
+        // Partial failure - some tasks failed but execution continued (continueOnError)
+        success = false;
+        resultType = 'partialFailed';
+      } else {
+        // Success - all tasks completed successfully
+        success = true;
+        resultType = 'success';
+      }
+
       let reportFile: string | undefined;
 
       if (player.reportFile) {
@@ -375,9 +396,11 @@ class BatchRunner {
         output: outputPath,
         report: reportFile,
         duration,
+        resultType,
         error:
           player.errorInSetup?.message ||
-          (player.status === 'error' ? 'Execution failed' : undefined),
+          (hasPlayerError ? 'Execution failed' : undefined) ||
+          (hasFailedTasks ? 'Some tasks failed' : undefined),
       });
     }
 
@@ -389,6 +412,7 @@ class BatchRunner {
         output: undefined,
         report: undefined,
         duration: 0,
+        resultType: 'notExecuted',
         error: 'Not executed (previous task failed)',
       });
     }
@@ -435,8 +459,15 @@ class BatchRunner {
       const indexData = {
         summary: {
           total: this.results.length,
-          successful: this.results.filter((r) => r.success).length,
-          failed: this.results.filter((r) => !r.success).length,
+          successful: this.results.filter((r) => r.resultType === 'success')
+            .length,
+          failed: this.results.filter((r) => r.resultType === 'failed').length,
+          partialFailed: this.results.filter(
+            (r) => r.resultType === 'partialFailed',
+          ).length,
+          notExecuted: this.results.filter(
+            (r) => r.resultType === 'notExecuted',
+          ).length,
           totalDuration: this.results.reduce(
             (sum, r) => sum + (r.duration || 0),
             0,
@@ -446,6 +477,7 @@ class BatchRunner {
         results: this.results.map((result) => ({
           script: relative(outputDir, result.file),
           success: result.success,
+          resultType: result.resultType,
           output: result.output
             ? (() => {
                 const relativePath = relative(outputDir, result.output);
@@ -473,17 +505,26 @@ class BatchRunner {
     total: number;
     successful: number;
     failed: number;
+    partialFailed: number;
     notExecuted: number;
     totalDuration: number;
   } {
-    const successful = this.results.filter((r) => r.success).length;
-    const notExecuted = this.results.filter((r) => !r.executed).length;
-    const failed = this.results.filter((r) => r.executed && !r.success).length;
+    const successful = this.results.filter(
+      (r) => r.resultType === 'success',
+    ).length;
+    const failed = this.results.filter((r) => r.resultType === 'failed').length;
+    const partialFailed = this.results.filter(
+      (r) => r.resultType === 'partialFailed',
+    ).length;
+    const notExecuted = this.results.filter(
+      (r) => r.resultType === 'notExecuted',
+    ).length;
 
     return {
       total: this.results.length,
       successful,
       failed,
+      partialFailed,
       notExecuted,
       totalDuration: this.results.reduce(
         (sum, r) => sum + (r.duration || 0),
@@ -494,16 +535,26 @@ class BatchRunner {
 
   getFailedFiles(): string[] {
     return this.results
-      .filter((r) => r.executed && !r.success)
+      .filter((r) => r.resultType === 'failed')
+      .map((r) => r.file);
+  }
+
+  getPartialFailedFiles(): string[] {
+    return this.results
+      .filter((r) => r.resultType === 'partialFailed')
       .map((r) => r.file);
   }
 
   getNotExecutedFiles(): string[] {
-    return this.results.filter((r) => !r.executed).map((r) => r.file);
+    return this.results
+      .filter((r) => r.resultType === 'notExecuted')
+      .map((r) => r.file);
   }
 
   getSuccessfulFiles(): string[] {
-    return this.results.filter((r) => r.success).map((r) => r.file);
+    return this.results
+      .filter((r) => r.resultType === 'success')
+      .map((r) => r.file);
   }
 
   getResults(): MidsceneYamlConfigResult[] {
@@ -512,12 +563,16 @@ class BatchRunner {
 
   printExecutionSummary(): boolean {
     const summary = this.getExecutionSummary();
-    const success = summary.failed === 0 && summary.notExecuted === 0;
+    const success =
+      summary.failed === 0 &&
+      summary.partialFailed === 0 &&
+      summary.notExecuted === 0;
 
     console.log('\n📊 Execution Summary:');
     console.log(`   Total files: ${summary.total}`);
     console.log(`   Successful: ${summary.successful}`);
     console.log(`   Failed: ${summary.failed}`);
+    console.log(`   Partial failed: ${summary.partialFailed}`);
     console.log(`   Not executed: ${summary.notExecuted}`);
     console.log(`   Duration: ${(summary.totalDuration / 1000).toFixed(2)}s`);
     console.log(`   Summary: ${this.getSummaryAbsolutePath()}`);
@@ -532,6 +587,15 @@ class BatchRunner {
     if (summary.failed > 0) {
       console.log('\n❌ Failed files');
       this.getFailedFiles().forEach((file) => {
+        console.log(`   ${file}`);
+      });
+    }
+
+    if (summary.partialFailed > 0) {
+      console.log(
+        '\n⚠️  Partial failed files (some tasks failed with continueOnError)',
+      );
+      this.getPartialFailedFiles().forEach((file) => {
         console.log(`   ${file}`);
       });
     }
