@@ -15,16 +15,9 @@ export abstract class AbstractInterface {
     rect: Rect,
     opt?: { _orderSensitive: boolean },
   ): Promise<ElementCacheFeature>;
-  // 首次运行：
-  //   “购物按钮” ==> AI Model ==> {left: 300, top: 500, width: 100, height: 100} ==实现，计算特征==> {douyin-dsl: '/div/id=btn特征'}
-  // 会触发保存缓存文件：
-  //   “购物按钮” = {douyin-dsl: '/div/id=btn特征'}
-
   abstract rectMatchesCacheFeature?(
     feature: ElementCacheFeature,
   ): Promise<Rect>;
-  // 再次运行：
-  //   “购物按钮” == 匹配到缓存 ==> {douyin-dsl: '/div/id=btn特征'} ==实现，根据特征找元素==> {left: 400, top: 800, width: 200, height: 200} (不经过模型)
 
   abstract destroy?(): Promise<void>;
 
