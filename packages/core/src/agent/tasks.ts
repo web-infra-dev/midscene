@@ -151,6 +151,7 @@ export class TaskExecutor {
   public async convertPlanToExecutable(
     plans: PlanningAction[],
     modelConfig: IModelConfig,
+    cacheable?: boolean,
   ) {
     const tasks: ExecutionTaskApply[] = [];
 
@@ -162,6 +163,13 @@ export class TaskExecutor {
       if (typeof detailedLocateParam === 'string') {
         detailedLocateParam = {
           prompt: detailedLocateParam,
+        };
+      }
+      // Apply cacheable option from convertPlanToExecutable if it was explicitly set
+      if (cacheable !== undefined) {
+        detailedLocateParam = {
+          ...detailedLocateParam,
+          cacheable,
         };
       }
       const taskFind: ExecutionTaskInsightLocateApply = {
@@ -752,6 +760,7 @@ export class TaskExecutor {
     userPrompt: string,
     modelConfig: IModelConfig,
     actionContext?: string,
+    cacheable?: boolean,
   ): Promise<
     ExecutionResult<
       | {
@@ -803,7 +812,11 @@ export class TaskExecutor {
 
       let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
       try {
-        executables = await this.convertPlanToExecutable(plans, modelConfig);
+        executables = await this.convertPlanToExecutable(
+          plans,
+          modelConfig,
+          cacheable,
+        );
         taskExecutor.append(executables.tasks);
       } catch (error) {
         return this.appendErrorPlan(

@@ -617,6 +617,7 @@ export class Agent<
       taskPrompt,
       modelConfig,
       this.opts.aiActionContext,
+      cacheable,
     );
 
     // update cache
