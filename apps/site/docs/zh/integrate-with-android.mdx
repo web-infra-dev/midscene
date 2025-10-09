@@ -125,7 +125,7 @@ AndroidDevice 的构造函数支持以下参数：
   - `androidAdbPath?: string` - 可选参数，用于指定 adb 可执行文件的路径。
   - `remoteAdbHost?: string` - 可选参数，用于指定远程 adb 主机。
   - `remoteAdbPort?: number` - 可选参数，用于指定远程 adb 端口。
-  - `imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii'` - 可选参数，控制 Midscene 何时调用 [yadb](https://github.com/ysbing/YADB) 来输入文本。默认值为 'always-yadb'。
+  - `imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii'` - 可选参数，控制 Midscene 何时调用 [yadb](https://github.com/ysbing/YADB) 来输入文本。`'yadb-for-non-ascii'` 仅在输入非 ASCII 文本时启用 yadb，而 `'always-yadb'` 会在所有输入任务中都使用 yadb。如果默认配置无法正确输入文本，可尝试在这两种策略之间切换。默认值为 'yadb-for-non-ascii'。
   - `displayId?: number` - 可选参数，用于指定要使用的显示器 ID。默认值为 undefined，表示使用当前显示器。
   - `screenshotResizeScale?: number` - 可选参数，控制发送给 AI 模型的截图尺寸。默认值为 `1 / devicePixelRatio`，因此对于分辨率 1200×800、设备像素比（DPR）为 3 的界面，发送到模型的图片约为 400×267。不建议手动修改该参数。
 
