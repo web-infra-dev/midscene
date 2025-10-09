@@ -583,14 +583,15 @@ describe('PageAgent cache configuration', () => {
       );
     });
 
-    it('should flush cache in read-write mode', async () => {
+    it('should throw in read-write mode', async () => {
       const agent = new PageAgent(mockPage, {
         cache: { id: 'test-cache' }, // read-write mode
         modelConfig: () => mockedModelConfigFnResult,
       });
 
-      // Should not throw error, flushCache works in both modes
-      await expect(agent.flushCache()).resolves.not.toThrow();
+      await expect(agent.flushCache()).rejects.toThrow(
+        'flushCache() can only be called in read-only mode',
+      );
     });
 
     it('should work in read-only mode', async () => {

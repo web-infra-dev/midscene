@@ -1158,7 +1158,12 @@ export class Agent<
    */
   private processCacheConfig(
     opts: AgentOpt,
-  ): { id: string; enabled: boolean; readOnly: boolean; writeOnly: boolean } | null {
+  ): {
+    id: string;
+    enabled: boolean;
+    readOnly: boolean;
+    writeOnly: boolean;
+  } | null {
     // 1. New cache object configuration (highest priority)
     if (opts.cache !== undefined) {
       if (opts.cache === false) {
