@@ -44,6 +44,12 @@ const defaultScrollUntilTimes = 10;
 const defaultFastScrollDuration = 100;
 const defaultNormalScrollDuration = 1000;
 
+const IME_STRATEGY_ALWAYS_YADB = 'always-yadb' as const;
+const IME_STRATEGY_YADB_FOR_NON_ASCII = 'yadb-for-non-ascii' as const;
+type ImeStrategy =
+  | typeof IME_STRATEGY_ALWAYS_YADB
+  | typeof IME_STRATEGY_YADB_FOR_NON_ASCII;
+
 const debugDevice = getDebug('android:device');
 
 export type AndroidDeviceInputOpt = {
@@ -55,7 +61,7 @@ export type AndroidDeviceOpt = {
   androidAdbPath?: string;
   remoteAdbHost?: string;
   remoteAdbPort?: number;
-  imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii';
+  imeStrategy?: ImeStrategy;
   displayId?: number;
   usePhysicalDisplayIdForScreenshot?: boolean;
   usePhysicalDisplayIdForDisplayLookup?: boolean;
@@ -889,9 +895,9 @@ ${Object.keys(size)
     const IME_STRATEGY =
       (this.options?.imeStrategy ||
         globalConfigManager.getEnvConfigValue(MIDSCENE_ANDROID_IME_STRATEGY)) ??
-      'always-yadb';
+      IME_STRATEGY_ALWAYS_YADB;
 
-    if (IME_STRATEGY === 'yadb-for-non-ascii') {
+    if (IME_STRATEGY === IME_STRATEGY_YADB_FOR_NON_ASCII) {
       // For yadb-for-non-ascii mode, use continuous deletion of 100 characters with keyevent
       await repeat(100, () => adb.keyevent(67)); // KEYCODE_DEL (Backspace)
     } else {
@@ -1101,13 +1107,13 @@ ${Object.keys(size)
     const IME_STRATEGY =
       (this.options?.imeStrategy ||
         globalConfigManager.getEnvConfigValue(MIDSCENE_ANDROID_IME_STRATEGY)) ??
-      'always-yadb';
+      IME_STRATEGY_ALWAYS_YADB;
     const shouldAutoDismissKeyboard =
       options?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard ?? true;
 
     if (
-      IME_STRATEGY === 'always-yadb' ||
-      (IME_STRATEGY === 'yadb-for-non-ascii' && isChinese)
+      IME_STRATEGY === IME_STRATEGY_ALWAYS_YADB ||
+      (IME_STRATEGY === IME_STRATEGY_YADB_FOR_NON_ASCII && isChinese)
     ) {
       await this.execYadb(text);
     } else {
