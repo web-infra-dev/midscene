@@ -100,22 +100,24 @@ for (const record of recordList) {
 
 > For more details about the workflow style, please refer to [Blog - Use JavaScript to Optimize the AI Automation Code](https://midscenejs.com/blog-programming-practice-using-structured-api.html)
 
+## 👀 Comparing to other projects
+
+There are so many UI automation tools out there, and each one seems to be all-powerful. What's special about Midscene.js?
+
+* **Visual-driven brings reliability and efficiency**: By using visual-language models, Midscene.js is suitable for both web and mobile app automation, no matter the technology stack the interface is built with.
+
+* **Debugging Experience**: You will soon realize that debugging and maintaining automation scripts is the real challenge. Midscene.js offers a visualized report file, a built-in playground, and a Chrome Extension to simplify the debugging process. These are the tools most developers truly need.
+
+* **Open Source, Free, Deploy as you want**: Midscene.js is an open-source project, and it supports self-hosted models.
+
+* **Integrate with Javascript**: You can always bet on Javascript 😎
+
 ## 📄 Resources 
 
 * Home Page and Documentation: [https://midscenejs.com](https://midscenejs.com/)
 * Sample Projects: [https://github.com/web-infra-dev/midscene-example](https://github.com/web-infra-dev/midscene-example)
 * API Reference: [https://midscenejs.com/api.html](https://midscenejs.com/api.html)
 * GitHub: [https://github.com/web-infra-dev/midscene](https://github.com/web-infra-dev/midscene)
-
-## 👀 Comparing to other projects
-
-There are so many UI automation tools out there, and each one seems to be all-powerful. What's special about Midscene.js?
-
-* **Debugging Experience**: You will soon realize that debugging and maintaining automation scripts is the real challenge. No matter how magical the demo looks, ensuring stability over time requires careful debugging. Midscene.js offers a visualized report file, a built-in playground, and a Chrome Extension to simplify the debugging process. These are the tools most developers truly need, and we're continually working to improve the debugging experience.
-
-* **Open Source, Free, Deploy as you want**: Midscene.js is an open-source project. It's decoupled from any cloud service and model provider, you can choose either public or private deployment. There is always a suitable plan for your business.
-
-* **Integrate with Javascript**: You can always bet on Javascript 😎
 
 ## 🤝 Community
 

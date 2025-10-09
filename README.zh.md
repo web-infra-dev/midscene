@@ -101,21 +101,22 @@ for (const record of recordList) {
 > 有关工作流风格的更多详细信息，请参阅 [Blog - 使用 JavaScript 优化 AI 自动化代码
 ](https://midscenejs.com/zh/blog-programming-practice-using-structured-api.html)
 
+## 👀 与其它工具比较
+
+* **视觉驱动带来可靠性和效率**: 借助视觉语言模型，Midscene.js 适用于 Web 和移动 App 的自动化，无论界面采用何种技术栈。
+
+* **调试体验**: 你很快就会发现，调试和维护自动化脚本才是真正的痛点。无论模型多么强大，你仍然需要调试过程以确保其保持长期稳定。Midscene.js 提供了可视化报告、内置的 Playground 和 Chrome 插件，以调试整个运行过程。这是大多数开发者真正需要的能力。
+
+* **开源、免费、部署灵活**: Midscene.js 是一个开源项目，并且支持自托管模型。
+
+* **与 Javascript 集成**: 你可以永远相信 Javascript 😎
+
 ## 📄 资源 
 
 * 官网和文档: [https://midscenejs.com](https://midscenejs.com/zh)
 * 示例项目: [https://github.com/web-infra-dev/midscene-example](https://github.com/web-infra-dev/midscene-example)
 * API 文档: [https://midscenejs.com/zh/api.html](https://midscenejs.com/zh/api.html)
 * GitHub: [https://github.com/web-infra-dev/midscene](https://github.com/web-infra-dev/midscene)
-
-
-## 👀 与其它工具比较
-
-* **调试体验**: 你很快就会发现，调试和维护自动化脚本才是真正的痛点。无论模型多么强大，你仍然需要调试过程以确保其保持长期稳定。Midscene.js 提供了可视化报告、内置的 Playground 和 Chrome 插件，以调试整个运行过程。这是大多数开发者真正需要的特性，我们也在持续努力改进调试体验。
-
-* **开源、免费、部署灵活**: Midscene.js 是一个开源项目。它与云服务和模型提供商解耦，你可以选择公共或私有部署。总会有一个适合你的方案。
-
-* **与 Javascript 集成**: 你可以永远相信 Javascript 😎
 
 ## 🤝 社区
 
