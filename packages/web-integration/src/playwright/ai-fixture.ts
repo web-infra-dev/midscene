@@ -48,7 +48,7 @@ const midsceneAgentKeyId = '_midsceneAgentId';
 export const midsceneDumpAnnotationId = 'MIDSCENE_DUMP_ANNOTATION';
 
 type PlaywrightCacheConfig = {
-  strategy?: 'read-only' | 'read-write';
+  strategy?: 'read-only' | 'read-write' | 'write-only';
   id?: string;
 };
 type PlaywrightCache = false | true | PlaywrightCacheConfig;
