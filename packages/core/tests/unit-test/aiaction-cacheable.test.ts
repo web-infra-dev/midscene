@@ -1,8 +1,8 @@
 import { TaskCache, TaskExecutor } from '@/agent';
 import type { AbstractInterface } from '@/device';
-import type { Insight } from '@/types';
 import { uuid } from '@midscene/shared/utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type Insight from '../../src';
 
 describe('aiAction cacheable option propagation', () => {
   let taskExecutor: TaskExecutor;
@@ -33,7 +33,7 @@ describe('aiAction cacheable option propagation', () => {
         feature: 'mock-feature',
       }),
       rectMatchesCacheFeature: vi.fn().mockResolvedValue(undefined),
-    } as any;
+    };
 
     // Create mock insight
     mockInsight = {
@@ -127,11 +127,13 @@ describe('aiAction cacheable option propagation', () => {
           timing: { start: Date.now(), end: 0, cost: 0 },
           executor: locateTask.executor,
         },
-      } as any);
+      });
 
       // Verify cache was not queried (or if queried, was rejected due to cacheable: false)
       // The matchElementFromCache function should have been called but returned undefined
       // because cacheable: false
+      expect(matchElementFromCacheSpy).toHaveBeenCalled();
+      expect(matchElementFromCacheSpy).toHaveReturnedWith(undefined);
     }
   });
 
