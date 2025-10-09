@@ -1156,9 +1156,7 @@ export class Agent<
   /**
    * Process cache configuration and return normalized cache settings
    */
-  private processCacheConfig(
-    opts: AgentOpt,
-  ): {
+  private processCacheConfig(opts: AgentOpt): {
     id: string;
     enabled: boolean;
     readOnly: boolean;
