@@ -127,7 +127,7 @@ AndroidDevice 的构造函数支持以下参数：
   - `remoteAdbPort?: number` - 可选参数，用于指定远程 adb 端口。
   - `imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii'` - 可选参数，控制 Midscene 何时调用 [yadb](https://github.com/ysbing/YADB) 来输入文本。默认值为 'always-yadb'。
   - `displayId?: number` - 可选参数，用于指定要使用的显示器 ID。默认值为 undefined，表示使用当前显示器。
-  - `screenshotResizeScale?: number` - 可选参数，截图缩放比例。例如 0.5 表示将截图缩小到原来的 50%，可以减少 AI 处理的图片大小，提升响应速度。默认值为 `1 / devicePixelRatio`（根据设备像素比自动缩放）。
+  - `screenshotResizeScale?: number` - 可选参数，控制发送给 AI 模型的截图尺寸。默认值为 `1 / devicePixelRatio`，因此对于分辨率 1200×800、设备像素比为 3 的界面，发送到模型的图片约为 400×267。不建议手动修改该参数。
 
 ### Android Agent 上的更多接口
 

@@ -604,6 +604,4 @@ export interface AgentOpt {
   modelConfig?: TModelConfigFn;
   cache?: Cache;
   replanningCycleLimit?: number;
-  /* Screenshot scaling ratio to reduce image size sent to AI for better performance */
-  screenshotScale?: number;
 }
