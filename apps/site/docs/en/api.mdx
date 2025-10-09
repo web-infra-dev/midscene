@@ -183,6 +183,7 @@ function aiInput(
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
     - `autoDismissKeyboard?: boolean` - If true, the keyboard will be dismissed after input text, only available in Android. (Default: true)
+    - `append?: boolean` - If true, append the text to the existing content instead of replacing it. False by default.
 
 - Return Value:
 

@@ -450,7 +450,10 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
   defineActionInput(async (param) => {
     const element = param.locate;
     if (element) {
-      await page.clearInput(element as unknown as ElementInfo);
+      // Only clear input if not appending
+      if (!param.append) {
+        await page.clearInput(element as unknown as ElementInfo);
+      }
 
       if (!param || !param.value) {
         return;

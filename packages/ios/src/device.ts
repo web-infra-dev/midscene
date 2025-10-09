@@ -83,6 +83,12 @@ export class IOSDevice implements AbstractInterface {
             .describe(
               'If true, the keyboard will be dismissed after the input is completed. Do not set it unless the user asks you to do so.',
             ),
+          append: z
+            .boolean()
+            .optional()
+            .describe(
+              'If true, append the value to the existing content instead of replacing it. Default is false.',
+            ),
           locate: getMidsceneLocationSchema()
             .describe('The input field to be filled')
             .optional(),
@@ -90,7 +96,10 @@ export class IOSDevice implements AbstractInterface {
         call: async (param) => {
           const element = param.locate;
           if (element) {
-            await this.clearInput(element as unknown as ElementInfo);
+            // Only clear input if not appending
+            if (!param.append) {
+              await this.clearInput(element as unknown as ElementInfo);
+            }
 
             if (!param || !param.value) {
               return;
