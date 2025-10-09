@@ -32,7 +32,6 @@ import type { ElementInfo } from '@midscene/shared/extractor';
 import {
   createImgBase64ByFormat,
   isValidPNGImageBuffer,
-  resizeAndConvertImgBuffer,
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { uuid } from '@midscene/shared/utils';
@@ -45,6 +44,12 @@ const defaultScrollUntilTimes = 10;
 const defaultFastScrollDuration = 100;
 const defaultNormalScrollDuration = 1000;
 
+const IME_STRATEGY_ALWAYS_YADB = 'always-yadb' as const;
+const IME_STRATEGY_YADB_FOR_NON_ASCII = 'yadb-for-non-ascii' as const;
+type ImeStrategy =
+  | typeof IME_STRATEGY_ALWAYS_YADB
+  | typeof IME_STRATEGY_YADB_FOR_NON_ASCII;
+
 const debugDevice = getDebug('android:device');
 
 export type AndroidDeviceInputOpt = {
@@ -56,17 +61,20 @@ export type AndroidDeviceOpt = {
   androidAdbPath?: string;
   remoteAdbHost?: string;
   remoteAdbPort?: number;
-  imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii';
+  imeStrategy?: ImeStrategy;
   displayId?: number;
   usePhysicalDisplayIdForScreenshot?: boolean;
   usePhysicalDisplayIdForDisplayLookup?: boolean;
   customActions?: DeviceAction<any>[];
+  screenshotResizeScale?: number;
 } & AndroidDeviceInputOpt;
 
 export class AndroidDevice implements AbstractInterface {
   private deviceId: string;
   private yadbPushed = false;
   private devicePixelRatio = 1;
+  private devicePixelRatioInitialized = false;
+  private scalingRatio = 1; // Record scaling ratio for coordinate adjustment
   private adb: ADB | null = null;
   private connectingAdb: Promise<ADB> | null = null;
   private destroyed = false;
@@ -583,6 +591,20 @@ ${Object.keys(size)
     throw new Error(`Failed to get screen size, output: ${stdout}`);
   }
 
+  private async initializeDevicePixelRatio(): Promise<void> {
+    if (this.devicePixelRatioInitialized) {
+      return;
+    }
+
+    // Get device display density using custom method
+    const densityNum = await this.getDisplayDensity();
+    // Standard density is 160, calculate the ratio
+    this.devicePixelRatio = Number(densityNum) / 160;
+    debugDevice(`Initialized device pixel ratio: ${this.devicePixelRatio}`);
+
+    this.devicePixelRatioInitialized = true;
+  }
+
   async getDisplayDensity(): Promise<number> {
     const adb = await this.getAdb();
 
@@ -679,6 +701,9 @@ ${Object.keys(size)
   }
 
   async size(): Promise<Size> {
+    // Ensure device pixel ratio is initialized first
+    await this.initializeDevicePixelRatio();
+
     // Use custom getScreenSize method instead of adb.getScreenSize()
     const screenSize = await this.getScreenSize();
     // screenSize is a string like "width x height"
@@ -696,40 +721,28 @@ ${Object.keys(size)
     const width = Number.parseInt(match[isLandscape ? 2 : 1], 10);
     const height = Number.parseInt(match[isLandscape ? 1 : 2], 10);
 
-    // Get device display density using custom method
-    const densityNum = await this.getDisplayDensity();
-    // Standard density is 160, calculate the ratio
-    this.devicePixelRatio = Number(densityNum) / 160;
+    // Determine scaling: use screenshotResizeScale if provided, otherwise use 1/devicePixelRatio
+    // Default is 1/dpr to scale down by device pixel ratio (e.g., dpr=3 -> scale=1/3)
+    const scale =
+      this.options?.screenshotResizeScale ?? 1 / this.devicePixelRatio;
+    this.scalingRatio = scale;
 
-    // calculate logical pixel size using reverseAdjustCoordinates function
-    const { x: logicalWidth, y: logicalHeight } = this.reverseAdjustCoordinates(
-      width,
-      height,
-    );
+    // Apply scale to get logical dimensions for AI processing
+    // adjustCoordinates() will convert back to physical pixels when needed for touch operations
+    const logicalWidth = Math.round(width * scale);
+    const logicalHeight = Math.round(height * scale);
 
     return {
       width: logicalWidth,
       height: logicalHeight,
-      dpr: this.devicePixelRatio,
     };
   }
 
   private adjustCoordinates(x: number, y: number): { x: number; y: number } {
-    const ratio = this.devicePixelRatio;
+    const scale = this.scalingRatio;
     return {
-      x: Math.round(x * ratio),
-      y: Math.round(y * ratio),
-    };
-  }
-
-  private reverseAdjustCoordinates(
-    x: number,
-    y: number,
-  ): { x: number; y: number } {
-    const ratio = this.devicePixelRatio;
-    return {
-      x: Math.round(x / ratio),
-      y: Math.round(y / ratio),
+      x: Math.round(x / scale),
+      y: Math.round(y / scale),
     };
   }
 
@@ -800,7 +813,6 @@ ${Object.keys(size)
 
   async screenshotBase64(): Promise<string> {
     debugDevice('screenshotBase64 begin');
-    const { width, height } = await this.size();
     const adb = await this.getAdb();
     let screenshotBuffer;
     const androidScreenshotPath = `/data/local/tmp/midscene_screenshot_${uuid()}.png`;
@@ -865,20 +877,11 @@ ${Object.keys(size)
       }
     }
 
-    debugDevice('Resizing screenshot image');
-    const { buffer, format } = await resizeAndConvertImgBuffer(
-      // both "adb.takeScreenshot" and "shell screencap" result are png format
-      'png',
-      screenshotBuffer,
-      {
-        width,
-        height,
-      },
-    );
-    debugDevice('Image resize completed');
-
     debugDevice('Converting to base64');
-    const result = createImgBase64ByFormat(format, buffer.toString('base64'));
+    const result = createImgBase64ByFormat(
+      'png',
+      screenshotBuffer.toString('base64'),
+    );
     debugDevice('screenshotBase64 end');
     return result;
   }
@@ -897,9 +900,9 @@ ${Object.keys(size)
     const IME_STRATEGY =
       (this.options?.imeStrategy ||
         globalConfigManager.getEnvConfigValue(MIDSCENE_ANDROID_IME_STRATEGY)) ??
-      'always-yadb';
+      IME_STRATEGY_YADB_FOR_NON_ASCII;
 
-    if (IME_STRATEGY === 'yadb-for-non-ascii') {
+    if (IME_STRATEGY === IME_STRATEGY_YADB_FOR_NON_ASCII) {
       // For yadb-for-non-ascii mode, use continuous deletion of 100 characters with keyevent
       await repeat(100, () => adb.keyevent(67)); // KEYCODE_DEL (Backspace)
     } else {
@@ -1109,13 +1112,13 @@ ${Object.keys(size)
     const IME_STRATEGY =
       (this.options?.imeStrategy ||
         globalConfigManager.getEnvConfigValue(MIDSCENE_ANDROID_IME_STRATEGY)) ??
-      'always-yadb';
+      IME_STRATEGY_YADB_FOR_NON_ASCII;
     const shouldAutoDismissKeyboard =
       options?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard ?? true;
 
     if (
-      IME_STRATEGY === 'always-yadb' ||
-      (IME_STRATEGY === 'yadb-for-non-ascii' && isChinese)
+      IME_STRATEGY === IME_STRATEGY_ALWAYS_YADB ||
+      (IME_STRATEGY === IME_STRATEGY_YADB_FOR_NON_ASCII && isChinese)
     ) {
       await this.execYadb(text);
     } else {

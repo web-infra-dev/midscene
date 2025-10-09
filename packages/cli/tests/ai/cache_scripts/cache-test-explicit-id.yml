@@ -1,0 +1,13 @@
+target:
+  url: https://example.com/
+  viewportWidth: 800
+  viewportHeight: 600
+
+agent:
+  cache:
+    id: "cli-explicit-cache-test-001"
+
+tasks:
+  - name: "Test explicit cache ID configuration"
+    flow:
+      - aiAction: "click the title"

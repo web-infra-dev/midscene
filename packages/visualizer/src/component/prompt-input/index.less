@@ -148,6 +148,12 @@
       z-index: 10;
       justify-content: flex-end; /* Right align when only one button */
       gap: 8px; /* Add gap between buttons when there are multiple */
+      pointer-events: none; /* Allow clicks to pass through the background */
+
+      /* Re-enable pointer events for child elements */
+      > * {
+        pointer-events: auto;
+      }
     }
   }
 

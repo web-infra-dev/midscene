@@ -8,7 +8,6 @@ import type {
   Rect,
   Size,
 } from '@midscene/shared/types';
-import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { z } from 'zod';
 import type { TUserPrompt } from './ai-model/common';
 import type { DetailedLocateParam, MidsceneYamlFlowItem } from './yaml';
@@ -141,6 +140,8 @@ export type EnsureObject<T> = { [K in keyof T]: any };
 export type InsightAction = 'locate' | 'extract' | 'assert' | 'describe';
 
 export type InsightExtractParam = string | Record<string, string>;
+
+export type ElementCacheFeature = Record<string, unknown>;
 
 export type LocateResultElement = {
   center: [number, number];
@@ -396,6 +397,7 @@ export type ExecutionTask<
       cost?: number;
     };
     usage?: AIUsageInfo;
+    searchAreaUsage?: AIUsageInfo;
   };
 
 export interface ExecutionDump extends DumpMeta {
@@ -581,9 +583,20 @@ export type WebUIContext = UIContext<WebElementInfo>;
  * Agent
  */
 
+export type CacheConfig = {
+  strategy?: 'read-only' | 'read-write' | 'write-only';
+  id: string;
+};
+
+export type Cache =
+  | false // No read, no write
+  | true // Will throw error at runtime - deprecated
+  | CacheConfig; // Object configuration (requires explicit id)
+
 export interface AgentOpt {
   testId?: string;
-  cacheId?: string;
+  // @deprecated
+  cacheId?: string; // Keep backward compatibility, but marked as deprecated
   groupName?: string;
   groupDescription?: string;
   /* if auto generate report, default true */
@@ -595,7 +608,7 @@ export interface AgentOpt {
   /* custom report file name */
   reportFileName?: string;
   modelConfig?: TModelConfigFn;
-  useCache?: boolean;
+  cache?: Cache;
   replanningCycleLimit?: number;
   continuousScreenshot?: {
     /** Whether to enable continuous screenshot capturing */

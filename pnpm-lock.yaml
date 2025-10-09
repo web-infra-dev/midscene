@@ -1140,6 +1140,9 @@ importers:
       '@types/http-server':
         specifier: ^0.12.4
         version: 0.12.4
+      '@types/js-yaml':
+        specifier: 4.0.9
+        version: 4.0.9
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.62

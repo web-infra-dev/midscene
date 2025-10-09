@@ -12,6 +12,7 @@ import type {
 } from '@midscene/core';
 import { createAgent } from '@midscene/core/agent';
 import type { AbstractInterface } from '@midscene/core/device';
+import { processCacheConfig } from '@midscene/core/utils';
 import { agentFromWebDriverAgent } from '@midscene/ios';
 import { getDebug } from '@midscene/shared/logger';
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
@@ -56,7 +57,6 @@ export async function createYamlPlayer(
     headed: options?.headed,
     keepWindow: options?.keepWindow,
     testId: fileName,
-    cacheId: fileName,
   };
 
   const player = new ScriptPlayer(
@@ -120,7 +120,10 @@ export async function createYamlPlayer(
           // use puppeteer
           const { agent, freeFn: newFreeFn } = await puppeteerAgentForTarget(
             webTarget,
-            preference,
+            {
+              ...preference,
+              cache: processCacheConfig(yamlScript.agent?.cache, fileName),
+            },
             options?.browser,
           );
           freeFn.push(...newFreeFn);
@@ -148,8 +151,8 @@ export async function createYamlPlayer(
 
         const agent = new AgentOverChromeBridge({
           closeNewTabsAfterDisconnect: webTarget.closeNewTabsAfterDisconnect,
-          cacheId: fileName,
           continuousScreenshot: webTarget.continuousScreenshot,
+          cache: processCacheConfig(yamlScript.agent?.cache, fileName),
         });
 
         if (webTarget.bridgeMode === 'newTabWithUrl') {
@@ -175,7 +178,9 @@ export async function createYamlPlayer(
       // handle android
       if (typeof yamlScript.android !== 'undefined') {
         const androidTarget = yamlScript.android;
-        const agent = await agentFromAdbDevice(androidTarget?.deviceId);
+        const agent = await agentFromAdbDevice(androidTarget?.deviceId, {
+          cache: processCacheConfig(yamlScript.agent?.cache, fileName),
+        });
 
         if (androidTarget?.launch) {
           await agent.launch(androidTarget.launch);
@@ -252,7 +257,10 @@ export async function createYamlPlayer(
 
         // create agent from device
         debug('creating agent from device', device);
-        const agent = createAgent(device, yamlScript.agent || {});
+        const agent = createAgent(device, {
+          ...yamlScript.agent,
+          cache: processCacheConfig(yamlScript.agent?.cache, fileName),
+        });
 
         freeFn.push({
           name: 'destroy_general_interface_agent',

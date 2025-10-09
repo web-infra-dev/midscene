@@ -8,7 +8,7 @@
     "Browser use",
     "Android use"
   ],
-  "version": "0.29.6",
+  "version": "0.30.1",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "main": "./dist/lib/index.js",
@@ -125,6 +125,7 @@
     "socket.io-client": "4.8.1"
   },
   "devDependencies": {
+    "@types/js-yaml": "4.0.9",
     "devtools-protocol": "0.0.1380148",
     "@playwright/test": "^1.44.1",
     "@rslib/core": "^0.11.2",

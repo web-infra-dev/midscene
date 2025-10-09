@@ -56,7 +56,10 @@ export interface MidsceneYamlTask {
   continueOnError?: boolean;
 }
 
-export type MidsceneYamlScriptAgentOpt = Pick<AgentOpt, 'aiActionContext'>;
+export type MidsceneYamlScriptAgentOpt = Pick<
+  AgentOpt,
+  'aiActionContext' | 'cache'
+>;
 
 export interface MidsceneYamlScriptConfig {
   output?: string;
@@ -238,4 +241,12 @@ export interface MidsceneYamlConfigResult {
   report?: string | null;
   error?: string;
   duration?: number;
+  /**
+   * Type of result:
+   * - 'success': All tasks completed successfully
+   * - 'failed': Execution failed (player error)
+   * - 'partialFailed': Some tasks failed but execution continued (continueOnError)
+   * - 'notExecuted': Not executed due to previous failures
+   */
+  resultType?: 'success' | 'failed' | 'partialFailed' | 'notExecuted';
 }

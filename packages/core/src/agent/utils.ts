@@ -2,16 +2,19 @@ import { elementByPositionWithElementInfo } from '@/ai-model';
 import type { AbstractInterface } from '@/device';
 import type {
   BaseElement,
+  ElementCacheFeature,
   ElementTreeNode,
   ExecutionDump,
   ExecutionTask,
   ExecutorContext,
+  LocateResultElement,
   PlanningLocateParam,
   TMultimodalPrompt,
   TUserPrompt,
   UIContext,
 } from '@/index';
 import { uploadTestInfoToServer } from '@/utils';
+import { NodeType } from '@midscene/shared/constants';
 import {
   MIDSCENE_REPORT_TAG_NAME,
   globalConfigManager,
@@ -64,6 +67,7 @@ export async function commonContextParser(
       : undefined;
 
   let screenshotBase64 = await interfaceInstance.screenshotBase64();
+
   assert(screenshotBase64!, 'screenshotBase64 is required');
   let screenshotBase64List = existingScreenshots.slice();
   if (screenshotBase64) {
@@ -213,36 +217,51 @@ export function matchElementFromPlan(
 
 export async function matchElementFromCache(
   taskExecutor: TaskExecutor,
-  xpaths: string[] | undefined,
+  cacheEntry: ElementCacheFeature | undefined,
   cachePrompt: TUserPrompt,
   cacheable: boolean | undefined,
-) {
-  try {
-    if (
-      xpaths?.length &&
-      taskExecutor.taskCache?.isCacheResultUsed &&
-      cacheable !== false &&
-      (taskExecutor.interface as any).getElementInfoByXpath
-    ) {
-      // hit cache, use new id
-      for (let i = 0; i < xpaths.length; i++) {
-        const element = await (
-          taskExecutor.interface as any
-        ).getElementInfoByXpath(xpaths[i]);
+): Promise<LocateResultElement | undefined> {
+  if (!cacheEntry) {
+    return undefined;
+  }
 
-        if (element?.id) {
-          cacheDebug('cache hit, prompt: %s', cachePrompt);
-          cacheDebug(
-            'found a new element with same xpath, xpath: %s, id: %s',
-            xpaths[i],
-            element?.id,
-          );
-          return element;
-        }
-      }
-    }
+  if (cacheable === false) {
+    cacheDebug('cache disabled for prompt: %s', cachePrompt);
+    return undefined;
+  }
+
+  if (!taskExecutor.taskCache?.isCacheResultUsed) {
+    return undefined;
+  }
+
+  if (!taskExecutor.interface.rectMatchesCacheFeature) {
+    cacheDebug(
+      'interface does not implement rectMatchesCacheFeature, skip cache',
+    );
+    return undefined;
+  }
+
+  try {
+    const rect =
+      await taskExecutor.interface.rectMatchesCacheFeature(cacheEntry);
+    const element: LocateResultElement = {
+      id: uuid(),
+      center: [
+        Math.round(rect.left + rect.width / 2),
+        Math.round(rect.top + rect.height / 2),
+      ],
+      rect,
+      xpaths: [],
+      attributes: {
+        nodeType: NodeType.POSITION,
+      },
+    };
+
+    cacheDebug('cache hit, prompt: %s', cachePrompt);
+    return element;
   } catch (error) {
-    cacheDebug('get element info by xpath error: ', error);
+    cacheDebug('rectMatchesCacheFeature error: %s', error);
+    return undefined;
   }
 }
 

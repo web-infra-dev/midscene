@@ -2,7 +2,8 @@ import assert from 'node:assert';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
-import type { TUserPrompt } from '@/index';
+import type { TUserPrompt } from '@/ai-model';
+import type { ElementCacheFeature } from '@/types';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import {
   MIDSCENE_CACHE_MAX_FILENAME_LENGTH,
@@ -29,7 +30,9 @@ export interface PlanningCache {
 export interface LocateCache {
   type: 'locate';
   prompt: TUserPrompt;
-  xpaths: string[];
+  cache?: ElementCacheFeature;
+  /** @deprecated kept for backward compatibility */
+  xpaths?: string[];
 }
 
 export interface MatchCacheResult<T extends PlanningCache | LocateCache> {
@@ -56,12 +59,17 @@ export class TaskCache {
   isCacheResultUsed: boolean; // a flag to indicate if the cache result should be used
   cacheOriginalLength: number;
 
+  readOnlyMode: boolean; // a flag to indicate if the cache is in read-only mode
+
+  writeOnlyMode: boolean; // a flag to indicate if the cache is in write-only mode
+
   private matchedCacheIndices: Set<string> = new Set(); // Track matched records
 
   constructor(
     cacheId: string,
     isCacheResultUsed: boolean,
     cacheFilePath?: string,
+    options: { readOnly?: boolean; writeOnly?: boolean } = {},
   ) {
     assert(cacheId, 'cacheId is required');
     let safeCacheId = replaceIllegalPathCharsAndSpace(cacheId);
@@ -81,10 +89,19 @@ export class TaskCache {
         ? undefined
         : cacheFilePath ||
           join(getMidsceneRunSubDir('cache'), `${this.cacheId}${cacheFileExt}`);
-    this.isCacheResultUsed = isCacheResultUsed;
+    const readOnlyMode = Boolean(options?.readOnly);
+    const writeOnlyMode = Boolean(options?.writeOnly);
+
+    if (readOnlyMode && writeOnlyMode) {
+      throw new Error('TaskCache cannot be both read-only and write-only');
+    }
+
+    this.isCacheResultUsed = writeOnlyMode ? false : isCacheResultUsed;
+    this.readOnlyMode = readOnlyMode;
+    this.writeOnlyMode = writeOnlyMode;
 
     let cacheContent;
-    if (this.cacheFilePath) {
+    if (this.cacheFilePath && !this.writeOnlyMode) {
       cacheContent = this.loadCacheFromFile();
     }
     if (!cacheContent) {
@@ -95,13 +112,18 @@ export class TaskCache {
       };
     }
     this.cache = cacheContent;
-    this.cacheOriginalLength = this.cache.caches.length;
+    this.cacheOriginalLength = this.isCacheResultUsed
+      ? this.cache.caches.length
+      : 0;
   }
 
   matchCache(
     prompt: TUserPrompt,
     type: 'plan' | 'locate',
   ): MatchCacheResult<PlanningCache | LocateCache> | undefined {
+    if (!this.isCacheResultUsed) {
+      return undefined;
+    }
     // Find the first unused matching cache
     for (let i = 0; i < this.cacheOriginalLength; i++) {
       const item = this.cache.caches[i];
@@ -113,6 +135,15 @@ export class TaskCache {
         isDeepStrictEqual(item.prompt, prompt) &&
         !this.matchedCacheIndices.has(key)
       ) {
+        if (item.type === 'locate') {
+          const locateItem = item as LocateCache;
+          if (!locateItem.cache && Array.isArray(locateItem.xpaths)) {
+            locateItem.cache = { xpaths: locateItem.xpaths };
+          }
+          if ('xpaths' in locateItem) {
+            locateItem.xpaths = undefined;
+          }
+        }
         this.matchedCacheIndices.add(key);
         debug(
           'cache found and marked as used, type: %s, prompt: %s, index: %d',
@@ -130,6 +161,14 @@ export class TaskCache {
               i,
             );
             cb(item);
+
+            if (this.readOnlyMode) {
+              debug(
+                'read-only mode, cache updated in memory but not flushed to file',
+              );
+              return;
+            }
+
             debug(
               'cache updated, will flush to file, type: %s, prompt: %s, index: %d',
               type,
@@ -162,6 +201,12 @@ export class TaskCache {
   appendCache(cache: PlanningCache | LocateCache) {
     debug('will append cache', cache);
     this.cache.caches.push(cache);
+
+    if (this.readOnlyMode) {
+      debug('read-only mode, cache appended to memory but not flushed to file');
+      return;
+    }
+
     this.flushCacheToFile();
   }
 
@@ -276,7 +321,11 @@ export class TaskCache {
         });
       } else {
         cachedRecord.updateFn((cache) => {
-          (cache as LocateCache).xpaths = newRecord.xpaths;
+          const locateCache = cache as LocateCache;
+          locateCache.cache = newRecord.cache;
+          if ('xpaths' in locateCache) {
+            locateCache.xpaths = undefined;
+          }
         });
       }
     } else {

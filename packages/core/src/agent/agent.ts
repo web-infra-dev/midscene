@@ -41,14 +41,14 @@ import {
 } from '../yaml/index';
 
 import type { AbstractInterface } from '@/device';
-import type { AgentOpt } from '@/types';
+import type { AgentOpt, CacheConfig } from '@/types';
 import {
   MIDSCENE_CACHE,
   ModelConfigManager,
   globalConfigManager,
   globalModelConfigManager,
 } from '@midscene/shared/env';
-import { resizeImgBase64 } from '@midscene/shared/img';
+import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 // import type { AndroidDeviceInputOpt } from '../device';
@@ -84,6 +84,21 @@ const defaultInsightExtractOption: InsightExtractOption = {
   screenshotIncluded: true,
   screenshotListIncluded: false,
 };
+
+type CacheStrategy = NonNullable<CacheConfig['strategy']>;
+
+const CACHE_STRATEGIES: readonly CacheStrategy[] = [
+  'read-only',
+  'read-write',
+  'write-only',
+];
+
+const isValidCacheStrategy = (strategy: string): strategy is CacheStrategy =>
+  CACHE_STRATEGIES.some((value) => value === strategy);
+
+const CACHE_STRATEGY_VALUES = CACHE_STRATEGIES.map(
+  (value) => `"${value}"`,
+).join(', ');
 
 export class Agent<
   InterfaceType extends AbstractInterface = AbstractInterface,
@@ -132,6 +147,15 @@ export class Agent<
   private continuousScreenshots: string[] = [];
 
   private isCapturingContinuousScreenshot = false;
+  /**
+   * Screenshot scale factor derived from actual screenshot dimensions
+   */
+  private screenshotScale?: number;
+
+  /**
+   * Internal promise to deduplicate screenshot scale computation
+   */
+  private screenshotScalePromise?: Promise<number>;
 
   // @deprecated use .interface instead
   get page() {
@@ -151,6 +175,52 @@ export class Agent<
     ) {
       this.modelConfigManager.throwErrorIfNonVLModel();
       this.hasWarnedNonVLModel = true;
+    }
+  }
+
+  /**
+   * Lazily compute the ratio between the physical screenshot width and the logical page width
+   */
+  private async getScreenshotScale(context: UIContext): Promise<number> {
+    if (this.screenshotScale !== undefined) {
+      return this.screenshotScale;
+    }
+
+    if (!this.screenshotScalePromise) {
+      this.screenshotScalePromise = (async () => {
+        const pageWidth = context.size?.width;
+        assert(
+          pageWidth && pageWidth > 0,
+          `Invalid page width when computing screenshot scale: ${pageWidth}`,
+        );
+
+        const { width: screenshotWidth } = await imageInfoOfBase64(
+          context.screenshotBase64,
+        );
+
+        assert(
+          Number.isFinite(screenshotWidth) && screenshotWidth > 0,
+          `Invalid screenshot width when computing screenshot scale: ${screenshotWidth}`,
+        );
+
+        const computedScale = screenshotWidth / pageWidth;
+        assert(
+          Number.isFinite(computedScale) && computedScale > 0,
+          `Invalid computed screenshot scale: ${computedScale}`,
+        );
+
+        debug(
+          `Computed screenshot scale ${computedScale} from screenshot width ${screenshotWidth} and page width ${pageWidth}`,
+        );
+        return computedScale;
+      })();
+    }
+
+    try {
+      this.screenshotScale = await this.screenshotScalePromise;
+      return this.screenshotScale;
+    } finally {
+      this.screenshotScalePromise = undefined;
     }
   }
 
@@ -181,15 +251,17 @@ export class Agent<
       return this.getUIContext(action);
     });
 
-    const useCache =
-      typeof opts?.useCache === 'boolean'
-        ? opts.useCache
-        : globalConfigManager.getEnvConfigInBoolean(MIDSCENE_CACHE);
-
-    if (opts?.cacheId) {
+    // Process cache configuration
+    const cacheConfig = this.processCacheConfig(opts || {});
+    if (cacheConfig) {
       this.taskCache = new TaskCache(
-        opts.cacheId,
-        useCache, // if we should use cache to match the element
+        cacheConfig.id,
+        cacheConfig.enabled,
+        undefined, // cacheFilePath
+        {
+          readOnly: cacheConfig.readOnly,
+          writeOnly: cacheConfig.writeOnly,
+        },
       );
     }
 
@@ -353,12 +425,14 @@ export class Agent<
       return this.frozenUIContext;
     }
 
+    // Get original context
+    let context: UIContext;
     if (this.interface.getContext) {
       debug('Using page.getContext for action:', action);
-      const context = await this.interface.getContext();
-      return this.mergeContinuousScreenshotsIntoContext(context);
+      context = await this.interface.getContext();
     } else {
-      const context = await commonContextParser(this.interface, {
+      debug('Using commonContextParser for action:', action);
+      context = await commonContextParser(this.interface, {
         uploadServerUrl: this.modelConfigManager.getUploadTestServerUrl(),
         screenshotBase64List: this.isContinuousScreenshotEnabled()
           ? this.continuousScreenshots
@@ -367,8 +441,27 @@ export class Agent<
           ? this.getContinuousScreenshotConfig().maxCount
           : undefined,
       });
-      return this.mergeContinuousScreenshotsIntoContext(context);
     }
+
+    const computedScreenshotScale = await this.getScreenshotScale(context);
+
+    if (computedScreenshotScale !== 1) {
+      const scaleForLog = Number.parseFloat(computedScreenshotScale.toFixed(4));
+      debug(
+        `Applying computed screenshot scale: ${scaleForLog} (resize to logical size)`,
+      );
+      const targetWidth = Math.round(context.size.width);
+      const targetHeight = Math.round(context.size.height);
+      debug(`Resizing screenshot to ${targetWidth}x${targetHeight}`);
+      context.screenshotBase64 = await resizeImgBase64(
+        context.screenshotBase64,
+        { width: targetWidth, height: targetHeight },
+      );
+    } else {
+      debug(`screenshot scale=${computedScreenshotScale}`);
+    }
+
+    return this.mergeContinuousScreenshotsIntoContext(context);
   }
 
   async _snapshotContext(): Promise<UIContext> {
@@ -759,6 +852,7 @@ export class Agent<
       taskPrompt,
       modelConfig,
       this.opts.aiActionContext,
+      cacheable,
     );
 
     // update cache
@@ -969,12 +1063,18 @@ export class Agent<
 
     const { element } = output;
 
+    const dprValue = await (this.interface.size() as any).dpr;
+    const dprEntry = dprValue
+      ? {
+          dpr: dprValue,
+        }
+      : {};
     return {
       rect: element?.rect,
       center: element?.center,
-      scale: (await this.interface.size()).dpr,
+      ...dprEntry,
     } as Pick<LocateResultElement, 'rect' | 'center'> & {
-      scale: number;
+      dpr?: number; // this field is deprecated
     };
   }
 
@@ -1024,7 +1124,7 @@ export class Agent<
   }
 
   async aiWaitFor(assertion: TUserPrompt, opt?: AgentWaitForOpt) {
-    const modelConfig = this.modelConfigManager.getModelConfig('default');
+    const modelConfig = this.modelConfigManager.getModelConfig('VQA');
     const { executor } = await this.taskExecutor.waitFor(
       assertion,
       {
@@ -1207,6 +1307,103 @@ export class Agent<
     debug('Unfreezing page context');
     this.frozenUIContext = undefined;
     debug('Page context unfrozen successfully');
+  }
+
+  /**
+   * Process cache configuration and return normalized cache settings
+   */
+  private processCacheConfig(opts: AgentOpt): {
+    id: string;
+    enabled: boolean;
+    readOnly: boolean;
+    writeOnly: boolean;
+  } | null {
+    // 1. New cache object configuration (highest priority)
+    if (opts.cache !== undefined) {
+      if (opts.cache === false) {
+        return null; // Completely disable cache
+      }
+
+      if (opts.cache === true) {
+        throw new Error(
+          'cache: true requires an explicit cache ID. Please provide:\n' +
+            'Example: cache: { id: "my-cache-id" }',
+        );
+      }
+
+      // cache is object configuration
+      if (typeof opts.cache === 'object') {
+        const config = opts.cache;
+        if (!config.id) {
+          throw new Error(
+            'cache configuration requires an explicit id. Please provide:\n' +
+              'Example: cache: { id: "my-cache-id" }',
+          );
+        }
+        const id = config.id;
+        const rawStrategy = config.strategy as unknown;
+        let strategyValue: string;
+
+        if (rawStrategy === undefined) {
+          strategyValue = 'read-write';
+        } else if (typeof rawStrategy === 'string') {
+          strategyValue = rawStrategy;
+        } else {
+          throw new Error(
+            `cache.strategy must be a string when provided, but received type ${typeof rawStrategy}`,
+          );
+        }
+
+        if (!isValidCacheStrategy(strategyValue)) {
+          throw new Error(
+            `cache.strategy must be one of ${CACHE_STRATEGY_VALUES}, but received "${strategyValue}"`,
+          );
+        }
+
+        const isReadOnly = strategyValue === 'read-only';
+        const isWriteOnly = strategyValue === 'write-only';
+
+        return {
+          id,
+          enabled: !isWriteOnly,
+          readOnly: isReadOnly,
+          writeOnly: isWriteOnly,
+        };
+      }
+    }
+
+    // 2. Backward compatibility: support old cacheId (requires environment variable)
+    if (opts.cacheId) {
+      const envEnabled =
+        globalConfigManager.getEnvConfigInBoolean(MIDSCENE_CACHE);
+      if (envEnabled) {
+        return {
+          id: opts.cacheId,
+          enabled: true,
+          readOnly: false,
+          writeOnly: false,
+        };
+      }
+    }
+
+    // 3. No cache configuration
+    return null;
+  }
+
+  /**
+   * Manually flush cache to file
+   * Only supported in read-only mode where writes are deferred by default
+   */
+  async flushCache(): Promise<void> {
+    if (!this.taskCache) {
+      throw new Error('Cache is not configured');
+    }
+
+    if (!this.taskCache.readOnlyMode) {
+      throw new Error('flushCache() can only be called in read-only mode');
+    }
+
+    this.taskCache.flushCacheToFile();
   }
 }
 

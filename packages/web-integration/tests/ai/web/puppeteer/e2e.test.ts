@@ -66,7 +66,9 @@ describe(
         'type "standard_user" in user name input, type "secret_sauce" in password',
       );
 
-      await agent.aiTap('Login');
+      await agent.aiTap('Login', {
+        deepThink: true,
+      });
 
       expect(beforeInvokeAction.mock.calls.length).toBeGreaterThan(1);
       expect(beforeInvokeAction.mock.calls.length).toEqual(
@@ -411,6 +413,25 @@ describe(
       await agent.aiAssert(
         'the "Double" field in the "Left" section shows Double:1 instead of Double:0',
       );
+    });
+
+    it('xpath', async () => {
+      const { originPage, reset } = await launchPage('https://www.baidu.com/');
+      resetFn = reset;
+      const agent = new PuppeteerAgent(originPage);
+
+      const element = await agent.aiLocate('the "Search" button');
+      const { rect } = element;
+
+      const feature = await agent.interface.cacheFeatureForRect(rect);
+      expect(feature).toBeTruthy();
+
+      const rectFromXpath =
+        await agent.interface.rectMatchesCacheFeature(feature);
+      expect(rectFromXpath).toBeTruthy();
+
+      expect(Math.abs(rectFromXpath.left - rect.left)).toBeLessThan(20);
+      expect(Math.abs(rectFromXpath.top - rect.top)).toBeLessThan(20);
     });
   },
   4 * 60 * 1000,

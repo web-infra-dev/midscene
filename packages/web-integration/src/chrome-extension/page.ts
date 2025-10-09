@@ -388,7 +388,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     });
 
     const result = await this.sendCommandToDebugger('Runtime.evaluate', {
-      expression: `window.midscene_element_inspector.getXpathsById('${id}')`,
+      expression: `window.midscene_element_inspector.getXpathsById(${JSON.stringify(id)})`,
       returnByValue: true,
     });
     return result.result.value;
@@ -422,7 +422,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
       expression: script,
     });
     const result = await this.sendCommandToDebugger('Runtime.evaluate', {
-      expression: `window.midscene_element_inspector.getElementInfoByXpath('${xpath}')`,
+      expression: `window.midscene_element_inspector.getElementInfoByXpath(${JSON.stringify(xpath)})`,
       returnByValue: true,
     });
     return result.result.value;

@@ -1,6 +1,5 @@
 import {
   ConversationHistory,
-  elementByPositionWithElementInfo,
   findAllMidsceneLocatorField,
   uiTarsPlanning,
 } from '@/ai-model';
@@ -10,6 +9,7 @@ import {
   type BaseElement,
   type DetailedLocateParam,
   type DumpSubscriber,
+  type ElementCacheFeature,
   type ExecutionRecorderItem,
   type ExecutionTaskActionApply,
   type ExecutionTaskApply,
@@ -40,7 +40,6 @@ import {
   plan,
 } from '@/index';
 import { sleep } from '@/utils';
-import { NodeType } from '@midscene/shared/constants';
 import {
   type IModelConfig,
   MIDSCENE_REPLANNING_CYCLE_LIMIT,
@@ -158,68 +157,6 @@ export class TaskExecutor {
     return item;
   }
 
-  private async getElementXpath(
-    uiContext: UIContext<BaseElement>,
-    element: LocateResultElement,
-  ): Promise<string[] | undefined> {
-    if (!(this.interface as any).getXpathsByPoint) {
-      debug('getXpathsByPoint is not supported for this interface');
-      return undefined;
-    }
-
-    let elementId = element?.id;
-    if (element?.isOrderSensitive !== undefined) {
-      try {
-        const xpaths = await (this.interface as any).getXpathsByPoint(
-          {
-            left: element.center[0],
-            top: element.center[1],
-          },
-          element?.isOrderSensitive,
-        );
-
-        return xpaths;
-      } catch (error) {
-        debug('getXpathsByPoint failed: %s', error);
-        return undefined;
-      }
-    }
-
-    // find the nearest xpath for the element
-    if (element?.attributes?.nodeType === NodeType.POSITION) {
-      await this.insight.contextRetrieverFn('locate');
-      const info = elementByPositionWithElementInfo(
-        uiContext.tree,
-        {
-          x: element.center[0],
-          y: element.center[1],
-        },
-        {
-          requireStrictDistance: false,
-          filterPositionElements: true,
-        },
-      );
-      if (info?.id) {
-        elementId = info.id;
-      } else {
-        debug(
-          'no element id found for position node, will not update cache',
-          element,
-        );
-      }
-    }
-
-    if (!elementId) {
-      return undefined;
-    }
-    try {
-      const result = await (this.interface as any).getXpathsById(elementId);
-      return result;
-    } catch (error) {
-      debug('getXpathsById error: ', error);
-    }
-  }
-
   private prependExecutorWithScreenshot(
     taskApply: ExecutionTaskApply,
     appendAfterExecution = false,
@@ -249,6 +186,7 @@ export class TaskExecutor {
   public async convertPlanToExecutable(
     plans: PlanningAction[],
     modelConfig: IModelConfig,
+    cacheable?: boolean,
   ) {
     const tasks: ExecutionTaskApply[] = [];
 
@@ -260,6 +198,13 @@ export class TaskExecutor {
       if (typeof detailedLocateParam === 'string') {
         detailedLocateParam = {
           prompt: detailedLocateParam,
+        };
+      }
+      // Apply cacheable option from convertPlanToExecutable if it was explicitly set
+      if (cacheable !== undefined) {
+        detailedLocateParam = {
+          ...detailedLocateParam,
+          cacheable,
         };
       }
       const taskFind: ExecutionTaskInsightLocateApply = {
@@ -286,6 +231,11 @@ export class TaskExecutor {
             };
 
             task.usage = usage;
+
+            // Store searchAreaUsage in task metadata
+            if (dump?.taskInfo?.searchAreaUsage) {
+              task.searchAreaUsage = dump.taskInfo.searchAreaUsage;
+            }
           };
           this.insight.onceDumpUpdatedFn = dumpCollector;
           const shotTime = Date.now();
@@ -315,12 +265,12 @@ export class TaskExecutor {
           const cachePrompt = param.prompt;
           const locateCacheRecord =
             this.taskCache?.matchLocateCache(cachePrompt);
-          const xpaths = locateCacheRecord?.cacheContent?.xpaths;
+          const cacheEntry = locateCacheRecord?.cacheContent?.cache;
           const elementFromCache = userExpectedPathHitFlag
             ? null
             : await matchElementFromCache(
                 this,
-                xpaths,
+                cacheEntry,
                 cachePrompt,
                 param.cacheable,
               );
@@ -356,38 +306,47 @@ export class TaskExecutor {
             elementFromAiLocate;
 
           // update cache
-          let currentXpaths: string[] | undefined;
+          let currentCacheEntry: ElementCacheFeature | undefined;
           if (
             element &&
             this.taskCache &&
             !cacheHitFlag &&
             param?.cacheable !== false
           ) {
-            const elementXpaths = await this.getElementXpath(
-              uiContext,
-              element,
-            );
-            if (elementXpaths?.length) {
-              debug(
-                'update cache, prompt: %s, xpaths: %s',
-                cachePrompt,
-                elementXpaths,
-              );
-              currentXpaths = elementXpaths;
-              this.taskCache.updateOrAppendCacheRecord(
-                {
-                  type: 'locate',
-                  prompt: cachePrompt,
-                  xpaths: elementXpaths,
-                },
-                locateCacheRecord,
-              );
+            if (this.interface.cacheFeatureForRect) {
+              try {
+                const feature = await this.interface.cacheFeatureForRect(
+                  element.rect,
+                  element.isOrderSensitive !== undefined
+                    ? { _orderSensitive: element.isOrderSensitive }
+                    : undefined,
+                );
+                if (feature && Object.keys(feature).length > 0) {
+                  debug(
+                    'update cache, prompt: %s, cache: %o',
+                    cachePrompt,
+                    feature,
+                  );
+                  currentCacheEntry = feature;
+                  this.taskCache.updateOrAppendCacheRecord(
+                    {
+                      type: 'locate',
+                      prompt: cachePrompt,
+                      cache: feature,
+                    },
+                    locateCacheRecord,
+                  );
+                } else {
+                  debug(
+                    'no cache data returned, skip cache update, prompt: %s',
+                    cachePrompt,
+                  );
+                }
+              } catch (error) {
+                debug('cacheFeatureForRect failed: %s', error);
+              }
             } else {
-              debug(
-                'no xpaths found, will not update cache',
-                cachePrompt,
-                elementXpaths,
-              );
+              debug('cacheFeatureForRect is not supported, skip cache update');
             }
           }
           if (!element) {
@@ -407,8 +366,8 @@ export class TaskExecutor {
             hitBy = {
               from: 'Cache',
               context: {
-                xpathsFromCache: xpaths,
-                xpathsToSave: currentXpaths,
+                cacheEntry,
+                cacheToSave: currentCacheEntry,
               },
             };
           } else if (planHitFlag) {
@@ -840,6 +799,7 @@ export class TaskExecutor {
     userPrompt: string,
     modelConfig: IModelConfig,
     actionContext?: string,
+    cacheable?: boolean,
   ): Promise<
     ExecutionResult<
       | {
@@ -891,7 +851,11 @@ export class TaskExecutor {
 
       let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
       try {
-        executables = await this.convertPlanToExecutable(plans, modelConfig);
+        executables = await this.convertPlanToExecutable(
+          plans,
+          modelConfig,
+          cacheable,
+        );
         taskExecutor.append(executables.tasks);
       } catch (error) {
         return this.appendErrorPlan(
@@ -1107,6 +1071,7 @@ export class TaskExecutor {
       },
       locate: null,
     };
+    // The convertPlanToExecutable requires modelConfig as a parameter but will not consume it when type is Sleep
     const { tasks: sleepTasks } = await this.convertPlanToExecutable(
       [sleepPlan],
       modelConfig,

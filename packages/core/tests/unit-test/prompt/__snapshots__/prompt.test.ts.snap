@@ -271,7 +271,7 @@ You are an expert in software testing.
 ## Output Format:
 \`\`\`json
 {
-  "bbox": [number, number, number, number],  // 2d bounding box as [ymin, xmin, ymax, xmax]
+  "bbox": [number, number, number, number],  // box_2d bounding box for the target element, should be [ymin, xmin, ymax, xmax] normalized to 0-1000.
   "errors"?: string[],
   "isOrderSensitive": boolean // Whether the targetElementDescription is order-sensitive (true/false)
 }
@@ -685,7 +685,7 @@ Restriction:
 - Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
 - Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are Tap, Sleep, Input, KeyboardPress, Scroll.
 - Don't repeat actions in the previous logs.
-- Bbox is the bounding box of the element to be located. It's an array of 4 numbers, representing 2d bounding box as [ymin, xmin, ymax, xmax].
+- Bbox is the bounding box of the element to be located. It's an array of 4 numbers, representing box_2d bounding box for the target element, should be [ymin, xmin, ymax, xmax] normalized to 0-1000..
 
 Supporting actions:
 - Tap, Tap the element
@@ -840,7 +840,7 @@ return in this JSON format:
 }
 \`\`\`
 
-In which, all the numbers in the \`bbox\` and \`references_bbox\` represent 2d bounding box as [ymin, xmin, ymax, xmax].
+In which, all the numbers in the \`bbox\` and \`references_bbox\` represent box_2d bounding box for the target element, should be [ymin, xmin, ymax, xmax] normalized to 0-1000..
 
 For example, if the user describe the target element as "the delete button on the second row with title 'Peter'", you should put the bounding box of the delete button in the \`bbox\` field, and the bounding box of the second row in the \`references_bbox\` field.
 

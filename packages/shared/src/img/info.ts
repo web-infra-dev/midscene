@@ -1,13 +1,8 @@
 import assert from 'node:assert';
 import { Buffer } from 'node:buffer';
 import type Jimp from 'jimp';
+import type { Size } from '../types';
 import getJimp from './get-jimp';
-
-export interface Size {
-  width: number;
-  height: number;
-  dpr?: number;
-}
 
 export interface ImageInfo extends Size {
   jimpImage: Jimp;

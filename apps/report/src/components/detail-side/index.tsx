@@ -212,6 +212,16 @@ const DetailSide = (): JSX.Element => {
             },
           ]
         : []),
+      ...(task?.searchAreaUsage
+        ? [
+            {
+              key: 'searchAreaUsage',
+              content: (
+                <pre>{JSON.stringify(task.searchAreaUsage, undefined, 2)}</pre>
+              ),
+            },
+          ]
+        : []),
       ...(task?.usage
         ? [
             {
