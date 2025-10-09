@@ -186,6 +186,7 @@ describe('IOSDevice', () => {
       expect(size).toEqual({
         width: 375,
         height: 812,
+        dpr: 2,
       });
       expect(mockWdaClient.getWindowSize).toHaveBeenCalled();
     });
@@ -297,6 +298,7 @@ describe('IOSDevice', () => {
       expect(size).toEqual({
         width: 375,
         height: 812,
+        dpr: 2,
       });
     });
 
@@ -468,6 +470,11 @@ describe('IOSDevice', () => {
   describe('Screen Operations', () => {
     beforeEach(async () => {
       await device.connect();
+    });
+
+    it('should calculate DPR correctly', async () => {
+      const size = await device.size();
+      expect(size.dpr).toBe(2); // DPR from mocked getScreenScale
     });
 
     it('should handle different screen sizes', async () => {
