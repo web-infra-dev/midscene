@@ -457,7 +457,9 @@ describe('PageAgent cache configuration', () => {
           },
           modelConfig: () => mockedModelConfigFnResult,
         });
-      }).toThrow('cache.strategy must be one of "read-only", "read-write"');
+      }).toThrow(
+        'cache.strategy must be one of "read-only", "read-write", "write-only"',
+      );
     });
 
     it('should handle cache: { strategy: "read-write", id: "custom-id" }', () => {
@@ -488,6 +490,22 @@ describe('PageAgent cache configuration', () => {
       expect(agent.taskCache?.isCacheResultUsed).toBe(true);
       expect(agent.taskCache?.readOnlyMode).toBe(true);
       expect(agent.taskCache?.cacheId).toBe('custom-readonly-cache');
+    });
+
+    it('should handle cache: { strategy: "write-only", id: "custom-id" }', () => {
+      const agent = new PageAgent(mockPage, {
+        cache: {
+          strategy: 'write-only',
+          id: 'custom-writeonly-cache',
+        },
+        modelConfig: () => mockedModelConfigFnResult,
+      });
+
+      expect(agent.taskCache).toBeDefined();
+      expect(agent.taskCache?.isCacheResultUsed).toBe(false);
+      expect(agent.taskCache?.readOnlyMode).toBe(false);
+      expect(agent.taskCache?.writeOnlyMode).toBe(true);
+      expect(agent.taskCache?.cacheId).toBe('custom-writeonly-cache');
     });
 
     it('should throw error for cache: true even with testId', () => {

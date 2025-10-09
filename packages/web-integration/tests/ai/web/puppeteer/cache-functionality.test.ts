@@ -97,6 +97,33 @@ describe('Cache Configuration Tests', () => {
     }
   });
 
+  it('should work with cache: { strategy: "write-only" } mode', async () => {
+    const { originPage, reset } = await launchPage('https://example.com/');
+    resetFn = reset;
+
+    const agent = new PuppeteerAgent(originPage, {
+      cache: {
+        id: 'cache-functionality-test',
+        strategy: 'write-only',
+      },
+      testId: 'explicit-cache-test-001',
+    });
+
+    expect(agent.taskCache).toBeDefined();
+    expect(agent.taskCache?.cacheId).toBe('cache-functionality-test');
+    expect(agent.taskCache?.isCacheResultUsed).toBe(false);
+    expect(agent.taskCache?.readOnlyMode).toBe(false);
+    expect(agent.taskCache?.writeOnlyMode).toBe(true);
+
+    await agent.aiAction('click the title');
+
+    const cacheFilePath = agent.taskCache?.cacheFilePath;
+    expect(cacheFilePath).toBeDefined();
+    if (cacheFilePath) {
+      expect(fs.existsSync(cacheFilePath)).toBe(true);
+    }
+  });
+
   it('should prioritize new cache config over legacy cacheId', async () => {
     const { originPage, reset } = await launchPage('https://example.com/');
     resetFn = reset;

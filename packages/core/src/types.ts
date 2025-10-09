@@ -580,7 +580,10 @@ export type WebUIContext = UIContext<WebElementInfo>;
  * Agent
  */
 
-export type CacheConfig = { strategy?: 'read-only' | 'read-write'; id: string };
+export type CacheConfig = {
+  strategy?: 'read-only' | 'read-write' | 'write-only';
+  id: string;
+};
 
 export type Cache =
   | false // No read, no write

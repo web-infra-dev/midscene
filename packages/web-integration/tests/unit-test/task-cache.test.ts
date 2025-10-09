@@ -459,7 +459,9 @@ describe('TaskCache', { timeout: 20000 }, () => {
 describe('TaskCache read-only mode', () => {
   it('should append cache to memory but not flush to file in read-only mode', () => {
     const cacheId = uuid();
-    const cache = new TaskCache(cacheId, true, undefined, true); // read-only mode
+    const cache = new TaskCache(cacheId, true, undefined, {
+      readOnly: true,
+    }); // read-only mode
 
     const initialLength = cache.cache.caches.length;
 
@@ -478,7 +480,9 @@ describe('TaskCache read-only mode', () => {
 
   it('should allow manual flush to file in read-only mode', () => {
     const cacheId = uuid();
-    const cache = new TaskCache(cacheId, true, undefined, true); // read-only mode
+    const cache = new TaskCache(cacheId, true, undefined, {
+      readOnly: true,
+    }); // read-only mode
 
     // Ensure file doesn't exist initially
     if (existsSync(cache.cacheFilePath!)) {
@@ -514,7 +518,9 @@ describe('TaskCache read-only mode', () => {
     ]);
 
     // Load cache in read-only mode
-    const cache = new TaskCache(uuid(), true, cacheFilePath, true);
+    const cache = new TaskCache(uuid(), true, cacheFilePath, {
+      readOnly: true,
+    });
 
     const matchedCache = cache.matchPlanCache('test-prompt');
     expect(matchedCache).toBeDefined();
@@ -549,7 +555,9 @@ describe('TaskCache read-only mode', () => {
     ]);
 
     // Load cache in read-only mode
-    const cache = new TaskCache(uuid(), true, cacheFilePath, true);
+    const cache = new TaskCache(uuid(), true, cacheFilePath, {
+      readOnly: true,
+    });
 
     // Should still be able to match existing cache
     const planCache = cache.matchPlanCache('test-prompt');
@@ -562,15 +570,21 @@ describe('TaskCache read-only mode', () => {
   });
 
   it('should set readOnlyMode property correctly', () => {
-    const normalCache = new TaskCache(uuid(), true, undefined, false);
+    const normalCache = new TaskCache(uuid(), true);
     expect(normalCache.readOnlyMode).toBe(false);
+    expect(normalCache.writeOnlyMode).toBe(false);
 
-    const readOnlyCache = new TaskCache(uuid(), true, undefined, true);
+    const readOnlyCache = new TaskCache(uuid(), true, undefined, {
+      readOnly: true,
+    });
     expect(readOnlyCache.readOnlyMode).toBe(true);
+    expect(readOnlyCache.writeOnlyMode).toBe(false);
 
-    // Default should be false
-    const defaultCache = new TaskCache(uuid(), true);
-    expect(defaultCache.readOnlyMode).toBe(false);
+    const writeOnlyCache = new TaskCache(uuid(), true, undefined, {
+      writeOnly: true,
+    });
+    expect(writeOnlyCache.readOnlyMode).toBe(false);
+    expect(writeOnlyCache.writeOnlyMode).toBe(true);
   });
 
   it('should handle updateOrAppendCacheRecord in memory but not flush to file in read-only mode', () => {
@@ -582,7 +596,9 @@ describe('TaskCache read-only mode', () => {
       },
     ]);
 
-    const cache = new TaskCache(uuid(), true, cacheFilePath, true);
+    const cache = new TaskCache(uuid(), true, cacheFilePath, {
+      readOnly: true,
+    });
     const initialLength = cache.cache.caches.length;
 
     // Try to append new record - should append to memory
@@ -615,6 +631,57 @@ describe('TaskCache read-only mode', () => {
     expect(fileContent).toContain('existing-workflow');
     expect(fileContent).not.toContain('updated-workflow');
     expect(fileContent).not.toContain('new-workflow');
+  });
+});
+
+describe('TaskCache write-only mode', () => {
+  it('should skip matching existing cache records', () => {
+    const cacheFilePath = prepareCache([
+      {
+        type: 'plan',
+        prompt: 'write-only-plan',
+        yamlWorkflow: 'write-only-workflow',
+      },
+    ]);
+
+    const cache = new TaskCache(uuid(), true, cacheFilePath, {
+      writeOnly: true,
+    });
+
+    expect(cache.writeOnlyMode).toBe(true);
+    expect(cache.readOnlyMode).toBe(false);
+    expect(cache.isCacheResultUsed).toBe(false);
+    expect(cache.cacheOriginalLength).toBe(0);
+    expect(cache.matchPlanCache('write-only-plan')).toBeUndefined();
+  });
+
+  it('should flush appended caches to disk in write-only mode', () => {
+    const cacheId = uuid();
+    const cache = new TaskCache(cacheId, true, undefined, {
+      writeOnly: true,
+    });
+
+    cache.appendCache({
+      type: 'plan',
+      prompt: 'fresh-write-only',
+      yamlWorkflow: 'fresh-workflow',
+    });
+
+    expect(existsSync(cache.cacheFilePath!)).toBe(true);
+    const content = readFileSync(cache.cacheFilePath!, 'utf-8');
+    expect(content).toContain('fresh-write-only');
+    expect(content).toContain('fresh-workflow');
+    expect(cache.matchPlanCache('fresh-write-only')).toBeUndefined();
+  });
+
+  it('should throw when both readOnly and writeOnly are enabled', () => {
+    expect(
+      () =>
+        new TaskCache(uuid(), true, undefined, {
+          readOnly: true,
+          writeOnly: true,
+        }),
+    ).toThrow('TaskCache cannot be both read-only and write-only');
   });
 });
 

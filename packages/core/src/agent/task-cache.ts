@@ -61,13 +61,15 @@ export class TaskCache {
 
   readOnlyMode: boolean; // a flag to indicate if the cache is in read-only mode
 
+  writeOnlyMode: boolean; // a flag to indicate if the cache is in write-only mode
+
   private matchedCacheIndices: Set<string> = new Set(); // Track matched records
 
   constructor(
     cacheId: string,
     isCacheResultUsed: boolean,
     cacheFilePath?: string,
-    readOnlyMode = false,
+    options: { readOnly?: boolean; writeOnly?: boolean } = {},
   ) {
     assert(cacheId, 'cacheId is required');
     let safeCacheId = replaceIllegalPathCharsAndSpace(cacheId);
@@ -87,11 +89,19 @@ export class TaskCache {
         ? undefined
         : cacheFilePath ||
           join(getMidsceneRunSubDir('cache'), `${this.cacheId}${cacheFileExt}`);
-    this.isCacheResultUsed = isCacheResultUsed;
+    const readOnlyMode = Boolean(options?.readOnly);
+    const writeOnlyMode = Boolean(options?.writeOnly);
+
+    if (readOnlyMode && writeOnlyMode) {
+      throw new Error('TaskCache cannot be both read-only and write-only');
+    }
+
+    this.isCacheResultUsed = writeOnlyMode ? false : isCacheResultUsed;
     this.readOnlyMode = readOnlyMode;
+    this.writeOnlyMode = writeOnlyMode;
 
     let cacheContent;
-    if (this.cacheFilePath) {
+    if (this.cacheFilePath && !this.writeOnlyMode) {
       cacheContent = this.loadCacheFromFile();
     }
     if (!cacheContent) {
@@ -102,13 +112,18 @@ export class TaskCache {
       };
     }
     this.cache = cacheContent;
-    this.cacheOriginalLength = this.cache.caches.length;
+    this.cacheOriginalLength = this.isCacheResultUsed
+      ? this.cache.caches.length
+      : 0;
   }
 
   matchCache(
     prompt: TUserPrompt,
     type: 'plan' | 'locate',
   ): MatchCacheResult<PlanningCache | LocateCache> | undefined {
+    if (!this.isCacheResultUsed) {
+      return undefined;
+    }
     // Find the first unused matching cache
     for (let i = 0; i < this.cacheOriginalLength; i++) {
       const item = this.cache.caches[i];

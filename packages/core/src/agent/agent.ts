@@ -84,7 +84,11 @@ const defaultInsightExtractOption: InsightExtractOption = {
 
 type CacheStrategy = NonNullable<CacheConfig['strategy']>;
 
-const CACHE_STRATEGIES: readonly CacheStrategy[] = ['read-only', 'read-write'];
+const CACHE_STRATEGIES: readonly CacheStrategy[] = [
+  'read-only',
+  'read-write',
+  'write-only',
+];
 
 const isValidCacheStrategy = (strategy: string): strategy is CacheStrategy =>
   CACHE_STRATEGIES.some((value) => value === strategy);
@@ -246,7 +250,10 @@ export class Agent<
         cacheConfig.id,
         cacheConfig.enabled,
         undefined, // cacheFilePath
-        cacheConfig.readOnly,
+        {
+          readOnly: cacheConfig.readOnly,
+          writeOnly: cacheConfig.writeOnly,
+        },
       );
     }
 
@@ -1151,7 +1158,7 @@ export class Agent<
    */
   private processCacheConfig(
     opts: AgentOpt,
-  ): { id: string; enabled: boolean; readOnly: boolean } | null {
+  ): { id: string; enabled: boolean; readOnly: boolean; writeOnly: boolean } | null {
     // 1. New cache object configuration (highest priority)
     if (opts.cache !== undefined) {
       if (opts.cache === false) {
@@ -1195,11 +1202,13 @@ export class Agent<
         }
 
         const isReadOnly = strategyValue === 'read-only';
+        const isWriteOnly = strategyValue === 'write-only';
 
         return {
           id,
-          enabled: true,
+          enabled: !isWriteOnly,
           readOnly: isReadOnly,
+          writeOnly: isWriteOnly,
         };
       }
     }
@@ -1213,6 +1222,7 @@ export class Agent<
           id: opts.cacheId,
           enabled: true,
           readOnly: false,
+          writeOnly: false,
         };
       }
     }
@@ -1223,11 +1233,15 @@ export class Agent<
 
   /**
    * Manually flush cache to file
-   * Only meaningful in read-only mode, other modes will throw error
+   * Only supported in read-only mode where writes are deferred by default
    */
   async flushCache(): Promise<void> {
     if (!this.taskCache) {
       throw new Error('Cache is not configured');
+    }
+
+    if (!this.taskCache.readOnlyMode) {
+      throw new Error('flushCache() can only be called in read-only mode');
     }
 
     this.taskCache.flushCacheToFile();
