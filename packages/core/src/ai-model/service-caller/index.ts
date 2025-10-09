@@ -9,8 +9,8 @@ import {
   type IModelConfig,
   MIDSCENE_API_TYPE,
   MIDSCENE_LANGSMITH_DEBUG,
-  OPENAI_MAX_TOKENS,
   MIDSCENE_MODEL_TEMPERATURE,
+  OPENAI_MAX_TOKENS,
   type TVlModeTypes,
   type UITarsModelVersion,
   globalConfigManager,
@@ -205,8 +205,9 @@ export async function callAI(
   const responseFormat = getResponseFormat(modelName, AIActionTypeValue);
 
   const maxTokens = globalConfigManager.getEnvConfigValue(OPENAI_MAX_TOKENS);
-  const temperatureConfig =
-    globalConfigManager.getEnvConfigValue(MIDSCENE_MODEL_TEMPERATURE);
+  const temperatureConfig = globalConfigManager.getEnvConfigValue(
+    MIDSCENE_MODEL_TEMPERATURE,
+  );
   const debugCall = getDebug('ai:call');
   const debugProfileStats = getDebug('ai:profile:stats');
   const debugProfileDetail = getDebug('ai:profile:detail');
@@ -226,7 +227,8 @@ export async function callAI(
       : undefined;
   const commonConfig = {
     temperature:
-      typeof parsedTemperature === 'number' && Number.isFinite(parsedTemperature)
+      typeof parsedTemperature === 'number' &&
+      Number.isFinite(parsedTemperature)
         ? parsedTemperature
         : defaultTemperature,
     stream: !!isStreaming,
