@@ -163,7 +163,8 @@ export class Agent<
       this.interface.interfaceType !== 'puppeteer' &&
       this.interface.interfaceType !== 'playwright' &&
       this.interface.interfaceType !== 'static' &&
-      this.interface.interfaceType !== 'chrome-extension-proxy'
+      this.interface.interfaceType !== 'chrome-extension-proxy' &&
+      this.interface.interfaceType !== 'page-over-chrome-extension-bridge'
     ) {
       this.modelConfigManager.throwErrorIfNonVLModel();
       this.hasWarnedNonVLModel = true;
