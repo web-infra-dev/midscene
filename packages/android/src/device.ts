@@ -895,7 +895,7 @@ ${Object.keys(size)
     const IME_STRATEGY =
       (this.options?.imeStrategy ||
         globalConfigManager.getEnvConfigValue(MIDSCENE_ANDROID_IME_STRATEGY)) ??
-      IME_STRATEGY_ALWAYS_YADB;
+      IME_STRATEGY_YADB_FOR_NON_ASCII;
 
     if (IME_STRATEGY === IME_STRATEGY_YADB_FOR_NON_ASCII) {
       // For yadb-for-non-ascii mode, use continuous deletion of 100 characters with keyevent
@@ -1107,7 +1107,7 @@ ${Object.keys(size)
     const IME_STRATEGY =
       (this.options?.imeStrategy ||
         globalConfigManager.getEnvConfigValue(MIDSCENE_ANDROID_IME_STRATEGY)) ??
-      IME_STRATEGY_ALWAYS_YADB;
+      IME_STRATEGY_YADB_FOR_NON_ASCII;
     const shouldAutoDismissKeyboard =
       options?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard ?? true;
 
