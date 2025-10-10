@@ -12,7 +12,7 @@
 </div>
 
 <p align="center">
-  开源的 AI 操作助手，适用于 Web、移动端、自动化和测试
+  视觉驱动的 AI 操作助手，适用于 Web、Android、iOS、自动化和测试。开源并采用 MIT 许可协议。
 </p>
 
 <p align="center">
@@ -63,11 +63,14 @@
 - **[Android Playground](https://midscenejs.com/zh/quick-experience-with-android.html)**: 内置的 Android Playground 可以控制你的本地 Android 设备。
 - **[iOS Playground](https://midscenejs.com/zh/quick-experience-with-ios.html)**: 内置的 iOS Playground 可以控制你的本地 iOS 设备。
 
-## ✨ 选择 AI 模型
+## ✨ 视觉语言模型驱动
 
-Midscene.js 支持多模态 LLM 模型，如 `gpt-4o`，以及视觉语言模型，如 `Qwen2.5-VL`，`Doubao-1.5-thinking-vision-pro`，`gemini-2.5-pro` 和 `UI-TARS`。
+Midscene.js 支持视觉语言模型，例如 `Qwen3-VL`、`Doubao-1.6-vision`、`gemini-2.5-pro` 和 `UI-TARS`。
 
-视觉语言模型是 UI 自动化场景的首选。对于 Web 场景之外的界面，视觉语言模型是必需的。
+* 只需提供截图即可定位并理解页面上的目标元素。
+* 无需依赖 DOM 或语义标注。
+* 相比通用 LLM 模型，Token 使用量更少、成本更低。
+* 支持开源模型。
 
 更多信息请查看 [选择 AI 模型](https://midscenejs.com/zh/choose-a-model)。
 
@@ -98,21 +101,22 @@ for (const record of recordList) {
 > 有关工作流风格的更多详细信息，请参阅 [Blog - 使用 JavaScript 优化 AI 自动化代码
 ](https://midscenejs.com/zh/blog-programming-practice-using-structured-api.html)
 
+## 👀 与其它工具比较
+
+* **视觉驱动带来可靠性和效率**: 借助视觉语言模型，Midscene.js 适用于 Web 和移动 App 的自动化，无论界面采用何种技术栈。
+
+* **调试体验**: 你很快就会发现，调试和维护自动化脚本才是真正的痛点。无论模型多么强大，你仍然需要调试过程以确保其保持长期稳定。Midscene.js 提供了可视化报告、内置的 Playground 和 Chrome 插件，以调试整个运行过程。这是大多数开发者真正需要的能力。
+
+* **开源、免费、部署灵活**: Midscene.js 是一个开源项目，并且支持自托管模型。
+
+* **与 Javascript 集成**: 你可以永远相信 Javascript 😎
+
 ## 📄 资源 
 
 * 官网和文档: [https://midscenejs.com](https://midscenejs.com/zh)
 * 示例项目: [https://github.com/web-infra-dev/midscene-example](https://github.com/web-infra-dev/midscene-example)
 * API 文档: [https://midscenejs.com/zh/api.html](https://midscenejs.com/zh/api.html)
 * GitHub: [https://github.com/web-infra-dev/midscene](https://github.com/web-infra-dev/midscene)
-
-
-## 👀 与其它工具比较
-
-* **调试体验**: 你很快就会发现，调试和维护自动化脚本才是真正的痛点。无论模型多么强大，你仍然需要调试过程以确保其保持长期稳定。Midscene.js 提供了可视化报告、内置的 Playground 和 Chrome 插件，以调试整个运行过程。这是大多数开发者真正需要的特性，我们也在持续努力改进调试体验。
-
-* **开源、免费、部署灵活**: Midscene.js 是一个开源项目。它与云服务和模型提供商解耦，你可以选择公共或私有部署。总会有一个适合你的方案。
-
-* **与 Javascript 集成**: 你可以永远相信 Javascript 😎
 
 ## 🤝 社区
 
@@ -136,7 +140,7 @@ for (const record of recordList) {
 
 - [Rsbuild](https://github.com/web-infra-dev/rsbuild) 和 [Rslib](https://github.com/web-infra-dev/rslib) 用于构建工具。
 - [UI-TARS](https://github.com/bytedance/ui-tars) 用于开源的 AI 模型 UI-TARS。
-- [Qwen2.5-VL](https://github.com/QwenLM/Qwen2.5-VL) 用于开源的视觉语言模型 Qwen2.5-VL。
+- [Qwen-VL](https://github.com/QwenLM/Qwen-VL) 用于开源的视觉语言模型 Qwen-VL。
 - [scrcpy](https://github.com/Genymobile/scrcpy) 和 [yume-chan](https://github.com/yume-chan) 允许我们使用浏览器控制 Android 设备。
 - [appium-adb](https://github.com/appium/appium-adb) 用于 javascript 桥接 adb。
 - [appium-webdriveragent](https://github.com/appium/WebDriverAgent) 用于 javascript 操作 XCTest。

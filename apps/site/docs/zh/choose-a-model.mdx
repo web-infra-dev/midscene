@@ -6,33 +6,26 @@ import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connect
 
 ## Midscene.js 已适配的模型
 
-Midscene.js 支持两种类型的模型：
+Midscene.js 支持两种类型的模型：视觉语言模型和 LLM 模型。
 
 ### 视觉语言模型（VL 模型，✨ 推荐）
 
-除了能够理解文本和图像输入外，VL（Visual-Language，视觉语言）模型还可以定位页面上目标元素的坐标。
+Midscene 调用了一些视觉语言模型（VL 模型），无需依赖 DOM 信息就能精确定位页面上目标元素的坐标。
 
-我们推荐在 UI 自动化中使用 VL 模型，因为它们可以原生地"看到"截图并返回页面上目标元素的坐标，在复杂场景中更加可靠和高效。
-
-VL 模型可用于任何类型界面的 UI 自动化。
+在我们的实践中，这些模型已经能覆盖大部分需求场景，相比 LLM 模型成本也显著更低，因此我们推荐在 UI 自动化中优先使用 VL 模型。此外，借助这些模型，Midscene 不仅可以驱动 Web 自动化，也可以操作 Android、iOS 以及其他任何界面，这种方式更加直观、高效。
 
 以下是已适配的 VL 模型：
 
-* [豆包系列视觉语言模型](#doubao-vision)
 * [千问 VL](#qwen3-vl-or-qwen-25-vl)
+* [豆包系列视觉语言模型](#doubao-vision)
 * [`Gemini-2.5-Pro`](#gemini-25-pro)
 * [`UI-TARS`](#ui-tars)
 
-如果你想了解模型服务的详细配置，请参见[配置模型和服务商](./model-provider)。
+### LLM 模型（将在下一个大版本移除）
 
-### LLM 模型
+能够理解文本和图像输入的多模态 LLM 模型。GPT-4o 就是这种类型的模型。
 
-能够理解文本和图像输入的模型。GPT-4o 就是这种类型的模型。
-
-LLM 模型只能在 Web 自动化中使用。
-
-* [`GPT-4o`](#gpt-4o)
-* [其他 LLM 模型](#其他-llm-模型)
+多模态 LLM 目前仅可用于 Web 自动化，其中较典型的模型是 [GPT-4o](#gpt-4o)。如有需要，你也可以使用[其他 LLM 模型](#其他-llm-模型)。
 
 ## 深入了解模型
 
@@ -42,8 +35,8 @@ LLM 模型只能在 Web 自动化中使用。
 
 火山引擎提供了多个视觉语言模型，包括：
 
+* `Doubao-seed-1.6-vision`（更新且更优秀）
 * `Doubao-1.5-thinking-vision-pro`
-* `Doubao-seed-1.6-vision`
 
 它们在复杂场景的视觉定位和断言方面表现相当出色。在指令清晰的情况下，能满足绝大多数业务场景需求。
 
@@ -69,10 +62,10 @@ MIDSCENE_USE_DOUBAO_VISION=1
 Qwen-VL（千问 VL）是阿里巴巴发布的开源模型系列。它提供视觉定位能力，可以准确返回页面上目标元素的坐标。在用于交互、断言和查询时的综合表现相当出色。你可以在 [阿里云](https://help.aliyun.com/zh/model-studio/vision) 或 [OpenRouter](https://openrouter.ai/qwen) 上找到 Qwen 系列的已部署版本。
 
 Midscene.js 支持使用以下版本的模型：
-* Qwen2.5-VL 系列，参数越大，效果越好
 * Qwen3-VL 系列，包括 `qwen3-vl-plus` (商业版) 和 `qwen3-vl-235b-a22b-instruct` (开源版)
+* Qwen2.5-VL 系列
 
-我们推荐使用 Qwen3-VL 系列的模型，它的性能大幅领先于其他所有模型，能带来更好的研发体验。使用 Qwen3-VL 系列的模型要求搭配 Midscene v0.29.3 及以上的版本。
+我们推荐使用 Qwen3-VL 系列，因为它的表现明显优于 Qwen2.5-VL。使用 Qwen3-VL 系列的模型要求搭配 Midscene v0.29.3 及以上的版本。
 
 **使用 Qwen3-VL 模型的配置**
 
@@ -213,7 +206,7 @@ OPENAI_API_KEY="......"
 
 ## 更多信息
 
-* [配置模型和服务商](./model-provider)
+* 想了解更多模型配置，请参见[配置模型和服务商](./model-provider)
 * [编写提示词（指令）的技巧](./prompting-tips)
 
 <TroubleshootingLLMConnectivity />
