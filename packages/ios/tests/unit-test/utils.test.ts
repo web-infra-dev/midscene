@@ -93,13 +93,6 @@ describe('iOS Utils - Environment Checking', () => {
             return {} as any;
           })
           .mockImplementationOnce((cmd: string, callback: any) => {
-            // xcrun simctl help
-            if (typeof callback === 'function') {
-              callback(null, { stdout: 'simctl help output' });
-            }
-            return {} as any;
-          })
-          .mockImplementationOnce((cmd: string, callback: any) => {
             // xcodebuild -version
             if (typeof callback === 'function') {
               callback(null, { stdout: 'Xcode 15.0' });
@@ -136,13 +129,6 @@ describe('iOS Utils - Environment Checking', () => {
             return {} as any;
           })
           .mockImplementationOnce((cmd: string, callback: any) => {
-            // xcrun simctl help - success
-            if (typeof callback === 'function') {
-              callback(null, { stdout: 'simctl help output' });
-            }
-            return {} as any;
-          })
-          .mockImplementationOnce((cmd: string, callback: any) => {
             // xcodebuild -version - fails
             if (typeof callback === 'function') {
               callback(new Error('xcodebuild not found'), null);
@@ -153,28 +139,6 @@ describe('iOS Utils - Environment Checking', () => {
         const result = await checkIOSEnvironment();
         expect(result.available).toBe(false);
         expect(result.error).toContain('xcodebuild not found');
-      });
-
-      it('should handle simctl not available error', async () => {
-        mockedExec
-          .mockImplementationOnce((cmd: string, callback: any) => {
-            // which xcrun
-            if (typeof callback === 'function') {
-              callback(null, { stdout: '/usr/bin/xcrun\n' });
-            }
-            return {} as any;
-          })
-          .mockImplementationOnce((cmd: string, callback: any) => {
-            // xcrun simctl help - fails with simctl error
-            if (typeof callback === 'function') {
-              callback(new Error('unable to find utility "simctl"'), null);
-            }
-            return {} as any;
-          });
-
-        const result = await checkIOSEnvironment();
-        expect(result.available).toBe(false);
-        expect(result.error).toContain('iOS Simulator (simctl) not available');
       });
     });
   });
