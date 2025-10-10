@@ -27,6 +27,7 @@ interface MidsceneYamlFlowItemAIScroll extends LocateOption, ScrollParam {
 }
 
 import type { Agent } from '@/agent/agent';
+import type { TUserPrompt } from '@/ai-model/common';
 import type {
   DeviceAction,
   FreeFn,
@@ -48,8 +49,7 @@ import type {
   ScriptPlayerStatusValue,
   ScriptPlayerTaskStatus,
   ScrollParam,
-  TUserPrompt,
-} from '@/index';
+} from '@/types';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { getDebug } from '@midscene/shared/logger';
 import {

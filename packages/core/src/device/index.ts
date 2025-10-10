@@ -1,5 +1,6 @@
-import type { DeviceAction } from '@/index';
-import { getMidsceneLocationSchema, z } from '@/index';
+import { getMidsceneLocationSchema } from '@/ai-model';
+import type { DeviceAction } from '@/types';
+import { z } from 'zod';
 import type { ElementNode } from '@midscene/shared/extractor';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 import type { ElementCacheFeature, Rect, Size, UIContext } from '../types';

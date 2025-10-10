@@ -8,7 +8,7 @@ import type {
   ExecutionTaskInsightQuery,
   ExecutionTaskPlanning,
   ScrollParam,
-} from '@/index';
+} from '@/types';
 
 export function typeStr(task: ExecutionTask) {
   return task.subType && task.subType !== 'Plan'

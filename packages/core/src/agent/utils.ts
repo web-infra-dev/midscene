@@ -1,4 +1,5 @@
 import { elementByPositionWithElementInfo } from '@/ai-model';
+import type { TMultimodalPrompt, TUserPrompt } from '@/ai-model/common';
 import type { AbstractInterface } from '@/device';
 import type {
   BaseElement,
@@ -9,10 +10,8 @@ import type {
   ExecutorContext,
   LocateResultElement,
   PlanningLocateParam,
-  TMultimodalPrompt,
-  TUserPrompt,
   UIContext,
-} from '@/index';
+} from '@/types';
 import { uploadTestInfoToServer } from '@/utils';
 import { NodeType } from '@midscene/shared/constants';
 import {

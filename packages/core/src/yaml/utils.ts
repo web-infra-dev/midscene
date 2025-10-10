@@ -1,9 +1,5 @@
-import type {
-  DetailedLocateParam,
-  LocateOption,
-  MidsceneYamlScript,
-  TUserPrompt,
-} from '@/index';
+import type { DetailedLocateParam, LocateOption, MidsceneYamlScript } from '@/types';
+import type { TUserPrompt } from '@/ai-model/common';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import yaml from 'js-yaml';
