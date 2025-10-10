@@ -28,13 +28,23 @@ const extensionAgentForTab = (forceSameTabNavigation = true) => {
   return new ChromeExtensionProxyPageAgent(page);
 };
 
+const STORAGE_KEY = 'midscene-popup-mode';
+
 export function PlaygroundPopup() {
   const { setPopupTab } = useEnvConfig();
   const [currentMode, setCurrentMode] = useState<
     'playground' | 'bridge' | 'recorder'
-  >('playground');
+  >(() => {
+    const savedMode = localStorage.getItem(STORAGE_KEY);
+    return (savedMode as 'playground' | 'bridge' | 'recorder') || 'playground';
+  });
 
   const { config } = useEnvConfig();
+
+  // Sync popupTab with saved mode on mount
+  useEffect(() => {
+    setPopupTab(currentMode);
+  }, []);
 
   // Override AI configuration
   useEffect(() => {
@@ -54,6 +64,7 @@ export function PlaygroundPopup() {
       onClick: () => {
         setCurrentMode('playground');
         setPopupTab('playground');
+        localStorage.setItem(STORAGE_KEY, 'playground');
       },
     },
     {
@@ -63,6 +74,7 @@ export function PlaygroundPopup() {
       onClick: () => {
         setCurrentMode('recorder');
         setPopupTab('recorder');
+        localStorage.setItem(STORAGE_KEY, 'recorder');
       },
     },
     {
@@ -72,6 +84,7 @@ export function PlaygroundPopup() {
       onClick: () => {
         setCurrentMode('bridge');
         setPopupTab('bridge');
+        localStorage.setItem(STORAGE_KEY, 'bridge');
       },
     },
   ];
