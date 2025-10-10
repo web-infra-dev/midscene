@@ -65,9 +65,9 @@ Midscene 默认集成了 OpenAI SDK 调用 AI 服务。使用这个 SDK 限定�
 | `DEBUG=midscene:ai:call` | 可选。设置此项，可以打印 AI 响应详情 |
 | `DEBUG=midscene:android:adb` | 可选。设置此项，可以打印 Android adb 命令调用详情 |
 
-## 两种配置环境变量的方式
+## 三种配置方式
 
-选择其中一种方式来配置环境变量。
+选择其中一种方式来配置模型。
 
 ### 方法一：在系统中设置环境变量
 
@@ -101,6 +101,154 @@ OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 ```typescript
 import 'dotenv/config';
 ```
+
+### 方法三:使用 modelConfig 参数
+
+你可以在创建 Midscene Agent 时通过 `modelConfig` 参数动态配置模型。这种方式最灵活,允许你根据不同的任务场景使用不同的模型配置。
+
+`modelConfig` 是一个函数,它接收一个包含 `intent` 字段的对象作为参数,返回对应场景的模型配置。`intent` 有以下几种类型:
+
+- `default`: 默认场景,用于大部分 AI 任务
+- `VQA`: Visual Question Answering,视觉问答场景
+- `planning`: 规划场景,用于任务规划
+- `grounding`: 视觉定位场景
+
+#### 基本用法
+
+```typescript
+import { Page } from '@midscene/web';
+
+const page = new Page(driver, {
+  modelConfig: ({ intent }) => {
+    // 根据不同的 intent 返回不同的配置
+    if (intent === 'planning') {
+      return {
+        MIDSCENE_PLANNING_MODEL_NAME: 'gpt-4o',
+        MIDSCENE_PLANNING_OPENAI_API_KEY: 'sk-...',
+        MIDSCENE_PLANNING_OPENAI_BASE_URL: 'https://api.openai.com/v1',
+      };
+    }
+
+    if (intent === 'grounding') {
+      return {
+        MIDSCENE_GROUNDING_MODEL_NAME: 'gpt-4o',
+        MIDSCENE_GROUNDING_OPENAI_API_KEY: 'sk-...',
+      };
+    }
+
+    // 默认配置
+    return {
+      MIDSCENE_MODEL_NAME: 'gpt-4o',
+      MIDSCENE_OPENAI_API_KEY: 'sk-...',
+      MIDSCENE_OPENAI_BASE_URL: 'https://api.openai.com/v1',
+    };
+  },
+});
+```
+
+#### 配置说明
+
+每个 intent 对应不同的配置字段前缀:
+
+**默认场景 (intent === 'default')**:
+- `MIDSCENE_MODEL_NAME`: 模型名称
+- `MIDSCENE_OPENAI_API_KEY`: OpenAI API Key
+- `MIDSCENE_OPENAI_BASE_URL`: OpenAI Base URL
+- `MIDSCENE_OPENAI_SOCKS_PROXY`: SOCKS 代理
+- `MIDSCENE_OPENAI_HTTP_PROXY`: HTTP 代理
+- `MIDSCENE_USE_AZURE_OPENAI`: 是否使用 Azure OpenAI
+- `MIDSCENE_USE_ANTHROPIC_SDK`: 是否使用 Anthropic SDK
+- `MIDSCENE_VL_MODE`: 视觉模型模式
+
+**VQA 场景 (intent === 'VQA')**:
+- `MIDSCENE_VQA_MODEL_NAME`: 模型名称
+- `MIDSCENE_VQA_OPENAI_API_KEY`: API Key
+- `MIDSCENE_VQA_OPENAI_BASE_URL`: Base URL
+- 其他配置类似,使用 `MIDSCENE_VQA_` 前缀
+
+**Planning 场景 (intent === 'planning')**:
+- `MIDSCENE_PLANNING_MODEL_NAME`: 模型名称
+- `MIDSCENE_PLANNING_OPENAI_API_KEY`: API Key
+- `MIDSCENE_PLANNING_OPENAI_BASE_URL`: Base URL
+- 其他配置类似,使用 `MIDSCENE_PLANNING_` 前缀
+
+**Grounding 场景 (intent === 'grounding')**:
+- `MIDSCENE_GROUNDING_MODEL_NAME`: 模型名称
+- `MIDSCENE_GROUNDING_OPENAI_API_KEY`: API Key
+- `MIDSCENE_GROUNDING_OPENAI_BASE_URL`: Base URL
+- 其他配置类似,使用 `MIDSCENE_GROUNDING_` 前缀
+
+#### 示例:为不同场景配置不同模型
+
+```typescript
+import { Page } from '@midscene/web';
+
+const page = new Page(driver, {
+  modelConfig: ({ intent }) => {
+    switch (intent) {
+      case 'planning':
+        // 规划任务使用 GPT-4o
+        return {
+          MIDSCENE_PLANNING_MODEL_NAME: 'gpt-4o',
+          MIDSCENE_PLANNING_OPENAI_API_KEY: process.env.OPENAI_API_KEY!,
+        };
+
+      case 'grounding':
+        // 视觉定位使用 Qwen VL
+        return {
+          MIDSCENE_GROUNDING_MODEL_NAME: 'qwen-vl-max-latest',
+          MIDSCENE_GROUNDING_OPENAI_API_KEY: process.env.QWEN_API_KEY!,
+          MIDSCENE_GROUNDING_OPENAI_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+          MIDSCENE_GROUNDING_VL_MODE: 'qwen-vl',
+        };
+
+      case 'VQA':
+        // VQA 使用更轻量的模型
+        return {
+          MIDSCENE_VQA_MODEL_NAME: 'gpt-4o-mini',
+          MIDSCENE_VQA_OPENAI_API_KEY: process.env.OPENAI_API_KEY!,
+        };
+
+      default:
+        // 默认使用 GPT-4o
+        return {
+          MIDSCENE_MODEL_NAME: 'gpt-4o',
+          MIDSCENE_OPENAI_API_KEY: process.env.OPENAI_API_KEY!,
+        };
+    }
+  },
+});
+```
+
+#### 示例:配置代理
+
+```typescript
+const page = new Page(driver, {
+  modelConfig: ({ intent }) => {
+    const config: any = {
+      MIDSCENE_OPENAI_HTTP_PROXY: 'http://127.0.0.1:7890',
+      // 或使用 SOCKS 代理
+      // MIDSCENE_OPENAI_SOCKS_PROXY: 'socks5://127.0.0.1:1080',
+    };
+
+    if (intent === 'planning') {
+      config.MIDSCENE_PLANNING_MODEL_NAME = 'gpt-4o';
+      config.MIDSCENE_PLANNING_OPENAI_API_KEY = process.env.OPENAI_API_KEY!;
+    } else {
+      config.MIDSCENE_MODEL_NAME = 'gpt-4o';
+      config.MIDSCENE_OPENAI_API_KEY = process.env.OPENAI_API_KEY!;
+    }
+
+    return config;
+  },
+});
+```
+
+:::tip 提示
+- `modelConfig` 的优先级高于环境变量,如果同时配置了两者,会使用 `modelConfig` 中的配置
+- 你可以在 `modelConfig` 中混合使用环境变量 `process.env.XXX` 和硬编码的值
+- 不同的 intent 会在运行时根据具体的 AI 任务动态调用,无需手动判断
+:::
 
 ## 使用 Azure OpenAI 服务时的配置
 
