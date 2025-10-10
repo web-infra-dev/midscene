@@ -195,7 +195,7 @@ const DetailSide = (): JSX.Element => {
       ...(aiActionContextValue
         ? [
             {
-              key: 'aiActionContext',
+              key: 'action context',
               content: aiActionContextValue,
             },
           ]
