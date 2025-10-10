@@ -191,9 +191,32 @@ export const actionScrollParamSchema = z.object({
     .default('once')
     .describe('The scroll type'),
   distance: z
-    .number()
+    .union([z.number(), z.string()])
     .nullable()
     .optional()
+    .transform((val) => {
+      if (val === null || val === undefined) {
+        return undefined;
+      }
+      if (typeof val === 'number') {
+        return val;
+      }
+      // Parse string with px suffix (e.g., "200px" -> 200)
+      const match = val.match(/^(\d+(?:\.\d+)?)\s*px$/i);
+      if (match) {
+        return Number.parseFloat(match[1]);
+      }
+      // If it's a numeric string without px, parse it
+      const num = Number.parseFloat(val);
+      if (!Number.isNaN(num)) {
+        return num;
+      }
+      // Invalid format, return undefined to use default
+      console.warn(
+        `Invalid distance format: "${val}". Expected a number or string like "200px". Using default distance.`,
+      );
+      return undefined;
+    })
     .describe('The distance in pixels to scroll'),
   locate: getMidsceneLocationSchema()
     .optional()
@@ -271,8 +294,31 @@ export const ActionSwipeParamSchema = z.object({
       'The direction to swipe (required when using distance). The direction means the direction of the finger swipe.',
     ),
   distance: z
-    .number()
+    .union([z.number(), z.string()])
     .optional()
+    .transform((val) => {
+      if (val === null || val === undefined) {
+        return undefined;
+      }
+      if (typeof val === 'number') {
+        return val;
+      }
+      // Parse string with px suffix (e.g., "200px" -> 200)
+      const match = val.match(/^(\d+(?:\.\d+)?)\s*px$/i);
+      if (match) {
+        return Number.parseFloat(match[1]);
+      }
+      // If it's a numeric string without px, parse it
+      const num = Number.parseFloat(val);
+      if (!Number.isNaN(num)) {
+        return num;
+      }
+      // Invalid format, return undefined to use default
+      console.warn(
+        `Invalid distance format: "${val}". Expected a number or string like "200px". Using default distance.`,
+      );
+      return undefined;
+    })
     .describe('The distance in pixels to swipe (mutually exclusive with end)'),
   end: getMidsceneLocationSchema()
     .optional()

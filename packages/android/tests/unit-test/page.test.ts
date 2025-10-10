@@ -1031,6 +1031,21 @@ describe('AndroidDevice', () => {
         );
       });
 
+      it('scrollUp with small distance (200px) should scroll only that distance', async () => {
+        const startPoint = { left: 620, top: 1350 };
+        const scrollDistance = 200;
+
+        const mouseDragSpy = vi.spyOn(device as any, 'mouseDrag');
+
+        await device.scrollUp(scrollDistance, startPoint);
+
+        // Verify mouseDrag was called with the correct coordinates
+        expect(mouseDragSpy).toHaveBeenCalledWith(
+          { x: 620, y: 1350 },
+          { x: 620, y: 1550 }, // Should move down by 200px for upward scroll
+        );
+      });
+
       it('scrollLeft with startPoint should use calculateScrollEndPoint', async () => {
         const startPoint = { left: 100, top: 200 };
         const scrollDistance = 150;
