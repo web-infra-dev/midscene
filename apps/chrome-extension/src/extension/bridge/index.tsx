@@ -366,7 +366,9 @@ export default function Bridge() {
               <span className="auto-connect-icon">
                 <AutoConnectIcon />
               </span>
-              <span className="auto-connect-label">Auto-connect</span>
+              <span className="auto-connect-label">
+                Auto allow in Bridge Mode
+              </span>
               <Switch
                 checked={autoConnect}
                 onChange={handleAutoConnectChange}
