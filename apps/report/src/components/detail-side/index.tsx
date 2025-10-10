@@ -120,7 +120,11 @@ const objectWithoutKeys = (obj: Record<string, unknown>, keys: string[]) =>
 const DetailSide = (): JSX.Element => {
   const task = useExecutionDump((store) => store.activeTask);
   const dump = useExecutionDump((store) => store.insightDump);
+  const activeExecution = useExecutionDump((store) => store.activeExecution);
   const { matchedElement: elements } = dump || {};
+
+  // Get aiActionContext from activeExecution
+  const aiActionContextValue = activeExecution?.aiActionContext;
 
   const kv = (data: Record<string, unknown>) => {
     const isElementItem = (value: unknown): value is BaseElement =>
@@ -188,6 +192,14 @@ const DetailSide = (): JSX.Element => {
         key: 'total time',
         content: timeCostStrElement(task?.timing?.cost),
       },
+      ...(aiActionContextValue
+        ? [
+            {
+              key: 'action context',
+              content: aiActionContextValue,
+            },
+          ]
+        : []),
       ...(task?.usage?.time_cost
         ? [
             {

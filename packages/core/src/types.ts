@@ -401,6 +401,7 @@ export interface ExecutionDump extends DumpMeta {
   name: string;
   description?: string;
   tasks: ExecutionTask[];
+  aiActionContext?: string;
 }
 
 /*
