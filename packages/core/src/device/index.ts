@@ -1,8 +1,8 @@
 import { getMidsceneLocationSchema } from '@/ai-model';
 import type { DeviceAction } from '@/types';
-import { z } from 'zod';
 import type { ElementNode } from '@midscene/shared/extractor';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
+import { z } from 'zod';
 import type { ElementCacheFeature, Rect, Size, UIContext } from '../types';
 
 export abstract class AbstractInterface {

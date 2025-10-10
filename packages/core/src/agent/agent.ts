@@ -1,5 +1,6 @@
-import Insight from '@/insight';
 import type { Executor } from '@/ai-model/action-executor';
+import type { TUserPrompt } from '@/ai-model/common';
+import Insight from '@/insight';
 import type {
   AgentAssertOpt,
   AgentDescribeElementAtPointResult,
@@ -26,7 +27,6 @@ import type {
   ScrollParam,
   UIContext,
 } from '@/types';
-import type { TUserPrompt } from '@/ai-model/common';
 
 import yaml from 'js-yaml';
 
