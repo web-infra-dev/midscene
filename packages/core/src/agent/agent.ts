@@ -1,30 +1,32 @@
-import {
-  type AgentAssertOpt,
-  type AgentDescribeElementAtPointResult,
-  type AgentWaitForOpt,
-  type DeviceAction,
-  type ExecutionDump,
-  type ExecutionRecorderItem,
-  type ExecutionTask,
-  type ExecutionTaskLog,
-  type Executor,
-  type GroupedActionDump,
-  Insight,
-  type InsightAction,
-  type InsightExtractOption,
-  type InsightExtractParam,
-  type LocateOption,
-  type LocateResultElement,
-  type LocateValidatorResult,
-  type LocatorValidatorOption,
-  type MidsceneYamlScript,
-  type OnTaskStartTip,
-  type PlanningAction,
-  type Rect,
-  type ScrollParam,
-  type TUserPrompt,
-  type UIContext,
-} from '../index';
+import type { Executor } from '@/ai-model/action-executor';
+import type { TUserPrompt } from '@/ai-model/common';
+import Insight from '@/insight';
+import type {
+  AgentAssertOpt,
+  AgentDescribeElementAtPointResult,
+  AgentOpt,
+  AgentWaitForOpt,
+  CacheConfig,
+  DeviceAction,
+  ExecutionDump,
+  ExecutionRecorderItem,
+  ExecutionTask,
+  ExecutionTaskLog,
+  GroupedActionDump,
+  InsightAction,
+  InsightExtractOption,
+  InsightExtractParam,
+  LocateOption,
+  LocateResultElement,
+  LocateValidatorResult,
+  LocatorValidatorOption,
+  MidsceneYamlScript,
+  OnTaskStartTip,
+  PlanningAction,
+  Rect,
+  ScrollParam,
+  UIContext,
+} from '@/types';
 
 import yaml from 'js-yaml';
 
@@ -41,7 +43,6 @@ import {
 } from '../yaml/index';
 
 import type { AbstractInterface } from '@/device';
-import type { AgentOpt, CacheConfig } from '@/types';
 import {
   MIDSCENE_CACHE,
   ModelConfigManager,
