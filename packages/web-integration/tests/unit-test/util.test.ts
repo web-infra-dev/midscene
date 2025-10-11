@@ -42,20 +42,20 @@ describe('TaskCache', () => {
 describe('getKeyCommands', () => {
   it('should return a single key without command when no meta or control key is provided', () => {
     const result = getKeyCommands('a');
-    expect(result).toEqual([{ key: 'a' }]);
+    expect(result).toEqual([{ key: 'A' }]);
   });
 
   it('should work with array input without meta key', () => {
     const result = getKeyCommands(['b', 'd']);
-    expect(result).toEqual([{ key: 'b' }, { key: 'd' }]);
+    expect(result).toEqual([{ key: 'B' }, { key: 'D' }]);
   });
 
   it('should attach "SelectAll" command when "Meta" is present with key "a"', () => {
     const result = getKeyCommands(['Meta', 'a', 'b']);
     expect(result).toEqual([
       { key: 'Meta' },
-      { key: 'a', command: 'SelectAll' },
-      { key: 'b' },
+      { key: 'A', command: 'SelectAll' },
+      { key: 'B' },
     ]);
   });
 
@@ -63,8 +63,8 @@ describe('getKeyCommands', () => {
     const result = getKeyCommands(['Control', 'c', 'x']);
     expect(result).toEqual([
       { key: 'Control' },
-      { key: 'c', command: 'Copy' },
-      { key: 'x' },
+      { key: 'C', command: 'Copy' },
+      { key: 'X' },
     ]);
   });
 
@@ -76,6 +76,36 @@ describe('getKeyCommands', () => {
       { key: 'C', command: 'Copy' },
       { key: 'V', command: 'Paste' },
     ]);
+  });
+
+  it('should support ctrl+a combination string', () => {
+    const result = getKeyCommands('Ctrl+A');
+    if (process.platform === 'darwin') {
+      expect(result).toEqual([
+        { key: 'Meta' },
+        { key: 'A', command: 'SelectAll' },
+      ]);
+    } else {
+      expect(result).toEqual([
+        { key: 'Control' },
+        { key: 'A', command: 'SelectAll' },
+      ]);
+    }
+  });
+
+  it('should support ctrl + a combination with spaces', () => {
+    const result = getKeyCommands('Ctrl + A');
+    if (process.platform === 'darwin') {
+      expect(result).toEqual([
+        { key: 'Meta' },
+        { key: 'A', command: 'SelectAll' },
+      ]);
+    } else {
+      expect(result).toEqual([
+        { key: 'Control' },
+        { key: 'A', command: 'SelectAll' },
+      ]);
+    }
   });
 });
 

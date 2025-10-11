@@ -18,17 +18,55 @@ import {
 import { sleep } from '@midscene/core/utils';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
+import { transformHotkeyInput } from '@midscene/shared/us-keyboard-layout';
 
 const debug = getDebug('web:page');
+
+function normalizeKeyInputs(value: string | string[]): string[] {
+  const inputs = Array.isArray(value) ? value : [value];
+  const result: string[] = [];
+
+  for (const input of inputs) {
+    if (typeof input !== 'string') {
+      result.push(input as unknown as string);
+      continue;
+    }
+
+    const trimmed = input.trim();
+    if (!trimmed) {
+      result.push(input);
+      continue;
+    }
+
+    let normalized = trimmed;
+    if (normalized.length > 1 && normalized.includes('+')) {
+      normalized = normalized.replace(/\s*\+\s*/g, ' ');
+    }
+    if (/\s/.test(normalized)) {
+      normalized = normalized.replace(/\s+/g, ' ');
+    }
+
+    const transformed = transformHotkeyInput(normalized);
+    if (transformed.length === 1 && transformed[0] === '' && trimmed !== '') {
+      result.push(input);
+      continue;
+    }
+    if (transformed.length === 0) {
+      result.push(input);
+      continue;
+    }
+
+    result.push(...transformed);
+  }
+
+  return result;
+}
 
 export function getKeyCommands(
   value: string | string[],
 ): Array<{ key: string; command?: string }> {
-  // Ensure value is an array of keys
-  const keys = Array.isArray(value) ? value : [value];
+  const keys = normalizeKeyInputs(value);
 
-  // Process each key to attach a corresponding command if needed, based on the presence of 'Meta' or 'Control' in the keys array.
-  // ref: https://github.com/puppeteer/puppeteer/pull/9357/files#diff-32cf475237b000f980eb214a0a823e45a902bddb7d2426d677cae96397aa0ae4R94
   return keys.reduce((acc: Array<{ key: string; command?: string }>, k) => {
     const includeMeta = keys.includes('Meta') || keys.includes('Control');
     if (includeMeta && (k === 'a' || k === 'A')) {
