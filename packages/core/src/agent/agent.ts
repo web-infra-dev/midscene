@@ -27,7 +27,6 @@ import type {
   ScrollParam,
   UIContext,
 } from '@/types';
-
 import yaml from 'js-yaml';
 
 import {
@@ -960,9 +959,8 @@ export class Agent<
 
     const message = output
       ? undefined
-      : `Assertion failed: ${msg || (typeof assertion === 'string' ? assertion : assertion.prompt)}\nReason: ${
-          thought || executor.latestErrorTask()?.error || '(no_reason)'
-        }`;
+      : `Assertion failed: ${msg || (typeof assertion === 'string' ? assertion : assertion.prompt)}\nReason: ${thought || executor.latestErrorTask()?.error || '(no_reason)'
+      }`;
 
     if (opt?.keepRawResponse) {
       return {
@@ -1093,7 +1091,7 @@ export class Agent<
       param: {
         content: opt?.content || '',
       },
-      executor: async () => {},
+      executor: async () => { },
     };
     // 4. build ExecutionDump
     const executionDump: ExecutionDump = {
@@ -1122,17 +1120,17 @@ export class Agent<
     const { groupName, groupDescription, executions } = this.dump;
     const newExecutions = Array.isArray(executions)
       ? executions.map((execution: any) => {
-          const { tasks, ...restExecution } = execution;
-          let newTasks = tasks;
-          if (Array.isArray(tasks)) {
-            newTasks = tasks.map((task: any) => {
-              // only remove uiContext and log from task
-              const { uiContext, log, ...restTask } = task;
-              return restTask;
-            });
-          }
-          return { ...restExecution, ...(newTasks ? { tasks: newTasks } : {}) };
-        })
+        const { tasks, ...restExecution } = execution;
+        let newTasks = tasks;
+        if (Array.isArray(tasks)) {
+          newTasks = tasks.map((task: any) => {
+            // only remove uiContext and log from task
+            const { uiContext, log, ...restTask } = task;
+            return restTask;
+          });
+        }
+        return { ...restExecution, ...(newTasks ? { tasks: newTasks } : {}) };
+      })
       : [];
     return {
       groupName,
@@ -1181,7 +1179,7 @@ export class Agent<
       if (opts.cache === true) {
         throw new Error(
           'cache: true requires an explicit cache ID. Please provide:\n' +
-            'Example: cache: { id: "my-cache-id" }',
+          'Example: cache: { id: "my-cache-id" }',
         );
       }
 
@@ -1191,7 +1189,7 @@ export class Agent<
         if (!config.id) {
           throw new Error(
             'cache configuration requires an explicit id. Please provide:\n' +
-              'Example: cache: { id: "my-cache-id" }',
+            'Example: cache: { id: "my-cache-id" }',
           );
         }
         const id = config.id;
