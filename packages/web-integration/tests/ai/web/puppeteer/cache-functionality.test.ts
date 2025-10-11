@@ -23,6 +23,7 @@ describe('Cache Configuration Tests', () => {
     const agent = new PuppeteerAgent(originPage, {
       cache: {
         id: 'cache-functionality-test',
+        strategy: 'read-write',
       },
       testId: 'explicit-cache-test-001',
     });
@@ -93,6 +94,33 @@ describe('Cache Configuration Tests', () => {
     if (cacheFilePath) {
       expect(cacheFilePath).toContain('cache-functionality-test'); // Explicit ID
       expect(cacheFilePath).toContain('.cache.yaml');
+    }
+  });
+
+  it('should work with cache: { strategy: "write-only" } mode', async () => {
+    const { originPage, reset } = await launchPage('https://example.com/');
+    resetFn = reset;
+
+    const agent = new PuppeteerAgent(originPage, {
+      cache: {
+        id: 'cache-functionality-test',
+        strategy: 'write-only',
+      },
+      testId: 'explicit-cache-test-001',
+    });
+
+    expect(agent.taskCache).toBeDefined();
+    expect(agent.taskCache?.cacheId).toBe('cache-functionality-test');
+    expect(agent.taskCache?.isCacheResultUsed).toBe(false);
+    expect(agent.taskCache?.readOnlyMode).toBe(false);
+    expect(agent.taskCache?.writeOnlyMode).toBe(true);
+
+    await agent.aiAction('click the title');
+
+    const cacheFilePath = agent.taskCache?.cacheFilePath;
+    expect(cacheFilePath).toBeDefined();
+    if (cacheFilePath) {
+      expect(fs.existsSync(cacheFilePath)).toBe(true);
     }
   });
 

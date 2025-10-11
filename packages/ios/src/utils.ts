@@ -38,9 +38,6 @@ export async function checkIOSEnvironment(): Promise<{
       };
     }
 
-    // Check if simctl is available
-    await execAsync('xcrun simctl help');
-
     // Check if xcodebuild is available (required for WebDriverAgent)
     try {
       await execAsync('xcodebuild -version');
@@ -57,13 +54,7 @@ export async function checkIOSEnvironment(): Promise<{
     const errorMsg = error instanceof Error ? error.message : String(error);
     debugUtils(`iOS environment not available: ${errorMsg}`);
 
-    if (errorMsg.includes('unable to find utility "simctl"')) {
-      return {
-        available: false,
-        error:
-          'iOS Simulator (simctl) not available. Please install Xcode from the App Store or install Xcode Command Line Tools with simulator support.',
-      };
-    } else if (errorMsg.includes('xcrun')) {
+    if (errorMsg.includes('xcrun')) {
       return {
         available: false,
         error:

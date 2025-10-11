@@ -1,30 +1,32 @@
-import {
-  type AgentAssertOpt,
-  type AgentDescribeElementAtPointResult,
-  type AgentWaitForOpt,
-  type DeviceAction,
-  type ExecutionDump,
-  type ExecutionRecorderItem,
-  type ExecutionTask,
-  type ExecutionTaskLog,
-  type Executor,
-  type GroupedActionDump,
-  Insight,
-  type InsightAction,
-  type InsightExtractOption,
-  type InsightExtractParam,
-  type LocateOption,
-  type LocateResultElement,
-  type LocateValidatorResult,
-  type LocatorValidatorOption,
-  type MidsceneYamlScript,
-  type OnTaskStartTip,
-  type PlanningAction,
-  type Rect,
-  type ScrollParam,
-  type TUserPrompt,
-  type UIContext,
-} from '../index';
+import type { Executor } from '@/ai-model/action-executor';
+import type { TUserPrompt } from '@/ai-model/common';
+import Insight from '@/insight';
+import type {
+  AgentAssertOpt,
+  AgentDescribeElementAtPointResult,
+  AgentOpt,
+  AgentWaitForOpt,
+  CacheConfig,
+  DeviceAction,
+  ExecutionDump,
+  ExecutionRecorderItem,
+  ExecutionTask,
+  ExecutionTaskLog,
+  GroupedActionDump,
+  InsightAction,
+  InsightExtractOption,
+  InsightExtractParam,
+  LocateOption,
+  LocateResultElement,
+  LocateValidatorResult,
+  LocatorValidatorOption,
+  MidsceneYamlScript,
+  OnTaskStartTip,
+  PlanningAction,
+  Rect,
+  ScrollParam,
+  UIContext,
+} from '@/types';
 import yaml from 'js-yaml';
 
 import {
@@ -40,13 +42,13 @@ import {
 } from '../yaml/index';
 
 import type { AbstractInterface } from '@/device';
-import type { AgentOpt } from '@/types';
 import {
   MIDSCENE_CACHE,
   ModelConfigManager,
   globalConfigManager,
   globalModelConfigManager,
 } from '@midscene/shared/env';
+import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 // import type { AndroidDeviceInputOpt } from '../device';
@@ -79,6 +81,21 @@ const defaultInsightExtractOption: InsightExtractOption = {
   domIncluded: false,
   screenshotIncluded: true,
 };
+
+type CacheStrategy = NonNullable<CacheConfig['strategy']>;
+
+const CACHE_STRATEGIES: readonly CacheStrategy[] = [
+  'read-only',
+  'read-write',
+  'write-only',
+];
+
+const isValidCacheStrategy = (strategy: string): strategy is CacheStrategy =>
+  CACHE_STRATEGIES.some((value) => value === strategy);
+
+const CACHE_STRATEGY_VALUES = CACHE_STRATEGIES.map(
+  (value) => `"${value}"`,
+).join(', ');
 
 export class Agent<
   InterfaceType extends AbstractInterface = AbstractInterface,
@@ -122,6 +139,16 @@ export class Agent<
    */
   private hasWarnedNonVLModel = false;
 
+  /**
+   * Screenshot scale factor derived from actual screenshot dimensions
+   */
+  private screenshotScale?: number;
+
+  /**
+   * Internal promise to deduplicate screenshot scale computation
+   */
+  private screenshotScalePromise?: Promise<number>;
+
   // @deprecated use .interface instead
   get page() {
     return this.interface;
@@ -136,10 +163,57 @@ export class Agent<
       this.interface.interfaceType !== 'puppeteer' &&
       this.interface.interfaceType !== 'playwright' &&
       this.interface.interfaceType !== 'static' &&
-      this.interface.interfaceType !== 'chrome-extension-proxy'
+      this.interface.interfaceType !== 'chrome-extension-proxy' &&
+      this.interface.interfaceType !== 'page-over-chrome-extension-bridge'
     ) {
       this.modelConfigManager.throwErrorIfNonVLModel();
       this.hasWarnedNonVLModel = true;
+    }
+  }
+
+  /**
+   * Lazily compute the ratio between the physical screenshot width and the logical page width
+   */
+  private async getScreenshotScale(context: UIContext): Promise<number> {
+    if (this.screenshotScale !== undefined) {
+      return this.screenshotScale;
+    }
+
+    if (!this.screenshotScalePromise) {
+      this.screenshotScalePromise = (async () => {
+        const pageWidth = context.size?.width;
+        assert(
+          pageWidth && pageWidth > 0,
+          `Invalid page width when computing screenshot scale: ${pageWidth}`,
+        );
+
+        const { width: screenshotWidth } = await imageInfoOfBase64(
+          context.screenshotBase64,
+        );
+
+        assert(
+          Number.isFinite(screenshotWidth) && screenshotWidth > 0,
+          `Invalid screenshot width when computing screenshot scale: ${screenshotWidth}`,
+        );
+
+        const computedScale = screenshotWidth / pageWidth;
+        assert(
+          Number.isFinite(computedScale) && computedScale > 0,
+          `Invalid computed screenshot scale: ${computedScale}`,
+        );
+
+        debug(
+          `Computed screenshot scale ${computedScale} from screenshot width ${screenshotWidth} and page width ${pageWidth}`,
+        );
+        return computedScale;
+      })();
+    }
+
+    try {
+      this.screenshotScale = await this.screenshotScalePromise;
+      return this.screenshotScale;
+    } finally {
+      this.screenshotScalePromise = undefined;
     }
   }
 
@@ -177,7 +251,10 @@ export class Agent<
         cacheConfig.id,
         cacheConfig.enabled,
         undefined, // cacheFilePath
-        cacheConfig.readOnly,
+        {
+          readOnly: cacheConfig.readOnly,
+          writeOnly: cacheConfig.writeOnly,
+        },
       );
     }
 
@@ -206,15 +283,37 @@ export class Agent<
       return this.frozenUIContext;
     }
 
+    // Get original context
+    let context: UIContext;
     if (this.interface.getContext) {
       debug('Using page.getContext for action:', action);
-      return await this.interface.getContext();
+      context = await this.interface.getContext();
     } else {
       debug('Using commonContextParser for action:', action);
-      return await commonContextParser(this.interface, {
+      context = await commonContextParser(this.interface, {
         uploadServerUrl: this.modelConfigManager.getUploadTestServerUrl(),
       });
     }
+
+    const computedScreenshotScale = await this.getScreenshotScale(context);
+
+    if (computedScreenshotScale !== 1) {
+      const scaleForLog = Number.parseFloat(computedScreenshotScale.toFixed(4));
+      debug(
+        `Applying computed screenshot scale: ${scaleForLog} (resize to logical size)`,
+      );
+      const targetWidth = Math.round(context.size.width);
+      const targetHeight = Math.round(context.size.height);
+      debug(`Resizing screenshot to ${targetWidth}x${targetHeight}`);
+      context.screenshotBase64 = await resizeImgBase64(
+        context.screenshotBase64,
+        { width: targetWidth, height: targetHeight },
+      );
+    } else {
+      debug(`screenshot scale=${computedScreenshotScale}`);
+    }
+
+    return context;
   }
 
   async _snapshotContext(): Promise<UIContext> {
@@ -289,7 +388,11 @@ export class Agent<
   }
 
   private async afterTaskRunning(executor: Executor, doNotThrowError = false) {
-    this.appendExecutionDump(executor.dump());
+    const executionDump = executor.dump();
+    if (this.opts.aiActionContext) {
+      executionDump.aiActionContext = this.opts.aiActionContext;
+    }
+    this.appendExecutionDump(executionDump);
 
     try {
       if (this.onDumpUpdate) {
@@ -605,6 +708,7 @@ export class Agent<
       taskPrompt,
       modelConfig,
       this.opts.aiActionContext,
+      cacheable,
     );
 
     // update cache
@@ -815,12 +919,18 @@ export class Agent<
 
     const { element } = output;
 
+    const dprValue = await (this.interface.size() as any).dpr;
+    const dprEntry = dprValue
+      ? {
+          dpr: dprValue,
+        }
+      : {};
     return {
       rect: element?.rect,
       center: element?.center,
-      scale: (await this.interface.size()).dpr,
+      ...dprEntry,
     } as Pick<LocateResultElement, 'rect' | 'center'> & {
-      scale: number;
+      dpr?: number; // this field is deprecated
     };
   }
 
@@ -866,7 +976,7 @@ export class Agent<
   }
 
   async aiWaitFor(assertion: TUserPrompt, opt?: AgentWaitForOpt) {
-    const modelConfig = this.modelConfigManager.getModelConfig('default');
+    const modelConfig = this.modelConfigManager.getModelConfig('VQA');
     const { executor } = await this.taskExecutor.waitFor(
       assertion,
       {
@@ -991,6 +1101,9 @@ export class Agent<
       description: opt?.content || '',
       tasks: [task],
     };
+    if (this.opts.aiActionContext) {
+      executionDump.aiActionContext = this.opts.aiActionContext;
+    }
     // 5. append to execution dump
     this.appendExecutionDump(executionDump);
 
@@ -1051,9 +1164,12 @@ export class Agent<
   /**
    * Process cache configuration and return normalized cache settings
    */
-  private processCacheConfig(
-    opts: AgentOpt,
-  ): { id: string; enabled: boolean; readOnly: boolean } | null {
+  private processCacheConfig(opts: AgentOpt): {
+    id: string;
+    enabled: boolean;
+    readOnly: boolean;
+    writeOnly: boolean;
+  } | null {
     // 1. New cache object configuration (highest priority)
     if (opts.cache !== undefined) {
       if (opts.cache === false) {
@@ -1077,12 +1193,33 @@ export class Agent<
           );
         }
         const id = config.id;
-        const isReadOnly = config.strategy === 'read-only';
+        const rawStrategy = config.strategy as unknown;
+        let strategyValue: string;
+
+        if (rawStrategy === undefined) {
+          strategyValue = 'read-write';
+        } else if (typeof rawStrategy === 'string') {
+          strategyValue = rawStrategy;
+        } else {
+          throw new Error(
+            `cache.strategy must be a string when provided, but received type ${typeof rawStrategy}`,
+          );
+        }
+
+        if (!isValidCacheStrategy(strategyValue)) {
+          throw new Error(
+            `cache.strategy must be one of ${CACHE_STRATEGY_VALUES}, but received "${strategyValue}"`,
+          );
+        }
+
+        const isReadOnly = strategyValue === 'read-only';
+        const isWriteOnly = strategyValue === 'write-only';
 
         return {
           id,
-          enabled: true,
+          enabled: !isWriteOnly,
           readOnly: isReadOnly,
+          writeOnly: isWriteOnly,
         };
       }
     }
@@ -1096,6 +1233,7 @@ export class Agent<
           id: opts.cacheId,
           enabled: true,
           readOnly: false,
+          writeOnly: false,
         };
       }
     }
@@ -1106,11 +1244,15 @@ export class Agent<
 
   /**
    * Manually flush cache to file
-   * Only meaningful in read-only mode, other modes will throw error
+   * Only supported in read-only mode where writes are deferred by default
    */
   async flushCache(): Promise<void> {
     if (!this.taskCache) {
       throw new Error('Cache is not configured');
+    }
+
+    if (!this.taskCache.readOnlyMode) {
+      throw new Error('flushCache() can only be called in read-only mode');
     }
 
     this.taskCache.flushCacheToFile();

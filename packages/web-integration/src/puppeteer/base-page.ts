@@ -1,8 +1,10 @@
 import { type WebPageAgentOpt, WebPageContextParser } from '@/web-element';
 import type {
   DeviceAction,
+  ElementCacheFeature,
   ElementTreeNode,
   Point,
+  Rect,
   Size,
   UIContext,
 } from '@midscene/core';
@@ -31,6 +33,20 @@ import {
 } from '../web-page';
 
 export const debugPage = getDebug('web:page');
+
+type WebElementCacheFeature = ElementCacheFeature & {
+  xpaths?: string[];
+};
+
+const sanitizeXpaths = (xpaths: unknown): string[] => {
+  if (!Array.isArray(xpaths)) {
+    return [];
+  }
+
+  return xpaths.filter(
+    (xpath): xpath is string => typeof xpath === 'string' && xpath.length > 0,
+  );
+};
 
 export class Page<
   AgentType extends 'puppeteer' | 'playwright',
@@ -161,7 +177,7 @@ export class Page<
     const elementInfosScriptContent = getElementInfosScriptContent();
 
     return this.evaluateJavaScript(
-      `${elementInfosScriptContent}midscene_element_inspector.getXpathsById('${id}')`,
+      `${elementInfosScriptContent}midscene_element_inspector.getXpathsById(${JSON.stringify(id)})`,
     );
   }
 
@@ -177,7 +193,69 @@ export class Page<
     const elementInfosScriptContent = getElementInfosScriptContent();
 
     return this.evaluateJavaScript(
-      `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('${xpath}')`,
+      `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath(${JSON.stringify(xpath)})`,
+    );
+  }
+
+  async cacheFeatureForRect(
+    rect: Rect,
+    opt?: { _orderSensitive: boolean },
+  ): Promise<ElementCacheFeature> {
+    const center: Point = {
+      left: Math.floor(rect.left + rect.width / 2),
+      top: Math.floor(rect.top + rect.height / 2),
+    };
+
+    try {
+      const orderSensitive = opt?._orderSensitive ?? false;
+      const xpaths = await this.getXpathsByPoint(center, orderSensitive);
+      const sanitized = sanitizeXpaths(xpaths);
+      if (!sanitized.length) {
+        debugPage('cacheFeatureForRect: no xpath found at rect %o', rect);
+      }
+      return {
+        xpaths: sanitized,
+      };
+    } catch (error) {
+      debugPage('cacheFeatureForRect failed: %s', error);
+      return {
+        xpaths: [],
+      };
+    }
+  }
+
+  async rectMatchesCacheFeature(feature: ElementCacheFeature): Promise<Rect> {
+    const webFeature = feature as WebElementCacheFeature;
+    const xpaths = sanitizeXpaths(webFeature.xpaths);
+
+    for (const xpath of xpaths) {
+      try {
+        const elementInfo = await this.getElementInfoByXpath(xpath);
+        if (elementInfo?.rect) {
+          const matchedRect: Rect = {
+            left: elementInfo.rect.left,
+            top: elementInfo.rect.top,
+            width: elementInfo.rect.width,
+            height: elementInfo.rect.height,
+          };
+
+          if (this.viewportSize?.dpr) {
+            matchedRect.dpr = this.viewportSize.dpr;
+          }
+
+          return matchedRect;
+        }
+      } catch (error) {
+        debugPage(
+          'rectMatchesCacheFeature failed for xpath %s: %s',
+          xpath,
+          error,
+        );
+      }
+    }
+
+    throw new Error(
+      'No matching element rect found for the provided cache feature',
     );
   }
 

@@ -166,7 +166,7 @@ describe('TaskCache', { timeout: 20000 }, () => {
     const planningCachedYamlWorkflow = 'test-yaml-workflow';
 
     const locateCachedPrompt = 'test-locate';
-    const locateCachedXpaths = ['test-xpath-1', 'test-xpath-2'];
+    const locateCachedCache = { xpaths: ['test-xpath-1', 'test-xpath-2'] };
 
     const cacheFilePath = prepareCache(
       [
@@ -178,7 +178,7 @@ describe('TaskCache', { timeout: 20000 }, () => {
         {
           type: 'locate',
           prompt: locateCachedPrompt,
-          xpaths: locateCachedXpaths,
+          cache: locateCachedCache,
         },
       ],
       cacheId,
@@ -200,13 +200,13 @@ describe('TaskCache', { timeout: 20000 }, () => {
       updateFn: cachedLocateCacheUpdateFn,
     } = cachedLocateCache!;
     expect(cachedLocateCacheContent.prompt).toBe(locateCachedPrompt);
-    expect(cachedLocateCacheContent.xpaths).toEqual(locateCachedXpaths);
+    expect(cachedLocateCacheContent.cache).toEqual(locateCachedCache);
 
     expect(newTaskCache.cache.caches).toMatchSnapshot();
 
     // test update cache
     cachedLocateCacheUpdateFn((cache) => {
-      cache.xpaths = ['test-xpath-3', 'test-xpath-4'];
+      cache.cache = { xpaths: ['test-xpath-3', 'test-xpath-4'] };
     });
 
     expect(newTaskCache.cache.caches).toMatchSnapshot();
@@ -217,6 +217,56 @@ describe('TaskCache', { timeout: 20000 }, () => {
     expect(
       cacheFileContent.replace(/\d+\.\d+\.\d+[-\w\d.]*/g, '0.999.0'),
     ).toMatchSnapshot();
+  });
+
+  it('migrates legacy locate cache xpaths to cache entry when matching', () => {
+    const legacyXpaths = ['legacy-xpath-1'];
+    const cacheFilePath = prepareCache([
+      {
+        type: 'locate',
+        prompt: 'legacy-locate',
+        xpaths: legacyXpaths,
+      },
+    ]);
+
+    const newTaskCache = new TaskCache(uuid(), true, cacheFilePath);
+    const located = newTaskCache.matchLocateCache('legacy-locate');
+    expect(located?.cacheContent.cache?.xpaths).toEqual(legacyXpaths);
+  });
+
+  it('updateOrAppendCacheRecord writes cache entry and clears legacy xpaths', () => {
+    const cacheFilePath = prepareCache([
+      {
+        type: 'locate',
+        prompt: 'update-locate',
+        xpaths: ['old-xpath'],
+      },
+    ]);
+
+    const taskCache = new TaskCache(uuid(), true, cacheFilePath);
+    const matched = taskCache.matchLocateCache('update-locate');
+    expect(matched).toBeDefined();
+
+    taskCache.updateOrAppendCacheRecord(
+      {
+        type: 'locate',
+        prompt: 'update-locate',
+        cache: { xpaths: ['new-xpath'] },
+      },
+      matched,
+    );
+
+    expect(matched?.cacheContent.cache?.xpaths).toEqual(['new-xpath']);
+    expect(matched?.cacheContent.xpaths).toBeUndefined();
+
+    const persisted = yaml.load(
+      readFileSync(taskCache.cacheFilePath!, 'utf-8'),
+    ) as any;
+    const persistedLocate = persisted.caches.find(
+      (entry: any) => entry.prompt === 'update-locate',
+    );
+    expect(persistedLocate.cache.xpaths).toEqual(['new-xpath']);
+    expect(persistedLocate.xpaths).toBeUndefined();
   });
 
   it('should sanitize cache ID for file path', () => {
@@ -294,7 +344,7 @@ describe('TaskCache', { timeout: 20000 }, () => {
     cache.appendCache({
       type: 'locate',
       prompt: 'test-locate',
-      xpaths: ['test-xpath'],
+      cache: { xpaths: ['test-xpath'] },
     });
 
     expect(existsSync(cache.cacheFilePath!)).toBe(true);
@@ -354,7 +404,7 @@ describe('TaskCache', { timeout: 20000 }, () => {
     cache.appendCache({
       type: 'locate',
       prompt: 'locate-prompt-1',
-      xpaths: ['xpath-1'],
+      cache: { xpaths: ['xpath-1'] },
     });
 
     cache.appendCache({
@@ -366,7 +416,7 @@ describe('TaskCache', { timeout: 20000 }, () => {
     cache.appendCache({
       type: 'locate',
       prompt: 'locate-prompt-2',
-      xpaths: ['xpath-2'],
+      cache: { xpaths: ['xpath-2'] },
     });
 
     cache.appendCache({
@@ -401,15 +451,17 @@ describe('TaskCache', { timeout: 20000 }, () => {
     expect(diskCaches[1].yamlWorkflow).toBe('workflow-2');
 
     // Verify that locate entries maintain their relative order
-    expect(diskCaches[2].xpaths).toEqual(['xpath-1']);
-    expect(diskCaches[3].xpaths).toEqual(['xpath-2']);
+    expect(diskCaches[2].cache.xpaths).toEqual(['xpath-1']);
+    expect(diskCaches[3].cache.xpaths).toEqual(['xpath-2']);
   });
 });
 
 describe('TaskCache read-only mode', () => {
   it('should append cache to memory but not flush to file in read-only mode', () => {
     const cacheId = uuid();
-    const cache = new TaskCache(cacheId, true, undefined, true); // read-only mode
+    const cache = new TaskCache(cacheId, true, undefined, {
+      readOnly: true,
+    }); // read-only mode
 
     const initialLength = cache.cache.caches.length;
 
@@ -428,7 +480,9 @@ describe('TaskCache read-only mode', () => {
 
   it('should allow manual flush to file in read-only mode', () => {
     const cacheId = uuid();
-    const cache = new TaskCache(cacheId, true, undefined, true); // read-only mode
+    const cache = new TaskCache(cacheId, true, undefined, {
+      readOnly: true,
+    }); // read-only mode
 
     // Ensure file doesn't exist initially
     if (existsSync(cache.cacheFilePath!)) {
@@ -464,7 +518,9 @@ describe('TaskCache read-only mode', () => {
     ]);
 
     // Load cache in read-only mode
-    const cache = new TaskCache(uuid(), true, cacheFilePath, true);
+    const cache = new TaskCache(uuid(), true, cacheFilePath, {
+      readOnly: true,
+    });
 
     const matchedCache = cache.matchPlanCache('test-prompt');
     expect(matchedCache).toBeDefined();
@@ -499,7 +555,9 @@ describe('TaskCache read-only mode', () => {
     ]);
 
     // Load cache in read-only mode
-    const cache = new TaskCache(uuid(), true, cacheFilePath, true);
+    const cache = new TaskCache(uuid(), true, cacheFilePath, {
+      readOnly: true,
+    });
 
     // Should still be able to match existing cache
     const planCache = cache.matchPlanCache('test-prompt');
@@ -508,19 +566,25 @@ describe('TaskCache read-only mode', () => {
 
     const locateCache = cache.matchLocateCache('locate-prompt');
     expect(locateCache).toBeDefined();
-    expect(locateCache!.cacheContent.xpaths).toEqual(['test-xpath']);
+    expect(locateCache!.cacheContent.cache?.xpaths).toEqual(['test-xpath']);
   });
 
   it('should set readOnlyMode property correctly', () => {
-    const normalCache = new TaskCache(uuid(), true, undefined, false);
+    const normalCache = new TaskCache(uuid(), true);
     expect(normalCache.readOnlyMode).toBe(false);
+    expect(normalCache.writeOnlyMode).toBe(false);
 
-    const readOnlyCache = new TaskCache(uuid(), true, undefined, true);
+    const readOnlyCache = new TaskCache(uuid(), true, undefined, {
+      readOnly: true,
+    });
     expect(readOnlyCache.readOnlyMode).toBe(true);
+    expect(readOnlyCache.writeOnlyMode).toBe(false);
 
-    // Default should be false
-    const defaultCache = new TaskCache(uuid(), true);
-    expect(defaultCache.readOnlyMode).toBe(false);
+    const writeOnlyCache = new TaskCache(uuid(), true, undefined, {
+      writeOnly: true,
+    });
+    expect(writeOnlyCache.readOnlyMode).toBe(false);
+    expect(writeOnlyCache.writeOnlyMode).toBe(true);
   });
 
   it('should handle updateOrAppendCacheRecord in memory but not flush to file in read-only mode', () => {
@@ -532,7 +596,9 @@ describe('TaskCache read-only mode', () => {
       },
     ]);
 
-    const cache = new TaskCache(uuid(), true, cacheFilePath, true);
+    const cache = new TaskCache(uuid(), true, cacheFilePath, {
+      readOnly: true,
+    });
     const initialLength = cache.cache.caches.length;
 
     // Try to append new record - should append to memory
@@ -565,6 +631,57 @@ describe('TaskCache read-only mode', () => {
     expect(fileContent).toContain('existing-workflow');
     expect(fileContent).not.toContain('updated-workflow');
     expect(fileContent).not.toContain('new-workflow');
+  });
+});
+
+describe('TaskCache write-only mode', () => {
+  it('should skip matching existing cache records', () => {
+    const cacheFilePath = prepareCache([
+      {
+        type: 'plan',
+        prompt: 'write-only-plan',
+        yamlWorkflow: 'write-only-workflow',
+      },
+    ]);
+
+    const cache = new TaskCache(uuid(), true, cacheFilePath, {
+      writeOnly: true,
+    });
+
+    expect(cache.writeOnlyMode).toBe(true);
+    expect(cache.readOnlyMode).toBe(false);
+    expect(cache.isCacheResultUsed).toBe(false);
+    expect(cache.cacheOriginalLength).toBe(0);
+    expect(cache.matchPlanCache('write-only-plan')).toBeUndefined();
+  });
+
+  it('should flush appended caches to disk in write-only mode', () => {
+    const cacheId = uuid();
+    const cache = new TaskCache(cacheId, true, undefined, {
+      writeOnly: true,
+    });
+
+    cache.appendCache({
+      type: 'plan',
+      prompt: 'fresh-write-only',
+      yamlWorkflow: 'fresh-workflow',
+    });
+
+    expect(existsSync(cache.cacheFilePath!)).toBe(true);
+    const content = readFileSync(cache.cacheFilePath!, 'utf-8');
+    expect(content).toContain('fresh-write-only');
+    expect(content).toContain('fresh-workflow');
+    expect(cache.matchPlanCache('fresh-write-only')).toBeUndefined();
+  });
+
+  it('should throw when both readOnly and writeOnly are enabled', () => {
+    expect(
+      () =>
+        new TaskCache(uuid(), true, undefined, {
+          readOnly: true,
+          writeOnly: true,
+        }),
+    ).toThrow('TaskCache cannot be both read-only and write-only');
   });
 });
 

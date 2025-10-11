@@ -4,9 +4,10 @@ import {
   ClearOutlined,
   LoadingOutlined,
 } from '@ant-design/icons';
-import { Button, List, Spin } from 'antd';
+import { Button, List, Spin, Switch } from 'antd';
 import dayjs from 'dayjs';
 import { useEffect, useRef, useState } from 'react';
+import AutoConnectIcon from '../../icons/auto-connect.svg?react';
 import PlayIcon from '../../icons/play.svg?react';
 import {
   BridgeConnector,
@@ -29,11 +30,17 @@ interface BridgeMessageItem {
   time: string;
 }
 
+const AUTO_CONNECT_STORAGE_KEY = 'midscene-bridge-auto-connect';
+
 export default function Bridge() {
   const [bridgeStatus, setBridgeStatus] = useState<BridgeStatus>('closed');
   const [messageList, setMessageList] = useState<BridgeMessageItem[]>([]);
   const [showScrollToBottomButton, setShowScrollToBottomButton] =
     useState(false);
+  const [autoConnect, setAutoConnect] = useState<boolean>(() => {
+    const saved = localStorage.getItem(AUTO_CONNECT_STORAGE_KEY);
+    return saved === 'true';
+  });
   const messageListRef = useRef<HTMLDivElement>(null);
   // useRef to track the ID of the connection status message
   const connectionStatusMessageId = useRef<string | null>(null);
@@ -133,6 +140,11 @@ export default function Bridge() {
   );
 
   useEffect(() => {
+    // Auto-connect on component mount if enabled
+    if (autoConnect && bridgeStatus === 'closed') {
+      startConnection();
+    }
+
     return () => {
       bridgeConnectorRef.current?.disconnect();
     };
@@ -148,6 +160,11 @@ export default function Bridge() {
       connectionStatusMessageId.current = null;
     }
     bridgeConnectorRef.current?.connect();
+  };
+
+  const handleAutoConnectChange = (checked: boolean) => {
+    setAutoConnect(checked);
+    localStorage.setItem(AUTO_CONNECT_STORAGE_KEY, String(checked));
   };
 
   // clear the message list
@@ -344,16 +361,31 @@ export default function Bridge() {
       {/* bottom buttons */}
       <div className="bottom-button-container">
         {bridgeStatus === 'closed' ? (
-          <Button
-            type="primary"
-            className="bottom-action-button"
-            icon={<PlayIcon />}
-            onClick={() => {
-              startConnection();
-            }}
-          >
-            Allow Connection
-          </Button>
+          <>
+            <div className="auto-connect-container">
+              <span className="auto-connect-icon">
+                <AutoConnectIcon />
+              </span>
+              <span className="auto-connect-label">
+                Auto allow in Bridge Mode
+              </span>
+              <Switch
+                checked={autoConnect}
+                onChange={handleAutoConnectChange}
+                size="default"
+              />
+            </div>
+            <Button
+              type="primary"
+              className="bottom-action-button"
+              icon={<PlayIcon />}
+              onClick={() => {
+                startConnection();
+              }}
+            >
+              Allow Connection
+            </Button>
+          </>
         ) : (
           <div className="bottom-status-bar">
             <div className="bottom-status-text">

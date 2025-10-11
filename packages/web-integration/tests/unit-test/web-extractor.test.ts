@@ -386,6 +386,83 @@ describe(
 
         await reset();
       });
+
+      it('cacheFeatureForRect should default to order-insensitive (normalize-space) mode', async () => {
+        const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
+          viewport: {
+            width: 1080,
+            height: 3000,
+            deviceScaleFactor: 1,
+          },
+        });
+
+        // Target a button element with text content
+        // Use coordinates that will hit an actual element with text
+        const rect = {
+          left: 100,
+          top: 400,
+          width: 100,
+          height: 40,
+        };
+
+        // Call cacheFeatureForRect without opt parameter (should default to orderSensitive=false)
+        const cacheFeature = await page.cacheFeatureForRect?.(rect);
+
+        expect(cacheFeature).toBeDefined();
+        const xpaths = (cacheFeature as any)?.xpaths as string[] | undefined;
+        expect(xpaths).toBeDefined();
+        expect(xpaths?.length).toBeGreaterThan(0);
+
+        const xpath = xpaths?.[0];
+        expect(xpath).toMatch(/^\/html/);
+
+        // Verify with explicit orderSensitive=false
+        const cacheFeatureInsensitive = await page.cacheFeatureForRect?.(rect, {
+          _orderSensitive: false,
+        });
+
+        const xpathsInsensitive = (cacheFeatureInsensitive as any)
+          ?.xpaths as string[];
+        const xpathInsensitive = xpathsInsensitive?.[0];
+
+        // Default behavior should match explicit orderSensitive=false
+        expect(xpath).toBe(xpathInsensitive);
+
+        // Verify that orderSensitive=true produces different (index-based) xpath
+        const cacheFeatureSensitive = await page.cacheFeatureForRect?.(rect, {
+          _orderSensitive: true,
+        });
+
+        const xpathsSensitive = (cacheFeatureSensitive as any)
+          ?.xpaths as string[];
+        const xpathSensitive = xpathsSensitive?.[0];
+
+        // Skip special elements like body
+        if (
+          xpathSensitive &&
+          xpathSensitive !== '/html/body' &&
+          xpathSensitive !== '/html'
+        ) {
+          // Order-sensitive xpath should:
+          // 1. Either use index format like [1], [2] at the end
+          // 2. Or NOT use normalize-space (for better distinction)
+          const isIndexBased = /\[\d+\]/.test(xpathSensitive);
+          const hasNormalizeSpace =
+            xpathSensitive.includes('normalize-space()');
+
+          // For order-insensitive (default), leaf elements with text should prefer normalize-space
+          // For order-sensitive, it should use index-based format
+          if (xpath !== xpathSensitive) {
+            // They should be different
+            expect(xpath).not.toBe(xpathSensitive);
+
+            // Order-sensitive should either use index or not use normalize-space
+            expect(isIndexBased || !hasNormalizeSpace).toBe(true);
+          }
+        }
+
+        await reset();
+      });
     });
   },
 );

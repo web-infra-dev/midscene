@@ -47,11 +47,17 @@ const groupAndCaseForTest = (testInfo: TestInfo) => {
 const midsceneAgentKeyId = '_midsceneAgentId';
 export const midsceneDumpAnnotationId = 'MIDSCENE_DUMP_ANNOTATION';
 
+type PlaywrightCacheConfig = {
+  strategy?: 'read-only' | 'read-write' | 'write-only';
+  id?: string;
+};
+type PlaywrightCache = false | true | PlaywrightCacheConfig;
+
 export const PlaywrightAiFixture = (options?: {
   forceSameTabNavigation?: boolean;
   waitForNetworkIdleTimeout?: number;
   waitForNavigationTimeout?: number;
-  cache?: Cache;
+  cache?: PlaywrightCache;
 }) => {
   const {
     forceSameTabNavigation = true,

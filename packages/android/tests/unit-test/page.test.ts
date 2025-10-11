@@ -125,7 +125,7 @@ describe('AndroidDevice', () => {
       const size1 = await device.size();
       const size2 = await device.size();
 
-      expect(size1).toEqual({ width: 540, height: 960, dpr: 2 });
+      expect(size1).toEqual({ width: 540, height: 960 });
       expect(size2).toEqual(size1);
       // Caching is removed, so it should be called twice
       expect(vi.spyOn(device as any, 'getScreenSize')).toHaveBeenCalledTimes(2);
@@ -1343,7 +1343,7 @@ describe('AndroidDevice', () => {
       expect(mockAdbInstance.shell).toHaveBeenCalledWith('dumpsys display');
       expect(size.width).toBe(411); // 1080 / (420/160) ≈ 411
       expect(size.height).toBe(731); // 1920 / (420/160) ≈ 731
-      expect(size.dpr).toBe(2.625); // 420 / 160 = 2.625
+      // dpr is no longer returned in size()
     });
 
     it('should use display ID for screenshots by default when displayId is set', async () => {

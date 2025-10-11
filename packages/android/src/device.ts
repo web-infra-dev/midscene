@@ -5,6 +5,7 @@ import path from 'node:path';
 import {
   type DeviceAction,
   type InterfaceType,
+  type LocateResultElement,
   type Point,
   type Size,
   getMidsceneLocationSchema,
@@ -44,6 +45,12 @@ const defaultScrollUntilTimes = 10;
 const defaultFastScrollDuration = 100;
 const defaultNormalScrollDuration = 1000;
 
+const IME_STRATEGY_ALWAYS_YADB = 'always-yadb' as const;
+const IME_STRATEGY_YADB_FOR_NON_ASCII = 'yadb-for-non-ascii' as const;
+type ImeStrategy =
+  | typeof IME_STRATEGY_ALWAYS_YADB
+  | typeof IME_STRATEGY_YADB_FOR_NON_ASCII;
+
 const debugDevice = getDebug('android:device');
 
 export type AndroidDeviceInputOpt = {
@@ -55,11 +62,12 @@ export type AndroidDeviceOpt = {
   androidAdbPath?: string;
   remoteAdbHost?: string;
   remoteAdbPort?: number;
-  imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii';
+  imeStrategy?: ImeStrategy;
   displayId?: number;
   usePhysicalDisplayIdForScreenshot?: boolean;
   usePhysicalDisplayIdForDisplayLookup?: boolean;
   customActions?: DeviceAction<any>[];
+  screenshotResizeScale?: number;
 } & AndroidDeviceInputOpt;
 
 export class AndroidDevice implements AbstractInterface {
@@ -67,6 +75,7 @@ export class AndroidDevice implements AbstractInterface {
   private yadbPushed = false;
   private devicePixelRatio = 1;
   private devicePixelRatioInitialized = false;
+  private scalingRatio = 1; // Record scaling ratio for coordinate adjustment
   private adb: ADB | null = null;
   private connectingAdb: Promise<ADB> | null = null;
   private destroyed = false;
@@ -209,7 +218,16 @@ export class AndroidDevice implements AbstractInterface {
           await this.recentApps();
         },
       }),
-      defineAction({
+      defineAction<
+        z.ZodObject<{
+          duration: z.ZodOptional<z.ZodNumber>;
+          locate: ReturnType<typeof getMidsceneLocationSchema>;
+        }>,
+        {
+          duration?: number;
+          locate: LocateResultElement;
+        }
+      >({
         name: 'AndroidLongPress',
         description:
           'Trigger a long press on the screen at specified coordinates on Android devices',
@@ -233,7 +251,20 @@ export class AndroidDevice implements AbstractInterface {
           await this.longPress(x, y, param?.duration);
         },
       }),
-      defineAction({
+      defineAction<
+        z.ZodObject<{
+          direction: z.ZodEnum<['up', 'down']>;
+          distance: z.ZodOptional<z.ZodNumber>;
+          duration: z.ZodOptional<z.ZodNumber>;
+          locate: z.ZodOptional<ReturnType<typeof getMidsceneLocationSchema>>;
+        }>,
+        {
+          direction: 'up' | 'down';
+          distance?: number;
+          duration?: number;
+          locate?: LocateResultElement;
+        }
+      >({
         name: 'AndroidPull',
         description: 'Trigger pull down to refresh or pull up actions',
         paramSchema: z.object({
@@ -713,25 +744,28 @@ ${Object.keys(size)
     const width = Number.parseInt(match[isLandscape ? 2 : 1], 10);
     const height = Number.parseInt(match[isLandscape ? 1 : 2], 10);
 
-    // Use cached device pixel ratio instead of calling getDisplayDensity() every time
+    // Determine scaling: use screenshotResizeScale if provided, otherwise use 1/devicePixelRatio
+    // Default is 1/dpr to scale down by device pixel ratio (e.g., dpr=3 -> scale=1/3)
+    const scale =
+      this.options?.screenshotResizeScale ?? 1 / this.devicePixelRatio;
+    this.scalingRatio = scale;
 
-    // Convert physical pixels to logical pixels for consistent coordinate system
+    // Apply scale to get logical dimensions for AI processing
     // adjustCoordinates() will convert back to physical pixels when needed for touch operations
-    const logicalWidth = Math.round(width / this.devicePixelRatio);
-    const logicalHeight = Math.round(height / this.devicePixelRatio);
+    const logicalWidth = Math.round(width * scale);
+    const logicalHeight = Math.round(height * scale);
 
     return {
       width: logicalWidth,
       height: logicalHeight,
-      dpr: this.devicePixelRatio,
     };
   }
 
   private adjustCoordinates(x: number, y: number): { x: number; y: number } {
-    const ratio = this.devicePixelRatio;
+    const scale = this.scalingRatio;
     return {
-      x: Math.round(x * ratio),
-      y: Math.round(y * ratio),
+      x: Math.round(x / scale),
+      y: Math.round(y / scale),
     };
   }
 
@@ -889,9 +923,9 @@ ${Object.keys(size)
     const IME_STRATEGY =
       (this.options?.imeStrategy ||
         globalConfigManager.getEnvConfigValue(MIDSCENE_ANDROID_IME_STRATEGY)) ??
-      'always-yadb';
+      IME_STRATEGY_YADB_FOR_NON_ASCII;
 
-    if (IME_STRATEGY === 'yadb-for-non-ascii') {
+    if (IME_STRATEGY === IME_STRATEGY_YADB_FOR_NON_ASCII) {
       // For yadb-for-non-ascii mode, use continuous deletion of 100 characters with keyevent
       await repeat(100, () => adb.keyevent(67)); // KEYCODE_DEL (Backspace)
     } else {
@@ -1101,13 +1135,13 @@ ${Object.keys(size)
     const IME_STRATEGY =
       (this.options?.imeStrategy ||
         globalConfigManager.getEnvConfigValue(MIDSCENE_ANDROID_IME_STRATEGY)) ??
-      'always-yadb';
+      IME_STRATEGY_YADB_FOR_NON_ASCII;
     const shouldAutoDismissKeyboard =
       options?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard ?? true;
 
     if (
-      IME_STRATEGY === 'always-yadb' ||
-      (IME_STRATEGY === 'yadb-for-non-ascii' && isChinese)
+      IME_STRATEGY === IME_STRATEGY_ALWAYS_YADB ||
+      (IME_STRATEGY === IME_STRATEGY_YADB_FOR_NON_ASCII && isChinese)
     ) {
       await this.execYadb(text);
     } else {
