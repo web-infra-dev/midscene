@@ -1,5 +1,5 @@
 import { getMidsceneLocationSchema } from '@/ai-model';
-import type { DeviceAction } from '@/types';
+import type { DeviceAction, LocateResultElement } from '@/types';
 import type { ElementNode } from '@midscene/shared/extractor';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 import { z } from 'zod';
@@ -40,33 +40,37 @@ export abstract class AbstractInterface {
 }
 
 // Generic function to define actions with proper type inference
-export const defineAction = <TSchema extends z.ZodType>(
+// TRuntime allows specifying a different type for the runtime parameter (after location resolution)
+export const defineAction = <TSchema extends z.ZodType, TRuntime = z.infer<TSchema>>(
   config: {
     name: string;
     description: string;
     interfaceAlias?: string;
     paramSchema: TSchema;
-    call: (param: z.infer<TSchema>) => Promise<void>;
+    call: (param: TRuntime) => Promise<void>;
   } & Partial<
     Omit<
-      DeviceAction<z.infer<TSchema>>,
+      DeviceAction<TRuntime>,
       'name' | 'description' | 'interfaceAlias' | 'paramSchema' | 'call'
     >
   >,
-): DeviceAction<z.infer<TSchema>> => {
-  return config;
+): DeviceAction<TRuntime> => {
+  return config as any; // Type assertion needed because schema validation type differs from runtime type
 };
 
 // Tap
 export const actionTapParamSchema = z.object({
   locate: getMidsceneLocationSchema().describe('The element to be tapped'),
 });
-export type ActionTapParam = z.infer<typeof actionTapParamSchema>;
+// Override the inferred type to use LocateResultElement for the runtime locate field
+export type ActionTapParam = {
+  locate: LocateResultElement;
+};
 
 export const defineActionTap = (
   call: (param: ActionTapParam) => Promise<void>,
 ): DeviceAction<ActionTapParam> => {
-  return defineAction({
+  return defineAction<typeof actionTapParamSchema, ActionTapParam>({
     name: 'Tap',
     description: 'Tap the element',
     interfaceAlias: 'aiTap',
@@ -81,12 +85,14 @@ export const actionRightClickParamSchema = z.object({
     'The element to be right clicked',
   ),
 });
-export type ActionRightClickParam = z.infer<typeof actionRightClickParamSchema>;
+export type ActionRightClickParam = {
+  locate: LocateResultElement;
+};
 
 export const defineActionRightClick = (
   call: (param: ActionRightClickParam) => Promise<void>,
 ): DeviceAction<ActionRightClickParam> => {
-  return defineAction({
+  return defineAction<typeof actionRightClickParamSchema, ActionRightClickParam>({
     name: 'RightClick',
     description: 'Right click the element',
     interfaceAlias: 'aiRightClick',
@@ -101,14 +107,14 @@ export const actionDoubleClickParamSchema = z.object({
     'The element to be double clicked',
   ),
 });
-export type ActionDoubleClickParam = z.infer<
-  typeof actionDoubleClickParamSchema
->;
+export type ActionDoubleClickParam = {
+  locate: LocateResultElement;
+};
 
 export const defineActionDoubleClick = (
   call: (param: ActionDoubleClickParam) => Promise<void>,
 ): DeviceAction<ActionDoubleClickParam> => {
-  return defineAction({
+  return defineAction<typeof actionDoubleClickParamSchema, ActionDoubleClickParam>({
     name: 'DoubleClick',
     description: 'Double click the element',
     interfaceAlias: 'aiDoubleClick',
@@ -121,12 +127,14 @@ export const defineActionDoubleClick = (
 export const actionHoverParamSchema = z.object({
   locate: getMidsceneLocationSchema().describe('The element to be hovered'),
 });
-export type ActionHoverParam = z.infer<typeof actionHoverParamSchema>;
+export type ActionHoverParam = {
+  locate: LocateResultElement;
+};
 
 export const defineActionHover = (
   call: (param: ActionHoverParam) => Promise<void>,
 ): DeviceAction<ActionHoverParam> => {
-  return defineAction({
+  return defineAction<typeof actionHoverParamSchema, ActionHoverParam>({
     name: 'Hover',
     description: 'Move the mouse to the element',
     interfaceAlias: 'aiHover',
@@ -142,12 +150,15 @@ export const actionInputParamSchema = z.object({
     .describe('The element to be input')
     .optional(),
 });
-export type ActionInputParam = z.infer<typeof actionInputParamSchema>;
+export type ActionInputParam = {
+  value: string;
+  locate?: LocateResultElement;
+};
 
 export const defineActionInput = (
   call: (param: ActionInputParam) => Promise<void>,
 ): DeviceAction<ActionInputParam> => {
-  return defineAction({
+  return defineAction<typeof actionInputParamSchema, ActionInputParam>({
     name: 'Input',
     description: 'Input the value into the element',
     interfaceAlias: 'aiInput',
@@ -163,14 +174,15 @@ export const actionKeyboardPressParamSchema = z.object({
     .optional(),
   keyName: z.string().describe('The key to be pressed'),
 });
-export type ActionKeyboardPressParam = z.infer<
-  typeof actionKeyboardPressParamSchema
->;
+export type ActionKeyboardPressParam = {
+  locate?: LocateResultElement;
+  keyName: string;
+};
 
 export const defineActionKeyboardPress = (
   call: (param: ActionKeyboardPressParam) => Promise<void>,
 ): DeviceAction<ActionKeyboardPressParam> => {
-  return defineAction({
+  return defineAction<typeof actionKeyboardPressParamSchema, ActionKeyboardPressParam>({
     name: 'KeyboardPress',
     description:
       'Press a function key, like "Enter", "Tab", "Escape". Do not use this to type text.',
@@ -199,12 +211,17 @@ export const actionScrollParamSchema = z.object({
     .optional()
     .describe('The element to be scrolled'),
 });
-export type ActionScrollParam = z.infer<typeof actionScrollParamSchema>;
+export type ActionScrollParam = {
+  direction?: 'down' | 'up' | 'right' | 'left';
+  scrollType?: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft';
+  distance?: number | null;
+  locate?: LocateResultElement;
+};
 
 export const defineActionScroll = (
   call: (param: ActionScrollParam) => Promise<void>,
 ): DeviceAction<ActionScrollParam> => {
-  return defineAction({
+  return defineAction<typeof actionScrollParamSchema, ActionScrollParam>({
     name: 'Scroll',
     description:
       'Scroll the page or an element. The direction to scroll, the scroll type, and the distance to scroll. The distance is the number of pixels to scroll. If not specified, use `down` direction, `once` scroll type, and `null` distance.',
@@ -219,14 +236,15 @@ export const actionDragAndDropParamSchema = z.object({
   from: getMidsceneLocationSchema().describe('The position to be dragged'),
   to: getMidsceneLocationSchema().describe('The position to be dropped'),
 });
-export type ActionDragAndDropParam = z.infer<
-  typeof actionDragAndDropParamSchema
->;
+export type ActionDragAndDropParam = {
+  from: LocateResultElement;
+  to: LocateResultElement;
+};
 
 export const defineActionDragAndDrop = (
   call: (param: ActionDragAndDropParam) => Promise<void>,
 ): DeviceAction<ActionDragAndDropParam> => {
-  return defineAction({
+  return defineAction<typeof actionDragAndDropParamSchema, ActionDragAndDropParam>({
     name: 'DragAndDrop',
     description: 'Drag and drop the element',
     interfaceAlias: 'aiDragAndDrop',
@@ -246,11 +264,14 @@ export const ActionLongPressParamSchema = z.object({
     .describe('Long press duration in milliseconds'),
 });
 
-export type ActionLongPressParam = z.infer<typeof ActionLongPressParamSchema>;
+export type ActionLongPressParam = {
+  locate: LocateResultElement;
+  duration?: number;
+};
 export const defineActionLongPress = (
   call: (param: ActionLongPressParam) => Promise<void>,
 ): DeviceAction<ActionLongPressParam> => {
-  return defineAction({
+  return defineAction<typeof ActionLongPressParamSchema, ActionLongPressParam>({
     name: 'LongPress',
     description: 'Long press the element',
     paramSchema: ActionLongPressParamSchema,
@@ -291,12 +312,19 @@ export const ActionSwipeParamSchema = z.object({
     ),
 });
 
-export type ActionSwipeParam = z.infer<typeof ActionSwipeParamSchema>;
+export type ActionSwipeParam = {
+  start?: LocateResultElement;
+  direction?: 'up' | 'down' | 'left' | 'right';
+  distance?: number;
+  end?: LocateResultElement;
+  duration?: number;
+  repeat?: number;
+};
 
 export const defineActionSwipe = (
   call: (param: ActionSwipeParam) => Promise<void>,
 ): DeviceAction<ActionSwipeParam> => {
-  return defineAction({
+  return defineAction<typeof ActionSwipeParamSchema, ActionSwipeParam>({
     name: 'Swipe',
     description:
       'Perform a swipe gesture. You must specify either "end" (target location) or "distance" + "direction" - they are mutually exclusive. Use "end" for precise location-based swipes, or "distance" + "direction" for relative movement.',

@@ -529,7 +529,11 @@ const MidsceneLocationResult = z
   })
   .passthrough();
 
+// Export the result type - this is used for runtime results that include center and rect
 export type MidsceneLocationResultType = z.infer<typeof MidsceneLocationResult>;
+
+// Export the input type - this is the inferred type from getMidsceneLocationSchema()
+export type MidsceneLocationInputType = z.infer<typeof MidsceneLocationInput>;
 
 /**
  * Returns the schema for locator fields.
