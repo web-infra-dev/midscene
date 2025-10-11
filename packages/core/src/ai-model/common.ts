@@ -502,6 +502,17 @@ export type TUserPrompt = z.infer<typeof TUserPromptSchema>;
 
 const locateFieldFlagName = 'midscene_location_field_flag';
 
+// Schema for locator field input (when users provide locate parameters)
+const MidsceneLocationInput = z
+  .object({
+    prompt: TUserPromptSchema,
+    deepThink: z.boolean().optional(),
+    cacheable: z.boolean().optional(),
+    xpath: z.union([z.string(), z.boolean()]).optional(),
+  })
+  .passthrough();
+
+// Schema for locator field result (when AI returns locate results)
 const MidsceneLocationResult = z
   .object({
     [locateFieldFlagName]: z.literal(true),
@@ -519,8 +530,13 @@ const MidsceneLocationResult = z
   .passthrough();
 
 export type MidsceneLocationResultType = z.infer<typeof MidsceneLocationResult>;
+
+/**
+ * Returns the schema for locator fields.
+ * This now returns the input schema which is more permissive and suitable for validation.
+ */
 export const getMidsceneLocationSchema = () => {
-  return MidsceneLocationResult;
+  return MidsceneLocationInput;
 };
 
 export const ifMidsceneLocatorField = (field: any): boolean => {
@@ -530,10 +546,20 @@ export const ifMidsceneLocatorField = (field: any): boolean => {
     actualField = actualField._def.innerType;
   }
 
-  // Check if this is a ZodUnion (the new MidsceneLocation structure)
+  // Check if this is a ZodObject
   if (actualField._def?.typeName === 'ZodObject') {
     const shape = actualField._def.shape();
-    return locateFieldFlagName in shape;
+
+    // Method 1: Check for the location field flag (for result schema)
+    if (locateFieldFlagName in shape) {
+      return true;
+    }
+
+    // Method 2: Check if it's the input schema by checking for 'prompt' field
+    // Input schema has 'prompt' as a required field
+    if ('prompt' in shape && shape.prompt) {
+      return true;
+    }
   }
 
   return false;
@@ -653,52 +679,12 @@ export const loadActionParam = (
 
 /**
  * Parse and validate action parameters using Zod schema.
- * LocatorFields are kept as-is (not parsed), while other fields are validated and defaults are applied.
+ * All fields are validated through Zod, including locator fields which have their own schema.
+ * Default values defined in the schema are automatically applied.
  */
 export const parseActionParam = (
   rawParam: Record<string, any>,
   zodSchema: z.ZodType<any>,
 ): Record<string, any> => {
-  const locatorFields = findAllMidsceneLocatorField(zodSchema);
-
-  // Separate locator fields and non-locator fields
-  const locatorFieldsData: Record<string, any> = {};
-  const nonLocatorFieldsData: Record<string, any> = {};
-
-  for (const [key, value] of Object.entries(rawParam)) {
-    if (locatorFields.includes(key)) {
-      locatorFieldsData[key] = value; // Keep locator fields as-is
-    } else {
-      nonLocatorFieldsData[key] = value;
-    }
-  }
-
-  // Parse only non-locator fields through Zod
-  const zodObject = zodSchema as any;
-  if (zodObject._def?.typeName === 'ZodObject') {
-    const shape = zodObject.shape;
-
-    // Build a new schema with only non-locator fields
-    const nonLocatorFields = Object.fromEntries(
-      Object.entries(shape).filter(([key]) => !locatorFields.includes(key)),
-    ) as z.ZodRawShape;
-
-    // Only parse if there are non-locator fields
-    if (Object.keys(nonLocatorFields).length > 0) {
-      const nonLocatorSchema = z.object(nonLocatorFields);
-      const parsedNonLocator = nonLocatorSchema.parse(nonLocatorFieldsData);
-
-      // Merge parsed non-locator fields with unparsed locator fields
-      return {
-        ...parsedNonLocator,
-        ...locatorFieldsData,
-      };
-    }
-  }
-
-  // If no non-locator fields to parse, return merged data
-  return {
-    ...nonLocatorFieldsData,
-    ...locatorFieldsData,
-  };
+  return zodSchema.parse(rawParam);
 };
