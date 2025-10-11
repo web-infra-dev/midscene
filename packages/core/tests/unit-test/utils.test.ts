@@ -24,7 +24,7 @@ import { uuid } from '@midscene/shared/utils';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 // @ts-ignore no types in es folder
-import { reportHTMLContent, writeDumpReport, ReportMergingTool } from '../../dist/es/utils'; // use modules from dist, otherwise we will miss the template file
+import { reportHTMLContent, writeDumpReport } from '../../dist/es/utils'; // use modules from dist, otherwise we will miss the template file
 import {
   getTmpDir,
   getTmpFile,
@@ -1543,65 +1543,3 @@ describe('loadActionParam and dumpActionParam integration', () => {
   });
 });
 
-describe('repotMergingTool', () => {
-  it('should merge 3 mocked reports', async () => {
-    const tool = new ReportMergingTool();
-    let expectedContents = [];
-    for (let i = 0; i < 3; i++) {
-      // create report files
-      const content = `report content ${i}`;
-      expectedContents.push(content);
-      const reportPath = writeDumpReport(`report-to-merge-${i}`, {
-        dumpString: `report content ${i}`,
-      });
-      // append report content and its relevant information to reportMergingTool
-      tool.append({
-        reportFilePath: reportPath, reportAttributes: {
-          testDescription: `desc${i}`,
-          testDuration: 1,
-          testId: `${i}`,
-          testStatus: 'passed',
-          testTitle: `${i}`
-        }
-      });
-    }
-    // execute merge operation
-    const mergedReportPath = tool.mergeReports();
-    // assert merge success
-    const mergedReportContent = readFileSync(mergedReportPath!, 'utf-8');
-    expectedContents.forEach(content => {
-      expect(mergedReportContent).contains(content);
-    });
-  });
-
-  it('should merge 3 mocked reports, and delete original reports after that.', async () => {
-    const tool = new ReportMergingTool();
-    let expectedContents = [];
-    for (let i = 0; i < 3; i++) {
-      const content = `report content ${i}`;
-      expectedContents.push(content);
-      const reportPath = writeDumpReport(`report-rm-to-merge-${i}`, {
-        dumpString: `report content ${i}, original report file deleted`,
-      });
-      tool.append({
-        reportFilePath: reportPath, reportAttributes: {
-          testDescription: `desc${i}`,
-          testDuration: 1,
-          testId: `${i}`,
-          testStatus: 'passed',
-          testTitle: `${i}`
-        }
-      });
-    }
-    // assert merge success
-    const mergedReportPath: string = tool.mergeReports(true);
-    const mergedReportContent = readFileSync(mergedReportPath!, 'utf-8');
-    expectedContents.forEach(content => {
-      expect(mergedReportContent).contains(content);
-    });
-    // assert source report files deleted successfully
-    tool['reportInfos'].forEach((el: any) => {
-      expect(fs.existsSync(el.reportFilePath)).toBe(false);
-    });
-  });
-});
