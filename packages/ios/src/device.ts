@@ -2,6 +2,7 @@ import assert from 'node:assert';
 import {
   type DeviceAction,
   type InterfaceType,
+  type LocateResultElement,
   type Point,
   type Size,
   getMidsceneLocationSchema,
@@ -172,7 +173,16 @@ export class IOSDevice implements AbstractInterface {
           await this.appSwitcher();
         },
       }),
-      defineAction({
+      defineAction<
+        z.ZodObject<{
+          duration: z.ZodOptional<z.ZodNumber>;
+          locate: ReturnType<typeof getMidsceneLocationSchema>;
+        }>,
+        {
+          duration?: number;
+          locate: LocateResultElement;
+        }
+      >({
         name: 'IOSLongPress',
         description:
           'Trigger a long press on the screen at specified coordinates on iOS devices',

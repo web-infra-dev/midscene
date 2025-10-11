@@ -5,6 +5,7 @@ import path from 'node:path';
 import {
   type DeviceAction,
   type InterfaceType,
+  type LocateResultElement,
   type Point,
   type Size,
   getMidsceneLocationSchema,
@@ -217,7 +218,16 @@ export class AndroidDevice implements AbstractInterface {
           await this.recentApps();
         },
       }),
-      defineAction({
+      defineAction<
+        z.ZodObject<{
+          duration: z.ZodOptional<z.ZodNumber>;
+          locate: ReturnType<typeof getMidsceneLocationSchema>;
+        }>,
+        {
+          duration?: number;
+          locate: LocateResultElement;
+        }
+      >({
         name: 'AndroidLongPress',
         description:
           'Trigger a long press on the screen at specified coordinates on Android devices',
@@ -241,7 +251,20 @@ export class AndroidDevice implements AbstractInterface {
           await this.longPress(x, y, param?.duration);
         },
       }),
-      defineAction({
+      defineAction<
+        z.ZodObject<{
+          direction: z.ZodEnum<['up', 'down']>;
+          distance: z.ZodOptional<z.ZodNumber>;
+          duration: z.ZodOptional<z.ZodNumber>;
+          locate: z.ZodOptional<ReturnType<typeof getMidsceneLocationSchema>>;
+        }>,
+        {
+          direction: 'up' | 'down';
+          distance?: number;
+          duration?: number;
+          locate?: LocateResultElement;
+        }
+      >({
         name: 'AndroidPull',
         description: 'Trigger pull down to refresh or pull up actions',
         paramSchema: z.object({
