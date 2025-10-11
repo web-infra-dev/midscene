@@ -650,3 +650,55 @@ export const loadActionParam = (
 
   return result;
 };
+
+/**
+ * Parse and validate action parameters using Zod schema.
+ * LocatorFields are kept as-is (not parsed), while other fields are validated and defaults are applied.
+ */
+export const parseActionParam = (
+  rawParam: Record<string, any>,
+  zodSchema: z.ZodType<any>,
+): Record<string, any> => {
+  const locatorFields = findAllMidsceneLocatorField(zodSchema);
+
+  // Separate locator fields and non-locator fields
+  const locatorFieldsData: Record<string, any> = {};
+  const nonLocatorFieldsData: Record<string, any> = {};
+
+  for (const [key, value] of Object.entries(rawParam)) {
+    if (locatorFields.includes(key)) {
+      locatorFieldsData[key] = value; // Keep locator fields as-is
+    } else {
+      nonLocatorFieldsData[key] = value;
+    }
+  }
+
+  // Parse only non-locator fields through Zod
+  const zodObject = zodSchema as any;
+  if (zodObject._def?.typeName === 'ZodObject') {
+    const shape = zodObject.shape;
+
+    // Build a new schema with only non-locator fields
+    const nonLocatorFields = Object.fromEntries(
+      Object.entries(shape).filter(([key]) => !locatorFields.includes(key)),
+    ) as z.ZodRawShape;
+
+    // Only parse if there are non-locator fields
+    if (Object.keys(nonLocatorFields).length > 0) {
+      const nonLocatorSchema = z.object(nonLocatorFields);
+      const parsedNonLocator = nonLocatorSchema.parse(nonLocatorFieldsData);
+
+      // Merge parsed non-locator fields with unparsed locator fields
+      return {
+        ...parsedNonLocator,
+        ...locatorFieldsData,
+      };
+    }
+  }
+
+  // If no non-locator fields to parse, return merged data
+  return {
+    ...nonLocatorFieldsData,
+    ...locatorFieldsData,
+  };
+};

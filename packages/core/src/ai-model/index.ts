@@ -48,4 +48,5 @@ export {
   findAllMidsceneLocatorField,
   dumpActionParam,
   loadActionParam,
+  parseActionParam,
 } from './common';

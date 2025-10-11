@@ -1,6 +1,7 @@
 import {
   ConversationHistory,
   findAllMidsceneLocatorField,
+  parseActionParam,
   plan,
   uiTarsPlanning,
 } from '@/ai-model';
@@ -506,6 +507,18 @@ export class TaskExecutor {
                 `error in running beforeInvokeAction for ${action.name}: ${originalMessage}`,
                 { cause: originalError },
               );
+            }
+
+            // Validate and parse parameters with defaults
+            if (action.paramSchema) {
+              try {
+                param = parseActionParam(param, action.paramSchema);
+              } catch (error: any) {
+                throw new Error(
+                  `Invalid parameters for action ${action.name}: ${error.message}\nParameters: ${JSON.stringify(param)}`,
+                  { cause: error },
+                );
+              }
             }
 
             debug('calling action', action.name);
