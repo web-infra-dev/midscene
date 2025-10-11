@@ -168,6 +168,7 @@ export const actionInputParamSchema = z.object({
 export type ActionInputParam = {
   value: string;
   locate?: LocateResultElement;
+  append?: boolean;
 };
 
 export const defineActionInput = (
