@@ -871,6 +871,8 @@ export function Player(props?: {
         }
 
         if (recorderSessionRef.current) {
+          // Add delay to capture final frames before stopping the recorder
+          await sleep(1200);
           recorderSessionRef.current.stop();
           recorderSessionRef.current = null;
           setIsRecording(false);
