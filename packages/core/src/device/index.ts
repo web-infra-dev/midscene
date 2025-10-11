@@ -158,10 +158,17 @@ export const actionInputParamSchema = z.object({
   locate: getMidsceneLocationSchema()
     .describe('The element to be input')
     .optional(),
+  append: z
+    .boolean()
+    .optional()
+    .describe(
+      'If true, append the value to the existing content instead of replacing it. Default is false.',
+    ),
 });
 export type ActionInputParam = {
   value: string;
   locate?: LocateResultElement;
+  append?: boolean;
 };
 
 export const defineActionInput = (
