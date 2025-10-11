@@ -41,7 +41,10 @@ export abstract class AbstractInterface {
 
 // Generic function to define actions with proper type inference
 // TRuntime allows specifying a different type for the runtime parameter (after location resolution)
-export const defineAction = <TSchema extends z.ZodType, TRuntime = z.infer<TSchema>>(
+export const defineAction = <
+  TSchema extends z.ZodType,
+  TRuntime = z.infer<TSchema>,
+>(
   config: {
     name: string;
     description: string;
@@ -92,7 +95,10 @@ export type ActionRightClickParam = {
 export const defineActionRightClick = (
   call: (param: ActionRightClickParam) => Promise<void>,
 ): DeviceAction<ActionRightClickParam> => {
-  return defineAction<typeof actionRightClickParamSchema, ActionRightClickParam>({
+  return defineAction<
+    typeof actionRightClickParamSchema,
+    ActionRightClickParam
+  >({
     name: 'RightClick',
     description: 'Right click the element',
     interfaceAlias: 'aiRightClick',
@@ -114,7 +120,10 @@ export type ActionDoubleClickParam = {
 export const defineActionDoubleClick = (
   call: (param: ActionDoubleClickParam) => Promise<void>,
 ): DeviceAction<ActionDoubleClickParam> => {
-  return defineAction<typeof actionDoubleClickParamSchema, ActionDoubleClickParam>({
+  return defineAction<
+    typeof actionDoubleClickParamSchema,
+    ActionDoubleClickParam
+  >({
     name: 'DoubleClick',
     description: 'Double click the element',
     interfaceAlias: 'aiDoubleClick',
@@ -182,7 +191,10 @@ export type ActionKeyboardPressParam = {
 export const defineActionKeyboardPress = (
   call: (param: ActionKeyboardPressParam) => Promise<void>,
 ): DeviceAction<ActionKeyboardPressParam> => {
-  return defineAction<typeof actionKeyboardPressParamSchema, ActionKeyboardPressParam>({
+  return defineAction<
+    typeof actionKeyboardPressParamSchema,
+    ActionKeyboardPressParam
+  >({
     name: 'KeyboardPress',
     description:
       'Press a function key, like "Enter", "Tab", "Escape". Do not use this to type text.',
@@ -244,7 +256,10 @@ export type ActionDragAndDropParam = {
 export const defineActionDragAndDrop = (
   call: (param: ActionDragAndDropParam) => Promise<void>,
 ): DeviceAction<ActionDragAndDropParam> => {
-  return defineAction<typeof actionDragAndDropParamSchema, ActionDragAndDropParam>({
+  return defineAction<
+    typeof actionDragAndDropParamSchema,
+    ActionDragAndDropParam
+  >({
     name: 'DragAndDrop',
     description: 'Drag and drop the element',
     interfaceAlias: 'aiDragAndDrop',
