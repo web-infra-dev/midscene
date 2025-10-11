@@ -683,12 +683,50 @@ export const loadActionParam = (
 
 /**
  * Parse and validate action parameters using Zod schema.
- * All fields are validated through Zod, including locator fields which have their own schema.
+ * All fields are validated through Zod, EXCEPT locator fields which are skipped.
  * Default values defined in the schema are automatically applied.
+ *
+ * Locator fields are special business logic fields with complex validation requirements,
+ * so they are intentionally excluded from Zod parsing and use existing validation logic.
  */
 export const parseActionParam = (
   rawParam: Record<string, any>,
   zodSchema: z.ZodType<any>,
 ): Record<string, any> => {
-  return zodSchema.parse(rawParam);
+  // Find all locate fields in the schema
+  const locateFields = findAllMidsceneLocatorField(zodSchema);
+
+  // If there are no locate fields, just do normal validation
+  if (locateFields.length === 0) {
+    return zodSchema.parse(rawParam);
+  }
+
+  // Extract locate field values to restore later
+  const locateFieldValues: Record<string, any> = {};
+  for (const fieldName of locateFields) {
+    if (fieldName in rawParam) {
+      locateFieldValues[fieldName] = rawParam[fieldName];
+    }
+  }
+
+  // Build params for validation - skip locate fields and use dummy values
+  const paramsForValidation: Record<string, any> = {};
+  for (const key in rawParam) {
+    if (locateFields.includes(key)) {
+      // Use dummy value to satisfy schema validation
+      paramsForValidation[key] = { prompt: '_dummy_' };
+    } else {
+      paramsForValidation[key] = rawParam[key];
+    }
+  }
+
+  // Validate with dummy locate values
+  const validated = zodSchema.parse(paramsForValidation);
+
+  // Restore the actual locate field values (unvalidated, as per business requirement)
+  for (const fieldName in locateFieldValues) {
+    validated[fieldName] = locateFieldValues[fieldName];
+  }
+
+  return validated;
 };

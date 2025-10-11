@@ -271,5 +271,54 @@ describe('Action Parameter Validation', () => {
         append: false, // Default should be applied
       });
     });
+
+    it('should skip validation for locate fields (pass through as-is)', () => {
+      const schema = z.object({
+        locate: getMidsceneLocationSchema().describe('The element to tap'),
+        value: z.string(),
+      });
+
+      // Locate field with LocateResultElement structure (already processed by AI)
+      const rawParam = {
+        locate: {
+          center: [100, 200] as [number, number],
+          rect: { left: 50, top: 150, width: 100, height: 100 },
+          id: 'elem-123',
+          attributes: { nodeType: 'BUTTON', class: 'btn' },
+          // Any structure is allowed - no validation for locate fields
+        },
+        value: 'test',
+      };
+
+      // Should not throw - locate fields are not validated
+      const parsed = parseActionParam(rawParam, schema);
+
+      // Locate field should be passed through unchanged
+      expect(parsed.locate).toEqual(rawParam.locate);
+      expect(parsed.value).toBe('test');
+    });
+
+    it('should skip validation for locate fields even with missing fields', () => {
+      const schema = z.object({
+        locate: getMidsceneLocationSchema().describe('The element to tap'),
+        value: z.string(),
+      });
+
+      // Locate field with incomplete structure - normally would fail validation
+      // But since we skip validation for locate fields, it passes through
+      const rawParam = {
+        locate: {
+          center: [100, 200] as [number, number],
+          // Missing other fields like rect, id, etc.
+        },
+        value: 'test',
+      };
+
+      // Should not throw - locate fields are not validated
+      const parsed = parseActionParam(rawParam, schema);
+
+      expect(parsed.locate).toEqual(rawParam.locate);
+      expect(parsed.value).toBe('test');
+    });
   });
 });
