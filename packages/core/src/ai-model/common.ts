@@ -682,20 +682,6 @@ export const loadActionParam = (
 };
 
 /**
- * Helper function to check if a value is a LocateResultElement (already processed by AI)
- */
-const isLocateResultElement = (value: any): boolean => {
-  return (
-    value &&
-    typeof value === 'object' &&
-    'center' in value &&
-    'rect' in value &&
-    Array.isArray(value.center) &&
-    typeof value.rect === 'object'
-  );
-};
-
-/**
  * Parse and validate action parameters using Zod schema.
  * All fields are validated through Zod, EXCEPT locator fields which are skipped.
  * Default values defined in the schema are automatically applied.
@@ -715,28 +701,23 @@ export const parseActionParam = (
     return zodSchema.parse(rawParam);
   }
 
-  // Extract locate fields to skip them during validation
+  // Extract locate field values to restore later
   const locateFieldValues: Record<string, any> = {};
-  const paramsWithoutLocate = { ...rawParam };
-
   for (const fieldName of locateFields) {
     if (fieldName in rawParam) {
       locateFieldValues[fieldName] = rawParam[fieldName];
-      delete paramsWithoutLocate[fieldName];
     }
   }
 
-  // Get the validated params (without locate fields)
-  // We need to make locate fields optional in the schema temporarily
-  // by providing dummy values that satisfy the schema
-  const paramsForValidation = { ...paramsWithoutLocate };
-  for (const fieldName of locateFields) {
-    // Add dummy value to pass schema validation
-    if (!(fieldName in rawParam)) {
-      // Field was not provided, let Zod handle the optional/required logic
-      continue;
+  // Build params for validation - skip locate fields and use dummy values
+  const paramsForValidation: Record<string, any> = {};
+  for (const key in rawParam) {
+    if (locateFields.includes(key)) {
+      // Use dummy value to satisfy schema validation
+      paramsForValidation[key] = { prompt: '_dummy_' };
+    } else {
+      paramsForValidation[key] = rawParam[key];
     }
-    paramsForValidation[fieldName] = { prompt: '_dummy_' };
   }
 
   // Validate with dummy locate values
