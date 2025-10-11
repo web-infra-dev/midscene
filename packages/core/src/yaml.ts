@@ -8,6 +8,7 @@ export interface LocateOption {
   cacheable?: boolean; // user can set this param to false to disable the cache for a single agent api
   xpath?: string; // only available in web
   uiContext?: UIContext<BaseElement>;
+  timeoutMs?: number; // timeout for AI operation in milliseconds
 }
 
 export interface InsightExtractOption {

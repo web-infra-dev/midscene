@@ -126,6 +126,7 @@ export async function AiLocateElement<
   >;
   searchConfig?: Awaited<ReturnType<typeof AiLocateSection>>;
   modelConfig: IModelConfig;
+  timeoutMs?: number;
 }): Promise<{
   parseResult: AIElementLocatorResponse;
   rect?: Rect;
@@ -218,7 +219,12 @@ export async function AiLocateElement<
     msgs.push(...addOns);
   }
 
-  const res = await callAIFn(msgs, AIActionType.INSPECT_ELEMENT, modelConfig);
+  const res = await callAIFn(
+    msgs,
+    AIActionType.INSPECT_ELEMENT,
+    modelConfig,
+    options.timeoutMs ? { timeoutMs: options.timeoutMs } : undefined,
+  );
 
   const rawResponse = JSON.stringify(res.content);
 
@@ -295,6 +301,7 @@ export async function AiLocateSection(options: {
   context: UIContext<BaseElement>;
   sectionDescription: TUserPrompt;
   modelConfig: IModelConfig;
+  timeoutMs?: number;
 }): Promise<{
   rect?: Rect;
   imageBase64?: string;
@@ -342,6 +349,7 @@ export async function AiLocateSection(options: {
     msgs,
     AIActionType.EXTRACT_DATA,
     modelConfig,
+    options.timeoutMs ? { timeoutMs: options.timeoutMs } : undefined,
   );
 
   let sectionRect: Rect | undefined;

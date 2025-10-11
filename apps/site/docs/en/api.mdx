@@ -114,6 +114,7 @@ function aiTap(locate: string | Object, options?: Object): Promise<void>;
     - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. False by default.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+    - `timeoutMs?: number` - Timeout for AI operations in milliseconds. If the AI model response time exceeds this value, the operation will fail.
 
 - Return Value:
 
@@ -125,6 +126,26 @@ function aiTap(locate: string | Object, options?: Object): Promise<void>;
 await agent.aiTap('The login button at the top of the page');
 
 // Use deepThink feature to precisely locate the element
+await agent.aiTap('The login button at the top of the page', { deepThink: true });
+
+// Set timeout to 30 seconds
+await agent.aiTap('The login button at the top of the page', { timeoutMs: 30000 });
+```
+
+For `aiRightClick`, `aiDoubleClick`, and `aiLocate`, the same timeout option is available:
+
+```typescript
+// Right click with timeout
+await agent.aiRightClick('The file item', { timeoutMs: 30000 });
+
+// Double click with timeout
+await agent.aiDoubleClick('The folder icon', { timeoutMs: 30000 });
+
+// Locate with timeout
+await agent.aiLocate('The submit button', { timeoutMs: 30000 });
+```
+
+Note: The timeout also applies when using the deepThink feature which makes two AI model calls
 await agent.aiTap('The login button at the top of the page', {
   deepThink: true,
 });
@@ -591,6 +612,7 @@ function aiLocate(
   - `options?: Object` - Optional, a configuration object containing:
     - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. False by default.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
+    - `timeoutMs?: number` - Timeout for AI operations in milliseconds.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
 - Return Value:

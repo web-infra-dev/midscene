@@ -128,6 +128,7 @@ export default class Insight<
         context,
         sectionDescription: searchAreaPrompt,
         modelConfig,
+        timeoutMs: query.timeoutMs,
       });
       assert(
         searchAreaResponse.rect,
@@ -154,6 +155,7 @@ export default class Insight<
       targetElementDescription: queryPrompt,
       searchConfig: searchAreaResponse,
       modelConfig,
+      timeoutMs: query.timeoutMs,
     });
 
     const timeCost = Date.now() - startTime;

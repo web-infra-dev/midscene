@@ -187,6 +187,7 @@ export async function callAI(
   options?: {
     stream?: boolean;
     onChunk?: StreamingCallback;
+    timeoutMs?: number;
   },
 ): Promise<{ content: string; usage?: AIUsageInfo; isStreamed: boolean }> {
   const {
@@ -246,6 +247,7 @@ export async function callAI(
           },
           {
             stream: true,
+            ...(options?.timeoutMs ? { timeout: options.timeoutMs } : {}),
           },
         )) as Stream<OpenAI.Chat.Completions.ChatCompletionChunk> & {
           _request_id?: string | null;
@@ -316,12 +318,15 @@ export async function callAI(
           `streaming model, ${modelName}, mode, ${vlMode || 'default'}, cost-ms, ${timeCost}`,
         );
       } else {
-        const result = await completion.create({
-          model: modelName,
-          messages,
-          response_format: responseFormat,
-          ...commonConfig,
-        } as any);
+        const result = await completion.create(
+          {
+            model: modelName,
+            messages,
+            response_format: responseFormat,
+            ...commonConfig,
+          } as any,
+          options?.timeoutMs ? { timeout: options.timeoutMs } : undefined,
+        );
         timeCost = Date.now() - startTime;
 
         debugProfileStats(
@@ -361,18 +366,21 @@ export async function callAI(
       };
 
       if (isStreaming) {
-        const stream = (await completion.create({
-          model: modelName,
-          system: 'You are a versatile professional in software UI automation',
-          messages: messages.map((m) => ({
-            role: 'user',
-            content: Array.isArray(m.content)
-              ? (m.content as any).map(convertImageContent)
-              : m.content,
-          })),
-          response_format: responseFormat,
-          ...commonConfig,
-        } as any)) as any;
+        const stream = (await completion.create(
+          {
+            model: modelName,
+            system: 'You are a versatile professional in software UI automation',
+            messages: messages.map((m) => ({
+              role: 'user',
+              content: Array.isArray(m.content)
+                ? (m.content as any).map(convertImageContent)
+                : m.content,
+            })),
+            response_format: responseFormat,
+            ...commonConfig,
+          } as any,
+          options?.timeoutMs ? { timeout: options.timeoutMs } : undefined,
+        )) as any;
 
         for await (const chunk of stream) {
           const content = chunk.delta?.text || '';
@@ -419,18 +427,21 @@ export async function callAI(
         }
         content = accumulated;
       } else {
-        const result = await completion.create({
-          model: modelName,
-          system: 'You are a versatile professional in software UI automation',
-          messages: messages.map((m) => ({
-            role: 'user',
-            content: Array.isArray(m.content)
-              ? (m.content as any).map(convertImageContent)
-              : m.content,
-          })),
-          response_format: responseFormat,
-          ...commonConfig,
-        } as any);
+        const result = await completion.create(
+          {
+            model: modelName,
+            system: 'You are a versatile professional in software UI automation',
+            messages: messages.map((m) => ({
+              role: 'user',
+              content: Array.isArray(m.content)
+                ? (m.content as any).map(convertImageContent)
+                : m.content,
+            })),
+            response_format: responseFormat,
+            ...commonConfig,
+          } as any,
+          options?.timeoutMs ? { timeout: options.timeoutMs } : undefined,
+        );
         timeCost = Date.now() - startTime;
         content = (result as any).content[0].text as string;
         usage = result.usage;
@@ -528,8 +539,16 @@ export async function callAIWithObjectResponse<T>(
   messages: ChatCompletionMessageParam[],
   AIActionTypeValue: AIActionType,
   modelConfig: IModelConfig,
+  options?: {
+    timeoutMs?: number;
+  },
 ): Promise<{ content: T; usage?: AIUsageInfo }> {
-  const response = await callAI(messages, AIActionTypeValue, modelConfig);
+  const response = await callAI(
+    messages,
+    AIActionTypeValue,
+    modelConfig,
+    options,
+  );
   assert(response, 'empty response');
   const vlMode = modelConfig.vlMode;
   const jsonContent = safeParseJson(response.content, vlMode);
@@ -540,8 +559,16 @@ export async function callAIWithStringResponse(
   msgs: AIArgs,
   AIActionTypeValue: AIActionType,
   modelConfig: IModelConfig,
+  options?: {
+    timeoutMs?: number;
+  },
 ): Promise<{ content: string; usage?: AIUsageInfo }> {
-  const { content, usage } = await callAI(msgs, AIActionTypeValue, modelConfig);
+  const { content, usage } = await callAI(
+    msgs,
+    AIActionTypeValue,
+    modelConfig,
+    options,
+  );
   return { content, usage };
 }
 
