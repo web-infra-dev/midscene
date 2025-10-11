@@ -17,6 +17,7 @@ export interface InsightExtractOption {
   // To make the assert in the "waitfor" section display the warning icon in report
   isWaitForAssert?: boolean;
   doNotThrowError?: boolean;
+  timeoutMs?: number; // timeout for AI operation in milliseconds
 }
 
 export interface ReferenceImage {

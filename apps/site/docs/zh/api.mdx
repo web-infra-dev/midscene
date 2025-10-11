@@ -380,6 +380,7 @@ function aiQuery<T>(dataDemand: string | Object, options?: Object): Promise<T>;
   - `options?: Object` - 可选，一个配置对象，包含：
     - `domIncluded?: boolean | 'visible-only'` - 是否向模型发送精简后的 DOM 信息，一般用于提取 UI 中不可见的属性，比如图片的链接。如果设置为 `'visible-only'`，则只发送可见的元素。默认值为 false。
     - `screenshotIncluded?: boolean` - 是否向模型发送截图。默认值为 true。
+    - `timeoutMs?: number` - AI 操作的超时时间（毫秒）。
 
 - 返回值：
 

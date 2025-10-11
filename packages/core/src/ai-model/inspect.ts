@@ -483,6 +483,7 @@ export async function AiExtractElementInfo<
     msgs,
     AIActionType.EXTRACT_DATA,
     modelConfig,
+    extractOption?.timeoutMs ? { timeoutMs: extractOption.timeoutMs } : undefined,
   );
   return {
     parseResult: result.content,

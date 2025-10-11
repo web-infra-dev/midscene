@@ -409,6 +409,7 @@ function aiQuery<T>(dataDemand: string | Object, options?: Object): Promise<T>;
   - `options?: Object` - Optional, a configuration object containing:
     - `domIncluded?: boolean | 'visible-only'` - Whether to send simplified DOM information to the model, usually used for extracting invisible attributes like image links. If set to `'visible-only'`, only the visible elements will be sent. False by default.
     - `screenshotIncluded?: boolean` - Whether to send screenshot to the model. True by default.
+    - `timeoutMs?: number` - Timeout for AI operations in milliseconds.
 
 - Return Value:
 
