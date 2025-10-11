@@ -12,6 +12,7 @@ import {
   type AbstractInterface,
   type ActionTapParam,
   defineAction,
+  defineActionClearInput,
   defineActionDoubleClick,
   defineActionDragAndDrop,
   defineActionKeyboardPress,
@@ -27,6 +28,7 @@ import { WDAManager } from '@midscene/webdriver';
 import { IOSWebDriverClient as WebDriverAgentBackend } from './ios-webdriver-client';
 
 const debugDevice = getDebug('ios:device');
+const BackspaceChar = '\u0008'; // Unicode backspace character
 
 export type IOSDeviceInputOpt = {
   autoDismissKeyboard?: boolean;
@@ -201,6 +203,11 @@ export class IOSDevice implements AbstractInterface {
           const [x, y] = element.center;
           await this.longPress(x, y, param?.duration);
         },
+      }),
+      defineActionClearInput(async (param) => {
+        const element = param.locate;
+        assert(element, 'Element not found, cannot clear input');
+        await this.clearInput(element as unknown as ElementInfo);
       }),
     ];
 
@@ -384,17 +391,17 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 
     // For iOS, we need to use different methods to clear text
     try {
-      // Method 1: Long press to select all, then delete
-      await this.longPress(element.center[0], element.center[1], 800);
-      await sleep(200);
+      // Method 1: Triple tap to select all, then delete
+      await this.tripleTap(element.center[0], element.center[1]);
+      await sleep(200); // Wait for selection to appear
 
       // Type empty string to replace selected text
-      await this.wdaBackend.typeText('');
+      await this.wdaBackend.typeText(BackspaceChar);
     } catch (error2) {
       debugDevice(`Method 1 failed, trying method 2: ${error2}`);
       try {
         // Method 2: Send multiple backspace characters
-        const backspaces = Array(30).fill('\u0008').join(''); // Unicode backspace
+        const backspaces = Array(100).fill(BackspaceChar).join(''); // Unicode backspace
         await this.wdaBackend.typeText(backspaces);
       } catch (error3) {
         debugDevice(`All clear methods failed: ${error3}`);
@@ -420,6 +427,10 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 
   async doubleTap(x: number, y: number): Promise<void> {
     await this.wdaBackend.doubleTap(x, y);
+  }
+
+  async tripleTap(x: number, y: number): Promise<void> {
+    await this.wdaBackend.tripleTap(x, y);
   }
 
   async longPress(x: number, y: number, duration = 1000): Promise<void> {

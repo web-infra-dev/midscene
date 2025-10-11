@@ -15,6 +15,7 @@ import {
   type AbstractInterface,
   type ActionTapParam,
   defineAction,
+  defineActionClearInput,
   defineActionDoubleClick,
   defineActionDragAndDrop,
   defineActionKeyboardPress,
@@ -297,6 +298,11 @@ export class AndroidDevice implements AbstractInterface {
             throw new Error(`Unknown pull direction: ${param.direction}`);
           }
         },
+      }),
+      defineActionClearInput(async (param) => {
+        const element = param.locate;
+        assert(element, 'Element not found, cannot clear input');
+        await this.clearInput(element as unknown as ElementInfo);
       }),
     ];
 

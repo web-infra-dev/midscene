@@ -3,6 +3,7 @@ import type { Point } from '@midscene/core';
 import {
   AbstractInterface,
   type DeviceAction,
+  defineActionClearInput,
   defineActionDoubleClick,
   defineActionDragAndDrop,
   defineActionHover,
@@ -601,5 +602,11 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
     for (let i = 0; i < repeat; i++) {
       await page.swipe(startPoint, endPoint, duration);
     }
+  }),
+
+  defineActionClearInput(async (param) => {
+    const element = param.locate;
+    assert(element, 'Element not found, cannot clear input');
+    await page.clearInput(element as unknown as ElementInfo);
   }),
 ];
