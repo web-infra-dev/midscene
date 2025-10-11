@@ -502,6 +502,17 @@ export type TUserPrompt = z.infer<typeof TUserPromptSchema>;
 
 const locateFieldFlagName = 'midscene_location_field_flag';
 
+// Schema for locator field input (when users provide locate parameters)
+const MidsceneLocationInput = z
+  .object({
+    prompt: TUserPromptSchema,
+    deepThink: z.boolean().optional(),
+    cacheable: z.boolean().optional(),
+    xpath: z.union([z.string(), z.boolean()]).optional(),
+  })
+  .passthrough();
+
+// Schema for locator field result (when AI returns locate results)
 const MidsceneLocationResult = z
   .object({
     [locateFieldFlagName]: z.literal(true),
@@ -518,9 +529,18 @@ const MidsceneLocationResult = z
   })
   .passthrough();
 
+// Export the result type - this is used for runtime results that include center and rect
 export type MidsceneLocationResultType = z.infer<typeof MidsceneLocationResult>;
+
+// Export the input type - this is the inferred type from getMidsceneLocationSchema()
+export type MidsceneLocationInputType = z.infer<typeof MidsceneLocationInput>;
+
+/**
+ * Returns the schema for locator fields.
+ * This now returns the input schema which is more permissive and suitable for validation.
+ */
 export const getMidsceneLocationSchema = () => {
-  return MidsceneLocationResult;
+  return MidsceneLocationInput;
 };
 
 export const ifMidsceneLocatorField = (field: any): boolean => {
@@ -530,10 +550,20 @@ export const ifMidsceneLocatorField = (field: any): boolean => {
     actualField = actualField._def.innerType;
   }
 
-  // Check if this is a ZodUnion (the new MidsceneLocation structure)
+  // Check if this is a ZodObject
   if (actualField._def?.typeName === 'ZodObject') {
     const shape = actualField._def.shape();
-    return locateFieldFlagName in shape;
+
+    // Method 1: Check for the location field flag (for result schema)
+    if (locateFieldFlagName in shape) {
+      return true;
+    }
+
+    // Method 2: Check if it's the input schema by checking for 'prompt' field
+    // Input schema has 'prompt' as a required field
+    if ('prompt' in shape && shape.prompt) {
+      return true;
+    }
   }
 
   return false;
@@ -649,4 +679,16 @@ export const loadActionParam = (
   }
 
   return result;
+};
+
+/**
+ * Parse and validate action parameters using Zod schema.
+ * All fields are validated through Zod, including locator fields which have their own schema.
+ * Default values defined in the schema are automatically applied.
+ */
+export const parseActionParam = (
+  rawParam: Record<string, any>,
+  zodSchema: z.ZodType<any>,
+): Record<string, any> => {
+  return zodSchema.parse(rawParam);
 };
