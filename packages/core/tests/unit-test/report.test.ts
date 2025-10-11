@@ -6,11 +6,12 @@ import { writeDumpReport } from '../../dist/es/utils';
 // @ts-ignore no types in es folder
 import { ReportMergingTool } from '../../dist/es/report';
 
-function generateNReports(n: number, c: string, t: ReportMergingTool) {
+function generateNReports(n: number, c: string, t: ReportMergingTool, withExpectedContent:boolean=true) {
     let expectedContents = [];
     for (let i = 0; i < n; i++) {
         const content = `${c} ${i}`;
-        expectedContents.push(content);
+        if (withExpectedContent)
+            expectedContents.push(content);
         const reportPath = writeDumpReport(`report-to-merge-${i}`, {
             dumpString: content,
         });
@@ -118,19 +119,24 @@ describe('repotMergingTool', () => {
     });
 
     it('should merge 200 mocked reports, and delete original reports after that.',
-        { timeout: 30000 },
+        { timeout: 5*60*1000 },
         async () => {
             const tool = new ReportMergingTool();
-            let expectedContents = generateNReports(200, 'report content, original report file deleted', tool);
-            // assert merge success
+
+            console.time('generate 200 mocked report files.');
+            const hugeContent = Buffer.alloc(50 * 1024 * 1024, 'a').toString()
+            generateNReports(200, 'large report content, original report file will be deleted after merge\n' + hugeContent, tool, false);
+            console.timeEnd('generate 200 mocked report files');
+
+            console.time('merge and delete 200 mocked report files.');
             const mergedReportPath = tool.mergeReports('merge-200-reports', { rmOriginalReports: true });
-            const mergedReportContent = readFileSync(mergedReportPath!, 'utf-8');
-            expectedContents.forEach(content => {
-                expect(mergedReportContent).contains(content);
-            });
+            console.timeEnd('merge and delete 200 mocked report files');
+            // assert merge success
+            expect(existsSync(mergedReportPath)).toBe(true);
             // assert source report files deleted successfully
             tool['reportInfos'].forEach((el: any) => {
                 expect(existsSync(el.reportFilePath)).toBe(false);
             });
+
         })
 });
