@@ -1,9 +1,9 @@
-
-import { sleep, ReportMergingTool } from '@midscene/core/utils';
+import { ReportMergingTool } from '@midscene/core/report'
 import { type TestStatus } from '@midscene/core';
 import { AndroidAgent, AndroidDevice, getConnectedDevices } from '@midscene/android';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, it } from 'vitest';
 import ADB from 'appium-adb';
+import { sleep } from '@midscene/core/utils';
 
 
 describe(`Test Setting`, () => {
@@ -42,7 +42,7 @@ describe(`Test Setting`, () => {
             reportAttributes: {
                 testId: `${ctx.task.name}`, //ID is a unique identifier used by the front end to distinguish each use case!
                 testTitle: `${ctx.task.name}`,
-                testDescription: 'desc',
+                testDescription: 'description',
                 testDuration: (Date.now() - ctx.task.result?.startTime!) | 0,
                 testStatus: itTestStatus
             }
@@ -50,7 +50,7 @@ describe(`Test Setting`, () => {
     });
 
     afterAll(() => {
-        reportMergingTool.mergeReports();
+        reportMergingTool.mergeReports('my-android-setting-test-report');
     });
 
     it(

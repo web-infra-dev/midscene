@@ -16,8 +16,8 @@ import {
   ifInWorker,
   uuid,
 } from '@midscene/shared/utils';
-import type { Cache, Rect, ReportDumpWithAttributes, ReportFileWithAttributes } from './types';
-import { getReportFileName } from './agent';
+import type { Cache, Rect, ReportDumpWithAttributes } from './types';
+
 let logEnvReady = false;
 
 export { appendFileSync } from 'fs'
@@ -62,7 +62,7 @@ const reportInitializedMap = new Map<string, boolean>();
 
 declare const __DEV_REPORT_PATH__: string;
 
-function getReportTpl() {
+export function getReportTpl() {
   if (typeof __DEV_REPORT_PATH__ === 'string' && __DEV_REPORT_PATH__) {
     return fs.readFileSync(__DEV_REPORT_PATH__, 'utf-8');
   }
@@ -109,14 +109,17 @@ export function reportHTMLContent(
   dumpData: string | ReportDumpWithAttributes,
   reportPath?: string,
   appendReport?: boolean,
+  withTpl: boolean = true // whether return with report template, default = true
 ): string {
-  const tpl = getReportTpl();
+  let tpl = "";
+  if (withTpl) {
+    tpl = getReportTpl();
 
-  if (!tpl) {
-    console.warn('reportTpl is not set, will not write report');
-    return '';
+    if (!tpl) {
+      console.warn('reportTpl is not set, will not write report');
+      return '';
+    }
   }
-
   // if reportPath is set, it means we are in write to file mode
   const writeToFile = reportPath && !ifInBrowser;
   let dumpContent = '';
@@ -160,39 +163,6 @@ export function reportHTMLContent(
   }
 
   return tpl + dumpContent;
-}
-
-export function getHtmlScripts(
-  dumpData: ReportDumpWithAttributes,
-): string {
-
-  // if reportPath is set, it means we are in write to file mode
-  let dumpContent = '';
-
-  if (typeof dumpData === 'string') {
-    // do not use template string here, will cause bundle error
-    dumpContent =
-      // biome-ignore lint/style/useTemplate: <explanation>
-      '<script type="midscene_web_dump" type="application/json">\n' +
-      escapeScriptTag(dumpData) +
-      '\n</script>';
-  } else {
-    const { dumpString, attributes } = dumpData;
-    const attributesArr = Object.keys(attributes || {}).map((key) => {
-      return `${key}="${encodeURIComponent(attributes![key])}"`;
-    });
-
-    dumpContent =
-      // do not use template string here, will cause bundle error
-      // biome-ignore lint/style/useTemplate: <explanation>
-      '<script type="midscene_web_dump" type="application/json" ' +
-      attributesArr.join(' ') +
-      '>\n' +
-      escapeScriptTag(dumpString) +
-      '\n</script>';
-  }
-
-  return dumpContent;
 }
 
 export function writeDumpReport(
@@ -408,111 +378,3 @@ export function uploadTestInfoToServer({
 }
 
 
-export class ReportMergingTool {
-  private reportInfos: ReportFileWithAttributes[] = [];
-  constructor() {
-
-  }
-  public append(reportInfo: ReportFileWithAttributes) {
-    this.reportInfos.push(reportInfo);
-  }
-
-  private extractLastScriptContentFromEnd(filePath: string): string {
-    const INITIAL_CHUNK_SIZE = 1024 * 1024; // Initial chunk size 1MB (adjustable based on content)
-    const fd = fs.openSync(filePath, 'r');
-    const fileSize = fs.statSync(filePath).size;
-    let position = fileSize;
-    let buffer = Buffer.alloc(INITIAL_CHUNK_SIZE);
-    let lastScriptContent: string | null = null;
-    let isInsideScript = false; // Flag indicating whether <script> start tag has been found
-    let accumulatedContent = ''; // Complete accumulated content
-
-    while (position > 0 && lastScriptContent === null) {
-      position = Math.max(0, position - INITIAL_CHUNK_SIZE);
-      const bytesRead = fs.readSync(fd, buffer, 0, Math.min(INITIAL_CHUNK_SIZE, fileSize - position), position);
-      const chunk = buffer.toString('utf-8', 0, bytesRead);
-      accumulatedContent = chunk + accumulatedContent; // Accumulate all data
-
-      // If <script> hasn't been found yet, continue searching backwards
-      if (!isInsideScript) {
-        const scriptStartIdx = accumulatedContent.lastIndexOf('<script');
-        if (scriptStartIdx !== -1) {
-          isInsideScript = true;
-          // Extract content starting from <script>
-          accumulatedContent = accumulatedContent.slice(scriptStartIdx);
-        }
-      }
-
-      // If <script> has been found, try to match </script>
-      if (isInsideScript) {
-        const scriptEndIdx = accumulatedContent.indexOf('</script>');
-        if (scriptEndIdx !== -1) {
-          // Extract complete content (from <script> to </script>)
-          const fullScriptTag = accumulatedContent.slice(0, scriptEndIdx + '</script>'.length);
-          const contentStartIdx = fullScriptTag.indexOf('>') + 1;
-          lastScriptContent = fullScriptTag.slice(contentStartIdx, scriptEndIdx).trim();
-          break;
-        }
-      }
-    }
-
-    fs.closeSync(fd);
-    return lastScriptContent ?? '';
-  }
-
-  public mergeReports(rmOriginalReports: boolean = false): string | null {
-    if (this.reportInfos.length <= 1) {
-      console.log(`Not enough report to merge`);
-      return null;
-    }
-    const outputFilePath = path.resolve(`${getMidsceneRunSubDir('report')}`, `${getReportFileName('merged-report')}.html`);
-    console.log(`Start merging ${this.reportInfos.length} reports...\nCreating template file...`);
-
-    try {
-      // Write template
-      fs.appendFileSync(outputFilePath, getReportTpl());
-
-      // Process all reports one by one
-      for (let i = 0; i < this.reportInfos.length; i++) {
-        const reportInfo = this.reportInfos[i];
-        console.log(`Processing report ${i + 1}/${this.reportInfos.length}`);
-
-        const dumpString = this.extractLastScriptContentFromEnd(reportInfo.reportFilePath);
-        const reportAttributes = reportInfo.reportAttributes;
-
-        const reportHtmlStr = getHtmlScripts({
-          dumpString,
-          attributes: {
-            playwright_test_duration: reportAttributes.testDuration,
-            playwright_test_status: reportAttributes.testStatus,
-            playwright_test_title: reportAttributes.testTitle,
-            playwright_test_id: reportAttributes.testId,
-            playwright_test_description: reportAttributes.testDescription,
-          },
-        }) + '\n';
-
-        fs.appendFileSync(outputFilePath, reportHtmlStr);
-      }
-
-      console.log(`Successfully merged new report: ${outputFilePath}`);
-
-      // Remove original reports if needed
-      if (rmOriginalReports) {
-        for (const info of this.reportInfos) {
-          try {
-            fs.unlinkSync(info.reportFilePath);
-          } catch (error) {
-            console.error(`Error deleting report ${info.reportFilePath}:`, error);
-          }
-        }
-        console.log(`Removed ${this.reportInfos.length} original reports`);
-      }
-      return outputFilePath;
-    } catch (error) {
-      console.error('Error in mergeReports:', error);
-      throw error;
-    }
-
-  }
-
-}
