@@ -316,6 +316,23 @@ export class IOSWebDriverClient extends WebDriverClient {
     debugIOS(`Double tapped at coordinates (${x}, ${y})`);
   }
 
+  async tripleTap(x: number, y: number): Promise<void> {
+    this.ensureSession();
+
+    // Use WebDriverAgent's tapWithNumberOfTaps endpoint
+    await this.makeRequest(
+      'POST',
+      `/session/${this.sessionId}/wda/tapWithNumberOfTaps`,
+      {
+        x,
+        y,
+        numberOfTaps: 3,
+        numberOfTouches: 1,
+      },
+    );
+    debugIOS(`Triple tapped at coordinates (${x}, ${y})`);
+  }
+
   async getScreenScale(): Promise<number | null> {
     // Use the WDA-specific screen endpoint which we confirmed works
     const screenResponse = await this.makeRequest('GET', '/wda/screen');
