@@ -207,6 +207,7 @@ export async function puppeteerAgentForTarget(
       typeof target.forceSameTabNavigation !== 'undefined'
         ? target.forceSameTabNavigation
         : true, // true for default in yaml script
+    continuousScreenshot: target.continuousScreenshot,
   });
 
   freeFn.push({

@@ -126,6 +126,8 @@ export interface AgentDescribeElementAtPointResult {
 export abstract class UIContext<ElementType extends BaseElement = BaseElement> {
   abstract screenshotBase64: string;
 
+  abstract screenshotBase64List?: string[];
+
   abstract tree: ElementTreeNode<ElementType>;
 
   abstract size: Size;
@@ -321,6 +323,7 @@ export interface ExecutionRecorderItem {
   type: 'screenshot';
   ts: number;
   screenshot?: string;
+  screenshots?: string[];
   timing?: string;
 }
 
@@ -608,4 +611,12 @@ export interface AgentOpt {
   modelConfig?: TModelConfigFn;
   cache?: Cache;
   replanningCycleLimit?: number;
+  continuousScreenshot?: {
+    /** Whether to enable continuous screenshot capturing */
+    enabled?: boolean;
+    /** Interval between screenshots in milliseconds */
+    intervalMs?: number;
+    /** Maximum number of screenshots to keep */
+    maxCount?: number;
+  };
 }

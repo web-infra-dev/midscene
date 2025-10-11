@@ -151,6 +151,7 @@ export async function createYamlPlayer(
 
         const agent = new AgentOverChromeBridge({
           closeNewTabsAfterDisconnect: webTarget.closeNewTabsAfterDisconnect,
+          continuousScreenshot: webTarget.continuousScreenshot,
           cache: processCacheConfig(yamlScript.agent?.cache, fileName),
         });
 

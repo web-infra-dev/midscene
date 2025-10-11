@@ -228,6 +228,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         const { pass, thought, message } =
           (await agent.aiAssert(prompt, msg, {
             keepRawResponse: true,
+            screenshotListIncluded: assertTask.screenshotListIncluded,
           })) || {};
 
         this.setResult(assertTask.name, {
@@ -245,6 +246,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         const options = {
           domIncluded: queryTask.domIncluded,
           screenshotIncluded: queryTask.screenshotIncluded,
+          screenshotListIncluded: queryTask.screenshotListIncluded,
         };
         assert(prompt, 'missing prompt for aiQuery');
         const queryResult = await agent.aiQuery(prompt, options);
@@ -255,6 +257,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         const options = {
           domIncluded: numberTask.domIncluded,
           screenshotIncluded: numberTask.screenshotIncluded,
+          screenshotListIncluded: numberTask.screenshotListIncluded,
         };
         assert(prompt, 'missing prompt for aiNumber');
         const numberResult = await agent.aiNumber(prompt, options);
@@ -265,6 +268,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         const options = {
           domIncluded: stringTask.domIncluded,
           screenshotIncluded: stringTask.screenshotIncluded,
+          screenshotListIncluded: stringTask.screenshotListIncluded,
         };
         assert(prompt, 'missing prompt for aiString');
         const stringResult = await agent.aiString(prompt, options);
@@ -275,6 +279,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         const options = {
           domIncluded: booleanTask.domIncluded,
           screenshotIncluded: booleanTask.screenshotIncluded,
+          screenshotListIncluded: booleanTask.screenshotListIncluded,
         };
         assert(prompt, 'missing prompt for aiBoolean');
         const booleanResult = await agent.aiBoolean(prompt, options);
@@ -282,8 +287,13 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       } else if ('aiAsk' in (flowItem as MidsceneYamlFlowItemAIAsk)) {
         const askTask = flowItem as MidsceneYamlFlowItemAIAsk;
         const prompt = askTask.aiAsk;
+        const options = {
+          domIncluded: askTask.domIncluded,
+          screenshotIncluded: askTask.screenshotIncluded,
+          screenshotListIncluded: askTask.screenshotListIncluded,
+        };
         assert(prompt, 'missing prompt for aiAsk');
-        const askResult = await agent.aiAsk(prompt);
+        const askResult = await agent.aiAsk(prompt, options);
         this.setResult(askTask.name, askResult);
       } else if ('aiLocate' in (flowItem as MidsceneYamlFlowItemAILocate)) {
         const locateTask = flowItem as MidsceneYamlFlowItemAILocate;

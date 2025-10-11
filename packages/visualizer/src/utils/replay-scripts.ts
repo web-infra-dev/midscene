@@ -133,6 +133,28 @@ const capitalizeFirstLetter = (str: string) => {
   return str.charAt(0).toUpperCase() + str.slice(1);
 };
 
+const screenshotSequenceFromContext = (context?: UIContext): string[] => {
+  if (!context) {
+    return [];
+  }
+  const unique = new Set<string>();
+  const ordered: string[] = [];
+  const push = (img?: string) => {
+    if (!img || unique.has(img)) {
+      return;
+    }
+    unique.add(img);
+    ordered.push(img);
+  };
+
+  push(context.screenshotBase64);
+  (context.screenshotBase64List || []).forEach((img) => {
+    push(img);
+  });
+
+  return ordered;
+};
+
 export const allScriptsFromDump = (
   dump: GroupedActionDump,
 ): ReplayScriptsInfo | null => {
@@ -338,24 +360,24 @@ export const generateAnimationScripts = (
         };
       }
       const context = insightTask.uiContext;
-      if (context?.screenshotBase64) {
+      const screenshots = screenshotSequenceFromContext(context);
+      if (context && screenshots.length) {
+        const [primaryScreenshot, ...extraScreenshots] = screenshots;
         const insightDump = insightTask.log?.dump;
         const insightContentLength = context.tree
           ? treeToList(context.tree).length
           : 0;
 
-        if (context.screenshotBase64) {
-          // show the original screenshot first
-          scripts.push({
-            type: 'img',
-            img: context.screenshotBase64,
-            duration: stillAfterInsightDuration,
-            title,
-            subTitle,
-            imageWidth: context.size?.width || imageWidth,
-            imageHeight: context.size?.height || imageHeight,
-          });
-        }
+        // show the original screenshot first
+        scripts.push({
+          type: 'img',
+          img: primaryScreenshot,
+          duration: stillAfterInsightDuration,
+          title,
+          subTitle,
+          imageWidth: context.size?.width || imageWidth,
+          imageHeight: context.size?.height || imageHeight,
+        });
 
         let cameraState: TargetCameraState | undefined = undefined;
         if (currentCameraState === fullPageCameraState) {
@@ -371,7 +393,7 @@ export const generateAnimationScripts = (
 
         scripts.push({
           type: 'insight',
-          img: context.screenshotBase64,
+          img: primaryScreenshot,
           context: context,
           camera: cameraState,
           highlightElement: insightTask.output?.element || undefined,
@@ -390,6 +412,21 @@ export const generateAnimationScripts = (
           duration: stillAfterInsightDuration,
           title,
           subTitle,
+        });
+
+        extraScreenshots.forEach((img, idx) => {
+          scripts.push({
+            type: 'img',
+            img,
+            duration: stillAfterInsightDuration,
+            title,
+            subTitle:
+              extraScreenshots.length > 1
+                ? `${subTitle} (#${idx + 2})`
+                : `${subTitle} (#2)`,
+            imageWidth: context.size?.width || imageWidth,
+            imageHeight: context.size?.height || imageHeight,
+          });
         });
         insightOnTop = true;
       }
