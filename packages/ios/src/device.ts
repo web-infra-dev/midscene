@@ -12,6 +12,7 @@ import {
   type AbstractInterface,
   type ActionTapParam,
   defineAction,
+  defineActionClearInput,
   defineActionDoubleClick,
   defineActionDragAndDrop,
   defineActionKeyboardPress,
@@ -201,6 +202,11 @@ export class IOSDevice implements AbstractInterface {
           const [x, y] = element.center;
           await this.longPress(x, y, param?.duration);
         },
+      }),
+      defineActionClearInput(async (param) => {
+        const element = param.locate;
+        assert(element, 'Element not found, cannot clear input');
+        await this.clearInput(element as unknown as ElementInfo);
       }),
     ];
 

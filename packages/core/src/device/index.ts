@@ -348,4 +348,27 @@ export const defineActionSwipe = (
   });
 };
 
+// ClearInput
+export const actionClearInputParamSchema = z.object({
+  locate: getMidsceneLocationSchema().describe('The input field to be cleared'),
+});
+export type ActionClearInputParam = {
+  locate: LocateResultElement;
+};
+
+export const defineActionClearInput = (
+  call: (param: ActionClearInputParam) => Promise<void>,
+): DeviceAction<ActionClearInputParam> => {
+  return defineAction<
+    typeof actionClearInputParamSchema,
+    ActionClearInputParam
+  >({
+    name: 'ClearInput',
+    description: 'Clear the text content of an input field',
+    interfaceAlias: 'aiClearInput',
+    paramSchema: actionClearInputParamSchema,
+    call,
+  });
+};
+
 export type { DeviceAction } from '../types';
