@@ -312,6 +312,13 @@ await agent.aiAction('点击红色按钮五次');
 
 ### 为什么我连接了设备，但是通过 adb 仍然无法控制？
 
+一个典型的错误信息是：
+```
+Error:
+Exception occurred while executing 'tap':
+java.lang.SecurityException: Injecting input events requires the caller (or the source of the instrumentation, if any) to have the INJECT_EVENTS permission.
+```
+
 请检查是否在系统设置的开发者选项中，如果存在『USB 调试（安全设置）』，也需要开启。
 
 <p align="center">

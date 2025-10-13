@@ -312,6 +312,12 @@ Check [Integrate with any interface](./integrate-with-any-interface#define-a-cus
 ## FAQ
 
 ### Why can't I control the device even though I've connected it?
+A typical error message is:
+```
+Error:
+Exception occurred while executing 'tap':
+java.lang.SecurityException: Injecting input events requires the caller (or the source of the instrumentation, if any) to have the INJECT_EVENTS permission.
+```
 
 Please check if the device is unlocked in the developer options of the system settings.
 
