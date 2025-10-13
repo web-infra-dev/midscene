@@ -158,17 +158,18 @@ export const actionInputParamSchema = z.object({
   locate: getMidsceneLocationSchema()
     .describe('The element to be input')
     .optional(),
-  append: z
-    .boolean()
+  mode: z
+    .enum(['replace', 'clear', 'append'])
+    .default('replace')
     .optional()
     .describe(
-      'If true, append the value to the existing content instead of replacing it. Default is false.',
+      'Input mode: "replace" (default) - clear the field and input the value; "clear" - alias for "replace"; "append" - append the value to existing content.',
     ),
 });
 export type ActionInputParam = {
   value: string;
   locate?: LocateResultElement;
-  append?: boolean;
+  mode?: 'replace' | 'clear' | 'append';
 };
 
 export const defineActionInput = (

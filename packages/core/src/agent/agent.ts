@@ -492,7 +492,7 @@ export class Agent<
     locatePrompt: TUserPrompt,
     opt: LocateOption & { value: string } & {
       autoDismissKeyboard?: boolean;
-    } & { append?: boolean },
+    } & { mode?: 'replace' | 'clear' | 'append' },
   ): Promise<any>;
 
   // Legacy signature - deprecated
@@ -503,7 +503,7 @@ export class Agent<
     value: string,
     locatePrompt: TUserPrompt,
     opt?: LocateOption & { autoDismissKeyboard?: boolean } & {
-      append?: boolean;
+      mode?: 'replace' | 'clear' | 'append';
     }, // AndroidDeviceInputOpt &
   ): Promise<any>;
 
@@ -514,7 +514,7 @@ export class Agent<
       | TUserPrompt
       | (LocateOption & { value: string } & {
           autoDismissKeyboard?: boolean;
-        } & { append?: boolean }) // AndroidDeviceInputOpt &
+        } & { mode?: 'replace' | 'clear' | 'append' }) // AndroidDeviceInputOpt &
       | undefined,
     optOrUndefined?: LocateOption, // AndroidDeviceInputOpt &
   ) {
@@ -523,7 +523,7 @@ export class Agent<
     let opt:
       | (LocateOption & { value: string } & {
           autoDismissKeyboard?: boolean;
-        } & { append?: boolean }) // AndroidDeviceInputOpt &
+        } & { mode?: 'replace' | 'clear' | 'append' }) // AndroidDeviceInputOpt &
       | undefined;
 
     // Check if using new signature (first param is locatePrompt, second has value)

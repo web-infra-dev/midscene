@@ -176,14 +176,19 @@ function aiInput(
 
 - Parameters:
 
-  - `text: string` - The final text content that should be placed in the input element. Use blank string to clear the input.
+  - `text: string` - The text content to input.
+    - When `mode` is `'replace'` or `'clear'`: The text will replace all existing content in the input field.
+    - When `mode` is `'append'`: The text will be appended to the existing content.
   - `locate: string | Object` - A natural language description of the element to input text into, or [prompting with images](#prompting-with-images).
   - `options?: Object` - Optional, a configuration object containing:
     - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. False by default.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
     - `autoDismissKeyboard?: boolean` - If true, the keyboard will be dismissed after input text, only available in Android. (Default: true)
-    - `append?: boolean` - If true, append the text to the existing content instead of replacing it. False by default.
+    - `mode?: 'replace' | 'clear' | 'append'` - Input mode. (Default: 'replace')
+      - `'replace'`: Clear the input field first, then input the text.
+      - `'clear'`: Alias for `'replace'`.
+      - `'append'`: Append the text to existing content without clearing.
 
 - Return Value:
 

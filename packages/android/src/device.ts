@@ -114,11 +114,12 @@ export class AndroidDevice implements AbstractInterface {
             .describe(
               'If true, the keyboard will be dismissed after the input is completed. Do not set it unless the user asks you to do so.',
             ),
-          append: z
-            .boolean()
+          mode: z
+            .enum(['replace', 'clear', 'append'])
+            .default('replace')
             .optional()
             .describe(
-              'If true, append the value to the existing content instead of replacing it. Default is false.',
+              'Input mode: "replace" (default) - clear the field and input the value; "clear" - alias for "replace"; "append" - append the value to existing content.',
             ),
           locate: getMidsceneLocationSchema()
             .describe('The input field to be filled')
@@ -127,8 +128,8 @@ export class AndroidDevice implements AbstractInterface {
         call: async (param) => {
           const element = param.locate;
           if (element) {
-            // Only clear input if not appending
-            if (!param.append) {
+            // Only clear input if mode is not 'append' (clear and replace both clear the field)
+            if (param.mode !== 'append') {
               await this.clearInput(element as unknown as ElementInfo);
             }
 
