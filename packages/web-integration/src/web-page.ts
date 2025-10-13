@@ -449,12 +449,17 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
   }),
   defineActionInput(async (param) => {
     const element = param.locate;
-    if (element) {
+    if (element && param.mode !== 'append') {
       await page.clearInput(element as unknown as ElementInfo);
+    }
 
-      if (!param || !param.value) {
-        return;
-      }
+    if (param.mode === 'clear') {
+      // Clear mode removes existing text without entering new characters
+      return;
+    }
+
+    if (!param || !param.value) {
+      return;
     }
 
     // Note: there is another implementation in AndroidDevicePage, which is more complex

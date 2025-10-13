@@ -75,13 +75,20 @@ export class IOSDevice implements AbstractInterface {
           value: z
             .string()
             .describe(
-              'The final that should be filled in the input box. No matter what modifications are required, just provide the final value to replace the existing input value. Giving a blank string means clear the input field.',
+              'The text to input. Provide the final content for replace/append modes, or an empty string when using clear mode to remove existing text.',
             ),
           autoDismissKeyboard: z
             .boolean()
             .optional()
             .describe(
               'If true, the keyboard will be dismissed after the input is completed. Do not set it unless the user asks you to do so.',
+            ),
+          mode: z
+            .enum(['replace', 'clear', 'append'])
+            .default('replace')
+            .optional()
+            .describe(
+              'Input mode: "replace" (default) - clear the field and input the value; "append" - append the value to existing content; "clear" - clear the field without inputting new text.',
             ),
           locate: getMidsceneLocationSchema()
             .describe('The input field to be filled')
@@ -90,11 +97,18 @@ export class IOSDevice implements AbstractInterface {
         call: async (param) => {
           const element = param.locate;
           if (element) {
-            await this.clearInput(element as unknown as ElementInfo);
-
-            if (!param || !param.value) {
-              return;
+            if (param.mode !== 'append') {
+              await this.clearInput(element as unknown as ElementInfo);
             }
+          }
+
+          if (param.mode === 'clear') {
+            // Clear mode removes existing text without entering new characters
+            return;
+          }
+
+          if (!param || !param.value) {
+            return;
           }
 
           const autoDismissKeyboard =
