@@ -106,6 +106,27 @@ agent:
     strategy: "read-only"
 ```
 
+### Write-only mode
+
+Configuration: `cache: { strategy: "write-only", id: "my-cache-id" }`
+
+Only write to cache, do not read existing cache contents. Always call AI model for each execution and write results to cache file. Suitable for initially building cache or updating cache.
+
+```javascript
+// Direct Agent creation
+const agent = new PuppeteerAgent(page, {
+  cache: { strategy: "write-only", id: "my-cache-id" },
+});
+```
+
+```yaml
+# YAML configuration
+agent:
+  cache:
+    id: "my-cache-test"
+    strategy: "write-only"
+```
+
 ### Compatibility mode (not recommended)
 
 Configuration via `MIDSCENE_CACHE=1` environment variable with cacheId, equivalent to read-write mode.
@@ -190,6 +211,19 @@ test('manual cache flush', async ({ agentForPage, page, aiTap, aiWaitFor }) => {
   await agent.flushCache();
 });
 ```
+
+### Write-only mode
+
+```typescript
+// fixture.ts in sample code
+export const test = base.extend<PlayWrightAiFixtureType>(
+  PlaywrightAiFixture({
+    cache: { strategy: "write-only", id: "write-only-cache" },
+  }),
+);
+```
+
+In write-only mode, each test will call the AI model and automatically write results to cache file without reading existing cache.
 
 ## FAQ
 

@@ -109,6 +109,27 @@ agent:
     strategy: "read-only"
 ```
 
+### 只写模式
+
+配置方式：`cache: { strategy: "write-only", id: "my-cache-id" }`
+
+只写入缓存，不读取已有缓存内容。每次执行时都会调用 AI 模型，并将结果写入缓存文件。适合初次建立缓存或更新缓存时使用。
+
+```javascript
+// 直接创建 Agent
+const agent = new PuppeteerAgent(page, {
+  cache: { strategy: "write-only", id: "my-cache-id" },
+});
+```
+
+```yaml
+# YAML 配置
+agent:
+  cache:
+    id: "my-cache-test"
+    strategy: "write-only"
+```
+
 ### 兼容方式（不推荐）
 
 通过环境变量 `MIDSCENE_CACHE=1` 配合 cacheId 配置，等同于读写模式。
@@ -193,6 +214,19 @@ test('manual cache flush', async ({ agentForPage, page, aiTap, aiWaitFor }) => {
   await agent.flushCache();
 });
 ```
+
+### 只写模式
+
+```typescript
+// 对应样例代码中的 fixture.ts
+export const test = base.extend<PlayWrightAiFixtureType>(
+  PlaywrightAiFixture({
+    cache: { strategy: "write-only", id: "write-only-cache" },
+  }),
+);
+```
+
+在只写模式下，每次测试都会调用 AI 模型，并将结果自动写入缓存文件，不会读取已有缓存。
 
 ## FAQ
 
