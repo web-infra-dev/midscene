@@ -169,8 +169,9 @@ function aiInput(
 - 参数：
 
   - `text: string` - 要输入的文本内容。
-    - 当 `mode` 为 `'replace'` 或 `'clear'` 时：文本将替换输入框中的所有现有内容。
-    - 当 `mode` 为 `'append'` 时:文本将追加到现有内容后面。
+    - 当 `mode` 为 `'replace'` 时：文本将替换输入框中的所有现有内容。
+    - 当 `mode` 为 `'append'` 时：文本将追加到现有内容后面。
+    - 当 `mode` 为 `'clear'` 时：会忽略文本内容，仅清空输入框。
   - `locate: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: Object` - 可选，一个配置对象，包含：
     - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。默认值为 false
@@ -179,8 +180,8 @@ function aiInput(
     - `autoDismissKeyboard?: boolean` - 如果为 true，则键盘会在输入文本后自动关闭，仅在 Android 中有效。默认值为 true。
     - `mode?: 'replace' | 'clear' | 'append'` - 输入模式。(默认值: 'replace')
       - `'replace'`: 先清空输入框，然后输入文本。
-      - `'clear'`: `'replace'` 的别名。
       - `'append'`: 将文本追加到现有内容后面，不清空输入框。
+      - `'clear'`: 清空输入框，不会输入新的文本。
 
 - 返回值：
 

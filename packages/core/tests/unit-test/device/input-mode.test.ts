@@ -4,25 +4,31 @@ import { describe, expect, it, vi } from 'vitest';
 describe('Input action with mode option', () => {
   const mockContext = {} as any;
 
-  it('should clear input when mode is replace', async () => {
-    const clearInputMock = vi.fn();
-    const typeTextMock = vi.fn();
+  const createInputAction = (
+    clearInputMock: ReturnType<typeof vi.fn>,
+    typeTextMock: ReturnType<typeof vi.fn>,
+  ) =>
+    defineActionInput(async (param) => {
+      if (param.locate && param.mode !== 'append') {
+        clearInputMock();
+      }
 
-    const inputAction = defineActionInput(async (param) => {
-      // Simulate the logic from web-page.ts
-      if (param.locate) {
-        // Only clear input if mode is not 'append'
-        if (param.mode !== 'append') {
-          clearInputMock();
-        }
+      if (param.mode === 'clear') {
+        return;
+      }
 
-        if (!param || !param.value) {
-          return;
-        }
+      if (!param || !param.value) {
+        return;
       }
 
       typeTextMock(param.value);
     });
+
+  it('should clear input when mode is replace', async () => {
+    const clearInputMock = vi.fn();
+    const typeTextMock = vi.fn();
+
+    const inputAction = createInputAction(clearInputMock, typeTextMock);
 
     // Test with mode = 'replace'
     await inputAction.call(
@@ -38,25 +44,13 @@ describe('Input action with mode option', () => {
     expect(typeTextMock).toHaveBeenCalledWith('test value');
   });
 
-  it('should clear input when mode is clear (alias for replace)', async () => {
+  it('should only clear input when mode is clear', async () => {
     const clearInputMock = vi.fn();
     const typeTextMock = vi.fn();
 
-    const inputAction = defineActionInput(async (param) => {
-      if (param.locate) {
-        if (param.mode !== 'append') {
-          clearInputMock();
-        }
+    const inputAction = createInputAction(clearInputMock, typeTextMock);
 
-        if (!param || !param.value) {
-          return;
-        }
-      }
-
-      typeTextMock(param.value);
-    });
-
-    // Test with mode = 'clear' (alias for replace)
+    // Test with mode = 'clear' (clears without typing)
     await inputAction.call(
       {
         value: 'test value',
@@ -67,26 +61,14 @@ describe('Input action with mode option', () => {
     );
 
     expect(clearInputMock).toHaveBeenCalledTimes(1);
-    expect(typeTextMock).toHaveBeenCalledWith('test value');
+    expect(typeTextMock).not.toHaveBeenCalled();
   });
 
   it('should skip clearInput when mode is append', async () => {
     const clearInputMock = vi.fn();
     const typeTextMock = vi.fn();
 
-    const inputAction = defineActionInput(async (param) => {
-      if (param.locate) {
-        if (param.mode !== 'append') {
-          clearInputMock();
-        }
-
-        if (!param || !param.value) {
-          return;
-        }
-      }
-
-      typeTextMock(param.value);
-    });
+    const inputAction = createInputAction(clearInputMock, typeTextMock);
 
     // Test with mode = 'append'
     await inputAction.call(
@@ -106,19 +88,7 @@ describe('Input action with mode option', () => {
     const clearInputMock = vi.fn();
     const typeTextMock = vi.fn();
 
-    const inputAction = defineActionInput(async (param) => {
-      if (param.locate) {
-        if (param.mode !== 'append') {
-          clearInputMock();
-        }
-
-        if (!param || !param.value) {
-          return;
-        }
-      }
-
-      typeTextMock(param.value);
-    });
+    const inputAction = createInputAction(clearInputMock, typeTextMock);
 
     // Test without mode option (should default to replace behavior)
     await inputAction.call(

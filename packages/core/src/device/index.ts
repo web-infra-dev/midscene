@@ -154,7 +154,11 @@ export const defineActionHover = (
 
 // Input
 export const actionInputParamSchema = z.object({
-  value: z.string().describe('The value to be input'),
+  value: z
+    .string()
+    .describe(
+      'The text to input. Provide the final content for replace/append modes, or an empty string when using clear mode to remove existing text.',
+    ),
   locate: getMidsceneLocationSchema()
     .describe('The element to be input')
     .optional(),
@@ -163,7 +167,7 @@ export const actionInputParamSchema = z.object({
     .default('replace')
     .optional()
     .describe(
-      'Input mode: "replace" (default) - clear the field and input the value; "clear" - alias for "replace"; "append" - append the value to existing content.',
+      'Input mode: "replace" (default) - clear the field and input the value; "append" - append the value to existing content; "clear" - clear the field without inputting new text.',
     ),
 });
 export type ActionInputParam = {
