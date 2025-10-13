@@ -19,6 +19,12 @@ export class PuppeteerAgent extends PageAgent<PuppeteerWebPage> {
     if (forceSameTabNavigation) {
       forceClosePopup(page, debug);
     }
+
+    // Auto-destroy agent when page closes
+    page.on('close', () => {
+      debug('page closed, destroying agent');
+      this.destroy();
+    });
   }
 }
 

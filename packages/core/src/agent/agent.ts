@@ -1065,6 +1065,11 @@ export class Agent<
   }
 
   async destroy() {
+    // Early return if already destroyed
+    if (this.destroyed) {
+      return;
+    }
+
     // Clean unused cache before destroying
     if (this.taskCache) {
       this.taskCache.cleanUnusedCache();
