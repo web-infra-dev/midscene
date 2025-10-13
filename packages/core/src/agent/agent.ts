@@ -1065,6 +1065,11 @@ export class Agent<
   }
 
   async destroy() {
+    // Clean unused cache before destroying
+    if (this.taskCache) {
+      this.taskCache.cleanUnusedCache();
+    }
+
     await this.interface.destroy?.();
     this.resetDump(); // reset dump to release memory
     this.destroyed = true;

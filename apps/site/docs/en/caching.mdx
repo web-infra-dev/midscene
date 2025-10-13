@@ -26,6 +26,37 @@ The core caching mechanisms include:
 
 Cache contents will be saved in the `./midscene_run/cache` directory with the `.cache.yaml` as the extension name.
 
+## Cache Cleaning
+
+Midscene automatically cleans unused cache records at the end of execution to keep cache files lean.
+
+### Automatic Cleaning Mechanism
+
+When the Agent is destroyed (typically at the end of a test case or script execution), the system will:
+
+1. **Keep used caches**: Cache records that were matched and used in this run will be retained
+2. **Keep newly added caches**: Cache records generated in this run will be retained
+3. **Remove unused caches**: Old, unused cache records will be automatically deleted
+
+This means:
+- When you delete test steps, corresponding caches are automatically cleaned
+- When you modify test flows, unused caches are removed
+- Cache files won't grow indefinitely
+
+### Cleaning Behavior in Different Modes
+
+- **read-write mode**: Auto-clean and flush to file
+- **read-only mode**: Clean in memory, requires manual `agent.flushCache()` to persist
+- **write-only mode**: No cleaning (as cache is not read)
+
+### Manual Cache Cleaning
+
+To completely clear the cache, simply delete the cache files:
+
+```bash
+rm -rf ./midscene_run/cache/*.cache.yaml
+```
+
 ## Cache strategies
 
 By configuring the `cache` option, you can enable caching for your agent.
