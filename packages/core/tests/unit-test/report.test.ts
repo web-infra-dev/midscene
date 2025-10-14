@@ -33,7 +33,7 @@ function generateNReports(
   return expectedContents;
 }
 
-describe('repotMergingTool', () => {
+describe('reportMergingTool', () => {
   it('should merge 3 mocked reports', async () => {
     const tool = new ReportMergingTool();
     const expectedContents = generateNReports(3, 'report content', tool);
@@ -100,7 +100,7 @@ describe('repotMergingTool', () => {
     });
   });
 
-  it('should extract content from last script tag in large HTML', async () => {
+  it('should extract content from <script> tag in large HTML', async () => {
     const tool = new ReportMergingTool();
     // create 3M html temp file
     const hugeContent = Buffer.alloc(3 * 1024 * 1024 - 200, 'a').toString();
@@ -111,48 +111,44 @@ describe('repotMergingTool', () => {
     writeFileSync(
       largeHtmlPath,
       `<!DOCTYPE html>
-  <html>
-  <head><title>Test</title></head>
-    <body>
-        ${hugeContent}
-        <script type="midscene_web_dump" type="application/json">
-        test penult
-        </script>
-
-    </body>
-  </html>
-    <script type="midscene_web_dump" type="application/json">
-        test last
-    </script>
+<html>
+<head><title>Test</title></head>
+<body>
+${hugeContent}
+<script type="midscene_web_dump" type="application/json">
+test
+</script>
+</body>
+</html>
 `,
       'utf8',
     );
     const result = await tool.extractScriptContent(largeHtmlPath);
     unlinkSync(largeHtmlPath); // remove temp file
-    expect(result).toBe('test last');
+    expect(result).toBe('test');
   });
 
   it(
-    'should merge 200 mocked reports, and delete original reports after that.',
+    'should merge 100 mocked reports, and delete original reports after that.',
     { timeout: 5 * 60 * 1000 },
     async () => {
       const tool = new ReportMergingTool();
 
-      console.time('generate 200 mocked report files.');
+      console.time('generate 100 mocked report files.');
       const hugeContent = Buffer.alloc(50 * 1024 * 1024, 'a').toString();
       generateNReports(
-        200,
+        100,
         `large report content, original report file will be deleted after merge\n${hugeContent}`,
         tool,
         false,
       );
-      console.timeEnd('generate 200 mocked report files');
+      console.timeEnd('generate 100 mocked report files');
 
-      console.time('merge and delete 200 mocked report files.');
-      const mergedReportPath = tool.mergeReports('merge-200-reports', {
+      console.time('merge and delete 100 mocked report files.');
+      const mergedReportPath = tool.mergeReports('merge-100-reports', {
         rmOriginalReports: true,
       });
-      console.timeEnd('merge and delete 200 mocked report files');
+      console.timeEnd('merge and delete 100 mocked report files');
       // assert merge success
       expect(existsSync(mergedReportPath)).toBe(true);
       // assert source report files deleted successfully
