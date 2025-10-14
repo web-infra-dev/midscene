@@ -343,6 +343,19 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
             </div>
           );
         })}
+        <div className="executions-tip">
+          <span className="tip-icon">?</span>
+          <span className="tip-text">
+            How to insert a custom log entry ?{' '}
+            <a
+              href="https://midscenejs.com/api#agentlogscreenshot"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Learn more
+            </a>
+          </span>
+        </div>
       </div>
     </div>
   ) : null;
