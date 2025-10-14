@@ -132,7 +132,7 @@ describe('repotMergingTool', () => {
     expect(result).toBe('test last');
   });
 
-  it.only(
+  it(
     'should merge 200 mocked reports, and delete original reports after that.',
     { timeout: 5 * 60 * 1000 },
     async () => {
