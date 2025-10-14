@@ -1259,14 +1259,15 @@ export class Agent<
 
   /**
    * Manually flush cache to file
-   * Only supported in read-only mode where writes are deferred by default
+   * @param options - Optional configuration
+   * @param options.cleanUnused - If true, removes unused cache records before flushing
    */
-  async flushCache({ cleanUnused }: { cleanUnused: boolean }): Promise<void> {
+  async flushCache(options?: { cleanUnused?: boolean }): Promise<void> {
     if (!this.taskCache) {
       throw new Error('Cache is not configured');
     }
 
-    this.taskCache.flushCacheToFile({ cleanUnused });
+    this.taskCache.flushCacheToFile(options);
   }
 }
 
