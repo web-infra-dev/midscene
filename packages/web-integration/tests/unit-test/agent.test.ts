@@ -578,20 +578,23 @@ describe('PageAgent cache configuration', () => {
         modelConfig: () => mockedModelConfigFnResult,
       });
 
-      await expect(agent.flushCache()).rejects.toThrow(
+      await expect(agent.flushCache({ cleanUnused: false })).rejects.toThrow(
         'Cache is not configured',
       );
     });
 
-    it('should throw in read-write mode', async () => {
+    it('should work with cleanUnused parameter', async () => {
       const agent = new PageAgent(mockPage, {
-        cache: { id: 'test-cache' }, // read-write mode
+        cache: { strategy: 'read-only', id: 'flush-test' },
         modelConfig: () => mockedModelConfigFnResult,
       });
 
-      await expect(agent.flushCache()).rejects.toThrow(
-        'flushCache() can only be called in read-only mode',
-      );
+      // Mock the flushCacheToFile method
+      const flushSpy = vi.spyOn(agent.taskCache!, 'flushCacheToFile');
+
+      await agent.flushCache({ cleanUnused: true });
+
+      expect(flushSpy).toHaveBeenCalledWith({ cleanUnused: true });
     });
 
     it('should work in read-only mode', async () => {
@@ -603,9 +606,9 @@ describe('PageAgent cache configuration', () => {
       // Mock the flushCacheToFile method
       const flushSpy = vi.spyOn(agent.taskCache!, 'flushCacheToFile');
 
-      await agent.flushCache();
+      await agent.flushCache({ cleanUnused: false });
 
-      expect(flushSpy).toHaveBeenCalled();
+      expect(flushSpy).toHaveBeenCalledWith({ cleanUnused: false });
     });
 
     it('should throw error for cache: true without explicit ID', () => {
