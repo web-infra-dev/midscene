@@ -225,6 +225,69 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 
 In write-only mode, each test will call the AI model and automatically write results to cache file without reading existing cache.
 
+## Cache Cleaning
+
+Midscene supports cleaning unused cache records when flushing cache to file, ensuring cache files stay lean and maintainable. This feature is **completely manual** and requires explicit call to `agent.flushCache({ cleanUnused: true })`.
+
+### Manual Cleaning Mechanism
+
+When calling `agent.flushCache({ cleanUnused: true })`, the system will:
+
+1. **Keep used caches**: Cache records that were matched and used in the current run will be retained
+2. **Keep new caches**: Cache records newly generated in the current run will be retained
+3. **Remove unused caches**: Old cache records that were not accessed will be automatically deleted
+4. **Write to file**: The cleaned cache will be written to file
+
+### Usage
+
+**Call in test afterEach:**
+
+```javascript
+describe('test suite', () => {
+  let resetFn: () => Promise<void>;
+  let agent: PuppeteerAgent;
+
+  afterEach(async () => {
+    // Clean cache and write to file
+    if (agent) {
+      await agent.flushCache({ cleanUnused: true });
+    }
+
+    // Then close the page
+    if (resetFn) {
+      await resetFn();
+    }
+  });
+
+  it('test case', async () => {
+    const { originPage, reset } = await launchPage('https://example.com/');
+    resetFn = reset;
+    agent = new PuppeteerAgent(originPage, {
+      cache: { id: 'my-cache-id' },
+    });
+
+    // ... test logic
+  });
+});
+```
+
+**For Playwright AI Fixture users:**
+
+```typescript
+test.afterEach(async ({ page, agentForPage }) => {
+  const agent = await agentForPage(page);
+  await agent.flushCache({ cleanUnused: true });
+});
+```
+
+### Cleanup Behavior by Mode
+
+- **read-write mode**: Calling `flushCache({ cleanUnused: true })` will clean and write to file
+- **read-only mode**: Calling `flushCache({ cleanUnused: true })` will also clean and write to file (manual flush overrides read-only restriction)
+- **write-only mode**: No cleanup (does not read cache)
+
+**Note**: If you don't pass `cleanUnused: true` parameter, `flushCache()` will only write to file without cleaning unused caches.
+
 ## FAQ
 
 ### No cache file is generated

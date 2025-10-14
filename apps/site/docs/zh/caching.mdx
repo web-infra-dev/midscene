@@ -28,7 +28,6 @@ Midscene 的缓存机制基于输入的稳定性和输出的可复用性。当�
 
 如果缓存未命中，Midscene 将会重新调用 AI 模型，并更新缓存文件。
 
-
 ## 缓存策略
 
 通过配置 `cache` 选项，你可以为 Agent 启用缓存。
@@ -227,6 +226,69 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 ```
 
 在只写模式下，每次测试都会调用 AI 模型，并将结果自动写入缓存文件，不会读取已有缓存。
+
+## 缓存清理
+
+Midscene 支持在写入缓存时清理未使用的缓存记录，确保缓存文件保持精简。这个功能是**完全手动**的,需要显式调用 `agent.flushCache({ cleanUnused: true })`。
+
+### 手动清理机制
+
+当调用 `agent.flushCache({ cleanUnused: true })` 时，系统会:
+
+1. **保留使用过的缓存**：本次运行中被匹配和使用的缓存记录会被保留
+2. **保留新增的缓存**：本次运行中新生成的缓存记录会被保留
+3. **删除未使用的缓存**：旧的、未被使用的缓存记录会被自动删除
+4. **写入文件**：清理后的缓存会被写入文件
+
+### 使用方式
+
+**在测试的 afterEach 中统一调用:**
+
+```javascript
+describe('test suite', () => {
+  let resetFn: () => Promise<void>;
+  let agent: PuppeteerAgent;
+
+  afterEach(async () => {
+    // 清理缓存并写入文件
+    if (agent) {
+      await agent.flushCache({ cleanUnused: true });
+    }
+
+    // 再关闭页面
+    if (resetFn) {
+      await resetFn();
+    }
+  });
+
+  it('test case', async () => {
+    const { originPage, reset } = await launchPage('https://example.com/');
+    resetFn = reset;
+    agent = new PuppeteerAgent(originPage, {
+      cache: { id: 'my-cache-id' },
+    });
+
+    // ... test logic
+  });
+});
+```
+
+**Playwright AI Fixture 用户:**
+
+```typescript
+test.afterEach(async ({ page, agentForPage }) => {
+  const agent = await agentForPage(page);
+  await agent.flushCache({ cleanUnused: true });
+});
+```
+
+### 清理行为说明
+
+- **read-write 模式**：调用 `flushCache({ cleanUnused: true })` 会清理并写入文件
+- **read-only 模式**：调用 `flushCache({ cleanUnused: true })` 也会清理并写入文件(手动 flush 覆盖 read-only 限制)
+- **write-only 模式**：不执行清理(因为不读取缓存)
+
+**注意**：如果不传 `cleanUnused: true` 参数，`flushCache()` 只会写入文件而不会清理未使用的缓存。
 
 ## FAQ
 

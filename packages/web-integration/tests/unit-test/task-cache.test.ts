@@ -719,3 +719,234 @@ describe('TaskCache filename length logic', () => {
     expect(cache.cacheId.length).toBeLessThanOrEqual(32 + 1 + 50);
   });
 });
+
+describe('TaskCache manual cleaning with flushCacheToFile', () => {
+  it('should remove unused cache records when flushing with cleanUnused: true', () => {
+    const cacheFilePath = prepareCache([
+      {
+        type: 'plan',
+        prompt: 'step1',
+        yamlWorkflow: 'workflow1',
+      },
+      {
+        type: 'plan',
+        prompt: 'step2',
+        yamlWorkflow: 'workflow2',
+      },
+      {
+        type: 'plan',
+        prompt: 'step3',
+        yamlWorkflow: 'workflow3',
+      },
+    ]);
+
+    const cache = new TaskCache(uuid(), true, cacheFilePath);
+    expect(cache.cacheOriginalLength).toBe(3);
+
+    // Only use 2 of them
+    cache.matchPlanCache('step1'); // Used
+    cache.matchPlanCache('step3'); // Used
+    // step2 is not used
+
+    // Flush with cleaning
+    cache.flushCacheToFile({ cleanUnused: true });
+
+    // Should only have 2 records left
+    expect(cache.cache.caches.length).toBe(2);
+    expect(cache.cache.caches[0].prompt).toBe('step1');
+    expect(cache.cache.caches[1].prompt).toBe('step3');
+  });
+
+  it('should keep newly added caches even if not used', () => {
+    const cacheFilePath = prepareCache([
+      {
+        type: 'plan',
+        prompt: 'old',
+        yamlWorkflow: 'old-workflow',
+      },
+    ]);
+
+    const cache = new TaskCache(uuid(), true, cacheFilePath);
+    expect(cache.cacheOriginalLength).toBe(1);
+
+    // Don't use old cache, add new cache
+    cache.appendCache({
+      type: 'plan',
+      prompt: 'new',
+      yamlWorkflow: 'new-workflow',
+    });
+
+    // Flush with cleaning
+    cache.flushCacheToFile({ cleanUnused: true });
+
+    // Old unused should be removed, new should be kept
+    expect(cache.cache.caches.length).toBe(1);
+    expect(cache.cache.caches[0].prompt).toBe('new');
+  });
+
+  it('should keep all used and new caches', () => {
+    const cacheFilePath = prepareCache([
+      {
+        type: 'plan',
+        prompt: 'used-old',
+        yamlWorkflow: 'workflow1',
+      },
+      {
+        type: 'plan',
+        prompt: 'unused-old',
+        yamlWorkflow: 'workflow2',
+      },
+    ]);
+
+    const cache = new TaskCache(uuid(), true, cacheFilePath);
+    expect(cache.cacheOriginalLength).toBe(2);
+
+    // Use one old cache
+    cache.matchPlanCache('used-old');
+
+    // Add new cache
+    cache.appendCache({
+      type: 'plan',
+      prompt: 'new',
+      yamlWorkflow: 'new-workflow',
+    });
+
+    // Flush with cleaning
+    cache.flushCacheToFile({ cleanUnused: true });
+
+    // Should keep used old + new, remove unused old
+    expect(cache.cache.caches.length).toBe(2);
+    expect(cache.cache.caches[0].prompt).toBe('used-old');
+    expect(cache.cache.caches[1].prompt).toBe('new');
+  });
+
+  it('should not clean in write-only mode', () => {
+    const cacheFilePath = prepareCache([
+      {
+        type: 'plan',
+        prompt: 'test',
+        yamlWorkflow: 'workflow',
+      },
+    ]);
+
+    const cache = new TaskCache(uuid(), true, cacheFilePath, {
+      writeOnly: true,
+    });
+
+    // write-only mode should not clean
+    cache.flushCacheToFile({ cleanUnused: true });
+
+    // Cache should remain unchanged (though write-only doesn't actually load)
+    expect(cache.cache.caches.length).toBe(0); // write-only doesn't load
+    expect(cache.isCacheResultUsed).toBe(false);
+  });
+
+  it('should clean and flush to file in read-only mode', () => {
+    const cacheFilePath = prepareCache([
+      {
+        type: 'plan',
+        prompt: 'used',
+        yamlWorkflow: 'workflow1',
+      },
+      {
+        type: 'plan',
+        prompt: 'unused',
+        yamlWorkflow: 'workflow2',
+      },
+    ]);
+
+    const cache = new TaskCache(uuid(), true, cacheFilePath, {
+      readOnly: true,
+    });
+    cache.matchPlanCache('used');
+
+    // Flush with cleaning (should work in read-only mode)
+    cache.flushCacheToFile({ cleanUnused: true });
+
+    // Should be cleaned in memory
+    expect(cache.cache.caches.length).toBe(1);
+
+    // And file should be updated (manual flush overrides read-only)
+    const fileContent = readFileSync(cacheFilePath, 'utf-8');
+    const parsedContent = yaml.load(fileContent) as any;
+    expect(parsedContent.caches.length).toBe(1); // File should be updated
+    expect(parsedContent.caches[0].prompt).toBe('used');
+  });
+
+  it('should handle empty cache gracefully', () => {
+    const cache = new TaskCache(uuid(), true);
+    expect(cache.cacheOriginalLength).toBe(0);
+
+    // Flush empty cache with cleaning
+    cache.flushCacheToFile({ cleanUnused: true });
+
+    // Should remain empty
+    expect(cache.cache.caches.length).toBe(0);
+  });
+
+  it('should handle case where all caches are used', () => {
+    const cacheFilePath = prepareCache([
+      {
+        type: 'plan',
+        prompt: 'step1',
+        yamlWorkflow: 'workflow1',
+      },
+      {
+        type: 'plan',
+        prompt: 'step2',
+        yamlWorkflow: 'workflow2',
+      },
+    ]);
+
+    const cache = new TaskCache(uuid(), true, cacheFilePath);
+
+    // Use all caches
+    cache.matchPlanCache('step1');
+    cache.matchPlanCache('step2');
+
+    // Flush with cleaning
+    cache.flushCacheToFile({ cleanUnused: true });
+
+    // All should be kept
+    expect(cache.cache.caches.length).toBe(2);
+  });
+
+  it('should work with mixed plan and locate caches', () => {
+    const cacheFilePath = prepareCache([
+      {
+        type: 'plan',
+        prompt: 'plan-used',
+        yamlWorkflow: 'workflow1',
+      },
+      {
+        type: 'plan',
+        prompt: 'plan-unused',
+        yamlWorkflow: 'workflow2',
+      },
+      {
+        type: 'locate',
+        prompt: 'locate-used',
+        cache: { xpaths: ['xpath1'] },
+      },
+      {
+        type: 'locate',
+        prompt: 'locate-unused',
+        cache: { xpaths: ['xpath2'] },
+      },
+    ]);
+
+    const cache = new TaskCache(uuid(), true, cacheFilePath);
+
+    // Use some of them
+    cache.matchPlanCache('plan-used');
+    cache.matchLocateCache('locate-used');
+
+    // Flush with cleaning
+    cache.flushCacheToFile({ cleanUnused: true });
+
+    // Only used ones should remain
+    expect(cache.cache.caches.length).toBe(2);
+    expect(cache.cache.caches[0].prompt).toBe('plan-used');
+    expect(cache.cache.caches[1].prompt).toBe('locate-used');
+  });
+});

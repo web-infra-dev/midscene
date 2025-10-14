@@ -9,7 +9,12 @@ vi.setConfig({
 
 describe('agent with forceSameTabNavigation', () => {
   let resetFn: () => Promise<void>;
+  let agent: PuppeteerAgent;
+
   afterEach(async () => {
+    if (agent) {
+      await agent.destroy();
+    }
     if (resetFn) {
       await resetFn();
     }
@@ -18,7 +23,7 @@ describe('agent with forceSameTabNavigation', () => {
   it('open new tab', async () => {
     const { originPage, reset } = await launchPage('https://www.bing.com/');
     resetFn = reset;
-    const agent = new PuppeteerAgent(originPage, {
+    agent = new PuppeteerAgent(originPage, {
       cacheId: 'puppeteer-open-new-tab',
     });
     const inputXpath = '//*[@id="sb_form_q"]';
