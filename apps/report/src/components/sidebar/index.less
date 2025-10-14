@@ -317,6 +317,34 @@
       overflow-y: auto;
       overflow-x: hidden;
       min-height: 0;
+
+      .executions-tip {
+        padding: 12px 20px;
+        font-size: 12px;
+        color: #8c8c8c;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+
+        .tip-icon {
+          color: #8c8c8c;
+          font-weight: 500;
+          flex-shrink: 0;
+        }
+
+        .tip-text {
+          line-height: 1.5;
+
+          a {
+            color: #1890ff;
+            text-decoration: none;
+
+            &:hover {
+              text-decoration: underline;
+            }
+          }
+        }
+      }
     }
   }
 
