@@ -13,65 +13,16 @@ export class ReportMergingTool {
   public clear() {
     this.reportInfos = [];
   }
-  private extractLastScriptContentFromEnd(filePath: string): string {
-    const INITIAL_CHUNK_SIZE = 1024 * 1024; // Initial chunk size 1MB (adjustable based on content)
-    const fd = fs.openSync(filePath, 'r');
-    const fileSize = fs.statSync(filePath).size;
-    let position = fileSize;
-    const buffer = Buffer.alloc(INITIAL_CHUNK_SIZE);
-    let lastScriptContent: string | null = null;
-    let isInsideScript = false; // Flag indicating whether <script> start tag has been found
-    let accumulatedContent = ''; // Content accumulated after finding <script>
-    let lastChunkTail = ''; // Keep last few chars to detect tags spanning chunks
+  private extractScriptContent(filePath: string): string {
+    // Regular expression to match content between script tags
+    // Requires newline before <script and </script>
+    const scriptRegex =
+      /\n<script type="midscene_web_dump" type="application\/json">([\s\S]*?)\n<\/script>/;
 
-    while (position > 0 && lastScriptContent === null) {
-      position = Math.max(0, position - INITIAL_CHUNK_SIZE);
+    const fileContent = fs.readFileSync(filePath, 'utf-8');
+    const match = scriptRegex.exec(fileContent);
 
-      const bytesRead = fs.readSync(
-        fd,
-        buffer,
-        0,
-        Math.min(INITIAL_CHUNK_SIZE, fileSize - position),
-        position,
-      );
-      const chunk = buffer.toString('utf-8', 0, bytesRead);
-
-      // If <script> hasn't been found yet, continue searching backwards
-      if (!isInsideScript) {
-        // Check in current chunk + overlap from previous chunk
-        const searchContent = chunk + lastChunkTail;
-        const scriptStartIdx = searchContent.lastIndexOf('<script');
-        if (scriptStartIdx !== -1) {
-          isInsideScript = true;
-          // Start accumulating from <script> tag
-          accumulatedContent = searchContent.slice(scriptStartIdx);
-        } else {
-          // Keep last 20 chars to detect tags that span chunks
-          lastChunkTail = chunk.slice(-20) + lastChunkTail.slice(0, 20);
-        }
-      } else {
-        // Already found <script>, keep accumulating
-        accumulatedContent = chunk + accumulatedContent;
-
-        // Check if we now have </script>
-        const scriptEndIdx = accumulatedContent.indexOf('</script>');
-        if (scriptEndIdx !== -1) {
-          // Extract complete content (from <script> to </script>)
-          const fullScriptTag = accumulatedContent.slice(
-            0,
-            scriptEndIdx + '</script>'.length,
-          );
-          const contentStartIdx = fullScriptTag.indexOf('>') + 1;
-          lastScriptContent = fullScriptTag
-            .slice(contentStartIdx, scriptEndIdx)
-            .trim();
-          break;
-        }
-      }
-    }
-
-    fs.closeSync(fd);
-    return lastScriptContent ?? '';
+    return match ? match[1].trim() : '';
   }
 
   public mergeReports(
@@ -125,9 +76,7 @@ export class ReportMergingTool {
         const reportInfo = this.reportInfos[i];
         console.log(`Processing report ${i + 1}/${this.reportInfos.length}`);
 
-        const dumpString = this.extractLastScriptContentFromEnd(
-          reportInfo.reportFilePath,
-        );
+        const dumpString = this.extractScriptContent(reportInfo.reportFilePath);
         const reportAttributes = reportInfo.reportAttributes;
 
         const reportHtmlStr = `${reportHTMLContent(

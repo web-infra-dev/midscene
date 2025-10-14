@@ -127,7 +127,7 @@ describe('repotMergingTool', () => {
 `,
       'utf8',
     );
-    const result = await tool.extractLastScriptContentFromEnd(largeHtmlPath);
+    const result = await tool.extractScriptContent(largeHtmlPath);
     unlinkSync(largeHtmlPath); // remove temp file
     expect(result).toBe('test last');
   });

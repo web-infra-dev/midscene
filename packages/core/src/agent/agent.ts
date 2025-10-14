@@ -1,6 +1,7 @@
 import {
   type AgentAssertOpt,
   type AgentDescribeElementAtPointResult,
+  type AgentOpt,
   type AgentWaitForOpt,
   type CacheConfig,
   type DeviceAction,
@@ -26,15 +27,12 @@ import {
   type TUserPrompt,
   type UIContext,
 } from '../index';
-<<<<<<< HEAD
 export type TestStatus =
   | 'passed'
   | 'failed'
   | 'timedOut'
   | 'skipped'
   | 'interrupted';
-=======
->>>>>>> 1a63542c (feat(core): add ReportMergingTool into core/utils with its unit-tests, remove agent.teardownTestAgent, add one case in android project to show the usage of ReportMergingTool)
 import yaml from 'js-yaml';
 
 import {
@@ -42,11 +40,6 @@ import {
   reportHTMLContent,
   stringifyDumpData,
   writeLogFile,
-<<<<<<< HEAD
-  getHtmlScripts,
-  appendFileSync,
-=======
->>>>>>> 1a63542c (feat(core): add ReportMergingTool into core/utils with its unit-tests, remove agent.teardownTestAgent, add one case in android project to show the usage of ReportMergingTool)
 } from '@/utils';
 import {
   ScriptPlayer,
@@ -369,26 +362,6 @@ export class Agent<
 
   reportHTMLString() {
     return reportHTMLContent(this.dumpDataString());
-  }
-  teardownTestAgent(teardownOpts: {
-    testId: string;
-    testTitle: string;
-    testDescription: string;
-    testDuration: number;
-    testStatus: TestStatus;
-    cacheFilePath: string;
-  }) {
-    const s = `${getHtmlScripts({
-      dumpString: this.dumpDataString(),
-      attributes: {
-        playwright_test_duration: teardownOpts.testDuration,
-        playwright_test_status: teardownOpts.testStatus,
-        playwright_test_title: teardownOpts.testTitle,
-        playwright_test_id: teardownOpts.testId,
-        playwright_test_description: teardownOpts.testDescription,
-      },
-    })}\n`;
-    appendFileSync(teardownOpts.cacheFilePath, s);
   }
 
   writeOutActionDumps() {
