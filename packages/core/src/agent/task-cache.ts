@@ -266,7 +266,7 @@ export class TaskCache {
     }
   }
 
-  flushCacheToFile() {
+  flushCacheToFile(options?: { cleanUnused?: boolean }) {
     const version = getMidsceneVersion();
     if (!version) {
       debug('no midscene version info, will not write cache to file');
@@ -278,6 +278,41 @@ export class TaskCache {
       return;
     }
 
+    // Clean unused caches if requested
+    if (options?.cleanUnused) {
+      // Skip cleaning in write-only mode or when cache is not used
+      if (this.isCacheResultUsed) {
+        const originalLength = this.cache.caches.length;
+
+        // Collect indices of used caches
+        const usedIndices = new Set<number>();
+        for (const key of this.matchedCacheIndices) {
+          // key format: "type:prompt:index"
+          const parts = key.split(':');
+          const index = Number.parseInt(parts[parts.length - 1], 10);
+          if (!Number.isNaN(index)) {
+            usedIndices.add(index);
+          }
+        }
+
+        // Filter: keep used caches and newly added caches
+        this.cache.caches = this.cache.caches.filter((_, index) => {
+          const isUsed = usedIndices.has(index);
+          const isNew = index >= this.cacheOriginalLength;
+          return isUsed || isNew;
+        });
+
+        const removedCount = originalLength - this.cache.caches.length;
+        if (removedCount > 0) {
+          debug('cleaned %d unused cache record(s)', removedCount);
+        } else {
+          debug('no unused cache to clean');
+        }
+      } else {
+        debug('skip cleaning: cache is not used for reading');
+      }
+    }
+
     try {
       const dir = dirname(this.cacheFilePath);
       if (!existsSync(dir)) {
@@ -286,6 +321,7 @@ export class TaskCache {
       }
 
       // Sort caches to ensure plan entries come before locate entries for better readability
+      // Create a sorted copy for writing to disk while keeping in-memory order unchanged
       const sortedCaches = [...this.cache.caches].sort((a, b) => {
         if (a.type === 'plan' && b.type === 'locate') return -1;
         if (a.type === 'locate' && b.type === 'plan') return 1;
@@ -330,47 +366,6 @@ export class TaskCache {
       }
     } else {
       this.appendCache(newRecord);
-    }
-  }
-
-  cleanUnusedCache() {
-    // Skip cleaning in write-only mode or when cache is not used
-    if (!this.isCacheResultUsed) {
-      debug('skip cleaning: cache is not used for reading');
-      return;
-    }
-
-    const originalLength = this.cache.caches.length;
-
-    // Collect indices of used caches
-    const usedIndices = new Set<number>();
-    for (const key of this.matchedCacheIndices) {
-      // key format: "type:prompt:index"
-      const parts = key.split(':');
-      const index = Number.parseInt(parts[parts.length - 1], 10);
-      if (!Number.isNaN(index)) {
-        usedIndices.add(index);
-      }
-    }
-
-    // Filter: keep used caches and newly added caches
-    this.cache.caches = this.cache.caches.filter((_, index) => {
-      const isUsed = usedIndices.has(index);
-      const isNew = index >= this.cacheOriginalLength;
-      return isUsed || isNew;
-    });
-
-    const removedCount = originalLength - this.cache.caches.length;
-
-    if (removedCount > 0) {
-      debug('cleaned %d unused cache record(s)', removedCount);
-
-      // Flush to file if not in read-only mode
-      if (!this.readOnlyMode) {
-        this.flushCacheToFile();
-      }
-    } else {
-      debug('no unused cache to clean');
     }
   }
 }

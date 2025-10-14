@@ -229,27 +229,20 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 
 ## 缓存清理
 
-Midscene 会在 Agent 销毁时自动清理未使用的缓存记录，确保缓存文件保持精简。
+Midscene 支持在写入缓存时清理未使用的缓存记录，确保缓存文件保持精简。这个功能是**完全手动**的,需要显式调用 `agent.flushCache({ cleanUnused: true })`。
 
-### 自动清理机制
+### 手动清理机制
 
-当调用 `agent.destroy()` 时，系统会：
+当调用 `agent.flushCache({ cleanUnused: true })` 时，系统会:
 
 1. **保留使用过的缓存**：本次运行中被匹配和使用的缓存记录会被保留
 2. **保留新增的缓存**：本次运行中新生成的缓存记录会被保留
 3. **删除未使用的缓存**：旧的、未被使用的缓存记录会被自动删除
+4. **写入文件**：清理后的缓存会被写入文件
 
-### 触发缓存清理
+### 使用方式
 
-根据不同的使用方式，缓存清理的触发时机有所不同：
-
-**Playwright AI Fixture**：自动清理
-- 使用 `PlaywrightAiFixture` 时，当页面关闭时会自动调用 `destroy()`
-- 用户无需手动管理，缓存会在测试结束时自动清理
-
-**直接创建 PuppeteerAgent**：需要手动清理
-- 使用 `new PuppeteerAgent(page, {...})` 时，需要手动调用 `agent.destroy()` 来触发缓存清理
-- 建议在测试的 `afterEach` 中统一调用：
+**在测试的 afterEach 中统一调用:**
 
 ```javascript
 describe('test suite', () => {
@@ -257,9 +250,9 @@ describe('test suite', () => {
   let agent: PuppeteerAgent;
 
   afterEach(async () => {
-    // 先清理 agent 和缓存
+    // 清理缓存并写入文件
     if (agent) {
-      await agent.destroy();
+      await agent.flushCache({ cleanUnused: true });
     }
 
     // 再关闭页面
@@ -280,14 +273,22 @@ describe('test suite', () => {
 });
 ```
 
-**YAML 脚本模式**：自动清理
-- 使用 YAML 脚本时，系统会在脚本执行完毕后自动调用 `destroy()`
+**Playwright AI Fixture 用户:**
+
+```typescript
+test.afterEach(async ({ page, agentForPage }) => {
+  const agent = await agentForPage(page);
+  await agent.flushCache({ cleanUnused: true });
+});
+```
 
 ### 清理行为说明
 
-- **read-write 模式**：自动清理并写入文件
-- **read-only 模式**：清理但需要手动调用 `flushCache()` 持久化
-- **write-only 模式**：不执行清理（因为不读取缓存）
+- **read-write 模式**：调用 `flushCache({ cleanUnused: true })` 会清理并写入文件
+- **read-only 模式**：调用 `flushCache({ cleanUnused: true })` 也会清理并写入文件(手动 flush 覆盖 read-only 限制)
+- **write-only 模式**：不执行清理(因为不读取缓存)
+
+**注意**：如果不传 `cleanUnused: true` 参数，`flushCache()` 只会写入文件而不会清理未使用的缓存。
 
 ## FAQ
 

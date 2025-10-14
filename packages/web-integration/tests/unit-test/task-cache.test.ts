@@ -720,8 +720,8 @@ describe('TaskCache filename length logic', () => {
   });
 });
 
-describe('TaskCache auto-cleaning', () => {
-  it('should remove unused cache records after cleaning', () => {
+describe('TaskCache manual cleaning with flushCacheToFile', () => {
+  it('should remove unused cache records when flushing with cleanUnused: true', () => {
     const cacheFilePath = prepareCache([
       {
         type: 'plan',
@@ -748,8 +748,8 @@ describe('TaskCache auto-cleaning', () => {
     cache.matchPlanCache('step3'); // Used
     // step2 is not used
 
-    // Clean
-    cache.cleanUnusedCache();
+    // Flush with cleaning
+    cache.flushCacheToFile({ cleanUnused: true });
 
     // Should only have 2 records left
     expect(cache.cache.caches.length).toBe(2);
@@ -776,8 +776,8 @@ describe('TaskCache auto-cleaning', () => {
       yamlWorkflow: 'new-workflow',
     });
 
-    // Clean
-    cache.cleanUnusedCache();
+    // Flush with cleaning
+    cache.flushCacheToFile({ cleanUnused: true });
 
     // Old unused should be removed, new should be kept
     expect(cache.cache.caches.length).toBe(1);
@@ -811,8 +811,8 @@ describe('TaskCache auto-cleaning', () => {
       yamlWorkflow: 'new-workflow',
     });
 
-    // Clean
-    cache.cleanUnusedCache();
+    // Flush with cleaning
+    cache.flushCacheToFile({ cleanUnused: true });
 
     // Should keep used old + new, remove unused old
     expect(cache.cache.caches.length).toBe(2);
@@ -834,14 +834,14 @@ describe('TaskCache auto-cleaning', () => {
     });
 
     // write-only mode should not clean
-    cache.cleanUnusedCache();
+    cache.flushCacheToFile({ cleanUnused: true });
 
     // Cache should remain unchanged (though write-only doesn't actually load)
     expect(cache.cache.caches.length).toBe(0); // write-only doesn't load
     expect(cache.isCacheResultUsed).toBe(false);
   });
 
-  it('should not flush to file in read-only mode', () => {
+  it('should clean and flush to file in read-only mode', () => {
     const cacheFilePath = prepareCache([
       {
         type: 'plan',
@@ -860,24 +860,25 @@ describe('TaskCache auto-cleaning', () => {
     });
     cache.matchPlanCache('used');
 
-    // Clean (in memory)
-    cache.cleanUnusedCache();
+    // Flush with cleaning (should work in read-only mode)
+    cache.flushCacheToFile({ cleanUnused: true });
 
     // Should be cleaned in memory
     expect(cache.cache.caches.length).toBe(1);
 
-    // But file should not be updated (read-only mode)
+    // And file should be updated (manual flush overrides read-only)
     const fileContent = readFileSync(cacheFilePath, 'utf-8');
     const parsedContent = yaml.load(fileContent) as any;
-    expect(parsedContent.caches.length).toBe(2); // File still has 2 records
+    expect(parsedContent.caches.length).toBe(1); // File should be updated
+    expect(parsedContent.caches[0].prompt).toBe('used');
   });
 
   it('should handle empty cache gracefully', () => {
     const cache = new TaskCache(uuid(), true);
     expect(cache.cacheOriginalLength).toBe(0);
 
-    // Clean empty cache
-    cache.cleanUnusedCache();
+    // Flush empty cache with cleaning
+    cache.flushCacheToFile({ cleanUnused: true });
 
     // Should remain empty
     expect(cache.cache.caches.length).toBe(0);
@@ -903,8 +904,8 @@ describe('TaskCache auto-cleaning', () => {
     cache.matchPlanCache('step1');
     cache.matchPlanCache('step2');
 
-    // Clean
-    cache.cleanUnusedCache();
+    // Flush with cleaning
+    cache.flushCacheToFile({ cleanUnused: true });
 
     // All should be kept
     expect(cache.cache.caches.length).toBe(2);
@@ -940,8 +941,8 @@ describe('TaskCache auto-cleaning', () => {
     cache.matchPlanCache('plan-used');
     cache.matchLocateCache('locate-used');
 
-    // Clean
-    cache.cleanUnusedCache();
+    // Flush with cleaning
+    cache.flushCacheToFile({ cleanUnused: true });
 
     // Only used ones should remain
     expect(cache.cache.caches.length).toBe(2);

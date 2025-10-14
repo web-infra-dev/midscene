@@ -227,27 +227,20 @@ In write-only mode, each test will call the AI model and automatically write res
 
 ## Cache Cleaning
 
-Midscene automatically cleans unused cache records when an Agent is destroyed, ensuring cache files stay lean and maintainable.
+Midscene supports cleaning unused cache records when flushing cache to file, ensuring cache files stay lean and maintainable. This feature is **completely manual** and requires explicit call to `agent.flushCache({ cleanUnused: true })`.
 
-### Automatic Cleaning Mechanism
+### Manual Cleaning Mechanism
 
-When `agent.destroy()` is called, the system will:
+When calling `agent.flushCache({ cleanUnused: true })`, the system will:
 
 1. **Keep used caches**: Cache records that were matched and used in the current run will be retained
 2. **Keep new caches**: Cache records newly generated in the current run will be retained
 3. **Remove unused caches**: Old cache records that were not accessed will be automatically deleted
+4. **Write to file**: The cleaned cache will be written to file
 
-### Triggering Cache Cleanup
+### Usage
 
-Depending on how you use Midscene, cache cleaning is triggered at different times:
-
-**Playwright AI Fixture**: Automatic cleanup
-- When using `PlaywrightAiFixture`, `destroy()` is automatically called when the page closes
-- No manual management needed, cache is automatically cleaned when tests finish
-
-**Direct PuppeteerAgent Creation**: Manual cleanup required
-- When using `new PuppeteerAgent(page, {...})`, you need to manually call `agent.destroy()` to trigger cache cleanup
-- Recommended to call it in test `afterEach`:
+**Call in test afterEach:**
 
 ```javascript
 describe('test suite', () => {
@@ -255,9 +248,9 @@ describe('test suite', () => {
   let agent: PuppeteerAgent;
 
   afterEach(async () => {
-    // Clean agent and cache first
+    // Clean cache and write to file
     if (agent) {
-      await agent.destroy();
+      await agent.flushCache({ cleanUnused: true });
     }
 
     // Then close the page
@@ -278,14 +271,22 @@ describe('test suite', () => {
 });
 ```
 
-**YAML Script Mode**: Automatic cleanup
-- When using YAML scripts, the system automatically calls `destroy()` after script execution
+**For Playwright AI Fixture users:**
+
+```typescript
+test.afterEach(async ({ page, agentForPage }) => {
+  const agent = await agentForPage(page);
+  await agent.flushCache({ cleanUnused: true });
+});
+```
 
 ### Cleanup Behavior by Mode
 
-- **read-write mode**: Auto-clean and write to file
-- **read-only mode**: Clean but requires manual `flushCache()` to persist
+- **read-write mode**: Calling `flushCache({ cleanUnused: true })` will clean and write to file
+- **read-only mode**: Calling `flushCache({ cleanUnused: true })` will also clean and write to file (manual flush overrides read-only restriction)
 - **write-only mode**: No cleanup (does not read cache)
+
+**Note**: If you don't pass `cleanUnused: true` parameter, `flushCache()` will only write to file without cleaning unused caches.
 
 ## FAQ
 

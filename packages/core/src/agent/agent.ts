@@ -1070,11 +1070,6 @@ export class Agent<
       return;
     }
 
-    // Clean unused cache before destroying
-    if (this.taskCache) {
-      this.taskCache.cleanUnusedCache();
-    }
-
     await this.interface.destroy?.();
     this.resetDump(); // reset dump to release memory
     this.destroyed = true;
@@ -1266,16 +1261,12 @@ export class Agent<
    * Manually flush cache to file
    * Only supported in read-only mode where writes are deferred by default
    */
-  async flushCache(): Promise<void> {
+  async flushCache({ cleanUnused }: { cleanUnused: boolean }): Promise<void> {
     if (!this.taskCache) {
       throw new Error('Cache is not configured');
     }
 
-    if (!this.taskCache.readOnlyMode) {
-      throw new Error('flushCache() can only be called in read-only mode');
-    }
-
-    this.taskCache.flushCacheToFile();
+    this.taskCache.flushCacheToFile({ cleanUnused });
   }
 }
 
