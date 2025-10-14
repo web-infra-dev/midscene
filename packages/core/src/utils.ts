@@ -20,7 +20,7 @@ import type { Cache, Rect, ReportDumpWithAttributes } from './types';
 
 let logEnvReady = false;
 
-export { appendFileSync } from 'fs'
+export { appendFileSync } from 'node:fs';
 
 export const groupedActionDumpFileExt = 'web-dump.json';
 
@@ -109,9 +109,9 @@ export function reportHTMLContent(
   dumpData: string | ReportDumpWithAttributes,
   reportPath?: string,
   appendReport?: boolean,
-  withTpl: boolean = true // whether return with report template, default = true
+  withTpl = true, // whether return with report template, default = true
 ): string {
-  let tpl = "";
+  let tpl = '';
   if (withTpl) {
     tpl = getReportTpl();
 
@@ -376,5 +376,3 @@ export function uploadTestInfoToServer({
     lastReportedRepoUrl = repoUrl;
   }
 }
-
-

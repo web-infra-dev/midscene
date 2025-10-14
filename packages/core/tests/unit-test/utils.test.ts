@@ -176,8 +176,8 @@ describe('utils', () => {
       console.log(
         'Memory usage before test:',
         `RSS: ${Math.round(startMemory.rss / 1024 / 1024)}MB, ` +
-        `Heap Total: ${heapTotalBefore}MB, ` +
-        `Heap Used: ${heapUsedBefore}MB`,
+          `Heap Total: ${heapTotalBefore}MB, ` +
+          `Heap Used: ${heapUsedBefore}MB`,
       );
 
       // Store start time
@@ -213,8 +213,8 @@ describe('utils', () => {
       console.log(
         'Memory usage after test:',
         `RSS: ${Math.round(rssAfter)}MB, ` +
-        `Heap Total: ${heapTotalAfter}MB, ` +
-        `Heap Used: ${heapUsedAfter}MB`,
+          `Heap Total: ${heapTotalAfter}MB, ` +
+          `Heap Used: ${heapUsedAfter}MB`,
       );
 
       // Check if file exists
@@ -1542,4 +1542,3 @@ describe('loadActionParam and dumpActionParam integration', () => {
     `);
   });
 });
-

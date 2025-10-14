@@ -44,7 +44,7 @@
       "import": "./dist/es/yaml/index.mjs",
       "require": "./dist/lib/yaml/index.js"
     },
-    "./report":{
+    "./report": {
       "types": "./dist/types/report.d.ts",
       "import": "./dist/es/report.mjs",
       "require": "./dist/lib/report.js"
