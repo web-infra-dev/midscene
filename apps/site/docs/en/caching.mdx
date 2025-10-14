@@ -225,6 +225,68 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 
 In write-only mode, each test will call the AI model and automatically write results to cache file without reading existing cache.
 
+## Cache Cleaning
+
+Midscene automatically cleans unused cache records when an Agent is destroyed, ensuring cache files stay lean and maintainable.
+
+### Automatic Cleaning Mechanism
+
+When `agent.destroy()` is called, the system will:
+
+1. **Keep used caches**: Cache records that were matched and used in the current run will be retained
+2. **Keep new caches**: Cache records newly generated in the current run will be retained
+3. **Remove unused caches**: Old cache records that were not accessed will be automatically deleted
+
+### Triggering Cache Cleanup
+
+Depending on how you use Midscene, cache cleaning is triggered at different times:
+
+**Playwright AI Fixture**: Automatic cleanup
+- When using `PlaywrightAiFixture`, `destroy()` is automatically called when the page closes
+- No manual management needed, cache is automatically cleaned when tests finish
+
+**Direct PuppeteerAgent Creation**: Manual cleanup required
+- When using `new PuppeteerAgent(page, {...})`, you need to manually call `agent.destroy()` to trigger cache cleanup
+- Recommended to call it in test `afterEach`:
+
+```javascript
+describe('test suite', () => {
+  let resetFn: () => Promise<void>;
+  let agent: PuppeteerAgent;
+
+  afterEach(async () => {
+    // Clean agent and cache first
+    if (agent) {
+      await agent.destroy();
+    }
+
+    // Then close the page
+    if (resetFn) {
+      await resetFn();
+    }
+  });
+
+  it('test case', async () => {
+    const { originPage, reset } = await launchPage('https://example.com/');
+    resetFn = reset;
+    agent = new PuppeteerAgent(originPage, {
+      cache: { id: 'my-cache-id' },
+    });
+
+    // ... test logic
+  });
+});
+```
+
+**YAML Script Mode**: Automatic cleanup
+- When using YAML scripts, the system automatically calls `destroy()` after script execution
+
+### Cleanup Behavior by Mode
+
+- **read-write mode**: Auto-clean and write to file
+- **read-only mode**: Clean but requires manual `flushCache()` to persist
+- **write-only mode**: No cleanup (does not read cache)
+
 ## FAQ
 
 ### No cache file is generated
