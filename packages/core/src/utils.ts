@@ -48,14 +48,17 @@ export function processCacheConfig(
     }
 
     if (cache === true) {
-      // cache: true is not supported - must provide explicit ID
-      // Return true to let caller handle the error
-      return true as any;
+      // Auto-generate ID using fallback for CLI/YAML scenarios
+      // Agent will validate and reject this later if needed
+      return { id: fallbackId };
     }
 
     // cache is object configuration
     if (typeof cache === 'object' && cache !== null) {
-      // Return as-is, let caller validate
+      // Auto-generate ID using fallback when missing (for CLI/YAML scenarios)
+      if (!cache.id) {
+        return { ...cache, id: fallbackId };
+      }
       return cache;
     }
   }
