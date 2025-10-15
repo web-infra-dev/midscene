@@ -693,30 +693,33 @@ export const parseActionParam = (
   rawParam: Record<string, any>,
   zodSchema: z.ZodType<any>,
 ): Record<string, any> => {
+  // Handle undefined or null rawParam by providing an empty object
+  const param = rawParam ?? {};
+
   // Find all locate fields in the schema
   const locateFields = findAllMidsceneLocatorField(zodSchema);
 
   // If there are no locate fields, just do normal validation
   if (locateFields.length === 0) {
-    return zodSchema.parse(rawParam);
+    return zodSchema.parse(param);
   }
 
   // Extract locate field values to restore later
   const locateFieldValues: Record<string, any> = {};
   for (const fieldName of locateFields) {
-    if (fieldName in rawParam) {
-      locateFieldValues[fieldName] = rawParam[fieldName];
+    if (fieldName in param) {
+      locateFieldValues[fieldName] = param[fieldName];
     }
   }
 
   // Build params for validation - skip locate fields and use dummy values
   const paramsForValidation: Record<string, any> = {};
-  for (const key in rawParam) {
+  for (const key in param) {
     if (locateFields.includes(key)) {
       // Use dummy value to satisfy schema validation
       paramsForValidation[key] = { prompt: '_dummy_' };
     } else {
-      paramsForValidation[key] = rawParam[key];
+      paramsForValidation[key] = param[key];
     }
   }
 
