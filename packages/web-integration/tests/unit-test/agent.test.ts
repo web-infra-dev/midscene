@@ -8,14 +8,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 declare const __VERSION__: string;
 // Mock only the necessary parts to avoid side effects
-vi.mock('@midscene/core/utils', () => ({
-  writeLogFile: vi.fn(() => null),
-  reportHTMLContent: vi.fn(() => ''),
-  stringifyDumpData: vi.fn(() => '{}'),
-  groupedActionDumpFileExt: '.json',
-  getVersion: () => __VERSION__,
-  sleep: vi.fn(() => Promise.resolve()),
-}));
+vi.mock('@midscene/core/utils', async () => {
+  const actual = await vi.importActual('@midscene/core/utils');
+  return {
+    ...actual,
+    writeLogFile: vi.fn(() => null),
+    reportHTMLContent: vi.fn(() => ''),
+    stringifyDumpData: vi.fn(() => '{}'),
+    groupedActionDumpFileExt: '.json',
+    getVersion: () => __VERSION__,
+    sleep: vi.fn(() => Promise.resolve()),
+  };
+});
 
 vi.mock('@midscene/shared/logger', () => ({
   getDebug: vi.fn(() => vi.fn()),

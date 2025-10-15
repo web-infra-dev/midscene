@@ -37,6 +37,7 @@ import yaml from 'js-yaml';
 
 import {
   groupedActionDumpFileExt,
+  processCacheConfig,
   reportHTMLContent,
   stringifyDumpData,
   writeLogFile,
@@ -49,9 +50,7 @@ import {
 
 import type { AbstractInterface } from '@/device';
 import {
-  MIDSCENE_CACHE,
   ModelConfigManager,
-  globalConfigManager,
   globalModelConfigManager,
 } from '@midscene/shared/env';
 import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
@@ -251,15 +250,15 @@ export class Agent<
     });
 
     // Process cache configuration
-    const cacheConfig = this.processCacheConfig(opts || {});
-    if (cacheConfig) {
+    const cacheConfigObj = this.processCacheConfig(opts || {});
+    if (cacheConfigObj) {
       this.taskCache = new TaskCache(
-        cacheConfig.id,
-        cacheConfig.enabled,
+        cacheConfigObj.id,
+        cacheConfigObj.enabled,
         undefined, // cacheFilePath
         {
-          readOnly: cacheConfig.readOnly,
-          writeOnly: cacheConfig.writeOnly,
+          readOnly: cacheConfigObj.readOnly,
+          writeOnly: cacheConfigObj.writeOnly,
         },
       );
     }
@@ -1190,75 +1189,65 @@ export class Agent<
     readOnly: boolean;
     writeOnly: boolean;
   } | null {
-    // 1. New cache object configuration (highest priority)
-    if (opts.cache !== undefined) {
-      if (opts.cache === false) {
-        return null; // Completely disable cache
-      }
+    // Use the unified utils function to process cache configuration
+    const cacheConfig = processCacheConfig(
+      opts.cache,
+      opts.testId || 'default',
+      opts.cacheId,
+    );
 
-      if (opts.cache === true) {
+    if (!cacheConfig) {
+      return null;
+    }
+
+    // Handle the case where cache is true (should have been handled by utils but let's be safe)
+    if (cacheConfig === true) {
+      throw new Error(
+        'cache: true requires an explicit cache ID. Please provide:\n' +
+          'Example: cache: { id: "my-cache-id" }',
+      );
+    }
+
+    // Handle cache configuration object
+    if (typeof cacheConfig === 'object' && cacheConfig !== null) {
+      const id = cacheConfig.id;
+      const rawStrategy = cacheConfig.strategy as unknown;
+      let strategyValue: string;
+
+      if (!id) {
         throw new Error(
-          'cache: true requires an explicit cache ID. Please provide:\n' +
+          'cache configuration requires an explicit id.\n' +
             'Example: cache: { id: "my-cache-id" }',
         );
       }
 
-      // cache is object configuration
-      if (typeof opts.cache === 'object') {
-        const config = opts.cache;
-        if (!config.id) {
-          throw new Error(
-            'cache configuration requires an explicit id. Please provide:\n' +
-              'Example: cache: { id: "my-cache-id" }',
-          );
-        }
-        const id = config.id;
-        const rawStrategy = config.strategy as unknown;
-        let strategyValue: string;
-
-        if (rawStrategy === undefined) {
-          strategyValue = 'read-write';
-        } else if (typeof rawStrategy === 'string') {
-          strategyValue = rawStrategy;
-        } else {
-          throw new Error(
-            `cache.strategy must be a string when provided, but received type ${typeof rawStrategy}`,
-          );
-        }
-
-        if (!isValidCacheStrategy(strategyValue)) {
-          throw new Error(
-            `cache.strategy must be one of ${CACHE_STRATEGY_VALUES}, but received "${strategyValue}"`,
-          );
-        }
-
-        const isReadOnly = strategyValue === 'read-only';
-        const isWriteOnly = strategyValue === 'write-only';
-
-        return {
-          id,
-          enabled: !isWriteOnly,
-          readOnly: isReadOnly,
-          writeOnly: isWriteOnly,
-        };
+      if (rawStrategy === undefined) {
+        strategyValue = 'read-write';
+      } else if (typeof rawStrategy === 'string') {
+        strategyValue = rawStrategy;
+      } else {
+        throw new Error(
+          `cache.strategy must be a string when provided, but received type ${typeof rawStrategy}`,
+        );
       }
+
+      if (!isValidCacheStrategy(strategyValue)) {
+        throw new Error(
+          `cache.strategy must be one of ${CACHE_STRATEGY_VALUES}, but received "${strategyValue}"`,
+        );
+      }
+
+      const isReadOnly = strategyValue === 'read-only';
+      const isWriteOnly = strategyValue === 'write-only';
+
+      return {
+        id,
+        enabled: !isWriteOnly,
+        readOnly: isReadOnly,
+        writeOnly: isWriteOnly,
+      };
     }
 
-    // 2. Backward compatibility: support old cacheId (requires environment variable)
-    if (opts.cacheId) {
-      const envEnabled =
-        globalConfigManager.getEnvConfigInBoolean(MIDSCENE_CACHE);
-      if (envEnabled) {
-        return {
-          id: opts.cacheId,
-          enabled: true,
-          readOnly: false,
-          writeOnly: false,
-        };
-      }
-    }
-
-    // 3. No cache configuration
     return null;
   }
 
