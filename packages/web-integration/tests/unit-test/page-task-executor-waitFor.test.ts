@@ -275,4 +275,70 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
     expect(result.executor).toBeDefined();
     expect(result.output).toBeUndefined();
   });
+
+  // Bug regression test: https://github.com/web-infra-dev/midscene/issues/XXXX
+  it('should return executor with error info when AI extract returns malformed data (bug fix)', async () => {
+    // This test reproduces the bug where:
+    // 1. aiWaitFor is the first statement
+    // 2. AI returns malformed data (missing StatementIsTruthy field)
+    // 3. Throws "No result in query data" error
+    // 4. Before fix: would throw "executor is in error state, cannot append task"
+    // 5. After fix: should return executor with error information for report generation
+
+    // Spy on createTypeQueryTask
+    const createTypeQueryTaskSpy = vi.spyOn(
+      taskExecutor as any,
+      'createTypeQueryTask',
+    );
+
+    // Mock createTypeQueryTask to return a task that throws "No result in query data" error
+    const mockTask = {
+      type: 'Insight',
+      subType: 'Assert',
+      locate: null,
+      param: {
+        dataDemand: { StatementIsTruthy: 'Boolean, test assertion' },
+      },
+      executor: vi.fn().mockRejectedValue(new Error('No result in query data')),
+    };
+    createTypeQueryTaskSpy.mockResolvedValue(mockTask);
+
+    // Mock the prependExecutorWithScreenshot method
+    vi.spyOn(
+      taskExecutor as any,
+      'prependExecutorWithScreenshot',
+    ).mockImplementation((task) => task);
+
+    // Call waitFor method
+    const result = await taskExecutor.waitFor(
+      'Add Task button is displayed',
+      {
+        timeoutMs: 6000,
+        checkIntervalMs: 2000,
+      },
+      mockedModelConfig,
+    );
+
+    // Verify that the result contains an executor
+    expect(result.executor).toBeDefined();
+
+    // Verify that the executor is in error state
+    expect(result.executor.isInErrorState()).toBe(true);
+
+    // Verify that the executor has error task information
+    const errorTask = result.executor.latestErrorTask();
+    expect(errorTask).toBeDefined();
+    expect(errorTask?.errorMessage).toContain('No result in query data');
+
+    // Verify that executor can generate dump for report
+    const dump = result.executor.dump();
+    expect(dump).toBeDefined();
+    expect(dump.tasks).toBeDefined();
+    expect(dump.tasks.length).toBeGreaterThan(0);
+
+    // Verify that at least one task failed
+    const failedTask = dump.tasks.find((task: any) => task.status === 'failed');
+    expect(failedTask).toBeDefined();
+    expect(failedTask?.errorMessage).toContain('No result in query data');
+  });
 });
