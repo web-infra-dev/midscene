@@ -26,8 +26,10 @@ export function sleep(ms: number) {
 
 export function fakeInsight(content: string) {
   const screenshot = getFixture('baidu.png');
+  const screenshotBase64 = localImg2Base64(screenshot);
   const basicContext = {
-    screenshotBase64: localImg2Base64(screenshot),
+    screenshotBase64,
+    screenshotBase64List: [screenshotBase64],
     size: { width: 1920, height: 1080 },
     content: [
       {
