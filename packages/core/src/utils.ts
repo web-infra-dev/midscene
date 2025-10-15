@@ -313,7 +313,7 @@ export async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function replacerForPageObject(key: string, value: any) {
+export function replacerForPageObject(_key: string, value: any) {
   if (value && value.constructor?.name === 'Page') {
     return '[Page object]';
   }
