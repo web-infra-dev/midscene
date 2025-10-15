@@ -957,3 +957,211 @@ await agent.aiAssert({
 **Notes on Image Size**
 
 When prompting with images, it is necessary to pay attention to the requirements of the AI model provider regarding the size and dimensions of the images. Images that are too large (such as exceeding 10M) or too small (such as being less than 10 pixels) may cause errors when the model is invoked. The specific restrictions should be based on the documentation provided by the AI model provider you are using.
+
+## Automation Report Merging
+
+When running multiple automation workflows, each agent generates its own report file. The `ReportMergingTool` provides the ability to merge multiple automation reports into a single report for unified viewing and management of automation results.
+
+### `new ReportMergingTool()`
+
+Create a report merging tool instance.
+
+```typescript
+import { ReportMergingTool } from '@midscene/core/report';
+
+const reportMergingTool = new ReportMergingTool();
+```
+
+### `.append()`
+
+Add an automation report to the list of reports to be merged.
+
+- Type
+
+```typescript
+function append(reportInfo: ReportFileWithAttributes): void;
+```
+
+- Parameters:
+
+  - `reportInfo: ReportFileWithAttributes` - Report information object containing:
+    - `reportFilePath: string` - Path to the report file
+    - `reportAttributes: object` - Report attributes
+      - `testId: string` - Unique identifier for the automation workflow
+      - `testTitle: string` - Automation workflow title
+      - `testDescription: string` - Automation workflow description
+      - `testDuration: number` - Automation execution duration (in milliseconds)
+      - `testStatus: TestStatus` - Automation status, options: `'passed' | 'failed' | 'skipped' | 'timedOut'`
+
+- Examples:
+
+```typescript
+reportMergingTool.append({
+  reportFilePath: agent.reportFile as string,
+  reportAttributes: {
+    testId: 'automation-001',
+    testTitle: 'Login Automation',
+    testDescription: 'Automated user login workflow',
+    testDuration: 5000,
+    testStatus: 'passed',
+  },
+});
+```
+
+### `.mergeReports()`
+
+Merge all added reports into a single report file.
+
+- Type
+
+```typescript
+function mergeReports(
+  reportFileName?: 'AUTO' | string,
+  opts?: {
+    rmOriginalReports?: boolean;
+    overwrite?: boolean;
+  },
+): string | null;
+```
+
+- Parameters:
+
+  - `reportFileName?: 'AUTO' | string` - Report filename (optional)
+    - If `'AUTO'` or not specified, a filename will be automatically generated
+    - If a custom name is provided, it will be used as the report filename
+  - `opts?: object` - Optional configuration object containing:
+    - `rmOriginalReports?: boolean` - Whether to delete the original report files after merging (default: false)
+    - `overwrite?: boolean` - Whether to overwrite if the report file already exists (default: false)
+
+- Return Value:
+
+  - Returns the path to the merged report file on success, or `null` if there are not enough reports to merge (less than 2 reports)
+
+- Examples:
+
+```typescript
+// Automatically generate report filename
+const reportPath = reportMergingTool.mergeReports();
+
+// Custom report filename
+const reportPath = reportMergingTool.mergeReports('my-test-report');
+
+// Merge and delete original reports
+const reportPath = reportMergingTool.mergeReports('my-test-report', {
+  rmOriginalReports: true,
+});
+```
+
+### `.clear()`
+
+Clear all added report information.
+
+- Type
+
+```typescript
+function clear(): void;
+```
+
+- Examples:
+
+```typescript
+reportMergingTool.clear();
+```
+
+### Complete Example
+
+Here's a complete example using Vitest + AndroidAgent:
+
+```typescript
+import {
+  AndroidAgent,
+  AndroidDevice,
+  getConnectedDevices,
+} from '@midscene/android';
+import type { TestStatus } from '@midscene/core';
+import { ReportMergingTool } from '@midscene/core/report';
+import { sleep } from '@midscene/core/utils';
+import type ADB from 'appium-adb';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  it,
+} from 'vitest';
+
+describe('Android Settings Test', () => {
+  let page: AndroidDevice;
+  let adb: ADB;
+  let agent: AndroidAgent;
+  let startTime: number;
+  let itTestStatus: TestStatus = 'passed';
+  const reportMergingTool = new ReportMergingTool();
+
+  beforeAll(async () => {
+    const devices = await getConnectedDevices();
+    page = new AndroidDevice(devices[0].udid);
+    adb = await page.getAdb();
+  });
+
+  beforeEach((ctx) => {
+    startTime = performance.now();
+    agent = new AndroidAgent(page, {
+      groupName: ctx.task.name,
+    });
+  });
+
+  afterEach((ctx) => {
+    if (ctx.task.result?.state === 'pass') {
+      itTestStatus = 'passed';
+    } else if (ctx.task.result?.state === 'skip') {
+      itTestStatus = 'skipped';
+    } else if (ctx.task.result?.errors?.[0].message.includes('timed out')) {
+      itTestStatus = 'timedOut';
+    } else {
+      itTestStatus = 'failed';
+    }
+    reportMergingTool.append({
+      reportFilePath: agent.reportFile as string,
+      reportAttributes: {
+        testId: `${ctx.task.name}`,
+        testTitle: `${ctx.task.name}`,
+        testDescription: 'description',
+        testDuration: (Date.now() - ctx.task.result?.startTime!) | 0,
+        testStatus: itTestStatus,
+      },
+    });
+  });
+
+  afterAll(() => {
+    reportMergingTool.mergeReports('my-android-setting-test-report');
+  });
+
+  it('toggle wlan', async () => {
+    await adb.shell('input keyevent KEYCODE_HOME');
+    await sleep(1000);
+    await adb.shell('am start -n com.android.settings/.Settings');
+    await sleep(1000);
+    await agent.aiAction('find and enter WLAN setting');
+    await agent.aiAction(
+      'toggle WLAN status *once*, if WLAN is off pls turn it on, otherwise turn it off.',
+    );
+  });
+
+  it('toggle bluetooth', async () => {
+    await adb.shell('input keyevent KEYCODE_HOME');
+    await sleep(1000);
+    await adb.shell('am start -n com.android.settings/.Settings');
+    await sleep(1000);
+    await agent.aiAction('find and enter bluetooth setting');
+    await agent.aiAction(
+      'toggle bluetooth status *once*, if bluetooth is off pls turn it on, otherwise turn it off.',
+    );
+  });
+});
+```
+
+:::tip
+The merged report file will be saved in the `midscene_run/report` directory by default. You can customize the report directory location by setting the `MIDSCENE_RUN_DIR` environment variable.
+:::

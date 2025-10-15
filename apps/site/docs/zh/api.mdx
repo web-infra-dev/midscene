@@ -965,3 +965,224 @@ await agent.aiAssert({
 **图片尺寸的注意事项**
 
 在提示词中使用图片时，可能需要关注模型提供商对图片体积和尺寸的要求，过大（比如超过 10M）或过小（比如小于 10 像素）的图片都有可能导致模型调用时出现报错，具体的限制请以你所使用模型提供商的文档为准。
+
+## 自动化报告合并
+
+在运行多个自动化工作流时，每个 agent 都会生成独立的报告文件。`ReportMergingTool` 提供了将多个自动化报告合并为单个报告的能力，便于统一查看和管理自动化结果。
+
+### 使用场景
+
+- 在自动化套件中运行多个工作流，希望生成一个统一的报告
+- 跨平台自动化(如 Web 和 Android)需要合并不同平台的自动化结果
+- CI/CD 流程中需要生成汇总的自动化报告
+
+### `new ReportMergingTool()`
+
+创建一个报告合并工具实例。
+
+- 示例:
+
+```typescript
+import { ReportMergingTool } from '@midscene/core/report';
+
+const reportMergingTool = new ReportMergingTool();
+```
+
+### `.append()`
+
+将自动化报告添加到待合并列表中。通常在每个自动化工作流结束后调用此方法。
+
+- 类型
+
+```typescript
+function append(reportInfo: ReportFileWithAttributes): void;
+```
+
+- 参数:
+
+  - `reportInfo: ReportFileWithAttributes` - 报告信息对象，包含:
+    - `reportFilePath: string` - 报告文件的路径，通常是 `agent.reportFile`
+    - `reportAttributes: object` - 报告属性
+      - `testId: string` - 自动化工作流的唯一标识符
+      - `testTitle: string` - 自动化工作流标题
+      - `testDescription: string` - 自动化工作流描述
+      - `testDuration: number` - 自动化工作流执行时长(毫秒)
+      - `testStatus: 'passed' | 'failed' | 'timedOut' | 'skipped' | 'interrupted'` - 自动化状态
+
+- 返回值:
+
+  - `void`
+
+- 示例:
+
+```typescript
+// 在 afterEach 钩子中添加报告
+afterEach((ctx) => {
+  let workflowStatus = 'passed';
+  if (ctx.task.result?.state === 'fail') {
+    workflowStatus = 'failed';
+  }
+
+  reportMergingTool.append({
+    reportFilePath: agent.reportFile as string,
+    reportAttributes: {
+      testId: ctx.task.name,
+      testTitle: ctx.task.name,
+      testDescription: '自动化工作流描述',
+      testDuration: Date.now() - startTime,
+      testStatus: workflowStatus,
+    },
+  });
+});
+```
+
+### `.mergeReports()`
+
+执行报告合并操作，将所有添加的报告合并为一个 HTML 文件。
+
+- 类型
+
+```typescript
+function mergeReports(
+  reportFileName?: 'AUTO' | string,
+  opts?: {
+    rmOriginalReports?: boolean;
+    overwrite?: boolean;
+  },
+): string | null;
+```
+
+- 参数:
+
+  - `reportFileName?: 'AUTO' | string` - 合并后的报告文件名
+    - 默认为 `'AUTO'`，自动生成文件名
+    - 可以指定自定义文件名(不需要 `.html` 后缀)
+  - `opts?: object` - 可选配置对象
+    - `rmOriginalReports?: boolean` - 是否删除原始报告文件,默认为 `false`
+    - `overwrite?: boolean` - 如果目标文件已存在是否覆盖，默认为 `false`
+
+- 返回值:
+
+  - 成功时返回合并后的报告文件路径
+  - 如果报告数量不足(少于 2 个)，返回 `null`
+
+- 示例:
+
+```typescript
+// 基本用法 - 使用自动生成的文件名
+afterAll(() => {
+  reportMergingTool.mergeReports();
+});
+
+// 指定自定义文件名
+afterAll(() => {
+  reportMergingTool.mergeReports('my-automation-report');
+});
+
+// 合并后删除原始报告
+afterAll(() => {
+  reportMergingTool.mergeReports('my-automation-report', {
+    rmOriginalReports: true,
+  });
+});
+
+// 覆盖已存在的报告文件
+afterAll(() => {
+  reportMergingTool.mergeReports('my-automation-report', {
+    overwrite: true,
+  });
+});
+```
+
+### `.clear()`
+
+清空待合并的报告列表。如果需要在同一个实例中进行多次合并操作,可以使用此方法清空之前的报告列表。
+
+- 类型
+
+```typescript
+function clear(): void;
+```
+
+- 返回值:
+
+  - `void`
+
+- 示例:
+
+```typescript
+reportMergingTool.mergeReports('first-batch');
+reportMergingTool.clear(); // 清空列表
+// 继续添加新的报告...
+```
+
+### 完整示例
+
+以下是在 Vitest 框架中使用 `ReportMergingTool` 的完整示例:
+
+```typescript
+import { describe, it, beforeEach, afterEach, afterAll } from 'vitest';
+import { AndroidAgent, AndroidDevice } from '@midscene/android';
+import { ReportMergingTool } from '@midscene/core/report';
+
+describe('Android 设置自动化', () => {
+  let device: AndroidDevice;
+  let agent: AndroidAgent;
+  let startTime: number;
+  const reportMergingTool = new ReportMergingTool();
+
+  beforeEach((ctx) => {
+    startTime = performance.now();
+    agent = new AndroidAgent(device, {
+      groupName: ctx.task.name,
+    });
+  });
+
+  afterEach((ctx) => {
+    // 确定自动化状态
+    let workflowStatus = 'passed';
+    if (ctx.task.result?.state === 'pass') {
+      workflowStatus = 'passed';
+    } else if (ctx.task.result?.state === 'skip') {
+      workflowStatus = 'skipped';
+    } else if (ctx.task.result?.errors?.[0]?.message.includes('timed out')) {
+      workflowStatus = 'timedOut';
+    } else {
+      workflowStatus = 'failed';
+    }
+
+    // 添加报告到合并列表
+    reportMergingTool.append({
+      reportFilePath: agent.reportFile as string,
+      reportAttributes: {
+        testId: ctx.task.name,
+        testTitle: ctx.task.name,
+        testDescription: '自动化工作流描述',
+        testDuration: (Date.now() - ctx.task.result?.startTime!) | 0,
+        testStatus: workflowStatus,
+      },
+    });
+  });
+
+  afterAll(() => {
+    // 合并所有自动化报告
+    reportMergingTool.mergeReports('android-settings-automation-report');
+  });
+
+  it('切换 WLAN', async () => {
+    await agent.aiAction('找到并进入 WLAN 设置');
+    await agent.aiAction('切换 WLAN 状态一次');
+  });
+
+  it('切换蓝牙', async () => {
+    await agent.aiAction('找到并进入蓝牙设置');
+    await agent.aiAction('切换蓝牙状态一次');
+  });
+});
+```
+
+:::tip
+
+合并后的报告文件会保存在 `midscene_run/report` 目录下。你可以使用浏览器打开合并后的 HTML 文件查看所有自动化工作流的执行情况。
+
+:::

@@ -34,6 +34,7 @@ export default defineConfig({
     include: testFiles,
     testTimeout: 3 * 60 * 1000, // Global timeout set to 10 seconds
     dangerouslyIgnoreUnhandledErrors: !!process.env.CI, // showcase.test.ts is not stable
+    fileParallelism: false, // disable parallel file test
   },
   define: {
     __VERSION__: `'${version}'`,

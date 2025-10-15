@@ -609,3 +609,21 @@ export interface AgentOpt {
   cache?: Cache;
   replanningCycleLimit?: number;
 }
+
+export type TestStatus =
+  | 'passed'
+  | 'failed'
+  | 'timedOut'
+  | 'skipped'
+  | 'interrupted';
+
+export interface ReportFileWithAttributes {
+  reportFilePath: string;
+  reportAttributes: {
+    testDuration: number;
+    testStatus: TestStatus;
+    testTitle: string;
+    testId: string;
+    testDescription: string;
+  };
+}

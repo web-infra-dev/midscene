@@ -20,6 +20,8 @@ import type { Cache, Rect, ReportDumpWithAttributes } from './types';
 
 let logEnvReady = false;
 
+export { appendFileSync } from 'node:fs';
+
 export const groupedActionDumpFileExt = 'web-dump.json';
 
 /**
@@ -60,7 +62,7 @@ const reportInitializedMap = new Map<string, boolean>();
 
 declare const __DEV_REPORT_PATH__: string;
 
-function getReportTpl() {
+export function getReportTpl() {
   if (typeof __DEV_REPORT_PATH__ === 'string' && __DEV_REPORT_PATH__) {
     return fs.readFileSync(__DEV_REPORT_PATH__, 'utf-8');
   }
@@ -107,14 +109,17 @@ export function reportHTMLContent(
   dumpData: string | ReportDumpWithAttributes,
   reportPath?: string,
   appendReport?: boolean,
+  withTpl = true, // whether return with report template, default = true
 ): string {
-  const tpl = getReportTpl();
+  let tpl = '';
+  if (withTpl) {
+    tpl = getReportTpl();
 
-  if (!tpl) {
-    console.warn('reportTpl is not set, will not write report');
-    return '';
+    if (!tpl) {
+      console.warn('reportTpl is not set, will not write report');
+      return '';
+    }
   }
-
   // if reportPath is set, it means we are in write to file mode
   const writeToFile = reportPath && !ifInBrowser;
   let dumpContent = '';
@@ -200,7 +205,7 @@ export function writeDumpReport(
 export function writeLogFile(opts: {
   fileName: string;
   fileExt: string;
-  fileContent: string;
+  fileContent: string | ReportDumpWithAttributes;
   type: 'dump' | 'cache' | 'report' | 'tmp';
   generateReport?: boolean;
   appendReport?: boolean;
@@ -242,7 +247,7 @@ export function writeLogFile(opts: {
 
   if (type !== 'dump') {
     // do not write dump file any more
-    writeFileSync(filePath, fileContent);
+    writeFileSync(filePath, JSON.stringify(fileContent));
   }
 
   if (opts?.generateReport) {
