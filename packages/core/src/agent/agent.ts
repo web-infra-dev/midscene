@@ -1189,6 +1189,28 @@ export class Agent<
     readOnly: boolean;
     writeOnly: boolean;
   } | null {
+    // Validate original cache config before processing
+    // Agent requires explicit IDs - don't allow auto-generation
+    if (opts.cache === true) {
+      throw new Error(
+        'cache: true requires an explicit cache ID. Please provide:\n' +
+          'Example: cache: { id: "my-cache-id" }',
+      );
+    }
+
+    // Check if cache config object is missing ID
+    if (
+      opts.cache &&
+      typeof opts.cache === 'object' &&
+      opts.cache !== null &&
+      !opts.cache.id
+    ) {
+      throw new Error(
+        'cache configuration requires an explicit id.\n' +
+          'Example: cache: { id: "my-cache-id" }',
+      );
+    }
+
     // Use the unified utils function to process cache configuration
     const cacheConfig = processCacheConfig(
       opts.cache,
@@ -1200,26 +1222,11 @@ export class Agent<
       return null;
     }
 
-    // Handle the case where cache is true (should have been handled by utils but let's be safe)
-    if (cacheConfig === true) {
-      throw new Error(
-        'cache: true requires an explicit cache ID. Please provide:\n' +
-          'Example: cache: { id: "my-cache-id" }',
-      );
-    }
-
     // Handle cache configuration object
     if (typeof cacheConfig === 'object' && cacheConfig !== null) {
       const id = cacheConfig.id;
       const rawStrategy = cacheConfig.strategy as unknown;
       let strategyValue: string;
-
-      if (!id) {
-        throw new Error(
-          'cache configuration requires an explicit id.\n' +
-            'Example: cache: { id: "my-cache-id" }',
-        );
-      }
 
       if (rawStrategy === undefined) {
         strategyValue = 'read-write';
