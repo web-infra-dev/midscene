@@ -177,6 +177,11 @@ export class TaskExecutor {
         thought: plan.thought,
         executor: async (param, taskContext) => {
           const { task } = taskContext;
+
+          // Initialize recorder early to ensure it's set before any error
+          const recorder: ExecutionRecorderItem[] = [];
+          task.recorder = recorder;
+
           assert(
             param?.prompt || param?.id || param?.bbox,
             `No prompt or id or position or bbox to locate, param=${JSON.stringify(
@@ -213,7 +218,7 @@ export class TaskExecutor {
             screenshot: uiContext.screenshotBase64,
             timing: 'before Insight',
           };
-          task.recorder = [recordItem];
+          recorder.push(recordItem);
 
           // try matching xpath
           const elementFromXpath =
@@ -384,7 +389,15 @@ export class TaskExecutor {
             param: plan.param,
             thought: plan.thought || plan.param?.thought,
             locate: plan.locate,
-            executor: async () => {
+            executor: async (param, taskContext) => {
+              const { task } = taskContext;
+
+              // Initialize recorder and add screenshot
+              const recorder: ExecutionRecorderItem[] = [];
+              task.recorder = recorder;
+              const shot = await this.recordScreenshot('before Error');
+              recorder.push(shot);
+
               throw new Error(
                 plan?.thought || plan.param?.thought || 'error without thought',
               );
@@ -398,7 +411,15 @@ export class TaskExecutor {
           param: null,
           thought: plan.thought,
           locate: plan.locate,
-          executor: async (param) => {},
+          executor: async (param, taskContext) => {
+            const { task } = taskContext;
+
+            // Initialize recorder and add screenshot
+            const recorder: ExecutionRecorderItem[] = [];
+            task.recorder = recorder;
+            const shot = await this.recordScreenshot('before Finished');
+            recorder.push(shot);
+          },
         };
         tasks.push(taskActionFinished);
       } else if (plan.type === 'Sleep') {
@@ -409,7 +430,15 @@ export class TaskExecutor {
             param: plan.param,
             thought: plan.thought,
             locate: plan.locate,
-            executor: async (taskParam) => {
+            executor: async (taskParam, taskContext) => {
+              const { task } = taskContext;
+
+              // Initialize recorder and add screenshot
+              const recorder: ExecutionRecorderItem[] = [];
+              task.recorder = recorder;
+              const shot = await this.recordScreenshot('before Sleep');
+              recorder.push(shot);
+
               await sleep(taskParam?.timeMs || 3000);
             },
           };
@@ -465,12 +494,19 @@ export class TaskExecutor {
           any,
           { success: boolean; action: string; param: any },
           void
-        > = {
+        > & { _isLastAction?: boolean } = {
           type: 'Action',
           subType: planType,
           thought: plan.thought,
           param: plan.param,
+          _isLastAction: false, // will be set to true for last action in wrappedTasks
           executor: async (param, context) => {
+            const { task } = context;
+
+            // Initialize recorder early to ensure it's set before any error
+            const recorder: ExecutionRecorderItem[] = [];
+            task.recorder = recorder;
+
             debug(
               'executing action',
               planType,
@@ -479,8 +515,18 @@ export class TaskExecutor {
             );
 
             // Get context for actionSpace operations to ensure size info is available
+            const shotTime = Date.now();
             const uiContext = await this.insight.contextRetrieverFn('locate');
             context.task.uiContext = uiContext;
+
+            // Add screenshot to recorder
+            const recordItem: ExecutionRecorderItem = {
+              type: 'screenshot',
+              ts: shotTime,
+              screenshot: uiContext.screenshotBase64,
+              timing: 'before Action',
+            };
+            recorder.push(recordItem);
 
             requiredLocateFields.forEach((field) => {
               assert(
@@ -540,6 +586,13 @@ export class TaskExecutor {
                 { cause: originalError },
               );
             }
+
+            // Add post-action screenshot if this is the last action
+            if ((context.task as any)._isLastAction) {
+              const shot2 = await this.recordScreenshot('after Action');
+              recorder.push(shot2);
+            }
+
             // Return a proper result for report generation
             return {
               output: {
@@ -555,12 +608,13 @@ export class TaskExecutor {
     }
 
     const wrappedTasks = tasks.map(
-      (task: ExecutionTaskApply, index: number) => {
-        if (task.type === 'Action') {
-          return this.prependExecutorWithScreenshot(
-            task,
-            index === tasks.length - 1,
-          );
+      (
+        task: ExecutionTaskApply & { _isLastAction?: boolean },
+        index: number,
+      ) => {
+        // Mark the last Action task to add post-action screenshot
+        if (task.type === 'Action' && index === tasks.length - 1) {
+          task._isLastAction = true;
         }
         return task;
       },
@@ -884,6 +938,11 @@ export class TaskExecutor {
       },
       executor: async (param, taskContext) => {
         const { task } = taskContext;
+
+        // Initialize recorder early to ensure it's set before any error
+        const recorder: ExecutionRecorderItem[] = [];
+        task.recorder = recorder;
+
         let insightDump: InsightDump | undefined;
         const dumpCollector: DumpSubscriber = (dump) => {
           insightDump = dump;
@@ -901,7 +960,7 @@ export class TaskExecutor {
           screenshot: uiContext.screenshotBase64,
           timing: 'before Extract',
         };
-        task.recorder = [recordItem];
+        recorder.push(recordItem);
 
         const ifTypeRestricted = type !== 'Query';
         let demandInput = demand;
@@ -974,7 +1033,7 @@ export class TaskExecutor {
       multimodalPrompt,
     );
 
-    await taskExecutor.append(this.prependExecutorWithScreenshot(queryTask));
+    await taskExecutor.append(queryTask);
     const result = await taskExecutor.flush();
 
     if (!result) {
@@ -1023,7 +1082,7 @@ export class TaskExecutor {
       [errorPlan],
       modelConfig,
     );
-    await taskExecutor.append(this.prependExecutorWithScreenshot(tasks[0]));
+    await taskExecutor.append(tasks[0]);
     await taskExecutor.flush();
 
     return {
@@ -1046,7 +1105,7 @@ export class TaskExecutor {
       modelConfig,
     );
 
-    return this.prependExecutorWithScreenshot(sleepTasks[0]);
+    return sleepTasks[0];
   }
 
   async waitFor(
@@ -1087,7 +1146,7 @@ export class TaskExecutor {
         multimodalPrompt,
       );
 
-      await taskExecutor.append(this.prependExecutorWithScreenshot(queryTask));
+      await taskExecutor.append(queryTask);
       const result = (await taskExecutor.flush()) as {
         output: boolean;
         thought?: string;
