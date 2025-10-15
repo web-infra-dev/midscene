@@ -69,6 +69,7 @@ export type AndroidDeviceOpt = {
   usePhysicalDisplayIdForDisplayLookup?: boolean;
   customActions?: DeviceAction<any>[];
   screenshotResizeScale?: number;
+  alwaysFetchScreenInfo?: boolean; // If true, always fetch screen size and orientation from device on each call; if false (default), cache the first result
 } & AndroidDeviceInputOpt;
 
 export class AndroidDevice implements AbstractInterface {
@@ -82,6 +83,12 @@ export class AndroidDevice implements AbstractInterface {
   private destroyed = false;
   private description: string | undefined;
   private customActions?: DeviceAction<any>[];
+  private cachedScreenSize: {
+    override: string;
+    physical: string;
+    orientation: number;
+  } | null = null;
+  private cachedOrientation: number | null = null;
   interfaceType: InterfaceType = 'android';
   uri: string | undefined;
   options?: AndroidDeviceOpt;
@@ -516,6 +523,12 @@ ${Object.keys(size)
     physical: string;
     orientation: number; // 0=portrait, 1=landscape, 2=reverse portrait, 3=reverse landscape
   }> {
+    // Return cached value if not always fetching and cache exists
+    const shouldCache = !(this.options?.alwaysFetchScreenInfo ?? false);
+    if (shouldCache && this.cachedScreenSize) {
+      return this.cachedScreenSize;
+    }
+
     const adb = await this.getAdb();
 
     // If we have an displayId, try to get size from display info
@@ -550,11 +563,18 @@ ${Object.keys(size)
                   `Using display info for long ID ${physicalDisplayId}: ${sizeStr}, rotation: ${rotation}`,
                 );
 
-                return {
+                const result = {
                   override: sizeStr,
                   physical: sizeStr,
                   orientation: rotation,
                 };
+
+                // Cache the result if caching is enabled
+                if (shouldCache) {
+                  this.cachedScreenSize = result;
+                }
+
+                return result;
               }
             }
           }
@@ -581,11 +601,18 @@ ${Object.keys(size)
                 `Using display info for display ID ${this.options.displayId}: ${sizeStr}, rotation: ${rotation}`,
               );
 
-              return {
+              const result = {
                 override: sizeStr,
                 physical: sizeStr,
                 orientation: rotation,
               };
+
+              // Cache the result if caching is enabled
+              if (shouldCache) {
+                this.cachedScreenSize = result;
+              }
+
+              return result;
             }
           }
         }
@@ -628,7 +655,14 @@ ${Object.keys(size)
     const orientation = await this.getDisplayOrientation();
 
     if (size.override || size.physical) {
-      return { ...size, orientation };
+      const result = { ...size, orientation };
+
+      // Cache the result if caching is enabled
+      if (shouldCache) {
+        this.cachedScreenSize = result;
+      }
+
+      return result;
     }
 
     throw new Error(`Failed to get screen size, output: ${stdout}`);
@@ -703,6 +737,12 @@ ${Object.keys(size)
   }
 
   async getDisplayOrientation(): Promise<number> {
+    // Return cached value if not always fetching and cache exists
+    const shouldCache = !(this.options?.alwaysFetchScreenInfo ?? false);
+    if (shouldCache && this.cachedOrientation !== null) {
+      return this.cachedOrientation;
+    }
+
     const adb = await this.getAdb();
     let orientation = 0;
 
@@ -738,6 +778,11 @@ ${Object.keys(size)
         orientation = 0;
         debugDevice('Failed to get orientation from display, default to 0');
       }
+    }
+
+    // Cache the result if caching is enabled
+    if (shouldCache) {
+      this.cachedOrientation = orientation;
     }
 
     return orientation;

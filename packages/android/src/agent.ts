@@ -45,6 +45,7 @@ export async function agentFromAdbDevice(
     usePhysicalDisplayIdForDisplayLookup:
       opts?.usePhysicalDisplayIdForDisplayLookup,
     screenshotResizeScale: opts?.screenshotResizeScale,
+    alwaysFetchScreenInfo: opts?.alwaysFetchScreenInfo,
   });
 
   await device.connect();
