@@ -966,15 +966,15 @@ await agent.aiAssert({
 
 在提示词中使用图片时，可能需要关注模型提供商对图片体积和尺寸的要求，过大（比如超过 10M）或过小（比如小于 10 像素）的图片都有可能导致模型调用时出现报错，具体的限制请以你所使用模型提供商的文档为准。
 
-## 测试报告合并
+## 自动化报告合并
 
-在运行多个测试用例时，每个测试都会生成独立的报告文件。`ReportMergingTool` 提供了将多个测试报告合并为单个报告的能力，便于统一查看和管理测试结果。
+在运行多个自动化工作流时，每个 agent 都会生成独立的报告文件。`ReportMergingTool` 提供了将多个自动化报告合并为单个报告的能力，便于统一查看和管理自动化结果。
 
 ### 使用场景
 
-- 在测试套件中运行多个测试用例，希望生成一个统一的测试报告
-- 跨平台测试(如 Web 和 Android)需要合并不同平台的测试结果
-- CI/CD 流程中需要生成汇总的测试报告
+- 在自动化套件中运行多个工作流，希望生成一个统一的报告
+- 跨平台自动化(如 Web 和 Android)需要合并不同平台的自动化结果
+- CI/CD 流程中需要生成汇总的自动化报告
 
 ### `new ReportMergingTool()`
 
@@ -990,7 +990,7 @@ const reportMergingTool = new ReportMergingTool();
 
 ### `.append()`
 
-将报告添加到待合并列表中。通常在每个测试用例结束后调用此方法。
+将自动化报告添加到待合并列表中。通常在每个自动化工作流结束后调用此方法。
 
 - 类型
 
@@ -1003,11 +1003,11 @@ function append(reportInfo: ReportFileWithAttributes): void;
   - `reportInfo: ReportFileWithAttributes` - 报告信息对象，包含:
     - `reportFilePath: string` - 报告文件的路径，通常是 `agent.reportFile`
     - `reportAttributes: object` - 报告属性
-      - `testId: string` - 测试用例的唯一标识符
-      - `testTitle: string` - 测试用例标题
-      - `testDescription: string` - 测试用例描述
-      - `testDuration: number` - 测试用例执行时长(毫秒)
-      - `testStatus: 'passed' | 'failed' | 'timedOut' | 'skipped' | 'interrupted'` - 测试状态
+      - `testId: string` - 自动化工作流的唯一标识符
+      - `testTitle: string` - 自动化工作流标题
+      - `testDescription: string` - 自动化工作流描述
+      - `testDuration: number` - 自动化工作流执行时长(毫秒)
+      - `testStatus: 'passed' | 'failed' | 'timedOut' | 'skipped' | 'interrupted'` - 自动化状态
 
 - 返回值:
 
@@ -1018,9 +1018,9 @@ function append(reportInfo: ReportFileWithAttributes): void;
 ```typescript
 // 在 afterEach 钩子中添加报告
 afterEach((ctx) => {
-  let testStatus = 'passed';
+  let workflowStatus = 'passed';
   if (ctx.task.result?.state === 'fail') {
-    testStatus = 'failed';
+    workflowStatus = 'failed';
   }
 
   reportMergingTool.append({
@@ -1028,9 +1028,9 @@ afterEach((ctx) => {
     reportAttributes: {
       testId: ctx.task.name,
       testTitle: ctx.task.name,
-      testDescription: '测试描述',
+      testDescription: '自动化工作流描述',
       testDuration: Date.now() - startTime,
-      testStatus: testStatus,
+      testStatus: workflowStatus,
     },
   });
 });
@@ -1076,19 +1076,19 @@ afterAll(() => {
 
 // 指定自定义文件名
 afterAll(() => {
-  reportMergingTool.mergeReports('my-test-report');
+  reportMergingTool.mergeReports('my-automation-report');
 });
 
 // 合并后删除原始报告
 afterAll(() => {
-  reportMergingTool.mergeReports('my-test-report', {
+  reportMergingTool.mergeReports('my-automation-report', {
     rmOriginalReports: true,
   });
 });
 
 // 覆盖已存在的报告文件
 afterAll(() => {
-  reportMergingTool.mergeReports('my-test-report', {
+  reportMergingTool.mergeReports('my-automation-report', {
     overwrite: true,
   });
 });
@@ -1118,14 +1118,14 @@ reportMergingTool.clear(); // 清空列表
 
 ### 完整示例
 
-以下是在 Vitest 测试框架中使用 `ReportMergingTool` 的完整示例:
+以下是在 Vitest 框架中使用 `ReportMergingTool` 的完整示例:
 
 ```typescript
 import { describe, it, beforeEach, afterEach, afterAll } from 'vitest';
 import { AndroidAgent, AndroidDevice } from '@midscene/android';
 import { ReportMergingTool } from '@midscene/core/report';
 
-describe('Android 设置测试', () => {
+describe('Android 设置自动化', () => {
   let device: AndroidDevice;
   let agent: AndroidAgent;
   let startTime: number;
@@ -1139,16 +1139,16 @@ describe('Android 设置测试', () => {
   });
 
   afterEach((ctx) => {
-    // 确定测试状态
-    let testStatus = 'passed';
+    // 确定自动化状态
+    let workflowStatus = 'passed';
     if (ctx.task.result?.state === 'pass') {
-      testStatus = 'passed';
+      workflowStatus = 'passed';
     } else if (ctx.task.result?.state === 'skip') {
-      testStatus = 'skipped';
+      workflowStatus = 'skipped';
     } else if (ctx.task.result?.errors?.[0]?.message.includes('timed out')) {
-      testStatus = 'timedOut';
+      workflowStatus = 'timedOut';
     } else {
-      testStatus = 'failed';
+      workflowStatus = 'failed';
     }
 
     // 添加报告到合并列表
@@ -1157,16 +1157,16 @@ describe('Android 设置测试', () => {
       reportAttributes: {
         testId: ctx.task.name,
         testTitle: ctx.task.name,
-        testDescription: '测试描述',
+        testDescription: '自动化工作流描述',
         testDuration: (Date.now() - ctx.task.result?.startTime!) | 0,
-        testStatus: testStatus,
+        testStatus: workflowStatus,
       },
     });
   });
 
   afterAll(() => {
-    // 合并所有测试报告
-    reportMergingTool.mergeReports('android-settings-test-report');
+    // 合并所有自动化报告
+    reportMergingTool.mergeReports('android-settings-automation-report');
   });
 
   it('切换 WLAN', async () => {
@@ -1183,6 +1183,6 @@ describe('Android 设置测试', () => {
 
 :::tip
 
-合并后的报告文件会保存在 `midscene_run/report` 目录下。你可以使用浏览器打开合并后的 HTML 文件查看所有测试用例的执行情况。
+合并后的报告文件会保存在 `midscene_run/report` 目录下。你可以使用浏览器打开合并后的 HTML 文件查看所有自动化工作流的执行情况。
 
 :::

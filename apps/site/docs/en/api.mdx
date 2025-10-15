@@ -958,9 +958,9 @@ await agent.aiAssert({
 
 When prompting with images, it is necessary to pay attention to the requirements of the AI model provider regarding the size and dimensions of the images. Images that are too large (such as exceeding 10M) or too small (such as being less than 10 pixels) may cause errors when the model is invoked. The specific restrictions should be based on the documentation provided by the AI model provider you are using.
 
-## Test Report Merging
+## Automation Report Merging
 
-When running multiple test cases, each test generates its own report file. The `ReportMergingTool` provides the ability to merge multiple test reports into a single report for unified viewing and management of test results.
+When running multiple automation workflows, each agent generates its own report file. The `ReportMergingTool` provides the ability to merge multiple automation reports into a single report for unified viewing and management of automation results.
 
 ### `new ReportMergingTool()`
 
@@ -974,7 +974,7 @@ const reportMergingTool = new ReportMergingTool();
 
 ### `.append()`
 
-Add a test report to the list of reports to be merged.
+Add an automation report to the list of reports to be merged.
 
 - Type
 
@@ -987,11 +987,11 @@ function append(reportInfo: ReportFileWithAttributes): void;
   - `reportInfo: ReportFileWithAttributes` - Report information object containing:
     - `reportFilePath: string` - Path to the report file
     - `reportAttributes: object` - Report attributes
-      - `testId: string` - Unique identifier for the test case
-      - `testTitle: string` - Test case title
-      - `testDescription: string` - Test case description
-      - `testDuration: number` - Test execution duration (in milliseconds)
-      - `testStatus: TestStatus` - Test status, options: `'passed' | 'failed' | 'skipped' | 'timedOut'`
+      - `testId: string` - Unique identifier for the automation workflow
+      - `testTitle: string` - Automation workflow title
+      - `testDescription: string` - Automation workflow description
+      - `testDuration: number` - Automation execution duration (in milliseconds)
+      - `testStatus: TestStatus` - Automation status, options: `'passed' | 'failed' | 'skipped' | 'timedOut'`
 
 - Examples:
 
@@ -999,9 +999,9 @@ function append(reportInfo: ReportFileWithAttributes): void;
 reportMergingTool.append({
   reportFilePath: agent.reportFile as string,
   reportAttributes: {
-    testId: 'test-001',
-    testTitle: 'Login Test',
-    testDescription: 'Test user login functionality',
+    testId: 'automation-001',
+    testTitle: 'Login Automation',
+    testDescription: 'Automated user login workflow',
     testDuration: 5000,
     testStatus: 'passed',
   },
