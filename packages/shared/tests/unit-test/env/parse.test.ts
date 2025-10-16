@@ -68,11 +68,10 @@ describe('parseVlModeAndUiTarsFromRaw', () => {
     });
   });
 
-  it('should correctly parse "qwen-vl"', () => {
-    expect(parseVlModeAndUiTarsModelVersionFromRawValue('qwen-vl')).toEqual({
-      vlMode: 'qwen-vl',
-      uiTarsVersion: undefined,
-    });
+  it('should throw when parsing "qwen-vl"', () => {
+    expect(() =>
+      parseVlModeAndUiTarsModelVersionFromRawValue('qwen-vl'),
+    ).toThrow('The qwen-vl model is no longer supported due to inaccurate coordinate handling. Please migrate to qwen3-vl, which offers significantly improved performance.');
   });
 });
 
@@ -96,10 +95,9 @@ describe('parseVlModeAndUiTarsFromGlobalConfig', () => {
 
   it('should correctly parse qwen-vl mode', () => {
     const provider = { [MIDSCENE_USE_QWEN_VL]: '1' };
-    expect(parseVlModeAndUiTarsFromGlobalConfig(provider)).toEqual({
-      vlMode: 'qwen-vl',
-      uiTarsVersion: undefined,
-    });
+    expect(() => parseVlModeAndUiTarsFromGlobalConfig(provider)).toThrow(
+      'The qwen-vl model is no longer supported due to inaccurate coordinate handling. Please migrate to qwen3-vl, which offers significantly improved performance.',
+    );
   });
 
   it('should correctly parse doubao-vision mode', () => {

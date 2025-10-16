@@ -843,11 +843,11 @@ describe('search area', () => {
       });
     });
 
-    it('should handle qwen-vl mode edge case', () => {
+    it('should handle qwen3-vl mode edge case', () => {
       const result = expandSearchArea(
         { left: 25, top: 891, width: 127, height: 23 },
         { width: 1900, height: 916 },
-        'qwen-vl',
+        'qwen3-vl',
       );
 
       expect(result).toMatchInlineSnapshot(`

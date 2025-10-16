@@ -110,24 +110,20 @@ describe('image utils', () => {
   it('cropByRect, with padding', async () => {
     const image = getFixture('heytea.jpeg');
     const base64 = localImg2Base64(image);
-    const croppedBase64 = await cropByRect(
-      base64,
-      {
-        left: 200,
-        top: 80,
-        width: 100,
-        height: 400,
-      },
-      true,
-    );
+    const croppedBase64 = await cropByRect(base64, {
+      left: 200,
+      top: 80,
+      width: 100,
+      height: 400,
+    });
 
     expect(croppedBase64).toBeTruthy();
 
     const info = await imageInfoOfBase64(croppedBase64.imageBase64);
     // biome-ignore lint/style/noUnusedTemplateLiteral: by intention
-    expect(info.width).toMatchInlineSnapshot(`112`);
+    expect(info.width).toMatchInlineSnapshot(`100`);
     // biome-ignore lint/style/noUnusedTemplateLiteral: by intention
-    expect(info.height).toMatchInlineSnapshot(`420`);
+    expect(info.height).toMatchInlineSnapshot(`400`);
 
     const tmpFile = join(tmpdir(), 'heytea-cropped.jpeg');
     await saveBase64Image({
@@ -140,16 +136,12 @@ describe('image utils', () => {
   it('cropByRect, without padding', async () => {
     const image = getFixture('heytea.jpeg');
     const base64 = localImg2Base64(image);
-    const croppedBase64 = await cropByRect(
-      base64,
-      {
-        left: 200,
-        top: 80,
-        width: 100,
-        height: 400,
-      },
-      false,
-    );
+    const croppedBase64 = await cropByRect(base64, {
+      left: 200,
+      top: 80,
+      width: 100,
+      height: 400,
+    });
 
     expect(croppedBase64).toBeTruthy();
 

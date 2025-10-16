@@ -68,7 +68,7 @@ export function adaptQwenBbox(
   bbox: number[],
 ): [number, number, number, number] {
   if (bbox.length < 2) {
-    const msg = `invalid bbox data for qwen-vl mode: ${JSON.stringify(bbox)} `;
+    const msg = `invalid bbox data for qwen3-vl mode: ${JSON.stringify(bbox)} `;
     throw new Error(msg);
   }
 

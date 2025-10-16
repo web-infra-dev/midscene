@@ -53,16 +53,11 @@ export async function plan(
   });
 
   let imagePayload = screenshotBase64;
-  let imageWidth = size.width;
-  let imageHeight = size.height;
+  const imageWidth = size.width;
+  const imageHeight = size.height;
   const rightLimit = imageWidth;
   const bottomLimit = imageHeight;
-  if (vlMode === 'qwen-vl') {
-    const paddedResult = await paddingToMatchBlockByBase64(imagePayload);
-    imageWidth = paddedResult.width;
-    imageHeight = paddedResult.height;
-    imagePayload = paddedResult.imageBase64;
-  } else if (vlMode === 'qwen3-vl') {
+  if (vlMode === 'qwen3-vl') {
     // const paddedResult = await paddingToMatchBlockByBase64(imagePayload, 32);
     // imageWidth = paddedResult.width;
     // imageHeight = paddedResult.height;

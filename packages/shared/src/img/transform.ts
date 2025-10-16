@@ -270,7 +270,6 @@ export async function paddingToMatchBlockByBase64(
 export async function cropByRect(
   imageBase64: string,
   rect: Rect,
-  paddingImage: boolean,
 ): Promise<{
   width: number;
   height: number;
@@ -279,15 +278,6 @@ export async function cropByRect(
   const jimpImage = await jimpFromBase64(imageBase64);
   const { left, top, width, height } = rect;
   jimpImage.crop(left, top, width, height);
-
-  if (paddingImage) {
-    const paddedResult = await paddingToMatchBlock(jimpImage);
-    return {
-      width: paddedResult.width,
-      height: paddedResult.height,
-      imageBase64: await jimpToBase64(paddedResult.image),
-    };
-  }
   return {
     width: jimpImage.bitmap.width,
     height: jimpImage.bitmap.height,

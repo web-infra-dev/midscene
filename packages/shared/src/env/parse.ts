@@ -10,6 +10,12 @@ import {
   VL_MODE_RAW_VALID_VALUES,
 } from './types';
 
+const throwQwenVlDeprecatedError = () => {
+  throw new Error(
+    'The qwen-vl model is no longer supported due to inaccurate coordinate handling. Please migrate to qwen3-vl, which offers significantly improved performance.',
+  );
+};
+
 export const parseVlModeAndUiTarsModelVersionFromRawValue = (
   vlModeRaw?: string,
 ): {
@@ -21,6 +27,10 @@ export const parseVlModeAndUiTarsModelVersionFromRawValue = (
       vlMode: undefined,
       uiTarsVersion: undefined,
     };
+  }
+
+  if (vlModeRaw === 'qwen-vl') {
+    throwQwenVlDeprecatedError();
   }
 
   if (!VL_MODE_RAW_VALID_VALUES.includes(vlModeRaw as never)) {
@@ -85,10 +95,7 @@ export const parseVlModeAndUiTarsFromGlobalConfig = (
   }
 
   if (isQwen) {
-    return {
-      vlMode: 'qwen-vl',
-      uiTarsVersion: undefined,
-    };
+    throwQwenVlDeprecatedError();
   }
 
   if (isDoubao) {

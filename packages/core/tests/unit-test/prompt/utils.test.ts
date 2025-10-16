@@ -14,7 +14,7 @@ import type { TVlModeTypes } from '@midscene/shared/env';
 describe('prompt utils - describeUserPage', () => {
   let lengthOfDescription: number;
 
-  const vlMode: TVlModeTypes = 'qwen-vl';
+  const vlMode: TVlModeTypes = 'qwen3-vl';
 
   it('describe context ', { timeout: 10000 }, async () => {
     const context = await getContextFromFixture('taobao', {

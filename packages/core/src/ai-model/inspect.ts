@@ -172,11 +172,6 @@ export async function AiLocateElement<
     imageHeight = options.searchConfig.rect?.height;
     originalImageWidth = imageWidth;
     originalImageHeight = imageHeight;
-  } else if (vlMode === 'qwen-vl') {
-    const paddedResult = await paddingToMatchBlockByBase64(imagePayload);
-    imageWidth = paddedResult.width;
-    imageHeight = paddedResult.height;
-    imagePayload = paddedResult.imageBase64;
   } else if (vlMode === 'qwen3-vl') {
     // const paddedResult = await paddingToMatchBlockByBase64(imagePayload, 32);
     // imageWidth = paddedResult.width;
@@ -392,7 +387,7 @@ export async function AiLocateSection(options: {
     const croppedResult = await cropByRect(
       screenshotBase64,
       sectionRect,
-      vlMode === 'qwen-vl',
+      false,
     );
     imageBase64 = croppedResult.imageBase64;
     sectionRect.width = croppedResult.width;

@@ -355,7 +355,7 @@ export default class Insight<
       const croppedResult = await cropByRect(
         imagePayload,
         searchArea,
-        vlMode === 'qwen-vl',
+        false,
       );
       imagePayload = croppedResult.imageBase64;
     }

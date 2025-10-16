@@ -209,7 +209,6 @@ export type TEnvKeys = (typeof ALL_ENV_KEYS)[number];
 export type TGlobalConfig = Record<TEnvKeys, string | undefined>;
 
 export type TVlModeValues =
-  | 'qwen-vl'
   | 'qwen3-vl'
   | 'doubao-vision'
   | 'gemini'
@@ -218,7 +217,6 @@ export type TVlModeValues =
   | 'vlm-ui-tars-doubao-1.5';
 
 export type TVlModeTypes =
-  | 'qwen-vl'
   | 'qwen3-vl'
   | 'doubao-vision'
   | 'gemini'
@@ -320,7 +318,6 @@ export enum UITarsModelVersion {
 export const VL_MODE_RAW_VALID_VALUES: TVlModeValues[] = [
   'doubao-vision',
   'gemini',
-  'qwen-vl',
   'qwen3-vl',
   'vlm-ui-tars',
   'vlm-ui-tars-doubao',

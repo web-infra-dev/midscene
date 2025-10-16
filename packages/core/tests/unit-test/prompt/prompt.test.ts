@@ -125,7 +125,7 @@ describe('system prompts', () => {
   it('planning - qwen', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      vlMode: 'qwen-vl',
+      vlMode: 'qwen3-vl',
     });
     expect(prompt).toMatchSnapshot();
   });
@@ -141,7 +141,7 @@ describe('system prompts', () => {
   it('planning - android', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      vlMode: 'qwen-vl',
+      vlMode: 'qwen3-vl',
     });
     expect(prompt).toMatchSnapshot();
   });
@@ -152,7 +152,7 @@ describe('system prompts', () => {
   });
 
   it('section locator - qwen', () => {
-    const prompt = systemPromptToLocateSection('qwen-vl');
+    const prompt = systemPromptToLocateSection('qwen3-vl');
     expect(prompt).toMatchSnapshot();
   });
 
@@ -162,7 +162,7 @@ describe('system prompts', () => {
   });
 
   it('locator - qwen', () => {
-    const prompt = systemPromptToLocateElement('qwen-vl');
+    const prompt = systemPromptToLocateElement('qwen3-vl');
     expect(prompt).toMatchSnapshot();
   });
 
