@@ -49,7 +49,7 @@ const SideItem = (props: {
         }}
         bordered={false}
       >
-        cache
+        Cache
       </Tag>
     ) : null;
 
