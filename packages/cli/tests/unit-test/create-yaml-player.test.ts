@@ -3,6 +3,14 @@ import { createYamlPlayer, launchServer } from '@/create-yaml-player';
 import type { MidsceneYamlScript, MidsceneYamlScriptEnv } from '@midscene/core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
+// Mock the global config manager to control environment variables
+vi.mock('@midscene/shared/env', () => ({
+  MIDSCENE_CACHE: 'MIDSCENE_CACHE',
+  globalConfigManager: {
+    getEnvConfigInBoolean: vi.fn(),
+  },
+}));
+
 // Mock dependencies
 vi.mock('node:fs', () => ({
   readFileSync: vi.fn(),
@@ -33,6 +41,8 @@ import { ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
 import { createServer } from 'http-server';
 
 describe('create-yaml-player', () => {
+  const mockFilePath = '/test/script.yml';
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -70,8 +80,6 @@ describe('create-yaml-player', () => {
   });
 
   describe('createYamlPlayer', () => {
-    const mockFilePath = '/test/script.yml';
-
     test('should create player with web target', async () => {
       const mockScript: MidsceneYamlScript = {
         web: {

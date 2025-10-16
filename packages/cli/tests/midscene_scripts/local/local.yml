@@ -1,7 +1,13 @@
 target:
   serve: ./tests/server_root
   url: index.html
+agent:
+  cache: true
+  strategy: read-only
 tasks:
+  - name: click title
+    flow:
+      - aiTap: click the title
   - name: check title
     flow:
       - aiAssert: the content title is "My App"

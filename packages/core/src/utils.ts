@@ -7,7 +7,11 @@ import {
   defaultRunDirName,
   getMidsceneRunSubDir,
 } from '@midscene/shared/common';
-import { MIDSCENE_DEBUG_MODE } from '@midscene/shared/env';
+import {
+  MIDSCENE_CACHE,
+  MIDSCENE_DEBUG_MODE,
+  globalConfigManager,
+} from '@midscene/shared/env';
 import { getRunningPkgInfo } from '@midscene/shared/node';
 import { assert, logMsg } from '@midscene/shared/utils';
 import {
@@ -25,36 +29,50 @@ export { appendFileSync } from 'node:fs';
 export const groupedActionDumpFileExt = 'web-dump.json';
 
 /**
- * Process cache configuration, auto-generating ID if cache is enabled but no ID is provided.
+ * Process cache configuration with environment variable support and backward compatibility.
  *
  * @param cache - The original cache configuration
  * @param fallbackId - The fallback ID to use when cache is enabled but no ID is specified
+ * @param cacheId - Optional legacy cacheId for backward compatibility (requires MIDSCENE_CACHE env var)
  * @returns Processed cache configuration
  */
 export function processCacheConfig(
   cache: Cache | undefined,
   fallbackId: string,
+  cacheId?: string,
 ): Cache | undefined {
-  if (!cache) return undefined;
-
-  // Use type assertion to handle TypeScript type checking issue
-  const cacheValue = cache as Cache;
-
-  if (cacheValue === false) return false;
-
-  if (cacheValue === true) {
-    // Auto-generate ID using fallback
-    return { id: fallbackId };
-  }
-
-  if (typeof cacheValue === 'object' && cacheValue !== null) {
-    if (!cacheValue.id) {
-      // Auto-generate ID using fallback when missing
-      return { ...cacheValue, id: fallbackId };
+  // 1. New cache object configuration (highest priority)
+  if (cache !== undefined) {
+    if (cache === false) {
+      return undefined; // Completely disable cache
     }
-    return cacheValue;
+
+    if (cache === true) {
+      // Auto-generate ID using fallback for CLI/YAML scenarios
+      // Agent will validate and reject this later if needed
+      return { id: fallbackId };
+    }
+
+    // cache is object configuration
+    if (typeof cache === 'object' && cache !== null) {
+      // Auto-generate ID using fallback when missing (for CLI/YAML scenarios)
+      if (!cache.id) {
+        return { ...cache, id: fallbackId };
+      }
+      return cache;
+    }
   }
 
+  // 2. Backward compatibility: support old cacheId (requires environment variable)
+  if (cacheId) {
+    const envEnabled =
+      globalConfigManager.getEnvConfigInBoolean(MIDSCENE_CACHE);
+    if (envEnabled) {
+      return { id: cacheId };
+    }
+  }
+
+  // 3. No cache configuration
   return undefined;
 }
 
@@ -295,7 +313,7 @@ export async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function replacerForPageObject(key: string, value: any) {
+export function replacerForPageObject(_key: string, value: any) {
   if (value && value.constructor?.name === 'Page') {
     return '[Page object]';
   }
