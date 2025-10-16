@@ -7,7 +7,6 @@ import type {
   ExecutionTaskReturn,
   ExecutorContext,
 } from '@/types';
-import { getVersion } from '@/utils';
 import { assert } from '@midscene/shared/utils';
 
 export class Executor {
@@ -119,6 +118,7 @@ export class Executor {
             task.subType === 'Locate' ||
               task.subType === 'Query' ||
               task.subType === 'Assert' ||
+              task.subType === 'WaitFor' ||
               task.subType === 'Boolean' ||
               task.subType === 'Number' ||
               task.subType === 'String',
@@ -199,7 +199,6 @@ export class Executor {
 
   dump(): ExecutionDump {
     const dumpData: ExecutionDump = {
-      sdkVersion: getVersion(),
       logTime: Date.now(),
       name: this.name,
       tasks: this.tasks,

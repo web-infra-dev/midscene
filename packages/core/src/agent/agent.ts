@@ -36,6 +36,7 @@ export type TestStatus =
 import yaml from 'js-yaml';
 
 import {
+  getVersion,
   groupedActionDumpFileExt,
   processCacheConfig,
   reportHTMLContent,
@@ -336,6 +337,7 @@ export class Agent<
 
   resetDump() {
     this.dump = {
+      sdkVersion: getVersion(),
       groupName: this.opts.groupName!,
       groupDescription: this.opts.groupDescription,
       executions: [],
@@ -959,15 +961,19 @@ export class Agent<
       screenshotIncluded:
         opt?.screenshotIncluded ??
         defaultInsightExtractOption.screenshotIncluded,
-      isWaitForAssert: opt?.isWaitForAssert,
       doNotThrowError: opt?.doNotThrowError,
     };
 
-    const { output, executor, thought } = await this.taskExecutor.assert(
-      assertion,
-      modelConfig,
-      insightOpt,
-    );
+    const { textPrompt, multimodalPrompt } = parsePrompt(assertion);
+
+    const { output, executor, thought } =
+      await this.taskExecutor.createTypeQueryExecution<boolean>(
+        'Assert',
+        textPrompt,
+        modelConfig,
+        insightOpt,
+        multimodalPrompt,
+      );
     await this.afterTaskRunning(executor, true);
 
     const message = output
@@ -1114,7 +1120,6 @@ export class Agent<
     };
     // 4. build ExecutionDump
     const executionDump: ExecutionDump = {
-      sdkVersion: '',
       logTime: now,
       name: `Log - ${title || 'untitled'}`,
       description: opt?.content || '',

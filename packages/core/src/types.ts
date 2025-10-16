@@ -170,7 +170,6 @@ export interface InsightTaskInfo {
 }
 
 export interface DumpMeta {
-  sdkVersion: string;
   logTime: number;
 }
 
@@ -200,7 +199,7 @@ export interface InsightDump extends DumpMeta {
 
 export type PartialInsightDumpFromSDK = Omit<
   InsightDump,
-  'sdkVersion' | 'logTime' | 'logId' | 'model_name'
+  'logTime' | 'logId' | 'model_name'
 >;
 
 export type DumpSubscriber = (dump: InsightDump) => Promise<void> | void;
@@ -413,15 +412,13 @@ export interface ExecutionTaskInsightLocateOutput {
   element: LocateResultElement | null;
 }
 
-export interface ExecutionTaskInsightDumpLog {
-  dump?: InsightDump;
-}
+export type ExecutionTaskInsightDump = InsightDump;
 
 export type ExecutionTaskInsightLocateApply = ExecutionTaskApply<
   'Insight',
   ExecutionTaskInsightLocateParam,
   ExecutionTaskInsightLocateOutput,
-  ExecutionTaskInsightDumpLog
+  ExecutionTaskInsightDump
 >;
 
 export type ExecutionTaskInsightLocate =
@@ -442,7 +439,7 @@ export type ExecutionTaskInsightQueryApply = ExecutionTaskApply<
   'Insight',
   ExecutionTaskInsightQueryParam,
   any,
-  ExecutionTaskInsightDumpLog
+  ExecutionTaskInsightDump
 >;
 
 export type ExecutionTaskInsightQuery =
@@ -459,7 +456,7 @@ export type ExecutionTaskInsightAssertionApply = ExecutionTaskApply<
   'Insight',
   ExecutionTaskInsightAssertionParam,
   InsightAssertionResponse,
-  ExecutionTaskInsightDumpLog
+  ExecutionTaskInsightDump
 >;
 
 export type ExecutionTaskInsightAssertion =
@@ -507,6 +504,7 @@ export type ExecutionTaskPlanning = ExecutionTask<ExecutionTaskPlanningApply>;
 Grouped dump
 */
 export interface GroupedActionDump {
+  sdkVersion: string;
   groupName: string;
   groupDescription?: string;
   modelBriefs: string[];

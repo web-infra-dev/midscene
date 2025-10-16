@@ -6,7 +6,6 @@ import type {
   ExecutionTaskInsightLocateApply,
   InsightDump,
 } from '@/index';
-import { globalModelConfigManager } from '@midscene/shared/env';
 import { fakeInsight } from 'tests/utils';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -105,7 +104,7 @@ describe(
       expect(tasks.length).toBe(inputTasks.length);
       expect(tasks[0].status).toBe('finished');
       expect(tasks[0].output).toMatchSnapshot();
-      expect(tasks[0].log?.dump).toBeTruthy();
+      expect(tasks[0].log).toBeTruthy();
       expect(tasks[0].timing?.end).toBeTruthy();
       expect(tasks[0].hitBy?.from).not.toBe('Cache');
 

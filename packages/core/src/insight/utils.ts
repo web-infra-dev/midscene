@@ -4,7 +4,6 @@ import type {
   InsightDump,
   PartialInsightDumpFromSDK,
 } from '@/types';
-import { getVersion } from '@/utils';
 import { uuid } from '@midscene/shared/utils';
 
 export function emitInsightDump(
@@ -12,7 +11,6 @@ export function emitInsightDump(
   dumpSubscriber?: DumpSubscriber,
 ) {
   const baseData: DumpMeta = {
-    sdkVersion: getVersion(),
     logTime: Date.now(),
   };
   const finalData: InsightDump = {
