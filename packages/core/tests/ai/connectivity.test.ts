@@ -23,7 +23,6 @@ vi.setConfig({
   '.env.gemini',
   '.env.doubao',
   '.env.init_json',
-  '.env.anthropic',
   '.env.openai',
   '.env.ui-tars',
 ].forEach((envFile) => {

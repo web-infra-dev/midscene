@@ -42,11 +42,10 @@ Midscene 默认集成了 OpenAI SDK 调用 AI 服务。使用这个 SDK 限定�
 
 ### 高级配置
 
-还有一些高级配置项，通常不需要使用。
+还有一些高级配置项,通常不需要使用。
 
 | 名称 | 描述 |
 |------|-------------|
-| `OPENAI_USE_AZURE` | 可选。设置为 "true" 以使用 Azure OpenAI Service。更多详情请参阅后文 |
 | `MIDSCENE_OPENAI_INIT_CONFIG_JSON` | 可选。OpenAI SDK 的初始化配置 JSON |
 | `MIDSCENE_OPENAI_HTTP_PROXY` | 可选。HTTP/HTTPS 代理配置 (如 `http://127.0.0.1:8080` 或 `https://proxy.example.com:8080`)。这个选项优先级高于 `MIDSCENE_OPENAI_SOCKS_PROXY` |
 | `MIDSCENE_OPENAI_SOCKS_PROXY` | 可选。SOCKS 代理配置 (如 "socks5://127.0.0.1:1080") |
@@ -100,32 +99,6 @@ OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 
 ```typescript
 import 'dotenv/config';
-```
-
-## 使用 Azure OpenAI 服务时的配置
-
-### 使用 ADT token provider
-
-此种模式无法运行在浏览器插件中。
-
-```bash
-# 使用 Azure OpenAI 服务时，配置为 1
-export MIDSCENE_USE_AZURE_OPENAI=1
-
-export MIDSCENE_AZURE_OPENAI_SCOPE="https://cognitiveservices.azure.com/.default"
-export AZURE_OPENAI_ENDPOINT="..."
-export AZURE_OPENAI_API_VERSION="2024-05-01-preview"
-export AZURE_OPENAI_DEPLOYMENT="gpt-4o"
-```
-
-### 使用 keyless 模式
-
-```bash
-export MIDSCENE_USE_AZURE_OPENAI=1
-export AZURE_OPENAI_ENDPOINT="..."
-export AZURE_OPENAI_KEY="..."
-export AZURE_OPENAI_API_VERSION="2024-05-01-preview"
-export AZURE_OPENAI_DEPLOYMENT="gpt-4o"
 ```
 
 ## 使用 Javascript 配置 AI 服务
@@ -184,18 +157,6 @@ export MIDSCENE_USE_DOUBAO_VISION=1
 export OPENAI_BASE_URL="http://localhost:1234/v1"
 export MIDSCENE_MODEL_NAME="ui-tars-72b-sft"
 export MIDSCENE_USE_VLM_UI_TARS=1
-```
-
-## 示例：使用 Anthropic 的 `claude-3-opus-20240229` 模型
-
-当配置 `MIDSCENE_USE_ANTHROPIC_SDK=1` 时，Midscene 会使用 Anthropic SDK (`@anthropic-ai/sdk`) 来调用模型。
-
-配置环境变量：
-
-```bash
-export MIDSCENE_USE_ANTHROPIC_SDK=1
-export ANTHROPIC_API_KEY="....."
-export MIDSCENE_MODEL_NAME="claude-3-opus-20240229"
 ```
 
 
