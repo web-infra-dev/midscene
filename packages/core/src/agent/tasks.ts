@@ -935,7 +935,7 @@ export class TaskExecutor {
             outputResult = data;
           } else {
             assert(
-              data?.[keyOfResult] !== undefined,
+              type !== 'WaitFor' ? data?.[keyOfResult] !== undefined : true,
               'No result in query data',
             );
             outputResult = (data as any)[keyOfResult];
@@ -1063,7 +1063,6 @@ export class TaskExecutor {
     const overallStartTime = Date.now();
     let startTime = Date.now();
     let errorThought = '';
-    let hitError = false;
     while (Date.now() - overallStartTime < timeoutMs) {
       startTime = Date.now();
       const queryTask = await this.createTypeQueryTask(
@@ -1084,20 +1083,6 @@ export class TaskExecutor {
           }
         | undefined;
 
-      // If executor enters error state, stop polling immediately
-      if (taskExecutor.isInErrorState()) {
-        errorThought =
-          taskExecutor.latestErrorTask()?.errorMessage ||
-          `Error occurred during waitFor: ${textPrompt}`;
-        hitError = true;
-        break;
-      }
-
-      if (!result) {
-        errorThought = `No result from assertion: ${textPrompt}`;
-        break;
-      }
-
       if (result?.output) {
         return {
           output: undefined,
@@ -1107,6 +1092,7 @@ export class TaskExecutor {
 
       errorThought =
         result?.thought ||
+        (!result && `No result from assertion: ${textPrompt}`) ||
         `unknown error when waiting for assertion: ${textPrompt}`;
       const now = Date.now();
       if (now - startTime < checkIntervalMs) {
@@ -1114,15 +1100,6 @@ export class TaskExecutor {
         const sleepTask = await this.taskForSleep(timeRemaining, modelConfig);
         await taskExecutor.append(sleepTask);
       }
-    }
-
-    // If executor is already in error state, don't try to append error plan
-    // Just return the executor with existing error information
-    if (hitError) {
-      return {
-        output: undefined,
-        executor: taskExecutor,
-      };
     }
 
     return this.appendErrorPlan(

@@ -118,6 +118,7 @@ export class Executor {
             task.subType === 'Locate' ||
               task.subType === 'Query' ||
               task.subType === 'Assert' ||
+              task.subType === 'WaitFor' ||
               task.subType === 'Boolean' ||
               task.subType === 'Number' ||
               task.subType === 'String',
