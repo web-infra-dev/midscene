@@ -335,8 +335,48 @@ const DetailSide = (): JSX.Element => {
 
   let outputDataContent = null;
   const plans = (task as ExecutionTaskPlanning)?.output?.actions;
+
+  // Prepare error content separately (can coexist with elements)
+  let errorContent: JSX.Element | null = null;
+  if (task?.error || task?.errorMessage) {
+    let errorText = '';
+
+    // prefer errorMessage
+    if (task.errorMessage) {
+      errorText = task.errorMessage;
+    } else if (task.error) {
+      // if no errorMessage, try to show error object
+      if (typeof task.error === 'string') {
+        errorText = task.error;
+      } else if (typeof task.error === 'object' && task.error.message) {
+        errorText = task.error.message;
+      } else {
+        errorText = JSON.stringify(task.error, null, 2) || 'Unknown error';
+      }
+    }
+
+    // add stack info (if exists and not duplicate)
+    if (task.errorStack && !errorText.includes(task.errorStack)) {
+      errorText += `\n\nStack:\n${task.errorStack}`;
+    }
+
+    errorContent = (
+      <Card
+        liteMode={true}
+        title="Error"
+        onMouseEnter={noop}
+        onMouseLeave={noop}
+        content={
+          <pre className="description-content" style={{ color: '#F00' }}>
+            {errorText}
+          </pre>
+        }
+      />
+    );
+  }
+
   if (elements?.length) {
-    outputDataContent = elements.map((element, idx) => {
+    const elementsContent = elements.map((element, idx) => {
       const ifHighlight = false; // highlightElements.includes(element);
       const highlightColor = ifHighlight
         ? highlightColorForType('element')
@@ -363,41 +403,17 @@ const DetailSide = (): JSX.Element => {
         />
       );
     });
-  } else if (task?.error || task?.errorMessage) {
-    let errorContent = '';
 
-    // prefer errorMessage
-    if (task.errorMessage) {
-      errorContent = task.errorMessage;
-    } else if (task.error) {
-      // if no errorMessage, try to show error object
-      if (typeof task.error === 'string') {
-        errorContent = task.error;
-      } else if (typeof task.error === 'object' && task.error.message) {
-        errorContent = task.error.message;
-      } else {
-        errorContent = JSON.stringify(task.error, null, 2) || 'Unknown error';
-      }
-    }
-
-    // add stack info (if exists and not duplicate)
-    if (task.errorStack && !errorContent.includes(task.errorStack)) {
-      errorContent += `\n\nStack:\n${task.errorStack}`;
-    }
-
+    // Combine elements with error if both exist
     outputDataContent = (
-      <Card
-        liteMode={true}
-        title="Error"
-        onMouseEnter={noop}
-        onMouseLeave={noop}
-        content={
-          <pre className="description-content" style={{ color: '#F00' }}>
-            {errorContent}
-          </pre>
-        }
-      />
+      <>
+        {errorContent}
+        {elementsContent}
+      </>
     );
+  } else if (errorContent) {
+    // Only error, no elements
+    outputDataContent = errorContent;
   } else if (task?.type === 'Insight' && task.subType === 'Assert') {
     const assertTask = task as ExecutionTaskInsightAssertion;
     const thought = assertTask.thought;
