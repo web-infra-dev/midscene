@@ -83,10 +83,7 @@ const SideItem = (props: {
     }
 
     const isAssertFinishedWithWarning =
-      isFinished &&
-      task.subType === 'Assert' &&
-      task.output === false &&
-      task.log.isWaitForAssert;
+      isFinished && task.subType === 'WaitFor' && task.output === false;
 
     if (isAssertFinishedWithWarning) {
       return iconForStatus('finishedWithWarning');

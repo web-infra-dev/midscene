@@ -6,7 +6,6 @@ import type {
   ExecutionTaskInsightLocateApply,
   InsightDump,
 } from '@/index';
-import { globalModelConfigManager } from '@midscene/shared/env';
 import { fakeInsight } from 'tests/utils';
 import { describe, expect, it, vi } from 'vitest';
 

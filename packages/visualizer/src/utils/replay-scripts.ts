@@ -140,15 +140,11 @@ export const allScriptsFromDump = (
   const dimensionsSet = new Set<string>();
   let firstWidth: number | undefined = undefined;
   let firstHeight: number | undefined = undefined;
-  let sdkVersion: string | undefined = undefined;
+  const sdkVersion: string | undefined = dump.sdkVersion;
 
   const modelBriefsSet = new Set<string>();
 
   dump.executions.forEach((execution) => {
-    if (execution.sdkVersion) {
-      sdkVersion = execution.sdkVersion;
-    }
-
     execution.tasks.forEach((task) => {
       if (task.uiContext?.size?.width) {
         const w = task.uiContext.size.width;
@@ -339,7 +335,7 @@ export const generateAnimationScripts = (
       }
       const context = insightTask.uiContext;
       if (context?.screenshotBase64) {
-        const insightDump = insightTask.log?.dump;
+        const insightDump = insightTask.log;
         const insightContentLength = context.tree
           ? treeToList(context.tree).length
           : 0;

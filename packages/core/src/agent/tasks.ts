@@ -864,7 +864,7 @@ export class TaskExecutor {
   }
 
   private createTypeQueryTask(
-    type: 'Query' | 'Boolean' | 'Number' | 'String' | 'Assert',
+    type: 'Query' | 'Boolean' | 'Number' | 'String' | 'Assert' | 'WaitFor',
     demand: InsightExtractParam,
     modelConfig: IModelConfig,
     opt?: InsightExtractOption,
@@ -906,10 +906,14 @@ export class TaskExecutor {
         const ifTypeRestricted = type !== 'Query';
         let demandInput = demand;
         let keyOfResult = 'result';
-        if (ifTypeRestricted && type === 'Assert') {
+        if (ifTypeRestricted && (type === 'Assert' || type === 'WaitFor')) {
           keyOfResult = 'StatementIsTruthy';
+          const booleanPrompt =
+            type === 'Assert'
+              ? `Boolean, whether the following statement is true: ${demand}`
+              : `Boolean, the user wants to do some 'wait for' operation, please check whether the following statement is true: ${demand}`;
           demandInput = {
-            [keyOfResult]: `Boolean, whether the following statement is true: ${demand}`,
+            [keyOfResult]: booleanPrompt,
           };
         } else if (ifTypeRestricted) {
           demandInput = {
@@ -940,7 +944,7 @@ export class TaskExecutor {
 
         return {
           output: outputResult,
-          log: { dump: insightDump, isWaitForAssert: opt?.isWaitForAssert },
+          log: insightDump,
           usage,
           thought,
         };
@@ -990,21 +994,6 @@ export class TaskExecutor {
       thought,
       executor: taskExecutor,
     };
-  }
-
-  async assert(
-    assertion: TUserPrompt,
-    modelConfig: IModelConfig,
-    opt?: InsightExtractOption,
-  ): Promise<ExecutionResult<boolean>> {
-    const { textPrompt, multimodalPrompt } = parsePrompt(assertion);
-    return await this.createTypeQueryExecution<boolean>(
-      'Assert',
-      textPrompt,
-      modelConfig,
-      opt,
-      multimodalPrompt,
-    );
   }
 
   private async appendErrorPlan(
@@ -1078,11 +1067,10 @@ export class TaskExecutor {
     while (Date.now() - overallStartTime < timeoutMs) {
       startTime = Date.now();
       const queryTask = await this.createTypeQueryTask(
-        'Assert',
+        'WaitFor',
         textPrompt,
         modelConfig,
         {
-          isWaitForAssert: true,
           doNotThrowError: true,
         },
         multimodalPrompt,
