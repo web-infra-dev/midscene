@@ -204,7 +204,7 @@ export const useExecutionDump = create<DumpStoreType>((set, get) => {
       });
       console.log('will set task', task);
       if (task.type === 'Insight') {
-        const dump = (task as ExecutionTaskInsightLocate).log?.dump!;
+        const dump = (task as ExecutionTaskInsightLocate).log;
         set({
           insightDump: dump,
         });

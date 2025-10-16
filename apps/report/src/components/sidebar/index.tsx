@@ -53,8 +53,7 @@ const SideItem = (props: {
       </Tag>
     ) : null;
 
-  const deepThinkEl = (task as ExecutionTaskInsightLocate)?.log?.dump
-    ?.deepThink ? (
+  const deepThinkEl = (task as ExecutionTaskInsightLocate)?.param?.deepThink ? (
     <Tag
       bordered={false}
       style={{
@@ -66,7 +65,7 @@ const SideItem = (props: {
         lineHeight: '16px',
       }}
     >
-      deepthink
+      DeepThink
     </Tag>
   ) : null;
 

@@ -104,7 +104,7 @@ describe(
       expect(tasks.length).toBe(inputTasks.length);
       expect(tasks[0].status).toBe('finished');
       expect(tasks[0].output).toMatchSnapshot();
-      expect(tasks[0].log?.dump).toBeTruthy();
+      expect(tasks[0].log).toBeTruthy();
       expect(tasks[0].timing?.end).toBeTruthy();
       expect(tasks[0].hitBy?.from).not.toBe('Cache');
 
