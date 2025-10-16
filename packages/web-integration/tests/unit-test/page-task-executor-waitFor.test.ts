@@ -182,7 +182,7 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
 
     // Verify that createTypeQueryTask was called multiple times with doNotThrowError: true
     expect(createTypeQueryTaskSpy).toHaveBeenCalledWith(
-      'Assert',
+      'WaitFor',
       'test assertion',
       mockedModelConfig,
       {
@@ -250,7 +250,7 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
 
     // Verify that createTypeQueryTask was called with doNotThrowError: true
     expect(createTypeQueryTaskSpy).toHaveBeenCalledWith(
-      'Assert',
+      'WaitFor',
       'test assertion',
       mockedModelConfig,
       {
