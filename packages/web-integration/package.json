@@ -8,7 +8,7 @@
     "Browser use",
     "Android use"
   ],
-  "version": "0.30.3",
+  "version": "0.30.4",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "main": "./dist/lib/index.js",
