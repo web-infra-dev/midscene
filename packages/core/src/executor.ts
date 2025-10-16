@@ -1,11 +1,13 @@
 import type {
   ExecutionDump,
+  ExecutionRecorderItem,
   ExecutionTask,
   ExecutionTaskApply,
   ExecutionTaskInsightLocateOutput,
   ExecutionTaskProgressOptions,
   ExecutionTaskReturn,
   ExecutorContext,
+  UIContext,
 } from '@/types';
 import { getVersion } from '@/utils';
 import { assert } from '@midscene/shared/utils';
@@ -20,8 +22,11 @@ export class Executor {
 
   onTaskStart?: ExecutionTaskProgressOptions['onTaskStart'];
 
+  private readonly uiContextBuilder: () => Promise<UIContext>;
+
   constructor(
     name: string,
+    uiContextBuilder: () => Promise<UIContext>,
     options?: ExecutionTaskProgressOptions & {
       tasks?: ExecutionTaskApply[];
     },
@@ -33,6 +38,67 @@ export class Executor {
       this.markTaskAsPending(item),
     );
     this.onTaskStart = options?.onTaskStart;
+    this.uiContextBuilder = uiContextBuilder;
+  }
+
+  private resolveRecorderTiming(
+    task: ExecutionTask,
+    phase: 'before' | 'after',
+  ): string | undefined {
+    if (phase === 'after') {
+      if (task.type === 'Action') {
+        return 'after Action';
+      }
+      return undefined;
+    }
+
+    if (task.type === 'Planning') {
+      return 'before Planning';
+    }
+
+    if (task.type === 'Action') {
+      return 'before Action';
+    }
+
+    if (task.type === 'Insight') {
+      if (
+        task.subType === 'Query' ||
+        task.subType === 'Boolean' ||
+        task.subType === 'Number' ||
+        task.subType === 'String' ||
+        task.subType === 'Assert'
+      ) {
+        return 'before Extract';
+      }
+      return 'before Insight';
+    }
+
+    return `before ${task.type}`;
+  }
+
+  private attachRecorderItem(
+    task: ExecutionTask,
+    uiContext: UIContext | undefined,
+    phase: 'before' | 'after',
+  ): void {
+    const timing = this.resolveRecorderTiming(task, phase);
+    const screenshot = uiContext?.screenshotBase64;
+    if (!timing || !screenshot) {
+      return;
+    }
+
+    const recorderItem: ExecutionRecorderItem = {
+      type: 'screenshot',
+      ts: Date.now(),
+      screenshot,
+      timing,
+    };
+
+    if (!task.recorder) {
+      task.recorder = [recorderItem];
+      return;
+    }
+    task.recorder.push(recorderItem);
   }
 
   private markTaskAsPending(task: ExecutionTaskApply): ExecutionTask {
@@ -109,10 +175,17 @@ export class Executor {
         assert(executor, `executor is required for task type: ${task.type}`);
 
         let returnValue;
+        const uiContext = await this.uiContextBuilder();
+        task.uiContext = uiContext;
         const executorContext: ExecutorContext = {
           task,
           element: previousFindOutput?.element,
+          uiContext,
         };
+
+        this.attachRecorderItem(task, uiContext, 'before');
+
+        const captureAfterExecution = !!task.captureAfterExecution;
 
         if (task.type === 'Insight') {
           assert(
@@ -137,6 +210,11 @@ export class Executor {
             `unsupported task type: ${task.type}, will try to execute it directly`,
           );
           returnValue = await task.executor(param, executorContext);
+        }
+
+        if (captureAfterExecution) {
+          const postUiContext = await this.uiContextBuilder();
+          this.attachRecorderItem(task, postUiContext, 'after');
         }
 
         Object.assign(task, returnValue);

@@ -334,6 +334,7 @@ export type ExecutionTaskType =
 export interface ExecutorContext {
   task: ExecutionTask;
   element?: LocateResultElement | null;
+  uiContext?: UIContext;
 }
 
 export interface ExecutionTaskApply<
@@ -348,6 +349,7 @@ export interface ExecutionTaskApply<
   thought?: string;
   locate?: PlanningLocateParam | null;
   uiContext?: UIContext;
+  captureAfterExecution?: boolean;
   executor: (
     param: TaskParam,
     context: ExecutorContext,
