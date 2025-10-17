@@ -37,7 +37,7 @@ const KEYS_MAP: Record<TIntent, TModelConfigKeys> = {
 } as const;
 
 /**
- * Choose OpenAI SDK config, such as OpenAI, AzureOpenAI, AnthropicSDK, etc.
+ * Choose OpenAI SDK config
  */
 export const decideOpenaiSdkConfig = ({
   keys,
@@ -68,96 +68,24 @@ export const decideOpenaiSdkConfig = ({
   const vlMode = provider[keys.vlMode];
 
   debugLog('enter decideOpenaiSdkConfig with keys:', keys);
-  if (provider[keys.openaiUseAzureDeprecated]) {
-    debugLog(
-      `provider has ${keys.openaiUseAzureDeprecated} with value${provider[keys.openaiUseAzureDeprecated]}`,
-    );
-    const openaiBaseURL = provider[keys.openaiBaseURL];
-    const openaiApiKey = provider[keys.openaiApiKey];
-    const openaiExtraConfig = parseJson(
-      keys.openaiExtraConfig,
-      provider[keys.openaiExtraConfig],
-    );
 
-    valueAssert(openaiApiKey, keys.openaiApiKey, keys.openaiUseAzureDeprecated);
+  const openaiBaseURL = provider[keys.openaiBaseURL];
+  const openaiApiKey = provider[keys.openaiApiKey];
+  const openaiExtraConfig = parseJson(
+    keys.openaiExtraConfig,
+    provider[keys.openaiExtraConfig],
+  );
 
-    return {
-      socksProxy,
-      httpProxy,
-      vlModeRaw: vlMode,
-      openaiUseAzureDeprecated: true,
-      openaiApiKey,
-      openaiBaseURL,
-      openaiExtraConfig,
-    };
-  } else if (provider[keys.useAzureOpenai]) {
-    debugLog(
-      `provider has ${keys.useAzureOpenai} with value ${provider[keys.useAzureOpenai]}`,
-    );
-    const azureOpenaiScope = provider[keys.azureOpenaiScope];
+  valueAssert(openaiApiKey, keys.openaiApiKey);
 
-    const azureOpenaiKey = provider[keys.azureOpenaiKey];
-    const azureOpenaiEndpoint = provider[keys.azureOpenaiEndpoint];
-    const azureOpenaiDeployment = provider[keys.azureOpenaiDeployment];
-    const azureOpenaiApiVersion = provider[keys.azureOpenaiApiVersion];
-
-    const azureExtraConfig = parseJson(
-      keys.azureExtraConfig,
-      provider[keys.azureExtraConfig],
-    );
-    const openaiExtraConfig = parseJson(
-      keys.openaiExtraConfig,
-      provider[keys.openaiExtraConfig],
-    );
-
-    valueAssert(azureOpenaiKey, keys.azureOpenaiKey, keys.useAzureOpenai);
-
-    return {
-      socksProxy,
-      httpProxy,
-      vlModeRaw: vlMode,
-      useAzureOpenai: true,
-      azureOpenaiScope,
-      azureOpenaiKey,
-      azureOpenaiEndpoint,
-      azureOpenaiDeployment,
-      azureOpenaiApiVersion,
-      azureExtraConfig,
-      openaiExtraConfig,
-    };
-  } else if (provider[keys.useAnthropicSdk]) {
-    debugLog(
-      `provider has ${keys.useAnthropicSdk} with value ${provider[keys.useAnthropicSdk]}`,
-    );
-    const anthropicApiKey = provider[keys.anthropicApiKey];
-    valueAssert(anthropicApiKey, keys.anthropicApiKey, keys.useAnthropicSdk);
-
-    return {
-      socksProxy,
-      httpProxy,
-      useAnthropicSdk: true,
-      anthropicApiKey,
-    };
-  } else {
-    debugLog('provider has no specific model SDK declared');
-    const openaiBaseURL = provider[keys.openaiBaseURL];
-    const openaiApiKey = provider[keys.openaiApiKey];
-    const openaiExtraConfig = parseJson(
-      keys.openaiExtraConfig,
-      provider[keys.openaiExtraConfig],
-    );
-
-    valueAssert(openaiApiKey, keys.openaiApiKey);
-
-    return {
-      socksProxy,
-      httpProxy,
-      vlModeRaw: vlMode,
-      openaiBaseURL,
-      openaiApiKey,
-      openaiExtraConfig,
-    };
-  }
+  return {
+    socksProxy,
+    httpProxy,
+    vlModeRaw: vlMode,
+    openaiBaseURL,
+    openaiApiKey,
+    openaiExtraConfig,
+  };
 };
 
 const getModelDescription = (
