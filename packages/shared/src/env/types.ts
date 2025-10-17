@@ -375,6 +375,21 @@ export interface IModelConfigForVQA {
   [MIDSCENE_VQA_VL_MODE]?: TVlModeValues;
 }
 
+/**
+ * Model configuration for Planning intent.
+ *
+ * IMPORTANT: Planning MUST use a vision language model (VL mode).
+ * DOM-based planning is not supported.
+ *
+ * Required: MIDSCENE_PLANNING_VL_MODE must be set to one of:
+ *   - 'qwen-vl'
+ *   - 'qwen3-vl'
+ *   - 'gemini'
+ *   - 'doubao-vision'
+ *   - 'vlm-ui-tars'
+ *   - 'vlm-ui-tars-doubao'
+ *   - 'vlm-ui-tars-doubao-1.5'
+ */
 export interface IModelConfigForPlanning {
   // model name
   [MIDSCENE_PLANNING_MODEL_NAME]: string;
