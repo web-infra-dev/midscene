@@ -1,5 +1,5 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import type { IModelConfig } from '@midscene/shared/env';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock the dependencies before importing the module under test
 vi.mock('openai', () => {
