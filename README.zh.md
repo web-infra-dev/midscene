@@ -133,6 +133,7 @@ for (const record of recordList) {
 
 * [midscene-ios](https://github.com/lhuanyu/midscene-ios) - iOS 设备自动化工具
 * [Midscene-Python](https://github.com/Python51888/Midscene-Python) - Python 版本的 Midscene SDK
+* [midscene-java](https://github.com/Master-Frank/midscene-java) - Java 版本的 Midscene SDK，便于在 JVM 项目中使用自动化能力
 
 ## 📝 致谢
 

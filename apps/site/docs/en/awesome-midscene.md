@@ -14,6 +14,11 @@ A curated list of community projects that extend Midscene.js capabilities across
   - Brings Midscene's AI-powered automation capabilities to Python developers
   - Allows integration with existing Python testing and automation workflows
 
+### Java SDK
+- **[midscene-java](https://github.com/Master-Frank/midscene-java)** - Java SDK for Midscene automation
+  - Offers a JVM-friendly way to script Midscene experiences similar to the Python SDK
+  - Fits easily into existing Java automation or testing pipelines
+
 ## Contributing
 
 Have you created a project that extends Midscene.js? We'd love to feature it here!

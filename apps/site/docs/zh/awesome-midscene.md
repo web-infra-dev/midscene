@@ -14,6 +14,11 @@
   - 为 Python 开发者提供 Midscene 的 AI 驱动自动化能力
   - 支持与现有 Python 测试和自动化工作流程的集成
 
+### Java SDK
+- **[midscene-java](https://github.com/Master-Frank/midscene-java)** - Java 版本的 Midscene SDK
+  - 提供与 Python 版本类似的体验，适配 JVM 生态
+  - 易于整合到现有的 Java 自动化或测试流程
+
 ## 如何贡献
 
 创建了扩展 Midscene.js 功能的项目？我们很乐意在这里展示！
