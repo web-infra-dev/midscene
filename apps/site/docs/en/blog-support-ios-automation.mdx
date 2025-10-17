@@ -42,11 +42,11 @@ ios:
 tasks:
   - name: search content
     flow:
-      - aiAction: tap address bar
-      - aiAction: input 'Midscene AI automation'
-      - aiAction: tap search button
+      - aiAct: tap address bar
+      - aiAct: input 'Midscene AI automation'
+      - aiAct: tap search button
       - sleep: 3000
-      - aiAction: scroll down 500px
+      - aiAct: scroll down 500px
 
   - name: extract search results
     flow:
@@ -89,10 +89,10 @@ Promise.resolve(
     await sleep(3000);
 
     // 👀 tap address bar and input search keywords
-    await agent.aiAction('tap address bar and input "Midscene automation"');
+    await agent.aiAct('tap address bar and input "Midscene automation"');
 
     // 👀 perform search
-    await agent.aiAction('tap search button');
+    await agent.aiAct('tap search button');
 
     // 👀 wait for loading to complete
     await agent.aiWaitFor("there is at least one search result on the page");

@@ -48,7 +48,7 @@ Promise.resolve(
 
     // 👀 执行搜索
     // 注：尽管这是一个英文页面，你也可以用中文指令控制它
-    await agent.aiAction('在搜索框输入 "Headphones" ，敲回车');
+    await agent.aiAct('在搜索框输入 "Headphones" ，敲回车');
     await sleep(5000);
 
     // 👀 理解页面，提取数据
@@ -135,7 +135,7 @@ const agent = new PuppeteerAgent(page, {
   customActions: [ContinuousClick],
 });
 
-await agent.aiAction('点击红色按钮五次');
+await agent.aiAct('点击红色按钮五次');
 ```
 
 更多关于自定义动作的细节，请参考 [集成到任意界面](./integrate-with-any-interface)。

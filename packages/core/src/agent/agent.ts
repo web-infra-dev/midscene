@@ -690,7 +690,7 @@ export class Agent<
     });
   }
 
-  async aiAction(
+  async aiAct(
     taskPrompt: string,
     opt?: {
       cacheable?: boolean;
@@ -749,6 +749,18 @@ export class Agent<
 
     await this.afterTaskRunning(executor);
     return output;
+  }
+
+  /**
+   * @deprecated Use {@link Agent.aiAct} instead.
+   */
+  async aiAction(
+    taskPrompt: string,
+    opt?: {
+      cacheable?: boolean;
+    },
+  ) {
+    return this.aiAct(taskPrompt, opt);
   }
 
   async aiQuery<ReturnType = any>(
@@ -1015,7 +1027,7 @@ export class Agent<
 
   async ai(taskPrompt: string, type = 'action') {
     if (type === 'action') {
-      return this.aiAction(taskPrompt);
+      return this.aiAct(taskPrompt);
     }
     if (type === 'query') {
       return this.aiQuery(taskPrompt);
@@ -1085,7 +1097,7 @@ export class Agent<
     this.destroyed = true;
   }
 
-  async logScreenshot(
+  async recordToReport(
     title?: string,
     opt?: {
       content: string;
@@ -1138,6 +1150,18 @@ export class Agent<
     }
 
     this.writeOutActionDumps();
+  }
+
+  /**
+   * @deprecated Use {@link Agent.recordToReport} instead.
+   */
+  async logScreenshot(
+    title?: string,
+    opt?: {
+      content: string;
+    },
+  ) {
+    await this.recordToReport(title, opt);
   }
 
   _unstableLogContent() {

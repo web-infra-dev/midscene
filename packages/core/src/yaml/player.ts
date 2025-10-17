@@ -211,13 +211,13 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         `playing step ${flowItemIndex}, flowItem=${JSON.stringify(flowItem)}`,
       );
       if (
-        'aiAction' in (flowItem as MidsceneYamlFlowItemAIAction) ||
+        'aiAct' in (flowItem as MidsceneYamlFlowItemAIAction) ||
         'ai' in (flowItem as MidsceneYamlFlowItemAIAction)
       ) {
         const actionTask = flowItem as MidsceneYamlFlowItemAIAction;
-        const prompt = actionTask.aiAction || actionTask.ai;
-        assert(prompt, 'missing prompt for ai (aiAction)');
-        await agent.aiAction(prompt, {
+        const prompt = actionTask.aiAct || actionTask.ai;
+        assert(prompt, 'missing prompt for ai (aiAct)');
+        await agent.aiAct(prompt, {
           cacheable: actionTask.cacheable,
         });
       } else if ('aiAssert' in (flowItem as MidsceneYamlFlowItemAIAssert)) {
@@ -320,12 +320,14 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         );
         this.setResult(evaluateJavaScriptTask.name, result);
       } else if (
-        'logScreenshot' in (flowItem as MidsceneYamlFlowItemLogScreenshot)
+        'logScreenshot' in (flowItem as MidsceneYamlFlowItemLogScreenshot) ||
+        'recordToReport' in (flowItem as MidsceneYamlFlowItemLogScreenshot)
       ) {
-        const logScreenshotTask = flowItem as MidsceneYamlFlowItemLogScreenshot;
-        await agent.logScreenshot(logScreenshotTask.logScreenshot, {
-          content: logScreenshotTask.content || '',
-        });
+        const recordTask = flowItem as MidsceneYamlFlowItemLogScreenshot;
+        const title =
+          recordTask.recordToReport ?? recordTask.logScreenshot ?? 'untitled';
+        const content = recordTask.content || '';
+        await agent.recordToReport(title, { content });
       } else if ('aiInput' in (flowItem as MidsceneYamlFlowItemAIInput)) {
         // may be input empty string ''
         const { aiInput, ...inputTask } =

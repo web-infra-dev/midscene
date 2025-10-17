@@ -50,7 +50,7 @@ Promise.resolve(
     const agent = new PlaywrightAgent(page);
 
     // 👀 type keywords, perform a search
-    await agent.aiAction('type "Headphones" in search box, hit Enter');
+    await agent.aiAct('type "Headphones" in search box, hit Enter');
 
     // 👀 wait for the loading
     await agent.aiWaitFor('there is at least one headphone item on page');
@@ -177,7 +177,7 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 
 #### 基础 AI 操作
 
-- `ai` 或 `aiAction` - 通用 AI 交互
+- `ai` 或 `aiAct` - 通用 AI 交互
 - `aiTap` - 点击操作
 - `aiHover` - 悬停操作
 - `aiInput` - 输入操作
@@ -199,9 +199,9 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 - `aiWaitFor` - 等待
 - `aiLocate` - 定位元素
 - `runYaml` - 执行 YAML 自动化脚本
-- `setAIActionContext` - 设置 AI 动作上下文，在调用 `agent.aiAction()` 时，发送给 AI 模型的背景知识
+- `setAIActionContext` - 设置 AI 动作上下文，在调用 `agent.aiAct()` 时，发送给 AI 模型的背景知识
 - `evaluateJavaScript` - 在页面上下文中执行 JavaScript
-- `logScreenshot` - 在报告文件中记录当前截图，并添加描述
+- `recordToReport` - 在报告文件中记录当前截图，并添加描述
 - `freezePageContext` - 冻结页面上下文
 - `unfreezePageContext` - 解冻页面上下文
 
@@ -211,7 +211,7 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 test('case demo', async ({ agentForPage, page }) => {
   const agent = await agentForPage(page);
 
-  await agent.logScreenshot();
+  await agent.recordToReport();
   const logContent = agent._unstableLogContent();
   console.log(logContent);
 });
@@ -238,7 +238,7 @@ test('search headphone on ebay', async ({
   aiScroll,
   aiWaitFor,
   aiRightClick,
-  logScreenshot,
+  recordToReport,
 }) => {
   // 使用 aiInput 输入搜索关键词
   await aiInput('Headphones', '搜索框');
@@ -270,8 +270,8 @@ test('search headphone on ebay', async ({
   // 使用 aiAssert 验证筛选功能
   await aiAssert('界面左侧有类目筛选功能');
 
-  // 使用 logScreenshot 记录当前状态
-  await logScreenshot('搜索结果', { content: '耳机搜索的最终结果' });
+  // 使用 recordToReport 记录当前状态
+  await recordToReport('搜索结果', { content: '耳机搜索的最终结果' });
 });
 ```
 
@@ -318,7 +318,7 @@ const agent = new PlaywrightAgent(page, {
   customActions: [ContinuousClick],
 });
 
-await agent.aiAction('点击红色按钮五次');
+await agent.aiAct('点击红色按钮五次');
 ```
 
 更多关于自定义动作的细节，请参考 [集成到任意界面](./integrate-with-any-interface)。

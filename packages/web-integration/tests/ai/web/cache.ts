@@ -28,14 +28,12 @@ Promise.resolve(
 
     await agent.aiAssert('this is the example.com page');
 
-    // Also perform an aiAction to generate planning cache
+    // Also perform an aiAct to generate planning cache
     try {
-      await agent.aiAction('verify the page title shows Example Domain');
+      await agent.aiAct('verify the page title shows Example Domain');
     } catch (error) {
-      // If aiAction fails due to AI parsing, that's ok for this test
-      console.log(
-        'aiAction failed, but cache configuration test is still valid',
-      );
+      // If aiAct fails due to AI parsing, that's ok for this test
+      console.log('aiAct failed, but cache configuration test is still valid');
     }
 
     // Verify cache file path is set correctly

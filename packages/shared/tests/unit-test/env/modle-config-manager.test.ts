@@ -320,7 +320,10 @@ describe('ModelConfigManager', () => {
     it('should throw error when planning has no vlMode in normal mode', () => {
       vi.stubEnv(MIDSCENE_PLANNING_MODEL_NAME, 'gpt-4');
       vi.stubEnv(MIDSCENE_PLANNING_OPENAI_API_KEY, 'test-key');
-      vi.stubEnv(MIDSCENE_PLANNING_OPENAI_BASE_URL, 'https://api.openai.com/v1');
+      vi.stubEnv(
+        MIDSCENE_PLANNING_OPENAI_BASE_URL,
+        'https://api.openai.com/v1',
+      );
       // Intentionally not setting MIDSCENE_PLANNING_VL_MODE
 
       const manager = new ModelConfigManager();
@@ -334,7 +337,10 @@ describe('ModelConfigManager', () => {
     it('should succeed when planning has valid vlMode in normal mode', () => {
       vi.stubEnv(MIDSCENE_PLANNING_MODEL_NAME, 'qwen-vl-plus');
       vi.stubEnv(MIDSCENE_PLANNING_OPENAI_API_KEY, 'test-key');
-      vi.stubEnv(MIDSCENE_PLANNING_OPENAI_BASE_URL, 'https://api.openai.com/v1');
+      vi.stubEnv(
+        MIDSCENE_PLANNING_OPENAI_BASE_URL,
+        'https://api.openai.com/v1',
+      );
       vi.stubEnv(MIDSCENE_PLANNING_VL_MODE, 'qwen-vl');
 
       const manager = new ModelConfigManager();
@@ -380,7 +386,14 @@ describe('ModelConfigManager', () => {
 
     it('should accept all valid VL modes for planning', () => {
       const vlModeTestCases: Array<{
-        raw: 'qwen-vl' | 'qwen3-vl' | 'gemini' | 'doubao-vision' | 'vlm-ui-tars' | 'vlm-ui-tars-doubao' | 'vlm-ui-tars-doubao-1.5';
+        raw:
+          | 'qwen-vl'
+          | 'qwen3-vl'
+          | 'gemini'
+          | 'doubao-vision'
+          | 'vlm-ui-tars'
+          | 'vlm-ui-tars-doubao'
+          | 'vlm-ui-tars-doubao-1.5';
         expected: string;
       }> = [
         { raw: 'qwen-vl', expected: 'qwen-vl' },

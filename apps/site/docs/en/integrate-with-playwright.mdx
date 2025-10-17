@@ -50,7 +50,7 @@ Promise.resolve(
     const agent = new PlaywrightAgent(page);
 
     // 👀 type keywords, perform a search
-    await agent.aiAction('type "Headphones" in search box, hit Enter');
+    await agent.aiAct('type "Headphones" in search box, hit Enter');
 
     // 👀 wait for the loading
     await agent.aiWaitFor('there is at least one headphone item on page');
@@ -177,7 +177,7 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 
 #### Basic AI operation APIs
 
-- `ai` or `aiAction` - General AI interaction
+- `ai` or `aiAct` - General AI interaction
 - `aiTap` - Click operation
 - `aiHover` - Hover operation
 - `aiInput` - Input operation
@@ -199,9 +199,9 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 - `aiWaitFor` - AI Wait
 - `aiLocate` - Locate Element
 - `runYaml` - Execute YAML automation script
-- `setAIActionContext` - Set AI action context, send background knowledge to AI model when calling `agent.aiAction()`
+- `setAIActionContext` - Set AI action context, send background knowledge to AI model when calling `agent.aiAct()`
 - `evaluateJavaScript` - Execute JavaScript in page context
-- `logScreenshot` - Log screenshot with description in report file
+- `recordToReport` - Log screenshot with description in report file
 - `freezePageContext` - Freeze page context
 - `unfreezePageContext` - Unfreeze page context
 
@@ -211,7 +211,7 @@ Besides the exposed shortcut methods, if you need to call other [API](./api.mdx)
 test('case demo', async ({ agentForPage, page }) => {
   const agent = await agentForPage(page);
 
-  await agent.logScreenshot();
+  await agent.recordToReport();
   const logContent = agent._unstableLogContent();
   console.log(logContent);
 });
@@ -238,7 +238,7 @@ test('search headphone on ebay', async ({
   aiScroll,
   aiWaitFor,
   aiRightClick,
-  logScreenshot,
+  recordToReport,
 }) => {
   // Use aiInput to enter search keyword
   await aiInput('Headphones', 'search box');
@@ -269,8 +269,8 @@ test('search headphone on ebay', async ({
   // Use aiAssert to verify filter functionality
   await aiAssert('category filter exists on the left side');
 
-  // Use logScreenshot to capture the current state
-  await logScreenshot('Search Results', {
+  // Use recordToReport to capture the current state
+  await recordToReport('Search Results', {
     content: 'Final search results for headphones',
   });
 });
@@ -320,7 +320,7 @@ const agent = new PlaywrightAgent(page, {
   customActions: [ContinuousClick],
 });
 
-await agent.aiAction('click the red button five times');
+await agent.aiAct('click the red button five times');
 ```
 
 Check [Integrate with any interface](./integrate-with-any-interface#define-a-custom-action) for more details about defining custom actions.

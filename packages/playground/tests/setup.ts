@@ -50,7 +50,7 @@ vi.mock('@midscene/core/agent', () => ({
       return ['mock', 'query', 'result'];
     }
 
-    async aiAction(prompt: string) {
+    async aiAct(prompt: string) {
       console.log(`Mock AI Action: ${prompt}`);
       return 'Mock action completed';
     }

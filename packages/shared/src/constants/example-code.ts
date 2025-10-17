@@ -114,12 +114,12 @@ tasks:
       # Auto Planning (.ai)
       # ----------------
 
-      # Perform an interaction. \`ai\` is a shorthand for \`aiAction\`.
+      # Perform an interaction. \`ai\` is a shorthand for \`aiAct\`.
       - ai: <prompt>
         cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
 
       # This usage is the same as \`ai\`.
-      - aiAction: <prompt>
+      - aiAct: <prompt>
         cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
 
       # Instant Action (.aiTap, .aiDoubleClick, .aiHover, .aiInput, .aiKeyboardPress, .aiScroll)
@@ -167,8 +167,8 @@ tasks:
         xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
         cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
 
-      # Log the current screenshot with a description in the report file.
-      - logScreenshot: <title> # Optional, the title of the screenshot. If not provided, the title will be 'untitled'.
+      # Record the current screenshot with a description in the report file.
+      - recordToReport: <title> # Optional, the title of the screenshot. If not provided, the title will be 'untitled'.
         content: <content> # Optional, the description of the screenshot.
 
       # Data Extraction

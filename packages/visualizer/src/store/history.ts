@@ -23,7 +23,7 @@ const getHistoryFromLocalStorage = (): HistoryState => {
 
 // Function to get last selected type from localStorage
 const getLastSelectedType = (): string => {
-  return localStorage.getItem(LAST_SELECTED_TYPE_KEY) || 'aiAction';
+  return localStorage.getItem(LAST_SELECTED_TYPE_KEY) || 'aiAct';
 };
 
 // Function to save last selected type to localStorage
