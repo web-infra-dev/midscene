@@ -11,10 +11,12 @@ import {
 
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 import { jsonrepair } from 'jsonrepair';
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { Stream } from 'openai/streaming';
+import { SocksProxyAgent } from 'socks-proxy-agent';
 import { AIActionType, type AIArgs } from '../common';
 import { assertSchema } from '../prompt/assertion';
 import { locatorSchema } from '../prompt/llm-locator';
@@ -34,6 +36,8 @@ async function createChatClient({
   vlMode: TVlModeTypes | undefined;
 }> {
   const {
+    socksProxy,
+    httpProxy,
     modelName,
     openaiBaseURL,
     openaiApiKey,
@@ -42,9 +46,21 @@ async function createChatClient({
     uiTarsModelVersion: uiTarsVersion,
     vlMode,
   } = modelConfig;
+
+  let proxyAgent = undefined;
+  const debugProxy = getDebug('ai:call:proxy');
+  if (httpProxy) {
+    debugProxy('using http proxy', httpProxy);
+    proxyAgent = new HttpsProxyAgent(httpProxy);
+  } else if (socksProxy) {
+    debugProxy('using socks proxy', socksProxy);
+    proxyAgent = new SocksProxyAgent(socksProxy);
+  }
+
   const openai = new OpenAI({
     baseURL: openaiBaseURL,
     apiKey: openaiApiKey,
+    httpAgent: proxyAgent,
     ...openaiExtraConfig,
     defaultHeaders: {
       ...(openaiExtraConfig?.defaultHeaders || {}),
