@@ -333,6 +333,7 @@ export type ExecutionTaskType =
 export interface ExecutorContext {
   task: ExecutionTask;
   element?: LocateResultElement | null;
+  uiContext?: UIContext;
 }
 
 export interface ExecutionTaskApply<

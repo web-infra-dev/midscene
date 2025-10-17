@@ -1,11 +1,13 @@
 import type {
   ExecutionDump,
+  ExecutionRecorderItem,
   ExecutionTask,
   ExecutionTaskApply,
   ExecutionTaskInsightLocateOutput,
   ExecutionTaskProgressOptions,
   ExecutionTaskReturn,
   ExecutorContext,
+  UIContext,
 } from '@/types';
 import { assert } from '@midscene/shared/utils';
 
@@ -19,8 +21,11 @@ export class Executor {
 
   onTaskStart?: ExecutionTaskProgressOptions['onTaskStart'];
 
+  private readonly uiContextBuilder: () => Promise<UIContext>;
+
   constructor(
     name: string,
+    uiContextBuilder: () => Promise<UIContext>,
     options?: ExecutionTaskProgressOptions & {
       tasks?: ExecutionTaskApply[];
     },
@@ -32,6 +37,45 @@ export class Executor {
       this.markTaskAsPending(item),
     );
     this.onTaskStart = options?.onTaskStart;
+    this.uiContextBuilder = uiContextBuilder;
+  }
+
+  private async captureScreenshot(): Promise<string | undefined> {
+    try {
+      const uiContext = await this.uiContextBuilder();
+      return uiContext?.screenshotBase64;
+    } catch (error) {
+      console.error('error while capturing screenshot', error);
+    }
+    return undefined;
+  }
+
+  private attachRecorderItem(
+    task: ExecutionTask,
+    contextOrScreenshot: UIContext | string | undefined,
+    phase: 'before' | 'after',
+  ): void {
+    const timing = phase;
+    const screenshot =
+      typeof contextOrScreenshot === 'string'
+        ? contextOrScreenshot
+        : contextOrScreenshot?.screenshotBase64;
+    if (!timing || !screenshot) {
+      return;
+    }
+
+    const recorderItem: ExecutionRecorderItem = {
+      type: 'screenshot',
+      ts: Date.now(),
+      screenshot,
+      timing,
+    };
+
+    if (!task.recorder) {
+      task.recorder = [recorderItem];
+      return;
+    }
+    task.recorder.push(recorderItem);
   }
 
   private markTaskAsPending(task: ExecutionTaskApply): ExecutionTask {
@@ -108,9 +152,12 @@ export class Executor {
         assert(executor, `executor is required for task type: ${task.type}`);
 
         let returnValue;
+        const uiContext = await this.uiContextBuilder();
+        task.uiContext = uiContext;
         const executorContext: ExecutorContext = {
           task,
           element: previousFindOutput?.element,
+          uiContext,
         };
 
         if (task.type === 'Insight') {
@@ -137,6 +184,13 @@ export class Executor {
             `unsupported task type: ${task.type}, will try to execute it directly`,
           );
           returnValue = await task.executor(param, executorContext);
+        }
+
+        const isLastTask = taskIndex === this.tasks.length - 1;
+
+        if (isLastTask) {
+          const screenshot = await this.captureScreenshot();
+          this.attachRecorderItem(task, screenshot, 'after');
         }
 
         Object.assign(task, returnValue);
