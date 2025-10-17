@@ -465,19 +465,16 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           `unknown flowItem in yaml: ${JSON.stringify(flowItem)}`,
         );
 
-        assert(
-          !((flowItem as any).prompt && locatePromptShortcut),
-          `conflict locate prompt for item: ${JSON.stringify(flowItem)}`,
-        );
-
-        if (locatePromptShortcut) {
-          (flowItem as any).prompt = locatePromptShortcut;
-        }
+        // Create a new object instead of mutating the original flowItem
+        // This prevents issues when the same YAML script is executed multiple times
+        const flowItemForProcessing = locatePromptShortcut
+          ? { ...flowItem, prompt: locatePromptShortcut }
+          : flowItem;
 
         const { locateParam, restParams } =
           buildDetailedLocateParamAndRestParams(
             locatePromptShortcut || '',
-            flowItem as LocateOption,
+            flowItemForProcessing as LocateOption,
             [
               matchedAction.name,
               matchedAction.interfaceAlias || '_never_mind_',
