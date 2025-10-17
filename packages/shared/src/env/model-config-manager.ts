@@ -5,6 +5,7 @@ import {
 import type { GlobalConfigManager } from './global-config-manager';
 
 import type { IModelConfig, TIntent, TModelConfigFn } from './types';
+import { VL_MODE_RAW_VALID_VALUES as VL_MODES } from './types';
 
 const ALL_INTENTS: TIntent[] = ['VQA', 'default', 'grounding', 'planning'];
 
@@ -101,13 +102,15 @@ export class ModelConfigManager {
    * if isolatedMode is false, modelConfigMap can be changed by process.env so we need to recalculate it when it's undefined
    */
   getModelConfig(intent: TIntent): IModelConfig {
+    let config: IModelConfig;
+
     if (this.isolatedMode) {
       if (!this.modelConfigMap) {
         throw new Error(
           'modelConfigMap is not initialized in isolated mode, which should not happen',
         );
       }
-      return this.modelConfigMap[intent];
+      config = this.modelConfigMap[intent];
     } else {
       if (!this.modelConfigMap) {
         if (!this.globalConfigManager) {
@@ -119,8 +122,26 @@ export class ModelConfigManager {
           this.globalConfigManager.getAllEnvConfig(),
         );
       }
-      return this.modelConfigMap[intent];
+      config = this.modelConfigMap[intent];
     }
+
+    // Validate Planning must use VL mode
+    if (intent === 'planning' && !config.vlMode) {
+      throw new Error(
+        `Planning requires a vision language model (VL model). DOM-based planning is not supported.
+
+Please configure one of the following VL modes:
+  ${VL_MODES.map((mode) => `- ${mode}`).join('\n  ')}
+  
+Configuration examples:
+  - Environment variable: MIDSCENE_PLANNING_VL_MODE=qwen-vl
+  - Or use modelConfig function with planning intent
+  
+Learn more: https://midscenejs.com/choose-a-model`,
+      );
+    }
+
+    return config;
   }
 
   getUploadTestServerUrl(): string | undefined {
