@@ -13,6 +13,7 @@ import {
   MIDSCENE_PLANNING_MODEL_NAME,
   MIDSCENE_PLANNING_OPENAI_API_KEY,
   MIDSCENE_PLANNING_OPENAI_BASE_URL,
+  MIDSCENE_PLANNING_VL_MODE,
   MIDSCENE_VQA_MODEL_NAME,
   MIDSCENE_VQA_OPENAI_API_KEY,
   MIDSCENE_VQA_OPENAI_BASE_URL,
@@ -48,9 +49,10 @@ describe('ModelConfigManager', () => {
             };
           case 'planning':
             return {
-              [MIDSCENE_PLANNING_MODEL_NAME]: 'gpt-4',
+              [MIDSCENE_PLANNING_MODEL_NAME]: 'qwen-vl-plus',
               [MIDSCENE_PLANNING_OPENAI_API_KEY]: 'test-planning-key',
               [MIDSCENE_PLANNING_OPENAI_BASE_URL]: 'https://api.openai.com/v1',
+              [MIDSCENE_PLANNING_VL_MODE]: 'qwen-vl' as const,
             };
           case 'grounding':
             return {
@@ -105,9 +107,10 @@ describe('ModelConfigManager', () => {
             };
           case 'planning':
             return {
-              [MIDSCENE_PLANNING_MODEL_NAME]: 'gpt-4',
+              [MIDSCENE_PLANNING_MODEL_NAME]: 'qwen-vl-plus',
               [MIDSCENE_PLANNING_OPENAI_API_KEY]: 'test-planning-key',
               [MIDSCENE_PLANNING_OPENAI_BASE_URL]: 'https://api.openai.com/v1',
+              [MIDSCENE_PLANNING_VL_MODE]: 'qwen-vl',
             };
           case 'grounding':
             return {
@@ -131,10 +134,11 @@ describe('ModelConfigManager', () => {
       expect(vqaConfig.from).toBe('modelConfig');
 
       const planningConfig = manager.getModelConfig('planning');
-      expect(planningConfig.modelName).toBe('gpt-4');
+      expect(planningConfig.modelName).toBe('qwen-vl-plus');
       expect(planningConfig.openaiApiKey).toBe('test-planning-key');
       expect(planningConfig.intent).toBe('planning');
       expect(planningConfig.from).toBe('modelConfig');
+      expect(planningConfig.vlMode).toBe('qwen-vl');
 
       const groundingConfig = manager.getModelConfig('grounding');
       expect(groundingConfig.modelName).toBe('gpt-4-vision');
@@ -261,6 +265,169 @@ describe('ModelConfigManager', () => {
       expect(config.modelName).toBe('gpt-4');
       expect(config.openaiApiKey).toBe('isolated-key');
       expect(config.openaiBaseURL).toBe('https://isolated.openai.com/v1');
+    });
+  });
+
+  describe('Planning VL mode validation', () => {
+    it('should throw error when planning has no vlMode in isolated mode', () => {
+      const modelConfigFn: TModelConfigFn = ({ intent }) => {
+        if (intent === 'planning') {
+          // Missing VL mode for planning
+          return {
+            [MIDSCENE_PLANNING_MODEL_NAME]: 'gpt-4',
+            [MIDSCENE_PLANNING_OPENAI_API_KEY]: 'test-key',
+            [MIDSCENE_PLANNING_OPENAI_BASE_URL]: 'https://api.openai.com/v1',
+          };
+        }
+        return {
+          [MIDSCENE_MODEL_NAME]: 'gpt-4',
+          [MIDSCENE_OPENAI_API_KEY]: 'test-key',
+          [MIDSCENE_OPENAI_BASE_URL]: 'https://api.openai.com/v1',
+        };
+      };
+
+      const manager = new ModelConfigManager(modelConfigFn);
+
+      expect(() => manager.getModelConfig('planning')).toThrow(
+        'Planning requires a vision language model (VL model). DOM-based planning is not supported.',
+      );
+    });
+
+    it('should succeed when planning has valid vlMode in isolated mode', () => {
+      const modelConfigFn: TModelConfigFn = ({ intent }) => {
+        if (intent === 'planning') {
+          return {
+            [MIDSCENE_PLANNING_MODEL_NAME]: 'qwen-vl-plus',
+            [MIDSCENE_PLANNING_OPENAI_API_KEY]: 'test-key',
+            [MIDSCENE_PLANNING_OPENAI_BASE_URL]: 'https://api.openai.com/v1',
+            [MIDSCENE_PLANNING_VL_MODE]: 'qwen-vl' as const,
+          };
+        }
+        return {
+          [MIDSCENE_MODEL_NAME]: 'gpt-4',
+          [MIDSCENE_OPENAI_API_KEY]: 'test-key',
+          [MIDSCENE_OPENAI_BASE_URL]: 'https://api.openai.com/v1',
+        };
+      };
+
+      const manager = new ModelConfigManager(modelConfigFn);
+      const config = manager.getModelConfig('planning');
+
+      expect(config.vlMode).toBe('qwen-vl');
+      expect(config.modelName).toBe('qwen-vl-plus');
+    });
+
+    it('should throw error when planning has no vlMode in normal mode', () => {
+      vi.stubEnv(MIDSCENE_PLANNING_MODEL_NAME, 'gpt-4');
+      vi.stubEnv(MIDSCENE_PLANNING_OPENAI_API_KEY, 'test-key');
+      vi.stubEnv(
+        MIDSCENE_PLANNING_OPENAI_BASE_URL,
+        'https://api.openai.com/v1',
+      );
+      // Intentionally not setting MIDSCENE_PLANNING_VL_MODE
+
+      const manager = new ModelConfigManager();
+      manager.registerGlobalConfigManager(new GlobalConfigManager());
+
+      expect(() => manager.getModelConfig('planning')).toThrow(
+        'Planning requires a vision language model (VL model). DOM-based planning is not supported.',
+      );
+    });
+
+    it('should succeed when planning has valid vlMode in normal mode', () => {
+      vi.stubEnv(MIDSCENE_PLANNING_MODEL_NAME, 'qwen-vl-plus');
+      vi.stubEnv(MIDSCENE_PLANNING_OPENAI_API_KEY, 'test-key');
+      vi.stubEnv(
+        MIDSCENE_PLANNING_OPENAI_BASE_URL,
+        'https://api.openai.com/v1',
+      );
+      vi.stubEnv(MIDSCENE_PLANNING_VL_MODE, 'qwen-vl');
+
+      const manager = new ModelConfigManager();
+      manager.registerGlobalConfigManager(new GlobalConfigManager());
+
+      const config = manager.getModelConfig('planning');
+
+      expect(config.vlMode).toBe('qwen-vl');
+      expect(config.modelName).toBe('qwen-vl-plus');
+      expect(config.intent).toBe('planning');
+    });
+
+    it('should not affect other intents when planning validation fails', () => {
+      const modelConfigFn: TModelConfigFn = ({ intent }) => {
+        if (intent === 'planning') {
+          // Missing VL mode for planning - should fail
+          return {
+            [MIDSCENE_PLANNING_MODEL_NAME]: 'gpt-4',
+            [MIDSCENE_PLANNING_OPENAI_API_KEY]: 'test-key',
+            [MIDSCENE_PLANNING_OPENAI_BASE_URL]: 'https://api.openai.com/v1',
+          };
+        }
+        // Other intents should work fine
+        return {
+          [MIDSCENE_MODEL_NAME]: 'gpt-4',
+          [MIDSCENE_OPENAI_API_KEY]: 'test-key',
+          [MIDSCENE_OPENAI_BASE_URL]: 'https://api.openai.com/v1',
+        };
+      };
+
+      const manager = new ModelConfigManager(modelConfigFn);
+
+      // Planning should fail
+      expect(() => manager.getModelConfig('planning')).toThrow(
+        'Planning requires a vision language model',
+      );
+
+      // Other intents should succeed
+      expect(() => manager.getModelConfig('default')).not.toThrow();
+      expect(() => manager.getModelConfig('VQA')).not.toThrow();
+      expect(() => manager.getModelConfig('grounding')).not.toThrow();
+    });
+
+    it('should accept all valid VL modes for planning', () => {
+      const vlModeTestCases: Array<{
+        raw:
+          | 'qwen-vl'
+          | 'qwen3-vl'
+          | 'gemini'
+          | 'doubao-vision'
+          | 'vlm-ui-tars'
+          | 'vlm-ui-tars-doubao'
+          | 'vlm-ui-tars-doubao-1.5';
+        expected: string;
+      }> = [
+        { raw: 'qwen-vl', expected: 'qwen-vl' },
+        { raw: 'qwen3-vl', expected: 'qwen3-vl' },
+        { raw: 'gemini', expected: 'gemini' },
+        { raw: 'doubao-vision', expected: 'doubao-vision' },
+        // UI-TARS variants all normalize to 'vlm-ui-tars'
+        { raw: 'vlm-ui-tars', expected: 'vlm-ui-tars' },
+        { raw: 'vlm-ui-tars-doubao', expected: 'vlm-ui-tars' },
+        { raw: 'vlm-ui-tars-doubao-1.5', expected: 'vlm-ui-tars' },
+      ];
+
+      for (const { raw, expected } of vlModeTestCases) {
+        const modelConfigFn: TModelConfigFn = ({ intent }) => {
+          if (intent === 'planning') {
+            return {
+              [MIDSCENE_PLANNING_MODEL_NAME]: 'test-model',
+              [MIDSCENE_PLANNING_OPENAI_API_KEY]: 'test-key',
+              [MIDSCENE_PLANNING_OPENAI_BASE_URL]: 'https://api.openai.com/v1',
+              [MIDSCENE_PLANNING_VL_MODE]: raw,
+            };
+          }
+          return {
+            [MIDSCENE_MODEL_NAME]: 'gpt-4',
+            [MIDSCENE_OPENAI_API_KEY]: 'test-key',
+            [MIDSCENE_OPENAI_BASE_URL]: 'https://api.openai.com/v1',
+          };
+        };
+
+        const manager = new ModelConfigManager(modelConfigFn);
+        const config = manager.getModelConfig('planning');
+
+        expect(config.vlMode).toBe(expected);
+      }
     });
   });
 });

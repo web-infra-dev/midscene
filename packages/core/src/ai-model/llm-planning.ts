@@ -8,21 +8,16 @@ import type { IModelConfig } from '@midscene/shared/env';
 import { paddingToMatchBlockByBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import type {
-  ChatCompletionContentPart,
-  ChatCompletionMessageParam,
-} from 'openai/resources/index';
+import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import {
   AIActionType,
   buildYamlFlowFromPlans,
   fillBboxParam,
   findAllMidsceneLocatorField,
-  markupImageForLLM,
   warnGPT4oSizeLimit,
 } from './common';
 import type { ConversationHistory } from './conversation-history';
 import { systemPromptToTaskPlanning } from './prompt/llm-planning';
-import { describeUserPage } from './prompt/util';
 import { callAIWithObjectResponse } from './service-caller/index';
 
 const debug = getDebug('planning');
@@ -43,10 +38,9 @@ export async function plan(
 
   const { modelName, vlMode } = modelConfig;
 
-  const { description: pageDescription, elementById } = await describeUserPage(
-    context,
-    { vlMode },
-  );
+  // Planning requires VL mode (validated by ModelConfigManager.getModelConfig)
+  assert(vlMode, 'Planning requires vlMode to be configured.');
+
   const systemPrompt = await systemPromptToTaskPlanning({
     actionSpace: opts.actionSpace,
     vlMode: vlMode,
@@ -57,21 +51,19 @@ export async function plan(
   let imageHeight = size.height;
   const rightLimit = imageWidth;
   const bottomLimit = imageHeight;
+
+  // Process image based on VL mode requirements
   if (vlMode === 'qwen-vl') {
     const paddedResult = await paddingToMatchBlockByBase64(imagePayload);
     imageWidth = paddedResult.width;
     imageHeight = paddedResult.height;
     imagePayload = paddedResult.imageBase64;
   } else if (vlMode === 'qwen3-vl') {
+    // Reserved for qwen3-vl specific processing
     // const paddedResult = await paddingToMatchBlockByBase64(imagePayload, 32);
     // imageWidth = paddedResult.width;
     // imageHeight = paddedResult.height;
     // imagePayload = paddedResult.imageBase64;
-  } else if (!vlMode) {
-    imagePayload = await markupImageForLLM(screenshotBase64, context.tree, {
-      width: imageWidth,
-      height: imageHeight,
-    });
   }
 
   warnGPT4oSizeLimit(size, modelName);
@@ -120,14 +112,7 @@ export async function plan(
             detail: 'high',
           },
         },
-        ...(vlMode
-          ? []
-          : ([
-              {
-                type: 'text',
-                text: pageDescription,
-              },
-            ] as ChatCompletionContentPart[])),
+        // Planning uses pure vision mode, no DOM description needed
       ],
     },
   ];
@@ -173,21 +158,15 @@ export async function plan(
     locateFields.forEach((field) => {
       const locateResult = action.param[field];
       if (locateResult) {
-        if (vlMode) {
-          action.param[field] = fillBboxParam(
-            locateResult,
-            imageWidth,
-            imageHeight,
-            rightLimit,
-            bottomLimit,
-            vlMode,
-          );
-        } else {
-          const element = elementById(locateResult);
-          if (element) {
-            action.param[field].id = element.id;
-          }
-        }
+        // Always use VL mode to fill bbox parameters
+        action.param[field] = fillBboxParam(
+          locateResult,
+          imageWidth,
+          imageHeight,
+          rightLimit,
+          bottomLimit,
+          vlMode,
+        );
       }
     });
   });

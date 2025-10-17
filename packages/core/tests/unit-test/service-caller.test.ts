@@ -1,7 +1,7 @@
 import { AIActionType } from '@/ai-model';
 import { getResponseFormat } from '@/ai-model/service-caller';
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import type { IModelConfig } from '@midscene/shared/env';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('service-caller', () => {
   describe('getResponseFormat', () => {
