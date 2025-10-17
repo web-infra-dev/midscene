@@ -134,6 +134,31 @@ summary: "yaml-summary.json"
         'No YAML files found matching the patterns in "files"',
       );
     });
+
+    test('should preserve duplicate file entries', async () => {
+      const mockYamlContent = `
+files:
+  - "login.yml"
+  - "test.yml"
+  - "login.yml"
+`;
+      const mockParsedYaml = {
+        files: ['login.yml', 'test.yml', 'login.yml'],
+      };
+
+      vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
+      vi.mocked(interpolateEnvVars).mockReturnValue(mockYamlContent);
+      vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
+      vi.mocked(matchYamlFiles)
+        .mockResolvedValueOnce(['login.yml'])
+        .mockResolvedValueOnce(['test.yml'])
+        .mockResolvedValueOnce(['login.yml']);
+
+      const result = await parseConfigYaml(mockIndexPath);
+
+      expect(result.files).toEqual(['login.yml', 'test.yml', 'login.yml']);
+      expect(result.files.length).toBe(3);
+    });
   });
 
   describe('createConfig', () => {
@@ -273,12 +298,17 @@ concurrent: 2
     test('should create config with default options and expand patterns', async () => {
       const patterns = ['test1.yml', 'test*.yml'];
       const expandedFiles = ['test1.yml', 'testA.yml', 'testB.yml'];
-      vi.mocked(matchYamlFiles).mockResolvedValue(expandedFiles);
+      // Mock to return different results for each pattern call
+      vi.mocked(matchYamlFiles)
+        .mockResolvedValueOnce(['test1.yml'])
+        .mockResolvedValueOnce(['test1.yml', 'testA.yml', 'testB.yml']);
 
       const result = await createFilesConfig(patterns);
 
+      // Note: test1.yml appears twice because it's matched by both patterns
+      // This is expected behavior - patterns are evaluated independently
       expect(result).toEqual({
-        files: expandedFiles,
+        files: ['test1.yml', 'test1.yml', 'testA.yml', 'testB.yml'],
         concurrent: 1,
         continueOnError: false,
         shareBrowserContext: false,
@@ -290,6 +320,7 @@ concurrent: 2
         globalConfig: {
           web: undefined,
           android: undefined,
+          ios: undefined,
         },
       });
       expect(matchYamlFiles).toHaveBeenCalledWith(patterns[0], {
