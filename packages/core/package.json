@@ -72,8 +72,6 @@
     "test:parse-action": "npm run test:ai -- tests/ai/parse-action.test.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "0.33.1",
-    "@azure/identity": "4.5.0",
     "@langchain/core": "0.3.26",
     "@midscene/recorder": "workspace:*",
     "@midscene/shared": "workspace:*",
@@ -81,8 +79,7 @@
     "dotenv": "^16.4.5",
     "https-proxy-agent": "7.0.2",
     "jsonrepair": "3.12.0",
-    "langsmith": "0.3.7",
-    "openai": "4.81.0",
+    "openai": "6.3.0",
     "socks-proxy-agent": "8.0.4",
     "zod": "3.24.3",
     "semver": "7.5.2",

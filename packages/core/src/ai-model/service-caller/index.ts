@@ -1,27 +1,19 @@
 import { AIResponseFormat, type AIUsageInfo } from '@/types';
 import type { CodeGenerationChunk, StreamingCallback } from '@/types';
-import { Anthropic } from '@anthropic-ai/sdk';
-import {
-  DefaultAzureCredential,
-  getBearerTokenProvider,
-} from '@azure/identity';
 import {
   type IModelConfig,
   MIDSCENE_API_TYPE,
-  MIDSCENE_LANGSMITH_DEBUG,
   OPENAI_MAX_TOKENS,
   type TVlModeTypes,
   type UITarsModelVersion,
   globalConfigManager,
 } from '@midscene/shared/env';
 
-import { parseBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import { ifInBrowser } from '@midscene/shared/utils';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { jsonrepair } from 'jsonrepair';
-import OpenAI, { AzureOpenAI } from 'openai';
+import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { Stream } from 'openai/streaming';
 import { SocksProxyAgent } from 'socks-proxy-agent';
@@ -38,7 +30,6 @@ async function createChatClient({
   modelConfig: IModelConfig;
 }): Promise<{
   completion: OpenAI.Chat.Completions;
-  style: 'openai' | 'anthropic';
   modelName: string;
   modelDescription: string;
   uiTarsVersion?: UITarsModelVersion;
@@ -51,22 +42,10 @@ async function createChatClient({
     openaiBaseURL,
     openaiApiKey,
     openaiExtraConfig,
-    openaiUseAzureDeprecated,
-    useAzureOpenai,
-    azureOpenaiScope,
-    azureOpenaiKey,
-    azureOpenaiEndpoint,
-    azureOpenaiApiVersion,
-    azureOpenaiDeployment,
-    azureExtraConfig,
-    useAnthropicSdk,
-    anthropicApiKey,
     modelDescription,
     uiTarsModelVersion: uiTarsVersion,
     vlMode,
   } = modelConfig;
-
-  let openai: OpenAI | AzureOpenAI | undefined;
 
   let proxyAgent = undefined;
   const debugProxy = getDebug('ai:call:proxy');
@@ -78,106 +57,25 @@ async function createChatClient({
     proxyAgent = new SocksProxyAgent(socksProxy);
   }
 
-  if (openaiUseAzureDeprecated) {
-    // this is deprecated
-    openai = new AzureOpenAI({
-      baseURL: openaiBaseURL,
-      apiKey: openaiApiKey,
-      httpAgent: proxyAgent,
-      ...openaiExtraConfig,
-      dangerouslyAllowBrowser: true,
-    }) as OpenAI;
-  } else if (useAzureOpenai) {
-    // https://learn.microsoft.com/en-us/azure/ai-services/openai/chatgpt-quickstart?tabs=bash%2Cjavascript-key%2Ctypescript-keyless%2Cpython&pivots=programming-language-javascript#rest-api
-    // keyless authentication
-    let tokenProvider: any = undefined;
-    if (azureOpenaiScope) {
-      assert(
-        !ifInBrowser,
-        'Azure OpenAI is not supported in browser with Midscene.',
-      );
-      const credential = new DefaultAzureCredential();
+  const openai = new OpenAI({
+    baseURL: openaiBaseURL,
+    apiKey: openaiApiKey,
+    httpAgent: proxyAgent,
+    ...openaiExtraConfig,
+    defaultHeaders: {
+      ...(openaiExtraConfig?.defaultHeaders || {}),
+      [MIDSCENE_API_TYPE]: AIActionTypeValue.toString(),
+    },
+    dangerouslyAllowBrowser: true,
+  });
 
-      tokenProvider = getBearerTokenProvider(credential, azureOpenaiScope);
-
-      openai = new AzureOpenAI({
-        azureADTokenProvider: tokenProvider,
-        endpoint: azureOpenaiEndpoint,
-        apiVersion: azureOpenaiApiVersion,
-        deployment: azureOpenaiDeployment,
-        ...openaiExtraConfig,
-        ...azureExtraConfig,
-      });
-    } else {
-      // endpoint, apiKey, apiVersion, deployment
-      openai = new AzureOpenAI({
-        apiKey: azureOpenaiKey,
-        endpoint: azureOpenaiEndpoint,
-        apiVersion: azureOpenaiApiVersion,
-        deployment: azureOpenaiDeployment,
-        dangerouslyAllowBrowser: true,
-        ...openaiExtraConfig,
-        ...azureExtraConfig,
-      });
-    }
-  } else if (!useAnthropicSdk) {
-    openai = new OpenAI({
-      baseURL: openaiBaseURL,
-      apiKey: openaiApiKey,
-      httpAgent: proxyAgent,
-      ...openaiExtraConfig,
-      defaultHeaders: {
-        ...(openaiExtraConfig?.defaultHeaders || {}),
-        [MIDSCENE_API_TYPE]: AIActionTypeValue.toString(),
-      },
-      dangerouslyAllowBrowser: true,
-    });
-  }
-
-  if (
-    openai &&
-    globalConfigManager.getEnvConfigInBoolean(MIDSCENE_LANGSMITH_DEBUG)
-  ) {
-    if (ifInBrowser) {
-      throw new Error('langsmith is not supported in browser');
-    }
-    console.log('DEBUGGING MODE: langsmith wrapper enabled');
-    const { wrapOpenAI } = await import('langsmith/wrappers');
-    openai = wrapOpenAI(openai);
-  }
-
-  if (typeof openai !== 'undefined') {
-    return {
-      completion: openai.chat.completions,
-      style: 'openai',
-      modelName,
-      modelDescription,
-      uiTarsVersion,
-      vlMode,
-    };
-  }
-
-  // Anthropic
-  if (useAnthropicSdk) {
-    openai = new Anthropic({
-      apiKey: anthropicApiKey,
-      httpAgent: proxyAgent,
-      dangerouslyAllowBrowser: true,
-    }) as any;
-  }
-
-  if (typeof openai !== 'undefined' && (openai as any).messages) {
-    return {
-      completion: (openai as any).messages,
-      style: 'anthropic',
-      modelName,
-      modelDescription,
-      uiTarsVersion,
-      vlMode,
-    };
-  }
-
-  throw new Error('Openai SDK or Anthropic SDK is not initialized');
+  return {
+    completion: openai.chat.completions,
+    modelName,
+    modelDescription,
+    uiTarsVersion,
+    vlMode,
+  };
 }
 
 export async function callAI(
@@ -189,17 +87,11 @@ export async function callAI(
     onChunk?: StreamingCallback;
   },
 ): Promise<{ content: string; usage?: AIUsageInfo; isStreamed: boolean }> {
-  const {
-    completion,
-    style,
-    modelName,
-    modelDescription,
-    uiTarsVersion,
-    vlMode,
-  } = await createChatClient({
-    AIActionTypeValue,
-    modelConfig,
-  });
+  const { completion, modelName, modelDescription, uiTarsVersion, vlMode } =
+    await createChatClient({
+      AIActionTypeValue,
+      modelConfig,
+    });
 
   const responseFormat = getResponseFormat(modelName, AIActionTypeValue);
 
@@ -223,7 +115,7 @@ export async function callAI(
       typeof maxTokens === 'number'
         ? maxTokens
         : Number.parseInt(maxTokens || '2048', 10),
-    ...(vlMode === 'qwen-vl' || vlMode === 'qwen3-vl' // qwen specific config
+    ...(vlMode === 'qwen-vl' // qwen vl v2 specific config
       ? {
           vl_high_resolution_images: true,
         }
@@ -231,213 +123,115 @@ export async function callAI(
   };
 
   try {
-    if (style === 'openai') {
-      debugCall(
-        `sending ${isStreaming ? 'streaming ' : ''}request to ${modelName}`,
-      );
+    debugCall(
+      `sending ${isStreaming ? 'streaming ' : ''}request to ${modelName}`,
+    );
 
-      if (isStreaming) {
-        const stream = (await completion.create(
-          {
-            model: modelName,
-            messages,
-            response_format: responseFormat,
-            ...commonConfig,
-          },
-          {
-            stream: true,
-          },
-        )) as Stream<OpenAI.Chat.Completions.ChatCompletionChunk> & {
-          _request_id?: string | null;
-        };
-
-        for await (const chunk of stream) {
-          const content = chunk.choices?.[0]?.delta?.content || '';
-          const reasoning_content =
-            (chunk.choices?.[0]?.delta as any)?.reasoning_content || '';
-
-          // Check for usage info in any chunk (OpenAI provides usage in separate chunks)
-          if (chunk.usage) {
-            usage = chunk.usage;
-          }
-
-          if (content || reasoning_content) {
-            accumulated += content;
-            const chunkData: CodeGenerationChunk = {
-              content,
-              reasoning_content,
-              accumulated,
-              isComplete: false,
-              usage: undefined,
-            };
-            options.onChunk!(chunkData);
-          }
-
-          // Check if stream is complete
-          if (chunk.choices?.[0]?.finish_reason) {
-            timeCost = Date.now() - startTime;
-
-            // If usage is not available from the stream, provide a basic usage info
-            if (!usage) {
-              // Estimate token counts based on content length (rough approximation)
-              const estimatedTokens = Math.max(
-                1,
-                Math.floor(accumulated.length / 4),
-              );
-              usage = {
-                prompt_tokens: estimatedTokens,
-                completion_tokens: estimatedTokens,
-                total_tokens: estimatedTokens * 2,
-              };
-            }
-
-            // Send final chunk
-            const finalChunk: CodeGenerationChunk = {
-              content: '',
-              accumulated,
-              reasoning_content: '',
-              isComplete: true,
-              usage: {
-                prompt_tokens: usage.prompt_tokens ?? 0,
-                completion_tokens: usage.completion_tokens ?? 0,
-                total_tokens: usage.total_tokens ?? 0,
-                time_cost: timeCost ?? 0,
-                model_name: modelName,
-                model_description: modelDescription,
-                intent: modelConfig.intent,
-              },
-            };
-            options.onChunk!(finalChunk);
-            break;
-          }
-        }
-        content = accumulated;
-        debugProfileStats(
-          `streaming model, ${modelName}, mode, ${vlMode || 'default'}, cost-ms, ${timeCost}`,
-        );
-      } else {
-        const result = await completion.create({
+    if (isStreaming) {
+      const stream = (await completion.create(
+        {
           model: modelName,
           messages,
           response_format: responseFormat,
           ...commonConfig,
-        } as any);
-        timeCost = Date.now() - startTime;
-
-        debugProfileStats(
-          `model, ${modelName}, mode, ${vlMode || 'default'}, ui-tars-version, ${uiTarsVersion}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${timeCost}, requestId, ${result._request_id || ''}`,
-        );
-
-        debugProfileDetail(
-          `model usage detail: ${JSON.stringify(result.usage)}`,
-        );
-
-        assert(
-          result.choices,
-          `invalid response from LLM service: ${JSON.stringify(result)}`,
-        );
-        content = result.choices[0].message.content!;
-        usage = result.usage;
-      }
-
-      debugCall(`response: ${content}`);
-      assert(content, 'empty content');
-    } else if (style === 'anthropic') {
-      const convertImageContent = (content: any) => {
-        if (content.type === 'image_url') {
-          const imgBase64 = content.image_url.url;
-          assert(imgBase64, 'image_url is required');
-          const { mimeType, body } = parseBase64(content.image_url.url);
-          return {
-            source: {
-              type: 'base64',
-              media_type: mimeType,
-              data: body,
-            },
-            type: 'image',
-          };
-        }
-        return content;
+        },
+        {
+          stream: true,
+        },
+      )) as Stream<OpenAI.Chat.Completions.ChatCompletionChunk> & {
+        _request_id?: string | null;
       };
 
-      if (isStreaming) {
-        const stream = (await completion.create({
-          model: modelName,
-          system: 'You are a versatile professional in software UI automation',
-          messages: messages.map((m) => ({
-            role: 'user',
-            content: Array.isArray(m.content)
-              ? (m.content as any).map(convertImageContent)
-              : m.content,
-          })),
-          response_format: responseFormat,
-          ...commonConfig,
-        } as any)) as any;
+      for await (const chunk of stream) {
+        const content = chunk.choices?.[0]?.delta?.content || '';
+        const reasoning_content =
+          (chunk.choices?.[0]?.delta as any)?.reasoning_content || '';
 
-        for await (const chunk of stream) {
-          const content = chunk.delta?.text || '';
-          if (content) {
-            accumulated += content;
-            const chunkData: CodeGenerationChunk = {
-              content,
-              accumulated,
-              reasoning_content: '',
-              isComplete: false,
-              usage: undefined,
-            };
-            options.onChunk!(chunkData);
-          }
-
-          // Check if stream is complete
-          if (chunk.type === 'message_stop') {
-            timeCost = Date.now() - startTime;
-            const anthropicUsage = chunk.usage;
-
-            // Send final chunk
-            const finalChunk: CodeGenerationChunk = {
-              content: '',
-              accumulated,
-              reasoning_content: '',
-              isComplete: true,
-              usage: anthropicUsage
-                ? {
-                    prompt_tokens: anthropicUsage.input_tokens ?? 0,
-                    completion_tokens: anthropicUsage.output_tokens ?? 0,
-                    total_tokens:
-                      (anthropicUsage.input_tokens ?? 0) +
-                      (anthropicUsage.output_tokens ?? 0),
-                    time_cost: timeCost ?? 0,
-                    model_name: modelName,
-                    model_description: modelDescription,
-                    intent: modelConfig.intent,
-                  }
-                : undefined,
-            };
-            options.onChunk!(finalChunk);
-            break;
-          }
+        // Check for usage info in any chunk (OpenAI provides usage in separate chunks)
+        if (chunk.usage) {
+          usage = chunk.usage;
         }
-        content = accumulated;
-      } else {
-        const result = await completion.create({
-          model: modelName,
-          system: 'You are a versatile professional in software UI automation',
-          messages: messages.map((m) => ({
-            role: 'user',
-            content: Array.isArray(m.content)
-              ? (m.content as any).map(convertImageContent)
-              : m.content,
-          })),
-          response_format: responseFormat,
-          ...commonConfig,
-        } as any);
-        timeCost = Date.now() - startTime;
-        content = (result as any).content[0].text as string;
-        usage = result.usage;
-      }
 
-      assert(content, 'empty content');
+        if (content || reasoning_content) {
+          accumulated += content;
+          const chunkData: CodeGenerationChunk = {
+            content,
+            reasoning_content,
+            accumulated,
+            isComplete: false,
+            usage: undefined,
+          };
+          options.onChunk!(chunkData);
+        }
+
+        // Check if stream is complete
+        if (chunk.choices?.[0]?.finish_reason) {
+          timeCost = Date.now() - startTime;
+
+          // If usage is not available from the stream, provide a basic usage info
+          if (!usage) {
+            // Estimate token counts based on content length (rough approximation)
+            const estimatedTokens = Math.max(
+              1,
+              Math.floor(accumulated.length / 4),
+            );
+            usage = {
+              prompt_tokens: estimatedTokens,
+              completion_tokens: estimatedTokens,
+              total_tokens: estimatedTokens * 2,
+            };
+          }
+
+          // Send final chunk
+          const finalChunk: CodeGenerationChunk = {
+            content: '',
+            accumulated,
+            reasoning_content: '',
+            isComplete: true,
+            usage: {
+              prompt_tokens: usage.prompt_tokens ?? 0,
+              completion_tokens: usage.completion_tokens ?? 0,
+              total_tokens: usage.total_tokens ?? 0,
+              time_cost: timeCost ?? 0,
+              model_name: modelName,
+              model_description: modelDescription,
+              intent: modelConfig.intent,
+            },
+          };
+          options.onChunk!(finalChunk);
+          break;
+        }
+      }
+      content = accumulated;
+      debugProfileStats(
+        `streaming model, ${modelName}, mode, ${vlMode || 'default'}, cost-ms, ${timeCost}`,
+      );
+    } else {
+      const result = await completion.create({
+        model: modelName,
+        messages,
+        response_format: responseFormat,
+        ...commonConfig,
+      } as any);
+      timeCost = Date.now() - startTime;
+
+      debugProfileStats(
+        `model, ${modelName}, mode, ${vlMode || 'default'}, ui-tars-version, ${uiTarsVersion}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${timeCost}, requestId, ${result._request_id || ''}`,
+      );
+
+      debugProfileDetail(`model usage detail: ${JSON.stringify(result.usage)}`);
+
+      assert(
+        result.choices,
+        `invalid response from LLM service: ${JSON.stringify(result)}`,
+      );
+      content = result.choices[0].message.content!;
+      usage = result.usage;
     }
+
+    debugCall(`response: ${content}`);
+    assert(content, 'empty content');
+
     // Ensure we always have usage info for streaming responses
     if (isStreaming && !usage) {
       // Estimate token counts based on content length (rough approximation)

@@ -43,7 +43,6 @@ Some advanced configs are also supported. Usually you don't need to use them.
 
 | Name | Description |
 |------|-------------|
-| `OPENAI_USE_AZURE` | Optional. Set to "true" to use Azure OpenAI Service. See more details in the following section. |
 | `MIDSCENE_OPENAI_INIT_CONFIG_JSON` | Optional. Custom JSON config for OpenAI SDK initialization |
 | `MIDSCENE_OPENAI_HTTP_PROXY` | Optional. HTTP/HTTPS proxy configuration (e.g. `http://127.0.0.1:8080` or `https://proxy.example.com:8080`). This option has higher priority than `MIDSCENE_OPENAI_SOCKS_PROXY` |
 | `MIDSCENE_OPENAI_SOCKS_PROXY` | Optional. SOCKS proxy configuration (e.g. "socks5://127.0.0.1:1080") |
@@ -97,34 +96,6 @@ Import the dotenv module in your script. It will automatically read the environm
 
 ```typescript
 import 'dotenv/config';
-```
-
-## Using Azure OpenAI Service
-
-There are some extra configs when using Azure OpenAI Service.
-
-### Use ADT token provider
-
-This mode cannot be used in Chrome extension.
-
-```bash
-# this is always true when using Azure OpenAI Service
-export MIDSCENE_USE_AZURE_OPENAI=1
-
-export MIDSCENE_AZURE_OPENAI_SCOPE="https://cognitiveservices.azure.com/.default"
-export AZURE_OPENAI_ENDPOINT="..."
-export AZURE_OPENAI_API_VERSION="2024-05-01-preview"
-export AZURE_OPENAI_DEPLOYMENT="gpt-4o"
-```
-
-### Use keyless authentication
-
-```bash
-export MIDSCENE_USE_AZURE_OPENAI=1
-export AZURE_OPENAI_ENDPOINT="..."
-export AZURE_OPENAI_KEY="..."
-export AZURE_OPENAI_API_VERSION="2024-05-01-preview"
-export AZURE_OPENAI_DEPLOYMENT="gpt-4o"
 ```
 
 ## Set config by JavaScript
@@ -186,18 +157,6 @@ export OPENAI_API_KEY="sk-..."
 export OPENAI_BASE_URL="http://localhost:1234/v1"
 export MIDSCENE_MODEL_NAME="ui-tars-72b-sft"
 export MIDSCENE_USE_VLM_UI_TARS=1
-```
-
-## Example: config `claude-3-opus-20240229` from Anthropic
-
-When configuring `MIDSCENE_USE_ANTHROPIC_SDK=1`, Midscene will use Anthropic SDK (`@anthropic-ai/sdk`) to call the model.
-
-Configure the environment variables:
-
-```bash
-export MIDSCENE_USE_ANTHROPIC_SDK=1
-export ANTHROPIC_API_KEY="....."
-export MIDSCENE_MODEL_NAME="claude-3-opus-20240229"
 ```
 
 ## Example: config request headers (like for openrouter)
