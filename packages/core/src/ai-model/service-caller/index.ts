@@ -115,6 +115,11 @@ export async function callAI(
       typeof maxTokens === 'number'
         ? maxTokens
         : Number.parseInt(maxTokens || '2048', 10),
+    ...(vlMode === 'qwen-vl' // qwen vl v2 specific config
+      ? {
+          vl_high_resolution_images: true,
+        }
+      : {}),
   };
 
   try {
