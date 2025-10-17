@@ -14,7 +14,6 @@ import {
   buildYamlFlowFromPlans,
   fillBboxParam,
   findAllMidsceneLocatorField,
-  warnGPT4oSizeLimit,
 } from './common';
 import type { ConversationHistory } from './conversation-history';
 import { systemPromptToTaskPlanning } from './prompt/llm-planning';
@@ -36,7 +35,7 @@ export async function plan(
   const { context, modelConfig, conversationHistory } = opts;
   const { screenshotBase64, size } = context;
 
-  const { modelName, vlMode } = modelConfig;
+  const { vlMode } = modelConfig;
 
   // Planning requires VL mode (validated by ModelConfigManager.getModelConfig)
   assert(vlMode, 'Planning requires vlMode to be configured.');
@@ -58,15 +57,7 @@ export async function plan(
     imageWidth = paddedResult.width;
     imageHeight = paddedResult.height;
     imagePayload = paddedResult.imageBase64;
-  } else if (vlMode === 'qwen3-vl') {
-    // Reserved for qwen3-vl specific processing
-    // const paddedResult = await paddingToMatchBlockByBase64(imagePayload, 32);
-    // imageWidth = paddedResult.width;
-    // imageHeight = paddedResult.height;
-    // imagePayload = paddedResult.imageBase64;
   }
-
-  warnGPT4oSizeLimit(size, modelName);
 
   const historyLog = opts.conversationHistory?.snapshot() || [];
   // .filter((item) => item.role === 'assistant') || [];
