@@ -349,7 +349,6 @@ export interface ExecutionTaskApply<
   thought?: string;
   locate?: PlanningLocateParam | null;
   uiContext?: UIContext;
-  captureAfterExecution?: boolean;
   executor: (
     param: TaskParam,
     context: ExecutorContext,

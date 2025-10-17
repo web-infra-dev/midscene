@@ -41,48 +41,26 @@ export class Executor {
     this.uiContextBuilder = uiContextBuilder;
   }
 
-  private resolveRecorderTiming(
-    task: ExecutionTask,
-    phase: 'before' | 'after',
-  ): string | undefined {
-    if (phase === 'after') {
-      if (task.type === 'Action') {
-        return 'after Action';
-      }
-      return undefined;
+  private async captureScreenshot(): Promise<string | undefined> {
+    try {
+      const uiContext = await this.uiContextBuilder();
+      return uiContext?.screenshotBase64;
+    } catch (error) {
+      console.error('error while capturing screenshot', error);
     }
-
-    if (task.type === 'Planning') {
-      return 'before Planning';
-    }
-
-    if (task.type === 'Action') {
-      return 'before Action';
-    }
-
-    if (task.type === 'Insight') {
-      if (
-        task.subType === 'Query' ||
-        task.subType === 'Boolean' ||
-        task.subType === 'Number' ||
-        task.subType === 'String' ||
-        task.subType === 'Assert'
-      ) {
-        return 'before Extract';
-      }
-      return 'before Insight';
-    }
-
-    return `before ${task.type}`;
+    return undefined;
   }
 
   private attachRecorderItem(
     task: ExecutionTask,
-    uiContext: UIContext | undefined,
+    contextOrScreenshot: UIContext | string | undefined,
     phase: 'before' | 'after',
   ): void {
-    const timing = this.resolveRecorderTiming(task, phase);
-    const screenshot = uiContext?.screenshotBase64;
+    const timing = phase;
+    const screenshot =
+      typeof contextOrScreenshot === 'string'
+        ? contextOrScreenshot
+        : contextOrScreenshot?.screenshotBase64;
     if (!timing || !screenshot) {
       return;
     }
@@ -183,10 +161,6 @@ export class Executor {
           uiContext,
         };
 
-        this.attachRecorderItem(task, uiContext, 'before');
-
-        const captureAfterExecution = !!task.captureAfterExecution;
-
         if (task.type === 'Insight') {
           assert(
             task.subType === 'Locate' ||
@@ -212,9 +186,11 @@ export class Executor {
           returnValue = await task.executor(param, executorContext);
         }
 
-        if (captureAfterExecution) {
-          const postUiContext = await this.uiContextBuilder();
-          this.attachRecorderItem(task, postUiContext, 'after');
+        const isLastTask = taskIndex === this.tasks.length - 1;
+
+        if (isLastTask) {
+          const screenshot = await this.captureScreenshot();
+          this.attachRecorderItem(task, screenshot, 'after');
         }
 
         Object.assign(task, returnValue);

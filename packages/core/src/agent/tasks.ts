@@ -505,13 +505,6 @@ export class TaskExecutor {
       }
     }
 
-    if (tasks.length > 0) {
-      const lastTask = tasks[tasks.length - 1];
-      if (lastTask.type === 'Action') {
-        lastTask.captureAfterExecution = true;
-      }
-    }
-
     return {
       tasks,
     };
