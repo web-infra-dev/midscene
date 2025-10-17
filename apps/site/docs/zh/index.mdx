@@ -9,20 +9,20 @@
 - 使用 Javascript SDK 或 YAML 格式编写自动化脚本。
 
 ### 网页或移动应用
-- **网页自动化**：可以[与 Puppeteer 集成](https://midscenejs.com/integrate-with-puppeteer.html)，[与 Playwright 集成](https://midscenejs.com/integrate-with-playwright.html)或使用[桥接模式](https://midscenejs.com/bridge-mode-by-chrome-extension.html)来控制桌面浏览器。
-- **Android 自动化**：使用 [Javascript SDK](https://midscenejs.com/integrate-with-android.html) 配合 adb 来控制本地 Android 设备。
-- **iOS 自动化**：使用 [Javascript SDK](https://midscenejs.com/zh/integrate-with-ios.html) 配合 WebDriverAgent 来控制本地 iOS 设备。
+- **网页自动化**：可以[与 Puppeteer 集成](./integrate-with-puppeteer)，[与 Playwright 集成](./integrate-with-playwright)或使用[桥接模式](./bridge-mode-by-chrome-extension)来控制桌面浏览器。
+- **Android 自动化**：使用 [Javascript SDK](./integrate-with-android) 配合 adb 来控制本地 Android 设备。
+- **iOS 自动化**：使用 [Javascript SDK](./integrate-with-ios) 配合 WebDriverAgent 来控制本地 iOS 设备。
 
 ### 工具
 - **用于调试的可视化报告**: 通过我们的测试报告和 Playground，你可以轻松理解、回放和调试整个过程。
-- [**使用缓存，提高执行效率**](https://midscenejs.com/zh/caching.html): 使用缓存能力重放脚本，提高执行效率。
-- **MCP**: 允许其他 MCP Client 直接使用 Midscene 的能力。[**Web MCP**](https://midscenejs.com/zh/web-mcp.html) [**Android MCP**](https://midscenejs.com/zh/mcp-android.html)。
+- [**使用缓存，提高执行效率**](./caching): 使用缓存能力重放脚本，提高执行效率。
+- **MCP**: 允许其他 MCP Client 直接使用 Midscene 的能力。[**Web MCP**](./web-mcp) [**Android MCP**](./mcp-android)。
 
 ### 三种 API 类型
 
-- [**交互 API**](https://midscenejs.com/zh/api.html#interaction-methods): 与用户界面交互。
-- [**数据提取 API**](https://midscenejs.com/zh/api.html#data-extraction): 从用户界面和 DOM 中提取数据。
-- [**实用 API**](https://midscenejs.com/zh/api.html#more-apis): 实用函数，如 `aiAssert()` （断言）, `aiLocate()` （定位）, `aiWaitFor()` （等待）。
+- [**交互 API**](./api#interaction-methods): 与用户界面交互。
+- [**数据提取 API**](./api#data-extraction): 从用户界面和 DOM 中提取数据。
+- [**实用 API**](./api#more-apis): 实用函数，如 `aiAssert()` （断言）, `aiLocate()` （定位）, `aiWaitFor()` （等待）。
 
 ## 演示案例
 
@@ -42,9 +42,9 @@
 
 ## 零代码快速体验
 
-- **[Chrome 插件](https://midscenejs.com/quick-experience.html)**：通过 [Chrome 插件](https://midscenejs.com/quick-experience.html) 立即开始浏览器内体验，无需编写任何代码。
-- **[Android Playground](https://midscenejs.com/quick-experience-with-android.html)**：使用 Android playground 来控制你的本地 Android 设备。
-- **[iOS Playground](https://midscenejs.com/zh/quick-experience-with-ios.html)**：使用 iOS playground 来控制你的本地 iOS 设备。
+- **[Chrome 插件](./quick-experience)**：通过 [Chrome 插件](./quick-experience) 立即开始浏览器内体验，无需编写任何代码。
+- **[Android Playground](./quick-experience-with-android)**：使用 Android playground 来控制你的本地 Android 设备。
+- **[iOS Playground](./quick-experience-with-ios)**：使用 iOS playground 来控制你的本地 iOS 设备。
 
 ## 模型选择
 
@@ -52,7 +52,7 @@ Midscene.js 支持多模态 LLM 模型，如 `gpt-4o`，以及视觉语言模型
 
 推荐使用视觉语言模型进行 UI 自动化。
 
-了解更多关于[选择 AI 模型](https://midscenejs.com/choose-a-model)
+了解更多关于[选择 AI 模型](./choose-a-model)
 
 ## 两种自动化风格
 
@@ -78,7 +78,7 @@ for (const record of recordList) {
 }
 ```
 
-> 有关工作流风格的更多详细信息，请参阅 [Blog - 使用 JavaScript 优化 AI 自动化代码](https://midscenejs.com/zh/blog-programming-practice-using-structured-api.html)
+> 有关工作流风格的更多详细信息，请参阅 [Blog - 使用 JavaScript 优化 AI 自动化代码](./blog-programming-practice-using-structured-api)
 
 
 ## 与其他工具比较
@@ -93,7 +93,7 @@ for (const record of recordList) {
 
 * 主页和文档：[https://midscenejs.com](https://midscenejs.com/)
 * 示例项目：[https://github.com/web-infra-dev/midscene-example](https://github.com/web-infra-dev/midscene-example)
-* API 参考：[https://midscenejs.com/api.html](https://midscenejs.com/api.html)
+* API 参考：[https://midscenejs.com/api.html](./api)
 * GitHub：[https://github.com/web-infra-dev/midscene](https://github.com/web-infra-dev/midscene)
 
 ## 社区
