@@ -299,27 +299,6 @@ export function adaptBboxToRect(
   return rect;
 }
 
-let warned = false;
-export function warnGPT4oSizeLimit(size: Size, modelName: string) {
-  if (warned) return;
-  if (modelName.toLowerCase().includes('gpt-4o')) {
-    const warningMsg = `GPT-4o has a maximum image input size of 2000x768 or 768x2000, but got ${size.width}x${size.height}. Please set your interface to a smaller resolution. Otherwise, the result may be inaccurate.`;
-
-    if (
-      Math.max(size.width, size.height) > 2000 ||
-      Math.min(size.width, size.height) > 768
-    ) {
-      console.warn(warningMsg);
-      warned = true;
-    }
-  } else if (size.width > 1800 || size.height > 1800) {
-    console.warn(
-      `The image size seems too large (${size.width}x${size.height}). It may lead to more token usage, slower response, and inaccurate result.`,
-    );
-    warned = true;
-  }
-}
-
 export function mergeRects(rects: Rect[]) {
   const minLeft = Math.min(...rects.map((r) => r.left));
   const minTop = Math.min(...rects.map((r) => r.top));
