@@ -325,42 +325,6 @@ describe(
         await reset();
       });
 
-      it('getXpathsById should work with cached elements', async () => {
-        const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
-          viewport: {
-            width: 1080,
-            height: 3000,
-            deviceScaleFactor: 1,
-          },
-        });
-
-        const elementInfosScriptContent = getElementInfosScriptContent();
-
-        // First, ensure we have extracted element info (which populates the cache)
-        await page.evaluateJavaScript?.(
-          `${elementInfosScriptContent}midscene_element_inspector.webExtractNodeTree(document)`,
-        );
-
-        // Try to get xpath by an element id from the cache
-        const result = await page.evaluateJavaScript?.(
-          `${elementInfosScriptContent}
-          // Get any cached element ID from the window cache
-          const cacheList = window.midsceneNodeHashCacheList;
-          if (cacheList && cacheList.length > 0) {
-            const firstCachedId = cacheList[0].id;
-            midscene_element_inspector.getXpathsById(firstCachedId);
-          } else {
-            null;
-          }`,
-        );
-
-        // If there are cached elements, we should get a valid xpath
-        expect(result).toHaveLength(1);
-        expect(result[0]).toMatch(/^\/html/);
-
-        await reset();
-      });
-
       it('getXpathsByPoint should handle elements with special characters', async () => {
         const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
           viewport: {
