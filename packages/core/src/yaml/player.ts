@@ -212,10 +212,11 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       );
       if (
         'aiAct' in (flowItem as MidsceneYamlFlowItemAIAction) ||
+        'aiAction' in (flowItem as MidsceneYamlFlowItemAIAction) ||
         'ai' in (flowItem as MidsceneYamlFlowItemAIAction)
       ) {
         const actionTask = flowItem as MidsceneYamlFlowItemAIAction;
-        const prompt = actionTask.aiAct || actionTask.ai;
+        const prompt = actionTask.aiAct || actionTask.aiAction || actionTask.ai;
         assert(prompt, 'missing prompt for ai (aiAct)');
         await agent.aiAct(prompt, {
           cacheable: actionTask.cacheable,

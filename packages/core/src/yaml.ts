@@ -121,6 +121,8 @@ export type MidsceneYamlScriptEnv =
   | MidsceneYamlScriptIOSEnv;
 
 export interface MidsceneYamlFlowItemAIAction {
+  // defined as aiAction for backward compatibility
+  aiAction?: string;
   ai?: string; // this is the shortcut for aiAct
   aiAct?: string;
   aiActionProgressTips?: string[];

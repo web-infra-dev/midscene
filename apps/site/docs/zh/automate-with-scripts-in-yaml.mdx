@@ -271,9 +271,10 @@ tasks:
 
       # 执行一个交互，`ai` 是 `aiAct` 的简写方式
       - ai: <prompt>
-        cacheable: <boolean> # 可选，当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
+        cacheable: <boolean> # 可选，当启用 [缓存功能](./caching.mdx) 时,是否允许缓存当前 API 调用结果。默认值为 True
 
       # 这种用法与 `ai` 相同
+      # 注意：在之前版本中也被写作 `aiAction`，当前版本兼容两种写法
       - aiAct: <prompt>
         cacheable: <boolean> # 可选，当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
 
