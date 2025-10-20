@@ -496,7 +496,7 @@ export class Agent<
   // New signature, always use locatePrompt as the first param
   async aiInput(
     locatePrompt: TUserPrompt,
-    opt: LocateOption & { value: string } & {
+    opt: LocateOption & { value: string | number } & {
       autoDismissKeyboard?: boolean;
     } & { mode?: 'replace' | 'clear' | 'append' },
   ): Promise<any>;
@@ -506,7 +506,7 @@ export class Agent<
    * @deprecated Use aiInput(locatePrompt, opt) instead where opt contains the value
    */
   async aiInput(
-    value: string,
+    value: string | number,
     locatePrompt: TUserPrompt,
     opt?: LocateOption & { autoDismissKeyboard?: boolean } & {
       mode?: 'replace' | 'clear' | 'append';
@@ -515,10 +515,10 @@ export class Agent<
 
   // Implementation
   async aiInput(
-    locatePromptOrValue: TUserPrompt | string,
+    locatePromptOrValue: TUserPrompt | string | number,
     locatePromptOrOpt:
       | TUserPrompt
-      | (LocateOption & { value: string } & {
+      | (LocateOption & { value: string | number } & {
           autoDismissKeyboard?: boolean;
         } & { mode?: 'replace' | 'clear' | 'append' }) // AndroidDeviceInputOpt &
       | undefined,
@@ -549,7 +549,7 @@ export class Agent<
       opt = optWithValue;
     } else {
       // Legacy signature: aiInput(value, locatePrompt, opt)
-      value = locatePromptOrValue as string;
+      value = locatePromptOrValue as string | number;
       locatePrompt = locatePromptOrOpt as TUserPrompt;
       opt = {
         ...optOrUndefined,
