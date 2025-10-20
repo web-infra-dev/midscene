@@ -524,10 +524,10 @@ export class Agent<
       | undefined,
     optOrUndefined?: LocateOption, // AndroidDeviceInputOpt &
   ) {
-    let value: string;
+    let value: string | number;
     let locatePrompt: TUserPrompt;
     let opt:
-      | (LocateOption & { value: string } & {
+      | (LocateOption & { value: string | number } & {
           autoDismissKeyboard?: boolean;
         } & { mode?: 'replace' | 'clear' | 'append' }) // AndroidDeviceInputOpt &
       | undefined;
@@ -542,7 +542,7 @@ export class Agent<
       locatePrompt = locatePromptOrValue as TUserPrompt;
       const optWithValue = locatePromptOrOpt as LocateOption & {
         // AndroidDeviceInputOpt &
-        value: string;
+        value: string | number;
         autoDismissKeyboard?: boolean;
       };
       value = optWithValue.value;
@@ -558,8 +558,8 @@ export class Agent<
     }
 
     assert(
-      typeof value === 'string',
-      'input value must be a string, use empty string if you want to clear the input',
+      typeof value === 'string' || typeof value === 'number',
+      'input value must be a string or number, use empty string if you want to clear the input',
     );
     assert(locatePrompt, 'missing locate prompt for input');
 

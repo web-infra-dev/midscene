@@ -8,7 +8,7 @@ interface MidsceneYamlFlowItemAIInput extends LocateOption {
   // aiInput: string; // value to input
   // locate: TUserPrompt; // where to input
   aiInput: TUserPrompt | undefined; // where to input
-  value: string; // value to input
+  value: string | number; // value to input
 }
 
 interface MidsceneYamlFlowItemAIKeyboardPress extends LocateOption {
@@ -333,10 +333,10 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
 
         // Compatibility with previous version:
         // Old format: { aiInput: string (value), locate: TUserPrompt }
-        // New format - 1: { aiInput: TUserPrompt, value: string }
-        // New format - 2: { aiInput: undefined, locate: TUserPrompt, value: string }
+        // New format - 1: { aiInput: TUserPrompt, value: string | number }
+        // New format - 2: { aiInput: undefined, locate: TUserPrompt, value: string | number }
         let locatePrompt: TUserPrompt | undefined;
-        let value: string | undefined;
+        let value: string | number | undefined;
         if ((inputTask as any).locate) {
           // Old format - aiInput is the value, locate is the prompt
           value = (aiInput as string) || inputTask.value;
@@ -349,7 +349,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
 
         await agent.callActionInActionSpace('Input', {
           ...inputTask,
-          ...(value !== undefined ? { value } : {}),
+          ...(value !== undefined ? { value: String(value) } : {}),
           ...(locatePrompt
             ? { locate: buildDetailedLocateParam(locatePrompt, inputTask) }
             : {}),
