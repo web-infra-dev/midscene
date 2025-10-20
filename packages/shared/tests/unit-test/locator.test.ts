@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getElementInfoByXpath,
   getNodeInfoByXpath,
-  getXpathsById,
   getXpathsByPoint,
 } from '../../src/extractor/locator';
 
@@ -260,67 +259,6 @@ describe('locator', () => {
 
       // For elements with text content, should use normalize-space or plain tag name
       expect(xpaths?.[0]).toMatch(/normalize-space\(\)=".*"|button$/);
-    });
-  });
-
-  describe('getXpathsById', () => {
-    beforeEach(() => {
-      // Clear the window cache before each test
-      (global.window as any).midsceneNodeHashCacheList = [];
-    });
-
-    it('should return xpaths for valid cached node id', () => {
-      // Setup: Add a mock element to the cache
-      const mockButton = new MockElement('button', 'Cached Button');
-      const mockDiv = new MockElement('div');
-      mockButton.parentNode = mockDiv;
-      mockDiv.parentNode = global.document.body as any;
-
-      // Add to window cache
-      (global.window as any).midsceneNodeHashCacheList.push({
-        node: mockButton,
-        id: 'test-id-123',
-      });
-
-      const result = getXpathsById('test-id-123');
-
-      expect(result).toBeDefined();
-      expect(result).toHaveLength(1);
-      expect(result?.[0]).toMatch(/button/);
-      expect(result?.[0]).toMatch(/^\/html/);
-    });
-
-    it('should return null for non-existent id', () => {
-      const result = getXpathsById('non-existent-id');
-
-      expect(result).toBeNull();
-    });
-
-    it('should return null for empty cache', () => {
-      const result = getXpathsById('any-id');
-
-      expect(result).toBeNull();
-    });
-
-    it('should handle different element types', () => {
-      // Test with different element types
-      const mockSpan = new MockElement('span', 'Test Span');
-      const mockInput = new MockElement('input');
-
-      mockSpan.parentNode = global.document.body as any;
-      mockInput.parentNode = global.document.body as any;
-
-      // Add to window cache
-      (global.window as any).midsceneNodeHashCacheList.push(
-        { node: mockSpan, id: 'span-id' },
-        { node: mockInput, id: 'input-id' },
-      );
-
-      const spanResult = getXpathsById('span-id');
-      const inputResult = getXpathsById('input-id');
-
-      expect(spanResult?.[0]).toMatch(/span/);
-      expect(inputResult?.[0]).toMatch(/input/);
     });
   });
 

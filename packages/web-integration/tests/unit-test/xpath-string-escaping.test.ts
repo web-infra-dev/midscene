@@ -46,12 +46,4 @@ describe('XPath String Escaping', () => {
     // Should properly escape both single and double quotes
     expect(() => new Function(safeExpression)).not.toThrow();
   });
-
-  it('should handle IDs with special characters', () => {
-    const idWithSpecialChars = 'id-with-\'quotes\'-and-"double"-quotes';
-
-    const safeExpression = `getXpathsById(${JSON.stringify(idWithSpecialChars)})`;
-
-    expect(() => new Function(safeExpression)).not.toThrow();
-  });
 });
