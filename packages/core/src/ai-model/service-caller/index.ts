@@ -19,7 +19,6 @@ import type { Stream } from 'openai/streaming';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import { AIActionType, type AIArgs } from '../common';
 import { assertSchema } from '../prompt/assertion';
-import { locatorSchema } from '../prompt/llm-locator';
 import { planSchema } from '../prompt/llm-planning';
 
 async function createChatClient({
@@ -288,9 +287,6 @@ export const getResponseFormat = (
     switch (AIActionTypeValue) {
       case AIActionType.ASSERT:
         responseFormat = assertSchema;
-        break;
-      case AIActionType.INSPECT_ELEMENT:
-        responseFormat = locatorSchema;
         break;
       case AIActionType.PLAN:
         responseFormat = planSchema;
