@@ -173,7 +173,7 @@ describe('aiAction cacheable option propagation', () => {
 
     // Verify the result
     expect(result).toBeDefined();
-    expect(result.executor).toBeDefined();
+    expect(result.runner).toBeDefined();
   });
 
   it('should allow caching when cacheable is not specified', async () => {

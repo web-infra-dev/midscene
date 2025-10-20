@@ -35,7 +35,6 @@ const mockInsight = {
     size: { width: 1024, height: 768 },
     tree: { node: null, children: [] },
   }),
-  onceDumpUpdatedFn: undefined,
 } as any;
 
 describe('TaskExecutor RightClick Action', () => {

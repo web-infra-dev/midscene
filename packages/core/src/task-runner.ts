@@ -2,21 +2,23 @@ import type {
   ExecutionDump,
   ExecutionRecorderItem,
   ExecutionTask,
+  ExecutionTaskActionApply,
   ExecutionTaskApply,
   ExecutionTaskInsightLocateOutput,
   ExecutionTaskProgressOptions,
   ExecutionTaskReturn,
   ExecutorContext,
+  PlanningActionParamError,
   UIContext,
 } from '@/types';
 import { assert } from '@midscene/shared/utils';
 
-export class Executor {
+export class TaskRunner {
   name: string;
 
   tasks: ExecutionTask[];
 
-  // status of executor
+  // status of runner
   status: 'init' | 'pending' | 'running' | 'completed' | 'error';
 
   onTaskStart?: ExecutionTaskProgressOptions['onTaskStart'];
@@ -88,7 +90,7 @@ export class Executor {
   async append(task: ExecutionTaskApply[] | ExecutionTaskApply): Promise<void> {
     assert(
       this.status !== 'error',
-      `executor is in error state, cannot append task\nerror=${this.latestErrorTask()?.error}\n${this.latestErrorTask()?.errorStack}`,
+      `task runner is in error state, cannot append task\nerror=${this.latestErrorTask()?.error}\n${this.latestErrorTask()?.errorStack}`,
     );
     if (Array.isArray(task)) {
       this.tasks.push(...task.map((item) => this.markTaskAsPending(item)));
@@ -100,16 +102,23 @@ export class Executor {
     }
   }
 
+  async appendAndFlush(
+    task: ExecutionTaskApply[] | ExecutionTaskApply,
+  ): Promise<{ output: any; thought?: string } | undefined> {
+    await this.append(task);
+    return this.flush();
+  }
+
   async flush(): Promise<{ output: any; thought?: string } | undefined> {
     if (this.status === 'init' && this.tasks.length > 0) {
       console.warn(
-        'illegal state for executor, status is init but tasks are not empty',
+        'illegal state for task runner, status is init but tasks are not empty',
       );
     }
 
-    assert(this.status !== 'running', 'executor is already running');
-    assert(this.status !== 'completed', 'executor is already completed');
-    assert(this.status !== 'error', 'executor is in error state');
+    assert(this.status !== 'running', 'task runner is already running');
+    assert(this.status !== 'completed', 'task runner is already completed');
+    assert(this.status !== 'error', 'task runner is in error state');
 
     const nextPendingIndex = this.tasks.findIndex(
       (task) => task.status === 'pending',
@@ -258,5 +267,29 @@ export class Executor {
       tasks: this.tasks,
     };
     return dumpData;
+  }
+
+  async appendErrorPlan(errorMsg: string): Promise<{
+    output: undefined;
+    runner: TaskRunner;
+  }> {
+    const errorTask: ExecutionTaskActionApply<PlanningActionParamError> = {
+      type: 'Action',
+      subType: 'Error',
+      param: {
+        thought: errorMsg,
+      },
+      thought: errorMsg,
+      locate: null,
+      executor: async () => {
+        throw new Error(errorMsg || 'error without thought');
+      },
+    };
+    await this.appendAndFlush(errorTask);
+
+    return {
+      output: undefined,
+      runner: this,
+    };
   }
 }

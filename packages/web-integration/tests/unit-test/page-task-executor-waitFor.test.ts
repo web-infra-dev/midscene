@@ -65,7 +65,6 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
     // Create mock insight with extract method
     mockInsight = {
       extract: vi.fn(),
-      onceDumpUpdatedFn: null,
       contextRetrieverFn: vi.fn().mockResolvedValue({
         screenshotBase64: 'mock-screenshot-base64',
         size: { width: 1024, height: 768, dpr: 1 },
