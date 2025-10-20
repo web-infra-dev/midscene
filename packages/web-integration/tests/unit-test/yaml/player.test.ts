@@ -986,3 +986,314 @@ tasks:
     expect(existsSync(filePath)).toBe(true);
   });
 });
+
+describe('YAML Player - aiInput with number values', () => {
+  test('should accept integer value', async () => {
+    const yamlString = `
+target:
+  url: "https://example.com"
+tasks:
+  - name: test_input_integer
+    flow:
+      - aiInput: 'input field'
+        value: 123456
+`;
+
+    const script = parseYamlScript(yamlString);
+    const mockAgent = await getMockAgent();
+    const player = new ScriptPlayer<MidsceneYamlScriptWebEnv>(
+      script,
+      async () => mockAgent,
+    );
+
+    await player.run();
+
+    // Verify the player completed successfully
+    expect(player.status).toBe('done');
+    expect(player.errorInSetup).toBeUndefined();
+    expect(player.taskStatusList[0].error).toBeUndefined();
+
+    // Verify Input was called with number value
+    expect(
+      (mockAgent.agent.callActionInActionSpace as MockedFunction<any>).mock
+        .calls,
+    ).toMatchInlineSnapshot(`
+      [
+        [
+          "Input",
+          {
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "input field",
+              "xpath": undefined,
+            },
+            "value": "123456",
+          },
+        ],
+      ]
+    `);
+  });
+
+  test('should accept decimal value', async () => {
+    const yamlString = `
+target:
+  url: "https://example.com"
+tasks:
+  - name: test_input_decimal
+    flow:
+      - aiInput: 'price input'
+        value: 3.14
+`;
+
+    const script = parseYamlScript(yamlString);
+    const mockAgent = await getMockAgent();
+    const player = new ScriptPlayer<MidsceneYamlScriptWebEnv>(
+      script,
+      async () => mockAgent,
+    );
+
+    await player.run();
+
+    expect(player.status).toBe('done');
+    expect(player.errorInSetup).toBeUndefined();
+
+    expect(
+      (mockAgent.agent.callActionInActionSpace as MockedFunction<any>).mock
+        .calls,
+    ).toMatchInlineSnapshot(`
+      [
+        [
+          "Input",
+          {
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "price input",
+              "xpath": undefined,
+            },
+            "value": "3.14",
+          },
+        ],
+      ]
+    `);
+  });
+
+  test('should accept zero value', async () => {
+    const yamlString = `
+target:
+  url: "https://example.com"
+tasks:
+  - name: test_input_zero
+    flow:
+      - aiInput: 'quantity input'
+        value: 0
+`;
+
+    const script = parseYamlScript(yamlString);
+    const mockAgent = await getMockAgent();
+    const player = new ScriptPlayer<MidsceneYamlScriptWebEnv>(
+      script,
+      async () => mockAgent,
+    );
+
+    await player.run();
+
+    expect(player.status).toBe('done');
+    expect(player.errorInSetup).toBeUndefined();
+
+    expect(
+      (mockAgent.agent.callActionInActionSpace as MockedFunction<any>).mock
+        .calls,
+    ).toMatchInlineSnapshot(`
+      [
+        [
+          "Input",
+          {
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "quantity input",
+              "xpath": undefined,
+            },
+            "value": "0",
+          },
+        ],
+      ]
+    `);
+  });
+
+  test('should accept negative value', async () => {
+    const yamlString = `
+target:
+  url: "https://example.com"
+tasks:
+  - name: test_input_negative
+    flow:
+      - aiInput: 'temperature input'
+        value: -999
+`;
+
+    const script = parseYamlScript(yamlString);
+    const mockAgent = await getMockAgent();
+    const player = new ScriptPlayer<MidsceneYamlScriptWebEnv>(
+      script,
+      async () => mockAgent,
+    );
+
+    await player.run();
+
+    expect(player.status).toBe('done');
+    expect(player.errorInSetup).toBeUndefined();
+
+    expect(
+      (mockAgent.agent.callActionInActionSpace as MockedFunction<any>).mock
+        .calls,
+    ).toMatchInlineSnapshot(`
+      [
+        [
+          "Input",
+          {
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "temperature input",
+              "xpath": undefined,
+            },
+            "value": "-999",
+          },
+        ],
+      ]
+    `);
+  });
+
+  test('should handle mixed string and number values', async () => {
+    const yamlString = `
+target:
+  url: "https://example.com"
+tasks:
+  - name: test_mixed_values
+    flow:
+      - aiInput: 'name field'
+        value: 'John Doe'
+      - aiInput: 'age field'
+        value: 25
+      - aiInput: 'salary field'
+        value: 50000.50
+      - aiInput: 'email field'
+        value: 'test@example.com'
+`;
+
+    const script = parseYamlScript(yamlString);
+    const mockAgent = await getMockAgent();
+    const player = new ScriptPlayer<MidsceneYamlScriptWebEnv>(
+      script,
+      async () => mockAgent,
+    );
+
+    await player.run();
+
+    expect(player.status).toBe('done');
+    expect(player.errorInSetup).toBeUndefined();
+
+    expect(
+      (mockAgent.agent.callActionInActionSpace as MockedFunction<any>).mock
+        .calls,
+    ).toMatchInlineSnapshot(`
+      [
+        [
+          "Input",
+          {
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "name field",
+              "xpath": undefined,
+            },
+            "value": "John Doe",
+          },
+        ],
+        [
+          "Input",
+          {
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "age field",
+              "xpath": undefined,
+            },
+            "value": "25",
+          },
+        ],
+        [
+          "Input",
+          {
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "salary field",
+              "xpath": undefined,
+            },
+            "value": "50000.5",
+          },
+        ],
+        [
+          "Input",
+          {
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "email field",
+              "xpath": undefined,
+            },
+            "value": "test@example.com",
+          },
+        ],
+      ]
+    `);
+  });
+
+  test('should accept number value with old aiInput format (locate field)', async () => {
+    const yamlString = `
+target:
+  url: "https://example.com"
+tasks:
+  - name: test_old_format_number
+    flow:
+      - aiInput: 42
+        locate: 'answer field'
+`;
+
+    const script = parseYamlScript(yamlString);
+    const mockAgent = await getMockAgent();
+    const player = new ScriptPlayer<MidsceneYamlScriptWebEnv>(
+      script,
+      async () => mockAgent,
+    );
+
+    await player.run();
+
+    expect(player.status).toBe('done');
+    expect(player.errorInSetup).toBeUndefined();
+
+    expect(
+      (mockAgent.agent.callActionInActionSpace as MockedFunction<any>).mock
+        .calls,
+    ).toMatchInlineSnapshot(`
+      [
+        [
+          "Input",
+          {
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "answer field",
+              "xpath": undefined,
+            },
+            "value": "42",
+          },
+        ],
+      ]
+    `);
+  });
+});

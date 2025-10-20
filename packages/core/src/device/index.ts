@@ -155,7 +155,8 @@ export const defineActionHover = (
 // Input
 export const actionInputParamSchema = z.object({
   value: z
-    .string()
+    .union([z.string(), z.number()])
+    .transform((val) => String(val))
     .describe(
       'The text to input. Provide the final content for replace/append modes, or an empty string when using clear mode to remove existing text.',
     ),
