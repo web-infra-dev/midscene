@@ -81,10 +81,6 @@ export default class StaticPage implements AbstractInterface {
     return ThrowNotImplemented('getElementsNodeTree');
   }
 
-  async getXpathsById(id: string) {
-    return ThrowNotImplemented('getXpathsById');
-  }
-
   async getXpathsByPoint(point: Point) {
     return ThrowNotImplemented('getXpathsByPoint');
   }

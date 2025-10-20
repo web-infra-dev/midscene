@@ -173,14 +173,6 @@ export class Page<
     return treeToList(tree);
   }
 
-  async getXpathsById(id: string) {
-    const elementInfosScriptContent = getElementInfosScriptContent();
-
-    return this.evaluateJavaScript(
-      `${elementInfosScriptContent}midscene_element_inspector.getXpathsById(${JSON.stringify(id)})`,
-    );
-  }
-
   async getXpathsByPoint(point: Point, isOrderSensitive: boolean) {
     const elementInfosScriptContent = getElementInfosScriptContent();
 

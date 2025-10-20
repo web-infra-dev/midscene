@@ -105,17 +105,6 @@ export const getElementXpath = (
   return buildCurrentElementXpath(el, isOrderSensitive, isLeafElement);
 };
 
-export function getXpathsById(id: string): string[] | null {
-  const node = getNodeFromCacheList(id);
-
-  if (!node) {
-    return null;
-  }
-
-  const fullXPath = getElementXpath(node, false, true);
-  return [fullXPath];
-}
-
 export function getXpathsByPoint(
   point: Point,
   isOrderSensitive: boolean,

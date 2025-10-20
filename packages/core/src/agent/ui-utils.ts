@@ -1,5 +1,4 @@
 import type {
-  AndroidPullParam,
   DetailedLocateParam,
   ExecutionTask,
   ExecutionTaskAction,
@@ -7,6 +6,7 @@ import type {
   ExecutionTaskInsightLocate,
   ExecutionTaskInsightQuery,
   ExecutionTaskPlanning,
+  PullParam,
   ScrollParam,
 } from '@/types';
 
@@ -63,7 +63,7 @@ export function scrollParamStr(scrollParam?: ScrollParam) {
   return `${scrollParam.direction || 'down'}, ${scrollParam.scrollType || 'once'}, ${scrollParam.distance || 'distance-not-set'}`;
 }
 
-export function pullParamStr(pullParam?: AndroidPullParam) {
+export function pullParamStr(pullParam?: PullParam) {
   if (!pullParam) {
     return '';
   }

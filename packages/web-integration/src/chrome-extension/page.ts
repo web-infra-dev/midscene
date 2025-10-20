@@ -376,24 +376,6 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     return treeToList(tree);
   }
 
-  async getXpathsById(id: string) {
-    const script = await getHtmlElementScript();
-
-    // check tab url
-    await this.sendCommandToDebugger<
-      CDPTypes.Runtime.EvaluateResponse,
-      CDPTypes.Runtime.EvaluateRequest
-    >('Runtime.evaluate', {
-      expression: script,
-    });
-
-    const result = await this.sendCommandToDebugger('Runtime.evaluate', {
-      expression: `window.midscene_element_inspector.getXpathsById(${JSON.stringify(id)})`,
-      returnByValue: true,
-    });
-    return result.result.value;
-  }
-
   async getXpathsByPoint(point: Point, isOrderSensitive: boolean) {
     const script = await getHtmlElementScript();
 
