@@ -564,9 +564,7 @@ export class TaskExecutor {
         };
       },
     };
-
-    await taskExecutor.append(task);
-    await taskExecutor.flush();
+    await taskExecutor.appendAndFlush(task);
 
     return {
       executor: taskExecutor,
@@ -691,8 +689,7 @@ export class TaskExecutor {
       },
     );
     const { tasks } = await this.convertPlanToExecutable(plans, modelConfig);
-    await taskExecutor.append(tasks);
-    const result = await taskExecutor.flush();
+    const result = await taskExecutor.appendAndFlush(tasks);
     const { output } = result!;
     return {
       output,
@@ -756,8 +753,7 @@ export class TaskExecutor {
         modelConfig,
       );
 
-      await taskExecutor.append(planningTask);
-      const result = await taskExecutor.flush();
+      const result = await taskExecutor.appendAndFlush(planningTask);
       const planResult: PlanningAIResponse = result?.output;
       if (taskExecutor.isInErrorState()) {
         return {
@@ -777,7 +773,7 @@ export class TaskExecutor {
           modelConfig,
           cacheable,
         );
-        taskExecutor.append(executables.tasks);
+        await taskExecutor.appendAndFlush(executables.tasks);
       } catch (error) {
         return taskExecutor.appendErrorPlan(
           `Error converting plans to executable tasks: ${error}, plans: ${JSON.stringify(
@@ -785,8 +781,6 @@ export class TaskExecutor {
           )}`,
         );
       }
-
-      await taskExecutor.flush();
       if (taskExecutor.isInErrorState()) {
         return {
           output: undefined,
@@ -931,8 +925,7 @@ export class TaskExecutor {
       multimodalPrompt,
     );
 
-    await taskExecutor.append(queryTask);
-    const result = await taskExecutor.flush();
+    const result = await taskExecutor.appendAndFlush(queryTask);
 
     if (!result) {
       throw new Error(
@@ -1008,8 +1001,7 @@ export class TaskExecutor {
         multimodalPrompt,
       );
 
-      await taskExecutor.append(queryTask);
-      const result = (await taskExecutor.flush()) as
+      const result = (await taskExecutor.appendAndFlush(queryTask)) as
         | {
             output: boolean;
             thought?: string;

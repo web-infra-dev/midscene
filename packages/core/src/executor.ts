@@ -102,6 +102,13 @@ export class Executor {
     }
   }
 
+  async appendAndFlush(
+    task: ExecutionTaskApply[] | ExecutionTaskApply,
+  ): Promise<{ output: any; thought?: string } | undefined> {
+    await this.append(task);
+    return this.flush();
+  }
+
   async flush(): Promise<{ output: any; thought?: string } | undefined> {
     if (this.status === 'init' && this.tasks.length > 0) {
       console.warn(
@@ -278,8 +285,7 @@ export class Executor {
         throw new Error(errorMsg || 'error without thought');
       },
     };
-    await this.append(errorTask);
-    await this.flush();
+    await this.appendAndFlush(errorTask);
 
     return {
       output: undefined,
