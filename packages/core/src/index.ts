@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Executor } from './executor';
+import { TaskRunner } from './task-runner';
 import Insight from './insight/index';
 import { getVersion } from './utils';
 
@@ -21,11 +21,12 @@ export {
 export { MIDSCENE_MODEL_NAME } from '@midscene/shared/env';
 
 export type * from './types';
+export { InsightError } from './types';
 
 export { z };
 
 export default Insight;
-export { Executor, Insight, getVersion };
+export { TaskRunner, Insight, getVersion };
 
 export type {
   MidsceneYamlScript,

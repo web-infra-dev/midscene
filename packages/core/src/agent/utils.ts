@@ -22,13 +22,12 @@ import {
   generateElementByPosition,
   getNodeFromCacheList,
 } from '@midscene/shared/extractor';
-import { resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 import { assert, logMsg, uuid } from '@midscene/shared/utils';
 import dayjs from 'dayjs';
+import type { TaskCache } from './task-cache';
 import { debug as cacheDebug } from './task-cache';
-import type { TaskExecutor } from './tasks';
 
 const debugProfile = getDebug('web:tool:profile');
 
@@ -161,7 +160,10 @@ export function matchElementFromPlan(
 }
 
 export async function matchElementFromCache(
-  taskExecutor: TaskExecutor,
+  context: {
+    taskCache?: TaskCache;
+    interfaceInstance: AbstractInterface;
+  },
   cacheEntry: ElementCacheFeature | undefined,
   cachePrompt: TUserPrompt,
   cacheable: boolean | undefined,
@@ -175,11 +177,11 @@ export async function matchElementFromCache(
     return undefined;
   }
 
-  if (!taskExecutor.taskCache?.isCacheResultUsed) {
+  if (!context.taskCache?.isCacheResultUsed) {
     return undefined;
   }
 
-  if (!taskExecutor.interface.rectMatchesCacheFeature) {
+  if (!context.interfaceInstance.rectMatchesCacheFeature) {
     cacheDebug(
       'interface does not implement rectMatchesCacheFeature, skip cache',
     );
@@ -188,7 +190,7 @@ export async function matchElementFromCache(
 
   try {
     const rect =
-      await taskExecutor.interface.rectMatchesCacheFeature(cacheEntry);
+      await context.interfaceInstance.rectMatchesCacheFeature(cacheEntry);
     const element: LocateResultElement = {
       id: uuid(),
       center: [

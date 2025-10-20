@@ -202,7 +202,27 @@ export type PartialInsightDumpFromSDK = Omit<
   'logTime' | 'logId' | 'model_name'
 >;
 
-export type DumpSubscriber = (dump: InsightDump) => Promise<void> | void;
+export interface InsightResultBase {
+  dump: InsightDump;
+}
+
+export type LocateResultWithDump = LocateResult & InsightResultBase;
+
+export interface InsightExtractResult<T> extends InsightResultBase {
+  data: T;
+  thought?: string;
+  usage?: AIUsageInfo;
+}
+
+export class InsightError extends Error {
+  dump: InsightDump;
+
+  constructor(message: string, dump: InsightDump) {
+    super(message);
+    this.name = 'InsightError';
+    this.dump = dump;
+  }
+}
 
 // intermediate variables to optimize the return value by AI
 export interface LiteUISection {

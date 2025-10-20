@@ -9,7 +9,7 @@ import {
   type ExecutionRecorderItem,
   type ExecutionTask,
   type ExecutionTaskLog,
-  type Executor,
+  type TaskRunner,
   type GroupedActionDump,
   Insight,
   type InsightAction,
@@ -394,8 +394,8 @@ export class Agent<
     }
   }
 
-  private async afterTaskRunning(executor: Executor, doNotThrowError = false) {
-    const executionDump = executor.dump();
+  private async afterTaskRunning(runner: TaskRunner, doNotThrowError = false) {
+    const executionDump = runner.dump();
     if (this.opts.aiActionContext) {
       executionDump.aiActionContext = this.opts.aiActionContext;
     }
@@ -411,8 +411,8 @@ export class Agent<
 
     this.writeOutActionDumps();
 
-    if (executor.isInErrorState() && !doNotThrowError) {
-      const errorTask = executor.latestErrorTask();
+    if (runner.isInErrorState() && !doNotThrowError) {
+      const errorTask = runner.latestErrorTask();
       throw new Error(`${errorTask?.errorMessage}\n${errorTask?.errorStack}`, {
         cause: errorTask?.error,
       });
@@ -444,12 +444,12 @@ export class Agent<
     // assume all operation in action space is related to locating
     const modelConfig = this.modelConfigManager.getModelConfig('grounding');
 
-    const { output, executor } = await this.taskExecutor.runPlans(
+    const { output, runner } = await this.taskExecutor.runPlans(
       title,
       plans,
       modelConfig,
     );
-    await this.afterTaskRunning(executor);
+    await this.afterTaskRunning(runner);
     return output;
   }
 
@@ -707,19 +707,19 @@ export class Agent<
         : this.taskCache?.matchPlanCache(taskPrompt);
     if (matchedCache && this.taskCache?.isCacheResultUsed) {
       // log into report file
-      const { executor } = await this.taskExecutor.loadYamlFlowAsPlanning(
+      const { runner } = await this.taskExecutor.loadYamlFlowAsPlanning(
         taskPrompt,
         matchedCache.cacheContent?.yamlWorkflow,
       );
 
-      await this.afterTaskRunning(executor);
+      await this.afterTaskRunning(runner);
 
       debug('matched cache, will call .runYaml to run the action');
       const yaml = matchedCache.cacheContent?.yamlWorkflow;
       return this.runYaml(yaml);
     }
 
-    const { output, executor } = await this.taskExecutor.action(
+    const { output, runner } = await this.taskExecutor.action(
       taskPrompt,
       modelConfig,
       this.opts.aiActionContext,
@@ -747,7 +747,7 @@ export class Agent<
       );
     }
 
-    await this.afterTaskRunning(executor);
+    await this.afterTaskRunning(runner);
     return output;
   }
 
@@ -768,14 +768,14 @@ export class Agent<
     opt: InsightExtractOption = defaultInsightExtractOption,
   ): Promise<ReturnType> {
     const modelConfig = this.modelConfigManager.getModelConfig('VQA');
-    const { output, executor } =
+    const { output, runner } =
       await this.taskExecutor.createTypeQueryExecution(
         'Query',
         demand,
         modelConfig,
         opt,
       );
-    await this.afterTaskRunning(executor);
+    await this.afterTaskRunning(runner);
     return output as ReturnType;
   }
 
@@ -786,7 +786,7 @@ export class Agent<
     const modelConfig = this.modelConfigManager.getModelConfig('VQA');
 
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
-    const { output, executor } =
+    const { output, runner } =
       await this.taskExecutor.createTypeQueryExecution(
         'Boolean',
         textPrompt,
@@ -794,7 +794,7 @@ export class Agent<
         opt,
         multimodalPrompt,
       );
-    await this.afterTaskRunning(executor);
+    await this.afterTaskRunning(runner);
     return output as boolean;
   }
 
@@ -805,7 +805,7 @@ export class Agent<
     const modelConfig = this.modelConfigManager.getModelConfig('VQA');
 
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
-    const { output, executor } =
+    const { output, runner } =
       await this.taskExecutor.createTypeQueryExecution(
         'Number',
         textPrompt,
@@ -813,7 +813,7 @@ export class Agent<
         opt,
         multimodalPrompt,
       );
-    await this.afterTaskRunning(executor);
+    await this.afterTaskRunning(runner);
     return output as number;
   }
 
@@ -824,7 +824,7 @@ export class Agent<
     const modelConfig = this.modelConfigManager.getModelConfig('VQA');
 
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
-    const { output, executor } =
+    const { output, runner } =
       await this.taskExecutor.createTypeQueryExecution(
         'String',
         textPrompt,
@@ -832,7 +832,7 @@ export class Agent<
         opt,
         multimodalPrompt,
       );
-    await this.afterTaskRunning(executor);
+    await this.afterTaskRunning(runner);
     return output as string;
   }
 
@@ -937,12 +937,12 @@ export class Agent<
     const plans = [locatePlan];
     const modelConfig = this.modelConfigManager.getModelConfig('grounding');
 
-    const { executor, output } = await this.taskExecutor.runPlans(
+    const { runner, output } = await this.taskExecutor.runPlans(
       taskTitleStr('Locate', locateParamStr(locateParam)),
       plans,
       modelConfig,
     );
-    await this.afterTaskRunning(executor);
+    await this.afterTaskRunning(runner);
 
     const { element } = output;
 
@@ -978,7 +978,7 @@ export class Agent<
 
     const { textPrompt, multimodalPrompt } = parsePrompt(assertion);
 
-    const { output, executor, thought } =
+    const { output, runner, thought } =
       await this.taskExecutor.createTypeQueryExecution<boolean>(
         'Assert',
         textPrompt,
@@ -986,12 +986,12 @@ export class Agent<
         insightOpt,
         multimodalPrompt,
       );
-    await this.afterTaskRunning(executor, true);
+    await this.afterTaskRunning(runner, true);
 
     const message = output
       ? undefined
       : `Assertion failed: ${msg || (typeof assertion === 'string' ? assertion : assertion.prompt)}\nReason: ${
-          thought || executor.latestErrorTask()?.error || '(no_reason)'
+          thought || runner.latestErrorTask()?.error || '(no_reason)'
         }`;
 
     if (opt?.keepRawResponse) {
@@ -1009,7 +1009,7 @@ export class Agent<
 
   async aiWaitFor(assertion: TUserPrompt, opt?: AgentWaitForOpt) {
     const modelConfig = this.modelConfigManager.getModelConfig('VQA');
-    const { executor } = await this.taskExecutor.waitFor(
+    const { runner } = await this.taskExecutor.waitFor(
       assertion,
       {
         timeoutMs: opt?.timeoutMs || 15 * 1000,
@@ -1017,10 +1017,10 @@ export class Agent<
       },
       modelConfig,
     );
-    await this.afterTaskRunning(executor, true);
+    await this.afterTaskRunning(runner, true);
 
-    if (executor.isInErrorState()) {
-      const errorTask = executor.latestErrorTask();
+    if (runner.isInErrorState()) {
+      const errorTask = runner.latestErrorTask();
       throw new Error(`${errorTask?.error}\n${errorTask?.errorStack}`);
     }
   }

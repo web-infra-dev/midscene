@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`executor > insight - basic run 1`] = `
+exports[`task-runner > insight - basic run 1`] = `
 {
   "element": {
     "attributes": {
