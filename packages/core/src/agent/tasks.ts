@@ -746,7 +746,7 @@ export class TaskExecutor {
       if (replanCount > replanningCycleLimit) {
         const errorMsg = `Replanning ${replanningCycleLimit} times, which is more than the limit, please split the task into multiple steps`;
 
-        return this.appendErrorPlan(taskExecutor, errorMsg, modelConfig);
+        return taskExecutor.appendErrorPlan(errorMsg);
       }
 
       // Create planning task (automatically includes execution history if available)
@@ -779,12 +779,10 @@ export class TaskExecutor {
         );
         taskExecutor.append(executables.tasks);
       } catch (error) {
-        return this.appendErrorPlan(
-          taskExecutor,
+        return taskExecutor.appendErrorPlan(
           `Error converting plans to executable tasks: ${error}, plans: ${JSON.stringify(
             plans,
           )}`,
-          modelConfig,
         );
       }
 
@@ -951,30 +949,6 @@ export class TaskExecutor {
     };
   }
 
-  private async appendErrorPlan(
-    taskExecutor: Executor,
-    errorMsg: string,
-    modelConfig: IModelConfig,
-  ) {
-    const errorPlan: PlanningAction<PlanningActionParamError> = {
-      type: 'Error',
-      param: {
-        thought: errorMsg,
-      },
-      locate: null,
-    };
-    const { tasks } = await this.convertPlanToExecutable(
-      [errorPlan],
-      modelConfig,
-    );
-    await taskExecutor.append(tasks[0]);
-    await taskExecutor.flush();
-
-    return {
-      output: undefined,
-      executor: taskExecutor,
-    };
-  }
 
   async taskForSleep(timeMs: number, modelConfig: IModelConfig) {
     const sleepPlan: PlanningAction<PlanningActionParamSleep> = {
@@ -1061,10 +1035,6 @@ export class TaskExecutor {
       }
     }
 
-    return this.appendErrorPlan(
-      taskExecutor,
-      `waitFor timeout: ${errorThought}`,
-      modelConfig,
-    );
+    return taskExecutor.appendErrorPlan(`waitFor timeout: ${errorThought}`);
   }
 }

@@ -2,11 +2,13 @@ import type {
   ExecutionDump,
   ExecutionRecorderItem,
   ExecutionTask,
+  ExecutionTaskActionApply,
   ExecutionTaskApply,
   ExecutionTaskInsightLocateOutput,
   ExecutionTaskProgressOptions,
   ExecutionTaskReturn,
   ExecutorContext,
+  PlanningActionParamError,
   UIContext,
 } from '@/types';
 import { assert } from '@midscene/shared/utils';
@@ -258,5 +260,30 @@ export class Executor {
       tasks: this.tasks,
     };
     return dumpData;
+  }
+
+  async appendErrorPlan(errorMsg: string): Promise<{
+    output: undefined;
+    executor: Executor;
+  }> {
+    const errorTask: ExecutionTaskActionApply<PlanningActionParamError> = {
+      type: 'Action',
+      subType: 'Error',
+      param: {
+        thought: errorMsg,
+      },
+      thought: errorMsg,
+      locate: null,
+      executor: async () => {
+        throw new Error(errorMsg || 'error without thought');
+      },
+    };
+    await this.append(errorTask);
+    await this.flush();
+
+    return {
+      output: undefined,
+      executor: this,
+    };
   }
 }
