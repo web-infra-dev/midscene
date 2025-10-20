@@ -47,7 +47,7 @@ Promise.resolve(
     const agent = new PuppeteerAgent(page);
 
     // 👀 type keywords, perform a search
-    await agent.aiAction('type "Headphones" in search box, hit Enter');
+    await agent.aiAct('type "Headphones" in search box, hit Enter');
     await sleep(5000);
 
     // 👀 understand the page content, find the items
@@ -135,7 +135,7 @@ const agent = new PuppeteerAgent(page, {
   customActions: [ContinuousClick],
 });
 
-await agent.aiAction('click the red button five times');
+await agent.aiAct('click the red button five times');
 ```
 
 Check [Integrate with any interface](./integrate-with-any-interface#define-a-custom-action) for more details about defining custom actions.

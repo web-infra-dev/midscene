@@ -164,13 +164,13 @@ export class AgentOverChromeBridge extends Agent<ChromeExtensionPageCliSide> {
     await this.setDestroyOptionsAfterConnect();
   }
 
-  async aiAction(prompt: string, options?: any) {
+  async aiAct(prompt: string, options?: any) {
     if (options) {
       console.warn(
-        'the `options` parameter of aiAction is not supported in cli side',
+        'the `options` parameter of aiAct is not supported in cli side',
       );
     }
-    return await super.aiAction(prompt);
+    return await super.aiAct(prompt);
   }
 
   async destroy(closeNewTabsAfterDisconnect?: boolean) {

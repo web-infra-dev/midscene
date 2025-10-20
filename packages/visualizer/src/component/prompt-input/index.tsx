@@ -843,7 +843,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     );
 
     if (dryMode) {
-      return selectedType === 'aiAction' ? (
+      return selectedType === 'aiAct' ? (
         <Tooltip title="Start executing until some interaction actions need to be performed. You can see the process of planning and locating.">
           {runButton('Dry Run')}
         </Tooltip>
