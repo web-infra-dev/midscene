@@ -1,21 +1,14 @@
 import { Executor } from '@/index';
 import type {
-  DumpSubscriber,
   ExecutionTaskActionApply,
   ExecutionTaskInsightLocate,
   ExecutionTaskInsightLocateApply,
-  InsightDump,
 } from '@/index';
 import { fakeInsight } from 'tests/utils';
 import { describe, expect, it, vi } from 'vitest';
 
 const insightFindTask = (shouldThrow?: boolean) => {
-  let insightDump: InsightDump | undefined;
-  const dumpCollector: DumpSubscriber = (dump) => {
-    insightDump = dump;
-  };
   const insight = fakeInsight('test-executor');
-  insight.onceDumpUpdatedFn = dumpCollector;
 
   const insightFindTask: ExecutionTaskInsightLocateApply = {
     type: 'Insight',
@@ -31,7 +24,7 @@ const insightFindTask = (shouldThrow?: boolean) => {
         await new Promise((resolve) => setTimeout(resolve, 100));
         throw new Error('test-error');
       }
-      const { element } = await insight.locate(
+      const { element, dump } = await insight.locate(
         {
           prompt: param.prompt,
         },
@@ -48,7 +41,7 @@ const insightFindTask = (shouldThrow?: boolean) => {
           element,
         },
         log: {
-          dump: insightDump,
+          dump,
         },
         cache: {
           hit: false,

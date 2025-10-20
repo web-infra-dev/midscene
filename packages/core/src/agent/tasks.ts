@@ -10,9 +10,7 @@ import type { TMultimodalPrompt, TUserPrompt } from '@/ai-model/common';
 import type { AbstractInterface } from '@/device';
 import type Insight from '@/insight';
 import type {
-  AIUsageInfo,
   DetailedLocateParam,
-  DumpSubscriber,
   ElementCacheFeature,
   ExecutionRecorderItem,
   ExecutionTaskActionApply,
@@ -27,6 +25,7 @@ import type {
   InsightDump,
   InsightExtractOption,
   InsightExtractParam,
+  LocateResultWithDump,
   InterfaceType,
   LocateResultElement,
   MidsceneYamlFlowItem,
@@ -37,6 +36,7 @@ import type {
   PlanningActionParamWaitFor,
   PlanningLocateParam,
 } from '@/types';
+import { InsightError } from '@/types';
 import { sleep } from '@/utils';
 import {
   type IModelConfig,
@@ -183,24 +183,18 @@ export class TaskExecutor {
               param,
             )}`,
           );
-          let insightDump: InsightDump | undefined;
-          let usage: AIUsageInfo | undefined;
-          const dumpCollector: DumpSubscriber = (dump) => {
-            insightDump = dump;
-            usage = dump?.taskInfo?.usage;
-
+          let locateDump: InsightDump | undefined;
+          let locateResult: LocateResultWithDump | undefined;
+          const applyDump = (dump: InsightDump) => {
+            locateDump = dump;
             task.log = {
-              dump: insightDump,
+              dump,
             };
-
-            task.usage = usage;
-
-            // Store searchAreaUsage in task metadata
-            if (dump?.taskInfo?.searchAreaUsage) {
+            task.usage = dump.taskInfo?.usage;
+            if (dump.taskInfo?.searchAreaUsage) {
               task.searchAreaUsage = dump.taskInfo.searchAreaUsage;
             }
           };
-          this.insight.onceDumpUpdatedFn = dumpCollector;
           const shotTime = Date.now();
 
           // Get context through contextRetrieverFn which handles frozen context
@@ -245,19 +239,26 @@ export class TaskExecutor {
           const planHitFlag = !!elementFromPlan;
 
           // try ai locate
-          const elementFromAiLocate =
-            !userExpectedPathHitFlag && !cacheHitFlag && !planHitFlag
-              ? (
-                  await this.insight.locate(
-                    param,
-                    {
-                      // fallback to ai locate
-                      context: uiContext,
-                    },
-                    modelConfig,
-                  )
-                ).element
-              : undefined;
+          let elementFromAiLocate: LocateResultElement | null | undefined;
+          if (!userExpectedPathHitFlag && !cacheHitFlag && !planHitFlag) {
+            try {
+              locateResult = await this.insight.locate(
+                param,
+                {
+                  // fallback to ai locate
+                  context: uiContext,
+                },
+                modelConfig,
+              );
+              applyDump(locateResult.dump);
+              elementFromAiLocate = locateResult.element;
+            } catch (error) {
+              if (error instanceof InsightError) {
+                applyDump(error.dump);
+              }
+              throw error;
+            }
+          }
           const aiLocateHitFlag = !!elementFromAiLocate;
 
           const element =
@@ -311,6 +312,12 @@ export class TaskExecutor {
             }
           }
           if (!element) {
+            if (locateDump) {
+              throw new InsightError(
+                `Element not found: ${param.prompt}`,
+                locateDump,
+              );
+            }
             throw new Error(`Element not found: ${param.prompt}`);
           }
 
@@ -884,11 +891,13 @@ export class TaskExecutor {
       },
       executor: async (param, taskContext) => {
         const { task } = taskContext;
-        let insightDump: InsightDump | undefined;
-        const dumpCollector: DumpSubscriber = (dump) => {
-          insightDump = dump;
+        let queryDump: InsightDump | undefined;
+        const applyDump = (dump: InsightDump) => {
+          queryDump = dump;
+          task.log = {
+            dump,
+          };
         };
-        this.insight.onceDumpUpdatedFn = dumpCollector;
 
         // Get context for query operations
         const shotTime = Date.now();
@@ -921,12 +930,23 @@ export class TaskExecutor {
           };
         }
 
-        const { data, usage, thought } = await this.insight.extract<any>(
-          demandInput,
-          modelConfig,
-          opt,
-          multimodalPrompt,
-        );
+        let extractResult;
+        try {
+          extractResult = await this.insight.extract<any>(
+            demandInput,
+            modelConfig,
+            opt,
+            multimodalPrompt,
+          );
+        } catch (error) {
+          if (error instanceof InsightError) {
+            applyDump(error.dump);
+          }
+          throw error;
+        }
+
+        const { data, usage, thought, dump } = extractResult;
+        applyDump(dump);
 
         let outputResult = data;
         if (ifTypeRestricted) {
@@ -944,7 +964,7 @@ export class TaskExecutor {
 
         return {
           output: outputResult,
-          log: insightDump,
+          log: queryDump,
           usage,
           thought,
         };

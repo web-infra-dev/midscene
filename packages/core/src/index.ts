@@ -21,6 +21,7 @@ export {
 export { MIDSCENE_MODEL_NAME } from '@midscene/shared/env';
 
 export type * from './types';
+export { InsightError } from './types';
 
 export { z };
 

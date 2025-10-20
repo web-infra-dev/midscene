@@ -11,16 +11,17 @@ import type {
   AIUsageInfo,
   BaseElement,
   DetailedLocateParam,
-  DumpSubscriber,
   InsightAction,
   InsightExtractOption,
   InsightExtractParam,
+  InsightExtractResult,
   InsightTaskInfo,
-  LocateResult,
+  LocateResultWithDump,
   PartialInsightDumpFromSDK,
   Rect,
   UIContext,
 } from '@/types';
+import { InsightError } from '@/types';
 import {
   type IModelConfig,
   MIDSCENE_FORCE_DEEP_THINK,
@@ -30,7 +31,7 @@ import { compositeElementInfoImg, cropByRect } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { TMultimodalPrompt } from '../ai-model/common';
-import { emitInsightDump } from './utils';
+import { createInsightDump } from './utils';
 
 export interface LocateOpts {
   context?: UIContext<BaseElement>;
@@ -56,8 +57,6 @@ export default class Insight<
 
   aiVendorFn: Exclude<InsightOptions['aiVendorFn'], undefined> =
     callAIWithObjectResponse;
-
-  onceDumpUpdatedFn?: DumpSubscriber;
 
   taskInfo?: Omit<InsightTaskInfo, 'durationMs'>;
 
@@ -87,11 +86,9 @@ export default class Insight<
     query: DetailedLocateParam,
     opt: LocateOpts,
     modelConfig: IModelConfig,
-  ): Promise<LocateResult> {
+  ): Promise<LocateResultWithDump> {
     const queryPrompt = typeof query === 'string' ? query : query.prompt;
     assert(queryPrompt, 'query is required for locate');
-    const dumpSubscriber = this.onceDumpUpdatedFn;
-    this.onceDumpUpdatedFn = undefined;
 
     assert(typeof query === 'object', 'query should be an object for locate');
 
@@ -201,22 +198,21 @@ export default class Insight<
       }
     });
 
-    emitInsightDump(
-      {
-        ...dumpData,
-        matchedElement: elements,
-      },
-      dumpSubscriber,
-    );
+    const dump = createInsightDump({
+      ...dumpData,
+      matchedElement: elements,
+    });
 
     if (errorLog) {
-      throw new Error(errorLog);
+      throw new InsightError(errorLog, dump);
     }
 
-    assert(
-      elements.length <= 1,
-      `locate: multiple elements found, length = ${elements.length}`,
-    );
+    if (elements.length > 1) {
+      throw new InsightError(
+        `locate: multiple elements found, length = ${elements.length}`,
+        dump,
+      );
+    }
 
     if (elements.length === 1) {
       return {
@@ -230,11 +226,14 @@ export default class Insight<
           isOrderSensitive,
         },
         rect,
+        dump,
       };
     }
+
     return {
       element: null,
       rect,
+      dump,
     };
   }
 
@@ -243,18 +242,11 @@ export default class Insight<
     modelConfig: IModelConfig,
     opt?: InsightExtractOption,
     multimodalPrompt?: TMultimodalPrompt,
-  ): Promise<{
-    data: T;
-    thought?: string;
-    usage?: AIUsageInfo;
-  }> {
+  ): Promise<InsightExtractResult<T>> {
     assert(
       typeof dataDemand === 'object' || typeof dataDemand === 'string',
       `dataDemand should be object or string, but get ${typeof dataDemand}`,
     );
-    const dumpSubscriber = this.onceDumpUpdatedFn;
-    this.onceDumpUpdatedFn = undefined;
-
     const context = await this.contextRetrieverFn('extract');
 
     const startTime = Date.now();
@@ -293,22 +285,20 @@ export default class Insight<
     const { data, thought } = parseResult || {};
 
     // 4
-    emitInsightDump(
-      {
-        ...dumpData,
-        data,
-      },
-      dumpSubscriber,
-    );
+    const dump = createInsightDump({
+      ...dumpData,
+      data,
+    });
 
     if (errorLog && !data && !opt?.doNotThrowError) {
-      throw new Error(errorLog);
+      throw new InsightError(errorLog, dump);
     }
 
     return {
       data,
       thought,
       usage,
+      dump,
     };
   }
 
