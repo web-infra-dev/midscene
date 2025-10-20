@@ -1,6 +1,6 @@
 {
   "name": "@midscene/ios",
-  "version": "0.30.4",
+  "version": "1.0.0",
   "description": "iOS automation library for Midscene",
   "keywords": [
     "iOS UI automation",
@@ -13,7 +13,12 @@
   "main": "./dist/lib/index.js",
   "module": "./dist/es/index.mjs",
   "types": "./dist/types/index.d.ts",
-  "files": ["dist", "static", "bin", "README.md"],
+  "files": [
+    "dist",
+    "static",
+    "bin",
+    "README.md"
+  ],
   "bin": {
     "midscene-ios-playground": "./bin/ios-playground"
   },

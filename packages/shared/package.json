@@ -1,6 +1,6 @@
 {
   "name": "@midscene/shared",
-  "version": "0.30.4",
+  "version": "1.0.0",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "types": "./dist/types/index.d.ts",
@@ -63,7 +63,11 @@
       "require": "./dist/lib/*.js"
     }
   },
-  "files": ["dist", "src", "README.md"],
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
   "scripts": {
     "dev": "npm run build:watch",
     "build": "npm run build:script && npm run build:pkg",

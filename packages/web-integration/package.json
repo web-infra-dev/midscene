@@ -8,7 +8,7 @@
     "Browser use",
     "Android use"
   ],
-  "version": "0.30.4",
+  "version": "1.0.0",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "main": "./dist/lib/index.js",
@@ -88,7 +88,9 @@
   },
   "watch": {
     "build": {
-      "patterns": ["src"],
+      "patterns": [
+        "src"
+      ],
       "extensions": "tsx,less,scss,css,js,jsx,ts",
       "quiet": false
     }
@@ -112,7 +114,13 @@
   "bin": {
     "midscene-playground": "./bin/midscene-playground"
   },
-  "files": ["static", "dist", "iife-script", "README.md", "bin"],
+  "files": [
+    "static",
+    "dist",
+    "iife-script",
+    "README.md",
+    "bin"
+  ],
   "dependencies": {
     "@midscene/core": "workspace:*",
     "@midscene/playground": "workspace:*",
