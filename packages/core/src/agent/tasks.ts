@@ -513,14 +513,10 @@ export class TaskExecutor {
     };
   }
 
-  async taskForSleep(timeMs: number, modelConfig: IModelConfig) {
-    const plan = this.sleepPlan(timeMs);
-    const { tasks: sleepTasks } = await this.convertPlanToExecutable(
-      [plan],
-      modelConfig,
-    );
-
-    return sleepTasks[0];
+  async taskForSleep(timeMs: number, _modelConfig: IModelConfig) {
+    return this.taskBuilder.createSleepTask({
+      timeMs,
+    });
   }
 
   async waitFor(
@@ -582,7 +578,9 @@ export class TaskExecutor {
       const now = Date.now();
       if (now - startTime < checkIntervalMs) {
         const timeRemaining = checkIntervalMs - (now - startTime);
-        const sleepTask = await this.taskForSleep(timeRemaining, modelConfig);
+        const sleepTask = this.taskBuilder.createSleepTask({
+          timeMs: timeRemaining,
+        });
         await session.append(sleepTask);
       }
     }

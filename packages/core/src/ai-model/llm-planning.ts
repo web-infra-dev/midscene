@@ -132,7 +132,6 @@ export async function plan(
 
   assert(planFromAI, "can't get plans from AI");
 
-  // TODO: use zod.parse to parse the action.param, and then fill the bbox param.
   actions.forEach((action) => {
     const type = action.type;
     const actionInActionSpace = opts.actionSpace.find(
