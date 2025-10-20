@@ -2,6 +2,7 @@ import type {
   DeviceAction,
   InterfaceType,
   PlanningAIResponse,
+  RawResponsePlanningAIResponse,
   UIContext,
 } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
@@ -108,16 +109,15 @@ export async function plan(
     },
   ];
 
-  const { content, usage } = await callAIWithObjectResponse<PlanningAIResponse>(
-    msgs,
-    AIActionType.PLAN,
-    modelConfig,
-  );
-  const rawResponse = JSON.stringify(content, undefined, 2);
-  const planFromAI = content;
+  const { content: planFromAI, usage } =
+    await callAIWithObjectResponse<RawResponsePlanningAIResponse>(
+      msgs,
+      AIActionType.PLAN,
+      modelConfig,
+    );
+  const rawResponse = JSON.stringify(planFromAI, undefined, 2);
 
-  const actions =
-    (planFromAI.action?.type ? [planFromAI.action] : planFromAI.actions) || [];
+  const actions = planFromAI.action ? [planFromAI.action] : [];
   const returnValue: PlanningAIResponse = {
     ...planFromAI,
     actions,

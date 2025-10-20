@@ -270,13 +270,17 @@ export interface PlanningAction<ParamType = any> {
   locate?: PlanningLocateParam | null;
 }
 
-export interface PlanningAIResponse {
-  action?: PlanningAction; // this is the qwen mode
-  actions?: PlanningAction[];
+export interface RawResponsePlanningAIResponse {
+  action: PlanningAction;
   more_actions_needed_by_instruction: boolean;
   log: string;
   sleep?: number;
   error?: string;
+}
+
+export interface PlanningAIResponse
+  extends Omit<RawResponsePlanningAIResponse, 'action'> {
+  actions?: PlanningAction[];
   usage?: AIUsageInfo;
   rawResponse?: string;
   yamlFlow?: MidsceneYamlFlowItem[];
