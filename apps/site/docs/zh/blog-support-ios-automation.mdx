@@ -40,11 +40,11 @@ ios:
 tasks:
   - name: 搜索内容
     flow:
-      - aiAction: 点击地址栏
-      - aiAction: 输入 'Midscene AI automation'
-      - aiAction: 点击搜索按钮
+      - aiAct: 点击地址栏
+      - aiAct: 输入 'Midscene AI automation'
+      - aiAct: 点击搜索按钮
       - sleep: 3000
-      - aiAction: 向下滚动 500px
+      - aiAct: 向下滚动 500px
 
   - name: 提取搜索结果
     flow:
@@ -85,10 +85,10 @@ Promise.resolve(
     await sleep(3000);
 
     // 👀 点击地址栏并输入搜索关键词
-    await agent.aiAction('点击地址栏并输入 "Midscene automation"');
+    await agent.aiAct('点击地址栏并输入 "Midscene automation"');
 
     // 👀 执行搜索
-    await agent.aiAction('点击搜索按钮');
+    await agent.aiAct('点击搜索按钮');
 
     // 👀 等待加载完成
     await agent.aiWaitFor("页面上至少有一个搜索结果");

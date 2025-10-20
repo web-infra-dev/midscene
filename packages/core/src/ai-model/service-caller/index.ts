@@ -59,7 +59,7 @@ async function createChatClient({
   const openai = new OpenAI({
     baseURL: openaiBaseURL,
     apiKey: openaiApiKey,
-    httpAgent: proxyAgent,
+    ...(proxyAgent ? { httpAgent: proxyAgent as any } : {}),
     ...openaiExtraConfig,
     defaultHeaders: {
       ...(openaiExtraConfig?.defaultHeaders || {}),

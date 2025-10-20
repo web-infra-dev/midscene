@@ -67,8 +67,8 @@ We've adapted the latest Qwen `Qwen3-VL` model, giving developers faster and mor
 
 ### 🤖 AI core capability enhancement
 
-- **UI-TARS Model Performance Optimization**: Optimized aiAction planning, improved dialogue history management, and provided better context awareness capabilities
-- **AI Assertion and Action Optimization**: We updated the prompt for `aiAssert` and optimized the internal implementation of `aiAction`, making AI-driven assertions and action execution more precise and reliable
+- **UI-TARS Model Performance Optimization**: Optimized aiAct planning, improved dialogue history management, and provided better context awareness capabilities
+- **AI Assertion and Action Optimization**: We updated the prompt for `aiAssert` and optimized the internal implementation of `aiAct`, making AI-driven assertions and action execution more precise and reliable
 
 ### 📊 Reporting and debugging experience optimization
 - **URL Parameter Playback Control**: To improve debugging experience, you can now directly control the default behavior of report playback through URL parameters
@@ -248,7 +248,7 @@ Based on the introduction of [Rslib](https://github.com/web-infra-dev/rslib) in 
 - Support storing more complex data structures, laying the foundation for future feature extensions
 
 #### 3️⃣ Customize replanning cycle limit
-- Set the `MIDSCENE_REPLANNING_CYCLE_LIMIT` environment variable to customize the maximum number of re-planning cycles allowed when executing operations (aiAction).
+- Set the `MIDSCENE_REPLANNING_CYCLE_LIMIT` environment variable to customize the maximum number of re-planning cycles allowed when executing operations (aiAct).
 - The default value is 10. When the AI needs to re-plan more than this limit, an error will be thrown and suggest splitting the task.
 - Provide more flexible task execution control, adapting to different automation scenarios
 
@@ -360,14 +360,14 @@ Reduce the size of the generated report by trimming redundant data, significantl
 
 ### Custom node in report
 
-* Add the `logScreenshot` API to the agent. Take a screenshot of the current page as a report node, and support setting the node title and description to make the automated testing process more intuitive. Applicable for capturing screenshots of key steps, error status capture, UI validation, etc.
+* Add the `recordToReport` API to the agent. Take a screenshot of the current page as a report node, and support setting the node title and description to make the automated testing process more intuitive. Applicable for capturing screenshots of key steps, error status capture, UI validation, etc.
 
-![](/blog/logScreenshot-api.png)
+![](/blog/recordToReport-api.png)
 
 * Example:
 
 ```javascript
-test('login github', async ({ ai, aiAssert, aiInput, logScreenshot }) => {
+test('login github', async ({ ai, aiAssert, aiInput, recordToReport }) => {
   if (CACHE_TIME_OUT) {
     test.setTimeout(200 * 1000);
   }
@@ -376,7 +376,7 @@ test('login github', async ({ ai, aiAssert, aiInput, logScreenshot }) => {
   await aiInput('123456', 'password');
 
   // log by your own
-  await logScreenshot('Login page', {
+  await recordToReport('Login page', {
     content: 'Username is quanru, password is 123456',
   });
 

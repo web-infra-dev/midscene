@@ -31,7 +31,7 @@ export const useBlackboardPreference = create<{
   },
 }));
 export interface HistoryItem {
-  type: 'aiAction' | 'aiQuery' | 'aiAssert';
+  type: 'aiAct' | 'aiQuery' | 'aiAssert';
   prompt: string;
   timestamp: number;
 }

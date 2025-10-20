@@ -61,12 +61,12 @@ Promise.resolve(
     await device.connect();
 
     // 👀 open browser and navigate to ebay.com (Please ensure that the current page has a browser app)
-    await agent.aiAction('open browser and navigate to ebay.com');
+    await agent.aiAct('open browser and navigate to ebay.com');
 
     await sleep(5000);
 
     // 👀 type keywords, perform a search
-    await agent.aiAction('type "Headphones" in search box, hit Enter');
+    await agent.aiAct('type "Headphones" in search box, hit Enter');
 
     // 👀 wait for loading completed
     await agent.aiWaitFor('There is at least one headphone product');
@@ -300,7 +300,7 @@ const device = new AndroidDevice('your-device-id', {
 });
 const agent = new AndroidAgent(device);
 
-await agent.aiAction('click the red button five times');
+await agent.aiAct('click the red button five times');
 ```
 
 Check [Integrate with any interface](./integrate-with-any-interface#define-a-custom-action) for more details about defining custom actions.

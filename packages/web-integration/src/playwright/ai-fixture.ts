@@ -119,7 +119,7 @@ export const PlaywrightAiFixture = (options?: {
     use: any;
     aiActionType:
       | 'ai'
-      | 'aiAction'
+      | 'aiAct'
       | 'aiHover'
       | 'aiInput'
       | 'aiKeyboardPress'
@@ -138,6 +138,7 @@ export const PlaywrightAiFixture = (options?: {
       | 'runYaml'
       | 'setAIActionContext'
       | 'evaluateJavaScript'
+      | 'recordToReport'
       | 'logScreenshot'
       | 'freezePageContext'
       | 'unfreezePageContext';
@@ -260,7 +261,7 @@ export const PlaywrightAiFixture = (options?: {
         aiActionType: 'ai',
       });
     },
-    aiAction: async (
+    aiAct: async (
       { page }: { page: OriginPlaywrightPage },
       use: any,
       testInfo: TestInfo,
@@ -269,7 +270,7 @@ export const PlaywrightAiFixture = (options?: {
         page,
         testInfo,
         use,
-        aiActionType: 'aiAction',
+        aiActionType: 'aiAct',
       });
     },
     aiTap: async (
@@ -488,6 +489,18 @@ export const PlaywrightAiFixture = (options?: {
         aiActionType: 'evaluateJavaScript',
       });
     },
+    recordToReport: async (
+      { page }: { page: OriginPlaywrightPage },
+      use: any,
+      testInfo: TestInfo,
+    ) => {
+      await generateAiFunction({
+        page,
+        testInfo,
+        use,
+        aiActionType: 'recordToReport',
+      });
+    },
     logScreenshot: async (
       { page }: { page: OriginPlaywrightPage },
       use: any,
@@ -533,7 +546,7 @@ export type PlayWrightAiFixtureType = {
     opts?: any,
   ) => Promise<PageAgent<PlaywrightWebPage>>;
   ai: <T = any>(prompt: string) => Promise<T>;
-  aiAction: (taskPrompt: string) => ReturnType<PageAgent['aiAction']>;
+  aiAct: (taskPrompt: string) => ReturnType<PageAgent['aiAct']>;
   aiTap: (
     ...args: Parameters<PageAgent['aiTap']>
   ) => ReturnType<PageAgent['aiTap']>;
@@ -584,6 +597,9 @@ export type PlayWrightAiFixtureType = {
   evaluateJavaScript: (
     ...args: Parameters<PageAgent['evaluateJavaScript']>
   ) => ReturnType<PageAgent['evaluateJavaScript']>;
+  recordToReport: (
+    ...args: Parameters<PageAgent['recordToReport']>
+  ) => ReturnType<PageAgent['recordToReport']>;
   logScreenshot: (
     ...args: Parameters<PageAgent['logScreenshot']>
   ) => ReturnType<PageAgent['logScreenshot']>;

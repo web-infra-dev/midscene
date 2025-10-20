@@ -92,7 +92,7 @@ Promise.resolve(
     await sleep(3000);
 
     // 👀 Enter keywords and perform search
-    await agent.aiAction('Search for "Headphones"');
+    await agent.aiAct('Search for "Headphones"');
 
     // 👀 Wait for loading to complete
     await agent.aiWaitFor('At least one headphone product is displayed on the page');
@@ -266,7 +266,7 @@ const agent = await agentFromWebDriverAgent({
   customActions: [ContinuousClick],
 });
 
-await agent.aiAction('Click the red button five times');
+await agent.aiAct('Click the red button five times');
 ```
 
 For more details about custom actions, refer to [Integrate with any interface](./integrate-with-any-interface).

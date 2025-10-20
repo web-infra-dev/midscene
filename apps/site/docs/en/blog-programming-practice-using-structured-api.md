@@ -1,12 +1,12 @@
 # Use JavaScript to optimize the AI automation code
 
-Many developers love using `ai` or `aiAction` to accomplish complex tasks, and even describe all logic in a single natural language instruction. Although it may seem 'intelligent', in practice, this approach may not provide a reliable and efficient experience, and results in an endless loop of Prompt tuning.
+Many developers love using `ai` or `aiAct` to accomplish complex tasks, and even describe all logic in a single natural language instruction. Although it may seem 'intelligent', in practice, this approach may not provide a reliable and efficient experience, and results in an endless loop of Prompt tuning.
 
 Here is a typical example, developers may write a large logic storm with long descriptions, such as:
 
 ```javascript
 // complex tasks
-aiAction(`
+aiAct(`
 1. click the first user
 2. click the chat bubble on the right side of the user page
 3. if I have already sent a message to him/her, go back to the previous page
@@ -14,11 +14,11 @@ aiAction(`
 `)
 ```
 
-Another common misconception is that the complex workflow can be effectively controlled using `aiAction` methods. These prompts are far from reliable when compared to traditional JavaScript. For example:
+Another common misconception is that the complex workflow can be effectively controlled using `aiAct` methods. These prompts are far from reliable when compared to traditional JavaScript. For example:
 
 ```javascript
 // not stable !
-aiAction('click all the records one by one. If one record contains the text "completed", skip it')
+aiAct('click all the records one by one. If one record contains the text "completed", skip it')
 ```
 
 ## One path to optimize the automation code: use JavaScript and structured API
@@ -27,7 +27,7 @@ From v0.16.10, Midscene provides data extraction methods like `aiBoolean` `aiStr
 
 Combining them with the instant action methods, like `aiTap`, `aiInput`, `aiScroll`, `aiHover`, etc., you can split complex logic into multiple steps to improve the stability of the automation code.
 
-Let's take the first bad case above, you can convert the `.aiAction` method into a structured API call:
+Let's take the first bad case above, you can convert the `.aiAct` method into a structured API call:
 
 Original prompt:
 
@@ -53,7 +53,7 @@ After modifying the coding style, the whole process can be much more reliable an
 Here is another example, this is what it looks like before rewriting: 
 
 ```javascript
-aiAction(`
+aiAct(`
 1. click the first unfollowed user, enter the user's homepage
 2. click the follow button
 3. go back to the previous page
@@ -185,14 +185,14 @@ After you input the prompt, the AI IDE will convert the prompt into structured j
 
 Enjoy it!
 
-## Which approach is best: `aiAction` or structured code?
+## Which approach is best: `aiAct` or structured code?
 
 There is no standard answer. It depends on the model's ability, the complexity of the actual business.
 
-Generally, if you encounter the following situations, you should consider abandoning the `aiAction` method:
+Generally, if you encounter the following situations, you should consider abandoning the `aiAct` method:
 
-- The success rate of `aiAction` does not meet the requirements after multiple retries
-- You have already felt tired and spent too much time repeatedly tuning the `aiAction` prompt
+- The success rate of `aiAct` does not meet the requirements after multiple retries
+- You have already felt tired and spent too much time repeatedly tuning the `aiAct` prompt
 - You need to debug the script step by step
 
 ## What's next?
