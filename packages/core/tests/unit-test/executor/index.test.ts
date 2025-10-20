@@ -3,6 +3,7 @@ import type {
   ExecutionTaskActionApply,
   ExecutionTaskInsightLocate,
   ExecutionTaskInsightLocateApply,
+  UIContext,
 } from '@/index';
 import { fakeInsight } from 'tests/utils';
 import { describe, expect, it, vi } from 'vitest';
@@ -24,7 +25,7 @@ const insightFindTask = (shouldThrow?: boolean) => {
         await new Promise((resolve) => setTimeout(resolve, 100));
         throw new Error('test-error');
       }
-      const { element, dump } = await insight.locate(
+      const { element, dump: insightDump } = await insight.locate(
         {
           prompt: param.prompt,
         },
@@ -40,9 +41,7 @@ const insightFindTask = (shouldThrow?: boolean) => {
         output: {
           element,
         },
-        log: {
-          dump,
-        },
+        log: insightDump,
         cache: {
           hit: false,
         },
@@ -51,6 +50,13 @@ const insightFindTask = (shouldThrow?: boolean) => {
   };
   return insightFindTask;
 };
+
+const fakeUIContextBuilder = async () =>
+  ({
+    screenshotBase64: '',
+    tree: { node: null, children: [] },
+    size: { width: 0, height: 0 },
+  }) as unknown as UIContext;
 
 describe(
   'executor',
@@ -85,7 +91,7 @@ describe(
 
       const inputTasks = [insightTask1, actionTask, actionTask2];
 
-      const executor = new Executor('test', {
+      const executor = new Executor('test', fakeUIContextBuilder, {
         tasks: inputTasks,
       });
       const flushResult = await executor.flush();
@@ -112,7 +118,7 @@ describe(
     });
 
     it('insight - init and append', async () => {
-      const initExecutor = new Executor('test');
+      const initExecutor = new Executor('test', fakeUIContextBuilder);
       expect(initExecutor.status).toBe('init');
       const tapperFn = vi.fn();
 
@@ -168,7 +174,7 @@ describe(
     });
 
     it('insight - run with error', async () => {
-      const executor = new Executor('test', {
+      const executor = new Executor('test', fakeUIContextBuilder, {
         tasks: [insightFindTask(true), insightFindTask()],
       });
       const r = await executor.flush();

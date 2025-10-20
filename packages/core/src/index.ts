@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Executor } from './ai-model/action-executor';
+import { Executor } from './executor';
 import Insight from './insight/index';
 import { getVersion } from './utils';
 
