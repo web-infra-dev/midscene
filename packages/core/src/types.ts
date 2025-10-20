@@ -1,7 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type { NodeType } from '@midscene/shared/constants';
-import type { TModelConfigFn } from '@midscene/shared/env';
+import type {
+  CreateOpenAIClientFn,
+  TModelConfigFn,
+} from '@midscene/shared/env';
 import type {
   BaseElement,
   ElementTreeNode,
@@ -627,6 +630,37 @@ export interface AgentOpt {
   modelConfig?: TModelConfigFn;
   cache?: Cache;
   replanningCycleLimit?: number;
+
+  /**
+   * Custom OpenAI client factory function
+   *
+   * If provided, this function will be called to create OpenAI client instances
+   * for each AI call, allowing you to:
+   * - Wrap clients with observability tools (langsmith, langfuse)
+   * - Use custom OpenAI-compatible clients
+   * - Apply different configurations based on intent
+   *
+   * @param config - Resolved model configuration
+   * @returns OpenAI client instance (original or wrapped)
+   *
+   * @example
+   * ```typescript
+   * createOpenAIClient: (config) => {
+   *   const openai = new OpenAI({
+   *     apiKey: config.openaiApiKey,
+   *     baseURL: config.openaiBaseURL,
+   *   });
+   *
+   *   // Wrap with langsmith for planning tasks
+   *   if (config.intent === 'planning') {
+   *     return wrapOpenAI(openai, { metadata: { task: 'planning' } });
+   *   }
+   *
+   *   return openai;
+   * }
+   * ```
+   */
+  createOpenAIClient?: CreateOpenAIClientFn;
 }
 
 export type TestStatus =

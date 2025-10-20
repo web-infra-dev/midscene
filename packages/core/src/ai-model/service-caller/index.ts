@@ -44,29 +44,48 @@ async function createChatClient({
     modelDescription,
     uiTarsModelVersion: uiTarsVersion,
     vlMode,
+    createOpenAIClient,
   } = modelConfig;
 
-  let proxyAgent = undefined;
-  const debugProxy = getDebug('ai:call:proxy');
-  if (httpProxy) {
-    debugProxy('using http proxy', httpProxy);
-    proxyAgent = new HttpsProxyAgent(httpProxy);
-  } else if (socksProxy) {
-    debugProxy('using socks proxy', socksProxy);
-    proxyAgent = new SocksProxyAgent(socksProxy);
-  }
+  let openai: OpenAI;
 
-  const openai = new OpenAI({
-    baseURL: openaiBaseURL,
-    apiKey: openaiApiKey,
-    ...(proxyAgent ? { httpAgent: proxyAgent as any } : {}),
-    ...openaiExtraConfig,
-    defaultHeaders: {
-      ...(openaiExtraConfig?.defaultHeaders || {}),
-      [MIDSCENE_API_TYPE]: AIActionTypeValue.toString(),
-    },
-    dangerouslyAllowBrowser: true,
-  });
+  // Use custom client factory if provided
+  if (createOpenAIClient) {
+    openai = createOpenAIClient({
+      modelName,
+      openaiApiKey,
+      openaiBaseURL,
+      socksProxy,
+      httpProxy,
+      openaiExtraConfig,
+      vlMode,
+      intent: modelConfig.intent,
+      modelDescription,
+    });
+  } else {
+    // Default OpenAI client creation
+    let proxyAgent = undefined;
+    const debugProxy = getDebug('ai:call:proxy');
+    if (httpProxy) {
+      debugProxy('using http proxy', httpProxy);
+      proxyAgent = new HttpsProxyAgent(httpProxy);
+    } else if (socksProxy) {
+      debugProxy('using socks proxy', socksProxy);
+      proxyAgent = new SocksProxyAgent(socksProxy);
+    }
+
+    openai = new OpenAI({
+      baseURL: openaiBaseURL,
+      apiKey: openaiApiKey,
+      ...(proxyAgent ? { httpAgent: proxyAgent as any } : {}),
+      ...openaiExtraConfig,
+      defaultHeaders: {
+        ...(openaiExtraConfig?.defaultHeaders || {}),
+        [MIDSCENE_API_TYPE]: AIActionTypeValue.toString(),
+      },
+      dangerouslyAllowBrowser: true,
+    });
+  }
 
   return {
     completion: openai.chat.completions,
