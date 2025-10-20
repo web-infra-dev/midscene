@@ -293,11 +293,11 @@ export interface PlanningActionParamError {
 
 export type PlanningActionParamWaitFor = AgentWaitForOpt & {};
 
-export interface AndroidLongPressParam {
+export interface LongPressParam {
   duration?: number;
 }
 
-export interface AndroidPullParam {
+export interface PullParam {
   direction: 'up' | 'down';
   distance?: number;
   duration?: number;

@@ -38,7 +38,6 @@ export { extractTreeNodeAsString as webExtractNodeTreeAsString } from './web-ext
 export { setNodeHashCacheListOnWindow, getNodeFromCacheList } from './util';
 
 export {
-  getXpathsById,
   getXpathsByPoint,
   getNodeInfoByXpath,
   getElementInfoByXpath,
