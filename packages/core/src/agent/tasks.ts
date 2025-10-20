@@ -1,41 +1,24 @@
-import {
-  ConversationHistory,
-  findAllMidsceneLocatorField,
-  parseActionParam,
-  plan,
-  uiTarsPlanning,
-} from '@/ai-model';
+import { ConversationHistory, plan, uiTarsPlanning } from '@/ai-model';
 import type { TMultimodalPrompt, TUserPrompt } from '@/ai-model/common';
 import type { AbstractInterface } from '@/device';
-import { Executor } from '@/executor';
+import type { Executor } from '@/executor';
 import type Insight from '@/insight';
 import type {
-  DetailedLocateParam,
-  ElementCacheFeature,
-  ExecutionTaskActionApply,
   ExecutionTaskApply,
-  ExecutionTaskHitBy,
-  ExecutionTaskInsightLocateApply,
   ExecutionTaskInsightQueryApply,
   ExecutionTaskPlanningApply,
   ExecutionTaskProgressOptions,
-  ExecutorContext,
   InsightDump,
   InsightExtractOption,
   InsightExtractParam,
   InterfaceType,
-  LocateResultElement,
-  LocateResultWithDump,
   MidsceneYamlFlowItem,
   PlanningAIResponse,
   PlanningAction,
-  PlanningActionParamError,
   PlanningActionParamSleep,
   PlanningActionParamWaitFor,
-  PlanningLocateParam,
 } from '@/types';
 import { InsightError } from '@/types';
-import { sleep } from '@/utils';
 import {
   type IModelConfig,
   MIDSCENE_REPLANNING_CYCLE_LIMIT,
@@ -44,12 +27,11 @@ import {
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { TaskCache } from './task-cache';
+import { ExecutionSession } from './execution-session';
+import { TaskBuilder } from './task-builder';
+export { locatePlanForLocate } from './task-builder';
 import { taskTitleStr } from './ui-utils';
-import {
-  matchElementFromCache,
-  matchElementFromPlan,
-  parsePrompt,
-} from './utils';
+import { parsePrompt } from './utils';
 
 interface ExecutionResult<OutputType = any> {
   output: OutputType;
@@ -61,23 +43,14 @@ const debug = getDebug('device-task-executor');
 const defaultReplanningCycleLimit = 10;
 const defaultVlmUiTarsReplanningCycleLimit = 40;
 
-export function locatePlanForLocate(param: string | DetailedLocateParam) {
-  const locate = typeof param === 'string' ? { prompt: param } : param;
-  const locatePlan: PlanningAction<PlanningLocateParam> = {
-    type: 'Locate',
-    locate,
-    param: locate,
-    thought: '',
-  };
-  return locatePlan;
-}
-
 export class TaskExecutor {
   interface: AbstractInterface;
 
   insight: Insight;
 
   taskCache?: TaskCache;
+
+  private readonly taskBuilder: TaskBuilder;
 
   private conversationHistory: ConversationHistory;
 
@@ -105,6 +78,25 @@ export class TaskExecutor {
     this.onTaskStartCallback = opts?.onTaskStart;
     this.replanningCycleLimit = opts.replanningCycleLimit;
     this.conversationHistory = new ConversationHistory();
+    this.taskBuilder = new TaskBuilder({
+      interfaceInstance,
+      insight,
+      taskCache: opts.taskCache,
+    });
+  }
+
+  private createExecutionSession(
+    title: string,
+    options?: { tasks?: ExecutionTaskApply[] },
+  ) {
+    return new ExecutionSession(
+      title,
+      () => Promise.resolve(this.insight.contextRetrieverFn()),
+      {
+        onTaskStart: this.onTaskStartCallback,
+        tasks: options?.tasks,
+      },
+    );
   }
 
   public async convertPlanToExecutable(
@@ -112,428 +104,14 @@ export class TaskExecutor {
     modelConfig: IModelConfig,
     cacheable?: boolean,
   ) {
-    const tasks: ExecutionTaskApply[] = [];
-
-    const taskForLocatePlan = (
-      plan: PlanningAction<PlanningLocateParam>,
-      detailedLocateParam: DetailedLocateParam | string,
-      onResult?: (result: LocateResultElement) => void,
-    ): ExecutionTaskInsightLocateApply => {
-      if (typeof detailedLocateParam === 'string') {
-        detailedLocateParam = {
-          prompt: detailedLocateParam,
-        };
-      }
-      // Apply cacheable option from convertPlanToExecutable if it was explicitly set
-      if (cacheable !== undefined) {
-        detailedLocateParam = {
-          ...detailedLocateParam,
-          cacheable,
-        };
-      }
-      const taskFind: ExecutionTaskInsightLocateApply = {
-        type: 'Insight',
-        subType: 'Locate',
-        param: detailedLocateParam,
-        thought: plan.thought,
-        executor: async (param, taskContext) => {
-          const { task } = taskContext;
-          assert(
-            param?.prompt || param?.id || param?.bbox,
-            `No prompt or id or position or bbox to locate, param=${JSON.stringify(
-              param,
-            )}`,
-          );
-          let locateDump: InsightDump | undefined;
-          let locateResult: LocateResultWithDump | undefined;
-          const applyDump = (dump: InsightDump) => {
-            locateDump = dump;
-            task.log = {
-              dump,
-            };
-            task.usage = dump.taskInfo?.usage;
-            if (dump.taskInfo?.searchAreaUsage) {
-              task.searchAreaUsage = dump.taskInfo.searchAreaUsage;
-            }
-          };
-
-          // Get context through contextRetrieverFn which handles frozen context
-          const { uiContext } = taskContext;
-          assert(uiContext, 'uiContext is required for Insight task');
-
-          // try matching xpath
-          const elementFromXpath =
-            param.xpath && (this.interface as any).getElementInfoByXpath
-              ? await (this.interface as any).getElementInfoByXpath(param.xpath)
-              : undefined;
-          const userExpectedPathHitFlag = !!elementFromXpath;
-
-          // try matching cache
-          const cachePrompt = param.prompt;
-          const locateCacheRecord =
-            this.taskCache?.matchLocateCache(cachePrompt);
-          const cacheEntry = locateCacheRecord?.cacheContent?.cache;
-          const elementFromCache = userExpectedPathHitFlag
-            ? null
-            : await matchElementFromCache(
-                this,
-                cacheEntry,
-                cachePrompt,
-                param.cacheable,
-              );
-          const cacheHitFlag = !!elementFromCache;
-
-          // try matching plan
-          const elementFromPlan =
-            !userExpectedPathHitFlag && !cacheHitFlag
-              ? matchElementFromPlan(param, uiContext.tree)
-              : undefined;
-          const planHitFlag = !!elementFromPlan;
-
-          // try ai locate
-          let elementFromAiLocate: LocateResultElement | null | undefined;
-          if (!userExpectedPathHitFlag && !cacheHitFlag && !planHitFlag) {
-            try {
-              locateResult = await this.insight.locate(
-                param,
-                {
-                  // fallback to ai locate
-                  context: uiContext,
-                },
-                modelConfig,
-              );
-              applyDump(locateResult.dump);
-              elementFromAiLocate = locateResult.element;
-            } catch (error) {
-              if (error instanceof InsightError) {
-                applyDump(error.dump);
-              }
-              throw error;
-            }
-          }
-          const aiLocateHitFlag = !!elementFromAiLocate;
-
-          const element =
-            elementFromXpath || // highest priority
-            elementFromCache || // second priority
-            elementFromPlan || // third priority
-            elementFromAiLocate;
-
-          // update cache
-          let currentCacheEntry: ElementCacheFeature | undefined;
-          if (
-            element &&
-            this.taskCache &&
-            !cacheHitFlag &&
-            param?.cacheable !== false
-          ) {
-            if (this.interface.cacheFeatureForRect) {
-              try {
-                const feature = await this.interface.cacheFeatureForRect(
-                  element.rect,
-                  element.isOrderSensitive !== undefined
-                    ? { _orderSensitive: element.isOrderSensitive }
-                    : undefined,
-                );
-                if (feature && Object.keys(feature).length > 0) {
-                  debug(
-                    'update cache, prompt: %s, cache: %o',
-                    cachePrompt,
-                    feature,
-                  );
-                  currentCacheEntry = feature;
-                  this.taskCache.updateOrAppendCacheRecord(
-                    {
-                      type: 'locate',
-                      prompt: cachePrompt,
-                      cache: feature,
-                    },
-                    locateCacheRecord,
-                  );
-                } else {
-                  debug(
-                    'no cache data returned, skip cache update, prompt: %s',
-                    cachePrompt,
-                  );
-                }
-              } catch (error) {
-                debug('cacheFeatureForRect failed: %s', error);
-              }
-            } else {
-              debug('cacheFeatureForRect is not supported, skip cache update');
-            }
-          }
-          if (!element) {
-            if (locateDump) {
-              throw new InsightError(
-                `Element not found: ${param.prompt}`,
-                locateDump,
-              );
-            }
-            throw new Error(`Element not found: ${param.prompt}`);
-          }
-
-          let hitBy: ExecutionTaskHitBy | undefined;
-
-          if (userExpectedPathHitFlag) {
-            hitBy = {
-              from: 'User expected path',
-              context: {
-                xpath: param.xpath,
-              },
-            };
-          } else if (cacheHitFlag) {
-            hitBy = {
-              from: 'Cache',
-              context: {
-                cacheEntry,
-                cacheToSave: currentCacheEntry,
-              },
-            };
-          } else if (planHitFlag) {
-            hitBy = {
-              from: 'Planning',
-              context: {
-                id: elementFromPlan?.id,
-                bbox: elementFromPlan?.bbox,
-              },
-            };
-          } else if (aiLocateHitFlag) {
-            hitBy = {
-              from: 'AI model',
-              context: {
-                prompt: param.prompt,
-              },
-            };
-          }
-
-          onResult?.(element);
-
-          return {
-            output: {
-              element,
-            },
-            uiContext,
-            hitBy,
-          };
-        },
-      };
-      return taskFind;
-    };
-
-    for (const plan of plans) {
-      if (plan.type === 'Locate') {
-        if (
-          !plan.locate ||
-          plan.locate === null ||
-          plan.locate?.id === null ||
-          plan.locate?.id === 'null'
-        ) {
-          debug('Locate action with id is null, will be ignored', plan);
-          continue;
-        }
-        const taskLocate = taskForLocatePlan(plan, plan.locate);
-
-        tasks.push(taskLocate);
-      } else if (plan.type === 'Error') {
-        const taskActionError: ExecutionTaskActionApply<PlanningActionParamError> =
-          {
-            type: 'Action',
-            subType: 'Error',
-            param: plan.param,
-            thought: plan.thought || plan.param?.thought,
-            locate: plan.locate,
-            executor: async () => {
-              throw new Error(
-                plan?.thought || plan.param?.thought || 'error without thought',
-              );
-            },
-          };
-        tasks.push(taskActionError);
-      } else if (plan.type === 'Finished') {
-        const taskActionFinished: ExecutionTaskActionApply<null> = {
-          type: 'Action',
-          subType: 'Finished',
-          param: null,
-          thought: plan.thought,
-          locate: plan.locate,
-          executor: async (param) => {},
-        };
-        tasks.push(taskActionFinished);
-      } else if (plan.type === 'Sleep') {
-        const taskActionSleep: ExecutionTaskActionApply<PlanningActionParamSleep> =
-          {
-            type: 'Action',
-            subType: 'Sleep',
-            param: plan.param,
-            thought: plan.thought,
-            locate: plan.locate,
-            executor: async (taskParam) => {
-              await sleep(taskParam?.timeMs || 3000);
-            },
-          };
-        tasks.push(taskActionSleep);
-      } else {
-        // action in action space
-        const planType = plan.type;
-        const actionSpace = await this.interface.actionSpace();
-        const action = actionSpace.find((action) => action.name === planType);
-        const param = plan.param;
-
-        if (!action) {
-          throw new Error(`Action type '${planType}' not found`);
-        }
-
-        // find all params that needs location
-        const locateFields = action
-          ? findAllMidsceneLocatorField(action.paramSchema)
-          : [];
-
-        const requiredLocateFields = action
-          ? findAllMidsceneLocatorField(action.paramSchema, true)
-          : [];
-
-        locateFields.forEach((field) => {
-          if (param[field]) {
-            const locatePlan = locatePlanForLocate(param[field]);
-            debug(
-              'will prepend locate param for field',
-              `action.type=${planType}`,
-              `param=${JSON.stringify(param[field])}`,
-              `locatePlan=${JSON.stringify(locatePlan)}`,
-            );
-            const locateTask = taskForLocatePlan(
-              locatePlan,
-              param[field],
-              (result) => {
-                param[field] = result;
-              },
-            );
-            tasks.push(locateTask);
-          } else {
-            assert(
-              !requiredLocateFields.includes(field),
-              `Required locate field '${field}' is not provided for action ${planType}`,
-            );
-            debug(`field '${field}' is not provided for action ${planType}`);
-          }
-        });
-
-        const task: ExecutionTaskApply<
-          'Action',
-          any,
-          { success: boolean; action: string; param: any },
-          void
-        > = {
-          type: 'Action',
-          subType: planType,
-          thought: plan.thought,
-          param: plan.param,
-          executor: async (param, taskContext) => {
-            debug(
-              'executing action',
-              planType,
-              param,
-              `taskContext.element.center: ${taskContext.element?.center}`,
-            );
-
-            // Get context for actionSpace operations to ensure size info is available
-            const uiContext = taskContext.uiContext;
-            assert(uiContext, 'uiContext is required for Action task');
-
-            requiredLocateFields.forEach((field) => {
-              assert(
-                param[field],
-                `field '${field}' is required for action ${planType} but not provided. Cannot execute action ${planType}.`,
-              );
-            });
-
-            try {
-              await Promise.all([
-                (async () => {
-                  if (this.interface.beforeInvokeAction) {
-                    debug('will call "beforeInvokeAction" for interface');
-                    await this.interface.beforeInvokeAction(action.name, param);
-                    debug('called "beforeInvokeAction" for interface');
-                  }
-                })(),
-                sleep(200),
-              ]);
-            } catch (originalError: any) {
-              const originalMessage =
-                originalError?.message || String(originalError);
-              throw new Error(
-                `error in running beforeInvokeAction for ${action.name}: ${originalMessage}`,
-                { cause: originalError },
-              );
-            }
-
-            // Validate and parse parameters with defaults
-            if (action.paramSchema) {
-              try {
-                param = parseActionParam(param, action.paramSchema);
-              } catch (error: any) {
-                throw new Error(
-                  `Invalid parameters for action ${action.name}: ${error.message}\nParameters: ${JSON.stringify(param)}`,
-                  { cause: error },
-                );
-              }
-            }
-
-            debug('calling action', action.name);
-            const actionFn = action.call.bind(this.interface);
-            await actionFn(param, taskContext);
-            debug('called action', action.name);
-
-            try {
-              if (this.interface.afterInvokeAction) {
-                debug('will call "afterInvokeAction" for interface');
-                await this.interface.afterInvokeAction(action.name, param);
-                debug('called "afterInvokeAction" for interface');
-              }
-            } catch (originalError: any) {
-              const originalMessage =
-                originalError?.message || String(originalError);
-              throw new Error(
-                `error in running afterInvokeAction for ${action.name}: ${originalMessage}`,
-                { cause: originalError },
-              );
-            }
-            // Return a proper result for report generation
-            return {
-              output: {
-                success: true,
-                action: planType,
-                param: param,
-              },
-            };
-          },
-        };
-        tasks.push(task);
-      }
-    }
-
-    return {
-      tasks,
-    };
-  }
-
-  private async setupPlanningContext(executorContext: ExecutorContext) {
-    const uiContext = executorContext.uiContext;
-    assert(uiContext, 'uiContext is required for Planning task');
-
-    return {
-      uiContext,
-    };
+    return this.taskBuilder.build(plans, modelConfig, {
+      cacheable,
+    });
   }
 
   async loadYamlFlowAsPlanning(userInstruction: string, yamlString: string) {
-    const taskExecutor = new Executor(
+    const session = this.createExecutionSession(
       taskTitleStr('Action', userInstruction),
-      () => Promise.resolve(this.insight.contextRetrieverFn()),
-      {
-        onTaskStart: this.onTaskStartCallback,
-      },
     );
 
     const task: ExecutionTaskPlanningApply = {
@@ -544,7 +122,8 @@ export class TaskExecutor {
         userInstruction,
       },
       executor: async (param, executorContext) => {
-        await this.setupPlanningContext(executorContext);
+        const { uiContext } = executorContext;
+        assert(uiContext, 'uiContext is required for Planning task');
         return {
           output: {
             actions: [],
@@ -564,10 +143,10 @@ export class TaskExecutor {
         };
       },
     };
-    await taskExecutor.appendAndFlush(task);
+    await session.appendAndRun(task);
 
     return {
-      executor: taskExecutor,
+      executor: session.getExecutor(),
     };
   }
 
@@ -585,7 +164,8 @@ export class TaskExecutor {
       },
       executor: async (param, executorContext) => {
         const startTime = Date.now();
-        const { uiContext } = await this.setupPlanningContext(executorContext);
+        const { uiContext } = executorContext;
+        assert(uiContext, 'uiContext is required for Planning task');
         const { vlMode } = modelConfig;
         const uiTarsModelVersion =
           vlMode === 'vlm-ui-tars' ? modelConfig.uiTarsModelVersion : undefined;
@@ -681,19 +261,13 @@ export class TaskExecutor {
     plans: PlanningAction[],
     modelConfig: IModelConfig,
   ): Promise<ExecutionResult> {
-    const taskExecutor = new Executor(
-      title,
-      () => Promise.resolve(this.insight.contextRetrieverFn()),
-      {
-        onTaskStart: this.onTaskStartCallback,
-      },
-    );
+    const session = this.createExecutionSession(title);
     const { tasks } = await this.convertPlanToExecutable(plans, modelConfig);
-    const result = await taskExecutor.appendAndFlush(tasks);
+    const result = await session.appendAndRun(tasks);
     const { output } = result!;
     return {
       output,
-      executor: taskExecutor,
+      executor: session.getExecutor(),
     };
   }
 
@@ -724,13 +298,10 @@ export class TaskExecutor {
   > {
     this.conversationHistory.reset();
 
-    const taskExecutor = new Executor(
+    const session = this.createExecutionSession(
       taskTitleStr('Action', userPrompt),
-      () => Promise.resolve(this.insight.contextRetrieverFn()),
-      {
-        onTaskStart: this.onTaskStartCallback,
-      },
     );
+    const executor = session.getExecutor();
 
     let replanCount = 0;
     const yamlFlow: MidsceneYamlFlowItem[] = [];
@@ -743,7 +314,7 @@ export class TaskExecutor {
       if (replanCount > replanningCycleLimit) {
         const errorMsg = `Replanning ${replanningCycleLimit} times, which is more than the limit, please split the task into multiple steps`;
 
-        return taskExecutor.appendErrorPlan(errorMsg);
+        return session.appendErrorPlan(errorMsg);
       }
 
       // Create planning task (automatically includes execution history if available)
@@ -753,12 +324,12 @@ export class TaskExecutor {
         modelConfig,
       );
 
-      const result = await taskExecutor.appendAndFlush(planningTask);
+      const result = await session.appendAndRun(planningTask);
       const planResult: PlanningAIResponse = result?.output;
-      if (taskExecutor.isInErrorState()) {
+      if (session.isInErrorState()) {
         return {
           output: planResult,
-          executor: taskExecutor,
+          executor,
         };
       }
 
@@ -773,18 +344,18 @@ export class TaskExecutor {
           modelConfig,
           cacheable,
         );
-        await taskExecutor.appendAndFlush(executables.tasks);
+        await session.appendAndRun(executables.tasks);
       } catch (error) {
-        return taskExecutor.appendErrorPlan(
+        return session.appendErrorPlan(
           `Error converting plans to executable tasks: ${error}, plans: ${JSON.stringify(
             plans,
           )}`,
         );
       }
-      if (taskExecutor.isInErrorState()) {
+      if (session.isInErrorState()) {
         return {
           output: undefined,
-          executor: taskExecutor,
+          executor,
         };
       }
 
@@ -801,7 +372,7 @@ export class TaskExecutor {
       output: {
         yamlFlow,
       },
-      executor: taskExecutor,
+      executor,
     };
   }
 
@@ -906,15 +477,11 @@ export class TaskExecutor {
     opt?: InsightExtractOption,
     multimodalPrompt?: TMultimodalPrompt,
   ): Promise<ExecutionResult<T>> {
-    const taskExecutor = new Executor(
+    const session = this.createExecutionSession(
       taskTitleStr(
         type,
         typeof demand === 'string' ? demand : JSON.stringify(demand),
       ),
-      () => Promise.resolve(this.insight.contextRetrieverFn()),
-      {
-        onTaskStart: this.onTaskStartCallback,
-      },
     );
 
     const queryTask = await this.createTypeQueryTask(
@@ -925,7 +492,7 @@ export class TaskExecutor {
       multimodalPrompt,
     );
 
-    const result = await taskExecutor.appendAndFlush(queryTask);
+    const result = await session.appendAndRun(queryTask);
 
     if (!result) {
       throw new Error(
@@ -938,10 +505,9 @@ export class TaskExecutor {
     return {
       output,
       thought,
-      executor: taskExecutor,
+      executor: session.getExecutor(),
     };
   }
-
 
   async taskForSleep(timeMs: number, modelConfig: IModelConfig) {
     const sleepPlan: PlanningAction<PlanningActionParamSleep> = {
@@ -968,13 +534,10 @@ export class TaskExecutor {
     const { textPrompt, multimodalPrompt } = parsePrompt(assertion);
 
     const description = `waitFor: ${textPrompt}`;
-    const taskExecutor = new Executor(
+    const session = this.createExecutionSession(
       taskTitleStr('WaitFor', description),
-      () => Promise.resolve(this.insight.contextRetrieverFn()),
-      {
-        onTaskStart: this.onTaskStartCallback,
-      },
     );
+    const executor = session.getExecutor();
     const { timeoutMs, checkIntervalMs } = opt;
 
     assert(assertion, 'No assertion for waitFor');
@@ -1001,7 +564,7 @@ export class TaskExecutor {
         multimodalPrompt,
       );
 
-      const result = (await taskExecutor.appendAndFlush(queryTask)) as
+      const result = (await session.appendAndRun(queryTask)) as
         | {
             output: boolean;
             thought?: string;
@@ -1011,7 +574,7 @@ export class TaskExecutor {
       if (result?.output) {
         return {
           output: undefined,
-          executor: taskExecutor,
+          executor,
         };
       }
 
@@ -1023,10 +586,10 @@ export class TaskExecutor {
       if (now - startTime < checkIntervalMs) {
         const timeRemaining = checkIntervalMs - (now - startTime);
         const sleepTask = await this.taskForSleep(timeRemaining, modelConfig);
-        await taskExecutor.append(sleepTask);
+        await session.append(sleepTask);
       }
     }
 
-    return taskExecutor.appendErrorPlan(`waitFor timeout: ${errorThought}`);
+    return session.appendErrorPlan(`waitFor timeout: ${errorThought}`);
   }
 }
