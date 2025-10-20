@@ -1,3 +1,4 @@
+import { findAllMidsceneLocatorField, parseActionParam } from '@/ai-model';
 import type { AbstractInterface } from '@/device';
 import type Insight from '@/insight';
 import type {
@@ -14,6 +15,7 @@ import type {
   PlanningActionParamError,
   PlanningActionParamSleep,
   PlanningLocateParam,
+  Rect,
 } from '@/types';
 import { InsightError } from '@/types';
 import { sleep } from '@/utils';
@@ -21,14 +23,7 @@ import type { IModelConfig } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { TaskCache } from './task-cache';
-import {
-  findAllMidsceneLocatorField,
-  parseActionParam,
-} from '@/ai-model';
-import {
-  matchElementFromCache,
-  matchElementFromPlan,
-} from './utils';
+import { matchElementFromCache, matchElementFromPlan } from './utils';
 
 const debug = getDebug('agent:task-builder');
 
@@ -131,16 +126,18 @@ export class TaskBuilder {
             }
           };
 
-          const elementFromXpath =
-            param.xpath && (this.interface as any).getElementInfoByXpath
-              ? await (this.interface as any).getElementInfoByXpath(param.xpath)
-              : undefined;
+          // from xpath
+          let elementFromXpath: Rect | undefined;
+          if (param.xpath && this.interface.rectMatchesCacheFeature) {
+            elementFromXpath = await this.interface.rectMatchesCacheFeature({
+              xpaths: [param.xpath],
+            });
+          }
           const userExpectedPathHitFlag = !!elementFromXpath;
 
           const cachePrompt = param.prompt;
-          const locateCacheRecord = this.taskCache?.matchLocateCache(
-            cachePrompt,
-          );
+          const locateCacheRecord =
+            this.taskCache?.matchLocateCache(cachePrompt);
           const cacheEntry = locateCacheRecord?.cacheContent?.cache;
 
           const elementFromCache = userExpectedPathHitFlag

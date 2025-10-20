@@ -283,15 +283,6 @@ export interface PlanningAIResponse {
   yamlString?: string;
 }
 
-export type PlanningActionParamTap = null;
-export type PlanningActionParamHover = null;
-export type PlanningActionParamRightClick = null;
-
-export interface PlanningActionParamInputOrKeyPress {
-  value: string;
-  autoDismissKeyboard?: boolean;
-}
-
 export interface PlanningActionParamSleep {
   timeMs: number;
 }

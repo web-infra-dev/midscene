@@ -1,8 +1,8 @@
 import { ConversationHistory, plan, uiTarsPlanning } from '@/ai-model';
 import type { TMultimodalPrompt, TUserPrompt } from '@/ai-model/common';
 import type { AbstractInterface } from '@/device';
-import type { TaskRunner } from '@/task-runner';
 import type Insight from '@/insight';
+import type { TaskRunner } from '@/task-runner';
 import type {
   ExecutionTaskApply,
   ExecutionTaskInsightQueryApply,
@@ -26,9 +26,9 @@ import {
 } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import type { TaskCache } from './task-cache';
 import { ExecutionSession } from './execution-session';
 import { TaskBuilder } from './task-builder';
+import type { TaskCache } from './task-cache';
 export { locatePlanForLocate } from './task-builder';
 import { taskTitleStr } from './ui-utils';
 import { parsePrompt } from './utils';
@@ -221,13 +221,7 @@ export class TaskExecutor {
           const timeNow = Date.now();
           const timeRemaining = sleep - (timeNow - startTime);
           if (timeRemaining > 0) {
-            finalActions.push({
-              type: 'Sleep',
-              param: {
-                timeMs: timeRemaining,
-              },
-              locate: null,
-            } as PlanningAction<PlanningActionParamSleep>);
+            finalActions.push(this.sleepPlan(timeRemaining));
           }
         }
 
@@ -509,17 +503,20 @@ export class TaskExecutor {
     };
   }
 
-  async taskForSleep(timeMs: number, modelConfig: IModelConfig) {
-    const sleepPlan: PlanningAction<PlanningActionParamSleep> = {
+  private sleepPlan(timeMs: number): PlanningAction<PlanningActionParamSleep> {
+    return {
       type: 'Sleep',
       param: {
         timeMs,
       },
       locate: null,
     };
-    // The convertPlanToExecutable requires modelConfig as a parameter but will not consume it when type is Sleep
+  }
+
+  async taskForSleep(timeMs: number, modelConfig: IModelConfig) {
+    const plan = this.sleepPlan(timeMs);
     const { tasks: sleepTasks } = await this.convertPlanToExecutable(
-      [sleepPlan],
+      [plan],
       modelConfig,
     );
 
