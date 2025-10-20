@@ -56,6 +56,7 @@ describe('reportMergingTool', () => {
     // assert merge success
     const mergedReportPath = tool.mergeReports(undefined, {
       rmOriginalReports: true,
+      overwrite: true,
     });
     const mergedReportContent = readFileSync(mergedReportPath!, 'utf-8');
     expectedContents.forEach((content) => {
@@ -73,6 +74,9 @@ describe('reportMergingTool', () => {
     // assert merge success
     const mergedReportPath = tool.mergeReports(
       'my-custom-merged-report-filename',
+      {
+        overwrite: true,
+      },
     );
     const mergedReportContent = readFileSync(mergedReportPath!, 'utf-8');
     expectedContents.forEach((content) => {
@@ -85,7 +89,9 @@ describe('reportMergingTool', () => {
     // first reports
     generateNReports(3, 'report content', tool);
     // assert merge success
-    tool.mergeReports('my-custom-merged-report-filename-overwrite');
+    tool.mergeReports('my-custom-merged-report-filename-overwrite', {
+      overwrite: true,
+    });
     tool.clear();
     // second reports
     const expectedContents = generateNReports(3, 'new report content', tool);
@@ -147,6 +153,7 @@ test
       console.time('merge and delete 100 mocked report files.');
       const mergedReportPath = tool.mergeReports('merge-100-reports', {
         rmOriginalReports: true,
+        overwrite: true,
       });
       console.timeEnd('merge and delete 100 mocked report files');
       // assert merge success

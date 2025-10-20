@@ -1,4 +1,4 @@
-import { Executor } from '@/executor';
+import { TaskRunner } from '@/task-runner';
 import type {
   ExecutionTaskApply,
   ExecutionTaskProgressOptions,
@@ -6,45 +6,45 @@ import type {
 } from '@/types';
 
 /**
- * Thin wrapper around {@link Executor} that represents a single linear execution run.
+ * Thin wrapper around {@link TaskRunner} that represents a single linear execution run.
  */
 export class ExecutionSession {
-  private readonly executor: Executor;
+  private readonly runner: TaskRunner;
 
   constructor(
     name: string,
     contextProvider: () => Promise<UIContext>,
     options?: ExecutionTaskProgressOptions & { tasks?: ExecutionTaskApply[] },
   ) {
-    this.executor = new Executor(name, contextProvider, options);
+    this.runner = new TaskRunner(name, contextProvider, options);
   }
 
   async append(tasks: ExecutionTaskApply[] | ExecutionTaskApply) {
-    await this.executor.append(tasks);
+    await this.runner.append(tasks);
   }
 
   async appendAndRun(tasks: ExecutionTaskApply[] | ExecutionTaskApply) {
-    return this.executor.appendAndFlush(tasks);
+    return this.runner.appendAndFlush(tasks);
   }
 
   async run() {
-    return this.executor.flush();
+    return this.runner.flush();
   }
 
   isInErrorState() {
-    return this.executor.isInErrorState();
+    return this.runner.isInErrorState();
   }
 
   latestErrorTask() {
-    return this.executor.latestErrorTask();
+    return this.runner.latestErrorTask();
   }
 
   appendErrorPlan(errorMsg: string) {
-    return this.executor.appendErrorPlan(errorMsg);
+    return this.runner.appendErrorPlan(errorMsg);
   }
 
-  getExecutor() {
-    return this.executor;
+  getRunner() {
+    return this.runner;
   }
 
 }

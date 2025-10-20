@@ -1,7 +1,7 @@
 import { ConversationHistory, plan, uiTarsPlanning } from '@/ai-model';
 import type { TMultimodalPrompt, TUserPrompt } from '@/ai-model/common';
 import type { AbstractInterface } from '@/device';
-import type { Executor } from '@/executor';
+import type { TaskRunner } from '@/task-runner';
 import type Insight from '@/insight';
 import type {
   ExecutionTaskApply,
@@ -36,7 +36,7 @@ import { parsePrompt } from './utils';
 interface ExecutionResult<OutputType = any> {
   output: OutputType;
   thought?: string;
-  executor: Executor;
+  runner: TaskRunner;
 }
 
 const debug = getDebug('device-task-executor');
@@ -146,7 +146,7 @@ export class TaskExecutor {
     await session.appendAndRun(task);
 
     return {
-      executor: session.getExecutor(),
+      runner: session.getRunner(),
     };
   }
 
@@ -267,7 +267,7 @@ export class TaskExecutor {
     const { output } = result!;
     return {
       output,
-      executor: session.getExecutor(),
+      runner: session.getRunner(),
     };
   }
 
@@ -301,7 +301,7 @@ export class TaskExecutor {
     const session = this.createExecutionSession(
       taskTitleStr('Action', userPrompt),
     );
-    const executor = session.getExecutor();
+    const runner = session.getRunner();
 
     let replanCount = 0;
     const yamlFlow: MidsceneYamlFlowItem[] = [];
@@ -329,7 +329,7 @@ export class TaskExecutor {
       if (session.isInErrorState()) {
         return {
           output: planResult,
-          executor,
+          runner,
         };
       }
 
@@ -355,7 +355,7 @@ export class TaskExecutor {
       if (session.isInErrorState()) {
         return {
           output: undefined,
-          executor,
+          runner,
         };
       }
 
@@ -372,7 +372,7 @@ export class TaskExecutor {
       output: {
         yamlFlow,
       },
-      executor,
+      runner,
     };
   }
 
@@ -505,7 +505,7 @@ export class TaskExecutor {
     return {
       output,
       thought,
-      executor: session.getExecutor(),
+      runner: session.getRunner(),
     };
   }
 
@@ -537,7 +537,7 @@ export class TaskExecutor {
     const session = this.createExecutionSession(
       taskTitleStr('WaitFor', description),
     );
-    const executor = session.getExecutor();
+    const runner = session.getRunner();
     const { timeoutMs, checkIntervalMs } = opt;
 
     assert(assertion, 'No assertion for waitFor');
@@ -574,7 +574,7 @@ export class TaskExecutor {
       if (result?.output) {
         return {
           output: undefined,
-          executor,
+          runner,
         };
       }
 
