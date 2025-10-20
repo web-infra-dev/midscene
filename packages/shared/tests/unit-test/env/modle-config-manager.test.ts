@@ -431,7 +431,7 @@ describe('ModelConfigManager', () => {
     });
   });
 
-  describe('createOpenAIClient callback', () => {
+  describe('createOpenAIClient factory function', () => {
     it('should inject createOpenAIClient into config when provided in isolated mode', () => {
       const mockCreateClient = vi.fn();
       const modelConfigFn: TModelConfigFn = ({ intent }) => ({
