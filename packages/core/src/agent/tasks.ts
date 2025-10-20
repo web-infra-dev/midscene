@@ -5,22 +5,20 @@ import {
   plan,
   uiTarsPlanning,
 } from '@/ai-model';
-import { Executor } from '@/ai-model/action-executor';
 import type { TMultimodalPrompt, TUserPrompt } from '@/ai-model/common';
 import type { AbstractInterface } from '@/device';
+import { Executor } from '@/executor';
 import type Insight from '@/insight';
 import type {
   AIUsageInfo,
   DetailedLocateParam,
   DumpSubscriber,
   ElementCacheFeature,
-  ExecutionRecorderItem,
   ExecutionTaskActionApply,
   ExecutionTaskApply,
   ExecutionTaskHitBy,
   ExecutionTaskInsightLocateApply,
   ExecutionTaskInsightQueryApply,
-  ExecutionTaskPlanning,
   ExecutionTaskPlanningApply,
   ExecutionTaskProgressOptions,
   ExecutorContext,
@@ -109,43 +107,6 @@ export class TaskExecutor {
     this.conversationHistory = new ConversationHistory();
   }
 
-  private async recordScreenshot(timing: ExecutionRecorderItem['timing']) {
-    const base64 = await this.interface.screenshotBase64();
-    const item: ExecutionRecorderItem = {
-      type: 'screenshot',
-      ts: Date.now(),
-      screenshot: base64,
-      timing,
-    };
-    return item;
-  }
-
-  private prependExecutorWithScreenshot(
-    taskApply: ExecutionTaskApply,
-    appendAfterExecution = false,
-  ): ExecutionTaskApply {
-    const taskWithScreenshot: ExecutionTaskApply = {
-      ...taskApply,
-      executor: async (param, context, ...args) => {
-        const recorder: ExecutionRecorderItem[] = [];
-        const { task } = context;
-        // set the recorder before executor in case of error
-        task.recorder = recorder;
-        const shot = await this.recordScreenshot(`before ${task.type}`);
-        recorder.push(shot);
-
-        const result = await taskApply.executor(param, context, ...args);
-
-        if (appendAfterExecution) {
-          const shot2 = await this.recordScreenshot('after Action');
-          recorder.push(shot2);
-        }
-        return result;
-      },
-    };
-    return taskWithScreenshot;
-  }
-
   public async convertPlanToExecutable(
     plans: PlanningAction[],
     modelConfig: IModelConfig,
@@ -201,19 +162,9 @@ export class TaskExecutor {
             }
           };
           this.insight.onceDumpUpdatedFn = dumpCollector;
-          const shotTime = Date.now();
-
           // Get context through contextRetrieverFn which handles frozen context
-          const uiContext = await this.insight.contextRetrieverFn('locate');
-          task.uiContext = uiContext;
-
-          const recordItem: ExecutionRecorderItem = {
-            type: 'screenshot',
-            ts: shotTime,
-            screenshot: uiContext.screenshotBase64,
-            timing: 'before Insight',
-          };
-          task.recorder = [recordItem];
+          const { uiContext } = taskContext;
+          assert(uiContext, 'uiContext is required for Insight task');
 
           // try matching xpath
           const elementFromXpath =
@@ -470,17 +421,17 @@ export class TaskExecutor {
           subType: planType,
           thought: plan.thought,
           param: plan.param,
-          executor: async (param, context) => {
+          executor: async (param, taskContext) => {
             debug(
               'executing action',
               planType,
               param,
-              `context.element.center: ${context.element?.center}`,
+              `taskContext.element.center: ${taskContext.element?.center}`,
             );
 
             // Get context for actionSpace operations to ensure size info is available
-            const uiContext = await this.insight.contextRetrieverFn('locate');
-            context.task.uiContext = uiContext;
+            const uiContext = taskContext.uiContext;
+            assert(uiContext, 'uiContext is required for Action task');
 
             requiredLocateFields.forEach((field) => {
               assert(
@@ -523,7 +474,7 @@ export class TaskExecutor {
 
             debug('calling action', action.name);
             const actionFn = action.call.bind(this.interface);
-            await actionFn(param, context);
+            await actionFn(param, taskContext);
             debug('called action', action.name);
 
             try {
@@ -554,35 +505,14 @@ export class TaskExecutor {
       }
     }
 
-    const wrappedTasks = tasks.map(
-      (task: ExecutionTaskApply, index: number) => {
-        if (task.type === 'Action') {
-          return this.prependExecutorWithScreenshot(
-            task,
-            index === tasks.length - 1,
-          );
-        }
-        return task;
-      },
-    );
-
     return {
-      tasks: wrappedTasks,
+      tasks,
     };
   }
 
   private async setupPlanningContext(executorContext: ExecutorContext) {
-    const shotTime = Date.now();
-    const uiContext = await this.insight.contextRetrieverFn('locate');
-    const recordItem: ExecutionRecorderItem = {
-      type: 'screenshot',
-      ts: shotTime,
-      screenshot: uiContext.screenshotBase64,
-      timing: 'before Planning',
-    };
-
-    executorContext.task.recorder = [recordItem];
-    (executorContext.task as ExecutionTaskPlanning).uiContext = uiContext;
+    const uiContext = executorContext.uiContext;
+    assert(uiContext, 'uiContext is required for Planning task');
 
     return {
       uiContext,
@@ -590,9 +520,13 @@ export class TaskExecutor {
   }
 
   async loadYamlFlowAsPlanning(userInstruction: string, yamlString: string) {
-    const taskExecutor = new Executor(taskTitleStr('Action', userInstruction), {
-      onTaskStart: this.onTaskStartCallback,
-    });
+    const taskExecutor = new Executor(
+      taskTitleStr('Action', userInstruction),
+      () => Promise.resolve(this.insight.contextRetrieverFn()),
+      {
+        onTaskStart: this.onTaskStartCallback,
+      },
+    );
 
     const task: ExecutionTaskPlanningApply = {
       type: 'Planning',
@@ -741,9 +675,13 @@ export class TaskExecutor {
     plans: PlanningAction[],
     modelConfig: IModelConfig,
   ): Promise<ExecutionResult> {
-    const taskExecutor = new Executor(title, {
-      onTaskStart: this.onTaskStartCallback,
-    });
+    const taskExecutor = new Executor(
+      title,
+      () => Promise.resolve(this.insight.contextRetrieverFn()),
+      {
+        onTaskStart: this.onTaskStartCallback,
+      },
+    );
     const { tasks } = await this.convertPlanToExecutable(plans, modelConfig);
     await taskExecutor.append(tasks);
     const result = await taskExecutor.flush();
@@ -781,9 +719,13 @@ export class TaskExecutor {
   > {
     this.conversationHistory.reset();
 
-    const taskExecutor = new Executor(taskTitleStr('Action', userPrompt), {
-      onTaskStart: this.onTaskStartCallback,
-    });
+    const taskExecutor = new Executor(
+      taskTitleStr('Action', userPrompt),
+      () => Promise.resolve(this.insight.contextRetrieverFn()),
+      {
+        onTaskStart: this.onTaskStartCallback,
+      },
+    );
 
     let replanCount = 0;
     const yamlFlow: MidsceneYamlFlowItem[] = [];
@@ -891,17 +833,8 @@ export class TaskExecutor {
         this.insight.onceDumpUpdatedFn = dumpCollector;
 
         // Get context for query operations
-        const shotTime = Date.now();
-        const uiContext = await this.insight.contextRetrieverFn('extract');
-        task.uiContext = uiContext;
-
-        const recordItem: ExecutionRecorderItem = {
-          type: 'screenshot',
-          ts: shotTime,
-          screenshot: uiContext.screenshotBase64,
-          timing: 'before Extract',
-        };
-        task.recorder = [recordItem];
+        const uiContext = taskContext.uiContext;
+        assert(uiContext, 'uiContext is required for Query task');
 
         const ifTypeRestricted = type !== 'Query';
         let demandInput = demand;
@@ -965,6 +898,7 @@ export class TaskExecutor {
         type,
         typeof demand === 'string' ? demand : JSON.stringify(demand),
       ),
+      () => Promise.resolve(this.insight.contextRetrieverFn()),
       {
         onTaskStart: this.onTaskStartCallback,
       },
@@ -978,7 +912,7 @@ export class TaskExecutor {
       multimodalPrompt,
     );
 
-    await taskExecutor.append(this.prependExecutorWithScreenshot(queryTask));
+    await taskExecutor.append(queryTask);
     const result = await taskExecutor.flush();
 
     if (!result) {
@@ -1012,7 +946,7 @@ export class TaskExecutor {
       [errorPlan],
       modelConfig,
     );
-    await taskExecutor.append(this.prependExecutorWithScreenshot(tasks[0]));
+    await taskExecutor.append(tasks[0]);
     await taskExecutor.flush();
 
     return {
@@ -1035,7 +969,7 @@ export class TaskExecutor {
       modelConfig,
     );
 
-    return this.prependExecutorWithScreenshot(sleepTasks[0]);
+    return sleepTasks[0];
   }
 
   async waitFor(
@@ -1046,9 +980,13 @@ export class TaskExecutor {
     const { textPrompt, multimodalPrompt } = parsePrompt(assertion);
 
     const description = `waitFor: ${textPrompt}`;
-    const taskExecutor = new Executor(taskTitleStr('WaitFor', description), {
-      onTaskStart: this.onTaskStartCallback,
-    });
+    const taskExecutor = new Executor(
+      taskTitleStr('WaitFor', description),
+      () => Promise.resolve(this.insight.contextRetrieverFn()),
+      {
+        onTaskStart: this.onTaskStartCallback,
+      },
+    );
     const { timeoutMs, checkIntervalMs } = opt;
 
     assert(assertion, 'No assertion for waitFor');
@@ -1075,7 +1013,7 @@ export class TaskExecutor {
         multimodalPrompt,
       );
 
-      await taskExecutor.append(this.prependExecutorWithScreenshot(queryTask));
+      await taskExecutor.append(queryTask);
       const result = (await taskExecutor.flush()) as
         | {
             output: boolean;

@@ -50,9 +50,7 @@ export default class Insight<
   ElementType extends BaseElement = BaseElement,
   ContextType extends UIContext<ElementType> = UIContext<ElementType>,
 > {
-  contextRetrieverFn: (
-    action: InsightAction,
-  ) => Promise<ContextType> | ContextType;
+  contextRetrieverFn: () => Promise<ContextType> | ContextType;
 
   aiVendorFn: Exclude<InsightOptions['aiVendorFn'], undefined> =
     callAIWithObjectResponse;
@@ -62,9 +60,7 @@ export default class Insight<
   taskInfo?: Omit<InsightTaskInfo, 'durationMs'>;
 
   constructor(
-    context:
-      | ContextType
-      | ((action: InsightAction) => Promise<ContextType> | ContextType),
+    context: ContextType | (() => Promise<ContextType> | ContextType),
     opt?: InsightOptions,
   ) {
     assert(context, 'context is required for Insight');
@@ -115,7 +111,7 @@ export default class Insight<
       searchAreaPrompt = undefined;
     }
 
-    const context = opt?.context || (await this.contextRetrieverFn('locate'));
+    const context = opt?.context || (await this.contextRetrieverFn());
 
     let searchArea: Rect | undefined = undefined;
     let searchAreaRawResponse: string | undefined = undefined;
@@ -255,7 +251,7 @@ export default class Insight<
     const dumpSubscriber = this.onceDumpUpdatedFn;
     this.onceDumpUpdatedFn = undefined;
 
-    const context = await this.contextRetrieverFn('extract');
+    const context = await this.contextRetrieverFn();
 
     const startTime = Date.now();
 
@@ -320,7 +316,7 @@ export default class Insight<
     },
   ): Promise<Pick<AIDescribeElementResponse, 'description'>> {
     assert(target, 'target is required for insight.describe');
-    const context = await this.contextRetrieverFn('describe');
+    const context = await this.contextRetrieverFn();
     const { screenshotBase64, size } = context;
     assert(screenshotBase64, 'screenshot is required for insight.describe');
     // The result of the "describe" function will be used for positioning, so essentially it is a form of grounding.

@@ -246,8 +246,8 @@ export class Agent<
 
     this.onTaskStartTip = this.opts.onTaskStartTip;
 
-    this.insight = new Insight(async (action: InsightAction) => {
-      return this.getUIContext(action);
+    this.insight = new Insight(async () => {
+      return this.getUIContext();
     });
 
     // Process cache configuration
