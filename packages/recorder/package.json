@@ -1,6 +1,6 @@
 {
   "name": "@midscene/recorder",
-  "version": "0.30.4",
+  "version": "1.0.0",
   "type": "module",
   "exports": {
     ".": {
@@ -9,7 +9,9 @@
     }
   },
   "types": "./dist/types/src/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "rslib build",
     "dev": "rslib build --watch",

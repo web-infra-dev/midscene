@@ -19,7 +19,10 @@
     "evaluate:section-locator": "npx vitest --run tests/llm-section-locator.test.ts",
     "format": "cd ../.. && npm run lint"
   },
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "dependencies": {
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
@@ -42,5 +45,5 @@
     "registry": "https://registry.npmjs.org"
   },
   "license": "MIT",
-  "version": "0.30.4"
+  "version": "1.0.0"
 }
