@@ -183,7 +183,7 @@ web:
 ```yaml
 # 全局 AI agent 配置
 agent:
-  # 在调用 aiAction 时发送给 AI 模型的背景知识，可选
+  # 在调用 aiAct 时发送给 AI 模型的背景知识，可选
   aiActionContext: <string>
 ```
 
@@ -269,12 +269,13 @@ tasks:
       # 自动规划(Auto Planning, .ai)
       # ----------------
 
-      # 执行一个交互，`ai` 是 `aiAction` 的简写方式
+      # 执行一个交互，`ai` 是 `aiAct` 的简写方式
       - ai: <prompt>
-        cacheable: <boolean> # 可选，当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
+        cacheable: <boolean> # 可选，当启用 [缓存功能](./caching.mdx) 时,是否允许缓存当前 API 调用结果。默认值为 True
 
       # 这种用法与 `ai` 相同
-      - aiAction: <prompt>
+      # 注意：在之前版本中也被写作 `aiAction`，当前版本兼容两种写法
+      - aiAct: <prompt>
         cacheable: <boolean> # 可选，当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
 
       # 即时操作(Instant Action, .aiTap, .aiHover, .aiInput, .aiKeyboardPress, .aiScroll)
@@ -320,7 +321,7 @@ tasks:
         cacheable: <boolean> # 可选，当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
 
       # 在报告文件中记录当前截图，并添加描述
-      - logScreenshot: <title> # 可选，截图的标题，如果未提供，则标题为 'untitled'
+      - recordToReport: <title> # 可选，截图的标题，如果未提供，则标题为 'untitled'
         content: <content> # 可选，截图的描述
 
       # 数据提取

@@ -142,7 +142,7 @@ test.describe.skip('memory release', () => {
     }) => {
       const agent = await agentForPage(page);
 
-      await agent.logScreenshot(generateLargeString(100, 'large-report'));
+      await agent.recordToReport(generateLargeString(100, 'large-report'));
       await sleep(5000);
     });
   }

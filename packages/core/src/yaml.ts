@@ -121,8 +121,10 @@ export type MidsceneYamlScriptEnv =
   | MidsceneYamlScriptIOSEnv;
 
 export interface MidsceneYamlFlowItemAIAction {
-  ai?: string; // this is the shortcut for aiAction
+  // defined as aiAction for backward compatibility
   aiAction?: string;
+  ai?: string; // this is the shortcut for aiAct
+  aiAct?: string;
   aiActionProgressTips?: string[];
   cacheable?: boolean;
 }
@@ -179,6 +181,7 @@ export interface MidsceneYamlFlowItemSleep {
 
 export interface MidsceneYamlFlowItemLogScreenshot {
   logScreenshot?: string; // optional, the title of the screenshot
+  recordToReport?: string; // preferred key for record title
   content?: string;
 }
 

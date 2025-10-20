@@ -17,7 +17,7 @@ Midscene 中每个 Agent 都有自己的构造函数。
 - `reportFileName: string`: 报告文件的名称，默认值由 midscene 内部生成。
 - `autoPrintReportMsg: boolean`: 如果为 true，则打印报告消息。默认值为 true。
 - `cacheId: string | undefined`: 如果配置，则使用此 cacheId 保存或匹配缓存。默认值为 undefined，也就是不启用缓存。
-- `actionContext: string`: 调用 `agent.aiAction()` 时，发送给 AI 模型的背景知识，比如 '有 cookie 对话框时先关闭它'，默认值为空。
+- `actionContext: string`: 调用 `agent.aiAct()` 时，发送给 AI 模型的背景知识，比如 '有 cookie 对话框时先关闭它'，默认值为空。
 - `onTaskStartTip: (tip: string) => void | Promise<void>`：可选回调，在每个子任务执行开始前收到一条可读的任务描述提示。默认值为 undefined。
 
 在 Playwright 和 Puppeteer 中，有以下共同的参数：
@@ -42,14 +42,20 @@ Midscene 中每个 Agent 都有自己的构造函数。
 
 :::
 
-### `agent.aiAction()` 或 `.ai()`
+### `agent.aiAct()` 或 `.ai()`
 
 这个方法允许你通过自然语言描述一系列 UI 操作步骤。Midscene 会自动规划这些步骤并执行。
+
+:::info 向后兼容
+
+这个接口在之前版本里也被写为 `aiAction()`，当前的版本兼容两种写法。为了保持代码的一致性，建议使用新的 `aiAct()` 方法。
+
+:::
 
 - 类型
 
 ```typescript
-function aiAction(
+function aiAct(
   prompt: string,
   options?: {
     cacheable?: boolean;
@@ -72,7 +78,7 @@ function ai(prompt: string): Promise<void>; // 简写形式
 
 ```typescript
 // 基本用法
-await agent.aiAction('在搜索框中输入 "JavaScript"，然后点击搜索按钮');
+await agent.aiAct('在搜索框中输入 "JavaScript"，然后点击搜索按钮');
 
 // 使用 .ai 简写形式
 await agent.ai(
@@ -80,7 +86,7 @@ await agent.ai(
 );
 
 // 使用 ui-tars 模型时，可以使用更目标驱动的提示词
-await agent.aiAction('发布一条微博，内容为 "Hello World"');
+await agent.aiAct('发布一条微博，内容为 "Hello World"');
 ```
 
 :::tip
@@ -690,7 +696,7 @@ console.log(result);
 
 ### `agent.setAIActionContext()`
 
-设置在调用 `agent.aiAction()` 或 `agent.ai()` 时，发送给 AI 模型的背景知识。这个设置会覆盖之前的设置。
+设置在调用 `agent.aiAct()` 或 `agent.ai()` 时，发送给 AI 模型的背景知识。这个设置会覆盖之前的设置。
 
 对于即时操作类型的 API，比如 `aiTap()`，这个设置不会生效。
 
@@ -737,14 +743,14 @@ const result = await agent.evaluateJavaScript('document.title');
 console.log(result);
 ```
 
-### `agent.logScreenshot()`
+### `agent.recordToReport()`
 
 在报告文件中记录当前截图，并添加描述。
 
 - 类型
 
 ```typescript
-function logScreenshot(title?: string, options?: Object): Promise<void>;
+function recordToReport(title?: string, options?: Object): Promise<void>;
 ```
 
 - 参数：
@@ -760,7 +766,7 @@ function logScreenshot(title?: string, options?: Object): Promise<void>;
 - 示例：
 
 ```typescript
-await agent.logScreenshot('登录页面', {
+await agent.recordToReport('登录页面', {
   content: '用户 A',
 });
 ```
@@ -881,7 +887,7 @@ export MIDSCENE_RUN_DIR=midscene_run # 默认值为当前运行目录下的 mids
 
 ### 自定义重新规划循环限制
 
-设置 `MIDSCENE_REPLANNING_CYCLE_LIMIT` 变量，你可以自定义在执行操作(`aiAction`)时允许的最大重新规划循环次数。
+设置 `MIDSCENE_REPLANNING_CYCLE_LIMIT` 变量，你可以自定义在执行操作(`aiAct`)时允许的最大重新规划循环次数。
 
 ```bash
 export MIDSCENE_REPLANNING_CYCLE_LIMIT=10 # 默认值为 10。当 AI 需要重新规划超过这个限制时，会抛出错误建议将任务拆分为多个步骤
@@ -1170,13 +1176,13 @@ describe('Android 设置自动化', () => {
   });
 
   it('切换 WLAN', async () => {
-    await agent.aiAction('找到并进入 WLAN 设置');
-    await agent.aiAction('切换 WLAN 状态一次');
+    await agent.aiAct('找到并进入 WLAN 设置');
+    await agent.aiAct('切换 WLAN 状态一次');
   });
 
   it('切换蓝牙', async () => {
-    await agent.aiAction('找到并进入蓝牙设置');
-    await agent.aiAction('切换蓝牙状态一次');
+    await agent.aiAct('找到并进入蓝牙设置');
+    await agent.aiAct('切换蓝牙状态一次');
   });
 });
 ```

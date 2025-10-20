@@ -113,9 +113,9 @@ const agent = await agentFromWebDriverAgent();
 await agent.launch('com.apple.MobileSafari');
 
 // Perform AI-powered actions
-await agent.aiAction('tap on the address bar');
-await agent.aiAction('type "https://example.com"');
-await agent.aiAction('tap the go button');
+await agent.aiAct('tap on the address bar');
+await agent.aiAct('type "https://example.com"');
+await agent.aiAct('tap the go button');
 ```
 
 ### Using Custom WebDriverAgent Configuration
@@ -132,7 +132,7 @@ const agent = await agentFromWebDriverAgent({
 
 // Launch app and interact
 await agent.launch('com.yourapp.bundleid');
-await agent.aiAction('tap the login button');
+await agent.aiAct('tap the login button');
 ```
 
 ## API Reference
@@ -180,7 +180,7 @@ import { IOSAgent, agentFromWebDriverAgent } from '@midscene/ios';
 const agent = await agentFromWebDriverAgent();
 
 // AI actions
-await agent.aiAction('tap the settings icon');
+await agent.aiAct('tap the settings icon');
 await agent.aiQuery('what is the current battery level?');
 await agent.aiWaitFor('the page is loaded');
 
@@ -244,7 +244,7 @@ export MIDSCENE_IOS_SIMULATOR_UDID=your-simulator-udid
 - `hideKeyboard()` - Dismiss keyboard
 
 ### AI-Powered Actions
-- `aiAction(instruction)` - Perform action based on natural language
+- `aiAct(instruction)` - Perform action based on natural language
 - `aiQuery(question)` - Query UI state with natural language
 - `aiWaitFor(condition)` - Wait for condition to be met
 
@@ -277,11 +277,11 @@ describe('iOS App Test', () => {
     await agent.launch('com.yourcompany.yourapp');
     
     // AI-powered login flow
-    await agent.aiAction('tap on email field');
-    await agent.aiAction('type "user@example.com"');
-    await agent.aiAction('tap on password field');
-    await agent.aiAction('type "password123"');
-    await agent.aiAction('tap the login button');
+    await agent.aiAct('tap on email field');
+    await agent.aiAct('type "user@example.com"');
+    await agent.aiAct('tap on password field');
+    await agent.aiAct('type "password123"');
+    await agent.aiAct('tap the login button');
     
     // Verify successful login
     await agent.aiWaitFor('dashboard is visible');
