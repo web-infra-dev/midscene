@@ -129,7 +129,7 @@ describe('PageAgent RightClick', () => {
     ];
 
     const mockExecutorResult = {
-      executor: {
+      runner: {
         dump: () => ({ name: 'test', tasks: [] }),
         isInErrorState: () => false,
       },
@@ -274,9 +274,9 @@ describe('PageAgent aiWaitFor with doNotThrowError', () => {
   });
 
   it('should call waitFor with doNotThrowError option in createTypeQueryTask', async () => {
-    // Mock the waitFor method to return a successful executor
+    // Mock the waitFor method to return a successful runner
     const mockExecutorResult = {
-      executor: {
+      runner: {
         dump: () => ({ name: 'waitFor test', tasks: [] }),
         isInErrorState: () => false,
         latestErrorTask: () => null,
@@ -303,9 +303,9 @@ describe('PageAgent aiWaitFor with doNotThrowError', () => {
   });
 
   it('should handle executor error state and still generate report', async () => {
-    // Mock the waitFor method to return an executor in error state
+    // Mock the waitFor method to return a runner in error state
     const mockExecutorResult = {
-      executor: {
+      runner: {
         dump: () => ({ name: 'waitFor test', tasks: [] }),
         isInErrorState: () => true,
         latestErrorTask: () => ({
@@ -328,7 +328,7 @@ describe('PageAgent aiWaitFor with doNotThrowError', () => {
 
   it('should use default timeout and checkInterval values', async () => {
     const mockExecutorResult = {
-      executor: {
+      runner: {
         dump: () => ({ name: 'waitFor test', tasks: [] }),
         isInErrorState: () => false,
         latestErrorTask: () => null,
@@ -353,7 +353,7 @@ describe('PageAgent aiWaitFor with doNotThrowError', () => {
 
   it('should pass through custom timeout and checkInterval values', async () => {
     const mockExecutorResult = {
-      executor: {
+      runner: {
         dump: () => ({ name: 'waitFor test', tasks: [] }),
         isInErrorState: () => false,
         latestErrorTask: () => null,
@@ -383,7 +383,7 @@ describe('PageAgent aiWaitFor with doNotThrowError', () => {
 
   it('should call afterTaskRunning with doNotThrowError=true', async () => {
     const mockExecutorResult = {
-      executor: {
+      runner: {
         dump: () => ({ name: 'waitFor test', tasks: [] }),
         isInErrorState: () => false,
         latestErrorTask: () => null,
@@ -400,7 +400,7 @@ describe('PageAgent aiWaitFor with doNotThrowError', () => {
 
     // Verify that afterTaskRunning was called with doNotThrowError=true
     expect(afterTaskRunningSpy).toHaveBeenCalledWith(
-      mockExecutorResult.executor,
+      mockExecutorResult.runner,
       true,
     );
   });

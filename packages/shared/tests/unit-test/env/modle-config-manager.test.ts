@@ -318,6 +318,9 @@ describe('ModelConfigManager', () => {
     });
 
     it('should throw error when planning has no vlMode in normal mode', () => {
+      // Set default env vars needed for calcModelConfigMapBaseOnEnv
+      vi.stubEnv(OPENAI_API_KEY, 'default-test-key');
+
       vi.stubEnv(MIDSCENE_PLANNING_MODEL_NAME, 'gpt-4');
       vi.stubEnv(MIDSCENE_PLANNING_OPENAI_API_KEY, 'test-key');
       vi.stubEnv(
@@ -335,6 +338,9 @@ describe('ModelConfigManager', () => {
     });
 
     it('should succeed when planning has valid vlMode in normal mode', () => {
+      // Set default env vars needed for calcModelConfigMapBaseOnEnv
+      vi.stubEnv(OPENAI_API_KEY, 'default-test-key');
+
       vi.stubEnv(MIDSCENE_PLANNING_MODEL_NAME, 'qwen-vl-plus');
       vi.stubEnv(MIDSCENE_PLANNING_OPENAI_API_KEY, 'test-key');
       vi.stubEnv(
