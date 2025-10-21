@@ -19,9 +19,9 @@
     "@midscene/web": "workspace:*",
 
     "@rsbuild/core": "^1.5.17",
-    "@rsbuild/plugin-less": "^1.2.4",
-    "@rsbuild/plugin-react": "^1.3.1",
-    "@rsbuild/plugin-type-check": "1.2.3",
+    "@rsbuild/plugin-less": "^1.5.0",
+    "@rsbuild/plugin-react": "^1.4.1",
+    "@rsbuild/plugin-type-check": "1.2.4",
     "@types/chrome": "0.0.279",
     "antd": "^5.21.6",
     "pixi-filters": "6.0.5",
@@ -32,8 +32,8 @@
     "zustand": "4.5.2"
   },
   "devDependencies": {
-    "@rsbuild/plugin-node-polyfill": "1.3.0",
-    "@rsbuild/plugin-svgr": "^1.1.1",
+    "@rsbuild/plugin-node-polyfill": "1.4.2",
+    "@rsbuild/plugin-svgr": "^1.2.2",
     "@rsdoctor/rspack-plugin": "1.0.2",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.1",

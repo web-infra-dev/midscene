@@ -16,10 +16,10 @@
     "@midscene/recorder": "workspace:*"
   },
   "devDependencies": {
-    "@rsbuild/plugin-node-polyfill": "1.3.0",
-    "@rsbuild/plugin-type-check": "1.2.3",
+    "@rsbuild/plugin-node-polyfill": "1.4.2",
+    "@rsbuild/plugin-type-check": "1.2.4",
     "@rsbuild/core": "^1.5.17",
-    "@rsbuild/plugin-react": "^1.3.1",
+    "@rsbuild/plugin-react": "^1.4.1",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.1",
     "typescript": "^5.8.3"
