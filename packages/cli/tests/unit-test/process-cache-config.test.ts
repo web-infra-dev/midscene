@@ -68,11 +68,7 @@ describe('processCacheConfig in CLI', () => {
         true,
       );
 
-      const result = processCacheConfig(
-        undefined,
-        'fallback-id',
-        'legacy-cache-id',
-      );
+      const result = processCacheConfig(undefined, 'legacy-cache-id');
 
       expect(globalConfigManager.getEnvConfigInBoolean).toHaveBeenCalledWith(
         'MIDSCENE_CACHE',
@@ -87,11 +83,7 @@ describe('processCacheConfig in CLI', () => {
         false,
       );
 
-      const result = processCacheConfig(
-        undefined,
-        'fallback-id',
-        'legacy-cache-id',
-      );
+      const result = processCacheConfig(undefined, 'legacy-cache-id');
 
       expect(globalConfigManager.getEnvConfigInBoolean).toHaveBeenCalledWith(
         'MIDSCENE_CACHE',
@@ -105,11 +97,7 @@ describe('processCacheConfig in CLI', () => {
       );
 
       const cacheConfig: Cache = { id: 'new-cache-id', strategy: 'read-write' };
-      const result = processCacheConfig(
-        cacheConfig,
-        'fallback-id',
-        'legacy-cache-id',
-      );
+      const result = processCacheConfig(cacheConfig, 'legacy-cache-id');
 
       expect(globalConfigManager.getEnvConfigInBoolean).not.toHaveBeenCalled();
       expect(result).toEqual({
@@ -124,11 +112,7 @@ describe('processCacheConfig in CLI', () => {
       );
 
       const cacheConfig: Cache = { id: 'new-cache-id', strategy: 'read-write' };
-      const result = processCacheConfig(
-        cacheConfig,
-        'fallback-id',
-        'legacy-cache-id',
-      );
+      const result = processCacheConfig(cacheConfig, 'legacy-cache-id');
 
       expect(globalConfigManager.getEnvConfigInBoolean).not.toHaveBeenCalled();
       expect(result).toEqual({
@@ -233,11 +217,7 @@ describe('processCacheConfig in CLI', () => {
       );
 
       // Simulate old-style cache configuration
-      const result = processCacheConfig(
-        undefined,
-        'fallback-id',
-        'my-legacy-cache',
-      );
+      const result = processCacheConfig(undefined, 'my-legacy-cache');
 
       expect(result).toEqual({
         id: 'my-legacy-cache',
@@ -249,11 +229,7 @@ describe('processCacheConfig in CLI', () => {
         false,
       );
 
-      const result = processCacheConfig(
-        undefined,
-        'fallback-id',
-        'my-legacy-cache',
-      );
+      const result = processCacheConfig(undefined, 'my-legacy-cache');
 
       expect(result).toBeUndefined();
     });

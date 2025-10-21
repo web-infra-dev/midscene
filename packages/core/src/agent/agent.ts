@@ -1219,8 +1219,7 @@ export class Agent<
     // Use the unified utils function to process cache configuration
     const cacheConfig = processCacheConfig(
       opts.cache,
-      opts.testId || 'default',
-      opts.cacheId,
+      opts.cacheId || opts.testId || 'default',
     );
 
     if (!cacheConfig) {

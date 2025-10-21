@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { createYamlPlayer, launchServer } from '@/create-yaml-player';
 import type { MidsceneYamlScript, MidsceneYamlScriptEnv } from '@midscene/core';
+import { processCacheConfig } from '@midscene/core/utils';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 // Mock the global config manager to control environment variables
@@ -38,6 +39,7 @@ vi.mock('@midscene/web/puppeteer-agent-launcher', () => ({
 }));
 
 import { ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
+import { globalConfigManager } from '@midscene/shared/env';
 import { createServer } from 'http-server';
 
 describe('create-yaml-player', () => {
@@ -50,7 +52,7 @@ describe('create-yaml-player', () => {
   describe('launchServer', () => {
     test('should launch HTTP server and resolve with server instance', async () => {
       const mockServer = {
-        listen: vi.fn((port, host, callback) => {
+        listen: vi.fn((_port, _host, callback) => {
           // Simulate async server start
           setTimeout(() => callback(), 0);
         }),
@@ -231,6 +233,115 @@ describe('create-yaml-player', () => {
       const result = await createYamlPlayer(mockFilePath, mockScript, options);
 
       expect(result).toBe(mockPlayer);
+    });
+  });
+
+  describe('Cache configuration - Legacy compatibility mode', () => {
+    test('should enable cache when MIDSCENE_CACHE env var is true (legacy mode)', () => {
+      // Mock environment variable to enable legacy cache mode
+      vi.mocked(globalConfigManager.getEnvConfigInBoolean).mockReturnValue(
+        true,
+      );
+
+      // Process cache config as create-yaml-player would do internally
+      // When agent.cache is undefined, it should check the environment variable
+      const fileName = 'my-test-script';
+      const result = processCacheConfig(undefined, fileName);
+
+      // Verify that environment variable was checked
+      expect(globalConfigManager.getEnvConfigInBoolean).toHaveBeenCalledWith(
+        'MIDSCENE_CACHE',
+      );
+
+      // Verify that cache is enabled with the file name as ID
+      expect(result).toEqual({
+        id: fileName,
+      });
+    });
+
+    test('should not enable cache when MIDSCENE_CACHE env var is false (legacy mode)', () => {
+      // Mock environment variable to disable legacy cache mode
+      vi.mocked(globalConfigManager.getEnvConfigInBoolean).mockReturnValue(
+        false,
+      );
+
+      // Process cache config as create-yaml-player would do internally
+      const fileName = 'my-test-script';
+      const result = processCacheConfig(undefined, fileName);
+
+      // Verify that environment variable was checked
+      expect(globalConfigManager.getEnvConfigInBoolean).toHaveBeenCalledWith(
+        'MIDSCENE_CACHE',
+      );
+
+      // Verify that cache is disabled (undefined)
+      expect(result).toBeUndefined();
+    });
+
+    test('should prefer explicit cache config over legacy mode', () => {
+      // Mock environment variable to enable legacy cache mode
+      vi.mocked(globalConfigManager.getEnvConfigInBoolean).mockReturnValue(
+        true,
+      );
+
+      // Process cache config with explicit cache configuration
+      const fileName = 'my-test-script';
+      const explicitCache = {
+        id: 'explicit-cache-id',
+        strategy: 'read-only' as const,
+      };
+      const result = processCacheConfig(explicitCache, fileName);
+
+      // Verify that environment variable was NOT checked (new config takes precedence)
+      expect(globalConfigManager.getEnvConfigInBoolean).not.toHaveBeenCalled();
+
+      // Verify that explicit cache config is used
+      expect(result).toEqual({
+        id: 'explicit-cache-id',
+        strategy: 'read-only',
+      });
+    });
+
+    test('should use fileName as cache ID when cache is true', () => {
+      // When cache is explicitly set to true in YAML script
+      const fileName = 'my-test-script';
+      const result = processCacheConfig(true, fileName);
+
+      // Environment variable should not be checked for explicit cache: true
+      expect(globalConfigManager.getEnvConfigInBoolean).not.toHaveBeenCalled();
+
+      // Verify that fileName is used as the cache ID
+      expect(result).toEqual({
+        id: fileName,
+      });
+    });
+
+    test('should use fileName as fallback when cache object has no ID', () => {
+      // When cache object is provided but without an ID
+      const fileName = 'my-test-script';
+      const cacheConfig = { strategy: 'write-only' as const };
+      const result = processCacheConfig(cacheConfig as any, fileName);
+
+      // Environment variable should not be checked for explicit cache object
+      expect(globalConfigManager.getEnvConfigInBoolean).not.toHaveBeenCalled();
+
+      // Verify that fileName is used as fallback ID
+      expect(result).toEqual({
+        id: fileName,
+        strategy: 'write-only',
+      });
+    });
+
+    test('should disable cache when cache is explicitly false', () => {
+      // When cache is explicitly set to false in YAML script
+      const fileName = 'my-test-script';
+      const result = processCacheConfig(false, fileName);
+
+      // Environment variable should not be checked for explicit cache: false
+      expect(globalConfigManager.getEnvConfigInBoolean).not.toHaveBeenCalled();
+
+      // Verify that cache is disabled
+      expect(result).toBeUndefined();
     });
   });
 });
