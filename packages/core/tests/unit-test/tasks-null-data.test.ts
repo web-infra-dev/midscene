@@ -30,13 +30,14 @@ describe('TaskExecutor - Null Data Handling', () => {
         from: 'legacy-env',
       };
 
-      const taskExecutor = new TaskExecutor(mockInsight, {} as any);
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {});
 
       // Create a WaitFor task
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'WaitFor',
         'Element is visible',
-        mockModelConfig, {},
+        mockModelConfig,
+        {},
         {}, // InsightExtractOption
       );
 
@@ -69,12 +70,13 @@ describe('TaskExecutor - Null Data Handling', () => {
         from: 'legacy-env',
       };
 
-      const taskExecutor = new TaskExecutor(mockInsight, {} as any);
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {});
 
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'WaitFor',
         'Button is enabled',
-        mockModelConfig, {},
+        mockModelConfig,
+        {},
       );
 
       const result = await queryTask.executor({}, { task: queryTask });
@@ -104,12 +106,13 @@ describe('TaskExecutor - Null Data Handling', () => {
         from: 'legacy-env',
       };
 
-      const taskExecutor = new TaskExecutor(mockInsight, {} as any);
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {});
 
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'Assert',
         'Page title is correct',
-        mockModelConfig, {},
+        mockModelConfig,
+        {},
       );
 
       const result = await queryTask.executor({}, { task: queryTask });
@@ -142,12 +145,13 @@ describe('TaskExecutor - Null Data Handling', () => {
         from: 'legacy-env',
       };
 
-      const taskExecutor = new TaskExecutor(mockInsight, {} as any);
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {});
 
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'WaitFor',
         'Element is visible',
-        mockModelConfig, {},
+        mockModelConfig,
+        {},
       );
 
       const result = await queryTask.executor({}, { task: queryTask });
@@ -177,12 +181,13 @@ describe('TaskExecutor - Null Data Handling', () => {
         from: 'legacy-env',
       };
 
-      const taskExecutor = new TaskExecutor(mockInsight, {} as any);
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {});
 
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'WaitFor',
         'Element is visible',
-        mockModelConfig, {},
+        mockModelConfig,
+        {},
       );
 
       const result = await queryTask.executor({}, { task: queryTask });
@@ -212,12 +217,13 @@ describe('TaskExecutor - Null Data Handling', () => {
         from: 'legacy-env',
       };
 
-      const taskExecutor = new TaskExecutor(mockInsight, {} as any);
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {});
 
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'Query',
         { question: 'What is the title?' },
-        mockModelConfig, {},
+        mockModelConfig,
+        {},
       );
 
       const result = await queryTask.executor({}, { task: queryTask });
@@ -247,12 +253,13 @@ describe('TaskExecutor - Null Data Handling', () => {
         from: 'legacy-env',
       };
 
-      const taskExecutor = new TaskExecutor(mockInsight, {} as any);
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {});
 
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'String',
         'Extract the username',
-        mockModelConfig, {},
+        mockModelConfig,
+        {},
       );
 
       const result = await queryTask.executor({}, { task: queryTask });
@@ -281,12 +288,13 @@ describe('TaskExecutor - Null Data Handling', () => {
         from: 'legacy-env',
       };
 
-      const taskExecutor = new TaskExecutor(mockInsight, {} as any);
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {});
 
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'Number',
         'Extract the price',
-        mockModelConfig, {},
+        mockModelConfig,
+        {},
       );
 
       const result = await queryTask.executor({}, { task: queryTask });
