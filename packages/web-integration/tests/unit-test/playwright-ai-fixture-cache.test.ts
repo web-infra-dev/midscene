@@ -1,8 +1,7 @@
-import { PlaywrightAiFixture } from '@/playwright/ai-fixture';
-import { processCacheConfig } from '@midscene/core/utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock the global config manager to control environment variables
+// IMPORTANT: This must be before any imports that might use @midscene/shared/env
 vi.mock('@midscene/shared/env', () => ({
   MIDSCENE_CACHE: 'MIDSCENE_CACHE',
   globalConfigManager: {
@@ -10,6 +9,8 @@ vi.mock('@midscene/shared/env', () => ({
   },
 }));
 
+import { PlaywrightAiFixture } from '@/playwright/ai-fixture';
+import { processCacheConfig } from '@midscene/core/utils';
 import { globalConfigManager } from '@midscene/shared/env';
 
 describe('PlaywrightAiFixture Cache Configuration', () => {

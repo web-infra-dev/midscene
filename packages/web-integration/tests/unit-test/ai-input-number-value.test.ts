@@ -107,7 +107,7 @@ describe('PageAgent aiInput with number value', () => {
     ];
 
     const mockExecutorResult = {
-      executor: {
+      runner: {
         dump: () => ({ name: 'test', tasks: [] }),
         isInErrorState: () => false,
       },
@@ -147,7 +147,7 @@ describe('PageAgent aiInput with number value', () => {
     ];
 
     const mockExecutorResult = {
-      executor: {
+      runner: {
         dump: () => ({ name: 'test', tasks: [] }),
         isInErrorState: () => false,
       },
@@ -164,7 +164,7 @@ describe('PageAgent aiInput with number value', () => {
 
   it('should accept integer zero for aiInput', async () => {
     const mockExecutorResult = {
-      executor: {
+      runner: {
         dump: () => ({ name: 'test', tasks: [] }),
         isInErrorState: () => false,
       },
@@ -181,7 +181,7 @@ describe('PageAgent aiInput with number value', () => {
 
   it('should accept negative number for aiInput', async () => {
     const mockExecutorResult = {
-      executor: {
+      runner: {
         dump: () => ({ name: 'test', tasks: [] }),
         isInErrorState: () => false,
       },
@@ -198,7 +198,7 @@ describe('PageAgent aiInput with number value', () => {
 
   it('should accept decimal number for aiInput', async () => {
     const mockExecutorResult = {
-      executor: {
+      runner: {
         dump: () => ({ name: 'test', tasks: [] }),
         isInErrorState: () => false,
       },
@@ -215,7 +215,7 @@ describe('PageAgent aiInput with number value', () => {
 
   it('should use legacy aiInput(value, locatePrompt) signature with number', async () => {
     const mockExecutorResult = {
-      executor: {
+      runner: {
         dump: () => ({ name: 'test', tasks: [] }),
         isInErrorState: () => false,
       },

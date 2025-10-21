@@ -565,8 +565,12 @@ export class Agent<
 
     const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
 
+    // Convert value to string to ensure consistency
+    const stringValue = typeof value === 'number' ? String(value) : value;
+
     return this.callActionInActionSpace('Input', {
       ...(opt || {}),
+      value: stringValue,
       locate: detailedLocateParam,
     });
   }
