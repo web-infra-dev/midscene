@@ -30,7 +30,8 @@
       "**/dump.json",
       "**/dump-with-invisible.json",
       "**/dump-for-utils-test.json",
-      "**/.rslib"
+      "**/.rslib",
+      "apps/chrome-extension/web-ext-profile/**"
     ]
   },
   "javascript": {

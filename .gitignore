@@ -112,6 +112,7 @@ midscene_run/dump
 *.ignore.png
 extension_output
 .cursor
+apps/chrome-extension/web-ext-profile
 packages/android-playground/static/
 packages/ios-playground/static/
 packages/ios/static/
