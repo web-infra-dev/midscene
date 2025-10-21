@@ -18,7 +18,7 @@
     "@midscene/visualizer": "workspace:*",
     "@midscene/web": "workspace:*",
 
-    "@rsbuild/core": "^1.3.22",
+    "@rsbuild/core": "^1.5.17",
     "@rsbuild/plugin-less": "^1.2.4",
     "@rsbuild/plugin-react": "^1.3.1",
     "@rsbuild/plugin-type-check": "1.2.3",

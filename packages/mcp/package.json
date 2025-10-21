@@ -5,8 +5,8 @@
   "files": ["dist"],
   "scripts": {
     "build": "rslib build",
-    "dev": "rslib build --watch",
-    "build:watch": "npm run dev",
+    "dev": "npm run build:watch",
+    "build:watch": "rslib build --watch",
     "test": "vitest run",
     "inspect": "node scripts/inspect.mjs"
   },

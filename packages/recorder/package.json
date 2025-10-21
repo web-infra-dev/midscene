@@ -12,8 +12,8 @@
   "files": ["dist"],
   "scripts": {
     "build": "rslib build",
-    "dev": "rslib build --watch",
-    "build:watch": "npm run dev"
+    "dev": "npm run build:watch",
+    "build:watch": "rslib build --watch"
   },
   "devDependencies": {
     "@rsbuild/plugin-react": "^1.3.1",
