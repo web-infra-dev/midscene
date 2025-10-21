@@ -102,11 +102,12 @@ export class TaskExecutor {
   public async convertPlanToExecutable(
     plans: PlanningAction[],
     modelConfig: IModelConfig,
-    cacheable?: boolean,
+    options?: {
+      cacheable?: boolean;
+      subTask?: boolean;
+    },
   ) {
-    return this.taskBuilder.build(plans, modelConfig, {
-      cacheable,
-    });
+    return this.taskBuilder.build(plans, modelConfig, options);
   }
 
   async loadYamlFlowAsPlanning(userInstruction: string, yamlString: string) {
@@ -336,7 +337,10 @@ export class TaskExecutor {
         executables = await this.convertPlanToExecutable(
           plans,
           modelConfig,
-          cacheable,
+          {
+            cacheable,
+            subTask: true,
+          },
         );
         await session.appendAndRun(executables.tasks);
       } catch (error) {

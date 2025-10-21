@@ -12,7 +12,6 @@ import type {
   LocateResultElement,
   LocateResultWithDump,
   PlanningAction,
-  PlanningActionParamError,
   PlanningActionParamSleep,
   PlanningLocateParam,
   Rect,
@@ -46,12 +45,14 @@ interface TaskBuilderDeps {
 
 interface BuildOptions {
   cacheable?: boolean;
+  subTask?: boolean;
 }
 
 interface PlanBuildContext {
   tasks: ExecutionTaskApply[];
   modelConfig: IModelConfig;
   cacheable?: boolean;
+  subTask: boolean;
 }
 
 export class TaskBuilder {
@@ -79,6 +80,7 @@ export class TaskBuilder {
       tasks,
       modelConfig,
       cacheable,
+      subTask: !!options?.subTask,
     };
 
     type PlanHandler = (plan: PlanningAction) => Promise<void> | void;
@@ -126,6 +128,7 @@ export class TaskBuilder {
       param: null,
       thought: plan.thought,
       locate: plan.locate,
+      subTask: context.subTask || undefined,
       executor: async () => {},
     };
     context.tasks.push(taskActionFinished);
@@ -135,12 +138,14 @@ export class TaskBuilder {
     plan: PlanningAction<PlanningActionParamSleep>,
     context: PlanBuildContext,
   ): void {
-    context.tasks.push(
-      this.createSleepTask(plan.param, {
-        thought: plan.thought,
-        locate: plan.locate,
-      }),
-    );
+    const sleepTask = this.createSleepTask(plan.param, {
+      thought: plan.thought,
+      locate: plan.locate,
+    });
+    if (context.subTask) {
+      sleepTask.subTask = true;
+    }
+    context.tasks.push(sleepTask);
   }
 
   public createSleepTask(
@@ -230,6 +235,7 @@ export class TaskBuilder {
       subType: planType,
       thought: plan.thought,
       param: plan.param,
+      subTask: context.subTask || undefined,
       executor: async (param, taskContext) => {
         debug(
           'executing action',
@@ -337,6 +343,7 @@ export class TaskBuilder {
     const taskFind: ExecutionTaskInsightLocateApply = {
       type: 'Insight',
       subType: 'Locate',
+      subTask: context.subTask || undefined,
       param: locateParam,
       thought: plan.thought,
       executor: async (param, taskContext) => {
@@ -424,7 +431,6 @@ export class TaskBuilder {
             throw error;
           }
         }
-        const aiLocateHitFlag = !!elementFromAiLocate;
 
         const element =
           elementFromXpath ||
@@ -519,7 +525,6 @@ export class TaskBuilder {
           output: {
             element,
           },
-          uiContext,
           hitBy,
         };
       },

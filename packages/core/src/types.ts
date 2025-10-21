@@ -359,6 +359,7 @@ export interface ExecutionTaskApply<
 > {
   type: Type;
   subType?: string;
+  subTask?: boolean;
   param?: TaskParam;
   thought?: string;
   locate?: PlanningLocateParam | null;
