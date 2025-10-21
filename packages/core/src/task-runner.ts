@@ -87,6 +87,21 @@ export class TaskRunner {
     };
   }
 
+  private findPreviousNonSubTaskUIContext(
+    currentIndex: number,
+  ): UIContext | undefined {
+    for (let i = currentIndex - 1; i >= 0; i--) {
+      const candidate = this.tasks[i];
+      if (!candidate || candidate.subTask) {
+        continue;
+      }
+      if (candidate.uiContext) {
+        return candidate.uiContext;
+      }
+    }
+    return undefined;
+  }
+
   async append(task: ExecutionTaskApply[] | ExecutionTaskApply): Promise<void> {
     assert(
       this.status !== 'error',
@@ -161,7 +176,16 @@ export class TaskRunner {
         assert(executor, `executor is required for task type: ${task.type}`);
 
         let returnValue;
-        const uiContext = await this.uiContextBuilder();
+        let uiContext: UIContext | undefined;
+        if (task.subTask) {
+          uiContext = this.findPreviousNonSubTaskUIContext(taskIndex);
+          assert(
+            uiContext,
+            'subTask requires uiContext from previous non-subTask task',
+          );
+        } else {
+          uiContext = await this.uiContextBuilder();
+        }
         task.uiContext = uiContext;
         const executorContext: ExecutorContext = {
           task,

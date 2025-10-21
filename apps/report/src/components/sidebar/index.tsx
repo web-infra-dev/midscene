@@ -69,7 +69,7 @@ const SideItem = (props: {
     </Tag>
   ) : null;
 
-  if (task.timing?.cost) {
+  if (typeof task.timing?.cost === 'number') {
     statusText = timeCostStrElement(task.timing.cost);
   }
 

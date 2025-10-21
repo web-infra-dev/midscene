@@ -199,5 +199,79 @@ describe(
         await runner.append(insightFindTask());
       }).rejects.toThrowError();
     });
+
+    it('subTask - reuse previous uiContext', async () => {
+      const baseUIContext = (id: string) =>
+        ({
+          screenshotBase64: id,
+          tree: { node: null, children: [] },
+          size: { width: 0, height: 0 },
+        }) as unknown as UIContext;
+
+      const firstContext = baseUIContext('first');
+      const screenshotContext = baseUIContext('screenshot');
+      const uiContextBuilder = vi
+        .fn<[], Promise<UIContext>>()
+        .mockResolvedValueOnce(firstContext)
+        .mockResolvedValueOnce(screenshotContext);
+
+      const recordedContexts: UIContext[] = [];
+
+      const runner = new TaskRunner('sub-task-test', uiContextBuilder, {
+        tasks: [
+          {
+            type: 'Action',
+            executor: async (_, context) => {
+              recordedContexts.push(context.uiContext!);
+            },
+          },
+          {
+            type: 'Action',
+            subTask: true,
+            executor: async (_, context) => {
+              recordedContexts.push(context.uiContext!);
+            },
+          },
+        ],
+      });
+
+      await runner.flush();
+
+      expect(recordedContexts).toHaveLength(2);
+      expect(recordedContexts[0]).toBe(firstContext);
+      expect(recordedContexts[1]).toBe(firstContext);
+      expect(runner.tasks[0].uiContext).toBe(firstContext);
+      expect(runner.tasks[1].uiContext).toBe(firstContext);
+      expect(uiContextBuilder).toHaveBeenCalledTimes(2);
+    });
+
+    it('subTask - throws when previous uiContext missing', async () => {
+      const uiContextBuilder = vi
+        .fn<[], Promise<UIContext>>()
+        .mockResolvedValue({
+          screenshotBase64: '',
+          tree: { node: null, children: [] },
+          size: { width: 0, height: 0 },
+        } as unknown as UIContext);
+
+      const runner = new TaskRunner('sub-task-error', uiContextBuilder, {
+        tasks: [
+          {
+            type: 'Action',
+            subTask: true,
+            executor: vi.fn(),
+          },
+        ],
+      });
+
+      await runner.flush();
+      expect(runner.status).toBe('error');
+      expect(runner.tasks[0].errorMessage).toBe(
+        'subTask requires uiContext from previous non-subTask task',
+      );
+      await expect(async () => {
+        await runner.flush();
+      }).rejects.toThrowError('task runner is in error state');
+    });
   },
 );
