@@ -86,15 +86,13 @@ const main = async () => {
 
   try {
     let wdaConfig = { host: 'localhost', port: DEFAULT_WDA_PORT };
-    let device: IOSDevice;
-    let agent: IOSAgent;
     let connected = false;
 
     while (!connected) {
       try {
         // Create device with WebDriverAgent configuration
         // deviceId will be auto-detected from WebDriverAgent connection
-        device = new IOSDevice({
+        const device = new IOSDevice({
           wdaHost: wdaConfig.host,
           wdaPort: wdaConfig.port,
         });
@@ -105,7 +103,6 @@ const main = async () => {
         );
         await device.connect();
 
-        agent = new IOSAgent(device);
         connected = true;
 
         // Get real device info after connection
@@ -165,7 +162,25 @@ const main = async () => {
       }
     }
 
-    const playgroundServer = new PlaygroundServer(device!, agent!, staticDir);
+    // Create factory functions with explicit types
+    const deviceFactory = async (): Promise<IOSDevice> => {
+      const newDevice = new IOSDevice({
+        wdaHost: wdaConfig.host,
+        wdaPort: wdaConfig.port,
+      });
+      await newDevice.connect();
+      return newDevice;
+    };
+
+    const agentFactory = (device: IOSDevice): IOSAgent => new IOSAgent(device);
+
+    // Use type assertion to work around TypeScript's strict function type checking
+    // IOSDevice extends AbstractInterface, so this is safe
+    const playgroundServer = new PlaygroundServer(
+      deviceFactory as any,
+      agentFactory as any,
+      staticDir,
+    );
 
     console.log('🚀 Starting server...');
 

@@ -47,20 +47,47 @@ class PlaygroundServer {
 
   private _initialized = false;
 
+  // Factory functions for recreating page and agent
+  private pageFactory?:
+    | (() => AbstractInterface | Promise<AbstractInterface>)
+    | null;
+  private agentFactory?: ((page: AbstractInterface) => PageAgent) | null;
+
+  // Track current running task
+  private currentTaskId: string | null = null;
+
   constructor(
-    page: AbstractInterface,
-    agent: PageAgent,
+    page:
+      | AbstractInterface
+      | (() => AbstractInterface)
+      | (() => Promise<AbstractInterface>),
+    agent: PageAgent | ((page: AbstractInterface) => PageAgent),
     staticPath = STATIC_PATH,
     id?: string, // Optional override ID
   ) {
     this._app = express();
     this.tmpDir = getTmpDir()!;
-    this.page = page;
-    this.agent = agent;
     this.staticPath = staticPath;
     this.taskProgressTips = {};
     // Use provided ID, or generate random UUID for each startup
     this.id = id || uuid();
+
+    // Support both instance and factory function modes
+    if (typeof page === 'function') {
+      this.pageFactory = page;
+      this.page = null as any; // Will be initialized in launch()
+    } else {
+      this.page = page;
+      this.pageFactory = null;
+    }
+
+    if (typeof agent === 'function') {
+      this.agentFactory = agent;
+      this.agent = null as any; // Will be initialized in launch()
+    } else {
+      this.agent = agent;
+      this.agentFactory = null;
+    }
   }
 
   /**
@@ -140,6 +167,42 @@ class PlaygroundServer {
     console.log(`save context file: ${tmpFile}`);
     writeFileSync(tmpFile, context);
     return tmpFile;
+  }
+
+  /**
+   * Recreate page and agent instances (for cancellation)
+   */
+  private async recreateAgent(): Promise<void> {
+    if (!this.pageFactory || !this.agentFactory) {
+      console.warn(
+        'Cannot recreate agent: factory functions not provided. Agent recreation is only available when using factory mode.',
+      );
+      return;
+    }
+
+    console.log('Recreating agent to cancel current task...');
+
+    // Destroy old instances
+    try {
+      if (this.agent && typeof this.agent.destroy === 'function') {
+        await this.agent.destroy();
+      }
+      if (this.page && typeof this.page.destroy === 'function') {
+        await this.page.destroy();
+      }
+    } catch (error) {
+      console.warn('Failed to destroy old agent/page:', error);
+    }
+
+    // Create new instances
+    try {
+      this.page = await this.pageFactory();
+      this.agent = this.agentFactory(this.page);
+      console.log('Agent recreated successfully');
+    } catch (error) {
+      console.error('Failed to recreate agent:', error);
+      throw error;
+    }
   }
 
   /**
@@ -281,7 +344,17 @@ class PlaygroundServer {
         });
       }
 
+      // Check if another task is running
+      if (this.currentTaskId) {
+        return res.status(409).json({
+          error: 'Another task is already running',
+          currentTaskId: this.currentTaskId,
+        });
+      }
+
+      // Lock this task
       if (requestId) {
+        this.currentTaskId = requestId;
         this.taskProgressTips[requestId] = '';
 
         this.agent.onTaskStartTip = (tip: string) => {
@@ -357,9 +430,13 @@ class PlaygroundServer {
         );
       }
 
-      // Clean up task progress tip after execution completes
+      // Clean up task progress tip and unlock after execution completes
       if (requestId) {
         delete this.taskProgressTips[requestId];
+        // Release the lock
+        if (this.currentTaskId === requestId) {
+          this.currentTaskId = null;
+        }
       }
     });
 
@@ -375,11 +452,27 @@ class PlaygroundServer {
         }
 
         try {
-          // Since we only have one agent, just clear the task progress tip
-          if (this.taskProgressTips[requestId]) {
-            delete this.taskProgressTips[requestId];
+          // Check if this is the current running task
+          if (this.currentTaskId !== requestId) {
+            return res.json({
+              status: 'not_found',
+              message: 'Task not found or already completed',
+            });
           }
-          res.json({ status: 'cancelled' });
+
+          console.log(`Cancelling task: ${requestId}`);
+
+          // Recreate agent to cancel the current task
+          await this.recreateAgent();
+
+          // Clean up
+          delete this.taskProgressTips[requestId];
+          this.currentTaskId = null;
+
+          res.json({
+            status: 'cancelled',
+            message: 'Task cancelled successfully by recreating agent',
+          });
         } catch (error: unknown) {
           const errorMessage =
             error instanceof Error ? error.message : 'Unknown error';
@@ -526,6 +619,14 @@ class PlaygroundServer {
    * Launch the server on specified port
    */
   async launch(port?: number): Promise<PlaygroundServer> {
+    // If using factory mode, initialize page and agent
+    if (this.pageFactory && this.agentFactory) {
+      console.log('Initializing page and agent from factory functions...');
+      this.page = await this.pageFactory();
+      this.agent = this.agentFactory(this.page);
+      console.log('Page and agent initialized successfully');
+    }
+
     // Initialize routes now, after any middleware has been added
     this.initializeApp();
 
