@@ -213,10 +213,18 @@ export class AndroidDevice implements AbstractInterface {
       }),
       defineActionKeyboardPress(async (param) => {
         const key = param.keyName;
-        // For now, if keyName is an array, join with '+' or use first key
-        // Mobile devices typically don't support complex key combinations
-        const keyToPress = Array.isArray(key) ? key.join('+') : key;
-        await this.keyboardPress(keyToPress);
+
+        if (Array.isArray(key)) {
+          // Mobile devices don't support key combinations, use the last key
+          const keyToPress = key[key.length - 1];
+          console.warn(
+            `[Android] Key combinations are not supported. Using last key: "${keyToPress}"`,
+            `Original input:`, key
+          );
+          await this.keyboardPress(keyToPress);
+        } else {
+          await this.keyboardPress(key);
+        }
       }),
       defineAction({
         name: 'AndroidBackButton',
