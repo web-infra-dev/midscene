@@ -430,4 +430,171 @@ describe('ModelConfigManager', () => {
       }
     });
   });
+
+  describe('createOpenAIClient factory function', () => {
+    it('should inject createOpenAIClient into config when provided in isolated mode', () => {
+      const mockCreateClient = vi.fn();
+      const modelConfigFn: TModelConfigFn = ({ intent }) => ({
+        [MIDSCENE_MODEL_NAME]: 'gpt-4',
+        [MIDSCENE_OPENAI_API_KEY]: 'test-key',
+        [MIDSCENE_OPENAI_BASE_URL]: 'https://api.openai.com/v1',
+      });
+
+      const manager = new ModelConfigManager(modelConfigFn, mockCreateClient);
+      const config = manager.getModelConfig('default');
+
+      expect(config.createOpenAIClient).toBe(mockCreateClient);
+    });
+
+    it('should inject createOpenAIClient into config when provided in normal mode', () => {
+      vi.stubEnv(MIDSCENE_MODEL_NAME, 'gpt-4');
+      vi.stubEnv(OPENAI_API_KEY, 'test-key');
+      vi.stubEnv(OPENAI_BASE_URL, 'https://api.openai.com/v1');
+
+      const mockCreateClient = vi.fn();
+      const manager = new ModelConfigManager(undefined, mockCreateClient);
+      manager.registerGlobalConfigManager(new GlobalConfigManager());
+
+      const config = manager.getModelConfig('default');
+
+      expect(config.createOpenAIClient).toBe(mockCreateClient);
+    });
+
+    it('should inject createOpenAIClient into all intent configs in isolated mode', () => {
+      const mockCreateClient = vi.fn();
+      const modelConfigFn: TModelConfigFn = ({ intent }) => {
+        switch (intent) {
+          case 'VQA':
+            return {
+              [MIDSCENE_VQA_MODEL_NAME]: 'gpt-4-vision',
+              [MIDSCENE_VQA_OPENAI_API_KEY]: 'test-vqa-key',
+              [MIDSCENE_VQA_OPENAI_BASE_URL]: 'https://api.openai.com/v1',
+            };
+          case 'planning':
+            return {
+              [MIDSCENE_PLANNING_MODEL_NAME]: 'qwen-vl-plus',
+              [MIDSCENE_PLANNING_OPENAI_API_KEY]: 'test-planning-key',
+              [MIDSCENE_PLANNING_OPENAI_BASE_URL]: 'https://api.openai.com/v1',
+              [MIDSCENE_PLANNING_VL_MODE]: 'qwen-vl' as const,
+            };
+          case 'grounding':
+            return {
+              [MIDSCENE_GROUNDING_MODEL_NAME]: 'gpt-4-vision',
+              [MIDSCENE_GROUNDING_OPENAI_API_KEY]: 'test-grounding-key',
+              [MIDSCENE_GROUNDING_OPENAI_BASE_URL]: 'https://api.openai.com/v1',
+            };
+          case 'default':
+          default:
+            return {
+              [MIDSCENE_MODEL_NAME]: 'gpt-4',
+              [MIDSCENE_OPENAI_API_KEY]: 'test-key',
+              [MIDSCENE_OPENAI_BASE_URL]: 'https://api.openai.com/v1',
+            };
+        }
+      };
+
+      const manager = new ModelConfigManager(modelConfigFn, mockCreateClient);
+
+      const vqaConfig = manager.getModelConfig('VQA');
+      expect(vqaConfig.createOpenAIClient).toBe(mockCreateClient);
+
+      const planningConfig = manager.getModelConfig('planning');
+      expect(planningConfig.createOpenAIClient).toBe(mockCreateClient);
+
+      const groundingConfig = manager.getModelConfig('grounding');
+      expect(groundingConfig.createOpenAIClient).toBe(mockCreateClient);
+
+      const defaultConfig = manager.getModelConfig('default');
+      expect(defaultConfig.createOpenAIClient).toBe(mockCreateClient);
+    });
+
+    it('should inject createOpenAIClient into all intent configs in normal mode', () => {
+      vi.stubEnv(MIDSCENE_VQA_MODEL_NAME, 'gpt-4-vision');
+      vi.stubEnv(MIDSCENE_VQA_OPENAI_API_KEY, 'test-vqa-key');
+      vi.stubEnv(MIDSCENE_VQA_OPENAI_BASE_URL, 'https://api.openai.com/v1');
+
+      vi.stubEnv(MIDSCENE_PLANNING_MODEL_NAME, 'qwen-vl-plus');
+      vi.stubEnv(MIDSCENE_PLANNING_OPENAI_API_KEY, 'test-planning-key');
+      vi.stubEnv(MIDSCENE_PLANNING_OPENAI_BASE_URL, 'https://api.openai.com/v1');
+      vi.stubEnv(MIDSCENE_PLANNING_VL_MODE, 'qwen-vl');
+
+      vi.stubEnv(MIDSCENE_GROUNDING_MODEL_NAME, 'gpt-4-vision');
+      vi.stubEnv(MIDSCENE_GROUNDING_OPENAI_API_KEY, 'test-grounding-key');
+      vi.stubEnv(MIDSCENE_GROUNDING_OPENAI_BASE_URL, 'https://api.openai.com/v1');
+
+      vi.stubEnv(MIDSCENE_MODEL_NAME, 'gpt-4');
+      vi.stubEnv(OPENAI_API_KEY, 'test-key');
+      vi.stubEnv(OPENAI_BASE_URL, 'https://api.openai.com/v1');
+
+      const mockCreateClient = vi.fn();
+      const manager = new ModelConfigManager(undefined, mockCreateClient);
+      manager.registerGlobalConfigManager(new GlobalConfigManager());
+
+      const vqaConfig = manager.getModelConfig('VQA');
+      expect(vqaConfig.createOpenAIClient).toBe(mockCreateClient);
+
+      const planningConfig = manager.getModelConfig('planning');
+      expect(planningConfig.createOpenAIClient).toBe(mockCreateClient);
+
+      const groundingConfig = manager.getModelConfig('grounding');
+      expect(groundingConfig.createOpenAIClient).toBe(mockCreateClient);
+
+      const defaultConfig = manager.getModelConfig('default');
+      expect(defaultConfig.createOpenAIClient).toBe(mockCreateClient);
+    });
+
+    it('should not have createOpenAIClient in config when not provided', () => {
+      const modelConfigFn: TModelConfigFn = ({ intent }) => ({
+        [MIDSCENE_MODEL_NAME]: 'gpt-4',
+        [MIDSCENE_OPENAI_API_KEY]: 'test-key',
+        [MIDSCENE_OPENAI_BASE_URL]: 'https://api.openai.com/v1',
+      });
+
+      const manager = new ModelConfigManager(modelConfigFn);
+      const config = manager.getModelConfig('default');
+
+      expect(config.createOpenAIClient).toBeUndefined();
+    });
+
+    it('should return the same createOpenAIClient function reference across multiple getModelConfig calls', () => {
+      const mockCreateClient = vi.fn();
+      const modelConfigFn: TModelConfigFn = ({ intent }) => ({
+        [MIDSCENE_MODEL_NAME]: 'gpt-4',
+        [MIDSCENE_OPENAI_API_KEY]: 'test-key',
+        [MIDSCENE_OPENAI_BASE_URL]: 'https://api.openai.com/v1',
+      });
+
+      const manager = new ModelConfigManager(modelConfigFn, mockCreateClient);
+
+      const config1 = manager.getModelConfig('default');
+      const config2 = manager.getModelConfig('default');
+      const config3 = manager.getModelConfig('default');
+
+      expect(config1.createOpenAIClient).toBe(mockCreateClient);
+      expect(config2.createOpenAIClient).toBe(mockCreateClient);
+      expect(config3.createOpenAIClient).toBe(mockCreateClient);
+      expect(config1.createOpenAIClient).toBe(config2.createOpenAIClient);
+      expect(config2.createOpenAIClient).toBe(config3.createOpenAIClient);
+    });
+
+    it('should inject createOpenAIClient during config initialization, not at getModelConfig call time', () => {
+      const mockCreateClient = vi.fn();
+      const modelConfigFn: TModelConfigFn = ({ intent }) => ({
+        [MIDSCENE_MODEL_NAME]: 'gpt-4',
+        [MIDSCENE_OPENAI_API_KEY]: 'test-key',
+        [MIDSCENE_OPENAI_BASE_URL]: 'https://api.openai.com/v1',
+      });
+
+      // Create manager - this should initialize config with createOpenAIClient
+      const manager = new ModelConfigManager(modelConfigFn, mockCreateClient);
+
+      // Get config multiple times
+      const config1 = manager.getModelConfig('default');
+      const config2 = manager.getModelConfig('default');
+
+      // Both should return the exact same object reference (not a new object)
+      expect(config1).toBe(config2);
+      expect(config1.createOpenAIClient).toBe(mockCreateClient);
+    });
+  });
 });

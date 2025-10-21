@@ -37,7 +37,6 @@ export const MIDSCENE_USE_DOUBAO_VISION = 'MIDSCENE_USE_DOUBAO_VISION';
 export const MIDSCENE_USE_GEMINI = 'MIDSCENE_USE_GEMINI';
 export const MIDSCENE_USE_VL_MODEL = 'MIDSCENE_USE_VL_MODEL';
 export const MATCH_BY_POSITION = 'MATCH_BY_POSITION';
-export const MIDSCENE_API_TYPE = 'MIDSCENE-API-TYPE';
 export const MIDSCENE_REPORT_TAG_NAME = 'MIDSCENE_REPORT_TAG_NAME';
 
 export const MIDSCENE_REPLANNING_CYCLE_LIMIT =
@@ -342,6 +341,49 @@ export const VL_MODE_RAW_VALID_VALUES: TVlModeValues[] = [
   'vlm-ui-tars-doubao-1.5',
 ];
 
+/**
+ * Callback to create custom OpenAI client instance
+ * @param config - Resolved model configuration including apiKey, baseURL, modelName, intent, etc.
+ * @returns OpenAI client instance (can be wrapped with langsmith, langfuse, etc.)
+ *
+ * Note: Wrapper functions like langsmith's wrapOpenAI() return the same OpenAI instance
+ * with enhanced behavior, so the return type remains compatible with OpenAI.
+ *
+ * Note: The return type is `any` in the shared package to avoid requiring openai as a dependency.
+ * The actual implementation should return an OpenAI instance.
+ *
+ * @example
+ * ```typescript
+ * import OpenAI from 'openai';
+ * import { wrapOpenAI } from 'langsmith/wrappers';
+ *
+ * createOpenAIClient: (config) => {
+ *   const openai = new OpenAI({
+ *     apiKey: config.openaiApiKey,
+ *     baseURL: config.openaiBaseURL,
+ *   });
+ *
+ *   // Wrap with langsmith for planning tasks
+ *   if (config.intent === 'planning') {
+ *     return wrapOpenAI(openai, { metadata: { task: 'planning' } });
+ *   }
+ *
+ *   return openai;
+ * }
+ * ```
+ */
+export type CreateOpenAIClientFn = (config: {
+  modelName: string;
+  openaiApiKey?: string;
+  openaiBaseURL?: string;
+  socksProxy?: string;
+  httpProxy?: string;
+  openaiExtraConfig?: Record<string, unknown>;
+  vlMode?: string;
+  intent: string;
+  modelDescription: string;
+}) => any; // OpenAI instance, but typed as `any` to avoid dependency
+
 export interface IModelConfig {
   /**
    * proxy
@@ -371,4 +413,14 @@ export interface IModelConfig {
    */
   intent: TIntent;
   from: 'modelConfig' | 'env' | 'legacy-env';
+  /**
+   * Custom OpenAI client factory function
+   *
+   * If provided, this function will be called to create OpenAI client instances
+   * for each AI call, allowing you to:
+   * - Wrap clients with observability tools (langsmith, langfuse)
+   * - Use custom OpenAI-compatible clients
+   * - Apply different configurations based on intent
+   */
+  createOpenAIClient?: CreateOpenAIClientFn;
 }

@@ -241,7 +241,7 @@ export class Agent<
       );
     }
     this.modelConfigManager = opts?.modelConfig
-      ? new ModelConfigManager(opts.modelConfig)
+      ? new ModelConfigManager(opts.modelConfig, opts?.createOpenAIClient)
       : globalModelConfigManager;
 
     this.onTaskStartTip = this.opts.onTaskStartTip;
