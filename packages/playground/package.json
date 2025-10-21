@@ -19,7 +19,7 @@
   "scripts": {
     "build": "rslib build",
     "build:watch": "rslib build --watch",
-    "dev": "rslib build --watch",
+    "dev": "npm run build:watch",
     "test": "vitest --run",
     "test:watch": "vitest",
     "type-check": "tsc --noEmit"

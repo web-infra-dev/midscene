@@ -6,8 +6,9 @@
   "module": "dist/es/index.mjs",
   "types": "dist/types/index.d.ts",
   "scripts": {
+    "dev": "npm run build:watch",
     "build": "rslib build",
-    "dev": "rslib build --watch",
+    "build:watch": "rslib build --watch",
     "test": "vitest",
     "lint": "biome check .",
     "lint:fix": "biome check . --write"

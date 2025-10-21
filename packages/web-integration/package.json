@@ -86,15 +86,8 @@
       "import": "./dist/es/static/index.mjs"
     }
   },
-  "watch": {
-    "build": {
-      "patterns": ["src"],
-      "extensions": "tsx,less,scss,css,js,jsx,ts",
-      "quiet": false
-    }
-  },
   "scripts": {
-    "dev": "npm run build && npx npm-watch",
+    "dev": "npm run build:watch",
     "dev:server": "npm run build && ./bin/midscene-playground",
     "build": "rslib build",
     "build:watch": "rslib build --watch",

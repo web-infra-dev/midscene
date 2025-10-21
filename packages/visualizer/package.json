@@ -14,15 +14,8 @@
     }
   },
   "files": ["dist", "html", "README.md"],
-  "watch": {
-    "build": {
-      "patterns": ["src"],
-      "extensions": "tsx,less,scss,css,js,jsx,ts",
-      "quiet": false
-    }
-  },
   "scripts": {
-    "dev": "npm run build && npx npm-watch",
+    "dev": "npm run build:watch",
     "build": "rslib build",
     "build:watch": "rslib build --watch",
     "serve": "http-server ./dist/ -p 3000"
@@ -33,10 +26,10 @@
   },
   "devDependencies": {
     "@pixi/unsafe-eval": "7.4.2",
-    "@rsbuild/plugin-less": "^1.2.4",
-    "@rsbuild/plugin-node-polyfill": "1.3.0",
-    "@rsbuild/plugin-react": "^1.3.1",
-    "@rsbuild/plugin-svgr": "^1.1.1",
+    "@rsbuild/plugin-less": "^1.5.0",
+    "@rsbuild/plugin-node-polyfill": "1.4.2",
+    "@rsbuild/plugin-react": "^1.4.1",
+    "@rsbuild/plugin-svgr": "^1.2.2",
     "@rslib/core": "^0.11.2",
     "@types/chrome": "0.0.279",
     "@types/node": "^18.0.0",
@@ -44,7 +37,6 @@
     "@types/react-dom": "^18.3.1",
     "execa": "9.3.0",
     "http-server": "14.1.1",
-    "npm-watch": "0.13.0",
     "pixi-filters": "6.0.5",
     "pixi.js": "8.1.1",
     "query-string": "9.1.1",

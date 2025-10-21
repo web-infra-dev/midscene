@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "rsbuild build && npm run pack-extension",
-    "dev": "rsbuild dev --open",
+    "dev": "concurrently -k -n build,run \"rsbuild dev\" \"node scripts/wait-for-build.js && web-ext run --config web-ext-config.cjs --source-dir dist --target chromium\"",
+    "dev:simple": "rsbuild dev --open",
     "preview": "rsbuild preview",
     "pack-extension": "node scripts/pack-extension.js"
   },
@@ -18,7 +19,6 @@
     "@midscene/shared": "workspace:*",
     "@midscene/visualizer": "workspace:*",
     "@midscene/web": "workspace:*",
-
     "@types/file-saver": "2.0.7",
     "antd": "^5.21.6",
     "canvas-confetti": "1.9.3",
@@ -32,20 +32,22 @@
     "zustand": "4.5.2"
   },
   "devDependencies": {
-    "@rsbuild/core": "^1.3.22",
-    "@rsbuild/plugin-less": "^1.2.4",
-    "@rsbuild/plugin-node-polyfill": "1.3.0",
-    "@rsbuild/plugin-react": "^1.3.1",
-    "@rsbuild/plugin-svgr": "^1.1.1",
-    "@rsbuild/plugin-type-check": "1.2.3",
+    "@rsbuild/core": "^1.5.17",
+    "@rsbuild/plugin-less": "^1.5.0",
+    "@rsbuild/plugin-node-polyfill": "1.4.2",
+    "@rsbuild/plugin-react": "^1.4.1",
+    "@rsbuild/plugin-svgr": "^1.2.2",
+    "@rsbuild/plugin-type-check": "1.2.4",
     "@tailwindcss/postcss": "4.1.11",
     "@types/chrome": "0.0.279",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.1",
     "archiver": "^6.0.0",
+    "concurrently": "^8.2.0",
     "less": "^4.2.0",
+    "openai": "6.3.0",
     "tailwindcss": "4.1.11",
     "typescript": "^5.8.3",
-    "openai": "6.3.0"
+    "web-ext": "9.0.0"
   }
 }
