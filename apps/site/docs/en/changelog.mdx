@@ -2,6 +2,60 @@
 
 > For the complete changelog, please refer to: [Midscene Releases](https://github.com/web-infra-dev/midscene/releases)
 
+## v0.30 - 🎯 Cache management upgrade and mobile experience optimization
+
+### 🎯 More flexible cache strategy
+
+v0.30 improves the cache system, allowing you to control cache behavior based on actual needs:
+
+- **Multiple cache modes available**: Supports read-only, write-only, and read-write strategies. For example, use read-only mode in CI environments to reuse cache, and use write-only mode in local development to update cache
+- **Automatic cleanup of unused cache**: Agent can automatically clean up unused cache records when destroyed, preventing cache files from accumulating
+- **Simplified unified configuration**: Cache configuration parameters for CLI and Agent are now unified, no need to remember different configurations
+
+### 📊 Report management convenience
+
+- **Support for merging multiple reports**: In addition to playwright scenarios, all scenarios now support merging multiple automation execution reports into a single file for centralized viewing and sharing of test results
+
+### 📱 Mobile automation optimization
+
+#### iOS platform improvements
+- **Real device support improvement**: Removed simctl check restriction, making iOS real device automation smoother
+- **Auto-adapt device display**: Implemented automatic device pixel ratio detection, ensuring accurate element positioning on different iOS devices
+
+#### Android platform enhancements
+- **Flexible screenshot optimization**: Added `screenshotResizeRatio` option, allowing you to customize screenshot size while ensuring visual recognition accuracy, reducing network transmission and storage overhead
+- **Screen info cache control**: Use `alwaysFetchScreenInfo` option to control whether to fetch screen information each time, allowing cache reuse in stable environments to improve performance
+- **Direct ADB command execution**: AndroidAgent added `runAdbCommand` method for convenient execution of custom device control commands
+
+#### Cross-platform consistency
+- **ClearInput support on all platforms**: Solves the problem of AI being unable to accurately plan clear input operations across platforms
+
+### 🔧 Feature enhancements
+
+- **Failure classification**: CLI execution results can now distinguish between "skipped failures" and "actual failures", helping locate issue causes
+- **aiInput append mode**: Added `append` option to append input while preserving existing content, suitable for editing scenarios
+- **Chrome extension improvements**:
+  - Popup mode preference saved to localStorage, remembering your choice on next open
+  - Bridge mode supports auto-connect, reducing manual operations
+  - Support for GPT-4o and non-visual language models
+
+### 🛡️ Type safety improvements
+
+- **Zod schema validation**: Introduced type checking for action parameters, detecting parameter errors during development to avoid runtime issues
+- **Number type support**: Fixed `aiInput` support for number type values, making type handling more robust
+
+### 🐞 Bug fixes
+
+- Fixed potential issues caused by Playwright circular dependencies
+- Fixed issue where `aiWaitFor` as the first statement could not generate reports
+- Improved video recorder delay logic to ensure the last frame is captured
+- Optimized report display logic to view both error information and element positioning information simultaneously
+- Fixed issue where `cacheable` option in `aiAction` subtasks was not properly passed
+
+### 📚 Community
+
+- Awesome Midscene section added [midscene-java](./awesome-midscene.md) community project
+
 ## v0.29 - 📱 iOS platform support added
 
 ### 🚀 iOS platform support added
