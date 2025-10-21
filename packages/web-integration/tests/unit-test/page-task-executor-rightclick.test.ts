@@ -136,12 +136,20 @@ describe('TaskExecutor RightClick Action', () => {
       xpaths: ['//*[@id="test-id"]'],
     };
 
+    // Mock uiContext
+    const mockUiContext = {
+      screenshotBase64: 'mock-screenshot',
+      size: { width: 1024, height: 768, dpr: 1 },
+      tree: { node: null, children: [] },
+    };
+
     const mockContext = {
       task: {
         recorder: [],
         status: 'running' as const,
       },
       element: mockElement,
+      uiContext: mockUiContext,
     };
 
     // Execute the right click task
