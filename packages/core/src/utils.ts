@@ -32,14 +32,14 @@ export const groupedActionDumpFileExt = 'web-dump.json';
  * Process cache configuration with environment variable support and backward compatibility.
  *
  * @param cache - The original cache configuration
- * @param fallbackId - The fallback ID to use when cache is enabled but no ID is specified
- * @param cacheId - Optional legacy cacheId for backward compatibility (requires MIDSCENE_CACHE env var)
+ * @param cacheId - The cache ID to use as:
+ *   1. Fallback ID when cache is true or cache object has no ID
+ *   2. Legacy cacheId when cache is undefined (requires MIDSCENE_CACHE env var)
  * @returns Processed cache configuration
  */
 export function processCacheConfig(
   cache: Cache | undefined,
-  fallbackId: string,
-  cacheId?: string,
+  cacheId: string,
 ): Cache | undefined {
   // 1. New cache object configuration (highest priority)
   if (cache !== undefined) {
@@ -48,28 +48,27 @@ export function processCacheConfig(
     }
 
     if (cache === true) {
-      // Auto-generate ID using fallback for CLI/YAML scenarios
+      // Auto-generate ID using cacheId for CLI/YAML scenarios
       // Agent will validate and reject this later if needed
-      return { id: fallbackId };
+      return { id: cacheId };
     }
 
     // cache is object configuration
     if (typeof cache === 'object' && cache !== null) {
-      // Auto-generate ID using fallback when missing (for CLI/YAML scenarios)
+      // Auto-generate ID using cacheId when missing (for CLI/YAML scenarios)
       if (!cache.id) {
-        return { ...cache, id: fallbackId };
+        return { ...cache, id: cacheId };
       }
       return cache;
     }
   }
 
   // 2. Backward compatibility: support old cacheId (requires environment variable)
-  if (cacheId) {
-    const envEnabled =
-      globalConfigManager.getEnvConfigInBoolean(MIDSCENE_CACHE);
-    if (envEnabled) {
-      return { id: cacheId };
-    }
+  // When cache is undefined, check if legacy cacheId mode is enabled via env var
+  const envEnabled = globalConfigManager.getEnvConfigInBoolean(MIDSCENE_CACHE);
+
+  if (envEnabled && cacheId) {
+    return { id: cacheId };
   }
 
   // 3. No cache configuration

@@ -1,17 +1,22 @@
 import { PlaywrightAiFixture } from '@/playwright/ai-fixture';
-import type { TestInfo } from '@playwright/test';
-import { describe, expect, it } from 'vitest';
+import { processCacheConfig } from '@midscene/core/utils';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock TestInfo
-const createMockTestInfo = (testId = 'test-123'): TestInfo =>
-  ({
-    testId,
-    titlePath: ['Test Suite', 'Test Case'],
-    retry: 0,
-    annotations: [],
-  }) as TestInfo;
+// Mock the global config manager to control environment variables
+vi.mock('@midscene/shared/env', () => ({
+  MIDSCENE_CACHE: 'MIDSCENE_CACHE',
+  globalConfigManager: {
+    getEnvConfigInBoolean: vi.fn(),
+  },
+}));
+
+import { globalConfigManager } from '@midscene/shared/env';
 
 describe('PlaywrightAiFixture Cache Configuration', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('should create fixture with cache: false configuration', () => {
     const fixture = PlaywrightAiFixture({
       cache: false,
@@ -53,5 +58,90 @@ describe('PlaywrightAiFixture Cache Configuration', () => {
 
     expect(fixture).toBeDefined();
     expect(fixture.agentForPage).toBeDefined();
+  });
+
+  describe('Legacy compatibility mode', () => {
+    it('should enable cache when MIDSCENE_CACHE env var is true (legacy mode)', () => {
+      // Mock environment variable to enable legacy cache mode
+      vi.mocked(globalConfigManager.getEnvConfigInBoolean).mockReturnValue(
+        true,
+      );
+
+      // Create fixture without cache option (undefined)
+      const fixture = PlaywrightAiFixture();
+
+      // Process cache config as the fixture would do internally
+      const testId = 'Test File(Test Case)'.replace(/[/\\:*?"<>|]/g, '-');
+      const result = processCacheConfig(undefined, testId);
+
+      // Verify that environment variable was checked
+      expect(globalConfigManager.getEnvConfigInBoolean).toHaveBeenCalledWith(
+        'MIDSCENE_CACHE',
+      );
+
+      // Verify that cache is enabled with the generated ID
+      expect(result).toEqual({
+        id: testId,
+      });
+
+      expect(fixture).toBeDefined();
+      expect(fixture.agentForPage).toBeDefined();
+    });
+
+    it('should not enable cache when MIDSCENE_CACHE env var is false (legacy mode)', () => {
+      // Mock environment variable to disable legacy cache mode
+      vi.mocked(globalConfigManager.getEnvConfigInBoolean).mockReturnValue(
+        false,
+      );
+
+      // Create fixture without cache option (undefined)
+      const fixture = PlaywrightAiFixture();
+
+      // Process cache config as the fixture would do internally
+      const testId = 'Test File(Test Case)'.replace(/[/\\:*?"<>|]/g, '-');
+      const result = processCacheConfig(undefined, testId);
+
+      // Verify that environment variable was checked
+      expect(globalConfigManager.getEnvConfigInBoolean).toHaveBeenCalledWith(
+        'MIDSCENE_CACHE',
+      );
+
+      // Verify that cache is disabled (undefined)
+      expect(result).toBeUndefined();
+
+      expect(fixture).toBeDefined();
+      expect(fixture.agentForPage).toBeDefined();
+    });
+
+    it('should prefer new cache config over legacy mode', () => {
+      // Mock environment variable to enable legacy cache mode
+      vi.mocked(globalConfigManager.getEnvConfigInBoolean).mockReturnValue(
+        true,
+      );
+
+      // Create fixture WITH cache option (new mode)
+      const fixture = PlaywrightAiFixture({
+        cache: { id: 'explicit-cache-id', strategy: 'read-write' },
+      });
+
+      // Process cache config with explicit cache option
+      const testId = 'Test File(Test Case)'.replace(/[/\\:*?"<>|]/g, '-');
+      const result = processCacheConfig(
+        { id: 'explicit-cache-id', strategy: 'read-write' },
+        testId,
+      );
+
+      // Verify that environment variable was NOT checked (new config takes precedence)
+      expect(globalConfigManager.getEnvConfigInBoolean).not.toHaveBeenCalled();
+
+      // Verify that explicit cache config is used
+      expect(result).toEqual({
+        id: 'explicit-cache-id',
+        strategy: 'read-write',
+      });
+
+      expect(fixture).toBeDefined();
+      expect(fixture.agentForPage).toBeDefined();
+    });
   });
 });
