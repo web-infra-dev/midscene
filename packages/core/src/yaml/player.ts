@@ -331,7 +331,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         await agent.recordToReport(title, { content });
       } else if ('aiInput' in (flowItem as MidsceneYamlFlowItemAIInput)) {
         // may be input empty string ''
-        const { aiInput, ...inputTask } =
+        const { aiInput, value: rawValue, ...inputTask } =
           flowItem as MidsceneYamlFlowItemAIInput;
 
         // Compatibility with previous version:
@@ -342,14 +342,16 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         let value: string | number | undefined;
         if ((inputTask as any).locate) {
           // Old format - aiInput is the value, locate is the prompt
-          value = (aiInput as string) || inputTask.value;
+          // Keep backward compatibility: empty string is treated as no value
+          value = (aiInput as string | number) || rawValue;
           locatePrompt = (inputTask as any).locate;
         } else {
           // New format - aiInput is the prompt, value is the value
           locatePrompt = aiInput || '';
-          value = inputTask.value;
+          value = rawValue;
         }
 
+        // Convert value to string for Input action
         await agent.callActionInActionSpace('Input', {
           ...inputTask,
           ...(value !== undefined ? { value: String(value) } : {}),
