@@ -29,13 +29,6 @@
       "require": "./dist/lib/index.js"
     }
   },
-  "files": [
-    "dist"
-  ],
-  "keywords": [
-    "webdriver",
-    "automation",
-    "ios",
-    "mobile"
-  ]
+  "files": ["dist"],
+  "keywords": ["webdriver", "automation", "ios", "mobile"]
 }

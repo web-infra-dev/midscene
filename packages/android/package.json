@@ -12,11 +12,7 @@
   "main": "./dist/lib/index.js",
   "module": "./dist/es/index.mjs",
   "types": "./dist/types/index.d.ts",
-  "files": [
-    "bin",
-    "dist",
-    "README.md"
-  ],
+  "files": ["bin", "dist", "README.md"],
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",

@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { TaskRunner } from './task-runner';
 import Insight from './insight/index';
+import { TaskRunner } from './task-runner';
 import { getVersion } from './utils';
 
 export {

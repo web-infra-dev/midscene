@@ -15,10 +15,7 @@
       "import": "./dist/es/index.mjs"
     }
   },
-  "files": [
-    "dist",
-    "static"
-  ],
+  "files": ["dist", "static"],
   "scripts": {
     "build": "rslib build",
     "build:watch": "rslib build --watch",

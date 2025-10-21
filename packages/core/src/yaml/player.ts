@@ -331,8 +331,11 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         await agent.recordToReport(title, { content });
       } else if ('aiInput' in (flowItem as MidsceneYamlFlowItemAIInput)) {
         // may be input empty string ''
-        const { aiInput, value: rawValue, ...inputTask } =
-          flowItem as MidsceneYamlFlowItemAIInput;
+        const {
+          aiInput,
+          value: rawValue,
+          ...inputTask
+        } = flowItem as MidsceneYamlFlowItemAIInput;
 
         // Compatibility with previous version:
         // Old format: { aiInput: string (value), locate: TUserPrompt }
