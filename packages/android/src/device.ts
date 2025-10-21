@@ -219,7 +219,8 @@ export class AndroidDevice implements AbstractInterface {
           const keyToPress = key[key.length - 1];
           console.warn(
             `[Android] Key combinations are not supported. Using last key: "${keyToPress}"`,
-            `Original input:`, key
+            'Original input:',
+            key,
           );
           await this.keyboardPress(keyToPress);
         } else {

@@ -176,7 +176,8 @@ export class IOSDevice implements AbstractInterface {
           const keyToPress = key[key.length - 1];
           console.warn(
             `[iOS] Key combinations are not supported. Using last key: "${keyToPress}"`,
-            `Original input:`, key
+            'Original input:',
+            key,
           );
           await this.pressKey(keyToPress);
         } else {
