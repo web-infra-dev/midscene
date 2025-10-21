@@ -9,7 +9,7 @@ import {
 } from '@midscene/shared/img';
 import { getElementInfosScriptContent } from '@midscene/shared/node';
 import { createServer } from 'http-server';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { launchPage } from '../ai/web/puppeteer/utils';
 
 const pageDir = join(__dirname, './fixtures/web-extractor');
@@ -22,19 +22,24 @@ describe(
   },
   () => {
     const port = 8082;
+    let localServer: any;
+
     beforeAll(async () => {
-      const localServer = await new Promise((resolve, reject) => {
+      localServer = await new Promise((resolve, reject) => {
         const server = createServer({
           root: pageDir,
         });
         server.listen(port, '127.0.0.1', () => {
           resolve(server);
         });
+        server.server.on('error', reject);
       });
+    });
 
-      return () => {
-        (localServer as any).server.close();
-      };
+    afterAll(() => {
+      if (localServer?.server) {
+        localServer.server.close();
+      }
     });
 
     it('basic', async () => {
