@@ -88,9 +88,7 @@
   },
   "watch": {
     "build": {
-      "patterns": [
-        "src"
-      ],
+      "patterns": ["src"],
       "extensions": "tsx,less,scss,css,js,jsx,ts",
       "quiet": false
     }
@@ -114,13 +112,7 @@
   "bin": {
     "midscene-playground": "./bin/midscene-playground"
   },
-  "files": [
-    "static",
-    "dist",
-    "iife-script",
-    "README.md",
-    "bin"
-  ],
+  "files": ["static", "dist", "iife-script", "README.md", "bin"],
   "dependencies": {
     "@midscene/core": "workspace:*",
     "@midscene/playground": "workspace:*",

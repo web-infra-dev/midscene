@@ -9,7 +9,6 @@ import {
   type ExecutionRecorderItem,
   type ExecutionTask,
   type ExecutionTaskLog,
-  type TaskRunner,
   type GroupedActionDump,
   Insight,
   type InsightAction,
@@ -25,6 +24,7 @@ import {
   type Rect,
   type ScrollParam,
   type TUserPrompt,
+  type TaskRunner,
   type UIContext,
 } from '../index';
 export type TestStatus =
@@ -772,13 +772,12 @@ export class Agent<
     opt: InsightExtractOption = defaultInsightExtractOption,
   ): Promise<ReturnType> {
     const modelConfig = this.modelConfigManager.getModelConfig('VQA');
-    const { output, runner } =
-      await this.taskExecutor.createTypeQueryExecution(
-        'Query',
-        demand,
-        modelConfig,
-        opt,
-      );
+    const { output, runner } = await this.taskExecutor.createTypeQueryExecution(
+      'Query',
+      demand,
+      modelConfig,
+      opt,
+    );
     await this.afterTaskRunning(runner);
     return output as ReturnType;
   }
@@ -790,14 +789,13 @@ export class Agent<
     const modelConfig = this.modelConfigManager.getModelConfig('VQA');
 
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
-    const { output, runner } =
-      await this.taskExecutor.createTypeQueryExecution(
-        'Boolean',
-        textPrompt,
-        modelConfig,
-        opt,
-        multimodalPrompt,
-      );
+    const { output, runner } = await this.taskExecutor.createTypeQueryExecution(
+      'Boolean',
+      textPrompt,
+      modelConfig,
+      opt,
+      multimodalPrompt,
+    );
     await this.afterTaskRunning(runner);
     return output as boolean;
   }
@@ -809,14 +807,13 @@ export class Agent<
     const modelConfig = this.modelConfigManager.getModelConfig('VQA');
 
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
-    const { output, runner } =
-      await this.taskExecutor.createTypeQueryExecution(
-        'Number',
-        textPrompt,
-        modelConfig,
-        opt,
-        multimodalPrompt,
-      );
+    const { output, runner } = await this.taskExecutor.createTypeQueryExecution(
+      'Number',
+      textPrompt,
+      modelConfig,
+      opt,
+      multimodalPrompt,
+    );
     await this.afterTaskRunning(runner);
     return output as number;
   }
@@ -828,14 +825,13 @@ export class Agent<
     const modelConfig = this.modelConfigManager.getModelConfig('VQA');
 
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
-    const { output, runner } =
-      await this.taskExecutor.createTypeQueryExecution(
-        'String',
-        textPrompt,
-        modelConfig,
-        opt,
-        multimodalPrompt,
-      );
+    const { output, runner } = await this.taskExecutor.createTypeQueryExecution(
+      'String',
+      textPrompt,
+      modelConfig,
+      opt,
+      multimodalPrompt,
+    );
     await this.afterTaskRunning(runner);
     return output as string;
   }

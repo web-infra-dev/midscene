@@ -9,9 +9,7 @@
     }
   },
   "types": "./dist/types/src/index.d.ts",
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "scripts": {
     "build": "rslib build",
     "dev": "rslib build --watch",

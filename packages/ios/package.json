@@ -13,12 +13,7 @@
   "main": "./dist/lib/index.js",
   "module": "./dist/es/index.mjs",
   "types": "./dist/types/index.d.ts",
-  "files": [
-    "dist",
-    "static",
-    "bin",
-    "README.md"
-  ],
+  "files": ["dist", "static", "bin", "README.md"],
   "bin": {
     "midscene-ios-playground": "./bin/ios-playground"
   },

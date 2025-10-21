@@ -5,12 +5,7 @@
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",
   "module": "./dist/es/index.mjs",
-  "files": [
-    "dist",
-    "static",
-    "bin",
-    "README.md"
-  ],
+  "files": ["dist", "static", "bin", "README.md"],
   "bin": {
     "midscene-android-playground": "./bin/android-playground",
     "@midscene/android-playground": "./bin/android-playground"

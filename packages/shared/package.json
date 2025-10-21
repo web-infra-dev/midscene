@@ -63,11 +63,7 @@
       "require": "./dist/lib/*.js"
     }
   },
-  "files": [
-    "dist",
-    "src",
-    "README.md"
-  ],
+  "files": ["dist", "src", "README.md"],
   "scripts": {
     "dev": "npm run build:watch",
     "build": "npm run build:script && npm run build:pkg",
