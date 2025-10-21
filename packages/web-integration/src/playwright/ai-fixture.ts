@@ -68,12 +68,10 @@ export const PlaywrightAiFixture = (options?: {
 
   // Helper function to process cache configuration and auto-generate ID from test info
   const processTestCacheConfig = (testInfo: TestInfo): Cache | undefined => {
-    if (!cache) return undefined;
-
     // Generate ID from test info
     const { id } = groupAndCaseForTest(testInfo);
 
-    // Use shared processCacheConfig with generated ID
+    // Use shared processCacheConfig with generated ID as fallback
     return processCacheConfig(cache as Cache, id);
   };
 
