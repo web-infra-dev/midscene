@@ -129,11 +129,7 @@ export async function createYamlPlayer(
             webTarget,
             {
               ...preference,
-              cache: processCacheConfig(
-                clonedYamlScript.agent?.cache,
-                fileName,
-                fileName,
-              ),
+              cache: processCacheConfig(yamlScript.agent?.cache, fileName),
             },
             options?.browser,
           );
@@ -162,11 +158,7 @@ export async function createYamlPlayer(
 
         const agent = new AgentOverChromeBridge({
           closeNewTabsAfterDisconnect: webTarget.closeNewTabsAfterDisconnect,
-          cache: processCacheConfig(
-            clonedYamlScript.agent?.cache,
-            fileName,
-            fileName,
-          ),
+          cache: processCacheConfig(yamlScript.agent?.cache, fileName),
         });
 
         if (webTarget.bridgeMode === 'newTabWithUrl') {
@@ -193,11 +185,7 @@ export async function createYamlPlayer(
       if (typeof clonedYamlScript.android !== 'undefined') {
         const androidTarget = clonedYamlScript.android;
         const agent = await agentFromAdbDevice(androidTarget?.deviceId, {
-          cache: processCacheConfig(
-            clonedYamlScript.agent?.cache,
-            fileName,
-            fileName,
-          ),
+          cache: processCacheConfig(yamlScript.agent?.cache, fileName),
         });
 
         if (androidTarget?.launch) {
@@ -276,12 +264,8 @@ export async function createYamlPlayer(
         // create agent from device
         debug('creating agent from device', device);
         const agent = createAgent(device, {
-          ...clonedYamlScript.agent,
-          cache: processCacheConfig(
-            clonedYamlScript.agent?.cache,
-            fileName,
-            fileName,
-          ),
+          ...yamlScript.agent,
+          cache: processCacheConfig(yamlScript.agent?.cache, fileName),
         });
 
         freeFn.push({

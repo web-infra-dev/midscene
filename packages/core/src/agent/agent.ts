@@ -496,7 +496,7 @@ export class Agent<
   // New signature, always use locatePrompt as the first param
   async aiInput(
     locatePrompt: TUserPrompt,
-    opt: LocateOption & { value: string } & {
+    opt: LocateOption & { value: string | number } & {
       autoDismissKeyboard?: boolean;
     } & { mode?: 'replace' | 'clear' | 'append' },
   ): Promise<any>;
@@ -506,7 +506,7 @@ export class Agent<
    * @deprecated Use aiInput(locatePrompt, opt) instead where opt contains the value
    */
   async aiInput(
-    value: string,
+    value: string | number,
     locatePrompt: TUserPrompt,
     opt?: LocateOption & { autoDismissKeyboard?: boolean } & {
       mode?: 'replace' | 'clear' | 'append';
@@ -515,19 +515,19 @@ export class Agent<
 
   // Implementation
   async aiInput(
-    locatePromptOrValue: TUserPrompt | string,
+    locatePromptOrValue: TUserPrompt | string | number,
     locatePromptOrOpt:
       | TUserPrompt
-      | (LocateOption & { value: string } & {
+      | (LocateOption & { value: string | number } & {
           autoDismissKeyboard?: boolean;
         } & { mode?: 'replace' | 'clear' | 'append' }) // AndroidDeviceInputOpt &
       | undefined,
     optOrUndefined?: LocateOption, // AndroidDeviceInputOpt &
   ) {
-    let value: string;
+    let value: string | number;
     let locatePrompt: TUserPrompt;
     let opt:
-      | (LocateOption & { value: string } & {
+      | (LocateOption & { value: string | number } & {
           autoDismissKeyboard?: boolean;
         } & { mode?: 'replace' | 'clear' | 'append' }) // AndroidDeviceInputOpt &
       | undefined;
@@ -542,14 +542,14 @@ export class Agent<
       locatePrompt = locatePromptOrValue as TUserPrompt;
       const optWithValue = locatePromptOrOpt as LocateOption & {
         // AndroidDeviceInputOpt &
-        value: string;
+        value: string | number;
         autoDismissKeyboard?: boolean;
       };
       value = optWithValue.value;
       opt = optWithValue;
     } else {
       // Legacy signature: aiInput(value, locatePrompt, opt)
-      value = locatePromptOrValue as string;
+      value = locatePromptOrValue as string | number;
       locatePrompt = locatePromptOrOpt as TUserPrompt;
       opt = {
         ...optOrUndefined,
@@ -558,15 +558,19 @@ export class Agent<
     }
 
     assert(
-      typeof value === 'string',
-      'input value must be a string, use empty string if you want to clear the input',
+      typeof value === 'string' || typeof value === 'number',
+      'input value must be a string or number, use empty string if you want to clear the input',
     );
     assert(locatePrompt, 'missing locate prompt for input');
 
     const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
 
+    // Convert value to string to ensure consistency
+    const stringValue = typeof value === 'number' ? String(value) : value;
+
     return this.callActionInActionSpace('Input', {
       ...(opt || {}),
+      value: stringValue,
       locate: detailedLocateParam,
     });
   }
@@ -1243,8 +1247,7 @@ export class Agent<
     // Use the unified utils function to process cache configuration
     const cacheConfig = processCacheConfig(
       opts.cache,
-      opts.testId || 'default',
-      opts.cacheId,
+      opts.cacheId || opts.testId || 'default',
     );
 
     if (!cacheConfig) {
