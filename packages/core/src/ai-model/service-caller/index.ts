@@ -2,7 +2,6 @@ import { AIResponseFormat, type AIUsageInfo } from '@/types';
 import type { CodeGenerationChunk, StreamingCallback } from '@/types';
 import {
   type IModelConfig,
-  MIDSCENE_API_TYPE,
   OPENAI_MAX_TOKENS,
   type TVlModeTypes,
   type UITarsModelVersion,
@@ -79,10 +78,6 @@ async function createChatClient({
       apiKey: openaiApiKey,
       ...(proxyAgent ? { httpAgent: proxyAgent as any } : {}),
       ...openaiExtraConfig,
-      defaultHeaders: {
-        ...(openaiExtraConfig?.defaultHeaders || {}),
-        [MIDSCENE_API_TYPE]: AIActionTypeValue.toString(),
-      },
       dangerouslyAllowBrowser: true,
     });
   }
