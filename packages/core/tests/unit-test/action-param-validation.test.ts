@@ -1,5 +1,5 @@
 import { getMidsceneLocationSchema, parseActionParam } from '@/ai-model';
-import { defineAction } from '@/device';
+import { actionKeyboardPressParamSchema, defineAction } from '@/device';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
@@ -319,6 +319,94 @@ describe('Action Parameter Validation', () => {
 
       expect(parsed.locate).toEqual(rawParam.locate);
       expect(parsed.value).toBe('test');
+    });
+  });
+
+  describe('KeyboardPress Action', () => {
+    it('should accept keyName as a string', () => {
+      const rawParam = {
+        keyName: 'Enter',
+      };
+
+      const parsed = parseActionParam(rawParam, actionKeyboardPressParamSchema);
+
+      expect(parsed).toEqual({
+        keyName: 'Enter',
+      });
+    });
+
+    it('should accept keyName as an array of strings for key combinations', () => {
+      const rawParam = {
+        keyName: ['Control', 'A'],
+      };
+
+      const parsed = parseActionParam(rawParam, actionKeyboardPressParamSchema);
+
+      expect(parsed).toEqual({
+        keyName: ['Control', 'A'],
+      });
+    });
+
+    it('should accept keyName as array with multiple modifiers', () => {
+      const rawParam = {
+        keyName: ['Control', 'Shift', 'K'],
+      };
+
+      const parsed = parseActionParam(rawParam, actionKeyboardPressParamSchema);
+
+      expect(parsed).toEqual({
+        keyName: ['Control', 'Shift', 'K'],
+      });
+    });
+
+    it('should accept keyName with optional locate parameter', () => {
+      const rawParam = {
+        keyName: ['Control', 'V'],
+        locate: {
+          prompt: 'text input field',
+          deepThink: false,
+        },
+      };
+
+      const parsed = parseActionParam(rawParam, actionKeyboardPressParamSchema);
+
+      expect(parsed.keyName).toEqual(['Control', 'V']);
+      expect(parsed.locate).toEqual({
+        prompt: 'text input field',
+        deepThink: false,
+      });
+    });
+
+    it('should reject keyName with invalid type', () => {
+      const rawParam = {
+        keyName: 123, // Invalid type
+      };
+
+      expect(() =>
+        parseActionParam(rawParam, actionKeyboardPressParamSchema),
+      ).toThrow();
+    });
+
+    it('should reject keyName as array with non-string elements', () => {
+      const rawParam = {
+        keyName: ['Control', 123], // Invalid element type
+      };
+
+      expect(() =>
+        parseActionParam(rawParam, actionKeyboardPressParamSchema),
+      ).toThrow();
+    });
+
+    it('should accept single-key array', () => {
+      const rawParam = {
+        keyName: ['Escape'],
+      };
+
+      const parsed = parseActionParam(rawParam, actionKeyboardPressParamSchema);
+
+      expect(parsed).toEqual({
+        keyName: ['Escape'],
+      });
     });
   });
 });

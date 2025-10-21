@@ -194,11 +194,13 @@ export const actionKeyboardPressParamSchema = z.object({
   locate: getMidsceneLocationSchema()
     .describe('The element to be clicked before pressing the key')
     .optional(),
-  keyName: z.string().describe('The key to be pressed'),
+  keyName: z
+    .union([z.string(), z.array(z.string())])
+    .describe('The key to be pressed, or an array of keys for combinations'),
 });
 export type ActionKeyboardPressParam = {
   locate?: LocateResultElement;
-  keyName: string;
+  keyName: string | string[];
 };
 
 export const defineActionKeyboardPress = (
