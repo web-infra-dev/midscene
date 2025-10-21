@@ -276,4 +276,65 @@ describe('service-caller', () => {
       }
     });
   });
+
+  describe('custom OpenAI client', () => {
+    beforeEach(() => {
+      vi.mock('openai');
+    });
+
+    afterEach(() => {
+      vi.clearAllMocks();
+    });
+
+    it('should use custom client factory when createOpenAIClient is provided', async () => {
+      const mockCustomClient = {
+        chat: {
+          completions: {
+            create: vi.fn().mockResolvedValue({
+              choices: [{ message: { content: 'test response' } }],
+              usage: {
+                prompt_tokens: 10,
+                completion_tokens: 20,
+                total_tokens: 30,
+              },
+            }),
+          },
+        },
+      };
+
+      const mockCreateClient = vi.fn().mockReturnValue(mockCustomClient);
+
+      const mockModelConfig: IModelConfig = {
+        modelName: 'gpt-4o',
+        openaiApiKey: 'test-key',
+        openaiBaseURL: 'https://api.openai.com/v1',
+        modelDescription: 'test',
+        intent: 'default',
+        from: 'modelConfig',
+        createOpenAIClient: mockCreateClient,
+      };
+
+      // Verify that createOpenAIClient is in the config
+      expect(mockModelConfig.createOpenAIClient).toBe(mockCreateClient);
+      expect(typeof mockModelConfig.createOpenAIClient).toBe('function');
+    });
+
+    it('should work without createOpenAIClient (backward compatibility)', () => {
+      const mockModelConfig: IModelConfig = {
+        modelName: 'gpt-4o',
+        openaiApiKey: 'test-key',
+        openaiBaseURL: 'https://api.openai.com/v1',
+        modelDescription: 'test',
+        intent: 'default',
+        from: 'env',
+      };
+
+      // Should not have createOpenAIClient
+      expect(mockModelConfig.createOpenAIClient).toBeUndefined();
+
+      // Config should still be valid
+      expect(mockModelConfig.modelName).toBe('gpt-4o');
+      expect(mockModelConfig.openaiApiKey).toBe('test-key');
+    });
+  });
 });

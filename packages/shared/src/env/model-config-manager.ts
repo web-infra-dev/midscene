@@ -4,7 +4,12 @@ import {
 } from './decide-model-config';
 import type { GlobalConfigManager } from './global-config-manager';
 
-import type { IModelConfig, TIntent, TModelConfigFn } from './types';
+import type {
+  CreateOpenAIClientFn,
+  IModelConfig,
+  TIntent,
+  TModelConfigFn,
+} from './types';
 import { VL_MODE_RAW_VALID_VALUES as VL_MODES } from './types';
 
 const ALL_INTENTS: TIntent[] = ['VQA', 'default', 'grounding', 'planning'];
@@ -23,7 +28,13 @@ export class ModelConfigManager {
 
   private globalConfigManager: GlobalConfigManager | undefined = undefined;
 
-  constructor(modelConfigFn?: TModelConfigFn) {
+  private createOpenAIClientFn?: CreateOpenAIClientFn;
+
+  constructor(
+    modelConfigFn?: TModelConfigFn,
+    createOpenAIClientFn?: CreateOpenAIClientFn,
+  ) {
+    this.createOpenAIClientFn = createOpenAIClientFn;
     if (modelConfigFn) {
       this.isolatedMode = true;
       const intentConfigMap = this.calcIntentConfigMap(modelConfigFn);
@@ -64,7 +75,10 @@ export class ModelConfigManager {
         i,
         intentConfigMap[i] as unknown as Record<string, string | undefined>,
       );
-      modelConfigMap[i] = result;
+      modelConfigMap[i] = {
+        ...result,
+        createOpenAIClient: this.createOpenAIClientFn,
+      };
     }
     return modelConfigMap as Record<TIntent, IModelConfig>;
   }
@@ -80,7 +94,10 @@ export class ModelConfigManager {
     };
     for (const i of ALL_INTENTS) {
       const result = decideModelConfigFromEnv(i, allEnvConfig);
-      modelConfigMap[i] = result;
+      modelConfigMap[i] = {
+        ...result,
+        createOpenAIClient: this.createOpenAIClientFn,
+      };
     }
     return modelConfigMap as Record<TIntent, IModelConfig>;
   }
@@ -132,11 +149,11 @@ export class ModelConfigManager {
 
 Please configure one of the following VL modes:
   ${VL_MODES.map((mode) => `- ${mode}`).join('\n  ')}
-  
+
 Configuration examples:
   - Environment variable: MIDSCENE_PLANNING_VL_MODE=qwen-vl
   - Or use modelConfig function with planning intent
-  
+
 Learn more: https://midscenejs.com/choose-a-model`,
       );
     }
