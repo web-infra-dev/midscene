@@ -46,5 +46,4 @@ export class ExecutionSession {
   getRunner() {
     return this.runner;
   }
-
 }

@@ -334,14 +334,10 @@ export class TaskExecutor {
 
       let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
       try {
-        executables = await this.convertPlanToExecutable(
-          plans,
-          modelConfig,
-          {
-            cacheable,
-            subTask: true,
-          },
-        );
+        executables = await this.convertPlanToExecutable(plans, modelConfig, {
+          cacheable,
+          subTask: true,
+        });
         await session.appendAndRun(executables.tasks);
       } catch (error) {
         return session.appendErrorPlan(

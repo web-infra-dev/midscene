@@ -124,9 +124,9 @@ describe('Agent with custom OpenAI client', () => {
         createOpenAIClient: mockCreateClient,
       });
 
-      const planningConfig = (
-        agent as any
-      ).modelConfigManager.getModelConfig('planning');
+      const planningConfig = (agent as any).modelConfigManager.getModelConfig(
+        'planning',
+      );
       expect(planningConfig.createOpenAIClient).toBe(mockCreateClient);
       expect(planningConfig.intent).toBe('planning');
 
@@ -187,9 +187,9 @@ describe('Agent with custom OpenAI client', () => {
       expect(agent).toBeInstanceOf(Agent);
 
       // Planning config should have wrapped client creator
-      const planningConfig = (
-        agent as any
-      ).modelConfigManager.getModelConfig('planning');
+      const planningConfig = (agent as any).modelConfigManager.getModelConfig(
+        'planning',
+      );
       expect(planningConfig.createOpenAIClient).toBeDefined();
 
       // Simulate calling the client creator

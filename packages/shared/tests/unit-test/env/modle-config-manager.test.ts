@@ -489,7 +489,6 @@ describe('ModelConfigManager', () => {
               [MIDSCENE_GROUNDING_OPENAI_API_KEY]: 'test-grounding-key',
               [MIDSCENE_GROUNDING_OPENAI_BASE_URL]: 'https://api.openai.com/v1',
             };
-          case 'default':
           default:
             return {
               [MIDSCENE_MODEL_NAME]: 'gpt-4',
@@ -521,12 +520,18 @@ describe('ModelConfigManager', () => {
 
       vi.stubEnv(MIDSCENE_PLANNING_MODEL_NAME, 'qwen-vl-plus');
       vi.stubEnv(MIDSCENE_PLANNING_OPENAI_API_KEY, 'test-planning-key');
-      vi.stubEnv(MIDSCENE_PLANNING_OPENAI_BASE_URL, 'https://api.openai.com/v1');
+      vi.stubEnv(
+        MIDSCENE_PLANNING_OPENAI_BASE_URL,
+        'https://api.openai.com/v1',
+      );
       vi.stubEnv(MIDSCENE_PLANNING_VL_MODE, 'qwen-vl');
 
       vi.stubEnv(MIDSCENE_GROUNDING_MODEL_NAME, 'gpt-4-vision');
       vi.stubEnv(MIDSCENE_GROUNDING_OPENAI_API_KEY, 'test-grounding-key');
-      vi.stubEnv(MIDSCENE_GROUNDING_OPENAI_BASE_URL, 'https://api.openai.com/v1');
+      vi.stubEnv(
+        MIDSCENE_GROUNDING_OPENAI_BASE_URL,
+        'https://api.openai.com/v1',
+      );
 
       vi.stubEnv(MIDSCENE_MODEL_NAME, 'gpt-4');
       vi.stubEnv(OPENAI_API_KEY, 'test-key');
