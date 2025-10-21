@@ -173,7 +173,7 @@ export class Page<
     return treeToList(tree);
   }
 
-  async getXpathsByPoint(point: Point, isOrderSensitive: boolean) {
+  private async getXpathsByPoint(point: Point, isOrderSensitive: boolean) {
     const elementInfosScriptContent = getElementInfosScriptContent();
 
     return this.evaluateJavaScript(
@@ -181,7 +181,7 @@ export class Page<
     );
   }
 
-  async getElementInfoByXpath(xpath: string) {
+  private async getElementInfoByXpath(xpath: string) {
     const elementInfosScriptContent = getElementInfosScriptContent();
 
     return this.evaluateJavaScript(
