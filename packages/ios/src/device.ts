@@ -170,7 +170,10 @@ export class IOSDevice implements AbstractInterface {
       }),
       defineActionKeyboardPress(async (param) => {
         const key = param.keyName;
-        await this.pressKey(key);
+        // For now, if keyName is an array, join with '+' or use first key
+        // Mobile devices typically don't support complex key combinations
+        const keyToPress = Array.isArray(key) ? key.join('+') : key;
+        await this.pressKey(keyToPress);
       }),
       defineAction({
         name: 'IOSHomeButton',
