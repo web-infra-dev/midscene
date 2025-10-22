@@ -71,7 +71,7 @@ tasks:
 
     test('should handle mixed commented and uncommented env vars', () => {
       process.env.DEFINED_VAR = 'defined_value';
-      
+
       const yamlContent = `
 # This is a comment with \${UNDEFINED_VAR_IN_COMMENT}
 target:
@@ -83,8 +83,8 @@ tasks:
 
       const result = parseYamlScript(yamlContent);
       expect(result.target?.url).toBe('https://example.com/defined_value');
-      
-      delete process.env.DEFINED_VAR;
+
+      process.env.DEFINED_VAR = undefined;
     });
 
     test('android number-style deviceId', () => {

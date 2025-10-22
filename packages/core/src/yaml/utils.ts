@@ -20,17 +20,19 @@ export function interpolateEnvVars(content: string): string {
       // Skip interpolation for comment lines
       return line;
     }
-    
+
     // Process environment variables for non-comment lines
     return line.replace(/\$\{([^}]+)\}/g, (_, envVar) => {
       const value = process.env[envVar.trim()];
       if (value === undefined) {
-        throw new Error(`Environment variable "${envVar.trim()}" is not defined`);
+        throw new Error(
+          `Environment variable "${envVar.trim()}" is not defined`,
+        );
       }
       return value;
     });
   });
-  
+
   return processedLines.join('\n');
 }
 
