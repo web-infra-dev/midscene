@@ -92,18 +92,7 @@ export class BridgeServer {
         maxHttpBufferSize: 100 * 1024 * 1024, // 100MB
       });
 
-      // Listen for the native HTTP server 'listening' event
-      httpServer.once('listening', () => {
-        resolve();
-      });
-
-      httpServer.once('error', (err: Error) => {
-        reject(new Error(`Bridge Listening Error: ${err.message}`));
-      });
-
-      // Start listening on the specified host and port
-      httpServer.listen(this.port, this.host);
-
+      // Set up Socket.IO middleware BEFORE listening
       this.io.use((socket, next) => {
         if (this.socket) {
           next(new Error('server already connected by another client'));
@@ -111,6 +100,7 @@ export class BridgeServer {
         next();
       });
 
+      // Set up Socket.IO connection handlers BEFORE listening
       this.io.on('connection', (socket) => {
         // check the connection url
         const url = socket.handshake.url;
@@ -203,6 +193,18 @@ export class BridgeServer {
       this.io.on('close', () => {
         this.close();
       });
+
+      // Set up HTTP server event listeners
+      httpServer.once('listening', () => {
+        resolve();
+      });
+
+      httpServer.once('error', (err: Error) => {
+        reject(new Error(`Bridge Listening Error: ${err.message}`));
+      });
+
+      // Start listening AFTER all handlers are set up
+      httpServer.listen(this.port, this.host);
     });
   }
 
