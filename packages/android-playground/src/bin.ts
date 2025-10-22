@@ -120,7 +120,9 @@ const main = async () => {
     console.log(`✅ Selected device: ${selectedDeviceId}`);
 
     // Create device and agent instances with selected device
-    const device = new AndroidDevice(selectedDeviceId);
+    const device = new AndroidDevice(selectedDeviceId, {
+      alwaysFetchScreenInfo: true,
+    });
     const agent = new AndroidAgent(device);
 
     const playgroundServer = new PlaygroundServer(device, agent, staticDir);
