@@ -53,6 +53,40 @@ tasks:
       );
     });
 
+    test('should not throw error for undefined env vars in commented lines', () => {
+      const yamlContent = `
+# DEV_USERNAME="\${UNDEFINED_ENV_VAR}"
+target:
+  url: "https://example.com"
+tasks:
+  - sleep: 1000
+  # - aiInput: "\${ANOTHER_UNDEFINED_VAR}"
+  #   locate: "input field"
+`;
+
+      expect(() => parseYamlScript(yamlContent)).not.toThrow();
+      const result = parseYamlScript(yamlContent);
+      expect(result.target?.url).toBe('https://example.com');
+    });
+
+    test('should handle mixed commented and uncommented env vars', () => {
+      process.env.DEFINED_VAR = 'defined_value';
+      
+      const yamlContent = `
+# This is a comment with \${UNDEFINED_VAR_IN_COMMENT}
+target:
+  url: "https://example.com/\${DEFINED_VAR}"
+tasks:
+  - sleep: 1000
+  # - aiAction: "click \${UNDEFINED_IN_COMMENT}"
+`;
+
+      const result = parseYamlScript(yamlContent);
+      expect(result.target?.url).toBe('https://example.com/defined_value');
+      
+      delete process.env.DEFINED_VAR;
+    });
+
     test('android number-style deviceId', () => {
       const yamlContent = `
 android:
