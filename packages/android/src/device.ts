@@ -212,20 +212,7 @@ export class AndroidDevice implements AbstractInterface {
         );
       }),
       defineActionKeyboardPress(async (param) => {
-        const key = param.keyName;
-
-        if (Array.isArray(key)) {
-          // Mobile devices don't support key combinations, use the last key
-          const keyToPress = key[key.length - 1];
-          console.warn(
-            `[Android] Key combinations are not supported. Using last key: "${keyToPress}"`,
-            'Original input:',
-            key,
-          );
-          await this.keyboardPress(keyToPress);
-        } else {
-          await this.keyboardPress(key);
-        }
+        await this.keyboardPress(param.keyName);
       }),
       defineAction({
         name: 'AndroidBackButton',

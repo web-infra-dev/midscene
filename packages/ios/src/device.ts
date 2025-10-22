@@ -169,20 +169,7 @@ export class IOSDevice implements AbstractInterface {
         );
       }),
       defineActionKeyboardPress(async (param) => {
-        const key = param.keyName;
-
-        if (Array.isArray(key)) {
-          // Mobile devices don't support key combinations, use the last key
-          const keyToPress = key[key.length - 1];
-          console.warn(
-            `[iOS] Key combinations are not supported. Using last key: "${keyToPress}"`,
-            'Original input:',
-            key,
-          );
-          await this.pressKey(keyToPress);
-        } else {
-          await this.pressKey(key);
-        }
+        await this.pressKey(param.keyName);
       }),
       defineAction({
         name: 'IOSHomeButton',

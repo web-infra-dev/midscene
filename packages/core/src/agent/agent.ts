@@ -574,7 +574,7 @@ export class Agent<
   // New signature
   async aiKeyboardPress(
     locatePrompt: TUserPrompt,
-    opt: LocateOption & { keyName: string | string[] },
+    opt: LocateOption & { keyName: string },
   ): Promise<any>;
 
   // Legacy signature - deprecated
@@ -582,23 +582,23 @@ export class Agent<
    * @deprecated Use aiKeyboardPress(locatePrompt, opt) instead where opt contains the keyName
    */
   async aiKeyboardPress(
-    keyName: string | string[],
+    keyName: string,
     locatePrompt?: TUserPrompt,
     opt?: LocateOption,
   ): Promise<any>;
 
   // Implementation
   async aiKeyboardPress(
-    locatePromptOrKeyName: TUserPrompt | string | string[],
+    locatePromptOrKeyName: TUserPrompt | string,
     locatePromptOrOpt:
       | TUserPrompt
-      | (LocateOption & { keyName: string | string[] })
+      | (LocateOption & { keyName: string })
       | undefined,
     optOrUndefined?: LocateOption,
   ) {
-    let keyName: string | string[];
+    let keyName: string;
     let locatePrompt: TUserPrompt | undefined;
-    let opt: (LocateOption & { keyName: string | string[] }) | undefined;
+    let opt: (LocateOption & { keyName: string }) | undefined;
 
     // Check if using new signature (first param is locatePrompt, second has keyName)
     if (
@@ -609,11 +609,11 @@ export class Agent<
       // New signature: aiKeyboardPress(locatePrompt, opt)
       locatePrompt = locatePromptOrKeyName as TUserPrompt;
       opt = locatePromptOrOpt as LocateOption & {
-        keyName: string | string[];
+        keyName: string;
       };
     } else {
       // Legacy signature: aiKeyboardPress(keyName, locatePrompt, opt)
-      keyName = locatePromptOrKeyName as string | string[];
+      keyName = locatePromptOrKeyName as string;
       locatePrompt = locatePromptOrOpt as TUserPrompt | undefined;
       opt = {
         ...(optOrUndefined || {}),

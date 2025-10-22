@@ -255,7 +255,7 @@ describe('Action Parameter Validation', () => {
             .default(false)
             .describe('Append instead of replace'),
         }),
-        call: async (param) => {
+        call: async () => {
           // Mock implementation
         },
       });
@@ -335,33 +335,21 @@ describe('Action Parameter Validation', () => {
       });
     });
 
-    it('should accept keyName as an array of strings for key combinations', () => {
+    it('should accept keyName as key combination string', () => {
       const rawParam = {
-        keyName: ['Control', 'A'],
+        keyName: 'Control+A',
       };
 
       const parsed = parseActionParam(rawParam, actionKeyboardPressParamSchema);
 
       expect(parsed).toEqual({
-        keyName: ['Control', 'A'],
-      });
-    });
-
-    it('should accept keyName as array with multiple modifiers', () => {
-      const rawParam = {
-        keyName: ['Control', 'Shift', 'K'],
-      };
-
-      const parsed = parseActionParam(rawParam, actionKeyboardPressParamSchema);
-
-      expect(parsed).toEqual({
-        keyName: ['Control', 'Shift', 'K'],
+        keyName: 'Control+A',
       });
     });
 
     it('should accept keyName with optional locate parameter', () => {
       const rawParam = {
-        keyName: ['Control', 'V'],
+        keyName: 'Control+V',
         locate: {
           prompt: 'text input field',
           deepThink: false,
@@ -370,7 +358,7 @@ describe('Action Parameter Validation', () => {
 
       const parsed = parseActionParam(rawParam, actionKeyboardPressParamSchema);
 
-      expect(parsed.keyName).toEqual(['Control', 'V']);
+      expect(parsed.keyName).toEqual('Control+V');
       expect(parsed.locate).toEqual({
         prompt: 'text input field',
         deepThink: false,
@@ -387,26 +375,14 @@ describe('Action Parameter Validation', () => {
       ).toThrow();
     });
 
-    it('should reject keyName as array with non-string elements', () => {
+    it('should reject keyName as array', () => {
       const rawParam = {
-        keyName: ['Control', 123], // Invalid element type
+        keyName: ['Control', 'A'], // Arrays not supported
       };
 
       expect(() =>
         parseActionParam(rawParam, actionKeyboardPressParamSchema),
       ).toThrow();
-    });
-
-    it('should accept single-key array', () => {
-      const rawParam = {
-        keyName: ['Escape'],
-      };
-
-      const parsed = parseActionParam(rawParam, actionKeyboardPressParamSchema);
-
-      expect(parsed).toEqual({
-        keyName: ['Escape'],
-      });
     });
   });
 });

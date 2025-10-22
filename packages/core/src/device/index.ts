@@ -195,12 +195,14 @@ export const actionKeyboardPressParamSchema = z.object({
     .describe('The element to be clicked before pressing the key')
     .optional(),
   keyName: z
-    .union([z.string(), z.array(z.string())])
-    .describe('The key to be pressed, or an array of keys for combinations'),
+    .string()
+    .describe(
+      "The key to be pressed. Use '+' for key combinations, e.g., 'Control+A', 'Shift+Enter'",
+    ),
 });
 export type ActionKeyboardPressParam = {
   locate?: LocateResultElement;
-  keyName: string | string[];
+  keyName: string;
 };
 
 export const defineActionKeyboardPress = (
