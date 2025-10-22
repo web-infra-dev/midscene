@@ -266,26 +266,58 @@ export class IOSWebDriverClient extends WebDriverClient {
     this.ensureSession();
 
     try {
-      // Use WebDriverAgent's drag endpoint (original working approach)
+      // Try W3C Actions API first for better scroll support
+      const actions = {
+        actions: [
+          {
+            type: 'pointer',
+            id: 'finger1',
+            parameters: { pointerType: 'touch' },
+            actions: [
+              { type: 'pointerMove', duration: 0, x: fromX, y: fromY },
+              { type: 'pointerDown', button: 0 },
+              { type: 'pause', duration: 100 },
+              { type: 'pointerMove', duration, x: toX, y: toY },
+              { type: 'pointerUp', button: 0 },
+            ],
+          },
+        ],
+      };
+
       await this.makeRequest(
         'POST',
-        `/session/${this.sessionId}/wda/dragfromtoforduration`,
-        {
-          fromX,
-          fromY,
-          toX,
-          toY,
-          duration: duration / 1000, // WDA expects duration in seconds
-        },
+        `/session/${this.sessionId}/actions`,
+        actions,
       );
       debugIOS(
-        `Swiped from (${fromX}, ${fromY}) to (${toX}, ${toY}) in ${duration}ms`,
+        `Swiped using W3C Actions from (${fromX}, ${fromY}) to (${toX}, ${toY}) in ${duration}ms`,
       );
     } catch (error) {
       debugIOS(
-        `Failed to swipe from (${fromX}, ${fromY}) to (${toX}, ${toY}): ${error}`,
+        `W3C Actions failed, falling back to dragfromtoforduration: ${error}`,
       );
-      throw new Error(`Failed to swipe: ${error}`);
+      // Fallback to original WDA drag endpoint
+      try {
+        await this.makeRequest(
+          'POST',
+          `/session/${this.sessionId}/wda/dragfromtoforduration`,
+          {
+            fromX,
+            fromY,
+            toX,
+            toY,
+            duration: duration / 1000, // WDA expects duration in seconds
+          },
+        );
+        debugIOS(
+          `Swiped from (${fromX}, ${fromY}) to (${toX}, ${toY}) in ${duration}ms`,
+        );
+      } catch (error2) {
+        debugIOS(
+          `Failed to swipe from (${fromX}, ${fromY}) to (${toX}, ${toY}): ${error2}`,
+        );
+        throw new Error(`Failed to swipe: ${error2}`);
+      }
     }
   }
 

@@ -511,20 +511,22 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 
   async scrollLeft(distance?: number, startPoint?: Point): Promise<void> {
     const { width, height } = await this.size();
+    // scrollLeft: bring left content into view (swipe finger right)
     const start = startPoint
       ? { x: startPoint.left, y: startPoint.top }
       : { x: width / 2, y: height / 2 };
-    const scrollDistance = distance || width / 3;
+    const scrollDistance = distance || width * 0.7; // Use 70% of width for sufficient scroll
 
     await this.swipe(start.x, start.y, start.x + scrollDistance, start.y);
   }
 
   async scrollRight(distance?: number, startPoint?: Point): Promise<void> {
     const { width, height } = await this.size();
+    // scrollRight: bring right content into view (swipe finger left)
     const start = startPoint
       ? { x: startPoint.left, y: startPoint.top }
       : { x: width / 2, y: height / 2 };
-    const scrollDistance = distance || width / 3;
+    const scrollDistance = distance || width * 0.7; // Use 70% of width for sufficient scroll
 
     await this.swipe(start.x, start.y, start.x - scrollDistance, start.y);
   }
