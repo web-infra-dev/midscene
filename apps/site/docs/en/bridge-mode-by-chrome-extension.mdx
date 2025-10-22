@@ -82,9 +82,12 @@ import { AgentOverChromeBridge } from "@midscene/web/bridge-mode";
 const agent = new AgentOverChromeBridge();
 ```
 
-Except [the normal parameters in the agent constructor](./api.mdx), `AgentOverChromeBridge` accepts one more parameter:
+Except [the normal parameters in the agent constructor](./api.mdx), `AgentOverChromeBridge` accepts the following parameters:
 
 * `closeNewTabsAfterDisconnect?: boolean`: If true, the newly created tab will be closed when the bridge is destroyed. Default is false.
+* `allowRemoteAccess?: boolean`: If true, allows remote machines to connect to the Bridge Server (listens on `0.0.0.0`). Default is false, only allowing local connections (listens on `127.0.0.1`).
+* `host?: string`: Custom address for the Bridge Server to listen on. If specified, this overrides the `allowRemoteAccess` setting.
+* `port?: number`: Custom port for the Bridge Server. Default is 3766.
 
 ## Methods
 
@@ -216,6 +219,47 @@ In bridge mode, these options will be ignored (they will follow your desktop bro
 - viewportScale
 - waitForNetworkIdle
 - cookie
+
+## Remote Access Configuration
+
+By default, the Bridge Server only listens on `127.0.0.1`, allowing only local Chrome extension connections. If you need cross-machine communication (e.g., server on machine A, browser on machine B), you can enable remote access:
+
+**Server Side (Node.js Script):**
+
+```typescript
+// Enable remote access (recommended)
+const agent = new AgentOverChromeBridge({
+  allowRemoteAccess: true  // Listen on 0.0.0.0:3766
+});
+
+// Or specify a specific network interface
+const agent = new AgentOverChromeBridge({
+  host: '192.168.1.100',  // Listen on specific IP
+  port: 3766
+});
+```
+
+**Client Side (Chrome Extension):**
+
+1. Open the Chrome extension's Bridge Mode page
+2. Fill in the server address in the "Bridge Server URL" input field
+   - Local mode: `ws://localhost:3766` (default)
+   - Remote mode: `ws://192.168.1.100:3766` (replace with your server IP)
+3. Click the "Allow Connection" button
+
+<p align="center">
+  <img src="/bridge_remote_config.png" alt="bridge remote config" width="400"/>
+</p>
+
+:::warning Security Notice
+
+When remote access is enabled, the Bridge Server will be exposed on the network. Please ensure:
+- Only use in trusted network environments
+- Use firewall to restrict access
+- Do not use in public network environments to avoid security risks
+
+:::
+
 
 ## FAQ 
 

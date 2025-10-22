@@ -4,7 +4,7 @@ import {
   ClearOutlined,
   LoadingOutlined,
 } from '@ant-design/icons';
-import { Button, List, Spin, Switch } from 'antd';
+import { Button, Input, List, Spin, Switch } from 'antd';
 import dayjs from 'dayjs';
 import { useEffect, useRef, useState } from 'react';
 import AutoConnectIcon from '../../icons/auto-connect.svg?react';
@@ -31,6 +31,8 @@ interface BridgeMessageItem {
 }
 
 const AUTO_CONNECT_STORAGE_KEY = 'midscene-bridge-auto-connect';
+const BRIDGE_SERVER_URL_KEY = 'midscene-bridge-server-url';
+const DEFAULT_SERVER_URL = 'ws://localhost:3766';
 
 export default function Bridge() {
   const [bridgeStatus, setBridgeStatus] = useState<BridgeStatus>('closed');
@@ -40,6 +42,9 @@ export default function Bridge() {
   const [autoConnect, setAutoConnect] = useState<boolean>(() => {
     const saved = localStorage.getItem(AUTO_CONNECT_STORAGE_KEY);
     return saved === 'true';
+  });
+  const [serverUrl, setServerUrl] = useState<string>(() => {
+    return localStorage.getItem(BRIDGE_SERVER_URL_KEY) || DEFAULT_SERVER_URL;
   });
   const messageListRef = useRef<HTMLDivElement>(null);
   // useRef to track the ID of the connection status message
@@ -120,8 +125,17 @@ export default function Bridge() {
     }
   };
 
-  const bridgeConnectorRef = useRef<BridgeConnector | null>(
-    new BridgeConnector(
+  const bridgeConnectorRef = useRef<BridgeConnector | null>(null);
+
+  // Initialize BridgeConnector when serverUrl changes or on first mount
+  useEffect(() => {
+    // Clean up existing connector
+    if (bridgeConnectorRef.current) {
+      bridgeConnectorRef.current.disconnect();
+    }
+
+    // Create new connector with current serverUrl
+    bridgeConnectorRef.current = new BridgeConnector(
       (message, type) => {
         appendBridgeMessage(message);
         if (type === 'status') {
@@ -136,19 +150,24 @@ export default function Bridge() {
           appendBridgeMessage(`Bridge status changed to ${status}`);
         }
       },
-    ),
-  );
-
-  useEffect(() => {
-    // Auto-connect on component mount if enabled
-    if (autoConnect && bridgeStatus === 'closed') {
-      startConnection();
-    }
+      serverUrl !== DEFAULT_SERVER_URL ? serverUrl : undefined,
+    );
 
     return () => {
       bridgeConnectorRef.current?.disconnect();
     };
-  }, []);
+  }, [serverUrl]);
+
+  useEffect(() => {
+    // Auto-connect on component mount if enabled
+    if (
+      autoConnect &&
+      bridgeStatus === 'closed' &&
+      bridgeConnectorRef.current
+    ) {
+      startConnection();
+    }
+  }, [autoConnect, bridgeConnectorRef.current]);
 
   const stopConnection = () => {
     bridgeConnectorRef.current?.disconnect();
@@ -165,6 +184,11 @@ export default function Bridge() {
   const handleAutoConnectChange = (checked: boolean) => {
     setAutoConnect(checked);
     localStorage.setItem(AUTO_CONNECT_STORAGE_KEY, String(checked));
+  };
+
+  const handleServerUrlChange = (value: string) => {
+    setServerUrl(value);
+    localStorage.setItem(BRIDGE_SERVER_URL_KEY, value);
   };
 
   // clear the message list
@@ -318,6 +342,25 @@ export default function Bridge() {
                 More about bridge mode
               </a>
             </p>
+            {/* Server Configuration */}
+            <div className="server-config-section">
+              {/* biome-ignore lint/a11y/noLabelWithoutControl: <explanation> */}
+              <label className="server-config-label">Bridge Server URL:</label>
+              <Input
+                value={serverUrl}
+                onChange={(e) => handleServerUrlChange(e.target.value)}
+                placeholder="ws://localhost:3766"
+                disabled={bridgeStatus !== 'closed'}
+                className="server-config-input"
+              />
+              <small className="server-config-hint">
+                {serverUrl === DEFAULT_SERVER_URL ? (
+                  <>Local mode (default): ws://localhost:3766</>
+                ) : (
+                  <>Remote mode: Connect to a remote server</>
+                )}
+              </small>
+            </div>
             {messageList.length > 0 && (
               <List
                 itemLayout="vertical"

@@ -6,9 +6,11 @@ import {
   type BridgeConnectTabOptions,
   BridgeEvent,
   BridgePageType,
+  DefaultBridgeServerHost,
   DefaultBridgeServerPort,
   KeyboardEvent,
   MouseEvent,
+  getBridgeServerHost,
 } from './common';
 import { BridgeServer } from './io-server';
 import type { ExtensionBridgePageBrowserSide } from './page-browser-side';
@@ -20,18 +22,23 @@ interface ChromeExtensionPageCliSide extends ExtensionBridgePageBrowserSide {
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // actually, this is a proxy to the page in browser side
-export const getBridgePageInCliSide = (
-  timeout?: number | false,
-  closeConflictServer?: boolean,
-): ChromeExtensionPageCliSide => {
+export const getBridgePageInCliSide = (options?: {
+  host?: string;
+  port?: number;
+  timeout?: number | false;
+  closeConflictServer?: boolean;
+}): ChromeExtensionPageCliSide => {
+  const host = options?.host || DefaultBridgeServerHost;
+  const port = options?.port || DefaultBridgeServerPort;
   const server = new BridgeServer(
-    DefaultBridgeServerPort,
+    host,
+    port,
     undefined,
     undefined,
-    closeConflictServer,
+    options?.closeConflictServer,
   );
   server.listen({
-    timeout,
+    timeout: options?.timeout,
   });
   const bridgeCaller = (method: string) => {
     return async (...args: any[]) => {
@@ -115,12 +122,37 @@ export class AgentOverChromeBridge extends Agent<ChromeExtensionPageCliSide> {
 
   constructor(
     opts?: AgentOpt & {
+      /**
+       * Enable remote access to the bridge server.
+       * - false (default): Only localhost can connect (most secure)
+       * - true: Allow remote machines to connect (binds to 0.0.0.0)
+       */
+      allowRemoteAccess?: boolean;
+      /**
+       * Custom host to bind the bridge server to.
+       * Overrides allowRemoteAccess if specified.
+       */
+      host?: string;
+      /**
+       * Custom port for the bridge server.
+       * @default 3766
+       */
+      port?: number;
       closeNewTabsAfterDisconnect?: boolean;
       serverListeningTimeout?: number | false;
       closeConflictServer?: boolean;
     },
   ) {
-    const page = getBridgePageInCliSide(opts?.serverListeningTimeout);
+    const host = getBridgeServerHost({
+      host: opts?.host,
+      allowRemoteAccess: opts?.allowRemoteAccess,
+    });
+    const page = getBridgePageInCliSide({
+      host,
+      port: opts?.port,
+      timeout: opts?.serverListeningTimeout,
+      closeConflictServer: opts?.closeConflictServer,
+    });
     const originalOnTaskStartTip = opts?.onTaskStartTip;
     super(
       page,

@@ -86,6 +86,9 @@ const agent = new AgentOverChromeBridge();
 除了 [普通 Agent 构造器](./api.mdx) 的参数，`AgentOverChromeBridge` 还接受以下参数：
 
 * `closeNewTabsAfterDisconnect?: boolean`: 如果为 true，当桥接断开时，所有新创建的标签页都将被自动关闭。默认值为 false。
+* `allowRemoteAccess?: boolean`: 如果为 true，允许远程机器连接到 Bridge Server（监听 `0.0.0.0`）。默认值为 false，只允许本机连接（监听 `127.0.0.1`）。
+* `host?: string`: 自定义 Bridge Server 监听的地址。如果指定此参数，将覆盖 `allowRemoteAccess` 的设置。
+* `port?: number`: 自定义 Bridge Server 的端口。默认值为 3766。
 
 ## 方法
 
@@ -219,6 +222,47 @@ midscene ./bing.yaml
 - viewportScale
 - waitForNetworkIdle
 - cookie
+
+
+## 远程访问配置
+
+默认情况下，Bridge Server 只监听 `127.0.0.1`，仅允许本机 Chrome 扩展连接。如果需要跨机器通信（例如：服务器在机器 A，浏览器在机器 B），可以启用远程访问：
+
+**Server 端（Node.js 脚本）:**
+
+```typescript
+// 启用远程访问（推荐）
+const agent = new AgentOverChromeBridge({
+  allowRemoteAccess: true  // 监听 0.0.0.0:3766
+});
+
+// 或指定具体的网络接口
+const agent = new AgentOverChromeBridge({
+  host: '192.168.1.100',  // 监听特定 IP
+  port: 3766
+});
+```
+
+**Client 端（Chrome 扩展）:**
+
+1. 打开 Chrome 扩展的 Bridge Mode 页面
+2. 在 "Bridge Server URL" 输入框中填写服务器地址
+   - 本地模式：`ws://localhost:3766`（默认）
+   - 远程模式：`ws://192.168.1.100:3766`（替换为你的服务器 IP）
+3. 点击 "Allow Connection" 按钮
+
+<p align="center">
+  <img src="/bridge_remote_config.png" alt="bridge remote config" width="400"/>
+</p>
+
+:::warning 安全提示
+
+启用远程访问后，Bridge Server 将暴露在网络中。请确保：
+- 仅在可信网络环境中使用
+- 使用防火墙限制访问
+- 不要在公网环境中使用，避免安全风险
+
+:::
 
 
 ## FAQ

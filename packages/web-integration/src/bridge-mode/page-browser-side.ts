@@ -24,6 +24,7 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
   private newlyCreatedTabIds: number[] = [];
 
   constructor(
+    public serverEndpoint?: string,
     public onDisconnect: () => void = () => {},
     public onLogMessage: (
       message: string,
@@ -35,8 +36,10 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
   }
 
   private async setupBridgeClient() {
+    const endpoint =
+      this.serverEndpoint || `ws://localhost:${DefaultBridgeServerPort}`;
     this.bridgeClient = new BridgeClient(
-      `ws://localhost:${DefaultBridgeServerPort}`,
+      endpoint,
       async (method, args: any[]) => {
         console.log('bridge call from cli side', method, args);
         if (method === BridgeEvent.ConnectNewTabWithUrl) {
