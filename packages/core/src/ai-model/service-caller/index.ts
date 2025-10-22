@@ -336,7 +336,16 @@ export async function callAI(
           result.choices,
           `invalid response from LLM service: ${JSON.stringify(result)}`,
         );
-        content = result.choices[0].message.content!;
+        const rawContent = result.choices[0].message.content!;
+
+        // Handle structured output: if content is an object, stringify it
+        if (typeof rawContent === 'object' && rawContent !== null) {
+          console.warn('rawContent is an object, stringifying:', rawContent);
+          content = JSON.stringify(rawContent);
+        } else {
+          content = rawContent;
+        }
+
         usage = result.usage;
       }
 
@@ -432,7 +441,15 @@ export async function callAI(
           ...commonConfig,
         } as any);
         timeCost = Date.now() - startTime;
-        content = (result as any).content[0].text as string;
+
+        const rawContent = (result as any).content[0].text;
+        // Handle structured output: ensure content is a string
+        if (typeof rawContent === 'object' && rawContent !== null) {
+          content = JSON.stringify(rawContent);
+        } else {
+          content = rawContent;
+        }
+
         usage = result.usage;
       }
 
@@ -583,6 +600,7 @@ export function preprocessDoubaoBboxJson(input: string) {
 
 export function safeParseJson(input: string, vlMode: TVlModeTypes | undefined) {
   const cleanJsonString = extractJSONFromCodeBlock(input);
+
   // match the point
   if (cleanJsonString?.match(/\((\d+),(\d+)\)/)) {
     return cleanJsonString
