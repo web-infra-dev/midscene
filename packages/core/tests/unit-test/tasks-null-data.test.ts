@@ -42,7 +42,10 @@ describe('TaskExecutor - Null Data Handling', () => {
       );
 
       // Execute the task
-      const result = await queryTask.executor({}, { task: queryTask });
+      const result = await queryTask.executor({}, {
+        task: queryTask,
+        uiContext: { screenshotBase64: '', size: { width: 0, height: 0 } },
+      } as any);
 
       // For WaitFor with null data, output should be false (condition not met)
       expect(result.output).toBe(false);
@@ -79,7 +82,10 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      const result = await queryTask.executor({}, { task: queryTask });
+      const result = await queryTask.executor({}, {
+        task: queryTask,
+        uiContext: { screenshotBase64: '', size: { width: 0, height: 0 } },
+      } as any);
 
       expect(result.output).toBe(false);
       expect(result.thought).toBe('Failed to evaluate condition');
@@ -115,7 +121,10 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      const result = await queryTask.executor({}, { task: queryTask });
+      const result = await queryTask.executor({}, {
+        task: queryTask,
+        uiContext: { screenshotBase64: '', size: { width: 0, height: 0 } },
+      } as any);
 
       // For Assert with null data, output should be null
       expect(result.output).toBeNull();
@@ -154,7 +163,10 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      const result = await queryTask.executor({}, { task: queryTask });
+      const result = await queryTask.executor({}, {
+        task: queryTask,
+        uiContext: { screenshotBase64: '', size: { width: 0, height: 0 } },
+      } as any);
 
       expect(result.output).toBe(true);
       expect(result.thought).toBe('Condition is met');
@@ -190,7 +202,10 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      const result = await queryTask.executor({}, { task: queryTask });
+      const result = await queryTask.executor({}, {
+        task: queryTask,
+        uiContext: { screenshotBase64: '', size: { width: 0, height: 0 } },
+      } as any);
 
       // When AI returns a plain string, it should be used directly
       expect(result.output).toBe('true');
@@ -226,7 +241,10 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      const result = await queryTask.executor({}, { task: queryTask });
+      const result = await queryTask.executor({}, {
+        task: queryTask,
+        uiContext: { screenshotBase64: '', size: { width: 0, height: 0 } },
+      } as any);
 
       // For Query with null data, entire null object should be returned
       expect(result.output).toBeNull();
@@ -262,7 +280,10 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      const result = await queryTask.executor({}, { task: queryTask });
+      const result = await queryTask.executor({}, {
+        task: queryTask,
+        uiContext: { screenshotBase64: '', size: { width: 0, height: 0 } },
+      } as any);
 
       expect(result.output).toBeNull();
     });
@@ -297,7 +318,10 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      const result = await queryTask.executor({}, { task: queryTask });
+      const result = await queryTask.executor({}, {
+        task: queryTask,
+        uiContext: { screenshotBase64: '', size: { width: 0, height: 0 } },
+      } as any);
 
       expect(result.output).toBeNull();
     });
