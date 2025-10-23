@@ -363,7 +363,7 @@ describe('create-yaml-player', () => {
         usePhysicalDisplayIdForScreenshot: true,
         usePhysicalDisplayIdForDisplayLookup: true,
         screenshotResizeScale: 0.5,
-        alwaysFetchScreenInfo: true,
+        alwaysRefreshScreenInfo: true,
         autoDismissKeyboard: true,
         keyboardDismissStrategy: 'esc-first' as const,
         launch: 'com.example.app',
@@ -409,7 +409,7 @@ describe('create-yaml-player', () => {
           usePhysicalDisplayIdForDisplayLookup:
             mockAndroidOptions.usePhysicalDisplayIdForDisplayLookup,
           screenshotResizeScale: mockAndroidOptions.screenshotResizeScale,
-          alwaysFetchScreenInfo: mockAndroidOptions.alwaysFetchScreenInfo,
+          alwaysRefreshScreenInfo: mockAndroidOptions.alwaysRefreshScreenInfo,
           autoDismissKeyboard: mockAndroidOptions.autoDismissKeyboard,
           keyboardDismissStrategy: mockAndroidOptions.keyboardDismissStrategy,
           launch: mockAndroidOptions.launch,

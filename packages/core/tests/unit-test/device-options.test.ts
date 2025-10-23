@@ -22,7 +22,7 @@ describe('Device Options Type Definitions', () => {
         usePhysicalDisplayIdForScreenshot: true,
         usePhysicalDisplayIdForDisplayLookup: true,
         screenshotResizeScale: 0.5,
-        alwaysFetchScreenInfo: true,
+        alwaysRefreshScreenInfo: true,
         autoDismissKeyboard: true,
         keyboardDismissStrategy: 'esc-first',
       };
@@ -93,7 +93,7 @@ describe('Device Options Type Definitions', () => {
         usePhysicalDisplayIdForScreenshot: true,
         usePhysicalDisplayIdForDisplayLookup: true,
         screenshotResizeScale: 0.5,
-        alwaysFetchScreenInfo: true,
+        alwaysRefreshScreenInfo: true,
         autoDismissKeyboard: true,
         keyboardDismissStrategy: 'esc-first',
 

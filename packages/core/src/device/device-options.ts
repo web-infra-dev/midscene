@@ -33,7 +33,7 @@ export type AndroidDeviceOpt = {
   /** Screenshot resize scale factor */
   screenshotResizeScale?: number;
   /** Always fetch screen info on each call; if false, cache the first result */
-  alwaysFetchScreenInfo?: boolean;
+  alwaysRefreshScreenInfo?: boolean;
 } & AndroidDeviceInputOpt;
 
 /**
