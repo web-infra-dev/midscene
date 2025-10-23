@@ -265,28 +265,32 @@ export class IOSWebDriverClient extends WebDriverClient {
   ): Promise<void> {
     this.ensureSession();
 
-    try {
-      // Use WebDriverAgent's drag endpoint (original working approach)
-      await this.makeRequest(
-        'POST',
-        `/session/${this.sessionId}/wda/dragfromtoforduration`,
+    // Use W3C Actions API for better scroll support
+    const actions = {
+      actions: [
         {
-          fromX,
-          fromY,
-          toX,
-          toY,
-          duration: duration / 1000, // WDA expects duration in seconds
+          type: 'pointer',
+          id: 'finger1',
+          parameters: { pointerType: 'touch' },
+          actions: [
+            { type: 'pointerMove', duration: 0, x: fromX, y: fromY },
+            { type: 'pointerDown', button: 0 },
+            { type: 'pause', duration: 100 },
+            { type: 'pointerMove', duration, x: toX, y: toY },
+            { type: 'pointerUp', button: 0 },
+          ],
         },
-      );
-      debugIOS(
-        `Swiped from (${fromX}, ${fromY}) to (${toX}, ${toY}) in ${duration}ms`,
-      );
-    } catch (error) {
-      debugIOS(
-        `Failed to swipe from (${fromX}, ${fromY}) to (${toX}, ${toY}): ${error}`,
-      );
-      throw new Error(`Failed to swipe: ${error}`);
-    }
+      ],
+    };
+
+    await this.makeRequest(
+      'POST',
+      `/session/${this.sessionId}/actions`,
+      actions,
+    );
+    debugIOS(
+      `Swiped using W3C Actions from (${fromX}, ${fromY}) to (${toX}, ${toY}) in ${duration}ms`,
+    );
   }
 
   async longPress(x: number, y: number, duration = 1000): Promise<void> {
