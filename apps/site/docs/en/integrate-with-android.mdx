@@ -129,6 +129,7 @@ The AndroidDevice constructor supports the following parameters:
   - `imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii'` - Optional, when should Midscene invoke [yadb](https://github.com/ysbing/YADB) to input texts. `'yadb-for-non-ascii'` uses yadb only when handling non-ASCII words, while `'always-yadb'` forces yadb for every input task. Try switching between these strategies if the default configuration fails to input texts. (Default: 'yadb-for-non-ascii')
   - `displayId?: number` - Optional, the display id to use. (Default: undefined, means use the current display)
   - `screenshotResizeScale?: number` - Optional, controls the size of the screenshot Midscene sends to the AI model. Default is `1 / devicePixelRatio`, so a 1200×800 display with a device pixel ratio of 3 sends an image of roughly 400×267 to the model. Adjusting this value manually is not recommended.
+  - `alwaysRefreshScreenInfo?: boolean` - Optional, whether to re-fetch screen size and orientation information every time. Default is false (uses cache for better performance). Set to true if the device may rotate or you need real-time screen information.
 
 ### Additional Android Agent Interfaces
 
