@@ -15,7 +15,7 @@ describe('bridge-io', () => {
   it('server already listening', async () => {
     const port = testPort++;
     const server = new BridgeServer(DEFAULT_HOST, port);
-    server.listen();
+    await server.listen();
     await expect(server.listen()).rejects.toThrow();
     server.close();
   });
@@ -23,7 +23,7 @@ describe('bridge-io', () => {
   it('refuse 2nd client connection', async () => {
     const port = testPort++;
     const server = new BridgeServer(DEFAULT_HOST, port);
-    server.listen();
+    await server.listen();
     const client = new BridgeClient(
       `ws://localhost:${port}`,
       (method, args) => {
@@ -53,12 +53,11 @@ describe('bridge-io', () => {
     //
     const port = testPort++;
     const server = new BridgeServer(DEFAULT_HOST, port);
-    server.listen();
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await server.listen();
     await server.close();
 
     const server2 = new BridgeServer(DEFAULT_HOST, port);
-    server2.listen();
+    await server2.listen();
     await server2.close();
   });
 
@@ -112,7 +111,7 @@ describe('bridge-io', () => {
     const responseValue = { hello: 'world' };
 
     const server = new BridgeServer(DEFAULT_HOST, port);
-    server.listen();
+    await server.listen();
     const client = new BridgeClient(
       `ws://localhost:${port}`,
       (method, args) => {
@@ -134,7 +133,7 @@ describe('bridge-io', () => {
     const port = testPort++;
     const server = new BridgeServer(DEFAULT_HOST, port);
     const errMsg = 'internal error';
-    server.listen();
+    await server.listen();
 
     const client = new BridgeClient(
       `ws://localhost:${port}`,
@@ -151,7 +150,7 @@ describe('bridge-io', () => {
   it('client disconnect event', async () => {
     const port = testPort++;
     const server = new BridgeServer(DEFAULT_HOST, port);
-    server.listen();
+    await server.listen();
 
     const fn = vi.fn();
 
@@ -182,7 +181,7 @@ describe('bridge-io', () => {
       onConnect,
       onDisconnect,
     );
-    server.listen();
+    await server.listen();
 
     const client = new BridgeClient(`ws://localhost:${port}`, () => {
       return Promise.resolve('ok');
@@ -201,7 +200,7 @@ describe('bridge-io', () => {
   it('flush all calls before connecting', async () => {
     const port = testPort++;
     const server = new BridgeServer(DEFAULT_HOST, port);
-    server.listen();
+    await server.listen();
 
     const client = new BridgeClient(
       `ws://localhost:${port}`,
@@ -228,7 +227,7 @@ describe('bridge-io', () => {
   it('server timeout', async () => {
     const port = testPort++;
     const server = new BridgeServer(DEFAULT_HOST, port);
-    server.listen();
+    await server.listen();
 
     const client = new BridgeClient(
       `ws://localhost:${port}`,
@@ -247,7 +246,7 @@ describe('bridge-io', () => {
   it('callback error after client disconnect', async () => {
     const port = testPort++;
     const server = new BridgeServer(DEFAULT_HOST, port);
-    server.listen();
+    await server.listen();
 
     const client = new BridgeClient(
       `ws://localhost:${port}`,

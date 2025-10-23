@@ -196,7 +196,9 @@ export class BridgeServer {
 
       // Set up HTTP server event listeners
       httpServer.once('listening', () => {
-        resolve();
+        // Add a small delay to ensure Socket.IO is fully ready
+        // This is especially important in CI environments
+        setImmediate(() => resolve());
       });
 
       httpServer.once('error', (err: Error) => {
