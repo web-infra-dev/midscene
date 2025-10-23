@@ -57,6 +57,14 @@ export const descriptionForAction = (
           return unwrapField(f._def.innerType);
         }
 
+        // Handle ZodEffects (transformations, refinements, preprocessors)
+        if (typeName === 'ZodEffects') {
+          // For ZodEffects, unwrap the schema field which contains the underlying type
+          if (f._def.schema) {
+            return unwrapField(f._def.schema);
+          }
+        }
+
         return f;
       };
 
@@ -82,6 +90,16 @@ export const descriptionForAction = (
 
         return `enum(${values})`;
       }
+      // Handle ZodUnion by taking the first option (for display purposes)
+      if (fieldTypeName === 'ZodUnion') {
+        const options = actualField._def?.options as any[] | undefined;
+        if (options && options.length > 0) {
+          // For unions, list all types
+          const types = options.map((opt: any) => getTypeName(opt));
+          return types.join(' | ');
+        }
+        return 'union';
+      }
 
       console.warn(
         'failed to parse Zod type. This may lead to wrong params from the LLM.\n',
@@ -105,6 +123,14 @@ export const descriptionForAction = (
           typeName === 'ZodDefault'
         ) {
           return unwrapField(f._def.innerType);
+        }
+
+        // Handle ZodEffects (transformations, refinements, preprocessors)
+        if (typeName === 'ZodEffects') {
+          // For ZodEffects, unwrap the schema field which contains the underlying type
+          if (f._def.schema) {
+            return unwrapField(f._def.schema);
+          }
         }
 
         return f;

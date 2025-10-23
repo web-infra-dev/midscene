@@ -86,15 +86,13 @@ const main = async () => {
 
   try {
     let wdaConfig = { host: 'localhost', port: DEFAULT_WDA_PORT };
-    let device: IOSDevice;
-    let agent: IOSAgent;
     let connected = false;
 
     while (!connected) {
       try {
         // Create device with WebDriverAgent configuration
         // deviceId will be auto-detected from WebDriverAgent connection
-        device = new IOSDevice({
+        const device = new IOSDevice({
           wdaHost: wdaConfig.host,
           wdaPort: wdaConfig.port,
         });
@@ -105,7 +103,6 @@ const main = async () => {
         );
         await device.connect();
 
-        agent = new IOSAgent(device);
         connected = true;
 
         // Get real device info after connection
@@ -165,7 +162,18 @@ const main = async () => {
       }
     }
 
-    const playgroundServer = new PlaygroundServer(device!, agent!, staticDir);
+    // Create agent factory with explicit type
+    const agentFactory = async (): Promise<IOSAgent> => {
+      const newDevice = new IOSDevice({
+        wdaHost: wdaConfig.host,
+        wdaPort: wdaConfig.port,
+      });
+      await newDevice.connect();
+      return new IOSAgent(newDevice);
+    };
+
+    // Create PlaygroundServer with agent factory
+    const playgroundServer = new PlaygroundServer(agentFactory, staticDir);
 
     console.log('🚀 Starting server...');
 

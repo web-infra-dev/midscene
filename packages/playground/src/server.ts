@@ -3,7 +3,6 @@ import type { Server } from 'node:http';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Agent as PageAgent } from '@midscene/core/agent';
-import type { AbstractInterface } from '@midscene/core/device';
 import { getTmpDir } from '@midscene/core/utils';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import { overrideAIConfig } from '@midscene/shared/env';
@@ -39,7 +38,6 @@ class PlaygroundServer {
   tmpDir: string;
   server?: Server;
   port?: number | null;
-  page: AbstractInterface;
   agent: PageAgent;
   staticPath: string;
   taskProgressTips: Record<string, string>;
@@ -47,20 +45,32 @@ class PlaygroundServer {
 
   private _initialized = false;
 
+  // Factory function for recreating agent
+  private agentFactory?: (() => PageAgent | Promise<PageAgent>) | null;
+
+  // Track current running task
+  private currentTaskId: string | null = null;
+
   constructor(
-    page: AbstractInterface,
-    agent: PageAgent,
+    agent: PageAgent | (() => PageAgent) | (() => Promise<PageAgent>),
     staticPath = STATIC_PATH,
     id?: string, // Optional override ID
   ) {
     this._app = express();
     this.tmpDir = getTmpDir()!;
-    this.page = page;
-    this.agent = agent;
     this.staticPath = staticPath;
     this.taskProgressTips = {};
     // Use provided ID, or generate random UUID for each startup
     this.id = id || uuid();
+
+    // Support both instance and factory function modes
+    if (typeof agent === 'function') {
+      this.agentFactory = agent;
+      this.agent = null as any; // Will be initialized in launch()
+    } else {
+      this.agent = agent;
+      this.agentFactory = null;
+    }
   }
 
   /**
@@ -74,7 +84,7 @@ class PlaygroundServer {
    * ```typescript
    * import cors from 'cors';
    *
-   * const server = new PlaygroundServer(page, agent);
+   * const server = new PlaygroundServer(agent);
    *
    * // Add CORS middleware before launch
    * server.app.use(cors({
@@ -106,10 +116,10 @@ class PlaygroundServer {
         const { context } = req.body || {};
         if (
           context &&
-          'updateContext' in this.page &&
-          typeof this.page.updateContext === 'function'
+          'updateContext' in this.agent.interface &&
+          typeof this.agent.interface.updateContext === 'function'
         ) {
-          this.page.updateContext(context);
+          this.agent.interface.updateContext(context);
           console.log('Context updated by PlaygroundServer middleware');
         }
         next();
@@ -140,6 +150,38 @@ class PlaygroundServer {
     console.log(`save context file: ${tmpFile}`);
     writeFileSync(tmpFile, context);
     return tmpFile;
+  }
+
+  /**
+   * Recreate agent instance (for cancellation)
+   */
+  private async recreateAgent(): Promise<void> {
+    if (!this.agentFactory) {
+      console.warn(
+        'Cannot recreate agent: factory function not provided. Agent recreation is only available when using factory mode.',
+      );
+      return;
+    }
+
+    console.log('Recreating agent to cancel current task...');
+
+    // Destroy old agent instance
+    try {
+      if (this.agent && typeof this.agent.destroy === 'function') {
+        await this.agent.destroy();
+      }
+    } catch (error) {
+      console.warn('Failed to destroy old agent:', error);
+    }
+
+    // Create new agent instance
+    try {
+      this.agent = await this.agentFactory();
+      console.log('Agent recreated successfully');
+    } catch (error) {
+      console.error('Failed to recreate agent:', error);
+      throw error;
+    }
   }
 
   /**
@@ -183,7 +225,7 @@ class PlaygroundServer {
       try {
         let actionSpace = [];
 
-        actionSpace = await this.page.actionSpace();
+        actionSpace = await this.agent.interface.actionSpace();
 
         // Process actionSpace to make paramSchema serializable with shape info
         const processedActionSpace = actionSpace.map((action: unknown) => {
@@ -281,7 +323,17 @@ class PlaygroundServer {
         });
       }
 
+      // Check if another task is running
+      if (this.currentTaskId) {
+        return res.status(409).json({
+          error: 'Another task is already running',
+          currentTaskId: this.currentTaskId,
+        });
+      }
+
+      // Lock this task
       if (requestId) {
+        this.currentTaskId = requestId;
         this.taskProgressTips[requestId] = '';
 
         this.agent.onTaskStartTip = (tip: string) => {
@@ -306,7 +358,7 @@ class PlaygroundServer {
       const startTime = Date.now();
       try {
         // Get action space to check for dynamic actions
-        const actionSpace = await this.page.actionSpace();
+        const actionSpace = await this.agent.interface.actionSpace();
 
         // Prepare value object for executeAction
         const value = {
@@ -357,9 +409,13 @@ class PlaygroundServer {
         );
       }
 
-      // Clean up task progress tip after execution completes
+      // Clean up task progress tip and unlock after execution completes
       if (requestId) {
         delete this.taskProgressTips[requestId];
+        // Release the lock
+        if (this.currentTaskId === requestId) {
+          this.currentTaskId = null;
+        }
       }
     });
 
@@ -375,11 +431,27 @@ class PlaygroundServer {
         }
 
         try {
-          // Since we only have one agent, just clear the task progress tip
-          if (this.taskProgressTips[requestId]) {
-            delete this.taskProgressTips[requestId];
+          // Check if this is the current running task
+          if (this.currentTaskId !== requestId) {
+            return res.json({
+              status: 'not_found',
+              message: 'Task not found or already completed',
+            });
           }
-          res.json({ status: 'cancelled' });
+
+          console.log(`Cancelling task: ${requestId}`);
+
+          // Recreate agent to cancel the current task
+          await this.recreateAgent();
+
+          // Clean up
+          delete this.taskProgressTips[requestId];
+          this.currentTaskId = null;
+
+          res.json({
+            status: 'cancelled',
+            message: 'Task cancelled successfully by recreating agent',
+          });
         } catch (error: unknown) {
           const errorMessage =
             error instanceof Error ? error.message : 'Unknown error';
@@ -395,13 +467,13 @@ class PlaygroundServer {
     this._app.get('/screenshot', async (_req: Request, res: Response) => {
       try {
         // Check if page has screenshotBase64 method
-        if (typeof this.page.screenshotBase64 !== 'function') {
+        if (typeof this.agent.interface.screenshotBase64 !== 'function') {
           return res.status(500).json({
             error: 'Screenshot method not available on current interface',
           });
         }
 
-        const base64Screenshot = await this.page.screenshotBase64();
+        const base64Screenshot = await this.agent.interface.screenshotBase64();
 
         res.json({
           screenshot: base64Screenshot,
@@ -420,8 +492,8 @@ class PlaygroundServer {
     // Interface info API for getting interface type and description
     this._app.get('/interface-info', async (_req: Request, res: Response) => {
       try {
-        const type = this.page.interfaceType || 'Unknown';
-        const description = this.page.describe?.() || undefined;
+        const type = this.agent.interface.interfaceType || 'Unknown';
+        const description = this.agent.interface.describe?.() || undefined;
 
         res.json({
           type,
@@ -526,12 +598,17 @@ class PlaygroundServer {
    * Launch the server on specified port
    */
   async launch(port?: number): Promise<PlaygroundServer> {
+    // If using factory mode, initialize agent
+    if (this.agentFactory) {
+      console.log('Initializing agent from factory function...');
+      this.agent = await this.agentFactory();
+      console.log('Agent initialized successfully');
+    }
+
     // Initialize routes now, after any middleware has been added
     this.initializeApp();
 
     this.port = port || defaultPort;
-
-    // Keep the random UUID as-is, no need to regenerate
 
     return new Promise((resolve) => {
       const serverPort = this.port;

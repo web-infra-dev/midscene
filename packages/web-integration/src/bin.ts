@@ -14,8 +14,8 @@ const page = new StaticPage({
 });
 const agent = new StaticPageAgent(page);
 
-// Create server
-const server = new PlaygroundServer(page, agent);
+// Create server with agent only
+const server = new PlaygroundServer(agent);
 
 // Register CORS middleware
 server.app.use(
