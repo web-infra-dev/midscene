@@ -352,8 +352,12 @@ describe('llm planning - descriptionForAction with ZodEffects and ZodUnion', () 
     };
 
     const description = descriptionForAction(action, 'string');
-    expect(description).toContain('value: string');
-    expect(description).toContain('TestAction');
+    expect(description).toMatchInlineSnapshot(`
+      "- TestAction, Test action with ZodEffects
+        - type: "TestAction"
+        - param:
+          - value: string"
+    `);
   });
 
   it('should handle ZodEffects with refinement', () => {
@@ -369,8 +373,12 @@ describe('llm planning - descriptionForAction with ZodEffects and ZodUnion', () 
     };
 
     const description = descriptionForAction(action, 'string');
-    expect(description).toContain('email: string');
-    expect(description).toContain('ValidateEmail');
+    expect(description).toMatchInlineSnapshot(`
+      "- ValidateEmail, Validate email action
+        - type: "ValidateEmail"
+        - param:
+          - email: string"
+    `);
   });
 
   it('should handle ZodEffects with description', () => {
@@ -389,8 +397,12 @@ describe('llm planning - descriptionForAction with ZodEffects and ZodUnion', () 
     };
 
     const description = descriptionForAction(action, 'string');
-    expect(description).toContain('count: number');
-    expect(description).toContain('Number to be doubled');
+    expect(description).toMatchInlineSnapshot(`
+      "- DoubleNumber, Double the number
+        - type: "DoubleNumber"
+        - param:
+          - count: number // Number to be doubled"
+    `);
   });
 
   it('should handle ZodUnion types', () => {
@@ -406,8 +418,12 @@ describe('llm planning - descriptionForAction with ZodEffects and ZodUnion', () 
     };
 
     const description = descriptionForAction(action, 'string');
-    expect(description).toContain('value: string | number');
-    expect(description).toContain('UnionTest');
+    expect(description).toMatchInlineSnapshot(`
+      "- UnionTest, Test union types
+        - type: "UnionTest"
+        - param:
+          - value: string | number"
+    `);
   });
 
   it('should handle ZodUnion with multiple types', () => {
@@ -423,7 +439,12 @@ describe('llm planning - descriptionForAction with ZodEffects and ZodUnion', () 
     };
 
     const description = descriptionForAction(action, 'string');
-    expect(description).toContain('status: string | number | boolean');
+    expect(description).toMatchInlineSnapshot(`
+      "- MultiUnion, Multiple union types
+        - type: "MultiUnion"
+        - param:
+          - status: string | number | boolean"
+    `);
   });
 
   it('should handle ZodUnion with description', () => {
@@ -441,8 +462,12 @@ describe('llm planning - descriptionForAction with ZodEffects and ZodUnion', () 
     };
 
     const description = descriptionForAction(action, 'string');
-    expect(description).toContain('input: string | number');
-    expect(description).toContain('Either a string or number');
+    expect(description).toMatchInlineSnapshot(`
+      "- FlexibleInput, Accepts string or number
+        - type: "FlexibleInput"
+        - param:
+          - input: string | number // Either a string or number"
+    `);
   });
 
   it('should handle optional ZodEffects', () => {
@@ -458,7 +483,12 @@ describe('llm planning - descriptionForAction with ZodEffects and ZodUnion', () 
     };
 
     const description = descriptionForAction(action, 'string');
-    expect(description).toContain('optionalEmail?: string');
+    expect(description).toMatchInlineSnapshot(`
+      "- OptionalEmail, Optional email field
+        - type: "OptionalEmail"
+        - param:
+          - optionalEmail?: string"
+    `);
   });
 
   it('should handle optional ZodUnion', () => {
@@ -474,7 +504,12 @@ describe('llm planning - descriptionForAction with ZodEffects and ZodUnion', () 
     };
 
     const description = descriptionForAction(action, 'string');
-    expect(description).toContain('optionalValue?: string | number');
+    expect(description).toMatchInlineSnapshot(`
+      "- OptionalUnion, Optional union field
+        - type: "OptionalUnion"
+        - param:
+          - optionalValue?: string | number"
+    `);
   });
 
   it('should handle nullable ZodEffects', () => {
@@ -493,7 +528,12 @@ describe('llm planning - descriptionForAction with ZodEffects and ZodUnion', () 
     };
 
     const description = descriptionForAction(action, 'string');
-    expect(description).toContain('nullableTransform: string');
+    expect(description).toMatchInlineSnapshot(`
+      "- NullableTransform, Nullable transform field
+        - type: "NullableTransform"
+        - param:
+          - nullableTransform: string"
+    `);
   });
 
   it('should handle ZodEffects with ZodUnion', () => {
@@ -512,7 +552,12 @@ describe('llm planning - descriptionForAction with ZodEffects and ZodUnion', () 
 
     const description = descriptionForAction(action, 'string');
     // The transform wraps the union, so we should get string | number from the inner union
-    expect(description).toContain('complexField: string | number');
+    expect(description).toMatchInlineSnapshot(`
+      "- ComplexField, Complex field with union and transform
+        - type: "ComplexField"
+        - param:
+          - complexField: string | number"
+    `);
   });
 
   it('should handle ZodDefault with ZodEffects', () => {
@@ -532,7 +577,12 @@ describe('llm planning - descriptionForAction with ZodEffects and ZodUnion', () 
 
     const description = descriptionForAction(action, 'string');
     // Fields with .default() are optional
-    expect(description).toContain('withDefault?: string');
+    expect(description).toMatchInlineSnapshot(`
+      "- DefaultTransform, Field with default and transform
+        - type: "DefaultTransform"
+        - param:
+          - withDefault?: string"
+    `);
   });
 
   it('should handle complex nested ZodUnion', () => {
@@ -551,6 +601,11 @@ describe('llm planning - descriptionForAction with ZodEffects and ZodUnion', () 
     };
 
     const description = descriptionForAction(action, 'string');
-    expect(description).toContain('nested: string | object');
+    expect(description).toMatchInlineSnapshot(`
+      "- NestedUnion, Nested union type
+        - type: "NestedUnion"
+        - param:
+          - nested: string | object"
+    `);
   });
 });
