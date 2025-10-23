@@ -214,7 +214,7 @@ export const defineActionKeyboardPress = (
   >({
     name: 'KeyboardPress',
     description:
-      'Press a function key, like "Enter", "Tab", "Escape". Do not use this to type text.',
+      'Press a key or key combination, like "Enter", "Tab", "Escape", or "Control+A", "Shift+Enter". Do not use this to type text.',
     interfaceAlias: 'aiKeyboardPress',
     paramSchema: actionKeyboardPressParamSchema,
     call,
