@@ -121,7 +121,7 @@ const main = async () => {
 
     // Create device and agent instances with selected device
     const device = new AndroidDevice(selectedDeviceId, {
-      alwaysFetchScreenInfo: true,
+      alwaysRefreshScreenInfo: true,
     });
     const agent = new AndroidAgent(device);
 

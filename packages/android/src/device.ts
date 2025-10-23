@@ -69,7 +69,7 @@ export type AndroidDeviceOpt = {
   usePhysicalDisplayIdForDisplayLookup?: boolean;
   customActions?: DeviceAction<any>[];
   screenshotResizeScale?: number;
-  alwaysFetchScreenInfo?: boolean; // If true, always fetch screen size and orientation from device on each call; if false (default), cache the first result
+  alwaysRefreshScreenInfo?: boolean; // If true, always fetch screen size and orientation from device on each call; if false (default), cache the first result
 } & AndroidDeviceInputOpt;
 
 export class AndroidDevice implements AbstractInterface {
@@ -524,7 +524,7 @@ ${Object.keys(size)
     orientation: number; // 0=portrait, 1=landscape, 2=reverse portrait, 3=reverse landscape
   }> {
     // Return cached value if not always fetching and cache exists
-    const shouldCache = !(this.options?.alwaysFetchScreenInfo ?? false);
+    const shouldCache = !(this.options?.alwaysRefreshScreenInfo ?? false);
     if (shouldCache && this.cachedScreenSize) {
       return this.cachedScreenSize;
     }
@@ -738,7 +738,7 @@ ${Object.keys(size)
 
   async getDisplayOrientation(): Promise<number> {
     // Return cached value if not always fetching and cache exists
-    const shouldCache = !(this.options?.alwaysFetchScreenInfo ?? false);
+    const shouldCache = !(this.options?.alwaysRefreshScreenInfo ?? false);
     if (shouldCache && this.cachedOrientation !== null) {
       return this.cachedOrientation;
     }
