@@ -34,8 +34,8 @@ export async function agentFromAdbDevice(
     );
   }
 
-  // Pass all device options to AndroidDevice constructor
-  const device = new AndroidDevice(deviceId, opts);
+  // Pass all device options to AndroidDevice constructor, ensuring we pass an empty object if opts is undefined
+  const device = new AndroidDevice(deviceId, opts || {});
 
   await device.connect();
 

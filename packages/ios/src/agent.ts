@@ -25,8 +25,8 @@ export async function agentFromWebDriverAgent(
     throw new Error(`iOS environment not available: ${envCheck.error}`);
   }
 
-  // Pass all device options to IOSDevice constructor
-  const device = new IOSDevice(opts);
+  // Pass all device options to IOSDevice constructor, ensuring we pass an empty object if opts is undefined
+  const device = new IOSDevice(opts || {});
 
   await device.connect();
 
