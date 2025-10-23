@@ -194,7 +194,11 @@ export const actionKeyboardPressParamSchema = z.object({
   locate: getMidsceneLocationSchema()
     .describe('The element to be clicked before pressing the key')
     .optional(),
-  keyName: z.string().describe('The key to be pressed'),
+  keyName: z
+    .string()
+    .describe(
+      "The key to be pressed. Use '+' for key combinations, e.g., 'Control+A', 'Shift+Enter'",
+    ),
 });
 export type ActionKeyboardPressParam = {
   locate?: LocateResultElement;
@@ -210,7 +214,7 @@ export const defineActionKeyboardPress = (
   >({
     name: 'KeyboardPress',
     description:
-      'Press a function key, like "Enter", "Tab", "Escape". Do not use this to type text.',
+      'Press a key or key combination, like "Enter", "Tab", "Escape", or "Control+A", "Shift+Enter". Do not use this to type text.',
     interfaceAlias: 'aiKeyboardPress',
     paramSchema: actionKeyboardPressParamSchema,
     call,

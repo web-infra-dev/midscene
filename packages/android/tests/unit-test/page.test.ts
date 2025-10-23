@@ -25,6 +25,7 @@ const createMockAdb = () => ({
   pull: vi.fn(),
   inputText: vi.fn(),
   keyevent: vi.fn(),
+  clearTextField: vi.fn(),
   hideKeyboard: vi.fn(),
   push: vi.fn(),
   isSoftKeyboardPresent: vi.fn().mockResolvedValue(false),
@@ -125,7 +126,7 @@ describe('AndroidDevice', () => {
       const size1 = await device.size();
       const size2 = await device.size();
 
-      expect(size1).toEqual({ width: 540, height: 960 });
+      expect(size1).toEqual({ width: 540, height: 960, dpr: 2 });
       expect(size2).toEqual(size1);
       // Caching is removed, so it should be called twice
       expect(vi.spyOn(device as any, 'getScreenSize')).toHaveBeenCalledTimes(2);
