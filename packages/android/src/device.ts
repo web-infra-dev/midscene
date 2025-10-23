@@ -1369,12 +1369,8 @@ ${Object.keys(size)
     const n = 4; // Divide the screen into n equal parts
 
     // Set the starting point based on the swipe direction
-    const startX = Math.round(
-      deltaX < 0 ? (n - 1) * (width / n) : width / n,
-    );
-    const startY = Math.round(
-      deltaY < 0 ? (n - 1) * (height / n) : height / n,
-    );
+    const startX = Math.round(deltaX < 0 ? (n - 1) * (width / n) : width / n);
+    const startY = Math.round(deltaY < 0 ? (n - 1) * (height / n) : height / n);
 
     // Calculate the maximum swipeable range
     const maxNegativeDeltaX = startX;

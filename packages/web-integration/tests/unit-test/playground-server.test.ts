@@ -12,7 +12,7 @@ describe('Playground Server', () => {
       screenshotBase64: '',
     });
     const agent = new StaticPageAgent(page);
-    server = new PlaygroundServer(page, agent);
+    server = new PlaygroundServer(agent);
     await server.launch();
     serverBase = `http://localhost:${server.port}`;
   });

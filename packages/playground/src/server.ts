@@ -52,10 +52,7 @@ class PlaygroundServer {
   private currentTaskId: string | null = null;
 
   constructor(
-    agent:
-      | PageAgent
-      | (() => PageAgent)
-      | (() => Promise<PageAgent>),
+    agent: PageAgent | (() => PageAgent) | (() => Promise<PageAgent>),
     staticPath = STATIC_PATH,
     id?: string, // Optional override ID
   ) {

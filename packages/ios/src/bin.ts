@@ -173,10 +173,7 @@ const main = async () => {
     };
 
     // Create PlaygroundServer with agent factory
-    const playgroundServer = new PlaygroundServer(
-      agentFactory,
-      staticDir,
-    );
+    const playgroundServer = new PlaygroundServer(agentFactory, staticDir);
 
     console.log('🚀 Starting server...');
 
