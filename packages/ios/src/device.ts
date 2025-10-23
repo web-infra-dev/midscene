@@ -11,6 +11,8 @@ import {
 import {
   type AbstractInterface,
   type ActionTapParam,
+  type IOSDeviceInputOpt,
+  type IOSDeviceOpt,
   defineAction,
   defineActionClearInput,
   defineActionDoubleClick,
@@ -27,20 +29,11 @@ import { getDebug } from '@midscene/shared/logger';
 import { WDAManager } from '@midscene/webdriver';
 import { IOSWebDriverClient as WebDriverAgentBackend } from './ios-webdriver-client';
 
+// Re-export IOSDeviceOpt and IOSDeviceInputOpt for backward compatibility
+export type { IOSDeviceOpt, IOSDeviceInputOpt } from '@midscene/core/device';
+
 const debugDevice = getDebug('ios:device');
 const BackspaceChar = '\u0008'; // Unicode backspace character
-
-export type IOSDeviceInputOpt = {
-  autoDismissKeyboard?: boolean;
-};
-
-export type IOSDeviceOpt = {
-  deviceId?: string;
-  customActions?: DeviceAction<any>[];
-  wdaPort?: number;
-  wdaHost?: string;
-  useWDA?: boolean;
-} & IOSDeviceInputOpt;
 
 export class IOSDevice implements AbstractInterface {
   private deviceId: string;

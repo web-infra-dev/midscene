@@ -1,4 +1,5 @@
 import type { TUserPrompt } from './ai-model/common';
+import type { AndroidDeviceOpt, IOSDeviceOpt } from './device';
 import type { AgentOpt, Rect } from './types';
 import type { BaseElement, UIContext } from './types';
 
@@ -95,7 +96,9 @@ export interface MidsceneYamlScriptWebEnv
   closeNewTabsAfterDisconnect?: boolean;
 }
 
-export interface MidsceneYamlScriptAndroidEnv extends MidsceneYamlScriptConfig {
+export interface MidsceneYamlScriptAndroidEnv
+  extends MidsceneYamlScriptConfig,
+    Omit<AndroidDeviceOpt, 'customActions'> {
   // The Android device ID to connect to, optional, will use the first device if not specified
   deviceId?: string;
 
@@ -103,14 +106,9 @@ export interface MidsceneYamlScriptAndroidEnv extends MidsceneYamlScriptConfig {
   launch?: string;
 }
 
-export interface MidsceneYamlScriptIOSEnv extends MidsceneYamlScriptConfig {
-  // WebDriverAgent configuration
-  wdaPort?: number;
-  wdaHost?: string;
-
-  // Keyboard behavior configuration
-  autoDismissKeyboard?: boolean;
-
+export interface MidsceneYamlScriptIOSEnv
+  extends MidsceneYamlScriptConfig,
+    Omit<IOSDeviceOpt, 'customActions'> {
   // The URL or app bundle ID to launch, optional, will use the current screen if not specified
   launch?: string;
 }

@@ -185,6 +185,7 @@ export async function createYamlPlayer(
       if (typeof clonedYamlScript.android !== 'undefined') {
         const androidTarget = clonedYamlScript.android;
         const agent = await agentFromAdbDevice(androidTarget?.deviceId, {
+          ...androidTarget, // Pass all Android config options
           cache: processCacheConfig(yamlScript.agent?.cache, fileName),
         });
 
@@ -204,8 +205,8 @@ export async function createYamlPlayer(
       if (typeof clonedYamlScript.ios !== 'undefined') {
         const iosTarget = clonedYamlScript.ios;
         const agent = await agentFromWebDriverAgent({
-          wdaPort: iosTarget?.wdaPort,
-          wdaHost: iosTarget?.wdaHost,
+          ...iosTarget, // Pass all iOS config options
+          cache: processCacheConfig(yamlScript.agent?.cache, fileName),
         });
 
         if (iosTarget?.launch) {

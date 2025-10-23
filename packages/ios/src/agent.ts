@@ -25,13 +25,8 @@ export async function agentFromWebDriverAgent(
     throw new Error(`iOS environment not available: ${envCheck.error}`);
   }
 
-  const device = new IOSDevice({
-    autoDismissKeyboard: opts?.autoDismissKeyboard,
-    customActions: opts?.customActions,
-    wdaPort: opts?.wdaPort,
-    wdaHost: opts?.wdaHost,
-    useWDA: opts?.useWDA,
-  });
+  // Pass all device options to IOSDevice constructor
+  const device = new IOSDevice(opts);
 
   await device.connect();
 
