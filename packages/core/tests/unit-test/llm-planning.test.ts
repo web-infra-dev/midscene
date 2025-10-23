@@ -4,6 +4,7 @@ import {
   getMidsceneLocationSchema,
 } from '@/ai-model/common';
 import { buildYamlFlowFromPlans } from '@/ai-model/common';
+import { descriptionForAction } from '@/ai-model/prompt/llm-planning';
 import {
   MIDSCENE_USE_DOUBAO_VISION,
   OPENAI_API_KEY,
@@ -334,5 +335,277 @@ describe('llm planning - build yaml flow', () => {
         duration: 1000,
       },
     ]);
+  });
+});
+
+describe('llm planning - descriptionForAction with ZodEffects and ZodUnion', () => {
+  it('should handle ZodEffects (transform)', () => {
+    const schema = z.object({
+      value: z.string().transform((val) => val.toLowerCase()),
+    });
+
+    const action = {
+      name: 'TestAction',
+      description: 'Test action with ZodEffects',
+      paramSchema: schema,
+      call: async () => {},
+    };
+
+    const description = descriptionForAction(action, 'string');
+    expect(description).toMatchInlineSnapshot(`
+      "- TestAction, Test action with ZodEffects
+        - type: "TestAction"
+        - param:
+          - value: string"
+    `);
+  });
+
+  it('should handle ZodEffects with refinement', () => {
+    const schema = z.object({
+      email: z.string().email(),
+    });
+
+    const action = {
+      name: 'ValidateEmail',
+      description: 'Validate email action',
+      paramSchema: schema,
+      call: async () => {},
+    };
+
+    const description = descriptionForAction(action, 'string');
+    expect(description).toMatchInlineSnapshot(`
+      "- ValidateEmail, Validate email action
+        - type: "ValidateEmail"
+        - param:
+          - email: string"
+    `);
+  });
+
+  it('should handle ZodEffects with description', () => {
+    const schema = z.object({
+      count: z
+        .number()
+        .transform((val) => val * 2)
+        .describe('Number to be doubled'),
+    });
+
+    const action = {
+      name: 'DoubleNumber',
+      description: 'Double the number',
+      paramSchema: schema,
+      call: async () => {},
+    };
+
+    const description = descriptionForAction(action, 'string');
+    expect(description).toMatchInlineSnapshot(`
+      "- DoubleNumber, Double the number
+        - type: "DoubleNumber"
+        - param:
+          - count: number // Number to be doubled"
+    `);
+  });
+
+  it('should handle ZodUnion types', () => {
+    const schema = z.object({
+      value: z.union([z.string(), z.number()]),
+    });
+
+    const action = {
+      name: 'UnionTest',
+      description: 'Test union types',
+      paramSchema: schema,
+      call: async () => {},
+    };
+
+    const description = descriptionForAction(action, 'string');
+    expect(description).toMatchInlineSnapshot(`
+      "- UnionTest, Test union types
+        - type: "UnionTest"
+        - param:
+          - value: string | number"
+    `);
+  });
+
+  it('should handle ZodUnion with multiple types', () => {
+    const schema = z.object({
+      status: z.union([z.string(), z.number(), z.boolean()]),
+    });
+
+    const action = {
+      name: 'MultiUnion',
+      description: 'Multiple union types',
+      paramSchema: schema,
+      call: async () => {},
+    };
+
+    const description = descriptionForAction(action, 'string');
+    expect(description).toMatchInlineSnapshot(`
+      "- MultiUnion, Multiple union types
+        - type: "MultiUnion"
+        - param:
+          - status: string | number | boolean"
+    `);
+  });
+
+  it('should handle ZodUnion with description', () => {
+    const schema = z.object({
+      input: z
+        .union([z.string(), z.number()])
+        .describe('Either a string or number'),
+    });
+
+    const action = {
+      name: 'FlexibleInput',
+      description: 'Accepts string or number',
+      paramSchema: schema,
+      call: async () => {},
+    };
+
+    const description = descriptionForAction(action, 'string');
+    expect(description).toMatchInlineSnapshot(`
+      "- FlexibleInput, Accepts string or number
+        - type: "FlexibleInput"
+        - param:
+          - input: string | number // Either a string or number"
+    `);
+  });
+
+  it('should handle optional ZodEffects', () => {
+    const schema = z.object({
+      optionalEmail: z.string().email().optional(),
+    });
+
+    const action = {
+      name: 'OptionalEmail',
+      description: 'Optional email field',
+      paramSchema: schema,
+      call: async () => {},
+    };
+
+    const description = descriptionForAction(action, 'string');
+    expect(description).toMatchInlineSnapshot(`
+      "- OptionalEmail, Optional email field
+        - type: "OptionalEmail"
+        - param:
+          - optionalEmail?: string"
+    `);
+  });
+
+  it('should handle optional ZodUnion', () => {
+    const schema = z.object({
+      optionalValue: z.union([z.string(), z.number()]).optional(),
+    });
+
+    const action = {
+      name: 'OptionalUnion',
+      description: 'Optional union field',
+      paramSchema: schema,
+      call: async () => {},
+    };
+
+    const description = descriptionForAction(action, 'string');
+    expect(description).toMatchInlineSnapshot(`
+      "- OptionalUnion, Optional union field
+        - type: "OptionalUnion"
+        - param:
+          - optionalValue?: string | number"
+    `);
+  });
+
+  it('should handle nullable ZodEffects', () => {
+    const schema = z.object({
+      nullableTransform: z
+        .string()
+        .transform((val) => val.toUpperCase())
+        .nullable(),
+    });
+
+    const action = {
+      name: 'NullableTransform',
+      description: 'Nullable transform field',
+      paramSchema: schema,
+      call: async () => {},
+    };
+
+    const description = descriptionForAction(action, 'string');
+    expect(description).toMatchInlineSnapshot(`
+      "- NullableTransform, Nullable transform field
+        - type: "NullableTransform"
+        - param:
+          - nullableTransform: string"
+    `);
+  });
+
+  it('should handle ZodEffects with ZodUnion', () => {
+    const schema = z.object({
+      complexField: z
+        .union([z.string(), z.number()])
+        .transform((val) => String(val)),
+    });
+
+    const action = {
+      name: 'ComplexField',
+      description: 'Complex field with union and transform',
+      paramSchema: schema,
+      call: async () => {},
+    };
+
+    const description = descriptionForAction(action, 'string');
+    // The transform wraps the union, so we should get string | number from the inner union
+    expect(description).toMatchInlineSnapshot(`
+      "- ComplexField, Complex field with union and transform
+        - type: "ComplexField"
+        - param:
+          - complexField: string | number"
+    `);
+  });
+
+  it('should handle ZodDefault with ZodEffects', () => {
+    const schema = z.object({
+      withDefault: z
+        .string()
+        .transform((val) => val.trim())
+        .default('default'),
+    });
+
+    const action = {
+      name: 'DefaultTransform',
+      description: 'Field with default and transform',
+      paramSchema: schema,
+      call: async () => {},
+    };
+
+    const description = descriptionForAction(action, 'string');
+    // Fields with .default() are optional
+    expect(description).toMatchInlineSnapshot(`
+      "- DefaultTransform, Field with default and transform
+        - type: "DefaultTransform"
+        - param:
+          - withDefault?: string"
+    `);
+  });
+
+  it('should handle complex nested ZodUnion', () => {
+    const schema = z.object({
+      nested: z.union([
+        z.string(),
+        z.object({ type: z.string(), value: z.number() }),
+      ]),
+    });
+
+    const action = {
+      name: 'NestedUnion',
+      description: 'Nested union type',
+      paramSchema: schema,
+      call: async () => {},
+    };
+
+    const description = descriptionForAction(action, 'string');
+    expect(description).toMatchInlineSnapshot(`
+      "- NestedUnion, Nested union type
+        - type: "NestedUnion"
+        - param:
+          - nested: string | object"
+    `);
   });
 });
