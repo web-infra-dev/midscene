@@ -119,16 +119,14 @@ const main = async () => {
     const selectedDeviceId = await selectDevice();
     console.log(`✅ Selected device: ${selectedDeviceId}`);
 
-    // Create PlaygroundServer with factory functions
+    // Create PlaygroundServer with agent factory
     const playgroundServer = new PlaygroundServer(
-      // Device factory - creates new device instance each time
+      // Agent factory - creates new agent with device each time
       async () => {
         const device = new AndroidDevice(selectedDeviceId);
         await device.connect();
-        return device;
+        return new AndroidAgent(device);
       },
-      // Agent factory - creates new agent for each device
-      (device) => new AndroidAgent(device as AndroidDevice),
       staticDir,
     );
 

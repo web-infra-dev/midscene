@@ -138,9 +138,8 @@ export function playgroundForAgent(agent: Agent) {
         }
       }
 
-      // Create and launch the server with agent instances
+      // Create and launch the server with agent instance
       const server = new PlaygroundServer(
-        webPage,
         agent as unknown as PageAgent,
         undefined, // staticPath - use default
         id, // Optional override ID (usually not needed now)

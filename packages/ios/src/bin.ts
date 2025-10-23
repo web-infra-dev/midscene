@@ -162,23 +162,19 @@ const main = async () => {
       }
     }
 
-    // Create factory functions with explicit types
-    const deviceFactory = async (): Promise<IOSDevice> => {
+    // Create agent factory with explicit type
+    const agentFactory = async (): Promise<IOSAgent> => {
       const newDevice = new IOSDevice({
         wdaHost: wdaConfig.host,
         wdaPort: wdaConfig.port,
       });
       await newDevice.connect();
-      return newDevice;
+      return new IOSAgent(newDevice);
     };
 
-    const agentFactory = (device: IOSDevice): IOSAgent => new IOSAgent(device);
-
-    // Use type assertion to work around TypeScript's strict function type checking
-    // IOSDevice extends AbstractInterface, so this is safe
+    // Create PlaygroundServer with agent factory
     const playgroundServer = new PlaygroundServer(
-      deviceFactory as any,
-      agentFactory as any,
+      agentFactory,
       staticDir,
     );
 
