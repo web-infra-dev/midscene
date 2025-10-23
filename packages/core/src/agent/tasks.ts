@@ -933,12 +933,17 @@ export class TaskExecutor {
           // If AI returned a plain string instead of structured format, use it directly
           if (typeof data === 'string') {
             outputResult = data;
+          } else if (type === 'WaitFor') {
+            if (data === null || data === undefined) {
+              outputResult = false;
+            } else {
+              outputResult = (data as any)[keyOfResult];
+            }
           } else if (data === null || data === undefined) {
-            // Handle null/undefined data
-            outputResult = type === 'WaitFor' ? false : null;
+            outputResult = null;
           } else {
             assert(
-              type !== 'WaitFor' ? data?.[keyOfResult] !== undefined : true,
+              data?.[keyOfResult] !== undefined,
               'No result in query data',
             );
             outputResult = (data as any)[keyOfResult];
