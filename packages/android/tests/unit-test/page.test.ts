@@ -25,6 +25,7 @@ const createMockAdb = () => ({
   pull: vi.fn(),
   inputText: vi.fn(),
   keyevent: vi.fn(),
+  clearTextField: vi.fn(),
   hideKeyboard: vi.fn(),
   push: vi.fn(),
   isSoftKeyboardPresent: vi.fn().mockResolvedValue(false),
