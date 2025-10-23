@@ -86,13 +86,32 @@ export class BridgeServer {
             }, 2000)
           : null;
 
-      // Create HTTP server and bind to the specified host
+      // Create HTTP server and start listening on the specified host and port
       const httpServer = createServer();
+
+      // Set up HTTP server event listeners FIRST
+      httpServer.once('listening', () => {
+        resolve();
+      });
+
+      httpServer.once('error', (err: Error) => {
+        reject(new Error(`Bridge Listening Error: ${err.message}`));
+      });
+
+      // Start listening BEFORE creating Socket.IO Server
+      // When host is 127.0.0.1 (default), don't specify host to listen on all local interfaces (IPv4 + IPv6)
+      // This ensures localhost resolves correctly in both IPv4 and IPv6 environments
+      if (this.host === '127.0.0.1') {
+        httpServer.listen(this.port);
+      } else {
+        httpServer.listen(this.port, this.host);
+      }
+
+      // Now create Socket.IO Server attached to the already-listening HTTP server
       this.io = new Server(httpServer, {
         maxHttpBufferSize: 100 * 1024 * 1024, // 100MB
       });
 
-      // Set up Socket.IO middleware BEFORE listening
       this.io.use((socket, next) => {
         if (this.socket) {
           next(new Error('server already connected by another client'));
@@ -100,7 +119,6 @@ export class BridgeServer {
         next();
       });
 
-      // Set up Socket.IO connection handlers BEFORE listening
       this.io.on('connection', (socket) => {
         // check the connection url
         const url = socket.handshake.url;
@@ -193,20 +211,6 @@ export class BridgeServer {
       this.io.on('close', () => {
         this.close();
       });
-
-      // Set up HTTP server event listeners
-      httpServer.once('listening', () => {
-        // Add a small delay to ensure Socket.IO is fully ready
-        // This is especially important in CI environments
-        setImmediate(() => resolve());
-      });
-
-      httpServer.once('error', (err: Error) => {
-        reject(new Error(`Bridge Listening Error: ${err.message}`));
-      });
-
-      // Start listening AFTER all handlers are set up
-      httpServer.listen(this.port, this.host);
     });
   }
 
