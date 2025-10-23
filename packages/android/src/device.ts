@@ -822,6 +822,7 @@ ${Object.keys(size)
     return {
       width: logicalWidth,
       height: logicalHeight,
+      dpr: this.devicePixelRatio,
     };
   }
 
@@ -992,8 +993,9 @@ ${Object.keys(size)
       IME_STRATEGY_YADB_FOR_NON_ASCII;
 
     if (IME_STRATEGY === IME_STRATEGY_YADB_FOR_NON_ASCII) {
-      // For yadb-for-non-ascii mode, use continuous deletion of 100 characters with keyevent
-      await repeat(100, () => adb.keyevent(67)); // KEYCODE_DEL (Backspace)
+      // For yadb-for-non-ascii mode, use batch deletion of up to 100 characters
+      // clearTextField() batches all key events into a single shell command for better performance
+      await adb.clearTextField(100);
     } else {
       // Use the yadb tool to clear the input box
       await adb.shell(
