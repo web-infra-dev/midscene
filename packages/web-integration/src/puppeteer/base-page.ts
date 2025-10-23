@@ -146,7 +146,7 @@ export class Page<
 
       try {
         await (this.underlyingPage as PuppeteerPage).waitForNetworkIdle({
-          idleTime: 200,
+          idleTime: DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
           concurrency: DEFAULT_WAIT_FOR_NETWORK_IDLE_CONCURRENCY,
           timeout: this.waitForNetworkIdleTimeout,
         });
