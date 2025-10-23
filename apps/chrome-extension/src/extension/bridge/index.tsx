@@ -44,7 +44,8 @@ export default function Bridge() {
     return saved === 'true';
   });
   const [serverUrl, setServerUrl] = useState<string>(() => {
-    return localStorage.getItem(BRIDGE_SERVER_URL_KEY) || DEFAULT_SERVER_URL;
+    // Only restore from localStorage if user has customized it
+    return localStorage.getItem(BRIDGE_SERVER_URL_KEY) || '';
   });
   const messageListRef = useRef<HTMLDivElement>(null);
   // useRef to track the ID of the connection status message
@@ -134,6 +135,9 @@ export default function Bridge() {
       bridgeConnectorRef.current.disconnect();
     }
 
+    // Use custom serverUrl if provided, otherwise use default
+    const effectiveUrl = serverUrl || DEFAULT_SERVER_URL;
+
     // Create new connector with current serverUrl
     bridgeConnectorRef.current = new BridgeConnector(
       (message, type) => {
@@ -150,7 +154,7 @@ export default function Bridge() {
           appendBridgeMessage(`Bridge status changed to ${status}`);
         }
       },
-      serverUrl !== DEFAULT_SERVER_URL ? serverUrl : undefined,
+      effectiveUrl !== DEFAULT_SERVER_URL ? effectiveUrl : undefined,
     );
 
     return () => {
@@ -188,7 +192,14 @@ export default function Bridge() {
 
   const handleServerUrlChange = (value: string) => {
     setServerUrl(value);
-    localStorage.setItem(BRIDGE_SERVER_URL_KEY, value);
+
+    // Only store to localStorage if user has customized the value
+    // If empty or default, remove from localStorage to use default
+    if (value && value !== DEFAULT_SERVER_URL) {
+      localStorage.setItem(BRIDGE_SERVER_URL_KEY, value);
+    } else {
+      localStorage.removeItem(BRIDGE_SERVER_URL_KEY);
+    }
   };
 
   // clear the message list
@@ -354,10 +365,10 @@ export default function Bridge() {
                 className="server-config-input"
               />
               <small className="server-config-hint">
-                {serverUrl === DEFAULT_SERVER_URL ? (
-                  <>Local mode (default): ws://localhost:3766</>
+                {serverUrl && serverUrl !== DEFAULT_SERVER_URL ? (
+                  <>Remote mode: Connect to {serverUrl}</>
                 ) : (
-                  <>Remote mode: Connect to a remote server</>
+                  <>Local mode (default): ws://localhost:3766</>
                 )}
               </small>
             </div>
