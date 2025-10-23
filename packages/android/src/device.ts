@@ -212,8 +212,7 @@ export class AndroidDevice implements AbstractInterface {
         );
       }),
       defineActionKeyboardPress(async (param) => {
-        const key = param.keyName;
-        await this.keyboardPress(key);
+        await this.keyboardPress(param.keyName);
       }),
       defineAction({
         name: 'AndroidBackButton',

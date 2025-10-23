@@ -169,8 +169,7 @@ export class IOSDevice implements AbstractInterface {
         );
       }),
       defineActionKeyboardPress(async (param) => {
-        const key = param.keyName;
-        await this.pressKey(key);
+        await this.pressKey(param.keyName);
       }),
       defineAction({
         name: 'IOSHomeButton',
