@@ -425,11 +425,11 @@ export class Page<
       },
       down: async (key: KeyInput) => {
         debugPage(`keyboard down ${key}`);
-        this.underlyingPage.keyboard.down(key);
+        return this.underlyingPage.keyboard.down(key);
       },
       up: async (key: KeyInput) => {
         debugPage(`keyboard up ${key}`);
-        this.underlyingPage.keyboard.up(key);
+        return this.underlyingPage.keyboard.up(key);
       },
     };
   }

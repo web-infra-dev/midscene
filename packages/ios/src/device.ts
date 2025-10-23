@@ -430,7 +430,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 
   // Core interaction methods
   async tap(x: number, y: number): Promise<void> {
-    await this.wdaBackend.tap(x, y);
+    await this.wdaBackend.tap(Math.round(x), Math.round(y));
   }
 
   // Android-compatible method name
@@ -440,15 +440,15 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   }
 
   async doubleTap(x: number, y: number): Promise<void> {
-    await this.wdaBackend.doubleTap(x, y);
+    await this.wdaBackend.doubleTap(Math.round(x), Math.round(y));
   }
 
   async tripleTap(x: number, y: number): Promise<void> {
-    await this.wdaBackend.tripleTap(x, y);
+    await this.wdaBackend.tripleTap(Math.round(x), Math.round(y));
   }
 
   async longPress(x: number, y: number, duration = 1000): Promise<void> {
-    await this.wdaBackend.longPress(x, y, duration);
+    await this.wdaBackend.longPress(Math.round(x), Math.round(y), duration);
   }
 
   async swipe(
@@ -458,7 +458,13 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     toY: number,
     duration = 500,
   ): Promise<void> {
-    await this.wdaBackend.swipe(fromX, fromY, toX, toY, duration);
+    await this.wdaBackend.swipe(
+      Math.round(fromX),
+      Math.round(fromY),
+      Math.round(toX),
+      Math.round(toY),
+      duration,
+    );
   }
 
   async typeText(text: string, options?: IOSDeviceInputOpt): Promise<void> {
@@ -492,9 +498,9 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   async scrollUp(distance?: number, startPoint?: Point): Promise<void> {
     const { width, height } = await this.size();
     const start = startPoint
-      ? { x: startPoint.left, y: startPoint.top }
-      : { x: width / 2, y: height / 2 };
-    const scrollDistance = distance || height / 3;
+      ? { x: Math.round(startPoint.left), y: Math.round(startPoint.top) }
+      : { x: Math.round(width / 2), y: Math.round(height / 2) };
+    const scrollDistance = Math.round(distance || height / 3);
 
     await this.swipe(start.x, start.y, start.x, start.y + scrollDistance);
   }
@@ -502,9 +508,9 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   async scrollDown(distance?: number, startPoint?: Point): Promise<void> {
     const { width, height } = await this.size();
     const start = startPoint
-      ? { x: startPoint.left, y: startPoint.top }
-      : { x: width / 2, y: height / 2 };
-    const scrollDistance = distance || height / 3;
+      ? { x: Math.round(startPoint.left), y: Math.round(startPoint.top) }
+      : { x: Math.round(width / 2), y: Math.round(height / 2) };
+    const scrollDistance = Math.round(distance || height / 3);
 
     await this.swipe(start.x, start.y, start.x, start.y - scrollDistance);
   }
@@ -513,9 +519,9 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     const { width, height } = await this.size();
     // scrollLeft: bring left content into view (swipe finger right)
     const start = startPoint
-      ? { x: startPoint.left, y: startPoint.top }
-      : { x: width / 2, y: height / 2 };
-    const scrollDistance = distance || width * 0.7; // Use 70% of width for sufficient scroll
+      ? { x: Math.round(startPoint.left), y: Math.round(startPoint.top) }
+      : { x: Math.round(width / 2), y: Math.round(height / 2) };
+    const scrollDistance = Math.round(distance || width * 0.7); // Use 70% of width for sufficient scroll
 
     await this.swipe(start.x, start.y, start.x + scrollDistance, start.y);
   }
@@ -524,9 +530,9 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     const { width, height } = await this.size();
     // scrollRight: bring right content into view (swipe finger left)
     const start = startPoint
-      ? { x: startPoint.left, y: startPoint.top }
-      : { x: width / 2, y: height / 2 };
-    const scrollDistance = distance || width * 0.7; // Use 70% of width for sufficient scroll
+      ? { x: Math.round(startPoint.left), y: Math.round(startPoint.top) }
+      : { x: Math.round(width / 2), y: Math.round(height / 2) };
+    const scrollDistance = Math.round(distance || width * 0.7); // Use 70% of width for sufficient scroll
 
     await this.swipe(start.x, start.y, start.x - scrollDistance, start.y);
   }
@@ -609,20 +615,23 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     // Determine starting position based on scroll direction
     let start: { x: number; y: number };
     if (startPoint) {
-      start = { x: startPoint.left, y: startPoint.top };
+      start = {
+        x: Math.round(startPoint.left),
+        y: Math.round(startPoint.top),
+      };
     } else {
       switch (direction) {
         case 'up':
-          start = { x: width / 2, y: height * 0.2 };
+          start = { x: Math.round(width / 2), y: Math.round(height * 0.2) };
           break;
         case 'down':
-          start = { x: width / 2, y: height * 0.8 };
+          start = { x: Math.round(width / 2), y: Math.round(height * 0.8) };
           break;
         case 'left':
-          start = { x: width * 0.8, y: height / 2 };
+          start = { x: Math.round(width * 0.8), y: Math.round(height / 2) };
           break;
         case 'right':
-          start = { x: width * 0.2, y: height / 2 };
+          start = { x: Math.round(width * 0.2), y: Math.round(height / 2) };
           break;
       }
     }
@@ -678,10 +687,11 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
         lastScreenshot = currentScreenshot;
 
         // Execute scroll action
-        const scrollDistance =
+        const scrollDistance = Math.round(
           direction === 'left' || direction === 'right'
             ? width * 0.6
-            : height * 0.6;
+            : height * 0.6,
+        );
 
         debugDevice(
           `Performing scroll: ${direction}, distance: ${scrollDistance}`,
@@ -760,9 +770,9 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       const { width, height } = await this.size();
 
       // Swipe up from the very bottom of the screen to trigger app switcher
-      const centerX = width / 2;
-      const startY = height - 5; // Start from very bottom
-      const endY = height * 0.5; // Swipe to middle of screen
+      const centerX = Math.round(width / 2);
+      const startY = Math.round(height - 5); // Start from very bottom
+      const endY = Math.round(height * 0.5); // Swipe to middle of screen
 
       // Use a slower, longer swipe to trigger app switcher without additional tapping
       // Longer duration mimics the "hold" behavior during the swipe itself
@@ -792,9 +802,9 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       const windowSize = await this.wdaBackend.getWindowSize();
 
       // Calculate swipe coordinates at one-third position of the screen
-      const centerX = windowSize.width / 2;
-      const startY = windowSize.height * 0.33; // Start at one-third from top
-      const endY = windowSize.height * 0.33 + 10; // Swipe down
+      const centerX = Math.round(windowSize.width / 2);
+      const startY = Math.round(windowSize.height * 0.33); // Start at one-third from top
+      const endY = Math.round(windowSize.height * 0.33 + 10); // Swipe down
 
       // Perform swipe down gesture to dismiss keyboard
       await this.swipe(centerX, startY, centerX, endY, 50);

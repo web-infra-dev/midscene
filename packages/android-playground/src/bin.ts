@@ -119,13 +119,17 @@ const main = async () => {
     const selectedDeviceId = await selectDevice();
     console.log(`✅ Selected device: ${selectedDeviceId}`);
 
-    // Create device and agent instances with selected device
-    const device = new AndroidDevice(selectedDeviceId, {
-      alwaysRefreshScreenInfo: true,
-    });
-    const agent = new AndroidAgent(device);
+    // Create PlaygroundServer with agent factory
+    const playgroundServer = new PlaygroundServer(
+      // Agent factory - creates new agent with device each time
+      async () => {
+        const device = new AndroidDevice(selectedDeviceId);
+        await device.connect();
+        return new AndroidAgent(device);
+      },
+      staticDir,
+    );
 
-    const playgroundServer = new PlaygroundServer(device, agent, staticDir);
     const scrcpyServer = new ScrcpyServer();
 
     // Set the selected device in scrcpy server
