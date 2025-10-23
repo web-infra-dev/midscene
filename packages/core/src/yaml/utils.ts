@@ -11,13 +11,29 @@ import yaml from 'js-yaml';
 const debugUtils = getDebug('yaml:utils');
 
 export function interpolateEnvVars(content: string): string {
-  return content.replace(/\$\{([^}]+)\}/g, (_, envVar) => {
-    const value = process.env[envVar.trim()];
-    if (value === undefined) {
-      throw new Error(`Environment variable "${envVar.trim()}" is not defined`);
+  // Process line by line to skip commented lines
+  const lines = content.split('\n');
+  const processedLines = lines.map((line) => {
+    // Check if the line is a YAML comment (starts with # after optional whitespace)
+    const trimmedLine = line.trimStart();
+    if (trimmedLine.startsWith('#')) {
+      // Skip interpolation for comment lines
+      return line;
     }
-    return value;
+
+    // Process environment variables for non-comment lines
+    return line.replace(/\$\{([^}]+)\}/g, (_, envVar) => {
+      const value = process.env[envVar.trim()];
+      if (value === undefined) {
+        throw new Error(
+          `Environment variable "${envVar.trim()}" is not defined`,
+        );
+      }
+      return value;
+    });
   });
+
+  return processedLines.join('\n');
 }
 
 export function parseYamlScript(
