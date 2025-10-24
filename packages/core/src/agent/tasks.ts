@@ -30,6 +30,7 @@ import { ExecutionSession } from './execution-session';
 import { TaskBuilder } from './task-builder';
 import type { TaskCache } from './task-cache';
 export { locatePlanForLocate } from './task-builder';
+import { descriptionOfTree } from '@midscene/shared/extractor';
 import { taskTitleStr } from './ui-utils';
 import { parsePrompt } from './utils';
 
@@ -422,11 +423,25 @@ export class TaskExecutor {
         }
 
         let extractResult;
+
+        let extraPageDescription = '';
+        if (opt?.domIncluded && this.interface.getElementsNodeTree) {
+          debug('appending tree info for page');
+          const tree = await this.interface.getElementsNodeTree();
+          extraPageDescription = await descriptionOfTree(
+            tree,
+            200,
+            false,
+            opt?.domIncluded === 'visible-only',
+          );
+        }
+
         try {
           extractResult = await this.insight.extract<any>(
             demandInput,
             modelConfig,
             opt,
+            extraPageDescription,
             multimodalPrompt,
           );
         } catch (error) {

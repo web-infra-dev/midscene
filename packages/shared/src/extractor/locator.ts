@@ -1,7 +1,6 @@
 import type { ElementInfo } from '.';
 import type { Point } from '../types';
 import { isSvgElement } from './dom-util';
-import { getNodeFromCacheList } from './util';
 import { getRect, isElementPartiallyInViewport } from './util';
 import { collectElementInfo } from './web-extractor';
 

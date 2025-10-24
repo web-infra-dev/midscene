@@ -9,9 +9,7 @@ import { elementDescriberInstruction } from '@/ai-model/prompt/describe';
 import type {
   AIDescribeElementResponse,
   AIUsageInfo,
-  BaseElement,
   DetailedLocateParam,
-  InsightAction,
   InsightExtractOption,
   InsightExtractParam,
   InsightExtractResult,
@@ -34,7 +32,7 @@ import type { TMultimodalPrompt } from '../ai-model/common';
 import { createInsightDump } from './utils';
 
 export interface LocateOpts {
-  context?: UIContext<BaseElement>;
+  context?: UIContext;
 }
 
 export type AnyValue<T> = {
@@ -47,11 +45,8 @@ interface InsightOptions {
 }
 
 const debug = getDebug('ai:insight');
-export default class Insight<
-  ElementType extends BaseElement = BaseElement,
-  ContextType extends UIContext<ElementType> = UIContext<ElementType>,
-> {
-  contextRetrieverFn: () => Promise<ContextType> | ContextType;
+export default class Insight {
+  contextRetrieverFn: () => Promise<UIContext> | UIContext;
 
   aiVendorFn: Exclude<InsightOptions['aiVendorFn'], undefined> =
     callAIWithObjectResponse;
@@ -59,7 +54,7 @@ export default class Insight<
   taskInfo?: Omit<InsightTaskInfo, 'durationMs'>;
 
   constructor(
-    context: ContextType | (() => Promise<ContextType> | ContextType),
+    context: UIContext | (() => Promise<UIContext> | UIContext),
     opt?: InsightOptions,
   ) {
     assert(context, 'context is required for Insight');
@@ -134,14 +129,7 @@ export default class Insight<
     }
 
     const startTime = Date.now();
-    const {
-      parseResult,
-      rect,
-      elementById,
-      rawResponse,
-      usage,
-      isOrderSensitive,
-    } = await AiLocateElement({
+    const { parseResult, rect, rawResponse, usage } = await AiLocateElement({
       callAIFn: this.aiVendorFn,
       context,
       targetElementDescription: queryPrompt,
@@ -179,20 +167,7 @@ export default class Insight<
       error: errorLog,
     };
 
-    const elements: BaseElement[] = [];
-    (parseResult.elements || []).forEach((item) => {
-      if ('id' in item) {
-        const element = elementById(item?.id);
-
-        if (!element) {
-          console.warn(
-            `locate: cannot find element id=${item.id}. Maybe an unstable response from AI model`,
-          );
-          return;
-        }
-        elements.push(element);
-      }
-    });
+    const elements = parseResult.elements || [];
 
     const dump = createInsightDump({
       ...dumpData,
@@ -214,12 +189,9 @@ export default class Insight<
       return {
         element: {
           id: elements[0]!.id,
-          indexId: elements[0]!.indexId,
           center: elements[0]!.center,
           rect: elements[0]!.rect,
-          xpaths: elements[0]!.xpaths || [],
-          attributes: elements[0]!.attributes,
-          isOrderSensitive,
+          isOrderSensitive: elements[0]!.isOrderSensitive,
         },
         rect,
         dump,
@@ -237,6 +209,7 @@ export default class Insight<
     dataDemand: InsightExtractParam,
     modelConfig: IModelConfig,
     opt?: InsightExtractOption,
+    pageDescription?: string,
     multimodalPrompt?: TMultimodalPrompt,
   ): Promise<InsightExtractResult<T>> {
     assert(
@@ -253,6 +226,7 @@ export default class Insight<
       multimodalPrompt,
       extractOption: opt,
       modelConfig,
+      pageDescription,
     });
 
     const timeCost = Date.now() - startTime;

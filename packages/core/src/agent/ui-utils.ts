@@ -111,7 +111,6 @@ export function paramStr(task: ExecutionTask) {
   if (task.type === 'Insight') {
     value =
       locateParamStr((task as ExecutionTaskInsightLocate)?.param) ||
-      (task as ExecutionTaskInsightLocate)?.param?.id ||
       (task as ExecutionTaskInsightQuery)?.param?.dataDemand ||
       (task as ExecutionTaskInsightAssertion)?.param?.assertion;
   }

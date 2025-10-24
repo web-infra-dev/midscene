@@ -821,14 +821,11 @@ export function Player(props?: {
             }
             currentImg.current = item.img;
             await repaintImage(item.imageWidth, item.imageHeight);
-            const elements = item.context?.tree
-              ? treeToList(item.context.tree)
-              : [];
             const highlightElements = item.highlightElement
               ? [item.highlightElement]
               : [];
             await insightElementsAnimation(
-              elements,
+              [],
               highlightElements,
               item.searchArea,
               item.duration,

@@ -1,4 +1,4 @@
-import { NodeType } from '../constants';
+import type { LocateResultElement, Rect } from '../types';
 import { generateHashId } from '../utils';
 
 export function isFormElement(node: globalThis.Node) {
@@ -132,20 +132,24 @@ function includeBaseElement(node: globalThis.Node) {
   return false;
 }
 
-export function generateElementByPosition(position: { x: number; y: number }) {
+export function generateElementByPosition(position: {
+  x: number;
+  y: number;
+}): LocateResultElement {
+  const edgeSize = 8;
   const rect = {
-    left: Math.max(position.x - 4, 0),
-    top: Math.max(position.y - 4, 0),
-    width: 8,
-    height: 8,
+    left: Math.round(Math.max(position.x - edgeSize / 2, 0)),
+    top: Math.round(Math.max(position.y - edgeSize / 2, 0)),
+    width: edgeSize,
+    height: edgeSize,
   };
   const id = generateHashId(rect);
   const element = {
     id,
-    attributes: { nodeType: NodeType.POSITION },
     rect,
     content: '',
-    center: [position.x, position.y],
+    center: [position.x, position.y] as [number, number],
+    isOrderSensitive: false, // actually it's 'unknown'
   };
 
   return element;

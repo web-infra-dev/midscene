@@ -1,27 +1,17 @@
-import { elementByPositionWithElementInfo } from '@/ai-model';
 import type { TMultimodalPrompt, TUserPrompt } from '@/ai-model/common';
 import type { AbstractInterface } from '@/device';
 import type {
-  BaseElement,
   ElementCacheFeature,
-  ElementTreeNode,
-  ExecutionDump,
-  ExecutionTask,
-  ExecutorContext,
   LocateResultElement,
   PlanningLocateParam,
   UIContext,
 } from '@/types';
 import { uploadTestInfoToServer } from '@/utils';
-import { NodeType } from '@midscene/shared/constants';
 import {
   MIDSCENE_REPORT_TAG_NAME,
   globalConfigManager,
 } from '@midscene/shared/env';
-import {
-  generateElementByPosition,
-  getNodeFromCacheList,
-} from '@midscene/shared/extractor';
+import { generateElementByPosition } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 import { assert, logMsg, uuid } from '@midscene/shared/utils';
@@ -55,10 +45,6 @@ export async function commonContextParser(
   debugProfile(`size: ${size.width}x${size.height} dpr: ${size.dpr}`);
 
   return {
-    tree: {
-      node: null,
-      children: [],
-    },
     size,
     screenshotBase64: screenshotBase64!,
   };
@@ -133,13 +119,9 @@ export function generateCacheId(fileName?: string): string {
 
 export function matchElementFromPlan(
   planLocateParam: PlanningLocateParam,
-  tree: ElementTreeNode<BaseElement>,
-) {
+): LocateResultElement | undefined {
   if (!planLocateParam) {
     return undefined;
-  }
-  if (planLocateParam.id) {
-    return getNodeFromCacheList(planLocateParam.id);
   }
 
   if (planLocateParam.bbox) {
@@ -147,12 +129,8 @@ export function matchElementFromPlan(
       x: Math.floor((planLocateParam.bbox[0] + planLocateParam.bbox[2]) / 2),
       y: Math.floor((planLocateParam.bbox[1] + planLocateParam.bbox[3]) / 2),
     };
-    let element = elementByPositionWithElementInfo(tree, centerPosition);
 
-    if (!element) {
-      element = generateElementByPosition(centerPosition) as BaseElement;
-    }
-
+    const element = generateElementByPosition(centerPosition);
     return element;
   }
 
@@ -198,10 +176,6 @@ export async function matchElementFromCache(
         Math.round(rect.top + rect.height / 2),
       ],
       rect,
-      xpaths: [],
-      attributes: {
-        nodeType: NodeType.POSITION,
-      },
     };
 
     cacheDebug('cache hit, prompt: %s', cachePrompt);
@@ -210,59 +184,6 @@ export async function matchElementFromCache(
     cacheDebug('rectMatchesCacheFeature error: %s', error);
     return undefined;
   }
-}
-
-export function trimContextByViewport(execution: ExecutionDump) {
-  function filterVisibleTree(
-    node: ElementTreeNode<BaseElement>,
-  ): ElementTreeNode<BaseElement> | null {
-    if (!node) return null;
-
-    // recursively process all children
-    const filteredChildren = Array.isArray(node.children)
-      ? (node.children
-          .map(filterVisibleTree)
-          .filter((child) => child !== null) as ElementTreeNode<BaseElement>[])
-      : [];
-
-    // if the current node is visible, keep it and the filtered children
-    if (node.node && node.node.isVisible === true) {
-      return {
-        ...node,
-        children: filteredChildren,
-      };
-    }
-
-    // if the current node is invisible, but has visible children, create an empty node to include these children
-    if (filteredChildren.length > 0) {
-      return {
-        node: null,
-        children: filteredChildren,
-      };
-    }
-
-    // if the current node is invisible and has no visible children, return null
-    return null;
-  }
-
-  return {
-    ...execution,
-    tasks: Array.isArray(execution.tasks)
-      ? execution.tasks.map((task: ExecutionTask) => {
-          const newTask = { ...task };
-          if (task.uiContext?.tree) {
-            newTask.uiContext = {
-              ...task.uiContext,
-              tree: filterVisibleTree(task.uiContext.tree) || {
-                node: null,
-                children: [],
-              },
-            };
-          }
-          return newTask;
-        })
-      : execution.tasks,
-  };
 }
 
 declare const __VERSION__: string | undefined;

@@ -1,23 +1,22 @@
 import type {
   AIDataExtractionResponse,
-  AIElementLocatorResponse,
   AIElementResponse,
   AISectionLocatorResponse,
   AIUsageInfo,
-  BaseElement,
-  ElementById,
   InsightExtractOption,
   Rect,
   ReferenceImage,
   UIContext,
 } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
+import { generateElementByPosition } from '@midscene/shared/extractor/dom-util';
 import {
   cropByRect,
   paddingToMatchBlockByBase64,
   preProcessImageUrl,
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
+import type { LocateResultElement } from '@midscene/shared/types';
 import { assert } from '@midscene/shared/utils';
 import type {
   ChatCompletionSystemMessageParam,
@@ -42,12 +41,7 @@ import {
   sectionLocatorInstruction,
   systemPromptToLocateSection,
 } from './prompt/llm-section-locator';
-import {
-  describeUserPage,
-  distance,
-  distanceThreshold,
-  elementByPositionWithElementInfo,
-} from './prompt/util';
+import { describeUserPage } from './prompt/util';
 import { callAIWithObjectResponse } from './service-caller/index';
 
 export type AIArgs = [
@@ -114,10 +108,8 @@ const promptsToChatParam = async (
   return msgs;
 };
 
-export async function AiLocateElement<
-  ElementType extends BaseElement = BaseElement,
->(options: {
-  context: UIContext<ElementType>;
+export async function AiLocateElement(options: {
+  context: UIContext;
   targetElementDescription: TUserPrompt;
   referenceImage?: ReferenceImage;
   callAIFn: typeof callAIWithObjectResponse<
@@ -126,26 +118,24 @@ export async function AiLocateElement<
   searchConfig?: Awaited<ReturnType<typeof AiLocateSection>>;
   modelConfig: IModelConfig;
 }): Promise<{
-  parseResult: AIElementLocatorResponse;
+  parseResult: {
+    elements: LocateResultElement[];
+    errors?: string[];
+  };
   rect?: Rect;
   rawResponse: string;
-  elementById: ElementById;
   usage?: AIUsageInfo;
-  isOrderSensitive?: boolean;
 }> {
   const { context, targetElementDescription, callAIFn, modelConfig } = options;
   const { vlMode } = modelConfig;
   const { screenshotBase64 } = context;
-
-  const { description, elementById, insertElementByPosition } =
-    await describeUserPage(context, { vlMode });
 
   assert(
     targetElementDescription,
     'cannot find the target element description',
   );
   const userInstructionPrompt = await findElementPrompt.format({
-    pageDescription: description,
+    pageDescription: await describeUserPage(context),
     targetElementDescription: extraTextFromUserPrompt(targetElementDescription),
   });
   const systemPrompt = systemPromptToLocateElement(vlMode);
@@ -211,9 +201,8 @@ export async function AiLocateElement<
   const rawResponse = JSON.stringify(res.content);
 
   let resRect: Rect | undefined;
-  let matchedElements: AIElementLocatorResponse['elements'] =
-    'elements' in res.content ? res.content.elements : [];
-  let errors: AIElementLocatorResponse['errors'] | undefined =
+  let matchedElements = 'elements' in res.content ? res.content.elements : [];
+  let errors: string[] | undefined =
     'errors' in res.content ? res.content.errors : [];
   try {
     if ('bbox' in res.content && Array.isArray(res.content.bbox)) {
@@ -234,19 +223,20 @@ export async function AiLocateElement<
         x: resRect.left + resRect.width / 2,
         y: resRect.top + resRect.height / 2,
       };
-      let element = elementByPositionWithElementInfo(context.tree, rectCenter);
 
-      const distanceToCenter = element
-        ? distance({ x: element.center[0], y: element.center[1] }, rectCenter)
-        : 0;
+      const element: LocateResultElement =
+        generateElementByPosition(rectCenter);
+      errors = [];
 
-      if (!element || distanceToCenter > distanceThreshold) {
-        element = insertElementByPosition(rectCenter);
-      }
+      element.isOrderSensitive =
+        typeof res.content === 'object' &&
+        res.content !== null &&
+        'isOrderSensitive' in res.content
+          ? (res.content as any).isOrderSensitive
+          : undefined;
 
       if (element) {
         matchedElements = [element];
-        errors = [];
       }
     }
   } catch (e) {
@@ -264,23 +254,16 @@ export async function AiLocateElement<
   return {
     rect: resRect,
     parseResult: {
-      elements: matchedElements,
-      errors,
+      elements: matchedElements as LocateResultElement[],
+      errors: errors as string[],
     },
     rawResponse,
-    elementById,
     usage: res.usage,
-    isOrderSensitive:
-      typeof res.content === 'object' &&
-      res.content !== null &&
-      'isOrderSensitive' in res.content
-        ? (res.content as any).isOrderSensitive
-        : undefined,
   };
 }
 
 export async function AiLocateSection(options: {
-  context: UIContext<BaseElement>;
+  context: UIContext;
   sectionDescription: TUserPrompt;
   modelConfig: IModelConfig;
 }): Promise<{
@@ -396,33 +379,21 @@ export async function AiLocateSection(options: {
   };
 }
 
-export async function AiExtractElementInfo<
-  T,
-  ElementType extends BaseElement = BaseElement,
->(options: {
+export async function AiExtractElementInfo<T>(options: {
   dataQuery: string | Record<string, string>;
   multimodalPrompt?: TMultimodalPrompt;
-  context: UIContext<ElementType>;
+  context: UIContext;
+  pageDescription?: string;
   extractOption?: InsightExtractOption;
   modelConfig: IModelConfig;
 }) {
   const { dataQuery, context, extractOption, multimodalPrompt, modelConfig } =
     options;
-  const { vlMode } = modelConfig;
   const systemPrompt = systemPromptToExtract();
-
   const { screenshotBase64 } = context;
 
-  const { description, elementById } = await describeUserPage(context, {
-    truncateTextLength: 200,
-    filterNonTextContent: false,
-    visibleOnly: false,
-    domIncluded: extractOption?.domIncluded,
-    vlMode,
-  });
-
   const extractDataPromptText = await extractDataQueryPrompt(
-    description,
+    options.pageDescription || '',
     dataQuery,
   );
 
@@ -466,7 +437,6 @@ export async function AiExtractElementInfo<
   );
   return {
     parseResult: result.content,
-    elementById,
     usage: result.usage,
   };
 }

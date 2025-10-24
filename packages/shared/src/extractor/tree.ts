@@ -45,7 +45,7 @@ export function trimAttributes(
       res[currentKey] = truncateText(attributeVal, truncateTextLength);
       return res;
     },
-    {} as BaseElement['attributes'],
+    {} as Record<string, string>,
   );
   return tailorAttributes;
 }
@@ -106,8 +106,8 @@ export function descriptionOfTree<
           .replace(/\sNode$/, '')
           .toLowerCase();
       }
-      const markerId = node.node.indexId;
-      const markerIdString = markerId ? `markerId="${markerId}"` : '';
+      // const markerId = node.node.indexId;
+      // const markerIdString = markerId ? `markerId="${markerId}"` : '';
       const rectAttribute = node.node.rect
         ? {
             left: node.node.rect.left,
@@ -116,7 +116,7 @@ export function descriptionOfTree<
             height: node.node.rect.height,
           }
         : {};
-      before = `<${nodeTypeString} id="${node.node.id}" ${markerIdString} ${attributesString(trimAttributes(node.node.attributes || {}, truncateTextLength))} ${attributesString(rectAttribute)}>`;
+      before = `<${nodeTypeString} id="${node.node.id}" ${attributesString(trimAttributes(node.node.attributes || {}, truncateTextLength))} ${attributesString(rectAttribute)}>`;
       const content = truncateText(node.node.content, truncateTextLength);
       contentWithIndent = content ? `\n${indentStr}  ${content}` : '';
       after = `</${nodeTypeString}>`;

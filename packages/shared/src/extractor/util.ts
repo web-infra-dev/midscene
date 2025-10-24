@@ -399,40 +399,8 @@ export function midsceneGenerateHash(
 ): string {
   const slicedHash = generateHashId(rect, content);
 
-  if (node) {
-    if (!(window as any).midsceneNodeHashCacheList) {
-      setNodeHashCacheListOnWindow();
-    }
-
-    setNodeToCacheList(node, slicedHash);
-  }
-
   // Returns the first 10 characters as a short hash
   return slicedHash;
-}
-
-export function setNodeHashCacheListOnWindow() {
-  if (typeof window !== 'undefined') {
-    (window as any).midsceneNodeHashCacheList = [];
-  }
-}
-
-export function setNodeToCacheList(node: globalThis.Node, id: string) {
-  if (typeof window !== 'undefined') {
-    if (getNodeFromCacheList(id)) {
-      return;
-    }
-    (window as any).midsceneNodeHashCacheList?.push({ node, id });
-  }
-}
-
-export function getNodeFromCacheList(id: string) {
-  if (typeof window !== 'undefined') {
-    return (window as any).midsceneNodeHashCacheList?.find(
-      (item: { node: Node; id: string }) => item.id === id,
-    )?.node;
-  }
-  return null;
 }
 
 export function generateId(numberId: number) {

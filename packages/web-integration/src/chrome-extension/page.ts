@@ -295,8 +295,6 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     });
 
     const expression = () => {
-      (window as any).midscene_element_inspector.setNodeHashCacheListOnWindow();
-
       const tree = (
         window as any
       ).midscene_element_inspector.webExtractNodeTree();
