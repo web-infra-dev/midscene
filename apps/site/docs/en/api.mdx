@@ -25,6 +25,58 @@ In Playwright and Puppeteer, there are some common parameters:
 - `forceSameTabNavigation: boolean`: If true, page navigation is restricted to the current tab. (Default: true)
 - `waitForNavigationTimeout: number`: The timeout for waiting for navigation finished. (Default: 5000ms, set to 0 means not waiting for navigation finished)
 
+These Agents also support the following advanced configuration parameters:
+
+- `modelConfig: () => IModelConfig`: Optional. Custom model configuration function. Allows you to dynamically configure different models through code instead of environment variables. This is particularly useful when you need to use different models for different AI tasks (such as VQA, planning, grounding, etc.).
+
+  **Example:**
+  ```typescript
+  const agent = new PuppeteerAgent(page, {
+    modelConfig: () => ({
+      MIDSCENE_MODEL_NAME: 'qwen3-vl-plus',
+      MIDSCENE_MODEL_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+      MIDSCENE_MODEL_API_KEY: 'sk-...',
+      MIDSCENE_LOCATOR_MODE: 'qwen3-vl'
+    })
+  });
+  ```
+
+- `createOpenAIClient: (config) => OpenAI`: Optional. Custom OpenAI client factory function. Allows you to create custom OpenAI client instances for integrating observability tools (such as LangSmith, LangFuse) or using custom OpenAI-compatible clients.
+
+  **Parameter Description:**
+  - `config.modelName: string` - Model name
+  - `config.openaiApiKey?: string` - API key
+  - `config.openaiBaseURL?: string` - API endpoint URL
+  - `config.intent: string` - AI task type ('VQA' | 'planning' | 'grounding' | 'default')
+  - `config.vlMode?: string` - Visual language model mode
+  - Other configuration parameters...
+
+  **Example (LangSmith Integration):**
+  ```typescript
+  import OpenAI from 'openai';
+  import { wrapOpenAI } from 'langsmith/wrappers';
+
+  const agent = new PuppeteerAgent(page, {
+    createOpenAIClient: (config) => {
+      const openai = new OpenAI({
+        apiKey: config.openaiApiKey,
+        baseURL: config.openaiBaseURL,
+      });
+
+      // Wrap with LangSmith for planning tasks
+      if (config.intent === 'planning') {
+        return wrapOpenAI(openai, {
+          metadata: { task: 'planning' }
+        });
+      }
+
+      return openai;
+    }
+  });
+  ```
+
+  **Note:** `createOpenAIClient` overrides the behavior of the `MIDSCENE_LANGSMITH_DEBUG` environment variable. If you provide a custom client factory function, you need to handle the integration of LangSmith or other observability tools yourself.
+
 In Puppeteer, there is also a parameter:
 
 - `waitForNetworkIdleTimeout: number`: The timeout for waiting for network idle between each action. (Default: 2000ms, set to 0 means not waiting for network idle)
@@ -854,9 +906,11 @@ You can override environment variables at runtime by calling the `overrideAIConf
 import { overrideAIConfig } from '@midscene/web/puppeteer'; // or another Agent
 
 overrideAIConfig({
-  OPENAI_BASE_URL: '...',
-  OPENAI_API_KEY: '...',
   MIDSCENE_MODEL_NAME: '...',
+  MODEL_BASE_URL: '...', // recommended, use new variable name
+  MODEL_API_KEY: '...', // recommended, use new variable name
+  // OPENAI_BASE_URL: '...', // deprecated but still compatible
+  // OPENAI_API_KEY: '...', // deprecated but still compatible
 });
 ```
 

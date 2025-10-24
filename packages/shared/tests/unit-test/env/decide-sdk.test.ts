@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  MIDSCENE_OPENAI_API_KEY,
-  MIDSCENE_OPENAI_BASE_URL,
+  MIDSCENE_MODEL_API_KEY,
+  MIDSCENE_MODEL_BASE_URL,
 } from '../../../src/env';
 import { DEFAULT_MODEL_CONFIG_KEYS } from '../../../src/env/constants';
 import { decideOpenaiSdkConfig } from '../../../src/env/decide-model-config';
@@ -16,7 +16,7 @@ describe('decideOpenaiSdkConfig', () => {
         valueAssert: createAssert('', 'modelConfig'),
       }),
     ).toThrowErrorMatchingInlineSnapshot(
-      '[Error: The MIDSCENE_OPENAI_API_KEY must be a non-empty string, but got: undefined. Please check your config.]',
+      '[Error: The MIDSCENE_MODEL_API_KEY must be a non-empty string, but got: undefined. Please check your config.]',
     );
   });
 
@@ -24,8 +24,8 @@ describe('decideOpenaiSdkConfig', () => {
     const result = decideOpenaiSdkConfig({
       keys: DEFAULT_MODEL_CONFIG_KEYS,
       provider: {
-        [MIDSCENE_OPENAI_API_KEY]: 'mock-key',
-        [MIDSCENE_OPENAI_BASE_URL]: 'mock-url',
+        [MIDSCENE_MODEL_API_KEY]: 'mock-key',
+        [MIDSCENE_MODEL_BASE_URL]: 'mock-url',
       },
       valueAssert: createAssert('', 'modelConfig'),
     });

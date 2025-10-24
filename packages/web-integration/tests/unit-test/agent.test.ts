@@ -59,8 +59,8 @@ const mockPage = {
 
 const mockedModelConfigFnResult = {
   MIDSCENE_MODEL_NAME: 'mock-model',
-  MIDSCENE_OPENAI_API_KEY: 'mock-api-key',
-  MIDSCENE_OPENAI_BASE_URL: 'mock-base-url',
+  MIDSCENE_MODEL_API_KEY: 'mock-api-key',
+  MIDSCENE_MODEL_BASE_URL: 'mock-base-url',
 };
 
 const modelConfigCalcByMockedModelConfigFnResult = {

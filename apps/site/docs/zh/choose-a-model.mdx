@@ -4,6 +4,22 @@ import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connect
 
 选择以下模型之一，获取 API 密钥，完成配置，即可开始使用 Midscene.js。如果你是初学者，请选择最容易获得的模型。
 
+## 环境变量配置
+
+从 1.0 版本开始，Midscene.js 推荐使用以下新的环境变量名：
+
+- `MODEL_API_KEY` - API 密钥（推荐）
+- `MODEL_BASE_URL` - API 接入地址（推荐）
+
+为了保持向后兼容，以下旧的变量名仍然支持：
+
+- `OPENAI_API_KEY` - API 密钥（已弃用，但仍兼容）
+- `OPENAI_BASE_URL` - API 接入地址（已弃用，但仍兼容）
+
+当新旧变量同时设置时，新变量（`MODEL_*`）将优先使用。
+
+在本文的配置示例中，我们将使用新的变量名。如果你正在使用旧的变量名，无需立即更改，它们会继续正常工作。
+
 ## Midscene.js 已适配的模型
 
 Midscene.js 支持两种类型的模型：视觉语言模型和 LLM 模型。
@@ -45,8 +61,8 @@ Midscene 调用了一些视觉语言模型（VL 模型），无需依赖 DOM 信
 从 [火山引擎](https://volcengine.com) 获取 API 密钥后，可以使用以下配置：
 
 ```bash
-OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" 
-OPENAI_API_KEY="...."
+MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
+MODEL_API_KEY="...."
 MIDSCENE_MODEL_NAME="ep-..." # 来自火山引擎的推理接入点 ID 或模型名称
 MIDSCENE_USE_DOUBAO_VISION=1
 ```
@@ -72,8 +88,8 @@ Midscene.js 支持使用以下版本的模型：
 以阿里云 `qwen3-vl-plus` 模型为例：
 
 ```bash
-OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
-OPENAI_API_KEY="......"
+MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+MODEL_API_KEY="......"
 MIDSCENE_MODEL_NAME="qwen3-vl-plus"
 MIDSCENE_USE_QWEN3_VL=1 # 注意，这个参数与 MIDSCENE_USE_QWEN_VL 不能同时使用
 ```
@@ -83,8 +99,8 @@ MIDSCENE_USE_QWEN3_VL=1 # 注意，这个参数与 MIDSCENE_USE_QWEN_VL 不能�
 以阿里云 `qwen-vl-max-latest` 模型为例：
 
 ```bash
-OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
-OPENAI_API_KEY="......"
+MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+MODEL_API_KEY="......"
 MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
 MIDSCENE_USE_QWEN_VL=1 # 注意，这个参数与 MIDSCENE_USE_QWEN3_VL 不能同时使用
 ```
@@ -108,8 +124,8 @@ MIDSCENE_USE_QWEN_VL=1 # 注意，这个参数与 MIDSCENE_USE_QWEN3_VL 不能�
 在 [Google Gemini](https://gemini.google.com/) 上申请 API 密钥后，可以使用以下配置：
 
 ```bash
-OPENAI_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
-OPENAI_API_KEY="......"
+MODEL_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
+MODEL_API_KEY="......"
 MIDSCENE_MODEL_NAME="gemini-2.5-pro-preview-05-06"
 MIDSCENE_USE_GEMINI=1
 ```
@@ -130,8 +146,8 @@ UI-TARS 是基于 VLM 架构的端到端 GUI 代理模型。它仅感知截图�
 你可以在 [火山引擎](https://volcengine.com) 上使用已部署的 `doubao-1.5-ui-tars`。
 
 ```bash
-OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3" 
-OPENAI_API_KEY="...."
+MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
+MODEL_API_KEY="...."
 MIDSCENE_MODEL_NAME="ep-2025..." # 来自火山引擎的推理接入点 ID 或模型名称
 MIDSCENE_USE_VLM_UI_TARS=DOUBAO
 ```
@@ -165,8 +181,8 @@ GPT-4o 是 OpenAI 的多模态 LLM，支持图像输入。这是 Midscene.js 的
 **配置**
 
 ```bash
-OPENAI_API_KEY="......"
-OPENAI_BASE_URL="https://custom-endpoint.com/compatible-mode/v1" # 可选，如果你想要使用不同于 OpenAI 默认的接入点
+MODEL_API_KEY="......"
+MODEL_BASE_URL="https://custom-endpoint.com/compatible-mode/v1" # 可选，如果你想要使用不同于 OpenAI 默认的接入点
 MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # 可选，默认是 "gpt-4o"
 ```
 
@@ -186,8 +202,8 @@ Midscene.js 也支持其他模型。对于这些模型，Midscene 将使用与 G
 
 ```bash
 MIDSCENE_MODEL_NAME="....."
-OPENAI_BASE_URL="......"
-OPENAI_API_KEY="......"
+MODEL_BASE_URL="......"
+MODEL_API_KEY="......"
 ```
 
 更多详细信息和示例配置，请参见[配置模型和服务商](./model-provider)。

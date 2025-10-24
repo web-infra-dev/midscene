@@ -24,9 +24,9 @@ vi.mock('../../src/utils');
 
 const mockedModelConfigFnResult = {
   MIDSCENE_MODEL_NAME: 'mock',
-  MIDSCENE_OPENAI_API_KEY: 'mock',
-  MIDSCENE_OPENAI_BASE_URL: 'mock',
-  MIDSCENE_VL_MODE: 'doubao-vision',
+  MIDSCENE_MODEL_API_KEY: 'mock',
+  MIDSCENE_MODEL_BASE_URL: 'mock',
+  MIDSCENE_LOCATOR_MODE: 'doubao-vision',
 } as const;
 
 describe('AndroidAgent', () => {
