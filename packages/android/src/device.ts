@@ -56,9 +56,6 @@ const defaultNormalScrollDuration = 1000;
 
 const IME_STRATEGY_ALWAYS_YADB = 'always-yadb' as const;
 const IME_STRATEGY_YADB_FOR_NON_ASCII = 'yadb-for-non-ascii' as const;
-type ImeStrategy =
-  | typeof IME_STRATEGY_ALWAYS_YADB
-  | typeof IME_STRATEGY_YADB_FOR_NON_ASCII;
 
 const debugDevice = getDebug('android:device');
 

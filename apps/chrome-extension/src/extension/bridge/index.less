@@ -11,61 +11,42 @@
   }
 
   .server-config-section {
-    margin-top: 16px;
-    margin-bottom: 24px;
-    padding: 12px 16px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    border: 1px solid #e9ecef;
+    margin-top: 12px;
+    margin-bottom: 20px;
 
     .server-config-header {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       cursor: pointer;
       user-select: none;
-      padding: 4px 0;
+      padding: 6px 0;
+      transition: opacity 0.2s ease;
 
       &:hover {
-        .server-config-title {
-          color: #1890ff;
-        }
-
-        .server-config-arrow {
-          color: #1890ff;
-        }
+        opacity: 0.7;
       }
     }
 
     .server-config-arrow {
-      font-size: 12px;
-      color: #666;
+      font-size: 10px;
+      color: rgba(0, 0, 0, 0.45);
       transition: transform 0.2s ease;
+      transform: rotate(-90deg);
 
       &.expanded {
-        transform: rotate(180deg);
+        transform: rotate(0deg);
       }
     }
 
     .server-config-title {
-      font-weight: 500;
-      font-size: 14px;
-      color: #333;
-      transition: color 0.2s ease;
+      font-size: 13px;
+      color: rgba(0, 0, 0, 0.65);
     }
 
     .server-config-content {
       margin-top: 12px;
-      padding-top: 12px;
-      border-top: 1px solid #e9ecef;
-    }
-
-    .server-config-label {
-      display: block;
-      margin-bottom: 8px;
-      font-weight: 500;
-      font-size: 14px;
-      color: #333;
+      padding-left: 16px;
     }
 
     .server-config-input {
@@ -74,9 +55,9 @@
 
     .server-config-hint {
       display: block;
-      margin-top: 8px;
+      margin-top: 6px;
       font-size: 12px;
-      color: #666;
+      color: rgba(0, 0, 0, 0.45);
       line-height: 1.5;
     }
   }
@@ -199,12 +180,6 @@
     text-align: center;
     color: #6c757d;
     font-style: italic;
-  }
-
-  .bridge-log-container {
-  }
-
-  .bridge-log-item {
   }
 
   .bottom-button-container {
