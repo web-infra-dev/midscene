@@ -239,18 +239,18 @@ export const Blackboard = (props: {
     }
 
     // element rects
-    const elements = treeToList(context.tree);
-    elements.forEach((element) => {
-      const { rect, content, id } = element;
-      const ifHighlight = highlightIds.includes(id) || hoverElement?.id === id;
+    // const elements = [];
+    // elements.forEach((element) => {
+    //   const { rect, content, id } = element;
+    //   const ifHighlight = highlightIds.includes(id) || hoverElement?.id === id;
 
-      if (ifHighlight) {
-        return;
-      }
+    //   if (ifHighlight) {
+    //     return;
+    //   }
 
-      const [graphics] = rectMarkForItem(rect, content, 'element');
-      elementMarkContainer.addChild(graphics);
-    });
+    //   const [graphics] = rectMarkForItem(rect, content, 'element');
+    //   elementMarkContainer.addChild(graphics);
+    // });
 
     elementMarkContainer.visible = elementsVisible;
     return {
@@ -260,7 +260,6 @@ export const Blackboard = (props: {
     app,
     appInitialed,
     highlightElements,
-    context.tree,
     hoverElement,
     highlightRect,
     highlightPoints,

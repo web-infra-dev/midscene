@@ -67,7 +67,6 @@ import {
   parsePrompt,
   printReportMsg,
 } from './utils';
-import { trimContextByViewport } from './utils';
 
 const debug = getDebug('agent');
 
@@ -348,10 +347,8 @@ export class Agent<
   }
 
   appendExecutionDump(execution: ExecutionDump) {
-    // use trimContextByViewport to process execution
-    const trimmedExecution = trimContextByViewport(execution);
     const currentDump = this.dump;
-    currentDump.executions.push(trimmedExecution);
+    currentDump.executions.push(execution);
   }
 
   dumpDataString() {

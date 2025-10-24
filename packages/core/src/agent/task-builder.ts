@@ -19,6 +19,7 @@ import type {
 import { InsightError } from '@/types';
 import { sleep } from '@/utils';
 import type { IModelConfig } from '@midscene/shared/env';
+import { generateElementByPosition } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { TaskCache } from './task-cache';
@@ -351,7 +352,7 @@ export class TaskBuilder {
         let { uiContext } = taskContext;
 
         assert(
-          param?.prompt || param?.id || param?.bbox,
+          param?.prompt || param?.bbox,
           `No prompt or id or position or bbox to locate, param=${JSON.stringify(
             param,
           )}`,
@@ -381,12 +382,18 @@ export class TaskBuilder {
         };
 
         // from xpath
-        let elementFromXpath: Rect | undefined;
+        let rectFromXpath: Rect | undefined;
         if (param.xpath && this.interface.rectMatchesCacheFeature) {
-          elementFromXpath = await this.interface.rectMatchesCacheFeature({
+          rectFromXpath = await this.interface.rectMatchesCacheFeature({
             xpaths: [param.xpath],
           });
         }
+        const elementFromXpath = rectFromXpath
+          ? generateElementByPosition({
+              x: rectFromXpath.left + rectFromXpath.width / 2,
+              y: rectFromXpath.top + rectFromXpath.height / 2,
+            })
+          : undefined;
         const userExpectedPathHitFlag = !!elementFromXpath;
 
         const cachePrompt = param.prompt;
@@ -408,7 +415,7 @@ export class TaskBuilder {
 
         const elementFromPlan =
           !userExpectedPathHitFlag && !cacheHitFlag
-            ? matchElementFromPlan(param, uiContext.tree)
+            ? matchElementFromPlan(param)
             : undefined;
         const planHitFlag = !!elementFromPlan;
 
@@ -485,7 +492,7 @@ export class TaskBuilder {
         if (!element) {
           if (locateDump) {
             throw new InsightError(
-              `Element not found: ${param.prompt}`,
+              `Element not found : ${param.prompt}`,
               locateDump,
             );
           }
@@ -513,8 +520,7 @@ export class TaskBuilder {
           hitBy = {
             from: 'Planning',
             context: {
-              id: elementFromPlan?.id,
-              bbox: elementFromPlan?.bbox,
+              rect: elementFromPlan?.rect,
             },
           };
         }

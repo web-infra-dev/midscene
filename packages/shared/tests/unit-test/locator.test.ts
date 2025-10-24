@@ -126,11 +126,7 @@ const setupMockDOM = () => {
     },
   } as any;
 
-  // Mock window with cache list for getNodeFromCacheList
-  global.window = {
-    midsceneNodeHashCacheList: [],
-    HTMLElement: MockElement,
-  } as any;
+  global.window = {} as any;
 
   // For getElementInfoByXpath tests, we'll focus on the main logic
   // and skip the complex DOM manipulation parts

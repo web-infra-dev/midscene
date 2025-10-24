@@ -1,13 +1,13 @@
 import type { TUserPrompt } from './ai-model/common';
 import type { AgentOpt, Rect } from './types';
-import type { BaseElement, UIContext } from './types';
+import type { UIContext } from './types';
 
 export interface LocateOption {
   prompt?: TUserPrompt;
   deepThink?: boolean; // only available in vl model
   cacheable?: boolean; // user can set this param to false to disable the cache for a single agent api
   xpath?: string; // only available in web
-  uiContext?: UIContext<BaseElement>;
+  uiContext?: UIContext;
 }
 
 export interface InsightExtractOption {

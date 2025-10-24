@@ -6,7 +6,6 @@ import type {
   WebElementInfo,
 } from '@midscene/core';
 import type { AbstractInterface } from '@midscene/core/device';
-import { traverseTree } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 
@@ -97,28 +96,25 @@ export async function WebPageContextParser(
     uploadServerUrl: _opt.uploadServerUrl,
   });
 
-  debug('will traverse element tree');
-  const tree = (await page.getElementsNodeTree?.()) || {
-    node: null,
-    children: [],
-  };
-  const webTree = traverseTree(tree!, (elementInfo) => {
-    const { rect, id, content, attributes, indexId, isVisible } = elementInfo;
-    return new WebElementInfoImpl({
-      rect,
-      id,
-      content,
-      attributes,
-      indexId,
-      isVisible,
-    });
-  });
-  debug('traverse element tree end');
+  // debug('will traverse element tree');
+  // const tree = (await page.getElementsNodeTree?.()) || {
+  //   node: null,
+  //   children: [],
+  // };
+  // // const webTree = traverseTree(tree!, (elementInfo) => {
+  // //   const { rect, id, content, attributes, indexId, isVisible } = elementInfo;
+  // //   return new WebElementInfoImpl({
+  // //     rect,
+  // //     id,
+  // //     content,
+  // //     attributes,
+  // //     indexId,
+  // //     isVisible,
+  // //   });
+  // // });
+  // debug('traverse element tree end');
 
-  return {
-    ...basicContext,
-    tree: webTree,
-  };
+  return basicContext;
 }
 
 export const limitOpenNewTabScript = `
