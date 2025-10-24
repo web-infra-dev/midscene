@@ -139,7 +139,7 @@ export const DEFAULT_MODEL_CONFIG_KEYS_LEGACY: IModelConfigKeys = {
   socksProxy: MIDSCENE_MODEL_SOCKS_PROXY,
   httpProxy: MIDSCENE_MODEL_HTTP_PROXY,
   /**
-   * OpenAI - Uses legacy OPENAI_* variables for backward compatibility
+   * Model API - Uses legacy OPENAI_* variables for backward compatibility
    */
   openaiBaseURL: OPENAI_BASE_URL,
   openaiApiKey: OPENAI_API_KEY,
