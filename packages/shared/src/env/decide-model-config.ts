@@ -12,6 +12,7 @@ import {
   PLANNING_MODEL_CONFIG_KEYS,
   VQA_MODEL_CONFIG_KEYS,
 } from './constants';
+import { MODEL_API_KEY, MODEL_BASE_URL } from './types';
 
 import { getDebug } from '../logger';
 import { assert } from '../utils';
@@ -69,8 +70,18 @@ export const decideOpenaiSdkConfig = ({
 
   debugLog('enter decideOpenaiSdkConfig with keys:', keys);
 
-  const openaiBaseURL = provider[keys.openaiBaseURL];
-  const openaiApiKey = provider[keys.openaiApiKey];
+  // Implement compatibility logic: prefer new variable names (MODEL_*), fallback to old ones (OPENAI_*)
+  let openaiBaseURL = provider[keys.openaiBaseURL];
+  let openaiApiKey = provider[keys.openaiApiKey];
+
+  // When using legacy keys (OPENAI_BASE_URL, OPENAI_API_KEY), check for new names first
+  if (keys.openaiBaseURL === 'OPENAI_BASE_URL' && !openaiBaseURL) {
+    openaiBaseURL = provider[MODEL_BASE_URL];
+  }
+  if (keys.openaiApiKey === 'OPENAI_API_KEY' && !openaiApiKey) {
+    openaiApiKey = provider[MODEL_API_KEY];
+  }
+
   const openaiExtraConfig = parseJson(
     keys.openaiExtraConfig,
     provider[keys.openaiExtraConfig],

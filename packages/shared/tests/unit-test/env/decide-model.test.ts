@@ -16,8 +16,8 @@ describe('decideModelConfig from modelConfig fn', () => {
   it('return full config for VQA', () => {
     const result = decideModelConfigFromIntentConfig('VQA', {
       MIDSCENE_VQA_MODEL_NAME: 'vqa-model',
-      MIDSCENE_VQA_OPENAI_BASE_URL: 'mock-url',
-      MIDSCENE_VQA_OPENAI_API_KEY: 'mock-key',
+      MIDSCENE_VQA_MODEL_BASE_URL: 'mock-url',
+      MIDSCENE_VQA_MODEL_API_KEY: 'mock-key',
     });
     expect(result).toMatchInlineSnapshot(`
       {
@@ -40,8 +40,8 @@ describe('decideModelConfig from modelConfig fn', () => {
   it('return default config', () => {
     const result = decideModelConfigFromIntentConfig('VQA', {
       MIDSCENE_MODEL_NAME: 'default-model',
-      MIDSCENE_OPENAI_BASE_URL: 'mock-url',
-      MIDSCENE_OPENAI_API_KEY: 'mock-key',
+      MIDSCENE_MODEL_BASE_URL: 'mock-url',
+      MIDSCENE_MODEL_API_KEY: 'mock-key',
     });
     expect(result).toMatchInlineSnapshot(`
       {
@@ -76,7 +76,7 @@ describe('decideModelConfig from env', () => {
         MIDSCENE_PLANNING_MODEL_NAME: 'planning-model',
       }),
     ).toThrowErrorMatchingInlineSnapshot(
-      '[Error: The MIDSCENE_PLANNING_OPENAI_API_KEY must be a non-empty string because of the MIDSCENE_PLANNING_MODEL_NAME is declared as planning-model in process.env, but got: undefined. Please check your config.]',
+      '[Error: The MIDSCENE_PLANNING_MODEL_API_KEY must be a non-empty string because of the MIDSCENE_PLANNING_MODEL_NAME is declared as planning-model in process.env, but got: undefined. Please check your config.]',
     );
   });
 
@@ -84,8 +84,8 @@ describe('decideModelConfig from env', () => {
     const result = decideModelConfigFromEnv('planning', {
       ...stubEnvConfig,
       MIDSCENE_PLANNING_MODEL_NAME: 'planning-model',
-      MIDSCENE_PLANNING_OPENAI_API_KEY: 'planning-key',
-      MIDSCENE_PLANNING_OPENAI_BASE_URL: 'planning-url',
+      MIDSCENE_PLANNING_MODEL_API_KEY: 'planning-key',
+      MIDSCENE_PLANNING_MODEL_BASE_URL: 'planning-url',
     });
     expect(result).toMatchInlineSnapshot(`
       {

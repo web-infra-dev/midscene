@@ -315,7 +315,7 @@ describe('proxy integration', () => {
   });
 
   describe('environment variable integration', () => {
-    it('should work with MIDSCENE_OPENAI_HTTP_PROXY environment variable', () => {
+    it('should work with MIDSCENE_MODEL_HTTP_PROXY environment variable', () => {
       const proxyUrl = 'http://127.0.0.1:8080';
 
       // This would typically come from environment variables via globalConfigManager
@@ -323,7 +323,7 @@ describe('proxy integration', () => {
         modelName: 'gpt-4o',
         openaiApiKey: 'test-key',
         openaiBaseURL: 'https://api.openai.com/v1',
-        httpProxy: proxyUrl, // Would be populated from MIDSCENE_OPENAI_HTTP_PROXY
+        httpProxy: proxyUrl, // Would be populated from MIDSCENE_MODEL_HTTP_PROXY
         modelDescription: 'test',
         intent: 'default',
         from: 'env',
@@ -332,7 +332,7 @@ describe('proxy integration', () => {
       expect(mockModelConfig.httpProxy).toBe(proxyUrl);
     });
 
-    it('should work with MIDSCENE_OPENAI_SOCKS_PROXY environment variable', () => {
+    it('should work with MIDSCENE_MODEL_SOCKS_PROXY environment variable', () => {
       const proxyUrl = 'socks5://127.0.0.1:1080';
 
       // This would typically come from environment variables via globalConfigManager
@@ -340,7 +340,7 @@ describe('proxy integration', () => {
         modelName: 'gpt-4o',
         openaiApiKey: 'test-key',
         openaiBaseURL: 'https://api.openai.com/v1',
-        socksProxy: proxyUrl, // Would be populated from MIDSCENE_OPENAI_SOCKS_PROXY
+        socksProxy: proxyUrl, // Would be populated from MIDSCENE_MODEL_SOCKS_PROXY
         modelDescription: 'test',
         intent: 'default',
         from: 'env',
@@ -356,7 +356,7 @@ describe('proxy integration', () => {
         modelName: 'gpt-4o',
         openaiApiKey: 'test-key',
         openaiBaseURL: 'https://api.openai.com/v1',
-        httpProxy: proxyUrl, // Would be populated from MIDSCENE_VQA_OPENAI_HTTP_PROXY
+        httpProxy: proxyUrl, // Would be populated from MIDSCENE_VQA_MODEL_HTTP_PROXY
         modelDescription: 'test',
         intent: 'VQA',
         from: 'env',
@@ -373,7 +373,7 @@ describe('proxy integration', () => {
         modelName: 'gpt-4o',
         openaiApiKey: 'test-key',
         openaiBaseURL: 'https://api.openai.com/v1',
-        socksProxy: proxyUrl, // Would be populated from MIDSCENE_PLANNING_OPENAI_SOCKS_PROXY
+        socksProxy: proxyUrl, // Would be populated from MIDSCENE_PLANNING_MODEL_SOCKS_PROXY
         modelDescription: 'test',
         intent: 'planning',
         from: 'env',
@@ -390,7 +390,7 @@ describe('proxy integration', () => {
         modelName: 'gpt-4o',
         openaiApiKey: 'test-key',
         openaiBaseURL: 'https://api.openai.com/v1',
-        httpProxy: proxyUrl, // Would be populated from MIDSCENE_GROUNDING_OPENAI_HTTP_PROXY
+        httpProxy: proxyUrl, // Would be populated from MIDSCENE_GROUNDING_MODEL_HTTP_PROXY
         modelDescription: 'test',
         intent: 'grounding',
         from: 'env',

@@ -9,6 +9,7 @@ import type {
   IModelConfig,
   TIntent,
   TModelConfigFn,
+  TModelConfigFnInternal,
 } from './types';
 import { VL_MODE_RAW_VALID_VALUES as VL_MODES } from './types';
 
@@ -16,7 +17,7 @@ const ALL_INTENTS: TIntent[] = ['VQA', 'default', 'grounding', 'planning'];
 
 export type TIntentConfigMap = Record<
   TIntent,
-  ReturnType<TModelConfigFn> | undefined
+  ReturnType<TModelConfigFnInternal> | undefined
 >;
 
 export class ModelConfigManager {
@@ -37,13 +38,18 @@ export class ModelConfigManager {
     this.createOpenAIClientFn = createOpenAIClientFn;
     if (modelConfigFn) {
       this.isolatedMode = true;
-      const intentConfigMap = this.calcIntentConfigMap(modelConfigFn);
+      // Cast to internal type - user function can optionally use intent parameter
+      // even though it's not shown in the type definition
+      const internalFn = modelConfigFn as unknown as TModelConfigFnInternal;
+      const intentConfigMap = this.calcIntentConfigMap(internalFn);
       this.modelConfigMap =
         this.calcModelConfigMapBaseOnIntent(intentConfigMap);
     }
   }
 
-  private calcIntentConfigMap(modelConfigFn: TModelConfigFn): TIntentConfigMap {
+  private calcIntentConfigMap(
+    modelConfigFn: TModelConfigFnInternal,
+  ): TIntentConfigMap {
     const intentConfigMap: TIntentConfigMap = {
       VQA: undefined,
       default: undefined,
