@@ -79,7 +79,7 @@ describe.skipIf(!process.env.BRIDGE_MODE)(
       const localIP = getLocalIP();
 
       const agent = new AgentOverChromeBridge({
-        host: localIP, // 监听特定网卡
+        host: localIP, // Listen on specific network interface
         port: 3766,
       });
 
