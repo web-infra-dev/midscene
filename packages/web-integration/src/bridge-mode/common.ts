@@ -1,6 +1,24 @@
+export const DefaultBridgeServerHost = '127.0.0.1';
 export const DefaultBridgeServerPort = 3766;
-export const DefaultLocalEndpoint = `http://127.0.0.1:${DefaultBridgeServerPort}`;
+export const DefaultLocalEndpoint = `http://${DefaultBridgeServerHost}:${DefaultBridgeServerPort}`;
 export const BridgeCallTimeout = 30000;
+
+/**
+ * Get the server host based on configuration options.
+ * Priority: explicit host > allowRemoteAccess > default (127.0.0.1)
+ */
+export function getBridgeServerHost(options?: {
+  host?: string;
+  allowRemoteAccess?: boolean;
+}): string {
+  if (options?.host) {
+    return options.host;
+  }
+  if (options?.allowRemoteAccess) {
+    return '0.0.0.0';
+  }
+  return DefaultBridgeServerHost;
+}
 
 export enum BridgeEvent {
   Call = 'bridge-call',

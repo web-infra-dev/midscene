@@ -1,3 +1,4 @@
+import { createServer } from 'node:http';
 import { sleep } from '@midscene/core/utils';
 import { logMsg } from '@midscene/shared/utils';
 import { Server, type Socket as ServerSocket } from 'socket.io';
@@ -16,16 +17,13 @@ import {
 
 declare const __VERSION__: string;
 
-export const killRunningServer = async (port?: number) => {
+export const killRunningServer = async (port?: number, host = 'localhost') => {
   try {
-    const client = ClientIO(
-      `ws://localhost:${port || DefaultBridgeServerPort}`,
-      {
-        query: {
-          [BridgeSignalKill]: 1,
-        },
+    const client = ClientIO(`ws://${host}:${port || DefaultBridgeServerPort}`, {
+      query: {
+        [BridgeSignalKill]: 1,
       },
-    );
+    });
     await sleep(100);
     await client.close();
   } catch (e) {
@@ -47,6 +45,7 @@ export class BridgeServer {
   private connectionLostReason = '';
 
   constructor(
+    public host: string,
     public port: number,
     public onConnect?: () => void,
     public onDisconnect?: (reason: string) => void,
@@ -61,7 +60,7 @@ export class BridgeServer {
     const { timeout = 30000 } = opts;
 
     if (this.closeConflictServer) {
-      await killRunningServer(this.port);
+      await killRunningServer(this.port, this.host);
     }
 
     return new Promise((resolve, reject) => {
@@ -86,17 +85,31 @@ export class BridgeServer {
               logMsg('waiting for bridge to connect...');
             }, 2000)
           : null;
-      this.io = new Server(this.port, {
-        maxHttpBufferSize: 100 * 1024 * 1024, // 100MB
-      });
 
-      // Listen for the native HTTP server 'listening' event
-      this.io.httpServer.once('listening', () => {
+      // Create HTTP server and start listening on the specified host and port
+      const httpServer = createServer();
+
+      // Set up HTTP server event listeners FIRST
+      httpServer.once('listening', () => {
         resolve();
       });
 
-      this.io.httpServer.once('error', (err: Error) => {
+      httpServer.once('error', (err: Error) => {
         reject(new Error(`Bridge Listening Error: ${err.message}`));
+      });
+
+      // Start listening BEFORE creating Socket.IO Server
+      // When host is 127.0.0.1 (default), don't specify host to listen on all local interfaces (IPv4 + IPv6)
+      // This ensures localhost resolves correctly in both IPv4 and IPv6 environments
+      if (this.host === '127.0.0.1') {
+        httpServer.listen(this.port);
+      } else {
+        httpServer.listen(this.port, this.host);
+      }
+
+      // Now create Socket.IO Server attached to the already-listening HTTP server
+      this.io = new Server(httpServer, {
+        maxHttpBufferSize: 100 * 1024 * 1024, // 100MB
       });
 
       this.io.use((socket, next) => {
