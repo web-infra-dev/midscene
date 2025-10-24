@@ -306,6 +306,8 @@ describe('getEnvConfigValue', () => {
     vi.stubEnv(MIDSCENE_MODEL_NAME, '<test-model>');
     vi.stubEnv(OPENAI_API_KEY, '<test-openai-api-key>');
     vi.stubEnv(OPENAI_BASE_URL, '<test-openai-base-url>');
+    // Reset MIDSCENE_CACHE to ensure tests start with clean state
+    vi.stubEnv(MIDSCENE_CACHE, '');
   });
 
   afterEach(() => {
