@@ -53,7 +53,7 @@ describe.skipIf(!process.env.BRIDGE_MODE)(
       const localIP = getLocalIP();
 
       const agent = new AgentOverChromeBridge({
-        allowRemoteAccess: true, // 监听 0.0.0.0:3766
+        allowRemoteAccess: true, // Listens on 0.0.0.0:3766
       });
 
       console.log('✓ Server listening on 0.0.0.0:3766 (remote access enabled)');
