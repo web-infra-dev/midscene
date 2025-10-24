@@ -11,7 +11,7 @@ vi.setConfig({
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// 获取本机局域网 IP 地址
+// Get local network IP address
 function getLocalIP(): string {
   const interfaces = os.networkInterfaces();
   for (const name of Object.keys(interfaces)) {
