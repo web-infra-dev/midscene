@@ -82,7 +82,7 @@ describe(
         };
       });
 
-      expect(description).toMatchSnapshot();
+      expect(list).toMatchSnapshot();
 
       const simplifiedTree = traverseTree(tree!, (node) => {
         return {
