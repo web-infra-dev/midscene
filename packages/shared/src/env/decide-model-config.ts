@@ -71,15 +71,22 @@ export const decideOpenaiSdkConfig = ({
   debugLog('enter decideOpenaiSdkConfig with keys:', keys);
 
   // Implement compatibility logic: prefer new variable names (MODEL_*), fallback to old ones (OPENAI_*)
-  let openaiBaseURL = provider[keys.openaiBaseURL];
-  let openaiApiKey = provider[keys.openaiApiKey];
+  let openaiBaseURL: string | undefined;
+  let openaiApiKey: string | undefined;
 
   // When using legacy keys (OPENAI_BASE_URL, OPENAI_API_KEY), check for new names first
-  if (keys.openaiBaseURL === 'OPENAI_BASE_URL' && !openaiBaseURL) {
-    openaiBaseURL = provider[MODEL_BASE_URL];
+  if (keys.openaiBaseURL === 'OPENAI_BASE_URL') {
+    // Priority: MODEL_BASE_URL > OPENAI_BASE_URL
+    openaiBaseURL = provider[MODEL_BASE_URL] || provider[keys.openaiBaseURL];
+  } else {
+    openaiBaseURL = provider[keys.openaiBaseURL];
   }
-  if (keys.openaiApiKey === 'OPENAI_API_KEY' && !openaiApiKey) {
-    openaiApiKey = provider[MODEL_API_KEY];
+
+  if (keys.openaiApiKey === 'OPENAI_API_KEY') {
+    // Priority: MODEL_API_KEY > OPENAI_API_KEY
+    openaiApiKey = provider[MODEL_API_KEY] || provider[keys.openaiApiKey];
+  } else {
+    openaiApiKey = provider[keys.openaiApiKey];
   }
 
   const openaiExtraConfig = parseJson(
