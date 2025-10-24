@@ -304,8 +304,7 @@ export function extractTreeNodeAsString(
   debugMode = false,
 ): string {
   const elementNode = extractTreeNode(initNode, debugMode);
-  return '';
-  // return descriptionOfTree(elementNode, undefined, false, visibleOnly);
+  return descriptionOfTree(elementNode, undefined, false, visibleOnly);
 }
 
 export function extractTreeNode(

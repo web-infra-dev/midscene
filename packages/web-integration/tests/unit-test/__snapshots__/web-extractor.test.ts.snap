@@ -1,681 +1,249 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`extractor > basic 1`] = `
-[
-  {
-    "attributes": {
-      "htmlTagName": "<h1>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Data Record",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<h2>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "1970-01-01 19:25:01",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<h2>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "User Name: Stella",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<th>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "ID",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<th>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Field 2",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<th>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Field 3",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<th>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Field 4",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<th>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Field 5",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<td>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "30S",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<td>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Kace Cervantes",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<td>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Aylin Sawyer",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<td>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Jefferson Kirby",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<td>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Skyla Jefferson",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<td>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "70U",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<td>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Florence Davenport",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<td>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Dariel Acevedo",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<td>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Ashlynn Delacruz",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<td>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Memphis Leal",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<td>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "3AY",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<td>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Crystal Newman",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<td>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Anderson Brown",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<td>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Charlotte Griffith",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<td>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Franklin Everett",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<td>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "YPG",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<td>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Kori Payne",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<td>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Edward Blevins",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<td>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Aila Gill",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<td>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Matthias Reed",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<td>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "ZEN",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<td>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Magnolia Duke",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<td>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Kalel Glover",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<td>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Alessia Barton",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<td>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Cassius Peck",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<h3>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Form",
-  },
-  {
-    "attributes": {
-      "for": "name",
-      "htmlTagName": "<label>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Name:",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<input>",
-      "id": "J_input",
-      "nodeType": "FORM_ITEM Node",
-      "placeholder": "Hello World This is Placeholder",
-    },
-    "content": "Hello World This is Placeholder",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<input>",
-      "id": "J_input",
-      "nodeType": "FORM_ITEM Node",
-      "placeholder": "Hello World This is Placeholder",
-      "value": "Now I am a value, instead of placeholder",
-    },
-    "content": "Now I am a value, instead of placeholder",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<button>",
-      "nodeType": "BUTTON Node",
-    },
-    "content": "Click Me",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<label>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Shape",
-  },
-  {
-    "attributes": {
-      "href": "https://www.google.com",
-      "htmlTagName": "<a>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Google",
-  },
-  {
-    "attributes": {
-      "href": "https://www.google.com",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node",
-      "style": "width: 100px; height: 20px; vertical-align: middle; display: inline-block; background: #ccc;",
-    },
-    "content": "",
-  },
-  {
-    "attributes": {
-      "href": "https://www.google.com",
-      "htmlTagName": "<a>",
-      "nodeType": "Anchor Node",
-    },
-    "content": " ",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<input>",
-      "nodeType": "FORM_ITEM Node",
-      "placeholder": "You shouldn't see this placeholder.",
-      "value": "Rectangle",
-    },
-    "content": "Rectangle",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<textarea>",
-      "nodeType": "FORM_ITEM Node",
-      "placeholder": "this_is_a_textarea",
-    },
-    "content": "this_is_a_textarea",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<span>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "English",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<span>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "中文",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<span>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Tiếng Việt",
-  },
-  {
-    "attributes": {
-      "for": "options",
-      "htmlTagName": "<label>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Choose an option:",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<select>",
-      "id": "options",
-      "name": "options",
-      "nodeType": "FORM_ITEM Node",
-    },
-    "content": "Option 1",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<div>",
-      "nodeType": "TEXT Node",
-      "style": "width: 160px;height: 40px;background-color: #ccc;zoom: 1.5;",
-    },
-    "content": "This is zoomed content",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<div>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Something Else",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<div>",
-      "id": "J_resize",
-      "nodeType": "CONTAINER Node",
-      "style": "width:30px;height:30px;background: #AC0",
-    },
-    "content": "",
-  },
-  {
-    "attributes": {
-      "class": ".gh-ar-hdn",
-      "for": "gh-ac",
-      "htmlTagName": "<label>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "输入搜索关键词",
-  },
-  {
-    "attributes": {
-      "aria-autocomplete": "list",
-      "aria-expanded": "false",
-      "aria-haspopup": "true",
-      "aria-label": "搜索任何物品",
-      "aria-owns": "ui-id-1",
-      "autocapitalize": "off",
-      "autocomplete": "off",
-      "autocorrect": "off",
-      "class": ".gh-tb.ui-autocomplete-input",
-      "htmlTagName": "<input>",
-      "id": "gh-ac",
-      "maxlength": "300",
-      "name": "_nkw",
-      "nodeType": "FORM_ITEM Node",
-      "placeholder": "搜索任何物品",
-      "role": "combobox",
-      "size": "50",
-      "spellcheck": "false",
-      "type": "text",
-    },
-    "content": "搜索任何物品",
-  },
-  {
-    "attributes": {
-      "class": ".life-core-input.life-core-input-size-md",
-      "htmlTagName": "<input>",
-      "nodeType": "FORM_ITEM Node",
-      "placeholder": "验证码",
-      "tabindex": "0",
-      "type": "text",
-    },
-    "content": "验证码",
-  },
-  {
-    "attributes": {
-      "aria-label": "The phrase 'The quick brown fox jumps over the lazy dog' is a well-known English-language pangram, meaning it contains every letter of the alphabet at least once. This sentence has become a standard tool for various applications, particularly in typing practice, font display, and keyboard testing. T...",
-      "htmlTagName": "<div>",
-      "nodeType": "CONTAINER Node",
-      "style": "width: 100px; height: 100px; background-color: #ccc;",
-    },
-    "content": "",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<body>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "phrase "The quick brown fox jumps over the lazy dog" is a well-known English-language pangram, meaning it contains every letter of the alphabet at least once. This sentence has become a standard tool for various applications, particularly     in typing practice, font display, and keyboard testing. The phrase has permeated popular culture and is referenced in various media, including literature and film. Its simplicity and utility have made it a staple in educational contexts and beyond.     For instance, it was famously used as the first message sent over the Moscow–Washington hotline in 19634.",
-  },
-  {
-    "attributes": {
-      "aria-label": "Search",
-      "class": ".btn",
-      "htmlTagName": "<button>",
-      "nodeType": "BUTTON Node",
-      "tabindex": "0",
-      "type": "submit",
-    },
-    "content": " ",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<div>",
-      "nodeType": "TEXT Node",
-      "style": "height: 30px",
-    },
-    "content": "content 000",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<div>",
-      "nodeType": "CONTAINER Node",
-      "style": "height: 30px;width: 100px;",
-    },
-    "content": "",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<div>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "content AAA",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<img>",
-      "nodeType": "IMG Node",
-      "src": "image",
-    },
-    "content": "",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<button>",
-      "nodeType": "BUTTON Node",
-      "very-long-attr": "width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color: #ccc;",
-    },
-    "content": "long-style-content",
-  },
-  {
-    "attributes": {
-      "aria-label": "Click me",
-      "class": ".widget",
-      "htmlTagName": "<div>",
-      "nodeType": "TEXT Node",
-      "role": "button",
-    },
-    "content": "Click me",
-  },
-  {
-    "attributes": {
-      "aria-controls": "semi-select-5yxiyng",
-      "class": ".widget",
-      "htmlTagName": "<div>",
-      "nodeType": "CONTAINER Node",
-    },
-    "content": "",
-  },
-  {
-    "attributes": {
-      "aria-labelledby": "eval_object.object_type-label",
-      "class": ".widget",
-      "htmlTagName": "<div>",
-      "nodeType": "CONTAINER Node",
-    },
-    "content": "",
-  },
-  {
-    "attributes": {
-      "class": ".child-container",
-      "htmlTagName": "<div>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Content 1",
-  },
-  {
-    "attributes": {
-      "class": ".child-container-without-content-2-1",
-      "htmlTagName": "<div>",
-      "nodeType": "CONTAINER Node",
-      "style": "width: 100px; height: 100px; background-color: #ccc;",
-    },
-    "content": "",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<span>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Content 2",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<span>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Nested Content 3",
-  },
-  {
-    "attributes": {
-      "class": ".child-container-4",
-      "htmlTagName": "<div>",
-      "nodeType": "CONTAINER Node",
-      "style": "width: 100px; height: 100px; background-color: #ccc;",
-    },
-    "content": "",
-  },
-  {
-    "attributes": {
-      "class": ".child-container-5",
-      "htmlTagName": "<span>",
-      "nodeType": "IMG Node",
-    },
-    "content": "",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<span>",
-      "nodeType": "IMG Node",
-      "svgContent": "true",
-    },
-    "content": "",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<span>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "hidden label",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<div>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "i am fixed child content",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<span>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "abcd efg",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<div>",
-      "nodeType": "TEXT Node",
-      "style": "position: absolute; left: 0px; bottom: 0; width: 100%; height: 50px; background-color: #EEE;",
-    },
-    "content": "content editable div content. We should collect the parent.",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<div>",
-      "nodeType": "TEXT Node",
-    },
-    "content": "absolute child content",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<div>",
-      "nodeType": "TEXT Node",
-      "style": "position: absolute; top: 0px; left: 0; width: 100%;text-align: right;",
-    },
-    "content": "content Right",
-  },
-  {
-    "attributes": {
-      "class": ".two-columns",
-      "htmlTagName": "<div>",
-      "nodeType": "CONTAINER Node",
-    },
-    "content": "",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<div>",
-      "nodeType": "TEXT Node",
-      "style": "width: 120px; height: 120px; background-color: #EEE;",
-    },
-    "content": "AAA",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "<div>",
-      "nodeType": "TEXT Node",
-      "style": "position: absolute; bottom: 200px; right: 0; width: 120px; height: 120px; background-color: #CCC;",
-    },
-    "content": "This should be collected",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Child Page",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "",
-      "nodeType": "TEXT Node",
-    },
-    "content": "This is a child page.",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Click me",
-  },
-  {
-    "attributes": {
-      "htmlTagName": "",
-      "nodeType": "TEXT Node",
-    },
-    "content": "Something beyong 200px",
-  },
-]
+"<>
+  <h1 id="mmkck"  left="20" top="22" width="189" height="36">
+    Data Record
+  </h1>
+  <h2 id="abinp"  left="20" top="80" width="1040" height="28">
+    1970-01-01 19:25:01
+  </h2>
+  <h2 id="folno"  left="20" top="127" width="1040" height="28">
+    User Name: Stella
+  </h2>
+  <th id="ejhad"  left="21" top="175" width="51" height="36">
+    ID
+  </th>
+  <th id="poblp"  left="71" top="175" width="129" height="36">
+    Field 2
+  </th>
+  <th id="lefbf"  left="200" top="175" width="114" height="36">
+    Field 3
+  </th>
+  <th id="jonhk"  left="314" top="175" width="116" height="36">
+    Field 4
+  </th>
+  <th id="bmeol"  left="430" top="175" width="109" height="36">
+    Field 5
+  </th>
+  <td id="lcham"  left="21" top="211" width="51" height="54">
+    30S
+  </td>
+  <td id="fnabi"  left="71" top="211" width="129" height="54">
+    Kace Cervantes
+  </td>
+  <td id="decnm"  left="200" top="211" width="114" height="54">
+    Aylin Sawyer
+  </td>
+  <td id="nlfkj"  left="314" top="211" width="116" height="54">
+    Jefferson Kirby
+  </td>
+  <td id="ppfnd"  left="430" top="211" width="109" height="54">
+    Skyla Jefferson
+  </td>
+  <td id="ccjah"  left="21" top="265" width="51" height="54">
+    70U
+  </td>
+  <td id="pbmop"  left="71" top="265" width="129" height="54">
+    Florence Davenport
+  </td>
+  <td id="abbbk"  left="200" top="265" width="114" height="54">
+    Dariel Acevedo
+  </td>
+  <td id="olcbh"  left="314" top="265" width="116" height="54">
+    Ashlynn Delacruz
+  </td>
+  <td id="pamdl"  left="430" top="265" width="109" height="54">
+    Memphis Leal
+  </td>
+  <td id="peokk"  left="21" top="319" width="51" height="54">
+    3AY
+  </td>
+  <td id="ngnhm"  left="71" top="319" width="129" height="54">
+    Crystal Newman
+  </td>
+  <td id="kfehp"  left="200" top="319" width="114" height="54">
+    Anderson Brown
+  </td>
+  <td id="lnmhl"  left="314" top="319" width="116" height="54">
+    Charlotte Griffith
+  </td>
+  <td id="ggnom"  left="430" top="319" width="109" height="54">
+    Franklin Everett
+  </td>
+  <td id="lnglh"  left="21" top="373" width="51" height="54">
+    YPG
+  </td>
+  <td id="hnpjb"  left="71" top="373" width="129" height="54">
+    Kori Payne
+  </td>
+  <td id="hlfha"  left="200" top="373" width="114" height="54">
+    Edward Blevins
+  </td>
+  <td id="gphee"  left="314" top="373" width="116" height="54">
+    Aila Gill
+  </td>
+  <td id="lfpic"  left="430" top="373" width="109" height="54">
+    Matthias Reed
+  </td>
+  <td id="gobob"  left="21" top="427" width="51" height="54">
+    ZEN
+  </td>
+  <td id="dncdc"  left="71" top="427" width="129" height="54">
+    Magnolia Duke
+  </td>
+  <td id="pmfne"  left="200" top="427" width="114" height="54">
+    Kalel Glover
+  </td>
+  <td id="hnnim"  left="314" top="427" width="116" height="54">
+    Alessia Barton
+  </td>
+  <td id="fagen"  left="430" top="427" width="109" height="54">
+    Cassius Peck
+  </td>
+  <h3 id="mkocn"  left="20" top="500" width="1040" height="22">
+    Form
+  </h3>
+  <label id="efiol" for="name" left="20" top="541" width="47" height="18">
+    Name:
+  </label>
+  <input id="hhpnh" id="J_input" placeholder="Hello World This is Placeholder" left="72" top="540" width="147" height="22">
+    Hello World This is Placeholder
+  </input>
+  <input id="adfpd" id="J_input" placeholder="Hello World This is Placeholder" value="Now I am a value, instead of placeholder" left="223" top="540" width="147" height="22">
+    Now I am a value, instead of placeholder
+  </input>
+  <button id="odahp"  left="374" top="540" width="67" height="22">
+    Click Me
+  </button>
+  <label id="eebmi"  left="446" top="541" width="46" height="18">
+    Shape
+  </label>
+  <a id="mjgmm" href="https://www.google.com" left="497" top="541" width="52" height="18">
+    Google
+  </a>
+  <a id="mbfin" href="https://www.google.com" left="553" top="541" width="100" height="20">
+  </a>
+  <a id="ndahd" href="https://www.google.com" left="657" top="541" width="6" height="18">
+  </a>
+  <input id="foiik" placeholder="You shouldn't see this placeholder." value="Rectangle" left="664" top="540" width="147" height="22">
+    Rectangle
+  </input>
+  <textarea id="pcnbj" placeholder="this_is_a_textarea" left="20" top="575" width="183" height="37">
+    this_is_a_textarea
+  </textarea>
+  <span id="mhnaf"  left="540" top="16" width="52" height="18">
+    English
+  </span>
+  <span id="jmabe"  left="540" top="37" width="32" height="18">
+    中文
+  </span>
+  <span id="ndkjm"  left="540" top="57" width="71" height="18">
+    Tiếng Việt
+  </span>
+  <label id="cgpon" for="options" left="20" top="616" width="130" height="18">
+    Choose an option:
+  </label>
+  <select id="ngngn" id="options" name="options" left="154" top="616" width="73" height="19">
+    Option 1
+  </select>
+  <div id="adoim"  left="20" top="635" width="288" height="72">
+    This is zoomed content
+  </div>
+  <div id="egofl"  left="20" top="707" width="134" height="22">
+    Something Else
+  </div>
+  <div id="ohnkl" id="J_resize" left="20" top="803" width="30" height="30">
+  </div>
+  <label id="fckjj" for="gh-ac" class=".gh-ar-hdn" left="20" top="836" width="112" height="18">
+    输入搜索关键词
+  </label>
+  <input id="nhjbd" type="text" class=".gh-tb.ui-autocomplete-input" aria-autocomplete="list" aria-expanded="false" size="50" maxlength="300" aria-label="搜索任何物品" placeholder="搜索任何物品" id="gh-ac" name="_nkw" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off" aria-haspopup="true" role="combobox" aria-owns="ui-id-1" left="136" top="835" width="347" height="22">
+    搜索任何物品
+  </input>
+  <input id="jnmcc" placeholder="验证码" tabindex="0" type="text" class=".life-core-input.life-core-input-size-md" left="20" top="860" width="147" height="22">
+    验证码
+  </input>
+  <div id="oikoc" aria-label="The phrase 'The quick brown fox jumps over the lazy dog' is a well-known English-language pangram, meaning it contains every letter of the alphabet at least once. This sentence has become a standard t..." left="20" top="881" width="100" height="100">
+  </div>
+  <body id="aioei"  left="20" top="981" width="1031" height="281">
+    phrase "The quick brown fox jumps over the lazy dog" is a well-known English-language pangram, meaning it contains every letter of the alphabet at least once. This sentence has become a standard tool ...
+  </body>
+  <button id="hanfg" tabindex="0" class=".btn" type="submit" aria-label="Search" left="73" top="1055" width="420" height="210">
+  </button>
+  <div id="adbek"  left="20" top="1265" width="1040" height="30">
+    content 000
+  </div>
+  <div id="pfcca"  left="20" top="1295" width="100" height="30">
+  </div>
+  <div id="pbckc"  left="20" top="1325" width="88" height="18">
+    content AAA
+  </div>
+  <img id="ffbjd" src="image" left="20" top="1373" width="10" height="7">
+  </img>
+  <button id="ehjhg" very-long-attr="width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-color: #ccc;width: 100px; height: 100px; background-colo..." left="34" top="1365" width="121" height="22">
+    long-style-content
+  </button>
+  <div id="amceh" class=".widget" role="button" aria-label="Click me" left="20" top="1396" width="100" height="100">
+    Click me
+  </div>
+  <div id="hfnnj" class=".widget" aria-controls="semi-select-5yxiyng" left="20" top="1506" width="100" height="100">
+  </div>
+  <div id="omfom" class=".widget" aria-labelledby="eval_object.object_type-label" left="20" top="1616" width="100" height="100">
+  </div>
+  <div id="eheng" class=".child-container" left="20" top="1716" width="100" height="19">
+    Content 1
+  </div>
+  <div id="kdlng" class=".child-container-without-content-2-1" left="20" top="1735" width="100" height="100">
+  </div>
+  <span id="cbhjk"  left="20" top="1835" width="69" height="18">
+    Content 2
+  </span>
+  <span id="lngmf"  left="20" top="1853" width="69" height="37">
+    Nested Content 3
+  </span>
+  <div id="emlfi" class=".child-container-4" left="20" top="1890" width="100" height="100">
+  </div>
+  <span id="kmhgg" class=".child-container-5" left="20" top="1992" width="8" height="19">
+  </span>
+  <span id="ehcbi" svgContent="true" left="33" top="1991" width="14" height="14">
+  </span>
+  <span id="jookm"  left="47" top="1989" width="86" height="18">
+    hidden label
+  </span>
+  <div id="bbdhm"  left="840" top="200" width="200" height="19">
+    i am fixed child content
+  </div>
+  <span id="ghicg"  left="20" top="2010" width="61" height="18">
+    abcd efg
+  </span>
+  <div id="blbpd"  left="20" top="2060" width="300" height="50">
+    content editable div content. We should collect the parent.
+  </div>
+  <div id="himlp"  left="0" top="0" width="1080" height="19">
+    absolute child content
+  </div>
+  <div id="bhoch"  left="20" top="2110" width="1040" height="19">
+    content Right
+  </div>
+  <div id="jfkdk" class=".two-columns" left="20" top="2210" width="1040" height="204">
+  </div>
+  <div id="nfbod"  left="20" top="2414" width="120" height="120">
+    AAA
+  </div>
+  <div id="dcbpi"  left="960" top="2680" width="120" height="120">
+    This should be collected
+  </div>
+  <text id="gkldo"  left="38" top="2231" width="150" height="37">
+    Child Page
+  </text>
+  <text id="pgcmi"  left="38" top="2290" width="128" height="19">
+    This is a child page.
+  </text>
+  <text id="bgobl"  left="46" top="2327" width="51" height="15">
+    Click me
+  </text>
+</>"
 `;
 
 exports[`extractor > basic 2`] = `
