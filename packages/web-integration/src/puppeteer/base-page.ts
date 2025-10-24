@@ -544,14 +544,14 @@ export class Page<
   }
 
   async beforeInvokeAction(name: string, param: any): Promise<void> {
-    await this.waitForNavigation();
-    await this.waitForNetworkIdle();
+    await Promise.all([this.waitForNavigation(), this.waitForNetworkIdle()]);
     if (this.onBeforeInvokeAction) {
       await this.onBeforeInvokeAction(name, param);
     }
   }
 
   async afterInvokeAction(name: string, param: any): Promise<void> {
+    await Promise.all([this.waitForNavigation(), this.waitForNetworkIdle()]);
     if (this.onAfterInvokeAction) {
       await this.onAfterInvokeAction(name, param);
     }
