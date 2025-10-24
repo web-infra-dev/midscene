@@ -34,7 +34,7 @@ describe.skipIf(!process.env.BRIDGE_MODE)(
   () => {
     it('should use default localhost (127.0.0.1)', async () => {
       const agent = new AgentOverChromeBridge();
-      // 默认监听 127.0.0.1:3766
+      // Default: listens on 127.0.0.1:3766
 
       console.log('✓ Server listening on 127.0.0.1:3766 (default)');
       console.log('  - Only accessible from localhost');
