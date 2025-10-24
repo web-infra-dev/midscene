@@ -950,6 +950,12 @@ export class TaskExecutor {
           }
         }
 
+        if (type === 'Assert' && !outputResult) {
+          task.usage = usage;
+          task.thought = thought;
+          throw new Error(`Assertion failed: ${thought}`);
+        }
+
         return {
           output: outputResult,
           log: insightDump,
