@@ -22,12 +22,14 @@
     "check-spell": "npx cspell"
   },
   "simple-git-hooks": {
-    "pre-commit": "npx nano-staged"
+    "pre-commit": "npx lint-staged"
   },
-  "nano-staged": {
-    "*.{md,mdx,json,css,less,scss}": "npx biome check . --diagnostic-level=info --no-errors-on-unmatched --fix --verbose",
-    "*.{js,jsx,ts,tsx,mjs,cjs,json}": [
-      "npx biome check . --diagnostic-level=info --no-errors-on-unmatched --fix --verbose"
+  "lint-staged": {
+    "*.{md,mdx,json,css,less,scss}": [
+      "npx biome check --diagnostic-level=info --fix"
+    ],
+    "*.{js,jsx,ts,tsx,mjs,cjs}": [
+      "npx biome check --diagnostic-level=info --fix"
     ],
     "package.json": "pnpm run check-dependency-version"
   },
