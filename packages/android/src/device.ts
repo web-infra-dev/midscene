@@ -69,7 +69,7 @@ export type AndroidDeviceOpt = {
   usePhysicalDisplayIdForDisplayLookup?: boolean;
   customActions?: DeviceAction<any>[];
   screenshotResizeScale?: number;
-  alwaysFetchScreenInfo?: boolean; // If true, always fetch screen size and orientation from device on each call; if false (default), cache the first result
+  alwaysRefreshScreenInfo?: boolean; // If true, always fetch screen size and orientation from device on each call; if false (default), cache the first result
 } & AndroidDeviceInputOpt;
 
 export class AndroidDevice implements AbstractInterface {
@@ -212,8 +212,7 @@ export class AndroidDevice implements AbstractInterface {
         );
       }),
       defineActionKeyboardPress(async (param) => {
-        const key = param.keyName;
-        await this.keyboardPress(key);
+        await this.keyboardPress(param.keyName);
       }),
       defineAction({
         name: 'AndroidBackButton',
@@ -524,7 +523,7 @@ ${Object.keys(size)
     orientation: number; // 0=portrait, 1=landscape, 2=reverse portrait, 3=reverse landscape
   }> {
     // Return cached value if not always fetching and cache exists
-    const shouldCache = !(this.options?.alwaysFetchScreenInfo ?? false);
+    const shouldCache = !(this.options?.alwaysRefreshScreenInfo ?? false);
     if (shouldCache && this.cachedScreenSize) {
       return this.cachedScreenSize;
     }
@@ -738,7 +737,7 @@ ${Object.keys(size)
 
   async getDisplayOrientation(): Promise<number> {
     // Return cached value if not always fetching and cache exists
-    const shouldCache = !(this.options?.alwaysFetchScreenInfo ?? false);
+    const shouldCache = !(this.options?.alwaysRefreshScreenInfo ?? false);
     if (shouldCache && this.cachedOrientation !== null) {
       return this.cachedOrientation;
     }
@@ -823,6 +822,7 @@ ${Object.keys(size)
     return {
       width: logicalWidth,
       height: logicalHeight,
+      dpr: this.devicePixelRatio,
     };
   }
 
@@ -882,19 +882,21 @@ ${Object.keys(size)
     }
 
     // Calculate final end coordinates, ensuring they stay within screen bounds
-    const endX =
+    const endX = Math.round(
       deltaX === 0
         ? start.x // No horizontal movement
         : deltaX > 0
           ? Math.min(maxWidth, start.x + actualScrollDistanceX) // Scroll right, cap at maxWidth
-          : Math.max(0, start.x - actualScrollDistanceX); // Scroll left, cap at 0
+          : Math.max(0, start.x - actualScrollDistanceX), // Scroll left, cap at 0
+    );
 
-    const endY =
+    const endY = Math.round(
       deltaY === 0
         ? start.y // No vertical movement
         : deltaY > 0
           ? Math.min(maxHeight, start.y + actualScrollDistanceY) // Scroll down, cap at maxHeight
-          : Math.max(0, start.y - actualScrollDistanceY); // Scroll up, cap at 0
+          : Math.max(0, start.y - actualScrollDistanceY), // Scroll up, cap at 0
+    );
 
     return { x: endX, y: endY };
   }
@@ -991,8 +993,9 @@ ${Object.keys(size)
       IME_STRATEGY_YADB_FOR_NON_ASCII;
 
     if (IME_STRATEGY === IME_STRATEGY_YADB_FOR_NON_ASCII) {
-      // For yadb-for-non-ascii mode, use continuous deletion of 100 characters with keyevent
-      await repeat(100, () => adb.keyevent(67)); // KEYCODE_DEL (Backspace)
+      // For yadb-for-non-ascii mode, use batch deletion of up to 100 characters
+      // clearTextField() batches all key events into a single shell command for better performance
+      await adb.clearTextField(100);
     } else {
       // Use the yadb tool to clear the input box
       await adb.shell(
@@ -1025,8 +1028,11 @@ ${Object.keys(size)
   async scrollUntilTop(startPoint?: Point): Promise<void> {
     if (startPoint) {
       const { height } = await this.size();
-      const start = { x: startPoint.left, y: startPoint.top };
-      const end = { x: start.x, y: height };
+      const start = {
+        x: Math.round(startPoint.left),
+        y: Math.round(startPoint.top),
+      };
+      const end = { x: start.x, y: Math.round(height) };
 
       await repeat(defaultScrollUntilTimes, () =>
         this.mouseDrag(start, end, defaultFastScrollDuration),
@@ -1043,7 +1049,10 @@ ${Object.keys(size)
 
   async scrollUntilBottom(startPoint?: Point): Promise<void> {
     if (startPoint) {
-      const start = { x: startPoint.left, y: startPoint.top };
+      const start = {
+        x: Math.round(startPoint.left),
+        y: Math.round(startPoint.top),
+      };
       const end = { x: start.x, y: 0 };
 
       await repeat(defaultScrollUntilTimes, () =>
@@ -1062,8 +1071,11 @@ ${Object.keys(size)
   async scrollUntilLeft(startPoint?: Point): Promise<void> {
     if (startPoint) {
       const { width } = await this.size();
-      const start = { x: startPoint.left, y: startPoint.top };
-      const end = { x: width, y: start.y };
+      const start = {
+        x: Math.round(startPoint.left),
+        y: Math.round(startPoint.top),
+      };
+      const end = { x: Math.round(width), y: start.y };
 
       await repeat(defaultScrollUntilTimes, () =>
         this.mouseDrag(start, end, defaultFastScrollDuration),
@@ -1080,7 +1092,10 @@ ${Object.keys(size)
 
   async scrollUntilRight(startPoint?: Point): Promise<void> {
     if (startPoint) {
-      const start = { x: startPoint.left, y: startPoint.top };
+      const start = {
+        x: Math.round(startPoint.left),
+        y: Math.round(startPoint.top),
+      };
       const end = { x: 0, y: start.y };
 
       await repeat(defaultScrollUntilTimes, () =>
@@ -1098,10 +1113,13 @@ ${Object.keys(size)
 
   async scrollUp(distance?: number, startPoint?: Point): Promise<void> {
     const { height } = await this.size();
-    const scrollDistance = distance || height;
+    const scrollDistance = Math.round(distance || height);
 
     if (startPoint) {
-      const start = { x: startPoint.left, y: startPoint.top };
+      const start = {
+        x: Math.round(startPoint.left),
+        y: Math.round(startPoint.top),
+      };
       const end = this.calculateScrollEndPoint(
         start,
         0,
@@ -1118,10 +1136,13 @@ ${Object.keys(size)
 
   async scrollDown(distance?: number, startPoint?: Point): Promise<void> {
     const { height } = await this.size();
-    const scrollDistance = distance || height;
+    const scrollDistance = Math.round(distance || height);
 
     if (startPoint) {
-      const start = { x: startPoint.left, y: startPoint.top };
+      const start = {
+        x: Math.round(startPoint.left),
+        y: Math.round(startPoint.top),
+      };
       const end = this.calculateScrollEndPoint(
         start,
         0,
@@ -1138,10 +1159,13 @@ ${Object.keys(size)
 
   async scrollLeft(distance?: number, startPoint?: Point): Promise<void> {
     const { width } = await this.size();
-    const scrollDistance = distance || width;
+    const scrollDistance = Math.round(distance || width);
 
     if (startPoint) {
-      const start = { x: startPoint.left, y: startPoint.top };
+      const start = {
+        x: Math.round(startPoint.left),
+        y: Math.round(startPoint.top),
+      };
       const end = this.calculateScrollEndPoint(
         start,
         scrollDistance,
@@ -1158,10 +1182,13 @@ ${Object.keys(size)
 
   async scrollRight(distance?: number, startPoint?: Point): Promise<void> {
     const { width } = await this.size();
-    const scrollDistance = distance || width;
+    const scrollDistance = Math.round(distance || width);
 
     if (startPoint) {
-      const start = { x: startPoint.left, y: startPoint.top };
+      const start = {
+        x: Math.round(startPoint.left),
+        y: Math.round(startPoint.top),
+      };
       const end = this.calculateScrollEndPoint(
         start,
         -scrollDistance,
@@ -1343,14 +1370,14 @@ ${Object.keys(size)
     const n = 4; // Divide the screen into n equal parts
 
     // Set the starting point based on the swipe direction
-    const startX = deltaX < 0 ? (n - 1) * (width / n) : width / n;
-    const startY = deltaY < 0 ? (n - 1) * (height / n) : height / n;
+    const startX = Math.round(deltaX < 0 ? (n - 1) * (width / n) : width / n);
+    const startY = Math.round(deltaY < 0 ? (n - 1) * (height / n) : height / n);
 
     // Calculate the maximum swipeable range
     const maxNegativeDeltaX = startX;
-    const maxPositiveDeltaX = (n - 1) * (width / n);
+    const maxPositiveDeltaX = Math.round((n - 1) * (width / n));
     const maxNegativeDeltaY = startY;
-    const maxPositiveDeltaY = (n - 1) * (height / n);
+    const maxPositiveDeltaY = Math.round((n - 1) * (height / n));
 
     // Limit the swipe distance
     deltaX = Math.max(-maxNegativeDeltaX, Math.min(deltaX, maxPositiveDeltaX));
@@ -1360,8 +1387,8 @@ ${Object.keys(size)
     // Note: For swipe, we need to reverse the delta direction
     // because positive deltaY should scroll up (show top content),
     // which requires swiping from bottom to top (decreasing Y)
-    const endX = startX - deltaX;
-    const endY = startY - deltaY;
+    const endX = Math.round(startX - deltaX);
+    const endY = Math.round(startY - deltaY);
 
     // Adjust coordinates to fit device ratio
     const { x: adjustedStartX, y: adjustedStartY } = this.adjustCoordinates(
@@ -1435,11 +1462,11 @@ ${Object.keys(size)
 
     // Default start point is near top of screen (but not too close to edge)
     const start = startPoint
-      ? { x: startPoint.left, y: startPoint.top }
-      : { x: width / 2, y: height * 0.15 };
+      ? { x: Math.round(startPoint.left), y: Math.round(startPoint.top) }
+      : { x: Math.round(width / 2), y: Math.round(height * 0.15) };
 
     // Default distance is larger to ensure refresh is triggered
-    const pullDistance = distance || height * 0.5;
+    const pullDistance = Math.round(distance || height * 0.5);
     const end = { x: start.x, y: start.y + pullDistance };
 
     // Use custom drag with specified duration for better pull-to-refresh detection
@@ -1473,11 +1500,11 @@ ${Object.keys(size)
 
     // Default start point is bottom center of screen
     const start = startPoint
-      ? { x: startPoint.left, y: startPoint.top }
-      : { x: width / 2, y: height * 0.85 };
+      ? { x: Math.round(startPoint.left), y: Math.round(startPoint.top) }
+      : { x: Math.round(width / 2), y: Math.round(height * 0.85) };
 
     // Default distance is 1/3 of screen height
-    const pullDistance = distance || height * 0.4;
+    const pullDistance = Math.round(distance || height * 0.4);
     const end = { x: start.x, y: start.y - pullDistance };
 
     // Use pullDrag for consistent pull gesture handling
