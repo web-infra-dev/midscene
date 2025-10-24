@@ -4,6 +4,22 @@ import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connect
 
 Choose one of the following models, obtain the API key, complete the configuration, and you are ready to go. Choose the model that is easiest to obtain if you are a beginner.
 
+## Environment Variable Configuration
+
+Starting from version 1.0, Midscene.js recommends using the following new environment variable names:
+
+- `MODEL_API_KEY` - API key (recommended)
+- `MODEL_BASE_URL` - API endpoint URL (recommended)
+
+For backward compatibility, the following legacy variable names are still supported:
+
+- `OPENAI_API_KEY` - API key (deprecated but still compatible)
+- `OPENAI_BASE_URL` - API endpoint URL (deprecated but still compatible)
+
+When both new and old variables are set, the new variables (`MODEL_*`) will take precedence.
+
+In the configuration examples throughout this document, we will use the new variable names. If you are currently using the old variable names, there's no need to change them immediately - they will continue to work.
+
 ## Adapted models for using Midscene.js
 
 Midscene.js supports two types of models, visual-language models and LLM models.
@@ -46,8 +62,8 @@ We recommend the Qwen3-VL series, which clearly outperforms Qwen2.5-VL. Qwen3-VL
 Using the Alibaba Cloud `qwen3-vl-plus` model as an example:
 
 ```bash
-OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
-OPENAI_API_KEY="......"
+MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+MODEL_API_KEY="......"
 MIDSCENE_MODEL_NAME="qwen3-vl-plus"
 MIDSCENE_USE_QWEN3_VL=1 # Note: cannot be set together with MIDSCENE_USE_QWEN_VL
 ```
@@ -57,8 +73,8 @@ MIDSCENE_USE_QWEN3_VL=1 # Note: cannot be set together with MIDSCENE_USE_QWEN_VL
 Using the Alibaba Cloud `qwen-vl-max-latest` model as an example:
 
 ```bash
-OPENAI_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
-OPENAI_API_KEY="......"
+MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+MODEL_API_KEY="......"
 MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
 MIDSCENE_USE_QWEN_VL=1 # Note: cannot be set together with MIDSCENE_USE_QWEN3_VL
 ```
@@ -85,8 +101,8 @@ They perform strongly for visual grounding and assertion in complex scenarios. W
 After obtaining an API key from [Volcano Engine](https://volcengine.com), you can use the following configuration:
 
 ```bash
-OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
-OPENAI_API_KEY="...."
+MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
+MODEL_API_KEY="...."
 MIDSCENE_MODEL_NAME="ep-..." # Inference endpoint ID or model name from Volcano Engine
 MIDSCENE_USE_DOUBAO_VISION=1
 ```
@@ -108,8 +124,8 @@ When using Gemini-2.5-Pro, set `MIDSCENE_USE_GEMINI=1` to enable Gemini-specific
 After applying for the API key on [Google Gemini](https://gemini.google.com/), you can use the following config:
 
 ```bash
-OPENAI_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
-OPENAI_API_KEY="......"
+MODEL_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
+MODEL_API_KEY="......"
 MIDSCENE_MODEL_NAME="gemini-2.5-pro-preview-05-06"
 MIDSCENE_USE_GEMINI=1
 ```
@@ -130,8 +146,8 @@ With UI-TARS you can use goal-driven prompts, such as "Log in with username foo 
 You can use the deployed `doubao-1.5-ui-tars` on [Volcano Engine](https://volcengine.com).
 
 ```bash
-OPENAI_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
-OPENAI_API_KEY="...."
+MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
+MODEL_API_KEY="...."
 MIDSCENE_MODEL_NAME="ep-2025..." # Inference endpoint ID or model name from Volcano Engine
 MIDSCENE_USE_VLM_UI_TARS=DOUBAO
 ```
@@ -164,8 +180,8 @@ The token cost of GPT-4o is relatively high because Midscene sends DOM informati
 **Config**
 
 ```bash
-OPENAI_API_KEY="......"
-OPENAI_BASE_URL="https://custom-endpoint.com/compatible-mode/v1" # Optional, if you want an endpoint other than the default OpenAI one.
+MODEL_API_KEY="......"
+MODEL_BASE_URL="https://custom-endpoint.com/compatible-mode/v1" # Optional, if you want an endpoint other than the default OpenAI one.
 MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # Optional. The default is "gpt-4o".
 ```
 
@@ -176,7 +192,7 @@ Other models are also supported by Midscene.js. Midscene will use the same promp
 
 1. A multimodal model is required, which means it must support image input.
 1. The larger the model, the better it works. However, it needs more GPU or money.
-1. Find out how to to call it with an OpenAI SDK compatible endpoint. Usually you should set the `OPENAI_BASE_URL`, `OPENAI_API_KEY` and `MIDSCENE_MODEL_NAME`. Config are described in [Config Model and Provider](./model-provider).
+1. Find out how to to call it with an OpenAI SDK compatible endpoint. Usually you should set the `MODEL_BASE_URL`, `MODEL_API_KEY` and `MIDSCENE_MODEL_NAME`. Config are described in [Config Model and Provider](./model-provider).
 1. If you find it not working well after changing the model, you can try using some short and clear prompt, or roll back to the previous model. See more details in [Prompting Tips](./prompting-tips).
 1. Remember to follow the terms of use of each model and provider.
 1. Don't include the `MIDSCENE_USE_VLM_UI_TARS` and `MIDSCENE_USE_QWEN_VL` config unless you know what you are doing.
@@ -185,8 +201,8 @@ Other models are also supported by Midscene.js. Midscene will use the same promp
 
 ```bash
 MIDSCENE_MODEL_NAME="....."
-OPENAI_BASE_URL="......"
-OPENAI_API_KEY="......"
+MODEL_BASE_URL="......"
+MODEL_API_KEY="......"
 ```
 
 For more details and sample config, see [Config Model and Provider](./model-provider).
