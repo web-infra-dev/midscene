@@ -230,7 +230,19 @@ android:
 
   # 输出 aiQuery/aiAssert 结果的 JSON 文件路径，可选
   output: <path-to-output-file>
+
+  # 其他 AndroidDevice 构造函数支持的所有选项
+  # 例如：androidAdbPath, remoteAdbHost, remoteAdbPort,
+  # imeStrategy, displayId, autoDismissKeyboard, keyboardDismissStrategy,
+  # screenshotResizeScale, alwaysRefreshScreenInfo 等
+  # 完整配置项请参考 AndroidDevice 的构造函数文档
 ```
+
+:::tip 查看完整的 Android 配置项
+
+YAML 脚本现在支持 `AndroidDevice` 构造函数的所有配置选项。完整的配置项列表请参考 [Android 集成文档中的 AndroidDevice 构造函数](./integrate-with-android#androiddevice-的构造函数)。
+
+:::
 
 ### `ios` 部分
 
@@ -253,7 +265,14 @@ ios:
 
   # 是否保存日志内容到 JSON 文件，可选，默认 `false`。如果为 true，保存到 `unstableLogContent.json` 文件中。如果为字符串，则保存到该字符串指定的路径中。日志内容的结构可能会在未来发生变化。
   unstableLogContent: <boolean | path-to-unstable-log-file>
+
+  # 其他 IOSDevice 构造函数支持的所有选项
+  # 完整配置项请参考 IOSDevice 的构造函数文档
 ```
+
+:::tip 查看完整的 iOS 配置项
+YAML 脚本现在支持 `IOSDevice` 构造函数的所有配置选项。完整的配置项列表请参考 [iOS 集成文档中的 IOSDevice 构造函数](./integrate-with-ios#iosdevice-的构造函数)。
+:::
 
 ### `tasks` 部分
 

@@ -34,19 +34,8 @@ export async function agentFromAdbDevice(
     );
   }
 
-  const device = new AndroidDevice(deviceId, {
-    autoDismissKeyboard: opts?.autoDismissKeyboard,
-    androidAdbPath: opts?.androidAdbPath,
-    remoteAdbHost: opts?.remoteAdbHost,
-    remoteAdbPort: opts?.remoteAdbPort,
-    imeStrategy: opts?.imeStrategy,
-    displayId: opts?.displayId,
-    usePhysicalDisplayIdForScreenshot: opts?.usePhysicalDisplayIdForScreenshot,
-    usePhysicalDisplayIdForDisplayLookup:
-      opts?.usePhysicalDisplayIdForDisplayLookup,
-    screenshotResizeScale: opts?.screenshotResizeScale,
-    alwaysRefreshScreenInfo: opts?.alwaysRefreshScreenInfo,
-  });
+  // Pass all device options to AndroidDevice constructor, ensuring we pass an empty object if opts is undefined
+  const device = new AndroidDevice(deviceId, opts || {});
 
   await device.connect();
 

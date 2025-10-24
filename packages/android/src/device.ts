@@ -14,6 +14,8 @@ import {
 import {
   type AbstractInterface,
   type ActionTapParam,
+  type AndroidDeviceInputOpt,
+  type AndroidDeviceOpt,
   defineAction,
   defineActionClearInput,
   defineActionDoubleClick,
@@ -41,6 +43,12 @@ import { repeat } from '@midscene/shared/utils';
 
 import { ADB } from 'appium-adb';
 
+// Re-export AndroidDeviceOpt and AndroidDeviceInputOpt for backward compatibility
+export type {
+  AndroidDeviceOpt,
+  AndroidDeviceInputOpt,
+} from '@midscene/core/device';
+
 // only for Android, because it's impossible to scroll to the bottom, so we need to set a default scroll times
 const defaultScrollUntilTimes = 10;
 const defaultFastScrollDuration = 100;
@@ -48,29 +56,8 @@ const defaultNormalScrollDuration = 1000;
 
 const IME_STRATEGY_ALWAYS_YADB = 'always-yadb' as const;
 const IME_STRATEGY_YADB_FOR_NON_ASCII = 'yadb-for-non-ascii' as const;
-type ImeStrategy =
-  | typeof IME_STRATEGY_ALWAYS_YADB
-  | typeof IME_STRATEGY_YADB_FOR_NON_ASCII;
 
 const debugDevice = getDebug('android:device');
-
-export type AndroidDeviceInputOpt = {
-  autoDismissKeyboard?: boolean;
-  keyboardDismissStrategy?: 'esc-first' | 'back-first';
-};
-
-export type AndroidDeviceOpt = {
-  androidAdbPath?: string;
-  remoteAdbHost?: string;
-  remoteAdbPort?: number;
-  imeStrategy?: ImeStrategy;
-  displayId?: number;
-  usePhysicalDisplayIdForScreenshot?: boolean;
-  usePhysicalDisplayIdForDisplayLookup?: boolean;
-  customActions?: DeviceAction<any>[];
-  screenshotResizeScale?: number;
-  alwaysRefreshScreenInfo?: boolean; // If true, always fetch screen size and orientation from device on each call; if false (default), cache the first result
-} & AndroidDeviceInputOpt;
 
 export class AndroidDevice implements AbstractInterface {
   private deviceId: string;

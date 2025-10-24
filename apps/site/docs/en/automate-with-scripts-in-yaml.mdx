@@ -230,7 +230,19 @@ android:
 
   # The path to the JSON file for outputting aiQuery/aiAssert results, optional.
   output: <path-to-output-file>
+
+  # All other options supported by the AndroidDevice constructor
+  # For example: androidAdbPath, remoteAdbHost, remoteAdbPort,
+  # imeStrategy, displayId, autoDismissKeyboard, keyboardDismissStrategy,
+  # screenshotResizeScale, alwaysRefreshScreenInfo, etc.
+  # See the AndroidDevice constructor documentation for the complete list
 ```
+
+:::tip View Complete Android Configuration Options
+
+YAML scripts now support all configuration options from the `AndroidDevice` constructor. For the complete list of options, please refer to [AndroidDevice Constructor in Android Integration Documentation](./integrate-with-android#androiddevice-constructor).
+
+:::
 
 ### The `ios` part
 
@@ -253,7 +265,14 @@ ios:
 
   # Whether to save log content to a JSON file, optional, defaults to `false`. If true, saves to `unstableLogContent.json`. If a string, saves to the specified path. The log content structure may change in the future.
   unstableLogContent: <boolean | path-to-unstable-log-file>
+
+  # All other options supported by the IOSDevice constructor
+  # See the IOSDevice constructor documentation for the complete list
 ```
+
+:::tip View Complete iOS Configuration Options
+YAML scripts now support all configuration options from the `IOSDevice` constructor. For the complete list of options, please refer to [IOSDevice Constructor in iOS Integration Documentation](./integrate-with-ios#iosdevice-constructor).
+:::
 
 ### The `tasks` part
 

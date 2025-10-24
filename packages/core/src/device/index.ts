@@ -389,3 +389,9 @@ export const defineActionClearInput = (
 };
 
 export type { DeviceAction } from '../types';
+export type {
+  AndroidDeviceOpt,
+  AndroidDeviceInputOpt,
+  IOSDeviceOpt,
+  IOSDeviceInputOpt,
+} from './device-options';
