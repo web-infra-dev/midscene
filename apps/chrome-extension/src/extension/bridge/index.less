@@ -13,10 +13,52 @@
   .server-config-section {
     margin-top: 16px;
     margin-bottom: 24px;
-    padding: 16px;
+    padding: 12px 16px;
     background: #f8f9fa;
     border-radius: 8px;
     border: 1px solid #e9ecef;
+
+    .server-config-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+      padding: 4px 0;
+
+      &:hover {
+        .server-config-title {
+          color: #1890ff;
+        }
+
+        .server-config-arrow {
+          color: #1890ff;
+        }
+      }
+    }
+
+    .server-config-arrow {
+      font-size: 12px;
+      color: #666;
+      transition: transform 0.2s ease;
+
+      &.expanded {
+        transform: rotate(180deg);
+      }
+    }
+
+    .server-config-title {
+      font-weight: 500;
+      font-size: 14px;
+      color: #333;
+      transition: color 0.2s ease;
+    }
+
+    .server-config-content {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #e9ecef;
+    }
 
     .server-config-label {
       display: block;
@@ -280,15 +322,20 @@
 
     .bottom-status-btn {
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
       align-items: center;
       justify-content: center;
-      position: relative;
+      margin-left: 12px;
 
       .stop-button {
         border: none;
         box-shadow: none;
         background: transparent;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 4px 8px;
 
         &::before {
           content: '';
@@ -297,7 +344,6 @@
           height: 10px;
           background-color: #000;
           border-radius: 2px;
-          vertical-align: middle;
         }
 
         &:hover,

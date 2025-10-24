@@ -2,6 +2,7 @@ import {
   ApiOutlined,
   ArrowDownOutlined,
   ClearOutlined,
+  DownOutlined,
   LoadingOutlined,
 } from '@ant-design/icons';
 import { Button, Input, List, Spin, Switch } from 'antd';
@@ -47,6 +48,7 @@ export default function Bridge() {
     // Only restore from localStorage if user has customized it
     return localStorage.getItem(BRIDGE_SERVER_URL_KEY) || '';
   });
+  const [isServerConfigExpanded, setIsServerConfigExpanded] = useState(false);
   const messageListRef = useRef<HTMLDivElement>(null);
   // useRef to track the ID of the connection status message
   const connectionStatusMessageId = useRef<string | null>(null);
@@ -164,6 +166,7 @@ export default function Bridge() {
 
   useEffect(() => {
     // Auto-connect on component mount if enabled
+    // Only check on initial mount, not when autoConnect changes
     if (
       autoConnect &&
       bridgeStatus === 'closed' &&
@@ -171,7 +174,8 @@ export default function Bridge() {
     ) {
       startConnection();
     }
-  }, [autoConnect, bridgeConnectorRef.current]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount
 
   const stopConnection = () => {
     bridgeConnectorRef.current?.disconnect();
@@ -355,22 +359,37 @@ export default function Bridge() {
             </p>
             {/* Server Configuration */}
             <div className="server-config-section">
-              {/* biome-ignore lint/a11y/noLabelWithoutControl: <explanation> */}
-              <label className="server-config-label">Bridge Server URL:</label>
-              <Input
-                value={serverUrl}
-                onChange={(e) => handleServerUrlChange(e.target.value)}
-                placeholder="ws://localhost:3766"
-                disabled={bridgeStatus !== 'closed'}
-                className="server-config-input"
-              />
-              <small className="server-config-hint">
-                {serverUrl && serverUrl !== DEFAULT_SERVER_URL ? (
-                  <>Remote mode: Connect to {serverUrl}</>
-                ) : (
-                  <>Local mode (default): ws://localhost:3766</>
-                )}
-              </small>
+              <div
+                className="server-config-header"
+                onClick={() =>
+                  setIsServerConfigExpanded(!isServerConfigExpanded)
+                }
+              >
+                <DownOutlined
+                  className={`server-config-arrow ${isServerConfigExpanded ? 'expanded' : ''}`}
+                />
+                <span className="server-config-title">
+                  Use remote server (optional)
+                </span>
+              </div>
+              {isServerConfigExpanded && (
+                <div className="server-config-content">
+                  <Input
+                    value={serverUrl}
+                    onChange={(e) => handleServerUrlChange(e.target.value)}
+                    placeholder="ws://localhost:3766"
+                    disabled={bridgeStatus !== 'closed'}
+                    className="server-config-input"
+                  />
+                  <small className="server-config-hint">
+                    {serverUrl && serverUrl !== DEFAULT_SERVER_URL ? (
+                      <>Remote mode: Connect to {serverUrl}</>
+                    ) : (
+                      <>Local mode (default): ws://localhost:3766</>
+                    )}
+                  </small>
+                </div>
+              )}
             </div>
             {messageList.length > 0 && (
               <List
