@@ -129,7 +129,7 @@ export async function createYamlPlayer(
             webTarget,
             {
               ...preference,
-              cache: processCacheConfig(yamlScript.agent?.cache, fileName),
+              cache: processCacheConfig(clonedYamlScript.agent?.cache, fileName),
             },
             options?.browser,
           );
@@ -158,7 +158,8 @@ export async function createYamlPlayer(
 
         const agent = new AgentOverChromeBridge({
           closeNewTabsAfterDisconnect: webTarget.closeNewTabsAfterDisconnect,
-          cache: processCacheConfig(yamlScript.agent?.cache, fileName),
+          cache: processCacheConfig(clonedYamlScript.agent?.cache, fileName),
+          aiActionContext: clonedYamlScript.agent?.aiActionContext,
         });
 
         if (webTarget.bridgeMode === 'newTabWithUrl') {
@@ -186,7 +187,8 @@ export async function createYamlPlayer(
         const androidTarget = clonedYamlScript.android;
         const agent = await agentFromAdbDevice(androidTarget?.deviceId, {
           ...androidTarget, // Pass all Android config options
-          cache: processCacheConfig(yamlScript.agent?.cache, fileName),
+          cache: processCacheConfig(clonedYamlScript.agent?.cache, fileName),
+          aiActionContext: clonedYamlScript.agent?.aiActionContext,
         });
 
         if (androidTarget?.launch) {
@@ -206,7 +208,8 @@ export async function createYamlPlayer(
         const iosTarget = clonedYamlScript.ios;
         const agent = await agentFromWebDriverAgent({
           ...iosTarget, // Pass all iOS config options
-          cache: processCacheConfig(yamlScript.agent?.cache, fileName),
+          cache: processCacheConfig(clonedYamlScript.agent?.cache, fileName),
+          aiActionContext: clonedYamlScript.agent?.aiActionContext,
         });
 
         if (iosTarget?.launch) {
@@ -265,8 +268,8 @@ export async function createYamlPlayer(
         // create agent from device
         debug('creating agent from device', device);
         const agent = createAgent(device, {
-          ...yamlScript.agent,
-          cache: processCacheConfig(yamlScript.agent?.cache, fileName),
+          ...clonedYamlScript.agent,
+          cache: processCacheConfig(clonedYamlScript.agent?.cache, fileName),
         });
 
         freeFn.push({
