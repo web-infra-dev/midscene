@@ -1,7 +1,4 @@
-import type {
-  BaseElement,
-  ElementTreeNode,
-} from '@midscene/shared/types';
+import type { BaseElement, ElementTreeNode } from '@midscene/shared/types';
 
 import {
   descriptionOfTree as sharedDescriptionOfTree,
