@@ -1,16 +1,24 @@
 import { InfoCircleOutlined, ReloadOutlined } from '@ant-design/icons';
-import type { PlaygroundSDK } from '@midscene/playground';
 import { Button, Spin, Tooltip } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import './index.less';
 
 interface ScreenshotViewerProps {
-  playgroundSDK: PlaygroundSDK;
+  getScreenshot: () => Promise<{
+    screenshot: string;
+    timestamp: number;
+  } | null>;
+  getInterfaceInfo?: () => Promise<{
+    type: string;
+    description?: string;
+  } | null>;
   serverOnline: boolean;
   isUserOperating?: boolean; // Whether user is currently operating
 }
 
 export default function ScreenshotViewer({
-  playgroundSDK,
+  getScreenshot,
+  getInterfaceInfo,
   serverOnline,
   isUserOperating = false,
 }: ScreenshotViewerProps) {
@@ -36,7 +44,7 @@ export default function ScreenshotViewer({
       if (isManual) setError(null); // Clear errors on manual refresh
 
       try {
-        const result = await playgroundSDK.getScreenshot();
+        const result = await getScreenshot();
         console.log('Screenshot API response:', result); // Debug log
 
         if (result?.screenshot) {
@@ -62,22 +70,22 @@ export default function ScreenshotViewer({
         setLoading(false);
       }
     },
-    [playgroundSDK, serverOnline],
+    [getScreenshot, serverOnline],
   );
 
   // Function to fetch interface info
   const fetchInterfaceInfo = useCallback(async () => {
-    if (!serverOnline) return;
+    if (!serverOnline || !getInterfaceInfo) return;
 
     try {
-      const info = await playgroundSDK.getInterfaceInfo();
+      const info = await getInterfaceInfo();
       if (info) {
         setInterfaceInfo(info);
       }
     } catch (err) {
       console.error('Interface info fetch error:', err);
     }
-  }, [playgroundSDK, serverOnline]);
+  }, [getInterfaceInfo, serverOnline]);
 
   // Start polling
   const startPolling = useCallback(() => {

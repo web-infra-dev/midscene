@@ -68,6 +68,32 @@ export default class ScrcpyServer {
           .json({ error: error.message || 'Failed to get devices list' });
       }
     });
+
+    // get screenshot API
+    this.app.get('/api/screenshot', async (req, res) => {
+      try {
+        if (!this.currentDeviceId) {
+          return res.status(404).json({ error: 'No device connected' });
+        }
+
+        // Use adb to capture screenshot and encode as base64
+        const { stdout } = await promiseExec(
+          `adb -s ${this.currentDeviceId} exec-out screencap -p | base64`,
+          { maxBuffer: 10 * 1024 * 1024 },
+        );
+
+        const base64 = stdout.trim();
+        res.json({
+          screenshot: `data:image/png;base64,${base64}`,
+          timestamp: Date.now(),
+        });
+      } catch (error: any) {
+        console.error('Failed to get screenshot:', error);
+        res.status(500).json({
+          error: error.message || 'Failed to capture screenshot',
+        });
+      }
+    });
   }
 
   // get devices list
