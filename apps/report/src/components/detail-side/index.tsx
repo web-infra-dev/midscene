@@ -6,7 +6,7 @@ import { timeStr } from '@midscene/visualizer';
 import { RadiusSettingOutlined } from '@ant-design/icons';
 import type {
   BaseElement,
-  ExecutionTaskInsightAssertion,
+  ExecutionTaskServiceAssertion,
   ExecutionTaskPlanning,
 } from '@midscene/core';
 import { paramStr, typeStr } from '@midscene/core/agent';
@@ -286,7 +286,7 @@ const DetailSide = (): JSX.Element => {
         ],
       });
     }
-  } else if (task?.type === 'Insight') {
+  } else if (task?.type === 'Service') {
     const isPageContextFrozen = Boolean((task?.uiContext as any)?._isFrozen);
     taskInput = MetaKV({
       data: [
@@ -414,8 +414,8 @@ const DetailSide = (): JSX.Element => {
   } else if (errorContent) {
     // Only error, no elements
     outputDataContent = errorContent;
-  } else if (task?.type === 'Insight' && task.subType === 'Assert') {
-    const assertTask = task as ExecutionTaskInsightAssertion;
+  } else if (task?.type === 'Service' && task.subType === 'Assert') {
+    const assertTask = task as ExecutionTaskServiceAssertion;
     const thought = assertTask.thought;
     const output = assertTask.output;
     outputDataContent = (

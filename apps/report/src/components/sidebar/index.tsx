@@ -3,7 +3,7 @@ import { useAllCurrentTasks, useExecutionDump } from '@/components/store';
 import type {
   AIUsageInfo,
   ExecutionTask,
-  ExecutionTaskInsightLocate,
+  ExecutionTaskServiceLocate,
 } from '@midscene/core';
 import { typeStr } from '@midscene/core/agent';
 import {
@@ -53,7 +53,7 @@ const SideItem = (props: {
       </Tag>
     ) : null;
 
-  const deepThinkEl = (task as ExecutionTaskInsightLocate)?.param?.deepThink ? (
+  const deepThinkEl = (task as ExecutionTaskServiceLocate)?.param?.deepThink ? (
     <Tag
       bordered={false}
       style={{
