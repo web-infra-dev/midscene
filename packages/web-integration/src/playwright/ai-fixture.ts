@@ -151,22 +151,13 @@ export const PlaywrightAiFixture = (options?: {
       page.on('close', () => {
         debugPage('page closed');
 
-        // Clean up temporary dump file for this page
-        const tempFilePath = pageTempFiles.get(idForPage);
-        if (tempFilePath) {
-          try {
-            rmSync(tempFilePath, { force: true });
-            debugPage(`Cleaned up temp file on page close: ${tempFilePath}`);
-          } catch (error) {
-            // Silently ignore - reporter may have already cleaned it up
-            debugPage(
-              `Failed to clean up temp file on page close: ${tempFilePath}`,
-              error,
-            );
-          }
-          pageTempFiles.delete(idForPage);
-          globalTempFiles.delete(tempFilePath);
-        }
+        // Note: We don't clean up temp files here because the reporter
+        // needs to read them in onTestEnd. The reporter will clean them up
+        // after reading. If the test is interrupted (Ctrl+C), the process
+        // exit handlers will clean up remaining temp files.
+
+        // However, we do clean up the pageTempFiles Map entry to avoid memory leaks
+        pageTempFiles.delete(idForPage);
 
         pageAgentMap[idForPage].destroy();
         delete pageAgentMap[idForPage];
