@@ -609,3 +609,379 @@ describe('llm planning - descriptionForAction with ZodEffects and ZodUnion', () 
     `);
   });
 });
+
+describe('llm planning - additional Zod types support', () => {
+  it('should handle ZodDate', () => {
+    const schema = z.object({
+      createdAt: z.date().describe('Creation date'),
+    });
+
+    const action = {
+      name: 'DateAction',
+      description: 'Action with date field',
+      paramSchema: schema,
+      call: async () => {},
+    };
+
+    const description = descriptionForAction(action, 'string');
+    expect(description).toMatchInlineSnapshot(`
+      "- DateAction, Action with date field
+        - type: "DateAction"
+        - param:
+          - createdAt: Date // Creation date"
+    `);
+  });
+
+  it('should handle ZodLiteral with string', () => {
+    const schema = z.object({
+      mode: z.literal('readonly').describe('Operation mode'),
+    });
+
+    const action = {
+      name: 'LiteralAction',
+      description: 'Action with literal field',
+      paramSchema: schema,
+      call: async () => {},
+    };
+
+    const description = descriptionForAction(action, 'string');
+    expect(description).toMatchInlineSnapshot(`
+      "- LiteralAction, Action with literal field
+        - type: "LiteralAction"
+        - param:
+          - mode: 'readonly' // Operation mode"
+    `);
+  });
+
+  it('should handle ZodLiteral with number', () => {
+    const schema = z.object({
+      version: z.literal(1),
+    });
+
+    const action = {
+      name: 'VersionAction',
+      description: 'Action with version',
+      paramSchema: schema,
+      call: async () => {},
+    };
+
+    const description = descriptionForAction(action, 'string');
+    expect(description).toMatchInlineSnapshot(`
+      "- VersionAction, Action with version
+        - type: "VersionAction"
+        - param:
+          - version: 1"
+    `);
+  });
+
+  it('should handle ZodTuple', () => {
+    const schema = z.object({
+      coordinates: z
+        .tuple([z.number(), z.number()])
+        .describe('X and Y coordinates'),
+    });
+
+    const action = {
+      name: 'TupleAction',
+      description: 'Action with tuple',
+      paramSchema: schema,
+      call: async () => {},
+    };
+
+    const description = descriptionForAction(action, 'string');
+    expect(description).toMatchInlineSnapshot(`
+      "- TupleAction, Action with tuple
+        - type: "TupleAction"
+        - param:
+          - coordinates: [number, number] // X and Y coordinates"
+    `);
+  });
+
+  it('should handle ZodRecord', () => {
+    const schema = z.object({
+      metadata: z.record(z.string()).describe('Metadata key-value pairs'),
+    });
+
+    const action = {
+      name: 'RecordAction',
+      description: 'Action with record',
+      paramSchema: schema,
+      call: async () => {},
+    };
+
+    const description = descriptionForAction(action, 'string');
+    expect(description).toMatchInlineSnapshot(`
+      "- RecordAction, Action with record
+        - type: "RecordAction"
+        - param:
+          - metadata: Record<string, string> // Metadata key-value pairs"
+    `);
+  });
+
+  it('should handle ZodIntersection', () => {
+    const schema = z.object({
+      combined: z.intersection(
+        z.object({ name: z.string() }),
+        z.object({ age: z.number() }),
+      ),
+    });
+
+    const action = {
+      name: 'IntersectionAction',
+      description: 'Action with intersection',
+      paramSchema: schema,
+      call: async () => {},
+    };
+
+    const description = descriptionForAction(action, 'string');
+    expect(description).toMatchInlineSnapshot(`
+      "- IntersectionAction, Action with intersection
+        - type: "IntersectionAction"
+        - param:
+          - combined: object & object"
+    `);
+  });
+
+  it('should handle ZodArray with item type', () => {
+    const schema = z.object({
+      items: z.array(z.string()).describe('List of items'),
+    });
+
+    const action = {
+      name: 'ArrayAction',
+      description: 'Action with typed array',
+      paramSchema: schema,
+      call: async () => {},
+    };
+
+    const description = descriptionForAction(action, 'string');
+    expect(description).toMatchInlineSnapshot(`
+      "- ArrayAction, Action with typed array
+        - type: "ArrayAction"
+        - param:
+          - items: string[] // List of items"
+    `);
+  });
+
+  it('should handle ZodPromise', () => {
+    const schema = z.object({
+      asyncData: z.promise(z.string()),
+    });
+
+    const action = {
+      name: 'PromiseAction',
+      description: 'Action with promise',
+      paramSchema: schema,
+      call: async () => {},
+    };
+
+    const description = descriptionForAction(action, 'string');
+    expect(description).toMatchInlineSnapshot(`
+      "- PromiseAction, Action with promise
+        - type: "PromiseAction"
+        - param:
+          - asyncData: Promise<string>"
+    `);
+  });
+
+  it('should handle ZodReadonly', () => {
+    const schema = z.object({
+      config: z.string().readonly(),
+    });
+
+    const action = {
+      name: 'ReadonlyAction',
+      description: 'Action with readonly field',
+      paramSchema: schema,
+      call: async () => {},
+    };
+
+    const description = descriptionForAction(action, 'string');
+    // Note: Zod's readonly() doesn't change the runtime type representation
+    expect(description).toMatchInlineSnapshot(`
+      "- ReadonlyAction, Action with readonly field
+        - type: "ReadonlyAction"
+        - param:
+          - config: string"
+    `);
+  });
+
+  it('should handle complex nested types', () => {
+    const schema = z.object({
+      data: z
+        .array(z.tuple([z.string(), z.number()]))
+        .describe('Array of name-value pairs'),
+    });
+
+    const action = {
+      name: 'ComplexNested',
+      description: 'Complex nested structure',
+      paramSchema: schema,
+      call: async () => {},
+    };
+
+    const description = descriptionForAction(action, 'string');
+    expect(description).toMatchInlineSnapshot(`
+      "- ComplexNested, Complex nested structure
+        - type: "ComplexNested"
+        - param:
+          - data: [string, number][] // Array of name-value pairs"
+    `);
+  });
+
+  it('should handle ZodNull and ZodUndefined in union', () => {
+    const schema = z.object({
+      optional: z.union([z.string(), z.null(), z.undefined()]),
+    });
+
+    const action = {
+      name: 'NullableAction',
+      description: 'Action with nullable field',
+      paramSchema: schema,
+      call: async () => {},
+    };
+
+    const description = descriptionForAction(action, 'string');
+    // Note: Unions with undefined make the field optional
+    expect(description).toMatchInlineSnapshot(`
+      "- NullableAction, Action with nullable field
+        - type: "NullableAction"
+        - param:
+          - optional?: string | null | undefined"
+    `);
+  });
+
+  it('should handle ZodAny and ZodUnknown', () => {
+    const schema = z.object({
+      anyField: z.any(),
+      unknownField: z.unknown(),
+    });
+
+    const action = {
+      name: 'SpecialTypes',
+      description: 'Action with special types',
+      paramSchema: schema,
+      call: async () => {},
+    };
+
+    const description = descriptionForAction(action, 'string');
+    // Note: any and unknown are treated as optional by Zod
+    expect(description).toMatchInlineSnapshot(`
+      "- SpecialTypes, Action with special types
+        - type: "SpecialTypes"
+        - param:
+          - anyField?: any
+          - unknownField?: unknown"
+    `);
+  });
+
+  it('should handle ZodBigInt', () => {
+    const schema = z.object({
+      bigNumber: z.bigint().describe('Large integer value'),
+    });
+
+    const action = {
+      name: 'BigIntAction',
+      description: 'Action with bigint',
+      paramSchema: schema,
+      call: async () => {},
+    };
+
+    const description = descriptionForAction(action, 'string');
+    expect(description).toMatchInlineSnapshot(`
+      "- BigIntAction, Action with bigint
+        - type: "BigIntAction"
+        - param:
+          - bigNumber: bigint // Large integer value"
+    `);
+  });
+
+  it('should handle ZodPipeline', () => {
+    const schema = z.object({
+      piped: z.string().pipe(z.string().transform((s) => s.toUpperCase())),
+    });
+
+    const action = {
+      name: 'PipelineAction',
+      description: 'Action with pipeline',
+      paramSchema: schema,
+      call: async () => {},
+    };
+
+    const description = descriptionForAction(action, 'string');
+    expect(description).toMatchInlineSnapshot(`
+      "- PipelineAction, Action with pipeline
+        - type: "PipelineAction"
+        - param:
+          - piped: string"
+    `);
+  });
+
+  it('should handle ZodBranded', () => {
+    const schema = z.object({
+      userId: z.string().brand<'UserId'>(),
+    });
+
+    const action = {
+      name: 'BrandedAction',
+      description: 'Action with branded type',
+      paramSchema: schema,
+      call: async () => {},
+    };
+
+    const description = descriptionForAction(action, 'string');
+    expect(description).toMatchInlineSnapshot(`
+      "- BrandedAction, Action with branded type
+        - type: "BrandedAction"
+        - param:
+          - userId: string"
+    `);
+  });
+
+  it('should handle ZodCatch', () => {
+    const schema = z.object({
+      withCatch: z.string().catch('default'),
+    });
+
+    const action = {
+      name: 'CatchAction',
+      description: 'Action with catch',
+      paramSchema: schema,
+      call: async () => {},
+    };
+
+    const description = descriptionForAction(action, 'string');
+    // Note: catch makes the field optional
+    expect(description).toMatchInlineSnapshot(`
+      "- CatchAction, Action with catch
+        - type: "CatchAction"
+        - param:
+          - withCatch?: string"
+    `);
+  });
+
+  it('should handle deeply nested wrapper types', () => {
+    const schema = z.object({
+      complex: z
+        .union([z.string(), z.number()])
+        .transform((val) => String(val))
+        .optional()
+        .describe('Complex wrapped type'),
+    });
+
+    const action = {
+      name: 'DeeplyNested',
+      description: 'Deeply nested wrappers',
+      paramSchema: schema,
+      call: async () => {},
+    };
+
+    const description = descriptionForAction(action, 'string');
+    expect(description).toMatchInlineSnapshot(`
+      "- DeeplyNested, Deeply nested wrappers
+        - type: "DeeplyNested"
+        - param:
+          - complex?: string | number // Complex wrapped type"
+    `);
+  });
+});

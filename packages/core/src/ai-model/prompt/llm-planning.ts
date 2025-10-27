@@ -65,22 +65,97 @@ export const descriptionForAction = (
           }
         }
 
+        // Handle additional wrapper types
+        if (typeName === 'ZodPipeline') {
+          // For pipeline, unwrap the output type
+          if (f._def.out) {
+            return unwrapField(f._def.out);
+          }
+        }
+
+        if (typeName === 'ZodCatch') {
+          // For catch, unwrap the inner type
+          if (f._def.innerType) {
+            return unwrapField(f._def.innerType);
+          }
+        }
+
+        if (typeName === 'ZodBranded') {
+          // For branded, unwrap the base type
+          if (f._def.type) {
+            return unwrapField(f._def.type);
+          }
+        }
+
+        if (typeName === 'ZodReadonly') {
+          // For readonly, unwrap the inner type
+          if (f._def.innerType) {
+            return unwrapField(f._def.innerType);
+          }
+        }
+
         return f;
       };
 
       const actualField = unwrapField(field);
       const fieldTypeName = actualField._def?.typeName;
 
+      // Handle ZodEffects explicitly before other types
+      // This ensures transform/refine/preprocess wrappers are properly unwrapped
+      if (fieldTypeName === 'ZodEffects') {
+        if (actualField._def?.schema) {
+          return getTypeName(actualField._def.schema);
+        }
+      }
+
+      // Basic types
       if (fieldTypeName === 'ZodString') return 'string';
       if (fieldTypeName === 'ZodNumber') return 'number';
       if (fieldTypeName === 'ZodBoolean') return 'boolean';
-      if (fieldTypeName === 'ZodArray') return 'array';
+      if (fieldTypeName === 'ZodDate') return 'Date';
+      if (fieldTypeName === 'ZodBigInt') return 'bigint';
+      if (fieldTypeName === 'ZodNull') return 'null';
+      if (fieldTypeName === 'ZodUndefined') return 'undefined';
+      if (fieldTypeName === 'ZodAny') return 'any';
+      if (fieldTypeName === 'ZodUnknown') return 'unknown';
+      if (fieldTypeName === 'ZodVoid') return 'void';
+
+      // Complex types
+      if (fieldTypeName === 'ZodArray') {
+        const itemType = actualField._def?.type;
+        if (itemType) {
+          return `${getTypeName(itemType)}[]`;
+        }
+        return 'array';
+      }
       if (fieldTypeName === 'ZodObject') {
         // Check if this is a passthrough object (like MidsceneLocation)
         if (ifMidsceneLocatorField(actualField)) {
           return locatorSchemaTypeDescription;
         }
         return 'object';
+      }
+      if (fieldTypeName === 'ZodTuple') {
+        const items = actualField._def?.items as any[] | undefined;
+        if (items && items.length > 0) {
+          const itemTypes = items.map((item: any) => getTypeName(item));
+          return `[${itemTypes.join(', ')}]`;
+        }
+        return 'tuple';
+      }
+      if (fieldTypeName === 'ZodRecord') {
+        const valueType = actualField._def?.valueType;
+        if (valueType) {
+          return `Record<string, ${getTypeName(valueType)}>`;
+        }
+        return 'Record';
+      }
+      if (fieldTypeName === 'ZodLiteral') {
+        const value = actualField._def?.value;
+        if (value !== undefined) {
+          return typeof value === 'string' ? `'${value}'` : String(value);
+        }
+        return 'literal';
       }
       if (fieldTypeName === 'ZodEnum') {
         const values =
@@ -90,7 +165,9 @@ export const descriptionForAction = (
 
         return `enum(${values})`;
       }
-      // Handle ZodUnion by taking the first option (for display purposes)
+      if (fieldTypeName === 'ZodNativeEnum') {
+        return 'nativeEnum';
+      }
       if (fieldTypeName === 'ZodUnion') {
         const options = actualField._def?.options as any[] | undefined;
         if (options && options.length > 0) {
@@ -99,6 +176,57 @@ export const descriptionForAction = (
           return types.join(' | ');
         }
         return 'union';
+      }
+      if (fieldTypeName === 'ZodDiscriminatedUnion') {
+        return 'discriminatedUnion';
+      }
+      if (fieldTypeName === 'ZodIntersection') {
+        const left = actualField._def?.left;
+        const right = actualField._def?.right;
+        if (left && right) {
+          return `${getTypeName(left)} & ${getTypeName(right)}`;
+        }
+        return 'intersection';
+      }
+      if (fieldTypeName === 'ZodPromise') {
+        const innerType = actualField._def?.type;
+        if (innerType) {
+          return `Promise<${getTypeName(innerType)}>`;
+        }
+        return 'Promise';
+      }
+      if (fieldTypeName === 'ZodLazy') {
+        // For lazy types, we can't resolve the type without evaluating the getter
+        return 'lazy';
+      }
+      // Additional wrapper types
+      if (fieldTypeName === 'ZodPipeline') {
+        const out = actualField._def?.out;
+        if (out) {
+          return getTypeName(out);
+        }
+        return 'pipeline';
+      }
+      if (fieldTypeName === 'ZodCatch') {
+        const innerType = actualField._def?.innerType;
+        if (innerType) {
+          return getTypeName(innerType);
+        }
+        return 'catch';
+      }
+      if (fieldTypeName === 'ZodBranded') {
+        const innerType = actualField._def?.type;
+        if (innerType) {
+          return getTypeName(innerType);
+        }
+        return 'branded';
+      }
+      if (fieldTypeName === 'ZodReadonly') {
+        const innerType = actualField._def?.innerType;
+        if (innerType) {
+          return `Readonly<${getTypeName(innerType)}>`;
+        }
+        return 'readonly';
       }
 
       console.warn(
@@ -133,6 +261,31 @@ export const descriptionForAction = (
           }
         }
 
+        // Handle additional wrapper types
+        if (typeName === 'ZodPipeline') {
+          if (f._def.out) {
+            return unwrapField(f._def.out);
+          }
+        }
+
+        if (typeName === 'ZodCatch') {
+          if (f._def.innerType) {
+            return unwrapField(f._def.innerType);
+          }
+        }
+
+        if (typeName === 'ZodBranded') {
+          if (f._def.type) {
+            return unwrapField(f._def.type);
+          }
+        }
+
+        if (typeName === 'ZodReadonly') {
+          if (f._def.innerType) {
+            return unwrapField(f._def.innerType);
+          }
+        }
+
         return f;
       };
 
@@ -146,6 +299,16 @@ export const descriptionForAction = (
       // Check for description on the unwrapped field
       if ('description' in actualField) {
         return actualField.description || null;
+      }
+
+      // Handle ZodEffects explicitly - check inner schema for description
+      if (
+        actualField._def?.typeName === 'ZodEffects' &&
+        actualField._def?.schema
+      ) {
+        if ('description' in actualField._def.schema) {
+          return actualField._def.schema.description || null;
+        }
       }
 
       // Check for MidsceneLocation fields and add description
