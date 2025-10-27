@@ -41,41 +41,39 @@ These Agents also support the following advanced configuration parameters:
   });
   ```
 
-- `createOpenAIClient: (config) => OpenAI`: Optional. Custom OpenAI client factory function. Allows you to create custom OpenAI client instances for integrating observability tools (such as LangSmith, LangFuse) or using custom OpenAI-compatible clients.
+- `createOpenAIClient: (openai, options) => Promise<OpenAI | undefined>`: Optional. Custom OpenAI client wrapper function. Allows you to wrap the OpenAI client instance for integrating observability tools (such as LangSmith, LangFuse) or applying custom middleware.
 
   **Parameter Description:**
-  - `config.modelName: string` - Model name
-  - `config.openaiApiKey?: string` - API key
-  - `config.openaiBaseURL?: string` - API endpoint URL
-  - `config.intent: string` - AI task type ('VQA' | 'planning' | 'grounding' | 'default')
-  - `config.vlMode?: string` - Visual language model mode
-  - Other configuration parameters...
+  - `openai: OpenAI` - The base OpenAI client instance created by Midscene with all necessary configurations (API key, base URL, proxy, etc.)
+  - `options: Record<string, unknown>` - OpenAI initialization options, including:
+    - `baseURL?: string` - API endpoint URL
+    - `apiKey?: string` - API key
+    - `dangerouslyAllowBrowser: boolean` - Always true in Midscene
+    - Other OpenAI configuration options
+
+  **Return Value:**
+  - Return the wrapped OpenAI client instance, or `undefined` to use the original instance
 
   **Example (LangSmith Integration):**
   ```typescript
-  import OpenAI from 'openai';
   import { wrapOpenAI } from 'langsmith/wrappers';
 
   const agent = new PuppeteerAgent(page, {
-    createOpenAIClient: (config) => {
-      const openai = new OpenAI({
-        apiKey: config.openaiApiKey,
-        baseURL: config.openaiBaseURL,
-      });
-
+    createOpenAIClient: async (openai, options) => {
       // Wrap with LangSmith for planning tasks
-      if (config.intent === 'planning') {
+      if (options.baseURL?.includes('planning')) {
         return wrapOpenAI(openai, {
           metadata: { task: 'planning' }
         });
       }
 
+      // Return the original client for other tasks
       return openai;
     }
   });
   ```
 
-  **Note:** `createOpenAIClient` overrides the behavior of the `MIDSCENE_LANGSMITH_DEBUG` environment variable. If you provide a custom client factory function, you need to handle the integration of LangSmith or other observability tools yourself.
+  **Note:** `createOpenAIClient` overrides the behavior of the `MIDSCENE_LANGSMITH_DEBUG` environment variable. If you provide a custom client wrapper function, you need to handle the integration of LangSmith or other observability tools yourself.
 
 In Puppeteer, there is also a parameter:
 

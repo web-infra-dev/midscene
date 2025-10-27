@@ -41,41 +41,39 @@ Midscene 中每个 Agent 都有自己的构造函数。
   });
   ```
 
-- `createOpenAIClient: (config) => OpenAI`: 可选。自定义 OpenAI 客户端工厂函数。允许你创建自定义的 OpenAI 客户端实例，用于集成可观测性工具（如 LangSmith、LangFuse）或使用自定义的 OpenAI 兼容客户端。
+- `createOpenAIClient: (openai, options) => Promise<OpenAI | undefined>`: 可选。自定义 OpenAI 客户端包装函数。允许你包装 OpenAI 客户端实例，用于集成可观测性工具（如 LangSmith、LangFuse）或应用自定义中间件。
 
   **参数说明：**
-  - `config.modelName: string` - 模型名称
-  - `config.openaiApiKey?: string` - API 密钥
-  - `config.openaiBaseURL?: string` - API 接入地址
-  - `config.intent: string` - AI 任务类型（'VQA' | 'planning' | 'grounding' | 'default'）
-  - `config.vlMode?: string` - 视觉语言模型模式
-  - 其他配置参数...
+  - `openai: OpenAI` - Midscene 创建的基础 OpenAI 客户端实例，已包含所有必要配置（API 密钥、基础 URL、代理等）
+  - `options: Record<string, unknown>` - OpenAI 初始化选项，包括：
+    - `baseURL?: string` - API 接入地址
+    - `apiKey?: string` - API 密钥
+    - `dangerouslyAllowBrowser: boolean` - 在 Midscene 中始终为 true
+    - 其他 OpenAI 配置选项
+
+  **返回值：**
+  - 返回包装后的 OpenAI 客户端实例，或返回 `undefined` 表示使用原始实例
 
   **示例（集成 LangSmith）：**
   ```typescript
-  import OpenAI from 'openai';
   import { wrapOpenAI } from 'langsmith/wrappers';
 
   const agent = new PuppeteerAgent(page, {
-    createOpenAIClient: (config) => {
-      const openai = new OpenAI({
-        apiKey: config.openaiApiKey,
-        baseURL: config.openaiBaseURL,
-      });
-
+    createOpenAIClient: async (openai, options) => {
       // 为规划任务包装 LangSmith
-      if (config.intent === 'planning') {
+      if (options.baseURL?.includes('planning')) {
         return wrapOpenAI(openai, {
           metadata: { task: 'planning' }
         });
       }
 
+      // 其他任务返回原始客户端
       return openai;
     }
   });
   ```
 
-  **注意：** `createOpenAIClient` 会覆盖 `MIDSCENE_LANGSMITH_DEBUG` 环境变量的行为。如果你提供了自定义的客户端工厂函数，需要自行处理 LangSmith 或其他可观测性工具的集成。
+  **注意：** `createOpenAIClient` 会覆盖 `MIDSCENE_LANGSMITH_DEBUG` 环境变量的行为。如果你提供了自定义的客户端包装函数，需要自行处理 LangSmith 或其他可观测性工具的集成。
 
 在 Puppeteer 中，还有以下参数：
 
