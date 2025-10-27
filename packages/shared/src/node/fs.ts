@@ -75,7 +75,7 @@ export async function getExtraReturnLogic(tree = false) {
     return null;
   }
 
-  const elementInfosScriptContent = `${getElementInfosScriptContent()}midscene_element_inspector.setNodeHashCacheListOnWindow();`;
+  const elementInfosScriptContent = `${getElementInfosScriptContent()};`;
 
   if (tree) {
     return `${elementInfosScriptContent}midscene_element_inspector.webExtractNodeTree()`;

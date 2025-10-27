@@ -4,10 +4,7 @@ export {
   callAI,
 } from './service-caller/index';
 export { systemPromptToLocateElement } from './prompt/llm-locator';
-export {
-  describeUserPage,
-  elementByPositionWithElementInfo,
-} from './prompt/util';
+export { describeUserPage } from './prompt/util';
 export {
   generatePlaywrightTest,
   generatePlaywrightTestStream,

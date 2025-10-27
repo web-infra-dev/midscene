@@ -11,9 +11,6 @@ export { cacheFileExt } from './task-cache';
 
 export { TaskExecutor } from './tasks';
 
-export {
-  getCurrentExecutionFile,
-  trimContextByViewport,
-} from './utils';
+export { getCurrentExecutionFile } from './utils';
 
 export type { AgentOpt } from '../types';

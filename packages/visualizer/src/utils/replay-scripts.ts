@@ -336,9 +336,7 @@ export const generateAnimationScripts = (
       const context = insightTask.uiContext;
       if (context?.screenshotBase64) {
         const insightDump = insightTask.log;
-        const insightContentLength = context.tree
-          ? treeToList(context.tree).length
-          : 0;
+        const insightContentLength = 0;
 
         if (context.screenshotBase64) {
           // show the original screenshot first

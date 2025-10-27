@@ -7,7 +7,7 @@ import type {
 } from '@midscene/shared/env';
 import type {
   BaseElement,
-  ElementTreeNode,
+  LocateResultElement,
   Rect,
   Size,
 } from '@midscene/shared/types';
@@ -33,6 +33,8 @@ export type AIUsageInfo = Record<string, any> & {
   model_description: string | undefined;
   intent: string | undefined;
 };
+
+export type { LocateResultElement };
 
 /**
  * openai
@@ -61,17 +63,6 @@ export type AISingleElementResponseByPosition = {
 };
 
 export type AISingleElementResponse = AISingleElementResponseById;
-export interface AIElementLocatorResponse {
-  elements: {
-    id: string;
-    reason?: string;
-    text?: string;
-    xpaths?: string[];
-  }[];
-  bbox?: [number, number, number, number];
-  isOrderSensitive?: boolean;
-  errors?: string[];
-}
 
 export interface AIElementCoordinatesResponse {
   bbox: [number, number, number, number];
@@ -79,9 +70,7 @@ export interface AIElementCoordinatesResponse {
   errors?: string[];
 }
 
-export type AIElementResponse =
-  | AIElementLocatorResponse
-  | AIElementCoordinatesResponse;
+export type AIElementResponse = AIElementCoordinatesResponse;
 
 export interface AIDataExtractionResponse<DataDemand> {
   data: DataDemand;
@@ -126,10 +115,8 @@ export interface AgentDescribeElementAtPointResult {
  * context
  */
 
-export abstract class UIContext<ElementType extends BaseElement = BaseElement> {
+export abstract class UIContext {
   abstract screenshotBase64: string;
-
-  abstract tree: ElementTreeNode<ElementType>;
 
   abstract size: Size;
 
@@ -143,19 +130,6 @@ export type InsightAction = 'locate' | 'extract' | 'assert' | 'describe';
 export type InsightExtractParam = string | Record<string, string>;
 
 export type ElementCacheFeature = Record<string, unknown>;
-
-export type LocateResultElement = {
-  center: [number, number];
-  rect: Rect;
-  id: string;
-  indexId?: number;
-  xpaths: string[];
-  attributes: {
-    nodeType: NodeType;
-    [key: string]: string;
-  };
-  isOrderSensitive?: boolean;
-};
 
 export interface LocateResult {
   element: LocateResultElement | null;
@@ -189,7 +163,7 @@ export interface InsightDump extends DumpMeta {
     dataDemand?: InsightExtractParam;
     assertion?: TUserPrompt;
   };
-  matchedElement: BaseElement[];
+  matchedElement: LocateResultElement[];
   matchedRect?: Rect;
   deepThink?: boolean;
   data: any;
@@ -262,7 +236,6 @@ export interface AgentAssertOpt {
  */
 
 export interface PlanningLocateParam extends DetailedLocateParam {
-  id?: string;
   bbox?: [number, number, number, number];
 }
 
@@ -593,7 +566,7 @@ export interface WebElementInfo extends BaseElement {
   };
 }
 
-export type WebUIContext = UIContext<WebElementInfo>;
+export type WebUIContext = UIContext;
 
 /**
  * Agent

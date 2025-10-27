@@ -40,7 +40,6 @@ vi.mock('@/common/utils', async () => {
   return {
     ...actual,
     WebPageContextParser: vi.fn().mockResolvedValue({}),
-    trimContextByViewport: vi.fn((execution) => execution),
     printReportMsg: vi.fn(),
   };
 });
