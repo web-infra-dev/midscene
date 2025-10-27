@@ -13,6 +13,9 @@ import {
   MIDSCENE_MODEL_INIT_CONFIG_JSON,
   MIDSCENE_MODEL_NAME,
   MIDSCENE_MODEL_SOCKS_PROXY,
+  MIDSCENE_OPENAI_HTTP_PROXY,
+  MIDSCENE_OPENAI_INIT_CONFIG_JSON,
+  MIDSCENE_OPENAI_SOCKS_PROXY,
   MIDSCENE_PLANNING_LOCATOR_MODE,
   MIDSCENE_PLANNING_MODEL_API_KEY,
   MIDSCENE_PLANNING_MODEL_BASE_URL,
@@ -134,16 +137,16 @@ export const DEFAULT_MODEL_CONFIG_KEYS: IModelConfigKeys = {
 export const DEFAULT_MODEL_CONFIG_KEYS_LEGACY: IModelConfigKeys = {
   modelName: MIDSCENE_MODEL_NAME,
   /**
-   * proxy
+   * proxy - Uses legacy MIDSCENE_OPENAI_* variables for backward compatibility
    */
-  socksProxy: MIDSCENE_MODEL_SOCKS_PROXY,
-  httpProxy: MIDSCENE_MODEL_HTTP_PROXY,
+  socksProxy: MIDSCENE_OPENAI_SOCKS_PROXY,
+  httpProxy: MIDSCENE_OPENAI_HTTP_PROXY,
   /**
    * Model API - Uses legacy OPENAI_* variables for backward compatibility
    */
   openaiBaseURL: OPENAI_BASE_URL,
   openaiApiKey: OPENAI_API_KEY,
-  openaiExtraConfig: MIDSCENE_MODEL_INIT_CONFIG_JSON,
+  openaiExtraConfig: MIDSCENE_OPENAI_INIT_CONFIG_JSON,
   /**
    * Extra
    */

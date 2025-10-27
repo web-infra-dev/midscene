@@ -45,9 +45,12 @@ Some advanced configs are also supported. Usually you don't need to use them.
 
 | Name | Description |
 |------|-------------|
-| `MIDSCENE_OPENAI_INIT_CONFIG_JSON` | Optional. Custom JSON config for OpenAI SDK initialization |
-| `MIDSCENE_OPENAI_HTTP_PROXY` | Optional. HTTP/HTTPS proxy configuration (e.g. `http://127.0.0.1:8080` or `https://proxy.example.com:8080`). This option has higher priority than `MIDSCENE_OPENAI_SOCKS_PROXY` |
-| `MIDSCENE_OPENAI_SOCKS_PROXY` | Optional. SOCKS proxy configuration (e.g. "socks5://127.0.0.1:1080") |
+| `MIDSCENE_MODEL_INIT_CONFIG_JSON` | Optional (recommended). Custom JSON config for OpenAI SDK initialization |
+| `MIDSCENE_MODEL_HTTP_PROXY` | Optional (recommended). HTTP/HTTPS proxy configuration (e.g. `http://127.0.0.1:8080` or `https://proxy.example.com:8080`). This option has higher priority than `MIDSCENE_MODEL_SOCKS_PROXY` |
+| `MIDSCENE_MODEL_SOCKS_PROXY` | Optional (recommended). SOCKS proxy configuration (e.g. "socks5://127.0.0.1:1080") |
+| `MIDSCENE_OPENAI_INIT_CONFIG_JSON` | Deprecated but still compatible. Recommended to use `MIDSCENE_MODEL_INIT_CONFIG_JSON` |
+| `MIDSCENE_OPENAI_HTTP_PROXY` | Deprecated but still compatible. Recommended to use `MIDSCENE_MODEL_HTTP_PROXY` |
+| `MIDSCENE_OPENAI_SOCKS_PROXY` | Deprecated but still compatible. Recommended to use `MIDSCENE_MODEL_SOCKS_PROXY` |
 | `MIDSCENE_PREFERRED_LANGUAGE` | Optional. The preferred language for the model response. The default is `Chinese` if the current timezone is GMT+8 and `English` otherwise. |
 | `MIDSCENE_REPLANNING_CYCLE_LIMIT` | Optional. The maximum number of replanning cycles, default is 10 |
 | `OPENAI_MAX_TOKENS` | Optional. Maximum tokens for model response, default is 2048 |

@@ -12,7 +12,16 @@ import {
   PLANNING_MODEL_CONFIG_KEYS,
   VQA_MODEL_CONFIG_KEYS,
 } from './constants';
-import { MODEL_API_KEY, MODEL_BASE_URL } from './types';
+import {
+  MIDSCENE_MODEL_HTTP_PROXY,
+  MIDSCENE_MODEL_INIT_CONFIG_JSON,
+  MIDSCENE_MODEL_SOCKS_PROXY,
+  MIDSCENE_OPENAI_HTTP_PROXY,
+  MIDSCENE_OPENAI_INIT_CONFIG_JSON,
+  MIDSCENE_OPENAI_SOCKS_PROXY,
+  MODEL_API_KEY,
+  MODEL_BASE_URL,
+} from './types';
 
 import { getDebug } from '../logger';
 import { assert } from '../utils';
@@ -64,15 +73,16 @@ export const decideOpenaiSdkConfig = ({
   initDebugConfig();
   const debugLog = getDebug('ai:config');
 
-  const socksProxy = provider[keys.socksProxy];
-  const httpProxy = provider[keys.httpProxy];
   const vlMode = provider[keys.vlMode];
 
   debugLog('enter decideOpenaiSdkConfig with keys:', keys);
 
-  // Implement compatibility logic: prefer new variable names (MODEL_*), fallback to old ones (OPENAI_*)
+  // Implement compatibility logic: prefer new variable names (MIDSCENE_MODEL_*), fallback to old ones (MIDSCENE_OPENAI_*)
   let openaiBaseURL: string | undefined;
   let openaiApiKey: string | undefined;
+  let socksProxy: string | undefined;
+  let httpProxy: string | undefined;
+  let openaiExtraConfigStr: string | undefined;
 
   // When using legacy keys (OPENAI_BASE_URL, OPENAI_API_KEY), check for new names first
   if (keys.openaiBaseURL === 'OPENAI_BASE_URL') {
@@ -89,9 +99,36 @@ export const decideOpenaiSdkConfig = ({
     openaiApiKey = provider[keys.openaiApiKey];
   }
 
+  // Proxy compatibility: prefer MIDSCENE_MODEL_* over MIDSCENE_OPENAI_*
+  if (keys.socksProxy === MIDSCENE_OPENAI_SOCKS_PROXY) {
+    // Priority: MIDSCENE_MODEL_SOCKS_PROXY > MIDSCENE_OPENAI_SOCKS_PROXY
+    socksProxy =
+      provider[MIDSCENE_MODEL_SOCKS_PROXY] || provider[keys.socksProxy];
+  } else {
+    socksProxy = provider[keys.socksProxy];
+  }
+
+  if (keys.httpProxy === MIDSCENE_OPENAI_HTTP_PROXY) {
+    // Priority: MIDSCENE_MODEL_HTTP_PROXY > MIDSCENE_OPENAI_HTTP_PROXY
+    httpProxy =
+      provider[MIDSCENE_MODEL_HTTP_PROXY] || provider[keys.httpProxy];
+  } else {
+    httpProxy = provider[keys.httpProxy];
+  }
+
+  // Init config compatibility: prefer MIDSCENE_MODEL_INIT_CONFIG_JSON over MIDSCENE_OPENAI_INIT_CONFIG_JSON
+  if (keys.openaiExtraConfig === MIDSCENE_OPENAI_INIT_CONFIG_JSON) {
+    // Priority: MIDSCENE_MODEL_INIT_CONFIG_JSON > MIDSCENE_OPENAI_INIT_CONFIG_JSON
+    openaiExtraConfigStr =
+      provider[MIDSCENE_MODEL_INIT_CONFIG_JSON] ||
+      provider[keys.openaiExtraConfig];
+  } else {
+    openaiExtraConfigStr = provider[keys.openaiExtraConfig];
+  }
+
   const openaiExtraConfig = parseJson(
     keys.openaiExtraConfig,
-    provider[keys.openaiExtraConfig],
+    openaiExtraConfigStr,
   );
 
   valueAssert(openaiApiKey, keys.openaiApiKey);

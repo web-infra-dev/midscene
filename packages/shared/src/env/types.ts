@@ -30,6 +30,19 @@ export const OPENAI_API_KEY = 'OPENAI_API_KEY';
  * @deprecated Use MODEL_BASE_URL instead. This is kept for backward compatibility.
  */
 export const OPENAI_BASE_URL = 'OPENAI_BASE_URL';
+/**
+ * @deprecated Use MIDSCENE_MODEL_INIT_CONFIG_JSON instead. This is kept for backward compatibility.
+ */
+export const MIDSCENE_OPENAI_INIT_CONFIG_JSON =
+  'MIDSCENE_OPENAI_INIT_CONFIG_JSON';
+/**
+ * @deprecated Use MIDSCENE_MODEL_HTTP_PROXY instead. This is kept for backward compatibility.
+ */
+export const MIDSCENE_OPENAI_HTTP_PROXY = 'MIDSCENE_OPENAI_HTTP_PROXY';
+/**
+ * @deprecated Use MIDSCENE_MODEL_SOCKS_PROXY instead. This is kept for backward compatibility.
+ */
+export const MIDSCENE_OPENAI_SOCKS_PROXY = 'MIDSCENE_OPENAI_SOCKS_PROXY';
 export const OPENAI_MAX_TOKENS = 'OPENAI_MAX_TOKENS';
 
 export const MIDSCENE_ADB_PATH = 'MIDSCENE_ADB_PATH';
@@ -182,6 +195,9 @@ export const MODEL_ENV_KEYS = [
   // model default legacy
   OPENAI_API_KEY,
   OPENAI_BASE_URL,
+  MIDSCENE_OPENAI_INIT_CONFIG_JSON,
+  MIDSCENE_OPENAI_HTTP_PROXY,
+  MIDSCENE_OPENAI_SOCKS_PROXY,
   MODEL_API_KEY,
   MODEL_BASE_URL,
   // VQA
@@ -311,12 +327,12 @@ export interface IModelConfigForDefaultLegacy {
   // model name
   [MIDSCENE_MODEL_NAME]: string;
   // proxy
-  [MIDSCENE_MODEL_SOCKS_PROXY]?: string;
-  [MIDSCENE_MODEL_HTTP_PROXY]?: string;
+  [MIDSCENE_OPENAI_SOCKS_PROXY]?: string;
+  [MIDSCENE_OPENAI_HTTP_PROXY]?: string;
   // OpenAI
   [OPENAI_BASE_URL]?: string;
   [OPENAI_API_KEY]?: string;
-  [MIDSCENE_MODEL_INIT_CONFIG_JSON]?: string;
+  [MIDSCENE_OPENAI_INIT_CONFIG_JSON]?: string;
   // extra
   [MIDSCENE_LOCATOR_MODE]?: TVlModeValues;
 }
