@@ -6,11 +6,6 @@ import type {
   ExecutionTaskInsightLocate,
 } from '@midscene/core';
 import { typeStr } from '@midscene/core/agent';
-
-// Extended task type with searchAreaUsage
-type ExecutionTaskWithSearchAreaUsage = ExecutionTask & {
-  searchAreaUsage?: AIUsageInfo;
-};
 import {
   type AnimationScript,
   iconForStatus,
@@ -23,6 +18,11 @@ import MessageIcon from '../../icons/message.svg?react';
 import PlayIcon from '../../icons/play.svg?react';
 import type { PlaywrightTasks } from '../../types';
 import ReportOverview from '../report-overview';
+
+// Extended task type with searchAreaUsage
+type ExecutionTaskWithSearchAreaUsage = ExecutionTask & {
+  searchAreaUsage?: AIUsageInfo;
+};
 
 const SideItem = (props: {
   task: ExecutionTaskWithSearchAreaUsage;

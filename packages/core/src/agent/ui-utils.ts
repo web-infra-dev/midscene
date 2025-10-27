@@ -11,9 +11,26 @@ import type {
 } from '@/types';
 
 export function typeStr(task: ExecutionTask) {
-  return task.subType && task.subType !== 'Plan'
-    ? `${task.type} / ${task.subType || ''}`
-    : task.type;
+  // For Insight tasks with Query or Assert subtypes, show just "Insight"
+  if (
+    task.type === 'Insight' &&
+    (task.subType === 'Query' || task.subType === 'Assert')
+  ) {
+    return task.type;
+  }
+
+  // For Action tasks with subType, show "Action Space / subType"
+  if (task.type === 'Action' && task.subType) {
+    return `Action Space / ${task.subType}`;
+  }
+
+  // For all other cases with subType, show "type / subType"
+  if (task.subType) {
+    return `${task.type} / ${task.subType}`;
+  }
+
+  // No subType, just show type
+  return task.type;
 }
 
 export function locateParamStr(locate?: DetailedLocateParam | string): string {
