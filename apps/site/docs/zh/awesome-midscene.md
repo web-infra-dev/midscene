@@ -9,6 +9,15 @@
   - 支持 iOS 应用程序的自动化测试和交互
   - 将 Midscene 的跨平台能力扩展到苹果移动生态系统
 
+### PC 自动化
+- **[midscene-pc](https://github.com/Mofangbao/midscene-pc)** - 支持 Windows、macOS 和 Linux 的 PC 操作设备
+  - 支持跨所有主流平台的桌面应用程序自动化测试和交互
+  - 支持本地和远程操作能力
+- **[midscene-pc-docker](https://github.com/Mofangbao/midscene-pc-docker)** - 预装 MidScene-PC 服务器的 Docker 容器镜像
+  - 基于 Ubuntu 20 和 GNOME 桌面，最大化应用程序兼容性
+  - 内置 VNC 服务，支持通过浏览器监控桌面操作
+  - 一键命令即可在标准服务器上部署自动化客户端
+
 ### Python SDK
 - **[Midscene-Python](https://github.com/Python51888/Midscene-Python)** - Python 版本的 Midscene SDK
   - 为 Python 开发者提供 Midscene 的 AI 驱动自动化能力
