@@ -5,13 +5,13 @@ import { paramStr, typeStr } from '@midscene/core/agent';
 import type {
   ExecutionDump,
   ExecutionTask,
-  ExecutionTaskInsightLocate,
   ExecutionTaskPlanning,
   GroupedActionDump,
   LocateResultElement,
   Rect,
   UIContext,
 } from '@midscene/core';
+import type { ExecutionTaskInsightLocate } from '@midscene/core/types';
 import { treeToList } from '@midscene/shared/extractor';
 
 export interface CameraState {
