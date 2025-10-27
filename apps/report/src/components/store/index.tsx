@@ -3,9 +3,9 @@ import type { PlaywrightTaskAttributes } from '@/types';
 import type {
   ExecutionDump,
   ExecutionTask,
-  ExecutionTaskInsightLocate,
+  ExecutionTaskServiceLocate,
   GroupedActionDump,
-  InsightDump,
+  ServiceDump,
 } from '@midscene/core';
 import type { AnimationScript } from '@midscene/visualizer';
 import {
@@ -55,7 +55,7 @@ export interface DumpStoreType {
   activeExecutionAnimation: AnimationScript[] | null;
   activeTask: ExecutionTask | null;
   setActiveTask: (task: ExecutionTask) => void;
-  insightDump: InsightDump | null;
+  insightDump: ServiceDump | null;
   _contextLoadId: number;
   hoverTask: ExecutionTask | null;
   hoverTimestamp: number | null;
@@ -203,8 +203,8 @@ export const useExecutionDump = create<DumpStoreType>((set, get) => {
             : null,
       });
       console.log('will set task', task);
-      if (task.type === 'Insight') {
-        const dump = (task as ExecutionTaskInsightLocate).log;
+      if (task.type === 'Service') {
+        const dump = (task as ExecutionTaskServiceLocate).log;
         set({
           insightDump: dump,
         });

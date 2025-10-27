@@ -10,16 +10,16 @@ import type {
   AIDescribeElementResponse,
   AIUsageInfo,
   DetailedLocateParam,
-  InsightExtractOption,
-  InsightExtractParam,
-  InsightExtractResult,
-  InsightTaskInfo,
   LocateResultWithDump,
-  PartialInsightDumpFromSDK,
+  PartialServiceDumpFromSDK,
   Rect,
+  ServiceExtractOption,
+  ServiceExtractParam,
+  ServiceExtractResult,
+  ServiceTaskInfo,
   UIContext,
 } from '@/types';
-import { InsightError } from '@/types';
+import { ServiceError } from '@/types';
 import {
   type IModelConfig,
   MIDSCENE_FORCE_DEEP_THINK,
@@ -29,7 +29,7 @@ import { compositeElementInfoImg, cropByRect } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { TMultimodalPrompt } from '../ai-model/common';
-import { createInsightDump } from './utils';
+import { createServiceDump } from './utils';
 
 export interface LocateOpts {
   context?: UIContext;
@@ -39,25 +39,25 @@ export type AnyValue<T> = {
   [K in keyof T]: unknown extends T[K] ? any : T[K];
 };
 
-interface InsightOptions {
-  taskInfo?: Omit<InsightTaskInfo, 'durationMs'>;
+interface ServiceOptions {
+  taskInfo?: Omit<ServiceTaskInfo, 'durationMs'>;
   aiVendorFn?: typeof callAIWithObjectResponse;
 }
 
-const debug = getDebug('ai:insight');
-export default class Insight {
+const debug = getDebug('ai:service');
+export default class Service {
   contextRetrieverFn: () => Promise<UIContext> | UIContext;
 
-  aiVendorFn: Exclude<InsightOptions['aiVendorFn'], undefined> =
+  aiVendorFn: Exclude<ServiceOptions['aiVendorFn'], undefined> =
     callAIWithObjectResponse;
 
-  taskInfo?: Omit<InsightTaskInfo, 'durationMs'>;
+  taskInfo?: Omit<ServiceTaskInfo, 'durationMs'>;
 
   constructor(
     context: UIContext | (() => Promise<UIContext> | UIContext),
-    opt?: InsightOptions,
+    opt?: ServiceOptions,
   ) {
-    assert(context, 'context is required for Insight');
+    assert(context, 'context is required for Service');
     if (typeof context === 'function') {
       this.contextRetrieverFn = context;
     } else {
@@ -138,7 +138,7 @@ export default class Insight {
     });
 
     const timeCost = Date.now() - startTime;
-    const taskInfo: InsightTaskInfo = {
+    const taskInfo: ServiceTaskInfo = {
       ...(this.taskInfo ? this.taskInfo : {}),
       durationMs: timeCost,
       rawResponse: JSON.stringify(rawResponse),
@@ -154,7 +154,7 @@ export default class Insight {
       errorLog = `AI model failed to locate: \n${parseResult.errors.join('\n')}`;
     }
 
-    const dumpData: PartialInsightDumpFromSDK = {
+    const dumpData: PartialServiceDumpFromSDK = {
       type: 'locate',
       userQuery: {
         element: queryPrompt,
@@ -169,17 +169,17 @@ export default class Insight {
 
     const elements = parseResult.elements || [];
 
-    const dump = createInsightDump({
+    const dump = createServiceDump({
       ...dumpData,
       matchedElement: elements,
     });
 
     if (errorLog) {
-      throw new InsightError(errorLog, dump);
+      throw new ServiceError(errorLog, dump);
     }
 
     if (elements.length > 1) {
-      throw new InsightError(
+      throw new ServiceError(
         `locate: multiple elements found, length = ${elements.length}`,
         dump,
       );
@@ -206,12 +206,12 @@ export default class Insight {
   }
 
   async extract<T>(
-    dataDemand: InsightExtractParam,
+    dataDemand: ServiceExtractParam,
     modelConfig: IModelConfig,
-    opt?: InsightExtractOption,
+    opt?: ServiceExtractOption,
     pageDescription?: string,
     multimodalPrompt?: TMultimodalPrompt,
-  ): Promise<InsightExtractResult<T>> {
+  ): Promise<ServiceExtractResult<T>> {
     assert(
       typeof dataDemand === 'object' || typeof dataDemand === 'string',
       `dataDemand should be object or string, but get ${typeof dataDemand}`,
@@ -230,7 +230,7 @@ export default class Insight {
     });
 
     const timeCost = Date.now() - startTime;
-    const taskInfo: InsightTaskInfo = {
+    const taskInfo: ServiceTaskInfo = {
       ...(this.taskInfo ? this.taskInfo : {}),
       durationMs: timeCost,
       rawResponse: JSON.stringify(parseResult),
@@ -241,7 +241,7 @@ export default class Insight {
       errorLog = `AI response error: \n${parseResult.errors.join('\n')}`;
     }
 
-    const dumpData: PartialInsightDumpFromSDK = {
+    const dumpData: PartialServiceDumpFromSDK = {
       type: 'extract',
       userQuery: {
         dataDemand,
@@ -255,13 +255,13 @@ export default class Insight {
     const { data, thought } = parseResult || {};
 
     // 4
-    const dump = createInsightDump({
+    const dump = createServiceDump({
       ...dumpData,
       data,
     });
 
     if (errorLog && !data && !opt?.doNotThrowError) {
-      throw new InsightError(errorLog, dump);
+      throw new ServiceError(errorLog, dump);
     }
 
     return {
@@ -279,10 +279,10 @@ export default class Insight {
       deepThink?: boolean;
     },
   ): Promise<Pick<AIDescribeElementResponse, 'description'>> {
-    assert(target, 'target is required for insight.describe');
+    assert(target, 'target is required for service.describe');
     const context = await this.contextRetrieverFn();
     const { screenshotBase64, size } = context;
-    assert(screenshotBase64, 'screenshot is required for insight.describe');
+    assert(screenshotBase64, 'screenshot is required for service.describe');
     // The result of the "describe" function will be used for positioning, so essentially it is a form of grounding.
     const { vlMode } = modelConfig;
     const systemPrompt = elementDescriberInstruction();

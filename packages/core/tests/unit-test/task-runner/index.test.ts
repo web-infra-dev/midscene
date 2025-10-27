@@ -5,11 +5,11 @@ import type {
   ExecutionTaskInsightLocateApply,
   UIContext,
 } from '@/index';
-import { fakeInsight } from 'tests/utils';
+import { fakeService } from 'tests/utils';
 import { describe, expect, it, vi } from 'vitest';
 
 const insightFindTask = (shouldThrow?: boolean) => {
-  const insight = fakeInsight('test-task-runner');
+  const insight = fakeService('test-task-runner');
 
   const insightFindTask: ExecutionTaskInsightLocateApply = {
     type: 'Insight',

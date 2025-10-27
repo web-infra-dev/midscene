@@ -1,24 +1,24 @@
 import { ConversationHistory, plan, uiTarsPlanning } from '@/ai-model';
 import type { TMultimodalPrompt, TUserPrompt } from '@/ai-model/common';
 import type { AbstractInterface } from '@/device';
-import type Insight from '@/insight';
+import type Service from '@/service';
 import type { TaskRunner } from '@/task-runner';
 import type {
   ExecutionTaskApply,
-  ExecutionTaskInsightQueryApply,
   ExecutionTaskPlanningApply,
   ExecutionTaskProgressOptions,
-  InsightDump,
-  InsightExtractOption,
-  InsightExtractParam,
+  ExecutionTaskServiceQueryApply,
   InterfaceType,
   MidsceneYamlFlowItem,
   PlanningAIResponse,
   PlanningAction,
   PlanningActionParamSleep,
   PlanningActionParamWaitFor,
+  ServiceDump,
+  ServiceExtractOption,
+  ServiceExtractParam,
 } from '@/types';
-import { InsightError } from '@/types';
+import { ServiceError } from '@/types';
 import {
   type IModelConfig,
   MIDSCENE_REPLANNING_CYCLE_LIMIT,
@@ -47,7 +47,7 @@ const defaultVlmUiTarsReplanningCycleLimit = 40;
 export class TaskExecutor {
   interface: AbstractInterface;
 
-  insight: Insight;
+  service: Service;
 
   taskCache?: TaskCache;
 
@@ -66,7 +66,7 @@ export class TaskExecutor {
 
   constructor(
     interfaceInstance: AbstractInterface,
-    insight: Insight,
+    service: Service,
     opts: {
       taskCache?: TaskCache;
       onTaskStart?: ExecutionTaskProgressOptions['onTaskStart'];
@@ -74,14 +74,14 @@ export class TaskExecutor {
     },
   ) {
     this.interface = interfaceInstance;
-    this.insight = insight;
+    this.service = service;
     this.taskCache = opts.taskCache;
     this.onTaskStartCallback = opts?.onTaskStart;
     this.replanningCycleLimit = opts.replanningCycleLimit;
     this.conversationHistory = new ConversationHistory();
     this.taskBuilder = new TaskBuilder({
       interfaceInstance,
-      insight,
+      service,
       taskCache: opts.taskCache,
     });
   }
@@ -92,7 +92,7 @@ export class TaskExecutor {
   ) {
     return new ExecutionSession(
       title,
-      () => Promise.resolve(this.insight.contextRetrieverFn()),
+      () => Promise.resolve(this.service.contextRetrieverFn()),
       {
         onTaskStart: this.onTaskStartCallback,
         tasks: options?.tasks,
@@ -373,13 +373,13 @@ export class TaskExecutor {
 
   private createTypeQueryTask(
     type: 'Query' | 'Boolean' | 'Number' | 'String' | 'Assert' | 'WaitFor',
-    demand: InsightExtractParam,
+    demand: ServiceExtractParam,
     modelConfig: IModelConfig,
-    opt?: InsightExtractOption,
+    opt?: ServiceExtractOption,
     multimodalPrompt?: TMultimodalPrompt,
   ) {
-    const queryTask: ExecutionTaskInsightQueryApply = {
-      type: 'Insight',
+    const queryTask: ExecutionTaskServiceQueryApply = {
+      type: 'Service',
       subType: type,
       locate: null,
       param: {
@@ -392,8 +392,8 @@ export class TaskExecutor {
       },
       executor: async (param, taskContext) => {
         const { task } = taskContext;
-        let queryDump: InsightDump | undefined;
-        const applyDump = (dump: InsightDump) => {
+        let queryDump: ServiceDump | undefined;
+        const applyDump = (dump: ServiceDump) => {
           queryDump = dump;
           task.log = {
             dump,
@@ -437,7 +437,7 @@ export class TaskExecutor {
         }
 
         try {
-          extractResult = await this.insight.extract<any>(
+          extractResult = await this.service.extract<any>(
             demandInput,
             modelConfig,
             opt,
@@ -445,7 +445,7 @@ export class TaskExecutor {
             multimodalPrompt,
           );
         } catch (error) {
-          if (error instanceof InsightError) {
+          if (error instanceof ServiceError) {
             applyDump(error.dump);
           }
           throw error;
@@ -489,9 +489,9 @@ export class TaskExecutor {
   }
   async createTypeQueryExecution<T>(
     type: 'Query' | 'Boolean' | 'Number' | 'String' | 'Assert',
-    demand: InsightExtractParam,
+    demand: ServiceExtractParam,
     modelConfig: IModelConfig,
-    opt?: InsightExtractOption,
+    opt?: ServiceExtractOption,
     multimodalPrompt?: TMultimodalPrompt,
   ): Promise<ExecutionResult<T>> {
     const session = this.createExecutionSession(
