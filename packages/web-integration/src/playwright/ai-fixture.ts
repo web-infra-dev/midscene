@@ -1,4 +1,4 @@
-import { writeFileSync } from 'node:fs';
+import { rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PlaywrightAgent, type PlaywrightWebPage } from '@/playwright/index';
@@ -47,6 +47,35 @@ const groupAndCaseForTest = (testInfo: TestInfo) => {
 const midsceneAgentKeyId = '_midsceneAgentId';
 export const midsceneDumpAnnotationId = 'MIDSCENE_DUMP_ANNOTATION';
 
+// Global tracking of temporary dump files for cleanup
+const globalTempFiles = new Set<string>();
+let cleanupHandlersRegistered = false;
+
+// Register process exit handlers to clean up temp files
+function registerCleanupHandlers() {
+  if (cleanupHandlersRegistered) return;
+  cleanupHandlersRegistered = true;
+
+  const cleanup = () => {
+    debugPage(`Cleaning up ${globalTempFiles.size} temporary dump files`);
+    for (const filePath of globalTempFiles) {
+      try {
+        rmSync(filePath, { force: true });
+        globalTempFiles.delete(filePath);
+      } catch (error) {
+        // Silently ignore errors during cleanup
+        debugPage(`Failed to clean up temp file: ${filePath}`, error);
+      }
+    }
+  };
+
+  // Register cleanup on process exit
+  process.once('SIGINT', cleanup);
+  process.once('SIGTERM', cleanup);
+  process.once('exit', cleanup);
+  process.once('beforeExit', cleanup);
+}
+
 type PlaywrightCacheConfig = {
   strategy?: 'read-only' | 'read-write' | 'write-only';
   id?: string;
@@ -75,6 +104,12 @@ export const PlaywrightAiFixture = (options?: {
     return processCacheConfig(cache as Cache, id);
   };
 
+  // Track temporary dump files for each page
+  const pageTempFiles = new Map<string, string>(); // pageId -> tempFilePath
+
+  // Register global cleanup handlers
+  registerCleanupHandlers();
+
   const pageAgentMap: Record<string, PageAgent<PlaywrightWebPage>> = {};
   const createOrReuseAgentForPage = (
     page: OriginPlaywrightPage,
@@ -100,11 +135,29 @@ export const PlaywrightAiFixture = (options?: {
       });
 
       pageAgentMap[idForPage].onDumpUpdate = (dump: string) => {
-        updateDumpAnnotation(testInfo, dump);
+        updateDumpAnnotation(testInfo, dump, idForPage);
       };
 
       page.on('close', () => {
         debugPage('page closed');
+
+        // Clean up temporary dump file for this page
+        const tempFilePath = pageTempFiles.get(idForPage);
+        if (tempFilePath) {
+          try {
+            rmSync(tempFilePath, { force: true });
+            debugPage(`Cleaned up temp file on page close: ${tempFilePath}`);
+          } catch (error) {
+            // Silently ignore - reporter may have already cleaned it up
+            debugPage(
+              `Failed to clean up temp file on page close: ${tempFilePath}`,
+              error,
+            );
+          }
+          pageTempFiles.delete(idForPage);
+          globalTempFiles.delete(tempFilePath);
+        }
+
         pageAgentMap[idForPage].destroy();
         delete pageAgentMap[idForPage];
       });
@@ -180,13 +233,33 @@ export const PlaywrightAiFixture = (options?: {
     });
   }
 
-  const updateDumpAnnotation = (test: TestInfo, dump: string) => {
+  const updateDumpAnnotation = (
+    test: TestInfo,
+    dump: string,
+    pageId: string,
+  ) => {
     // Write dump to temporary file
     const tempFileName = `midscene-dump-${test.testId || uuid()}-${Date.now()}.json`;
     const tempFilePath = join(tmpdir(), tempFileName);
 
     writeFileSync(tempFilePath, dump, 'utf-8');
     debugPage(`Dump written to temp file: ${tempFilePath}`);
+
+    // Track the temp file for cleanup
+    const oldTempFilePath = pageTempFiles.get(pageId);
+    if (oldTempFilePath) {
+      // Remove old temp file from tracking and try to delete it
+      globalTempFiles.delete(oldTempFilePath);
+      try {
+        rmSync(oldTempFilePath, { force: true });
+      } catch (error) {
+        // Silently ignore if old file is already cleaned up
+      }
+    }
+
+    // Track the new temp file
+    pageTempFiles.set(pageId, tempFilePath);
+    globalTempFiles.add(tempFilePath);
 
     // Store only the file path in annotation
     const currentAnnotation = test.annotations.find((item) => {
