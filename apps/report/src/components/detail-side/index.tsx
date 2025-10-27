@@ -6,8 +6,8 @@ import { timeStr } from '@midscene/visualizer';
 import { RadiusSettingOutlined } from '@ant-design/icons';
 import type {
   BaseElement,
-  ExecutionTaskServiceAssertion,
   ExecutionTaskPlanning,
+  ExecutionTaskServiceAssertion,
 } from '@midscene/core';
 import { paramStr, typeStr } from '@midscene/core/agent';
 import {

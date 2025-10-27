@@ -122,7 +122,7 @@ describe('aiAction cacheable option propagation', () => {
     if (locateTask) {
       await locateTask.executor(locateTask.param, {
         task: {
-          type: 'Insight',
+          type: 'Service',
           subType: 'Locate',
           param: locateTask.param,
           status: 'running',

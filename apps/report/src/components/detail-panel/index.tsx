@@ -8,8 +8,8 @@ import {
   VideoCameraOutlined,
 } from '@ant-design/icons';
 import type {
-  ExecutionTaskServiceLocate,
   ExecutionTaskPlanning,
+  ExecutionTaskServiceLocate,
 } from '@midscene/core';
 import { filterBase64Value, timeStr } from '@midscene/visualizer';
 import { Blackboard, Player } from '@midscene/visualizer';
