@@ -9,7 +9,7 @@ import { describe, expect, it, vi } from 'vitest';
 describe('TaskExecutor - Null Data Handling', () => {
   describe('createTypeQueryTask', () => {
     it('should handle null data for WaitFor operation', async () => {
-      // Mock insight that returns null
+      // Mock service that returns null
       const mockInsight = {
         contextRetrieverFn: vi.fn(async () => ({
           screenshotBase64: 'mock-screenshot',
@@ -38,7 +38,7 @@ describe('TaskExecutor - Null Data Handling', () => {
         'Element is visible',
         mockModelConfig,
         {},
-        {}, // InsightExtractOption
+        {}, // ServiceExtractOption
       );
 
       // Execute the task
