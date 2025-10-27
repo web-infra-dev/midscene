@@ -78,10 +78,10 @@ describe('TaskBuilder', () => {
     const { tasks } = await taskBuilder.build(plans, {} as any);
 
     expect(tasks.map((task) => [task.type, task.subType])).toEqual([
-      ['Insight', 'Locate'],
+      ['Service', 'Locate'],
       ['Action', 'Finished'],
       ['Action', 'Sleep'],
-      ['Insight', 'Locate'],
+      ['Service', 'Locate'],
       ['Action', 'Tap'],
     ]);
     expect(tasks.every((task) => task.subTask === undefined)).toBe(true);
