@@ -50,6 +50,7 @@ export const midsceneDumpAnnotationId = 'MIDSCENE_DUMP_ANNOTATION';
 // Global tracking of temporary dump files for cleanup
 const globalTempFiles = new Set<string>();
 let cleanupHandlersRegistered = false;
+let cleanupComplete = false;
 
 // Register process exit handlers to clean up temp files
 function registerCleanupHandlers() {
@@ -57,16 +58,25 @@ function registerCleanupHandlers() {
   cleanupHandlersRegistered = true;
 
   const cleanup = () => {
+    // Prevent duplicate cleanup if already run
+    if (cleanupComplete) return;
+    cleanupComplete = true;
+
     debugPage(`Cleaning up ${globalTempFiles.size} temporary dump files`);
-    for (const filePath of globalTempFiles) {
+
+    // Convert Set to array to avoid iteration issues while deleting
+    const filesToClean = Array.from(globalTempFiles);
+    for (const filePath of filesToClean) {
       try {
         rmSync(filePath, { force: true });
-        globalTempFiles.delete(filePath);
       } catch (error) {
         // Silently ignore errors during cleanup
         debugPage(`Failed to clean up temp file: ${filePath}`, error);
       }
     }
+
+    // Clear the Set after all files are processed
+    globalTempFiles.clear();
   };
 
   // Register cleanup on process exit
@@ -238,14 +248,7 @@ export const PlaywrightAiFixture = (options?: {
     dump: string,
     pageId: string,
   ) => {
-    // Write dump to temporary file
-    const tempFileName = `midscene-dump-${test.testId || uuid()}-${Date.now()}.json`;
-    const tempFilePath = join(tmpdir(), tempFileName);
-
-    writeFileSync(tempFilePath, dump, 'utf-8');
-    debugPage(`Dump written to temp file: ${tempFilePath}`);
-
-    // Track the temp file for cleanup
+    // 1. First, clean up the old temp file if it exists
     const oldTempFilePath = pageTempFiles.get(pageId);
     if (oldTempFilePath) {
       // Remove old temp file from tracking and try to delete it
@@ -257,7 +260,15 @@ export const PlaywrightAiFixture = (options?: {
       }
     }
 
-    // Track the new temp file
+    // 2. Create new temp file with predictable name using pageId
+    const tempFileName = `midscene-dump-${test.testId || uuid()}-${pageId}.json`;
+    const tempFilePath = join(tmpdir(), tempFileName);
+
+    // 3. Write dump to the new temporary file
+    writeFileSync(tempFilePath, dump, 'utf-8');
+    debugPage(`Dump written to temp file: ${tempFilePath}`);
+
+    // 4. Track the new temp file
     pageTempFiles.set(pageId, tempFilePath);
     globalTempFiles.add(tempFilePath);
 
