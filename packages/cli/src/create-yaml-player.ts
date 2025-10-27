@@ -129,7 +129,10 @@ export async function createYamlPlayer(
             webTarget,
             {
               ...preference,
-              cache: processCacheConfig(clonedYamlScript.agent?.cache, fileName),
+              cache: processCacheConfig(
+                clonedYamlScript.agent?.cache,
+                fileName,
+              ),
             },
             options?.browser,
           );

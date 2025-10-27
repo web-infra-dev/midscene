@@ -118,17 +118,18 @@
     "socket.io-client": "4.8.1"
   },
   "devDependencies": {
-    "@types/js-yaml": "4.0.9",
-    "devtools-protocol": "0.0.1380148",
     "@playwright/test": "^1.44.1",
     "@rslib/core": "^0.11.2",
     "@types/chrome": "0.0.279",
     "@types/cors": "^2.8.17",
     "@types/http-server": "^0.12.4",
+    "@types/js-yaml": "4.0.9",
     "@types/node": "^18.0.0",
+    "devtools-protocol": "0.0.1380148",
+    "js-yaml": "4.1.0",
+    "langsmith": "0.3.74",
     "playwright": "1.44.1",
     "puppeteer": "24.2.0",
-    "js-yaml": "4.1.0",
     "tsx": "^4.19.2",
     "typescript": "^5.8.3",
     "vitest": "3.0.5"

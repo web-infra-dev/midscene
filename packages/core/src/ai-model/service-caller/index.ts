@@ -46,40 +46,34 @@ async function createChatClient({
     createOpenAIClient,
   } = modelConfig;
 
-  let openai: OpenAI;
+  let proxyAgent = undefined;
+  const debugProxy = getDebug('ai:call:proxy');
+  if (httpProxy) {
+    debugProxy('using http proxy', httpProxy);
+    proxyAgent = new HttpsProxyAgent(httpProxy);
+  } else if (socksProxy) {
+    debugProxy('using socks proxy', socksProxy);
+    proxyAgent = new SocksProxyAgent(socksProxy);
+  }
 
-  // Use custom client factory if provided
+  const openAIOptions = {
+    baseURL: openaiBaseURL,
+    apiKey: openaiApiKey,
+    ...(proxyAgent ? { httpAgent: proxyAgent as any } : {}),
+    ...openaiExtraConfig,
+    dangerouslyAllowBrowser: true,
+  };
+
+  const baseOpenAI = new OpenAI(openAIOptions);
+
+  let openai: OpenAI = baseOpenAI;
+
   if (createOpenAIClient) {
-    openai = createOpenAIClient({
-      modelName,
-      openaiApiKey,
-      openaiBaseURL,
-      socksProxy,
-      httpProxy,
-      openaiExtraConfig,
-      vlMode,
-      intent: modelConfig.intent,
-      modelDescription,
-    });
-  } else {
-    // Default OpenAI client creation
-    let proxyAgent = undefined;
-    const debugProxy = getDebug('ai:call:proxy');
-    if (httpProxy) {
-      debugProxy('using http proxy', httpProxy);
-      proxyAgent = new HttpsProxyAgent(httpProxy);
-    } else if (socksProxy) {
-      debugProxy('using socks proxy', socksProxy);
-      proxyAgent = new SocksProxyAgent(socksProxy);
-    }
+    const wrappedClient = await createOpenAIClient(baseOpenAI, openAIOptions);
 
-    openai = new OpenAI({
-      baseURL: openaiBaseURL,
-      apiKey: openaiApiKey,
-      ...(proxyAgent ? { httpAgent: proxyAgent as any } : {}),
-      ...openaiExtraConfig,
-      dangerouslyAllowBrowser: true,
-    });
+    if (wrappedClient) {
+      openai = wrappedClient as OpenAI;
+    }
   }
 
   return {

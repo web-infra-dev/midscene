@@ -614,14 +614,9 @@ export interface AgentOpt {
    *
    * @example
    * ```typescript
-   * createOpenAIClient: (config) => {
-   *   const openai = new OpenAI({
-   *     apiKey: config.openaiApiKey,
-   *     baseURL: config.openaiBaseURL,
-   *   });
-   *
+   * createOpenAIClient: async (openai, opts) => {
    *   // Wrap with langsmith for planning tasks
-   *   if (config.intent === 'planning') {
+   *   if (opts.baseURL?.includes('planning')) {
    *     return wrapOpenAI(openai, { metadata: { task: 'planning' } });
    *   }
    *

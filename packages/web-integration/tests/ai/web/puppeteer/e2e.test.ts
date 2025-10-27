@@ -4,6 +4,7 @@ import { z } from '@midscene/core';
 import { defineAction } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import { globalModelConfigManager } from '@midscene/shared/env';
+import { wrapOpenAI } from 'langsmith/wrappers/openai';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { launchPage } from './utils';
 
@@ -53,6 +54,15 @@ describe(
         onTaskStartTip,
         beforeInvokeAction,
         afterInvokeAction,
+        createOpenAIClient: (openai) => {
+          if (process.env.MIDSCENE_LANGSMITH_DEBUG) {
+            console.log('langsmith wrapped');
+            return wrapOpenAI(openai);
+          } else {
+            console.log('langsmith not wrapped');
+          }
+          return openai;
+        },
       });
 
       await sleep(10 * 1000);
