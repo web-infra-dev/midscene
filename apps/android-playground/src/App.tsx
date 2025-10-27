@@ -1,5 +1,8 @@
 import './App.less';
-import { SCRCPY_SERVER_PORT } from '@midscene/shared/constants';
+import {
+  PLAYGROUND_SERVER_PORT,
+  SCRCPY_SERVER_PORT,
+} from '@midscene/shared/constants';
 import {
   ScreenshotViewer,
   globalThemeConfig,
@@ -180,13 +183,14 @@ export default function App() {
                 ) : (
                   <ScreenshotViewer
                     getScreenshot={() =>
-                      fetch(`${serverUrl}/api/screenshot`).then((r) => r.json())
+                      fetch(
+                        `http://localhost:${PLAYGROUND_SERVER_PORT}/screenshot`,
+                      ).then((r) => r.json())
                     }
                     getInterfaceInfo={() =>
-                      Promise.resolve({
-                        type: 'Android Device',
-                        description: selectedDeviceId || undefined,
-                      })
+                      fetch(
+                        `http://localhost:${PLAYGROUND_SERVER_PORT}/interface-info`,
+                      ).then((r) => r.json())
                     }
                     serverOnline={true}
                     isUserOperating={false}
