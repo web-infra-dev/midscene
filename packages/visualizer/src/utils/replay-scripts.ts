@@ -11,8 +11,18 @@ import type {
   Rect,
   UIContext,
 } from '@midscene/core';
-import type { ExecutionTaskInsightLocate } from '@midscene/core/types';
 import { treeToList } from '@midscene/shared/extractor';
+
+// Local type definition for Insight Locate task
+interface ExecutionTaskInsightLocate extends ExecutionTask {
+  type: 'Insight';
+  subType: 'Locate';
+  output?: {
+    element: LocateResultElement | null;
+  };
+  uiContext?: UIContext;
+  log?: any;
+}
 
 export interface CameraState {
   left: number;
