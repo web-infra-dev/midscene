@@ -25,6 +25,58 @@ Midscene 中每个 Agent 都有自己的构造函数。
 - `forceSameTabNavigation: boolean`: 如果为 true，则限制页面在当前 tab 打开。默认值为 true。
 - `waitForNavigationTimeout: number`: 在页面跳转后等待页面加载完成的超时时间，默认值为 5000ms，设置为 0 则不做等待。
 
+这些 Agent 还支持以下高级配置参数：
+
+- `modelConfig: () => IModelConfig`: 可选。自定义模型配置函数。允许你通过代码动态配置不同的模型，而不是通过环境变量。这在需要为不同的 AI 任务（如 VQA、规划、定位等）使用不同模型时特别有用。
+
+  **示例：**
+  ```typescript
+  const agent = new PuppeteerAgent(page, {
+    modelConfig: () => ({
+      MIDSCENE_MODEL_NAME: 'qwen3-vl-plus',
+      MIDSCENE_MODEL_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+      MIDSCENE_MODEL_API_KEY: 'sk-...',
+      MIDSCENE_LOCATOR_MODE: 'qwen3-vl'
+    })
+  });
+  ```
+
+- `createOpenAIClient: (config) => OpenAI`: 可选。自定义 OpenAI 客户端工厂函数。允许你创建自定义的 OpenAI 客户端实例，用于集成可观测性工具（如 LangSmith、LangFuse）或使用自定义的 OpenAI 兼容客户端。
+
+  **参数说明：**
+  - `config.modelName: string` - 模型名称
+  - `config.openaiApiKey?: string` - API 密钥
+  - `config.openaiBaseURL?: string` - API 接入地址
+  - `config.intent: string` - AI 任务类型（'VQA' | 'planning' | 'grounding' | 'default'）
+  - `config.vlMode?: string` - 视觉语言模型模式
+  - 其他配置参数...
+
+  **示例（集成 LangSmith）：**
+  ```typescript
+  import OpenAI from 'openai';
+  import { wrapOpenAI } from 'langsmith/wrappers';
+
+  const agent = new PuppeteerAgent(page, {
+    createOpenAIClient: (config) => {
+      const openai = new OpenAI({
+        apiKey: config.openaiApiKey,
+        baseURL: config.openaiBaseURL,
+      });
+
+      // 为规划任务包装 LangSmith
+      if (config.intent === 'planning') {
+        return wrapOpenAI(openai, {
+          metadata: { task: 'planning' }
+        });
+      }
+
+      return openai;
+    }
+  });
+  ```
+
+  **注意：** `createOpenAIClient` 会覆盖 `MIDSCENE_LANGSMITH_DEBUG` 环境变量的行为。如果你提供了自定义的客户端工厂函数，需要自行处理 LangSmith 或其他可观测性工具的集成。
+
 在 Puppeteer 中，还有以下参数：
 
 - `waitForNetworkIdleTimeout: number`: 在执行每个操作后等待网络空闲的超时时间，默认值为 2000ms，设置为 0 则不做等待。
@@ -863,9 +915,13 @@ console.log(logContent);
 import { overrideAIConfig } from '@midscene/web/puppeteer'; // 或其他的 Agent
 
 overrideAIConfig({
-  OPENAI_BASE_URL: '...',
-  OPENAI_API_KEY: '...',
+  MODEL_BASE_URL: '...', // 推荐使用新的变量名
+  MODEL_API_KEY: '...', // 推荐使用新的变量名
   MIDSCENE_MODEL_NAME: '...',
+
+  // 旧的变量名仍然兼容：
+  // OPENAI_BASE_URL: '...',
+  // OPENAI_API_KEY: '...',
 });
 ```
 
