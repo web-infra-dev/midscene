@@ -22,9 +22,9 @@ describe('Agent with custom OpenAI client', () => {
 
   describe('constructor with createOpenAIClient', () => {
     it('should accept createOpenAIClient in AgentOpt with modelConfig', () => {
-      const mockCreateClient = vi.fn().mockReturnValue({
+      const mockCreateClient = vi.fn(async () => ({
         chat: { completions: { create: vi.fn() } },
-      });
+      }));
 
       // Create a mock interface instance
       const mockInterface = {} as any;
@@ -43,9 +43,9 @@ describe('Agent with custom OpenAI client', () => {
     });
 
     it('should pass createOpenAIClient to ModelConfigManager when modelConfig is provided', () => {
-      const mockCreateClient = vi.fn().mockReturnValue({
+      const mockCreateClient = vi.fn(async () => ({
         chat: { completions: { create: vi.fn() } },
-      });
+      }));
 
       // Create a mock interface instance
       const mockInterface = {} as any;
@@ -89,15 +89,16 @@ describe('Agent with custom OpenAI client', () => {
 
   describe('intent-specific custom clients', () => {
     it('should support different clients for different intents', () => {
-      const mockCreateClient: CreateOpenAIClientFn = vi
-        .fn()
-        .mockImplementation((config) => {
-          // Return different mock clients based on intent
+      const mockCreateClient: CreateOpenAIClientFn = vi.fn(
+        async (_client, opts) => {
+          const { apiKey } = opts as { apiKey?: string };
+          // Return different mock clients based on provided options
           return {
             chat: { completions: { create: vi.fn() } },
-            _intent: config.intent, // For testing purposes
+            _apiKey: apiKey, // For testing purposes
           };
-        });
+        },
+      );
 
       // Create a mock interface instance
       const mockInterface = {} as any;
@@ -138,28 +139,28 @@ describe('Agent with custom OpenAI client', () => {
   });
 
   describe('observability wrapper integration', () => {
-    it('should support wrapping clients with langsmith-style wrappers', () => {
+    it('should support wrapping clients with langsmith-style wrappers', async () => {
       const mockWrapOpenAI = vi.fn((client, options) => ({
         ...client,
         _wrapped: true,
         _options: options,
       }));
 
-      const mockCreateClient: CreateOpenAIClientFn = (config) => {
-        const baseClient = {
-          chat: { completions: { create: vi.fn() } },
-        };
+      const mockCreateClient: CreateOpenAIClientFn = vi.fn(
+        async (client, opts) => {
+          const options = opts as { apiKey?: string };
 
-        // Wrap planning clients with observability
-        if (config.intent === 'planning') {
-          return mockWrapOpenAI(baseClient, {
-            projectName: 'midscene-planning',
-            metadata: { intent: config.intent },
-          }) as any;
-        }
+          // Wrap planning clients with observability
+          if (options.apiKey === 'planning-key') {
+            return mockWrapOpenAI(client, {
+              projectName: 'midscene-planning',
+              metadata: { apiKey: options.apiKey },
+            }) as any;
+          }
 
-        return baseClient as any;
-      };
+          return client as any;
+        },
+      );
 
       // Create a mock interface instance
       const mockInterface = {} as any;
@@ -169,14 +170,14 @@ describe('Agent with custom OpenAI client', () => {
           if (intent === 'planning') {
             return {
               [MIDSCENE_PLANNING_MODEL_NAME]: 'qwen-vl-plus',
-              [MIDSCENE_PLANNING_MODEL_API_KEY]: 'test-key',
+              [MIDSCENE_PLANNING_MODEL_API_KEY]: 'planning-key',
               [MIDSCENE_PLANNING_MODEL_BASE_URL]: 'https://api.openai.com/v1',
               [MIDSCENE_PLANNING_LOCATOR_MODE]: 'qwen-vl' as const,
             };
           }
           return {
             [MIDSCENE_MODEL_NAME]: 'gpt-4o',
-            [MIDSCENE_MODEL_API_KEY]: 'test-key',
+            [MIDSCENE_MODEL_API_KEY]: 'default-key',
             [MIDSCENE_MODEL_BASE_URL]: 'https://api.openai.com/v1',
           };
         },
@@ -192,32 +193,36 @@ describe('Agent with custom OpenAI client', () => {
       expect(planningConfig.createOpenAIClient).toBeDefined();
 
       // Simulate calling the client creator
-      const planningClient = planningConfig.createOpenAIClient!({
-        modelName: planningConfig.modelName,
-        openaiApiKey: planningConfig.openaiApiKey,
-        intent: planningConfig.intent,
-        modelDescription: planningConfig.modelDescription,
-        vlMode: planningConfig.vlMode,
-      });
+      const baseClient = { chat: { completions: { create: vi.fn() } } };
+      const clientOptions = {
+        baseURL: planningConfig.openaiBaseURL,
+        apiKey: planningConfig.openaiApiKey,
+        dangerouslyAllowBrowser: true,
+      };
 
-      expect(mockWrapOpenAI).toHaveBeenCalledWith(expect.any(Object), {
+      const planningClient = await planningConfig.createOpenAIClient!(
+        baseClient,
+        clientOptions,
+      );
+
+      expect(mockWrapOpenAI).toHaveBeenCalledWith(baseClient, {
         projectName: 'midscene-planning',
-        metadata: { intent: 'planning' },
+        metadata: { apiKey: 'planning-key' },
       });
 
       expect(planningClient).toMatchObject({
         _wrapped: true,
         _options: {
           projectName: 'midscene-planning',
-          metadata: { intent: 'planning' },
+          metadata: { apiKey: 'planning-key' },
         },
       });
     });
 
-    it('should provide all config parameters to createOpenAIClient', () => {
-      const mockCreateClient = vi.fn().mockReturnValue({
+    it('should provide all config parameters to createOpenAIClient', async () => {
+      const mockCreateClient: CreateOpenAIClientFn = vi.fn(async () => ({
         chat: { completions: { create: vi.fn() } },
-      });
+      }));
 
       // Create a mock interface instance
       const mockInterface = {} as any;
@@ -236,37 +241,24 @@ describe('Agent with custom OpenAI client', () => {
       );
 
       // Simulate what createChatClient does
-      config.createOpenAIClient!({
-        modelName: config.modelName,
-        openaiApiKey: config.openaiApiKey,
-        openaiBaseURL: config.openaiBaseURL,
-        socksProxy: config.socksProxy,
-        httpProxy: config.httpProxy,
-        openaiExtraConfig: config.openaiExtraConfig,
-        vlMode: config.vlMode,
-        intent: config.intent,
-        modelDescription: config.modelDescription,
-      });
+      const baseClient = { chat: { completions: { create: vi.fn() } } };
+      const options = {
+        baseURL: config.openaiBaseURL,
+        apiKey: config.openaiApiKey,
+        dangerouslyAllowBrowser: true,
+      };
 
-      expect(mockCreateClient).toHaveBeenCalledWith({
-        modelName: 'gpt-4o',
-        openaiApiKey: 'test-api-key',
-        openaiBaseURL: 'https://custom.openai.com/v1',
-        socksProxy: undefined,
-        httpProxy: undefined,
-        openaiExtraConfig: undefined,
-        vlMode: undefined,
-        intent: 'default',
-        modelDescription: expect.any(String),
-      });
+      await config.createOpenAIClient!(baseClient, options);
+
+      expect(mockCreateClient).toHaveBeenCalledWith(baseClient, options);
     });
   });
 
   describe('performance characteristics', () => {
     it('should inject createOpenAIClient during config initialization, not on getModelConfig', () => {
-      const mockCreateClient = vi.fn().mockReturnValue({
+      const mockCreateClient = vi.fn(async () => ({
         chat: { completions: { create: vi.fn() } },
-      });
+      }));
 
       // Create a mock interface instance
       const mockInterface = {} as any;

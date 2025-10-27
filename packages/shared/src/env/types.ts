@@ -384,14 +384,9 @@ export const VL_MODE_RAW_VALID_VALUES: TVlModeValues[] = [
  * import OpenAI from 'openai';
  * import { wrapOpenAI } from 'langsmith/wrappers';
  *
- * createOpenAIClient: (config) => {
- *   const openai = new OpenAI({
- *     apiKey: config.openaiApiKey,
- *     baseURL: config.openaiBaseURL,
- *   });
- *
+ * createOpenAIClient: async (openai, opts) => {
  *   // Wrap with langsmith for planning tasks
- *   if (config.intent === 'planning') {
+ *   if (opts.baseURL?.includes('planning')) {
  *     return wrapOpenAI(openai, { metadata: { task: 'planning' } });
  *   }
  *
@@ -399,17 +394,10 @@ export const VL_MODE_RAW_VALID_VALUES: TVlModeValues[] = [
  * }
  * ```
  */
-export type CreateOpenAIClientFn = (config: {
-  modelName: string;
-  openaiApiKey?: string;
-  openaiBaseURL?: string;
-  socksProxy?: string;
-  httpProxy?: string;
-  openaiExtraConfig?: Record<string, unknown>;
-  vlMode?: string;
-  intent: string;
-  modelDescription: string;
-}) => any; // OpenAI instance, but typed as `any` to avoid dependency
+export type CreateOpenAIClientFn = (
+  openAIInstance: any,
+  options: Record<string, unknown>,
+) => Promise<any>; // OpenAI instance, but typed as `any` to avoid dependency
 
 export interface IModelConfig {
   /**
