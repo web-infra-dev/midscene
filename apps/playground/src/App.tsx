@@ -2,13 +2,13 @@ import { PlaygroundSDK } from '@midscene/playground';
 import {
   Logo,
   NavActions,
+  ScreenshotViewer,
   UniversalPlayground,
   globalThemeConfig,
 } from '@midscene/visualizer';
 import { ConfigProvider, Layout } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import ScreenshotViewer from './components/screenshot-viewer';
 import serverOfflineBackground from './icons/server-offline-background.svg';
 import serverOfflineForeground from './icons/server-offline-foreground.svg';
 
@@ -164,7 +164,8 @@ export default function App() {
             <Panel className="app-panel right-panel">
               <div className="panel-content right-panel-content">
                 <ScreenshotViewer
-                  playgroundSDK={playgroundSDK}
+                  getScreenshot={() => playgroundSDK.getScreenshot()}
+                  getInterfaceInfo={() => playgroundSDK.getInterfaceInfo()}
                   serverOnline={serverOnline}
                   isUserOperating={isUserOperating}
                 />

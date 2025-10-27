@@ -5,7 +5,6 @@ import { paramStr, typeStr } from '@midscene/core/agent';
 import type {
   ExecutionDump,
   ExecutionTask,
-  ExecutionTaskInsightLocate,
   ExecutionTaskPlanning,
   GroupedActionDump,
   LocateResultElement,
@@ -13,6 +12,17 @@ import type {
   UIContext,
 } from '@midscene/core';
 import { treeToList } from '@midscene/shared/extractor';
+
+// Local type definition for Insight Locate task
+interface ExecutionTaskInsightLocate extends ExecutionTask {
+  type: 'Insight';
+  subType: 'Locate';
+  output?: {
+    element: LocateResultElement | null;
+  };
+  uiContext?: UIContext;
+  log?: any;
+}
 
 export interface CameraState {
   left: number;
