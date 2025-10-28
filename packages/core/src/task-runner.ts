@@ -25,6 +25,8 @@ export class TaskRunner {
 
   private readonly uiContextBuilder: () => Promise<UIContext>;
 
+  private lastCapturedScreenshot?: string;
+
   constructor(
     name: string,
     uiContextBuilder: () => Promise<UIContext>,
@@ -187,6 +189,29 @@ export class TaskRunner {
           uiContext = await this.uiContextBuilder();
         }
         task.uiContext = uiContext;
+
+        // Capture "before" screenshot for non-subTask tasks
+        if (!task.subTask) {
+          const isFirstNonSubTask =
+            taskIndex === 0 ||
+            this.tasks.slice(0, taskIndex).every((t) => t.subTask);
+
+          if (isFirstNonSubTask) {
+            // First non-subTask: capture a fresh "before" screenshot
+            this.attachRecorderItem(task, uiContext, 'before');
+          } else if (this.lastCapturedScreenshot) {
+            // Subsequent non-subTasks: reuse previous task's "after" screenshot
+            this.attachRecorderItem(
+              task,
+              this.lastCapturedScreenshot,
+              'before',
+            );
+          } else {
+            // Fallback: if no cached screenshot exists, use current uiContext
+            this.attachRecorderItem(task, uiContext, 'before');
+          }
+        }
+
         const executorContext: ExecutorContext = {
           task,
           element: previousFindOutput?.element,
@@ -219,11 +244,12 @@ export class TaskRunner {
           returnValue = await task.executor(param, executorContext);
         }
 
-        const isLastTask = taskIndex === this.tasks.length - 1;
-
-        if (isLastTask) {
+        // Capture "after" screenshot for all non-subTask tasks
+        if (!task.subTask) {
           const screenshot = await this.captureScreenshot();
           this.attachRecorderItem(task, screenshot, 'after');
+          // Store for reuse as next task's "before" screenshot
+          this.lastCapturedScreenshot = screenshot;
         }
 
         Object.assign(task, returnValue);
@@ -241,6 +267,9 @@ export class TaskRunner {
         task.status = 'failed';
         task.timing.end = Date.now();
         task.timing.cost = task.timing.end - task.timing.start;
+
+        // Clear cached screenshot on error to avoid stale state
+        this.lastCapturedScreenshot = undefined;
         break;
       }
     }
