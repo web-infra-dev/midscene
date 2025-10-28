@@ -1,17 +1,13 @@
-import { readFileSync, readdirSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { readFileSync, rmSync } from 'node:fs';
 import type { ReportDumpWithAttributes } from '@midscene/core';
 import { getReportFileName, printReportMsg } from '@midscene/core/agent';
 import { writeDumpReport } from '@midscene/core/utils';
 import { replaceIllegalPathCharsAndSpace } from '@midscene/shared/utils';
 import type {
   FullConfig,
-  FullResult,
   Reporter,
   Suite,
   TestCase,
-  TestError,
   TestResult,
 } from '@playwright/test/reporter';
 
@@ -23,6 +19,9 @@ class MidsceneReporter implements Reporter {
   private mergedFilename?: string;
   private testTitleToFilename = new Map<string, string>();
   mode?: 'merged' | 'separate';
+
+  // Track all temp files created during this test run for cleanup
+  private tempFiles = new Set<string>();
 
   constructor(options: MidsceneReporterOptions = {}) {
     // Set mode from constructor options (official Playwright way)
@@ -89,6 +88,10 @@ class MidsceneReporter implements Reporter {
     if (!dumpAnnotation?.description) return;
 
     const tempFilePath = dumpAnnotation.description;
+
+    // Track this temp file for potential cleanup in onEnd
+    this.tempFiles.add(tempFilePath);
+
     let dumpString: string | undefined;
 
     try {
@@ -118,50 +121,36 @@ class MidsceneReporter implements Reporter {
       this.updateReport(testData);
     }
 
-    // Always clean up temp file, even if reading failed
+    // Always try to clean up temp file
     try {
       rmSync(tempFilePath, { force: true });
+      // If successfully deleted, remove from tracking
+      this.tempFiles.delete(tempFilePath);
     } catch (error) {
       console.warn(
         `Failed to delete Midscene temp file: ${tempFilePath}`,
         error,
       );
+      // Keep in tempFiles for cleanup in onEnd
     }
   }
 
-  onError(error: TestError) {
-    // Reporter-level errors might prevent onTestEnd from being called
-    // Log the error but don't attempt cleanup here since we don't have
-    // access to specific temp files. The onEnd hook will handle orphaned files.
-    console.error('Midscene Reporter error occurred:', error);
-  }
+  onEnd() {
+    // Clean up any remaining temp files that weren't deleted in onTestEnd
+    if (this.tempFiles.size > 0) {
+      console.log(
+        `Midscene: Cleaning up ${this.tempFiles.size} remaining temp file(s)...`,
+      );
 
-  onEnd(result: FullResult) {
-    // Final cleanup: scan for any orphaned temp files that may have been
-    // left behind by crashed workers or reporter errors
-    try {
-      const tmpDir = tmpdir();
-      const files = readdirSync(tmpDir);
-      const orphanedFiles = files.filter((f) => f.startsWith('midscene-dump-'));
-
-      if (orphanedFiles.length > 0) {
-        console.log(
-          `Midscene: Found ${orphanedFiles.length} orphaned temp file(s), cleaning up...`,
-        );
-
-        for (const file of orphanedFiles) {
-          const filePath = join(tmpDir, file);
-          try {
-            rmSync(filePath, { force: true });
-            console.log(`Midscene: Cleaned up orphaned temp file: ${file}`);
-          } catch (error) {
-            // Silently ignore individual file cleanup errors
-          }
+      for (const filePath of this.tempFiles) {
+        try {
+          rmSync(filePath, { force: true });
+        } catch (error) {
+          // Silently ignore - file may have been deleted already
         }
       }
-    } catch (error) {
-      // Silently ignore directory read errors
-      console.warn('Midscene: Failed to scan for orphaned temp files:', error);
+
+      this.tempFiles.clear();
     }
   }
 }

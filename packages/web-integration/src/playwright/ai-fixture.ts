@@ -47,58 +47,8 @@ const groupAndCaseForTest = (testInfo: TestInfo) => {
 const midsceneAgentKeyId = '_midsceneAgentId';
 export const midsceneDumpAnnotationId = 'MIDSCENE_DUMP_ANNOTATION';
 
-// Global tracking of temporary dump files for cleanup
-const globalTempFiles = new Set<string>();
-let cleanupHandlersRegistered = false;
-let cleanupComplete = false;
-
-// Register process exit handlers to clean up temp files
-function registerCleanupHandlers() {
-  if (cleanupHandlersRegistered) return;
-  cleanupHandlersRegistered = true;
-
-  const cleanup = () => {
-    // Prevent duplicate cleanup if already run
-    if (cleanupComplete) return;
-    cleanupComplete = true;
-
-    debugPage(`Cleaning up ${globalTempFiles.size} temporary dump files`);
-
-    // Convert Set to array to avoid iteration issues while deleting
-    const filesToClean = Array.from(globalTempFiles);
-    for (const filePath of filesToClean) {
-      try {
-        rmSync(filePath, { force: true });
-      } catch (error) {
-        // Silently ignore errors during cleanup
-        debugPage(`Failed to clean up temp file: ${filePath}`, error);
-      }
-    }
-
-    // Clear the Set after all files are processed
-    globalTempFiles.clear();
-  };
-
-  // Register cleanup on process exit
-  process.once('SIGINT', cleanup);
-  process.once('SIGTERM', cleanup);
-  process.once('SIGHUP', cleanup);
-  process.once('exit', cleanup);
-  process.once('beforeExit', cleanup);
-
-  // Handle uncaught exceptions and unhandled rejections
-  process.once('uncaughtException', (error) => {
-    debugPage('Uncaught exception detected, cleaning up temp files', error);
-    cleanup();
-    // Don't re-throw - let the process handle it normally
-  });
-
-  process.once('unhandledRejection', (reason) => {
-    debugPage('Unhandled rejection detected, cleaning up temp files', reason);
-    cleanup();
-    // Don't re-throw - let the process handle it normally
-  });
-}
+// Track temporary dump files per page for cleanup
+const pageTempFiles = new Map<string, string>();
 
 type PlaywrightCacheConfig = {
   strategy?: 'read-only' | 'read-write' | 'write-only';
@@ -127,12 +77,6 @@ export const PlaywrightAiFixture = (options?: {
     // Use shared processCacheConfig with generated ID as fallback
     return processCacheConfig(cache as Cache, id);
   };
-
-  // Track temporary dump files for each page
-  const pageTempFiles = new Map<string, string>(); // pageId -> tempFilePath
-
-  // Register global cleanup handlers
-  registerCleanupHandlers();
 
   const pageAgentMap: Record<string, PageAgent<PlaywrightWebPage>> = {};
   const createOrReuseAgentForPage = (
@@ -256,8 +200,6 @@ export const PlaywrightAiFixture = (options?: {
     // 1. First, clean up the old temp file if it exists
     const oldTempFilePath = pageTempFiles.get(pageId);
     if (oldTempFilePath) {
-      // Remove old temp file from tracking and try to delete it
-      globalTempFiles.delete(oldTempFilePath);
       try {
         rmSync(oldTempFilePath, { force: true });
       } catch (error) {
@@ -276,7 +218,6 @@ export const PlaywrightAiFixture = (options?: {
 
       // 4. Track the new temp file (only if write succeeded)
       pageTempFiles.set(pageId, tempFilePath);
-      globalTempFiles.add(tempFilePath);
 
       // Store only the file path in annotation (only if write succeeded)
       const currentAnnotation = test.annotations.find((item) => {
