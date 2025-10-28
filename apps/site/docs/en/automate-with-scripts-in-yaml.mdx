@@ -438,7 +438,7 @@ midscene './scripts/**/*.yaml'
 
 The command-line tool provides several options to control the execution behavior of your scripts.
 
-- `--files <file1> <file2> ...`: Specifies a list of script files to execute, which will be run in order. Supports glob patterns, following the syntax supported by [glob](https://www.npmjs.com/package/glob).
+- `--files <file1> <file2> ...`: Specifies a list of script files to execute. Files will be executed in the specified order, sequentially by default (when `--concurrent` is `1`), and can be executed concurrently by setting the `--concurrent` parameter. Supports glob patterns, following the syntax supported by [glob](https://www.npmjs.com/package/glob).
 - `--concurrent <number>`: Sets the number of concurrent executions. Defaults to `1`.
 - `--continue-on-error`: If this flag is set, it will continue to run the remaining scripts even if one fails. Defaults to off.
 - `--share-browser-context`: Shares the same browser context (e.g., Cookies and `localStorage`) across all scripts. This is very useful for sequential tests that require a login state. Defaults to off.
@@ -457,7 +457,7 @@ The command-line tool provides several options to control the execution behavior
 
 Examples:
 
-Use the `--files` argument to specify the file order and run in parallel.
+Use the `--files` argument to specify the file execution order.
 
 ```bash
 midscene --files ./login.yaml ./buy/*.yaml ./checkout.yaml
