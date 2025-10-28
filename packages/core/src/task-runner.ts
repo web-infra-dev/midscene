@@ -202,7 +202,7 @@ export class TaskRunner {
               task.subType === 'Boolean' ||
               task.subType === 'Number' ||
               task.subType === 'String',
-            `unsupported insight subType: ${task.subType}`,
+            `unsupported service subType: ${task.subType}`,
           );
           returnValue = await task.executor(param, executorContext);
           if (task.subType === 'Locate') {

@@ -1,5 +1,5 @@
 import { distance } from '@/ai-model/prompt/util';
-import Insight from '@/insight';
+import Service from '@/service';
 import { sleep } from '@/utils';
 import {
   globalConfigManager,
@@ -14,12 +14,12 @@ vi.setConfig({
 
 const modelConfig = globalModelConfigManager.getModelConfig('grounding');
 
-describe.skipIf(!modelConfig.vlMode)('insight locate with deep think', () => {
-  test('insight locate with search area', async () => {
+describe.skipIf(!modelConfig.vlMode)('service locate with deep think', () => {
+  test('service locate with search area', async () => {
     const { context } = await getContextFromFixture('taobao');
 
-    const insight = new Insight(context);
-    const { element } = await insight.locate(
+    const service = new Service(context);
+    const { element } = await service.locate(
       {
         prompt: '购物车 icon',
         deepThink: true,
@@ -32,11 +32,11 @@ describe.skipIf(!modelConfig.vlMode)('insight locate with deep think', () => {
     await sleep(3000);
   });
 
-  test('insight locate with search area - deep think', async () => {
+  test('service locate with search area - deep think', async () => {
     const { context } = await getContextFromFixture('taobao');
 
-    const insight = new Insight(context);
-    const { element, rect } = await insight.locate(
+    const service = new Service(context);
+    const { element, rect } = await service.locate(
       {
         prompt: '顶部购物车 icon',
         deepThink: true,
@@ -66,11 +66,11 @@ vi.setConfig({
   testTimeout: 60 * 1000,
 });
 
-test.skip('insight locate with search area', async () => {
+test.skip('service locate with search area', async () => {
   const { context } = await getContextFromFixture('image-only');
 
-  const insight = new Insight(context);
-  const { element, rect } = await insight.locate(
+  const service = new Service(context);
+  const { element, rect } = await service.locate(
     {
       prompt: '-',
       deepThink: true,
@@ -83,15 +83,15 @@ test.skip('insight locate with search area', async () => {
 });
 
 describe(
-  'insight describe',
+  'service describe',
   {
     timeout: 2 * 60 * 1000,
   },
   () => {
-    test('insight describe - by rect', async () => {
+    test('service describe - by rect', async () => {
       const { context } = await getContextFromFixture('taobao');
-      const insight = new Insight(context);
-      const { description } = await insight.describe(
+      const service = new Service(context);
+      const { description } = await service.describe(
         {
           left: 580,
           top: 140,
@@ -104,10 +104,10 @@ describe(
       expect(description).toBeDefined();
     });
 
-    test('insight describe - by center point', async () => {
+    test('service describe - by center point', async () => {
       const { context } = await getContextFromFixture('taobao');
-      const insight = new Insight(context);
-      const { description } = await insight.describe([580, 140], modelConfig);
+      const service = new Service(context);
+      const { description } = await service.describe([580, 140], modelConfig);
 
       expect(description).toBeDefined();
     });

@@ -11,14 +11,6 @@ import type {
 } from '@/types';
 
 export function typeStr(task: ExecutionTask) {
-  // For Insight tasks with Query or Assert subtypes, show just "Insight"
-  if (
-    task.type === 'Insight' &&
-    (task.subType === 'Query' || task.subType === 'Assert')
-  ) {
-    return task.type;
-  }
-
   // For Action tasks with subType, show "Action Space / subType"
   if (task.type === 'Action' && task.subType) {
     return `Action Space / ${task.subType}`;

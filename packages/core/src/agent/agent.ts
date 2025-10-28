@@ -10,10 +10,6 @@ import {
   type ExecutionTask,
   type ExecutionTaskLog,
   type GroupedActionDump,
-  Insight,
-  type InsightAction,
-  type InsightExtractOption,
-  type InsightExtractParam,
   type LocateOption,
   type LocateResultElement,
   type LocateValidatorResult,
@@ -23,6 +19,10 @@ import {
   type PlanningAction,
   type Rect,
   type ScrollParam,
+  Service,
+  type ServiceAction,
+  type ServiceExtractOption,
+  type ServiceExtractParam,
   type TUserPrompt,
   type TaskRunner,
   type UIContext,
@@ -82,7 +82,7 @@ const includedInRect = (point: [number, number], rect: Rect) => {
   return x >= left && x <= left + width && y >= top && y <= top + height;
 };
 
-const defaultInsightExtractOption: InsightExtractOption = {
+const defaultServiceExtractOption: ServiceExtractOption = {
   domIncluded: false,
   screenshotIncluded: true,
 };
@@ -107,7 +107,7 @@ export class Agent<
 > {
   interface: InterfaceType;
 
-  insight: Insight;
+  service: Service;
 
   dump: GroupedActionDump;
 
@@ -245,7 +245,7 @@ export class Agent<
 
     this.onTaskStartTip = this.opts.onTaskStartTip;
 
-    this.insight = new Insight(async () => {
+    this.service = new Service(async () => {
       return this.getUIContext();
     });
 
@@ -263,7 +263,7 @@ export class Agent<
       );
     }
 
-    this.taskExecutor = new TaskExecutor(this.interface, this.insight, {
+    this.taskExecutor = new TaskExecutor(this.interface, this.service, {
       taskCache: this.taskCache,
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
       replanningCycleLimit: this.opts.replanningCycleLimit,
@@ -278,7 +278,7 @@ export class Agent<
     return this.interface.actionSpace();
   }
 
-  async getUIContext(action?: InsightAction): Promise<UIContext> {
+  async getUIContext(action?: ServiceAction): Promise<UIContext> {
     // Check VL model configuration when UI context is first needed
     this.ensureVLModelWarning();
 
@@ -765,8 +765,8 @@ export class Agent<
   }
 
   async aiQuery<ReturnType = any>(
-    demand: InsightExtractParam,
-    opt: InsightExtractOption = defaultInsightExtractOption,
+    demand: ServiceExtractParam,
+    opt: ServiceExtractOption = defaultServiceExtractOption,
   ): Promise<ReturnType> {
     const modelConfig = this.modelConfigManager.getModelConfig('VQA');
     const { output, runner } = await this.taskExecutor.createTypeQueryExecution(
@@ -781,7 +781,7 @@ export class Agent<
 
   async aiBoolean(
     prompt: TUserPrompt,
-    opt: InsightExtractOption = defaultInsightExtractOption,
+    opt: ServiceExtractOption = defaultServiceExtractOption,
   ): Promise<boolean> {
     const modelConfig = this.modelConfigManager.getModelConfig('VQA');
 
@@ -799,7 +799,7 @@ export class Agent<
 
   async aiNumber(
     prompt: TUserPrompt,
-    opt: InsightExtractOption = defaultInsightExtractOption,
+    opt: ServiceExtractOption = defaultServiceExtractOption,
   ): Promise<number> {
     const modelConfig = this.modelConfigManager.getModelConfig('VQA');
 
@@ -817,7 +817,7 @@ export class Agent<
 
   async aiString(
     prompt: TUserPrompt,
-    opt: InsightExtractOption = defaultInsightExtractOption,
+    opt: ServiceExtractOption = defaultServiceExtractOption,
   ): Promise<string> {
     const modelConfig = this.modelConfigManager.getModelConfig('VQA');
 
@@ -835,7 +835,7 @@ export class Agent<
 
   async aiAsk(
     prompt: TUserPrompt,
-    opt: InsightExtractOption = defaultInsightExtractOption,
+    opt: ServiceExtractOption = defaultServiceExtractOption,
   ): Promise<string> {
     return this.aiString(prompt, opt);
   }
@@ -873,7 +873,7 @@ export class Agent<
       // use same intent as aiLocate
       const modelConfig = this.modelConfigManager.getModelConfig('grounding');
 
-      const text = await this.insight.describe(center, modelConfig, {
+      const text = await this.service.describe(center, modelConfig, {
         deepThink,
       });
       debug('aiDescribe text', text);
@@ -961,15 +961,15 @@ export class Agent<
   async aiAssert(
     assertion: TUserPrompt,
     msg?: string,
-    opt?: AgentAssertOpt & InsightExtractOption,
+    opt?: AgentAssertOpt & ServiceExtractOption,
   ) {
     const modelConfig = this.modelConfigManager.getModelConfig('VQA');
 
-    const insightOpt: InsightExtractOption = {
-      domIncluded: opt?.domIncluded ?? defaultInsightExtractOption.domIncluded,
+    const serviceOpt: ServiceExtractOption = {
+      domIncluded: opt?.domIncluded ?? defaultServiceExtractOption.domIncluded,
       screenshotIncluded:
         opt?.screenshotIncluded ??
-        defaultInsightExtractOption.screenshotIncluded,
+        defaultServiceExtractOption.screenshotIncluded,
       doNotThrowError: opt?.doNotThrowError,
     };
 
@@ -980,7 +980,7 @@ export class Agent<
         'Assert',
         textPrompt,
         modelConfig,
-        insightOpt,
+        serviceOpt,
         multimodalPrompt,
       );
     await this.afterTaskRunning(runner, true);

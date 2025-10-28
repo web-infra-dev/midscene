@@ -1,6 +1,6 @@
 import { findAllMidsceneLocatorField, parseActionParam } from '@/ai-model';
 import type { AbstractInterface } from '@/device';
-import type Insight from '@/insight';
+import type Service from '@/service';
 import type {
   DetailedLocateParam,
   ElementCacheFeature,
@@ -8,15 +8,15 @@ import type {
   ExecutionTaskApply,
   ExecutionTaskHitBy,
   ExecutionTaskInsightLocateApply,
-  InsightDump,
   LocateResultElement,
   LocateResultWithDump,
   PlanningAction,
   PlanningActionParamSleep,
   PlanningLocateParam,
   Rect,
+  ServiceDump,
 } from '@/types';
-import { InsightError } from '@/types';
+import { ServiceError } from '@/types';
 import { sleep } from '@/utils';
 import type { IModelConfig } from '@midscene/shared/env';
 import { generateElementByPosition } from '@midscene/shared/extractor';
@@ -40,7 +40,7 @@ export function locatePlanForLocate(param: string | DetailedLocateParam) {
 
 interface TaskBuilderDeps {
   interfaceInstance: AbstractInterface;
-  insight: Insight;
+  service: Service;
   taskCache?: TaskCache;
 }
 
@@ -59,13 +59,13 @@ interface PlanBuildContext {
 export class TaskBuilder {
   private readonly interface: AbstractInterface;
 
-  private readonly insight: Insight;
+  private readonly service: Service;
 
   private readonly taskCache?: TaskCache;
 
-  constructor({ interfaceInstance, insight, taskCache }: TaskBuilderDeps) {
+  constructor({ interfaceInstance, service, taskCache }: TaskBuilderDeps) {
     this.interface = interfaceInstance;
-    this.insight = insight;
+    this.service = service;
     this.taskCache = taskCache;
   }
 
@@ -359,15 +359,15 @@ export class TaskBuilder {
         );
 
         if (!uiContext) {
-          uiContext = await this.insight.contextRetrieverFn();
+          uiContext = await this.service.contextRetrieverFn();
         }
 
-        assert(uiContext, 'uiContext is required for Insight task');
+        assert(uiContext, 'uiContext is required for Service task');
 
-        let locateDump: InsightDump | undefined;
+        let locateDump: ServiceDump | undefined;
         let locateResult: LocateResultWithDump | undefined;
 
-        const applyDump = (dump?: InsightDump) => {
+        const applyDump = (dump?: ServiceDump) => {
           if (!dump) {
             return;
           }
@@ -422,7 +422,7 @@ export class TaskBuilder {
         let elementFromAiLocate: LocateResultElement | null | undefined;
         if (!userExpectedPathHitFlag && !cacheHitFlag && !planHitFlag) {
           try {
-            locateResult = await this.insight.locate(
+            locateResult = await this.service.locate(
               param,
               {
                 context: uiContext,
@@ -432,7 +432,7 @@ export class TaskBuilder {
             applyDump(locateResult.dump);
             elementFromAiLocate = locateResult.element;
           } catch (error) {
-            if (error instanceof InsightError) {
+            if (error instanceof ServiceError) {
               applyDump(error.dump);
             }
             throw error;
@@ -491,7 +491,7 @@ export class TaskBuilder {
 
         if (!element) {
           if (locateDump) {
-            throw new InsightError(
+            throw new ServiceError(
               `Element not found : ${param.prompt}`,
               locateDump,
             );

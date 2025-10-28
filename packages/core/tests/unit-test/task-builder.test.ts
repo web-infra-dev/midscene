@@ -1,7 +1,7 @@
 import { TaskBuilder } from '@/agent/task-builder';
 import { getMidsceneLocationSchema } from '@/ai-model';
 import { AbstractInterface } from '@/device';
-import type Insight from '@/insight';
+import type Service from '@/insight';
 import type { DeviceAction, PlanningAction } from '@/types';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';

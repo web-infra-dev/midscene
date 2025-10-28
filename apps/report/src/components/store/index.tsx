@@ -5,7 +5,7 @@ import type {
   ExecutionTask,
   ExecutionTaskInsightLocate,
   GroupedActionDump,
-  InsightDump,
+  ServiceDump,
 } from '@midscene/core';
 import type { AnimationScript } from '@midscene/visualizer';
 import {
@@ -55,7 +55,7 @@ export interface DumpStoreType {
   activeExecutionAnimation: AnimationScript[] | null;
   activeTask: ExecutionTask | null;
   setActiveTask: (task: ExecutionTask) => void;
-  insightDump: InsightDump | null;
+  insightDump: ServiceDump | null;
   _contextLoadId: number;
   hoverTask: ExecutionTask | null;
   hoverTimestamp: number | null;

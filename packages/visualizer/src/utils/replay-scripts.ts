@@ -332,8 +332,8 @@ export const generateAnimationScripts = (
         });
       }
     } else if (task.type === 'Insight' && task.subType === 'Locate') {
-      const insightTask = task as ExecutionTaskInsightLocate;
-      const resultElement = insightTask.output?.element;
+      const serviceTask = task as ExecutionTaskInsightLocate;
+      const resultElement = serviceTask.output?.element;
       const title = typeStr(task);
       const subTitle = paramStr(task);
       if (resultElement?.rect) {
@@ -343,9 +343,9 @@ export const generateAnimationScripts = (
           pointerTop: resultElement.center[1],
         };
       }
-      const context = insightTask.uiContext;
+      const context = serviceTask.uiContext;
       if (context?.screenshotBase64) {
-        const insightDump = insightTask.log;
+        const insightDump = serviceTask.log;
         const insightContentLength = 0;
 
         if (context.screenshotBase64) {
@@ -378,7 +378,7 @@ export const generateAnimationScripts = (
           img: context.screenshotBase64,
           context: context,
           camera: cameraState,
-          highlightElement: insightTask.output?.element || undefined,
+          highlightElement: serviceTask.output?.element || undefined,
           searchArea: insightDump?.taskInfo?.searchArea,
           duration:
             insightContentLength > 20 ? locateDuration : locateDuration * 0.5,

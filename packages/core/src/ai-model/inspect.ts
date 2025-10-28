@@ -3,9 +3,9 @@ import type {
   AIElementResponse,
   AISectionLocatorResponse,
   AIUsageInfo,
-  InsightExtractOption,
   Rect,
   ReferenceImage,
+  ServiceExtractOption,
   UIContext,
 } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
@@ -384,7 +384,7 @@ export async function AiExtractElementInfo<T>(options: {
   multimodalPrompt?: TMultimodalPrompt;
   context: UIContext;
   pageDescription?: string;
-  extractOption?: InsightExtractOption;
+  extractOption?: ServiceExtractOption;
   modelConfig: IModelConfig;
 }) {
   const { dataQuery, context, extractOption, multimodalPrompt, modelConfig } =

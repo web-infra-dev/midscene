@@ -2,7 +2,7 @@ import { TaskCache, TaskExecutor } from '@/agent';
 import type { AbstractInterface } from '@/device';
 import { uuid } from '@midscene/shared/utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type Insight from '../../src';
+import type Service from '../../src';
 
 describe('aiAction cacheable option propagation', () => {
   let taskExecutor: TaskExecutor;

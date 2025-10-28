@@ -2,8 +2,8 @@ import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { callAIWithObjectResponse } from '@/ai-model/service-caller/index';
 import { localImg2Base64 } from '@/image';
-import Insight from '@/insight';
-import type { AIElementLocatorResponse, BaseElement, UIContext } from '@/types';
+import Service from '@/service';
+import type { AISingleElementResponse, BaseElement, UIContext } from '@/types';
 import { NodeType } from '@midscene/shared/constants';
 import { vi } from 'vitest';
 
@@ -24,7 +24,12 @@ export function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function fakeInsight(content: string) {
+interface AIElementLocatorResponse {
+  elements: AISingleElementResponse[];
+  errors: string[];
+}
+
+export function fakeService(content: string) {
   const screenshot = getFixture('baidu.png');
   const basicContext = {
     screenshotBase64: localImg2Base64(screenshot),
@@ -77,9 +82,9 @@ export function fakeInsight(content: string) {
       usage: undefined,
     });
 
-  const insight = new Insight(context, {
+  const service = new Service(context, {
     aiVendorFn: aiVendor as any,
   });
 
-  return insight;
+  return service;
 }

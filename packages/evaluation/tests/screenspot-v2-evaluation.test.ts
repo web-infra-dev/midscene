@@ -1,6 +1,6 @@
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path, { resolve, join } from 'node:path';
-import Insight, { type Rect, MIDSCENE_MODEL_NAME } from '@midscene/core';
+import Service, { type Rect, MIDSCENE_MODEL_NAME } from '@midscene/core';
 import { sleep } from '@midscene/core/utils';
 import { globalModelConfigManager } from '@midscene/shared/env';
 import { imageInfoOfBase64, saveBase64Image } from '@midscene/shared/img';
@@ -150,7 +150,7 @@ async function processSample(
     };
 
     const prompt = sample.instruction;
-    const insight = new Insight(mockContext);
+    const service = new Service(mockContext);
     const result = await insight.locate(
       { prompt },
       {},

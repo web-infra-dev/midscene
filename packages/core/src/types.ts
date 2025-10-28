@@ -125,9 +125,9 @@ export abstract class UIContext {
 
 export type EnsureObject<T> = { [K in keyof T]: any };
 
-export type InsightAction = 'locate' | 'extract' | 'assert' | 'describe';
+export type ServiceAction = 'locate' | 'extract' | 'assert' | 'describe';
 
-export type InsightExtractParam = string | Record<string, string>;
+export type ServiceExtractParam = string | Record<string, string>;
 
 export type ElementCacheFeature = Record<string, unknown>;
 
@@ -136,7 +136,7 @@ export interface LocateResult {
   rect?: Rect;
 }
 
-export interface InsightTaskInfo {
+export interface ServiceTaskInfo {
   durationMs: number;
   formatResponse?: string;
   rawResponse?: string;
@@ -155,12 +155,12 @@ export interface ReportDumpWithAttributes {
   attributes?: Record<string, any>;
 }
 
-export interface InsightDump extends DumpMeta {
+export interface ServiceDump extends DumpMeta {
   type: 'locate' | 'extract' | 'assert';
   logId: string;
   userQuery: {
     element?: TUserPrompt;
-    dataDemand?: InsightExtractParam;
+    dataDemand?: ServiceExtractParam;
     assertion?: TUserPrompt;
   };
   matchedElement: LocateResultElement[];
@@ -169,34 +169,34 @@ export interface InsightDump extends DumpMeta {
   data: any;
   assertionPass?: boolean;
   assertionThought?: string;
-  taskInfo: InsightTaskInfo;
+  taskInfo: ServiceTaskInfo;
   error?: string;
   output?: any;
 }
 
-export type PartialInsightDumpFromSDK = Omit<
-  InsightDump,
+export type PartialServiceDumpFromSDK = Omit<
+  ServiceDump,
   'logTime' | 'logId' | 'model_name'
 >;
 
-export interface InsightResultBase {
-  dump: InsightDump;
+export interface ServiceResultBase {
+  dump: ServiceDump;
 }
 
-export type LocateResultWithDump = LocateResult & InsightResultBase;
+export type LocateResultWithDump = LocateResult & ServiceResultBase;
 
-export interface InsightExtractResult<T> extends InsightResultBase {
+export interface ServiceExtractResult<T> extends ServiceResultBase {
   data: T;
   thought?: string;
   usage?: AIUsageInfo;
 }
 
-export class InsightError extends Error {
-  dump: InsightDump;
+export class ServiceError extends Error {
+  dump: ServiceDump;
 
-  constructor(message: string, dump: InsightDump) {
+  constructor(message: string, dump: ServiceDump) {
     super(message);
-    this.name = 'InsightError';
+    this.name = 'ServiceError';
     this.dump = dump;
   }
 }
@@ -211,7 +211,7 @@ export interface LiteUISection {
 
 export type ElementById = (id: string) => BaseElement | null;
 
-export type InsightAssertionResponse = AIAssertionResponse & {
+export type ServiceAssertionResponse = AIAssertionResponse & {
   usage?: AIUsageInfo;
 };
 
@@ -397,7 +397,7 @@ export interface ExecutionDump extends DumpMeta {
 }
 
 /*
-task - insight-locate
+task - service-locate
 */
 export type ExecutionTaskInsightLocateParam = PlanningLocateParam;
 
@@ -405,7 +405,7 @@ export interface ExecutionTaskInsightLocateOutput {
   element: LocateResultElement | null;
 }
 
-export type ExecutionTaskInsightDump = InsightDump;
+export type ExecutionTaskInsightDump = ServiceDump;
 
 export type ExecutionTaskInsightLocateApply = ExecutionTaskApply<
   'Insight',
@@ -418,10 +418,10 @@ export type ExecutionTaskInsightLocate =
   ExecutionTask<ExecutionTaskInsightLocateApply>;
 
 /*
-task - insight-query
+task - service-query
 */
 export interface ExecutionTaskInsightQueryParam {
-  dataDemand: InsightExtractParam;
+  dataDemand: ServiceExtractParam;
 }
 
 export interface ExecutionTaskInsightQueryOutput {
@@ -448,7 +448,7 @@ export interface ExecutionTaskInsightAssertionParam {
 export type ExecutionTaskInsightAssertionApply = ExecutionTaskApply<
   'Insight',
   ExecutionTaskInsightAssertionParam,
-  InsightAssertionResponse,
+  ServiceAssertionResponse,
   ExecutionTaskInsightDump
 >;
 

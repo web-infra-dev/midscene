@@ -11,7 +11,7 @@ export interface LocateOption {
   uiContext?: UIContext;
 }
 
-export interface InsightExtractOption {
+export interface ServiceExtractOption {
   domIncluded?: boolean | 'visible-only';
   screenshotIncluded?: boolean;
   doNotThrowError?: boolean;
@@ -133,27 +133,27 @@ export interface MidsceneYamlFlowItemAIAssert {
   name?: string;
 }
 
-export interface MidsceneYamlFlowItemAIQuery extends InsightExtractOption {
+export interface MidsceneYamlFlowItemAIQuery extends ServiceExtractOption {
   aiQuery: string;
   name?: string;
 }
 
-export interface MidsceneYamlFlowItemAINumber extends InsightExtractOption {
+export interface MidsceneYamlFlowItemAINumber extends ServiceExtractOption {
   aiNumber: string;
   name?: string;
 }
 
-export interface MidsceneYamlFlowItemAIString extends InsightExtractOption {
+export interface MidsceneYamlFlowItemAIString extends ServiceExtractOption {
   aiString: string;
   name?: string;
 }
 
-export interface MidsceneYamlFlowItemAIAsk extends InsightExtractOption {
+export interface MidsceneYamlFlowItemAIAsk extends ServiceExtractOption {
   aiAsk: string;
   name?: string;
 }
 
-export interface MidsceneYamlFlowItemAIBoolean extends InsightExtractOption {
+export interface MidsceneYamlFlowItemAIBoolean extends ServiceExtractOption {
   aiBoolean: string;
   name?: string;
 }

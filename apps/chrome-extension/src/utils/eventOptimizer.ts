@@ -1,4 +1,4 @@
-import Insight from '@midscene/core';
+import Service from '@midscene/core';
 import type { Rect, UIContext } from '@midscene/core';
 import type { RecordedEvent } from '@midscene/recorder';
 import { globalModelConfigManager } from '@midscene/shared/env';
@@ -110,7 +110,7 @@ export const generateAIDescription = async (
         size: { width: event.pageInfo.width, height: event.pageInfo.height },
       };
 
-      const insight = new Insight(mockContext);
+      const service = new Service(mockContext);
       const rect =
         event.elementRect?.x && event.elementRect?.y
           ? ([event.elementRect.x, event.elementRect.y] as [number, number])
