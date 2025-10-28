@@ -110,8 +110,7 @@ export const decideOpenaiSdkConfig = ({
 
   if (keys.httpProxy === MIDSCENE_OPENAI_HTTP_PROXY) {
     // Priority: MIDSCENE_MODEL_HTTP_PROXY > MIDSCENE_OPENAI_HTTP_PROXY
-    httpProxy =
-      provider[MIDSCENE_MODEL_HTTP_PROXY] || provider[keys.httpProxy];
+    httpProxy = provider[MIDSCENE_MODEL_HTTP_PROXY] || provider[keys.httpProxy];
   } else {
     httpProxy = provider[keys.httpProxy];
   }
