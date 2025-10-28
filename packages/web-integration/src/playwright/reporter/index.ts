@@ -1,13 +1,17 @@
-import { readFileSync, rmSync } from 'node:fs';
+import { readFileSync, readdirSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import type { ReportDumpWithAttributes } from '@midscene/core';
 import { getReportFileName, printReportMsg } from '@midscene/core/agent';
 import { writeDumpReport } from '@midscene/core/utils';
 import { replaceIllegalPathCharsAndSpace } from '@midscene/shared/utils';
 import type {
   FullConfig,
+  FullResult,
   Reporter,
   Suite,
   TestCase,
+  TestError,
   TestResult,
 } from '@playwright/test/reporter';
 
@@ -122,6 +126,42 @@ class MidsceneReporter implements Reporter {
         `Failed to delete Midscene temp file: ${tempFilePath}`,
         error,
       );
+    }
+  }
+
+  onError(error: TestError) {
+    // Reporter-level errors might prevent onTestEnd from being called
+    // Log the error but don't attempt cleanup here since we don't have
+    // access to specific temp files. The onEnd hook will handle orphaned files.
+    console.error('Midscene Reporter error occurred:', error);
+  }
+
+  onEnd(result: FullResult) {
+    // Final cleanup: scan for any orphaned temp files that may have been
+    // left behind by crashed workers or reporter errors
+    try {
+      const tmpDir = tmpdir();
+      const files = readdirSync(tmpDir);
+      const orphanedFiles = files.filter((f) => f.startsWith('midscene-dump-'));
+
+      if (orphanedFiles.length > 0) {
+        console.log(
+          `Midscene: Found ${orphanedFiles.length} orphaned temp file(s), cleaning up...`,
+        );
+
+        for (const file of orphanedFiles) {
+          const filePath = join(tmpDir, file);
+          try {
+            rmSync(filePath, { force: true });
+            console.log(`Midscene: Cleaned up orphaned temp file: ${file}`);
+          } catch (error) {
+            // Silently ignore individual file cleanup errors
+          }
+        }
+      }
+    } catch (error) {
+      // Silently ignore directory read errors
+      console.warn('Midscene: Failed to scan for orphaned temp files:', error);
     }
   }
 }

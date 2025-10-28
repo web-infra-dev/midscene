@@ -82,8 +82,22 @@ function registerCleanupHandlers() {
   // Register cleanup on process exit
   process.once('SIGINT', cleanup);
   process.once('SIGTERM', cleanup);
+  process.once('SIGHUP', cleanup);
   process.once('exit', cleanup);
   process.once('beforeExit', cleanup);
+
+  // Handle uncaught exceptions and unhandled rejections
+  process.once('uncaughtException', (error) => {
+    debugPage('Uncaught exception detected, cleaning up temp files', error);
+    cleanup();
+    // Don't re-throw - let the process handle it normally
+  });
+
+  process.once('unhandledRejection', (reason) => {
+    debugPage('Unhandled rejection detected, cleaning up temp files', reason);
+    cleanup();
+    // Don't re-throw - let the process handle it normally
+  });
 }
 
 type PlaywrightCacheConfig = {
@@ -256,25 +270,34 @@ export const PlaywrightAiFixture = (options?: {
     const tempFilePath = join(tmpdir(), tempFileName);
 
     // 3. Write dump to the new temporary file
-    writeFileSync(tempFilePath, dump, 'utf-8');
-    debugPage(`Dump written to temp file: ${tempFilePath}`);
+    try {
+      writeFileSync(tempFilePath, dump, 'utf-8');
+      debugPage(`Dump written to temp file: ${tempFilePath}`);
 
-    // 4. Track the new temp file
-    pageTempFiles.set(pageId, tempFilePath);
-    globalTempFiles.add(tempFilePath);
+      // 4. Track the new temp file (only if write succeeded)
+      pageTempFiles.set(pageId, tempFilePath);
+      globalTempFiles.add(tempFilePath);
 
-    // Store only the file path in annotation
-    const currentAnnotation = test.annotations.find((item) => {
-      return item.type === midsceneDumpAnnotationId;
-    });
-    if (currentAnnotation) {
-      // Store file path instead of dump content
-      currentAnnotation.description = tempFilePath;
-    } else {
-      test.annotations.push({
-        type: midsceneDumpAnnotationId,
-        description: tempFilePath,
+      // Store only the file path in annotation (only if write succeeded)
+      const currentAnnotation = test.annotations.find((item) => {
+        return item.type === midsceneDumpAnnotationId;
       });
+      if (currentAnnotation) {
+        // Store file path instead of dump content
+        currentAnnotation.description = tempFilePath;
+      } else {
+        test.annotations.push({
+          type: midsceneDumpAnnotationId,
+          description: tempFilePath,
+        });
+      }
+    } catch (error) {
+      // If write fails (e.g., disk full), don't track the file or add annotation
+      // This prevents reporter from trying to read a non-existent file
+      debugPage(
+        `Failed to write temp file: ${tempFilePath}. Skipping annotation.`,
+        error,
+      );
     }
   };
 
