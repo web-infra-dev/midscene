@@ -313,8 +313,34 @@ export class AndroidDevice implements AbstractInterface {
       }),
     ];
 
+    const platformSpecificActions = [
+      defineAction({
+        name: 'RunAdbShell',
+        description: 'Execute ADB shell command on Android device',
+        interfaceAlias: 'runAdbShell',
+        paramSchema: z.object({
+          command: z.string().describe('ADB shell command to execute'),
+        }),
+        call: async (param) => {
+          const adb = await this.getAdb();
+          return await adb.shell(param.command);
+        },
+      }),
+      defineAction({
+        name: 'Launch',
+        description: 'Launch an Android app or URL',
+        interfaceAlias: 'launch',
+        paramSchema: z.object({
+          uri: z.string().describe('App package name or URL to launch'),
+        }),
+        call: async (param) => {
+          await this.launch(param.uri);
+        },
+      }),
+    ];
+
     const customActions = this.customActions || [];
-    return [...defaultActions, ...customActions];
+    return [...defaultActions, ...platformSpecificActions, ...customActions];
   }
 
   constructor(deviceId: string, options?: AndroidDeviceOpt) {
