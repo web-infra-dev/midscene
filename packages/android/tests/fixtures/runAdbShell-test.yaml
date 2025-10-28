@@ -1,0 +1,12 @@
+# Sample YAML test file for runAdbShell support
+android:
+  deviceId: "test-device-id"
+
+tasks:
+  - name: Test runAdbShell command
+    flow:
+      - runAdbShell: pm list packages
+        name: packageList
+      - runAdbShell: dumpsys battery
+        name: batteryStatus
+      - runAdbShell: pm clear com.example.testapp
