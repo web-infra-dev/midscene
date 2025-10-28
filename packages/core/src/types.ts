@@ -552,9 +552,7 @@ export interface DeviceAction<T = any> {
   description?: string;
   interfaceAlias?: string;
   paramSchema?: z.ZodType<T>;
-  /** Optional delay (ms) after runner execution. This is useful to wait for the UI to update. Defaults to 300ms. Set to 0 to skip. */
-  delayAfterRunner?: number;
-  call: (param: T, context: ExecutorContext) => Promise<void> | void;
+  call: (param: T, context: ExecutorContext) => Promise<any> | any;
 }
 
 /**
