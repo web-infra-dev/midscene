@@ -43,6 +43,7 @@ import type {
   MidsceneYamlFlowItemAIWaitFor,
   MidsceneYamlFlowItemEvaluateJavaScript,
   MidsceneYamlFlowItemLogScreenshot,
+  MidsceneYamlFlowItemRunAdbShell,
   MidsceneYamlFlowItemSleep,
   MidsceneYamlScript,
   MidsceneYamlScriptEnv,
@@ -329,6 +330,20 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           recordTask.recordToReport ?? recordTask.logScreenshot ?? 'untitled';
         const content = recordTask.content || '';
         await agent.recordToReport(title, { content });
+      } else if (
+        'runAdbShell' in (flowItem as MidsceneYamlFlowItemRunAdbShell)
+      ) {
+        const runAdbShellTask = flowItem as MidsceneYamlFlowItemRunAdbShell;
+        const command = runAdbShellTask.runAdbShell;
+        assert(command, 'missing command for runAdbShell');
+
+        // Check if the agent has runAdbShell method (AndroidAgent)
+        if (typeof (agent as any).runAdbShell === 'function') {
+          const result = await (agent as any).runAdbShell(command);
+          this.setResult(runAdbShellTask.name, result);
+        } else {
+          throw new Error('runAdbShell is only supported on Android agents');
+        }
       } else if ('aiInput' in (flowItem as MidsceneYamlFlowItemAIInput)) {
         // may be input empty string ''
         const {
