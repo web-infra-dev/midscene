@@ -526,6 +526,8 @@ export class TaskExecutor {
             await actionFn(param, context);
             debug('called action', action.name);
 
+            await sleep(300); // wait for the action to complete
+
             try {
               if (this.interface.afterInvokeAction) {
                 debug('will call "afterInvokeAction" for interface');
