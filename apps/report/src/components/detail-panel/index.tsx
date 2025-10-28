@@ -8,8 +8,8 @@ import {
   VideoCameraOutlined,
 } from '@ant-design/icons';
 import type {
+  ExecutionTaskInsightLocate,
   ExecutionTaskPlanning,
-  ExecutionTaskServiceLocate,
 } from '@midscene/core';
 import { filterBase64Value, timeStr } from '@midscene/visualizer';
 import { Blackboard, Player } from '@midscene/visualizer';
@@ -101,7 +101,7 @@ const DetailPanel = (): JSX.Element => {
       if (insightDump?.matchedElement) {
         highlightElements = insightDump?.matchedElement;
       } else {
-        highlightElements = (activeTask as ExecutionTaskServiceLocate).output
+        highlightElements = (activeTask as ExecutionTaskInsightLocate).output
           ?.element // hit cache
           ? [activeTask.output.element]
           : [];

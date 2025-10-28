@@ -316,7 +316,7 @@ export interface ExecutionRecorderItem {
 
 export type ExecutionTaskType =
   | 'Planning'
-  | 'Service'
+  | 'Insight'
   | 'Action'
   | 'Assertion'
   | 'Log';
@@ -399,61 +399,61 @@ export interface ExecutionDump extends DumpMeta {
 /*
 task - service-locate
 */
-export type ExecutionTaskServiceLocateParam = PlanningLocateParam;
+export type ExecutionTaskInsightLocateParam = PlanningLocateParam;
 
-export interface ExecutionTaskServiceLocateOutput {
+export interface ExecutionTaskInsightLocateOutput {
   element: LocateResultElement | null;
 }
 
-export type ExecutionTaskServiceDump = ServiceDump;
+export type ExecutionTaskInsightDump = ServiceDump;
 
-export type ExecutionTaskServiceLocateApply = ExecutionTaskApply<
-  'Service',
-  ExecutionTaskServiceLocateParam,
-  ExecutionTaskServiceLocateOutput,
-  ExecutionTaskServiceDump
+export type ExecutionTaskInsightLocateApply = ExecutionTaskApply<
+  'Insight',
+  ExecutionTaskInsightLocateParam,
+  ExecutionTaskInsightLocateOutput,
+  ExecutionTaskInsightDump
 >;
 
-export type ExecutionTaskServiceLocate =
-  ExecutionTask<ExecutionTaskServiceLocateApply>;
+export type ExecutionTaskInsightLocate =
+  ExecutionTask<ExecutionTaskInsightLocateApply>;
 
 /*
 task - service-query
 */
-export interface ExecutionTaskServiceQueryParam {
+export interface ExecutionTaskInsightQueryParam {
   dataDemand: ServiceExtractParam;
 }
 
-export interface ExecutionTaskServiceQueryOutput {
+export interface ExecutionTaskInsightQueryOutput {
   data: any;
 }
 
-export type ExecutionTaskServiceQueryApply = ExecutionTaskApply<
-  'Service',
-  ExecutionTaskServiceQueryParam,
+export type ExecutionTaskInsightQueryApply = ExecutionTaskApply<
+  'Insight',
+  ExecutionTaskInsightQueryParam,
   any,
-  ExecutionTaskServiceDump
+  ExecutionTaskInsightDump
 >;
 
-export type ExecutionTaskServiceQuery =
-  ExecutionTask<ExecutionTaskServiceQueryApply>;
+export type ExecutionTaskInsightQuery =
+  ExecutionTask<ExecutionTaskInsightQueryApply>;
 
 /*
 task - assertion
 */
-export interface ExecutionTaskServiceAssertionParam {
+export interface ExecutionTaskInsightAssertionParam {
   assertion: string;
 }
 
-export type ExecutionTaskServiceAssertionApply = ExecutionTaskApply<
-  'Service',
-  ExecutionTaskServiceAssertionParam,
+export type ExecutionTaskInsightAssertionApply = ExecutionTaskApply<
+  'Insight',
+  ExecutionTaskInsightAssertionParam,
   ServiceAssertionResponse,
-  ExecutionTaskServiceDump
+  ExecutionTaskInsightDump
 >;
 
-export type ExecutionTaskServiceAssertion =
-  ExecutionTask<ExecutionTaskServiceAssertionApply>;
+export type ExecutionTaskInsightAssertion =
+  ExecutionTask<ExecutionTaskInsightAssertionApply>;
 
 /*
 task - action (i.e. interact) 

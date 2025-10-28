@@ -2,23 +2,15 @@ import type {
   DetailedLocateParam,
   ExecutionTask,
   ExecutionTaskAction,
+  ExecutionTaskInsightAssertion,
+  ExecutionTaskInsightLocate,
+  ExecutionTaskInsightQuery,
   ExecutionTaskPlanning,
-  ExecutionTaskServiceAssertion,
-  ExecutionTaskServiceLocate,
-  ExecutionTaskServiceQuery,
   PullParam,
   ScrollParam,
 } from '@/types';
 
 export function typeStr(task: ExecutionTask) {
-  // For Service tasks with Query or Assert subtypes, show just "Service"
-  if (
-    task.type === 'Service' &&
-    (task.subType === 'Query' || task.subType === 'Assert')
-  ) {
-    return task.type;
-  }
-
   // For Action tasks with subType, show "Action Space / subType"
   if (task.type === 'Action' && task.subType) {
     return `Action Space / ${task.subType}`;
@@ -125,11 +117,11 @@ export function paramStr(task: ExecutionTask) {
     value = (task as ExecutionTaskPlanning)?.param?.userInstruction;
   }
 
-  if (task.type === 'Service') {
+  if (task.type === 'Insight') {
     value =
-      locateParamStr((task as ExecutionTaskServiceLocate)?.param) ||
-      (task as ExecutionTaskServiceQuery)?.param?.dataDemand ||
-      (task as ExecutionTaskServiceAssertion)?.param?.assertion;
+      locateParamStr((task as ExecutionTaskInsightLocate)?.param) ||
+      (task as ExecutionTaskInsightQuery)?.param?.dataDemand ||
+      (task as ExecutionTaskInsightAssertion)?.param?.assertion;
   }
 
   if (task.type === 'Action') {

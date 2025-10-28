@@ -5,9 +5,9 @@ import type Service from '@/service';
 import type { TaskRunner } from '@/task-runner';
 import type {
   ExecutionTaskApply,
+  ExecutionTaskInsightQueryApply,
   ExecutionTaskPlanningApply,
   ExecutionTaskProgressOptions,
-  ExecutionTaskServiceQueryApply,
   InterfaceType,
   MidsceneYamlFlowItem,
   PlanningAIResponse,
@@ -378,8 +378,8 @@ export class TaskExecutor {
     opt?: ServiceExtractOption,
     multimodalPrompt?: TMultimodalPrompt,
   ) {
-    const queryTask: ExecutionTaskServiceQueryApply = {
-      type: 'Service',
+    const queryTask: ExecutionTaskInsightQueryApply = {
+      type: 'Insight',
       subType: type,
       locate: null,
       param: {

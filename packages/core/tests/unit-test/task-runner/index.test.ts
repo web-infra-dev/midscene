@@ -1,8 +1,8 @@
 import { TaskRunner } from '@/index';
 import type {
   ExecutionTaskActionApply,
-  ExecutionTaskServiceLocate,
-  ExecutionTaskServiceLocateApply,
+  ExecutionTaskInsightLocate,
+  ExecutionTaskInsightLocateApply,
   UIContext,
 } from '@/index';
 import { fakeService } from 'tests/utils';
@@ -11,8 +11,8 @@ import { describe, expect, it, vi } from 'vitest';
 const insightFindTask = (shouldThrow?: boolean) => {
   const insight = fakeService('test-task-runner');
 
-  const insightFindTask: ExecutionTaskServiceLocateApply = {
-    type: 'Service',
+  const insightFindTask: ExecutionTaskInsightLocateApply = {
+    type: 'Insight',
     subType: 'Locate',
     param: {
       prompt: 'test',
@@ -95,7 +95,7 @@ describe(
         tasks: inputTasks,
       });
       const flushResult = await runner.flush();
-      const tasks = runner.tasks as ExecutionTaskServiceLocate[];
+      const tasks = runner.tasks as ExecutionTaskInsightLocate[];
       expect(runner.isInErrorState()).toBeFalsy();
       const { element } = tasks[0].output || {};
       expect(element).toBeTruthy();
@@ -178,7 +178,7 @@ describe(
         tasks: [insightFindTask(true), insightFindTask()],
       });
       const r = await runner.flush();
-      const tasks = runner.tasks as ExecutionTaskServiceLocate[];
+      const tasks = runner.tasks as ExecutionTaskInsightLocate[];
 
       expect(tasks.length).toBe(2);
       expect(tasks[0].status).toBe('failed');

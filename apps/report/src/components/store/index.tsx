@@ -3,7 +3,7 @@ import type { PlaywrightTaskAttributes } from '@/types';
 import type {
   ExecutionDump,
   ExecutionTask,
-  ExecutionTaskServiceLocate,
+  ExecutionTaskInsightLocate,
   GroupedActionDump,
   ServiceDump,
 } from '@midscene/core';
@@ -203,8 +203,8 @@ export const useExecutionDump = create<DumpStoreType>((set, get) => {
             : null,
       });
       console.log('will set task', task);
-      if (task.type === 'Service') {
-        const dump = (task as ExecutionTaskServiceLocate).log;
+      if (task.type === 'Insight') {
+        const dump = (task as ExecutionTaskInsightLocate).log;
         set({
           insightDump: dump,
         });

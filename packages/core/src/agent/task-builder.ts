@@ -7,7 +7,7 @@ import type {
   ExecutionTaskActionApply,
   ExecutionTaskApply,
   ExecutionTaskHitBy,
-  ExecutionTaskServiceLocateApply,
+  ExecutionTaskInsightLocateApply,
   LocateResultElement,
   LocateResultWithDump,
   PlanningAction,
@@ -324,7 +324,7 @@ export class TaskBuilder {
     detailedLocateParam: DetailedLocateParam | string,
     context: PlanBuildContext,
     onResult?: (result: LocateResultElement) => void,
-  ): ExecutionTaskServiceLocateApply {
+  ): ExecutionTaskInsightLocateApply {
     const { cacheable, modelConfig } = context;
     let locateParam = detailedLocateParam;
 
@@ -341,8 +341,8 @@ export class TaskBuilder {
       };
     }
 
-    const taskFind: ExecutionTaskServiceLocateApply = {
-      type: 'Service',
+    const taskFind: ExecutionTaskInsightLocateApply = {
+      type: 'Insight',
       subType: 'Locate',
       subTask: context.subTask || undefined,
       param: locateParam,

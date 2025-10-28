@@ -89,7 +89,7 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
 
     // Mock the createTypeQueryTask to return a task that will succeed quickly
     const mockTask = {
-      type: 'Service',
+      type: 'Insight',
       subType: 'WaitFor',
       locate: null,
       param: {
@@ -137,7 +137,7 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
 
     // Mock createTypeQueryTask to return a task that simulates AI failure but doesn't throw
     const mockTask = {
-      type: 'Service',
+      type: 'Insight',
       subType: 'Assert',
       locate: null,
       param: {
@@ -194,7 +194,7 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
 
     // Mock createTypeQueryTask to always return false (assertion never passes)
     const mockTask = {
-      type: 'Service',
+      type: 'Insight',
       subType: 'Assert',
       locate: null,
       param: {

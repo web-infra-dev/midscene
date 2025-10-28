@@ -5,8 +5,8 @@ import { paramStr, typeStr } from '@midscene/core/agent';
 import type {
   ExecutionDump,
   ExecutionTask,
+  ExecutionTaskInsightLocate,
   ExecutionTaskPlanning,
-  ExecutionTaskServiceLocate,
   GroupedActionDump,
   LocateResultElement,
   Rect,
@@ -321,8 +321,8 @@ export const generateAnimationScripts = (
           imageHeight: task.uiContext?.size?.height || imageHeight,
         });
       }
-    } else if (task.type === 'Service' && task.subType === 'Locate') {
-      const serviceTask = task as ExecutionTaskServiceLocate;
+    } else if (task.type === 'Insight' && task.subType === 'Locate') {
+      const serviceTask = task as ExecutionTaskInsightLocate;
       const resultElement = serviceTask.output?.element;
       const title = typeStr(task);
       const subTitle = paramStr(task);
