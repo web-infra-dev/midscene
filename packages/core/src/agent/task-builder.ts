@@ -456,9 +456,13 @@ export class TaskBuilder {
             try {
               const feature = await this.interface.cacheFeatureForRect(
                 element.rect,
-                element.isOrderSensitive !== undefined
-                  ? { _orderSensitive: element.isOrderSensitive }
-                  : undefined,
+                {
+                  targetDescription:
+                    typeof param.prompt === 'string'
+                      ? param.prompt
+                      : param.prompt?.prompt,
+                  modelConfig,
+                },
               );
               if (feature && Object.keys(feature).length > 0) {
                 debug(

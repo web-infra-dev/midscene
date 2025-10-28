@@ -1,5 +1,6 @@
 import { getMidsceneLocationSchema } from '@/ai-model';
 import type { DeviceAction, LocateResultElement } from '@/types';
+import type { IModelConfig } from '@midscene/shared/env';
 import type { ElementNode } from '@midscene/shared/extractor';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 import { z } from 'zod';
@@ -14,7 +15,10 @@ export abstract class AbstractInterface {
 
   abstract cacheFeatureForRect?(
     rect: Rect,
-    opt?: { _orderSensitive: boolean },
+    options?: {
+      targetDescription?: string;
+      modelConfig?: IModelConfig;
+    },
   ): Promise<ElementCacheFeature>;
   abstract rectMatchesCacheFeature?(
     feature: ElementCacheFeature,
