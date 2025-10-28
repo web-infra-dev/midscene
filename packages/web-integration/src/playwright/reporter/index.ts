@@ -85,7 +85,7 @@ class MidsceneReporter implements Reporter {
     if (!dumpAnnotation?.description) return;
 
     const tempFilePath = dumpAnnotation.description;
-    let dumpString: string;
+    let dumpString: string | undefined;
 
     try {
       dumpString = readFileSync(tempFilePath, 'utf-8');
@@ -94,24 +94,27 @@ class MidsceneReporter implements Reporter {
         `Failed to read Midscene dump file: ${tempFilePath}`,
         error,
       );
-      return;
+      // Don't return here - we still need to clean up the temp file
     }
 
-    const retry = result.retry ? `(retry #${result.retry})` : '';
-    const testId = `${test.id}${retry}`;
-    const testData: ReportDumpWithAttributes = {
-      dumpString,
-      attributes: {
-        playwright_test_id: testId,
-        playwright_test_title: `${test.title}${retry}`,
-        playwright_test_status: result.status,
-        playwright_test_duration: result.duration,
-      },
-    };
+    // Only update report if we successfully read the dump
+    if (dumpString) {
+      const retry = result.retry ? `(retry #${result.retry})` : '';
+      const testId = `${test.id}${retry}`;
+      const testData: ReportDumpWithAttributes = {
+        dumpString,
+        attributes: {
+          playwright_test_id: testId,
+          playwright_test_title: `${test.title}${retry}`,
+          playwright_test_status: result.status,
+          playwright_test_duration: result.duration,
+        },
+      };
 
-    this.updateReport(testData);
+      this.updateReport(testData);
+    }
 
-    // Clean up: delete temp file
+    // Always clean up temp file, even if reading failed
     try {
       rmSync(tempFilePath, { force: true });
     } catch (error) {
