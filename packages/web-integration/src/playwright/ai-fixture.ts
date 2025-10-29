@@ -1,4 +1,4 @@
-import { writeFileSync } from 'node:fs';
+import { rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PlaywrightAgent, type PlaywrightWebPage } from '@/playwright/index';
@@ -46,6 +46,9 @@ const groupAndCaseForTest = (testInfo: TestInfo) => {
 
 const midsceneAgentKeyId = '_midsceneAgentId';
 export const midsceneDumpAnnotationId = 'MIDSCENE_DUMP_ANNOTATION';
+
+// Track temporary dump files per page for cleanup
+const pageTempFiles = new Map<string, string>();
 
 type PlaywrightCacheConfig = {
   strategy?: 'read-only' | 'read-write' | 'write-only';
@@ -100,11 +103,20 @@ export const PlaywrightAiFixture = (options?: {
       });
 
       pageAgentMap[idForPage].onDumpUpdate = (dump: string) => {
-        updateDumpAnnotation(testInfo, dump);
+        updateDumpAnnotation(testInfo, dump, idForPage);
       };
 
       page.on('close', () => {
         debugPage('page closed');
+
+        // Note: We don't clean up temp files here because the reporter
+        // needs to read them in onTestEnd. The reporter will clean them up
+        // after reading. If the test is interrupted (Ctrl+C), the process
+        // exit handlers will clean up remaining temp files.
+
+        // However, we do clean up the pageTempFiles Map entry to avoid memory leaks
+        pageTempFiles.delete(idForPage);
+
         pageAgentMap[idForPage].destroy();
         delete pageAgentMap[idForPage];
       });
@@ -180,26 +192,53 @@ export const PlaywrightAiFixture = (options?: {
     });
   }
 
-  const updateDumpAnnotation = (test: TestInfo, dump: string) => {
-    // Write dump to temporary file
-    const tempFileName = `midscene-dump-${test.testId || uuid()}-${Date.now()}.json`;
+  const updateDumpAnnotation = (
+    test: TestInfo,
+    dump: string,
+    pageId: string,
+  ) => {
+    // 1. First, clean up the old temp file if it exists
+    const oldTempFilePath = pageTempFiles.get(pageId);
+    if (oldTempFilePath) {
+      try {
+        rmSync(oldTempFilePath, { force: true });
+      } catch (error) {
+        // Silently ignore if old file is already cleaned up
+      }
+    }
+
+    // 2. Create new temp file with predictable name using pageId
+    const tempFileName = `midscene-dump-${test.testId || uuid()}-${pageId}.json`;
     const tempFilePath = join(tmpdir(), tempFileName);
 
-    writeFileSync(tempFilePath, dump, 'utf-8');
-    debugPage(`Dump written to temp file: ${tempFilePath}`);
+    // 3. Write dump to the new temporary file
+    try {
+      writeFileSync(tempFilePath, dump, 'utf-8');
+      debugPage(`Dump written to temp file: ${tempFilePath}`);
 
-    // Store only the file path in annotation
-    const currentAnnotation = test.annotations.find((item) => {
-      return item.type === midsceneDumpAnnotationId;
-    });
-    if (currentAnnotation) {
-      // Store file path instead of dump content
-      currentAnnotation.description = tempFilePath;
-    } else {
-      test.annotations.push({
-        type: midsceneDumpAnnotationId,
-        description: tempFilePath,
+      // 4. Track the new temp file (only if write succeeded)
+      pageTempFiles.set(pageId, tempFilePath);
+
+      // Store only the file path in annotation (only if write succeeded)
+      const currentAnnotation = test.annotations.find((item) => {
+        return item.type === midsceneDumpAnnotationId;
       });
+      if (currentAnnotation) {
+        // Store file path instead of dump content
+        currentAnnotation.description = tempFilePath;
+      } else {
+        test.annotations.push({
+          type: midsceneDumpAnnotationId,
+          description: tempFilePath,
+        });
+      }
+    } catch (error) {
+      // If write fails (e.g., disk full), don't track the file or add annotation
+      // This prevents reporter from trying to read a non-existent file
+      debugPage(
+        `Failed to write temp file: ${tempFilePath}. Skipping annotation.`,
+        error,
+      );
     }
   };
 

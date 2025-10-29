@@ -20,6 +20,9 @@ class MidsceneReporter implements Reporter {
   private testTitleToFilename = new Map<string, string>();
   mode?: 'merged' | 'separate';
 
+  // Track all temp files created during this test run for cleanup
+  private tempFiles = new Set<string>();
+
   constructor(options: MidsceneReporterOptions = {}) {
     // Set mode from constructor options (official Playwright way)
     this.mode = MidsceneReporter.getMode(options.type ?? 'merged');
@@ -85,7 +88,11 @@ class MidsceneReporter implements Reporter {
     if (!dumpAnnotation?.description) return;
 
     const tempFilePath = dumpAnnotation.description;
-    let dumpString: string;
+
+    // Track this temp file for potential cleanup in onEnd
+    this.tempFiles.add(tempFilePath);
+
+    let dumpString: string | undefined;
 
     try {
       dumpString = readFileSync(tempFilePath, 'utf-8');
@@ -94,31 +101,56 @@ class MidsceneReporter implements Reporter {
         `Failed to read Midscene dump file: ${tempFilePath}`,
         error,
       );
-      return;
+      // Don't return here - we still need to clean up the temp file
     }
 
-    const retry = result.retry ? `(retry #${result.retry})` : '';
-    const testId = `${test.id}${retry}`;
-    const testData: ReportDumpWithAttributes = {
-      dumpString,
-      attributes: {
-        playwright_test_id: testId,
-        playwright_test_title: `${test.title}${retry}`,
-        playwright_test_status: result.status,
-        playwright_test_duration: result.duration,
-      },
-    };
+    // Only update report if we successfully read the dump
+    if (dumpString) {
+      const retry = result.retry ? `(retry #${result.retry})` : '';
+      const testId = `${test.id}${retry}`;
+      const testData: ReportDumpWithAttributes = {
+        dumpString,
+        attributes: {
+          playwright_test_id: testId,
+          playwright_test_title: `${test.title}${retry}`,
+          playwright_test_status: result.status,
+          playwright_test_duration: result.duration,
+        },
+      };
 
-    this.updateReport(testData);
+      this.updateReport(testData);
+    }
 
-    // Clean up: delete temp file
+    // Always try to clean up temp file
     try {
       rmSync(tempFilePath, { force: true });
+      // If successfully deleted, remove from tracking
+      this.tempFiles.delete(tempFilePath);
     } catch (error) {
       console.warn(
         `Failed to delete Midscene temp file: ${tempFilePath}`,
         error,
       );
+      // Keep in tempFiles for cleanup in onEnd
+    }
+  }
+
+  onEnd() {
+    // Clean up any remaining temp files that weren't deleted in onTestEnd
+    if (this.tempFiles.size > 0) {
+      console.log(
+        `Midscene: Cleaning up ${this.tempFiles.size} remaining temp file(s)...`,
+      );
+
+      for (const filePath of this.tempFiles) {
+        try {
+          rmSync(filePath, { force: true });
+        } catch (error) {
+          // Silently ignore - file may have been deleted already
+        }
+      }
+
+      this.tempFiles.clear();
     }
   }
 }
