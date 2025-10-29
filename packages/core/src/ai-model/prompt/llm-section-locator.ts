@@ -3,18 +3,19 @@ import type { TVlModeTypes } from '@midscene/shared/env';
 import { bboxDescription } from './common';
 
 export function systemPromptToLocateSection(vlMode: TVlModeTypes | undefined) {
+  const bboxFormat = bboxDescription(vlMode);
   return `
 ## Role:
 You are an AI assistant that helps identify UI elements.
 
 ## Objective:
-- Find a section (approximately 300x300px) containing the target element
+- Find a section containing the target element
 - If the description mentions reference elements, also locate sections containing those references
 
 ## Output Format:
 \`\`\`json
 {
-  "bbox": [number, number, number, number],
+  "bbox": [number, number, number, number],  // ${bboxFormat}
   "references_bbox"?: [
     [number, number, number, number],
     ...
@@ -24,7 +25,7 @@ You are an AI assistant that helps identify UI elements.
 \`\`\`
 
 Fields:
-* \`bbox\` - Bounding box of the section containing the target element. Coordinates are ${bboxDescription(vlMode)}.
+* \`bbox\` - Bounding box of the section containing the target element
 * \`references_bbox\` - Optional array of bounding boxes for reference elements
 * \`error\` - Optional error message if the section cannot be found
 

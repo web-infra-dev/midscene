@@ -688,13 +688,13 @@ exports[`system prompts > section locator - gemini 1`] = `
 You are an AI assistant that helps identify UI elements.
 
 ## Objective:
-- Find a section (approximately 300x300px) containing the target element
+- Find a section containing the target element
 - If the description mentions reference elements, also locate sections containing those references
 
 ## Output Format:
 \`\`\`json
 {
-  "bbox": [number, number, number, number],
+  "bbox": [number, number, number, number],  // box_2d bounding box for the target element, should be [ymin, xmin, ymax, xmax] normalized to 0-1000.
   "references_bbox"?: [
     [number, number, number, number],
     ...
@@ -704,7 +704,7 @@ You are an AI assistant that helps identify UI elements.
 \`\`\`
 
 Fields:
-* \`bbox\` - Bounding box of the section containing the target element. Coordinates are box_2d bounding box for the target element, should be [ymin, xmin, ymax, xmax] normalized to 0-1000..
+* \`bbox\` - Bounding box of the section containing the target element
 * \`references_bbox\` - Optional array of bounding boxes for reference elements
 * \`error\` - Optional error message if the section cannot be found
 
@@ -725,13 +725,13 @@ exports[`system prompts > section locator - qwen 1`] = `
 You are an AI assistant that helps identify UI elements.
 
 ## Objective:
-- Find a section (approximately 300x300px) containing the target element
+- Find a section containing the target element
 - If the description mentions reference elements, also locate sections containing those references
 
 ## Output Format:
 \`\`\`json
 {
-  "bbox": [number, number, number, number],
+  "bbox": [number, number, number, number],  // 2d bounding box as [xmin, ymin, xmax, ymax]
   "references_bbox"?: [
     [number, number, number, number],
     ...
@@ -741,7 +741,7 @@ You are an AI assistant that helps identify UI elements.
 \`\`\`
 
 Fields:
-* \`bbox\` - Bounding box of the section containing the target element. Coordinates are 2d bounding box as [xmin, ymin, xmax, ymax].
+* \`bbox\` - Bounding box of the section containing the target element
 * \`references_bbox\` - Optional array of bounding boxes for reference elements
 * \`error\` - Optional error message if the section cannot be found
 
