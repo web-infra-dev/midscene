@@ -659,9 +659,6 @@ importers:
       '@langchain/core':
         specifier: 0.3.26
         version: 0.3.26(openai@6.3.0(ws@8.18.3)(zod@3.24.3))
-      '@midscene/recorder':
-        specifier: workspace:*
-        version: link:../recorder
       '@midscene/shared':
         specifier: workspace:*
         version: link:../shared
