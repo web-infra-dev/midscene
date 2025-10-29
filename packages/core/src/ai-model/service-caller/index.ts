@@ -383,7 +383,7 @@ export const getResponseFormat = (
     | undefined;
 
   // Check for GPT-4 or GPT-5 models
-  if (modelName.includes('gpt-4') || modelName.includes('gpt-5')) {
+  if (modelName.toLowerCase().includes('gpt-4') || modelName.toLowerCase().includes('gpt-5')) {
     switch (AIActionTypeValue) {
       case AIActionType.ASSERT:
         responseFormat = assertSchema;
