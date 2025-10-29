@@ -16,6 +16,7 @@ import { Blackboard, Player } from '@midscene/visualizer';
 import type { WebUIContext } from '@midscene/web';
 import { Segmented, Tooltip } from 'antd';
 import { useEffect, useState } from 'react';
+import { fullTimeStrWithMilliseconds } from '../../../../../packages/visualizer/src/utils';
 import OpenInPlayground from '../open-in-playground';
 
 const ScreenshotItem = (props: { time: string; img: string }) => {
@@ -119,19 +120,45 @@ const DetailPanel = (): JSX.Element => {
     }
   } else if (viewType === VIEW_TYPE_SCREENSHOT) {
     if (activeTask.recorder?.length) {
+      const screenshotItems: {
+        timestamp?: number;
+        screenshot: string;
+        timing?: string;
+      }[] = [];
+
+      const screenshotFromContext = activeTask.uiContext?.screenshotBase64;
+      if (screenshotFromContext) {
+        screenshotItems.push({
+          timestamp: activeTask.timing?.start ?? undefined,
+          screenshot: screenshotFromContext,
+          timing: 'context',
+        });
+      }
+
+      for (const item of activeTask.recorder) {
+        if (item.screenshot) {
+          screenshotItems.push({
+            timestamp: item.ts,
+            screenshot: item.screenshot,
+            timing: item.timing,
+          });
+        }
+      }
+
       content = (
         <div className="screenshot-item-wrapper scrollable">
-          {activeTask.recorder
-            .filter((item) => item.screenshot)
-            .map((item, index) => {
-              const fullTime = timeStr(item.ts);
-              const str = item.timing
-                ? `${fullTime} / ${item.timing}`
-                : fullTime;
-              return (
-                <ScreenshotItem key={index} time={str} img={item.screenshot!} />
-              );
-            })}
+          {screenshotItems.map((item) => {
+            const time = item.timing
+              ? `${fullTimeStrWithMilliseconds(item.timestamp)} / ${item.timing}`
+              : fullTimeStrWithMilliseconds(item.timestamp);
+            return (
+              <ScreenshotItem
+                key={item.timestamp}
+                time={time}
+                img={item.screenshot}
+              />
+            );
+          })}
         </div>
       );
     } else {

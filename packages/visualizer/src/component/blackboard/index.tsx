@@ -105,12 +105,14 @@ export const Blackboard = (props: {
 
   // key overlays
   const pixiBgRef = useRef<PIXI.Sprite | undefined>(undefined);
-  const {
-    backgroundVisible,
-    setBackgroundVisible,
-    elementsVisible,
-    setElementsVisible,
-  } = useBlackboardPreference();
+  // const {
+  //   backgroundVisible,
+  //   setBackgroundVisible,
+  //   elementsVisible,
+  //   setElementsVisible,
+  // } = useBlackboardPreference();
+  const backgroundVisible = true;
+  const elementsVisible = true;
 
   useEffect(() => {
     Promise.resolve(
@@ -267,17 +269,17 @@ export const Blackboard = (props: {
     // elementsVisible,
   ]);
 
-  const onSetBackgroundVisible: CheckboxProps['onChange'] = (e) => {
-    setBackgroundVisible(e.target.checked);
-    if (pixiBgRef.current) {
-      pixiBgRef.current.visible = e.target.checked;
-    }
-  };
+  // const onSetBackgroundVisible: CheckboxProps['onChange'] = (e) => {
+  //   setBackgroundVisible(e.target.checked);
+  //   if (pixiBgRef.current) {
+  //     pixiBgRef.current.visible = e.target.checked;
+  //   }
+  // };
 
-  const onSetElementsVisible: CheckboxProps['onChange'] = (e) => {
-    setElementsVisible(e.target.checked);
-    elementMarkContainer.visible = e.target.checked;
-  };
+  // const onSetElementsVisible: CheckboxProps['onChange'] = (e) => {
+  //   setElementsVisible(e.target.checked);
+  //   elementMarkContainer.visible = e.target.checked;
+  // };
 
   let bottomTipA: ReactElement | null = null;
   if (highlightElementRects.length === 1) {
@@ -305,7 +307,7 @@ export const Blackboard = (props: {
         style={{ width: '100%' }}
         ref={domRef}
       />
-      <div
+      {/* <div
         className="blackboard-filter"
         style={{ display: props.hideController ? 'none' : 'block' }}
       >
@@ -320,7 +322,7 @@ export const Blackboard = (props: {
             Elements
           </Checkbox>
         </div>
-      </div>
+      </div> */}
       <div
         className="bottom-tip"
         style={{ display: props.hideController ? 'none' : 'block' }}

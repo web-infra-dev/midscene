@@ -15,6 +15,7 @@ import {
   timeCostStrElement,
 } from '@midscene/visualizer';
 import { Tag, Timeline, type TimelineItemProps, Tooltip } from 'antd';
+import { fullTimeStrWithMilliseconds } from '../../../../../packages/visualizer/src/utils';
 import { useExecutionDump } from '../store';
 
 const noop = () => {};
@@ -182,11 +183,11 @@ const DetailSide = (): JSX.Element => {
       },
       {
         key: 'start',
-        content: timeStr(task?.timing?.start),
+        content: fullTimeStrWithMilliseconds(task?.timing?.start),
       },
       {
         key: 'end',
-        content: timeStr(task?.timing?.end),
+        content: fullTimeStrWithMilliseconds(task?.timing?.end),
       },
       {
         key: 'total time',
