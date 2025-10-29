@@ -121,14 +121,13 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      const result = await queryTask.executor({}, {
-        task: queryTask,
-        uiContext: { screenshotBase64: '', size: { width: 0, height: 0 } },
-      } as any);
-
-      // For Assert with null data, output should be null
-      expect(result.output).toBeNull();
-      expect(result.thought).toBe('Could not verify assertion');
+      // For Assert with null data (falsy), should throw error
+      await expect(
+        queryTask.executor({}, {
+          task: queryTask,
+          uiContext: { screenshotBase64: '', size: { width: 0, height: 0 } },
+        } as any),
+      ).rejects.toThrow('Assertion failed: Could not verify assertion');
     });
 
     it('should handle valid data for WaitFor operation', async () => {
