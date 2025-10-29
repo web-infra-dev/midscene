@@ -41,7 +41,10 @@ import {
   sectionLocatorInstruction,
   systemPromptToLocateSection,
 } from './prompt/llm-section-locator';
-import { describeUserPage } from './prompt/util';
+import {
+  orderSensitiveJudgePrompt,
+  systemPromptToJudgeOrderSensitive,
+} from './prompt/order-sensitive-judge';
 import { callAIWithObjectResponse } from './service-caller/index';
 
 export type AIArgs = [
@@ -135,7 +138,6 @@ export async function AiLocateElement(options: {
     'cannot find the target element description',
   );
   const userInstructionPrompt = await findElementPrompt.format({
-    pageDescription: await describeUserPage(context),
     targetElementDescription: extraTextFromUserPrompt(targetElementDescription),
   });
   const systemPrompt = systemPromptToLocateElement(vlMode);
@@ -227,13 +229,6 @@ export async function AiLocateElement(options: {
       const element: LocateResultElement =
         generateElementByPosition(rectCenter);
       errors = [];
-
-      element.isOrderSensitive =
-        typeof res.content === 'object' &&
-        res.content !== null &&
-        'isOrderSensitive' in res.content
-          ? (res.content as any).isOrderSensitive
-          : undefined;
 
       if (element) {
         matchedElements = [element];
@@ -437,6 +432,37 @@ export async function AiExtractElementInfo<T>(options: {
   );
   return {
     parseResult: result.content,
+    usage: result.usage,
+  };
+}
+
+export async function AiJudgeOrderSensitive(
+  description: string,
+  callAIFn: typeof callAIWithObjectResponse<{ isOrderSensitive: boolean }>,
+  modelConfig: IModelConfig,
+): Promise<{
+  isOrderSensitive: boolean;
+  usage?: AIUsageInfo;
+}> {
+  const systemPrompt = systemPromptToJudgeOrderSensitive();
+  const userPrompt = orderSensitiveJudgePrompt(description);
+
+  const msgs: AIArgs = [
+    { role: 'system', content: systemPrompt },
+    {
+      role: 'user',
+      content: userPrompt,
+    },
+  ];
+
+  const result = await callAIFn(
+    msgs,
+    AIActionType.INSPECT_ELEMENT, // Reuse existing action type for now
+    modelConfig,
+  );
+
+  return {
+    isOrderSensitive: result.content.isOrderSensitive ?? false,
     usage: result.usage,
   };
 }

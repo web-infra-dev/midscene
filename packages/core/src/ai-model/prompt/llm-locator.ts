@@ -5,52 +5,36 @@ export function systemPromptToLocateElement(vlMode: TVlModeTypes | undefined) {
   const bboxComment = bboxDescription(vlMode);
   return `
 ## Role:
-You are an expert in software testing.
+You are an AI assistant that helps identify UI elements.
 
 ## Objective:
-- Identify elements in screenshots and text that match the user's description.
-- Give the coordinates of the element that matches the user's description best in the screenshot.
-- Determine whether the user's description is order-sensitive (e.g., contains phrases like 'the third item in the list', 'the last button', etc.).
+- Identify elements in screenshots that match the user's description.
+- Provide the coordinates of the element that matches the user's description.
 
 ## Output Format:
 \`\`\`json
 {
   "bbox": [number, number, number, number],  // ${bboxComment}
-  "errors"?: string[],
-  "isOrderSensitive": boolean // Whether the targetElementDescription is order-sensitive (true/false)
+  "errors"?: string[]
 }
 \`\`\`
 
 Fields:
-* \`bbox\` is the bounding box of the element that matches the user's description best in the screenshot
-* \`isOrderSensitive\` is a boolean indicating whether the user's description is order-sensitive (true/false)
+* \`bbox\` is the bounding box of the element that matches the user's description
 * \`errors\` is an optional array of error messages (if any)
 
-Order-sensitive means the description contains phrases like:
-- "the third item in the list"
-- "the last button"
-- "the first input box"
-- "the second row"
-
-Not order-sensitive means the description is like:
-- "confirm button"
-- "search box"
-- "password input"
-
-For example, when an element is found and the description is order-sensitive:
+For example, when an element is found:
 \`\`\`json
 {
   "bbox": [100, 100, 200, 200],
-  "isOrderSensitive": true,
   "errors": []
 }
 \`\`\`
 
-When no element is found and the description is not order-sensitive:
+When no element is found:
 \`\`\`json
 {
   "bbox": [],
-  "isOrderSensitive": false,
   "errors": ["I can see ..., but {some element} is not found"]
 }
 \`\`\`
@@ -58,13 +42,6 @@ When no element is found and the description is not order-sensitive:
 }
 
 export const findElementPrompt = new PromptTemplate({
-  template: `
-Here is the item user want to find:
-=====================================
-{targetElementDescription}
-=====================================
-
-{pageDescription}
-  `,
-  inputVariables: ['pageDescription', 'targetElementDescription'],
+  template: 'Find: {targetElementDescription}',
+  inputVariables: ['targetElementDescription'],
 });

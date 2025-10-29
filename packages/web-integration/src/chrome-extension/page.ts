@@ -374,7 +374,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     return treeToList(tree);
   }
 
-  async getXpathsByPoint(point: Point, isOrderSensitive: boolean) {
+  async getXpathsByPoint(point: Point, isOrderSensitive = false) {
     const script = await getHtmlElementScript();
 
     await this.sendCommandToDebugger<

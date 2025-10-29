@@ -149,7 +149,6 @@ export function generateElementByPosition(position: {
     rect,
     content: '',
     center: [position.x, position.y] as [number, number],
-    isOrderSensitive: false, // actually it's 'unknown'
   };
 
   return element;

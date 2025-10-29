@@ -66,7 +66,6 @@ export type AISingleElementResponse = AISingleElementResponseById;
 
 export interface AIElementCoordinatesResponse {
   bbox: [number, number, number, number];
-  isOrderSensitive?: boolean;
   errors?: string[];
 }
 

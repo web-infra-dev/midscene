@@ -241,7 +241,7 @@ function aiInput(
     - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. False by default.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
-    - `autoDismissKeyboard?: boolean` - If true, the keyboard will be dismissed after input text, only available in Android. (Default: true)
+    - `autoDismissKeyboard?: boolean` - If true, the keyboard will be dismissed after input text, only available in Android/iOS. (Default: true)
     - `mode?: 'replace' | 'clear' | 'append'` - Input mode. (Default: 'replace')
       - `'replace'`: Clear the input field first, then input the text.
       - `'append'`: Append the text to existing content without clearing.

@@ -20,6 +20,7 @@ export {
   AiLocateElement,
   AiExtractElementInfo,
   AiLocateSection,
+  AiJudgeOrderSensitive,
 } from './inspect';
 
 export { plan } from './llm-planning';
