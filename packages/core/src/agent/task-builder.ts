@@ -291,6 +291,11 @@ export class TaskBuilder {
         await actionFn(param, taskContext);
         debug('called action', action.name);
 
+        const delayAfterRunner = action.delayAfterRunner ?? 300;
+        if (delayAfterRunner > 0) {
+          await sleep(delayAfterRunner);
+        }
+
         try {
           if (this.interface.afterInvokeAction) {
             debug('will call "afterInvokeAction" for interface');

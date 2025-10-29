@@ -11,7 +11,11 @@ import type {
   PlanningActionParamError,
   UIContext,
 } from '@/types';
+import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
+
+const debug = getDebug('task-runner');
+const UI_CONTEXT_CACHE_TTL_MS = 300;
 
 export class TaskRunner {
   name: string;
@@ -42,9 +46,47 @@ export class TaskRunner {
     this.uiContextBuilder = uiContextBuilder;
   }
 
-  private async captureScreenshot(): Promise<string | undefined> {
+  private lastUiContext?: {
+    context: UIContext;
+    capturedAt: number;
+  };
+
+  private async getUiContext(options?: { forceRefresh?: boolean }): Promise<
+    UIContext | undefined
+  > {
+    const now = Date.now();
+    const shouldReuse =
+      !options?.forceRefresh &&
+      this.lastUiContext &&
+      now - this.lastUiContext.capturedAt <= UI_CONTEXT_CACHE_TTL_MS;
+
+    if (shouldReuse && this.lastUiContext?.context) {
+      debug(
+        `reuse cached uiContext captured ${now - this.lastUiContext.capturedAt}ms ago`,
+      );
+      return this.lastUiContext?.context;
+    }
+
     try {
       const uiContext = await this.uiContextBuilder();
+      if (uiContext) {
+        this.lastUiContext = {
+          context: uiContext,
+          capturedAt: Date.now(),
+        };
+      } else {
+        this.lastUiContext = undefined;
+      }
+      return uiContext;
+    } catch (error) {
+      this.lastUiContext = undefined;
+      throw error;
+    }
+  }
+
+  private async captureScreenshot(): Promise<string | undefined> {
+    try {
+      const uiContext = await this.getUiContext({ forceRefresh: true });
       return uiContext?.screenshotBase64;
     } catch (error) {
       console.error('error while capturing screenshot', error);
@@ -55,7 +97,7 @@ export class TaskRunner {
   private attachRecorderItem(
     task: ExecutionTask,
     contextOrScreenshot: UIContext | string | undefined,
-    phase: 'before' | 'after',
+    phase: 'after-calling',
   ): void {
     const timing = phase;
     const screenshot =
@@ -184,7 +226,7 @@ export class TaskRunner {
             'subTask requires uiContext from previous non-subTask task',
           );
         } else {
-          uiContext = await this.uiContextBuilder();
+          uiContext = await this.getUiContext();
         }
         task.uiContext = uiContext;
         const executorContext: ExecutorContext = {
@@ -223,7 +265,7 @@ export class TaskRunner {
 
         if (isLastTask) {
           const screenshot = await this.captureScreenshot();
-          this.attachRecorderItem(task, screenshot, 'after');
+          this.attachRecorderItem(task, screenshot, 'after-calling');
         }
 
         Object.assign(task, returnValue);
