@@ -515,7 +515,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
             locate: locateParam,
           };
         } else {
-          // This is a non-locate action (like runAdbShell)
+          // This is a non-locate action (like runAdbShell, runWdaRequest)
           // Build params from the flowItem directly
           const actionKey = matchedAction.interfaceAlias || matchedAction.name;
 
@@ -532,11 +532,21 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
             }
           }
 
-          // If the shortcut value exists, use it as the first param
+          // If the shortcut value exists, handle it based on its type
           if (locatePromptShortcut !== undefined) {
-            // Get the first parameter name from the schema
+            // Check if it's an object with multiple properties matching schema keys
             const paramKeys = Object.keys(schemaShape);
-            if (paramKeys.length > 0) {
+            const isMultiParamObject =
+              typeof locatePromptShortcut === 'object' &&
+              locatePromptShortcut !== null &&
+              !Array.isArray(locatePromptShortcut) &&
+              paramKeys.length > 1;
+
+            if (isMultiParamObject) {
+              // Spread the object properties into params (for actions like runWdaRequest)
+              Object.assign(params, locatePromptShortcut);
+            } else if (paramKeys.length > 0) {
+              // Single param: assign to the first parameter (for actions like runAdbShell)
               const firstParamKey = paramKeys[0];
               params[firstParamKey] = locatePromptShortcut;
             }
