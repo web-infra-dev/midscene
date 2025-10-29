@@ -217,8 +217,40 @@ export class IOSDevice implements AbstractInterface {
       }),
     ];
 
+    const platformSpecificActions = [
+      defineAction({
+        name: 'RunWdaRequest',
+        description:
+          'Execute WebDriverAgent API request directly on iOS device',
+        interfaceAlias: 'runWdaRequest',
+        paramSchema: z.object({
+          method: z.string().describe('HTTP method (GET, POST, DELETE, etc.)'),
+          endpoint: z.string().describe('WebDriver API endpoint'),
+          data: z.any().optional().describe('Optional request body data'),
+        }),
+        call: async (param) => {
+          return await this.runWdaRequest(
+            param.method,
+            param.endpoint,
+            param.data,
+          );
+        },
+      }),
+      defineAction({
+        name: 'Launch',
+        description: 'Launch an iOS app or URL',
+        interfaceAlias: 'launch',
+        paramSchema: z.object({
+          uri: z.string().describe('App bundle ID or URL to launch'),
+        }),
+        call: async (param) => {
+          await this.launch(param.uri);
+        },
+      }),
+    ];
+
     const customActions = this.customActions || [];
-    return [...defaultActions, ...customActions];
+    return [...defaultActions, ...platformSpecificActions, ...customActions];
   }
 
   constructor(options?: IOSDeviceOpt) {
@@ -883,6 +915,22 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       debugDevice(`Failed to open URL via Safari: ${error}`);
       throw new Error(`Failed to open URL via Safari: ${error}`);
     }
+  }
+
+  /**
+   * Execute a WebDriverAgent API request directly
+   * This is the iOS equivalent of Android's runAdbShell
+   * @param method HTTP method (GET, POST, DELETE, etc.)
+   * @param endpoint WebDriver API endpoint
+   * @param data Optional request body data
+   * @returns Response from the WebDriver API
+   */
+  async runWdaRequest(
+    method: string,
+    endpoint: string,
+    data?: any,
+  ): Promise<any> {
+    return await this.wdaBackend.executeRequest(method, endpoint, data);
   }
 
   async destroy(): Promise<void> {
