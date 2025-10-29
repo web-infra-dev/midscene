@@ -17,7 +17,10 @@ describe('YAML runWdaRequest support via ActionSpace', () => {
         endpoint: z.string().describe('WebDriver API endpoint'),
         data: z.any().optional().describe('Optional request body data'),
       }),
-      call: vi.fn(async (param: { method: string; endpoint: string; data?: any }) => mockResult),
+      call: vi.fn(
+        async (param: { method: string; endpoint: string; data?: any }) =>
+          mockResult,
+      ),
     };
 
     const mockAgent = {
@@ -128,7 +131,10 @@ describe('YAML runWdaRequest support via ActionSpace', () => {
         endpoint: z.string().describe('WebDriver API endpoint'),
         data: z.any().optional().describe('Optional request body data'),
       }),
-      call: vi.fn(async (param: { method: string; endpoint: string; data?: any }) => mockResult),
+      call: vi.fn(
+        async (param: { method: string; endpoint: string; data?: any }) =>
+          mockResult,
+      ),
     };
 
     const mockAgent = {
@@ -195,12 +201,16 @@ describe('YAML runWdaRequest support via ActionSpace', () => {
         endpoint: z.string().describe('WebDriver API endpoint'),
         data: z.any().optional().describe('Optional request body data'),
       }),
-      call: vi.fn(async (param: { method: string; endpoint: string; data?: any }) => {
-        if (!param.method || !param.endpoint) {
-          throw new Error('Method and endpoint are required for runWdaRequest');
-        }
-        return mockResult;
-      }),
+      call: vi.fn(
+        async (param: { method: string; endpoint: string; data?: any }) => {
+          if (!param.method || !param.endpoint) {
+            throw new Error(
+              'Method and endpoint are required for runWdaRequest',
+            );
+          }
+          return mockResult;
+        },
+      ),
     };
 
     const mockAgent = {
@@ -260,7 +270,10 @@ describe('YAML runWdaRequest support via ActionSpace', () => {
         endpoint: z.string().describe('WebDriver API endpoint'),
         data: z.any().optional().describe('Optional request body data'),
       }),
-      call: vi.fn(async (param: { method: string; endpoint: string; data?: any }) => mockResult),
+      call: vi.fn(
+        async (param: { method: string; endpoint: string; data?: any }) =>
+          mockResult,
+      ),
     };
 
     const mockAgent = {

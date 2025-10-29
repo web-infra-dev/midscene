@@ -349,13 +349,9 @@ tasks:
         [
           "RightClick",
           {
+            "cacheable": false,
+            "deepThink": true,
             "foo": 123,
-            "locate": {
-              "cacheable": false,
-              "deepThink": true,
-              "prompt": "element to right click",
-              "xpath": undefined,
-            },
             "moreParam": null,
           },
         ],
@@ -402,37 +398,20 @@ tasks:
         [
           "RightClick",
           {
-            "locate": {
-              "cacheable": false,
-              "deepThink": true,
-              "prompt": "element to right click",
-              "xpath": undefined,
-            },
+            "cacheable": false,
+            "deepThink": true,
             "moreParam": 456,
           },
         ],
         [
           "Input",
           {
-            "locate": {
-              "cacheable": true,
-              "deepThink": false,
-              "prompt": "input field 1",
-              "xpath": undefined,
-            },
             "value": "i am value 1",
           },
         ],
         [
           "RightClick",
-          {
-            "locate": {
-              "cacheable": true,
-              "deepThink": false,
-              "prompt": "item in menu",
-              "xpath": undefined,
-            },
-          },
+          {},
         ],
       ]
     `);
@@ -483,46 +462,27 @@ tasks:
       [
         [
           "Tap",
+          {},
+        ],
+        [
+          "Tap",
           {
-            "locate": {
-              "cacheable": true,
-              "deepThink": false,
-              "prompt": "search input box",
-              "xpath": undefined,
-            },
+            "cacheable": false,
+            "deepThink": true,
           },
         ],
         [
           "Tap",
           {
-            "locate": {
-              "cacheable": false,
-              "deepThink": true,
-              "prompt": "search input box",
-              "xpath": undefined,
-            },
+            "prompt": "search input box",
           },
         ],
         [
           "Tap",
           {
-            "locate": {
-              "cacheable": true,
-              "deepThink": false,
-              "prompt": "search input box",
-              "xpath": undefined,
-            },
-          },
-        ],
-        [
-          "Tap",
-          {
-            "locate": {
-              "cacheable": false,
-              "deepThink": true,
-              "prompt": "search input box",
-              "xpath": undefined,
-            },
+            "cacheable": false,
+            "deepThink": true,
+            "prompt": "search input box",
           },
         ],
         [
@@ -784,31 +744,21 @@ tasks:
         [
           "Hover",
           {
-            "locate": {
-              "cacheable": true,
-              "deepThink": false,
-              "prompt": "move the area contains the logo",
-              "xpath": undefined,
-            },
+            "locate": "move the area contains the logo",
           },
         ],
         [
           "Hover",
           {
             "locate": {
-              "cacheable": true,
-              "deepThink": false,
-              "prompt": {
-                "convertHttpImage2Base64": true,
-                "images": [
-                  {
-                    "name": "target image",
-                    "url": "https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png",
-                  },
-                ],
-                "prompt": "move the area contains the image.",
-              },
-              "xpath": undefined,
+              "convertHttpImage2Base64": true,
+              "images": [
+                {
+                  "name": "target image",
+                  "url": "https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png",
+                },
+              ],
+              "prompt": "move the area contains the image.",
             },
           },
         ],
@@ -911,14 +861,7 @@ tasks:
       [
         [
           "aiTap",
-          {
-            "locate": {
-              "cacheable": true,
-              "deepThink": false,
-              "prompt": "some button",
-              "xpath": undefined,
-            },
-          },
+          {},
         ],
       ]
     `);
