@@ -244,6 +244,57 @@ YAML 脚本现在支持 `AndroidDevice` 构造函数的所有配置选项。完�
 
 :::
 
+#### Android 平台特定动作
+
+Android 平台提供了一些特定的动作，可以在 YAML 脚本的 `flow` 中使用：
+
+**`runAdbShell` - 执行 ADB Shell 命令**
+
+在 Android 设备上执行 ADB shell 命令。
+
+```yaml
+android:
+  deviceId: 'test-device'
+
+tasks:
+  - name: 清除应用数据
+    flow:
+      - runAdbShell: 'pm clear com.example.app'
+        name: clearResult
+
+  - name: 获取电池信息
+    flow:
+      - runAdbShell: 'dumpsys battery'
+        name: batteryInfo
+```
+
+常用 ADB Shell 命令：
+- `pm clear <package>` - 清除应用数据
+- `dumpsys battery` - 获取电池信息
+- `dumpsys window` - 获取窗口信息
+- `settings get secure android_id` - 获取设备 ID
+- `input keyevent <keycode>` - 发送按键事件
+
+**`launch` - 启动应用或 URL**
+
+启动 Android 应用或打开 URL。
+
+```yaml
+android:
+  deviceId: 'test-device'
+
+tasks:
+  - name: 启动设置应用
+    flow:
+      - launch:
+          uri: com.android.settings
+
+  - name: 打开网页
+    flow:
+      - launch:
+          uri: https://www.example.com
+```
+
 ### `ios` 部分
 
 ```yaml
@@ -273,6 +324,68 @@ ios:
 :::tip 查看完整的 iOS 配置项
 YAML 脚本现在支持 `IOSDevice` 构造函数的所有配置选项。完整的配置项列表请参考 [iOS 集成文档中的 IOSDevice 构造函数](./integrate-with-ios#iosdevice-的构造函数)。
 :::
+
+#### iOS 平台特定动作
+
+iOS 平台提供了一些特定的动作，可以在 YAML 脚本的 `flow` 中使用：
+
+**`runWdaRequest` - 执行 WebDriverAgent API 请求**
+
+在 iOS 设备上直接执行 WebDriverAgent API 请求。
+
+```yaml
+ios:
+  launch: 'com.apple.mobilesafari'
+
+tasks:
+  - name: 通过 WDA 按下主屏幕按钮
+    flow:
+      - runWdaRequest:
+          method: POST
+          endpoint: /session/test/wda/pressButton
+          data:
+            name: home
+        name: pressResult
+
+  - name: 获取设备信息
+    flow:
+      - runWdaRequest:
+          method: GET
+          endpoint: /wda/device/info
+        name: deviceInfo
+```
+
+参数：
+- `method`（字符串，必需）：HTTP 方法（GET、POST、DELETE 等）
+- `endpoint`（字符串，必需）：WebDriverAgent API 端点
+- `data`（任意类型，可选）：请求体数据
+
+常用 WebDriverAgent 端点：
+- `/wda/screen` - 获取屏幕信息
+- `/wda/device/info` - 获取设备信息
+- `/session/{sessionId}/wda/pressButton` - 按硬件按钮
+- `/session/{sessionId}/wda/apps/launch` - 启动应用
+- `/session/{sessionId}/wda/apps/activate` - 激活应用
+
+**`launch` - 启动应用或 URL**
+
+启动 iOS 应用或打开 URL。
+
+```yaml
+ios:
+  wdaPort: 8100
+
+tasks:
+  - name: 启动设置应用
+    flow:
+      - launch:
+          uri: com.apple.Preferences
+
+  - name: 打开网页
+    flow:
+      - launch:
+          uri: https://www.example.com
+```
 
 ### `tasks` 部分
 
@@ -373,7 +486,6 @@ tasks:
     flow:
       # ...
 ```
-
 
 #### 使用图像提示
 

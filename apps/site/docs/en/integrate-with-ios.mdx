@@ -324,6 +324,8 @@ iproxy 8100 8100 YOUR_DEVICE_ID
 
 The iOS package includes iOS-specific actions that can be used in automation:
 
+### Built-in iOS Actions
+
 ```typescript
 // Press home button
 await agent.callAction('IOSHomeButton');
@@ -335,6 +337,28 @@ await agent.callAction('IOSAppSwitcher');
 await agent.callAction('IOSLongPress', {
   locate: 'menu item',
   duration: 2000, // 2 seconds
+});
+```
+
+### Platform-Specific Actions
+
+In addition to using these methods in JavaScript/TypeScript, you can also use iOS platform-specific actions in YAML scripts.
+
+For details on how to use `runWdaRequest` and `launch` actions in YAML scripts, refer to [iOS Platform-Specific Actions in YAML Scripts](./automate-with-scripts-in-yaml#the-ios-part).
+
+#### JavaScript/TypeScript Examples
+
+```typescript
+// Execute a WebDriverAgent API request
+const result = await agent.callAction('RunWdaRequest', {
+  method: 'POST',
+  endpoint: '/session/your-session-id/wda/pressButton',
+  data: { name: 'home' }
+});
+
+// Launch an app
+await agent.callAction('Launch', {
+  uri: 'com.apple.mobilesafari'
 });
 ```
 

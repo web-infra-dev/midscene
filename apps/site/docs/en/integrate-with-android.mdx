@@ -200,6 +200,26 @@ const result = await agent.runAdbShell('dumpsys battery');
 console.log(result);
 ```
 
+### Platform-Specific Actions
+
+In addition to using these methods in JavaScript/TypeScript, you can also use Android platform-specific actions in YAML scripts.
+
+For details on how to use `runAdbShell` and `launch` actions in YAML scripts, refer to [Android Platform-Specific Actions in YAML Scripts](./automate-with-scripts-in-yaml#the-android-part).
+
+#### JavaScript/TypeScript Examples
+
+```typescript
+// Execute an ADB shell command
+const result = await agent.callAction('RunAdbShell', {
+  command: 'pm clear com.example.app'
+});
+
+// Launch an app
+await agent.callAction('Launch', {
+  uri: 'com.android.settings'
+});
+```
+
 #### `agentFromAdbDevice()`
 
 Create a AndroidAgent from a connected adb device.
