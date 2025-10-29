@@ -443,7 +443,7 @@ midscene './scripts/**/*.yaml'
 
 命令行工具提供了一些选项来控制脚本的执行行为。
 
-- `--files <file1> <file2> ...`: 指定要执行的脚本文件列表，文件将按顺序执行。支持通配符模式，遵循 [glob](https://www.npmjs.com/package/glob) 支持的语法。
+- `--files <file1> <file2> ...`: 指定要执行的脚本文件列表。文件将按指定的顺序执行，默认情况下依次顺序执行(当 `--concurrent` 为 `1` 时)，可通过设置 `--concurrent` 参数实现并发执行。支持通配符模式，遵循 [glob](https://www.npmjs.com/package/glob) 支持的语法。
 - `--concurrent <number>`: 设置并发执行的数量。默认为 `1`。
 - `--continue-on-error`: 如果设置了此选项，即使有脚本文件执行失败，也会继续运行余下的脚本文件。默认关闭。
 - `--share-browser-context`: 在所有脚本之间共享同一个浏览器上下文（例如 Cookies 和 `localStorage`）。这对于需要登录状态的连续测试非常有用，默认关闭。
@@ -462,7 +462,7 @@ midscene './scripts/**/*.yaml'
 
 举例：
 
-使用 `--files` 参数来指定文件顺序，并行执行
+使用 `--files` 参数来指定文件执行顺序
 
 ```bash
 midscene --files ./login.yaml ./buy/*.yaml ./checkout.yaml
