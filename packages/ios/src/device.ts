@@ -35,6 +35,12 @@ export type { IOSDeviceOpt, IOSDeviceInputOpt } from '@midscene/core/device';
 const debugDevice = getDebug('ios:device');
 const BackspaceChar = '\u0008'; // Unicode backspace character
 
+/**
+ * HTTP methods supported by WebDriverAgent API
+ */
+export const WDA_HTTP_METHODS = ['GET', 'POST', 'DELETE', 'PUT'] as const;
+export type WDAHttpMethod = (typeof WDA_HTTP_METHODS)[number];
+
 export class IOSDevice implements AbstractInterface {
   private deviceId: string;
   private devicePixelRatio = 1;
@@ -218,13 +224,24 @@ export class IOSDevice implements AbstractInterface {
     ];
 
     const platformSpecificActions = [
-      defineAction({
+      defineAction<
+        z.ZodObject<{
+          method: z.ZodEnum<['GET', 'POST', 'DELETE', 'PUT']>;
+          endpoint: z.ZodString;
+          // biome-ignore lint/complexity/noBannedTypes: <explanation>
+          data: z.ZodOptional<z.ZodObject<{}, 'passthrough'>>;
+        }>,
+        { method: WDAHttpMethod; endpoint: string; data?: Record<string, any> },
+        any
+      >({
         name: 'RunWdaRequest',
         description:
           'Execute WebDriverAgent API request directly on iOS device',
         interfaceAlias: 'runWdaRequest',
         paramSchema: z.object({
-          method: z.string().describe('HTTP method (GET, POST, DELETE, etc.)'),
+          method: z
+            .enum(WDA_HTTP_METHODS)
+            .describe('HTTP method (GET, POST, DELETE, PUT)'),
           endpoint: z.string().describe('WebDriver API endpoint'),
           data: z
             .object({})
@@ -240,7 +257,7 @@ export class IOSDevice implements AbstractInterface {
           );
         },
       }),
-      defineAction({
+      defineAction<z.ZodObject<{ uri: z.ZodString }>, { uri: string }, void>({
         name: 'Launch',
         description: 'Launch an iOS app or URL',
         interfaceAlias: 'launch',
@@ -924,17 +941,21 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   /**
    * Execute a WebDriverAgent API request directly
    * This is the iOS equivalent of Android's runAdbShell
-   * @param method HTTP method (GET, POST, DELETE, etc.)
+   * @param method HTTP method (GET, POST, DELETE, PUT)
    * @param endpoint WebDriver API endpoint
    * @param data Optional request body data
    * @returns Response from the WebDriver API
    */
-  async runWdaRequest(
-    method: string,
+  async runWdaRequest<TResult = any>(
+    method: WDAHttpMethod,
     endpoint: string,
     data?: any,
-  ): Promise<any> {
-    return await this.wdaBackend.executeRequest(method, endpoint, data);
+  ): Promise<TResult> {
+    return await this.wdaBackend.executeRequest<TResult>(
+      method,
+      endpoint,
+      data,
+    );
   }
 
   async destroy(): Promise<void> {
@@ -956,3 +977,22 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     debugDevice(`iOS device ${this.deviceId} destroyed`);
   }
 }
+
+/**
+ * Type definitions for iOS platform-specific actions
+ * These types are derived from the DeviceAction definitions above
+ */
+export type IOSActionMap = {
+  RunWdaRequest: {
+    param: {
+      method: WDAHttpMethod;
+      endpoint: string;
+      data?: Record<string, any>;
+    };
+    return: any;
+  };
+  Launch: {
+    param: { uri: string };
+    return: undefined;
+  };
+};
