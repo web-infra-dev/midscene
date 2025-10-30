@@ -313,35 +313,9 @@ export class AndroidDevice implements AbstractInterface {
       }),
     ];
 
-    const platformSpecificActions = [
-      defineAction<
-        z.ZodObject<{ command: z.ZodString }>,
-        { command: string },
-        string
-      >({
-        name: 'RunAdbShell',
-        description: 'Execute ADB shell command on Android device',
-        interfaceAlias: 'runAdbShell',
-        paramSchema: z.object({
-          command: z.string().describe('ADB shell command to execute'),
-        }),
-        call: async (param) => {
-          const adb = await this.getAdb();
-          return await adb.shell(param.command);
-        },
-      }),
-      defineAction<z.ZodObject<{ uri: z.ZodString }>, { uri: string }, void>({
-        name: 'Launch',
-        description: 'Launch an Android app or URL',
-        interfaceAlias: 'launch',
-        paramSchema: z.object({
-          uri: z.string().describe('App package name or URL to launch'),
-        }),
-        call: async (param) => {
-          await this.launch(param.uri);
-        },
-      }),
-    ];
+    const platformSpecificActions = Object.values(
+      createPlatformActions(this),
+    );
 
     const customActions = this.customActions || [];
     return [...defaultActions, ...platformSpecificActions, ...customActions];
@@ -1633,16 +1607,56 @@ ${Object.keys(size)
 }
 
 /**
+ * Platform-specific action definitions for Android
+ * Single source of truth for both runtime behavior and type definitions
+ */
+const createPlatformActions = (device: AndroidDevice) => {
+  return {
+    RunAdbShell: defineAction<
+      z.ZodObject<{ command: z.ZodString }>,
+      { command: string },
+      string
+    >({
+      name: 'RunAdbShell',
+      description: 'Execute ADB shell command on Android device',
+      interfaceAlias: 'runAdbShell',
+      paramSchema: z.object({
+        command: z.string().describe('ADB shell command to execute'),
+      }),
+      call: async (param) => {
+        const adb = await device.getAdb();
+        return await adb.shell(param.command);
+      },
+    }),
+    Launch: defineAction<
+      z.ZodObject<{ uri: z.ZodString }>,
+      { uri: string },
+      void
+    >({
+      name: 'Launch',
+      description: 'Launch an Android app or URL',
+      interfaceAlias: 'launch',
+      paramSchema: z.object({
+        uri: z.string().describe('App package name or URL to launch'),
+      }),
+      call: async (param) => {
+        await device.launch(param.uri);
+      },
+    }),
+  } as const;
+};
+
+// Helper type to extract action parameter and return types from DeviceAction
+type ExtractActionType<T> = T extends DeviceAction<infer P, infer R>
+  ? { param: P; return: R }
+  : never;
+
+/**
  * Type definitions for Android platform-specific actions
- * These types are derived from the DeviceAction definitions above
+ * Automatically inferred from createPlatformActions
  */
 export type AndroidActionMap = {
-  RunAdbShell: {
-    param: { command: string };
-    return: string;
-  };
-  Launch: {
-    param: { uri: string };
-    return: undefined;
-  };
+  [K in keyof ReturnType<
+    typeof createPlatformActions
+  >]: ExtractActionType<ReturnType<typeof createPlatformActions>[K]>;
 };
