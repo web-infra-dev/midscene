@@ -129,7 +129,7 @@ export function getNodeInfoByXpath(xpath: string): Node | null {
 
   if (xpathResult.snapshotLength !== 1) {
     console.warn(
-      `[midscene:warning] XPath matched ${xpathResult.snapshotLength} elements, expected exactly 1: ${xpath}`,
+      `[midscene:warning] Received XPath "${xpath}" but it matched ${xpathResult.snapshotLength} elements. Discarding this result.`,
     );
     return null;
   }
