@@ -494,6 +494,27 @@ export type ExecutionTaskPlanningApply = ExecutionTaskApply<
 export type ExecutionTaskPlanning = ExecutionTask<ExecutionTaskPlanningApply>;
 
 /*
+task - planning-locate
+*/
+export type ExecutionTaskPlanningLocateParam = PlanningLocateParam;
+
+export interface ExecutionTaskPlanningLocateOutput {
+  element: LocateResultElement | null;
+}
+
+export type ExecutionTaskPlanningDump = ServiceDump;
+
+export type ExecutionTaskPlanningLocateApply = ExecutionTaskApply<
+  'Planning',
+  ExecutionTaskPlanningLocateParam,
+  ExecutionTaskPlanningLocateOutput,
+  ExecutionTaskPlanningDump
+>;
+
+export type ExecutionTaskPlanningLocate =
+  ExecutionTask<ExecutionTaskPlanningLocateApply>;
+
+/*
 Grouped dump
 */
 export interface GroupedActionDump {

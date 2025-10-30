@@ -13,9 +13,9 @@ import type {
 } from '@midscene/core';
 import { treeToList } from '@midscene/shared/extractor';
 
-// Local type definition for Insight Locate task
-interface ExecutionTaskInsightLocate extends ExecutionTask {
-  type: 'Insight';
+// Local type definition for Planning Locate task
+interface ExecutionTaskPlanningLocate extends ExecutionTask {
+  type: 'Planning';
   subType: 'Locate';
   output?: {
     element: LocateResultElement | null;
@@ -331,8 +331,8 @@ export const generateAnimationScripts = (
           imageHeight: task.uiContext?.size?.height || imageHeight,
         });
       }
-    } else if (task.type === 'Insight' && task.subType === 'Locate') {
-      const serviceTask = task as ExecutionTaskInsightLocate;
+    } else if (task.type === 'Planning' && task.subType === 'Locate') {
+      const serviceTask = task as ExecutionTaskPlanningLocate;
       const resultElement = serviceTask.output?.element;
       const title = typeStr(task);
       const subTitle = paramStr(task);
