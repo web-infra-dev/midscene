@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/web-infra-dev-midscene-badge.png)](https://mseep.ai/app/web-infra-dev-midscene)
+
 <p align="center">
   <img alt="Midscene.js"  width="260" src="https://github.com/user-attachments/assets/f60de3c1-dd6f-4213-97a1-85bf7c6e79e4">
 </p>
