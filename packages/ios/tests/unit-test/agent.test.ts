@@ -1,3 +1,9 @@
+import {
+  MIDSCENE_MODEL_NAME,
+  MIDSCENE_USE_DOUBAO_VISION,
+  OPENAI_API_KEY,
+  OPENAI_BASE_URL,
+} from '@midscene/shared/env';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { IOSAgent } from '../../src/agent';
 import { IOSDevice } from '../../src/device';
@@ -7,11 +13,24 @@ vi.mock('../../src/device');
 
 const MockedIOSDevice = vi.mocked(IOSDevice);
 
+const mockedModelConfigFnResult = {
+  MIDSCENE_MODEL_NAME: 'mock',
+  MIDSCENE_MODEL_API_KEY: 'mock',
+  MIDSCENE_MODEL_BASE_URL: 'mock',
+  MIDSCENE_LOCATOR_MODE: 'doubao-vision',
+} as const;
+
 describe('IOSAgent', () => {
   let mockDevice: Partial<IOSDevice>;
   let agent: IOSAgent;
 
   beforeEach(() => {
+    // Set up environment variables for AI model
+    vi.stubEnv(MIDSCENE_USE_DOUBAO_VISION, 'true');
+    vi.stubEnv(MIDSCENE_MODEL_NAME, 'mock');
+    vi.stubEnv(OPENAI_API_KEY, 'mock');
+    vi.stubEnv(OPENAI_BASE_URL, 'mock');
+
     // Create a valid 1x1 PNG image in base64 with data URI prefix
     // This is a minimal valid PNG image (1x1 transparent pixel)
     const validPngBase64 =
@@ -51,11 +70,14 @@ describe('IOSAgent', () => {
 
     MockedIOSDevice.mockImplementation(() => mockDevice as IOSDevice);
 
-    agent = new IOSAgent(mockDevice as IOSDevice);
+    agent = new IOSAgent(mockDevice as IOSDevice, {
+      modelConfig: () => mockedModelConfigFnResult,
+    });
   });
 
   afterEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
   });
 
   describe('Constructor', () => {
