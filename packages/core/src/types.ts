@@ -553,6 +553,7 @@ export interface DeviceAction<T = any> {
   interfaceAlias?: string;
   paramSchema?: z.ZodType<T>;
   call: (param: T, context: ExecutorContext) => Promise<any> | any;
+  delayAfterRunner?: number;
 }
 
 /**
