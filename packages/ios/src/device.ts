@@ -395,24 +395,17 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     await this.tap(element.center[0], element.center[1]);
     await sleep(100);
 
-    // For iOS, we need to use different methods to clear text
-    try {
-      // Method 1: Triple tap to select all, then delete
-      await this.tripleTap(element.center[0], element.center[1]);
-      await sleep(200); // Wait for selection to appear
-
-      // Type empty string to replace selected text
-      await this.wdaBackend.typeText(BackspaceChar);
-    } catch (error2) {
-      debugDevice(`Method 1 failed, trying method 2: ${error2}`);
-      try {
-        // Method 2: Send multiple backspace characters
-        const backspaces = Array(100).fill(BackspaceChar).join(''); // Unicode backspace
-        await this.wdaBackend.typeText(backspaces);
-      } catch (error3) {
-        debugDevice(`All clear methods failed: ${error3}`);
-        // Continue anyway, maybe there was no text to clear
-      }
+    // For iOS, use WebDriver's standard clear API
+    // This gets the currently focused element and clears it using the /element/{id}/clear endpoint
+    // Works reliably with dynamic input fields and doesn't trigger unwanted events
+    debugDevice('Attempting to clear input with WebDriver Clear API');
+    const cleared = await this.wdaBackend.clearActiveElement();
+    if (cleared) {
+      debugDevice('Successfully cleared input with WebDriver Clear API');
+    } else {
+      debugDevice(
+        'WebDriver Clear API returned false (no active element or clear failed)',
+      );
     }
   }
 

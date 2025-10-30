@@ -199,6 +199,82 @@ export class IOSWebDriverClient extends WebDriverClient {
     throw new Error(`Key "${key}" is not supported on iOS platform`);
   }
 
+  /**
+   * Get the currently focused element's WebDriver ID
+   * @returns WebDriver element ID or null if no element is focused
+   */
+  async getActiveElement(): Promise<string | null> {
+    this.ensureSession();
+    debugIOS('Getting active element');
+
+    try {
+      const response = await this.makeRequest(
+        'GET',
+        `/session/${this.sessionId}/element/active`,
+      );
+
+      // WebDriver can return element ID in two formats:
+      // - Legacy format: response.ELEMENT or response.value.ELEMENT
+      // - W3C format: response['element-6066-11e4-a52e-4f735466cecf']
+      const elementId =
+        response.value?.ELEMENT ||
+        response.value?.['element-6066-11e4-a52e-4f735466cecf'] ||
+        response.ELEMENT ||
+        response['element-6066-11e4-a52e-4f735466cecf'];
+
+      if (elementId) {
+        debugIOS(`Got active element ID: ${elementId}`);
+        return elementId;
+      }
+
+      debugIOS('No active element found');
+      return null;
+    } catch (error) {
+      debugIOS(`Failed to get active element: ${error}`);
+      return null;
+    }
+  }
+
+  /**
+   * Clear an element using WebDriver's clear endpoint
+   * @param elementId WebDriver element ID
+   */
+  async clearElement(elementId: string): Promise<void> {
+    this.ensureSession();
+    debugIOS(`Clearing element: ${elementId}`);
+
+    try {
+      await this.makeRequest(
+        'POST',
+        `/session/${this.sessionId}/element/${elementId}/clear`,
+      );
+      debugIOS('Element cleared successfully');
+    } catch (error) {
+      debugIOS(`Failed to clear element: ${error}`);
+      throw new Error(`Failed to clear element: ${error}`);
+    }
+  }
+
+  /**
+   * Clear the currently focused input field using WebDriver Clear API
+   * @returns true if successful, false otherwise
+   */
+  async clearActiveElement(): Promise<boolean> {
+    try {
+      const elementId = await this.getActiveElement();
+      if (!elementId) {
+        debugIOS('No active element to clear');
+        return false;
+      }
+
+      await this.clearElement(elementId);
+      return true;
+    } catch (error) {
+      debugIOS(`Failed to clear active element: ${error}`);
+      return false;
+    }
+  }
+
   private normalizeKeyName(key: string): string {
     // Convert to proper case for mapping (first letter uppercase, rest lowercase)
     return key.charAt(0).toUpperCase() + key.slice(1).toLowerCase();
