@@ -18,7 +18,11 @@ describe('YAML runWdaRequest support via ActionSpace', () => {
       paramSchema: z.object({
         method: z.string().describe('HTTP method (GET, POST, DELETE, etc.)'),
         endpoint: z.string().describe('WebDriver API endpoint'),
-        data: z.any().optional().describe('Optional request body data'),
+        data: z
+          .object({})
+          .passthrough()
+          .optional()
+          .describe('Optional request body data as JSON object'),
       }),
       call: vi.fn(
         async (param: { method: string; endpoint: string; data?: any }) =>
@@ -132,7 +136,11 @@ describe('YAML runWdaRequest support via ActionSpace', () => {
       paramSchema: z.object({
         method: z.string().describe('HTTP method (GET, POST, DELETE, etc.)'),
         endpoint: z.string().describe('WebDriver API endpoint'),
-        data: z.any().optional().describe('Optional request body data'),
+        data: z
+          .object({})
+          .passthrough()
+          .optional()
+          .describe('Optional request body data as JSON object'),
       }),
       call: vi.fn(
         async (param: { method: string; endpoint: string; data?: any }) =>
@@ -202,7 +210,11 @@ describe('YAML runWdaRequest support via ActionSpace', () => {
       paramSchema: z.object({
         method: z.string().describe('HTTP method (GET, POST, DELETE, etc.)'),
         endpoint: z.string().describe('WebDriver API endpoint'),
-        data: z.any().optional().describe('Optional request body data'),
+        data: z
+          .object({})
+          .passthrough()
+          .optional()
+          .describe('Optional request body data as JSON object'),
       }),
       call: vi.fn(
         async (param: { method: string; endpoint: string; data?: any }) => {
@@ -271,7 +283,11 @@ describe('YAML runWdaRequest support via ActionSpace', () => {
       paramSchema: z.object({
         method: z.string().describe('HTTP method (GET, POST, DELETE, etc.)'),
         endpoint: z.string().describe('WebDriver API endpoint'),
-        data: z.any().optional().describe('Optional request body data'),
+        data: z
+          .object({})
+          .passthrough()
+          .optional()
+          .describe('Optional request body data as JSON object'),
       }),
       call: vi.fn(
         async (param: { method: string; endpoint: string; data?: any }) =>

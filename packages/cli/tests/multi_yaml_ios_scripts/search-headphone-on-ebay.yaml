@@ -4,6 +4,17 @@ ios:
   launch: https://www.ebay.com
 
 tasks:
+  - name: check device info with WDA
+    flow:
+      - runWdaRequest:
+          method: GET
+          endpoint: /wda/screen
+        name: screenInfo
+      - runWdaRequest:
+          method: GET
+          endpoint: /wda/device/info
+        name: deviceInfo
+
   - name: search headphones
     flow:
       - aiAction: open browser and navigate to ebay.com

@@ -5,6 +5,13 @@ android:
   deviceId: s4ey59ytbitot4yp
 
 tasks:
+  - name: check device info with adb
+    flow:
+      - runAdbShell: dumpsys battery
+        name: batteryInfo
+      - runAdbShell: pm list packages | grep chrome
+        name: chromePackages
+
   - name: search headphones
     flow:
       - aiAction: open browser and navigate to ebay.com
