@@ -1,8 +1,11 @@
+import type { DeviceAction } from '@midscene/core';
+import type {
+  MidsceneYamlScript,
+  MidsceneYamlScriptEnv,
+} from '@midscene/core/yaml';
+import { ScriptPlayer } from '@midscene/core/yaml';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
-import type { DeviceAction } from '@midscene/core';
-import type { MidsceneYamlScript, MidsceneYamlScriptEnv } from '@midscene/core/yaml';
-import { ScriptPlayer } from '@midscene/core/yaml';
 
 describe('YAML runAdbShell support via ActionSpace', () => {
   it('should execute runAdbShell command via actionSpace', async () => {
