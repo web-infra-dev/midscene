@@ -128,6 +128,9 @@ export function getNodeInfoByXpath(xpath: string): Node | null {
   );
 
   if (xpathResult.snapshotLength !== 1) {
+    console.warn(
+      `[midscene:warning] XPath matched ${xpathResult.snapshotLength} elements, expected exactly 1: ${xpath}`,
+    );
     return null;
   }
 
