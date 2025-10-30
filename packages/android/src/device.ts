@@ -314,7 +314,11 @@ export class AndroidDevice implements AbstractInterface {
     ];
 
     const platformSpecificActions = [
-      defineAction({
+      defineAction<
+        z.ZodObject<{ command: z.ZodString }>,
+        { command: string },
+        string
+      >({
         name: 'RunAdbShell',
         description: 'Execute ADB shell command on Android device',
         interfaceAlias: 'runAdbShell',
@@ -326,7 +330,7 @@ export class AndroidDevice implements AbstractInterface {
           return await adb.shell(param.command);
         },
       }),
-      defineAction({
+      defineAction<z.ZodObject<{ uri: z.ZodString }>, { uri: string }, void>({
         name: 'Launch',
         description: 'Launch an Android app or URL',
         interfaceAlias: 'launch',
@@ -1627,3 +1631,18 @@ ${Object.keys(size)
     return false;
   }
 }
+
+/**
+ * Type definitions for Android platform-specific actions
+ * These types are derived from the DeviceAction definitions above
+ */
+export type AndroidActionMap = {
+  RunAdbShell: {
+    param: { command: string };
+    return: string;
+  };
+  Launch: {
+    param: { uri: string };
+    return: undefined;
+  };
+};

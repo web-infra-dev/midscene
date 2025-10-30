@@ -476,11 +476,11 @@ export class IOSWebDriverClient extends WebDriverClient {
    * @param data Optional request body data
    * @returns Response from the WebDriver API
    */
-  async executeRequest(
+  async executeRequest<TResult = any>(
     method: string,
     endpoint: string,
     data?: any,
-  ): Promise<any> {
+  ): Promise<TResult> {
     this.ensureSession();
     return this.makeRequest(method, endpoint, data);
   }

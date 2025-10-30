@@ -48,11 +48,45 @@ describe('AndroidAgent', () => {
 
   describe('launch', () => {
     it('should call page.launch with the given uri', async () => {
+      // Create a valid 1x1 PNG image in base64 with data URI prefix
+      const validPngBase64 =
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+
       const mockPage = new AndroidDevice('test-device');
+
+      // Add necessary mocks for the device
+      vi.spyOn(mockPage, 'screenshotBase64').mockResolvedValue(validPngBase64);
+      vi.spyOn(mockPage, 'size').mockResolvedValue({ width: 375, height: 812 });
+      vi.spyOn(mockPage, 'getElementsInfo').mockResolvedValue([]);
+      vi.spyOn(mockPage, 'url').mockResolvedValue('https://example.com');
+
+      const launchSpy = vi
+        .spyOn(mockPage, 'launch')
+        .mockResolvedValue(mockPage);
+
+      // Mock actionSpace to call the actual device methods
+      vi.spyOn(mockPage, 'actionSpace').mockReturnValue([
+        {
+          name: 'Launch',
+          paramSchema: undefined,
+          call: async (param: any) => {
+            return mockPage.launch(param.uri);
+          },
+        },
+        {
+          name: 'RunAdbShell',
+          paramSchema: undefined,
+          call: async (param: any) => {
+            // Mock implementation for runAdbShell if needed
+            return '';
+          },
+        },
+      ] as any);
+
       const agent = new AndroidAgent(mockPage, {
         modelConfig: () => mockedModelConfigFnResult,
       });
-      const launchSpy = vi.spyOn(mockPage, 'launch');
+
       const uri = 'https://example.com';
 
       await agent.launch(uri);
