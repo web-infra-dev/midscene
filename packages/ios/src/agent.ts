@@ -9,8 +9,19 @@ type IOSAgentOpt = AgentOpt;
 
 export class IOSAgent extends PageAgent<IOSDevice> {
   async launch(uri: string): Promise<void> {
-    const device = this.page;
-    await device.launch(uri);
+    await this.callActionInActionSpace('Launch', { uri });
+  }
+
+  async runWdaRequest(
+    method: string,
+    endpoint: string,
+    data?: Record<string, any>,
+  ): Promise<any> {
+    return await this.callActionInActionSpace('RunWdaRequest', {
+      method,
+      endpoint,
+      data,
+    });
   }
 }
 

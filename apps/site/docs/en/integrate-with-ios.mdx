@@ -157,7 +157,7 @@ The IOSDevice constructor supports the following parameters:
 
 In addition to the common Agent interfaces in [API Reference](./api.mdx), IOSAgent provides some additional interfaces:
 
-### `agent.launch()`
+#### `agent.launch()`
 
 Launch a web page or native iOS application.
 
@@ -195,6 +195,60 @@ await agent.launch('myapp://profile/user/123'); // Open app deep link
 await agent.launch('tel:+1234567890'); // Make a phone call
 await agent.launch('mailto:example@email.com'); // Send an email
 ```
+
+#### `agent.runWdaRequest()`
+
+Execute WebDriverAgent API requests directly.
+
+> Note: This method allows you to call WebDriverAgent's low-level API directly, suitable for scenarios requiring specific WDA operations.
+
+- Type
+
+```typescript
+function runWdaRequest(
+  method: string,
+  endpoint: string,
+  data?: Record<string, any>,
+): Promise<any>;
+```
+
+- Parameters:
+
+  - `method: string` - HTTP request method (GET, POST, DELETE, etc.)
+  - `endpoint: string` - WebDriver API endpoint path
+  - `data?: Record<string, any>` - Optional request body data (JSON object)
+
+- Return Value:
+
+  - `Promise<any>` - Returns the API response result
+
+- Example:
+
+```typescript
+import { IOSAgent, IOSDevice, agentFromWebDriverAgent } from '@midscene/ios';
+
+const agent = await agentFromWebDriverAgent();
+
+// Get screen information
+const screenInfo = await agent.runWdaRequest('GET', '/wda/screen');
+console.log(screenInfo); // { value: { scale: 3, ... } }
+
+// Press Home button
+const result = await agent.runWdaRequest('POST', '/session/test/wda/pressButton', {
+  name: 'home'
+});
+
+// Get device information
+const deviceInfo = await agent.runWdaRequest('GET', '/wda/device/info');
+```
+
+:::info Using in YAML Scripts
+
+In addition to using these methods in JavaScript/TypeScript, you can also use iOS platform-specific actions in YAML scripts.
+
+For details on how to use `runWdaRequest` and `launch` actions in YAML scripts, refer to [iOS Platform-Specific Actions in YAML Scripts](./automate-with-scripts-in-yaml#the-ios-part).
+
+:::
 
 ### `agentFromWebDriverAgent()` (Recommended)
 

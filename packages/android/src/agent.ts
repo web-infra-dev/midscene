@@ -9,13 +9,11 @@ type AndroidAgentOpt = AgentOpt;
 
 export class AndroidAgent extends PageAgent<AndroidDevice> {
   async launch(uri: string): Promise<void> {
-    const device = this.page;
-    await device.launch(uri);
+    await this.callActionInActionSpace('Launch', { uri });
   }
 
   async runAdbShell(command: string): Promise<string> {
-    const adb = await this.page.getAdb();
-    return await adb.shell(command);
+    return await this.callActionInActionSpace('RunAdbShell', { command });
   }
 }
 
