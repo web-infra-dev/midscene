@@ -226,7 +226,11 @@ export class IOSDevice implements AbstractInterface {
         paramSchema: z.object({
           method: z.string().describe('HTTP method (GET, POST, DELETE, etc.)'),
           endpoint: z.string().describe('WebDriver API endpoint'),
-          data: z.any().optional().describe('Optional request body data'),
+          data: z
+            .object({})
+            .passthrough()
+            .optional()
+            .describe('Optional request body data as JSON object'),
         }),
         call: async (param) => {
           return await this.runWdaRequest(
