@@ -313,9 +313,7 @@ export class AndroidDevice implements AbstractInterface {
       }),
     ];
 
-    const platformSpecificActions = Object.values(
-      createPlatformActions(this),
-    );
+    const platformSpecificActions = Object.values(createPlatformActions(this));
 
     const customActions = this.customActions || [];
     return [...defaultActions, ...platformSpecificActions, ...customActions];
@@ -1656,7 +1654,7 @@ type ExtractActionType<T> = T extends DeviceAction<infer P, infer R>
  * Automatically inferred from createPlatformActions
  */
 export type AndroidActionMap = {
-  [K in keyof ReturnType<
-    typeof createPlatformActions
-  >]: ExtractActionType<ReturnType<typeof createPlatformActions>[K]>;
+  [K in keyof ReturnType<typeof createPlatformActions>]: ExtractActionType<
+    ReturnType<typeof createPlatformActions>[K]
+  >;
 };

@@ -943,6 +943,7 @@ const createPlatformActions = (device: IOSDevice) => {
       z.ZodObject<{
         method: z.ZodEnum<['GET', 'POST', 'DELETE', 'PUT']>;
         endpoint: z.ZodString;
+        // biome-ignore lint/complexity/noBannedTypes: <explanation>
         data: z.ZodOptional<z.ZodObject<{}, 'passthrough'>>;
       }>,
       { method: WDAHttpMethod; endpoint: string; data?: Record<string, any> },
@@ -998,7 +999,7 @@ type ExtractActionType<T> = T extends DeviceAction<infer P, infer R>
  * Automatically inferred from createPlatformActions
  */
 export type IOSActionMap = {
-  [K in keyof ReturnType<
-    typeof createPlatformActions
-  >]: ExtractActionType<ReturnType<typeof createPlatformActions>[K]>;
+  [K in keyof ReturnType<typeof createPlatformActions>]: ExtractActionType<
+    ReturnType<typeof createPlatformActions>[K]
+  >;
 };
