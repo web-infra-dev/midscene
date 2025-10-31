@@ -1608,53 +1608,45 @@ ${Object.keys(size)
  * Platform-specific action definitions for Android
  * Single source of truth for both runtime behavior and type definitions
  */
-const createPlatformActions = (device: AndroidDevice) => {
+const runAdbShellParamSchema = z
+  .string()
+  .describe('ADB shell command to execute');
+
+const launchParamSchema = z
+  .string()
+  .describe('App package name or URL to launch');
+
+type RunAdbShellParam = z.infer<typeof runAdbShellParamSchema>;
+type LaunchParam = z.infer<typeof launchParamSchema>;
+
+export type DeviceActionRunAdbShell = DeviceAction<RunAdbShellParam, string>;
+export type DeviceActionLaunch = DeviceAction<LaunchParam, void>;
+
+const createPlatformActions = (
+  device: AndroidDevice,
+): {
+  RunAdbShell: DeviceActionRunAdbShell;
+  Launch: DeviceActionLaunch;
+} => {
   return {
-    RunAdbShell: defineAction<
-      z.ZodObject<{ command: z.ZodString }>,
-      { command: string },
-      string
-    >({
+    RunAdbShell: defineAction({
       name: 'RunAdbShell',
       description: 'Execute ADB shell command on Android device',
       interfaceAlias: 'runAdbShell',
-      paramSchema: z.object({
-        command: z.string().describe('ADB shell command to execute'),
-      }),
+      paramSchema: runAdbShellParamSchema,
       call: async (param) => {
         const adb = await device.getAdb();
-        return await adb.shell(param.command);
+        return await adb.shell(param);
       },
     }),
-    Launch: defineAction<
-      z.ZodObject<{ uri: z.ZodString }>,
-      { uri: string },
-      void
-    >({
+    Launch: defineAction({
       name: 'Launch',
       description: 'Launch an Android app or URL',
       interfaceAlias: 'launch',
-      paramSchema: z.object({
-        uri: z.string().describe('App package name or URL to launch'),
-      }),
+      paramSchema: launchParamSchema,
       call: async (param) => {
-        await device.launch(param.uri);
+        await device.launch(param);
       },
     }),
   } as const;
-};
-
-// Helper type to extract action parameter and return types from DeviceAction
-type ExtractActionType<T> = T extends DeviceAction<infer P, infer R>
-  ? { param: P; return: R }
-  : never;
-
-/**
- * Type definitions for Android platform-specific actions
- * Automatically inferred from createPlatformActions
- */
-export type AndroidActionMap = {
-  [K in keyof ReturnType<typeof createPlatformActions>]: ExtractActionType<
-    ReturnType<typeof createPlatformActions>[K]
-  >;
 };

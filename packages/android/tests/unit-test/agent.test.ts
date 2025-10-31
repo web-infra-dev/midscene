@@ -70,7 +70,7 @@ describe('AndroidAgent', () => {
           name: 'Launch',
           paramSchema: undefined,
           call: async (param: any) => {
-            return mockPage.launch(param.uri);
+            return mockPage.launch(param);
           },
         },
         {
