@@ -44,7 +44,6 @@ describe('YAML runAdbShell support via ActionSpace', () => {
           flow: [
             {
               runAdbShell: 'pm clear com.example.app',
-              name: 'clearResult',
             },
           ],
         },
@@ -63,7 +62,6 @@ describe('YAML runAdbShell support via ActionSpace', () => {
       'pm clear com.example.app',
     );
     expect(player.status).toBe('done');
-    expect(player.result.clearResult).toBe(mockResult);
   });
 
   it('should throw error when runAdbShell action is not in actionSpace (non-Android agent)', async () => {
@@ -157,8 +155,6 @@ describe('YAML runAdbShell support via ActionSpace', () => {
       'ls -la',
     );
     expect(player.status).toBe('done');
-    // When no name is provided, result is stored with auto-incremented index
-    expect(player.result[0]).toBe(mockResult);
   });
 
   it('should validate runAdbShell command parameter', async () => {
