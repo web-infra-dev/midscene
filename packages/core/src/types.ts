@@ -561,14 +561,6 @@ export interface DeviceAction<TParam = any, TReturn = any> {
  */
 
 /**
- * Find a specific action from an action array by name
- */
-export type FindAction<
-  Actions extends readonly DeviceAction<any, any>[],
-  Name extends string,
-> = Extract<Actions[number], { name: Name }>;
-
-/**
  * Extract parameter type from a DeviceAction
  */
 export type ActionParam<Action extends DeviceAction<any, any>> =
