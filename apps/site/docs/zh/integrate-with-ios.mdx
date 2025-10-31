@@ -422,48 +422,6 @@ const agent = await agentFromWebDriverAgent({
 iproxy 8100 8100 YOUR_DEVICE_ID
 ```
 
-## iOS 特定动作
-
-iOS 包包含可用于自动化的 iOS 特定动作：
-
-### 内置 iOS 动作
-
-```typescript
-// 按下主屏幕按钮
-await agent.callAction('IOSHomeButton');
-
-// 打开应用切换器
-await agent.callAction('IOSAppSwitcher');
-
-// 自定义时长的长按
-await agent.callAction('IOSLongPress', {
-  locate: '菜单项',
-  duration: 2000, // 2 秒
-});
-```
-
-### 平台特定动作
-
-除了在 JavaScript/TypeScript 中使用这些方法，你还可以在 YAML 脚本中使用 iOS 的平台特定动作。
-
-要了解如何在 YAML 脚本中使用 `runWdaRequest` 和 `launch` 动作，请参考 [YAML 脚本中的 iOS 平台特定动作](./automate-with-scripts-in-yaml#ios-部分)。
-
-#### JavaScript/TypeScript 示例
-
-```typescript
-// 执行 WebDriverAgent API 请求
-const result = await agent.callAction('RunWdaRequest', {
-  method: 'POST',
-  endpoint: '/session/your-session-id/wda/pressButton',
-  data: { name: 'home' }
-});
-
-// 启动应用
-await agent.callAction('Launch', {
-  uri: 'com.apple.mobilesafari'
-});
-```
-
 ## 更多
 
 - 更多 Agent 上的 API 接口请参考 [API 参考](./api.mdx)。

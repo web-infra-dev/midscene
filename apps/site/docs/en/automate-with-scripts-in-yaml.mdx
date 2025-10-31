@@ -258,12 +258,10 @@ tasks:
   - name: Clear app data
     flow:
       - runAdbShell: 'pm clear com.example.app'
-        name: clearResult
 
   - name: Get battery info
     flow:
       - runAdbShell: 'dumpsys battery'
-        name: batteryInfo
 ```
 
 **Common ADB Shell Commands:**
@@ -341,14 +339,12 @@ tasks:
           endpoint: /session/test/wda/pressButton
           data:
             name: home
-        name: pressResult
 
   - name: Get device information
     flow:
       - runWdaRequest:
           method: GET
           endpoint: /wda/device/info
-        name: deviceInfo
 ```
 
 **Parameters:**

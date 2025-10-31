@@ -260,12 +260,10 @@ tasks:
   - name: 清除应用数据
     flow:
       - runAdbShell: 'pm clear com.example.app'
-        name: clearResult
 
   - name: 获取电池信息
     flow:
       - runAdbShell: 'dumpsys battery'
-        name: batteryInfo
 ```
 
 常用 ADB Shell 命令：
@@ -345,14 +343,12 @@ tasks:
           endpoint: /session/test/wda/pressButton
           data:
             name: home
-        name: pressResult
 
   - name: 获取设备信息
     flow:
       - runWdaRequest:
           method: GET
           endpoint: /wda/device/info
-        name: deviceInfo
 ```
 
 参数：
