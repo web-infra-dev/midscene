@@ -933,6 +933,33 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   }
 }
 
+const runWdaRequestParamSchema = z.object({
+  method: z
+    .enum(WDA_HTTP_METHODS)
+    .describe('HTTP method (GET, POST, DELETE, PUT)'),
+  endpoint: z.string().describe('WebDriver API endpoint'),
+  data: z
+    .object({})
+    .passthrough()
+    .optional()
+    .describe('Optional request body data as JSON object'),
+});
+
+type RunWdaRequestParam = z.infer<typeof runWdaRequestParamSchema>;
+type RunWdaRequestReturn = Awaited<ReturnType<IOSDevice['runWdaRequest']>>;
+
+const launchParamSchema = z
+  .string()
+  .describe('App bundle ID or URL to launch');
+
+type LaunchParam = z.infer<typeof launchParamSchema>;
+
+export type DeviceActionRunWdaRequest = DeviceAction<
+  RunWdaRequestParam,
+  RunWdaRequestReturn
+>;
+export type DeviceActionLaunch = DeviceAction<LaunchParam, void>;
+
 /**
  * Platform-specific action definitions for iOS
  * Single source of truth for both runtime behavior and type definitions
@@ -940,29 +967,14 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 const createPlatformActions = (device: IOSDevice) => {
   return {
     RunWdaRequest: defineAction<
-      z.ZodObject<{
-        method: z.ZodEnum<['GET', 'POST', 'DELETE', 'PUT']>;
-        endpoint: z.ZodString;
-        // biome-ignore lint/complexity/noBannedTypes: <explanation>
-        data: z.ZodOptional<z.ZodObject<{}, 'passthrough'>>;
-      }>,
-      { method: WDAHttpMethod; endpoint: string; data?: Record<string, any> },
-      any
+      typeof runWdaRequestParamSchema,
+      RunWdaRequestParam,
+      RunWdaRequestReturn
     >({
       name: 'RunWdaRequest',
       description: 'Execute WebDriverAgent API request directly on iOS device',
       interfaceAlias: 'runWdaRequest',
-      paramSchema: z.object({
-        method: z
-          .enum(WDA_HTTP_METHODS)
-          .describe('HTTP method (GET, POST, DELETE, PUT)'),
-        endpoint: z.string().describe('WebDriver API endpoint'),
-        data: z
-          .object({})
-          .passthrough()
-          .optional()
-          .describe('Optional request body data as JSON object'),
-      }),
+      paramSchema: runWdaRequestParamSchema,
       call: async (param) => {
         return await device.runWdaRequest(
           param.method,
@@ -971,35 +983,14 @@ const createPlatformActions = (device: IOSDevice) => {
         );
       },
     }),
-    Launch: defineAction<
-      z.ZodObject<{ uri: z.ZodString }>,
-      { uri: string },
-      void
-    >({
+    Launch: defineAction<typeof launchParamSchema, LaunchParam, void>({
       name: 'Launch',
       description: 'Launch an iOS app or URL',
       interfaceAlias: 'launch',
-      paramSchema: z.object({
-        uri: z.string().describe('App bundle ID or URL to launch'),
-      }),
+      paramSchema: launchParamSchema,
       call: async (param) => {
-        await device.launch(param.uri);
+        await device.launch(param);
       },
     }),
   } as const;
-};
-
-// Helper type to extract action parameter and return types from DeviceAction
-type ExtractActionType<T> = T extends DeviceAction<infer P, infer R>
-  ? { param: P; return: R }
-  : never;
-
-/**
- * Type definitions for iOS platform-specific actions
- * Automatically inferred from createPlatformActions
- */
-export type IOSActionMap = {
-  [K in keyof ReturnType<typeof createPlatformActions>]: ExtractActionType<
-    ReturnType<typeof createPlatformActions>[K]
-  >;
 };

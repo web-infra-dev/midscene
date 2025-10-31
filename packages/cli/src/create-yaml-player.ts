@@ -195,7 +195,7 @@ export async function createYamlPlayer(
         });
 
         if (androidTarget?.launch) {
-          await agent.launch(androidTarget.launch);
+          await agent.launch({ uri: androidTarget.launch });
         }
 
         freeFn.push({

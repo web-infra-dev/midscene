@@ -15,10 +15,8 @@ describe('YAML runAdbShell support via ActionSpace', () => {
       name: 'RunAdbShell',
       description: 'Execute ADB shell command',
       interfaceAlias: 'runAdbShell',
-      paramSchema: z.object({
-        command: z.string().describe('ADB shell command to execute'),
-      }),
-      call: vi.fn(async (param: { command: string }) => mockResult),
+      paramSchema: z.string().describe('ADB shell command to execute'),
+      call: vi.fn(async (param: string) => mockResult),
     };
 
     const mockAgent = {
@@ -62,9 +60,7 @@ describe('YAML runAdbShell support via ActionSpace', () => {
 
     expect(mockAgent.callActionInActionSpace).toHaveBeenCalledWith(
       'RunAdbShell',
-      expect.objectContaining({
-        command: 'pm clear com.example.app',
-      }),
+      'pm clear com.example.app',
     );
     expect(player.status).toBe('done');
     expect(player.result.clearResult).toBe(mockResult);
@@ -115,10 +111,8 @@ describe('YAML runAdbShell support via ActionSpace', () => {
       name: 'RunAdbShell',
       description: 'Execute ADB shell command',
       interfaceAlias: 'runAdbShell',
-      paramSchema: z.object({
-        command: z.string().describe('ADB shell command to execute'),
-      }),
-      call: vi.fn(async (param: { command: string }) => mockResult),
+      paramSchema: z.string().describe('ADB shell command to execute'),
+      call: vi.fn(async (param: string) => mockResult),
     };
 
     const mockAgent = {
@@ -160,9 +154,7 @@ describe('YAML runAdbShell support via ActionSpace', () => {
 
     expect(mockAgent.callActionInActionSpace).toHaveBeenCalledWith(
       'RunAdbShell',
-      expect.objectContaining({
-        command: 'ls -la',
-      }),
+      'ls -la',
     );
     expect(player.status).toBe('done');
     // When no name is provided, result is stored with auto-incremented index
@@ -176,11 +168,9 @@ describe('YAML runAdbShell support via ActionSpace', () => {
       name: 'RunAdbShell',
       description: 'Execute ADB shell command',
       interfaceAlias: 'runAdbShell',
-      paramSchema: z.object({
-        command: z.string().describe('ADB shell command to execute'),
-      }),
-      call: vi.fn(async (param: { command: string }) => {
-        if (!param.command) {
+      paramSchema: z.string().describe('ADB shell command to execute'),
+      call: vi.fn(async (param: string) => {
+        if (!param) {
           throw new Error('Command is required for runAdbShell');
         }
         return mockResult;

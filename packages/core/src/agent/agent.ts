@@ -1,4 +1,6 @@
 import {
+  type ActionParam,
+  type ActionReturn,
   type AgentAssertOpt,
   type AgentDescribeElementAtPointResult,
   type AgentOpt,
@@ -413,14 +415,14 @@ export class Agent<
     }
   }
 
-  /**
-   * @internal
-   * This method is for internal framework use and YAML scripts.
-   * For programmatic use, prefer using specific methods like:
-   * - `agent.launch()` for Android/iOS
-   * - `agent.runAdbShell()` for Android
-   * - `agent.runWdaRequest()` for iOS
-   */
+  wrapActionInActionSpace<T extends DeviceAction>(
+    name: string,
+  ): (param: ActionParam<T>) => Promise<ActionReturn<T>> {
+    return async (param: ActionParam<T>) => {
+      return await this.callActionInActionSpace<ActionReturn<T>>(name, param);
+    };
+  }
+
   async callActionInActionSpace<T = any>(
     type: string,
     opt?: T, // and all other action params

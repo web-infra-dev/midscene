@@ -473,101 +473,32 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           `unknown flowItem in yaml: ${JSON.stringify(flowItem)}`,
         );
 
-        assert(
-          !((flowItem as any).prompt && locatePromptShortcut),
-          `conflict locate prompt for item: ${JSON.stringify(flowItem)}`,
-        );
+        // Create a new object instead of mutating the original flowItem
+        // This prevents issues when the same YAML script is executed multiple times
+        const flowItemForProcessing = locatePromptShortcut
+          ? { ...flowItem, prompt: locatePromptShortcut }
+          : flowItem;
 
-        // Check if the action's paramSchema expects a 'locate' parameter
-        let flowParams: any;
-        const paramSchema = matchedAction.paramSchema;
+        const { locateParam, restParams } =
+          buildDetailedLocateParamAndRestParams(
+            locatePromptShortcut || '',
+            flowItemForProcessing as LocateOption,
+            [
+              matchedAction.name,
+              matchedAction.interfaceAlias || '_never_mind_',
+            ],
+          );
 
-        // Try to get the shape of the schema (works for z.object)
-        let schemaShape: any = {};
-        if (paramSchema && '_def' in paramSchema) {
-          const def = (paramSchema as any)._def;
-          if (def.shape) {
-            schemaShape =
-              typeof def.shape === 'function' ? def.shape() : def.shape;
-          }
-        }
-
-        const hasLocateParam = 'locate' in schemaShape;
-
-        if (hasLocateParam) {
-          // This is a locate-based action (like aiTap, aiInput, etc.)
-          if (locatePromptShortcut) {
-            (flowItem as any).prompt = locatePromptShortcut;
-          }
-
-          const { locateParam, restParams } =
-            buildDetailedLocateParamAndRestParams(
-              locatePromptShortcut || '',
-              flowItem as LocateOption,
-              [
-                matchedAction.name,
-                matchedAction.interfaceAlias || '_never_mind_',
-              ],
-            );
-
-          flowParams = {
-            ...restParams,
-            locate: locateParam,
-          };
-        } else {
-          // This is a non-locate action (like runAdbShell, runWdaRequest)
-          // Build params from the flowItem directly
-          const actionKey = matchedAction.interfaceAlias || matchedAction.name;
-
-          // Get all properties except the action key itself
-          const params: any = {};
-          for (const key in flowItem) {
-            if (
-              key !== actionKey &&
-              key !== matchedAction.name &&
-              key !== 'name' && // Exclude the 'name' property as it's used for result storage
-              Object.prototype.hasOwnProperty.call(flowItem, key)
-            ) {
-              params[key] = (flowItem as any)[key];
-            }
-          }
-
-          // If the shortcut value exists, handle it based on its type
-          if (locatePromptShortcut !== undefined) {
-            // Check if it's an object with multiple properties matching schema keys
-            const paramKeys = Object.keys(schemaShape);
-            const isMultiParamObject =
-              typeof locatePromptShortcut === 'object' &&
-              locatePromptShortcut !== null &&
-              !Array.isArray(locatePromptShortcut) &&
-              paramKeys.length > 1;
-
-            if (isMultiParamObject) {
-              // Spread the object properties into params (for actions like runWdaRequest)
-              Object.assign(params, locatePromptShortcut);
-            } else if (paramKeys.length > 0) {
-              // Single param: assign to the first parameter (for actions like runAdbShell)
-              const firstParamKey = paramKeys[0];
-              params[firstParamKey] = locatePromptShortcut;
-            }
-          }
-
-          flowParams = params;
-        }
+        const flowParams = {
+          ...restParams,
+          locate: locateParam,
+        };
 
         debug(
           `matchedAction: ${matchedAction.name}`,
           `flowParams: ${JSON.stringify(flowParams, null, 2)}`,
         );
-        const result = await agent.callActionInActionSpace(
-          matchedAction.name,
-          flowParams,
-        );
-        // Store result if the flow item has a name property
-        const flowItemName = (flowItem as any).name;
-        if (result !== undefined && result !== null) {
-          this.setResult(flowItemName, result);
-        }
+        await agent.callActionInActionSpace(matchedAction.name, flowParams);
       }
     }
     this.reportFile = agent.reportFile;
