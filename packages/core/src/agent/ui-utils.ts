@@ -3,9 +3,9 @@ import type {
   ExecutionTask,
   ExecutionTaskAction,
   ExecutionTaskInsightAssertion,
-  ExecutionTaskInsightLocate,
   ExecutionTaskInsightQuery,
   ExecutionTaskPlanning,
+  ExecutionTaskPlanningLocate,
   PullParam,
   ScrollParam,
 } from '@/types';
@@ -114,12 +114,15 @@ export function taskTitleStr(
 export function paramStr(task: ExecutionTask) {
   let value: string | undefined | object;
   if (task.type === 'Planning') {
-    value = (task as ExecutionTaskPlanning)?.param?.userInstruction;
+    if (task.subType === 'Locate') {
+      value = locateParamStr((task as ExecutionTaskPlanningLocate)?.param);
+    } else {
+      value = (task as ExecutionTaskPlanning)?.param?.userInstruction;
+    }
   }
 
   if (task.type === 'Insight') {
     value =
-      locateParamStr((task as ExecutionTaskInsightLocate)?.param) ||
       (task as ExecutionTaskInsightQuery)?.param?.dataDemand ||
       (task as ExecutionTaskInsightAssertion)?.param?.assertion;
   }
