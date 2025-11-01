@@ -1,6 +1,11 @@
 import { type AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
 import { getDebug } from '@midscene/shared/logger';
-import { IOSDevice, type IOSDeviceOpt } from './device';
+import {
+  type DeviceActionLaunch,
+  type DeviceActionRunWdaRequest,
+  IOSDevice,
+  type IOSDeviceOpt,
+} from './device';
 import { checkIOSEnvironment } from './utils';
 
 const debugAgent = getDebug('ios:agent');
@@ -8,10 +13,18 @@ const debugAgent = getDebug('ios:agent');
 type IOSAgentOpt = AgentOpt;
 
 export class IOSAgent extends PageAgent<IOSDevice> {
-  async launch(uri: string): Promise<void> {
-    const device = this.page;
-    await device.launch(uri);
-  }
+  /**
+   * Launch an iOS app or URL
+   * Type-safe wrapper around the Launch action from actionSpace
+   */
+  launch = this.wrapActionInActionSpace<DeviceActionLaunch>('Launch');
+
+  /**
+   * Execute WebDriverAgent API request directly
+   * Type-safe wrapper around the RunWdaRequest action from actionSpace
+   */
+  runWdaRequest =
+    this.wrapActionInActionSpace<DeviceActionRunWdaRequest>('RunWdaRequest');
 }
 
 export async function agentFromWebDriverAgent(

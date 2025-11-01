@@ -187,7 +187,13 @@ export type MidsceneYamlFlowItem =
   | MidsceneYamlFlowItemAIAction
   | MidsceneYamlFlowItemAIAssert
   | MidsceneYamlFlowItemAIQuery
+  | MidsceneYamlFlowItemAINumber
+  | MidsceneYamlFlowItemAIString
+  | MidsceneYamlFlowItemAIAsk
+  | MidsceneYamlFlowItemAIBoolean
+  | MidsceneYamlFlowItemAILocate
   | MidsceneYamlFlowItemAIWaitFor
+  | MidsceneYamlFlowItemEvaluateJavaScript
   | MidsceneYamlFlowItemSleep
   | MidsceneYamlFlowItemLogScreenshot;
 

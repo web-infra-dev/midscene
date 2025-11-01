@@ -313,8 +313,10 @@ export class AndroidDevice implements AbstractInterface {
       }),
     ];
 
+    const platformSpecificActions = Object.values(createPlatformActions(this));
+
     const customActions = this.customActions || [];
-    return [...defaultActions, ...customActions];
+    return [...defaultActions, ...platformSpecificActions, ...customActions];
   }
 
   constructor(deviceId: string, options?: AndroidDeviceOpt) {
@@ -1601,3 +1603,50 @@ ${Object.keys(size)
     return false;
   }
 }
+
+/**
+ * Platform-specific action definitions for Android
+ * Single source of truth for both runtime behavior and type definitions
+ */
+const runAdbShellParamSchema = z
+  .string()
+  .describe('ADB shell command to execute');
+
+const launchParamSchema = z
+  .string()
+  .describe('App package name or URL to launch');
+
+type RunAdbShellParam = z.infer<typeof runAdbShellParamSchema>;
+type LaunchParam = z.infer<typeof launchParamSchema>;
+
+export type DeviceActionRunAdbShell = DeviceAction<RunAdbShellParam, string>;
+export type DeviceActionLaunch = DeviceAction<LaunchParam, void>;
+
+const createPlatformActions = (
+  device: AndroidDevice,
+): {
+  RunAdbShell: DeviceActionRunAdbShell;
+  Launch: DeviceActionLaunch;
+} => {
+  return {
+    RunAdbShell: defineAction({
+      name: 'RunAdbShell',
+      description: 'Execute ADB shell command on Android device',
+      interfaceAlias: 'runAdbShell',
+      paramSchema: runAdbShellParamSchema,
+      call: async (param) => {
+        const adb = await device.getAdb();
+        return await adb.shell(param);
+      },
+    }),
+    Launch: defineAction({
+      name: 'Launch',
+      description: 'Launch an Android app or URL',
+      interfaceAlias: 'launch',
+      paramSchema: launchParamSchema,
+      call: async (param) => {
+        await device.launch(param);
+      },
+    }),
+  } as const;
+};

@@ -244,7 +244,61 @@ await agent.launch('tel:+1234567890'); // 拨打电话
 await agent.launch('mailto:example@email.com'); // 发送邮件
 ```
 
-#### `agentFromWebDriverAgent()` (推荐)
+#### `agent.runWdaRequest()`
+
+直接调用 WebDriverAgent 的 API 接口。
+
+> 注意：该方法允许你直接调用 WebDriverAgent 提供的底层 API，适用于需要执行特定 WDA 操作的场景。
+
+- 类型
+
+```typescript
+function runWdaRequest(
+  method: string,
+  endpoint: string,
+  data?: Record<string, any>,
+): Promise<any>;
+```
+
+- 参数：
+
+  - `method: string` - HTTP 请求方法（GET, POST, DELETE 等）
+  - `endpoint: string` - WebDriver API 端点路径
+  - `data?: Record<string, any>` - 可选的请求体数据（JSON 对象）
+
+- 返回值：
+
+  - `Promise<any>` - 返回 API 响应结果
+
+- 示例：
+
+```typescript
+import { IOSAgent, IOSDevice, agentFromWebDriverAgent } from '@midscene/ios';
+
+const agent = await agentFromWebDriverAgent();
+
+// 获取屏幕信息
+const screenInfo = await agent.runWdaRequest('GET', '/wda/screen');
+console.log(screenInfo); // { value: { scale: 3, ... } }
+
+// 按下 Home 键
+const result = await agent.runWdaRequest('POST', '/session/test/wda/pressButton', {
+  name: 'home'
+});
+
+// 获取设备信息
+const deviceInfo = await agent.runWdaRequest('GET', '/wda/device/info');
+```
+
+:::info 在 YAML 脚本中使用
+
+除了在 JavaScript/TypeScript 中使用这些方法，你还可以在 YAML 脚本中使用 iOS 的平台特定动作。
+
+要了解如何在 YAML 脚本中使用 `runWdaRequest` 和 `launch` 动作，请参考 [YAML 脚本中的 iOS 平台特定动作](./automate-with-scripts-in-yaml#ios-部分)。
+
+:::
+
+### `agentFromWebDriverAgent()` (推荐)
 
 通过连接 WebDriverAgent 服务创建 IOSAgent，这是最简便的方式。
 
@@ -367,3 +421,8 @@ const agent = await agentFromWebDriverAgent({
 ```bash
 iproxy 8100 8100 YOUR_DEVICE_ID
 ```
+
+## 更多
+
+- 更多 Agent 上的 API 接口请参考 [API 参考](./api.mdx)。
+- 更多关于提示词的技巧请参考 [提示词技巧](./prompting-tips)
