@@ -9,11 +9,11 @@ import type {
   GroupedActionDump,
   MidsceneYamlScriptWebEnv,
 } from '@midscene/core';
+import { actionTapParamSchema } from '@midscene/core/device';
 import { ScriptPlayer, buildYaml, parseYamlScript } from '@midscene/core/yaml';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { uuid } from '@midscene/shared/utils';
 import { type MockedFunction, describe, expect, test, vi } from 'vitest';
-import { actionTapParamSchema } from '@midscene/core/device';
 
 const serverRoot = join(__dirname, 'server_root');
 
@@ -350,9 +350,13 @@ tasks:
         [
           "RightClick",
           {
-            "cacheable": false,
-            "deepThink": true,
             "foo": 123,
+            "locate": {
+              "cacheable": false,
+              "deepThink": true,
+              "prompt": "element to right click",
+              "xpath": undefined,
+            },
             "moreParam": null,
           },
         ],
@@ -399,20 +403,37 @@ tasks:
         [
           "RightClick",
           {
-            "cacheable": false,
-            "deepThink": true,
+            "locate": {
+              "cacheable": false,
+              "deepThink": true,
+              "prompt": "element to right click",
+              "xpath": undefined,
+            },
             "moreParam": 456,
           },
         ],
         [
           "Input",
           {
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "input field 1",
+              "xpath": undefined,
+            },
             "value": "i am value 1",
           },
         ],
         [
           "RightClick",
-          {},
+          {
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "item in menu",
+              "xpath": undefined,
+            },
+          },
         ],
       ]
     `);
@@ -463,27 +484,46 @@ tasks:
       [
         [
           "Tap",
-          {},
-        ],
-        [
-          "Tap",
           {
-            "cacheable": false,
-            "deepThink": true,
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "search input box",
+              "xpath": undefined,
+            },
           },
         ],
         [
           "Tap",
           {
-            "prompt": "search input box",
+            "locate": {
+              "cacheable": false,
+              "deepThink": true,
+              "prompt": "search input box",
+              "xpath": undefined,
+            },
           },
         ],
         [
           "Tap",
           {
-            "cacheable": false,
-            "deepThink": true,
-            "prompt": "search input box",
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "search input box",
+              "xpath": undefined,
+            },
+          },
+        ],
+        [
+          "Tap",
+          {
+            "locate": {
+              "cacheable": false,
+              "deepThink": true,
+              "prompt": "search input box",
+              "xpath": undefined,
+            },
           },
         ],
         [
@@ -745,21 +785,31 @@ tasks:
         [
           "Hover",
           {
-            "locate": "move the area contains the logo",
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "move the area contains the logo",
+              "xpath": undefined,
+            },
           },
         ],
         [
           "Hover",
           {
             "locate": {
-              "convertHttpImage2Base64": true,
-              "images": [
-                {
-                  "name": "target image",
-                  "url": "https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png",
-                },
-              ],
-              "prompt": "move the area contains the image.",
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": {
+                "convertHttpImage2Base64": true,
+                "images": [
+                  {
+                    "name": "target image",
+                    "url": "https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png",
+                  },
+                ],
+                "prompt": "move the area contains the image.",
+              },
+              "xpath": undefined,
             },
           },
         ],

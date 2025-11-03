@@ -561,7 +561,8 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           // - If we have a locatePromptShortcut, use the flowItem (for actions like aiTap with prompt)
           // - Otherwise, use actionParamForMatchedAction (for actions like runWdaRequest with structured params)
           const sourceForParams =
-            locatePromptShortcut && typeof actionParamForMatchedAction === 'string'
+            locatePromptShortcut &&
+            typeof actionParamForMatchedAction === 'string'
               ? { ...flowItem, prompt: locatePromptShortcut }
               : typeof actionParamForMatchedAction === 'object' &&
                   actionParamForMatchedAction !== null
@@ -587,7 +588,10 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
             `matchedAction: ${matchedAction.name}`,
             `flowParams: ${JSON.stringify(flowParams, null, 2)}`,
           );
-          const result = await agent.callActionInActionSpace(matchedAction.name, flowParams);
+          const result = await agent.callActionInActionSpace(
+            matchedAction.name,
+            flowParams,
+          );
 
           // Store result if there's a name property in flowItem
           const resultName = (flowItem as any).name;

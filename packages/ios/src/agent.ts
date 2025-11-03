@@ -1,5 +1,5 @@
-import { type AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
 import type { ActionParam, ActionReturn, DeviceAction } from '@midscene/core';
+import { type AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
 import { getDebug } from '@midscene/shared/logger';
 import {
   type DeviceActionLaunch,
@@ -17,7 +17,7 @@ type IOSAgentOpt = AgentOpt;
  * Helper type to convert DeviceAction to wrapped method signature
  */
 type WrappedAction<T extends DeviceAction> = (
-  param: ActionParam<T>
+  param: ActionParam<T>,
 ) => Promise<ActionReturn<T>>;
 
 export class IOSAgent extends PageAgent<IOSDevice> {
