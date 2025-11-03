@@ -4,6 +4,7 @@ import type { AbstractInterface } from '@/device';
 import type Service from '@/service';
 import type { TaskRunner } from '@/task-runner';
 import type {
+  ExecutionTask,
   ExecutionTaskApply,
   ExecutionTaskInsightQueryApply,
   ExecutionTaskPlanningApply,
@@ -40,9 +41,34 @@ interface ExecutionResult<OutputType = any> {
   runner: TaskRunner;
 }
 
+interface TaskExecutorHooks {
+  afterFlush?: (runner: TaskRunner) => Promise<void> | void;
+  beforeError?: (
+    runner: TaskRunner,
+    errorTask: ExecutionTask | null,
+  ) => Promise<void> | void;
+}
+
 const debug = getDebug('device-task-executor');
 const defaultReplanningCycleLimit = 10;
 const defaultVlmUiTarsReplanningCycleLimit = 40;
+
+export class TaskExecutionError extends Error {
+  runner: TaskRunner;
+
+  errorTask: ExecutionTask | null;
+
+  constructor(
+    message: string,
+    runner: TaskRunner,
+    errorTask: ExecutionTask | null,
+    options?: { cause?: unknown },
+  ) {
+    super(message, options);
+    this.runner = runner;
+    this.errorTask = errorTask;
+  }
+}
 
 export class TaskExecutor {
   interface: AbstractInterface;
@@ -56,6 +82,8 @@ export class TaskExecutor {
   private conversationHistory: ConversationHistory;
 
   onTaskStartCallback?: ExecutionTaskProgressOptions['onTaskStart'];
+
+  private readonly hooks?: TaskExecutorHooks;
 
   replanningCycleLimit?: number;
 
@@ -71,6 +99,7 @@ export class TaskExecutor {
       taskCache?: TaskCache;
       onTaskStart?: ExecutionTaskProgressOptions['onTaskStart'];
       replanningCycleLimit?: number;
+      hooks?: TaskExecutorHooks;
     },
   ) {
     this.interface = interfaceInstance;
@@ -78,6 +107,7 @@ export class TaskExecutor {
     this.taskCache = opts.taskCache;
     this.onTaskStartCallback = opts?.onTaskStart;
     this.replanningCycleLimit = opts.replanningCycleLimit;
+    this.hooks = opts.hooks;
     this.conversationHistory = new ConversationHistory();
     this.taskBuilder = new TaskBuilder({
       interfaceInstance,
@@ -98,6 +128,32 @@ export class TaskExecutor {
         tasks: options?.tasks,
       },
     );
+  }
+
+  private async finalizeRunner(runner: TaskRunner) {
+    if (this.hooks?.afterFlush) {
+      await this.hooks.afterFlush(runner);
+    }
+
+    if (!runner.isInErrorState()) {
+      return;
+    }
+
+    const errorTask = runner.latestErrorTask();
+
+    if (this.hooks?.beforeError) {
+      await this.hooks.beforeError(runner, errorTask);
+    }
+
+    const messageBase =
+      errorTask?.errorMessage ||
+      (errorTask?.error ? String(errorTask.error) : 'Task execution failed');
+    const stack = errorTask?.errorStack;
+    const message = stack ? `${messageBase}\n${stack}` : messageBase;
+
+    throw new TaskExecutionError(message, runner, errorTask, {
+      cause: errorTask?.error,
+    });
   }
 
   public async convertPlanToExecutable(
@@ -145,10 +201,12 @@ export class TaskExecutor {
         };
       },
     };
+    const runner = session.getRunner();
     await session.appendAndRun(task);
+    await this.finalizeRunner(runner);
 
     return {
-      runner: session.getRunner(),
+      runner,
     };
   }
 
@@ -260,11 +318,13 @@ export class TaskExecutor {
   ): Promise<ExecutionResult> {
     const session = this.createExecutionSession(title);
     const { tasks } = await this.convertPlanToExecutable(plans, modelConfig);
+    const runner = session.getRunner();
     const result = await session.appendAndRun(tasks);
-    const { output } = result!;
+    const { output } = result ?? {};
+    await this.finalizeRunner(runner);
     return {
       output,
-      runner: session.getRunner(),
+      runner,
     };
   }
 
@@ -311,7 +371,9 @@ export class TaskExecutor {
       if (replanCount > replanningCycleLimit) {
         const errorMsg = `Replanning ${replanningCycleLimit} times, which is more than the limit, please split the task into multiple steps`;
 
-        return session.appendErrorPlan(errorMsg);
+        const errorResult = await session.appendErrorPlan(errorMsg);
+        await this.finalizeRunner(runner);
+        return errorResult;
       }
 
       // Create planning task (automatically includes execution history if available)
@@ -322,8 +384,9 @@ export class TaskExecutor {
       );
 
       const result = await session.appendAndRun(planningTask);
-      const planResult: PlanningAIResponse = result?.output;
-      if (session.isInErrorState()) {
+      const planResult = result?.output as PlanningAIResponse | undefined;
+      if (runner.isInErrorState()) {
+        await this.finalizeRunner(runner);
         return {
           output: planResult,
           runner,
@@ -331,8 +394,8 @@ export class TaskExecutor {
       }
 
       // Execute planned actions
-      const plans = planResult.actions || [];
-      yamlFlow.push(...(planResult.yamlFlow || []));
+      const plans = planResult?.actions || [];
+      yamlFlow.push(...(planResult?.yamlFlow || []));
 
       let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
       try {
@@ -342,13 +405,16 @@ export class TaskExecutor {
         });
         await session.appendAndRun(executables.tasks);
       } catch (error) {
-        return session.appendErrorPlan(
+        const errorResult = await session.appendErrorPlan(
           `Error converting plans to executable tasks: ${error}, plans: ${JSON.stringify(
             plans,
           )}`,
         );
+        await this.finalizeRunner(runner);
+        return errorResult;
       }
-      if (session.isInErrorState()) {
+      if (runner.isInErrorState()) {
+        await this.finalizeRunner(runner);
         return {
           output: undefined,
           runner,
@@ -356,7 +422,7 @@ export class TaskExecutor {
       }
 
       // Check if task is complete
-      if (!planResult.more_actions_needed_by_instruction) {
+      if (!planResult?.more_actions_needed_by_instruction) {
         break;
       }
 
@@ -364,12 +430,14 @@ export class TaskExecutor {
       replanCount++;
     }
 
-    return {
+    const finalResult = {
       output: {
         yamlFlow,
       },
       runner,
     };
+    await this.finalizeRunner(runner);
+    return finalResult;
   }
 
   private createTypeQueryTask(
@@ -516,7 +584,10 @@ export class TaskExecutor {
       multimodalPrompt,
     );
 
+    const runner = session.getRunner();
     const result = await session.appendAndRun(queryTask);
+
+    await this.finalizeRunner(runner);
 
     if (!result) {
       throw new Error(
@@ -529,7 +600,7 @@ export class TaskExecutor {
     return {
       output,
       thought,
-      runner: session.getRunner(),
+      runner,
     };
   }
 
@@ -583,9 +654,7 @@ export class TaskExecutor {
         'WaitFor',
         textPrompt,
         modelConfig,
-        {
-          doNotThrowError: true,
-        },
+        undefined,
         multimodalPrompt,
       );
 
@@ -597,6 +666,7 @@ export class TaskExecutor {
         | undefined;
 
       if (result?.output) {
+        await this.finalizeRunner(runner);
         return {
           output: undefined,
           runner,
@@ -617,6 +687,10 @@ export class TaskExecutor {
       }
     }
 
-    return session.appendErrorPlan(`waitFor timeout: ${errorThought}`);
+    const errorResult = await session.appendErrorPlan(
+      `waitFor timeout: ${errorThought}`,
+    );
+    await this.finalizeRunner(runner);
+    return errorResult;
   }
 }
