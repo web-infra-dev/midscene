@@ -665,6 +665,11 @@ export class TaskExecutor {
           }
         | undefined;
 
+      if (runner.isInErrorState()) {
+        // this should throw an error
+        await this.finalizeRunner(runner);
+      }
+
       if (result?.output) {
         await this.finalizeRunner(runner);
         return {

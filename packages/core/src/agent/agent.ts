@@ -61,11 +61,7 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 // import type { AndroidDeviceInputOpt } from '../device';
 import { TaskCache } from './task-cache';
-import {
-  TaskExecutor,
-  TaskExecutionError,
-  locatePlanForLocate,
-} from './tasks';
+import { TaskExecutionError, TaskExecutor, locatePlanForLocate } from './tasks';
 import { locateParamStr, paramStr, taskTitleStr, typeStr } from './ui-utils';
 import {
   commonContextParser,
@@ -274,7 +270,20 @@ export class Agent<
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
       replanningCycleLimit: this.opts.replanningCycleLimit,
       hooks: {
-        afterFlush: this.handleRunnerAfterFlush.bind(this),
+        afterFlush: (runner) => {
+          const executionDump = runner.dump();
+          this.appendExecutionDump(executionDump);
+
+          try {
+            if (this.onDumpUpdate) {
+              this.onDumpUpdate(this.dumpDataString());
+            }
+          } catch (error) {
+            console.error('Error in onDumpUpdate', error);
+          }
+
+          this.writeOutActionDumps();
+        },
       },
     });
     this.dump = this.resetDump();
