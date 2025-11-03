@@ -17,6 +17,11 @@ import { assert } from '@midscene/shared/utils';
 const debug = getDebug('task-runner');
 const UI_CONTEXT_CACHE_TTL_MS = 300;
 
+type TaskRunnerInitOptions = ExecutionTaskProgressOptions & {
+  tasks?: ExecutionTaskApply[];
+  onFinalize?: (runner: TaskRunner) => Promise<void> | void;
+};
+
 export class TaskRunner {
   name: string;
 
@@ -29,12 +34,12 @@ export class TaskRunner {
 
   private readonly uiContextBuilder: () => Promise<UIContext>;
 
+  private readonly onFinalize?: (runner: TaskRunner) => Promise<void> | void;
+
   constructor(
     name: string,
     uiContextBuilder: () => Promise<UIContext>,
-    options?: ExecutionTaskProgressOptions & {
-      tasks?: ExecutionTaskApply[];
-    },
+    options?: TaskRunnerInitOptions,
   ) {
     this.status =
       options?.tasks && options.tasks.length > 0 ? 'pending' : 'init';
@@ -44,6 +49,7 @@ export class TaskRunner {
     );
     this.onTaskStart = options?.onTaskStart;
     this.uiContextBuilder = uiContextBuilder;
+    this.onFinalize = options?.onFinalize;
   }
 
   private lastUiContext?: {
@@ -297,6 +303,10 @@ export class TaskRunner {
       this.status = 'completed';
     } else {
       this.status = 'error';
+    }
+
+    if (this.onFinalize) {
+      await this.onFinalize(this);
     }
 
     if (this.tasks.length) {

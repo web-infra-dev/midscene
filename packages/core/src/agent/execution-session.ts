@@ -5,6 +5,11 @@ import type {
   UIContext,
 } from '@/types';
 
+type ExecutionSessionOptions = ExecutionTaskProgressOptions & {
+  tasks?: ExecutionTaskApply[];
+  onFinalize?: (runner: TaskRunner) => Promise<void> | void;
+};
+
 /**
  * Thin wrapper around {@link TaskRunner} that represents a single linear execution run.
  */
@@ -14,7 +19,7 @@ export class ExecutionSession {
   constructor(
     name: string,
     contextProvider: () => Promise<UIContext>,
-    options?: ExecutionTaskProgressOptions & { tasks?: ExecutionTaskApply[] },
+    options?: ExecutionSessionOptions,
   ) {
     this.runner = new TaskRunner(name, contextProvider, options);
   }

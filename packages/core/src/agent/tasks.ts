@@ -42,11 +42,7 @@ interface ExecutionResult<OutputType = any> {
 }
 
 interface TaskExecutorHooks {
-  afterFlush?: (runner: TaskRunner) => Promise<void> | void;
-  beforeError?: (
-    runner: TaskRunner,
-    errorTask: ExecutionTask | null,
-  ) => Promise<void> | void;
+  onFinalize?: (runner: TaskRunner) => Promise<void> | void;
 }
 
 const debug = getDebug('device-task-executor');
@@ -126,13 +122,14 @@ export class TaskExecutor {
       {
         onTaskStart: this.onTaskStartCallback,
         tasks: options?.tasks,
+        onFinalize: this.onRunnerFinalize.bind(this),
       },
     );
   }
 
-  private async finalizeRunner(runner: TaskRunner) {
-    if (this.hooks?.afterFlush) {
-      await this.hooks.afterFlush(runner);
+  private async onRunnerFinalize(runner: TaskRunner) {
+    if (this.hooks?.onFinalize) {
+      await this.hooks.onFinalize(runner);
     }
 
     if (!runner.isInErrorState()) {
@@ -140,10 +137,6 @@ export class TaskExecutor {
     }
 
     const errorTask = runner.latestErrorTask();
-
-    if (this.hooks?.beforeError) {
-      await this.hooks.beforeError(runner, errorTask);
-    }
 
     const messageBase =
       errorTask?.errorMessage ||
@@ -203,7 +196,6 @@ export class TaskExecutor {
     };
     const runner = session.getRunner();
     await session.appendAndRun(task);
-    await this.finalizeRunner(runner);
 
     return {
       runner,
@@ -321,7 +313,6 @@ export class TaskExecutor {
     const runner = session.getRunner();
     const result = await session.appendAndRun(tasks);
     const { output } = result ?? {};
-    await this.finalizeRunner(runner);
     return {
       output,
       runner,
@@ -372,7 +363,6 @@ export class TaskExecutor {
         const errorMsg = `Replanning ${replanningCycleLimit} times, which is more than the limit, please split the task into multiple steps`;
 
         const errorResult = await session.appendErrorPlan(errorMsg);
-        await this.finalizeRunner(runner);
         return errorResult;
       }
 
@@ -386,7 +376,6 @@ export class TaskExecutor {
       const result = await session.appendAndRun(planningTask);
       const planResult = result?.output as PlanningAIResponse | undefined;
       if (runner.isInErrorState()) {
-        await this.finalizeRunner(runner);
         return {
           output: planResult,
           runner,
@@ -403,18 +392,16 @@ export class TaskExecutor {
           cacheable,
           subTask: true,
         });
-        await session.appendAndRun(executables.tasks);
       } catch (error) {
         const errorResult = await session.appendErrorPlan(
           `Error converting plans to executable tasks: ${error}, plans: ${JSON.stringify(
             plans,
           )}`,
         );
-        await this.finalizeRunner(runner);
         return errorResult;
       }
+      await session.appendAndRun(executables.tasks);
       if (runner.isInErrorState()) {
-        await this.finalizeRunner(runner);
         return {
           output: undefined,
           runner,
@@ -436,7 +423,6 @@ export class TaskExecutor {
       },
       runner,
     };
-    await this.finalizeRunner(runner);
     return finalResult;
   }
 
@@ -587,8 +573,6 @@ export class TaskExecutor {
     const runner = session.getRunner();
     const result = await session.appendAndRun(queryTask);
 
-    await this.finalizeRunner(runner);
-
     if (!result) {
       throw new Error(
         'result of taskExecutor.flush() is undefined in function createTypeQueryTask',
@@ -665,13 +649,7 @@ export class TaskExecutor {
           }
         | undefined;
 
-      if (runner.isInErrorState()) {
-        // this should throw an error
-        await this.finalizeRunner(runner);
-      }
-
       if (result?.output) {
-        await this.finalizeRunner(runner);
         return {
           output: undefined,
           runner,
@@ -695,7 +673,6 @@ export class TaskExecutor {
     const errorResult = await session.appendErrorPlan(
       `waitFor timeout: ${errorThought}`,
     );
-    await this.finalizeRunner(runner);
     return errorResult;
   }
 }

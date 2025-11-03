@@ -270,7 +270,7 @@ export class Agent<
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
       replanningCycleLimit: this.opts.replanningCycleLimit,
       hooks: {
-        afterFlush: (runner) => {
+        onFinalize: (runner) => {
           const executionDump = runner.dump();
           this.appendExecutionDump(executionDump);
 
