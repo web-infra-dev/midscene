@@ -3,8 +3,8 @@ import type { TMultimodalPrompt, TUserPrompt } from '@/ai-model/common';
 import type { AbstractInterface } from '@/device';
 import type Service from '@/service';
 import type { TaskRunner } from '@/task-runner';
+import { TaskExecutionError } from '@/task-runner';
 import type {
-  ExecutionTask,
   ExecutionTaskApply,
   ExecutionTaskInsightQueryApply,
   ExecutionTaskPlanningApply,
@@ -42,29 +42,17 @@ interface ExecutionResult<OutputType = any> {
 }
 
 interface TaskExecutorHooks {
-  onFinalize?: (runner: TaskRunner) => Promise<void> | void;
+  onFinalize?: (
+    runner: TaskRunner,
+    error?: TaskExecutionError,
+  ) => Promise<void> | void;
 }
 
 const debug = getDebug('device-task-executor');
 const defaultReplanningCycleLimit = 10;
 const defaultVlmUiTarsReplanningCycleLimit = 40;
 
-export class TaskExecutionError extends Error {
-  runner: TaskRunner;
-
-  errorTask: ExecutionTask | null;
-
-  constructor(
-    message: string,
-    runner: TaskRunner,
-    errorTask: ExecutionTask | null,
-    options?: { cause?: unknown },
-  ) {
-    super(message, options);
-    this.runner = runner;
-    this.errorTask = errorTask;
-  }
-}
+export { TaskExecutionError };
 
 export class TaskExecutor {
   interface: AbstractInterface;
@@ -122,31 +110,9 @@ export class TaskExecutor {
       {
         onTaskStart: this.onTaskStartCallback,
         tasks: options?.tasks,
-        onFinalize: this.onRunnerFinalize.bind(this),
+        onFinalize: this.hooks?.onFinalize,
       },
     );
-  }
-
-  private async onRunnerFinalize(runner: TaskRunner) {
-    if (this.hooks?.onFinalize) {
-      await this.hooks.onFinalize(runner);
-    }
-
-    if (!runner.isInErrorState()) {
-      return;
-    }
-
-    const errorTask = runner.latestErrorTask();
-
-    const messageBase =
-      errorTask?.errorMessage ||
-      (errorTask?.error ? String(errorTask.error) : 'Task execution failed');
-    const stack = errorTask?.errorStack;
-    const message = stack ? `${messageBase}\n${stack}` : messageBase;
-
-    throw new TaskExecutionError(message, runner, errorTask, {
-      cause: errorTask?.error,
-    });
   }
 
   public async convertPlanToExecutable(
@@ -362,8 +328,7 @@ export class TaskExecutor {
       if (replanCount > replanningCycleLimit) {
         const errorMsg = `Replanning ${replanningCycleLimit} times, which is more than the limit, please split the task into multiple steps`;
 
-        const errorResult = await session.appendErrorPlan(errorMsg);
-        return errorResult;
+        return session.appendErrorPlan(errorMsg);
       }
 
       // Create planning task (automatically includes execution history if available)
@@ -375,12 +340,6 @@ export class TaskExecutor {
 
       const result = await session.appendAndRun(planningTask);
       const planResult = result?.output as PlanningAIResponse | undefined;
-      if (runner.isInErrorState()) {
-        return {
-          output: planResult,
-          runner,
-        };
-      }
 
       // Execute planned actions
       const plans = planResult?.actions || [];
@@ -393,20 +352,13 @@ export class TaskExecutor {
           subTask: true,
         });
       } catch (error) {
-        const errorResult = await session.appendErrorPlan(
+        return session.appendErrorPlan(
           `Error converting plans to executable tasks: ${error}, plans: ${JSON.stringify(
             plans,
           )}`,
         );
-        return errorResult;
       }
       await session.appendAndRun(executables.tasks);
-      if (runner.isInErrorState()) {
-        return {
-          output: undefined,
-          runner,
-        };
-      }
 
       // Check if task is complete
       if (!planResult?.more_actions_needed_by_instruction) {
@@ -670,9 +622,6 @@ export class TaskExecutor {
       }
     }
 
-    const errorResult = await session.appendErrorPlan(
-      `waitFor timeout: ${errorThought}`,
-    );
-    return errorResult;
+    return session.appendErrorPlan(`waitFor timeout: ${errorThought}`);
   }
 }

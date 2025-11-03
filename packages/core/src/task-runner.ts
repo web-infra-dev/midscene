@@ -19,7 +19,10 @@ const UI_CONTEXT_CACHE_TTL_MS = 300;
 
 type TaskRunnerInitOptions = ExecutionTaskProgressOptions & {
   tasks?: ExecutionTaskApply[];
-  onFinalize?: (runner: TaskRunner) => Promise<void> | void;
+  onFinalize?: (
+    runner: TaskRunner,
+    error?: TaskExecutionError,
+  ) => Promise<void> | void;
 };
 
 export class TaskRunner {
@@ -34,7 +37,12 @@ export class TaskRunner {
 
   private readonly uiContextBuilder: () => Promise<UIContext>;
 
-  private readonly onFinalize?: (runner: TaskRunner) => Promise<void> | void;
+  private readonly onFinalize?:
+    | ((
+        runner: TaskRunner,
+        error?: TaskExecutionError,
+      ) => Promise<void> | void)
+    | undefined;
 
   constructor(
     name: string,
@@ -305,8 +313,27 @@ export class TaskRunner {
       this.status = 'error';
     }
 
+    let finalizeError: TaskExecutionError | undefined;
+    if (!successfullyCompleted) {
+      const errorTask = this.latestErrorTask();
+      const messageBase =
+        errorTask?.errorMessage ||
+        (errorTask?.error
+          ? String(errorTask.error)
+          : 'Task execution failed');
+      const stack = errorTask?.errorStack;
+      const message = stack ? `${messageBase}\n${stack}` : messageBase;
+      finalizeError = new TaskExecutionError(message, this, errorTask, {
+        cause: errorTask?.error,
+      });
+    }
+
     if (this.onFinalize) {
-      await this.onFinalize(this);
+      await this.onFinalize(this, finalizeError);
+    }
+
+    if (finalizeError) {
+      throw finalizeError;
     }
 
     if (this.tasks.length) {
@@ -368,5 +395,22 @@ export class TaskRunner {
       output: undefined,
       runner: this,
     };
+  }
+}
+
+export class TaskExecutionError extends Error {
+  runner: TaskRunner;
+
+  errorTask: ExecutionTask | null;
+
+  constructor(
+    message: string,
+    runner: TaskRunner,
+    errorTask: ExecutionTask | null,
+    options?: { cause?: unknown },
+  ) {
+    super(message, options);
+    this.runner = runner;
+    this.errorTask = errorTask;
   }
 }
