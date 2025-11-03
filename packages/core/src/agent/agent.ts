@@ -1,4 +1,6 @@
 import {
+  type ActionParam,
+  type ActionReturn,
   type AgentAssertOpt,
   type AgentDescribeElementAtPointResult,
   type AgentOpt,
@@ -411,6 +413,14 @@ export class Agent<
         cause: errorTask?.error,
       });
     }
+  }
+
+  wrapActionInActionSpace<T extends DeviceAction>(
+    name: string,
+  ): (param: ActionParam<T>) => Promise<ActionReturn<T>> {
+    return async (param: ActionParam<T>) => {
+      return await this.callActionInActionSpace<ActionReturn<T>>(name, param);
+    };
   }
 
   async callActionInActionSpace<T = any>(

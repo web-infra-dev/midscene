@@ -467,4 +467,21 @@ export class IOSWebDriverClient extends WebDriverClient {
       // Don't throw, this is optional configuration
     }
   }
+
+  /**
+   * Execute a WebDriverAgent API request directly
+   * This is the iOS equivalent of Android's runAdbShell
+   * @param method HTTP method (GET, POST, DELETE, etc.)
+   * @param endpoint WebDriver API endpoint
+   * @param data Optional request body data
+   * @returns Response from the WebDriver API
+   */
+  async executeRequest<TResult = any>(
+    method: string,
+    endpoint: string,
+    data?: any,
+  ): Promise<TResult> {
+    this.ensureSession();
+    return this.makeRequest(method, endpoint, data);
+  }
 }

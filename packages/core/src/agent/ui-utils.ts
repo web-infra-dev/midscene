@@ -144,6 +144,14 @@ export function paramStr(task: ExecutionTask) {
       typeof (task as ExecutionTaskAction)?.param?.value !== 'undefined'
     ) {
       value = (task as ExecutionTaskAction)?.param?.value;
+    } else if (
+      (task as ExecutionTaskAction)?.param &&
+      typeof (task as ExecutionTaskAction)?.param === 'object' &&
+      Object.keys((task as ExecutionTaskAction)?.param || {}).length > 0
+    ) {
+      // General parameter handling for actions with custom parameters
+      // (e.g., runWdaRequest, runAdbShell)
+      value = (task as ExecutionTaskAction)?.param;
     }
 
     if (locateStr) {

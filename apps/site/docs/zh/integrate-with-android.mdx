@@ -199,6 +199,14 @@ const result = await agent.runAdbShell('dumpsys battery');
 console.log(result);
 ```
 
+:::info 在 YAML 脚本中使用
+
+除了在 JavaScript/TypeScript 中使用这些方法，你还可以在 YAML 脚本中使用 Android 的平台特定动作。
+
+要了解如何在 YAML 脚本中使用 `runAdbShell` 和 `launch` 动作，请参考 [YAML 脚本中的 Android 平台特定动作](./automate-with-scripts-in-yaml#android-部分)。
+
+:::
+
 #### `agentFromAdbDevice()`
 
 从已连接的 adb 设备中，创建一个 AndroidAgent。

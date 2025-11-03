@@ -513,6 +513,9 @@ importers:
       vitest:
         specifier: 3.0.5
         version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.62)(jsdom@27.0.1(bufferutil@4.0.9)(utf-8-validate@6.0.5))(less@4.4.2)(lightningcss@1.30.2)(sass-embedded@1.93.2)(sass@1.93.2)(terser@5.44.0)
+      zod:
+        specifier: 3.24.3
+        version: 3.24.3
 
   packages/android-playground:
     dependencies:
@@ -785,6 +788,9 @@ importers:
       vitest:
         specifier: 3.0.5
         version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@27.0.1)(less@4.4.2)(lightningcss@1.30.2)(sass-embedded@1.93.2)(sass@1.93.2)(terser@5.44.0)
+      zod:
+        specifier: 3.24.3
+        version: 3.24.3
 
   packages/ios-playground:
     dependencies:

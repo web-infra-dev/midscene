@@ -547,15 +547,30 @@ export interface StreamingAIResponse {
   isStreamed: boolean;
 }
 
-export interface DeviceAction<T = any> {
+export interface DeviceAction<TParam = any, TReturn = any> {
   name: string;
   description?: string;
   interfaceAlias?: string;
-  paramSchema?: z.ZodType<T>;
-  /** Optional delay (ms) after runner execution. This is useful to wait for the UI to update. Defaults to 300ms. Set to 0 to skip. */
+  paramSchema?: z.ZodType<TParam>;
+  call: (param: TParam, context: ExecutorContext) => Promise<TReturn> | TReturn;
   delayAfterRunner?: number;
-  call: (param: T, context: ExecutorContext) => Promise<void> | void;
 }
+
+/**
+ * Type utilities for extracting types from DeviceAction definitions
+ */
+
+/**
+ * Extract parameter type from a DeviceAction
+ */
+export type ActionParam<Action extends DeviceAction<any, any>> =
+  Action extends DeviceAction<infer P, any> ? P : never;
+
+/**
+ * Extract return type from a DeviceAction
+ */
+export type ActionReturn<Action extends DeviceAction<any, any>> =
+  Action extends DeviceAction<any, infer R> ? R : never;
 
 /**
  * Web-specific types

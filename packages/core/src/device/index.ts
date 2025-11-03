@@ -45,23 +45,25 @@ export abstract class AbstractInterface {
 
 // Generic function to define actions with proper type inference
 // TRuntime allows specifying a different type for the runtime parameter (after location resolution)
+// TReturn allows specifying the return type of the action
 export const defineAction = <
   TSchema extends z.ZodType,
   TRuntime = z.infer<TSchema>,
+  TReturn = any,
 >(
   config: {
     name: string;
     description: string;
     interfaceAlias?: string;
     paramSchema: TSchema;
-    call: (param: TRuntime) => Promise<void>;
+    call: (param: TRuntime) => Promise<TReturn> | TReturn;
   } & Partial<
     Omit<
-      DeviceAction<TRuntime>,
+      DeviceAction<TRuntime, TReturn>,
       'name' | 'description' | 'interfaceAlias' | 'paramSchema' | 'call'
     >
   >,
-): DeviceAction<TRuntime> => {
+): DeviceAction<TRuntime, TReturn> => {
   return config as any; // Type assertion needed because schema validation type differs from runtime type
 };
 

@@ -288,8 +288,8 @@ export class TaskBuilder {
 
         debug('calling action', action.name);
         const actionFn = action.call.bind(this.interface);
-        await actionFn(param, taskContext);
-        debug('called action', action.name);
+        const actionResult = await actionFn(param, taskContext);
+        debug('called action', action.name, 'result:', actionResult);
 
         const delayAfterRunner = action.delayAfterRunner ?? 300;
         if (delayAfterRunner > 0) {
@@ -316,6 +316,7 @@ export class TaskBuilder {
             success: true,
             action: planType,
             param: param,
+            result: actionResult,
           },
         };
       },

@@ -244,6 +244,53 @@ YAML scripts now support all configuration options from the `AndroidDevice` cons
 
 :::
 
+#### Android Platform-Specific Actions
+
+**`runAdbShell` - Execute ADB Shell Commands**
+
+Execute ADB shell commands on Android devices.
+
+```yaml
+android:
+  deviceId: 'test-device'
+
+tasks:
+  - name: Clear app data
+    flow:
+      - runAdbShell: 'pm clear com.example.app'
+
+  - name: Get battery info
+    flow:
+      - runAdbShell: 'dumpsys battery'
+```
+
+**Common ADB Shell Commands:**
+- `pm clear <package>` - Clear app data
+- `dumpsys battery` - Get battery information
+- `dumpsys window` - Get window information
+- `settings get secure android_id` - Get device ID
+- `input keyevent <keycode>` - Send key events
+
+**`launch` - Launch App or URL**
+
+Launch Android apps or open URLs.
+
+```yaml
+android:
+  deviceId: 'test-device'
+
+tasks:
+  - name: Launch Settings app
+    flow:
+      - launch:
+          uri: com.android.settings
+
+  - name: Open webpage
+    flow:
+      - launch:
+          uri: https://www.example.com
+```
+
 ### The `ios` part
 
 ```yaml
@@ -273,6 +320,64 @@ ios:
 :::tip View Complete iOS Configuration Options
 YAML scripts now support all configuration options from the `IOSDevice` constructor. For the complete list of options, please refer to [IOSDevice Constructor in iOS Integration Documentation](./integrate-with-ios#iosdevice-constructor).
 :::
+
+#### iOS Platform-Specific Actions
+
+**`runWdaRequest` - Execute WebDriverAgent API Requests**
+
+Execute WebDriverAgent API requests directly on iOS devices.
+
+```yaml
+ios:
+  launch: 'com.apple.mobilesafari'
+
+tasks:
+  - name: Press home button via WDA
+    flow:
+      - runWdaRequest:
+          method: POST
+          endpoint: /session/test/wda/pressButton
+          data:
+            name: home
+
+  - name: Get device information
+    flow:
+      - runWdaRequest:
+          method: GET
+          endpoint: /wda/device/info
+```
+
+**Parameters:**
+- `method` (string, required): HTTP method (GET, POST, DELETE, etc.)
+- `endpoint` (string, required): WebDriverAgent API endpoint
+- `data` (any, optional): Request body data
+
+**Common WebDriverAgent Endpoints:**
+- `/wda/screen` - Get screen information
+- `/wda/device/info` - Get device information
+- `/session/{sessionId}/wda/pressButton` - Press hardware buttons
+- `/session/{sessionId}/wda/apps/launch` - Launch apps
+- `/session/{sessionId}/wda/apps/activate` - Activate apps
+
+**`launch` - Launch App or URL**
+
+Launch iOS apps or open URLs.
+
+```yaml
+ios:
+  wdaPort: 8100
+
+tasks:
+  - name: Launch Settings app
+    flow:
+      - launch:
+          uri: com.apple.Preferences
+
+  - name: Open webpage
+    flow:
+      - launch:
+          uri: https://www.example.com
+```
 
 ### The `tasks` part
 

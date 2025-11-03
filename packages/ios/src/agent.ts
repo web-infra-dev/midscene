@@ -1,16 +1,43 @@
+import type { ActionParam, ActionReturn, DeviceAction } from '@midscene/core';
 import { type AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
 import { getDebug } from '@midscene/shared/logger';
-import { IOSDevice, type IOSDeviceOpt } from './device';
+import {
+  type DeviceActionLaunch,
+  type DeviceActionRunWdaRequest,
+  IOSDevice,
+  type IOSDeviceOpt,
+} from './device';
 import { checkIOSEnvironment } from './utils';
 
 const debugAgent = getDebug('ios:agent');
 
 type IOSAgentOpt = AgentOpt;
 
+/**
+ * Helper type to convert DeviceAction to wrapped method signature
+ */
+type WrappedAction<T extends DeviceAction> = (
+  param: ActionParam<T>,
+) => Promise<ActionReturn<T>>;
+
 export class IOSAgent extends PageAgent<IOSDevice> {
-  async launch(uri: string): Promise<void> {
-    const device = this.page;
-    await device.launch(uri);
+  /**
+   * Launch an iOS app or URL
+   * Type-safe wrapper around the Launch action from actionSpace
+   */
+  launch!: WrappedAction<DeviceActionLaunch>;
+
+  /**
+   * Execute WebDriverAgent API request directly
+   * Type-safe wrapper around the RunWdaRequest action from actionSpace
+   */
+  runWdaRequest!: WrappedAction<DeviceActionRunWdaRequest>;
+
+  constructor(device: IOSDevice, opts?: IOSAgentOpt) {
+    super(device, opts);
+    this.launch = this.wrapActionInActionSpace<DeviceActionLaunch>('Launch');
+    this.runWdaRequest =
+      this.wrapActionInActionSpace<DeviceActionRunWdaRequest>('RunWdaRequest');
   }
 }
 

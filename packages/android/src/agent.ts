@@ -1,21 +1,41 @@
+import type { ActionParam, ActionReturn, DeviceAction } from '@midscene/core';
 import { type AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
 import { getDebug } from '@midscene/shared/logger';
-import { AndroidDevice, type AndroidDeviceOpt } from './device';
+import {
+  AndroidDevice,
+  type AndroidDeviceOpt,
+  type DeviceActionLaunch,
+  type DeviceActionRunAdbShell,
+} from './device';
 import { getConnectedDevices } from './utils';
 
 const debugAgent = getDebug('android:agent');
 
 type AndroidAgentOpt = AgentOpt;
 
-export class AndroidAgent extends PageAgent<AndroidDevice> {
-  async launch(uri: string): Promise<void> {
-    const device = this.page;
-    await device.launch(uri);
-  }
+/**
+ * Helper type to convert DeviceAction to wrapped method signature
+ */
+type WrappedAction<T extends DeviceAction> = (
+  param: ActionParam<T>,
+) => Promise<ActionReturn<T>>;
 
-  async runAdbShell(command: string): Promise<string> {
-    const adb = await this.page.getAdb();
-    return await adb.shell(command);
+export class AndroidAgent extends PageAgent<AndroidDevice> {
+  /**
+   * Launch an Android app or URL
+   */
+  launch!: WrappedAction<DeviceActionLaunch>;
+
+  /**
+   * Execute ADB shell command on Android device
+   */
+  runAdbShell!: WrappedAction<DeviceActionRunAdbShell>;
+
+  constructor(device: AndroidDevice, opts?: AndroidAgentOpt) {
+    super(device, opts);
+    this.launch = this.wrapActionInActionSpace<DeviceActionLaunch>('Launch');
+    this.runAdbShell =
+      this.wrapActionInActionSpace<DeviceActionRunAdbShell>('RunAdbShell');
   }
 }
 
