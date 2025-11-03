@@ -393,9 +393,6 @@ export class Agent<
 
   private async afterTaskRunning(runner: TaskRunner, doNotThrowError = false) {
     const executionDump = runner.dump();
-    if (this.opts.aiActionContext) {
-      executionDump.aiActionContext = this.opts.aiActionContext;
-    }
     this.appendExecutionDump(executionDump);
 
     try {
@@ -1134,9 +1131,6 @@ export class Agent<
       description: opt?.content || '',
       tasks: [task],
     };
-    if (this.opts.aiActionContext) {
-      executionDump.aiActionContext = this.opts.aiActionContext;
-    }
     // 5. append to execution dump
     this.appendExecutionDump(executionDump);
 

@@ -1,13 +1,13 @@
 /* eslint-disable max-lines */
 'use client';
 import './index.less';
-import { timeStr } from '@midscene/visualizer';
 
 import { RadiusSettingOutlined } from '@ant-design/icons';
 import type {
   BaseElement,
   ExecutionTaskInsightAssertion,
   ExecutionTaskPlanning,
+  ExecutionTaskPlanningApply,
 } from '@midscene/core';
 import { paramStr, typeStr } from '@midscene/core/agent';
 import {
@@ -121,11 +121,10 @@ const objectWithoutKeys = (obj: Record<string, unknown>, keys: string[]) =>
 const DetailSide = (): JSX.Element => {
   const task = useExecutionDump((store) => store.activeTask);
   const dump = useExecutionDump((store) => store.insightDump);
-  const activeExecution = useExecutionDump((store) => store.activeExecution);
   const { matchedElement: elements } = dump || {};
 
-  // Get aiActionContext from activeExecution
-  const aiActionContextValue = activeExecution?.aiActionContext;
+  const aiActionContextValue = (task as ExecutionTaskPlanningApply)?.param
+    ?.aiActionContext;
 
   const kv = (data: Record<string, unknown>) => {
     const isElementItem = (value: unknown): value is BaseElement =>
