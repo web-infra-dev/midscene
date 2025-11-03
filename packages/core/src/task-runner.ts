@@ -19,7 +19,7 @@ const UI_CONTEXT_CACHE_TTL_MS = 300;
 
 type TaskRunnerInitOptions = ExecutionTaskProgressOptions & {
   tasks?: ExecutionTaskApply[];
-  onFinalize?: (
+  onTaskUpdate?: (
     runner: TaskRunner,
     error?: TaskExecutionError,
   ) => Promise<void> | void;
@@ -37,7 +37,7 @@ export class TaskRunner {
 
   private readonly uiContextBuilder: () => Promise<UIContext>;
 
-  private readonly onFinalize?:
+  private readonly onTaskUpdate?:
     | ((runner: TaskRunner, error?: TaskExecutionError) => Promise<void> | void)
     | undefined;
 
@@ -54,7 +54,16 @@ export class TaskRunner {
     );
     this.onTaskStart = options?.onTaskStart;
     this.uiContextBuilder = uiContextBuilder;
-    this.onFinalize = options?.onFinalize;
+    this.onTaskUpdate = options?.onTaskUpdate;
+  }
+
+  private async emitOnTaskUpdate(
+    error?: TaskExecutionError,
+  ): Promise<void> {
+    if (!this.onTaskUpdate) {
+      return;
+    }
+    await this.onTaskUpdate(this, error);
   }
 
   private lastUiContext?: {
@@ -168,6 +177,7 @@ export class TaskRunner {
     if (this.status !== 'running') {
       this.status = 'pending';
     }
+    await this.emitOnTaskUpdate();
   }
 
   async appendAndFlush(
@@ -197,6 +207,7 @@ export class TaskRunner {
     }
 
     this.status = 'running';
+    await this.emitOnTaskUpdate();
     let taskIndex = nextPendingIndex;
     let successfullyCompleted = true;
 
@@ -213,6 +224,7 @@ export class TaskRunner {
       };
       try {
         task.status = 'running';
+        await this.emitOnTaskUpdate();
         try {
           if (this.onTaskStart) {
             await this.onTaskStart(task);
@@ -284,6 +296,7 @@ export class TaskRunner {
         task.status = 'finished';
         task.timing.end = Date.now();
         task.timing.cost = task.timing.end - task.timing.start;
+        await this.emitOnTaskUpdate();
         taskIndex++;
       } catch (e: any) {
         successfullyCompleted = false;
@@ -295,6 +308,7 @@ export class TaskRunner {
         task.status = 'failed';
         task.timing.end = Date.now();
         task.timing.cost = task.timing.end - task.timing.start;
+        await this.emitOnTaskUpdate();
         break;
       }
     }
@@ -303,15 +317,13 @@ export class TaskRunner {
     for (let i = taskIndex + 1; i < this.tasks.length; i++) {
       this.tasks[i].status = 'cancelled';
     }
-
-    if (successfullyCompleted) {
-      this.status = 'completed';
-    } else {
-      this.status = 'error';
+    if (taskIndex + 1 < this.tasks.length) {
+      await this.emitOnTaskUpdate();
     }
 
     let finalizeError: TaskExecutionError | undefined;
     if (!successfullyCompleted) {
+      this.status = 'error';
       const errorTask = this.latestErrorTask();
       const messageBase =
         errorTask?.errorMessage ||
@@ -321,10 +333,10 @@ export class TaskRunner {
       finalizeError = new TaskExecutionError(message, this, errorTask, {
         cause: errorTask?.error,
       });
-    }
-
-    if (this.onFinalize) {
-      await this.onFinalize(this, finalizeError);
+      await this.emitOnTaskUpdate(finalizeError);
+    } else {
+      this.status = 'completed';
+      await this.emitOnTaskUpdate();
     }
 
     if (finalizeError) {

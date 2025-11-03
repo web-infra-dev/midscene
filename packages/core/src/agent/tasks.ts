@@ -42,7 +42,7 @@ interface ExecutionResult<OutputType = any> {
 }
 
 interface TaskExecutorHooks {
-  onFinalize?: (
+  onTaskUpdate?: (
     runner: TaskRunner,
     error?: TaskExecutionError,
   ) => Promise<void> | void;
@@ -110,7 +110,7 @@ export class TaskExecutor {
       {
         onTaskStart: this.onTaskStartCallback,
         tasks: options?.tasks,
-        onFinalize: this.hooks?.onFinalize,
+        onTaskUpdate: this.hooks?.onTaskUpdate,
       },
     );
   }

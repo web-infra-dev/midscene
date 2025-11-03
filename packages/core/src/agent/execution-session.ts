@@ -7,7 +7,7 @@ import type {
 
 type ExecutionSessionOptions = ExecutionTaskProgressOptions & {
   tasks?: ExecutionTaskApply[];
-  onFinalize?: (
+  onTaskUpdate?: (
     runner: TaskRunner,
     error?: TaskExecutionError,
   ) => Promise<void> | void;

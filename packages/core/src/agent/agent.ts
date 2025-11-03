@@ -26,7 +26,6 @@ import {
   type ServiceExtractOption,
   type ServiceExtractParam,
   type TUserPrompt,
-  type TaskRunner,
   type UIContext,
 } from '../index';
 export type TestStatus =
@@ -69,6 +68,7 @@ import {
   parsePrompt,
   printReportMsg,
 } from './utils';
+import type { TaskRunner } from '@/task-runner';
 
 const debug = getDebug('agent');
 
@@ -155,6 +155,8 @@ export class Agent<
    * Internal promise to deduplicate screenshot scale computation
    */
   private screenshotScalePromise?: Promise<number>;
+
+  private executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
 
   // @deprecated use .interface instead
   get page() {
@@ -270,9 +272,9 @@ export class Agent<
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
       replanningCycleLimit: this.opts.replanningCycleLimit,
       hooks: {
-        onFinalize: (runner) => {
+        onTaskUpdate: (runner) => {
           const executionDump = runner.dump();
-          this.appendExecutionDump(executionDump);
+          this.appendExecutionDump(executionDump, runner);
 
           try {
             if (this.onDumpUpdate) {
@@ -360,12 +362,26 @@ export class Agent<
       executions: [],
       modelBriefs: [],
     };
+    this.executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
 
     return this.dump;
   }
 
-  appendExecutionDump(execution: ExecutionDump) {
+  appendExecutionDump(execution: ExecutionDump, runner?: TaskRunner) {
     const currentDump = this.dump;
+    if (runner) {
+      const existingIndex = this.executionDumpIndexByRunner.get(runner);
+      if (existingIndex !== undefined) {
+        currentDump.executions[existingIndex] = execution;
+        return;
+      }
+      currentDump.executions.push(execution);
+      this.executionDumpIndexByRunner.set(
+        runner,
+        currentDump.executions.length - 1,
+      );
+      return;
+    }
     currentDump.executions.push(execution);
   }
 
