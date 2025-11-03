@@ -163,6 +163,7 @@ export class TaskExecutor {
       locate: null,
       param: {
         userInstruction,
+        aiActionContext: actionContext,
       },
       executor: async (param, executorContext) => {
         const startTime = Date.now();
@@ -192,7 +193,7 @@ export class TaskExecutor {
           param.userInstruction,
           {
             context: uiContext,
-            actionContext,
+            actionContext: param.aiActionContext,
             interfaceType: this.interface.interfaceType as InterfaceType,
             actionSpace,
             modelConfig,
