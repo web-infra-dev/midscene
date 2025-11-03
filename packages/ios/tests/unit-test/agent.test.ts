@@ -51,7 +51,7 @@ describe('IOSAgent', () => {
           name: 'Launch',
           paramSchema: undefined,
           call: async (param: any) => {
-            return mockDevice.launch!(param.uri);
+            return mockDevice.launch!(param);
           },
         },
         {
@@ -113,7 +113,7 @@ describe('IOSAgent', () => {
 
   describe('RunWdaRequest Method', () => {
     it('should execute WDA request through callActionInActionSpace', async () => {
-      await agent.runWdaRequest('GET', '/status');
+      await agent.runWdaRequest({ method: 'GET', endpoint: '/status' });
 
       expect(mockDevice.runWdaRequest).toHaveBeenCalledWith(
         'GET',
@@ -129,7 +129,7 @@ describe('IOSAgent', () => {
       const mockResponse: StatusResponse = { value: { state: 'ready' } };
       mockDevice.runWdaRequest = vi.fn().mockResolvedValue(mockResponse);
 
-      await agent.runWdaRequest<StatusResponse>('GET', '/status');
+      await agent.runWdaRequest({ method: 'GET', endpoint: '/status' });
 
       expect(mockDevice.runWdaRequest).toHaveBeenCalledWith(
         'GET',
@@ -142,7 +142,11 @@ describe('IOSAgent', () => {
       const requestData = { key: 'value' };
       mockDevice.runWdaRequest = vi.fn().mockResolvedValue({ success: true });
 
-      await agent.runWdaRequest('POST', '/wda/keys', requestData);
+      await agent.runWdaRequest({
+        method: 'POST',
+        endpoint: '/wda/keys',
+        data: requestData,
+      });
 
       expect(mockDevice.runWdaRequest).toHaveBeenCalledWith(
         'POST',

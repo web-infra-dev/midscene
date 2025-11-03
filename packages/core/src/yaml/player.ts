@@ -546,21 +546,32 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
             `matchedAction: ${matchedAction.name}`,
             `flowParams: ${JSON.stringify(stringParamToCall)}`,
           );
-          await agent.callActionInActionSpace(
+          const result = await agent.callActionInActionSpace(
             matchedAction.name,
             stringParamToCall,
           );
+
+          // Store result if there's a name property in flowItem
+          const resultName = (flowItem as any).name;
+          if (result !== undefined) {
+            this.setResult(resultName, result);
+          }
         } else {
-          // Create a new object instead of mutating the original flowItem
-          // This prevents issues when the same YAML script is executed multiple times
-          const flowItemForProcessing = locatePromptShortcut
-            ? { ...flowItem, prompt: locatePromptShortcut }
-            : flowItem;
+          // Determine the source for parameter extraction:
+          // - If we have a locatePromptShortcut, use the flowItem (for actions like aiTap with prompt)
+          // - Otherwise, use actionParamForMatchedAction (for actions like runWdaRequest with structured params)
+          const sourceForParams =
+            locatePromptShortcut && typeof actionParamForMatchedAction === 'string'
+              ? { ...flowItem, prompt: locatePromptShortcut }
+              : typeof actionParamForMatchedAction === 'object' &&
+                  actionParamForMatchedAction !== null
+                ? actionParamForMatchedAction
+                : flowItem;
 
           const { locateParam, restParams } =
             buildDetailedLocateParamAndRestParams(
               locatePromptShortcut || '',
-              flowItemForProcessing as LocateOption,
+              sourceForParams as LocateOption,
               [
                 matchedAction.name,
                 matchedAction.interfaceAlias || '_never_mind_',
@@ -576,7 +587,13 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
             `matchedAction: ${matchedAction.name}`,
             `flowParams: ${JSON.stringify(flowParams, null, 2)}`,
           );
-          await agent.callActionInActionSpace(matchedAction.name, flowParams);
+          const result = await agent.callActionInActionSpace(matchedAction.name, flowParams);
+
+          // Store result if there's a name property in flowItem
+          const resultName = (flowItem as any).name;
+          if (result !== undefined) {
+            this.setResult(resultName, result);
+          }
         }
       }
     }

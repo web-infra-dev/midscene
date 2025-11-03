@@ -13,6 +13,7 @@ import { ScriptPlayer, buildYaml, parseYamlScript } from '@midscene/core/yaml';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { uuid } from '@midscene/shared/utils';
 import { type MockedFunction, describe, expect, test, vi } from 'vitest';
+import { actionTapParamSchema } from '@midscene/core/device';
 
 const serverRoot = join(__dirname, 'server_root');
 
@@ -830,6 +831,7 @@ tasks:
           {
             name: 'aiTap',
             interfaceAlias: 'aiTap',
+            paramSchema: actionTapParamSchema,
             call: vi.fn(),
           },
         ],
@@ -861,7 +863,14 @@ tasks:
       [
         [
           "aiTap",
-          {},
+          {
+            "locate": {
+              "cacheable": true,
+              "deepThink": false,
+              "prompt": "some button",
+              "xpath": undefined,
+            },
+          },
         ],
       ]
     `);
