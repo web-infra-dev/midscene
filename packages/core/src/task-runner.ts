@@ -38,10 +38,7 @@ export class TaskRunner {
   private readonly uiContextBuilder: () => Promise<UIContext>;
 
   private readonly onFinalize?:
-    | ((
-        runner: TaskRunner,
-        error?: TaskExecutionError,
-      ) => Promise<void> | void)
+    | ((runner: TaskRunner, error?: TaskExecutionError) => Promise<void> | void)
     | undefined;
 
   constructor(
@@ -318,9 +315,7 @@ export class TaskRunner {
       const errorTask = this.latestErrorTask();
       const messageBase =
         errorTask?.errorMessage ||
-        (errorTask?.error
-          ? String(errorTask.error)
-          : 'Task execution failed');
+        (errorTask?.error ? String(errorTask.error) : 'Task execution failed');
       const stack = errorTask?.errorStack;
       const message = stack ? `${messageBase}\n${stack}` : messageBase;
       finalizeError = new TaskExecutionError(message, this, errorTask, {

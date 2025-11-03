@@ -1,4 +1,4 @@
-import { TaskRunner, TaskExecutionError } from '@/task-runner';
+import { type TaskExecutionError, TaskRunner } from '@/task-runner';
 import type {
   ExecutionTaskApply,
   ExecutionTaskProgressOptions,
