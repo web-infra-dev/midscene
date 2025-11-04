@@ -313,11 +313,7 @@ export interface ExecutionRecorderItem {
   timing?: string;
 }
 
-export type ExecutionTaskType =
-  | 'Planning'
-  | 'Insight'
-  | 'Action Space'
-  | 'Log';
+export type ExecutionTaskType = 'Planning' | 'Insight' | 'Action Space' | 'Log';
 
 export interface ExecutorContext {
   task: ExecutionTask;
