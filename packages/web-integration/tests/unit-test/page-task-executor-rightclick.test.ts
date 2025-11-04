@@ -103,7 +103,7 @@ describe('TaskExecutor RightClick Action', () => {
     expect(tasks).toHaveLength(2);
 
     // First task should be Locate
-    expect(tasks[0].type).toBe('Insight');
+    expect(tasks[0].type).toBe('Planning');
     expect(tasks[0].subType).toBe('Locate');
 
     // Second task should be RightClick
