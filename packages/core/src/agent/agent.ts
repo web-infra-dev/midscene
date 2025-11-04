@@ -51,6 +51,7 @@ import {
 } from '../yaml/index';
 
 import type { AbstractInterface } from '@/device';
+import type { TaskRunner } from '@/task-runner';
 import {
   ModelConfigManager,
   globalModelConfigManager,
@@ -68,7 +69,6 @@ import {
   parsePrompt,
   printReportMsg,
 } from './utils';
-import type { TaskRunner } from '@/task-runner';
 
 const debug = getDebug('agent');
 

@@ -57,9 +57,7 @@ export class TaskRunner {
     this.onTaskUpdate = options?.onTaskUpdate;
   }
 
-  private async emitOnTaskUpdate(
-    error?: TaskExecutionError,
-  ): Promise<void> {
+  private async emitOnTaskUpdate(error?: TaskExecutionError): Promise<void> {
     if (!this.onTaskUpdate) {
       return;
     }
