@@ -73,13 +73,13 @@ describe(
       };
       const tapperFn = vi.fn();
       const actionTask: ExecutionTaskActionApply = {
-        type: 'Action',
+        type: 'Action Space',
         param: taskParam,
         locate: null,
         executor: tapperFn,
       };
       const actionTask2: ExecutionTaskActionApply = {
-        type: 'Action',
+        type: 'Action Space',
         param: taskParam,
         locate: null,
         executor: async () => {
@@ -124,7 +124,7 @@ describe(
 
       const insightTask1 = insightFindTask();
       const actionTask: ExecutionTaskActionApply = {
-        type: 'Action',
+        type: 'Action Space',
         param: {
           action: 'tap',
           element: 'previous',
@@ -220,13 +220,13 @@ describe(
       const runner = new TaskRunner('sub-task-test', uiContextBuilder, {
         tasks: [
           {
-            type: 'Action',
+            type: 'Action Space',
             executor: async (_, context) => {
               recordedContexts.push(context.uiContext!);
             },
           },
           {
-            type: 'Action',
+            type: 'Action Space',
             subTask: true,
             executor: async (_, context) => {
               recordedContexts.push(context.uiContext!);
@@ -257,7 +257,7 @@ describe(
       const runner = new TaskRunner('sub-task-error', uiContextBuilder, {
         tasks: [
           {
-            type: 'Action',
+            type: 'Action Space',
             subTask: true,
             executor: vi.fn(),
           },

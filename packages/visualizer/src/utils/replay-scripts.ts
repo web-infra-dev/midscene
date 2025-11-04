@@ -398,7 +398,7 @@ export const generateAnimationScripts = (
         insightOnTop = true;
       }
     } else if (
-      task.type === 'Action' &&
+      task.type === 'Action Space' &&
       task.subType !== 'FalsyConditionStatement'
     ) {
       const title = typeStr(task);

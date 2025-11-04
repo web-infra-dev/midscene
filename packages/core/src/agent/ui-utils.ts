@@ -127,7 +127,7 @@ export function paramStr(task: ExecutionTask) {
       (task as ExecutionTaskInsightAssertion)?.param?.assertion;
   }
 
-  if (task.type === 'Action') {
+  if (task.type === 'Action Space') {
     const locate = (task as ExecutionTaskAction)?.locate;
     const locateStr = locate ? locateParamStr(locate) : '';
 

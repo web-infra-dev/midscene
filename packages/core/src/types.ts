@@ -316,8 +316,7 @@ export interface ExecutionRecorderItem {
 export type ExecutionTaskType =
   | 'Planning'
   | 'Insight'
-  | 'Action'
-  | 'Assertion'
+  | 'Action Space'
   | 'Log';
 
 export interface ExecutorContext {
@@ -458,7 +457,7 @@ export type ExecutionTaskInsightAssertion =
 task - action (i.e. interact) 
 */
 export type ExecutionTaskActionApply<ActionParam = any> = ExecutionTaskApply<
-  'Action',
+  'Action Space',
   ActionParam,
   void,
   void

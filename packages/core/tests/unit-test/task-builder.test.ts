@@ -79,10 +79,10 @@ describe('TaskBuilder', () => {
 
     expect(tasks.map((task) => [task.type, task.subType])).toEqual([
       ['Insight', 'Locate'],
-      ['Action', 'Finished'],
-      ['Action', 'Sleep'],
+      ['Action Space', 'Finished'],
+      ['Action Space', 'Sleep'],
       ['Insight', 'Locate'],
-      ['Action', 'Tap'],
+      ['Action Space', 'Tap'],
     ]);
     expect(tasks.every((task) => task.subTask === undefined)).toBe(true);
   });

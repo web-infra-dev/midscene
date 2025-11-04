@@ -317,7 +317,7 @@ const DetailSide = (): JSX.Element => {
           : []),
       ],
     });
-  } else if (task?.type === 'Action') {
+  } else if (task?.type === 'Action Space') {
     taskInput = MetaKV({
       data: [
         { key: 'type', content: (task && typeStr(task)) || '' },
