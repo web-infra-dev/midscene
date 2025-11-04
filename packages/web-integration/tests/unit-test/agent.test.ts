@@ -249,7 +249,7 @@ describe('PageAgent reportFileName', () => {
   });
 });
 
-describe('PageAgent aiWaitFor with doNotThrowError', () => {
+describe('PageAgent aiWaitFor', () => {
   let agent: PageAgent;
   let mockTaskExecutor: any;
 
@@ -272,7 +272,7 @@ describe('PageAgent aiWaitFor with doNotThrowError', () => {
     agent.taskExecutor = mockTaskExecutor;
   });
 
-  it('should call waitFor with doNotThrowError option in createTypeQueryTask', async () => {
+  it('should call waitFor with provided timeout options', async () => {
     // Mock the waitFor method to return a successful runner
     const mockExecutorResult = {
       runner: {
@@ -301,24 +301,13 @@ describe('PageAgent aiWaitFor with doNotThrowError', () => {
     );
   });
 
-  it('should handle executor error state and still generate report', async () => {
-    // Mock the waitFor method to return a runner in error state
-    const mockExecutorResult = {
-      runner: {
-        dump: () => ({ name: 'waitFor test', tasks: [] }),
-        isInErrorState: () => true,
-        latestErrorTask: () => ({
-          error: 'Test error message',
-          errorStack: 'Test error stack',
-        }),
-      },
-    };
+  it('should surface executor errors', async () => {
+    mockTaskExecutor.waitFor.mockRejectedValue(
+      new Error('Test executor failure'),
+    );
 
-    mockTaskExecutor.waitFor.mockResolvedValue(mockExecutorResult);
-
-    // Call aiWaitFor and expect it to throw after generating report
     await expect(agent.aiWaitFor('test assertion')).rejects.toThrow(
-      'Test error message\nTest error stack',
+      'Test executor failure',
     );
 
     // Verify that waitFor was called
@@ -377,30 +366,6 @@ describe('PageAgent aiWaitFor with doNotThrowError', () => {
         checkIntervalMs: 5000,
       },
       modelConfigCalcByMockedModelConfigFnResult,
-    );
-  });
-
-  it('should call afterTaskRunning with doNotThrowError=true', async () => {
-    const mockExecutorResult = {
-      runner: {
-        dump: () => ({ name: 'waitFor test', tasks: [] }),
-        isInErrorState: () => false,
-        latestErrorTask: () => null,
-      },
-    };
-
-    mockTaskExecutor.waitFor.mockResolvedValue(mockExecutorResult);
-
-    // Spy on afterTaskRunning method
-    const afterTaskRunningSpy = vi.spyOn(agent as any, 'afterTaskRunning');
-
-    // Call aiWaitFor
-    await agent.aiWaitFor('test assertion');
-
-    // Verify that afterTaskRunning was called with doNotThrowError=true
-    expect(afterTaskRunningSpy).toHaveBeenCalledWith(
-      mockExecutorResult.runner,
-      true,
     );
   });
 });

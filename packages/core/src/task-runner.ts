@@ -17,6 +17,14 @@ import { assert } from '@midscene/shared/utils';
 const debug = getDebug('task-runner');
 const UI_CONTEXT_CACHE_TTL_MS = 300;
 
+type TaskRunnerInitOptions = ExecutionTaskProgressOptions & {
+  tasks?: ExecutionTaskApply[];
+  onTaskUpdate?: (
+    runner: TaskRunner,
+    error?: TaskExecutionError,
+  ) => Promise<void> | void;
+};
+
 export class TaskRunner {
   name: string;
 
@@ -29,12 +37,14 @@ export class TaskRunner {
 
   private readonly uiContextBuilder: () => Promise<UIContext>;
 
+  private readonly onTaskUpdate?:
+    | ((runner: TaskRunner, error?: TaskExecutionError) => Promise<void> | void)
+    | undefined;
+
   constructor(
     name: string,
     uiContextBuilder: () => Promise<UIContext>,
-    options?: ExecutionTaskProgressOptions & {
-      tasks?: ExecutionTaskApply[];
-    },
+    options?: TaskRunnerInitOptions,
   ) {
     this.status =
       options?.tasks && options.tasks.length > 0 ? 'pending' : 'init';
@@ -44,6 +54,14 @@ export class TaskRunner {
     );
     this.onTaskStart = options?.onTaskStart;
     this.uiContextBuilder = uiContextBuilder;
+    this.onTaskUpdate = options?.onTaskUpdate;
+  }
+
+  private async emitOnTaskUpdate(error?: TaskExecutionError): Promise<void> {
+    if (!this.onTaskUpdate) {
+      return;
+    }
+    await this.onTaskUpdate(this, error);
   }
 
   private lastUiContext?: {
@@ -157,6 +175,7 @@ export class TaskRunner {
     if (this.status !== 'running') {
       this.status = 'pending';
     }
+    await this.emitOnTaskUpdate();
   }
 
   async appendAndFlush(
@@ -186,6 +205,7 @@ export class TaskRunner {
     }
 
     this.status = 'running';
+    await this.emitOnTaskUpdate();
     let taskIndex = nextPendingIndex;
     let successfullyCompleted = true;
 
@@ -202,6 +222,7 @@ export class TaskRunner {
       };
       try {
         task.status = 'running';
+        await this.emitOnTaskUpdate();
         try {
           if (this.onTaskStart) {
             await this.onTaskStart(task);
@@ -273,6 +294,7 @@ export class TaskRunner {
         task.status = 'finished';
         task.timing.end = Date.now();
         task.timing.cost = task.timing.end - task.timing.start;
+        await this.emitOnTaskUpdate();
         taskIndex++;
       } catch (e: any) {
         successfullyCompleted = false;
@@ -284,6 +306,7 @@ export class TaskRunner {
         task.status = 'failed';
         task.timing.end = Date.now();
         task.timing.cost = task.timing.end - task.timing.start;
+        await this.emitOnTaskUpdate();
         break;
       }
     }
@@ -292,11 +315,30 @@ export class TaskRunner {
     for (let i = taskIndex + 1; i < this.tasks.length; i++) {
       this.tasks[i].status = 'cancelled';
     }
+    if (taskIndex + 1 < this.tasks.length) {
+      await this.emitOnTaskUpdate();
+    }
 
-    if (successfullyCompleted) {
-      this.status = 'completed';
-    } else {
+    let finalizeError: TaskExecutionError | undefined;
+    if (!successfullyCompleted) {
       this.status = 'error';
+      const errorTask = this.latestErrorTask();
+      const messageBase =
+        errorTask?.errorMessage ||
+        (errorTask?.error ? String(errorTask.error) : 'Task execution failed');
+      const stack = errorTask?.errorStack;
+      const message = stack ? `${messageBase}\n${stack}` : messageBase;
+      finalizeError = new TaskExecutionError(message, this, errorTask, {
+        cause: errorTask?.error,
+      });
+      await this.emitOnTaskUpdate(finalizeError);
+    } else {
+      this.status = 'completed';
+      await this.emitOnTaskUpdate();
+    }
+
+    if (finalizeError) {
+      throw finalizeError;
     }
 
     if (this.tasks.length) {
@@ -358,5 +400,22 @@ export class TaskRunner {
       output: undefined,
       runner: this,
     };
+  }
+}
+
+export class TaskExecutionError extends Error {
+  runner: TaskRunner;
+
+  errorTask: ExecutionTask | null;
+
+  constructor(
+    message: string,
+    runner: TaskRunner,
+    errorTask: ExecutionTask | null,
+    options?: { cause?: unknown },
+  ) {
+    super(message, options);
+    this.runner = runner;
+    this.errorTask = errorTask;
   }
 }

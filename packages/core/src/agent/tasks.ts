@@ -3,6 +3,7 @@ import type { TMultimodalPrompt, TUserPrompt } from '@/ai-model/common';
 import type { AbstractInterface } from '@/device';
 import type Service from '@/service';
 import type { TaskRunner } from '@/task-runner';
+import { TaskExecutionError } from '@/task-runner';
 import type {
   ExecutionTaskApply,
   ExecutionTaskInsightQueryApply,
@@ -40,9 +41,18 @@ interface ExecutionResult<OutputType = any> {
   runner: TaskRunner;
 }
 
+interface TaskExecutorHooks {
+  onTaskUpdate?: (
+    runner: TaskRunner,
+    error?: TaskExecutionError,
+  ) => Promise<void> | void;
+}
+
 const debug = getDebug('device-task-executor');
 const defaultReplanningCycleLimit = 10;
 const defaultVlmUiTarsReplanningCycleLimit = 40;
+
+export { TaskExecutionError };
 
 export class TaskExecutor {
   interface: AbstractInterface;
@@ -56,6 +66,8 @@ export class TaskExecutor {
   private conversationHistory: ConversationHistory;
 
   onTaskStartCallback?: ExecutionTaskProgressOptions['onTaskStart'];
+
+  private readonly hooks?: TaskExecutorHooks;
 
   replanningCycleLimit?: number;
 
@@ -71,6 +83,7 @@ export class TaskExecutor {
       taskCache?: TaskCache;
       onTaskStart?: ExecutionTaskProgressOptions['onTaskStart'];
       replanningCycleLimit?: number;
+      hooks?: TaskExecutorHooks;
     },
   ) {
     this.interface = interfaceInstance;
@@ -78,6 +91,7 @@ export class TaskExecutor {
     this.taskCache = opts.taskCache;
     this.onTaskStartCallback = opts?.onTaskStart;
     this.replanningCycleLimit = opts.replanningCycleLimit;
+    this.hooks = opts.hooks;
     this.conversationHistory = new ConversationHistory();
     this.taskBuilder = new TaskBuilder({
       interfaceInstance,
@@ -96,6 +110,7 @@ export class TaskExecutor {
       {
         onTaskStart: this.onTaskStartCallback,
         tasks: options?.tasks,
+        onTaskUpdate: this.hooks?.onTaskUpdate,
       },
     );
   }
@@ -145,10 +160,11 @@ export class TaskExecutor {
         };
       },
     };
+    const runner = session.getRunner();
     await session.appendAndRun(task);
 
     return {
-      runner: session.getRunner(),
+      runner,
     };
   }
 
@@ -260,11 +276,12 @@ export class TaskExecutor {
   ): Promise<ExecutionResult> {
     const session = this.createExecutionSession(title);
     const { tasks } = await this.convertPlanToExecutable(plans, modelConfig);
+    const runner = session.getRunner();
     const result = await session.appendAndRun(tasks);
-    const { output } = result!;
+    const { output } = result ?? {};
     return {
       output,
-      runner: session.getRunner(),
+      runner,
     };
   }
 
@@ -322,17 +339,11 @@ export class TaskExecutor {
       );
 
       const result = await session.appendAndRun(planningTask);
-      const planResult: PlanningAIResponse = result?.output;
-      if (session.isInErrorState()) {
-        return {
-          output: planResult,
-          runner,
-        };
-      }
+      const planResult = result?.output as PlanningAIResponse | undefined;
 
       // Execute planned actions
-      const plans = planResult.actions || [];
-      yamlFlow.push(...(planResult.yamlFlow || []));
+      const plans = planResult?.actions || [];
+      yamlFlow.push(...(planResult?.yamlFlow || []));
 
       let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
       try {
@@ -340,7 +351,6 @@ export class TaskExecutor {
           cacheable,
           subTask: true,
         });
-        await session.appendAndRun(executables.tasks);
       } catch (error) {
         return session.appendErrorPlan(
           `Error converting plans to executable tasks: ${error}, plans: ${JSON.stringify(
@@ -348,15 +358,10 @@ export class TaskExecutor {
           )}`,
         );
       }
-      if (session.isInErrorState()) {
-        return {
-          output: undefined,
-          runner,
-        };
-      }
+      await session.appendAndRun(executables.tasks);
 
       // Check if task is complete
-      if (!planResult.more_actions_needed_by_instruction) {
+      if (!planResult?.more_actions_needed_by_instruction) {
         break;
       }
 
@@ -364,12 +369,13 @@ export class TaskExecutor {
       replanCount++;
     }
 
-    return {
+    const finalResult = {
       output: {
         yamlFlow,
       },
       runner,
     };
+    return finalResult;
   }
 
   private createTypeQueryTask(
@@ -516,6 +522,7 @@ export class TaskExecutor {
       multimodalPrompt,
     );
 
+    const runner = session.getRunner();
     const result = await session.appendAndRun(queryTask);
 
     if (!result) {
@@ -529,7 +536,7 @@ export class TaskExecutor {
     return {
       output,
       thought,
-      runner: session.getRunner(),
+      runner,
     };
   }
 
@@ -583,9 +590,7 @@ export class TaskExecutor {
         'WaitFor',
         textPrompt,
         modelConfig,
-        {
-          doNotThrowError: true,
-        },
+        undefined,
         multimodalPrompt,
       );
 

@@ -1,6 +1,7 @@
 import { TaskRunner } from '@/index';
 import type {
   ExecutionTaskActionApply,
+  ExecutionTaskInsightLocate,
   ExecutionTaskPlanningLocate,
   ExecutionTaskPlanningLocateApply,
   UIContext,
@@ -177,8 +178,9 @@ describe(
       const runner = new TaskRunner('test', fakeUIContextBuilder, {
         tasks: [insightFindTask(true), insightFindTask()],
       });
-      const r = await runner.flush();
-      const tasks = runner.tasks as ExecutionTaskPlanningLocate[];
+      // expect to throw an error
+      await expect(runner.flush()).rejects.toThrowError();
+      const tasks = runner.tasks as ExecutionTaskInsightLocate[];
 
       expect(tasks.length).toBe(2);
       expect(tasks[0].status).toBe('failed');
@@ -188,12 +190,6 @@ describe(
       expect(runner.status).toBe('error');
       expect(runner.latestErrorTask()).toBeTruthy();
       expect(runner.isInErrorState()).toBeTruthy();
-      expect(r?.output).toEqual('error-output');
-
-      // expect to throw an error
-      await expect(async () => {
-        await runner.flush();
-      }).rejects.toThrowError();
 
       await expect(async () => {
         await runner.append(insightFindTask());
@@ -264,14 +260,16 @@ describe(
         ],
       });
 
-      await runner.flush();
+      await expect(runner.flush()).rejects.toThrowError(
+        'subTask requires uiContext from previous non-subTask task',
+      );
       expect(runner.status).toBe('error');
       expect(runner.tasks[0].errorMessage).toBe(
         'subTask requires uiContext from previous non-subTask task',
       );
-      await expect(async () => {
-        await runner.flush();
-      }).rejects.toThrowError('task runner is in error state');
+      await expect(runner.flush()).rejects.toThrowError(
+        'task runner is in error state',
+      );
     });
   },
 );

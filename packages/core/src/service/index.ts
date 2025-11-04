@@ -260,7 +260,7 @@ export default class Service {
       data,
     });
 
-    if (errorLog && !data && !opt?.doNotThrowError) {
+    if (errorLog && !data) {
       throw new ServiceError(errorLog, dump);
     }
 

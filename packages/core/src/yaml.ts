@@ -14,7 +14,6 @@ export interface LocateOption {
 export interface ServiceExtractOption {
   domIncluded?: boolean | 'visible-only';
   screenshotIncluded?: boolean;
-  doNotThrowError?: boolean;
 }
 
 export interface ReferenceImage {

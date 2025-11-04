@@ -26,7 +26,6 @@ import {
   type ServiceExtractOption,
   type ServiceExtractParam,
   type TUserPrompt,
-  type TaskRunner,
   type UIContext,
 } from '../index';
 export type TestStatus =
@@ -52,6 +51,7 @@ import {
 } from '../yaml/index';
 
 import type { AbstractInterface } from '@/device';
+import type { TaskRunner } from '@/task-runner';
 import {
   ModelConfigManager,
   globalModelConfigManager,
@@ -61,7 +61,7 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 // import type { AndroidDeviceInputOpt } from '../device';
 import { TaskCache } from './task-cache';
-import { TaskExecutor, locatePlanForLocate } from './tasks';
+import { TaskExecutionError, TaskExecutor, locatePlanForLocate } from './tasks';
 import { locateParamStr, paramStr, taskTitleStr, typeStr } from './ui-utils';
 import {
   commonContextParser,
@@ -155,6 +155,8 @@ export class Agent<
    * Internal promise to deduplicate screenshot scale computation
    */
   private screenshotScalePromise?: Promise<number>;
+
+  private executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
 
   // @deprecated use .interface instead
   get page() {
@@ -269,6 +271,22 @@ export class Agent<
       taskCache: this.taskCache,
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
       replanningCycleLimit: this.opts.replanningCycleLimit,
+      hooks: {
+        onTaskUpdate: (runner) => {
+          const executionDump = runner.dump();
+          this.appendExecutionDump(executionDump, runner);
+
+          try {
+            if (this.onDumpUpdate) {
+              this.onDumpUpdate(this.dumpDataString());
+            }
+          } catch (error) {
+            console.error('Error in onDumpUpdate', error);
+          }
+
+          this.writeOutActionDumps();
+        },
+      },
     });
     this.dump = this.resetDump();
     this.reportFileName =
@@ -344,12 +362,26 @@ export class Agent<
       executions: [],
       modelBriefs: [],
     };
+    this.executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
 
     return this.dump;
   }
 
-  appendExecutionDump(execution: ExecutionDump) {
+  appendExecutionDump(execution: ExecutionDump, runner?: TaskRunner) {
     const currentDump = this.dump;
+    if (runner) {
+      const existingIndex = this.executionDumpIndexByRunner.get(runner);
+      if (existingIndex !== undefined) {
+        currentDump.executions[existingIndex] = execution;
+        return;
+      }
+      currentDump.executions.push(execution);
+      this.executionDumpIndexByRunner.set(
+        runner,
+        currentDump.executions.length - 1,
+      );
+      return;
+    }
     currentDump.executions.push(execution);
   }
 
@@ -393,7 +425,7 @@ export class Agent<
     }
   }
 
-  private async afterTaskRunning(runner: TaskRunner, doNotThrowError = false) {
+  private async handleRunnerAfterFlush(runner: TaskRunner) {
     const executionDump = runner.dump();
     this.appendExecutionDump(executionDump);
 
@@ -406,13 +438,6 @@ export class Agent<
     }
 
     this.writeOutActionDumps();
-
-    if (runner.isInErrorState() && !doNotThrowError) {
-      const errorTask = runner.latestErrorTask();
-      throw new Error(`${errorTask?.errorMessage}\n${errorTask?.errorStack}`, {
-        cause: errorTask?.error,
-      });
-    }
   }
 
   wrapActionInActionSpace<T extends DeviceAction>(
@@ -453,7 +478,6 @@ export class Agent<
       plans,
       modelConfig,
     );
-    await this.afterTaskRunning(runner);
     return output;
   }
 
@@ -715,19 +739,17 @@ export class Agent<
         : this.taskCache?.matchPlanCache(taskPrompt);
     if (matchedCache && this.taskCache?.isCacheResultUsed) {
       // log into report file
-      const { runner } = await this.taskExecutor.loadYamlFlowAsPlanning(
+      await this.taskExecutor.loadYamlFlowAsPlanning(
         taskPrompt,
         matchedCache.cacheContent?.yamlWorkflow,
       );
-
-      await this.afterTaskRunning(runner);
 
       debug('matched cache, will call .runYaml to run the action');
       const yaml = matchedCache.cacheContent?.yamlWorkflow;
       return this.runYaml(yaml);
     }
 
-    const { output, runner } = await this.taskExecutor.action(
+    const { output } = await this.taskExecutor.action(
       taskPrompt,
       modelConfig,
       this.opts.aiActionContext,
@@ -755,7 +777,6 @@ export class Agent<
       );
     }
 
-    await this.afterTaskRunning(runner);
     return output;
   }
 
@@ -776,13 +797,12 @@ export class Agent<
     opt: ServiceExtractOption = defaultServiceExtractOption,
   ): Promise<ReturnType> {
     const modelConfig = this.modelConfigManager.getModelConfig('VQA');
-    const { output, runner } = await this.taskExecutor.createTypeQueryExecution(
+    const { output } = await this.taskExecutor.createTypeQueryExecution(
       'Query',
       demand,
       modelConfig,
       opt,
     );
-    await this.afterTaskRunning(runner);
     return output as ReturnType;
   }
 
@@ -793,14 +813,13 @@ export class Agent<
     const modelConfig = this.modelConfigManager.getModelConfig('VQA');
 
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
-    const { output, runner } = await this.taskExecutor.createTypeQueryExecution(
+    const { output } = await this.taskExecutor.createTypeQueryExecution(
       'Boolean',
       textPrompt,
       modelConfig,
       opt,
       multimodalPrompt,
     );
-    await this.afterTaskRunning(runner);
     return output as boolean;
   }
 
@@ -811,14 +830,13 @@ export class Agent<
     const modelConfig = this.modelConfigManager.getModelConfig('VQA');
 
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
-    const { output, runner } = await this.taskExecutor.createTypeQueryExecution(
+    const { output } = await this.taskExecutor.createTypeQueryExecution(
       'Number',
       textPrompt,
       modelConfig,
       opt,
       multimodalPrompt,
     );
-    await this.afterTaskRunning(runner);
     return output as number;
   }
 
@@ -829,14 +847,13 @@ export class Agent<
     const modelConfig = this.modelConfigManager.getModelConfig('VQA');
 
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
-    const { output, runner } = await this.taskExecutor.createTypeQueryExecution(
+    const { output } = await this.taskExecutor.createTypeQueryExecution(
       'String',
       textPrompt,
       modelConfig,
       opt,
       multimodalPrompt,
     );
-    await this.afterTaskRunning(runner);
     return output as string;
   }
 
@@ -941,12 +958,11 @@ export class Agent<
     const plans = [locatePlan];
     const modelConfig = this.modelConfigManager.getModelConfig('grounding');
 
-    const { runner, output } = await this.taskExecutor.runPlans(
+    const { output } = await this.taskExecutor.runPlans(
       taskTitleStr('Locate', locateParamStr(locateParam)),
       plans,
       modelConfig,
     );
-    await this.afterTaskRunning(runner);
 
     const { element } = output;
 
@@ -977,43 +993,73 @@ export class Agent<
       screenshotIncluded:
         opt?.screenshotIncluded ??
         defaultServiceExtractOption.screenshotIncluded,
-      doNotThrowError: opt?.doNotThrowError,
     };
 
     const { textPrompt, multimodalPrompt } = parsePrompt(assertion);
+    const assertionText =
+      typeof assertion === 'string' ? assertion : assertion.prompt;
 
-    const { output, runner, thought } =
-      await this.taskExecutor.createTypeQueryExecution<boolean>(
-        'Assert',
-        textPrompt,
-        modelConfig,
-        serviceOpt,
-        multimodalPrompt,
-      );
-    await this.afterTaskRunning(runner, true);
+    try {
+      const { output, thought } =
+        await this.taskExecutor.createTypeQueryExecution<boolean>(
+          'Assert',
+          textPrompt,
+          modelConfig,
+          serviceOpt,
+          multimodalPrompt,
+        );
 
-    const message = output
-      ? undefined
-      : `Assertion failed: ${msg || (typeof assertion === 'string' ? assertion : assertion.prompt)}\nReason: ${
-          thought || runner.latestErrorTask()?.error || '(no_reason)'
-        }`;
+      const pass = Boolean(output);
+      const message = pass
+        ? undefined
+        : `Assertion failed: ${msg || assertionText}\nReason: ${thought || '(no_reason)'}`;
 
-    if (opt?.keepRawResponse) {
-      return {
-        pass: output,
-        thought,
-        message,
-      };
-    }
+      if (opt?.keepRawResponse) {
+        return {
+          pass,
+          thought,
+          message,
+        };
+      }
 
-    if (!output) {
-      throw new Error(message);
+      if (!pass) {
+        throw new Error(message);
+      }
+    } catch (error) {
+      if (error instanceof TaskExecutionError) {
+        const errorTask = error.errorTask;
+        const thought = errorTask?.thought;
+        const rawError = errorTask?.error;
+        const rawMessage =
+          errorTask?.errorMessage ||
+          (rawError instanceof Error
+            ? rawError.message
+            : rawError
+              ? String(rawError)
+              : undefined);
+        const reason = thought || rawMessage || '(no_reason)';
+        const message = `Assertion failed: ${msg || assertionText}\nReason: ${reason}`;
+
+        if (opt?.keepRawResponse) {
+          return {
+            pass: false,
+            thought,
+            message,
+          };
+        }
+
+        throw new Error(message, {
+          cause: rawError ?? error,
+        });
+      }
+
+      throw error;
     }
   }
 
   async aiWaitFor(assertion: TUserPrompt, opt?: AgentWaitForOpt) {
     const modelConfig = this.modelConfigManager.getModelConfig('VQA');
-    const { runner } = await this.taskExecutor.waitFor(
+    await this.taskExecutor.waitFor(
       assertion,
       {
         timeoutMs: opt?.timeoutMs || 15 * 1000,
@@ -1021,12 +1067,6 @@ export class Agent<
       },
       modelConfig,
     );
-    await this.afterTaskRunning(runner, true);
-
-    if (runner.isInErrorState()) {
-      const errorTask = runner.latestErrorTask();
-      throw new Error(`${errorTask?.error}\n${errorTask?.errorStack}`);
-    }
   }
 
   async ai(taskPrompt: string, type = 'action') {

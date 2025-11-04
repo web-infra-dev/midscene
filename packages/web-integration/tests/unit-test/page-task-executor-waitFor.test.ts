@@ -117,9 +117,7 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
       'WaitFor',
       'test assertion',
       mockedModelConfig,
-      {
-        doNotThrowError: true,
-      },
+      undefined,
       undefined,
     );
 
@@ -171,9 +169,7 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
       'WaitFor',
       'test assertion',
       mockedModelConfig,
-      {
-        doNotThrowError: true,
-      },
+      undefined,
       undefined,
     );
 
@@ -182,55 +178,6 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
 
     // Verify the result
     expect(result.runner).toBeDefined();
-    expect(result.output).toBeUndefined();
-  });
-
-  it('should timeout and return error plan when assertion never succeeds', async () => {
-    // Spy on the private createTypeQueryTask method
-    const createTypeQueryTaskSpy = vi.spyOn(
-      taskExecutor as any,
-      'createTypeQueryTask',
-    );
-
-    // Mock createTypeQueryTask to always return false (assertion never passes)
-    const mockTask = {
-      type: 'Insight',
-      subType: 'Assert',
-      locate: null,
-      param: {
-        dataDemand: { result: 'Boolean, test assertion' },
-      },
-      executor: vi.fn().mockResolvedValue({
-        output: false,
-        thought: 'Assertion failed - element not found',
-      }),
-    };
-    createTypeQueryTaskSpy.mockResolvedValue(mockTask);
-
-    // Call waitFor method with very short timeout to trigger timeout quickly
-    const result = await taskExecutor.waitFor(
-      'test assertion',
-      {
-        timeoutMs: 100, // Very short timeout
-        checkIntervalMs: 50,
-      },
-      mockedModelConfig,
-    );
-
-    // Verify that createTypeQueryTask was called with doNotThrowError: true
-    expect(createTypeQueryTaskSpy).toHaveBeenCalledWith(
-      'WaitFor',
-      'test assertion',
-      mockedModelConfig,
-      {
-        doNotThrowError: true,
-      },
-      undefined,
-    );
-
-    // Verify the result - when timeout occurs, waitFor should return an error state
-    expect(result.runner).toBeDefined();
-    expect(result.runner.isInErrorState()).toBe(true);
     expect(result.output).toBeUndefined();
   });
 });

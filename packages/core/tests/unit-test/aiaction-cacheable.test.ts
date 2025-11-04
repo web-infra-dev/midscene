@@ -3,11 +3,12 @@ import type { AbstractInterface } from '@/device';
 import { uuid } from '@midscene/shared/utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type Service from '../../src';
+import { getMidsceneLocationSchema, z } from '../../src';
 
 describe('aiAction cacheable option propagation', () => {
   let taskExecutor: TaskExecutor;
   let mockInterface: AbstractInterface;
-  let mockInsight: Insight;
+  let mockService: Service;
   let taskCache: TaskCache;
 
   beforeEach(() => {
@@ -19,14 +20,10 @@ describe('aiAction cacheable option propagation', () => {
       actionSpace: vi.fn().mockResolvedValue([
         {
           name: 'Click',
-          paramSchema: {
-            type: 'object',
-            properties: {
-              locate: {
-                'x-midscene-locator': true,
-              },
-            },
-          },
+          paramSchema: z.object({
+            locate: getMidsceneLocationSchema(),
+          }),
+          call: vi.fn().mockResolvedValue({}),
         },
       ]),
       cacheFeatureForRect: vi.fn().mockResolvedValue({
@@ -36,7 +33,7 @@ describe('aiAction cacheable option propagation', () => {
     };
 
     // Create mock insight
-    mockInsight = {
+    mockService = {
       contextRetrieverFn: vi.fn().mockResolvedValue({
         screenshotBase64: 'base64-screenshot',
         tree: {
@@ -60,7 +57,7 @@ describe('aiAction cacheable option propagation', () => {
     taskCache = new TaskCache(uuid(), true);
 
     // Create task executor
-    taskExecutor = new TaskExecutor(mockInterface, mockInsight, {
+    taskExecutor = new TaskExecutor(mockInterface, mockService, {
       taskCache,
     });
   });
@@ -84,10 +81,12 @@ describe('aiAction cacheable option propagation', () => {
       },
       {
         type: 'Click',
-        locate: {
-          prompt: 'button to click',
+
+        param: {
+          locate: {
+            prompt: 'button to click',
+          },
         },
-        param: null,
         thought: 'click the button',
       },
     ];
@@ -150,10 +149,11 @@ describe('aiAction cacheable option propagation', () => {
           actions: [
             {
               type: 'Click',
-              locate: {
-                prompt: 'button to click',
+              param: {
+                locate: {
+                  prompt: 'button to click',
+                },
               },
-              param: {},
               thought: 'click the button',
             },
           ],
