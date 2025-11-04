@@ -201,31 +201,6 @@ export class AndroidDevice implements AbstractInterface {
       defineActionKeyboardPress(async (param) => {
         await this.keyboardPress(param.keyName);
       }),
-      defineAction({
-        name: 'AndroidBackButton',
-        description: 'Trigger the system "back" operation on Android devices',
-        paramSchema: z.object({}),
-        call: async () => {
-          await this.back();
-        },
-      }),
-      defineAction({
-        name: 'AndroidHomeButton',
-        description: 'Trigger the system "home" operation on Android devices',
-        paramSchema: z.object({}),
-        call: async () => {
-          await this.home();
-        },
-      }),
-      defineAction({
-        name: 'AndroidRecentAppsButton',
-        description:
-          'Trigger the system "recent apps" operation on Android devices',
-        paramSchema: z.object({}),
-        call: async () => {
-          await this.recentApps();
-        },
-      }),
       defineAction<
         z.ZodObject<{
           duration: z.ZodOptional<z.ZodNumber>;
@@ -1627,6 +1602,9 @@ const createPlatformActions = (
 ): {
   RunAdbShell: DeviceActionRunAdbShell;
   Launch: DeviceActionLaunch;
+  AndroidBackButton: DeviceActionAndroidBackButton;
+  AndroidHomeButton: DeviceActionAndroidHomeButton;
+  AndroidRecentAppsButton: DeviceActionAndroidRecentAppsButton;
 } => {
   return {
     RunAdbShell: defineAction({
@@ -1648,5 +1626,34 @@ const createPlatformActions = (
         await device.launch(param);
       },
     }),
+    AndroidBackButton: defineAction({
+      name: 'AndroidBackButton',
+      description: 'Trigger the system "back" operation on Android devices',
+      paramSchema: z.void().describe('No parameters required'),
+      call: async () => {
+        await device.back();
+      },
+    }),
+    AndroidHomeButton: defineAction({
+      name: 'AndroidHomeButton',
+      description: 'Trigger the system "home" operation on Android devices',
+      paramSchema: z.void().describe('No parameters required'),
+      call: async () => {
+        await device.home();
+      },
+    }),
+    AndroidRecentAppsButton: defineAction({
+      name: 'AndroidRecentAppsButton',
+      description:
+        'Trigger the system "recent apps" operation on Android devices',
+      paramSchema: z.void().describe('No parameters required'),
+      call: async () => {
+        await device.recentApps();
+      },
+    }),
   } as const;
 };
+
+export type DeviceActionAndroidBackButton = DeviceAction<void, void>;
+export type DeviceActionAndroidHomeButton = DeviceAction<void, void>;
+export type DeviceActionAndroidRecentAppsButton = DeviceAction<void, void>;

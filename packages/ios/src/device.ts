@@ -170,23 +170,6 @@ export class IOSDevice implements AbstractInterface {
       defineActionKeyboardPress(async (param) => {
         await this.pressKey(param.keyName);
       }),
-      defineAction({
-        name: 'IOSHomeButton',
-        description: 'Trigger the system "home" operation on iOS devices',
-        paramSchema: z.object({}),
-        call: async () => {
-          await this.home();
-        },
-      }),
-      defineAction({
-        name: 'IOSAppSwitcher',
-        description:
-          'Trigger the system "app switcher" operation on iOS devices',
-        paramSchema: z.object({}),
-        call: async () => {
-          await this.appSwitcher();
-        },
-      }),
       defineAction<
         z.ZodObject<{
           duration: z.ZodOptional<z.ZodNumber>;
@@ -990,5 +973,24 @@ const createPlatformActions = (device: IOSDevice) => {
         await device.launch(param);
       },
     }),
+    IOSHomeButton: defineAction({
+      name: 'IOSHomeButton',
+      description: 'Trigger the system "home" operation on iOS devices',
+      paramSchema: z.void().describe('No parameters required'),
+      call: async () => {
+        await device.home();
+      },
+    }),
+    IOSAppSwitcher: defineAction({
+      name: 'IOSAppSwitcher',
+      description: 'Trigger the system "app switcher" operation on iOS devices',
+      paramSchema: z.void().describe('No parameters required'),
+      call: async () => {
+        await device.appSwitcher();
+      },
+    }),
   } as const;
 };
+
+export type DeviceActionIOSHomeButton = DeviceAction<void, void>;
+export type DeviceActionIOSAppSwitcher = DeviceAction<void, void>;
