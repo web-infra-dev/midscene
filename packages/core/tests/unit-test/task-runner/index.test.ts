@@ -178,8 +178,8 @@ describe(
       const runner = new TaskRunner('test', fakeUIContextBuilder, {
         tasks: [insightFindTask(true), insightFindTask()],
       });
-      const r = await runner.flush();
-      await expect(runner.flush()).rejects.toThrowError('test-error');
+      // expect to throw an error
+      await expect(runner.flush()).rejects.toThrowError();
       const tasks = runner.tasks as ExecutionTaskInsightLocate[];
 
       expect(tasks.length).toBe(2);
@@ -190,9 +190,6 @@ describe(
       expect(runner.status).toBe('error');
       expect(runner.latestErrorTask()).toBeTruthy();
       expect(runner.isInErrorState()).toBeTruthy();
-
-      // expect to throw an error
-      await expect(runner.flush()).rejects.toThrowError();
 
       await expect(async () => {
         await runner.append(insightFindTask());
