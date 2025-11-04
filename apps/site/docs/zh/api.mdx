@@ -681,7 +681,7 @@ function aiWaitFor(
 
   - `assertion: string` - 用自然语言描述的断言条件
   - `options?: object` - 可选的配置对象
-    - `timeoutMs?: number` - 超时时间（毫秒），默认为 15000
+    - `timeoutMs?: number` - 超时时间（毫秒，默认为 15000）。每轮检查开始时都会记录时间，只要该时间点仍在超时窗口内，就会进入下一轮检查；否则视为超时
     - `checkIntervalMs?: number` - 检查间隔（毫秒），默认为 3000
 
 - 返回值：

@@ -689,7 +689,7 @@ function aiWaitFor(
 
   - `assertion: string` - The condition described in natural language.
   - `options?: object` - An optional configuration object containing:
-    - `timeoutMs?: number` - Timeout in milliseconds (default: 15000).
+    - `timeoutMs?: number` - Maximum window in milliseconds for starting a new check (default: 15000). If the previous evaluation began before this window closes, Midscene keeps checking; otherwise it stops with a timeout.
     - `checkIntervalMs?: number` - Interval for checking in milliseconds (default: 3000).
 
 - Return Value:

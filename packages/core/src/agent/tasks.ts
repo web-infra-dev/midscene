@@ -573,10 +573,12 @@ export class TaskExecutor {
     );
 
     const overallStartTime = Date.now();
-    let startTime = Date.now();
+    let lastCheckStart = overallStartTime;
     let errorThought = '';
-    while (Date.now() - overallStartTime < timeoutMs) {
-      startTime = Date.now();
+    // Continue checking as long as the previous iteration began within the timeout window.
+    while (lastCheckStart - overallStartTime <= timeoutMs) {
+      const currentCheckStart = Date.now();
+      lastCheckStart = currentCheckStart;
       const queryTask = await this.createTypeQueryTask(
         'WaitFor',
         textPrompt,
@@ -606,8 +608,8 @@ export class TaskExecutor {
         (!result && `No result from assertion: ${textPrompt}`) ||
         `unknown error when waiting for assertion: ${textPrompt}`;
       const now = Date.now();
-      if (now - startTime < checkIntervalMs) {
-        const timeRemaining = checkIntervalMs - (now - startTime);
+      if (now - currentCheckStart < checkIntervalMs) {
+        const timeRemaining = checkIntervalMs - (now - currentCheckStart);
         const sleepTask = this.taskBuilder.createSleepTask({
           timeMs: timeRemaining,
         });
