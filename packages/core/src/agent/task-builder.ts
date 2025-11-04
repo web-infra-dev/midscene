@@ -7,7 +7,7 @@ import type {
   ExecutionTaskActionApply,
   ExecutionTaskApply,
   ExecutionTaskHitBy,
-  ExecutionTaskInsightLocateApply,
+  ExecutionTaskPlanningLocateApply,
   LocateResultElement,
   LocateResultWithDump,
   PlanningAction,
@@ -124,7 +124,7 @@ export class TaskBuilder {
     context: PlanBuildContext,
   ): void {
     const taskActionFinished: ExecutionTaskActionApply<null> = {
-      type: 'Action',
+      type: 'Action Space',
       subType: 'Finished',
       param: null,
       thought: plan.thought,
@@ -154,7 +154,7 @@ export class TaskBuilder {
     meta?: { thought?: string; locate?: PlanningAction['locate'] | null },
   ): ExecutionTaskActionApply<PlanningActionParamSleep> {
     return {
-      type: 'Action',
+      type: 'Action Space',
       subType: 'Sleep',
       param,
       thought: meta?.thought,
@@ -227,12 +227,12 @@ export class TaskBuilder {
     });
 
     const task: ExecutionTaskApply<
-      'Action',
+      'Action Space',
       any,
       { success: boolean; action: string; param: any },
       void
     > = {
-      type: 'Action',
+      type: 'Action Space',
       subType: planType,
       thought: plan.thought,
       param: plan.param,
@@ -330,7 +330,7 @@ export class TaskBuilder {
     detailedLocateParam: DetailedLocateParam | string,
     context: PlanBuildContext,
     onResult?: (result: LocateResultElement) => void,
-  ): ExecutionTaskInsightLocateApply {
+  ): ExecutionTaskPlanningLocateApply {
     const { cacheable, modelConfig } = context;
     let locateParam = detailedLocateParam;
 
@@ -347,8 +347,8 @@ export class TaskBuilder {
       };
     }
 
-    const taskFind: ExecutionTaskInsightLocateApply = {
-      type: 'Insight',
+    const taskFind: ExecutionTaskPlanningLocateApply = {
+      type: 'Planning',
       subType: 'Locate',
       subTask: context.subTask || undefined,
       param: locateParam,

@@ -4,7 +4,7 @@ import type {
   ExecutionTask,
   ExecutionTaskActionApply,
   ExecutionTaskApply,
-  ExecutionTaskInsightLocateOutput,
+  ExecutionTaskPlanningLocateOutput,
   ExecutionTaskProgressOptions,
   ExecutionTaskReturn,
   ExecutorContext,
@@ -189,7 +189,7 @@ export class TaskRunner {
     let taskIndex = nextPendingIndex;
     let successfullyCompleted = true;
 
-    let previousFindOutput: ExecutionTaskInsightLocateOutput | undefined;
+    let previousFindOutput: ExecutionTaskPlanningLocateOutput | undefined;
 
     while (taskIndex < this.tasks.length) {
       const task = this.tasks[taskIndex];
@@ -210,7 +210,7 @@ export class TaskRunner {
           console.error('error in onTaskStart', e);
         }
         assert(
-          ['Insight', 'Action', 'Planning'].indexOf(task.type) >= 0,
+          ['Insight', 'Action Space', 'Planning'].indexOf(task.type) >= 0,
           `unsupported task type: ${task.type}`,
         );
 
@@ -237,8 +237,7 @@ export class TaskRunner {
 
         if (task.type === 'Insight') {
           assert(
-            task.subType === 'Locate' ||
-              task.subType === 'Query' ||
+            task.subType === 'Query' ||
               task.subType === 'Assert' ||
               task.subType === 'WaitFor' ||
               task.subType === 'Boolean' ||
@@ -247,12 +246,14 @@ export class TaskRunner {
             `unsupported service subType: ${task.subType}`,
           );
           returnValue = await task.executor(param, executorContext);
+        } else if (task.type === 'Planning') {
+          returnValue = await task.executor(param, executorContext);
           if (task.subType === 'Locate') {
             previousFindOutput = (
-              returnValue as ExecutionTaskReturn<ExecutionTaskInsightLocateOutput>
+              returnValue as ExecutionTaskReturn<ExecutionTaskPlanningLocateOutput>
             )?.output;
           }
-        } else if (task.type === 'Action' || task.type === 'Planning') {
+        } else if (task.type === 'Action Space') {
           returnValue = await task.executor(param, executorContext);
         } else {
           console.warn(
@@ -340,7 +341,7 @@ export class TaskRunner {
     runner: TaskRunner;
   }> {
     const errorTask: ExecutionTaskActionApply<PlanningActionParamError> = {
-      type: 'Action',
+      type: 'Action Space',
       subType: 'Error',
       param: {
         thought: errorMsg,

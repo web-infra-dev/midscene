@@ -1,8 +1,8 @@
 import { TaskRunner } from '@/index';
 import type {
   ExecutionTaskActionApply,
-  ExecutionTaskInsightLocate,
-  ExecutionTaskInsightLocateApply,
+  ExecutionTaskPlanningLocate,
+  ExecutionTaskPlanningLocateApply,
   UIContext,
 } from '@/index';
 import { fakeService } from 'tests/utils';
@@ -11,8 +11,8 @@ import { describe, expect, it, vi } from 'vitest';
 const insightFindTask = (shouldThrow?: boolean) => {
   const insight = fakeService('test-task-runner');
 
-  const insightFindTask: ExecutionTaskInsightLocateApply = {
-    type: 'Insight',
+  const insightFindTask: ExecutionTaskPlanningLocateApply = {
+    type: 'Planning',
     subType: 'Locate',
     param: {
       prompt: 'test',
@@ -73,13 +73,13 @@ describe(
       };
       const tapperFn = vi.fn();
       const actionTask: ExecutionTaskActionApply = {
-        type: 'Action',
+        type: 'Action Space',
         param: taskParam,
         locate: null,
         executor: tapperFn,
       };
       const actionTask2: ExecutionTaskActionApply = {
-        type: 'Action',
+        type: 'Action Space',
         param: taskParam,
         locate: null,
         executor: async () => {
@@ -95,7 +95,7 @@ describe(
         tasks: inputTasks,
       });
       const flushResult = await runner.flush();
-      const tasks = runner.tasks as ExecutionTaskInsightLocate[];
+      const tasks = runner.tasks as ExecutionTaskPlanningLocate[];
       expect(runner.isInErrorState()).toBeFalsy();
       const { element } = tasks[0].output || {};
       expect(element).toBeTruthy();
@@ -124,7 +124,7 @@ describe(
 
       const insightTask1 = insightFindTask();
       const actionTask: ExecutionTaskActionApply = {
-        type: 'Action',
+        type: 'Action Space',
         param: {
           action: 'tap',
           element: 'previous',
@@ -178,7 +178,7 @@ describe(
         tasks: [insightFindTask(true), insightFindTask()],
       });
       const r = await runner.flush();
-      const tasks = runner.tasks as ExecutionTaskInsightLocate[];
+      const tasks = runner.tasks as ExecutionTaskPlanningLocate[];
 
       expect(tasks.length).toBe(2);
       expect(tasks[0].status).toBe('failed');
@@ -220,13 +220,13 @@ describe(
       const runner = new TaskRunner('sub-task-test', uiContextBuilder, {
         tasks: [
           {
-            type: 'Action',
+            type: 'Action Space',
             executor: async (_, context) => {
               recordedContexts.push(context.uiContext!);
             },
           },
           {
-            type: 'Action',
+            type: 'Action Space',
             subTask: true,
             executor: async (_, context) => {
               recordedContexts.push(context.uiContext!);
@@ -257,7 +257,7 @@ describe(
       const runner = new TaskRunner('sub-task-error', uiContextBuilder, {
         tasks: [
           {
-            type: 'Action',
+            type: 'Action Space',
             subTask: true,
             executor: vi.fn(),
           },

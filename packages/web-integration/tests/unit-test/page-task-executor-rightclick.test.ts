@@ -62,7 +62,7 @@ describe('TaskExecutor RightClick Action', () => {
     ]);
 
     expect(tasks).toHaveLength(1);
-    expect(tasks[0].type).toBe('Action');
+    expect(tasks[0].type).toBe('Action Space');
     expect(tasks[0].subType).toBe('RightClick');
     expect(tasks[0].thought).toBe(
       'Right click on the element to open context menu',
@@ -103,11 +103,11 @@ describe('TaskExecutor RightClick Action', () => {
     expect(tasks).toHaveLength(2);
 
     // First task should be Locate
-    expect(tasks[0].type).toBe('Insight');
+    expect(tasks[0].type).toBe('Planning');
     expect(tasks[0].subType).toBe('Locate');
 
     // Second task should be RightClick
-    expect(tasks[1].type).toBe('Action');
+    expect(tasks[1].type).toBe('Action Space');
     expect(tasks[1].subType).toBe('RightClick');
   });
 

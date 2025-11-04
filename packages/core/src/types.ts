@@ -313,12 +313,7 @@ export interface ExecutionRecorderItem {
   timing?: string;
 }
 
-export type ExecutionTaskType =
-  | 'Planning'
-  | 'Insight'
-  | 'Action'
-  | 'Assertion'
-  | 'Log';
+export type ExecutionTaskType = 'Planning' | 'Insight' | 'Action Space' | 'Log';
 
 export interface ExecutorContext {
   task: ExecutionTask;
@@ -458,7 +453,7 @@ export type ExecutionTaskInsightAssertion =
 task - action (i.e. interact) 
 */
 export type ExecutionTaskActionApply<ActionParam = any> = ExecutionTaskApply<
-  'Action',
+  'Action Space',
   ActionParam,
   void,
   void
@@ -492,6 +487,27 @@ export type ExecutionTaskPlanningApply = ExecutionTaskApply<
 >;
 
 export type ExecutionTaskPlanning = ExecutionTask<ExecutionTaskPlanningApply>;
+
+/*
+task - planning-locate
+*/
+export type ExecutionTaskPlanningLocateParam = PlanningLocateParam;
+
+export interface ExecutionTaskPlanningLocateOutput {
+  element: LocateResultElement | null;
+}
+
+export type ExecutionTaskPlanningDump = ServiceDump;
+
+export type ExecutionTaskPlanningLocateApply = ExecutionTaskApply<
+  'Planning',
+  ExecutionTaskPlanningLocateParam,
+  ExecutionTaskPlanningLocateOutput,
+  ExecutionTaskPlanningDump
+>;
+
+export type ExecutionTaskPlanningLocate =
+  ExecutionTask<ExecutionTaskPlanningLocateApply>;
 
 /*
 Grouped dump
