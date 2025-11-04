@@ -4,6 +4,9 @@ import { getDebug } from '@midscene/shared/logger';
 import {
   AndroidDevice,
   type AndroidDeviceOpt,
+  type DeviceActionAndroidBackButton,
+  type DeviceActionAndroidHomeButton,
+  type DeviceActionAndroidRecentAppsButton,
   type DeviceActionLaunch,
   type DeviceActionRunAdbShell,
 } from './device';
@@ -13,11 +16,15 @@ const debugAgent = getDebug('android:agent');
 
 type AndroidAgentOpt = AgentOpt;
 
+type ActionArgs<T extends DeviceAction> = [ActionParam<T>] extends [void]
+  ? []
+  : [ActionParam<T>];
+
 /**
  * Helper type to convert DeviceAction to wrapped method signature
  */
 type WrappedAction<T extends DeviceAction> = (
-  param: ActionParam<T>,
+  ...args: ActionArgs<T>
 ) => Promise<ActionReturn<T>>;
 
 export class AndroidAgent extends PageAgent<AndroidDevice> {
@@ -31,11 +38,44 @@ export class AndroidAgent extends PageAgent<AndroidDevice> {
    */
   runAdbShell!: WrappedAction<DeviceActionRunAdbShell>;
 
+  /**
+   * Trigger the system back operation on Android devices
+   */
+  back!: WrappedAction<DeviceActionAndroidBackButton>;
+
+  /**
+   * Trigger the system home operation on Android devices
+   */
+  home!: WrappedAction<DeviceActionAndroidHomeButton>;
+
+  /**
+   * Trigger the system recent apps operation on Android devices
+   */
+  recentApps!: WrappedAction<DeviceActionAndroidRecentAppsButton>;
+
   constructor(device: AndroidDevice, opts?: AndroidAgentOpt) {
     super(device, opts);
-    this.launch = this.wrapActionInActionSpace<DeviceActionLaunch>('Launch');
+    this.launch = this.createActionWrapper<DeviceActionLaunch>('Launch');
     this.runAdbShell =
-      this.wrapActionInActionSpace<DeviceActionRunAdbShell>('RunAdbShell');
+      this.createActionWrapper<DeviceActionRunAdbShell>('RunAdbShell');
+    this.back = this.createActionWrapper<DeviceActionAndroidBackButton>(
+      'AndroidBackButton',
+    );
+    this.home = this.createActionWrapper<DeviceActionAndroidHomeButton>(
+      'AndroidHomeButton',
+    );
+    this.recentApps =
+      this.createActionWrapper<DeviceActionAndroidRecentAppsButton>(
+        'AndroidRecentAppsButton',
+      );
+  }
+
+  private createActionWrapper<T extends DeviceAction>(
+    name: string,
+  ): WrappedAction<T> {
+    const action = this.wrapActionInActionSpace<T>(name);
+    return ((...args: ActionArgs<T>) =>
+      action(args[0] as ActionParam<T>)) as WrappedAction<T>;
   }
 }
 

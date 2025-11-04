@@ -2,6 +2,8 @@ import type { ActionParam, ActionReturn, DeviceAction } from '@midscene/core';
 import { type AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
 import { getDebug } from '@midscene/shared/logger';
 import {
+  type DeviceActionIOSAppSwitcher,
+  type DeviceActionIOSHomeButton,
   type DeviceActionLaunch,
   type DeviceActionRunWdaRequest,
   IOSDevice,
@@ -13,11 +15,15 @@ const debugAgent = getDebug('ios:agent');
 
 type IOSAgentOpt = AgentOpt;
 
+type ActionArgs<T extends DeviceAction> = [ActionParam<T>] extends [void]
+  ? []
+  : [ActionParam<T>];
+
 /**
  * Helper type to convert DeviceAction to wrapped method signature
  */
 type WrappedAction<T extends DeviceAction> = (
-  param: ActionParam<T>,
+  ...args: ActionArgs<T>
 ) => Promise<ActionReturn<T>>;
 
 export class IOSAgent extends PageAgent<IOSDevice> {
@@ -33,11 +39,35 @@ export class IOSAgent extends PageAgent<IOSDevice> {
    */
   runWdaRequest!: WrappedAction<DeviceActionRunWdaRequest>;
 
+  /**
+   * Trigger the system home operation on iOS devices
+   */
+  home!: WrappedAction<DeviceActionIOSHomeButton>;
+
+  /**
+   * Trigger the system app switcher operation on iOS devices
+   */
+  appSwitcher!: WrappedAction<DeviceActionIOSAppSwitcher>;
+
   constructor(device: IOSDevice, opts?: IOSAgentOpt) {
     super(device, opts);
-    this.launch = this.wrapActionInActionSpace<DeviceActionLaunch>('Launch');
+    this.launch = this.createActionWrapper<DeviceActionLaunch>('Launch');
     this.runWdaRequest =
-      this.wrapActionInActionSpace<DeviceActionRunWdaRequest>('RunWdaRequest');
+      this.createActionWrapper<DeviceActionRunWdaRequest>('RunWdaRequest');
+    this.home = this.createActionWrapper<DeviceActionIOSHomeButton>(
+      'IOSHomeButton',
+    );
+    this.appSwitcher = this.createActionWrapper<DeviceActionIOSAppSwitcher>(
+      'IOSAppSwitcher',
+    );
+  }
+
+  private createActionWrapper<T extends DeviceAction>(
+    name: string,
+  ): WrappedAction<T> {
+    const action = this.wrapActionInActionSpace<T>(name);
+    return ((...args: ActionArgs<T>) =>
+      action(args[0] as ActionParam<T>)) as WrappedAction<T>;
   }
 }
 
