@@ -983,8 +983,7 @@ const createPlatformActions = (device: IOSDevice) => {
     }),
     IOSAppSwitcher: defineAction({
       name: 'IOSAppSwitcher',
-      description:
-        'Trigger the system "app switcher" operation on iOS devices',
+      description: 'Trigger the system "app switcher" operation on iOS devices',
       paramSchema: z.void().describe('No parameters required'),
       call: async () => {
         await device.appSwitcher();

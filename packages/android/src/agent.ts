@@ -16,7 +16,7 @@ const debugAgent = getDebug('android:agent');
 
 type AndroidAgentOpt = AgentOpt;
 
-type ActionArgs<T extends DeviceAction> = [ActionParam<T>] extends [void]
+type ActionArgs<T extends DeviceAction> = [ActionParam<T>] extends [undefined]
   ? []
   : [ActionParam<T>];
 
@@ -58,12 +58,14 @@ export class AndroidAgent extends PageAgent<AndroidDevice> {
     this.launch = this.createActionWrapper<DeviceActionLaunch>('Launch');
     this.runAdbShell =
       this.createActionWrapper<DeviceActionRunAdbShell>('RunAdbShell');
-    this.back = this.createActionWrapper<DeviceActionAndroidBackButton>(
-      'AndroidBackButton',
-    );
-    this.home = this.createActionWrapper<DeviceActionAndroidHomeButton>(
-      'AndroidHomeButton',
-    );
+    this.back =
+      this.createActionWrapper<DeviceActionAndroidBackButton>(
+        'AndroidBackButton',
+      );
+    this.home =
+      this.createActionWrapper<DeviceActionAndroidHomeButton>(
+        'AndroidHomeButton',
+      );
     this.recentApps =
       this.createActionWrapper<DeviceActionAndroidRecentAppsButton>(
         'AndroidRecentAppsButton',

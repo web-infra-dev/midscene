@@ -15,7 +15,7 @@ const debugAgent = getDebug('ios:agent');
 
 type IOSAgentOpt = AgentOpt;
 
-type ActionArgs<T extends DeviceAction> = [ActionParam<T>] extends [void]
+type ActionArgs<T extends DeviceAction> = [ActionParam<T>] extends [undefined]
   ? []
   : [ActionParam<T>];
 
@@ -54,12 +54,10 @@ export class IOSAgent extends PageAgent<IOSDevice> {
     this.launch = this.createActionWrapper<DeviceActionLaunch>('Launch');
     this.runWdaRequest =
       this.createActionWrapper<DeviceActionRunWdaRequest>('RunWdaRequest');
-    this.home = this.createActionWrapper<DeviceActionIOSHomeButton>(
-      'IOSHomeButton',
-    );
-    this.appSwitcher = this.createActionWrapper<DeviceActionIOSAppSwitcher>(
-      'IOSAppSwitcher',
-    );
+    this.home =
+      this.createActionWrapper<DeviceActionIOSHomeButton>('IOSHomeButton');
+    this.appSwitcher =
+      this.createActionWrapper<DeviceActionIOSAppSwitcher>('IOSAppSwitcher');
   }
 
   private createActionWrapper<T extends DeviceAction>(
