@@ -80,10 +80,6 @@ export default defineConfig({
           text: 'Web browser automation',
           items: [
             {
-              text: 'MCP server',
-              link: '/web-mcp',
-            },
-            {
               text: 'Integrate with Playwright',
               link: '/integrate-with-playwright',
             },
@@ -103,10 +99,6 @@ export default defineConfig({
             {
               text: 'Intro',
               link: '/blog-support-android-automation',
-            },
-            {
-              text: 'MCP server',
-              link: '/mcp-android',
             },
             {
               text: 'Quick experience with Android',
@@ -184,6 +176,10 @@ export default defineConfig({
               text: 'Use JavaScript to optimize the AI automation code',
               link: '/blog-programming-practice-using-structured-api',
             },
+            {
+              text: 'MCP server',
+              link: '/advanced/mcp',
+            },
           ],
         },
         {
@@ -230,10 +226,6 @@ export default defineConfig({
           text: 'Web 浏览器自动化',
           items: [
             {
-              text: 'MCP 服务',
-              link: '/zh/web-mcp',
-            },
-            {
               text: '集成到 Playwright',
               link: '/zh/integrate-with-playwright',
             },
@@ -253,10 +245,6 @@ export default defineConfig({
             {
               text: '介绍',
               link: '/zh/blog-support-android-automation',
-            },
-            {
-              text: 'MCP 服务',
-              link: '/zh/mcp-android',
             },
             {
               text: '使用 Android Playground 快速体验',
@@ -333,6 +321,10 @@ export default defineConfig({
             {
               text: '使用 JavaScript 优化 AI 自动化代码',
               link: '/zh/blog-programming-practice-using-structured-api',
+            },
+            {
+              text: 'MCP 服务',
+              link: '/zh/advanced/mcp',
             },
           ],
         },
