@@ -250,6 +250,52 @@ For details on how to use `runWdaRequest` and `launch` actions in YAML scripts, 
 
 :::
 
+#### `agent.home()`
+
+Return to the iOS Home screen.
+
+- Type
+
+```typescript
+function home(): Promise<void>;
+```
+
+- Parameters: _None_
+- Return Value: `Promise<void>`
+
+- Example:
+
+```typescript
+import { IOSAgent, agentFromWebDriverAgent } from '@midscene/ios';
+
+const agent = await agentFromWebDriverAgent();
+
+await agent.home(); // Return to the Home screen
+```
+
+#### `agent.appSwitcher()`
+
+Open the iOS App Switcher.
+
+- Type
+
+```typescript
+function appSwitcher(): Promise<void>;
+```
+
+- Parameters: _None_
+- Return Value: `Promise<void>`
+
+- Example:
+
+```typescript
+import { IOSAgent, agentFromWebDriverAgent } from '@midscene/ios';
+
+const agent = await agentFromWebDriverAgent();
+
+await agent.appSwitcher(); // Reveal the multitasking view
+```
+
 ### `agentFromWebDriverAgent()` (Recommended)
 
 Create an IOSAgent by connecting to WebDriverAgent service. This is the most convenient way.

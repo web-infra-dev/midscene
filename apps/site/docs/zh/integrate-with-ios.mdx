@@ -298,6 +298,52 @@ const deviceInfo = await agent.runWdaRequest('GET', '/wda/device/info');
 
 :::
 
+#### `agent.home()`
+
+返回到 iOS 主屏幕。
+
+- 类型
+
+```typescript
+function home(): Promise<void>;
+```
+
+- 参数：无
+- 返回值：`Promise<void>`
+
+- 示例：
+
+```typescript
+import { IOSAgent, agentFromWebDriverAgent } from '@midscene/ios';
+
+const agent = await agentFromWebDriverAgent();
+
+await agent.home(); // 回到主屏幕
+```
+
+#### `agent.appSwitcher()`
+
+打开 iOS 多任务切换界面。
+
+- 类型
+
+```typescript
+function appSwitcher(): Promise<void>;
+```
+
+- 参数：无
+- 返回值：`Promise<void>`
+
+- 示例：
+
+```typescript
+import { IOSAgent, agentFromWebDriverAgent } from '@midscene/ios';
+
+const agent = await agentFromWebDriverAgent();
+
+await agent.appSwitcher(); // 打开多任务切换界面
+```
+
 ### `agentFromWebDriverAgent()` (推荐)
 
 通过连接 WebDriverAgent 服务创建 IOSAgent，这是最简便的方式。

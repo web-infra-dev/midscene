@@ -208,6 +208,75 @@ For details on how to use `runAdbShell` and `launch` actions in YAML scripts, re
 
 :::
 
+#### `agent.back()`
+
+Trigger the system Back operation.
+
+- Type
+
+```typescript
+function back(): Promise<void>;
+```
+
+- Parameters: _None_
+- Return Value: `Promise<void>`
+
+- Example:
+
+```typescript
+import { agentFromAdbDevice } from '@midscene/android';
+
+const agent = await agentFromAdbDevice();
+
+await agent.back(); // Navigate back
+```
+
+#### `agent.home()`
+
+Return to the Android Home screen.
+
+- Type
+
+```typescript
+function home(): Promise<void>;
+```
+
+- Parameters: _None_
+- Return Value: `Promise<void>`
+
+- Example:
+
+```typescript
+import { agentFromAdbDevice } from '@midscene/android';
+
+const agent = await agentFromAdbDevice();
+
+await agent.home(); // Return to the launcher
+```
+
+#### `agent.recentApps()`
+
+Open the Android Recents/Overview screen.
+
+- Type
+
+```typescript
+function recentApps(): Promise<void>;
+```
+
+- Parameters: _None_
+- Return Value: `Promise<void>`
+
+- Example:
+
+```typescript
+import { agentFromAdbDevice } from '@midscene/android';
+
+const agent = await agentFromAdbDevice();
+
+await agent.recentApps(); // Show recent apps
+```
+
 #### `agentFromAdbDevice()`
 
 Create a AndroidAgent from a connected adb device.

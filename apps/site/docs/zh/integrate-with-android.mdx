@@ -207,6 +207,75 @@ console.log(result);
 
 :::
 
+#### `agent.back()`
+
+触发系统的返回操作。
+
+- 类型
+
+```typescript
+function back(): Promise<void>;
+```
+
+- 参数：无
+- 返回值：`Promise<void>`
+
+- 示例：
+
+```typescript
+import { agentFromAdbDevice } from '@midscene/android';
+
+const agent = await agentFromAdbDevice();
+
+await agent.back(); // 执行返回操作
+```
+
+#### `agent.home()`
+
+返回到 Android 主屏幕。
+
+- 类型
+
+```typescript
+function home(): Promise<void>;
+```
+
+- 参数：无
+- 返回值：`Promise<void>`
+
+- 示例：
+
+```typescript
+import { agentFromAdbDevice } from '@midscene/android';
+
+const agent = await agentFromAdbDevice();
+
+await agent.home(); // 回到桌面
+```
+
+#### `agent.recentApps()`
+
+打开 Android 最近任务界面。
+
+- 类型
+
+```typescript
+function recentApps(): Promise<void>;
+```
+
+- 参数：无
+- 返回值：`Promise<void>`
+
+- 示例：
+
+```typescript
+import { agentFromAdbDevice } from '@midscene/android';
+
+const agent = await agentFromAdbDevice();
+
+await agent.recentApps(); // 打开最近任务
+```
+
 #### `agentFromAdbDevice()`
 
 从已连接的 adb 设备中，创建一个 AndroidAgent。
