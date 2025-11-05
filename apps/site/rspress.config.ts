@@ -71,14 +71,18 @@ export default defineConfig({
               link: '/',
             },
             {
-              text: 'Quick experience by Chrome extension',
-              link: '/quick-experience',
+              text: 'Choose a model 🔥',
+              link: '/choose-a-model',
             },
           ],
         },
         {
-          text: 'Web browser automation',
+          text: 'Web browser',
           items: [
+            {
+              text: 'Quick experience by Chrome extension',
+              link: '/quick-experience',
+            },
             {
               text: 'Integrate with Playwright',
               link: '/integrate-with-playwright',
@@ -88,20 +92,20 @@ export default defineConfig({
               link: '/integrate-with-puppeteer',
             },
             {
-              text: 'Bridge mode by Chrome extension',
+              text: 'Bridge to the desktop Chrome',
               link: '/bridge-mode-by-chrome-extension',
             },
           ],
         },
         {
-          text: 'Android automation',
+          text: 'Android',
           items: [
             {
               text: 'Intro',
               link: '/blog-support-android-automation',
             },
             {
-              text: 'Quick experience with Android',
+              text: 'Quick experience by playground',
               link: '/quick-experience-with-android',
             },
             {
@@ -111,14 +115,14 @@ export default defineConfig({
           ],
         },
         {
-          text: 'iOS automation',
+          text: 'iOS',
           items: [
             {
               text: 'Intro',
               link: '/blog-support-ios-automation',
             },
             {
-              text: 'Quick experience with iOS',
+              text: 'Quick experience by playground',
               link: '/quick-experience-with-ios',
             },
             {
@@ -128,32 +132,32 @@ export default defineConfig({
           ],
         },
         {
-          text: 'API and usage',
+          text: 'More feature',
           items: [
             {
-              text: 'Automate with scripts in YAML',
+              text: 'Command line tools',
               link: '/automate-with-scripts-in-yaml',
             },
             {
-              text: 'API reference',
-              link: '/api',
+              text: 'Caching AI planning & locate',
+              link: '/caching',
             },
           ],
         },
         {
-          text: 'AI model',
+          text: 'API and config',
           items: [
             {
-              text: 'Choose a model 🔥',
-              link: '/choose-a-model',
+              text: 'Javascript API reference',
+              link: '/api',
             },
             {
-              text: 'Config model and provider',
+              text: 'Workflow in YAML format',
+              link: '/automate-with-scripts-in-yaml',
+            },
+            {
+              text: 'Model and overall config',
               link: '/model-provider',
-            },
-            {
-              text: 'Prompting tips',
-              link: '/prompting-tips',
             },
           ],
         },
@@ -161,24 +165,25 @@ export default defineConfig({
           text: 'Advanced',
           items: [
             {
-              text: 'Caching AI planning & locate',
-              link: '/caching',
-            },
-            {
-              text: 'Integrate with any interface (preview)',
+              text: 'Integrate Midscene with any interface',
               link: '/integrate-with-any-interface',
             },
             {
-              text: 'Introducing instant actions and deep think',
-              link: '/blog-introducing-instant-actions-and-deep-think',
+              text: 'Expose agent as MCP server',
+              link: '/mcp',
             },
             {
-              text: 'Use JavaScript to optimize the AI automation code',
+              text: 'Use JavaScript to optimize your workflow',
               link: '/blog-programming-practice-using-structured-api',
             },
+          ],
+        },
+        {
+          text: 'FAQ',
+          items: [
             {
-              text: 'MCP server',
-              link: '/advanced/mcp',
+              text: 'FAQ',
+              link: '/faq',
             },
           ],
         },
@@ -186,19 +191,15 @@ export default defineConfig({
           text: 'More',
           items: [
             {
-              text: 'Awesome Midscene',
-              link: '/awesome-midscene',
-            },
-            {
-              text: 'FAQ',
-              link: '/faq',
-            },
-            {
               text: 'Changelog',
               link: '/changelog',
             },
             {
-              text: 'LLMs.txt documentation',
+              text: 'Awesome Midscene',
+              link: '/awesome-midscene',
+            },
+            {
+              text: 'LLMs.txt',
               link: '/llm-txt',
             },
             {
@@ -217,14 +218,18 @@ export default defineConfig({
               link: '/zh/index',
             },
             {
-              text: '通过 Chrome 插件快速体验',
-              link: '/zh/quick-experience',
+              text: '选择 AI 模型 🔥',
+              link: '/zh/choose-a-model',
             },
           ],
         },
         {
-          text: 'Web 浏览器自动化',
+          text: 'Web 浏览器',
           items: [
+            {
+              text: '通过 Chrome 插件快速体验',
+              link: '/zh/quick-experience',
+            },
             {
               text: '集成到 Playwright',
               link: '/zh/integrate-with-playwright',
@@ -234,20 +239,20 @@ export default defineConfig({
               link: '/zh/integrate-with-puppeteer',
             },
             {
-              text: 'Chrome 桥接模式（Bridge Mode）',
+              text: '桥接到桌面 Chrome',
               link: '/zh/bridge-mode-by-chrome-extension',
             },
           ],
         },
         {
-          text: 'Android 自动化',
+          text: 'Android',
           items: [
             {
               text: '介绍',
               link: '/zh/blog-support-android-automation',
             },
             {
-              text: '使用 Android Playground 快速体验',
+              text: '通过 Playground 快速体验',
               link: '/zh/quick-experience-with-android',
             },
             {
@@ -257,14 +262,14 @@ export default defineConfig({
           ],
         },
         {
-          text: 'iOS 自动化',
+          text: 'iOS',
           items: [
             {
               text: '介绍',
               link: '/zh/blog-support-ios-automation',
             },
             {
-              text: '使用 iOS Playground 快速体验',
+              text: '通过 Playground 快速体验',
               link: '/zh/quick-experience-with-ios',
             },
             {
@@ -274,32 +279,32 @@ export default defineConfig({
           ],
         },
         {
-          text: 'API 和用法',
+          text: '更多功能',
           items: [
             {
-              text: '使用 YAML 格式的自动化脚本',
+              text: '命令行工具',
               link: '/zh/automate-with-scripts-in-yaml',
             },
             {
-              text: 'API 参考',
-              link: '/zh/api',
+              text: '缓存 AI 规划和定位',
+              link: '/zh/caching',
             },
           ],
         },
         {
-          text: 'AI 模型',
+          text: 'API 与配置',
           items: [
             {
-              text: '选择 AI 模型 🔥',
-              link: '/zh/choose-a-model',
+              text: 'JavaScript API 参考',
+              link: '/zh/api',
             },
             {
-              text: '配置模型和服务商',
+              text: 'YAML 格式的工作流',
+              link: '/zh/automate-with-scripts-in-yaml',
+            },
+            {
+              text: '模型与整体配置',
               link: '/zh/model-provider',
-            },
-            {
-              text: '编写提示词（指令）的技巧',
-              link: '/zh/prompting-tips',
             },
           ],
         },
@@ -307,24 +312,25 @@ export default defineConfig({
           text: '进阶',
           items: [
             {
-              text: '缓存 AI 规划和定位',
-              link: '/zh/caching',
-            },
-            {
-              text: '与任意界面集成（预览特性）',
+              text: '将 Midscene 集成到任意界面',
               link: '/zh/integrate-with-any-interface',
             },
             {
-              text: '即时操作和深度思考',
-              link: '/zh/blog-introducing-instant-actions-and-deep-think',
+              text: '暴露 Agent 为 MCP 服务',
+              link: '/zh/mcp',
             },
             {
-              text: '使用 JavaScript 优化 AI 自动化代码',
+              text: '使用 JavaScript 优化工作流',
               link: '/zh/blog-programming-practice-using-structured-api',
             },
+          ],
+        },
+        {
+          text: '常见问题',
+          items: [
             {
-              text: 'MCP 服务',
-              link: '/zh/advanced/mcp',
+              text: '常见问题 FAQ',
+              link: '/zh/faq',
             },
           ],
         },
@@ -332,19 +338,15 @@ export default defineConfig({
           text: '更多',
           items: [
             {
-              text: 'Awesome Midscene',
-              link: '/zh/awesome-midscene',
-            },
-            {
-              text: '常见问题 FAQ',
-              link: '/zh/faq',
-            },
-            {
               text: '更新日志',
               link: '/zh/changelog',
             },
             {
-              text: 'LLMs.txt 文档',
+              text: 'Awesome Midscene',
+              link: '/zh/awesome-midscene',
+            },
+            {
+              text: 'LLMs.txt',
               link: '/zh/llm-txt',
             },
             {
