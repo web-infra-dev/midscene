@@ -136,7 +136,7 @@ export default defineConfig({
           items: [
             {
               text: 'Command line tools',
-              link: '/automate-with-scripts-in-yaml',
+              link: '/command-line-tools',
             },
             {
               text: 'Caching AI planning & locate',
@@ -283,7 +283,7 @@ export default defineConfig({
           items: [
             {
               text: '命令行工具',
-              link: '/zh/automate-with-scripts-in-yaml',
+              link: '/zh/command-line-tools',
             },
             {
               text: '缓存 AI 规划和定位',

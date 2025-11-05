@@ -24,6 +24,24 @@
 
 （按时间倒序追加记录，最新记录放最上方）
 
+### 2025-11-05 – 拆分英文 YAML 自动化与命令行文档
+
+- 原路径：`apps/site/docs/en/automate-with-scripts-in-yaml.mdx`
+- 原标题：`Automate with scripts in YAML`
+- 操作类型：拆分
+- 新位置：`apps/site/docs/en/automate-with-scripts-in-yaml.mdx`、`apps/site/docs/en/command-line-tools.mdx`
+- Breaking change 说明：将 CLI 安装与执行说明抽离为独立页面，原文保留 YAML 格式与语法说明。同步更新 `apps/site/rspress.config.ts` 侧边栏链接为 `/command-line-tools`。
+- 后续行动：无
+
+### 2025-11-05 – 拆分中文 YAML 自动化与命令行文档
+
+- 原路径：`apps/site/docs/zh/automate-with-scripts-in-yaml.mdx`
+- 原标题：`使用 YAML 格式的自动化脚本`
+- 操作类型：拆分
+- 新位置：`apps/site/docs/zh/automate-with-scripts-in-yaml.mdx`、`apps/site/docs/zh/command-line-tools.mdx`
+- Breaking change 说明：同步中文文档结构，新增命令行工具页面并简化 YAML 文档内容，同时更新侧边栏链接到 `/zh/command-line-tools`。
+- 后续行动：无
+
 ### 2024-07-23 – 合并 Web 与 Android MCP 文档
 
 - 原路径：`apps/site/docs/en/web-mcp.mdx`
