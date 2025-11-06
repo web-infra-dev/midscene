@@ -843,6 +843,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       debugDevice(`Opening URL via Safari: ${url}`);
 
       // Launch Safari
+      await this.wdaBackend.terminateApp('com.apple.mobilesafari');
       await this.wdaBackend.launchApp('com.apple.mobilesafari');
       await sleep(2000); // Wait for Safari to launch
 
