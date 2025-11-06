@@ -1,102 +1,53 @@
 import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connectivity.mdx';
 
-# Choose a model
+## Using Vision Models
 
-Choose one of the following models, obtain the API key, complete the configuration, and you are ready to go. Choose the model that is easiest to obtain if you are a beginner.
+The key to using AI models to drive UI automation lies in two aspects: accurately locating elements that need interaction, and planning reasonable operation paths. Among these, "accurately locating elements" is the most challenging task.
 
-## Environment Variable Configuration
+To accomplish element positioning, mainstream UI automation frameworks have two technical approaches:
 
-Starting from version 1.0, Midscene.js recommends using the following new environment variable names:
+* DOM + screenshot annotation: Extract the page's DOM structure in advance, combine it with screenshots for annotation, and have the model "select" elements from them.
+* Pure vision: Complete all analysis work based on screenshots, meaning the model receives only images, no DOM, and no annotation information.
 
-- `MODEL_API_KEY` - API key (recommended)
-- `MODEL_BASE_URL` - API endpoint URL (recommended)
+In the early days, Midscene supported both modes, allowing developers to choose freely. After dozens of version iterations, we found that the "pure vision" approach gradually demonstrated superiority:
 
-For backward compatibility, the following legacy variable names are still supported:
+* Industry-leading vision models (such as Qwen3-VL, Doubao Seed 1.6, etc.) perform stably enough to meet most business needs
+* Can adapt to broader UI scenarios: The pure vision approach no longer depends on the UI rendering technology stack, whether it's Android, iOS, desktop applications, or `<canvas />` tags in browsers, as long as screenshots can be obtained, it can be understood and operated by AI
+* Significant reduction in token usage: Without transmitting DOM, token usage is reduced by 80%, and runtime performance is faster. This makes the Agent cheaper and more responsive.
+* A batch of excellent open-source VL models has emerged: For example, the Qwen3-VL model provides different sizes like 8b, 30b, etc., giving developers the opportunity to deploy privately on high-configured Macs and achieve good results.
 
-- `OPENAI_API_KEY` - API key (deprecated but still compatible)
-- `OPENAI_BASE_URL` - API endpoint URL (deprecated but still compatible)
+Considering the development trend of vision understanding models, starting from version 1.0, Midscene only supports the pure vision model approach and no longer provides a "DOM extraction" compatibility mode.
 
-When both new and old variables are set, the new variables (`MODEL_*`) will take precedence.
+## Model Configuration
 
-In the configuration examples throughout this document, we will use the new variable names. If you are currently using the old variable names, there's no need to change them immediately - they will continue to work.
+Midscene requires model service providers to provide OpenAI-style compatible interfaces.
 
-## Adapted models for using Midscene.js
+You need to configure the following four environment variables before use:
 
-Midscene.js supports two types of models, visual-language models and LLM models.
+- `MIDSCENE_MODEL_BASE_URL` - API access address
+- `MIDSCENE_MODEL_API_KEY` - API key
+- `MIDSCENE_MODEL_NAME` - Model name
+- Mode?
 
-### Visual-Language models (VL models, ✨ recommended)
 
-Midscene invokes some visual-language models (VL models) that can precisely locate the coordinates of target elements on the page without the helping of DOM information.
+## Supported Vision Models
 
-We recommend these VL models for UI automation since we find them already working well in most scenarios and cheap enough compared to LLM models. In addition, by invoking these models, Midscene can now drive not only web automation, but also Android, iOS and any other interfaces. This is a more intuitive and efficient way in UI Automation.
-
-These VL models are already adapted for Midscene.js:
-
+Midscene recommends the following models:
 * [Qwen VL](#qwen3-vl-or-qwen-25-vl)
-* [Doubao visual-language models](#doubao-vision)
+* [Doubao Vision Language Models](#doubao-vision)
 * [`Gemini-2.5-Pro`](#gemini-25-pro)
 * [`UI-TARS`](#ui-tars)
 
-### LLM models (will be removed in next major version)
-
-Multimodal LLMs that can understand text and image input. GPT-4o is an example of this kind of model.
-
-Multimodal LLMs can only be used in web automation. The typical model of this kind is [GPT-4o](#gpt-4o). You can use [other LLM models](#other-llm-models) if you want.
-
-## Models in depth
-
-<div id="qwen3-vl-or-qwen-25-vl"></div>
-
-### Qwen VL (✨ recommended)
-
-Qwen-VL is an open-source model series released by Alibaba. It offers visual grounding and can accurately return the coordinates of target elements on a page. The models show strong performance for interaction, assertion, and querying tasks. Deployed versions are available on [Alibaba Cloud](https://help.aliyun.com/zh/model-studio/vision) and [OpenRouter](https://openrouter.ai/qwen).
-
-Midscene.js supports the following versions:
-* Qwen3-VL series, including `qwen3-vl-plus` (commercial) and `qwen3-vl-235b-a22b-instruct` (open source)
-* Qwen2.5-VL series
-
-We recommend the Qwen3-VL series, which clearly outperforms Qwen2.5-VL. Qwen3-VL requires Midscene v0.29.3 or later.
-
-**Config for Qwen3-VL**
-
-Using the Alibaba Cloud `qwen3-vl-plus` model as an example:
-
-```bash
-MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
-MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="qwen3-vl-plus"
-MIDSCENE_USE_QWEN3_VL=1 # Note: cannot be set together with MIDSCENE_USE_QWEN_VL
-```
-
-**Config for Qwen2.5-VL**
-
-Using the Alibaba Cloud `qwen-vl-max-latest` model as an example:
-
-```bash
-MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
-MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
-MIDSCENE_USE_QWEN_VL=1 # Note: cannot be set together with MIDSCENE_USE_QWEN3_VL
-```
-
-**Links**
-- [Alibaba Cloud - Qwen-VL series](https://help.aliyun.com/zh/model-studio/vision)
-- [Qwen on 🤗 HuggingFace](https://huggingface.co/Qwen)
-- [Qwen on GitHub](https://github.com/QwenLM/)
-- [Qwen on openrouter.ai](https://openrouter.ai/qwen)
-
-
 <div id="doubao-vision"></div>
 
-### Doubao visual-language models
+### Doubao Vision Language Models (✨ recommended)
 
-Volcano Engine provides multiple visual-language models, including:
-* `Doubao-seed-1.6-vision` (newer and better)
+These are vision language models provided by [Volcano Engine](https://volcengine.com). They perform excellently in complex scenarios for visual grounding and assertion:
+
+* `Doubao-seed-1.6-vision` (latest version, most excellent)
 * `Doubao-1.5-thinking-vision-pro`
 
-They perform strongly for visual grounding and assertion in complex scenarios. With clear instructions they can handle most business needs.
-
-**Config**
+**Configuration**
 
 After obtaining an API key from [Volcano Engine](https://volcengine.com), you can use the following configuration:
 
@@ -111,17 +62,57 @@ MIDSCENE_USE_DOUBAO_VISION=1
 - [Volcano Engine - Doubao-1.5-thinking-vision-pro](https://www.volcengine.com/docs/82379/1536428)
 - [Volcano Engine - Doubao-Seed-1.6-Vision](https://www.volcengine.com/docs/82379/1799865)
 
+<div id="qwen3-vl-or-qwen-25-vl"></div>
+
+### Qwen VL (✨ recommended)
+
+Qwen-VL is an open-source model series released by Alibaba. It provides visual grounding and understanding capabilities, performs excellently in interaction, assertion, and querying, and Qwen3-VL's performance significantly leads other models.
+
+You can find deployed versions of the Qwen series on [Alibaba Cloud](https://help.aliyun.com/zh/model-studio/vision) or [OpenRouter](https://openrouter.ai/qwen), or deploy open-source versions yourself using tools like [Ollama](https://ollama.com/library/qwen3-vl).
+
+Midscene.js supports using the following versions of Qwen models:
+* Qwen3-VL series (recommended), including `qwen3-vl-plus` (commercial) and `qwen3-vl` various sizes of open-source versions
+* Qwen2.5-VL series
+
+**Configuration for Qwen3-VL models**
+
+Using Alibaba Cloud's `qwen3-vl-plus` model as an example:
+
+```bash
+MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen3-vl-plus"
+MIDSCENE_USE_QWEN3_VL=1 # Note: this parameter cannot be used together with MIDSCENE_USE_QWEN_VL
+```
+
+**Configuration for Qwen2.5-VL models**
+
+Using Alibaba Cloud's `qwen-vl-max-latest` model as an example:
+
+```bash
+MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
+MIDSCENE_USE_QWEN_VL=1 # Note: this parameter cannot be used together with MIDSCENE_USE_QWEN3_VL
+```
+
+**Links**
+- [Alibaba Cloud - Qwen-VL series](https://help.aliyun.com/zh/model-studio/vision)
+- [Qwen on 🤗 HuggingFace](https://huggingface.co/Qwen)
+- [Qwen on Github](https://github.com/QwenLM/)
+- [Qwen on openrouter.ai](https://openrouter.ai/qwen)
+
 <div id="gemini-25-pro"></div>
 
 ### `Gemini-2.5-Pro`
 
-Starting from version 0.15.1, Midscene.js supports the Gemini-2.5-Pro model. Gemini 2.5 Pro is a proprietary model provided by Google Cloud.
+Gemini 2.5 Pro is a proprietary model provided by Google Cloud. Gemini 2.5 Pro is less accurate in UI positioning than Doubao and Qwen models.
 
-When using Gemini-2.5-Pro, set `MIDSCENE_USE_GEMINI=1` to enable Gemini-specific behavior.
+When using Gemini-2.5-Pro, you should use the `MIDSCENE_USE_GEMINI=1` configuration to enable Gemini-2.5-Pro mode.
 
-**Config**
+**Configuration**
 
-After applying for the API key on [Google Gemini](https://gemini.google.com/), you can use the following config:
+After applying for an API key on [Google Gemini](https://gemini.google.com/), you can use the following configuration:
 
 ```bash
 MODEL_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
@@ -137,11 +128,12 @@ MIDSCENE_USE_GEMINI=1
 
 ### `UI-TARS`
 
-UI-TARS is an end-to-end GUI agent model based on a VLM architecture. It takes screenshots as input and performs human-like interactions (keyboard, mouse, etc.), achieving state-of-the-art performance across 10+ GUI benchmarks. UI-TARS is open source and available in multiple sizes.
+UI-TARS is a GUI Agent-specific model based on VLM architecture. It takes screenshots as input and performs human-like interactions (such as keyboard and mouse operations), achieving state-of-the-art performance across 10+ GUI benchmarks.
+UI-TARS provides different sizes of open-source versions.
 
-With UI-TARS you can use goal-driven prompts, such as "Log in with username foo and password bar". The model will plan the steps needed to accomplish the task.
+With UI-TARS, you can use goal-driven style prompts, such as "Log in with username foo and password bar", and it will plan steps to achieve the goal.
 
-**Config**
+**Configuration**
 
 You can use the deployed `doubao-1.5-ui-tars` on [Volcano Engine](https://volcengine.com).
 
@@ -154,15 +146,15 @@ MIDSCENE_USE_VLM_UI_TARS=DOUBAO
 
 **Limitations**
 
-- **Weak assertion performance**: It may not perform as well as GPT-4o or Qwen 2.5 for assertion and query tasks.
-- **Unstable action planning**: It may attempt different paths on each run, so the operation path is not deterministic.
+- **Weak assertion performance**: It may not perform as well as other models in assertion and visual understanding
+- **Unstable operation paths**: It may try different paths to achieve goals, so the operation path is not stable on each call.
 
 **About the `MIDSCENE_USE_VLM_UI_TARS` configuration**
 
-Use `MIDSCENE_USE_VLM_UI_TARS` to specify the UI-TARS version with one of the following values:
+The `MIDSCENE_USE_VLM_UI_TARS` configuration is used to specify the UI-TARS version, using one of the following values:
 - `1.0` - for model version `1.0`
 - `1.5` - for model version `1.5`
-- `DOUBAO` - for the Volcano Engine deployment
+- `DOUBAO` - for models deployed on Volcano Engine
 
 **Links**
 - [UI-TARS on 🤗 HuggingFace](https://huggingface.co/bytedance-research/UI-TARS-72B-SFT)
@@ -170,58 +162,16 @@ Use `MIDSCENE_USE_VLM_UI_TARS` to specify the UI-TARS version with one of the fo
 - [UI-TARS - Model Deployment Guide](https://juniper-switch-f10.notion.site/UI-TARS-Model-Deployment-Guide-17b5350241e280058e98cea60317de71)
 - [UI-TARS on Volcengine](https://www.volcengine.com/docs/82379/1536429)
 
+
 <div id="gpt-4o"></div>
-### `GPT-4o`
+### <del>`GPT-4o`</del>
 
-GPT-4o is a multimodal LLM by OpenAI that supports image input. This is the default model for Midscene.js. When using GPT-4o, step-by-step prompting generally works best.
+Starting from version 1.0, Midscene no longer supports using GPT-4o as the UI operation planning model.
 
-The token cost of GPT-4o is relatively high because Midscene sends DOM information and screenshots to the model, and it can be unstable in complex scenarios.
-
-**Config**
-
-```bash
-MODEL_API_KEY="......"
-MODEL_BASE_URL="https://custom-endpoint.com/compatible-mode/v1" # Optional, if you want an endpoint other than the default OpenAI one.
-MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # Optional. The default is "gpt-4o".
-```
-
-<div id="other-llm-models"></div>
-## Choose other multimodal LLMs
-
-Other models are also supported by Midscene.js. Midscene will use the same prompt and strategy as GPT-4o for these models. If you want to use other models, please follow these steps:
-
-1. A multimodal model is required, which means it must support image input.
-1. The larger the model, the better it works. However, it needs more GPU or money.
-1. Find out how to to call it with an OpenAI SDK compatible endpoint. Usually you should set the `MODEL_BASE_URL`, `MODEL_API_KEY` and `MIDSCENE_MODEL_NAME`. Config are described in [Config Model and Provider](./model-provider).
-1. If you find it not working well after changing the model, you can try using some short and clear prompt, or roll back to the previous model. See more details in [Prompting Tips](./prompting-tips).
-1. Remember to follow the terms of use of each model and provider.
-1. Don't include the `MIDSCENE_USE_VLM_UI_TARS` and `MIDSCENE_USE_QWEN_VL` config unless you know what you are doing.
-
-**Config**
-
-```bash
-MIDSCENE_MODEL_NAME="....."
-MODEL_BASE_URL="......"
-MODEL_API_KEY="......"
-```
-
-For more details and sample config, see [Config Model and Provider](./model-provider).
-
-## FAQ
-
-### How can I check the model's token usage?
-
-By setting `DEBUG=midscene:ai:profile:stats` in the environment variables, you can print the model's usage info and response time.
-
-You can also see your model's usage info in the report file.
-
-### Get an error message "No visual language model (VL model) detected"
-
-Make sure you have configured the VL model correctly, especially the `MIDSCENE_USE_...` config is set correctly.
-
-## More
-
-* To learn more about the model configuration, see [Config Model and Provider](./model-provider)
-* [Prompting Tips](./prompting-tips)
+For more details and example configurations, please see [Configure Model and Provider](./model-provider).
 
 <TroubleshootingLLMConnectivity />
+
+## Compatible with Midscene 0.x versions
+
+Some configurations used in Midscene 0.x versions (such as `OPENAI_API_KEY` `OPENAI_BASE_URL` `MIDSCENE_USE_QWEN_VL`) remain compatible in 1.x versions. For details, see [Compatible with Midscene 0.x configurations](./model-provider.mdx).

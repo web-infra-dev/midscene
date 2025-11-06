@@ -102,7 +102,7 @@ export default defineConfig({
           items: [
             {
               text: 'Intro',
-              link: '/blog-support-android-automation',
+              link: '/android-introduction',
             },
             {
               text: 'Quick experience by playground',
@@ -119,7 +119,7 @@ export default defineConfig({
           items: [
             {
               text: 'Intro',
-              link: '/blog-support-ios-automation',
+              link: '/ios-introduction',
             },
             {
               text: 'Quick experience by playground',
@@ -249,7 +249,7 @@ export default defineConfig({
           items: [
             {
               text: '介绍',
-              link: '/zh/blog-support-android-automation',
+              link: '/zh/android-introduction',
             },
             {
               text: '通过 Playground 快速体验',
@@ -266,7 +266,7 @@ export default defineConfig({
           items: [
             {
               text: '介绍',
-              link: '/zh/blog-support-ios-automation',
+              link: '/zh/ios-introduction',
             },
             {
               text: '通过 Playground 快速体验',
