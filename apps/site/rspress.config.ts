@@ -93,7 +93,7 @@ export default defineConfig({
             },
             {
               text: 'Bridge to the desktop Chrome',
-              link: '/bridge-mode-by-chrome-extension',
+              link: '/bridge-mode',
             },
           ],
         },
@@ -101,7 +101,7 @@ export default defineConfig({
           text: 'Android',
           items: [
             {
-              text: 'Intro',
+              text: 'Introduction',
               link: '/android-introduction',
             },
             {
@@ -118,7 +118,7 @@ export default defineConfig({
           text: 'iOS',
           items: [
             {
-              text: 'Intro',
+              text: 'Introduction',
               link: '/ios-introduction',
             },
             {
@@ -240,7 +240,7 @@ export default defineConfig({
             },
             {
               text: '桥接到桌面 Chrome',
-              link: '/zh/bridge-mode-by-chrome-extension',
+              link: '/zh/bridge-mode',
             },
           ],
         },

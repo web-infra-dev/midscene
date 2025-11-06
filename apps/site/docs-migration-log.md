@@ -71,3 +71,12 @@
 - 新位置：`apps/site/docs/zh/mcp.mdx`
 - Breaking change 说明：中文 Android 模式内容合并到统一 MCP 文档，统一呈现配置与工具差异。
 - 后续行动：无
+
+### 2025-11-06 – 重命名桥接模式文档
+
+- 原路径：`apps/site/docs/en/bridge-mode-by-chrome-extension.mdx`、`apps/site/docs/zh/bridge-mode-by-chrome-extension.mdx`
+- 原标题：`Bridge to the desktop Chrome`、`桥接到桌面 Chrome`
+- 操作类型：重命名
+- 新位置：`apps/site/docs/en/bridge-mode.mdx`、`apps/site/docs/zh/bridge-mode.mdx`
+- Breaking change 说明：将桥接模式文档从冗长的文件名简化为 `bridge-mode.mdx`，同时更新 `apps/site/rspress.config.ts` 中的侧边栏链接配置。
+- 后续行动：无
