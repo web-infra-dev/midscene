@@ -31,6 +31,7 @@ describe('IOSDevice', () => {
       pressKey: vi.fn().mockResolvedValue(undefined),
       pressHomeButton: vi.fn().mockResolvedValue(undefined),
       launchApp: vi.fn().mockResolvedValue(undefined),
+      terminateApp: vi.fn().mockResolvedValue(undefined),
       openUrl: vi.fn().mockResolvedValue(undefined),
       dismissKeyboard: vi.fn().mockResolvedValue(true),
       makeRequest: vi.fn().mockResolvedValue(null),
@@ -230,11 +231,14 @@ describe('IOSDevice', () => {
     });
 
     it('should fallback to Safari when direct URL opening fails', async () => {
-      // Mock openUrl to fail, launchApp to succeed
+      // Mock openUrl to fail, other methods to succeed
       mockWdaClient.openUrl = vi
         .fn()
         .mockRejectedValue(new Error('Direct URL failed'));
+      mockWdaClient.terminateApp = vi.fn().mockResolvedValue(undefined);
       mockWdaClient.launchApp = vi.fn().mockResolvedValue(undefined);
+      mockWdaClient.typeText = vi.fn().mockResolvedValue(undefined);
+      mockWdaClient.pressKey = vi.fn().mockResolvedValue(undefined);
       await device.connect();
 
       await device.launch('https://www.example.com');
@@ -244,6 +248,9 @@ describe('IOSDevice', () => {
         'https://www.example.com',
       );
       // Then fallback to Safari
+      expect(mockWdaClient.terminateApp).toHaveBeenCalledWith(
+        'com.apple.mobilesafari',
+      );
       expect(mockWdaClient.launchApp).toHaveBeenCalledWith(
         'com.apple.mobilesafari',
       );

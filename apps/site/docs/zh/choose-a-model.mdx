@@ -1,5 +1,7 @@
 import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connectivity.mdx';
 
+# 选择 AI 模型
+
 ## 使用视觉模型执行操作规划
 
 使用 AI 模型驱动 UI 自动化的关键有两点：准确找到需要交互的元素，以及规划合理的操作路径。其中，“准确找到元素”是最具挑战的一项。
@@ -20,14 +22,25 @@ Midscene 早期同时兼容上述两种模式，交由开发者自由选型。�
 
 ## 模型配置
 
+从 1.0 版本开始，Midscene.js 推荐使用以下环境变量名：
+
+- `MIDSCENE_MODEL_API_KEY` - API 密钥（推荐）
+- `MIDSCENE_MODEL_BASE_URL` - API 接入地址（推荐）
+
+为了保持向后兼容，下列 OpenAI 生态中的变量名仍然支持：
+
+- `OPENAI_API_KEY` - API 密钥（已弃用但仍兼容）
+- `OPENAI_BASE_URL` - API 接入地址（已弃用但仍兼容）
+
+当新变量与 OpenAI 兼容变量同时设置时，新变量（`MIDSCENE_MODEL_*`）将优先使用。本文示例统一使用新的变量名，如果你仍在使用旧变量，无需立即迁移，它们仍然有效。
+
 Midscene 要求模型服务商提供兼容 OpenAI 风格的接口。
 
-使用前你需要配置以下四个环境变量：
+使用前你需要配置以下环境变量：
 
 - `MIDSCENE_MODEL_BASE_URL` - API 接入地址
 - `MIDSCENE_MODEL_API_KEY` - API 密钥
 - `MIDSCENE_MODEL_NAME` - 模型名称
-- Mode ？
 
 
 ## 已支持的视觉模型
@@ -52,8 +65,8 @@ Midscene 推荐使用以下模型：
 从 [火山引擎](https://volcengine.com) 获取 API 密钥后，可以使用以下配置：
 
 ```bash
-MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
-MODEL_API_KEY="...."
+MIDSCENE_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
+MIDSCENE_MODEL_API_KEY="...."
 MIDSCENE_MODEL_NAME="ep-..." # 来自火山引擎的推理接入点 ID 或模型名称
 MIDSCENE_USE_DOUBAO_VISION=1
 ```
@@ -79,8 +92,8 @@ Midscene.js 支持使用千问以下版本的模型：
 以阿里云 `qwen3-vl-plus` 模型为例：
 
 ```bash
-MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
-MODEL_API_KEY="......"
+MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+MIDSCENE_MODEL_API_KEY="......"
 MIDSCENE_MODEL_NAME="qwen3-vl-plus"
 MIDSCENE_USE_QWEN3_VL=1 # 注意，这个参数与 MIDSCENE_USE_QWEN_VL 不能同时使用
 ```
@@ -90,8 +103,8 @@ MIDSCENE_USE_QWEN3_VL=1 # 注意，这个参数与 MIDSCENE_USE_QWEN_VL 不能�
 以阿里云 `qwen-vl-max-latest` 模型为例：
 
 ```bash
-MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
-MODEL_API_KEY="......"
+MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+MIDSCENE_MODEL_API_KEY="......"
 MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
 MIDSCENE_USE_QWEN_VL=1 # 注意，这个参数与 MIDSCENE_USE_QWEN3_VL 不能同时使用
 ```
@@ -115,8 +128,8 @@ Gemini 2.5 Pro 是 Google Cloud 提供的闭源模型。Gemini 2.5 Pro 在 UI �
 在 [Google Gemini](https://gemini.google.com/) 上申请 API 密钥后，可以使用以下配置：
 
 ```bash
-MODEL_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
-MODEL_API_KEY="......"
+MIDSCENE_MODEL_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
+MIDSCENE_MODEL_API_KEY="......"
 MIDSCENE_MODEL_NAME="gemini-2.5-pro-preview-05-06"
 MIDSCENE_USE_GEMINI=1
 ```
@@ -138,8 +151,8 @@ UI-TARS 提供了不同尺寸的开源版本。
 你可以在 [火山引擎](https://volcengine.com) 上使用已部署的 `doubao-1.5-ui-tars`。
 
 ```bash
-MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
-MODEL_API_KEY="...."
+MIDSCENE_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
+MIDSCENE_MODEL_API_KEY="...."
 MIDSCENE_MODEL_NAME="ep-2025..." # 来自火山引擎的推理接入点 ID 或模型名称
 MIDSCENE_USE_VLM_UI_TARS=DOUBAO
 ```
@@ -169,6 +182,23 @@ MIDSCENE_USE_VLM_UI_TARS=DOUBAO
 从 1.0 版本开始，Midscene 不再支持使用 GPT-4o 作为 UI 操作的规划模型。
 
 更多详细信息和示例配置，请参见[配置模型和服务商](./model-provider)。
+
+## 常见问题
+
+### 如何查看模型的 token 使用情况？
+
+在环境变量中设置 `DEBUG=midscene:ai:profile:stats`，即可打印模型的用量信息与响应时长。
+
+你也可以在报告文件中查看模型的使用情况。
+
+### 收到了 “No visual language model (VL model) detected” 错误
+
+请确认已经正确配置 VL 模型，尤其是 `MIDSCENE_USE_...` 相关的开关。
+
+## 更多信息
+
+* 想了解更多模型配置，请参见[配置模型和服务商](./model-provider)
+* [编写提示词（指令）的技巧](./prompting-tips)
 
 <TroubleshootingLLMConnectivity />
 

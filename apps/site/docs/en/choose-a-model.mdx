@@ -1,5 +1,7 @@
 import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connectivity.mdx';
 
+# Choose a model
+
 ## Using Vision Models for planning
 
 The key to using AI models to drive UI automation lies in two aspects: accurately locating elements that need interaction, and planning reasonable operation paths. Among these, "accurately locating elements" is the most challenging task.
@@ -20,14 +22,25 @@ Considering the development trend of vision understanding models, starting from 
 
 ## Model Configuration
 
+Starting from version 1.0, Midscene.js recommends the following environment variable names:
+
+- `MIDSCENE_MODEL_API_KEY` - API key (recommended)
+- `MIDSCENE_MODEL_BASE_URL` - API endpoint URL (recommended)
+
+For backward compatibility with existing OpenAI-compatible tooling, the following variables are still supported:
+
+- `OPENAI_API_KEY` - API key (deprecated but still compatible)
+- `OPENAI_BASE_URL` - API endpoint URL (deprecated but still compatible)
+
+When both new and OpenAI-compatible variables are set, the new variables (`MIDSCENE_MODEL_*`) take precedence. Configuration examples in this document use the new names, but you don't need to migrate immediately if you're still on the legacy ones.
+
 Midscene requires model service providers to provide OpenAI-style compatible interfaces.
 
-You need to configure the following four environment variables before use:
+You need to configure the following environment variables before use:
 
 - `MIDSCENE_MODEL_BASE_URL` - API access address
 - `MIDSCENE_MODEL_API_KEY` - API key
 - `MIDSCENE_MODEL_NAME` - Model name
-- Mode?
 
 
 ## Supported Vision Models
@@ -37,7 +50,6 @@ Midscene recommends the following models:
 * [Doubao Vision Language Models](#doubao-vision)
 * [`Gemini-2.5-Pro`](#gemini-25-pro)
 * [`UI-TARS`](#ui-tars)
-
 <div id="doubao-vision"></div>
 
 ### Doubao Vision Language Models (✨ recommended)
@@ -52,8 +64,8 @@ These are vision language models provided by [Volcano Engine](https://volcengine
 After obtaining an API key from [Volcano Engine](https://volcengine.com), you can use the following configuration:
 
 ```bash
-MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
-MODEL_API_KEY="...."
+MIDSCENE_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
+MIDSCENE_MODEL_API_KEY="...."
 MIDSCENE_MODEL_NAME="ep-..." # Inference endpoint ID or model name from Volcano Engine
 MIDSCENE_USE_DOUBAO_VISION=1
 ```
@@ -79,8 +91,8 @@ Midscene.js supports using the following versions of Qwen models:
 Using Alibaba Cloud's `qwen3-vl-plus` model as an example:
 
 ```bash
-MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
-MODEL_API_KEY="......"
+MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+MIDSCENE_MODEL_API_KEY="......"
 MIDSCENE_MODEL_NAME="qwen3-vl-plus"
 MIDSCENE_USE_QWEN3_VL=1 # Note: this parameter cannot be used together with MIDSCENE_USE_QWEN_VL
 ```
@@ -90,8 +102,8 @@ MIDSCENE_USE_QWEN3_VL=1 # Note: this parameter cannot be used together with MIDS
 Using Alibaba Cloud's `qwen-vl-max-latest` model as an example:
 
 ```bash
-MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
-MODEL_API_KEY="......"
+MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+MIDSCENE_MODEL_API_KEY="......"
 MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
 MIDSCENE_USE_QWEN_VL=1 # Note: this parameter cannot be used together with MIDSCENE_USE_QWEN3_VL
 ```
@@ -115,8 +127,8 @@ When using Gemini-2.5-Pro, you should use the `MIDSCENE_USE_GEMINI=1` configurat
 After applying for an API key on [Google Gemini](https://gemini.google.com/), you can use the following configuration:
 
 ```bash
-MODEL_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
-MODEL_API_KEY="......"
+MIDSCENE_MODEL_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
+MIDSCENE_MODEL_API_KEY="......"
 MIDSCENE_MODEL_NAME="gemini-2.5-pro-preview-05-06"
 MIDSCENE_USE_GEMINI=1
 ```
@@ -138,8 +150,8 @@ With UI-TARS, you can use goal-driven style prompts, such as "Log in with userna
 You can use the deployed `doubao-1.5-ui-tars` on [Volcano Engine](https://volcengine.com).
 
 ```bash
-MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
-MODEL_API_KEY="...."
+MIDSCENE_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
+MIDSCENE_MODEL_API_KEY="...."
 MIDSCENE_MODEL_NAME="ep-2025..." # Inference endpoint ID or model name from Volcano Engine
 MIDSCENE_USE_VLM_UI_TARS=DOUBAO
 ```
@@ -169,6 +181,23 @@ The `MIDSCENE_USE_VLM_UI_TARS` configuration is used to specify the UI-TARS vers
 Starting from version 1.0, Midscene no longer supports using GPT-4o as the UI operation planning model.
 
 For more details and example configurations, please see [Configure Model and Provider](./model-provider).
+
+## FAQ
+
+### How can I check the model's token usage?
+
+By setting `DEBUG=midscene:ai:profile:stats` in the environment variables, you can print the model's usage info and response time.
+
+You can also see your model's usage info in the report file.
+
+### Get an error message "No visual language model (VL model) detected"
+
+Make sure you have configured the VL model correctly, especially the `MIDSCENE_USE_...` config is set correctly.
+
+## More
+
+* To learn more about the model configuration, see [Config Model and Provider](./model-provider)
+* [Prompting Tips](./prompting-tips)
 
 <TroubleshootingLLMConnectivity />
 

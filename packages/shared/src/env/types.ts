@@ -18,15 +18,25 @@ export const MIDSCENE_MODEL_SOCKS_PROXY = 'MIDSCENE_MODEL_SOCKS_PROXY';
 export const MIDSCENE_MODEL_HTTP_PROXY = 'MIDSCENE_MODEL_HTTP_PROXY';
 
 // New primary names for public API
+export const MIDSCENE_MODEL_API_KEY = 'MIDSCENE_MODEL_API_KEY';
+export const MIDSCENE_MODEL_BASE_URL = 'MIDSCENE_MODEL_BASE_URL';
+export const MIDSCENE_MODEL_MAX_TOKENS = 'MIDSCENE_MODEL_MAX_TOKENS';
+
+/**
+ * @deprecated Use MIDSCENE_MODEL_API_KEY instead. This is kept for backward compatibility.
+ */
 export const MODEL_API_KEY = 'MODEL_API_KEY';
+/**
+ * @deprecated Use MIDSCENE_MODEL_BASE_URL instead. This is kept for backward compatibility.
+ */
 export const MODEL_BASE_URL = 'MODEL_BASE_URL';
 
 /**
- * @deprecated Use MODEL_API_KEY instead. This is kept for backward compatibility.
+ * @deprecated Use MIDSCENE_MODEL_API_KEY instead. This is kept for backward compatibility.
  */
 export const OPENAI_API_KEY = 'OPENAI_API_KEY';
 /**
- * @deprecated Use MODEL_BASE_URL instead. This is kept for backward compatibility.
+ * @deprecated Use MIDSCENE_MODEL_BASE_URL instead. This is kept for backward compatibility.
  */
 export const OPENAI_BASE_URL = 'OPENAI_BASE_URL';
 /**
@@ -42,6 +52,9 @@ export const MIDSCENE_OPENAI_HTTP_PROXY = 'MIDSCENE_OPENAI_HTTP_PROXY';
  * @deprecated Use MIDSCENE_MODEL_SOCKS_PROXY instead. This is kept for backward compatibility.
  */
 export const MIDSCENE_OPENAI_SOCKS_PROXY = 'MIDSCENE_OPENAI_SOCKS_PROXY';
+/**
+ * @deprecated Use MIDSCENE_MODEL_MAX_TOKENS instead. This is kept for backward compatibility.
+ */
 export const OPENAI_MAX_TOKENS = 'OPENAI_MAX_TOKENS';
 
 export const MIDSCENE_ADB_PATH = 'MIDSCENE_ADB_PATH';
@@ -73,8 +86,6 @@ export const MIDSCENE_CACHE_MAX_FILENAME_LENGTH =
 export const MIDSCENE_RUN_DIR = 'MIDSCENE_RUN_DIR';
 
 // default new
-export const MIDSCENE_MODEL_BASE_URL = 'MIDSCENE_MODEL_BASE_URL';
-export const MIDSCENE_MODEL_API_KEY = 'MIDSCENE_MODEL_API_KEY';
 export const MIDSCENE_LOCATOR_MODE = 'MIDSCENE_LOCATOR_MODE';
 
 // VQA
@@ -146,6 +157,7 @@ export const NUMBER_ENV_KEYS = [
 ] as const;
 
 export const STRING_ENV_KEYS = [
+  MIDSCENE_MODEL_MAX_TOKENS,
   OPENAI_MAX_TOKENS,
   MIDSCENE_ADB_PATH,
   MIDSCENE_ADB_REMOTE_HOST,

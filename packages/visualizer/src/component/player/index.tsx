@@ -911,7 +911,14 @@ export function Player(props?: {
       })().catch((e) => {
         console.error('player error', e);
 
+        // Ignore frame cancel errors (these are expected when animation is cancelled)
+        if (e?.message === ERROR_FRAME_CANCEL) {
+          console.log('Animation cancelled (expected behavior)');
+          return;
+        }
+
         // Reset recording state on error
+        const wasRecording = !!recorderSessionRef.current;
         if (recorderSessionRef.current) {
           try {
             recorderSessionRef.current.stop();
@@ -922,8 +929,10 @@ export function Player(props?: {
         }
         setIsRecording(false);
 
-        // Show error message to user
-        message.error('Failed to export video. Please try again.');
+        // Only show error message if we were actually recording
+        if (wasRecording) {
+          message.error('Failed to export video. Please try again.');
+        }
       }),
     );
     // Cleanup function
