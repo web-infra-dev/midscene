@@ -23,7 +23,11 @@ import { generateElementByPosition } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { TaskCache } from './task-cache';
-import { matchElementFromCache, matchElementFromPlan } from './utils';
+import {
+  ifPlanLocateParamIsBbox,
+  matchElementFromCache,
+  matchElementFromPlan,
+} from './utils';
 
 const debug = getDebug('agent:task-builder');
 
@@ -201,22 +205,33 @@ export class TaskBuilder {
 
     locateFields.forEach((field) => {
       if (param[field]) {
-        const locatePlan = locatePlanForLocate(param[field]);
-        debug(
-          'will prepend locate param for field',
-          `action.type=${planType}`,
-          `param=${JSON.stringify(param[field])}`,
-          `locatePlan=${JSON.stringify(locatePlan)}`,
-        );
-        const locateTask = this.createLocateTask(
-          locatePlan,
-          param[field],
-          context,
-          (result) => {
-            param[field] = result;
-          },
-        );
-        context.tasks.push(locateTask);
+        if (ifPlanLocateParamIsBbox(param[field])) {
+          debug(
+            'plan locate param is bbox, will match element from plan',
+            param[field],
+          );
+          const elementFromPlan = matchElementFromPlan(param[field]);
+          if (elementFromPlan) {
+            param[field] = elementFromPlan;
+          }
+        } else {
+          const locatePlan = locatePlanForLocate(param[field]);
+          debug(
+            'will prepend locate param for field',
+            `action.type=${planType}`,
+            `param=${JSON.stringify(param[field])}`,
+            `locatePlan=${JSON.stringify(locatePlan)}`,
+          );
+          const locateTask = this.createLocateTask(
+            locatePlan,
+            param[field],
+            context,
+            (result) => {
+              param[field] = result;
+            },
+          );
+          context.tasks.push(locateTask);
+        }
       } else {
         assert(
           !requiredLocateFields.includes(field),
@@ -419,11 +434,7 @@ export class TaskBuilder {
             );
         const cacheHitFlag = !!elementFromCache;
 
-        const elementFromPlan =
-          !userExpectedPathHitFlag && !cacheHitFlag
-            ? matchElementFromPlan(param)
-            : undefined;
-        const planHitFlag = !!elementFromPlan;
+        const planHitFlag = false;
 
         let elementFromAiLocate: LocateResultElement | null | undefined;
         if (!userExpectedPathHitFlag && !cacheHitFlag && !planHitFlag) {
@@ -446,10 +457,7 @@ export class TaskBuilder {
         }
 
         const element =
-          elementFromXpath ||
-          elementFromCache ||
-          elementFromPlan ||
-          elementFromAiLocate;
+          elementFromXpath || elementFromCache || elementFromAiLocate;
 
         let currentCacheEntry: ElementCacheFeature | undefined;
         if (
@@ -524,13 +532,6 @@ export class TaskBuilder {
             context: {
               cacheEntry,
               cacheToSave: currentCacheEntry,
-            },
-          };
-        } else if (planHitFlag) {
-          hitBy = {
-            from: 'Planning',
-            context: {
-              rect: elementFromPlan?.rect,
             },
           };
         }

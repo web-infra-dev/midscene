@@ -143,11 +143,8 @@ export function generateElementByPosition(position: {
     width: edgeSize,
     height: edgeSize,
   };
-  const id = generateHashId(rect);
   const element = {
-    id,
     rect,
-    content: '',
     center: [position.x, position.y] as [number, number],
   };
 
