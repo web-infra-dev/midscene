@@ -360,7 +360,6 @@ describe('ModelConfigManager', () => {
       // Other intents should succeed
       expect(() => manager.getModelConfig('default')).not.toThrow();
       expect(() => manager.getModelConfig('insight')).not.toThrow();
-      expect(() => manager.getModelConfig('insight')).not.toThrow();
     });
 
     it('should accept all valid VL modes for planning', () => {
