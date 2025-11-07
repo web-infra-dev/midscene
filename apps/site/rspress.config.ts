@@ -106,7 +106,7 @@ export default defineConfig({
             },
             {
               text: 'Quick experience by playground',
-              link: '/quick-experience-with-android',
+              link: '/android-playground',
             },
             {
               text: 'Integrate with Android (adb)',
@@ -123,7 +123,7 @@ export default defineConfig({
             },
             {
               text: 'Quick experience by playground',
-              link: '/quick-experience-with-ios',
+              link: '/ios-playground',
             },
             {
               text: 'Integrate with iOS (WebDriverAgent)',
@@ -253,7 +253,7 @@ export default defineConfig({
             },
             {
               text: '通过 Playground 快速体验',
-              link: '/zh/quick-experience-with-android',
+              link: '/zh/android-playground',
             },
             {
               text: '与 Android(adb) 集成',
@@ -270,7 +270,7 @@ export default defineConfig({
             },
             {
               text: '通过 Playground 快速体验',
-              link: '/zh/quick-experience-with-ios',
+              link: '/zh/ios-playground',
             },
             {
               text: '与 iOS(WebDriverAgent) 集成',
