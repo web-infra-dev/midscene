@@ -385,4 +385,45 @@ describe('Action Parameter Validation', () => {
       ).toThrow();
     });
   });
+
+  describe('Actions without paramSchema', () => {
+    it('should return undefined when paramSchema is not provided', () => {
+      const result = parseActionParam({ some: 'data' }, undefined);
+      expect(result).toBeUndefined();
+    });
+
+    it('should return undefined even when rawParam is undefined', () => {
+      const result = parseActionParam(undefined, undefined);
+      expect(result).toBeUndefined();
+    });
+
+    it('should work with defineAction when paramSchema is omitted', () => {
+      const action = defineAction({
+        name: 'AndroidBackButton',
+        description: 'Trigger the system "back" operation',
+        call: async () => {
+          // Mock implementation
+        },
+      });
+
+      // paramSchema should be undefined
+      expect(action.paramSchema).toBeUndefined();
+
+      // parseActionParam should return undefined
+      const parsed = parseActionParam({}, action.paramSchema);
+      expect(parsed).toBeUndefined();
+    });
+
+    it('should work with defineAction and explicit undefined paramSchema', () => {
+      const action = defineAction<undefined, undefined>({
+        name: 'HomeButton',
+        description: 'Go to home',
+        call: async () => {
+          // Mock implementation
+        },
+      });
+
+      expect(action.paramSchema).toBeUndefined();
+    });
+  });
 });

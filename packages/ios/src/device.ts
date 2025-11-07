@@ -977,7 +977,6 @@ const createPlatformActions = (device: IOSDevice) => {
     IOSHomeButton: defineAction({
       name: 'IOSHomeButton',
       description: 'Trigger the system "home" operation on iOS devices',
-      paramSchema: z.void().describe('No parameters required'),
       call: async () => {
         await device.home();
       },
@@ -985,7 +984,6 @@ const createPlatformActions = (device: IOSDevice) => {
     IOSAppSwitcher: defineAction({
       name: 'IOSAppSwitcher',
       description: 'Trigger the system "app switcher" operation on iOS devices',
-      paramSchema: z.void().describe('No parameters required'),
       call: async () => {
         await device.appSwitcher();
       },
@@ -993,5 +991,5 @@ const createPlatformActions = (device: IOSDevice) => {
   } as const;
 };
 
-export type DeviceActionIOSHomeButton = DeviceAction<void, void>;
-export type DeviceActionIOSAppSwitcher = DeviceAction<void, void>;
+export type DeviceActionIOSHomeButton = DeviceAction<undefined, void>;
+export type DeviceActionIOSAppSwitcher = DeviceAction<undefined, void>;
