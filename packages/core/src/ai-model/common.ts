@@ -668,9 +668,14 @@ export const loadActionParam = (
  * so they are intentionally excluded from Zod parsing and use existing validation logic.
  */
 export const parseActionParam = (
-  rawParam: Record<string, any>,
-  zodSchema: z.ZodType<any>,
-): Record<string, any> => {
+  rawParam: Record<string, any> | undefined,
+  zodSchema?: z.ZodType<any>,
+): Record<string, any> | undefined => {
+  // If no schema is provided, return undefined (action takes no parameters)
+  if (!zodSchema) {
+    return undefined;
+  }
+
   // Handle undefined or null rawParam by providing an empty object
   const param = rawParam ?? {};
 

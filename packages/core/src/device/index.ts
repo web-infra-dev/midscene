@@ -47,15 +47,15 @@ export abstract class AbstractInterface {
 // TRuntime allows specifying a different type for the runtime parameter (after location resolution)
 // TReturn allows specifying the return type of the action
 export const defineAction = <
-  TSchema extends z.ZodType,
-  TRuntime = z.infer<TSchema>,
+  TSchema extends z.ZodType | undefined = undefined,
+  TRuntime = TSchema extends z.ZodType ? z.infer<TSchema> : undefined,
   TReturn = any,
 >(
   config: {
     name: string;
     description: string;
     interfaceAlias?: string;
-    paramSchema: TSchema;
+    paramSchema?: TSchema;
     call: (param: TRuntime) => Promise<TReturn> | TReturn;
   } & Partial<
     Omit<

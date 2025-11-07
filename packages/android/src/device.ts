@@ -1636,7 +1636,6 @@ const createPlatformActions = (
     AndroidBackButton: defineAction({
       name: 'AndroidBackButton',
       description: 'Trigger the system "back" operation on Android devices',
-      paramSchema: z.void().describe('No parameters required'),
       call: async () => {
         await device.back();
       },
@@ -1644,7 +1643,6 @@ const createPlatformActions = (
     AndroidHomeButton: defineAction({
       name: 'AndroidHomeButton',
       description: 'Trigger the system "home" operation on Android devices',
-      paramSchema: z.void().describe('No parameters required'),
       call: async () => {
         await device.home();
       },
@@ -1653,7 +1651,6 @@ const createPlatformActions = (
       name: 'AndroidRecentAppsButton',
       description:
         'Trigger the system "recent apps" operation on Android devices',
-      paramSchema: z.void().describe('No parameters required'),
       call: async () => {
         await device.recentApps();
       },
@@ -1661,6 +1658,6 @@ const createPlatformActions = (
   } as const;
 };
 
-export type DeviceActionAndroidBackButton = DeviceAction<void, void>;
-export type DeviceActionAndroidHomeButton = DeviceAction<void, void>;
-export type DeviceActionAndroidRecentAppsButton = DeviceAction<void, void>;
+export type DeviceActionAndroidBackButton = DeviceAction<undefined, void>;
+export type DeviceActionAndroidHomeButton = DeviceAction<undefined, void>;
+export type DeviceActionAndroidRecentAppsButton = DeviceAction<undefined, void>;
