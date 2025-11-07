@@ -27,9 +27,14 @@ Midscene 中每个 Agent 都有自己的构造函数。
 
 这些 Agent 还支持以下高级配置参数：
 
-- `modelConfig: () => IModelConfig`: 可选。自定义模型配置函数。允许你通过代码动态配置不同的模型，而不是通过环境变量。这在需要为不同的 AI 任务（如 VQA、规划、定位等）使用不同模型时特别有用。
+- `modelConfig: (params: { intent: TIntent }) => IModelConfig`: 可选。自定义模型配置函数。允许你通过代码动态配置不同的模型，而不是通过环境变量。这在需要为不同的 AI 任务（如 Insight、Planning 等）使用不同模型时特别有用。
 
-  **示例：**
+  函数接收一个参数对象，包含 `intent` 字段，表示当前任务类型：
+  - `'insight'`: 视觉理解和元素定位任务（如 `aiQuery`、`aiLocate`、`aiTap` 等）
+  - `'planning'`: 自动规划任务（如 `aiAct`）
+  - `'default'`: 其他未分类任务
+
+  **基础示例：**
   ```typescript
   const agent = new PuppeteerAgent(page, {
     modelConfig: () => ({
@@ -40,6 +45,40 @@ Midscene 中每个 Agent 都有自己的构造函数。
     })
   });
   ```
+
+  **为不同任务类型配置不同模型：**
+  ```typescript
+  const agent = new PuppeteerAgent(page, {
+    modelConfig: ({ intent }) => {
+      // 为 Insight 任务使用 Qwen-VL 模型（用于视觉理解和定位）
+      if (intent === 'insight') {
+        return {
+          MIDSCENE_INSIGHT_MODEL_NAME: 'qwen-vl-plus',
+          MIDSCENE_INSIGHT_MODEL_API_KEY: 'sk-insight-key',
+          MIDSCENE_INSIGHT_MODEL_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+          MIDSCENE_INSIGHT_LOCATOR_MODE: 'qwen3-vl'
+        };
+      }
+
+      // 为 Planning 任务使用 GPT-4o 模型（用于任务规划）
+      if (intent === 'planning') {
+        return {
+          MIDSCENE_PLANNING_MODEL_NAME: 'gpt-4o',
+          MIDSCENE_PLANNING_MODEL_API_KEY: 'sk-planning-key',
+          MIDSCENE_PLANNING_MODEL_BASE_URL: 'https://api.openai.com/v1'
+        };
+      }
+
+      // 默认配置
+      return {
+        MIDSCENE_MODEL_NAME: 'gpt-4o',
+        MIDSCENE_MODEL_API_KEY: 'sk-default-key',
+      };
+    }
+  });
+  ```
+
+  更多关于按任务类型配置模型的信息，请参考 [配置模型和服务商](./model-provider#按任务类型配置模型高级) 文档。
 
 - `createOpenAIClient: (openai, options) => Promise<OpenAI | undefined>`: 可选。自定义 OpenAI 客户端包装函数。允许你包装 OpenAI 客户端实例，用于集成可观测性工具（如 LangSmith、LangFuse）或应用自定义中间件。
 

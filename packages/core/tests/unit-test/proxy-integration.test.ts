@@ -349,20 +349,20 @@ describe('proxy integration', () => {
       expect(mockModelConfig.socksProxy).toBe(proxyUrl);
     });
 
-    it('should support intent-specific proxy configuration for VQA', () => {
+    it('should support intent-specific proxy configuration for insight', () => {
       const proxyUrl = 'http://127.0.0.1:8080';
 
       const mockModelConfig: IModelConfig = {
         modelName: 'gpt-4o',
         openaiApiKey: 'test-key',
         openaiBaseURL: 'https://api.openai.com/v1',
-        httpProxy: proxyUrl, // Would be populated from MIDSCENE_VQA_MODEL_HTTP_PROXY
+        httpProxy: proxyUrl, // Would be populated from MIDSCENE_INSIGHT_MODEL_HTTP_PROXY
         modelDescription: 'test',
-        intent: 'VQA',
+        intent: 'insight',
         from: 'env',
       };
 
-      expect(mockModelConfig.intent).toBe('VQA');
+      expect(mockModelConfig.intent).toBe('insight');
       expect(mockModelConfig.httpProxy).toBe(proxyUrl);
     });
 
@@ -383,20 +383,20 @@ describe('proxy integration', () => {
       expect(mockModelConfig.socksProxy).toBe(proxyUrl);
     });
 
-    it('should support intent-specific proxy configuration for grounding', () => {
+    it('should support intent-specific proxy configuration for insight with http', () => {
       const proxyUrl = 'http://127.0.0.1:8080';
 
       const mockModelConfig: IModelConfig = {
         modelName: 'gpt-4o',
         openaiApiKey: 'test-key',
         openaiBaseURL: 'https://api.openai.com/v1',
-        httpProxy: proxyUrl, // Would be populated from MIDSCENE_GROUNDING_MODEL_HTTP_PROXY
+        httpProxy: proxyUrl, // Would be populated from MIDSCENE_INSIGHT_MODEL_HTTP_PROXY
         modelDescription: 'test',
-        intent: 'grounding',
+        intent: 'insight',
         from: 'env',
       };
 
-      expect(mockModelConfig.intent).toBe('grounding');
+      expect(mockModelConfig.intent).toBe('insight');
       expect(mockModelConfig.httpProxy).toBe(proxyUrl);
     });
   });

@@ -88,15 +88,18 @@ export const MIDSCENE_RUN_DIR = 'MIDSCENE_RUN_DIR';
 // default new
 export const MIDSCENE_LOCATOR_MODE = 'MIDSCENE_LOCATOR_MODE';
 
-// VQA
-export const MIDSCENE_VQA_MODEL_NAME = 'MIDSCENE_VQA_MODEL_NAME';
-export const MIDSCENE_VQA_MODEL_SOCKS_PROXY = 'MIDSCENE_VQA_MODEL_SOCKS_PROXY';
-export const MIDSCENE_VQA_MODEL_HTTP_PROXY = 'MIDSCENE_VQA_MODEL_HTTP_PROXY';
-export const MIDSCENE_VQA_MODEL_BASE_URL = 'MIDSCENE_VQA_MODEL_BASE_URL';
-export const MIDSCENE_VQA_MODEL_API_KEY = 'MIDSCENE_VQA_MODEL_API_KEY';
-export const MIDSCENE_VQA_MODEL_INIT_CONFIG_JSON =
-  'MIDSCENE_VQA_MODEL_INIT_CONFIG_JSON';
-export const MIDSCENE_VQA_LOCATOR_MODE = 'MIDSCENE_VQA_LOCATOR_MODE';
+// INSIGHT (unified VQA and Grounding)
+export const MIDSCENE_INSIGHT_MODEL_NAME = 'MIDSCENE_INSIGHT_MODEL_NAME';
+export const MIDSCENE_INSIGHT_MODEL_SOCKS_PROXY =
+  'MIDSCENE_INSIGHT_MODEL_SOCKS_PROXY';
+export const MIDSCENE_INSIGHT_MODEL_HTTP_PROXY =
+  'MIDSCENE_INSIGHT_MODEL_HTTP_PROXY';
+export const MIDSCENE_INSIGHT_MODEL_BASE_URL =
+  'MIDSCENE_INSIGHT_MODEL_BASE_URL';
+export const MIDSCENE_INSIGHT_MODEL_API_KEY = 'MIDSCENE_INSIGHT_MODEL_API_KEY';
+export const MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON =
+  'MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON';
+export const MIDSCENE_INSIGHT_LOCATOR_MODE = 'MIDSCENE_INSIGHT_LOCATOR_MODE';
 
 // PLANNING
 export const MIDSCENE_PLANNING_MODEL_NAME = 'MIDSCENE_PLANNING_MODEL_NAME';
@@ -111,21 +114,6 @@ export const MIDSCENE_PLANNING_MODEL_API_KEY =
 export const MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON =
   'MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON';
 export const MIDSCENE_PLANNING_LOCATOR_MODE = 'MIDSCENE_PLANNING_LOCATOR_MODE';
-
-// GROUNDING
-export const MIDSCENE_GROUNDING_MODEL_NAME = 'MIDSCENE_GROUNDING_MODEL_NAME';
-export const MIDSCENE_GROUNDING_MODEL_SOCKS_PROXY =
-  'MIDSCENE_GROUNDING_MODEL_SOCKS_PROXY';
-export const MIDSCENE_GROUNDING_MODEL_HTTP_PROXY =
-  'MIDSCENE_GROUNDING_MODEL_HTTP_PROXY';
-export const MIDSCENE_GROUNDING_MODEL_BASE_URL =
-  'MIDSCENE_GROUNDING_MODEL_BASE_URL';
-export const MIDSCENE_GROUNDING_MODEL_API_KEY =
-  'MIDSCENE_GROUNDING_MODEL_API_KEY';
-export const MIDSCENE_GROUNDING_MODEL_INIT_CONFIG_JSON =
-  'MIDSCENE_GROUNDING_MODEL_INIT_CONFIG_JSON';
-export const MIDSCENE_GROUNDING_LOCATOR_MODE =
-  'MIDSCENE_GROUNDING_LOCATOR_MODE';
 
 /**
  * env keys declared but unused
@@ -210,14 +198,14 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_OPENAI_SOCKS_PROXY,
   MODEL_API_KEY,
   MODEL_BASE_URL,
-  // VQA
-  MIDSCENE_VQA_MODEL_NAME,
-  MIDSCENE_VQA_MODEL_SOCKS_PROXY,
-  MIDSCENE_VQA_MODEL_HTTP_PROXY,
-  MIDSCENE_VQA_MODEL_BASE_URL,
-  MIDSCENE_VQA_MODEL_API_KEY,
-  MIDSCENE_VQA_MODEL_INIT_CONFIG_JSON,
-  MIDSCENE_VQA_LOCATOR_MODE,
+  // INSIGHT (unified VQA and Grounding)
+  MIDSCENE_INSIGHT_MODEL_NAME,
+  MIDSCENE_INSIGHT_MODEL_SOCKS_PROXY,
+  MIDSCENE_INSIGHT_MODEL_HTTP_PROXY,
+  MIDSCENE_INSIGHT_MODEL_BASE_URL,
+  MIDSCENE_INSIGHT_MODEL_API_KEY,
+  MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON,
+  MIDSCENE_INSIGHT_LOCATOR_MODE,
   // PLANNING
   MIDSCENE_PLANNING_MODEL_NAME,
   MIDSCENE_PLANNING_MODEL_SOCKS_PROXY,
@@ -226,14 +214,6 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_PLANNING_MODEL_API_KEY,
   MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON,
   MIDSCENE_PLANNING_LOCATOR_MODE,
-  // GROUNDING
-  MIDSCENE_GROUNDING_MODEL_NAME,
-  MIDSCENE_GROUNDING_MODEL_SOCKS_PROXY,
-  MIDSCENE_GROUNDING_MODEL_HTTP_PROXY,
-  MIDSCENE_GROUNDING_MODEL_BASE_URL,
-  MIDSCENE_GROUNDING_MODEL_API_KEY,
-  MIDSCENE_GROUNDING_MODEL_INIT_CONFIG_JSON,
-  MIDSCENE_GROUNDING_LOCATOR_MODE,
 ] as const;
 
 export const ALL_ENV_KEYS = [
@@ -262,18 +242,18 @@ export type TVlModeTypes =
   | 'gemini'
   | 'vlm-ui-tars';
 
-export interface IModelConfigForVQA {
+export interface IModelConfigForInsight {
   // model name
-  [MIDSCENE_VQA_MODEL_NAME]: string;
+  [MIDSCENE_INSIGHT_MODEL_NAME]: string;
   // proxy
-  [MIDSCENE_VQA_MODEL_SOCKS_PROXY]?: string;
-  [MIDSCENE_VQA_MODEL_HTTP_PROXY]?: string;
+  [MIDSCENE_INSIGHT_MODEL_SOCKS_PROXY]?: string;
+  [MIDSCENE_INSIGHT_MODEL_HTTP_PROXY]?: string;
   // OpenAI
-  [MIDSCENE_VQA_MODEL_BASE_URL]?: string;
-  [MIDSCENE_VQA_MODEL_API_KEY]?: string;
-  [MIDSCENE_VQA_MODEL_INIT_CONFIG_JSON]?: string;
+  [MIDSCENE_INSIGHT_MODEL_BASE_URL]?: string;
+  [MIDSCENE_INSIGHT_MODEL_API_KEY]?: string;
+  [MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON]?: string;
   // extra
-  [MIDSCENE_VQA_LOCATOR_MODE]?: TVlModeValues;
+  [MIDSCENE_INSIGHT_LOCATOR_MODE]?: TVlModeValues;
 }
 
 /**
@@ -305,20 +285,6 @@ export interface IModelConfigForPlanning {
   [MIDSCENE_PLANNING_LOCATOR_MODE]?: TVlModeValues;
 }
 
-export interface IModeConfigForGrounding {
-  // model name
-  [MIDSCENE_GROUNDING_MODEL_NAME]: string;
-  // proxy
-  [MIDSCENE_GROUNDING_MODEL_SOCKS_PROXY]?: string;
-  [MIDSCENE_GROUNDING_MODEL_HTTP_PROXY]?: string;
-  // OpenAI
-  [MIDSCENE_GROUNDING_MODEL_BASE_URL]?: string;
-  [MIDSCENE_GROUNDING_MODEL_API_KEY]?: string;
-  [MIDSCENE_GROUNDING_MODEL_INIT_CONFIG_JSON]?: string;
-  // extra
-  [MIDSCENE_GROUNDING_LOCATOR_MODE]?: TVlModeValues;
-}
-
 export interface IModelConfigForDefault {
   // model name
   [MIDSCENE_MODEL_NAME]: string;
@@ -348,12 +314,11 @@ export interface IModelConfigForDefaultLegacy {
 }
 
 /**
- * - VQA: Visual Question Answering
- * - grounding：short for Visual Grounding
+ * - insight: Visual Question Answering and Visual Grounding (unified)
  * - planning: planning
- * - default: all except VQA、grounding、planning
+ * - default: all except insight、planning
  */
-export type TIntent = 'VQA' | 'planning' | 'grounding' | 'default';
+export type TIntent = 'insight' | 'planning' | 'default';
 
 /**
  * Internal type with intent parameter for ModelConfigManager
@@ -361,20 +326,15 @@ export type TIntent = 'VQA' | 'planning' | 'grounding' | 'default';
  */
 export type TModelConfigFnInternal = (options: {
   intent: TIntent;
-}) =>
-  | IModelConfigForVQA
-  | IModelConfigForPlanning
-  | IModeConfigForGrounding
-  | IModelConfigForDefault;
+}) => IModelConfigForInsight | IModelConfigForPlanning | IModelConfigForDefault;
 
 /**
  * User-facing model config function type
  * Users return config objects without needing to know about intent parameter
  */
 export type TModelConfigFn = () =>
-  | IModelConfigForVQA
+  | IModelConfigForInsight
   | IModelConfigForPlanning
-  | IModeConfigForGrounding
   | IModelConfigForDefault;
 
 export enum UITarsModelVersion {

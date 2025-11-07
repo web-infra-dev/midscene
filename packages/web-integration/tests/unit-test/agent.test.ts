@@ -65,7 +65,7 @@ const mockedModelConfigFnResult = {
 const modelConfigCalcByMockedModelConfigFnResult = {
   from: 'modelConfig',
   httpProxy: undefined,
-  intent: 'VQA',
+  intent: 'insight',
   modelDescription: '',
   modelName: 'mock-model',
   openaiApiKey: 'mock-api-key',

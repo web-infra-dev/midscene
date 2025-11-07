@@ -3,9 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ModelConfigManager } from '../../../src/env/model-config-manager';
 import type { TIntent, TModelConfigFn } from '../../../src/env/types';
 import {
-  MIDSCENE_GROUNDING_MODEL_API_KEY,
-  MIDSCENE_GROUNDING_MODEL_BASE_URL,
-  MIDSCENE_GROUNDING_MODEL_NAME,
+  MIDSCENE_INSIGHT_MODEL_API_KEY,
+  MIDSCENE_INSIGHT_MODEL_BASE_URL,
+  MIDSCENE_INSIGHT_MODEL_NAME,
   MIDSCENE_MODEL_API_KEY,
   MIDSCENE_MODEL_BASE_URL,
   MIDSCENE_MODEL_INIT_CONFIG_JSON,
@@ -14,9 +14,6 @@ import {
   MIDSCENE_PLANNING_MODEL_API_KEY,
   MIDSCENE_PLANNING_MODEL_BASE_URL,
   MIDSCENE_PLANNING_MODEL_NAME,
-  MIDSCENE_VQA_MODEL_API_KEY,
-  MIDSCENE_VQA_MODEL_BASE_URL,
-  MIDSCENE_VQA_MODEL_NAME,
   OPENAI_API_KEY,
   OPENAI_BASE_URL,
 } from '../../../src/env/types';
@@ -41,11 +38,11 @@ describe('ModelConfigManager', () => {
         };
 
         switch (intent) {
-          case 'VQA':
+          case 'insight':
             return {
-              [MIDSCENE_VQA_MODEL_NAME]: 'gpt-4-vision',
-              [MIDSCENE_VQA_MODEL_API_KEY]: 'test-vqa-key',
-              [MIDSCENE_VQA_MODEL_BASE_URL]: 'https://api.openai.com/v1',
+              [MIDSCENE_INSIGHT_MODEL_NAME]: 'gpt-4-vision',
+              [MIDSCENE_INSIGHT_MODEL_API_KEY]: 'test-insight-key',
+              [MIDSCENE_INSIGHT_MODEL_BASE_URL]: 'https://api.openai.com/v1',
             };
           case 'planning':
             return {
@@ -53,12 +50,6 @@ describe('ModelConfigManager', () => {
               [MIDSCENE_PLANNING_MODEL_API_KEY]: 'test-planning-key',
               [MIDSCENE_PLANNING_MODEL_BASE_URL]: 'https://api.openai.com/v1',
               [MIDSCENE_PLANNING_LOCATOR_MODE]: 'qwen-vl' as const,
-            };
-          case 'grounding':
-            return {
-              [MIDSCENE_GROUNDING_MODEL_NAME]: 'gpt-4-vision',
-              [MIDSCENE_GROUNDING_MODEL_API_KEY]: 'test-grounding-key',
-              [MIDSCENE_GROUNDING_MODEL_BASE_URL]: 'https://api.openai.com/v1',
             };
           case 'default':
             return baseConfig;
@@ -73,7 +64,7 @@ describe('ModelConfigManager', () => {
 
     it('should throw error when modelConfigFn returns undefined for any intent', () => {
       const modelConfigFn: TModelConfigFn = ({ intent }) => {
-        if (intent === 'VQA') {
+        if (intent === 'insight') {
           return undefined as any;
         }
         return {
@@ -84,7 +75,7 @@ describe('ModelConfigManager', () => {
       };
 
       expect(() => new ModelConfigManager(modelConfigFn)).toThrow(
-        'The agent has an option named modelConfig is a function, but it return undefined when call with intent VQA, which should be a object.',
+        'The agent has an option named modelConfig is a function, but it return undefined when call with intent insight, which should be a object.',
       );
     });
   });
@@ -99,11 +90,11 @@ describe('ModelConfigManager', () => {
         };
 
         switch (intent) {
-          case 'VQA':
+          case 'insight':
             return {
-              [MIDSCENE_VQA_MODEL_NAME]: 'gpt-4-vision',
-              [MIDSCENE_VQA_MODEL_API_KEY]: 'test-vqa-key',
-              [MIDSCENE_VQA_MODEL_BASE_URL]: 'https://api.openai.com/v1',
+              [MIDSCENE_INSIGHT_MODEL_NAME]: 'gpt-4-vision',
+              [MIDSCENE_INSIGHT_MODEL_API_KEY]: 'test-insight-key',
+              [MIDSCENE_INSIGHT_MODEL_BASE_URL]: 'https://api.openai.com/v1',
             };
           case 'planning':
             return {
@@ -111,12 +102,6 @@ describe('ModelConfigManager', () => {
               [MIDSCENE_PLANNING_MODEL_API_KEY]: 'test-planning-key',
               [MIDSCENE_PLANNING_MODEL_BASE_URL]: 'https://api.openai.com/v1',
               [MIDSCENE_PLANNING_LOCATOR_MODE]: 'qwen-vl',
-            };
-          case 'grounding':
-            return {
-              [MIDSCENE_GROUNDING_MODEL_NAME]: 'gpt-4-vision',
-              [MIDSCENE_GROUNDING_MODEL_API_KEY]: 'test-grounding-key',
-              [MIDSCENE_GROUNDING_MODEL_BASE_URL]: 'https://api.openai.com/v1',
             };
           case 'default':
             return baseConfig;
@@ -127,11 +112,11 @@ describe('ModelConfigManager', () => {
 
       const manager = new ModelConfigManager(modelConfigFn);
 
-      const vqaConfig = manager.getModelConfig('VQA');
-      expect(vqaConfig.modelName).toBe('gpt-4-vision');
-      expect(vqaConfig.openaiApiKey).toBe('test-vqa-key');
-      expect(vqaConfig.intent).toBe('VQA');
-      expect(vqaConfig.from).toBe('modelConfig');
+      const insightConfig = manager.getModelConfig('insight');
+      expect(insightConfig.modelName).toBe('gpt-4-vision');
+      expect(insightConfig.openaiApiKey).toBe('test-insight-key');
+      expect(insightConfig.intent).toBe('insight');
+      expect(insightConfig.from).toBe('modelConfig');
 
       const planningConfig = manager.getModelConfig('planning');
       expect(planningConfig.modelName).toBe('qwen-vl-plus');
@@ -139,12 +124,6 @@ describe('ModelConfigManager', () => {
       expect(planningConfig.intent).toBe('planning');
       expect(planningConfig.from).toBe('modelConfig');
       expect(planningConfig.vlMode).toBe('qwen-vl');
-
-      const groundingConfig = manager.getModelConfig('grounding');
-      expect(groundingConfig.modelName).toBe('gpt-4-vision');
-      expect(groundingConfig.openaiApiKey).toBe('test-grounding-key');
-      expect(groundingConfig.intent).toBe('grounding');
-      expect(groundingConfig.from).toBe('modelConfig');
 
       const defaultConfig = manager.getModelConfig('default');
       expect(defaultConfig.modelName).toBe('gpt-4');
@@ -380,8 +359,8 @@ describe('ModelConfigManager', () => {
 
       // Other intents should succeed
       expect(() => manager.getModelConfig('default')).not.toThrow();
-      expect(() => manager.getModelConfig('VQA')).not.toThrow();
-      expect(() => manager.getModelConfig('grounding')).not.toThrow();
+      expect(() => manager.getModelConfig('insight')).not.toThrow();
+      expect(() => manager.getModelConfig('insight')).not.toThrow();
     });
 
     it('should accept all valid VL modes for planning', () => {
@@ -464,11 +443,11 @@ describe('ModelConfigManager', () => {
       const mockCreateClient = vi.fn();
       const modelConfigFn: TModelConfigFn = ({ intent }) => {
         switch (intent) {
-          case 'VQA':
+          case 'insight':
             return {
-              [MIDSCENE_VQA_MODEL_NAME]: 'gpt-4-vision',
-              [MIDSCENE_VQA_MODEL_API_KEY]: 'test-vqa-key',
-              [MIDSCENE_VQA_MODEL_BASE_URL]: 'https://api.openai.com/v1',
+              [MIDSCENE_INSIGHT_MODEL_NAME]: 'gpt-4-vision',
+              [MIDSCENE_INSIGHT_MODEL_API_KEY]: 'test-insight-key',
+              [MIDSCENE_INSIGHT_MODEL_BASE_URL]: 'https://api.openai.com/v1',
             };
           case 'planning':
             return {
@@ -476,12 +455,6 @@ describe('ModelConfigManager', () => {
               [MIDSCENE_PLANNING_MODEL_API_KEY]: 'test-planning-key',
               [MIDSCENE_PLANNING_MODEL_BASE_URL]: 'https://api.openai.com/v1',
               [MIDSCENE_PLANNING_LOCATOR_MODE]: 'qwen-vl' as const,
-            };
-          case 'grounding':
-            return {
-              [MIDSCENE_GROUNDING_MODEL_NAME]: 'gpt-4-vision',
-              [MIDSCENE_GROUNDING_MODEL_API_KEY]: 'test-grounding-key',
-              [MIDSCENE_GROUNDING_MODEL_BASE_URL]: 'https://api.openai.com/v1',
             };
           default:
             return {
@@ -494,35 +467,29 @@ describe('ModelConfigManager', () => {
 
       const manager = new ModelConfigManager(modelConfigFn, mockCreateClient);
 
-      const vqaConfig = manager.getModelConfig('VQA');
-      expect(vqaConfig.createOpenAIClient).toBe(mockCreateClient);
+      const insightConfig = manager.getModelConfig('insight');
+      expect(insightConfig.createOpenAIClient).toBe(mockCreateClient);
 
       const planningConfig = manager.getModelConfig('planning');
       expect(planningConfig.createOpenAIClient).toBe(mockCreateClient);
-
-      const groundingConfig = manager.getModelConfig('grounding');
-      expect(groundingConfig.createOpenAIClient).toBe(mockCreateClient);
 
       const defaultConfig = manager.getModelConfig('default');
       expect(defaultConfig.createOpenAIClient).toBe(mockCreateClient);
     });
 
     it('should inject createOpenAIClient into all intent configs in normal mode', () => {
-      vi.stubEnv(MIDSCENE_VQA_MODEL_NAME, 'gpt-4-vision');
-      vi.stubEnv(MIDSCENE_VQA_MODEL_API_KEY, 'test-vqa-key');
-      vi.stubEnv(MIDSCENE_VQA_MODEL_BASE_URL, 'https://api.openai.com/v1');
+      vi.stubEnv(MIDSCENE_INSIGHT_MODEL_NAME, 'gpt-4-vision');
+      vi.stubEnv(MIDSCENE_INSIGHT_MODEL_API_KEY, 'test-insight-key');
+      vi.stubEnv(MIDSCENE_INSIGHT_MODEL_BASE_URL, 'https://api.openai.com/v1');
 
       vi.stubEnv(MIDSCENE_PLANNING_MODEL_NAME, 'qwen-vl-plus');
       vi.stubEnv(MIDSCENE_PLANNING_MODEL_API_KEY, 'test-planning-key');
       vi.stubEnv(MIDSCENE_PLANNING_MODEL_BASE_URL, 'https://api.openai.com/v1');
       vi.stubEnv(MIDSCENE_PLANNING_LOCATOR_MODE, 'qwen-vl');
 
-      vi.stubEnv(MIDSCENE_GROUNDING_MODEL_NAME, 'gpt-4-vision');
-      vi.stubEnv(MIDSCENE_GROUNDING_MODEL_API_KEY, 'test-grounding-key');
-      vi.stubEnv(
-        MIDSCENE_GROUNDING_MODEL_BASE_URL,
-        'https://api.openai.com/v1',
-      );
+      vi.stubEnv(MIDSCENE_INSIGHT_MODEL_NAME, 'gpt-4-vision');
+      vi.stubEnv(MIDSCENE_INSIGHT_MODEL_API_KEY, 'test-insight-key');
+      vi.stubEnv(MIDSCENE_INSIGHT_MODEL_BASE_URL, 'https://api.openai.com/v1');
 
       vi.stubEnv(MIDSCENE_MODEL_NAME, 'gpt-4');
       vi.stubEnv(OPENAI_API_KEY, 'test-key');
@@ -532,14 +499,11 @@ describe('ModelConfigManager', () => {
       const manager = new ModelConfigManager(undefined, mockCreateClient);
       manager.registerGlobalConfigManager(new GlobalConfigManager());
 
-      const vqaConfig = manager.getModelConfig('VQA');
-      expect(vqaConfig.createOpenAIClient).toBe(mockCreateClient);
+      const insightConfig = manager.getModelConfig('insight');
+      expect(insightConfig.createOpenAIClient).toBe(mockCreateClient);
 
       const planningConfig = manager.getModelConfig('planning');
       expect(planningConfig.createOpenAIClient).toBe(mockCreateClient);
-
-      const groundingConfig = manager.getModelConfig('grounding');
-      expect(groundingConfig.createOpenAIClient).toBe(mockCreateClient);
 
       const defaultConfig = manager.getModelConfig('default');
       expect(defaultConfig.createOpenAIClient).toBe(mockCreateClient);

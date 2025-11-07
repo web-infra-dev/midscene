@@ -28,14 +28,13 @@ let resultCollector: TestResultCollector;
 
 let failCaseThreshold = 2;
 if (process.env.CI) {
-  failCaseThreshold = globalModelConfigManager.getModelConfig('grounding')
-    .vlMode
+  failCaseThreshold = globalModelConfigManager.getModelConfig('insight').vlMode
     ? 2
     : 3;
 }
 
 beforeAll(async () => {
-  const modelConfig = globalModelConfigManager.getModelConfig('grounding');
+  const modelConfig = globalModelConfigManager.getModelConfig('insight');
 
   const { vlMode, modelName } = modelConfig;
 

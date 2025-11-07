@@ -11,27 +11,27 @@ import {
 } from '../../../src/env/types';
 
 describe('decideModelConfig from modelConfig fn', () => {
-  it('return lacking config for VQA', () => {
+  it('return lacking config for insight', () => {
     expect(() =>
-      decideModelConfigFromIntentConfig('VQA', {}),
+      decideModelConfigFromIntentConfig('insight', {}),
     ).toThrowErrorMatchingInlineSnapshot(
       '[Error: The return value of agent.modelConfig do not have a valid value with key MIDSCENE_MODEL_NAME.]',
     );
   });
 
-  it('return full config for VQA', () => {
-    const result = decideModelConfigFromIntentConfig('VQA', {
-      MIDSCENE_VQA_MODEL_NAME: 'vqa-model',
-      MIDSCENE_VQA_MODEL_BASE_URL: 'mock-url',
-      MIDSCENE_VQA_MODEL_API_KEY: 'mock-key',
+  it('return full config for insight', () => {
+    const result = decideModelConfigFromIntentConfig('insight', {
+      MIDSCENE_INSIGHT_MODEL_NAME: 'insight-model',
+      MIDSCENE_INSIGHT_MODEL_BASE_URL: 'mock-url',
+      MIDSCENE_INSIGHT_MODEL_API_KEY: 'mock-key',
     });
     expect(result).toMatchInlineSnapshot(`
       {
         "from": "modelConfig",
         "httpProxy": undefined,
-        "intent": "VQA",
+        "intent": "insight",
         "modelDescription": "",
-        "modelName": "vqa-model",
+        "modelName": "insight-model",
         "openaiApiKey": "mock-key",
         "openaiBaseURL": "mock-url",
         "openaiExtraConfig": undefined,
@@ -44,7 +44,7 @@ describe('decideModelConfig from modelConfig fn', () => {
   });
 
   it('return default config', () => {
-    const result = decideModelConfigFromIntentConfig('VQA', {
+    const result = decideModelConfigFromIntentConfig('insight', {
       MIDSCENE_MODEL_NAME: 'default-model',
       MIDSCENE_MODEL_BASE_URL: 'mock-url',
       MIDSCENE_MODEL_API_KEY: 'mock-key',
@@ -53,7 +53,7 @@ describe('decideModelConfig from modelConfig fn', () => {
       {
         "from": "modelConfig",
         "httpProxy": undefined,
-        "intent": "VQA",
+        "intent": "insight",
         "modelDescription": "",
         "modelName": "default-model",
         "openaiApiKey": "mock-key",

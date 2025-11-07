@@ -42,6 +42,22 @@ You need to configure the following environment variables before use:
 - `MIDSCENE_MODEL_API_KEY` - API key
 - `MIDSCENE_MODEL_NAME` - Model name
 
+### Configure Models by Task Type (Advanced)
+
+Midscene supports configuring different models for different task types:
+
+- **Insight tasks**: Visual understanding and element location (such as `aiQuery`, `aiLocate`, `aiTap`, etc.)
+- **Planning tasks**: Automatic planning tasks (such as `aiAct`)
+- **Default tasks**: Other uncategorized tasks
+
+You can use the following environment variable prefixes to configure models for different task types:
+
+- `MIDSCENE_INSIGHT_MODEL_*` - For visual understanding and element location tasks
+- `MIDSCENE_PLANNING_MODEL_*` - For automatic planning tasks
+- `MIDSCENE_MODEL_*` - Default configuration, used as fallback for other tasks
+
+For more details, refer to the [Configure model and provider](./model-provider#configure-models-by-task-type-advanced) documentation.
+
 
 ## Supported Vision Models
 

@@ -471,7 +471,7 @@ export class Agent<
     );
 
     // assume all operation in action space is related to locating
-    const modelConfig = this.modelConfigManager.getModelConfig('grounding');
+    const modelConfig = this.modelConfigManager.getModelConfig('insight');
 
     const { output, runner } = await this.taskExecutor.runPlans(
       title,
@@ -796,7 +796,7 @@ export class Agent<
     demand: ServiceExtractParam,
     opt: ServiceExtractOption = defaultServiceExtractOption,
   ): Promise<ReturnType> {
-    const modelConfig = this.modelConfigManager.getModelConfig('VQA');
+    const modelConfig = this.modelConfigManager.getModelConfig('insight');
     const { output } = await this.taskExecutor.createTypeQueryExecution(
       'Query',
       demand,
@@ -810,7 +810,7 @@ export class Agent<
     prompt: TUserPrompt,
     opt: ServiceExtractOption = defaultServiceExtractOption,
   ): Promise<boolean> {
-    const modelConfig = this.modelConfigManager.getModelConfig('VQA');
+    const modelConfig = this.modelConfigManager.getModelConfig('insight');
 
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
     const { output } = await this.taskExecutor.createTypeQueryExecution(
@@ -827,7 +827,7 @@ export class Agent<
     prompt: TUserPrompt,
     opt: ServiceExtractOption = defaultServiceExtractOption,
   ): Promise<number> {
-    const modelConfig = this.modelConfigManager.getModelConfig('VQA');
+    const modelConfig = this.modelConfigManager.getModelConfig('insight');
 
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
     const { output } = await this.taskExecutor.createTypeQueryExecution(
@@ -844,7 +844,7 @@ export class Agent<
     prompt: TUserPrompt,
     opt: ServiceExtractOption = defaultServiceExtractOption,
   ): Promise<string> {
-    const modelConfig = this.modelConfigManager.getModelConfig('VQA');
+    const modelConfig = this.modelConfigManager.getModelConfig('insight');
 
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
     const { output } = await this.taskExecutor.createTypeQueryExecution(
@@ -895,7 +895,7 @@ export class Agent<
         deepThink,
       );
       // use same intent as aiLocate
-      const modelConfig = this.modelConfigManager.getModelConfig('grounding');
+      const modelConfig = this.modelConfigManager.getModelConfig('insight');
 
       const text = await this.service.describe(center, modelConfig, {
         deepThink,
@@ -956,7 +956,7 @@ export class Agent<
     assert(locateParam, 'cannot get locate param for aiLocate');
     const locatePlan = locatePlanForLocate(locateParam);
     const plans = [locatePlan];
-    const modelConfig = this.modelConfigManager.getModelConfig('grounding');
+    const modelConfig = this.modelConfigManager.getModelConfig('insight');
 
     const { output } = await this.taskExecutor.runPlans(
       taskTitleStr('Locate', locateParamStr(locateParam)),
@@ -986,7 +986,7 @@ export class Agent<
     msg?: string,
     opt?: AgentAssertOpt & ServiceExtractOption,
   ) {
-    const modelConfig = this.modelConfigManager.getModelConfig('VQA');
+    const modelConfig = this.modelConfigManager.getModelConfig('insight');
 
     const serviceOpt: ServiceExtractOption = {
       domIncluded: opt?.domIncluded ?? defaultServiceExtractOption.domIncluded,
@@ -1058,7 +1058,7 @@ export class Agent<
   }
 
   async aiWaitFor(assertion: TUserPrompt, opt?: AgentWaitForOpt) {
-    const modelConfig = this.modelConfigManager.getModelConfig('VQA');
+    const modelConfig = this.modelConfigManager.getModelConfig('insight');
     await this.taskExecutor.waitFor(
       assertion,
       {
