@@ -74,6 +74,8 @@ After executing the script, you should see the status of the Chrome extension sw
 ⁠Whether the scripts are run before or after clicking 'Allow connection' in the browser is not significant.
 :::
 
+<a id="agentoverchromebridge"></a>
+
 ## Constructor
 
 ```typescript
@@ -82,7 +84,7 @@ import { AgentOverChromeBridge } from "@midscene/web/bridge-mode";
 const agent = new AgentOverChromeBridge();
 ```
 
-Except [the normal parameters in the agent constructor](./api.mdx), `AgentOverChromeBridge` accepts the following parameters:
+You should use the `AgentOverChromeBridge` constructor. It extends the [general agent constructor](./api.mdx) and accepts the following parameters:
 
 * `closeNewTabsAfterDisconnect?: boolean`: If true, the newly created tab will be closed when the bridge is destroyed. Default is false.
 * `allowRemoteAccess?: boolean`: If true, allows remote machines to connect to the Bridge Server (listens on `0.0.0.0`). Default is false, only allowing local connections (listens on `127.0.0.1`).
@@ -91,7 +93,7 @@ Except [the normal parameters in the agent constructor](./api.mdx), `AgentOverCh
 
 ## Methods
 
-Except [the normal agent interface](./api.mdx), `AgentOverChromeBridge` provides some other interfaces to control the desktop Chrome.
+Besides the [general agent interface](./api.mdx), `AgentOverChromeBridge` also provides additional interfaces to control desktop Chrome.
 
 :::info
 You should always call `connectCurrentTab` or `connectNewTabWithUrl` before doing further actions.
@@ -266,8 +268,6 @@ When remote access is enabled, the Bridge Server will be exposed on the network.
 * Where should I config the `OPENAI_API_KEY`, in the browser or in the terminal?
 
 When using bridge mode, you should config the `OPENAI_API_KEY` in the terminal.
-
-
 
 
 

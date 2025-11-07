@@ -121,7 +121,7 @@ To change the AI-related code of this repository, you need to create a '.env 'fi
 
 ```
 OPENAI_API_KEY="your_token"
-MIDSCENE_MODEL_NAME="gpt-4o-2024-08-06"
+MIDSCENE_MODEL_NAME="qwen3-vl-plus"
 ```
 
 

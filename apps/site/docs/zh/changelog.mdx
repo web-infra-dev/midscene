@@ -59,7 +59,7 @@ v0.30 版本改进了缓存系统，让你可以根据实际需求控制缓存�
 ## v0.29 - 📱 新增 iOS 平台支持
 
 ### 🚀 新增 iOS 平台支持
-v0.29 版本最大的亮点是正式引入了对 iOS 平台的支持！现在，你可以通过 WebDriver 连接并自动化 iOS 设备，将 Midscene 的强大 AI 自动化能力扩展到苹果生态系统，了解详情: [支持 iOS 自动化](./blog-support-ios-automation)
+v0.29 版本最大的亮点是正式引入了对 iOS 平台的支持！现在，你可以通过 WebDriver 连接并自动化 iOS 设备，将 Midscene 的强大 AI 自动化能力扩展到苹果生态系统，了解详情: [支持 iOS 自动化](./ios-introduction)
 
 ### 🚅 适配 Qwen3-VL 模型
 
@@ -198,7 +198,7 @@ v0.28 版本推出了与任意界面集成的功能。定义符合 `AbstractInte
 ## v0.24 - 🤖 Android 自动化支持 MCP 调用
 
 ### 🚀 Android 自动化支持 MCP 调用
-- Android 自动化已全面支持 MCP 调用，为 Android 开发者提供更完善的自动化工具集。详情请参考：[MCP 服务](./mcp-android.mdx)
+- Android 自动化已全面支持 MCP 调用，为 Android 开发者提供更完善的自动化工具集。详情请参考：[MCP 服务](./mcp)
 
 ### 🌐 优化输入清空机制
 - 针对 Mac 平台的 Puppeteer 增加了双重输入清空机制，保证输入之前清空输入框
@@ -516,7 +516,7 @@ await agent.aiTap("Copy Info"); // 复制联系人信息到剪贴板
 🕹️ 快速实现浏览器操作，媲美 Manus 平台。
 🔧 快速集成 Midscene 能力，融入你的平台和工具。
 
-了解详情: [MCP](./web-mcp.mdx)
+了解详情: [MCP](./mcp)
 
 ### 支持结构化 API 
 
@@ -541,7 +541,7 @@ APIs: `aiBoolean`, `aiNumber`, `aiString`, `aiLocate`
 * 增强超时配置和日志记录，支持网络空闲和导航超时
 * 适配 gemini-2.5-pro
 
-了解详情: [支持 Android 自动化](./blog-support-android-automation.mdx)
+了解详情: [支持 Android 自动化](./android-introduction)
 
 ## v0.14 - 即时操作 API
 
@@ -636,7 +636,7 @@ UI-TARS 模型在 GUI 任务中有以下优势：
 
 ![](/blog/0.9.0.png)
 
-文档：[通过 Chrome 插件快速体验](./bridge-mode-by-chrome-extension.mdx)
+文档：[通过 Chrome 插件快速体验](./bridge-mode.mdx)
 
 ## v0.8.0 - Chrome 插件
 
@@ -855,4 +855,3 @@ npx @midscene/cli --url https://www.githubstatus.com/ \
 * AI 报告，AI 行为、思考可视化 🛠️👀
 
 * 直接使用 GPT-4o 模型，无需任何训练 🤖🔧
-

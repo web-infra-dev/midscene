@@ -15,7 +15,7 @@ import { PackageManagerTabs } from '@theme';
 
 :::info 案例展示
 
-[查看更多案例](./blog-support-ios-automation.mdx)
+[查看更多案例](./ios-introduction)
 
 <p align="center">
   <img src="/ios.png" alt="ios" width="400" />
@@ -191,6 +191,8 @@ npx tsx demo.ts
 
 ## 构造函数与接口
 
+<a id="iosdevice"></a>
+
 ### `IOSDevice` 的构造函数
 
 IOSDevice 的构造函数支持以下参数：
@@ -200,6 +202,8 @@ IOSDevice 的构造函数支持以下参数：
   - `wdaHost?: string` - 可选参数，WebDriverAgent 主机。默认值为 'localhost'。
   - `autoDismissKeyboard?: boolean` - 可选参数，是否在输入文本后自动关闭键盘。默认值为 true。
   - `customActions?: DeviceAction<any>[]` - 可选参数，自定义设备动作列表。
+
+<a id="iosagent"></a>
 
 ### iOS Agent 上的更多接口
 
@@ -297,6 +301,52 @@ const deviceInfo = await agent.runWdaRequest('GET', '/wda/device/info');
 要了解如何在 YAML 脚本中使用 `runWdaRequest` 和 `launch` 动作，请参考 [YAML 脚本中的 iOS 平台特定动作](./automate-with-scripts-in-yaml#ios-部分)。
 
 :::
+
+#### `agent.home()`
+
+返回到 iOS 主屏幕。
+
+- 类型
+
+```typescript
+function home(): Promise<void>;
+```
+
+- 参数：无
+- 返回值：`Promise<void>`
+
+- 示例：
+
+```typescript
+import { IOSAgent, agentFromWebDriverAgent } from '@midscene/ios';
+
+const agent = await agentFromWebDriverAgent();
+
+await agent.home(); // 回到主屏幕
+```
+
+#### `agent.appSwitcher()`
+
+打开 iOS 多任务切换界面。
+
+- 类型
+
+```typescript
+function appSwitcher(): Promise<void>;
+```
+
+- 参数：无
+- 返回值：`Promise<void>`
+
+- 示例：
+
+```typescript
+import { IOSAgent, agentFromWebDriverAgent } from '@midscene/ios';
+
+const agent = await agentFromWebDriverAgent();
+
+await agent.appSwitcher(); // 打开多任务切换界面
+```
 
 ### `agentFromWebDriverAgent()` (推荐)
 

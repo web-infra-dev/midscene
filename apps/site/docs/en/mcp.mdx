@@ -1,0 +1,252 @@
+import SetupEnv from './common/setup-env.mdx';
+
+# MCP server
+
+Midscene provides an MCP server that allows AI assistants to automate both web browsers and Android devices. You can run the same server in two environments—**Web Bridge Mode** or **Android Mode**—by adjusting your configuration.
+
+:::info MCP Introduction
+MCP ([Model Context Protocol](https://modelcontextprotocol.io/introduction)) is a standardized way for AI models to interact with external tools and capabilities. MCP servers expose a set of tools that AI models can invoke to perform various tasks. In Midscene's case, these tools let AI models control browsers, Android devices, interact with UI elements, and more.
+:::
+
+## Use cases
+
+- Control browsers to execute automation tasks
+- Automatically generate Midscene automation scripts
+- Execute automated testing on Android devices
+- Control Android apps for UI interaction
+
+## Choosing your environment
+
+| Environment | When to use | Key requirements |
+|-------------|-------------|------------------|
+| **Web (Bridge Mode)** | You want to operate your current desktop browser without launching a separate automation browser. | Midscene Chrome extension with Bridge Mode enabled. |
+| **Android** | You need to interact with an Android device or emulator. | Android device/emulator with USB debugging, ADB tooling, and the `MIDSCENE_MCP_ANDROID_MODE` flag. |
+
+You can switch between the two environments by changing environment variables in the MCP server configuration.
+
+## Setting up Midscene MCP
+
+### Common prerequisites
+
+1. An OpenAI API key or another supported AI model provider. For more information, see [Choosing an AI Model](./choose-a-model).
+
+### Additional requirements
+
+**Web (Bridge Mode)**
+
+- Install the Midscene Chrome extension (download from [Chrome Web Extension](https://chromewebstore.google.com/detail/midscenejs/gbldofcpkknbggpkmbdaefngejllnief?hl=en&utm_source=ext_sidebar)).
+- Switch to Bridge Mode in the extension and click **Allow Connection**.
+
+**Android**
+
+- Install and configure [Android adb](https://developer.android.com/tools/adb?hl=zh-cn).
+- Ensure an Android device or emulator is connected with USB debugging enabled.
+
+### Configuration
+
+Add the Midscene MCP server to your MCP configuration. Toggle between web and Android by setting `MIDSCENE_MCP_ANDROID_MODE`.
+
+```json
+{
+  "mcpServers": {
+    "mcp-midscene": {
+      "command": "npx",
+      "args": ["-y", "@midscene/mcp"],
+      "env": {
+        "MIDSCENE_MODEL_NAME": "REPLACE_WITH_YOUR_MODEL_NAME",
+        "OPENAI_API_KEY": "REPLACE_WITH_YOUR_OPENAI_API_KEY",
+        "MCP_SERVER_REQUEST_TIMEOUT": "800000",
+        "MIDSCENE_MCP_ANDROID_MODE": "true or false"
+      }
+    }
+  }
+}
+```
+
+- Set `MIDSCENE_MCP_ANDROID_MODE` to `"false"` (or omit it) for web automation.
+- Set `MIDSCENE_MCP_ANDROID_MODE` to `"true"` to enable Android tooling in the same server.
+
+For more information about configuring AI models, see [Choosing an AI Model](./choose-a-model).
+
+## Available tools
+
+Midscene MCP exposes a shared set of AI interaction tools plus Android-specific device controls.
+
+| Category | Tool Name | Environment | Description |
+|---------|-----------|-------------|-------------|
+| **Navigation** | midscene_navigate | Web | Navigate to a specified URL in the current tab. |
+| **Tab Management** | midscene_get_tabs | Web | Get a list of all open browser tabs. |
+|  | midscene_set_active_tab | Web | Switch to a specific tab by ID. |
+| **Device Management** | midscene_android_list_devices | Android | List connected Android devices. |
+|  | midscene_android_connect | Android | Connect to an Android device via ADB. |
+| **App Control** | midscene_android_launch | Android | Launch an app or open a webpage on Android. |
+| **System Operations** | midscene_android_back | Android | Press the back button on Android. |
+|  | midscene_android_home | Android | Press the home button on Android. |
+| **Page Interaction** | midscene_aiTap | Web & Android | Click on an element described in natural language. |
+|  | midscene_aiInput | Web & Android | Input text into a form field or element. |
+|  | midscene_aiHover | Web | Hover over an element. |
+|  | midscene_aiKeyboardPress | Web & Android | Press a specific keyboard key. |
+|  | midscene_aiScroll | Web & Android | Scroll the page or a specific element. |
+| **Verification & Observation** | midscene_aiWaitFor | Web & Android | Wait for a condition to be true. |
+|  | midscene_aiAssert | Web & Android | Assert that a condition is true. |
+|  | midscene_screenshot | Web & Android | Capture a screenshot of the current context. |
+| **Playwright Helper** | midscene_playwright_example | Web | Produce Playwright code examples for Midscene. |
+
+### Web navigation
+
+- **midscene_navigate**: Navigate to a specified URL in the current tab.
+  ```
+  Parameters:
+  - url: The URL to navigate to.
+  ```
+
+### Web tab management
+
+- **midscene_get_tabs**: Get a list of all open browser tabs, including IDs, titles, and URLs.
+  ```
+  Parameters: None
+  ```
+
+- **midscene_set_active_tab**: Switch to a specific tab by ID.
+  ```
+  Parameters:
+  - tabId: The ID of the tab to activate.
+  ```
+
+### Android device management
+
+- **midscene_android_list_devices**: List all connected Android devices available for automation.
+  ```
+  Parameters: None
+  ```
+
+- **midscene_android_connect**: Connect to an Android device via ADB.
+  ```
+  Parameters:
+  - deviceId: (Optional) Device ID to connect to. Defaults to the first available device.
+  - displayId: (Optional) Display ID for multi-display Android devices (e.g., 0, 1, 2). Targeted for ADB input operations.
+  - alwaysRefreshScreenInfo: (Optional) Refresh screen info each call. Set true if the device rotates or requires real-time data.
+  ```
+
+### Android app control
+
+- **midscene_android_launch**: Launch an app or navigate to a URL on Android.
+  ```
+  Parameters:
+  - uri: Package name, activity name, or URL to launch.
+  ```
+
+- **midscene_android_back**: Press the back button on Android.
+  ```
+  Parameters: None
+  ```
+
+- **midscene_android_home**: Press the home button on Android.
+  ```
+  Parameters: None
+  ```
+
+### Shared page interaction tools
+
+- **midscene_aiTap**: Click on an element described in natural language.
+  ```
+  Parameters:
+  - locate: Description of the element to click.
+  ```
+
+- **midscene_aiInput**: Input text into a form field or element.
+  ```
+  Parameters:
+  - value: Text to input.
+  - locate: Description of the element to target.
+  ```
+
+- **midscene_aiHover** (web only): Hover over an element.
+  ```
+  Parameters:
+  - locate: Description of the element to hover over.
+  ```
+
+- **midscene_aiKeyboardPress**: Press a specific keyboard key.
+  ```
+  Parameters:
+  - key: Key to press (e.g., 'Enter', 'Tab', 'Escape').
+  - locate: (Optional) Element to focus before pressing the key.
+  - deepThink: (Optional) Use more precise element location.
+  ```
+
+- **midscene_aiScroll**: Scroll the page or a specific element.
+  ```
+  Parameters:
+  - direction: 'up', 'down', 'left', or 'right'.
+  - scrollType: 'once', 'untilBottom', 'untilTop', 'untilLeft', or 'untilRight'.
+  - distance: (Optional) Scroll distance in pixels.
+  - locate: (Optional) Description of the element to scroll.
+  - deepThink: (Optional) Use more precise element location.
+  ```
+
+### Shared verification and observation tools
+
+- **midscene_aiWaitFor**: Wait for a condition to be true.
+  ```
+  Parameters:
+  - assertion: Description of the condition to wait for.
+  - timeoutMs: (Optional) Maximum wait time in milliseconds.
+  - checkIntervalMs: (Optional) Polling interval in milliseconds.
+  ```
+
+- **midscene_aiAssert**: Assert that a condition is true.
+  ```
+  Parameters:
+  - assertion: Description of the condition to check.
+  ```
+
+- **midscene_screenshot**: Take a screenshot of the current page or screen.
+  ```
+  Parameters:
+  - name: Name for the screenshot.
+  ```
+
+### Playwright helper
+
+- **midscene_playwright_example** (web only): Provides Playwright code examples for Midscene usage.
+  ```
+  Parameters:
+  - locate: Description of the action or element to generate example code for.
+  ```
+
+## Common issues
+
+### What advantages does Midscene MCP have over other MCPs?
+
+- Bridge Mode lets you control your current browser directly without logging in again or downloading another browser.
+- Built-in prompt templates and operation execution practices provide more stable browser automation.
+- Android Mode extends automation to physical devices or emulators using the same MCP server.
+
+### Web-specific troubleshooting
+
+- Ensure the Midscene Chrome extension is installed and Bridge Mode is enabled.
+- If navigation fails, verify that the target URL is accessible from the current browser session.
+
+### Android-specific troubleshooting
+
+- Confirm Android SDK and ADB are installed.
+- Enable Developer Options and USB debugging on your Android device.
+- Run `adb devices` to confirm the device connection.
+- Resolve local port conflicts by stopping extra MCP clients or freeing port `3766`:
+
+  ```bash
+  # macOS / Linux
+  lsof -i:3766 | awk 'NR>1 {print $2}' | xargs -r kill -9
+
+  # Windows
+  FOR /F "tokens=5" %i IN ('netstat -ano ^| findstr :3766') DO taskkill /F /PID %i
+  ```
+
+### Accessing Midscene execution reports
+
+After each task execution, a Midscene task report is generated. Open it directly from the command line:
+
+```bash
+open report_file_name.html
+```

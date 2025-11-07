@@ -75,6 +75,8 @@ tsx demo-new-tab.ts
 执行脚本和点击插件中的 'Allow connection' 按钮没有顺序要求。
 :::
 
+<a id="agentoverchromebridge"></a>
+
 ## 构造器
 
 ```typescript
@@ -83,7 +85,7 @@ import { AgentOverChromeBridge } from "@midscene/web/bridge-mode";
 const agent = new AgentOverChromeBridge();
 ```
 
-除了 [普通 Agent 构造器](./api.mdx) 的参数，`AgentOverChromeBridge` 还接受以下参数：
+你需要使用 `AgentOverChromeBridge` 这个构造器。它继承了[通用 Agent 构造器](./api.mdx) ，并接受以下构造参数：
 
 * `closeNewTabsAfterDisconnect?: boolean`: 如果为 true，当桥接断开时，所有新创建的标签页都将被自动关闭。默认值为 false。
 * `allowRemoteAccess?: boolean`: 如果为 true，允许远程机器连接到 Bridge Server（监听 `0.0.0.0`）。默认值为 false，只允许本机连接（监听 `127.0.0.1`）。
@@ -92,7 +94,7 @@ const agent = new AgentOverChromeBridge();
 
 ## 方法
 
-除了 [普通的 Agent 接口](./api.mdx)，`AgentOverChromeBridge` 还提供了一些额外的接口来控制桌面 Chrome。
+除了 [通用的 Agent 接口](./api.mdx)，`AgentOverChromeBridge` 还提供了一些额外的接口来控制桌面 Chrome。
 
 :::info
 你应该在执行其他操作前，先调用 `connectCurrentTab` 或 `connectNewTabWithUrl`。

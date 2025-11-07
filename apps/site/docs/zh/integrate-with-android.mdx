@@ -15,7 +15,7 @@ import { PackageManagerTabs } from '@theme';
 
 :::info 案例展示
 
-[查看更多案例](./blog-support-android-automation.mdx)
+[查看更多案例](./android-introduction)
 
 <p align="center">
   <img src="/android.png" alt="android" width="400" />
@@ -114,6 +114,8 @@ npx tsx demo.ts
 
 ## 构造函数与接口
 
+<a id="androiddevice"></a>
+
 ### `AndroidDevice` 的构造函数
 
 AndroidDevice 的构造函数支持以下参数：
@@ -129,6 +131,8 @@ AndroidDevice 的构造函数支持以下参数：
   - `displayId?: number` - 可选参数，用于指定要使用的显示器 ID。默认值为 undefined，表示使用当前显示器。
   - `screenshotResizeScale?: number` - 可选参数，控制发送给 AI 模型的截图尺寸。默认值为 `1 / devicePixelRatio`，因此对于分辨率 1200×800、设备像素比（DPR）为 3 的界面，发送到模型的图片约为 400×267。不建议手动修改该参数。
   - `alwaysRefreshScreenInfo?: boolean` - 可选参数，是否每次都重新获取屏幕尺寸和方向信息。默认为 false（使用缓存以提高性能）。如果设备可能会旋转或需要实时屏幕信息，设置为 true。
+
+<a id="androidagent"></a>
 
 ### Android Agent 上的更多接口
 
@@ -206,6 +210,75 @@ console.log(result);
 要了解如何在 YAML 脚本中使用 `runAdbShell` 和 `launch` 动作，请参考 [YAML 脚本中的 Android 平台特定动作](./automate-with-scripts-in-yaml#android-部分)。
 
 :::
+
+#### `agent.back()`
+
+触发系统的返回操作。
+
+- 类型
+
+```typescript
+function back(): Promise<void>;
+```
+
+- 参数：无
+- 返回值：`Promise<void>`
+
+- 示例：
+
+```typescript
+import { agentFromAdbDevice } from '@midscene/android';
+
+const agent = await agentFromAdbDevice();
+
+await agent.back(); // 执行返回操作
+```
+
+#### `agent.home()`
+
+返回到 Android 主屏幕。
+
+- 类型
+
+```typescript
+function home(): Promise<void>;
+```
+
+- 参数：无
+- 返回值：`Promise<void>`
+
+- 示例：
+
+```typescript
+import { agentFromAdbDevice } from '@midscene/android';
+
+const agent = await agentFromAdbDevice();
+
+await agent.home(); // 回到桌面
+```
+
+#### `agent.recentApps()`
+
+打开 Android 最近任务界面。
+
+- 类型
+
+```typescript
+function recentApps(): Promise<void>;
+```
+
+- 参数：无
+- 返回值：`Promise<void>`
+
+- 示例：
+
+```typescript
+import { agentFromAdbDevice } from '@midscene/android';
+
+const agent = await agentFromAdbDevice();
+
+await agent.recentApps(); // 打开最近任务
+```
 
 #### `agentFromAdbDevice()`
 

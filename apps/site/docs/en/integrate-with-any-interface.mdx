@@ -1,6 +1,6 @@
 import SetupEnv from './common/setup-env.mdx';
 
-# Integrate with any interface (preview)
+# Integrate with any interface 
 
 From Midscene v0.28.0, we have launched the feature to integrate with any interface. Define your own interface controller class conforming to the `AbstractInterface` class, and you can get a fully-featured Midscene Agent.
 
@@ -16,7 +16,6 @@ After implementing the class, you can have all these popular features:
 
 Please note that only models with visual grounding capabilities can be used to control the interface. Read this doc to [choose a model](./choose-a-model).
 
-:::tip This is a preview feature
 
 This feature is still in the preview stage, and we welcome your feedback and suggestions on [GitHub](https://github.com/web-infra-dev/midscene/issues).
 
@@ -334,7 +333,7 @@ You can find the parameters of the actions in the type definition of these funct
 
 #### Define a custom action
 
-You can define your own action by using the `defineAction()` function. You can also use this method to define more actions for the [PuppeteerAgent](./integrate-with-puppeteer), [AgentOverChromeBridge](./bridge-mode-by-chrome-extension#constructor), and [AndroidAgent](./integrate-with-android).
+You can define your own action by using the `defineAction()` function. You can also use this method to define more actions for the [PuppeteerAgent](./integrate-with-puppeteer), [AgentOverChromeBridge](./bridge-mode#constructor), and [AndroidAgent](./integrate-with-android).
 
 API Signature:
 

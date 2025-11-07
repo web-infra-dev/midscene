@@ -82,3 +82,7 @@ You can also customize or disable the timeout by options:
 
 - Use `waitForNetworkIdleTimeout` and `waitForNavigationTimeout` parameters in [Agent](/api.html#constructors).
 - Use `waitForNetworkIdle` parameter in [Yaml](/automate-with-scripts-in-yaml.html#the-web-part) or [PlaywrightAiFixture](/integrate-with-playwright.html#step-2-extend-the-test-instance).
+
+## Get an error 403 when using Ollama model in Chrome extension
+
+`OLLAMA_ORIGINS="*"` is required to allow the Chrome extension to access the Ollama model.

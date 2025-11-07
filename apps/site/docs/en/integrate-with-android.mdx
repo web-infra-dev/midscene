@@ -15,7 +15,7 @@ Integrate Vitest for testing: [https://github.com/web-infra-dev/midscene-example
 
 :::info Showcases
 
-[More showcases](./blog-support-android-automation.mdx)
+[More showcases](./android-introduction)
 
 <p align="center">
   <img src="/android.png" alt="android" width="400" />
@@ -115,6 +115,8 @@ After the above command executes successfully, the console will output: `Midscen
 
 ## Constructor and Interface
 
+<a id="androiddevice"></a>
+
 ### `AndroidDevice` Constructor
 
 The AndroidDevice constructor supports the following parameters:
@@ -130,6 +132,8 @@ The AndroidDevice constructor supports the following parameters:
   - `displayId?: number` - Optional, the display id to use. (Default: undefined, means use the current display)
   - `screenshotResizeScale?: number` - Optional, controls the size of the screenshot Midscene sends to the AI model. Default is `1 / devicePixelRatio`, so a 1200×800 display with a device pixel ratio of 3 sends an image of roughly 400×267 to the model. Adjusting this value manually is not recommended.
   - `alwaysRefreshScreenInfo?: boolean` - Optional, whether to re-fetch screen size and orientation information every time. Default is false (uses cache for better performance). Set to true if the device may rotate or you need real-time screen information.
+
+<a id="androidagent"></a>
 
 ### Additional Android Agent Interfaces
 
@@ -207,6 +211,75 @@ In addition to using these methods in JavaScript/TypeScript, you can also use An
 For details on how to use `runAdbShell` and `launch` actions in YAML scripts, refer to [Android Platform-Specific Actions in YAML Scripts](./automate-with-scripts-in-yaml#the-android-part).
 
 :::
+
+#### `agent.back()`
+
+Trigger the system Back operation.
+
+- Type
+
+```typescript
+function back(): Promise<void>;
+```
+
+- Parameters: _None_
+- Return Value: `Promise<void>`
+
+- Example:
+
+```typescript
+import { agentFromAdbDevice } from '@midscene/android';
+
+const agent = await agentFromAdbDevice();
+
+await agent.back(); // Navigate back
+```
+
+#### `agent.home()`
+
+Return to the Android Home screen.
+
+- Type
+
+```typescript
+function home(): Promise<void>;
+```
+
+- Parameters: _None_
+- Return Value: `Promise<void>`
+
+- Example:
+
+```typescript
+import { agentFromAdbDevice } from '@midscene/android';
+
+const agent = await agentFromAdbDevice();
+
+await agent.home(); // Return to the launcher
+```
+
+#### `agent.recentApps()`
+
+Open the Android Recents/Overview screen.
+
+- Type
+
+```typescript
+function recentApps(): Promise<void>;
+```
+
+- Parameters: _None_
+- Return Value: `Promise<void>`
+
+- Example:
+
+```typescript
+import { agentFromAdbDevice } from '@midscene/android';
+
+const agent = await agentFromAdbDevice();
+
+await agent.recentApps(); // Show recent apps
+```
 
 #### `agentFromAdbDevice()`
 

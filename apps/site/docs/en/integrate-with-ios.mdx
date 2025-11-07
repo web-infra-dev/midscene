@@ -15,7 +15,7 @@ Integrate with Vitest for testing: [https://github.com/web-infra-dev/midscene-ex
 
 :::info Showcases
 
-[More showcases](./blog-support-ios-automation.mdx)
+[More showcases](./ios-introduction)
 
 <p align="center">
   <img src="/ios.png" alt="ios" width="400" />
@@ -23,7 +23,7 @@ Integrate with Vitest for testing: [https://github.com/web-infra-dev/midscene-ex
 
 :::
 
-## About WebDriver and Midscene's Relationship
+## About WebDriver and Midscene's relationship
 
 WebDriver is a standard protocol established by W3C for browser automation, providing a unified API to control different browsers and applications. The WebDriver protocol defines the communication method between client and server, enabling automation tools to control various user interfaces across platforms.
 
@@ -143,6 +143,8 @@ When the above command executes successfully, it will output in the console: `Mi
 
 ## Constructor and Interface
 
+<a id="iosdevice"></a>
+
 ### `IOSDevice` Constructor
 
 The IOSDevice constructor supports the following parameters:
@@ -152,6 +154,8 @@ The IOSDevice constructor supports the following parameters:
   - `wdaHost?: string` - Optional, WebDriverAgent host. Default is 'localhost'.
   - `autoDismissKeyboard?: boolean` - Optional, whether to automatically dismiss keyboard after text input. Default is true.
   - `customActions?: DeviceAction<any>[]` - Optional, list of custom device actions.
+
+<a id="iosagent"></a>
 
 ### Additional iOS Agent Interfaces
 
@@ -249,6 +253,52 @@ In addition to using these methods in JavaScript/TypeScript, you can also use iO
 For details on how to use `runWdaRequest` and `launch` actions in YAML scripts, refer to [iOS Platform-Specific Actions in YAML Scripts](./automate-with-scripts-in-yaml#the-ios-part).
 
 :::
+
+#### `agent.home()`
+
+Return to the iOS Home screen.
+
+- Type
+
+```typescript
+function home(): Promise<void>;
+```
+
+- Parameters: _None_
+- Return Value: `Promise<void>`
+
+- Example:
+
+```typescript
+import { IOSAgent, agentFromWebDriverAgent } from '@midscene/ios';
+
+const agent = await agentFromWebDriverAgent();
+
+await agent.home(); // Return to the Home screen
+```
+
+#### `agent.appSwitcher()`
+
+Open the iOS App Switcher.
+
+- Type
+
+```typescript
+function appSwitcher(): Promise<void>;
+```
+
+- Parameters: _None_
+- Return Value: `Promise<void>`
+
+- Example:
+
+```typescript
+import { IOSAgent, agentFromWebDriverAgent } from '@midscene/ios';
+
+const agent = await agentFromWebDriverAgent();
+
+await agent.appSwitcher(); // Reveal the multitasking view
+```
 
 ### `agentFromWebDriverAgent()` (Recommended)
 
