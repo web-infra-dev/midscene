@@ -486,9 +486,6 @@ describe('ModelConfigManager', () => {
       vi.stubEnv(MIDSCENE_PLANNING_MODEL_BASE_URL, 'https://api.openai.com/v1');
       vi.stubEnv(MIDSCENE_PLANNING_LOCATOR_MODE, 'qwen-vl');
 
-      vi.stubEnv(MIDSCENE_INSIGHT_MODEL_NAME, 'gpt-4-vision');
-      vi.stubEnv(MIDSCENE_INSIGHT_MODEL_API_KEY, 'test-insight-key');
-      vi.stubEnv(MIDSCENE_INSIGHT_MODEL_BASE_URL, 'https://api.openai.com/v1');
 
       vi.stubEnv(MIDSCENE_MODEL_NAME, 'gpt-4');
       vi.stubEnv(OPENAI_API_KEY, 'test-key');
