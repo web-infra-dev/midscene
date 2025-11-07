@@ -9,14 +9,14 @@ In this article, we will show you how to config AI service provider and how to c
 ## Configs
 
 ### Common configs
-These are the most common configs, in which `MODEL_API_KEY` or `OPENAI_API_KEY` is required.
+These are the most common configs, in which `MIDSCENE_MODEL_API_KEY` or `OPENAI_API_KEY` is required.
 
 | Name | Description |
 |------|-------------|
-| `MODEL_API_KEY` | Required (recommended). Your API key (e.g. "sk-abcdefghijklmnopqrstuvwxyz") |
-| `MODEL_BASE_URL` | Optional (recommended). Custom endpoint URL for API endpoint. Use it to switch to a provider other than OpenAI (e.g. "https://some_service_name.com/v1") |
-| `OPENAI_API_KEY` | Deprecated but still compatible. Recommended to use `MODEL_API_KEY` |
-| `OPENAI_BASE_URL` | Deprecated but still compatible. Recommended to use `MODEL_BASE_URL` |
+| `MIDSCENE_MODEL_API_KEY` | Required (recommended). Your API key (e.g. "sk-abcdefghijklmnopqrstuvwxyz") |
+| `MIDSCENE_MODEL_BASE_URL` | Optional (recommended). Custom endpoint URL for API endpoint. Use it to switch to a provider other than OpenAI (e.g. "https://some_service_name.com/v1") |
+| `OPENAI_API_KEY` | Deprecated but still compatible. Recommended to use `MIDSCENE_MODEL_API_KEY` |
+| `OPENAI_BASE_URL` | Deprecated but still compatible. Recommended to use `MIDSCENE_MODEL_BASE_URL` |
 | `MIDSCENE_MODEL_NAME` | Optional. Specify a different model name other than `gpt-4o` |
 
 Extra configs to use `Qwen 2.5 VL` model:
@@ -53,7 +53,8 @@ Some advanced configs are also supported. Usually you don't need to use them.
 | `MIDSCENE_OPENAI_SOCKS_PROXY` | Deprecated but still compatible. Recommended to use `MIDSCENE_MODEL_SOCKS_PROXY` |
 | `MIDSCENE_PREFERRED_LANGUAGE` | Optional. The preferred language for the model response. The default is `Chinese` if the current timezone is GMT+8 and `English` otherwise. |
 | `MIDSCENE_REPLANNING_CYCLE_LIMIT` | Optional. The maximum number of replanning cycles, default is 10 |
-| `OPENAI_MAX_TOKENS` | Optional. Maximum tokens for model response, default is 2048 |
+| `MIDSCENE_MODEL_MAX_TOKENS` | Optional (recommended). Maximum tokens for model response, default is 2048 |
+| `OPENAI_MAX_TOKENS` | Deprecated but still compatible. Recommended to use `MIDSCENE_MODEL_MAX_TOKENS` |
 
 ### Debug configs
 
@@ -74,7 +75,7 @@ Pick one of the following ways to config environment variables.
 
 ```bash
 # replace by your own
-export MODEL_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+export MIDSCENE_MODEL_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 
 # if you are not using the default OpenAI model, you need to config more params
 # export MIDSCENE_MODEL_NAME="..."
@@ -94,7 +95,7 @@ npm install dotenv --save
 Create a `.env` file in your project root directory, and add the following content. There is no need to add `export` before each line.
 
 ```
-MODEL_API_KEY=sk-abcdefghijklmnopqrstuvwxyz
+MIDSCENE_MODEL_API_KEY=sk-abcdefghijklmnopqrstuvwxyz
 ```
 
 Import the dotenv module in your script. It will automatically read the environment variables from the `.env` file.
@@ -115,8 +116,8 @@ import { overrideAIConfig } from "@midscene/web/puppeteer";
 
 overrideAIConfig({
   MIDSCENE_MODEL_NAME: "...",
-  MODEL_BASE_URL: "...", // recommended, use new variable name
-  MODEL_API_KEY: "...", // recommended, use new variable name
+  MIDSCENE_MODEL_BASE_URL: "...", // recommended, use new variable name
+  MIDSCENE_MODEL_API_KEY: "...", // recommended, use new variable name
   // ...
 });
 ```
@@ -126,8 +127,8 @@ overrideAIConfig({
 Configure the environment variables:
 
 ```bash
-export MODEL_API_KEY="sk-..."
-export MODEL_BASE_URL="https://endpoint.some_other_provider.com/v1" # config this if you want to use a different endpoint
+export MIDSCENE_MODEL_API_KEY="sk-..."
+export MIDSCENE_MODEL_BASE_URL="https://endpoint.some_other_provider.com/v1" # config this if you want to use a different endpoint
 export MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # optional, the default is "gpt-4o"
 ```
 
@@ -136,8 +137,8 @@ export MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # optional, the default is "gpt-4
 Configure the environment variables:
 
 ```bash
-export MODEL_API_KEY="sk-..."
-export MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+export MIDSCENE_MODEL_API_KEY="sk-..."
+export MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
 export MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
 export MIDSCENE_USE_QWEN_VL=1
 ```
@@ -149,8 +150,8 @@ Configure the environment variables:
 
 
 ```bash
-export MODEL_BASE_URL="https://ark-cn-beijing.bytedance.net/api/v3"
-export MODEL_API_KEY="..."
+export MIDSCENE_MODEL_BASE_URL="https://ark-cn-beijing.bytedance.net/api/v3"
+export MIDSCENE_MODEL_API_KEY="..."
 export MIDSCENE_MODEL_NAME='ep-...'
 export MIDSCENE_USE_DOUBAO_VISION=1
 ```
@@ -160,8 +161,8 @@ export MIDSCENE_USE_DOUBAO_VISION=1
 Configure the environment variables:
 
 ```bash
-export MODEL_API_KEY="sk-..."
-export MODEL_BASE_URL="http://localhost:1234/v1"
+export MIDSCENE_MODEL_API_KEY="sk-..."
+export MIDSCENE_MODEL_BASE_URL="http://localhost:1234/v1"
 export MIDSCENE_MODEL_NAME="ui-tars-72b-sft"
 export MIDSCENE_USE_VLM_UI_TARS=1
 ```
@@ -169,8 +170,8 @@ export MIDSCENE_USE_VLM_UI_TARS=1
 ## Example: config request headers (like for openrouter)
 
 ```bash
-export MODEL_BASE_URL="https://openrouter.ai/api/v1"
-export MODEL_API_KEY="..."
+export MIDSCENE_MODEL_BASE_URL="https://openrouter.ai/api/v1"
+export MIDSCENE_MODEL_API_KEY="..."
 export MIDSCENE_MODEL_NAME="..."
 export MIDSCENE_OPENAI_INIT_CONFIG_JSON='{"defaultHeaders":{"HTTP-Referer":"...","X-Title":"..."}}'
 ```
