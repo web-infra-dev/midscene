@@ -15,12 +15,16 @@ import {
 import {
   MIDSCENE_MODEL_HTTP_PROXY,
   MIDSCENE_MODEL_INIT_CONFIG_JSON,
+  MIDSCENE_MODEL_API_KEY,
+  MIDSCENE_MODEL_BASE_URL,
   MIDSCENE_MODEL_SOCKS_PROXY,
   MIDSCENE_OPENAI_HTTP_PROXY,
   MIDSCENE_OPENAI_INIT_CONFIG_JSON,
   MIDSCENE_OPENAI_SOCKS_PROXY,
   MODEL_API_KEY,
   MODEL_BASE_URL,
+  OPENAI_API_KEY,
+  OPENAI_BASE_URL,
 } from './types';
 
 import { getDebug } from '../logger';
@@ -84,17 +88,27 @@ export const decideOpenaiSdkConfig = ({
   let httpProxy: string | undefined;
   let openaiExtraConfigStr: string | undefined;
 
-  // When using legacy keys (OPENAI_BASE_URL, OPENAI_API_KEY), check for new names first
-  if (keys.openaiBaseURL === 'OPENAI_BASE_URL') {
-    // Priority: MODEL_BASE_URL > OPENAI_BASE_URL
-    openaiBaseURL = provider[MODEL_BASE_URL] || provider[keys.openaiBaseURL];
+  // Prefer the new public variables when using the default intent config.
+  if (
+    keys.openaiBaseURL === MIDSCENE_MODEL_BASE_URL ||
+    keys.openaiBaseURL === OPENAI_BASE_URL
+  ) {
+    openaiBaseURL =
+      provider[MIDSCENE_MODEL_BASE_URL] ||
+      provider[MODEL_BASE_URL] ||
+      provider[keys.openaiBaseURL];
   } else {
     openaiBaseURL = provider[keys.openaiBaseURL];
   }
 
-  if (keys.openaiApiKey === 'OPENAI_API_KEY') {
-    // Priority: MODEL_API_KEY > OPENAI_API_KEY
-    openaiApiKey = provider[MODEL_API_KEY] || provider[keys.openaiApiKey];
+  if (
+    keys.openaiApiKey === MIDSCENE_MODEL_API_KEY ||
+    keys.openaiApiKey === OPENAI_API_KEY
+  ) {
+    openaiApiKey =
+      provider[MIDSCENE_MODEL_API_KEY] ||
+      provider[MODEL_API_KEY] ||
+      provider[keys.openaiApiKey];
   } else {
     openaiApiKey = provider[keys.openaiApiKey];
   }

@@ -2,6 +2,7 @@ import { AIResponseFormat, type AIUsageInfo } from '@/types';
 import type { CodeGenerationChunk, StreamingCallback } from '@/types';
 import {
   type IModelConfig,
+  MIDSCENE_MODEL_MAX_TOKENS,
   OPENAI_MAX_TOKENS,
   type TVlModeTypes,
   type UITarsModelVersion,
@@ -102,7 +103,9 @@ export async function callAI(
 
   const responseFormat = getResponseFormat(modelName, AIActionTypeValue);
 
-  const maxTokens = globalConfigManager.getEnvConfigValue(OPENAI_MAX_TOKENS);
+  const maxTokens =
+    globalConfigManager.getEnvConfigValue(MIDSCENE_MODEL_MAX_TOKENS) ??
+    globalConfigManager.getEnvConfigValue(OPENAI_MAX_TOKENS);
   const debugCall = getDebug('ai:call');
   const debugProfileStats = getDebug('ai:profile:stats');
   const debugProfileDetail = getDebug('ai:profile:detail');

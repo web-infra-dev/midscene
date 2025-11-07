@@ -3,7 +3,12 @@ import {
   decideModelConfigFromEnv,
   decideModelConfigFromIntentConfig,
 } from '../../../src/env/decide-model-config';
-import { MODEL_API_KEY, MODEL_BASE_URL } from '../../../src/env/types';
+import {
+  MIDSCENE_MODEL_API_KEY,
+  MIDSCENE_MODEL_BASE_URL,
+  MODEL_API_KEY,
+  MODEL_BASE_URL,
+} from '../../../src/env/types';
 
 describe('decideModelConfig from modelConfig fn', () => {
   it('return lacking config for VQA', () => {
@@ -71,7 +76,7 @@ describe('decideModelConfig from env', () => {
   };
 
   describe('backward compatibility for legacy variables', () => {
-    it('should use OPENAI_API_KEY when MODEL_API_KEY is not set', () => {
+    it('should use OPENAI_API_KEY when MIDSCENE_MODEL_API_KEY is not set', () => {
       const result = decideModelConfigFromEnv('default', {
         MIDSCENE_MODEL_NAME: 'test-model',
         OPENAI_API_KEY: 'legacy-key',
@@ -82,11 +87,11 @@ describe('decideModelConfig from env', () => {
       expect(result.from).toBe('legacy-env');
     });
 
-    it('should use MODEL_API_KEY when both MODEL_API_KEY and OPENAI_API_KEY are set', () => {
+    it('should use MIDSCENE_MODEL_API_KEY when both MIDSCENE_MODEL_API_KEY and OPENAI_API_KEY are set', () => {
       const result = decideModelConfigFromEnv('default', {
         MIDSCENE_MODEL_NAME: 'test-model',
-        [MODEL_API_KEY]: 'new-key',
-        [MODEL_BASE_URL]: 'new-url',
+        [MIDSCENE_MODEL_API_KEY]: 'new-key',
+        [MIDSCENE_MODEL_BASE_URL]: 'new-url',
         OPENAI_API_KEY: 'legacy-key',
         OPENAI_BASE_URL: 'legacy-url',
       });
@@ -95,37 +100,48 @@ describe('decideModelConfig from env', () => {
       expect(result.from).toBe('legacy-env');
     });
 
-    it('should use MODEL_API_KEY when only new variables are set', () => {
+    it('should use MIDSCENE_MODEL_API_KEY when only new variables are set', () => {
       const result = decideModelConfigFromEnv('default', {
         MIDSCENE_MODEL_NAME: 'test-model',
-        [MODEL_API_KEY]: 'new-key',
-        [MODEL_BASE_URL]: 'new-url',
+        [MIDSCENE_MODEL_API_KEY]: 'new-key',
+        [MIDSCENE_MODEL_BASE_URL]: 'new-url',
       });
       expect(result.openaiApiKey).toBe('new-key');
       expect(result.openaiBaseURL).toBe('new-url');
       expect(result.from).toBe('legacy-env');
     });
 
-    it('should prefer MODEL_BASE_URL over OPENAI_BASE_URL', () => {
+    it('should prefer MIDSCENE_MODEL_BASE_URL over OPENAI_BASE_URL', () => {
       const result = decideModelConfigFromEnv('default', {
         MIDSCENE_MODEL_NAME: 'test-model',
         OPENAI_API_KEY: 'legacy-key',
-        [MODEL_BASE_URL]: 'new-url',
+        [MIDSCENE_MODEL_BASE_URL]: 'new-url',
         OPENAI_BASE_URL: 'legacy-url',
       });
       expect(result.openaiApiKey).toBe('legacy-key');
       expect(result.openaiBaseURL).toBe('new-url');
     });
 
-    it('should prefer MODEL_API_KEY over OPENAI_API_KEY', () => {
+    it('should prefer MIDSCENE_MODEL_API_KEY over OPENAI_API_KEY', () => {
       const result = decideModelConfigFromEnv('default', {
         MIDSCENE_MODEL_NAME: 'test-model',
-        [MODEL_API_KEY]: 'new-key',
+        [MIDSCENE_MODEL_API_KEY]: 'new-key',
         OPENAI_API_KEY: 'legacy-key',
         OPENAI_BASE_URL: 'legacy-url',
       });
       expect(result.openaiApiKey).toBe('new-key');
       expect(result.openaiBaseURL).toBe('legacy-url');
+    });
+
+    it('should use deprecated MODEL_API_KEY when only deprecated variables are set', () => {
+      const result = decideModelConfigFromEnv('default', {
+        MIDSCENE_MODEL_NAME: 'test-model',
+        [MODEL_API_KEY]: 'deprecated-key',
+        [MODEL_BASE_URL]: 'deprecated-url',
+      });
+      expect(result.openaiApiKey).toBe('deprecated-key');
+      expect(result.openaiBaseURL).toBe('deprecated-url');
+      expect(result.from).toBe('legacy-env');
     });
   });
 
