@@ -320,15 +320,25 @@ export class IOSWebDriverClient extends WebDriverClient {
     this.ensureSession();
 
     try {
-      // Use WebDriverAgent's tap endpoint (most reliable)
+      // New endpoint (WDA 6.0.0+): POST /session/{id}/wda/tap
       await this.makeRequest('POST', `/session/${this.sessionId}/wda/tap`, {
         x,
         y,
       });
       debugIOS(`Tapped at coordinates (${x}, ${y})`);
     } catch (error) {
-      debugIOS(`Failed to tap at (${x}, ${y}): ${error}`);
-      throw new Error(`Failed to tap at coordinates: ${error}`);
+      // Legacy endpoint (WDA 5.x): POST /session/{id}/wda/tap/0
+      debugIOS(`New tap endpoint failed, trying legacy endpoint: ${error}`);
+      try {
+        await this.makeRequest('POST', `/session/${this.sessionId}/wda/tap/0`, {
+          x,
+          y,
+        });
+        debugIOS(`Tapped at coordinates (${x}, ${y}) using legacy endpoint`);
+      } catch (fallbackError) {
+        debugIOS(`Failed to tap at (${x}, ${y}): ${fallbackError}`);
+        throw new Error(`Failed to tap at coordinates: ${fallbackError}`);
+      }
     }
   }
 
@@ -414,16 +424,53 @@ export class IOSWebDriverClient extends WebDriverClient {
   }
 
   async getScreenScale(): Promise<number | null> {
-    // Use the WDA-specific screen endpoint which we confirmed works
-    const screenResponse = await this.makeRequest('GET', '/wda/screen');
-    if (screenResponse?.value?.scale) {
-      debugIOS(
-        `Got screen scale from WDA screen endpoint: ${screenResponse.value.scale}`,
+    this.ensureSession();
+
+    try {
+      // Try GET /session/{id}/wda/screen (Python facebook-wda compatible)
+      const screenResponse = await this.makeRequest(
+        'GET',
+        `/session/${this.sessionId}/wda/screen`,
       );
-      return screenResponse.value.scale;
+      if (screenResponse?.value?.scale) {
+        debugIOS(
+          `Got screen scale from WDA screen endpoint: ${screenResponse.value.scale}`,
+        );
+        return screenResponse.value.scale;
+      }
+    } catch (error) {
+      debugIOS(`Failed to get screen scale from /wda/screen: ${error}`);
     }
 
-    debugIOS('No screen scale found in WDA screen response');
+    // Fallback: Calculate scale from screenshot size / window size (Python facebook-wda compatible)
+    try {
+      debugIOS('Calculating screen scale from screenshot and window size');
+      const [screenshotBase64, windowSize] = await Promise.all([
+        this.takeScreenshot(),
+        this.getWindowSize(),
+      ]);
+
+      // Get screenshot dimensions from base64 using Jimp
+      const { jimpFromBase64 } = await import('@midscene/shared/img');
+      const screenshotImg = await jimpFromBase64(screenshotBase64);
+      const screenshotWidth = screenshotImg.bitmap.width;
+      const screenshotHeight = screenshotImg.bitmap.height;
+
+      // Calculate scale: max(screenshot.size) / max(window.size)
+      const scale =
+        Math.max(screenshotWidth, screenshotHeight) /
+        Math.max(windowSize.width, windowSize.height);
+
+      const roundedScale = Math.round(scale);
+      debugIOS(
+        `Calculated screen scale: ${roundedScale} (screenshot: ${screenshotWidth}x${screenshotHeight}, window: ${windowSize.width}x${windowSize.height})`,
+      );
+      return roundedScale;
+    } catch (error) {
+      debugIOS(`Failed to calculate screen scale: ${error}`);
+    }
+
+    debugIOS('No screen scale found');
     return null;
   }
 
