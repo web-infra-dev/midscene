@@ -11,7 +11,6 @@ import type {
   Rect,
   UIContext,
 } from '@midscene/core';
-import { treeToList } from '@midscene/shared/extractor';
 
 // Local type definition for Planning Locate task
 interface ExecutionTaskPlanningLocate extends ExecutionTask {
@@ -317,21 +316,7 @@ export const generateAnimationScripts = (
       initSubTitle = paramStr(task);
     }
 
-    if (task.type === 'Planning') {
-      const planningTask = task as ExecutionTaskPlanning;
-      if (planningTask.recorder && planningTask.recorder.length > 0) {
-        scripts.push({
-          type: 'img',
-          img: planningTask.recorder?.[0]?.screenshot,
-          camera: index === 0 ? fullPageCameraState : undefined,
-          duration: stillDuration,
-          title: typeStr(task),
-          subTitle: paramStr(task),
-          imageWidth: task.uiContext?.size?.width || imageWidth,
-          imageHeight: task.uiContext?.size?.height || imageHeight,
-        });
-      }
-    } else if (task.type === 'Planning' && task.subType === 'Locate') {
+    if (task.type === 'Planning' && task.subType === 'Locate') {
       const serviceTask = task as ExecutionTaskPlanningLocate;
       const resultElement = serviceTask.output?.element;
       const title = typeStr(task);
@@ -396,6 +381,20 @@ export const generateAnimationScripts = (
           subTitle,
         });
         insightOnTop = true;
+      }
+    } else if (task.type === 'Planning') {
+      const planningTask = task as ExecutionTaskPlanning;
+      if (planningTask.recorder && planningTask.recorder.length > 0) {
+        scripts.push({
+          type: 'img',
+          img: planningTask.recorder?.[0]?.screenshot,
+          camera: index === 0 ? fullPageCameraState : undefined,
+          duration: stillDuration,
+          title: typeStr(task),
+          subTitle: paramStr(task),
+          imageWidth: task.uiContext?.size?.width || imageWidth,
+          imageHeight: task.uiContext?.size?.height || imageHeight,
+        });
       }
     } else if (
       task.type === 'Action Space' &&
