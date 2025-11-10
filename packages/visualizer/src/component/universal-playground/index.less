@@ -354,3 +354,81 @@
     }
   }
 }
+
+// Dark mode styles
+[data-theme='dark'] {
+  .universal-playground {
+    .error-hint {
+      color: rgba(255, 255, 255, 0.45);
+    }
+
+    .status-indicator {
+      color: rgba(255, 255, 255, 0.85);
+
+      &.error {
+        color: #ff4d4f;
+      }
+
+      &.success {
+        color: #52c41a;
+      }
+    }
+
+    .operation-label {
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .alert-message {
+      color: rgba(255, 255, 255, 0.85);
+      background-color: rgba(82, 38, 7, 0.3);
+    }
+
+    .operation-item {
+      .operation-icon-wrapper {
+        background-color: rgba(255, 255, 255, 0.08);
+      }
+
+      .operation-content {
+        background-color: transparent;
+
+        .operation-title {
+          color: rgba(255, 255, 255, 0.45);
+        }
+      }
+    }
+
+    .playground-footer {
+      background-color: rgba(255, 255, 255, 0.04);
+
+      .status-text {
+        color: rgba(255, 255, 255, 0.85);
+      }
+    }
+
+    .results-info {
+      color: rgba(255, 255, 255, 0.45);
+    }
+
+    .result-section {
+      .result-title {
+        color: rgba(255, 255, 255, 0.85);
+      }
+
+      .result-details {
+        color: rgba(255, 255, 255, 0.65);
+      }
+
+      .result-value {
+        color: rgba(255, 255, 255, 0.85);
+
+        &.success {
+          color: #52c41a;
+        }
+
+        &.error {
+          color: #ff4d4f;
+        }
+      }
+    }
+  }
+}

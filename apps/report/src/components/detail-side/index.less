@@ -258,3 +258,87 @@
     border-radius: 4px;
   }
 }
+// Dark mode styles
+[data-theme='dark'] {
+  .detail-side {
+    .info-tabs {
+      background: #1f1f1f;
+      border-bottom-color: rgba(255, 255, 255, 0.12);
+
+      .info-tab {
+        color: rgba(255, 255, 255, 0.65);
+
+        &.active {
+          color: rgba(255, 255, 255, 0.85);
+        }
+      }
+    }
+
+    details summary {
+      color: rgba(255, 255, 255, 0.85);
+      border-top-color: rgba(255, 255, 255, 0.12);
+
+      &::before {
+        filter: brightness(0) invert(1);
+      }
+    }
+
+    .meta-kv .meta {
+      .meta-key {
+        color: rgba(255, 255, 255, 0.45);
+      }
+
+      .meta-value {
+        color: rgba(255, 255, 255, 0.85);
+      }
+    }
+
+    .item-list {
+      .item-highlight {
+        color: #FFF;
+
+        .subtitle {
+          color: #CCC;
+        }
+      }
+
+      .title {
+        color: rgba(255, 255, 255, 0.65);
+
+        .title-tag {
+          color: rgba(255, 255, 255, 0.45);
+        }
+      }
+
+      .subtitle {
+        color: rgba(255, 255, 255, 0.65);
+      }
+
+      .description-content {
+        color: rgba(255, 255, 255, 0.85);
+      }
+
+      .element-detail-box {
+        border-color: rgba(255, 255, 255, 0.12);
+        background-color: rgba(255, 255, 255, 0.04);
+
+        .element-detail-line {
+          color: rgba(255, 255, 255, 0.85);
+
+          &.element-detail-coords {
+            color: rgba(255, 255, 255, 0.65);
+          }
+        }
+      }
+
+      .nested-kv .nested-key {
+        color: rgba(255, 255, 255, 0.65);
+      }
+    }
+
+    .yaml-content {
+      background: rgba(255, 255, 255, 0.04);
+      color: rgba(255, 255, 255, 0.85);
+    }
+  }
+}

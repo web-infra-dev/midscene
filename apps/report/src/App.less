@@ -9,6 +9,11 @@ body {
   background: #F2F4F7;
 }
 
+// Dark mode for body
+[data-theme='dark'] {
+  background: #141414;
+}
+
 .rspress-nav {
   transition: .2s;
 }
@@ -90,6 +95,10 @@ footer.mt-8 {
   margin-bottom: 8px;
 }
 
+[data-theme='dark'] .page-side {
+  background: #141414;
+}
+
 .page-nav {
   height: 48px;
   padding: 0 16px;
@@ -119,6 +128,35 @@ footer.mt-8 {
   .page-nav-right {
     color: #595959;
     font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    white-space: nowrap;
+
+    .theme-toggle-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: #595959;
+      cursor: pointer;
+      transition: all 0.2s;
+      padding: 0;
+
+      &:hover {
+        background: rgba(0, 0, 0, 0.06);
+        border: 1px solid rgba(0, 0, 0, 0.12);
+      }
+
+      svg {
+        width: 20px;
+        height: 20px;
+      }
+    }
   }
 }
 
@@ -211,5 +249,66 @@ footer.mt-8 {
   .json-content {
     word-wrap: break-word;
     white-space: pre-wrap;
+  }
+}
+
+// Dark mode styles
+[data-theme='dark'] {
+  background: #141414;
+
+  .page-container {
+    color: rgba(255, 255, 255, 0.85);
+    border-top-color: rgba(255, 255, 255, 0.12);
+    border-bottom-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .page-nav {
+    .page-nav-title {
+      color: rgba(255, 255, 255, 0.85);
+    }
+  }
+
+  .cost-str {
+    color: rgba(255, 255, 255, 0.65);
+  }
+
+  .page-nav-right {
+    color: rgba(255, 255, 255, 0.65);
+
+    .theme-toggle-button {
+      color: rgba(255, 255, 255, 0.65);
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+      }
+    }
+  }
+
+  .page-nav-title-hint {
+    color: rgba(255, 255, 255, 0.45) !important;
+  }
+
+  .main-right {
+    background: #1f1f1f;
+
+    .main-right-header {
+      color: rgba(255, 255, 255, 0.85);
+    }
+  }
+
+  .main-content {
+    background: #1f1f1f;
+  }
+
+  .main-content-container {
+    background: #1f1f1f;
+    border-right: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .replay-all-mode-wrapper .player-tools-wrapper {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    border-left: 1px solid rgba(255, 255, 255, 0.12);
+    border-right: 1px solid rgba(255, 255, 255, 0.12);
   }
 }

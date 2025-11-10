@@ -368,3 +368,149 @@
     }
   }
 }
+
+// Light mode Tag styles
+.cache-tag {
+  color: #1890FF;
+  background-color: #E0F5FF;
+}
+
+.deepthink-tag {
+  color: #722ED1;
+  background-color: #F7EBFF;
+}
+
+// Dark mode styles
+[data-theme='dark'] {
+  .side-bar {
+    background: #1f1f1f;
+
+    .page-nav {
+      background: #1f1f1f;
+
+      .page-nav-left {
+        .page-nav-toolbar .icon-button {
+          &:hover {
+            background: rgba(255, 255, 255, 0.08);
+          }
+
+          svg {
+            color: rgba(255, 255, 255, 0.85);
+          }
+        }
+
+        .page-nav-title {
+          color: rgba(255, 255, 255, 0.85);
+
+          .page-nav-title-hint {
+            color: rgba(255, 255, 255, 0.45);
+          }
+        }
+      }
+    }
+
+    .side-sub-title {
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .side-item {
+      &:hover {
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      &.selected {
+        background: rgba(255, 255, 255, 0.16);
+      }
+    }
+
+    .side-item-name {
+      color: rgba(255, 255, 255, 0.65);
+
+      .status-icon {
+        color: rgba(255, 255, 255, 0.45);
+      }
+
+      .title {
+        color: rgba(255, 255, 255, 0.65);
+      }
+    }
+
+    .task-meta {
+      color: rgba(255, 255, 255, 0.45);
+    }
+
+    .task-meta-tokens {
+      .token-total-label {
+        color: rgba(255, 255, 255, 0.45);
+      }
+
+      .token-total-item .token-value {
+        color: rgba(255, 255, 255, 0.65);
+      }
+    }
+
+    .table-header {
+      color: rgba(255, 255, 255, 0.45);
+    }
+
+    .side-seperator.side-seperator-line {
+      border-top-color: rgba(255, 255, 255, 0.12);
+    }
+
+    .execution-info-section {
+      .execution-info-title {
+        color: rgba(255, 255, 255, 0.85);
+
+        .execution-info-title-left {
+          color: rgba(255, 255, 255, 0.85);
+
+          svg {
+            color: rgba(255, 255, 255, 0.85);
+          }
+        }
+
+        .execution-info-title-right span {
+          color: rgba(255, 255, 255, 0.65);
+        }
+
+        .token-usage-checkbox {
+          .ant-checkbox-inner {
+            border: 1px solid rgba(255, 255, 255, 0.3) !important;
+          }
+
+          &.ant-checkbox-checked .ant-checkbox-inner {
+            border: none !important;
+          }
+        }
+      }
+
+      .executions-wrapper .executions-tip {
+        color: rgba(255, 255, 255, 0.45);
+
+        .tip-icon {
+          color: rgba(255, 255, 255, 0.45);
+        }
+
+        .tip-text a {
+          color: #1890ff;
+        }
+      }
+    }
+
+    // SVG icons should inherit text color
+    svg {
+      color: currentColor;
+    }
+
+    // Tag styles for dark mode
+    .cache-tag {
+      color: #1890FF !important;
+      background-color: rgba(24, 144, 255, 0.15) !important;
+    }
+
+    .deepthink-tag {
+      color: #9254DE !important;
+      background-color: rgba(146, 84, 222, 0.15) !important;
+    }
+  }
+}
