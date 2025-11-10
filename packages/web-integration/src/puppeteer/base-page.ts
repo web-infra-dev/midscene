@@ -564,8 +564,6 @@ export class Page<
   }
 
   async beforeInvokeAction(name: string, param: any): Promise<void> {
-    await this.waitForNavigation();
-    await this.waitForNetworkIdle();
     if (this.onBeforeInvokeAction) {
       await this.onBeforeInvokeAction(name, param);
     }
