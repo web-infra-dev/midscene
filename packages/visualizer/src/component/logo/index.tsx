@@ -15,7 +15,9 @@ export const Logo = ({ hideLogo = false }: { hideLogo?: boolean }) => {
   useEffect(() => {
     // Check initial theme
     const checkTheme = () => {
-      const theme = document.querySelector('[data-theme]')?.getAttribute('data-theme');
+      const theme = document
+        .querySelector('[data-theme]')
+        ?.getAttribute('data-theme');
       setIsDark(theme === 'dark');
     };
 
@@ -23,7 +25,8 @@ export const Logo = ({ hideLogo = false }: { hideLogo?: boolean }) => {
 
     // Observe theme changes
     const observer = new MutationObserver(checkTheme);
-    const target = document.querySelector('[data-theme]') || document.documentElement;
+    const target =
+      document.querySelector('[data-theme]') || document.documentElement;
 
     observer.observe(target, {
       attributes: true,
@@ -42,10 +45,7 @@ export const Logo = ({ hideLogo = false }: { hideLogo?: boolean }) => {
   return (
     <div className="logo">
       <a href="https://midscenejs.com/" target="_blank" rel="noreferrer">
-        <img
-          alt="Midscene_logo"
-          src={logoSrc}
-        />
+        <img alt="Midscene_logo" src={logoSrc} />
       </a>
     </div>
   );

@@ -58,14 +58,17 @@ const TimelineWidget = (props: {
 
   useEffect(() => {
     const checkTheme = () => {
-      const theme = document.querySelector('[data-theme]')?.getAttribute('data-theme');
+      const theme = document
+        .querySelector('[data-theme]')
+        ?.getAttribute('data-theme');
       setIsDarkMode(theme === 'dark');
     };
 
     checkTheme();
 
     const observer = new MutationObserver(checkTheme);
-    const target = document.querySelector('[data-theme]') || document.documentElement;
+    const target =
+      document.querySelector('[data-theme]') || document.documentElement;
 
     observer.observe(target, {
       attributes: true,
@@ -166,8 +169,8 @@ const TimelineWidget = (props: {
       let singleGridWidth = 100 * sizeRatio;
       let gridCount = Math.floor(canvasWidth / singleGridWidth);
       const stepCandidate = [
-        50, 100, 200, 300, 500, 1000, 2000, 3000, 5000, 6000, 8000, 9000,
-        10000, 20000, 30000, 40000, 60000, 90000, 12000, 300000,
+        50, 100, 200, 300, 500, 1000, 2000, 3000, 5000, 6000, 8000, 9000, 10000,
+        20000, 30000, 40000, 60000, 90000, 12000, 300000,
       ];
       let timeStep = stepCandidate[0];
       for (let i = stepCandidate.length - 1; i >= 0; i--) {
@@ -211,265 +214,265 @@ const TimelineWidget = (props: {
       }
       domRef.current.replaceChildren(app.canvas);
 
-        const pixiTextForNumber = (num: number) => {
-          const textContent = `${num}ms`;
-          const text = new PIXI.Text(`${textContent}`, {
-            fontSize: timeContentFontSize,
-            fill: gridTextColor,
-          });
-          return text;
-        };
-
-        // drawing vertical grids, texts, title bg
-        gridsContainer.removeChildren();
-        const titleBgSection = new PIXI.Graphics();
-        titleBgSection.beginFill(titleBg);
-        titleBgSection.drawRect(0, 0, canvasWidth, timeTitleBottom);
-        titleBgSection.endFill();
-        gridsContainer.addChild(titleBgSection);
-        const titleBottomBorder = new PIXI.Graphics();
-        titleBottomBorder.beginFill(gridLineColor);
-        titleBottomBorder.drawRect(0, timeTitleBottom, canvasWidth, sizeRatio);
-        titleBottomBorder.endFill();
-        gridsContainer.addChild(titleBottomBorder);
-
-        const gridHeight = canvasHeight;
-        for (let i = 1; i <= gridCount; i++) {
-          const gridLine = new PIXI.Graphics();
-          const gridLineLeft = leftForTimeOffset(i * timeStep);
-          gridLine.beginFill(gridLineColor);
-          gridLine.drawRect(gridLineLeft, 0, sizeRatio, gridHeight);
-          gridLine.endFill();
-          gridsContainer.addChild(gridLine);
-
-          // mark text at the left of each line
-          const text = pixiTextForNumber(i * timeStep); // `${i * timeStep}ms`;
-          // measure text width
-          const textLeft = gridLineLeft - text.width - commonPadding;
-
-          text.x = textLeft;
-          text.y = timeTextTop;
-
-          gridsContainer.addChild(text);
-        }
-        app.stage.addChild(gridsContainer);
-
-        if (!allScreenshots.length) {
-          console.warn('No screenshots found');
-          return;
-        }
-
-        const shotContainers: PIXI.Container[] = [];
-
-        // draw all screenshots
-        screenshotsContainer.removeChildren();
-        const screenshotTop = timeTitleBottom + commonPadding * 1.5;
-        const screenshotMaxHeight =
-          canvasHeight - screenshotTop - commonPadding * 1.5;
-        allScreenshots.forEach((screenshot, index) => {
-          const container = new PIXI.Container();
-          shotContainers.push(container);
-          app.stage.addChild(container);
-          Promise.resolve(
-            (async () => {
-              await loadTexture(screenshot.img);
-              const texture = getTextureFromCache(screenshot.img);
-              if (!texture) {
-                return;
-              }
-
-              // clone the sprite
-              const screenshotSprite = PIXI.Sprite.from(texture);
-
-              // get width / height of img
-              const originalWidth = screenshotSprite.width;
-              const originalHeight = screenshotSprite.height;
-
-              const screenshotHeight = screenshotMaxHeight;
-              const screenshotWidth = Math.floor(
-                (screenshotHeight / originalHeight) * originalWidth,
-              );
-
-              const screenshotX = leftForTimeOffset(screenshot.timeOffset);
-              allScreenshots[index].x = screenshotX;
-              allScreenshots[index].y = screenshotTop;
-              allScreenshots[index].width = screenshotWidth;
-              allScreenshots[index].height = screenshotMaxHeight;
-
-              const border = new PIXI.Graphics();
-              border.lineStyle(sizeRatio, shotBorderColor, 1);
-              border.drawRect(
-                screenshotX,
-                screenshotTop,
-                screenshotWidth,
-                screenshotMaxHeight,
-              );
-              border.endFill();
-              container.addChild(border);
-
-              screenshotSprite.x = screenshotX;
-              screenshotSprite.y = screenshotTop;
-              screenshotSprite.width = screenshotWidth;
-              screenshotSprite.height = screenshotMaxHeight;
-              container.addChild(screenshotSprite);
-            })(),
-          );
+      const pixiTextForNumber = (num: number) => {
+        const textContent = `${num}ms`;
+        const text = new PIXI.Text(`${textContent}`, {
+          fontSize: timeContentFontSize,
+          fill: gridTextColor,
         });
+        return text;
+      };
 
-        const highlightMaskUpdater = (
-          start: number | undefined,
-          end: number | undefined,
-          hoverStart: number | undefined,
-          hoverEnd: number | undefined,
-        ) => {
-          highlightMaskContainer.removeChildren();
+      // drawing vertical grids, texts, title bg
+      gridsContainer.removeChildren();
+      const titleBgSection = new PIXI.Graphics();
+      titleBgSection.beginFill(titleBg);
+      titleBgSection.drawRect(0, 0, canvasWidth, timeTitleBottom);
+      titleBgSection.endFill();
+      gridsContainer.addChild(titleBgSection);
+      const titleBottomBorder = new PIXI.Graphics();
+      titleBottomBorder.beginFill(gridLineColor);
+      titleBottomBorder.drawRect(0, timeTitleBottom, canvasWidth, sizeRatio);
+      titleBottomBorder.endFill();
+      gridsContainer.addChild(titleBottomBorder);
 
-          const mask = (
-            start: number | undefined,
-            end: number | undefined,
-            alpha: number,
-          ) => {
-            if (
-              typeof start === 'undefined' ||
-              typeof end === 'undefined' ||
-              end === 0
-            ) {
+      const gridHeight = canvasHeight;
+      for (let i = 1; i <= gridCount; i++) {
+        const gridLine = new PIXI.Graphics();
+        const gridLineLeft = leftForTimeOffset(i * timeStep);
+        gridLine.beginFill(gridLineColor);
+        gridLine.drawRect(gridLineLeft, 0, sizeRatio, gridHeight);
+        gridLine.endFill();
+        gridsContainer.addChild(gridLine);
+
+        // mark text at the left of each line
+        const text = pixiTextForNumber(i * timeStep); // `${i * timeStep}ms`;
+        // measure text width
+        const textLeft = gridLineLeft - text.width - commonPadding;
+
+        text.x = textLeft;
+        text.y = timeTextTop;
+
+        gridsContainer.addChild(text);
+      }
+      app.stage.addChild(gridsContainer);
+
+      if (!allScreenshots.length) {
+        console.warn('No screenshots found');
+        return;
+      }
+
+      const shotContainers: PIXI.Container[] = [];
+
+      // draw all screenshots
+      screenshotsContainer.removeChildren();
+      const screenshotTop = timeTitleBottom + commonPadding * 1.5;
+      const screenshotMaxHeight =
+        canvasHeight - screenshotTop - commonPadding * 1.5;
+      allScreenshots.forEach((screenshot, index) => {
+        const container = new PIXI.Container();
+        shotContainers.push(container);
+        app.stage.addChild(container);
+        Promise.resolve(
+          (async () => {
+            await loadTexture(screenshot.img);
+            const texture = getTextureFromCache(screenshot.img);
+            if (!texture) {
               return;
             }
-            const leftBorder = new PIXI.Graphics();
-            leftBorder.beginFill(gridHighlightColor, 1);
-            leftBorder.drawRect(
-              leftForTimeOffset(start),
-              0,
-              sizeRatio,
-              canvasHeight,
-            );
-            leftBorder.endFill();
-            highlightMaskContainer.addChild(leftBorder);
 
-            const rightBorder = new PIXI.Graphics();
-            rightBorder.beginFill(gridHighlightColor, 1);
-            rightBorder.drawRect(
-              leftForTimeOffset(end),
-              0,
-              sizeRatio,
-              canvasHeight,
-            );
-            rightBorder.endFill();
-            highlightMaskContainer.addChild(rightBorder);
+            // clone the sprite
+            const screenshotSprite = PIXI.Sprite.from(texture);
 
-            const mask = new PIXI.Graphics();
-            mask.beginFill(gridHighlightColor, alpha);
-            mask.drawRect(
-              leftForTimeOffset(start),
-              0,
-              leftForTimeOffset(end) - leftForTimeOffset(start),
-              canvasHeight,
-            );
-            mask.endFill();
-            highlightMaskContainer.addChild(mask);
-          };
+            // get width / height of img
+            const originalWidth = screenshotSprite.width;
+            const originalHeight = screenshotSprite.height;
 
-          mask(start, end, highlightMaskAlpha);
-          mask(hoverStart, hoverEnd, hoverMaskAlpha);
-        };
-        highlightMaskUpdater(
-          props.highlightMask?.startMs,
-          props.highlightMask?.endMs,
-          0,
-          0,
+            const screenshotHeight = screenshotMaxHeight;
+            const screenshotWidth = Math.floor(
+              (screenshotHeight / originalHeight) * originalWidth,
+            );
+
+            const screenshotX = leftForTimeOffset(screenshot.timeOffset);
+            allScreenshots[index].x = screenshotX;
+            allScreenshots[index].y = screenshotTop;
+            allScreenshots[index].width = screenshotWidth;
+            allScreenshots[index].height = screenshotMaxHeight;
+
+            const border = new PIXI.Graphics();
+            border.lineStyle(sizeRatio, shotBorderColor, 1);
+            border.drawRect(
+              screenshotX,
+              screenshotTop,
+              screenshotWidth,
+              screenshotMaxHeight,
+            );
+            border.endFill();
+            container.addChild(border);
+
+            screenshotSprite.x = screenshotX;
+            screenshotSprite.y = screenshotTop;
+            screenshotSprite.width = screenshotWidth;
+            screenshotSprite.height = screenshotMaxHeight;
+            container.addChild(screenshotSprite);
+          })(),
         );
-        containerUpdaterRef.current = highlightMaskUpdater;
+      });
 
-        // keep tracking the position of the mouse moving above the canvas
-        app.stage.interactive = true;
-        const onPointerMove = (event: PointerEvent) => {
-          const x = event.offsetX * sizeRatio;
-          const y = event.offsetY * sizeRatio;
-          indicatorContainer.removeChildren();
+      const highlightMaskUpdater = (
+        start: number | undefined,
+        end: number | undefined,
+        hoverStart: number | undefined,
+        hoverEnd: number | undefined,
+      ) => {
+        highlightMaskContainer.removeChildren();
 
-          // find out the screenshot that is closest to the mouse on the left
-          const { closestScreenshot, closestIndex } = closestScreenshotItemOnXY(
-            x,
-            y,
-          );
-          if (closestIndex < 0) {
-            props.onUnhighlight?.();
+        const mask = (
+          start: number | undefined,
+          end: number | undefined,
+          alpha: number,
+        ) => {
+          if (
+            typeof start === 'undefined' ||
+            typeof end === 'undefined' ||
+            end === 0
+          ) {
             return;
           }
-          const closestContainer = shotContainers[closestIndex];
+          const leftBorder = new PIXI.Graphics();
+          leftBorder.beginFill(gridHighlightColor, 1);
+          leftBorder.drawRect(
+            leftForTimeOffset(start),
+            0,
+            sizeRatio,
+            canvasHeight,
+          );
+          leftBorder.endFill();
+          highlightMaskContainer.addChild(leftBorder);
 
-          // highlight the items in closestContainer
-          closestContainer.children.forEach((child) => {
-            if (child instanceof PIXI.Sprite) {
-              // border
-              const newSpirit = new PIXI.Graphics();
-              newSpirit.lineStyle(2, gridHighlightColor, 1);
-              newSpirit.drawRect(
-                x, // follow mouse
-                closestScreenshot?.y!,
-                closestScreenshot?.width!,
-                closestScreenshot?.height!,
-              );
-              newSpirit.endFill();
-              indicatorContainer.addChild(newSpirit);
+          const rightBorder = new PIXI.Graphics();
+          rightBorder.beginFill(gridHighlightColor, 1);
+          rightBorder.drawRect(
+            leftForTimeOffset(end),
+            0,
+            sizeRatio,
+            canvasHeight,
+          );
+          rightBorder.endFill();
+          highlightMaskContainer.addChild(rightBorder);
 
-              const screenshotSpirit = cloneSprite(child);
-              screenshotSpirit.x = x;
-              indicatorContainer.addChild(screenshotSpirit);
-            }
-          });
-
-          // cursor line
-          const indicator = new PIXI.Graphics();
-          indicator.beginFill(gridHighlightColor, 1);
-          indicator.drawRect(x - 1, 0, 3, canvasHeight);
-          indicator.endFill();
-          indicatorContainer.addChild(indicator);
-
-          // time string
-          const text = pixiTextForNumber(timeOffsetForLeft(x));
-          text.x = x + 5;
-          text.y = timeTextTop;
-          const textBg = new PIXI.Graphics();
-          textBg.beginFill(titleBg, 1);
-          textBg.drawRect(text.x, text.y, text.width + 10, text.height);
-          textBg.endFill();
-
-          indicatorContainer.addChild(textBg);
-          indicatorContainer.addChild(text);
-
-          props.onHighlight?.({
-            mouseX: x / sizeRatio,
-            mouseY: y / sizeRatio,
-            item: closestScreenshot!,
-          });
+          const mask = new PIXI.Graphics();
+          mask.beginFill(gridHighlightColor, alpha);
+          mask.drawRect(
+            leftForTimeOffset(start),
+            0,
+            leftForTimeOffset(end) - leftForTimeOffset(start),
+            canvasHeight,
+          );
+          mask.endFill();
+          highlightMaskContainer.addChild(mask);
         };
-        // app.stage.on('pointermove', onPointerMove);
-        // on pointer move out
-        const onPointerOut = () => {
-          indicatorContainer.removeChildren();
+
+        mask(start, end, highlightMaskAlpha);
+        mask(hoverStart, hoverEnd, hoverMaskAlpha);
+      };
+      highlightMaskUpdater(
+        props.highlightMask?.startMs,
+        props.highlightMask?.endMs,
+        0,
+        0,
+      );
+      containerUpdaterRef.current = highlightMaskUpdater;
+
+      // keep tracking the position of the mouse moving above the canvas
+      app.stage.interactive = true;
+      const onPointerMove = (event: PointerEvent) => {
+        const x = event.offsetX * sizeRatio;
+        const y = event.offsetY * sizeRatio;
+        indicatorContainer.removeChildren();
+
+        // find out the screenshot that is closest to the mouse on the left
+        const { closestScreenshot, closestIndex } = closestScreenshotItemOnXY(
+          x,
+          y,
+        );
+        if (closestIndex < 0) {
           props.onUnhighlight?.();
-        };
+          return;
+        }
+        const closestContainer = shotContainers[closestIndex];
 
-        const onPointerTap = (event: PointerEvent) => {
-          const x = event.offsetX * sizeRatio;
-          const y = event.offsetY * sizeRatio;
-          const { closestScreenshot } = closestScreenshotItemOnXY(x, y);
-          if (closestScreenshot) {
-            props.onTap?.(closestScreenshot);
+        // highlight the items in closestContainer
+        closestContainer.children.forEach((child) => {
+          if (child instanceof PIXI.Sprite) {
+            // border
+            const newSpirit = new PIXI.Graphics();
+            newSpirit.lineStyle(2, gridHighlightColor, 1);
+            newSpirit.drawRect(
+              x, // follow mouse
+              closestScreenshot?.y!,
+              closestScreenshot?.width!,
+              closestScreenshot?.height!,
+            );
+            newSpirit.endFill();
+            indicatorContainer.addChild(newSpirit);
+
+            const screenshotSpirit = cloneSprite(child);
+            screenshotSpirit.x = x;
+            indicatorContainer.addChild(screenshotSpirit);
           }
-        };
+        });
 
-        app.stage.addChild(screenshotsContainer);
-        app.stage.addChild(highlightMaskContainer);
-        app.stage.addChild(indicatorContainer);
+        // cursor line
+        const indicator = new PIXI.Graphics();
+        indicator.beginFill(gridHighlightColor, 1);
+        indicator.drawRect(x - 1, 0, 3, canvasHeight);
+        indicator.endFill();
+        indicatorContainer.addChild(indicator);
 
-        const canvas = app.view;
-        canvas.addEventListener('pointermove', onPointerMove);
-        canvas.addEventListener('pointerout', onPointerOut);
-        canvas.addEventListener('pointerdown', onPointerTap);
-      })();
+        // time string
+        const text = pixiTextForNumber(timeOffsetForLeft(x));
+        text.x = x + 5;
+        text.y = timeTextTop;
+        const textBg = new PIXI.Graphics();
+        textBg.beginFill(titleBg, 1);
+        textBg.drawRect(text.x, text.y, text.width + 10, text.height);
+        textBg.endFill();
+
+        indicatorContainer.addChild(textBg);
+        indicatorContainer.addChild(text);
+
+        props.onHighlight?.({
+          mouseX: x / sizeRatio,
+          mouseY: y / sizeRatio,
+          item: closestScreenshot!,
+        });
+      };
+      // app.stage.on('pointermove', onPointerMove);
+      // on pointer move out
+      const onPointerOut = () => {
+        indicatorContainer.removeChildren();
+        props.onUnhighlight?.();
+      };
+
+      const onPointerTap = (event: PointerEvent) => {
+        const x = event.offsetX * sizeRatio;
+        const y = event.offsetY * sizeRatio;
+        const { closestScreenshot } = closestScreenshotItemOnXY(x, y);
+        if (closestScreenshot) {
+          props.onTap?.(closestScreenshot);
+        }
+      };
+
+      app.stage.addChild(screenshotsContainer);
+      app.stage.addChild(highlightMaskContainer);
+      app.stage.addChild(indicatorContainer);
+
+      const canvas = app.view;
+      canvas.addEventListener('pointermove', onPointerMove);
+      canvas.addEventListener('pointerout', onPointerOut);
+      canvas.addEventListener('pointerdown', onPointerTap);
+    })();
 
     return () => {
       isMounted = false;

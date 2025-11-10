@@ -12,8 +12,8 @@ import GlobalHoverPreview from './components/global-hover-preview';
 import Sidebar from './components/sidebar';
 import { type DumpStoreType, useExecutionDump } from './components/store';
 import Timeline from './components/timeline';
-import ThemeLightIcon from './icons/theme-light.svg?react';
 import ThemeDarkIcon from './icons/theme-dark.svg?react';
+import ThemeLightIcon from './icons/theme-light.svg?react';
 import type {
   PlaywrightTaskAttributes,
   PlaywrightTasks,
@@ -262,11 +262,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
               onClick={() => setIsDarkMode(!isDarkMode)}
               aria-label="Toggle theme"
             >
-              {isDarkMode ? (
-                <ThemeDarkIcon />
-              ) : (
-                <ThemeLightIcon />
-              )}
+              {isDarkMode ? <ThemeDarkIcon /> : <ThemeLightIcon />}
             </button>
           </div>
         </div>
