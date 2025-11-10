@@ -410,10 +410,15 @@ export class TaskBuilder {
           });
         }
         const elementFromXpath = rectFromXpath
-          ? generateElementByPosition({
-              x: rectFromXpath.left + rectFromXpath.width / 2,
-              y: rectFromXpath.top + rectFromXpath.height / 2,
-            })
+          ? generateElementByPosition(
+              {
+                x: rectFromXpath.left + rectFromXpath.width / 2,
+                y: rectFromXpath.top + rectFromXpath.height / 2,
+              },
+              typeof param.prompt === 'string'
+                ? param.prompt
+                : param.prompt?.prompt || '',
+            )
           : undefined;
         const userExpectedPathHitFlag = !!elementFromXpath;
 

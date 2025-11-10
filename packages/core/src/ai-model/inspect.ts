@@ -137,8 +137,11 @@ export async function AiLocateElement(options: {
     targetElementDescription,
     'cannot find the target element description',
   );
+  const targetElementDescriptionText = extraTextFromUserPrompt(
+    targetElementDescription,
+  );
   const userInstructionPrompt = await findElementPrompt.format({
-    targetElementDescription: extraTextFromUserPrompt(targetElementDescription),
+    targetElementDescription: targetElementDescriptionText,
   });
   const systemPrompt = systemPromptToLocateElement(vlMode);
 
@@ -226,8 +229,10 @@ export async function AiLocateElement(options: {
         y: resRect.top + resRect.height / 2,
       };
 
-      const element: LocateResultElement =
-        generateElementByPosition(rectCenter);
+      const element: LocateResultElement = generateElementByPosition(
+        rectCenter,
+        targetElementDescriptionText as string,
+      );
       errors = [];
 
       if (element) {
