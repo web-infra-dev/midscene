@@ -232,7 +232,7 @@ ${errorMsg ? `Error: ${errorMsg}` : ''}
     // compare coordinates
     if (
       testCase.response_rect &&
-      globalModelConfigManager.getModelConfig('grounding').vlMode
+      globalModelConfigManager.getModelConfig('insight').vlMode
     ) {
       const resultRect = (result as LocateResult).rect;
       if (!resultRect) {

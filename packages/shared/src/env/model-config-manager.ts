@@ -13,7 +13,7 @@ import type {
 } from './types';
 import { VL_MODE_RAW_VALID_VALUES as VL_MODES } from './types';
 
-const ALL_INTENTS: TIntent[] = ['VQA', 'default', 'grounding', 'planning'];
+const ALL_INTENTS: TIntent[] = ['insight', 'default', 'planning'];
 
 export type TIntentConfigMap = Record<
   TIntent,
@@ -51,9 +51,8 @@ export class ModelConfigManager {
     modelConfigFn: TModelConfigFnInternal,
   ): TIntentConfigMap {
     const intentConfigMap: TIntentConfigMap = {
-      VQA: undefined,
+      insight: undefined,
       default: undefined,
-      grounding: undefined,
       planning: undefined,
     };
 
@@ -71,9 +70,8 @@ export class ModelConfigManager {
 
   private calcModelConfigMapBaseOnIntent(intentConfigMap: TIntentConfigMap) {
     const modelConfigMap: Record<TIntent, IModelConfig | undefined> = {
-      VQA: undefined,
+      insight: undefined,
       default: undefined,
-      grounding: undefined,
       planning: undefined,
     };
     for (const i of ALL_INTENTS) {
@@ -93,9 +91,8 @@ export class ModelConfigManager {
     allEnvConfig: Record<string, string | undefined>,
   ) {
     const modelConfigMap: Record<TIntent, IModelConfig | undefined> = {
-      VQA: undefined,
+      insight: undefined,
       default: undefined,
-      grounding: undefined,
       planning: undefined,
     };
     for (const i of ALL_INTENTS) {
@@ -177,7 +174,7 @@ Learn more: https://midscenejs.com/choose-a-model`,
     this.globalConfigManager = globalConfigManager;
   }
 
-  throwErrorIfNonVLModel(intent: TIntent = 'grounding') {
+  throwErrorIfNonVLModel(intent: TIntent = 'insight') {
     const modelConfig = this.getModelConfig(intent);
 
     if (!modelConfig.vlMode) {

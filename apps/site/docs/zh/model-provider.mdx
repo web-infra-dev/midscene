@@ -42,6 +42,60 @@ Midscene 默认集成了 OpenAI SDK 调用 AI 服务。使用这个 SDK 限定�
 
 关于模型的更多信息，请参阅 [选择 AI 模型](./choose-a-model)。
 
+### 按任务类型配置模型（高级）
+
+Midscene 内部将 AI 任务分为不同的意图（Intent）类型。你可以为不同的意图配置不同的模型：
+
+- **Insight 任务**：包括视觉问答（VQA）和视觉定位（Grounding），如 `aiQuery`、`aiLocate`、`aiTap` 等方法
+- **Planning 任务**：自动规划相关的任务，如 `aiAct` 方法
+- **Default 任务**：其他未分类的任务
+
+每种任务类型都可以配置独立的模型参数：
+
+| 任务类型 | 环境变量前缀 | 说明 |
+|---------|-------------|------|
+| Insight | `MIDSCENE_INSIGHT_MODEL_*` | 用于视觉理解和元素定位任务 |
+| Planning | `MIDSCENE_PLANNING_MODEL_*` | 用于自动规划任务 |
+| Default | `MIDSCENE_MODEL_*` | 默认配置，作为其他任务的后备选项 |
+
+每个前缀支持的完整配置项：
+
+| 配置项 | 说明 |
+|-------|------|
+| `*_MODEL_NAME` | 模型名称 |
+| `*_MODEL_API_KEY` | API 密钥 |
+| `*_MODEL_BASE_URL` | API 接入地址 |
+| `*_MODEL_HTTP_PROXY` | HTTP/HTTPS 代理 |
+| `*_MODEL_SOCKS_PROXY` | SOCKS 代理 |
+| `*_MODEL_INIT_CONFIG_JSON` | OpenAI SDK 初始化配置 JSON |
+| `*_LOCATOR_MODE` | 定位模式（如 `qwen3-vl`、`vlm-ui-tars` 等） |
+
+**示例：为 Insight 和 Planning 任务配置不同的模型**
+
+```bash
+# Insight 任务使用 Qwen-VL 模型（用于视觉理解和定位）
+export MIDSCENE_INSIGHT_MODEL_NAME="qwen-vl-plus"
+export MIDSCENE_INSIGHT_MODEL_API_KEY="sk-insight-key"
+export MIDSCENE_INSIGHT_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+export MIDSCENE_INSIGHT_LOCATOR_MODE="qwen3-vl"
+
+# Planning 任务使用 GPT-4o 模型（用于任务规划）
+export MIDSCENE_PLANNING_MODEL_NAME="gpt-4o"
+export MIDSCENE_PLANNING_MODEL_API_KEY="sk-planning-key"
+export MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.openai.com/v1"
+export MIDSCENE_PLANNING_LOCATOR_MODE="qwen3-vl"
+
+# 默认配置（用作后备）
+export MIDSCENE_MODEL_NAME="gpt-4o"
+export MIDSCENE_MODEL_API_KEY="sk-default-key"
+```
+
+:::tip
+
+如果某个任务类型的配置未设置，Midscene 会自动使用 `MIDSCENE_MODEL_*` 的默认配置。大多数情况下，你只需要配置默认的 `MIDSCENE_MODEL_*` 变量即可。
+
+:::
+
 ### 高级配置
 
 还有一些高级配置项，通常不需要使用。

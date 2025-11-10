@@ -27,9 +27,14 @@ In Playwright and Puppeteer, there are some common parameters:
 
 These Agents also support the following advanced configuration parameters:
 
-- `modelConfig: () => IModelConfig`: Optional. Custom model configuration function. Allows you to dynamically configure different models through code instead of environment variables. This is particularly useful when you need to use different models for different AI tasks (such as VQA, planning, grounding, etc.).
+- `modelConfig: (params: { intent: TIntent }) => IModelConfig`: Optional. Custom model configuration function. Allows you to dynamically configure different models through code instead of environment variables. This is particularly useful when you need to use different models for different AI tasks (such as Insight, Planning, etc.).
 
-  **Example:**
+  The function receives a parameter object with an `intent` field indicating the current task type:
+  - `'insight'`: Visual understanding and element location tasks (such as `aiQuery`, `aiLocate`, `aiTap`, etc.)
+  - `'planning'`: Automatic planning tasks (such as `aiAct`)
+  - `'default'`: Other uncategorized tasks
+
+  **Basic Example:**
   ```typescript
   const agent = new PuppeteerAgent(page, {
     modelConfig: () => ({
@@ -40,6 +45,40 @@ These Agents also support the following advanced configuration parameters:
     })
   });
   ```
+
+  **Configure different models for different task types:**
+  ```typescript
+  const agent = new PuppeteerAgent(page, {
+    modelConfig: ({ intent }) => {
+      // Use Qwen-VL model for Insight tasks (for visual understanding and location)
+      if (intent === 'insight') {
+        return {
+          MIDSCENE_INSIGHT_MODEL_NAME: 'qwen-vl-plus',
+          MIDSCENE_INSIGHT_MODEL_API_KEY: 'sk-insight-key',
+          MIDSCENE_INSIGHT_MODEL_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1'
+        };
+      }
+
+      // Use GPT-4o model for Planning tasks (for task planning)
+      if (intent === 'planning') {
+        return {
+          MIDSCENE_PLANNING_MODEL_NAME: 'gpt-4o',
+          MIDSCENE_PLANNING_MODEL_API_KEY: 'sk-planning-key',
+          MIDSCENE_PLANNING_MODEL_BASE_URL: 'https://api.openai.com/v1',
+          MIDSCENE_INSIGHT_LOCATOR_MODE: 'qwen3-vl'
+        };
+      }
+
+      // Default configuration
+      return {
+        MIDSCENE_MODEL_NAME: 'gpt-4o',
+        MIDSCENE_MODEL_API_KEY: 'sk-default-key',
+      };
+    }
+  });
+  ```
+
+  For more information about configuring models by task type, refer to the [Configure model and provider](./model-provider#configure-models-by-task-type-advanced) documentation.
 
 - `createOpenAIClient: (openai, options) => Promise<OpenAI | undefined>`: Optional. Custom OpenAI client wrapper function. Allows you to wrap the OpenAI client instance for integrating observability tools (such as LangSmith, LangFuse) or applying custom middleware.
 

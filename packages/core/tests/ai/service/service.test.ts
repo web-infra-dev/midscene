@@ -12,7 +12,7 @@ vi.setConfig({
   testTimeout: 60 * 1000,
 });
 
-const modelConfig = globalModelConfigManager.getModelConfig('grounding');
+const modelConfig = globalModelConfigManager.getModelConfig('insight');
 
 describe.skipIf(!modelConfig.vlMode)('service locate with deep think', () => {
   test('service locate with search area', async () => {

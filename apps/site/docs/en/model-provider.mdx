@@ -39,6 +39,60 @@ Extra configs to use `Gemini 2.5 Pro` model:
 
 For more information about the models, see [Choose a model](./choose-a-model).
 
+### Configure Models by Task Type (Advanced)
+
+Midscene internally categorizes AI tasks into different intent types. You can configure different models for different intents:
+
+- **Insight tasks**: Visual Question Answering (VQA) and Visual Grounding, such as `aiQuery`, `aiLocate`, `aiTap`, etc.
+- **Planning tasks**: Automatic planning tasks, such as `aiAct`
+- **Default tasks**: Other uncategorized tasks
+
+Each task type can have independent model configurations:
+
+| Task Type | Environment Variable Prefix | Description |
+|-----------|---------------------------|-------------|
+| Insight | `MIDSCENE_INSIGHT_MODEL_*` | For visual understanding and element location tasks |
+| Planning | `MIDSCENE_PLANNING_MODEL_*` | For automatic planning tasks |
+| Default | `MIDSCENE_MODEL_*` | Default configuration, used as fallback for other tasks |
+
+Complete configuration options supported by each prefix:
+
+| Configuration | Description |
+|--------------|-------------|
+| `*_MODEL_NAME` | Model name |
+| `*_MODEL_API_KEY` | API key |
+| `*_MODEL_BASE_URL` | API endpoint URL |
+| `*_MODEL_HTTP_PROXY` | HTTP/HTTPS proxy |
+| `*_MODEL_SOCKS_PROXY` | SOCKS proxy |
+| `*_MODEL_INIT_CONFIG_JSON` | OpenAI SDK initialization config JSON |
+| `*_LOCATOR_MODE` | Locator mode (e.g. `qwen3-vl`, `vlm-ui-tars`, etc.) |
+
+**Example: Configure different models for Insight and Planning tasks**
+
+```bash
+# Insight tasks use Qwen-VL model (for visual understanding and location)
+export MIDSCENE_INSIGHT_MODEL_NAME="qwen-vl-plus"
+export MIDSCENE_INSIGHT_MODEL_API_KEY="sk-insight-key"
+export MIDSCENE_INSIGHT_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+export MIDSCENE_INSIGHT_LOCATOR_MODE="qwen3-vl"
+
+# Planning tasks use GPT-4o model (for task planning)
+export MIDSCENE_PLANNING_MODEL_NAME="gpt-4o"
+export MIDSCENE_PLANNING_MODEL_API_KEY="sk-planning-key"
+export MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.openai.com/v1"
+export MIDSCENE_PLANNING_LOCATOR_MODE="qwen3-vl"
+
+# Default configuration (used as fallback)
+export MIDSCENE_MODEL_NAME="gpt-4o"
+export MIDSCENE_MODEL_API_KEY="sk-default-key"
+```
+
+:::tip
+
+If a task type's configuration is not set, Midscene will automatically use the default `MIDSCENE_MODEL_*` configuration. In most cases, you only need to configure the default `MIDSCENE_MODEL_*` variables.
+
+:::
+
 ### Advanced configs
 
 Some advanced configs are also supported. Usually you don't need to use them.
