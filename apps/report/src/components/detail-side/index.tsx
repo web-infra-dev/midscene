@@ -8,6 +8,7 @@ import type {
   ExecutionTaskInsightAssertion,
   ExecutionTaskPlanning,
   ExecutionTaskPlanningApply,
+  LocateResultElement,
 } from '@midscene/core';
 import { paramStr, typeStr } from '@midscene/core/agent';
 import {
@@ -110,13 +111,13 @@ const MetaKV = (props: {
   );
 };
 
-const objectWithoutKeys = (obj: Record<string, unknown>, keys: string[]) =>
+const objectWithoutKeys = (obj: Record<string, unknown>, keys: string[]): Record<string, unknown> =>
   Object.keys(obj).reduce((acc, key) => {
     if (!keys.includes(key)) {
       (acc as any)[key] = obj[key];
     }
     return acc;
-  }, {});
+  }, {} as Record<string, unknown>);
 
 const DetailSide = (): JSX.Element => {
   const task = useExecutionDump((store) => store.activeTask);
@@ -127,20 +128,84 @@ const DetailSide = (): JSX.Element => {
     ?.aiActionContext;
 
   const kv = (data: Record<string, unknown>) => {
-    const isElementItem = (value: unknown): value is BaseElement =>
+    const isElementItem = (value: unknown): value is BaseElement | LocateResultElement =>
       Boolean(value) &&
       typeof value === 'object' &&
-      typeof (value as any).content !== 'undefined' &&
       Boolean((value as any).center) &&
       Boolean((value as any).rect);
 
-    const elementEl = (_value: BaseElement) => (
-      <span>
-        <Tag bordered={false} color="orange" className="element-button">
-          Element
-        </Tag>
-      </span>
-    );
+    const elementEl = (_value: BaseElement | LocateResultElement) => {
+      const hasCenter = _value.center && Array.isArray(_value.center);
+      const hasRect = _value.rect;
+
+      // If it has center and rect, show detailed info
+      if (hasCenter && hasRect) {
+        const { center, rect } = _value;
+        const { left, top, width, height } = rect;
+
+        return (
+          <div className="element-detail-box">
+            <div className="element-detail-line">
+              Element (center=[{center[0]}, {center[1]}])
+            </div>
+            <div className="element-detail-line element-detail-coords">
+              left={Math.round(left)}, top={Math.round(top)}, width={Math.round(width)}, height={Math.round(height)}
+            </div>
+          </div>
+        );
+      }
+
+      // Fallback to simple tag
+      return (
+        <span>
+          <Tag bordered={false} color="orange" className="element-button">
+            Element
+          </Tag>
+        </span>
+      );
+    };
+
+    // Recursively render value
+    const renderValue = (value: unknown): JSX.Element => {
+      // Check if it's an element first
+      if (isElementItem(value)) {
+        return <>{elementEl(value)}</>;
+      }
+
+      // Check if it's an array
+      if (Array.isArray(value)) {
+        // Check if array contains elements
+        if (value.some((item) => isElementItem(item))) {
+          return (
+            <>
+              {value.map((item, index) => (
+                <div key={index}>{renderValue(item)}</div>
+              ))}
+            </>
+          );
+        }
+        // Regular array
+        return <pre>{JSON.stringify(value, undefined, 2)}</pre>;
+      }
+
+      // Check if it's an object (and not null)
+      if (typeof value === 'object' && value !== null) {
+        // Recursively render nested object
+        const nestedKv = Object.keys(value).map((nestedKey) => {
+          const nestedValue = (value as any)[nestedKey];
+          return (
+            <div key={nestedKey} className="nested-kv">
+              <span className="nested-key">{nestedKey}: </span>
+              {renderValue(nestedValue)}
+            </div>
+          );
+        });
+        return <>{nestedKv}</>;
+      }
+
+      // Primitive value
+      return <pre>{JSON.stringify(value, undefined, 2)}</pre>;
+    };
 
     if (Array.isArray(data) || typeof data !== 'object') {
       return (
@@ -152,23 +217,9 @@ const DetailSide = (): JSX.Element => {
 
     return Object.keys(data).map((key) => {
       const value = data[key];
-      let content;
-      if (typeof value === 'object' && isElementItem(value)) {
-        content = elementEl(value);
-      } else if (
-        Array.isArray(value) &&
-        value.some((item) => isElementItem(item))
-      ) {
-        content = value.map((item, index) => (
-          <span key={index}>{elementEl(item)}</span>
-        ));
-      } else {
-        content = <pre>{JSON.stringify(value, undefined, 2)}</pre>;
-      }
-
       return (
         <pre className="description-content" key={key}>
-          {key} {content}
+          {key} {renderValue(value)}
         </pre>
       );
     });
@@ -395,7 +446,7 @@ const DetailSide = (): JSX.Element => {
 
       return (
         <Card
-          title={element.content}
+          title={('content' in element && typeof element.content === 'string') ? element.content : undefined}
           highlightWithColor={highlightColor}
           subtitle=""
           content={elementKV}
@@ -477,13 +528,13 @@ const DetailSide = (): JSX.Element => {
       timelineData = timelineData.concat(
         plans.map((item) => {
           const paramToShow = item.param || {};
-          const paramStr = Object.keys(paramToShow).length
-            ? JSON.stringify(paramToShow, undefined, 2)
+          const paramContent = Object.keys(paramToShow).length
+            ? kv(paramToShow as Record<string, unknown>)
             : null;
 
-          const locateStr =
+          const locateContent =
             item.type === 'Locate' && item.locate
-              ? JSON.stringify(item.locate, undefined, 2)
+              ? kv({ locate: item.locate } as Record<string, unknown>)
               : null;
 
           return {
@@ -493,12 +544,8 @@ const DetailSide = (): JSX.Element => {
                   <b>{typeStr(item as any)}</b>
                 </p>
                 <p>{item.thought}</p>
-                <p>
-                  <pre>{paramStr}</pre>
-                </p>
-                <p>
-                  <pre>{locateStr}</pre>
-                </p>
+                {paramContent && <div className="timeline-content">{paramContent}</div>}
+                {locateContent && <div className="timeline-content">{locateContent}</div>}
               </>
             ),
           };
@@ -559,11 +606,9 @@ const DetailSide = (): JSX.Element => {
             onMouseLeave={noop}
             title="output"
             content={
-              <pre>
-                {typeof data === 'object'
-                  ? JSON.stringify(data, undefined, 2)
-                  : String(data)}
-              </pre>
+              typeof data === 'object' && data !== null
+                ? kv(data as Record<string, unknown>)
+                : <pre>{String(data)}</pre>
             }
           />
         </>
