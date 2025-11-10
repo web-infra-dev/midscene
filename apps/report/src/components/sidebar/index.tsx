@@ -11,8 +11,9 @@ import {
   iconForStatus,
   timeCostStrElement,
 } from '@midscene/visualizer';
-import { Checkbox, Tag, Tooltip } from 'antd';
-import { useEffect } from 'react';
+import { Checkbox, Table, Tag, Tooltip } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import { useEffect, useMemo } from 'react';
 import CameraIcon from '../../icons/camera.svg?react';
 import MessageIcon from '../../icons/message.svg?react';
 import PlayIcon from '../../icons/play.svg?react';
@@ -24,160 +25,12 @@ type ExecutionTaskWithSearchAreaUsage = ExecutionTask & {
   searchAreaUsage?: AIUsageInfo;
 };
 
-const SideItem = (props: {
-  task: ExecutionTaskWithSearchAreaUsage;
-  selected?: boolean;
-  onClick?: () => void;
-  onItemHover?: (task: ExecutionTask | null, x?: number, y?: number) => any;
-  proModeEnabled?: boolean;
-}): JSX.Element => {
-  const { task, onClick, selected } = props;
-
-  const selectedClass = selected ? 'selected' : '';
-  let statusText: JSX.Element | string = task.status;
-
-  const cacheEl =
-    task.hitBy?.from === 'Cache' ? (
-      <Tag
-        className="cache-tag"
-        style={{
-          padding: '0 4px',
-          marginLeft: '4px',
-          marginRight: 0,
-          lineHeight: '16px',
-        }}
-        bordered={false}
-      >
-        Cache
-      </Tag>
-    ) : null;
-
-  const deepThinkEl = (task as ExecutionTaskPlanningLocate)?.param
-    ?.deepThink ? (
-    <Tag
-      className="deepthink-tag"
-      bordered={false}
-      style={{
-        padding: '0 4px',
-        marginLeft: '4px',
-        marginRight: 0,
-        lineHeight: '16px',
-      }}
-    >
-      DeepThink
-    </Tag>
-  ) : null;
-
-  if (typeof task.timing?.cost === 'number') {
-    statusText = timeCostStrElement(task.timing.cost);
-  }
-
-  const statusIcon = (() => {
-    const isFinished = task.status === 'finished';
-    const isError = isFinished && (task.error || task.errorMessage);
-
-    if (isError) {
-      return iconForStatus('failed');
-    }
-
-    const isAssertFinishedWithWarning =
-      isFinished && task.subType === 'WaitFor' && task.output === false;
-
-    if (isAssertFinishedWithWarning) {
-      return iconForStatus('finishedWithWarning');
-    }
-
-    const isAssertFailed =
-      task.subType === 'Assert' && isFinished && task.output === false;
-
-    if (isAssertFailed) {
-      return iconForStatus('failed');
-    }
-
-    return iconForStatus(task.status);
-  })();
-
-  const titleTextIcon =
-    task.type === 'Planning' && task.subType !== 'LoadYaml' ? (
-      <span
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          marginLeft: '4px',
-        }}
-      >
-        <CameraIcon width={16} height={16} />
-      </span>
-    ) : null;
-
-  return (
-    <div
-      className={`side-item ${selectedClass}`}
-      onClick={onClick}
-      // collect x,y (refer to the body) for hover preview
-      onMouseEnter={(event) => {
-        const rect = event.currentTarget.getBoundingClientRect();
-        const x = rect.left + rect.width;
-        const y = rect.top;
-        props.onItemHover?.(task, x, y);
-      }}
-      onMouseLeave={() => {
-        props.onItemHover?.(null);
-      }}
-    >
-      {' '}
-      <div
-        className={`side-item-name ${props.proModeEnabled ? 'pro-mode' : ''}`}
-      >
-        <div
-          className="title"
-          style={{ display: 'flex', alignItems: 'center' }}
-        >
-          <span className="status-icon">{statusIcon}</span>
-          <span>{typeStr(task)}</span>
-          {titleTextIcon}
-          {cacheEl}
-          {deepThinkEl}
-        </div>
-        <div className="status-text">{statusText}</div>
-        {/* Display usage info in table style if available and Pro mode is enabled */}
-        {props.proModeEnabled && (
-          <>
-            <div
-              className="usage-column intent"
-              title={task.usage?.intent || ''}
-            >
-              {task.usage?.intent || '-'}
-            </div>
-            <div
-              className="usage-column model-name"
-              title={task.usage?.model_name || ''}
-            >
-              {task.usage?.model_name || '-'}
-            </div>
-            <div className="usage-column prompt-tokens">
-              {(() => {
-                const mainUsage = task.usage?.prompt_tokens || 0;
-                const searchAreaUsage =
-                  task.searchAreaUsage?.prompt_tokens || 0;
-                const total = mainUsage + searchAreaUsage;
-                return total > 0 ? total : '-';
-              })()}
-            </div>
-            <div className="usage-column completion-tokens">
-              {(() => {
-                const mainUsage = task.usage?.completion_tokens || 0;
-                const searchAreaUsage =
-                  task.searchAreaUsage?.completion_tokens || 0;
-                const total = mainUsage + searchAreaUsage;
-                return total > 0 ? total : '-';
-              })()}
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
+// Table row data type
+type TableRowData = {
+  key: string;
+  isGroupHeader?: boolean;
+  groupName?: string;
+  task?: ExecutionTaskWithSearchAreaUsage;
 };
 
 interface SidebarProps {
@@ -209,6 +62,323 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     (task) => task === activeTask,
   );
 
+  // Prepare table data source
+  const tableData = useMemo<TableRowData[]>(() => {
+    if (!groupedDump) return [];
+
+    const rows: TableRowData[] = [];
+    groupedDump.executions.forEach((execution, executionIndex) => {
+      // Add group header row
+      rows.push({
+        key: `group-${executionIndex}`,
+        isGroupHeader: true,
+        groupName: execution.name,
+      });
+
+      // Add task rows
+      execution.tasks.forEach((task, taskIndex) => {
+        rows.push({
+          key: `task-${executionIndex}-${taskIndex}`,
+          task: task as ExecutionTaskWithSearchAreaUsage,
+        });
+      });
+    });
+
+    return rows;
+  }, [groupedDump]);
+
+  // Helper functions for rendering
+  const getStatusIcon = (task: ExecutionTaskWithSearchAreaUsage) => {
+    const isFinished = task.status === 'finished';
+    const isError = isFinished && (task.error || task.errorMessage);
+
+    if (isError) {
+      return iconForStatus('failed');
+    }
+
+    const isAssertFinishedWithWarning =
+      isFinished && task.subType === 'WaitFor' && task.output === false;
+
+    if (isAssertFinishedWithWarning) {
+      return iconForStatus('finishedWithWarning');
+    }
+
+    const isAssertFailed =
+      task.subType === 'Assert' && isFinished && task.output === false;
+
+    if (isAssertFailed) {
+      return iconForStatus('failed');
+    }
+
+    return iconForStatus(task.status);
+  };
+
+  const getTitleIcon = (task: ExecutionTaskWithSearchAreaUsage) => {
+    return task.type === 'Planning' && task.subType !== 'LoadYaml' ? (
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          marginLeft: '4px',
+        }}
+      >
+        <CameraIcon width={16} height={16} />
+      </span>
+    ) : null;
+  };
+
+  const getCacheTag = (task: ExecutionTaskWithSearchAreaUsage) => {
+    return task.hitBy?.from === 'Cache' ? (
+      <Tag
+        className="cache-tag"
+        style={{
+          padding: '0 4px',
+          marginLeft: '4px',
+          marginRight: 0,
+          lineHeight: '16px',
+        }}
+        bordered={false}
+      >
+        Cache
+      </Tag>
+    ) : null;
+  };
+
+  const getDeepThinkTag = (task: ExecutionTaskWithSearchAreaUsage) => {
+    return (task as ExecutionTaskPlanningLocate)?.param?.deepThink ? (
+      <Tag
+        className="deepthink-tag"
+        bordered={false}
+        style={{
+          padding: '0 4px',
+          marginLeft: '4px',
+          marginRight: 0,
+          lineHeight: '16px',
+        }}
+      >
+        DeepThink
+      </Tag>
+    ) : null;
+  };
+
+  const getStatusText = (task: ExecutionTaskWithSearchAreaUsage) => {
+    if (typeof task.timing?.cost === 'number') {
+      return timeCostStrElement(task.timing.cost);
+    }
+    return task.status;
+  };
+
+  const getTokens = (
+    task: ExecutionTaskWithSearchAreaUsage,
+    type: 'prompt' | 'completion',
+  ) => {
+    const key = type === 'prompt' ? 'prompt_tokens' : 'completion_tokens';
+    const mainUsage = task.usage?.[key] || 0;
+    const searchAreaUsage = task.searchAreaUsage?.[key] || 0;
+    const total = mainUsage + searchAreaUsage;
+    return total > 0 ? total : '-';
+  };
+
+  // Define columns
+  const columns = useMemo<ColumnsType<TableRowData>>(() => {
+    const baseColumns: ColumnsType<TableRowData> = [
+      {
+        title: 'Type',
+        dataIndex: 'task',
+        key: 'type',
+        className: 'column-type',
+        align: 'left',
+        // Let Type column take remaining space
+        ellipsis: true,
+        render: (_: any, record: TableRowData) => {
+          if (record.isGroupHeader) {
+            return {
+              children: (
+                <div
+                  className="side-sub-title"
+                  style={{ display: 'flex', alignItems: 'flex-start' }}
+                >
+                  {record.groupName}
+                </div>
+              ),
+              props: {
+                colSpan: proModeEnabled ? 6 : 2,
+              },
+            };
+          }
+
+          const task = record.task!;
+          return (
+            <div
+              className="title"
+              style={{ display: 'flex', alignItems: 'center' }}
+            >
+              <span className="status-icon">{getStatusIcon(task)}</span>
+              <span>{typeStr(task)}</span>
+              {getTitleIcon(task)}
+              {getCacheTag(task)}
+              {getDeepThinkTag(task)}
+            </div>
+          );
+        },
+      },
+      {
+        title: <div style={{ width: '100%', textAlign: 'right' }}>Time</div>,
+        dataIndex: 'task',
+        key: 'time',
+        className: 'column-time',
+        align: 'right',
+        width: proModeEnabled ? 80 : 90,
+        render: (_: any, record: TableRowData) => {
+          if (record.isGroupHeader) {
+            return {
+              props: { colSpan: 0 },
+            };
+          }
+          return (
+            <div style={{ width: '100%', textAlign: 'right' }}>
+              {getStatusText(record.task!)}
+            </div>
+          );
+        },
+      },
+    ];
+
+    if (proModeEnabled) {
+      baseColumns.push(
+        {
+          title: (
+            <div style={{ width: '100%', textAlign: 'right' }}>Intent</div>
+          ),
+          dataIndex: 'task',
+          key: 'intent',
+          className: 'column-intent',
+          align: 'right',
+          width: 70,
+          ellipsis: {
+            showTitle: true,
+          },
+          render: (_: any, record: TableRowData) => {
+            if (record.isGroupHeader) {
+              return { props: { colSpan: 0 } };
+            }
+            const intent = record.task?.usage?.intent || '-';
+            return (
+              <div style={{ width: '100%', textAlign: 'right' }} title={intent}>
+                {intent}
+              </div>
+            );
+          },
+        },
+        {
+          title: <div style={{ width: '100%', textAlign: 'right' }}>Model</div>,
+          dataIndex: 'task',
+          key: 'model',
+          className: 'column-model',
+          align: 'right',
+          width: '32%',
+          ellipsis: {
+            showTitle: true,
+          },
+          render: (_: any, record: TableRowData) => {
+            if (record.isGroupHeader) {
+              return { props: { colSpan: 0 } };
+            }
+            const modelName = record.task?.usage?.model_name || '-';
+            return (
+              <div
+                style={{ width: '100%', textAlign: 'right' }}
+                title={modelName}
+              >
+                {modelName}
+              </div>
+            );
+          },
+        },
+        {
+          title: (
+            <div style={{ width: '100%', textAlign: 'right' }}>
+              <Tooltip title="Input tokens sent to the AI model">
+                Prompt
+              </Tooltip>
+            </div>
+          ),
+          dataIndex: 'task',
+          key: 'prompt',
+          className: 'column-prompt',
+          align: 'right',
+          width: 60,
+          render: (_: any, record: TableRowData) => {
+            if (record.isGroupHeader) {
+              return { props: { colSpan: 0 } };
+            }
+            return (
+              <div style={{ width: '100%', textAlign: 'right' }}>
+                {getTokens(record.task!, 'prompt')}
+              </div>
+            );
+          },
+        },
+        {
+          title: (
+            <div style={{ width: '100%', textAlign: 'right' }}>
+              <Tooltip title="Output tokens generated by the AI model">
+                Completion
+              </Tooltip>
+            </div>
+          ),
+          dataIndex: 'task',
+          key: 'completion',
+          className: 'column-completion',
+          align: 'right',
+          width: 100,
+          render: (_: any, record: TableRowData) => {
+            if (record.isGroupHeader) {
+              return { props: { colSpan: 0 } };
+            }
+            return (
+              <div
+                style={{
+                  width: '100%',
+                  textAlign: 'right',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {getTokens(record.task!, 'completion')}
+              </div>
+            );
+          },
+        },
+      );
+    }
+
+    return baseColumns;
+  }, [proModeEnabled]);
+
+  // Calculate total tokens
+  const totalPromptTokens =
+    groupedDump?.executions
+      .flatMap((e) => e.tasks)
+      .reduce((acc, task) => {
+        const mainUsage = task.usage?.prompt_tokens || 0;
+        const searchAreaUsage =
+          (task as ExecutionTaskWithSearchAreaUsage).searchAreaUsage
+            ?.prompt_tokens || 0;
+        return acc + mainUsage + searchAreaUsage;
+      }, 0) || 0;
+
+  const totalCompletionTokens =
+    groupedDump?.executions
+      .flatMap((e) => e.tasks)
+      .reduce((acc, task) => {
+        const mainUsage = task.usage?.completion_tokens || 0;
+        const searchAreaUsage =
+          (task as ExecutionTaskWithSearchAreaUsage).searchAreaUsage
+            ?.completion_tokens || 0;
+        return acc + mainUsage + searchAreaUsage;
+      }, 0) || 0;
+
+  // Keyboard navigation
   useEffect(() => {
     // all tasks
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -252,28 +422,6 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     <span>no tasks</span>
   );
 
-  const totalPromptTokens =
-    groupedDump?.executions
-      .flatMap((e) => e.tasks)
-      .reduce((acc, task) => {
-        const mainUsage = task.usage?.prompt_tokens || 0;
-        const searchAreaUsage =
-          (task as ExecutionTaskWithSearchAreaUsage).searchAreaUsage
-            ?.prompt_tokens || 0;
-        return acc + mainUsage + searchAreaUsage;
-      }, 0) || 0;
-
-  const totalCompletionTokens =
-    groupedDump?.executions
-      .flatMap((e) => e.tasks)
-      .reduce((acc, task) => {
-        const mainUsage = task.usage?.completion_tokens || 0;
-        const searchAreaUsage =
-          (task as ExecutionTaskWithSearchAreaUsage).searchAreaUsage
-            ?.completion_tokens || 0;
-        return acc + mainUsage + searchAreaUsage;
-      }, 0) || 0;
-
   const executionContent = groupedDump ? (
     <div className="execution-info-section">
       <div className="execution-info-title">
@@ -291,66 +439,72 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
           </Checkbox>
         </div>
       </div>
-      <div className={`table-header ${proModeEnabled ? 'pro-mode' : ''}`}>
-        <div className="header-name">Type</div>
-        <div className="header-time">Time</div>
-        {proModeEnabled && (
-          <>
-            <div className="header-intent">Intent</div>
-            <div className="header-model-name">Model</div>
-            <div className="header-prompt">
-              <Tooltip title="Input tokens sent to the AI model">
-                Prompt
-              </Tooltip>
-            </div>
-            <div className="header-completion">
-              <Tooltip title="Output tokens generated by the AI model">
-                Completion
-              </Tooltip>
-            </div>
-          </>
-        )}
-      </div>
       <div className="executions-wrapper">
-        {groupedDump.executions.map((execution, indexOfExecution) => {
-          const { tasks } = execution;
-          const taskList = tasks.map((task, index) => {
-            return (
-              <SideItem
-                key={index}
-                task={task}
-                selected={task === activeTask}
-                proModeEnabled={proModeEnabled}
-                onClick={() => {
-                  setActiveTask(task);
-                  setReplayAllMode?.(false);
-                }}
-                onItemHover={(hoverTask, x, y) => {
-                  if (hoverTask && x && y) {
-                    setHoverPreviewConfig({ x, y });
-                    setHoverTask(hoverTask);
-                  } else {
-                    setHoverPreviewConfig(null);
-                    setHoverTask(null);
-                  }
-                }}
-              />
-            );
-          });
+        <Table
+          dataSource={tableData}
+          columns={columns}
+          pagination={false}
+          showHeader={true}
+          rowKey="key"
+          className="tasks-table"
+          sticky
+          rowClassName={(record) => {
+            if (record.isGroupHeader) {
+              return 'group-header-row';
+            }
+            const isSelected = record.task === activeTask;
+            return isSelected ? 'task-row selected' : 'task-row';
+          }}
+          onRow={(record) => {
+            if (record.isGroupHeader) {
+              return {};
+            }
 
-          return (
-            <div key={indexOfExecution}>
-              <div className="side-seperator side-seperator-space-up" />
-              <div
-                className="side-sub-title"
-                style={{ display: 'flex', alignItems: 'flex-start' }}
-              >
-                {execution.name}
-              </div>
-              <div className="task-list">{taskList}</div>
-            </div>
-          );
-        })}
+            return {
+              onClick: () => {
+                setActiveTask(record.task!);
+                setReplayAllMode?.(false);
+              },
+              onMouseEnter: (event) => {
+                const rect = event.currentTarget.getBoundingClientRect();
+                const x = rect.left + rect.width;
+                const y = rect.top;
+                setHoverPreviewConfig({ x, y });
+                setHoverTask(record.task!);
+              },
+              onMouseLeave: () => {
+                setHoverPreviewConfig(null);
+                setHoverTask(null);
+              },
+            };
+          }}
+          summary={() => {
+            if (!proModeEnabled) {
+              return null;
+            }
+
+            return (
+              <>
+                <Table.Summary.Row className="summary-separator-row">
+                  <Table.Summary.Cell index={0} colSpan={6}>
+                    <div className="side-seperator side-seperator-line side-seperator-space-up" />
+                  </Table.Summary.Cell>
+                </Table.Summary.Row>
+                <Table.Summary.Row className="summary-row">
+                  <Table.Summary.Cell index={0} colSpan={4}>
+                    <div className="token-total-label">Total</div>
+                  </Table.Summary.Cell>
+                  <Table.Summary.Cell index={4}>
+                    <span className="token-value">{totalPromptTokens}</span>
+                  </Table.Summary.Cell>
+                  <Table.Summary.Cell index={5}>
+                    <span className="token-value">{totalCompletionTokens}</span>
+                  </Table.Summary.Cell>
+                </Table.Summary.Row>
+              </>
+            );
+          }}
+        />
         <div className="executions-tip">
           <span className="tip-icon">?</span>
           <span className="tip-text">
@@ -392,22 +546,6 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
       </div>
       {sideList}
       {executionContent}
-      {proModeEnabled && (
-        <>
-          <div className="side-seperator side-seperator-line side-seperator-space-up" />
-          <div className="task-token-section">
-            <div className="task-meta-tokens">
-              <div className="token-total-label">Total</div>
-              <div className="token-total-item">
-                <span className="token-value">{totalPromptTokens}</span>
-              </div>
-              <div className="token-total-item">
-                <span className="token-value">{totalCompletionTokens}</span>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
     </div>
   );
 };
