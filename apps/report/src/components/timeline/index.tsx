@@ -1,6 +1,6 @@
 import * as PIXI from 'pixi.js';
 /* eslint-disable max-lines */
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import './index.less';
 import type { ExecutionRecorderItem, ExecutionTask } from '@midscene/core';
@@ -51,7 +51,29 @@ const TimelineWidget = (props: {
   hoverMask?: HighlightMask;
 }): JSX.Element => {
   const domRef = useRef<HTMLDivElement>(null); // Should be HTMLDivElement not HTMLInputElement
-  const app = useMemo<PIXI.Application>(() => new PIXI.Application(), []);
+  const appRef = useRef<PIXI.Application | null>(null);
+
+  // Detect dark mode
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    const checkTheme = () => {
+      const theme = document.querySelector('[data-theme]')?.getAttribute('data-theme');
+      setIsDarkMode(theme === 'dark');
+    };
+
+    checkTheme();
+
+    const observer = new MutationObserver(checkTheme);
+    const target = document.querySelector('[data-theme]') || document.documentElement;
+
+    observer.observe(target, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   const gridsContainer = useMemo(() => new PIXI.Container(), []);
   const screenshotsContainer = useMemo(() => new PIXI.Container(), []);
@@ -79,12 +101,13 @@ const TimelineWidget = (props: {
 
   const sizeRatio = 2;
 
-  const titleBg = 0xffffff; // @title-bg
-  const sideBg = 0xffffff;
-  const gridTextColor = 0;
-  const shotBorderColor = 0x777777;
-  const gridLineColor = 0xe5e5e5; // @border-color
-  const gridHighlightColor = 0xbfc4da; // @selected-bg
+  // Color configuration based on theme
+  const titleBg = isDarkMode ? 0x1f1f1f : 0xffffff;
+  const sideBg = isDarkMode ? 0x1f1f1f : 0xffffff;
+  const gridTextColor = isDarkMode ? 0xd9d9d9 : 0x000000;
+  const shotBorderColor = isDarkMode ? 0x595959 : 0x777777;
+  const gridLineColor = isDarkMode ? 0x3d3d3d : 0xe5e5e5;
+  const gridHighlightColor = isDarkMode ? 0x4d4d6d : 0xbfc4da;
   const highlightMaskAlpha = 0.6;
   const timeContentFontSize = 20;
   const commonPadding = 12;
@@ -125,55 +148,68 @@ const TimelineWidget = (props: {
 
   useEffect(() => {
     let freeFn = () => {};
-    Promise.resolve(
-      (async () => {
-        if (!domRef.current) {
-          return;
-        }
+    let isMounted = true;
 
-        // width of domRef
-        const { clientWidth, clientHeight } = domRef.current;
-        const canvasWidth = clientWidth * sizeRatio;
-        const canvasHeight = clientHeight * sizeRatio;
+    (async () => {
+      if (!domRef.current) {
+        return;
+      }
 
-        let singleGridWidth = 100 * sizeRatio;
-        let gridCount = Math.floor(canvasWidth / singleGridWidth);
-        const stepCandidate = [
-          50, 100, 200, 300, 500, 1000, 2000, 3000, 5000, 6000, 8000, 9000,
-          10000, 20000, 30000, 40000, 60000, 90000, 12000, 300000,
-        ];
-        let timeStep = stepCandidate[0];
-        for (let i = stepCandidate.length - 1; i >= 0; i--) {
-          if (gridCount * stepCandidate[i] >= maxTime) {
-            timeStep = stepCandidate[i];
-          }
-        }
-        const gridRatio = maxTime / (gridCount * timeStep);
-        if (gridRatio <= 0.8) {
-          singleGridWidth = Math.floor(singleGridWidth * (1 / gridRatio) * 0.9);
-          gridCount = Math.floor(canvasWidth / singleGridWidth);
-        }
+      // Create new PIXI application
+      const app = new PIXI.Application();
 
-        const leftForTimeOffset = (timeOffset: number) => {
-          return Math.floor((singleGridWidth * timeOffset) / timeStep);
-        };
-        const timeOffsetForLeft = (left: number) => {
-          return Math.floor((left * timeStep) / singleGridWidth);
-        };
+      // width of domRef
+      const { clientWidth, clientHeight } = domRef.current;
+      const canvasWidth = clientWidth * sizeRatio;
+      const canvasHeight = clientHeight * sizeRatio;
 
-        await app.init({
-          width: canvasWidth,
-          height: canvasHeight,
-          backgroundColor: sideBg,
-        });
-        freeFn = () => {
-          app.destroy();
-        };
-        if (!domRef.current) {
-          app.destroy();
-          return;
+      let singleGridWidth = 100 * sizeRatio;
+      let gridCount = Math.floor(canvasWidth / singleGridWidth);
+      const stepCandidate = [
+        50, 100, 200, 300, 500, 1000, 2000, 3000, 5000, 6000, 8000, 9000,
+        10000, 20000, 30000, 40000, 60000, 90000, 12000, 300000,
+      ];
+      let timeStep = stepCandidate[0];
+      for (let i = stepCandidate.length - 1; i >= 0; i--) {
+        if (gridCount * stepCandidate[i] >= maxTime) {
+          timeStep = stepCandidate[i];
         }
-        domRef.current.replaceChildren(app.canvas);
+      }
+      const gridRatio = maxTime / (gridCount * timeStep);
+      if (gridRatio <= 0.8) {
+        singleGridWidth = Math.floor(singleGridWidth * (1 / gridRatio) * 0.9);
+        gridCount = Math.floor(canvasWidth / singleGridWidth);
+      }
+
+      const leftForTimeOffset = (timeOffset: number) => {
+        return Math.floor((singleGridWidth * timeOffset) / timeStep);
+      };
+      const timeOffsetForLeft = (left: number) => {
+        return Math.floor((left * timeStep) / singleGridWidth);
+      };
+
+      await app.init({
+        width: canvasWidth,
+        height: canvasHeight,
+        backgroundColor: sideBg,
+      });
+
+      if (!isMounted) {
+        app.destroy();
+        return;
+      }
+
+      appRef.current = app;
+
+      freeFn = () => {
+        app.destroy();
+        appRef.current = null;
+      };
+      if (!domRef.current) {
+        app.destroy();
+        return;
+      }
+      domRef.current.replaceChildren(app.canvas);
 
         const pixiTextForNumber = (num: number) => {
           const textContent = `${num}ms`;
@@ -433,13 +469,22 @@ const TimelineWidget = (props: {
         canvas.addEventListener('pointermove', onPointerMove);
         canvas.addEventListener('pointerout', onPointerOut);
         canvas.addEventListener('pointerdown', onPointerTap);
-      })(),
-    );
+      })();
 
     return () => {
+      isMounted = false;
       freeFn();
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    isDarkMode,
+    titleBg,
+    sideBg,
+    gridTextColor,
+    shotBorderColor,
+    gridLineColor,
+    gridHighlightColor,
+  ]);
 
   return <div className="timeline-canvas-wrapper" ref={domRef} />;
 };

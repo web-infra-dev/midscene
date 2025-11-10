@@ -172,3 +172,72 @@
     }
   }
 }
+
+// Dark mode styles
+[data-theme='dark'] {
+  .screenshot-viewer {
+    &.offline,
+    &.loading,
+    &.error {
+      color: rgba(255, 255, 255, 0.65);
+
+      .screenshot-placeholder {
+        h3 {
+          color: #1890ff;
+        }
+
+        p {
+          color: rgba(255, 255, 255, 0.65);
+
+          &.error-message {
+            color: #ff4d4f;
+          }
+        }
+      }
+    }
+
+    .screenshot-header {
+      .screenshot-title {
+        h3 {
+          color: rgba(255, 255, 255, 0.85);
+        }
+
+        .screenshot-subtitle {
+          color: rgba(255, 255, 255, 0.45);
+        }
+      }
+    }
+
+    .screenshot-container {
+      background: #141414;
+
+      .screenshot-overlay {
+        .device-name-overlay {
+          color: rgba(255, 255, 255, 0.85);
+        }
+
+        .screenshot-controls {
+          .last-update-time {
+            color: rgba(255, 255, 255, 0.65);
+          }
+
+          .ant-btn {
+            &:hover {
+              background-color: rgba(255, 255, 255, 0.08);
+            }
+
+            .anticon {
+              color: rgba(255, 255, 255, 0.65);
+            }
+          }
+        }
+      }
+
+      .screenshot-content {
+        .screenshot-placeholder {
+          color: rgba(255, 255, 255, 0.45);
+        }
+      }
+    }
+  }
+}

@@ -138,3 +138,43 @@
     }
   }
 }
+
+// Dark mode styles
+[data-theme='dark'] {
+  .history-selector {
+    .history-timestamp,
+    .history-path {
+      color: rgba(255, 255, 255, 0.45);
+    }
+
+    .history-description {
+      color: rgba(255, 255, 255, 0.65);
+    }
+
+    .history-no-items {
+      color: rgba(255, 255, 255, 0.45);
+    }
+
+    .history-item {
+      &:hover {
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .history-clear-icon {
+        border-color: rgba(255, 255, 255, 0.12);
+
+        &:hover {
+          border-color: #40a9ff;
+        }
+      }
+    }
+
+    .history-load-more {
+      color: #1890ff;
+
+      &:hover {
+        color: #40a9ff;
+      }
+    }
+  }
+}

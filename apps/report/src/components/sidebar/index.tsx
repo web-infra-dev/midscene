@@ -39,9 +39,8 @@ const SideItem = (props: {
   const cacheEl =
     task.hitBy?.from === 'Cache' ? (
       <Tag
+        className="cache-tag"
         style={{
-          color: '#1890FF',
-          backgroundColor: '#E0F5FF',
           padding: '0 4px',
           marginLeft: '4px',
           marginRight: 0,
@@ -56,10 +55,9 @@ const SideItem = (props: {
   const deepThinkEl = (task as ExecutionTaskPlanningLocate)?.param
     ?.deepThink ? (
     <Tag
+      className="deepthink-tag"
       bordered={false}
       style={{
-        color: '#722ED1',
-        backgroundColor: '#F7EBFF',
         padding: '0 4px',
         marginLeft: '4px',
         marginRight: 0,

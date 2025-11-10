@@ -1,6 +1,6 @@
 import './App.less';
 
-import { Alert, ConfigProvider, Empty } from 'antd';
+import { Alert, ConfigProvider, Empty, theme } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
@@ -12,6 +12,8 @@ import GlobalHoverPreview from './components/global-hover-preview';
 import Sidebar from './components/sidebar';
 import { type DumpStoreType, useExecutionDump } from './components/store';
 import Timeline from './components/timeline';
+import ThemeLightIcon from './icons/theme-light.svg?react';
+import ThemeDarkIcon from './icons/theme-dark.svg?react';
 import type {
   PlaywrightTaskAttributes,
   PlaywrightTasks,
@@ -43,6 +45,41 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   const mainLayoutChangedRef = useRef(false);
   const dump = useExecutionDump((store) => store.dump);
   const [proModeEnabled, setProModeEnabled] = useState(false);
+
+  // Helper function to parse boolean query parameters
+  const parseBooleanParam = (value: string | null): boolean | undefined => {
+    if (value === null) {
+      return undefined;
+    }
+    const normalized = value.trim().toLowerCase();
+    if (['1', 'true', 'yes', 'on'].includes(normalized)) {
+      return true;
+    }
+    if (['0', 'false', 'no', 'off'].includes(normalized)) {
+      return false;
+    }
+    return undefined;
+  };
+
+  // Initialize dark mode from URL query or localStorage
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    // Check URL query parameter first
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const darkModeFromQuery = parseBooleanParam(searchParams.get('darkMode'));
+      if (darkModeFromQuery !== undefined) {
+        return darkModeFromQuery;
+      }
+    }
+    // Fall back to localStorage
+    const saved = localStorage.getItem('midscene-dark-mode');
+    return saved === 'true';
+  });
+
+  // Save dark mode preference to localStorage
+  useEffect(() => {
+    localStorage.setItem('midscene-dark-mode', String(isDarkMode));
+  }, [isDarkMode]);
 
   useEffect(() => {
     if (dumps?.[0]) {
@@ -198,11 +235,17 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   }, []);
 
   return (
-    <ConfigProvider theme={globalThemeConfig()}>
+    <ConfigProvider
+      theme={{
+        ...globalThemeConfig(),
+        algorithm: isDarkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
+      }}
+    >
       <div
         className="page-container"
         key={`render-${globalRenderCount}`}
         style={{ height: containerHeight }}
+        data-theme={isDarkMode ? 'dark' : 'light'}
       >
         <div className="page-nav">
           <div className="page-nav-left">
@@ -213,6 +256,18 @@ function Visualizer(props: VisualizerProps): JSX.Element {
               v{sdkVersion}
               {modelBriefs.length ? ` | ${modelBriefs.join(', ')}` : ''}
             </div>
+            <button
+              type="button"
+              className="theme-toggle-button"
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              aria-label="Toggle theme"
+            >
+              {isDarkMode ? (
+                <ThemeDarkIcon />
+              ) : (
+                <ThemeLightIcon />
+              )}
+            </button>
           </div>
         </div>
         {mainContent}

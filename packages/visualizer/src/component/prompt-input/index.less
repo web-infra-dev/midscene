@@ -431,3 +431,57 @@
     }
   }
 }
+
+// Dark mode styles  
+[data-theme='dark'] {
+  .prompt-input {
+    .tip-button {
+      background-color: rgba(255, 255, 255, 0.08);
+
+      &.active {
+        background-color: #2b83ff;
+        color: #fff;
+      }
+    }
+
+    .prompt-textarea-wrapper {
+      background-color: rgba(255, 255, 255, 0.04);
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.08);
+      }
+
+      &.focused {
+        background-color: rgba(255, 255, 255, 0.08);
+      }
+    }
+
+    .btn-wrapper {
+      .btn-item {
+        background-color: #2b83ff;
+        color: #fff;
+
+        &:hover {
+          background-color: #2b83ff;
+        }
+      }
+    }
+
+    .dropdown-content {
+      background-color: #1f1f1f;
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    .param-label {
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .error-message {
+      color: #ff4d4f;
+    }
+
+    .send-button-text {
+      color: #2b83ff;
+    }
+  }
+}

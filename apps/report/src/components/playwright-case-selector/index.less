@@ -211,3 +211,107 @@
     }
   }
 }
+// Dark mode styles
+[data-theme='dark'] {
+  .modern-playwright-selector {
+    .selector-header {
+      background: rgba(255, 255, 255, 0.08);
+      
+      &:hover {
+        background: rgba(255, 255, 255, 0.12);
+        border-color: rgba(255, 255, 255, 0.18);
+      }
+
+      .header-content {
+        .check-icon {
+          color: #52c41a;
+        }
+
+        .header-text {
+          color: rgba(255, 255, 255, 0.85);
+        }
+      }
+
+      .arrow-icon {
+        color: rgba(255, 255, 255, 0.65);
+      }
+    }
+
+    &.expanded .selector-header {
+      border-color: #2B83FF;
+      background: #1f1f1f;
+    }
+
+    .selector-content {
+      border-color: rgba(255, 255, 255, 0.12);
+      background: #1f1f1f;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+
+      .filter-controls {
+        .search-container {
+          border-color: rgba(255, 255, 255, 0.12);
+          background: rgba(255, 255, 255, 0.04);
+
+          .ant-select {
+            border-right-color: rgba(255, 255, 255, 0.12);
+
+            .ant-select-selector {
+              background: transparent;
+            }
+
+            .ant-select-selection-item {
+              color: rgba(255, 255, 255, 0.85);
+            }
+
+            .ant-select-arrow {
+              color: rgba(255, 255, 255, 0.65);
+            }
+          }
+
+          .search-input-container {
+            .ant-input {
+              background: transparent;
+              color: rgba(255, 255, 255, 0.85);
+
+              &::placeholder {
+                color: rgba(255, 255, 255, 0.45);
+              }
+            }
+
+            .ant-input-suffix {
+              color: rgba(255, 255, 255, 0.45);
+            }
+          }
+        }
+      }
+
+      .options-list {
+        .option-item {
+          &:hover {
+            background: rgba(255, 255, 255, 0.08);
+          }
+
+          &.selected {
+            background: rgba(24, 144, 255, 0.2);
+
+            .option-check {
+              color: #52c41a;
+            }
+          }
+
+          .option-check {
+            color: #52c41a;
+          }
+
+          .option-content {
+            color: rgba(255, 255, 255, 0.85);
+
+            .cost-str {
+              color: rgba(255, 255, 255, 0.45);
+            }
+          }
+        }
+      }
+    }
+  }
+}

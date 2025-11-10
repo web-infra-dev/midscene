@@ -202,3 +202,41 @@
     }
   }
 }
+
+// Dark mode styles
+[data-theme='dark'] {
+  .player-container {
+    background: #141414;
+    border-color: #141414;
+
+    &[data-fit-mode='height'] {
+      background: #1f1f1f;
+
+      .canvas-container {
+        background-color: #141414;
+      }
+    }
+
+    .canvas-container {
+      background-color: #1f1f1f;
+    }
+
+    .player-tools {
+      color: rgba(255, 255, 255, 0.85);
+
+      .ant-spin {
+        color: rgba(255, 255, 255, 0.85);
+      }
+
+      .status-icon {
+        svg {
+          color: rgba(255, 255, 255, 0.85);
+        }
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.08);
+        }
+      }
+    }
+  }
+}
