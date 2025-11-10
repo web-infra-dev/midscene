@@ -60,7 +60,7 @@
     flex-shrink: 0;
     height: 44px;
     line-height: 44px;
-    padding: 0 20px;
+    padding: 0 8px !important;
     font-size: 12px;
   }
 
@@ -71,40 +71,26 @@
   }
 
   .task-meta-tokens {
-    display: grid;
-    grid-template-columns:
-      1fr auto minmax(120px, 1fr) minmax(100px, 1fr)
-      55px 65px;
-    gap: 8px;
+    display: flex;
     align-items: center;
+    gap: 8px;
     font-size: 12px;
+    padding: 0 8px !important;
 
     .token-total-label {
-      grid-column: 1;
+      flex: 1;
       font-weight: 500;
       color: #808080;
+      text-align: left;
     }
 
-    .token-total-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-
-      &:nth-child(2) {
-        grid-column: 5;
-      }
-
-      &:nth-child(3) {
-        grid-column: 6;
-      }
-
-      .token-value {
-        font-size: 14px;
-        color: #595959;
-        font-weight: normal;
-        line-height: 1.2;
-      }
+    .token-value {
+      font-size: 14px;
+      color: #595959;
+      font-weight: normal;
+      line-height: 1.2;
+      min-width: 55px;
+      text-align: right;
     }
   }
 
@@ -113,7 +99,6 @@
 
     &.side-seperator-line {
       margin: 0 12px;
-      border-top: 1px solid @border-color;
     }
 
     &.side-seperator-space-up {
@@ -126,159 +111,186 @@
   }
 
   .side-sub-title {
-    padding: 0 20px;
-    margin-bottom: 6px;
+    padding: 8px 8px 6px 8px;
+    margin-bottom: 0;
     font-weight: 500;
     color: #1a1a1a;
     flex-shrink: 0;
   }
 
-  .task-list {
-  }
+  // Table styles
+  .tasks-table {
+    padding: 0 12px;
 
-  .side-item {
-    cursor: pointer;
-    transition: 0.1s;
-    padding: 0 20 0 22px;
-
-    &:hover {
-      background: @hover-bg;
+    // Remove all antd default borders and spacing
+    &.ant-table-wrapper .ant-table {
+      background: transparent;
     }
 
-    &.selected {
-      background: @selected-bg;
+    .ant-table {
+      background: transparent;
     }
 
-    .side-item-content {
-      padding: 0 @side-horizontal-padding 0
-        calc(@side-horizontal-padding + 10px);
-    }
-  }
-
-  .side-item-name {
-    padding: 0; // 0 0 calc(@side-horizontal-padding + 10px);
-    // position: relative;
-    display: grid;
-    gap: 8px;
-    align-items: center;
-    height: 32px;
-    line-height: 32px;
-    color: #595959;
-
-    grid-template-columns: 1fr auto;
-
-    &.pro-mode {
-      grid-template-columns:
-        1fr 1fr 1fr minmax(180px, 3fr)
-        55px 55px;
-    }
-
-    .status-icon {
-      display: inline-flex;
-      align-items: center;
-      color: #aaa;
+    .ant-table-thead > tr > th {
+      background: transparent;
+      border-bottom: none;
+      padding: 0 8px !important;
+      height: 28px;
       font-size: 12px;
-      line-height: 10px;
-      margin-right: 6px;
+      color: #808080;
+      font-weight: 500;
+
+      &:before {
+        display: none;
+      }
+
+      &.column-type {
+        text-align: left;
+      }
+
+      &.column-time,
+      &.column-intent,
+      &.column-model,
+      &.column-prompt,
+      &.column-completion {
+        text-align: right;
+      }
     }
 
-    .title {
-      grid-column: 1;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      text-align: left;
+    // Sticky header background
+    .ant-table-thead > tr > th.ant-table-cell-fix-sticky {
+      background: #fff;
     }
 
-    .status-text {
-      grid-column: 2;
+    .ant-table-tbody {
+      background: transparent;
+
+      > tr {
+        background: transparent;
+
+        > td {
+          border-bottom: none;
+          padding: 0 8px !important;
+          background: transparent;
+
+          &.column-type {
+            text-align: left;
+          }
+
+          &.column-time,
+          &.column-intent,
+          &.column-model,
+          &.column-prompt,
+          &.column-completion {
+            text-align: right;
+          }
+        }
+
+        &.group-header-row {
+          cursor: default;
+
+          > td {
+            padding: 8px 0 0 0 !important;
+          }
+        }
+
+        &.task-row {
+          cursor: pointer;
+          transition: background 0.1s;
+
+          > td {
+            height: 32px;
+            padding: 0 8px !important;
+          }
+
+          &:hover {
+            background: @hover-bg;
+
+            > td {
+              background: @hover-bg;
+            }
+          }
+
+          &.selected {
+            background: @selected-bg;
+
+            > td {
+              background: @selected-bg;
+            }
+          }
+        }
+      }
+    }
+
+    .ant-table-summary {
+      background: transparent;
+
+      .summary-separator-row > td {
+        padding: 0 !important;
+        height: auto;
+      }
+
+      .summary-row > td {
+        border-top: none;
+        padding: 0 8px !important;
+        height: 44px;
+        background: transparent;
+        text-align: right;
+
+        &:first-child {
+          text-align: left;
+        }
+      }
+    }
+
+    // Column styles
+    .column-type {
+      max-width: 100%;
+
+      .title {
+        display: flex;
+        align-items: center;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #595959;
+        text-align: left;
+        max-width: 100%;
+
+        .status-icon {
+          display: inline-flex;
+          align-items: center;
+          color: #aaa;
+          font-size: 12px;
+          line-height: 10px;
+          margin-right: 6px;
+          flex-shrink: 0;
+        }
+
+        > span {
+          flex-shrink: 0; // Protect main text from shrinking
+          white-space: nowrap;
+        }
+
+        // Allow tags to shrink
+        .cache-tag,
+        .deepthink-tag {
+          flex-shrink: 1;
+          min-width: 0;
+          max-width: 100px; // Limit max width
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      }
+    }
+
+    .column-time,
+    .column-intent,
+    .column-model,
+    .column-prompt,
+    .column-completion {
+      color: #595959;
       font-size: 14px;
-      text-align: right;
-    }
-
-    .usage-column {
-      text-align: right;
-
-      &.intent {
-        grid-column: 3;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      &.model-name {
-        grid-column: 4;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      &.prompt-tokens {
-        grid-column: 5;
-      }
-
-      &.completion-tokens {
-        grid-column: 6;
-      }
-    }
-  }
-
-  .table-header {
-    padding: 0 20px 0 20px;
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 8px;
-    align-items: center;
-    height: 28px;
-    margin-bottom: 4px;
-    font-size: 12px;
-    color: #808080;
-    font-weight: 500;
-    flex-shrink: 0;
-
-    &.pro-mode {
-      grid-template-columns:
-        // 1fr auto minmax(120px, 1fr) minmax(100px, 1fr)
-        // 55px 65px;
-        1fr 1fr 1fr minmax(180px, 3fr)
-      55px 55px;
-
-    }
-
-    .header-name {
-      grid-column: 1;
-      text-align: left;
-    }
-
-    .header-time {
-      grid-column: 2;
-      text-align: right;
-    }
-
-    .header-intent {
-      grid-column: 3;
-      text-align: right;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .header-model-name {
-      grid-column: 4;
-      text-align: right;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .header-prompt {
-      grid-column: 5;
-      text-align: right;
-    }
-
-    .header-completion {
-      grid-column: 6;
-      text-align: right;
     }
   }
 
@@ -371,13 +383,13 @@
 
 // Light mode Tag styles
 .cache-tag {
-  color: #1890FF;
-  background-color: #E0F5FF;
+  color: #1890ff;
+  background-color: #e0f5ff;
 }
 
 .deepthink-tag {
-  color: #722ED1;
-  background-color: #F7EBFF;
+  color: #722ed1;
+  background-color: #f7ebff;
 }
 
 // Dark mode styles
@@ -413,6 +425,53 @@
       color: rgba(255, 255, 255, 0.85);
     }
 
+    .tasks-table {
+      .ant-table-thead > tr > th {
+        color: rgba(255, 255, 255, 0.45);
+      }
+
+      // Sticky header background for dark mode
+      .ant-table-thead > tr > th.ant-table-cell-fix-sticky {
+        background: #1f1f1f;
+      }
+
+      .ant-table-tbody > tr {
+        &.task-row {
+          &:hover {
+            background: rgba(255, 255, 255, 0.08);
+
+            > td {
+              background: rgba(255, 255, 255, 0.08);
+            }
+          }
+
+          &.selected {
+            background: rgba(255, 255, 255, 0.16);
+
+            > td {
+              background: rgba(255, 255, 255, 0.16);
+            }
+          }
+        }
+      }
+
+      .column-type .title {
+        color: rgba(255, 255, 255, 0.65);
+
+        .status-icon {
+          color: rgba(255, 255, 255, 0.45);
+        }
+      }
+
+      .column-time,
+      .column-intent,
+      .column-model,
+      .column-prompt,
+      .column-completion {
+        color: rgba(255, 255, 255, 0.65);
+      }
+    }
+
     .side-item {
       &:hover {
         background: rgba(255, 255, 255, 0.08);
@@ -444,7 +503,7 @@
         color: rgba(255, 255, 255, 0.45);
       }
 
-      .token-total-item .token-value {
+      .token-value {
         color: rgba(255, 255, 255, 0.65);
       }
     }
@@ -504,12 +563,12 @@
 
     // Tag styles for dark mode
     .cache-tag {
-      color: #1890FF !important;
+      color: #1890ff !important;
       background-color: rgba(24, 144, 255, 0.15) !important;
     }
 
     .deepthink-tag {
-      color: #9254DE !important;
+      color: #9254de !important;
       background-color: rgba(146, 84, 222, 0.15) !important;
     }
   }
