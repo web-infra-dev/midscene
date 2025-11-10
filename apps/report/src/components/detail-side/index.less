@@ -38,6 +38,14 @@
 
   .detail-side-timeline {
     margin-left: 20px;
+
+    .timeline-content {
+      margin-top: 8px;
+
+      .description-content {
+        margin: 4px 0;
+      }
+    }
   }
 
   details {
@@ -196,6 +204,43 @@
       background: @main-orange;
     }
 
+    .element-detail-box {
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      border-radius: 4px;
+      padding: 8px 12px;
+      margin: 4px 0;
+      background-color: #fafafa;
+      font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+      font-size: 13px;
+
+      .element-detail-line {
+        margin: 2px 0;
+        color: rgba(0, 0, 0, 0.85);
+        font-weight: 500;
+
+        &.element-detail-coords {
+          color: rgba(0, 0, 0, 0.65);
+          font-weight: normal;
+        }
+      }
+    }
+
+    .nested-kv {
+      margin-left: 16px;
+      margin-top: 4px;
+
+      .nested-key {
+        color: rgba(0, 0, 0, 0.65);
+        font-weight: 500;
+      }
+
+      pre {
+        display: inline;
+        margin: 0;
+        padding: 0;
+      }
+    }
+
     .section-button:hover {
       color: #fff;
       background: #01204E;
@@ -204,5 +249,12 @@
 
   pre {
     text-wrap: balance;
+  }
+
+  .yaml-content {
+    margin-top: 8px;
+    background: #f5f5f5;
+    padding: 8px;
+    border-radius: 4px;
   }
 }

@@ -197,9 +197,9 @@ const DetailPanel = (): JSX.Element => {
     if (type === VIEW_TYPE_BLACKBOARD) {
       return {
         label: isPageContextFrozen ? (
-          <Tooltip title="Current uiContext is frozen">Insight 🧊</Tooltip>
+          <Tooltip title="Current uiContext is frozen">Locate 🧊</Tooltip>
         ) : (
-          'Insight'
+          'Locate'
         ),
         value: type,
         icon: <ScheduleOutlined />,
