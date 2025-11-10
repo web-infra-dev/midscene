@@ -323,11 +323,18 @@ export const Blackboard = (props: {
   // Pulsing animation for highlight elements
   useEffect(() => {
     if (!appInitialed || highlightGraphicsRef.current.length === 0) {
-      console.log('Animation skipped:', { appInitialed, graphicsCount: highlightGraphicsRef.current.length });
+      console.log('Animation skipped:', {
+        appInitialed,
+        graphicsCount: highlightGraphicsRef.current.length,
+      });
       return;
     }
 
-    console.log('Starting pulsing animation for', highlightGraphicsRef.current.length, 'graphics');
+    console.log(
+      'Starting pulsing animation for',
+      highlightGraphicsRef.current.length,
+      'graphics',
+    );
     const graphicsToAnimate = highlightGraphicsRef.current;
     const glowFilters = glowFiltersRef.current;
     const pulseDuration = 1200; // 1.2 seconds for smooth pulsing
@@ -346,7 +353,8 @@ export const Blackboard = (props: {
       const normalizedSine = (sineValue + 1) / 2; // 0 to 1
 
       const alpha = minAlpha + normalizedSine * (maxAlpha - minAlpha);
-      const glowStrength = minGlowStrength + normalizedSine * (maxGlowStrength - minGlowStrength);
+      const glowStrength =
+        minGlowStrength + normalizedSine * (maxGlowStrength - minGlowStrength);
 
       graphicsToAnimate.forEach((graphics, index) => {
         graphics.alpha = alpha;

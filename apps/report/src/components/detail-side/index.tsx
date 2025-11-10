@@ -111,13 +111,19 @@ const MetaKV = (props: {
   );
 };
 
-const objectWithoutKeys = (obj: Record<string, unknown>, keys: string[]): Record<string, unknown> =>
-  Object.keys(obj).reduce((acc, key) => {
-    if (!keys.includes(key)) {
-      (acc as any)[key] = obj[key];
-    }
-    return acc;
-  }, {} as Record<string, unknown>);
+const objectWithoutKeys = (
+  obj: Record<string, unknown>,
+  keys: string[],
+): Record<string, unknown> =>
+  Object.keys(obj).reduce(
+    (acc, key) => {
+      if (!keys.includes(key)) {
+        (acc as any)[key] = obj[key];
+      }
+      return acc;
+    },
+    {} as Record<string, unknown>,
+  );
 
 const DetailSide = (): JSX.Element => {
   const task = useExecutionDump((store) => store.activeTask);
@@ -128,7 +134,9 @@ const DetailSide = (): JSX.Element => {
     ?.aiActionContext;
 
   const kv = (data: Record<string, unknown>) => {
-    const isElementItem = (value: unknown): value is BaseElement | LocateResultElement =>
+    const isElementItem = (
+      value: unknown,
+    ): value is BaseElement | LocateResultElement =>
       Boolean(value) &&
       typeof value === 'object' &&
       Boolean((value as any).center) &&
@@ -149,7 +157,8 @@ const DetailSide = (): JSX.Element => {
               Element (center=[{center[0]}, {center[1]}])
             </div>
             <div className="element-detail-line element-detail-coords">
-              left={Math.round(left)}, top={Math.round(top)}, width={Math.round(width)}, height={Math.round(height)}
+              left={Math.round(left)}, top={Math.round(top)}, width=
+              {Math.round(width)}, height={Math.round(height)}
             </div>
           </div>
         );
@@ -263,7 +272,27 @@ const DetailSide = (): JSX.Element => {
         ? [
             {
               key: 'hitBy',
-              content: <pre>{JSON.stringify(task?.hitBy, undefined, 2)}</pre>,
+              content: (() => {
+                const hitBy = task.hitBy as any;
+                // Special handling for Cache with yamlString
+                if (hitBy.from === 'Cache' && hitBy.context?.yamlString) {
+                  return (
+                    <>
+                      <div>
+                        <strong>from:</strong> {hitBy.from}
+                      </div>
+                      <div>
+                        <strong>context:</strong>
+                      </div>
+                      <pre className="description-content yaml-content">
+                        {hitBy.context.yamlString}
+                      </pre>
+                    </>
+                  );
+                }
+                // Default JSON rendering
+                return <pre>{JSON.stringify(hitBy, undefined, 2)}</pre>;
+              })(),
             },
           ]
         : []),
@@ -446,7 +475,11 @@ const DetailSide = (): JSX.Element => {
 
       return (
         <Card
-          title={('content' in element && typeof element.content === 'string') ? element.content : undefined}
+          title={
+            'content' in element && typeof element.content === 'string'
+              ? element.content
+              : undefined
+          }
           highlightWithColor={highlightColor}
           subtitle=""
           content={elementKV}
@@ -503,7 +536,7 @@ const DetailSide = (): JSX.Element => {
           onMouseEnter={noop}
           onMouseLeave={noop}
           content={
-            <pre className="description-content">
+            <pre className="description-content yaml-content">
               {(task as ExecutionTaskPlanning).output?.yamlString}
             </pre>
           }
@@ -544,8 +577,12 @@ const DetailSide = (): JSX.Element => {
                   <b>{typeStr(item as any)}</b>
                 </p>
                 <p>{item.thought}</p>
-                {paramContent && <div className="timeline-content">{paramContent}</div>}
-                {locateContent && <div className="timeline-content">{locateContent}</div>}
+                {paramContent && (
+                  <div className="timeline-content">{paramContent}</div>
+                )}
+                {locateContent && (
+                  <div className="timeline-content">{locateContent}</div>
+                )}
               </>
             ),
           };
@@ -606,9 +643,11 @@ const DetailSide = (): JSX.Element => {
             onMouseLeave={noop}
             title="output"
             content={
-              typeof data === 'object' && data !== null
-                ? kv(data as Record<string, unknown>)
-                : <pre>{String(data)}</pre>
+              typeof data === 'object' && data !== null ? (
+                kv(data as Record<string, unknown>)
+              ) : (
+                <pre>{String(data)}</pre>
+              )
             }
           />
         </>
