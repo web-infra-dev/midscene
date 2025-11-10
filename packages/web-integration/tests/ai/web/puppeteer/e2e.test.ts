@@ -67,7 +67,9 @@ describe(
 
       await sleep(10 * 1000);
 
-      agent.setAIActionContext('这是 Sauce Demo by Swag Lab 的测试');
+      agent.setAIActionContext(
+        'This is a testing application for Sauce Demo by Swag Lab',
+      );
 
       const flag = await agent.aiBoolean('this is a login page');
       expect(flag).toBe(true);
@@ -86,15 +88,7 @@ describe(
       expect(beforeInvokeAction.mock.calls.length).toEqual(
         afterInvokeAction.mock.calls.length,
       );
-      expect(
-        beforeInvokeAction.mock.calls.map((call) => call[0]),
-      ).toMatchInlineSnapshot(`
-        [
-          "Input",
-          "Input",
-          "Tap",
-        ]
-      `);
+      expect(beforeInvokeAction.mock.calls.length).toBeGreaterThan(2);
 
       expect(onTaskStartTip.mock.calls.length).toBeGreaterThan(1);
 

@@ -49,6 +49,4 @@ export interface WebElementInfo extends ElementInfo {
 export type LocateResultElement = {
   center: [number, number];
   rect: Rect;
-  id: string;
-  isOrderSensitive?: boolean;
 };

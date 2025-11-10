@@ -25,6 +25,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 // @ts-ignore no types in es folder
 import { reportHTMLContent, writeDumpReport } from '../../dist/es/utils'; // use modules from dist, otherwise we will miss the template file
+import { ifPlanLocateParamIsBbox } from '../../src/agent/utils';
 import {
   getTmpDir,
   getTmpFile,
@@ -1540,5 +1541,58 @@ describe('loadActionParam and dumpActionParam integration', () => {
         "locator2": "string locator",
       }
     `);
+  });
+});
+
+describe('ifPlanLocateParamIsBbox', () => {
+  it('should return true when bbox is valid array with 4 elements', () => {
+    const param = {
+      prompt: 'test element',
+      bbox: [100, 200, 300, 400] as [number, number, number, number],
+    };
+    expect(ifPlanLocateParamIsBbox(param)).toBe(true);
+  });
+
+  it('should return false when bbox is undefined', () => {
+    const param = {
+      prompt: 'test element',
+    };
+    expect(ifPlanLocateParamIsBbox(param)).toBe(false);
+  });
+
+  it('should return false when bbox is not an array', () => {
+    const param = {
+      prompt: 'test element',
+      bbox: 'not an array' as any,
+    };
+    expect(ifPlanLocateParamIsBbox(param)).toBe(false);
+  });
+
+  it('should return false when bbox array length is not 4', () => {
+    const param1 = {
+      prompt: 'test element',
+      bbox: [100, 200] as any,
+    };
+    expect(ifPlanLocateParamIsBbox(param1)).toBe(false);
+
+    const param2 = {
+      prompt: 'test element',
+      bbox: [100, 200, 300] as any,
+    };
+    expect(ifPlanLocateParamIsBbox(param2)).toBe(false);
+
+    const param3 = {
+      prompt: 'test element',
+      bbox: [100, 200, 300, 400, 500] as any,
+    };
+    expect(ifPlanLocateParamIsBbox(param3)).toBe(false);
+  });
+
+  it('should return false when bbox is null', () => {
+    const param = {
+      prompt: 'test element',
+      bbox: null as any,
+    };
+    expect(ifPlanLocateParamIsBbox(param)).toBe(false);
   });
 });

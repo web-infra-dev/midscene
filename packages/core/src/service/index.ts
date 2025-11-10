@@ -188,10 +188,8 @@ export default class Service {
     if (elements.length === 1) {
       return {
         element: {
-          id: elements[0]!.id,
           center: elements[0]!.center,
           rect: elements[0]!.rect,
-          isOrderSensitive: elements[0]!.isOrderSensitive,
         },
         rect,
         dump,

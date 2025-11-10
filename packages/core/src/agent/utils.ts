@@ -117,6 +117,16 @@ export function generateCacheId(fileName?: string): string {
   return `${taskFile}-${testFileIndex.get(taskFile)}`;
 }
 
+export function ifPlanLocateParamIsBbox(
+  planLocateParam: PlanningLocateParam,
+): boolean {
+  return !!(
+    planLocateParam.bbox &&
+    Array.isArray(planLocateParam.bbox) &&
+    planLocateParam.bbox.length === 4
+  );
+}
+
 export function matchElementFromPlan(
   planLocateParam: PlanningLocateParam,
 ): LocateResultElement | undefined {
@@ -170,7 +180,6 @@ export async function matchElementFromCache(
     const rect =
       await context.interfaceInstance.rectMatchesCacheFeature(cacheEntry);
     const element: LocateResultElement = {
-      id: uuid(),
       center: [
         Math.round(rect.left + rect.width / 2),
         Math.round(rect.top + rect.height / 2),
