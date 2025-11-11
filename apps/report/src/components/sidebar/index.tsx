@@ -435,7 +435,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
             checked={proModeEnabled}
             onChange={(e) => onProModeChange?.(e.target.checked)}
           >
-            Call Detail
+            Model Call Details
           </Checkbox>
         </div>
       </div>
