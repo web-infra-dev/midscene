@@ -16,7 +16,7 @@ import {
 } from '@midscene/visualizer';
 import { Tag, Tooltip } from 'antd';
 import { fullTimeStrWithMilliseconds } from '../../../../../packages/visualizer/src/utils';
-import { useExecutionDump } from '../store';
+import { isElementField, useExecutionDump } from '../store';
 
 const noop = () => {};
 const Card = (props: {
@@ -133,12 +133,6 @@ const DetailSide = (): JSX.Element => {
     ?.aiActionContext;
 
   // Helper functions for rendering element items
-  const isElementItem = (value: unknown): value is LocateResultElement =>
-    Boolean(value) &&
-    typeof value === 'object' &&
-    Boolean((value as any).center) &&
-    Boolean((value as any).rect);
-
   const elementEl = (_value: LocateResultElement) => {
     const hasCenter = _value.center && Array.isArray(_value.center);
     const hasRect = _value.rect;
@@ -175,14 +169,14 @@ const DetailSide = (): JSX.Element => {
     // Recursively render value
     const renderValue = (value: unknown): JSX.Element => {
       // Check if it's an element first
-      if (isElementItem(value)) {
+      if (isElementField(value)) {
         return <>{elementEl(value)}</>;
       }
 
       // Check if it's an array
       if (Array.isArray(value)) {
         // Check if array contains elements
-        if (value.some((item) => isElementItem(item))) {
+        if (value.some((item) => isElementField(item))) {
           return (
             <>
               {value.map((item, index) => (
@@ -295,14 +289,6 @@ const DetailSide = (): JSX.Element => {
                 // Default JSON rendering
                 return <pre>{JSON.stringify(hitBy, undefined, 2)}</pre>;
               })(),
-            },
-          ]
-        : []),
-      ...(task?.locate
-        ? [
-            {
-              key: 'locate',
-              content: <pre>{JSON.stringify(task.locate, undefined, 2)}</pre>,
             },
           ]
         : []),
@@ -573,17 +559,17 @@ const DetailSide = (): JSX.Element => {
 
             // Render content based on value type
             let content: JSX.Element;
-            if (isElementItem(paramValue)) {
+            if (isElementField(paramValue)) {
               // Render as element
               content = elementEl(paramValue);
             } else if (Array.isArray(paramValue)) {
               // Check if array contains elements
-              if (paramValue.some((item) => isElementItem(item))) {
+              if (paramValue.some((item) => isElementField(item))) {
                 content = (
                   <div>
                     {paramValue.map((item, idx) => (
                       <div key={idx}>
-                        {isElementItem(item) ? (
+                        {isElementField(item) ? (
                           elementEl(item)
                         ) : (
                           <pre>{JSON.stringify(item, undefined, 2)}</pre>
