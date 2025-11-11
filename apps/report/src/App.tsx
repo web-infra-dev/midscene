@@ -79,6 +79,11 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   // Save dark mode preference to localStorage
   useEffect(() => {
     localStorage.setItem('midscene-dark-mode', String(isDarkMode));
+    // Set data-theme on document root for global dark mode support
+    document.documentElement.setAttribute(
+      'data-theme',
+      isDarkMode ? 'dark' : 'light',
+    );
   }, [isDarkMode]);
 
   useEffect(() => {
