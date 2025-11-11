@@ -1069,33 +1069,8 @@ export class Agent<
     );
   }
 
-  async ai(taskPrompt: string, type = 'action') {
-    if (type === 'action') {
-      return this.aiAct(taskPrompt);
-    }
-    if (type === 'query') {
-      return this.aiQuery(taskPrompt);
-    }
-
-    if (type === 'assert') {
-      return this.aiAssert(taskPrompt);
-    }
-
-    if (type === 'tap') {
-      return this.aiTap(taskPrompt);
-    }
-
-    if (type === 'rightClick') {
-      return this.aiRightClick(taskPrompt);
-    }
-
-    if (type === 'doubleClick') {
-      return this.aiDoubleClick(taskPrompt);
-    }
-
-    throw new Error(
-      `Unknown type: ${type}, only support 'action', 'query', 'assert', 'tap', 'rightClick', 'doubleClick'`,
-    );
+  async ai(...args: Parameters<typeof this.aiAct>) {
+    return this.aiAct(...args);
   }
 
   async runYaml(yamlScriptContent: string): Promise<{
