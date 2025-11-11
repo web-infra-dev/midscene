@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useTheme } from '../../hooks/useTheme';
 import './index.less';
 
 export const LogoUrl =
@@ -10,37 +10,13 @@ const LogoUrlDark =
   'https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/midscene_with_text_dark.png';
 
 export const Logo = ({ hideLogo = false }: { hideLogo?: boolean }) => {
-  const [isDark, setIsDark] = useState(false);
-
-  useEffect(() => {
-    // Check initial theme
-    const checkTheme = () => {
-      const theme = document
-        .querySelector('[data-theme]')
-        ?.getAttribute('data-theme');
-      setIsDark(theme === 'dark');
-    };
-
-    checkTheme();
-
-    // Observe theme changes
-    const observer = new MutationObserver(checkTheme);
-    const target =
-      document.querySelector('[data-theme]') || document.documentElement;
-
-    observer.observe(target, {
-      attributes: true,
-      attributeFilter: ['data-theme'],
-    });
-
-    return () => observer.disconnect();
-  }, []);
+  const { isDarkMode } = useTheme();
 
   if (hideLogo) {
     return null;
   }
 
-  const logoSrc = isDark ? LogoUrlDark : LogoUrlLight;
+  const logoSrc = isDarkMode ? LogoUrlDark : LogoUrlLight;
 
   return (
     <div className="logo">
