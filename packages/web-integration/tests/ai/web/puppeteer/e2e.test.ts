@@ -76,7 +76,7 @@ describe(
 
       await agent.aiAssert('this is a login page');
 
-      await agent.aiAction(
+      await agent.ai(
         'type "standard_user" in user name input, type "secret_sauce" in password',
       );
 
