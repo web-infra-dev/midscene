@@ -132,45 +132,46 @@ const DetailSide = (): JSX.Element => {
   const aiActionContextValue = (task as ExecutionTaskPlanningApply)?.param
     ?.aiActionContext;
 
-  const kv = (data: Record<string, unknown>) => {
-    const isElementItem = (value: unknown): value is LocateResultElement =>
-      Boolean(value) &&
-      typeof value === 'object' &&
-      Boolean((value as any).center) &&
-      Boolean((value as any).rect);
+  // Helper functions for rendering element items
+  const isElementItem = (value: unknown): value is LocateResultElement =>
+    Boolean(value) &&
+    typeof value === 'object' &&
+    Boolean((value as any).center) &&
+    Boolean((value as any).rect);
 
-    const elementEl = (_value: LocateResultElement) => {
-      const hasCenter = _value.center && Array.isArray(_value.center);
-      const hasRect = _value.rect;
+  const elementEl = (_value: LocateResultElement) => {
+    const hasCenter = _value.center && Array.isArray(_value.center);
+    const hasRect = _value.rect;
 
-      // If it has center and rect, show detailed info
-      if (hasCenter && hasRect) {
-        const { center, rect } = _value;
-        const { left, top, width, height } = rect;
+    // If it has center and rect, show detailed info
+    if (hasCenter && hasRect) {
+      const { center, rect } = _value;
+      const { left, top, width, height } = rect;
 
-        return (
-          <div className="element-detail-box">
-            <div className="element-detail-line">
-              {_value.description} (center=[{center[0]}, {center[1]}])
-            </div>
-            <div className="element-detail-line element-detail-coords">
-              left={Math.round(left)}, top={Math.round(top)}, width=
-              {Math.round(width)}, height={Math.round(height)}
-            </div>
-          </div>
-        );
-      }
-
-      // Fallback to simple tag
       return (
-        <span>
-          <Tag bordered={false} color="orange" className="element-button">
-            Element
-          </Tag>
-        </span>
+        <div className="element-detail-box">
+          <div className="element-detail-line">
+            {_value.description} (center=[{center[0]}, {center[1]}])
+          </div>
+          <div className="element-detail-line element-detail-coords">
+            left={Math.round(left)}, top={Math.round(top)}, width=
+            {Math.round(width)}, height={Math.round(height)}
+          </div>
+        </div>
       );
-    };
+    }
 
+    // Fallback to simple tag
+    return (
+      <span>
+        <Tag bordered={false} color="orange" className="element-button">
+          Element
+        </Tag>
+      </span>
+    );
+  };
+
+  const kv = (data: Record<string, unknown>) => {
     // Recursively render value
     const renderValue = (value: unknown): JSX.Element => {
       // Check if it's an element first
@@ -411,7 +412,7 @@ const DetailSide = (): JSX.Element => {
   }
 
   let outputDataContent = null;
-  const plans = (task as ExecutionTaskPlanning)?.output?.actions;
+  const actions = (task as ExecutionTaskPlanning)?.output?.actions;
 
   // Prepare error content separately (can coexist with elements)
   let errorContent: JSX.Element | null = null;
@@ -524,7 +525,7 @@ const DetailSide = (): JSX.Element => {
         />
       </>
     );
-  } else if (plans) {
+  } else if (actions) {
     if (task?.subType === 'LoadYaml') {
       outputDataContent = (
         <Card
@@ -561,33 +562,84 @@ const DetailSide = (): JSX.Element => {
       }
 
       // Add each plan action
-      plans.forEach((item, index) => {
-        const paramToShow = item.param || {};
-        const paramContent = Object.keys(paramToShow).length
-          ? kv(paramToShow as Record<string, unknown>)
-          : null;
+      actions.forEach((action, index) => {
+        const paramToShow = action.param || {};
+        const actionType = action.type || '';
 
-        const locateContent =
-          item.type === 'Locate' && item.locate
-            ? kv({ locate: item.locate } as Record<string, unknown>)
-            : null;
+        // Create a Card for each param key
+        if (Object.keys(paramToShow).length > 0) {
+          Object.keys(paramToShow).forEach((key) => {
+            const paramValue = paramToShow[key];
 
-        planItems.push(
-          <Card
-            key={`plan-${index}`}
-            liteMode={true}
-            title={typeStr(item as any)}
-            subtitle={item.thought}
-            onMouseEnter={noop}
-            onMouseLeave={noop}
-            content={
-              <>
-                {paramContent && <div>{paramContent}</div>}
-                {locateContent && <div>{locateContent}</div>}
-              </>
+            // Render content based on value type
+            let content: JSX.Element;
+            if (isElementItem(paramValue)) {
+              // Render as element
+              content = elementEl(paramValue);
+            } else if (Array.isArray(paramValue)) {
+              // Check if array contains elements
+              if (paramValue.some((item) => isElementItem(item))) {
+                content = (
+                  <div>
+                    {paramValue.map((item, idx) => (
+                      <div key={idx}>
+                        {isElementItem(item) ? (
+                          elementEl(item)
+                        ) : (
+                          <pre>{JSON.stringify(item, undefined, 2)}</pre>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                );
+              } else {
+                // Regular array
+                content = (
+                  <pre className="description-content">
+                    {JSON.stringify(paramValue, undefined, 2)}
+                  </pre>
+                );
+              }
+            } else if (typeof paramValue === 'object' && paramValue !== null) {
+              // Object
+              content = (
+                <pre className="description-content">
+                  {JSON.stringify(paramValue, undefined, 2)}
+                </pre>
+              );
+            } else {
+              // Primitive value
+              content = (
+                <pre className="description-content">{String(paramValue)}</pre>
+              );
             }
-          />,
-        );
+
+            planItems.push(
+              <Card
+                key={`plan-${index}-${key}`}
+                liteMode={true}
+                title={`${actionType}.${key}`}
+                subtitle={action.thought}
+                onMouseEnter={noop}
+                onMouseLeave={noop}
+                content={content}
+              />,
+            );
+          });
+        } else {
+          // If no params, still show the action
+          planItems.push(
+            <Card
+              key={`plan-${index}`}
+              liteMode={true}
+              title={typeStr(action as any)}
+              subtitle={action.thought}
+              onMouseEnter={noop}
+              onMouseLeave={noop}
+              content={null}
+            />,
+          );
+        }
       });
 
       // Add More actions needed if exists

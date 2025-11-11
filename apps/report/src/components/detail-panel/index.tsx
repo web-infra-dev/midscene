@@ -136,7 +136,9 @@ const DetailPanel = (): JSX.Element => {
             : [];
         }
         contextLocatorView = (
-          <ScreenshotItem title="UI Context">
+          <ScreenshotItem
+            title={isPageContextFrozen ? 'UI Context (Frozen)' : 'UI Context'}
+          >
             <Blackboard
               key={`${_contextLoadId}`}
               uiContext={activeTask.uiContext as WebUIContext}
