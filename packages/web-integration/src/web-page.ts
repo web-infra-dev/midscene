@@ -485,15 +485,15 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
         }
       : undefined;
     const scrollToEventName = param?.scrollType;
-    if (scrollToEventName === 'untilTop') {
+    if (scrollToEventName === 'scrollToTop') {
       await page.scrollUntilTop(startingPoint);
-    } else if (scrollToEventName === 'untilBottom') {
+    } else if (scrollToEventName === 'scrollToBottom') {
       await page.scrollUntilBottom(startingPoint);
-    } else if (scrollToEventName === 'untilRight') {
+    } else if (scrollToEventName === 'scrollToRight') {
       await page.scrollUntilRight(startingPoint);
-    } else if (scrollToEventName === 'untilLeft') {
+    } else if (scrollToEventName === 'scrollToLeft') {
       await page.scrollUntilLeft(startingPoint);
-    } else if (scrollToEventName === 'once' || !scrollToEventName) {
+    } else if (scrollToEventName === 'singleAction' || !scrollToEventName) {
       if (param?.direction === 'down' || !param || !param.direction) {
         await page.scrollDown(param?.distance || undefined, startingPoint);
       } else if (param.direction === 'up') {

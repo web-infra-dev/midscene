@@ -234,9 +234,17 @@ export const actionScrollParamSchema = z.object({
     .default('down')
     .describe('The direction to scroll'),
   scrollType: z
-    .enum(['once', 'untilBottom', 'untilTop', 'untilRight', 'untilLeft'])
-    .default('once')
-    .describe('The scroll type'),
+    .enum([
+      'singleAction',
+      'scrollToBottom',
+      'scrollToTop',
+      'scrollToRight',
+      'scrollToLeft',
+    ])
+    .default('singleAction')
+    .describe(
+      'The scroll behavior: "singleAction" for a single scroll action, "scrollToBottom" for scrolling to the bottom, "scrollToTop" for scrolling to the top, "scrollToRight" for scrolling to the right, "scrollToLeft" for scrolling to the left',
+    ),
   distance: z
     .number()
     .nullable()
@@ -244,11 +252,16 @@ export const actionScrollParamSchema = z.object({
     .describe('The distance in pixels to scroll'),
   locate: getMidsceneLocationSchema()
     .optional()
-    .describe('The element to be scrolled'),
+    .describe('The target element to be scrolled'),
 });
 export type ActionScrollParam = {
   direction?: 'down' | 'up' | 'right' | 'left';
-  scrollType?: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft';
+  scrollType?:
+    | 'singleAction'
+    | 'scrollToBottom'
+    | 'scrollToTop'
+    | 'scrollToRight'
+    | 'scrollToLeft';
   distance?: number | null;
   locate?: LocateResultElement;
 };

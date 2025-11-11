@@ -153,15 +153,15 @@ export class AndroidDevice implements AbstractInterface {
             }
           : undefined;
         const scrollToEventName = param?.scrollType;
-        if (scrollToEventName === 'untilTop') {
+        if (scrollToEventName === 'scrollToTop') {
           await this.scrollUntilTop(startingPoint);
-        } else if (scrollToEventName === 'untilBottom') {
+        } else if (scrollToEventName === 'scrollToBottom') {
           await this.scrollUntilBottom(startingPoint);
-        } else if (scrollToEventName === 'untilRight') {
+        } else if (scrollToEventName === 'scrollToRight') {
           await this.scrollUntilRight(startingPoint);
-        } else if (scrollToEventName === 'untilLeft') {
+        } else if (scrollToEventName === 'scrollToLeft') {
           await this.scrollUntilLeft(startingPoint);
-        } else if (scrollToEventName === 'once' || !scrollToEventName) {
+        } else if (scrollToEventName === 'singleAction' || !scrollToEventName) {
           if (param?.direction === 'down' || !param || !param.direction) {
             await this.scrollDown(param?.distance || undefined, startingPoint);
           } else if (param.direction === 'up') {
