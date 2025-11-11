@@ -329,7 +329,7 @@ export const generateAnimationScripts = (
             if (
               action.param[field] &&
               typeof action.param[field] === 'object' &&
-              'center' in action.param[field]
+              'center' in (action.param[field] || {})
             ) {
               locateElements.push(action.param[field] as LocateResultElement);
             }
@@ -340,7 +340,7 @@ export const generateAnimationScripts = (
             }
             if (
               typeof action.param[key] === 'object' &&
-              'center' in action.param[key]
+              'center' in (action.param[key] || {})
             ) {
               locateElements.push(action.param[key] as LocateResultElement);
             }
