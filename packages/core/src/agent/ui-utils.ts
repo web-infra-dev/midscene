@@ -69,7 +69,7 @@ export function scrollParamStr(scrollParam?: ScrollParam) {
   if (!scrollParam) {
     return '';
   }
-  return `${scrollParam.direction || 'down'}, ${scrollParam.scrollType || 'once'}, ${scrollParam.distance || 'distance-not-set'}`;
+  return `${scrollParam.direction || 'down'}, ${scrollParam.scrollType || 'singleAction'}, ${scrollParam.distance || 'distance-not-set'}`;
 }
 
 export function pullParamStr(pullParam?: PullParam) {
