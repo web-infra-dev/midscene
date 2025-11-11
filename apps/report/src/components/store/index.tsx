@@ -5,6 +5,7 @@ import type {
   ExecutionTask,
   ExecutionTaskPlanningLocate,
   GroupedActionDump,
+  LocateResultElement,
   ServiceDump,
 } from '@midscene/core';
 import type { AnimationScript } from '@midscene/visualizer';
@@ -15,6 +16,13 @@ import {
 import * as Z from 'zustand';
 
 const { create } = Z;
+
+export const isElementField = (value: unknown): value is LocateResultElement =>
+  Boolean(value) &&
+  typeof value === 'object' &&
+  Boolean((value as any).center) &&
+  Boolean((value as any).rect);
+
 export const useBlackboardPreference = create<{
   markerVisible: boolean;
   elementsVisible: boolean;

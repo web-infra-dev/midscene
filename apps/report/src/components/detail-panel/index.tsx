@@ -1,6 +1,6 @@
 'use client';
 import './index.less';
-import { useExecutionDump } from '@/components/store';
+import { isElementField, useExecutionDump } from '@/components/store';
 import {
   CameraOutlined,
   FileTextOutlined,
@@ -40,6 +40,36 @@ const VIEW_TYPE_REPLAY = 'replay';
 const VIEW_TYPE_SCREENSHOT = 'screenshot';
 const VIEW_TYPE_JSON = 'json';
 
+// Helper function to recursively extract all elements from param
+const extractElementsFromParam = (param: any): any[] => {
+  const elements: any[] = [];
+
+  const traverse = (value: any) => {
+    if (!value) return;
+
+    // Check if it's an element field
+    if (isElementField(value)) {
+      elements.push(value);
+      return;
+    }
+
+    // Check if it's an array
+    if (Array.isArray(value)) {
+      value.forEach((item) => traverse(item));
+      return;
+    }
+
+    // Check if it's an object
+    if (typeof value === 'object' && value !== null) {
+      Object.values(value).forEach((val) => traverse(val));
+      return;
+    }
+  };
+
+  traverse(param);
+  return elements;
+};
+
 const DetailPanel = (): JSX.Element => {
   const insightDump = useExecutionDump((store) => store.insightDump);
   const _contextLoadId = useExecutionDump((store) => store._contextLoadId);
@@ -48,7 +78,6 @@ const DetailPanel = (): JSX.Element => {
     (store) => store._executionDumpLoadId,
   );
   const activeTask = useExecutionDump((store) => store.activeTask);
-  const blackboardViewAvailable = Boolean(activeTask?.uiContext);
   const [preferredViewType, setViewType] = useState(VIEW_TYPE_REPLAY);
   const animationScripts = useExecutionDump(
     (store) => store.activeExecutionAnimation,
@@ -61,10 +90,8 @@ const DetailPanel = (): JSX.Element => {
     (activeTask?.uiContext as WebUIContext)?._isFrozen,
   );
 
-  let availableViewTypes = [VIEW_TYPE_SCREENSHOT, VIEW_TYPE_JSON];
-  if (blackboardViewAvailable) {
-    availableViewTypes = [VIEW_TYPE_SCREENSHOT, VIEW_TYPE_JSON];
-  }
+  const availableViewTypes = [VIEW_TYPE_SCREENSHOT, VIEW_TYPE_JSON];
+
   if (
     activeTask?.type === 'Planning' &&
     animationScripts &&
@@ -97,13 +124,49 @@ const DetailPanel = (): JSX.Element => {
       </div>
     );
   } else if (viewType === VIEW_TYPE_SCREENSHOT) {
-    if (activeTask.recorder?.length) {
-      const screenshotItems: {
-        timestamp?: number;
-        screenshot: string;
-        timing?: string;
-      }[] = [];
+    const screenshotItems: {
+      timestamp?: number;
+      screenshot: string;
+      timing?: string;
+    }[] = [];
 
+    // locator view
+    let contextLocatorView;
+    let highlightElements: any[] = [];
+
+    if (
+      isElementField(
+        (activeTask as ExecutionTaskPlanningLocate).output?.element,
+      )
+    ) {
+      // hit cache
+      highlightElements = [activeTask.output.element];
+    }
+
+    // Extract elements from param
+    if (activeTask.param) {
+      const paramElements = extractElementsFromParam(
+        activeTask.output?.actions?.[0]?.param,
+      );
+      highlightElements = [...highlightElements, ...paramElements];
+    }
+
+    contextLocatorView =
+      highlightElements.length > 0 ? (
+        <ScreenshotItem
+          title={isPageContextFrozen ? 'UI Context (Frozen)' : 'UI Context'}
+        >
+          <Blackboard
+            key={`${_contextLoadId}`}
+            uiContext={activeTask.uiContext as WebUIContext}
+            highlightElements={highlightElements}
+            highlightRect={insightDump?.taskInfo?.searchArea}
+          />
+        </ScreenshotItem>
+      ) : null;
+
+    // screenshot view
+    if (activeTask.recorder?.length) {
       const screenshotFromContext = activeTask.uiContext?.screenshotBase64;
       if (screenshotFromContext) {
         screenshotItems.push({
@@ -122,34 +185,12 @@ const DetailPanel = (): JSX.Element => {
           });
         }
       }
+    }
 
-      let contextLocatorView;
-      if (blackboardViewAvailable) {
-        let highlightElements;
-
-        if (insightDump?.matchedElement) {
-          highlightElements = insightDump?.matchedElement;
-        } else {
-          highlightElements = (activeTask as ExecutionTaskPlanningLocate).output
-            ?.element // hit cache
-            ? [activeTask.output.element]
-            : [];
-        }
-        contextLocatorView = (
-          <ScreenshotItem title="UI Context">
-            <Blackboard
-              key={`${_contextLoadId}`}
-              uiContext={activeTask.uiContext as WebUIContext}
-              highlightElements={highlightElements}
-              highlightRect={insightDump?.taskInfo?.searchArea}
-            />
-          </ScreenshotItem>
-        );
-      }
-
+    if (screenshotItems.length > 0 || contextLocatorView) {
       content = (
         <div className="screenshot-item-wrapper scrollable">
-          <div>{contextLocatorView}</div>
+          {contextLocatorView && <div>{contextLocatorView}</div>}
           {screenshotItems.map((item) => {
             const time = item.timing
               ? `${fullTimeStrWithMilliseconds(item.timestamp)} / ${item.timing}`
@@ -165,7 +206,7 @@ const DetailPanel = (): JSX.Element => {
         </div>
       );
     } else {
-      content = <div>no screenshot</div>; // TODO: pretty error message
+      content = <div>no screenshot</div>;
     }
   }
 
