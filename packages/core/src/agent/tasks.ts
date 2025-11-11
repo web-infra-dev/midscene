@@ -134,7 +134,6 @@ export class TaskExecutor {
     const task: ExecutionTaskPlanningApply = {
       type: 'Planning',
       subType: 'LoadYaml',
-      locate: null,
       param: {
         userInstruction,
       },
@@ -176,7 +175,6 @@ export class TaskExecutor {
     const task: ExecutionTaskPlanningApply = {
       type: 'Planning',
       subType: 'Plan',
-      locate: null,
       param: {
         userInstruction,
         aiActionContext: actionContext,
@@ -388,7 +386,6 @@ export class TaskExecutor {
     const queryTask: ExecutionTaskInsightQueryApply = {
       type: 'Insight',
       subType: type,
-      locate: null,
       param: {
         dataDemand: multimodalPrompt
           ? ({
@@ -546,7 +543,6 @@ export class TaskExecutor {
       param: {
         timeMs,
       },
-      locate: null,
     };
   }
 

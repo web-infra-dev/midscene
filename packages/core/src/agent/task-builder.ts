@@ -35,7 +35,6 @@ export function locatePlanForLocate(param: string | DetailedLocateParam) {
   const locate = typeof param === 'string' ? { prompt: param } : param;
   const locatePlan: PlanningAction<PlanningLocateParam> = {
     type: 'Locate',
-    locate,
     param: locate,
     thought: '',
   };
@@ -132,7 +131,6 @@ export class TaskBuilder {
       subType: 'Finished',
       param: null,
       thought: plan.thought,
-      locate: plan.locate,
       subTask: context.subTask || undefined,
       executor: async () => {},
     };
@@ -145,7 +143,6 @@ export class TaskBuilder {
   ): void {
     const sleepTask = this.createSleepTask(plan.param, {
       thought: plan.thought,
-      locate: plan.locate,
     });
     if (context.subTask) {
       sleepTask.subTask = true;
@@ -155,14 +152,13 @@ export class TaskBuilder {
 
   public createSleepTask(
     param: PlanningActionParamSleep,
-    meta?: { thought?: string; locate?: PlanningAction['locate'] | null },
+    meta?: { thought?: string },
   ): ExecutionTaskActionApply<PlanningActionParamSleep> {
     return {
       type: 'Action Space',
       subType: 'Sleep',
       param,
       thought: meta?.thought,
-      locate: meta?.locate ?? null,
       executor: async (taskParam) => {
         await sleep(taskParam?.timeMs || 3000);
       },
@@ -173,12 +169,7 @@ export class TaskBuilder {
     plan: PlanningAction<PlanningLocateParam>,
     context: PlanBuildContext,
   ): Promise<void> {
-    if (!plan.locate || plan.locate === null) {
-      debug('Locate action with id is null, will be ignored', plan);
-      return;
-    }
-
-    const taskLocate = this.createLocateTask(plan, plan.locate, context);
+    const taskLocate = this.createLocateTask(plan, plan.param, context);
     context.tasks.push(taskLocate);
   }
 

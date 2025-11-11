@@ -62,8 +62,9 @@ const stillDuration = 900;
 const actionSpinningPointerDuration = 300;
 const stillAfterInsightDuration = 300;
 const locateDuration = 800;
-const actionDuration = 1000;
+const actionDuration = 500;
 const clearInsightDuration = 200;
+const lastFrameDuration = 200;
 
 // fit rect to camera
 export const cameraStateForRect = (
@@ -288,7 +289,7 @@ export const generateAnimationScripts = (
     imageHeight,
   );
 
-  const pointerScript = (
+  const setPointerScript = (
     img: string,
     title: string,
     subTitle: string,
@@ -316,79 +317,104 @@ export const generateAnimationScripts = (
       initSubTitle = paramStr(task);
     }
 
-    if (task.type === 'Planning' && task.subType === 'Locate') {
-      const serviceTask = task as ExecutionTaskPlanningLocate;
-      const resultElement = serviceTask.output?.element;
+    if (task.type === 'Planning') {
+      let locateElements: LocateResultElement[] = [];
+      if (task.subType === 'Plan') {
+        const planTask = task as ExecutionTaskPlanning;
+        const actions = planTask.output?.actions || [];
+        if (actions.length > 0) {
+          const action = actions[0];
+          const knownFields = ['locate', 'start', 'end'];
+          knownFields.forEach((field) => {
+            if (
+              action.param[field] &&
+              typeof action.param[field] === 'object' &&
+              'center' in action.param[field]
+            ) {
+              locateElements.push(action.param[field] as LocateResultElement);
+            }
+          });
+          for (const key in action.param) {
+            if (knownFields.includes(key)) {
+              continue;
+            }
+            if (
+              typeof action.param[key] === 'object' &&
+              'center' in action.param[key]
+            ) {
+              locateElements.push(action.param[key] as LocateResultElement);
+            }
+          }
+        }
+      } else if (task.subType === 'Locate' && task.output?.element) {
+        const locateTask = task as ExecutionTaskPlanningLocate;
+        locateElements = [locateTask.output!.element!];
+      }
+
       const title = typeStr(task);
       const subTitle = paramStr(task);
-      if (resultElement?.rect) {
-        insightCameraState = {
-          ...cameraStateForRect(resultElement.rect, imageWidth, imageHeight),
-          pointerLeft: resultElement.center[0],
-          pointerTop: resultElement.center[1],
-        };
-      }
-      const context = serviceTask.uiContext;
+      const context = task.uiContext;
       if (context?.screenshotBase64) {
-        const insightDump = serviceTask.log;
-        const insightContentLength = 0;
-
-        if (context.screenshotBase64) {
-          // show the original screenshot first
-          scripts.push({
-            type: 'img',
-            img: context.screenshotBase64,
-            duration: stillAfterInsightDuration,
-            title,
-            subTitle,
-            imageWidth: context.size?.width || imageWidth,
-            imageHeight: context.size?.height || imageHeight,
-          });
-        }
-
-        let cameraState: TargetCameraState | undefined = undefined;
-        if (currentCameraState === fullPageCameraState) {
-          cameraState = undefined;
-        } else if (!insightCameraState) {
-          cameraState = undefined;
-        } else {
-          cameraState = mergeTwoCameraState(
-            currentCameraState,
-            insightCameraState,
-          );
-        }
-
+        // show the original screenshot first
+        const width = context.size?.width || imageWidth;
+        const height = context.size?.height || imageHeight;
         scripts.push({
-          type: 'insight',
+          type: 'img',
           img: context.screenshotBase64,
-          context: context,
-          camera: cameraState,
-          highlightElement: serviceTask.output?.element || undefined,
-          searchArea: insightDump?.taskInfo?.searchArea,
-          duration:
-            insightContentLength > 20 ? locateDuration : locateDuration * 0.5,
-          insightCameraDuration: locateDuration,
-          title,
-          subTitle,
-          imageWidth: context.size?.width || imageWidth,
-          imageHeight: context.size?.height || imageHeight,
-        });
-
-        scripts.push({
-          type: 'sleep',
           duration: stillAfterInsightDuration,
           title,
           subTitle,
+          imageWidth: width,
+          imageHeight: height,
         });
-        insightOnTop = true;
+
+        locateElements.forEach((element) => {
+          insightCameraState = {
+            ...cameraStateForRect(element.rect, width, height),
+            pointerLeft: element.center[0],
+            pointerTop: element.center[1],
+          };
+
+          const newCameraState: TargetCameraState = insightCameraState;
+          // currentCameraState === fullPageCameraState
+          //   ? insightCameraState
+          //   : mergeTwoCameraState(currentCameraState, insightCameraState);
+
+          // console.log('insightCameraState', insightCameraState);
+          // console.log('currentCameraState', currentCameraState);
+          // console.log('newCameraState', newCameraState);
+
+          scripts.push({
+            type: 'insight',
+            img: context.screenshotBase64,
+            context: context,
+            camera: newCameraState,
+            highlightElement: element,
+            searchArea: task.log?.taskInfo?.searchArea,
+            duration: locateDuration * 0.5,
+            insightCameraDuration: locateDuration,
+            title,
+            subTitle: element.description || subTitle,
+            imageWidth: context.size?.width || imageWidth,
+            imageHeight: context.size?.height || imageHeight,
+          });
+
+          // scripts.push({
+          //   type: 'sleep',
+          //   duration: stillAfterInsightDuration,
+          //   title,
+          //   subTitle,
+          // });
+          insightOnTop = true;
+          currentCameraState = newCameraState;
+        });
       }
-    } else if (task.type === 'Planning') {
+
       const planningTask = task as ExecutionTaskPlanning;
       if (planningTask.recorder && planningTask.recorder.length > 0) {
         scripts.push({
           type: 'img',
           img: planningTask.recorder?.[0]?.screenshot,
-          camera: index === 0 ? fullPageCameraState : undefined,
           duration: stillDuration,
           title: typeStr(task),
           subTitle: paramStr(task),
@@ -396,28 +422,19 @@ export const generateAnimationScripts = (
           imageHeight: task.uiContext?.size?.height || imageHeight,
         });
       }
-    } else if (
-      task.type === 'Action Space' &&
-      task.subType !== 'FalsyConditionStatement'
-    ) {
+    } else if (task.type === 'Action Space') {
       const title = typeStr(task);
       const subTitle = paramStr(task);
-      scripts.push(pointerScript(mousePointer, title, subTitle));
 
-      currentCameraState = insightCameraState ?? fullPageCameraState;
       scripts.push({
-        type: 'img',
-        img: task.recorder?.[0]?.screenshot,
-        duration: actionDuration,
-        camera:
-          task.subType === 'Sleep' ? fullPageCameraState : insightCameraState,
+        type: 'spinning-pointer',
+        duration: actionSpinningPointerDuration,
         title,
         subTitle,
-        imageWidth: task.uiContext?.size?.width || imageWidth,
-        imageHeight: task.uiContext?.size?.height || imageHeight,
       });
 
       if (insightOnTop) {
+        // TODO: fine tune the duration
         scripts.push({
           type: 'clear-insight',
           duration: clearInsightDuration,
@@ -427,35 +444,20 @@ export const generateAnimationScripts = (
         insightOnTop = false;
       }
 
-      // if this is the last task, we don't need to wait
-      const imgStillDuration = index < taskCount - 1 ? stillDuration : 0;
+      scripts.push(setPointerScript(mousePointer, title, subTitle));
 
-      if (task.recorder?.[1]?.screenshot) {
-        scripts.push({
-          type: 'spinning-pointer',
-          duration: actionSpinningPointerDuration,
-          title,
-          subTitle,
-        });
-
-        scripts.push(pointerScript(mousePointer, title, subTitle));
-        scripts.push({
-          type: 'img',
-          img: task.recorder?.[1]?.screenshot,
-          duration: imgStillDuration,
-          title,
-          subTitle,
-          imageWidth: task.uiContext?.size?.width || imageWidth,
-          imageHeight: task.uiContext?.size?.height || imageHeight,
-        });
-      } else {
-        scripts.push({
-          type: 'sleep',
-          duration: imgStillDuration,
-          title,
-          subTitle,
-        });
-      }
+      currentCameraState = insightCameraState ?? fullPageCameraState;
+      // const ifLastTask = index === taskCount - 1;
+      scripts.push({
+        type: 'img',
+        img: task.recorder?.[0]?.screenshot,
+        duration: actionDuration,
+        camera: task.subType === 'Sleep' ? fullPageCameraState : undefined,
+        title,
+        subTitle,
+        imageWidth: task.uiContext?.size?.width || imageWidth,
+        imageHeight: task.uiContext?.size?.height || imageHeight,
+      });
     } else {
       // Handle normal tasks
       const title = typeStr(task);
@@ -500,19 +502,18 @@ export const generateAnimationScripts = (
     }
   });
 
+  console.log('scripts', scripts);
+
   // end, back to full page
   if (!errorStateFlag) {
     scripts.push({
       title: 'Done',
       subTitle: initSubTitle,
       type: 'img',
-      duration: stillDuration,
+      duration: lastFrameDuration,
       camera: fullPageCameraState,
     });
   }
-
-  // console.log('replay scripts');
-  // console.log(scripts, tasksIncluded);
 
   return scripts;
 };
