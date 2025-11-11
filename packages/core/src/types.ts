@@ -242,7 +242,6 @@ export interface PlanningAction<ParamType = any> {
   thought?: string;
   type: string;
   param: ParamType;
-  locate?: PlanningLocateParam | null;
 }
 
 export interface RawResponsePlanningAIResponse {
@@ -332,7 +331,6 @@ export interface ExecutionTaskApply<
   subTask?: boolean;
   param?: TaskParam;
   thought?: string;
-  locate?: PlanningLocateParam | null;
   uiContext?: UIContext;
   executor: (
     param: TaskParam,

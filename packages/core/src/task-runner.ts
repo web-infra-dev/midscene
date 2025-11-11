@@ -389,7 +389,6 @@ export class TaskRunner {
         thought: errorMsg,
       },
       thought: errorMsg,
-      locate: null,
       executor: async () => {
         throw new Error(errorMsg || 'error without thought');
       },

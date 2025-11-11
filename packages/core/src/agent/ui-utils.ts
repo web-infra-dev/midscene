@@ -128,7 +128,7 @@ export function paramStr(task: ExecutionTask) {
   }
 
   if (task.type === 'Action Space') {
-    const locate = (task as ExecutionTaskAction)?.locate;
+    const locate = (task as ExecutionTaskAction)?.param?.locate;
     const locateStr = locate ? locateParamStr(locate) : '';
 
     value = task.thought || '';
