@@ -195,7 +195,7 @@ export class MidsceneManager {
    */
   private registerAndroidTool() {
     // Android device connection tool
-    this.mcpServer.tool(
+    this.toolWithAutoDestroy(
       'midscene_android_connect',
       'Connect to an Android device via ADB',
       {
@@ -210,7 +210,6 @@ export class MidsceneManager {
         this.androidDeviceId = deviceId;
         this.agent = undefined; // Reset the agent to force reinitialization
         const agent = await this.initAgent();
-
         return {
           content: [
             {
@@ -224,7 +223,7 @@ export class MidsceneManager {
     );
 
     // Android app launch tool
-    this.mcpServer.tool(
+    this.toolWithAutoDestroy(
       'midscene_android_launch',
       'Launch an app or navigate to a URL on Android device',
       {
@@ -281,7 +280,7 @@ export class MidsceneManager {
     );
 
     // Android back button tool
-    this.mcpServer.tool(
+    this.toolWithAutoDestroy(
       'midscene_android_back',
       'Press the back button on Android device',
       {},
@@ -300,7 +299,7 @@ export class MidsceneManager {
     );
 
     // Android Home button tool
-    this.mcpServer.tool(
+    this.toolWithAutoDestroy(
       'midscene_android_home',
       'Press the home button on Android device',
       {},
@@ -324,7 +323,7 @@ export class MidsceneManager {
    * This method registers all tools that are specific to browser automation
    */
   private registerBrowserTool() {
-    this.mcpServer.tool(
+    this.toolWithAutoDestroy(
       tools.midscene_navigate.name,
       tools.midscene_navigate.description,
       {
@@ -441,7 +440,7 @@ export class MidsceneManager {
         }
       },
     );
-    this.mcpServer.tool(
+    this.toolWithAutoDestroy(
       tools.midscene_get_tabs.name,
       tools.midscene_get_tabs.description,
       {},
@@ -465,7 +464,7 @@ export class MidsceneManager {
       },
     );
 
-    this.mcpServer.tool(
+    this.toolWithAutoDestroy(
       tools.midscene_set_active_tab.name,
       tools.midscene_set_active_tab.description,
       { tabId: z.string().describe('The ID of the tab to set as active.') },
@@ -485,7 +484,7 @@ export class MidsceneManager {
       },
     );
 
-    this.mcpServer.tool(
+    this.toolWithAutoDestroy(
       tools.midscene_aiHover.name,
       tools.midscene_aiHover.description,
       {
@@ -516,7 +515,7 @@ export class MidsceneManager {
     }
 
     // Register common tools available in both modes
-    this.mcpServer.tool(
+    this.toolWithAutoDestroy(
       tools.midscene_aiWaitFor.name,
       tools.midscene_aiWaitFor.description,
       {
@@ -550,7 +549,7 @@ export class MidsceneManager {
       },
     );
 
-    this.mcpServer.tool(
+    this.toolWithAutoDestroy(
       tools.midscene_aiAssert.name,
       tools.midscene_aiAssert.description,
       {
@@ -571,7 +570,7 @@ export class MidsceneManager {
       },
     );
 
-    this.mcpServer.tool(
+    this.toolWithAutoDestroy(
       tools.midscene_aiKeyboardPress.name,
       tools.midscene_aiKeyboardPress.description,
       {
@@ -611,7 +610,7 @@ export class MidsceneManager {
       },
     );
 
-    this.mcpServer.tool(
+    this.toolWithAutoDestroy(
       tools.midscene_screenshot.name,
       tools.midscene_screenshot.description,
       {
@@ -642,7 +641,7 @@ export class MidsceneManager {
       },
     );
 
-    this.mcpServer.tool(
+    this.toolWithAutoDestroy(
       tools.midscene_aiTap.name,
       tools.midscene_aiTap.description,
       {
@@ -663,7 +662,7 @@ export class MidsceneManager {
       },
     );
 
-    this.mcpServer.tool(
+    this.toolWithAutoDestroy(
       tools.midscene_aiScroll.name,
       tools.midscene_aiScroll.description,
       {
@@ -713,7 +712,7 @@ export class MidsceneManager {
       },
     );
 
-    this.mcpServer.tool(
+    this.toolWithAutoDestroy(
       tools.midscene_aiInput.name,
       tools.midscene_aiInput.description,
       {
@@ -802,6 +801,34 @@ export class MidsceneManager {
 
   public async closeBrowser(): Promise<void> {
     await this.agent?.destroy();
+  }
+
+  /**
+   * Wrapper for tool registration that automatically destroys the agent after each tool call.
+   * This ensures each tool call starts with a fresh agent instance and prevents connection leaks.
+   *
+   * Usage: Replace `this.mcpServer.tool(...)` with `this.toolWithAutoDestroy(...)`
+   */
+  private toolWithAutoDestroy(
+    name: string,
+    description: string,
+    schema: any,
+    handler: (...args: any[]) => Promise<any>,
+  ) {
+    this.mcpServer.tool(name, description, schema, async (...args: any[]) => {
+      try {
+        return await handler(...args);
+      } finally {
+        // Always destroy agent after tool execution
+        try {
+          await this.agent?.destroy();
+        } catch (e) {
+          // Ignore destroy errors to prevent them from masking the actual result
+          // console.error('Error destroying agent:', e);
+        }
+        this.agent = undefined;
+      }
+    });
   }
 
   /**
