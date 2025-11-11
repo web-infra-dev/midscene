@@ -1,9 +1,10 @@
 import * as PIXI from 'pixi.js';
 /* eslint-disable max-lines */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 
 import './index.less';
 import type { ExecutionRecorderItem, ExecutionTask } from '@midscene/core';
+import { useTheme } from '@midscene/visualizer';
 import { getTextureFromCache, loadTexture } from '../pixi-loader';
 import { useAllCurrentTasks, useExecutionDump } from '../store';
 
@@ -54,29 +55,7 @@ const TimelineWidget = (props: {
   const appRef = useRef<PIXI.Application | null>(null);
 
   // Detect dark mode
-  const [isDarkMode, setIsDarkMode] = useState(false);
-
-  useEffect(() => {
-    const checkTheme = () => {
-      const theme = document
-        .querySelector('[data-theme]')
-        ?.getAttribute('data-theme');
-      setIsDarkMode(theme === 'dark');
-    };
-
-    checkTheme();
-
-    const observer = new MutationObserver(checkTheme);
-    const target =
-      document.querySelector('[data-theme]') || document.documentElement;
-
-    observer.observe(target, {
-      attributes: true,
-      attributeFilter: ['data-theme'],
-    });
-
-    return () => observer.disconnect();
-  }, []);
+  const { isDarkMode } = useTheme();
 
   const gridsContainer = useMemo(() => new PIXI.Container(), []);
   const screenshotsContainer = useMemo(() => new PIXI.Container(), []);
