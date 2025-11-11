@@ -140,7 +140,12 @@ export function matchElementFromPlan(
       y: Math.floor((planLocateParam.bbox[1] + planLocateParam.bbox[3]) / 2),
     };
 
-    const element = generateElementByPosition(centerPosition);
+    const element = generateElementByPosition(
+      centerPosition,
+      typeof planLocateParam.prompt === 'string'
+        ? planLocateParam.prompt
+        : planLocateParam.prompt?.prompt || '',
+    );
     return element;
   }
 
@@ -185,6 +190,10 @@ export async function matchElementFromCache(
         Math.round(rect.top + rect.height / 2),
       ],
       rect,
+      description:
+        typeof cachePrompt === 'string'
+          ? cachePrompt
+          : cachePrompt.prompt || '',
     };
 
     cacheDebug('cache hit, prompt: %s', cachePrompt);

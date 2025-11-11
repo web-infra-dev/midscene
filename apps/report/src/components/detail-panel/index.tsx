@@ -4,34 +4,39 @@ import { useExecutionDump } from '@/components/store';
 import {
   CameraOutlined,
   FileTextOutlined,
-  ScheduleOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons';
 import type {
   ExecutionTaskPlanning,
   ExecutionTaskPlanningLocate,
 } from '@midscene/core';
-import { filterBase64Value, timeStr } from '@midscene/visualizer';
+import { filterBase64Value } from '@midscene/visualizer';
 import { Blackboard, Player } from '@midscene/visualizer';
 import type { WebUIContext } from '@midscene/web';
-import { Segmented, Tooltip } from 'antd';
+import { Segmented } from 'antd';
 import { useEffect, useState } from 'react';
 import { fullTimeStrWithMilliseconds } from '../../../../../packages/visualizer/src/utils';
 import OpenInPlayground from '../open-in-playground';
 
-const ScreenshotItem = (props: { time: string; img: string }) => {
+const ScreenshotItem = (props: {
+  title: string;
+  img?: string;
+  children?: React.ReactNode;
+}) => {
   return (
     <div className="screenshot-item">
-      <div className="screenshot-item-title">{props.time}</div>
-      <div>
-        <img src={props.img} alt="screenshot" />
-      </div>
+      <div className="screenshot-item-title">{props.title}</div>
+      {props.img && (
+        <div>
+          <img src={props.img} alt="screenshot" />
+        </div>
+      )}
+      {props.children && <div>{props.children}</div>}
     </div>
   );
 };
 
 const VIEW_TYPE_REPLAY = 'replay';
-const VIEW_TYPE_BLACKBOARD = 'blackboard';
 const VIEW_TYPE_SCREENSHOT = 'screenshot';
 const VIEW_TYPE_JSON = 'json';
 
@@ -58,11 +63,7 @@ const DetailPanel = (): JSX.Element => {
 
   let availableViewTypes = [VIEW_TYPE_SCREENSHOT, VIEW_TYPE_JSON];
   if (blackboardViewAvailable) {
-    availableViewTypes = [
-      VIEW_TYPE_BLACKBOARD,
-      VIEW_TYPE_SCREENSHOT,
-      VIEW_TYPE_JSON,
-    ];
+    availableViewTypes = [VIEW_TYPE_SCREENSHOT, VIEW_TYPE_JSON];
   }
   if (
     activeTask?.type === 'Planning' &&
@@ -95,29 +96,6 @@ const DetailPanel = (): JSX.Element => {
         {filterBase64Value(JSON.stringify(activeTask, undefined, 2))}
       </div>
     );
-  } else if (viewType === VIEW_TYPE_BLACKBOARD) {
-    if (blackboardViewAvailable) {
-      let highlightElements;
-
-      if (insightDump?.matchedElement) {
-        highlightElements = insightDump?.matchedElement;
-      } else {
-        highlightElements = (activeTask as ExecutionTaskPlanningLocate).output
-          ?.element // hit cache
-          ? [activeTask.output.element]
-          : [];
-      }
-      content = (
-        <Blackboard
-          uiContext={activeTask.uiContext as WebUIContext}
-          highlightElements={highlightElements}
-          highlightRect={insightDump?.taskInfo?.searchArea}
-          key={`${_contextLoadId}`}
-        />
-      );
-    } else {
-      content = <div>invalid view</div>;
-    }
   } else if (viewType === VIEW_TYPE_SCREENSHOT) {
     if (activeTask.recorder?.length) {
       const screenshotItems: {
@@ -131,7 +109,7 @@ const DetailPanel = (): JSX.Element => {
         screenshotItems.push({
           timestamp: activeTask.timing?.start ?? undefined,
           screenshot: screenshotFromContext,
-          timing: 'context',
+          timing: 'before-calling',
         });
       }
 
@@ -145,8 +123,33 @@ const DetailPanel = (): JSX.Element => {
         }
       }
 
+      let contextLocatorView;
+      if (blackboardViewAvailable) {
+        let highlightElements;
+
+        if (insightDump?.matchedElement) {
+          highlightElements = insightDump?.matchedElement;
+        } else {
+          highlightElements = (activeTask as ExecutionTaskPlanningLocate).output
+            ?.element // hit cache
+            ? [activeTask.output.element]
+            : [];
+        }
+        contextLocatorView = (
+          <ScreenshotItem title="UI Context">
+            <Blackboard
+              key={`${_contextLoadId}`}
+              uiContext={activeTask.uiContext as WebUIContext}
+              highlightElements={highlightElements}
+              highlightRect={insightDump?.taskInfo?.searchArea}
+            />
+          </ScreenshotItem>
+        );
+      }
+
       content = (
         <div className="screenshot-item-wrapper scrollable">
+          <div>{contextLocatorView}</div>
           {screenshotItems.map((item) => {
             const time = item.timing
               ? `${fullTimeStrWithMilliseconds(item.timestamp)} / ${item.timing}`
@@ -154,7 +157,7 @@ const DetailPanel = (): JSX.Element => {
             return (
               <ScreenshotItem
                 key={item.timestamp}
-                time={time}
+                title={time}
                 img={item.screenshot}
               />
             );
@@ -192,17 +195,6 @@ const DetailPanel = (): JSX.Element => {
         label: 'Replay',
         value: type,
         icon: <VideoCameraOutlined />,
-      };
-    }
-    if (type === VIEW_TYPE_BLACKBOARD) {
-      return {
-        label: isPageContextFrozen ? (
-          <Tooltip title="Current uiContext is frozen">Locate 🧊</Tooltip>
-        ) : (
-          'Locate'
-        ),
-        value: type,
-        icon: <ScheduleOutlined />,
       };
     }
     if (type === VIEW_TYPE_SCREENSHOT) {

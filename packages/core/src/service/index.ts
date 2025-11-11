@@ -190,6 +190,7 @@ export default class Service {
         element: {
           center: elements[0]!.center,
           rect: elements[0]!.rect,
+          description: elements[0]!.description,
         },
         rect,
         dump,

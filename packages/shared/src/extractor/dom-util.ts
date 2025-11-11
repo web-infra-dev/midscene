@@ -1,5 +1,4 @@
-import type { LocateResultElement, Rect } from '../types';
-import { generateHashId } from '../utils';
+import type { LocateResultElement } from '../types';
 
 export function isFormElement(node: globalThis.Node) {
   return (
@@ -132,10 +131,13 @@ function includeBaseElement(node: globalThis.Node) {
   return false;
 }
 
-export function generateElementByPosition(position: {
-  x: number;
-  y: number;
-}): LocateResultElement {
+export function generateElementByPosition(
+  position: {
+    x: number;
+    y: number;
+  },
+  description: string,
+): LocateResultElement {
   const edgeSize = 8;
   const rect = {
     left: Math.round(Math.max(position.x - edgeSize / 2, 0)),
@@ -146,6 +148,7 @@ export function generateElementByPosition(position: {
   const element = {
     rect,
     center: [position.x, position.y] as [number, number],
+    description: description || '',
   };
 
   return element;

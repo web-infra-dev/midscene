@@ -4,7 +4,6 @@ import './index.less';
 
 import { RadiusSettingOutlined } from '@ant-design/icons';
 import type {
-  BaseElement,
   ExecutionTaskInsightAssertion,
   ExecutionTaskPlanning,
   ExecutionTaskPlanningApply,
@@ -15,7 +14,7 @@ import {
   highlightColorForType,
   timeCostStrElement,
 } from '@midscene/visualizer';
-import { Tag, Timeline, type TimelineItemProps, Tooltip } from 'antd';
+import { Tag, Tooltip } from 'antd';
 import { fullTimeStrWithMilliseconds } from '../../../../../packages/visualizer/src/utils';
 import { useExecutionDump } from '../store';
 
@@ -134,15 +133,13 @@ const DetailSide = (): JSX.Element => {
     ?.aiActionContext;
 
   const kv = (data: Record<string, unknown>) => {
-    const isElementItem = (
-      value: unknown,
-    ): value is BaseElement | LocateResultElement =>
+    const isElementItem = (value: unknown): value is LocateResultElement =>
       Boolean(value) &&
       typeof value === 'object' &&
       Boolean((value as any).center) &&
       Boolean((value as any).rect);
 
-    const elementEl = (_value: BaseElement | LocateResultElement) => {
+    const elementEl = (_value: LocateResultElement) => {
       const hasCenter = _value.center && Array.isArray(_value.center);
       const hasRect = _value.rect;
 
@@ -154,7 +151,7 @@ const DetailSide = (): JSX.Element => {
         return (
           <div className="element-detail-box">
             <div className="element-detail-line">
-              Element (center=[{center[0]}, {center[1]}])
+              {_value.description} (center=[{center[0]}, {center[1]}])
             </div>
             <div className="element-detail-line element-detail-coords">
               left={Math.round(left)}, top={Math.round(top)}, width=
@@ -236,6 +233,10 @@ const DetailSide = (): JSX.Element => {
 
   const metaKVElement = MetaKV({
     data: [
+      {
+        key: 'type',
+        content: (task && typeStr(task)) || '',
+      },
       {
         key: 'status',
         content: task?.status || '',
@@ -332,7 +333,6 @@ const DetailSide = (): JSX.Element => {
     if (planningTask.param?.userInstruction) {
       taskInput = MetaKV({
         data: [
-          { key: 'type', content: (task && typeStr(task)) || '' },
           {
             key: 'instruction',
             content: planningTask.param.userInstruction,
@@ -350,7 +350,6 @@ const DetailSide = (): JSX.Element => {
     } else {
       taskInput = MetaKV({
         data: [
-          { key: 'type', content: (task && typeStr(task)) || '' },
           {
             key: 'userPrompt',
             content: paramStr(task) || '',
@@ -370,7 +369,6 @@ const DetailSide = (): JSX.Element => {
     const isPageContextFrozen = Boolean((task?.uiContext as any)?._isFrozen);
     taskInput = MetaKV({
       data: [
-        { key: 'type', content: (task && typeStr(task)) || '' },
         ...(paramStr(task)
           ? [
               {
@@ -400,7 +398,6 @@ const DetailSide = (): JSX.Element => {
   } else if (task?.type === 'Action Space') {
     taskInput = MetaKV({
       data: [
-        { key: 'type', content: (task && typeStr(task)) || '' },
         {
           key: 'value',
           content: paramStr(task) || '',
@@ -543,76 +540,81 @@ const DetailSide = (): JSX.Element => {
         />
       );
     } else {
-      let timelineData: TimelineItemProps[] = [];
+      const planItems: JSX.Element[] = [];
 
+      // Add Thought if exists
       if ((task as ExecutionTaskPlanning).output?.log) {
-        timelineData.push({
-          children: (
-            <>
-              <p>
-                <b>Thought</b>
-              </p>
-              <p>{(task as ExecutionTaskPlanning).output?.log}</p>
-            </>
-          ),
-        });
+        planItems.push(
+          <Card
+            key="thought"
+            liteMode={true}
+            title="Thought"
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={
+              <pre className="description-content">
+                {(task as ExecutionTaskPlanning).output?.log}
+              </pre>
+            }
+          />,
+        );
       }
 
-      timelineData = timelineData.concat(
-        plans.map((item) => {
-          const paramToShow = item.param || {};
-          const paramContent = Object.keys(paramToShow).length
-            ? kv(paramToShow as Record<string, unknown>)
+      // Add each plan action
+      plans.forEach((item, index) => {
+        const paramToShow = item.param || {};
+        const paramContent = Object.keys(paramToShow).length
+          ? kv(paramToShow as Record<string, unknown>)
+          : null;
+
+        const locateContent =
+          item.type === 'Locate' && item.locate
+            ? kv({ locate: item.locate } as Record<string, unknown>)
             : null;
 
-          const locateContent =
-            item.type === 'Locate' && item.locate
-              ? kv({ locate: item.locate } as Record<string, unknown>)
-              : null;
-
-          return {
-            children: (
+        planItems.push(
+          <Card
+            key={`plan-${index}`}
+            liteMode={true}
+            title={typeStr(item as any)}
+            subtitle={item.thought}
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={
               <>
-                <p>
-                  <b>{typeStr(item as any)}</b>
-                </p>
-                <p>{item.thought}</p>
-                {paramContent && (
-                  <div className="timeline-content">{paramContent}</div>
-                )}
-                {locateContent && (
-                  <div className="timeline-content">{locateContent}</div>
-                )}
+                {paramContent && <div>{paramContent}</div>}
+                {locateContent && <div>{locateContent}</div>}
               </>
-            ),
-          };
-        }),
-      );
+            }
+          />,
+        );
+      });
 
+      // Add More actions needed if exists
       if (
         typeof (task as ExecutionTaskPlanning).output
           ?.more_actions_needed_by_instruction === 'boolean'
       ) {
-        timelineData.push({
-          children: (
-            <>
-              <p>
-                <b>More actions needed</b>
-              </p>
-              <p>
+        planItems.push(
+          <Card
+            key="more-actions"
+            liteMode={true}
+            title="More actions needed"
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={
+              <pre className="description-content">
                 {(task as ExecutionTaskPlanning).output
                   ?.more_actions_needed_by_instruction
                   ? 'true'
                   : 'false'}
-              </p>
-            </>
-          ),
-        });
+              </pre>
+            }
+          />,
+        );
       }
 
-      outputDataContent = (
-        <Timeline items={timelineData} className="detail-side-timeline" />
-      );
+      outputDataContent = planItems;
     }
   } else {
     let data;
@@ -662,16 +664,16 @@ const DetailSide = (): JSX.Element => {
       </div>
       <div className="info-content">
         <details open>
-          <summary>Task meta</summary>
-          {metaKVElement}
-        </details>
-        <details open>
           <summary>Param</summary>
           {taskInput}
         </details>
         <details open>
           <summary>{task?.subType === 'Locate' ? 'Element' : 'Output'}</summary>
           <div className="item-list">{outputDataContent}</div>
+        </details>
+        <details open>
+          <summary>Meta</summary>
+          {metaKVElement}
         </details>
       </div>
     </div>

@@ -47,6 +47,7 @@ export interface WebElementInfo extends ElementInfo {
 }
 
 export type LocateResultElement = {
+  description: string; // the description of the element
   center: [number, number];
   rect: Rect;
 };
