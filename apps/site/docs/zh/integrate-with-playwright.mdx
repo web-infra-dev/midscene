@@ -289,6 +289,45 @@ npx playwright test ./e2e/ebay-search.spec.ts
 
 当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: ./current_cwd/midscene_run/report/some_id.html`，通过浏览器打开该文件即可看到报告。
 
+## 与远程 Playwright 集成 Midscene Agent
+
+当你需要更精细地控制连接过程，或者想要集成到自定义基础设施时，可以手动：
+1. 从远程浏览器服务获取 CDP WebSocket URL
+2. 使用 Playwright 连接到远程浏览器
+3. 创建 Midscene 代理进行 AI 驱动的自动化
+
+### 前置依赖
+
+<PackageManagerTabs command="install playwright @midscene/web --save-dev" />
+
+### 基础示例
+
+```typescript
+import { chromium } from 'playwright';
+import { PlaywrightAgent } from '@midscene/web/playwright';
+
+// 假设你已经有了一个 CDP WebSocket URL
+const cdpWsUrl = 'ws://your-remote-browser.com/devtools/browser/your-session-id';
+
+// 连接到远程浏览器
+const browser = await chromium.connectOverCDP(cdpWsUrl);
+
+// 获取上下文和页面
+const context = browser.contexts()[0];
+const page = context.pages()[0] || await context.newPage();
+
+// 创建 Midscene 代理
+const agent = new PlaywrightAgent(page);
+
+// 使用 AI 方法
+await agent.aiAction('跳转到 https://example.com');
+await agent.aiAction('在邮箱输入框中输入 "user@example.com"');
+
+// 清理
+await agent.destroy();
+await browser.close();
+```
+
 ## 扩展自定义交互动作
 
 使用 `customActions` 选项，结合 `defineAction` 定义的自定义交互动作，可以扩展 Agent 的动作空间。这些动作会追加在内置动作之后，方便 Agent 在规划阶段调用。
