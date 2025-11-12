@@ -1,5 +1,9 @@
 import { getMidsceneLocationSchema } from '@/ai-model';
-import type { DeviceAction, LocateResultElement } from '@/types';
+import type {
+  ActionScrollParam,
+  DeviceAction,
+  LocateResultElement,
+} from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import type { ElementNode } from '@midscene/shared/extractor';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
@@ -254,17 +258,6 @@ export const actionScrollParamSchema = z.object({
     .optional()
     .describe('The target element to be scrolled'),
 });
-export type ActionScrollParam = {
-  direction?: 'down' | 'up' | 'right' | 'left';
-  scrollType?:
-    | 'singleAction'
-    | 'scrollToBottom'
-    | 'scrollToTop'
-    | 'scrollToRight'
-    | 'scrollToLeft';
-  distance?: number | null;
-  locate?: LocateResultElement;
-};
 
 export const defineActionScroll = (
   call: (param: ActionScrollParam) => Promise<void>,

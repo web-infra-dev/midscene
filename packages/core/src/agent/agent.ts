@@ -104,6 +104,30 @@ const CACHE_STRATEGY_VALUES = CACHE_STRATEGIES.map(
   (value) => `"${value}"`,
 ).join(', ');
 
+const legacyScrollTypeMap = {
+  once: 'singleAction',
+  untilBottom: 'scrollToBottom',
+  untilTop: 'scrollToTop',
+  untilRight: 'scrollToRight',
+  untilLeft: 'scrollToLeft',
+} as const;
+
+type LegacyScrollType = keyof typeof legacyScrollTypeMap;
+
+const normalizeScrollType = (
+  scrollType: ScrollParam['scrollType'] | LegacyScrollType | undefined,
+): ScrollParam['scrollType'] | undefined => {
+  if (!scrollType) {
+    return scrollType;
+  }
+
+  if (scrollType in legacyScrollTypeMap) {
+    return legacyScrollTypeMap[scrollType as LegacyScrollType];
+  }
+
+  return scrollType as ScrollParam['scrollType'];
+};
+
 export class Agent<
   InterfaceType extends AbstractInterface = AbstractInterface,
 > {
@@ -473,7 +497,7 @@ export class Agent<
     // assume all operation in action space is related to locating
     const modelConfig = this.modelConfigManager.getModelConfig('insight');
 
-    const { output, runner } = await this.taskExecutor.runPlans(
+    const { output } = await this.taskExecutor.runPlans(
       title,
       plans,
       modelConfig,
@@ -709,6 +733,22 @@ export class Agent<
         ...(optOrUndefined || {}),
         ...(scrollParam || {}),
       };
+    }
+
+    if (opt) {
+      const normalizedScrollType = normalizeScrollType(
+        (opt as ScrollParam).scrollType as
+          | ScrollParam['scrollType']
+          | LegacyScrollType
+          | undefined,
+      );
+
+      if (normalizedScrollType !== (opt as ScrollParam).scrollType) {
+        (opt as ScrollParam) = {
+          ...(opt || {}),
+          scrollType: normalizedScrollType as ScrollParam['scrollType'],
+        };
+      }
     }
 
     const detailedLocateParam = buildDetailedLocateParam(

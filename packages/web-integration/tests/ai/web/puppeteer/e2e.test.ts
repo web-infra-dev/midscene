@@ -1,3 +1,4 @@
+import { AnyTxtRecord } from 'node:dns';
 import path from 'node:path';
 import { PuppeteerAgent } from '@/puppeteer';
 import { z } from '@midscene/core';
@@ -83,6 +84,16 @@ describe(
       await agent.aiTap('Login', {
         deepThink: true,
       });
+
+      // Legacy scroll param compatibility: ensure old scrollType values still work
+      await agent.aiScroll({
+        direction: 'down',
+        scrollType: 'once',
+      } as any);
+      await agent.aiScroll({
+        direction: 'up',
+        scrollType: 'once',
+      } as any);
 
       expect(beforeInvokeAction.mock.calls.length).toBeGreaterThan(1);
       expect(beforeInvokeAction.mock.calls.length).toEqual(
