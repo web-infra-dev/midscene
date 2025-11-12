@@ -1,6 +1,6 @@
 /**
  * Remote Browser Page
- * Wraps a Puppeteer or Playwright Page connected via CDP to GEM Browser
+ * Wraps a Puppeteer or Playwright Page connected via CDP (Chrome DevTools Protocol)
  */
 
 import type {
@@ -14,42 +14,33 @@ import type {
 import { WebPage as PlaywrightWebPage } from '../playwright/page';
 import { PuppeteerWebPage } from '../puppeteer/page';
 import type { WebPageOpt } from '../web-element';
-import type { FaaSInstanceManager } from './instance-manager';
-import type { BrowserEngine, IRemoteBrowserPage, VncOptions } from './types';
+import type { BrowserEngine } from './types';
 import { CdpConnectionError } from './types';
 
 /**
  * Remote Browser Page implementation
- * Uses CDP to connect to GEM Browser and wraps with Puppeteer/Playwright page
+ * Connects to any CDP-compatible browser via WebSocket URL
  */
-export class RemoteBrowserPage implements IRemoteBrowserPage {
-  private sandboxId: string;
+export class RemoteBrowserPage {
   private cdpWsUrl: string;
   private engine: BrowserEngine;
-  private instanceManager: FaaSInstanceManager;
   private browser: PuppeteerBrowser | PlaywrightBrowser | null = null;
   private page: PuppeteerPage | PlaywrightPage | null = null;
   private webPage: PuppeteerWebPage | PlaywrightWebPage | null = null;
   private isConnected_ = false;
 
-  constructor(
-    sandboxId: string,
-    cdpWsUrl: string,
-    engine: BrowserEngine,
-    instanceManager: FaaSInstanceManager,
-  ) {
-    this.sandboxId = sandboxId;
+  constructor(cdpWsUrl: string, engine: BrowserEngine) {
     this.cdpWsUrl = cdpWsUrl;
     this.engine = engine;
-    this.instanceManager = instanceManager;
   }
 
   /**
    * Connect to the remote browser via CDP
    */
-  async connect(
-    opts?: WebPageOpt,
-  ): Promise<PuppeteerWebPage | PlaywrightWebPage> {
+  async connect(options?: {
+    connectionTimeout?: number;
+    webPageOpts?: WebPageOpt;
+  }): Promise<PuppeteerWebPage | PlaywrightWebPage> {
     if (this.isConnected_) {
       if (!this.webPage) {
         throw new CdpConnectionError('Already connected but webPage is null');
@@ -59,9 +50,15 @@ export class RemoteBrowserPage implements IRemoteBrowserPage {
 
     try {
       if (this.engine === 'puppeteer') {
-        await this.connectPuppeteer(opts);
+        await this.connectPuppeteer(
+          options?.connectionTimeout,
+          options?.webPageOpts,
+        );
       } else {
-        await this.connectPlaywright(opts);
+        await this.connectPlaywright(
+          options?.connectionTimeout,
+          options?.webPageOpts,
+        );
       }
 
       this.isConnected_ = true;
@@ -78,13 +75,17 @@ export class RemoteBrowserPage implements IRemoteBrowserPage {
   /**
    * Connect using Puppeteer
    */
-  private async connectPuppeteer(opts?: WebPageOpt): Promise<void> {
+  private async connectPuppeteer(
+    connectionTimeout?: number,
+    opts?: WebPageOpt,
+  ): Promise<void> {
     // Dynamic import to avoid requiring puppeteer if not used
     const puppeteer = await import('puppeteer');
 
     // Connect to CDP endpoint
     this.browser = (await puppeteer.connect({
       browserWSEndpoint: this.cdpWsUrl,
+      ...(connectionTimeout ? { timeout: connectionTimeout } : {}),
     })) as PuppeteerBrowser;
 
     // Get the default context and first page
@@ -104,14 +105,17 @@ export class RemoteBrowserPage implements IRemoteBrowserPage {
   /**
    * Connect using Playwright
    */
-  private async connectPlaywright(opts?: WebPageOpt): Promise<void> {
+  private async connectPlaywright(
+    connectionTimeout?: number,
+    opts?: WebPageOpt,
+  ): Promise<void> {
     // Dynamic import to avoid requiring playwright if not used
     const { chromium } = await import('playwright');
 
     // Connect to CDP endpoint
-    this.browser = (await chromium.connectOverCDP(
-      this.cdpWsUrl,
-    )) as PlaywrightBrowser;
+    this.browser = (await chromium.connectOverCDP(this.cdpWsUrl, {
+      ...(connectionTimeout ? { timeout: connectionTimeout } : {}),
+    })) as PlaywrightBrowser;
 
     // Get the default context
     const contexts = this.browser.contexts();
@@ -168,33 +172,10 @@ export class RemoteBrowserPage implements IRemoteBrowserPage {
   }
 
   /**
-   * Get the sandbox ID
-   */
-  getSandboxId(): string {
-    return this.sandboxId;
-  }
-
-  /**
    * Get the CDP WebSocket URL
    */
   getCdpWsUrl(): string {
     return this.cdpWsUrl;
-  }
-
-  /**
-   * Get the VNC URL for remote viewing
-   */
-  getVncUrl(options?: VncOptions): string {
-    const autoconnect = options?.autoconnect ?? true;
-    let url = this.instanceManager.getVncUrl(this.sandboxId, autoconnect);
-
-    // Add additional query parameters if provided
-    if (options?.query && Object.keys(options.query).length > 0) {
-      const params = new URLSearchParams(options.query);
-      url += (url.includes('?') ? '&' : '?') + params.toString();
-    }
-
-    return url;
   }
 
   /**
@@ -205,9 +186,10 @@ export class RemoteBrowserPage implements IRemoteBrowserPage {
   }
 
   /**
-   * Cleanup and close connections
+   * Destroy and close connections
+   * Called by Agent.destroy() through WebPage.destroy()
    */
-  async cleanup(): Promise<void> {
+  async destroy(): Promise<void> {
     if (this.browser) {
       try {
         if (this.engine === 'puppeteer') {
