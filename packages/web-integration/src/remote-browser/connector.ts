@@ -5,8 +5,8 @@
 
 import type { Page as PlaywrightPage } from 'playwright';
 import type { Page as PuppeteerPage } from 'puppeteer';
-import { PlaywrightAgent } from '../playwright';
-import { PuppeteerAgent } from '../puppeteer';
+import type { PlaywrightAgent } from '../playwright';
+import type { PuppeteerAgent } from '../puppeteer';
 import { RemoteBrowserPage } from './page';
 import type { CdpConnectionOptions } from './types';
 
@@ -48,11 +48,16 @@ export async function connectToCdp(
   // 2. Get the raw page instance
   const page = remotePage.getPage();
 
-  // 3. Create Agent (PuppeteerAgent or PlaywrightAgent)
-  const agent =
-    engine === 'puppeteer'
-      ? new PuppeteerAgent(page as PuppeteerPage, agentOptions)
-      : new PlaywrightAgent(page as PlaywrightPage, agentOptions);
+  // 3. Dynamically import and create Agent based on engine
+  let agent: PuppeteerAgent | PlaywrightAgent;
+
+  if (engine === 'puppeteer') {
+    const { PuppeteerAgent } = await import('../puppeteer');
+    agent = new PuppeteerAgent(page as PuppeteerPage, agentOptions);
+  } else {
+    const { PlaywrightAgent } = await import('../playwright');
+    agent = new PlaywrightAgent(page as PlaywrightPage, agentOptions);
+  }
 
   // 4. Ensure remotePage.destroy() is called when agent is destroyed
   const originalDestroy = agent.destroy.bind(agent);
