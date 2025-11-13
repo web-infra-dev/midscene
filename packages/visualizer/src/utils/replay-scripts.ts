@@ -325,24 +325,26 @@ export const generateAnimationScripts = (
         if (actions.length > 0) {
           const action = actions[0];
           const knownFields = ['locate', 'start', 'end'];
-          knownFields.forEach((field) => {
-            if (
-              action.param[field] &&
-              typeof action.param[field] === 'object' &&
-              'center' in (action.param[field] || {})
-            ) {
-              locateElements.push(action.param[field] as LocateResultElement);
-            }
-          });
-          for (const key in action.param) {
-            if (knownFields.includes(key)) {
-              continue;
-            }
-            if (
-              typeof action.param[key] === 'object' &&
-              'center' in (action.param[key] || {})
-            ) {
-              locateElements.push(action.param[key] as LocateResultElement);
+          if (action.param) {
+            knownFields.forEach((field) => {
+              if (
+                action.param[field] &&
+                typeof action.param[field] === 'object' &&
+                'center' in (action.param[field] || {})
+              ) {
+                locateElements.push(action.param[field] as LocateResultElement);
+              }
+            });
+            for (const key in action.param) {
+              if (knownFields.includes(key)) {
+                continue;
+              }
+              if (
+                typeof action.param[key] === 'object' &&
+                'center' in (action.param[key] || {})
+              ) {
+                locateElements.push(action.param[key] as LocateResultElement);
+              }
             }
           }
         }
