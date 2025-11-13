@@ -159,6 +159,8 @@ export const defineActionHover = (
 };
 
 // Input
+const inputLocateDescription =
+  'The placeholder or text content of the target input field to be input. If no text content is shown, locate the center of the input field';
 export const actionInputParamSchema = z.object({
   value: z
     .union([z.string(), z.number()])
@@ -167,7 +169,7 @@ export const actionInputParamSchema = z.object({
       'The text to input. Provide the final content for replace/append modes, or an empty string when using clear mode to remove existing text.',
     ),
   locate: getMidsceneLocationSchema()
-    .describe('The element to be input')
+    .describe(inputLocateDescription)
     .optional(),
   mode: z
     .enum(['replace', 'clear', 'append'])
@@ -400,7 +402,7 @@ export const defineActionClearInput = (
     ActionClearInputParam
   >({
     name: 'ClearInput',
-    description: 'Clear the text content of an input field',
+    description: inputLocateDescription,
     interfaceAlias: 'aiClearInput',
     paramSchema: actionClearInputParamSchema,
     call,
