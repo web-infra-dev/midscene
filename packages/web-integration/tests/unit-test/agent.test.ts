@@ -145,13 +145,17 @@ describe('PageAgent RightClick', () => {
   });
 
   it('should be supported in ai method with rightClick type', async () => {
-    await agent.ai('button to right click', 'rightClick');
-  });
+    // ai method is an alias for aiAct, use aiRightClick directly for right click
+    const mockExecutorResult = {
+      runner: {
+        dump: () => ({ name: 'test', tasks: [] }),
+        isInErrorState: () => false,
+      },
+      output: {},
+    };
 
-  it('should throw error for invalid ai method type', async () => {
-    await expect(agent.ai('some prompt', 'invalidType')).rejects.toThrow(
-      "Unknown type: invalidType, only support 'action', 'query', 'assert', 'tap', 'rightClick'",
-    );
+    mockTaskExecutor.runPlans.mockResolvedValue(mockExecutorResult);
+    await agent.aiRightClick('button to right click');
   });
 });
 
