@@ -10,8 +10,9 @@ const createAgentStub = () => {
 describe('Agent aiScroll legacy scrollType compatibility', () => {
   it('normalizes legacy scrollType values in legacy signature', async () => {
     const agent = createAgentStub();
-    const callActionSpy = (agent as any)
-      .callActionInActionSpace as ReturnType<typeof vi.fn>;
+    const callActionSpy = (agent as any).callActionInActionSpace as ReturnType<
+      typeof vi.fn
+    >;
 
     await agent.aiScroll({ direction: 'down', scrollType: 'once' } as any);
 
@@ -26,16 +27,14 @@ describe('Agent aiScroll legacy scrollType compatibility', () => {
 
   it('normalizes legacy scrollType values in new signature', async () => {
     const agent = createAgentStub();
-    const callActionSpy = (agent as any)
-      .callActionInActionSpace as ReturnType<typeof vi.fn>;
+    const callActionSpy = (agent as any).callActionInActionSpace as ReturnType<
+      typeof vi.fn
+    >;
 
-    await agent.aiScroll(
-      'product list',
-      {
-        direction: 'up',
-        scrollType: 'untilBottom' as any,
-      } as any,
-    );
+    await agent.aiScroll('product list', {
+      direction: 'up',
+      scrollType: 'untilBottom' as any,
+    } as any);
 
     expect(callActionSpy).toHaveBeenCalledTimes(1);
     expect(callActionSpy).toHaveBeenCalledWith(
