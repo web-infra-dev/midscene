@@ -71,8 +71,8 @@ export default defineConfig({
               link: '/',
             },
             {
-              text: 'Choose a model 🔥',
-              link: '/choose-a-model',
+              text: 'Model selection 🔥',
+              link: '/model-selection',
             },
           ],
         },
@@ -156,8 +156,8 @@ export default defineConfig({
               link: '/automate-with-scripts-in-yaml',
             },
             {
-              text: 'Model and overall config',
-              link: '/model-provider',
+              text: 'Model configuration',
+              link: '/model-config',
             },
           ],
         },

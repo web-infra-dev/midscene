@@ -1,6 +1,6 @@
 import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connectivity.mdx';
 
-# Choose a model
+# Model selection
 
 ## Using Vision Models for planning
 
@@ -56,7 +56,7 @@ You can use the following environment variable prefixes to configure models for 
 - `MIDSCENE_PLANNING_MODEL_*` - For automatic planning tasks
 - `MIDSCENE_MODEL_*` - Default configuration, used as fallback for other tasks
 
-For more details, refer to the [Configure model and provider](./model-provider#configure-models-by-task-type-advanced) documentation.
+For more details, refer to the [Model configuration](./model-config#configure-models-by-task-type-advanced) documentation.
 
 
 ## Supported Vision Models
@@ -196,7 +196,7 @@ The `MIDSCENE_USE_VLM_UI_TARS` configuration is used to specify the UI-TARS vers
 
 Starting from version 1.0, Midscene no longer supports using GPT-4o as the UI operation planning model.
 
-For more details and example configurations, please see [Configure Model and Provider](./model-provider).
+For more details and example configurations, please see [Model configuration](./model-config).
 
 ## FAQ
 
@@ -212,11 +212,11 @@ Make sure you have configured the VL model correctly, especially the `MIDSCENE_U
 
 ## More
 
-* To learn more about the model configuration, see [Config Model and Provider](./model-provider)
+* To learn more about the model configuration, see [Model configuration](./model-config)
 * [Prompting Tips](./prompting-tips)
 
 <TroubleshootingLLMConnectivity />
 
 ## Compatible with Midscene 0.x versions
 
-Some configurations used in Midscene 0.x versions (such as `OPENAI_API_KEY` `OPENAI_BASE_URL` `MIDSCENE_USE_QWEN_VL`) remain compatible in 1.x versions. For details, see [Compatible with Midscene 0.x configurations](./model-provider.mdx).
+Some configurations used in Midscene 0.x versions (such as `OPENAI_API_KEY` `OPENAI_BASE_URL` `MIDSCENE_USE_QWEN_VL`) remain compatible in 1.x versions. For details, see [Compatible with Midscene 0.x configurations](./model-config.mdx).

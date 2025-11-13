@@ -13,7 +13,7 @@ To further improve stability, we also provide features like Instant Action inter
 If you are interested in "smart GUI Agent", you can check out [UI-TARS](https://github.com/bytedance/ui-tars), which Midscene also supports.
 
 Related Docs: 
-* [Choose a model](./choose-a-model)
+* [Model selection](./model-selection)
 * [Prompting Tips](./prompting-tips)
 
 ## Limitations
@@ -28,7 +28,7 @@ There are some limitations with Midscene. We are still working on them.
 
 ## Which models are supported?
 
-Please refer to [Choose a model](./choose-a-model).
+Please refer to [Model selection](./model-selection).
 
 ## What data is sent to AI model?
 
@@ -42,7 +42,7 @@ When using multimodal LLM in Midscene.js, the running time may increase by a fac
 
 There are several ways to improve the running time:
 1. Use instant action interface like `agent.aiTap('Login Button')` instead of `agent.ai('Click Login Button')`. Read more about it in [API](./api.mdx).
-2. Use a dedicated model and deploy it yourself, like UI-TARS. This is the recommended way. Read more about it in [Choose a model](./choose-a-model).
+2. Use a dedicated model and deploy it yourself, like UI-TARS. This is the recommended way. Read more about it in [Model selection](./model-selection).
 3. Use a lower resolution if possible.
 4. Use caching to accelerate the debug process. Read more about it in [Caching](./caching).
 
