@@ -218,8 +218,8 @@ export default defineConfig({
               link: '/zh/index',
             },
             {
-              text: '选择 AI 模型 🔥',
-              link: '/zh/choose-a-model',
+              text: '模型选型 🔥',
+              link: '/zh/model-selection',
             },
           ],
         },
@@ -303,8 +303,8 @@ export default defineConfig({
               link: '/zh/automate-with-scripts-in-yaml',
             },
             {
-              text: '模型与整体配置',
-              link: '/zh/model-provider',
+              text: '模型配置',
+              link: '/zh/model-config',
             },
           ],
         },
