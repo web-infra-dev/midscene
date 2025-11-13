@@ -32,11 +32,7 @@ export enum AIActionType {
 
 const defaultBboxSize = 20; // must be even number
 const debugInspectUtils = getDebug('ai:common');
-type AdaptBboxInput =
-  | number[]
-  | string[]
-  | string
-  | (number[] | string[])[];
+type AdaptBboxInput = number[] | string[] | string | (number[] | string[])[];
 
 // transform the param of locate from qwen mode
 export function fillBboxParam(
