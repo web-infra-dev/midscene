@@ -160,7 +160,7 @@ export const defineActionHover = (
 
 // Input
 const inputLocateDescription =
-  'The placeholder or text content of the target input field to be input. If no text content is shown, locate the center of the input field';
+  'the position of the placeholder or text content in the target input field. If there is no content, locate the center of the input field.';
 export const actionInputParamSchema = z.object({
   value: z
     .union([z.string(), z.number()])
