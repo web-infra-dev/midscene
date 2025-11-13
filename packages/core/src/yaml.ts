@@ -1,6 +1,6 @@
 import type { TUserPrompt } from './ai-model/common';
 import type { AndroidDeviceOpt, IOSDeviceOpt } from './device';
-import type { AgentOpt, Rect } from './types';
+import type { AgentOpt, LocateResultElement, Rect } from './types';
 import type { UIContext } from './types';
 
 export interface LocateOption {
@@ -26,11 +26,19 @@ export interface DetailedLocateParam extends LocateOption {
   referenceImage?: ReferenceImage;
 }
 
-export interface ScrollParam {
-  direction: 'down' | 'up' | 'right' | 'left';
-  scrollType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft';
-  distance?: null | number; // distance in px
-}
+export type ActionScrollParam = {
+  direction?: 'down' | 'up' | 'right' | 'left';
+  scrollType?:
+    | 'singleAction'
+    | 'scrollToBottom'
+    | 'scrollToTop'
+    | 'scrollToRight'
+    | 'scrollToLeft';
+  distance?: number | null;
+  locate?: LocateResultElement;
+};
+
+export type ScrollParam = Omit<ActionScrollParam, 'locate'>;
 
 export interface MidsceneYamlScript {
   // @deprecated
