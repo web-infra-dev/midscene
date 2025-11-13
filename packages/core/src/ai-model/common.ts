@@ -32,6 +32,7 @@ export enum AIActionType {
 
 const defaultBboxSize = 20; // must be even number
 const debugInspectUtils = getDebug('ai:common');
+type AdaptBboxInput = number[] | string[] | string | (number[] | string[])[];
 
 // transform the param of locate from qwen mode
 export function fillBboxParam(
@@ -111,10 +112,6 @@ export function adaptDoubaoBbox(
     throw new Error(`invalid bbox data string for doubao-vision mode: ${bbox}`);
   }
 
-  if (Array.isArray(bbox) && Array.isArray(bbox[0])) {
-    bbox = bbox[0];
-  }
-
   let bboxList: number[] = [];
   if (Array.isArray(bbox) && typeof bbox[0] === 'string') {
     bbox.forEach((item) => {
@@ -181,23 +178,37 @@ export function adaptDoubaoBbox(
   throw new Error(msg);
 }
 
+function normalizeBboxInput(
+  bbox: AdaptBboxInput,
+): number[] | string[] | string {
+  if (Array.isArray(bbox)) {
+    if (Array.isArray(bbox[0])) {
+      return bbox[0] as number[] | string[];
+    }
+    return bbox as number[] | string[];
+  }
+  return bbox as string;
+}
+
 export function adaptBbox(
-  bbox: number[],
+  bbox: AdaptBboxInput,
   width: number,
   height: number,
   rightLimit: number,
   bottomLimit: number,
   vlMode: TVlModeTypes | undefined,
 ): [number, number, number, number] {
+  const normalizedBbox = normalizeBboxInput(bbox);
+
   let result: [number, number, number, number] = [0, 0, 0, 0];
   if (vlMode === 'doubao-vision' || vlMode === 'vlm-ui-tars') {
-    result = adaptDoubaoBbox(bbox, width, height);
+    result = adaptDoubaoBbox(normalizedBbox, width, height);
   } else if (vlMode === 'gemini') {
-    result = adaptGeminiBbox(bbox, width, height);
+    result = adaptGeminiBbox(normalizedBbox as number[], width, height);
   } else if (vlMode === 'qwen3-vl') {
-    result = normalized01000(bbox, width, height);
+    result = normalized01000(normalizedBbox as number[], width, height);
   } else {
-    result = adaptQwenBbox(bbox);
+    result = adaptQwenBbox(normalizedBbox as number[]);
   }
 
   result[2] = Math.min(result[2], rightLimit);
