@@ -1,0 +1,224 @@
+import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connectivity.mdx';
+
+# 模型选型
+
+## 使用视觉模型执行操作规划
+
+使用 AI 模型驱动 UI 自动化的关键有两点：准确找到需要交互的元素，以及规划合理的操作路径。其中，“准确找到元素”是最具挑战的一项。
+
+为了完成元素定位工作，AI 驱动下的 UI 自动化框架一般有两种技术路线：
+
+* 基于 DOM + 截图标注：提前提取页面的 DOM 结构，结合截图做好标注，请模型“挑选”其中的元素。
+* 纯视觉：基于截图完成所有分析工作，即模型收到的只有图片，没有 DOM，也没有标注信息。
+
+Midscene 早期同时兼容上述两种模式，交由开发者自由选择。经历几十个版本的迭代后，我们发现“纯视觉”方案逐渐体现出优越性：
+
+- 业界领先的视觉模型（如 Qwen3-VL、Doubao Seed 1.6 等）表现足够稳定，已经可以满足大多数业务需求。
+- 适配更广泛的 UI 场景：纯视觉方案不再依赖 UI 渲染的技术栈。无论是 Android、iOS、桌面应用，还是浏览器中的 `<canvas />` 标签，只要能获取截图，AI 就能理解并操作。
+- Token 使用量显著下降：在不传输 DOM 的情况下，Token 的使用量减少了 80%，运行速度也更快。这让 Agent 的使用成本更低、响应更快。
+- 开源的 VL 模型开始涌现：例如 Qwen3-VL 提供了 8B、30B 等不同大小的版本。开发者有机会在高配置的 Mac 上进行私有化部署，并获得不错的效果。
+
+考虑到视觉理解模型的优势和发展趋势，从 1.0 版本开始，Midscene 只支持纯视觉方案，不再提供“提取 DOM”的兼容模式。
+
+## 已支持的视觉模型
+
+Midscene 推荐使用以下模型：
+* [千问 VL](#qwen3-vl-or-qwen-25-vl)
+* [豆包系列视觉语言模型](#doubao-vision)
+* [`Gemini-2.5-Pro`](#gemini-25-pro)
+* [`UI-TARS`](#ui-tars)
+
+<div id="doubao-vision"></div>
+
+### 豆包系列视觉语言模型（✨ 推荐）
+
+这是 [火山引擎](https://volcengine.com) 上提供的视觉语言模型，它们在复杂场景的视觉定位和断言方面表现出色：
+
+* `Doubao-seed-1.6-vision`（最新版本，最优秀）
+* `Doubao-1.5-thinking-vision-pro`
+
+**配置**
+
+从 [火山引擎](https://volcengine.com) 获取 API 密钥后，可以使用以下配置：
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
+MIDSCENE_MODEL_API_KEY="...."
+MIDSCENE_MODEL_NAME="ep-..." # 来自火山引擎的推理接入点 ID 或模型名称
+MIDSCENE_USE_DOUBAO_VISION=1
+```
+
+**链接**
+- [火山引擎 - Doubao-1.5-thinking-vision-pro](https://www.volcengine.com/docs/82379/1536428)
+- [火山引擎 - Doubao-Seed-1.6-Vision](https://www.volcengine.com/docs/82379/1799865)
+
+<div id="qwen3-vl-or-qwen-25-vl"></div>
+
+### 千问 VL（✨ 推荐）
+
+Qwen-VL（千问 VL）是阿里巴巴发布的开源模型系列。它提供视觉定位和理解能力，在交互、断言和查询时的表现出色，且 Qwen3-VL 的性能大幅领先于其他模型。
+
+你可以在 [阿里云](https://help.aliyun.com/zh/model-studio/vision) 或 [OpenRouter](https://openrouter.ai/qwen) 上找到 Qwen 系列的已部署版本，也可以使用 [Ollama](https://ollama.com/library/qwen3-vl) 等工具自行部署开源版本。
+
+Midscene.js 支持使用千问以下版本的模型：
+* Qwen3-VL 系列（推荐），包括 `qwen3-vl-plus` (商业版) 和 `qwen3-vl` 各个尺寸的开源版
+* Qwen2.5-VL 系列
+
+**使用 Qwen3-VL 模型的配置**
+
+以阿里云 `qwen3-vl-plus` 模型为例：
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen3-vl-plus"
+MIDSCENE_USE_QWEN3_VL=1 # 注意，这个参数与 MIDSCENE_USE_QWEN_VL 不能同时使用
+```
+
+**使用 Qwen2.5-VL 模型的配置**
+
+以阿里云 `qwen-vl-max-latest` 模型为例：
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
+MIDSCENE_USE_QWEN_VL=1 # 注意，这个参数与 MIDSCENE_USE_QWEN3_VL 不能同时使用
+```
+
+**链接**
+- [阿里云 - Qwen-VL 系列](https://help.aliyun.com/zh/model-studio/vision)
+- [Qwen on 🤗 HuggingFace](https://huggingface.co/Qwen)
+- [Qwen on Github](https://github.com/QwenLM/)
+- [Qwen on openrouter.ai](https://openrouter.ai/qwen)
+
+<div id="gemini-25-pro"></div>
+
+### `Gemini-2.5-Pro`
+
+Gemini 2.5 Pro 是 Google Cloud 提供的闭源模型。Gemini 2.5 Pro 在 UI 定位上的准确性不如 Doubao 和 Qwen 模型。
+
+使用 Gemini-2.5-Pro 时，你应该使用 `MIDSCENE_USE_GEMINI=1` 配置来开启 Gemini-2.5-Pro 模式。
+
+**配置**
+
+在 [Google Gemini](https://gemini.google.com/) 上申请 API 密钥后，可以使用以下配置：
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="gemini-2.5-pro-preview-05-06"
+MIDSCENE_USE_GEMINI=1
+```
+
+**链接**
+- [Gemini 2.5 on Google Cloud](https://cloud.google.com/gemini-api/docs/gemini-25-overview)
+
+<div id="ui-tars"></div>
+
+### `UI-TARS`
+
+UI-TARS 是一个 GUI Agent 专用模型。它基于 VLM 架构，仅感知截图作为输入，并执行类似人类的交互（例如键盘和鼠标操作），在 10 多个 GUI 基准测试中实现了最先进的性能。
+UI-TARS 提供了不同尺寸的开源版本。
+
+使用 UI-TARS 时，你可以使用目标驱动风格的提示，如"使用用户名 foo 和密码 bar 登录"，它会规划步骤来实现目标。
+
+**配置**
+
+你可以在 [火山引擎](https://volcengine.com) 上使用已部署的 `doubao-1.5-ui-tars`。
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
+MIDSCENE_MODEL_API_KEY="...."
+MIDSCENE_MODEL_NAME="ep-2025..." # 来自火山引擎的推理接入点 ID 或模型名称
+MIDSCENE_USE_VLM_UI_TARS=DOUBAO
+```
+
+**限制**
+
+- **断言表现不佳**：它在断言和视觉理解方面可能不如其他模型
+- **操作路径不稳定**：它可能会尝试不同的路径来实现目标，因此每次调用的操作路径不稳定。
+
+**关于 `MIDSCENE_USE_VLM_UI_TARS` 配置**
+
+`MIDSCENE_USE_VLM_UI_TARS` 配置用于指定 UI-TARS 版本，使用以下值之一：
+- `1.0` - 用于模型版本 `1.0`
+- `1.5` - 用于模型版本 `1.5`
+- `DOUBAO` - 用于在火山引擎上部署的模型
+
+**链接**
+- [UI-TARS on 🤗 HuggingFace](https://huggingface.co/bytedance-research/UI-TARS-72B-SFT)
+- [UI-TARS on Github](https://github.com/bytedance/ui-tars)
+- [UI-TARS - Model Deployment Guide](https://juniper-switch-f10.notion.site/UI-TARS-Model-Deployment-Guide-17b5350241e280058e98cea60317de71)
+- [UI-TARS on Volcengine](https://www.volcengine.com/docs/82379/1536429)
+
+
+<div id="gpt-4o"></div>
+### <del>`GPT-4o`</del>
+
+从 1.0 版本开始，Midscene 不再支持使用 GPT-4o 作为 UI 操作的规划模型。
+
+更多详细信息和示例配置，请参见[模型配置](./model-config)。
+
+## 模型配置
+
+从 1.0 版本开始，Midscene.js 推荐使用以下环境变量名：
+
+- `MIDSCENE_MODEL_API_KEY` - API 密钥（推荐）
+- `MIDSCENE_MODEL_BASE_URL` - API 接入地址（推荐）
+
+为了保持向后兼容，下列 OpenAI 生态中的变量名仍然支持：
+
+- `OPENAI_API_KEY` - API 密钥（已弃用但仍兼容）
+- `OPENAI_BASE_URL` - API 接入地址（已弃用但仍兼容）
+
+当新变量与 OpenAI 兼容变量同时设置时，新变量（`MIDSCENE_MODEL_*`）将优先使用。本文示例统一使用新的变量名，如果你仍在使用旧变量，无需立即迁移，它们仍然有效。
+
+Midscene 要求模型服务商提供兼容 OpenAI 风格的接口。
+
+使用前你需要配置以下环境变量：
+
+- `MIDSCENE_MODEL_BASE_URL` - API 接入地址
+- `MIDSCENE_MODEL_API_KEY` - API 密钥
+- `MIDSCENE_MODEL_NAME` - 模型名称
+
+### 按任务类型配置模型（高级）
+
+Midscene 支持为不同的任务类型配置不同的模型：
+
+- **Insight 任务**：视觉理解和元素定位（如 `aiQuery`、`aiLocate`、`aiTap` 等）
+- **Planning 任务**：自动规划任务（如 `aiAct`）
+- **Default 任务**：其他未分类任务
+
+你可以使用以下环境变量前缀来配置不同任务类型的模型：
+
+- `MIDSCENE_INSIGHT_MODEL_*` - 用于视觉理解和元素定位任务
+- `MIDSCENE_PLANNING_MODEL_*` - 用于自动规划任务
+- `MIDSCENE_MODEL_*` - 默认配置，作为其他任务的后备选项
+
+更多详细信息，请参考 [模型配置](./model-config#按任务类型配置模型高级) 文档。
+
+
+
+## 常见问题
+
+### 如何查看模型的 token 使用情况？
+
+在环境变量中设置 `DEBUG=midscene:ai:profile:stats`，即可打印模型的用量信息与响应时长。
+
+你也可以在报告文件中查看模型的使用情况。
+
+### 收到了 “No visual language model (VL model) detected” 错误
+
+请确认已经正确配置 VL 模型，尤其是 `MIDSCENE_USE_...` 相关的开关。
+
+## 更多信息
+
+* 想了解更多模型配置，请参见[模型配置](./model-config)
+* [编写提示词（指令）的技巧](./prompting-tips)
+
+<TroubleshootingLLMConnectivity />
+
+## 与 Midscene 0.x 版本兼容
+
+Midscene 0.x 版本中使用的一些配置（如 `OPENAI_API_KEY` `OPENAI_BASE_URL` `MIDSCENE_USE_QWEN_VL` ）在 1.x 版本中依然保持兼容，详见 [兼容 Midscene 0.x 版本的配置](./model-config.mdx)。
