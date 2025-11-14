@@ -6,6 +6,7 @@ import {
 import {
   MIDSCENE_MODEL_API_KEY,
   MIDSCENE_MODEL_BASE_URL,
+  MIDSCENE_PLANNING_STYLE,
   MODEL_API_KEY,
   MODEL_BASE_URL,
 } from '../../../src/env/types';
@@ -162,20 +163,21 @@ describe('decideModelConfig from env', () => {
       MIDSCENE_PLANNING_MODEL_NAME: 'planning-model',
       MIDSCENE_PLANNING_MODEL_API_KEY: 'planning-key',
       MIDSCENE_PLANNING_MODEL_BASE_URL: 'planning-url',
+      [MIDSCENE_PLANNING_STYLE]: 'qwen3-vl',
     });
     expect(result).toMatchInlineSnapshot(`
       {
         "from": "env",
         "httpProxy": undefined,
         "intent": "planning",
-        "modelDescription": "",
+        "modelDescription": "qwen3-vl mode",
         "modelName": "planning-model",
         "openaiApiKey": "planning-key",
         "openaiBaseURL": "planning-url",
         "openaiExtraConfig": undefined,
         "socksProxy": undefined,
         "uiTarsModelVersion": undefined,
-        "vlMode": undefined,
+        "vlMode": "qwen3-vl",
         "vlModeRaw": undefined,
       }
     `);
@@ -192,20 +194,21 @@ describe('decideModelConfig from env', () => {
   it('declare no planning env and process.env has config', () => {
     const result = decideModelConfigFromEnv('planning', {
       ...stubEnvConfig,
+      [MIDSCENE_PLANNING_STYLE]: 'qwen3-vl',
     });
     expect(result).toMatchInlineSnapshot(`
       {
         "from": "legacy-env",
         "httpProxy": undefined,
         "intent": "planning",
-        "modelDescription": "",
+        "modelDescription": "qwen3-vl mode",
         "modelName": "modelInEnv",
         "openaiApiKey": "keyInEnv",
         "openaiBaseURL": "urlInInEnv",
         "openaiExtraConfig": undefined,
         "socksProxy": undefined,
         "uiTarsModelVersion": undefined,
-        "vlMode": undefined,
+        "vlMode": "qwen3-vl",
         "vlModeRaw": undefined,
       }
     `);
@@ -215,20 +218,21 @@ describe('decideModelConfig from env', () => {
     const result = decideModelConfigFromEnv('planning', {
       ...stubEnvConfig,
       MIDSCENE_MODEL_NAME: '',
+      [MIDSCENE_PLANNING_STYLE]: 'qwen3-vl',
     });
     expect(result).toMatchInlineSnapshot(`
       {
         "from": "legacy-env",
         "httpProxy": undefined,
         "intent": "planning",
-        "modelDescription": "",
+        "modelDescription": "qwen3-vl mode",
         "modelName": "gpt-4o",
         "openaiApiKey": "keyInEnv",
         "openaiBaseURL": "urlInInEnv",
         "openaiExtraConfig": undefined,
         "socksProxy": undefined,
         "uiTarsModelVersion": undefined,
-        "vlMode": undefined,
+        "vlMode": "qwen3-vl",
         "vlModeRaw": undefined,
       }
     `);

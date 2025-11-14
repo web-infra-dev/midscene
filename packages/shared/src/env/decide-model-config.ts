@@ -31,6 +31,7 @@ import { assert } from '../utils';
 import { createAssert, maskConfig, parseJson } from './helper';
 import { initDebugConfig } from './init-debug';
 import {
+  parsePlanningStyleFromEnv,
   parseVlModeAndUiTarsFromGlobalConfig,
   parseVlModeAndUiTarsModelVersionFromRawValue,
 } from './parse';
@@ -254,8 +255,32 @@ export const decideModelConfigFromEnv = (
       valueAssert: createAssert(keysForEnv.modelName, 'process.env', modelName),
     });
 
-    const { vlMode, uiTarsVersion } =
-      parseVlModeAndUiTarsModelVersionFromRawValue(result.vlModeRaw);
+    let vlMode: TVlModeTypes | undefined;
+    let uiTarsVersion: UITarsModelVersion | undefined;
+
+    // For planning intent, use the new MIDSCENE_PLANNING_STYLE approach
+    if (intent === 'planning') {
+      const parseResult = parsePlanningStyleFromEnv(allEnvConfig, modelName);
+      vlMode = parseResult.vlMode;
+      uiTarsVersion = parseResult.uiTarsVersion;
+
+      // Output warnings to debug log
+      parseResult.warnings.forEach((warning) => {
+        console.warn(`[Midscene] ${warning}`);
+      });
+
+      if (parseResult.planningStyle) {
+        debugLog(`Using planning style: ${parseResult.planningStyle}`);
+      }
+    } else {
+      // For other intents, use the old parsing logic
+      const parsed = parseVlModeAndUiTarsModelVersionFromRawValue(
+        result.vlModeRaw,
+      );
+      vlMode = parsed.vlMode;
+      uiTarsVersion = parsed.uiTarsVersion;
+    }
+
     const modelDescription = getModelDescription(vlMode, uiTarsVersion);
 
     const finalResult: IModelConfig = {
@@ -287,8 +312,32 @@ export const decideModelConfigFromEnv = (
     ),
   });
 
-  const { vlMode, uiTarsVersion } =
-    parseVlModeAndUiTarsFromGlobalConfig(allEnvConfig);
+  let vlMode: TVlModeTypes | undefined;
+  let uiTarsVersion: UITarsModelVersion | undefined;
+
+  // For planning intent in legacy logic, still use the new MIDSCENE_PLANNING_STYLE approach
+  if (intent === 'planning') {
+    const modelName =
+      allEnvConfig[DEFAULT_MODEL_CONFIG_KEYS_LEGACY.modelName] || 'gpt-4o';
+
+    const parseResult = parsePlanningStyleFromEnv(allEnvConfig, modelName);
+    vlMode = parseResult.vlMode;
+    uiTarsVersion = parseResult.uiTarsVersion;
+
+    // Output warnings to debug log
+    parseResult.warnings.forEach((warning) => {
+      console.warn(`[Midscene] ${warning}`);
+    });
+
+    if (parseResult.planningStyle) {
+      debugLog(`Using planning style: ${parseResult.planningStyle}`);
+    }
+  } else {
+    // For other intents, use the old parsing logic
+    const parsed = parseVlModeAndUiTarsFromGlobalConfig(allEnvConfig);
+    vlMode = parsed.vlMode;
+    uiTarsVersion = parsed.uiTarsVersion;
+  }
 
   const modelDescription = getModelDescription(vlMode, uiTarsVersion);
 
