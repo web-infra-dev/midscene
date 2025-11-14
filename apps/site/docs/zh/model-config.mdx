@@ -6,7 +6,7 @@ Midscene 通过读取操作系统中指定的环境变量来完成配置。
 
 Midscene 默认集成了 OpenAI SDK 调用 AI 服务，它限定了推理服务的参数风格，绝大多数模型服务商（或模型部署工具）都提供了满足这种要求的接口。
 
-本篇文档会重点介绍 Midscene 的模型配置参数。如果你对 Midscene 的模型策略感兴趣，请阅读 [模型策略](./model-selection)。
+本篇文档会重点介绍 Midscene 的模型配置参数。如果你对 Midscene 的模型策略感兴趣，请阅读 [模型策略](./model-strategy)。
 
 ## 快速接入
 
@@ -76,7 +76,7 @@ MIDSCENE_USE_VLM_UI_TARS=DOUBAO
 
 ### <del>`GPT-4o`</del>
 
-从 1.0 版本开始，Midscene 不再支持使用 GPT-4o 作为 UI 操作的规划模型。详见：[模型策略](./model-selection)。
+从 1.0 版本开始，Midscene 不再支持使用 GPT-4o 作为 UI 操作的规划模型。详见：[模型策略](./model-strategy)。
 
 ## 配置环境变量的方式
 
@@ -190,23 +190,9 @@ import 'dotenv/config';
 | `MIDSCENE_OPENAI_SOCKS_PROXY` | 已弃用但仍兼容。建议使用 `MIDSCENE_MODEL_SOCKS_PROXY` |
 | `OPENAI_MAX_TOKENS` | 已弃用但仍兼容。建议使用 `MIDSCENE_MODEL_MAX_TOKENS` |
 
-## 使用 Javascript 配置模型
+## 使用 Javascript 配置参数
 
-你也可以在运行 Midscene 代码之前，使用 Javascript 来配置 AI 服务。
-
-```typescript
-import { overrideAIConfig } from "@midscene/web/puppeteer";
-// 或者 import { overrideAIConfig } from "@midscene/web/playwright";
-// 或者 import { overrideAIConfig } from "@midscene/android";
-
-
-overrideAIConfig({
-  MIDSCENE_MODEL_NAME: "...",
-  MIDSCENE_MODEL_BASE_URL: "...", // 推荐使用新的变量名
-  MIDSCENE_MODEL_API_KEY: "...", // 推荐使用新的变量名
-  // ...
-});
-```
+你也可以使用 Javascript 来为每个 Agent 配置模型参数，详见 [API 参考](./api)
 
 <TroubleshootingLLMConnectivity />
 

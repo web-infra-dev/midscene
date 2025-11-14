@@ -71,8 +71,8 @@ export default defineConfig({
               link: '/',
             },
             {
-              text: 'Model selection 🔥',
-              link: '/model-selection',
+              text: 'Model strategy 🔥',
+              link: '/model-strategy',
             },
             {
               text: 'Model configuration',
@@ -219,7 +219,7 @@ export default defineConfig({
             },
             {
               text: '模型策略',
-              link: '/zh/model-selection',
+              link: '/zh/model-strategy',
             },
             {
               text: '模型配置 🔥',

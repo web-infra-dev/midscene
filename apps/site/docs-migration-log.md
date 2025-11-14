@@ -29,7 +29,7 @@
 - 原路径：`apps/site/docs/zh/choose-a-model.mdx`、`apps/site/docs/zh/model-provider.mdx`、`apps/site/docs/en/choose-a-model.mdx`、`apps/site/docs/en/model-provider.mdx`
 - 原标题：`选择 AI 模型 / Choose a model`、`配置模型和服务商 / Configure model and provider`
 - 操作类型：重命名
-- 新位置：`apps/site/docs/zh/model-selection.mdx`、`apps/site/docs/zh/model-config.mdx`、`apps/site/docs/en/model-selection.mdx`、`apps/site/docs/en/model-config.mdx`
+- 新位置：`apps/site/docs/zh/model-strategy.mdx`、`apps/site/docs/zh/model-config.mdx`、`apps/site/docs/en/model-strategy.mdx`、`apps/site/docs/en/model-config.mdx`
 - Breaking change 说明：统一中英文文档使用英文 slug，避免非 ASCII 路径带来的构建与协作问题；同步更新 `apps/site/rspress.config.ts` 中英双语侧边栏路由及站内引用，保证链接一致。
 - 后续行动：无
 
