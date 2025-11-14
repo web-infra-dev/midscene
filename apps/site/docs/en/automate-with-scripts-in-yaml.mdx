@@ -363,9 +363,9 @@ tasks:
 
       # Scroll globally or on an element described by a prompt.
       - aiScroll:
-        direction: 'up' # or 'down' | 'left' | 'right'
-        scrollType: 'once' # or 'untilTop' | 'untilBottom' | 'untilLeft' | 'untilRight'
-        distance: <number> # Optional, the scroll distance in pixels.
+        direction: 'down' # or 'up' | 'left' | 'right'. Defaults to 'down'.
+        scrollType: 'singleAction' # or 'scrollToBottom' | 'scrollToTop' | 'scrollToRight' | 'scrollToLeft'. Defaults to 'singleAction'.
+        distance: <number> # Optional, the scroll distance in pixels. Use null to let Midscene decide automatically.
         locate: <prompt> # Optional, the element to scroll on.
         deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
         xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.

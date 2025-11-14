@@ -1,0 +1,142 @@
+import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connectivity.mdx';
+
+# 模型策略
+
+:::info 快速开始
+
+如果你想快速开始体验 Midscene，请选择模型并参考配置文档：
+* [豆包 Seed 视觉模型](./model-config.mdx#doubao-seed-vision)
+* [千问 Qwen3-VL](./model-config.mdx#qwen3-vl)
+* [千问 Qwen2.5-VL](./model-config.mdx#qwen25-vl)
+* [Gemini-2.5-Pro](./model-config.mdx#gemini-25-pro)
+* [UI-TARS](./model-config.mdx#ui-tars)
+
+:::
+
+在 Midscene 中，我们将模型的使用意图（Intent）分为两种，*Planning* (操作规划) 与 *Insight* (洞察)。
+
+开发者必须选择一个适用于 *Planning* 意图的默认模型。*Insight* 意图会默认复用此配置，无需特殊处理。
+
+本篇文档会重点介绍 Midscene 的模型选用策略。如果你需要进行模型配置，请参考 [模型配置](./model-config)。
+
+## *Planning* 意图，选用视觉驱动方案
+
+Midscene 把 UI 操作相关的任务定义为 *Planning（规划）* 意图，这是 Midscene 开发者首要关心的模型策略任务。
+
+从 1.0 版本开始，Midscene 依赖视觉模型来完成操作规划。
+
+### 背景知识：技术路线
+
+使用 AI 模型驱动 UI 自动化的有两个关键点：规划合理的操作路径，以及准确找到需要交互的元素。其中，操作路径可以通过调整 Prompt 的自然语言来优化，而“元素定位”则难以调整到最佳效果。
+
+为了完成元素定位工作，UI 自动化框架一般有两种技术路线：
+
+* 基于 DOM + 截图标注：提前提取页面的 DOM 结构，结合截图做好标注，请模型“挑选”其中的内容。
+* 纯视觉：基于截图完成所有分析工作，即模型收到的只有图片，没有 DOM，也没有标注信息。
+
+### Midscene 采用纯视觉路线
+
+Midscene 早期同时兼容上述两种技术路线，交由开发者自行选择比对。但在几十个版本迭代、上百个项目的观察后，我们发现“纯视觉”方案开始体现出优越性：
+
+- **效果稳定**：业界领先的视觉模型（如 Doubao Seed 1.6、Qwen3-VL 等）表现足够稳定，已经可以满足大多数业务需求。
+- **适用于任意系统**：自动化框架不再依赖 UI 渲染的技术栈。无论是 Android、iOS、桌面应用，还是浏览器中的 canvas 标签，只要能获取截图，Midscene 即可完成交互操作。
+- **易于编写**：抛弃各类 selector 和 DOM 之后，开发者与模型的“磨合”会变得更简单，不熟悉渲染技术的新人也能很快上手
+- **token 量显著下降**：在去除 DOM 提取之后，视觉方案的 token 使用量可以减少 80%，成本更低，且本地运行速度也变得更快
+- **有开源模型解决方案**：开源模型表现渐佳，开发者开始有机会进行私有化部署模型，如 Qwen3-VL 提供的 8B、30B 等版本在不少项目中都有着不错的效果
+
+综合上述情况，**从 1.0 版本开始，Midscene 只支持纯视觉方案**，不再提供“提取 DOM”的兼容模式。
+
+### 已支持 *Planning* 意图的视觉模型
+
+Midscene 已深度适配的模型包括豆包 Seed，千问 VL，Gemini-2.5-pro，UI-TARS。这里列出信息比对。
+
+如何你不知道选择哪个，建议直接选用最容易获得的版本，然后在后续迭代中再进行效果比对。
+
+|模型系列|部署|Midscene 评价|
+|---|---|---|
+|豆包 Seed 视觉模型|火山引擎版本：<br />[Doubao-Seed-1.6-Vision](https://www.volcengine.com/docs/82379/1799865)<br/>[Doubao-1.5-thinking-vision-pro](https://www.volcengine.com/docs/82379/1536428)|⭐⭐⭐⭐<br/>UI 操作规划、定位能力较强<br />速度略慢|
+|千问 Qwen3-VL|[阿里云](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen)<br/>[Ollama](https://ollama.com/library/qwen3-vl)|⭐⭐⭐⭐<br />复杂场景断言能力不够稳定 <br/>性能超群，操作准确<br />有开源版本（[HuggingFace](https://huggingface.co/Qwen) / [Github](https://github.com/QwenLM/)）|
+|千问 Qwen2.5-VL|[阿里云](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen)|⭐⭐⭐<br/>综合效果不如 Qwen3-VL |
+|Gemini-2.5-Pro|[Google Cloud](https://cloud.google.com/gemini-api/docs/gemini-25-overview)|⭐⭐⭐<br /> UI 定位准确性不如豆包和千问|
+|UI-TARS|[火山引擎](https://www.volcengine.com/docs/82379/1536429)|⭐⭐<br /> 有探索能力，但在不同场景表现可能差异较大<br />有开源版本（[HuggingFace](https://huggingface.co/bytedance-research/UI-TARS-72B-SFT) / [Github](https://github.com/bytedance/ui-tars)） |
+
+### 为什么不能使用 `GPT-5` 这样的多模态模型做 *Planning* ?
+
+Midscene 选择了“纯视觉路线”，即意味着模型需要有能力提供图片上指定元素的坐标（也称之为 Visual Grounding 特性），且必须足够准确。我们观察到类似 `GPT-5` 这样的模型在此类能力上表现不佳，故不推荐它作为 *Planning* 意图的候选项。
+
+## *Insight* 意图
+
+Midscene 提供了基于页面理解的数据处理接口，如 AI 断言（`aiAssert`）、数据提取（`aiQuery`，`aiAsk`） 等，我们把这类意图归类为 *Insight*，它的效果取决于模型在视觉问答（VQA）领域的表现。
+
+在默认情况下，Midscene 会复用 *Planning* 模型来完成 *Insight* 类的工作，开发者无需额外配置，这个策略可以满足绝大多数项目。
+
+若开发者对 Insight 的准确性、细节理解力有特殊要求，也可以为 Insight 意图额外增加一个专用模型。此时你可以选用任意接受图片输入的多模态模型来承接，如 `GPT-5`,`Gemini-2.5-pro` 等。
+
+## 更多
+
+### 模型配置文档
+
+请参考 [模型配置](./model-config)。
+
+## 模型配置
+
+从 1.0 版本开始，Midscene.js 推荐使用以下环境变量名：
+
+- `MIDSCENE_MODEL_API_KEY` - API 密钥（推荐）
+- `MIDSCENE_MODEL_BASE_URL` - API 接入地址（推荐）
+
+为了保持向后兼容，下列 OpenAI 生态中的变量名仍然支持：
+
+- `OPENAI_API_KEY` - API 密钥（已弃用但仍兼容）
+- `OPENAI_BASE_URL` - API 接入地址（已弃用但仍兼容）
+
+当新变量与 OpenAI 兼容变量同时设置时，新变量（`MIDSCENE_MODEL_*`）将优先使用。本文示例统一使用新的变量名，如果你仍在使用旧变量，无需立即迁移，它们仍然有效。
+
+Midscene 要求模型服务商提供兼容 OpenAI 风格的接口。
+
+使用前你需要配置以下环境变量：
+
+- `MIDSCENE_MODEL_BASE_URL` - API 接入地址
+- `MIDSCENE_MODEL_API_KEY` - API 密钥
+- `MIDSCENE_MODEL_NAME` - 模型名称
+
+### 按任务类型配置模型（高级）
+
+Midscene 支持为不同的任务类型配置不同的模型：
+
+- **Insight 任务**：视觉理解和元素定位（如 `aiQuery`、`aiLocate`、`aiTap` 等）
+- **Planning 任务**：自动规划任务（如 `aiAct`）
+- **Default 任务**：其他未分类任务
+
+你可以使用以下环境变量前缀来配置不同任务类型的模型：
+
+- `MIDSCENE_INSIGHT_MODEL_*` - 用于视觉理解和元素定位任务
+- `MIDSCENE_PLANNING_MODEL_*` - 用于自动规划任务
+- `MIDSCENE_MODEL_*` - 默认配置，作为其他任务的后备选项
+
+更多详细信息，请参考 [模型配置](./model-config#按任务类型配置模型高级) 文档。
+
+
+
+## 常见问题
+
+### 如何查看模型的 token 使用情况？
+
+在环境变量中设置 `DEBUG=midscene:ai:profile:stats`，即可打印模型的用量信息与响应时长。
+
+你也可以在报告文件中查看模型的使用情况。
+
+### 收到了 “No visual language model (VL model) detected” 错误
+
+请确认已经正确配置 VL 模型，尤其是 `MIDSCENE_USE_...` 相关的开关。
+
+## 更多信息
+
+* 想了解更多模型配置，请参见[模型配置](./model-config)
+* [编写提示词（指令）的技巧](./prompting-tips)
+
+<TroubleshootingLLMConnectivity />
+
+## 与 Midscene 0.x 版本兼容
+
+Midscene 0.x 版本中使用的一些配置（如 `OPENAI_API_KEY` `OPENAI_BASE_URL` `MIDSCENE_USE_QWEN_VL` ）在 1.x 版本中依然保持兼容，详见 [兼容 Midscene 0.x 版本的配置](./model-config.mdx)。

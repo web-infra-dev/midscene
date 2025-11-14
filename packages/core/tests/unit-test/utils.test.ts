@@ -2,6 +2,7 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import * as fs from 'node:fs';
 import {
   type MidsceneLocationResultType,
+  adaptBbox,
   adaptBboxToRect,
   adaptDoubaoBbox,
   adaptGeminiBbox,
@@ -442,35 +443,6 @@ describe('doubao-vision', () => {
       ]
     `);
   });
-  it('adaptDoubaoBbox', () => {
-    const result = adaptDoubaoBbox([[100, 200, 300, 400]] as any, 400, 900);
-    expect(result).toMatchInlineSnapshot(`
-      [
-        40,
-        180,
-        120,
-        360,
-      ]
-    `);
-  });
-  it('adaptDoubaoBbox', () => {
-    const result = adaptDoubaoBbox(
-      [
-        [100, 200, 300, 400],
-        [100, 200, 300, 400],
-      ] as any,
-      400,
-      900,
-    );
-    expect(result).toMatchInlineSnapshot(`
-      [
-        40,
-        180,
-        120,
-        360,
-      ]
-    `);
-  });
 
   it('adaptDoubaoBbox with string bbox', () => {
     const result = adaptDoubaoBbox(['123 222', '789 100'], 1000, 2000);
@@ -492,6 +464,49 @@ describe('doubao-vision', () => {
         444,
         789,
         200,
+      ]
+    `);
+  });
+});
+
+describe('adaptBbox - doubao normalization', () => {
+  it('flattens single nested doubao bbox', () => {
+    const result = adaptBbox(
+      [[100, 200, 300, 400]] as any,
+      400,
+      900,
+      400,
+      900,
+      'doubao-vision',
+    );
+    expect(result).toMatchInlineSnapshot(`
+      [
+        40,
+        180,
+        120,
+        360,
+      ]
+    `);
+  });
+
+  it('flattens nested doubao bbox list by taking the first entry', () => {
+    const result = adaptBbox(
+      [
+        [100, 200, 300, 400],
+        [100, 200, 300, 400],
+      ] as any,
+      400,
+      900,
+      400,
+      900,
+      'doubao-vision',
+    );
+    expect(result).toMatchInlineSnapshot(`
+      [
+        40,
+        180,
+        120,
+        360,
       ]
     `);
   });

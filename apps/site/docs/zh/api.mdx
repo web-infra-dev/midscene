@@ -78,7 +78,7 @@ Midscene 中每个 Agent 都有自己的构造函数。
   });
   ```
 
-  更多关于按任务类型配置模型的信息，请参考 [配置模型和服务商](./model-provider#按任务类型配置模型高级) 文档。
+  更多关于按任务类型配置模型的信息，请参考 [模型配置](./model-config#按任务类型配置模型高级) 文档。
 
 - `createOpenAIClient: (openai, options) => Promise<OpenAI | undefined>`: 可选。自定义 OpenAI 客户端包装函数。允许你包装 OpenAI 客户端实例，用于集成可观测性工具（如 LangSmith、LangFuse）或应用自定义中间件。
 
@@ -186,7 +186,7 @@ await agent.aiAct('发布一条微博，内容为 "Hello World"');
 
 关联文档：
 
-- [选择 AI 模型](./choose-a-model)
+- [模型策略](./model-strategy)
 
 :::
 
@@ -338,9 +338,9 @@ function aiScroll(
 - 参数：
 
   - `scrollParam: PlanningActionParamScroll` - 滚动参数
-    - `direction: 'up' | 'down' | 'left' | 'right'` - 滚动方向。不论是 Android 还是 Web，这里的滚动方向都是指页面哪个方向的内容会进入屏幕。比如当滚动方向是 `down` 时，页面下方被隐藏的内容会从屏幕底部开始逐渐向上露出。
-    - `scrollType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft'` - 滚动类型
-    - `distance: number` - 滚动距离，单位为像素。
+    - `direction?: 'down' | 'up' | 'left' | 'right'` - 滚动方向，默认值为 `down`。不论是 Android 还是 Web，这里的滚动方向都是指页面哪个方向的内容会进入屏幕。比如当滚动方向是 `down` 时，页面下方被隐藏的内容会从屏幕底部开始逐渐向上露出。
+    - `scrollType?: 'singleAction' | 'scrollToBottom' | 'scrollToTop' | 'scrollToRight' | 'scrollToLeft'` - 滚动类型，默认值为 `singleAction`。
+    - `distance?: number | null` - 滚动距离，单位为像素。设置为 `null` 表示由 Midscene 自动决定。
   - `locate?: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。如果未传入，Midscene 会在当前鼠标位置滚动。
   - `options?: Object` - 可选，一个配置对象，包含：
     - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。默认值为 false
@@ -355,7 +355,7 @@ function aiScroll(
 
 ```typescript
 await agent.aiScroll(
-  { direction: 'up', distance: 100, scrollType: 'once' },
+  { direction: 'up', distance: 100, scrollType: 'singleAction' },
   '表单区域',
 );
 ```

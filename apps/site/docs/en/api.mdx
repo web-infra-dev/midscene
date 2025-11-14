@@ -78,7 +78,7 @@ These Agents also support the following advanced configuration parameters:
   });
   ```
 
-  For more information about configuring models by task type, refer to the [Configure model and provider](./model-provider#configure-models-by-task-type-advanced) documentation.
+  For more information about configuring models by task type, refer to the [Model configuration](./model-config#configure-models-by-task-type-advanced) documentation.
 
 - `createOpenAIClient: (openai, options) => Promise<OpenAI | undefined>`: Optional. Custom OpenAI client wrapper function. Allows you to wrap the OpenAI client instance for integrating observability tools (such as LangSmith, LangFuse) or applying custom middleware.
 
@@ -188,7 +188,7 @@ For optimal results, please provide clear and detailed instructions for `agent.a
 
 Related Documentation:
 
-- [Choose a model](./choose-a-model)
+- [Model strategy](./model-strategy)
 
 :::
 
@@ -346,9 +346,9 @@ function aiScroll(
 - Parameters:
 
   - `scrollParam: PlanningActionParamScroll` - The scroll parameter
-    - `direction: 'up' | 'down' | 'left' | 'right'` - The direction to scroll. Whether it is Android or Web, the scrolling direction here all refers to which direction of the page's content will appear on the screen. For example, when the scrolling direction is `down`, the hidden content at the bottom of the page will gradually reveal itself from the bottom of the screen upwards.
-    - `scrollType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft'` - Optional, the type of scroll to perform.
-    - `distance: number` - Optional, the distance to scroll in px.
+    - `direction?: 'down' | 'up' | 'right' | 'left'` - The direction to scroll. Defaults to `down`. Whether it is Android or Web, the scrolling direction here all refers to which direction of the page's content will appear on the screen. For example, when the scrolling direction is `down`, the hidden content at the bottom of the page will gradually reveal itself from the bottom of the screen upwards.
+    - `scrollType?: 'singleAction' | 'scrollToBottom' | 'scrollToTop' | 'scrollToRight' | 'scrollToLeft'` - The scroll behavior. Defaults to `singleAction`.
+    - `distance?: number | null` - Optional, the distance to scroll in px. Use `null` to allow Midscene to decide automatically.
   - `locate?: string | Object` - Optional, a natural language description of the element to scroll on, or [prompting with images](#prompting-with-images). If not provided, Midscene will perform scroll on the current mouse position.
   - `options?: Object` - Optional, a configuration object containing:
     - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element. False by default.
@@ -363,7 +363,7 @@ function aiScroll(
 
 ```typescript
 await agent.aiScroll(
-  { direction: 'up', distance: 100, scrollType: 'once' },
+  { direction: 'up', distance: 100, scrollType: 'singleAction' },
   'The form panel',
 );
 ```
