@@ -71,8 +71,12 @@ export default defineConfig({
               link: '/',
             },
             {
-              text: 'Choose a model 🔥',
-              link: '/choose-a-model',
+              text: 'Model strategy 🔥',
+              link: '/model-strategy',
+            },
+            {
+              text: 'Model configuration',
+              link: '/model-config',
             },
           ],
         },
@@ -155,10 +159,6 @@ export default defineConfig({
               text: 'Workflow in YAML format',
               link: '/automate-with-scripts-in-yaml',
             },
-            {
-              text: 'Model and overall config',
-              link: '/model-provider',
-            },
           ],
         },
         {
@@ -218,8 +218,12 @@ export default defineConfig({
               link: '/zh/index',
             },
             {
-              text: '选择 AI 模型 🔥',
-              link: '/zh/choose-a-model',
+              text: '模型策略',
+              link: '/zh/model-strategy',
+            },
+            {
+              text: '模型配置 🔥',
+              link: '/zh/model-config',
             },
           ],
         },
@@ -301,10 +305,6 @@ export default defineConfig({
             {
               text: 'YAML 格式的工作流',
               link: '/zh/automate-with-scripts-in-yaml',
-            },
-            {
-              text: '模型与整体配置',
-              link: '/zh/model-provider',
             },
           ],
         },
