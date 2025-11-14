@@ -74,6 +74,10 @@ export default defineConfig({
               text: 'Model selection 🔥',
               link: '/model-selection',
             },
+            {
+              text: 'Model configuration',
+              link: '/model-config',
+            },
           ],
         },
         {
@@ -155,10 +159,6 @@ export default defineConfig({
               text: 'Workflow in YAML format',
               link: '/automate-with-scripts-in-yaml',
             },
-            {
-              text: 'Model configuration',
-              link: '/model-config',
-            },
           ],
         },
         {
@@ -218,8 +218,12 @@ export default defineConfig({
               link: '/zh/index',
             },
             {
-              text: '模型选型 🔥',
+              text: '模型策略',
               link: '/zh/model-selection',
+            },
+            {
+              text: '模型配置 🔥',
+              link: '/zh/model-config',
             },
           ],
         },
@@ -301,10 +305,6 @@ export default defineConfig({
             {
               text: 'YAML 格式的工作流',
               link: '/zh/automate-with-scripts-in-yaml',
-            },
-            {
-              text: '模型配置',
-              link: '/zh/model-config',
             },
           ],
         },

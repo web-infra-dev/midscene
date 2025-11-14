@@ -1,164 +1,76 @@
 import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connectivity.mdx';
 
-# 模型选型
+# 模型策略
 
-## 使用视觉模型执行操作规划
+:::info 快速开始
+如果你想快速开始体验 Midscene，请选择以下任意一个模型并进行配置：
+参见 [模型配置 - 快速接入](./model-config#快速接入) 章节完成所需的环境配置。
+:::
 
-使用 AI 模型驱动 UI 自动化的关键有两点：准确找到需要交互的元素，以及规划合理的操作路径。其中，“准确找到元素”是最具挑战的一项。
+在 Midscene 中，我们将模型的使用意图（Intent）分为两种，*Planning* (操作规划) 与 *Insight* (洞察)。
 
-为了完成元素定位工作，AI 驱动下的 UI 自动化框架一般有两种技术路线：
+开发者必须选择一个默认模型用于 *Planning* 意图。*Insight* 意图会默认复用 *Planning* 的模型，无需特殊配置。
 
-* 基于 DOM + 截图标注：提前提取页面的 DOM 结构，结合截图做好标注，请模型“挑选”其中的元素。
+本篇文档会重点介绍 Midscene 的模型选用策略。如果你需要进行模型配置，请参考 [模型配置](./model-config)。
+
+## *Planning* 意图，选用视觉驱动方案
+
+Midscene 把 UI 操作相关的任务定义为 *Planning（规划）* 意图，这是 Midscene 开发者首要关心的模型选型任务。
+
+从 1.0 版本开始，Midscene 依赖视觉模型来完成操作规划。
+
+### 背景知识：技术路线
+
+使用 AI 模型驱动 UI 自动化的有两个关键点：规划合理的操作路径，以及准确找到需要交互的元素。其中，操作路径可以通过调整 Prompt 的自然语言来优化，而“元素定位”则难以调整到最佳效果。
+
+为了完成元素定位工作，UI 自动化框架一般有两种技术路线：
+
+* 基于 DOM + 截图标注：提前提取页面的 DOM 结构，结合截图做好标注，请模型“挑选”其中的内容。
 * 纯视觉：基于截图完成所有分析工作，即模型收到的只有图片，没有 DOM，也没有标注信息。
 
-Midscene 早期同时兼容上述两种模式，交由开发者自由选择。经历几十个版本的迭代后，我们发现“纯视觉”方案逐渐体现出优越性：
+### Midscene 采用纯视觉路线
 
-- 业界领先的视觉模型（如 Qwen3-VL、Doubao Seed 1.6 等）表现足够稳定，已经可以满足大多数业务需求。
-- 适配更广泛的 UI 场景：纯视觉方案不再依赖 UI 渲染的技术栈。无论是 Android、iOS、桌面应用，还是浏览器中的 `<canvas />` 标签，只要能获取截图，AI 就能理解并操作。
-- Token 使用量显著下降：在不传输 DOM 的情况下，Token 的使用量减少了 80%，运行速度也更快。这让 Agent 的使用成本更低、响应更快。
-- 开源的 VL 模型开始涌现：例如 Qwen3-VL 提供了 8B、30B 等不同大小的版本。开发者有机会在高配置的 Mac 上进行私有化部署，并获得不错的效果。
+Midscene 早期同时兼容上述两种技术路线，交由开发者自行选择比对。但在几十个版本迭代、上百个项目的观察后，我们发现“纯视觉”方案开始体现出优越性：
 
-考虑到视觉理解模型的优势和发展趋势，从 1.0 版本开始，Midscene 只支持纯视觉方案，不再提供“提取 DOM”的兼容模式。
+- **效果稳定**：业界领先的视觉模型（如 Doubao Seed 1.6、Qwen3-VL 等）表现足够稳定，已经可以满足大多数业务需求。
+- **适用于任意系统**：自动化框架不再依赖 UI 渲染的技术栈。无论是 Android、iOS、桌面应用，还是浏览器中的 canvas 标签，只要能获取截图，Midscene 即可完成交互操作。
+- **易于编写**：抛弃各类 selector 和 DOM 之后，开发者与模型的“磨合”会变得更简单，不熟悉渲染技术的新人也能很快上手
+- **token 量显著下降**：在去除 DOM 提取之后，视觉方案的 token 使用量可以减少 80%，成本更低，且本地运行速度也变得更快
+- **有开源模型解决方案**：开源模型表现渐佳，开发者开始有机会进行私有化部署模型，如 Qwen3-VL 提供的 8B、30B 等版本在不少项目中都有着不错的效果
 
-## 已支持的视觉模型
+综合上述情况，**从 1.0 版本开始，Midscene 只支持纯视觉方案**，不再提供“提取 DOM”的兼容模式。
 
-Midscene 推荐使用以下模型：
-* [千问 VL](#qwen3-vl-or-qwen-25-vl)
-* [豆包系列视觉语言模型](#doubao-vision)
-* [`Gemini-2.5-Pro`](#gemini-25-pro)
-* [`UI-TARS`](#ui-tars)
+### 已支持 *Planning* 意图的视觉模型
 
-<div id="doubao-vision"></div>
+Midscene 已深度适配的模型包括豆包 Seed，千问 VL，Gemini-2.5-pro，UI-TARS。这里列出信息比对。
 
-### 豆包系列视觉语言模型（✨ 推荐）
+如何你不知道选择哪个，建议直接选用最容易获得的版本，然后在后续迭代中再进行效果比对。
 
-这是 [火山引擎](https://volcengine.com) 上提供的视觉语言模型，它们在复杂场景的视觉定位和断言方面表现出色：
+|模型系列|部署|Midscene 评价|
+|---|---|---|
+|豆包 Seed 视觉模型|火山引擎版本：<br />[Doubao-Seed-1.6-Vision](https://www.volcengine.com/docs/82379/1799865)<br/>[Doubao-1.5-thinking-vision-pro](https://www.volcengine.com/docs/82379/1536428)|⭐⭐⭐⭐<br/>UI 操作规划、定位能力较强<br />速度略慢|
+|千问 Qwen3-VL|[阿里云](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen)<br/>[Ollama](https://ollama.com/library/qwen3-vl)|⭐⭐⭐⭐<br />复杂场景断言能力不够稳定 <br/>性能超群，操作准确<br />有开源版本（[HuggingFace](https://huggingface.co/Qwen) / [Github](https://github.com/QwenLM/)）|
+|千问 Qwen2.5-VL|[阿里云](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen)|⭐⭐⭐<br/>综合效果不如 Qwen3-VL |
+|Gemini-2.5-Pro|[Google Cloud](https://cloud.google.com/gemini-api/docs/gemini-25-overview)|⭐⭐⭐<br /> UI 定位准确性不如豆包和千问|
+|UI-TARS|[火山引擎](https://www.volcengine.com/docs/82379/1536429)|⭐⭐<br /> 有探索能力，但在不同场景表现可能差异较大<br />有开源版本（[HuggingFace](https://huggingface.co/bytedance-research/UI-TARS-72B-SFT) / [Github](https://github.com/bytedance/ui-tars)） |
 
-* `Doubao-seed-1.6-vision`（最新版本，最优秀）
-* `Doubao-1.5-thinking-vision-pro`
+### 为什么不能使用 `GPT-5` 这样的多模态模型做 *Planning* ?
 
-**配置**
+Midscene 选择了“纯视觉路线”，即意味着模型需要有能力提供图片上指定元素的坐标（也称之为 Visual Grounding 特性），且必须足够准确。我们观察到类似 `GPT-5` 这样的模型在此类能力上表现不佳，故不推荐它作为 *Planning* 意图的候选项。
 
-从 [火山引擎](https://volcengine.com) 获取 API 密钥后，可以使用以下配置：
+## *Insight* 意图
 
-```bash
-MIDSCENE_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
-MIDSCENE_MODEL_API_KEY="...."
-MIDSCENE_MODEL_NAME="ep-..." # 来自火山引擎的推理接入点 ID 或模型名称
-MIDSCENE_USE_DOUBAO_VISION=1
-```
+Midscene 提供了基于页面理解的数据处理接口，如 AI 断言（`aiAssert`）、数据提取（`aiQuery`，`aiAsk`） 等，我们把这类意图归类为 *Insight*。
 
-**链接**
-- [火山引擎 - Doubao-1.5-thinking-vision-pro](https://www.volcengine.com/docs/82379/1536428)
-- [火山引擎 - Doubao-Seed-1.6-Vision](https://www.volcengine.com/docs/82379/1799865)
+在默认情况下，Midscene 会复用 *Planning* 模型来完成 *Insight* 类的工作，开发者无需额外配置，这个策略可以满足绝大多数项目。
 
-<div id="qwen3-vl-or-qwen-25-vl"></div>
+若开发者对 Insight 的准确性、细节理解力有特殊要求，也可以为 Insight 意图额外增加一个专用模型。此时你可以选用任意接受图片输入的多模态模型来承接，如 `GPT-5`,`Gemini-2.5-pro` 等。一般来说，在视觉问答（VQA）领域测评分数更高的模型会获得更好的表现。
 
-### 千问 VL（✨ 推荐）
+## 更多
 
-Qwen-VL（千问 VL）是阿里巴巴发布的开源模型系列。它提供视觉定位和理解能力，在交互、断言和查询时的表现出色，且 Qwen3-VL 的性能大幅领先于其他模型。
+### 模型配置文档
 
-你可以在 [阿里云](https://help.aliyun.com/zh/model-studio/vision) 或 [OpenRouter](https://openrouter.ai/qwen) 上找到 Qwen 系列的已部署版本，也可以使用 [Ollama](https://ollama.com/library/qwen3-vl) 等工具自行部署开源版本。
-
-Midscene.js 支持使用千问以下版本的模型：
-* Qwen3-VL 系列（推荐），包括 `qwen3-vl-plus` (商业版) 和 `qwen3-vl` 各个尺寸的开源版
-* Qwen2.5-VL 系列
-
-**使用 Qwen3-VL 模型的配置**
-
-以阿里云 `qwen3-vl-plus` 模型为例：
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
-MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="qwen3-vl-plus"
-MIDSCENE_USE_QWEN3_VL=1 # 注意，这个参数与 MIDSCENE_USE_QWEN_VL 不能同时使用
-```
-
-**使用 Qwen2.5-VL 模型的配置**
-
-以阿里云 `qwen-vl-max-latest` 模型为例：
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
-MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
-MIDSCENE_USE_QWEN_VL=1 # 注意，这个参数与 MIDSCENE_USE_QWEN3_VL 不能同时使用
-```
-
-**链接**
-- [阿里云 - Qwen-VL 系列](https://help.aliyun.com/zh/model-studio/vision)
-- [Qwen on 🤗 HuggingFace](https://huggingface.co/Qwen)
-- [Qwen on Github](https://github.com/QwenLM/)
-- [Qwen on openrouter.ai](https://openrouter.ai/qwen)
-
-<div id="gemini-25-pro"></div>
-
-### `Gemini-2.5-Pro`
-
-Gemini 2.5 Pro 是 Google Cloud 提供的闭源模型。Gemini 2.5 Pro 在 UI 定位上的准确性不如 Doubao 和 Qwen 模型。
-
-使用 Gemini-2.5-Pro 时，你应该使用 `MIDSCENE_USE_GEMINI=1` 配置来开启 Gemini-2.5-Pro 模式。
-
-**配置**
-
-在 [Google Gemini](https://gemini.google.com/) 上申请 API 密钥后，可以使用以下配置：
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
-MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="gemini-2.5-pro-preview-05-06"
-MIDSCENE_USE_GEMINI=1
-```
-
-**链接**
-- [Gemini 2.5 on Google Cloud](https://cloud.google.com/gemini-api/docs/gemini-25-overview)
-
-<div id="ui-tars"></div>
-
-### `UI-TARS`
-
-UI-TARS 是一个 GUI Agent 专用模型。它基于 VLM 架构，仅感知截图作为输入，并执行类似人类的交互（例如键盘和鼠标操作），在 10 多个 GUI 基准测试中实现了最先进的性能。
-UI-TARS 提供了不同尺寸的开源版本。
-
-使用 UI-TARS 时，你可以使用目标驱动风格的提示，如"使用用户名 foo 和密码 bar 登录"，它会规划步骤来实现目标。
-
-**配置**
-
-你可以在 [火山引擎](https://volcengine.com) 上使用已部署的 `doubao-1.5-ui-tars`。
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
-MIDSCENE_MODEL_API_KEY="...."
-MIDSCENE_MODEL_NAME="ep-2025..." # 来自火山引擎的推理接入点 ID 或模型名称
-MIDSCENE_USE_VLM_UI_TARS=DOUBAO
-```
-
-**限制**
-
-- **断言表现不佳**：它在断言和视觉理解方面可能不如其他模型
-- **操作路径不稳定**：它可能会尝试不同的路径来实现目标，因此每次调用的操作路径不稳定。
-
-**关于 `MIDSCENE_USE_VLM_UI_TARS` 配置**
-
-`MIDSCENE_USE_VLM_UI_TARS` 配置用于指定 UI-TARS 版本，使用以下值之一：
-- `1.0` - 用于模型版本 `1.0`
-- `1.5` - 用于模型版本 `1.5`
-- `DOUBAO` - 用于在火山引擎上部署的模型
-
-**链接**
-- [UI-TARS on 🤗 HuggingFace](https://huggingface.co/bytedance-research/UI-TARS-72B-SFT)
-- [UI-TARS on Github](https://github.com/bytedance/ui-tars)
-- [UI-TARS - Model Deployment Guide](https://juniper-switch-f10.notion.site/UI-TARS-Model-Deployment-Guide-17b5350241e280058e98cea60317de71)
-- [UI-TARS on Volcengine](https://www.volcengine.com/docs/82379/1536429)
-
-
-<div id="gpt-4o"></div>
-### <del>`GPT-4o`</del>
-
-从 1.0 版本开始，Midscene 不再支持使用 GPT-4o 作为 UI 操作的规划模型。
-
-更多详细信息和示例配置，请参见[模型配置](./model-config)。
+请参考 [模型配置](./model-config)。
 
 ## 模型配置
 
