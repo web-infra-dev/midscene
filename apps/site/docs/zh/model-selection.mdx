@@ -9,7 +9,7 @@ import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connect
 
 在 Midscene 中，我们将模型的使用意图（Intent）分为两种，*Planning* (操作规划) 与 *Insight* (洞察)。
 
-开发者必须选择一个默认模型用于 *Planning* 意图。*Insight* 意图会默认复用 *Planning* 的模型，无需特殊配置。
+开发者必须选择一个适用于 *Planning* 意图的默认模型。*Insight* 意图会默认复用此配置，无需特殊处理。
 
 本篇文档会重点介绍 Midscene 的模型选用策略。如果你需要进行模型配置，请参考 [模型配置](./model-config)。
 
@@ -60,11 +60,11 @@ Midscene 选择了“纯视觉路线”，即意味着模型需要有能力提�
 
 ## *Insight* 意图
 
-Midscene 提供了基于页面理解的数据处理接口，如 AI 断言（`aiAssert`）、数据提取（`aiQuery`，`aiAsk`） 等，我们把这类意图归类为 *Insight*。
+Midscene 提供了基于页面理解的数据处理接口，如 AI 断言（`aiAssert`）、数据提取（`aiQuery`，`aiAsk`） 等，我们把这类意图归类为 *Insight*，它的效果取决于模型在视觉问答（VQA）领域的表现。
 
 在默认情况下，Midscene 会复用 *Planning* 模型来完成 *Insight* 类的工作，开发者无需额外配置，这个策略可以满足绝大多数项目。
 
-若开发者对 Insight 的准确性、细节理解力有特殊要求，也可以为 Insight 意图额外增加一个专用模型。此时你可以选用任意接受图片输入的多模态模型来承接，如 `GPT-5`,`Gemini-2.5-pro` 等。一般来说，在视觉问答（VQA）领域测评分数更高的模型会获得更好的表现。
+若开发者对 Insight 的准确性、细节理解力有特殊要求，也可以为 Insight 意图额外增加一个专用模型。此时你可以选用任意接受图片输入的多模态模型来承接，如 `GPT-5`,`Gemini-2.5-pro` 等。
 
 ## 更多
 
