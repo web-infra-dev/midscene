@@ -94,9 +94,11 @@ npx tsx demo.ts
 
 当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: /path/to/report/some_id.html`， 通过浏览器打开该文件即可看到报告。
 
-## 与远程 Puppeteer 集成 Midscene Agent
+## 示例：连接远程 Puppeteer 浏览器并接入 Midscene Agent
 
-当你需要更精细地控制连接过程，或者想要集成到自定义基础设施时，可以手动：
+当你想复用已有的远程浏览器（例如云端常驻的 worker、第三方浏览器网格或本地内网桌面）时，可以通过此流程把 Midscene 接到远程 Puppeteer 实例上。这样做能让浏览器靠近目标环境、降低重复启动成本，并统一管理浏览器资源，同时保持一致的 AI 自动化能力。
+
+实践中你需要手动：
 1. 从远程浏览器服务获取 CDP WebSocket URL
 2. 使用 Puppeteer 连接到远程浏览器
 3. 创建 Midscene 代理进行 AI 驱动的自动化

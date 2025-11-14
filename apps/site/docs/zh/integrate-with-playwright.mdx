@@ -289,18 +289,16 @@ npx playwright test ./e2e/ebay-search.spec.ts
 
 当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: ./current_cwd/midscene_run/report/some_id.html`，通过浏览器打开该文件即可看到报告。
 
-## 与远程 Playwright 集成 Midscene Agent
+## 示例：连接远程 Playwright 浏览器并接入 Midscene Agent
 
-当你需要更精细地控制连接过程，或者想要集成到自定义基础设施时，可以手动：
+当你想复用已有的远程浏览器（例如云端常驻的 worker、第三方浏览器服务或本地内网桌面）时，可通过此流程将 Midscene 与远程 Playwright 实例打通。这样可以让浏览器贴近目标环境、降低启动开销，并集中管理浏览器资源，同时保持一致的 AI 自动化能力。
+
+实践中你需要手动：
 1. 从远程浏览器服务获取 CDP WebSocket URL
 2. 使用 Playwright 连接到远程浏览器
 3. 创建 Midscene 代理进行 AI 驱动的自动化
 
-### 前置依赖
-
-<PackageManagerTabs command="install playwright @midscene/web --save-dev" />
-
-### 基础示例
+对应的示例代码如下：
 
 ```typescript
 import { chromium } from 'playwright';

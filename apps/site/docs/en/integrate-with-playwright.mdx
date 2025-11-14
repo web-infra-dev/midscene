@@ -290,18 +290,16 @@ npx playwright test ./e2e/ebay-search.spec.ts
 
 After the command executes successfully, it will output: `Midscene - report file updated: ./current_cwd/midscene_run/report/some_id.html`. Open this file in your browser to view the report.
 
-## Remote Playwright Integration with Midscene Agent
+## Example: Connect Midscene Agent to a Remote Playwright Browser
 
-When you need more fine-grained control over the connection process or want to integrate with custom infrastructure, you can manually:
-1. Obtain a CDP WebSocket URL from a remote browser service
+Use this flow when you want to reuse an existing browser that already runs in your own infrastructure (for example, a persistent cloud worker, a vendor-provided browser grid, or an on-premises desktop). Connecting Midscene to that remote Playwright instance lets you keep browsers close to the target environment, reduce startup costs, and centralize resource management while still using the same AI automation APIs.
+
+In practice you manually:
+1. Obtain a CDP WebSocket URL from the remote browser service
 2. Use Playwright to connect to the remote browser
 3. Create a Midscene agent for AI-driven automation
 
-### Prerequisites
-
-<PackageManagerTabs command="install playwright @midscene/web --save-dev" />
-
-### Basic Example
+The corresponding example code is as follows:
 
 ```typescript
 import { chromium } from 'playwright';
