@@ -217,7 +217,8 @@ export const convertPlanningStyleToVlMode = (
   const parsed = parseVlModeAndUiTarsModelVersionFromRawValue(vlModeRaw);
   return {
     vlModeRaw,
-    ...parsed,
+    vlMode: parsed.vlMode!, // Non-null assertion: vlModeRaw is always a valid value
+    uiTarsVersion: parsed.uiTarsVersion,
   };
 };
 
