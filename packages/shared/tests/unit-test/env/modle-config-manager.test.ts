@@ -14,6 +14,12 @@ import {
   MIDSCENE_PLANNING_MODEL_API_KEY,
   MIDSCENE_PLANNING_MODEL_BASE_URL,
   MIDSCENE_PLANNING_MODEL_NAME,
+  MIDSCENE_PLANNING_STYLE,
+  MIDSCENE_USE_DOUBAO_VISION,
+  MIDSCENE_USE_GEMINI,
+  MIDSCENE_USE_QWEN3_VL,
+  MIDSCENE_USE_QWEN_VL,
+  MIDSCENE_USE_VLM_UI_TARS,
   OPENAI_API_KEY,
   OPENAI_BASE_URL,
 } from '../../../src/env/types';
@@ -296,31 +302,55 @@ describe('ModelConfigManager', () => {
       expect(config.modelName).toBe('qwen-vl-plus');
     });
 
-    it('should throw error when planning has no vlMode in normal mode', () => {
+    it('should automatically infer planning style for gpt-4 in normal mode', () => {
+      // Clear all env vars first
+      vi.unstubAllEnvs();
+
+      // Also delete any legacy environment variables from process.env
+      delete process.env[MIDSCENE_USE_DOUBAO_VISION];
+      delete process.env[MIDSCENE_USE_QWEN_VL];
+      delete process.env[MIDSCENE_USE_QWEN3_VL];
+      delete process.env[MIDSCENE_USE_VLM_UI_TARS];
+      delete process.env[MIDSCENE_USE_GEMINI];
+      delete process.env[MIDSCENE_PLANNING_STYLE];
+      delete process.env[MIDSCENE_PLANNING_LOCATOR_MODE];
+
       // Set default env vars needed for calcModelConfigMapBaseOnEnv
       vi.stubEnv(OPENAI_API_KEY, 'default-test-key');
 
       vi.stubEnv(MIDSCENE_PLANNING_MODEL_NAME, 'gpt-4');
       vi.stubEnv(MIDSCENE_PLANNING_MODEL_API_KEY, 'test-key');
       vi.stubEnv(MIDSCENE_PLANNING_MODEL_BASE_URL, 'https://api.openai.com/v1');
-      // Intentionally not setting MIDSCENE_PLANNING_LOCATOR_MODE
+      // Intentionally not setting MIDSCENE_PLANNING_STYLE or MIDSCENE_PLANNING_LOCATOR_MODE
 
       const manager = new ModelConfigManager();
       manager.registerGlobalConfigManager(new GlobalConfigManager());
 
-      expect(() => manager.getModelConfig('planning')).toThrow(
-        'Planning requires a vision language model (VL model). DOM-based planning is not supported.',
-      );
+      // gpt-4 should now automatically infer to 'default' planning style
+      const config = manager.getModelConfig('planning');
+      expect(config.modelName).toBe('gpt-4');
+      expect(config.vlMode).toBe('qwen3-vl'); // 'default' maps to qwen3-vl
     });
 
     it('should succeed when planning has valid vlMode in normal mode', () => {
+      // Clear all env vars first
+      vi.unstubAllEnvs();
+
+      // Also delete any legacy environment variables from process.env
+      delete process.env[MIDSCENE_USE_DOUBAO_VISION];
+      delete process.env[MIDSCENE_USE_QWEN_VL];
+      delete process.env[MIDSCENE_USE_QWEN3_VL];
+      delete process.env[MIDSCENE_USE_VLM_UI_TARS];
+      delete process.env[MIDSCENE_USE_GEMINI];
+      delete process.env[MIDSCENE_PLANNING_LOCATOR_MODE];
+
       // Set default env vars needed for calcModelConfigMapBaseOnEnv
       vi.stubEnv(OPENAI_API_KEY, 'default-test-key');
 
       vi.stubEnv(MIDSCENE_PLANNING_MODEL_NAME, 'qwen-vl-plus');
       vi.stubEnv(MIDSCENE_PLANNING_MODEL_API_KEY, 'test-key');
       vi.stubEnv(MIDSCENE_PLANNING_MODEL_BASE_URL, 'https://api.openai.com/v1');
-      vi.stubEnv(MIDSCENE_PLANNING_LOCATOR_MODE, 'qwen-vl');
+      vi.stubEnv(MIDSCENE_PLANNING_STYLE, 'qwen-vl');
 
       const manager = new ModelConfigManager();
       manager.registerGlobalConfigManager(new GlobalConfigManager());
@@ -425,9 +455,21 @@ describe('ModelConfigManager', () => {
     });
 
     it('should inject createOpenAIClient into config when provided in normal mode', () => {
+      // Clear all env vars first
+      vi.unstubAllEnvs();
+
+      // Also delete any legacy environment variables from process.env
+      delete process.env[MIDSCENE_USE_DOUBAO_VISION];
+      delete process.env[MIDSCENE_USE_QWEN_VL];
+      delete process.env[MIDSCENE_USE_QWEN3_VL];
+      delete process.env[MIDSCENE_USE_VLM_UI_TARS];
+      delete process.env[MIDSCENE_USE_GEMINI];
+      delete process.env[MIDSCENE_PLANNING_LOCATOR_MODE];
+
       vi.stubEnv(MIDSCENE_MODEL_NAME, 'gpt-4');
       vi.stubEnv(OPENAI_API_KEY, 'test-key');
       vi.stubEnv(OPENAI_BASE_URL, 'https://api.openai.com/v1');
+      vi.stubEnv(MIDSCENE_PLANNING_STYLE, 'qwen3-vl'); // Add planning style
 
       const mockCreateClient = vi.fn();
       const manager = new ModelConfigManager(undefined, mockCreateClient);

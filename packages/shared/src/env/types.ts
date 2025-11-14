@@ -114,6 +114,7 @@ export const MIDSCENE_PLANNING_MODEL_API_KEY =
 export const MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON =
   'MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON';
 export const MIDSCENE_PLANNING_LOCATOR_MODE = 'MIDSCENE_PLANNING_LOCATOR_MODE';
+export const MIDSCENE_PLANNING_STYLE = 'MIDSCENE_PLANNING_STYLE';
 
 /**
  * env keys declared but unused
@@ -214,6 +215,7 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_PLANNING_MODEL_API_KEY,
   MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON,
   MIDSCENE_PLANNING_LOCATOR_MODE,
+  MIDSCENE_PLANNING_STYLE,
 ] as const;
 
 export const ALL_ENV_KEYS = [
@@ -241,6 +243,32 @@ export type TVlModeTypes =
   | 'doubao-vision'
   | 'gemini'
   | 'vlm-ui-tars';
+
+export const VL_MODE_RAW_VALID_VALUES: TVlModeValues[] = [
+  'doubao-vision',
+  'gemini',
+  'qwen-vl',
+  'qwen3-vl',
+  'vlm-ui-tars',
+  'vlm-ui-tars-doubao',
+  'vlm-ui-tars-doubao-1.5',
+];
+
+/**
+ * Planning style values - unified model configuration approach
+ * Replaces the old MIDSCENE_USE_* environment variables
+ *
+ * Note: These values directly correspond to VL_MODE_RAW_VALID_VALUES
+ * - 'default' is equivalent to 'qwen3-vl'
+ * - 'qwen-vl' is Qwen 2.5
+ * - 'qwen3-vl' is Qwen 3
+ */
+export type TPlanningStyle = 'default' | TVlModeValues;
+
+export const PLANNING_STYLE_VALUES: TPlanningStyle[] = [
+  'default',
+  ...VL_MODE_RAW_VALID_VALUES,
+];
 
 export interface IModelConfigForInsight {
   // model name
@@ -343,16 +371,6 @@ export enum UITarsModelVersion {
   DOUBAO_1_5_15B = 'doubao-1.5-15B',
   DOUBAO_1_5_20B = 'doubao-1.5-20B',
 }
-
-export const VL_MODE_RAW_VALID_VALUES: TVlModeValues[] = [
-  'doubao-vision',
-  'gemini',
-  'qwen-vl',
-  'qwen3-vl',
-  'vlm-ui-tars',
-  'vlm-ui-tars-doubao',
-  'vlm-ui-tars-doubao-1.5',
-];
 
 /**
  * Callback to create custom OpenAI client instance

@@ -1,9 +1,12 @@
 import {
+  MIDSCENE_PLANNING_STYLE,
   MIDSCENE_USE_DOUBAO_VISION,
   MIDSCENE_USE_GEMINI,
   MIDSCENE_USE_QWEN3_VL,
   MIDSCENE_USE_QWEN_VL,
   MIDSCENE_USE_VLM_UI_TARS,
+  PLANNING_STYLE_VALUES,
+  type TPlanningStyle,
   type TVlModeTypes,
   type TVlModeValues,
   UITarsModelVersion,
@@ -128,4 +131,230 @@ export const parseVlModeAndUiTarsFromGlobalConfig = (
     vlMode: undefined,
     uiTarsVersion: undefined,
   };
+};
+
+/**
+ * Infer planning style from model name
+ * @param modelName - The model name to infer from
+ * @returns The inferred planning style or undefined if cannot infer
+ */
+export const inferPlanningStyleFromModelName = (
+  modelName?: string,
+): TPlanningStyle | undefined => {
+  if (!modelName) {
+    return undefined;
+  }
+
+  const lowerModelName = modelName.toLowerCase();
+
+  // Qwen models - qwen3 must have '3' character
+  if (lowerModelName.includes('qwen3')) {
+    return 'qwen3-vl';
+  }
+  if (lowerModelName.includes('qwen2.5') || lowerModelName.includes('qwen')) {
+    return 'qwen-vl';
+  }
+
+  // Doubao models
+  if (lowerModelName.includes('doubao')) {
+    return 'doubao-vision';
+  }
+
+  // UI-TARS models
+  if (lowerModelName.includes('ui-tars') || lowerModelName.includes('uitars')) {
+    if (lowerModelName.includes('doubao') || lowerModelName.includes('1.5')) {
+      return 'vlm-ui-tars-doubao-1.5';
+    }
+    return 'vlm-ui-tars';
+  }
+
+  // Gemini models
+  if (lowerModelName.includes('gemini')) {
+    return 'gemini';
+  }
+
+  // OpenAI and Claude models (gpt-*, o1-*, claude-*, etc.)
+  // These models typically work with the default planning style
+  if (
+    lowerModelName.includes('gpt-') ||
+    lowerModelName.includes('o1-') ||
+    lowerModelName.includes('claude')
+  ) {
+    return 'default';
+  }
+
+  return undefined;
+};
+
+/**
+ * Convert planning style to vlModeRaw and uiTarsVersion
+ * @param planningStyle - The planning style to convert
+ * @returns Object with vlMode and uiTarsVersion
+ *
+ * Note: Most planning styles map 1:1 to vlModeRaw, except:
+ * - 'default' -> 'qwen3-vl'
+ */
+export const convertPlanningStyleToVlMode = (
+  planningStyle: TPlanningStyle,
+): {
+  vlModeRaw: TVlModeValues;
+  vlMode: TVlModeTypes;
+  uiTarsVersion?: UITarsModelVersion;
+} => {
+  // Handle 'default' -> 'qwen3-vl'
+  if (planningStyle === 'default') {
+    return {
+      vlModeRaw: 'qwen3-vl',
+      vlMode: 'qwen3-vl',
+      uiTarsVersion: undefined,
+    };
+  }
+
+  // For all other values, planning style directly maps to vlModeRaw
+  const vlModeRaw = planningStyle as TVlModeValues;
+
+  // Parse to get vlMode and uiTarsVersion
+  const parsed = parseVlModeAndUiTarsModelVersionFromRawValue(vlModeRaw);
+  return {
+    vlModeRaw,
+    ...parsed,
+  };
+};
+
+/**
+ * Check if old MIDSCENE_USE_* environment variables are being used
+ * @param provider - Environment variable provider
+ * @returns Array of legacy environment variable names that are set
+ */
+export const detectLegacyVlModeEnvVars = (
+  provider: Record<string, string | undefined>,
+): string[] => {
+  const legacyVars = [
+    MIDSCENE_USE_DOUBAO_VISION,
+    MIDSCENE_USE_QWEN_VL,
+    MIDSCENE_USE_QWEN3_VL,
+    MIDSCENE_USE_VLM_UI_TARS,
+    MIDSCENE_USE_GEMINI,
+  ];
+
+  return legacyVars.filter((varName) => provider[varName]);
+};
+
+/**
+ * Parse planning style from environment variables with validation and warnings
+ * Supports both new MIDSCENE_PLANNING_STYLE and legacy MIDSCENE_USE_* variables
+ *
+ * @param provider - Environment variable provider
+ * @param modelName - Optional model name for inference
+ * @returns Object with vlMode, uiTarsVersion, and warnings
+ */
+export const parsePlanningStyleFromEnv = (
+  provider: Record<string, string | undefined>,
+  modelName?: string,
+): {
+  vlMode?: TVlModeTypes;
+  vlModeRaw?: TVlModeValues;
+  uiTarsVersion?: UITarsModelVersion;
+  warnings: string[];
+  planningStyle?: TPlanningStyle;
+} => {
+  const warnings: string[] = [];
+  const planningStyleRaw = provider[MIDSCENE_PLANNING_STYLE];
+  const legacyVars = detectLegacyVlModeEnvVars(provider);
+
+  // Case 1: Both new and legacy variables are set - ERROR
+  if (planningStyleRaw && legacyVars.length > 0) {
+    throw new Error(
+      `Conflicting configuration detected: Both MIDSCENE_PLANNING_STYLE and legacy environment variables (${legacyVars.join(', ')}) are set. Please use only MIDSCENE_PLANNING_STYLE.`,
+    );
+  }
+
+  // Case 2: Only new MIDSCENE_PLANNING_STYLE is set
+  if (planningStyleRaw) {
+    const planningStyle = planningStyleRaw as TPlanningStyle;
+
+    // Validate planning style value
+    if (!PLANNING_STYLE_VALUES.includes(planningStyle)) {
+      throw new Error(
+        `Invalid MIDSCENE_PLANNING_STYLE value: "${planningStyleRaw}". Must be one of: ${PLANNING_STYLE_VALUES.join(', ')}`,
+      );
+    }
+
+    const result = convertPlanningStyleToVlMode(planningStyle);
+    return {
+      ...result,
+      planningStyle,
+      warnings,
+    };
+  }
+
+  // Case 3: Only legacy variables are set - WARN
+  if (legacyVars.length > 0) {
+    const legacyResult = parseVlModeAndUiTarsFromGlobalConfig(provider);
+
+    warnings.push(
+      `DEPRECATED: Environment variable ${legacyVars.join(', ')} is deprecated. Please use MIDSCENE_PLANNING_STYLE instead. See migration guide for details.`,
+    );
+
+    // Map legacy vlMode to planning style for display
+    // Since planning style now directly uses vlModeRaw values,
+    // we need to construct the vlModeRaw from vlMode + uiTarsVersion
+    let planningStyle: TPlanningStyle | undefined;
+    let vlModeRaw: TVlModeValues | undefined;
+
+    if (legacyResult.vlMode === 'vlm-ui-tars') {
+      // UI-TARS needs special handling for version
+      if (legacyResult.uiTarsVersion === UITarsModelVersion.V1_0) {
+        planningStyle = 'vlm-ui-tars';
+        vlModeRaw = 'vlm-ui-tars';
+      } else if (
+        legacyResult.uiTarsVersion === UITarsModelVersion.DOUBAO_1_5_20B
+      ) {
+        planningStyle = 'vlm-ui-tars-doubao-1.5';
+        vlModeRaw = 'vlm-ui-tars-doubao-1.5';
+      } else {
+        // Handle other UI-TARS versions (vlm-ui-tars-doubao)
+        planningStyle = 'vlm-ui-tars-doubao';
+        vlModeRaw = 'vlm-ui-tars-doubao';
+      }
+    } else if (legacyResult.vlMode) {
+      // For other modes, planning style directly matches vlMode
+      planningStyle = legacyResult.vlMode as TPlanningStyle;
+      vlModeRaw = legacyResult.vlMode as TVlModeValues;
+    }
+
+    return {
+      vlMode: legacyResult.vlMode,
+      vlModeRaw,
+      uiTarsVersion: legacyResult.uiTarsVersion,
+      planningStyle,
+      warnings,
+    };
+  }
+
+  // Case 4: No configuration set - try to infer from model name
+  if (modelName) {
+    const inferredStyle = inferPlanningStyleFromModelName(modelName);
+
+    if (inferredStyle) {
+      const result = convertPlanningStyleToVlMode(inferredStyle);
+      warnings.push(
+        `No MIDSCENE_PLANNING_STYLE configured. Automatically inferred "${inferredStyle}" mode from model name "${modelName}". Set MIDSCENE_PLANNING_STYLE explicitly to suppress this warning.`,
+      );
+      return {
+        ...result,
+        planningStyle: inferredStyle,
+        warnings,
+      };
+    } else {
+      throw new Error(
+        `Unable to infer planning style from model name "${modelName}". Please set MIDSCENE_PLANNING_STYLE to one of: ${PLANNING_STYLE_VALUES.join(', ')}`,
+      );
+    }
+  }
+
+  // Case 5: No configuration and no model name - ERROR
+  throw new Error(
+    `MIDSCENE_PLANNING_STYLE is required for planning tasks. Please set it to one of: ${PLANNING_STYLE_VALUES.join(', ')}`,
+  );
 };
