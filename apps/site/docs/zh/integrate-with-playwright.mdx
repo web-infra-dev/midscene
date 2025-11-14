@@ -1,4 +1,5 @@
 import SetupEnv from './common/setup-env.mdx';
+import GetCdpUrl from './common/get-cdp-url.mdx';
 import { PackageManagerTabs } from '@theme';
 
 # 集成到 Playwright
@@ -291,6 +292,10 @@ npx playwright test ./e2e/ebay-search.spec.ts
 
 ## 与远程 Playwright 集成 Midscene Agent
 
+:::info 示例项目
+你可以在这里找到远程 Playwright 集成的示例项目：[https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo](https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo)
+:::
+
 当你需要更精细地控制连接过程，或者想要集成到自定义基础设施时，可以手动：
 1. 从远程浏览器服务获取 CDP WebSocket URL
 2. 使用 Playwright 连接到远程浏览器
@@ -298,7 +303,9 @@ npx playwright test ./e2e/ebay-search.spec.ts
 
 ### 前置依赖
 
-<PackageManagerTabs command="install playwright @midscene/web --save-dev" />
+<PackageManagerTabs command="install playwright @playwright/test @midscene/web --save-dev" />
+
+<GetCdpUrl />
 
 ### 基础示例
 

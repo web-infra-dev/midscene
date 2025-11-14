@@ -1,4 +1,5 @@
 import SetupEnv from './common/setup-env.mdx';
+import GetCdpUrl from './common/get-cdp-url.mdx';
 import { PackageManagerTabs } from '@theme';
 
 # Integrate with Playwright
@@ -292,6 +293,10 @@ After the command executes successfully, it will output: `Midscene - report file
 
 ## Remote Playwright Integration with Midscene Agent
 
+:::info Example Project
+You can find an example project of remote Playwright integration here: [https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo](https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo)
+:::
+
 When you need more fine-grained control over the connection process or want to integrate with custom infrastructure, you can manually:
 1. Obtain a CDP WebSocket URL from a remote browser service
 2. Use Playwright to connect to the remote browser
@@ -299,7 +304,9 @@ When you need more fine-grained control over the connection process or want to i
 
 ### Prerequisites
 
-<PackageManagerTabs command="install playwright @midscene/web --save-dev" />
+<PackageManagerTabs command="install playwright @playwright/test @midscene/web --save-dev" />
+
+<GetCdpUrl />
 
 ### Basic Example
 
