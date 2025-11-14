@@ -1,233 +1,201 @@
 import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connectivity.mdx';
 
-# Model configuration
+# Model Configuration
 
-Midscene uses the OpenAI SDK to call AI services. Using this SDK limits the input and output schema of AI services, but it doesn't mean you can only use OpenAI's services. You can use any model service that supports the same interface (most platforms or tools support this).
+Midscene reads configuration from operating-system environment variables.
 
-In this article, we will show you how to config AI service provider and how to choose a different model. You may read [Model strategy](./model-strategy) first to learn more about how to choose a model.
+Midscene ships with OpenAI SDK support out of the box. That SDK constrains the request / response schema, and most model vendors (or deployment tools) already expose OpenAI-compatible endpoints, so you can swap providers freely.
 
-## Configs
+This guide dives into the configuration parameters. If you are looking for model-selection guidance, read [Model strategy](./model-strategy).
 
-### Common configs
-These are the most common configs, in which `MIDSCENE_MODEL_API_KEY` or `OPENAI_API_KEY` is required.
+## Quick start
 
-| Name | Description |
-|------|-------------|
-| `MIDSCENE_MODEL_API_KEY` | Required (recommended). Your API key (e.g. "sk-abcdefghijklmnopqrstuvwxyz") |
-| `MIDSCENE_MODEL_BASE_URL` | Optional (recommended). Custom endpoint URL for API endpoint. Use it to switch to a provider other than OpenAI (e.g. "https://some_service_name.com/v1") |
-| `OPENAI_API_KEY` | Deprecated but still compatible. Recommended to use `MIDSCENE_MODEL_API_KEY` |
-| `OPENAI_BASE_URL` | Deprecated but still compatible. Recommended to use `MIDSCENE_MODEL_BASE_URL` |
-| `MIDSCENE_MODEL_NAME` | Optional. Specify a different model name other than `gpt-4o` |
+Configuration snippets for common models.
 
-Extra configs to use `Qwen 2.5 VL` model:
+### Doubao Seed vision models
 
-| Name | Description |
-|------|-------------|
-| `MIDSCENE_USE_QWEN_VL` | Set to "1" to use the adapter of Qwen 2.5 VL model |
-
-Extra configs to use `UI-TARS` model:
-
-| Name | Description |
-|------|-------------|
-| `MIDSCENE_USE_VLM_UI_TARS` | Version of UI-TARS model, supported values are `1.0` `1.5` `DOUBAO` (volcengine version) |
-
-Extra configs to use `Gemini 2.5 Pro` model:
-
-| Name | Description |
-|------|-------------|
-| `MIDSCENE_USE_GEMINI` | Set to "1" to use the adapter of Gemini 2.5 Pro model |
-
-For more information about the models, see [Model strategy](./model-strategy).
-
-### Configure Models by Task Type (Advanced)
-
-Midscene internally categorizes AI tasks into different intent types. You can configure different models for different intents:
-
-- **Insight tasks**: Visual Question Answering (VQA) and Visual Grounding, such as `aiQuery`, `aiLocate`, `aiTap`, etc.
-- **Planning tasks**: Automatic planning tasks, such as `aiAct`
-- **Default tasks**: Other uncategorized tasks
-
-Each task type can have independent model configurations:
-
-| Task Type | Environment Variable Prefix | Description |
-|-----------|---------------------------|-------------|
-| Insight | `MIDSCENE_INSIGHT_MODEL_*` | For visual understanding and element location tasks |
-| Planning | `MIDSCENE_PLANNING_MODEL_*` | For automatic planning tasks |
-| Default | `MIDSCENE_MODEL_*` | Default configuration, used as fallback for other tasks |
-
-Complete configuration options supported by each prefix:
-
-| Configuration | Description |
-|--------------|-------------|
-| `*_MODEL_NAME` | Model name |
-| `*_MODEL_API_KEY` | API key |
-| `*_MODEL_BASE_URL` | API endpoint URL |
-| `*_MODEL_HTTP_PROXY` | HTTP/HTTPS proxy |
-| `*_MODEL_SOCKS_PROXY` | SOCKS proxy |
-| `*_MODEL_INIT_CONFIG_JSON` | OpenAI SDK initialization config JSON |
-| `*_LOCATOR_MODE` | Locator mode (e.g. `qwen3-vl`, `vlm-ui-tars`, etc.) |
-
-**Example: Configure different models for Insight and Planning tasks**
+Obtain an API key from [Volcano Engine](https://volcengine.com) and set:
 
 ```bash
-# Insight tasks use Qwen-VL model (for visual understanding and location)
-export MIDSCENE_INSIGHT_MODEL_NAME="qwen-vl-plus"
-export MIDSCENE_INSIGHT_MODEL_API_KEY="sk-insight-key"
-export MIDSCENE_INSIGHT_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
-export MIDSCENE_INSIGHT_LOCATOR_MODE="qwen3-vl"
-
-# Planning tasks use GPT-4o model (for task planning)
-export MIDSCENE_PLANNING_MODEL_NAME="gpt-4o"
-export MIDSCENE_PLANNING_MODEL_API_KEY="sk-planning-key"
-export MIDSCENE_PLANNING_MODEL_BASE_URL="https://api.openai.com/v1"
-export MIDSCENE_PLANNING_LOCATOR_MODE="qwen3-vl"
-
-# Default configuration (used as fallback)
-export MIDSCENE_MODEL_NAME="gpt-4o"
-export MIDSCENE_MODEL_API_KEY="sk-default-key"
+MIDSCENE_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
+MIDSCENE_MODEL_API_KEY="...."
+MIDSCENE_MODEL_NAME="ep-..." # Inference endpoint ID or model name from Volcano Engine
+MIDSCENE_USE_DOUBAO_VISION=1
 ```
 
-:::tip
+### Qwen3-VL
 
-If a task type's configuration is not set, Midscene will automatically use the default `MIDSCENE_MODEL_*` configuration. In most cases, you only need to configure the default `MIDSCENE_MODEL_*` variables.
-
-:::
-
-### Advanced configs
-
-Some advanced configs are also supported. Usually you don't need to use them.
-
-| Name | Description |
-|------|-------------|
-| `MIDSCENE_MODEL_INIT_CONFIG_JSON` | Optional (recommended). Custom JSON config for OpenAI SDK initialization |
-| `MIDSCENE_MODEL_HTTP_PROXY` | Optional (recommended). HTTP/HTTPS proxy configuration (e.g. `http://127.0.0.1:8080` or `https://proxy.example.com:8080`). This option has higher priority than `MIDSCENE_MODEL_SOCKS_PROXY` |
-| `MIDSCENE_MODEL_SOCKS_PROXY` | Optional (recommended). SOCKS proxy configuration (e.g. "socks5://127.0.0.1:1080") |
-| `MIDSCENE_OPENAI_INIT_CONFIG_JSON` | Deprecated but still compatible. Recommended to use `MIDSCENE_MODEL_INIT_CONFIG_JSON` |
-| `MIDSCENE_OPENAI_HTTP_PROXY` | Deprecated but still compatible. Recommended to use `MIDSCENE_MODEL_HTTP_PROXY` |
-| `MIDSCENE_OPENAI_SOCKS_PROXY` | Deprecated but still compatible. Recommended to use `MIDSCENE_MODEL_SOCKS_PROXY` |
-| `MIDSCENE_PREFERRED_LANGUAGE` | Optional. The preferred language for the model response. The default is `Chinese` if the current timezone is GMT+8 and `English` otherwise. |
-| `MIDSCENE_REPLANNING_CYCLE_LIMIT` | Optional. The maximum number of replanning cycles, default is 10 |
-| `MIDSCENE_MODEL_MAX_TOKENS` | Optional (recommended). Maximum tokens for model response, default is 2048 |
-| `OPENAI_MAX_TOKENS` | Deprecated but still compatible. Recommended to use `MIDSCENE_MODEL_MAX_TOKENS` |
-
-### Debug configs
-
-By setting the following configs, you can see more logs for debugging. And also, they will be printed into the `./midscene_run/log` folder.
-
-| Name | Description |
-|------|-------------|
-| `DEBUG=midscene:ai:profile:stats` | Optional. Set this to print the AI service cost time, token usage, etc. in comma separated format, useful for analysis |
-| `DEBUG=midscene:ai:profile:detail` | Optional. Set this to print the AI token usage details |
-| `DEBUG=midscene:ai:call` | Optional. Set this to print the AI response details |
-| `DEBUG=midscene:android:adb` | Optional. Set this to print the adb command calling details |
-
-## Two ways to configure environment variables
-
-Pick one of the following ways to config environment variables.
-
-### 1. Set environment variables in your system
+Using Alibaba Cloud’s `qwen3-vl-plus` as an example:
 
 ```bash
-# replace by your own
-export MIDSCENE_MODEL_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
-
-# if you are not using the default OpenAI model, you need to config more params
-# export MIDSCENE_MODEL_NAME="..."
+MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen3-vl-plus"
+MIDSCENE_USE_QWEN3_VL=1 # Note: cannot be used together with MIDSCENE_USE_QWEN_VL
 ```
 
-### 2. Set environment variables using dotenv
+### Qwen2.5-VL
 
-This is what we used in our [demo project](https://github.com/web-infra-dev/midscene-example).
+Using Alibaba Cloud’s `qwen-vl-max-latest` as an example:
 
-[Dotenv](https://www.npmjs.com/package/dotenv) is a zero-dependency module that loads environment variables from a `.env` file into `process.env`.
+```bash
+MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
+MIDSCENE_USE_QWEN_VL=1 # Note: cannot be used together with MIDSCENE_USE_QWEN3_VL
+```
+
+### Gemini-2.5-Pro
+
+After requesting an API key from [Google Gemini](https://gemini.google.com/), configure:
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="gemini-2.5-pro-preview-05-06"
+MIDSCENE_USE_GEMINI=1
+```
+
+### UI-TARS
+
+Use the deployed `doubao-1.5-ui-tars` on [Volcano Engine](https://volcengine.com):
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
+MIDSCENE_MODEL_API_KEY="...."
+MIDSCENE_MODEL_NAME="ep-2025..." # Inference endpoint ID or model name from Volcano Engine
+MIDSCENE_USE_VLM_UI_TARS=DOUBAO
+```
+
+**About `MIDSCENE_USE_VLM_UI_TARS`**
+
+This variable selects the UI-TARS version. Supported values:
+- `1.0` – for the 1.0 release
+- `1.5` – for the 1.5 release
+- `DOUBAO` – for models deployed on Volcano Engine
+
+### <del>`GPT-4o`</del>
+
+Starting with version 1.0, Midscene no longer supports GPT-4o as the UI operation planning model. See [Model strategy](./model-strategy) for details.
+
+## Ways to set environment variables
+
+Store all configuration in environment variables. Below are common approaches, but feel free to adopt any method used in your project.
+
+### Method 1: Set variables in the system
+
+> The Midscene Chrome extension also accepts this `export KEY="value"` format.
+
+```bash
+# Replace with your own API key
+export MIDSCENE_MODEL_API_KEY="sk-abcde..."
+export MIDSCENE_MODEL_BASE_URL="https://.../compatible-mode/v1"
+export MIDSCENE_MODEL_API_KEY="......"
+export MIDSCENE_MODEL_NAME="qwen3-vl-plus"
+```
+
+### Method 2: Create a `.env` file
+
+Create a `.env` file in the directory where you run the project. Midscene CLI tools load this file automatically.
+
+```bash
+MIDSCENE_MODEL_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+```
+
+Keep in mind:
+1. You do **not** need to prefix each line with `export`.
+2. Only the Midscene CLI automatically reads this file. For the JavaScript SDK, load it manually as shown below.
+
+### Method 3: Load variables via dotenv
+
+[Dotenv](https://www.npmjs.com/package/dotenv) is a zero-dependency npm package that loads variables from `.env` into Node.js `process.env`.
+
+Our [demo project](https://github.com/web-infra-dev/midscene-example) uses this method.
 
 ```bash
 # install dotenv
 npm install dotenv --save
 ```
 
-Create a `.env` file in your project root directory, and add the following content. There is no need to add `export` before each line.
+Create a `.env` file in the project root and add (no `export` prefix):
 
-```
-MIDSCENE_MODEL_API_KEY=sk-abcdefghijklmnopqrstuvwxyz
+```bash
+MIDSCENE_MODEL_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
 ```
 
-Import the dotenv module in your script. It will automatically read the environment variables from the `.env` file.
+Import dotenv in your script; it will read `.env` automatically:
 
 ```typescript
 import 'dotenv/config';
 ```
 
-## Set config by JavaScript
+## Configuration items
 
-You can also override the config by javascript. Remember to call this before running Midscene codes.
+### Required settings
 
-```typescript
-import { overrideAIConfig } from "@midscene/web/puppeteer";
-// or import { overrideAIConfig } from "@midscene/web/playwright";
-// or import { overrideAIConfig } from "@midscene/android";
+| Name | Description |
+|------|-------------|
+| `MIDSCENE_MODEL_API_KEY` | Model API key, e.g., `"sk-abcd..."` |
+| `MIDSCENE_MODEL_BASE_URL` | API endpoint URL, usually ending with a version (e.g., `/v1`). Do not append `/chat/completion`. |
+| `MIDSCENE_MODEL_NAME` | Model name |
 
+### Advanced settings (optional)
 
-overrideAIConfig({
-  MIDSCENE_MODEL_NAME: "...",
-  MIDSCENE_MODEL_BASE_URL: "...", // recommended, use new variable name
-  MIDSCENE_MODEL_API_KEY: "...", // recommended, use new variable name
-  // ...
-});
-```
+| Name | Description |
+|------|-------------|
+| `MIDSCENE_MODEL_MAX_TOKENS` | `max_tokens` for responses, default 2048 |
+| `MIDSCENE_MODEL_HTTP_PROXY` | HTTP/HTTPS proxy, e.g., `http://127.0.0.1:8080` or `https://proxy.example.com:8080`. Takes precedence over `MIDSCENE_MODEL_SOCKS_PROXY`. |
+| `MIDSCENE_MODEL_SOCKS_PROXY` | SOCKS proxy, e.g., `socks5://127.0.0.1:1080` |
+| `MIDSCENE_MODEL_INIT_CONFIG_JSON` | JSON blob that overrides the OpenAI SDK initialization config |
+| `MIDSCENE_REPLANNING_CYCLE_LIMIT` | Maximum number of replanning cycles, default 10 |
+| `MIDSCENE_PREFERRED_LANGUAGE` | Optional. Preferred response language. Defaults to `Chinese` if timezone is GMT+8, otherwise `English`. |
 
-## Example: using `gpt-4o` from OpenAI
+### Configure a dedicated Insight model (optional)
 
-Configure the environment variables:
+Set the following if the Insight intent needs a different model:
 
-```bash
-export MIDSCENE_MODEL_API_KEY="sk-..."
-export MIDSCENE_MODEL_BASE_URL="https://endpoint.some_other_provider.com/v1" # config this if you want to use a different endpoint
-export MIDSCENE_MODEL_NAME="gpt-4o-2024-11-20" # optional, the default is "gpt-4o"
-```
+| Name | Description |
+|------|-------------|
+| `MIDSCENE_INSIGHT_MODEL_API_KEY` | API key |
+| `MIDSCENE_INSIGHT_MODEL_BASE_URL` | API endpoint URL (omit the trailing `/chat/completion`) |
+| `MIDSCENE_INSIGHT_MODEL_NAME` | Model name |
+| `MIDSCENE_INSIGHT_MODEL_HTTP_PROXY` | Optional; same effect as `MIDSCENE_MODEL_HTTP_PROXY` |
+| `MIDSCENE_INSIGHT_MODEL_SOCKS_PROXY` | Optional; same effect as `MIDSCENE_MODEL_SOCKS_PROXY` |
+| `MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON` | Optional; same effect as `MIDSCENE_MODEL_INIT_CONFIG_JSON` |
 
-## Example: using `qwen-vl-max-latest` from Aliyun
+### Debug logging switches (optional)
 
-Configure the environment variables:
+Enable the following variables to print richer debug logs. Regardless of the switches, logs are also saved under `./midscene_run/log`.
 
-```bash
-export MIDSCENE_MODEL_API_KEY="sk-..."
-export MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
-export MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
-export MIDSCENE_USE_QWEN_VL=1
-```
+| Name | Description |
+|------|-------------|
+| `DEBUG=midscene:ai:profile:stats` | Prints model latency, token usage, etc., comma-separated for easier analysis |
+| `DEBUG=midscene:ai:profile:detail` | Prints detailed token-usage logs |
+| `DEBUG=midscene:ai:call` | Prints AI response details |
+| `DEBUG=midscene:android:adb` | Prints Android adb command details |
+| `DEBUG=midscene:*` | Prints every debug log |
 
+### Still-compatible configs (not recommended)
 
-## Example: using `Doubao-1.5-thinking-vision-pro` from Volcano Engine
+| Name | Description |
+|------|-------------|
+| `OPENAI_API_KEY` | Deprecated but supported. Prefer `MIDSCENE_MODEL_API_KEY`. |
+| `OPENAI_BASE_URL` | Deprecated but supported. Prefer `MIDSCENE_MODEL_BASE_URL`. |
+| `MIDSCENE_OPENAI_INIT_CONFIG_JSON` | Deprecated but supported. Prefer `MIDSCENE_MODEL_INIT_CONFIG_JSON`. |
+| `MIDSCENE_OPENAI_HTTP_PROXY` | Deprecated but supported. Prefer `MIDSCENE_MODEL_HTTP_PROXY`. |
+| `MIDSCENE_OPENAI_SOCKS_PROXY` | Deprecated but supported. Prefer `MIDSCENE_MODEL_SOCKS_PROXY`. |
+| `OPENAI_MAX_TOKENS` | Deprecated but supported. Prefer `MIDSCENE_MODEL_MAX_TOKENS`. |
 
-Configure the environment variables:
+## Configure settings via JavaScript
 
-
-```bash
-export MIDSCENE_MODEL_BASE_URL="https://ark-cn-beijing.bytedance.net/api/v3"
-export MIDSCENE_MODEL_API_KEY="..."
-export MIDSCENE_MODEL_NAME='ep-...'
-export MIDSCENE_USE_DOUBAO_VISION=1
-```
-
-## Example: using `ui-tars-72b-sft` hosted by yourself
-
-Configure the environment variables:
-
-```bash
-export MIDSCENE_MODEL_API_KEY="sk-..."
-export MIDSCENE_MODEL_BASE_URL="http://localhost:1234/v1"
-export MIDSCENE_MODEL_NAME="ui-tars-72b-sft"
-export MIDSCENE_USE_VLM_UI_TARS=1
-```
-
-## Example: config request headers (like for openrouter)
-
-```bash
-export MIDSCENE_MODEL_BASE_URL="https://openrouter.ai/api/v1"
-export MIDSCENE_MODEL_API_KEY="..."
-export MIDSCENE_MODEL_NAME="..."
-export MIDSCENE_OPENAI_INIT_CONFIG_JSON='{"defaultHeaders":{"HTTP-Referer":"...","X-Title":"..."}}'
-```
+You can configure models for each agent in JavaScript. See the [API reference](./api) for details.
 
 <TroubleshootingLLMConnectivity />
+
+## FAQ
+
+### How can I monitor token usage?
+
+Set `DEBUG=midscene:ai:profile:stats` to print usage and latency.
+
+You can also find usage statistics inside the generated report files.
