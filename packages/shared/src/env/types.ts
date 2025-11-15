@@ -33,6 +33,7 @@ export const MIDSCENE_CACHE = 'MIDSCENE_CACHE';
 export const MIDSCENE_USE_VLM_UI_TARS = 'MIDSCENE_USE_VLM_UI_TARS';
 export const MIDSCENE_USE_QWEN_VL = 'MIDSCENE_USE_QWEN_VL';
 export const MIDSCENE_USE_QWEN3_VL = 'MIDSCENE_USE_QWEN3_VL';
+export const MIDSCENE_USE_QWEN_HIGH_RES = 'MIDSCENE_USE_QWEN_HIGH_RES';
 export const MIDSCENE_USE_DOUBAO_VISION = 'MIDSCENE_USE_DOUBAO_VISION';
 export const MIDSCENE_USE_GEMINI = 'MIDSCENE_USE_GEMINI';
 export const MIDSCENE_USE_VL_MODEL = 'MIDSCENE_USE_VL_MODEL';
@@ -249,6 +250,7 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_USE_VLM_UI_TARS,
   MIDSCENE_USE_QWEN_VL,
   MIDSCENE_USE_QWEN3_VL,
+  MIDSCENE_USE_QWEN_HIGH_RES,
   MIDSCENE_USE_DOUBAO_VISION,
   MIDSCENE_USE_GEMINI,
   MIDSCENE_USE_VL_MODEL,
@@ -551,6 +553,7 @@ export interface IModelConfig {
   vlModeRaw?: string;
   vlMode?: TVlModeTypes;
   uiTarsModelVersion?: UITarsModelVersion;
+  qwenHighResolution?: boolean;
   modelDescription: string;
   /**
    * for debug

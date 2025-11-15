@@ -225,7 +225,7 @@ export async function callAI(
         : Number.parseInt(maxTokens || '2048', 10),
     ...(vlMode === 'qwen-vl' || vlMode === 'qwen3-vl' // qwen specific config
       ? {
-          vl_high_resolution_images: true,
+          ...(modelConfig.qwenHighResolution === false ? {} : { vl_high_resolution_images: true }),
         }
       : {}),
   };
