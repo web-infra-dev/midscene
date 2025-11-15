@@ -3,6 +3,7 @@ import {
   MIDSCENE_USE_GEMINI,
   MIDSCENE_USE_QWEN3_VL,
   MIDSCENE_USE_QWEN_VL,
+  MIDSCENE_USE_QWEN_HIGH_RES,
   MIDSCENE_USE_VLM_UI_TARS,
   type TVlModeTypes,
   type TVlModeValues,
@@ -129,3 +130,27 @@ export const parseVlModeAndUiTarsFromGlobalConfig = (
     uiTarsVersion: undefined,
   };
 };
+
+export const parseQwenHighResolution = (
+  provider: Record<string, string | undefined>,
+): boolean | undefined => {
+  const qwenHighResFlag = provider[MIDSCENE_USE_QWEN_HIGH_RES];
+  if (qwenHighResFlag === undefined) return undefined;
+  
+  const normalizedFlag = qwenHighResFlag.toLowerCase().trim();
+  return ['true', '1', 'yes', 'on'].includes(normalizedFlag) && normalizedFlag !== '';
+};
+
+export const parseModelProvider = (
+  provider: Record<string, string | undefined>,
+): {
+  vlMode: TVlModeTypes | undefined;
+  qwenHighResolution: boolean | undefined;
+} => {
+  const { vlMode } = parseVlModeAndUiTarsFromGlobalConfig(provider);
+  const qwenHighResolution = parseQwenHighResolution(provider);
+  
+  return { vlMode, qwenHighResolution };
+};
+
+export { MIDSCENE_USE_QWEN_HIGH_RES };

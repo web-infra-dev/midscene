@@ -19,6 +19,7 @@ import { createAssert, maskConfig, parseJson } from './helper';
 import { initDebugConfig } from './init-debug';
 import {
   parseVlModeAndUiTarsFromGlobalConfig,
+  parseQwenHighResolution,
   parseVlModeAndUiTarsModelVersionFromRawValue,
 } from './parse';
 
@@ -219,6 +220,7 @@ export const decideModelConfigFromIntentConfig = (
   const { vlMode, uiTarsVersion } =
     parseVlModeAndUiTarsModelVersionFromRawValue(result.vlModeRaw);
 
+  const qwenHighResolution = undefined;
   const modelDescription = getModelDescription(vlMode, uiTarsVersion);
 
   const finalResult: IModelConfig = {
@@ -226,6 +228,7 @@ export const decideModelConfigFromIntentConfig = (
     modelName: intentConfig[chosenKeys.modelName]!,
     vlMode,
     uiTarsModelVersion: uiTarsVersion,
+    qwenHighResolution,
     modelDescription,
     from: 'modelConfig',
     intent,
@@ -263,6 +266,7 @@ export const decideModelConfigFromEnv = (
 
     const { vlMode, uiTarsVersion } =
       parseVlModeAndUiTarsModelVersionFromRawValue(result.vlModeRaw);
+    const qwenHighResolution = parseQwenHighResolution(allEnvConfig);
     const modelDescription = getModelDescription(vlMode, uiTarsVersion);
 
     const finalResult: IModelConfig = {
@@ -270,6 +274,7 @@ export const decideModelConfigFromEnv = (
       modelName,
       vlMode,
       uiTarsModelVersion: uiTarsVersion,
+      qwenHighResolution,
       modelDescription,
       from: 'env',
       intent,
@@ -296,6 +301,7 @@ export const decideModelConfigFromEnv = (
 
   const { vlMode, uiTarsVersion } =
     parseVlModeAndUiTarsFromGlobalConfig(allEnvConfig);
+  const qwenHighResolution = parseQwenHighResolution(allEnvConfig);
 
   const modelDescription = getModelDescription(vlMode, uiTarsVersion);
 
@@ -306,6 +312,7 @@ export const decideModelConfigFromEnv = (
       allEnvConfig[DEFAULT_MODEL_CONFIG_KEYS_LEGACY.modelName] || 'gpt-4o',
     vlMode,
     uiTarsModelVersion: uiTarsVersion,
+    qwenHighResolution,
     modelDescription,
     from: 'legacy-env',
     intent,
