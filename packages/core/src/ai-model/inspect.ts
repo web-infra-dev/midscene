@@ -140,9 +140,9 @@ export async function AiLocateElement(options: {
   const targetElementDescriptionText = extraTextFromUserPrompt(
     targetElementDescription,
   );
-  const userInstructionPrompt = await findElementPrompt.format({
-    targetElementDescription: targetElementDescriptionText,
-  });
+  const userInstructionPrompt = findElementPrompt(
+    targetElementDescriptionText,
+  );
   const systemPrompt = systemPromptToLocateElement(vlMode);
 
   let imagePayload = screenshotBase64;
@@ -282,9 +282,9 @@ export async function AiLocateSection(options: {
   const { screenshotBase64 } = context;
 
   const systemPrompt = systemPromptToLocateSection(vlMode);
-  const sectionLocatorInstructionText = await sectionLocatorInstruction.format({
-    sectionDescription: extraTextFromUserPrompt(sectionDescription),
-  });
+  const sectionLocatorInstructionText = sectionLocatorInstruction(
+    extraTextFromUserPrompt(sectionDescription),
+  );
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
     {
@@ -396,7 +396,7 @@ export async function AiExtractElementInfo<T>(options: {
   const systemPrompt = systemPromptToExtract();
   const { screenshotBase64 } = context;
 
-  const extractDataPromptText = await extractDataQueryPrompt(
+  const extractDataPromptText = extractDataQueryPrompt(
     options.pageDescription || '',
     dataQuery,
   );
