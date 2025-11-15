@@ -145,7 +145,7 @@ export async function AiLocateElement<
     targetElementDescription,
     'cannot find the target element description',
   );
-  const userInstructionPrompt = await findElementPrompt.format({
+  const userInstructionPrompt = findElementPrompt({
     pageDescription: description,
     targetElementDescription: extraTextFromUserPrompt(targetElementDescription),
   });
@@ -307,7 +307,7 @@ export async function AiLocateSection(options: {
   const { screenshotBase64 } = context;
 
   const systemPrompt = systemPromptToLocateSection(vlMode);
-  const sectionLocatorInstructionText = await sectionLocatorInstruction.format({
+  const sectionLocatorInstructionText = sectionLocatorInstruction({
     sectionDescription: extraTextFromUserPrompt(sectionDescription),
   });
   const msgs: AIArgs = [
@@ -433,7 +433,7 @@ export async function AiExtractElementInfo<
     vlMode,
   });
 
-  const extractDataPromptText = await extractDataQueryPrompt(
+  const extractDataPromptText = extractDataQueryPrompt(
     description,
     dataQuery,
   );
