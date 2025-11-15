@@ -1,4 +1,3 @@
-import { PromptTemplate } from '@langchain/core/prompts';
 import type { ResponseFormatJSONSchema } from 'openai/resources/index';
 
 export function systemPromptToExtract() {
@@ -87,7 +86,7 @@ By viewing the screenshot and page contents, you can extract the following data:
 `;
 }
 
-export const extractDataQueryPrompt = async (
+export const extractDataQueryPrompt = (
   pageDescription: string,
   dataQuery: string | Record<string, string>,
 ) => {
@@ -97,23 +96,16 @@ export const extractDataQueryPrompt = async (
   } else {
     dataQueryText = JSON.stringify(dataQuery, null, 2);
   }
-  const extractDataPrompt = new PromptTemplate({
-    template: `
+
+  return `
 <PageDescription>
-{pageDescription}
+${pageDescription}
 </PageDescription>
 
 <DATA_DEMAND>
-{dataQuery}
+${dataQueryText}
 </DATA_DEMAND>
-  `,
-    inputVariables: ['pageDescription', 'dataQuery'],
-  });
-
-  return await extractDataPrompt.format({
-    pageDescription,
-    dataQuery: dataQueryText,
-  });
+  `;
 };
 
 export const extractDataSchema: ResponseFormatJSONSchema = {

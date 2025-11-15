@@ -1,4 +1,3 @@
-import { PromptTemplate } from '@langchain/core/prompts';
 import type { TVlModeTypes } from '@midscene/shared/env';
 import { bboxDescription } from './common';
 
@@ -35,11 +34,12 @@ the return value should be like this:
 `;
 }
 
-export const sectionLocatorInstruction = new PromptTemplate({
-  template: `Here is the target element user interested in:
+export const sectionLocatorInstruction = ({
+  sectionDescription,
+}: {
+  sectionDescription: string;
+}) => `Here is the target element user interested in:
 <targetDescription>
-{sectionDescription}
+${sectionDescription}
 </targetDescription>
-  `,
-  inputVariables: ['sectionDescription'],
-});
+  `;
