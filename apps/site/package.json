@@ -23,9 +23,10 @@
     "@rspress/core": "2.0.0-rc.0",
     "@rspress/plugin-llms": "2.0.0-rc.0",
     "@rspress/plugin-sitemap": "2.0.0-rc.0",
+    "@tailwindcss/postcss": "4.1.11",
     "@types/node": "^18.0.0",
     "autoprefixer": "10.4.22",
     "postcss": "8.5.6",
-    "tailwindcss": "^3"
+    "tailwindcss": "4.1.11"
   }
 }
