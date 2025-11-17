@@ -1,3 +1,29 @@
 .rspress-logo {
   height: 2.6rem;
 }
+
+/* 导航栏固定宽度 1440px 并水平居中 */
+.rp-nav {
+  max-width: 1440px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  width: 100% !important;
+  padding-left: 40px !important;
+  padding-right: 40px !important;
+}
+
+/* 移除导航栏子元素的额外 padding */
+.rp-nav > div {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.rspress-nav-container,
+.rspress-nav .container,
+.rspress-nav > div,
+.rp-nav .container {
+  max-width: 1440px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+}
