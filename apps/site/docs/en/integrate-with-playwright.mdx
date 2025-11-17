@@ -94,7 +94,7 @@ Promise.resolve(
 );
 ```
 
-For more Agent API details, please refer to [API Reference](./api.mdx).
+For more Agent API details, please refer to [API Reference](./api#interaction-methods).
 
 ### Step 3: Run the script
 
@@ -177,37 +177,7 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 
 ### Step 3: Write test cases
 
-#### Basic AI operation APIs
-
-- `ai` or `aiAct` - General AI interaction
-- `aiTap` - Click operation
-- `aiHover` - Hover operation
-- `aiInput` - Input operation
-- `aiKeyboardPress` - Keyboard operation
-- `aiScroll` - Scroll operation
-- `aiRightClick` - Right-click operation
-
-#### Query
-
-- `aiAsk` - Ask AI Model anything about the current page
-- `aiQuery` - Extract structured data from current page
-- `aiNumber` - Extract number from current page
-- `aiString` - Extract string from current page
-- `aiBoolean` - Extract boolean from current page
-
-#### More APIs
-
-- `aiAssert` - AI Assertion
-- `aiWaitFor` - AI Wait
-- `aiLocate` - Locate Element
-- `runYaml` - Execute YAML automation script
-- `setAIActionContext` - Set AI action context, send background knowledge to AI model when calling `agent.aiAct()`
-- `evaluateJavaScript` - Execute JavaScript in page context
-- `recordToReport` - Log screenshot with description in report file
-- `freezePageContext` - Freeze page context
-- `unfreezePageContext` - Unfreeze page context
-
-Besides the exposed shortcut methods, if you need to call other [API](./api.mdx) provided by the agent, you can use `agentForPage` to get the `PageAgent` instance, and use `PageAgent` to call the API for interaction:
+Review the full catalog of action, query, and utility methods in the [Agent API reference](./api#interaction-methods). When you need lower-level control, you can use `agentForPage` to obtain the underlying `PageAgent` instance and call any API directly:
 
 ```typescript
 test('case demo', async ({ agentForPage, page }) => {
@@ -278,7 +248,7 @@ test('search headphone on ebay', async ({
 });
 ```
 
-For more Agent API details, please refer to [API Reference](./api.mdx).
+For more Agent API details, please refer to [API Reference](./api#interaction-methods).
 
 ### Step 4. Run test cases
 
@@ -367,5 +337,5 @@ Check [Integrate with any interface](./integrate-with-any-interface#define-a-cus
 
 ## More
 
-- For all the methods on the Agent, please refer to [API Reference](./api.mdx).
+- For all the methods on the Agent, please refer to [API Reference](./api#interaction-methods).
 - For more details about prompting, please refer to [Prompting Tips](./prompting-tips)

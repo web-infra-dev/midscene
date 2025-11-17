@@ -133,220 +133,41 @@ The AndroidDevice constructor supports the following parameters:
   - `screenshotResizeScale?: number` - Optional, controls the size of the screenshot Midscene sends to the AI model. Default is `1 / devicePixelRatio`, so a 1200×800 display with a device pixel ratio of 3 sends an image of roughly 400×267 to the model. Adjusting this value manually is not recommended.
   - `alwaysRefreshScreenInfo?: boolean` - Optional, whether to re-fetch screen size and orientation information every time. Default is false (uses cache for better performance). Set to true if the device may rotate or you need real-time screen information.
 
+### `AndroidAgent` constructor
+
+```ts
+import {
+  AndroidAgent,
+  AndroidDevice,
+  getConnectedDevices,
+} from '@midscene/android';
+```
+
+Create an agent by pairing a connected `AndroidDevice` with Midscene’s standard constructor:
+
+```typescript
+const devices = await getConnectedDevices();
+const device = new AndroidDevice(devices[0].udid);
+await device.connect();
+
+const agent = new AndroidAgent(device, {
+  actionContext: 'Accept any permissions dialog before continuing.',
+  groupName: 'Smoke tests',
+  generateReport: true,
+});
+```
+
+- `device: AndroidDevice` (required): The device wrapper responsible for screenshots, taps, and text input. Configure low-level behavior (keyboard dismissal, display id, screenshot scale, remote ADB) through the [AndroidDevice constructor](#androiddevice-constructor).
+- `options?: PageAgentOpt`: Shares the same option bag as other agents described in the [API constructors](./api#common-parameters) — e.g., `generateReport`, `reportFileName`, `actionContext`/`aiActionContext`, `cacheId`, `modelConfig`, `createOpenAIClient`, `customActions`, and `onTaskStartTip`.
+
+Helper factory:
+- `agentFromAdbDevice(deviceId?, opts?)` can connect to an adb device and instantiate `AndroidAgent` in a single call if you prefer streamlined setup.
+
 <a id="androidagent"></a>
 
 ### Additional Android Agent Interfaces
 
-Except the common agent interfaces in [API Reference](./api.mdx), AndroidAgent also provides some other interfaces:
-
-#### `agent.launch()`
-
-Launch a webpage or native page.
-
-- Type
-
-```typescript
-function launch(uri: string): Promise<void>;
-```
-
-- Parameters:
-
-  - `uri: string` - The uri to open, can be a webpage url or a native app's package name or activity name, if the activity name exists, it should be separated by / (e.g. com.android.settings/.Settings).
-
-- Return Value:
-
-  - Returns a Promise that resolves to void when the page is opened.
-
-- Examples:
-
-```typescript
-import { AndroidAgent, AndroidDevice } from '@midscene/android';
-
-const device = new AndroidDevice('s4ey59');
-const agent = new AndroidAgent(device);
-
-await agent.launch('https://www.ebay.com'); // open a webpage
-await agent.launch('com.android.settings'); // open a native page
-await agent.launch('com.android.settings/.Settings'); // open a native page
-```
-
-#### `agent.runAdbShell()`
-
-Execute a command through `adb shell` on the connected device.
-
-> Note: This method wraps `adb shell` and forwards the command directly to the device.
-
-- Type
-
-```typescript
-function runAdbShell(command: string): Promise<string>;
-```
-
-- Parameters:
-
-  - `command: string` - The adb shell command to execute.
-
-- Return Value:
-
-  - `Promise<string>` - Returns a Promise that resolves to the command output.
-
-- Examples:
-
-```typescript
-import { AndroidAgent, AndroidDevice } from '@midscene/android';
-
-const device = new AndroidDevice('s4ey59');
-const agent = new AndroidAgent(device);
-await device.connect();
-
-const result = await agent.runAdbShell('dumpsys battery');
-// Equivalent to running `adb shell dumpsys battery`
-console.log(result);
-```
-
-:::info Using in YAML Scripts
-
-In addition to using these methods in JavaScript/TypeScript, you can also use Android platform-specific actions in YAML scripts.
-
-For details on how to use `runAdbShell` and `launch` actions in YAML scripts, refer to [Android Platform-Specific Actions in YAML Scripts](./automate-with-scripts-in-yaml#the-android-part).
-
-:::
-
-#### `agent.back()`
-
-Trigger the system Back operation.
-
-- Type
-
-```typescript
-function back(): Promise<void>;
-```
-
-- Parameters: _None_
-- Return Value: `Promise<void>`
-
-- Example:
-
-```typescript
-import { agentFromAdbDevice } from '@midscene/android';
-
-const agent = await agentFromAdbDevice();
-
-await agent.back(); // Navigate back
-```
-
-#### `agent.home()`
-
-Return to the Android Home screen.
-
-- Type
-
-```typescript
-function home(): Promise<void>;
-```
-
-- Parameters: _None_
-- Return Value: `Promise<void>`
-
-- Example:
-
-```typescript
-import { agentFromAdbDevice } from '@midscene/android';
-
-const agent = await agentFromAdbDevice();
-
-await agent.home(); // Return to the launcher
-```
-
-#### `agent.recentApps()`
-
-Open the Android Recents/Overview screen.
-
-- Type
-
-```typescript
-function recentApps(): Promise<void>;
-```
-
-- Parameters: _None_
-- Return Value: `Promise<void>`
-
-- Example:
-
-```typescript
-import { agentFromAdbDevice } from '@midscene/android';
-
-const agent = await agentFromAdbDevice();
-
-await agent.recentApps(); // Show recent apps
-```
-
-#### `agentFromAdbDevice()`
-
-Create a AndroidAgent from a connected adb device.
-
-- Type
-
-```typescript
-function agentFromAdbDevice(
-  deviceId?: string,
-  opts?: PageAgentOpt,
-): Promise<AndroidAgent>;
-```
-
-- Parameters:
-
-  - `deviceId?: string` - Optional, the adb device id to connect. If not provided, the first connected device will be used.
-  - `opts?: PageAgentOpt & AndroidDeviceOpt` - Optional, the options for the AndroidAgent, PageAgentOpt refer to [constructor](./api.mdx), AndroidDeviceOpt refer to [AndroidDevice constructor](./integrate-with-android#androiddevice-constructor).
-
-- Return Value:
-
-  - `Promise<AndroidAgent>` Returns a Promise that resolves to an AndroidAgent.
-
-- Examples:
-
-```typescript
-import { agentFromAdbDevice } from '@midscene/android';
-
-const agent = await agentFromAdbDevice('s4ey59'); // create a AndroidAgent from a specific adb device
-const agent = await agentFromAdbDevice(); // no deviceId, use the first connected device
-```
-
-#### `getConnectedDevices()`
-
-Get all connected Android devices.
-
-- Type
-
-```typescript
-function getConnectedDevices(): Promise<Device[]>;
-interface Device {
-  /**
-   * The device udid.
-   */
-  udid: string;
-  /**
-   * Current device state, as it is visible in
-   * _adb devices -l_ output.
-   */
-  state: string;
-  port?: number;
-}
-```
-
-- Return Value:
-
-  - `Promise<Device[]>` Returns a Promise that resolves to an array of Device.
-
-- Examples:
-
-```typescript
-import { agentFromAdbDevice, getConnectedDevices } from '@midscene/android';
-
-const devices = await getConnectedDevices();
-console.log(devices);
-const agent = await agentFromAdbDevice(devices[0].udid);
-```
+Android-specific agent methods such as `launch`, `runAdbShell`, `back`, `home`, `recentApps`, plus helpers like `agentFromAdbDevice` and `getConnectedDevices` now live in the [API Reference](./api#android-agent). Head there for signatures, examples, and YAML usage guidance.
 
 ## Extending Custom Interaction Actions
 
@@ -426,3 +247,103 @@ const device = new AndroidDevice('s4ey59', {
   remoteAdbPort: 5037,
 });
 ```
+
+
+### Complete Example
+
+Here's a complete example using Vitest + AndroidAgent:
+
+```typescript
+import {
+  AndroidAgent,
+  AndroidDevice,
+  getConnectedDevices,
+} from '@midscene/android';
+import type { TestStatus } from '@midscene/core';
+import { ReportMergingTool } from '@midscene/core/report';
+import { sleep } from '@midscene/core/utils';
+import type ADB from 'appium-adb';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  it,
+} from 'vitest';
+
+describe('Android Settings Test', () => {
+  let page: AndroidDevice;
+  let adb: ADB;
+  let agent: AndroidAgent;
+  let startTime: number;
+  let itTestStatus: TestStatus = 'passed';
+  const reportMergingTool = new ReportMergingTool();
+
+  beforeAll(async () => {
+    const devices = await getConnectedDevices();
+    page = new AndroidDevice(devices[0].udid);
+    adb = await page.getAdb();
+  });
+
+  beforeEach((ctx) => {
+    startTime = performance.now();
+    agent = new AndroidAgent(page, {
+      groupName: ctx.task.name,
+    });
+  });
+
+  afterEach((ctx) => {
+    if (ctx.task.result?.state === 'pass') {
+      itTestStatus = 'passed';
+    } else if (ctx.task.result?.state === 'skip') {
+      itTestStatus = 'skipped';
+    } else if (ctx.task.result?.errors?.[0].message.includes('timed out')) {
+      itTestStatus = 'timedOut';
+    } else {
+      itTestStatus = 'failed';
+    }
+    reportMergingTool.append({
+      reportFilePath: agent.reportFile as string,
+      reportAttributes: {
+        testId: `${ctx.task.name}`,
+        testTitle: `${ctx.task.name}`,
+        testDescription: 'description',
+        testDuration: (Date.now() - ctx.task.result?.startTime!) | 0,
+        testStatus: itTestStatus,
+      },
+    });
+  });
+
+  afterAll(() => {
+    reportMergingTool.mergeReports('my-android-setting-test-report');
+  });
+
+  it('toggle wlan', async () => {
+    await adb.shell('input keyevent KEYCODE_HOME');
+    await sleep(1000);
+    await adb.shell('am start -n com.android.settings/.Settings');
+    await sleep(1000);
+    await agent.aiAct('find and enter WLAN setting');
+    await agent.aiAct(
+      'toggle WLAN status *once*, if WLAN is off pls turn it on, otherwise turn it off.',
+    );
+  });
+
+  it('toggle bluetooth', async () => {
+    await adb.shell('input keyevent KEYCODE_HOME');
+    await sleep(1000);
+    await adb.shell('am start -n com.android.settings/.Settings');
+    await sleep(1000);
+    await agent.aiAct('find and enter bluetooth setting');
+    await agent.aiAct(
+      'toggle bluetooth status *once*, if bluetooth is off pls turn it on, otherwise turn it off.',
+    );
+  });
+});
+```
+
+:::tip
+The merged report file will be saved in the `midscene_run/report` directory by default. You can customize the report directory location by setting the `MIDSCENE_RUN_DIR` environment variable.
+:::
+

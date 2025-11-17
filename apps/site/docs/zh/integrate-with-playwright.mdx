@@ -94,7 +94,7 @@ Promise.resolve(
 );
 ```
 
-更多 Agent 的 API 讲解请参考 [API 参考](./api.mdx)。
+更多 Agent 的 API 讲解请参考 [API 参考](./api#interaction-methods)。
 
 ### 第三步：运行
 
@@ -177,37 +177,7 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 
 ### 第三步：编写测试用例
 
-#### 基础 AI 操作
-
-- `ai` 或 `aiAct` - 通用 AI 交互
-- `aiTap` - 点击操作
-- `aiHover` - 悬停操作
-- `aiInput` - 输入操作
-- `aiKeyboardPress` - 键盘操作
-- `aiScroll` - 滚动操作
-- `aiRightClick` - 右键点击操作
-
-#### 查询
-
-- `aiAsk` - 询问 AI 模型任何问题
-- `aiQuery` - 从当前页面提取结构化的数据
-- `aiNumber` - 从当前页面提取数字
-- `aiString` - 从当前页面提取字符串
-- `aiBoolean` - 从当前页面提取布尔值
-
-#### 更多 API
-
-- `aiAssert` - 断言
-- `aiWaitFor` - 等待
-- `aiLocate` - 定位元素
-- `runYaml` - 执行 YAML 自动化脚本
-- `setAIActionContext` - 设置 AI 动作上下文，在调用 `agent.aiAct()` 时，发送给 AI 模型的背景知识
-- `evaluateJavaScript` - 在页面上下文中执行 JavaScript
-- `recordToReport` - 在报告文件中记录当前截图，并添加描述
-- `freezePageContext` - 冻结页面上下文
-- `unfreezePageContext` - 解冻页面上下文
-
-除了上述暴露的快捷方法之外，如果还需要调用其它 agent 提供的 [API](./api.mdx)，请使用 `agentForPage` 获取 `PageAgent` 实例，使用 `PageAgent` 调用 API 进行交互：
+完整的交互、查询和辅助 API 请参考 [Agent API 参考](./api#interaction-methods)。如果需要调用更底层的能力，可以使用 `agentForPage` 获取 `PageAgent` 实例，再直接调用对应的方法：
 
 ```typescript
 test('case demo', async ({ agentForPage, page }) => {
@@ -277,7 +247,7 @@ test('search headphone on ebay', async ({
 });
 ```
 
-更多 Agent 的 API 讲解请参考 [API 参考](./api.mdx)。
+更多 Agent 的 API 讲解请参考 [API 参考](./api#interaction-methods)。
 
 ### Step 4. 运行测试用例
 
@@ -364,5 +334,5 @@ await agent.aiAct('点击红色按钮五次');
 
 ## 更多
 
-- 更多 Agent 上的 API 接口请参考 [API 参考](./api.mdx)。
+- 更多 Agent 上的 API 接口请参考 [API 参考](./api#interaction-methods)。
 - 更多关于提示词的技巧请参考 [提示词技巧](./prompting-tips)
