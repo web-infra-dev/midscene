@@ -139,9 +139,20 @@ describe('ModelConfigManager', () => {
     });
 
     it('should return model config in normal mode', () => {
+      // Clear all env vars first
+      vi.unstubAllEnvs();
+
+      // Also delete any legacy environment variables from process.env
+      delete process.env[MIDSCENE_USE_DOUBAO_VISION];
+      delete process.env[MIDSCENE_USE_QWEN_VL];
+      delete process.env[MIDSCENE_USE_QWEN3_VL];
+      delete process.env[MIDSCENE_USE_VLM_UI_TARS];
+      delete process.env[MIDSCENE_USE_GEMINI];
+
       vi.stubEnv(MIDSCENE_MODEL_NAME, 'gpt-4');
       vi.stubEnv(OPENAI_API_KEY, 'test-key');
       vi.stubEnv(OPENAI_BASE_URL, 'https://api.openai.com/v1');
+      vi.stubEnv(MIDSCENE_PLANNING_STYLE, 'qwen3-vl');
 
       const manager = new ModelConfigManager();
       manager.registerGlobalConfigManager(new GlobalConfigManager());
@@ -157,9 +168,20 @@ describe('ModelConfigManager', () => {
 
   describe('clearModelConfigMap', () => {
     it('should clear modelConfigMap in normal mode', () => {
+      // Clear all env vars first
+      vi.unstubAllEnvs();
+
+      // Also delete any legacy environment variables from process.env
+      delete process.env[MIDSCENE_USE_DOUBAO_VISION];
+      delete process.env[MIDSCENE_USE_QWEN_VL];
+      delete process.env[MIDSCENE_USE_QWEN3_VL];
+      delete process.env[MIDSCENE_USE_VLM_UI_TARS];
+      delete process.env[MIDSCENE_USE_GEMINI];
+
       vi.stubEnv(MIDSCENE_MODEL_NAME, 'gpt-4');
       vi.stubEnv(OPENAI_API_KEY, 'test-key');
       vi.stubEnv(OPENAI_BASE_URL, 'https://api.openai.com/v1');
+      vi.stubEnv(MIDSCENE_PLANNING_STYLE, 'qwen3-vl');
 
       const manager = new ModelConfigManager();
       manager.registerGlobalConfigManager(new GlobalConfigManager());
