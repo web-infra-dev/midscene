@@ -255,18 +255,16 @@ export const VL_MODE_RAW_VALID_VALUES: TVlModeValues[] = [
 ];
 
 /**
- * Planning style values - unified model configuration approach
+ * Model family values - unified model configuration approach
  * Replaces the old MIDSCENE_USE_* environment variables
  *
  * Note: These values directly correspond to VL_MODE_RAW_VALID_VALUES
- * - 'default' is equivalent to 'qwen3-vl'
  * - 'qwen-vl' is Qwen 2.5
  * - 'qwen3-vl' is Qwen 3
  */
-export type TPlanningStyle = 'default' | TVlModeValues;
+export type TModelFamily = TVlModeValues;
 
-export const PLANNING_STYLE_VALUES: TPlanningStyle[] = [
-  'default',
+export const MODEL_FAMILY_VALUES: TVlModeValues[] = [
   ...VL_MODE_RAW_VALID_VALUES,
 ];
 

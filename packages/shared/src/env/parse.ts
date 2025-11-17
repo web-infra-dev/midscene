@@ -5,8 +5,8 @@ import {
   MIDSCENE_USE_QWEN3_VL,
   MIDSCENE_USE_QWEN_VL,
   MIDSCENE_USE_VLM_UI_TARS,
-  PLANNING_STYLE_VALUES,
-  type TPlanningStyle,
+  MODEL_FAMILY_VALUES,
+  type TModelFamily,
   type TVlModeTypes,
   type TVlModeValues,
   UITarsModelVersion,
@@ -134,31 +134,21 @@ export const parseVlModeAndUiTarsFromGlobalConfig = (
 };
 
 /**
- * Convert planning style to vlModeRaw and uiTarsVersion
- * @param planningStyle - The planning style to convert
+ * Convert model family to vlModeRaw and uiTarsVersion
+ * @param modelFamily - The model family to convert
  * @returns Object with vlMode and uiTarsVersion
  *
- * Note: Most planning styles map 1:1 to vlModeRaw, except:
- * - 'default' -> 'qwen3-vl'
+ * Model family directly maps to vlModeRaw
  */
-export const convertPlanningStyleToVlMode = (
-  planningStyle: TPlanningStyle,
+export const convertModelFamilyToVlMode = (
+  modelFamily: TModelFamily,
 ): {
   vlModeRaw: TVlModeValues;
   vlMode: TVlModeTypes;
   uiTarsVersion?: UITarsModelVersion;
 } => {
-  // Handle 'default' -> 'qwen3-vl'
-  if (planningStyle === 'default') {
-    return {
-      vlModeRaw: 'qwen3-vl',
-      vlMode: 'qwen3-vl',
-      uiTarsVersion: undefined,
-    };
-  }
-
-  // For all other values, planning style directly maps to vlModeRaw
-  const vlModeRaw = planningStyle as TVlModeValues;
+  // Model family directly maps to vlModeRaw
+  const vlModeRaw = modelFamily;
 
   // Parse to get vlMode and uiTarsVersion
   const parsed = parseVlModeAndUiTarsModelVersionFromRawValue(vlModeRaw);
@@ -189,10 +179,10 @@ export const detectLegacyVlModeEnvVars = (
 };
 
 /**
- * Type guard to check if a string is a valid TPlanningStyle
+ * Type guard to check if a string is a valid TModelFamily
  */
-function isValidPlanningStyle(value: string): value is TPlanningStyle {
-  return (PLANNING_STYLE_VALUES as readonly string[]).includes(value);
+function isValidModelFamily(value: string): value is TModelFamily {
+  return (MODEL_FAMILY_VALUES as readonly string[]).includes(value);
 }
 
 /**
@@ -202,40 +192,40 @@ function isValidPlanningStyle(value: string): value is TPlanningStyle {
  * @param provider - Environment variable provider
  * @returns Object with vlMode, uiTarsVersion, and warnings
  */
-export const parsePlanningStyleFromEnv = (
+export const parseModelFamilyFromEnv = (
   provider: Record<string, string | undefined>,
 ): {
   vlMode?: TVlModeTypes;
   vlModeRaw?: TVlModeValues;
   uiTarsVersion?: UITarsModelVersion;
   warnings: string[];
-  planningStyle?: TPlanningStyle;
+  modelFamily?: TModelFamily;
 } => {
   const warnings: string[] = [];
-  const planningStyleRaw = provider[MIDSCENE_MODEL_FAMILY];
+  const modelFamilyRaw = provider[MIDSCENE_MODEL_FAMILY];
   const legacyVars = detectLegacyVlModeEnvVars(provider);
 
   // Case 1: Both new and legacy variables are set - ERROR
-  if (planningStyleRaw && legacyVars.length > 0) {
+  if (modelFamilyRaw && legacyVars.length > 0) {
     throw new Error(
       `Conflicting configuration detected: Both MIDSCENE_MODEL_FAMILY and legacy environment variables (${legacyVars.join(', ')}) are set. Please use only MIDSCENE_MODEL_FAMILY.`,
     );
   }
 
   // Case 2: Only new MIDSCENE_MODEL_FAMILY is set
-  if (planningStyleRaw) {
+  if (modelFamilyRaw) {
     // Validate planning style value
-    if (!isValidPlanningStyle(planningStyleRaw)) {
+    if (!isValidModelFamily(modelFamilyRaw)) {
       throw new Error(
-        `Invalid MIDSCENE_MODEL_FAMILY value: "${planningStyleRaw}". Must be one of: ${PLANNING_STYLE_VALUES.join(', ')}. See documentation: https://midscenejs.com/model-provider.html`,
+        `Invalid MIDSCENE_MODEL_FAMILY value: "${modelFamilyRaw}". Must be one of: ${MODEL_FAMILY_VALUES.join(', ')}. See documentation: https://midscenejs.com/model-provider.html`,
       );
     }
 
-    const planningStyle = planningStyleRaw;
-    const result = convertPlanningStyleToVlMode(planningStyle);
+    const modelFamily = modelFamilyRaw;
+    const result = convertModelFamilyToVlMode(modelFamily);
     return {
       ...result,
-      planningStyle,
+      modelFamily,
       warnings,
     };
   }
@@ -251,27 +241,27 @@ export const parsePlanningStyleFromEnv = (
     // Map legacy vlMode to planning style for display
     // Since planning style now directly uses vlModeRaw values,
     // we need to construct the vlModeRaw from vlMode + uiTarsVersion
-    let planningStyle: TPlanningStyle | undefined;
+    let modelFamily: TModelFamily | undefined;
     let vlModeRaw: TVlModeValues | undefined;
 
     if (legacyResult.vlMode === 'vlm-ui-tars') {
       // UI-TARS needs special handling for version
       if (legacyResult.uiTarsVersion === UITarsModelVersion.V1_0) {
-        planningStyle = 'vlm-ui-tars';
+        modelFamily = 'vlm-ui-tars';
         vlModeRaw = 'vlm-ui-tars';
       } else if (
         legacyResult.uiTarsVersion === UITarsModelVersion.DOUBAO_1_5_20B
       ) {
-        planningStyle = 'vlm-ui-tars-doubao-1.5';
+        modelFamily = 'vlm-ui-tars-doubao-1.5';
         vlModeRaw = 'vlm-ui-tars-doubao-1.5';
       } else {
         // Handle other UI-TARS versions (vlm-ui-tars-doubao)
-        planningStyle = 'vlm-ui-tars-doubao';
+        modelFamily = 'vlm-ui-tars-doubao';
         vlModeRaw = 'vlm-ui-tars-doubao';
       }
     } else if (legacyResult.vlMode) {
       // For other modes, planning style directly matches vlMode
-      planningStyle = legacyResult.vlMode as TPlanningStyle;
+      modelFamily = legacyResult.vlMode as TModelFamily;
       vlModeRaw = legacyResult.vlMode as TVlModeValues;
     }
 
@@ -279,13 +269,13 @@ export const parsePlanningStyleFromEnv = (
       vlMode: legacyResult.vlMode,
       vlModeRaw,
       uiTarsVersion: legacyResult.uiTarsVersion,
-      planningStyle,
+      modelFamily,
       warnings,
     };
   }
 
   // Case 4: No configuration set - ERROR
   throw new Error(
-    `MIDSCENE_MODEL_FAMILY is required for planning tasks. Please set it to one of: ${PLANNING_STYLE_VALUES.join(', ')}. See documentation: https://midscenejs.com/model-provider.html`,
+    `MIDSCENE_MODEL_FAMILY is required for planning tasks. Please set it to one of: ${MODEL_FAMILY_VALUES.join(', ')}. See documentation: https://midscenejs.com/model-provider.html`,
   );
 };

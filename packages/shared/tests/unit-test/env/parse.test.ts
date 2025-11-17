@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { UITarsModelVersion } from '../../../src/env/';
 import {
-  convertPlanningStyleToVlMode,
-  parsePlanningStyleFromEnv,
+  convertModelFamilyToVlMode,
+  parseModelFamilyFromEnv,
   parseVlModeAndUiTarsFromGlobalConfig,
   parseVlModeAndUiTarsModelVersionFromRawValue,
 } from '../../../src/env/parse';
 import {
-  MIDSCENE_PLANNING_STYLE,
+  MIDSCENE_MODEL_FAMILY,
   MIDSCENE_USE_DOUBAO_VISION,
   MIDSCENE_USE_GEMINI,
   MIDSCENE_USE_QWEN3_VL,
@@ -155,17 +155,9 @@ describe('parseVlModeAndUiTarsFromGlobalConfig', () => {
   });
 });
 
-describe('convertPlanningStyleToVlMode', () => {
-  it('should convert default to qwen3-vl', () => {
-    expect(convertPlanningStyleToVlMode('default')).toEqual({
-      vlModeRaw: 'qwen3-vl',
-      vlMode: 'qwen3-vl',
-      uiTarsVersion: undefined,
-    });
-  });
-
+describe('convertModelFamilyToVlMode', () => {
   it('should convert qwen3-vl directly', () => {
-    expect(convertPlanningStyleToVlMode('qwen3-vl')).toEqual({
+    expect(convertModelFamilyToVlMode('qwen3-vl')).toEqual({
       vlModeRaw: 'qwen3-vl',
       vlMode: 'qwen3-vl',
       uiTarsVersion: undefined,
@@ -173,7 +165,7 @@ describe('convertPlanningStyleToVlMode', () => {
   });
 
   it('should convert qwen-vl directly', () => {
-    expect(convertPlanningStyleToVlMode('qwen-vl')).toEqual({
+    expect(convertModelFamilyToVlMode('qwen-vl')).toEqual({
       vlModeRaw: 'qwen-vl',
       vlMode: 'qwen-vl',
       uiTarsVersion: undefined,
@@ -181,7 +173,7 @@ describe('convertPlanningStyleToVlMode', () => {
   });
 
   it('should convert doubao-vision directly', () => {
-    expect(convertPlanningStyleToVlMode('doubao-vision')).toEqual({
+    expect(convertModelFamilyToVlMode('doubao-vision')).toEqual({
       vlModeRaw: 'doubao-vision',
       vlMode: 'doubao-vision',
       uiTarsVersion: undefined,
@@ -189,7 +181,7 @@ describe('convertPlanningStyleToVlMode', () => {
   });
 
   it('should convert vlm-ui-tars directly', () => {
-    expect(convertPlanningStyleToVlMode('vlm-ui-tars')).toEqual({
+    expect(convertModelFamilyToVlMode('vlm-ui-tars')).toEqual({
       vlModeRaw: 'vlm-ui-tars',
       vlMode: 'vlm-ui-tars',
       uiTarsVersion: UITarsModelVersion.V1_0,
@@ -197,7 +189,7 @@ describe('convertPlanningStyleToVlMode', () => {
   });
 
   it('should convert vlm-ui-tars-doubao-1.5 directly', () => {
-    expect(convertPlanningStyleToVlMode('vlm-ui-tars-doubao-1.5')).toEqual({
+    expect(convertModelFamilyToVlMode('vlm-ui-tars-doubao-1.5')).toEqual({
       vlModeRaw: 'vlm-ui-tars-doubao-1.5',
       vlMode: 'vlm-ui-tars',
       uiTarsVersion: UITarsModelVersion.DOUBAO_1_5_20B,
@@ -205,7 +197,7 @@ describe('convertPlanningStyleToVlMode', () => {
   });
 
   it('should convert gemini directly', () => {
-    expect(convertPlanningStyleToVlMode('gemini')).toEqual({
+    expect(convertModelFamilyToVlMode('gemini')).toEqual({
       vlModeRaw: 'gemini',
       vlMode: 'gemini',
       uiTarsVersion: undefined,
@@ -213,41 +205,41 @@ describe('convertPlanningStyleToVlMode', () => {
   });
 });
 
-describe('parsePlanningStyleFromEnv', () => {
-  it('should parse new MIDSCENE_PLANNING_STYLE correctly', () => {
-    const provider = { [MIDSCENE_PLANNING_STYLE]: 'qwen3-vl' };
-    const result = parsePlanningStyleFromEnv(provider);
+describe('parseModelFamilyFromEnv', () => {
+  it('should parse new MIDSCENE_MODEL_FAMILY correctly', () => {
+    const provider = { [MIDSCENE_MODEL_FAMILY]: 'qwen3-vl' };
+    const result = parseModelFamilyFromEnv(provider);
 
     expect(result.vlMode).toBe('qwen3-vl');
-    expect(result.planningStyle).toBe('qwen3-vl');
+    expect(result.modelFamily).toBe('qwen3-vl');
     expect(result.warnings).toHaveLength(0);
   });
 
-  it('should throw error for invalid MIDSCENE_PLANNING_STYLE value', () => {
-    const provider = { [MIDSCENE_PLANNING_STYLE]: 'invalid-style' };
+  it('should throw error for invalid MIDSCENE_MODEL_FAMILY value', () => {
+    const provider = { [MIDSCENE_MODEL_FAMILY]: 'invalid-style' };
 
-    expect(() => parsePlanningStyleFromEnv(provider)).toThrow(
-      'Invalid MIDSCENE_PLANNING_STYLE value',
+    expect(() => parseModelFamilyFromEnv(provider)).toThrow(
+      'Invalid MIDSCENE_MODEL_FAMILY value',
     );
   });
 
   it('should throw error when both new and legacy variables are set', () => {
     const provider = {
-      [MIDSCENE_PLANNING_STYLE]: 'qwen3-vl',
+      [MIDSCENE_MODEL_FAMILY]: 'qwen3-vl',
       [MIDSCENE_USE_QWEN3_VL]: '1',
     };
 
-    expect(() => parsePlanningStyleFromEnv(provider)).toThrow(
+    expect(() => parseModelFamilyFromEnv(provider)).toThrow(
       'Conflicting configuration detected',
     );
   });
 
   it('should warn when using legacy variables', () => {
     const provider = { [MIDSCENE_USE_QWEN3_VL]: '1' };
-    const result = parsePlanningStyleFromEnv(provider);
+    const result = parseModelFamilyFromEnv(provider);
 
     expect(result.vlMode).toBe('qwen3-vl');
-    expect(result.planningStyle).toBe('qwen3-vl');
+    expect(result.modelFamily).toBe('qwen3-vl');
     expect(result.warnings).toHaveLength(1);
     expect(result.warnings[0]).toContain('DEPRECATED');
   });
@@ -255,14 +247,13 @@ describe('parsePlanningStyleFromEnv', () => {
   it('should throw error when no config is set', () => {
     const provider = {};
 
-    expect(() => parsePlanningStyleFromEnv(provider)).toThrow(
-      'MIDSCENE_PLANNING_STYLE is required',
+    expect(() => parseModelFamilyFromEnv(provider)).toThrow(
+      'MIDSCENE_MODEL_FAMILY is required',
     );
   });
 
   it('should handle all planning style values', () => {
     const testCases = [
-      { style: 'default', expectedMode: 'qwen3-vl' },
       { style: 'qwen3-vl', expectedMode: 'qwen3-vl' },
       { style: 'qwen-vl', expectedMode: 'qwen-vl' },
       { style: 'doubao-vision', expectedMode: 'doubao-vision' },
@@ -273,11 +264,11 @@ describe('parsePlanningStyleFromEnv', () => {
     ];
 
     testCases.forEach(({ style, expectedMode }) => {
-      const provider = { [MIDSCENE_PLANNING_STYLE]: style };
-      const result = parsePlanningStyleFromEnv(provider);
+      const provider = { [MIDSCENE_MODEL_FAMILY]: style };
+      const result = parseModelFamilyFromEnv(provider);
 
       expect(result.vlMode).toBe(expectedMode);
-      expect(result.planningStyle).toBe(style);
+      expect(result.modelFamily).toBe(style);
     });
   });
 });

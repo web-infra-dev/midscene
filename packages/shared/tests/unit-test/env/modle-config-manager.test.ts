@@ -8,13 +8,13 @@ import {
   MIDSCENE_INSIGHT_MODEL_NAME,
   MIDSCENE_MODEL_API_KEY,
   MIDSCENE_MODEL_BASE_URL,
+  MIDSCENE_MODEL_FAMILY,
   MIDSCENE_MODEL_INIT_CONFIG_JSON,
   MIDSCENE_MODEL_NAME,
   MIDSCENE_PLANNING_LOCATOR_MODE,
   MIDSCENE_PLANNING_MODEL_API_KEY,
   MIDSCENE_PLANNING_MODEL_BASE_URL,
   MIDSCENE_PLANNING_MODEL_NAME,
-  MIDSCENE_PLANNING_STYLE,
   MIDSCENE_USE_DOUBAO_VISION,
   MIDSCENE_USE_GEMINI,
   MIDSCENE_USE_QWEN3_VL,
@@ -152,7 +152,7 @@ describe('ModelConfigManager', () => {
       vi.stubEnv(MIDSCENE_MODEL_NAME, 'gpt-4');
       vi.stubEnv(OPENAI_API_KEY, 'test-key');
       vi.stubEnv(OPENAI_BASE_URL, 'https://api.openai.com/v1');
-      vi.stubEnv(MIDSCENE_PLANNING_STYLE, 'qwen3-vl');
+      vi.stubEnv(MIDSCENE_MODEL_FAMILY, 'qwen3-vl');
 
       const manager = new ModelConfigManager();
       manager.registerGlobalConfigManager(new GlobalConfigManager());
@@ -181,7 +181,7 @@ describe('ModelConfigManager', () => {
       vi.stubEnv(MIDSCENE_MODEL_NAME, 'gpt-4');
       vi.stubEnv(OPENAI_API_KEY, 'test-key');
       vi.stubEnv(OPENAI_BASE_URL, 'https://api.openai.com/v1');
-      vi.stubEnv(MIDSCENE_PLANNING_STYLE, 'qwen3-vl');
+      vi.stubEnv(MIDSCENE_MODEL_FAMILY, 'qwen3-vl');
 
       const manager = new ModelConfigManager();
       manager.registerGlobalConfigManager(new GlobalConfigManager());
@@ -342,7 +342,7 @@ describe('ModelConfigManager', () => {
       vi.stubEnv(MIDSCENE_PLANNING_MODEL_NAME, 'qwen-vl-plus');
       vi.stubEnv(MIDSCENE_PLANNING_MODEL_API_KEY, 'test-key');
       vi.stubEnv(MIDSCENE_PLANNING_MODEL_BASE_URL, 'https://api.openai.com/v1');
-      vi.stubEnv(MIDSCENE_PLANNING_STYLE, 'qwen-vl');
+      vi.stubEnv(MIDSCENE_MODEL_FAMILY, 'qwen-vl');
 
       const manager = new ModelConfigManager();
       manager.registerGlobalConfigManager(new GlobalConfigManager());
@@ -461,7 +461,7 @@ describe('ModelConfigManager', () => {
       vi.stubEnv(MIDSCENE_MODEL_NAME, 'gpt-4');
       vi.stubEnv(OPENAI_API_KEY, 'test-key');
       vi.stubEnv(OPENAI_BASE_URL, 'https://api.openai.com/v1');
-      vi.stubEnv(MIDSCENE_PLANNING_STYLE, 'qwen3-vl'); // Add planning style
+      vi.stubEnv(MIDSCENE_MODEL_FAMILY, 'qwen3-vl'); // Add planning style
 
       const mockCreateClient = vi.fn();
       const manager = new ModelConfigManager(undefined, mockCreateClient);
@@ -518,7 +518,7 @@ describe('ModelConfigManager', () => {
       vi.stubEnv(MIDSCENE_PLANNING_MODEL_NAME, 'qwen-vl-plus');
       vi.stubEnv(MIDSCENE_PLANNING_MODEL_API_KEY, 'test-planning-key');
       vi.stubEnv(MIDSCENE_PLANNING_MODEL_BASE_URL, 'https://api.openai.com/v1');
-      vi.stubEnv(MIDSCENE_PLANNING_STYLE, 'qwen-vl');
+      vi.stubEnv(MIDSCENE_MODEL_FAMILY, 'qwen-vl');
 
       vi.stubEnv(MIDSCENE_MODEL_NAME, 'gpt-4');
       vi.stubEnv(OPENAI_API_KEY, 'test-key');

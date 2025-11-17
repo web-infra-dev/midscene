@@ -31,7 +31,7 @@ import { assert } from '../utils';
 import { createAssert, maskConfig, parseJson } from './helper';
 import { initDebugConfig } from './init-debug';
 import {
-  parsePlanningStyleFromEnv,
+  parseModelFamilyFromEnv,
   parseVlModeAndUiTarsFromGlobalConfig,
   parseVlModeAndUiTarsModelVersionFromRawValue,
 } from './parse';
@@ -182,15 +182,15 @@ const parseVlModeForIntent = (
   uiTarsVersion?: UITarsModelVersion;
 } => {
   if (intent === 'planning') {
-    const parseResult = parsePlanningStyleFromEnv(allEnvConfig);
+    const parseResult = parseModelFamilyFromEnv(allEnvConfig);
 
     // Output warnings to debug log
     parseResult.warnings.forEach((warning) => {
       console.warn(`[Midscene] ${warning}`);
     });
 
-    if (parseResult.planningStyle) {
-      debugLog(`Using planning style: ${parseResult.planningStyle}`);
+    if (parseResult.modelFamily) {
+      debugLog(`Using planning style: ${parseResult.modelFamily}`);
     }
 
     return {

@@ -6,7 +6,7 @@ import {
 import {
   MIDSCENE_MODEL_API_KEY,
   MIDSCENE_MODEL_BASE_URL,
-  MIDSCENE_PLANNING_STYLE,
+  MIDSCENE_MODEL_FAMILY,
   MODEL_API_KEY,
   MODEL_BASE_URL,
 } from '../../../src/env/types';
@@ -163,7 +163,7 @@ describe('decideModelConfig from env', () => {
       MIDSCENE_PLANNING_MODEL_NAME: 'planning-model',
       MIDSCENE_PLANNING_MODEL_API_KEY: 'planning-key',
       MIDSCENE_PLANNING_MODEL_BASE_URL: 'planning-url',
-      [MIDSCENE_PLANNING_STYLE]: 'qwen3-vl',
+      [MIDSCENE_MODEL_FAMILY]: 'qwen3-vl',
     });
     expect(result).toMatchInlineSnapshot(`
       {
@@ -194,7 +194,7 @@ describe('decideModelConfig from env', () => {
   it('declare no planning env and process.env has config', () => {
     const result = decideModelConfigFromEnv('planning', {
       ...stubEnvConfig,
-      [MIDSCENE_PLANNING_STYLE]: 'qwen3-vl',
+      [MIDSCENE_MODEL_FAMILY]: 'qwen3-vl',
     });
     expect(result).toMatchInlineSnapshot(`
       {
@@ -218,7 +218,7 @@ describe('decideModelConfig from env', () => {
     const result = decideModelConfigFromEnv('planning', {
       ...stubEnvConfig,
       MIDSCENE_MODEL_NAME: '',
-      [MIDSCENE_PLANNING_STYLE]: 'qwen3-vl',
+      [MIDSCENE_MODEL_FAMILY]: 'qwen3-vl',
     });
     expect(result).toMatchInlineSnapshot(`
       {
