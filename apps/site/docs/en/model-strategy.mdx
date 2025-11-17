@@ -122,9 +122,13 @@ Set `DEBUG=midscene:ai:profile:stats` to print cost and latency information.
 
 You can also review token usage in the generated report files.
 
-### “No visual language model (VL model) detected”
+### "No visual language model (VL model) detected" or "MIDSCENE_PLANNING_STYLE is required"
 
-Make sure a VL model is configured correctly, especially the `MIDSCENE_USE_...` toggles.
+Make sure you have correctly configured the `MIDSCENE_PLANNING_STYLE` environment variable for VL models.
+
+Starting with version 1.0, Midscene recommends using `MIDSCENE_PLANNING_STYLE` to specify the vision model type. The legacy `MIDSCENE_USE_...` configurations are still supported but deprecated.
+
+For detailed configuration instructions, refer to [Model configuration](./model-config).
 
 ## More information
 

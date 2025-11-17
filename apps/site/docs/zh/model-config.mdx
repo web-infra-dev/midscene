@@ -20,7 +20,7 @@ Midscene 默认集成了 OpenAI SDK 调用 AI 服务，它限定了推理服务�
 MIDSCENE_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
 MIDSCENE_MODEL_API_KEY="...."
 MIDSCENE_MODEL_NAME="ep-..." # 来自火山引擎的推理接入点 ID 或模型名称
-MIDSCENE_USE_DOUBAO_VISION=1
+MIDSCENE_PLANNING_STYLE="doubao-vision"
 ```
 
 ### 千问 Qwen3-VL {#qwen3-vl}
@@ -31,7 +31,7 @@ MIDSCENE_USE_DOUBAO_VISION=1
 MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
 MIDSCENE_MODEL_API_KEY="......"
 MIDSCENE_MODEL_NAME="qwen3-vl-plus"
-MIDSCENE_USE_QWEN3_VL=1 # 注意，这个参数与 MIDSCENE_USE_QWEN_VL 不能同时使用
+MIDSCENE_PLANNING_STYLE="qwen3-vl"
 ```
 
 ### 千问 Qwen2.5-VL {#qwen25-vl}
@@ -42,7 +42,7 @@ MIDSCENE_USE_QWEN3_VL=1 # 注意，这个参数与 MIDSCENE_USE_QWEN_VL 不能�
 MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
 MIDSCENE_MODEL_API_KEY="......"
 MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
-MIDSCENE_USE_QWEN_VL=1 # 注意，这个参数与 MIDSCENE_USE_QWEN3_VL 不能同时使用
+MIDSCENE_PLANNING_STYLE="qwen-vl"
 ```
 
 ### Gemini-2.5-Pro {#gemini-25-pro}
@@ -53,7 +53,7 @@ MIDSCENE_USE_QWEN_VL=1 # 注意，这个参数与 MIDSCENE_USE_QWEN3_VL 不能�
 MIDSCENE_MODEL_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
 MIDSCENE_MODEL_API_KEY="......"
 MIDSCENE_MODEL_NAME="gemini-2.5-pro-preview-05-06"
-MIDSCENE_USE_GEMINI=1
+MIDSCENE_PLANNING_STYLE="gemini"
 ```
 
 ### UI-TARS {#ui-tars}
@@ -64,15 +64,24 @@ MIDSCENE_USE_GEMINI=1
 MIDSCENE_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
 MIDSCENE_MODEL_API_KEY="...."
 MIDSCENE_MODEL_NAME="ep-2025..." # 来自火山引擎的推理接入点 ID 或模型名称
-MIDSCENE_USE_VLM_UI_TARS=DOUBAO
+MIDSCENE_PLANNING_STYLE="vlm-ui-tars-doubao-1.5"
 ```
 
-**关于 `MIDSCENE_USE_VLM_UI_TARS` 配置**
+**关于 `MIDSCENE_PLANNING_STYLE` 配置**
 
-`MIDSCENE_USE_VLM_UI_TARS` 配置用于指定 UI-TARS 版本，使用以下值之一：
-- `1.0` - 用于模型版本 `1.0`
-- `1.5` - 用于模型版本 `1.5`
-- `DOUBAO` - 用于在火山引擎上部署的模型
+`MIDSCENE_PLANNING_STYLE` 用于指定 UI-TARS 版本，使用以下值之一：
+- `vlm-ui-tars` - 用于模型版本 `1.0`
+- `vlm-ui-tars-doubao` - 用于在火山引擎上部署的模型版本 `1.5`（与 `vlm-ui-tars-doubao-1.5` 等效）
+- `vlm-ui-tars-doubao-1.5` - 用于在火山引擎上部署的模型版本 `1.5`
+
+:::tip
+旧版本使用 `MIDSCENE_USE_VLM_UI_TARS=DOUBAO` 或 `MIDSCENE_USE_VLM_UI_TARS=1.5` 配置，该配置仍然兼容但已废弃，建议迁移到 `MIDSCENE_PLANNING_STYLE`。
+
+迁移对应关系：
+- `MIDSCENE_USE_VLM_UI_TARS=1.0` → `MIDSCENE_PLANNING_STYLE="vlm-ui-tars"`
+- `MIDSCENE_USE_VLM_UI_TARS=1.5` → `MIDSCENE_PLANNING_STYLE="vlm-ui-tars-doubao-1.5"`
+- `MIDSCENE_USE_VLM_UI_TARS=DOUBAO` → `MIDSCENE_PLANNING_STYLE="vlm-ui-tars-doubao"`
+:::
 
 ### <del>`GPT-4o`</del>
 
@@ -181,14 +190,28 @@ import 'dotenv/config';
 
 ### 仍兼容的模型配置（不推荐）
 
-| 名称 | 描述 |
-|------|-------------|
-| `OPENAI_API_KEY` | 已弃用但仍兼容。建议使用 `MIDSCENE_MODEL_API_KEY` |
-| `OPENAI_BASE_URL` | 已弃用但仍兼容。建议使用 `MIDSCENE_MODEL_BASE_URL` |
-| `MIDSCENE_OPENAI_INIT_CONFIG_JSON` | 已弃用但仍兼容。建议使用 `MIDSCENE_MODEL_INIT_CONFIG_JSON` |
-| `MIDSCENE_OPENAI_HTTP_PROXY` | 已弃用但仍兼容。建议使用 `MIDSCENE_MODEL_HTTP_PROXY` |
-| `MIDSCENE_OPENAI_SOCKS_PROXY` | 已弃用但仍兼容。建议使用 `MIDSCENE_MODEL_SOCKS_PROXY` |
-| `OPENAI_MAX_TOKENS` | 已弃用但仍兼容。建议使用 `MIDSCENE_MODEL_MAX_TOKENS` |
+以下环境变量已废弃但仍然兼容，建议尽快迁移到新的配置方式。
+
+#### Planning 模型配置（已废弃）
+
+| 名称 | 描述 | 新配置方式 |
+|------|-------------|-----------|
+| `MIDSCENE_USE_DOUBAO_VISION` | 已弃用。启用豆包视觉模型 | 使用 `MIDSCENE_PLANNING_STYLE="doubao-vision"` |
+| `MIDSCENE_USE_QWEN3_VL` | 已弃用。启用千问 Qwen3-VL 模型 | 使用 `MIDSCENE_PLANNING_STYLE="qwen3-vl"` |
+| `MIDSCENE_USE_QWEN_VL` | 已弃用。启用千问 Qwen2.5-VL 模型 | 使用 `MIDSCENE_PLANNING_STYLE="qwen-vl"` |
+| `MIDSCENE_USE_GEMINI` | 已弃用。启用 Gemini 模型 | 使用 `MIDSCENE_PLANNING_STYLE="gemini"` |
+| `MIDSCENE_USE_VLM_UI_TARS` | 已弃用。启用 UI-TARS 模型 | 使用 `MIDSCENE_PLANNING_STYLE="vlm-ui-tars*"` |
+
+#### 通用配置（已废弃）
+
+| 名称 | 描述 | 新配置方式 |
+|------|-------------|-----------|
+| `OPENAI_API_KEY` | 已弃用但仍兼容 | 使用 `MIDSCENE_MODEL_API_KEY` |
+| `OPENAI_BASE_URL` | 已弃用但仍兼容 | 使用 `MIDSCENE_MODEL_BASE_URL` |
+| `MIDSCENE_OPENAI_INIT_CONFIG_JSON` | 已弃用但仍兼容 | 使用 `MIDSCENE_MODEL_INIT_CONFIG_JSON` |
+| `MIDSCENE_OPENAI_HTTP_PROXY` | 已弃用但仍兼容 | 使用 `MIDSCENE_MODEL_HTTP_PROXY` |
+| `MIDSCENE_OPENAI_SOCKS_PROXY` | 已弃用但仍兼容 | 使用 `MIDSCENE_MODEL_SOCKS_PROXY` |
+| `OPENAI_MAX_TOKENS` | 已弃用但仍兼容 | 使用 `MIDSCENE_MODEL_MAX_TOKENS` |
 
 ## 使用 Javascript 配置参数
 
