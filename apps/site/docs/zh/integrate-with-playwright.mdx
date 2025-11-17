@@ -1,4 +1,5 @@
 import SetupEnv from './common/setup-env.mdx';
+import GetCdpUrl from './common/get-cdp-url.mdx';
 import { PackageManagerTabs } from '@theme';
 
 # 集成到 Playwright
@@ -261,6 +262,10 @@ npx playwright test ./e2e/ebay-search.spec.ts
 
 ## 示例：连接远程 Playwright 浏览器并接入 Midscene Agent
 
+:::info 示例项目
+你可以在这里找到远程 Playwright 集成的示例项目：[https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo](https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo)
+:::
+
 当你想复用已有的远程浏览器（例如云端常驻的 worker、第三方浏览器服务或本地内网桌面）时，可通过此流程将 Midscene 与远程 Playwright 实例打通。这样可以让浏览器贴近目标环境、降低启动开销，并集中管理浏览器资源，同时保持一致的 AI 自动化能力。
 
 实践中你需要手动：
@@ -268,7 +273,13 @@ npx playwright test ./e2e/ebay-search.spec.ts
 2. 使用 Playwright 连接到远程浏览器
 3. 创建 Midscene 代理进行 AI 驱动的自动化
 
-对应的示例代码如下：
+### 前置依赖
+
+<PackageManagerTabs command="install playwright @playwright/test @midscene/web --save-dev" />
+
+<GetCdpUrl />
+
+### 基础示例
 
 ```typescript
 import { chromium } from 'playwright';

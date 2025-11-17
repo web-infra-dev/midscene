@@ -1,4 +1,5 @@
 import SetupEnv from './common/setup-env.mdx';
+import GetCdpUrl from './common/get-cdp-url.mdx';
 
 # Integrate with Puppeteer
 
@@ -96,6 +97,10 @@ After the above command executes successfully, the console will output: `Midscen
 
 ## Example: Connect Midscene Agent to a Remote Puppeteer Browser
 
+:::info Example Project
+You can find an example project of remote Puppeteer integration here: [https://github.com/web-infra-dev/midscene-example/tree/main/remote-puppeteer-demo](https://github.com/web-infra-dev/midscene-example/tree/main/remote-puppeteer-demo)
+:::
+
 Use this approach when you want to reuse a browser that already runs inside your own infrastructure—such as a persistent cloud worker, a third-party browser grid, or an on-prem desktop. Wiring Midscene into that remote Puppeteer instance keeps the browser close to the target environment, cuts repeated startup costs, and lets you centralize management while keeping the same AI automation APIs.
 
 In practice you manually:
@@ -106,6 +111,8 @@ In practice you manually:
 ### Prerequisites
 
 <PackageManagerTabs command="install puppeteer @midscene/web --save-dev" />
+
+<GetCdpUrl />
 
 ### Basic Example
 

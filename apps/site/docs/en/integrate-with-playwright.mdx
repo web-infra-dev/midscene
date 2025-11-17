@@ -1,4 +1,5 @@
 import SetupEnv from './common/setup-env.mdx';
+import GetCdpUrl from './common/get-cdp-url.mdx';
 import { PackageManagerTabs } from '@theme';
 
 # Integrate with Playwright
@@ -262,6 +263,10 @@ After the command executes successfully, it will output: `Midscene - report file
 
 ## Example: Connect Midscene Agent to a Remote Playwright Browser
 
+:::info Example Project
+You can find an example project of remote Playwright integration here: [https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo](https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo)
+:::
+
 Use this flow when you want to reuse an existing browser that already runs in your own infrastructure (for example, a persistent cloud worker, a vendor-provided browser grid, or an on-premises desktop). Connecting Midscene to that remote Playwright instance lets you keep browsers close to the target environment, reduce startup costs, and centralize resource management while still using the same AI automation APIs.
 
 In practice you manually:
@@ -269,7 +274,13 @@ In practice you manually:
 2. Use Playwright to connect to the remote browser
 3. Create a Midscene agent for AI-driven automation
 
-The corresponding example code is as follows:
+### Prerequisites
+
+<PackageManagerTabs command="install playwright @playwright/test @midscene/web --save-dev" />
+
+<GetCdpUrl />
+
+### Basic Example
 
 ```typescript
 import { chromium } from 'playwright';

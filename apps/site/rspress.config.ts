@@ -39,28 +39,10 @@ export default defineConfig({
           'https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=291q2b25-e913-411a-8c51-191e59aab14d',
       },
     ],
-    locales: [
-      {
-        lang: 'en',
-        outlineTitle: 'On this page',
-        label: 'On this page',
-        editLink: {
-          docRepoBaseUrl:
-            'https://github.com/web-infra-dev/midscene/tree/main/apps/site/docs',
-          text: '📝 Edit this page on GitHub',
-        },
-      },
-      {
-        lang: 'zh',
-        outlineTitle: '大纲',
-        label: '大纲',
-        editLink: {
-          docRepoBaseUrl:
-            'https://github.com/web-infra-dev/midscene/tree/main/apps/site/docs',
-          text: '📝 在 GitHub 上编辑此页',
-        },
-      },
-    ],
+    editLink: {
+      docRepoBaseUrl:
+        'https://github.com/web-infra-dev/midscene/tree/main/apps/site/docs',
+    },
     sidebar: {
       '/': [
         {
