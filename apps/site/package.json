@@ -19,9 +19,9 @@
     "react-dom": "18.3.1"
   },
   "devDependencies": {
-    "@rspress/plugin-llms": "https://pkg.pr.new/@rspress/plugin-llms@fd2229b",
-    "@rspress/plugin-sitemap": "https://pkg.pr.new/@rspress/plugin-sitemap@fd2229b",
+    "@rspress/plugin-llms": "2.0.0-rc.0",
+    "@rspress/plugin-sitemap": "2.0.0-rc.0",
     "@types/node": "^18.0.0",
-    "@rspress/core": "https://pkg.pr.new/@rspress/core@fd2229b"
+    "@rspress/core": "2.0.0-rc.0"
   }
 }
