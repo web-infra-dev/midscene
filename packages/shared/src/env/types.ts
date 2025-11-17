@@ -229,7 +229,7 @@ export type TEnvKeys = (typeof ALL_ENV_KEYS)[number];
 export type TGlobalConfig = Record<TEnvKeys, string | undefined>;
 
 export type TVlModeValues =
-  | 'qwen-vl'
+  | 'qwen2.5-vl'
   | 'qwen3-vl'
   | 'doubao-vision'
   | 'gemini'
@@ -238,7 +238,7 @@ export type TVlModeValues =
   | 'vlm-ui-tars-doubao-1.5';
 
 export type TVlModeTypes =
-  | 'qwen-vl'
+  | 'qwen2.5-vl'
   | 'qwen3-vl'
   | 'doubao-vision'
   | 'gemini'
@@ -247,7 +247,7 @@ export type TVlModeTypes =
 export const VL_MODE_RAW_VALID_VALUES: TVlModeValues[] = [
   'doubao-vision',
   'gemini',
-  'qwen-vl',
+  'qwen2.5-vl',
   'qwen3-vl',
   'vlm-ui-tars',
   'vlm-ui-tars-doubao',
@@ -259,7 +259,7 @@ export const VL_MODE_RAW_VALID_VALUES: TVlModeValues[] = [
  * Replaces the old MIDSCENE_USE_* environment variables
  *
  * Note: These values directly correspond to VL_MODE_RAW_VALID_VALUES
- * - 'qwen-vl' is Qwen 2.5
+ * - 'qwen2.5-vl' is Qwen 2.5
  * - 'qwen3-vl' is Qwen 3
  */
 export type TModelFamily = TVlModeValues;

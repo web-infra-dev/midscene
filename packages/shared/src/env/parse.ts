@@ -89,7 +89,7 @@ export const parseVlModeAndUiTarsFromGlobalConfig = (
 
   if (isQwen) {
     return {
-      vlMode: 'qwen-vl',
+      vlMode: 'qwen2.5-vl',
       uiTarsVersion: undefined,
     };
   }

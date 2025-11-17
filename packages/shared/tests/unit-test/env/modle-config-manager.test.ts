@@ -55,7 +55,7 @@ describe('ModelConfigManager', () => {
               [MIDSCENE_PLANNING_MODEL_NAME]: 'qwen-vl-plus',
               [MIDSCENE_PLANNING_MODEL_API_KEY]: 'test-planning-key',
               [MIDSCENE_PLANNING_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-              [MIDSCENE_PLANNING_LOCATOR_MODE]: 'qwen-vl' as const,
+              [MIDSCENE_PLANNING_LOCATOR_MODE]: 'qwen2.5-vl' as const,
             };
           case 'default':
             return baseConfig;
@@ -107,7 +107,7 @@ describe('ModelConfigManager', () => {
               [MIDSCENE_PLANNING_MODEL_NAME]: 'qwen-vl-plus',
               [MIDSCENE_PLANNING_MODEL_API_KEY]: 'test-planning-key',
               [MIDSCENE_PLANNING_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-              [MIDSCENE_PLANNING_LOCATOR_MODE]: 'qwen-vl',
+              [MIDSCENE_PLANNING_LOCATOR_MODE]: 'qwen2.5-vl',
             };
           case 'default':
             return baseConfig;
@@ -129,7 +129,7 @@ describe('ModelConfigManager', () => {
       expect(planningConfig.openaiApiKey).toBe('test-planning-key');
       expect(planningConfig.intent).toBe('planning');
       expect(planningConfig.from).toBe('modelConfig');
-      expect(planningConfig.vlMode).toBe('qwen-vl');
+      expect(planningConfig.vlMode).toBe('qwen2.5-vl');
 
       const defaultConfig = manager.getModelConfig('default');
       expect(defaultConfig.modelName).toBe('gpt-4');
@@ -307,7 +307,7 @@ describe('ModelConfigManager', () => {
             [MIDSCENE_PLANNING_MODEL_NAME]: 'qwen-vl-plus',
             [MIDSCENE_PLANNING_MODEL_API_KEY]: 'test-key',
             [MIDSCENE_PLANNING_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-            [MIDSCENE_PLANNING_LOCATOR_MODE]: 'qwen-vl' as const,
+            [MIDSCENE_PLANNING_LOCATOR_MODE]: 'qwen2.5-vl' as const,
           };
         }
         return {
@@ -320,7 +320,7 @@ describe('ModelConfigManager', () => {
       const manager = new ModelConfigManager(modelConfigFn as any);
       const config = manager.getModelConfig('planning');
 
-      expect(config.vlMode).toBe('qwen-vl');
+      expect(config.vlMode).toBe('qwen2.5-vl');
       expect(config.modelName).toBe('qwen-vl-plus');
     });
 
@@ -342,14 +342,14 @@ describe('ModelConfigManager', () => {
       vi.stubEnv(MIDSCENE_PLANNING_MODEL_NAME, 'qwen-vl-plus');
       vi.stubEnv(MIDSCENE_PLANNING_MODEL_API_KEY, 'test-key');
       vi.stubEnv(MIDSCENE_PLANNING_MODEL_BASE_URL, 'https://api.openai.com/v1');
-      vi.stubEnv(MIDSCENE_MODEL_FAMILY, 'qwen-vl');
+      vi.stubEnv(MIDSCENE_MODEL_FAMILY, 'qwen2.5-vl');
 
       const manager = new ModelConfigManager();
       manager.registerGlobalConfigManager(new GlobalConfigManager());
 
       const config = manager.getModelConfig('planning');
 
-      expect(config.vlMode).toBe('qwen-vl');
+      expect(config.vlMode).toBe('qwen2.5-vl');
       expect(config.modelName).toBe('qwen-vl-plus');
       expect(config.intent).toBe('planning');
     });
@@ -387,7 +387,7 @@ describe('ModelConfigManager', () => {
     it('should accept all valid VL modes for planning', () => {
       const vlModeTestCases: Array<{
         raw:
-          | 'qwen-vl'
+          | 'qwen2.5-vl'
           | 'qwen3-vl'
           | 'gemini'
           | 'doubao-vision'
@@ -396,7 +396,7 @@ describe('ModelConfigManager', () => {
           | 'vlm-ui-tars-doubao-1.5';
         expected: string;
       }> = [
-        { raw: 'qwen-vl', expected: 'qwen-vl' },
+        { raw: 'qwen2.5-vl', expected: 'qwen2.5-vl' },
         { raw: 'qwen3-vl', expected: 'qwen3-vl' },
         { raw: 'gemini', expected: 'gemini' },
         { raw: 'doubao-vision', expected: 'doubao-vision' },
@@ -487,7 +487,7 @@ describe('ModelConfigManager', () => {
               [MIDSCENE_PLANNING_MODEL_NAME]: 'qwen-vl-plus',
               [MIDSCENE_PLANNING_MODEL_API_KEY]: 'test-planning-key',
               [MIDSCENE_PLANNING_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-              [MIDSCENE_PLANNING_LOCATOR_MODE]: 'qwen-vl' as const,
+              [MIDSCENE_PLANNING_LOCATOR_MODE]: 'qwen2.5-vl' as const,
             };
           default:
             return {
@@ -518,7 +518,7 @@ describe('ModelConfigManager', () => {
       vi.stubEnv(MIDSCENE_PLANNING_MODEL_NAME, 'qwen-vl-plus');
       vi.stubEnv(MIDSCENE_PLANNING_MODEL_API_KEY, 'test-planning-key');
       vi.stubEnv(MIDSCENE_PLANNING_MODEL_BASE_URL, 'https://api.openai.com/v1');
-      vi.stubEnv(MIDSCENE_MODEL_FAMILY, 'qwen-vl');
+      vi.stubEnv(MIDSCENE_MODEL_FAMILY, 'qwen2.5-vl');
 
       vi.stubEnv(MIDSCENE_MODEL_NAME, 'gpt-4');
       vi.stubEnv(OPENAI_API_KEY, 'test-key');

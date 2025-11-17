@@ -73,8 +73,8 @@ describe('parseVlModeAndUiTarsFromRaw', () => {
   });
 
   it('should correctly parse "qwen-vl"', () => {
-    expect(parseVlModeAndUiTarsModelVersionFromRawValue('qwen-vl')).toEqual({
-      vlMode: 'qwen-vl',
+    expect(parseVlModeAndUiTarsModelVersionFromRawValue('qwen2.5-vl')).toEqual({
+      vlMode: 'qwen2.5-vl',
       uiTarsVersion: undefined,
     });
   });
@@ -101,7 +101,7 @@ describe('parseVlModeAndUiTarsFromGlobalConfig', () => {
   it('should correctly parse qwen-vl mode', () => {
     const provider = { [MIDSCENE_USE_QWEN_VL]: '1' };
     expect(parseVlModeAndUiTarsFromGlobalConfig(provider)).toEqual({
-      vlMode: 'qwen-vl',
+      vlMode: 'qwen2.5-vl',
       uiTarsVersion: undefined,
     });
   });
@@ -165,9 +165,9 @@ describe('convertModelFamilyToVlMode', () => {
   });
 
   it('should convert qwen-vl directly', () => {
-    expect(convertModelFamilyToVlMode('qwen-vl')).toEqual({
-      vlModeRaw: 'qwen-vl',
-      vlMode: 'qwen-vl',
+    expect(convertModelFamilyToVlMode('qwen2.5-vl')).toEqual({
+      vlModeRaw: 'qwen2.5-vl',
+      vlMode: 'qwen2.5-vl',
       uiTarsVersion: undefined,
     });
   });
@@ -255,7 +255,7 @@ describe('parseModelFamilyFromEnv', () => {
   it('should handle all planning style values', () => {
     const testCases = [
       { style: 'qwen3-vl', expectedMode: 'qwen3-vl' },
-      { style: 'qwen-vl', expectedMode: 'qwen-vl' },
+      { style: 'qwen2.5-vl', expectedMode: 'qwen2.5-vl' },
       { style: 'doubao-vision', expectedMode: 'doubao-vision' },
       { style: 'vlm-ui-tars', expectedMode: 'vlm-ui-tars' },
       { style: 'vlm-ui-tars-doubao', expectedMode: 'vlm-ui-tars' },
