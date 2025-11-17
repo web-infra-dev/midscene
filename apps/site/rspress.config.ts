@@ -81,6 +81,10 @@ export default defineConfig({
               text: 'Bridge to the desktop Chrome',
               link: '/bridge-mode',
             },
+            {
+              text: 'API reference (Web)',
+              link: '/web-api-reference',
+            },
           ],
         },
         {
@@ -91,12 +95,12 @@ export default defineConfig({
               link: '/android-introduction',
             },
             {
-              text: 'Quick experience by playground',
-              link: '/android-playground',
+              text: 'Getting started',
+              link: '/android-getting-started',
             },
             {
-              text: 'Integrate with Android (adb)',
-              link: '/integrate-with-android',
+              text: 'API reference (Android)',
+              link: '/android-api-reference',
             },
           ],
         },
@@ -108,12 +112,12 @@ export default defineConfig({
               link: '/ios-introduction',
             },
             {
-              text: 'Quick experience by playground',
-              link: '/ios-playground',
+              text: 'Getting started',
+              link: '/ios/getting-started',
             },
             {
-              text: 'Integrate with iOS (WebDriverAgent)',
-              link: '/integrate-with-ios',
+              text: 'API reference (iOS)',
+              link: '/ios-api-reference',
             },
           ],
         },
@@ -134,7 +138,7 @@ export default defineConfig({
           text: 'API and config',
           items: [
             {
-              text: 'Javascript API reference',
+              text: 'API reference (Common)',
               link: '/api',
             },
             {

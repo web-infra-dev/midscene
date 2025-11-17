@@ -1,0 +1,189 @@
+# API reference (Web)
+
+Use this doc when you need to customize Midscene's browser automation agents or review browser-only constructor options. For shared parameters (reporting, hooks, caching, etc.), see the platform-agnostic [API reference (Common)](./api).
+
+## PuppeteerAgent {#puppeteer-agent}
+
+### Import
+
+```ts
+import { PuppeteerAgent } from '@midscene/web/puppeteer';
+```
+
+### Browser-specific options
+
+In addition to the base agent options, Puppeteer exposes:
+
+- `forceSameTabNavigation: boolean` &mdash; Restrict navigation to the current tab. Default `true`.
+- `waitForNavigationTimeout: number` &mdash; Maximum wait when a step causes navigation. Default `5000` (set `0` to skip waiting).
+- `waitForNetworkIdleTimeout: number` &mdash; Wait for network idle between actions to reduce flakiness. Default `2000` (set `0` to skip waiting).
+- `customActions: DeviceAction[]` &mdash; Register bespoke actions defined via `defineAction` so planning can call domain-specific steps.
+
+For Playwright/Puppeteer setup guides, see [Integrate with Puppeteer](./integrate-with-puppeteer#puppeteeragent).
+
+### Quick start example
+
+```ts
+import puppeteer from 'puppeteer';
+import { PuppeteerAgent } from '@midscene/web/puppeteer';
+
+const browser = await puppeteer.launch({ headless: false });
+const page = await browser.newPage();
+await page.goto('https://www.ebay.com');
+
+const agent = new PuppeteerAgent(page, {
+  actionContext: 'When a cookie dialog appears, accept it.',
+});
+
+await agent.aiAct('search "Noise cancelling headphones" and open first result');
+const items = await agent.aiQuery(
+  '{itemTitle: string, price: number}[], list two products with price',
+);
+console.log(items);
+
+await agent.aiAssert('there is a category filter on the left sidebar');
+await browser.close();
+```
+
+### Connect to a remote Puppeteer browser
+
+```ts
+import puppeteer from 'puppeteer';
+import { PuppeteerAgent } from '@midscene/web/puppeteer';
+
+const browser = await puppeteer.connect({
+  browserWSEndpoint: process.env.REMOTE_CDP_URL!,
+});
+
+const [page = await browser.newPage()] = await browser.pages();
+const agent = new PuppeteerAgent(page, {
+  waitForNetworkIdleTimeout: 0,
+});
+
+await agent.aiAct('open https://example.com and click the login button');
+await agent.destroy();
+await browser.disconnect();
+```
+
+See [Integrate with Puppeteer](./integrate-with-puppeteer) for the full walkthrough plus fixtures and remote-CDP guidance.
+
+## PlaywrightAgent {#playwright-agent}
+
+### Import
+
+```ts
+import { PlaywrightAgent } from '@midscene/web/playwright';
+```
+
+### Browser-specific options
+
+- `forceSameTabNavigation: boolean` &mdash; Keep automation inside the active tab. Default `true`.
+- `waitForNavigationTimeout: number` &mdash; Wait time for navigation completion. Default `5000` (set `0` to disable).
+- `waitForNetworkIdleTimeout: number` &mdash; Wait between actions for network idle. Default `2000` (set `0` to disable).
+- `customActions: DeviceAction[]` &mdash; Extend planning with project-specific actions.
+
+See [Integrate with Playwright](./integrate-with-playwright#playwrightagent) for wiring instructions and advanced configuration.
+
+### Quick start example
+
+```ts
+import { chromium } from 'playwright';
+import { PlaywrightAgent } from '@midscene/web/playwright';
+
+const browser = await chromium.launch({ headless: true });
+const page = await browser.newPage();
+await page.goto('https://www.ebay.com');
+
+const agent = new PlaywrightAgent(page);
+await agent.aiAct('search "Noise cancelling headphones" and wait for results');
+await agent.aiWaitFor('the results grid becomes visible');
+
+const price = await agent.aiNumber('price of the first headphone');
+console.log('first price', price);
+
+await agent.aiTap('click the first result card');
+await browser.close();
+```
+
+### Use inside Playwright tests
+
+```ts
+// playwright.config.ts
+export default defineConfig({
+  reporter: [['list'], ['@midscene/web/playwright-reporter']],
+});
+
+// e2e/fixture.ts
+import { test as base } from '@playwright/test';
+import { PlaywrightAiFixture } from '@midscene/web/playwright';
+
+export const test = base.extend(
+  PlaywrightAiFixture({ waitForNetworkIdleTimeout: 1000 }),
+);
+
+// e2e/examples.spec.ts
+test('search flow', async ({ agentForPage, page }) => {
+  await page.goto('https://www.ebay.com');
+  const agent = await agentForPage(page);
+  await agent.aiAct('search "keyboard" and open first listing');
+  await agent.aiAssert('a product detail page is opened');
+});
+```
+
+Review [Integrate with Playwright](./integrate-with-playwright) for installation, fixture utilities, and more AI helper methods.
+
+## Chrome Bridge Agent {#chrome-bridge-agent}
+
+Bridge Mode lets Midscene operate your currently active desktop Chrome tab through the extension instead of launching a dedicated automation browser.
+
+### Import
+
+```ts
+import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
+```
+
+### Constructor example
+
+```ts
+const agent = new AgentOverChromeBridge({
+  allowRemoteAccess: false,
+});
+```
+
+### Bridge options
+
+- `allowRemoteAccess?: boolean` &mdash; Allow remote machines to attach. Defaults to `false` (binds to `127.0.0.1`).
+- `host?: string` &mdash; Override the interface for the bridge server. Takes precedence over `allowRemoteAccess`.
+- `port?: number` &mdash; TCP port for the bridge server. Default `3766`.
+
+See [Bridge Mode by Chrome extension](./bridge-mode#constructor) for full installation and capability details.
+
+### Example: open a new desktop tab
+
+```ts
+import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
+
+const agent = new AgentOverChromeBridge();
+await agent.connectNewTabWithUrl('https://www.bing.com');
+
+await agent.ai('search "AI automation" and summarise first result');
+await agent.aiAssert('some search results show up');
+await agent.destroy();
+```
+
+### Example: attach to current tab
+
+```ts
+import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
+
+const agent = new AgentOverChromeBridge({
+  allowRemoteAccess: false,
+  closeNewTabsAfterDisconnect: true,
+});
+
+await agent.connectCurrentTab({ forceSameTabNavigation: true });
+await agent.aiAct('open Gmail and report how many unread emails are visible');
+await agent.destroy();
+```
+
+See [Bridge mode](./bridge-mode) for extension setup, command sequence, and YAML usage.
