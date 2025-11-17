@@ -238,7 +238,7 @@ export const parsePlanningStyleFromEnv = (
     const legacyResult = parseVlModeAndUiTarsFromGlobalConfig(provider);
 
     warnings.push(
-      `DEPRECATED: Environment variable ${legacyVars.join(', ')} is deprecated. Please use MIDSCENE_PLANNING_STYLE instead. See migration guide for details.`,
+      `DEPRECATED: Environment ${legacyVars.length > 1 ? 'variables' : 'variable'} ${legacyVars.join(', ')} ${legacyVars.length > 1 ? 'are' : 'is'} deprecated. Please use MIDSCENE_PLANNING_STYLE instead. See migration guide for details.`,
     );
 
     // Map legacy vlMode to planning style for display
