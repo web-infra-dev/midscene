@@ -262,7 +262,6 @@ export const decideModelConfigFromEnv = (
     if (intent === 'planning') {
       const parseResult = parsePlanningStyleFromEnv(allEnvConfig);
       vlMode = parseResult.vlMode;
-      vlModeRaw = parseResult.vlModeRaw;
       uiTarsVersion = parseResult.uiTarsVersion;
 
       // Output warnings to debug log

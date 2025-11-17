@@ -189,6 +189,13 @@ export const detectLegacyVlModeEnvVars = (
 };
 
 /**
+ * Type guard to check if a string is a valid TPlanningStyle
+ */
+function isValidPlanningStyle(value: string): value is TPlanningStyle {
+  return (PLANNING_STYLE_VALUES as readonly string[]).includes(value);
+}
+
+/**
  * Parse planning style from environment variables with validation and warnings
  * Supports both new MIDSCENE_PLANNING_STYLE and legacy MIDSCENE_USE_* variables
  *
@@ -218,13 +225,13 @@ export const parsePlanningStyleFromEnv = (
   // Case 2: Only new MIDSCENE_PLANNING_STYLE is set
   if (planningStyleRaw) {
     // Validate planning style value
-    if (!PLANNING_STYLE_VALUES.includes(planningStyleRaw)) {
+    if (!isValidPlanningStyle(planningStyleRaw)) {
       throw new Error(
-        `Invalid MIDSCENE_PLANNING_STYLE value: "${planningStyleRaw}". Must be one of: ${PLANNING_STYLE_VALUES.join(', ')}`,
+        `Invalid MIDSCENE_PLANNING_STYLE value: "${planningStyleRaw}". Must be one of: ${PLANNING_STYLE_VALUES.join(', ')}. See documentation: https://midscenejs.com/model-provider.html`,
       );
     }
 
-    const planningStyle = planningStyleRaw as TPlanningStyle;
+    const planningStyle = planningStyleRaw;
     const result = convertPlanningStyleToVlMode(planningStyle);
     return {
       ...result,
