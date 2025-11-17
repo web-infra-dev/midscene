@@ -271,6 +271,7 @@ export const decideModelConfigFromEnv = (
       });
 
       if (parseResult.planningStyle) {
+        // NOTE: If this block is refactored into a helper function, ensure `debugLog` is passed as a parameter.
         debugLog(`Using planning style: ${parseResult.planningStyle}`);
       }
     } else {
