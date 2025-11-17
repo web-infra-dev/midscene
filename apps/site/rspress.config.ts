@@ -40,7 +40,8 @@ export default defineConfig({
       },
     ],
     editLink: {
-      docRepoBaseUrl: 'https://github.com/web-infra-dev/midscene/tree/main/apps/site/docs'
+      docRepoBaseUrl:
+        'https://github.com/web-infra-dev/midscene/tree/main/apps/site/docs',
     },
     locales: [
       {

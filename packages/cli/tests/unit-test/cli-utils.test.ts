@@ -59,7 +59,7 @@ describe('parseProcessArgs', () => {
 
   test('should parse --files argument', async () => {
     process.argv = ['node', 'midscene', '--files', 'file1.yml', 'file2.yml'];
-    const { path, options, files } = await parseProcessArgs();
+    const { path, files } = await parseProcessArgs();
     expect(path).toBeUndefined();
     expect(files).toEqual(['file1.yml', 'file2.yml']);
   });
@@ -205,6 +205,160 @@ describe('parseProcessArgs', () => {
     expect(options['dotenv-override']).toBe(true);
     expect(options['dotenv-debug']).toBe(true);
     expect(options.concurrent).toBe(10);
+  });
+
+  test('should auto-parse iOS device options', async () => {
+    process.argv = [
+      'node',
+      'midscene',
+      '--ios.device-id',
+      '00008110-001234567890',
+      '--ios.wda-port',
+      '8100',
+      '--ios.wda-host',
+      '192.168.1.100',
+      '--ios.use-wda',
+      'true',
+      '--ios.auto-dismiss-keyboard',
+      'true',
+    ];
+    const { options } = await parseProcessArgs();
+    expect(options.ios).toEqual({
+      'device-id': '00008110-001234567890',
+      deviceId: '00008110-001234567890',
+      'wda-port': 8100,
+      wdaPort: 8100,
+      'wda-host': '192.168.1.100',
+      wdaHost: '192.168.1.100',
+      'use-wda': 'true',
+      useWda: 'true',
+      'auto-dismiss-keyboard': 'true',
+      autoDismissKeyboard: 'true',
+    });
+  });
+
+  test('should auto-parse Android device options with advanced parameters', async () => {
+    process.argv = [
+      'node',
+      'midscene',
+      '--android.device-id',
+      'emulator-5554',
+      '--android.android-adb-path',
+      '/custom/path/to/adb',
+      '--android.ime-strategy',
+      'yadb-for-non-ascii',
+      '--android.remote-adb-host',
+      '192.168.1.100',
+      '--android.remote-adb-port',
+      '5037',
+      '--android.screenshot-resize-scale',
+      '0.5',
+      '--android.auto-dismiss-keyboard',
+      'true',
+      '--android.keyboard-dismiss-strategy',
+      'esc-first',
+    ];
+    const { options } = await parseProcessArgs();
+    expect(options.android).toEqual({
+      'device-id': 'emulator-5554',
+      deviceId: 'emulator-5554',
+      'android-adb-path': '/custom/path/to/adb',
+      androidAdbPath: '/custom/path/to/adb',
+      'ime-strategy': 'yadb-for-non-ascii',
+      imeStrategy: 'yadb-for-non-ascii',
+      'remote-adb-host': '192.168.1.100',
+      remoteAdbHost: '192.168.1.100',
+      'remote-adb-port': 5037,
+      remoteAdbPort: 5037,
+      'screenshot-resize-scale': 0.5,
+      screenshotResizeScale: 0.5,
+      'auto-dismiss-keyboard': 'true',
+      autoDismissKeyboard: 'true',
+      'keyboard-dismiss-strategy': 'esc-first',
+      keyboardDismissStrategy: 'esc-first',
+    });
+  });
+
+  test('should handle mixed web, android, and ios parameters', async () => {
+    process.argv = [
+      'node',
+      'midscene',
+      '--web.user-agent',
+      'Custom Agent',
+      '--web.viewport-width',
+      '1920',
+      '--android.device-id',
+      'test-android',
+      '--android.ime-strategy',
+      'always-yadb',
+      '--ios.wda-port',
+      '8100',
+      '--ios.device-id',
+      'test-ios',
+    ];
+    const { options } = await parseProcessArgs();
+
+    // Verify web options
+    expect(options.web).toEqual({
+      'user-agent': 'Custom Agent',
+      userAgent: 'Custom Agent',
+      'viewport-width': 1920,
+      viewportWidth: 1920,
+    });
+
+    // Verify android options
+    expect(options.android).toEqual({
+      'device-id': 'test-android',
+      deviceId: 'test-android',
+      'ime-strategy': 'always-yadb',
+      imeStrategy: 'always-yadb',
+    });
+
+    // Verify ios options
+    expect(options.ios).toEqual({
+      'wda-port': 8100,
+      wdaPort: 8100,
+      'device-id': 'test-ios',
+      deviceId: 'test-ios',
+    });
+  });
+
+  test('should handle camelCase parameters and convert to both formats', async () => {
+    process.argv = [
+      'node',
+      'midscene',
+      '--android.imeStrategy',
+      'yadb-for-non-ascii',
+      '--android.autoDismissKeyboard',
+      'true',
+      '--ios.wdaPort',
+      '8100',
+      '--ios.useWda',
+      'true',
+    ];
+    const { options } = await parseProcessArgs();
+
+    expect(options.android).toEqual({
+      'ime-strategy': 'yadb-for-non-ascii',
+      imeStrategy: 'yadb-for-non-ascii',
+      'auto-dismiss-keyboard': 'true',
+      autoDismissKeyboard: 'true',
+    });
+
+    expect(options.ios).toEqual({
+      'wda-port': 8100,
+      wdaPort: 8100,
+      'use-wda': 'true',
+      useWda: 'true',
+    });
+  });
+
+  test('should not create device objects when no device parameters provided', async () => {
+    process.argv = ['node', 'midscene', '--headed', '--concurrent', '5'];
+    const { options } = await parseProcessArgs();
+    expect(options.web).toBeUndefined();
+    expect(options.android).toBeUndefined();
+    expect(options.ios).toBeUndefined();
   });
 });
 
