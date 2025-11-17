@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { UITarsModelVersion } from '../../../src/env/';
 import {
   convertPlanningStyleToVlMode,
-  inferPlanningStyleFromModelName,
   parsePlanningStyleFromEnv,
   parseVlModeAndUiTarsFromGlobalConfig,
   parseVlModeAndUiTarsModelVersionFromRawValue,
@@ -156,66 +155,6 @@ describe('parseVlModeAndUiTarsFromGlobalConfig', () => {
   });
 });
 
-describe('inferPlanningStyleFromModelName', () => {
-  it('should return undefined for empty model name', () => {
-    expect(inferPlanningStyleFromModelName(undefined)).toBeUndefined();
-    expect(inferPlanningStyleFromModelName('')).toBeUndefined();
-  });
-
-  it('should infer qwen-vl from model name', () => {
-    expect(inferPlanningStyleFromModelName('qwen2.5-vl-72b')).toBe('qwen-vl');
-    expect(inferPlanningStyleFromModelName('Qwen2.5-VL')).toBe('qwen-vl');
-    expect(inferPlanningStyleFromModelName('qwen-vl-plus')).toBe('qwen-vl');
-    expect(inferPlanningStyleFromModelName('qwen-vl-max')).toBe('qwen-vl');
-  });
-
-  it('should infer qwen3-vl from model name', () => {
-    expect(inferPlanningStyleFromModelName('qwen3-vl-72b')).toBe('qwen3-vl');
-    expect(inferPlanningStyleFromModelName('Qwen3-VL')).toBe('qwen3-vl');
-  });
-
-  it('should infer doubao-vision from model name', () => {
-    expect(inferPlanningStyleFromModelName('doubao-vision-pro')).toBe(
-      'doubao-vision',
-    );
-    expect(inferPlanningStyleFromModelName('Doubao-Vision-1.6')).toBe(
-      'doubao-vision',
-    );
-  });
-
-  it('should infer vlm-ui-tars from model name', () => {
-    expect(inferPlanningStyleFromModelName('ui-tars-1.0')).toBe('vlm-ui-tars');
-    expect(inferPlanningStyleFromModelName('ui-tars-1.5')).toBe(
-      'vlm-ui-tars-doubao-1.5',
-    );
-    expect(inferPlanningStyleFromModelName('UI-TARS-model')).toBe(
-      'vlm-ui-tars-doubao',
-    );
-    // No version defaults to doubao deployment (Volcengine)
-    expect(inferPlanningStyleFromModelName('ui-tars')).toBe(
-      'vlm-ui-tars-doubao',
-    );
-  });
-
-  it('should infer gemini from model name', () => {
-    expect(inferPlanningStyleFromModelName('gemini-pro-vision')).toBe('gemini');
-    expect(inferPlanningStyleFromModelName('Gemini-1.5-Flash')).toBe('gemini');
-  });
-
-  it('should infer default for OpenAI and Claude models', () => {
-    expect(inferPlanningStyleFromModelName('gpt-4o')).toBe('default');
-    expect(inferPlanningStyleFromModelName('gpt-4')).toBe('default');
-    expect(inferPlanningStyleFromModelName('gpt-3.5-turbo')).toBe('default');
-    expect(inferPlanningStyleFromModelName('claude-3')).toBe('default');
-    expect(inferPlanningStyleFromModelName('o1-preview')).toBe('default');
-  });
-
-  it('should return undefined for truly unknown model names', () => {
-    expect(inferPlanningStyleFromModelName('unknown-model')).toBeUndefined();
-    expect(inferPlanningStyleFromModelName('random-ai-model')).toBeUndefined();
-  });
-});
-
 describe('convertPlanningStyleToVlMode', () => {
   it('should convert default to qwen3-vl', () => {
     expect(convertPlanningStyleToVlMode('default')).toEqual({
@@ -313,25 +252,7 @@ describe('parsePlanningStyleFromEnv', () => {
     expect(result.warnings[0]).toContain('DEPRECATED');
   });
 
-  it('should infer from model name when no config is set', () => {
-    const provider = {};
-    const result = parsePlanningStyleFromEnv(provider, 'qwen3-vl-72b');
-
-    expect(result.vlMode).toBe('qwen3-vl');
-    expect(result.planningStyle).toBe('qwen3-vl');
-    expect(result.warnings).toHaveLength(1);
-    expect(result.warnings[0]).toContain('inferred');
-  });
-
-  it('should throw error when cannot infer from model name', () => {
-    const provider = {};
-
-    expect(() =>
-      parsePlanningStyleFromEnv(provider, 'unknown-model-xyz'),
-    ).toThrow('Unable to infer planning style');
-  });
-
-  it('should throw error when no config and no model name', () => {
+  it('should throw error when no config is set', () => {
     const provider = {};
 
     expect(() => parsePlanningStyleFromEnv(provider)).toThrow(

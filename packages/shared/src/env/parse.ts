@@ -134,63 +134,6 @@ export const parseVlModeAndUiTarsFromGlobalConfig = (
 };
 
 /**
- * Infer planning style from model name
- * @param modelName - The model name to infer from
- * @returns The inferred planning style or undefined if cannot infer
- */
-export const inferPlanningStyleFromModelName = (
-  modelName?: string,
-): TPlanningStyle | undefined => {
-  if (!modelName) {
-    return undefined;
-  }
-
-  const lowerModelName = modelName.toLowerCase();
-
-  // Qwen models - qwen3 must have '3' character
-  if (lowerModelName.includes('qwen3')) {
-    return 'qwen3-vl';
-  }
-  if (lowerModelName.includes('qwen')) {
-    return 'qwen-vl';
-  }
-
-  // UI-TARS models - check first due to priority
-  if (lowerModelName.includes('ui-tars')) {
-    if (lowerModelName.includes('1.5')) {
-      return 'vlm-ui-tars-doubao-1.5';
-    }
-    if (lowerModelName.includes('1.0')) {
-      return 'vlm-ui-tars';
-    }
-    // No explicit version → default to doubao deployment (Volcengine)
-    return 'vlm-ui-tars-doubao';
-  }
-
-  // Doubao models (non-UI-TARS)
-  if (lowerModelName.includes('doubao')) {
-    return 'doubao-vision';
-  }
-
-  // Gemini models
-  if (lowerModelName.includes('gemini')) {
-    return 'gemini';
-  }
-
-  // OpenAI and Claude models (gpt-*, o1-*, claude-*, etc.)
-  // These models typically work with the default planning style
-  if (
-    lowerModelName.includes('gpt-') ||
-    lowerModelName.includes('o1-') ||
-    lowerModelName.includes('claude')
-  ) {
-    return 'default';
-  }
-
-  return undefined;
-};
-
-/**
  * Convert planning style to vlModeRaw and uiTarsVersion
  * @param planningStyle - The planning style to convert
  * @returns Object with vlMode and uiTarsVersion
@@ -250,12 +193,10 @@ export const detectLegacyVlModeEnvVars = (
  * Supports both new MIDSCENE_PLANNING_STYLE and legacy MIDSCENE_USE_* variables
  *
  * @param provider - Environment variable provider
- * @param modelName - Optional model name for inference
  * @returns Object with vlMode, uiTarsVersion, and warnings
  */
 export const parsePlanningStyleFromEnv = (
   provider: Record<string, string | undefined>,
-  modelName?: string,
 ): {
   vlMode?: TVlModeTypes;
   vlModeRaw?: TVlModeValues;
@@ -281,7 +222,7 @@ export const parsePlanningStyleFromEnv = (
     // Validate planning style value
     if (!PLANNING_STYLE_VALUES.includes(planningStyle)) {
       throw new Error(
-        `Invalid MIDSCENE_PLANNING_STYLE value: "${planningStyleRaw}". Must be one of: ${PLANNING_STYLE_VALUES.join(', ')}`,
+        `Invalid MIDSCENE_PLANNING_STYLE value: "${planningStyleRaw}". Must be one of: ${PLANNING_STYLE_VALUES.join(', ')}. See documentation: https://midscenejs.com/model-provider.html`,
       );
     }
 
@@ -337,29 +278,8 @@ export const parsePlanningStyleFromEnv = (
     };
   }
 
-  // Case 4: No configuration set - try to infer from model name
-  if (modelName) {
-    const inferredStyle = inferPlanningStyleFromModelName(modelName);
-
-    if (inferredStyle) {
-      const result = convertPlanningStyleToVlMode(inferredStyle);
-      warnings.push(
-        `No MIDSCENE_PLANNING_STYLE configured. Automatically inferred "${inferredStyle}" mode from model name "${modelName}". Set MIDSCENE_PLANNING_STYLE explicitly to suppress this warning.`,
-      );
-      return {
-        ...result,
-        planningStyle: inferredStyle,
-        warnings,
-      };
-    } else {
-      throw new Error(
-        `Unable to infer planning style from model name "${modelName}". Please set MIDSCENE_PLANNING_STYLE to one of: ${PLANNING_STYLE_VALUES.join(', ')}`,
-      );
-    }
-  }
-
-  // Case 5: No configuration and no model name - ERROR
+  // Case 4: No configuration set - ERROR
   throw new Error(
-    `MIDSCENE_PLANNING_STYLE is required for planning tasks. Please set it to one of: ${PLANNING_STYLE_VALUES.join(', ')}`,
+    `MIDSCENE_PLANNING_STYLE is required for planning tasks. Please set it to one of: ${PLANNING_STYLE_VALUES.join(', ')}. See documentation: https://midscenejs.com/model-provider.html`,
   );
 };

@@ -260,7 +260,7 @@ export const decideModelConfigFromEnv = (
 
     // For planning intent, use the new MIDSCENE_PLANNING_STYLE approach
     if (intent === 'planning') {
-      const parseResult = parsePlanningStyleFromEnv(allEnvConfig, modelName);
+      const parseResult = parsePlanningStyleFromEnv(allEnvConfig);
       vlMode = parseResult.vlMode;
       uiTarsVersion = parseResult.uiTarsVersion;
 
@@ -317,10 +317,7 @@ export const decideModelConfigFromEnv = (
 
   // For planning intent in legacy logic, still use the new MIDSCENE_PLANNING_STYLE approach
   if (intent === 'planning') {
-    const modelName =
-      allEnvConfig[DEFAULT_MODEL_CONFIG_KEYS_LEGACY.modelName] || 'gpt-4o';
-
-    const parseResult = parsePlanningStyleFromEnv(allEnvConfig, modelName);
+    const parseResult = parsePlanningStyleFromEnv(allEnvConfig);
     vlMode = parseResult.vlMode;
     uiTarsVersion = parseResult.uiTarsVersion;
 
