@@ -232,6 +232,10 @@ export default defineConfig({
               text: '桥接到桌面 Chrome',
               link: '/zh/bridge-mode',
             },
+            {
+              text: 'API 参考（Web）',
+              link: '/zh/web-api-reference',
+            },
           ],
         },
         {
@@ -242,12 +246,12 @@ export default defineConfig({
               link: '/zh/android-introduction',
             },
             {
-              text: '通过 Playground 快速体验',
-              link: '/zh/android-playground',
+              text: '快速开始',
+              link: '/zh/android-getting-started',
             },
             {
-              text: '与 Android(adb) 集成',
-              link: '/zh/integrate-with-android',
+              text: 'API 参考（Android）',
+              link: '/zh/android-api-reference',
             },
           ],
         },
@@ -259,12 +263,12 @@ export default defineConfig({
               link: '/zh/ios-introduction',
             },
             {
-              text: '通过 Playground 快速体验',
-              link: '/zh/ios-playground',
+              text: '快速开始',
+              link: '/zh/ios-getting-started',
             },
             {
-              text: '与 iOS(WebDriverAgent) 集成',
-              link: '/zh/integrate-with-ios',
+              text: 'API 参考（iOS）',
+              link: '/zh/ios-api-reference',
             },
           ],
         },

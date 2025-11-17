@@ -1,0 +1,144 @@
+# API 参考（Android）
+
+当你需要自定义设备行为、把 Midscene 接入框架，或排查 adb 问题时，请查阅本节内容。关于通用构造函数（报告、Hook、缓存等）的参数说明，请参考平台无关的 [API 参考](./api.mdx) 以及 [Prompting tips](./prompting-tips)，以获得提示工程方面的帮助。
+
+## 导入与基础用法
+
+要操作 Android 设备，请导入 Android SDK：
+
+```typescript
+import {
+  AndroidAgent,
+  AndroidDevice,
+  getConnectedDevices,
+} from '@midscene/android';
+```
+
+基础示例：
+
+```typescript
+const devices = await getConnectedDevices();
+const device = new AndroidDevice(devices[0].udid);
+await device.connect();
+
+const agent = new AndroidAgent(device, {
+  actionContext: 'If a permissions dialog appears, accept it.',
+});
+```
+
+## AndroidDevice 构造函数 {#androiddevice-constructor}
+
+```ts
+new AndroidDevice(deviceId: string, opts?: AndroidDeviceOpt)
+```
+
+- `deviceId: string` —— 来自 `adb devices` 或 `getConnectedDevices()` 的值。
+- `autoDismissKeyboard?: boolean` —— 输入完成后自动隐藏键盘，默认 `true`。
+- `keyboardDismissStrategy?: 'esc-first' | 'back-first'` —— 关闭键盘的顺序，默认 `'esc-first'`。
+- `androidAdbPath?: string` —— adb 可执行文件的自定义路径。
+- `remoteAdbHost?: string` / `remoteAdbPort?: number` —— 指向远程 adb server。
+- `imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii'` —— 控制何时调用 [yadb](https://github.com/ysbing/YADB) 进行文本输入，默认 `'yadb-for-non-ascii'`。
+- `displayId?: number` —— 在设备镜像多个屏幕时，选择特定虚拟屏幕。
+- `screenshotResizeScale?: number` —— 在发送给模型前对截图进行缩放，默认 `1 / devicePixelRatio`。
+- `alwaysRefreshScreenInfo?: boolean` —— 每一步都重新查询旋转角度与屏幕尺寸，默认 `false`。
+
+## AndroidAgent 构造函数 {#androidagent}
+
+```ts
+new AndroidAgent(device: AndroidDevice, options?: PageAgentOpt)
+```
+
+- `device: AndroidDevice`（必填）负责截图、点击、文本输入、Back/Home 事件等。可结合上文构造函数和 `getConnectedDevices()` 配置设备行为。
+- `options?: PageAgentOpt` 与 [API constructors](./api#common-parameters) 中的通用 Agent 选项一致，包含 `generateReport`、`reportFileName`、`actionContext`/`aiActionContext`、`modelConfig`、`cacheId`、`customActions`、`createOpenAIClient`、`onTaskStartTip` 等。
+- 工厂方法：`agentFromAdbDevice(deviceId?, opts?)` 会连接 adb 设备并返回可用的 Agent，适合一步式调用。
+- 工具函数：`getConnectedDevices()` 用于枚举 adb 设备；YAML 工作流共享相同字段，可参考 [使用 YAML 的自动化脚本](./automate-with-scripts-in-yaml)。
+
+## Android Agent 方法
+
+### `agent.launch()`
+
+启动网页或原生 Android activity/package。
+
+```typescript
+function launch(uri: string): Promise<void>;
+```
+
+- `uri: string` —— 可以是网页 URL，也可以是 `package/.Activity` 形式的字符串，例如 `com.android.settings/.Settings`。
+
+```typescript
+const agent = new AndroidAgent(device);
+await agent.launch('https://www.ebay.com');
+await agent.launch('com.android.settings');
+await agent.launch('com.android.settings/.Settings');
+```
+
+### `agent.runAdbShell()`
+
+通过连接的设备运行原始的 `adb shell` 命令。
+
+```typescript
+function runAdbShell(command: string): Promise<string>;
+```
+
+- `command: string` —— 原样传递给 `adb shell` 的命令。
+
+```typescript
+const result = await agent.runAdbShell('dumpsys battery');
+console.log(result);
+```
+
+:::info YAML 用法
+`launch` 和 `runAdbShell` 等 Android 特有的辅助函数也可以在 YAML 脚本中使用，语法请查阅 [Android 平台特定动作](./automate-with-scripts-in-yaml#the-android-part)。
+:::
+
+### `agent.back()`
+
+触发 Android 系统的返回操作。
+
+```typescript
+function back(): Promise<void>;
+```
+
+### `agent.home()`
+
+返回桌面。
+
+```typescript
+function home(): Promise<void>;
+```
+
+### `agent.recentApps()`
+
+打开多任务/最近应用界面。
+
+```typescript
+function recentApps(): Promise<void>;
+```
+
+## Android 辅助工具
+
+### `agentFromAdbDevice()`
+
+从任意已连接的 adb 设备创建 `AndroidAgent`。
+
+```typescript
+function agentFromAdbDevice(
+  deviceId?: string,
+  opts?: PageAgentOpt & AndroidDeviceOpt,
+): Promise<AndroidAgent>;
+```
+
+- `deviceId?: string` —— 连接特定设备；留空表示使用“第一个可用设备”。
+- `opts?: PageAgentOpt & AndroidDeviceOpt` —— 在一个对象中合并 Agent 选项与 [AndroidDevice 构造函数](#androiddevice-constructor) 的设置。
+
+### `getConnectedDevices()`
+
+列举 Midscene 可驱动的 adb 设备。
+
+```typescript
+function getConnectedDevices(): Promise<Array<{
+  udid: string;
+  state: string;
+  port?: number;
+}>>;
+```
