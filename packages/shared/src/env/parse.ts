@@ -217,15 +217,14 @@ export const parsePlanningStyleFromEnv = (
 
   // Case 2: Only new MIDSCENE_PLANNING_STYLE is set
   if (planningStyleRaw) {
-    const planningStyle = planningStyleRaw as TPlanningStyle;
-
     // Validate planning style value
-    if (!PLANNING_STYLE_VALUES.includes(planningStyle)) {
+    if (!PLANNING_STYLE_VALUES.includes(planningStyleRaw)) {
       throw new Error(
-        `Invalid MIDSCENE_PLANNING_STYLE value: "${planningStyleRaw}". Must be one of: ${PLANNING_STYLE_VALUES.join(', ')}. See documentation: https://midscenejs.com/model-provider.html`,
+        `Invalid MIDSCENE_PLANNING_STYLE value: "${planningStyleRaw}". Must be one of: ${PLANNING_STYLE_VALUES.join(', ')}`,
       );
     }
 
+    const planningStyle = planningStyleRaw as TPlanningStyle;
     const result = convertPlanningStyleToVlMode(planningStyle);
     return {
       ...result,
