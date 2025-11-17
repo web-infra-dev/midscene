@@ -14,14 +14,19 @@
   },
   "packageManager": "pnpm@9.3.0",
   "dependencies": {
+    "lucide-react": "0.553.0",
     "querystring": "0.2.1",
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },
   "devDependencies": {
+    "@rspress/core": "2.0.0-rc.0",
     "@rspress/plugin-llms": "2.0.0-rc.0",
     "@rspress/plugin-sitemap": "2.0.0-rc.0",
+    "@tailwindcss/postcss": "4.1.11",
     "@types/node": "^18.0.0",
-    "@rspress/core": "2.0.0-rc.0"
+    "autoprefixer": "10.4.22",
+    "postcss": "8.5.6",
+    "tailwindcss": "4.1.11"
   }
 }
