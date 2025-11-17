@@ -185,11 +185,15 @@ describe('inferPlanningStyleFromModelName', () => {
 
   it('should infer vlm-ui-tars from model name', () => {
     expect(inferPlanningStyleFromModelName('ui-tars-1.0')).toBe('vlm-ui-tars');
-    expect(inferPlanningStyleFromModelName('uitars-1.5')).toBe(
+    expect(inferPlanningStyleFromModelName('ui-tars-1.5')).toBe(
       'vlm-ui-tars-doubao-1.5',
     );
     expect(inferPlanningStyleFromModelName('UI-TARS-model')).toBe(
-      'vlm-ui-tars',
+      'vlm-ui-tars-doubao',
+    );
+    // No version defaults to doubao deployment (Volcengine)
+    expect(inferPlanningStyleFromModelName('ui-tars')).toBe(
+      'vlm-ui-tars-doubao',
     );
   });
 

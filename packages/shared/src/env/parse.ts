@@ -151,21 +151,25 @@ export const inferPlanningStyleFromModelName = (
   if (lowerModelName.includes('qwen3')) {
     return 'qwen3-vl';
   }
-  if (lowerModelName.includes('qwen2.5') || lowerModelName.includes('qwen')) {
+  if (lowerModelName.includes('qwen')) {
     return 'qwen-vl';
   }
 
-  // Doubao models
-  if (lowerModelName.includes('doubao')) {
-    return 'doubao-vision';
-  }
-
-  // UI-TARS models
-  if (lowerModelName.includes('ui-tars') || lowerModelName.includes('uitars')) {
-    if (lowerModelName.includes('doubao') || lowerModelName.includes('1.5')) {
+  // UI-TARS models - check first due to priority
+  if (lowerModelName.includes('ui-tars')) {
+    if (lowerModelName.includes('1.5')) {
       return 'vlm-ui-tars-doubao-1.5';
     }
-    return 'vlm-ui-tars';
+    if (lowerModelName.includes('1.0')) {
+      return 'vlm-ui-tars';
+    }
+    // No explicit version → default to doubao deployment (Volcengine)
+    return 'vlm-ui-tars-doubao';
+  }
+
+  // Doubao models (non-UI-TARS)
+  if (lowerModelName.includes('doubao')) {
+    return 'doubao-vision';
   }
 
   // Gemini models
