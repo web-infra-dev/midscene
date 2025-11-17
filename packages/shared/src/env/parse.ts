@@ -1,5 +1,5 @@
 import {
-  MIDSCENE_PLANNING_STYLE,
+  MIDSCENE_MODEL_FAMILY,
   MIDSCENE_USE_DOUBAO_VISION,
   MIDSCENE_USE_GEMINI,
   MIDSCENE_USE_QWEN3_VL,
@@ -197,7 +197,7 @@ function isValidPlanningStyle(value: string): value is TPlanningStyle {
 
 /**
  * Parse planning style from environment variables with validation and warnings
- * Supports both new MIDSCENE_PLANNING_STYLE and legacy MIDSCENE_USE_* variables
+ * Supports both new MIDSCENE_MODEL_FAMILY and legacy MIDSCENE_USE_* variables
  *
  * @param provider - Environment variable provider
  * @returns Object with vlMode, uiTarsVersion, and warnings
@@ -212,22 +212,22 @@ export const parsePlanningStyleFromEnv = (
   planningStyle?: TPlanningStyle;
 } => {
   const warnings: string[] = [];
-  const planningStyleRaw = provider[MIDSCENE_PLANNING_STYLE];
+  const planningStyleRaw = provider[MIDSCENE_MODEL_FAMILY];
   const legacyVars = detectLegacyVlModeEnvVars(provider);
 
   // Case 1: Both new and legacy variables are set - ERROR
   if (planningStyleRaw && legacyVars.length > 0) {
     throw new Error(
-      `Conflicting configuration detected: Both MIDSCENE_PLANNING_STYLE and legacy environment variables (${legacyVars.join(', ')}) are set. Please use only MIDSCENE_PLANNING_STYLE.`,
+      `Conflicting configuration detected: Both MIDSCENE_MODEL_FAMILY and legacy environment variables (${legacyVars.join(', ')}) are set. Please use only MIDSCENE_MODEL_FAMILY.`,
     );
   }
 
-  // Case 2: Only new MIDSCENE_PLANNING_STYLE is set
+  // Case 2: Only new MIDSCENE_MODEL_FAMILY is set
   if (planningStyleRaw) {
     // Validate planning style value
     if (!isValidPlanningStyle(planningStyleRaw)) {
       throw new Error(
-        `Invalid MIDSCENE_PLANNING_STYLE value: "${planningStyleRaw}". Must be one of: ${PLANNING_STYLE_VALUES.join(', ')}. See documentation: https://midscenejs.com/model-provider.html`,
+        `Invalid MIDSCENE_MODEL_FAMILY value: "${planningStyleRaw}". Must be one of: ${PLANNING_STYLE_VALUES.join(', ')}. See documentation: https://midscenejs.com/model-provider.html`,
       );
     }
 
@@ -245,7 +245,7 @@ export const parsePlanningStyleFromEnv = (
     const legacyResult = parseVlModeAndUiTarsFromGlobalConfig(provider);
 
     warnings.push(
-      `DEPRECATED: Environment ${legacyVars.length > 1 ? 'variables' : 'variable'} ${legacyVars.join(', ')} ${legacyVars.length > 1 ? 'are' : 'is'} deprecated. Please use MIDSCENE_PLANNING_STYLE instead. See migration guide for details.`,
+      `DEPRECATED: Environment ${legacyVars.length > 1 ? 'variables' : 'variable'} ${legacyVars.join(', ')} ${legacyVars.length > 1 ? 'are' : 'is'} deprecated. Please use MIDSCENE_MODEL_FAMILY instead. See migration guide for details.`,
     );
 
     // Map legacy vlMode to planning style for display
@@ -286,6 +286,6 @@ export const parsePlanningStyleFromEnv = (
 
   // Case 4: No configuration set - ERROR
   throw new Error(
-    `MIDSCENE_PLANNING_STYLE is required for planning tasks. Please set it to one of: ${PLANNING_STYLE_VALUES.join(', ')}. See documentation: https://midscenejs.com/model-provider.html`,
+    `MIDSCENE_MODEL_FAMILY is required for planning tasks. Please set it to one of: ${PLANNING_STYLE_VALUES.join(', ')}. See documentation: https://midscenejs.com/model-provider.html`,
   );
 };

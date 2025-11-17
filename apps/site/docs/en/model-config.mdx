@@ -20,7 +20,7 @@ Obtain an API key from [Volcano Engine](https://volcengine.com) and set:
 MIDSCENE_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
 MIDSCENE_MODEL_API_KEY="...."
 MIDSCENE_MODEL_NAME="ep-..." # Inference endpoint ID or model name from Volcano Engine
-MIDSCENE_PLANNING_STYLE="doubao-vision"
+MIDSCENE_MODEL_FAMILY="doubao-vision"
 ```
 
 ### Qwen3-VL {#qwen3-vl}
@@ -31,7 +31,7 @@ Using Alibaba Cloud's `qwen3-vl-plus` as an example:
 MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
 MIDSCENE_MODEL_API_KEY="......"
 MIDSCENE_MODEL_NAME="qwen3-vl-plus"
-MIDSCENE_PLANNING_STYLE="qwen3-vl"
+MIDSCENE_MODEL_FAMILY="qwen3-vl"
 ```
 
 ### Qwen2.5-VL {#qwen25-vl}
@@ -42,7 +42,7 @@ Using Alibaba Cloud's `qwen-vl-max-latest` as an example:
 MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
 MIDSCENE_MODEL_API_KEY="......"
 MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
-MIDSCENE_PLANNING_STYLE="qwen-vl"
+MIDSCENE_MODEL_FAMILY="qwen-vl"
 ```
 
 ### Gemini-2.5-Pro {#gemini-25-pro}
@@ -53,7 +53,7 @@ After requesting an API key from [Google Gemini](https://gemini.google.com/), co
 MIDSCENE_MODEL_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
 MIDSCENE_MODEL_API_KEY="......"
 MIDSCENE_MODEL_NAME="gemini-2.5-pro-preview-05-06"
-MIDSCENE_PLANNING_STYLE="gemini"
+MIDSCENE_MODEL_FAMILY="gemini"
 ```
 
 ### UI-TARS {#ui-tars}
@@ -64,10 +64,10 @@ Use the deployed `doubao-1.5-ui-tars` on [Volcano Engine](https://volcengine.com
 MIDSCENE_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
 MIDSCENE_MODEL_API_KEY="...."
 MIDSCENE_MODEL_NAME="ep-2025..." # Inference endpoint ID or model name from Volcano Engine
-MIDSCENE_PLANNING_STYLE="vlm-ui-tars-doubao-1.5"
+MIDSCENE_MODEL_FAMILY="vlm-ui-tars-doubao-1.5"
 ```
 
-**About `MIDSCENE_PLANNING_STYLE`**
+**About `MIDSCENE_MODEL_FAMILY`**
 
 This variable selects the UI-TARS version. Supported values:
 - `vlm-ui-tars` – for the 1.0 release
@@ -75,12 +75,12 @@ This variable selects the UI-TARS version. Supported values:
 - `vlm-ui-tars-doubao-1.5` – for the 1.5 release deployed on Volcano Engine
 
 :::tip
-The legacy configurations `MIDSCENE_USE_VLM_UI_TARS=DOUBAO` or `MIDSCENE_USE_VLM_UI_TARS=1.5` are still supported but deprecated. Please migrate to `MIDSCENE_PLANNING_STYLE`.
+The legacy configurations `MIDSCENE_USE_VLM_UI_TARS=DOUBAO` or `MIDSCENE_USE_VLM_UI_TARS=1.5` are still supported but deprecated. Please migrate to `MIDSCENE_MODEL_FAMILY`.
 
 Migration mapping:
-- `MIDSCENE_USE_VLM_UI_TARS=1.0` → `MIDSCENE_PLANNING_STYLE="vlm-ui-tars"`
-- `MIDSCENE_USE_VLM_UI_TARS=1.5` → `MIDSCENE_PLANNING_STYLE="vlm-ui-tars-doubao-1.5"`
-- `MIDSCENE_USE_VLM_UI_TARS=DOUBAO` → `MIDSCENE_PLANNING_STYLE="vlm-ui-tars-doubao"`
+- `MIDSCENE_USE_VLM_UI_TARS=1.0` → `MIDSCENE_MODEL_FAMILY="vlm-ui-tars"`
+- `MIDSCENE_USE_VLM_UI_TARS=1.5` → `MIDSCENE_MODEL_FAMILY="vlm-ui-tars-doubao-1.5"`
+- `MIDSCENE_USE_VLM_UI_TARS=DOUBAO` → `MIDSCENE_MODEL_FAMILY="vlm-ui-tars-doubao"`
 :::
 
 ### <del>`GPT-4o`</del>
@@ -192,11 +192,11 @@ The following environment variables are deprecated but still compatible. We reco
 
 | Name | Description | New approach |
 |------|-------------|--------------|
-| `MIDSCENE_USE_DOUBAO_VISION` | Deprecated. Enables Doubao vision model | Use `MIDSCENE_PLANNING_STYLE="doubao-vision"` |
-| `MIDSCENE_USE_QWEN3_VL` | Deprecated. Enables Qwen3-VL model | Use `MIDSCENE_PLANNING_STYLE="qwen3-vl"` |
-| `MIDSCENE_USE_QWEN_VL` | Deprecated. Enables Qwen2.5-VL model | Use `MIDSCENE_PLANNING_STYLE="qwen-vl"` |
-| `MIDSCENE_USE_GEMINI` | Deprecated. Enables Gemini model | Use `MIDSCENE_PLANNING_STYLE="gemini"` |
-| `MIDSCENE_USE_VLM_UI_TARS` | Deprecated. Enables UI-TARS model | Use `MIDSCENE_PLANNING_STYLE="vlm-ui-tars*"` |
+| `MIDSCENE_USE_DOUBAO_VISION` | Deprecated. Enables Doubao vision model | Use `MIDSCENE_MODEL_FAMILY="doubao-vision"` |
+| `MIDSCENE_USE_QWEN3_VL` | Deprecated. Enables Qwen3-VL model | Use `MIDSCENE_MODEL_FAMILY="qwen3-vl"` |
+| `MIDSCENE_USE_QWEN_VL` | Deprecated. Enables Qwen2.5-VL model | Use `MIDSCENE_MODEL_FAMILY="qwen-vl"` |
+| `MIDSCENE_USE_GEMINI` | Deprecated. Enables Gemini model | Use `MIDSCENE_MODEL_FAMILY="gemini"` |
+| `MIDSCENE_USE_VLM_UI_TARS` | Deprecated. Enables UI-TARS model | Use `MIDSCENE_MODEL_FAMILY="vlm-ui-tars*"` |
 
 #### General configuration (deprecated)
 
