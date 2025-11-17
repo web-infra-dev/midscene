@@ -166,7 +166,7 @@ export async function AiLocateElement(options: {
     imageHeight = options.searchConfig.rect?.height;
     originalImageWidth = imageWidth;
     originalImageHeight = imageHeight;
-  } else if (vlMode === 'qwen-vl') {
+  } else if (vlMode === 'qwen2.5-vl') {
     const paddedResult = await paddingToMatchBlockByBase64(imagePayload);
     imageWidth = paddedResult.width;
     imageHeight = paddedResult.height;
@@ -363,7 +363,7 @@ export async function AiLocateSection(options: {
     const croppedResult = await cropByRect(
       screenshotBase64,
       sectionRect,
-      vlMode === 'qwen-vl',
+      vlMode === 'qwen2.5-vl',
     );
     imageBase64 = croppedResult.imageBase64;
     sectionRect.width = croppedResult.width;

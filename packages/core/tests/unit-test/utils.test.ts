@@ -863,7 +863,7 @@ describe('search area', () => {
       const result = expandSearchArea(
         { left: 25, top: 891, width: 127, height: 23 },
         { width: 1900, height: 916 },
-        'qwen-vl',
+        'qwen2.5-vl',
       );
 
       expect(result).toMatchInlineSnapshot(`

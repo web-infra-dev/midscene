@@ -289,7 +289,7 @@ export interface IModelConfigForInsight {
  * DOM-based planning is not supported.
  *
  * Required: MIDSCENE_PLANNING_LOCATOR_MODE must be set to one of:
- *   - 'qwen-vl'
+ *   - 'qwen2.5-vl'
  *   - 'qwen3-vl'
  *   - 'gemini'
  *   - 'doubao-vision'
@@ -418,8 +418,8 @@ export interface IModelConfig {
   openaiApiKey?: string;
   openaiExtraConfig?: Record<string, unknown>;
   /**
-   * - vlModeRaw: exists only in non-legacy logic. value can be 'doubao-vision', 'gemini', 'qwen-vl', 'vlm-ui-tars', 'vlm-ui-tars-doubao', 'vlm-ui-tars-doubao-1.5'
-   * - vlMode: based on the results of the vlModoRaw classification，value can be 'doubao-vision', 'gemini', 'qwen-vl', 'vlm-ui-tars'
+   * - vlModeRaw: exists only in non-legacy logic. value can be 'doubao-vision', 'gemini', 'qwen2.5-vl', 'vlm-ui-tars', 'vlm-ui-tars-doubao', 'vlm-ui-tars-doubao-1.5'
+   * - vlMode: based on the results of the vlModoRaw classification，value can be 'doubao-vision', 'gemini', 'qwen2.5-vl', 'vlm-ui-tars'
    */
   vlModeRaw?: string;
   vlMode?: TVlModeTypes;
