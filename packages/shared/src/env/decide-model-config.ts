@@ -168,6 +168,56 @@ const getModelDescription = (
   return '';
 };
 
+/**
+ * Parse vlMode and uiTarsVersion based on intent and config
+ * Consolidates the logic for handling planning intent vs other intents
+ */
+const parseVlModeForIntent = (
+  intent: TIntent,
+  allEnvConfig: Record<string, string | undefined>,
+  result: { vlModeRaw?: string },
+  debugLog: (...args: any[]) => void,
+): {
+  vlMode?: TVlModeTypes;
+  uiTarsVersion?: UITarsModelVersion;
+} => {
+  if (intent === 'planning') {
+    const parseResult = parsePlanningStyleFromEnv(allEnvConfig);
+
+    // Output warnings to debug log
+    parseResult.warnings.forEach((warning) => {
+      console.warn(`[Midscene] ${warning}`);
+    });
+
+    if (parseResult.planningStyle) {
+      debugLog(`Using planning style: ${parseResult.planningStyle}`);
+    }
+
+    return {
+      vlMode: parseResult.vlMode,
+      uiTarsVersion: parseResult.uiTarsVersion,
+    };
+  } else {
+    // For other intents, use parseVlModeAndUiTarsModelVersionFromRawValue if vlModeRaw is available
+    // Otherwise, use parseVlModeAndUiTarsFromGlobalConfig
+    if (result.vlModeRaw !== undefined) {
+      const parsed = parseVlModeAndUiTarsModelVersionFromRawValue(
+        result.vlModeRaw,
+      );
+      return {
+        vlMode: parsed.vlMode,
+        uiTarsVersion: parsed.uiTarsVersion,
+      };
+    } else {
+      const parsed = parseVlModeAndUiTarsFromGlobalConfig(allEnvConfig);
+      return {
+        vlMode: parsed.vlMode,
+        uiTarsVersion: parsed.uiTarsVersion,
+      };
+    }
+  }
+};
+
 export const decideModelConfigFromIntentConfig = (
   intent: TIntent,
   intentConfig: Record<string, string | undefined>,
@@ -255,32 +305,12 @@ export const decideModelConfigFromEnv = (
       valueAssert: createAssert(keysForEnv.modelName, 'process.env', modelName),
     });
 
-    let vlMode: TVlModeTypes | undefined;
-    let uiTarsVersion: UITarsModelVersion | undefined;
-
-    // For planning intent, use the new MIDSCENE_PLANNING_STYLE approach
-    if (intent === 'planning') {
-      const parseResult = parsePlanningStyleFromEnv(allEnvConfig);
-      vlMode = parseResult.vlMode;
-      uiTarsVersion = parseResult.uiTarsVersion;
-
-      // Output warnings to debug log
-      parseResult.warnings.forEach((warning) => {
-        console.warn(`[Midscene] ${warning}`);
-      });
-
-      if (parseResult.planningStyle) {
-        // NOTE: If this block is refactored into a helper function, ensure `debugLog` is passed as a parameter.
-        debugLog(`Using planning style: ${parseResult.planningStyle}`);
-      }
-    } else {
-      // For other intents, use the old parsing logic
-      const parsed = parseVlModeAndUiTarsModelVersionFromRawValue(
-        result.vlModeRaw,
-      );
-      vlMode = parsed.vlMode;
-      uiTarsVersion = parsed.uiTarsVersion;
-    }
+    const { vlMode, uiTarsVersion } = parseVlModeForIntent(
+      intent,
+      allEnvConfig,
+      result,
+      debugLog,
+    );
 
     const modelDescription = getModelDescription(vlMode, uiTarsVersion);
 
@@ -313,29 +343,12 @@ export const decideModelConfigFromEnv = (
     ),
   });
 
-  let vlMode: TVlModeTypes | undefined;
-  let uiTarsVersion: UITarsModelVersion | undefined;
-
-  // For planning intent in legacy logic, still use the new MIDSCENE_PLANNING_STYLE approach
-  if (intent === 'planning') {
-    const parseResult = parsePlanningStyleFromEnv(allEnvConfig);
-    vlMode = parseResult.vlMode;
-    uiTarsVersion = parseResult.uiTarsVersion;
-
-    // Output warnings to debug log
-    parseResult.warnings.forEach((warning) => {
-      console.warn(`[Midscene] ${warning}`);
-    });
-
-    if (parseResult.planningStyle) {
-      debugLog(`Using planning style: ${parseResult.planningStyle}`);
-    }
-  } else {
-    // For other intents, use the old parsing logic
-    const parsed = parseVlModeAndUiTarsFromGlobalConfig(allEnvConfig);
-    vlMode = parsed.vlMode;
-    uiTarsVersion = parsed.uiTarsVersion;
-  }
+  const { vlMode, uiTarsVersion } = parseVlModeForIntent(
+    intent,
+    allEnvConfig,
+    result,
+    debugLog,
+  );
 
   const modelDescription = getModelDescription(vlMode, uiTarsVersion);
 
