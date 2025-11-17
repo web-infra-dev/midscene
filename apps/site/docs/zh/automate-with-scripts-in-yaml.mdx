@@ -40,7 +40,7 @@ tasks:
 
 脚本文件使用 YAML 格式来描述自动化任务。它定义了要操作的目标（如网页或安卓应用）以及一系列要执行的步骤。
 
-一个标准的 `.yaml` 脚本文件包含 `web`、`android` 或 `ios` 部分配置环境，以及一个 `tasks` 部分来定义自动化任务。
+一个标准的 `.yaml` 脚本文件包含 `web`、`android` 或 `ios` 部分配置环境，可选的 `agent` 部分配置 AI 代理行为，以及一个 `tasks` 部分来定义自动化任务。
 
 ```yaml
 web:
@@ -54,6 +54,49 @@ tasks:
       - sleep: 3000
       - aiAssert: 结果显示天气信息
 ```
+
+### `agent` 部分
+
+如需使用 `aiActionContext` 参数，可以通过 `agent` 部分来设置：
+
+```yaml
+# AI agent 配置
+agent:
+  # 在调用 aiAct 时发送给 AI 模型的背景知识，可选
+  aiActionContext: <string>
+```
+
+:::tip aiActionContext 配置说明
+
+- **适用环境**：Web、iOS 和 Android 环境都可以通过 `agent` 部分来设置 `aiActionContext`
+- **作用**：为 AI 模型提供背景知识，例如处理弹窗、业务介绍等常见场景
+
+:::
+
+#### 使用示例
+
+```yaml
+# agent 配置，适用于所有环境
+agent:
+  aiActionContext: "如果出现弹窗，点击同意。如果出现登录页面，跳过它。"
+
+# iOS 环境配置
+ios:
+  launch: https://www.bing.com
+  wdaPort: 8100
+
+# 或 Android 环境配置
+android:
+  deviceId: s4ey59
+  launch: https://www.bing.com
+
+tasks:
+  - name: 搜索天气
+    flow:
+      - ai: 搜索 "今日天气"
+      - aiAssert: 结果显示天气信息
+```
+
 
 ### `web` 部分
 
@@ -106,47 +149,6 @@ web:
   acceptInsecureCerts: <boolean>
 ```
 
-### 全局 agent 配置
-
-如需使用 `aiActionContext` 参数，可以通过全局的 `agent` 配置来设置：
-
-```yaml
-# 全局 AI agent 配置
-agent:
-  # 在调用 aiAct 时发送给 AI 模型的背景知识，可选
-  aiActionContext: <string>
-```
-
-:::tip aiActionContext 配置说明
-
-- **适用环境**：Web、iOS 和 Android 环境都可以通过全局的 `agent` 配置来设置 `aiActionContext`
-- **作用**：为 AI 模型提供背景知识，例如处理弹窗、业务介绍等常见场景
-
-:::
-
-#### 使用示例
-
-```yaml
-# 全局 agent 配置，适用于所有环境
-agent:
-  aiActionContext: "如果出现弹窗，点击同意。如果出现登录页面，跳过它。"
-
-# iOS 环境配置
-ios:
-  launch: https://www.bing.com
-  wdaPort: 8100
-
-# 或 Android 环境配置
-android:
-  deviceId: s4ey59
-  launch: https://www.bing.com
-
-tasks:
-  - name: 搜索天气
-    flow:
-      - ai: 搜索 "今日天气"
-      - aiAssert: 结果显示天气信息
-```
 
 ### `android` 部分
 
