@@ -190,7 +190,7 @@ const parseVlModeForIntent = (
     });
 
     if (parseResult.modelFamily) {
-      debugLog(`Using planning style: ${parseResult.modelFamily}`);
+      debugLog(`Using model family: ${parseResult.modelFamily}`);
     }
 
     return {

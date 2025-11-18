@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { UITarsModelVersion } from '../../../src/env/';
 import {
-  convertModelFamilyToVlMode,
   parseModelFamilyFromEnv,
   parseVlModeAndUiTarsFromGlobalConfig,
   parseVlModeAndUiTarsModelVersionFromRawValue,
@@ -151,56 +150,6 @@ describe('parseVlModeAndUiTarsFromGlobalConfig', () => {
     expect(parseVlModeAndUiTarsFromGlobalConfig(provider)).toEqual({
       vlMode: 'vlm-ui-tars',
       uiTarsVersion: UITarsModelVersion.V1_5,
-    });
-  });
-});
-
-describe('convertModelFamilyToVlMode', () => {
-  it('should convert qwen3-vl directly', () => {
-    expect(convertModelFamilyToVlMode('qwen3-vl')).toEqual({
-      vlModeRaw: 'qwen3-vl',
-      vlMode: 'qwen3-vl',
-      uiTarsVersion: undefined,
-    });
-  });
-
-  it('should convert qwen-vl directly', () => {
-    expect(convertModelFamilyToVlMode('qwen2.5-vl')).toEqual({
-      vlModeRaw: 'qwen2.5-vl',
-      vlMode: 'qwen2.5-vl',
-      uiTarsVersion: undefined,
-    });
-  });
-
-  it('should convert doubao-vision directly', () => {
-    expect(convertModelFamilyToVlMode('doubao-vision')).toEqual({
-      vlModeRaw: 'doubao-vision',
-      vlMode: 'doubao-vision',
-      uiTarsVersion: undefined,
-    });
-  });
-
-  it('should convert vlm-ui-tars directly', () => {
-    expect(convertModelFamilyToVlMode('vlm-ui-tars')).toEqual({
-      vlModeRaw: 'vlm-ui-tars',
-      vlMode: 'vlm-ui-tars',
-      uiTarsVersion: UITarsModelVersion.V1_0,
-    });
-  });
-
-  it('should convert vlm-ui-tars-doubao-1.5 directly', () => {
-    expect(convertModelFamilyToVlMode('vlm-ui-tars-doubao-1.5')).toEqual({
-      vlModeRaw: 'vlm-ui-tars-doubao-1.5',
-      vlMode: 'vlm-ui-tars',
-      uiTarsVersion: UITarsModelVersion.DOUBAO_1_5_20B,
-    });
-  });
-
-  it('should convert gemini directly', () => {
-    expect(convertModelFamilyToVlMode('gemini')).toEqual({
-      vlModeRaw: 'gemini',
-      vlMode: 'gemini',
-      uiTarsVersion: undefined,
     });
   });
 });

@@ -20,10 +20,7 @@ export const parseVlModeAndUiTarsModelVersionFromRawValue = (
   uiTarsVersion?: UITarsModelVersion;
 } => {
   if (!vlModeRaw) {
-    return {
-      vlMode: undefined,
-      uiTarsVersion: undefined,
-    };
+    return { vlMode: undefined, uiTarsVersion: undefined };
   }
 
   if (!VL_MODE_RAW_VALID_VALUES.includes(vlModeRaw as never)) {
@@ -34,21 +31,17 @@ export const parseVlModeAndUiTarsModelVersionFromRawValue = (
   const raw = vlModeRaw as TVlModeValues;
 
   if (raw === 'vlm-ui-tars') {
-    return {
-      vlMode: 'vlm-ui-tars',
-      uiTarsVersion: UITarsModelVersion.V1_0,
-    };
-  } else if (raw === 'vlm-ui-tars-doubao' || raw === 'vlm-ui-tars-doubao-1.5') {
+    return { vlMode: 'vlm-ui-tars', uiTarsVersion: UITarsModelVersion.V1_0 };
+  }
+
+  if (raw === 'vlm-ui-tars-doubao' || raw === 'vlm-ui-tars-doubao-1.5') {
     return {
       vlMode: 'vlm-ui-tars',
       uiTarsVersion: UITarsModelVersion.DOUBAO_1_5_20B,
     };
   }
 
-  return {
-    vlMode: raw as TVlModeTypes,
-    uiTarsVersion: undefined,
-  };
+  return { vlMode: raw as TVlModeTypes, uiTarsVersion: undefined };
 };
 
 /**
@@ -80,34 +73,13 @@ export const parseVlModeAndUiTarsFromGlobalConfig = (
     );
   }
 
-  if (isQwen3) {
-    return {
-      vlMode: 'qwen3-vl',
-      uiTarsVersion: undefined,
-    };
-  }
+  // Simple modes without version
+  if (isQwen3) return { vlMode: 'qwen3-vl', uiTarsVersion: undefined };
+  if (isQwen) return { vlMode: 'qwen2.5-vl', uiTarsVersion: undefined };
+  if (isDoubao) return { vlMode: 'doubao-vision', uiTarsVersion: undefined };
+  if (isGemini) return { vlMode: 'gemini', uiTarsVersion: undefined };
 
-  if (isQwen) {
-    return {
-      vlMode: 'qwen2.5-vl',
-      uiTarsVersion: undefined,
-    };
-  }
-
-  if (isDoubao) {
-    return {
-      vlMode: 'doubao-vision',
-      uiTarsVersion: undefined,
-    };
-  }
-
-  if (isGemini) {
-    return {
-      vlMode: 'gemini',
-      uiTarsVersion: undefined,
-    };
-  }
-
+  // UI-TARS with version detection
   if (isUiTars) {
     if (isUiTars === '1') {
       return {
@@ -127,36 +99,7 @@ export const parseVlModeAndUiTarsFromGlobalConfig = (
     }
   }
 
-  return {
-    vlMode: undefined,
-    uiTarsVersion: undefined,
-  };
-};
-
-/**
- * Convert model family to vlModeRaw and uiTarsVersion
- * @param modelFamily - The model family to convert
- * @returns Object with vlMode and uiTarsVersion
- *
- * Model family directly maps to vlModeRaw
- */
-export const convertModelFamilyToVlMode = (
-  modelFamily: TModelFamily,
-): {
-  vlModeRaw: TVlModeValues;
-  vlMode: TVlModeTypes;
-  uiTarsVersion?: UITarsModelVersion;
-} => {
-  // Model family directly maps to vlModeRaw
-  const vlModeRaw = modelFamily;
-
-  // Parse to get vlMode and uiTarsVersion
-  const parsed = parseVlModeAndUiTarsModelVersionFromRawValue(vlModeRaw);
-  return {
-    vlModeRaw,
-    vlMode: parsed.vlMode!, // Non-null assertion: vlModeRaw is always a valid value
-    uiTarsVersion: parsed.uiTarsVersion,
-  };
+  return { vlMode: undefined, uiTarsVersion: undefined };
 };
 
 /**
@@ -186,7 +129,35 @@ function isValidModelFamily(value: string): value is TModelFamily {
 }
 
 /**
- * Parse planning style from environment variables with validation and warnings
+ * Map legacy vlMode and uiTarsVersion to model family
+ * @param vlMode - The VL mode type
+ * @param uiTarsVersion - The UI-TARS version (if applicable)
+ * @returns The corresponding model family value
+ */
+function mapLegacyToModelFamily(
+  vlMode?: TVlModeTypes,
+  uiTarsVersion?: UITarsModelVersion,
+): TModelFamily | undefined {
+  if (!vlMode) return undefined;
+
+  if (vlMode === 'vlm-ui-tars') {
+    // UI-TARS needs special handling for version
+    if (uiTarsVersion === UITarsModelVersion.V1_0) {
+      return 'vlm-ui-tars';
+    } else if (uiTarsVersion === UITarsModelVersion.DOUBAO_1_5_20B) {
+      return 'vlm-ui-tars-doubao-1.5';
+    } else {
+      // Handle other UI-TARS versions (vlm-ui-tars-doubao)
+      return 'vlm-ui-tars-doubao';
+    }
+  }
+
+  // For other modes, model family directly matches vlMode
+  return vlMode as TModelFamily;
+}
+
+/**
+ * Parse model family from environment variables with validation and warnings
  * Supports both new MIDSCENE_MODEL_FAMILY and legacy MIDSCENE_USE_* variables
  *
  * @param provider - Environment variable provider
@@ -196,7 +167,6 @@ export const parseModelFamilyFromEnv = (
   provider: Record<string, string | undefined>,
 ): {
   vlMode?: TVlModeTypes;
-  vlModeRaw?: TVlModeValues;
   uiTarsVersion?: UITarsModelVersion;
   warnings: string[];
   modelFamily?: TModelFamily;
@@ -214,7 +184,7 @@ export const parseModelFamilyFromEnv = (
 
   // Case 2: Only new MIDSCENE_MODEL_FAMILY is set
   if (modelFamilyRaw) {
-    // Validate planning style value
+    // Validate model family value
     if (!isValidModelFamily(modelFamilyRaw)) {
       throw new Error(
         `Invalid MIDSCENE_MODEL_FAMILY value: "${modelFamilyRaw}". Must be one of: ${MODEL_FAMILY_VALUES.join(', ')}. See documentation: https://midscenejs.com/model-provider.html`,
@@ -222,9 +192,10 @@ export const parseModelFamilyFromEnv = (
     }
 
     const modelFamily = modelFamilyRaw;
-    const result = convertModelFamilyToVlMode(modelFamily);
+    const parsed = parseVlModeAndUiTarsModelVersionFromRawValue(modelFamily);
     return {
-      ...result,
+      vlMode: parsed.vlMode,
+      uiTarsVersion: parsed.uiTarsVersion,
       modelFamily,
       warnings,
     };
@@ -238,36 +209,13 @@ export const parseModelFamilyFromEnv = (
       `DEPRECATED: Environment ${legacyVars.length > 1 ? 'variables' : 'variable'} ${legacyVars.join(', ')} ${legacyVars.length > 1 ? 'are' : 'is'} deprecated. Please use MIDSCENE_MODEL_FAMILY instead. See migration guide for details.`,
     );
 
-    // Map legacy vlMode to planning style for display
-    // Since planning style now directly uses vlModeRaw values,
-    // we need to construct the vlModeRaw from vlMode + uiTarsVersion
-    let modelFamily: TModelFamily | undefined;
-    let vlModeRaw: TVlModeValues | undefined;
-
-    if (legacyResult.vlMode === 'vlm-ui-tars') {
-      // UI-TARS needs special handling for version
-      if (legacyResult.uiTarsVersion === UITarsModelVersion.V1_0) {
-        modelFamily = 'vlm-ui-tars';
-        vlModeRaw = 'vlm-ui-tars';
-      } else if (
-        legacyResult.uiTarsVersion === UITarsModelVersion.DOUBAO_1_5_20B
-      ) {
-        modelFamily = 'vlm-ui-tars-doubao-1.5';
-        vlModeRaw = 'vlm-ui-tars-doubao-1.5';
-      } else {
-        // Handle other UI-TARS versions (vlm-ui-tars-doubao)
-        modelFamily = 'vlm-ui-tars-doubao';
-        vlModeRaw = 'vlm-ui-tars-doubao';
-      }
-    } else if (legacyResult.vlMode) {
-      // For other modes, planning style directly matches vlMode
-      modelFamily = legacyResult.vlMode as TModelFamily;
-      vlModeRaw = legacyResult.vlMode as TVlModeValues;
-    }
+    const modelFamily = mapLegacyToModelFamily(
+      legacyResult.vlMode,
+      legacyResult.uiTarsVersion,
+    );
 
     return {
       vlMode: legacyResult.vlMode,
-      vlModeRaw,
       uiTarsVersion: legacyResult.uiTarsVersion,
       modelFamily,
       warnings,
