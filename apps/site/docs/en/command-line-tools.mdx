@@ -11,8 +11,13 @@ Use the Midscene command-line interface to install dependencies, execute YAML wo
 Place credentials or model configuration in a `.env` file that lives where you run the CLI. Midscene automatically loads this file whenever you invoke `midscene`.
 
 ```ini filename=.env
-OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+MIDSCENE_MODEL_BASE_URL="replace with your model service URL"
+MIDSCENE_MODEL_API_KEY="replace with your API Key"
+MIDSCENE_MODEL_NAME="replace with your model name"
+MIDSCENE_MODEL_FAMILY="replace with your model family"
 ```
+
+For more configuration details, please refer to [Model strategy](./model-strategy).
 
 ## Install the command-line tool
 
