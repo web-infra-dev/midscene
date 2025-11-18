@@ -6,9 +6,9 @@ import { pluginSitemap } from '@rspress/plugin-sitemap';
 export default defineConfig({
   root: path.join(__dirname, 'docs'),
   title:
-    '(AI UI Automation, AI Testing, Computer Use, Browser Use, Android Use)',
+    'Midscene - AI UI Automation, AI Testing, Computer Use, Browser Use, Android Use',
   description:
-    'AI UI Automation, AI Testing, Computer Use, Browser Use, Android Use. It offers JavaScript SDK, Chrome extension, and support for scripting in YAML.',
+    'It offers JavaScript SDK, Chrome extension, and support for scripting in YAML.',
   icon: '/midscene-icon.png',
   logo: {
     light: '/midscene_with_text_light.png',
@@ -50,7 +50,7 @@ export default defineConfig({
           items: [
             {
               text: 'Introduction',
-              link: '/',
+              link: '/introduction',
             },
             {
               text: 'Model strategy 🔥',
@@ -201,7 +201,7 @@ export default defineConfig({
           items: [
             {
               text: '介绍',
-              link: '/zh/index',
+              link: '/zh/index.html',
             },
             {
               text: '模型策略',
@@ -368,6 +368,9 @@ export default defineConfig({
   builderConfig: {
     performance: {
       buildCache: false,
+    },
+    source: {
+      preEntry: ['./theme/tailwind.css'],
     },
     tools: {
       rspack: {

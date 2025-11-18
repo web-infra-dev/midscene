@@ -40,7 +40,7 @@ To execute YAML workflows from the command line, install the Midscene CLI. See [
 
 Script files use YAML format to describe automation tasks. It defines the target to be manipulated (like a webpage or an Android app) and the series of steps to perform.
 
-A standard `.yaml` script file includes a `web`, `android`, or `ios` section to configure the environment, and a `tasks` section to define the automation tasks.
+A standard `.yaml` script file includes a `web`, `android`, or `ios` section to configure the environment, an optional `agent` section to configure AI agent behavior, and a `tasks` section to define the automation tasks.
 
 ```yaml
 web:
@@ -54,6 +54,50 @@ tasks:
       - sleep: 3000
       - aiAssert: The results show weather information
 ```
+
+
+### The `agent` part
+
+If you need to use the `aiActionContext` parameter, you can set it through the `agent` section:
+
+```yaml
+# AI agent configuration
+agent:
+  # Background knowledge to send to the AI model when calling aiAct, optional.
+  aiActionContext: <string>
+```
+
+:::tip aiActionContext configuration
+
+- **Applicable environments**: Web, iOS, and Android environments can all use the `agent` section to set `aiActionContext`
+- **Purpose**: Provides background knowledge to the AI model, like how to handle popups, business introduction, etc.
+
+:::
+
+#### Usage example
+
+```yaml
+# agent configuration, applies to all environments
+agent:
+  aiActionContext: "If any popup appears, click agree. If login page appears, skip it."
+
+# iOS environment configuration
+ios:
+  launch: https://www.bing.com
+  wdaPort: 8100
+
+# Or Android environment configuration
+android:
+  deviceId: s4ey59
+  launch: https://www.bing.com
+
+tasks:
+  - name: Search for weather
+    flow:
+      - ai: Search for "today's weather"
+      - aiAssert: The results show weather information
+```
+
 
 ### The `web` part
 
@@ -104,48 +148,6 @@ web:
 
   # Whether to ignore HTTPS certificate errors, optional, defaults to false.
   acceptInsecureCerts: <boolean>
-```
-
-### Global agent configuration
-
-If you need to use the `aiActionContext` parameter, you can set it through the global `agent` configuration:
-
-```yaml
-# Global AI agent configuration
-agent:
-  # Background knowledge to send to the AI model when calling aiAct, optional.
-  aiActionContext: <string>
-```
-
-:::tip aiActionContext configuration
-
-- **Applicable environments**: Web, iOS, and Android environments can all use the global `agent` configuration to set `aiActionContext`
-- **Purpose**: Provides background knowledge to the AI model, like how to handle popups, business introduction, etc.
-
-:::
-
-#### Usage example
-
-```yaml
-# Global agent configuration, applies to all environments
-agent:
-  aiActionContext: "If any popup appears, click agree. If login page appears, skip it."
-
-# iOS environment configuration
-ios:
-  launch: https://www.bing.com
-  wdaPort: 8100
-
-# Or Android environment configuration
-android:
-  deviceId: s4ey59
-  launch: https://www.bing.com
-
-tasks:
-  - name: Search for weather
-    flow:
-      - ai: Search for "today's weather"
-      - aiAssert: The results show weather information
 ```
 
 ### The `android` part
