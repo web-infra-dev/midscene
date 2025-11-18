@@ -6,15 +6,15 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
 
   // Banner - Title
   heroTitle: 'Midscene.js',
-  heroSubtitle: 'AI 驱动，愉悦的 UI 自动化体验',
+  heroSubtitle: '视觉驱动的 UI 自动化 SDK，适配全平台',
 
   // Banner - Stats
   githubStars: 'Github Stars',
-  activeUsers: '活跃用户',
+  activeUsers: 'Github 趋势榜第2名',
 
   // Banner - CTA Buttons
   introduction: '介绍',
-  quickStart: '快速开始',
+  quickStart: '在 Chrome 扩展中体验',
 
   // Feature Sections - CLIENTS
   clientsTitle: '平台',

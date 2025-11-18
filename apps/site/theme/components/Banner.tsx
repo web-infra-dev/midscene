@@ -40,7 +40,7 @@ export function Banner() {
         {/* Title Section */}
         <div className="mt-12 flex flex-col items-start gap-y-8">
           <h1
-            className={`font-sans font-extrabold uppercase text-[80px] tracking-[1.6px] leading-[72px] ${
+            className={`font-sans font-extrabold text-[80px] tracking-[1.6px] leading-[72px] ${
               dark ? 'text-white/90' : 'text-black/90'
             }`}
           >
@@ -80,7 +80,7 @@ export function Banner() {
                 dark ? 'text-white' : 'text-black'
               }`}
             >
-              3k+
+              #2
             </div>
             <div
               className={`font-sans text-base font-normal leading-6 whitespace-nowrap ${

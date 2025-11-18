@@ -4,15 +4,15 @@ export const EN_US = {
 
   // Banner - Title
   heroTitle: 'Midscene.js',
-  heroSubtitle: 'Joyful AI-Powered UI Automation',
+  heroSubtitle: 'Vision-Driven UI Automation SDK for All Platforms',
 
   // Banner - Stats
   githubStars: 'Github Stars',
-  activeUsers: 'Active users',
+  activeUsers: 'No.2 in github trending',
 
   // Banner - CTA Buttons
   introduction: 'Introduction',
-  quickStart: 'Quick Start',
+  quickStart: 'Try Chrome Extension',
 
   // Feature Sections - CLIENTS
   clientsTitle: 'Platforms',

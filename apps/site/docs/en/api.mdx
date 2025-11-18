@@ -11,6 +11,8 @@ Midscene ships multiple agents tuned for specific automation environments. Every
 - On iOS, use [iOS API reference](./ios-api-reference)
 - For GUI agents integrating with your own interface, refer to [Custom Interface Agent](#custom-interface-agent)
 
+### Parameters
+
 All agents share these base options:
 
 - `generateReport: boolean`: If true, a report file will be generated. (Default: true)
@@ -19,91 +21,96 @@ All agents share these base options:
 - `cacheId: string | undefined`: If provided, this cacheId will be used to save or match the cache. (Default: undefined, means cache feature is disabled)
 - `actionContext: string`: Some background knowledge that should be sent to the AI model when calling `agent.aiAct()`, like 'close the cookie consent dialog first if it exists' (Default: undefined)
 - `onTaskStartTip: (tip: string) => void | Promise<void>`: Optional hook that fires before each execution task begins with a human-readable summary of the task (Default: undefined)
-- `modelConfig: (params: { intent: TIntent }) => IModelConfig`: Optional. Custom model configuration function. Allows you to dynamically configure different models through code instead of environment variables. This is particularly useful when you need to use different models for different AI tasks (such as Insight, Planning, etc.).
 
-  The function receives a parameter object with an `intent` field indicating the current task type:
-  - `'insight'`: Visual understanding tasks (such as `aiAssert`, `aiQuery`, etc.)
-  - `'planning'`: UI Automation related planning tasks (such as `aiAct`, `aiTap`)
+### Custom model configuration
 
-  **Basic Example:**
-  ```typescript
-  const agent = new PuppeteerAgent(page, {
-    modelConfig: () => ({
-      MIDSCENE_MODEL_NAME: 'qwen3-vl-plus',
-      MIDSCENE_MODEL_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-      MIDSCENE_MODEL_API_KEY: 'sk-...',
-      MIDSCENE_LOCATOR_MODE: 'qwen3-vl'
-    })
-  });
-  ```
+Use `modelConfig: (params: { intent: TIntent }) => IModelConfig` to dynamically configure different models through code instead of environment variables. This is particularly useful when you need to use different models for different AI tasks (such as Insight, Planning, etc.).
 
-  **Configure different models for different task types:**
-  ```typescript
-  const agent = new PuppeteerAgent(page, {
-    modelConfig: ({ intent }) => {
-      // Use Qwen-VL model for Insight tasks (for visual understanding and location)
-      if (intent === 'insight') {
-        return {
-          MIDSCENE_INSIGHT_MODEL_NAME: 'qwen-vl-plus',
-          MIDSCENE_INSIGHT_MODEL_API_KEY: 'sk-insight-key',
-          MIDSCENE_INSIGHT_MODEL_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1'
-        };
-      }
+The function receives a parameter object with an `intent` field indicating the current task type:
+- `'insight'`: Visual understanding tasks (such as `aiAssert`, `aiQuery`, etc.)
+- `'planning'`: UI Automation related planning tasks (such as `aiAct`, `aiTap`)
 
-      // Use GPT-4o model for Planning tasks (for task planning)
-      if (intent === 'planning') {
-        return {
-          MIDSCENE_PLANNING_MODEL_NAME: 'gpt-4o',
-          MIDSCENE_PLANNING_MODEL_API_KEY: 'sk-planning-key',
-          MIDSCENE_PLANNING_MODEL_BASE_URL: 'https://api.openai.com/v1',
-          MIDSCENE_INSIGHT_LOCATOR_MODE: 'qwen3-vl'
-        };
-      }
+**Basic Example:**
+```typescript
+const agent = new PuppeteerAgent(page, {
+  modelConfig: () => ({
+    MIDSCENE_MODEL_NAME: 'qwen3-vl-plus',
+    MIDSCENE_MODEL_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    MIDSCENE_MODEL_API_KEY: 'sk-...',
+    MIDSCENE_LOCATOR_MODE: 'qwen3-vl'
+  })
+});
+```
 
-      // Default configuration
+**Configure different models for different task types:**
+```typescript
+const agent = new PuppeteerAgent(page, {
+  modelConfig: ({ intent }) => {
+    // Use Qwen-VL model for Insight tasks (for visual understanding and location)
+    if (intent === 'insight') {
       return {
-        MIDSCENE_MODEL_NAME: 'gpt-4o',
-        MIDSCENE_MODEL_API_KEY: 'sk-default-key',
+        MIDSCENE_INSIGHT_MODEL_NAME: 'qwen-vl-plus',
+        MIDSCENE_INSIGHT_MODEL_API_KEY: 'sk-insight-key',
+        MIDSCENE_INSIGHT_MODEL_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1'
       };
     }
-  });
-  ```
 
-  For more information about configuring models by task type, refer to the [Model configuration](./model-config#configure-models-by-task-type-advanced) documentation.
-
-- `createOpenAIClient: (openai, options) => Promise<OpenAI | undefined>`: Optional. Custom OpenAI client wrapper function. Allows you to wrap the OpenAI client instance for integrating observability tools (such as LangSmith, LangFuse) or applying custom middleware.
-
-  **Parameter Description:**
-  - `openai: OpenAI` - The base OpenAI client instance created by Midscene with all necessary configurations (API key, base URL, proxy, etc.)
-  - `options: Record<string, unknown>` - OpenAI initialization options, including:
-    - `baseURL?: string` - API endpoint URL
-    - `apiKey?: string` - API key
-    - `dangerouslyAllowBrowser: boolean` - Always true in Midscene
-    - Other OpenAI configuration options
-
-  **Return Value:**
-  - Return the wrapped OpenAI client instance, or `undefined` to use the original instance
-
-  **Example (LangSmith Integration):**
-  ```typescript
-  import { wrapOpenAI } from 'langsmith/wrappers';
-
-  const agent = new PuppeteerAgent(page, {
-    createOpenAIClient: async (openai, options) => {
-      // Wrap with LangSmith for planning tasks
-      if (options.baseURL?.includes('planning')) {
-        return wrapOpenAI(openai, {
-          metadata: { task: 'planning' }
-        });
-      }
-
-      // Return the original client for other tasks
-      return openai;
+    // Use GPT-4o model for Planning tasks (for task planning)
+    if (intent === 'planning') {
+      return {
+        MIDSCENE_PLANNING_MODEL_NAME: 'gpt-4o',
+        MIDSCENE_PLANNING_MODEL_API_KEY: 'sk-planning-key',
+        MIDSCENE_PLANNING_MODEL_BASE_URL: 'https://api.openai.com/v1',
+        MIDSCENE_INSIGHT_LOCATOR_MODE: 'qwen3-vl'
+      };
     }
-  });
-  ```
 
-  **Note:** `createOpenAIClient` overrides the behavior of the `MIDSCENE_LANGSMITH_DEBUG` environment variable. If you provide a custom client wrapper function, you need to handle the integration of LangSmith or other observability tools yourself.
+    // Default configuration
+    return {
+      MIDSCENE_MODEL_NAME: 'gpt-4o',
+      MIDSCENE_MODEL_API_KEY: 'sk-default-key',
+    };
+  }
+});
+```
+
+For more information about configuring models by task type, refer to the [Model configuration](./model-config#configure-models-by-task-type-advanced) documentation.
+
+### Custom OpenAI client
+
+`createOpenAIClient: (openai, options) => Promise<OpenAI | undefined>` lets you wrap the OpenAI client instance for integrating observability tools (such as LangSmith, LangFuse) or applying custom middleware.
+
+**Parameter Description:**
+- `openai: OpenAI` - The base OpenAI client instance created by Midscene with all necessary configurations (API key, base URL, proxy, etc.)
+- `options: Record<string, unknown>` - OpenAI initialization options, including:
+  - `baseURL?: string` - API endpoint URL
+  - `apiKey?: string` - API key
+  - `dangerouslyAllowBrowser: boolean` - Always true in Midscene
+  - Other OpenAI configuration options
+
+**Return Value:**
+- Return the wrapped OpenAI client instance, or `undefined` to use the original instance
+
+**Example (LangSmith Integration):**
+```typescript
+import { wrapOpenAI } from 'langsmith/wrappers';
+
+const agent = new PuppeteerAgent(page, {
+  createOpenAIClient: async (openai, options) => {
+    // Wrap with LangSmith for planning tasks
+    if (options.baseURL?.includes('planning')) {
+      return wrapOpenAI(openai, {
+        metadata: { task: 'planning' }
+      });
+    }
+
+    // Return the original client for other tasks
+    return openai;
+  }
+});
+```
+
+**Note:** `createOpenAIClient` overrides the behavior of the `MIDSCENE_LANGSMITH_DEBUG` environment variable. If you provide a custom client wrapper function, you need to handle the integration of LangSmith or other observability tools yourself.
 
 ## Interaction methods
 

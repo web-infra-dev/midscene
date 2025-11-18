@@ -11,6 +11,8 @@ Midscene 中每个 Agent 都有自己的构造函数。
 - 在 Android 中，使用 [AndroidAgent](./integrate-with-android)
 - 如果你为自定义界面创建 GUI Agent，请参考 [集成到任意界面](./integrate-with-any-interface)
 
+### 参数
+
 这些 Agent 有一些相同的构造参数：
 
 - `generateReport: boolean`: 如果为 true，则生成报告文件。默认值为 true。
@@ -20,103 +22,96 @@ Midscene 中每个 Agent 都有自己的构造函数。
 - `actionContext: string`: 调用 `agent.aiAct()` 时，发送给 AI 模型的背景知识，比如 '有 cookie 对话框时先关闭它'，默认值为空。
 - `onTaskStartTip: (tip: string) => void | Promise<void>`：可选回调，在每个子任务执行开始前收到一条可读的任务描述提示。默认值为 undefined。
 
-在 Playwright 和 Puppeteer 中，有以下共同的参数：
+### 自定义模型
 
-- `forceSameTabNavigation: boolean`: 如果为 true，则限制页面在当前 tab 打开。默认值为 true。
-- `waitForNavigationTimeout: number`: 在页面跳转后等待页面加载完成的超时时间，默认值为 5000ms，设置为 0 则不做等待。
+`modelConfig: (params: { intent: TIntent }) => IModelConfig` 可选。它允许你通过代码动态配置不同的模型，而不是通过环境变量。这在需要为不同的 AI 任务（如 Insight、Planning 等）使用不同模型时特别有用。
 
-这些 Agent 还支持以下高级配置参数：
+函数接收一个参数对象，包含 `intent` 字段，表示当前任务类型：
+- `'insight'`: 视觉理解和元素定位任务（如 `aiQuery`、`aiLocate`、`aiTap` 等）
+- `'planning'`: 自动规划任务（如 `aiAct`）
+- `'default'`: 其他未分类任务
 
-- `modelConfig: (params: { intent: TIntent }) => IModelConfig`: 可选。自定义模型配置函数。允许你通过代码动态配置不同的模型，而不是通过环境变量。这在需要为不同的 AI 任务（如 Insight、Planning 等）使用不同模型时特别有用。
+**基础示例：**
+```typescript
+const agent = new PuppeteerAgent(page, {
+  modelConfig: () => ({
+    MIDSCENE_MODEL_NAME: 'qwen3-vl-plus',
+    MIDSCENE_MODEL_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    MIDSCENE_MODEL_API_KEY: 'sk-...',
+    MIDSCENE_LOCATOR_MODE: 'qwen3-vl'
+  })
+});
+```
 
-  函数接收一个参数对象，包含 `intent` 字段，表示当前任务类型：
-  - `'insight'`: 视觉理解和元素定位任务（如 `aiQuery`、`aiLocate`、`aiTap` 等）
-  - `'planning'`: 自动规划任务（如 `aiAct`）
-  - `'default'`: 其他未分类任务
-
-  **基础示例：**
-  ```typescript
-  const agent = new PuppeteerAgent(page, {
-    modelConfig: () => ({
-      MIDSCENE_MODEL_NAME: 'qwen3-vl-plus',
-      MIDSCENE_MODEL_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-      MIDSCENE_MODEL_API_KEY: 'sk-...',
-      MIDSCENE_LOCATOR_MODE: 'qwen3-vl'
-    })
-  });
-  ```
-
-  **为不同任务类型配置不同模型：**
-  ```typescript
-  const agent = new PuppeteerAgent(page, {
-    modelConfig: ({ intent }) => {
-      // 为 Insight 任务使用 Qwen-VL 模型（用于视觉理解和定位）
-      if (intent === 'insight') {
-        return {
-          MIDSCENE_INSIGHT_MODEL_NAME: 'qwen-vl-plus',
-          MIDSCENE_INSIGHT_MODEL_API_KEY: 'sk-insight-key',
-          MIDSCENE_INSIGHT_MODEL_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1'
-        };
-      }
-
-      // 为 Planning 任务使用 GPT-4o 模型（用于任务规划）
-      if (intent === 'planning') {
-        return {
-          MIDSCENE_PLANNING_MODEL_NAME: 'gpt-4o',
-          MIDSCENE_PLANNING_MODEL_API_KEY: 'sk-planning-key',
-          MIDSCENE_PLANNING_MODEL_BASE_URL: 'https://api.openai.com/v1',
-          MIDSCENE_INSIGHT_LOCATOR_MODE: 'qwen3-vl'
-        };
-      }
-
-      // 默认配置
+**为不同任务类型配置不同模型：**
+```typescript
+const agent = new PuppeteerAgent(page, {
+  modelConfig: ({ intent }) => {
+    // 为 Insight 任务使用 Qwen-VL 模型（用于视觉理解和定位）
+    if (intent === 'insight') {
       return {
-        MIDSCENE_MODEL_NAME: 'gpt-4o',
-        MIDSCENE_MODEL_API_KEY: 'sk-default-key',
+        MIDSCENE_INSIGHT_MODEL_NAME: 'qwen-vl-plus',
+        MIDSCENE_INSIGHT_MODEL_API_KEY: 'sk-insight-key',
+        MIDSCENE_INSIGHT_MODEL_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1'
       };
     }
-  });
-  ```
 
-  更多关于按任务类型配置模型的信息，请参考 [模型配置](./model-config#按任务类型配置模型高级) 文档。
-
-- `createOpenAIClient: (openai, options) => Promise<OpenAI | undefined>`: 可选。自定义 OpenAI 客户端包装函数。允许你包装 OpenAI 客户端实例，用于集成可观测性工具（如 LangSmith、LangFuse）或应用自定义中间件。
-
-  **参数说明：**
-  - `openai: OpenAI` - Midscene 创建的基础 OpenAI 客户端实例，已包含所有必要配置（API 密钥、基础 URL、代理等）
-  - `options: Record<string, unknown>` - OpenAI 初始化选项，包括：
-    - `baseURL?: string` - API 接入地址
-    - `apiKey?: string` - API 密钥
-    - `dangerouslyAllowBrowser: boolean` - 在 Midscene 中始终为 true
-    - 其他 OpenAI 配置选项
-
-  **返回值：**
-  - 返回包装后的 OpenAI 客户端实例，或返回 `undefined` 表示使用原始实例
-
-  **示例（集成 LangSmith）：**
-  ```typescript
-  import { wrapOpenAI } from 'langsmith/wrappers';
-
-  const agent = new PuppeteerAgent(page, {
-    createOpenAIClient: async (openai, options) => {
-      // 为规划任务包装 LangSmith
-      if (options.baseURL?.includes('planning')) {
-        return wrapOpenAI(openai, {
-          metadata: { task: 'planning' }
-        });
-      }
-
-      // 其他任务返回原始客户端
-      return openai;
+    // 为 Planning 任务使用 GPT-4o 模型（用于任务规划）
+    if (intent === 'planning') {
+      return {
+        MIDSCENE_PLANNING_MODEL_NAME: 'gpt-4o',
+        MIDSCENE_PLANNING_MODEL_API_KEY: 'sk-planning-key',
+        MIDSCENE_PLANNING_MODEL_BASE_URL: 'https://api.openai.com/v1',
+        MIDSCENE_INSIGHT_LOCATOR_MODE: 'qwen3-vl'
+      };
     }
-  });
-  ```
 
-  **注意：** `createOpenAIClient` 会覆盖 `MIDSCENE_LANGSMITH_DEBUG` 环境变量的行为。如果你提供了自定义的客户端包装函数，需要自行处理 LangSmith 或其他可观测性工具的集成。
+    // 默认配置
+    return {
+      MIDSCENE_MODEL_NAME: 'gpt-4o',
+      MIDSCENE_MODEL_API_KEY: 'sk-default-key',
+    };
+  }
+});
+```
 
-在 Puppeteer 中，还有以下参数：
+更多关于按任务类型配置模型的信息，请参考 [模型配置](./model-config#按任务类型配置模型高级) 文档。
 
-- `waitForNetworkIdleTimeout: number`: 在执行每个操作后等待网络空闲的超时时间，默认值为 2000ms，设置为 0 则不做等待。
+### 自定义 OpenAI 客户端
+
+`createOpenAIClient: (openai, options) => Promise<OpenAI | undefined>` 可选。它允许你包装 OpenAI 客户端实例，用于集成可观测性工具（如 LangSmith、LangFuse）或应用自定义中间件。
+
+**参数说明：**
+- `openai: OpenAI` - Midscene 创建的基础 OpenAI 客户端实例，已包含所有必要配置（API 密钥、基础 URL、代理等）
+- `options: Record<string, unknown>` - OpenAI 初始化选项，包括：
+  - `baseURL?: string` - API 接入地址
+  - `apiKey?: string` - API 密钥
+  - `dangerouslyAllowBrowser: boolean` - 在 Midscene 中始终为 true
+  - 其他 OpenAI 配置选项
+
+**返回值：**
+- 返回包装后的 OpenAI 客户端实例，或返回 `undefined` 表示使用原始实例
+
+**示例（集成 LangSmith）：**
+```typescript
+import { wrapOpenAI } from 'langsmith/wrappers';
+
+const agent = new PuppeteerAgent(page, {
+  createOpenAIClient: async (openai, options) => {
+    // 为规划任务包装 LangSmith
+    if (options.baseURL?.includes('planning')) {
+      return wrapOpenAI(openai, {
+        metadata: { task: 'planning' }
+      });
+    }
+
+    // 其他任务返回原始客户端
+    return openai;
+  }
+});
+```
+
+**注意：** `createOpenAIClient` 会覆盖 `MIDSCENE_LANGSMITH_DEBUG` 环境变量的行为。如果你提供了自定义的客户端包装函数，需要自行处理 LangSmith 或其他可观测性工具的集成。
 
 ## 交互方法
 
