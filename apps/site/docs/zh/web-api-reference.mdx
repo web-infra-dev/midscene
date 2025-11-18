@@ -1,0 +1,189 @@
+# API 参考（Web）
+
+当你需要自定义 Midscene 的浏览器自动化 Agent，或查阅 Web 专属构造参数时，请参考本篇。关于通用参数（报告、Hook、缓存等），请阅读[API 参考（通用）](./api)。
+
+## PuppeteerAgent {#puppeteer-agent}
+
+### 导入
+
+```ts
+import { PuppeteerAgent } from '@midscene/web/puppeteer';
+```
+
+### 浏览器特有选项
+
+除了通用 Agent 参数，Puppeteer 还提供：
+
+- `forceSameTabNavigation: boolean` —— 限制始终在当前标签页内导航，默认 `true`。
+- `waitForNavigationTimeout: number` —— 当操作触发页面跳转时的最长等待时间，默认 `5000`（设为 `0` 表示不等待）。
+- `waitForNetworkIdleTimeout: number` —— 每次操作后等待网络空闲的时间，默认 `2000`（设为 `0` 关闭）。
+- `customActions: DeviceAction[]` —— 借助 `defineAction` 注册自定义动作，让规划器可以调用领域特定步骤。
+
+Puppeteer 的安装与使用可参考 [集成到 Puppeteer](./integrate-with-puppeteer#puppeteeragent)。
+
+### 快速上手示例
+
+```ts
+import puppeteer from 'puppeteer';
+import { PuppeteerAgent } from '@midscene/web/puppeteer';
+
+const browser = await puppeteer.launch({ headless: false });
+const page = await browser.newPage();
+await page.goto('https://www.ebay.com');
+
+const agent = new PuppeteerAgent(page, {
+  actionContext: 'When a cookie dialog appears, accept it.',
+});
+
+await agent.aiAct('search "Noise cancelling headphones" and open first result');
+const items = await agent.aiQuery(
+  '{itemTitle: string, price: number}[], list two products with price',
+);
+console.log(items);
+
+await agent.aiAssert('there is a category filter on the left sidebar');
+await browser.close();
+```
+
+### 连接远程 Puppeteer 浏览器
+
+```ts
+import puppeteer from 'puppeteer';
+import { PuppeteerAgent } from '@midscene/web/puppeteer';
+
+const browser = await puppeteer.connect({
+  browserWSEndpoint: process.env.REMOTE_CDP_URL!,
+});
+
+const [page = await browser.newPage()] = await browser.pages();
+const agent = new PuppeteerAgent(page, {
+  waitForNetworkIdleTimeout: 0,
+});
+
+await agent.aiAct('open https://example.com and click the login button');
+await agent.destroy();
+await browser.disconnect();
+```
+
+更多详细流程与远程 CDP 说明，请阅读[集成到 Puppeteer](./integrate-with-puppeteer)。
+
+## PlaywrightAgent {#playwright-agent}
+
+### 导入
+
+```ts
+import { PlaywrightAgent } from '@midscene/web/playwright';
+```
+
+### 浏览器特有选项
+
+- `forceSameTabNavigation: boolean` —— 强制在当前标签页内执行，默认 `true`。
+- `waitForNavigationTimeout: number` —— 等待导航完成的时间，默认 `5000`（设为 `0` 关闭）。
+- `waitForNetworkIdleTimeout: number` —— 每次操作后等待网络空闲的时间，默认 `2000`（设为 `0` 关闭）。
+- `customActions: DeviceAction[]` —— 追加项目特有的动作，供规划器调用。
+
+配置示例可参考 [集成到 Playwright](./integrate-with-playwright#playwrightagent)。
+
+### 快速上手示例
+
+```ts
+import { chromium } from 'playwright';
+import { PlaywrightAgent } from '@midscene/web/playwright';
+
+const browser = await chromium.launch({ headless: true });
+const page = await browser.newPage();
+await page.goto('https://www.ebay.com');
+
+const agent = new PlaywrightAgent(page);
+await agent.aiAct('search "Noise cancelling headphones" and wait for results');
+await agent.aiWaitFor('the results grid becomes visible');
+
+const price = await agent.aiNumber('price of the first headphone');
+console.log('first price', price);
+
+await agent.aiTap('click the first result card');
+await browser.close();
+```
+
+### 在 Playwright 测试中使用
+
+```ts
+// playwright.config.ts
+export default defineConfig({
+  reporter: [['list'], ['@midscene/web/playwright-reporter']],
+});
+
+// e2e/fixture.ts
+import { test as base } from '@playwright/test';
+import { PlaywrightAiFixture } from '@midscene/web/playwright';
+
+export const test = base.extend(
+  PlaywrightAiFixture({ waitForNetworkIdleTimeout: 1000 }),
+);
+
+// e2e/examples.spec.ts
+test('search flow', async ({ agentForPage, page }) => {
+  await page.goto('https://www.ebay.com');
+  const agent = await agentForPage(page);
+  await agent.aiAct('search "keyboard" and open first listing');
+  await agent.aiAssert('a product detail page is opened');
+});
+```
+
+更多安装和 Fixture 用法请参阅[集成到 Playwright](./integrate-with-playwright)。
+
+## Chrome Bridge Agent {#chrome-bridge-agent}
+
+Bridge Mode 允许 Midscene 通过扩展控制当前桌面 Chrome 标签页，而无需再启动独立的自动化浏览器。
+
+### 导入
+
+```ts
+import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
+```
+
+### 构造示例
+
+```ts
+const agent = new AgentOverChromeBridge({
+  allowRemoteAccess: false,
+});
+```
+
+### 桥接配置
+
+- `allowRemoteAccess?: boolean` —— 是否允许远程机器连接，默认 `false`（监听 `127.0.0.1`）。
+- `host?: string` —— 自定义 Bridge Server 的监听地址，优先级高于 `allowRemoteAccess`。
+- `port?: number` —— Bridge Server 端口，默认 `3766`。
+
+完整安装与能力说明，见 [Chrome 插件桥接模式](./bridge-mode#constructor)。
+
+### 示例：打开新的桌面标签页
+
+```ts
+import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
+
+const agent = new AgentOverChromeBridge();
+await agent.connectNewTabWithUrl('https://www.bing.com');
+
+await agent.ai('search "AI automation" and summarise first result');
+await agent.aiAssert('some search results show up');
+await agent.destroy();
+```
+
+### 示例：附着到当前标签页
+
+```ts
+import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
+
+const agent = new AgentOverChromeBridge({
+  allowRemoteAccess: false,
+  closeNewTabsAfterDisconnect: true,
+});
+
+await agent.connectCurrentTab({ forceSameTabNavigation: true });
+await agent.aiAct('open Gmail and report how many unread emails are visible');
+await agent.destroy();
+```
+
+更多关于扩展安装、执行顺序与 YAML 用法，请阅读 [桥接模式](./bridge-mode)。
