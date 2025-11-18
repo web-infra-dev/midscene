@@ -3,8 +3,8 @@ import type { CreateOpenAIClientFn } from '@midscene/shared/env';
 import {
   MIDSCENE_MODEL_API_KEY,
   MIDSCENE_MODEL_BASE_URL,
+  MIDSCENE_MODEL_FAMILY,
   MIDSCENE_MODEL_NAME,
-  MIDSCENE_PLANNING_LOCATOR_MODE,
   MIDSCENE_PLANNING_MODEL_API_KEY,
   MIDSCENE_PLANNING_MODEL_BASE_URL,
   MIDSCENE_PLANNING_MODEL_NAME,
@@ -111,7 +111,7 @@ describe('Agent with custom OpenAI client', () => {
                 [MIDSCENE_PLANNING_MODEL_NAME]: 'qwen-vl-plus',
                 [MIDSCENE_PLANNING_MODEL_API_KEY]: 'test-planning-key',
                 [MIDSCENE_PLANNING_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-                [MIDSCENE_PLANNING_LOCATOR_MODE]: 'qwen2.5-vl' as const,
+                [MIDSCENE_MODEL_FAMILY]: 'qwen2.5-vl' as const,
               };
             default:
               return {
@@ -172,7 +172,7 @@ describe('Agent with custom OpenAI client', () => {
               [MIDSCENE_PLANNING_MODEL_NAME]: 'qwen-vl-plus',
               [MIDSCENE_PLANNING_MODEL_API_KEY]: 'planning-key',
               [MIDSCENE_PLANNING_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-              [MIDSCENE_PLANNING_LOCATOR_MODE]: 'qwen2.5-vl' as const,
+              [MIDSCENE_MODEL_FAMILY]: 'qwen2.5-vl' as const,
             };
           }
           return {

@@ -11,7 +11,6 @@ import {
   MIDSCENE_MODEL_FAMILY,
   MIDSCENE_MODEL_INIT_CONFIG_JSON,
   MIDSCENE_MODEL_NAME,
-  MIDSCENE_PLANNING_LOCATOR_MODE,
   MIDSCENE_PLANNING_MODEL_API_KEY,
   MIDSCENE_PLANNING_MODEL_BASE_URL,
   MIDSCENE_PLANNING_MODEL_NAME,
@@ -55,7 +54,7 @@ describe('ModelConfigManager', () => {
               [MIDSCENE_PLANNING_MODEL_NAME]: 'qwen-vl-plus',
               [MIDSCENE_PLANNING_MODEL_API_KEY]: 'test-planning-key',
               [MIDSCENE_PLANNING_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-              [MIDSCENE_PLANNING_LOCATOR_MODE]: 'qwen2.5-vl' as const,
+              [MIDSCENE_MODEL_FAMILY]: 'qwen2.5-vl' as const,
             };
           case 'default':
             return baseConfig;
@@ -107,7 +106,7 @@ describe('ModelConfigManager', () => {
               [MIDSCENE_PLANNING_MODEL_NAME]: 'qwen-vl-plus',
               [MIDSCENE_PLANNING_MODEL_API_KEY]: 'test-planning-key',
               [MIDSCENE_PLANNING_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-              [MIDSCENE_PLANNING_LOCATOR_MODE]: 'qwen2.5-vl',
+              [MIDSCENE_MODEL_FAMILY]: 'qwen2.5-vl',
             };
           case 'default':
             return baseConfig;
@@ -307,7 +306,7 @@ describe('ModelConfigManager', () => {
             [MIDSCENE_PLANNING_MODEL_NAME]: 'qwen-vl-plus',
             [MIDSCENE_PLANNING_MODEL_API_KEY]: 'test-key',
             [MIDSCENE_PLANNING_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-            [MIDSCENE_PLANNING_LOCATOR_MODE]: 'qwen2.5-vl' as const,
+            [MIDSCENE_MODEL_FAMILY]: 'qwen2.5-vl' as const,
           };
         }
         return {
@@ -334,7 +333,7 @@ describe('ModelConfigManager', () => {
       delete process.env[MIDSCENE_USE_QWEN3_VL];
       delete process.env[MIDSCENE_USE_VLM_UI_TARS];
       delete process.env[MIDSCENE_USE_GEMINI];
-      delete process.env[MIDSCENE_PLANNING_LOCATOR_MODE];
+      delete process.env[MIDSCENE_MODEL_FAMILY];
 
       // Set default env vars needed for calcModelConfigMapBaseOnEnv
       vi.stubEnv(OPENAI_API_KEY, 'default-test-key');
@@ -413,7 +412,7 @@ describe('ModelConfigManager', () => {
               [MIDSCENE_PLANNING_MODEL_NAME]: 'test-model',
               [MIDSCENE_PLANNING_MODEL_API_KEY]: 'test-key',
               [MIDSCENE_PLANNING_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-              [MIDSCENE_PLANNING_LOCATOR_MODE]: raw,
+              [MIDSCENE_MODEL_FAMILY]: raw,
             };
           }
           return {
@@ -456,7 +455,7 @@ describe('ModelConfigManager', () => {
       delete process.env[MIDSCENE_USE_QWEN3_VL];
       delete process.env[MIDSCENE_USE_VLM_UI_TARS];
       delete process.env[MIDSCENE_USE_GEMINI];
-      delete process.env[MIDSCENE_PLANNING_LOCATOR_MODE];
+      delete process.env[MIDSCENE_MODEL_FAMILY];
 
       vi.stubEnv(MIDSCENE_MODEL_NAME, 'gpt-4');
       vi.stubEnv(OPENAI_API_KEY, 'test-key');
@@ -487,7 +486,7 @@ describe('ModelConfigManager', () => {
               [MIDSCENE_PLANNING_MODEL_NAME]: 'qwen-vl-plus',
               [MIDSCENE_PLANNING_MODEL_API_KEY]: 'test-planning-key',
               [MIDSCENE_PLANNING_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-              [MIDSCENE_PLANNING_LOCATOR_MODE]: 'qwen2.5-vl' as const,
+              [MIDSCENE_MODEL_FAMILY]: 'qwen2.5-vl' as const,
             };
           default:
             return {
