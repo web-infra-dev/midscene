@@ -7,6 +7,7 @@
     "build": "rslib build",
     "dev": "npm run build:watch",
     "build:watch": "rslib build --watch",
+    "mcp-playground": "npx @modelcontextprotocol/inspector node ./dist/index.js",
     "test": "vitest run",
     "inspect": "node scripts/inspect.mjs"
   },
