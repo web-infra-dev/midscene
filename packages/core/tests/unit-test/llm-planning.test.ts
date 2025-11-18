@@ -1,5 +1,5 @@
 import {
-  adaptQwenBbox,
+  adaptQwen2_5Bbox as adaptQwenBbox,
   fillBboxParam,
   getMidsceneLocationSchema,
 } from '@/ai-model/common';

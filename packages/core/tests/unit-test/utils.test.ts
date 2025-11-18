@@ -6,7 +6,7 @@ import {
   adaptBboxToRect,
   adaptDoubaoBbox,
   adaptGeminiBbox,
-  adaptQwenBbox,
+  adaptQwen2_5Bbox as adaptQwenBbox,
   dumpActionParam,
   expandSearchArea,
   findAllMidsceneLocatorField,

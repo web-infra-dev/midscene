@@ -64,7 +64,7 @@ export function fillBboxParam(
   return locate;
 }
 
-export function adaptQwenBbox(
+export function adaptQwen2_5Bbox(
   bbox: number[],
 ): [number, number, number, number] {
   if (bbox.length < 2) {
@@ -208,7 +208,7 @@ export function adaptBbox(
   } else if (vlMode === 'qwen3-vl') {
     result = normalized01000(normalizedBbox as number[], width, height);
   } else {
-    result = adaptQwenBbox(normalizedBbox as number[]);
+    result = adaptQwen2_5Bbox(normalizedBbox as number[]);
   }
 
   result[2] = Math.min(result[2], rightLimit);

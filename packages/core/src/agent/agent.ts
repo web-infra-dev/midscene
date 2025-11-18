@@ -495,7 +495,7 @@ export class Agent<
     );
 
     // assume all operation in action space is related to locating
-    const modelConfig = this.modelConfigManager.getModelConfig('insight');
+    const modelConfig = this.modelConfigManager.getModelConfig('planning');
 
     const { output } = await this.taskExecutor.runPlans(
       title,
@@ -996,7 +996,7 @@ export class Agent<
     assert(locateParam, 'cannot get locate param for aiLocate');
     const locatePlan = locatePlanForLocate(locateParam);
     const plans = [locatePlan];
-    const modelConfig = this.modelConfigManager.getModelConfig('insight');
+    const modelConfig = this.modelConfigManager.getModelConfig('planning');
 
     const { output } = await this.taskExecutor.runPlans(
       taskTitleStr('Locate', locateParamStr(locateParam)),
