@@ -8,6 +8,7 @@ export function Banner() {
 
   return (
     <div
+      key={`banner-${dark}`}
       className={`flex justify-center items-center w-full min-h-[400px] md:min-h-[664px] ${
         dark ? 'bg-[#121212]' : 'bg-white'
       }`}

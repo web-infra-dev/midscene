@@ -27,6 +27,7 @@ export function FeatureSections() {
 
   return (
     <div
+      key={`features-${dark}`}
       className={`flex flex-col w-full ${dark ? 'bg-[#121212]' : 'bg-white'}`}
     >
       {/* Section 1: CLIENTS */}
