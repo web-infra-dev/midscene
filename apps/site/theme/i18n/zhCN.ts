@@ -2,7 +2,7 @@ import type { EN_US } from './enUS';
 
 export const ZH_CN: Record<keyof typeof EN_US, string> = {
   // Banner - New Badge
-  newBadge: 'Midscene 1.0 beta 现已发布',
+  newBadge: 'Midscene 1.0 即将到来 - 现在 Beta 阶段',
 
   // Banner - Title
   heroTitle: 'Midscene.js',
