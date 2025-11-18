@@ -702,15 +702,23 @@ const DetailSide = (): JSX.Element => {
       </div>
       <div className="info-content">
         <details open>
-          <summary>Param</summary>
+          <summary>
+            <span className="summary-text">Param</span>
+          </summary>
           {taskInput}
         </details>
         <details open>
-          <summary>{task?.subType === 'Locate' ? 'Element' : 'Output'}</summary>
+          <summary>
+            <span className="summary-text">
+              {task?.subType === 'Locate' ? 'Element' : 'Output'}
+            </span>
+          </summary>
           <div className="item-list">{outputDataContent}</div>
         </details>
         <details open>
-          <summary>Meta</summary>
+          <summary>
+            <span className="summary-text">Meta</span>
+          </summary>
           {metaKVElement}
         </details>
       </div>
