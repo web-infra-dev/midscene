@@ -178,7 +178,7 @@ describe('decideModelConfig from env', () => {
         "socksProxy": undefined,
         "uiTarsModelVersion": undefined,
         "vlMode": "qwen3-vl",
-        "vlModeRaw": undefined,
+        "vlModeRaw": "qwen3-vl",
       }
     `);
   });
