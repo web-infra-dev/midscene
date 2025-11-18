@@ -114,6 +114,7 @@ export const MIDSCENE_PLANNING_MODEL_API_KEY =
 export const MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON =
   'MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON';
 export const MIDSCENE_PLANNING_LOCATOR_MODE = 'MIDSCENE_PLANNING_LOCATOR_MODE';
+export const MIDSCENE_MODEL_FAMILY = 'MIDSCENE_MODEL_FAMILY';
 
 /**
  * env keys declared but unused
@@ -214,6 +215,7 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_PLANNING_MODEL_API_KEY,
   MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON,
   MIDSCENE_PLANNING_LOCATOR_MODE,
+  MIDSCENE_MODEL_FAMILY,
 ] as const;
 
 export const ALL_ENV_KEYS = [
@@ -227,7 +229,7 @@ export type TEnvKeys = (typeof ALL_ENV_KEYS)[number];
 export type TGlobalConfig = Record<TEnvKeys, string | undefined>;
 
 export type TVlModeValues =
-  | 'qwen-vl'
+  | 'qwen2.5-vl'
   | 'qwen3-vl'
   | 'doubao-vision'
   | 'gemini'
@@ -236,11 +238,35 @@ export type TVlModeValues =
   | 'vlm-ui-tars-doubao-1.5';
 
 export type TVlModeTypes =
-  | 'qwen-vl'
+  | 'qwen2.5-vl'
   | 'qwen3-vl'
   | 'doubao-vision'
   | 'gemini'
   | 'vlm-ui-tars';
+
+export const VL_MODE_RAW_VALID_VALUES: TVlModeValues[] = [
+  'doubao-vision',
+  'gemini',
+  'qwen2.5-vl',
+  'qwen3-vl',
+  'vlm-ui-tars',
+  'vlm-ui-tars-doubao',
+  'vlm-ui-tars-doubao-1.5',
+];
+
+/**
+ * Model family values - unified model configuration approach
+ * Replaces the old MIDSCENE_USE_* environment variables
+ *
+ * Note: These values directly correspond to VL_MODE_RAW_VALID_VALUES
+ * - 'qwen2.5-vl' is Qwen 2.5
+ * - 'qwen3-vl' is Qwen 3
+ */
+export type TModelFamily = TVlModeValues;
+
+export const MODEL_FAMILY_VALUES: TVlModeValues[] = [
+  ...VL_MODE_RAW_VALID_VALUES,
+];
 
 export interface IModelConfigForInsight {
   // model name
@@ -263,7 +289,7 @@ export interface IModelConfigForInsight {
  * DOM-based planning is not supported.
  *
  * Required: MIDSCENE_PLANNING_LOCATOR_MODE must be set to one of:
- *   - 'qwen-vl'
+ *   - 'qwen2.5-vl'
  *   - 'qwen3-vl'
  *   - 'gemini'
  *   - 'doubao-vision'
@@ -344,16 +370,6 @@ export enum UITarsModelVersion {
   DOUBAO_1_5_20B = 'doubao-1.5-20B',
 }
 
-export const VL_MODE_RAW_VALID_VALUES: TVlModeValues[] = [
-  'doubao-vision',
-  'gemini',
-  'qwen-vl',
-  'qwen3-vl',
-  'vlm-ui-tars',
-  'vlm-ui-tars-doubao',
-  'vlm-ui-tars-doubao-1.5',
-];
-
 /**
  * Callback to create custom OpenAI client instance
  * @param config - Resolved model configuration including apiKey, baseURL, modelName, intent, etc.
@@ -402,8 +418,8 @@ export interface IModelConfig {
   openaiApiKey?: string;
   openaiExtraConfig?: Record<string, unknown>;
   /**
-   * - vlModeRaw: exists only in non-legacy logic. value can be 'doubao-vision', 'gemini', 'qwen-vl', 'vlm-ui-tars', 'vlm-ui-tars-doubao', 'vlm-ui-tars-doubao-1.5'
-   * - vlMode: based on the results of the vlModoRaw classification，value can be 'doubao-vision', 'gemini', 'qwen-vl', 'vlm-ui-tars'
+   * - vlModeRaw: exists only in non-legacy logic. value can be 'doubao-vision', 'gemini', 'qwen2.5-vl', 'vlm-ui-tars', 'vlm-ui-tars-doubao', 'vlm-ui-tars-doubao-1.5'
+   * - vlMode: based on the results of the vlModoRaw classification，value can be 'doubao-vision', 'gemini', 'qwen2.5-vl', 'vlm-ui-tars'
    */
   vlModeRaw?: string;
   vlMode?: TVlModeTypes;

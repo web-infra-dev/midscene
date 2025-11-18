@@ -314,7 +314,7 @@ export default class Service {
       const croppedResult = await cropByRect(
         imagePayload,
         searchArea,
-        vlMode === 'qwen-vl',
+        vlMode === 'qwen2.5-vl',
       );
       imagePayload = croppedResult.imageBase64;
     }

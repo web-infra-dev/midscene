@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { UITarsModelVersion } from '../../../src/env/';
 import {
+  parseModelFamilyFromEnv,
   parseVlModeAndUiTarsFromGlobalConfig,
   parseVlModeAndUiTarsModelVersionFromRawValue,
 } from '../../../src/env/parse';
 import {
+  MIDSCENE_MODEL_FAMILY,
   MIDSCENE_USE_DOUBAO_VISION,
   MIDSCENE_USE_GEMINI,
+  MIDSCENE_USE_QWEN3_VL,
   MIDSCENE_USE_QWEN_VL,
   MIDSCENE_USE_VLM_UI_TARS,
 } from '../../../src/env/types';
@@ -69,8 +72,8 @@ describe('parseVlModeAndUiTarsFromRaw', () => {
   });
 
   it('should correctly parse "qwen-vl"', () => {
-    expect(parseVlModeAndUiTarsModelVersionFromRawValue('qwen-vl')).toEqual({
-      vlMode: 'qwen-vl',
+    expect(parseVlModeAndUiTarsModelVersionFromRawValue('qwen2.5-vl')).toEqual({
+      vlMode: 'qwen2.5-vl',
       uiTarsVersion: undefined,
     });
   });
@@ -97,7 +100,7 @@ describe('parseVlModeAndUiTarsFromGlobalConfig', () => {
   it('should correctly parse qwen-vl mode', () => {
     const provider = { [MIDSCENE_USE_QWEN_VL]: '1' };
     expect(parseVlModeAndUiTarsFromGlobalConfig(provider)).toEqual({
-      vlMode: 'qwen-vl',
+      vlMode: 'qwen2.5-vl',
       uiTarsVersion: undefined,
     });
   });
@@ -147,6 +150,74 @@ describe('parseVlModeAndUiTarsFromGlobalConfig', () => {
     expect(parseVlModeAndUiTarsFromGlobalConfig(provider)).toEqual({
       vlMode: 'vlm-ui-tars',
       uiTarsVersion: UITarsModelVersion.V1_5,
+    });
+  });
+});
+
+describe('parseModelFamilyFromEnv', () => {
+  it('should parse new MIDSCENE_MODEL_FAMILY correctly', () => {
+    const provider = { [MIDSCENE_MODEL_FAMILY]: 'qwen3-vl' };
+    const result = parseModelFamilyFromEnv(provider);
+
+    expect(result.vlMode).toBe('qwen3-vl');
+    expect(result.modelFamily).toBe('qwen3-vl');
+    expect(result.warnings).toHaveLength(0);
+  });
+
+  it('should throw error for invalid MIDSCENE_MODEL_FAMILY value', () => {
+    const provider = { [MIDSCENE_MODEL_FAMILY]: 'invalid-style' };
+
+    expect(() => parseModelFamilyFromEnv(provider)).toThrow(
+      'Invalid MIDSCENE_MODEL_FAMILY value',
+    );
+  });
+
+  it('should throw error when both new and legacy variables are set', () => {
+    const provider = {
+      [MIDSCENE_MODEL_FAMILY]: 'qwen3-vl',
+      [MIDSCENE_USE_QWEN3_VL]: '1',
+    };
+
+    expect(() => parseModelFamilyFromEnv(provider)).toThrow(
+      'Conflicting configuration detected',
+    );
+  });
+
+  it('should warn when using legacy variables', () => {
+    const provider = { [MIDSCENE_USE_QWEN3_VL]: '1' };
+    const result = parseModelFamilyFromEnv(provider);
+
+    expect(result.vlMode).toBe('qwen3-vl');
+    expect(result.modelFamily).toBe('qwen3-vl');
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toContain('DEPRECATED');
+  });
+
+  it('should throw error when no config is set', () => {
+    const provider = {};
+
+    expect(() => parseModelFamilyFromEnv(provider)).toThrow(
+      'MIDSCENE_MODEL_FAMILY is required',
+    );
+  });
+
+  it('should handle all planning style values', () => {
+    const testCases = [
+      { style: 'qwen3-vl', expectedMode: 'qwen3-vl' },
+      { style: 'qwen2.5-vl', expectedMode: 'qwen2.5-vl' },
+      { style: 'doubao-vision', expectedMode: 'doubao-vision' },
+      { style: 'vlm-ui-tars', expectedMode: 'vlm-ui-tars' },
+      { style: 'vlm-ui-tars-doubao', expectedMode: 'vlm-ui-tars' },
+      { style: 'vlm-ui-tars-doubao-1.5', expectedMode: 'vlm-ui-tars' },
+      { style: 'gemini', expectedMode: 'gemini' },
+    ];
+
+    testCases.forEach(({ style, expectedMode }) => {
+      const provider = { [MIDSCENE_MODEL_FAMILY]: style };
+      const result = parseModelFamilyFromEnv(provider);
+
+      expect(result.vlMode).toBe(expectedMode);
+      expect(result.modelFamily).toBe(style);
     });
   });
 });

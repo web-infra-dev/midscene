@@ -111,7 +111,7 @@ describe('Agent with custom OpenAI client', () => {
                 [MIDSCENE_PLANNING_MODEL_NAME]: 'qwen-vl-plus',
                 [MIDSCENE_PLANNING_MODEL_API_KEY]: 'test-planning-key',
                 [MIDSCENE_PLANNING_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-                [MIDSCENE_PLANNING_LOCATOR_MODE]: 'qwen-vl' as const,
+                [MIDSCENE_PLANNING_LOCATOR_MODE]: 'qwen2.5-vl' as const,
               };
             default:
               return {
@@ -172,7 +172,7 @@ describe('Agent with custom OpenAI client', () => {
               [MIDSCENE_PLANNING_MODEL_NAME]: 'qwen-vl-plus',
               [MIDSCENE_PLANNING_MODEL_API_KEY]: 'planning-key',
               [MIDSCENE_PLANNING_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-              [MIDSCENE_PLANNING_LOCATOR_MODE]: 'qwen-vl' as const,
+              [MIDSCENE_PLANNING_LOCATOR_MODE]: 'qwen2.5-vl' as const,
             };
           }
           return {

@@ -1,9 +1,12 @@
 import {
+  MIDSCENE_MODEL_FAMILY,
   MIDSCENE_USE_DOUBAO_VISION,
   MIDSCENE_USE_GEMINI,
   MIDSCENE_USE_QWEN3_VL,
   MIDSCENE_USE_QWEN_VL,
   MIDSCENE_USE_VLM_UI_TARS,
+  MODEL_FAMILY_VALUES,
+  type TModelFamily,
   type TVlModeTypes,
   type TVlModeValues,
   UITarsModelVersion,
@@ -17,10 +20,7 @@ export const parseVlModeAndUiTarsModelVersionFromRawValue = (
   uiTarsVersion?: UITarsModelVersion;
 } => {
   if (!vlModeRaw) {
-    return {
-      vlMode: undefined,
-      uiTarsVersion: undefined,
-    };
+    return { vlMode: undefined, uiTarsVersion: undefined };
   }
 
   if (!VL_MODE_RAW_VALID_VALUES.includes(vlModeRaw as never)) {
@@ -31,21 +31,17 @@ export const parseVlModeAndUiTarsModelVersionFromRawValue = (
   const raw = vlModeRaw as TVlModeValues;
 
   if (raw === 'vlm-ui-tars') {
-    return {
-      vlMode: 'vlm-ui-tars',
-      uiTarsVersion: UITarsModelVersion.V1_0,
-    };
-  } else if (raw === 'vlm-ui-tars-doubao' || raw === 'vlm-ui-tars-doubao-1.5') {
+    return { vlMode: 'vlm-ui-tars', uiTarsVersion: UITarsModelVersion.V1_0 };
+  }
+
+  if (raw === 'vlm-ui-tars-doubao' || raw === 'vlm-ui-tars-doubao-1.5') {
     return {
       vlMode: 'vlm-ui-tars',
       uiTarsVersion: UITarsModelVersion.DOUBAO_1_5_20B,
     };
   }
 
-  return {
-    vlMode: raw as TVlModeTypes,
-    uiTarsVersion: undefined,
-  };
+  return { vlMode: raw as TVlModeTypes, uiTarsVersion: undefined };
 };
 
 /**
@@ -77,34 +73,13 @@ export const parseVlModeAndUiTarsFromGlobalConfig = (
     );
   }
 
-  if (isQwen3) {
-    return {
-      vlMode: 'qwen3-vl',
-      uiTarsVersion: undefined,
-    };
-  }
+  // Simple modes without version
+  if (isQwen3) return { vlMode: 'qwen3-vl', uiTarsVersion: undefined };
+  if (isQwen) return { vlMode: 'qwen2.5-vl', uiTarsVersion: undefined };
+  if (isDoubao) return { vlMode: 'doubao-vision', uiTarsVersion: undefined };
+  if (isGemini) return { vlMode: 'gemini', uiTarsVersion: undefined };
 
-  if (isQwen) {
-    return {
-      vlMode: 'qwen-vl',
-      uiTarsVersion: undefined,
-    };
-  }
-
-  if (isDoubao) {
-    return {
-      vlMode: 'doubao-vision',
-      uiTarsVersion: undefined,
-    };
-  }
-
-  if (isGemini) {
-    return {
-      vlMode: 'gemini',
-      uiTarsVersion: undefined,
-    };
-  }
-
+  // UI-TARS with version detection
   if (isUiTars) {
     if (isUiTars === '1') {
       return {
@@ -124,8 +99,131 @@ export const parseVlModeAndUiTarsFromGlobalConfig = (
     }
   }
 
-  return {
-    vlMode: undefined,
-    uiTarsVersion: undefined,
-  };
+  return { vlMode: undefined, uiTarsVersion: undefined };
+};
+
+/**
+ * Check if old MIDSCENE_USE_* environment variables are being used
+ * @param provider - Environment variable provider
+ * @returns Array of legacy environment variable names that are set
+ */
+export const detectLegacyVlModeEnvVars = (
+  provider: Record<string, string | undefined>,
+): string[] => {
+  const legacyVars = [
+    MIDSCENE_USE_DOUBAO_VISION,
+    MIDSCENE_USE_QWEN_VL,
+    MIDSCENE_USE_QWEN3_VL,
+    MIDSCENE_USE_VLM_UI_TARS,
+    MIDSCENE_USE_GEMINI,
+  ];
+
+  return legacyVars.filter((varName) => provider[varName]);
+};
+
+/**
+ * Type guard to check if a string is a valid TModelFamily
+ */
+function isValidModelFamily(value: string): value is TModelFamily {
+  return (MODEL_FAMILY_VALUES as readonly string[]).includes(value);
+}
+
+/**
+ * Map legacy vlMode and uiTarsVersion to model family
+ * @param vlMode - The VL mode type
+ * @param uiTarsVersion - The UI-TARS version (if applicable)
+ * @returns The corresponding model family value
+ */
+function mapLegacyToModelFamily(
+  vlMode?: TVlModeTypes,
+  uiTarsVersion?: UITarsModelVersion,
+): TModelFamily | undefined {
+  if (!vlMode) return undefined;
+
+  if (vlMode === 'vlm-ui-tars') {
+    // UI-TARS needs special handling for version
+    if (uiTarsVersion === UITarsModelVersion.V1_0) {
+      return 'vlm-ui-tars';
+    } else if (uiTarsVersion === UITarsModelVersion.DOUBAO_1_5_20B) {
+      return 'vlm-ui-tars-doubao-1.5';
+    } else {
+      // Handle other UI-TARS versions (vlm-ui-tars-doubao)
+      return 'vlm-ui-tars-doubao';
+    }
+  }
+
+  // For other modes, model family directly matches vlMode
+  return vlMode as TModelFamily;
+}
+
+/**
+ * Parse model family from environment variables with validation and warnings
+ * Supports both new MIDSCENE_MODEL_FAMILY and legacy MIDSCENE_USE_* variables
+ *
+ * @param provider - Environment variable provider
+ * @returns Object with vlMode, uiTarsVersion, and warnings
+ */
+export const parseModelFamilyFromEnv = (
+  provider: Record<string, string | undefined>,
+): {
+  vlMode?: TVlModeTypes;
+  uiTarsVersion?: UITarsModelVersion;
+  warnings: string[];
+  modelFamily?: TModelFamily;
+} => {
+  const warnings: string[] = [];
+  const modelFamilyRaw = provider[MIDSCENE_MODEL_FAMILY];
+  const legacyVars = detectLegacyVlModeEnvVars(provider);
+
+  // Case 1: Both new and legacy variables are set - ERROR
+  if (modelFamilyRaw && legacyVars.length > 0) {
+    throw new Error(
+      `Conflicting configuration detected: Both MIDSCENE_MODEL_FAMILY and legacy environment variables (${legacyVars.join(', ')}) are set. Please use only MIDSCENE_MODEL_FAMILY.`,
+    );
+  }
+
+  // Case 2: Only new MIDSCENE_MODEL_FAMILY is set
+  if (modelFamilyRaw) {
+    // Validate model family value
+    if (!isValidModelFamily(modelFamilyRaw)) {
+      throw new Error(
+        `Invalid MIDSCENE_MODEL_FAMILY value: "${modelFamilyRaw}". Must be one of: ${MODEL_FAMILY_VALUES.join(', ')}. See documentation: https://midscenejs.com/model-provider.html`,
+      );
+    }
+
+    const modelFamily = modelFamilyRaw;
+    const parsed = parseVlModeAndUiTarsModelVersionFromRawValue(modelFamily);
+    return {
+      vlMode: parsed.vlMode,
+      uiTarsVersion: parsed.uiTarsVersion,
+      modelFamily,
+      warnings,
+    };
+  }
+
+  // Case 3: Only legacy variables are set - WARN
+  if (legacyVars.length > 0) {
+    const legacyResult = parseVlModeAndUiTarsFromGlobalConfig(provider);
+
+    warnings.push(
+      `DEPRECATED: Environment ${legacyVars.length > 1 ? 'variables' : 'variable'} ${legacyVars.join(', ')} ${legacyVars.length > 1 ? 'are' : 'is'} deprecated. Please use MIDSCENE_MODEL_FAMILY instead. See migration guide for details.`,
+    );
+
+    const modelFamily = mapLegacyToModelFamily(
+      legacyResult.vlMode,
+      legacyResult.uiTarsVersion,
+    );
+
+    return {
+      vlMode: legacyResult.vlMode,
+      uiTarsVersion: legacyResult.uiTarsVersion,
+      modelFamily,
+      warnings,
+    };
+  }
+
+  // Case 4: No configuration set - ERROR
+  throw new Error(
+    `MIDSCENE_MODEL_FAMILY is required for planning tasks. Please set it to one of: ${MODEL_FAMILY_VALUES.join(', ')}. See documentation: https://midscenejs.com/model-provider.html`,
+  );
 };

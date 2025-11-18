@@ -53,7 +53,7 @@ export async function plan(
   const bottomLimit = imageHeight;
 
   // Process image based on VL mode requirements
-  if (vlMode === 'qwen-vl') {
+  if (vlMode === 'qwen2.5-vl') {
     const paddedResult = await paddingToMatchBlockByBase64(imagePayload);
     imageWidth = paddedResult.width;
     imageHeight = paddedResult.height;

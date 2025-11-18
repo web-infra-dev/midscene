@@ -126,9 +126,13 @@ Midscene 支持为不同的任务类型配置不同的模型：
 
 你也可以在报告文件中查看模型的使用情况。
 
-### 收到了 “No visual language model (VL model) detected” 错误
+### 收到了 "No visual language model (VL model) detected" 或 "MIDSCENE_MODEL_FAMILY is required" 错误
 
-请确认已经正确配置 VL 模型，尤其是 `MIDSCENE_USE_...` 相关的开关。
+请确认已经正确配置 VL 模型的 `MIDSCENE_MODEL_FAMILY` 环境变量。
+
+从 1.0 版本开始，Midscene 推荐使用 `MIDSCENE_MODEL_FAMILY` 来指定视觉模型类型。旧的 `MIDSCENE_USE_...` 配置仍然兼容但已废弃。
+
+详细配置方法请参考 [模型配置](./model-config)。
 
 ## 更多信息
 
