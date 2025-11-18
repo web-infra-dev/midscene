@@ -24,6 +24,33 @@
 
 （按时间倒序追加记录，最新记录放最上方）
 
+### 2025-11-17 – 重组 Android 英文入门文档结构
+
+- 原路径：`apps/site/docs/en/android-getting-started.mdx`
+- 原标题：`Android getting started`
+- 操作类型：内容重组
+- 新位置：`apps/site/docs/en/android-getting-started.mdx`
+- Breaking change 说明：重新梳理 Android 英文入门页的结构，新增「概述」「Playground 体验」「JS SDK 集成」「API reference + Extending + FAQ」四大章节，补充 Playground 启动步骤、SDK 示例代码、构造器参数说明、自定义动作示例与 Vitest 用例，便于索引和查阅关键信息。
+- 后续行动：无
+
+### 2025-11-17 – 重命名 Android 英文集成文档
+
+- 原路径：`apps/site/docs/en/integrate-with-android.mdx`
+- 原标题：`Integrate with Android (adb)`
+- 操作类型：重命名
+- 新位置：`apps/site/docs/en/android-getting-started.mdx`
+- Breaking change 说明：将 Android 英文集成指南使用的 slug 与标题重命名为 `android-getting-started / Getting started`，以配合新的信息架构。同步更新了 `apps/site/rspress.config.ts` 的侧边栏以及英文文档内所有引用，确保链接不失效。
+- 后续行动：无
+
+### 2025-11-17 – 合并 Android Playground 内容到 Introduction
+
+- 原路径：`apps/site/docs/en/android-playground.mdx`
+- 原标题：`Quick experience with Android`
+- 操作类型：合并
+- 新位置：`apps/site/docs/en/android-introduction.mdx`
+- Breaking change 说明：将英文 Android Playground 指引合并进介绍页，避免重复维护内容，并删除侧边栏 `/android-playground` 链接（更新于 `apps/site/rspress.config.ts`）。
+- 后续行动：无
+
 ### 2025-11-13 – 统一模型文档命名（中英文）
 
 - 原路径：`apps/site/docs/zh/choose-a-model.mdx`、`apps/site/docs/zh/model-provider.mdx`、`apps/site/docs/en/choose-a-model.mdx`、`apps/site/docs/en/model-provider.mdx`

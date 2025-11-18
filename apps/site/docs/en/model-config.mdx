@@ -199,3 +199,43 @@ You can configure models for each agent in JavaScript. See the [API reference](.
 Set `DEBUG=midscene:ai:profile:stats` to print usage and latency.
 
 You can also find usage statistics inside the generated report files.
+
+
+### Customize the run artifact directory
+
+Set the `MIDSCENE_RUN_DIR` variable to customize the run artifact directory.
+
+```bash
+export MIDSCENE_RUN_DIR=midscene_run # The default value is the midscene_run in the current working directory, you can set it to an absolute path or a relative path
+```
+
+### Customize the replanning cycle limit
+
+Set the `MIDSCENE_REPLANNING_CYCLE_LIMIT` variable to customize the maximum number of replanning cycles allowed during action execution (`aiAct`).
+
+```bash
+export MIDSCENE_REPLANNING_CYCLE_LIMIT=10 # The default value is 10. When the AI needs to replan more than this limit, an error will be thrown suggesting to split the task into multiple steps
+```
+
+### Using LangSmith
+
+LangSmith is a platform for debugging large language models. To integrate LangSmith, follow these steps:
+
+```bash
+# Set environment variables
+
+# Enable debug mode
+export MIDSCENE_LANGSMITH_DEBUG=1
+
+# LangSmith configuration
+export LANGSMITH_TRACING_V2=true
+export LANGSMITH_ENDPOINT="https://api.smith.langchain.com"
+export LANGSMITH_API_KEY="your_key_here"
+export LANGSMITH_PROJECT="your_project_name_here"
+```
+
+After starting Midscene, you should see logs similar to:
+
+```log
+DEBUGGING MODE: langsmith wrapper enabled
+```

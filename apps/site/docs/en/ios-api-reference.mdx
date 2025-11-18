@@ -1,0 +1,205 @@
+# API reference(iOS)
+
+Use this section when you need to customize iOS device behavior, wire Midscene into workflows that rely on WebDriverAgent, or troubleshoot WDA requests. For the shared constructor options (reporting, hooks, caching, etc.) see the platform-agnostic [API reference](./api.mdx) and [Prompting tips](./prompting-tips) if you need help crafting instructions.
+
+## Import and basic usage
+
+To work with iOS devices, import the iOS SDK package:
+
+```typescript
+import {
+  IOSAgent,
+  IOSDevice,
+  agentFromWebDriverAgent,
+} from '@midscene/ios';
+```
+
+Basic usage:
+
+```typescript
+const device = new IOSDevice({
+  wdaPort: 8100,
+  wdaHost: 'localhost',
+});
+
+await device.connect();
+
+const agent = new IOSAgent(device, {
+  aiActionContext:
+    'If any permission dialog appears, accept it. Close login popups.',
+});
+
+await device.launch('https://ebay.com'); // Open a web page
+await agent.aiAct('Search for "Headphones" and list a price');
+const items = await agent.aiQuery(
+  '{itemTitle: string, price: Number}[], list headphone products',
+);
+console.log(items);
+
+await device.destroy();
+```
+
+## Constructors
+
+<a id="iosdevice"></a>
+
+### IOSDevice constructor {#iosdevice-constructor}
+
+```ts
+new IOSDevice(opts?: IOSDeviceOpt)
+```
+
+- `opts?: IOSDeviceOpt` &mdash; Optional parameters for configuring the device.
+  - `wdaPort?: number` &mdash; WebDriverAgent port. Default `8100`.
+  - `wdaHost?: string` &mdash; WebDriverAgent host. Default `'localhost'`.
+  - `autoDismissKeyboard?: boolean` &mdash; Hide the keyboard after text input. Default `true`.
+  - `customActions?: DeviceAction<any>[]` &mdash; Additional device actions exposed to the agent.
+
+<a id="iosagent"></a>
+
+### IOSAgent constructor {#iosagent-constructor}
+
+```ts
+new IOSAgent(device: IOSDevice, options?: PageAgentOpt)
+```
+
+- `device: IOSDevice` &mdash; Handles screenshots, taps, keyboard input, and other device-level controls.
+- `options?: PageAgentOpt` &mdash; Matches the common agent options documented in [API constructors](./api#constructors). Use this to configure reporting, caching, prompting context, custom hooks, and model overrides.
+- Convenience helper: [`agentFromWebDriverAgent`](#agentfromwebdriveragent) connects to WebDriverAgent and returns a ready-to-use agent if you prefer a single call.
+
+## iOS agent methods
+
+### `agent.launch()`
+
+Launch a web URL, native application bundle, or custom scheme.
+
+```typescript
+function launch(uri: string): Promise<void>;
+```
+
+- `uri: string` &mdash; Destination to open (web URL, bundle identifier, URL scheme, tel/mailto, etc.).
+
+```typescript
+const agent = await agentFromWebDriverAgent();
+
+await agent.launch('https://www.apple.com');
+await agent.launch('com.apple.Preferences');
+await agent.launch('myapp://profile/user/123');
+await agent.launch('tel:+1234567890');
+```
+
+### `agent.runWdaRequest()`
+
+Execute raw WebDriverAgent REST calls when you need low-level control.
+
+```typescript
+function runWdaRequest(
+  method: string,
+  endpoint: string,
+  data?: Record<string, any>,
+): Promise<any>;
+```
+
+- `method: string` &mdash; HTTP verb (`GET`, `POST`, `DELETE`, etc.).
+- `endpoint: string` &mdash; WebDriverAgent endpoint path.
+- `data?: Record<string, any>` &mdash; Optional JSON body.
+
+```typescript
+const agent = await agentFromWebDriverAgent();
+
+const screen = await agent.runWdaRequest('GET', '/wda/screen');
+await agent.runWdaRequest('POST', '/session/test/wda/pressButton', {
+  name: 'home',
+});
+const info = await agent.runWdaRequest('GET', '/wda/device/info');
+console.log(screen, info);
+```
+
+:::info YAML usage
+iOS-only helpers such as `launch` and `runWdaRequest` are also exposed in YAML scripts. See [iOS platform-specific actions](./automate-with-scripts-in-yaml#the-ios-part) for syntax.
+:::
+
+### `agent.home()`
+
+Return to the Home screen.
+
+```typescript
+function home(): Promise<void>;
+```
+
+```typescript
+const agent = await agentFromWebDriverAgent();
+await agent.home();
+```
+
+### `agent.appSwitcher()`
+
+Reveal the multitasking view.
+
+```typescript
+function appSwitcher(): Promise<void>;
+```
+
+```typescript
+const agent = await agentFromWebDriverAgent();
+await agent.appSwitcher();
+```
+
+## iOS helper utilities
+
+### `agentFromWebDriverAgent()` {#agentfromwebdriveragent}
+
+Create an IOSAgent by connecting to WebDriverAgent. This wraps device creation plus connection logic.
+
+```typescript
+function agentFromWebDriverAgent(
+  opts?: PageAgentOpt & IOSDeviceOpt,
+): Promise<IOSAgent>;
+```
+
+- `opts?: PageAgentOpt & IOSDeviceOpt` &mdash; Combine common agent options with [`IOSDevice` constructor](#iosdevice-constructor) settings.
+
+```typescript
+import { agentFromWebDriverAgent } from '@midscene/ios';
+
+const agent = await agentFromWebDriverAgent({
+  wdaHost: 'localhost',
+  wdaPort: 8100,
+  aiActionContext: 'Accept permission dialogs automatically.',
+});
+```
+
+## Extending custom interaction actions
+
+Extend the Agent's action space by supplying `customActions` with handlers created via `defineAction`. These actions appear after the built-in ones and can be called during planning.
+
+```typescript
+import { getMidsceneLocationSchema, z } from '@midscene/core';
+import { defineAction } from '@midscene/core/device';
+import { agentFromWebDriverAgent } from '@midscene/ios';
+
+const ContinuousClick = defineAction({
+  name: 'continuousClick',
+  description: 'Click the same target repeatedly',
+  paramSchema: z.object({
+    locate: getMidsceneLocationSchema(),
+    count: z
+      .number()
+      .int()
+      .positive()
+      .describe('How many times to click'),
+  }),
+  async call({ locate, count }) {
+    console.log('click target center', locate.center);
+    console.log('click count', count);
+  },
+});
+
+const agent = await agentFromWebDriverAgent({
+  customActions: [ContinuousClick],
+});
+
+await agent.aiAct('Click the red button five times');
+```
+
+For more details about custom actions, refer to [Integrate with any interface](./integrate-with-any-interface).

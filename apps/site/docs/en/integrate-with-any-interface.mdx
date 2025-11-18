@@ -257,6 +257,33 @@ Other fields in the yaml script are the same as the [yaml script](./automate-wit
 
 ## API reference
 
+### Agent constructor
+
+```typescript
+import { Agent } from '@midscene/core/agent';
+import type { AbstractInterface } from '@midscene/core';
+```
+
+Create an agent by pairing your custom `AbstractInterface` implementation with the standard constructor:
+
+```typescript
+const device = new SampleDevice({
+  deviceName: 'Demo Panel',
+  width: 1920,
+  height: 1080,
+});
+
+const agent = new Agent(device, {
+  actionContext: 'Dismiss pop-ups before every task.',
+  generateReport: true,
+  customActions: [], // optional extra DeviceAction list
+});
+```
+
+- `device: AbstractInterface` (required): Any class that fulfills `screenshotBase64`, `size`, and `actionSpace`. This is where you translate Midscene actions into real I/O calls for your hardware or desktop app.
+- `options?: PageAgentOpt`: Shares the same option bag as the browser and mobile agents described in the [API constructors](./api#common-parameters). Commonly used fields include `generateReport`, `reportFileName`, `actionContext`/`aiActionContext`, `cacheId`, `modelConfig`, `createOpenAIClient`, `customActions`, and `onTaskStartTip`.
+- The resulting agent instantly unlocks the regular automation surfaces: `aiAct`/`aiTap` APIs, YAML runner (`interface` block), [playground](#playgroundforagent-function), MCP server, and reporting pipeline.
+
 ### `AbstractInterface` class
 
 ```typescript
@@ -333,7 +360,7 @@ You can find the parameters of the actions in the type definition of these funct
 
 #### Define a custom action
 
-You can define your own action by using the `defineAction()` function. You can also use this method to define more actions for the [PuppeteerAgent](./integrate-with-puppeteer), [AgentOverChromeBridge](./bridge-mode#constructor), and [AndroidAgent](./integrate-with-android).
+You can define your own action by using the `defineAction()` function. You can also use this method to define more actions for the [PuppeteerAgent](./integrate-with-puppeteer), [AgentOverChromeBridge](./bridge-mode#constructor), and [AndroidAgent](./android-getting-started).
 
 API Signature:
 

@@ -81,6 +81,10 @@ export default defineConfig({
               text: 'Bridge to the desktop Chrome',
               link: '/bridge-mode',
             },
+            {
+              text: 'API reference (Web)',
+              link: '/web-api-reference',
+            },
           ],
         },
         {
@@ -91,12 +95,12 @@ export default defineConfig({
               link: '/android-introduction',
             },
             {
-              text: 'Quick experience by playground',
-              link: '/android-playground',
+              text: 'Getting started',
+              link: '/android-getting-started',
             },
             {
-              text: 'Integrate with Android (adb)',
-              link: '/integrate-with-android',
+              text: 'API reference (Android)',
+              link: '/android-api-reference',
             },
           ],
         },
@@ -108,12 +112,12 @@ export default defineConfig({
               link: '/ios-introduction',
             },
             {
-              text: 'Quick experience by playground',
-              link: '/ios-playground',
+              text: 'Getting started',
+              link: '/ios/getting-started',
             },
             {
-              text: 'Integrate with iOS (WebDriverAgent)',
-              link: '/integrate-with-ios',
+              text: 'API reference (iOS)',
+              link: '/ios-api-reference',
             },
           ],
         },
@@ -134,7 +138,7 @@ export default defineConfig({
           text: 'API and config',
           items: [
             {
-              text: 'Javascript API reference',
+              text: 'API reference (Common)',
               link: '/api',
             },
             {
@@ -228,6 +232,10 @@ export default defineConfig({
               text: '桥接到桌面 Chrome',
               link: '/zh/bridge-mode',
             },
+            {
+              text: 'API 参考（Web）',
+              link: '/zh/web-api-reference',
+            },
           ],
         },
         {
@@ -238,12 +246,12 @@ export default defineConfig({
               link: '/zh/android-introduction',
             },
             {
-              text: '通过 Playground 快速体验',
-              link: '/zh/android-playground',
+              text: '快速开始',
+              link: '/zh/android-getting-started',
             },
             {
-              text: '与 Android(adb) 集成',
-              link: '/zh/integrate-with-android',
+              text: 'API 参考（Android）',
+              link: '/zh/android-api-reference',
             },
           ],
         },
@@ -255,12 +263,12 @@ export default defineConfig({
               link: '/zh/ios-introduction',
             },
             {
-              text: '通过 Playground 快速体验',
-              link: '/zh/ios-playground',
+              text: '快速开始',
+              link: '/zh/ios-getting-started',
             },
             {
-              text: '与 iOS(WebDriverAgent) 集成',
-              link: '/zh/integrate-with-ios',
+              text: 'API 参考（iOS）',
+              link: '/zh/ios-api-reference',
             },
           ],
         },
