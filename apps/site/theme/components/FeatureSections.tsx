@@ -31,24 +31,24 @@ export function FeatureSections() {
     >
       {/* Section 1: CLIENTS */}
       <div className="w-full flex flex-col">
-        <div className="flex flex-row items-start mt-[120px] px-10 gap-[278px] max-w-[1440px] mx-auto w-full">
+        <div className="flex flex-col lg:flex-row items-start mt-12 md:mt-20 lg:mt-[120px] px-5 md:px-10 gap-8 lg:gap-[278px] max-w-[1440px] mx-auto w-full">
           {/* Left side - Text content */}
-          <div className="w-[275px] flex flex-col items-start gap-y-8">
-            <div className="font-mono font-medium text-base leading-6 bg-gradient-to-r from-[#80A8FF] to-[#0555FF] bg-clip-text text-transparent">
+          <div className="w-full lg:w-[275px] flex flex-col items-start gap-y-4 md:gap-y-8">
+            <div className="font-mono font-medium text-sm md:text-base leading-6 bg-gradient-to-r from-[#80A8FF] to-[#0555FF] bg-clip-text text-transparent">
               {t('clientsTitle')}
             </div>
             <div
-              className={`w-[275px] flex items-center font-sans font-semibold text-[40px] leading-[48px] ${dark ? 'text-white' : 'text-black'}`}
+              className={`w-full lg:w-[275px] flex items-center font-sans font-semibold text-[28px] md:text-[40px] leading-[32px] md:leading-[48px] ${dark ? 'text-white' : 'text-black'}`}
             >
               {t('clientsHeading')}
             </div>
-            <div className="w-[275px] flex flex-col gap-y-3">
+            <div className="w-full lg:w-[275px] flex flex-col gap-y-3">
               <div className="flex flex-row gap-x-3">
                 <div className="w-3 pt-1.5">
                   <GradientIcon />
                 </div>
                 <div
-                  className={`flex-1 font-sans text-base font-normal leading-[26px] ${dark ? 'text-white/70' : 'text-black/70'}`}
+                  className={`flex-1 font-sans text-sm md:text-base font-normal leading-[22px] md:leading-[26px] ${dark ? 'text-white/70' : 'text-black/70'}`}
                 >
                   {t('clientsDesc1')}
                 </div>
@@ -58,7 +58,7 @@ export function FeatureSections() {
                   <GradientIcon />
                 </div>
                 <div
-                  className={`flex-1 font-sans text-base font-normal leading-[26px] ${dark ? 'text-white/70' : 'text-black/70'}`}
+                  className={`flex-1 font-sans text-sm md:text-base font-normal leading-[22px] md:leading-[26px] ${dark ? 'text-white/70' : 'text-black/70'}`}
                 >
                   {t('clientsDesc2')}
                 </div>
@@ -67,26 +67,26 @@ export function FeatureSections() {
           </div>
 
           {/* Right side - Cards */}
-          <div className="w-[807px] flex flex-col gap-y-10">
+          <div className="w-full lg:w-[807px] flex flex-col gap-y-6 md:gap-y-10">
             {/* Top row */}
-            <div className="flex flex-row gap-x-10">
+            <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
               {/* Web Card */}
-              <div className="w-[383px] flex flex-col gap-y-6">
+              <div className="w-full md:w-[383px] flex flex-col gap-y-4 md:gap-y-6">
                 <p
-                  className={`font-sans font-medium text-2xl leading-6 ${dark ? 'text-white' : 'text-black'}`}
+                  className={`font-sans font-medium text-xl md:text-2xl leading-6 ${dark ? 'text-white' : 'text-black'}`}
                 >
                   {t('platformWeb')}
                 </p>
                 <div className="flex flex-col gap-[17px]">
                   <div
-                    className={`rounded-2xl w-full h-[160px] flex items-center justify-center ${dark ? 'bg-[#1C1C1C]' : 'bg-gray-100'}`}
+                    className={`rounded-2xl w-full h-[120px] md:h-[160px] flex items-center justify-center ${dark ? 'bg-[#1C1C1C]' : 'bg-gray-100'}`}
                   >
-                    <div className="w-16 h-16 flex items-center justify-center rounded-2xl bg-[#0555FF] shadow-[0_4px_4px_rgba(0,0,0,0.05)]">
-                      <AppWindow className="h-8 w-8 text-white" />
+                    <div className="w-12 h-12 md:w-16 md:h-16 flex items-center justify-center rounded-2xl bg-[#0555FF] shadow-[0_4px_4px_rgba(0,0,0,0.05)]">
+                      <AppWindow className="h-6 w-6 md:h-8 md:w-8 text-white" />
                     </div>
                   </div>
                   <div
-                    className={`font-sans text-base font-normal leading-6 ${dark ? 'text-white/70' : 'text-black/70'}`}
+                    className={`font-sans text-sm md:text-base font-normal leading-5 md:leading-6 ${dark ? 'text-white/70' : 'text-black/70'}`}
                   >
                     {t('platformWebDesc')}
                   </div>
@@ -94,24 +94,24 @@ export function FeatureSections() {
               </div>
 
               {/* iOS Card */}
-              <div className="w-[383px] flex flex-col gap-6">
+              <div className="w-full md:w-[383px] flex flex-col gap-4 md:gap-6">
                 <p
-                  className={`font-sans text-2xl font-medium leading-6 ${dark ? 'text-white' : 'text-black'}`}
+                  className={`font-sans text-xl md:text-2xl font-medium leading-6 ${dark ? 'text-white' : 'text-black'}`}
                 >
                   {t('platformIOS')}
                 </p>
                 <div className="flex flex-col gap-[17px]">
                   <div
-                    className={`rounded-2xl w-full h-[160px] flex justify-center items-center ${dark ? 'bg-[#1C1C1C]' : 'bg-gray-100'}`}
+                    className={`rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center ${dark ? 'bg-[#1C1C1C]' : 'bg-gray-100'}`}
                   >
                     <div
-                      className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-[0px_4px_4px_rgba(0,0,0,0.05)] ${dark ? 'bg-black' : 'bg-gray-800'}`}
+                      className={`w-12 h-12 md:w-16 md:h-16 rounded-2xl flex items-center justify-center shadow-[0px_4px_4px_rgba(0,0,0,0.05)] ${dark ? 'bg-black' : 'bg-gray-800'}`}
                     >
-                      <Apple className="text-white w-8 h-8" />
+                      <Apple className="text-white w-6 h-6 md:w-8 md:h-8" />
                     </div>
                   </div>
                   <div
-                    className={`text-base font-normal font-sans leading-6 ${dark ? 'text-white/70' : 'text-black/70'}`}
+                    className={`text-sm md:text-base font-normal font-sans leading-5 md:leading-6 ${dark ? 'text-white/70' : 'text-black/70'}`}
                   >
                     {t('platformIOSDesc')}
                   </div>
@@ -120,24 +120,24 @@ export function FeatureSections() {
             </div>
 
             {/* Bottom row */}
-            <div className="flex flex-row gap-x-10">
+            <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
               {/* Android Card */}
-              <div className="w-[383px] flex flex-col gap-y-6">
+              <div className="w-full md:w-[383px] flex flex-col gap-y-4 md:gap-y-6">
                 <p
-                  className={`font-sans font-medium text-2xl leading-6 ${dark ? 'text-white' : 'text-black'}`}
+                  className={`font-sans font-medium text-xl md:text-2xl leading-6 ${dark ? 'text-white' : 'text-black'}`}
                 >
                   {t('platformAndroid')}
                 </p>
                 <div className="flex flex-col gap-y-[17px]">
                   <div
-                    className={`rounded-2xl w-full h-[160px] flex justify-center items-center ${dark ? 'bg-[#1C1C1C]' : 'bg-gray-100'}`}
+                    className={`rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center ${dark ? 'bg-[#1C1C1C]' : 'bg-gray-100'}`}
                   >
-                    <div className="w-16 h-16 flex items-center justify-center rounded-2xl bg-[#1FA679] shadow-[0_4px_4px_rgba(0,0,0,0.05)]">
-                      <Bot className="w-8 h-8 text-white" />
+                    <div className="w-12 h-12 md:w-16 md:h-16 flex items-center justify-center rounded-2xl bg-[#1FA679] shadow-[0_4px_4px_rgba(0,0,0,0.05)]">
+                      <Bot className="w-6 h-6 md:w-8 md:h-8 text-white" />
                     </div>
                   </div>
                   <div
-                    className={`font-sans text-base font-normal leading-6 ${dark ? 'text-white/70' : 'text-black/70'}`}
+                    className={`font-sans text-sm md:text-base font-normal leading-5 md:leading-6 ${dark ? 'text-white/70' : 'text-black/70'}`}
                   >
                     {t('platformAndroidDesc')}
                   </div>
@@ -145,22 +145,22 @@ export function FeatureSections() {
               </div>
 
               {/* Any Interface Card */}
-              <div className="w-[383px] flex flex-col gap-y-6">
+              <div className="w-full md:w-[383px] flex flex-col gap-y-4 md:gap-y-6">
                 <p
-                  className={`font-sans font-medium text-2xl leading-6 ${dark ? 'text-white' : 'text-black'}`}
+                  className={`font-sans font-medium text-xl md:text-2xl leading-6 ${dark ? 'text-white' : 'text-black'}`}
                 >
                   {t('platformAnyInterface')}
                 </p>
                 <div className="flex flex-col gap-y-[17px]">
                   <div
-                    className={`rounded-2xl w-full h-[160px] flex justify-center items-center ${dark ? 'bg-[#1C1C1C]' : 'bg-gray-100'}`}
+                    className={`rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center ${dark ? 'bg-[#1C1C1C]' : 'bg-gray-100'}`}
                   >
-                    <div className="w-16 h-16 flex items-center justify-center rounded-2xl bg-[#FA884B] shadow-[0_4px_4px_rgba(0,0,0,0.05)]">
-                      <Grid2x2 className="w-8 h-8 text-white" />
+                    <div className="w-12 h-12 md:w-16 md:h-16 flex items-center justify-center rounded-2xl bg-[#FA884B] shadow-[0_4px_4px_rgba(0,0,0,0.05)]">
+                      <Grid2x2 className="w-6 h-6 md:w-8 md:h-8 text-white" />
                     </div>
                   </div>
                   <div
-                    className={`font-sans text-base font-normal leading-6 ${dark ? 'text-white/70' : 'text-black/70'}`}
+                    className={`font-sans text-sm md:text-base font-normal leading-5 md:leading-6 ${dark ? 'text-white/70' : 'text-black/70'}`}
                   >
                     {t('platformAnyInterfaceDesc')}
                   </div>
@@ -172,24 +172,24 @@ export function FeatureSections() {
       </div>
 
       {/* Section 2: MODELS */}
-      <div className="w-full flex flex-row px-10 pt-[120px] pb-[120px] gap-x-[278px] max-w-[1440px] mx-auto">
+      <div className="w-full flex flex-col lg:flex-row px-5 md:px-10 pt-12 md:pt-20 lg:pt-[120px] pb-12 md:pb-20 lg:pb-[120px] gap-8 lg:gap-x-[278px] max-w-[1440px] mx-auto">
         {/* Left side - Text content */}
-        <div className="w-[275px] flex flex-col items-start gap-8">
-          <span className="font-mono font-medium text-base uppercase leading-6 bg-gradient-to-r from-[#80a8ff] to-[#0555ff] bg-clip-text text-transparent">
+        <div className="w-full lg:w-[275px] flex flex-col items-start gap-4 md:gap-8">
+          <span className="font-mono font-medium text-sm md:text-base uppercase leading-6 bg-gradient-to-r from-[#80a8ff] to-[#0555ff] bg-clip-text text-transparent">
             {t('modelsTitle')}
           </span>
           <div
-            className={`w-[275px] font-sans text-left font-semibold text-[40px] leading-[48px] ${dark ? 'text-white' : 'text-black'}`}
+            className={`w-full lg:w-[275px] font-sans text-left font-semibold text-[28px] md:text-[40px] leading-[32px] md:leading-[48px] ${dark ? 'text-white' : 'text-black'}`}
           >
             {t('modelsHeading')}
           </div>
-          <div className="w-[275px] flex flex-col gap-y-3">
+          <div className="w-full lg:w-[275px] flex flex-col gap-y-3">
             <div className="flex flex-row gap-x-3">
               <div className="w-3 pt-1.5">
                 <GradientIcon />
               </div>
               <div
-                className={`flex-1 font-sans text-base font-normal leading-[26px] ${dark ? 'text-white/70' : 'text-black/70'}`}
+                className={`flex-1 font-sans text-sm md:text-base font-normal leading-[22px] md:leading-[26px] ${dark ? 'text-white/70' : 'text-black/70'}`}
               >
                 {t('modelsDesc1')}
               </div>
@@ -199,7 +199,7 @@ export function FeatureSections() {
                 <GradientIcon />
               </div>
               <div
-                className={`flex-1 font-sans text-base font-normal leading-[26px] ${dark ? 'text-white/70' : 'text-black/70'}`}
+                className={`flex-1 font-sans text-sm md:text-base font-normal leading-[22px] md:leading-[26px] ${dark ? 'text-white/70' : 'text-black/70'}`}
               >
                 {t('modelsDesc2')}
               </div>
@@ -209,7 +209,7 @@ export function FeatureSections() {
                 <GradientIcon />
               </div>
               <div
-                className={`flex-1 font-normal font-sans text-base leading-[26px] ${dark ? 'text-white/70' : 'text-black/70'}`}
+                className={`flex-1 font-normal font-sans text-sm md:text-base leading-[22px] md:leading-[26px] ${dark ? 'text-white/70' : 'text-black/70'}`}
               >
                 {t('modelsDesc3')}
               </div>
@@ -218,20 +218,20 @@ export function FeatureSections() {
         </div>
 
         {/* Right side - Model cards */}
-        <div className="w-[807px] flex flex-row gap-x-10">
+        <div className="w-full lg:w-[807px] flex flex-col md:flex-row gap-6 md:gap-x-10">
           {/* Model 1 */}
-          <div className="w-[383px] flex flex-col gap-6">
+          <div className="w-full md:w-[383px] flex flex-col gap-4 md:gap-6">
             <p
-              className={`font-sans text-2xl font-medium leading-6 ${dark ? 'text-white' : 'text-black'}`}
+              className={`font-sans text-xl md:text-2xl font-medium leading-6 ${dark ? 'text-white' : 'text-black'}`}
             >
               {t('modelName')}
             </p>
             <div className="flex flex-col gap-y-[17px]">
-              <div className="bg-[#07112B] rounded-2xl shadow-[0_4px_4px_0_rgba(0,0,0,0.05)] w-full h-[160px] flex items-center justify-center">
-                <div className="w-16 h-16 bg-white rounded-2xl shadow-[0_4px_4px_rgba(0,0,0,0.05)]" />
+              <div className="bg-[#07112B] rounded-2xl shadow-[0_4px_4px_0_rgba(0,0,0,0.05)] w-full h-[120px] md:h-[160px] flex items-center justify-center">
+                <div className="w-12 h-12 md:w-16 md:h-16 bg-white rounded-2xl shadow-[0_4px_4px_rgba(0,0,0,0.05)]" />
               </div>
               <div
-                className={`font-sans text-base font-normal leading-6 ${dark ? 'text-white/70' : 'text-black/70'}`}
+                className={`font-sans text-sm md:text-base font-normal leading-5 md:leading-6 ${dark ? 'text-white/70' : 'text-black/70'}`}
               >
                 {t('modelDesc')}
               </div>
@@ -239,15 +239,15 @@ export function FeatureSections() {
           </div>
 
           {/* Model 2 */}
-          <div className="w-[383px] flex flex-col gap-6">
+          <div className="w-full md:w-[383px] flex flex-col gap-4 md:gap-6">
             <span
-              className={`font-sans font-medium text-2xl leading-6 ${dark ? 'text-white' : 'text-black'}`}
+              className={`font-sans font-medium text-xl md:text-2xl leading-6 ${dark ? 'text-white' : 'text-black'}`}
             >
               {t('modelName')}
             </span>
             <div className="flex flex-col gap-y-[17px]">
-              <div className="bg-[#1D1D46] rounded-2xl w-full h-[160px] flex items-center justify-center">
-                <div className="w-16 h-16 rounded-2xl overflow-hidden">
+              <div className="bg-[#1D1D46] rounded-2xl w-full h-[120px] md:h-[160px] flex items-center justify-center">
+                <div className="w-12 h-12 md:w-16 md:h-16 rounded-2xl overflow-hidden">
                   <img
                     src="https://placehold.co/64x64.png"
                     alt="Model"
@@ -256,7 +256,7 @@ export function FeatureSections() {
                 </div>
               </div>
               <div
-                className={`font-sans text-base font-normal leading-6 ${dark ? 'text-white/70' : 'text-black/70'}`}
+                className={`font-sans text-sm md:text-base font-normal leading-5 md:leading-6 ${dark ? 'text-white/70' : 'text-black/70'}`}
               >
                 {t('modelDesc')}
               </div>
@@ -266,24 +266,24 @@ export function FeatureSections() {
       </div>
 
       {/* Section 3: DEBUGGING */}
-      <div className="w-full flex flex-row pt-[120px] px-10 gap-x-[278px] pb-20 max-w-[1440px] mx-auto">
+      <div className="w-full flex flex-col lg:flex-row pt-12 md:pt-20 lg:pt-[120px] px-5 md:px-10 gap-8 lg:gap-x-[278px] pb-10 md:pb-20 max-w-[1440px] mx-auto">
         {/* Left side - Text content */}
-        <div className="w-[275px] flex flex-col items-start gap-y-8">
-          <div className="font-mono font-medium text-base uppercase bg-gradient-to-r from-[#80a8ff] to-[#0555ff] bg-clip-text text-transparent leading-6">
+        <div className="w-full lg:w-[275px] flex flex-col items-start gap-y-4 md:gap-y-8">
+          <div className="font-mono font-medium text-sm md:text-base uppercase bg-gradient-to-r from-[#80a8ff] to-[#0555ff] bg-clip-text text-transparent leading-6">
             {t('debuggingTitle')}
           </div>
           <div
-            className={`w-[275px] flex items-center font-sans font-semibold text-[40px] leading-[48px] ${dark ? 'text-white' : 'text-black'}`}
+            className={`w-full lg:w-[275px] flex items-center font-sans font-semibold text-[28px] md:text-[40px] leading-[32px] md:leading-[48px] ${dark ? 'text-white' : 'text-black'}`}
           >
             {t('debuggingHeading')}
           </div>
-          <div className="w-[275px] flex flex-col gap-y-3">
+          <div className="w-full lg:w-[275px] flex flex-col gap-y-3">
             <div className="flex flex-row gap-x-3">
               <div className="w-3 pt-1.5">
                 <GradientIcon />
               </div>
               <div
-                className={`flex-1 font-sans text-base font-normal leading-[26px] ${dark ? 'text-white/70' : 'text-black/70'}`}
+                className={`flex-1 font-sans text-sm md:text-base font-normal leading-[22px] md:leading-[26px] ${dark ? 'text-white/70' : 'text-black/70'}`}
               >
                 {t('debuggingDesc1')}
               </div>
@@ -293,7 +293,7 @@ export function FeatureSections() {
                 <GradientIcon />
               </div>
               <div
-                className={`flex-1 font-sans text-base font-normal leading-[26px] ${dark ? 'text-white/70' : 'text-black/70'}`}
+                className={`flex-1 font-sans text-sm md:text-base font-normal leading-[22px] md:leading-[26px] ${dark ? 'text-white/70' : 'text-black/70'}`}
               >
                 {t('debuggingDesc2')}
               </div>
@@ -303,7 +303,7 @@ export function FeatureSections() {
                 <GradientIcon />
               </div>
               <div
-                className={`flex-1 font-sans text-base font-normal leading-[26px] ${dark ? 'text-white/70' : 'text-black/70'}`}
+                className={`flex-1 font-sans text-sm md:text-base font-normal leading-[22px] md:leading-[26px] ${dark ? 'text-white/70' : 'text-black/70'}`}
               >
                 {t('debuggingDesc3')}
               </div>
@@ -312,26 +312,26 @@ export function FeatureSections() {
         </div>
 
         {/* Right side - API cards */}
-        <div className="w-[807px] flex flex-col gap-y-10">
+        <div className="w-full lg:w-[807px] flex flex-col gap-y-6 md:gap-y-10">
           {/* Top row */}
-          <div className="flex flex-row gap-x-10">
+          <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
             {/* aiAction Card */}
-            <div className="w-[383px] flex flex-col gap-6">
+            <div className="w-full md:w-[383px] flex flex-col gap-4 md:gap-6">
               <p
-                className={`font-sans font-medium text-2xl leading-6 ${dark ? 'text-white' : 'text-black'}`}
+                className={`font-sans font-medium text-xl md:text-2xl leading-6 ${dark ? 'text-white' : 'text-black'}`}
               >
                 {t('apiAction')}
               </p>
               <div className="flex flex-col gap-y-[17px]">
                 <div
-                  className={`rounded-2xl w-full h-[160px] flex justify-center items-center ${dark ? 'bg-[#1C1C1C]' : 'bg-gray-100'}`}
+                  className={`rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center ${dark ? 'bg-[#1C1C1C]' : 'bg-gray-100'}`}
                 >
                   <div
-                    className={`w-16 h-16 rounded-2xl shadow-[0_4px_4px_rgba(0,0,0,0.05)] ${dark ? 'bg-[#313131]' : 'bg-gray-300'}`}
+                    className={`w-12 h-12 md:w-16 md:h-16 rounded-2xl shadow-[0_4px_4px_rgba(0,0,0,0.05)] ${dark ? 'bg-[#313131]' : 'bg-gray-300'}`}
                   />
                 </div>
                 <div
-                  className={`font-sans text-base font-normal leading-6 ${dark ? 'text-white/70' : 'text-black/70'}`}
+                  className={`font-sans text-sm md:text-base font-normal leading-5 md:leading-6 ${dark ? 'text-white/70' : 'text-black/70'}`}
                 >
                   {t('apiActionDesc')}
                 </div>
@@ -339,22 +339,22 @@ export function FeatureSections() {
             </div>
 
             {/* aiTap Card */}
-            <div className="w-[383px] flex flex-col gap-6">
+            <div className="w-full md:w-[383px] flex flex-col gap-4 md:gap-6">
               <p
-                className={`font-sans text-2xl font-medium leading-6 ${dark ? 'text-white' : 'text-black'}`}
+                className={`font-sans text-xl md:text-2xl font-medium leading-6 ${dark ? 'text-white' : 'text-black'}`}
               >
                 {t('apiTap')}
               </p>
               <div className="flex flex-col gap-y-[17px]">
                 <div
-                  className={`rounded-2xl w-full h-[160px] flex justify-center items-center ${dark ? 'bg-[#1c1c1c]' : 'bg-gray-100'}`}
+                  className={`rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center ${dark ? 'bg-[#1c1c1c]' : 'bg-gray-100'}`}
                 >
                   <div
-                    className={`w-16 h-16 rounded-2xl shadow-[0_4px_4px_0_rgba(0,0,0,0.05)] ${dark ? 'bg-[#313131]' : 'bg-gray-300'}`}
+                    className={`w-12 h-12 md:w-16 md:h-16 rounded-2xl shadow-[0_4px_4px_0_rgba(0,0,0,0.05)] ${dark ? 'bg-[#313131]' : 'bg-gray-300'}`}
                   />
                 </div>
                 <div
-                  className={`font-sans text-base font-normal leading-6 ${dark ? 'text-white/70' : 'text-black/70'}`}
+                  className={`font-sans text-sm md:text-base font-normal leading-5 md:leading-6 ${dark ? 'text-white/70' : 'text-black/70'}`}
                 >
                   {t('apiTapDesc')}
                 </div>
@@ -363,22 +363,22 @@ export function FeatureSections() {
           </div>
 
           {/* Bottom row */}
-          <div className="w-[383px] flex flex-col gap-y-6">
+          <div className="w-full md:w-[383px] flex flex-col gap-y-4 md:gap-y-6">
             <div
-              className={`font-sans font-medium text-2xl leading-6 ${dark ? 'text-white' : 'text-black'}`}
+              className={`font-sans font-medium text-xl md:text-2xl leading-6 ${dark ? 'text-white' : 'text-black'}`}
             >
               {t('apiPlayback')}
             </div>
             <div className="flex flex-col gap-[17px]">
               <div
-                className={`rounded-2xl w-full h-[160px] flex justify-center items-center ${dark ? 'bg-[#1C1C1C]' : 'bg-gray-100'}`}
+                className={`rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center ${dark ? 'bg-[#1C1C1C]' : 'bg-gray-100'}`}
               >
                 <div
-                  className={`w-16 h-16 rounded-2xl shadow-[0_4px_4px_0_rgba(0,0,0,0.05)] ${dark ? 'bg-[#313131]' : 'bg-gray-300'}`}
+                  className={`w-12 h-12 md:w-16 md:h-16 rounded-2xl shadow-[0_4px_4px_0_rgba(0,0,0,0.05)] ${dark ? 'bg-[#313131]' : 'bg-gray-300'}`}
                 />
               </div>
               <div
-                className={`font-sans text-base font-normal leading-6 ${dark ? 'text-white/70' : 'text-black/70'}`}
+                className={`font-sans text-sm md:text-base font-normal leading-5 md:leading-6 ${dark ? 'text-white/70' : 'text-black/70'}`}
               >
                 {t('apiPlaybackDesc')}
               </div>
