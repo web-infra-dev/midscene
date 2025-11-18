@@ -154,7 +154,7 @@ Please configure one of the following VL modes:
   ${VL_MODES.map((mode) => `- ${mode}`).join('\n  ')}
 
 Configuration examples:
-  - Environment variable: MIDSCENE_PLANNING_VL_MODE=qwen-vl
+  - Environment variable: MIDSCENE_MODEL_FAMILY=qwen3-vl
   - Or use modelConfig function with planning intent
 
 Learn more: https://midscenejs.com/choose-a-model`,

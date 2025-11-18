@@ -60,21 +60,22 @@ const mockedModelConfigFnResult = {
   MIDSCENE_MODEL_NAME: 'mock-model',
   MIDSCENE_MODEL_API_KEY: 'mock-api-key',
   MIDSCENE_MODEL_BASE_URL: 'mock-base-url',
+  MIDSCENE_MODEL_FAMILY: 'qwen3-vl',
 };
 
 const modelConfigCalcByMockedModelConfigFnResult = {
   from: 'modelConfig',
   httpProxy: undefined,
   intent: 'insight',
-  modelDescription: '',
+  modelDescription: 'qwen3-vl mode',
   modelName: 'mock-model',
   openaiApiKey: 'mock-api-key',
   openaiBaseURL: 'mock-base-url',
   openaiExtraConfig: undefined,
   socksProxy: undefined,
   uiTarsModelVersion: undefined,
-  vlMode: undefined,
-  vlModeRaw: undefined,
+  vlMode: 'qwen3-vl',
+  vlModeRaw: 'qwen3-vl',
 };
 
 // Mock task executor
