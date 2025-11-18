@@ -115,7 +115,7 @@ export function Banner() {
                 dark ? 'text-white' : 'text-black'
               }`}
             >
-              {t('quickStart')}
+              {t('documentation')}
             </span>
           </a>
         </div>

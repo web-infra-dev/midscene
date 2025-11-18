@@ -11,8 +11,8 @@ export const EN_US = {
   activeUsers: 'No.2 in github trending',
 
   // Banner - CTA Buttons
-  introduction: 'Introduction',
-  quickStart: 'Try Chrome Extension',
+  introduction: 'Get Started',
+  documentation: 'Documentation',
 
   // Feature Sections - CLIENTS
   clientsTitle: 'Platforms',
