@@ -504,7 +504,7 @@ export const generateAnimationScripts = (
     }
   });
 
-  console.log('scripts', scripts);
+  // console.log('scripts', scripts);
 
   // end, back to full page
   if (!errorStateFlag) {

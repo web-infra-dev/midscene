@@ -210,7 +210,11 @@ export async function AiLocateElement(options: {
   let errors: string[] | undefined =
     'errors' in res.content ? res.content.errors : [];
   try {
-    if ('bbox' in res.content && Array.isArray(res.content.bbox)) {
+    if (
+      'bbox' in res.content &&
+      Array.isArray(res.content.bbox) &&
+      res.content.bbox.length >= 1
+    ) {
       resRect = adaptBboxToRect(
         res.content.bbox,
         imageWidth,
