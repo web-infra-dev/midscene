@@ -382,6 +382,54 @@ export function preprocessDoubaoBboxJson(input: string) {
   return input;
 }
 
+/**
+ * Normalize a parsed JSON object by trimming whitespace from:
+ * 1. All object keys (e.g., " prompt " -> "prompt")
+ * 2. All string values (e.g., " Tap " -> "Tap")
+ * This handles LLM output that may include leading/trailing spaces.
+ */
+function normalizeJsonObject(obj: any): any {
+  // Handle null and undefined
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+
+  // Handle arrays - recursively normalize each element
+  if (Array.isArray(obj)) {
+    return obj.map((item) => normalizeJsonObject(item));
+  }
+
+  // Handle objects
+  if (typeof obj === 'object') {
+    const normalized: any = {};
+
+    for (const [key, value] of Object.entries(obj)) {
+      // Trim the key to remove leading/trailing spaces
+      const trimmedKey = key.trim();
+
+      // Recursively normalize the value
+      let normalizedValue = normalizeJsonObject(value);
+
+      // Trim all string values
+      if (typeof normalizedValue === 'string') {
+        normalizedValue = normalizedValue.trim();
+      }
+
+      normalized[trimmedKey] = normalizedValue;
+    }
+
+    return normalized;
+  }
+
+  // Handle primitive strings
+  if (typeof obj === 'string') {
+    return obj.trim();
+  }
+
+  // Return other primitives as-is
+  return obj;
+}
+
 export function safeParseJson(input: string, vlMode: TVlModeTypes | undefined) {
   const cleanJsonString = extractJSONFromCodeBlock(input);
   // match the point
@@ -391,16 +439,21 @@ export function safeParseJson(input: string, vlMode: TVlModeTypes | undefined) {
       ?.slice(1)
       .map(Number);
   }
+
+  let parsed: any;
   try {
-    return JSON.parse(cleanJsonString);
+    parsed = JSON.parse(cleanJsonString);
+    return normalizeJsonObject(parsed);
   } catch {}
   try {
-    return JSON.parse(jsonrepair(cleanJsonString));
+    parsed = JSON.parse(jsonrepair(cleanJsonString));
+    return normalizeJsonObject(parsed);
   } catch (e) {}
 
   if (vlMode === 'doubao-vision' || vlMode === 'vlm-ui-tars') {
     const jsonString = preprocessDoubaoBboxJson(cleanJsonString);
-    return JSON.parse(jsonrepair(jsonString));
+    parsed = JSON.parse(jsonrepair(jsonString));
+    return normalizeJsonObject(parsed);
   }
   throw Error(`failed to parse json response: ${input}`);
 }
