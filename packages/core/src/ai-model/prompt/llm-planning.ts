@@ -8,13 +8,13 @@ import { bboxDescription } from './common';
 // Note: put the log field first to trigger the CoT
 
 const vlCurrentLog = `"log": string, // Log your thoughts and what the next one action (ONLY ONE!) you can do according to the screenshot and the instruction. The log should contain the following information: "The user wants to do ... . According to the instruction and the previous logs, next step is to .... Now i am going to compose an action '{ action-type }' to do ....". If no action should be done, log the reason. Use the same language as the user's instruction.`;
-const llmCurrentLog = `"log": string, // Log what the next actions you can do according to the screenshot and the instruction. The typical log looks like "Now i want to use action '{ action-type }' to do ..". If no action should be done, log the reason. ". Use the same language as the user's instruction.`;
-
 const commonOutputFields = `"error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not foreseeable according to the instruction. Use the same language as the user's instruction.
   "more_actions_needed_by_instruction": boolean, // Consider if there is still more action(s) to do after the action in "Log" is done, according to the instruction. If so, set this field to true. Otherwise, set it to false.`;
-const vlLocateParam = () =>
-  '{bbox: [number, number, number, number], prompt: string }';
-const llmLocateParam = () => '{"id": string, "prompt": string}';
+
+// const vlLocateParam = () =>
+// ('{bbox: [number, number, number, number], prompt: string }');
+
+const vlLocateParam = () => '{ prompt: string }';
 
 export const descriptionForAction = (
   action: DeviceAction<any>,
@@ -236,7 +236,6 @@ Restriction:
 - Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
 - Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are ${actionNameList}.
 - Don't repeat actions in the previous logs.
-- Bbox is the bounding box of the element to be located. It's an array of 4 numbers, representing ${bboxDescription(vlMode)}.
 
 Supporting actions:
 ${actionList}
@@ -276,135 +275,6 @@ this and output the JSON:
 `;
 };
 
-const systemTemplateOfLLM = ({
-  actionSpace,
-}: { actionSpace: DeviceAction<any>[] }) => {
-  const actionNameList = actionSpace.map((action) => action.name).join(' / ');
-  const actionDescriptionList = actionSpace.map((action) => {
-    return descriptionForAction(action, llmLocateParam());
-  });
-  const actionList = actionDescriptionList.join('\n');
-
-  return `
-## Role
-
-You are a versatile professional in software UI automation. Your outstanding contributions will impact the user experience of billions of users.
-
-## Objective
-
-- Decompose the instruction user asked into a series of actions
-- Locate the target element if possible
-- If the instruction cannot be accomplished, give a further plan.
-
-## Workflow
-
-1. Receive the screenshot, element description of screenshot(if any), user's instruction and previous logs.
-2. Decompose the user's task into a sequence of feasible actions, and place it in the \`actions\` field. There are different types of actions (${actionNameList}). The "About the action" section below will give you more details.
-3. Consider whether the user's instruction will be accomplished after the actions you composed.
-- If the instruction is accomplished, set \`more_actions_needed_by_instruction\` to false.
-- If more actions are needed, set \`more_actions_needed_by_instruction\` to true. Get ready to hand over to the next talent people like you. Carefully log what have been done in the \`log\` field, he or she will continue the task according to your logs.
-4. If the task is not feasible on this page, set \`error\` field to the reason.
-
-## Constraints
-
-- All the actions you composed MUST be feasible, which means all the action fields can be filled with the page context information you get. If not, don't plan this action.
-- Trust the "What have been done" field about the task (if any), don't repeat actions in it.
-- Respond only with valid JSON. Do not write an introduction or summary or markdown prefix like \`\`\`json\`\`\`.
-- If the screenshot and the instruction are totally irrelevant, set reason in the \`error\` field.
-
-## About the \`actions\` field
-
-The \`locate\` param is commonly used in the \`param\` field of the action, means to locate the target element to perform the action, it conforms to the following scheme:
-
-type LocateParam = {
-  "id": string, // the id of the element found. It should either be the id marked with a rectangle in the screenshot or the id described in the description.
-  "prompt"?: string // the description of the element to find. It can only be omitted when locate is null.
-} | null // If it's not on the page, the LocateParam should be null
-
-## Supported actions
-
-Each action has a \`type\` and corresponding \`param\`. To be detailed:
-${actionList}
-
-`.trim();
-};
-
-const outputTemplate = `
-## Output JSON Format:
-
-The JSON format is as follows:
-
-{
-  "actions": [
-    // ... some actions
-  ],
-  ${llmCurrentLog}
-  ${commonOutputFields}
-}
-
-## Examples
-
-### Example: Decompose a task
-
-When you received the following information:
-
-* Instruction: 'Click the language switch button, wait 1s, click "English"'
-* Logs: null
-* Page Context (screenshot and description) shows: There is a language switch button, and the "English" option is not shown in the screenshot now.
-
-By viewing the page screenshot and description, you should consider this and output the JSON:
-
-* The user intent is: tap the switch button, sleep, and tap the 'English' option
-* The language switch button is shown in the screenshot, and can be located by the page description or the id marked with a rectangle. So we can plan a Tap action to do this.
-* Plan a Sleep action to wait for 1 second to ensure the language options are displayed.
-* The "English" option button is not shown in the screenshot now, it means it may only show after the previous actions are finished. So don't plan any action to do this.
-* Compose the log: The user wants to do click the language switch button, wait 1s, click "English". According to the instruction and the previous logs, next step is to tap the language switch button to open the language options. Now i am going to compose an action 'Tap' to click the language switch button.
-* The task cannot be accomplished (because the last tapping action is not finished yet), so the \`more_actions_needed_by_instruction\` field is true. The \`error\` field is null.
-
-{
-  "actions":[
-    {
-      "thought": "Click the language switch button to open the language options.",
-      "type": "Tap", 
-      "param": {
-        "locate": { id: "c81c4e9a33", prompt: "The language switch button" }
-      }
-    },
-    {
-      "thought": "Wait for 1 second to ensure the language options are displayed.",
-      "type": "Sleep",
-      "param": { "timeMs": 1000 },
-    }
-  ],
-  "error": null,
-  "more_actions_needed_by_instruction": true,
-  "log": "The user wants to do click the language switch button, wait 1s, click \"English\". According to the instruction and the previous logs, next step is to tap the language switch button to open the language options. Now i am going to compose an action 'Tap' to click the language switch button.",
-}
-
-### Example: What NOT to do
-Wrong output:
-{
-  "actions":[
-    {
-      "thought": "Click the language switch button to open the language options.",
-      "type": "Tap",
-      "param": {
-        "locate": { "id": "c81c4e9a33" } // WRONG: prompt is missing, this is not a valid LocateParam
-      }
-    },
-    {
-      "thought": "Click the English option",
-      "type": "Tap", 
-      "param": {
-        "locate": null // WRONG: if the element is not on the page, you should not plan this action
-      }
-    }
-  ],
-  "more_actions_needed_by_instruction": false, // WRONG: should be true
-  "log": "The user wants to do click the language switch button, wait 1s, click \"English\". According to the instruction and the previous logs, next step is to tap the language switch button to open the language options. Now i am going to compose an action 'Tap' to click the language switch button.",
-}
-`;
-
 export async function systemPromptToTaskPlanning({
   actionSpace,
   vlMode,
@@ -412,11 +282,7 @@ export async function systemPromptToTaskPlanning({
   actionSpace: DeviceAction<any>[];
   vlMode: TVlModeTypes | undefined;
 }) {
-  if (vlMode) {
-    return systemTemplateOfVLPlanning({ actionSpace, vlMode });
-  }
-
-  return `${systemTemplateOfLLM({ actionSpace })}\n\n${outputTemplate}`;
+  return systemTemplateOfVLPlanning({ actionSpace, vlMode });
 }
 
 export const planSchema: ResponseFormatJSONSchema = {

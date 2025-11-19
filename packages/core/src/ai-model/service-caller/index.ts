@@ -121,10 +121,7 @@ export async function callAI(
   const commonConfig = {
     temperature: vlMode === 'vlm-ui-tars' ? 0.0 : 0.1,
     stream: !!isStreaming,
-    max_tokens:
-      typeof maxTokens === 'number'
-        ? maxTokens
-        : Number.parseInt(maxTokens || '2048', 10),
+    max_tokens: typeof maxTokens === 'number' ? maxTokens : undefined,
     ...(vlMode === 'qwen2.5-vl' // qwen vl v2 specific config
       ? {
           vl_high_resolution_images: true,

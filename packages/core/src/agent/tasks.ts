@@ -23,6 +23,7 @@ import { ServiceError } from '@/types';
 import {
   type IModelConfig,
   MIDSCENE_REPLANNING_CYCLE_LIMIT,
+  type TIntent,
   globalConfigManager,
 } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
@@ -333,6 +334,7 @@ export class TaskExecutor {
       const planningTask = this.createPlanningTask(
         userPrompt,
         actionContext,
+        // configSpecifiedForHighLevelPlanning,
         modelConfig,
       );
 
