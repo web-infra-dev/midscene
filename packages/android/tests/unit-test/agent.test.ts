@@ -26,7 +26,7 @@ const mockedModelConfigFnResult = {
   MIDSCENE_MODEL_NAME: 'mock',
   MIDSCENE_MODEL_API_KEY: 'mock',
   MIDSCENE_MODEL_BASE_URL: 'mock',
-  MIDSCENE_LOCATOR_MODE: 'doubao-vision',
+  MIDSCENE_MODEL_FAMILY: 'doubao-vision',
 } as const;
 
 describe('AndroidAgent', () => {

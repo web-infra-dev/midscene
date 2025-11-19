@@ -57,6 +57,7 @@ const mockedModelConfigFnResult = {
   MIDSCENE_MODEL_NAME: 'mock-model',
   MIDSCENE_MODEL_API_KEY: 'mock-api-key',
   MIDSCENE_MODEL_BASE_URL: 'mock-base-url',
+  MIDSCENE_MODEL_FAMILY: 'qwen3-vl',
 };
 
 // Mock task executor

@@ -85,9 +85,6 @@ export const MIDSCENE_CACHE_MAX_FILENAME_LENGTH =
 
 export const MIDSCENE_RUN_DIR = 'MIDSCENE_RUN_DIR';
 
-// default new
-export const MIDSCENE_LOCATOR_MODE = 'MIDSCENE_LOCATOR_MODE';
-
 // INSIGHT (unified VQA and Grounding)
 export const MIDSCENE_INSIGHT_MODEL_NAME = 'MIDSCENE_INSIGHT_MODEL_NAME';
 export const MIDSCENE_INSIGHT_MODEL_SOCKS_PROXY =
@@ -99,7 +96,6 @@ export const MIDSCENE_INSIGHT_MODEL_BASE_URL =
 export const MIDSCENE_INSIGHT_MODEL_API_KEY = 'MIDSCENE_INSIGHT_MODEL_API_KEY';
 export const MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON =
   'MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON';
-export const MIDSCENE_INSIGHT_LOCATOR_MODE = 'MIDSCENE_INSIGHT_LOCATOR_MODE';
 
 // PLANNING
 export const MIDSCENE_PLANNING_MODEL_NAME = 'MIDSCENE_PLANNING_MODEL_NAME';
@@ -113,7 +109,6 @@ export const MIDSCENE_PLANNING_MODEL_API_KEY =
   'MIDSCENE_PLANNING_MODEL_API_KEY';
 export const MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON =
   'MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON';
-export const MIDSCENE_PLANNING_LOCATOR_MODE = 'MIDSCENE_PLANNING_LOCATOR_MODE';
 export const MIDSCENE_MODEL_FAMILY = 'MIDSCENE_MODEL_FAMILY';
 
 /**
@@ -190,7 +185,6 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_USE_DOUBAO_VISION,
   MIDSCENE_USE_GEMINI,
   MIDSCENE_USE_VL_MODEL,
-  MIDSCENE_LOCATOR_MODE,
   // model default legacy
   OPENAI_API_KEY,
   OPENAI_BASE_URL,
@@ -206,7 +200,6 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_INSIGHT_MODEL_BASE_URL,
   MIDSCENE_INSIGHT_MODEL_API_KEY,
   MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON,
-  MIDSCENE_INSIGHT_LOCATOR_MODE,
   // PLANNING
   MIDSCENE_PLANNING_MODEL_NAME,
   MIDSCENE_PLANNING_MODEL_SOCKS_PROXY,
@@ -214,7 +207,6 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_PLANNING_MODEL_BASE_URL,
   MIDSCENE_PLANNING_MODEL_API_KEY,
   MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON,
-  MIDSCENE_PLANNING_LOCATOR_MODE,
   MIDSCENE_MODEL_FAMILY,
 ] as const;
 
@@ -279,7 +271,7 @@ export interface IModelConfigForInsight {
   [MIDSCENE_INSIGHT_MODEL_API_KEY]?: string;
   [MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON]?: string;
   // extra
-  [MIDSCENE_INSIGHT_LOCATOR_MODE]?: TVlModeValues;
+  [MIDSCENE_MODEL_FAMILY]?: TVlModeValues;
 }
 
 /**
@@ -288,7 +280,7 @@ export interface IModelConfigForInsight {
  * IMPORTANT: Planning MUST use a vision language model (VL mode).
  * DOM-based planning is not supported.
  *
- * Required: MIDSCENE_PLANNING_LOCATOR_MODE must be set to one of:
+ * Required: MIDSCENE_MODEL_FAMILY must be set to one of:
  *   - 'qwen2.5-vl'
  *   - 'qwen3-vl'
  *   - 'gemini'
@@ -308,7 +300,7 @@ export interface IModelConfigForPlanning {
   [MIDSCENE_PLANNING_MODEL_API_KEY]?: string;
   [MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON]?: string;
   // extra
-  [MIDSCENE_PLANNING_LOCATOR_MODE]?: TVlModeValues;
+  [MIDSCENE_MODEL_FAMILY]?: TVlModeValues;
 }
 
 export interface IModelConfigForDefault {
@@ -322,7 +314,7 @@ export interface IModelConfigForDefault {
   [MIDSCENE_MODEL_API_KEY]?: string;
   [MIDSCENE_MODEL_INIT_CONFIG_JSON]?: string;
   // extra
-  [MIDSCENE_LOCATOR_MODE]?: TVlModeValues;
+  [MIDSCENE_MODEL_FAMILY]?: TVlModeValues;
 }
 
 export interface IModelConfigForDefaultLegacy {
@@ -336,7 +328,7 @@ export interface IModelConfigForDefaultLegacy {
   [OPENAI_API_KEY]?: string;
   [MIDSCENE_OPENAI_INIT_CONFIG_JSON]?: string;
   // extra
-  [MIDSCENE_LOCATOR_MODE]?: TVlModeValues;
+  [MIDSCENE_MODEL_FAMILY]?: TVlModeValues;
 }
 
 /**

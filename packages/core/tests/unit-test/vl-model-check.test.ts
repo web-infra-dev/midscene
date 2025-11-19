@@ -135,7 +135,7 @@ describe('VL Model Check for Different Interface Types', () => {
       MIDSCENE_MODEL_NAME: 'gemini-2.0-flash-exp',
       MIDSCENE_MODEL_API_KEY: 'mock-api-key',
       MIDSCENE_MODEL_BASE_URL: 'mock-base-url',
-      MIDSCENE_LOCATOR_MODE: 'gemini',
+      MIDSCENE_MODEL_FAMILY: 'gemini',
     };
 
     expect(() => {
