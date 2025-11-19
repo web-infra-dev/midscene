@@ -1,11 +1,4 @@
 export const tools = {
-  // Web-specific tools
-  midscene_aiHover: {
-    name: 'midscene_aiHover',
-    description:
-      'Moves the mouse cursor to hover over an element identified by a natural language selector.',
-  },
-
   // Common tools
   wait_for: {
     name: 'wait_for',
