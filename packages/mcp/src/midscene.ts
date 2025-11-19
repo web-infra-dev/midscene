@@ -369,7 +369,7 @@ export class MidsceneManager {
   private prepareActionSpaceToolDefinitions(
     actionSpace: DeviceAction<any, any>[],
   ): ToolDefinition[] {
-    return actionSpace.map((action) => ({
+    const tools = actionSpace.map((action) => ({
       name: action.name,
       description: `Ask Midscene (a helper that can understand natural language and perform actions) to perform the action "${action.name}", this action is defined as follows: ${action.description || 'No description provided'}.`,
       schema: {
@@ -377,7 +377,7 @@ export class MidsceneManager {
           .string()
           .describe('The detailed instruction on how to perform the action'),
       },
-      handler: async ({ instruction }) => {
+      handler: async ({ instruction }: { instruction: string }) => {
         const agent = await this.ensureAgent();
         await agent.aiAct(
           `Use the action "${action.name}" to do this: ${instruction}`,
@@ -401,6 +401,7 @@ export class MidsceneManager {
       },
       autoDestroy: true,
     }));
+    return tools;
   }
 
   /**
@@ -409,8 +410,6 @@ export class MidsceneManager {
    * It's independent of the MCP server.
    */
   public async initTools() {
-    debug('initTools');
-
     // Clear existing definitions
     this.toolDefinitions = [];
 
@@ -423,7 +422,6 @@ export class MidsceneManager {
     // Prepare dynamic action space tools
     const agent = await this.ensureAgent();
     const actionSpace = await agent.getActionSpace();
-    debug('actionSpace', actionSpace);
     const actionTools = this.prepareActionSpaceToolDefinitions(actionSpace);
     this.toolDefinitions.push(...actionTools);
 
@@ -431,6 +429,14 @@ export class MidsceneManager {
     const commonTools = this.prepareCommonToolDefinitions();
     this.toolDefinitions.push(...commonTools);
 
+    // List all the tools in the toolDefinitions array
+    debug(
+      'Tool definitions:',
+      this.toolDefinitions.map((tool) => ({
+        name: tool.name,
+        description: tool.description,
+      })),
+    );
     debug('Total tool definitions prepared:', this.toolDefinitions.length);
   }
 
