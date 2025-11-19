@@ -281,8 +281,8 @@ export class MidsceneManager {
     return [
       // aiWaitFor tool
       {
-        name: tools.midscene_aiWaitFor.name,
-        description: tools.midscene_aiWaitFor.description,
+        name: tools.wait_for.name,
+        description: tools.wait_for.description,
         schema: {
           assertion: z
             .string()
@@ -316,8 +316,8 @@ export class MidsceneManager {
       },
       // aiAssert tool
       {
-        name: tools.midscene_aiAssert.name,
-        description: tools.midscene_aiAssert.description,
+        name: tools.assert.name,
+        description: tools.assert.description,
         schema: {
           assertion: z
             .string()
@@ -338,8 +338,8 @@ export class MidsceneManager {
       },
       // Screenshot tool
       {
-        name: tools.midscene_screenshot.name,
-        description: tools.midscene_screenshot.description,
+        name: tools.take_screenshot.name,
+        description: tools.take_screenshot.description,
         schema: {},
         handler: async () => {
           const agent = await this.ensureAgent();
