@@ -80,7 +80,7 @@ export class IOSDevice implements AbstractInterface {
             .boolean()
             .optional()
             .describe(
-              'If true, the keyboard will be dismissed after the input is completed. Do not set it unless the user asks you to do so.',
+              'Whether to dismiss the keyboard after input. Defaults to true if not specified. Set to false to keep the keyboard visible after input.',
             ),
           mode: z
             .enum(['replace', 'clear', 'append'])
@@ -763,32 +763,42 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 
   async hideKeyboard(keyNames?: string[]): Promise<boolean> {
     try {
-      // If keyNames are provided, use them instead of manual swipe down
-      if (keyNames && keyNames.length > 0) {
-        debugDevice(
-          `Using keyNames to dismiss keyboard: ${keyNames.join(', ')}`,
-        );
-        await this.wdaBackend.dismissKeyboard(keyNames);
-        debugDevice('Dismissed keyboard using provided keyNames');
-        await sleep(300);
-        return true;
-      }
+      // Always try WDA's dismissKeyboard API first (most reliable)
+      // Use common keyboard button names if not specified
+      const dismissKeys =
+        keyNames && keyNames.length > 0
+          ? keyNames
+          : ['return', 'done', 'go', 'search', 'next', 'send'];
 
-      // Default behavior: Get window size for swipe coordinates
-      const windowSize = await this.wdaBackend.getWindowSize();
-
-      // Calculate swipe coordinates at one-third position of the screen
-      const centerX = Math.round(windowSize.width / 2);
-      const startY = Math.round(windowSize.height * 0.33); // Start at one-third from top
-      const endY = Math.round(windowSize.height * 0.33 + 10); // Swipe down
-
-      // Perform swipe down gesture to dismiss keyboard
-      await this.swipe(centerX, startY, centerX, endY, 50);
       debugDevice(
-        'Dismissed keyboard with swipe down gesture at screen one-third position',
+        `Attempting to dismiss keyboard using WDA API with keys: ${dismissKeys.join(', ')}`,
       );
 
-      await sleep(300);
+      try {
+        await this.wdaBackend.dismissKeyboard(dismissKeys);
+        debugDevice('Successfully dismissed keyboard using WDA API');
+        await sleep(500); // Wait longer to ensure UI is stable
+        return true;
+      } catch (wdaError) {
+        debugDevice(
+          `WDA dismissKeyboard failed, falling back to swipe gesture: ${wdaError}`,
+        );
+      }
+
+      // Fallback: Use swipe gesture if WDA API fails
+      // Use safer coordinates: swipe up from bottom of screen
+      const windowSize = await this.wdaBackend.getWindowSize();
+      const centerX = Math.round(windowSize.width / 2);
+      const startY = Math.round(windowSize.height * 0.9); // Start near bottom
+      const endY = Math.round(windowSize.height * 0.5); // Swipe up to middle
+
+      // Perform swipe up gesture to dismiss keyboard
+      await this.swipe(centerX, startY, centerX, endY, 300);
+      debugDevice(
+        'Dismissed keyboard with swipe up gesture from bottom of screen',
+      );
+
+      await sleep(500); // Wait longer to ensure UI is stable
       return true;
     } catch (error) {
       debugDevice(`Failed to hide keyboard: ${error}`);
