@@ -249,6 +249,9 @@ export interface StaticPlaygroundProps {
 // service mode type
 export type ServiceModeType = 'Server' | 'In-Browser' | 'In-Browser-Extension';
 
+// device type
+export type DeviceType = 'web' | 'android' | 'ios';
+
 // run type
 export type RunType =
   | 'aiAct'
@@ -345,6 +348,7 @@ export interface UniversalPlaygroundConfig {
   enableScrollToBottom?: boolean;
   serverMode?: boolean;
   showEnvConfigReminder?: boolean;
+  deviceType?: DeviceType;
 }
 
 // branding interface

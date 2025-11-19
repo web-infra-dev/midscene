@@ -315,12 +315,25 @@ class PlaygroundServer {
         deepThink,
         screenshotIncluded,
         domIncluded,
+        deviceOptions,
       } = req.body;
 
       if (!type) {
         return res.status(400).json({
           error: 'type is required',
         });
+      }
+
+      // Update device options if provided
+      if (
+        deviceOptions &&
+        this.agent.interface &&
+        'options' in this.agent.interface
+      ) {
+        this.agent.interface.options = {
+          ...(this.agent.interface.options || {}),
+          ...deviceOptions,
+        };
       }
 
       // Check if another task is running
@@ -376,6 +389,7 @@ class PlaygroundServer {
             deepThink,
             screenshotIncluded,
             domIncluded,
+            deviceOptions,
           },
         );
       } catch (error: unknown) {

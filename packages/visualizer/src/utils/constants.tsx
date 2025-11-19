@@ -12,6 +12,12 @@ export const screenshotIncludedTip = 'include screenshot in request';
 // dom included tip
 export const domIncludedTip = 'include DOM info in request';
 
+// Android device options tips
+export const imeStrategyTip = 'IME strategy';
+export const autoDismissKeyboardTip = 'Auto dismiss keyboard';
+export const keyboardDismissStrategyTip = 'Keyboard dismiss strategy';
+export const alwaysRefreshScreenInfoTip = 'Always refresh screen info';
+
 export const apiMetadata = {
   aiAct: {
     group: 'interaction',

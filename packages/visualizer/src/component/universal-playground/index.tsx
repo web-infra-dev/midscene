@@ -184,6 +184,7 @@ export function UniversalPlayground({
     showContextPreview && componentConfig.showContextPreview !== false;
   const layout = componentConfig.layout || 'vertical';
   const showVersionInfo = componentConfig.showVersionInfo !== false;
+  const deviceType = componentConfig.deviceType;
 
   return (
     <div className={`playground-container ${layout}-mode ${className}`.trim()}>
@@ -374,6 +375,7 @@ export function UniversalPlayground({
             onRun={handleFormRun}
             onStop={handleStop}
             actionSpace={actionSpace}
+            deviceType={deviceType}
           />
         </div>
 
