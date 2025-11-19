@@ -820,13 +820,15 @@ export class MidsceneManager {
         return await handler(...args);
       } finally {
         // Always destroy agent after tool execution
-        try {
-          await this.agent?.destroy();
-        } catch (e) {
-          // Ignore destroy errors to prevent them from masking the actual result
-          // console.error('Error destroying agent:', e);
+        if (!process.env.MIDSCENE_MCP_DISABLE_AGENT_AUTO_DESTROY) {
+          try {
+            await this.agent?.destroy();
+          } catch (e) {
+            // Ignore destroy errors to prevent them from masking the actual result
+            // console.error('Error destroying agent:', e);
+          }
+          this.agent = undefined;
         }
-        this.agent = undefined;
       }
     });
   }
