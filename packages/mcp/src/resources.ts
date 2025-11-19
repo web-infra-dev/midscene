@@ -9,41 +9,34 @@ import type { ConsoleMessageType } from 'puppeteer-core';
 export const consoleLogs: string[] = [];
 export const screenshots = new Map<string, string>();
 
-export function notifyResourceListChanged(server: Server) {
-  server.notification({
-    method: 'notifications/resources/list_changed',
-  });
-}
+// export function notifyResourceListChanged(server: Server) {
+//   server.notification({
+//     method: 'notifications/resources/list_changed',
+//   });
+// }
 
-export function notifyConsoleLogsUpdated(server: Server) {
-  server.notification({
-    method: 'notifications/resources/updated',
-    params: { uri: 'console://logs' },
-  });
-}
+// export function notifyConsoleLogsUpdated(server: Server) {
+//   server.notification({
+//     method: 'notifications/resources/updated',
+//     params: { uri: 'console://logs' },
+//   });
+// }
 
-export function notifyScreenshotUpdated(server: Server) {
-  server.notification({
-    method: 'notifications/resources/updated',
-    params: { uri: 'screenshot://' },
-  });
-}
-
-export function notifyMessage(
-  server: Server,
-  level: ConsoleMessageType,
-  message: string,
-  data?: any,
-) {
-  server.notification({
-    method: 'notifications/message',
-    params: {
-      level,
-      logger: 'midscene',
-      data: data ? `${message}: ${JSON.stringify(data)}` : message,
-    },
-  });
-}
+// export function notifyMessage(
+//   server: Server,
+//   level: ConsoleMessageType,
+//   message: string,
+//   data?: any,
+// ) {
+//   server.notification({
+//     method: 'notifications/message',
+//     params: {
+//       level,
+//       logger: 'midscene',
+//       data: data ? `${message}: ${JSON.stringify(data)}` : message,
+//     },
+//   });
+// }
 
 export async function handleListResources(): Promise<ListResourcesResult> {
   return {
