@@ -123,8 +123,18 @@ footer.mt-8 {
     font-size: 12px;
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 8px;
     white-space: nowrap;
+
+    .page-nav-version {
+      margin-right: 4px;
+    }
+
+    .theme-divider {
+      width: 1px;
+      height: 16px;
+      background: #00000014;
+    }
 
     .theme-toggle-button {
       display: flex;
@@ -141,8 +151,7 @@ footer.mt-8 {
       padding: 0;
 
       &:hover {
-        background: rgba(0, 0, 0, 0.06);
-        border: 1px solid rgba(0, 0, 0, 0.12);
+        background: #e6e8eb;
       }
 
       svg {
@@ -268,12 +277,15 @@ footer.mt-8 {
   .page-nav-right {
     color: #f8fafd;
 
+    .theme-divider {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
     .theme-toggle-button {
       color: #f8fafd;
 
       &:hover {
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: #2c2e31;
       }
     }
   }

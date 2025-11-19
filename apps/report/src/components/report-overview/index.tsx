@@ -19,9 +19,11 @@ const ReportOverview = (props: {
         passed: 0,
         failed: 0,
         skipped: 0,
+        timedOut: 0,
         passedTests: [],
         failedTests: [],
         skippedTests: [],
+        timedOutTests: [],
       };
     }
 
@@ -30,9 +32,11 @@ const ReportOverview = (props: {
       passed: 0,
       failed: 0,
       skipped: 0,
+      timedOut: 0,
       passedTests: [] as string[],
       failedTests: [] as string[],
       skippedTests: [] as string[],
+      timedOutTests: [] as string[],
     };
 
     props.dumps.forEach((dump) => {
@@ -52,6 +56,9 @@ const ReportOverview = (props: {
       } else if (status === 'skipped') {
         stats.skipped++;
         stats.skippedTests.push(testName);
+      } else if (status === 'timedOut' || status === 'interrupted') {
+        stats.timedOut++;
+        stats.timedOutTests.push(testName);
       }
     });
 
@@ -101,6 +108,26 @@ const ReportOverview = (props: {
           <div className="stats-card">
             <div className="stats-value stats-failed">{testStats.failed}</div>
             <div className="stats-label">Failed</div>
+          </div>
+        </Tooltip>
+        <Tooltip
+          title={
+            testStats.timedOutTests.length > 0 ? (
+              <div>
+                {testStats.timedOutTests.map((testName, index) => (
+                  <div key={index}>
+                    {iconForStatus('timedOut')} {testName}
+                  </div>
+                ))}
+              </div>
+            ) : null
+          }
+        >
+          <div className="stats-card">
+            <div className="stats-value stats-timedout">
+              {testStats.timedOut}
+            </div>
+            <div className="stats-label">Timeout</div>
           </div>
         </Tooltip>
       </div>
