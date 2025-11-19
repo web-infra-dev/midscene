@@ -563,6 +563,28 @@ export class Page<
     }
   }
 
+  async reload(): Promise<void> {
+    debugPage('reload page');
+    if (this.interfaceType === 'puppeteer') {
+      await (this.underlyingPage as PuppeteerPage).reload();
+    } else if (this.interfaceType === 'playwright') {
+      await (this.underlyingPage as PlaywrightPage).reload();
+    } else {
+      throw new Error('Unsupported page type for reload');
+    }
+  }
+
+  async goBack(): Promise<void> {
+    debugPage('go back');
+    if (this.interfaceType === 'puppeteer') {
+      await (this.underlyingPage as PuppeteerPage).goBack();
+    } else if (this.interfaceType === 'playwright') {
+      await (this.underlyingPage as PlaywrightPage).goBack();
+    } else {
+      throw new Error('Unsupported page type for go back');
+    }
+  }
+
   async beforeInvokeAction(name: string, param: any): Promise<void> {
     if (this.onBeforeInvokeAction) {
       await this.onBeforeInvokeAction(name, param);
