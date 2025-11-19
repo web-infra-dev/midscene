@@ -11,8 +11,13 @@ import SetupEnv from './common/setup-env.mdx';
 将凭证或模型配置写入运行目录下的 `.env` 文件。每次执行 `midscene` 时，命令行工具都会自动加载该文件。
 
 ```ini filename=.env
-OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+MIDSCENE_MODEL_BASE_URL="替换为你的模型服务地址"
+MIDSCENE_MODEL_API_KEY="替换为你的 API Key"
+MIDSCENE_MODEL_NAME="替换为你的模型名称"
+MIDSCENE_MODEL_FAMILY="替换为你的模型系列"
 ```
+
+更多配置信息请参考[模型策略](./model-strategy)文档。
 
 ## 安装命令行工具
 

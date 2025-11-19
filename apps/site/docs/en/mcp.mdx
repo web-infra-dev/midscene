@@ -53,8 +53,10 @@ Add the Midscene MCP server to your MCP configuration. Toggle between web and An
       "command": "npx",
       "args": ["-y", "@midscene/mcp"],
       "env": {
-        "MIDSCENE_MODEL_NAME": "REPLACE_WITH_YOUR_MODEL_NAME",
-        "OPENAI_API_KEY": "REPLACE_WITH_YOUR_OPENAI_API_KEY",
+        "MIDSCENE_MODEL_BASE_URL": "replace with your model service URL",
+        "MIDSCENE_MODEL_API_KEY": "replace with your API Key",
+        "MIDSCENE_MODEL_NAME": "replace with your model name",
+        "MIDSCENE_MODEL_FAMILY": "replace with your model family",
         "MCP_SERVER_REQUEST_TIMEOUT": "800000",
         "MIDSCENE_MCP_ANDROID_MODE": "true or false"
       }
