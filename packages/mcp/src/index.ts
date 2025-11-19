@@ -2,7 +2,7 @@
 import { setIsMcp } from '@midscene/shared/utils';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { MidsceneManager } from './midscene.js';
+import { MidsceneTools } from './midscene.js';
 
 declare const __VERSION__: string;
 
@@ -15,10 +15,10 @@ const server = new McpServer({
     'Midscene MCP Server: Control the browser using natural language commands for navigation, clicking, input, hovering, and achieving goals. Also supports screenshots and JavaScript execution.',
 });
 
-let midsceneManager: MidsceneManager;
+let midsceneManager: MidsceneTools;
 
 async function runServer() {
-  midsceneManager = new MidsceneManager();
+  midsceneManager = new MidsceneTools();
 
   // Initialize tools asynchronously (independent of server)
   await midsceneManager.initTools();

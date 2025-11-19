@@ -43,7 +43,7 @@ interface ToolDefinition {
   autoDestroy?: boolean; // Whether to auto destroy agent after execution
 }
 
-export class MidsceneManager {
+export class MidsceneTools {
   private mcpServer?: McpServer; // Add server instance
   private agent?: AgentOverChromeBridge | PuppeteerBrowserAgent | AndroidAgent;
   private puppeteerMode = globalConfigManager.getEnvConfigInBoolean(
