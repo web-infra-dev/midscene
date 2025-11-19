@@ -132,6 +132,7 @@ export const PlaywrightAiFixture = (options?: {
     aiActionType:
       | 'ai'
       | 'aiAct'
+      | 'aiAction'
       | 'aiHover'
       | 'aiInput'
       | 'aiKeyboardPress'
@@ -310,6 +311,21 @@ export const PlaywrightAiFixture = (options?: {
         testInfo,
         use,
         aiActionType: 'aiAct',
+      });
+    },
+    /**
+     * @deprecated Use {@link PlaywrightAiFixture.aiAct} instead.
+     */
+    aiAction: async (
+      { page }: { page: OriginPlaywrightPage },
+      use: any,
+      testInfo: TestInfo,
+    ) => {
+      await generateAiFunction({
+        page,
+        testInfo,
+        use,
+        aiActionType: 'aiAction',
       });
     },
     aiTap: async (
@@ -586,6 +602,10 @@ export type PlayWrightAiFixtureType = {
   ) => Promise<PageAgent<PlaywrightWebPage>>;
   ai: <T = any>(prompt: string) => Promise<T>;
   aiAct: (taskPrompt: string) => ReturnType<PageAgent['aiAct']>;
+  /**
+   * @deprecated Use {@link PlayWrightAiFixtureType.aiAct} instead.
+   */
+  aiAction: (taskPrompt: string) => ReturnType<PageAgent['aiAction']>;
   aiTap: (
     ...args: Parameters<PageAgent['aiTap']>
   ) => ReturnType<PageAgent['aiTap']>;
