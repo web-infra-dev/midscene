@@ -261,6 +261,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
               v{sdkVersion}
               {modelBriefs.length ? ` | ${modelBriefs.join(', ')}` : ''}
             </div>
+            <div className="theme-divider" />
             <button
               type="button"
               className="theme-toggle-button"
@@ -298,7 +299,7 @@ export function App() {
           playwright_test_description: '',
           playwright_test_id: '',
           playwright_test_title: '',
-          playwright_test_status: '',
+          playwright_test_status: undefined,
           playwright_test_duration: 0,
         };
         Array.from(el.attributes).forEach((attr) => {
