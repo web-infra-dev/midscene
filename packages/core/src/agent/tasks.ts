@@ -1,5 +1,5 @@
 import { ConversationHistory, plan, uiTarsPlanning } from '@/ai-model';
-import type { TMultimodalPrompt, TUserPrompt } from '@/ai-model/common';
+import type { TMultimodalPrompt, TUserPrompt } from '@/common';
 import type { AbstractInterface } from '@/device';
 import type Service from '@/service';
 import type { TaskRunner } from '@/task-runner';

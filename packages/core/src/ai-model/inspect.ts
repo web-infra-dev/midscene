@@ -22,13 +22,13 @@ import type {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
 } from 'openai/resources/index';
-import type { TMultimodalPrompt, TUserPrompt } from './common';
+import type { TMultimodalPrompt, TUserPrompt } from '../common';
 import {
   AIActionType,
   adaptBboxToRect,
   expandSearchArea,
   mergeRects,
-} from './common';
+} from '../common';
 import {
   extractDataQueryPrompt,
   systemPromptToExtract,

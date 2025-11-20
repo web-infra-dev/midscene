@@ -1,8 +1,9 @@
+import { createAssertAction } from '@/device/index';
 import type { DeviceAction } from '@/types';
 import type { TVlModeTypes } from '@midscene/shared/env';
 import type { ResponseFormatJSONSchema } from 'openai/resources/index';
 import type { z } from 'zod';
-import { ifMidsceneLocatorField } from '../common';
+import { ifMidsceneLocatorField } from '../../common';
 import { bboxDescription } from './common';
 
 // Note: put the log field first to trigger the CoT
@@ -11,10 +12,12 @@ const vlCurrentLog = `"log": string, // Log your thoughts and what the next one 
 const commonOutputFields = `"error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not foreseeable according to the instruction. Use the same language as the user's instruction.
   "more_actions_needed_by_instruction": boolean, // Consider if there is still more action(s) to do after the action in "Log" is done, according to the instruction. If so, set this field to true. Otherwise, set it to false.`;
 
-// const vlLocateParam = () =>
-// ('{bbox: [number, number, number, number], prompt: string }');
-
-const vlLocateParam = () => '{ prompt: string }';
+const vlLocateParam = (vlMode: TVlModeTypes | undefined) => {
+  if (vlMode) {
+    return `{bbox: [number, number, number, number], prompt: string } // ${bboxDescription(vlMode)}`;
+  }
+  return '{ prompt: string }';
+};
 
 export const descriptionForAction = (
   action: DeviceAction<any>,
@@ -216,16 +219,22 @@ ${tab}${fields.join(`\n${tab}`)}
 `.trim();
 };
 
-const systemTemplateOfVLPlanning = ({
+export async function systemPromptToTaskPlanning({
   actionSpace,
   vlMode,
 }: {
   actionSpace: DeviceAction<any>[];
   vlMode: TVlModeTypes | undefined;
-}) => {
-  const actionNameList = actionSpace.map((action) => action.name).join(', ');
-  const actionDescriptionList = actionSpace.map((action) => {
-    return descriptionForAction(action, vlLocateParam());
+}) {
+  // Append the assertion action to the action space
+  const assertAction = createAssertAction();
+  const extendedActionSpace = [...actionSpace, assertAction];
+
+  const actionNameList = extendedActionSpace
+    .map((action) => action.name)
+    .join(', ');
+  const actionDescriptionList = extendedActionSpace.map((action) => {
+    return descriptionForAction(action, vlLocateParam(vlMode));
   });
   const actionList = actionDescriptionList.join('\n');
 
@@ -265,7 +274,7 @@ this and output the JSON:
     "type": "Tap",
     "param": {
       "locate": {
-        "bbox": [100, 100, 200, 200],
+        ${vlMode ? `"bbox": [100, 100, 200, 200],` : ''}
         "prompt": "The 'Yes' button in popup"
       }
     }
@@ -273,16 +282,6 @@ this and output the JSON:
   "more_actions_needed_by_instruction": false,
 }
 `;
-};
-
-export async function systemPromptToTaskPlanning({
-  actionSpace,
-  vlMode,
-}: {
-  actionSpace: DeviceAction<any>[];
-  vlMode: TVlModeTypes | undefined;
-}) {
-  return systemTemplateOfVLPlanning({ actionSpace, vlMode });
 }
 
 export const planSchema: ResponseFormatJSONSchema = {

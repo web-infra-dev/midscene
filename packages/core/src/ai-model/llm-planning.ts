@@ -15,7 +15,7 @@ import {
   buildYamlFlowFromPlans,
   fillBboxParam,
   findAllMidsceneLocatorField,
-} from './common';
+} from '../common';
 import type { ConversationHistory } from './conversation-history';
 import { systemPromptToTaskPlanning } from './prompt/llm-planning';
 import { callAIWithObjectResponse } from './service-caller/index';

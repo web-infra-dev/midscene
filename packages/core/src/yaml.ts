@@ -1,4 +1,4 @@
-import type { TUserPrompt } from './ai-model/common';
+import type { TUserPrompt } from './common';
 import type { AndroidDeviceOpt, IOSDeviceOpt } from './device';
 import type { AgentOpt, LocateResultElement, Rect } from './types';
 import type { UIContext } from './types';

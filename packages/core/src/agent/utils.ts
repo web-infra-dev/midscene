@@ -1,4 +1,4 @@
-import type { TMultimodalPrompt, TUserPrompt } from '@/ai-model/common';
+import type { TMultimodalPrompt, TUserPrompt } from '@/common';
 import type { AbstractInterface } from '@/device';
 import type {
   ElementCacheFeature,

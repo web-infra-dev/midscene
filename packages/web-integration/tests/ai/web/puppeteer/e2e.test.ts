@@ -67,6 +67,10 @@ describe(
 
       await sleep(10 * 1000);
 
+      await agent.ai(
+        'type "standard_user" in user name input, 输入完成后，界面上应该展示 standard_user 字样',
+      );
+
       agent.setAIActionContext(
         'This is a testing application for Sauce Demo by Swag Lab',
       );
@@ -178,7 +182,7 @@ describe(
 
       await agent.aiScroll({
         direction: 'down',
-        scrollType: 'untilBottom',
+        scrollType: 'scrollToBottom',
       });
 
       await sleep(3000);

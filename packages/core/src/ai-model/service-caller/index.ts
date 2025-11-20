@@ -17,7 +17,7 @@ import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { Stream } from 'openai/streaming';
 import { SocksProxyAgent } from 'socks-proxy-agent';
-import { AIActionType, type AIArgs } from '../common';
+import { AIActionType, type AIArgs } from '../../common';
 import { assertSchema } from '../prompt/assertion';
 import { planSchema } from '../prompt/llm-planning';
 
