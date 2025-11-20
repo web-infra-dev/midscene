@@ -35,30 +35,24 @@ export function locateParamStr(locate?: DetailedLocateParam | string): string {
   }
 
   if (typeof locate === 'object') {
+    // Check for nested prompt.prompt (Planning Locate tasks)
+    if (
+      typeof locate.prompt === 'object' &&
+      locate.prompt !== null &&
+      locate.prompt.prompt
+    ) {
+      const prompt = locate.prompt.prompt;
+      return prompt;
+    }
+
+    // Check for direct prompt string
     if (typeof locate.prompt === 'string') {
       return locate.prompt;
     }
 
-    if (typeof locate.prompt === 'object' && locate.prompt.prompt) {
-      const prompt = locate.prompt.prompt;
-      const images = locate.prompt.images || [];
-
-      if (images.length === 0) return prompt;
-
-      const imagesStr = images
-        .map((image) => {
-          let url = image.url;
-          if (
-            url.startsWith('data:image/') ||
-            (url.startsWith('data:') && url.includes('base64'))
-          ) {
-            url = `${url.substring(0, 15)}...`;
-          }
-          return `[${image.name}](${url})`;
-        })
-        .join(', ');
-
-      return `${prompt}, ${imagesStr}`;
+    // Check for description field (Action Space tasks like Tap, Hover)
+    if (typeof (locate as any).description === 'string') {
+      return (locate as any).description;
     }
   }
 
@@ -122,9 +116,21 @@ export function paramStr(task: ExecutionTask) {
   }
 
   if (task.type === 'Insight') {
-    value =
-      (task as ExecutionTaskInsightQuery)?.param?.dataDemand ||
-      (task as ExecutionTaskInsightAssertion)?.param?.assertion;
+    const insightTask = task as any;
+    // For Insight tasks with multimodalPrompt, extract only the demand/assertion text
+    if (insightTask?.param?.demand) {
+      value = insightTask.param.demand;
+    } else if (insightTask?.param?.assertion) {
+      value = insightTask.param.assertion;
+    } else if (insightTask?.param?.dataDemand) {
+      // dataDemand can be a string or an object with demand field
+      const dataDemand = insightTask.param.dataDemand;
+      value = typeof dataDemand === 'string' ? dataDemand : dataDemand?.demand;
+    } else {
+      value =
+        (task as ExecutionTaskInsightQuery)?.param?.dataDemand ||
+        (task as ExecutionTaskInsightAssertion)?.param?.assertion;
+    }
   }
 
   if (task.type === 'Action Space') {

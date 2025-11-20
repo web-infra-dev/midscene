@@ -2,8 +2,9 @@
 'use client';
 import './index.less';
 
-import { RadiusSettingOutlined } from '@ant-design/icons';
+import { FileImageOutlined, RadiusSettingOutlined } from '@ant-design/icons';
 import type {
+  ExecutionTaskAction,
   ExecutionTaskInsightAssertion,
   ExecutionTaskPlanning,
   ExecutionTaskPlanningApply,
@@ -94,15 +95,67 @@ const Card = (props: {
 };
 
 const MetaKV = (props: {
-  data: { key: string; content: string | JSX.Element }[];
+  data: {
+    key: string;
+    content: string | JSX.Element;
+    images?: { name: string; url: string }[];
+  }[];
 }) => {
+  // Helper function to parse and render content
+  const renderContent = (content: string | JSX.Element) => {
+    // If content is already JSX, return it
+    if (typeof content !== 'string') {
+      return content;
+    }
+
+    // Try to parse JSON string
+    try {
+      const parsed = JSON.parse(content);
+
+      // Check if it's a locate object with element inside
+      if (parsed.locate && isElementField(parsed.locate)) {
+        return (
+          <div>
+            <div style={{ marginBottom: '8px' }}>locate:</div>
+            {renderElementDetailBox(parsed.locate)}
+          </div>
+        );
+      }
+
+      // Check if it's directly an element
+      if (isElementField(parsed)) {
+        return renderElementDetailBox(parsed);
+      }
+    } catch (e) {
+      // Not JSON, return as is
+    }
+
+    return content;
+  };
+
   return (
     <div className="meta-kv">
       {props.data.map((item, index) => {
         return (
           <div className="meta" key={index}>
             <div className="meta-key">{item.key}</div>
-            <div className="meta-value">{item.content}</div>
+            <div className="meta-value">{renderContent(item.content)}</div>
+            {item.images && item.images.length > 0 && (
+              <div className="meta-images">
+                {item.images.map((image, imgIndex) => (
+                  <div key={imgIndex} className="meta-image-item">
+                    <FileImageOutlined style={{ marginRight: '6px' }} />
+                    <a
+                      href={image.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {image.name}
+                    </a>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         );
       })}
@@ -124,6 +177,39 @@ const objectWithoutKeys = (
     {} as Record<string, unknown>,
   );
 
+// Shared helper function to render element detail box
+const renderElementDetailBox = (_value: LocateResultElement) => {
+  const hasCenter = _value.center && Array.isArray(_value.center);
+  const hasRect = _value.rect;
+
+  // If it has center and rect, show detailed info
+  if (hasCenter && hasRect) {
+    const { center, rect } = _value;
+    const { left, top, width, height } = rect;
+
+    return (
+      <div className="element-detail-box">
+        <div className="element-detail-line">
+          {_value.description} (center=[{center[0]}, {center[1]}])
+        </div>
+        <div className="element-detail-line element-detail-coords">
+          left={Math.round(left)}, top={Math.round(top)}, width=
+          {Math.round(width)}, height={Math.round(height)}
+        </div>
+      </div>
+    );
+  }
+
+  // Fallback to simple tag
+  return (
+    <span>
+      <Tag bordered={false} color="orange" className="element-button">
+        Element
+      </Tag>
+    </span>
+  );
+};
+
 const DetailSide = (): JSX.Element => {
   const task = useExecutionDump((store) => store.activeTask);
   const dump = useExecutionDump((store) => store.insightDump);
@@ -133,37 +219,7 @@ const DetailSide = (): JSX.Element => {
     ?.aiActionContext;
 
   // Helper functions for rendering element items
-  const elementEl = (_value: LocateResultElement) => {
-    const hasCenter = _value.center && Array.isArray(_value.center);
-    const hasRect = _value.rect;
-
-    // If it has center and rect, show detailed info
-    if (hasCenter && hasRect) {
-      const { center, rect } = _value;
-      const { left, top, width, height } = rect;
-
-      return (
-        <div className="element-detail-box">
-          <div className="element-detail-line">
-            {_value.description} (center=[{center[0]}, {center[1]}])
-          </div>
-          <div className="element-detail-line element-detail-coords">
-            left={Math.round(left)}, top={Math.round(top)}, width=
-            {Math.round(width)}, height={Math.round(height)}
-          </div>
-        </div>
-      );
-    }
-
-    // Fallback to simple tag
-    return (
-      <span>
-        <Tag bordered={false} color="orange" className="element-button">
-          Element
-        </Tag>
-      </span>
-    );
-  };
+  const elementEl = renderElementDetailBox;
 
   const kv = (data: Record<string, unknown>) => {
     // Recursively render value
@@ -317,12 +373,32 @@ const DetailSide = (): JSX.Element => {
   if (task?.type === 'Planning') {
     const planningTask = task as ExecutionTaskPlanning;
     const isPageContextFrozen = Boolean((task?.uiContext as any)?._isFrozen);
+
+    // Extract images from Planning/Locate tasks
+    const locateParam = (planningTask as any)?.param;
+    const images =
+      locateParam &&
+      typeof locateParam === 'object' &&
+      'prompt' in locateParam &&
+      typeof locateParam.prompt === 'object' &&
+      locateParam.prompt !== null &&
+      'images' in locateParam.prompt
+        ? locateParam.prompt.images
+        : undefined;
+
     if (planningTask.param?.userInstruction) {
+      // Ensure userInstruction is a string
+      const instructionContent =
+        typeof planningTask.param.userInstruction === 'string'
+          ? planningTask.param.userInstruction
+          : JSON.stringify(planningTask.param.userInstruction);
+
       taskInput = MetaKV({
         data: [
           {
             key: 'instruction',
-            content: planningTask.param.userInstruction,
+            content: instructionContent,
+            images: images,
           },
           ...(isPageContextFrozen
             ? [
@@ -335,11 +411,19 @@ const DetailSide = (): JSX.Element => {
         ],
       });
     } else {
+      // Ensure paramStr result is a string
+      const paramValue = paramStr(task);
+      const promptContent =
+        typeof paramValue === 'string'
+          ? paramValue
+          : JSON.stringify(paramValue);
+
       taskInput = MetaKV({
         data: [
           {
             key: 'userPrompt',
-            content: paramStr(task) || '',
+            content: promptContent,
+            images: images,
           },
           ...(isPageContextFrozen
             ? [
@@ -354,13 +438,73 @@ const DetailSide = (): JSX.Element => {
     }
   } else if (task?.type === 'Insight') {
     const isPageContextFrozen = Boolean((task?.uiContext as any)?._isFrozen);
+
+    // Extract demand and images from task param
+    const taskParam = (task as any)?.param;
+    let displayContent = '';
+    let images: { name: string; url: string }[] | undefined;
+
+    // Handle different data structures
+    if (taskParam?.demand) {
+      // Direct demand field
+      displayContent =
+        typeof taskParam.demand === 'string'
+          ? taskParam.demand
+          : JSON.stringify(taskParam.demand);
+      if (
+        taskParam.multimodalPrompt?.images &&
+        Array.isArray(taskParam.multimodalPrompt.images)
+      ) {
+        images = taskParam.multimodalPrompt.images;
+      }
+    } else if (taskParam?.assertion) {
+      // Direct assertion field
+      displayContent =
+        typeof taskParam.assertion === 'string'
+          ? taskParam.assertion
+          : JSON.stringify(taskParam.assertion);
+      if (
+        taskParam.multimodalPrompt?.images &&
+        Array.isArray(taskParam.multimodalPrompt.images)
+      ) {
+        images = taskParam.multimodalPrompt.images;
+      }
+    } else if (taskParam?.dataDemand) {
+      // dataDemand can be string or object
+      const dataDemand = taskParam.dataDemand;
+      if (typeof dataDemand === 'string') {
+        displayContent = dataDemand;
+      } else if (typeof dataDemand === 'object') {
+        // Extract demand from dataDemand object
+        displayContent =
+          typeof dataDemand.demand === 'string'
+            ? dataDemand.demand
+            : JSON.stringify(dataDemand.demand || dataDemand);
+        // Extract images from dataDemand.multimodalPrompt
+        if (
+          dataDemand.multimodalPrompt?.images &&
+          Array.isArray(dataDemand.multimodalPrompt.images)
+        ) {
+          images = dataDemand.multimodalPrompt.images;
+        }
+      }
+    } else {
+      // Fallback to paramStr for other cases
+      const paramValue = paramStr(task);
+      displayContent =
+        typeof paramValue === 'string'
+          ? paramValue
+          : JSON.stringify(paramValue);
+    }
+
     taskInput = MetaKV({
       data: [
-        ...(paramStr(task)
+        ...(displayContent
           ? [
               {
                 key: 'param',
-                content: paramStr(task) || '',
+                content: displayContent,
+                images: images,
               },
             ]
           : []),
@@ -383,14 +527,52 @@ const DetailSide = (): JSX.Element => {
       ],
     });
   } else if (task?.type === 'Action Space') {
-    taskInput = MetaKV({
-      data: [
-        {
-          key: 'value',
-          content: paramStr(task) || '',
-        },
-      ],
-    });
+    // Extract images from task.param.locate.prompt.images if available
+    const actionTask = task as ExecutionTaskAction;
+    const images =
+      actionTask?.param?.locate &&
+      typeof actionTask.param.locate === 'object' &&
+      'prompt' in actionTask.param.locate &&
+      typeof actionTask.param.locate.prompt === 'object' &&
+      actionTask.param.locate.prompt !== null &&
+      'images' in actionTask.param.locate.prompt
+        ? (actionTask.param.locate.prompt as any).images
+        : undefined;
+
+    // Build data array from param object
+    const data: {
+      key: string;
+      content: string;
+      images?: { name: string; url: string }[];
+    }[] = [];
+
+    if (actionTask?.param && typeof actionTask.param === 'object') {
+      Object.entries(actionTask.param).forEach(([key, value]) => {
+        const content =
+          typeof value === 'string' ? value : JSON.stringify(value);
+        data.push({
+          key,
+          content,
+          images: key === 'locate' ? images : undefined,
+        });
+      });
+    }
+
+    // Fallback to paramStr if param is not an object
+    if (data.length === 0) {
+      const paramValue = paramStr(task);
+      const valueContent =
+        typeof paramValue === 'string'
+          ? paramValue
+          : JSON.stringify(paramValue);
+      data.push({
+        key: 'value',
+        content: valueContent,
+        images: images,
+      });
+    }
+
+    taskInput = MetaKV({ data });
   } else if (task?.type === 'Log') {
     taskInput = task.param?.content ? (
       <pre className="log-content">{task.param.content}</pre>
@@ -666,32 +848,81 @@ const DetailSide = (): JSX.Element => {
     const thought = task?.thought;
 
     if (data !== undefined) {
-      outputDataContent = (
-        <>
-          {thought && (
+      const outputItems: JSX.Element[] = [];
+
+      // Add thought if exists
+      if (thought) {
+        outputItems.push(
+          <Card
+            key="thought"
+            liteMode={true}
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={<pre>{thought}</pre>}
+            title="thought"
+          />,
+        );
+      }
+
+      // Handle output data
+      if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
+        // For object output, create a Card for each field
+        Object.entries(data).forEach(([key, value]) => {
+          let content: JSX.Element;
+
+          if (isElementField(value)) {
+            content = elementEl(value);
+          } else if (typeof value === 'object' && value !== null) {
+            // Check if it's a locate object
+            const valueAsAny = value as any;
+            if (valueAsAny.locate && isElementField(valueAsAny.locate)) {
+              content = (
+                <div>
+                  <div style={{ marginBottom: '8px' }}>locate:</div>
+                  {renderElementDetailBox(valueAsAny.locate)}
+                </div>
+              );
+            } else {
+              content = (
+                <pre className="description-content">
+                  {JSON.stringify(value, undefined, 2)}
+                </pre>
+              );
+            }
+          } else {
+            content = (
+              <pre className="description-content">{String(value)}</pre>
+            );
+          }
+
+          outputItems.push(
             <Card
+              key={key}
               liteMode={true}
               onMouseEnter={noop}
               onMouseLeave={noop}
-              content={<pre>{thought}</pre>}
-              title="thought"
-            />
-          )}
+              title={key}
+              content={content}
+            />,
+          );
+        });
+      } else {
+        // For non-object output, show as-is
+        outputItems.push(
           <Card
+            key="output"
             liteMode={true}
             onMouseEnter={noop}
             onMouseLeave={noop}
             title="output"
-            content={
-              typeof data === 'object' && data !== null ? (
-                kv(data as Record<string, unknown>)
-              ) : (
-                <pre>{String(data)}</pre>
-              )
-            }
-          />
-        </>
-      );
+            content={<pre>{String(data)}</pre>}
+          />,
+        );
+      }
+
+      if (outputItems.length > 0) {
+        outputDataContent = outputItems;
+      }
     }
   }
 
@@ -707,14 +938,16 @@ const DetailSide = (): JSX.Element => {
           </summary>
           {taskInput}
         </details>
-        <details open>
-          <summary>
-            <span className="summary-text">
-              {task?.subType === 'Locate' ? 'Element' : 'Output'}
-            </span>
-          </summary>
-          <div className="item-list">{outputDataContent}</div>
-        </details>
+        {outputDataContent && (
+          <details open>
+            <summary>
+              <span className="summary-text">
+                {task?.subType === 'Locate' ? 'Element' : 'Output'}
+              </span>
+            </summary>
+            <div className="item-list">{outputDataContent}</div>
+          </details>
+        )}
         <details open>
           <summary>
             <span className="summary-text">Meta</span>
