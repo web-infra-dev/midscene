@@ -153,8 +153,8 @@ const DetailPanel = (): JSX.Element => {
     }
 
     // For Action Space tasks (tap, scroll, etc.), extract from param.locate
-    if (activeTask.type === 'Action Space' && activeTask.param?.locate) {
-      const locateElements = extractElementsFromParam(activeTask.param.locate);
+    if (activeTask.type === 'Action Space' && activeTask.param) {
+      const locateElements = extractElementsFromParam(activeTask.param);
       highlightElements = [...highlightElements, ...locateElements];
     }
 
