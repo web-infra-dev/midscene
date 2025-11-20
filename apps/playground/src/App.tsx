@@ -23,6 +23,9 @@ export default function App() {
   const [serverOnline, setServerOnline] = useState(false);
   const [isUserOperating, setIsUserOperating] = useState(false);
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
+  const [deviceType, setDeviceType] = useState<'web' | 'android' | 'ios'>(
+    'web',
+  );
 
   // Create PlaygroundSDK and storage provider
   const playgroundSDK = useMemo(() => {
@@ -50,6 +53,21 @@ export default function App() {
       try {
         const online = await playgroundSDK.checkStatus();
         setServerOnline(online);
+
+        // Get device type from server if online
+        if (online) {
+          try {
+            const interfaceInfo = await playgroundSDK.getInterfaceInfo();
+            if (interfaceInfo?.type) {
+              const type = interfaceInfo.type.toLowerCase();
+              if (type === 'android' || type === 'ios' || type === 'web') {
+                setDeviceType(type as 'web' | 'android' | 'ios');
+              }
+            }
+          } catch (error) {
+            console.warn('Failed to get interface info:', error);
+          }
+        }
       } catch (error) {
         console.error('Failed to check server status:', error);
         setServerOnline(false);
@@ -145,6 +163,7 @@ export default function App() {
                       enableScrollToBottom: true,
                       serverMode: true,
                       showEnvConfigReminder: true,
+                      deviceType,
                     }}
                     branding={{
                       title: 'Playground',

@@ -12,7 +12,7 @@ import React, {
 } from 'react';
 import type { HistoryItem } from '../../store/history';
 import { useHistoryStore } from '../../store/history';
-import type { RunType } from '../../types';
+import type { DeviceType, RunType } from '../../types';
 import type { ServiceModeType } from '../../types';
 import {
   type FormParams,
@@ -57,6 +57,7 @@ interface PromptInputProps {
   clearPromptAfterRun?: boolean;
   hideDomAndScreenshotOptions?: boolean; // Hide domIncluded and screenshotIncluded options
   actionSpace: DeviceAction<any>[]; // Required actionSpace for dynamic parameter detection
+  deviceType?: DeviceType;
 }
 
 export const PromptInput: React.FC<PromptInputProps> = ({
@@ -72,6 +73,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   clearPromptAfterRun = true,
   actionSpace,
   hideDomAndScreenshotOptions = false,
+  deviceType,
 }) => {
   const [hoveringSettings, setHoveringSettings] = useState(false);
   const [promptValue, setPromptValue] = useState('');
@@ -202,12 +204,14 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     const hasDeepThink = showDeepThinkOption;
     const hasDataExtraction =
       showDataExtractionOptions && !hideDomAndScreenshotOptions;
-    return hasTracking || hasDeepThink || hasDataExtraction;
+    const hasDeviceOptions = deviceType === 'android' || deviceType === 'ios';
+    return hasTracking || hasDeepThink || hasDataExtraction || hasDeviceOptions;
   }, [
     serviceMode,
     showDeepThinkOption,
     showDataExtractionOptions,
     hideDomAndScreenshotOptions,
+    deviceType,
   ]);
 
   // Get available methods for dropdown (filtered by actionSpace)
@@ -1026,6 +1030,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
                 showDeepThinkOption={showDeepThinkOption}
                 showDataExtractionOptions={showDataExtractionOptions}
                 hideDomAndScreenshotOptions={hideDomAndScreenshotOptions}
+                deviceType={deviceType}
               />
             </div>
           )}

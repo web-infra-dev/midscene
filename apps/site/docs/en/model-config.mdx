@@ -244,19 +244,25 @@ export MIDSCENE_REPLANNING_CYCLE_LIMIT=10 # The default value is 10. When the AI
 
 ### Using LangSmith
 
-LangSmith is a platform for debugging large language models. To integrate LangSmith, follow these steps:
+LangSmith is a platform for debugging large language models. Midscene provides auto-integration support - just install the dependency and set environment variables.
+
+**Step 1: Install dependency**
 
 ```bash
-# Set environment variables
+npm install langsmith
+```
 
-# Enable debug mode
+**Step 2: Set environment variables**
+
+```bash
+# Enable Midscene's LangSmith auto-integration
 export MIDSCENE_LANGSMITH_DEBUG=1
 
 # LangSmith configuration
-export LANGSMITH_TRACING_V2=true
-export LANGSMITH_ENDPOINT="https://api.smith.langchain.com"
-export LANGSMITH_API_KEY="your_key_here"
-export LANGSMITH_PROJECT="your_project_name_here"
+export LANGCHAIN_API_KEY="your-langchain-api-key-here"
+export LANGCHAIN_TRACING=true
+export LANGCHAIN_ENDPOINT="https://api.smith.langchain.com"
+# export LANGCHAIN_ENDPOINT="https://eu.api.smith.langchain.com" # If signed up in the EU region
 ```
 
 After starting Midscene, you should see logs similar to:
@@ -264,3 +270,36 @@ After starting Midscene, you should see logs similar to:
 ```log
 DEBUGGING MODE: langsmith wrapper enabled
 ```
+
+For more details, see the [API documentation](./api#using-langsmith).
+
+### Using Langfuse
+
+Langfuse is another popular LLM observability platform. Integration is similar to LangSmith.
+
+**Step 1: Install dependency**
+
+```bash
+npm install langfuse
+```
+
+**Step 2: Set environment variables**
+
+```bash
+# Enable Midscene's Langfuse auto-integration
+export MIDSCENE_LANGFUSE_DEBUG=1
+
+# Langfuse configuration
+export LANGFUSE_PUBLIC_KEY="your-langfuse-public-key-here"
+export LANGFUSE_SECRET_KEY="your-langfuse-secret-key-here"
+export LANGFUSE_BASE_URL="https://cloud.langfuse.com" # 🇪🇺 EU region
+# export LANGFUSE_BASE_URL="https://us.cloud.langfuse.com" # 🇺🇸 US region
+```
+
+After starting Midscene, you should see logs similar to:
+
+```log
+DEBUGGING MODE: langfuse wrapper enabled
+```
+
+For more details, see the [API documentation](./api#using-langfuse).
