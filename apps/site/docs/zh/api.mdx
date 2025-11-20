@@ -997,11 +997,11 @@ npm install langsmith
 # 启用 Midscene 的 LangSmith 自动集成
 export MIDSCENE_LANGSMITH_DEBUG=1
 
-# LangSmith 配置（可选，取决于你的使用场景）
+# LangSmith 配置
+export LANGCHAIN_API_KEY="your-langchain-api-key-here"
 export LANGCHAIN_TRACING=true
 export LANGCHAIN_ENDPOINT="https://api.smith.langchain.com"
-export LANGCHAIN_API_KEY="your_key_here"
-export LANGCHAIN_PROJECT="your_project_name_here"
+# export LANGCHAIN_ENDPOINT="https://eu.api.smith.langchain.com" # 如果在欧洲区域注册
 ```
 
 启动 Midscene 后，你应该会看到类似如下的日志：
@@ -1031,9 +1031,10 @@ npm install langfuse
 export MIDSCENE_LANGFUSE_DEBUG=1
 
 # Langfuse 配置
-export LANGFUSE_PUBLIC_KEY="your_public_key_here"
-export LANGFUSE_SECRET_KEY="your_secret_key_here"
-export LANGFUSE_HOST="https://cloud.langfuse.com" # 可选，默认为云服务地址
+export LANGFUSE_PUBLIC_KEY="your-langfuse-public-key-here"
+export LANGFUSE_SECRET_KEY="your-langfuse-secret-key-here"
+export LANGFUSE_BASE_URL="https://cloud.langfuse.com" # 🇪🇺 欧洲区域
+# export LANGFUSE_BASE_URL="https://us.cloud.langfuse.com" # 🇺🇸 美国区域
 ```
 
 启动 Midscene 后，你应该会看到类似如下的日志：

@@ -258,11 +258,11 @@ npm install langsmith
 # Enable Midscene's LangSmith auto-integration
 export MIDSCENE_LANGSMITH_DEBUG=1
 
-# LangSmith configuration (optional, depending on your use case)
+# LangSmith configuration
+export LANGCHAIN_API_KEY="your-langchain-api-key-here"
 export LANGCHAIN_TRACING=true
 export LANGCHAIN_ENDPOINT="https://api.smith.langchain.com"
-export LANGCHAIN_API_KEY="your_key_here"
-export LANGCHAIN_PROJECT="your_project_name_here"
+# export LANGCHAIN_ENDPOINT="https://eu.api.smith.langchain.com" # If signed up in the EU region
 ```
 
 After starting Midscene, you should see logs similar to:
@@ -290,9 +290,10 @@ npm install langfuse
 export MIDSCENE_LANGFUSE_DEBUG=1
 
 # Langfuse configuration
-export LANGFUSE_PUBLIC_KEY="your_public_key_here"
-export LANGFUSE_SECRET_KEY="your_secret_key_here"
-export LANGFUSE_HOST="https://cloud.langfuse.com" # Optional, defaults to cloud service address
+export LANGFUSE_PUBLIC_KEY="your-langfuse-public-key-here"
+export LANGFUSE_SECRET_KEY="your-langfuse-secret-key-here"
+export LANGFUSE_BASE_URL="https://cloud.langfuse.com" # 🇪🇺 EU region
+# export LANGFUSE_BASE_URL="https://us.cloud.langfuse.com" # 🇺🇸 US region
 ```
 
 After starting Midscene, you should see logs similar to:
