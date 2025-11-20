@@ -221,6 +221,67 @@ import 'dotenv/config';
 
 <TroubleshootingLLMConnectivity />
 
+### 使用 LangSmith
+
+LangSmith 是一个用于调试大语言模型的平台。Midscene 提供了自动集成支持，只需安装依赖并设置环境变量即可。
+
+**步骤 1：安装依赖**
+
+```bash
+npm install langsmith
+```
+
+**步骤 2：设置环境变量**
+
+```bash
+# 启用 Midscene 的 LangSmith 自动集成
+export MIDSCENE_LANGSMITH_DEBUG=1
+
+# LangSmith 配置（可选，取决于你的使用场景）
+export LANGCHAIN_TRACING=true
+export LANGCHAIN_ENDPOINT="https://api.smith.langchain.com"
+export LANGCHAIN_API_KEY="your_key_here"
+export LANGCHAIN_PROJECT="your_project_name_here"
+```
+
+启动 Midscene 后，你应该会看到类似如下的日志：
+
+```log
+DEBUGGING MODE: langsmith wrapper enabled
+```
+
+更多详情，请参阅 [API 文档](./api#使用-langsmith)。
+
+### 使用 Langfuse
+
+Langfuse 是另一个流行的 LLM 可观测性平台。集成方式与 LangSmith 类似。
+
+**步骤 1：安装依赖**
+
+```bash
+npm install langfuse
+```
+
+**步骤 2：设置环境变量**
+
+```bash
+# 启用 Midscene 的 Langfuse 自动集成
+export MIDSCENE_LANGFUSE_DEBUG=1
+
+# Langfuse 配置
+export LANGFUSE_PUBLIC_KEY="your_public_key_here"
+export LANGFUSE_SECRET_KEY="your_secret_key_here"
+export LANGFUSE_HOST="https://cloud.langfuse.com" # 可选，默认为云服务地址
+```
+
+启动 Midscene 后，你应该会看到类似如下的日志：
+
+```log
+DEBUGGING MODE: langfuse wrapper enabled
+```
+
+更多详情，请参阅 [API 文档](./api#使用-langfuse)。
+
 ## 常见问题
 
 ### 如何查看模型的 token 使用情况？
