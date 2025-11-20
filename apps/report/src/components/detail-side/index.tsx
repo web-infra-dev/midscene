@@ -94,6 +94,39 @@ const Card = (props: {
   );
 };
 
+// Shared helper function to render element detail box
+const renderElementDetailBox = (_value: LocateResultElement) => {
+  const hasCenter = _value.center && Array.isArray(_value.center);
+  const hasRect = _value.rect;
+
+  // If it has center and rect, show detailed info
+  if (hasCenter && hasRect) {
+    const { center, rect } = _value;
+    const { left, top, width, height } = rect;
+
+    return (
+      <div className="element-detail-box">
+        <div className="element-detail-line">
+          {_value.description} (center=[{center[0]}, {center[1]}])
+        </div>
+        <div className="element-detail-line element-detail-coords">
+          left={Math.round(left)}, top={Math.round(top)}, width=
+          {Math.round(width)}, height={Math.round(height)}
+        </div>
+      </div>
+    );
+  }
+
+  // Fallback to simple tag
+  return (
+    <span>
+      <Tag bordered={false} color="orange" className="element-button">
+        Element
+      </Tag>
+    </span>
+  );
+};
+
 const MetaKV = (props: {
   data: {
     key: string;
@@ -176,39 +209,6 @@ const objectWithoutKeys = (
     },
     {} as Record<string, unknown>,
   );
-
-// Shared helper function to render element detail box
-const renderElementDetailBox = (_value: LocateResultElement) => {
-  const hasCenter = _value.center && Array.isArray(_value.center);
-  const hasRect = _value.rect;
-
-  // If it has center and rect, show detailed info
-  if (hasCenter && hasRect) {
-    const { center, rect } = _value;
-    const { left, top, width, height } = rect;
-
-    return (
-      <div className="element-detail-box">
-        <div className="element-detail-line">
-          {_value.description} (center=[{center[0]}, {center[1]}])
-        </div>
-        <div className="element-detail-line element-detail-coords">
-          left={Math.round(left)}, top={Math.round(top)}, width=
-          {Math.round(width)}, height={Math.round(height)}
-        </div>
-      </div>
-    );
-  }
-
-  // Fallback to simple tag
-  return (
-    <span>
-      <Tag bordered={false} color="orange" className="element-button">
-        Element
-      </Tag>
-    </span>
-  );
-};
 
 const DetailSide = (): JSX.Element => {
   const task = useExecutionDump((store) => store.activeTask);
