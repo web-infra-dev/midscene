@@ -111,7 +111,7 @@ const agent = new PuppeteerAgent(page, {
 });
 ```
 
-**注意：** `createOpenAIClient` 会覆盖 `MIDSCENE_LANGSMITH_DEBUG` 环境变量的行为。如果你提供了自定义的客户端包装函数，需要自行处理 LangSmith 或其他可观测性工具的集成。
+**注意：** 对于 LangSmith 和 Langfuse 集成，推荐使用更简单的[环境变量方式](#使用-langsmith)，无需编写 `createOpenAIClient` 代码。如果你提供了自定义的客户端包装函数，它会覆盖环境变量的自动集成行为。
 
 ## 交互方法
 
@@ -983,19 +983,25 @@ export MIDSCENE_REPLANNING_CYCLE_LIMIT=10 # 默认值为 10。当 AI 需要重�
 
 ### 使用 LangSmith
 
-LangSmith 是一个用于调试大语言模型的平台。想要集成 LangSmith，请按以下步骤操作：
+LangSmith 是一个用于调试大语言模型的平台。Midscene 提供了自动集成支持，只需安装依赖并设置环境变量即可。
+
+**步骤 1：安装依赖**
 
 ```bash
-# 设置环境变量
+npm install langsmith
+```
 
-# 启用调试标志
+**步骤 2：设置环境变量**
+
+```bash
+# 启用 Midscene 的 LangSmith 自动集成
 export MIDSCENE_LANGSMITH_DEBUG=1
 
 # LangSmith 配置
-export LANGSMITH_TRACING_V2=true
-export LANGSMITH_ENDPOINT="https://api.smith.langchain.com"
-export LANGSMITH_API_KEY="your_key_here"
-export LANGSMITH_PROJECT="your_project_name_here"
+export LANGCHAIN_API_KEY="your-langchain-api-key-here"
+export LANGCHAIN_TRACING=true
+export LANGCHAIN_ENDPOINT="https://api.smith.langchain.com"
+# export LANGCHAIN_ENDPOINT="https://eu.api.smith.langchain.com" # 如果在欧洲区域注册
 ```
 
 启动 Midscene 后，你应该会看到类似如下的日志：
@@ -1003,6 +1009,45 @@ export LANGSMITH_PROJECT="your_project_name_here"
 ```log
 DEBUGGING MODE: langsmith wrapper enabled
 ```
+
+**高级用法：**
+
+如果需要更细粒度的控制（例如只对特定任务启用 LangSmith），可以使用 [`createOpenAIClient`](#自定义-openai-客户端) 参数手动包装客户端。
+
+### 使用 Langfuse
+
+Langfuse 是另一个流行的 LLM 可观测性平台。集成方式与 LangSmith 类似。
+
+**步骤 1：安装依赖**
+
+```bash
+npm install langfuse
+```
+
+**步骤 2：设置环境变量**
+
+```bash
+# 启用 Midscene 的 Langfuse 自动集成
+export MIDSCENE_LANGFUSE_DEBUG=1
+
+# Langfuse 配置
+export LANGFUSE_PUBLIC_KEY="your-langfuse-public-key-here"
+export LANGFUSE_SECRET_KEY="your-langfuse-secret-key-here"
+export LANGFUSE_BASE_URL="https://cloud.langfuse.com" # 🇪🇺 欧洲区域
+# export LANGFUSE_BASE_URL="https://us.cloud.langfuse.com" # 🇺🇸 美国区域
+```
+
+启动 Midscene 后，你应该会看到类似如下的日志：
+
+```log
+DEBUGGING MODE: langfuse wrapper enabled
+```
+
+**注意事项：**
+
+- LangSmith 和 Langfuse 可以同时启用
+- 这些集成仅在 Node.js 环境中可用，浏览器环境会抛出错误
+- 如果你使用了 [`createOpenAIClient`](#自定义-openai-客户端) 参数，环境变量方式将被覆盖
 
 ## 高级功能
 
