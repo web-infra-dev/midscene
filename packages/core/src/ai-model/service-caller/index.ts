@@ -80,8 +80,9 @@ async function createChatClient({
       throw new Error('langsmith is not supported in browser');
     }
     console.log('DEBUGGING MODE: langsmith wrapper enabled');
-    // @ts-expect-error - langsmith is an optional dependency
-    const { wrapOpenAI } = await import('langsmith/wrappers');
+    // Use variable to prevent static analysis by bundlers
+    const langsmithModule = 'langsmith/wrappers';
+    const { wrapOpenAI } = await import(langsmithModule);
     openai = wrapOpenAI(openai);
   }
 
@@ -94,8 +95,9 @@ async function createChatClient({
       throw new Error('langfuse is not supported in browser');
     }
     console.log('DEBUGGING MODE: langfuse wrapper enabled');
-    // @ts-expect-error - langfuse is an optional dependency
-    const { observeOpenAI } = await import('langfuse');
+    // Use variable to prevent static analysis by bundlers
+    const langfuseModule = 'langfuse';
+    const { observeOpenAI } = await import(langfuseModule);
     openai = observeOpenAI(openai);
   }
 
