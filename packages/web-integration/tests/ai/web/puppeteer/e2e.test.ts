@@ -1,4 +1,3 @@
-import { AnyTxtRecord } from 'node:dns';
 import path from 'node:path';
 import { PuppeteerAgent } from '@/puppeteer';
 import { z } from '@midscene/core';

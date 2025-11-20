@@ -334,7 +334,6 @@ export class TaskExecutor {
       const planningTask = this.createPlanningTask(
         userPrompt,
         actionContext,
-        // configSpecifiedForHighLevelPlanning,
         modelConfig,
       );
 
