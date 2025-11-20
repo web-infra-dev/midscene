@@ -166,16 +166,16 @@ const DetailPanel = (): JSX.Element => {
       ) : null;
 
     // screenshot view
-    if (activeTask.recorder?.length) {
-      const screenshotFromContext = activeTask.uiContext?.screenshotBase64;
-      if (screenshotFromContext) {
-        screenshotItems.push({
-          timestamp: activeTask.timing?.start ?? undefined,
-          screenshot: screenshotFromContext,
-          timing: 'before-calling',
-        });
-      }
+    const screenshotFromContext = activeTask.uiContext?.screenshotBase64;
+    if (screenshotFromContext) {
+      screenshotItems.push({
+        timestamp: activeTask.timing?.start ?? undefined,
+        screenshot: screenshotFromContext,
+        timing: 'before-calling',
+      });
+    }
 
+    if (activeTask.recorder?.length) {
       for (const item of activeTask.recorder) {
         if (item.screenshot) {
           screenshotItems.push({
@@ -206,7 +206,7 @@ const DetailPanel = (): JSX.Element => {
         </div>
       );
     } else {
-      content = <div>no screenshot</div>;
+      content = <div>No screenshot</div>;
     }
   }
 
