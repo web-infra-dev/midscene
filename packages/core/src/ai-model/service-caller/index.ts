@@ -2,6 +2,8 @@ import { AIResponseFormat, type AIUsageInfo } from '@/types';
 import type { CodeGenerationChunk, StreamingCallback } from '@/types';
 import {
   type IModelConfig,
+  MIDSCENE_LANGFUSE_DEBUG,
+  MIDSCENE_LANGSMITH_DEBUG,
   MIDSCENE_MODEL_MAX_TOKENS,
   OPENAI_MAX_TOKENS,
   type TVlModeTypes,
@@ -10,7 +12,7 @@ import {
 } from '@midscene/shared/env';
 
 import { getDebug } from '@midscene/shared/logger';
-import { assert } from '@midscene/shared/utils';
+import { assert, ifInBrowser } from '@midscene/shared/utils';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { jsonrepair } from 'jsonrepair';
 import OpenAI from 'openai';
@@ -68,6 +70,34 @@ async function createChatClient({
   const baseOpenAI = new OpenAI(openAIOptions);
 
   let openai: OpenAI = baseOpenAI;
+
+  // LangSmith wrapper
+  if (
+    openai &&
+    globalConfigManager.getEnvConfigInBoolean(MIDSCENE_LANGSMITH_DEBUG)
+  ) {
+    if (ifInBrowser) {
+      throw new Error('langsmith is not supported in browser');
+    }
+    console.log('DEBUGGING MODE: langsmith wrapper enabled');
+    // @ts-expect-error - langsmith is an optional dependency
+    const { wrapOpenAI } = await import('langsmith/wrappers');
+    openai = wrapOpenAI(openai);
+  }
+
+  // Langfuse wrapper
+  if (
+    openai &&
+    globalConfigManager.getEnvConfigInBoolean(MIDSCENE_LANGFUSE_DEBUG)
+  ) {
+    if (ifInBrowser) {
+      throw new Error('langfuse is not supported in browser');
+    }
+    console.log('DEBUGGING MODE: langfuse wrapper enabled');
+    // @ts-expect-error - langfuse is an optional dependency
+    const { observeOpenAI } = await import('langfuse');
+    openai = observeOpenAI(openai);
+  }
 
   if (createOpenAIClient) {
     const wrappedClient = await createOpenAIClient(baseOpenAI, openAIOptions);
