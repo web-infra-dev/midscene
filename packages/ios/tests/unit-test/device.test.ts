@@ -424,7 +424,10 @@ describe('IOSDevice', () => {
     });
 
     it('should handle keyboard dismissal with default strategy', async () => {
-      // Mock getWindowSize and swipe methods since hideKeyboard uses swipe gesture by default
+      // Mock dismissKeyboard to fail so it falls back to swipe gesture
+      mockWdaClient.dismissKeyboard = vi
+        .fn()
+        .mockRejectedValue(new Error('dismissKeyboard not available'));
       mockWdaClient.getWindowSize = vi
         .fn()
         .mockResolvedValue({ width: 375, height: 812 });
@@ -436,7 +439,10 @@ describe('IOSDevice', () => {
     });
 
     it('should handle keyboard dismissal failure', async () => {
-      // Mock swipe to throw an error to simulate failure
+      // Mock both dismissKeyboard and swipe to fail to simulate total failure
+      mockWdaClient.dismissKeyboard = vi
+        .fn()
+        .mockRejectedValue(new Error('dismissKeyboard failed'));
       mockWdaClient.getWindowSize = vi
         .fn()
         .mockResolvedValue({ width: 375, height: 812 });
@@ -454,6 +460,9 @@ describe('IOSDevice', () => {
         ...mockWdaClient,
         createSession: vi.fn().mockResolvedValue({ sessionId: 'test-session' }),
         typeText: vi.fn().mockResolvedValue(undefined),
+        dismissKeyboard: vi
+          .fn()
+          .mockRejectedValue(new Error('dismissKeyboard not available')),
         getWindowSize: vi.fn().mockResolvedValue({ width: 375, height: 812 }),
         getScreenScale: vi.fn().mockResolvedValue(2),
         swipe: vi.fn().mockResolvedValue(undefined),

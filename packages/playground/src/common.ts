@@ -51,7 +51,13 @@ export async function parseStructuredParams(
       ? Object.keys((schema as { shape: Record<string, unknown> }).shape)
       : [];
 
-  const paramObj: Record<string, unknown> = { ...options };
+  // Start with options and merge deviceOptions into the same level
+  // Destructure to exclude deviceOptions from the final object
+  const { deviceOptions: _, ...optionsWithoutDeviceOptions } = options;
+  const paramObj: Record<string, unknown> = {
+    ...optionsWithoutDeviceOptions,
+    ...(options.deviceOptions || {}),
+  };
 
   keys.forEach((key) => {
     if (
@@ -186,10 +192,19 @@ export async function executeAction(
           })
         : undefined;
 
-      return await activeAgent.callActionInActionSpace(action.name, {
+      // Flatten deviceOptions into the params
+      // Destructure to exclude deviceOptions from the final object
+      const { deviceOptions: _, ...optionsWithoutDeviceOptions } = options;
+      const actionParams = {
         locate: detailedLocateParam,
-        ...options,
-      });
+        ...optionsWithoutDeviceOptions,
+        ...(options.deviceOptions || {}),
+      };
+
+      return await activeAgent.callActionInActionSpace(
+        action.name,
+        actionParams,
+      );
     }
   } else {
     const prompt = value.prompt;

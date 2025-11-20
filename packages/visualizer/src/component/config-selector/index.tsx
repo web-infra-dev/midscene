@@ -2,9 +2,14 @@ import { Checkbox, Dropdown, type MenuProps, Radio } from 'antd';
 import type React from 'react';
 import SettingOutlined from '../../icons/setting.svg';
 import { useEnvConfig } from '../../store/store';
+import type { DeviceType } from '../../types';
 import {
+  alwaysRefreshScreenInfoTip,
+  autoDismissKeyboardTip,
   deepThinkTip,
   domIncludedTip,
+  imeStrategyTip,
+  keyboardDismissStrategyTip,
   screenshotIncludedTip,
   trackingTip,
 } from '../../utils/constants';
@@ -14,6 +19,7 @@ interface ConfigSelectorProps {
   enableTracking: boolean;
   showDataExtractionOptions: boolean;
   hideDomAndScreenshotOptions?: boolean; // Hide domIncluded and screenshotIncluded options
+  deviceType?: DeviceType;
 }
 
 export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
@@ -21,6 +27,7 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
   enableTracking = false,
   showDataExtractionOptions = false,
   hideDomAndScreenshotOptions = false,
+  deviceType,
 }) => {
   const forceSameTabNavigation = useEnvConfig(
     (state) => state.forceSameTabNavigation,
@@ -37,7 +44,36 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
   const domIncluded = useEnvConfig((state) => state.domIncluded);
   const setDomIncluded = useEnvConfig((state) => state.setDomIncluded);
 
-  if (!enableTracking && !showDeepThinkOption && !showDataExtractionOptions) {
+  // Device-specific configuration
+  const imeStrategy = useEnvConfig((state) => state.imeStrategy);
+  const setImeStrategy = useEnvConfig((state) => state.setImeStrategy);
+  const autoDismissKeyboard = useEnvConfig(
+    (state) => state.autoDismissKeyboard,
+  );
+  const setAutoDismissKeyboard = useEnvConfig(
+    (state) => state.setAutoDismissKeyboard,
+  );
+  const keyboardDismissStrategy = useEnvConfig(
+    (state) => state.keyboardDismissStrategy,
+  );
+  const setKeyboardDismissStrategy = useEnvConfig(
+    (state) => state.setKeyboardDismissStrategy,
+  );
+  const alwaysRefreshScreenInfo = useEnvConfig(
+    (state) => state.alwaysRefreshScreenInfo,
+  );
+  const setAlwaysRefreshScreenInfo = useEnvConfig(
+    (state) => state.setAlwaysRefreshScreenInfo,
+  );
+
+  const hasDeviceOptions = deviceType === 'android' || deviceType === 'ios';
+
+  if (
+    !enableTracking &&
+    !showDeepThinkOption &&
+    !showDataExtractionOptions &&
+    !hasDeviceOptions
+  ) {
     return null;
   }
 
@@ -117,6 +153,86 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
           </div>
         ),
         key: 'dom-included-config',
+      });
+    }
+
+    // Android-specific options
+    if (deviceType === 'android') {
+      items.push({
+        label: (
+          <div style={{ padding: '4px 0' }}>
+            <div style={{ marginBottom: '4px', fontSize: '14px' }}>
+              {imeStrategyTip}
+            </div>
+            <Radio.Group
+              size="small"
+              value={imeStrategy}
+              onChange={(e) => setImeStrategy(e.target.value)}
+            >
+              <Radio value="always-yadb">Always YADB</Radio>
+              <Radio value="yadb-for-non-ascii">YADB for non-ASCII</Radio>
+            </Radio.Group>
+          </div>
+        ),
+        key: 'ime-strategy-config',
+      });
+
+      items.push({
+        label: (
+          <Checkbox
+            onChange={(e) => setAutoDismissKeyboard(e.target.checked)}
+            checked={autoDismissKeyboard}
+          >
+            {autoDismissKeyboardTip}
+          </Checkbox>
+        ),
+        key: 'auto-dismiss-keyboard-config',
+      });
+
+      items.push({
+        label: (
+          <div style={{ padding: '4px 0' }}>
+            <div style={{ marginBottom: '4px', fontSize: '14px' }}>
+              {keyboardDismissStrategyTip}
+            </div>
+            <Radio.Group
+              size="small"
+              value={keyboardDismissStrategy}
+              onChange={(e) => setKeyboardDismissStrategy(e.target.value)}
+            >
+              <Radio value="esc-first">ESC first</Radio>
+              <Radio value="back-first">Back first</Radio>
+            </Radio.Group>
+          </div>
+        ),
+        key: 'keyboard-dismiss-strategy-config',
+      });
+
+      items.push({
+        label: (
+          <Checkbox
+            onChange={(e) => setAlwaysRefreshScreenInfo(e.target.checked)}
+            checked={alwaysRefreshScreenInfo}
+          >
+            {alwaysRefreshScreenInfoTip}
+          </Checkbox>
+        ),
+        key: 'always-refresh-screen-info-config',
+      });
+    }
+
+    // iOS-specific options
+    if (deviceType === 'ios') {
+      items.push({
+        label: (
+          <Checkbox
+            onChange={(e) => setAutoDismissKeyboard(e.target.checked)}
+            checked={autoDismissKeyboard}
+          >
+            {autoDismissKeyboardTip}
+          </Checkbox>
+        ),
+        key: 'auto-dismiss-keyboard-config',
       });
     }
 
