@@ -1,7 +1,3 @@
-import './component/playground/index.less';
-import './component/universal-playground/index.less';
-import './components/screenshot-viewer/index.less';
-
 export {
   type AnimationScript,
   type ReplayScriptsInfo,
@@ -37,7 +33,7 @@ export { ContextPreview } from './component/context-preview';
 export { PromptInput } from './component/prompt-input';
 export { Player } from './component/player';
 export { Blackboard } from './component/blackboard';
-export { default as ScreenshotViewer } from './components/screenshot-viewer';
+export { default as ScreenshotViewer } from './component/screenshot-viewer';
 
 // Export playground utilities
 export {

@@ -23,7 +23,9 @@ export default function App() {
   const [serverOnline, setServerOnline] = useState(false);
   const [isUserOperating, setIsUserOperating] = useState(false);
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
-  const [deviceType, setDeviceType] = useState<'web' | 'android' | 'ios'>('web');
+  const [deviceType, setDeviceType] = useState<'web' | 'android' | 'ios'>(
+    'web',
+  );
 
   // Create PlaygroundSDK and storage provider
   const playgroundSDK = useMemo(() => {

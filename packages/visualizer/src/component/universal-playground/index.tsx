@@ -14,6 +14,7 @@ import { EnvConfigReminder } from '../env-config-reminder';
 import { PlaygroundResultView } from '../playground-result';
 import './index.less';
 import PlaygroundIcon from '../../icons/avatar.svg';
+import { defaultMainButtons } from '../../utils/constants';
 import { PromptInput } from '../prompt-input';
 import {
   createStorageProvider,
@@ -61,6 +62,13 @@ export function UniversalPlayground({
   const [form] = Form.useForm();
   const { config } = useEnvConfig();
   const [sdkReady, setSdkReady] = useState(false);
+
+  // Initialize form with default type on mount
+  useEffect(() => {
+    form.setFieldsValue({
+      type: defaultMainButtons[0],
+    });
+  }, [form]);
 
   // Initialize SDK ID on mount for remote execution
   useEffect(() => {
