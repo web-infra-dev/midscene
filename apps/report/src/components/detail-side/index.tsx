@@ -127,6 +127,60 @@ const renderElementDetailBox = (_value: LocateResultElement) => {
   );
 };
 
+// Helper function to render content with element detection
+const renderMetaContent = (
+  content: string | JSX.Element,
+): string | JSX.Element => {
+  // If content is already JSX, return it
+  if (typeof content !== 'string') {
+    return content;
+  }
+
+  // Try to parse JSON string
+  try {
+    const parsed = JSON.parse(content);
+
+    // Check if it's a locate object with element inside
+    if (parsed.locate && isElementField(parsed.locate)) {
+      return (
+        <div>
+          <div style={{ marginBottom: '8px' }}>locate:</div>
+          {renderElementDetailBox(parsed.locate)}
+        </div>
+      );
+    }
+
+    // Check if it's directly an element
+    if (isElementField(parsed)) {
+      return renderElementDetailBox(parsed);
+    }
+  } catch (e) {
+    // Not JSON, return as is
+  }
+
+  return content;
+};
+
+// Helper function to extract images from task params
+const extractTaskImages = (
+  param: any,
+): Array<{ name: string; url: string }> | undefined => {
+  // For locate params (Planning and Action Space tasks)
+  if (param?.prompt?.images && Array.isArray(param.prompt.images)) {
+    return param.prompt.images;
+  }
+
+  // For nested locate params (Action Space tasks)
+  if (
+    param?.locate?.prompt?.images &&
+    Array.isArray(param.locate.prompt.images)
+  ) {
+    return param.locate.prompt.images;
+  }
+
+  return undefined;
+};
+
 const MetaKV = (props: {
   data: {
     key: string;
@@ -134,45 +188,13 @@ const MetaKV = (props: {
     images?: { name: string; url: string }[];
   }[];
 }) => {
-  // Helper function to parse and render content
-  const renderContent = (content: string | JSX.Element) => {
-    // If content is already JSX, return it
-    if (typeof content !== 'string') {
-      return content;
-    }
-
-    // Try to parse JSON string
-    try {
-      const parsed = JSON.parse(content);
-
-      // Check if it's a locate object with element inside
-      if (parsed.locate && isElementField(parsed.locate)) {
-        return (
-          <div>
-            <div style={{ marginBottom: '8px' }}>locate:</div>
-            {renderElementDetailBox(parsed.locate)}
-          </div>
-        );
-      }
-
-      // Check if it's directly an element
-      if (isElementField(parsed)) {
-        return renderElementDetailBox(parsed);
-      }
-    } catch (e) {
-      // Not JSON, return as is
-    }
-
-    return content;
-  };
-
   return (
     <div className="meta-kv">
       {props.data.map((item, index) => {
         return (
           <div className="meta" key={index}>
             <div className="meta-key">{item.key}</div>
-            <div className="meta-value">{renderContent(item.content)}</div>
+            <div className="meta-value">{renderMetaContent(item.content)}</div>
             {item.images && item.images.length > 0 && (
               <div className="meta-images">
                 {item.images.map((image, imgIndex) => (
@@ -376,15 +398,7 @@ const DetailSide = (): JSX.Element => {
 
     // Extract images from Planning/Locate tasks
     const locateParam = (planningTask as any)?.param;
-    const images =
-      locateParam &&
-      typeof locateParam === 'object' &&
-      'prompt' in locateParam &&
-      typeof locateParam.prompt === 'object' &&
-      locateParam.prompt !== null &&
-      'images' in locateParam.prompt
-        ? locateParam.prompt.images
-        : undefined;
+    const images = extractTaskImages(locateParam);
 
     if (planningTask.param?.userInstruction) {
       // Ensure userInstruction is a string
@@ -478,21 +492,11 @@ const DetailSide = (): JSX.Element => {
   } else if (task?.type === 'Action Space') {
     const actionTask = task as ExecutionTaskAction;
 
-    // Helper to extract images from locate param
-    const extractLocateImages = () => {
-      try {
-        const locate = actionTask?.param?.locate as any;
-        return locate?.prompt?.images;
-      } catch {
-        return undefined;
-      }
-    };
-
     // Helper to convert to string
     const toContent = (value: any) =>
       typeof value === 'string' ? value : JSON.stringify(value);
 
-    const images = extractLocateImages();
+    const images = extractTaskImages(actionTask?.param);
     const data: {
       key: string;
       content: string;
