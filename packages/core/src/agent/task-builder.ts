@@ -321,12 +321,7 @@ export class TaskBuilder {
         }
 
         return {
-          output: {
-            success: true,
-            action: planType,
-            param: param,
-            result: actionResult,
-          },
+          output: actionResult,
         };
       },
     };

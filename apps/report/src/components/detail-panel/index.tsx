@@ -145,10 +145,17 @@ const DetailPanel = (): JSX.Element => {
 
     // Extract elements from param
     if (activeTask.param) {
+      // For Planning tasks, extract from output.actions[0].param
       const paramElements = extractElementsFromParam(
         activeTask.output?.actions?.[0]?.param,
       );
       highlightElements = [...highlightElements, ...paramElements];
+    }
+
+    // For Action Space tasks (tap, scroll, etc.), extract from param.locate
+    if (activeTask.type === 'Action Space' && activeTask.param) {
+      const locateElements = extractElementsFromParam(activeTask.param);
+      highlightElements = [...highlightElements, ...locateElements];
     }
 
     contextLocatorView =

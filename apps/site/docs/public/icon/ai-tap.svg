@@ -1,0 +1,14 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="32" cy="32" r="28" fill="#1FA679" opacity="0.1"/>
+
+  <!-- Hand/finger icon for tap -->
+  <path d="M42 28C42 26.895 41.105 26 40 26C39.448 26 38.953 26.224 38.593 26.578C38.324 25.677 37.494 25 36.5 25C35.948 25 35.453 25.224 35.093 25.578C34.824 24.677 33.994 24 33 24C32.671 24 32.365 24.088 32.094 24.238V18C32.094 16.895 31.199 16 30.094 16C28.989 16 28.094 16.895 28.094 18V32L25.453 28.797C24.722 27.953 23.453 27.859 22.609 28.589C21.765 29.32 21.671 30.589 22.402 31.433L28.871 39.078C29.5 39.804 30.382 40.265 31.337 40.396L38.5 41.5C40.433 41.767 42 40.433 42 38.5V28Z" fill="#1FA679"/>
+
+  <!-- Ripple effect circles showing tap action -->
+  <circle cx="32" cy="32" r="30" stroke="#1FA679" stroke-width="1.5" opacity="0.3" stroke-dasharray="4 4"/>
+  <circle cx="32" cy="32" r="24" stroke="#1FA679" stroke-width="1.5" opacity="0.5" stroke-dasharray="4 4"/>
+
+  <!-- Cursor point -->
+  <circle cx="38" cy="26" r="2" fill="#1FA679"/>
+</svg>

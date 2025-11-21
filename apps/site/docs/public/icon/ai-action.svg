@@ -1,0 +1,16 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="32" cy="32" r="28" fill="#0555FF" opacity="0.1"/>
+
+  <!-- Brain/AI icon representing planning -->
+  <path d="M32 12C25.373 12 20 17.373 20 24C20 25.5 20.3 26.9 20.8 28.2L18 31C17.4 31.6 17 32.4 17 33.2V38C17 39.1 17.9 40 19 40H21V43C21 44.1 21.9 45 23 45H26V48C26 49.1 26.9 50 28 50H36C37.1 50 38 49.1 38 48V45H41C42.1 45 43 44.1 43 43V40H45C46.1 40 47 39.1 47 38V33.2C47 32.4 46.6 31.6 46 31L43.2 28.2C43.7 26.9 44 25.5 44 24C44 17.373 38.627 12 32 12Z" fill="#0555FF"/>
+
+  <!-- Circuit lines representing automation -->
+  <path d="M28 28H24V32H28V28Z" fill="white"/>
+  <path d="M40 28H36V32H40V28Z" fill="white"/>
+  <path d="M34 22H30V26H34V22Z" fill="white"/>
+
+  <!-- Arrow showing action flow -->
+  <path d="M48 36L52 40L48 44" stroke="#0555FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M42 40H52" stroke="#0555FF" stroke-width="2" stroke-linecap="round"/>
+</svg>

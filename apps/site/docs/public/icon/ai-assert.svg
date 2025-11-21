@@ -1,0 +1,18 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="32" cy="32" r="28" fill="#059669" opacity="0.1"/>
+
+  <!-- Shield icon representing verification/assertion -->
+  <path d="M32 12L20 18V28C20 37 25 44 32 48C39 44 44 37 44 28V18L32 12Z" fill="#059669"/>
+
+  <!-- Checkmark inside shield -->
+  <path d="M28 32L30.5 34.5L36 29" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- AI indicator dots -->
+  <circle cx="32" cy="24" r="1.5" fill="white" opacity="0.6"/>
+  <circle cx="26" cy="26" r="1.5" fill="white" opacity="0.6"/>
+  <circle cx="38" cy="26" r="1.5" fill="white" opacity="0.6"/>
+
+  <!-- Success indicator circle -->
+  <circle cx="32" cy="32" r="20" stroke="#059669" stroke-width="1.5" opacity="0.3" stroke-dasharray="3 3"/>
+</svg>

@@ -180,10 +180,9 @@ export const PlaywrightAiFixture = (options?: {
               prompt: string,
               ...restArgs: any[]
             ) => Promise<any>;
-            const result = await (agent[aiActionType] as AgentMethod)(
-              taskPrompt,
-              ...(args || []),
-            );
+            const result = await (agent[aiActionType] as AgentMethod).bind(
+              agent,
+            )(taskPrompt, ...args);
             resolve(result);
           } catch (error) {
             reject(error);
