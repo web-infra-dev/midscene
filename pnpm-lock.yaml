@@ -471,14 +471,14 @@ importers:
         version: 18.3.1(react@18.3.1)
     devDependencies:
       '@rspress/core':
-        specifier: 2.0.0-rc.0
-        version: 2.0.0-rc.0(@types/react@19.2.2)
+        specifier: 2.0.0-rc.1
+        version: 2.0.0-rc.1(@types/react@19.2.2)
       '@rspress/plugin-llms':
-        specifier: 2.0.0-rc.0
-        version: 2.0.0-rc.0(@rspress/core@2.0.0-rc.0(@types/react@19.2.2))
+        specifier: 2.0.0-rc.1
+        version: 2.0.0-rc.1(@rspress/core@2.0.0-rc.1(@types/react@19.2.2))
       '@rspress/plugin-sitemap':
-        specifier: 2.0.0-rc.0
-        version: 2.0.0-rc.0(@rspress/core@2.0.0-rc.0(@types/react@19.2.2))
+        specifier: 2.0.0-rc.1
+        version: 2.0.0-rc.1(@rspress/core@2.0.0-rc.1(@types/react@19.2.2))
       '@tailwindcss/postcss':
         specifier: 4.1.11
         version: 4.1.11
@@ -3447,8 +3447,8 @@ packages:
       react: '>=16.9.0'
       react-dom: '>=16.9.0'
 
-  '@remix-run/router@1.23.0':
-    resolution: {integrity: sha512-O3rHJzAQKamUz1fvE0Qaw0xSFqsA/yafi2iqeE0pvdFtCO1viYx8QL6f3Ln/aCCTLxs68SLf0KPM9eSeM8yBnA==}
+  '@remix-run/router@1.23.1':
+    resolution: {integrity: sha512-vDbaOzF7yT2Qs4vO6XV1MHcJv+3dgR1sT+l3B8xxOVhUC336prMvqrvsLL/9Dnw2xr6Qhz4J0dmS0llNAbnUmQ==}
     engines: {node: '>=14.0.0'}
 
   '@rollup/rollup-android-arm-eabi@4.24.3':
@@ -3841,8 +3841,8 @@ packages:
       webpack-hot-middleware:
         optional: true
 
-  '@rspress/core@2.0.0-rc.0':
-    resolution: {integrity: sha512-MMlEqEICya97vGQOtSSAqJyLcotlFJ3fr2oog78NYSZj4+t7e15zrvzuudl3iPHJKGFk8N7oq37i3LNc89Ze+Q==}
+  '@rspress/core@2.0.0-rc.1':
+    resolution: {integrity: sha512-vYbHDoAy7fjQC8hYM4rRgkrsN48CZNSFpD1WEr6lZGXDQcWWrrpFjWw3LK2OQ04bZ0OXZeqapP2rgg/jTyPaZA==}
     engines: {node: '>=18.0.0'}
     hasBin: true
 
@@ -3898,24 +3898,24 @@ packages:
     resolution: {integrity: sha512-NpNhTKBIlV3O6ADhoZkgHvBFvXMW2TYlIWmIT1ysJESUBqDpaN9H3Teve5fugjU2pQ2ORBZO6SQGKliMw/8m/Q==}
     engines: {node: '>= 10'}
 
-  '@rspress/plugin-llms@2.0.0-rc.0':
-    resolution: {integrity: sha512-PPa4T+v9+yvlfEMfgQMsiB/yz2bZymb80x80A4tqbpTCHyb5+2zgWfJYGk+jAwbtz5C8tYnqngY1SUQ7y5Lp7A==}
+  '@rspress/plugin-llms@2.0.0-rc.1':
+    resolution: {integrity: sha512-ha8IeADXwuFyW+KYO8dCuU5tl1DjH1r+3iuJx/CWRccCMqXb+YFmbS3QZ3mhJPj8iAFlXryCp+iZS3ujoagUyg==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
-      '@rspress/core': ^2.0.0-rc.0
+      '@rspress/core': ^2.0.0-rc.1
 
-  '@rspress/plugin-sitemap@2.0.0-rc.0':
-    resolution: {integrity: sha512-hT4cLX29Xot+GvL4WsepncuF1qzlRw86SCHlfcFtqgPBGsr9vYqcER02fMPpcGq0zh2PoKQ8cnntkrecI6aeFg==}
+  '@rspress/plugin-sitemap@2.0.0-rc.1':
+    resolution: {integrity: sha512-vp+0GBlFVYcLwL3znZwXpON9Ay6NIqyN1F4FRvC+YQgIYPdEazhcQxOMzWaYOPPM2oNSSEvhOYHXYupOllk/VQ==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
-      '@rspress/core': ^2.0.0-rc.0
+      '@rspress/core': ^2.0.0-rc.1
 
-  '@rspress/runtime@2.0.0-rc.0':
-    resolution: {integrity: sha512-assnOA9ZCeFSk9cC292JamdqIhbvatKA6sa2NjA3joE7gyW2XCKRoN/c36YorvkPMc+YjR0zL6F3rMRGP/w/2Q==}
+  '@rspress/runtime@2.0.0-rc.1':
+    resolution: {integrity: sha512-m93nmR0iY3N9Y+9Xi2xCA0NfDnTZVYauJl2SJ9bqRhJmxFHAbWe5f4Ik3VI0gK1g3lvfQ3eBpZihkpUtxCJFBw==}
     engines: {node: '>=18.0.0'}
 
-  '@rspress/shared@2.0.0-rc.0':
-    resolution: {integrity: sha512-+Zwl+ycVwvwYg9eMTtoI/sst0Q/fJZS2oW+mEwj0La9hWHFutPcBHq0+zHHmi9eV7RHXLUo2lySfnQ14PTUPSw==}
+  '@rspress/shared@2.0.0-rc.1':
+    resolution: {integrity: sha512-U0rBStAjFh2Ea1Q+9aVjh3eAU69fK8q37Z1oCiFLxUmhBjdUO1VeggzZlc66uN/NFURwHX8/lrQhxMeSXvxXZQ==}
 
   '@rushstack/node-core-library@5.17.0':
     resolution: {integrity: sha512-24vt1GbHN6kyIglRMTVpyEiNRRRJK8uZHc1XoGAhmnTDKnrWet8OmOpImMswJIe6gM78eV8cMg1HXwuUHkSSgg==}
@@ -9126,15 +9126,15 @@ packages:
       react: ^16.14.0 || ^17.0.0 || ^18.0.0
       react-dom: ^16.14.0 || ^17.0.0 || ^18.0.0
 
-  react-router-dom@6.30.1:
-    resolution: {integrity: sha512-llKsgOkZdbPU1Eg3zK8lCn+sjD9wMRZZPuzmdWWX5SUs8OFkN5HnFVC0u5KMeMaC9aoancFI/KoLuKPqN+hxHw==}
+  react-router-dom@6.30.2:
+    resolution: {integrity: sha512-l2OwHn3UUnEVUqc6/1VMmR1cvZryZ3j3NzapC2eUXO1dB0sYp5mvwdjiXhpUbRb21eFow3qSxpP8Yv6oAU824Q==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
       react: '>=16.8'
       react-dom: '>=16.8'
 
-  react-router@6.30.1:
-    resolution: {integrity: sha512-X1m21aEmxGXqENEPG3T6u0Th7g0aS4ZmoNynhbs+Cn+q+QGTLt+d5IQ2bHAXKzKcxGJjxACpVbnYQSCRcfxHlQ==}
+  react-router@6.30.2:
+    resolution: {integrity: sha512-H2Bm38Zu1bm8KUE5NVWRMzuIyAV8p/JrOaBJAwVmp37AXG72+CZJlEBw6pdn9i5TBgLMhNDgijS4ZlblpHyWTA==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
       react: '>=16.8'
@@ -13659,7 +13659,7 @@ snapshots:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
-  '@remix-run/router@1.23.0': {}
+  '@remix-run/router@1.23.1': {}
 
   '@rollup/rollup-android-arm-eabi@4.24.3':
     optional: true
@@ -14200,15 +14200,15 @@ snapshots:
       html-entities: 2.6.0
       react-refresh: 0.18.0
 
-  '@rspress/core@2.0.0-rc.0(@types/react@19.2.2)':
+  '@rspress/core@2.0.0-rc.1(@types/react@19.2.2)':
     dependencies:
       '@mdx-js/mdx': 3.1.1
       '@mdx-js/react': 3.1.1(@types/react@19.2.2)(react@19.2.0)
       '@rsbuild/core': 1.6.6
       '@rsbuild/plugin-react': 1.4.2(@rsbuild/core@1.6.6)
       '@rspress/mdx-rs': 0.6.6
-      '@rspress/runtime': 2.0.0-rc.0
-      '@rspress/shared': 2.0.0-rc.0
+      '@rspress/runtime': 2.0.0-rc.1
+      '@rspress/shared': 2.0.0-rc.1
       '@shikijs/rehype': 3.13.0
       '@types/unist': 3.0.3
       '@unhead/react': 2.0.19(react@19.2.0)
@@ -14232,7 +14232,7 @@ snapshots:
       react-dom: 19.2.0(react@19.2.0)
       react-lazy-with-preload: 2.2.1
       react-reconciler: 0.33.0(react@19.2.0)
-      react-router-dom: 6.30.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      react-router-dom: 6.30.2(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       rehype-external-links: 3.0.0
       rehype-raw: 7.0.0
       remark-gfm: 4.0.1
@@ -14284,9 +14284,9 @@ snapshots:
       '@rspress/mdx-rs-win32-arm64-msvc': 0.6.6
       '@rspress/mdx-rs-win32-x64-msvc': 0.6.6
 
-  '@rspress/plugin-llms@2.0.0-rc.0(@rspress/core@2.0.0-rc.0(@types/react@19.2.2))':
+  '@rspress/plugin-llms@2.0.0-rc.1(@rspress/core@2.0.0-rc.1(@types/react@19.2.2))':
     dependencies:
-      '@rspress/core': 2.0.0-rc.0(@types/react@19.2.2)
+      '@rspress/core': 2.0.0-rc.1(@types/react@19.2.2)
       remark-mdx: 3.1.1
       remark-parse: 11.0.0
       remark-stringify: 11.0.0
@@ -14295,19 +14295,19 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@rspress/plugin-sitemap@2.0.0-rc.0(@rspress/core@2.0.0-rc.0(@types/react@19.2.2))':
+  '@rspress/plugin-sitemap@2.0.0-rc.1(@rspress/core@2.0.0-rc.1(@types/react@19.2.2))':
     dependencies:
-      '@rspress/core': 2.0.0-rc.0(@types/react@19.2.2)
+      '@rspress/core': 2.0.0-rc.1(@types/react@19.2.2)
 
-  '@rspress/runtime@2.0.0-rc.0':
+  '@rspress/runtime@2.0.0-rc.1':
     dependencies:
-      '@rspress/shared': 2.0.0-rc.0
+      '@rspress/shared': 2.0.0-rc.1
       '@unhead/react': 2.0.19(react@19.2.0)
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
-      react-router-dom: 6.30.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      react-router-dom: 6.30.2(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
 
-  '@rspress/shared@2.0.0-rc.0':
+  '@rspress/shared@2.0.0-rc.1':
     dependencies:
       '@rsbuild/core': 1.6.6
       '@shikijs/rehype': 3.13.0
@@ -20640,16 +20640,16 @@ snapshots:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
-  react-router-dom@6.30.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0):
+  react-router-dom@6.30.2(react-dom@19.2.0(react@19.2.0))(react@19.2.0):
     dependencies:
-      '@remix-run/router': 1.23.0
+      '@remix-run/router': 1.23.1
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
-      react-router: 6.30.1(react@19.2.0)
+      react-router: 6.30.2(react@19.2.0)
 
-  react-router@6.30.1(react@19.2.0):
+  react-router@6.30.2(react@19.2.0):
     dependencies:
-      '@remix-run/router': 1.23.0
+      '@remix-run/router': 1.23.1
       react: 19.2.0
 
   react-simple-code-editor@0.14.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
