@@ -10,7 +10,7 @@ import type {
   ExecutionTaskPlanningApply,
   LocateResultElement,
 } from '@midscene/core';
-import { paramStr, typeStr } from '@midscene/core/agent';
+import { extractInsightParam, paramStr, typeStr } from '@midscene/core/agent';
 import {
   highlightColorForType,
   timeCostStrElement,
@@ -439,71 +439,20 @@ const DetailSide = (): JSX.Element => {
   } else if (task?.type === 'Insight') {
     const isPageContextFrozen = Boolean((task?.uiContext as any)?._isFrozen);
 
-    // Extract demand and images from task param
+    // Use extractInsightParam to get content and images
     const taskParam = (task as any)?.param;
-    let displayContent = '';
-    let images: { name: string; url: string }[] | undefined;
+    const { content: displayContent, images } = extractInsightParam(taskParam);
 
-    // Handle different data structures
-    if (taskParam?.demand) {
-      // Direct demand field
-      displayContent =
-        typeof taskParam.demand === 'string'
-          ? taskParam.demand
-          : JSON.stringify(taskParam.demand);
-      if (
-        taskParam.multimodalPrompt?.images &&
-        Array.isArray(taskParam.multimodalPrompt.images)
-      ) {
-        images = taskParam.multimodalPrompt.images;
-      }
-    } else if (taskParam?.assertion) {
-      // Direct assertion field
-      displayContent =
-        typeof taskParam.assertion === 'string'
-          ? taskParam.assertion
-          : JSON.stringify(taskParam.assertion);
-      if (
-        taskParam.multimodalPrompt?.images &&
-        Array.isArray(taskParam.multimodalPrompt.images)
-      ) {
-        images = taskParam.multimodalPrompt.images;
-      }
-    } else if (taskParam?.dataDemand) {
-      // dataDemand can be string or object
-      const dataDemand = taskParam.dataDemand;
-      if (typeof dataDemand === 'string') {
-        displayContent = dataDemand;
-      } else if (typeof dataDemand === 'object') {
-        // Extract demand from dataDemand object
-        displayContent =
-          typeof dataDemand.demand === 'string'
-            ? dataDemand.demand
-            : JSON.stringify(dataDemand.demand || dataDemand);
-        // Extract images from dataDemand.multimodalPrompt
-        if (
-          dataDemand.multimodalPrompt?.images &&
-          Array.isArray(dataDemand.multimodalPrompt.images)
-        ) {
-          images = dataDemand.multimodalPrompt.images;
-        }
-      }
-    } else {
-      // Fallback to paramStr for other cases
-      const paramValue = paramStr(task);
-      displayContent =
-        typeof paramValue === 'string'
-          ? paramValue
-          : JSON.stringify(paramValue);
-    }
+    // Fallback to paramStr if no content extracted
+    const finalContent = displayContent || paramStr(task);
 
     taskInput = MetaKV({
       data: [
-        ...(displayContent
+        ...(finalContent
           ? [
               {
                 key: 'param',
-                content: displayContent,
+                content: finalContent,
                 images: images,
               },
             ]
@@ -527,19 +476,23 @@ const DetailSide = (): JSX.Element => {
       ],
     });
   } else if (task?.type === 'Action Space') {
-    // Extract images from task.param.locate.prompt.images if available
     const actionTask = task as ExecutionTaskAction;
-    const images =
-      actionTask?.param?.locate &&
-      typeof actionTask.param.locate === 'object' &&
-      'prompt' in actionTask.param.locate &&
-      typeof actionTask.param.locate.prompt === 'object' &&
-      actionTask.param.locate.prompt !== null &&
-      'images' in actionTask.param.locate.prompt
-        ? (actionTask.param.locate.prompt as any).images
-        : undefined;
 
-    // Build data array from param object
+    // Helper to extract images from locate param
+    const extractLocateImages = () => {
+      try {
+        const locate = actionTask?.param?.locate as any;
+        return locate?.prompt?.images;
+      } catch {
+        return undefined;
+      }
+    };
+
+    // Helper to convert to string
+    const toContent = (value: any) =>
+      typeof value === 'string' ? value : JSON.stringify(value);
+
+    const images = extractLocateImages();
     const data: {
       key: string;
       content: string;
@@ -548,11 +501,9 @@ const DetailSide = (): JSX.Element => {
 
     if (actionTask?.param && typeof actionTask.param === 'object') {
       Object.entries(actionTask.param).forEach(([key, value]) => {
-        const content =
-          typeof value === 'string' ? value : JSON.stringify(value);
         data.push({
           key,
-          content,
+          content: toContent(value),
           images: key === 'locate' ? images : undefined,
         });
       });
@@ -560,14 +511,9 @@ const DetailSide = (): JSX.Element => {
 
     // Fallback to paramStr if param is not an object
     if (data.length === 0) {
-      const paramValue = paramStr(task);
-      const valueContent =
-        typeof paramValue === 'string'
-          ? paramValue
-          : JSON.stringify(paramValue);
       data.push({
         key: 'value',
-        content: valueContent,
+        content: toContent(paramStr(task)),
         images: images,
       });
     }

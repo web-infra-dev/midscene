@@ -81,6 +81,61 @@ export function pullParamStr(pullParam?: PullParam) {
   return parts.join(', ');
 }
 
+export function extractInsightParam(taskParam: any): {
+  content: string;
+  images?: Array<{ name: string; url: string }>;
+} {
+  if (!taskParam) {
+    return { content: '' };
+  }
+
+  // Helper to extract images from multimodalPrompt
+  const extractImages = (source: any) => {
+    return source?.multimodalPrompt?.images &&
+      Array.isArray(source.multimodalPrompt.images)
+      ? source.multimodalPrompt.images
+      : undefined;
+  };
+
+  // Helper to stringify if needed
+  const toContent = (value: any) =>
+    typeof value === 'string' ? value : JSON.stringify(value);
+
+  // Extract from demand
+  if (taskParam.demand) {
+    return {
+      content: toContent(taskParam.demand),
+      images: extractImages(taskParam),
+    };
+  }
+
+  // Extract from assertion
+  if (taskParam.assertion) {
+    return {
+      content: toContent(taskParam.assertion),
+      images: extractImages(taskParam),
+    };
+  }
+
+  // Extract from dataDemand
+  if (taskParam.dataDemand) {
+    const { dataDemand } = taskParam;
+
+    if (typeof dataDemand === 'string') {
+      return { content: dataDemand };
+    }
+
+    if (typeof dataDemand === 'object') {
+      return {
+        content: toContent(dataDemand.demand || dataDemand),
+        images: extractImages(dataDemand),
+      };
+    }
+  }
+
+  return { content: '' };
+}
+
 export function taskTitleStr(
   type:
     | 'Tap'
@@ -116,21 +171,7 @@ export function paramStr(task: ExecutionTask) {
   }
 
   if (task.type === 'Insight') {
-    const insightTask = task as any;
-    // For Insight tasks with multimodalPrompt, extract only the demand/assertion text
-    if (insightTask?.param?.demand) {
-      value = insightTask.param.demand;
-    } else if (insightTask?.param?.assertion) {
-      value = insightTask.param.assertion;
-    } else if (insightTask?.param?.dataDemand) {
-      // dataDemand can be a string or an object with demand field
-      const dataDemand = insightTask.param.dataDemand;
-      value = typeof dataDemand === 'string' ? dataDemand : dataDemand?.demand;
-    } else {
-      value =
-        (task as ExecutionTaskInsightQuery)?.param?.dataDemand ||
-        (task as ExecutionTaskInsightAssertion)?.param?.assertion;
-    }
+    value = extractInsightParam((task as any)?.param).content;
   }
 
   if (task.type === 'Action Space') {
