@@ -56,11 +56,12 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
     '专为 UI 自动化设计的视觉语言模型，提供精准的界面元素定位和操作能力。',
 
   // Feature Sections - DEBUGGING
-  debuggingTitle: '调试',
-  debuggingHeading: '可视化报告和工具',
-  debuggingDesc1: '交互式可视化报告，理解测试执行过程',
-  debuggingDesc2: '内置 Playground 用于调试和测试',
-  debuggingDesc3: 'Chrome 插件提供浏览器内体验',
+  debuggingTitle: '特性',
+  debuggingHeading: '强大的功能',
+  debuggingDesc1: '丰富的 API - 支持智能自动化和细粒度原子控制。',
+  debuggingDesc2: 'MCP Server - 将设备操作暴露为 MCP Server，与多种模型协作。',
+  debuggingDesc3: '报告和 Playground - 通过更清晰的可视化和测试工具改进调试体验。',
+  debuggingDesc4: '灵活集成 - 支持多种脚本格式、自定义模型和可扩展功能。',
 
   // API names
   apiAction: 'aiAction',

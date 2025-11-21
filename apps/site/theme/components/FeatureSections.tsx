@@ -294,6 +294,14 @@ export function FeatureSections() {
                 {t('debuggingDesc3')}
               </div>
             </div>
+            <div className="flex flex-row gap-x-3">
+              <div className="w-3 pt-1.5">
+                <GradientIcon />
+              </div>
+              <div className="flex-1 font-sans text-sm md:text-base font-normal leading-[22px] md:leading-[26px] text-black/70 dark:text-white/70">
+                {t('debuggingDesc4')}
+              </div>
+            </div>
           </div>
         </div>
 

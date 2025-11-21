@@ -59,11 +59,12 @@ export const EN_US = {
     'Vision-language model specifically designed for UI automation, providing precise element localization and operation capabilities.',
 
   // Feature Sections - DEBUGGING
-  debuggingTitle: 'DEBUGGING',
-  debuggingHeading: 'Visual Reports & Tools',
-  debuggingDesc1: 'Interactive visual reports for understanding test execution',
-  debuggingDesc2: 'Built-in Playground for debugging and testing',
-  debuggingDesc3: 'Chrome Extension for in-browser experience',
+  debuggingTitle: 'FEATURES',
+  debuggingHeading: 'Powerful Features',
+  debuggingDesc1: 'Rich APIs - Enables smart automation and fine-grained atomic control.',
+  debuggingDesc2: 'MCP Server - Exposes device operations as an MCP Server and collaborates with various models.',
+  debuggingDesc3: 'Reports & Playground - Improves debugging with clearer visualization and testing tools.',
+  debuggingDesc4: 'Flexible Integration - Supports multiple script formats, custom models, and extensible features.',
 
   // API names
   apiAction: 'aiAction',
