@@ -43,13 +43,17 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
 
   // Model Cards
   modelSeedName: '豆包 Seed',
-  modelSeedDesc: '字节跳动视觉模型，针对视觉理解和 UI 元素识别进行优化，性能出色。',
+  modelSeedDesc:
+    '字节跳动视觉模型，针对视觉理解和 UI 元素识别进行优化，性能出色。',
   modelQwenName: 'Qwen3-VL',
-  modelQwenDesc: '阿里云千问视觉语言模型，支持高质量图像理解和 UI 元素识别，性价比高。',
+  modelQwenDesc:
+    '阿里云千问视觉语言模型，支持高质量图像理解和 UI 元素识别，性价比高。',
   modelGeminiName: 'Gemini-2.5-Pro',
-  modelGeminiDesc: 'Google 先进的多模态模型，拥有强大的视觉能力和全面的 UI 自动化支持。',
+  modelGeminiDesc:
+    'Google 先进的多模态模型，拥有强大的视觉能力和全面的 UI 自动化支持。',
   modelUITARSName: 'UI-TARS',
-  modelUITARSDesc: '专为 UI 自动化设计的视觉语言模型，提供精准的界面元素定位和操作能力。',
+  modelUITARSDesc:
+    '专为 UI 自动化设计的视觉语言模型，提供精准的界面元素定位和操作能力。',
 
   // Feature Sections - DEBUGGING
   debuggingTitle: '调试',

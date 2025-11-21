@@ -41,17 +41,22 @@ export const EN_US = {
   modelsDesc1: 'Support for Doubao Seed, Qwen3-VL, Gemini-2.5-Pro, and UI-TARS',
   modelsDesc2:
     'Visual-language models recommended for reliable and cost-effective automation',
-  modelsDesc3: 'OpenAI SDK-compatible interface for quick integration with major model providers',
+  modelsDesc3:
+    'OpenAI SDK-compatible interface for quick integration with major model providers',
 
   // Model Cards
   modelSeedName: 'Doubao Seed',
-  modelSeedDesc: 'Vision model from ByteDance, optimized for visual understanding and UI element recognition with excellent performance.',
+  modelSeedDesc:
+    'Vision model from ByteDance, optimized for visual understanding and UI element recognition with excellent performance.',
   modelQwenName: 'Qwen3-VL',
-  modelQwenDesc: 'Alibaba Cloud Qwen vision-language model with high-quality image understanding and UI element recognition at competitive pricing.',
+  modelQwenDesc:
+    'Alibaba Cloud Qwen vision-language model with high-quality image understanding and UI element recognition at competitive pricing.',
   modelGeminiName: 'Gemini-2.5-Pro',
-  modelGeminiDesc: 'Google\'s advanced multimodal model with powerful vision capabilities and comprehensive UI automation support.',
+  modelGeminiDesc:
+    "Google's advanced multimodal model with powerful vision capabilities and comprehensive UI automation support.",
   modelUITARSName: 'UI-TARS',
-  modelUITARSDesc: 'Vision-language model specifically designed for UI automation, providing precise element localization and operation capabilities.',
+  modelUITARSDesc:
+    'Vision-language model specifically designed for UI automation, providing precise element localization and operation capabilities.',
 
   // Feature Sections - DEBUGGING
   debuggingTitle: 'DEBUGGING',
@@ -77,5 +82,6 @@ export const EN_US = {
   apiPlaybackDesc:
     'Visual reports for understanding, replaying, and debugging test execution.',
   apiMoreLink: 'View All APIs',
-  apiMoreDesc: 'Explore the complete API documentation for more automation capabilities.',
+  apiMoreDesc:
+    'Explore the complete API documentation for more automation capabilities.',
 } as const;

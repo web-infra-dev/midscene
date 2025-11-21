@@ -405,8 +405,7 @@ export function FeatureSections() {
             {/* View All APIs Link Card */}
             <div className="w-full md:w-[383px] flex flex-col gap-y-4 md:gap-y-6">
               <div className="font-sans font-medium text-xl md:text-2xl leading-6 text-transparent">
-                {/* Empty placeholder to align with other cards */}
-                .
+                {/* Empty placeholder to align with other cards */}.
               </div>
               <div className="flex flex-col gap-[17px]">
                 <a
@@ -422,7 +421,10 @@ export function FeatureSections() {
                       fill="none"
                       xmlns="http://www.w3.org/2000/svg"
                       className="transition-transform group-hover:translate-x-1"
+                      role="img"
+                      aria-label="Arrow right"
                     >
+                      <title>Arrow right</title>
                       <path
                         d="M7.5 15L12.5 10L7.5 5"
                         stroke="currentColor"
