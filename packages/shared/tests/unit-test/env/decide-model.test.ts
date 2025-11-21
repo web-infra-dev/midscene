@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   decideModelConfigFromEnv,
   decideModelConfigFromIntentConfig,
-} from '../../../src/env/decide-model-config';
+} from '../../../src/env/parse-model-config';
 import {
   MIDSCENE_MODEL_API_KEY,
   MIDSCENE_MODEL_BASE_URL,
@@ -163,7 +163,6 @@ describe('decideModelConfig from env', () => {
       MIDSCENE_PLANNING_MODEL_NAME: 'planning-model',
       MIDSCENE_PLANNING_MODEL_API_KEY: 'planning-key',
       MIDSCENE_PLANNING_MODEL_BASE_URL: 'planning-url',
-      [MIDSCENE_MODEL_FAMILY]: 'qwen3-vl',
     });
     expect(result).toMatchInlineSnapshot(`
       {
@@ -177,8 +176,8 @@ describe('decideModelConfig from env', () => {
         "openaiExtraConfig": undefined,
         "socksProxy": undefined,
         "uiTarsModelVersion": undefined,
-        "vlMode": "qwen3-vl",
-        "vlModeRaw": "qwen3-vl",
+        "vlMode": undefined,
+        "vlModeRaw": undefined,
       }
     `);
   });
@@ -194,7 +193,6 @@ describe('decideModelConfig from env', () => {
   it('declare no planning env and process.env has config', () => {
     const result = decideModelConfigFromEnv('planning', {
       ...stubEnvConfig,
-      [MIDSCENE_MODEL_FAMILY]: 'qwen3-vl',
     });
     expect(result).toMatchInlineSnapshot(`
       {
@@ -218,7 +216,6 @@ describe('decideModelConfig from env', () => {
     const result = decideModelConfigFromEnv('planning', {
       ...stubEnvConfig,
       MIDSCENE_MODEL_NAME: '',
-      [MIDSCENE_MODEL_FAMILY]: 'qwen3-vl',
     });
     expect(result).toMatchInlineSnapshot(`
       {

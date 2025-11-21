@@ -407,16 +407,14 @@ export const defineActionClearInput = (
 export const actionAssertParamSchema = z.object({
   thought: z
     .string()
-    .describe(
-      'The reasoning behind the assertion result. This will be used as the error message if the assertion fails.',
-    ),
-  pass: z
+    .describe('The thinking process of analyzing the assertion'),
+  result: z
     .boolean()
-    .describe('Whether the assertion passed (true) or failed (false)'),
+    .describe('Whether the assertion is truthy, return true or false'),
 });
 export type ActionAssertParam = {
   thought: string;
-  pass: boolean;
+  result: boolean;
 };
 
 export const defineActionAssert = (
@@ -441,8 +439,8 @@ export const defineActionAssert = (
 export const createAssertAction = (): DeviceAction<ActionAssertParam> => {
   const debug = getDebug('core:planning-assert');
   return defineActionAssert(async (param: ActionAssertParam) => {
-    debug('assertion', param.thought, param.pass);
-    if (!param.pass) {
+    debug('assertion', param.thought, param.result);
+    if (!param.result) {
       throw new Error(`Assertion failed: ${param.thought}`);
     }
     // If pass is true, do nothing (assertion succeeds)

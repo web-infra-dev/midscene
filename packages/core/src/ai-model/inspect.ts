@@ -89,7 +89,7 @@ const promptsToChatParam = async (
         content: [
           {
             type: 'text',
-            text: `reference image ${item.name}:`,
+            text: `this is the reference image named '${item.name}':`,
           },
         ],
       });

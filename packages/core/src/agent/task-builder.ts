@@ -54,7 +54,8 @@ interface BuildOptions {
 
 interface PlanBuildContext {
   tasks: ExecutionTaskApply[];
-  modelConfig: IModelConfig;
+  modelConfigForPlanning: IModelConfig;
+  modelConfigForDefaultIntent: IModelConfig;
   cacheable?: boolean;
   subTask: boolean;
 }
@@ -74,7 +75,8 @@ export class TaskBuilder {
 
   public async build(
     plans: PlanningAction[],
-    modelConfig: IModelConfig,
+    modelConfigForPlanning: IModelConfig,
+    modelConfigForDefaultIntent: IModelConfig,
     options?: BuildOptions,
   ): Promise<{ tasks: ExecutionTaskApply[] }> {
     const tasks: ExecutionTaskApply[] = [];
@@ -82,7 +84,8 @@ export class TaskBuilder {
 
     const context: PlanBuildContext = {
       tasks,
-      modelConfig,
+      modelConfigForPlanning,
+      modelConfigForDefaultIntent,
       cacheable,
       subTask: !!options?.subTask,
     };
@@ -337,8 +340,14 @@ export class TaskBuilder {
     context: PlanBuildContext,
     onResult?: (result: LocateResultElement) => void,
   ): ExecutionTaskPlanningLocateApply {
-    const { cacheable, modelConfig } = context;
+    const { cacheable, modelConfigForDefaultIntent } = context;
+
     let locateParam = detailedLocateParam;
+    console.log(
+      'modelConfigForDefaultIntent-locateParam',
+      modelConfigForDefaultIntent,
+      locateParam,
+    );
 
     if (typeof locateParam === 'string') {
       locateParam = {
@@ -353,7 +362,7 @@ export class TaskBuilder {
       };
     }
 
-    const taskFind: ExecutionTaskPlanningLocateApply = {
+    const taskLocator: ExecutionTaskPlanningLocateApply = {
       type: 'Planning',
       subType: 'Locate',
       subTask: context.subTask || undefined,
@@ -440,7 +449,7 @@ export class TaskBuilder {
               {
                 context: uiContext,
               },
-              modelConfig,
+              modelConfigForDefaultIntent,
             );
             applyDump(locateResult.dump);
             elementFromAiLocate = locateResult.element;
@@ -471,7 +480,7 @@ export class TaskBuilder {
                     typeof param.prompt === 'string'
                       ? param.prompt
                       : param.prompt?.prompt,
-                  modelConfig,
+                  modelConfig: modelConfigForDefaultIntent,
                 },
               );
               if (feature && Object.keys(feature).length > 0) {
@@ -543,6 +552,6 @@ export class TaskBuilder {
       },
     };
 
-    return taskFind;
+    return taskLocator;
   }
 }

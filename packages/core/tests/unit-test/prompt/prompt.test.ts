@@ -113,8 +113,21 @@ describe('system prompts', () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
       vlMode: undefined,
+      includeBbox: false,
     });
     expect(prompt).toMatchSnapshot();
+  });
+
+  it('planning - should throw error when includeBbox is true but vlMode is undefined', async () => {
+    await expect(
+      systemPromptToTaskPlanning({
+        actionSpace: mockActionSpace,
+        vlMode: undefined,
+        includeBbox: true,
+      }),
+    ).rejects.toThrow(
+      'vlMode cannot be undefined when includeBbox is true. A valid vlMode is required for bbox-based location.',
+    );
   });
 
   it('planning - 4o - response format', () => {
@@ -126,6 +139,7 @@ describe('system prompts', () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
       vlMode: 'qwen2.5-vl',
+      includeBbox: true,
     });
     expect(prompt).toMatchSnapshot();
   });
@@ -134,6 +148,7 @@ describe('system prompts', () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
       vlMode: 'gemini',
+      includeBbox: true,
     });
     expect(prompt).toMatchSnapshot();
   });
@@ -142,6 +157,7 @@ describe('system prompts', () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
       vlMode: 'qwen2.5-vl',
+      includeBbox: true,
     });
     expect(prompt).toMatchSnapshot();
   });

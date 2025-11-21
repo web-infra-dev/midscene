@@ -151,7 +151,7 @@ export async function callAI(
   let timeCost: number | undefined;
 
   const commonConfig = {
-    temperature: vlMode === 'vlm-ui-tars' ? 0.0 : 0.1,
+    temperature: vlMode === 'vlm-ui-tars' ? 0.0 : undefined,
     stream: !!isStreaming,
     max_tokens: typeof maxTokens === 'number' ? maxTokens : undefined,
     ...(vlMode === 'qwen2.5-vl' // qwen vl v2 specific config

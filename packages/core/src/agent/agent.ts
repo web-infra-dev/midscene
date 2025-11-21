@@ -26,6 +26,7 @@ import {
   type ServiceExtractOption,
   type ServiceExtractParam,
   type TUserPrompt,
+  type ThinkingLevel,
   type UIContext,
 } from '../index';
 export type TestStatus =
@@ -495,12 +496,16 @@ export class Agent<
     );
 
     // assume all operation in action space is related to locating
-    const modelConfig = this.modelConfigManager.getModelConfig('planning');
+    const defaultIntentModelConfig =
+      this.modelConfigManager.getModelConfig('default');
+    const modelConfigForPlanning =
+      this.modelConfigManager.getModelConfig('planning');
 
     const { output } = await this.taskExecutor.runPlans(
       title,
       plans,
-      modelConfig,
+      modelConfigForPlanning,
+      defaultIntentModelConfig,
     );
     return output;
   }
@@ -766,13 +771,26 @@ export class Agent<
     taskPrompt: string,
     opt?: {
       cacheable?: boolean;
+      thinkingLevel?: ThinkingLevel;
     },
   ) {
-    const modelConfig = this.modelConfigManager.getModelConfig('planning');
+    const modelConfigForPlanning =
+      this.modelConfigManager.getModelConfig('planning');
+    const defaultIntentModelConfig =
+      this.modelConfigManager.getModelConfig('default');
+
+    const thinkingLevelToUse = opt?.thinkingLevel || 'medium';
+    // should include bbox in planning if
+    // 1. the planning model is the same as the default intent model
+    // or 2. the thinking level is high
+    const includeBboxInPlanning =
+      modelConfigForPlanning.modelName === defaultIntentModelConfig.modelName ||
+      thinkingLevelToUse === 'high';
+    debug('setting includeBboxInPlanning to', includeBboxInPlanning);
 
     const cacheable = opt?.cacheable;
     // if vlm-ui-tars, plan cache is not used
-    const isVlmUiTars = modelConfig.vlMode === 'vlm-ui-tars';
+    const isVlmUiTars = modelConfigForPlanning.vlMode === 'vlm-ui-tars';
     const matchedCache =
       isVlmUiTars || cacheable === false
         ? undefined
@@ -791,7 +809,10 @@ export class Agent<
 
     const { output } = await this.taskExecutor.action(
       taskPrompt,
-      modelConfig,
+      modelConfigForPlanning,
+      defaultIntentModelConfig,
+      thinkingLevelToUse,
+      includeBboxInPlanning,
       this.opts.aiActionContext,
       cacheable,
     );
@@ -827,6 +848,7 @@ export class Agent<
     taskPrompt: string,
     opt?: {
       cacheable?: boolean;
+      thinkingLevel?: ThinkingLevel;
     },
   ) {
     return this.aiAct(taskPrompt, opt);
@@ -996,12 +1018,16 @@ export class Agent<
     assert(locateParam, 'cannot get locate param for aiLocate');
     const locatePlan = locatePlanForLocate(locateParam);
     const plans = [locatePlan];
-    const modelConfig = this.modelConfigManager.getModelConfig('planning');
+    const defaultIntentModelConfig =
+      this.modelConfigManager.getModelConfig('default');
+    const modelConfigForPlanning =
+      this.modelConfigManager.getModelConfig('planning');
 
     const { output } = await this.taskExecutor.runPlans(
       taskTitleStr('Locate', locateParamStr(locateParam)),
       plans,
-      modelConfig,
+      modelConfigForPlanning,
+      defaultIntentModelConfig,
     );
 
     const { element } = output;

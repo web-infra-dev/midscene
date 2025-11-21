@@ -135,6 +135,8 @@ export interface LocateResult {
   rect?: Rect;
 }
 
+export type ThinkingLevel = 'off' | 'medium' | 'high';
+
 export interface ServiceTaskInfo {
   durationMs: number;
   formatResponse?: string;

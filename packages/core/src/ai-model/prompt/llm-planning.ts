@@ -1,4 +1,3 @@
-import { createAssertAction } from '@/device/index';
 import type { DeviceAction } from '@/types';
 import type { TVlModeTypes } from '@midscene/shared/env';
 import type { ResponseFormatJSONSchema } from 'openai/resources/index';
@@ -8,7 +7,6 @@ import { bboxDescription } from './common';
 
 // Note: put the log field first to trigger the CoT
 
-const vlCurrentLog = `"log": string, // Log your thoughts and what the next one action (ONLY ONE!) you can do according to the screenshot and the instruction. The log should contain the following information: "The user wants to do ... . According to the instruction and the previous logs, next step is to .... Now i am going to compose an action '{ action-type }' to do ....". If no action should be done, log the reason. Use the same language as the user's instruction.`;
 const commonOutputFields = `"error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not foreseeable according to the instruction. Use the same language as the user's instruction.
   "more_actions_needed_by_instruction": boolean, // Consider if there is still more action(s) to do after the action in "Log" is done, according to the instruction. If so, set this field to true. Otherwise, set it to false.`;
 
@@ -16,7 +14,7 @@ const vlLocateParam = (vlMode: TVlModeTypes | undefined) => {
   if (vlMode) {
     return `{bbox: [number, number, number, number], prompt: string } // ${bboxDescription(vlMode)}`;
   }
-  return '{ prompt: string }';
+  return '{ prompt: string /* description of the target element */ }';
 };
 
 export const descriptionForAction = (
@@ -222,39 +220,42 @@ ${tab}${fields.join(`\n${tab}`)}
 export async function systemPromptToTaskPlanning({
   actionSpace,
   vlMode,
+  includeBbox,
 }: {
   actionSpace: DeviceAction<any>[];
   vlMode: TVlModeTypes | undefined;
+  includeBbox: boolean;
 }) {
-  // Append the assertion action to the action space
-  const assertAction = createAssertAction();
-  const extendedActionSpace = [...actionSpace, assertAction];
+  // Validate parameters: if includeBbox is true, vlMode must be defined
+  if (includeBbox && !vlMode) {
+    throw new Error(
+      'vlMode cannot be undefined when includeBbox is true. A valid vlMode is required for bbox-based location.',
+    );
+  }
 
-  const actionNameList = extendedActionSpace
-    .map((action) => action.name)
-    .join(', ');
-  const actionDescriptionList = extendedActionSpace.map((action) => {
-    return descriptionForAction(action, vlLocateParam(vlMode));
+  const actionDescriptionList = actionSpace.map((action) => {
+    return descriptionForAction(
+      action,
+      vlLocateParam(includeBbox ? vlMode : undefined),
+    );
   });
   const actionList = actionDescriptionList.join('\n');
 
   return `
-Target: User will give you a latest screenshot, an instruction and some previous logs indicating what have been done. Please tell what the next one action is (or null if no action should be done) to do the tasks the instruction requires. 
+Target: User will give you an instruction, some screenshots and previous logs indicating what have been done. Your task is to plan the next one action to accomplish the instruction.
+
+Please tell what the next one action is (or null if no action should be done) to do the tasks the instruction requires. 
 
 Restriction:
 - Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
-- Always give ONLY ONE action in \`log\` field (or null if no action should be done), instead of multiple actions. Supported actions are ${actionNameList}.
-- Don't repeat actions in the previous logs.
+- Give just the next ONE action you should do
 
 Supporting actions:
 ${actionList}
 
-Field description:
-* The \`prompt\` field inside the \`locate\` field is a short description that could be used to locate the element.
-
 Return in JSON format:
 {
-  ${vlCurrentLog}
+  "log": string, // Log your thoughts and what the next one action (ONLY ONE!) you can do according to the screenshot and the instruction. The log should contain the following information: "The user wants to do ... . According to the instruction and the previous logs, next step is to .... Now i am going to compose an action '{ action-type }' to do this". If no action should be done, log the reason. Use the same language as the user's instruction.
   ${commonOutputFields}
   "action": 
     {
