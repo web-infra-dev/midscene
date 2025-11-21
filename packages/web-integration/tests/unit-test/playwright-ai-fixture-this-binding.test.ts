@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 // This test verifies that the AI fixture properly maintains 'this' context
 // when dynamically calling agent methods through bracket notation.
