@@ -58,24 +58,21 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   // Feature Sections - DEBUGGING
   debuggingTitle: '开发体验',
   debuggingHeading: '开发者 API 和工具',
-  debuggingDesc1: '丰富的 API - 同时支持智能执行流程与原子化精确控制。',
-  debuggingDesc2:
-    'MCP Server - 将设备操作暴露为 MCP Server，并可与多种模型协作使用。',
-  debuggingDesc3:
-    '报告与 Playground - 优化调试体验，提供更直观的可视化与测试环境。',
-  debuggingDesc4: '灵活集成 - 支持多种脚本格式、自定义模型及扩展特性。',
+  debuggingDesc1: '交互式可视化报告，理解测试执行过程',
+  debuggingDesc2: '内置 Playground 用于调试和测试',
+  debuggingDesc3: 'Chrome 插件提供浏览器内体验',
 
-  // API names
-  apiAction: 'aiAction',
-  apiTap: 'aiTap',
-  apiQuery: 'aiQuery',
-  apiAssert: 'aiAssert',
-  apiPlayback: '回放报告',
-  apiActionDesc: '使用自然语言指令自动规划并执行复杂的 UI 操作。',
-  apiTapDesc: '使用自然语言描述点击或触摸 UI 元素。',
-  apiQueryDesc: '使用自然语言查询从页面中提取结构化数据。',
-  apiAssertDesc: '使用 AI 驱动的断言验证页面状态和条件。',
-  apiPlaybackDesc: '可视化报告，用于理解、回放和调试测试执行过程。',
+  // Feature Cards
+  featureRichAPIs: '丰富的 API',
+  featureRichAPIsDesc: '同时支持智能执行流程与原子化精确控制。',
+  featureMCPServer: 'MCP Server',
+  featureMCPServerDesc: '将设备操作暴露为 MCP Server，并可与多种模型协作使用。',
+  featureReportsPlayground: '报告与 Playground',
+  featureReportsPlaygroundDesc: '优化调试体验，提供更直观的可视化与测试环境。',
+  featureFlexibleIntegration: '灵活集成',
+  featureFlexibleIntegrationDesc: '支持多种脚本格式、自定义模型及扩展特性。',
+
+  // View All APIs
   apiMoreLink: '查看所有 API',
-  apiMoreDesc: '探索完整的 API 文档，了解更多自动化功能。',
+  apiMoreDesc: '探索完整的 API 文档以获取更多自动化能力。',
 };

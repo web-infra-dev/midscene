@@ -61,31 +61,25 @@ export const EN_US = {
   // Feature Sections - DEBUGGING
   debuggingTitle: 'DEVELOPER EXPERIENCE',
   debuggingHeading: 'Developer APIs & Tools',
-  debuggingDesc1:
-    'Rich APIs - Enables both smart automation workflows and fine-grained atomic control.',
-  debuggingDesc2:
-    'MCP Server - Exposes device operations as an MCP Server for collaboration with various models.',
-  debuggingDesc3:
-    'Reports & Playground - Enhances debugging with intuitive visualization and testing environments.',
-  debuggingDesc4:
-    'Flexible Integration - Supports multiple script formats, custom models, and extensible features.',
+  debuggingDesc1: 'Interactive visual reports for understanding test execution',
+  debuggingDesc2: 'Built-in Playground for debugging and testing',
+  debuggingDesc3: 'Chrome Extension for in-browser experience',
 
-  // API names
-  apiAction: 'aiAction',
-  apiTap: 'aiTap',
-  apiQuery: 'aiQuery',
-  apiAssert: 'aiAssert',
-  apiPlayback: 'Playback Report',
-  apiActionDesc:
-    'Automatically plan and execute complex UI operations with natural language instructions.',
-  apiTapDesc:
-    'Click or tap on UI elements using natural language descriptions.',
-  apiQueryDesc:
-    'Extract structured data from the page using natural language queries.',
-  apiAssertDesc:
-    'Verify page states and conditions with AI-powered assertions.',
-  apiPlaybackDesc:
-    'Visual reports for understanding, replaying, and debugging test execution.',
+  // Feature Cards
+  featureRichAPIs: 'Rich APIs',
+  featureRichAPIsDesc:
+    'Enables both smart automation workflows and fine-grained atomic control.',
+  featureMCPServer: 'MCP Server',
+  featureMCPServerDesc:
+    'Exposes device operations as an MCP Server for collaboration with various models.',
+  featureReportsPlayground: 'Reports & Playground',
+  featureReportsPlaygroundDesc:
+    'Enhances debugging with intuitive visualization and testing environments.',
+  featureFlexibleIntegration: 'Flexible Integration',
+  featureFlexibleIntegrationDesc:
+    'Supports multiple script formats, custom models, and extensible features.',
+
+  // View All APIs
   apiMoreLink: 'View All APIs',
   apiMoreDesc:
     'Explore the complete API documentation for more automation capabilities.',

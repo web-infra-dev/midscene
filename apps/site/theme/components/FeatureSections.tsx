@@ -294,122 +294,95 @@ export function FeatureSections() {
                 {t('debuggingDesc3')}
               </div>
             </div>
-            <div className="flex flex-row gap-x-3">
-              <div className="w-3 pt-1.5">
-                <GradientIcon />
-              </div>
-              <div className="flex-1 font-sans text-sm md:text-base font-normal leading-[22px] md:leading-[26px] text-black/70 dark:text-white/70">
-                {t('debuggingDesc4')}
-              </div>
-            </div>
           </div>
         </div>
 
-        {/* Right side - API cards */}
+        {/* Right side - Feature cards */}
         <div className="w-full lg:w-[807px] flex flex-col gap-y-6 md:gap-y-10">
           {/* Top row */}
           <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
-            {/* aiAction Card */}
+            {/* Rich APIs Card */}
             <div className="w-full md:w-[383px] flex flex-col gap-4 md:gap-6">
               <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
-                {t('apiAction')}
+                {t('featureRichAPIs')}
               </p>
               <div className="flex flex-col gap-y-[17px]">
                 <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center bg-gray-100 dark:bg-[#1C1C1C]">
                   <img
                     src="/icon/ai-action.svg"
-                    alt="aiAction"
+                    alt="Rich APIs"
                     className="w-12 h-12 md:w-16 md:h-16"
                   />
                 </div>
                 <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
-                  {t('apiActionDesc')}
+                  {t('featureRichAPIsDesc')}
                 </div>
               </div>
             </div>
 
-            {/* aiTap Card */}
+            {/* MCP Server Card */}
             <div className="w-full md:w-[383px] flex flex-col gap-4 md:gap-6">
               <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
-                {t('apiTap')}
+                {t('featureMCPServer')}
               </p>
               <div className="flex flex-col gap-y-[17px]">
                 <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center bg-gray-100 dark:bg-[#1c1c1c]">
                   <img
                     src="/icon/ai-tap.svg"
-                    alt="aiTap"
+                    alt="MCP Server"
                     className="w-12 h-12 md:w-16 md:h-16"
                   />
                 </div>
                 <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
-                  {t('apiTapDesc')}
+                  {t('featureMCPServerDesc')}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Middle row - aiQuery and aiAssert */}
+          {/* Bottom row */}
           <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
-            {/* aiQuery Card */}
+            {/* Reports & Playground Card */}
             <div className="w-full md:w-[383px] flex flex-col gap-4 md:gap-6">
               <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
-                {t('apiQuery')}
+                {t('featureReportsPlayground')}
               </p>
               <div className="flex flex-col gap-y-[17px]">
                 <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center bg-gray-100 dark:bg-[#1C1C1C]">
                   <img
-                    src="/icon/ai-query.svg"
-                    alt="aiQuery"
+                    src="/icon/playback-report.svg"
+                    alt="Reports & Playground"
                     className="w-12 h-12 md:w-16 md:h-16"
                   />
                 </div>
                 <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
-                  {t('apiQueryDesc')}
+                  {t('featureReportsPlaygroundDesc')}
                 </div>
               </div>
             </div>
 
-            {/* aiAssert Card */}
+            {/* Flexible Integration Card */}
             <div className="w-full md:w-[383px] flex flex-col gap-4 md:gap-6">
               <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
-                {t('apiAssert')}
+                {t('featureFlexibleIntegration')}
               </p>
               <div className="flex flex-col gap-y-[17px]">
                 <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center bg-gray-100 dark:bg-[#1c1c1c]">
                   <img
-                    src="/icon/ai-assert.svg"
-                    alt="aiAssert"
+                    src="/icon/ai-query.svg"
+                    alt="Flexible Integration"
                     className="w-12 h-12 md:w-16 md:h-16"
                   />
                 </div>
                 <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
-                  {t('apiAssertDesc')}
+                  {t('featureFlexibleIntegrationDesc')}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Bottom row - Playback Report and View All APIs button */}
+          {/* View All APIs row */}
           <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
-            {/* Playback Report */}
-            <div className="w-full md:w-[383px] flex flex-col gap-y-4 md:gap-y-6">
-              <div className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
-                {t('apiPlayback')}
-              </div>
-              <div className="flex flex-col gap-[17px]">
-                <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center bg-gray-100 dark:bg-[#1C1C1C]">
-                  <img
-                    src="/icon/playback-report.svg"
-                    alt="Playback Report"
-                    className="w-12 h-12 md:w-16 md:h-16"
-                  />
-                </div>
-                <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
-                  {t('apiPlaybackDesc')}
-                </div>
-              </div>
-            </div>
-
             {/* View All APIs Link Card */}
             <div className="w-full md:w-[383px] flex flex-col gap-y-4 md:gap-y-6">
               <div className="font-sans font-medium text-xl md:text-2xl leading-6 text-transparent">
@@ -443,7 +416,7 @@ export function FeatureSections() {
                     </svg>
                   </div>
                   <div className="font-sans text-sm text-black/60 dark:text-white/60">
-                    aiLocate, aiInput, aiScroll...
+                    aiAction, aiLocate, aiAssert...
                   </div>
                 </a>
                 <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
