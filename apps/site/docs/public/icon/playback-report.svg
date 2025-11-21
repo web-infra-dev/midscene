@@ -1,0 +1,24 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="32" cy="32" r="28" fill="#FA884B" opacity="0.1"/>
+
+  <!-- Monitor/screen icon representing report -->
+  <rect x="16" y="18" width="32" height="22" rx="2" fill="#FA884B"/>
+  <rect x="19" y="21" width="26" height="16" fill="white"/>
+
+  <!-- Play button in the center -->
+  <path d="M30 27L36 31L30 35V27Z" fill="#FA884B"/>
+
+  <!-- Timeline/progress bar -->
+  <rect x="19" y="38" width="26" height="2" rx="1" fill="white" opacity="0.6"/>
+  <rect x="19" y="38" width="13" height="2" rx="1" fill="white"/>
+
+  <!-- Monitor stand -->
+  <rect x="29" y="40" width="6" height="4" fill="#FA884B"/>
+  <rect x="24" y="44" width="16" height="2" rx="1" fill="#FA884B"/>
+
+  <!-- Playback indicators (dots) -->
+  <circle cx="22" y="33" r="1.5" fill="#FA884B"/>
+  <circle cx="27" y="33" r="1.5" fill="#FA884B"/>
+  <circle cx="32" y="33" r="1.5" fill="#FA884B" opacity="0.5"/>
+</svg>

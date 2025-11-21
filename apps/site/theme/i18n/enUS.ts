@@ -19,7 +19,7 @@ export const EN_US = {
   clientsHeading: 'Web, iOS, Android, and more',
   clientsDesc1:
     'Control browsers and mobile apps with natural language across multiple platforms',
-  clientsDesc2: 'Achieved ultra-high scores on Web Voyager benchmark',
+  clientsDesc2: 'Unified API design for seamless cross-platform automation',
 
   // Feature Sections - Platforms
   platformWeb: 'Web',
@@ -38,13 +38,20 @@ export const EN_US = {
   // Feature Sections - MODELS
   modelsTitle: 'MODELS',
   modelsHeading: 'AI Models for UI Automation',
-  modelsDesc1: 'Support for GPT-4o, Qwen2.5-VL, Doubao, Gemini, and UI-TARS',
+  modelsDesc1: 'Support for Doubao Seed, Qwen3-VL, Gemini-2.5-Pro, and UI-TARS',
   modelsDesc2:
     'Visual-language models recommended for reliable and cost-effective automation',
-  modelsDesc3: 'No DOM limitations - works with any visual interface',
-  modelName: 'Model name',
-  modelDesc:
-    'Choose from multimodal LLMs or visual-language models for your automation needs.',
+  modelsDesc3: 'OpenAI SDK-compatible interface for quick integration with major model providers',
+
+  // Model Cards
+  modelSeedName: 'Doubao Seed',
+  modelSeedDesc: 'Vision model from ByteDance, optimized for visual understanding and UI element recognition with excellent performance.',
+  modelQwenName: 'Qwen3-VL',
+  modelQwenDesc: 'Alibaba Cloud Qwen vision-language model with high-quality image understanding and UI element recognition at competitive pricing.',
+  modelGeminiName: 'Gemini-2.5-Pro',
+  modelGeminiDesc: 'Google\'s advanced multimodal model with powerful vision capabilities and comprehensive UI automation support.',
+  modelUITARSName: 'UI-TARS',
+  modelUITARSDesc: 'Vision-language model specifically designed for UI automation, providing precise element localization and operation capabilities.',
 
   // Feature Sections - DEBUGGING
   debuggingTitle: 'DEBUGGING',
@@ -56,11 +63,19 @@ export const EN_US = {
   // API names
   apiAction: 'aiAction',
   apiTap: 'aiTap',
+  apiQuery: 'aiQuery',
+  apiAssert: 'aiAssert',
   apiPlayback: 'Playback Report',
   apiActionDesc:
     'Automatically plan and execute complex UI operations with natural language instructions.',
   apiTapDesc:
     'Click or tap on UI elements using natural language descriptions.',
+  apiQueryDesc:
+    'Extract structured data from the page using natural language queries.',
+  apiAssertDesc:
+    'Verify page states and conditions with AI-powered assertions.',
   apiPlaybackDesc:
     'Visual reports for understanding, replaying, and debugging test execution.',
+  apiMoreLink: 'View All APIs',
+  apiMoreDesc: 'Explore the complete API documentation for more automation capabilities.',
 } as const;
