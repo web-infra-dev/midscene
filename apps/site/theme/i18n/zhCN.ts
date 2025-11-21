@@ -56,8 +56,8 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
     '专为 UI 自动化设计的视觉语言模型，提供精准的界面元素定位和操作能力。',
 
   // Feature Sections - DEBUGGING
-  debuggingTitle: '特性',
-  debuggingHeading: '强大的功能',
+  debuggingTitle: '开发体验',
+  debuggingHeading: '开发者 API 和工具',
   debuggingDesc1: '丰富的 API - 支持智能自动化和细粒度原子控制。',
   debuggingDesc2: 'MCP Server - 将设备操作暴露为 MCP Server，与多种模型协作。',
   debuggingDesc3: '报告和 Playground - 通过更清晰的可视化和测试工具改进调试体验。',

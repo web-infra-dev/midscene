@@ -59,8 +59,8 @@ export const EN_US = {
     'Vision-language model specifically designed for UI automation, providing precise element localization and operation capabilities.',
 
   // Feature Sections - DEBUGGING
-  debuggingTitle: 'FEATURES',
-  debuggingHeading: 'Powerful Features',
+  debuggingTitle: 'DEVELOPER EXPERIENCE',
+  debuggingHeading: 'Developer APIs & Tools',
   debuggingDesc1: 'Rich APIs - Enables smart automation and fine-grained atomic control.',
   debuggingDesc2: 'MCP Server - Exposes device operations as an MCP Server and collaborates with various models.',
   debuggingDesc3: 'Reports & Playground - Improves debugging with clearer visualization and testing tools.',
