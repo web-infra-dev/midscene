@@ -196,14 +196,8 @@ export function FeatureSections() {
               {t('modelName')}
             </span>
             <div className="flex flex-col gap-y-[17px]">
-              <div className="bg-[#1D1D46] rounded-2xl w-full h-[120px] md:h-[160px] flex items-center justify-center">
-                <div className="w-12 h-12 md:w-16 md:h-16 rounded-2xl overflow-hidden">
-                  <img
-                    src="https://placehold.co/64x64.png"
-                    alt="Model"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+              <div className="bg-[#07112B] rounded-2xl shadow-[0_4px_4px_0_rgba(0,0,0,0.05)] w-full h-[120px] md:h-[160px] flex items-center justify-center">
+                <div className="w-12 h-12 md:w-16 md:h-16 bg-white rounded-2xl shadow-[0_4px_4px_rgba(0,0,0,0.05)]" />
               </div>
               <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
                 {t('modelDesc')}

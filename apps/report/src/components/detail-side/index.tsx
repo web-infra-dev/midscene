@@ -2,14 +2,15 @@
 'use client';
 import './index.less';
 
-import { RadiusSettingOutlined } from '@ant-design/icons';
+import { FileImageOutlined, RadiusSettingOutlined } from '@ant-design/icons';
 import type {
+  ExecutionTaskAction,
   ExecutionTaskInsightAssertion,
   ExecutionTaskPlanning,
   ExecutionTaskPlanningApply,
   LocateResultElement,
 } from '@midscene/core';
-import { paramStr, typeStr } from '@midscene/core/agent';
+import { extractInsightParam, paramStr, typeStr } from '@midscene/core/agent';
 import {
   highlightColorForType,
   timeCostStrElement,
@@ -93,8 +94,99 @@ const Card = (props: {
   );
 };
 
+// Shared helper function to render element detail box
+const renderElementDetailBox = (_value: LocateResultElement) => {
+  const hasCenter = _value.center && Array.isArray(_value.center);
+  const hasRect = _value.rect;
+
+  // If it has center and rect, show detailed info
+  if (hasCenter && hasRect) {
+    const { center, rect } = _value;
+    const { left, top, width, height } = rect;
+
+    return (
+      <div className="element-detail-box">
+        <div className="element-detail-line">
+          {_value.description} (center=[{center[0]}, {center[1]}])
+        </div>
+        <div className="element-detail-line element-detail-coords">
+          left={Math.round(left)}, top={Math.round(top)}, width=
+          {Math.round(width)}, height={Math.round(height)}
+        </div>
+      </div>
+    );
+  }
+
+  // Fallback to simple tag
+  return (
+    <span>
+      <Tag bordered={false} color="orange" className="element-button">
+        Element
+      </Tag>
+    </span>
+  );
+};
+
+// Helper function to render content with element detection
+const renderMetaContent = (
+  content: string | JSX.Element,
+): string | JSX.Element => {
+  // If content is already JSX, return it
+  if (typeof content !== 'string') {
+    return content;
+  }
+
+  // Try to parse JSON string
+  try {
+    const parsed = JSON.parse(content);
+
+    // Check if it's a locate object with element inside
+    if (parsed.locate && isElementField(parsed.locate)) {
+      return (
+        <div>
+          <div style={{ marginBottom: '8px' }}>locate:</div>
+          {renderElementDetailBox(parsed.locate)}
+        </div>
+      );
+    }
+
+    // Check if it's directly an element
+    if (isElementField(parsed)) {
+      return renderElementDetailBox(parsed);
+    }
+  } catch (e) {
+    // Not JSON, return as is
+  }
+
+  return content;
+};
+
+// Helper function to extract images from task params
+const extractTaskImages = (
+  param: any,
+): Array<{ name: string; url: string }> | undefined => {
+  // For locate params (Planning and Action Space tasks)
+  if (param?.prompt?.images && Array.isArray(param.prompt.images)) {
+    return param.prompt.images;
+  }
+
+  // For nested locate params (Action Space tasks)
+  if (
+    param?.locate?.prompt?.images &&
+    Array.isArray(param.locate.prompt.images)
+  ) {
+    return param.locate.prompt.images;
+  }
+
+  return undefined;
+};
+
 const MetaKV = (props: {
-  data: { key: string; content: string | JSX.Element }[];
+  data: {
+    key: string;
+    content: string | JSX.Element;
+    images?: { name: string; url: string }[];
+  }[];
 }) => {
   return (
     <div className="meta-kv">
@@ -102,7 +194,23 @@ const MetaKV = (props: {
         return (
           <div className="meta" key={index}>
             <div className="meta-key">{item.key}</div>
-            <div className="meta-value">{item.content}</div>
+            <div className="meta-value">{renderMetaContent(item.content)}</div>
+            {item.images && item.images.length > 0 && (
+              <div className="meta-images">
+                {item.images.map((image, imgIndex) => (
+                  <div key={imgIndex} className="meta-image-item">
+                    <FileImageOutlined style={{ marginRight: '6px' }} />
+                    <a
+                      href={image.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {image.name}
+                    </a>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         );
       })}
@@ -133,37 +241,7 @@ const DetailSide = (): JSX.Element => {
     ?.aiActionContext;
 
   // Helper functions for rendering element items
-  const elementEl = (_value: LocateResultElement) => {
-    const hasCenter = _value.center && Array.isArray(_value.center);
-    const hasRect = _value.rect;
-
-    // If it has center and rect, show detailed info
-    if (hasCenter && hasRect) {
-      const { center, rect } = _value;
-      const { left, top, width, height } = rect;
-
-      return (
-        <div className="element-detail-box">
-          <div className="element-detail-line">
-            {_value.description} (center=[{center[0]}, {center[1]}])
-          </div>
-          <div className="element-detail-line element-detail-coords">
-            left={Math.round(left)}, top={Math.round(top)}, width=
-            {Math.round(width)}, height={Math.round(height)}
-          </div>
-        </div>
-      );
-    }
-
-    // Fallback to simple tag
-    return (
-      <span>
-        <Tag bordered={false} color="orange" className="element-button">
-          Element
-        </Tag>
-      </span>
-    );
-  };
+  const elementEl = renderElementDetailBox;
 
   const kv = (data: Record<string, unknown>) => {
     // Recursively render value
@@ -317,12 +395,24 @@ const DetailSide = (): JSX.Element => {
   if (task?.type === 'Planning') {
     const planningTask = task as ExecutionTaskPlanning;
     const isPageContextFrozen = Boolean((task?.uiContext as any)?._isFrozen);
+
+    // Extract images from Planning/Locate tasks
+    const locateParam = (planningTask as any)?.param;
+    const images = extractTaskImages(locateParam);
+
     if (planningTask.param?.userInstruction) {
+      // Ensure userInstruction is a string
+      const instructionContent =
+        typeof planningTask.param.userInstruction === 'string'
+          ? planningTask.param.userInstruction
+          : JSON.stringify(planningTask.param.userInstruction);
+
       taskInput = MetaKV({
         data: [
           {
             key: 'instruction',
-            content: planningTask.param.userInstruction,
+            content: instructionContent,
+            images: images,
           },
           ...(isPageContextFrozen
             ? [
@@ -335,11 +425,19 @@ const DetailSide = (): JSX.Element => {
         ],
       });
     } else {
+      // Ensure paramStr result is a string
+      const paramValue = paramStr(task);
+      const promptContent =
+        typeof paramValue === 'string'
+          ? paramValue
+          : JSON.stringify(paramValue);
+
       taskInput = MetaKV({
         data: [
           {
             key: 'userPrompt',
-            content: paramStr(task) || '',
+            content: promptContent,
+            images: images,
           },
           ...(isPageContextFrozen
             ? [
@@ -354,13 +452,22 @@ const DetailSide = (): JSX.Element => {
     }
   } else if (task?.type === 'Insight') {
     const isPageContextFrozen = Boolean((task?.uiContext as any)?._isFrozen);
+
+    // Use extractInsightParam to get content and images
+    const taskParam = (task as any)?.param;
+    const { content: displayContent, images } = extractInsightParam(taskParam);
+
+    // Fallback to paramStr if no content extracted
+    const finalContent = displayContent || paramStr(task);
+
     taskInput = MetaKV({
       data: [
-        ...(paramStr(task)
+        ...(finalContent
           ? [
               {
                 key: 'param',
-                content: paramStr(task) || '',
+                content: finalContent,
+                images: images,
               },
             ]
           : []),
@@ -383,14 +490,39 @@ const DetailSide = (): JSX.Element => {
       ],
     });
   } else if (task?.type === 'Action Space') {
-    taskInput = MetaKV({
-      data: [
-        {
-          key: 'value',
-          content: paramStr(task) || '',
-        },
-      ],
-    });
+    const actionTask = task as ExecutionTaskAction;
+
+    // Helper to convert to string
+    const toContent = (value: any) =>
+      typeof value === 'string' ? value : JSON.stringify(value);
+
+    const images = extractTaskImages(actionTask?.param);
+    const data: {
+      key: string;
+      content: string;
+      images?: { name: string; url: string }[];
+    }[] = [];
+
+    if (actionTask?.param && typeof actionTask.param === 'object') {
+      Object.entries(actionTask.param).forEach(([key, value]) => {
+        data.push({
+          key,
+          content: toContent(value),
+          images: key === 'locate' ? images : undefined,
+        });
+      });
+    }
+
+    // Fallback to paramStr if param is not an object
+    if (data.length === 0) {
+      data.push({
+        key: 'value',
+        content: toContent(paramStr(task)),
+        images: images,
+      });
+    }
+
+    taskInput = MetaKV({ data });
   } else if (task?.type === 'Log') {
     taskInput = task.param?.content ? (
       <pre className="log-content">{task.param.content}</pre>
@@ -666,32 +798,81 @@ const DetailSide = (): JSX.Element => {
     const thought = task?.thought;
 
     if (data !== undefined) {
-      outputDataContent = (
-        <>
-          {thought && (
+      const outputItems: JSX.Element[] = [];
+
+      // Add thought if exists
+      if (thought) {
+        outputItems.push(
+          <Card
+            key="thought"
+            liteMode={true}
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={<pre>{thought}</pre>}
+            title="thought"
+          />,
+        );
+      }
+
+      // Handle output data
+      if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
+        // For object output, create a Card for each field
+        Object.entries(data).forEach(([key, value]) => {
+          let content: JSX.Element;
+
+          if (isElementField(value)) {
+            content = elementEl(value);
+          } else if (typeof value === 'object' && value !== null) {
+            // Check if it's a locate object
+            const valueAsAny = value as any;
+            if (valueAsAny.locate && isElementField(valueAsAny.locate)) {
+              content = (
+                <div>
+                  <div style={{ marginBottom: '8px' }}>locate:</div>
+                  {renderElementDetailBox(valueAsAny.locate)}
+                </div>
+              );
+            } else {
+              content = (
+                <pre className="description-content">
+                  {JSON.stringify(value, undefined, 2)}
+                </pre>
+              );
+            }
+          } else {
+            content = (
+              <pre className="description-content">{String(value)}</pre>
+            );
+          }
+
+          outputItems.push(
             <Card
+              key={key}
               liteMode={true}
               onMouseEnter={noop}
               onMouseLeave={noop}
-              content={<pre>{thought}</pre>}
-              title="thought"
-            />
-          )}
+              title={key}
+              content={content}
+            />,
+          );
+        });
+      } else {
+        // For non-object output, show as-is
+        outputItems.push(
           <Card
+            key="output"
             liteMode={true}
             onMouseEnter={noop}
             onMouseLeave={noop}
             title="output"
-            content={
-              typeof data === 'object' && data !== null ? (
-                kv(data as Record<string, unknown>)
-              ) : (
-                <pre>{String(data)}</pre>
-              )
-            }
-          />
-        </>
-      );
+            content={<pre>{String(data)}</pre>}
+          />,
+        );
+      }
+
+      if (outputItems.length > 0) {
+        outputDataContent = outputItems;
+      }
     }
   }
 
@@ -707,14 +888,16 @@ const DetailSide = (): JSX.Element => {
           </summary>
           {taskInput}
         </details>
-        <details open>
-          <summary>
-            <span className="summary-text">
-              {task?.subType === 'Locate' ? 'Element' : 'Output'}
-            </span>
-          </summary>
-          <div className="item-list">{outputDataContent}</div>
-        </details>
+        {outputDataContent && (
+          <details open>
+            <summary>
+              <span className="summary-text">
+                {task?.subType === 'Locate' ? 'Element' : 'Output'}
+              </span>
+            </summary>
+            <div className="item-list">{outputDataContent}</div>
+          </details>
+        )}
         <details open>
           <summary>
             <span className="summary-text">Meta</span>
