@@ -174,33 +174,85 @@ export function FeatureSections() {
         </div>
 
         {/* Right side - Model cards */}
-        <div className="w-full lg:w-[807px] flex flex-col md:flex-row gap-6 md:gap-x-10">
-          {/* Model 1 */}
-          <div className="w-full md:w-[383px] flex flex-col gap-4 md:gap-6">
-            <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
-              {t('modelName')}
-            </p>
-            <div className="flex flex-col gap-y-[17px]">
-              <div className="bg-[#07112B] rounded-2xl shadow-[0_4px_4px_0_rgba(0,0,0,0.05)] w-full h-[120px] md:h-[160px] flex items-center justify-center">
-                <div className="w-12 h-12 md:w-16 md:h-16 bg-white rounded-2xl shadow-[0_4px_4px_rgba(0,0,0,0.05)]" />
+        <div className="w-full lg:w-[807px] flex flex-col gap-y-6 md:gap-y-10">
+          {/* Top row - Seed and Qwen */}
+          <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
+            {/* Model 1 - Seed */}
+            <div className="w-full md:w-[383px] flex flex-col gap-4 md:gap-6">
+              <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
+                {t('modelSeedName')}
+              </p>
+              <div className="flex flex-col gap-y-[17px]">
+                <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex items-center justify-center bg-gray-100 dark:bg-[#1C1C1C]">
+                  <img
+                    src="/icon/doubao-color.svg"
+                    alt="Doubao Seed"
+                    className="w-12 h-12 md:w-16 md:h-16"
+                  />
+                </div>
+                <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
+                  {t('modelSeedDesc')}
+                </div>
               </div>
-              <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
-                {t('modelDesc')}
+            </div>
+
+            {/* Model 2 - Qwen */}
+            <div className="w-full md:w-[383px] flex flex-col gap-4 md:gap-6">
+              <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
+                {t('modelQwenName')}
+              </p>
+              <div className="flex flex-col gap-y-[17px]">
+                <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex items-center justify-center bg-gray-100 dark:bg-[#1C1C1C]">
+                  <img
+                    src="/icon/qwen-color.svg"
+                    alt="Qwen3-VL"
+                    className="w-12 h-12 md:w-16 md:h-16"
+                  />
+                </div>
+                <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
+                  {t('modelQwenDesc')}
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Model 2 */}
-          <div className="w-full md:w-[383px] flex flex-col gap-4 md:gap-6">
-            <span className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
-              {t('modelName')}
-            </span>
-            <div className="flex flex-col gap-y-[17px]">
-              <div className="bg-[#07112B] rounded-2xl shadow-[0_4px_4px_0_rgba(0,0,0,0.05)] w-full h-[120px] md:h-[160px] flex items-center justify-center">
-                <div className="w-12 h-12 md:w-16 md:h-16 bg-white rounded-2xl shadow-[0_4px_4px_rgba(0,0,0,0.05)]" />
+          {/* Bottom row - Gemini and UI-TARS */}
+          <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
+            {/* Model 3 - Gemini */}
+            <div className="w-full md:w-[383px] flex flex-col gap-4 md:gap-6">
+              <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
+                {t('modelGeminiName')}
+              </p>
+              <div className="flex flex-col gap-y-[17px]">
+                <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex items-center justify-center bg-gray-100 dark:bg-[#1C1C1C]">
+                  <img
+                    src="/icon/gemini-color.svg"
+                    alt="Gemini-2.5-Pro"
+                    className="w-12 h-12 md:w-16 md:h-16"
+                  />
+                </div>
+                <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
+                  {t('modelGeminiDesc')}
+                </div>
               </div>
-              <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
-                {t('modelDesc')}
+            </div>
+
+            {/* Model 4 - UI-TARS */}
+            <div className="w-full md:w-[383px] flex flex-col gap-4 md:gap-6">
+              <span className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
+                {t('modelUITARSName')}
+              </span>
+              <div className="flex flex-col gap-y-[17px]">
+                <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex items-center justify-center bg-gray-100 dark:bg-[#1C1C1C]">
+                  <img
+                    src="/icon/bytedance-color.svg"
+                    alt="UI-TARS"
+                    className="w-12 h-12 md:w-16 md:h-16"
+                  />
+                </div>
+                <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
+                  {t('modelUITARSDesc')}
+                </div>
               </div>
             </div>
           </div>
@@ -245,52 +297,131 @@ export function FeatureSections() {
           </div>
         </div>
 
-        {/* Right side - API cards */}
+        {/* Right side - Feature cards */}
         <div className="w-full lg:w-[807px] flex flex-col gap-y-6 md:gap-y-10">
           {/* Top row */}
           <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
-            {/* aiAction Card */}
+            {/* Rich APIs Card */}
             <div className="w-full md:w-[383px] flex flex-col gap-4 md:gap-6">
               <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
-                {t('apiAction')}
+                {t('featureRichAPIs')}
               </p>
               <div className="flex flex-col gap-y-[17px]">
                 <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center bg-gray-100 dark:bg-[#1C1C1C]">
-                  <div className="w-12 h-12 md:w-16 md:h-16 rounded-2xl shadow-[0_4px_4px_rgba(0,0,0,0.05)] bg-gray-300 dark:bg-[#313131]" />
+                  <img
+                    src="/icon/ai-action.svg"
+                    alt="Rich APIs"
+                    className="w-12 h-12 md:w-16 md:h-16"
+                  />
                 </div>
                 <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
-                  {t('apiActionDesc')}
+                  {t('featureRichAPIsDesc')}
                 </div>
               </div>
             </div>
 
-            {/* aiTap Card */}
+            {/* MCP Server Card */}
             <div className="w-full md:w-[383px] flex flex-col gap-4 md:gap-6">
               <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
-                {t('apiTap')}
+                {t('featureMCPServer')}
               </p>
               <div className="flex flex-col gap-y-[17px]">
                 <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center bg-gray-100 dark:bg-[#1c1c1c]">
-                  <div className="w-12 h-12 md:w-16 md:h-16 rounded-2xl shadow-[0_4px_4px_0_rgba(0,0,0,0.05)] bg-gray-300 dark:bg-[#313131]" />
+                  <img
+                    src="/icon/ai-tap.svg"
+                    alt="MCP Server"
+                    className="w-12 h-12 md:w-16 md:h-16"
+                  />
                 </div>
                 <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
-                  {t('apiTapDesc')}
+                  {t('featureMCPServerDesc')}
                 </div>
               </div>
             </div>
           </div>
 
           {/* Bottom row */}
-          <div className="w-full md:w-[383px] flex flex-col gap-y-4 md:gap-y-6">
-            <div className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
-              {t('apiPlayback')}
-            </div>
-            <div className="flex flex-col gap-[17px]">
-              <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center bg-gray-100 dark:bg-[#1C1C1C]">
-                <div className="w-12 h-12 md:w-16 md:h-16 rounded-2xl shadow-[0_4px_4px_0_rgba(0,0,0,0.05)] bg-gray-300 dark:bg-[#313131]" />
+          <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
+            {/* Reports & Playground Card */}
+            <div className="w-full md:w-[383px] flex flex-col gap-4 md:gap-6">
+              <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
+                {t('featureReportsPlayground')}
+              </p>
+              <div className="flex flex-col gap-y-[17px]">
+                <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center bg-gray-100 dark:bg-[#1C1C1C]">
+                  <img
+                    src="/icon/playback-report.svg"
+                    alt="Reports & Playground"
+                    className="w-12 h-12 md:w-16 md:h-16"
+                  />
+                </div>
+                <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
+                  {t('featureReportsPlaygroundDesc')}
+                </div>
               </div>
-              <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
-                {t('apiPlaybackDesc')}
+            </div>
+
+            {/* Flexible Integration Card */}
+            <div className="w-full md:w-[383px] flex flex-col gap-4 md:gap-6">
+              <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
+                {t('featureFlexibleIntegration')}
+              </p>
+              <div className="flex flex-col gap-y-[17px]">
+                <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center bg-gray-100 dark:bg-[#1c1c1c]">
+                  <img
+                    src="/icon/ai-query.svg"
+                    alt="Flexible Integration"
+                    className="w-12 h-12 md:w-16 md:h-16"
+                  />
+                </div>
+                <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
+                  {t('featureFlexibleIntegrationDesc')}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* View All APIs row */}
+          <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
+            {/* View All APIs Link Card */}
+            <div className="w-full md:w-[383px] flex flex-col gap-y-4 md:gap-y-6">
+              <div className="font-sans font-medium text-xl md:text-2xl leading-6 text-transparent">
+                {/* Empty placeholder to align with other cards */}.
+              </div>
+              <div className="flex flex-col gap-[17px]">
+                <a
+                  href="/zh/api"
+                  className="rounded-2xl w-full h-[120px] md:h-[160px] flex flex-col justify-center items-center bg-gray-100 dark:bg-[#1C1C1C] hover:bg-gray-200 dark:hover:bg-[#252525] transition-all duration-200 cursor-pointer group border-2 border-transparent hover:border-[#0555FF]"
+                >
+                  <div className="flex items-center gap-2 font-sans font-semibold text-lg text-black dark:text-white mb-2">
+                    {t('apiMoreLink')}
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 20 20"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="transition-transform group-hover:translate-x-1"
+                      role="img"
+                      aria-label="Arrow right"
+                    >
+                      <title>Arrow right</title>
+                      <path
+                        d="M7.5 15L12.5 10L7.5 5"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </div>
+                  <div className="font-sans text-sm text-black/60 dark:text-white/60">
+                    aiAction, aiLocate, aiAssert...
+                  </div>
+                </a>
+                <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
+                  {t('apiMoreDesc')}
+                </div>
               </div>
             </div>
           </div>

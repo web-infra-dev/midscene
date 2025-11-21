@@ -20,7 +20,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   clientsTitle: '平台',
   clientsHeading: 'Web、iOS、Android 等多端支持',
   clientsDesc1: '用自然语言跨平台控制浏览器和移动应用',
-  clientsDesc2: '在 Web Voyager 基准测试中获得超高分数',
+  clientsDesc2: '统一的 API 设计，轻松实现跨平台自动化',
 
   // Feature Sections - Platforms
   platformWeb: 'Web',
@@ -37,24 +37,42 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   // Feature Sections - MODELS
   modelsTitle: '模型',
   modelsHeading: 'UI 自动化的 AI 模型',
-  modelsDesc1: '支持 GPT-4o、Qwen2.5-VL、豆包、Gemini 和 UI-TARS',
+  modelsDesc1: '支持豆包 Seed、Qwen3-VL、Gemini-2.5-Pro 和 UI-TARS',
   modelsDesc2: '推荐使用视觉语言模型，可靠且成本低',
-  modelsDesc3: '无 DOM 限制 - 适用于任何可视化界面',
-  modelName: '模型名称',
-  modelDesc: '选择多模态 LLM 或视觉语言模型，满足你的自动化需求。',
+  modelsDesc3: '兼容 OpenAI SDK 风格接口，快速集成主流模型服务',
+
+  // Model Cards
+  modelSeedName: '豆包 Seed',
+  modelSeedDesc:
+    '字节跳动视觉模型，针对视觉理解和 UI 元素识别进行优化，性能出色。',
+  modelQwenName: 'Qwen3-VL',
+  modelQwenDesc:
+    '阿里云千问视觉语言模型，支持高质量图像理解和 UI 元素识别，性价比高。',
+  modelGeminiName: 'Gemini-2.5-Pro',
+  modelGeminiDesc:
+    'Google 先进的多模态模型，拥有强大的视觉能力和全面的 UI 自动化支持。',
+  modelUITARSName: 'UI-TARS',
+  modelUITARSDesc:
+    '专为 UI 自动化设计的视觉语言模型，提供精准的界面元素定位和操作能力。',
 
   // Feature Sections - DEBUGGING
-  debuggingTitle: '调试',
-  debuggingHeading: '可视化报告和工具',
+  debuggingTitle: '开发体验',
+  debuggingHeading: '开发者 API 和工具',
   debuggingDesc1: '交互式可视化报告，理解测试执行过程',
   debuggingDesc2: '内置 Playground 用于调试和测试',
   debuggingDesc3: 'Chrome 插件提供浏览器内体验',
 
-  // API names
-  apiAction: 'aiAction',
-  apiTap: 'aiTap',
-  apiPlayback: '回放报告',
-  apiActionDesc: '使用自然语言指令自动规划并执行复杂的 UI 操作。',
-  apiTapDesc: '使用自然语言描述点击或触摸 UI 元素。',
-  apiPlaybackDesc: '可视化报告，用于理解、回放和调试测试执行过程。',
+  // Feature Cards
+  featureRichAPIs: '丰富的 API',
+  featureRichAPIsDesc: '同时支持智能执行流程与原子化精确控制。',
+  featureMCPServer: 'MCP Server',
+  featureMCPServerDesc: '将设备操作暴露为 MCP Server，并可与多种模型协作使用。',
+  featureReportsPlayground: '报告与 Playground',
+  featureReportsPlaygroundDesc: '优化调试体验，提供更直观的可视化与测试环境。',
+  featureFlexibleIntegration: '灵活集成',
+  featureFlexibleIntegrationDesc: '支持多种脚本格式、自定义模型及扩展特性。',
+
+  // View All APIs
+  apiMoreLink: '查看所有 API',
+  apiMoreDesc: '探索完整的 API 文档以获取更多自动化能力。',
 };
