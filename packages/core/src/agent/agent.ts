@@ -779,7 +779,13 @@ export class Agent<
     const defaultIntentModelConfig =
       this.modelConfigManager.getModelConfig('default');
 
-    const thinkingLevelToUse = opt?.thinkingLevel || 'medium';
+    let thinkingLevelToUse = opt?.thinkingLevel;
+    if (!thinkingLevelToUse && this.opts.aiActionContext) {
+      thinkingLevelToUse = 'high';
+    } else if (!thinkingLevelToUse) {
+      thinkingLevelToUse = 'medium';
+    }
+
     // should include bbox in planning if
     // 1. the planning model is the same as the default intent model
     // or 2. the thinking level is high
