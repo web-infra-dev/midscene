@@ -355,28 +355,52 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     return baseColumns;
   }, [proModeEnabled]);
 
-  // Calculate total tokens
-  const totalPromptTokens =
+  // Calculate total tokens by model
+  const tokensByModel = useMemo(() => {
+    const modelStats = new Map<
+      string,
+      { prompt: number; completion: number }
+    >();
+
     groupedDump?.executions
       .flatMap((e) => e.tasks)
-      .reduce((acc, task) => {
-        const mainUsage = task.usage?.prompt_tokens || 0;
-        const searchAreaUsage =
+      .forEach((task) => {
+        // Skip tasks without usage information
+        if (!task.usage) return;
+
+        const modelName = task.usage.model_name || 'Unknown';
+        const mainPrompt = task.usage.prompt_tokens || 0;
+        const mainCompletion = task.usage.completion_tokens || 0;
+        const searchAreaPrompt =
           (task as ExecutionTaskWithSearchAreaUsage).searchAreaUsage
             ?.prompt_tokens || 0;
-        return acc + mainUsage + searchAreaUsage;
-      }, 0) || 0;
-
-  const totalCompletionTokens =
-    groupedDump?.executions
-      .flatMap((e) => e.tasks)
-      .reduce((acc, task) => {
-        const mainUsage = task.usage?.completion_tokens || 0;
-        const searchAreaUsage =
+        const searchAreaCompletion =
           (task as ExecutionTaskWithSearchAreaUsage).searchAreaUsage
             ?.completion_tokens || 0;
-        return acc + mainUsage + searchAreaUsage;
-      }, 0) || 0;
+
+        const existing = modelStats.get(modelName) || {
+          prompt: 0,
+          completion: 0,
+        };
+        modelStats.set(modelName, {
+          prompt: existing.prompt + mainPrompt + searchAreaPrompt,
+          completion:
+            existing.completion + mainCompletion + searchAreaCompletion,
+        });
+      });
+
+    return modelStats;
+  }, [groupedDump]);
+
+  const totalPromptTokens = Array.from(tokensByModel.values()).reduce(
+    (sum, stats) => sum + stats.prompt,
+    0,
+  );
+
+  const totalCompletionTokens = Array.from(tokensByModel.values()).reduce(
+    (sum, stats) => sum + stats.completion,
+    0,
+  );
 
   // Keyboard navigation
   useEffect(() => {
@@ -483,6 +507,9 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
               return null;
             }
 
+            const modelEntries = Array.from(tokensByModel.entries());
+            const hasMultipleModels = modelEntries.length > 1;
+
             return (
               <>
                 <Table.Summary.Row className="summary-separator-row">
@@ -490,17 +517,47 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
                     <div className="side-seperator side-seperator-line side-seperator-space-up" />
                   </Table.Summary.Cell>
                 </Table.Summary.Row>
-                <Table.Summary.Row className="summary-row">
-                  <Table.Summary.Cell index={0} colSpan={4}>
-                    <div className="token-total-label">Total</div>
-                  </Table.Summary.Cell>
-                  <Table.Summary.Cell index={4}>
-                    <span className="token-value">{totalPromptTokens}</span>
-                  </Table.Summary.Cell>
-                  <Table.Summary.Cell index={5}>
-                    <span className="token-value">{totalCompletionTokens}</span>
-                  </Table.Summary.Cell>
-                </Table.Summary.Row>
+                {hasMultipleModels ? (
+                  // Multiple models: show each model separately
+                  modelEntries.map(([modelName, stats]) => (
+                    <Table.Summary.Row key={modelName} className="summary-row">
+                      <Table.Summary.Cell index={0} colSpan={4}>
+                        <div className="token-total-label">
+                          {modelName}
+                          <Tag
+                            bordered={false}
+                            style={{
+                              marginLeft: '8px',
+                            }}
+                          >
+                            Total
+                          </Tag>
+                        </div>
+                      </Table.Summary.Cell>
+                      <Table.Summary.Cell index={4}>
+                        <span className="token-value">{stats.prompt}</span>
+                      </Table.Summary.Cell>
+                      <Table.Summary.Cell index={5}>
+                        <span className="token-value">{stats.completion}</span>
+                      </Table.Summary.Cell>
+                    </Table.Summary.Row>
+                  ))
+                ) : (
+                  // Single model: show total
+                  <Table.Summary.Row className="summary-row">
+                    <Table.Summary.Cell index={0} colSpan={4}>
+                      <div className="token-total-label">Total</div>
+                    </Table.Summary.Cell>
+                    <Table.Summary.Cell index={4}>
+                      <span className="token-value">{totalPromptTokens}</span>
+                    </Table.Summary.Cell>
+                    <Table.Summary.Cell index={5}>
+                      <span className="token-value">
+                        {totalCompletionTokens}
+                      </span>
+                    </Table.Summary.Cell>
+                  </Table.Summary.Row>
+                )}
               </>
             );
           }}
