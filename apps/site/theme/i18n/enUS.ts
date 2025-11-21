@@ -61,10 +61,14 @@ export const EN_US = {
   // Feature Sections - DEBUGGING
   debuggingTitle: 'DEVELOPER EXPERIENCE',
   debuggingHeading: 'Developer APIs & Tools',
-  debuggingDesc1: 'Rich APIs - Enables smart automation and fine-grained atomic control.',
-  debuggingDesc2: 'MCP Server - Exposes device operations as an MCP Server and collaborates with various models.',
-  debuggingDesc3: 'Reports & Playground - Improves debugging with clearer visualization and testing tools.',
-  debuggingDesc4: 'Flexible Integration - Supports multiple script formats, custom models, and extensible features.',
+  debuggingDesc1:
+    'Rich APIs - Enables both smart automation workflows and fine-grained atomic control.',
+  debuggingDesc2:
+    'MCP Server - Exposes device operations as an MCP Server for collaboration with various models.',
+  debuggingDesc3:
+    'Reports & Playground - Enhances debugging with intuitive visualization and testing environments.',
+  debuggingDesc4:
+    'Flexible Integration - Supports multiple script formats, custom models, and extensible features.',
 
   // API names
   apiAction: 'aiAction',

@@ -58,10 +58,12 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   // Feature Sections - DEBUGGING
   debuggingTitle: '开发体验',
   debuggingHeading: '开发者 API 和工具',
-  debuggingDesc1: '丰富的 API - 支持智能自动化和细粒度原子控制。',
-  debuggingDesc2: 'MCP Server - 将设备操作暴露为 MCP Server，与多种模型协作。',
-  debuggingDesc3: '报告和 Playground - 通过更清晰的可视化和测试工具改进调试体验。',
-  debuggingDesc4: '灵活集成 - 支持多种脚本格式、自定义模型和可扩展功能。',
+  debuggingDesc1: '丰富的 API - 同时支持智能执行流程与原子化精确控制。',
+  debuggingDesc2:
+    'MCP Server - 将设备操作暴露为 MCP Server，并可与多种模型协作使用。',
+  debuggingDesc3:
+    '报告与 Playground - 优化调试体验，提供更直观的可视化与测试环境。',
+  debuggingDesc4: '灵活集成 - 支持多种脚本格式、自定义模型及扩展特性。',
 
   // API names
   apiAction: 'aiAction',
