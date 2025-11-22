@@ -1,10 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type { NodeType } from '@midscene/shared/constants';
-import type {
-  CreateOpenAIClientFn,
-  TModelConfig,
-} from '@midscene/shared/env';
+import type { CreateOpenAIClientFn, TModelConfig } from '@midscene/shared/env';
 import type {
   BaseElement,
   LocateResultElement,

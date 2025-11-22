@@ -49,7 +49,10 @@ describe('preapareImageUrl', () => {
     const fetchSpy = vi
       .spyOn(global, 'fetch')
       .mockResolvedValue(
-        new Response(mockData, { status: 200, headers: { 'content-type': 'image/svg+xml' } }),
+        new Response(mockData, {
+          status: 200,
+          headers: { 'content-type': 'image/svg+xml' },
+        }),
       );
 
     const base64 = await preProcessImageUrl(

@@ -193,7 +193,10 @@ describe('image utils', () => {
     const fetchSpy = vi
       .spyOn(global, 'fetch')
       .mockResolvedValue(
-        new Response(mockResponse, { status: 200, headers: { 'content-type': 'image/svg+xml' } }),
+        new Response(mockResponse, {
+          status: 200,
+          headers: { 'content-type': 'image/svg+xml' },
+        }),
       );
 
     const result = await httpImg2Base64('https://example.com/image.svg');

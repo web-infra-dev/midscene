@@ -61,9 +61,9 @@ describe('legacyConfigToModelFamily', () => {
   });
 
   it('should map individual legacy flags to model family', () => {
-    expect(
-      legacyConfigToModelFamily({ [MIDSCENE_USE_QWEN3_VL]: '1' }),
-    ).toBe('qwen3-vl');
+    expect(legacyConfigToModelFamily({ [MIDSCENE_USE_QWEN3_VL]: '1' })).toBe(
+      'qwen3-vl',
+    );
     expect(legacyConfigToModelFamily({ [MIDSCENE_USE_QWEN_VL]: '1' })).toBe(
       'qwen2.5-vl',
     );
@@ -76,9 +76,9 @@ describe('legacyConfigToModelFamily', () => {
   });
 
   it('should handle UI-TARS legacy flags', () => {
-    expect(
-      legacyConfigToModelFamily({ [MIDSCENE_USE_VLM_UI_TARS]: '1' }),
-    ).toBe('vlm-ui-tars');
+    expect(legacyConfigToModelFamily({ [MIDSCENE_USE_VLM_UI_TARS]: '1' })).toBe(
+      'vlm-ui-tars',
+    );
     expect(
       legacyConfigToModelFamily({ [MIDSCENE_USE_VLM_UI_TARS]: 'DOUBAO' }),
     ).toBe('vlm-ui-tars-doubao-1.5');
