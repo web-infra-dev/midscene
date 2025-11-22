@@ -24,56 +24,43 @@ Midscene 中每个 Agent 都有自己的构造函数。
 
 ### 自定义模型
 
-`modelConfig: (params: { intent: TIntent }) => IModelConfig` 可选。它允许你通过代码动态配置不同的模型，而不是通过环境变量。这在需要为不同的 AI 任务（如 Insight、Planning 等）使用不同模型时特别有用。
+`modelConfig: Record<string, string | number>` 可选。它允许你通过代码配置模型，而不是通过环境变量。
 
-函数接收一个参数对象，包含 `intent` 字段，表示当前任务类型：
-- `'insight'`: 视觉理解和元素定位任务（如 `aiQuery`、`aiLocate`、`aiTap` 等）
-- `'planning'`: 自动规划任务（如 `aiAct`）
-- `'default'`: 其他未分类任务
+> 如果在 Agent 初始化时提供了 `modelConfig`，**系统环境变量中的模型配置将全部被忽略**，仅使用该对象中的值。
+> 这里可配置的 key / value 与 [模型配置](./model-config) 文档中说明的内容完全一致。
 
-**基础示例：**
+**基础示例（所有意图共用同一模型）：**
 ```typescript
 const agent = new PuppeteerAgent(page, {
-  modelConfig: () => ({
+  modelConfig: {
     MIDSCENE_MODEL_NAME: 'qwen3-vl-plus',
     MIDSCENE_MODEL_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     MIDSCENE_MODEL_API_KEY: 'sk-...',
     MIDSCENE_MODEL_FAMILY: 'qwen3-vl'
-  })
-});
-```
-
-**为不同任务类型配置不同模型：**
-```typescript
-const agent = new PuppeteerAgent(page, {
-  modelConfig: ({ intent }) => {
-    // 为 Insight 任务使用 Qwen-VL 模型（用于视觉理解和定位）
-    if (intent === 'insight') {
-      return {
-        MIDSCENE_INSIGHT_MODEL_NAME: 'qwen-vl-plus',
-        MIDSCENE_INSIGHT_MODEL_API_KEY: 'sk-insight-key',
-        MIDSCENE_INSIGHT_MODEL_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1'
-      };
-    }
-
-    // 为 Planning 任务使用 GPT-4o 模型（用于任务规划）
-    if (intent === 'planning') {
-      return {
-        MIDSCENE_PLANNING_MODEL_NAME: 'gpt-4o',
-        MIDSCENE_PLANNING_MODEL_API_KEY: 'sk-planning-key',
-        MIDSCENE_PLANNING_MODEL_BASE_URL: 'https://api.openai.com/v1',
-        MIDSCENE_MODEL_FAMILY: 'qwen3-vl'
-      };
-    }
-
-    // 默认配置
-    return {
-      MIDSCENE_MODEL_NAME: 'gpt-4o',
-      MIDSCENE_MODEL_API_KEY: 'sk-default-key',
-    };
   }
 });
 ```
+
+**为不同任务类型配置不同模型（使用针对意图的环境变量键）：**
+```typescript
+const agent = new PuppeteerAgent(page, {
+  modelConfig: {
+    // 默认（大多数意图使用）
+    MIDSCENE_MODEL_NAME: 'gpt-4o',
+    MIDSCENE_MODEL_API_KEY: 'sk-default-key',
+    // planning 意图
+    MIDSCENE_PLANNING_MODEL_NAME: 'qwen3-vl-plus',
+    MIDSCENE_PLANNING_MODEL_API_KEY: 'sk-planning-key',
+    MIDSCENE_PLANNING_MODEL_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    MIDSCENE_MODEL_FAMILY: 'qwen3-vl',
+    // insight 意图
+    MIDSCENE_INSIGHT_MODEL_NAME: 'qwen-vl-plus',
+    MIDSCENE_INSIGHT_MODEL_API_KEY: 'sk-insight-key'
+  }
+});
+```
+
+当你的配置值需要是数字（例如 token 上限）时也可以直接使用 `number` 类型。
 
 更多关于按任务类型配置模型的信息，请参考 [模型配置](./model-config#按任务类型配置模型高级) 文档。
 

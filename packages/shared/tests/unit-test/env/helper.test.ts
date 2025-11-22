@@ -16,19 +16,17 @@ describe('maskConfig', () => {
       modelDescription: '',
       intent: 'default',
     };
-    expect(maskConfig(config)).toMatchInlineSnapshot(`
-      {
-        "from": "env",
-        "httpProxy": "http://proxy.example.com:8080",
-        "intent": "default",
-        "modelDescription": "",
-        "modelName": "test-model",
-        "openaiApiKey": "sk-***************************ugh",
-        "openaiBaseURL": "https://api.openai.com/v1",
-        "openaiExtraConfig": "{"t*******.9}",
-        "socksProxy": "socks://proxy.example.com:1080",
-        "vlMode": "doubao-vision",
-      }
-    `);
+    expect(maskConfig(config)).toEqual({
+      from: 'env',
+      httpProxy: 'http://proxy.example.com:8080',
+      intent: 'default',
+      modelDescription: '',
+      modelName: 'test-model',
+      openaiApiKey: 'sk-***************************ugh',
+      openaiBaseURL: 'https://api.openai.com/v1',
+      openaiExtraConfig: { top_p: 0.9 },
+      socksProxy: 'socks://proxy.example.com:1080',
+      vlMode: 'doubao-vision',
+    });
   });
 });

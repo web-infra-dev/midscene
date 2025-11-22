@@ -1,5 +1,5 @@
 import { ConversationHistory, plan, uiTarsPlanning } from '@/ai-model';
-import type { TMultimodalPrompt, TUserPrompt } from '@/ai-model/common';
+import type { TMultimodalPrompt, TUserPrompt } from '@/common';
 import type { AbstractInterface } from '@/device';
 import type Service from '@/service';
 import type { TaskRunner } from '@/task-runner';
@@ -18,6 +18,7 @@ import type {
   ServiceDump,
   ServiceExtractOption,
   ServiceExtractParam,
+  ThinkingLevel,
 } from '@/types';
 import { ServiceError } from '@/types';
 import {
@@ -117,13 +118,19 @@ export class TaskExecutor {
 
   public async convertPlanToExecutable(
     plans: PlanningAction[],
-    modelConfig: IModelConfig,
+    modelConfigForPlanning: IModelConfig,
+    modelConfigForDefaultIntent: IModelConfig,
     options?: {
       cacheable?: boolean;
       subTask?: boolean;
     },
   ) {
-    return this.taskBuilder.build(plans, modelConfig, options);
+    return this.taskBuilder.build(
+      plans,
+      modelConfigForPlanning,
+      modelConfigForDefaultIntent,
+      options,
+    );
   }
 
   async loadYamlFlowAsPlanning(userInstruction: string, yamlString: string) {
@@ -170,7 +177,9 @@ export class TaskExecutor {
   private createPlanningTask(
     userInstruction: string,
     actionContext: string | undefined,
-    modelConfig: IModelConfig,
+    modelConfigForPlanning: IModelConfig,
+    modelConfigForDefaultIntent: IModelConfig,
+    includeBbox: boolean,
   ): ExecutionTaskPlanningApply {
     const task: ExecutionTaskPlanningApply = {
       type: 'Planning',
@@ -183,9 +192,11 @@ export class TaskExecutor {
         const startTime = Date.now();
         const { uiContext } = executorContext;
         assert(uiContext, 'uiContext is required for Planning task');
-        const { vlMode } = modelConfig;
+        const { vlMode } = modelConfigForPlanning;
         const uiTarsModelVersion =
-          vlMode === 'vlm-ui-tars' ? modelConfig.uiTarsModelVersion : undefined;
+          vlMode === 'vlm-ui-tars'
+            ? modelConfigForPlanning.uiTarsModelVersion
+            : undefined;
 
         assert(
           this.interface.actionSpace,
@@ -210,8 +221,9 @@ export class TaskExecutor {
             actionContext: param.aiActionContext,
             interfaceType: this.interface.interfaceType as InterfaceType,
             actionSpace,
-            modelConfig,
+            modelConfig: modelConfigForPlanning,
             conversationHistory: this.conversationHistory,
+            includeBbox,
           },
         );
         debug('planResult', JSON.stringify(planResult, null, 2));
@@ -270,10 +282,15 @@ export class TaskExecutor {
   async runPlans(
     title: string,
     plans: PlanningAction[],
-    modelConfig: IModelConfig,
+    modelConfigForPlanning: IModelConfig,
+    modelConfigForDefaultIntent: IModelConfig,
   ): Promise<ExecutionResult> {
     const session = this.createExecutionSession(title);
-    const { tasks } = await this.convertPlanToExecutable(plans, modelConfig);
+    const { tasks } = await this.convertPlanToExecutable(
+      plans,
+      modelConfigForPlanning,
+      modelConfigForDefaultIntent,
+    );
     const runner = session.getRunner();
     const result = await session.appendAndRun(tasks);
     const { output } = result ?? {};
@@ -297,7 +314,10 @@ export class TaskExecutor {
 
   async action(
     userPrompt: string,
-    modelConfig: IModelConfig,
+    modelConfigForPlanning: IModelConfig,
+    modelConfigForDefaultIntent: IModelConfig,
+    thinkingLevel: ThinkingLevel,
+    includeBboxInPlanning: boolean,
     actionContext?: string,
     cacheable?: boolean,
   ): Promise<
@@ -318,14 +338,13 @@ export class TaskExecutor {
     let replanCount = 0;
     const yamlFlow: MidsceneYamlFlowItem[] = [];
     const replanningCycleLimit = this.getReplanningCycleLimit(
-      modelConfig.vlMode === 'vlm-ui-tars',
+      modelConfigForPlanning.vlMode === 'vlm-ui-tars',
     );
 
     // Main planning loop - unified plan/replan logic
     while (true) {
       if (replanCount > replanningCycleLimit) {
         const errorMsg = `Replanning ${replanningCycleLimit} times, which is more than the limit, please split the task into multiple steps`;
-
         return session.appendErrorPlan(errorMsg);
       }
 
@@ -333,7 +352,9 @@ export class TaskExecutor {
       const planningTask = this.createPlanningTask(
         userPrompt,
         actionContext,
-        modelConfig,
+        modelConfigForPlanning,
+        modelConfigForDefaultIntent,
+        includeBboxInPlanning,
       );
 
       const result = await session.appendAndRun(planningTask);
@@ -345,10 +366,15 @@ export class TaskExecutor {
 
       let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
       try {
-        executables = await this.convertPlanToExecutable(plans, modelConfig, {
-          cacheable,
-          subTask: true,
-        });
+        executables = await this.convertPlanToExecutable(
+          plans,
+          modelConfigForPlanning,
+          modelConfigForDefaultIntent,
+          {
+            cacheable,
+            subTask: true,
+          },
+        );
       } catch (error) {
         return session.appendErrorPlan(
           `Error converting plans to executable tasks: ${error}, plans: ${JSON.stringify(

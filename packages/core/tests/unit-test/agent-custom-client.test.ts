@@ -11,6 +11,20 @@ import {
 } from '@midscene/shared/env';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+const defaultModelConfig = {
+  [MIDSCENE_MODEL_NAME]: 'gpt-4o',
+  [MIDSCENE_MODEL_API_KEY]: 'test-key',
+  [MIDSCENE_MODEL_BASE_URL]: 'https://api.openai.com/v1',
+};
+
+const planningModelConfig = {
+  ...defaultModelConfig,
+  [MIDSCENE_PLANNING_MODEL_NAME]: 'qwen-vl-plus',
+  [MIDSCENE_PLANNING_MODEL_API_KEY]: 'test-planning-key',
+  [MIDSCENE_PLANNING_MODEL_BASE_URL]: 'https://api.openai.com/v1',
+  [MIDSCENE_MODEL_FAMILY]: 'qwen2.5-vl' as const,
+};
+
 describe('Agent with custom OpenAI client', () => {
   beforeEach(() => {
     vi.mock('openai');
@@ -30,11 +44,7 @@ describe('Agent with custom OpenAI client', () => {
       const mockInterface = {} as any;
 
       const agent = new Agent(mockInterface, {
-        modelConfig: ({ intent }) => ({
-          [MIDSCENE_MODEL_NAME]: 'gpt-4o',
-          [MIDSCENE_MODEL_API_KEY]: 'test-key',
-          [MIDSCENE_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-        }),
+        modelConfig: defaultModelConfig,
         createOpenAIClient: mockCreateClient,
       });
 
@@ -51,11 +61,7 @@ describe('Agent with custom OpenAI client', () => {
       const mockInterface = {} as any;
 
       const agent = new Agent(mockInterface, {
-        modelConfig: ({ intent }) => ({
-          [MIDSCENE_MODEL_NAME]: 'gpt-4o',
-          [MIDSCENE_MODEL_API_KEY]: 'test-key',
-          [MIDSCENE_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-        }),
+        modelConfig: defaultModelConfig,
         createOpenAIClient: mockCreateClient,
       });
 
@@ -71,11 +77,7 @@ describe('Agent with custom OpenAI client', () => {
       const mockInterface = {} as any;
 
       const agent = new Agent(mockInterface, {
-        modelConfig: ({ intent }) => ({
-          [MIDSCENE_MODEL_NAME]: 'gpt-4o',
-          [MIDSCENE_MODEL_API_KEY]: 'test-key',
-          [MIDSCENE_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-        }),
+        modelConfig: defaultModelConfig,
       });
 
       expect(agent).toBeInstanceOf(Agent);
@@ -104,23 +106,7 @@ describe('Agent with custom OpenAI client', () => {
       const mockInterface = {} as any;
 
       const agent = new Agent(mockInterface, {
-        modelConfig: ({ intent }) => {
-          switch (intent) {
-            case 'planning':
-              return {
-                [MIDSCENE_PLANNING_MODEL_NAME]: 'qwen-vl-plus',
-                [MIDSCENE_PLANNING_MODEL_API_KEY]: 'test-planning-key',
-                [MIDSCENE_PLANNING_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-                [MIDSCENE_MODEL_FAMILY]: 'qwen2.5-vl' as const,
-              };
-            default:
-              return {
-                [MIDSCENE_MODEL_NAME]: 'gpt-4o',
-                [MIDSCENE_MODEL_API_KEY]: 'test-key',
-                [MIDSCENE_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-              };
-          }
-        },
+        modelConfig: planningModelConfig,
         createOpenAIClient: mockCreateClient,
       });
 
@@ -166,20 +152,14 @@ describe('Agent with custom OpenAI client', () => {
       const mockInterface = {} as any;
 
       const agent = new Agent(mockInterface, {
-        modelConfig: ({ intent }) => {
-          if (intent === 'planning') {
-            return {
-              [MIDSCENE_PLANNING_MODEL_NAME]: 'qwen-vl-plus',
-              [MIDSCENE_PLANNING_MODEL_API_KEY]: 'planning-key',
-              [MIDSCENE_PLANNING_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-              [MIDSCENE_MODEL_FAMILY]: 'qwen2.5-vl' as const,
-            };
-          }
-          return {
-            [MIDSCENE_MODEL_NAME]: 'gpt-4o',
-            [MIDSCENE_MODEL_API_KEY]: 'default-key',
-            [MIDSCENE_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-          };
+        modelConfig: {
+          [MIDSCENE_MODEL_NAME]: 'gpt-4o',
+          [MIDSCENE_MODEL_API_KEY]: 'default-key',
+          [MIDSCENE_MODEL_BASE_URL]: 'https://api.openai.com/v1',
+          [MIDSCENE_PLANNING_MODEL_NAME]: 'qwen-vl-plus',
+          [MIDSCENE_PLANNING_MODEL_API_KEY]: 'planning-key',
+          [MIDSCENE_PLANNING_MODEL_BASE_URL]: 'https://api.openai.com/v1',
+          [MIDSCENE_MODEL_FAMILY]: 'qwen2.5-vl' as const,
         },
         createOpenAIClient: mockCreateClient,
       });
@@ -228,11 +208,11 @@ describe('Agent with custom OpenAI client', () => {
       const mockInterface = {} as any;
 
       const agent = new Agent(mockInterface, {
-        modelConfig: ({ intent }) => ({
+        modelConfig: {
           [MIDSCENE_MODEL_NAME]: 'gpt-4o',
           [MIDSCENE_MODEL_API_KEY]: 'test-api-key',
           [MIDSCENE_MODEL_BASE_URL]: 'https://custom.openai.com/v1',
-        }),
+        },
         createOpenAIClient: mockCreateClient,
       });
 
@@ -264,11 +244,7 @@ describe('Agent with custom OpenAI client', () => {
       const mockInterface = {} as any;
 
       const agent = new Agent(mockInterface, {
-        modelConfig: ({ intent }) => ({
-          [MIDSCENE_MODEL_NAME]: 'gpt-4o',
-          [MIDSCENE_MODEL_API_KEY]: 'test-key',
-          [MIDSCENE_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-        }),
+        modelConfig: defaultModelConfig,
         createOpenAIClient: mockCreateClient,
       });
 

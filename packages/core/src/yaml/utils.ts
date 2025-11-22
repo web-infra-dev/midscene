@@ -1,4 +1,4 @@
-import type { TUserPrompt } from '@/ai-model/common';
+import type { TUserPrompt } from '@/common';
 import type {
   DetailedLocateParam,
   LocateOption,

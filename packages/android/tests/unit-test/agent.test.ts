@@ -22,7 +22,7 @@ vi.mock('appium-adb');
 vi.mock('../../src/device');
 vi.mock('../../src/utils');
 
-const mockedModelConfigFnResult = {
+const mockedModelConfig = {
   MIDSCENE_MODEL_NAME: 'mock',
   MIDSCENE_MODEL_API_KEY: 'mock',
   MIDSCENE_MODEL_BASE_URL: 'mock',
@@ -40,7 +40,7 @@ describe('AndroidAgent', () => {
       expect(
         () =>
           new AndroidAgent(mockPage, {
-            modelConfig: () => mockedModelConfigFnResult,
+            modelConfig: mockedModelConfig,
           }),
       ).not.toThrow();
     });
@@ -84,7 +84,7 @@ describe('AndroidAgent', () => {
       ] as any);
 
       const agent = new AndroidAgent(mockPage, {
-        modelConfig: () => mockedModelConfigFnResult,
+        modelConfig: mockedModelConfig,
       });
 
       const uri = 'https://example.com';

@@ -12,7 +12,6 @@ export default defineConfig({
     },
   },
   output: {
-    copy: [{ from: path.join(__dirname, '../../apps/site/docs/en/api.mdx') }],
     externals: [
       (data, cb) => {
         if (

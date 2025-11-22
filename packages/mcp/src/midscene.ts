@@ -3,26 +3,22 @@ import {
   AndroidDevice,
   getConnectedDevices,
 } from '@midscene/android';
+import type { DeviceAction } from '@midscene/core';
 import {
   MIDSCENE_MCP_ANDROID_MODE,
   MIDSCENE_MCP_USE_PUPPETEER_MODE,
   globalConfigManager,
 } from '@midscene/shared/env';
 import { parseBase64 } from '@midscene/shared/img';
+import { getDebug } from '@midscene/shared/logger';
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type {
   ImageContent,
   TextContent,
 } from '@modelcontextprotocol/sdk/types.js';
-import type { ConsoleMessage } from 'puppeteer-core';
 import { z } from 'zod';
 import { PuppeteerBrowserAgent, ensureBrowser } from './puppeteer';
-import {
-  consoleLogs,
-  notifyConsoleLogsUpdated,
-  notifyMessage,
-} from './resources';
 import { tools } from './tools';
 
 declare global {
@@ -34,10 +30,21 @@ declare global {
   }
 }
 
-export class MidsceneManager {
-  private consoleLogs: string[] = [];
-  private screenshots = new Map<string, string>();
-  private mcpServer: McpServer; // Add server instance
+const debug = getDebug('mcp:tools');
+
+/**
+ * Tool definition interface for caching prepared tool configurations
+ */
+interface ToolDefinition {
+  name: string;
+  description: string;
+  schema: any;
+  handler: (...args: any[]) => Promise<any>;
+  autoDestroy?: boolean; // Whether to auto destroy agent after execution
+}
+
+export class MidsceneTools {
+  private mcpServer?: McpServer; // Add server instance
   private agent?: AgentOverChromeBridge | PuppeteerBrowserAgent | AndroidAgent;
   private puppeteerMode = globalConfigManager.getEnvConfigInBoolean(
     MIDSCENE_MCP_USE_PUPPETEER_MODE,
@@ -46,13 +53,46 @@ export class MidsceneManager {
     MIDSCENE_MCP_ANDROID_MODE,
   ); // Add Android mode flag
   private androidDeviceId?: string; // Add device ID storage
-  constructor(server: McpServer) {
+  private toolDefinitions: ToolDefinition[] = []; // Store all tool definitions
+
+  /**
+   * Attach this manager to an MCP server instance and register all tools.
+   * This method must be called after initTools.
+   */
+  public attachToServer(server: McpServer): void {
     this.mcpServer = server;
-    this.registerTools();
+
+    if (this.toolDefinitions.length === 0) {
+      throw new Error(
+        'No tool definitions found. Call initTools() before attachToServer().',
+      );
+    }
+
+    // Register all cached tool definitions
+    for (const toolDef of this.toolDefinitions) {
+      if (toolDef.autoDestroy) {
+        this.toolWithAutoDestroy(
+          toolDef.name,
+          toolDef.description,
+          toolDef.schema,
+          toolDef.handler,
+        );
+      } else {
+        // Register without auto-destroy wrapper
+        this.mcpServer.tool(
+          toolDef.name,
+          toolDef.description,
+          toolDef.schema,
+          toolDef.handler,
+        );
+      }
+    }
+
+    debug('Registered', this.toolDefinitions.length, 'tools with MCP server');
   }
 
   // initializes or re-initializes the browser agent.
-  private async initAgent(openNewTabWithUrl?: string) {
+  private async ensureAgent(openNewTabWithUrl?: string) {
     // re-init the agent if url is provided
     if (this.agent && openNewTabWithUrl) {
       try {
@@ -90,9 +130,6 @@ export class MidsceneManager {
       if (!openNewTabWithUrl) {
         // Connect the agent to the currently active tab in the browser.
         await agent.connectCurrentTab();
-        const tabsInfo = await agent.getBrowserTabList();
-        // Send active tab information in a well-structured format
-        this.sendActiveTabInfo(tabsInfo);
       } else {
         await agent.connectNewTabWithUrl(openNewTabWithUrl);
       }
@@ -120,14 +157,6 @@ export class MidsceneManager {
     const { browser } = await ensureBrowser({});
     // Create a new, blank page (tab) in the browser.
     const newPage = await browser.newPage();
-
-    // Set up console listener BEFORE navigation
-    newPage.on('console', this.consoleListener);
-    notifyMessage(
-      this.mcpServer.server,
-      'debug',
-      'Console listener attached to new page',
-    );
 
     // Navigate the new page to Google as a starting point.
     if (openNewTabWithUrl) {
@@ -190,445 +219,176 @@ export class MidsceneManager {
   }
 
   /**
-   * Register Android-specific tools
-   * This method registers all tools that are specific to Android automation
+   * Prepare Android-specific tool definitions
+   * This method creates tool definitions that are specific to Android automation
    */
-  private registerAndroidTool() {
-    // Android device connection tool
-    this.toolWithAutoDestroy(
-      'midscene_android_connect',
-      'Connect to an Android device via ADB',
+  private prepareAndroidToolDefinitions(): ToolDefinition[] {
+    return [
+      // Android device connection tool
       {
-        deviceId: z
-          .string()
-          .optional()
-          .describe(
-            'Device ID to connect to. If not provided, uses the first available device.',
-          ),
-      },
-      async ({ deviceId }) => {
-        this.androidDeviceId = deviceId;
-        this.agent = undefined; // Reset the agent to force reinitialization
-        const agent = await this.initAgent();
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Connected to Android device: ${this.androidDeviceId}`,
-            },
-          ],
-          isError: false,
-        };
-      },
-    );
-
-    // Android app launch tool
-    this.toolWithAutoDestroy(
-      'midscene_android_launch',
-      'Launch an app or navigate to a URL on Android device',
-      {
-        uri: z
-          .string()
-          .describe('Package name, activity name, or URL to launch'),
-      },
-      async ({ uri }) => {
-        const agent = await this.initAgent();
-        if (agent instanceof AndroidAgent) {
-          try {
-            await agent.launch(uri);
-            return {
-              content: [{ type: 'text', text: `Launched: ${uri}` }],
-              isError: false,
-            };
-          } catch (error: any) {
-            // Capture and return a more user-friendly error message
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: `Failed to launch: ${uri}: ${error.message}`,
-                },
-              ],
-              isError: true,
-            };
-          }
-        } else {
-          throw new Error(
-            'Android mode is not enabled. Set MIDSCENE_MCP_ANDROID_MODE=true',
-          );
-        }
-      },
-    );
-
-    // Android device list tool
-    this.mcpServer.tool(
-      'midscene_android_list_devices',
-      'List all connected Android devices',
-      {},
-      async () => {
-        const devices = await getConnectedDevices();
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Connected Android devices:\n${JSON.stringify(devices, null, 2)}`,
-            },
-          ],
-          isError: false,
-        };
-      },
-    );
-
-    // Android back button tool
-    this.toolWithAutoDestroy(
-      'midscene_android_back',
-      'Press the back button on Android device',
-      {},
-      async () => {
-        const agent = await this.initAgent();
-        if (agent instanceof AndroidAgent) {
-          await agent.page.back();
+        name: 'midscene_android_connect',
+        description: 'Connect to an Android device via ADB',
+        schema: {
+          deviceId: z
+            .string()
+            .optional()
+            .describe(
+              'Device ID to connect to. If not provided, uses the first available device.',
+            ),
+        },
+        handler: async ({ deviceId }) => {
+          this.androidDeviceId = deviceId;
+          this.agent = undefined; // Reset the agent to force reinitialization
+          await this.ensureAgent();
           return {
-            content: [{ type: 'text', text: 'Pressed back button' }],
+            content: [
+              {
+                type: 'text',
+                text: `Connected to Android device: ${this.androidDeviceId}`,
+              },
+            ],
             isError: false,
           };
-        } else {
-          throw new Error('Android mode is not enabled');
-        }
+        },
+        autoDestroy: true,
       },
-    );
-
-    // Android Home button tool
-    this.toolWithAutoDestroy(
-      'midscene_android_home',
-      'Press the home button on Android device',
-      {},
-      async () => {
-        const agent = await this.initAgent();
-        if (agent instanceof AndroidAgent) {
-          await agent.page.home();
+      // Android device list tool
+      {
+        name: 'midscene_android_list_devices',
+        description: 'List all connected Android devices',
+        schema: {},
+        handler: async () => {
+          const devices = await getConnectedDevices();
           return {
-            content: [{ type: 'text', text: 'Pressed home button' }],
+            content: [
+              {
+                type: 'text',
+                text: `Connected Android devices:\n${JSON.stringify(devices, null, 2)}`,
+              },
+            ],
             isError: false,
           };
-        } else {
-          throw new Error('Android mode is not enabled');
-        }
+        },
+        autoDestroy: false, // No agent needed, no auto destroy
       },
-    );
+    ];
   }
 
   /**
-   * Register browser-specific tools
-   * This method registers all tools that are specific to browser automation
+   * Prepare common tool definitions (aiWaitFor, aiAssert, screenshot)
    */
-  private registerBrowserTool() {
-    this.toolWithAutoDestroy(
-      tools.midscene_navigate.name,
-      tools.midscene_navigate.description,
+  private prepareCommonToolDefinitions(): ToolDefinition[] {
+    return [
+      // aiWaitFor tool
       {
-        url: z.string().describe('URL to navigate to'),
+        name: tools.wait_for.name,
+        description: tools.wait_for.description,
+        schema: {
+          assertion: z
+            .string()
+            .describe(
+              'Condition to monitor on the page, described in natural language.',
+            ),
+          timeoutMs: z
+            .number()
+            .optional()
+            .default(15000)
+            .describe('Maximum time to wait (ms).\nDefault: 15000'),
+          checkIntervalMs: z
+            .number()
+            .optional()
+            .default(3000)
+            .describe('How often to check the condition (ms).\nDefault: 3000'),
+        },
+        handler: async ({ assertion, timeoutMs, checkIntervalMs }) => {
+          const agent = await this.ensureAgent();
+          await agent.aiWaitFor(assertion, {
+            timeoutMs,
+            checkIntervalMs,
+          });
+          return {
+            content: [
+              { type: 'text', text: `Wait condition met: "${assertion}"` },
+            ],
+          };
+        },
+        autoDestroy: true,
       },
-      async ({ url }) => {
-        await this.initAgent(url);
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Navigated to ${url}`,
-            },
-          ],
-          isError: false,
-        };
-      },
-    );
-    this.mcpServer.tool(
-      tools.midscene_get_console_logs.name,
-      tools.midscene_get_console_logs.description,
+      // aiAssert tool
       {
-        msgType: z
-          .string()
-          .optional()
-          .describe(
-            'Filter console logs by message type (log, error, warn, info, debug, trace, dir, dirxml, table, clear, startGroup, startGroupCollapsed, endGroup, assert, profile, profileEnd, count, timeEnd)',
-          ),
+        name: tools.assert.name,
+        description: tools.assert.description,
+        schema: {
+          assertion: z
+            .string()
+            .describe(
+              'Condition to monitor on the page, described in natural language.',
+            ),
+        },
+        handler: async ({ assertion }) => {
+          const agent = await this.ensureAgent();
+          await agent.aiAssert(assertion);
+          return {
+            content: [
+              { type: 'text', text: `Assert condition : "${assertion}"` },
+            ],
+          };
+        },
+        autoDestroy: true,
       },
-      async ({ msgType }) => {
-        try {
-          let logs = this.consoleLogs;
+      // Screenshot tool
+      {
+        name: tools.take_screenshot.name,
+        description: tools.take_screenshot.description,
+        schema: {},
+        handler: async () => {
+          const agent = await this.ensureAgent();
+          const screenshot = await agent.page.screenshotBase64();
 
-          // Filter by message type if specified
-          if (msgType) {
-            logs = logs.filter((log) => log.startsWith(`[${msgType}]`));
-          }
-
-          const totalCount = this.consoleLogs.length;
-          const filteredCount = logs.length;
-          const filterInfo = msgType
-            ? ` (filtered by ${msgType}: ${filteredCount} of ${totalCount})`
-            : ` (${totalCount} total)`;
+          const { mimeType, body } = parseBase64(screenshot);
 
           return {
             content: [
               {
-                type: 'text',
-                text: `Console logs${filterInfo}:\n\n${logs.join('\n')}`,
-              },
+                type: 'image',
+                data: body,
+                mimeType,
+              } as ImageContent,
             ],
             isError: false,
           };
-        } catch (error) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Failed to get console logs: ${(error as Error).message}`,
-              },
-            ],
-            isError: true,
-          };
-        }
+        },
+        autoDestroy: true,
       },
-    );
-
-    this.mcpServer.tool(
-      tools.midscene_get_screenshot.name,
-      tools.midscene_get_screenshot.description,
-      {
-        name: z.string().describe('Name of the screenshot to retrieve'),
-      },
-      async ({ name }) => {
-        try {
-          const screenshot = this.screenshots.get(name);
-          if (screenshot) {
-            const { mimeType, body } = parseBase64(screenshot);
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: `Screenshot '${name}' retrieved`,
-                },
-                {
-                  type: 'image',
-                  data: body,
-                  mimeType,
-                },
-              ],
-              isError: false,
-            };
-          } else {
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: `Screenshot '${name}' not found. Available screenshots: ${Array.from(this.screenshots.keys()).join(', ') || 'none'}`,
-                },
-              ],
-              isError: true,
-            };
-          }
-        } catch (error) {
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Failed to get screenshot: ${(error as Error).message}`,
-              },
-            ],
-            isError: true,
-          };
-        }
-      },
-    );
-    this.toolWithAutoDestroy(
-      tools.midscene_get_tabs.name,
-      tools.midscene_get_tabs.description,
-      {},
-      async () => {
-        const agent = await this.initAgent();
-        if ('getBrowserTabList' in agent) {
-          const tabsInfo = await agent.getBrowserTabList();
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Current Tabs:\n${JSON.stringify(tabsInfo, null, 2)}`,
-              },
-            ],
-            isError: false,
-          };
-        } else {
-          // Tab management is not supported in Android mode
-          throw new Error('Tab management is not supported in Android mode');
-        }
-      },
-    );
-
-    this.toolWithAutoDestroy(
-      tools.midscene_set_active_tab.name,
-      tools.midscene_set_active_tab.description,
-      { tabId: z.string().describe('The ID of the tab to set as active.') },
-      async ({ tabId }) => {
-        const agent = await this.initAgent();
-        // Add type checking
-        if ('setActiveTabId' in agent) {
-          await agent.setActiveTabId(tabId);
-          return {
-            content: [{ type: 'text', text: `Set active tab to ${tabId}` }],
-            isError: false,
-          };
-        } else {
-          // Tab switching is not supported in Android mode
-          throw new Error('Tab switching is not supported in Android mode');
-        }
-      },
-    );
-
-    this.toolWithAutoDestroy(
-      tools.midscene_aiHover.name,
-      tools.midscene_aiHover.description,
-      {
-        locate: z
-          .string()
-          .describe('Use natural language describe the element to hover over'),
-      },
-      async ({ locate }) => {
-        const agent = await this.initAgent();
-        await agent.aiHover(locate);
-        return {
-          content: [
-            { type: 'text', text: `Hovered over ${locate}` },
-            { type: 'text', text: `report file: ${agent.reportFile}` },
-          ],
-          isError: false,
-        };
-      },
-    );
+    ];
   }
 
-  private registerTools() {
-    // Register mode-specific tools
-    if (this.androidMode) {
-      this.registerAndroidTool();
-    } else {
-      this.registerBrowserTool();
-    }
-
-    // Register common tools available in both modes
-    this.toolWithAutoDestroy(
-      tools.midscene_aiWaitFor.name,
-      tools.midscene_aiWaitFor.description,
-      {
-        assertion: z
+  /**
+   * Prepare dynamic action space tool definitions
+   */
+  private prepareActionSpaceToolDefinitions(
+    actionSpace: DeviceAction<any, any>[],
+  ): ToolDefinition[] {
+    const tools = actionSpace.map((action) => ({
+      name: action.name,
+      description: `Ask Midscene (a helper that can understand natural language and perform actions) to perform the action "${action.name}", this action is defined as follows: ${action.description || 'No description provided'}.`,
+      schema: {
+        instruction: z
           .string()
-          .describe(
-            'Condition to monitor on the page, described in natural language.',
-          ),
-        timeoutMs: z
-          .number()
-          .optional()
-          .default(15000)
-          .describe('Maximum time to wait (ms).\nDefault: 15000'),
-        checkIntervalMs: z
-          .number()
-          .optional()
-          .default(3000)
-          .describe('How often to check the condition (ms).\nDefault: 3000'),
+          .describe('The detailed instruction on how to perform the action'),
       },
-      async ({ assertion, timeoutMs, checkIntervalMs }) => {
-        const agent = await this.initAgent();
-        await agent.aiWaitFor(assertion, {
-          timeoutMs,
-          checkIntervalMs,
-        });
-        return {
-          content: [
-            { type: 'text', text: `Wait condition met: "${assertion}"` },
-          ],
-        };
-      },
-    );
-
-    this.toolWithAutoDestroy(
-      tools.midscene_aiAssert.name,
-      tools.midscene_aiAssert.description,
-      {
-        assertion: z
-          .string()
-          .describe(
-            'Condition to monitor on the page, described in natural language.',
-          ),
-      },
-      async ({ assertion }) => {
-        const agent = await this.initAgent();
-        await agent.aiAssert(assertion);
-        return {
-          content: [
-            { type: 'text', text: `Assert condition : "${assertion}"` },
-          ],
-        };
-      },
-    );
-
-    this.toolWithAutoDestroy(
-      tools.midscene_aiKeyboardPress.name,
-      tools.midscene_aiKeyboardPress.description,
-      {
-        key: z
-          .string()
-          .describe(
-            "The web key to press, e.g. 'Enter', 'Tab', 'Escape', etc.",
-          ),
-        locate: z
-          .string()
-          .optional()
-          .describe(
-            'Optional: natural language description of the element to press the key on',
-          ),
-        deepThink: z
-          .boolean()
-          .optional()
-          .default(false)
-          .describe(
-            'If true, uses a two-step AI call to precisely locate the element',
-          ),
-      },
-      async ({ key, locate, deepThink }) => {
-        const agent = await this.initAgent();
-        const options = deepThink ? { deepThink } : undefined;
-        await agent.aiKeyboardPress(key, locate, options);
-
-        const targetDesc = locate ? ` on element "${locate}"` : '';
-
-        return {
-          content: [
-            { type: 'text', text: `Pressed key '${key}'${targetDesc}` },
-            { type: 'text', text: `report file: ${agent.reportFile}` },
-          ],
-          isError: false,
-        };
-      },
-    );
-
-    this.toolWithAutoDestroy(
-      tools.midscene_screenshot.name,
-      tools.midscene_screenshot.description,
-      {
-        name: z.string().describe('Name for the screenshot'),
-      },
-      async ({ name }) => {
-        const agent = await this.initAgent();
+      handler: async ({ instruction }: { instruction: string }) => {
+        const agent = await this.ensureAgent();
+        await agent.aiAct(
+          `Use the action "${action.name}" to do this: ${instruction}`,
+        );
         const screenshot = await agent.page.screenshotBase64();
-
         const { mimeType, body } = parseBase64(screenshot);
-
-        this.screenshots.set(name, screenshot as string);
-
         return {
           content: [
             {
               type: 'text',
-              text: `Screenshot '${name}' taken at 1200x800`,
+              text: `Action performed, the report is: ${agent.reportFile} , and i will give you the screenshot after taking it`,
             } as TextContent,
             {
               type: 'image',
@@ -639,164 +399,45 @@ export class MidsceneManager {
           isError: false,
         };
       },
-    );
-
-    this.toolWithAutoDestroy(
-      tools.midscene_aiTap.name,
-      tools.midscene_aiTap.description,
-      {
-        locate: z
-          .string()
-          .describe('Use natural language describe the element to click'),
-      },
-      async ({ locate }) => {
-        const agent = await this.initAgent();
-        await agent.aiTap(locate);
-        return {
-          content: [
-            { type: 'text', text: `Clicked on ${locate}` },
-            { type: 'text', text: `report file: ${agent.reportFile}` },
-          ],
-          isError: false,
-        };
-      },
-    );
-
-    this.toolWithAutoDestroy(
-      tools.midscene_aiScroll.name,
-      tools.midscene_aiScroll.description,
-      {
-        direction: z
-          .enum(['up', 'down', 'left', 'right'])
-          .describe('The direction to scroll.'),
-        scrollType: z
-          .enum(['once', 'untilBottom', 'untilTop', 'untilLeft', 'untilRight'])
-          .optional()
-          .default('once')
-          .describe(
-            "Type of scroll: 'once' for a fixed distance, or until reaching an edge.",
-          ),
-        distance: z
-          .number()
-          .optional()
-          .describe(
-            "The distance to scroll in pixels (used with scrollType 'once').",
-          ),
-        locate: z
-          .string()
-          .optional()
-          .describe(
-            'Optional natural language description of the element to scroll. If not provided, scrolls based on current mouse position.',
-          ),
-        deepThink: z
-          .boolean()
-          .optional()
-          .default(false)
-          .describe(
-            "If true and 'locate' is provided, uses a two-step AI call to precisely locate the element.",
-          ),
-      },
-      async ({ direction, scrollType, distance, locate, deepThink }) => {
-        const agent = await this.initAgent();
-        const scrollParam = { direction, scrollType, distance };
-        await agent.aiScroll(scrollParam, locate, { deepThink });
-        const targetDesc = locate
-          ? ` element described by: "${locate}"`
-          : ' the page';
-        return {
-          content: [
-            { type: 'text', text: `Scrolled${targetDesc} ${direction}.` },
-            { type: 'text', text: `report file: ${agent.reportFile}` },
-          ],
-        };
-      },
-    );
-
-    this.toolWithAutoDestroy(
-      tools.midscene_aiInput.name,
-      tools.midscene_aiInput.description,
-      {
-        value: z.string().describe('The text to input'),
-        locate: z
-          .string()
-          .describe(
-            'Describe the element to input text into, use natural language',
-          ),
-      },
-      async ({ value, locate }) => {
-        const agent = await this.initAgent();
-        await agent.aiInput(value, locate);
-        return {
-          content: [
-            { type: 'text', text: `Inputted ${value} into ${locate}` },
-            { type: 'text', text: `report file: ${agent.reportFile}` },
-          ],
-          isError: false,
-        };
-      },
-    );
+      autoDestroy: true,
+    }));
+    return tools;
   }
 
-  // Set up console listener for navigation
-  private consoleListener = async (msg: ConsoleMessage) => {
-    try {
-      const args = msg.args();
-      const processedArgs = [];
+  /**
+   * Initialize tools by preparing all tool definitions.
+   * This method is async and should be called before registerTools.
+   * It's independent of the MCP server.
+   */
+  public async initTools() {
+    // Clear existing definitions
+    this.toolDefinitions = [];
 
-      notifyMessage(this.mcpServer.server, 'debug', 'consoleListener', {
-        args,
-      });
-      for (const jsHandle of args) {
-        // Check remoteObject first for Error objects or other complex types
-        const remoteObject = jsHandle.remoteObject();
-        if (
-          remoteObject?.description &&
-          (remoteObject.className === 'Error' ||
-            remoteObject.subtype === 'error')
-        ) {
-          // Use the description from remoteObject which contains full error details
-          processedArgs.push(remoteObject.description);
-        } else {
-          try {
-            // Try jsonValue for simple values
-            const value = await jsHandle.jsonValue();
-            processedArgs.push(value);
-          } catch (e) {
-            // Fallback to remoteObject for other complex objects
-            if (remoteObject?.description) {
-              processedArgs.push(remoteObject.description);
-            } else if (remoteObject?.className) {
-              processedArgs.push(`[${remoteObject.className}]`);
-            } else {
-              processedArgs.push('[Object]');
-            }
-          }
-        }
-      }
-
-      const logEntry = `[${msg.type()}] ${processedArgs.join(' ')}`;
-      this.consoleLogs.push(logEntry);
-      consoleLogs.push(logEntry);
-      notifyConsoleLogsUpdated(this.mcpServer.server);
-    } catch (error) {
-      // Fallback to original text if processing fails
-      const logEntry = `[${msg.type()}] ${msg.text()}`;
-      this.consoleLogs.push(logEntry);
-      consoleLogs.push(logEntry);
-      notifyConsoleLogsUpdated(this.mcpServer.server);
+    // Prepare Android tools if in Android mode
+    if (this.androidMode) {
+      const androidTools = this.prepareAndroidToolDefinitions();
+      this.toolDefinitions.push(...androidTools);
     }
-  };
 
-  public getConsoleLogs(): string {
-    return this.consoleLogs.join('\n');
-  }
+    // Prepare dynamic action space tools
+    const agent = await this.ensureAgent();
+    const actionSpace = await agent.getActionSpace();
+    const actionTools = this.prepareActionSpaceToolDefinitions(actionSpace);
+    this.toolDefinitions.push(...actionTools);
 
-  public getScreenshot(name: string): string | undefined {
-    return this.screenshots.get(name);
-  }
+    // Prepare common tools
+    const commonTools = this.prepareCommonToolDefinitions();
+    this.toolDefinitions.push(...commonTools);
 
-  public listScreenshotNames(): string[] {
-    return Array.from(this.screenshots.keys());
+    // List all the tools in the toolDefinitions array
+    debug(
+      'Tool definitions:',
+      this.toolDefinitions.map((tool) => ({
+        name: tool.name,
+        description: tool.description,
+      })),
+    );
+    debug('Total tool definitions prepared:', this.toolDefinitions.length);
   }
 
   public async closeBrowser(): Promise<void> {
@@ -815,6 +456,9 @@ export class MidsceneManager {
     schema: any,
     handler: (...args: any[]) => Promise<any>,
   ) {
+    if (!this.mcpServer) {
+      throw new Error('MCP server not attached');
+    }
     this.mcpServer.tool(name, description, schema, async (...args: any[]) => {
       try {
         return await handler(...args);
@@ -831,48 +475,5 @@ export class MidsceneManager {
         }
       }
     });
-  }
-
-  /**
-   * Sends active tab information to the LLM in a well-structured format
-   * @param tabsInfo Array of browser tabs
-   * @returns The active tab if found, otherwise undefined
-   */
-  private sendActiveTabInfo(
-    tabsInfo: Array<{
-      id: string;
-      title: string;
-      url: string;
-      currentActiveTab?: boolean;
-    }>,
-  ): void {
-    try {
-      // Find the active tab with proper null checking
-      const activeTab = tabsInfo?.find((tab) => tab.currentActiveTab === true);
-
-      if (!activeTab) {
-        return;
-      }
-
-      // Format the tab information for better readability
-      const formattedInfo = {
-        id: activeTab.id,
-        title: activeTab.title,
-        url: activeTab.url,
-        timestamp: new Date().toISOString(),
-      };
-
-      // Send notification with well-formatted active tab info
-      this.mcpServer.server.notification({
-        method: 'activeTabInfo',
-        params: {
-          type: 'text',
-          text: `Active Tab Information:
-ID: ${formattedInfo.id}
-Title: ${formattedInfo.title}
-URL: ${formattedInfo.url}`,
-        },
-      });
-    } catch (error) {}
   }
 }

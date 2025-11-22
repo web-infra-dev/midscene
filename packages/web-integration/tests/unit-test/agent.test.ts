@@ -56,14 +56,14 @@ const mockPage = {
   destroy: vi.fn(),
 } as unknown as AbstractWebPage;
 
-const mockedModelConfigFnResult = {
+const mockedModelConfig = {
   MIDSCENE_MODEL_NAME: 'mock-model',
   MIDSCENE_MODEL_API_KEY: 'mock-api-key',
   MIDSCENE_MODEL_BASE_URL: 'mock-base-url',
   MIDSCENE_MODEL_FAMILY: 'qwen3-vl',
 };
 
-const modelConfigCalcByMockedModelConfigFnResult = {
+const modelConfigCalcByMockedModelConfig = {
   from: 'modelConfig',
   httpProxy: undefined,
   intent: 'insight',
@@ -93,7 +93,7 @@ describe('PageAgent RightClick', () => {
     agent = new PageAgent(mockPage, {
       generateReport: false,
       autoPrintReportMsg: false,
-      modelConfig: () => mockedModelConfigFnResult,
+      modelConfig: mockedModelConfig,
     });
 
     // Replace the taskExecutor with our mock
@@ -165,7 +165,7 @@ describe('PageAgent logContent', () => {
 
   beforeEach(() => {
     agent = new PageAgent(mockPage, {
-      modelConfig: () => mockedModelConfigFnResult,
+      modelConfig: mockedModelConfig,
     });
     const dumpPath = path.join(__dirname, 'fixtures', 'dump.json');
     agent.dump = JSON.parse(
@@ -194,7 +194,7 @@ describe('PageAgent reportFileName', () => {
     const customReportName = 'my-custom-report-name';
     const agent = new PageAgent(mockPage, {
       reportFileName: customReportName,
-      modelConfig: () => mockedModelConfigFnResult,
+      modelConfig: mockedModelConfig,
     });
 
     expect(agent.reportFileName).toBe(customReportName);
@@ -202,7 +202,7 @@ describe('PageAgent reportFileName', () => {
 
   it('should generate reportFileName when not provided', () => {
     const agent = new PageAgent(mockPage, {
-      modelConfig: () => mockedModelConfigFnResult,
+      modelConfig: mockedModelConfig,
     });
 
     // The generated name should contain puppeteer and follow the pattern
@@ -215,7 +215,7 @@ describe('PageAgent reportFileName', () => {
   it('should use testId for generated reportFileName when provided', () => {
     const agent = new PageAgent(mockPage, {
       testId: 'test-123',
-      modelConfig: () => mockedModelConfigFnResult,
+      modelConfig: mockedModelConfig,
     });
 
     // The generated name should contain test-123 and follow the pattern
@@ -230,7 +230,7 @@ describe('PageAgent reportFileName', () => {
     const agent = new PageAgent(mockPage, {
       reportFileName: customReportName,
       testId: 'test-456',
-      modelConfig: () => mockedModelConfigFnResult,
+      modelConfig: mockedModelConfig,
     });
 
     expect(agent.reportFileName).toBe(customReportName);
@@ -243,7 +243,7 @@ describe('PageAgent reportFileName', () => {
     } as unknown as AbstractWebPage;
 
     const agent = new PageAgent(mockPageWithoutType, {
-      modelConfig: () => mockedModelConfigFnResult,
+      modelConfig: mockedModelConfig,
     });
 
     // The generated name should contain web and follow the pattern
@@ -265,7 +265,7 @@ describe('PageAgent aiWaitFor', () => {
     agent = new PageAgent(mockPage, {
       generateReport: false,
       autoPrintReportMsg: false,
-      modelConfig: () => mockedModelConfigFnResult,
+      modelConfig: mockedModelConfig,
     });
 
     // Mock the task executor with waitFor method
@@ -302,7 +302,7 @@ describe('PageAgent aiWaitFor', () => {
         timeoutMs: 5000,
         checkIntervalMs: 1000,
       },
-      modelConfigCalcByMockedModelConfigFnResult,
+      modelConfigCalcByMockedModelConfig,
     );
   });
 
@@ -340,7 +340,7 @@ describe('PageAgent aiWaitFor', () => {
         timeoutMs: 15000, // 15 * 1000
         checkIntervalMs: 3000, // 3 * 1000
       },
-      modelConfigCalcByMockedModelConfigFnResult,
+      modelConfigCalcByMockedModelConfig,
     );
   });
 
@@ -370,7 +370,7 @@ describe('PageAgent aiWaitFor', () => {
         timeoutMs: 30000,
         checkIntervalMs: 5000,
       },
-      modelConfigCalcByMockedModelConfigFnResult,
+      modelConfigCalcByMockedModelConfig,
     );
   });
 });
@@ -385,7 +385,7 @@ describe('PageAgent cache configuration', () => {
       expect(() => {
         new PageAgent(mockPage, {
           cache: true,
-          modelConfig: () => mockedModelConfigFnResult,
+          modelConfig: mockedModelConfig,
         });
       }).toThrow('cache: true requires an explicit cache ID');
     });
@@ -393,7 +393,7 @@ describe('PageAgent cache configuration', () => {
     it('should handle cache: false (disabled)', () => {
       const agent = new PageAgent(mockPage, {
         cache: false,
-        modelConfig: () => mockedModelConfigFnResult,
+        modelConfig: mockedModelConfig,
       });
 
       expect(agent.taskCache).toBeUndefined();
@@ -403,7 +403,7 @@ describe('PageAgent cache configuration', () => {
       expect(() => {
         new PageAgent(mockPage, {
           cache: { strategy: 'read-only', id: undefined as unknown as string },
-          modelConfig: () => mockedModelConfigFnResult,
+          modelConfig: mockedModelConfig,
         });
       }).toThrow('cache configuration requires an explicit id');
     });
@@ -411,7 +411,7 @@ describe('PageAgent cache configuration', () => {
     it('should handle cache: { id: "custom-id" } with default read-write strategy', () => {
       const agent = new PageAgent(mockPage, {
         cache: { id: 'custom-cache-id' },
-        modelConfig: () => mockedModelConfigFnResult,
+        modelConfig: mockedModelConfig,
       });
 
       expect(agent.taskCache).toBeDefined();
@@ -428,7 +428,7 @@ describe('PageAgent cache configuration', () => {
             strategy: 'invalid',
             id: 'invalid-strategy-cache',
           },
-          modelConfig: () => mockedModelConfigFnResult,
+          modelConfig: mockedModelConfig,
         });
       }).toThrow(
         'cache.strategy must be one of "read-only", "read-write", "write-only"',
@@ -441,7 +441,7 @@ describe('PageAgent cache configuration', () => {
           strategy: 'read-write',
           id: 'custom-readwrite-cache',
         },
-        modelConfig: () => mockedModelConfigFnResult,
+        modelConfig: mockedModelConfig,
       });
 
       expect(agent.taskCache).toBeDefined();
@@ -456,7 +456,7 @@ describe('PageAgent cache configuration', () => {
           strategy: 'read-only',
           id: 'custom-readonly-cache',
         },
-        modelConfig: () => mockedModelConfigFnResult,
+        modelConfig: mockedModelConfig,
       });
 
       expect(agent.taskCache).toBeDefined();
@@ -471,7 +471,7 @@ describe('PageAgent cache configuration', () => {
           strategy: 'write-only',
           id: 'custom-writeonly-cache',
         },
-        modelConfig: () => mockedModelConfigFnResult,
+        modelConfig: mockedModelConfig,
       });
 
       expect(agent.taskCache).toBeDefined();
@@ -486,7 +486,7 @@ describe('PageAgent cache configuration', () => {
         new PageAgent(mockPage, {
           testId: 'my-test-case',
           cache: true,
-          modelConfig: () => mockedModelConfigFnResult,
+          modelConfig: mockedModelConfig,
         });
       }).toThrow('cache: true requires an explicit cache ID');
     });
@@ -500,7 +500,7 @@ describe('PageAgent cache configuration', () => {
 
       const agent = new PageAgent(mockPage, {
         cacheId: 'legacy-cache-id',
-        modelConfig: () => mockedModelConfigFnResult,
+        modelConfig: mockedModelConfig,
       });
 
       expect(agent.taskCache).toBeDefined();
@@ -518,7 +518,7 @@ describe('PageAgent cache configuration', () => {
 
       const agent = new PageAgent(mockPage, {
         cacheId: 'legacy-cache-id',
-        modelConfig: () => mockedModelConfigFnResult,
+        modelConfig: mockedModelConfig,
       });
 
       expect(agent.taskCache).toBeUndefined();
@@ -534,7 +534,7 @@ describe('PageAgent cache configuration', () => {
       const agent = new PageAgent(mockPage, {
         cacheId: 'legacy-cache-id', // Should be ignored
         cache: { id: 'new-cache-id' },
-        modelConfig: () => mockedModelConfigFnResult,
+        modelConfig: mockedModelConfig,
       });
 
       expect(agent.taskCache).toBeDefined();
@@ -548,7 +548,7 @@ describe('PageAgent cache configuration', () => {
     it('should throw error when cache is not configured', async () => {
       const agent = new PageAgent(mockPage, {
         cache: false,
-        modelConfig: () => mockedModelConfigFnResult,
+        modelConfig: mockedModelConfig,
       });
 
       await expect(agent.flushCache({ cleanUnused: false })).rejects.toThrow(
@@ -559,7 +559,7 @@ describe('PageAgent cache configuration', () => {
     it('should work with cleanUnused parameter', async () => {
       const agent = new PageAgent(mockPage, {
         cache: { strategy: 'read-only', id: 'flush-test' },
-        modelConfig: () => mockedModelConfigFnResult,
+        modelConfig: mockedModelConfig,
       });
 
       // Mock the flushCacheToFile method
@@ -573,7 +573,7 @@ describe('PageAgent cache configuration', () => {
     it('should work in read-only mode', async () => {
       const agent = new PageAgent(mockPage, {
         cache: { strategy: 'read-only', id: 'flush-test' },
-        modelConfig: () => mockedModelConfigFnResult,
+        modelConfig: mockedModelConfig,
       });
 
       // Mock the flushCacheToFile method
@@ -588,7 +588,7 @@ describe('PageAgent cache configuration', () => {
       expect(() => {
         new PageAgent(mockPage, {
           cache: true, // Not supported anymore
-          modelConfig: () => mockedModelConfigFnResult,
+          modelConfig: mockedModelConfig,
         });
       }).toThrow('cache: true requires an explicit cache ID');
     });
