@@ -190,14 +190,12 @@ describe('image utils', () => {
 
   it('httpImg2Base64', async () => {
     const mockResponse = Buffer.from('image-data');
-    const fetchSpy = vi
-      .spyOn(global, 'fetch')
-      .mockResolvedValue(
-        new Response(mockResponse, {
-          status: 200,
-          headers: { 'content-type': 'image/svg+xml' },
-        }),
-      );
+    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(mockResponse, {
+        status: 200,
+        headers: { 'content-type': 'image/svg+xml' },
+      }),
+    );
 
     const result = await httpImg2Base64('https://example.com/image.svg');
 

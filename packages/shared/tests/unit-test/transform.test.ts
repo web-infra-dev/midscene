@@ -46,14 +46,12 @@ describe('preapareImageUrl', () => {
 
   it('http url will be converted to base64 if convertHttpImage2Base64 is true', async () => {
     const mockData = Buffer.from('image-data');
-    const fetchSpy = vi
-      .spyOn(global, 'fetch')
-      .mockResolvedValue(
-        new Response(mockData, {
-          status: 200,
-          headers: { 'content-type': 'image/svg+xml' },
-        }),
-      );
+    const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(mockData, {
+        status: 200,
+        headers: { 'content-type': 'image/svg+xml' },
+      }),
+    );
 
     const base64 = await preProcessImageUrl(
       'https://github.githubassets.com/favicons/favicon.svg',
