@@ -4,40 +4,32 @@ import {
   MIDSCENE_MODEL_BASE_URL,
 } from '../../../src/env';
 import { DEFAULT_MODEL_CONFIG_KEYS } from '../../../src/env/constants';
-import { createAssert } from '../../../src/env/helper';
-import { decideOpenaiSdkConfig } from '../../../src/env/parse-model-config';
+import { parseOpenaiSdkConfig } from '../../../src/env/parse-model-config';
 
 describe('decideOpenaiSdkConfig', () => {
-  it('default - fail', () => {
-    expect(() =>
-      decideOpenaiSdkConfig({
-        keys: DEFAULT_MODEL_CONFIG_KEYS,
-        provider: {},
-        valueAssert: createAssert('', 'modelConfig'),
-      }),
-    ).toThrowErrorMatchingInlineSnapshot(
-      '[Error: The MIDSCENE_MODEL_API_KEY must be a non-empty string, but got: undefined. Please check your config.]',
-    );
+  it('default - missing values returns empty config', () => {
+    const result = parseOpenaiSdkConfig({
+      keys: DEFAULT_MODEL_CONFIG_KEYS,
+      provider: {},
+    });
+
+    expect(result.openaiApiKey).toBeUndefined();
+    expect(result.openaiBaseURL).toBeUndefined();
   });
 
   it('default', () => {
-    const result = decideOpenaiSdkConfig({
+    const result = parseOpenaiSdkConfig({
       keys: DEFAULT_MODEL_CONFIG_KEYS,
       provider: {
         [MIDSCENE_MODEL_API_KEY]: 'mock-key',
         [MIDSCENE_MODEL_BASE_URL]: 'mock-url',
       },
-      valueAssert: createAssert('', 'modelConfig'),
     });
-    expect(result).toMatchInlineSnapshot(`
-      {
-        "httpProxy": undefined,
-        "openaiApiKey": "mock-key",
-        "openaiBaseURL": "mock-url",
-        "openaiExtraConfig": undefined,
-        "socksProxy": undefined,
-        "vlModeRaw": undefined,
-      }
-    `);
+    expect(result).toEqual(
+      expect.objectContaining({
+        openaiApiKey: 'mock-key',
+        openaiBaseURL: 'mock-url',
+      }),
+    );
   });
 });
