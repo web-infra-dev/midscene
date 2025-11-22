@@ -3,7 +3,7 @@
 import type { NodeType } from '@midscene/shared/constants';
 import type {
   CreateOpenAIClientFn,
-  TModelConfigFn,
+  TModelConfig,
 } from '@midscene/shared/env';
 import type {
   BaseElement,
@@ -629,7 +629,7 @@ export interface AgentOpt {
   aiActionContext?: string;
   /* custom report file name */
   reportFileName?: string;
-  modelConfig?: TModelConfigFn;
+  modelConfig?: TModelConfig;
   cache?: Cache;
   replanningCycleLimit?: number;
 

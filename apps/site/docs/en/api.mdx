@@ -24,55 +24,43 @@ All agents share these base options:
 
 ### Custom model configuration
 
-Use `modelConfig: (params: { intent: TIntent }) => IModelConfig` to dynamically configure different models through code instead of environment variables. This is particularly useful when you need to use different models for different AI tasks (such as Insight, Planning, etc.).
+Use `modelConfig: Record<string, string | number>` to configure models directly in code instead of environment variables.
 
-The function receives a parameter object with an `intent` field indicating the current task type:
-- `'insight'`: Visual understanding tasks (such as `aiAssert`, `aiQuery`, etc.)
-- `'planning'`: UI Automation related planning tasks (such as `aiAct`, `aiTap`)
+> If `modelConfig` is provided at agent initialization, **all system environment variables for model config are ignored**. Only the values in this object are used.
+> The keys/values you can set here are the same ones listed in [Model configuration](./model-config).
 
-**Basic Example:**
+**Basic Example (single model for all intents):**
 ```typescript
 const agent = new PuppeteerAgent(page, {
-  modelConfig: () => ({
+  modelConfig: {
     MIDSCENE_MODEL_NAME: 'qwen3-vl-plus',
     MIDSCENE_MODEL_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     MIDSCENE_MODEL_API_KEY: 'sk-...',
     MIDSCENE_MODEL_FAMILY: 'qwen3-vl'
-  })
-});
-```
-
-**Configure different models for different task types:**
-```typescript
-const agent = new PuppeteerAgent(page, {
-  modelConfig: ({ intent }) => {
-    // Use Qwen-VL model for Insight tasks (for visual understanding and location)
-    if (intent === 'insight') {
-      return {
-        MIDSCENE_INSIGHT_MODEL_NAME: 'qwen-vl-plus',
-        MIDSCENE_INSIGHT_MODEL_API_KEY: 'sk-insight-key',
-        MIDSCENE_INSIGHT_MODEL_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1'
-      };
-    }
-
-    // Use GPT-4o model for Planning tasks (for task planning)
-    if (intent === 'planning') {
-      return {
-        MIDSCENE_PLANNING_MODEL_NAME: 'gpt-4o',
-        MIDSCENE_PLANNING_MODEL_API_KEY: 'sk-planning-key',
-        MIDSCENE_PLANNING_MODEL_BASE_URL: 'https://api.openai.com/v1',
-        MIDSCENE_MODEL_FAMILY: 'qwen3-vl'
-      };
-    }
-
-    // Default configuration
-    return {
-      MIDSCENE_MODEL_NAME: 'gpt-4o',
-      MIDSCENE_MODEL_API_KEY: 'sk-default-key',
-    };
   }
 });
 ```
+
+**Configure different models for different task types (via intent-specific keys):**
+```typescript
+const agent = new PuppeteerAgent(page, {
+  modelConfig: {
+    // default (used by most intents)
+    MIDSCENE_MODEL_NAME: 'gpt-4o',
+    MIDSCENE_MODEL_API_KEY: 'sk-default-key',
+    // planning intent
+    MIDSCENE_PLANNING_MODEL_NAME: 'qwen3-vl-plus',
+    MIDSCENE_PLANNING_MODEL_API_KEY: 'sk-planning-key',
+    MIDSCENE_PLANNING_MODEL_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    MIDSCENE_MODEL_FAMILY: 'qwen3-vl',
+    // insight intent
+    MIDSCENE_INSIGHT_MODEL_NAME: 'qwen-vl-plus',
+    MIDSCENE_INSIGHT_MODEL_API_KEY: 'sk-insight-key'
+  }
+});
+```
+
+Numbers are allowed when your env value would be numeric (for example, max token limits).
 
 For more information about configuring models by task type, refer to the [Model configuration](./model-config#configure-models-by-task-type-advanced) documentation.
 

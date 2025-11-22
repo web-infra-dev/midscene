@@ -5,7 +5,7 @@ import type {
   CreateOpenAIClientFn,
   IModelConfig,
   TIntent,
-  TModelConfigFn,
+  TModelConfig,
 } from './types';
 import { VL_MODE_RAW_VALID_VALUES as VL_MODES } from './types';
 
@@ -14,21 +14,21 @@ export class ModelConfigManager {
 
   private isInitialized = false;
 
-  // once modelConfigFn is set, isolatedMode will be true
-  // modelConfigMap will only depend on modelConfigFn and not effect by process.env
+  // once modelConfig is set, isolatedMode will be true
+  // modelConfigMap will only depend on provided config and not be affected by process.env
   private isolatedMode = false;
 
   private globalConfigManager: GlobalConfigManager | undefined = undefined;
 
-  private modelConfigFn?: TModelConfigFn;
+  private modelConfig?: TModelConfig;
   private createOpenAIClientFn?: CreateOpenAIClientFn;
 
   constructor(
-    modelConfigFn?: TModelConfigFn,
+    modelConfig?: TModelConfig,
     createOpenAIClientFn?: CreateOpenAIClientFn,
   ) {
     this.createOpenAIClientFn = createOpenAIClientFn;
-    this.modelConfigFn = modelConfigFn;
+    this.modelConfig = modelConfig;
   }
 
   private initialize() {
@@ -37,11 +37,9 @@ export class ModelConfigManager {
     }
 
     let configMap: Record<string, string | undefined>;
-    if (this.modelConfigFn) {
+    if (this.modelConfig) {
       this.isolatedMode = true;
-      // Cast to internal type - user function can optionally use intent parameter
-      // even though it's not shown in the type definition
-      configMap = this.modelConfigFn() as unknown as Record<string, string>;
+      configMap = this.normalizeModelConfig(this.modelConfig);
     } else {
       configMap = this.globalConfigManager?.getAllEnvConfig() || {};
     }
@@ -82,6 +80,21 @@ export class ModelConfigManager {
     };
 
     this.isInitialized = true;
+  }
+
+  private normalizeModelConfig(
+    config: TModelConfig,
+  ): Record<string, string | undefined> {
+    return Object.entries(config).reduce<Record<string, string | undefined>>(
+      (acc, [key, value]) => {
+        if (value === undefined || value === null) {
+          return acc;
+        }
+        acc[key] = String(value);
+        return acc;
+      },
+      Object.create(null),
+    );
   }
 
   /**

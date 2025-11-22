@@ -53,7 +53,7 @@ const mockPage = {
   destroy: vi.fn(),
 } as unknown as AbstractWebPage;
 
-const mockedModelConfigFnResult = {
+const mockedModelConfig = {
   MIDSCENE_MODEL_NAME: 'mock-model',
   MIDSCENE_MODEL_API_KEY: 'mock-api-key',
   MIDSCENE_MODEL_BASE_URL: 'mock-base-url',
@@ -75,7 +75,7 @@ describe('PageAgent aiInput with number value', () => {
     agent = new PageAgent(mockPage, {
       generateReport: false,
       autoPrintReportMsg: false,
-      modelConfig: () => mockedModelConfigFnResult,
+      modelConfig: mockedModelConfig,
     });
 
     // Replace the taskExecutor with our mock

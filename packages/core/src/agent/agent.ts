@@ -263,9 +263,12 @@ export class Agent<
       opts || {},
     );
 
-    if (opts?.modelConfig && typeof opts?.modelConfig !== 'function') {
+    if (
+      opts?.modelConfig &&
+      (typeof opts?.modelConfig !== 'object' || Array.isArray(opts.modelConfig))
+    ) {
       throw new Error(
-        `opts.modelConfig must be one of function or undefined, but got ${typeof opts?.modelConfig}`,
+        `opts.modelConfig must be a plain object map of env keys to values, but got ${typeof opts?.modelConfig}`,
       );
     }
     this.modelConfigManager = opts?.modelConfig

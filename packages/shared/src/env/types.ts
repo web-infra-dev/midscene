@@ -328,13 +328,10 @@ export interface IModelConfigForDefaultLegacy {
 export type TIntent = 'insight' | 'planning' | 'default';
 
 /**
- * Internal type with intent parameter for ModelConfigManager
- * @internal
+ * Env-style model configuration map supplied directly to the agent.
+ * Numbers are allowed so callers can pass numeric env values (e.g. limits) without casting.
  */
-export type TModelConfigFn = () =>
-  | IModelConfigForInsight
-  | IModelConfigForPlanning
-  | IModelConfigForDefault;
+export type TModelConfig = Record<string, string | number>;
 
 export enum UITarsModelVersion {
   V1_0 = '1.0',
