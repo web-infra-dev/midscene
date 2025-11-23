@@ -27,7 +27,7 @@ Midscene 中每个 Agent 都有自己的构造函数。
 `modelConfig: Record<string, string | number>` 可选。它允许你通过代码配置模型，而不是通过环境变量。
 
 > 如果在 Agent 初始化时提供了 `modelConfig`，**系统环境变量中的模型配置将全部被忽略**，仅使用该对象中的值。
-> 这里可配置的 key / value 与 [模型配置](./model-config) 文档中说明的内容完全一致。
+> 这里可配置的 key / value 与 [模型配置](./model-config) 文档中说明的内容完全一致。你也可以参考 [模型策略](./model-strategy) 中的说明。
 
 **基础示例（所有意图共用同一模型）：**
 ```typescript
@@ -45,24 +45,23 @@ const agent = new PuppeteerAgent(page, {
 ```typescript
 const agent = new PuppeteerAgent(page, {
   modelConfig: {
-    // 默认（大多数意图使用）
-    MIDSCENE_MODEL_NAME: 'gpt-4o',
+    // 默认
+    MIDSCENE_MODEL_NAME: 'qwen3-vl-plus',
     MIDSCENE_MODEL_API_KEY: 'sk-default-key',
-    // planning 意图
-    MIDSCENE_PLANNING_MODEL_NAME: 'qwen3-vl-plus',
-    MIDSCENE_PLANNING_MODEL_API_KEY: 'sk-planning-key',
-    MIDSCENE_PLANNING_MODEL_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    MIDSCENE_MODEL_BASE_URL: '.....',
     MIDSCENE_MODEL_FAMILY: 'qwen3-vl',
+
+    // planning 意图
+    MIDSCENE_PLANNING_MODEL_NAME: 'gpt-5.1',
+    MIDSCENE_PLANNING_MODEL_API_KEY: 'sk-planning-key',
+    MIDSCENE_PLANNING_MODEL_BASE_URL: '...',
+
     // insight 意图
     MIDSCENE_INSIGHT_MODEL_NAME: 'qwen-vl-plus',
     MIDSCENE_INSIGHT_MODEL_API_KEY: 'sk-insight-key'
   }
 });
 ```
-
-当你的配置值需要是数字（例如 token 上限）时也可以直接使用 `number` 类型。
-
-更多关于按任务类型配置模型的信息，请参考 [模型配置](./model-config#按任务类型配置模型高级) 文档。
 
 ### 自定义 OpenAI 客户端
 

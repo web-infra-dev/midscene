@@ -1,4 +1,3 @@
-import { getDebug } from '../logger';
 import { initDebugConfig } from './init-debug';
 import type { ModelConfigManager } from './model-config-manager';
 import {
@@ -122,8 +121,7 @@ export class GlobalConfigManager {
   }
 
   /**
-   * for overrideAIConfig
-   * can only override keys in MODEL_ENV_KEYS
+   * @deprecated use the modelConfig param in Agent constructor instead
    */
   overrideAIConfig(
     newConfig: Partial<

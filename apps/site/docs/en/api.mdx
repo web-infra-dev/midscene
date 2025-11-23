@@ -27,7 +27,7 @@ All agents share these base options:
 Use `modelConfig: Record<string, string | number>` to configure models directly in code instead of environment variables.
 
 > If `modelConfig` is provided at agent initialization, **all system environment variables for model config are ignored**. Only the values in this object are used.
-> The keys/values you can set here are the same ones listed in [Model configuration](./model-config).
+> The keys/values you can set here are the same ones listed in [Model configuration](./model-config). You can also see explanation in [Model strategy](./model-strategy).
 
 **Basic Example (single model for all intents):**
 ```typescript
@@ -45,24 +45,23 @@ const agent = new PuppeteerAgent(page, {
 ```typescript
 const agent = new PuppeteerAgent(page, {
   modelConfig: {
-    // default (used by most intents)
-    MIDSCENE_MODEL_NAME: 'gpt-4o',
+    // default
+    MIDSCENE_MODEL_NAME: 'qwen3-vl-plus',
     MIDSCENE_MODEL_API_KEY: 'sk-default-key',
-    // planning intent
-    MIDSCENE_PLANNING_MODEL_NAME: 'qwen3-vl-plus',
-    MIDSCENE_PLANNING_MODEL_API_KEY: 'sk-planning-key',
-    MIDSCENE_PLANNING_MODEL_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    MIDSCENE_MODEL_BASE_URL: '.....',
     MIDSCENE_MODEL_FAMILY: 'qwen3-vl',
+
+    // planning intent
+    MIDSCENE_PLANNING_MODEL_NAME: 'gpt-5.1',
+    MIDSCENE_PLANNING_MODEL_API_KEY: 'sk-planning-key',
+    MIDSCENE_PLANNING_MODEL_BASE_URL: '...',
+    
     // insight intent
     MIDSCENE_INSIGHT_MODEL_NAME: 'qwen-vl-plus',
     MIDSCENE_INSIGHT_MODEL_API_KEY: 'sk-insight-key'
   }
 });
 ```
-
-Numbers are allowed when your env value would be numeric (for example, max token limits).
-
-For more information about configuring models by task type, refer to the [Model configuration](./model-config#configure-models-by-task-type-advanced) documentation.
 
 ### Custom OpenAI client
 
