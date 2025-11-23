@@ -2,22 +2,25 @@ import { createAssertAction, defineActionAssert } from '@/device/index';
 import { describe, expect, it } from 'vitest';
 
 describe('Assert Action', () => {
-  it('should pass silently when pass=true', async () => {
+  it('should pass silently when result=true', async () => {
     const assertAction = createAssertAction();
 
     // Should not throw an error
     await expect(
-      assertAction.call({ thought: 'This should pass', pass: true }, {} as any),
+      assertAction.call(
+        { thought: 'This should pass', result: true },
+        {} as any,
+      ),
     ).resolves.not.toThrow();
   });
 
-  it('should throw error when pass=false', async () => {
+  it('should throw error when result=false', async () => {
     const assertAction = createAssertAction();
     const errorMessage = 'This assertion should fail';
 
     // Should throw an error with the thought as the message
     await expect(
-      assertAction.call({ thought: errorMessage, pass: false }, {} as any),
+      assertAction.call({ thought: errorMessage, result: false }, {} as any),
     ).rejects.toThrow(errorMessage);
   });
 
@@ -35,19 +38,19 @@ describe('Assert Action', () => {
 
     const customAssertAction = defineActionAssert(async (param) => {
       customCallExecuted = true;
-      if (!param.pass) {
+      if (!param.result) {
         throw new Error(`Custom error: ${param.thought}`);
       }
     });
 
     // Test custom implementation
-    await customAssertAction.call({ thought: 'Test', pass: true }, {} as any);
+    await customAssertAction.call({ thought: 'Test', result: true }, {} as any);
     expect(customCallExecuted).toBe(true);
 
     // Test error throwing
     await expect(
       customAssertAction.call(
-        { thought: 'Failed test', pass: false },
+        { thought: 'Failed test', result: false },
         {} as any,
       ),
     ).rejects.toThrow('Custom error: Failed test');
