@@ -56,7 +56,6 @@ describe('Agent with custom OpenAI client', () => {
       expect(defaultConfig).toMatchInlineSnapshot(`
         {
           "createOpenAIClient": undefined,
-          "from": "-",
           "httpProxy": undefined,
           "intent": "default",
           "modelDescription": "qwen2.5-vl mode",
@@ -77,7 +76,6 @@ describe('Agent with custom OpenAI client', () => {
       expect(planningConfig).toMatchInlineSnapshot(`
         {
           "createOpenAIClient": undefined,
-          "from": "-",
           "httpProxy": undefined,
           "intent": "default",
           "modelDescription": "qwen2.5-vl mode",
@@ -98,7 +96,6 @@ describe('Agent with custom OpenAI client', () => {
       expect(insightConfig).toMatchInlineSnapshot(`
         {
           "createOpenAIClient": undefined,
-          "from": "-",
           "httpProxy": undefined,
           "intent": "default",
           "modelDescription": "qwen2.5-vl mode",
@@ -131,7 +128,6 @@ describe('Agent with custom OpenAI client', () => {
       expect(defaultConfig).toMatchInlineSnapshot(`
         {
           "createOpenAIClient": undefined,
-          "from": "-",
           "httpProxy": undefined,
           "intent": "default",
           "modelDescription": "qwen2.5-vl mode",
@@ -152,7 +148,6 @@ describe('Agent with custom OpenAI client', () => {
       expect(planningConfig).toMatchInlineSnapshot(`
         {
           "createOpenAIClient": undefined,
-          "from": "-",
           "httpProxy": undefined,
           "intent": "planning",
           "modelDescription": "",
@@ -173,7 +168,6 @@ describe('Agent with custom OpenAI client', () => {
       expect(insightConfig).toMatchInlineSnapshot(`
         {
           "createOpenAIClient": undefined,
-          "from": "-",
           "httpProxy": undefined,
           "intent": "insight",
           "modelDescription": "",

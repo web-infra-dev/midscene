@@ -21,7 +21,6 @@ describe('decideModelConfigFromIntentConfig', () => {
     expect(result.modelName).toBe('insight-model');
     expect(result.openaiApiKey).toBe('insight-key');
     expect(result.openaiBaseURL).toBe('https://insight.example.com');
-    expect(result.from).toBe('-');
   });
 
   it('falls back to default config when intent specific config missing', () => {
