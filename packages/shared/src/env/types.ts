@@ -396,10 +396,9 @@ export interface IModelConfig {
   uiTarsModelVersion?: UITarsModelVersion;
   modelDescription: string;
   /**
-   * for debug
+   * original intent from the config
    */
   intent: TIntent;
-  from: 'modelConfig' | 'env' | 'legacy-env';
   /**
    * Custom OpenAI client factory function
    *

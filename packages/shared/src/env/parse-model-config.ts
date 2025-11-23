@@ -21,9 +21,7 @@ import {
   type TIntent,
   type TModelFamily,
   type TVlModeTypes,
-  type TVlModeValues,
   UITarsModelVersion,
-  VL_MODE_RAW_VALID_VALUES,
 } from './types';
 
 import { getDebug } from '../logger';
@@ -212,7 +210,6 @@ export const parseOpenaiSdkConfig = ({
     uiTarsModelVersion: uiTarsVersion,
     modelName: modelName!,
     modelDescription,
-    from: '-' as any,
     intent: '-' as any,
   };
 };

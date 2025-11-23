@@ -64,9 +64,8 @@ const mockedModelConfig = {
 };
 
 const modelConfigCalcByMockedModelConfig = {
-  from: 'modelConfig',
   httpProxy: undefined,
-  intent: 'insight',
+  intent: 'default',
   modelDescription: 'qwen3-vl mode',
   modelName: 'mock-model',
   openaiApiKey: 'mock-api-key',
@@ -76,6 +75,7 @@ const modelConfigCalcByMockedModelConfig = {
   uiTarsModelVersion: undefined,
   vlMode: 'qwen3-vl',
   vlModeRaw: 'qwen3-vl',
+  createOpenAIClient: undefined,
 };
 
 // Mock task executor

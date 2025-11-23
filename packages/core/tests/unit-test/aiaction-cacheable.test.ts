@@ -101,6 +101,7 @@ describe('aiAction cacheable option propagation', () => {
     const { tasks } = await taskExecutor.convertPlanToExecutable(
       mockPlans,
       mockModelConfig,
+      mockModelConfig,
       {
         cacheable: false,
       },
@@ -205,6 +206,7 @@ describe('aiAction cacheable option propagation', () => {
     const { tasks } = await taskExecutor.convertPlanToExecutable(
       mockPlans,
       mockModelConfig,
+      mockModelConfig,
     );
 
     // Verify that we have tasks
@@ -244,6 +246,7 @@ describe('aiAction cacheable option propagation', () => {
     // Call convertPlanToExecutable with cacheable: true
     const { tasks } = await taskExecutor.convertPlanToExecutable(
       mockPlans,
+      mockModelConfig,
       mockModelConfig,
       {
         cacheable: true,

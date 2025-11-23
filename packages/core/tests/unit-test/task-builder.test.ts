@@ -75,7 +75,7 @@ describe('TaskBuilder', () => {
       },
     ];
 
-    const { tasks } = await taskBuilder.build(plans, {} as any);
+    const { tasks } = await taskBuilder.build(plans, {} as any, {} as any);
 
     expect(tasks.map((task) => [task.type, task.subType])).toEqual([
       ['Planning', 'Locate'],
@@ -125,7 +125,7 @@ describe('TaskBuilder', () => {
       },
     ];
 
-    const { tasks } = await taskBuilder.build(plans, {} as any, {
+    const { tasks } = await taskBuilder.build(plans, {} as any, {} as any, {
       subTask: true,
     });
 

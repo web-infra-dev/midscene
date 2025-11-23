@@ -36,7 +36,7 @@ describe('ModelConfigManager', () => {
   };
 
   it('initializes from provided config map (isolated mode)', () => {
-    const manager = new ModelConfigManager(() => baseMap);
+    const manager = new ModelConfigManager(baseMap);
 
     const defaultConfig = manager.getModelConfig('default');
     const insightConfig = manager.getModelConfig('insight');
@@ -47,10 +47,28 @@ describe('ModelConfigManager', () => {
     expect(planningConfig.modelName).toBe('qwen-vl-plus');
   });
 
+  it('prefer MIDSCENE_MODEL', () => {
+    vi.stubEnv(MIDSCENE_MODEL_NAME, 'env-model');
+    vi.stubEnv(MIDSCENE_MODEL_API_KEY, 'env-key');
+    vi.stubEnv(MIDSCENE_MODEL_BASE_URL, 'https://env.example.com');
+    vi.stubEnv(OPENAI_API_KEY, 'openai-api-env-key');
+    vi.stubEnv(OPENAI_BASE_URL, 'openai-base-url');
+    vi.stubEnv(MIDSCENE_MODEL_FAMILY, 'qwen3-vl');
+
+    const manager = new ModelConfigManager();
+    manager.registerGlobalConfigManager(new GlobalConfigManager());
+
+    const config = manager.getModelConfig('default');
+    expect(config.modelName).toBe('env-model');
+    expect(config.openaiApiKey).toBe('env-key');
+    expect(config.openaiBaseURL).toBe('https://env.example.com');
+    expect(config.intent).toBe('default');
+  });
+
   it('reads from environment when no config function provided', () => {
     vi.stubEnv(MIDSCENE_MODEL_NAME, 'env-model');
-    vi.stubEnv(OPENAI_API_KEY, 'env-key');
-    vi.stubEnv(OPENAI_BASE_URL, 'https://env.example.com');
+    vi.stubEnv(MIDSCENE_MODEL_API_KEY, 'env-key');
+    vi.stubEnv(MIDSCENE_MODEL_BASE_URL, 'https://env.example.com');
     vi.stubEnv(MIDSCENE_MODEL_FAMILY, 'qwen3-vl');
 
     const manager = new ModelConfigManager();
@@ -64,12 +82,12 @@ describe('ModelConfigManager', () => {
   });
 
   it('provides upload server URL from openaiExtraConfig', () => {
-    const manager = new ModelConfigManager(() => ({
+    const manager = new ModelConfigManager({
       ...baseMap,
       [MIDSCENE_MODEL_INIT_CONFIG_JSON]: JSON.stringify({
         REPORT_SERVER_URL: 'https://uploader.test',
       }),
-    }));
+    });
 
     expect(manager.getUploadTestServerUrl()).toBe('https://uploader.test');
   });
@@ -92,7 +110,7 @@ describe('ModelConfigManager', () => {
 
   it('injects createOpenAIClient when provided', () => {
     const createClient = vi.fn();
-    const manager = new ModelConfigManager(() => baseMap, createClient);
+    const manager = new ModelConfigManager(baseMap, createClient);
 
     const config = manager.getModelConfig('default');
     expect(config.createOpenAIClient).toBe(createClient);
