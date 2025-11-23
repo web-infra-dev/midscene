@@ -20,11 +20,11 @@ export class ModelConfigManager {
 
   private globalConfigManager: GlobalConfigManager | undefined = undefined;
 
-  private modelConfig: TModelConfig;
+  private modelConfig?: TModelConfig;
   private createOpenAIClientFn?: CreateOpenAIClientFn;
 
   constructor(
-    modelConfig: TModelConfig,
+    modelConfig?: TModelConfig,
     createOpenAIClientFn?: CreateOpenAIClientFn,
   ) {
     this.modelConfig = modelConfig;

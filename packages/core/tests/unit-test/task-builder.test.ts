@@ -41,14 +41,14 @@ describe('TaskBuilder', () => {
 
     const mockInterface = new MockInterface([mockAction]);
 
-    const insight = {
+    const insightService = {
       contextRetrieverFn: vi.fn(),
       locate: vi.fn(),
-    } as unknown as Insight;
+    } as unknown as Service;
 
     const taskBuilder = new TaskBuilder({
       interfaceInstance: mockInterface,
-      insight,
+      service: insightService,
     });
 
     const plans: PlanningAction[] = [
@@ -101,14 +101,14 @@ describe('TaskBuilder', () => {
 
     const mockInterface = new MockInterface([mockAction]);
 
-    const insight = {
+    const insightService = {
       contextRetrieverFn: vi.fn(),
       locate: vi.fn(),
-    } as unknown as Insight;
+    } as unknown as Service;
 
     const taskBuilder = new TaskBuilder({
       interfaceInstance: mockInterface,
-      insight,
+      service: insightService,
     });
 
     const plans: PlanningAction[] = [

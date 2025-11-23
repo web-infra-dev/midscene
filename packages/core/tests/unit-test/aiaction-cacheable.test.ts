@@ -168,9 +168,11 @@ describe('aiAction cacheable option propagation', () => {
     // Call action with cacheable: false
     const result = await taskExecutor.action(
       'click the button',
-      { model: 'test-model' } as any,
+      {},
+      {},
       undefined,
       false, // cacheable: false
+      true, // includeBboxInPlanning: true
     );
 
     // Verify the result
