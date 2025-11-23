@@ -1,6 +1,9 @@
 import { Agent } from '@/agent';
 import type { CreateOpenAIClientFn } from '@midscene/shared/env';
 import {
+  MIDSCENE_INSIGHT_MODEL_API_KEY,
+  MIDSCENE_INSIGHT_MODEL_BASE_URL,
+  MIDSCENE_INSIGHT_MODEL_NAME,
   MIDSCENE_MODEL_API_KEY,
   MIDSCENE_MODEL_BASE_URL,
   MIDSCENE_MODEL_FAMILY,
@@ -12,17 +15,20 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const defaultModelConfig = {
-  [MIDSCENE_MODEL_NAME]: 'gpt-4o',
+  [MIDSCENE_MODEL_NAME]: 'qwen2.5-vl-max',
   [MIDSCENE_MODEL_API_KEY]: 'test-key',
-  [MIDSCENE_MODEL_BASE_URL]: 'https://api.openai.com/v1',
+  [MIDSCENE_MODEL_BASE_URL]: 'https://api.sample.com/v1',
+  [MIDSCENE_MODEL_FAMILY]: 'qwen2.5-vl' as const,
 };
 
-const planningModelConfig = {
+const complexModelConfig = {
   ...defaultModelConfig,
-  [MIDSCENE_PLANNING_MODEL_NAME]: 'qwen-vl-plus',
+  [MIDSCENE_PLANNING_MODEL_NAME]: 'gpt-5.1',
   [MIDSCENE_PLANNING_MODEL_API_KEY]: 'test-planning-key',
-  [MIDSCENE_PLANNING_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-  [MIDSCENE_MODEL_FAMILY]: 'qwen2.5-vl' as const,
+  [MIDSCENE_PLANNING_MODEL_BASE_URL]: 'https://api.smaple-planning.com/v1',
+  [MIDSCENE_INSIGHT_MODEL_NAME]: 'model-for-insight',
+  [MIDSCENE_INSIGHT_MODEL_API_KEY]: 'test-insight-key',
+  [MIDSCENE_INSIGHT_MODEL_BASE_URL]: 'https://api.sample-insight.com/v1',
 };
 
 describe('Agent with custom OpenAI client', () => {
@@ -32,6 +38,156 @@ describe('Agent with custom OpenAI client', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+  });
+
+  describe('default modelConfig without createOpenAIClient', () => {
+    it('should work without createOpenAIClient', () => {
+      const mockInterface = {} as any;
+
+      const agent = new Agent(mockInterface, {
+        modelConfig: defaultModelConfig,
+      });
+
+      expect(agent).toBeInstanceOf(Agent);
+
+      const defaultConfig = (agent as any).modelConfigManager.getModelConfig(
+        'default',
+      );
+      expect(defaultConfig).toMatchInlineSnapshot(`
+        {
+          "createOpenAIClient": undefined,
+          "from": "-",
+          "httpProxy": undefined,
+          "intent": "default",
+          "modelDescription": "qwen2.5-vl mode",
+          "modelName": "qwen2.5-vl-max",
+          "openaiApiKey": "test-key",
+          "openaiBaseURL": "https://api.sample.com/v1",
+          "openaiExtraConfig": undefined,
+          "socksProxy": undefined,
+          "uiTarsModelVersion": undefined,
+          "vlMode": "qwen2.5-vl",
+          "vlModeRaw": "qwen2.5-vl",
+        }
+      `);
+
+      const planningConfig = (agent as any).modelConfigManager.getModelConfig(
+        'planning',
+      );
+      expect(planningConfig).toMatchInlineSnapshot(`
+        {
+          "createOpenAIClient": undefined,
+          "from": "-",
+          "httpProxy": undefined,
+          "intent": "default",
+          "modelDescription": "qwen2.5-vl mode",
+          "modelName": "qwen2.5-vl-max",
+          "openaiApiKey": "test-key",
+          "openaiBaseURL": "https://api.sample.com/v1",
+          "openaiExtraConfig": undefined,
+          "socksProxy": undefined,
+          "uiTarsModelVersion": undefined,
+          "vlMode": "qwen2.5-vl",
+          "vlModeRaw": "qwen2.5-vl",
+        }
+      `);
+
+      const insightConfig = (agent as any).modelConfigManager.getModelConfig(
+        'insight',
+      );
+      expect(insightConfig).toMatchInlineSnapshot(`
+        {
+          "createOpenAIClient": undefined,
+          "from": "-",
+          "httpProxy": undefined,
+          "intent": "default",
+          "modelDescription": "qwen2.5-vl mode",
+          "modelName": "qwen2.5-vl-max",
+          "openaiApiKey": "test-key",
+          "openaiBaseURL": "https://api.sample.com/v1",
+          "openaiExtraConfig": undefined,
+          "socksProxy": undefined,
+          "uiTarsModelVersion": undefined,
+          "vlMode": "qwen2.5-vl",
+          "vlModeRaw": "qwen2.5-vl",
+        }
+      `);
+    });
+  });
+
+  describe('complex modelConfig without createOpenAIClient', () => {
+    it('should work without createOpenAIClient', () => {
+      const mockInterface = {} as any;
+
+      const agent = new Agent(mockInterface, {
+        modelConfig: complexModelConfig,
+      });
+
+      expect(agent).toBeInstanceOf(Agent);
+
+      const defaultConfig = (agent as any).modelConfigManager.getModelConfig(
+        'default',
+      );
+      expect(defaultConfig).toMatchInlineSnapshot(`
+        {
+          "createOpenAIClient": undefined,
+          "from": "-",
+          "httpProxy": undefined,
+          "intent": "default",
+          "modelDescription": "qwen2.5-vl mode",
+          "modelName": "qwen2.5-vl-max",
+          "openaiApiKey": "test-key",
+          "openaiBaseURL": "https://api.sample.com/v1",
+          "openaiExtraConfig": undefined,
+          "socksProxy": undefined,
+          "uiTarsModelVersion": undefined,
+          "vlMode": "qwen2.5-vl",
+          "vlModeRaw": "qwen2.5-vl",
+        }
+      `);
+
+      const planningConfig = (agent as any).modelConfigManager.getModelConfig(
+        'planning',
+      );
+      expect(planningConfig).toMatchInlineSnapshot(`
+        {
+          "createOpenAIClient": undefined,
+          "from": "-",
+          "httpProxy": undefined,
+          "intent": "planning",
+          "modelDescription": "",
+          "modelName": "gpt-5.1",
+          "openaiApiKey": "test-planning-key",
+          "openaiBaseURL": "https://api.smaple-planning.com/v1",
+          "openaiExtraConfig": undefined,
+          "socksProxy": undefined,
+          "uiTarsModelVersion": undefined,
+          "vlMode": undefined,
+          "vlModeRaw": undefined,
+        }
+      `);
+
+      const insightConfig = (agent as any).modelConfigManager.getModelConfig(
+        'insight',
+      );
+      expect(insightConfig).toMatchInlineSnapshot(`
+        {
+          "createOpenAIClient": undefined,
+          "from": "-",
+          "httpProxy": undefined,
+          "intent": "insight",
+          "modelDescription": "",
+          "modelName": "model-for-insight",
+          "openaiApiKey": "test-insight-key",
+          "openaiBaseURL": "https://api.sample-insight.com/v1",
+          "openaiExtraConfig": undefined,
+          "socksProxy": undefined,
+          "uiTarsModelVersion": undefined,
+          "vlMode": undefined,
+          "vlModeRaw": undefined,
+        }
+      `);
+    });
   });
 
   describe('constructor with createOpenAIClient', () => {
@@ -106,7 +262,7 @@ describe('Agent with custom OpenAI client', () => {
       const mockInterface = {} as any;
 
       const agent = new Agent(mockInterface, {
-        modelConfig: planningModelConfig,
+        modelConfig: complexModelConfig,
         createOpenAIClient: mockCreateClient,
       });
 
