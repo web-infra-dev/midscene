@@ -1,10 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type { NodeType } from '@midscene/shared/constants';
-import type {
-  CreateOpenAIClientFn,
-  TModelConfigFn,
-} from '@midscene/shared/env';
+import type { CreateOpenAIClientFn, TModelConfig } from '@midscene/shared/env';
 import type {
   BaseElement,
   LocateResultElement,
@@ -12,7 +9,7 @@ import type {
   Size,
 } from '@midscene/shared/types';
 import type { z } from 'zod';
-import type { TUserPrompt } from './ai-model/common';
+import type { TUserPrompt } from './common';
 import type { DetailedLocateParam, MidsceneYamlFlowItem } from './yaml';
 
 export type {
@@ -134,6 +131,9 @@ export interface LocateResult {
   element: LocateResultElement | null;
   rect?: Rect;
 }
+
+export type ThinkingLevel = 'off' | 'medium' | 'high';
+export type ThinkingStrategy = 'off' | 'cot';
 
 export interface ServiceTaskInfo {
   durationMs: number;
@@ -627,7 +627,7 @@ export interface AgentOpt {
   aiActionContext?: string;
   /* custom report file name */
   reportFileName?: string;
-  modelConfig?: TModelConfigFn;
+  modelConfig?: TModelConfig;
   cache?: Cache;
   replanningCycleLimit?: number;
 

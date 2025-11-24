@@ -13,7 +13,7 @@ vi.mock('../../src/device');
 
 const MockedIOSDevice = vi.mocked(IOSDevice);
 
-const mockedModelConfigFnResult = {
+const mockedModelConfig = {
   MIDSCENE_MODEL_NAME: 'mock',
   MIDSCENE_MODEL_API_KEY: 'mock',
   MIDSCENE_MODEL_BASE_URL: 'mock',
@@ -71,7 +71,7 @@ describe('IOSAgent', () => {
     MockedIOSDevice.mockImplementation(() => mockDevice as IOSDevice);
 
     agent = new IOSAgent(mockDevice as IOSDevice, {
-      modelConfig: () => mockedModelConfigFnResult,
+      modelConfig: mockedModelConfig,
     });
   });
 

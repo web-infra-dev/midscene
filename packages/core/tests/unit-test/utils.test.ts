@@ -1,6 +1,11 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import * as fs from 'node:fs';
 import {
+  extractJSONFromCodeBlock,
+  preprocessDoubaoBboxJson,
+  safeParseJson,
+} from '@/ai-model/service-caller';
+import {
   type MidsceneLocationResultType,
   adaptBbox,
   adaptBboxToRect,
@@ -13,12 +18,7 @@ import {
   loadActionParam,
   mergeRects,
   normalized01000,
-} from '@/ai-model/common';
-import {
-  extractJSONFromCodeBlock,
-  preprocessDoubaoBboxJson,
-  safeParseJson,
-} from '@/ai-model/service-caller';
+} from '@/common';
 import { type DeviceAction, getMidsceneLocationSchema } from '@/index';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { uuid } from '@midscene/shared/utils';

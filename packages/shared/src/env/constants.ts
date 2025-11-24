@@ -41,7 +41,7 @@ interface IModelConfigKeys {
   /**
    * Extra
    */
-  vlMode: string;
+  modelFamily: string;
 }
 
 export const INSIGHT_MODEL_CONFIG_KEYS: IModelConfigKeys = {
@@ -60,7 +60,7 @@ export const INSIGHT_MODEL_CONFIG_KEYS: IModelConfigKeys = {
   /**
    * Extra
    */
-  vlMode: MIDSCENE_MODEL_FAMILY,
+  modelFamily: 'THERE_IS_NO_MODEL_FAMILY_FOR_INSIGHT',
 } as const;
 
 export const PLANNING_MODEL_CONFIG_KEYS: IModelConfigKeys = {
@@ -79,7 +79,7 @@ export const PLANNING_MODEL_CONFIG_KEYS: IModelConfigKeys = {
   /**
    * Extra
    */
-  vlMode: MIDSCENE_MODEL_FAMILY,
+  modelFamily: 'THERE_IS_NO_MODEL_FAMILY_FOR_PLANNING',
 } as const;
 
 // modelConfig return default
@@ -99,7 +99,7 @@ export const DEFAULT_MODEL_CONFIG_KEYS: IModelConfigKeys = {
   /**
    * Extra
    */
-  vlMode: MIDSCENE_MODEL_FAMILY,
+  modelFamily: MIDSCENE_MODEL_FAMILY,
 } as const;
 
 // read from process.env
@@ -119,5 +119,5 @@ export const DEFAULT_MODEL_CONFIG_KEYS_LEGACY: IModelConfigKeys = {
   /**
    * Extra
    */
-  vlMode: 'DEFAULT_MODEL_CONFIG_KEYS has no vlMode key',
+  modelFamily: 'DEFAULT_MODEL_CONFIG_KEYS has no modelFamily key',
 } as const;

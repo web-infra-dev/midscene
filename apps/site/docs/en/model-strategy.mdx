@@ -14,28 +14,18 @@ If you want to try Midscene right away, pick a model and follow its configuratio
 
 :::
 
-Midscene splits model intents into two buckets: *Planning* (UI operation planning) and *Insight* (understanding / reasoning).
-
-Developers must select one default model that works well for the *Planning* intent. *Insight* tasks reuse this configuration by default, so you usually do not need extra work.
-
 This guide focuses on how we choose models in Midscene. If you need configuration instructions, head to [Model configuration](./model-config).
 
-## *Planning* intent, powered by vision-first models
+## Background: UI automation approaches
 
-Midscene treats UI-operation tasks as the *Planning* intent. Picking the right model for this intent is the most important strategic decision for Midscene developers.
-
-Starting with version 1.0, Midscene relies on vision models to handle operation planning.
-
-### Background: technical approaches
-
-Driving UI automation with AI hinges on two challenges: planning a reasonable set of actions and precisely locating the elements that require interaction. Action planning can be improved with better prompts, but element localization is harder to tune.
+Driving UI automation with AI hinges on two challenges: planning a reasonable set of actions and precisely locating the elements that require interaction. In practice, action planning can usually be refined with better natural language and is rarely the blocker. Element localization, however, relies heavily on the model’s reasoning quality and often becomes the biggest hurdle when projects start.
 
 To solve element localization, UI automation frameworks traditionally follow one of two approaches:
 
 * **DOM + annotated screenshots**: Extract the DOM tree beforehand, annotate screenshots with DOM metadata, and ask the model to “pick” the right nodes.
 * **Pure vision**: Perform all analysis on screenshots alone. The model only receives the image—no DOM, no annotations.
 
-### Midscene adopts the pure-vision route
+## Midscene uses pure vision for element localization
 
 Earlier Midscene releases supported both approaches so developers could compare them. After dozens of versions and hundreds of projects, the pure-vision route now clearly wins:
 
@@ -47,31 +37,61 @@ Earlier Midscene releases supported both approaches so developers could compare 
 
 Given these advantages, **Midscene 1.0 and later only support the pure-vision approach**—the DOM-extraction compatibility mode has been removed.
 
-### Vision models validated for the *Planning* intent
+## Vision models Midscene recommends
 
-Midscene has deeply integrated Doubao Seed, Qwen VL, Gemini-2.5-Pro, and UI-TARS. The table below summarizes their traits.
+Based on extensive real-world usage, we recommend these defaults for Midscene: Doubao Seed, Qwen VL, Gemini-2.5-Pro, and UI-TARS.
 
-If you are unsure which to pick, start with whichever is easiest to access and compare quality later.
+They offer strong element-localization skills and solid performance in planning and screen understanding.
+
+If you are unsure where to start, pick whichever model is easiest to access today, then run side-by-side comparisons later.
 
 | Model family | Deployment | Midscene notes |
 | --- | --- | --- |
-| Doubao Seed vision models | Volcano Engine:<br />[Doubao-Seed-1.6-Vision](https://www.volcengine.com/docs/82379/1799865)<br/>[Doubao-1.5-thinking-vision-pro](https://www.volcengine.com/docs/82379/1536428) | ⭐⭐⭐⭐<br />Strong at UI planning and targeting<br />Slightly slower |
-| Qwen3-VL | [Alibaba Cloud](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen)<br/>[Ollama](https://ollama.com/library/qwen3-vl) | ⭐⭐⭐⭐<br />Assertion in very complex scenes can fluctuate<br />Excellent performance and accuracy<br />Open-source builds available ([HuggingFace](https://huggingface.co/Qwen) / [GitHub](https://github.com/QwenLM/)) |
-| Qwen2.5-VL | [Alibaba Cloud](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen) | ⭐⭐⭐<br />Overall quality is behind Qwen3-VL |
-| Gemini-2.5-Pro | [Google Cloud](https://cloud.google.com/gemini-api/docs/gemini-25-overview) | ⭐⭐⭐<br />UI grounding accuracy trails Doubao and Qwen |
-| UI-TARS | [Volcano Engine](https://www.volcengine.com/docs/82379/1536429) | ⭐⭐<br />Strong exploratory ability but results vary by scenario<br />Open-source versions available ([HuggingFace](https://huggingface.co/bytedance-research/UI-TARS-72B-SFT) / [GitHub](https://github.com/bytedance/ui-tars)) |
+| Doubao Seed vision models<br />[Quick setup](./model-config.mdx#doubao-seed-vision) | Volcano Engine:<br />[Doubao-Seed-1.6-Vision](https://www.volcengine.com/docs/82379/1799865)<br/>[Doubao-1.5-thinking-vision-pro](https://www.volcengine.com/docs/82379/1536428) | ⭐⭐⭐⭐<br />Strong at UI planning and targeting<br />Slightly slower |
+| Qwen3-VL<br />[Quick setup](./model-config.mdx#qwen3-vl) | [Alibaba Cloud](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen)<br/>[Ollama (open-source)](https://ollama.com/library/qwen3-vl) | ⭐⭐⭐⭐<br />Assertion in very complex scenes can fluctuate<br />Excellent performance and accuracy<br />Open-source builds available ([HuggingFace](https://huggingface.co/Qwen) / [GitHub](https://github.com/QwenLM/)) |
+| Qwen2.5-VL<br />[Quick setup](./model-config.mdx#qwen25-vl) | [Alibaba Cloud](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen) | ⭐⭐⭐<br />Overall quality is behind Qwen3-VL |
+| Gemini-2.5-Pro<br />[Quick setup](./model-config.mdx#gemini-25-pro) | [Google Cloud](https://cloud.google.com/gemini-api/docs/gemini-25-overview) | ⭐⭐⭐<br />UI grounding accuracy trails Doubao and Qwen |
+| UI-TARS<br />[Quick setup](./model-config.mdx#ui-tars) | [Volcano Engine](https://www.volcengine.com/docs/82379/1536429) | ⭐⭐<br />Strong exploratory ability but results vary by scenario<br />Open-source versions available ([HuggingFace](https://huggingface.co/bytedance-research/UI-TARS-72B-SFT) / [GitHub](https://github.com/bytedance/ui-tars)) |
 
-### Why not use general multimodal models like `GPT-5` for *Planning*?
+:::info Why not use multimodal models like gpt-5 as the default?
 
-The pure-vision route requires models to output precise coordinates for referenced elements (visual grounding). Models such as `GPT-5` currently underperform in this capability, so we do not recommend them for the *Planning* intent.
+Midscene requires strong UI localization (visual grounding). Models like gpt-5 perform poorly here, so they cannot serve as the default. You can still use them as dedicated “planning models,” which we cover below.
 
-## *Insight* intent
+:::
 
-Midscene provides page-understanding APIs such as AI assertions (`aiAssert`) and data extraction (`aiQuery`, `aiAsk`). We group these workloads under the *Insight* intent, which depends on the model’s visual question answering (VQA) skills.
+## Advanced: combining multiple models
 
-By default, Midscene reuses the *Planning* model for *Insight* tasks, which is sufficient for most projects.
+The default model strategy covers most projects at kick-off. As prompts grow more complex and you need stronger generalization, the defaults can struggle. Consider this GitHub sign-up prompt:
 
-If you need higher accuracy or richer detail for Insight, you may configure a dedicated model that supports image input, such as `GPT-5` or `Gemini-2.5-Pro`.
+```text
+Fill out the GitHub sign-up form. Ensure no fields are missing and pick “United States” as the region.
+
+Make sure every field passes validation.
+
+Only fill the form; do not submit a real registration request.
+
+Return the actual field values you filled.
+```
+
+This sounds simple, but the model must understand per-field rules, identify each control, operate a multi-step region selector, paginate and trigger validation, and still locate every element. Default models often cannot satisfy all of these at once, so success rates drop.
+
+In these situations, configure separate models for *Planning* and *Insight*, and use the default model purely as a “visual localizer” to reduce reasoning burden. Multi-model setups are the most practical and effective way to lift UI automation success, at a small cost in latency and tokens.
+
+With a `gpt-5.1` + `qwen3-vl` combo, we can complete the above task almost perfectly.
+
+### *Planning* intent
+
+For `aiAct` or `ai` planning tasks, add settings with the `MIDSCENE_PLANNING_MODEL_` prefix to use a dedicated model for the Planning intent.
+
+We recommend `gpt-5.1` or other multimodal models that understand UI workflows.
+
+### *Insight* intent
+
+Midscene provides page-understanding APIs such as AI assertions (`aiAssert`) and data extraction (`aiQuery`, `aiAsk`). We group these workloads under the *Insight* intent, which depends on visual question answering (VQA) skills.
+
+Add settings with the `MIDSCENE_INSIGHT_MODEL_` prefix to use a dedicated model for Insight workloads.
+
+We recommend `gpt-5.1` or other models with strong VQA capability.
 
 ## More
 
@@ -79,67 +99,40 @@ If you need higher accuracy or richer detail for Insight, you may configure a de
 
 See [Model configuration](./model-config).
 
-## Model configuration
+### API style
 
-Starting with Midscene 1.0, we recommend the following environment variable names:
+Midscene expects providers to expose an OpenAI-compatible API (this does **not** mean you must use OpenAI models).
 
-- `MIDSCENE_MODEL_API_KEY` – API key (recommended)
-- `MIDSCENE_MODEL_BASE_URL` – API endpoint (recommended)
-
-For backward compatibility, the following OpenAI-style variables remain supported:
-
-- `OPENAI_API_KEY` – API key (deprecated but still compatible)
-- `OPENAI_BASE_URL` – API endpoint (deprecated but still compatible)
-
-When both sets are present, Midscene prefers the new `MIDSCENE_MODEL_*` variables. Examples in this document use the new names. If you still rely on the legacy ones, they continue to work.
-
-Midscene expects the provider to expose an OpenAI-compatible API.
-
-Configure the following variables before use:
-
-- `MIDSCENE_MODEL_BASE_URL` – API endpoint
-- `MIDSCENE_MODEL_API_KEY` – API key
-- `MIDSCENE_MODEL_NAME` – Model name
-
-### Configure models by task type (advanced)
-
-Midscene lets you assign different models to different task types:
-
-- **Insight tasks** – Visual understanding and element localization (e.g., `aiQuery`, `aiLocate`, `aiTap`)
-- **Planning tasks** – Automated operation planning (e.g., `aiAct`)
-- **Default tasks** – All other workloads
-
-Use these prefixes to target each task type:
-
-- `MIDSCENE_INSIGHT_MODEL_*` – For Insight tasks
-- `MIDSCENE_PLANNING_MODEL_*` – For Planning tasks
-- `MIDSCENE_MODEL_*` – Default fallback
-
-For more details, see [Model configuration](./model-config#configure-models-by-task-type-advanced).
-
-## FAQ
+Most major vendors and deployment tools already support this pattern.
 
 ### How do I inspect token usage?
 
-Set `DEBUG=midscene:ai:profile:stats` to print cost and latency information.
+Set `DEBUG=midscene:ai:profile:stats` to print cost and latency information. You can also review token usage in the generated report files.
 
-You can also review token usage in the generated report files.
+### "MIDSCENE_MODEL_FAMILY is required" error
 
-### "No visual language model (VL model) detected" or "MIDSCENE_MODEL_FAMILY is required"
+If you see "No visual language model (VL model) detected" or "MIDSCENE_MODEL_FAMILY is required," make sure the `MIDSCENE_MODEL_FAMILY` environment variable for your VL model is set correctly.
 
-Make sure you have correctly configured the `MIDSCENE_MODEL_FAMILY` environment variable for VL models.
+Starting with version 1.0, Midscene recommends using `MIDSCENE_MODEL_FAMILY` to specify the vision model type. Legacy `MIDSCENE_USE_...` configs remain compatible but are deprecated.
 
-Starting with version 1.0, Midscene recommends using `MIDSCENE_MODEL_FAMILY` to specify the vision model type. The legacy `MIDSCENE_USE_...` configurations are still supported but deprecated.
+See [Model configuration](./model-config) for setup details.
 
-For detailed configuration instructions, refer to [Model configuration](./model-config).
+### Can each Agent instance use its own model?
 
-## More information
+Yes. You can configure per-agent models via the `modelConfig` parameter. See the [API reference](./api) for details.
 
-- For additional configuration examples, see [Model configuration](./model-config)
-- [Prompt-writing tips](./prompting-tips)
+### Backward compatibility
+
+From version 1.0 onward, Midscene.js recommends these environment variable names, for example:
+
+- `MIDSCENE_MODEL_API_KEY`
+- `MIDSCENE_MODEL_BASE_URL`
+
+For compatibility, we still support these OpenAI-style names, though they are no longer preferred:
+
+- `OPENAI_API_KEY`
+- `OPENAI_BASE_URL`
+
+When both are present, Midscene prefers the new `MIDSCENE_MODEL_*` variables.
 
 <TroubleshootingLLMConnectivity />
-
-## Compatibility with Midscene 0.x
-
-Configurations used in Midscene 0.x (such as `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `MIDSCENE_USE_QWEN_VL`) remain compatible in 1.x. See [Configuration compatible with Midscene 0.x](./model-config.mdx).

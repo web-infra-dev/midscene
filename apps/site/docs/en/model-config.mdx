@@ -87,11 +87,11 @@ Migration mapping:
 
 ### <del>`GPT-4o`</del>
 
-Starting with version 1.0, Midscene no longer supports GPT-4o as the UI operation planning model. See [Model strategy](./model-strategy) for details.
+Starting with version 1.0, Midscene no longer supports gpt series models as the default model. See [Model strategy](./model-strategy) for details.
 
 ## Ways to set environment variables
 
-Store all configuration in environment variables. Below are common approaches, but feel free to adopt any method used in your project.
+Midscene reads all configuration from environment variables. Below are common approaches, but feel free to adopt any method used in your project.
 
 ### Method 1: Set variables in the system
 
@@ -147,19 +147,21 @@ import 'dotenv/config';
 | Name | Description |
 |------|-------------|
 | `MIDSCENE_MODEL_API_KEY` | Model API key, e.g., `"sk-abcd..."` |
-| `MIDSCENE_MODEL_BASE_URL` | API endpoint URL, usually ending with a version (e.g., `/v1`). Do not append `/chat/completion`. |
+| `MIDSCENE_MODEL_BASE_URL` | API endpoint URL, usually ending with a version (e.g., `/v1`); do not append `/chat/completion` here since the underlying sdk will add it automatically |
 | `MIDSCENE_MODEL_NAME` | Model name |
+| `MIDSCENE_MODEL_FAMILY` | Model family, determine the way of dealing with the coordinates |
 
 ### Advanced settings (optional)
 
 | Name | Description |
 |------|-------------|
 | `MIDSCENE_MODEL_MAX_TOKENS` | `max_tokens` for responses, default 2048 |
-| `MIDSCENE_MODEL_HTTP_PROXY` | HTTP/HTTPS proxy, e.g., `http://127.0.0.1:8080` or `https://proxy.example.com:8080`. Takes precedence over `MIDSCENE_MODEL_SOCKS_PROXY`. |
+| `MIDSCENE_MODEL_HTTP_PROXY` | HTTP/HTTPS proxy, e.g., `http://127.0.0.1:8080` or `https://proxy.example.com:8080`. Takes precedence over `MIDSCENE_MODEL_SOCKS_PROXY` |
 | `MIDSCENE_MODEL_SOCKS_PROXY` | SOCKS proxy, e.g., `socks5://127.0.0.1:1080` |
 | `MIDSCENE_MODEL_INIT_CONFIG_JSON` | JSON blob that overrides the OpenAI SDK initialization config |
 | `MIDSCENE_REPLANNING_CYCLE_LIMIT` | Maximum number of replanning cycles, default 10 |
-| `MIDSCENE_PREFERRED_LANGUAGE` | Optional. Preferred response language. Defaults to `Chinese` if timezone is GMT+8, otherwise `English`. |
+| `MIDSCENE_RUN_DIR` | Run artifact directory, like report and logs. Defaults to `midscene_run` in the current working directory; accepts absolute or relative paths |
+| `MIDSCENE_PREFERRED_LANGUAGE` | Optional. Preferred response language. Defaults to `Chinese` if timezone is GMT+8, otherwise `English` |
 
 ### Configure a dedicated Insight model (optional)
 
@@ -225,22 +227,6 @@ Set `DEBUG=midscene:ai:profile:stats` to print usage and latency.
 
 You can also find usage statistics inside the generated report files.
 
-
-### Customize the run artifact directory
-
-Set the `MIDSCENE_RUN_DIR` variable to customize the run artifact directory.
-
-```bash
-export MIDSCENE_RUN_DIR=midscene_run # The default value is the midscene_run in the current working directory, you can set it to an absolute path or a relative path
-```
-
-### Customize the replanning cycle limit
-
-Set the `MIDSCENE_REPLANNING_CYCLE_LIMIT` variable to customize the maximum number of replanning cycles allowed during action execution (`aiAct`).
-
-```bash
-export MIDSCENE_REPLANNING_CYCLE_LIMIT=10 # The default value is 10. When the AI needs to replan more than this limit, an error will be thrown suggesting to split the task into multiple steps
-```
 
 ### Using LangSmith
 

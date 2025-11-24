@@ -1,4 +1,3 @@
-import { AIActionType, type AIArgs, expandSearchArea } from '@/ai-model/common';
 import {
   AiExtractElementInfo,
   AiLocateElement,
@@ -6,6 +5,7 @@ import {
 } from '@/ai-model/index';
 import { AiLocateSection } from '@/ai-model/inspect';
 import { elementDescriberInstruction } from '@/ai-model/prompt/describe';
+import { AIActionType, type AIArgs, expandSearchArea } from '@/common';
 import type {
   AIDescribeElementResponse,
   AIUsageInfo,
@@ -28,7 +28,7 @@ import {
 import { compositeElementInfoImg, cropByRect } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import type { TMultimodalPrompt } from '../ai-model/common';
+import type { TMultimodalPrompt } from '../common';
 import { createServiceDump } from './utils';
 
 export interface LocateOpts {

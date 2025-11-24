@@ -1,4 +1,3 @@
-import { AnyTxtRecord } from 'node:dns';
 import path from 'node:path';
 import { PuppeteerAgent } from '@/puppeteer';
 import { z } from '@midscene/core';
@@ -23,6 +22,27 @@ describe(
         }
       }
     });
+
+    it.only(
+      'error in beforeInvokeAction',
+      async () => {
+        const { originPage, reset } = await launchPage(
+          'https://www.github.com/signup',
+          {
+            headless: false,
+          },
+        );
+        resetFn = reset;
+        const agent = new PuppeteerAgent(originPage);
+
+        await sleep(10 * 1000);
+
+        await agent.aiAction(
+          '在当前页面里完成这个任务：完成 github 账号注册的表单填写，确保表单上没有遗漏的字段，确保所有的表单项能够通过校验。 只需要填写表单项即可，不需要发起真实的账号注册。 最终请返回表单上实际填写的字段内容。',
+        );
+      },
+      15 * 60 * 1000,
+    );
 
     it('error in beforeInvokeAction', async () => {
       const { originPage, reset } = await launchPage(
@@ -67,6 +87,11 @@ describe(
       });
 
       await sleep(10 * 1000);
+
+      // await agent.ai(
+      //   'type "standard_user" in user name input, 输入完成后，界面上应该展示 who are you 字样',
+      // );
+      // return;
 
       agent.setAIActionContext(
         'This is a testing application for Sauce Demo by Swag Lab',
@@ -179,7 +204,7 @@ describe(
 
       await agent.aiScroll({
         direction: 'down',
-        scrollType: 'untilBottom',
+        scrollType: 'scrollToBottom',
       });
 
       await sleep(3000);

@@ -101,6 +101,7 @@ describe('aiAction cacheable option propagation', () => {
     const { tasks } = await taskExecutor.convertPlanToExecutable(
       mockPlans,
       mockModelConfig,
+      mockModelConfig,
       {
         cacheable: false,
       },
@@ -168,9 +169,11 @@ describe('aiAction cacheable option propagation', () => {
     // Call action with cacheable: false
     const result = await taskExecutor.action(
       'click the button',
-      { model: 'test-model' } as any,
+      {},
+      {},
       undefined,
       false, // cacheable: false
+      true, // includeBboxInPlanning: true
     );
 
     // Verify the result
@@ -202,6 +205,7 @@ describe('aiAction cacheable option propagation', () => {
     // Call convertPlanToExecutable without cacheable option (should default to allowing cache)
     const { tasks } = await taskExecutor.convertPlanToExecutable(
       mockPlans,
+      mockModelConfig,
       mockModelConfig,
     );
 
@@ -242,6 +246,7 @@ describe('aiAction cacheable option propagation', () => {
     // Call convertPlanToExecutable with cacheable: true
     const { tasks } = await taskExecutor.convertPlanToExecutable(
       mockPlans,
+      mockModelConfig,
       mockModelConfig,
       {
         cacheable: true,

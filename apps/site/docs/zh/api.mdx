@@ -1,15 +1,17 @@
-# API 参考
-
-> 在以下文档中，你可能会看到带有 `agent.` 前缀的函数调用。如果你在 Playwright 中，这些调用是不带 `agent.` 前缀的，如 `async ({ ai, aiQuery }) => { /* ... */}`。这只是解构语法的区别。
+# API 参考（公共部分）
 
 ## 构造器
 
-Midscene 中每个 Agent 都有自己的构造函数。
+Midscene 针对每个不同环境都有对应的 Agent。每个 Agent 的构造函数都接受一组共享的配置项（设备、报告、缓存、AI 配置、钩子等），然后再叠加平台专属的配置，比如浏览器里的导航控制或 Android 的 ADB 配置。
 
-- 在 Puppeteer 中，使用 [PuppeteerAgent](./integrate-with-puppeteer)
-- 在桥接模式（Bridge Mode）中，使用 [AgentOverChromeBridge](./bridge-mode#constructor)
-- 在 Android 中，使用 [AndroidAgent](./integrate-with-android)
-- 如果你为自定义界面创建 GUI Agent，请参考 [集成到任意界面](./integrate-with-any-interface)
+你可以通过下面的链接查看各 Agent 的导入路径和平台专属参数：
+
+- 在 Puppeteer 中，使用 [PuppeteerAgent](./web-api-reference#puppeteer-agent)
+- 在 Playwright 中，使用 [PlaywrightAgent](./web-api-reference#playwright-agent)
+- 在桥接模式（Bridge Mode）中，使用 [AgentOverChromeBridge](./web-api-reference#chrome-bridge-agent)
+- 在 Android 中，使用 [Android API 参考](./android-api-reference)
+- 在 iOS 中，使用 [iOS API 参考](./ios-api-reference)
+- 如果你要把 GUI Agent 集成到自己的界面，请参考 [自定义界面 Agent](#custom-interface-agent)
 
 ### 参数
 
@@ -20,62 +22,49 @@ Midscene 中每个 Agent 都有自己的构造函数。
 - `autoPrintReportMsg: boolean`: 如果为 true，则打印报告消息。默认值为 true。
 - `cacheId: string | undefined`: 如果配置，则使用此 cacheId 保存或匹配缓存。默认值为 undefined，也就是不启用缓存。
 - `actionContext: string`: 调用 `agent.aiAct()` 时，发送给 AI 模型的背景知识，比如 '有 cookie 对话框时先关闭它'，默认值为空。
+- `replanningCycleLimit: number`: `aiAct` 的最大重规划次数。默认值为 20。
 - `onTaskStartTip: (tip: string) => void | Promise<void>`：可选回调，在每个子任务执行开始前收到一条可读的任务描述提示。默认值为 undefined。
 
 ### 自定义模型
 
-`modelConfig: (params: { intent: TIntent }) => IModelConfig` 可选。它允许你通过代码动态配置不同的模型，而不是通过环境变量。这在需要为不同的 AI 任务（如 Insight、Planning 等）使用不同模型时特别有用。
+`modelConfig: Record<string, string | number>` 可选。它允许你通过代码配置模型，而不是通过环境变量。
 
-函数接收一个参数对象，包含 `intent` 字段，表示当前任务类型：
-- `'insight'`: 视觉理解和元素定位任务（如 `aiQuery`、`aiLocate`、`aiTap` 等）
-- `'planning'`: 自动规划任务（如 `aiAct`）
-- `'default'`: 其他未分类任务
+> 如果在 Agent 初始化时提供了 `modelConfig`，**系统环境变量中的模型配置将全部被忽略**，仅使用该对象中的值。
+> 这里可配置的 key / value 与 [模型配置](./model-config) 文档中说明的内容完全一致。你也可以参考 [模型策略](./model-strategy) 中的说明。
 
-**基础示例：**
+**基础示例（所有意图共用同一模型）：**
 ```typescript
 const agent = new PuppeteerAgent(page, {
-  modelConfig: () => ({
+  modelConfig: {
     MIDSCENE_MODEL_NAME: 'qwen3-vl-plus',
     MIDSCENE_MODEL_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     MIDSCENE_MODEL_API_KEY: 'sk-...',
     MIDSCENE_MODEL_FAMILY: 'qwen3-vl'
-  })
-});
-```
-
-**为不同任务类型配置不同模型：**
-```typescript
-const agent = new PuppeteerAgent(page, {
-  modelConfig: ({ intent }) => {
-    // 为 Insight 任务使用 Qwen-VL 模型（用于视觉理解和定位）
-    if (intent === 'insight') {
-      return {
-        MIDSCENE_INSIGHT_MODEL_NAME: 'qwen-vl-plus',
-        MIDSCENE_INSIGHT_MODEL_API_KEY: 'sk-insight-key',
-        MIDSCENE_INSIGHT_MODEL_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1'
-      };
-    }
-
-    // 为 Planning 任务使用 GPT-4o 模型（用于任务规划）
-    if (intent === 'planning') {
-      return {
-        MIDSCENE_PLANNING_MODEL_NAME: 'gpt-4o',
-        MIDSCENE_PLANNING_MODEL_API_KEY: 'sk-planning-key',
-        MIDSCENE_PLANNING_MODEL_BASE_URL: 'https://api.openai.com/v1',
-        MIDSCENE_MODEL_FAMILY: 'qwen3-vl'
-      };
-    }
-
-    // 默认配置
-    return {
-      MIDSCENE_MODEL_NAME: 'gpt-4o',
-      MIDSCENE_MODEL_API_KEY: 'sk-default-key',
-    };
   }
 });
 ```
 
-更多关于按任务类型配置模型的信息，请参考 [模型配置](./model-config#按任务类型配置模型高级) 文档。
+**为不同任务类型配置不同模型（使用针对意图的环境变量键）：**
+```typescript
+const agent = new PuppeteerAgent(page, {
+  modelConfig: {
+    // 默认
+    MIDSCENE_MODEL_NAME: 'qwen3-vl-plus',
+    MIDSCENE_MODEL_API_KEY: 'sk-default-key',
+    MIDSCENE_MODEL_BASE_URL: '.....',
+    MIDSCENE_MODEL_FAMILY: 'qwen3-vl',
+
+    // planning 意图
+    MIDSCENE_PLANNING_MODEL_NAME: 'gpt-5.1',
+    MIDSCENE_PLANNING_MODEL_API_KEY: 'sk-planning-key',
+    MIDSCENE_PLANNING_MODEL_BASE_URL: '...',
+
+    // insight 意图
+    MIDSCENE_INSIGHT_MODEL_NAME: 'qwen-vl-plus',
+    MIDSCENE_INSIGHT_MODEL_API_KEY: 'sk-insight-key'
+  }
+});
+```
 
 ### 自定义 OpenAI 客户端
 
@@ -937,11 +926,11 @@ console.log(logContent);
 
 报告文件的路径。
 
-## 更多配置
+### 在运行时设置环境变量（已弃用）
 
-### 在运行时设置环境变量
+> 已弃用，请使用 `modelConfig` 参数代替。
 
-你可以通过 `overrideAIConfig` 方法在运行时设置环境变量。
+通过 `overrideAIConfig` 方法在运行时设置全局环境变量。
 
 ```typescript
 import { overrideAIConfig } from '@midscene/web/puppeteer'; // 或其他的 Agent
@@ -955,30 +944,6 @@ overrideAIConfig({
   // OPENAI_BASE_URL: '...',
   // OPENAI_API_KEY: '...',
 });
-```
-
-### 打印 AI 性能信息
-
-设置 `DEBUG=midscene:ai:profile:stats` 环境变量，你可以看到每次调用 AI 的时间和 token 数量。
-
-```bash
-export DEBUG=midscene:ai:profile:stats
-```
-
-### 自定义运行产物目录
-
-设置 `MIDSCENE_RUN_DIR` 变量，你可以自定义运行产物目录。
-
-```bash
-export MIDSCENE_RUN_DIR=midscene_run # 默认值为当前运行目录下的 midscene_run 目录，支持设置为绝对路径或者相对于当前目录的相对路径
-```
-
-### 自定义重新规划循环限制
-
-设置 `MIDSCENE_REPLANNING_CYCLE_LIMIT` 变量，你可以自定义在执行操作(`aiAct`)时允许的最大重新规划循环次数。
-
-```bash
-export MIDSCENE_REPLANNING_CYCLE_LIMIT=10 # 默认值为 10。当 AI 需要重新规划超过这个限制时，会抛出错误建议将任务拆分为多个步骤
 ```
 
 ### 使用 LangSmith
@@ -1049,9 +1014,7 @@ DEBUGGING MODE: langfuse wrapper enabled
 - 这些集成仅在 Node.js 环境中可用，浏览器环境会抛出错误
 - 如果你使用了 [`createOpenAIClient`](#自定义-openai-客户端) 参数，环境变量方式将被覆盖
 
-## 高级功能
-
-### 使用图片作为提示词
+## 使用图片作为提示词
 
 你可以在提示词中使用图片作为补充，来描述无法通过自然语言表达的内容。
 
@@ -1105,7 +1068,7 @@ await agent.aiAssert({
 
 在提示词中使用图片时，可能需要关注模型提供商对图片体积和尺寸的要求，过大（比如超过 10M）或过小（比如小于 10 像素）的图片都有可能导致模型调用时出现报错，具体的限制请以你所使用模型提供商的文档为准。
 
-## 自动化报告合并
+## 报告合并工具
 
 在运行多个自动化工作流时，每个 agent 都会生成独立的报告文件。`ReportMergingTool` 提供了将多个自动化报告合并为单个报告的能力，便于统一查看和管理自动化结果。
 
@@ -1325,11 +1288,3 @@ describe('Android 设置自动化', () => {
 合并后的报告文件会保存在 `midscene_run/report` 目录下。你可以使用浏览器打开合并后的 HTML 文件查看所有自动化工作流的执行情况。
 
 :::
-
-## 平台特定的 Agent
-
-- `AndroidAgent` / `AndroidDevice`：请阅读 Android 集成指南了解 API、构造函数与常用工具。[查看详情](./integrate-with-android#androidagent) 以及 [设备说明](./integrate-with-android#androiddevice)。
-- `IOSAgent` / `IOSDevice`：参考 iOS 集成文档了解依赖 WebDriverAgent 的自动化能力。[查看详情](./integrate-with-ios#iosagent) 以及 [设备说明](./integrate-with-ios#iosdevice)。
-- `PuppeteerAgent`：前往 Puppeteer 集成文档了解浏览器自动化的配置与选项。[查看详情](./integrate-with-puppeteer#puppeteeragent)。
-- `PlaywrightAgent`：参阅 Playwright 集成指南获取直接调用与测试集成示例。[查看详情](./integrate-with-playwright#playwrightagent)。
-- `AgentOverChromeBridge`：查阅桥接模式文档以了解如何用本地脚本连接 Chrome。[查看详情](./bridge-mode#agentoverchromebridge)。

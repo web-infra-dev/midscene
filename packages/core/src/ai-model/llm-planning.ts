@@ -3,6 +3,7 @@ import type {
   InterfaceType,
   PlanningAIResponse,
   RawResponsePlanningAIResponse,
+  ThinkingStrategy,
   UIContext,
 } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
@@ -15,7 +16,7 @@ import {
   buildYamlFlowFromPlans,
   fillBboxParam,
   findAllMidsceneLocatorField,
-} from './common';
+} from '../common';
 import type { ConversationHistory } from './conversation-history';
 import { systemPromptToTaskPlanning } from './prompt/llm-planning';
 import { callAIWithObjectResponse } from './service-caller/index';
@@ -31,6 +32,8 @@ export async function plan(
     actionContext?: string;
     modelConfig: IModelConfig;
     conversationHistory?: ConversationHistory;
+    includeBbox: boolean;
+    thinkingStrategy: ThinkingStrategy;
   },
 ): Promise<PlanningAIResponse> {
   const { context, modelConfig, conversationHistory } = opts;
@@ -38,12 +41,11 @@ export async function plan(
 
   const { vlMode } = modelConfig;
 
-  // Planning requires VL mode (validated by ModelConfigManager.getModelConfig)
-  assert(vlMode, 'Planning requires vlMode to be configured.');
-
   const systemPrompt = await systemPromptToTaskPlanning({
     actionSpace: opts.actionSpace,
-    vlMode: vlMode,
+    vlMode,
+    includeBbox: opts.includeBbox,
+    thinkingStrategy: opts.thinkingStrategy,
   });
 
   let imagePayload = screenshotBase64;
@@ -147,7 +149,7 @@ export async function plan(
 
     locateFields.forEach((field) => {
       const locateResult = action.param[field];
-      if (locateResult) {
+      if (locateResult && vlMode !== undefined) {
         // Always use VL mode to fill bbox parameters
         action.param[field] = fillBboxParam(
           locateResult,

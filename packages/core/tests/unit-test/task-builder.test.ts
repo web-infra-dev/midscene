@@ -41,14 +41,14 @@ describe('TaskBuilder', () => {
 
     const mockInterface = new MockInterface([mockAction]);
 
-    const insight = {
+    const insightService = {
       contextRetrieverFn: vi.fn(),
       locate: vi.fn(),
-    } as unknown as Insight;
+    } as unknown as Service;
 
     const taskBuilder = new TaskBuilder({
       interfaceInstance: mockInterface,
-      insight,
+      service: insightService,
     });
 
     const plans: PlanningAction[] = [
@@ -75,7 +75,7 @@ describe('TaskBuilder', () => {
       },
     ];
 
-    const { tasks } = await taskBuilder.build(plans, {} as any);
+    const { tasks } = await taskBuilder.build(plans, {} as any, {} as any);
 
     expect(tasks.map((task) => [task.type, task.subType])).toEqual([
       ['Planning', 'Locate'],
@@ -101,14 +101,14 @@ describe('TaskBuilder', () => {
 
     const mockInterface = new MockInterface([mockAction]);
 
-    const insight = {
+    const insightService = {
       contextRetrieverFn: vi.fn(),
       locate: vi.fn(),
-    } as unknown as Insight;
+    } as unknown as Service;
 
     const taskBuilder = new TaskBuilder({
       interfaceInstance: mockInterface,
-      insight,
+      service: insightService,
     });
 
     const plans: PlanningAction[] = [
@@ -125,7 +125,7 @@ describe('TaskBuilder', () => {
       },
     ];
 
-    const { tasks } = await taskBuilder.build(plans, {} as any, {
+    const { tasks } = await taskBuilder.build(plans, {} as any, {} as any, {
       subTask: true,
     });
 

@@ -1,4 +1,4 @@
-import { getMidsceneLocationSchema } from '@/ai-model';
+import { getMidsceneLocationSchema } from '@/common';
 import type {
   ActionScrollParam,
   DeviceAction,
@@ -6,6 +6,7 @@ import type {
 } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import type { ElementNode } from '@midscene/shared/extractor';
+import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 import { z } from 'zod';
 import type { ElementCacheFeature, Rect, Size, UIContext } from '../types';
@@ -399,6 +400,50 @@ export const defineActionClearInput = (
     interfaceAlias: 'aiClearInput',
     paramSchema: actionClearInputParamSchema,
     call,
+  });
+};
+
+// Assert
+export const actionAssertParamSchema = z.object({
+  thought: z
+    .string()
+    .describe('The thinking process of analyzing the assertion'),
+  result: z
+    .boolean()
+    .describe('Whether the assertion is truthy, return true or false'),
+});
+export type ActionAssertParam = {
+  thought: string;
+  result: boolean;
+};
+
+export const defineActionAssert = (
+  call: (param: ActionAssertParam) => Promise<void>,
+): DeviceAction<ActionAssertParam> => {
+  return defineAction<typeof actionAssertParamSchema, ActionAssertParam>({
+    name: 'Assert',
+    description:
+      'If the user explicitly requires making an assertion (like "there should be a button with text "Yes" in the popup"), think about it, provide the reasoning and result here.',
+    interfaceAlias: 'aiAssert',
+    paramSchema: actionAssertParamSchema,
+    call,
+  });
+};
+
+/**
+ * Creates an Assert action with default implementation.
+ * This action can be used across all interfaces without modification.
+ * If pass=true, the assertion succeeds silently.
+ * If pass=false, the assertion fails and throws an error with the thought as the error message.
+ */
+export const createAssertAction = (): DeviceAction<ActionAssertParam> => {
+  const debug = getDebug('core:planning-assert');
+  return defineActionAssert(async (param: ActionAssertParam) => {
+    debug('assertion', param.thought, param.result);
+    if (!param.result) {
+      throw new Error(`Assertion failed: ${param.thought}`);
+    }
+    // If pass is true, do nothing (assertion succeeds)
   });
 };
 

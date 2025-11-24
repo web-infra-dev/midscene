@@ -19,7 +19,7 @@ import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { Stream } from 'openai/streaming';
 import { SocksProxyAgent } from 'socks-proxy-agent';
-import { AIActionType, type AIArgs } from '../common';
+import { AIActionType, type AIArgs } from '../../common';
 import { assertSchema } from '../prompt/assertion';
 import { planSchema } from '../prompt/llm-planning';
 
@@ -151,12 +151,9 @@ export async function callAI(
   let timeCost: number | undefined;
 
   const commonConfig = {
-    temperature: vlMode === 'vlm-ui-tars' ? 0.0 : 0.1,
+    temperature: vlMode === 'vlm-ui-tars' ? 0.0 : undefined,
     stream: !!isStreaming,
-    max_tokens:
-      typeof maxTokens === 'number'
-        ? maxTokens
-        : Number.parseInt(maxTokens || '2048', 10),
+    max_tokens: typeof maxTokens === 'number' ? maxTokens : undefined,
     ...(vlMode === 'qwen2.5-vl' // qwen vl v2 specific config
       ? {
           vl_high_resolution_images: true,

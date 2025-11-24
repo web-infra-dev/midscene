@@ -29,15 +29,6 @@ export const MIDSCENE_MODEL_MAX_TOKENS = 'MIDSCENE_MODEL_MAX_TOKENS';
 /**
  * @deprecated Use MIDSCENE_MODEL_API_KEY instead. This is kept for backward compatibility.
  */
-export const MODEL_API_KEY = 'MODEL_API_KEY';
-/**
- * @deprecated Use MIDSCENE_MODEL_BASE_URL instead. This is kept for backward compatibility.
- */
-export const MODEL_BASE_URL = 'MODEL_BASE_URL';
-
-/**
- * @deprecated Use MIDSCENE_MODEL_API_KEY instead. This is kept for backward compatibility.
- */
 export const OPENAI_API_KEY = 'OPENAI_API_KEY';
 /**
  * @deprecated Use MIDSCENE_MODEL_BASE_URL instead. This is kept for backward compatibility.
@@ -197,8 +188,6 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_OPENAI_INIT_CONFIG_JSON,
   MIDSCENE_OPENAI_HTTP_PROXY,
   MIDSCENE_OPENAI_SOCKS_PROXY,
-  MODEL_API_KEY,
-  MODEL_BASE_URL,
   // INSIGHT (unified VQA and Grounding)
   MIDSCENE_INSIGHT_MODEL_NAME,
   MIDSCENE_INSIGHT_MODEL_SOCKS_PROXY,
@@ -276,8 +265,18 @@ export interface IModelConfigForInsight {
   [MIDSCENE_INSIGHT_MODEL_BASE_URL]?: string;
   [MIDSCENE_INSIGHT_MODEL_API_KEY]?: string;
   [MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON]?: string;
-  // extra
-  [MIDSCENE_MODEL_FAMILY]?: TVlModeValues;
+}
+
+export interface IModelConfigForPlanning {
+  // model name
+  [MIDSCENE_PLANNING_MODEL_NAME]: string;
+  // proxy
+  [MIDSCENE_PLANNING_MODEL_SOCKS_PROXY]?: string;
+  [MIDSCENE_PLANNING_MODEL_HTTP_PROXY]?: string;
+  // OpenAI
+  [MIDSCENE_PLANNING_MODEL_BASE_URL]?: string;
+  [MIDSCENE_PLANNING_MODEL_API_KEY]?: string;
+  [MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON]?: string;
 }
 
 /**
@@ -295,20 +294,6 @@ export interface IModelConfigForInsight {
  *   - 'vlm-ui-tars-doubao'
  *   - 'vlm-ui-tars-doubao-1.5'
  */
-export interface IModelConfigForPlanning {
-  // model name
-  [MIDSCENE_PLANNING_MODEL_NAME]: string;
-  // proxy
-  [MIDSCENE_PLANNING_MODEL_SOCKS_PROXY]?: string;
-  [MIDSCENE_PLANNING_MODEL_HTTP_PROXY]?: string;
-  // OpenAI
-  [MIDSCENE_PLANNING_MODEL_BASE_URL]?: string;
-  [MIDSCENE_PLANNING_MODEL_API_KEY]?: string;
-  [MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON]?: string;
-  // extra
-  [MIDSCENE_MODEL_FAMILY]?: TVlModeValues;
-}
-
 export interface IModelConfigForDefault {
   // model name
   [MIDSCENE_MODEL_NAME]: string;
@@ -333,8 +318,6 @@ export interface IModelConfigForDefaultLegacy {
   [OPENAI_BASE_URL]?: string;
   [OPENAI_API_KEY]?: string;
   [MIDSCENE_OPENAI_INIT_CONFIG_JSON]?: string;
-  // extra
-  [MIDSCENE_MODEL_FAMILY]?: TVlModeValues;
 }
 
 /**
@@ -345,21 +328,10 @@ export interface IModelConfigForDefaultLegacy {
 export type TIntent = 'insight' | 'planning' | 'default';
 
 /**
- * Internal type with intent parameter for ModelConfigManager
- * @internal
+ * Env-style model configuration map supplied directly to the agent.
+ * Numbers are allowed so callers can pass numeric env values (e.g. limits) without casting.
  */
-export type TModelConfigFnInternal = (options: {
-  intent: TIntent;
-}) => IModelConfigForInsight | IModelConfigForPlanning | IModelConfigForDefault;
-
-/**
- * User-facing model config function type
- * Users return config objects without needing to know about intent parameter
- */
-export type TModelConfigFn = () =>
-  | IModelConfigForInsight
-  | IModelConfigForPlanning
-  | IModelConfigForDefault;
+export type TModelConfig = Record<string, string | number>;
 
 export enum UITarsModelVersion {
   V1_0 = '1.0',
@@ -424,10 +396,9 @@ export interface IModelConfig {
   uiTarsModelVersion?: UITarsModelVersion;
   modelDescription: string;
   /**
-   * for debug
+   * original intent from the config
    */
   intent: TIntent;
-  from: 'modelConfig' | 'env' | 'legacy-env';
   /**
    * Custom OpenAI client factory function
    *

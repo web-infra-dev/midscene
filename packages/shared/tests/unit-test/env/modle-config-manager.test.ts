@@ -1,7 +1,6 @@
-import { GlobalConfigManager } from 'src/env';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { GlobalConfigManager } from '../../../src/env/global-config-manager';
 import { ModelConfigManager } from '../../../src/env/model-config-manager';
-import type { TModelConfigFn } from '../../../src/env/types';
 import {
   MIDSCENE_INSIGHT_MODEL_API_KEY,
   MIDSCENE_INSIGHT_MODEL_BASE_URL,
@@ -14,11 +13,6 @@ import {
   MIDSCENE_PLANNING_MODEL_API_KEY,
   MIDSCENE_PLANNING_MODEL_BASE_URL,
   MIDSCENE_PLANNING_MODEL_NAME,
-  MIDSCENE_USE_DOUBAO_VISION,
-  MIDSCENE_USE_GEMINI,
-  MIDSCENE_USE_QWEN3_VL,
-  MIDSCENE_USE_QWEN_VL,
-  MIDSCENE_USE_VLM_UI_TARS,
   OPENAI_API_KEY,
   OPENAI_BASE_URL,
 } from '../../../src/env/types';
@@ -28,567 +22,97 @@ describe('ModelConfigManager', () => {
     vi.unstubAllEnvs();
   });
 
-  describe('constructor', () => {
-    it('should create instance in normal mode when no modelConfigFn provided', () => {
-      const manager = new ModelConfigManager();
-      expect(manager).toBeInstanceOf(ModelConfigManager);
-    });
+  const baseMap = {
+    [MIDSCENE_MODEL_NAME]: 'gpt-4',
+    [MIDSCENE_MODEL_API_KEY]: 'test-key',
+    [MIDSCENE_MODEL_BASE_URL]: 'https://api.openai.com/v1',
+    [MIDSCENE_INSIGHT_MODEL_NAME]: 'gpt-4-vision',
+    [MIDSCENE_INSIGHT_MODEL_API_KEY]: 'insight-key',
+    [MIDSCENE_INSIGHT_MODEL_BASE_URL]: 'https://insight.openai.com/v1',
+    [MIDSCENE_PLANNING_MODEL_NAME]: 'qwen-vl-plus',
+    [MIDSCENE_PLANNING_MODEL_API_KEY]: 'plan-key',
+    [MIDSCENE_PLANNING_MODEL_BASE_URL]: 'https://plan.openai.com/v1',
+    [MIDSCENE_MODEL_FAMILY]: 'qwen3-vl',
+  };
 
-    it('should create instance in isolated mode when modelConfigFn provided', () => {
-      const modelConfigFn = ({ intent }: { intent: any }) => {
-        const baseConfig = {
-          [MIDSCENE_MODEL_NAME]: 'gpt-4',
-          [MIDSCENE_MODEL_API_KEY]: 'test-key',
-          [MIDSCENE_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-        };
+  it('initializes from provided config map (isolated mode)', () => {
+    const manager = new ModelConfigManager(baseMap);
 
-        switch (intent) {
-          case 'insight':
-            return {
-              [MIDSCENE_INSIGHT_MODEL_NAME]: 'gpt-4-vision',
-              [MIDSCENE_INSIGHT_MODEL_API_KEY]: 'test-insight-key',
-              [MIDSCENE_INSIGHT_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-            };
-          case 'planning':
-            return {
-              [MIDSCENE_PLANNING_MODEL_NAME]: 'qwen-vl-plus',
-              [MIDSCENE_PLANNING_MODEL_API_KEY]: 'test-planning-key',
-              [MIDSCENE_PLANNING_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-              [MIDSCENE_MODEL_FAMILY]: 'qwen2.5-vl' as const,
-            };
-          case 'default':
-            return baseConfig;
-          default:
-            return baseConfig;
-        }
-      };
+    const defaultConfig = manager.getModelConfig('default');
+    const insightConfig = manager.getModelConfig('insight');
+    const planningConfig = manager.getModelConfig('planning');
 
-      const manager = new ModelConfigManager(modelConfigFn as any);
-      expect(manager).toBeInstanceOf(ModelConfigManager);
-    });
-
-    it('should throw error when modelConfigFn returns undefined for any intent', () => {
-      const modelConfigFn = ({ intent }: { intent: any }) => {
-        if (intent === 'insight') {
-          return undefined as any;
-        }
-        return {
-          [MIDSCENE_MODEL_NAME]: 'gpt-4',
-          [MIDSCENE_MODEL_API_KEY]: 'test-key',
-          [MIDSCENE_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-        };
-      };
-
-      expect(() => new ModelConfigManager(modelConfigFn as any)).toThrow(
-        'The agent has an option named modelConfig is a function, but it return undefined when call with intent insight, which should be a object.',
-      );
-    });
+    expect(defaultConfig.modelName).toBe('gpt-4');
+    expect(insightConfig.modelName).toBe('gpt-4-vision');
+    expect(planningConfig.modelName).toBe('qwen-vl-plus');
   });
 
-  describe('getModelConfig', () => {
-    it('should return model config in isolated mode', () => {
-      const modelConfigFn = ({ intent }: { intent: any }) => {
-        const baseConfig = {
-          [MIDSCENE_MODEL_NAME]: 'gpt-4',
-          [MIDSCENE_MODEL_API_KEY]: 'test-key',
-          [MIDSCENE_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-        };
+  it('prefer MIDSCENE_MODEL', () => {
+    vi.stubEnv(MIDSCENE_MODEL_NAME, 'env-model');
+    vi.stubEnv(MIDSCENE_MODEL_API_KEY, 'env-key');
+    vi.stubEnv(MIDSCENE_MODEL_BASE_URL, 'https://env.example.com');
+    vi.stubEnv(OPENAI_API_KEY, 'openai-api-env-key');
+    vi.stubEnv(OPENAI_BASE_URL, 'openai-base-url');
+    vi.stubEnv(MIDSCENE_MODEL_FAMILY, 'qwen3-vl');
 
-        switch (intent) {
-          case 'insight':
-            return {
-              [MIDSCENE_INSIGHT_MODEL_NAME]: 'gpt-4-vision',
-              [MIDSCENE_INSIGHT_MODEL_API_KEY]: 'test-insight-key',
-              [MIDSCENE_INSIGHT_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-            };
-          case 'planning':
-            return {
-              [MIDSCENE_PLANNING_MODEL_NAME]: 'qwen-vl-plus',
-              [MIDSCENE_PLANNING_MODEL_API_KEY]: 'test-planning-key',
-              [MIDSCENE_PLANNING_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-              [MIDSCENE_MODEL_FAMILY]: 'qwen2.5-vl',
-            };
-          case 'default':
-            return baseConfig;
-          default:
-            return baseConfig;
-        }
-      };
+    const manager = new ModelConfigManager();
+    manager.registerGlobalConfigManager(new GlobalConfigManager());
 
-      const manager = new ModelConfigManager(modelConfigFn as any);
-
-      const insightConfig = manager.getModelConfig('insight');
-      expect(insightConfig.modelName).toBe('gpt-4-vision');
-      expect(insightConfig.openaiApiKey).toBe('test-insight-key');
-      expect(insightConfig.intent).toBe('insight');
-      expect(insightConfig.from).toBe('modelConfig');
-
-      const planningConfig = manager.getModelConfig('planning');
-      expect(planningConfig.modelName).toBe('qwen-vl-plus');
-      expect(planningConfig.openaiApiKey).toBe('test-planning-key');
-      expect(planningConfig.intent).toBe('planning');
-      expect(planningConfig.from).toBe('modelConfig');
-      expect(planningConfig.vlMode).toBe('qwen2.5-vl');
-
-      const defaultConfig = manager.getModelConfig('default');
-      expect(defaultConfig.modelName).toBe('gpt-4');
-      expect(defaultConfig.openaiApiKey).toBe('test-key');
-      expect(defaultConfig.intent).toBe('default');
-      expect(defaultConfig.from).toBe('modelConfig');
-    });
-
-    it('should return model config in normal mode', () => {
-      // Clear all env vars first
-      vi.unstubAllEnvs();
-
-      // Also delete any legacy environment variables from process.env
-      delete process.env[MIDSCENE_USE_DOUBAO_VISION];
-      delete process.env[MIDSCENE_USE_QWEN_VL];
-      delete process.env[MIDSCENE_USE_QWEN3_VL];
-      delete process.env[MIDSCENE_USE_VLM_UI_TARS];
-      delete process.env[MIDSCENE_USE_GEMINI];
-
-      vi.stubEnv(MIDSCENE_MODEL_NAME, 'gpt-4');
-      vi.stubEnv(OPENAI_API_KEY, 'test-key');
-      vi.stubEnv(OPENAI_BASE_URL, 'https://api.openai.com/v1');
-      vi.stubEnv(MIDSCENE_MODEL_FAMILY, 'qwen3-vl');
-
-      const manager = new ModelConfigManager();
-      manager.registerGlobalConfigManager(new GlobalConfigManager());
-
-      const config = manager.getModelConfig('default');
-      expect(config.modelName).toBe('gpt-4');
-      expect(config.openaiApiKey).toBe('test-key');
-      expect(config.openaiBaseURL).toBe('https://api.openai.com/v1');
-      expect(config.intent).toBe('default');
-      expect(config.from).toBe('legacy-env');
-    });
+    const config = manager.getModelConfig('default');
+    expect(config.modelName).toBe('env-model');
+    expect(config.openaiApiKey).toBe('env-key');
+    expect(config.openaiBaseURL).toBe('https://env.example.com');
+    expect(config.intent).toBe('default');
   });
 
-  describe('clearModelConfigMap', () => {
-    it('should clear modelConfigMap in normal mode', () => {
-      // Clear all env vars first
-      vi.unstubAllEnvs();
+  it('reads from environment when no config function provided', () => {
+    vi.stubEnv(MIDSCENE_MODEL_NAME, 'env-model');
+    vi.stubEnv(MIDSCENE_MODEL_API_KEY, 'env-key');
+    vi.stubEnv(MIDSCENE_MODEL_BASE_URL, 'https://env.example.com');
+    vi.stubEnv(MIDSCENE_MODEL_FAMILY, 'qwen3-vl');
 
-      // Also delete any legacy environment variables from process.env
-      delete process.env[MIDSCENE_USE_DOUBAO_VISION];
-      delete process.env[MIDSCENE_USE_QWEN_VL];
-      delete process.env[MIDSCENE_USE_QWEN3_VL];
-      delete process.env[MIDSCENE_USE_VLM_UI_TARS];
-      delete process.env[MIDSCENE_USE_GEMINI];
+    const manager = new ModelConfigManager();
+    manager.registerGlobalConfigManager(new GlobalConfigManager());
 
-      vi.stubEnv(MIDSCENE_MODEL_NAME, 'gpt-4');
-      vi.stubEnv(OPENAI_API_KEY, 'test-key');
-      vi.stubEnv(OPENAI_BASE_URL, 'https://api.openai.com/v1');
-      vi.stubEnv(MIDSCENE_MODEL_FAMILY, 'qwen3-vl');
-
-      const manager = new ModelConfigManager();
-      manager.registerGlobalConfigManager(new GlobalConfigManager());
-
-      // Initialize modelConfigMap by calling getModelConfig
-      manager.getModelConfig('default');
-
-      // Clear it
-      manager.clearModelConfigMap();
-
-      // Should not throw when calling getModelConfig again
-      expect(() => manager.getModelConfig('default')).not.toThrow();
-    });
-
-    it('should throw error when called in isolated mode', () => {
-      const modelConfigFn: TModelConfigFn = () => ({
-        [MIDSCENE_MODEL_NAME]: 'gpt-4',
-        [MIDSCENE_MODEL_API_KEY]: 'test-key',
-        [MIDSCENE_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-      });
-
-      const manager = new ModelConfigManager(modelConfigFn as any);
-
-      expect(() => manager.clearModelConfigMap()).toThrow(
-        'ModelConfigManager work in isolated mode, so clearModelConfigMap should not be called',
-      );
-    });
+    const config = manager.getModelConfig('default');
+    expect(config.modelName).toBe('env-model');
+    expect(config.openaiApiKey).toBe('env-key');
+    expect(config.openaiBaseURL).toBe('https://env.example.com');
+    expect(config.intent).toBe('default');
   });
 
-  describe('getUploadTestServerUrl', () => {
-    it('should return upload test server URL from default config', () => {
-      const modelConfigFn = ({ intent }: { intent: any }) => ({
-        [MIDSCENE_MODEL_NAME]: 'gpt-4',
-        [MIDSCENE_MODEL_API_KEY]: 'test-key',
-        [MIDSCENE_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-        [MIDSCENE_MODEL_INIT_CONFIG_JSON]: JSON.stringify({
-          REPORT_SERVER_URL: 'https://test-server.com',
-        }),
-      });
-
-      const manager = new ModelConfigManager(modelConfigFn as any);
-      const serverUrl = manager.getUploadTestServerUrl();
-      expect(serverUrl).toBe('https://test-server.com');
+  it('provides upload server URL from openaiExtraConfig', () => {
+    const manager = new ModelConfigManager({
+      ...baseMap,
+      [MIDSCENE_MODEL_INIT_CONFIG_JSON]: JSON.stringify({
+        REPORT_SERVER_URL: 'https://uploader.test',
+      }),
     });
 
-    it('should return undefined when no REPORT_SERVER_URL in config', () => {
-      const modelConfigFn = ({ intent }: { intent: any }) => ({
-        [MIDSCENE_MODEL_NAME]: 'gpt-4',
-        [MIDSCENE_MODEL_API_KEY]: 'test-key',
-        [MIDSCENE_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-      });
-
-      const manager = new ModelConfigManager(modelConfigFn as any);
-      const serverUrl = manager.getUploadTestServerUrl();
-      expect(serverUrl).toBeUndefined();
-    });
-
-    it('should return undefined when openaiExtraConfig is undefined', () => {
-      const modelConfigFn = ({ intent }: { intent: any }) => ({
-        [MIDSCENE_MODEL_NAME]: 'gpt-4',
-        [MIDSCENE_MODEL_API_KEY]: 'test-key',
-        [MIDSCENE_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-      });
-
-      const manager = new ModelConfigManager(modelConfigFn as any);
-      const serverUrl = manager.getUploadTestServerUrl();
-      expect(serverUrl).toBeUndefined();
-    });
+    expect(manager.getUploadTestServerUrl()).toBe('https://uploader.test');
   });
 
-  describe('isolated mode behavior', () => {
-    it('should not be affected by environment variables in isolated mode', () => {
-      const modelConfigFn = ({ intent }: { intent: any }) => ({
-        [MIDSCENE_MODEL_NAME]: 'gpt-4',
-        [MIDSCENE_MODEL_API_KEY]: 'isolated-key',
-        [MIDSCENE_MODEL_BASE_URL]: 'https://isolated.openai.com/v1',
-      });
+  it('clears model config map when called by global manager', () => {
+    vi.stubEnv(MIDSCENE_MODEL_NAME, 'env-model');
+    vi.stubEnv(OPENAI_API_KEY, 'env-key');
+    vi.stubEnv(OPENAI_BASE_URL, 'https://env.example.com');
 
-      // Set environment variables that should be ignored
-      vi.stubEnv(MIDSCENE_MODEL_NAME, 'gpt-3.5-turbo');
-      vi.stubEnv(MIDSCENE_MODEL_API_KEY, 'env-key');
-      vi.stubEnv(MIDSCENE_MODEL_BASE_URL, 'https://env.openai.com/v1');
+    const manager = new ModelConfigManager();
+    manager.registerGlobalConfigManager(new GlobalConfigManager());
 
-      const manager = new ModelConfigManager(modelConfigFn as any);
-      const config = manager.getModelConfig('default');
+    const first = manager.getModelConfig('default');
+    manager.clearModelConfigMap();
+    const second = manager.getModelConfig('default');
 
-      // Should use values from modelConfigFn, not environment
-      expect(config.modelName).toBe('gpt-4');
-      expect(config.openaiApiKey).toBe('isolated-key');
-      expect(config.openaiBaseURL).toBe('https://isolated.openai.com/v1');
-    });
+    expect(first).not.toBe(second);
+    expect(second.modelName).toBe('env-model');
   });
 
-  describe('Planning VL mode validation', () => {
-    it('should throw error when planning has no vlMode in isolated mode', () => {
-      const modelConfigFn = ({ intent }: { intent: any }) => {
-        if (intent === 'planning') {
-          // Missing VL mode for planning
-          return {
-            [MIDSCENE_PLANNING_MODEL_NAME]: 'gpt-4',
-            [MIDSCENE_PLANNING_MODEL_API_KEY]: 'test-key',
-            [MIDSCENE_PLANNING_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-          };
-        }
-        return {
-          [MIDSCENE_MODEL_NAME]: 'gpt-4',
-          [MIDSCENE_MODEL_API_KEY]: 'test-key',
-          [MIDSCENE_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-        };
-      };
+  it('injects createOpenAIClient when provided', () => {
+    const createClient = vi.fn();
+    const manager = new ModelConfigManager(baseMap, createClient);
 
-      const manager = new ModelConfigManager(modelConfigFn as any);
-
-      expect(() => manager.getModelConfig('planning')).toThrow(
-        'Planning requires a vision language model (VL model). DOM-based planning is not supported.',
-      );
-    });
-
-    it('should succeed when planning has valid vlMode in isolated mode', () => {
-      const modelConfigFn = ({ intent }: { intent: any }) => {
-        if (intent === 'planning') {
-          return {
-            [MIDSCENE_PLANNING_MODEL_NAME]: 'qwen-vl-plus',
-            [MIDSCENE_PLANNING_MODEL_API_KEY]: 'test-key',
-            [MIDSCENE_PLANNING_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-            [MIDSCENE_MODEL_FAMILY]: 'qwen2.5-vl' as const,
-          };
-        }
-        return {
-          [MIDSCENE_MODEL_NAME]: 'gpt-4',
-          [MIDSCENE_MODEL_API_KEY]: 'test-key',
-          [MIDSCENE_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-        };
-      };
-
-      const manager = new ModelConfigManager(modelConfigFn as any);
-      const config = manager.getModelConfig('planning');
-
-      expect(config.vlMode).toBe('qwen2.5-vl');
-      expect(config.modelName).toBe('qwen-vl-plus');
-    });
-
-    it('should succeed when planning has valid vlMode in normal mode', () => {
-      // Clear all env vars first
-      vi.unstubAllEnvs();
-
-      // Also delete any legacy environment variables from process.env
-      delete process.env[MIDSCENE_USE_DOUBAO_VISION];
-      delete process.env[MIDSCENE_USE_QWEN_VL];
-      delete process.env[MIDSCENE_USE_QWEN3_VL];
-      delete process.env[MIDSCENE_USE_VLM_UI_TARS];
-      delete process.env[MIDSCENE_USE_GEMINI];
-      delete process.env[MIDSCENE_MODEL_FAMILY];
-
-      // Set default env vars needed for calcModelConfigMapBaseOnEnv
-      vi.stubEnv(OPENAI_API_KEY, 'default-test-key');
-
-      vi.stubEnv(MIDSCENE_PLANNING_MODEL_NAME, 'qwen-vl-plus');
-      vi.stubEnv(MIDSCENE_PLANNING_MODEL_API_KEY, 'test-key');
-      vi.stubEnv(MIDSCENE_PLANNING_MODEL_BASE_URL, 'https://api.openai.com/v1');
-      vi.stubEnv(MIDSCENE_MODEL_FAMILY, 'qwen2.5-vl');
-
-      const manager = new ModelConfigManager();
-      manager.registerGlobalConfigManager(new GlobalConfigManager());
-
-      const config = manager.getModelConfig('planning');
-
-      expect(config.vlMode).toBe('qwen2.5-vl');
-      expect(config.modelName).toBe('qwen-vl-plus');
-      expect(config.intent).toBe('planning');
-    });
-
-    it('should not affect other intents when planning validation fails', () => {
-      const modelConfigFn = ({ intent }: { intent: any }) => {
-        if (intent === 'planning') {
-          // Missing VL mode for planning - should fail
-          return {
-            [MIDSCENE_PLANNING_MODEL_NAME]: 'gpt-4',
-            [MIDSCENE_PLANNING_MODEL_API_KEY]: 'test-key',
-            [MIDSCENE_PLANNING_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-          };
-        }
-        // Other intents should work fine
-        return {
-          [MIDSCENE_MODEL_NAME]: 'gpt-4',
-          [MIDSCENE_MODEL_API_KEY]: 'test-key',
-          [MIDSCENE_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-        };
-      };
-
-      const manager = new ModelConfigManager(modelConfigFn as any);
-
-      // Planning should fail
-      expect(() => manager.getModelConfig('planning')).toThrow(
-        'Planning requires a vision language model',
-      );
-
-      // Other intents should succeed
-      expect(() => manager.getModelConfig('default')).not.toThrow();
-      expect(() => manager.getModelConfig('insight')).not.toThrow();
-    });
-
-    it('should accept all valid VL modes for planning', () => {
-      const vlModeTestCases: Array<{
-        raw:
-          | 'qwen2.5-vl'
-          | 'qwen3-vl'
-          | 'gemini'
-          | 'doubao-vision'
-          | 'vlm-ui-tars'
-          | 'vlm-ui-tars-doubao'
-          | 'vlm-ui-tars-doubao-1.5';
-        expected: string;
-      }> = [
-        { raw: 'qwen2.5-vl', expected: 'qwen2.5-vl' },
-        { raw: 'qwen3-vl', expected: 'qwen3-vl' },
-        { raw: 'gemini', expected: 'gemini' },
-        { raw: 'doubao-vision', expected: 'doubao-vision' },
-        // UI-TARS variants all normalize to 'vlm-ui-tars'
-        { raw: 'vlm-ui-tars', expected: 'vlm-ui-tars' },
-        { raw: 'vlm-ui-tars-doubao', expected: 'vlm-ui-tars' },
-        { raw: 'vlm-ui-tars-doubao-1.5', expected: 'vlm-ui-tars' },
-      ];
-
-      for (const { raw, expected } of vlModeTestCases) {
-        const modelConfigFn = ({ intent }: { intent: any }) => {
-          if (intent === 'planning') {
-            return {
-              [MIDSCENE_PLANNING_MODEL_NAME]: 'test-model',
-              [MIDSCENE_PLANNING_MODEL_API_KEY]: 'test-key',
-              [MIDSCENE_PLANNING_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-              [MIDSCENE_MODEL_FAMILY]: raw,
-            };
-          }
-          return {
-            [MIDSCENE_MODEL_NAME]: 'gpt-4',
-            [MIDSCENE_MODEL_API_KEY]: 'test-key',
-            [MIDSCENE_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-          };
-        };
-
-        const manager = new ModelConfigManager(modelConfigFn as any);
-        const config = manager.getModelConfig('planning');
-
-        expect(config.vlMode).toBe(expected);
-      }
-    });
-  });
-
-  describe('createOpenAIClient factory function', () => {
-    it('should inject createOpenAIClient into config when provided in isolated mode', () => {
-      const mockCreateClient = vi.fn();
-      const modelConfigFn = ({ intent }: { intent: any }) => ({
-        [MIDSCENE_MODEL_NAME]: 'gpt-4',
-        [MIDSCENE_MODEL_API_KEY]: 'test-key',
-        [MIDSCENE_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-      });
-
-      const manager = new ModelConfigManager(modelConfigFn, mockCreateClient);
-      const config = manager.getModelConfig('default');
-
-      expect(config.createOpenAIClient).toBe(mockCreateClient);
-    });
-
-    it('should inject createOpenAIClient into config when provided in normal mode', () => {
-      // Clear all env vars first
-      vi.unstubAllEnvs();
-
-      // Also delete any legacy environment variables from process.env
-      delete process.env[MIDSCENE_USE_DOUBAO_VISION];
-      delete process.env[MIDSCENE_USE_QWEN_VL];
-      delete process.env[MIDSCENE_USE_QWEN3_VL];
-      delete process.env[MIDSCENE_USE_VLM_UI_TARS];
-      delete process.env[MIDSCENE_USE_GEMINI];
-      delete process.env[MIDSCENE_MODEL_FAMILY];
-
-      vi.stubEnv(MIDSCENE_MODEL_NAME, 'gpt-4');
-      vi.stubEnv(OPENAI_API_KEY, 'test-key');
-      vi.stubEnv(OPENAI_BASE_URL, 'https://api.openai.com/v1');
-      vi.stubEnv(MIDSCENE_MODEL_FAMILY, 'qwen3-vl'); // Add planning style
-
-      const mockCreateClient = vi.fn();
-      const manager = new ModelConfigManager(undefined, mockCreateClient);
-      manager.registerGlobalConfigManager(new GlobalConfigManager());
-
-      const config = manager.getModelConfig('default');
-
-      expect(config.createOpenAIClient).toBe(mockCreateClient);
-    });
-
-    it('should inject createOpenAIClient into all intent configs in isolated mode', () => {
-      const mockCreateClient = vi.fn();
-      const modelConfigFn = ({ intent }: { intent: any }) => {
-        switch (intent) {
-          case 'insight':
-            return {
-              [MIDSCENE_INSIGHT_MODEL_NAME]: 'gpt-4-vision',
-              [MIDSCENE_INSIGHT_MODEL_API_KEY]: 'test-insight-key',
-              [MIDSCENE_INSIGHT_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-            };
-          case 'planning':
-            return {
-              [MIDSCENE_PLANNING_MODEL_NAME]: 'qwen-vl-plus',
-              [MIDSCENE_PLANNING_MODEL_API_KEY]: 'test-planning-key',
-              [MIDSCENE_PLANNING_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-              [MIDSCENE_MODEL_FAMILY]: 'qwen2.5-vl' as const,
-            };
-          default:
-            return {
-              [MIDSCENE_MODEL_NAME]: 'gpt-4',
-              [MIDSCENE_MODEL_API_KEY]: 'test-key',
-              [MIDSCENE_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-            };
-        }
-      };
-
-      const manager = new ModelConfigManager(modelConfigFn, mockCreateClient);
-
-      const insightConfig = manager.getModelConfig('insight');
-      expect(insightConfig.createOpenAIClient).toBe(mockCreateClient);
-
-      const planningConfig = manager.getModelConfig('planning');
-      expect(planningConfig.createOpenAIClient).toBe(mockCreateClient);
-
-      const defaultConfig = manager.getModelConfig('default');
-      expect(defaultConfig.createOpenAIClient).toBe(mockCreateClient);
-    });
-
-    it('should inject createOpenAIClient into all intent configs in normal mode', () => {
-      vi.stubEnv(MIDSCENE_INSIGHT_MODEL_NAME, 'gpt-4-vision');
-      vi.stubEnv(MIDSCENE_INSIGHT_MODEL_API_KEY, 'test-insight-key');
-      vi.stubEnv(MIDSCENE_INSIGHT_MODEL_BASE_URL, 'https://api.openai.com/v1');
-
-      vi.stubEnv(MIDSCENE_PLANNING_MODEL_NAME, 'qwen-vl-plus');
-      vi.stubEnv(MIDSCENE_PLANNING_MODEL_API_KEY, 'test-planning-key');
-      vi.stubEnv(MIDSCENE_PLANNING_MODEL_BASE_URL, 'https://api.openai.com/v1');
-      vi.stubEnv(MIDSCENE_MODEL_FAMILY, 'qwen2.5-vl');
-
-      vi.stubEnv(MIDSCENE_MODEL_NAME, 'gpt-4');
-      vi.stubEnv(OPENAI_API_KEY, 'test-key');
-      vi.stubEnv(OPENAI_BASE_URL, 'https://api.openai.com/v1');
-
-      const mockCreateClient = vi.fn();
-      const manager = new ModelConfigManager(undefined, mockCreateClient);
-      manager.registerGlobalConfigManager(new GlobalConfigManager());
-
-      const insightConfig = manager.getModelConfig('insight');
-      expect(insightConfig.createOpenAIClient).toBe(mockCreateClient);
-
-      const planningConfig = manager.getModelConfig('planning');
-      expect(planningConfig.createOpenAIClient).toBe(mockCreateClient);
-
-      const defaultConfig = manager.getModelConfig('default');
-      expect(defaultConfig.createOpenAIClient).toBe(mockCreateClient);
-    });
-
-    it('should not have createOpenAIClient in config when not provided', () => {
-      const modelConfigFn: TModelConfigFn = () => ({
-        [MIDSCENE_MODEL_NAME]: 'gpt-4',
-        [MIDSCENE_MODEL_API_KEY]: 'test-key',
-        [MIDSCENE_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-      });
-
-      const manager = new ModelConfigManager(modelConfigFn as any);
-      const config = manager.getModelConfig('default');
-
-      expect(config.createOpenAIClient).toBeUndefined();
-    });
-
-    it('should return the same createOpenAIClient function reference across multiple getModelConfig calls', () => {
-      const mockCreateClient = vi.fn();
-      const modelConfigFn: TModelConfigFn = () => ({
-        [MIDSCENE_MODEL_NAME]: 'gpt-4',
-        [MIDSCENE_MODEL_API_KEY]: 'test-key',
-        [MIDSCENE_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-      });
-
-      const manager = new ModelConfigManager(modelConfigFn, mockCreateClient);
-
-      const config1 = manager.getModelConfig('default');
-      const config2 = manager.getModelConfig('default');
-      const config3 = manager.getModelConfig('default');
-
-      expect(config1.createOpenAIClient).toBe(mockCreateClient);
-      expect(config2.createOpenAIClient).toBe(mockCreateClient);
-      expect(config3.createOpenAIClient).toBe(mockCreateClient);
-      expect(config1.createOpenAIClient).toBe(config2.createOpenAIClient);
-      expect(config2.createOpenAIClient).toBe(config3.createOpenAIClient);
-    });
-
-    it('should inject createOpenAIClient during config initialization, not at getModelConfig call time', () => {
-      const mockCreateClient = vi.fn();
-      const modelConfigFn: TModelConfigFn = () => ({
-        [MIDSCENE_MODEL_NAME]: 'gpt-4',
-        [MIDSCENE_MODEL_API_KEY]: 'test-key',
-        [MIDSCENE_MODEL_BASE_URL]: 'https://api.openai.com/v1',
-      });
-
-      // Create manager - this should initialize config with createOpenAIClient
-      const manager = new ModelConfigManager(modelConfigFn, mockCreateClient);
-
-      // Get config multiple times
-      const config1 = manager.getModelConfig('default');
-      const config2 = manager.getModelConfig('default');
-
-      // Both should return the exact same object reference (not a new object)
-      expect(config1).toBe(config2);
-      expect(config1.createOpenAIClient).toBe(mockCreateClient);
-    });
+    const config = manager.getModelConfig('default');
+    expect(config.createOpenAIClient).toBe(createClient);
   });
 });

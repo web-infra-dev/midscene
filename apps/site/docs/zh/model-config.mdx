@@ -149,19 +149,21 @@ import 'dotenv/config';
 | 名称 | 描述 |
 |------|-------------|
 | `MIDSCENE_MODEL_API_KEY` | 模型 API Key，如 "sk-abcd..." |
-| `MIDSCENE_MODEL_BASE_URL` | API 的接入 URL，常见以版本号结尾（如`/v1`）。这里不需要编写最后的 `/chat/completion` 部分 |
-| `MIDSCENE_MODEL_NAME` | 模型名称|
+| `MIDSCENE_MODEL_BASE_URL` | API 的接入 URL，常见以版本号结尾（如`/v1`）；不需要编写最后的 `/chat/completion` 部分，底层 SDK 会自动添加 |
+| `MIDSCENE_MODEL_NAME` | 模型名称 |
+| `MIDSCENE_MODEL_FAMILY` | 模型系列，用于确定坐标处理方式 |
 
 ### 高阶配置（可选）
 
 | 名称 | 描述 |
 |------|-------------|
 | `MIDSCENE_MODEL_MAX_TOKENS` | 模型响应的 max_tokens 数配置，默认是 2048 |
-| `MIDSCENE_MODEL_HTTP_PROXY` | HTTP/HTTPS 代理配置，如 `http://127.0.0.1:8080` 或 `https://proxy.example.com:8080`。这个选项优先级高于 `MIDSCENE_MODEL_SOCKS_PROXY` |
+| `MIDSCENE_MODEL_HTTP_PROXY` | HTTP/HTTPS 代理配置，如 `http://127.0.0.1:8080` 或 `https://proxy.example.com:8080`，优先级高于 `MIDSCENE_MODEL_SOCKS_PROXY` |
 | `MIDSCENE_MODEL_SOCKS_PROXY` | SOCKS 代理配置，如 `socks5://127.0.0.1:1080` |
 | `MIDSCENE_MODEL_INIT_CONFIG_JSON` | 覆盖 OpenAI SDK 初始化配置的 JSON |
 | `MIDSCENE_REPLANNING_CYCLE_LIMIT` | 最大重规划次数限制，默认是 10 |
-| `MIDSCENE_PREFERRED_LANGUAGE` | 可选。模型响应的语言。如果当前系统时区是 GMT+8 则默认是 `Chinese`，否则是 `English` |
+| `MIDSCENE_RUN_DIR` | 运行产物目录，默认值为当前工作目录下的 `midscene_run`，支持设置绝对路径或相对路径 |
+| `MIDSCENE_PREFERRED_LANGUAGE` | 可选，模型响应的语言；如果当前系统时区是 GMT+8 则默认是 `Chinese`，否则是 `English` |
 
 ### 为 Insight 意图单独配置模型（可选）
 
@@ -170,8 +172,8 @@ import 'dotenv/config';
 | 名称 | 描述 |
 |------|-------------|
 | `MIDSCENE_INSIGHT_MODEL_API_KEY` | API Key |
-| `MIDSCENE_INSIGHT_MODEL_BASE_URL` | API 的接入 URL，常见以版本号结尾（如`/v1`）。这里不需要编写最后的 `/chat/completion` 部分 |
-| `MIDSCENE_INSIGHT_MODEL_NAME` | 模型名称|
+| `MIDSCENE_INSIGHT_MODEL_BASE_URL` | API 的接入 URL，常见以版本号结尾（如`/v1`）；不需要编写最后的 `/chat/completion` 部分 |
+| `MIDSCENE_INSIGHT_MODEL_NAME` | 模型名称 |
 | `MIDSCENE_INSIGHT_MODEL_HTTP_PROXY` | 可选，效果等同于 `MIDSCENE_MODEL_HTTP_PROXY` |
 | `MIDSCENE_INSIGHT_MODEL_SOCKS_PROXY` | 可选，效果等同于 `MIDSCENE_MODEL_SOCKS_PROXY`  |
 | `MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON` | 可选，效果等同于 `MIDSCENE_MODEL_INIT_CONFIG_JSON`  |
