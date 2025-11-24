@@ -91,24 +91,30 @@ export async function plan(
     },
   ];
 
+  const latestImageMessage: ChatCompletionMessageParam = {
+    role: 'user',
+    content: [
+      {
+        type: 'text',
+        text: 'I have finished the action previously planned, and the last screenshot is as follows:',
+      },
+      {
+        type: 'image_url',
+        image_url: {
+          url: imagePayload,
+          detail: 'high',
+        },
+      },
+      // Planning uses pure vision mode, no DOM description needed
+    ],
+  };
+
   const msgs: ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
     ...knowledgeContext,
     ...instruction,
     ...historyLog,
-    {
-      role: 'user',
-      content: [
-        {
-          type: 'image_url',
-          image_url: {
-            url: imagePayload,
-            detail: 'high',
-          },
-        },
-        // Planning uses pure vision mode, no DOM description needed
-      ],
-    },
+    latestImageMessage,
   ];
 
   const { content: planFromAI, usage } =
@@ -176,21 +182,14 @@ export async function plan(
     );
   }
 
+  conversationHistory?.append(latestImageMessage);
+
   conversationHistory?.append({
     role: 'assistant',
     content: [
       {
         type: 'text',
         text: rawResponse,
-      },
-    ],
-  });
-  conversationHistory?.append({
-    role: 'user',
-    content: [
-      {
-        type: 'text',
-        text: 'I have finished the action previously planned',
       },
     ],
   });
