@@ -1,4 +1,4 @@
-import type { DeviceAction } from '@/types';
+import type { DeviceAction, ThinkingStrategy } from '@/types';
 import type { TVlModeTypes } from '@midscene/shared/env';
 import type { ResponseFormatJSONSchema } from 'openai/resources/index';
 import type { z } from 'zod';
@@ -221,10 +221,12 @@ export async function systemPromptToTaskPlanning({
   actionSpace,
   vlMode,
   includeBbox,
+  thinkingStrategy,
 }: {
   actionSpace: DeviceAction<any>[];
   vlMode: TVlModeTypes | undefined;
   includeBbox: boolean;
+  thinkingStrategy: ThinkingStrategy;
 }) {
   // Validate parameters: if includeBbox is true, vlMode must be defined
   if (includeBbox && !vlMode) {
@@ -241,6 +243,17 @@ export async function systemPromptToTaskPlanning({
   });
   const actionList = actionDescriptionList.join('\n');
 
+  // Conditionally include log field based on thinkingStrategy
+  const logFieldDefinition =
+    thinkingStrategy === 'off'
+      ? ''
+      : '"log": string, // Log your thoughts and what the next one action (ONLY ONE!) you can do according to the screenshot and the instruction. The log should contain the following information: "The user wants to do ... . According to the instruction and the previous logs, next step is to .... Now i am going to compose an action \'{ action-type }\' to do this". If no action should be done, log the reason. Use the same language as the user\'s instruction.\n  ';
+
+  const exampleLogField =
+    thinkingStrategy === 'off'
+      ? ''
+      : "\"log\": \"The user wants to do click 'Confirm' button, and click 'Yes' in popup. According to the instruction and the previous logs, next step is to tap the 'Yes' button in the popup. Now i am going to compose an action 'Tap' to click 'Yes' in popup.\",\n  ";
+
   return `
 Target: User will give you an instruction, some screenshots and previous logs indicating what have been done. Your task is to plan the next one action to accomplish the instruction.
 
@@ -249,14 +262,14 @@ Please tell what the next one action is (or null if no action should be done) to
 Restriction:
 - Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
 - Give just the next ONE action you should do
+- If the user mentions something to assert and the condition is not met, you should think this is an error and set the "error" field to the error message.
 
 Supporting actions:
 ${actionList}
 
 Return in JSON format:
 {
-  "log": string, // Log your thoughts and what the next one action (ONLY ONE!) you can do according to the screenshot and the instruction. The log should contain the following information: "The user wants to do ... . According to the instruction and the previous logs, next step is to .... Now i am going to compose an action '{ action-type }' to do this". If no action should be done, log the reason. Use the same language as the user's instruction.
-  ${commonOutputFields}
+  ${logFieldDefinition}${commonOutputFields}
   "action": 
     {
       // one of the supporting actions
@@ -270,8 +283,7 @@ For example, when the instruction is "click 'Confirm' button, and click 'Yes' in
 this and output the JSON:
 
 {
-  "log": "The user wants to do click 'Confirm' button, and click 'Yes' in popup. According to the instruction and the previous logs, next step is to tap the 'Yes' button in the popup. Now i am going to compose an action 'Tap' to click 'Yes' in popup.",
-  "action": {
+  ${exampleLogField}"action": {
     "type": "Tap",
     "param": {
       "locate": {

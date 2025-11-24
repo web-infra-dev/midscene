@@ -18,7 +18,7 @@ import type {
   ServiceDump,
   ServiceExtractOption,
   ServiceExtractParam,
-  ThinkingLevel,
+  ThinkingStrategy,
 } from '@/types';
 import { ServiceError } from '@/types';
 import {
@@ -180,6 +180,7 @@ export class TaskExecutor {
     modelConfigForPlanning: IModelConfig,
     modelConfigForDefaultIntent: IModelConfig,
     includeBbox: boolean,
+    thinkingStrategy: ThinkingStrategy,
   ): ExecutionTaskPlanningApply {
     const task: ExecutionTaskPlanningApply = {
       type: 'Planning',
@@ -224,6 +225,7 @@ export class TaskExecutor {
             modelConfig: modelConfigForPlanning,
             conversationHistory: this.conversationHistory,
             includeBbox,
+            thinkingStrategy,
           },
         );
         debug('planResult', JSON.stringify(planResult, null, 2));
@@ -316,8 +318,8 @@ export class TaskExecutor {
     userPrompt: string,
     modelConfigForPlanning: IModelConfig,
     modelConfigForDefaultIntent: IModelConfig,
-    thinkingLevel: ThinkingLevel,
     includeBboxInPlanning: boolean,
+    thinkingStrategy: ThinkingStrategy,
     actionContext?: string,
     cacheable?: boolean,
   ): Promise<
@@ -355,6 +357,7 @@ export class TaskExecutor {
         modelConfigForPlanning,
         modelConfigForDefaultIntent,
         includeBboxInPlanning,
+        thinkingStrategy,
       );
 
       const result = await session.appendAndRun(planningTask);

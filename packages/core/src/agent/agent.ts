@@ -820,8 +820,8 @@ export class Agent<
       taskPrompt,
       modelConfigForPlanning,
       defaultIntentModelConfig,
-      thinkingLevelToUse,
       includeBboxInPlanning,
+      thinkingLevelToUse === 'off' ? 'off' : 'cot',
       this.opts.aiActionContext,
       cacheable,
     );

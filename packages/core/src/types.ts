@@ -133,6 +133,7 @@ export interface LocateResult {
 }
 
 export type ThinkingLevel = 'off' | 'medium' | 'high';
+export type ThinkingStrategy = 'off' | 'cot';
 
 export interface ServiceTaskInfo {
   durationMs: number;
