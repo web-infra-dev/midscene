@@ -26,28 +26,16 @@ const testSources = [
 
 let resultCollector: TestResultCollector;
 
-let failCaseThreshold = 2;
-if (process.env.CI) {
-  failCaseThreshold = globalModelConfigManager.getModelConfig('insight').vlMode
-    ? 2
-    : 3;
-}
+const failCaseThreshold = 2;
 
 beforeAll(async () => {
-  const modelConfig = globalModelConfigManager.getModelConfig('insight');
+  const modelConfig = globalModelConfigManager.getModelConfig('default');
 
   const { vlMode, modelName } = modelConfig;
 
-  const positionModeTag = globalModelConfigManager.getModelConfig('grounding')
-    .vlMode
-    ? 'by_coordinates'
-    : 'by_element';
-
+  const positionModeTag = 'by_coordinates';
   resultCollector = new TestResultCollector(positionModeTag, modelName);
-
-  if (process.env.MIDSCENE_EVALUATION_EXPECT_VL) {
-    expect(vlMode).toBeTruthy();
-  }
+  expect(vlMode).toBeTruthy();
 });
 
 afterAll(async () => {
@@ -78,12 +66,12 @@ testSources.forEach((source) => {
 
         const service = new Service(context);
 
-        let result: Awaited<ReturnType<typeof insight.locate>> | Error;
+        let result: Awaited<ReturnType<typeof service.locate>> | Error;
         try {
           const modelConfig =
-            globalModelConfigManager.getModelConfig('grounding');
+            globalModelConfigManager.getModelConfig('default');
 
-          result = await insight.locate(
+          result = await service.locate(
             {
               prompt,
               deepThink:
@@ -118,19 +106,8 @@ testSources.forEach((source) => {
             indexId,
             rect,
           });
-
-          // // biome-ignore lint/performance/noDelete: <explanation>
-          // delete (testCase as any).response_bbox;
-          // // biome-ignore lint/performance/noDelete: <explanation>
-          // delete (testCase as any).response;
         }
 
-        if (element) {
-          testCase.response_element = {
-            id: element.id,
-            indexId: element.indexId,
-          };
-        }
         if (shouldUpdateAnswerData) {
           // write testCase to file
           writeFileSync(aiDataPath, JSON.stringify(cases, null, 2));
