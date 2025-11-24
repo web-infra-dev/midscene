@@ -867,11 +867,11 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
   };
 
   async destroy(): Promise<void> {
+    this.destroyed = true;
     this.activeTabId = null;
     this.pendingReattach = false;
     this.removeDebuggerEventListeners();
     await this.detachDebugger();
-    this.destroyed = true;
   }
 
   async longPress(x: number, y: number, duration?: number) {
