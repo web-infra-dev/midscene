@@ -67,6 +67,8 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     | ((source: chrome.debugger.Debuggee, reason: string) => void)
     | null = null;
 
+  private reattachTimeoutHandle: ReturnType<typeof setTimeout> | null = null;
+
   constructor(forceSameTabNavigation: boolean) {
     this.forceSameTabNavigation = forceSameTabNavigation;
     this.setupDebuggerEventListeners();
@@ -112,8 +114,14 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
         console.log('Tab navigation completed, reattaching debugger');
         this.pendingReattach = false;
 
+        // Clear any pending reattach timeout
+        if (this.reattachTimeoutHandle) {
+          clearTimeout(this.reattachTimeoutHandle);
+        }
+
         // Reattach with a small delay to ensure page is ready
-        setTimeout(() => {
+        this.reattachTimeoutHandle = setTimeout(() => {
+          this.reattachTimeoutHandle = null;
           if (!this.destroyed && !this.isDebuggerAttached) {
             this.attachDebugger().catch((error) => {
               console.error('Failed to auto-reattach debugger:', error);
@@ -134,6 +142,10 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     if (this.tabUpdateListener) {
       chrome.tabs.onUpdated.removeListener(this.tabUpdateListener);
       this.tabUpdateListener = null;
+    }
+    if (this.reattachTimeoutHandle) {
+      clearTimeout(this.reattachTimeoutHandle);
+      this.reattachTimeoutHandle = null;
     }
   }
 
@@ -330,13 +342,18 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
 
     try {
       await chrome.debugger.detach({ tabId: tabIdToDetach });
+      // Only update state if detachment succeeded
+      this.tabIdOfDebuggerAttached = null;
+      this.isDebuggerAttached = false;
+      this.debuggerDetachReason = null;
     } catch (error) {
-      // maybe tab is closed ?
+      // Tab might be closed or debugger already detached
       console.warn('Failed to detach debugger', error);
+      // Even if detachment failed, update state since we can't recover
+      this.tabIdOfDebuggerAttached = null;
+      this.isDebuggerAttached = false;
+      this.debuggerDetachReason = null;
     }
-    this.tabIdOfDebuggerAttached = null;
-    this.isDebuggerAttached = false;
-    this.debuggerDetachReason = null;
   }
 
   private async enableWaterFlowAnimation() {
@@ -391,18 +408,25 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
         params as any,
       )) as ResponseType;
     } catch (error) {
-      const errorMessage = (error as Error)?.message || String(error);
+      // Check if this is a debugger detachment error
+      // We try to detect this by attempting to use the debugger API
+      let isDebuggerDetached = false;
 
-      // Check if debugger was detached
-      if (
-        errorMessage.includes('Debugger is not attached') ||
-        errorMessage.includes('Cannot access') ||
-        errorMessage.includes('No target with given id')
-      ) {
+      try {
+        // Try a simple command to check if debugger is still attached
+        await chrome.debugger.sendCommand(
+          { tabId: this.tabIdOfDebuggerAttached! },
+          'Runtime.evaluate',
+          { expression: '1', returnByValue: true },
+        );
+      } catch {
+        // If this fails, debugger is likely detached
+        isDebuggerDetached = true;
+      }
+
+      if (isDebuggerDetached) {
         console.warn(
-          `Debugger command failed (${command}):`,
-          errorMessage,
-          `Retry: ${retryCount}/${MAX_RETRIES}`,
+          `Debugger appears detached during command (${command}), retry: ${retryCount}/${MAX_RETRIES}`,
         );
 
         // Reset state and retry
