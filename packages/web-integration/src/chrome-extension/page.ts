@@ -104,6 +104,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     this.tabUpdateListener = (tabId, changeInfo, _tab) => {
       if (
         tabId === this.activeTabId &&
+        tabId === this.tabIdOfDebuggerAttached &&
         changeInfo.status === 'complete' &&
         this.pendingReattach &&
         !this.destroyed
