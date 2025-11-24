@@ -224,7 +224,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
             return;
           } catch (e) {
             // Debugger was detached, update state
-            console.log('Debugger appears detached, will reattach');
+            console.log('Debugger appears detached, will reattach', e);
             this.isDebuggerAttached = false;
             this.tabIdOfDebuggerAttached = null;
           }
