@@ -54,6 +54,7 @@ export default defineConfig({
   },
   dev: {
     writeToDisk: true,
+    lazyCompilation: false, // Disable lazy compilation for Chrome extension compatibility
   },
   output: {
     polyfill: 'entry',

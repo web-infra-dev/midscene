@@ -205,7 +205,7 @@ export function paramStr(task: ExecutionTask) {
     }
 
     if (locateStr) {
-      if (value) {
+      if (value && typeof value !== 'object') {
         value = `${locateStr} - ${value}`;
       } else {
         value = locateStr;
@@ -217,9 +217,13 @@ export function paramStr(task: ExecutionTask) {
 
   if (typeof value === 'string') return value;
 
-  if (typeof value === 'object' && locateParamStr(value as any)) {
-    return locateParamStr(value as any);
+  if (typeof value === 'object') {
+    const locateStr = locateParamStr(value as any);
+    if (locateStr) {
+      return locateStr;
+    }
+    return JSON.stringify(value, undefined, 2);
   }
 
-  return JSON.stringify(value, undefined, 2);
+  return String(value);
 }
