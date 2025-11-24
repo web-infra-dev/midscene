@@ -51,8 +51,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   modelGeminiDesc:
     'Gemini 先进的多模态模型，拥有强大的视觉能力和全面的 UI 自动化支持。',
   modelUITARSName: '支持多模型组合（可选）',
-  modelUITARSDesc:
-    '可选：规划/洞察模型搭配视觉定位模型，提升完成率。',
+  modelUITARSDesc: '可选：规划/洞察模型搭配视觉定位模型，提升完成率。',
 
   // Feature Sections - DEBUGGING
   debuggingTitle: '开发体验',
