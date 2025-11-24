@@ -14,7 +14,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
 
   // Banner - CTA Buttons
   introduction: '快速开始',
-  documentation: '文档',
+  documentation: 'Github 项目链接',
 
   // Feature Sections - CLIENTS
   clientsTitle: '平台',
@@ -29,38 +29,37 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   platformAnyInterface: '任意界面',
   platformWebDesc:
     '与 Puppeteer 或 Playwright 集成，或使用桥接模式控制桌面浏览器。',
-  platformIOSDesc:
-    '使用 Javascript SDK 配合 WebDriverAgent 控制本地 iOS 设备。',
-  platformAndroidDesc: '使用 Javascript SDK 配合 adb 控制本地 Android 设备。',
+  platformIOSDesc: '通过自然语言与 WebDriver 控制 iOS 设备',
+  platformAndroidDesc: '通过自然语言与 adb 控制安卓设备',
   platformAnyInterfaceDesc: '视觉建模支持任意界面的自动化，突破 DOM 限制。',
 
   // Feature Sections - MODELS
-  modelsTitle: '模型',
-  modelsHeading: 'UI 自动化的 AI 模型',
-  modelsDesc1: '支持豆包 Seed、Qwen3-VL、Gemini-2.5-Pro 和 UI-TARS',
-  modelsDesc2: '推荐使用视觉语言模型，可靠且成本低',
-  modelsDesc3: '兼容 OpenAI SDK 风格接口，快速集成主流模型服务',
+  modelsTitle: '模型策略',
+  modelsHeading: '视觉模型 · 多模型 · 开源选项',
+  modelsDesc1: '视觉模型提升操作精准度',
+  modelsDesc2: '多模型协同提升完成率',
+  modelsDesc3: '有开源选项也靠谱',
 
   // Model Cards
   modelSeedName: '豆包 Seed',
   modelSeedDesc:
-    '字节跳动视觉模型，针对视觉理解和 UI 元素识别进行优化，性能出色。',
+    '豆包 Seed 视觉模型，针对视觉理解和 UI 元素识别进行优化，表现出色。',
   modelQwenName: 'Qwen3-VL',
   modelQwenDesc:
-    '阿里云千问视觉语言模型，支持高质量图像理解和 UI 元素识别，性价比高。',
+    'Qwen 视觉语言模型，支持高质量图像理解和 UI 元素识别，性价比高。',
   modelGeminiName: 'Gemini-2.5-Pro',
   modelGeminiDesc:
-    'Google 先进的多模态模型，拥有强大的视觉能力和全面的 UI 自动化支持。',
-  modelUITARSName: 'UI-TARS',
+    'Gemini 先进的多模态模型，拥有强大的视觉能力和全面的 UI 自动化支持。',
+  modelUITARSName: '支持多模型组合（可选）',
   modelUITARSDesc:
-    '专为 UI 自动化设计的视觉语言模型，提供精准的界面元素定位和操作能力。',
+    '可选：规划/洞察模型搭配视觉定位模型，提升完成率。',
 
   // Feature Sections - DEBUGGING
   debuggingTitle: '开发体验',
-  debuggingHeading: '开发者 API 和工具',
-  debuggingDesc1: '交互式可视化报告，理解测试执行过程',
-  debuggingDesc2: '内置 Playground 用于调试和测试',
-  debuggingDesc3: 'Chrome 插件提供浏览器内体验',
+  debuggingHeading: '丰富的 API 和工具',
+  debuggingDesc1: '大量实用 API，方便控制自动化流程和运行策略',
+  debuggingDesc2: '支持扩展自己的 UI 操作 Agent',
+  debuggingDesc3: '帮助开发者快速完成 UI Automation 任务上线',
 
   // Feature Cards
   featureRichAPIs: '丰富的 API',

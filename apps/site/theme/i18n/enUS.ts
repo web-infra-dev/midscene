@@ -12,7 +12,7 @@ export const EN_US = {
 
   // Banner - CTA Buttons
   introduction: 'Get Started',
-  documentation: 'Documentation',
+  documentation: 'Github 项目链接',
 
   // Feature Sections - CLIENTS
   clientsTitle: 'Platforms',
@@ -28,42 +28,39 @@ export const EN_US = {
   platformAnyInterface: 'Any Interface',
   platformWebDesc:
     'Integrate with Puppeteer or Playwright, or use Bridge Mode to control desktop browsers.',
-  platformIOSDesc:
-    'Use Javascript SDK with WebDriverAgent to control local iOS devices.',
+  platformIOSDesc: 'Control iOS devices with WebDriver using natural language',
   platformAndroidDesc:
-    'Use Javascript SDK with adb to control local Android devices.',
+    'Control Android devices with adb using natural language',
   platformAnyInterfaceDesc:
-    'Visual modeling enables automation on any interface, beyond DOM limitations.',
+    'Automation on any interface, beyond DOM / Accessibility limitations.',
 
   // Feature Sections - MODELS
-  modelsTitle: 'MODELS',
-  modelsHeading: 'AI Models for UI Automation',
-  modelsDesc1: 'Support for Doubao Seed, Qwen3-VL, Gemini-2.5-Pro, and UI-TARS',
-  modelsDesc2:
-    'Visual-language models recommended for reliable and cost-effective automation',
-  modelsDesc3:
-    'OpenAI SDK-compatible interface for quick integration with major model providers',
+  modelsTitle: 'MODEL STRATEGY',
+  modelsHeading: 'Vision · Multi-model · Open-source options',
+  modelsDesc1: 'Vision models boost action precision',
+  modelsDesc2: 'Multi-model setups raise completion rates',
+  modelsDesc3: 'Open-source options that still perform',
 
   // Model Cards
   modelSeedName: 'Doubao Seed',
   modelSeedDesc:
-    'Vision model from ByteDance, optimized for visual understanding and UI element recognition with excellent performance.',
+    'Doubao Seed vision model optimized for visual understanding and UI element recognition with excellent performance.',
   modelQwenName: 'Qwen3-VL',
   modelQwenDesc:
-    'Alibaba Cloud Qwen vision-language model with high-quality image understanding and UI element recognition at competitive pricing.',
+    'Qwen vision-language model with high-quality image understanding and UI element recognition at competitive pricing.',
   modelGeminiName: 'Gemini-2.5-Pro',
   modelGeminiDesc:
-    "Google's advanced multimodal model with powerful vision capabilities and comprehensive UI automation support.",
-  modelUITARSName: 'UI-TARS',
+    'Advanced Gemini multimodal model with powerful vision capabilities and comprehensive UI automation support.',
+  modelUITARSName: 'Optional multi-model combo',
   modelUITARSDesc:
-    'Vision-language model specifically designed for UI automation, providing precise element localization and operation capabilities.',
+    'Optionally pair planning/insight models with a vision localizer to lift completion rates.',
 
   // Feature Sections - DEBUGGING
   debuggingTitle: 'DEVELOPER EXPERIENCE',
-  debuggingHeading: 'Developer APIs & Tools',
-  debuggingDesc1: 'Interactive visual reports for understanding test execution',
-  debuggingDesc2: 'Built-in Playground for debugging and testing',
-  debuggingDesc3: 'Chrome Extension for in-browser experience',
+  debuggingHeading: 'Rich APIs & Tools',
+  debuggingDesc1: 'Practical APIs to control automation flows and run strategy',
+  debuggingDesc2: 'Supports extending your own UI action agents',
+  debuggingDesc3: 'Helps developers ship UI automation tasks faster',
 
   // Feature Cards
   featureRichAPIs: 'Rich APIs',

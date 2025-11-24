@@ -63,7 +63,9 @@ export function Banner() {
             </span>
           </a>
           <a
-            href={tUrl('/quick-experience')}
+            href="https://github.com/web-infra-dev/midscene"
+            target="_blank"
+            rel="noopener noreferrer"
             className="w-full md:w-auto h-12 px-6 flex items-center justify-center rounded-full transition-colors bg-[#E5E5E5] hover:bg-[#D4D4D4] dark:bg-[#292929] dark:hover:bg-[#333333]"
           >
             <span className="font-semibold font-sans text-sm whitespace-nowrap text-black dark:text-white">

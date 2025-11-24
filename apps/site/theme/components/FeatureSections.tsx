@@ -246,7 +246,7 @@ export function FeatureSections() {
                 <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex items-center justify-center bg-gray-100 dark:bg-[#1C1C1C]">
                   <img
                     src="/icon/bytedance-color.svg"
-                    alt="UI-TARS"
+                    alt="Optional multi-model combo"
                     className="w-12 h-12 md:w-16 md:h-16"
                   />
                 </div>

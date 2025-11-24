@@ -857,7 +857,6 @@ export class Agent<
     taskPrompt: string,
     opt?: {
       cacheable?: boolean;
-      thinkingLevel?: ThinkingLevel;
     },
   ) {
     return this.aiAct(taskPrompt, opt);
