@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { commonIgnoreWarnings } from '@midscene/shared';
 import { defineConfig } from '@rsbuild/core';
 import { pluginLess } from '@rsbuild/plugin-less';
 import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
@@ -19,6 +20,7 @@ export default defineConfig({
           '**/node_modules/**',
         ],
       },
+      ignoreWarnings: commonIgnoreWarnings,
     },
   },
   environments: {
