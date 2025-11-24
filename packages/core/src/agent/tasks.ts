@@ -50,7 +50,7 @@ interface TaskExecutorHooks {
 }
 
 const debug = getDebug('device-task-executor');
-const defaultReplanningCycleLimit = 10;
+const defaultReplanningCycleLimit = 20;
 const defaultVlmUiTarsReplanningCycleLimit = 40;
 
 export { TaskExecutionError };
