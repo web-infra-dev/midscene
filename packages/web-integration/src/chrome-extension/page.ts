@@ -593,14 +593,13 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     // Mark that we expect the debugger to potentially detach during navigation
     const wasAttached = this.isDebuggerAttached;
 
-    await chrome.tabs.update(tabId, { url });
-
     // If debugger was attached, mark for potential reattachment
     // The tab update listener will handle the actual reattachment
     if (wasAttached) {
       this.pendingReattach = true;
     }
 
+    await chrome.tabs.update(tabId, { url });
     // Wait for navigation to complete
     await this.waitUntilNetworkIdle();
   }
