@@ -39,7 +39,7 @@ importers:
         specifier: ^0.0.3
         version: 0.0.3
       dayjs:
-        specifier: ^1.11.19
+        specifier: ^1.11.11
         version: 1.11.19
       husky:
         specifier: 9.1.7
@@ -18500,7 +18500,7 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 24.10.1
+      '@types/node': 18.19.118
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
