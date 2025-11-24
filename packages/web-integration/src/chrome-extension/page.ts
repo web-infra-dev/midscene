@@ -336,6 +336,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
   public async evaluateJavaScript(script: string) {
     return this.sendCommandToDebugger('Runtime.evaluate', {
       expression: script,
+      awaitPromise: true,
     });
   }
 
