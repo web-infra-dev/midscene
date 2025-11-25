@@ -63,7 +63,6 @@ export async function plan(
   }
 
   const historyLog = opts.conversationHistory?.snapshot() || [];
-  // .filter((item) => item.role === 'assistant') || [];
 
   const knowledgeContext: ChatCompletionMessageParam[] = opts.actionContext
     ? [
