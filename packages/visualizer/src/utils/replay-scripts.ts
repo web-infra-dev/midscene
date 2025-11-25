@@ -195,8 +195,8 @@ export const allScriptsFromDump = (
         if (intent && model_name) {
           modelBriefsSet.add(
             model_description
-              ? `${capitalizeFirstLetter(intent)}/${model_name}(${model_description})`
-              : model_name,
+              ? `${intent}/${model_name}(${model_description})`
+              : `${intent}/${model_name}`,
           );
         }
       }

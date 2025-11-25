@@ -18,7 +18,8 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
 
   // Feature Sections - CLIENTS
   clientsTitle: '平台',
-  clientsHeading: 'Web、iOS、Android 等多端支持',
+  clientsHeading: `Web、iOS、Android
+等多端支持`,
   clientsDesc1: '用自然语言跨平台控制浏览器和移动应用',
   clientsDesc2: '统一的 API 设计，轻松实现跨平台自动化',
 
@@ -57,7 +58,8 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
 
   // Feature Sections - DEBUGGING
   debuggingTitle: '开发体验',
-  debuggingHeading: '丰富的 API 和工具',
+  debuggingHeading: `丰富的 API
+和工具`,
   debuggingDesc1: '大量实用 API，方便控制自动化流程和运行策略',
   debuggingDesc2: '支持扩展自己的 UI 操作 Agent',
   debuggingDesc3: '帮助开发者快速完成 UI Automation 任务上线',
@@ -78,4 +80,8 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
 
   // Links
   multiModelStrategyLink: '/model-strategy#高阶特性多模型配合',
+  platformWebLink: '/quick-experience.html',
+  platformIOSLink: '/ios-introduction.html',
+  platformAndroidLink: '/android-introduction.html',
+  platformAnyInterfaceLink: '/integrate-with-any-interface.html',
 };

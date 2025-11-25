@@ -12,11 +12,12 @@ export const EN_US = {
 
   // Banner - CTA Buttons
   introduction: 'Get Started',
-  documentation: 'Github 项目链接',
+  documentation: 'Github Project',
 
   // Feature Sections - CLIENTS
   clientsTitle: 'Platforms',
-  clientsHeading: 'Web, iOS, Android, and more',
+  clientsHeading: `Web, iOS, Android,
+and more`,
   clientsDesc1:
     'Control browsers and mobile apps with natural language across multiple platforms',
   clientsDesc2: 'Unified API design for seamless cross-platform automation',
@@ -59,7 +60,8 @@ export const EN_US = {
 
   // Feature Sections - DEBUGGING
   debuggingTitle: 'DEVELOPER EXPERIENCE',
-  debuggingHeading: 'Rich APIs & Tools',
+  debuggingHeading: `Rich APIs
+& Tools`,
   debuggingDesc1: 'Practical APIs to control automation flows and run strategy',
   debuggingDesc2: 'Supports extending your own UI action agents',
   debuggingDesc3: 'Helps developers ship UI automation tasks faster',
@@ -85,4 +87,8 @@ export const EN_US = {
 
   // Links
   multiModelStrategyLink: '/model-strategy#advanced-combining-multiple-models',
+  platformWebLink: '/quick-experience.html',
+  platformIOSLink: '/ios-introduction.html',
+  platformAndroidLink: '/android-introduction.html',
+  platformAnyInterfaceLink: '/integrate-with-any-interface.html',
 } as const;
