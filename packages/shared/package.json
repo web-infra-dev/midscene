@@ -57,6 +57,11 @@
       "import": "./dist/es/common.mjs",
       "require": "./dist/lib/common.js"
     },
+    "./mcp": {
+      "types": "./dist/types/mcp/index.d.ts",
+      "import": "./dist/es/mcp/index.mjs",
+      "require": "./dist/lib/mcp/index.js"
+    },
     "./*": {
       "types": "./dist/types/*.d.ts",
       "import": "./dist/es/*.mjs",
@@ -85,6 +90,7 @@
   },
   "devDependencies": {
     "@rslib/core": "^0.18.2",
+    "@modelcontextprotocol/sdk": "1.10.2",
     "@types/debug": "4.1.12",
     "@types/node": "^18.0.0",
     "@ui-tars/shared": "1.2.0",
@@ -92,7 +98,8 @@
     "openai": "6.3.0",
     "rimraf": "~3.0.2",
     "typescript": "^5.8.3",
-    "vitest": "3.0.5"
+    "vitest": "3.0.5",
+    "zod": "3.24.3"
   },
   "sideEffects": [],
   "publishConfig": {
