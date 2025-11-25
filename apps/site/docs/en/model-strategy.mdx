@@ -23,7 +23,7 @@ Driving UI automation with AI hinges on two challenges: planning a reasonable se
 To solve element localization, UI automation frameworks traditionally follow one of two approaches:
 
 * **DOM + annotated screenshots**: Extract the DOM tree beforehand, annotate screenshots with DOM metadata, and ask the model to “pick” the right nodes.
-* **Pure vision**: Perform all analysis on screenshots alone. The model only receives the image—no DOM, no annotations.
+* **Pure vision**: Perform all analysis on screenshots alone by using the visual grounding capabilities of the model. The model only receives the image—no DOM, no annotations.
 
 ## Midscene uses pure vision for element localization
 
@@ -50,7 +50,7 @@ If you are unsure where to start, pick whichever model is easiest to access toda
 | Doubao Seed vision models<br />[Quick setup](./model-config.mdx#doubao-seed-vision) | Volcano Engine:<br />[Doubao-Seed-1.6-Vision](https://www.volcengine.com/docs/82379/1799865)<br/>[Doubao-1.5-thinking-vision-pro](https://www.volcengine.com/docs/82379/1536428) | ⭐⭐⭐⭐<br />Strong at UI planning and targeting<br />Slightly slower |
 | Qwen3-VL<br />[Quick setup](./model-config.mdx#qwen3-vl) | [Alibaba Cloud](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen)<br/>[Ollama (open-source)](https://ollama.com/library/qwen3-vl) | ⭐⭐⭐⭐<br />Assertion in very complex scenes can fluctuate<br />Excellent performance and accuracy<br />Open-source builds available ([HuggingFace](https://huggingface.co/Qwen) / [GitHub](https://github.com/QwenLM/)) |
 | Qwen2.5-VL<br />[Quick setup](./model-config.mdx#qwen25-vl) | [Alibaba Cloud](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen) | ⭐⭐⭐<br />Overall quality is behind Qwen3-VL |
-| Gemini-3-Pro<br />[Quick setup](./model-config.mdx#gemini-3-pro) | [Google Cloud](https://ai.google.dev/gemini-api/docs/models/gemini) | ⭐⭐⭐<br />UI grounding accuracy trails Doubao and Qwen |
+| Gemini-3-Pro<br />[Quick setup](./model-config.mdx#gemini-3-pro) | [Google Cloud](https://ai.google.dev/gemini-api/docs/models/gemini) | ⭐⭐⭐<br />Price is higher than Doubao and Qwen |
 | UI-TARS<br />[Quick setup](./model-config.mdx#ui-tars) | [Volcano Engine](https://www.volcengine.com/docs/82379/1536429) | ⭐⭐<br />Strong exploratory ability but results vary by scenario<br />Open-source versions available ([HuggingFace](https://huggingface.co/bytedance-research/UI-TARS-72B-SFT) / [GitHub](https://github.com/bytedance/ui-tars)) |
 
 :::info Why not use multimodal models like gpt-5 as the default?

@@ -22,7 +22,7 @@ import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connect
 为了完成元素定位工作，UI 自动化框架一般有两种技术路线：
 
 * 基于 DOM + 截图标注：提前提取页面的 DOM 结构，结合截图做好标注，请模型“挑选”其中的内容。
-* 纯视觉：基于截图完成所有分析工作，即模型收到的只有图片，没有 DOM，也没有标注信息。
+* 纯视觉：利用模型的视觉定位能力，基于截图完成所有分析工作，即模型收到的只有图片，没有 DOM，也没有标注信息。
 
 ## Midscene 采用纯视觉路线来完成元素定位
 
@@ -49,7 +49,7 @@ Midscene 早期同时兼容上述两种技术路线，交由开发者自行选�
 |豆包 Seed 视觉模型<br />[快速配置](./model-config.mdx#doubao-seed-vision)|火山引擎版本：<br />[Doubao-Seed-1.6-Vision](https://www.volcengine.com/docs/82379/1799865)<br/>[Doubao-1.5-thinking-vision-pro](https://www.volcengine.com/docs/82379/1536428)|⭐⭐⭐⭐<br/>UI 操作规划、定位能力较强<br />速度略慢|
 |千问 Qwen3-VL<br />[快速配置](./model-config.mdx#qwen3-vl)|[阿里云](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen)<br/>[Ollama(开源)](https://ollama.com/library/qwen3-vl)|⭐⭐⭐⭐<br />复杂场景断言能力不够稳定 <br/>性能超群，操作准确<br />有开源版本（[HuggingFace](https://huggingface.co/Qwen) / [Github](https://github.com/QwenLM/)）|
 |千问 Qwen2.5-VL<br />[快速配置](./model-config.mdx#qwen25-vl)|[阿里云](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen)|⭐⭐⭐<br/>综合效果不如 Qwen3-VL |
-|Gemini-3-Pro<br />[快速配置](./model-config.mdx#gemini-3-pro)|[Google Cloud](https://ai.google.dev/gemini-api/docs/models/gemini)|⭐⭐⭐<br /> UI 定位准确性不如豆包和千问|
+|Gemini-3-Pro<br />[快速配置](./model-config.mdx#gemini-3-pro)|[Google Cloud](https://ai.google.dev/gemini-api/docs/models/gemini)|⭐⭐⭐<br /> 价格高于豆包和千问|
 |UI-TARS <br />[快速配置](./model-config.mdx#ui-tars)|[火山引擎](https://www.volcengine.com/docs/82379/1536429)|⭐⭐<br /> 有探索能力，但在不同场景表现可能差异较大<br />有开源版本（[HuggingFace](https://huggingface.co/bytedance-research/UI-TARS-72B-SFT) / [Github](https://github.com/bytedance/ui-tars)） |
 
 :::info 为什么不能使用 gpt-5 这样的多模态模型作为默认模型 ?
