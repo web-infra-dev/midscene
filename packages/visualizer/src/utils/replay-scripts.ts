@@ -193,12 +193,10 @@ export const allScriptsFromDump = (
       if (task.usage) {
         const { model_name, model_description, intent } = task.usage;
         if (intent && model_name) {
-          const lowercaseIntent =
-            intent.charAt(0).toLowerCase() + intent.slice(1);
           modelBriefsSet.add(
             model_description
-              ? `${lowercaseIntent}/${model_name}(${model_description})`
-              : `${lowercaseIntent}/${model_name}`,
+              ? `${intent}/${model_name}(${model_description})`
+              : `${intent}/${model_name}`,
           );
         }
       }
