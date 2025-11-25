@@ -1,5 +1,5 @@
 import { AppWindow, Apple, Bot, Grid2x2 } from 'lucide-react';
-import { useI18n } from '../i18n';
+import { useI18n, useI18nUrl } from '../i18n';
 
 const GradientIcon = () => (
   <svg
@@ -22,6 +22,7 @@ const GradientIcon = () => (
 
 export function FeatureSections() {
   const t = useI18n();
+  const tUrl = useI18nUrl();
 
   return (
     <div className="flex flex-col w-full bg-white dark:bg-[#121212]">
@@ -29,14 +30,14 @@ export function FeatureSections() {
       <div className="w-full flex flex-col">
         <div className="flex flex-col lg:flex-row items-start mt-12 md:mt-20 lg:mt-[120px] px-5 md:px-10 gap-8 lg:gap-[278px] max-w-[1440px] mx-auto w-full">
           {/* Left side - Text content */}
-          <div className="w-full lg:w-[275px] flex flex-col items-start gap-y-4 md:gap-y-8">
+          <div className="w-full lg:w-[405px] flex flex-col items-start gap-y-4 md:gap-y-8">
             <div className="font-mono font-medium text-sm md:text-base leading-6 bg-gradient-to-r from-[#80A8FF] to-[#0555FF] bg-clip-text text-transparent">
               {t('clientsTitle')}
             </div>
-            <div className="w-full lg:w-[275px] flex items-center font-sans font-semibold text-[28px] md:text-[40px] leading-[32px] md:leading-[48px] text-black dark:text-white">
+            <h2 className="font-sans font-semibold text-[28px] md:text-[40px] leading-[32px] md:leading-[48px] text-black dark:text-white">
               {t('clientsHeading')}
-            </div>
-            <div className="w-full lg:w-[275px] flex flex-col gap-y-3">
+            </h2>
+            <div className="w-full lg:w-[405px] flex flex-col gap-y-3">
               <div className="flex flex-row gap-x-3">
                 <div className="w-3 pt-1.5">
                   <GradientIcon />
@@ -57,11 +58,11 @@ export function FeatureSections() {
           </div>
 
           {/* Right side - Cards */}
-          <div className="w-full lg:w-[807px] flex flex-col gap-y-6 md:gap-y-10">
+          <div className="w-full lg:w-[677px] flex flex-col gap-y-6 md:gap-y-10">
             {/* Top row */}
             <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
               {/* Web Card */}
-              <div className="w-full md:w-[383px] flex flex-col gap-y-4 md:gap-y-6">
+              <div className="w-full md:w-[318px] flex flex-col gap-y-4 md:gap-y-6">
                 <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
                   {t('platformWeb')}
                 </p>
@@ -78,7 +79,7 @@ export function FeatureSections() {
               </div>
 
               {/* iOS Card */}
-              <div className="w-full md:w-[383px] flex flex-col gap-4 md:gap-6">
+              <div className="w-full md:w-[318px] flex flex-col gap-4 md:gap-6">
                 <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
                   {t('platformIOS')}
                 </p>
@@ -98,7 +99,7 @@ export function FeatureSections() {
             {/* Bottom row */}
             <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
               {/* Android Card */}
-              <div className="w-full md:w-[383px] flex flex-col gap-y-4 md:gap-y-6">
+              <div className="w-full md:w-[318px] flex flex-col gap-y-4 md:gap-y-6">
                 <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
                   {t('platformAndroid')}
                 </p>
@@ -115,7 +116,7 @@ export function FeatureSections() {
               </div>
 
               {/* Any Interface Card */}
-              <div className="w-full md:w-[383px] flex flex-col gap-y-4 md:gap-y-6">
+              <div className="w-full md:w-[318px] flex flex-col gap-y-4 md:gap-y-6">
                 <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
                   {t('platformAnyInterface')}
                 </p>
@@ -138,14 +139,14 @@ export function FeatureSections() {
       {/* Section 2: MODELS */}
       <div className="w-full flex flex-col lg:flex-row px-5 md:px-10 pt-12 md:pt-20 lg:pt-[120px] pb-12 md:pb-20 lg:pb-[120px] gap-8 lg:gap-x-[278px] max-w-[1440px] mx-auto">
         {/* Left side - Text content */}
-        <div className="w-full lg:w-[275px] flex flex-col items-start gap-4 md:gap-8">
+        <div className="w-full lg:w-[405px] flex flex-col items-start gap-4 md:gap-8">
           <span className="font-mono font-medium text-sm md:text-base uppercase leading-6 bg-gradient-to-r from-[#80a8ff] to-[#0555ff] bg-clip-text text-transparent">
             {t('modelsTitle')}
           </span>
-          <div className="w-full lg:w-[275px] font-sans text-left font-semibold text-[28px] md:text-[40px] leading-[32px] md:leading-[48px] text-black dark:text-white">
+          <h2 className="font-sans text-left font-semibold text-[28px] md:text-[40px] leading-[32px] md:leading-[48px] text-black dark:text-white whitespace-pre-line">
             {t('modelsHeading')}
-          </div>
-          <div className="w-full lg:w-[275px] flex flex-col gap-y-3">
+          </h2>
+          <div className="w-full lg:w-[405px] flex flex-col gap-y-3">
             <div className="flex flex-row gap-x-3">
               <div className="w-3 pt-1.5">
                 <GradientIcon />
@@ -174,16 +175,19 @@ export function FeatureSections() {
         </div>
 
         {/* Right side - Model cards */}
-        <div className="w-full lg:w-[807px] flex flex-col gap-y-6 md:gap-y-10">
+        <div className="w-full lg:w-[677px] flex flex-col gap-y-6 md:gap-y-10">
           {/* Top row - Seed and Qwen */}
           <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
             {/* Model 1 - Seed */}
-            <div className="w-full md:w-[383px] flex flex-col gap-4 md:gap-6">
+            <a
+              href={tUrl('/model-config#doubao-seed-vision')}
+              className="w-full md:w-[318px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
+            >
               <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
                 {t('modelSeedName')}
               </p>
               <div className="flex flex-col gap-y-[17px]">
-                <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex items-center justify-center bg-gray-100 dark:bg-[#1C1C1C]">
+                <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex items-center justify-center bg-gray-100 dark:bg-[#1C1C1C] group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF]">
                   <img
                     src="/icon/doubao-color.svg"
                     alt="Doubao Seed"
@@ -194,15 +198,18 @@ export function FeatureSections() {
                   {t('modelSeedDesc')}
                 </div>
               </div>
-            </div>
+            </a>
 
             {/* Model 2 - Qwen */}
-            <div className="w-full md:w-[383px] flex flex-col gap-4 md:gap-6">
+            <a
+              href={tUrl('/model-config#qwen3-vl')}
+              className="w-full md:w-[318px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
+            >
               <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
                 {t('modelQwenName')}
               </p>
               <div className="flex flex-col gap-y-[17px]">
-                <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex items-center justify-center bg-gray-100 dark:bg-[#1C1C1C]">
+                <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex items-center justify-center bg-gray-100 dark:bg-[#1C1C1C] group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF]">
                   <img
                     src="/icon/qwen-color.svg"
                     alt="Qwen3-VL"
@@ -213,18 +220,21 @@ export function FeatureSections() {
                   {t('modelQwenDesc')}
                 </div>
               </div>
-            </div>
+            </a>
           </div>
 
           {/* Bottom row - Gemini and UI-TARS */}
           <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
             {/* Model 3 - Gemini */}
-            <div className="w-full md:w-[383px] flex flex-col gap-4 md:gap-6">
+            <a
+              href={tUrl('/model-config#gemini-25-pro')}
+              className="w-full md:w-[318px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
+            >
               <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
                 {t('modelGeminiName')}
               </p>
               <div className="flex flex-col gap-y-[17px]">
-                <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex items-center justify-center bg-gray-100 dark:bg-[#1C1C1C]">
+                <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex items-center justify-center bg-gray-100 dark:bg-[#1C1C1C] group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF]">
                   <img
                     src="/icon/gemini-color.svg"
                     alt="Gemini-2.5-Pro"
@@ -235,26 +245,29 @@ export function FeatureSections() {
                   {t('modelGeminiDesc')}
                 </div>
               </div>
-            </div>
+            </a>
 
-            {/* Model 4 - UI-TARS */}
-            <div className="w-full md:w-[383px] flex flex-col gap-4 md:gap-6">
+            {/* Model 4 - Multi-model combo */}
+            <a
+              href={tUrl(t('multiModelStrategyLink'))}
+              className="w-full md:w-[318px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
+            >
               <span className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
-                {t('modelUITARSName')}
+                {t('modelMultiModelName')}
               </span>
               <div className="flex flex-col gap-y-[17px]">
-                <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex items-center justify-center bg-gray-100 dark:bg-[#1C1C1C]">
+                <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex items-center justify-center bg-gray-100 dark:bg-[#1C1C1C] group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF]">
                   <img
-                    src="/icon/bytedance-color.svg"
-                    alt="Optional multi-model combo"
+                    src="/icon/multi-model.svg"
+                    alt="Multi-model combo"
                     className="w-12 h-12 md:w-16 md:h-16"
                   />
                 </div>
                 <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
-                  {t('modelUITARSDesc')}
+                  {t('modelMultiModelDesc')}
                 </div>
               </div>
-            </div>
+            </a>
           </div>
         </div>
       </div>
@@ -262,14 +275,14 @@ export function FeatureSections() {
       {/* Section 3: DEBUGGING */}
       <div className="w-full flex flex-col lg:flex-row pt-12 md:pt-20 lg:pt-[120px] px-5 md:px-10 gap-8 lg:gap-x-[278px] pb-10 md:pb-20 max-w-[1440px] mx-auto">
         {/* Left side - Text content */}
-        <div className="w-full lg:w-[275px] flex flex-col items-start gap-y-4 md:gap-y-8">
+        <div className="w-full lg:w-[405px] flex flex-col items-start gap-y-4 md:gap-y-8">
           <div className="font-mono font-medium text-sm md:text-base uppercase bg-gradient-to-r from-[#80a8ff] to-[#0555ff] bg-clip-text text-transparent leading-6">
             {t('debuggingTitle')}
           </div>
-          <div className="w-full lg:w-[275px] flex items-center font-sans font-semibold text-[28px] md:text-[40px] leading-[32px] md:leading-[48px] text-black dark:text-white">
+          <h2 className="font-sans font-semibold text-[28px] md:text-[40px] leading-[32px] md:leading-[48px] text-black dark:text-white">
             {t('debuggingHeading')}
-          </div>
-          <div className="w-full lg:w-[275px] flex flex-col gap-y-3">
+          </h2>
+          <div className="w-full lg:w-[405px] flex flex-col gap-y-3">
             <div className="flex flex-row gap-x-3">
               <div className="w-3 pt-1.5">
                 <GradientIcon />
@@ -298,11 +311,11 @@ export function FeatureSections() {
         </div>
 
         {/* Right side - Feature cards */}
-        <div className="w-full lg:w-[807px] flex flex-col gap-y-6 md:gap-y-10">
+        <div className="w-full lg:w-[677px] flex flex-col gap-y-6 md:gap-y-10">
           {/* Top row */}
           <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
             {/* Rich APIs Card */}
-            <div className="w-full md:w-[383px] flex flex-col gap-4 md:gap-6">
+            <div className="w-full md:w-[318px] flex flex-col gap-4 md:gap-6">
               <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
                 {t('featureRichAPIs')}
               </p>
@@ -321,7 +334,7 @@ export function FeatureSections() {
             </div>
 
             {/* MCP Server Card */}
-            <div className="w-full md:w-[383px] flex flex-col gap-4 md:gap-6">
+            <div className="w-full md:w-[318px] flex flex-col gap-4 md:gap-6">
               <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
                 {t('featureMCPServer')}
               </p>
@@ -343,7 +356,7 @@ export function FeatureSections() {
           {/* Bottom row */}
           <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
             {/* Reports & Playground Card */}
-            <div className="w-full md:w-[383px] flex flex-col gap-4 md:gap-6">
+            <div className="w-full md:w-[318px] flex flex-col gap-4 md:gap-6">
               <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
                 {t('featureReportsPlayground')}
               </p>
@@ -362,7 +375,7 @@ export function FeatureSections() {
             </div>
 
             {/* Flexible Integration Card */}
-            <div className="w-full md:w-[383px] flex flex-col gap-4 md:gap-6">
+            <div className="w-full md:w-[318px] flex flex-col gap-4 md:gap-6">
               <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
                 {t('featureFlexibleIntegration')}
               </p>
@@ -384,7 +397,7 @@ export function FeatureSections() {
           {/* View All APIs row */}
           <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
             {/* View All APIs Link Card */}
-            <div className="w-full md:w-[383px] flex flex-col gap-y-4 md:gap-y-6">
+            <div className="w-full md:w-[318px] flex flex-col gap-y-4 md:gap-y-6">
               <div className="font-sans font-medium text-xl md:text-2xl leading-6 text-transparent">
                 {/* Empty placeholder to align with other cards */}.
               </div>
