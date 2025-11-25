@@ -35,9 +35,7 @@ beforeAll(async () => {
   const { vlMode } = defaultModelConfig;
   globalVlMode = !!vlMode;
 
-  if (process.env.MIDSCENE_EVALUATION_EXPECT_VL) {
-    expect(globalVlMode).toBeTruthy();
-  }
+  expect(globalVlMode).toBeTruthy();
 
   actionSpace = [
     defineActionTap(async () => {}),

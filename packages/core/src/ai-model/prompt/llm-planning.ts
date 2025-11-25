@@ -252,7 +252,7 @@ export async function systemPromptToTaskPlanning({
   const exampleLogField =
     thinkingStrategy === 'off'
       ? ''
-      : "\"log\": \"The user wants to do click 'Confirm' button, and click 'Yes' in popup. According to the instruction and the previous logs, next step is to tap the 'Yes' button in the popup. Now i am going to compose an action 'Tap' to click 'Yes' in popup.\",\n  ";
+      : "\"log\": \"The user wants to do click 'Confirm' button, and click 'Yes' in popup. The current progress is ..., we still need to ... .  Now i am going to compose an action '...' to click 'Yes' in popup.\",\n  ";
 
   return `
 Target: User will give you an instruction, some screenshots and previous logs indicating what have been done. Your task is to plan the next one action to accomplish the instruction.
