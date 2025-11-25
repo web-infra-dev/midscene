@@ -96,7 +96,7 @@ export async function plan(
     content: [
       {
         type: 'text',
-        text: 'I have finished the action previously planned, and the last screenshot is as follows:',
+        text: 'I have finished the action previously planned, and the last screenshot is attached. Please going on according to the instruction.',
       },
       {
         type: 'image_url',
@@ -117,13 +117,15 @@ export async function plan(
     latestImageMessage,
   ];
 
-  const { content: planFromAI, usage } =
-    await callAIWithObjectResponse<RawResponsePlanningAIResponse>(
-      msgs,
-      AIActionType.PLAN,
-      modelConfig,
-    );
-  const rawResponse = JSON.stringify(planFromAI, undefined, 2);
+  const {
+    content: planFromAI,
+    contentString: rawResponse,
+    usage,
+  } = await callAIWithObjectResponse<RawResponsePlanningAIResponse>(
+    msgs,
+    AIActionType.PLAN,
+    modelConfig,
+  );
 
   const actions = planFromAI.action ? [planFromAI.action] : [];
   const returnValue: PlanningAIResponse = {
