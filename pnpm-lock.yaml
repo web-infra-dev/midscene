@@ -676,7 +676,7 @@ importers:
     dependencies:
       '@langchain/core':
         specifier: 0.3.26
-        version: 0.3.26(openai@6.3.0(ws@8.18.3)(zod@3.24.3))
+        version: 0.3.26(openai@6.3.0(ws@8.18.3)(zod@3.25.0))
       '@midscene/shared':
         specifier: workspace:*
         version: link:../shared
@@ -700,7 +700,7 @@ importers:
         version: 3.12.0
       openai:
         specifier: 6.3.0
-        version: 6.3.0(ws@8.18.3)(zod@3.24.3)
+        version: 6.3.0(ws@8.18.3)(zod@3.25.0)
       semver:
         specifier: 7.5.2
         version: 7.5.2
@@ -708,8 +708,8 @@ importers:
         specifier: 8.0.4
         version: 8.0.4
       zod:
-        specifier: 3.24.3
-        version: 3.24.3
+        specifier: 3.25.0
+        version: 3.25.0
     devDependencies:
       '@rslib/core':
         specifier: ^0.11.2
@@ -11035,6 +11035,9 @@ packages:
   zod@3.24.3:
     resolution: {integrity: sha512-HhY1oqzWCQWuUqvBFnsyrtZRhyPeR7SUGv+C4+MsisMuVfSPx8HpwWqH8tRahSlt6M3PiFAcoeFhZAqIXTxoSg==}
 
+  zod@3.25.0:
+    resolution: {integrity: sha512-ficnZKUW0mlNivqeJkosTEkGbJ6NKCtSaOHGx5aXbtfeWMdRyzXLbAIn19my4C/KB7WPY/p9vlGPt+qpOp6c4Q==}
+
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
@@ -12746,20 +12749,20 @@ snapshots:
       '@jsonjoy.com/codegen': 1.0.0(tslib@2.8.1)
       tslib: 2.8.1
 
-  '@langchain/core@0.3.26(openai@6.3.0(ws@8.18.3)(zod@3.24.3))':
+  '@langchain/core@0.3.26(openai@6.3.0(ws@8.18.3)(zod@3.25.0))':
     dependencies:
       '@cfworker/json-schema': 4.0.3
       ansi-styles: 5.2.0
       camelcase: 6.3.0
       decamelize: 1.2.0
       js-tiktoken: 1.0.16
-      langsmith: 0.2.15(openai@6.3.0(ws@8.18.3)(zod@3.24.3))
+      langsmith: 0.2.15(openai@6.3.0(ws@8.18.3)(zod@3.25.0))
       mustache: 4.2.0
       p-queue: 6.6.2
       p-retry: 4.6.2
       uuid: 10.0.0
-      zod: 3.24.3
-      zod-to-json-schema: 3.24.1(zod@3.24.3)
+      zod: 3.25.0
+      zod-to-json-schema: 3.24.1(zod@3.25.0)
     transitivePeerDependencies:
       - openai
 
@@ -12999,8 +13002,8 @@ snapshots:
       express-rate-limit: 7.5.0(express@5.1.0)
       pkce-challenge: 5.0.0
       raw-body: 3.0.0
-      zod: 3.24.3
-      zod-to-json-schema: 3.24.5(zod@3.24.3)
+      zod: 3.25.0
+      zod-to-json-schema: 3.24.5(zod@3.25.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -13016,8 +13019,8 @@ snapshots:
       express-rate-limit: 7.5.1(express@5.1.0)
       pkce-challenge: 5.0.0
       raw-body: 3.0.0
-      zod: 3.24.3
-      zod-to-json-schema: 3.24.6(zod@3.24.3)
+      zod: 3.25.0
+      zod-to-json-schema: 3.24.6(zod@3.25.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -16059,7 +16062,7 @@ snapshots:
     dependencies:
       devtools-protocol: 0.0.1402036
       mitt: 3.0.1
-      zod: 3.24.3
+      zod: 3.25.0
 
   ci-info@3.9.0: {}
 
@@ -18661,7 +18664,7 @@ snapshots:
 
   ky@1.12.0: {}
 
-  langsmith@0.2.15(openai@6.3.0(ws@8.18.3)(zod@3.24.3)):
+  langsmith@0.2.15(openai@6.3.0(ws@8.18.3)(zod@3.25.0)):
     dependencies:
       '@types/uuid': 10.0.0
       commander: 10.0.1
@@ -18670,7 +18673,7 @@ snapshots:
       semver: 7.7.2
       uuid: 10.0.0
     optionalDependencies:
-      openai: 6.3.0(ws@8.18.3)(zod@3.24.3)
+      openai: 6.3.0(ws@8.18.3)(zod@3.25.0)
 
   langsmith@0.3.74(openai@6.3.0):
     dependencies:
@@ -18682,7 +18685,7 @@ snapshots:
       semver: 7.7.2
       uuid: 10.0.0
     optionalDependencies:
-      openai: 6.3.0(ws@8.18.3)(zod@3.24.3)
+      openai: 6.3.0(ws@8.18.3)(zod@3.25.0)
 
   latest-version@9.0.0:
     dependencies:
@@ -19827,10 +19830,10 @@ snapshots:
       is-docker: 2.2.1
       is-wsl: 2.2.0
 
-  openai@6.3.0(ws@8.18.3)(zod@3.24.3):
+  openai@6.3.0(ws@8.18.3)(zod@3.25.0):
     optionalDependencies:
       ws: 8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5)
-      zod: 3.24.3
+      zod: 3.25.0
 
   openai@6.3.0(ws@8.18.3)(zod@4.1.12):
     optionalDependencies:
@@ -23047,19 +23050,21 @@ snapshots:
       compress-commons: 6.0.2
       readable-stream: 4.7.0
 
-  zod-to-json-schema@3.24.1(zod@3.24.3):
+  zod-to-json-schema@3.24.1(zod@3.25.0):
     dependencies:
-      zod: 3.24.3
+      zod: 3.25.0
 
-  zod-to-json-schema@3.24.5(zod@3.24.3):
+  zod-to-json-schema@3.24.5(zod@3.25.0):
     dependencies:
-      zod: 3.24.3
+      zod: 3.25.0
 
-  zod-to-json-schema@3.24.6(zod@3.24.3):
+  zod-to-json-schema@3.24.6(zod@3.25.0):
     dependencies:
-      zod: 3.24.3
+      zod: 3.25.0
 
   zod@3.24.3: {}
+
+  zod@3.25.0: {}
 
   zod@3.25.76: {}
 
