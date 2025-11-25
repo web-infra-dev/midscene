@@ -50,7 +50,7 @@ describe('modelFamilyToVLConfig', () => {
 
   it('should throw on invalid value', () => {
     expect(() => modelFamilyToVLConfig('invalid' as any)).toThrow(
-      'Invalid modelFamily: invalid',
+      'Invalid MIDSCENE_MODEL_FAMILY value: invalid',
     );
   });
 });
