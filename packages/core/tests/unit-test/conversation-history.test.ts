@@ -45,55 +45,8 @@ describe('ConversationHistory', () => {
     expect(history.snapshot()).toEqual([assistantMessage('hello')]);
   });
 
-  it('limits image messages in snapshot from back to front', () => {
-    const history = new ConversationHistory({ maxUserImageMessages: 2 });
-
-    history.append(userMessageWithImage('first', 'data:image1'));
-    history.append(assistantMessage('ack1'));
-    history.append(userMessageWithImage('second', 'data:image2'));
-    history.append(assistantMessage('ack2'));
-    history.append(userMessageWithImage('third', 'data:image3'));
-
-    const snapshot = history.snapshot();
-
-    // First image should be omitted (counting from back, it's the 3rd one)
-    expect(snapshot[0]).toEqual({
-      role: 'user',
-      content: [
-        { type: 'text', text: 'first' },
-        { type: 'text', text: '(omitted due to size limit)' },
-      ],
-    });
-
-    // Second and third images should be preserved
-    expect(snapshot[2]).toEqual(userMessageWithImage('second', 'data:image2'));
-    expect(snapshot[4]).toEqual(userMessageWithImage('third', 'data:image3'));
-  });
-
-  it('respects maxImageMessages parameter in snapshot options', () => {
-    const history = new ConversationHistory({ maxUserImageMessages: 5 });
-
-    history.append(userMessageWithImage('first', 'data:image1'));
-    history.append(userMessageWithImage('second', 'data:image2'));
-    history.append(userMessageWithImage('third', 'data:image3'));
-
-    // Override with maxImageMessages: 1
-    const snapshot = history.snapshot({ maxImageMessages: 1 });
-
-    // Only the last image should be preserved
-    expect(snapshot[0].content).toEqual([
-      { type: 'text', text: 'first' },
-      { type: 'text', text: '(omitted due to size limit)' },
-    ]);
-    expect(snapshot[1].content).toEqual([
-      { type: 'text', text: 'second' },
-      { type: 'text', text: '(omitted due to size limit)' },
-    ]);
-    expect(snapshot[2]).toEqual(userMessageWithImage('third', 'data:image3'));
-  });
-
-  it('handles messages with multiple images in content', () => {
-    const history = new ConversationHistory({ maxUserImageMessages: 2 });
+  it('returns image messages without modification', () => {
+    const history = new ConversationHistory();
 
     const messageWithTwoImages: ChatCompletionMessageParam = {
       role: 'user',
@@ -104,17 +57,14 @@ describe('ConversationHistory', () => {
       ],
     };
 
+    history.append(userMessageWithImage('first', 'data:image1'));
+    history.append(assistantMessage('ack1'));
     history.append(messageWithTwoImages);
-    history.append(userMessageWithImage('another', 'data:image3'));
 
     const snapshot = history.snapshot();
 
-    // From back to front: image3 (1st), image2 (2nd), image1 (3rd - should be omitted)
-    expect(snapshot[0].content).toEqual([
-      { type: 'text', text: 'Look at these' },
-      { type: 'text', text: '(omitted due to size limit)' },
-      { type: 'image_url', image_url: { url: 'data:image2' } },
-    ]);
-    expect(snapshot[1]).toEqual(userMessageWithImage('another', 'data:image3'));
+    expect(snapshot[0]).toEqual(userMessageWithImage('first', 'data:image1'));
+    expect(snapshot[1]).toEqual(assistantMessage('ack1'));
+    expect(snapshot[2]).toEqual(messageWithTwoImages);
   });
 });

@@ -774,7 +774,7 @@ export class Agent<
     taskPrompt: string,
     opt?: {
       cacheable?: boolean;
-      thinkingLevel?: ThinkingLevel;
+      _thinkingLevel?: ThinkingLevel;
     },
   ) {
     const modelConfigForPlanning =
@@ -782,7 +782,7 @@ export class Agent<
     const defaultIntentModelConfig =
       this.modelConfigManager.getModelConfig('default');
 
-    let thinkingLevelToUse = opt?.thinkingLevel;
+    let thinkingLevelToUse = opt?._thinkingLevel;
     if (!thinkingLevelToUse && this.opts.aiActionContext) {
       thinkingLevelToUse = 'high';
     } else if (!thinkingLevelToUse) {
@@ -791,10 +791,11 @@ export class Agent<
 
     // should include bbox in planning if
     // 1. the planning model is the same as the default intent model
-    // or 2. the thinking level is high
+    // and
+    // 2. the thinking level is not high
     const includeBboxInPlanning =
-      modelConfigForPlanning.modelName === defaultIntentModelConfig.modelName ||
-      thinkingLevelToUse === 'high';
+      modelConfigForPlanning.modelName === defaultIntentModelConfig.modelName &&
+      thinkingLevelToUse !== 'high';
     debug('setting includeBboxInPlanning to', includeBboxInPlanning);
 
     const cacheable = opt?.cacheable;

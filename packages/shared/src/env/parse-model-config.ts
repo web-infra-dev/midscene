@@ -73,7 +73,7 @@ export const modelFamilyToVLConfig = (
 
   // Check if the modelFamily is valid
   if (!MODEL_FAMILY_VALUES.includes(modelFamily as any)) {
-    throw new Error(`Invalid modelFamily: ${modelFamily}`);
+    throw new Error(`Invalid MIDSCENE_MODEL_FAMILY value: ${modelFamily}`);
   }
 
   // For other model families, they directly map to vlMode

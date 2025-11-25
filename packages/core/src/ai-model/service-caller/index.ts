@@ -358,12 +358,16 @@ export async function callAIWithObjectResponse<T>(
   messages: ChatCompletionMessageParam[],
   AIActionTypeValue: AIActionType,
   modelConfig: IModelConfig,
-): Promise<{ content: T; usage?: AIUsageInfo }> {
+): Promise<{ content: T; contentString: string; usage?: AIUsageInfo }> {
   const response = await callAI(messages, AIActionTypeValue, modelConfig);
   assert(response, 'empty response');
   const vlMode = modelConfig.vlMode;
   const jsonContent = safeParseJson(response.content, vlMode);
-  return { content: jsonContent, usage: response.usage };
+  return {
+    content: jsonContent,
+    contentString: response.content,
+    usage: response.usage,
+  };
 }
 
 export async function callAIWithStringResponse(
