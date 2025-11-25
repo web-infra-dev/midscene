@@ -1,4 +1,3 @@
-import { PromptTemplate } from '@langchain/core/prompts';
 import type { TVlModeTypes } from '@midscene/shared/env';
 import { bboxDescription } from './common';
 
@@ -40,7 +39,5 @@ If the description is "delete button on the second row with title 'Peter'", retu
 `;
 }
 
-export const sectionLocatorInstruction = new PromptTemplate({
-  template: 'Find section containing: {sectionDescription}',
-  inputVariables: ['sectionDescription'],
-});
+export const sectionLocatorInstruction = (sectionDescription: string) =>
+  `Find section containing: ${sectionDescription}`;

@@ -1,4 +1,3 @@
-import { PromptTemplate } from '@langchain/core/prompts';
 import type { TVlModeTypes } from '@midscene/shared/env';
 import { bboxDescription } from './common';
 export function systemPromptToLocateElement(vlMode: TVlModeTypes | undefined) {
@@ -41,7 +40,5 @@ When no element is found:
 `;
 }
 
-export const findElementPrompt = new PromptTemplate({
-  template: 'Find: {targetElementDescription}',
-  inputVariables: ['targetElementDescription'],
-});
+export const findElementPrompt = (targetElementDescription: string) =>
+  `Find: ${targetElementDescription}`;

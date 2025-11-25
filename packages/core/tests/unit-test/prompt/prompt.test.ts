@@ -220,16 +220,16 @@ describe('extract element', () => {
     expect(prompt).toMatchSnapshot();
   });
 
-  it('extract element by extractDataPrompt', async () => {
-    const prompt = await extractDataQueryPrompt(
+  it('extract element by extractDataPrompt', () => {
+    const prompt = extractDataQueryPrompt(
       'todo title, string',
       'todo title, string',
     );
     expect(prompt).toMatchSnapshot();
   });
 
-  it('extract element by extractDataPrompt - object', async () => {
-    const prompt = await extractDataQueryPrompt('todo title, string', {
+  it('extract element by extractDataPrompt - object', () => {
+    const prompt = extractDataQueryPrompt('todo title, string', {
       foo: 'an array indicates the foo',
     });
     expect(prompt).toMatchSnapshot();
