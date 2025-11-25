@@ -36,7 +36,9 @@ export const EN_US = {
 
   // Feature Sections - MODELS
   modelsTitle: 'MODEL STRATEGY',
-  modelsHeading: 'Vision · Multi-model · Open-source options',
+  modelsHeading: `Vision
+· Multi-model
+· Open-source options`,
   modelsDesc1: 'Vision models boost action precision',
   modelsDesc2: 'Multi-model setups raise completion rates',
   modelsDesc3: 'Open-source options that still perform',
@@ -51,8 +53,8 @@ export const EN_US = {
   modelGeminiName: 'Gemini-2.5-Pro',
   modelGeminiDesc:
     'Advanced Gemini multimodal model with powerful vision capabilities and comprehensive UI automation support.',
-  modelUITARSName: 'Optional multi-model combo',
-  modelUITARSDesc:
+  modelMultiModelName: 'Multi-model combo',
+  modelMultiModelDesc:
     'Optionally pair planning/insight models with a vision localizer to lift completion rates.',
 
   // Feature Sections - DEBUGGING
@@ -80,4 +82,7 @@ export const EN_US = {
   apiMoreLink: 'View All APIs',
   apiMoreDesc:
     'Explore the complete API documentation for more automation capabilities.',
+
+  // Links
+  multiModelStrategyLink: '/model-strategy#advanced-combining-multiple-models',
 } as const;

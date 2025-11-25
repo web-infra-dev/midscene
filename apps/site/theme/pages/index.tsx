@@ -1,5 +1,6 @@
 import { HomeBackground } from '@rspress/core/theme';
 import { Banner } from '../components/Banner';
+import { CTAButtons } from '../components/CTAButtons';
 import { FeatureSections } from '../components/FeatureSections';
 
 const CopyRight = () => {
@@ -29,6 +30,13 @@ export function HomeLayout() {
 
       {/* Feature Sections */}
       <FeatureSections />
+
+      {/* Bottom CTA Section */}
+      <div className="w-full bg-white dark:bg-[#121212] py-12 md:py-20">
+        <div className="max-w-[1440px] mx-auto px-5 md:px-10 flex justify-center">
+          <CTAButtons />
+        </div>
+      </div>
 
       {/* Copyright */}
       <CopyRight />

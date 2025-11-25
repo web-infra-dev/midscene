@@ -35,7 +35,9 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
 
   // Feature Sections - MODELS
   modelsTitle: '模型策略',
-  modelsHeading: '视觉模型 · 多模型 · 开源选项',
+  modelsHeading: `视觉模型
+· 多模型
+· 开源选项`,
   modelsDesc1: '视觉模型提升操作精准度',
   modelsDesc2: '多模型协同提升完成率',
   modelsDesc3: '有开源选项也靠谱',
@@ -50,8 +52,8 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   modelGeminiName: 'Gemini-2.5-Pro',
   modelGeminiDesc:
     'Gemini 先进的多模态模型，拥有强大的视觉能力和全面的 UI 自动化支持。',
-  modelUITARSName: '支持多模型组合（可选）',
-  modelUITARSDesc: '可选：规划/洞察模型搭配视觉定位模型，提升完成率。',
+  modelMultiModelName: '多模型组合',
+  modelMultiModelDesc: '可选：规划/洞察模型搭配视觉定位模型，提升完成率。',
 
   // Feature Sections - DEBUGGING
   debuggingTitle: '开发体验',
@@ -73,4 +75,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   // View All APIs
   apiMoreLink: '查看所有 API',
   apiMoreDesc: '探索完整的 API 文档以获取更多自动化能力。',
+
+  // Links
+  multiModelStrategyLink: '/model-strategy#高阶特性多模型配合',
 };
