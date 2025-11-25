@@ -62,12 +62,15 @@ export function FeatureSections() {
             {/* Top row */}
             <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
               {/* Web Card */}
-              <div className="w-full md:w-[318px] flex flex-col gap-y-4 md:gap-y-6">
+              <a
+                href={tUrl(t('platformWebLink'))}
+                className="w-full md:w-[318px] flex flex-col gap-y-4 md:gap-y-6 group cursor-pointer"
+              >
                 <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
                   {t('platformWeb')}
                 </p>
                 <div className="flex flex-col gap-[17px]">
-                  <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex items-center justify-center bg-gray-100 dark:bg-[#1C1C1C]">
+                  <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex items-center justify-center bg-gray-100 dark:bg-[#1C1C1C] group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF]">
                     <div className="w-12 h-12 md:w-16 md:h-16 flex items-center justify-center rounded-2xl bg-[#0555FF] shadow-[0_4px_4px_rgba(0,0,0,0.05)]">
                       <AppWindow className="h-6 w-6 md:h-8 md:w-8 text-white" />
                     </div>
@@ -76,15 +79,18 @@ export function FeatureSections() {
                     {t('platformWebDesc')}
                   </div>
                 </div>
-              </div>
+              </a>
 
               {/* iOS Card */}
-              <div className="w-full md:w-[318px] flex flex-col gap-4 md:gap-6">
+              <a
+                href={tUrl(t('platformIOSLink'))}
+                className="w-full md:w-[318px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
+              >
                 <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
                   {t('platformIOS')}
                 </p>
                 <div className="flex flex-col gap-[17px]">
-                  <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center bg-gray-100 dark:bg-[#1C1C1C]">
+                  <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center bg-gray-100 dark:bg-[#1C1C1C] group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF]">
                     <div className="w-12 h-12 md:w-16 md:h-16 rounded-2xl flex items-center justify-center shadow-[0px_4px_4px_rgba(0,0,0,0.05)] bg-gray-800 dark:bg-black">
                       <Apple className="text-white w-6 h-6 md:w-8 md:h-8" />
                     </div>
@@ -93,18 +99,21 @@ export function FeatureSections() {
                     {t('platformIOSDesc')}
                   </div>
                 </div>
-              </div>
+              </a>
             </div>
 
             {/* Bottom row */}
             <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
               {/* Android Card */}
-              <div className="w-full md:w-[318px] flex flex-col gap-y-4 md:gap-y-6">
+              <a
+                href={tUrl(t('platformAndroidLink'))}
+                className="w-full md:w-[318px] flex flex-col gap-y-4 md:gap-y-6 group cursor-pointer"
+              >
                 <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
                   {t('platformAndroid')}
                 </p>
                 <div className="flex flex-col gap-y-[17px]">
-                  <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center bg-gray-100 dark:bg-[#1C1C1C]">
+                  <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center bg-gray-100 dark:bg-[#1C1C1C] group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF]">
                     <div className="w-12 h-12 md:w-16 md:h-16 flex items-center justify-center rounded-2xl bg-[#1FA679] shadow-[0_4px_4px_rgba(0,0,0,0.05)]">
                       <Bot className="w-6 h-6 md:w-8 md:h-8 text-white" />
                     </div>
@@ -113,15 +122,18 @@ export function FeatureSections() {
                     {t('platformAndroidDesc')}
                   </div>
                 </div>
-              </div>
+              </a>
 
               {/* Any Interface Card */}
-              <div className="w-full md:w-[318px] flex flex-col gap-y-4 md:gap-y-6">
+              <a
+                href={tUrl(t('platformAnyInterfaceLink'))}
+                className="w-full md:w-[318px] flex flex-col gap-y-4 md:gap-y-6 group cursor-pointer"
+              >
                 <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
                   {t('platformAnyInterface')}
                 </p>
                 <div className="flex flex-col gap-y-[17px]">
-                  <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center bg-gray-100 dark:bg-[#1C1C1C]">
+                  <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center bg-gray-100 dark:bg-[#1C1C1C] group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF]">
                     <div className="w-12 h-12 md:w-16 md:h-16 flex items-center justify-center rounded-2xl bg-[#FA884B] shadow-[0_4px_4px_rgba(0,0,0,0.05)]">
                       <Grid2x2 className="w-6 h-6 md:w-8 md:h-8 text-white" />
                     </div>
@@ -130,7 +142,7 @@ export function FeatureSections() {
                     {t('platformAnyInterfaceDesc')}
                   </div>
                 </div>
-              </div>
+              </a>
             </div>
           </div>
         </div>
