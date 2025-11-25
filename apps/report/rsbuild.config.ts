@@ -1,6 +1,7 @@
 import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
+import { commonIgnoreWarnings } from '@midscene/shared';
 import { defineConfig } from '@rsbuild/core';
 import { pluginLess } from '@rsbuild/plugin-less';
 import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
@@ -146,6 +147,7 @@ export default defineConfig({
         },
       },
       externals: ['sharp'],
+      ignoreWarnings: commonIgnoreWarnings,
     },
   },
   output: {

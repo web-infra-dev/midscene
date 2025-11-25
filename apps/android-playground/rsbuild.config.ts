@@ -1,5 +1,8 @@
 import path from 'node:path';
-import { createPlaygroundCopyPlugin } from '@midscene/shared';
+import {
+  commonIgnoreWarnings,
+  createPlaygroundCopyPlugin,
+} from '@midscene/shared';
 import { defineConfig } from '@rsbuild/core';
 import { pluginLess } from '@rsbuild/plugin-less';
 import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
@@ -9,6 +12,11 @@ import { pluginTypeCheck } from '@rsbuild/plugin-type-check';
 import { version as playgroundVersion } from '../../packages/playground/package.json';
 
 export default defineConfig({
+  tools: {
+    rspack: {
+      ignoreWarnings: commonIgnoreWarnings,
+    },
+  },
   environments: {
     web: {
       source: {
