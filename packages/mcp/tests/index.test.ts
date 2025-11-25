@@ -1,6 +1,5 @@
 import { existsSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { tools } from '../src/tools';
 import {
   deepMerge,
   getChromePathFromEnv,
@@ -173,11 +172,5 @@ describe('Utils Module', () => {
       const result = getChromePathFromEnv();
       expect(result).toBeUndefined();
     });
-  });
-});
-
-describe('Tools Module', () => {
-  test('should have all expected tools defined', () => {
-    expect(tools).toMatchSnapshot();
   });
 });

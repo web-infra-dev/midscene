@@ -1,0 +1,57 @@
+import { type IOSAgent, agentFromWebDriverAgent } from '@midscene/ios';
+import { parseBase64 } from '@midscene/shared/img';
+import { getDebug } from '@midscene/shared/logger';
+import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
+import { z } from 'zod';
+
+const debug = getDebug('mcp:ios-tools');
+
+/**
+ * iOS-specific tools manager
+ * Extends BaseMidsceneTools to provide iOS WebDriverAgent connection tools
+ */
+export class IOSMidsceneTools extends BaseMidsceneTools {
+  protected async ensureAgent(): Promise<IOSAgent> {
+    if (this.agent) {
+      return this.agent;
+    }
+
+    debug('Creating iOS agent with WebDriverAgent');
+    this.agent = await agentFromWebDriverAgent();
+    return this.agent;
+  }
+
+  /**
+   * Provide iOS-specific platform tools
+   */
+  protected preparePlatformTools(): ToolDefinition[] {
+    return [
+      {
+        name: 'ios_connect',
+        description: 'Connect to iOS device or simulator via WebDriverAgent',
+        schema: {},
+        handler: async () => {
+          const agent = await this.ensureAgent();
+          const screenshot = await agent.page.screenshotBase64();
+          const { mimeType, body } = parseBase64(screenshot);
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: 'Connected to iOS device',
+              },
+              {
+                type: 'image',
+                data: body,
+                mimeType,
+              },
+            ],
+            isError: false,
+          };
+        },
+        autoDestroy: false,
+      },
+    ];
+  }
+}

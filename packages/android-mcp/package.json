@@ -1,6 +1,7 @@
 {
-  "name": "@midscene/mcp",
+  "name": "@midscene/android-mcp",
   "version": "1.0.0",
+  "description": "Midscene MCP Server for Android automation",
   "bin": "dist/index.js",
   "files": ["dist"],
   "main": "./dist/server.js",
@@ -26,15 +27,12 @@
   "devDependencies": {
     "@midscene/android": "workspace:*",
     "@midscene/core": "workspace:*",
-    "@midscene/report": "workspace:*",
     "@midscene/shared": "workspace:*",
-    "@midscene/web": "workspace:*",
     "@modelcontextprotocol/inspector": "^0.16.3",
     "@modelcontextprotocol/sdk": "1.10.2",
-    "@rslib/core": "^0.18.2",
+    "@rslib/core": "^0.11.2",
     "@types/node": "^18.0.0",
     "dotenv": "^16.4.5",
-    "puppeteer-core": "24.2.0",
     "typescript": "^5.8.3",
     "vitest": "3.0.5",
     "zod": "3.24.3"
