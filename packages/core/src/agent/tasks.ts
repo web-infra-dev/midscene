@@ -46,8 +46,6 @@ interface TaskExecutorHooks {
 }
 
 const debug = getDebug('device-task-executor');
-const defaultReplanningCycleLimit = 20;
-const defaultVlmUiTarsReplanningCycleLimit = 40;
 const maxErrorCountAllowedInOnePlanningLoop = 5;
 
 export { TaskExecutionError };
@@ -192,13 +190,6 @@ export class TaskExecutor {
     };
   }
 
-  private getReplanningCycleLimit(isVlmUiTars: boolean) {
-    return this.replanningCycleLimit ??
-      (isVlmUiTars
-        ? defaultVlmUiTarsReplanningCycleLimit
-        : defaultReplanningCycleLimit);
-  }
-
   async action(
     userPrompt: string,
     modelConfigForPlanning: IModelConfig,
@@ -207,6 +198,7 @@ export class TaskExecutor {
     thinkingStrategy: ThinkingStrategy,
     backgroundKnowledge?: string,
     cacheable?: boolean,
+    replanningCycleLimitOverride?: number,
   ): Promise<
     ExecutionResult<
       | {
@@ -224,8 +216,11 @@ export class TaskExecutor {
 
     let replanCount = 0;
     const yamlFlow: MidsceneYamlFlowItem[] = [];
-    const replanningCycleLimit = this.getReplanningCycleLimit(
-      modelConfigForPlanning.vlMode === 'vlm-ui-tars',
+    const replanningCycleLimit =
+      replanningCycleLimitOverride ?? this.replanningCycleLimit;
+    assert(
+      replanningCycleLimit !== undefined,
+      'replanningCycleLimit is required for TaskExecutor.action',
     );
 
     let errorCountInOnePlanningLoop = 0; // count the number of errors in one planning loop

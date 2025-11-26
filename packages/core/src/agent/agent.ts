@@ -58,6 +58,7 @@ import {
   ModelConfigManager,
   globalConfigManager,
   globalModelConfigManager,
+  type IModelConfig,
 } from '@midscene/shared/env';
 import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
@@ -130,6 +131,9 @@ const normalizeScrollType = (
 
   return scrollType as ScrollParam['scrollType'];
 };
+
+const defaultReplanningCycleLimit = 20;
+const defaultVlmUiTarsReplanningCycleLimit = 40;
 
 export class Agent<
   InterfaceType extends AbstractInterface = AbstractInterface,
@@ -251,6 +255,18 @@ export class Agent<
     } finally {
       this.screenshotScalePromise = undefined;
     }
+  }
+
+  private resolveReplanningCycleLimit(
+    modelConfigForPlanning: IModelConfig,
+  ): number {
+    if (this.opts.replanningCycleLimit !== undefined) {
+      return this.opts.replanningCycleLimit;
+    }
+
+    return modelConfigForPlanning.vlMode === 'vlm-ui-tars'
+      ? defaultVlmUiTarsReplanningCycleLimit
+      : defaultReplanningCycleLimit;
   }
 
   constructor(interfaceInstance: InterfaceType, opts?: AgentOpt) {
@@ -799,6 +815,9 @@ export class Agent<
     debug('setting includeBboxInPlanning to', includeBboxInPlanning);
 
     const cacheable = opt?.cacheable;
+    const replanningCycleLimit = this.resolveReplanningCycleLimit(
+      modelConfigForPlanning,
+    );
     // if vlm-ui-tars, plan cache is not used
     const isVlmUiTars = modelConfigForPlanning.vlMode === 'vlm-ui-tars';
     const matchedCache =
@@ -825,6 +844,7 @@ export class Agent<
       thinkingLevelToUse === 'off' ? 'off' : 'cot',
       this.opts.aiActionContext,
       cacheable,
+      replanningCycleLimit,
     );
 
     // update cache
