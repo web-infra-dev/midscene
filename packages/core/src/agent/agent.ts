@@ -54,11 +54,11 @@ import {
 import type { AbstractInterface } from '@/device';
 import type { TaskRunner } from '@/task-runner';
 import {
+  type IModelConfig,
   MIDSCENE_REPLANNING_CYCLE_LIMIT,
   ModelConfigManager,
   globalConfigManager,
   globalModelConfigManager,
-  type IModelConfig,
 } from '@midscene/shared/env';
 import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';

@@ -21,7 +21,7 @@ import type {
   ThinkingStrategy,
 } from '@/types';
 import { ServiceError } from '@/types';
-import { type IModelConfig } from '@midscene/shared/env';
+import type { IModelConfig } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { ExecutionSession } from './execution-session';

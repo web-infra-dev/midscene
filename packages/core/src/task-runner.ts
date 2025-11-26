@@ -218,10 +218,7 @@ export class TaskRunner {
       );
     }
 
-    this.normalizeStatusFromError(
-      options,
-      'task runner is in error state',
-    );
+    this.normalizeStatusFromError(options, 'task runner is in error state');
     assert(this.status !== 'running', 'task runner is already running');
     assert(this.status !== 'completed', 'task runner is already completed');
 
