@@ -7,9 +7,18 @@ export interface ConversationHistoryOptions {
 export class ConversationHistory {
   private readonly messages: ChatCompletionMessageParam[] = [];
 
+  public pendingFeedbackMessage: string;
+
   constructor(options?: ConversationHistoryOptions) {
     if (options?.initialMessages?.length) {
       this.seed(options.initialMessages);
+    }
+    this.pendingFeedbackMessage = '';
+  }
+
+  resetPendingFeedbackMessageIfExists() {
+    if (this.pendingFeedbackMessage) {
+      this.pendingFeedbackMessage = '';
     }
   }
 

@@ -196,6 +196,33 @@ describe(
       }).rejects.toThrowError();
     });
 
+    it('allows append and flush when recovering from error', async () => {
+      const runner = new TaskRunner('recoverable', fakeUIContextBuilder, {
+        tasks: [insightFindTask(true)],
+      });
+
+      await expect(runner.flush()).rejects.toThrowError();
+      expect(runner.status).toBe('error');
+
+      const recoveryExecutor = vi.fn().mockResolvedValue({
+        output: 'recovered',
+      });
+      const recoveryTask: ExecutionTaskActionApply = {
+        type: 'Action Space',
+        executor: recoveryExecutor,
+      };
+
+      await expect(runner.append(recoveryTask)).rejects.toThrowError();
+
+      await runner.append(recoveryTask, { allowWhenError: true });
+      expect(runner.status).toBe('pending');
+
+      const flushResult = await runner.flush({ allowWhenError: true });
+      expect(runner.status).toBe('completed');
+      expect(recoveryExecutor).toHaveBeenCalledTimes(1);
+      expect(flushResult?.output).toBe('recovered');
+    });
+
     it('subTask - reuse previous uiContext', async () => {
       const baseUIContext = (id: string) =>
         ({

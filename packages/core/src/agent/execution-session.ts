@@ -27,16 +27,22 @@ export class ExecutionSession {
     this.runner = new TaskRunner(name, contextProvider, options);
   }
 
-  async append(tasks: ExecutionTaskApply[] | ExecutionTaskApply) {
-    await this.runner.append(tasks);
+  async append(
+    tasks: ExecutionTaskApply[] | ExecutionTaskApply,
+    options?: { allowWhenError?: boolean },
+  ) {
+    await this.runner.append(tasks, options);
   }
 
-  async appendAndRun(tasks: ExecutionTaskApply[] | ExecutionTaskApply) {
-    return this.runner.appendAndFlush(tasks);
+  async appendAndRun(
+    tasks: ExecutionTaskApply[] | ExecutionTaskApply,
+    options?: { allowWhenError?: boolean },
+  ) {
+    return this.runner.appendAndFlush(tasks, options);
   }
 
-  async run() {
-    return this.runner.flush();
+  async run(options?: { allowWhenError?: boolean }) {
+    return this.runner.flush(options);
   }
 
   isInErrorState() {

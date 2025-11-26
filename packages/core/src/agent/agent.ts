@@ -453,21 +453,6 @@ export class Agent<
     }
   }
 
-  private async handleRunnerAfterFlush(runner: TaskRunner) {
-    const executionDump = runner.dump();
-    this.appendExecutionDump(executionDump);
-
-    try {
-      if (this.onDumpUpdate) {
-        this.onDumpUpdate(this.dumpDataString());
-      }
-    } catch (error) {
-      console.error('Error in onDumpUpdate', error);
-    }
-
-    this.writeOutActionDumps();
-  }
-
   wrapActionInActionSpace<T extends DeviceAction>(
     name: string,
   ): (param: ActionParam<T>) => Promise<ActionReturn<T>> {

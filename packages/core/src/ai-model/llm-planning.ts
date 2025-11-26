@@ -31,7 +31,7 @@ export async function plan(
     actionSpace: DeviceAction<any>[];
     actionContext?: string;
     modelConfig: IModelConfig;
-    conversationHistory?: ConversationHistory;
+    conversationHistory: ConversationHistory;
     includeBbox: boolean;
     thinkingStrategy: ThinkingStrategy;
   },
@@ -62,58 +62,64 @@ export async function plan(
     imagePayload = paddedResult.imageBase64;
   }
 
-  const historyLog = opts.conversationHistory?.snapshot() || [];
-
-  const knowledgeContext: ChatCompletionMessageParam[] = opts.actionContext
-    ? [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: `<high_priority_knowledge>${opts.actionContext}</high_priority_knowledge>`,
-            },
-          ],
-        },
-      ]
-    : [];
-
   const instruction: ChatCompletionMessageParam[] = [
     {
       role: 'user',
       content: [
         {
           type: 'text',
-          text: `<user_instruction>${userInstruction}</user_instruction>`,
+          text: `<high_priority_knowledge>${opts.actionContext}</high_priority_knowledge>\n<user_instruction>${userInstruction}</user_instruction>`,
         },
       ],
     },
   ];
 
-  const latestImageMessage: ChatCompletionMessageParam = {
-    role: 'user',
-    content: [
-      {
-        type: 'text',
-        text: 'I have finished the action previously planned, and the last screenshot is attached. Please going on according to the instruction.',
-      },
-      {
-        type: 'image_url',
-        image_url: {
-          url: imagePayload,
-          detail: 'high',
+  let latestFeedbackMessage: ChatCompletionMessageParam;
+
+  if (conversationHistory.pendingFeedbackMessage) {
+    latestFeedbackMessage = {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: `${conversationHistory.pendingFeedbackMessage}. The last screenshot is attached. Please going on according to the instruction.`,
         },
-      },
-      // Planning uses pure vision mode, no DOM description needed
-    ],
-  };
+        {
+          type: 'image_url',
+          image_url: {
+            url: imagePayload,
+            detail: 'high',
+          },
+        },
+      ],
+    };
+
+    conversationHistory.resetPendingFeedbackMessageIfExists();
+  } else {
+    latestFeedbackMessage = {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'this is the latest screenshot',
+        },
+        {
+          type: 'image_url',
+          image_url: {
+            url: imagePayload,
+            detail: 'high',
+          },
+        },
+      ],
+    };
+  }
+  conversationHistory.append(latestFeedbackMessage);
+  const historyLog = conversationHistory.snapshot();
 
   const msgs: ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
-    ...knowledgeContext,
     ...instruction,
     ...historyLog,
-    latestImageMessage,
   ];
 
   const {
@@ -183,9 +189,7 @@ export async function plan(
     );
   }
 
-  conversationHistory?.append(latestImageMessage);
-
-  conversationHistory?.append({
+  conversationHistory.append({
     role: 'assistant',
     content: [
       {

@@ -52,6 +52,7 @@ interface TaskExecutorHooks {
 const debug = getDebug('device-task-executor');
 const defaultReplanningCycleLimit = 20;
 const defaultVlmUiTarsReplanningCycleLimit = 40;
+const maxErrorCountAllowedInOnePlanningLoop = 5;
 
 export { TaskExecutionError };
 
@@ -174,113 +175,6 @@ export class TaskExecutor {
     };
   }
 
-  private createPlanningTask(
-    userInstruction: string,
-    actionContext: string | undefined,
-    modelConfigForPlanning: IModelConfig,
-    modelConfigForDefaultIntent: IModelConfig,
-    includeBbox: boolean,
-    thinkingStrategy: ThinkingStrategy,
-  ): ExecutionTaskPlanningApply {
-    const task: ExecutionTaskPlanningApply = {
-      type: 'Planning',
-      subType: 'Plan',
-      param: {
-        userInstruction,
-        aiActionContext: actionContext,
-      },
-      executor: async (param, executorContext) => {
-        const startTime = Date.now();
-        const { uiContext } = executorContext;
-        assert(uiContext, 'uiContext is required for Planning task');
-        const { vlMode } = modelConfigForPlanning;
-        const uiTarsModelVersion =
-          vlMode === 'vlm-ui-tars'
-            ? modelConfigForPlanning.uiTarsModelVersion
-            : undefined;
-
-        assert(
-          this.interface.actionSpace,
-          'actionSpace for device is not implemented',
-        );
-        const actionSpace = await this.interface.actionSpace();
-        debug(
-          'actionSpace for this interface is:',
-          actionSpace.map((action) => action.name).join(', '),
-        );
-        assert(Array.isArray(actionSpace), 'actionSpace must be an array');
-        if (actionSpace.length === 0) {
-          console.warn(
-            `ActionSpace for ${this.interface.interfaceType} is empty. This may lead to unexpected behavior.`,
-          );
-        }
-
-        const planResult = await (uiTarsModelVersion ? uiTarsPlanning : plan)(
-          param.userInstruction,
-          {
-            context: uiContext,
-            actionContext: param.aiActionContext,
-            interfaceType: this.interface.interfaceType as InterfaceType,
-            actionSpace,
-            modelConfig: modelConfigForPlanning,
-            conversationHistory: this.conversationHistory,
-            includeBbox,
-            thinkingStrategy,
-          },
-        );
-        debug('planResult', JSON.stringify(planResult, null, 2));
-
-        const {
-          actions,
-          log,
-          more_actions_needed_by_instruction,
-          error,
-          usage,
-          rawResponse,
-          sleep,
-        } = planResult;
-
-        executorContext.task.log = {
-          ...(executorContext.task.log || {}),
-          rawResponse,
-        };
-        executorContext.task.usage = usage;
-
-        const finalActions = actions || [];
-
-        if (sleep) {
-          const timeNow = Date.now();
-          const timeRemaining = sleep - (timeNow - startTime);
-          if (timeRemaining > 0) {
-            finalActions.push(this.sleepPlan(timeRemaining));
-          }
-        }
-
-        if (finalActions.length === 0) {
-          assert(
-            !more_actions_needed_by_instruction || sleep,
-            error ? `Failed to plan: ${error}` : 'No plan found',
-          );
-        }
-
-        return {
-          output: {
-            actions: finalActions,
-            more_actions_needed_by_instruction,
-            log,
-            yamlFlow: planResult.yamlFlow,
-          },
-          cache: {
-            hit: false,
-          },
-          uiContext,
-        };
-      },
-    };
-
-    return task;
-  }
-
   async runPlans(
     title: string,
     plans: PlanningAction[],
@@ -320,7 +214,7 @@ export class TaskExecutor {
     modelConfigForDefaultIntent: IModelConfig,
     includeBboxInPlanning: boolean,
     thinkingStrategy: ThinkingStrategy,
-    actionContext?: string,
+    backgroundKnowledge?: string,
     cacheable?: boolean,
   ): Promise<
     ExecutionResult<
@@ -343,24 +237,110 @@ export class TaskExecutor {
       modelConfigForPlanning.vlMode === 'vlm-ui-tars',
     );
 
+    let errorCountInOnePlanningLoop = 0; // count the number of errors in one planning loop
+
     // Main planning loop - unified plan/replan logic
     while (true) {
-      if (replanCount > replanningCycleLimit) {
-        const errorMsg = `Replanning ${replanningCycleLimit} times, which is more than the limit, please split the task into multiple steps`;
-        return session.appendErrorPlan(errorMsg);
-      }
+      const result = await session.appendAndRun(
+        {
+          type: 'Planning',
+          subType: 'Plan',
+          param: {
+            userInstruction: userPrompt,
+            aiActionContext: backgroundKnowledge,
+          },
+          executor: async (param, executorContext) => {
+            const startTime = Date.now();
+            const { uiContext } = executorContext;
+            assert(uiContext, 'uiContext is required for Planning task');
+            const { vlMode } = modelConfigForPlanning;
+            const uiTarsModelVersion =
+              vlMode === 'vlm-ui-tars'
+                ? modelConfigForPlanning.uiTarsModelVersion
+                : undefined;
 
-      // Create planning task (automatically includes execution history if available)
-      const planningTask = this.createPlanningTask(
-        userPrompt,
-        actionContext,
-        modelConfigForPlanning,
-        modelConfigForDefaultIntent,
-        includeBboxInPlanning,
-        thinkingStrategy,
+            assert(
+              this.interface.actionSpace,
+              'actionSpace for device is not implemented',
+            );
+            const actionSpace = await this.interface.actionSpace();
+            debug(
+              'actionSpace for this interface is:',
+              actionSpace.map((action) => action.name).join(', '),
+            );
+            assert(Array.isArray(actionSpace), 'actionSpace must be an array');
+            if (actionSpace.length === 0) {
+              console.warn(
+                `ActionSpace for ${this.interface.interfaceType} is empty. This may lead to unexpected behavior.`,
+              );
+            }
+
+            const planResult = await (uiTarsModelVersion
+              ? uiTarsPlanning
+              : plan)(param.userInstruction, {
+              context: uiContext,
+              actionContext: param.aiActionContext,
+              interfaceType: this.interface.interfaceType as InterfaceType,
+              actionSpace,
+              modelConfig: modelConfigForPlanning,
+              conversationHistory: this.conversationHistory,
+              includeBbox: includeBboxInPlanning,
+              thinkingStrategy,
+            });
+            debug('planResult', JSON.stringify(planResult, null, 2));
+
+            const {
+              actions,
+              log,
+              more_actions_needed_by_instruction,
+              error,
+              usage,
+              rawResponse,
+              sleep,
+            } = planResult;
+
+            executorContext.task.log = {
+              ...(executorContext.task.log || {}),
+              rawResponse,
+            };
+            executorContext.task.usage = usage;
+
+            const finalActions = actions || [];
+
+            if (sleep) {
+              const timeNow = Date.now();
+              const timeRemaining = sleep - (timeNow - startTime);
+              if (timeRemaining > 0) {
+                finalActions.push(this.sleepPlan(timeRemaining));
+              }
+            }
+
+            if (finalActions.length === 0) {
+              assert(
+                !more_actions_needed_by_instruction || sleep,
+                error ? `Failed to plan: ${error}` : 'No plan found',
+              );
+            }
+
+            return {
+              output: {
+                actions: finalActions,
+                more_actions_needed_by_instruction,
+                log,
+                yamlFlow: planResult.yamlFlow,
+              },
+              cache: {
+                hit: false,
+              },
+              uiContext,
+            };
+          },
+        },
+        {
+          allowWhenError: true,
+        },
       );
 
-      const result = await session.appendAndRun(planningTask);
       const planResult = result?.output as PlanningAIResponse | undefined;
 
       // Execute planned actions
@@ -385,7 +365,26 @@ export class TaskExecutor {
           )}`,
         );
       }
-      await session.appendAndRun(executables.tasks);
+      if (this.conversationHistory.pendingFeedbackMessage) {
+        console.warn(
+          'unconsumed pending feedback message detected, this may lead to unexpected planning result:',
+          this.conversationHistory.pendingFeedbackMessage,
+        );
+      }
+      try {
+        await session.appendAndRun(executables.tasks);
+      } catch (error: any) {
+        errorCountInOnePlanningLoop++;
+        this.conversationHistory.pendingFeedbackMessage = `Error executing running tasks: ${error?.message || String(error)}`;
+        debug(
+          'error when executing running tasks, but continue to run:',
+          error instanceof Error ? error.message : String(error),
+        );
+      }
+
+      if (errorCountInOnePlanningLoop > maxErrorCountAllowedInOnePlanningLoop) {
+        return session.appendErrorPlan('Too many errors in one planning loop');
+      }
 
       // Check if task is complete
       if (!planResult?.more_actions_needed_by_instruction) {
@@ -393,7 +392,17 @@ export class TaskExecutor {
       }
 
       // Increment replan count for next iteration
-      replanCount++;
+      ++replanCount;
+
+      if (replanCount > replanningCycleLimit) {
+        const errorMsg = `Replanning ${replanningCycleLimit} times, which is more than the limit, please split the task into multiple steps`;
+        return session.appendErrorPlan(errorMsg);
+      }
+
+      if (!this.conversationHistory.pendingFeedbackMessage) {
+        this.conversationHistory.pendingFeedbackMessage =
+          'I have finished the action previously planned.';
+      }
     }
 
     const finalResult = {
