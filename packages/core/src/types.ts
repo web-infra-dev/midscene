@@ -25,6 +25,7 @@ export type AIUsageInfo = Record<string, any> & {
   prompt_tokens: number | undefined;
   completion_tokens: number | undefined;
   total_tokens: number | undefined;
+  cached_input: number | undefined;
   time_cost: number | undefined;
   model_name: string | undefined;
   model_description: string | undefined;

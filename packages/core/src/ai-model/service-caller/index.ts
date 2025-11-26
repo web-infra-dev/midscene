@@ -150,6 +150,25 @@ export async function callAI(
   let usage: OpenAI.CompletionUsage | undefined;
   let timeCost: number | undefined;
 
+  const buildUsageInfo = (usageData?: OpenAI.CompletionUsage) => {
+    if (!usageData) return undefined;
+
+    const cachedInputTokens =
+      (usageData as { prompt_tokens_details?: { cached_tokens?: number } })
+        ?.prompt_tokens_details?.cached_tokens;
+
+    return {
+      prompt_tokens: usageData.prompt_tokens ?? 0,
+      completion_tokens: usageData.completion_tokens ?? 0,
+      total_tokens: usageData.total_tokens ?? 0,
+      cached_input: cachedInputTokens ?? 0,
+      time_cost: timeCost ?? 0,
+      model_name: modelName,
+      model_description: modelDescription,
+      intent: modelConfig.intent,
+    } satisfies AIUsageInfo;
+  };
+
   const commonConfig = {
     temperature: vlMode === 'vlm-ui-tars' ? 0.0 : undefined,
     stream: !!isStreaming,
@@ -227,15 +246,7 @@ export async function callAI(
             accumulated,
             reasoning_content: '',
             isComplete: true,
-            usage: {
-              prompt_tokens: usage.prompt_tokens ?? 0,
-              completion_tokens: usage.completion_tokens ?? 0,
-              total_tokens: usage.total_tokens ?? 0,
-              time_cost: timeCost ?? 0,
-              model_name: modelName,
-              model_description: modelDescription,
-              intent: modelConfig.intent,
-            },
+            usage: buildUsageInfo(usage),
           };
           options.onChunk!(finalChunk);
           break;
@@ -282,22 +293,12 @@ export async function callAI(
         prompt_tokens: estimatedTokens,
         completion_tokens: estimatedTokens,
         total_tokens: estimatedTokens * 2,
-      };
+      } as OpenAI.CompletionUsage;
     }
 
     return {
       content: content || '',
-      usage: usage
-        ? {
-            prompt_tokens: usage.prompt_tokens ?? 0,
-            completion_tokens: usage.completion_tokens ?? 0,
-            total_tokens: usage.total_tokens ?? 0,
-            time_cost: timeCost ?? 0,
-            model_name: modelName,
-            model_description: modelDescription,
-            intent: modelConfig.intent,
-          }
-        : undefined,
+      usage: buildUsageInfo(usage),
       isStreamed: !!isStreaming,
     };
   } catch (e: any) {
