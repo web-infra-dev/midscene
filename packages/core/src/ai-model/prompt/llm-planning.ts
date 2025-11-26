@@ -262,6 +262,8 @@ Please tell what the next one action is (or null if no action should be done) to
 Restriction:
 - Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
 - Give just the next ONE action you should do
+- Make sure the previous actions are completed successfully before performing the next step
+- If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 5 times, you should think this is an error and set the "error" field to the error message.
 - If the user mentions something to assert and the condition is not met, you should think this is an error and set the "error" field to the error message.
 
 Supporting actions:

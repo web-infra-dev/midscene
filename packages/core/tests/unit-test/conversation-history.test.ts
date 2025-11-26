@@ -35,6 +35,23 @@ describe('ConversationHistory', () => {
     expect(history.length).toBe(2);
   });
 
+  it('clears pending feedback message only when set', () => {
+    const history = new ConversationHistory();
+
+    expect(history.pendingFeedbackMessage).toBe('');
+
+    history.resetPendingFeedbackMessageIfExists();
+    expect(history.pendingFeedbackMessage).toBe('');
+
+    history.pendingFeedbackMessage = 'Need a screenshot';
+    history.resetPendingFeedbackMessageIfExists();
+    expect(history.pendingFeedbackMessage).toBe('');
+
+    history.pendingFeedbackMessage = '';
+    history.resetPendingFeedbackMessageIfExists();
+    expect(history.pendingFeedbackMessage).toBe('');
+  });
+
   it('returns independent snapshot copies', () => {
     const history = new ConversationHistory();
     history.append(assistantMessage('hello'));

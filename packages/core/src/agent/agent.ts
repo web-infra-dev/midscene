@@ -453,21 +453,6 @@ export class Agent<
     }
   }
 
-  private async handleRunnerAfterFlush(runner: TaskRunner) {
-    const executionDump = runner.dump();
-    this.appendExecutionDump(executionDump);
-
-    try {
-      if (this.onDumpUpdate) {
-        this.onDumpUpdate(this.dumpDataString());
-      }
-    } catch (error) {
-      console.error('Error in onDumpUpdate', error);
-    }
-
-    this.writeOutActionDumps();
-  }
-
   wrapActionInActionSpace<T extends DeviceAction>(
     name: string,
   ): (param: ActionParam<T>) => Promise<ActionReturn<T>> {
@@ -774,7 +759,7 @@ export class Agent<
     taskPrompt: string,
     opt?: {
       cacheable?: boolean;
-      _thinkingLevel?: ThinkingLevel;
+      _deepThink?: boolean;
     },
   ) {
     const modelConfigForPlanning =
@@ -782,11 +767,10 @@ export class Agent<
     const defaultIntentModelConfig =
       this.modelConfigManager.getModelConfig('default');
 
-    let thinkingLevelToUse = opt?._thinkingLevel;
-    if (!thinkingLevelToUse && this.opts.aiActionContext) {
+    let thinkingLevelToUse = opt?._deepThink ? 'high' : 'medium';
+    if (this.opts.aiActionContext) {
+      debug('using high thinking level because of aiActionContext');
       thinkingLevelToUse = 'high';
-    } else if (!thinkingLevelToUse) {
-      thinkingLevelToUse = 'medium';
     }
 
     // should include bbox in planning if

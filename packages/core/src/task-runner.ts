@@ -25,6 +25,10 @@ type TaskRunnerInitOptions = ExecutionTaskProgressOptions & {
   ) => Promise<void> | void;
 };
 
+type TaskRunnerOperationOptions = {
+  allowWhenError?: boolean;
+};
+
 export class TaskRunner {
   name: string;
 
@@ -147,6 +151,22 @@ export class TaskRunner {
     };
   }
 
+  private normalizeStatusFromError(
+    options?: TaskRunnerOperationOptions,
+    errorMessage?: string,
+  ): void {
+    if (this.status !== 'error') {
+      return;
+    }
+    assert(
+      options?.allowWhenError,
+      errorMessage ||
+        `task runner is in error state, cannot proceed\nerror=${this.latestErrorTask()?.error}\n${this.latestErrorTask()?.errorStack}`,
+    );
+    // reset runner state so new tasks can run
+    this.status = this.tasks.length > 0 ? 'pending' : 'init';
+  }
+
   private findPreviousNonSubTaskUIContext(
     currentIndex: number,
   ): UIContext | undefined {
@@ -162,9 +182,12 @@ export class TaskRunner {
     return undefined;
   }
 
-  async append(task: ExecutionTaskApply[] | ExecutionTaskApply): Promise<void> {
-    assert(
-      this.status !== 'error',
+  async append(
+    task: ExecutionTaskApply[] | ExecutionTaskApply,
+    options?: TaskRunnerOperationOptions,
+  ): Promise<void> {
+    this.normalizeStatusFromError(
+      options,
       `task runner is in error state, cannot append task\nerror=${this.latestErrorTask()?.error}\n${this.latestErrorTask()?.errorStack}`,
     );
     if (Array.isArray(task)) {
@@ -180,21 +203,27 @@ export class TaskRunner {
 
   async appendAndFlush(
     task: ExecutionTaskApply[] | ExecutionTaskApply,
+    options?: TaskRunnerOperationOptions,
   ): Promise<{ output: any; thought?: string } | undefined> {
-    await this.append(task);
-    return this.flush();
+    await this.append(task, options);
+    return this.flush(options);
   }
 
-  async flush(): Promise<{ output: any; thought?: string } | undefined> {
+  async flush(
+    options?: TaskRunnerOperationOptions,
+  ): Promise<{ output: any; thought?: string } | undefined> {
     if (this.status === 'init' && this.tasks.length > 0) {
       console.warn(
         'illegal state for task runner, status is init but tasks are not empty',
       );
     }
 
+    this.normalizeStatusFromError(
+      options,
+      'task runner is in error state',
+    );
     assert(this.status !== 'running', 'task runner is already running');
     assert(this.status !== 'completed', 'task runner is already completed');
-    assert(this.status !== 'error', 'task runner is in error state');
 
     const nextPendingIndex = this.tasks.findIndex(
       (task) => task.status === 'pending',
