@@ -14,7 +14,7 @@ import { getConnectedDevices } from './utils';
 
 const debugAgent = getDebug('android:agent');
 
-type AndroidAgentOpt = AgentOpt;
+export type AndroidAgentOpt = AgentOpt;
 
 type ActionArgs<T extends DeviceAction> = [ActionParam<T>] extends [undefined]
   ? []

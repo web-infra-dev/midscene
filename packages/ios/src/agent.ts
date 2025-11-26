@@ -13,7 +13,7 @@ import { checkIOSEnvironment } from './utils';
 
 const debugAgent = getDebug('ios:agent');
 
-type IOSAgentOpt = AgentOpt;
+export type IOSAgentOpt = AgentOpt;
 
 type ActionArgs<T extends DeviceAction> = [ActionParam<T>] extends [undefined]
   ? []

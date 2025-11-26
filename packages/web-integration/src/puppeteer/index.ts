@@ -8,6 +8,7 @@ import { PuppeteerWebPage } from './page';
 const debug = getDebug('puppeteer:agent');
 
 export { PuppeteerWebPage } from './page';
+export type { WebPageAgentOpt } from '@/web-element';
 
 export class PuppeteerAgent extends PageAgent<PuppeteerWebPage> {
   constructor(page: PuppeteerPage, opts?: WebPageAgentOpt) {
