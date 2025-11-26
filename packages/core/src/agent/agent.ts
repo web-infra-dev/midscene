@@ -54,7 +54,9 @@ import {
 import type { AbstractInterface } from '@/device';
 import type { TaskRunner } from '@/task-runner';
 import {
+  MIDSCENE_REPLANNING_CYCLE_LIMIT,
   ModelConfigManager,
+  globalConfigManager,
   globalModelConfigManager,
 } from '@midscene/shared/env';
 import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
@@ -253,6 +255,15 @@ export class Agent<
 
   constructor(interfaceInstance: InterfaceType, opts?: AgentOpt) {
     this.interface = interfaceInstance;
+
+    const envConfig = globalConfigManager.getAllEnvConfig();
+    const envReplanningCycleLimitRaw =
+      envConfig[MIDSCENE_REPLANNING_CYCLE_LIMIT];
+    const envReplanningCycleLimit =
+      envReplanningCycleLimitRaw !== undefined
+        ? Number(envReplanningCycleLimitRaw)
+        : undefined;
+
     this.opts = Object.assign(
       {
         generateReport: true,
@@ -261,6 +272,11 @@ export class Agent<
         groupDescription: '',
       },
       opts || {},
+      opts?.replanningCycleLimit === undefined &&
+        envReplanningCycleLimit !== undefined &&
+        !Number.isNaN(envReplanningCycleLimit)
+        ? { replanningCycleLimit: envReplanningCycleLimit }
+        : {},
     );
 
     if (

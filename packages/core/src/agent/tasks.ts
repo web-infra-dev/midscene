@@ -21,11 +21,7 @@ import type {
   ThinkingStrategy,
 } from '@/types';
 import { ServiceError } from '@/types';
-import {
-  type IModelConfig,
-  MIDSCENE_REPLANNING_CYCLE_LIMIT,
-  globalConfigManager,
-} from '@midscene/shared/env';
+import { type IModelConfig } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { ExecutionSession } from './execution-session';
@@ -197,15 +193,10 @@ export class TaskExecutor {
   }
 
   private getReplanningCycleLimit(isVlmUiTars: boolean) {
-    return (
-      this.replanningCycleLimit ||
-      globalConfigManager.getEnvConfigInNumber(
-        MIDSCENE_REPLANNING_CYCLE_LIMIT,
-      ) ||
+    return this.replanningCycleLimit ??
       (isVlmUiTars
         ? defaultVlmUiTarsReplanningCycleLimit
-        : defaultReplanningCycleLimit)
-    );
+        : defaultReplanningCycleLimit);
   }
 
   async action(
