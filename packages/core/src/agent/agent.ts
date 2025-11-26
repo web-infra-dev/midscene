@@ -759,7 +759,7 @@ export class Agent<
     taskPrompt: string,
     opt?: {
       cacheable?: boolean;
-      _thinkingLevel?: ThinkingLevel;
+      _deepThink?: boolean;
     },
   ) {
     const modelConfigForPlanning =
@@ -767,11 +767,10 @@ export class Agent<
     const defaultIntentModelConfig =
       this.modelConfigManager.getModelConfig('default');
 
-    let thinkingLevelToUse = opt?._thinkingLevel;
-    if (!thinkingLevelToUse && this.opts.aiActionContext) {
+    let thinkingLevelToUse = opt?._deepThink ? 'high' : 'medium';
+    if (this.opts.aiActionContext) {
+      debug('using high thinking level because of aiActionContext');
       thinkingLevelToUse = 'high';
-    } else if (!thinkingLevelToUse) {
-      thinkingLevelToUse = 'medium';
     }
 
     // should include bbox in planning if
