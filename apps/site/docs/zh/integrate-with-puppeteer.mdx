@@ -136,8 +136,8 @@ const page = pages[0] || await browser.newPage();
 const agent = new PuppeteerAgent(page);
 
 // 使用 AI 方法
-await agent.aiAction('跳转到 https://example.com');
-await agent.aiAction('点击登录按钮');
+await agent.aiAct('跳转到 https://example.com');
+await agent.aiAct('点击登录按钮');
 const result = await agent.aiQuery('获取页面标题: {title: string}');
 
 // 清理

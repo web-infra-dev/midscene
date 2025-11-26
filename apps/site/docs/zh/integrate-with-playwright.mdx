@@ -299,8 +299,8 @@ const page = context.pages()[0] || await context.newPage();
 const agent = new PlaywrightAgent(page);
 
 // 使用 AI 方法
-await agent.aiAction('跳转到 https://example.com');
-await agent.aiAction('在邮箱输入框中输入 "user@example.com"');
+await agent.aiAct('跳转到 https://example.com');
+await agent.aiAct('在邮箱输入框中输入 "user@example.com"');
 
 // 清理
 await agent.destroy();

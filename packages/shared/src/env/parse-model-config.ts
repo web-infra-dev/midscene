@@ -192,7 +192,7 @@ export const parseOpenaiSdkConfig = ({
       if (uiTarsVersion) {
         return `UI-TARS=${uiTarsVersion}`;
       } else {
-        return `${vlMode} mode`;
+        return `family=${vlMode}`;
       }
     }
     return '';

@@ -20,8 +20,6 @@ Midscene.js provides a Chrome extension. By using it, you can quickly experience
 
 Install Midscene extension from chrome web store: [Midscene](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief)
 
-Or download the installation package and install it manually (**not recommended, as automatic updates cannot be obtained**)：[Releases](https://github.com/web-infra-dev/midscene/releases)
-
 Start the extension (may be folded by Chrome extension icon), setup the config by pasting the config in the K=V format:
 
 ```bash
@@ -41,6 +39,7 @@ For more configuration details, please refer to [Model strategy](./model-strateg
 
 ## FAQ
 
+
 ### Extension fails to run and shows 'Cannot access a chrome-extension:// URL of different extension'
 
 It's mainly due to conflicts with other extensions injecting `<iframe />` or `<script />` into the page. Try disabling the suspicious plugins and refresh.
@@ -50,3 +49,8 @@ To find the suspicious plugins:
 1. Open the Devtools of the page, find the `<script>` or `<iframe>` with a url like `chrome-extension://{ID-of-the-suspicious-plugin}/...`.
 2. Copy the ID from the url, open `chrome://extensions/` , use cmd+f to find the plugin with the same ID, disable it.
 3. Refresh the page, try again.
+
+
+### Can I install Midscene manually if the Chrome Web Store is unavailable?
+
+Yes. Download the installation package from [Releases](https://github.com/web-infra-dev/midscene/releases) and load it manually, but note that this is not recommended because you won't receive automatic updates.
