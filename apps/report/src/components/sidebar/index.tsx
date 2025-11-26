@@ -320,7 +320,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
         {
           title: (
             <div style={{ width: '100%', textAlign: 'right' }}>
-              <Tooltip title="Input tokens sent to the AI model">
+              <Tooltip title="Input tokens (including cached input tokens) usage">
                 Prompt
               </Tooltip>
             </div>
@@ -341,32 +341,32 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
             );
           },
         },
-        hasCachedInput
-          ? {
-              title: (
-                <div style={{ width: '100%', textAlign: 'right' }}>
-                  <Tooltip title="Cached input tokens reused by the AI model">
-                    Cached Input
-                  </Tooltip>
-                </div>
-              ),
-              dataIndex: 'task',
-              key: 'cached-input',
-              className: 'column-cached-input',
-              align: 'right',
-              width: 90,
-              render: (_: any, record: TableRowData) => {
-                if (record.isGroupHeader) {
-                  return { props: { colSpan: 0 } };
-                }
-                return (
+        ...(hasCachedInput
+          ? [
+              {
+                title: (
                   <div style={{ width: '100%', textAlign: 'right' }}>
-                    {getCachedTokens(record.task!)}
+                    <Tooltip title="Cached input tokens usage">Cached</Tooltip>
                   </div>
-                );
+                ),
+                dataIndex: 'task',
+                key: 'cached-input',
+                className: 'column-cached-input',
+                align: 'right' as const,
+                width: 90,
+                render: (_: any, record: TableRowData) => {
+                  if (record.isGroupHeader) {
+                    return { props: { colSpan: 0 } };
+                  }
+                  return (
+                    <div style={{ width: '100%', textAlign: 'right' }}>
+                      {getCachedTokens(record.task!)}
+                    </div>
+                  );
+                },
               },
-            }
-          : null,
+            ]
+          : []),
         {
           title: (
             <div style={{ width: '100%', textAlign: 'right' }}>
@@ -600,7 +600,9 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
                       </Table.Summary.Cell>
                       {hasCachedInput && (
                         <Table.Summary.Cell index={5}>
-                          <span className="token-value">{stats.cachedInput}</span>
+                          <span className="token-value">
+                            {stats.cachedInput}
+                          </span>
                         </Table.Summary.Cell>
                       )}
                       <Table.Summary.Cell index={completionColumnIndex}>

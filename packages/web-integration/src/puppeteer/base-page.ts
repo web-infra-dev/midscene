@@ -411,7 +411,9 @@ export class Page<
         await sleep(200);
         await (this.underlyingPage as PlaywrightPage).mouse.down();
         await sleep(300);
-        await (this.underlyingPage as PlaywrightPage).mouse.move(to.x, to.y, { steps: 20 });
+        await (this.underlyingPage as PlaywrightPage).mouse.move(to.x, to.y, {
+          steps: 20,
+        });
         await sleep(500);
         await (this.underlyingPage as PlaywrightPage).mouse.up();
         await sleep(200);

@@ -153,9 +153,9 @@ export async function callAI(
   const buildUsageInfo = (usageData?: OpenAI.CompletionUsage) => {
     if (!usageData) return undefined;
 
-    const cachedInputTokens =
-      (usageData as { prompt_tokens_details?: { cached_tokens?: number } })
-        ?.prompt_tokens_details?.cached_tokens;
+    const cachedInputTokens = (
+      usageData as { prompt_tokens_details?: { cached_tokens?: number } }
+    )?.prompt_tokens_details?.cached_tokens;
 
     return {
       prompt_tokens: usageData.prompt_tokens ?? 0,
