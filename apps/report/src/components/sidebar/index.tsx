@@ -87,6 +87,20 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     return rows;
   }, [groupedDump]);
 
+  const hasCachedInput = useMemo(() => {
+    if (!groupedDump) return false;
+
+    return groupedDump.executions.some((execution) =>
+      execution.tasks.some((task) => {
+        const mainCached = task.usage?.cached_input || 0;
+        const searchAreaCached =
+          (task as ExecutionTaskWithSearchAreaUsage).searchAreaUsage
+            ?.cached_input || 0;
+        return mainCached + searchAreaCached > 0;
+      }),
+    );
+  }, [groupedDump]);
+
   // Helper functions for rendering
   const getStatusIcon = (task: ExecutionTaskWithSearchAreaUsage) => {
     const isFinished = task.status === 'finished';
@@ -179,8 +193,16 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     return total > 0 ? total : '-';
   };
 
+  const getCachedTokens = (task: ExecutionTaskWithSearchAreaUsage) => {
+    const mainCached = task.usage?.cached_input || 0;
+    const searchAreaCached = task.searchAreaUsage?.cached_input || 0;
+    const total = mainCached + searchAreaCached;
+    return total > 0 ? total : '-';
+  };
+
   // Define columns
   const columns = useMemo<ColumnsType<TableRowData>>(() => {
+    const columnCount = proModeEnabled ? (hasCachedInput ? 7 : 6) : 2;
     const baseColumns: ColumnsType<TableRowData> = [
       {
         title: 'Type',
@@ -202,7 +224,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
                 </div>
               ),
               props: {
-                colSpan: proModeEnabled ? 6 : 2,
+                colSpan: columnCount,
               },
             };
           }
@@ -319,6 +341,32 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
             );
           },
         },
+        hasCachedInput
+          ? {
+              title: (
+                <div style={{ width: '100%', textAlign: 'right' }}>
+                  <Tooltip title="Cached input tokens reused by the AI model">
+                    Cached Input
+                  </Tooltip>
+                </div>
+              ),
+              dataIndex: 'task',
+              key: 'cached-input',
+              className: 'column-cached-input',
+              align: 'right',
+              width: 90,
+              render: (_: any, record: TableRowData) => {
+                if (record.isGroupHeader) {
+                  return { props: { colSpan: 0 } };
+                }
+                return (
+                  <div style={{ width: '100%', textAlign: 'right' }}>
+                    {getCachedTokens(record.task!)}
+                  </div>
+                );
+              },
+            }
+          : null,
         {
           title: (
             <div style={{ width: '100%', textAlign: 'right' }}>
@@ -352,14 +400,14 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
       );
     }
 
-    return baseColumns;
-  }, [proModeEnabled]);
+    return baseColumns.filter(Boolean) as ColumnsType<TableRowData>;
+  }, [hasCachedInput, proModeEnabled]);
 
   // Calculate total tokens by model
   const tokensByModel = useMemo(() => {
     const modelStats = new Map<
       string,
-      { prompt: number; completion: number }
+      { prompt: number; cachedInput: number; completion: number }
     >();
 
     groupedDump?.executions
@@ -371,19 +419,25 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
         const modelName = task.usage.model_name || 'Unknown';
         const mainPrompt = task.usage.prompt_tokens || 0;
         const mainCompletion = task.usage.completion_tokens || 0;
+        const mainCached = task.usage.cached_input || 0;
         const searchAreaPrompt =
           (task as ExecutionTaskWithSearchAreaUsage).searchAreaUsage
             ?.prompt_tokens || 0;
         const searchAreaCompletion =
           (task as ExecutionTaskWithSearchAreaUsage).searchAreaUsage
             ?.completion_tokens || 0;
+        const searchAreaCached =
+          (task as ExecutionTaskWithSearchAreaUsage).searchAreaUsage
+            ?.cached_input || 0;
 
         const existing = modelStats.get(modelName) || {
           prompt: 0,
+          cachedInput: 0,
           completion: 0,
         };
         modelStats.set(modelName, {
           prompt: existing.prompt + mainPrompt + searchAreaPrompt,
+          cachedInput: existing.cachedInput + mainCached + searchAreaCached,
           completion:
             existing.completion + mainCompletion + searchAreaCompletion,
         });
@@ -394,6 +448,11 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
 
   const totalPromptTokens = Array.from(tokensByModel.values()).reduce(
     (sum, stats) => sum + stats.prompt,
+    0,
+  );
+
+  const totalCachedInputTokens = Array.from(tokensByModel.values()).reduce(
+    (sum, stats) => sum + stats.cachedInput,
     0,
   );
 
@@ -509,11 +568,13 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
 
             const modelEntries = Array.from(tokensByModel.entries());
             const hasMultipleModels = modelEntries.length > 1;
+            const columnCount = hasCachedInput ? 7 : 6;
+            const completionColumnIndex = hasCachedInput ? 6 : 5;
 
             return (
               <>
                 <Table.Summary.Row className="summary-separator-row">
-                  <Table.Summary.Cell index={0} colSpan={6}>
+                  <Table.Summary.Cell index={0} colSpan={columnCount}>
                     <div className="side-seperator side-seperator-line side-seperator-space-up" />
                   </Table.Summary.Cell>
                 </Table.Summary.Row>
@@ -537,7 +598,12 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
                       <Table.Summary.Cell index={4}>
                         <span className="token-value">{stats.prompt}</span>
                       </Table.Summary.Cell>
-                      <Table.Summary.Cell index={5}>
+                      {hasCachedInput && (
+                        <Table.Summary.Cell index={5}>
+                          <span className="token-value">{stats.cachedInput}</span>
+                        </Table.Summary.Cell>
+                      )}
+                      <Table.Summary.Cell index={completionColumnIndex}>
                         <span className="token-value">{stats.completion}</span>
                       </Table.Summary.Cell>
                     </Table.Summary.Row>
@@ -551,7 +617,14 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
                     <Table.Summary.Cell index={4}>
                       <span className="token-value">{totalPromptTokens}</span>
                     </Table.Summary.Cell>
-                    <Table.Summary.Cell index={5}>
+                    {hasCachedInput && (
+                      <Table.Summary.Cell index={5}>
+                        <span className="token-value">
+                          {totalCachedInputTokens}
+                        </span>
+                      </Table.Summary.Cell>
+                    )}
+                    <Table.Summary.Cell index={completionColumnIndex}>
                       <span className="token-value">
                         {totalCompletionTokens}
                       </span>
