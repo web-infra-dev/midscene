@@ -5,6 +5,7 @@ import {
   MIDSCENE_LANGFUSE_DEBUG,
   MIDSCENE_LANGSMITH_DEBUG,
   MIDSCENE_MODEL_MAX_TOKENS,
+  MIDSCENE_MODEL_REQUEST_TIMEOUT,
   OPENAI_MAX_TOKENS,
   type TVlModeTypes,
   type UITarsModelVersion,
@@ -144,6 +145,14 @@ export async function callAI(
 
   const startTime = Date.now();
 
+  const requestTimeoutSeconds =
+    globalConfigManager.getEnvConfigInNumber(MIDSCENE_MODEL_REQUEST_TIMEOUT);
+  const defaultRequestTimeoutMs = 120_000;
+  const requestTimeoutMs =
+    Number.isFinite(requestTimeoutSeconds) && requestTimeoutSeconds > 0
+      ? requestTimeoutSeconds * 1000
+      : defaultRequestTimeoutMs;
+
   const isStreaming = options?.stream && options?.onChunk;
   let content: string | undefined;
   let accumulated = '';
@@ -176,6 +185,7 @@ export async function callAI(
         },
         {
           stream: true,
+          timeout: requestTimeoutMs,
         },
       )) as Stream<OpenAI.Chat.Completions.ChatCompletionChunk> & {
         _request_id?: string | null;
@@ -251,7 +261,9 @@ export async function callAI(
         messages,
         response_format: responseFormat,
         ...commonConfig,
-      } as any);
+      } as any, {
+        timeout: requestTimeoutMs,
+      });
       timeCost = Date.now() - startTime;
 
       debugProfileStats(
