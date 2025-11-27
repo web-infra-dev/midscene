@@ -42,7 +42,7 @@ export abstract class BaseMidsceneTools implements IMidsceneTools {
       this.ensureAgent(),
     );
 
-    // 3. Add common tools (screenshot, waitFor, assert)
+    // 3. Add common tools (screenshot, waitFor)
     const commonTools = generateCommonTools(() => this.ensureAgent());
 
     // 4. Add platform-specific tools (device connection, etc.)

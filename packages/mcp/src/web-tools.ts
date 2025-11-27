@@ -1,10 +1,10 @@
+import { z } from '@midscene/core';
 import {
   MIDSCENE_MCP_USE_PUPPETEER_MODE,
   globalConfigManager,
 } from '@midscene/shared/env';
 import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
-import { z } from 'zod';
 import { type PuppeteerBrowserAgent, ensureBrowser } from './puppeteer';
 
 export class WebMidsceneTools extends BaseMidsceneTools {

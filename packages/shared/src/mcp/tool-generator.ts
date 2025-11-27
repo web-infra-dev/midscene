@@ -26,7 +26,7 @@ export function generateToolsFromActionSpace(
       const agent = await getAgent();
 
       // Call the action through agent's action method
-      const result = await agent.action(`Use the action "${action.name}"`, {
+      await agent.action(`Use the action "${action.name}"`, {
         planType: action.name,
         ...args,
       });
@@ -90,6 +90,7 @@ export function generateCommonTools(
         await agent.aiWaitFor(assertion, { timeoutMs, checkIntervalMs });
         return {
           content: [{ type: 'text', text: `Condition met: "${assertion}"` }],
+          isError: false,
         };
       },
       autoDestroy: true,

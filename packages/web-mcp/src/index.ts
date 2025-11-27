@@ -1,4 +1,6 @@
 #!/usr/bin/env node
-// Re-export from @midscene/mcp
-export * from '@midscene/mcp';
-import('@midscene/mcp').catch(console.error);
+import { WebMCPServer } from './server.js';
+
+// CLI entry: create and launch web MCP server
+const server = new WebMCPServer();
+server.launch().catch(console.error);
