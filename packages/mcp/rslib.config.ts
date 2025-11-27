@@ -1,4 +1,3 @@
-import path from 'node:path';
 import { defineConfig } from '@rslib/core';
 import { version } from './package.json';
 
@@ -25,12 +24,19 @@ export default defineConfig({
       },
       '@silvia-odwyer/photon',
       '@silvia-odwyer/photon-node',
+      // External workspace dependencies
+      /^@midscene\/.*/,
+      '@modelcontextprotocol/sdk',
     ],
   },
   lib: [
     {
       format: 'cjs',
       syntax: 'es2021',
+      dts: {
+        bundle: false,
+        distPath: 'dist',
+      },
       output: {
         distPath: {
           root: 'dist',
