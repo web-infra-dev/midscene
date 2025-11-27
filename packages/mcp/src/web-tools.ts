@@ -17,7 +17,9 @@ export class WebMidsceneTools extends BaseMidsceneTools {
     if (this.agent && openNewTabWithUrl) {
       try {
         await this.agent.destroy();
-      } catch (e) {}
+      } catch (e) {
+        console.debug('Failed to destroy agent during re-init:', e);
+      }
       this.agent = undefined;
     }
 
