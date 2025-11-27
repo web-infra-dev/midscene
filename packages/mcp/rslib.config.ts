@@ -9,6 +9,7 @@ export default defineConfig({
     },
     entry: {
       index: './src/index.ts',
+      server: './src/server.ts',
     },
   },
   output: {

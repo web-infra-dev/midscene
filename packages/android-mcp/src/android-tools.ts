@@ -65,7 +65,15 @@ export class AndroidMidsceneTools extends BaseMidsceneTools {
           // If URI is provided, launch the app
           if (uri) {
             await agent.page.launch(uri);
-            await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait for app to launch
+
+            // Wait for app to finish loading using AI-driven polling
+            await agent.aiWaitFor(
+              'the app has finished loading and is ready to use',
+              {
+                timeoutMs: 10000,
+                checkIntervalMs: 2000,
+              },
+            );
           }
 
           const screenshot = await agent.page.screenshotBase64();
@@ -75,7 +83,7 @@ export class AndroidMidsceneTools extends BaseMidsceneTools {
             content: [
               {
                 type: 'text',
-                text: `Connected to Android device${deviceId ? `: ${deviceId}` : ' (auto-detected)'}${uri ? ` and launched: ${uri}` : ''}`,
+                text: `Connected to Android device${deviceId ? `: ${deviceId}` : ' (auto-detected)'}${uri ? ` and launched: ${uri} (app ready)` : ''}`,
               },
               {
                 type: 'image',

@@ -33,7 +33,6 @@ import { IOSWebDriverClient as WebDriverAgentBackend } from './ios-webdriver-cli
 export type { IOSDeviceOpt, IOSDeviceInputOpt } from '@midscene/core/device';
 
 const debugDevice = getDebug('ios:device');
-const BackspaceChar = '\u0008'; // Unicode backspace character
 
 /**
  * HTTP methods supported by WebDriverAgent API
