@@ -140,9 +140,7 @@ export async function AiLocateElement(options: {
   const targetElementDescriptionText = extraTextFromUserPrompt(
     targetElementDescription,
   );
-  const userInstructionPrompt = findElementPrompt(
-    targetElementDescriptionText,
-  );
+  const userInstructionPrompt = findElementPrompt(targetElementDescriptionText);
   const systemPrompt = systemPromptToLocateElement(vlMode);
 
   let imagePayload = screenshotBase64;
