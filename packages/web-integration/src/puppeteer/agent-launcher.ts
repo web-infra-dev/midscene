@@ -36,9 +36,7 @@ export async function launchPuppeteerPage(
   // prepare the environment
   const ua = target.userAgent || defaultUA;
   let width = defaultViewportWidth;
-  let preferMaximizedWindow = true;
   if (target.viewportWidth) {
-    preferMaximizedWindow = false;
     assert(
       typeof target.viewportWidth === 'number',
       'viewportWidth must be a number',
@@ -48,7 +46,6 @@ export async function launchPuppeteerPage(
   }
   let height = defaultViewportHeight;
   if (target.viewportHeight) {
-    preferMaximizedWindow = false;
     assert(
       typeof target.viewportHeight === 'number',
       'viewportHeight must be a number',
@@ -61,7 +58,6 @@ export async function launchPuppeteerPage(
   }
   let dpr = defaultViewportScale;
   if (target.viewportScale) {
-    preferMaximizedWindow = false;
     assert(
       typeof target.viewportScale === 'number',
       'viewportScale must be a number',
@@ -76,9 +72,7 @@ export async function launchPuppeteerPage(
   };
 
   const headed = preference?.headed || preference?.keepWindow;
-
-  // only maximize window in headed mode
-  preferMaximizedWindow = preferMaximizedWindow && !!headed;
+  const windowSizeArg = `--window-size=${width},${height + (headed ? 200 : 0)}`; // add 200px for the address bar in headed mode
 
   // launch the browser
   if (headed && process.env.CI === '1') {
@@ -94,9 +88,7 @@ export async function launchPuppeteerPage(
     '--disable-features=PasswordLeakDetection',
     '--disable-save-password-bubble',
     `--user-agent="${ua}"`,
-    preferMaximizedWindow
-      ? '--start-maximized'
-      : `--window-size=${width},${height + 200}`, // add 200px for the address bar
+    windowSizeArg,
   ];
 
   launcherDebug(
