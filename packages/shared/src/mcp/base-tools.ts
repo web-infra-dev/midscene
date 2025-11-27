@@ -105,7 +105,7 @@ export abstract class BaseMidsceneTools implements IMidsceneTools {
           try {
             await this.agent?.destroy();
           } catch (e) {
-            // Ignore cleanup errors
+            debug('Failed to destroy agent during cleanup:', e);
           }
           this.agent = undefined;
         }
