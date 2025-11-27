@@ -26,29 +26,45 @@ export abstract class BaseMidsceneTools implements IMidsceneTools {
   }
 
   /**
+   * Optional: provide default action space when agent is not available
+   * This allows registering tools even when device/browser is not connected
+   */
+  protected getDefaultActionSpace(): any[] {
+    return [];
+  }
+
+  /**
    * Initialize all tools by querying actionSpace
    */
   public async initTools(): Promise<void> {
     this.toolDefinitions = [];
 
-    // 1. Get agent and its action space
-    const agent = await this.ensureAgent();
-    const actionSpace = await agent.getActionSpace();
+    // 1. Add platform-specific tools first (device connection, etc.)
+    // These don't require an agent and should always be available
+    const platformTools = this.preparePlatformTools();
+    this.toolDefinitions.push(...platformTools);
 
-    debug('Action space:', actionSpace.map((a: any) => a.name).join(', '));
+    // 2. Try to get agent and its action space
+    let actionSpace: any[];
+    try {
+      const agent = await this.ensureAgent();
+      actionSpace = await agent.getActionSpace();
+      debug('Action space:', actionSpace.map((a: any) => a.name).join(', '));
+    } catch (error) {
+      // If agent initialization fails, use default action space
+      debug('Using default action space due to initialization failure');
+      actionSpace = this.getDefaultActionSpace();
+    }
 
-    // 2. Generate tools from action space (core innovation)
+    // 3. Generate tools from action space (core innovation)
     const actionTools = generateToolsFromActionSpace(actionSpace, () =>
       this.ensureAgent(),
     );
 
-    // 3. Add common tools (screenshot, waitFor)
+    // 4. Add common tools (screenshot, waitFor)
     const commonTools = generateCommonTools(() => this.ensureAgent());
 
-    // 4. Add platform-specific tools (device connection, etc.)
-    const platformTools = this.preparePlatformTools();
-
-    this.toolDefinitions.push(...actionTools, ...commonTools, ...platformTools);
+    this.toolDefinitions.push(...actionTools, ...commonTools);
 
     debug('Total tools prepared:', this.toolDefinitions.length);
   }
@@ -60,7 +76,7 @@ export abstract class BaseMidsceneTools implements IMidsceneTools {
     this.mcpServer = server;
 
     if (this.toolDefinitions.length === 0) {
-      throw new Error('No tools. Call initTools() first.');
+      debug('Warning: No tools to register. Tools may be initialized lazily.');
     }
 
     for (const toolDef of this.toolDefinitions) {
