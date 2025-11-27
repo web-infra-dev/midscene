@@ -64,7 +64,7 @@ export class AndroidMidsceneTools extends BaseMidsceneTools {
 
           // If URI is provided, launch the app
           if (uri) {
-            await agent.page.launchUri(uri);
+            await agent.page.launch(uri);
             await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait for app to launch
           }
 
