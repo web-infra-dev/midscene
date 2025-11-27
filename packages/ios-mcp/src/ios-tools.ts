@@ -1,3 +1,4 @@
+import { z } from '@midscene/core';
 import { type IOSAgent, agentFromWebDriverAgent } from '@midscene/ios';
 import { parseBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
@@ -27,10 +28,33 @@ export class IOSMidsceneTools extends BaseMidsceneTools {
     return [
       {
         name: 'ios_connect',
-        description: 'Connect to iOS device or simulator via WebDriverAgent',
-        schema: {},
-        handler: async () => {
+        description:
+          'Connect to iOS device or simulator via WebDriverAgent and optionally launch an app',
+        schema: {
+          uri: z
+            .string()
+            .optional()
+            .describe(
+              'Optional URI to launch app (e.g., http://example.com for URL, or com.example.app for bundle ID)',
+            ),
+        },
+        handler: async ({ uri }: { uri?: string }) => {
           const agent = await this.ensureAgent();
+
+          // If URI is provided, launch the app
+          if (uri) {
+            await agent.page.launch(uri);
+
+            // Wait for app to finish loading using AI-driven polling
+            await agent.aiWaitFor(
+              'the app has finished loading and is ready to use',
+              {
+                timeoutMs: 10000,
+                checkIntervalMs: 2000,
+              },
+            );
+          }
+
           const screenshot = await agent.page.screenshotBase64();
           const { mimeType, body } = parseBase64(screenshot);
 
@@ -38,7 +62,7 @@ export class IOSMidsceneTools extends BaseMidsceneTools {
             content: [
               {
                 type: 'text',
-                text: 'Connected to iOS device',
+                text: `Connected to iOS device${uri ? ` and launched: ${uri} (app ready)` : ''}`,
               },
               {
                 type: 'image',
