@@ -42,10 +42,16 @@ export abstract class BaseMCPServer {
     // Create platform-specific tools manager
     this.toolsManager = this.createToolsManager();
 
-    // Initialize tools (queries actionSpace)
-    await this.toolsManager.initTools();
+    // Try to initialize tools, but don't fail if device/agent is not available
+    // Tools will be lazily initialized on first use
+    try {
+      await this.toolsManager.initTools();
+    } catch (error: any) {
+      console.error(`Failed to initialize tools: ${error.message}`);
+      console.error('Tools will be initialized on first use');
+    }
 
-    // Attach to MCP server
+    // Attach to MCP server (even if initTools failed)
     this.toolsManager.attachToServer(this.mcpServer);
 
     // Connect transport
