@@ -26,7 +26,7 @@ export function generateToolsFromActionSpace(
       const agent = await getAgent();
 
       // Call the action through agent's action method
-      await agent.action(`Use the action "${action.name}"`, {
+      await agent.aiAction(`Use the action "${action.name}"`, {
         planType: action.name,
         ...args,
       });

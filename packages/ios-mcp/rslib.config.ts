@@ -1,4 +1,3 @@
-import path from 'node:path';
 import { defineConfig } from '@rslib/core';
 import { version } from './package.json';
 
