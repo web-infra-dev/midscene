@@ -21,11 +21,7 @@ import type {
   ThinkingStrategy,
 } from '@/types';
 import { ServiceError } from '@/types';
-import {
-  type IModelConfig,
-  MIDSCENE_REPLANNING_CYCLE_LIMIT,
-  globalConfigManager,
-} from '@midscene/shared/env';
+import type { IModelConfig } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { ExecutionSession } from './execution-session';
@@ -50,8 +46,6 @@ interface TaskExecutorHooks {
 }
 
 const debug = getDebug('device-task-executor');
-const defaultReplanningCycleLimit = 20;
-const defaultVlmUiTarsReplanningCycleLimit = 40;
 const maxErrorCountAllowedInOnePlanningLoop = 5;
 
 export { TaskExecutionError };
@@ -196,18 +190,6 @@ export class TaskExecutor {
     };
   }
 
-  private getReplanningCycleLimit(isVlmUiTars: boolean) {
-    return (
-      this.replanningCycleLimit ||
-      globalConfigManager.getEnvConfigInNumber(
-        MIDSCENE_REPLANNING_CYCLE_LIMIT,
-      ) ||
-      (isVlmUiTars
-        ? defaultVlmUiTarsReplanningCycleLimit
-        : defaultReplanningCycleLimit)
-    );
-  }
-
   async action(
     userPrompt: string,
     modelConfigForPlanning: IModelConfig,
@@ -216,6 +198,7 @@ export class TaskExecutor {
     thinkingStrategy: ThinkingStrategy,
     backgroundKnowledge?: string,
     cacheable?: boolean,
+    replanningCycleLimitOverride?: number,
   ): Promise<
     ExecutionResult<
       | {
@@ -233,8 +216,11 @@ export class TaskExecutor {
 
     let replanCount = 0;
     const yamlFlow: MidsceneYamlFlowItem[] = [];
-    const replanningCycleLimit = this.getReplanningCycleLimit(
-      modelConfigForPlanning.vlMode === 'vlm-ui-tars',
+    const replanningCycleLimit =
+      replanningCycleLimitOverride ?? this.replanningCycleLimit;
+    assert(
+      replanningCycleLimit !== undefined,
+      'replanningCycleLimit is required for TaskExecutor.action',
     );
 
     let errorCountInOnePlanningLoop = 0; // count the number of errors in one planning loop
@@ -395,7 +381,7 @@ export class TaskExecutor {
       ++replanCount;
 
       if (replanCount > replanningCycleLimit) {
-        const errorMsg = `Replanning ${replanningCycleLimit} times, which is more than the limit, please split the task into multiple steps`;
+        const errorMsg = `Replanned ${replanningCycleLimit} times, exceeding the limit. Please configure a larger value for replanningCycleLimit (or use MIDSCENE_REPLANNING_CYCLE_LIMIT) to handle more complex tasks.`;
         return session.appendErrorPlan(errorMsg);
       }
 

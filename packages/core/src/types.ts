@@ -630,6 +630,11 @@ export interface AgentOpt {
   reportFileName?: string;
   modelConfig?: TModelConfig;
   cache?: Cache;
+  /**
+   * Maximum number of replanning cycles for aiAct.
+   * Defaults to 20 (40 for `vlm-ui-tars`) when not provided.
+   * If omitted, the agent will also read `MIDSCENE_REPLANNING_CYCLE_LIMIT` for backward compatibility.
+   */
   replanningCycleLimit?: number;
 
   /**

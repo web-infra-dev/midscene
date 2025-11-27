@@ -20,7 +20,7 @@ All agents share these base options:
 - `autoPrintReportMsg: boolean`: If true, report messages will be printed. (Default: true)
 - `cacheId: string | undefined`: If provided, this cacheId will be used to save or match the cache. (Default: undefined, means cache feature is disabled)
 - `actionContext: string`: Some background knowledge that should be sent to the AI model when calling `agent.aiAct()`, like 'close the cookie consent dialog first if it exists' (Default: undefined)
-- `replanningCycleLimit: number`: The maximum number of `aiAct` replanning cycles. (Default: 20)
+- `replanningCycleLimit: number`: The maximum number of `aiAct` replanning cycles. Default is 20 (40 for UI-TARS models). Prefer setting this via the agent option; reading `MIDSCENE_REPLANNING_CYCLE_LIMIT` is only for backward compatibility.
 - `onTaskStartTip: (tip: string) => void | Promise<void>`: Optional hook that fires before each execution task begins with a human-readable summary of the task (Default: undefined)
 
 ### Custom model configuration

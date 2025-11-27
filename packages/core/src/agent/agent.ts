@@ -54,7 +54,10 @@ import {
 import type { AbstractInterface } from '@/device';
 import type { TaskRunner } from '@/task-runner';
 import {
+  type IModelConfig,
+  MIDSCENE_REPLANNING_CYCLE_LIMIT,
   ModelConfigManager,
+  globalConfigManager,
   globalModelConfigManager,
 } from '@midscene/shared/env';
 import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
@@ -128,6 +131,9 @@ const normalizeScrollType = (
 
   return scrollType as ScrollParam['scrollType'];
 };
+
+const defaultReplanningCycleLimit = 20;
+const defaultVlmUiTarsReplanningCycleLimit = 40;
 
 export class Agent<
   InterfaceType extends AbstractInterface = AbstractInterface,
@@ -251,8 +257,29 @@ export class Agent<
     }
   }
 
+  private resolveReplanningCycleLimit(
+    modelConfigForPlanning: IModelConfig,
+  ): number {
+    if (this.opts.replanningCycleLimit !== undefined) {
+      return this.opts.replanningCycleLimit;
+    }
+
+    return modelConfigForPlanning.vlMode === 'vlm-ui-tars'
+      ? defaultVlmUiTarsReplanningCycleLimit
+      : defaultReplanningCycleLimit;
+  }
+
   constructor(interfaceInstance: InterfaceType, opts?: AgentOpt) {
     this.interface = interfaceInstance;
+
+    const envConfig = globalConfigManager.getAllEnvConfig();
+    const envReplanningCycleLimitRaw =
+      envConfig[MIDSCENE_REPLANNING_CYCLE_LIMIT];
+    const envReplanningCycleLimit =
+      envReplanningCycleLimitRaw !== undefined
+        ? Number(envReplanningCycleLimitRaw)
+        : undefined;
+
     this.opts = Object.assign(
       {
         generateReport: true,
@@ -261,6 +288,11 @@ export class Agent<
         groupDescription: '',
       },
       opts || {},
+      opts?.replanningCycleLimit === undefined &&
+        envReplanningCycleLimit !== undefined &&
+        !Number.isNaN(envReplanningCycleLimit)
+        ? { replanningCycleLimit: envReplanningCycleLimit }
+        : {},
     );
 
     if (
@@ -783,6 +815,9 @@ export class Agent<
     debug('setting includeBboxInPlanning to', includeBboxInPlanning);
 
     const cacheable = opt?.cacheable;
+    const replanningCycleLimit = this.resolveReplanningCycleLimit(
+      modelConfigForPlanning,
+    );
     // if vlm-ui-tars, plan cache is not used
     const isVlmUiTars = modelConfigForPlanning.vlMode === 'vlm-ui-tars';
     const matchedCache =
@@ -809,6 +844,7 @@ export class Agent<
       thinkingLevelToUse === 'off' ? 'off' : 'cot',
       this.opts.aiActionContext,
       cacheable,
+      replanningCycleLimit,
     );
 
     // update cache
