@@ -1,8 +1,8 @@
 import { type AndroidAgent, agentFromAdbDevice } from '@midscene/android';
+import { z } from '@midscene/core';
 import { parseBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
-import { z } from 'zod';
 
 const debug = getDebug('mcp:android-tools');
 

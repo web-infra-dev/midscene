@@ -34,8 +34,7 @@
     "@types/node": "^18.0.0",
     "dotenv": "^16.4.5",
     "typescript": "^5.8.3",
-    "vitest": "3.0.5",
-    "zod": "3.24.3"
+    "vitest": "3.0.5"
   },
   "dependencies": {
     "@silvia-odwyer/photon": "0.3.3",
