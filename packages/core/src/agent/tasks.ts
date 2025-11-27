@@ -381,7 +381,7 @@ export class TaskExecutor {
       ++replanCount;
 
       if (replanCount > replanningCycleLimit) {
-        const errorMsg = `Replanning ${replanningCycleLimit} times, which is more than the limit, please split the task into multiple steps`;
+        const errorMsg = `Replanned ${replanningCycleLimit} times, exceeding the limit. Please configure a larger value for replanningCycleLimit (or use MIDSCENE_REPLANNING_CYCLE_LIMIT) to handle more complex tasks.`;
         return session.appendErrorPlan(errorMsg);
       }
 
