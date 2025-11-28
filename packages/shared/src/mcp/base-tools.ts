@@ -51,13 +51,19 @@ export abstract class BaseMidsceneTools implements IMidsceneTools {
       // Layer 1: Try to use connected agent
       const agent = await this.ensureAgent();
       actionSpace = await agent.getActionSpace();
-      debug('Action space from connected agent:', actionSpace.map((a: any) => a.name).join(', '));
+      debug(
+        'Action space from connected agent:',
+        actionSpace.map((a: any) => a.name).join(', '),
+      );
     } catch (error) {
       // Layer 2: Create temporary device instance to read actionSpace
       debug('Failed to get action space from agent, using temporary device');
       const tempDevice = this.createTemporaryDevice();
       actionSpace = tempDevice.actionSpace();
-      debug('Action space from temporary device:', actionSpace.map((a: any) => a.name).join(', '));
+      debug(
+        'Action space from temporary device:',
+        actionSpace.map((a: any) => a.name).join(', '),
+      );
 
       // Destroy temporary instance using optional chaining
       await tempDevice.destroy?.();
