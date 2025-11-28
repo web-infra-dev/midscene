@@ -1,12 +1,7 @@
 #!/usr/bin/env node
-import { parseArgs } from 'node:util';
-import {
-  type CLIArgs,
-  CLI_ARGS_CONFIG,
-  launchMCPServer,
-} from '@midscene/shared/mcp';
-import { WebMCPServer } from './server.js';
 
-const { values } = parseArgs({ options: CLI_ARGS_CONFIG });
+// This package is an alias for @midscene/web-mcp
+// Delegate to the web-mcp package which contains the actual implementation
+// with full HTTP transport support and CLI argument parsing
 
-launchMCPServer(new WebMCPServer(), values as CLIArgs).catch(console.error);
+require('@midscene/web-mcp');
