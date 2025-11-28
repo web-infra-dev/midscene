@@ -134,6 +134,7 @@ Community projects that extend Midscene.js capabilities:
 * [midscene-pc-docker](https://github.com/Mofangbao/midscene-pc-docker) - Docker container image with MidScene-PC server pre-installed
 * [Midscene-Python](https://github.com/Python51888/Midscene-Python) - Python SDK for Midscene automation
 * [midscene-java](https://github.com/Master-Frank/midscene-java) - Java SDK that brings Midscene automation features to JVM projects
+* [midscene-java](https://github.com/alstafeev/midscene-java) - Java SDK for Midscene automation
 
 
 ## 📝 Credits
