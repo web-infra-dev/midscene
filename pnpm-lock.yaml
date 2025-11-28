@@ -1070,6 +1070,9 @@ importers:
       debug:
         specifier: 4.4.0
         version: 4.4.0
+      express:
+        specifier: ^4.18.2
+        version: 4.21.2
       jimp:
         specifier: 0.22.12
         version: 0.22.12(debug@4.4.0)
@@ -1092,6 +1095,9 @@ importers:
       '@types/debug':
         specifier: 4.1.12
         version: 4.1.12
+      '@types/express':
+        specifier: ^4.17.21
+        version: 4.17.21
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.62
