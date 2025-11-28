@@ -3,7 +3,11 @@ import {
   MIDSCENE_MCP_USE_PUPPETEER_MODE,
   globalConfigManager,
 } from '@midscene/shared/env';
-import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
+import {
+  type BaseAgent,
+  BaseMidsceneTools,
+  type ToolDefinition,
+} from '@midscene/shared/mcp';
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
 import { type PuppeteerBrowserAgent, ensureBrowser } from './puppeteer';
 
@@ -13,7 +17,11 @@ export class WebMidsceneTools extends BaseMidsceneTools {
   );
 
   protected createTemporaryDevice() {
-    // Import PuppeteerWebPage class
+    // Import PuppeteerWebPage class using dynamic ESM import
+    // This is intentionally synchronous despite the async nature of createTemporaryDevice
+    // because we need the class constructor immediately for tool initialization
+    // The alternative would be to make all tool initialization async, which is a larger refactor
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { PuppeteerWebPage } = require('@midscene/web');
 
     // Create minimal mock page object that satisfies the interface
@@ -36,11 +44,13 @@ export class WebMidsceneTools extends BaseMidsceneTools {
     return new PuppeteerWebPage(mockPage as any, {});
   }
 
-  protected async ensureAgent(openNewTabWithUrl?: string): Promise<any> {
+  protected async ensureAgent(openNewTabWithUrl?: string): Promise<BaseAgent> {
     // Re-init if URL provided
     if (this.agent && openNewTabWithUrl) {
       try {
-        await this.agent.destroy();
+        if (this.agent.destroy) {
+          await this.agent.destroy();
+        }
       } catch (e) {
         console.debug('Failed to destroy agent during re-init:', e);
       }
@@ -58,9 +68,13 @@ export class WebMidsceneTools extends BaseMidsceneTools {
           'Bridge mode requires a URL. Use web_connect tool to connect to a page first.',
         );
       }
-      this.agent = await this.initAgentByBridgeMode(openNewTabWithUrl);
+      this.agent = (await this.initAgentByBridgeMode(
+        openNewTabWithUrl,
+      )) as unknown as BaseAgent;
     } else {
-      this.agent = await this.initPuppeteerAgent(openNewTabWithUrl);
+      this.agent = (await this.initPuppeteerAgent(
+        openNewTabWithUrl,
+      )) as unknown as BaseAgent;
     }
 
     return this.agent;
@@ -104,9 +118,21 @@ export class WebMidsceneTools extends BaseMidsceneTools {
         schema: {
           url: z.string().url().describe('URL to connect to'),
         },
-        handler: async ({ url }) => {
+        handler: async (args) => {
+          const { url } = args as { url: string };
           const agent = await this.ensureAgent(url);
-          const screenshot = await agent.page.screenshotBase64();
+          const screenshot = await agent.page?.screenshotBase64();
+          if (!screenshot) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Connected to: ${url}`,
+                },
+              ],
+            };
+          }
+
           const { parseBase64 } = await import('@midscene/shared/img');
           const { mimeType, body } = parseBase64(screenshot);
 
@@ -122,7 +148,6 @@ export class WebMidsceneTools extends BaseMidsceneTools {
                 mimeType,
               },
             ],
-            isError: false,
           };
         },
         autoDestroy: false,

@@ -117,9 +117,27 @@ export abstract class BaseMCPServer {
     await this.initializeToolsManager();
 
     const transport = new StdioServerTransport();
-    await this.mcpServer.connect(transport);
 
+    try {
+      await this.mcpServer.connect(transport);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`Failed to connect MCP stdio transport: ${message}`);
+      throw new Error(`Failed to initialize MCP stdio transport: ${message}`);
+    }
+
+    // Setup cleanup handlers
     process.stdin.on('close', () => this.performCleanup());
+
+    // Setup signal handlers for graceful shutdown
+    const cleanup = () => {
+      console.error(`${this.config.name} shutting down...`);
+      this.performCleanup();
+      process.exit(0);
+    };
+
+    process.once('SIGINT', cleanup);
+    process.once('SIGTERM', cleanup);
   }
 
   /**
@@ -149,6 +167,9 @@ export abstract class BaseMCPServer {
     const sessions = new Map<string, SessionData>();
 
     app.all('/mcp', async (req: Request, res: Response) => {
+      const startTime = Date.now();
+      const requestId = randomUUID().substring(0, 8);
+
       try {
         const rawSessionId = req.headers['mcp-session-id'];
         const sessionId = Array.isArray(rawSessionId)
@@ -159,6 +180,9 @@ export abstract class BaseMCPServer {
         if (!session && req.method === 'POST') {
           // Check session limit to prevent DoS
           if (sessions.size >= MAX_SESSIONS) {
+            console.error(
+              `[${new Date().toISOString()}] [${requestId}] Session limit reached: ${sessions.size}/${MAX_SESSIONS}`,
+            );
             res.status(503).json({
               error: 'Too many active sessions',
               message: 'Server is at maximum capacity. Please try again later.',
@@ -166,19 +190,32 @@ export abstract class BaseMCPServer {
             return;
           }
           session = await this.createHttpSession(sessions);
+          console.log(
+            `[${new Date().toISOString()}] [${requestId}] New session created: ${session.transport.sessionId}`,
+          );
         }
 
         if (session) {
           session.lastAccessedAt = new Date();
           await session.transport.handleRequest(req, res, req.body);
+          const duration = Date.now() - startTime;
+          console.log(
+            `[${new Date().toISOString()}] [${requestId}] Request completed in ${duration}ms`,
+          );
         } else {
+          console.error(
+            `[${new Date().toISOString()}] [${requestId}] Invalid session or GET without session`,
+          );
           res
             .status(400)
             .json({ error: 'Invalid session or GET without session' });
         }
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error);
-        console.error('MCP request error:', message);
+        const duration = Date.now() - startTime;
+        console.error(
+          `[${new Date().toISOString()}] [${requestId}] MCP request error after ${duration}ms: ${message}`,
+        );
         if (!res.headersSent) {
           res.status(500).json({
             error: 'Internal server error',
@@ -200,15 +237,11 @@ export abstract class BaseMCPServer {
       .on('error', (error: NodeJS.ErrnoException) => {
         if (error.code === 'EADDRINUSE') {
           console.error(
-            `ERROR: Port ${options.port} is already in use.\n` +
-              `Please try a different port: --port=<number>\n` +
-              `Example: --mode=http --port=${options.port + 1}`,
+            `ERROR: Port ${options.port} is already in use.\nPlease try a different port: --port=<number>\nExample: --mode=http --port=${options.port + 1}`,
           );
         } else if (error.code === 'EACCES') {
           console.error(
-            `ERROR: Permission denied to bind to port ${options.port}.\n` +
-              `Ports below 1024 require root/admin privileges.\n` +
-              `Please use a port above 1024 or run with elevated privileges.`,
+            `ERROR: Permission denied to bind to port ${options.port}.\nPorts below 1024 require root/admin privileges.\nPlease use a port above 1024 or run with elevated privileges.`,
           );
         } else {
           console.error(
@@ -238,14 +271,18 @@ export abstract class BaseMCPServer {
           createdAt: new Date(),
           lastAccessedAt: new Date(),
         });
-        console.log(`Session ${sid} created`);
+        console.log(
+          `[${new Date().toISOString()}] Session ${sid} initialized (total: ${sessions.size})`,
+        );
       },
     });
 
     transport.onclose = () => {
       if (transport.sessionId) {
         sessions.delete(transport.sessionId);
-        console.log(`Session ${transport.sessionId} closed`);
+        console.log(
+          `[${new Date().toISOString()}] Session ${transport.sessionId} closed (remaining: ${sessions.size})`,
+        );
       }
     };
 
@@ -253,7 +290,9 @@ export abstract class BaseMCPServer {
       await this.mcpServer.connect(transport);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
-      console.error(`Failed to connect MCP transport: ${message}`);
+      console.error(
+        `[${new Date().toISOString()}] Failed to connect MCP transport: ${message}`,
+      );
       // Clean up the failed transport
       if (transport.sessionId) {
         sessions.delete(transport.sessionId);
@@ -281,12 +320,14 @@ export abstract class BaseMCPServer {
           try {
             session.transport.close();
             sessions.delete(sid);
-            console.log(`Session ${sid} cleaned up due to inactivity`);
+            console.log(
+              `[${new Date().toISOString()}] Session ${sid} cleaned up due to inactivity (remaining: ${sessions.size})`,
+            );
           } catch (error: unknown) {
             const message =
               error instanceof Error ? error.message : String(error);
             console.error(
-              `Failed to close session ${sid} during cleanup: ${message}`,
+              `[${new Date().toISOString()}] Failed to close session ${sid} during cleanup: ${message}`,
             );
             // Still delete from map to prevent retry loops
             sessions.delete(sid);
@@ -313,21 +354,33 @@ export abstract class BaseMCPServer {
         try {
           session.transport.close();
         } catch (error: unknown) {
-          const message = error instanceof Error ? error.message : String(error);
+          const message =
+            error instanceof Error ? error.message : String(error);
           console.error(`Error closing session during shutdown: ${message}`);
         }
       }
       sessions.clear();
 
-      // Close HTTP server
+      // Close HTTP server gracefully
       try {
-        server.close();
+        server.close(() => {
+          // Server closed callback - all connections finished
+          this.performCleanup();
+          process.exit(0);
+        });
+
+        // Set a timeout in case server.close() hangs
+        setTimeout(() => {
+          console.error('Forcefully shutting down after timeout');
+          this.performCleanup();
+          process.exit(1);
+        }, 5000);
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error);
         console.error(`Error closing HTTP server: ${message}`);
+        this.performCleanup();
+        process.exit(1);
       }
-
-      this.performCleanup();
     };
 
     // Use once() to prevent multiple registrations

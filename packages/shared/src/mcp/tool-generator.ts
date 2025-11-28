@@ -1,34 +1,31 @@
 import { parseBase64 } from '@midscene/shared/img';
 import { z } from 'zod';
-import type { ToolDefinition } from './types';
-
-// Generic type to avoid importing from @midscene/core
-// The actual DeviceAction will be provided by implementation
-interface GenericAction {
-  name: string;
-  description?: string;
-  paramSchema?: any;
-}
+import type { ActionSpaceItem, BaseAgent, ToolDefinition } from './types';
 
 /**
  * Converts DeviceAction from actionSpace into MCP ToolDefinition
  * This is the core logic that removes need for hardcoded tool definitions
  */
 export function generateToolsFromActionSpace(
-  actionSpace: GenericAction[],
-  getAgent: () => Promise<any>,
+  actionSpace: ActionSpaceItem[],
+  getAgent: () => Promise<BaseAgent>,
 ): ToolDefinition[] {
   return actionSpace.map((action) => {
     // Extract the shape from Zod schema if it exists
     // For z.object({ locate: ... }), we want to get the shape (the fields inside)
-    let schema: any = {};
+    let schema: Record<string, z.ZodTypeAny> = {};
     if (action.paramSchema) {
+      const paramSchema = action.paramSchema as z.ZodTypeAny;
       // If it's a ZodObject, extract its shape
-      if (action.paramSchema._def?.typeName === 'ZodObject') {
-        schema = action.paramSchema.shape;
+      if (
+        '_def' in paramSchema &&
+        paramSchema._def?.typeName === 'ZodObject' &&
+        'shape' in paramSchema
+      ) {
+        schema = (paramSchema as z.ZodObject<z.ZodRawShape>).shape;
       } else {
         // Otherwise use it as-is
-        schema = action.paramSchema;
+        schema = paramSchema as unknown as Record<string, z.ZodTypeAny>;
       }
     }
 
@@ -36,25 +33,45 @@ export function generateToolsFromActionSpace(
       name: action.name,
       description: action.description || `Execute ${action.name} action`,
       schema,
-      handler: async (args: any) => {
+      handler: async (args: Record<string, unknown>) => {
         const agent = await getAgent();
 
         // Call the action through agent's action method
         // args already contains the unwrapped parameters (e.g., { locate: {...} })
-        await agent.aiAction(`Use the action "${action.name}"`, {
-          planType: action.name,
-          ...args,
-        });
+        if ('aiAction' in agent && typeof agent.aiAction === 'function') {
+          await (
+            agent as BaseAgent & {
+              aiAction: (
+                desc: string,
+                params: Record<string, unknown>,
+              ) => Promise<void>;
+            }
+          ).aiAction(`Use the action "${action.name}"`, {
+            planType: action.name,
+            ...args,
+          });
+        }
 
         // Return screenshot after action
-        const screenshot = await agent.page.screenshotBase64();
+        const screenshot = await agent.page?.screenshotBase64();
+        if (!screenshot) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Action "${action.name}" completed.`,
+              },
+            ],
+          };
+        }
+
         const { mimeType, body } = parseBase64(screenshot);
 
         return {
           content: [
             {
               type: 'text',
-              text: `Action "${action.name}" completed. Report: ${agent.reportFile}`,
+              text: `Action "${action.name}" completed.`,
             },
             {
               type: 'image',
@@ -62,7 +79,6 @@ export function generateToolsFromActionSpace(
               mimeType,
             },
           ],
-          isError: false,
         };
       },
       autoDestroy: true,
@@ -75,7 +91,7 @@ export function generateToolsFromActionSpace(
  * SIMPLIFIED: Only keep essential helper tools, removed assert
  */
 export function generateCommonTools(
-  getAgent: () => Promise<any>,
+  getAgent: () => Promise<BaseAgent>,
 ): ToolDefinition[] {
   return [
     {
@@ -84,11 +100,16 @@ export function generateCommonTools(
       schema: {},
       handler: async () => {
         const agent = await getAgent();
-        const screenshot = await agent.page.screenshotBase64();
+        const screenshot = await agent.page?.screenshotBase64();
+        if (!screenshot) {
+          return {
+            content: [{ type: 'text', text: 'Screenshot not available' }],
+            isError: true,
+          };
+        }
         const { mimeType, body } = parseBase64(screenshot);
         return {
           content: [{ type: 'image', data: body, mimeType }],
-          isError: false,
         };
       },
       autoDestroy: true,
@@ -101,12 +122,27 @@ export function generateCommonTools(
         timeoutMs: z.number().optional().default(15000),
         checkIntervalMs: z.number().optional().default(3000),
       },
-      handler: async ({ assertion, timeoutMs, checkIntervalMs }) => {
+      handler: async (args) => {
         const agent = await getAgent();
-        await agent.aiWaitFor(assertion, { timeoutMs, checkIntervalMs });
+        const { assertion, timeoutMs, checkIntervalMs } = args as {
+          assertion: string;
+          timeoutMs?: number;
+          checkIntervalMs?: number;
+        };
+
+        if ('aiWaitFor' in agent && typeof agent.aiWaitFor === 'function') {
+          await (
+            agent as BaseAgent & {
+              aiWaitFor: (
+                assertion: string,
+                options: Record<string, unknown>,
+              ) => Promise<void>;
+            }
+          ).aiWaitFor(assertion, { timeoutMs, checkIntervalMs });
+        }
+
         return {
           content: [{ type: 'text', text: `Condition met: "${assertion}"` }],
-          isError: false,
         };
       },
       autoDestroy: true,
