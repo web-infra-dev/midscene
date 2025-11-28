@@ -46,27 +46,27 @@ export function generateToolsFromActionSpace(
           ...args,
         });
 
-      // Return screenshot after action
-      const screenshot = await agent.page.screenshotBase64();
-      const { mimeType, body } = parseBase64(screenshot);
+        // Return screenshot after action
+        const screenshot = await agent.page.screenshotBase64();
+        const { mimeType, body } = parseBase64(screenshot);
 
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Action "${action.name}" completed. Report: ${agent.reportFile}`,
-          },
-          {
-            type: 'image',
-            data: body,
-            mimeType,
-          },
-        ],
-        isError: false,
-      };
-    },
-    autoDestroy: true,
-  };
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Action "${action.name}" completed. Report: ${agent.reportFile}`,
+            },
+            {
+              type: 'image',
+              data: body,
+              mimeType,
+            },
+          ],
+          isError: false,
+        };
+      },
+      autoDestroy: true,
+    };
   });
 }
 

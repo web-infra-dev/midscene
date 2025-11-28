@@ -1,28 +1,12 @@
 #!/usr/bin/env node
 import { parseArgs } from 'node:util';
+import {
+  type CLIArgs,
+  CLI_ARGS_CONFIG,
+  launchMCPServer,
+} from '@midscene/shared/mcp';
 import { AndroidMCPServer } from './server.js';
 
-// Parse command line arguments
-const { values } = parseArgs({
-  options: {
-    mode: { type: 'string', default: 'stdio' },
-    port: { type: 'string', default: '3000' },
-    host: { type: 'string', default: 'localhost' },
-  },
-});
+const { values } = parseArgs({ options: CLI_ARGS_CONFIG });
 
-// CLI entry: create and launch Android MCP server
-const server = new AndroidMCPServer();
-
-if (values.mode === 'http') {
-  // HTTP mode
-  server
-    .launchHttp({
-      port: Number.parseInt(values.port!),
-      host: values.host!,
-    })
-    .catch(console.error);
-} else {
-  // stdio mode (default)
-  server.launch().catch(console.error);
-}
+launchMCPServer(new AndroidMCPServer(), values as CLIArgs).catch(console.error);
