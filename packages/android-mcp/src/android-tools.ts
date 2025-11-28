@@ -31,6 +31,14 @@ export class AndroidMidsceneTools extends BaseMidsceneTools {
     ];
   }
 
+  protected createTemporaryDevice() {
+    // Import AndroidDevice class
+    const { AndroidDevice } = require('@midscene/android');
+    // Create minimal temporary instance without connecting to device
+    // The constructor doesn't establish ADB connection
+    return new AndroidDevice('temp-for-actionspace', {});
+  }
+
   protected async ensureAgent(deviceId?: string): Promise<AndroidAgent> {
     if (this.agent && deviceId) {
       // If a specific deviceId is requested and we have an agent,

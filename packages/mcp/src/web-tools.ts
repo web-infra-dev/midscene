@@ -33,6 +33,30 @@ export class WebMidsceneTools extends BaseMidsceneTools {
     ];
   }
 
+  protected createTemporaryDevice() {
+    // Import PuppeteerWebPage class
+    const { PuppeteerWebPage } = require('@midscene/web');
+
+    // Create minimal mock page object that satisfies the interface
+    // actionSpace() method doesn't actually use these methods, just needs the structure
+    const mockPage = {
+      url: () => 'about:blank',
+      mouse: {
+        click: async () => {},
+        wheel: async () => {},
+        move: async () => {},
+      },
+      keyboard: {
+        type: async () => {},
+        press: async () => {},
+      },
+    };
+
+    // Create temporary PuppeteerWebPage instance to read actionSpace
+    // The instance doesn't connect to real browser, just returns action definitions
+    return new PuppeteerWebPage(mockPage as any, {});
+  }
+
   protected async ensureAgent(openNewTabWithUrl?: string): Promise<any> {
     // Re-init if URL provided
     if (this.agent && openNewTabWithUrl) {

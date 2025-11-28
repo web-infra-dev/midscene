@@ -29,6 +29,14 @@ export class IOSMidsceneTools extends BaseMidsceneTools {
     ];
   }
 
+  protected createTemporaryDevice() {
+    // Import IOSDevice class
+    const { IOSDevice } = require('@midscene/ios');
+    // Create minimal temporary instance without connecting to WebDriverAgent
+    // The constructor only initializes WDA backend, doesn't establish connection
+    return new IOSDevice({});
+  }
+
   protected async ensureAgent(): Promise<IOSAgent> {
     if (this.agent) {
       return this.agent;
