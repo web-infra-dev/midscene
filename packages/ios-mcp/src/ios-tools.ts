@@ -11,24 +11,6 @@ const debug = getDebug('mcp:ios-tools');
  * Extends BaseMidsceneTools to provide iOS WebDriverAgent connection tools
  */
 export class IOSMidsceneTools extends BaseMidsceneTools {
-  protected getDefaultActionSpace() {
-    // Provide default iOS action space when WebDriverAgent is not connected
-    return [
-      { name: 'Tap', description: 'Tap the element' },
-      { name: 'DoubleClick', description: 'Double click the element' },
-      { name: 'Input', description: 'Input text into the input field' },
-      { name: 'Scroll', description: 'Scroll the page or an element' },
-      { name: 'DragAndDrop', description: 'Drag and drop the element' },
-      { name: 'KeyboardPress', description: 'Press a key or key combination' },
-      { name: 'IOSLongPress', description: 'Trigger a long press on iOS devices' },
-      { name: 'IOSPull', description: 'Trigger pull down to refresh or pull up actions' },
-      { name: 'ClearInput', description: 'Clear the input field' },
-      { name: 'Launch', description: 'Launch an iOS app or URL' },
-      { name: 'IOSBackButton', description: 'Trigger the system "back" operation on iOS devices' },
-      { name: 'IOSHomeButton', description: 'Trigger the system "home" operation on iOS devices' },
-    ];
-  }
-
   protected createTemporaryDevice() {
     // Import IOSDevice class
     const { IOSDevice } = require('@midscene/ios');

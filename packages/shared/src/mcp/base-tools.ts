@@ -26,27 +26,16 @@ export abstract class BaseMidsceneTools implements IMidsceneTools {
   }
 
   /**
-   * Optional: provide default action space when agent is not available
-   * This allows registering tools even when device/browser is not connected
-   */
-  protected getDefaultActionSpace(): any[] {
-    return [];
-  }
-
-  /**
-   * Optional: create a temporary device instance to read actionSpace
+   * Must be implemented by subclasses to create a temporary device instance
    * This allows getting real actionSpace without connecting to device
    */
-  protected createTemporaryDevice?(): any {
-    return undefined;
-  }
+  protected abstract createTemporaryDevice(): any;
 
   /**
    * Initialize all tools by querying actionSpace
-   * Uses three-layer fallback strategy:
-   * 1. Try to get actionSpace from connected agent
-   * 2. Create temporary device instance to read actionSpace
-   * 3. Use hardcoded default actionSpace
+   * Uses two-layer fallback strategy:
+   * 1. Try to get actionSpace from connected agent (if available)
+   * 2. Create temporary device instance to read actionSpace (always succeeds)
    */
   public async initTools(): Promise<void> {
     this.toolDefinitions = [];
@@ -56,7 +45,7 @@ export abstract class BaseMidsceneTools implements IMidsceneTools {
     const platformTools = this.preparePlatformTools();
     this.toolDefinitions.push(...platformTools);
 
-    // 2. Try to get agent and its action space (three-layer fallback)
+    // 2. Try to get agent and its action space (two-layer fallback)
     let actionSpace: any[];
     try {
       // Layer 1: Try to use connected agent
@@ -64,25 +53,14 @@ export abstract class BaseMidsceneTools implements IMidsceneTools {
       actionSpace = await agent.getActionSpace();
       debug('Action space from connected agent:', actionSpace.map((a: any) => a.name).join(', '));
     } catch (error) {
-      debug('Failed to get action space from agent, trying temporary device');
+      // Layer 2: Create temporary device instance to read actionSpace
+      debug('Failed to get action space from agent, using temporary device');
+      const tempDevice = this.createTemporaryDevice();
+      actionSpace = tempDevice.actionSpace();
+      debug('Action space from temporary device:', actionSpace.map((a: any) => a.name).join(', '));
 
-      try {
-        // Layer 2: Create temporary device instance to read actionSpace
-        if (this.createTemporaryDevice) {
-          const tempDevice = this.createTemporaryDevice();
-          actionSpace = tempDevice.actionSpace();
-          debug('Action space from temporary device:', actionSpace.map((a: any) => a.name).join(', '));
-
-          // Destroy temporary instance using optional chaining
-          await tempDevice.destroy?.();
-        } else {
-          throw new Error('createTemporaryDevice not implemented');
-        }
-      } catch (fallbackError) {
-        // Layer 3: Use hardcoded default actionSpace
-        debug('Using default action space due to all failures');
-        actionSpace = this.getDefaultActionSpace();
-      }
+      // Destroy temporary instance using optional chaining
+      await tempDevice.destroy?.();
     }
 
     // 3. Generate tools from action space (core innovation)
