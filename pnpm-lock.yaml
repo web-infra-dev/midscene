@@ -923,21 +923,9 @@ importers:
 
   packages/mcp:
     dependencies:
-      '@silvia-odwyer/photon':
-        specifier: 0.3.3
-        version: 0.3.3
-      '@silvia-odwyer/photon-node':
-        specifier: 0.3.3
-        version: 0.3.3
-      bufferutil:
-        specifier: 4.0.9
-        version: 4.0.9
-      sharp:
-        specifier: ^0.34.3
-        version: 0.34.3
-      utf-8-validate:
-        specifier: 6.0.5
-        version: 6.0.5
+      '@midscene/web-mcp':
+        specifier: workspace:*
+        version: link:../web-mcp
     devDependencies:
       '@midscene/android':
         specifier: workspace:*
@@ -961,17 +949,11 @@ importers:
         specifier: 1.10.2
         version: 1.10.2
       '@rslib/core':
-        specifier: ^0.18.2
-        version: 0.18.2(@microsoft/api-extractor@7.52.10(@types/node@18.19.62))(typescript@5.8.3)
+        specifier: ^0.11.2
+        version: 0.11.2(@microsoft/api-extractor@7.52.10(@types/node@18.19.62))(typescript@5.8.3)
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.62
-      dotenv:
-        specifier: ^16.4.5
-        version: 16.4.5
-      puppeteer-core:
-        specifier: 24.2.0
-        version: 24.2.0(bufferutil@4.0.9)(utf-8-validate@6.0.5)
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
@@ -1298,16 +1280,55 @@ importers:
 
   packages/web-mcp:
     dependencies:
-      '@midscene/mcp':
-        specifier: workspace:*
-        version: link:../mcp
+      '@silvia-odwyer/photon':
+        specifier: 0.3.3
+        version: 0.3.3
+      '@silvia-odwyer/photon-node':
+        specifier: 0.3.3
+        version: 0.3.3
+      bufferutil:
+        specifier: 4.0.9
+        version: 4.0.9
+      sharp:
+        specifier: ^0.34.3
+        version: 0.34.3
+      utf-8-validate:
+        specifier: 6.0.5
+        version: 6.0.5
     devDependencies:
+      '@midscene/android':
+        specifier: workspace:*
+        version: link:../android
+      '@midscene/core':
+        specifier: workspace:*
+        version: link:../core
+      '@midscene/report':
+        specifier: workspace:*
+        version: link:../../apps/report
+      '@midscene/shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@midscene/web':
+        specifier: workspace:*
+        version: link:../web-integration
+      '@modelcontextprotocol/inspector':
+        specifier: ^0.16.3
+        version: 0.16.3(@types/node@18.19.118)(@types/react-dom@19.1.5(@types/react@19.1.5))(@types/react@19.1.5)(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@6.0.5)
+      '@modelcontextprotocol/sdk':
+        specifier: 1.10.2
+        version: 1.10.2
       '@rslib/core':
         specifier: ^0.11.2
         version: 0.11.2(@microsoft/api-extractor@7.52.10(@types/node@18.19.118))(typescript@5.8.3)
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.118
+      dotenv:
+        specifier: ^16.4.5
+        version: 16.4.5
+      puppeteer-core:
+        specifier: 24.2.0
+        version: 24.2.0(bufferutil@4.0.9)(utf-8-validate@6.0.5)
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
@@ -13668,6 +13689,15 @@ snapshots:
       '@microsoft/api-extractor': 7.52.10(@types/node@18.19.118)
       typescript: 5.8.3
 
+  '@rslib/core@0.11.2(@microsoft/api-extractor@7.52.10(@types/node@18.19.62))(typescript@5.8.3)':
+    dependencies:
+      '@rsbuild/core': 1.4.16
+      rsbuild-plugin-dts: 0.11.2(@microsoft/api-extractor@7.52.10(@types/node@18.19.62))(@rsbuild/core@1.4.16)(typescript@5.8.3)
+      tinyglobby: 0.2.15
+    optionalDependencies:
+      '@microsoft/api-extractor': 7.52.10(@types/node@18.19.62)
+      typescript: 5.8.3
+
   '@rslib/core@0.18.2(@microsoft/api-extractor@7.52.10(@types/node@18.19.118))(typescript@5.8.3)':
     dependencies:
       '@rsbuild/core': 1.6.9
@@ -20478,6 +20508,18 @@ snapshots:
       tsconfig-paths: 4.2.0
     optionalDependencies:
       '@microsoft/api-extractor': 7.52.10(@types/node@18.19.118)
+      typescript: 5.8.3
+
+  rsbuild-plugin-dts@0.11.2(@microsoft/api-extractor@7.52.10(@types/node@18.19.62))(@rsbuild/core@1.4.16)(typescript@5.8.3):
+    dependencies:
+      '@ast-grep/napi': 0.37.0
+      '@rsbuild/core': 1.4.16
+      magic-string: 0.30.17
+      picocolors: 1.1.1
+      tinyglobby: 0.2.15
+      tsconfig-paths: 4.2.0
+    optionalDependencies:
+      '@microsoft/api-extractor': 7.52.10(@types/node@18.19.62)
       typescript: 5.8.3
 
   rsbuild-plugin-dts@0.18.2(@microsoft/api-extractor@7.52.10(@types/node@18.19.118))(@rsbuild/core@1.6.9)(typescript@5.8.3):

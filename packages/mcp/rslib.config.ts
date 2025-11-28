@@ -12,31 +12,12 @@ export default defineConfig({
     },
   },
   output: {
-    externals: [
-      (data, cb) => {
-        if (
-          data.context?.includes('/node_modules/ws/lib') &&
-          ['bufferutil', 'utf-8-validate'].includes(data.request as string)
-        ) {
-          cb(undefined, data.request);
-        }
-        cb();
-      },
-      '@silvia-odwyer/photon',
-      '@silvia-odwyer/photon-node',
-      // External workspace dependencies
-      /^@midscene\/.*/,
-      '@modelcontextprotocol/sdk',
-    ],
+    externals: ['@midscene/web-mcp'],
   },
   lib: [
     {
       format: 'cjs',
       syntax: 'es2021',
-      dts: {
-        bundle: false,
-        distPath: 'dist',
-      },
       output: {
         distPath: {
           root: 'dist',
